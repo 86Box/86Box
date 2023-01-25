@@ -522,6 +522,9 @@ BEGIN
     IDS_2160	"Wyłączenie ACPI"
     IDS_2161	"Ustawienia"
     IDS_2162    "Wcześniejszy napęd"
+    IDS_2163    "no dynarec"
+    IDS_2164    "old dynarec"
+    IDS_2165    "new dynarec"
 END
 
 STRINGTABLE DISCARDABLE 

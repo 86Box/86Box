@@ -8,7 +8,7 @@
  *
  *          CPU type handler.
  *
- * Authors: Sarah Walker, <tommowalker@tommowalker.co.uk>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          leilei,
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -235,7 +235,7 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
     if (packages & CPU_PKG_SOCKET3)
         packages |= CPU_PKG_SOCKET1;
     else if (packages & CPU_PKG_SLOT1)
-        packages |= CPU_PKG_SOCKET370;
+        packages |= CPU_PKG_SOCKET370 | CPU_PKG_SOCKET8;
 
     /* Package type. */
     if (!(cpu_family->package & packages))

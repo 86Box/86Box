@@ -317,14 +317,14 @@ lt_write(uint16_t port, uint8_t val, void *priv)
              * This indicates the mode of operation of D7:
              * 1 = Mode set, 0 = Bit set/reset
              * D6,D5 =  Mode selection (port A)
-             *		00 = Mode 0 = Basic I/O
-             *		01 = Mode 1 = Strobed I/O
-             * 		10 = Mode 2 = Bi-dir bus
+             *      00 = Mode 0 = Basic I/O
+             *      01 = Mode 1 = Strobed I/O
+             *      10 = Mode 2 = Bi-dir bus
              * D4    =  Port A direction (1 = input)
              * D3    =  Port C (upper 4 bits) direction. (1 = input)
              * D2    =  Mode selection (port B & C)
-             *		0 = Mode 0 = Basic I/O
-             *		1 = Mode 1 = Strobed I/O
+             *      0 = Mode 0 = Basic I/O
+             *      1 = Mode 1 = Strobed I/O
              * D1    =  Port B direction (1 = input)
              * D0    =  Port C (lower 4 bits) direction. (1 = input)
              *
@@ -333,8 +333,8 @@ lt_write(uint16_t port, uint8_t val, void *priv)
              * being an output port and lower 4 bits an input port, and
              * enable the sucker.  Courtesy Intel 8255 databook. Lars
              *
-             * 1001 1011	9B	1111	Default state
-             * 1001 0001	91	1001	Driver-initialized state
+             * 1001 1011    9B  1111    Default state
+             * 1001 0001    91  1001    Driver-initialized state
              * The only difference is - port C upper and port B go from
              * input to output.
              */

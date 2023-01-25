@@ -12,7 +12,7 @@
 # After a successful build, you can install the RPMs as follows:
 #  sudo dnf install RPMS/$(uname -m)/86Box-3* RPMS/noarch/86Box-roms*
 
-%global romver v3.7
+%global romver v3.11
 
 Name:		86Box
 Version:	3.11

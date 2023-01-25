@@ -12,7 +12,7 @@
  *          David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *          Copyright 2017-2019 Fred N. van Kempen.
- *          Copyright 2018,2019 David Hrdlička.
+ *          Copyright 2018-2019 David Hrdlička.
  *
  *          Redistribution and  use  in source  and binary forms, with
  *          or  without modification, are permitted  provided that the

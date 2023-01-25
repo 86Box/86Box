@@ -1,24 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Main window module.
+ *          Main window module.
  *
  *
  *
- * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *          Teemu Korhonen
  *          dob205
  *
- *		Copyright 2021 Joakim L. Gilje
- *      Copyright 2021-2022 Cacodemon345
- *      Copyright 2021-2022 Teemu Korhonen
- *      Copyright 2022 dob205
+ *          Copyright 2021 Joakim L. Gilje
+ *          Copyright 2021-2022 Cacodemon345
+ *          Copyright 2021-2022 Teemu Korhonen
+ *          Copyright 2022 dob205
  */
 #include <QDebug>
 
@@ -75,6 +75,7 @@ extern int qt_nvr_save(void);
 #include <QScreen>
 #include <QString>
 #include <QDir>
+#include <QSysInfo>
 #if QT_CONFIG(vulkan)
 #    include <QVulkanInstance>
 #    include <QVulkanFunctions>
@@ -2094,11 +2095,21 @@ MainWindow::on_actionAbout_86Box_triggered()
 {
     QMessageBox msgBox;
     msgBox.setTextFormat(Qt::RichText);
-    QString githash;
+    QString versioninfo;
 #ifdef EMU_GIT_HASH
-    githash = QString(" [%1]").arg(EMU_GIT_HASH);
+    versioninfo = QString(" [%1]").arg(EMU_GIT_HASH);
 #endif
-    msgBox.setText(QString("<b>%3%1%2</b>").arg(EMU_VERSION_FULL, githash, tr("86Box v")));
+#ifdef USE_DYNAREC
+#    ifdef USE_NEW_DYNAREC
+#        define DYNAREC_STR "new dynarec"
+#    else
+#        define DYNAREC_STR "old dynarec"
+#    endif
+#else
+#    define DYNAREC_STR "no dynarec"
+#endif
+    versioninfo.append(QString(" [%1, %2]").arg(QSysInfo::buildCpuArchitecture(), tr(DYNAREC_STR)));
+    msgBox.setText(QString("<b>%3%1%2</b>").arg(EMU_VERSION_FULL, versioninfo, tr("86Box v")));
     msgBox.setInformativeText(tr("An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."));
     msgBox.setWindowTitle("About 86Box");
     msgBox.addButton("OK", QMessageBox::ButtonRole::AcceptRole);

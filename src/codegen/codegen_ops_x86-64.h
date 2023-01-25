@@ -82,7 +82,7 @@ load_param_1_reg_32(int reg)
 #if 0
 static __inline void load_param_1_64(codeblock_t *block, uint64_t param)
 {
-	addbyte(0x48);
+    addbyte(0x48);
 #    if _WIN64
         addbyte(0xb9); /*MOVL $fetchdat,%ecx*/
 #    else

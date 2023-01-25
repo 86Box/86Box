@@ -12,7 +12,7 @@
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
- *          Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2016-2019 Miran Grca.
@@ -108,7 +108,7 @@ typedef struct {
     const char                     *file_filter;
     const device_config_spinner_t   spinner;
     const device_config_selection_t selection[16];
-    const device_config_bios_t     bios[32];
+    const device_config_bios_t      bios[32];
 } device_config_t;
 
 typedef struct _device_ {

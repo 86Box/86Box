@@ -13,8 +13,8 @@
  *
  *          Based on code by Frederic Weymann (originally for DosBox.)
  *
- *          Copyright 2018,2019 Michael Drüing.
- *          Copyright 2019,2019 Fred N. van Kempen.
+ *          Copyright 2018-2019 Michael Drüing.
+ *          Copyright 2019      Fred N. van Kempen.
  *
  *          Redistribution and  use  in source  and binary forms, with
  *          or  without modification, are permitted  provided that the

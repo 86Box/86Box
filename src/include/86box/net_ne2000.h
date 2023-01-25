@@ -12,7 +12,7 @@
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *          Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
