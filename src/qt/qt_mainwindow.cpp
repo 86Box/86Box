@@ -723,6 +723,7 @@ MainWindow::destroyRendererMonitorSlot(int monitor_index)
         }
         config_save();
         this->renderers[monitor_index].release()->deleteLater();
+        ui->stackedWidget->switchRenderer((RendererStack::Renderer) vid_api);
     }
 }
 
@@ -2378,6 +2379,7 @@ MainWindow::on_actionShow_non_primary_monitors_triggered()
                                                monitor_settings[monitor_index].mon_window_h > 2048 ? 2048 : monitor_settings[monitor_index].mon_window_h);
             }
             secondaryRenderer->switchRenderer((RendererStack::Renderer) vid_api);
+            ui->stackedWidget->switchRenderer((RendererStack::Renderer) vid_api);
         }
     } else {
         for (int monitor_index = 1; monitor_index < MONITORS_NUM; monitor_index++) {
