@@ -506,6 +506,7 @@ typedef struct voodoo_t {
     uint8_t *vram, *changedvram;
 
     void *p;
+    uint8_t monitor_index;
 } voodoo_t;
 
 typedef struct voodoo_set_t {
