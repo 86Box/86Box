@@ -578,6 +578,8 @@ spd_write_drbs_intel_815ep(uint8_t *regs)
 
     /* Write DRBs for each row. */
     for (int slot = 0; slot < 3; slot++) {
+        if(spd_modules[slot] == NULL)
+            break;
         size = spd_modules[slot]->row1 + spd_modules[slot]->row2;
         spd_log("Intel 815EP SPD: Registering Slot %d with size %dMB.\n", slot, size);
 
