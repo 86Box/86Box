@@ -587,9 +587,9 @@ picint_common(uint16_t num, int level, int set)
 
         if (num & 0x00ff) {
             if (level)
-                pic.lines |= (num >> 8);
+                pic.lines |= (num & 0x00ff);
 
-            pic.irr |= num;
+            pic.irr |= (num & 0x00ff);
         }
     } else {
         smi_irq_status &= ~num;
@@ -600,8 +600,8 @@ picint_common(uint16_t num, int level, int set)
         }
 
         if (num & 0x00ff) {
-            pic.lines &= ~num;
-            pic.irr &= ~num;
+            pic.lines &= ~(num & 0x00ff);
+            pic.irr &= ~(num & 0x00ff);
         }
     }
 
