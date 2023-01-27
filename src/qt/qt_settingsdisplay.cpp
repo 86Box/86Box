@@ -178,7 +178,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
             break;
         }
 
-        if (video_card_available(c) && device_is_valid(video_dev, machineId) && !(video_card_get_flags(c) == video_card_get_flags(videoCard))) {
+        if (video_card_available(c) && device_is_valid(video_dev, machineId) && !(video_card_get_flags(c) == video_card_get_flags(videoCard) && (video_card_get_flags(c) != VIDEO_FLAG_TYPE_SPECIAL))) {
             ui->comboBoxVideoSecondary->addItem(name, c);
             if (c == curVideoCard_2)
                 ui->comboBoxVideoSecondary->setCurrentIndex(ui->comboBoxVideoSecondary->count() - 1);
