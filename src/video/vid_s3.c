@@ -1776,7 +1776,7 @@ s3_accel_write_fifo_l(s3_t *s3, uint32_t addr, uint32_t val)
                 case 0x8180:
                     s3->streams.pri_ctrl = val;
                     svga_recalctimings(svga);
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
                 case 0x8184:
                     s3->streams.chroma_ctrl = val;
@@ -1806,37 +1806,37 @@ s3_accel_write_fifo_l(s3_t *s3, uint32_t addr, uint32_t val)
                 case 0x81c0:
                     s3->streams.pri_fb0 = val & 0x3fffff;
                     svga_recalctimings(svga);
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
                 case 0x81c4:
                     s3->streams.pri_fb1 = val & 0x3fffff;
                     svga_recalctimings(svga);
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
                 case 0x81c8:
                     s3->streams.pri_stride = val & 0xfff;
                     svga_recalctimings(svga);
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
                 case 0x81cc:
                     s3->streams.buffer_ctrl = val;
                     svga_recalctimings(svga);
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
                 case 0x81d0:
                     s3->streams.sec_fb0 = val;
                     svga_recalctimings(svga);
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
                 case 0x81d4:
                     s3->streams.sec_fb1 = val;
                     svga_recalctimings(svga);
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
                 case 0x81d8:
                     s3->streams.sec_stride = val;
                     svga_recalctimings(svga);
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
                 case 0x81dc:
                     s3->streams.overlay_ctrl = val;
@@ -1864,28 +1864,28 @@ s3_accel_write_fifo_l(s3_t *s3, uint32_t addr, uint32_t val)
                     s3->streams.pri_x     = (val >> 16) & 0x7ff;
                     s3->streams.pri_y     = val & 0x7ff;
                     svga_recalctimings(svga);
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
                 case 0x81f4:
                     s3->streams.pri_size = val;
                     s3->streams.pri_w    = (val >> 16) & 0x7ff;
                     s3->streams.pri_h    = val & 0x7ff;
                     svga_recalctimings(svga);
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
                 case 0x81f8:
                     s3->streams.sec_start = val;
                     s3->streams.sec_x     = (val >> 16) & 0x7ff;
                     s3->streams.sec_y     = val & 0x7ff;
                     svga_recalctimings(svga);
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
                 case 0x81fc:
                     s3->streams.sec_size = val;
                     s3->streams.sec_w    = (val >> 16) & 0x7ff;
                     s3->streams.sec_h    = val & 0x7ff;
                     svga_recalctimings(svga);
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
 
                 case 0x8504:
@@ -2891,7 +2891,7 @@ s3_out(uint16_t addr, uint8_t val, void *p)
                         if ((((svga->crtc[0x67] & 0xc) != 0xc) && (s3->chip >= S3_TRIO64V)) || (s3->chip < S3_TRIO64V))
                             svga->ma_latch |= (s3->ma_ext << 16);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -3626,10 +3626,10 @@ s3_accel_out(uint16_t port, uint8_t val, void *p)
                 s3->accel.advfunc_cntl = val;
                 if ((s3->chip > S3_86C805) && ((svga->crtc[0x50] & 0xc1) == 0x80)) {
                     s3->width        = (val & 4) ? 1600 : 800;
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     svga_recalctimings(svga);
                 } else if (s3->chip <= S3_86C805) {
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                     svga_recalctimings(svga);
                 }
                 if (s3->chip > S3_86C924)
@@ -5653,16 +5653,16 @@ polygon_setup(s3_t *s3)
 #define WRITE(addr, dat)                                                                                \
     if (s3->bpp == 0 && !s3->color_16bit) {                                                             \
         svga->vram[dword_remap(svga, addr) & s3->vram_mask]                = dat;                       \
-        svga->changedvram[(dword_remap(svga, addr) & s3->vram_mask) >> 12] = changeframecount;          \
+        svga->changedvram[(dword_remap(svga, addr) & s3->vram_mask) >> 12] = svga->monitor->mon_changeframecount;          \
     } else if (s3->bpp == 1 || s3->color_16bit) {                                                       \
         vram_w[dword_remap_w(svga, addr) & (s3->vram_mask >> 1)]                    = dat;              \
-        svga->changedvram[(dword_remap_w(svga, addr) & (s3->vram_mask >> 1)) >> 11] = changeframecount; \
+        svga->changedvram[(dword_remap_w(svga, addr) & (s3->vram_mask >> 1)) >> 11] = svga->monitor->mon_changeframecount; \
     } else if (s3->bpp == 2) {                                                                          \
         svga->vram[dword_remap(svga, addr) & s3->vram_mask]                = dat;                       \
-        svga->changedvram[(dword_remap(svga, addr) & s3->vram_mask) >> 12] = changeframecount;          \
+        svga->changedvram[(dword_remap(svga, addr) & s3->vram_mask) >> 12] = svga->monitor->mon_changeframecount;          \
     } else {                                                                                            \
         vram_l[dword_remap_l(svga, addr) & (s3->vram_mask >> 2)]                    = dat;              \
-        svga->changedvram[(dword_remap_l(svga, addr) & (s3->vram_mask >> 2)) >> 10] = changeframecount; \
+        svga->changedvram[(dword_remap_l(svga, addr) & (s3->vram_mask >> 2)) >> 10] = svga->monitor->mon_changeframecount; \
     }
 
 static __inline void
@@ -8554,7 +8554,7 @@ s3_force_redraw(void *p)
 {
     s3_t *s3 = (s3_t *) p;
 
-    s3->svga.fullchange = changeframecount;
+    s3->svga.fullchange = s3->svga.monitor->mon_changeframecount;
 }
 
 static const device_config_t s3_orchid_86c911_config[] = {
