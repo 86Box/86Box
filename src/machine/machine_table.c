@@ -5786,7 +5786,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_VLB,
+        .bus_flags = MACHINE_PS2_VLB,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
@@ -7684,7 +7684,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL,
         .ram = {
             .min = 2048,
-            .max = 131072,
+            .max = 262144,
             .step = 2048
         },
         .nvrmask = 127,

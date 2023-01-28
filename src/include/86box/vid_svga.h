@@ -33,6 +33,8 @@
 #    define FLAG_RAMDAC_SHIFT 64
 #    define FLAG_128K_MASK    128
 
+struct monitor_t;
+
 typedef struct {
     int ena,
         x, y, xoff, yoff, cur_xsize, cur_ysize,
@@ -170,6 +172,12 @@ typedef struct svga_t {
     uint32_t (*remap_func)(struct svga_t *svga, uint32_t in_addr);
 
     void *ramdac, *clock_gen;
+
+    /* Monitor Index */
+    uint8_t monitor_index;
+
+    /* Pointer to monitor */
+    monitor_t* monitor;
 } svga_t;
 
 extern int vga_on, ibm8514_on;
