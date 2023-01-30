@@ -949,13 +949,13 @@ else
 
 	if grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
-		# Build openal-soft 1.21.1 manually to fix audio issues. This is a temporary
+		# Build openal-soft 1.22.2 manually to fix audio issues. This is a temporary
 		# workaround until a newer version of openal-soft trickles down to Debian repos.
-		prefix="$cache_dir/openal-soft-1.21.1"
+		prefix="$cache_dir/openal-soft-1.22.2"
 		if [ ! -d "$prefix" ]
 		then
 			rm -rf "$cache_dir/openal-soft-"* # remove old versions
-			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.21.1.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.22.2.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 		fi
 		prefix_build="$prefix/build-$arch_deb"
 		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
