@@ -951,11 +951,15 @@ else
 	then
 		# Build openal-soft 1.22.2 manually to fix audio issues. This is a temporary
 		# workaround until a newer version of openal-soft trickles down to Debian repos.
-		prefix="$cache_dir/openal-soft-1.22.2"
+		prefix="$cache_dir/openal-soft-1.22.2-pwpatch"
 		if [ ! -d "$prefix" ]
 		then
 			rm -rf "$cache_dir/openal-soft-"* # remove old versions
 			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.22.2.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+
+			# Patches to build with the old PipeWire version in Debian.
+			sed -i -e 's/>=0.3.23//' "$prefix/CMakeLists.txt"
+			sed -i -e 's/PW_KEY_CONFIG_NAME/"config.name"/g' "$prefix/alc/backends/pipewire.cpp"
 		fi
 		prefix_build="$prefix/build-$arch_deb"
 		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
