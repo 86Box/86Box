@@ -1166,7 +1166,8 @@ EOF
 	done < .ci/AppImageBuilder.yml
 
 	# Download appimage-builder if necessary.
-	appimage_builder_url="https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-$(uname -m).AppImage"
+	#appimage_builder_url="https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-$(uname -m).AppImage"
+	appimage_builder_url="https://ci.86box.net/userContent/appimage-builder-1.1.1.dev32+g2709a3b-x86_64.AppImage"
 	appimage_builder_binary="$cache_dir/$(basename "$appimage_builder_url")"
 	if [ ! -e "$appimage_builder_binary" ]
 	then
