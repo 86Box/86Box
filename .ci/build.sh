@@ -1004,7 +1004,8 @@ else
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
 
-	# Build FluidSynth without JACK support to remove the dependency on libjack once again.
+	# Build FluidSynth without sound systems to remove the dependencies on libjack
+	# and other sound system libraries. We don't output audio through FluidSynth.
 	prefix="$cache_dir/fluidsynth-2.3.0"
 	if [ ! -d "$prefix" ]
 	then
@@ -1014,7 +1015,9 @@ else
 	cp cmake/flags-gcc.cmake cmake/flags-gcc.cmake.old
 	sed -i -e 's/ -Werror=.*\([" ]\)/\1/g' cmake/flags-gcc.cmake # temporary hack for -Werror=old-style-definition non-compliance on FluidSynth and SDL2
 	prefix_build="$prefix/build-$arch_deb"
-	cmake -G Ninja -D enable-jack=OFF -D enable-sdl2=$sdl_ss -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+	cmake -G Ninja -D enable-dbus=OFF -D enable-jack=OFF -D enable-oss=OFF -D enable-sdl2=OFF -D enable-pulseaudio=OFF -D enable-pipewire=OFF -D enable-alsa=OFF \
+		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
+		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
 	cp -p "$cwd_root/archive_tmp/usr/bin/fluidsynth" fluidsynth
