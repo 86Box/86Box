@@ -558,10 +558,8 @@ extern int machine_at_430nx_init(const machine_t *);
 
 extern int machine_at_acerv30_init(const machine_t *);
 extern int machine_at_apollo_init(const machine_t *);
-extern int machine_at_exp8551_init(const machine_t *);
 extern int machine_at_zappa_init(const machine_t *);
 extern int machine_at_powermatev_init(const machine_t *);
-extern int machine_at_mb500n_init(const machine_t *);
 extern int machine_at_hawk_init(const machine_t *);
 
 extern int machine_at_pat54pv_init(const machine_t *);
@@ -574,12 +572,14 @@ extern int machine_at_sq588_init(const machine_t *);
 /* m_at_socket7_3v.c */
 extern int machine_at_p54tp4xe_init(const machine_t *);
 extern int machine_at_p54tp4xe_mr_init(const machine_t *);
+extern int machine_at_exp8551_init(const machine_t *);
 extern int machine_at_gw2katx_init(const machine_t *);
 extern int machine_at_thor_init(const machine_t *);
 extern int machine_at_mrthor_init(const machine_t *);
 extern int machine_at_endeavor_init(const machine_t *);
 extern int machine_at_ms5119_init(const machine_t *);
 extern int machine_at_pb640_init(const machine_t *);
+extern int machine_at_mb500n_init(const machine_t *);
 extern int machine_at_fmb_init(const machine_t *);
 
 extern int machine_at_acerm3a_init(const machine_t *);
