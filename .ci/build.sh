@@ -1179,6 +1179,9 @@ EOF
 			done
 		fi
 	done < .ci/AppImageBuilder.yml
+	echo = appimage-builder workaround list start =
+	grep /runtime/compat AppImageBuilder-generated.yml
+	echo = appimage-builder workaround list end =
 
 	# Download appimage-builder if necessary.
 	appimage_builder_url="https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-$(uname -m).AppImage"
