@@ -1163,11 +1163,25 @@ EOF
 
 		# Copy line.
 		echo "$line" >> AppImageBuilder-generated.yml
+
+		# Workaround for appimage-builder issues 272 and 283 (i686 and armhf are also missing)
+		if [ "$arch_appimage" != "x86_64" -a "$line" = "  files:" ]
+		then
+			echo "    include:" >> AppImageBuilder-generated.yml
+			for loader in "/lib/$libdir/ld-linux"*.so.*
+			do
+				for loader_copy in "$loader" "/lib/$(basename "$loader")"
+				do
+					mkdir -p "/runtime/compat$(dirname "$loader_copy")"
+					ln -s "$loader" "/runtime/compat$loader_copy"
+					echo "    - /runtime/compat$loader_copy" >> AppImageBuilder-generated.yml
+				done
+			done
+		fi
 	done < .ci/AppImageBuilder.yml
 
 	# Download appimage-builder if necessary.
-	#appimage_builder_url="https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-$(uname -m).AppImage"
-	appimage_builder_url="https://ci.86box.net/userContent/appimage-builder-1.1.1.dev32+g2709a3b-x86_64.AppImage"
+	appimage_builder_url="https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-$(uname -m).AppImage"
 	appimage_builder_binary="$cache_dir/$(basename "$appimage_builder_url")"
 	if [ ! -e "$appimage_builder_binary" ]
 	then
@@ -1183,7 +1197,7 @@ EOF
 	ln -s "$cache_dir/appimage-builder-cache" appimage-builder-cache
 
 	# Run appimage-builder in extract-and-run mode for Docker compatibility.
-	# --appdir is a workaround for https://github.com/AppImageCrafters/appimage-builder/issues/270
+	# --appdir is a workaround for appimage-builder issue 270 reported by us.
 	for retry in 1 2 3 4 5
 	do
 		project="$project" project_id="$project_id" project_version="$project_version" project_icon="$project_icon" arch_deb="$arch_deb" \
