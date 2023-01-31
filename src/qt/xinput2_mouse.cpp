@@ -11,11 +11,12 @@
  *
  *
  * Authors: Cacodemon345
+ *          RichardG <richardg867@gmail.com>
  *
- *          Copyright 2022 Cacodemon345
+ *          Copyright 2022 Cacodemon345.
+ *          Copyright 2023 RichardG.
  */
 
-/* Valuator parsing and duplicate event checking code from SDL2. */
 #include <QDebug>
 #include <QThread>
 #include <QProcess>
@@ -43,20 +44,19 @@ extern "C" {
 #include <86box/plat.h>
 }
 
-int xi2flides[2] = { 0, 0 };
-
 static Display            *disp       = nullptr;
 static QThread            *procThread = nullptr;
 static XIEventMask         ximask;
 static std::atomic<bool>   exitfromthread = false;
 static std::atomic<double> xi2_mouse_x = 0, xi2_mouse_y = 0, xi2_mouse_abs_x = 0, xi2_mouse_abs_y = 0;
-static int                 xi2opcode          = 0;
-static double              prev_rel_coords[2] = { 0., 0. };
-static Time                prev_time          = 0;
+static int                 xi2opcode      = 0;
+static double              prev_coords[2] = { 0.0 };
+static Time                prev_time      = 0;
 
-// From SDL2.
+/* Based on SDL2. */
 static void
-parse_valuators(const double *input_values, const unsigned char *mask, int mask_len,
+parse_valuators(const double        *input_values,
+                const unsigned char *mask, int mask_len,
                 double *output_values, int output_values_len)
 {
     int i = 0, z = 0;
@@ -64,11 +64,10 @@ parse_valuators(const double *input_values, const unsigned char *mask, int mask_
     if (top > 16)
         top = 16;
 
-    memset(output_values, 0, output_values_len * sizeof(double));
+    memset(output_values, 0, output_values_len * sizeof(output_values[0]));
     for (; i < top && z < output_values_len; i++) {
         if (XIMaskIsSet(mask, i)) {
-            const int value  = (int) *input_values;
-            output_values[z] = value;
+            output_values[z] = *input_values;
             input_values++;
         }
         z++;
@@ -92,8 +91,7 @@ xinput2_proc()
     XISetMask(ximask.mask, XI_RawButtonPress);
     XISetMask(ximask.mask, XI_RawButtonRelease);
     XISetMask(ximask.mask, XI_RawMotion);
-    if (XKeysymToKeycode(disp, XK_Home) == 69)
-        XISetMask(ximask.mask, XI_Motion);
+    XISetMask(ximask.mask, XI_Motion);
 
     XISelectEvents(disp, win, &ximask, 1);
 
@@ -103,23 +101,77 @@ xinput2_proc()
         XGenericEventCookie *cookie = (XGenericEventCookie *) &ev.xcookie;
         XNextEvent(disp, (XEvent *) &ev);
 
-        if (XGetEventData(disp, cookie) && cookie->type == GenericEvent && cookie->extension == xi2opcode) {
+        if (XGetEventData(disp, cookie) && (cookie->type == GenericEvent) && (cookie->extension == xi2opcode)) {
+            const XIRawEvent *rawev     = (const XIRawEvent *) cookie->data;
+            double            coords[2] = { 0.0 };
+
             switch (cookie->evtype) {
+                case XI_Motion:
+                    {
+                        const XIDeviceEvent *devev = (const XIDeviceEvent *) cookie->data;
+                        parse_valuators(devev->valuators.values, devev->valuators.mask, devev->valuators.mask_len, coords, 2);
+
+                        /* XIDeviceEvent and XIRawEvent share the XIEvent base struct, which
+                           doesn't contain deviceid, but that's at the same offset on both. */
+                        goto common_motion;
+                    }
+
                 case XI_RawMotion:
                     {
-                        const XIRawEvent *rawev              = (const XIRawEvent *) cookie->data;
-                        double            relative_coords[2] = { 0., 0. };
-                        parse_valuators(rawev->raw_values, rawev->valuators.mask,
-                                        rawev->valuators.mask_len, relative_coords, 2);
+                        parse_valuators(rawev->raw_values, rawev->valuators.mask, rawev->valuators.mask_len, coords, 2);
+common_motion:
+                        /* Ignore duplicated events. */
+                        if ((rawev->time == prev_time) && (coords[0] == prev_coords[0]) && (coords[1] == prev_coords[1]))
+                            break;
 
-                        if ((rawev->time == prev_time) && (relative_coords[0] == prev_rel_coords[0]) && (relative_coords[1] == prev_rel_coords[1])) {
-                            break; // Ignore duplicated events.
+                        /* SDL2 queries the device on every event, so doing that should be fine. */
+                        int           i;
+                        XIDeviceInfo *xidevinfo = XIQueryDevice(disp, rawev->deviceid, &i);
+                        if (xidevinfo) {
+                            /* Process the device's axes. */
+                            int axis = 0;
+                            for (i = 0; i < xidevinfo->num_classes; i++) {
+                                const XIValuatorClassInfo *v = (const XIValuatorClassInfo *) xidevinfo->classes[i];
+                                if (v->type == XIValuatorClass) {
+                                    /* Is this an absolute or relative axis? */
+                                    if (v->mode == XIModeRelative) {
+                                        /* Set relative coordinates. */
+                                        if (axis == 0)
+                                            xi2_mouse_x = xi2_mouse_x + coords[axis];
+                                        else
+                                            xi2_mouse_y = xi2_mouse_y + coords[axis];
+                                    } else {
+                                        /* Convert absolute value range to pixel granularity, then to relative coordinates. */
+                                        int    disp_screen = XDefaultScreen(disp), abs_conv;
+                                        double abs_div;
+                                        if (axis == 0) {
+                                            abs_div = (v->max - v->min) / (double) XDisplayWidth(disp, disp_screen);
+                                            if (abs_div <= 0)
+                                                abs_div = 1;
+                                            abs_conv = (coords[axis] - v->min) / abs_div;
+
+                                            if (xi2_mouse_abs_x != 0)
+                                                xi2_mouse_x = xi2_mouse_x + (abs_conv - xi2_mouse_abs_x);
+                                            xi2_mouse_abs_x = abs_conv;
+                                        } else {
+                                            abs_div = (v->max - v->min) / (double) XDisplayHeight(disp, disp_screen);
+                                            if (abs_div <= 0)
+                                                abs_div = 1;
+                                            abs_conv = (coords[axis] - v->min) / abs_div;
+
+                                            if (xi2_mouse_abs_y != 0)
+                                                xi2_mouse_y = xi2_mouse_y + (abs_conv - xi2_mouse_abs_y);
+                                            xi2_mouse_abs_y = abs_conv;
+                                        }
+                                    }
+                                    prev_coords[axis] = coords[axis];
+                                    if (++axis >= 2) /* stop after X and Y processed */
+                                        break;
+                                }
+                            }
                         }
-                        xi2_mouse_x        = xi2_mouse_x + relative_coords[0];
-                        xi2_mouse_y        = xi2_mouse_y + relative_coords[1];
-                        prev_rel_coords[0] = relative_coords[0];
-                        prev_rel_coords[1] = relative_coords[1];
-                        prev_time          = rawev->time;
+
+                        prev_time = rawev->time;
                         if (!mouse_capture)
                             break;
                         XWindowAttributes winattrib {};
@@ -128,19 +180,8 @@ xinput2_proc()
                             XWarpPointer(disp, XRootWindow(disp, XScreenNumberOfScreen(winattrib.screen)), XRootWindow(disp, XScreenNumberOfScreen(winattrib.screen)), 0, 0, 0, 0, globalPoint.x(), globalPoint.y());
                             XFlush(disp);
                         }
-                    }
-                case XI_Motion:
-                    {
-                        if (XKeysymToKeycode(disp, XK_Home) == 69) {
-                            // No chance we will get raw motion events on VNC.
-                            const XIDeviceEvent *motionev = (const XIDeviceEvent *) cookie->data;
-                            if (xi2_mouse_abs_x != 0 || xi2_mouse_abs_y != 0) {
-                                xi2_mouse_x = xi2_mouse_x + (motionev->event_x - xi2_mouse_abs_x);
-                                xi2_mouse_y = xi2_mouse_y + (motionev->event_y - xi2_mouse_abs_y);
-                            }
-                            xi2_mouse_abs_x = motionev->event_x;
-                            xi2_mouse_abs_y = motionev->event_y;
-                        }
+
+                        break;
                     }
             }
         }
