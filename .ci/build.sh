@@ -1167,6 +1167,9 @@ EOF
 		# Workaround for appimage-builder issues 272 and 283 (i686 and armhf are also missing)
 		if [ "$arch_appimage" != "x86_64" -a "$line" = "  files:" ]
 		then
+			# Some mild arbitrary code execution with a dummy package...
+			[ ! -d /runtime ] && sudo apt-get -y -o 'DPkg::Post-Invoke::=mkdir -p /runtime; chmod 777 /runtime' install libsixel1 > /dev/null 2>&1
+
 			echo "    include:" >> AppImageBuilder-generated.yml
 			for loader in "/lib/$libdir/ld-linux"*.so.*
 			do
@@ -1179,9 +1182,6 @@ EOF
 			done
 		fi
 	done < .ci/AppImageBuilder.yml
-	echo = appimage-builder workaround list start =
-	grep /runtime/compat AppImageBuilder-generated.yml
-	echo = appimage-builder workaround list end =
 
 	# Download appimage-builder if necessary.
 	appimage_builder_url="https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-$(uname -m).AppImage"
