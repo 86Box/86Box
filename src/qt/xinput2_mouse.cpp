@@ -142,26 +142,26 @@ common_motion:
                                             xi2_mouse_y = xi2_mouse_y + coords[axis];
                                     } else {
                                         /* Convert absolute value range to pixel granularity, then to relative coordinates. */
-                                        int    disp_screen = XDefaultScreen(disp), abs_conv;
+                                        int    disp_screen = XDefaultScreen(disp);
                                         double abs_div;
                                         if (axis == 0) {
                                             abs_div = (v->max - v->min) / (double) XDisplayWidth(disp, disp_screen);
                                             if (abs_div <= 0)
                                                 abs_div = 1;
-                                            abs_conv = (coords[axis] - v->min) / abs_div;
+                                            abs_div = (coords[axis] - v->min) / abs_div;
 
                                             if (xi2_mouse_abs_x != 0)
-                                                xi2_mouse_x = xi2_mouse_x + (abs_conv - xi2_mouse_abs_x);
-                                            xi2_mouse_abs_x = abs_conv;
+                                                xi2_mouse_x = xi2_mouse_x + (abs_div - xi2_mouse_abs_x);
+                                            xi2_mouse_abs_x = abs_div;
                                         } else {
                                             abs_div = (v->max - v->min) / (double) XDisplayHeight(disp, disp_screen);
                                             if (abs_div <= 0)
                                                 abs_div = 1;
-                                            abs_conv = (coords[axis] - v->min) / abs_div;
+                                            abs_div = (coords[axis] - v->min) / abs_div;
 
                                             if (xi2_mouse_abs_y != 0)
-                                                xi2_mouse_y = xi2_mouse_y + (abs_conv - xi2_mouse_abs_y);
-                                            xi2_mouse_abs_y = abs_conv;
+                                                xi2_mouse_y = xi2_mouse_y + (abs_div - xi2_mouse_abs_y);
+                                            xi2_mouse_abs_y = abs_div;
                                         }
                                     }
                                     prev_coords[axis] = coords[axis];
