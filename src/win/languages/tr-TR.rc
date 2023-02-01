@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "&Ekran görüntüsü al\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Tercihler...",    IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "&Discord entegrasyonunu etkinleştir", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "&Ses yükseltici...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED

@@ -103,7 +103,9 @@ extern "C" {
 #include <86box/rom.h>
 #include <86box/config.h>
 #include <86box/ui.h>
-#include <86box/discord.h>
+#ifdef DISCORD
+#   include <86box/discord.h>
+#endif
 
 #include "../cpu/cpu.h"
 #include <86box/plat.h>
@@ -377,7 +379,11 @@ plat_pause(int p)
     } else {
         ui_window_title(oldtitle);
     }
+
+#ifdef DISCORD
     discord_update_activity(dopause);
+#endif
+
     QTimer::singleShot(0, main_window, &MainWindow::updateUiPauseState);
 
 #ifdef Q_OS_WINDOWS

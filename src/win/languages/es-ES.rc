@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "Tomar c&aptura\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Preferencias...",		IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Habilitar integración con &Discord", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "&Ganancia de sonido...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED

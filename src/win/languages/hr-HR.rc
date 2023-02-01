@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "Napravi &snimku zaslona\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Postavke...",    IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Omogući integraciju sa programom &Discord", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "&Pojačanje zvuka...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED

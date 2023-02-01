@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "擷圖(&C)\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "首選項(&P)...",    IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "啟用 Discord 整合(&D)", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "音量增益(&G)...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED

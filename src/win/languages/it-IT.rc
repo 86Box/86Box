@@ -105,7 +105,9 @@ BEGIN
         MENUITEM "Cattura schermata\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Preferenze...",    IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Abilita &integrazione Discord", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "Guadagno &suono...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED

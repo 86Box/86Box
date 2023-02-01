@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "Зробити &знімок\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Параметри...",		IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Увімкнути інтеграцію &Discord", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "&Посилення звуку...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED

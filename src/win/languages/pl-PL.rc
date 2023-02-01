@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "Zrób &zrzut ekranu\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Preferencje...",		IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Włącz integrację z &Discord", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "Wzmocnienie &dźwięku...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED

@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "Pořídit &screenshot\tCtrl+F11",		IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Předvolby...",				IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Povolit integraci s &Discordem",		IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "&Zesílení zvuku",				IDM_SND_GAIN
 #ifdef MTR_ENABLED

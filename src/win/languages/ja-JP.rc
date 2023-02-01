@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "スクリーンショットを撮る(&C)\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "環境設定(&P)...",    IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Discordとの連携機能(&D)", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "音量を調節(&G)...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED

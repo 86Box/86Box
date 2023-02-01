@@ -138,6 +138,7 @@ option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"
 option(GDBSTUB      "Enable GDB stub server for debugging"                          OFF)
 option(DEV_BRANCH   "Development branch"                                            OFF)
 option(QT           "Qt GUI"                                                        ON)
+option(DISCORD      "Discord Rich Presence support"                                 ON)
 
 # Development branch features
 #

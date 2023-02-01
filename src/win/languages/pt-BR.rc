@@ -107,7 +107,9 @@ BEGIN
         MENUITEM "Capturar &tela\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Preferências...",    IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Ativar integração com o &Discord", IDM_DISCORD
+#endif DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Ganho de som...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED

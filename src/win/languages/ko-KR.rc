@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "스크린샷 찍기(&C)\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "환경설정(&P)...",    IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "디스코드 연동 활성화하기(&D)", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "음량 증폭(&G)...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
