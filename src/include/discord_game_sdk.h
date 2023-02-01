@@ -248,13 +248,13 @@ typedef uint8_t DiscordNetworkChannelId;
 #ifdef __APPLE__
 typedef void IDXGISwapChain;
 #endif
-#ifdef __linux__
+#if defined (__linux__) || defined (__OpenBSD__)
 typedef void IDXGISwapChain;
 #endif
 #ifdef __APPLE__
 typedef void MSG;
 #endif
-#ifdef __linux__
+#if defined (__linux__) || defined (__OpenBSD__)
 typedef void MSG;
 #endif
 typedef char DiscordPath[4096];
