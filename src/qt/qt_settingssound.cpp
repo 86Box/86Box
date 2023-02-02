@@ -237,7 +237,7 @@ SettingsSound::on_comboBoxSoundCard4_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureSoundCard1->setEnabled(sound_card_has_config(ui->comboBoxSoundCard4->currentData().toInt()));
+    ui->pushButtonConfigureSoundCard4->setEnabled(sound_card_has_config(ui->comboBoxSoundCard4->currentData().toInt()));
 }
 
 void
