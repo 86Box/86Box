@@ -99,7 +99,8 @@ static int temp_gfxcard, temp_gfxcard_2, temp_ibm8514, temp_voodoo, temp_xga;
 static int temp_mouse, temp_joystick;
 
 /* Sound category */
-static int temp_sound_card, temp_midi_output_device, temp_midi_input_device, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS;
+static int temp_sound_card[SOUND_CARD_MAX];
+static int temp_midi_output_device, temp_midi_input_device, temp_mpu401;
 static int temp_float, temp_fm_driver;
 
 /* Network category */
@@ -335,13 +336,11 @@ win_settings_init(void)
     temp_joystick = joystick_type;
 
     /* Sound category */
-    temp_sound_card         = sound_card_current;
+    for (i = 0; i < SOUND_CARD_MAX; i++)
+        temp_sound_card[i] = sound_card_current[i];
     temp_midi_output_device = midi_output_device_current;
     temp_midi_input_device  = midi_input_device_current;
     temp_mpu401             = mpu401_standalone_enable;
-    temp_SSI2001            = SSI2001;
-    temp_GAMEBLASTER        = GAMEBLASTER;
-    temp_GUS                = GUS;
     temp_float              = sound_is_float;
     temp_fm_driver          = fm_driver;
 
@@ -462,13 +461,11 @@ win_settings_changed(void)
     i = i || (joystick_type != temp_joystick);
 
     /* Sound category */
-    i = i || (sound_card_current != temp_sound_card);
+    for (j = 0; j < SOUND_CARD_MAX; j++)
+        i = i || (sound_card_current[j] != temp_sound_card[j]);
     i = i || (midi_output_device_current != temp_midi_output_device);
     i = i || (midi_input_device_current != temp_midi_input_device);
     i = i || (mpu401_standalone_enable != temp_mpu401);
-    i = i || (SSI2001 != temp_SSI2001);
-    i = i || (GAMEBLASTER != temp_GAMEBLASTER);
-    i = i || (GUS != temp_GUS);
     i = i || (sound_is_float != temp_float);
     i = i || (fm_driver != temp_fm_driver);
 
@@ -555,13 +552,11 @@ win_settings_save(void)
     joystick_type = temp_joystick;
 
     /* Sound category */
-    sound_card_current         = temp_sound_card;
+    for (i = 0; i < SOUND_CARD_MAX; i++)
+        sound_card_current[i] = temp_sound_card[i];
     midi_output_device_current = temp_midi_output_device;
     midi_input_device_current  = temp_midi_input_device;
     mpu401_standalone_enable   = temp_mpu401;
-    SSI2001                    = temp_SSI2001;
-    GAMEBLASTER                = temp_GAMEBLASTER;
-    GUS                        = temp_GUS;
     sound_is_float             = temp_float;
     fm_driver                  = temp_fm_driver;
 
@@ -1396,16 +1391,16 @@ static BOOL CALLBACK
 #endif
 win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    int             c, d;
+    uint16_t        c, d;
     LPTSTR          lptsTemp;
-    const device_t *sound_dev;
+    const device_t *sound_dev[SOUND_CARD_MAX];
 
     switch (message) {
         case WM_INITDIALOG:
             lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
             c = d = 0;
-            settings_reset_content(hdlg, IDC_COMBO_SOUND);
+            settings_reset_content(hdlg, IDC_COMBO_SOUND1);
             while (1) {
                 /* Skip "internal" if machine doesn't have it. */
                 if ((c == 1) && !machine_has_flags(temp_machine, MACHINE_SOUND)) {
@@ -1419,18 +1414,18 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                     break;
 
                 if (sound_card_available(c)) {
-                    sound_dev = sound_card_getdevice(c);
+                    sound_dev[0] = sound_card_getdevice(c);
 
-                    if (device_is_valid(sound_dev, temp_machine)) {
+                    if (device_is_valid(sound_dev[0], temp_machine)) {
                         if (c == 0)
-                            settings_add_string(hdlg, IDC_COMBO_SOUND, win_get_string(IDS_2104));
+                            settings_add_string(hdlg, IDC_COMBO_SOUND1, win_get_string(IDS_2104));
                         else if (c == 1)
-                            settings_add_string(hdlg, IDC_COMBO_SOUND, win_get_string(IDS_2119));
+                            settings_add_string(hdlg, IDC_COMBO_SOUND1, win_get_string(IDS_2119));
                         else
-                            settings_add_string(hdlg, IDC_COMBO_SOUND, (LPARAM) device_name);
+                            settings_add_string(hdlg, IDC_COMBO_SOUND1, (LPARAM) device_name);
                         settings_list_to_device[0][d] = c;
-                        if ((c == 0) || (c == temp_sound_card))
-                            settings_set_cur_sel(hdlg, IDC_COMBO_SOUND, d);
+                        if ((c == 0) || (c == temp_sound_card[0]))
+                            settings_set_cur_sel(hdlg, IDC_COMBO_SOUND1, d);
                         d++;
                     }
                 }
@@ -1438,8 +1433,119 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 c++;
             }
 
-            settings_enable_window(hdlg, IDC_COMBO_SOUND, d);
-            settings_enable_window(hdlg, IDC_CONFIGURE_SND, sound_card_has_config(temp_sound_card));
+            settings_enable_window(hdlg, IDC_COMBO_SOUND1, d);
+            settings_enable_window(hdlg, IDC_CONFIGURE_SND1, sound_card_has_config(temp_sound_card[0]));
+
+            c = d = 0;
+            settings_reset_content(hdlg, IDC_COMBO_SOUND2);
+            while (1) {
+                /* Skip "internal" */
+                if (c == 1) {
+                    c++;
+                    continue;
+                }
+
+                generate_device_name(sound_card_getdevice(c), sound_card_get_internal_name(c), 1);
+
+                if (!device_name[0])
+                    break;
+
+                if (sound_card_available(c)) {
+                    sound_dev[1] = sound_card_getdevice(c);
+
+                    if (device_is_valid(sound_dev[1], temp_machine)) {
+                        if (c == 0)
+                            settings_add_string(hdlg, IDC_COMBO_SOUND2, win_get_string(IDS_2104));
+                        else if (c == 1)
+                            settings_add_string(hdlg, IDC_COMBO_SOUND2, win_get_string(IDS_2119));
+                        else
+                            settings_add_string(hdlg, IDC_COMBO_SOUND2, (LPARAM) device_name);
+                        settings_list_to_device[0][d] = c;
+                        if ((c == 0) || (c == temp_sound_card[1]))
+                            settings_set_cur_sel(hdlg, IDC_COMBO_SOUND2, d);
+                        d++;
+                    }
+                }
+
+                c++;
+            }
+
+            settings_enable_window(hdlg, IDC_COMBO_SOUND2, d);
+            settings_enable_window(hdlg, IDC_CONFIGURE_SND2, sound_card_has_config(temp_sound_card[1]));
+
+            c = d = 0;
+            settings_reset_content(hdlg, IDC_COMBO_SOUND3);
+            while (1) {
+                /* Skip "internal" */
+                if (c == 1) {
+                    c++;
+                    continue;
+                }
+
+                generate_device_name(sound_card_getdevice(c), sound_card_get_internal_name(c), 1);
+
+                if (!device_name[0])
+                    break;
+
+                if (sound_card_available(c)) {
+                    sound_dev[2] = sound_card_getdevice(c);
+
+                    if (device_is_valid(sound_dev[2], temp_machine)) {
+                        if (c == 0)
+                            settings_add_string(hdlg, IDC_COMBO_SOUND3, win_get_string(IDS_2104));
+                        else if (c == 1)
+                            settings_add_string(hdlg, IDC_COMBO_SOUND3, win_get_string(IDS_2119));
+                        else
+                            settings_add_string(hdlg, IDC_COMBO_SOUND3, (LPARAM) device_name);
+                        settings_list_to_device[0][d] = c;
+                        if ((c == 0) || (c == temp_sound_card[2]))
+                            settings_set_cur_sel(hdlg, IDC_COMBO_SOUND3, d);
+                        d++;
+                    }
+                }
+
+                c++;
+            }
+
+            settings_enable_window(hdlg, IDC_COMBO_SOUND3, d);
+            settings_enable_window(hdlg, IDC_CONFIGURE_SND3, sound_card_has_config(temp_sound_card[2]));
+
+            c = d = 0;
+            settings_reset_content(hdlg, IDC_COMBO_SOUND4);
+            while (1) {
+                /* Skip "internal" */
+                if (c == 1) {
+                    c++;
+                    continue;
+                }
+
+                generate_device_name(sound_card_getdevice(c), sound_card_get_internal_name(c), 1);
+
+                if (!device_name[0])
+                    break;
+
+                if (sound_card_available(c)) {
+                    sound_dev[3] = sound_card_getdevice(c);
+
+                    if (device_is_valid(sound_dev[3], temp_machine)) {
+                        if (c == 0)
+                            settings_add_string(hdlg, IDC_COMBO_SOUND4, win_get_string(IDS_2104));
+                        else if (c == 1)
+                            settings_add_string(hdlg, IDC_COMBO_SOUND4, win_get_string(IDS_2119));
+                        else
+                            settings_add_string(hdlg, IDC_COMBO_SOUND4, (LPARAM) device_name);
+                        settings_list_to_device[0][d] = c;
+                        if ((c == 0) || (c == temp_sound_card[3]))
+                            settings_set_cur_sel(hdlg, IDC_COMBO_SOUND4, d);
+                        d++;
+                    }
+                }
+
+                c++;
+            }
+
+            settings_enable_window(hdlg, IDC_COMBO_SOUND4, d);
+            settings_enable_window(hdlg, IDC_CONFIGURE_SND4, sound_card_has_config(temp_sound_card[3]));
 
             c = d = 0;
             settings_reset_content(hdlg, IDC_COMBO_MIDI_OUT);
@@ -1491,15 +1597,6 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
             settings_set_check(hdlg, IDC_CHECK_MPU401, temp_mpu401);
             settings_enable_window(hdlg, IDC_CHECK_MPU401, mpu401_standalone_allow());
             settings_enable_window(hdlg, IDC_CONFIGURE_MPU401, mpu401_standalone_allow() && temp_mpu401);
-            settings_enable_window(hdlg, IDC_CHECK_CMS, machine_has_bus(temp_machine, MACHINE_BUS_ISA));
-            settings_set_check(hdlg, IDC_CHECK_CMS, temp_GAMEBLASTER);
-            settings_enable_window(hdlg, IDC_CONFIGURE_CMS, machine_has_bus(temp_machine, MACHINE_BUS_ISA) && temp_GAMEBLASTER);
-            settings_enable_window(hdlg, IDC_CHECK_GUS, machine_has_bus(temp_machine, MACHINE_BUS_ISA16));
-            settings_set_check(hdlg, IDC_CHECK_GUS, temp_GUS);
-            settings_enable_window(hdlg, IDC_CONFIGURE_GUS, machine_has_bus(temp_machine, MACHINE_BUS_ISA16) && temp_GUS);
-            settings_enable_window(hdlg, IDC_CHECK_SSI, machine_has_bus(temp_machine, MACHINE_BUS_ISA));
-            settings_set_check(hdlg, IDC_CHECK_SSI, temp_SSI2001);
-            settings_enable_window(hdlg, IDC_CONFIGURE_SSI, machine_has_bus(temp_machine, MACHINE_BUS_ISA) && temp_SSI2001);
             settings_set_check(hdlg, IDC_CHECK_FLOAT, temp_float);
 
             if (temp_fm_driver == FM_DRV_YMFM)
@@ -1513,17 +1610,56 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
         case WM_COMMAND:
             switch (LOWORD(wParam)) {
-                case IDC_COMBO_SOUND:
-                    temp_sound_card = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND)];
-                    settings_enable_window(hdlg, IDC_CONFIGURE_SND, sound_card_has_config(temp_sound_card));
+                case IDC_COMBO_SOUND1:
+                    temp_sound_card[0] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND1)];
+                    settings_enable_window(hdlg, IDC_CONFIGURE_SND1, sound_card_has_config(temp_sound_card[0]));
                     settings_set_check(hdlg, IDC_CHECK_MPU401, temp_mpu401);
                     settings_enable_window(hdlg, IDC_CHECK_MPU401, mpu401_standalone_allow());
                     settings_enable_window(hdlg, IDC_CONFIGURE_MPU401, mpu401_standalone_allow() && temp_mpu401);
                     break;
 
-                case IDC_CONFIGURE_SND:
-                    temp_sound_card = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND)];
-                    temp_deviceconfig |= deviceconfig_open(hdlg, (void *) sound_card_getdevice(temp_sound_card));
+                case IDC_CONFIGURE_SND1:
+                    temp_sound_card[0] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND1)];
+                    temp_deviceconfig |= deviceconfig_open(hdlg, (void *) sound_card_getdevice(temp_sound_card[0]));
+                    break;
+
+                case IDC_COMBO_SOUND2:
+                    temp_sound_card[1] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND2)];
+                    settings_enable_window(hdlg, IDC_CONFIGURE_SND2, sound_card_has_config(temp_sound_card[1]));
+                    settings_set_check(hdlg, IDC_CHECK_MPU401, temp_mpu401);
+                    settings_enable_window(hdlg, IDC_CHECK_MPU401, mpu401_standalone_allow());
+                    settings_enable_window(hdlg, IDC_CONFIGURE_MPU401, mpu401_standalone_allow() && temp_mpu401);
+                    break;
+
+                case IDC_CONFIGURE_SND2:
+                    temp_sound_card[1] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND2)];
+                    temp_deviceconfig |= deviceconfig_open(hdlg, (void *) sound_card_getdevice(temp_sound_card[1]));
+                    break;
+
+                case IDC_COMBO_SOUND3:
+                    temp_sound_card[2] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND3)];
+                    settings_enable_window(hdlg, IDC_CONFIGURE_SND3, sound_card_has_config(temp_sound_card[2]));
+                    settings_set_check(hdlg, IDC_CHECK_MPU401, temp_mpu401);
+                    settings_enable_window(hdlg, IDC_CHECK_MPU401, mpu401_standalone_allow());
+                    settings_enable_window(hdlg, IDC_CONFIGURE_MPU401, mpu401_standalone_allow() && temp_mpu401);
+                    break;
+
+                case IDC_CONFIGURE_SND3:
+                    temp_sound_card[2] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND3)];
+                    temp_deviceconfig |= deviceconfig_open(hdlg, (void *) sound_card_getdevice(temp_sound_card[2]));
+                    break;
+
+                case IDC_COMBO_SOUND4:
+                    temp_sound_card[3] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND4)];
+                    settings_enable_window(hdlg, IDC_CONFIGURE_SND4, sound_card_has_config(temp_sound_card[3]));
+                    settings_set_check(hdlg, IDC_CHECK_MPU401, temp_mpu401);
+                    settings_enable_window(hdlg, IDC_CHECK_MPU401, mpu401_standalone_allow());
+                    settings_enable_window(hdlg, IDC_CONFIGURE_MPU401, mpu401_standalone_allow() && temp_mpu401);
+                    break;
+
+                case IDC_CONFIGURE_SND4:
+                    temp_sound_card[3] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND4)];
+                    temp_deviceconfig |= deviceconfig_open(hdlg, (void *) sound_card_getdevice(temp_sound_card[3]));
                     break;
 
                 case IDC_COMBO_MIDI_OUT:
@@ -1561,46 +1697,17 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 case IDC_CONFIGURE_MPU401:
                     temp_deviceconfig |= deviceconfig_open(hdlg, machine_has_bus(temp_machine, MACHINE_BUS_MCA) ? (void *) &mpu401_mca_device : (void *) &mpu401_device);
                     break;
-
-                case IDC_CHECK_CMS:
-                    temp_GAMEBLASTER = settings_get_check(hdlg, IDC_CHECK_CMS);
-
-                    settings_enable_window(hdlg, IDC_CONFIGURE_CMS, temp_GAMEBLASTER);
-                    break;
-
-                case IDC_CONFIGURE_CMS:
-                    temp_deviceconfig |= deviceconfig_open(hdlg, &cms_device);
-                    break;
-
-                case IDC_CHECK_GUS:
-                    temp_GUS = settings_get_check(hdlg, IDC_CHECK_GUS);
-                    settings_enable_window(hdlg, IDC_CONFIGURE_GUS, temp_GUS);
-                    break;
-
-                case IDC_CONFIGURE_GUS:
-                    temp_deviceconfig |= deviceconfig_open(hdlg, (void *) &gus_device);
-                    break;
-
-                case IDC_CHECK_SSI:
-                    temp_SSI2001 = settings_get_check(hdlg, IDC_CHECK_SSI);
-
-                    settings_enable_window(hdlg, IDC_CONFIGURE_SSI, temp_SSI2001);
-                    break;
-
-                case IDC_CONFIGURE_SSI:
-                    temp_deviceconfig |= deviceconfig_open(hdlg, &ssi2001_device);
-                    break;
             }
             return FALSE;
 
         case WM_SAVESETTINGS:
-            temp_sound_card         = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND)];
+            temp_sound_card[0]      = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND1)];
+            temp_sound_card[1]      = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND2)];
+            temp_sound_card[2]      = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND3)];
+            temp_sound_card[3]      = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SOUND4)];
             temp_midi_output_device = settings_list_to_midi[settings_get_cur_sel(hdlg, IDC_COMBO_MIDI_OUT)];
             temp_midi_input_device  = settings_list_to_midi_in[settings_get_cur_sel(hdlg, IDC_COMBO_MIDI_IN)];
             temp_mpu401             = settings_get_check(hdlg, IDC_CHECK_MPU401);
-            temp_GAMEBLASTER        = settings_get_check(hdlg, IDC_CHECK_CMS);
-            temp_GUS                = settings_get_check(hdlg, IDC_CHECK_GUS);
-            temp_SSI2001            = settings_get_check(hdlg, IDC_CHECK_SSI);
             temp_float              = settings_get_check(hdlg, IDC_CHECK_FLOAT);
             if (settings_get_check(hdlg, IDC_RADIO_FM_DRV_NUKED))
                 temp_fm_driver = FM_DRV_NUKED;

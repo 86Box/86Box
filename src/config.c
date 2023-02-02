@@ -666,9 +666,36 @@ load_sound(void)
     if ((p != NULL) && (!strcmp(p, "sbpci128") || !strcmp(p, "sb128pci")))
         p = "es1371";
     if (p != NULL)
-        sound_card_current = sound_card_get_from_internal_name(p);
+        sound_card_current[0] = sound_card_get_from_internal_name(p);
     else
-        sound_card_current = 0;
+        sound_card_current[0] = 0;
+
+    p = ini_section_get_string(cat, "sndcard2", NULL);
+    /* FIXME: Hack to not break configs with the Sound Blaster 128 PCI set. */
+    if ((p != NULL) && (!strcmp(p, "sbpci128") || !strcmp(p, "sb128pci")))
+        p = "es1371";
+    if (p != NULL)
+        sound_card_current[1] = sound_card_get_from_internal_name(p);
+    else
+        sound_card_current[1] = 0;
+
+    p = ini_section_get_string(cat, "sndcard3", NULL);
+    /* FIXME: Hack to not break configs with the Sound Blaster 128 PCI set. */
+    if ((p != NULL) && (!strcmp(p, "sbpci128") || !strcmp(p, "sb128pci")))
+        p = "es1371";
+    if (p != NULL)
+        sound_card_current[2] = sound_card_get_from_internal_name(p);
+    else
+        sound_card_current[2] = 0;
+
+    p = ini_section_get_string(cat, "sndcard4", NULL);
+    /* FIXME: Hack to not break configs with the Sound Blaster 128 PCI set. */
+    if ((p != NULL) && (!strcmp(p, "sbpci128") || !strcmp(p, "sb128pci")))
+        p = "es1371";
+    if (p != NULL)
+        sound_card_current[3] = sound_card_get_from_internal_name(p);
+    else
+        sound_card_current[3] = 0;
 
     p = ini_section_get_string(cat, "midi_device", NULL);
     if (p != NULL)
@@ -683,10 +710,6 @@ load_sound(void)
         midi_input_device_current = 0;
 
     mpu401_standalone_enable = !!ini_section_get_int(cat, "mpu401_standalone", 0);
-
-    SSI2001     = !!ini_section_get_int(cat, "ssi2001", 0);
-    GAMEBLASTER = !!ini_section_get_int(cat, "gameblaster", 0);
-    GUS         = !!ini_section_get_int(cat, "gus", 0);
 
     memset(temp, '\0', sizeof(temp));
     p = ini_section_get_string(cat, "sound_type", "float");
@@ -2311,10 +2334,25 @@ save_sound(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "Sound");
 
-    if (sound_card_current == 0)
+    if (sound_card_current[0] == 0)
         ini_section_delete_var(cat, "sndcard");
     else
-        ini_section_set_string(cat, "sndcard", sound_card_get_internal_name(sound_card_current));
+        ini_section_set_string(cat, "sndcard", sound_card_get_internal_name(sound_card_current[0]));
+
+    if (sound_card_current[1] == 0)
+        ini_section_delete_var(cat, "sndcard2");
+    else
+        ini_section_set_string(cat, "sndcard2", sound_card_get_internal_name(sound_card_current[1]));
+
+    if (sound_card_current[2] == 0)
+        ini_section_delete_var(cat, "sndcard3");
+    else
+        ini_section_set_string(cat, "sndcard3", sound_card_get_internal_name(sound_card_current[2]));
+
+    if (sound_card_current[3] == 0)
+        ini_section_delete_var(cat, "sndcard4");
+    else
+        ini_section_set_string(cat, "sndcard4", sound_card_get_internal_name(sound_card_current[3]));
 
     if (!strcmp(midi_out_device_get_internal_name(midi_output_device_current), "none"))
         ini_section_delete_var(cat, "midi_device");
@@ -2330,21 +2368,6 @@ save_sound(void)
         ini_section_delete_var(cat, "mpu401_standalone");
     else
         ini_section_set_int(cat, "mpu401_standalone", mpu401_standalone_enable);
-
-    if (SSI2001 == 0)
-        ini_section_delete_var(cat, "ssi2001");
-    else
-        ini_section_set_int(cat, "ssi2001", SSI2001);
-
-    if (GAMEBLASTER == 0)
-        ini_section_delete_var(cat, "gameblaster");
-    else
-        ini_section_set_int(cat, "gameblaster", GAMEBLASTER);
-
-    if (GUS == 0)
-        ini_section_delete_var(cat, "gus");
-    else
-        ini_section_set_int(cat, "gus", GUS);
 
     if (sound_is_float == 1)
         ini_section_delete_var(cat, "sound_type");
