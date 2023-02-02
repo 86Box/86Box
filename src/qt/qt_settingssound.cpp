@@ -82,8 +82,8 @@ SettingsSound::onCurrentMachineChanged(int machineId)
         selectedRow      = 0;
 
         while (true) {
-            /* Skip "internal" if machine doesn't have it for the first card, always skip for others. */
-            if (((c == 1) && (machine_has_flags(machineId, MACHINE_SOUND) == 0)) || (i != 0)) {
+            /* Skip "internal" if machine doesn't have it. */
+            if ((c == 1) && (machine_has_flags(machineId, MACHINE_SOUND) == 0)) {
                 c++;
                 continue;
             }
