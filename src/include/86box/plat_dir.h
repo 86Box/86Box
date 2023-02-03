@@ -18,8 +18,8 @@
 #ifndef PLAT_DIR_H
 #define PLAT_DIR_H
 
-/* Windows needs the POSIX re-implementations */
-#if defined(_WIN32)
+/* Windows and Termux needs the POSIX re-implementations */
+#if defined(_WIN32) || defined(__TERMUX__)
 #    ifdef _MAX_FNAME
 #        define MAXNAMLEN _MAX_FNAME
 #    else

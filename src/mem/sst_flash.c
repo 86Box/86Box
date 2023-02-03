@@ -13,11 +13,12 @@
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Melissa Goad, <mszoopers@protonmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
- *          Copyright 2020 Melissa Goad.
- *          Copyright 2022 Jasmine Iwanek.
+ *          Copyright 2020      Melissa Goad.
+ *          Copyright 2022-2023 Jasmine Iwanek.
  */
 #include <stdio.h>
 #include <stdint.h>
