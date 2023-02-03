@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "Tomar c&aptura\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Preferencias...",		IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Habilitar integración con &Discord", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "&Ganancia de sonido...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -284,13 +286,13 @@ END
 #define STR_JOY3		"Mando 3..."
 #define STR_JOY4		"Mando 4..."
 
-#define STR_SOUND		"Tarjeta de sonido:"
+#define STR_SOUND1		"Tarjeta de sonido 1:"
+#define STR_SOUND2		"Tarjeta de sonido 2:"
+#define STR_SOUND3		"Tarjeta de sonido 3:"
+#define STR_SOUND4		"Tarjeta de sonido 4:"
 #define STR_MIDI_OUT		"Dispositivo MIDI de salida:"
 #define STR_MIDI_IN		"Dispositivo MIDI de entrada:"
 #define STR_MPU401		"MPU-401 independiente"
-#define STR_SSI			"Innovation SSI-2001"
-#define STR_CMS			"CMS / Game Blaster"
-#define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"Usar sonido FLOAT32"
 #define STR_FM_DRIVER		"Controlador de sintet. FM"
 #define STR_FM_DRV_NUKED	"Nuked (más preciso)"

@@ -105,7 +105,9 @@ BEGIN
         MENUITEM "Cattura schermata\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Preferenze...",    IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Abilita &integrazione Discord", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "Guadagno &suono...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -285,13 +287,13 @@ END
 #define STR_JOY3		"Joystick 3..."
 #define STR_JOY4		"Joystick 4..."
 
-#define STR_SOUND		"Scheda audio:"
+#define STR_SOUND1		"Scheda audio 1:"
+#define STR_SOUND2		"Scheda audio 2:"
+#define STR_SOUND3		"Scheda audio 3:"
+#define STR_SOUND4		"Scheda audio 4:"
 #define STR_MIDI_OUT		"Uscita MIDI:"
 #define STR_MIDI_IN		"Entrata MIDI:"
 #define STR_MPU401		"MPU-401 autonomo"
-#define STR_SSI			"Innovation SSI-2001"
-#define STR_CMS			"CMS / Game Blaster"
-#define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"Usa suono FLOAT32"
 #define STR_FM_DRIVER		"Driver sint. FM"
 #define STR_FM_DRV_NUKED	"Nuked (più accurato)"

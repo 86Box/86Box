@@ -406,8 +406,17 @@ msgstr "Igralna palica 3..."
 msgid "Joystick 4..."
 msgstr "Igralna palica 4..."
 
-msgid "Sound card:"
-msgstr "Zvočna kartica:"
+msgid "Sound card 1:"
+msgstr "Zvočna kartica 1:"
+
+msgid "Sound card 2:"
+msgstr "Zvočna kartica 2:"
+
+msgid "Sound card 3:"
+msgstr "Zvočna kartica 3:"
+
+msgid "Sound card 4:"
+msgstr "Zvočna kartica 4:"
 
 msgid "MIDI Out Device:"
 msgstr "Izhodna naprava MIDI:"
@@ -417,15 +426,6 @@ msgstr "Vhodna naprava MIDI:"
 
 msgid "Standalone MPU-401"
 msgstr "Samostojen MPU-401"
-
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
 msgstr "Uporabi FLOAT32 za zvok"
