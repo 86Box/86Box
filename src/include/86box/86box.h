@@ -114,9 +114,6 @@ extern int  bugger_enabled,       /* (C) enable ISAbugger */
     isamem_type[],                /* (C) enable ISA mem cards */
     isartc_type;                  /* (C) enable ISA RTC card */
 extern int sound_is_float,        /* (C) sound uses FP values */
-    GAMEBLASTER,                  /* (C) sound option */
-    GUS, GUSMAX,                  /* (C) sound option */
-    SSI2001,                      /* (C) sound option */
     voodoo_enabled,               /* (C) video option */
     ibm8514_enabled,              /* (C) video option */
     xga_enabled;                  /* (C) video option */
