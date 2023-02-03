@@ -35,6 +35,7 @@
 #include <86box/keyboard.h>
 #include <86box/flash.h>
 #include <86box/sio.h>
+#include <86box/sound.h>
 #include <86box/hwm.h>
 #include <86box/video.h>
 #include <86box/spd.h>
@@ -551,9 +552,7 @@ machine_at_pb810_init(const machine_t *model)
     pci_register_slot(0x0b, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
 
-    if (gfxcard == VID_INTERNAL)
-        device_add(&s3_phoenix_trio64vplus_onboard_pci_device);
-    if (soundcard == SOUND_INTERNAL)
+    if (sound_card_current[0] == SOUND_INTERNAL)
         device_add(&cs4237b_device);
 
     device_add(&i430vx_device);

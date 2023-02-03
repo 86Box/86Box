@@ -9471,7 +9471,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_AV,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -9481,7 +9481,7 @@ const machine_t machines[] = {
         .kbc = KBC_UNKNOWN,
         .kbc_p1 = 0,
         .gpio = 0,
-        .device = &s3_phoenix_trio64vplus_onboard_pci_device,
+        .device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
