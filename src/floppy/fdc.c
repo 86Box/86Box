@@ -2340,6 +2340,10 @@ fdc_init(const device_t *info)
 
     if (fdc->flags & FDC_FLAG_SEC)
         fdc->irq = FDC_SECONDARY_IRQ;
+    else if (fdc->flags & FDC_FLAG_TER)
+        fdc->irq = FDC_TERTIARY_IRQ;
+    else if (fdc->flags & FDC_FLAG_QUA)
+        fdc->irq = FDC_QUATERNARY_IRQ;
     else
         fdc->irq = FDC_PRIMARY_IRQ;
 
@@ -2392,7 +2396,7 @@ const device_t fdc_xt_device = {
 
 const device_t fdc_xt_sec_device = {
     .name          = "PC/XT Floppy Drive Controller (Secondary)",
-    .internal_name = "fdc_xt",
+    .internal_name = "fdc_xt_sec",
     .flags         = FDC_FLAG_SEC,
     .local         = 0,
     .init          = fdc_init,
