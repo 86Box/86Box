@@ -44,7 +44,9 @@
 #include <86box/ui.h>
 #include <86box/win.h>
 #include <86box/version.h>
-#include <86box/discord.h>
+#ifdef DISCORD
+#   include <86box/discord.h>
+#endif
 
 #ifdef MTR_ENABLED
 #    include <minitrace/minitrace.h>
@@ -316,10 +318,13 @@ ResetAllMenus(void)
 
     video_set_filter_menu(menuMain);
 
+#ifdef DISCORD
     if (discord_loaded)
         CheckMenuItem(menuMain, IDM_DISCORD, enable_discord ? MF_CHECKED : MF_UNCHECKED);
     else
         EnableMenuItem(menuMain, IDM_DISCORD, MF_DISABLED);
+#endif
+
 #ifdef MTR_ENABLED
     EnableMenuItem(menuMain, IDM_ACTION_END_TRACE, MF_DISABLED);
 #endif
@@ -820,6 +825,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     config_save();
                     break;
 
+#ifdef DISCORD
                 case IDM_DISCORD:
                     if (!discord_loaded)
                         break;
@@ -831,6 +837,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     } else
                         discord_close();
                     break;
+#endif
 
                 default:
                     media_menu_proc(hwnd, message, wParam, lParam);
@@ -1212,6 +1219,7 @@ ui_init(int nCmdShow)
         return (0);
     }
 
+#ifdef DISCORD
     if (!discord_load()) {
         enable_discord = 0;
     } else if (enable_discord) {
@@ -1221,6 +1229,7 @@ ui_init(int nCmdShow)
         /* Update Discord status */
         discord_update_activity(dopause);
     }
+#endif
 
     /* Create our main window's class and register it. */
     wincl.hInstance     = hinstance;
@@ -1451,9 +1460,11 @@ ui_init(int nCmdShow)
             plat_setfullscreen(0);
         }
 
+#ifdef DISCORD
         /* Run Discord API callbacks */
         if (enable_discord)
             discord_run_callbacks();
+#endif
     }
 
     timeEndPeriod(1);
@@ -1471,8 +1482,10 @@ ui_init(int nCmdShow)
 
     win_mouse_close();
 
+#ifdef DISCORD
     /* Shut down the Discord integration */
     discord_close();
+#endif
 
     if (user32_handle != NULL)
         dynld_close(user32_handle);
@@ -1521,9 +1534,11 @@ plat_pause(int p)
     CheckMenuItem(menuMain, IDM_ACTION_PAUSE,
                   (dopause) ? MF_CHECKED : MF_UNCHECKED);
 
+#ifdef DISCORD
     /* Update Discord status */
     if (enable_discord)
         discord_update_activity(dopause);
+#endif
 
     /* Update the toolbar */
     ToolBarUpdatePause(p);
