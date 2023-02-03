@@ -2280,6 +2280,12 @@ fdc_reset(void *priv)
     } else if (fdc->flags & FDC_FLAG_SEC) {
         fdc->dma        = 1;
         fdc->specify[1] = 0;
+    } else if (fdc->flags & FDC_FLAG_TER) {
+        fdc->dma        = 1;
+        fdc->specify[1] = 0;
+    } else if (fdc->flags & FDC_FLAG_QUA) {
+        fdc->dma        = 1;
+        fdc->specify[1] = 0;
     } else {
         fdc->dma        = 1;
         fdc->specify[1] = 0;
@@ -2297,6 +2303,10 @@ fdc_reset(void *priv)
     fdc_remove(fdc);
     if (fdc->flags & FDC_FLAG_SEC) {
         fdc_set_base(fdc, FDC_SECONDARY_ADDR);
+    } else if (fdc->flags & FDC_FLAG_TER) {
+        fdc_set_base(fdc, FDC_TERTIARY_ADDR);
+    } else if (fdc->flags & FDC_FLAG_QUA) {
+        fdc_set_base(fdc, FDC_QUATERNARY_ADDR);
     } else {
         fdc_set_base(fdc, (fdc->flags & FDC_FLAG_PCJR) ? FDC_PRIMARY_PCJR_ADDR : FDC_PRIMARY_ADDR);
     }
@@ -2330,6 +2340,10 @@ fdc_init(const device_t *info)
 
     if (fdc->flags & FDC_FLAG_SEC)
         fdc->irq = FDC_SECONDARY_IRQ;
+    else if (fdc->flags & FDC_FLAG_TER)
+        fdc->irq = FDC_TERTIARY_IRQ;
+    else if (fdc->flags & FDC_FLAG_QUA)
+        fdc->irq = FDC_QUATERNARY_IRQ;
     else
         fdc->irq = FDC_PRIMARY_IRQ;
 
@@ -2337,6 +2351,10 @@ fdc_init(const device_t *info)
         timer_add(&fdc->watchdog_timer, fdc_watchdog_poll, fdc, 0);
     else if (fdc->flags & FDC_FLAG_SEC)
         fdc->dma_ch = FDC_SECONDARY_DMA;
+    else if (fdc->flags & FDC_FLAG_TER)
+        fdc->dma_ch = FDC_TERTIARY_DMA;
+    else if (fdc->flags & FDC_FLAG_QUA)
+        fdc->dma_ch = FDC_QUATERNARY_DMA;
     else
         fdc->dma_ch = FDC_PRIMARY_DMA;
 
@@ -2378,8 +2396,36 @@ const device_t fdc_xt_device = {
 
 const device_t fdc_xt_sec_device = {
     .name          = "PC/XT Floppy Drive Controller (Secondary)",
-    .internal_name = "fdc_xt",
+    .internal_name = "fdc_xt_sec",
     .flags         = FDC_FLAG_SEC,
+    .local         = 0,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_xt_ter_device = {
+    .name          = "PC/XT Floppy Drive Controller (Tertiary)",
+    .internal_name = "fdc_xt_ter",
+    .flags         = FDC_FLAG_TER,
+    .local         = 0,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_xt_qua_device = {
+    .name          = "PC/XT Floppy Drive Controller (Quaternary)",
+    .internal_name = "fdc_xt_qua",
+    .flags         = FDC_FLAG_QUA,
     .local         = 0,
     .init          = fdc_init,
     .close         = fdc_close,
@@ -2465,6 +2511,34 @@ const device_t fdc_at_sec_device = {
     .internal_name = "fdc_at_sec",
     .flags         = 0,
     .local         = FDC_FLAG_AT | FDC_FLAG_SEC,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_at_ter_device = {
+    .name          = "PC/AT Floppy Drive Controller (Tertiary)",
+    .internal_name = "fdc_at_ter",
+    .flags         = 0,
+    .local         = FDC_FLAG_AT | FDC_FLAG_TER,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_at_qua_device = {
+    .name          = "PC/AT Floppy Drive Controller (Quaternary)",
+    .internal_name = "fdc_at_qua",
+    .flags         = 0,
+    .local         = FDC_FLAG_AT | FDC_FLAG_QUA,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
