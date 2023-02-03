@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "&Ekran görüntüsü al\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Tercihler...",    IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "&Discord entegrasyonunu etkinleştir", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "&Ses yükseltici...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -284,13 +286,13 @@ END
 #define STR_JOY3		"Oyun kolu 3..."
 #define STR_JOY4		"Oyun kolu 4..."
 
-#define STR_SOUND		"Ses kartı:"
+#define STR_SOUND1		"Ses kartı 1:"
+#define STR_SOUND2		"Ses kartı 2:"
+#define STR_SOUND3		"Ses kartı 3:"
+#define STR_SOUND4		"Ses kartı 4:"
 #define STR_MIDI_OUT		"MIDI Çıkış Cihazı:"
 #define STR_MIDI_IN		"MIDI Giriş Cihazı:"
 #define STR_MPU401		"Bağımsız MPU-401"
-#define STR_SSI			"Innovation SSI-2001"
-#define STR_CMS			"CMS / Game Blaster"
-#define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"FLOAT32 ses kullan"
 #define STR_FM_DRIVER		"FM sentez sürücüsü"
 #define STR_FM_DRV_NUKED	"Nuked (daha doğru)"

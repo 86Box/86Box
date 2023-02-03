@@ -52,7 +52,9 @@ extern "C" {
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/video.h>
-#include <86box/discord.h>
+#ifdef DISCORD
+#   include <86box/discord.h>
+#endif
 #include <86box/gdbstub.h>
 }
 
@@ -196,7 +198,9 @@ main(int argc, char *argv[])
         return 0;
     }
 
+#ifdef DISCORD
     discord_load();
+#endif
 
     main_window = new MainWindow();
     if (startMaximized) {
@@ -271,12 +275,14 @@ main(int argc, char *argv[])
     /* Set the PAUSE mode depending on the renderer. */
     // plat_pause(0);
     QTimer onesec;
-    QTimer discordupdate;
     QObject::connect(&onesec, &QTimer::timeout, &app, [] {
         pc_onesec();
     });
     onesec.setTimerType(Qt::PreciseTimer);
     onesec.start(1000);
+
+#ifdef DISCORD
+    QTimer discordupdate;
     if (discord_loaded) {
         QTimer::singleShot(1000, &app, [] {
             if (enable_discord) {
@@ -290,6 +296,7 @@ main(int argc, char *argv[])
         });
         discordupdate.start(1000);
     }
+#endif
 
     /* Initialize the rendering window, or fullscreen. */
     QTimer::singleShot(0, &app, [] {

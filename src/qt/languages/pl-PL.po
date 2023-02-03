@@ -406,8 +406,17 @@ msgstr "Joystick 3..."
 msgid "Joystick 4..."
 msgstr "Joystick 4..."
 
-msgid "Sound card:"
-msgstr "Karta dźwiękowa:"
+msgid "Sound card 1:"
+msgstr "Karta dźwiękowa 1:"
+
+msgid "Sound card 2:"
+msgstr "Karta dźwiękowa 2:"
+
+msgid "Sound card 3:"
+msgstr "Karta dźwiękowa 3:"
+
+msgid "Sound card 4:"
+msgstr "Karta dźwiękowa 4:"
 
 msgid "MIDI Out Device:"
 msgstr "Urządzenie wyjściowe MIDI:"
@@ -417,15 +426,6 @@ msgstr "Urządzenie wejściowe MIDI:"
 
 msgid "Standalone MPU-401"
 msgstr "Samodzielne urządzenie MPU-401"
-
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
 msgstr "Użyj dźwięku FLOAT32"
