@@ -35,7 +35,6 @@
 #include <86box/keyboard.h>
 #include <86box/flash.h>
 #include <86box/sio.h>
-#include <86box/sound.h>
 #include <86box/hwm.h>
 #include <86box/video.h>
 #include <86box/spd.h>
