@@ -298,9 +298,13 @@ END
 #define STR_FM_DRV_NUKED	"Nuked (daha doğru)"
 #define STR_FM_DRV_YMFM		"YMFM (daha hızlı)"
 
-#define STR_NET_TYPE		"Ağ tipi:"
+#define STR_NET_TYPE	"Ağ tipi:"
 #define STR_PCAP		"PCap cihazı:"
 #define STR_NET			"Ağ cihazı:"
+#define STR_NET1		"Network card 1:"
+#define STR_NET2		"Network card 2:"
+#define STR_NET3		"Network card 3:"
+#define STR_NET4		"Network card 4:"
 
 #define STR_COM1		"COM1 Cihazı:"
 #define STR_COM2		"COM2 Cihazı:"
