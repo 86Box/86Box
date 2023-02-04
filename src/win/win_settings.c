@@ -470,7 +470,7 @@ win_settings_changed(void)
     i = i || (fm_driver != temp_fm_driver);
 
     /* Network category */
-    i = i || (net_cards_conf[i].net_type != temp_net_type);
+    i = i || (net_cards_conf[0].net_type != temp_net_type);
     i = i || strcmp(temp_pcap_dev, net_cards_conf[0].host_dev_name);
     i = i || (net_cards_conf[0].device_num != temp_net_card);
 
@@ -561,7 +561,7 @@ win_settings_save(void)
     fm_driver                  = temp_fm_driver;
 
     /* Network category */
-    net_cards_conf[i].net_type = temp_net_type;
+    net_cards_conf[0].net_type = temp_net_type;
     memset(net_cards_conf[0].host_dev_name, '\0', sizeof(net_cards_conf[0].host_dev_name));
     strcpy(net_cards_conf[0].host_dev_name, temp_pcap_dev);
     net_cards_conf[0].device_num = temp_net_card;
