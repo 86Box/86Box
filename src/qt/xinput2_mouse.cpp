@@ -76,22 +76,37 @@ parse_valuators(const double        *input_values,
 
 static bool exitthread = false;
 
+static int
+xinput2_get_xtest_pointer()
+{
+    /* The XTEST pointer events injected by VNC servers to move the cursor always report
+       absolute coordinates, despite XTEST declaring relative axes (related: SDL issue 1836).
+       This looks for the XTEST pointer so that we can assume it's absolute as a workaround. */
+    int           devs;
+    XIDeviceInfo *info = XIQueryDevice(disp, XIAllDevices, &devs), *dev;
+    for (int i = 0; i < devs; i++) {
+        dev = &info[i];
+        if ((dev->use == XISlavePointer) && !strcmp(dev->name, "Virtual core XTEST pointer"))
+            return dev->deviceid;
+    }
+    return -1;
+}
+
 void
 xinput2_proc()
 {
     Window win;
     win = DefaultRootWindow(disp);
 
+    int xtest_pointer = xinput2_get_xtest_pointer();
+
     ximask.deviceid = XIAllMasterDevices;
     ximask.mask_len = XIMaskLen(XI_LASTEVENT);
     ximask.mask     = (unsigned char *) calloc(ximask.mask_len, sizeof(unsigned char));
 
-    XISetMask(ximask.mask, XI_RawKeyPress);
-    XISetMask(ximask.mask, XI_RawKeyRelease);
-    XISetMask(ximask.mask, XI_RawButtonPress);
-    XISetMask(ximask.mask, XI_RawButtonRelease);
     XISetMask(ximask.mask, XI_RawMotion);
     XISetMask(ximask.mask, XI_Motion);
+    XISetMask(ximask.mask, XI_DeviceChanged);
 
     XISelectEvents(disp, win, &ximask, 1);
 
@@ -134,7 +149,7 @@ common_motion:
                                 const XIValuatorClassInfo *v = (const XIValuatorClassInfo *) xidevinfo->classes[i];
                                 if (v->type == XIValuatorClass) {
                                     /* Is this an absolute or relative axis? */
-                                    if (v->mode == XIModeRelative) {
+                                    if ((v->mode == XIModeRelative) && (rawev->sourceid != xtest_pointer)) {
                                         /* Set relative coordinates. */
                                         if (axis == 0)
                                             xi2_mouse_x = xi2_mouse_x + coords[axis];
@@ -145,19 +160,30 @@ common_motion:
                                         int    disp_screen = XDefaultScreen(disp);
                                         double abs_div;
                                         if (axis == 0) {
-                                            abs_div = (v->max - v->min) / (double) XDisplayWidth(disp, disp_screen);
-                                            if (abs_div <= 0)
-                                                abs_div = 1;
-                                            abs_div = (coords[axis] - v->min) / abs_div;
+                                            if (v->mode == XIModeRelative) {
+                                                /* XTEST axes have dummy min/max values because they're nominally relative,
+                                                   but in practice, the injected absolute coordinates are already in pixels. */
+                                                abs_div = coords[axis];
+                                            } else {
+                                                abs_div = (v->max - v->min) / (double) XDisplayWidth(disp, disp_screen);
+                                                if (abs_div <= 0)
+                                                    abs_div = 1;
+                                                abs_div = (coords[axis] - v->min) / abs_div;
+                                            }
 
                                             if (xi2_mouse_abs_x != 0)
                                                 xi2_mouse_x = xi2_mouse_x + (abs_div - xi2_mouse_abs_x);
                                             xi2_mouse_abs_x = abs_div;
                                         } else {
-                                            abs_div = (v->max - v->min) / (double) XDisplayHeight(disp, disp_screen);
-                                            if (abs_div <= 0)
-                                                abs_div = 1;
-                                            abs_div = (coords[axis] - v->min) / abs_div;
+                                            if (v->mode == XIModeRelative) {
+                                                /* Same as above. */
+                                                abs_div = coords[axis];
+                                            } else {
+                                                abs_div = (v->max - v->min) / (double) XDisplayHeight(disp, disp_screen);
+                                                if (abs_div <= 0)
+                                                    abs_div = 1;
+                                                abs_div = (coords[axis] - v->min) / abs_div;
+                                            }
 
                                             if (xi2_mouse_abs_y != 0)
                                                 xi2_mouse_y = xi2_mouse_y + (abs_div - xi2_mouse_abs_y);
@@ -180,6 +206,14 @@ common_motion:
                             XWarpPointer(disp, XRootWindow(disp, XScreenNumberOfScreen(winattrib.screen)), XRootWindow(disp, XScreenNumberOfScreen(winattrib.screen)), 0, 0, 0, 0, globalPoint.x(), globalPoint.y());
                             XFlush(disp);
                         }
+
+                        break;
+                    }
+
+                case XI_DeviceChanged:
+                    {
+                        /* Re-scan for XTEST pointer, just in case. */
+                        xtest_pointer = xinput2_get_xtest_pointer();
 
                         break;
                     }
