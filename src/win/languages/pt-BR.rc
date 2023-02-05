@@ -107,7 +107,9 @@ BEGIN
         MENUITEM "Capturar &tela\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Preferências...",    IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Ativar integração com o &Discord", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "&Ganho de som...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -287,13 +289,13 @@ END
 #define STR_JOY3		"Joystick 3..."
 #define STR_JOY4		"Joystick 4..."
 
-#define STR_SOUND		"Placa de som:"
+#define STR_SOUND1		"Placa de som 1:"
+#define STR_SOUND2		"Placa de som 2:"
+#define STR_SOUND3		"Placa de som 3:"
+#define STR_SOUND4		"Placa de som 4:"
 #define STR_MIDI_OUT		"Disp. saída MIDI:"
 #define STR_MIDI_IN		"Disp. entrada MIDI:"
 #define STR_MPU401		"MPU-401 autônomo"
-#define STR_SSI			"Innovation SSI-2001"
-#define STR_CMS			"CMS / Game Blaster"
-#define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"Usar som FLOAT32"
 #define STR_FM_DRIVER		"Controlador de sint. FM"
 #define STR_FM_DRV_NUKED	"Nuked (mais preciso)"
@@ -302,6 +304,10 @@ END
 #define STR_NET_TYPE		"Tipo de rede:"
 #define STR_PCAP		"Dispositivo PCap:"
 #define STR_NET			"Adaptador de rede:"
+#define STR_NET1		"Network card 1:"
+#define STR_NET2		"Network card 2:"
+#define STR_NET3		"Network card 3:"
+#define STR_NET4		"Network card 4:"
 
 #define STR_COM1		"Dispositivo COM1:"
 #define STR_COM2		"Dispositivo COM2:"

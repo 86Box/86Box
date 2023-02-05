@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "Зробити &знімок\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Параметри...",		IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Увімкнути інтеграцію &Discord", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "&Посилення звуку...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -284,21 +286,25 @@ END
 #define STR_JOY3		"Джойстик 3..."
 #define STR_JOY4		"Джойстик 4..."
 
-#define STR_SOUND		"Звукова карта:"
+#define STR_SOUND1		"Звукова карта 1:"
+#define STR_SOUND2		"Звукова карта 2:"
+#define STR_SOUND3		"Звукова карта 3:"
+#define STR_SOUND4		"Звукова карта 4:"
 #define STR_MIDI_OUT		"MIDI Out при-ій:"
 #define STR_MIDI_IN		"MIDI In при-ій:"
 #define STR_MPU401		"Окремий MPU-401"
-#define STR_SSI			"Innovation SSI-2001"
-#define STR_CMS			"CMS / Game Blaster"
-#define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"FLOAT32 звук"
 #define STR_FM_DRIVER		"Драйвер FM-синтезатора"
 #define STR_FM_DRV_NUKED	"Nuked (більш точний)"
 #define STR_FM_DRV_YMFM		"YMFM (швидший)"
 
-#define STR_NET_TYPE		"Тип мережі:"
+#define STR_NET_TYPE	"Тип мережі:"
 #define STR_PCAP		"Пристрій PCap:"
 #define STR_NET			"Мережева карта:"
+#define STR_NET1		"Network card 1:"
+#define STR_NET2		"Network card 2:"
+#define STR_NET3		"Network card 3:"
+#define STR_NET4		"Network card 4:"
 
 #define STR_COM1		"Пристрій COM1:"
 #define STR_COM2		"Пристрій COM2:"

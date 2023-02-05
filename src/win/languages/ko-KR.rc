@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "스크린샷 찍기(&C)\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "환경설정(&P)...",    IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "디스코드 연동 활성화하기(&D)", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "음량 증폭(&G)...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -284,21 +286,25 @@ END
 #define STR_JOY3		"조이스틱 3..."
 #define STR_JOY4		"조이스틱 4..."
 
-#define STR_SOUND		"사운드 카드:"
+#define STR_SOUND1		"사운드 카드 1:"
+#define STR_SOUND2		"사운드 카드 2:"
+#define STR_SOUND3		"사운드 카드 3:"
+#define STR_SOUND4		"사운드 카드 4:"
 #define STR_MIDI_OUT		"MIDI 출력 장치:"
 #define STR_MIDI_IN		"MIDI 입력 장치:"
 #define STR_MPU401		"MPU-401 단독 사용"
-#define STR_SSI			"Innovation SSI-2001"
-#define STR_CMS			"CMS / Game Blaster"
-#define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"FLOAT32 사운드 사용"
 #define STR_FM_DRIVER		"FM 신디사이저 드라이버"
 #define STR_FM_DRV_NUKED	"Nuked (더 정확한)"
 #define STR_FM_DRV_YMFM		"YMFM (더 빠르게)"
 
-#define STR_NET_TYPE		"네트워크 종류:"
+#define STR_NET_TYPE	"네트워크 종류:"
 #define STR_PCAP		"PCap 장치:"
 #define STR_NET			"네트워크 어댑터:"
+#define STR_NET1		"Network card 1:"
+#define STR_NET2		"Network card 2:"
+#define STR_NET3		"Network card 3:"
+#define STR_NET4		"Network card 4:"
 
 #define STR_COM1		"COM1 장치:"
 #define STR_COM2		"COM2 장치:"

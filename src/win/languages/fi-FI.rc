@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "Ota &kuvakaappaus\tCtrl+F11",                         IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Sovellusasetukset...",                               IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Käytä &Discord-integraatiota",                        IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "&Äänitasot...",                                       IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -284,13 +286,13 @@ END
 #define STR_JOY3            "Peliohjain 3..."
 #define STR_JOY4            "Peliohjain 4..."
 
-#define STR_SOUND           "Äänikortti:"
+#define STR_SOUND1           "Äänikortti 1:"
+#define STR_SOUND2           "Äänikortti 2:"
+#define STR_SOUND3           "Äänikortti 3:"
+#define STR_SOUND4           "Äänikortti 4:"
 #define STR_MIDI_OUT        "MIDI-ulostulo:"
 #define STR_MIDI_IN         "MIDI-sisääntulo:"
 #define STR_MPU401          "Erillinen MPU-401"
-#define STR_SSI             "Innovation SSI-2001"
-#define STR_CMS             "CMS / Game Blaster"
-#define STR_GUS             "Gravis Ultrasound"
 #define STR_FLOAT           "Käytä FLOAT32-ääntä"
 #define STR_FM_DRIVER       "FM-syntetisaattoriohjain"
 #define STR_FM_DRV_NUKED    "Nuked (tarkempi)"
@@ -299,6 +301,10 @@ END
 #define STR_NET_TYPE        "Verkon tyyppi:"
 #define STR_PCAP            "PCap-laite:"
 #define STR_NET             "Verkkokortti:"
+#define STR_NET1            "Network card 1:"
+#define STR_NET2            "Network card 2:"
+#define STR_NET3            "Network card 3:"
+#define STR_NET4            "Network card 4:"
 
 #define STR_COM1            "COM1-laite:"
 #define STR_COM2            "COM2-laite:"

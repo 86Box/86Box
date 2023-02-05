@@ -39,6 +39,8 @@
 typedef struct
 {
     rom_t bios_rom;
+    fdc_t *fdc_pri;
+    fdc_t *fdc_sec;
 } monster_fdc_t;
 
 static void
@@ -57,14 +59,29 @@ monster_fdc_init(const device_t *info)
     dev = (monster_fdc_t *)malloc(sizeof(monster_fdc_t));
     memset(dev, 0, sizeof(monster_fdc_t));
 
+#if 0
+    uint8_t sec_irq = device_get_config_int("sec_irq");
+    uint8_t sec_dma = device_get_config_int("sec_dma");
+#endif
+
     if (BIOS_ADDR != 0)
         rom_init(&dev->bios_rom, ROM_MONSTER_FDC, BIOS_ADDR, 0x2000, 0x1ffff, 0, MEM_MAPPING_EXTERNAL);
 
     // Primary FDC
-    device_add(&fdc_at_device);
+    dev->fdc_pri = device_add(&fdc_at_device);
 
+#if 0
     // Secondary FDC
-    // device_add(&fdc_at_sec_device);
+    uint8_t sec_enabled = device_get_config_int("sec_enabled");
+    if (sec_enabled)
+        dev->fdc_sec = device_add(&fdc_at_sec_device);
+        fdc_set_irq(dev->fdc_sec, sec_irq);
+        fdc_set_dma_ch(dev->fdc_sec, sec_dma);
+#endif
+
+#if 0
+    uint8_t rom_writes_enabled = device_get_config_int("rom_writes_enabled");
+#endif
 
     return dev;
 }
@@ -76,7 +93,14 @@ static int monster_fdc_available(void)
 
 static const device_config_t monster_fdc_config[] = {
 // clang-format off
-/*
+#if 0
+    {
+        .name = "sec_enabled",
+        .description = "Enable Secondary Controller",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
     {
         .name = "sec_irq",
         .description = "Secondary Controller IRQ",
@@ -137,7 +161,7 @@ static const device_config_t monster_fdc_config[] = {
             { .description = "" }
         }
     },
-*/
+#endif
     {
         .name = "bios_addr",
         .description = "BIOS Address:",
@@ -157,7 +181,7 @@ static const device_config_t monster_fdc_config[] = {
             { .description = ""                           }
         }
     },
-/*
+#if 0
     {
         .name = "bios_size",
         .description = "BIOS Size:",
@@ -172,8 +196,14 @@ static const device_config_t monster_fdc_config[] = {
             { .description = ""                 }
         }
     },
-*/
-    // BIOS extension ROM writes: Enabled/Disabled
+    {
+        .name = "rom_writes_enabled",
+        .description = "Enable BIOS extension ROM Writes",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
+#endif
     { .name = "", .description = "", .type = CONFIG_END }
 // clang-format on
 };

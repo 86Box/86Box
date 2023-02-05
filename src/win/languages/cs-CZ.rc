@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "Pořídit &screenshot\tCtrl+F11",		IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Předvolby...",				IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Povolit integraci s &Discordem",		IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "&Zesílení zvuku",				IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -284,21 +286,25 @@ END
 #define STR_JOY3		"Joystick 3..."
 #define STR_JOY4		"Joystick 4..."
 
-#define STR_SOUND		"Zvuková karta:"
+#define STR_SOUND1		"Zvuková karta 1:"
+#define STR_SOUND2		"Zvuková karta 2:"
+#define STR_SOUND3		"Zvuková karta 3:"
+#define STR_SOUND4		"Zvuková karta 4:"
 #define STR_MIDI_OUT		"MIDI výstup:"
 #define STR_MIDI_IN		"MIDI vstup:"
 #define STR_MPU401		"Samostatný MPU-401"
-#define STR_SSI			"Innovation SSI-2001"
-#define STR_CMS			"CMS / Game Blaster"
-#define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"Použít zvuk FLOAT32"
 #define STR_FM_DRIVER		"FM synth driver"
 #define STR_FM_DRV_NUKED	"Nuked (přesnější)"
 #define STR_FM_DRV_YMFM		"YMFM (rychlejší)"
 
-#define STR_NET_TYPE		"Druh sítě:"
+#define STR_NET_TYPE	"Druh sítě:"
 #define STR_PCAP		"PCap zařízení:"
 #define STR_NET			"Síťový adaptér:"
+#define STR_NET1		"Network card 1:"
+#define STR_NET2		"Network card 2:"
+#define STR_NET3		"Network card 3:"
+#define STR_NET4		"Network card 4:"
 
 #define STR_COM1		"Zařízení na COM1:"
 #define STR_COM2		"Zařízení na COM2:"

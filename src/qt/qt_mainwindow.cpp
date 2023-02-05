@@ -39,7 +39,9 @@ extern "C" {
 #include <86box/keyboard.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
-#include <86box/discord.h>
+#ifdef DISCORD
+#   include <86box/discord.h>
+#endif
 #include <86box/device.h>
 #include <86box/video.h>
 #include <86box/machine.h>
@@ -304,6 +306,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
     ui->actionEnable_Discord_integration->setChecked(enable_discord);
     ui->actionApply_fullscreen_stretch_mode_when_maximized->setChecked(video_fullscreen_scale_maximized);
+
+#ifndef DISCORD
+    ui->actionEnable_Discord_integration->setVisible(false);
+#endif
 
 #if defined Q_OS_WINDOWS || defined Q_OS_MACOS
     /* Make the option visible only if ANGLE is loaded. */
@@ -2292,11 +2298,13 @@ void
 MainWindow::on_actionEnable_Discord_integration_triggered(bool checked)
 {
     enable_discord = checked;
+#ifdef DISCORD
     if (enable_discord) {
         discord_init();
         discord_update_activity(dopause);
     } else
         discord_close();
+#endif
 }
 
 void

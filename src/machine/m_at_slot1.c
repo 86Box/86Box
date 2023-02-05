@@ -461,7 +461,7 @@ machine_at_s1846_init(const machine_t *model)
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
-    if (sound_card_current == SOUND_INTERNAL) {
+    if (sound_card_current[0] == SOUND_INTERNAL) {
         device_add(&es1371_onboard_device);
         device_add(&cs4297_device); /* found on other Tyan boards around the same time */
     }
@@ -606,7 +606,7 @@ machine_at_gt694va_init(const machine_t *model)
     hwm_values.fans[2]         = 0;    /* unused */
     hwm_values.temperatures[2] = 0;    /* unused */
 
-    if (sound_card_current == SOUND_INTERNAL) {
+    if (sound_card_current[0] == SOUND_INTERNAL) {
         device_add(&es1371_onboard_device);
         device_add(&cs4297_device); /* assumed */
     }
@@ -670,7 +670,7 @@ machine_at_ms6168_common_init(const machine_t *model)
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
-    if (sound_card_current == SOUND_INTERNAL) {
+    if (sound_card_current[0] == SOUND_INTERNAL) {
         device_add(&es1371_onboard_device);
         device_add(&cs4297_device);
     }

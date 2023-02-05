@@ -104,7 +104,9 @@ BEGIN
         MENUITEM "Napravi &snimku zaslona\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Postavke...",    IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Omogući integraciju sa programom &Discord", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "&Pojačanje zvuka...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -284,21 +286,25 @@ END
 #define STR_JOY3		"Palica za igru 3..."
 #define STR_JOY4		"Palica za igru 4..."
 
-#define STR_SOUND		"Zvučna kartica:"
+#define STR_SOUND1		"Zvučna kartica 1:"
+#define STR_SOUND2		"Zvučna kartica 2:"
+#define STR_SOUND3		"Zvučna kartica 3:"
+#define STR_SOUND4		"Zvučna kartica 4:"
 #define STR_MIDI_OUT		"Izlazni uređaj MIDI:"
 #define STR_MIDI_IN		"Ulazni uređaj MIDI:"
 #define STR_MPU401		"Samostalni MPU-401"
-#define STR_SSI			"Innovation SSI-2001"
-#define STR_CMS			"CMS / Game Blaster"
-#define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"Koristi FLOAT32 za zvuk"
 #define STR_FM_DRIVER		"Drajver za FM sintisajzer"
 #define STR_FM_DRV_NUKED	"Nuked (precizniji)"
 #define STR_FM_DRV_YMFM		"YMFM (brži)"
 
-#define STR_NET_TYPE		"Tip mreže:"
+#define STR_NET_TYPE	"Tip mreže:"
 #define STR_PCAP		"Uređaj PCap:"
 #define STR_NET			"Mrežna kartica:"
+#define STR_NET1		"Network card 1:"
+#define STR_NET2		"Network card 2:"
+#define STR_NET3		"Network card 3:"
+#define STR_NET4		"Network card 4:"
 
 #define STR_COM1		"Uređaj COM1:"
 #define STR_COM2		"Uređaj COM2:"
