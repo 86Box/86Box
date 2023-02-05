@@ -65,6 +65,34 @@ normalize_hd_list()
 }
 */
 
+class HDDViewModel : public QStandardItemModel
+{
+    using QStandardItemModel::QStandardItemModel;
+
+public:
+    bool ignoreSetData = false;
+
+    bool setData(const QModelIndex &index, const QVariant &value, int role = Qt::EditRole) override
+    {
+        bool res = QStandardItemModel::setData(index, value, role);
+        if (ignoreSetData) return res;
+        if (index.column() == ColumnSize) {
+            uint32_t c = 0, h = 0, s = 0;
+            hdd_image_calc_chs(&c, &h, &s, value.toUInt());
+            QStandardItemModel::setData(this->index(index.row(), ColumnCylinders), c);
+            QStandardItemModel::setData(this->index(index.row(), ColumnHeads), h);
+            QStandardItemModel::setData(this->index(index.row(), ColumnSectors), s);
+        } else if (index.column() >= ColumnCylinders && index.column() <= ColumnSectors) {
+            uint32_t c = data(this->index(index.row(), ColumnCylinders)).toUInt();
+            uint32_t h = data(this->index(index.row(), ColumnHeads)).toUInt();
+            uint32_t s = data(this->index(index.row(), ColumnSectors)).toUInt();
+            uint64_t size = (static_cast<uint64_t>(c) * static_cast<uint64_t>(h) * static_cast<uint64_t>(s)) * 512;
+            QStandardItemModel::setData(this->index(index.row(), ColumnSize), (qulonglong)(size / (1024 * 1024)));
+        }
+        return res;
+    }
+};
+
 static QString
 busChannelName(const QModelIndex &idx)
 {
@@ -72,10 +100,11 @@ busChannelName(const QModelIndex &idx)
 }
 
 static void
-addRow(QAbstractItemModel *model, hard_disk_t *hd)
+addRow(HDDViewModel *model, hard_disk_t *hd)
 {
     const QString userPath = usr_path;
 
+    model->ignoreSetData = true;
     int row = model->rowCount();
     model->insertRow(row);
 
@@ -98,9 +127,14 @@ addRow(QAbstractItemModel *model, hard_disk_t *hd)
     model->setData(model->index(row, ColumnCylinders), hd->tracks);
     model->setData(model->index(row, ColumnHeads), hd->hpc);
     model->setData(model->index(row, ColumnSectors), hd->spt);
-    model->setData(model->index(row, ColumnSize), (hd->tracks * hd->hpc * hd->spt) >> 11);
+    model->setData(model->index(row, ColumnSize), (uint32_t)((static_cast<uint64_t>(hd->tracks) * static_cast<uint64_t>(hd->hpc) * static_cast<uint64_t>(hd->spt)) >> 11));
     model->setData(model->index(row, ColumnSpeed), hdd_preset_getname(hd->speed_preset));
     model->setData(model->index(row, ColumnSpeed), hd->speed_preset, Qt::UserRole);
+
+    model->itemFromIndex(model->index(row, ColumnBus))->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+    model->itemFromIndex(model->index(row, ColumnFilename))->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+    model->itemFromIndex(model->index(row, ColumnSpeed))->setFlags(Qt::ItemIsEnabled | Qt::ItemIsSelectable);
+    model->ignoreSetData = false;
 }
 
 SettingsHarddisks::SettingsHarddisks(QWidget *parent)
@@ -109,7 +143,7 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
 {
     ui->setupUi(this);
 
-    QAbstractItemModel *model = new QStandardItemModel(0, 7, this);
+    HDDViewModel *model = new HDDViewModel(0, 7, this);
     model->setHeaderData(ColumnBus, Qt::Horizontal, tr("Bus"));
     model->setHeaderData(ColumnFilename, Qt::Horizontal, tr("File"));
     model->setHeaderData(ColumnCylinders, Qt::Horizontal, tr("C"));
@@ -301,7 +335,7 @@ addDriveFromDialog(Ui::SettingsHarddisks *ui, const HarddiskDialog &dlg)
     strncpy(hd.fn, fn.data(), sizeof(hd.fn) - 1);
     hd.speed_preset = dlg.speed();
 
-    addRow(ui->tableView->model(), &hd);
+    addRow((HDDViewModel*)ui->tableView->model(), &hd);
     ui->tableView->resizeColumnsToContents();
     ui->tableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
     if (ui->tableView->model()->rowCount() == HDD_NUM) {
