@@ -136,7 +136,6 @@ static void
 sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
 {
     sis_85c50x_t *dev    = (sis_85c50x_t *) priv;
-    uint8_t       valxor = (val ^ dev->pci_conf[addr]);
 
     sis_85c50x_log("85C501: [W] (%02X, %02X) = %02X\n", func, addr, val);
 
@@ -192,8 +191,6 @@ sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
             break;
         case 0x5b:
             dev->pci_conf[addr] = val;
-            // if (valxor & 0xc0)
-                // port_92_set_features(dev->port_92, !!(val & 0x40), !!(val & 0x80));
             break;
         case 0x60: /* SMI */
             if ((dev->pci_conf[0x68] & 0x01) && !(dev->pci_conf[addr] & 0x02) && (val & 0x02)) {
