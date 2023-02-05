@@ -47,6 +47,9 @@ extern "C" {
 #include <86box/machine.h>
 #include <86box/vid_ega.h>
 #include <86box/version.h>
+//#include <86box/acpi.h> /* Requires timer.h include, which conflicts with Qt headers */
+extern atomic_int acpi_pwrbut_pressed;
+extern int acpi_enabled;
 
 #ifdef USE_VNC
 #    include <86box/vnc.h>
@@ -1679,6 +1682,7 @@ MainWindow::refreshMediaMenu()
     mm->refresh(ui->menuMedia);
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
+    ui->actionACPI_Shutdown->setEnabled(!!acpi_enabled);
 }
 
 void
@@ -2430,3 +2434,9 @@ MainWindow::on_actionApply_fullscreen_stretch_mode_when_maximized_triggered(bool
     device_force_redraw();
     config_save();
 }
+
+void MainWindow::on_actionACPI_Shutdown_triggered()
+{
+    acpi_pwrbut_pressed = 1;
+}
+

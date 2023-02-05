@@ -97,6 +97,8 @@
 #include <86box/version.h>
 #include <86box/gdbstub.h>
 #include <86box/machine_status.h>
+#include <86box/apm.h>
+#include <86box/acpi.h>
 
 // Disable c99-designator to avoid the warnings about int ng
 #ifdef __clang__
@@ -1015,6 +1017,9 @@ pc_reset_hard_init(void)
      * the actual machine, but which support some of the
      * modules that are.
      */
+
+    /* Mark ACPI as unavailable */
+    acpi_enabled = 0;
 
     /* Reset the general machine support modules. */
     io_init();
