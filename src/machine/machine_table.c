@@ -11565,6 +11565,45 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* VIA Apollo Pro */
+    /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware. */
+    {
+        .name = "[VIA Apollo Pro 133] ECS P6BAT-A+",
+        .internal_name = "p6bat",
+        .type = MACHINE_TYPE_SLOT1_370,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO_133,
+        .init = machine_at_p6bat_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1 | CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc = KBC_UNKNOWN,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &cmi8738_onboard_device,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
 
     /* Slot 2 machines */
     /* 440GX */
@@ -11924,7 +11963,7 @@ const machine_t machines[] = {
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
-        .name = "[VIA Apollo Pro 133] ECS P6BAP",
+        .name = "[VIA Apollo Pro 133] ECS P6BAP-A+",
         .internal_name = "p6bap",
         .type = MACHINE_TYPE_SOCKET370,
         .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO_133,
