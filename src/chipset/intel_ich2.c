@@ -39,6 +39,7 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
+#include <86box/snd_ac97_intel.h>
 #include <86box/intel_ich2_gpio.h>
 #include <86box/intel_ich2_trap.h>
 #include <86box/mem.h>
@@ -72,6 +73,7 @@ typedef struct intel_ich2_t {
     uint8_t pci_conf[7][256];
 
     acpi_t            *acpi;
+    intel_ac97_t      *ac97;
     intel_ich2_gpio_t *gpio;
     intel_ich2_trap_t *trap_device[10];
     nvr_t             *nvr;
@@ -665,6 +667,64 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
                 break;
         }
     }
+
+    else if ((func == 5) && !(dev->pci_conf[0][0xf2] & 0x20)) {
+        intel_ich2_log("Intel ICH2 AC'97: dev->regs[%02x] = %02x\n", addr, val);
+        switch (addr) {
+            case 0x04:
+                dev->pci_conf[func][addr] = val & 5;
+                break;
+
+            case 0x07:
+                dev->pci_conf[func][addr] &= val & 0x26;
+                break;
+
+            case 0x11:
+                dev->pci_conf[func][addr] = val;
+
+                if (sound_card_current[0] == SOUND_INTERNAL)
+                    intel_ac97_mixer_base(dev->pci_conf[5][4] & 1, dev->pci_conf[5][0x11] << 8, dev->ac97);
+                break;
+
+            case 0x14:
+            case 0x15:
+                dev->pci_conf[func][addr] = (addr & 1) ? val : ((val & 0xc0) | 1);
+
+                if (sound_card_current[0] == SOUND_INTERNAL)
+                    intel_ac97_base(dev->pci_conf[5][4] & 1, (dev->pci_conf[5][0x15] << 8) | (dev->pci_conf[5][0x14] & 0xc0), dev->ac97);
+                break;
+
+            case 0x3c:
+                dev->pci_conf[func][addr] = val;          /* 86Box doesn't give any capabilities to take the PCI IRQ pin, also */
+                if (sound_card_current[0] == SOUND_INTERNAL) /* can't use pointers as whatever recieved from there is temporary.  */
+                    intel_ac97_set_irq(pci_get_int(0x1f, 2), dev->ac97);
+                break;
+        }
+    } else if ((func == 6) && !(dev->pci_conf[0][0xf2] & 0x40)) {
+        intel_ich2_log("Intel ICH2 AC'97 Modem: dev->regs[%02x] = %02x\n", addr, val);
+        switch (addr) {
+            case 0x04:
+                dev->pci_conf[func][addr] = val & 5;
+                break;
+
+            case 0x07:
+                dev->pci_conf[func][addr] &= val & 0x20;
+                break;
+
+            case 0x11:
+                dev->pci_conf[func][addr] = val;
+                break;
+
+            case 0x14:
+            case 0x15:
+                dev->pci_conf[func][addr] = (addr & 1) ? val : ((val & 0x80) | 1);
+                break;
+
+            case 0x3c:
+                dev->pci_conf[func][addr] = val;
+                break;
+        }
+    }
 }
 
 static uint8_t
@@ -690,6 +750,13 @@ intel_ich2_read(int func, int addr, void *priv)
 
         if ((addr >= 0x2c) && (addr <= 0x2f)) /* SMBus shares the same subsystem vendor info as the IDE */
             return dev->pci_conf[1][addr];
+
+        return dev->pci_conf[func][addr];
+    } else if ((func == 5) && !(dev->pci_conf[0][0xf2] & 0x20)) {
+        intel_ich2_log("Intel ICH2 AC'97: dev->regs[%02x] (%02x)\n", addr, dev->pci_conf[func][addr]);
+        return dev->pci_conf[func][addr];
+    } else if ((func == 6) && !(dev->pci_conf[0][0xf2] & 0x40)) {
+        intel_ich2_log("Intel ICH2 AC'97 Modem: dev->regs[%02x] (%02x)\n", addr, dev->pci_conf[func][addr]);
 
         return dev->pci_conf[func][addr];
     } else
@@ -855,6 +922,51 @@ intel_ich2_reset(void *priv)
     dev->pci_conf[4][0xc1] = 0x20;
 
     intel_ich2_usb_setup(4, dev);
+
+    /* Function 5: AC'97 */
+    dev->pci_conf[5][0x00] = 0x86;
+    dev->pci_conf[5][0x01] = 0x80;
+
+    dev->pci_conf[5][0x02] = 0x45;
+    dev->pci_conf[5][0x03] = 0x24;
+
+    dev->pci_conf[5][0x06] = 0x80;
+    dev->pci_conf[5][0x07] = 0x02;
+
+    dev->pci_conf[5][0x08] = 0x02;
+
+    dev->pci_conf[5][0x0a] = 0x01;
+    dev->pci_conf[5][0x0b] = 0x03;
+
+    dev->pci_conf[5][0x10] = 0x01;
+    dev->pci_conf[5][0x14] = 0x01;
+
+    dev->pci_conf[5][0x3d] = 0x02;
+
+    if (sound_card_current[0] == SOUND_INTERNAL) {
+        intel_ac97_mixer_base(dev->pci_conf[5][4] & 1, dev->pci_conf[5][0x11] << 8, dev->ac97);
+        intel_ac97_base(dev->pci_conf[5][4] & 1, (dev->pci_conf[5][0x15] << 8) | (dev->pci_conf[5][0x14] & 0xc0), dev->ac97);
+    }
+
+    /* Function 6: AC'97 Modem */
+    dev->pci_conf[6][0x00] = 0x86;
+    dev->pci_conf[6][0x01] = 0x80;
+
+    dev->pci_conf[6][0x02] = 0x46;
+    dev->pci_conf[6][0x03] = 0x24;
+
+    dev->pci_conf[6][0x06] = 0x80;
+    dev->pci_conf[6][0x07] = 0x02;
+
+    dev->pci_conf[6][0x08] = 0x02;
+
+    dev->pci_conf[6][0x0a] = 0x03;
+    dev->pci_conf[6][0x0b] = 0x07;
+
+    dev->pci_conf[6][0x10] = 0x01;
+    dev->pci_conf[6][0x14] = 0x01;
+
+    dev->pci_conf[6][0x3d] = 0x02;
 }
 
 static void
@@ -877,6 +989,10 @@ intel_ich2_init(const device_t *info)
     /* ACPI Interface */
     dev->acpi = device_add(&acpi_intel_ich2_device);
     acpi_set_slot(dev->acpi, slot);
+
+    /* AC'97 Audio */
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        dev->ac97 = device_add(&intel_ac97_device);
 
     /* DMA */
     dma_alias_set_piix();
