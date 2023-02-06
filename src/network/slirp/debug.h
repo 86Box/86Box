@@ -10,6 +10,7 @@
 #define DBG_MISC (1 << 1)
 #define DBG_ERROR (1 << 2)
 #define DBG_TFTP (1 << 3)
+#define DBG_VERBOSE_CALL (1 << 4)
 
 extern int slirp_debug;
 
@@ -18,6 +19,13 @@ extern int slirp_debug;
         if (G_UNLIKELY(slirp_debug & DBG_CALL)) { \
             g_debug(fmt "...", ##__VA_ARGS__);    \
         }                                         \
+    } while (0)
+
+#define DEBUG_VERBOSE_CALL(fmt, ...)                      \
+    do {                                                  \
+        if (G_UNLIKELY(slirp_debug & DBG_VERBOSE_CALL)) { \
+            g_debug(fmt "...", ##__VA_ARGS__);            \
+        }                                                 \
     } while (0)
 
 #define DEBUG_ARG(fmt, ...)                       \

@@ -73,6 +73,13 @@
  */
 #define M_FREEROOM(m) (M_ROOM(m) - (m)->m_len)
 
+/*
+ * How much free room there is before m_data
+ */
+#define M_ROOMBEFORE(m) \
+    (((m)->m_flags & M_EXT) ? (m)->m_data - (m)->m_ext \
+                            : (m)->m_data - (m)->m_dat)
+
 struct mbuf {
     /* XXX should union some of these! */
     /* header at beginning of each mbuf: */
@@ -117,11 +124,69 @@ void m_cat(register struct mbuf *, register struct mbuf *);
 void m_inc(struct mbuf *, int);
 void m_adj(struct mbuf *, int);
 int m_copy(struct mbuf *, struct mbuf *, int, int);
+struct mbuf *m_dup(Slirp *slirp, struct mbuf *m, bool copy_header, size_t header_size);
 struct mbuf *dtom(Slirp *, void *);
+void *mtod_check(struct mbuf *, size_t len);
+void *m_end(struct mbuf *);
 
 static inline void ifs_init(struct mbuf *ifm)
 {
     ifm->ifs_next = ifm->ifs_prev = ifm;
 }
+
+#ifdef SLIRP_DEBUG
+#  define MBUF_DEBUG 1
+#else
+#  ifdef HAVE_VALGRIND
+#    include <valgrind/valgrind.h>
+#    define MBUF_DEBUG RUNNING_ON_VALGRIND
+#  else
+#    define MBUF_DEBUG 0
+#  endif
+#endif
+
+/*
+ * When a function is given an mbuf as well as the responsibility to free it, we
+ * want valgrind etc. to properly identify the new responsible for the
+ * free. Achieve this by making a new copy. For instance:
+ *
+ * f0(void) {
+ *   struct mbuf *m = m_get(slirp);
+ *   [...]
+ *   switch (something) {
+ *   case 1:
+ *     f1(m);
+ *     break;
+ *   case 2:
+ *     f2(m);
+ *     break;
+ *   [...]
+ *   }
+ * }
+ *
+ * f1(struct mbuf *m) {
+ *   M_DUP_DEBUG(m->slirp, m);
+ *   [...]
+ *   m_free(m); // but author of f1 might be forgetting this
+ * }
+ *
+ * f0 transfers the freeing responsibility to f1, f2, etc.  Without the
+ * M_DUP_DEBUG call in f1, valgrind would tell us that it is f0 where the buffer
+ * was allocated, but it's difficult to know whether a leak is actually in f0,
+ * or in f1, or in f2, etc.  Duplicating the mbuf in M_DUP_DEBUG each time the
+ * responsibility is transferred allows to immediately know where the leak
+ * actually is.
+ */
+#define M_DUP_DEBUG(slirp, m, copy_header, header_size) do { \
+    if (MBUF_DEBUG) { \
+        struct mbuf *__n; \
+        __n = m_dup((slirp), (m), (copy_header), (header_size)); \
+        m_free(m); \
+        (m) = __n; \
+    } else { \
+        (void) (slirp); (void) (copy_header); \
+        g_assert(M_ROOMBEFORE(m) >= (header_size)); \
+    } \
+} while(0)
 
 #endif

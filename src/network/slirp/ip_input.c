@@ -71,6 +71,8 @@ void ip_cleanup(Slirp *slirp)
 void ip_input(struct mbuf *m)
 {
     Slirp *slirp = m->slirp;
+    M_DUP_DEBUG(slirp, m, 0, TCPIPHDR_DELTA);
+
     register struct ip *ip;
     int hlen;
 
@@ -251,7 +253,7 @@ static struct ip *ip_reass(Slirp *slirp, struct ip *ip, struct ipq *fp)
             goto dropfrag;
         }
         fp = mtod(t, struct ipq *);
-        insque(&fp->ip_link, &slirp->ipq.ip_link);
+        slirp_insque(&fp->ip_link, &slirp->ipq.ip_link);
         fp->ipq_ttl = IPFRAGTTL;
         fp->ipq_p = ip->ip_p;
         fp->ipq_id = ip->ip_id;
@@ -348,7 +350,7 @@ insert:
     /*
      * If the fragments concatenated to an mbuf that's bigger than the total
      * size of the fragment and the mbuf was not already using an m_ext buffer,
-     * then an m_ext buffer was alloced. But fp->ipq_next points to the old
+     * then an m_ext buffer was allocated. But fp->ipq_next points to the old
      * buffer (in the mbuf), so we must point ip into the new buffer.
      */
     if (m->m_flags & M_EXT) {
@@ -360,8 +362,8 @@ insert:
     ip->ip_tos &= ~1;
     ip->ip_src = fp->ipq_src;
     ip->ip_dst = fp->ipq_dst;
-    remque(&fp->ip_link);
-    (void)m_free(dtom(slirp, fp));
+    slirp_remque(&fp->ip_link);
+    m_free(dtom(slirp, fp));
     m->m_len += (ip->ip_hl << 2);
     m->m_data -= (ip->ip_hl << 2);
 
@@ -386,13 +388,13 @@ static void ip_freef(Slirp *slirp, struct ipq *fp)
         ip_deq(q);
         m_free(dtom(slirp, q));
     }
-    remque(&fp->ip_link);
-    (void)m_free(dtom(slirp, fp));
+    slirp_remque(&fp->ip_link);
+    m_free(dtom(slirp, fp));
 }
 
 /*
  * Put an ip fragment on a reassembly chain.
- * Like insque, but pointers in middle of structure.
+ * Like slirp_insque, but pointers in middle of structure.
  */
 static void ip_enq(register struct ipasfrag *p, register struct ipasfrag *prev)
 {
@@ -405,7 +407,7 @@ static void ip_enq(register struct ipasfrag *p, register struct ipasfrag *prev)
 }
 
 /*
- * To ip_enq as remque is to insque.
+ * To ip_enq as slirp_remque is to slirp_insque.
  */
 static void ip_deq(register struct ipasfrag *p)
 {

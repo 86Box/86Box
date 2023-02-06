@@ -344,7 +344,7 @@ int slirp_state_load(Slirp *slirp, int version_id, SlirpReadCb read_cb,
 
     while (slirp_istream_read_u8(&f)) {
         int ret;
-        struct socket *so = socreate(slirp);
+        struct socket *so = socreate(slirp, -1);
 
         ret =
             slirp_vmstate_load_state(&f, &vmstate_slirp_socket, so, version_id);

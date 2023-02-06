@@ -11,9 +11,9 @@
  * IP initialization: fill in IP protocol switch table.
  * All protocols not implemented in kernel go to raw IP protocol handler.
  */
-void ip6_init(Slirp *slirp)
+void ip6_post_init(Slirp *slirp)
 {
-    icmp6_init(slirp);
+    icmp6_post_init(slirp);
 }
 
 void ip6_cleanup(Slirp *slirp)
@@ -23,8 +23,11 @@ void ip6_cleanup(Slirp *slirp)
 
 void ip6_input(struct mbuf *m)
 {
-    struct ip6 *ip6;
     Slirp *slirp = m->slirp;
+    /* NDP reads the ethernet header for gratuitous NDP */
+    M_DUP_DEBUG(slirp, m, 1, TCPIPHDR_DELTA + 2 + ETH_HLEN);
+
+    struct ip6 *ip6;
 
     if (!slirp->in6_enabled) {
         goto bad;
