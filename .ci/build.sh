@@ -1175,8 +1175,11 @@ EOF
 			do
 				for loader_copy in "$loader" "/lib/$(basename "$loader")"
 				do
-					mkdir -p "/runtime/compat$(dirname "$loader_copy")"
-					ln -s "$loader" "/runtime/compat$loader_copy"
+					if [ ! -e "/runtime/compat$loader_copy" ]
+					then
+						mkdir -p "/runtime/compat$(dirname "$loader_copy")"
+						ln -s "$loader" "/runtime/compat$loader_copy"
+					fi
 					echo "    - /runtime/compat$loader_copy" >> AppImageBuilder-generated.yml
 				done
 			done
