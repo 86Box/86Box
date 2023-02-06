@@ -28,6 +28,9 @@ jobs:
       fail-fast: true
       matrix:
         build:
+#          - name: Regular
+#            debug: n
+#            dev: n
           - name: Debug
             debug: y
             dev: n
@@ -44,14 +47,28 @@ jobs:
             new: y
             slug: -NDR
         environment:
+#          - msystem: MSYS
+#            clang: n
+#            x64: y
           - msystem: MINGW32
             prefix: mingw-w64-i686
+            clang: n
             x64: n
           - msystem: MINGW64
             prefix: mingw-w64-x86_64
+            clang: n
             x64: y
+#          - msystem: CLANG32
+#            prefix: mingw-w64-clang-i686
+#            clang: y
+#            x64: n
+#          - msystem: CLANG64
+#            prefix: mingw-w64-clang-x86_64
+#            clang: y
+#            x64: y
           - msystem: UCRT64
             prefix: mingw-w64-ucrt-x86_64
+            clang: n
             x64: y
 
     steps:
@@ -65,6 +82,7 @@ jobs:
             make
           pacboy: >-
             gcc:p
+            clang:p
             pkg-config:p
             freetype:p
             SDL2:p
@@ -80,6 +98,7 @@ jobs:
           DEV_BUILD=${{ matrix.build.dev }}
           DEBUG=${{ matrix.build.debug }}
           NEW_DYNAREC=${{ matrix.dynarec.new }}
+          CLANG=${{ matrix.environment.clang }}
           X64=${{ matrix.environment.x64 }}
         working-directory: ./src
       - uses: actions/upload-artifact@v3
