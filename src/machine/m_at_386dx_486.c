@@ -226,6 +226,27 @@ machine_at_spc6000a_init(const machine_t *model)
 }
 
 int
+machine_at_ECS_386V_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ECS_386V/PANDA_386V.BIN",
+               0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+    return ret;
+
+    machine_at_common_init(model);
+    device_add(&ali1429_device);
+    device_add(&keyboard_ps2_intel_ami_pci_device);
+
+    if (fdc_type == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
 machine_at_rycleopardlx_init(const machine_t *model)
 {
     int ret;
@@ -1810,3 +1831,5 @@ machine_at_tg486g_init(const machine_t *model)
 
     return ret;
 }
+
+
