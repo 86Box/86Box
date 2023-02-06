@@ -90,7 +90,7 @@ machine_v86p_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_xt_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&f82c425_video_device);
 
     if (hdc_current <= 1)

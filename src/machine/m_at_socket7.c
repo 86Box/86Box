@@ -398,7 +398,7 @@ machine_at_presario2240_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_VIDEO,       3, 0, 0, 0);
     pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 2, 3, 4);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&s3_trio64v2_dx_onboard_pci_device);
 
     device_add(&i430vx_device);
@@ -429,7 +429,7 @@ machine_at_presario4500_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_VIDEO,       3, 0, 0, 0);
     pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 2, 3, 4);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&s3_trio64v2_dx_onboard_pci_device);
 
     device_add(&i430vx_device);

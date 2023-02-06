@@ -950,7 +950,7 @@ ps2_mca_board_model_50_init(int slots)
         ps2_mca_mem_fffc_init(2);
     }
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&ps1vga_mca_device);
 }
 
@@ -1008,7 +1008,7 @@ ps2_mca_board_model_55sx_init(int has_sec_nvram, int slots)
     ps2.planar_read  = model_55sx_read;
     ps2.planar_write = model_55sx_write;
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&ps1vga_mca_device);
 
     model_55sx_mem_recalc();
@@ -1244,7 +1244,7 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
         }
     }
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&ps1vga_mca_device);
 }
 
@@ -1318,7 +1318,7 @@ ps2_mca_board_model_80_type2_init(int is486)
         }
     }
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&ps1vga_mca_device);
 
     ps2.split_size = 0;

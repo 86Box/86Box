@@ -663,7 +663,7 @@ machine_at_ms6168_common_init(const machine_t *model)
     device_add(&piix4e_device);
     device_add(&w83977ef_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&voodoo_3_2000_agp_onboard_8m_device);
 
     device_add(&keyboard_ps2_ami_pci_device);
