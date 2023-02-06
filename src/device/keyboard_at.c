@@ -2491,7 +2491,7 @@ kbd_init(const device_t *info)
 
     dev->flags = info->local;
 
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
     kbd_reset(dev);
 
     io_sethandler(0x0060, 1, kbd_read, NULL, NULL, kbd_write, NULL, NULL, dev);
