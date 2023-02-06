@@ -278,6 +278,12 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 1, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 2, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 3, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 4, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 5, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 6, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 7, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 8, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 9, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_HIDPI, MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_VID_CGACON, MF_UNCHECKED);
