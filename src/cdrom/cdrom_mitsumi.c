@@ -144,6 +144,8 @@ static void
 mitsumi_cdrom_reset(mcd_t *dev)
 {
     cdrom_t cdrom;
+    
+    cdrom.host_drive = 0;
 
     dev->stat          = cdrom.host_drive ? (STAT_READY | STAT_CHANGE) : 0;
     dev->cmdrd_count   = 0;

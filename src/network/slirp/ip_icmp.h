@@ -157,6 +157,8 @@ struct icmp {
 void icmp_init(Slirp *slirp);
 void icmp_cleanup(Slirp *slirp);
 void icmp_input(struct mbuf *, int);
+void icmp_forward_error(struct mbuf *msrc, uint8_t type, uint8_t code, int minsize,
+                        const char *message, struct in_addr *src);
 void icmp_send_error(struct mbuf *msrc, uint8_t type, uint8_t code, int minsize,
                      const char *message);
 void icmp_reflect(struct mbuf *);

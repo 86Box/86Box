@@ -57,6 +57,12 @@ BEGIN
             MENUITEM "1배(&1)",                     IDM_VID_SCALE_2X
             MENUITEM "1.5배(&5)",                   IDM_VID_SCALE_3X
             MENUITEM "2배(&2)",                     IDM_VID_SCALE_4X
+            MENUITEM "&3배",                        IDM_VID_SCALE_5X
+            MENUITEM "&4배",                        IDM_VID_SCALE_6X
+            MENUITEM "&5배",                        IDM_VID_SCALE_7X
+            MENUITEM "&6배",                        IDM_VID_SCALE_8X
+            MENUITEM "&7배",                        IDM_VID_SCALE_9X
+            MENUITEM "&8배",                        IDM_VID_SCALE_10X
         END
         POPUP "필터 형식"
         BEGIN

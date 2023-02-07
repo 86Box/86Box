@@ -130,6 +130,12 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
                     EnableMenuItem(hmenu, IDM_VID_SCALE_2X, vid_resize ? MF_GRAYED : MF_ENABLED);
                     EnableMenuItem(hmenu, IDM_VID_SCALE_3X, vid_resize ? MF_GRAYED : MF_ENABLED);
                     EnableMenuItem(hmenu, IDM_VID_SCALE_4X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_5X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_6X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_7X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_8X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_9X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_10X, vid_resize ? MF_GRAYED : MF_ENABLED);
 
                     scrnsz_x = fixed_size_x;
                     scrnsz_y = fixed_size_y;

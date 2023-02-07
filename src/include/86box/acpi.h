@@ -18,7 +18,11 @@
 #define ACPI_H
 
 #ifdef __cplusplus
+#include <atomic>
+using atomic_int = std::atomic_int;
 extern "C" {
+#else
+#include <stdatomic.h>
 #endif
 
 #include <86box/tco.h>
@@ -94,7 +98,7 @@ typedef struct
         slot, irq_mode,
         irq_pin, irq_line,
         mirq_is_level;
-    pc_timer_t timer, resume_timer;
+    pc_timer_t timer, resume_timer, pwrbtn_timer;
     nvr_t     *nvr;
     apm_t     *apm;
     tco_t     *tco;
@@ -103,7 +107,9 @@ typedef struct
 } acpi_t;
 
 /* Global variables. */
-extern int acpi_rtc_status;
+extern int        acpi_rtc_status;
+extern atomic_int acpi_pwrbut_pressed;
+extern int        acpi_enabled;
 
 extern const device_t acpi_ali_device;
 extern const device_t acpi_intel_device;
