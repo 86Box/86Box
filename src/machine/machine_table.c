@@ -12245,7 +12245,7 @@ machine_getname_ex(int m)
 }
 
 const device_t *
-machine_getdevice(int m)
+machine_get_device(int m)
 {
     if (machines[m].device)
         return (machines[m].device);
@@ -12254,7 +12254,7 @@ machine_getdevice(int m)
 }
 
 const device_t *
-machine_getviddevice(int m)
+machine_get_vid_device(int m)
 {
     if (machines[m].vid_device)
         return (machines[m].vid_device);
@@ -12263,7 +12263,7 @@ machine_getviddevice(int m)
 }
 
 const device_t *
-machine_getsnddevice(int m)
+machine_get_snd_device(int m)
 {
     if (machines[m].snd_device)
         return (machines[m].snd_device);
@@ -12272,7 +12272,7 @@ machine_getsnddevice(int m)
 }
 
 const device_t *
-machine_getnetdevice(int m)
+machine_get_net_device(int m)
 {
     if (machines[m].net_device)
         return (machines[m].net_device);

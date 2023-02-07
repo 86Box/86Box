@@ -324,10 +324,10 @@ extern char *machine_get_internal_name(void);
 extern int   machine_get_machine_from_internal_name(char *s);
 extern void  machine_init(void);
 #ifdef EMU_DEVICE_H
-extern const device_t *machine_getdevice(int m);
-extern const device_t *machine_getviddevice(int m);
-extern const device_t *machine_getsnddevice(int m);
-extern const device_t *machine_getnetdevice(int m);
+extern const device_t *machine_get_device(int m);
+extern const device_t *machine_get_vid_device(int m);
+extern const device_t *machine_get_snd_device(int m);
+extern const device_t *machine_get_net_device(int m);
 #endif
 extern char *machine_get_internal_name_ex(int m);
 extern int   machine_get_nvrmask(int m);
