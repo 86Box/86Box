@@ -36,8 +36,8 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
 {
     ui->setupUi(this);
 
-    videoCard   = gfxcard;
-    videoCard_2 = gfxcard_2;
+    videoCard[0]   = gfxcard[0];
+    videoCard[1] = gfxcard[1];
     onCurrentMachineChanged(machine);
 }
 
@@ -49,8 +49,8 @@ SettingsDisplay::~SettingsDisplay()
 void
 SettingsDisplay::save()
 {
-    gfxcard         = ui->comboBoxVideo->currentData().toInt();
-    gfxcard_2       = ui->comboBoxVideoSecondary->currentData().toInt();
+    gfxcard[0]      = ui->comboBoxVideo->currentData().toInt();
+    gfxcard[1]      = ui->comboBoxVideoSecondary->currentData().toInt();
     voodoo_enabled  = ui->checkBoxVoodoo->isChecked() ? 1 : 0;
     ibm8514_enabled = ui->checkBox8514->isChecked() ? 1 : 0;
     xga_enabled     = ui->checkBoxXga->isChecked() ? 1 : 0;
@@ -61,7 +61,7 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
 {
     // win_settings_video_proc, WM_INITDIALOG
     this->machineId = machineId;
-    auto curVideoCard = videoCard;
+    auto curVideoCard = videoCard[0];
 
     auto *model      = ui->comboBoxVideo->model();
     auto  removeRows = model->rowCount();
@@ -103,7 +103,7 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
         ui->pushButtonConfigureSecondary->setEnabled(true);
     }
     ui->comboBoxVideo->setCurrentIndex(selectedRow);
-    if (gfxcard_2 == 0)
+    if (gfxcard[1] == 0)
         ui->pushButtonConfigureSecondary->setEnabled(false);
 }
 
@@ -136,9 +136,9 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    auto curVideoCard_2 = videoCard_2;
-    videoCard = ui->comboBoxVideo->currentData().toInt();
-    ui->pushButtonConfigure->setEnabled(video_card_has_config(videoCard) > 0);
+    auto curVideoCard_2 = videoCard[1];
+    videoCard[0] = ui->comboBoxVideo->currentData().toInt();
+    ui->pushButtonConfigure->setEnabled(video_card_has_config(videoCard[0]) > 0);
 
     bool machineHasPci = machine_has_bus(machineId, MACHINE_BUS_PCI) > 0;
     ui->checkBoxVoodoo->setEnabled(machineHasPci);
@@ -167,7 +167,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 
     ui->comboBoxVideoSecondary->setCurrentIndex(0);
     // TODO: Implement support for selecting non-MDA secondary cards properly when MDA cards are the primary ones.
-    if (video_card_get_flags(videoCard) == VIDEO_FLAG_TYPE_MDA) {
+    if (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_MDA) {
         ui->comboBoxVideoSecondary->setCurrentIndex(0);
         return;
     }
@@ -178,7 +178,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
             break;
         }
 
-        if (video_card_available(c) && device_is_valid(video_dev, machineId) && !(video_card_get_flags(c) == video_card_get_flags(videoCard) && (video_card_get_flags(c) != VIDEO_FLAG_TYPE_SPECIAL))) {
+        if (video_card_available(c) && device_is_valid(video_dev, machineId) && !(video_card_get_flags(c) == video_card_get_flags(videoCard[0]) && (video_card_get_flags(c) != VIDEO_FLAG_TYPE_SPECIAL))) {
             ui->comboBoxVideoSecondary->addItem(name, c);
             if (c == curVideoCard_2)
                 ui->comboBoxVideoSecondary->setCurrentIndex(ui->comboBoxVideoSecondary->count() - 1);
@@ -187,7 +187,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
         c++;
     }
 
-    if (videoCard_2 == 0 || (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0)) {
+    if (videoCard[1] == 0 || (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0)) {
         ui->comboBoxVideoSecondary->setCurrentIndex(0);
         ui->pushButtonConfigureSecondary->setEnabled(false);
     }
@@ -212,8 +212,8 @@ SettingsDisplay::on_comboBoxVideoSecondary_currentIndexChanged(int index)
         ui->pushButtonConfigureSecondary->setEnabled(false);
         return;
     }
-    videoCard_2 = ui->comboBoxVideoSecondary->currentData().toInt();
-    ui->pushButtonConfigureSecondary->setEnabled(index != 0 && video_card_has_config(videoCard_2) > 0);
+    videoCard[1] = ui->comboBoxVideoSecondary->currentData().toInt();
+    ui->pushButtonConfigureSecondary->setEnabled(index != 0 && video_card_has_config(videoCard[1]) > 0);
 }
 
 void

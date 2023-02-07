@@ -23,9 +23,19 @@
 #if defined(_MSC_VER) && !defined (__clang__)
 #pragma pack(push, 1)
 #endif
-struct tftp_t {
+struct tftphdr {
     struct udphdr udp;
     uint16_t tp_op;
+} SLIRP_PACKED;
+#if defined(_MSC_VER) && !defined (__clang__)
+#pragma pack(pop)
+#endif
+
+#if defined(_MSC_VER) && !defined (__clang__)
+#pragma pack(push, 1)
+#endif
+struct tftp_t {
+    struct tftphdr hdr;
     union {
         struct {
             uint16_t tp_block_nr;

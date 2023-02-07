@@ -97,6 +97,8 @@
 #include <86box/version.h>
 #include <86box/gdbstub.h>
 #include <86box/machine_status.h>
+#include <86box/apm.h>
+#include <86box/acpi.h>
 
 // Disable c99-designator to avoid the warnings about int ng
 #ifdef __clang__
@@ -164,8 +166,7 @@ int      bugger_enabled                   = 0;              /* (C) enable ISAbug
 int      postcard_enabled                 = 0;              /* (C) enable POST card */
 int      isamem_type[ISAMEM_MAX]          = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
 int      isartc_type                      = 0;              /* (C) enable ISA RTC card */
-int      gfxcard                          = 0;              /* (C) graphics/video card */
-int      gfxcard_2                        = 0;              /* (C) graphics/video card */
+int      gfxcard[2]                       = { 0, 0 };       /* (C) graphics/video card */
 int      show_second_monitors             = 1;              /* (C) show non-primary monitors */
 int      sound_is_float                   = 1;              /* (C) sound uses FP values */
 int      voodoo_enabled                   = 0;              /* (C) video option */
@@ -867,34 +868,34 @@ pc_init_modules(void)
     }
 
     /* Make sure we have a usable video card. */
-    if (!video_card_available(gfxcard)) {
+    if (!video_card_available(gfxcard[0])) {
         memset(tempc, 0, sizeof(tempc));
-        device_get_name(video_card_getdevice(gfxcard), 0, tempc);
+        device_get_name(video_card_getdevice(gfxcard[0]), 0, tempc);
         swprintf(temp, sizeof(temp), plat_get_string(IDS_2064), tempc);
         c = 0;
         while (video_get_internal_name(c) != NULL) {
-            gfxcard = -1;
+            gfxcard[0] = -1;
             if (video_card_available(c)) {
                 ui_msgbox_header(MBX_INFO, (wchar_t *) IDS_2129, temp);
-                gfxcard = c;
+                gfxcard[0] = c;
                 config_save();
                 break;
             }
             c++;
         }
-        if (gfxcard == -1) {
+        if (gfxcard[0] == -1) {
             fatal("No available video cards\n");
             exit(-1);
             return (0);
         }
     }
 
-    if (!video_card_available(gfxcard_2)) {
+    if (!video_card_available(gfxcard[1])) {
         char tempc[512] = { 0 };
-        device_get_name(video_card_getdevice(gfxcard_2), 0, tempc);
+        device_get_name(video_card_getdevice(gfxcard[1]), 0, tempc);
         swprintf(temp, sizeof(temp), (wchar_t *) "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card.", tempc);
         ui_msgbox_header(MBX_INFO, (wchar_t *) IDS_2129, temp);
-        gfxcard_2 = 0;
+        gfxcard[1] = 0;
     }
 
     atfullspeed = 0;
@@ -1015,6 +1016,9 @@ pc_reset_hard_init(void)
      * the actual machine, but which support some of the
      * modules that are.
      */
+
+    /* Mark ACPI as unavailable */
+    acpi_enabled = 0;
 
     /* Reset the general machine support modules. */
     io_init();

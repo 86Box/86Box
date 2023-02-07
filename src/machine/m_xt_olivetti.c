@@ -1807,9 +1807,9 @@ machine_xt_m24_init(const machine_t *model)
 
     mm58174_init(nvr, model->nvrmask + 1);
 
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&ogc_m24_device);
 
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
@@ -1919,7 +1919,7 @@ machine_xt_m19_init(const machine_t *model)
 
     nmi_init();
 
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
 
     m19_vid_init(vid);
     device_add_ex(&m19_vid_device, vid);

@@ -802,7 +802,7 @@ cdrom_get_current_subchannel_sony(cdrom_t *dev, uint8_t *b, int msf)
 
     dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
 
-    cdrom_log("CD-ROM %i: Returned subchannel at %02i:%02i.%02i, ret = %02x, seek pos = %08x, cd_end = %08x.\n", dev->id, subc.abs_m, subc.abs_s, subc.abs_f, ret, dev->seek_pos, dev->cd_end);
+    cdrom_log("CD-ROM %i: Returned subchannel at %02i:%02i.%02i, seek pos = %08x, cd_end = %08x.\n", dev->id, subc.abs_m, subc.abs_s, subc.abs_f, dev->seek_pos, dev->cd_end);
 
     b[pos++] = subc.attr;
     b[pos++] = subc.track;

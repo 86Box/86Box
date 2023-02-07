@@ -1074,7 +1074,7 @@ monitor_thread(void *param)
 #endif
 }
 
-extern int gfxcard_2;
+extern int gfxcard[2];
 int
 main(int argc, char **argv)
 {
@@ -1089,7 +1089,7 @@ main(int argc, char **argv)
         return 6;
     }
 
-    gfxcard_2   = 0;
+    gfxcard[1]   = 0;
     eventthread = SDL_ThreadID();
     blitmtx     = SDL_CreateMutex();
     if (!blitmtx) {

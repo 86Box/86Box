@@ -549,7 +549,7 @@ europc_boot(const device_t *info)
      * with values set by the user.
      */
     b = (sys->nvr.regs[MRTC_CONF_D] & ~0x17);
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
     if (video_is_cga())
         b |= 0x12; /* external video, CGA80 */
     else if (video_is_mda())
