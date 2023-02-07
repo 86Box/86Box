@@ -2462,9 +2462,9 @@ void MainWindow::on_actionPen_triggered()
 {
     tablet_tool_type = 1;
     config_save();
+}
 
 void MainWindow::on_actionACPI_Shutdown_triggered()
 {
     acpi_pwrbut_pressed = 1;
-
 }
