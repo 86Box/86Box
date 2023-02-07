@@ -301,11 +301,13 @@ typedef struct _machine_ {
     uint32_t gpio_acpi;
 #ifdef EMU_DEVICE_H
     const device_t *device;
+    const device_t *fdc_device;
     const device_t *vid_device;
     const device_t *snd_device;
     const device_t *net_device;
 #else
     void *device;
+    void *fdc_device;
     void *vid_device;
     void *snd_device;
     void *net_device;
@@ -330,6 +332,7 @@ extern void  machine_init(void);
 #ifdef EMU_DEVICE_H
 extern const device_t *machine_get_kbc_device(int m);
 extern const device_t *machine_get_device(int m);
+extern const device_t *machine_get_fdc_device(int m);
 extern const device_t *machine_get_vid_device(int m);
 extern const device_t *machine_get_snd_device(int m);
 extern const device_t *machine_get_net_device(int m);
