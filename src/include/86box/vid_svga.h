@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2020 Sarah Walker.
@@ -32,6 +32,8 @@
 #    define FLAG_ADDR_BY16    32
 #    define FLAG_RAMDAC_SHIFT 64
 #    define FLAG_128K_MASK    128
+
+struct monitor_t;
 
 typedef struct {
     int ena,
@@ -170,6 +172,12 @@ typedef struct svga_t {
     uint32_t (*remap_func)(struct svga_t *svga, uint32_t in_addr);
 
     void *ramdac, *clock_gen;
+
+    /* Monitor Index */
+    uint8_t monitor_index;
+
+    /* Pointer to monitor */
+    monitor_t* monitor;
 } svga_t;
 
 extern int vga_on, ibm8514_on;

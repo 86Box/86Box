@@ -38,7 +38,7 @@
 
 #include "ncsi-pkt.h"
 
-static uint32_t ncsi_calculate_checksum(uint16_t *data, int len)
+static uint32_t ncsi_calculate_checksum(uint8_t *data, int len)
 {
     uint32_t checksum = 0;
     int i;
@@ -47,8 +47,8 @@ static uint32_t ncsi_calculate_checksum(uint16_t *data, int len)
      * 32-bit unsigned sum of the NC-SI packet header and NC-SI packet
      * payload interpreted as a series of 16-bit unsigned integer values.
      */
-    for (i = 0; i < len / 2; i++) {
-        checksum += htons(data[i]);
+    for (i = 0; i < len; i += 2) {
+        checksum += (((uint16_t) data[i]) << 8) + data[i+1];
     }
 
     checksum = (~checksum + 1);
@@ -148,6 +148,10 @@ void ncsi_input(Slirp *slirp, const uint8_t *pkt, int pkt_len)
     uint32_t checksum;
     uint32_t *pchecksum;
 
+    if (pkt_len < ETH_HLEN + sizeof(struct ncsi_pkt_hdr)) {
+        return; /* packet too short */
+    }
+
     memset(ncsi_reply, 0, sizeof(ncsi_reply));
 
     memset(reh->h_dest, 0xff, ETH_ALEN);
@@ -184,7 +188,7 @@ void ncsi_input(Slirp *slirp, const uint8_t *pkt, int pkt_len)
     }
 
     /* Add the optional checksum at the end of the frame. */
-    checksum = ncsi_calculate_checksum((uint16_t *)rnh, ncsi_rsp_len);
+    checksum = ncsi_calculate_checksum((uint8_t *)rnh, ncsi_rsp_len);
     pchecksum = (uint32_t *)((void *)rnh + ncsi_rsp_len);
     *pchecksum = htonl(checksum);
     ncsi_rsp_len += 4;

@@ -75,7 +75,7 @@ typedef uint32_t n_long; /* long as received from the net */
 #pragma pack(push, 1)
 #endif
 struct ip {
-#if G_BYTE_ORDER == G_BIG_ENDIAN
+#if (G_BYTE_ORDER == G_BIG_ENDIAN) && !defined(_MSC_VER)
     uint8_t ip_v : 4, /* version */
         ip_hl : 4; /* header length */
 #else
@@ -147,7 +147,7 @@ struct ip_timestamp {
     uint8_t ipt_code; /* IPOPT_TS */
     uint8_t ipt_len; /* size of structure (variable) */
     uint8_t ipt_ptr; /* index of current entry */
-#if G_BYTE_ORDER == G_BIG_ENDIAN
+#if (G_BYTE_ORDER == G_BIG_ENDIAN) && !defined(_MSC_VER)
     uint8_t ipt_oflw : 4, /* overflow counter */
         ipt_flg : 4; /* flags, see below */
 #else
@@ -190,21 +190,27 @@ struct ip_timestamp {
 
 #define IP_MSS 576 /* default maximum segment size */
 
+#if GLIB_SIZEOF_VOID_P == 4
 #if defined(_MSC_VER) && !defined (__clang__)
 #pragma pack(push, 1)
 #endif
-#if GLIB_SIZEOF_VOID_P == 4
 struct mbuf_ptr {
     struct mbuf *mptr;
     uint32_t dummy;
 } SLIRP_PACKED;
+#if defined(_MSC_VER) && !defined (__clang__)
+#pragma pack(pop)
+#endif
 #else
+#if defined(_MSC_VER) && !defined (__clang__)
+#pragma pack(push, 1)
+#endif
 struct mbuf_ptr {
     struct mbuf *mptr;
 } SLIRP_PACKED;
-#endif
 #if defined(_MSC_VER) && !defined (__clang__)
 #pragma pack(pop)
+#endif
 #endif
 struct qlink {
     void *next, *prev;

@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -488,8 +488,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
         return (1);
     }
 
-    extern int gfxcard_2;
-    gfxcard_2 = 0;
+    extern int gfxcard[2];
+    gfxcard[1] = 0;
 
     /* Create console window. */
     if (force_debug) {

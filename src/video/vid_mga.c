@@ -1,17 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Matrox MGA graphics card emulation.
+ *          Matrox MGA graphics card emulation.
  *
  *
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Copyright 2008-2020 Sarah Walker.
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *
+ *          Copyright 2008-2020 Sarah Walker.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -847,7 +848,7 @@ mystique_recalctimings(svga_t *svga)
     mystique_t *mystique = (mystique_t *) svga->p;
     int         clk_sel  = (svga->miscout >> 2) & 3;
 
-    svga->clock = (cpuclock * (float) (1ull << 32)) / svga->getclock(clk_sel & 2, svga->clock_gen);
+    svga->clock = (cpuclock * (float) (1ull << 32)) / svga->getclock(clk_sel & 3, svga->clock_gen);
 
     if (mystique->crtcext_regs[1] & CRTCX_R1_HTOTAL8)
         svga->htotal += 0x100;
@@ -895,7 +896,9 @@ mystique_recalctimings(svga_t *svga)
                     svga->ma = svga->maback = (svga->maback - (mystique->ma_latch_old << 2)) + (svga->ma_latch << 2);
                 mystique->ma_latch_old = svga->ma_latch;
             }
-
+            
+            svga->rowoffset <<= 1;
+            
             switch (mystique->xmulctrl & XMULCTRL_DEPTH_MASK) {
                 case XMULCTRL_DEPTH_8:
                 case XMULCTRL_DEPTH_2G8V16:

@@ -11,7 +11,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <tommowalker@tommowalker.co.uk>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -53,6 +53,8 @@ extern int fdc_type;
 #define FDC_FLAG_UMC            0x400  /* UMC UM8398 */
 #define FDC_FLAG_ALI            0x800  /* ALi M512x / M1543C */
 #define FDC_FLAG_SEC            0x1000 /* Is Secondary */
+#define FDC_FLAG_TER            0x2000 /* Is Tertiary */
+#define FDC_FLAG_QUA            0x3000 /* Is Quaternary */
 
 typedef struct {
     uint8_t dor, stat, command, processed_cmd, dat, st0, swap, dtl;
@@ -187,12 +189,16 @@ extern uint8_t fdc_get_current_drive(void);
 #ifdef EMU_DEVICE_H
 extern const device_t fdc_xt_device;
 extern const device_t fdc_xt_sec_device;
+extern const device_t fdc_xt_ter_device;
+extern const device_t fdc_xt_qua_device;
 extern const device_t fdc_xt_t1x00_device;
 extern const device_t fdc_xt_tandy_device;
 extern const device_t fdc_xt_amstrad_device;
 extern const device_t fdc_pcjr_device;
 extern const device_t fdc_at_device;
 extern const device_t fdc_at_sec_device;
+extern const device_t fdc_at_ter_device;
+extern const device_t fdc_at_qua_device;
 extern const device_t fdc_at_actlow_device;
 extern const device_t fdc_at_ps1_device;
 extern const device_t fdc_at_smc_device;

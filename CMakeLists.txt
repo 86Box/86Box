@@ -10,7 +10,7 @@
 #
 # Authors:  David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#           Copyright 2020,2021 David Hrdlička.
+#           Copyright 2020-2021 David Hrdlička.
 #
 
 cmake_minimum_required(VERSION 3.16)
@@ -116,6 +116,10 @@ if(WIN32)
     add_compile_definitions(_WINSOCK_DEPRECATED_NO_WARNINGS)
 endif()
 
+if(NOT (WIN32 OR APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
+    set(DISCORD OFF)
+endif()
+
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
@@ -138,6 +142,7 @@ option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"
 option(GDBSTUB      "Enable GDB stub server for debugging"                          OFF)
 option(DEV_BRANCH   "Development branch"                                            OFF)
 option(QT           "Qt GUI"                                                        ON)
+option(DISCORD      "Discord Rich Presence support"                                 ON)
 
 # Development branch features
 #

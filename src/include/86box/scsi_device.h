@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the generic SCSI device command handler.
+ *          Definitions for the generic SCSI device command handler.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  */
 
 #ifndef SCSI_DEVICE_H
@@ -53,6 +53,8 @@
 #define GPCMD_SEEK_6                        0x0b
 #define GPCMD_IOMEGA_SET_PROTECTION_MODE    0x0c
 #define GPCMD_IOMEGA_EJECT                  0x0d /* ATAPI only? */
+#define GPCMD_NO_OPERATION_TOSHIBA          0x0d /* Toshiba Vendor Unique command */
+#define GPCMD_NO_OPERATION_NEC              0x0d /* NEC Vendor Unique command */
 #define GPCMD_INQUIRY                       0x12
 #define GPCMD_VERIFY_6                      0x13
 #define GPCMD_MODE_SELECT_6                 0x15
@@ -64,7 +66,7 @@
 #define GPCMD_PREVENT_REMOVAL               0x1e
 #define GPCMD_READ_FORMAT_CAPACITIES        0x23
 #define GPCMD_READ_CDROM_CAPACITY           0x25
-#define GPCMD_CHINON_UNKNOWN                0x26
+#define GPCMD_UNKNOWN_CHINON                0x26 /*Chinon Vendor Unique command*/
 #define GPCMD_READ_10                       0x28
 #define GPCMD_READ_GENERATION               0x29
 #define GPCMD_WRITE_10                      0x2a
@@ -100,23 +102,51 @@
 #define GPCMD_PLAY_CD_OLD                   0xb4
 #define GPCMD_READ_CD_OLD                   0xb8
 #define GPCMD_READ_CD_MSF                   0xb9
-#define GPCMD_SCAN                          0xba
+#define GPCMD_AUDIO_SCAN                    0xba
 #define GPCMD_SET_SPEED                     0xbb
 #define GPCMD_PLAY_CD                       0xbc
 #define GPCMD_MECHANISM_STATUS              0xbd
 #define GPCMD_READ_CD                       0xbe
 #define GPCMD_SEND_DVD_STRUCTURE            0xbf /* This is for writing only, irrelevant to 86Box. */
-#define GPCMD_CHINON_EJECT                  0xc0 /* Chinon Vendor Unique command */
-#define GPCMD_AUDIO_TRACK_SEARCH            0xc0 /* Toshiba Vendor Unique command */
-#define GPCMD_TOSHIBA_PLAY_AUDIO            0xc1 /* Toshiba Vendor Unique command */
+#define GPCMD_EJECT_CHINON                  0xc0 /* Chinon Vendor Unique command */
+#define GPCMD_AUDIO_TRACK_SEARCH_TOSHIBA    0xc0 /* Toshiba Vendor Unique command */
+#define GPCMD_UNKNOWN_SONY                  0xc0 /* Sony Vendor Unique command */
+#define GPCMD_PLAY_AUDIO_TOSHIBA            0xc1 /* Toshiba Vendor Unique command */
+#define GPCMD_READ_TOC_SONY                 0xc1 /* Sony Vendor Unique command */
 #define GPCMD_PAUSE_RESUME_ALT              0xc2
-#define GPCMD_STILL                         0xc2 /* Toshiba Vendor Unique command */
-#define GPCMD_CADDY_EJECT                   0xc4 /* Toshiba Vendor Unique command */
-#define GPCMD_CHINON_STOP                   0xc6 /* Chinon Vendor Unique command */
-#define GPCMD_READ_SUBCODEQ_PLAYING_STATUS  0xc6 /* Toshiba Vendor Unique command */
+#define GPCMD_READ_SUBCHANNEL_MATSUSHITA    0xc2 /* Matsushita Vendor Unique command */
+#define GPCMD_READ_SUBCHANNEL_SONY          0xc2 /* Sony Vendor Unique command */
+#define GPCMD_STILL_TOSHIBA                 0xc2 /* Toshiba Vendor Unique command */
+#define GPCMD_READ_TOC_MATSUSHITA           0xc3 /* Matsushita Vendor Unique command */
+#define GPCMD_READ_HEADER_SONY              0xc3 /* Sony Vendor Unique command */
+#define GPCMD_SET_STOP_TIME_TOSHIBA         0xc3 /* Toshiba Vendor Unique command */
+#define GPCMD_READ_HEADER_MATSUSHITA        0xc4 /* Matsushita Vendor Unique command */
+#define GPCMD_PLAYBACK_STATUS_TOSHIBA       0xc4 /* Sony Vendor Unique command */
+#define GPCMD_CADDY_EJECT_TOSHIBA           0xc4 /* Toshiba Vendor Unique command */
+#define GPCMD_PAUSE_SONY                    0xc5 /* Sony Vendor Unique command */
+#define GPCMD_PLAY_AUDIO_MATSUSHITA         0xc5 /* Matsushita Vendor Unique command */
+#define GPCMD_STOP_CHINON                   0xc6 /* Chinon Vendor Unique command */
+#define GPCMD_PLAT_TRACK_SONY               0xc6 /* Sony Vendor Unique command */
+#define GPCMD_READ_SUBCODEQ_PLAYING_STATUS_TOSHIBA  0xc6 /* Toshiba Vendor Unique command */
+#define GPCMD_PLAY_AUDIO_MSF_MATSUSHITA     0xc7 /* Matsushita Vendor Unique command*/
+#define GPCMD_PLAY_MSF_SONY                 0xc7 /* Sony Vendor Unique command*/
 #define GPCMD_READ_DISC_INFORMATION_TOSHIBA 0xc7 /* Toshiba Vendor Unique command */
-#define GPCMD_SCAN_ALT                      0xcd /* Should be equivalent to 0xba */
+#define GPCMD_PLAY_AUDIO_TRACK_INDEX_MATSUSHITA 0xc8 /* Matsushita Vendor Unique command */
+#define GPCMD_PLAY_AUDIO_SONY               0xc8 /* Sony Vendor Unique command */
+#define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10_MATSUSHITA 0xc9 /*Matsushita Vendor Unique command */
+#define GPCMD_PLAYBACK_CONTROL_SONY         0xc9 /* Sony Vendor Unique command */
+#define GPCMD_PAUSE_RESUME_MATSUSHITA       0xcb /* Matsushita Vendor Unique command */
+#define GPCMD_SCAN_PIONEER                  0xcd /* Should be equivalent to 0xba */
+#define GPCMD_AUDIO_TRACK_SEARCH_NEC        0xd8 /* NEC Vendor Unique command */
+#define GPCMD_PLAY_AUDIO_NEC                0xd9 /* NEC Vendor Unique command */
+#define GPCMD_STILL_NEC                     0xda /* NEC Vendor Unique command */
 #define GPCMD_SET_SPEED_ALT                 0xda /* Should be equivalent to 0xbb */
+#define GPCMD_SET_STOP_TIME_NEC             0xdb /* NEC Vendor Unique command */
+#define GPCMD_CADDY_EJECT_NEC               0xdc /* NEC Vendor Unique command */
+#define GPCMD_READ_SUBCODEQ_PLAYING_STATUS_NEC  0xdd /* NEC Vendor Unique command */
+#define GPCMD_READ_DISC_INFORMATION_NEC     0xde /* NEC Vendor Unique command */
+#define GPCMD_PLAY_AUDIO_12_MATSUSHITA      0xe5 /* Matsushita Vendor Unique command */
+#define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12_MATSUSHITA 0xe9 /* Matsushita Vendor Unique command */
 
 /* Mode page codes for mode sense/set */
 #define GPMODE_R_W_ERROR_PAGE     0x01
@@ -125,6 +155,8 @@
 #define GPMODE_RIGID_DISK_PAGE    0x04 /* Rigid disk geometry page */
 #define GPMODE_FLEXIBLE_DISK_PAGE 0x05
 #define GPMODE_CACHING_PAGE       0x08
+#define GPMODE_CDROM_PAGE_SONY    0x08
+#define GPMODE_CDROM_AUDIO_PAGE_SONY 0x09
 #define GPMODE_CDROM_PAGE         0x0d
 #define GPMODE_CDROM_AUDIO_PAGE   0x0e
 #define GPMODE_CAPABILITIES_PAGE  0x2a
@@ -139,6 +171,8 @@
 #define GPMODEP_RIGID_DISK_PAGE    0x0000000000000010LL
 #define GPMODEP_FLEXIBLE_DISK_PAGE 0x0000000000000020LL
 #define GPMODEP_CACHING_PAGE       0x0000000000000100LL
+#define GPMODEP_CDROM_PAGE_SONY    0x0000000000000200LL
+#define GPMODEP_CDROM_AUDIO_PAGE_SONY 0x0000000000000400LL
 #define GPMODEP_CDROM_PAGE         0x0000000000002000LL
 #define GPMODEP_CDROM_AUDIO_PAGE   0x0000000000004000LL
 #define GPMODEP_CAPABILITIES_PAGE  0x0000040000000000LL

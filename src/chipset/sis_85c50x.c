@@ -59,7 +59,7 @@ typedef struct sis_85c50x_t {
         pci_conf[256], pci_conf_sb[256],
         regs[256];
 
-    smram_t   *smram;
+    smram_t   *smram[2];
     port_92_t *port_92;
 } sis_85c50x_t;
 
@@ -93,28 +93,41 @@ static void
 sis_85c50x_smm_recalc(sis_85c50x_t *dev)
 {
     /* NOTE: Naming mismatch - what the datasheet calls "host address" is what we call ram_base. */
-    uint32_t ram_base = (dev->pci_conf[0x64] << 20) | ((dev->pci_conf[0x65] & 0x07) << 28);
+    uint32_t host_base = (dev->pci_conf[0x64] << 20) | ((dev->pci_conf[0x65] & 0x07) << 28);
 
-    smram_disable(dev->smram);
+    smram_disable_all();
 
-    if ((((dev->pci_conf[0x65] & 0xe0) >> 5) != 0x00) && (ram_base == 0x00000000))
+    if ((((dev->pci_conf[0x65] & 0xe0) >> 5) != 0x00) && (host_base == 0x00000000))
         return;
 
     switch ((dev->pci_conf[0x65] & 0xe0) >> 5) {
         case 0x00:
-            smram_enable(dev->smram, 0xe0000, 0xe0000, 0x8000, (dev->pci_conf[0x65] & 0x10), 1);
+            sis_85c50x_log("SiS 50x SMRAM: 000E0000-000E7FFF -> 000E0000-000E7FFF\n");
+            smram_enable(dev->smram[0], 0xe0000, 0xe0000, 0x8000, (dev->pci_conf[0x65] & 0x10), 1);
             break;
         case 0x01:
-            smram_enable(dev->smram, 0xb0000, ram_base, 0x10000, (dev->pci_conf[0x65] & 0x10), 1);
+            host_base |= 0x000b0000;
+            sis_85c50x_log("SiS 50x SMRAM: %08X-%08X -> 000B0000-000BFFFF\n", host_base, host_base + 0x10000 - 1);
+            smram_enable(dev->smram[0], host_base, 0xb0000, 0x10000, (dev->pci_conf[0x65] & 0x10), 1);
+            smram_enable(dev->smram[1], host_base ^ 0x00100000, 0xb0000, 0x10000, (dev->pci_conf[0x65] & 0x10), 1);
             break;
         case 0x02:
-            smram_enable(dev->smram, 0xa0000, ram_base, 0x10000, (dev->pci_conf[0x65] & 0x10), 1);
+            host_base |= 0x000a0000;
+            sis_85c50x_log("SiS 50x SMRAM: %08X-%08X -> 000A0000-000AFFFF\n", host_base, host_base + 0x10000 - 1);
+            smram_enable(dev->smram[0], host_base, 0xa0000, 0x10000, (dev->pci_conf[0x65] & 0x10), 1);
+            smram_enable(dev->smram[1], host_base ^ 0x00100000, 0xa0000, 0x10000, (dev->pci_conf[0x65] & 0x10), 1);
             break;
         case 0x04:
-            smram_enable(dev->smram, 0xa0000, ram_base, 0x8000, (dev->pci_conf[0x65] & 0x10), 1);
+            host_base |= 0x000a0000;
+            sis_85c50x_log("SiS 50x SMRAM: %08X-%08X -> 000A0000-000AFFFF\n", host_base, host_base + 0x8000 - 1);
+            smram_enable(dev->smram[0], host_base, 0xa0000, 0x8000, (dev->pci_conf[0x65] & 0x10), 1);
+            smram_enable(dev->smram[1], host_base ^ 0x00100000, 0xa0000, 0x8000, (dev->pci_conf[0x65] & 0x10), 1);
             break;
         case 0x06:
-            smram_enable(dev->smram, 0xb0000, ram_base, 0x8000, (dev->pci_conf[0x65] & 0x10), 1);
+            host_base |= 0x000b0000;
+            sis_85c50x_log("SiS 50x SMRAM: %08X-%08X -> 000B0000-000BFFFF\n", host_base, host_base + 0x8000 - 1);
+            smram_enable(dev->smram[0], host_base, 0xb0000, 0x8000, (dev->pci_conf[0x65] & 0x10), 1);
+            smram_enable(dev->smram[1], host_base ^ 0x00100000, 0xa0000, 0x8000, (dev->pci_conf[0x65] & 0x10), 1);
             break;
     }
 }
@@ -123,9 +136,10 @@ static void
 sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
 {
     sis_85c50x_t *dev    = (sis_85c50x_t *) priv;
-    uint8_t       valxor = (val ^ dev->pci_conf[addr]);
 
-    switch (addr) {
+    sis_85c50x_log("85C501: [W] (%02X, %02X) = %02X\n", func, addr, val);
+
+    if (func == 0x00)  switch (addr) {
         case 0x04: /* Command - low byte */
             dev->pci_conf[addr] = (dev->pci_conf[addr] & 0xb4) | (val & 0x4b);
             break;
@@ -177,8 +191,6 @@ sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
             break;
         case 0x5b:
             dev->pci_conf[addr] = val;
-            if (valxor & 0xc0)
-                port_92_set_features(dev->port_92, !!(val & 0x40), !!(val & 0x80));
             break;
         case 0x60: /* SMI */
             if ((dev->pci_conf[0x68] & 0x01) && !(dev->pci_conf[addr] & 0x02) && (val & 0x02)) {
@@ -199,18 +211,20 @@ sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
             dev->pci_conf[addr] &= ~(val);
             break;
     }
-
-    sis_85c50x_log("85C501: dev->pci_conf[%02x] = %02x\n", addr, val);
 }
 
 static uint8_t
 sis_85c50x_read(int func, int addr, void *priv)
 {
     sis_85c50x_t *dev = (sis_85c50x_t *) priv;
+    uint8_t ret = 0xff;
 
-    sis_85c50x_log("85C501: dev->pci_conf[%02x] (%02x)\n", addr, dev->pci_conf[addr]);
+    if (func == 0x00)
+        ret = dev->pci_conf[addr];
 
-    return dev->pci_conf[addr];
+    sis_85c50x_log("85C501: [R] (%02X, %02X) = %02X\n", func, addr, ret);
+
+    return ret;
 }
 
 static void
@@ -218,7 +232,9 @@ sis_85c50x_sb_write(int func, int addr, uint8_t val, void *priv)
 {
     sis_85c50x_t *dev = (sis_85c50x_t *) priv;
 
-    switch (addr) {
+    sis_85c50x_log("85C503: [W] (%02X, %02X) = %02X\n", func, addr, val);
+
+    if (func == 0x00)  switch (addr) {
         case 0x04: /* Command */
             dev->pci_conf_sb[addr] = val & 0x0f;
             break;
@@ -246,23 +262,28 @@ sis_85c50x_sb_write(int func, int addr, uint8_t val, void *priv)
             dev->pci_conf_sb[addr] = val;
             break;
     }
-
-    sis_85c50x_log("85C503: dev->pci_conf_sb[%02x] = %02x\n", addr, val);
 }
 
 static uint8_t
 sis_85c50x_sb_read(int func, int addr, void *priv)
 {
     sis_85c50x_t *dev = (sis_85c50x_t *) priv;
-    sis_85c50x_log("85C503: dev->pci_conf_sb[%02x] (%02x)\n", addr, dev->pci_conf_sb[addr]);
+    uint8_t ret = 0xff;
 
-    return dev->pci_conf_sb[addr];
+    if (func == 0x00)
+        ret = dev->pci_conf_sb[addr];
+
+    sis_85c50x_log("85C503: [W] (%02X, %02X) = %02X\n", func, addr, ret);
+
+    return ret;
 }
 
 static void
 sis_85c50x_isa_write(uint16_t addr, uint8_t val, void *priv)
 {
     sis_85c50x_t *dev = (sis_85c50x_t *) priv;
+
+    sis_85c50x_log("85C503 ISA: [W] (%04X) = %02X\n", addr, val);
 
     switch (addr) {
         case 0x22:
@@ -279,7 +300,7 @@ sis_85c50x_isa_write(uint16_t addr, uint8_t val, void *priv)
                     break;
                 case 0x84:
                 case 0x88:
-                case 0x9:
+                case 0x89:
                 case 0x8a:
                 case 0x8b:
                     dev->regs[dev->index] = val;
@@ -290,8 +311,6 @@ sis_85c50x_isa_write(uint16_t addr, uint8_t val, void *priv)
             }
             break;
     }
-
-    sis_85c50x_log("85C501-ISA: dev->regs[%02x] = %02x\n", addr, val);
 }
 
 static uint8_t
@@ -313,7 +332,7 @@ sis_85c50x_isa_read(uint16_t addr, void *priv)
             break;
     }
 
-    sis_85c50x_log("85C501-ISA: dev->regs[%02x] (%02x)\n", dev->index, ret);
+    sis_85c50x_log("85C503 ISA: [R] (%04X) = %02X\n", addr, ret);
 
     return ret;
 }
@@ -370,7 +389,8 @@ sis_85c50x_close(void *priv)
 {
     sis_85c50x_t *dev = (sis_85c50x_t *) priv;
 
-    smram_del(dev->smram);
+    smram_del(dev->smram[1]);
+    smram_del(dev->smram[0]);
     free(dev);
 }
 
@@ -387,7 +407,9 @@ sis_85c50x_init(const device_t *info)
     pci_add_card(PCI_ADD_SOUTHBRIDGE, sis_85c50x_sb_read, sis_85c50x_sb_write, dev);
     io_sethandler(0x0022, 0x0002, sis_85c50x_isa_read, NULL, NULL, sis_85c50x_isa_write, NULL, NULL, dev);
 
-    dev->smram   = smram_add();
+    dev->smram[0] = smram_add();
+    dev->smram[1] = smram_add();
+
     dev->port_92 = device_add(&port_92_device);
 
     sis_85c50x_reset(dev);

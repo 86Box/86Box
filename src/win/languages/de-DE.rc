@@ -57,6 +57,12 @@ BEGIN
             MENUITEM "&1x",                     IDM_VID_SCALE_2X
             MENUITEM "1,&5x",                   IDM_VID_SCALE_3X
             MENUITEM "&2x",                     IDM_VID_SCALE_4X
+            MENUITEM "&3x",                     IDM_VID_SCALE_5X
+            MENUITEM "&4x",                     IDM_VID_SCALE_6X
+            MENUITEM "&5x",                     IDM_VID_SCALE_7X
+            MENUITEM "&6x",                     IDM_VID_SCALE_8X
+            MENUITEM "&7x",                     IDM_VID_SCALE_9X
+            MENUITEM "&8x",                     IDM_VID_SCALE_10X
         END
         POPUP "Filteringmethode"
         BEGIN
@@ -104,7 +110,9 @@ BEGIN
         MENUITEM "S&creenshot aufnehmen\tStrg+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Einstellungen...",    IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "&Discord-Integration aktivieren", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "&Klangverstärkung...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -284,21 +292,25 @@ END
 #define STR_JOY3		"Joystick 3..."
 #define STR_JOY4		"Joystick 4..."
 
-#define STR_SOUND		"Soundkarte:"
+#define STR_SOUND1		"Soundkarte 1:"
+#define STR_SOUND2		"Soundkarte 2:"
+#define STR_SOUND3		"Soundkarte 3:"
+#define STR_SOUND4		"Soundkarte 4:"
 #define STR_MIDI_OUT		"MIDI Out-Gerät:"
 #define STR_MIDI_IN		"MIDI In-Gerät:"
 #define STR_MPU401		"Standalone-MPU-401-Gerät"
-#define STR_SSI			"Innovation SSI-2001"
-#define STR_CMS			"CMS / Game Blaster"
-#define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"FLOAT32-Wiedergabe benutzen"
 #define STR_FM_DRIVER		"FM-Synth-Treiber"
 #define STR_FM_DRV_NUKED	"Nuked (genauer)"
 #define STR_FM_DRV_YMFM		"YMFM (schneller)"
 
-#define STR_NET_TYPE		"Netzwerktyp:"
+#define STR_NET_TYPE	"Netzwerktyp:"
 #define STR_PCAP		"PCap-Gerät:"
 #define STR_NET			"Netzwerkadapter:"
+#define STR_NET1		"Network card 1:"
+#define STR_NET2		"Network card 2:"
+#define STR_NET3		"Network card 3:"
+#define STR_NET4		"Network card 4:"
 
 #define STR_COM1		"COM1-Gerät:"
 #define STR_COM2		"COM2-Gerät:"
@@ -522,6 +534,9 @@ BEGIN
     IDS_2160	"ACPI-basiertes Herunterfahren"
     IDS_2161	"Optionen"
     IDS_2162    "Früheres Laufwerk"
+    IDS_2163    "no dynarec"
+    IDS_2164    "old dynarec"
+    IDS_2165    "new dynarec"
 END
 
 STRINGTABLE DISCARDABLE 

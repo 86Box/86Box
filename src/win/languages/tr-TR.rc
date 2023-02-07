@@ -57,6 +57,12 @@ BEGIN
             MENUITEM "&1x",                     IDM_VID_SCALE_2X
             MENUITEM "1.&5x",                   IDM_VID_SCALE_3X
             MENUITEM "&2x",                     IDM_VID_SCALE_4X
+            MENUITEM "&3x",                     IDM_VID_SCALE_5X
+            MENUITEM "&4x",                     IDM_VID_SCALE_6X
+            MENUITEM "&5x",                     IDM_VID_SCALE_7X
+            MENUITEM "&6x",                     IDM_VID_SCALE_8X
+            MENUITEM "&7x",                     IDM_VID_SCALE_9X
+            MENUITEM "&8x",                     IDM_VID_SCALE_10X
         END
         POPUP "&Filtre metodu"
         BEGIN
@@ -104,7 +110,9 @@ BEGIN
         MENUITEM "&Ekran görüntüsü al\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Tercihler...",    IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "&Discord entegrasyonunu etkinleştir", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "&Ses yükseltici...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -284,21 +292,25 @@ END
 #define STR_JOY3		"Oyun kolu 3..."
 #define STR_JOY4		"Oyun kolu 4..."
 
-#define STR_SOUND		"Ses kartı:"
+#define STR_SOUND1		"Ses kartı 1:"
+#define STR_SOUND2		"Ses kartı 2:"
+#define STR_SOUND3		"Ses kartı 3:"
+#define STR_SOUND4		"Ses kartı 4:"
 #define STR_MIDI_OUT		"MIDI Çıkış Cihazı:"
 #define STR_MIDI_IN		"MIDI Giriş Cihazı:"
 #define STR_MPU401		"Bağımsız MPU-401"
-#define STR_SSI			"Innovation SSI-2001"
-#define STR_CMS			"CMS / Game Blaster"
-#define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"FLOAT32 ses kullan"
 #define STR_FM_DRIVER		"FM sentez sürücüsü"
 #define STR_FM_DRV_NUKED	"Nuked (daha doğru)"
 #define STR_FM_DRV_YMFM		"YMFM (daha hızlı)"
 
-#define STR_NET_TYPE		"Ağ tipi:"
+#define STR_NET_TYPE	"Ağ tipi:"
 #define STR_PCAP		"PCap cihazı:"
 #define STR_NET			"Ağ cihazı:"
+#define STR_NET1		"Network card 1:"
+#define STR_NET2		"Network card 2:"
+#define STR_NET3		"Network card 3:"
+#define STR_NET4		"Network card 4:"
 
 #define STR_COM1		"COM1 Cihazı:"
 #define STR_COM2		"COM2 Cihazı:"
@@ -522,6 +534,9 @@ BEGIN
     IDS_2160	"ACPI kapatma"
     IDS_2161	"Ayarlar"
     IDS_2162    "Daha erken sürüş"
+    IDS_2163    "no dynarec"
+    IDS_2164    "old dynarec"
+    IDS_2165    "new dynarec"
 END
 
 STRINGTABLE DISCARDABLE 

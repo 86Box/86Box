@@ -624,11 +624,11 @@ ui_msgbox_header(int flags, void *header, void *message)
     SDL_MessageBoxData       msgdata;
     SDL_MessageBoxButtonData msgbtn;
     if (!header)
-        header = (flags & MBX_ANSI) ? "86Box" : L"86Box";
+        header = (void *) (flags & MBX_ANSI) ? "86Box" : L"86Box";
     if (header <= (void *) 7168)
-        header = plat_get_string(header);
+        header = (void *) plat_get_string((int) header);
     if (message <= (void *) 7168)
-        message = plat_get_string(message);
+        message = (void *) plat_get_string((int) message);
     msgbtn.buttonid = 1;
     msgbtn.text     = "OK";
     msgbtn.flags    = 0;
@@ -1074,7 +1074,7 @@ monitor_thread(void *param)
 #endif
 }
 
-extern int gfxcard_2;
+extern int gfxcard[2];
 int
 main(int argc, char **argv)
 {
@@ -1089,7 +1089,7 @@ main(int argc, char **argv)
         return 6;
     }
 
-    gfxcard_2   = 0;
+    gfxcard[1]   = 0;
     eventthread = SDL_ThreadID();
     blitmtx     = SDL_CreateMutex();
     if (!blitmtx) {

@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2018 Sarah Walker.
@@ -19,6 +19,8 @@
 
 #ifndef EMU_SOUND_H
 #define EMU_SOUND_H
+
+#define SOUND_CARD_MAX 4 /* currently we support up to 4 sound cards and a standalome MPU401 */
 
 extern int sound_gain;
 
@@ -38,7 +40,7 @@ extern int gated,
     speakon;
 
 extern int sound_pos_global;
-extern int sound_card_current;
+extern int sound_card_current[SOUND_CARD_MAX];
 
 extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
                                                  int len, void *p),

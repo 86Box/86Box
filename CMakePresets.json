@@ -1,36 +1,52 @@
 {
-    "version": 3,
+    "version": 2,
     "cmakeMinimumRequired": {
         "major": 3,
-        "minor": 21
+        "minor": 20
     },
     "configurePresets": [
         {
+            "name": "base",
+            "binaryDir": "${sourceDir}/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/artifacts",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": true,
+                "DEV_BRANCH": "OFF",
+                "NEW_DYNAREC": "OFF",
+                "QT": "ON"
+            },
+            "generator": "Ninja",
+            "hidden": true
+        },
+        {
             "name": "regular",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "DEV_BRANCH": "OFF",
-                "NEW_DYNAREC": "OFF"
+                "CMAKE_BUILD_TYPE": "Release"
             },
-            "generator": "Ninja"
+            "inherits": "base"
         },
         {
             "name": "optimized",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Optimized",
-                "DEV_BRANCH": "OFF",
-                "NEW_DYNAREC": "OFF"
+                "CMAKE_BUILD_TYPE": "Optimized"
             },
-            "generator": "Ninja"
+            "inherits": "base"
         },
         {
             "name": "debug",
             "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "DEV_BRANCH": "OFF",
+                "CMAKE_BUILD_TYPE": "Debug"
+            },
+            "inherits": "base"
+        },
+        {
+            "name": "development",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "DEV_BRANCH": "ON",
                 "NEW_DYNAREC": "OFF"
             },
-            "generator": "Ninja"
+            "inherits": "base"
         },
         {
             "name": "experimental",
@@ -39,7 +55,9 @@
                 "DEV_BRANCH": "ON",
                 "NEW_DYNAREC": "ON"
             },
-            "generator": "Ninja"
+            "inherits": "base"
         }
-    ]
+    ],
+    "buildPresets": [],
+    "testPresets": []
 }

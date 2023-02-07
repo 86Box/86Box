@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -96,7 +96,7 @@ machine_init_ex(int m)
 
         /* Prepare some video-related things if we're using internal
            or no video. */
-        video_pre_reset(gfxcard);
+        video_pre_reset(gfxcard[0]);
 
         /* Reset any ISA memory cards. */
         isamem_reset();
@@ -112,7 +112,7 @@ machine_init_ex(int m)
     if (bios_only || !ret)
         return ret;
 
-    if (gfxcard != VID_NONE) {
+    if (gfxcard[0] != VID_NONE) {
         if (ibm8514_enabled) {
             ibm8514_device_add();
         }
@@ -122,7 +122,7 @@ machine_init_ex(int m)
 
     /* Reset the graphics card (or do nothing if it was already done
        by the machine's init function). */
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
 
     return ret;
 }

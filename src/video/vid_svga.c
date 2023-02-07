@@ -13,7 +13,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2008-2019 Sarah Walker.
@@ -84,24 +84,24 @@ void
 svga_set_override(svga_t *svga, int val)
 {
     if (svga->override && !val)
-        svga->fullchange = changeframecount;
+        svga->fullchange = svga->monitor->mon_changeframecount;
     svga->override = val;
 
     if (!val) {
         /* Override turned off, restore overscan X and Y per the CRTC. */
         if (enable_overscan) {
-            overscan_y = (svga->rowcount + 1) << 1;
+            svga->monitor->mon_overscan_y = (svga->rowcount + 1) << 1;
 
-            if (overscan_y < 16)
-                overscan_y = 16;
+            if (svga->monitor->mon_overscan_y < 16)
+                svga->monitor->mon_overscan_y = 16;
         }
 
-        overscan_x = (svga->seqregs[1] & 1) ? 16 : 18;
+        svga->monitor->mon_overscan_x = (svga->seqregs[1] & 1) ? 16 : 18;
 
         if (svga->seqregs[1] & 8)
-            overscan_x <<= 1;
+            svga->monitor->mon_overscan_x <<= 1;
     } else
-        overscan_x = overscan_y = 16;
+        svga->monitor->mon_overscan_x = svga->monitor->mon_overscan_y = 16;
     /* Override turned off, fix overcan X and Y to 16. */
 }
 
@@ -124,11 +124,11 @@ svga_out(uint16_t addr, uint8_t val, void *p)
                 }
             } else {
                 if ((svga->attraddr == 0x13) && (svga->attrregs[0x13] != val))
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                 o                                   = svga->attrregs[svga->attraddr & 31];
                 svga->attrregs[svga->attraddr & 31] = val;
                 if (svga->attraddr < 16)
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                 if (svga->attraddr == 0x10 || svga->attraddr == 0x14 || svga->attraddr < 0x10) {
                     for (c = 0; c < 16; c++) {
                         if (svga->attrregs[0x10] & 0x80) {
@@ -137,7 +137,7 @@ svga_out(uint16_t addr, uint8_t val, void *p)
                             svga->egapal[c] = (svga->attrregs[c] & 0x3f) | ((svga->attrregs[0x14] & 0xc) << 4);
                         }
                     }
-                    svga->fullchange = changeframecount;
+                    svga->fullchange = svga->monitor->mon_changeframecount;
                 }
                 /* Recalculate timings on change of attribute register 0x11
                    (overscan border color) too. */
@@ -150,7 +150,7 @@ svga_out(uint16_t addr, uint8_t val, void *p)
                         svga_recalctimings(svga);
                 } else if (svga->attraddr == 0x12) {
                     if ((val & 0xf) != svga->plane_mask)
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                     svga->plane_mask = val & 0xf;
                 }
             }
@@ -211,7 +211,7 @@ svga_out(uint16_t addr, uint8_t val, void *p)
         case 0x3c9:
             if (svga->adv_flags & FLAG_RAMDAC_SHIFT)
                 val <<= 2;
-            svga->fullchange = changeframecount;
+            svga->fullchange = svga->monitor->mon_changeframecount;
             switch (svga->dac_pos) {
                 case 0:
                     svga->dac_r = val;
@@ -455,7 +455,8 @@ svga_recalctimings(svga_t *svga)
     svga->hdisp++;
 
     svga->htotal = svga->crtc[0];
-    svga->htotal += 6; /*+6 is required for Tyrian*/
+    /* +5 has been verified by Sergi to be correct - +6 must have been an off by one error. */
+    svga->htotal += 5; /*+6 is required for Tyrian*/
 
     svga->rowoffset = svga->crtc[0x13];
 
@@ -552,19 +553,19 @@ svga_recalctimings(svga_t *svga)
     svga->char_width = (svga->seqregs[1] & 1) ? 8 : 9;
 
     if (enable_overscan) {
-        overscan_y = (svga->rowcount + 1) << 1;
+        svga->monitor->mon_overscan_y = (svga->rowcount + 1) << 1;
 
-        if (overscan_y < 16)
-            overscan_y = 16;
+        if (svga->monitor->mon_overscan_y < 16)
+            svga->monitor->mon_overscan_y = 16;
     }
 
     if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) {
-        overscan_x = (svga->seqregs[1] & 1) ? 16 : 18;
+        svga->monitor->mon_overscan_x = (svga->seqregs[1] & 1) ? 16 : 18;
 
         if (svga->seqregs[1] & 8)
-            overscan_x <<= 1;
+            svga->monitor->mon_overscan_x <<= 1;
     } else
-        overscan_x = 16;
+        svga->monitor->mon_overscan_x = 16;
 
     if (vga_on) {
         if (svga->recalctimings_ex) {
@@ -577,8 +578,8 @@ svga_recalctimings(svga_t *svga)
             xga_recalctimings(svga);
     }
 
-    svga->y_add = (overscan_y >> 1) - (svga->crtc[8] & 0x1f);
-    svga->x_add = (overscan_x >> 1);
+    svga->y_add = (svga->monitor->mon_overscan_y >> 1) - (svga->crtc[8] & 0x1f);
+    svga->x_add = (svga->monitor->mon_overscan_x >> 1);
 
     if (svga->vblankstart < svga->dispend)
         svga->dispend = svga->vblankstart;
@@ -631,10 +632,10 @@ svga_do_render(svga_t *svga)
     if (!svga->override) {
         svga->render(svga);
 
-        svga->x_add = (overscan_x >> 1);
+        svga->x_add = (svga->monitor->mon_overscan_x >> 1);
         svga_render_overscan_left(svga);
         svga_render_overscan_right(svga);
-        svga->x_add = (overscan_x >> 1) - svga->scrollcache;
+        svga->x_add = (svga->monitor->mon_overscan_x >> 1) - svga->scrollcache;
     }
 
     if (svga->overlay_on) {
@@ -719,7 +720,7 @@ svga_poll(void *p)
             svga->ma &= svga->vram_display_mask;
             if (svga->firstline == 2000) {
                 svga->firstline = svga->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(svga->monitor_index);
             }
 
             if (svga->hwcursor_on || svga->dac_hwcursor_on || svga->overlay_on) {
@@ -813,7 +814,7 @@ svga_poll(void *p)
                 svga->sc = 0;
                 if (svga->attrregs[0x10] & 0x20) {
                     svga->scrollcache = 0;
-                    svga->x_add       = (overscan_x >> 1);
+                    svga->x_add       = (svga->monitor->mon_overscan_x >> 1);
                 }
             }
         }
@@ -870,7 +871,7 @@ svga_poll(void *p)
 
             svga->oddeven ^= 1;
 
-            changeframecount = svga->interlace ? 3 : 2;
+            svga->monitor->mon_changeframecount = svga->interlace ? 3 : 2;
             svga->vslines    = 0;
 
             if (svga->interlace && svga->oddeven)
@@ -909,7 +910,7 @@ svga_poll(void *p)
             if ((svga->seqregs[1] & 8) || (svga->render == svga_render_8bpp_lowres))
                 svga->scrollcache <<= 1;
 
-            svga->x_add = (overscan_x >> 1) - svga->scrollcache;
+            svga->x_add = (svga->monitor->mon_overscan_x >> 1) - svga->scrollcache;
 
             svga->linecountff = 0;
 
@@ -938,6 +939,8 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
     int c, d, e;
 
     svga->p = p;
+    svga->monitor_index = monitor_index_global;
+    svga->monitor = &monitors[svga->monitor_index];
 
     for (c = 0; c < 256; c++) {
         e = c;
@@ -951,8 +954,8 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
     svga->attrregs[0x11] = 0;
     svga->overscan_color = 0x000000;
 
-    overscan_x  = 16;
-    overscan_y  = 32;
+    svga->monitor->mon_overscan_x  = 16;
+    svga->monitor->mon_overscan_y  = 32;
     svga->x_add = 8;
     svga->y_add = 16;
 
@@ -1075,7 +1078,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
     if (svga->adv_flags & FLAG_ADDR_BY8)
         writemask2 = svga->seqregs[2];
 
-    cycles -= video_timing_write_b;
+    cycles -= svga->monitor->mon_video_timing_write_b;
 
     if (!linear) {
         if (xga_enabled) {
@@ -1136,7 +1139,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
 
     addr &= svga->vram_mask;
 
-    svga->changedvram[addr >> 12] = changeframecount;
+    svga->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
 
     count = 4;
     if (svga->adv_flags & FLAG_LATCH8)
@@ -1276,7 +1279,7 @@ svga_read_common(uint32_t addr, uint8_t linear, void *p)
     if (svga->adv_flags & FLAG_ADDR_BY8)
         readplane = svga->gdcreg[4] & 7;
 
-    cycles -= video_timing_read_b;
+    cycles -= svga->monitor->mon_video_timing_read_b;
 
     if (!linear) {
         if (xga_enabled) {
@@ -1405,11 +1408,11 @@ svga_doblit(int wx, int wy, svga_t *svga)
     int       i, j;
     int       xs_temp, ys_temp;
 
-    y_add   = (enable_overscan) ? overscan_y : 0;
-    x_add   = (enable_overscan) ? overscan_x : 0;
-    y_start = (enable_overscan) ? 0 : (overscan_y >> 1);
-    x_start = (enable_overscan) ? 0 : (overscan_x >> 1);
-    bottom  = (overscan_y >> 1) + (svga->crtc[8] & 0x1f);
+    y_add   = (enable_overscan) ? svga->monitor->mon_overscan_y : 0;
+    x_add   = (enable_overscan) ? svga->monitor->mon_overscan_x : 0;
+    y_start = (enable_overscan) ? 0 : (svga->monitor->mon_overscan_y >> 1);
+    x_start = (enable_overscan) ? 0 : (svga->monitor->mon_overscan_x >> 1);
+    bottom  = (svga->monitor->mon_overscan_y >> 1) + (svga->crtc[8] & 0x1f);
 
     if (svga->vertical_linedbl) {
         y_add <<= 1;
@@ -1432,12 +1435,12 @@ svga_doblit(int wx, int wy, svga_t *svga)
     if (ys_temp < 32)
         ys_temp = 200;
 
-    if ((svga->crtc[0x17] & 0x80) && ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
+    if ((svga->crtc[0x17] & 0x80) && ((xs_temp != svga->monitor->mon_xsize) || (ys_temp != svga->monitor->mon_ysize) || video_force_resize_get_monitor(svga->monitor_index))) {
         /* Screen res has changed.. fix up, and let them know. */
-        xsize = xs_temp;
-        ysize = ys_temp;
+        svga->monitor->mon_xsize = xs_temp;
+        svga->monitor->mon_ysize = ys_temp;
 
-        if ((xsize > 1984) || (ysize > 2016)) {
+        if ((svga->monitor->mon_xsize > 1984) || (svga->monitor->mon_ysize > 2016)) {
             /* 2048x2048 is the biggest safe render texture, to account for overscan,
                we suppress overscan starting from x 1984 and y 2016. */
             x_add             = 0;
@@ -1449,30 +1452,30 @@ svga_doblit(int wx, int wy, svga_t *svga)
         /* Block resolution changes while in DPMS mode to avoid getting a bogus
            screen width (320). We're already rendering a blank screen anyway. */
         if (!svga->dpms)
-            set_screen_size(xsize + x_add, ysize + y_add);
+            set_screen_size_monitor(svga->monitor->mon_xsize + x_add, svga->monitor->mon_ysize + y_add, svga->monitor_index);
 
-        if (video_force_resize_get())
-            video_force_resize_set(0);
+        if (video_force_resize_get_monitor(svga->monitor_index))
+            video_force_resize_set_monitor(0, svga->monitor_index);
     }
 
     if ((wx >= 160) && ((wy + 1) >= 120)) {
         /* Draw (overscan_size - scroll size) lines of overscan on top and bottom. */
         for (i = 0; i < svga->y_add; i++) {
-            p = &buffer32->line[i & 0x7ff][0];
+            p = &svga->monitor->target_buffer->line[i & 0x7ff][0];
 
-            for (j = 0; j < (xsize + x_add); j++)
+            for (j = 0; j < (svga->monitor->mon_xsize + x_add); j++)
                 p[j] = svga->overscan_color;
         }
 
         for (i = 0; i < bottom; i++) {
-            p = &buffer32->line[(ysize + svga->y_add + i) & 0x7ff][0];
+            p = &svga->monitor->target_buffer->line[(svga->monitor->mon_ysize + svga->y_add + i) & 0x7ff][0];
 
-            for (j = 0; j < (xsize + x_add); j++)
+            for (j = 0; j < (svga->monitor->mon_xsize + x_add); j++)
                 p[j] = svga->overscan_color;
         }
     }
 
-    video_blit_memtoscreen(x_start, y_start, xsize + x_add, ysize + y_add);
+    video_blit_memtoscreen_monitor(x_start, y_start, svga->monitor->mon_xsize + x_add, svga->monitor->mon_ysize + y_add, svga->monitor_index);
 
     if (svga->vertical_linedbl)
         svga->vertical_linedbl >>= 1;
@@ -1492,7 +1495,7 @@ svga_writeb_linear(uint32_t addr, uint8_t val, void *p)
     if (addr >= svga->vram_max)
         return;
     addr &= svga->vram_mask;
-    svga->changedvram[addr >> 12]  = changeframecount;
+    svga->changedvram[addr >> 12]  = svga->monitor->mon_changeframecount;
     *(uint8_t *) &svga->vram[addr] = val;
 }
 
@@ -1507,7 +1510,7 @@ svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *p)
         return;
     }
 
-    cycles -= video_timing_write_w;
+    cycles -= svga->monitor->mon_video_timing_write_w;
 
     if (!linear) {
         addr = svga_decode_addr(svga, addr, 1);
@@ -1521,12 +1524,12 @@ svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *p)
         uint32_t addr2 = svga->translate_address(addr, p);
         if (addr2 < svga->vram_max) {
             svga->vram[addr2 & svga->vram_mask] = val & 0xff;
-            svga->changedvram[addr2 >> 12]      = changeframecount;
+            svga->changedvram[addr2 >> 12]      = svga->monitor->mon_changeframecount;
         }
         addr2 = svga->translate_address(addr + 1, p);
         if (addr2 < svga->vram_max) {
             svga->vram[addr2 & svga->vram_mask] = (val >> 8) & 0xff;
-            svga->changedvram[addr2 >> 12]      = changeframecount;
+            svga->changedvram[addr2 >> 12]      = svga->monitor->mon_changeframecount;
         }
         return;
     }
@@ -1534,7 +1537,7 @@ svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *p)
         return;
     addr &= svga->vram_mask;
 
-    svga->changedvram[addr >> 12]   = changeframecount;
+    svga->changedvram[addr >> 12]   = svga->monitor->mon_changeframecount;
     *(uint16_t *) &svga->vram[addr] = val;
 }
 
@@ -1563,7 +1566,7 @@ svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *p)
         return;
     }
 
-    cycles -= video_timing_write_l;
+    cycles -= svga->monitor->mon_video_timing_write_l;
 
     if (!linear) {
         addr = svga_decode_addr(svga, addr, 1);
@@ -1577,22 +1580,22 @@ svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *p)
         uint32_t addr2 = svga->translate_address(addr, p);
         if (addr2 < svga->vram_max) {
             svga->vram[addr2 & svga->vram_mask] = val & 0xff;
-            svga->changedvram[addr2 >> 12]      = changeframecount;
+            svga->changedvram[addr2 >> 12]      = svga->monitor->mon_changeframecount;
         }
         addr2 = svga->translate_address(addr + 1, p);
         if (addr2 < svga->vram_max) {
             svga->vram[addr2 & svga->vram_mask] = (val >> 8) & 0xff;
-            svga->changedvram[addr2 >> 12]      = changeframecount;
+            svga->changedvram[addr2 >> 12]      = svga->monitor->mon_changeframecount;
         }
         addr2 = svga->translate_address(addr + 2, p);
         if (addr2 < svga->vram_max) {
             svga->vram[addr2 & svga->vram_mask] = (val >> 16) & 0xff;
-            svga->changedvram[addr2 >> 12]      = changeframecount;
+            svga->changedvram[addr2 >> 12]      = svga->monitor->mon_changeframecount;
         }
         addr2 = svga->translate_address(addr + 3, p);
         if (addr2 < svga->vram_max) {
             svga->vram[addr2 & svga->vram_mask] = (val >> 24) & 0xff;
-            svga->changedvram[addr2 >> 12]      = changeframecount;
+            svga->changedvram[addr2 >> 12]      = svga->monitor->mon_changeframecount;
         }
         return;
     }
@@ -1600,7 +1603,7 @@ svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *p)
         return;
     addr &= svga->vram_mask;
 
-    svga->changedvram[addr >> 12]   = changeframecount;
+    svga->changedvram[addr >> 12]   = svga->monitor->mon_changeframecount;
     *(uint32_t *) &svga->vram[addr] = val;
 }
 
@@ -1639,7 +1642,7 @@ svga_readw_common(uint32_t addr, uint8_t linear, void *p)
     if (!svga->fast)
         return svga_read_common(addr, linear, p) | (svga_read_common(addr + 1, linear, p) << 8);
 
-    cycles -= video_timing_read_w;
+    cycles -= svga->monitor->mon_video_timing_read_w;
 
     if (!linear) {
         addr = svga_decode_addr(svga, addr, 0);
@@ -1686,7 +1689,7 @@ svga_readl_common(uint32_t addr, uint8_t linear, void *p)
         return svga_read_common(addr, linear, p) | (svga_read_common(addr + 1, linear, p) << 8) | (svga_read_common(addr + 2, linear, p) << 16) | (svga_read_common(addr + 3, linear, p) << 24);
     }
 
-    cycles -= video_timing_read_l;
+    cycles -= svga->monitor->mon_video_timing_read_l;
 
     if (!linear) {
         addr = svga_decode_addr(svga, addr, 0);

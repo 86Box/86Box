@@ -293,50 +293,50 @@ rtc_reset(nvr_t *nvr)
     /*
      * EuroPC System Configuration:
      *
-     * [A]	unknown
+     * [A]  unknown
      *
-     * [B]	7	1  bootdrive extern
-     *			0  bootdribe intern
-     *		6:5	11 invalid hard disk type
-     *			10 hard disk installed, type 2
-     *			01 hard disk installed, type 1
-     *			00 hard disk not installed
-     *		4:3	11 invalid external drive type
-     *			10 external drive 720K
-     *			01 external drive 360K
-     *			00 external drive disabled
-     *		2	unknown
-     *		1:0	11 invalid internal drive type
-     *			10 internal drive 360K
-     *			01 internal drive 720K
-     *			00 internal drive disabled
+     * [B]  7   1  bootdrive extern
+     *          0  bootdrive intern
+     *      6:5 11 invalid hard disk type
+     *          10 hard disk installed, type 2
+     *          01 hard disk installed, type 1
+     *          00 hard disk not installed
+     *      4:3 11 invalid external drive type
+     *          10 external drive 720K
+     *          01 external drive 360K
+     *          00 external drive disabled
+     *      2   unknown
+     *      1:0 11 invalid internal drive type
+     *          10 internal drive 360K
+     *          01 internal drive 720K
+     *          00 internal drive disabled
      *
-     *	 [C]	7:6	unknown
-     *		5	monitor detection OFF
-     *		4	unknown
-     *		3:2	11 illegal memory size
-     *			10 512K
-     *			01 256K
-     *			00 640K
-     *		1:0	11 illegal game port
-     *			10 gameport as mouse port
-     *			01 gameport as joysticks
-     *			00 gameport disabled
+     * [C]  7:6 unknown
+     *      5   monitor detection OFF
+     *      4   unknown
+     *      3:2 11 illegal memory size
+     *          10 512K
+     *          01 256K
+     *          00 640K
+     *      1:0 11 illegal game port
+     *          10 gameport as mouse port
+     *          01 gameport as joysticks
+     *          00 gameport disabled
      *
-     * [D]	7:6	10 9MHz CPU speed
-     *			01 7MHz CPU speed
-     *			00 4.77 MHz CPU
-     *		5	unknown
-     *		4	external: color, internal: mono
-     *		3	unknown
-     *		2	internal video ON
-     *		1:0	11 mono
-     *			10 color80
-     *			01 color40
-     *			00 special (EGA,VGA etc)
+     * [D]  7:6 10 9MHz CPU speed
+     *          01 7MHz CPU speed
+     *          00 4.77 MHz CPU
+     *      5   unknown
+     *      4   external: color, internal: mono
+     *      3   unknown
+     *      2   internal video ON
+     *      1:0 11 mono
+     *          10 color80
+     *          01 color40
+     *          00 special (EGA,VGA etc)
      *
-     * [E]	7:4	unknown
-     *		3:0	country	(00=Deutschland, 0A=ASCII)
+     * [E]  7:4 unknown
+     *      3:0 country (00=Deutschland, 0A=ASCII)
      */
     nvr->regs[MRTC_CONF_A] = 0x00; /* CONFIG A */
     nvr->regs[MRTC_CONF_B] = 0x0A; /* CONFIG B */
@@ -400,15 +400,15 @@ jim_set(europc_t *sys, uint8_t reg, uint8_t val)
         case 4: /* CPU Speed control */
             switch (val & 0xc0) {
                 case 0x00: /* 4.77 MHz */
-                           //				cpu_set_clockscale(0, 1.0/2);
+                           // cpu_set_clockscale(0, 1.0/2);
                     break;
 
                 case 0x40: /* 7.16 MHz */
-                           //				cpu_set_clockscale(0, 3.0/4);
+                           // cpu_set_clockscale(0, 3.0/4);
                     break;
 
                 default: /* 9.54 MHz */
-                         //				cpu_set_clockscale(0, 1);break;
+                         // cpu_set_clockscale(0, 1);break;
                     break;
             }
             break;
@@ -549,7 +549,7 @@ europc_boot(const device_t *info)
      * with values set by the user.
      */
     b = (sys->nvr.regs[MRTC_CONF_D] & ~0x17);
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
     if (video_is_cga())
         b |= 0x12; /* external video, CGA80 */
     else if (video_is_mda())

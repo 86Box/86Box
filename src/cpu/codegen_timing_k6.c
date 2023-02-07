@@ -1,5 +1,5 @@
 /*Most of the vector instructions here are a total guess.
-  Some of the timings are based on http://users.atw.hu/instlatx64/AuthenticAMD0000562_K6_InstLatX86.txt*/
+  Some of the timings are based on http://http://web.archive.org/web/20181122095446/http://users.atw.hu/instlatx64/AuthenticAMD0000562_K6_InstLatX86.txt*/
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>

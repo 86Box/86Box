@@ -6,12 +6,12 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *        Definitions for the Sidewinder Pro driver.
+ *          Definitions for the Sidewinder Pro driver.
  *
  *
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
- *          Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2008-2018 Sarah Walker.

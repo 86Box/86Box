@@ -641,8 +641,8 @@ aha_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
                  * their way of handling issues like these at the time..
                  *
                  * Patch 1: emulate the I/O ADDR SW setting by patching a
-                 *	    byte in the BIOS that indicates the I/O ADDR
-                 *	    switch setting on the board.
+                 *      byte in the BIOS that indicates the I/O ADDR
+                 *      switch setting on the board.
                  */
                 if (dev->rom_ioaddr != 0x0000) {
                     /* Look up the I/O address in the table. */
@@ -789,8 +789,8 @@ aha_setbios(x54x_t *dev)
      * their way of handling issues like these at the time..
      *
      * Patch 1: emulate the I/O ADDR SW setting by patching a
-     *	    byte in the BIOS that indicates the I/O ADDR
-     *	    switch setting on the board.
+     *      byte in the BIOS that indicates the I/O ADDR
+     *      switch setting on the board.
      */
     if (dev->rom_ioaddr != 0x0000) {
         /* Look up the I/O address in the table. */
@@ -880,11 +880,11 @@ aha_initnvr(x54x_t *dev)
         dev->nvr[0] |= EE0_ALTFLOP;
     dev->nvr[1] = dev->Irq - 9;            /* IRQ15 */
     dev->nvr[1] |= (dev->DmaChannel << 4); /* DMA6 */
-    dev->nvr[2] = (EE2_HABIOS |            /* BIOS enabled		*/
-                   EE2_DYNSCAN |           /* scan bus		*/
-                   EE2_EXT1G | EE2_RMVOK); /* Imm return on seek	*/
-    dev->nvr[3] = SPEED_50;                /* speed 5.0 MB/s	*/
-    dev->nvr[6] = (EE6_TERM |              /* host term enable	*/
+    dev->nvr[2] = (EE2_HABIOS |            /* BIOS enabled */
+                   EE2_DYNSCAN |           /* scan bus */
+                   EE2_EXT1G | EE2_RMVOK); /* Imm return on seek */
+    dev->nvr[3] = SPEED_50;                /* speed 5.0 MB/s */
+    dev->nvr[6] = (EE6_TERM |              /* host term enable */
                    EE6_RSTBUS);            /* reset SCSI bus on boot*/
 }
 

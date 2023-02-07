@@ -1,18 +1,18 @@
 #!/bin/sh
 #
-# 86Box		A hypervisor and IBM PC system emulator that specializes in
-#		running old operating systems and software designed for IBM
-#		PC systems and compatibles from 1981 through fairly recent
-#		system designs based on the PCI bus.
+# 86Box    A hypervisor and IBM PC system emulator that specializes in
+#          running old operating systems and software designed for IBM
+#          PC systems and compatibles from 1981 through fairly recent
+#          system designs based on the PCI bus.
 #
-#		This file is part of the 86Box distribution.
+#          This file is part of the 86Box distribution.
 #
-#		Jenkins build script.
+#          Jenkins build script.
 #
 #
-# Authors:	RichardG, <richardg867@gmail.com>
+# Authors: RichardG, <richardg867@gmail.com>
 #
-#		Copyright 2021-2022 RichardG.
+#          Copyright 2021-2023 RichardG.
 #
 
 #
@@ -949,14 +949,19 @@ else
 
 	if grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
-		# Build openal-soft 1.21.1 manually to fix audio issues. This is a temporary
+		# Build openal-soft 1.22.2 manually to fix audio issues. This is a temporary
 		# workaround until a newer version of openal-soft trickles down to Debian repos.
-		prefix="$cache_dir/openal-soft-1.21.1"
+		prefix="$cache_dir/openal-soft-1.22.2"
 		if [ ! -d "$prefix" ]
 		then
 			rm -rf "$cache_dir/openal-soft-"* # remove old versions
-			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.21.1.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.22.2.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 		fi
+
+		# Patches to build with the old PipeWire version in Debian.
+		sed -i -e 's/>=0.3.23//' "$prefix/CMakeLists.txt"
+		sed -i -e 's/PW_KEY_CONFIG_NAME/"config.name"/g' "$prefix/alc/backends/pipewire.cpp"
+
 		prefix_build="$prefix/build-$arch_deb"
 		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 		cmake --build "$prefix_build" -j$(nproc) || exit 99
@@ -986,7 +991,8 @@ else
 	sdl_ui=OFF
 	grep -qiE "^QT:BOOL=ON" build/CMakeCache.txt || sdl_ui=ON
 
-	# Build rtmidi without JACK support to remove the dependency on libjack.
+	# Build rtmidi without JACK support to remove the dependency on libjack, as
+	# the Debian libjack is very likely to be incompatible with the system jackd.
 	prefix="$cache_dir/rtmidi-4.0.0"
 	if [ ! -d "$prefix" ]
 	then
@@ -997,6 +1003,24 @@ else
 	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
+
+	# Build FluidSynth without sound systems to remove the dependencies on libjack
+	# and other sound system libraries. We don't output audio through FluidSynth.
+	prefix="$cache_dir/fluidsynth-2.3.0"
+	if [ ! -d "$prefix" ]
+	then
+		rm -rf "$cache_dir/fluidsynth-"* # remove old versions
+		wget -qO - https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.3.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+	fi
+	cp cmake/flags-gcc.cmake cmake/flags-gcc.cmake.old
+	sed -i -e 's/ -Werror=.*\([" ]\)/\1/g' cmake/flags-gcc.cmake # temporary hack for -Werror=old-style-definition non-compliance on FluidSynth and SDL2
+	prefix_build="$prefix/build-$arch_deb"
+	cmake -G Ninja -D enable-dbus=OFF -D enable-jack=OFF -D enable-oss=OFF -D enable-sdl2=OFF -D enable-pulseaudio=OFF -D enable-pipewire=OFF -D enable-alsa=OFF \
+		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
+		-S "$prefix" -B "$prefix_build" || exit 99
+	cmake --build "$prefix_build" -j$(nproc) || exit 99
+	cmake --install "$prefix_build" || exit 99
+	cp -p "$cwd_root/archive_tmp/usr/bin/fluidsynth" fluidsynth
 
 	# Build SDL2 for joystick and FAudio support, with most components
 	# disabled to remove the dependencies on PulseAudio and libdrm.
@@ -1028,6 +1052,7 @@ else
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
+	mv cmake/flags-gcc.cmake.old cmake/flags-gcc.cmake
 
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"
@@ -1138,6 +1163,27 @@ EOF
 
 		# Copy line.
 		echo "$line" >> AppImageBuilder-generated.yml
+
+		# Workaround for appimage-builder issues 272 and 283 (i686 and armhf are also missing)
+		if [ "$arch_appimage" != "x86_64" -a "$line" = "  files:" ]
+		then
+			# Some mild arbitrary code execution with a dummy package...
+			[ ! -d /runtime ] && sudo apt-get -y -o 'DPkg::Post-Invoke::=mkdir -p /runtime; chmod 777 /runtime' install libsixel1 > /dev/null 2>&1
+
+			echo "    include:" >> AppImageBuilder-generated.yml
+			for loader in "/lib/$libdir/ld-linux"*.so.*
+			do
+				for loader_copy in "$loader" "/lib/$(basename "$loader")"
+				do
+					if [ ! -e "/runtime/compat$loader_copy" ]
+					then
+						mkdir -p "/runtime/compat$(dirname "$loader_copy")"
+						ln -s "$loader" "/runtime/compat$loader_copy"
+					fi
+					echo "    - /runtime/compat$loader_copy" >> AppImageBuilder-generated.yml
+				done
+			done
+		fi
 	done < .ci/AppImageBuilder.yml
 
 	# Download appimage-builder if necessary.
@@ -1157,7 +1203,7 @@ EOF
 	ln -s "$cache_dir/appimage-builder-cache" appimage-builder-cache
 
 	# Run appimage-builder in extract-and-run mode for Docker compatibility.
-	# --appdir is a workaround for https://github.com/AppImageCrafters/appimage-builder/issues/270
+	# --appdir is a workaround for appimage-builder issue 270 reported by us.
 	for retry in 1 2 3 4 5
 	do
 		project="$project" project_id="$project_id" project_version="$project_version" project_icon="$project_icon" arch_deb="$arch_deb" \

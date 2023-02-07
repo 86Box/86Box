@@ -12,7 +12,7 @@
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2019,2020 Miran Grca.
+ *          Copyright 2019-2020 Miran Grca.
  */
 #ifndef EMU_CHIPSET_H
 #define EMU_CHIPSET_H
@@ -24,6 +24,7 @@ extern const device_t acc2168_device;
 extern const device_t ali1217_device;
 extern const device_t ali1429_device;
 extern const device_t ali1429g_device;
+extern const device_t ali1435_device;
 extern const device_t ali1489_device;
 extern const device_t ali1531_device;
 extern const device_t ali1541_device;

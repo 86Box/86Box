@@ -1,24 +1,25 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the platform OpenDir module.
+ *          Definitions for the platform OpenDir module.
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 2017 Fred N. van Kempen.
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *          Copyright 2017 Fred N. van Kempen.
  */
 
 #ifndef PLAT_DIR_H
 #define PLAT_DIR_H
 
-/* Windows needs the POSIX re-implementations */
-#if defined(_WIN32)
+/* Windows and Termux needs the POSIX re-implementations */
+#if defined(_WIN32) || defined(__TERMUX__)
 #    ifdef _MAX_FNAME
 #        define MAXNAMLEN _MAX_FNAME
 #    else

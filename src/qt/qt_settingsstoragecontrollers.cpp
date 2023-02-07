@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Storage devices configuration UI module.
+ *          Storage devices configuration UI module.
  *
  *
  *
- * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *
- *		Copyright 2021 Joakim L. Gilje
+ *          Copyright 2021 Joakim L. Gilje
  */
 #include "qt_settingsstoragecontrollers.hpp"
 #include "ui_qt_settingsstoragecontrollers.h"
@@ -25,6 +25,7 @@ extern "C" {
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/fdc_ext.h>
+#include <86box/cdrom_interface.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/cassette.h>
@@ -57,11 +58,12 @@ SettingsStorageControllers::save()
         auto *cbox           = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
         scsi_card_current[i] = cbox->currentData().toInt();
     }
-    hdc_current     = ui->comboBoxHD->currentData().toInt();
-    fdc_type        = ui->comboBoxFD->currentData().toInt();
-    ide_ter_enabled = ui->checkBoxTertiaryIDE->isChecked() ? 1 : 0;
-    ide_qua_enabled = ui->checkBoxQuaternaryIDE->isChecked() ? 1 : 0;
-    cassette_enable = ui->checkBoxCassette->isChecked() ? 1 : 0;
+    hdc_current     		= ui->comboBoxHD->currentData().toInt();
+    fdc_type        		= ui->comboBoxFD->currentData().toInt();
+	cdrom_interface_current = ui->comboBoxCDInterface->currentData().toInt();
+    ide_ter_enabled 		= ui->checkBoxTertiaryIDE->isChecked() ? 1 : 0;
+    ide_qua_enabled 		= ui->checkBoxQuaternaryIDE->isChecked() ? 1 : 0;
+    cassette_enable 		= ui->checkBoxCassette->isChecked() ? 1 : 0;
 }
 
 void
@@ -131,6 +133,35 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     ui->comboBoxFD->setCurrentIndex(-1);
     ui->comboBoxFD->setCurrentIndex(selectedRow);
 
+    /*CD interface controller config*/
+    model 		= ui->comboBoxCDInterface->model();
+    removeRows 	= model->rowCount();
+    c 			= 0;
+    selectedRow = 0;
+    while (true) {
+        /* Skip "internal" if machine doesn't have it. */
+        QString name = DeviceConfig::DeviceName(cdrom_interface_get_device(c), cdrom_interface_get_internal_name(c), 1);
+        if (name.isEmpty()) {
+            break;
+        }
+
+        if (cdrom_interface_available(c)) {
+            auto *cdrom_interface_dev = cdrom_interface_get_device(c);
+
+            if (device_is_valid(cdrom_interface_dev, machineId)) {
+                int row = Models::AddEntry(model, name, c);
+                if (c == cdrom_interface_current) {
+                    selectedRow = row - removeRows;
+                }
+            }
+        }
+        c++;
+    }
+    model->removeRows(0, removeRows);
+    ui->comboBoxCDInterface->setEnabled(model->rowCount() > 0);
+    ui->comboBoxCDInterface->setCurrentIndex(-1);
+    ui->comboBoxCDInterface->setCurrentIndex(selectedRow);
+
     for (int i = 0; i < SCSI_BUS_MAX; ++i) {
         auto *cbox  = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
         model       = cbox->model();
@@ -187,6 +218,14 @@ SettingsStorageControllers::on_comboBoxFD_currentIndexChanged(int index)
     ui->pushButtonFD->setEnabled(hdc_has_config(ui->comboBoxFD->currentData().toInt()) > 0);
 }
 
+void SettingsStorageControllers::on_comboBoxCDInterface_currentIndexChanged(int index)
+{
+    if (index < 0) {
+        return;
+    }
+    ui->pushButtonCDInterface->setEnabled(cdrom_interface_has_config(ui->comboBoxCDInterface->currentData().toInt()) > 0);
+}
+
 void
 SettingsStorageControllers::on_checkBoxTertiaryIDE_stateChanged(int arg1)
 {
@@ -209,6 +248,12 @@ void
 SettingsStorageControllers::on_pushButtonFD_clicked()
 {
     DeviceConfig::ConfigureDevice(fdc_card_getdevice(ui->comboBoxFD->currentData().toInt()), 0, qobject_cast<Settings *>(Settings::settings));
+}
+
+void
+SettingsStorageControllers::on_pushButtonCDInterface_clicked()
+{
+    DeviceConfig::ConfigureDevice(cdrom_interface_get_device(ui->comboBoxCDInterface->currentData().toInt()), 0, qobject_cast<Settings *>(Settings::settings));
 }
 
 void

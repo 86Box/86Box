@@ -50,7 +50,7 @@
  *
  *          Based on my earlier HD20 driver for the EuroPC.
  *
- *          Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  *
  *          Redistribution and  use  in source  and binary forms, with
  *          or  without modification, are permitted  provided that the

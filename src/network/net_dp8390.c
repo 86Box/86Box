@@ -44,11 +44,11 @@ dp8390_log(const char *fmt, ...)
 {
     va_list ap;
 
-    //    if (dp8390_do_log >= lvl) {
+// if (dp8390_do_log >= lvl) {
     va_start(ap, fmt);
     pclog_ex(fmt, ap);
     va_end(ap);
-    //    }
+// }
 }
 #else
 #    define dp8390_log(lvl, fmt, ...)

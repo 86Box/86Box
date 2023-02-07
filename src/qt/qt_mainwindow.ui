@@ -751,7 +751,7 @@
   </action>
   <action name="actionACPI_Shutdown">
    <property name="enabled">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
@@ -764,7 +764,7 @@
     <string>ACPI Shutdown</string>
    </property>
    <property name="visible">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
   </action>
   <action name="actionBegin_trace">

@@ -57,6 +57,12 @@ BEGIN
             MENUITEM "1x(&1)",                     IDM_VID_SCALE_2X
             MENUITEM "1.5x(&5)",                   IDM_VID_SCALE_3X
             MENUITEM "2x(&2)",                     IDM_VID_SCALE_4X
+            MENUITEM "&3x",                        IDM_VID_SCALE_5X
+            MENUITEM "&4x",                        IDM_VID_SCALE_6X
+            MENUITEM "&5x",                        IDM_VID_SCALE_7X
+            MENUITEM "&6x",                        IDM_VID_SCALE_8X
+            MENUITEM "&7x",                        IDM_VID_SCALE_9X
+            MENUITEM "&8x",                        IDM_VID_SCALE_10X
         END
         POPUP "過濾方式"
         BEGIN
@@ -104,7 +110,9 @@ BEGIN
         MENUITEM "擷圖(&C)\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "首選項(&P)...",    IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "啟用 Discord 整合(&D)", IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "音量增益(&G)...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -284,21 +292,25 @@ END
 #define STR_JOY3		"搖桿 3..."
 #define STR_JOY4		"搖桿 4..."
 
-#define STR_SOUND		"音訊卡:"
+#define STR_SOUND1		"音訊卡 1:"
+#define STR_SOUND2		"音訊卡 2:"
+#define STR_SOUND3		"音訊卡 3:"
+#define STR_SOUND4		"音訊卡 4:"
 #define STR_MIDI_OUT		"MIDI 輸出裝置:"
 #define STR_MIDI_IN		"MIDI 輸入裝置:"
 #define STR_MPU401		"獨立 MPU-401"
-#define STR_SSI			"Innovation SSI-2001"
-#define STR_CMS			"CMS / Game Blaster"
-#define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"使用單精度浮點 (FLOAT32)"
 #define STR_FM_DRIVER		"調頻合成器驅動器"
 #define STR_FM_DRV_NUKED	"Nuked (更準確)"
 #define STR_FM_DRV_YMFM		"YMFM (更快)"
 
-#define STR_NET_TYPE		"網路類型:"
+#define STR_NET_TYPE	"網路類型:"
 #define STR_PCAP		"PCap 裝置:"
 #define STR_NET			"網路配接器:"
+#define STR_NET1		"Network card 1:"
+#define STR_NET2		"Network card 2:"
+#define STR_NET3		"Network card 3:"
+#define STR_NET4		"Network card 4:"
 
 #define STR_COM1		"COM1 裝置:"
 #define STR_COM2		"COM2 裝置:"
@@ -522,6 +534,9 @@ BEGIN
     IDS_2160	"ACPI 關機"
     IDS_2161	"設定"
     IDS_2162    "早先的光碟機"
+    IDS_2163    "no dynarec"
+    IDS_2164    "old dynarec"
+    IDS_2165    "new dynarec"
 END
 
 STRINGTABLE DISCARDABLE 

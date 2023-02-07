@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -132,7 +132,6 @@ extern monitor_t          monitors[MONITORS_NUM];
 extern monitor_settings_t monitor_settings[MONITORS_NUM];
 extern atomic_bool        doresize_monitors[MONITORS_NUM];
 extern int                monitor_index_global;
-extern int                gfxcard_2;
 extern int                show_second_monitors;
 extern int                video_fullscreen_scale_maximized;
 

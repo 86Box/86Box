@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -80,6 +80,7 @@
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
+#include <86box/cdrom_interface.h>
 #include <86box/zip.h>
 #include <86box/mo.h>
 #include <86box/scsi_disk.h>
@@ -96,6 +97,8 @@
 #include <86box/version.h>
 #include <86box/gdbstub.h>
 #include <86box/machine_status.h>
+#include <86box/apm.h>
+#include <86box/acpi.h>
 
 // Disable c99-designator to avoid the warnings about int ng
 #ifdef __clang__
@@ -163,13 +166,9 @@ int      bugger_enabled                   = 0;              /* (C) enable ISAbug
 int      postcard_enabled                 = 0;              /* (C) enable POST card */
 int      isamem_type[ISAMEM_MAX]          = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
 int      isartc_type                      = 0;              /* (C) enable ISA RTC card */
-int      gfxcard                          = 0;              /* (C) graphics/video card */
-int      gfxcard_2                        = 0;              /* (C) graphics/video card */
+int      gfxcard[2]                       = { 0, 0 };       /* (C) graphics/video card */
 int      show_second_monitors             = 1;              /* (C) show non-primary monitors */
 int      sound_is_float                   = 1;              /* (C) sound uses FP values */
-int      GAMEBLASTER                      = 0;              /* (C) sound option */
-int      GUS                              = 0;              /* (C) sound option */
-int      SSI2001                          = 0;              /* (C) sound option */
 int      voodoo_enabled                   = 0;              /* (C) video option */
 int      ibm8514_enabled                  = 0;              /* (C) video option */
 int      xga_enabled                      = 0;              /* (C) video option */
@@ -869,34 +868,34 @@ pc_init_modules(void)
     }
 
     /* Make sure we have a usable video card. */
-    if (!video_card_available(gfxcard)) {
+    if (!video_card_available(gfxcard[0])) {
         memset(tempc, 0, sizeof(tempc));
-        device_get_name(video_card_getdevice(gfxcard), 0, tempc);
+        device_get_name(video_card_getdevice(gfxcard[0]), 0, tempc);
         swprintf(temp, sizeof(temp), plat_get_string(IDS_2064), tempc);
         c = 0;
         while (video_get_internal_name(c) != NULL) {
-            gfxcard = -1;
+            gfxcard[0] = -1;
             if (video_card_available(c)) {
                 ui_msgbox_header(MBX_INFO, (wchar_t *) IDS_2129, temp);
-                gfxcard = c;
+                gfxcard[0] = c;
                 config_save();
                 break;
             }
             c++;
         }
-        if (gfxcard == -1) {
+        if (gfxcard[0] == -1) {
             fatal("No available video cards\n");
             exit(-1);
             return (0);
         }
     }
 
-    if (!video_card_available(gfxcard_2)) {
+    if (!video_card_available(gfxcard[1])) {
         char tempc[512] = { 0 };
-        device_get_name(video_card_getdevice(gfxcard_2), 0, tempc);
+        device_get_name(video_card_getdevice(gfxcard[1]), 0, tempc);
         swprintf(temp, sizeof(temp), (wchar_t *) "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card.", tempc);
         ui_msgbox_header(MBX_INFO, (wchar_t *) IDS_2129, temp);
-        gfxcard_2 = 0;
+        gfxcard[1] = 0;
     }
 
     atfullspeed = 0;
@@ -1018,6 +1017,9 @@ pc_reset_hard_init(void)
      * modules that are.
      */
 
+    /* Mark ACPI as unavailable */
+    acpi_enabled = 0;
+
     /* Reset the general machine support modules. */
     io_init();
 
@@ -1068,6 +1070,10 @@ pc_reset_hard_init(void)
 
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
+
+    /* Reset the CD-ROM Controller module. */
+    cdrom_interface_reset();
+
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 

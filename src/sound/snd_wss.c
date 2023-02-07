@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors:  Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
  *           TheCollector1995, <mariogplayer@gmail.com>
  *
  *           Copyright 2012-2018 Sarah Walker.

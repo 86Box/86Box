@@ -270,7 +270,7 @@ ps2_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
 
 #if 0
     if (!(dev->flags & FLAG_ENABLED))
-	return(0xff);
+        return(0xff);
 #endif
 
     if (!mouse_scan)

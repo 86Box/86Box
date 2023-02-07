@@ -31,7 +31,6 @@
  *   USA.
  */
 
-// clang-format off
 #include <stdint.h>
 #include <stdio.h>
 #include <time.h>
@@ -51,7 +50,6 @@
 #include <86box/rom.h>
 #include <86box/video.h>
 #include <86box/vid_cga.h>
-// clang-format on
 
 static void
 elt_vid_off_poll(void *p)
@@ -180,7 +178,7 @@ machine_elt_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_xt_device);
 
-    if (gfxcard == VID_INTERNAL) {
+    if (gfxcard[0] == VID_INTERNAL) {
         cga = device_add(&cga_device);
         io_removehandler(0x03d0, 0x0010, cga_in, NULL, NULL, cga_out, NULL, NULL, cga);
         io_sethandler(0x03d0, 0x0010, elt_vid_in, NULL, NULL, elt_vid_out, NULL, NULL, cga);

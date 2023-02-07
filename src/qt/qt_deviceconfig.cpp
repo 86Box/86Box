@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Device configuration UI code.
+ *          Device configuration UI code.
  *
  *
  *
- * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *
- *		Copyright 2021 Joakim L. Gilje
- *      Copyright 2022 Cacodemon345
+ *          Copyright 2021 Joakim L. Gilje
+ *          Copyright 2022 Cacodemon345
  */
 #include "qt_deviceconfig.hpp"
 #include "ui_qt_deviceconfig.h"
@@ -25,6 +25,8 @@
 #include <QFormLayout>
 #include <QSpinBox>
 #include <QCheckBox>
+#include <QFrame>
+#include <QLabel>
 
 extern "C" {
 #include <86box/86box.h>
@@ -61,6 +63,12 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
     device_context_t device_context;
     device_set_context(&device_context, device, instance);
 
+    auto device_label = new QLabel(device->name);
+    dc.ui->formLayout->addRow(device_label);
+    auto line = new QFrame;
+    line->setFrameShape(QFrame::HLine);
+    line->setFrameShadow(QFrame::Sunken);
+    dc.ui->formLayout->addRow(line);
     const auto *config = device->config;
     while (config->type != -1) {
         switch (config->type) {
