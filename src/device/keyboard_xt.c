@@ -730,7 +730,7 @@ kbd_init(const device_t *info)
 
     key_queue_start = key_queue_end = 0;
 
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
 
     if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
         (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_XT82) ||

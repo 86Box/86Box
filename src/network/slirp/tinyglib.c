@@ -16,6 +16,7 @@
  */
 #include <tinyglib.h>
 #include <string.h>
+#include <stdbool.h>
 
 /* Must be a function, as libslirp redefines it as a macro. */
 gboolean
@@ -26,6 +27,17 @@ g_spawn_async_with_fds(const gchar *working_directory, gchar **argv,
                        gint stdout_fd, gint stderr_fd, GError **error)
 {
     return 0;
+}
+
+/* Implementation borrowed from GLib itself. */
+gboolean
+g_str_has_prefix (const gchar *str,
+                  const gchar *prefix)
+{
+  g_return_val_if_fail (str != NULL, false);
+  g_return_val_if_fail (prefix != NULL, false);
+
+  return strncmp (str, prefix, strlen (prefix)) == 0;
 }
 
 /* Needs bounds checking, but not really used by libslirp. */

@@ -30,9 +30,6 @@
 #include <stdio.h>
 #include <assert.h>
 #include <errno.h>
-#ifndef _WIN32
-#include <unistd.h>
-#endif
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <inttypes.h>
@@ -40,7 +37,9 @@
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windows.h>
+#include <ws2tcpip.h>
 #else
+#include <unistd.h>
 #include <sys/socket.h>
 #include <netinet/tcp.h>
 #include <netinet/in.h>
@@ -49,7 +48,7 @@
 #if defined(_MSC_VER) && !defined(__clang__)
 #define SLIRP_PACKED
 #elif defined(_WIN32) && (defined(__x86_64__) || defined(__i386__)) && !defined(__clang__)
-#define SLIRP_PACKED  __attribute__((gcc_struct, packed))
+#define SLIRP_PACKED __attribute__((gcc_struct, packed))
 #else
 #define SLIRP_PACKED __attribute__((packed))
 #endif
@@ -59,7 +58,8 @@
 #endif
 
 #ifndef container_of
-#define container_of(ptr, type, member) ((type *)((char *)(ptr) - offsetof(type, member)));
+#define container_of(ptr, type, member) \
+        ((type *) (((char *)(ptr)) - offsetof(type, member)));
 #endif
 
 #ifndef G_SIZEOF_MEMBER
@@ -83,6 +83,7 @@ struct iovec {
 #define SCALE_MS 1000000
 
 #define ETH_ALEN 6
+#define ETH_ADDRSTRLEN 18 /* "xx:xx:xx:xx:xx:xx", with trailing NUL */
 #define ETH_HLEN 14
 #define ETH_P_IP (0x0800) /* Internet Protocol packet  */
 #define ETH_P_ARP (0x0806) /* Address Resolution packet */
@@ -159,6 +160,11 @@ int slirp_inet_aton(const char *cp, struct in_addr *ia);
 int slirp_socket(int domain, int type, int protocol);
 void slirp_set_nonblock(int fd);
 
+static inline int slirp_socket_set_v6only(int fd, int v)
+{
+    return setsockopt(fd, IPPROTO_IPV6, IPV6_V6ONLY, &v, sizeof(v));
+}
+
 static inline int slirp_socket_set_nodelay(int fd)
 {
     int v = 1;
@@ -184,5 +190,12 @@ void slirp_pstrcpy(char *buf, int buf_size, const char *str);
 
 int slirp_fmt(char *str, size_t size, const char *format, ...) G_GNUC_PRINTF(3, 4);
 int slirp_fmt0(char *str, size_t size, const char *format, ...) G_GNUC_PRINTF(3, 4);
+
+/*
+ * Pretty print a MAC address into out_str.
+ * As a convenience returns out_str.
+ */
+const char *slirp_ether_ntoa(const uint8_t *addr, char *out_str,
+                             size_t out_str_len);
 
 #endif

@@ -72,6 +72,7 @@ static void slirp_set_cloexec(int fd)
 
 /*
  * Opens a socket with FD_CLOEXEC set
+ * On failure errno contains the reason.
  */
 int slirp_socket(int domain, int type, int protocol)
 {
@@ -366,6 +367,7 @@ void slirp_pstrcpy(char *buf, int buf_size, const char *str)
     *q = '\0';
 }
 
+G_GNUC_PRINTF(3, 0)
 static int slirp_vsnprintf(char *str, size_t size,
                            const char *format, va_list args)
 {
@@ -426,4 +428,15 @@ int slirp_fmt0(char *str, size_t size, const char *format, ...)
     }
 
     return rv;
+}
+
+const char *slirp_ether_ntoa(const uint8_t *addr, char *out_str,
+                             size_t out_str_size)
+{
+    assert(out_str_size >= ETH_ADDRSTRLEN);
+
+    slirp_fmt0(out_str, out_str_size, "%02x:%02x:%02x:%02x:%02x:%02x",
+               addr[0], addr[1], addr[2], addr[3], addr[4], addr[5]);
+
+    return out_str;
 }

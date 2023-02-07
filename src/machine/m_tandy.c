@@ -1437,7 +1437,7 @@ machine_tandy1k_init(const machine_t *model, int type)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_xt_tandy_device);
 
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
 
     switch (type) {
         case TYPE_TANDY:
