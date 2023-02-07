@@ -11,12 +11,15 @@
 void udp6_input(struct mbuf *m)
 {
     Slirp *slirp = m->slirp;
+    M_DUP_DEBUG(slirp, m, 0, 0);
+
     struct ip6 *ip, save_ip;
     struct udphdr *uh;
     int iphlen = sizeof(struct ip6);
     int len;
     struct socket *so;
     struct sockaddr_in6 lhost;
+    int hop_limit;
 
     DEBUG_CALL("udp6_input");
     DEBUG_ARG("m = %p", m);
@@ -28,7 +31,10 @@ void udp6_input(struct mbuf *m)
     ip = mtod(m, struct ip6 *);
     m->m_len -= iphlen;
     m->m_data += iphlen;
-    uh = mtod(m, struct udphdr *);
+    uh = mtod_check(m, sizeof(struct udphdr));
+    if (uh == NULL) {
+        goto bad;
+    }
     m->m_len += iphlen;
     m->m_data -= iphlen;
 
@@ -89,7 +95,7 @@ void udp6_input(struct mbuf *m)
 
     if (so == NULL) {
         /* If there's no socket for this packet, create one. */
-        so = socreate(slirp);
+        so = socreate(slirp, IPPROTO_UDP);
         if (udp_attach(so, AF_INET6) == -1) {
             DEBUG_MISC(" udp6_attach errno = %d-%s", errno, strerror(errno));
             sofree(so);
@@ -109,6 +115,20 @@ void udp6_input(struct mbuf *m)
     iphlen += sizeof(struct udphdr);
     m->m_len -= iphlen;
     m->m_data += iphlen;
+
+    /*
+     * Check for TTL
+     */
+    hop_limit = save_ip.ip_hl-1;
+    if (hop_limit <= 0) {
+        m->m_len += iphlen;
+        m->m_data -= iphlen;
+        *ip = save_ip;
+        DEBUG_MISC("udp ttl exceeded");
+        icmp6_send_error(m, ICMP6_TIMXCEED, ICMP6_TIMXCEED_INTRANS);
+        goto bad;
+    }
+    setsockopt(so->s, IPPROTO_IPV6, IPV6_UNICAST_HOPS, &hop_limit, sizeof(hop_limit));
 
     /*
      * Now we sendto() the packet.
@@ -138,6 +158,9 @@ bad:
 int udp6_output(struct socket *so, struct mbuf *m, struct sockaddr_in6 *saddr,
                 struct sockaddr_in6 *daddr)
 {
+    Slirp *slirp = m->slirp;
+    M_DUP_DEBUG(slirp, m, 0, sizeof(struct ip6) + sizeof(struct udphdr));
+
     struct ip6 *ip;
     struct udphdr *uh;
 

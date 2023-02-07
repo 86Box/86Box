@@ -88,8 +88,8 @@ struct tcpiphdr {
 /* This is the difference between the size of a tcpiphdr structure, and the
  * size of actual ip+tcp headers, rounded up since we need to align data.  */
 #define TCPIPHDR_DELTA                                     \
-    (MAX(0, (sizeof(struct tcpiphdr) - sizeof(struct ip) - \
-             sizeof(struct tcphdr) + 3) &                  \
+    (MAX(0, ((int) sizeof(struct tcpiphdr) - (int) sizeof(struct ip) - \
+             (int) sizeof(struct tcphdr) + 3) &                  \
                 ~3))
 
 /*

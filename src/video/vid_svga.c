@@ -455,7 +455,8 @@ svga_recalctimings(svga_t *svga)
     svga->hdisp++;
 
     svga->htotal = svga->crtc[0];
-    svga->htotal += 6; /*+6 is required for Tyrian*/
+    /* +5 has been verified by Sergi to be correct - +6 must have been an off by one error. */
+    svga->htotal += 5; /*+6 is required for Tyrian*/
 
     svga->rowoffset = svga->crtc[0x13];
 

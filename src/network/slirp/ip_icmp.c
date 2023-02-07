@@ -85,13 +85,41 @@ void icmp_cleanup(Slirp *slirp)
 
 static int icmp_send(struct socket *so, struct mbuf *m, int hlen)
 {
+    Slirp *slirp = m->slirp;
+    M_DUP_DEBUG(slirp, m, 0, 0);
+
     struct ip *ip = mtod(m, struct ip *);
     struct sockaddr_in addr;
 
+    /*
+     * The behavior of reading SOCK_DGRAM+IPPROTO_ICMP sockets is inconsistent
+     * between host OSes.  On Linux, only the ICMP header and payload is
+     * included.  On macOS/Darwin, the socket acts like a raw socket and
+     * includes the IP header as well.  On other BSDs, SOCK_DGRAM+IPPROTO_ICMP
+     * sockets aren't supported at all, so we treat them like raw sockets.  It
+     * isn't possible to detect this difference at runtime, so we must use an
+     * #ifdef to determine if we need to remove the IP header.
+     */
+#ifdef CONFIG_BSD
+    so->so_type = IPPROTO_IP;
+#else
+    so->so_type = IPPROTO_ICMP;
+#endif
+
     so->s = slirp_socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
+    if (so->s == -1) {
+        if (errno == EAFNOSUPPORT
+         || errno == EPROTONOSUPPORT
+         || errno == EACCES) {
+            /* Kernel doesn't support or allow ping sockets. */
+            so->so_type = IPPROTO_IP;
+            so->s = slirp_socket(AF_INET, SOCK_RAW, IPPROTO_ICMP);
+        }
+    }
     if (so->s == -1) {
         return -1;
     }
+    so->slirp->cb->register_poll_fd(so->s, so->slirp->opaque);
 
     if (slirp_bind_outbound(so, AF_INET) != 0) {
         // bind failed - close socket
@@ -104,14 +132,13 @@ static int icmp_send(struct socket *so, struct mbuf *m, int hlen)
     so->so_faddr = ip->ip_dst;
     so->so_laddr = ip->ip_src;
     so->so_iptos = ip->ip_tos;
-    so->so_type = IPPROTO_ICMP;
     so->so_state = SS_ISFCONNECTED;
     so->so_expire = curtime + SO_EXPIRE;
 
     addr.sin_family = AF_INET;
     addr.sin_addr = so->so_faddr;
 
-    insque(so, &so->slirp->icmp);
+    slirp_insque(so, &so->slirp->icmp);
 
     if (sendto(so->s, m->m_data + hlen, m->m_len - hlen, 0,
                (struct sockaddr *)&addr, sizeof(addr)) == -1) {
@@ -136,10 +163,12 @@ void icmp_detach(struct socket *so)
  */
 void icmp_input(struct mbuf *m, int hlen)
 {
+    Slirp *slirp = m->slirp;
+    M_DUP_DEBUG(slirp, m, 0, 0);
+
     register struct icmp *icp;
     register struct ip *ip = mtod(m, struct ip *);
     int icmplen = ip->ip_len;
-    Slirp *slirp = m->slirp;
 
     DEBUG_CALL("icmp_input");
     DEBUG_ARG("m = %p", m);
@@ -176,10 +205,17 @@ void icmp_input(struct mbuf *m, int hlen)
         } else {
             struct socket *so;
             struct sockaddr_storage addr;
-            so = socreate(slirp);
+            int ttl;
+
+            so = socreate(slirp, IPPROTO_ICMP);
             if (icmp_send(so, m, hlen) == 0) {
+                /* We could send this as ICMP, good! */
                 return;
             }
+
+            /* We could not send this as ICMP, try to send it on UDP echo
+             * service (7), wishfully hoping that it is open there. */
+
             if (udp_attach(so, AF_INET) == -1) {
                 DEBUG_MISC("icmp_input udp_attach errno = %d-%s", errno,
                            strerror(errno));
@@ -195,7 +231,6 @@ void icmp_input(struct mbuf *m, int hlen)
             so->so_laddr = ip->ip_src;
             so->so_lport = htons(9);
             so->so_iptos = ip->ip_tos;
-            so->so_type = IPPROTO_ICMP;
             so->so_state = SS_ISFCONNECTED;
 
             /* Send the packet */
@@ -206,6 +241,19 @@ void icmp_input(struct mbuf *m, int hlen)
                 udp_detach(so);
                 return;
             }
+
+            /*
+             * Check for TTL
+             */
+            ttl = ip->ip_ttl-1;
+            if (ttl <= 0) {
+                DEBUG_MISC("udp ttl exceeded");
+                icmp_send_error(m, ICMP_TIMXCEED, ICMP_TIMXCEED_INTRANS, 0,
+                                NULL);
+                udp_detach(so);
+                break;
+            }
+            setsockopt(so->s, IPPROTO_IP, IP_TTL, &ttl, sizeof(ttl));
 
             if (sendto(so->s, icmp_ping_msg, strlen(icmp_ping_msg), 0,
                        (struct sockaddr *)&addr, sockaddr_size(&addr)) == -1) {
@@ -230,7 +278,7 @@ void icmp_input(struct mbuf *m, int hlen)
 
     default:
         m_free(m);
-    } /* swith */
+    } /* switch */
 
 end_error:
     /* m is m_free()'d xor put in a socket xor or given to ip_send */
@@ -256,8 +304,8 @@ end_error:
  */
 
 #define ICMP_MAXDATALEN (IP_MSS - 28)
-void icmp_send_error(struct mbuf *msrc, uint8_t type, uint8_t code, int minsize,
-                     const char *message)
+void icmp_forward_error(struct mbuf *msrc, uint8_t type, uint8_t code, int minsize,
+                        const char *message, struct in_addr *src)
 {
     unsigned hlen, shlen, s_ip_len;
     register struct ip *ip;
@@ -276,10 +324,12 @@ void icmp_send_error(struct mbuf *msrc, uint8_t type, uint8_t code, int minsize,
         goto end_error;
     ip = mtod(msrc, struct ip *);
     if (slirp_debug & DBG_MISC) {
-        char bufa[20], bufb[20];
-        slirp_pstrcpy(bufa, sizeof(bufa), inet_ntoa(ip->ip_src));
-        slirp_pstrcpy(bufb, sizeof(bufb), inet_ntoa(ip->ip_dst));
-        DEBUG_MISC(" %.16s to %.16s", bufa, bufb);
+        char addr_src[INET_ADDRSTRLEN];
+        char addr_dst[INET_ADDRSTRLEN];
+
+        inet_ntop(AF_INET, &ip->ip_src, addr_src, sizeof(addr_src));
+        inet_ntop(AF_INET, &ip->ip_dst, addr_dst, sizeof(addr_dst));
+        DEBUG_MISC(" %.16s to %.16s", addr_src, addr_dst);
     }
     if (ip->ip_off & IP_OFFMASK)
         goto end_error; /* Only reply to fragment 0 */
@@ -372,14 +422,20 @@ void icmp_send_error(struct mbuf *msrc, uint8_t type, uint8_t code, int minsize,
     ip->ip_ttl = MAXTTL;
     ip->ip_p = IPPROTO_ICMP;
     ip->ip_dst = ip->ip_src; /* ip addresses */
-    ip->ip_src = m->slirp->vhost_addr;
+    ip->ip_src = *src;
 
-    (void)ip_output((struct socket *)NULL, m);
+    ip_output((struct socket *)NULL, m);
 
 end_error:
     return;
 }
 #undef ICMP_MAXDATALEN
+
+void icmp_send_error(struct mbuf *msrc, uint8_t type, uint8_t code, int minsize,
+                     const char *message)
+{
+    icmp_forward_error(msrc, type, code, minsize, message, &msrc->slirp->vhost_addr);
+}
 
 /*
  * Reflect the ip packet back to the source
@@ -428,7 +484,7 @@ void icmp_reflect(struct mbuf *m)
         ip->ip_src = icmp_dst;
     }
 
-    (void)ip_output((struct socket *)NULL, m);
+    ip_output((struct socket *)NULL, m);
 }
 
 void icmp_receive(struct socket *so)
@@ -446,31 +502,24 @@ void icmp_receive(struct socket *so)
 
     id = icp->icmp_id;
     len = recv(so->s, icp, M_ROOM(m), 0);
-    /*
-     * The behavior of reading SOCK_DGRAM+IPPROTO_ICMP sockets is inconsistent
-     * between host OSes.  On Linux, only the ICMP header and payload is
-     * included.  On macOS/Darwin, the socket acts like a raw socket and
-     * includes the IP header as well.  On other BSDs, SOCK_DGRAM+IPPROTO_ICMP
-     * sockets aren't supported at all, so we treat them like raw sockets.  It
-     * isn't possible to detect this difference at runtime, so we must use an
-     * #ifdef to determine if we need to remove the IP header.
-     */
-#ifdef CONFIG_BSD
-    if (len >= sizeof(struct ip)) {
-        struct ip *inner_ip = mtod(m, struct ip *);
-        int inner_hlen = inner_ip->ip_hl << 2;
-        if (inner_hlen > len) {
+
+    if (so->so_type == IPPROTO_IP) {
+        if (len >= sizeof(struct ip)) {
+            struct ip *inner_ip = mtod(m, struct ip *);
+            int inner_hlen = inner_ip->ip_hl << 2;
+            if (inner_hlen > len) {
+                len = -1;
+                errno = -EINVAL;
+            } else {
+                len -= inner_hlen;
+                memmove(icp, (unsigned char *)icp + inner_hlen, len);
+            }
+        } else {
             len = -1;
             errno = -EINVAL;
-        } else {
-            len -= inner_hlen;
-            memmove(icp, (unsigned char *)icp + inner_hlen, len);
         }
-    } else {
-        len = -1;
-        errno = -EINVAL;
     }
-#endif
+
     icp->icmp_id = id;
 
     m->m_data -= hlen;
