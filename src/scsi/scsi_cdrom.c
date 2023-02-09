@@ -3519,15 +3519,30 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
         } else if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU311_3.0h"))) {
             ide_padstr((char *) (ide->buffer + 23), "3.0h    ", 8);                                  /* Firmware */
             ide_padstr((char *) (ide->buffer + 27), "SONY CD-ROM CDU311                      ", 40); /* Model */
-        } else if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CDR-1300A_1.05"))) {
+        } else if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE280_1.05"))) {
             ide_padstr((char *) (ide->buffer + 23), "1.05    ", 8);                                  /* Firmware */
-            ide_padstr((char *) (ide->buffer + 27), "NEC CDR-1300A                           ", 40); /* Model */
+            ide_padstr((char *) (ide->buffer + 27), "NEC                 CD-ROM DRIVE:280    ", 40); /* Model */
+        } else if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE280_3.08"))) {
+            ide_padstr((char *) (ide->buffer + 23), "3.08    ", 8);                                  /* Firmware */
+            ide_padstr((char *) (ide->buffer + 27), "NEC                 CD-ROM DRIVE:280    ", 40); /* Model */
+        } else if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE273_4.20"))) {
+            ide_padstr((char *) (ide->buffer + 23), "4.20    ", 8);                                  /* Firmware */
+            ide_padstr((char *) (ide->buffer + 27), "NEC                 CD-ROM DRIVE:273    ", 40); /* Model */
+        } else if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "TOSHIBA_CD-ROM_XM-5302TA_0305"))) {
+            ide_padstr((char *) (ide->buffer + 23), "0305    ", 8);                                  /* Firmware */
+            ide_padstr((char *) (ide->buffer + 27), "TOSHIBA CD-ROM XM-5302TA                ", 40); /* Model */
         } else if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "TOSHIBA_CD-ROM_XM-5702B_TA70"))) {
             ide_padstr((char *) (ide->buffer + 23), "TA70    ", 8);                                  /* Firmware */
             ide_padstr((char *) (ide->buffer + 27), "TOSHIBA CD-ROM XM-5702B                 ", 40); /* Model */
         } else if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "GOLDSTAR_CRD-8160B_3.14"))) {
             ide_padstr((char *) (ide->buffer + 23), "3.14    ", 8);                                  /* Firmware */
             ide_padstr((char *) (ide->buffer + 27), "GOLDSTAR CRD-8160B                      ", 40); /* Model */
+        } else if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CR-571_1.0e"))) {
+            ide_padstr((char *) (ide->buffer + 23), "1.0e    ", 8);                                  /* Firmware */
+            ide_padstr((char *) (ide->buffer + 27), "MATSHITA CR-571                         ", 40); /* Model */
+        } else if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CR-572_1.0j"))) {
+            ide_padstr((char *) (ide->buffer + 23), "1.0j    ", 8);                                  /* Firmware */
+            ide_padstr((char *) (ide->buffer + 27), "MATSHITA CR-572                         ", 40); /* Model */
         } else if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-587_7S13"))) {
             ide_padstr((char *) (ide->buffer + 23), "7S13    ", 8);                                  /* Firmware */
             ide_padstr((char *) (ide->buffer + 27), "MATSHITA CD-ROM CR-587                  ", 40); /* Model */
