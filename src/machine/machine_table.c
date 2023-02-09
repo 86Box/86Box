@@ -11584,10 +11584,12 @@ const machine_t machines[] = {
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11660,10 +11662,12 @@ const machine_t machines[] = {
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
