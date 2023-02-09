@@ -748,7 +748,7 @@ device_is_valid(const device_t *device, int m)
 int
 machine_get_config_int(char *s)
 {
-    const device_t        *d = machine_getdevice(machine);
+    const device_t        *d = machine_get_device(machine);
     const device_config_t *c;
 
     if (d == NULL)
@@ -768,7 +768,7 @@ machine_get_config_int(char *s)
 char *
 machine_get_config_string(char *s)
 {
-    const device_t        *d = machine_getdevice(machine);
+    const device_t        *d = machine_get_device(machine);
     const device_config_t *c;
 
     if (d == NULL)
