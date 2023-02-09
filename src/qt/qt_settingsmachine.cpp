@@ -169,7 +169,7 @@ SettingsMachine::on_comboBoxMachine_currentIndexChanged(int index)
     }
 
     int         machineId = ui->comboBoxMachine->currentData().toInt();
-    const auto *device    = machine_getdevice(machineId);
+    const auto *device    = machine_get_device(machineId);
     ui->pushButtonConfigure->setEnabled((device != nullptr) && (device->config != nullptr));
 
     auto *modelCpu   = ui->comboBoxCPU->model();
@@ -304,6 +304,6 @@ SettingsMachine::on_pushButtonConfigure_clicked()
 {
     // deviceconfig_inst_open
     int         machineId = ui->comboBoxMachine->currentData().toInt();
-    const auto *device    = machine_getdevice(machineId);
+    const auto *device    = machine_get_device(machineId);
     DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings *>(Settings::settings));
 }
