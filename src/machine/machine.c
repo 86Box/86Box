@@ -138,7 +138,7 @@ int
 machine_available(int m)
 {
     int       ret;
-    device_t *d = (device_t *) machine_getdevice(m);
+    device_t *d = (device_t *) machine_get_device(m);
 
     bios_only = 1;
 

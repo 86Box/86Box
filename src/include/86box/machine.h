@@ -289,7 +289,11 @@ typedef struct _machine_ {
     const machine_memory_t ram;
     int                    ram_granularity;
     int                    nvrmask;
-    uint16_t               kbc;
+#ifdef EMU_DEVICE_H
+    const device_t *kbc_device;
+#else
+    void *kbc_device;
+#endif /* EMU_DEVICE_H */
     /* Bits:
         7-0	Set bits are forced set on P1 (no forced set = 0x00);
         15-8	Clear bits are forced clear on P1 (no foced clear = 0xff). */
@@ -298,11 +302,15 @@ typedef struct _machine_ {
     uint32_t gpio_acpi;
 #ifdef EMU_DEVICE_H
     const device_t *device;
+    const device_t *fdc_device;
+    const device_t *sio_device;
     const device_t *vid_device;
     const device_t *snd_device;
     const device_t *net_device;
 #else
     void *device;
+    void *fdc_device;
+    void *sio_device;
     void *vid_device;
     void *snd_device;
     void *net_device;
@@ -325,10 +333,13 @@ extern char *machine_get_internal_name(void);
 extern int   machine_get_machine_from_internal_name(char *s);
 extern void  machine_init(void);
 #ifdef EMU_DEVICE_H
-extern const device_t *machine_getdevice(int m);
-extern const device_t *machine_getviddevice(int m);
-extern const device_t *machine_getsnddevice(int m);
-extern const device_t *machine_getnetdevice(int m);
+extern const device_t *machine_get_kbc_device(int m);
+extern const device_t *machine_get_device(int m);
+extern const device_t *machine_get_fdc_device(int m);
+extern const device_t *machine_get_sio_device(int m);
+extern const device_t *machine_get_vid_device(int m);
+extern const device_t *machine_get_snd_device(int m);
+extern const device_t *machine_get_net_device(int m);
 #endif
 extern char *machine_get_internal_name_ex(int m);
 extern int   machine_get_nvrmask(int m);

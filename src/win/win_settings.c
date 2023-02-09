@@ -755,7 +755,7 @@ win_settings_machine_recalc_machine(HWND hdlg)
 
     lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
-    d = (device_t *) machine_getdevice(temp_machine);
+    d = (device_t *) machine_get_device(temp_machine);
     settings_enable_window(hdlg, IDC_CONFIGURE_MACHINE, d && d->config);
 
     settings_reset_content(hdlg, IDC_COMBO_CPU_TYPE);
@@ -987,7 +987,7 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                     break;
                 case IDC_CONFIGURE_MACHINE:
                     temp_machine = listtomachine[settings_get_cur_sel(hdlg, IDC_COMBO_MACHINE)];
-                    temp_deviceconfig |= deviceconfig_open(hdlg, (void *) machine_getdevice(temp_machine));
+                    temp_deviceconfig |= deviceconfig_open(hdlg, (void *) machine_get_device(temp_machine));
                     break;
             }
 
