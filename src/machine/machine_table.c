@@ -1677,11 +1677,14 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_pc82_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
-        .device = NULL,
-        .vid_device = NULL
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
     },
     {
         .name = "[8088] Zenith Data Systems Z-151/152/161",
