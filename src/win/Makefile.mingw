@@ -782,13 +782,19 @@ ifdef EXOBJ
  OBJ += $(EXOBJ)
 endif
 
+ifeq ($(LOG), y)
+ MWIN := -lcomdlg32
+else
+ MWIN := -mwindows
+endif
+
 ifeq ($(OPENAL), y)
- LIBS := -mwindows -lopenal -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+ LIBS := $(MWIN) -lopenal -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
 else
  ifeq ($(FAUDIO), y)
-  LIBS := -mwindows -lfaudio -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+  LIBS := $(MWIN) -lfaudio -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
  else
-  LIBS := -mwindows -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+  LIBS := $(MWIN) -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
  endif
 endif
 
