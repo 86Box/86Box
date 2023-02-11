@@ -18,11 +18,10 @@ static uint8_t card         = 0;
 static void
 pci_dummy_interrupt(int set)
 {
-    if (set) {
+    if (set)
         pci_set_irq(card, pci_regs[0x3D]);
-    } else {
+    else
         pci_clear_irq(card, pci_regs[0x3D]);
-    }
 }
 
 static uint8_t
@@ -111,7 +110,7 @@ pci_dummy_pci_read(int func, int addr, void *priv)
 {
     pclog("AB0B:071A: PCI_Read(%d, %04x)\n", func, addr);
 
-    switch (addr) {
+    if (func == 0x00)  switch (addr) {
         case 0x00:
             return 0x1A;
         case 0x01:
@@ -168,7 +167,8 @@ pci_dummy_pci_read(int func, int addr, void *priv)
 
         default:
             return 0x00;
-    }
+    } else
+        return 0xff;
 }
 
 static void
@@ -178,7 +178,7 @@ pci_dummy_pci_write(int func, int addr, uint8_t val, void *priv)
 
     pclog("AB0B:071A: PCI_Write(%d, %04x, %02x)\n", func, addr, val);
 
-    switch (addr) {
+    if (func == 0x00)  switch (addr) {
         case 0x04: /* PCI_COMMAND_LO */
             valxor = (val & 0x03) ^ pci_regs[addr];
             if (valxor & PCI_COMMAND_IO) {
@@ -212,9 +212,8 @@ pci_dummy_pci_write(int func, int addr, uint8_t val, void *priv)
 
             /* We're done, so get out of the here. */
             if (pci_regs[4] & PCI_COMMAND_IO) {
-                if ((pci_bar[0].addr) != 0) {
+                if ((pci_bar[0].addr) != 0)
                     pci_dummy_io_set();
-                }
             }
             break;
 
@@ -233,5 +232,5 @@ pci_dummy_init(void)
     pci_bar[0].addr_regs[0] = 0x01;
     pci_regs[0x04]          = 0x03;
 
-    pci_regs[0x3D] = PCI_INTD;
+    pci_regs[0x3D] = PCI_INTA;
 }
