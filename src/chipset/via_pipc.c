@@ -851,7 +851,26 @@ pipc_sb_handlers(pipc_t *dev, uint8_t modem)
 
     if (dev->ac97_regs[0][0x42] & 0x04) {
         io_sethandler(0x388, 4, pipc_fm_read, NULL, NULL, pipc_fm_write, NULL, NULL, dev);
+#ifndef VIA_PIPC_FM_EMULATION
+        dev->sb->opl_enabled = 1;
+    } else {
+        dev->sb->opl_enabled = 0;
+#endif
     }
+}
+
+static void
+pipc_sb_get_buffer(int32_t *buffer, int len, void *priv)
+{
+    pipc_t *dev = (pipc_t *) priv;
+
+    /* Poll SB audio only if the legacy block is enabled. */
+#ifdef VIA_PIPC_FM_EMULATION
+    if (dev->ac97_regs[0][0x42] & 0x01)
+#else
+    if (dev->ac97_regs[0][0x42] & 0x05)
+#endif
+        sb_get_buffer_sbpro(buffer, len, dev->sb);
 }
 
 static uint8_t
@@ -1599,10 +1618,7 @@ pipc_init(const device_t *info)
         ac97_via_set_slot(dev->ac97, dev->slot, PCI_INTC);
 
         dev->sb = device_add_inst(&sb_pro_compat_device, 2);
-#ifndef VIA_PIPC_FM_EMULATION
-        dev->sb->opl_enabled = 1;
-#endif
-        sound_add_handler(sb_get_buffer_sbpro, dev->sb);
+        sound_add_handler(pipc_sb_get_buffer, dev);
 
         dev->gameport = gameport_add(&gameport_sio_device);
 
