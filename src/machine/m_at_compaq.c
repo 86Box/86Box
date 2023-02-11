@@ -787,21 +787,21 @@ machine_at_compaq_init(const machine_t *model, int type)
                     write_ram, write_ramw, write_raml,
                     0xa0000 + ram, MEM_MAPPING_INTERNAL, NULL);
 
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
 
     switch (type) {
         case COMPAQ_PORTABLEII:
             break;
 
         case COMPAQ_PORTABLEIII:
-            if (gfxcard == VID_INTERNAL)
+            if (gfxcard[0] == VID_INTERNAL)
                 device_add(&compaq_plasma_device);
             break;
 
         case COMPAQ_PORTABLEIII386:
             if (hdc_current == 1)
                 device_add(&ide_isa_device);
-            if (gfxcard == VID_INTERNAL)
+            if (gfxcard[0] == VID_INTERNAL)
                 device_add(&compaq_plasma_device);
             break;
 

@@ -10,25 +10,14 @@
 #define NDP_Interval \
     g_rand_int_range(slirp->grand, NDP_MinRtrAdvInterval, NDP_MaxRtrAdvInterval)
 
-static void ra_timer_handler(void *opaque)
-{
-    Slirp *slirp = opaque;
-
-    slirp->cb->timer_mod(slirp->ra_timer,
-                         slirp->cb->clock_get_ns(slirp->opaque) / SCALE_MS +
-                             NDP_Interval,
-                         slirp->opaque);
-    ndp_send_ra(slirp);
-}
-
-void icmp6_init(Slirp *slirp)
+void icmp6_post_init(Slirp *slirp)
 {
     if (!slirp->in6_enabled) {
         return;
     }
 
     slirp->ra_timer =
-        slirp->cb->timer_new(ra_timer_handler, slirp, slirp->opaque);
+        slirp_timer_new(slirp, SLIRP_TIMER_RA, NULL);
     slirp->cb->timer_mod(slirp->ra_timer,
                          slirp->cb->clock_get_ns(slirp->opaque) / SCALE_MS +
                              NDP_Interval,
@@ -69,7 +58,7 @@ static void icmp6_send_echoreply(struct mbuf *m, Slirp *slirp, struct ip6 *ip,
     ip6_output(NULL, t, 0);
 }
 
-void icmp6_send_error(struct mbuf *m, uint8_t type, uint8_t code)
+void icmp6_forward_error(struct mbuf *m, uint8_t type, uint8_t code, struct in6_addr *src)
 {
     Slirp *slirp = m->slirp;
     struct mbuf *t;
@@ -88,7 +77,7 @@ void icmp6_send_error(struct mbuf *m, uint8_t type, uint8_t code)
 
     /* IPv6 packet */
     struct ip6 *rip = mtod(t, struct ip6 *);
-    rip->ip_src = (struct in6_addr)LINKLOCAL_ADDR;
+    rip->ip_src = *src;
     rip->ip_dst = ip->ip_src;
     inet_ntop(AF_INET6, &rip->ip_dst, addrstr, INET6_ADDRSTRLEN);
     DEBUG_ARG("target = %s", addrstr);
@@ -131,10 +120,16 @@ void icmp6_send_error(struct mbuf *m, uint8_t type, uint8_t code)
     ip6_output(NULL, t, 0);
 }
 
+void icmp6_send_error(struct mbuf *m, uint8_t type, uint8_t code)
+{
+    struct in6_addr src = LINKLOCAL_ADDR;
+    icmp6_forward_error(m, type, code, &src);
+}
+
 /*
  * Send NDP Router Advertisement
  */
-void ndp_send_ra(Slirp *slirp)
+static void ndp_send_ra(Slirp *slirp)
 {
     DEBUG_CALL("ndp_send_ra");
 
@@ -211,6 +206,15 @@ void ndp_send_ra(Slirp *slirp)
     ricmp->icmp6_cksum = ip6_cksum(t);
 
     ip6_output(NULL, t, 0);
+}
+
+void ra_timer_handler(Slirp *slirp, void *unused)
+{
+    slirp->cb->timer_mod(slirp->ra_timer,
+                         slirp->cb->clock_get_ns(slirp->opaque) / SCALE_MS +
+                             NDP_Interval,
+                         slirp->opaque);
+    ndp_send_ra(slirp);
 }
 
 /*
@@ -315,6 +319,8 @@ static void ndp_send_na(Slirp *slirp, struct ip6 *ip, struct icmp6 *icmp)
 static void ndp_input(struct mbuf *m, Slirp *slirp, struct ip6 *ip,
                       struct icmp6 *icmp)
 {
+    g_assert(M_ROOMBEFORE(m) >= ETH_HLEN);
+
     m->m_len += ETH_HLEN;
     m->m_data -= ETH_HLEN;
     struct ethhdr *eth = mtod(m, struct ethhdr *);
@@ -377,9 +383,12 @@ static void ndp_input(struct mbuf *m, Slirp *slirp, struct ip6 *ip,
  */
 void icmp6_input(struct mbuf *m)
 {
+    Slirp *slirp = m->slirp;
+    /* NDP reads the ethernet header for gratuitous NDP */
+    M_DUP_DEBUG(slirp, m, 1, ETH_HLEN);
+
     struct icmp6 *icmp;
     struct ip6 *ip = mtod(m, struct ip6 *);
-    Slirp *slirp = m->slirp;
     int hlen = sizeof(struct ip6);
 
     DEBUG_CALL("icmp6_input");

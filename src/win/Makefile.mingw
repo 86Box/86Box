@@ -76,6 +76,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef PAS16
   PAS16 := y
  endif
+ ifndef PCI_DUMMY
+  PCI_DUMMY := y
+ endif
  ifndef SIO_DETECT
   SIO_DETECT := y
  endif
@@ -136,6 +139,9 @@ else
  endif
  ifndef PAS16
   PAS16 := n
+ endif
+ ifndef PCI_DUMMY
+  PCI_DUMMY := n
  endif
  ifndef SIO_DETECT
   SIO_DETECT := n
@@ -476,6 +482,11 @@ ifeq ($(DEV_BRANCH), y)
   DEVBROBJ += snd_pas16.o
  endif
 
+ ifeq ($(PCI_DUMMY), y)
+  OPTS     += -DUSE_PCI_DUMMY
+  DEVBROBJ += pci_dummy.o
+ endif
+
  ifeq ($(SIO_DETECT), y)
   OPTS     += -DUSE_SIO_DETECT
   DEVBROBJ += sio_detect.o
@@ -637,16 +648,17 @@ SCSIOBJ := scsi.o scsi_device.o \
            scsi_ncr5380.o scsi_ncr53c8xx.o \
            scsi_pcscsi.o scsi_spock.o
 
-SLIRPOBJ := arp_table.o bootp.o cksum.o dnssearch.o if.o \
-            ip_icmp.o ip_input.o ip_output.o \
-            mbuf.o misc.o sbuf.o slirp.o socket.o \
-            tcp_input.o tcp_output.o tcp_subr.o tcp_timer.o \
-            udp.o \
-            util.o version.o \
+SLIRPOBJ := net_slirp.o tinyglib.o \
+          arp_table.o bootp.o cksum.o dhcpv6.o dnssearch.o if.o \
+          ip_icmp.o ip_input.o ip_output.o \
+          ip6_icmp.o ip6_input.o ip6_output.o \
+          mbuf.o misc.o sbuf.o slirp.o socket.o \
+          tcp_input.o tcp_output.o tcp_subr.o tcp_timer.o \
+          udp.o udp6.o \
+          util.o version.o \
 
 NETOBJ := network.o \
           net_pcap.o \
-          net_slirp.o tinyglib.o \
           ${SLIRPOBJ} \
           net_dp8390.o net_3c501.o \
           net_3c503.o net_ne2000.o \

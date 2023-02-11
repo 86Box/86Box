@@ -530,7 +530,7 @@ load_video(void)
 
     if (machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
         ini_section_delete_var(cat, "gfxcard");
-        gfxcard = VID_INTERNAL;
+        gfxcard[0] = VID_INTERNAL;
     } else {
         p = ini_section_get_string(cat, "gfxcard", NULL);
         if (p == NULL) {
@@ -544,9 +544,9 @@ load_video(void)
             free_p = 1;
         }
         if (!strcmp(p, "virge375_vbe20_pci")) /* migrate renamed cards */
-            gfxcard = video_get_video_from_internal_name("virge385_pci");
+            gfxcard[0] = video_get_video_from_internal_name("virge385_pci");
         else
-            gfxcard = video_get_video_from_internal_name(p);
+            gfxcard[0] = video_get_video_from_internal_name(p);
         if (free_p)
             free(p);
     }
@@ -560,7 +560,7 @@ load_video(void)
     p = ini_section_get_string(cat, "gfxcard_2", NULL);
     if (!p)
         p = "none";
-    gfxcard_2 = video_get_video_from_internal_name(p);
+    gfxcard[1] = video_get_video_from_internal_name(p);
 }
 
 /* Load "Input Devices" section. */
@@ -1851,7 +1851,7 @@ config_load(void)
         dpi_scale       = 1;
 
         fpu_type               = fpu_get_type(cpu_f, cpu, "none");
-        gfxcard                = video_get_video_from_internal_name("cga");
+        gfxcard[0]             = video_get_video_from_internal_name("cga");
         vid_api                = plat_vidapi("default");
         vid_resize             = 0;
         video_fullscreen_first = 1;
@@ -2235,7 +2235,7 @@ save_video(void)
     ini_section_t cat = ini_find_or_create_section(config, "Video");
 
     ini_section_set_string(cat, "gfxcard",
-                           video_get_internal_name(gfxcard));
+                           video_get_internal_name(gfxcard[0]));
 
     if (voodoo_enabled == 0)
         ini_section_delete_var(cat, "voodoo");
@@ -2252,10 +2252,10 @@ save_video(void)
     else
         ini_section_set_int(cat, "xga", xga_enabled);
 
-    if (gfxcard_2 == 0)
+    if (gfxcard[1] == 0)
         ini_section_delete_var(cat, "gfxcard_2");
     else
-        ini_section_set_string(cat, "gfxcard_2", video_get_internal_name(gfxcard_2));
+        ini_section_set_string(cat, "gfxcard_2", video_get_internal_name(gfxcard[1]));
 
     if (show_second_monitors == 1)
         ini_section_delete_var(cat, "show_second_monitors");

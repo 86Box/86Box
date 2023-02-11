@@ -168,7 +168,7 @@ machine_at_valuepoint433_init(const machine_t *model) // hangs without the PS/2 
 
     machine_at_common_ide_init(model);
     device_add(&sis_85c461_device);
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&et4000w32_onboard_device);
 
     device_add(&keyboard_ps2_device);
@@ -331,7 +331,7 @@ machine_at_pb410a_init(const machine_t *model)
 
     device_add(&phoenix_486_jumper_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&ht216_32_pb410a_device);
 
     return ret;
@@ -352,7 +352,7 @@ machine_at_vect486vl_init(const machine_t *model) // has HDC problems
 
     device_add(&vl82c480_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5428_onboard_device);
 
     device_add(&keyboard_ps2_ami_device);
@@ -376,7 +376,7 @@ machine_at_d824_init(const machine_t *model)
 
     device_add(&vl82c480_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5428_onboard_device);
 
     device_add(&keyboard_ps2_device);
@@ -399,7 +399,7 @@ machine_at_acera1g_init(const machine_t *model)
     machine_at_common_init(model);
     device_add(&ali1429g_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5428_onboard_device);
 
     device_add(&keyboard_ps2_acer_pci_device);
@@ -449,7 +449,7 @@ machine_at_decpclpv_init(const machine_t *model)
 
     device_add(&sis_85c461_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&s3_86c805_onboard_vlb_device);
 
     /* TODO: Phoenix MultiKey KBC */
@@ -1386,7 +1386,7 @@ machine_at_sbc490_init(const machine_t *model)
     device_add(&ali1489_device);
     device_add(&fdc37c665_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&tgui9440_onboard_pci_device);
 
     device_add(&keyboard_ps2_ami_device);

@@ -40,7 +40,9 @@
 #include <86box/i2c.h>
 #include <86box/video.h>
 
-int acpi_rtc_status = 0;
+int acpi_rtc_status            = 0;
+atomic_int acpi_pwrbut_pressed = 0;
+int acpi_enabled               = 0;
 
 static double cpu_to_acpi;
 
@@ -1516,6 +1518,21 @@ acpi_ali_soft_smi_status_write(acpi_t *dev, uint8_t soft_smi)
     dev->regs.ali_soft_smi = soft_smi;
 }
 
+void
+acpi_pwrbtn_timer(void* priv)
+{
+    acpi_t *dev = (acpi_t *) priv;
+
+    timer_on_auto(&dev->pwrbtn_timer, 16. * 1000.);
+    if (acpi_pwrbut_pressed) {
+        acpi_pwrbut_pressed = 0;
+        if (dev->regs.pmen & PWRBTN_EN) {
+            dev->regs.pmsts |= PWRBTN_STS;
+            acpi_update_irq(dev);
+        }
+    }
+}
+
 static void
 acpi_apm_out(uint16_t port, uint8_t val, void *p)
 {
@@ -1707,9 +1724,13 @@ acpi_init(const device_t *info)
 
     timer_add(&dev->timer, acpi_timer_overflow, dev, 0);
     timer_add(&dev->resume_timer, acpi_timer_resume, dev, 0);
+    timer_add(&dev->pwrbtn_timer, acpi_pwrbtn_timer, dev, 0);
+
+    timer_on_auto(&dev->pwrbtn_timer, 16. * 1000.);
 
     acpi_reset(dev);
 
+    acpi_enabled = 1;
     return dev;
 }
 

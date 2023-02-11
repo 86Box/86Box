@@ -345,7 +345,7 @@ machine_at_pb520r_init(const machine_t *model)
     device_add(&i430lx_device);
     device_add(&ide_cmd640_pci_single_channel_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5434_onboard_pci_device);
 
     device_add(&keyboard_ps2_pci_device);

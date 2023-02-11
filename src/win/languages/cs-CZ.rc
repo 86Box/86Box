@@ -53,10 +53,16 @@ BEGIN
         MENUITEM "&Dodržovat poměr stran 4:3",			IDM_VID_FORCE43
         POPUP "&Násobek zvětšení okna"
         BEGIN
-            MENUITEM "&0.5x",					IDM_VID_SCALE_1X
-            MENUITEM "&1x",					IDM_VID_SCALE_2X
-            MENUITEM "1.&5x",					IDM_VID_SCALE_3X
-            MENUITEM "&2x",					IDM_VID_SCALE_4X
+            MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
+            MENUITEM "&1x",                     IDM_VID_SCALE_2X
+            MENUITEM "1.&5x",                   IDM_VID_SCALE_3X
+            MENUITEM "&2x",                     IDM_VID_SCALE_4X
+            MENUITEM "&3x",                     IDM_VID_SCALE_5X
+            MENUITEM "&4x",                     IDM_VID_SCALE_6X
+            MENUITEM "&5x",                     IDM_VID_SCALE_7X
+            MENUITEM "&6x",                     IDM_VID_SCALE_8X
+            MENUITEM "&7x",                     IDM_VID_SCALE_9X
+            MENUITEM "&8x",                     IDM_VID_SCALE_10X
         END
         POPUP "Metoda &filtrování"
         BEGIN

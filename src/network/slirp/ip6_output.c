@@ -15,6 +15,9 @@
  */
 int ip6_output(struct socket *so, struct mbuf *m, int fast)
 {
+    Slirp *slirp = m->slirp;
+    M_DUP_DEBUG(slirp, m, 0, 0);
+
     struct ip6 *ip = mtod(m, struct ip6 *);
 
     DEBUG_CALL("ip6_output");
@@ -30,7 +33,10 @@ int ip6_output(struct socket *so, struct mbuf *m, int fast)
     ip->ip_fl_lo = 0;
 
     if (fast) {
+        /* We cannot fast-send non-multicast, we'd need a NDP NS */
+        assert(IN6_IS_ADDR_MULTICAST(&ip->ip_dst));
         if_encap(m->slirp, m);
+        m_free(m);
     } else {
         if_output(so, m);
     }
