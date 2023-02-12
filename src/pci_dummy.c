@@ -23,9 +23,9 @@ static void
 pci_dummy_interrupt(int set, pci_dummy_t *dev)
 {
     if (set)
-        pci_set_irq(dev->card, dev->pci_regs[0x3D]);
+        pci_set_irq(dev->card, PCI_INTA);
     else
-        pci_clear_irq(dev->card, dev->pci_regs[0x3D]);
+        pci_clear_irq(dev->card, PCI_INTA);
 }
 
 static uint8_t
@@ -88,9 +88,7 @@ pci_dummy_write(uint16_t Port, uint8_t Val, void *p)
                 dev->interrupt_on = 1;
                 pci_dummy_interrupt(1, dev);
             }
-            return;
-        default:
-            return;
+            break;
     }
 }
 
@@ -168,7 +166,7 @@ pci_dummy_pci_read(int func, int addr, void *priv)
             break;
     }
 
-    pclog("AB0B:071A: PCI_Read(%d, %04X) = %02X\n", func, addr, ret);
+    // pclog("AB0B:071A: PCI_Read(%d, %04X) = %02X\n", func, addr, ret);
 
     return ret;
 }
@@ -179,7 +177,7 @@ pci_dummy_pci_write(int func, int addr, uint8_t val, void *priv)
     pci_dummy_t *dev = (pci_dummy_t *) priv;
     uint8_t valxor;
 
-    pclog("AB0B:071A: PCI_Write(%d, %04x, %02x)\n", func, addr, val);
+    // pclog("AB0B:071A: PCI_Write(%d, %04X, %02X)\n", func, addr, val);
 
     if (func == 0x00)  switch (addr) {
         case 0x04: /* PCI_COMMAND_LO */
@@ -207,7 +205,7 @@ pci_dummy_pci_write(int func, int addr, uint8_t val, void *priv)
             dev->pci_bar[0].addr &= 0xffe0;
 
             /* Log the new base. */
-            pclog("AB0B:071A: PCI: new I/O base is %04X\n", dev->pci_bar[0].addr);
+            // pclog("AB0B:071A: PCI: new I/O base is %04X\n", dev->pci_bar[0].addr);
 
             /* We're done, so get out of the here. */
             if (dev->pci_regs[4] & PCI_COMMAND_IO) {
@@ -217,7 +215,7 @@ pci_dummy_pci_write(int func, int addr, uint8_t val, void *priv)
             break;
 
         case 0x3c: /* PCI_ILR */
-            pclog("AB0B:071A: IRQ now: %i\n", val);
+            pclog("AB0B:071A Device %02X: IRQ now: %i\n", dev->card, val);
             dev->pci_regs[addr] = val;
             return;
     }
