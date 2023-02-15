@@ -17,6 +17,8 @@
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2021      Andreas J. Reichel.
+ *          Copyright 2021-2022 Jasmine Iwanek.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,6 +54,7 @@
 #define CONFIG_MAC       9
 #define CONFIG_MIDI_IN   10
 #define CONFIG_BIOS      11
+#define CONFIG_SERPORT   12
 
 enum {
     DEVICE_PCJR = 2,      /* requires an IBM PCjr */
@@ -107,7 +110,7 @@ typedef struct {
     int                             default_int;
     const char                     *file_filter;
     const device_config_spinner_t   spinner;
-    const device_config_selection_t selection[16];
+    const device_config_selection_t selection[32];
     const device_config_bios_t      bios[32];
 } device_config_t;
 
@@ -134,6 +137,7 @@ typedef struct _device_ {
 typedef struct {
     const device_t *dev;
     char            name[2048];
+    int             instance;
 } device_context_t;
 
 #ifdef __cplusplus
@@ -178,6 +182,7 @@ extern void        device_set_config_hex16(const char *s, int val);
 extern void        device_set_config_hex20(const char *s, int val);
 extern void        device_set_config_mac(const char *s, int val);
 extern const char *device_get_config_string(const char *name);
+extern const int   device_get_instance(void);
 #define device_get_config_bios device_get_config_string
 
 extern char *device_get_internal_name(const device_t *d);

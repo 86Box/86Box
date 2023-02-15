@@ -35,7 +35,7 @@
 
 #include <QMenuBar>
 
-#include <Windows.h>
+#include <windows.h>
 
 #include <86box/keyboard.h>
 #include <86box/mouse.h>

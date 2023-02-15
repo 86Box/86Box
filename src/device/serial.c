@@ -93,6 +93,8 @@ serial_transmit_period(serial_t *dev)
 
     /* Bit period based on DLAB. */
     dev->transmit_period = (16000000.0 * ddlab) / dev->clock_src;
+    if (dev->sd && dev->sd->transmit_period_callback)
+        dev->sd->transmit_period_callback(dev, dev->sd->priv, dev->transmit_period);
 }
 
 void
@@ -161,7 +163,7 @@ write_fifo(serial_t *dev, uint8_t dat)
             dev->lsr |= 0x01;
             dev->int_status |= SERIAL_INT_RECEIVE;
         }
-        if (dev->rcvr_fifo_pos < 15)
+        if (dev->rcvr_fifo_pos < (dev->rcvr_fifo_len - 1))
             dev->rcvr_fifo_pos++;
         else
             dev->rcvr_fifo_full = 1;
@@ -175,6 +177,8 @@ write_fifo(serial_t *dev, uint8_t dat)
         dev->dat = dat;
         dev->lsr |= 0x01;
         dev->int_status |= SERIAL_INT_RECEIVE;
+        if (dev->lsr & 0x02)
+            dev->int_status |= SERIAL_INT_LSR;
         serial_update_ints(dev);
     }
 }
@@ -311,6 +315,22 @@ serial_timeout_timer(void *priv)
     serial_update_ints(dev);
 }
 
+void
+serial_device_timeout(void *priv)
+{
+    serial_t *dev = (serial_t *) priv;
+
+#ifdef ENABLE_SERIAL_LOG
+    serial_log("serial_device_timeout()\n");
+#endif
+
+    if (!dev->fifo_enabled) {
+        dev->lsr |= 0x10;
+        dev->int_status |= SERIAL_INT_LSR;
+        serial_update_ints(dev);
+    }
+}
+
 static void
 serial_update_speed(serial_t *dev)
 {
@@ -329,6 +349,63 @@ serial_reset_fifo(serial_t *dev)
     serial_update_ints(dev);
     dev->xmit_fifo_pos = dev->rcvr_fifo_pos = 0;
     dev->rcvr_fifo_full                     = 0;
+}
+
+void
+serial_set_dsr(serial_t *dev, uint8_t enabled)
+{
+    if (dev->mctrl & 0x10)
+        return;
+
+    dev->msr &= ~0x2;
+    dev->msr |= !!((dev->msr & 0x20) ^ (enabled << 5)) << 1;
+    dev->msr &= ~0x20;
+    dev->msr |= (!!enabled) << 5;
+    dev->msr_set &= ~0x20;
+    dev->msr_set |= (!!enabled) << 5;
+
+    if (dev->msr & 0x2) {
+        dev->int_status |= SERIAL_INT_MSR;
+        serial_update_ints(dev);
+    }
+}
+
+void
+serial_set_cts(serial_t *dev, uint8_t enabled)
+{
+    if (dev->mctrl & 0x10)
+        return;
+
+    dev->msr &= ~0x1;
+    dev->msr |= !!((dev->msr & 0x10) ^ (enabled << 4));
+    dev->msr &= ~0x10;
+    dev->msr |= (!!enabled) << 4;
+    dev->msr_set &= ~0x10;
+    dev->msr_set |= (!!enabled) << 4;
+
+    if (dev->msr & 0x1) {
+        dev->int_status |= SERIAL_INT_MSR;
+        serial_update_ints(dev);
+    }
+}
+
+void
+serial_set_dcd(serial_t *dev, uint8_t enabled)
+{
+    if (dev->mctrl & 0x10)
+        return;
+
+    dev->msr &= ~0x8;
+    dev->msr |= !!((dev->msr & 0x80) ^ (enabled << 7));
+    dev->msr &= ~0x80;
+    dev->msr |= (!!enabled) << 7;
+    dev->msr_set &= ~0x80;
+    dev->msr_set |= (!!enabled) << 7;
+
+    if (dev->msr & 0x8) {
+        dev->int_status |= SERIAL_INT_MSR;
+        serial_update_ints(dev);
+    }
 }
 
 void
@@ -431,7 +508,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
         case 3:
             old      = dev->lcr;
             dev->lcr = val;
-            if ((old ^ val) & 0x0f) {
+            if ((old ^ val) & 0x3f) {
                 /* Data bits + start bit. */
                 dev->bits = ((dev->lcr & 0x03) + 5) + 1;
                 /* Stop bits. */
@@ -444,11 +521,14 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 
                 serial_transmit_period(dev);
                 serial_update_speed(dev);
+
+                if (dev->sd && dev->sd->lcr_callback)
+                    dev->sd->lcr_callback(dev, dev->sd->priv, dev->lcr);
             }
             break;
         case 4:
             if ((val & 2) && !(dev->mctrl & 2)) {
-                if (dev->sd->rcr_callback)
+                if (dev->sd && dev->sd->rcr_callback)
                     dev->sd->rcr_callback(dev, dev->sd->priv);
             }
             if (!(val & 8) && (dev->mctrl & 8))
@@ -487,7 +567,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
             serial_update_ints(dev);
             break;
         case 6:
-            dev->msr = val;
+            dev->msr = (val & 0xF0) | (dev->msr & 0x0F);
             if (dev->msr & 0x0f)
                 dev->int_status |= SERIAL_INT_MSR;
             serial_update_ints(dev);
@@ -521,11 +601,15 @@ serial_read(uint16_t addr, void *p)
 
                 ret                 = dev->rcvr_fifo[0];
                 dev->rcvr_fifo_full = 0;
+
+                for (i = 1; i < 16; i++)
+                    dev->rcvr_fifo[i - 1] = dev->rcvr_fifo[i];
+
+                dev->rcvr_fifo_pos--;
+
                 if (dev->rcvr_fifo_pos > 0) {
-                    for (i = 1; i < 16; i++)
-                        dev->rcvr_fifo[i - 1] = dev->rcvr_fifo[i];
                     serial_log("FIFO position %i: read %02X, next %02X\n", dev->rcvr_fifo_pos, ret, dev->rcvr_fifo[0]);
-                    dev->rcvr_fifo_pos--;
+
                     /* At least one byte remains to be read, start the timeout
                        timer so that a timeout is indicated in case of no read. */
                     timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
@@ -571,7 +655,7 @@ serial_read(uint16_t addr, void *p)
             serial_update_ints(dev);
             break;
         case 6:
-            ret = dev->msr;
+            ret = dev->msr | dev->msr_set;
             dev->msr &= ~0x0f;
             dev->int_status &= ~SERIAL_INT_MSR;
             serial_update_ints(dev);
@@ -630,9 +714,30 @@ serial_attach(int port,
 {
     serial_device_t *sd = &serial_devices[port];
 
-    sd->rcr_callback = rcr_callback;
-    sd->dev_write    = dev_write;
-    sd->priv         = priv;
+    sd->rcr_callback             = rcr_callback;
+    sd->dev_write                = dev_write;
+    sd->transmit_period_callback = NULL;
+    sd->lcr_callback             = NULL;
+    sd->priv                     = priv;
+
+    return sd->serial;
+}
+
+serial_t *
+serial_attach_ex(int port,
+                 void (*rcr_callback)(struct serial_s *serial, void *p),
+                 void (*dev_write)(struct serial_s *serial, void *p, uint8_t data),
+                 void (*transmit_period_callback)(struct serial_s *serial, void *p, double transmit_period),
+                 void (*lcr_callback)(struct serial_s *serial, void *p, uint8_t data_bits),
+                 void *priv)
+{
+    serial_device_t *sd = &serial_devices[port];
+
+    sd->rcr_callback             = rcr_callback;
+    sd->dev_write                = dev_write;
+    sd->transmit_period_callback = transmit_period_callback;
+    sd->lcr_callback             = lcr_callback;
+    sd->priv                     = priv;
 
     return sd->serial;
 }

@@ -328,6 +328,10 @@ END
 #define STR_PARALLEL2		"Paralelna vrata 2"
 #define STR_PARALLEL3		"Paralelna vrata 3"
 #define STR_PARALLEL4		"Paralelna vrata 4"
+#define STR_SERIAL_PASS1	"Serial port passthrough 1"
+#define STR_SERIAL_PASS2	"Serial port passthrough 2"
+#define STR_SERIAL_PASS3	"Serial port passthrough 3"
+#define STR_SERIAL_PASS4	"Serial port passthrough 4"
 
 #define STR_HDC			"Kontroler tvrdog diska:"
 #define STR_FDC			"Kontroler diskete:"
