@@ -18,6 +18,8 @@
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2021      Andreas J. Reichel.
+ *          Copyright 2021-2022 Jasmine Iwanek.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -91,6 +93,7 @@ device_set_context(device_context_t *c, const device_t *d, int inst)
 
     memset(c, 0, sizeof(device_context_t));
     c->dev = d;
+    c->instance = inst;
     if (inst) {
         sprintf(c->name, "%s #%i", d->name, inst);
 
@@ -554,6 +557,12 @@ device_force_redraw(void)
                 devices[c]->force_redraw(device_priv[c]);
         }
     }
+}
+
+const int
+device_get_instance(void)
+{
+    return device_current.instance;
 }
 
 const char *

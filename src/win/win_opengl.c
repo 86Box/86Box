@@ -36,7 +36,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 #define UNICODE
-#include <Windows.h>
+#include <windows.h>
 #include <process.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
