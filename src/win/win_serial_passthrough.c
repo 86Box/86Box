@@ -73,9 +73,6 @@ plat_serpt_write_vcon(serial_passthrough_t *dev, uint8_t data)
     // fwrite(dev->master_fd, &data, 1);
     DWORD bytesWritten = 0;
     WriteFile((HANDLE) dev->master_fd, &data, 1, &bytesWritten, NULL);
-    if (bytesWritten == 0) {
-        fatal("serial_passthrough: WriteFile pipe write-buffer full!");
-    }
 }
 
 void
