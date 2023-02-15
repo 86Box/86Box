@@ -37,7 +37,7 @@
 #include <QAbstractNativeEventFilter>
 #include <QByteArray>
 
-#include <Windows.h>
+#include <windows.h>
 
 #include <memory>
 
