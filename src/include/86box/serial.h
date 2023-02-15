@@ -55,7 +55,7 @@ typedef struct serial_s {
         fifo_enabled, rcvr_fifo_len, bits, data_bits,
         baud_cycles, rcvr_fifo_full, txsr, out, msr_set, pad, pad0, pad1;
 
-    uint16_t dlab, base_address, out_new, new;
+    uint16_t dlab, base_address, out_new;
 
     uint8_t rcvr_fifo_pos, xmit_fifo_pos,
         rcvr_fifo_end, xmit_fifo_end,
