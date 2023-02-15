@@ -81,7 +81,6 @@ serial_reset_port(serial_t *dev)
     dev->xmit_fifo_end = dev->rcvr_fifo_end = 0;
     dev->rcvr_fifo_full                     = 0;
     dev->baud_cycles                        = 0;
-    dev->new                                = 0;
     dev->out_new                            = 0xffff;
     memset(dev->xmit_fifo, 0, 16);
     memset(dev->rcvr_fifo, 0, 16);
@@ -203,7 +202,7 @@ serial_receive_timer(void *priv)
     serial_log("FIFO: %i, out_new = %04X, old_out_new = %04X, was_enabled = %i, condition = %i\n",
                ((dev->type >= SERIAL_16550) && dev->fifo_enabled), dev->out_new,
                old_out_new, was_enabled,
-               ((dev->type >= SERIAL_16550) && dev->fifo_enabled) ? (dev->rcvr_fifo_pos != dev->rcvr_fifo_end) : dev->new);
+               ((dev->type >= SERIAL_16550) && dev->fifo_enabled) ? (dev->rcvr_fifo_pos != dev->rcvr_fifo_end) : 0);
 #endif
 }
 
@@ -558,7 +557,6 @@ serial_write(uint16_t addr, uint8_t val, void *p)
                         break;
                 }
                 dev->out_new        = 0xffff;
-                dev->new            = 0;
                 serial_log("FIFO now %sabled, receive FIFO length = %i\n", dev->fifo_enabled ? "en" : "dis", dev->rcvr_fifo_len);
             }
             break;
@@ -841,7 +839,7 @@ serial_reset(void *priv)
     dev->fifo_enabled = dev->rcvr_fifo_len = dev->bits = dev->data_bits = 0x00;
     dev->baud_cycles = dev->rcvr_fifo_full = dev->txsr = dev->out = 0x00;
 
-    dev->dlab = dev->out_new = dev->new = 0x0000;
+    dev->dlab = dev->out_new = 0x0000;
 
     dev->rcvr_fifo_pos = dev->xmit_fifo_pos = dev->rcvr_fifo_end = dev->xmit_fifo_end = 0x00;
 
