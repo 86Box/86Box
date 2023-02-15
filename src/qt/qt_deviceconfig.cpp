@@ -46,6 +46,9 @@ extern "C" {
 #    include <sys/stat.h>
 #    include <sys/sysmacros.h>
 #endif
+#ifdef Q_OS_WINDOWS
+#include <windows.h>
+#endif
 
 DeviceConfig::DeviceConfig(QWidget *parent)
     : QDialog(parent)
@@ -77,9 +80,15 @@ EnumerateSerialDevices()
     }
 #endif
 #ifdef Q_OS_WINDOWS
-    QSettings comPorts("HKEY_LOCAL_MACHINE\\HARDWARE\\DEVICEMAP\\SERIALCOMM", QSettings::NativeFormat, nullptr);
-    for (int i = 0; i < comPorts.childKeys().length(); i++) {
-        serialDevices.push_back(QString("\\\\.\\") + comPorts.value(comPorts.childKeys()[i]).toString());
+    for (int i = 1; i < 256; i++) {
+        devstr[0] = 0;
+        snprintf(devstr.data(), 1024, "\\\\.\\COM%d", i);
+        auto handle = CreateFileA(devstr.data(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, 0);
+        auto dwError = GetLastError();
+        if (handle != INVALID_HANDLE_VALUE || (handle == INVALID_HANDLE_VALUE && ((dwError == ERROR_ACCESS_DENIED) || (dwError == ERROR_GEN_FAILURE) || (dwError == ERROR_SHARING_VIOLATION) || (dwError == ERROR_SEM_TIMEOUT)))) {
+            if (handle != INVALID_HANDLE_VALUE) CloseHandle(handle);
+            serialDevices.push_back(QString(devstr));
+        }
     }
 #endif
 #ifdef Q_OS_MACOS
