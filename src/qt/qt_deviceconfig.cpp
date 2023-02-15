@@ -26,6 +26,7 @@
 #include <QSpinBox>
 #include <QCheckBox>
 #include <QFrame>
+#include <QLineEdit>
 #include <QLabel>
 #include <QDir>
 #include <QSettings>
@@ -254,6 +255,15 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     dc.ui->formLayout->addRow(config->description, fileField);
                     break;
                 }
+            case CONFIG_STRING:
+                {
+                    auto lineEdit = new QLineEdit;
+                    lineEdit->setObjectName(config->name);
+                    lineEdit->setCursor(Qt::IBeamCursor);
+                    lineEdit->setText(config_get_string(device_context.name, const_cast<char *>(config->name), const_cast<char *>(config->default_string)));
+                    dc.ui->formLayout->addRow(config->description, lineEdit);
+                    break;
+                }
             case CONFIG_SERPORT:
                 {
                     auto *cbox = new QComboBox();
@@ -313,6 +323,12 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                         if (path == "None")
                             path = "";
                         config_set_string(device_context.name, const_cast<char *>(config->name), path);
+                        break;
+                    }
+                case CONFIG_STRING:
+                    {
+                        auto *lineEdit = dc.findChild<QLineEdit *>(config->name);
+                        config_set_string(device_context.name, const_cast<char *>(config->name), lineEdit->text().toUtf8());
                         break;
                     }
                 case CONFIG_HEX16:
