@@ -153,9 +153,6 @@ static void
 serial_receive_timer(void *priv)
 {
     serial_t *dev   = (serial_t *) priv;
-#if 0
-    uint16_t old_out_new = dev->out_new;
-#endif
 
     // serial_log("serial_receive_timer()\n");
 
@@ -179,8 +176,9 @@ serial_receive_timer(void *priv)
                 dev->rcvr_fifo[dev->rcvr_fifo_end] = (uint8_t) (dev->out_new & 0xff);
                 dev->rcvr_fifo_end = (dev->rcvr_fifo_end + 1) & 0x0f;
 
-                serial_log("To FIFO: %02X (%i)\n", (uint8_t) (dev->out_new & 0xff),
-                           abs(dev->rcvr_fifo_end - dev->rcvr_fifo_pos));
+                serial_log("To FIFO: %02X (%i, %i, %i)\n", (uint8_t) (dev->out_new & 0xff),
+                           abs(dev->rcvr_fifo_end - dev->rcvr_fifo_pos),
+                           dev->rcvr_fifo_end, dev->rcvr_fifo_pos);
                 dev->out_new = 0xffff;
 
                 if (abs(dev->rcvr_fifo_end - dev->rcvr_fifo_pos) >= dev->rcvr_fifo_len) {
@@ -191,19 +189,15 @@ serial_receive_timer(void *priv)
                     serial_update_ints(dev);
                 }
 
+                if (dev->rcvr_fifo_end == dev->rcvr_fifo_pos)
+                    dev->rcvr_fifo_full = 1;
+
                 timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
             }
         }
     }
 
     serial_update_ints(dev);
-
-#if 0
-    serial_log("FIFO: %i, out_new = %04X, old_out_new = %04X, was_enabled = %i, condition = %i\n",
-               ((dev->type >= SERIAL_16550) && dev->fifo_enabled), dev->out_new,
-               old_out_new, was_enabled,
-               ((dev->type >= SERIAL_16550) && dev->fifo_enabled) ? (dev->rcvr_fifo_pos != dev->rcvr_fifo_end) : 0);
-#endif
 }
 
 static void
@@ -622,7 +616,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
             serial_update_ints(dev);
             break;
         case 6:
-            dev->msr = (val & 0xF0) | (dev->msr & 0x0F);
+            dev->msr = (val & 0xf0) | (dev->msr & 0x0f);
             if (dev->msr & 0x0f)
                 dev->int_status |= SERIAL_INT_MSR;
             serial_update_ints(dev);
@@ -655,7 +649,7 @@ serial_read(uint16_t addr, void *p)
             if ((dev->type >= SERIAL_16550) && dev->fifo_enabled) {
                 /* FIFO mode. */
 
-                if (dev->rcvr_fifo_pos != dev->rcvr_fifo_end) {
+                if (dev->lsr & 0x01) {
                     /* There is data in the FIFO. */
                     ret = dev->rcvr_fifo[dev->rcvr_fifo_pos];
                     dev->rcvr_fifo_pos = (dev->rcvr_fifo_pos + 1) & 0x0f;
