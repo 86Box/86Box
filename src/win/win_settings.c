@@ -71,6 +71,7 @@
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/win.h>
+#include <86box/serial_passthrough.h>
 #include "../disk/minivhd/minivhd.h"
 #include "../disk/minivhd/minivhd_util.h"
 
@@ -111,6 +112,7 @@ static char temp_pcap_dev[NET_CARD_MAX][128];
 /* Ports category */
 static int temp_lpt_devices[PARALLEL_MAX];
 static int temp_serial[SERIAL_MAX], temp_lpt[PARALLEL_MAX];
+static int temp_serial_passthrough_enabled[SERIAL_MAX];
 
 /* Other peripherals category */
 static int temp_fdc_card, temp_hdc, temp_ide_ter, temp_ide_qua, temp_cassette;
@@ -358,11 +360,13 @@ win_settings_init(void)
 
     /* Ports category */
     for (i = 0; i < PARALLEL_MAX; i++) {
-        temp_lpt_devices[i] = lpt_ports[i].device;
-        temp_lpt[i]         = lpt_ports[i].enabled;
+        temp_lpt_devices[i]                = lpt_ports[i].device;
+        temp_lpt[i]                        = lpt_ports[i].enabled;
     }
-    for (i = 0; i < SERIAL_MAX; i++)
-        temp_serial[i] = com_ports[i].enabled;
+    for (i = 0; i < SERIAL_MAX; i++) {
+        temp_serial[i]                     = com_ports[i].enabled;
+        temp_serial_passthrough_enabled[i] = serial_passthrough_enabled[i];
+    }
 
     /* Storage devices category */
     for (i = 0; i < SCSI_BUS_MAX; i++)
@@ -484,8 +488,10 @@ win_settings_changed(void)
         i = i || (temp_lpt_devices[j] != lpt_ports[j].device);
         i = i || (temp_lpt[j] != lpt_ports[j].enabled);
     }
-    for (j = 0; j < SERIAL_MAX; j++)
+    for (j = 0; j < SERIAL_MAX; j++) {
         i = i || (temp_serial[j] != com_ports[j].enabled);
+        i = i || (temp_serial_passthrough_enabled[i] != serial_passthrough_enabled[i]);
+    }
 
     /* Storage devices category */
     for (j = 0; j < SCSI_BUS_MAX; j++)
@@ -578,8 +584,10 @@ win_settings_save(void)
         lpt_ports[i].device  = temp_lpt_devices[i];
         lpt_ports[i].enabled = temp_lpt[i];
     }
-    for (i = 0; i < SERIAL_MAX; i++)
+    for (i = 0; i < SERIAL_MAX; i++) {
         com_ports[i].enabled = temp_serial[i];
+        serial_passthrough_enabled[i] = temp_serial_passthrough_enabled[i];
+    }
 
     /* Storage devices category */
     for (i = 0; i < SCSI_BUS_MAX; i++)
@@ -755,7 +763,7 @@ win_settings_machine_recalc_machine(HWND hdlg)
 
     lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
-    d = (device_t *) machine_getdevice(temp_machine);
+    d = (device_t *) machine_get_device(temp_machine);
     settings_enable_window(hdlg, IDC_CONFIGURE_MACHINE, d && d->config);
 
     settings_reset_content(hdlg, IDC_COMBO_CPU_TYPE);
@@ -987,7 +995,7 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                     break;
                 case IDC_CONFIGURE_MACHINE:
                     temp_machine = listtomachine[settings_get_cur_sel(hdlg, IDC_COMBO_MACHINE)];
-                    temp_deviceconfig |= deviceconfig_open(hdlg, (void *) machine_getdevice(temp_machine));
+                    temp_deviceconfig |= deviceconfig_open(hdlg, (void *) machine_get_device(temp_machine));
                     break;
             }
 
@@ -1764,8 +1772,10 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 settings_enable_window(hdlg, IDC_COMBO_LPT1 + i, temp_lpt[i]);
             }
 
-            for (i = 0; i < SERIAL_MAX; i++)
+            for (i = 0; i < SERIAL_MAX; i++) {
                 settings_set_check(hdlg, IDC_CHECK_SERIAL1 + i, temp_serial[i]);
+                settings_set_check(hdlg, IDC_CHECK_SERIAL_PASS1 + i, temp_serial_passthrough_enabled[i]);
+            }
 
             free(lptsTemp);
 
@@ -1790,8 +1800,10 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 temp_lpt[i]         = settings_get_check(hdlg, IDC_CHECK_PARALLEL1 + i);
             }
 
-            for (i = 0; i < SERIAL_MAX; i++)
+            for (i = 0; i < SERIAL_MAX; i++) {
                 temp_serial[i] = settings_get_check(hdlg, IDC_CHECK_SERIAL1 + i);
+                temp_serial_passthrough_enabled[i] = settings_get_check(hdlg, IDC_CHECK_SERIAL_PASS1 + i);
+            }
 
         default:
             return FALSE;

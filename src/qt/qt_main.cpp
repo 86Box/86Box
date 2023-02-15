@@ -43,7 +43,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #    include "qt_winrawinputfilter.hpp"
 #    include "qt_winmanagerfilter.hpp"
 #    include <86box/win.h>
-#    include <Shobjidl.h>
+#    include <shobjidl.h>
 #endif
 
 extern "C" {

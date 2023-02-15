@@ -20,6 +20,8 @@
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2018-2019 David Hrdlička.
+ *          Copyright 2021      Andreas J. Reichel.
+ *          Copyright 2021-2022 Jasmine Iwanek.
  *
  * NOTE:    Forcing config files to be in Unicode encoding breaks
  *          it on Windows XP, and possibly also Vista. Use the
@@ -54,6 +56,8 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/gameport.h>
+#include <86box/serial.h>
+#include <86box/serial_passthrough.h>
 #include <86box/machine.h>
 #include <86box/mouse.h>
 #include <86box/thread.h>
@@ -81,6 +85,7 @@ static ini_t config;
 static int backwards_compat  = 0;
 static int backwards_compat2 = 0;
 
+#define ENABLE_CONFIG_LOG 1
 #ifdef ENABLE_CONFIG_LOG
 int config_do_log = ENABLE_CONFIG_LOG;
 
@@ -836,6 +841,8 @@ load_ports(void)
     char          temp[512];
     int           c, d;
 
+    memset(temp, 0, sizeof(temp));
+
     for (c = 0; c < SERIAL_MAX; c++) {
         sprintf(temp, "serial%d_enabled", c + 1);
         com_ports[c].enabled = !!ini_section_get_int(cat, temp, (c >= 2) ? 0 : 1);
@@ -845,6 +852,12 @@ load_ports(void)
                 p = (char *) ini_section_get_string(cat, temp, "none");
                 com_ports[c].device = com_device_get_from_internal_name(p);
         */
+
+        sprintf(temp, "serial%d_passthrough_enabled", c + 1);
+        serial_passthrough_enabled[c] = !!ini_section_get_int(cat, temp, 0);
+
+        if (serial_passthrough_enabled[c])
+            config_log("Serial Port %d: passthrough enabled.\n\n", c+1);
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {
@@ -2466,6 +2479,12 @@ save_ports(void)
                             ini_section_set_string(cat, temp,
                               (char *) com_device_get_internal_name(com_ports[c].device));
                 */
+
+        if (com_ports[c].enabled)
+            if (serial_passthrough_enabled[c]) {
+                sprintf(temp, "serial%d_passthrough_enabled", c + 1);
+                ini_section_set_int(cat, temp, 1);
+            }
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {

@@ -26,7 +26,6 @@
 #   - Packaging the Ghostscript DLL requires 32-bit and/or 64-bit Ghostscript on Program Files
 #   - Packaging the FluidSynth DLL requires it to be at /home/86Box/dll32/libfluidsynth.dll
 #     and/or /home/86Box/dll64/libfluidsynth64.dll (for 32-bit and 64-bit builds respectively)
-#   - Packaging the Discord DLL requires wget (MSYS should come with it)
 # - For Linux builds:
 #   - Only Debian and derivatives are supported
 #   - dpkg and apt-get are called through sudo to manage dependencies; make sure those
@@ -284,7 +283,7 @@ then
 		then
 			# Update keyring as well, since the package signing keys sometimes change.
 			echo [-] Updating package databases and keyring
-			yes | pacman -Sy --needed msys2-keyring
+			pacman -Sy --needed --noconfirm msys2-keyring
 
 			# Save build tag to skip pacman sync/keyring later.
 			save_buildtag pacmansync
@@ -292,100 +291,29 @@ then
 			echo [-] Not updating package databases and keyring again
 		fi
 
-		# Query installed packages.
-		pacman -Qe > "$cache_dir/pacman.txt"
-
-		# Download the specified versions of architecture-specific dependencies.
-		echo -n [-] Downloading dependencies:
-		pkg_dir="/var/cache/pacman/pkg"
-		repo_base="https://repo.msys2.org/mingw/$(echo $MSYSTEM | tr '[:upper:]' '[:lower:]')"
-		cat .ci/dependencies_msys.txt | tr -d '\r' > "$cache_dir/deps.txt"
-		pkgs=""
-		while IFS=" " read pkg version
-		do
-			prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
-			installed_version=$(grep -E "^$prefixed_pkg " "$cache_dir/pacman.txt" | cut -d " " -f 2)
-			if [ "$installed_version" != "$version" ] # installed_version will be empty if not installed
-			then
-				echo -n " [$pkg"
-
-				# Download package if not already present in the local cache.
-				pkg_tar="$prefixed_pkg-$version-any.pkg.tar"
-				if [ -s "$pkg_dir/$pkg_tar.xz" ]
-				then
-					pkg_fn="$pkg_tar.xz"
-					pkg_dest="$pkg_dir/$pkg_fn"
-				else
-					pkg_fn="$pkg_tar.zst"
-					pkg_dest="$pkg_dir/$pkg_fn"
-					if [ ! -s "$pkg_dest" ]
-					then
-						if ! wget -qO "$pkg_dest" "$repo_base/$pkg_fn"
-						then
-							rm -f "$pkg_dest"
-							pkg_fn="$pkg_tar.xz"
-							pkg_dest="$pkg_dir/$pkg_fn"
-							wget -qO "$pkg_dest" "$repo_base/$pkg_fn" || rm -f "$pkg_dest"
-						fi
-						if [ -s "$pkg_dest" ]
-						then
-							wget -qO "$pkg_dest.sig" "$repo_base/$pkg_fn.sig" || rm -f "$pkg_dest.sig"
-							[ ! -s "$pkg_dest.sig" ] && rm -f "$pkg_dest.sig"
-						fi
-					fi
-				fi
-
-				# Check if the cached package is valid.
-				if [ -s "$pkg_dest" ]
-				then
-					# Add cached zst package.
-					pkgs="$pkgs $pkg_fn"
-				else
-					# Not valid, remove if it exists.
-					rm -f "$pkg_dest" "$pkg_dest.sig"
-					echo -n " FAIL"
-				fi
-				echo -n "]"
-			fi
-		done < "$cache_dir/deps.txt"
-		[ -z "$pkgs" ] && echo -n ' none required'
-		echo
-
-		# Install the downloaded architecture-specific dependencies.
-		echo [-] Installing dependencies through pacman
-		if [ -n "$pkgs" ]
-		then
-			pushd "$pkg_dir"
-			yes | pacman -U --needed $pkgs
-			if [ $? -ne 0 ]
-			then
-				# Install packages individually if installing them all together failed.
-				for pkg in $pkgs
-				do
-					yes | pacman -U --needed "$pkg"
-				done
-			fi
-			popd
-
-			# Query installed packages again.
-			pacman -Qe > "$cache_dir/pacman.txt"
-		fi
-
-		# Install the latest versions for any missing packages (if the specified version couldn't be installed).
+		# Establish general dependencies.
 		pkgs="git"
-		while IFS=" " read pkg version
+
+		# Gather installed architecture-specific packages for updating.
+		# This prevents outdated shared libraries, unmet dependencies
+		# and potentially other issues caused by the fact pacman doesn't
+		# update a package's dependencies unless explicitly told to.
+		pkgs="$pkgs $(pacman -Quq | grep -E "^$MINGW_PACKAGE_PREFIX-")"
+
+		# Establish architecture-specific dependencies.
+		while read pkg rest
 		do
-			prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
-			grep -qE "^$prefixed_pkg " "$cache_dir/pacman.txt" || pkgs="$pkgs $prefixed_pkg"
-		done < "$cache_dir/deps.txt"
-		rm -f "$cache_dir/pacman.txt" "$cache_dir/deps.txt"
-		yes | pacman -S --needed $pkgs
-		if [ $? -ne 0 ]
+			pkgs="$pkgs $MINGW_PACKAGE_PREFIX-$(echo "$pkg" | tr -d '\r')" # CR removal required
+		done < .ci/dependencies_msys.txt
+
+		# Install or update dependencies.
+		echo [-] Installing dependencies through pacman
+		if ! pacman -S --needed --noconfirm $pkgs
 		then
 			# Install packages individually if installing them all together failed.
 			for pkg in $pkgs
 			do
-				yes | pacman -S --needed "$pkg"
+				pacman -S --needed --noconfirm "$pkg"
 			done
 		fi
 
