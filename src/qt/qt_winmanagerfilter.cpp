@@ -17,7 +17,7 @@
 
 #include "qt_winmanagerfilter.hpp"
 
-#include <Windows.h>
+#include <windows.h>
 #include <86box/win.h>
 
 bool

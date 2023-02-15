@@ -27,6 +27,8 @@
 #include <QCheckBox>
 #include <QFrame>
 #include <QLabel>
+#include <QDir>
+#include <QSettings>
 
 extern "C" {
 #include <86box/86box.h>
@@ -40,6 +42,10 @@ extern "C" {
 
 #include "qt_filefield.hpp"
 #include "qt_models_common.hpp"
+#ifdef Q_OS_LINUX
+#    include <sys/stat.h>
+#    include <sys/sysmacros.h>
+#endif
 
 DeviceConfig::DeviceConfig(QWidget *parent)
     : QDialog(parent)
@@ -51,6 +57,40 @@ DeviceConfig::DeviceConfig(QWidget *parent)
 DeviceConfig::~DeviceConfig()
 {
     delete ui;
+}
+
+static QStringList
+EnumerateSerialDevices()
+{
+    QStringList serialDevices, ttyEntries;
+    QByteArray  devstr(1024, 0);
+#ifdef Q_OS_LINUX
+    QDir class_dir("/sys/class/tty/");
+    QDir dev_dir("/dev/");
+    ttyEntries = class_dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot | QDir::System, QDir::SortFlag::Name);
+    for (int i = 0; i < ttyEntries.size(); i++) {
+        if (class_dir.exists(ttyEntries[i] + "/device/driver/") && dev_dir.exists(ttyEntries[i])
+            && QFileInfo(dev_dir.canonicalPath() + '/' + ttyEntries[i]).isReadable()
+            && QFileInfo(dev_dir.canonicalPath() + '/' + ttyEntries[i]).isWritable()) {
+            serialDevices.push_back("/dev/" + ttyEntries[i]);
+        }
+    }
+#endif
+#ifdef Q_OS_WINDOWS
+    QSettings comPorts("HKEY_LOCAL_MACHINE\\HARDWARE\\DEVICEMAP\\SERIALCOMM", QSettings::NativeFormat, nullptr);
+    for (int i = 0; i < comPorts.childKeys().length(); i++) {
+        serialDevices.push_back(QString("\\\\.\\") + comPorts.value(comPorts.childKeys()[i]).toString());
+    }
+#endif
+#ifdef Q_OS_MACOS
+    QDir dev_dir("/dev/");
+    dev_dir.setNameFilters({ "tty.*", "cu.*" });
+    QDir::Filters serial_dev_flags = QDir::Files | QDir::NoSymLinks | QDir::Readable | QDir::Writable | QDir::NoDotAndDotDot | QDir::System;
+    for (const auto &device : dev_dir.entryInfoList(serial_dev_flags, QDir::SortFlag::Name)) {
+        serialDevices.push_back(device.canonicalFilePath());
+    }
+#endif
+    return serialDevices;
 }
 
 void
@@ -205,6 +245,27 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     dc.ui->formLayout->addRow(config->description, fileField);
                     break;
                 }
+            case CONFIG_SERPORT:
+                {
+                    auto *cbox = new QComboBox();
+                    cbox->setObjectName(config->name);
+                    auto *model         = cbox->model();
+                    int   currentIndex  = 0;
+                    auto  serialDevices = EnumerateSerialDevices();
+                    char *selected      = config_get_string(device_context.name, const_cast<char *>(config->name), const_cast<char *>(config->default_string));
+
+                    Models::AddEntry(model, "None", -1);
+                    for (int i = 0; i < serialDevices.size(); i++) {
+                        int row = Models::AddEntry(model, serialDevices[i], i);
+                        if (selected == serialDevices[i]) {
+                            currentIndex = row;
+                        }
+                    }
+
+                    dc.ui->formLayout->addRow(config->description, cbox);
+                    cbox->setCurrentIndex(currentIndex);
+                    break;
+                }
         }
         ++config;
     }
@@ -234,6 +295,15 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                         auto *cbox = dc.findChild<QComboBox *>(config->name);
                         int   idx  = cbox->currentData().toInt();
                         config_set_string(device_context.name, const_cast<char *>(config->name), const_cast<char *>(config->bios[idx].internal_name));
+                        break;
+                    }
+                case CONFIG_SERPORT:
+                    {
+                        auto *cbox = dc.findChild<QComboBox *>(config->name);
+                        auto  path = cbox->currentText().toUtf8();
+                        if (path == "None")
+                            path = "";
+                        config_set_string(device_context.name, const_cast<char *>(config->name), path);
                         break;
                     }
                 case CONFIG_HEX16:

@@ -596,7 +596,7 @@ DEVOBJ := bugger.o cartridge.o cassette.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm
           mouse.o \
           mouse_bus.o \
           mouse_serial.o mouse_ps2.o \
-          phoenix_486_jumper.o
+          phoenix_486_jumper.o serial_passthrough.o
 
 SIOOBJ := sio_acc3221.o sio_ali5123.o \
           sio_f82c710.o sio_82091aa.o sio_fdc37c6xx.o \
@@ -749,7 +749,7 @@ VOODOOOBJ := vid_voodoo.o vid_voodoo_banshee.o \
 PLATOBJ := win.o \
            win_dynld.o \
            win_cdrom.o win_keyboard.o \
-           win_mouse.o
+           win_mouse.o win_serial_passthrough.o
 
 UIOBJ := win_ui.o win_icon.o win_stbar.o discord.o \
          win_sdl.o win_opengl.o win_opengl_glslp.o glad.o \
