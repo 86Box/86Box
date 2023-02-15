@@ -605,7 +605,7 @@ serial_read(uint16_t addr, void *p)
                 for (i = 1; i < 16; i++)
                     dev->rcvr_fifo[i - 1] = dev->rcvr_fifo[i];
 
-                dev->rcvr_fifo_pos--;
+                if (__builtin_expect(dev->rcvr_fifo_pos > 0, 1)) dev->rcvr_fifo_pos--;
 
                 if (dev->rcvr_fifo_pos > 0) {
                     serial_log("FIFO position %i: read %02X, next %02X\n", dev->rcvr_fifo_pos, ret, dev->rcvr_fifo[0]);
