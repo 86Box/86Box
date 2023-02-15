@@ -328,6 +328,10 @@ END
 #define STR_PARALLEL2		"Povolit port LPT2"
 #define STR_PARALLEL3		"Povolit port LPT3"
 #define STR_PARALLEL4		"Povolit port LPT4"
+#define STR_SERIAL_PASS1	"Serial port passthrough 1"
+#define STR_SERIAL_PASS2	"Serial port passthrough 2"
+#define STR_SERIAL_PASS3	"Serial port passthrough 3"
+#define STR_SERIAL_PASS4	"Serial port passthrough 4"
 
 #define STR_HDC			"Řadič disku:"
 #define STR_FDC			"Disketový řadič:"

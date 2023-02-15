@@ -81,9 +81,17 @@ xinput2_get_xtest_pointer()
 {
     /* The XTEST pointer events injected by VNC servers to move the cursor always report
        absolute coordinates, despite XTEST declaring relative axes (related: SDL issue 1836).
-       This looks for the XTEST pointer so that we can assume it's absolute as a workaround. */
+       This looks for the XTEST pointer so that we can assume it's absolute as a workaround.
+
+       TigerVNC publishes both the XTEST pointer and a TigerVNC pointer, but actual
+       RawMotion events are published using the TigerVNC pointer */
     int           devs;
     XIDeviceInfo *info = XIQueryDevice(disp, XIAllDevices, &devs), *dev;
+    for (int i = 0; i < devs; i++) {
+        dev = &info[i];
+        if ((dev->use == XISlavePointer) && !strcmp(dev->name, "TigerVNC pointer"))
+            return dev->deviceid;
+    }
     for (int i = 0; i < devs; i++) {
         dev = &info[i];
         if ((dev->use == XISlavePointer) && !strcmp(dev->name, "Virtual core XTEST pointer"))

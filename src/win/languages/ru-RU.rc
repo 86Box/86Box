@@ -328,6 +328,10 @@ END
 #define STR_PARALLEL2		"Параллельный порт LPT2"
 #define STR_PARALLEL3		"Параллельный порт LPT3"
 #define STR_PARALLEL4		"Параллельный порт LPT4"
+#define STR_SERIAL_PASS1	"Serial port passthrough 1"
+#define STR_SERIAL_PASS2	"Serial port passthrough 2"
+#define STR_SERIAL_PASS3	"Serial port passthrough 3"
+#define STR_SERIAL_PASS4	"Serial port passthrough 4"
 
 #define STR_HDC			"Контроллер HD:"
 #define STR_FDC			"Контроллер FD:"
