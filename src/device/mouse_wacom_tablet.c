@@ -229,7 +229,7 @@ wacom_transmit_prepare(mouse_wacom_t* wacom, int x, int y)
     memset(wacom->data, 0, sizeof(wacom->data));
     if (wacom->transmit_id) {
         wacom->transmission_format = 0;
-        strcat((char*)wacom->data, "~#SD51C V3.2.1.01\r");
+        snprintf((char*)wacom->data, sizeof(wacom->data), "~#SD51C V3.2.1.01\r\0");
         return;
     }
     wacom->transmission_format = wacom->format;
