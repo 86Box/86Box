@@ -340,15 +340,7 @@ transmit_prepare:
     wacom_transmit_prepare(wacom, x, y);
 
 transmit:
-    if (wacom->transmit_id) {
-        uint8_t i = 0;
-
-        for (i = 0; i < 9; i++) {
-            serial_write_fifo(wacom->serial, wacom->data[wacom->data_pos++]);
-            if (wacom->data[wacom->data_pos] == 0) break;
-        }
-    } else
-        serial_write_fifo(wacom->serial, wacom->data[wacom->data_pos++]);
+    serial_write_fifo(wacom->serial, wacom->data[wacom->data_pos++]);
     if ((wacom->transmission_format == 0 && wacom->data[wacom->data_pos] == 0)
         || (wacom->transmission_format == 1 && wacom->data_pos == 7)) {
         wacom->transmission_ongoing = 0;
