@@ -177,6 +177,9 @@ serial_passthrough_dev_init(const device_t *info)
                                    serial_passthrough_write, serial_passthrough_transmit_period, serial_passthrough_lcr_callback, dev);
 
     strncpy(dev->host_serial_path, device_get_config_string("host_serial_path"), 1023);
+#ifdef _WIN32
+    strncpy(dev->named_pipe, device_get_config_string("named_pipe"), 1023);
+#endif
 
     serial_passthrough_log("%s: port=COM%d\n", info->name, dev->port + 1);
     serial_passthrough_log("%s: baud=%f\n", info->name, dev->baudrate);
@@ -264,6 +267,17 @@ static const device_config_t serial_passthrough_config[] = {
         .spinner = {},
         .selection = {}
     },
+#ifdef _WIN32
+    {
+        .name = "named_pipe",
+        .description = "Name of pipe",
+        .type = CONFIG_STRING,
+        .default_string = "\\\\.\\pipe\\86Box\\test",
+        .file_filter = NULL,
+        .spinner = {},
+        .selection = {}
+    },
+#endif
     {
         .name = "data_bits",
         .description = "Data bits",
