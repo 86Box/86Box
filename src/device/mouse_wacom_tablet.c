@@ -230,7 +230,7 @@ wacom_transmit_prepare(mouse_wacom_t* wacom, int x, int y)
     memset(wacom->data, 0, sizeof(wacom->data));
     if (wacom->transmit_id) {
         wacom->transmission_format = 0;
-        snprintf((char*)wacom->data, sizeof(wacom->data), "~#SD51C V3.2.1.01\r\0");
+        snprintf((char*)wacom->data, sizeof(wacom->data), "~#SD51C V3.2.1.01\r");
         return;
     }
     wacom->transmission_format = wacom->format;
@@ -299,6 +299,9 @@ wacom_report_timer(void *priv)
     else if (wacom->remote_mode && !wacom->remote_req)
         return;
     else {
+        if (wacom->remote_mode && wacom->remote_req) {
+            goto transmit_prepare;
+        }
         if (wacom->transmission_stopped || (!mouse_tablet_in_proximity && !wacom->always_report))
             return;
 
