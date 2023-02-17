@@ -2177,7 +2177,7 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *p)
                 int x, y;
 
                 for (y = 0; y < 8; y++) {
-                    for (x = 0; x < 8; x++)
+                    for (x = 0; x < 16; x++)
                         mystique->dwgreg.pattern[y][x] = 1;
                 }
                 mystique->dwgreg.src[0] = 0xffffffff;
