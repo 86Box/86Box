@@ -91,6 +91,7 @@ wacom_reset(mouse_wacom_t* wacom)
     wacom->increment = wacom->suppressed_increment = 0;
     wacom->reset_tsc = tsc;
     wacom->remote_mode = wacom->remote_req = 0;
+    wacom->always_report = 0;
 
     mouse_mode = 1;
 }
