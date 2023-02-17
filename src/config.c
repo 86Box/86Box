@@ -2480,11 +2480,12 @@ save_ports(void)
                               (char *) com_device_get_internal_name(com_ports[c].device));
                 */
 
-        if (com_ports[c].enabled)
-            if (serial_passthrough_enabled[c]) {
-                sprintf(temp, "serial%d_passthrough_enabled", c + 1);
-                ini_section_set_int(cat, temp, 1);
-            }
+        sprintf(temp, "serial%d_passthrough_enabled", c + 1);
+        if (serial_passthrough_enabled[c]) {
+            ini_section_set_int(cat, temp, 1);
+        } else {
+            ini_section_delete_var(cat, temp);
+        }
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {

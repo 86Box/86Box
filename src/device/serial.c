@@ -174,7 +174,10 @@ serial_receive_timer(void *priv)
             } else {
                 /* We can input data into the FIFO. */
                 dev->rcvr_fifo[dev->rcvr_fifo_end] = (uint8_t) (dev->out_new & 0xff);
-                dev->rcvr_fifo_end = (dev->rcvr_fifo_end + 1) & 0x0f;
+                // dev->rcvr_fifo_end = (dev->rcvr_fifo_end + 1) & 0x0f;
+                /* Do not wrap around, makes sure it still triggers the interrupt
+                   at 16 bytes. */
+                dev->rcvr_fifo_end++;
 
                 serial_log("To FIFO: %02X (%i, %i, %i)\n", (uint8_t) (dev->out_new & 0xff),
                            abs(dev->rcvr_fifo_end - dev->rcvr_fifo_pos),
@@ -188,6 +191,9 @@ serial_receive_timer(void *priv)
                     dev->int_status |= SERIAL_INT_RECEIVE;
                     serial_update_ints(dev);
                 }
+
+                /* Now wrap around. */
+                dev->rcvr_fifo_end &= 0x0f;
 
                 if (dev->rcvr_fifo_end == dev->rcvr_fifo_pos)
                     dev->rcvr_fifo_full = 1;
@@ -657,26 +663,29 @@ serial_read(uint16_t addr, void *p)
             if ((dev->type >= SERIAL_16550) && dev->fifo_enabled) {
                 /* FIFO mode. */
 
-                if (dev->lsr & 0x01) {
+                if (dev->rcvr_fifo_full || (dev->rcvr_fifo_pos != dev->rcvr_fifo_end)) {
                     /* There is data in the FIFO. */
                     ret = dev->rcvr_fifo[dev->rcvr_fifo_pos];
                     dev->rcvr_fifo_pos = (dev->rcvr_fifo_pos + 1) & 0x0f;
 
+                    /* Make sure to clear the FIFO full condition. */
+                    dev->rcvr_fifo_full = 0;
+
                     if (abs(dev->rcvr_fifo_pos - dev->rcvr_fifo_end) < dev->rcvr_fifo_len) {
                         /* Amount of data in the FIFO below trigger level,
                            clear Data Ready interrupt. */
-                        dev->lsr &= 0xfe;
                         dev->int_status &= ~SERIAL_INT_RECEIVE;
                         serial_update_ints(dev);
-
-                        /* Make sure the Data Ready bit of the LSR is set if we still have
-                           bytes left in the FIFO. */
-                        if (dev->rcvr_fifo_pos != dev->rcvr_fifo_end) {
-                            dev->lsr |= 0x01;
-                            /* There are bytes left in the FIFO, activate the FIFO Timeout timer. */
-                            timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
-                        }
                     }
+
+                    /* Make sure the Data Ready bit of the LSR is set if we still have
+                       bytes left in the FIFO. */
+                    if (dev->rcvr_fifo_pos != dev->rcvr_fifo_end) {
+                        dev->lsr |= 0x01;
+                        /* There are bytes left in the FIFO, activate the FIFO Timeout timer. */
+                        timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
+                    } else
+                        dev->lsr &= 0xfe;
                 }
             } else {
                 /* Non-FIFO mode. */
