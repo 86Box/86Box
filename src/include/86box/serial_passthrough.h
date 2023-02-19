@@ -50,6 +50,7 @@ typedef struct serial_passthrough_s {
     intptr_t                     master_fd;    /* file desc for master pseudo terminal or
                                                 * socket or alike */
     char  host_serial_path[1024];              /* Path to TTY/host serial port on the host */
+    char  named_pipe[1024];                    /* (Windows only) Name of the pipe. */
     void *backend_priv;                        /* Private platform backend data */
 } serial_passthrough_t;
 

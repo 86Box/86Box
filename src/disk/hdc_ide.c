@@ -738,7 +738,8 @@ ide_set_signature(ide_t *ide)
         ide->cylinder           = ide->sc->request_length;
     } else {
         ide->secount  = 1;
-        ide->cylinder = ((ide->type == IDE_HDD) ? 0 : 0xFFFF);
+        // ide->cylinder = ((ide->type == IDE_HDD) ? 0 : 0xFFFF);
+        ide->cylinder = ((ide->type == IDE_HDD) ? 0 : 0x7F7F);
         if (ide->type == IDE_HDD)
             ide->drive = 0;
     }
@@ -1891,11 +1892,7 @@ static uint8_t
 ide_status(ide_t *ide, ide_t *ide_other, int ch)
 {
     if ((ide->type == IDE_NONE) && ((ide_other->type == IDE_NONE) || !(ch & 1)))
-#ifdef STATUS_BIT_7_PULLDOWN
-        return 0x7F; /* Bit 7 pulled down, all other bits pulled up, per the spec. */
-#else
-        return 0xFF;
-#endif
+        return 0x7f; /* Bit 7 pulled down, all other bits pulled up, per the spec. */
     else if ((ide->type == IDE_NONE) && (ch & 1))
         return 0x00; /* On real hardware, a slave with a present master always returns a status of 0x00. */
     else if (ide->type == IDE_ATAPI)
@@ -1909,7 +1906,7 @@ ide_readb(uint16_t addr, void *priv)
 {
     ide_board_t *dev = (ide_board_t *) priv;
 
-    int    ch;
+    int    ch, absent = 0;
     ide_t *ide;
 
     ch  = dev->cur_dev;
@@ -1921,18 +1918,31 @@ ide_readb(uint16_t addr, void *priv)
     addr |= 0x90;
     addr &= 0xFFF7;
 
+    if ((ide->type == IDE_NONE) && ((ide_drives[ch ^ 1]->type == IDE_NONE) || !(ch & 1)))
+        absent = 1;    /* Absent and is master or both are absent. */
+    else if ((ide->type == IDE_NONE) && (ch & 1))
+        absent = 2;    /* Absent and is slave and master is present. */
+
     switch (addr & 0x7) {
         case 0x0: /* Data */
-            tempw = ide_read_data(ide, 2);
-            temp  = tempw & 0xff;
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x00;
+            else {
+                tempw = ide_read_data(ide, 2);
+                temp  = tempw & 0xff;
+            }
             break;
 
         /* For ATAPI: Bits 7-4 = sense key, bit 3 = MCR (media change requested),
                       Bit 2 = ABRT (aborted command), Bit 1 = EOM (end of media),
                       and Bit 0 = ILI (illegal length indication). */
         case 0x1: /* Error */
-            if (ide->type == IDE_NONE)
-                temp = 0;
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x01;
             else if (ide->type == IDE_ATAPI)
                 temp = ide->sc->error;
             else
@@ -1953,20 +1963,30 @@ ide_readb(uint16_t addr, void *priv)
                 0       1       0       Data from host
                 1       0       1       Status. */
         case 0x2: /* Sector count */
-            if (ide->type == IDE_ATAPI)
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x01;
+            else if (ide->type == IDE_ATAPI)
                 temp = ide->sc->phase;
-            else if (ide->type != IDE_NONE)
+            else
                 temp = ide->secount;
             break;
 
         case 0x3: /* Sector */
-            if (ide->type != IDE_NONE)
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x01;
+            else
                 temp = (uint8_t) ide->sector;
             break;
 
         case 0x4: /* Cylinder low */
-            if (ide->type == IDE_NONE)
-                temp = 0xFF;
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x00;
             else if (ide->type == IDE_ATAPI)
                 temp = ide->sc->request_length & 0xff;
             else
@@ -1974,8 +1994,10 @@ ide_readb(uint16_t addr, void *priv)
             break;
 
         case 0x5: /* Cylinder high */
-            if (ide->type == IDE_NONE)
-                temp = 0xFF;
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x00;
             else if (ide->type == IDE_ATAPI)
                 temp = ide->sc->request_length >> 8;
             else
@@ -1983,7 +2005,12 @@ ide_readb(uint16_t addr, void *priv)
             break;
 
         case 0x6: /* Drive/Head */
-            temp = (uint8_t) (ide->head | ((ch & 1) ? 0x10 : 0) | (ide->lba ? 0x40 : 0) | 0xa0);
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0xb0;
+            else
+                temp = (uint8_t) (ide->head | ((ch & 1) ? 0x10 : 0) | (ide->lba ? 0x40 : 0) | 0xa0);
             break;
 
         /* For ATAPI: Bit 5 is DMA ready, but without overlapped or interlaved DMA, it is
