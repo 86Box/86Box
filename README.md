@@ -49,6 +49,16 @@ Licensing
 
 The emulator can also optionally make use of [munt](https://github.com/munt/munt), [FluidSynth](https://www.fluidsynth.org/), [Ghostscript](https://www.ghostscript.com/) and [Discord Game SDK](https://discord.com/developers/docs/game-sdk/sdk-starter-guide), which are distributed under their respective licenses.
 
+Contribution requirements
+-------------------------
+ Formal codification of the project's emulated hardware contribution requirements, which all have to be met to accept an addition:
+* A ROM must be available;
+* Documentation must be available or it must be feasible to reverse engineer with a reasonable amount of time and effort;
+* It must be feasible to implement with a reasonable amount of time and effort;
+* It has to fall inside the project's scope.
+
+Where unsure or for more details about the project's emulated hardware contribution requirements, contact a Contributor or higher.
+
 Donations
 ---------
 We do not charge you for the emulator but donations are still welcome:
