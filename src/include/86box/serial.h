@@ -53,15 +53,17 @@ typedef struct serial_s {
         dat, int_status, scratch, fcr,
         irq, type, inst, transmit_enabled,
         fifo_enabled, rcvr_fifo_len, bits, data_bits,
-        baud_cycles, rcvr_fifo_full, txsr, pad, msr_set;
+        baud_cycles, rcvr_fifo_full, txsr, out,
+        msr_set, pad, pad0, pad1;
 
-    uint16_t dlab, base_address;
+    uint16_t dlab, base_address, out_new, pad2;
 
     uint8_t rcvr_fifo_pos, xmit_fifo_pos,
-        pad0, pad1,
+        rcvr_fifo_end, xmit_fifo_end,
         rcvr_fifo[SERIAL_FIFO_SIZE], xmit_fifo[SERIAL_FIFO_SIZE];
 
-    pc_timer_t transmit_timer, timeout_timer;
+    pc_timer_t transmit_timer, timeout_timer,
+               receive_timer;
     double     clock_src, transmit_period;
 
     struct serial_device_s *sd;

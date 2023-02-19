@@ -14,6 +14,7 @@
  *
  *          Copyright 2008-2020 Sarah Walker.
  */
+#include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -373,8 +374,9 @@ voodoo_filterline_v1(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
     int x;
 
     // Scratchpad for avoiding feedback streaks
-    uint8_t *fil3 = malloc((voodoo->h_disp) * 3);
+    uint8_t fil3[4096 * 3];
 
+    assert(voodoo->h_disp <= 4096);
     /* 16 to 32-bit */
     for (x = 0; x < column; x++) {
         fil[x * 3]     = ((src[x] & 31) << 3);
@@ -422,8 +424,6 @@ voodoo_filterline_v1(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
         fil[(x) *3 + 1] = voodoo->thefilterg[fil3[x * 3 + 1]][fil3[(x + 1) * 3 + 1]];
         fil[(x) *3 + 2] = voodoo->thefilter[fil3[x * 3 + 2]][fil3[(x + 1) * 3 + 2]];
     }
-
-    free(fil3);
 }
 
 static void
@@ -432,8 +432,9 @@ voodoo_filterline_v2(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
     int x;
 
     // Scratchpad for blending filter
-    uint8_t *fil3 = malloc((voodoo->h_disp) * 3);
+    uint8_t fil3[4096 * 3];
 
+    assert(voodoo->h_disp <= 4096);
     /* 16 to 32-bit */
     for (x = 0; x < column; x++) {
         // Blank scratchpads
@@ -487,8 +488,6 @@ voodoo_filterline_v2(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
     fil3[(column - 1) * 3]     = voodoo->thefilterb[fil[(column - 1) * 3]][((src[column] & 31) << 3)];
     fil3[(column - 1) * 3 + 1] = voodoo->thefilterg[fil[(column - 1) * 3 + 1]][(((src[column] >> 5) & 63) << 2)];
     fil3[(column - 1) * 3 + 2] = voodoo->thefilter[fil[(column - 1) * 3 + 2]][(((src[column] >> 11) & 31) << 3)];
-
-    free(fil3);
 }
 
 void
@@ -537,8 +536,9 @@ voodoo_callback(void *p)
                     monitor->target_buffer->line[voodoo->line + 8][x] = 0x00000000;
 
                 if (voodoo->scrfilter && voodoo->scrfilterEnabled) {
-                    uint8_t *fil = malloc((voodoo->h_disp) * 3); /* interleaved 24-bit RGB */
+                    uint8_t fil[4096 * 3]; /* interleaved 24-bit RGB */
 
+                    assert(voodoo->h_disp <= 4096);
                     if (voodoo->type == VOODOO_2)
                         voodoo_filterline_v2(voodoo, fil, voodoo->h_disp, src, voodoo->line);
                     else
@@ -547,8 +547,6 @@ voodoo_callback(void *p)
                     for (x = 0; x < voodoo->h_disp; x++) {
                         p[x] = (voodoo->clutData256[fil[x * 3]].b << 0 | voodoo->clutData256[fil[x * 3 + 1]].g << 8 | voodoo->clutData256[fil[x * 3 + 2]].r << 16);
                     }
-
-                    free(fil);
                 } else {
                     for (x = 0; x < voodoo->h_disp; x++) {
                         p[x] = draw_voodoo->video_16to32[src[x]];

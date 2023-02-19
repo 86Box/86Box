@@ -26,6 +26,7 @@
 #include <QSpinBox>
 #include <QCheckBox>
 #include <QFrame>
+#include <QLineEdit>
 #include <QLabel>
 #include <QDir>
 #include <QSettings>
@@ -45,6 +46,9 @@ extern "C" {
 #ifdef Q_OS_LINUX
 #    include <sys/stat.h>
 #    include <sys/sysmacros.h>
+#endif
+#ifdef Q_OS_WINDOWS
+#include <windows.h>
 #endif
 
 DeviceConfig::DeviceConfig(QWidget *parent)
@@ -77,9 +81,15 @@ EnumerateSerialDevices()
     }
 #endif
 #ifdef Q_OS_WINDOWS
-    QSettings comPorts("HKEY_LOCAL_MACHINE\\HARDWARE\\DEVICEMAP\\SERIALCOMM", QSettings::NativeFormat, nullptr);
-    for (int i = 0; i < comPorts.childKeys().length(); i++) {
-        serialDevices.push_back(QString("\\\\.\\") + comPorts.value(comPorts.childKeys()[i]).toString());
+    for (int i = 1; i < 256; i++) {
+        devstr[0] = 0;
+        snprintf(devstr.data(), 1024, "\\\\.\\COM%d", i);
+        auto handle = CreateFileA(devstr.data(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, 0, 0);
+        auto dwError = GetLastError();
+        if (handle != INVALID_HANDLE_VALUE || (handle == INVALID_HANDLE_VALUE && ((dwError == ERROR_ACCESS_DENIED) || (dwError == ERROR_GEN_FAILURE) || (dwError == ERROR_SHARING_VIOLATION) || (dwError == ERROR_SEM_TIMEOUT)))) {
+            if (handle != INVALID_HANDLE_VALUE) CloseHandle(handle);
+            serialDevices.push_back(QString(devstr));
+        }
     }
 #endif
 #ifdef Q_OS_MACOS
@@ -245,6 +255,15 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     dc.ui->formLayout->addRow(config->description, fileField);
                     break;
                 }
+            case CONFIG_STRING:
+                {
+                    auto lineEdit = new QLineEdit;
+                    lineEdit->setObjectName(config->name);
+                    lineEdit->setCursor(Qt::IBeamCursor);
+                    lineEdit->setText(config_get_string(device_context.name, const_cast<char *>(config->name), const_cast<char *>(config->default_string)));
+                    dc.ui->formLayout->addRow(config->description, lineEdit);
+                    break;
+                }
             case CONFIG_SERPORT:
                 {
                     auto *cbox = new QComboBox();
@@ -304,6 +323,12 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                         if (path == "None")
                             path = "";
                         config_set_string(device_context.name, const_cast<char *>(config->name), path);
+                        break;
+                    }
+                case CONFIG_STRING:
+                    {
+                        auto *lineEdit = dc.findChild<QLineEdit *>(config->name);
+                        config_set_string(device_context.name, const_cast<char *>(config->name), lineEdit->text().toUtf8());
                         break;
                     }
                 case CONFIG_HEX16:
