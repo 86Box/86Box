@@ -63,12 +63,6 @@ serial_passthrough_init(void)
 }
 
 static void
-serial_passthrough_timers_off(serial_passthrough_t *dev)
-{
-    timer_stop(&dev->host_to_serial_timer);
-}
-
-static void
 serial_passthrough_write(serial_t *s, void *priv, uint8_t val)
 {
     plat_serpt_write(priv, val);
@@ -182,7 +176,10 @@ serial_passthrough_dev_init(const device_t *info)
     dev->serial = serial_attach_ex(dev->port, serial_passthrough_rcr_cb,
                                    serial_passthrough_write, serial_passthrough_transmit_period, serial_passthrough_lcr_callback, dev);
 
-    strncpy(dev->host_serial_path, device_get_config_string("host_serial_path"), 1024);
+    strncpy(dev->host_serial_path, device_get_config_string("host_serial_path"), 1023);
+#ifdef _WIN32
+    strncpy(dev->named_pipe, device_get_config_string("named_pipe"), 1023);
+#endif
 
     serial_passthrough_log("%s: port=COM%d\n", info->name, dev->port + 1);
     serial_passthrough_log("%s: baud=%f\n", info->name, dev->baudrate);
@@ -270,6 +267,17 @@ static const device_config_t serial_passthrough_config[] = {
         .spinner = {},
         .selection = {}
     },
+#ifdef _WIN32
+    {
+        .name = "named_pipe",
+        .description = "Name of pipe",
+        .type = CONFIG_STRING,
+        .default_string = "\\\\.\\pipe\\86Box\\test",
+        .file_filter = NULL,
+        .spinner = {},
+        .selection = {}
+    },
+#endif
     {
         .name = "data_bits",
         .description = "Data bits",

@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <wchar.h>
 
 #include <86box/86box.h>
 #include <86box/log.h>
@@ -30,6 +31,7 @@
 #include <86box/device.h>
 #include <86box/serial_passthrough.h>
 #include <86box/plat_serial_passthrough.h>
+#include <86box/ui.h>
 
 #include <windows.h>
 
@@ -73,9 +75,6 @@ plat_serpt_write_vcon(serial_passthrough_t *dev, uint8_t data)
     // fwrite(dev->master_fd, &data, 1);
     DWORD bytesWritten = 0;
     WriteFile((HANDLE) dev->master_fd, &data, 1, &bytesWritten, NULL);
-    if (bytesWritten == 0) {
-        fatal("serial_passthrough: WriteFile pipe write-buffer full!");
-    }
 }
 
 void
@@ -164,9 +163,15 @@ static int
 open_pseudo_terminal(serial_passthrough_t *dev)
 {
     char ascii_pipe_name[1024] = { 0 };
-    snprintf(ascii_pipe_name, sizeof(ascii_pipe_name), "\\\\.\\pipe\\86Box\\%s", vm_name);
+    strncpy(ascii_pipe_name, dev->named_pipe, 1023);
     dev->master_fd = (intptr_t) CreateNamedPipeA(ascii_pipe_name, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_NOWAIT, 32, 65536, 65536, NMPWAIT_USE_DEFAULT_WAIT, NULL);
     if (dev->master_fd == (intptr_t) INVALID_HANDLE_VALUE) {
+        wchar_t errorMsg[1024] = { 0 };
+        wchar_t finalMsg[1024] = { 0 };
+        DWORD error = GetLastError();
+        FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), errorMsg, 1024, NULL);
+        swprintf(finalMsg, 1024, L"Named Pipe (server, named_pipe=\"%hs\", port=COM%d): %ls\n", ascii_pipe_name, dev->port + 1, errorMsg);
+        ui_msgbox(MBX_ERROR | MBX_FATAL, finalMsg);
         return 0;
     }
     pclog("Named Pipe @ %s\n", ascii_pipe_name);

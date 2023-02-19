@@ -168,6 +168,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                         id += 2;
                         break;
                     case CONFIG_FNAME:
+                    case CONFIG_STRING:
                         wstr = config_get_wstring((char *) config_device.name,
                                                   (char *) config->name, 0);
                         if (wstr)
@@ -288,6 +289,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                             id += 2;
                             break;
                         case CONFIG_FNAME:
+                        case CONFIG_STRING:
                             str = config_get_string((char *) config_device.name,
                                                     (char *) config->name, (char *) "");
                             SendMessage(h, WM_GETTEXT, 511, (LPARAM) s);
@@ -397,6 +399,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                             id += 2;
                             break;
                         case CONFIG_FNAME:
+                        case CONFIG_STRING:
                             SendMessage(h, WM_GETTEXT, 511, (LPARAM) ws);
                             config_set_wstring((char *) config_device.name, (char *) config->name, ws);
 
@@ -455,6 +458,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                         case CONFIG_MIDI_OUT:
                         case CONFIG_MIDI_IN:
                         case CONFIG_SPINNER:
+                        case CONFIG_STRING:
                             id += 2;
                             break;
                         case CONFIG_FNAME:
@@ -622,6 +626,52 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
                     data++;
 
                 /* TODO: add up down class */
+                /*Static text*/
+                item     = (DLGITEMTEMPLATE *) data;
+                item->x  = 10;
+                item->y  = y + 2;
+                item->id = id++;
+
+                item->cx = 60;
+                item->cy = 20;
+
+                item->style = WS_CHILD | WS_VISIBLE;
+
+                data    = (uint16_t *) (item + 1);
+                *data++ = 0xFFFF;
+                *data++ = 0x0082; /* static class */
+
+                data += MultiByteToWideChar(CP_ACP, 0, config->description, -1, data, 256);
+                *data++ = 0; /* no creation data */
+
+                if (((uintptr_t) data) & 2)
+                    data++;
+
+                y += 20;
+                break;
+            case CONFIG_STRING:
+                /*Editable Text*/
+                item     = (DLGITEMTEMPLATE *) data;
+                item->x  = 70;
+                item->y  = y;
+                item->id = id++;
+
+                item->cx = 140;
+                item->cy = 14;
+
+                item->style           = WS_CHILD | WS_VISIBLE | ES_READONLY;
+                item->dwExtendedStyle = WS_EX_CLIENTEDGE;
+
+                data    = (uint16_t *) (item + 1);
+                *data++ = 0xFFFF;
+                *data++ = 0x0081; /* edit text class */
+
+                data += MultiByteToWideChar(CP_ACP, 0, "", -1, data, 256);
+                *data++ = 0; /* no creation data */
+
+                if (((uintptr_t) data) & 2)
+                    data++;
+
                 /*Static text*/
                 item     = (DLGITEMTEMPLATE *) data;
                 item->x  = 10;
