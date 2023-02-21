@@ -1,4 +1,3 @@
-#include <86box/device.h>
 #include <86box/apic.h>
 
 /* Only one processor is emulated */

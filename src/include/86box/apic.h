@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdatomic.h>
+#include <stdio.h>
 
 #include "86box.h"
 #include "../../cpu/cpu.h"
