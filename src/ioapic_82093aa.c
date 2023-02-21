@@ -58,12 +58,16 @@ ioapic_i82093aa_writel(uint32_t addr, uint32_t val, void *priv)
         case 0:
             dev->regs.ioapicd = val & 0xFF;
             break;
-        case 0x10 ... 0x3F:
-            /* TODO: Handle triggering interrupts. */
-            
-            dev->regs.ioredtabl_l[addr - 0x10] = val;
-            dev->regs.ioredtabl_s[addr - 0x10].reserved = 0;
-            break;
+        case 0x10 ... 0x3F: {
+                /* TODO: Handle triggering interrupts. */
+                uint8_t orig_rirr   = dev->regs.ioredtabl_s[addr - 0x10].rirr;
+                uint8_t orig_delivs = dev->regs.ioredtabl_s[addr - 0x10].delivs;
+                dev->regs.ioredtabl_l[addr - 0x10] = val;
+                dev->regs.ioredtabl_s[addr - 0x10].reserved = 0;
+                dev->regs.ioredtabl_s[addr - 0x10].rirr = orig_rirr;
+                dev->regs.ioredtabl_s[addr - 0x10].delivs = orig_delivs;
+                break;
+            }
     }
 }
 
