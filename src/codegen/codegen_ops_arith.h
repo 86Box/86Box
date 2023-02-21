@@ -744,7 +744,7 @@ rop81_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
             host_reg = 0;
         } else {
             SAVE_EA();
-            MEM_CHECK_WRITE(target_seg);
+            MEM_CHECK_WRITE_L(target_seg);
             host_reg = MEM_LOAD_ADDR_EA_L_NO_ABRT(target_seg);
         }
     } else {
