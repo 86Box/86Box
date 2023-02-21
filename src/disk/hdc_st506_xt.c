@@ -2141,7 +2141,7 @@ const device_t st506_xt_xebec_device = {
 
 const device_t st506_xt_wdxt_gen_device = {
     .name          = "Western Digital WDXT-GEN (MFM)",
-    .internal_name = "st506_xt",
+    .internal_name = "st506_xt_gen",
     .flags         = DEVICE_ISA,
     .local         = (HDD_BUS_MFM << 8) | ST506_XT_TYPE_WDXT_GEN,
     .init          = st506_init,
