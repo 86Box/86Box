@@ -1734,6 +1734,12 @@ xebec_available(void)
 }
 
 static int
+wdxt_available(void)
+{
+    return (rom_present(WDXT_GEN_BIOS_FILE));
+}
+
+static int
 dtc5150x_available(void)
 {
     return (rom_present(DTC_BIOS_FILE));
@@ -2147,7 +2153,7 @@ const device_t st506_xt_wdxt_gen_device = {
     .init          = st506_init,
     .close         = st506_close,
     .reset         = NULL,
-    { .available = xebec_available },
+    { .available = wdxt_available },
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
