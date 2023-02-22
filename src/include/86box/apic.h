@@ -37,17 +37,18 @@ typedef struct apic_t
                 } ioredtabl_s[IOAPIC_RED_TABL_SIZE];
                 uint32_t ioredtabl_l[IOAPIC_RED_TABL_SIZE * 2];
             };
-        } regs;
+        };
     };
     uint8_t ioapic_index;
     mem_mapping_t ioapic_mem_window;
+    uint32_t irr;
+    uint32_t isr;
+    uint32_t irq_value;
 
     /* Local APIC parts. */
     pc_timer_t apic_timer;
 
     /* Common parts. */
-    uint32_t irr;
-    uint32_t isr;
     uint32_t lines; /* For level triggered interrupts. */
     uint32_t ref_count; /* Structure reference count. */
 } apic_t;
@@ -69,5 +70,5 @@ extern const device_t i82093aa_ioapic_device;
 extern apic_t* current_apic;
 
 extern void apic_ioapic_set_base(apic_t* ioapic, uint8_t x_base, uint8_t y_base);
-extern void apic_ioapic_lapic_interrupt(apic_t* ioapic, uint8_t irq);
+extern void apic_ioapic_lapic_interrupt_check(apic_t* ioapic, uint8_t irq);
 extern void apic_lapic_ioapic_remote_eoi(apic_t* ioapic, uint8_t vector);

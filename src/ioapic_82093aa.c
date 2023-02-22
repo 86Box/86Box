@@ -17,16 +17,29 @@ ioapic_i82093aa_reset(apic_t* ioapic)
         ioapic->ioapic_regs[i] = 0;
     }
     for (i = 0; i < IOAPIC_RED_TABL_SIZE; i++) {
-        ioapic->regs.ioredtabl_s[i].intr_mask = 1;
+        ioapic->ioredtabl_s[i].intr_mask = 1;
     }
 }
 
 void
-apic_ioapic_lapic_interrupt(apic_t* ioapic, uint8_t irq)
+apic_ioapic_lapic_interrupt_check(apic_t* ioapic, uint8_t irq)
 {
-    if (irq == 0) irq = 2;
 
-    /* TODO: Actually service the interrupt */
+}
+
+void
+apic_ioapic_set_irq(apic_t* ioapic, uint8_t irq)
+{
+    uint32_t mask = 1 << irq;
+
+    if ((ioapic->irq_value & mask) == 0) {
+        ioapic->irq_value |= mask;
+        if ((ioapic->ioredtabl[irq] & (IOAPIC_TRIGMODE_MASK | IOAPIC_INTERRUPT_MASK)) == (IOAPIC_INTERRUPT_MASK)) {
+            return;
+        }
+        ioapic->irr |= mask;
+        apic_ioapic_lapic_interrupt_check(ioapic, irq);
+    }
 }
 
 void
@@ -35,9 +48,9 @@ apic_lapic_ioapic_remote_eoi(apic_t* ioapic, uint8_t vector)
     int i = 0;
 
     for (i = 0; i < IOAPIC_RED_TABL_SIZE; i++) {
-        if (ioapic->regs.ioredtabl_s[i].intvec == vector && ioapic->regs.ioredtabl_s[i].rirr) {
-            ioapic->regs.ioredtabl_s[i].rirr = 0;
-            apic_ioapic_lapic_interrupt(ioapic, i);
+        if (ioapic->ioredtabl_s[i].intvec == vector && ioapic->ioredtabl_s[i].rirr) {
+            ioapic->ioredtabl_s[i].rirr = 0;
+            apic_ioapic_lapic_interrupt_check(ioapic, i);
         }
     }
 }
@@ -51,16 +64,16 @@ ioapic_i82093aa_readl(uint32_t addr, void *priv)
     
     switch (addr) {
         case 0:
-            ret = dev->regs.ioapicd;
+            ret = dev->ioapicd;
             break;
         case 1:
             ret = 0x170011;
             break;
         case 2:
-            ret = dev->regs.ioapicarb;
+            ret = dev->ioapicarb;
             break;
         case 0x10 ... 0x3F:
-            ret = dev->regs.ioredtabl_l[addr - 0x10];
+            ret = dev->ioredtabl_l[addr - 0x10];
             break;
         default:
             break;
@@ -76,16 +89,17 @@ ioapic_i82093aa_writel(uint32_t addr, uint32_t val, void *priv)
 
     switch (addr) {
         case 0:
-            dev->regs.ioapicd = val & 0xFF;
+            dev->ioapicd = val & 0xFF;
             break;
         case 0x10 ... 0x3F: {
                 /* TODO: Handle triggering interrupts. */
-                uint8_t orig_rirr   = dev->regs.ioredtabl_s[addr - 0x10].rirr;
-                uint8_t orig_delivs = dev->regs.ioredtabl_s[addr - 0x10].delivs;
-                dev->regs.ioredtabl_l[addr - 0x10] = val;
-                dev->regs.ioredtabl_s[addr - 0x10].reserved = 0;
-                dev->regs.ioredtabl_s[addr - 0x10].rirr = orig_rirr;
-                dev->regs.ioredtabl_s[addr - 0x10].delivs = orig_delivs;
+                uint8_t orig_rirr   = dev->ioredtabl_s[addr - 0x10].rirr;
+                uint8_t orig_delivs = dev->ioredtabl_s[addr - 0x10].delivs;
+                dev->ioredtabl_l[addr - 0x10] = val;
+                dev->ioredtabl_s[addr - 0x10].reserved = 0;
+                dev->ioredtabl_s[addr - 0x10].rirr = orig_rirr;
+                dev->ioredtabl_s[addr - 0x10].delivs = orig_delivs;
+                apic_ioapic_lapic_interrupt_check(dev, addr - 0x10);
                 break;
             }
     }
