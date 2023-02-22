@@ -43,6 +43,18 @@ apic_ioapic_set_irq(apic_t* ioapic, uint8_t irq)
 }
 
 void
+apic_ioapic_clear_irq(apic_t* ioapic, uint8_t irq)
+{
+    uint32_t mask = 1 << irq;
+
+    if ((ioapic->irq_value & mask) == mask) {
+        ioapic->irq_value &= ~mask;
+        if (!ioapic->ioredtabl_s[irq].trigmode)
+            ioapic->irr &= ~mask;
+    }
+}
+
+void
 apic_lapic_ioapic_remote_eoi(apic_t* ioapic, uint8_t vector)
 {
     int i = 0;
