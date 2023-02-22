@@ -21,6 +21,27 @@ ioapic_i82093aa_reset(apic_t* ioapic)
     }
 }
 
+void
+apic_ioapic_lapic_interrupt(apic_t* ioapic, uint8_t irq)
+{
+    if (irq == 0) irq = 2;
+
+    /* TODO: Actually service the interrupt */
+}
+
+void
+apic_lapic_ioapic_remote_eoi(apic_t* ioapic, uint8_t vector)
+{
+    int i = 0;
+
+    for (i = 0; i < IOAPIC_RED_TABL_SIZE; i++) {
+        if (ioapic->regs.ioredtabl_s[i].intvec == vector && ioapic->regs.ioredtabl_s[i].rirr) {
+            ioapic->regs.ioredtabl_s[i].rirr = 0;
+            apic_ioapic_lapic_interrupt(ioapic, i);
+        }
+    }
+}
+
 uint32_t
 ioapic_i82093aa_readl(uint32_t addr, void *priv)
 {
