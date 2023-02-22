@@ -3,9 +3,12 @@
 /* Only one processor is emulated */
 apic_t* current_apic = NULL;
 
-void apic_ioapic_set_base(apic_t* ioapic, uint8_t x_base, uint8_t y_base)
+void apic_ioapic_set_base(uint8_t x_base, uint8_t y_base)
 {
-    mem_mapping_set_addr(&ioapic->ioapic_mem_window, 0xFEC00000 | ((y_base & 0x3) << 8) | ((x_base & 0x3C) << 14), 0x20);
+    if (!current_apic)
+        return;
+
+    mem_mapping_set_addr(&current_apic->ioapic_mem_window, 0xFEC00000 | ((y_base & 0x3) << 8) | ((x_base & 0xF) << 16), 0x20);
 }
 
 void
@@ -24,7 +27,30 @@ ioapic_i82093aa_reset(apic_t* ioapic)
 void
 apic_ioapic_lapic_interrupt_check(apic_t* ioapic, uint8_t irq)
 {
+    uint32_t mask = 1 << irq;
+    apic_ioredtable_t service_parameters;
 
+    if (irq >= 24)
+        return;
+
+    service_parameters = ioapic->ioredtabl_s[irq];
+
+    if (!(ioapic->irr & mask))
+        return;
+
+    if (ioapic->ioredtabl_s[irq].intr_mask)
+        return;
+    
+    if (service_parameters.trigmode == 0) {
+        ioapic->irr &= ~mask;
+    } else {
+        ioapic->ioredtabl_s[irq].rirr = 1;
+        if (service_parameters.rirr == 1) {
+            return;
+        }
+    }
+
+    lapic_service_interrupt(ioapic, service_parameters);
 }
 
 void
@@ -104,7 +130,6 @@ ioapic_i82093aa_writel(uint32_t addr, uint32_t val, void *priv)
             dev->ioapicd = val & 0xFF;
             break;
         case 0x10 ... 0x3F: {
-                /* TODO: Handle triggering interrupts. */
                 uint8_t orig_rirr   = dev->ioredtabl_s[addr - 0x10].rirr;
                 uint8_t orig_delivs = dev->ioredtabl_s[addr - 0x10].delivs;
                 dev->ioredtabl_l[addr - 0x10] = val;
@@ -129,6 +154,7 @@ ioapic_i82093aa_init(const device_t* info)
         dev = (apic_t *) calloc(sizeof(apic_t), 1);
         current_apic = dev;
     }
+    mem_mapping_add(&dev->ioapic_mem_window, 0, 0, NULL, NULL, ioapic_i82093aa_readl, NULL, NULL, ioapic_i82093aa_writel, NULL, MEM_MAPPING_EXTERNAL, dev);
     ioapic_i82093aa_reset(dev);
     return dev;
 }
@@ -137,6 +163,7 @@ void
 ioapic_i82093aa_close(void *priv)
 {
     apic_t *dev = (apic_t *)priv;
+    mem_mapping_disable(&dev->ioapic_mem_window);
     if ((--dev->ref_count) == 0) {
         current_apic = NULL;
         free(priv);

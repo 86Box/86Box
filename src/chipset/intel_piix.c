@@ -49,6 +49,7 @@
 #include <86box/machine.h>
 #include <86box/smbus.h>
 #include <86box/chipset.h>
+#include <86box/apic.h>
 
 typedef struct {
     struct _piix_ *dev;
@@ -607,8 +608,10 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                     fregs[addr] = val;
                 break;
             case 0x80:
-                if (dev->type > 1)
+                if (dev->type > 1) {
                     fregs[addr] = val & 0x7f;
+                    if (dev->type == 3) apic_ioapic_set_base((val >> 2) & 0xF, val & 3);
+                }
                 break;
             case 0x81:
                 if (dev->type > 1)

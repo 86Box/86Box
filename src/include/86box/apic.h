@@ -11,6 +11,20 @@
 
 #define IOAPIC_RED_TABL_SIZE 24
 
+/* We only target little-endian architectures. */
+typedef struct apic_ioredtable_t {
+    uint32_t intvec    : 8;
+    uint32_t delmod    : 3;
+    uint32_t destmod   : 1;
+    uint32_t delivs    : 1;
+    uint32_t intpol    : 1;
+    uint32_t rirr      : 1;
+    uint32_t trigmode  : 1;
+    uint32_t intr_mask : 1;
+    uint64_t reserved  : 45;
+    uint32_t dest_mask : 3;
+} apic_ioredtable_t;
+
 typedef struct apic_t
 {
     /* I/O APIC parts */
@@ -22,19 +36,7 @@ typedef struct apic_t
             uint32_t ioapicarb;
             union {
                 uint64_t ioredtabl[IOAPIC_RED_TABL_SIZE];
-                /* We only target little-endian architectures. */
-                struct {
-                    uint32_t intvec    : 8;
-                    uint32_t delmod    : 3;
-                    uint32_t destmod   : 1;
-                    uint32_t delivs    : 1;
-                    uint32_t intpol    : 1;
-                    uint32_t rirr      : 1;
-                    uint32_t trigmode  : 1;
-                    uint32_t intr_mask : 1;
-                    uint64_t reserved  : 45;
-                    uint32_t dest_mask : 3;
-                } ioredtabl_s[IOAPIC_RED_TABL_SIZE];
+                apic_ioredtable_t ioredtabl_s[IOAPIC_RED_TABL_SIZE];
                 uint32_t ioredtabl_l[IOAPIC_RED_TABL_SIZE * 2];
             };
         };
@@ -69,8 +71,9 @@ extern const device_t i82093aa_ioapic_device;
 /* Only one processor is emulated. */
 extern apic_t* current_apic;
 
-extern void apic_ioapic_set_base(apic_t* ioapic, uint8_t x_base, uint8_t y_base);
+extern void apic_ioapic_set_base(uint8_t x_base, uint8_t y_base);
 extern void apic_ioapic_lapic_interrupt_check(apic_t* ioapic, uint8_t irq);
 extern void apic_ioapic_set_irq(apic_t* ioapic, uint8_t irq);
 extern void apic_ioapic_clear_irq(apic_t* ioapic, uint8_t irq);
 extern void apic_lapic_ioapic_remote_eoi(apic_t* ioapic, uint8_t vector);
+extern void lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt);

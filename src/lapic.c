@@ -16,6 +16,12 @@ lapic_init(const device_t* info)
 }
 
 void
+lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
+{
+
+}
+
+void
 lapic_close(void* priv)
 {
     apic_t *dev = (apic_t *)priv;
