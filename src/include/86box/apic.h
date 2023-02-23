@@ -43,13 +43,34 @@ typedef struct apic_t
     };
     uint8_t ioapic_index;
     mem_mapping_t ioapic_mem_window;
-    uint32_t irr;
-    uint32_t isr;
     uint32_t irq_value;
+    uint32_t irr;
 
     /* Local APIC parts. */
     pc_timer_t apic_timer;
-
+    union {
+        uint64_t isr_ll[4];
+        uint32_t isr_l[8];
+        uint8_t isr_b[8 * sizeof(uint32_t)];
+    };
+    union {
+        uint64_t irr_ll[4];
+        uint32_t irr_l[8];
+        uint8_t irr_b[8 * sizeof(uint32_t)];
+    };
+    union {
+        uint64_t tmr_ll[4];
+        uint32_t tmr_l[8];
+        uint8_t tmr_b[8 * sizeof(uint32_t)];
+    };
+    uint32_t tmr;
+    uint8_t irq_queue_num;
+    struct
+    {
+        uint8_t vector;
+        apic_ioredtable_t vectorconf;
+    } irq_queue[2];
+    
     /* Common parts. */
     uint32_t lines; /* For level triggered interrupts. */
     uint32_t ref_count; /* Structure reference count. */
@@ -77,3 +98,4 @@ extern void apic_ioapic_set_irq(apic_t* ioapic, uint8_t irq);
 extern void apic_ioapic_clear_irq(apic_t* ioapic, uint8_t irq);
 extern void apic_lapic_ioapic_remote_eoi(apic_t* ioapic, uint8_t vector);
 extern void lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt);
+extern void apic_lapic_picinterrupt();

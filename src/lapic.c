@@ -1,5 +1,44 @@
 #include <86box/apic.h>
 
+static __inline uint8_t
+lapic_get_bit_irr(apic_t *lapic, uint8_t bit)
+{
+    return lapic->irr_ll[bit / 64] & (1ull << (bit & 63));
+}
+
+static __inline void
+lapic_set_bit_irr(apic_t *lapic, uint8_t bit, uint8_t val)
+{
+    lapic->irr_ll[bit / 64] &= ~(1ull << (bit & 63));
+    lapic->irr_ll[bit / 64] |= (((uint64_t)val) << (bit & 63));
+}
+
+static __inline uint8_t
+lapic_get_bit_isr(apic_t *lapic, uint8_t bit)
+{
+    return lapic->isr_ll[bit / 64] & (1ull << (bit & 63));
+}
+
+static __inline void
+lapic_set_bit_isr(apic_t *lapic, uint8_t bit, uint8_t val)
+{
+    lapic->isr_ll[bit / 64] &= ~(1ull << (bit & 63));
+    lapic->isr_ll[bit / 64] |= (((uint64_t)val) << (bit & 63));
+}
+
+static __inline uint8_t
+lapic_get_bit_tmr(apic_t *lapic, uint8_t bit)
+{
+    return lapic->tmr_ll[bit / 64] & (1ull << (bit & 63));
+}
+
+static __inline void
+lapic_set_bit_tmr(apic_t *lapic, uint8_t bit, uint8_t val)
+{
+    lapic->tmr_ll[bit / 64] &= ~(1ull << (bit & 63));
+    lapic->tmr_ll[bit / 64] |= (((uint64_t)val) << (bit & 63));
+}
+
 void*
 lapic_init(const device_t* info)
 {
@@ -7,7 +46,7 @@ lapic_init(const device_t* info)
     
     if (current_apic) {
         current_apic->ref_count++;
-        return current_apic;
+        dev = current_apic;
     } else {
         dev = (apic_t *) calloc(sizeof(apic_t), 1);
         current_apic = dev;
@@ -16,9 +55,35 @@ lapic_init(const device_t* info)
 }
 
 void
-lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
+lapic_deliver_interrupt_to_cpu(apic_t *lapic)
 {
 
+}
+
+void
+apic_lapic_picinterrupt()
+{
+
+}
+
+void
+lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
+{
+    switch (interrupt.delmod) {
+        case 2:
+            smi_raise();
+            break;
+        case 4:
+            nmi_raise();
+            break;
+    }
+    if (lapic->irq_queue_num == 2) {
+        /* Queue is full. Reject interrupt. */
+        apic_lapic_ioapic_remote_eoi(lapic, interrupt.intvec);
+        return;
+    }
+
+    lapic->irq_queue[lapic->irq_queue_num++].vectorconf = interrupt;
 }
 
 void

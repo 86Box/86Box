@@ -37,6 +37,7 @@
 #include <86box/apm.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
+#include <86box/apic.h>
 
 enum {
     STATE_NONE = 0,
@@ -713,6 +714,7 @@ picinterrupt(void)
 {
     int i, ret = -1;
 
+    apic_lapic_picinterrupt();
     if (pic.int_pending) {
         if (pic_slave_on(&pic, pic.interrupt)) {
             if (!pic.slaves[pic.interrupt]->int_pending) {
