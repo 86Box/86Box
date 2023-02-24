@@ -853,7 +853,7 @@ pc_init_modules(void)
 
     /* Load the ROMs for the selected machine. */
     if (!machine_available(machine)) {
-        swprintf(temp, sizeof(temp), plat_get_string(IDS_2063), machine_getname());
+        swprintf(temp, sizeof_w(temp), plat_get_string(IDS_2063), machine_getname());
         c       = 0;
         machine = -1;
         while (machine_get_internal_name_ex(c) != NULL) {
@@ -876,7 +876,7 @@ pc_init_modules(void)
     if (!video_card_available(gfxcard[0])) {
         memset(tempc, 0, sizeof(tempc));
         device_get_name(video_card_getdevice(gfxcard[0]), 0, tempc);
-        swprintf(temp, sizeof(temp), plat_get_string(IDS_2064), tempc);
+        swprintf(temp, sizeof_w(temp), plat_get_string(IDS_2064), tempc);
         c = 0;
         while (video_get_internal_name(c) != NULL) {
             gfxcard[0] = -1;
@@ -898,7 +898,7 @@ pc_init_modules(void)
     if (!video_card_available(gfxcard[1])) {
         char tempc[512] = { 0 };
         device_get_name(video_card_getdevice(gfxcard[1]), 0, tempc);
-        swprintf(temp, sizeof(temp), (wchar_t *) "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card.", tempc);
+        swprintf(temp, sizeof_w(temp), (wchar_t *) "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card.", tempc);
         ui_msgbox_header(MBX_INFO, (wchar_t *) IDS_2129, temp);
         gfxcard[1] = 0;
     }

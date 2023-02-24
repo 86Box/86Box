@@ -8584,7 +8584,7 @@ const machine_t machines[] = {
     {
         .name = "[i430FX] DataExpert EXP8551",
         .internal_name = "exp8551",
-        .type = MACHINE_TYPE_SOCKET5,
+        .type = MACHINE_TYPE_SOCKET7_3V,
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
         .init = machine_at_exp8551_init,
         .pad = 0,
@@ -8906,7 +8906,7 @@ const machine_t machines[] = {
     {
         .name = "[i430FX] PC Partner MB500N",
         .internal_name = "mb500n",
-        .type = MACHINE_TYPE_SOCKET5,
+        .type = MACHINE_TYPE_SOCKET7_3V,
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
         .init = machine_at_mb500n_init,
         .pad = 0,
@@ -9447,7 +9447,47 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* OEM version of Intel TC430HX, has AMI MegaKey KBC firmware on the PC87306
+       Super I/O chip */
+    {
+        .name = "[i430HX] Toshiba Infinia 7200",
+        .internal_name = "infinia7200",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430HX,
+        .init = machine_at_infinia7200_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
