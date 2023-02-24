@@ -340,6 +340,16 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
     else if (state.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
         buttons &= ~2;
 
+    if (state.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN)
+        buttons |= 8;
+    else if (state.usButtonFlags & RI_MOUSE_BUTTON_4_UP)
+        buttons &= ~8;
+
+    if (state.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN)
+        buttons |= 16;
+    else if (state.usButtonFlags & RI_MOUSE_BUTTON_5_UP)
+        buttons &= ~16;
+    
     if (state.usButtonFlags & RI_MOUSE_WHEEL) {
         dwheel += (SHORT) state.usButtonData / 120;
     }
