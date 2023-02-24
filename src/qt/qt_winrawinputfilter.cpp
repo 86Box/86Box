@@ -373,6 +373,7 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
 void
 WindowsRawInputFilter::mousePoll()
 {
+    if (mouse_mode >= 1) return;
     if (mouse_capture || video_fullscreen) {
         static int b = 0;
 
