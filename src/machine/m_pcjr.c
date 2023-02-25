@@ -37,6 +37,7 @@
 #include <86box/pit.h>
 #include <86box/mem.h>
 #include <86box/device.h>
+#include <86box/gameport.h>
 #include <86box/serial.h>
 #include <86box/keyboard.h>
 #include <86box/rom.h>
@@ -814,6 +815,9 @@ machine_pcjr_init(const machine_t *model)
 
     device_add(&ns8250_pcjr_device);
     serial_set_next_inst(SERIAL_MAX); /* So that serial_standalone_init() won't do anything. */
+
+    /* "All the inputs are 'read' with one 'IN' from address hex 201." - PCjr Technical Reference (Nov. 83), p.2-119 */
+    standalone_gameport_type = &gameport_201_device;
 
     return ret;
 }
