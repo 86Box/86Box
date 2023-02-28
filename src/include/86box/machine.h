@@ -279,7 +279,7 @@ typedef struct _machine_ {
     const char *name;
     const char *internal_name;
     uint32_t    type;
-    uint32_t    chipset;
+    uintptr_t   chipset;
     int (*init)(const struct _machine_ *);
     uintptr_t              pad, pad0, pad1, pad2;
     const machine_cpu_t    cpu;
