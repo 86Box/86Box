@@ -793,17 +793,17 @@ access_bus_init(const device_t *info)
 }
 
 static const device_t access_bus_device = {
-    "SMC FDC37C932FR ACCESS.bus",
-    "access_bus",
-    0,
-    0x03,
-    access_bus_init,
-    access_bus_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name          = "SMC FDC37C932FR ACCESS.bus",
+    .internal_name = "access_bus",
+    .flags         = 0,
+    .local         = 0x03,
+    .init          = access_bus_init,
+    .close         = access_bus_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 static void
