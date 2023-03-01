@@ -1319,3 +1319,8 @@ void
 ui_sb_mt32lcd(char *str)
 {
 }
+
+void
+ui_hard_reset_completed(void)
+{
+}

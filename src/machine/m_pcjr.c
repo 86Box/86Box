@@ -743,17 +743,17 @@ static const device_config_t pcjr_config[] = {
 };
 
 const device_t pcjr_device = {
-    "IBM PCjr",
-    "pcjr",
-    0,
-    0,
-    NULL,
-    NULL,
-    NULL,
-    { NULL },
-    speed_changed,
-    NULL,
-    pcjr_config
+    .name          = "IBM PCjr",
+    .internal_name = "pcjr",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = speed_changed,
+    .force_redraw  = NULL,
+    .config        = pcjr_config
 };
 
 int
