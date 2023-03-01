@@ -246,12 +246,14 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                 /* Block writes to some logical devices. */
                 if (cur_ld > 0x0c)
                     return;
-                else  switch (cur_ld) {
-                    case 0x01: case 0x02:
-                    case 0x06:
-                    case 0x08 ... 0x0a:
-                        return;
-                }
+                else
+                    switch (cur_ld) {
+                        case 0x01:
+                        case 0x02:
+                        case 0x06:
+                        case 0x08 ... 0x0a:
+                            return;
+                    }
                 dev->ld_regs[cur_ld][dev->cur_reg] = val;
             }
         } else
@@ -409,7 +411,7 @@ ali5123_read(uint16_t port, void *priv)
                     ret = dev->regs[dev->cur_reg];
             } else {
                 cur_ld = dev->regs[7];
-                ret = dev->ld_regs[cur_ld][dev->cur_reg];
+                ret    = dev->ld_regs[cur_ld][dev->cur_reg];
             }
         }
     }

@@ -45,7 +45,7 @@
 #include <86box/win.h>
 #include <86box/version.h>
 #ifdef DISCORD
-#   include <86box/discord.h>
+#    include <86box/discord.h>
 #endif
 
 #ifdef MTR_ENABLED

@@ -12929,7 +12929,6 @@ machine_get_kbc_device(int m)
     return (NULL);
 }
 
-
 const device_t *
 machine_get_device(int m)
 {

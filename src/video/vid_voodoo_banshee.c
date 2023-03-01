@@ -1603,8 +1603,7 @@ banshee_read_linear(uint32_t addr, void *p)
 
     cycles -= voodoo->read_time;
 
-    if ((banshee->pci_regs[0x30] & 0x01) && addr >= banshee->bios_rom.mapping.base && addr < (banshee->bios_rom.mapping.base + banshee->bios_rom.sz))
-    {
+    if ((banshee->pci_regs[0x30] & 0x01) && addr >= banshee->bios_rom.mapping.base && addr < (banshee->bios_rom.mapping.base + banshee->bios_rom.sz)) {
         return rom_read(addr & (banshee->bios_rom.sz - 1), &banshee->bios_rom);
     }
     addr &= svga->decode_mask;
@@ -1639,8 +1638,7 @@ banshee_read_linear_w(uint32_t addr, void *p)
         return banshee_read_linear(addr, p) | (banshee_read_linear(addr + 1, p) << 8);
 
     cycles -= voodoo->read_time;
-    if ((banshee->pci_regs[0x30] & 0x01) && addr >= banshee->bios_rom.mapping.base && addr < (banshee->bios_rom.mapping.base + banshee->bios_rom.sz))
-    {
+    if ((banshee->pci_regs[0x30] & 0x01) && addr >= banshee->bios_rom.mapping.base && addr < (banshee->bios_rom.mapping.base + banshee->bios_rom.sz)) {
         return rom_readw(addr & (banshee->bios_rom.sz - 1), &banshee->bios_rom);
     }
     addr &= svga->decode_mask;
@@ -1676,8 +1674,7 @@ banshee_read_linear_l(uint32_t addr, void *p)
 
     cycles -= voodoo->read_time;
 
-    if ((banshee->pci_regs[0x30] & 0x01) && addr >= banshee->bios_rom.mapping.base && addr < (banshee->bios_rom.mapping.base + banshee->bios_rom.sz))
-    {
+    if ((banshee->pci_regs[0x30] & 0x01) && addr >= banshee->bios_rom.mapping.base && addr < (banshee->bios_rom.mapping.base + banshee->bios_rom.sz)) {
         return rom_readl(addr & (banshee->bios_rom.sz - 1), &banshee->bios_rom);
     }
     addr &= svga->decode_mask;

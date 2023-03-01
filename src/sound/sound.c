@@ -51,9 +51,9 @@ typedef struct {
     void *priv;
 } sound_handler_t;
 
-int sound_card_current[SOUND_CARD_MAX] = { 0, 0, 0, 0};
-int sound_pos_global   = 0;
-int sound_gain         = 0;
+int sound_card_current[SOUND_CARD_MAX] = { 0, 0, 0, 0 };
+int sound_pos_global                   = 0;
+int sound_gain                         = 0;
 
 static sound_handler_t sound_handlers[8];
 
@@ -79,31 +79,31 @@ static void (*filter_cd_audio)(int channel, double *buffer, void *p) = NULL;
 static void *filter_cd_audio_p                                       = NULL;
 
 static const device_t sound_none_device = {
-    .name = "None",
+    .name          = "None",
     .internal_name = "none",
-    .flags = 0,
-    .local = 0,
-    .init = NULL,
-    .close = NULL,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 static const device_t sound_internal_device = {
-    .name = "Internal",
+    .name          = "Internal",
     .internal_name = "internal",
-    .flags = 0,
-    .local = 0,
-    .init = NULL,
-    .close = NULL,
-    .reset = NULL,
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = NULL
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 static const SOUND_CARD sound_cards[] = {

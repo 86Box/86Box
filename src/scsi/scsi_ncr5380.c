@@ -880,10 +880,10 @@ memio_read(uint32_t addr, void *priv)
                         ncr_log("NCR status ctrl read=%02x\n", ncr_dev->status_ctrl & STATUS_BUFFER_NOT_READY);
                         if (!ncr_dev->ncr_busy)
                             ret |= STATUS_53C80_ACCESSIBLE;
-                        if (ncr->mode & 0x30) { /*Parity bits*/
+                        if (ncr->mode & 0x30) {            /*Parity bits*/
                             if (!(ncr->mode & MODE_DMA)) { /*This is to avoid RTBios 8.10R BIOS problems with the hard disk and detection.*/
-                                ret |= 0x01; /*If the parity bits are set, bit 0 of the 53c400 status port should be set as well.*/
-                                ncr->mode = 0; /*Required by RTASPI10.SYS otherwise it won't initialize.*/
+                                ret |= 0x01;               /*If the parity bits are set, bit 0 of the 53c400 status port should be set as well.*/
+                                ncr->mode = 0;             /*Required by RTASPI10.SYS otherwise it won't initialize.*/
                             }
                         }
                         ncr_log("NCR 53c400 status = %02x.\n", ret);
