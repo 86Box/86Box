@@ -150,47 +150,47 @@ uint64_t instru_run_ms  = 0;
 
 /* Configuration values. */
 int      window_remember;
-int      vid_resize;                                        /* (C) allow resizing */
-int      invert_display                   = 0;              /* (C) invert the display */
-int      suppress_overscan                = 0;              /* (C) suppress overscans */
-int      scale                            = 0;              /* (C) screen scale factor */
-int      dpi_scale                        = 0;              /* (C) DPI scaling of the emulated screen */
-int      vid_api                          = 0;              /* (C) video renderer */
-int      vid_cga_contrast                 = 0;              /* (C) video */
-int      video_fullscreen                 = 0;              /* (C) video */
-int      video_fullscreen_scale           = 0;              /* (C) video */
-int      video_fullscreen_first           = 0;              /* (C) video */
-int      enable_overscan                  = 0;              /* (C) video */
-int      force_43                         = 0;              /* (C) video */
-int      video_filter_method              = 1;              /* (C) video */
-int      video_vsync                      = 0;              /* (C) video */
-int      video_framerate                  = -1;             /* (C) video */
-char     video_shader[512]                = { '\0' };       /* (C) video */
+int      vid_resize;                                              /* (C) allow resizing */
+int      invert_display                         = 0;              /* (C) invert the display */
+int      suppress_overscan                      = 0;              /* (C) suppress overscans */
+int      scale                                  = 0;              /* (C) screen scale factor */
+int      dpi_scale                              = 0;              /* (C) DPI scaling of the emulated screen */
+int      vid_api                                = 0;              /* (C) video renderer */
+int      vid_cga_contrast                       = 0;              /* (C) video */
+int      video_fullscreen                       = 0;              /* (C) video */
+int      video_fullscreen_scale                 = 0;              /* (C) video */
+int      video_fullscreen_first                 = 0;              /* (C) video */
+int      enable_overscan                        = 0;              /* (C) video */
+int      force_43                               = 0;              /* (C) video */
+int      video_filter_method                    = 1;              /* (C) video */
+int      video_vsync                            = 0;              /* (C) video */
+int      video_framerate                        = -1;             /* (C) video */
+char     video_shader[512]                      = { '\0' };       /* (C) video */
 bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0 }; /* (C) activation and kind of pass-through for serial ports */
-int      bugger_enabled                   = 0;              /* (C) enable ISAbugger */
-int      postcard_enabled                 = 0;              /* (C) enable POST card */
-int      isamem_type[ISAMEM_MAX]          = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
-int      isartc_type                      = 0;              /* (C) enable ISA RTC card */
-int      gfxcard[2]                       = { 0, 0 };       /* (C) graphics/video card */
-int      show_second_monitors             = 1;              /* (C) show non-primary monitors */
-int      sound_is_float                   = 1;              /* (C) sound uses FP values */
-int      voodoo_enabled                   = 0;              /* (C) video option */
-int      ibm8514_enabled                  = 0;              /* (C) video option */
-int      xga_enabled                      = 0;              /* (C) video option */
-uint32_t mem_size                         = 0;              /* (C) memory size (Installed on system board)*/
-uint32_t isa_mem_size                     = 0;              /* (C) memory size (ISA Memory Cards) */
-int      cpu_use_dynarec                  = 0;              /* (C) cpu uses/needs Dyna */
-int      cpu                              = 0;              /* (C) cpu type */
-int      fpu_type                         = 0;              /* (C) fpu type */
-int      time_sync                        = 0;              /* (C) enable time sync */
-int      confirm_reset                    = 1;              /* (C) enable reset confirmation */
-int      confirm_exit                     = 1;              /* (C) enable exit confirmation */
-int      confirm_save                     = 1;              /* (C) enable save confirmation */
-int      enable_discord                   = 0;              /* (C) enable Discord integration */
-int      pit_mode                         = -1;             /* (C) force setting PIT mode */
-int      fm_driver                        = 0;              /* (C) select FM sound driver */
-int      open_dir_usr_path                = 0;              /* default file open dialog directory of usr_path */
-int      video_fullscreen_scale_maximized = 0;              /* (C) Whether fullscreen scaling settings also apply when maximized. */
+int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
+int      postcard_enabled                       = 0;              /* (C) enable POST card */
+int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
+int      isartc_type                            = 0;              /* (C) enable ISA RTC card */
+int      gfxcard[2]                             = { 0, 0 };       /* (C) graphics/video card */
+int      show_second_monitors                   = 1;              /* (C) show non-primary monitors */
+int      sound_is_float                         = 1;              /* (C) sound uses FP values */
+int      voodoo_enabled                         = 0;              /* (C) video option */
+int      ibm8514_enabled                        = 0;              /* (C) video option */
+int      xga_enabled                            = 0;              /* (C) video option */
+uint32_t mem_size                               = 0;              /* (C) memory size (Installed on system board)*/
+uint32_t isa_mem_size                           = 0;              /* (C) memory size (ISA Memory Cards) */
+int      cpu_use_dynarec                        = 0;              /* (C) cpu uses/needs Dyna */
+int      cpu                                    = 0;              /* (C) cpu type */
+int      fpu_type                               = 0;              /* (C) fpu type */
+int      time_sync                              = 0;              /* (C) enable time sync */
+int      confirm_reset                          = 1;              /* (C) enable reset confirmation */
+int      confirm_exit                           = 1;              /* (C) enable exit confirmation */
+int      confirm_save                           = 1;              /* (C) enable save confirmation */
+int      enable_discord                         = 0;              /* (C) enable Discord integration */
+int      pit_mode                               = -1;             /* (C) force setting PIT mode */
+int      fm_driver                              = 0;              /* (C) select FM sound driver */
+int      open_dir_usr_path                      = 0;              /* default file open dialog directory of usr_path */
+int      video_fullscreen_scale_maximized       = 0;              /* (C) Whether fullscreen scaling settings also apply when maximized. */
 
 /* Statistics. */
 extern int mmuflush;

@@ -328,11 +328,11 @@ win_settings_init(void)
     temp_sync = time_sync;
 
     /* Video category */
-    temp_gfxcard[0]   = gfxcard[0];
+    temp_gfxcard[0] = gfxcard[0];
     temp_gfxcard[1] = gfxcard[1];
-    temp_voodoo    = voodoo_enabled;
-    temp_ibm8514   = ibm8514_enabled;
-    temp_xga       = xga_enabled;
+    temp_voodoo     = voodoo_enabled;
+    temp_ibm8514    = ibm8514_enabled;
+    temp_xga        = xga_enabled;
 
     /* Input devices category */
     temp_mouse    = mouse_type;
@@ -351,17 +351,17 @@ win_settings_init(void)
     for (i = 0; i < NET_CARD_MAX; i++) {
         temp_net_type[i] = net_cards_conf[i].net_type;
         memset(temp_pcap_dev[i], 0, sizeof(temp_pcap_dev[i]));
-#    ifdef ENABLE_SETTINGS_LOG
+#ifdef ENABLE_SETTINGS_LOG
         assert(sizeof(temp_pcap_dev[i]) == sizeof(net_cards_conf[i].host_dev_name));
-#    endif
+#endif
         memcpy(temp_pcap_dev[i], net_cards_conf[i].host_dev_name, sizeof(net_cards_conf[i].host_dev_name));
         temp_net_card[i] = net_cards_conf[i].device_num;
     }
 
     /* Ports category */
     for (i = 0; i < PARALLEL_MAX; i++) {
-        temp_lpt_devices[i]                = lpt_ports[i].device;
-        temp_lpt[i]                        = lpt_ports[i].enabled;
+        temp_lpt_devices[i] = lpt_ports[i].device;
+        temp_lpt[i]         = lpt_ports[i].enabled;
     }
     for (i = 0; i < SERIAL_MAX; i++) {
         temp_serial[i]                     = com_ports[i].enabled;
@@ -552,8 +552,8 @@ win_settings_save(void)
     time_sync = temp_sync;
 
     /* Video category */
-    gfxcard[0]         = temp_gfxcard[0];
-    gfxcard[1]       = temp_gfxcard[1];
+    gfxcard[0]      = temp_gfxcard[0];
+    gfxcard[1]      = temp_gfxcard[1];
     voodoo_enabled  = temp_voodoo;
     ibm8514_enabled = temp_ibm8514;
     xga_enabled     = temp_xga;
@@ -585,7 +585,7 @@ win_settings_save(void)
         lpt_ports[i].enabled = temp_lpt[i];
     }
     for (i = 0; i < SERIAL_MAX; i++) {
-        com_ports[i].enabled = temp_serial[i];
+        com_ports[i].enabled          = temp_serial[i];
         serial_passthrough_enabled[i] = temp_serial_passthrough_enabled[i];
     }
 
@@ -1801,7 +1801,7 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
             }
 
             for (i = 0; i < SERIAL_MAX; i++) {
-                temp_serial[i] = settings_get_check(hdlg, IDC_CHECK_SERIAL1 + i);
+                temp_serial[i]                     = settings_get_check(hdlg, IDC_CHECK_SERIAL1 + i);
                 temp_serial_passthrough_enabled[i] = settings_get_check(hdlg, IDC_CHECK_SERIAL_PASS1 + i);
             }
 
@@ -2025,10 +2025,10 @@ network_recalc_combos(HWND hdlg)
 #if 0
     for (uint8_t i = 0; i < NET_CARD_MAX; i++) {
 #endif
-        settings_enable_window(hdlg, IDC_COMBO_PCAP1, temp_net_type[0] == NET_TYPE_PCAP);
-        settings_enable_window(hdlg, IDC_COMBO_NET1,
-                               (temp_net_type[0] == NET_TYPE_SLIRP) || ((temp_net_type[0] == NET_TYPE_PCAP) && (network_dev_to_id(temp_pcap_dev[0]) > 0)));
-        settings_enable_window(hdlg, IDC_CONFIGURE_NET1, network_card_has_config(temp_net_card[0]) && ((temp_net_type[0] == NET_TYPE_SLIRP) || ((temp_net_type[0] == NET_TYPE_PCAP) && (network_dev_to_id(temp_pcap_dev[0]) > 0))));
+    settings_enable_window(hdlg, IDC_COMBO_PCAP1, temp_net_type[0] == NET_TYPE_PCAP);
+    settings_enable_window(hdlg, IDC_COMBO_NET1,
+                           (temp_net_type[0] == NET_TYPE_SLIRP) || ((temp_net_type[0] == NET_TYPE_PCAP) && (network_dev_to_id(temp_pcap_dev[0]) > 0)));
+    settings_enable_window(hdlg, IDC_CONFIGURE_NET1, network_card_has_config(temp_net_card[0]) && ((temp_net_type[0] == NET_TYPE_SLIRP) || ((temp_net_type[0] == NET_TYPE_PCAP) && (network_dev_to_id(temp_pcap_dev[0]) > 0))));
 #if 0
     }
 #endif
@@ -2053,44 +2053,44 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 #if 0
             for (uint8_t i = 0; i < NET_CARD_MAX; i++) {
 #endif
-                settings_add_string(hdlg, IDC_COMBO_NET1_TYPE, (LPARAM) L"None");
-                settings_add_string(hdlg, IDC_COMBO_NET1_TYPE, (LPARAM) L"SLiRP");
-                settings_add_string(hdlg, IDC_COMBO_NET1_TYPE, (LPARAM) L"PCap");
-                settings_set_cur_sel(hdlg, IDC_COMBO_NET1_TYPE, temp_net_type[0]);
-                settings_enable_window(hdlg, IDC_COMBO_PCAP1, temp_net_type[0] == NET_TYPE_PCAP);
+            settings_add_string(hdlg, IDC_COMBO_NET1_TYPE, (LPARAM) L"None");
+            settings_add_string(hdlg, IDC_COMBO_NET1_TYPE, (LPARAM) L"SLiRP");
+            settings_add_string(hdlg, IDC_COMBO_NET1_TYPE, (LPARAM) L"PCap");
+            settings_set_cur_sel(hdlg, IDC_COMBO_NET1_TYPE, temp_net_type[0]);
+            settings_enable_window(hdlg, IDC_COMBO_PCAP1, temp_net_type[0] == NET_TYPE_PCAP);
 
-                for (c = 0; c < network_ndev; c++) {
-                    mbstowcs(lptsTemp, network_devs[c].description, strlen(network_devs[c].description) + 1);
-                    settings_add_string(hdlg, IDC_COMBO_PCAP1, (LPARAM) lptsTemp);
-                }
-                settings_set_cur_sel(hdlg, IDC_COMBO_PCAP1, network_dev_to_id(temp_pcap_dev[0]));
+            for (c = 0; c < network_ndev; c++) {
+                mbstowcs(lptsTemp, network_devs[c].description, strlen(network_devs[c].description) + 1);
+                settings_add_string(hdlg, IDC_COMBO_PCAP1, (LPARAM) lptsTemp);
+            }
+            settings_set_cur_sel(hdlg, IDC_COMBO_PCAP1, network_dev_to_id(temp_pcap_dev[0]));
 
-                /* NIC config */
-                c = d = 0;
-                settings_reset_content(hdlg, IDC_COMBO_NET1);
-                while (1) {
-                    generate_device_name(network_card_getdevice(c), network_card_get_internal_name(c), 1);
+            /* NIC config */
+            c = d = 0;
+            settings_reset_content(hdlg, IDC_COMBO_NET1);
+            while (1) {
+                generate_device_name(network_card_getdevice(c), network_card_get_internal_name(c), 1);
 
-                    if (device_name[0] == L'\0')
-                        break;
+                if (device_name[0] == L'\0')
+                    break;
 
-                    if (network_card_available(c) && device_is_valid(network_card_getdevice(c), temp_machine)) {
-                        if (c == 0)
-                            settings_add_string(hdlg, IDC_COMBO_NET1, win_get_string(IDS_2104));
-                        else
-                            settings_add_string(hdlg, IDC_COMBO_NET1, (LPARAM) device_name);
-                        settings_list_to_device[0][d] = c;
-                        if ((c == 0) || (c == temp_net_card[0]))
-                            settings_set_cur_sel(hdlg, IDC_COMBO_NET1, d);
-                        d++;
-                    }
-
-                    c++;
+                if (network_card_available(c) && device_is_valid(network_card_getdevice(c), temp_machine)) {
+                    if (c == 0)
+                        settings_add_string(hdlg, IDC_COMBO_NET1, win_get_string(IDS_2104));
+                    else
+                        settings_add_string(hdlg, IDC_COMBO_NET1, (LPARAM) device_name);
+                    settings_list_to_device[0][d] = c;
+                    if ((c == 0) || (c == temp_net_card[0]))
+                        settings_set_cur_sel(hdlg, IDC_COMBO_NET1, d);
+                    d++;
                 }
 
-                settings_enable_window(hdlg, IDC_COMBO_NET1, d);
-                network_recalc_combos(hdlg);
-                free(lptsTemp);
+                c++;
+            }
+
+            settings_enable_window(hdlg, IDC_COMBO_NET1, d);
+            network_recalc_combos(hdlg);
+            free(lptsTemp);
 #if 0
             }
 #endif
@@ -2157,10 +2157,10 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 #if 0
             for (uint8_t i = 0; i < NET_CARD_MAX; i++) {
 #endif
-                temp_net_type[0] = settings_get_cur_sel(hdlg, IDC_COMBO_NET1_TYPE);
-                memset(temp_pcap_dev[0], '\0', sizeof(temp_pcap_dev[0]));
-                strcpy(temp_pcap_dev[0], network_devs[settings_get_cur_sel(hdlg, IDC_COMBO_PCAP1)].device);
-                temp_net_card[0] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_NET1)];
+            temp_net_type[0] = settings_get_cur_sel(hdlg, IDC_COMBO_NET1_TYPE);
+            memset(temp_pcap_dev[0], '\0', sizeof(temp_pcap_dev[0]));
+            strcpy(temp_pcap_dev[0], network_devs[settings_get_cur_sel(hdlg, IDC_COMBO_PCAP1)].device);
+            temp_net_card[0] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_NET1)];
 #if 0
             }
 #endif

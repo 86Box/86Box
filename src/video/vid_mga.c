@@ -896,9 +896,9 @@ mystique_recalctimings(svga_t *svga)
                     svga->ma = svga->maback = (svga->maback - (mystique->ma_latch_old << 2)) + (svga->ma_latch << 2);
                 mystique->ma_latch_old = svga->ma_latch;
             }
-            
+
             svga->rowoffset <<= 1;
-            
+
             switch (mystique->xmulctrl & XMULCTRL_DEPTH_MASK) {
                 case XMULCTRL_DEPTH_8:
                 case XMULCTRL_DEPTH_2G8V16:
@@ -2249,7 +2249,8 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *p)
             mystique->dwgreg.fcol = val;
             break;
 
-        case REG_SRC0: {
+        case REG_SRC0:
+            {
                 int x = 0, y = 0;
                 mystique->dwgreg.src[0] = val;
                 for (y = 0; y < 2; y++) {
@@ -2257,12 +2258,13 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *p)
                         mystique->dwgreg.pattern[y][x] = val & (1 << (x + (y * 16)));
                     }
                 }
-                //pclog("SRC0 = 0x%08X\n", val);
+                // pclog("SRC0 = 0x%08X\n", val);
                 if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
                     blit_iload_write(mystique, mystique->dwgreg.src[0], 32);
             }
             break;
-        case REG_SRC1: {
+        case REG_SRC1:
+            {
                 int x = 0, y = 0;
                 mystique->dwgreg.src[1] = val;
                 for (y = 2; y < 4; y++) {
@@ -2270,12 +2272,13 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *p)
                         mystique->dwgreg.pattern[y][x] = val & (1 << (x + ((y - 2) * 16)));
                     }
                 }
-                //pclog("SRC1 = 0x%08X\n", val);
+                // pclog("SRC1 = 0x%08X\n", val);
                 if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
                     blit_iload_write(mystique, mystique->dwgreg.src[1], 32);
             }
             break;
-        case REG_SRC2: {
+        case REG_SRC2:
+            {
                 int x = 0, y = 0;
                 mystique->dwgreg.src[2] = val;
                 for (y = 4; y < 6; y++) {
@@ -2283,12 +2286,13 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *p)
                         mystique->dwgreg.pattern[y][x] = val & (1 << (x + ((y - 4) * 16)));
                     }
                 }
-                //pclog("SRC2 = 0x%08X\n", val);
+                // pclog("SRC2 = 0x%08X\n", val);
                 if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
                     blit_iload_write(mystique, mystique->dwgreg.src[2], 32);
                 break;
             }
-        case REG_SRC3: {
+        case REG_SRC3:
+            {
                 int x = 0, y = 0;
                 mystique->dwgreg.src[3] = val;
                 for (y = 6; y < 8; y++) {
@@ -2296,11 +2300,11 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *p)
                         mystique->dwgreg.pattern[y][x] = val & (1 << (x + ((y - 6) * 16)));
                     }
                 }
-                //pclog("SRC3 = 0x%08X\n", val);
+                // pclog("SRC3 = 0x%08X\n", val);
                 if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
                     blit_iload_write(mystique, mystique->dwgreg.src[3], 32);
                 break;
-        }
+            }
 
         case REG_DMAPAD:
             if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)

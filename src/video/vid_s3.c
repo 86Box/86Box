@@ -5650,18 +5650,18 @@ polygon_setup(s3_t *s3)
         out = (out & s3->accel.wrt_mask) | (old_dest_dat & ~s3->accel.wrt_mask); \
     }
 
-#define WRITE(addr, dat)                                                                                \
-    if (s3->bpp == 0 && !s3->color_16bit) {                                                             \
-        svga->vram[dword_remap(svga, addr) & s3->vram_mask]                = dat;                       \
+#define WRITE(addr, dat)                                                                                                   \
+    if (s3->bpp == 0 && !s3->color_16bit) {                                                                                \
+        svga->vram[dword_remap(svga, addr) & s3->vram_mask]                = dat;                                          \
         svga->changedvram[(dword_remap(svga, addr) & s3->vram_mask) >> 12] = svga->monitor->mon_changeframecount;          \
-    } else if (s3->bpp == 1 || s3->color_16bit) {                                                       \
-        vram_w[dword_remap_w(svga, addr) & (s3->vram_mask >> 1)]                    = dat;              \
+    } else if (s3->bpp == 1 || s3->color_16bit) {                                                                          \
+        vram_w[dword_remap_w(svga, addr) & (s3->vram_mask >> 1)]                    = dat;                                 \
         svga->changedvram[(dword_remap_w(svga, addr) & (s3->vram_mask >> 1)) >> 11] = svga->monitor->mon_changeframecount; \
-    } else if (s3->bpp == 2) {                                                                          \
-        svga->vram[dword_remap(svga, addr) & s3->vram_mask]                = dat;                       \
+    } else if (s3->bpp == 2) {                                                                                             \
+        svga->vram[dword_remap(svga, addr) & s3->vram_mask]                = dat;                                          \
         svga->changedvram[(dword_remap(svga, addr) & s3->vram_mask) >> 12] = svga->monitor->mon_changeframecount;          \
-    } else {                                                                                            \
-        vram_l[dword_remap_l(svga, addr) & (s3->vram_mask >> 2)]                    = dat;              \
+    } else {                                                                                                               \
+        vram_l[dword_remap_l(svga, addr) & (s3->vram_mask >> 2)]                    = dat;                                 \
         svga->changedvram[(dword_remap_l(svga, addr) & (s3->vram_mask >> 2)) >> 10] = svga->monitor->mon_changeframecount; \
     }
 

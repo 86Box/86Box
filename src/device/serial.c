@@ -152,7 +152,7 @@ serial_clear_timeout(serial_t *dev)
 static void
 serial_receive_timer(void *priv)
 {
-    serial_t *dev   = (serial_t *) priv;
+    serial_t *dev = (serial_t *) priv;
 
     // serial_log("serial_receive_timer()\n");
 
@@ -211,8 +211,7 @@ write_fifo(serial_t *dev, uint8_t dat)
 {
     serial_log("write_fifo(%08X, %02X, %i, %i)\n", dev, dat,
                (dev->type >= SERIAL_16550) && dev->fifo_enabled,
-               ((dev->type >= SERIAL_16550) && dev->fifo_enabled) ?
-               (dev->rcvr_fifo_pos % dev->rcvr_fifo_len) : 0);
+               ((dev->type >= SERIAL_16550) && dev->fifo_enabled) ? (dev->rcvr_fifo_pos % dev->rcvr_fifo_len) : 0);
 
     if ((dev->type >= SERIAL_16550) && dev->fifo_enabled) {
         /* FIFO mode. */
@@ -560,7 +559,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
                         dev->rcvr_fifo_len = 14;
                         break;
                 }
-                dev->out_new        = 0xffff;
+                dev->out_new = 0xffff;
                 serial_log("FIFO now %sabled, receive FIFO length = %i\n", dev->fifo_enabled ? "en" : "dis", dev->rcvr_fifo_len);
             }
             break;
@@ -665,7 +664,7 @@ serial_read(uint16_t addr, void *p)
 
                 if (dev->rcvr_fifo_full || (dev->rcvr_fifo_pos != dev->rcvr_fifo_end)) {
                     /* There is data in the FIFO. */
-                    ret = dev->rcvr_fifo[dev->rcvr_fifo_pos];
+                    ret                = dev->rcvr_fifo[dev->rcvr_fifo_pos];
                     dev->rcvr_fifo_pos = (dev->rcvr_fifo_pos + 1) & 0x0f;
 
                     /* Make sure to clear the FIFO full condition. */
@@ -690,7 +689,7 @@ serial_read(uint16_t addr, void *p)
             } else {
                 /* Non-FIFO mode. */
 
-                ret = (uint8_t) (dev->out_new & 0xffff);
+                ret          = (uint8_t) (dev->out_new & 0xffff);
                 dev->out_new = 0xffff;
 
                 /* Always clear Data Ready interrupt. */
@@ -857,8 +856,8 @@ serial_reset(void *priv)
 
     serial_reset_port(dev);
 
-    dev->dlab      = 96;
-    dev->fcr       = 0x06;
+    dev->dlab = 96;
+    dev->fcr  = 0x06;
 
     serial_transmit_period(dev);
     serial_update_speed(dev);
@@ -889,8 +888,8 @@ serial_init(const device_t *info)
             serial_setup(dev, COM1_ADDR, COM1_IRQ);
 
         /* Default to 1200,N,7. */
-        dev->dlab      = 96;
-        dev->fcr       = 0x06;
+        dev->dlab = 96;
+        dev->fcr  = 0x06;
         if (info->local == SERIAL_8250_PCJR)
             dev->clock_src = 1789500.0;
         else

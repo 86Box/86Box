@@ -4181,13 +4181,12 @@ s3_virge_init(const device_t *info)
               s3_virge_overlay_draw);
     virge->svga.hwcursor.cur_ysize = 64;
 
-    if (bios_fn != NULL)
-        {
-            if (info->local == S3_VIRGE_GX2)
-                rom_init(&virge->bios_rom, (char *) bios_fn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-            else
-                rom_init(&virge->bios_rom, (char *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        }
+    if (bios_fn != NULL) {
+        if (info->local == S3_VIRGE_GX2)
+            rom_init(&virge->bios_rom, (char *) bios_fn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+        else
+            rom_init(&virge->bios_rom, (char *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    }
 
     mem_mapping_disable(&virge->bios_rom.mapping);
 
