@@ -57,19 +57,21 @@
 #define CONFIG_SERPORT   12
 
 enum {
-    DEVICE_PCJR = 2,      /* requires an IBM PCjr */
-    DEVICE_AT   = 4,      /* requires an AT-compatible system */
-    DEVICE_PS2  = 8,      /* requires a PS/1 or PS/2 system */
-    DEVICE_ISA  = 0x10,   /* requires the ISA bus */
-    DEVICE_CBUS = 0x20,   /* requires the C-BUS bus */
-    DEVICE_MCA  = 0x40,   /* requires the MCA bus */
-    DEVICE_EISA = 0x80,   /* requires the EISA bus */
-    DEVICE_VLB  = 0x100,  /* requires the PCI bus */
-    DEVICE_PCI  = 0x200,  /* requires the VLB bus */
-    DEVICE_AGP  = 0x400,  /* requires the AGP bus */
-    DEVICE_AC97 = 0x800,  /* requires the AC'97 bus */
-    DEVICE_COM  = 0x1000, /* requires a serial port */
-    DEVICE_LPT  = 0x2000  /* requires a parallel port */
+    DEVICE_PCJR      = 2,         /* requires an IBM PCjr */
+    DEVICE_AT        = 4,         /* requires an AT-compatible system */
+    DEVICE_PS2       = 8,         /* requires a PS/1 or PS/2 system */
+    DEVICE_ISA       = 0x10,      /* requires the ISA bus */
+    DEVICE_CBUS      = 0x20,      /* requires the C-BUS bus */
+    DEVICE_MCA       = 0x40,      /* requires the MCA bus */
+    DEVICE_EISA      = 0x80,      /* requires the EISA bus */
+    DEVICE_VLB       = 0x100,     /* requires the PCI bus */
+    DEVICE_PCI       = 0x200,     /* requires the VLB bus */
+    DEVICE_AGP       = 0x400,     /* requires the AGP bus */
+    DEVICE_AC97      = 0x800,     /* requires the AC'97 bus */
+    DEVICE_COM       = 0x1000,    /* requires a serial port */
+    DEVICE_LPT       = 0x2000,    /* requires a parallel port */
+
+    DEVICE_EXTPARAMS = 0x40000000 /* accepts extended parameters */
 };
 
 #define BIOS_NORMAL                      0
@@ -118,14 +120,17 @@ typedef struct _device_ {
     const char *name;
     const char *internal_name;
     uint32_t    flags; /* system flags */
-    uint32_t    local; /* flags local to device */
+    uintptr_t   local; /* flags local to device */
 
-    void *(*init)(const struct _device_ *);
+    union {
+        void *(*init)(const struct _device_ *);
+        void *(*init_ext)(const struct _device_ *, void*);
+    };
     void (*close)(void *priv);
     void (*reset)(void *priv);
     union {
         int (*available)(void);
-        int (*poll)(int x, int y, int z, int b, void *priv);
+        int (*poll)(int x, int y, int z, int b, double abs_x, double abs_y, void *priv);
         void (*register_pci_slot)(int device, int type, int inta, int intb, int intc, int intd, void *priv);
     };
     void (*speed_changed)(void *priv);
@@ -150,13 +155,21 @@ extern void  device_context(const device_t *d);
 extern void  device_context_inst(const device_t *d, int inst);
 extern void  device_context_restore(void);
 extern void *device_add(const device_t *d);
+extern void *device_add_parameters(const device_t *d, void *params);
 extern void  device_add_ex(const device_t *d, void *priv);
+extern void  device_add_ex_parameters(const device_t *d, void *priv, void *params);
 extern void *device_add_inst(const device_t *d, int inst);
+extern void *device_add_inst_parameters(const device_t *d, int inst, void *params);
 extern void  device_add_inst_ex(const device_t *d, void *priv, int inst);
+extern void  device_add_inst_ex_parameters(const device_t *d, void *priv, int inst, void *params);
 extern void *device_cadd(const device_t *d, const device_t *cd);
+extern void *device_cadd_parameters(const device_t *d, const device_t *cd, void *params);
 extern void  device_cadd_ex(const device_t *d, const device_t *cd, void *priv);
+extern void  device_cadd_ex_parameters(const device_t *d, const device_t *cd, void *priv, void *params);
 extern void *device_cadd_inst(const device_t *d, const device_t *cd, int inst);
+extern void *device_cadd_inst_parameters(const device_t *d, const device_t *cd, int inst, void *params);
 extern void  device_cadd_inst_ex(const device_t *d, const device_t *cd, void *priv, int inst);
+extern void  device_cadd_inst_ex_parameters(const device_t *d, const device_t *cd, void *priv, int inst, void *params);
 extern void  device_close_all(void);
 extern void  device_reset_all(void);
 extern void  device_reset_all_pci(void);

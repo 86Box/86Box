@@ -135,7 +135,7 @@ device_context_restore(void)
 }
 
 static void *
-device_add_common(const device_t *d, const device_t *cd, void *p, int inst)
+device_add_common(const device_t *d, const device_t *cd, void *p, void* params, int inst)
 {
     void *priv = NULL;
     int   c;
@@ -160,7 +160,7 @@ device_add_common(const device_t *d, const device_t *cd, void *p, int inst)
         device_set_context(&device_current, cd, inst);
 
         if (d->init != NULL) {
-            priv = d->init(d);
+            priv = (d->flags & DEVICE_EXTPARAMS) ? d->init_ext(d, params) : d->init(d);
             if (priv == NULL) {
                 if (d->name)
                     device_log("DEVICE: device '%s' init failed\n", d->name);
@@ -199,55 +199,103 @@ device_get_internal_name(const device_t *d)
 void *
 device_add(const device_t *d)
 {
-    return device_add_common(d, d, NULL, 0);
+    return device_add_common(d, d, NULL, NULL, 0);
+}
+
+void *
+device_add_parameters(const device_t *d, void* params)
+{
+    return device_add_common(d, d, NULL, params, 0);
 }
 
 /* For devices that do not have an init function (internal video etc.) */
 void
 device_add_ex(const device_t *d, void *priv)
 {
-    device_add_common(d, d, priv, 0);
+    device_add_common(d, d, priv, NULL, 0);
+}
+
+void
+device_add_ex_parameters(const device_t *d, void* priv, void *params)
+{
+    device_add_common(d, d, priv, params, 0);
 }
 
 void *
 device_add_inst(const device_t *d, int inst)
 {
-    return device_add_common(d, d, NULL, inst);
+    return device_add_common(d, d, NULL, NULL, inst);
+}
+
+void *
+device_add_inst_parameters(const device_t *d, int inst, void *params)
+{
+    return device_add_common(d, d, NULL, params, inst);
 }
 
 /* For devices that do not have an init function (internal video etc.) */
 void
 device_add_inst_ex(const device_t *d, void *priv, int inst)
 {
-    device_add_common(d, d, priv, inst);
+    device_add_common(d, d, priv, NULL, inst);
 }
 
-/* These four are to add a device with another device's context - will be
+void
+device_add_inst_ex_parameters(const device_t *d, void *priv, int inst, void *params)
+{
+    device_add_common(d, d, priv, params, inst);
+}
+
+/* These eight are to add a device with another device's context - will be
    used to add machines' internal devices. */
 void *
 device_cadd(const device_t *d, const device_t *cd)
 {
-    return device_add_common(d, cd, NULL, 0);
+    return device_add_common(d, cd, NULL, NULL, 0);
+}
+
+void *
+device_cadd_parameters(const device_t *d, const device_t *cd, void *params)
+{
+    return device_add_common(d, cd, NULL, params, 0);
 }
 
 /* For devices that do not have an init function (internal video etc.) */
 void
 device_cadd_ex(const device_t *d, const device_t *cd, void *priv)
 {
-    device_add_common(d, cd, priv, 0);
+    device_add_common(d, cd, priv, NULL, 0);
+}
+
+void
+device_cadd_ex_parameters(const device_t *d, const device_t *cd, void *priv, void *params)
+{
+    device_add_common(d, cd, priv, params, 0);
 }
 
 void *
 device_cadd_inst(const device_t *d, const device_t *cd, int inst)
 {
-    return device_add_common(d, cd, NULL, inst);
+    return device_add_common(d, cd, NULL, NULL, inst);
+}
+
+void *
+device_cadd_inst_parameters(const device_t *d, const device_t *cd, int inst, void *params)
+{
+    return device_add_common(d, cd, NULL, params, inst);
 }
 
 /* For devices that do not have an init function (internal video etc.) */
 void
 device_cadd_inst_ex(const device_t *d, const device_t *cd, void *priv, int inst)
 {
-    device_add_common(d, cd, priv, inst);
+    device_add_common(d, cd, priv, NULL, inst);
+}
+
+void
+device_cadd_inst_ex_parameters(const device_t *d, const device_t *cd, void *priv, int inst, void* params)
+{
+    device_add_common(d, cd, priv, params, inst);
 }
 
 void
@@ -415,7 +463,7 @@ device_poll(const device_t *d, int x, int y, int z, int b)
         if (devices[c] != NULL) {
             if (devices[c] == d) {
                 if (devices[c]->poll)
-                    return (devices[c]->poll(x, y, z, b, device_priv[c]));
+                    return (devices[c]->poll(x, y, z, b, 0, 0, device_priv[c]));
             }
         }
     }

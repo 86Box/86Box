@@ -61,6 +61,7 @@ extern void ui_check_menu_item(int id, int checked);
 
 extern wchar_t *ui_window_title(wchar_t *s);
 extern void     ui_status_update(void);
+extern void     ui_hard_reset_completed(void);
 extern void     ui_init_monitor(int monitor_index);
 extern void     ui_deinit_monitor(int monitor_index);
 extern int      ui_sb_find_part(int tag);
