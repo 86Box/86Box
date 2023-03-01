@@ -88,7 +88,7 @@
 #define ISARTC_A6PAK  3
 #define ISARTC_VENDEX 4
 
-#define ISARTC_DEBUG 0
+#define ISARTC_DEBUG  0
 
 typedef struct {
     const char *name;  /* board name */
@@ -572,7 +572,7 @@ isartc_init(const device_t *info)
                   dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
 
     /* Hook into the NVR backend. */
-    dev->nvr.fn  = (char *)info->internal_name;
+    dev->nvr.fn  = (char *) info->internal_name;
     dev->nvr.irq = dev->irq;
     if (!is_at)
         nvr_init(&dev->nvr);

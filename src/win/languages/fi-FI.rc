@@ -186,7 +186,7 @@ BEGIN
         MENUITEM "&Lataa edellinen levykuva uudelleen",                 IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "L&evykuva...",                                           IDM_CDROM_IMAGE
-        MENUITEM "&Kansio...",						IDM_CDROM_DIR
+        MENUITEM "&Kansio...",                        IDM_CDROM_DIR
     END
 END
 
@@ -282,7 +282,7 @@ END
 #define STR_VIDEO           "Näytönohjain:"
 #define STR_VIDEO_2         "Näytönohjain 2:"
 #define STR_VOODOO          "Voodoo-grafiikkasuoritin"
-#define STR_IBM8514	    "IBM 8514/a-grafiikkasuoritin"
+#define STR_IBM8514        "IBM 8514/a-grafiikkasuoritin"
 #define STR_XGA             "XGA-grafiikkasuoritin"
 
 #define STR_MOUSE           "Hiiri:"
@@ -351,7 +351,7 @@ END
 #define STR_BUS             "Väylä:"
 #define STR_CHANNEL         "Kanava:"
 #define STR_ID              "ID:"
-#define STR_SPEED		"Speed:"
+#define STR_SPEED        "Speed:"
 
 #define STR_SPECIFY         "&Määritä..."
 #define STR_SECTORS         "Sektorit:"
@@ -382,8 +382,8 @@ END
 #define STR_BUGGER          "ISABugger-laite"
 #define STR_POSTCARD        "POST-kortti"
 
-#define FONT_SIZE		9
-#define FONT_NAME		"Segoe UI"
+#define FONT_SIZE        9
+#define FONT_NAME        "Segoe UI"
 
 #include "dialogs.rc"
 
@@ -528,19 +528,20 @@ BEGIN
     IDS_2150    "Kasettitiedostot (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Kaikki tiedostot (*.*)\0*.*\0"
     IDS_2151    "ROM-moduuli %i: %ls"
     IDS_2152    "ROM-moduulikuvat (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Kaikki tiedostot (*.*)\0*.*\0"
-    IDS_2153	"Virhe renderöijän alustuksessa"
-    IDS_2154	"OpenGL (3.0 Core) -renderöijän alustus epäonnistui. Käytä toista renderöijää."
-    IDS_2155	"Jatka suoritusta"
-    IDS_2156	"Pysäytä suoritus"
-    IDS_2157	"Paina Ctrl+Alt+Del"
-    IDS_2158	"Paina Ctrl+Alt+Esc"
-    IDS_2159	"Kylmä uudelleenkäynnistys"
-    IDS_2160	"ACPI-sammutus"
-    IDS_2161	"Asetukset"
+    IDS_2153    "Virhe renderöijän alustuksessa"
+    IDS_2154    "OpenGL (3.0 Core) -renderöijän alustus epäonnistui. Käytä toista renderöijää."
+    IDS_2155    "Jatka suoritusta"
+    IDS_2156    "Pysäytä suoritus"
+    IDS_2157    "Paina Ctrl+Alt+Del"
+    IDS_2158    "Paina Ctrl+Alt+Esc"
+    IDS_2159    "Kylmä uudelleenkäynnistys"
+    IDS_2160    "ACPI-sammutus"
+    IDS_2161    "Asetukset"
     IDS_2162    "Aiemmat asemat"
-    IDS_2163    "no dynarec"
-    IDS_2164    "old dynarec"
-    IDS_2165    "new dynarec"
+    IDS_2163    "No Dynarec"
+    IDS_2164    "Old Dynarec"
+    IDS_2165    "New Dynarec"
+    IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
 END
 
 STRINGTABLE DISCARDABLE

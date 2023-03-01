@@ -872,7 +872,7 @@ svga_poll(void *p)
             svga->oddeven ^= 1;
 
             svga->monitor->mon_changeframecount = svga->interlace ? 3 : 2;
-            svga->vslines    = 0;
+            svga->vslines                       = 0;
 
             if (svga->interlace && svga->oddeven)
                 svga->ma = svga->maback = svga->ma_latch + (svga->rowoffset << 1) + ((svga->crtc[5] & 0x60) >> 5);
@@ -938,9 +938,9 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
 {
     int c, d, e;
 
-    svga->p = p;
+    svga->p             = p;
     svga->monitor_index = monitor_index_global;
-    svga->monitor = &monitors[svga->monitor_index];
+    svga->monitor       = &monitors[svga->monitor_index];
 
     for (c = 0; c < 256; c++) {
         e = c;
@@ -954,10 +954,10 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
     svga->attrregs[0x11] = 0;
     svga->overscan_color = 0x000000;
 
-    svga->monitor->mon_overscan_x  = 16;
-    svga->monitor->mon_overscan_y  = 32;
-    svga->x_add = 8;
-    svga->y_add = 16;
+    svga->monitor->mon_overscan_x = 16;
+    svga->monitor->mon_overscan_y = 32;
+    svga->x_add                   = 8;
+    svga->y_add                   = 16;
 
     svga->crtc[0]           = 63;
     svga->crtc[6]           = 255;

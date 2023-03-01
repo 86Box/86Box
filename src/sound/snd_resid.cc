@@ -7,6 +7,8 @@
 #include <86box/plat.h>
 #include <86box/snd_resid.h>
 
+#define RESID_FREQ 48000
+
 typedef struct psid_t {
     /* resid sid implementation */
     SIDFP  *sid;
@@ -42,7 +44,7 @@ sid_init(void)
         psid->sid->write(c, 0);
 
     if (!psid->sid->set_sampling_parameters((float) cycles_per_sec, method,
-                                            (float) 48000, 0.9 * 48000.0 / 2.0)) {
+                                            (float) RESID_FREQ, 0.9 * (float) RESID_FREQ / 2.0)) {
         //        printf("reSID failed!\n");
     }
 
@@ -93,7 +95,7 @@ sid_write(uint16_t addr, uint8_t val, UNUSED(void *p))
     psid->sid->write(addr & 0x1f, val);
 }
 
-#define CLOCK_DELTA(n) (int) (((14318180.0 * n) / 16.0) / 48000.0)
+#define CLOCK_DELTA(n) (int) (((14318180.0 * n) / 16.0) / (float) RESID_FREQ)
 
 static void
 fillbuf2(int &count, int16_t *buf, int len)

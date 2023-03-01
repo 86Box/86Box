@@ -40,11 +40,10 @@ int mouse_x,
     mouse_buttons,
     mouse_mode,
     mouse_tablet_in_proximity = 0,
-    tablet_tool_type = 1; /* 0 = Puck/Cursor, 1 = Pen */
+    tablet_tool_type          = 1; /* 0 = Puck/Cursor, 1 = Pen */
 
 double mouse_x_abs,
-       mouse_y_abs;
-
+    mouse_y_abs;
 
 static const device_t mouse_none_device = {
     .name          = "None",

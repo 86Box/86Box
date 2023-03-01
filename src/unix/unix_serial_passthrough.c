@@ -200,8 +200,8 @@ plat_serpt_write(void *p, uint8_t data)
 static int
 open_pseudo_terminal(serial_passthrough_t *dev)
 {
-    int   master_fd = open("/dev/ptmx", O_RDWR | O_NONBLOCK);
-    char *ptname;
+    int            master_fd = open("/dev/ptmx", O_RDWR | O_NONBLOCK);
+    char          *ptname;
     struct termios term_attr_raw;
 
     if (!master_fd) {

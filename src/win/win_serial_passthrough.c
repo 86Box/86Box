@@ -47,7 +47,7 @@ plat_serpt_close(void *p)
     if (dev->mode == SERPT_MODE_VCON)
         DisconnectNamedPipe((HANDLE) dev->master_fd);
     if (dev->mode == SERPT_MODE_HOSTSER) {
-        SetCommState((HANDLE)dev->master_fd, (DCB*)dev->backend_priv);
+        SetCommState((HANDLE) dev->master_fd, (DCB *) dev->backend_priv);
         free(dev->backend_priv);
     }
     CloseHandle((HANDLE) dev->master_fd);
@@ -80,41 +80,44 @@ plat_serpt_write_vcon(serial_passthrough_t *dev, uint8_t data)
 void
 plat_serpt_set_params(void *p)
 {
-        serial_passthrough_t *dev = (serial_passthrough_t *)p;
+    serial_passthrough_t *dev = (serial_passthrough_t *) p;
 
-        if (dev->mode == SERPT_MODE_HOSTSER) {
-                DCB serialattr = {};
-                GetCommState((HANDLE)dev->master_fd, &serialattr);
-#define BAUDRATE_RANGE(baud_rate, min, max) if (baud_rate >= min && baud_rate < max) { serialattr.BaudRate = min; }
+    if (dev->mode == SERPT_MODE_HOSTSER) {
+        DCB serialattr = {};
+        GetCommState((HANDLE) dev->master_fd, &serialattr);
+#define BAUDRATE_RANGE(baud_rate, min, max)    \
+    if (baud_rate >= min && baud_rate < max) { \
+        serialattr.BaudRate = min;             \
+    }
 
-                BAUDRATE_RANGE(dev->baudrate, 110, 300);
-                BAUDRATE_RANGE(dev->baudrate, 300, 600);
-                BAUDRATE_RANGE(dev->baudrate, 600, 1200);
-                BAUDRATE_RANGE(dev->baudrate, 1200, 2400);
-                BAUDRATE_RANGE(dev->baudrate, 2400, 4800);
-                BAUDRATE_RANGE(dev->baudrate, 4800, 9600);
-                BAUDRATE_RANGE(dev->baudrate, 9600, 14400);
-                BAUDRATE_RANGE(dev->baudrate, 14400, 19200);
-                BAUDRATE_RANGE(dev->baudrate, 19200, 38400);
-                BAUDRATE_RANGE(dev->baudrate, 38400, 57600);
-                BAUDRATE_RANGE(dev->baudrate, 57600, 115200);
-                BAUDRATE_RANGE(dev->baudrate, 115200, 0xFFFFFFFF);
+        BAUDRATE_RANGE(dev->baudrate, 110, 300);
+        BAUDRATE_RANGE(dev->baudrate, 300, 600);
+        BAUDRATE_RANGE(dev->baudrate, 600, 1200);
+        BAUDRATE_RANGE(dev->baudrate, 1200, 2400);
+        BAUDRATE_RANGE(dev->baudrate, 2400, 4800);
+        BAUDRATE_RANGE(dev->baudrate, 4800, 9600);
+        BAUDRATE_RANGE(dev->baudrate, 9600, 14400);
+        BAUDRATE_RANGE(dev->baudrate, 14400, 19200);
+        BAUDRATE_RANGE(dev->baudrate, 19200, 38400);
+        BAUDRATE_RANGE(dev->baudrate, 38400, 57600);
+        BAUDRATE_RANGE(dev->baudrate, 57600, 115200);
+        BAUDRATE_RANGE(dev->baudrate, 115200, 0xFFFFFFFF);
 
-                serialattr.ByteSize = dev->data_bits;
-                serialattr.StopBits = (dev->serial->lcr & 0x04) ? TWOSTOPBITS : ONESTOPBIT;
-                if (!(dev->serial->lcr & 0x08)) {
-                    serialattr.fParity = 0;
-                    serialattr.Parity = NOPARITY;
-                } else {
-                    serialattr.fParity = 1;
-                    if (dev->serial->lcr & 0x20) {
-                        serialattr.Parity = (MARKPARITY) + !!(dev->serial->lcr & 0x10);
-                    } else {
-                        serialattr.Parity = (ODDPARITY) + !!(dev->serial->lcr & 0x10);
-                    }
-                }
+        serialattr.ByteSize = dev->data_bits;
+        serialattr.StopBits = (dev->serial->lcr & 0x04) ? TWOSTOPBITS : ONESTOPBIT;
+        if (!(dev->serial->lcr & 0x08)) {
+            serialattr.fParity = 0;
+            serialattr.Parity  = NOPARITY;
+        } else {
+            serialattr.fParity = 1;
+            if (dev->serial->lcr & 0x20) {
+                serialattr.Parity = (MARKPARITY) + !!(dev->serial->lcr & 0x10);
+            } else {
+                serialattr.Parity = (ODDPARITY) + !!(dev->serial->lcr & 0x10);
+            }
+        }
 
-                SetCommState((HANDLE)dev->master_fd, &serialattr);
+        SetCommState((HANDLE) dev->master_fd, &serialattr);
 #undef BAUDRATE_RANGE
     }
 }
@@ -168,7 +171,7 @@ open_pseudo_terminal(serial_passthrough_t *dev)
     if (dev->master_fd == (intptr_t) INVALID_HANDLE_VALUE) {
         wchar_t errorMsg[1024] = { 0 };
         wchar_t finalMsg[1024] = { 0 };
-        DWORD error = GetLastError();
+        DWORD   error          = GetLastError();
         FormatMessageW(FORMAT_MESSAGE_FROM_SYSTEM, NULL, error, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), errorMsg, 1024, NULL);
         swprintf(finalMsg, 1024, L"Named Pipe (server, named_pipe=\"%hs\", port=COM%d): %ls\n", ascii_pipe_name, dev->port + 1, errorMsg);
         ui_msgbox(MBX_ERROR | MBX_FATAL, finalMsg);
@@ -188,8 +191,9 @@ open_host_serial_port(serial_passthrough_t *dev)
         .WriteTotalTimeoutMultiplier = 0,
         .WriteTotalTimeoutConstant   = 1000
     };
-    DCB* serialattr = calloc(1, sizeof(DCB));
-    if (!serialattr) return 0;
+    DCB *serialattr = calloc(1, sizeof(DCB));
+    if (!serialattr)
+        return 0;
     dev->master_fd = (intptr_t) CreateFileA(dev->host_serial_path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
     if (dev->master_fd == (intptr_t) INVALID_HANDLE_VALUE) {
         free(serialattr);
@@ -201,7 +205,7 @@ open_host_serial_port(serial_passthrough_t *dev)
         free(serialattr);
         return 0;
     }
-    GetCommState((HANDLE)dev->master_fd, serialattr);
+    GetCommState((HANDLE) dev->master_fd, serialattr);
     dev->backend_priv = serialattr;
     return 1;
 }

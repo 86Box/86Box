@@ -88,7 +88,7 @@ discord_update_activity(int paused)
         *(paren - 1) = '\0';
 
 #pragma GCC diagnostic push
-#if defined(__GNUC__) && !defined (__clang__)
+#if defined(__GNUC__) && !defined(__clang__)
 #    pragma GCC diagnostic ignored "-Wformat-truncation"
 #endif
     if (strlen(vm_name) < 100) {

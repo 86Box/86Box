@@ -162,7 +162,7 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
         case 0x0a: /* Indexed Data (RS value = 1010) */
             switch (ramdac->ind_idx) {
                 case 0x06: /* Indirect Cursor Control */
-                    ramdac->ccr                  = val;
+                    ramdac->ccr = val;
                     if (!(ramdac->ccr & 0x80)) {
                         svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 64;
                         svga->dac_hwcursor.x                                        = ramdac->hwc_x - svga->dac_hwcursor.cur_xsize;

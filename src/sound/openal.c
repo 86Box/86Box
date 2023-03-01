@@ -34,7 +34,7 @@
 #include <86box/midi.h>
 #include <86box/sound.h>
 
-#define FREQ   48000
+#define FREQ   SOUND_FREQ
 #define BUFLEN SOUNDBUFLEN
 
 ALuint        buffers[4];      /* front and back buffers */
