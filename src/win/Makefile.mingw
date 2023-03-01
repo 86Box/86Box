@@ -598,6 +598,7 @@ DEVOBJ := bugger.o cartridge.o cassette.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm
           mouse.o \
           mouse_bus.o \
           mouse_serial.o mouse_ps2.o \
+          mouse_wacom_tablet.o \
           phoenix_486_jumper.o  serial_passthrough.o \
           intel_ich2_gpio.o \
           intel_ich2_trap.o \

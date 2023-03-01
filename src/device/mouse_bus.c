@@ -449,7 +449,7 @@ ms_write(uint16_t port, uint8_t val, void *priv)
 
 /* The emulator calls us with an update on the host mouse device. */
 static int
-bm_poll(int x, int y, int z, int b, void *priv)
+bm_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
 {
     mouse_t *dev = (mouse_t *) priv;
     int xor ;

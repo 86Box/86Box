@@ -267,7 +267,7 @@ mouse_reset:
 }
 
 static int
-ps2_poll(int x, int y, int z, int b, void *priv)
+ps2_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
 {
     mouse_t *dev = (mouse_t *) priv;
 

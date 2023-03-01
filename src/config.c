@@ -656,6 +656,8 @@ load_input_devices(void)
             }
         }
     }
+
+    tablet_tool_type = !!ini_section_get_int(cat, "tablet_tool_type", 1);
 }
 
 /* Load "Sound" section. */
@@ -2338,6 +2340,12 @@ save_input_devices(void)
         }
     }
 
+    if (tablet_tool_type != 1) {
+        ini_section_set_int(cat, "tablet_tool_type", tablet_tool_type);
+    } else {
+        ini_section_delete_var(cat, "tablet_tool_type");
+    }
+    
     ini_delete_section_if_empty(config, cat);
 }
 
