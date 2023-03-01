@@ -1603,7 +1603,13 @@ void
 ui_init_monitor(int monitor_index)
 {
 }
+
 void
 ui_deinit_monitor(int monitor_index)
+{
+}
+
+void
+ui_hard_reset_completed(void)
 {
 }

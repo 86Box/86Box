@@ -596,6 +596,7 @@ DEVOBJ := bugger.o cartridge.o cassette.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm
           mouse.o \
           mouse_bus.o \
           mouse_serial.o mouse_ps2.o \
+          mouse_wacom_tablet.o \
           phoenix_486_jumper.o serial_passthrough.o
 
 SIOOBJ := sio_acc3221.o sio_ali5123.o \
