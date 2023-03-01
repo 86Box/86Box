@@ -1659,7 +1659,7 @@ emu8k_vol_slide(emu8k_slide_t *slide, int32_t target)
 void
 emu8k_update(emu8k_t *emu8k)
 {
-    int new_pos = (sound_pos_global * 44100) / 48000;
+    int new_pos = (sound_pos_global * FREQ_44100) / SOUND_FREQ;
     if (emu8k->pos >= new_pos)
         return;
 

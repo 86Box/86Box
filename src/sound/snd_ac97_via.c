@@ -746,7 +746,7 @@ ac97_via_speed_changed(void *priv)
     if (dev->vsr_enabled && dev->codec[0][0])
         freq = ac97_codec_getrate(dev->codec[0][0], 0x2c);
     else
-        freq = 48000.0;
+        freq = (double) SOUND_FREQ;
 
     dev->sgd[0].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq));
     dev->sgd[2].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 24000.0));
