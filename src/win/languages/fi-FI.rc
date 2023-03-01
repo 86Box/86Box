@@ -538,9 +538,10 @@ BEGIN
     IDS_2160	"ACPI-sammutus"
     IDS_2161	"Asetukset"
     IDS_2162    "Aiemmat asemat"
-    IDS_2163    "no dynarec"
-    IDS_2164    "old dynarec"
-    IDS_2165    "new dynarec"
+    IDS_2163    "No Dynarec"
+    IDS_2164    "Old Dynarec"
+    IDS_2165    "New Dynarec"
+    IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
 END
 
 STRINGTABLE DISCARDABLE
