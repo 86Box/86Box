@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Joystick configuration UI module.
+ *          Joystick configuration UI module.
  *
  *
  *
- * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *
- *		Copyright 2021 Joakim L. Gilje
- *      Copyright 2021-2022 Cacodemon345
+ *          Copyright 2021 Joakim L. Gilje
+ *          Copyright 2021-2022 Cacodemon345
  */
 #include "qt_machinestatus.hpp"
 
@@ -29,6 +29,7 @@ extern uint64_t tsc;
 #include <86box/cartridge.h>
 #include <86box/cassette.h>
 #include <86box/cdrom.h>
+#include <86box/cdrom_interface.h>
 #include <86box/fdd.h>
 #include <86box/hdc.h>
 #include <86box/scsi.h>
@@ -300,6 +301,8 @@ MachineStatus::iterateCDROM(const std::function<void(int)> &cb)
             continue;
         if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !hasSCSI() && (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) && (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
             continue;
+        if ((cdrom[i].bus_type == CDROM_BUS_MITSUMI) && (cdrom_interface_current == 0))
+            continue;
         if (cdrom[i].bus_type != 0) {
             cb(i);
         }
@@ -366,6 +369,10 @@ hdd_count(int bus)
 void
 MachineStatus::refreshIcons()
 {
+    /* Check if icons should show activity. */
+    if (!update_icons)
+        return;
+
     for (size_t i = 0; i < FDD_NUM; ++i) {
         d->fdd[i].setActive(machine_status.fdd[i].active);
         d->fdd[i].setEmpty(machine_status.fdd[i].empty);
@@ -397,6 +404,23 @@ MachineStatus::refreshIcons()
     for (int i = 0; i < 2; ++i) {
         d->cartridge[i].setEmpty(machine_status.cartridge[i].empty);
     }
+}
+
+void
+MachineStatus::clearActivity()
+{
+    for (auto &fdd : d->fdd)
+        fdd.setActive(false);
+    for (auto &cdrom : d->cdrom)
+        cdrom.setActive(false);
+    for (auto &zip : d->zip)
+        zip.setActive(false);
+    for (auto &mo : d->mo)
+        mo.setActive(false);
+    for (auto &hdd : d->hdds)
+        hdd.setActive(false);
+    for (auto &net : d->net)
+        net.setActive(false);
 }
 
 void

@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *      Main entry point module
+ *          Main entry point module
  *
  *
- * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *          Teemu Korhonen
  *
- *		Copyright 2021 Joakim L. Gilje
- *      Copyright 2021-2022 Cacodemon345
- *      Copyright 2021-2022 Teemu Korhonen
+ *          Copyright 2021 Joakim L. Gilje
+ *          Copyright 2021-2022 Cacodemon345
+ *          Copyright 2021-2022 Teemu Korhonen
  */
 #include <QApplication>
 #include <QSurfaceFormat>
@@ -43,7 +43,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #    include "qt_winrawinputfilter.hpp"
 #    include "qt_winmanagerfilter.hpp"
 #    include <86box/win.h>
-#    include <Shobjidl.h>
+#    include <shobjidl.h>
 #endif
 
 extern "C" {
@@ -52,7 +52,9 @@ extern "C" {
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/video.h>
-#include <86box/discord.h>
+#ifdef DISCORD
+#   include <86box/discord.h>
+#endif
 #include <86box/gdbstub.h>
 }
 
@@ -196,7 +198,9 @@ main(int argc, char *argv[])
         return 0;
     }
 
+#ifdef DISCORD
     discord_load();
+#endif
 
     main_window = new MainWindow();
     if (startMaximized) {
@@ -246,7 +250,6 @@ main(int argc, char *argv[])
     auto rawInputFilter = WindowsRawInputFilter::Register(main_window);
     if (rawInputFilter) {
         app.installNativeEventFilter(rawInputFilter.get());
-        QObject::disconnect(main_window, &MainWindow::pollMouse, 0, 0);
         QObject::connect(main_window, &MainWindow::pollMouse, (WindowsRawInputFilter *) rawInputFilter.get(), &WindowsRawInputFilter::mousePoll, Qt::DirectConnection);
         main_window->setSendKeyboardInput(false);
     }
@@ -271,12 +274,14 @@ main(int argc, char *argv[])
     /* Set the PAUSE mode depending on the renderer. */
     // plat_pause(0);
     QTimer onesec;
-    QTimer discordupdate;
     QObject::connect(&onesec, &QTimer::timeout, &app, [] {
         pc_onesec();
     });
     onesec.setTimerType(Qt::PreciseTimer);
     onesec.start(1000);
+
+#ifdef DISCORD
+    QTimer discordupdate;
     if (discord_loaded) {
         QTimer::singleShot(1000, &app, [] {
             if (enable_discord) {
@@ -290,6 +295,7 @@ main(int argc, char *argv[])
         });
         discordupdate.start(1000);
     }
+#endif
 
     /* Initialize the rendering window, or fullscreen. */
     QTimer::singleShot(0, &app, [] {

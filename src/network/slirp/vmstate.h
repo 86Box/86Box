@@ -175,6 +175,9 @@ enum VMStateFlags {
      * VMStateField.struct_version_id to tell which version of the
      * structure we are referencing to use. */
     VMS_VSTRUCT = 0x8000,
+
+    /* Marker for end of list */
+    VMS_END = 0x10000
 };
 
 struct VMStateField {
@@ -216,10 +219,17 @@ extern const VMStateInfo slirp_vmstate_info_nullptr;
 extern const VMStateInfo slirp_vmstate_info_buffer;
 extern const VMStateInfo slirp_vmstate_info_tmp;
 
+#ifdef __GNUC__
 #define type_check_array(t1, t2, n) ((t1(*)[n])0 - (t2 *)0)
 #define type_check_pointer(t1, t2) ((t1 **)0 - (t2 *)0)
 #define typeof_field(type, field) typeof(((type *)0)->field)
 #define type_check(t1, t2) ((t1 *)0 - (t2 *)0)
+#else
+#define type_check_array(t1, t2, n) 0
+#define type_check_pointer(t1, t2) 0
+#define typeof_field(type, field) (((type *)0)->field)
+#define type_check(t1, t2) 0
+#endif
 
 #define vmstate_offset_value(_state, _field, _type) \
     (offsetof(_state, _field) + type_check(_type, typeof_field(_state, _field)))
@@ -388,6 +398,7 @@ extern const VMStateInfo slirp_vmstate_info_tmp;
 
 #define VMSTATE_END_OF_LIST() \
     {                         \
+        .flags = VMS_END,     \
     }
 
-#endif
+#endif /* VMSTATE_H_ */

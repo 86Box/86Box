@@ -41,6 +41,8 @@ void if_init(Slirp *slirp)
 void if_output(struct socket *so, struct mbuf *ifm)
 {
     Slirp *slirp = ifm->slirp;
+    M_DUP_DEBUG(slirp, ifm, 0, 0);
+
     struct mbuf *ifq;
     int on_fastq = 1;
 
@@ -54,7 +56,7 @@ void if_output(struct socket *so, struct mbuf *ifm)
      * XXX Shouldn't need this, gotta change dtom() etc.
      */
     if (ifm->m_flags & M_USEDLIST) {
-        remque(ifm);
+        slirp_remque(ifm);
         ifm->m_flags &= ~M_USEDLIST;
     }
 
@@ -68,7 +70,8 @@ void if_output(struct socket *so, struct mbuf *ifm)
      */
     if (so) {
         for (ifq = (struct mbuf *)slirp->if_batchq.qh_rlink;
-             (struct quehead *)ifq != &slirp->if_batchq; ifq = ifq->ifq_prev) {
+             (struct slirp_quehead *)ifq != &slirp->if_batchq;
+	     ifq = ifq->ifq_prev) {
             if (so == ifq->ifq_so) {
                 /* A match! */
                 ifm->ifq_so = so;
@@ -98,7 +101,7 @@ void if_output(struct socket *so, struct mbuf *ifm)
     /* Create a new doubly linked list for this session */
     ifm->ifq_so = so;
     ifs_init(ifm);
-    insque(ifm, ifq);
+    slirp_insque(ifm, ifq);
 
 diddit:
     if (so) {
@@ -115,10 +118,10 @@ diddit:
         if (on_fastq &&
             ((so->so_nqueued >= 6) && (so->so_nqueued - so->so_queued) >= 3)) {
             /* Remove from current queue... */
-            remque(ifm->ifs_next);
+            slirp_remque(ifm->ifs_next);
 
             /* ...And insert in the new.  That'll teach ya! */
-            insque(ifm->ifs_next, &slirp->if_batchq);
+            slirp_insque(ifm->ifs_next, &slirp->if_batchq);
         }
     }
 
@@ -143,7 +146,7 @@ void if_start(Slirp *slirp)
     bool from_batchq = false;
     struct mbuf *ifm, *ifm_next, *ifqt;
 
-    DEBUG_CALL("if_start");
+    DEBUG_VERBOSE_CALL("if_start");
 
     if (slirp->if_start_busy) {
         return;
@@ -169,12 +172,12 @@ void if_start(Slirp *slirp)
         ifm = ifm_next;
 
         ifm_next = ifm->ifq_next;
-        if ((struct quehead *)ifm_next == &slirp->if_fastq) {
+        if ((struct slirp_quehead *)ifm_next == &slirp->if_fastq) {
             /* No more packets in fastq, switch to batchq */
             ifm_next = batch_head;
             from_batchq = true;
         }
-        if ((struct quehead *)ifm_next == &slirp->if_batchq) {
+        if ((struct slirp_quehead *)ifm_next == &slirp->if_batchq) {
             /* end of batchq */
             ifm_next = NULL;
         }
@@ -187,13 +190,13 @@ void if_start(Slirp *slirp)
 
         /* Remove it from the queue */
         ifqt = ifm->ifq_prev;
-        remque(ifm);
+        slirp_remque(ifm);
 
         /* If there are more packets for this session, re-queue them */
         if (ifm->ifs_next != ifm) {
             struct mbuf *next = ifm->ifs_next;
 
-            insque(next, ifqt);
+            slirp_insque(next, ifqt);
             ifs_remque(ifm);
             if (!from_batchq) {
                 ifm_next = next;

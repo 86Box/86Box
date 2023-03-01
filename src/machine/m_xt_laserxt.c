@@ -136,6 +136,22 @@ laserxt_init(int is_lxt3)
     laserxt_is_lxt3 = is_lxt3;
 }
 
+static void
+machine_xt_laserxt_common_init(const machine_t *model,int is_lxt3)
+{
+    machine_common_init(model);
+
+    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
+
+    if (fdc_type == FDC_INTERNAL)
+        device_add(&fdc_xt_device);
+
+    nmi_init();
+    standalone_gameport_type = &gameport_device;
+
+    laserxt_init(is_lxt3);
+}
+
 int
 machine_xt_laserxt_init(const machine_t *model)
 {
@@ -147,9 +163,9 @@ machine_xt_laserxt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_init(model);
+    device_add(&keyboard_xt_device);
 
-    laserxt_init(0);
+    machine_xt_laserxt_common_init(model, 0);
 
     return ret;
 }
@@ -165,18 +181,9 @@ machine_xt_lxt3_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_common_init(model);
-
-    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
-
     device_add(&keyboard_xt_lxt3_device);
 
-    if (fdc_type == FDC_INTERNAL)
-        device_add(&fdc_xt_device);
-    nmi_init();
-    standalone_gameport_type = &gameport_device;
-
-    laserxt_init(1);
+    machine_xt_laserxt_common_init(model, 1);
 
     return ret;
 }

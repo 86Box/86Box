@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Melissa Goad, <mszoopers@protonmail.com>
  *
@@ -268,7 +268,7 @@ machine_at_ficva503a_init(const machine_t *model)
     hwm_values.temperatures[1] += 2; /* System offset */
     hwm_values.temperatures[2] = 0;  /* unused */
 
-    if (sound_card_current == SOUND_INTERNAL)
+    if (sound_card_current[0] == SOUND_INTERNAL)
         device_add(&wm9701a_device); /* on daughtercard */
 
     return ret;

@@ -1,56 +1,56 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		This implements just enough of the Professional Graphics
- *		Controller to act as a basis for the Vermont Microsystems
- *		IM-1024.
+ *          This implements just enough of the Professional Graphics
+ *          Controller to act as a basis for the Vermont Microsystems
+ *          IM-1024.
  *
- *		PGC features implemented include:
- *		> The CGA-compatible display modes
- *		> Switching to and from native mode
- *		> Communicating with the host PC
+ *          PGC features implemented include:
+ *          > The CGA-compatible display modes
+ *          > Switching to and from native mode
+ *          > Communicating with the host PC
  *
- *		Numerous features are implemented partially or not at all,
- *		such as:
- *		> 2D drawing
- *		> 3D drawing
- *		> Command lists
- *		Some of these are marked TODO.
+ *          Numerous features are implemented partially or not at all,
+ *          such as:
+ *          > 2D drawing
+ *          > 3D drawing
+ *          > Command lists
+ *          Some of these are marked TODO.
  *
- *		The PGC has two display modes: CGA (in which it appears in
- *		the normal CGA memory and I/O ranges) and native (in which
- *		all functions are accessed through reads and writes to 1K
- *		of memory at 0xC6000).
+ *          The PGC has two display modes: CGA (in which it appears in
+ *          the normal CGA memory and I/O ranges) and native (in which
+ *          all functions are accessed through reads and writes to 1K
+ *          of memory at 0xC6000).
  *
- *		The PGC's 8088 processor monitors this buffer and executes
- *		instructions left there for it. We simulate this behavior
- *		with a separate thread.
+ *          The PGC's 8088 processor monitors this buffer and executes
+ *          instructions left there for it. We simulate this behavior
+ *          with a separate thread.
  *
- * **NOTE**	This driver is not finished yet:
+ * **NOTE** This driver is not finished yet:
  *
- *		- cursor will blink at very high speed if used on a machine
- *		  with clock greater than 4.77MHz. We should  "scale down"
- *		  this speed, to become relative to a 4.77MHz-based system.
+ *          - cursor will blink at very high speed if used on a machine
+ *            with clock greater than 4.77MHz. We should  "scale down"
+ *            this speed, to become relative to a 4.77MHz-based system.
  *
- *		- pgc_plot() should be overloaded by clones if they support
- *		  modes other than WRITE and INVERT, like the IM-1024.
+ *          - pgc_plot() should be overloaded by clones if they support
+ *            modes other than WRITE and INVERT, like the IM-1024.
  *
- *		- test it with the Windows 1.x driver?
+ *          - test it with the Windows 1.x driver?
  *
- *		This is expected to be done shortly.
+ *            This is expected to be done shortly.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		John Elliott, <jce@seasip.info>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          John Elliott, <jce@seasip.info>
  *
- *		Copyright 2019 Fred N. van Kempen.
- *		Copyright 2019 John Elliott.
+ *          Copyright 2019 Fred N. van Kempen.
+ *          Copyright 2019 John Elliott.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2663,8 +2663,8 @@ pgc_init(pgc_t *dev, int maxw, int maxh, int visw, int vish,
     dev->visw = visw;
     dev->vish = vish;
 
-    dev->vram = (uint8_t *) malloc(maxw * maxh);
-    memset(dev->vram, 0x00, maxw * maxh);
+    dev->vram = (uint8_t *) malloc((size_t) maxw * maxh);
+    memset(dev->vram, 0x00, (size_t) maxw * maxh);
     dev->cga_vram = (uint8_t *) malloc(16384);
     memset(dev->cga_vram, 0x00, 16384);
 

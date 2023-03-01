@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		S3 ViRGE emulation.
+ *          S3 ViRGE emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -4181,10 +4181,12 @@ s3_virge_init(const device_t *info)
               s3_virge_overlay_draw);
     virge->svga.hwcursor.cur_ysize = 64;
 
-    if (info->local == S3_VIRGE_GX2)
-        rom_init(&virge->bios_rom, (char *) bios_fn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-    else
-        rom_init(&virge->bios_rom, (char *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    if (bios_fn != NULL) {
+        if (info->local == S3_VIRGE_GX2)
+            rom_init(&virge->bios_rom, (char *) bios_fn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+        else
+            rom_init(&virge->bios_rom, (char *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    }
 
     mem_mapping_disable(&virge->bios_rom.mapping);
 

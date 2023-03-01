@@ -1,19 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Voodoo Banshee and 3 specific emulation.
+ *          Voodoo Banshee and 3 specific emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *
- *		Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2008-2020 Sarah Walker.
  */
+#include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -453,7 +454,7 @@ banshee_render_16bpp_tiled(svga_t *svga)
 {
     banshee_t *banshee = (banshee_t *) svga->p;
     int        x;
-    uint32_t  *p = &((uint32_t *) buffer32->line[svga->displine + svga->y_add])[svga->x_add];
+    uint32_t  *p = &((uint32_t *) svga->monitor->target_buffer->line[svga->displine + svga->y_add])[svga->x_add];
     uint32_t   addr;
     int        drawn = 0;
 
@@ -1567,7 +1568,7 @@ banshee_reg_writel(uint32_t addr, uint32_t val, void *p)
             break;
 
         case 0x0600000:
-        case 0x0700000: /*Texture download*/
+        case 0x0700000: /*TMU0 Texture download*/
             voodoo->tex_count++;
             voodoo_queue_command(voodoo, (addr & 0x1ffffc) | FIFO_WRITEL_TEX, val);
             break;
@@ -1602,6 +1603,9 @@ banshee_read_linear(uint32_t addr, void *p)
 
     cycles -= voodoo->read_time;
 
+    if ((banshee->pci_regs[0x30] & 0x01) && addr >= banshee->bios_rom.mapping.base && addr < (banshee->bios_rom.mapping.base + banshee->bios_rom.sz)) {
+        return rom_read(addr & (banshee->bios_rom.sz - 1), &banshee->bios_rom);
+    }
     addr &= svga->decode_mask;
     if (addr >= voodoo->tile_base) {
         int x, y;
@@ -1616,7 +1620,7 @@ banshee_read_linear(uint32_t addr, void *p)
     if (addr >= svga->vram_max)
         return 0xff;
 
-    cycles -= video_timing_read_b;
+    cycles -= svga->monitor->mon_video_timing_read_b;
 
     //        banshee_log("read_linear: addr=%08x val=%02x\n", addr, svga->vram[addr & svga->vram_mask]);
 
@@ -1634,6 +1638,9 @@ banshee_read_linear_w(uint32_t addr, void *p)
         return banshee_read_linear(addr, p) | (banshee_read_linear(addr + 1, p) << 8);
 
     cycles -= voodoo->read_time;
+    if ((banshee->pci_regs[0x30] & 0x01) && addr >= banshee->bios_rom.mapping.base && addr < (banshee->bios_rom.mapping.base + banshee->bios_rom.sz)) {
+        return rom_readw(addr & (banshee->bios_rom.sz - 1), &banshee->bios_rom);
+    }
     addr &= svga->decode_mask;
     if (addr >= voodoo->tile_base) {
         int x, y;
@@ -1648,7 +1655,7 @@ banshee_read_linear_w(uint32_t addr, void *p)
     if (addr >= svga->vram_max)
         return 0xff;
 
-    cycles -= video_timing_read_w;
+    cycles -= svga->monitor->mon_video_timing_read_w;
 
     //        banshee_log("read_linear: addr=%08x val=%02x\n", addr, svga->vram[addr & svga->vram_mask]);
 
@@ -1667,6 +1674,9 @@ banshee_read_linear_l(uint32_t addr, void *p)
 
     cycles -= voodoo->read_time;
 
+    if ((banshee->pci_regs[0x30] & 0x01) && addr >= banshee->bios_rom.mapping.base && addr < (banshee->bios_rom.mapping.base + banshee->bios_rom.sz)) {
+        return rom_readl(addr & (banshee->bios_rom.sz - 1), &banshee->bios_rom);
+    }
     addr &= svga->decode_mask;
     if (addr >= voodoo->tile_base) {
         int x, y;
@@ -1681,7 +1691,7 @@ banshee_read_linear_l(uint32_t addr, void *p)
     if (addr >= svga->vram_max)
         return 0xff;
 
-    cycles -= video_timing_read_l;
+    cycles -= svga->monitor->mon_video_timing_read_l;
 
     //        banshee_log("read_linear: addr=%08x val=%02x\n", addr, svga->vram[addr & svga->vram_mask]);
 
@@ -1712,7 +1722,7 @@ banshee_write_linear(uint32_t addr, uint8_t val, void *p)
     if (addr >= svga->vram_max)
         return;
 
-    cycles -= video_timing_write_b;
+    cycles -= svga->monitor->mon_video_timing_write_b;
 
     svga->changedvram[addr >> 12]      = changeframecount;
     svga->vram[addr & svga->vram_mask] = val;
@@ -1747,7 +1757,7 @@ banshee_write_linear_w(uint32_t addr, uint16_t val, void *p)
     if (addr >= svga->vram_max)
         return;
 
-    cycles -= video_timing_write_w;
+    cycles -= svga->monitor->mon_video_timing_write_w;
 
     svga->changedvram[addr >> 12]                     = changeframecount;
     *(uint16_t *) &svga->vram[addr & svga->vram_mask] = val;
@@ -1790,7 +1800,7 @@ banshee_write_linear_l(uint32_t addr, uint32_t val, void *p)
     if (addr >= svga->vram_max)
         return;
 
-    cycles -= video_timing_write_l;
+    cycles -= svga->monitor->mon_video_timing_write_l;
 
     svga->changedvram[addr >> 12]                     = changeframecount;
     *(uint32_t *) &svga->vram[addr & svga->vram_mask] = val;
@@ -1862,7 +1872,7 @@ banshee_hwcursor_draw(svga_t *svga, int displine)
             if (x_off > -8) {
                 for (xx = 0; xx < 8; xx++) {
                     if (plane0[x >> 3] & (1 << 7))
-                        ((uint32_t *) buffer32->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
+                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
 
                     plane0[x >> 3] <<= 1;
                     plane1[x >> 3] <<= 1;
@@ -1877,9 +1887,9 @@ banshee_hwcursor_draw(svga_t *svga, int displine)
             if (x_off > -8) {
                 for (xx = 0; xx < 8; xx++) {
                     if (!(plane0[x >> 3] & (1 << 7)))
-                        ((uint32_t *) buffer32->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
+                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
                     else if (plane1[x >> 3] & (1 << 7))
-                        ((uint32_t *) buffer32->line[displine])[x_off + xx + svga->x_add] ^= 0xffffff;
+                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] ^= 0xffffff;
 
                     plane0[x >> 3] <<= 1;
                     plane1[x >> 3] <<= 1;
@@ -2204,7 +2214,7 @@ banshee_overlay_draw(svga_t *svga, int displine)
     //        pclog("displine=%i addr=%08x %08x  %08x  %08x\n", displine, svga->overlay_latch.addr, src_addr, voodoo->overlay.vidOverlayDvdy, *(uint32_t *)src);
     //        if (src_addr >= 0x800000)
     //                fatal("overlay out of range!\n");
-    p = &((uint32_t *) buffer32->line[displine])[svga->overlay_latch.x + svga->x_add];
+    p = &((uint32_t *) svga->monitor->target_buffer->line[displine])[svga->overlay_latch.x + svga->x_add];
 
     if (banshee->voodoo->scrfilter && banshee->voodoo->scrfilterEnabled)
         skip_filtering = ((banshee->vidProcCfg & VIDPROCCFG_FILTER_MODE_MASK) != VIDPROCCFG_FILTER_MODE_BILINEAR && !(banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) && !(banshee->vidProcCfg & VIDPROCCFG_FILTER_MODE_DITHER_4X4) && !(banshee->vidProcCfg & VIDPROCCFG_FILTER_MODE_DITHER_2X2));
@@ -2255,9 +2265,10 @@ banshee_overlay_draw(svga_t *svga, int displine)
 
             case VIDPROCCFG_FILTER_MODE_DITHER_4X4:
                 if (banshee->voodoo->scrfilter && banshee->voodoo->scrfilterEnabled) {
-                    uint8_t *fil  = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *fil3 = malloc((svga->overlay_latch.cur_xsize) * 3);
+                    uint8_t fil[64 * 3];
+                    uint8_t fil3[64 * 3];
 
+                    assert(svga->overlay_latch.cur_xsize <= 64);
                     if (banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) /* leilei HACK - don't know of real 4x1 hscaled behavior yet, double for now */
                     {
                         for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
@@ -2308,9 +2319,6 @@ banshee_overlay_draw(svga_t *svga, int displine)
                         fil[(x) *3 + 2] = vb_filter_v1_rb[fil[x * 3 + 2]][fil3[(x + 1) * 3 + 2]];
                         p[x]            = (fil[x * 3 + 2] << 16) | (fil[x * 3 + 1] << 8) | fil[x * 3];
                     }
-
-                    free(fil);
-                    free(fil3);
                 } else /* filter disabled by emulator option */
                 {
                     if (banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) {
@@ -2327,15 +2335,16 @@ banshee_overlay_draw(svga_t *svga, int displine)
 
             case VIDPROCCFG_FILTER_MODE_DITHER_2X2:
                 if (banshee->voodoo->scrfilter && banshee->voodoo->scrfilterEnabled) {
-                    uint8_t *fil   = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *soak  = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *soak2 = malloc((svga->overlay_latch.cur_xsize) * 3);
+                    uint8_t fil[64 * 3];
+                    uint8_t soak[64 * 3];
+                    uint8_t soak2[64 * 3];
 
-                    uint8_t *samp1 = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *samp2 = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *samp3 = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *samp4 = malloc((svga->overlay_latch.cur_xsize) * 3);
+                    uint8_t samp1[64 * 3];
+                    uint8_t samp2[64 * 3];
+                    uint8_t samp3[64 * 3];
+                    uint8_t samp4[64 * 3];
 
+                    assert(svga->overlay_latch.cur_xsize <= 64);
                     src = &svga->vram[src_addr2 & svga->vram_mask];
                     OVERLAY_SAMPLE(banshee->overlay_buffer[1]);
                     for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
@@ -2383,14 +2392,6 @@ banshee_overlay_draw(svga_t *svga, int displine)
                             p[x] = (fil[x * 3 + 2] << 16) | (fil[x * 3 + 1] << 8) | fil[x * 3];
                         }
                     }
-
-                    free(fil);
-                    free(soak);
-                    free(soak2);
-                    free(samp1);
-                    free(samp2);
-                    free(samp3);
-                    free(samp4);
                 } else /* filter disabled by emulator option */
                 {
                     if (banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) {

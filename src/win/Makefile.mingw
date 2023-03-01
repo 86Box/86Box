@@ -76,6 +76,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef PAS16
   PAS16 := y
  endif
+ ifndef PCI_DUMMY
+  PCI_DUMMY := y
+ endif
  ifndef SIO_DETECT
   SIO_DETECT := y
  endif
@@ -136,6 +139,9 @@ else
  endif
  ifndef PAS16
   PAS16 := n
+ endif
+ ifndef PCI_DUMMY
+  PCI_DUMMY := n
  endif
  ifndef SIO_DETECT
   SIO_DETECT := n
@@ -200,6 +206,9 @@ endif
 ifndef RTMIDI
  RTMIDI := y
 endif
+ifndef MINITRACE
+ MINITRACE := n
+endif
 ifeq ($(DYNAREC), y)
  ifeq ($(ARM), y)
   ifeq ($(NEW_DYNAREC), n)
@@ -237,44 +246,33 @@ VPATH := $(EXPATH) . $(CODEGEN) minitrace cpu \
          sound/munt/srchelper sound/munt/srchelper/srctools/src \
          sound/resid-fp sound/ymfm \
          scsi video network network/slirp win
+
+WINDRES := windres
+STRIP   := strip
 ifeq ($(X64), y)
  TOOL_PREFIX := x86_64-w64-mingw32-
 else
- TOOL_PREFIX := i686-w64-mingw32-
-endif
-WINDRES := windres
-STRIP   := strip
-ifeq ($(ARM64), y)
- WINDRES := aarch64-w64-mingw32-windres
- STRIP   := aarch64-w64-mingw32-strip
-endif
-ifeq ($(ARM), y)
- WINDRES := armv7-w64-mingw32-windres
- STRIP   := armv7-w64-mingw32-strip
-endif
-ifeq ($(CLANG), y)
- CPP := clang++
- CC  := clang
  ifeq ($(ARM64), y)
-  CPP := aarch64-w64-mingw32-clang++
-  CC  := aarch64-w64-mingw32-clang
+  TOOL_PREFIX := aarch64-w64-mingw32-
+  WINDRES := ${TOOL_PREFIX}windres
+  STRIP   := ${TOOL_PREFIX}strip
  endif
  ifeq ($(ARM), y)
-  CPP := armv7-w64-mingw32-clang++
-  CC  := armv7-w64-mingw32-clang
+  TOOL_PREFIX := armv7-w64-mingw32-
+  WINDRES := ${TOOL_PREFIX}windres
+  STRIP   := ${TOOL_PREFIX}strip
  endif
+ TOOL_PREFIX := i686-w64-mingw32-
+endif
+
+ifeq ($(CLANG), y)
+ CPP := ${TOOL_PREFIX}clang++
+ CC  := ${TOOL_PREFIX}clang
 else
  CPP := ${TOOL_PREFIX}g++
  CC  := ${TOOL_PREFIX}gcc
- ifeq ($(ARM64), y)
-  CPP := aarch64-w64-mingw32-g++
-  CC  := aarch64-w64-mingw32-gcc
- endif
- ifeq ($(ARM), y)
-  CPP := armv7-w64-mingw32-g++
-  CC  := armv7-w64-mingw32-gcc
- endif
 endif
+
 DEPS     = -MMD -MF $*.d -c $<
 DEPFILE := win/.depends
 
@@ -413,7 +411,7 @@ ifeq ($(VNC), y)
   OPTS   += -I$(VNC_PATH)\INCLUDE
   VNCLIB := -L$(VNC_PATH)\LIB
  endif
- VNCLIB +=  -lvncserver
+ VNCLIB +=  -lvncserver.dll
  VNCOBJ := vnc.o vnc_keymap.o
 endif
 
@@ -484,6 +482,11 @@ ifeq ($(DEV_BRANCH), y)
   DEVBROBJ += snd_pas16.o
  endif
 
+ ifeq ($(PCI_DUMMY), y)
+  OPTS     += -DUSE_PCI_DUMMY
+  DEVBROBJ += pci_dummy.o
+ endif
+
  ifeq ($(SIO_DETECT), y)
   OPTS     += -DUSE_SIO_DETECT
   DEVBROBJ += sio_detect.o
@@ -506,6 +509,10 @@ ifeq ($(DEV_BRANCH), y)
   OPTS     += -DUSE_GDBSTUB
   DEVBROBJ += gdbstub.o
  endif
+endif
+
+ifeq ($(RTMIDI), y)
+ OPTS += -DUSE_RTMIDI
 endif
 
 
@@ -542,7 +549,7 @@ CPUOBJ := $(DYNARECOBJ) \
 CHIPSETOBJ := 82c100.o acc2168.o \
               contaq_82c59x.o \
               cs4031.o cs8230.o \
-              ali1429.o ali1489.o ali1531.o ali1541.o ali1543.o ali1621.o ali6117.o \
+              ali1429.o ali1435.o ali1489.o ali1531.o ali1541.o ali1543.o ali1621.o ali6117.o \
               gc100.o headland.o \
               ims8848.o intel_82335.o intel_420ex.o intel_4x0.o intel_i450kx.o intel_sio.o intel_piix.o \
               ioapic.o \
@@ -589,7 +596,8 @@ DEVOBJ := bugger.o cartridge.o cassette.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm
           mouse.o \
           mouse_bus.o \
           mouse_serial.o mouse_ps2.o \
-          phoenix_486_jumper.o
+          mouse_wacom_tablet.o \
+          phoenix_486_jumper.o serial_passthrough.o
 
 SIOOBJ := sio_acc3221.o sio_ali5123.o \
           sio_f82c710.o sio_82091aa.o sio_fdc37c6xx.o \
@@ -602,7 +610,7 @@ SIOOBJ := sio_acc3221.o sio_ali5123.o \
           sio_um8669f.o \
           sio_vt82c686.o
 
-FDDOBJ := fdd.o fdc.o fdc_magitronic.o fdc_pii15xb.o \
+FDDOBJ := fdd.o fdc.o fdc_magitronic.o fdc_monster.o fdc_pii15xb.o \
           fdi2raw.o \
           fdd_common.o fdd_86f.o \
           fdd_fdi.o fdd_imd.o fdd_img.o fdd_json.o \
@@ -641,12 +649,18 @@ SCSIOBJ := scsi.o scsi_device.o \
            scsi_ncr5380.o scsi_ncr53c8xx.o \
            scsi_pcscsi.o scsi_spock.o
 
+SLIRPOBJ := net_slirp.o tinyglib.o \
+          arp_table.o bootp.o cksum.o dhcpv6.o dnssearch.o if.o \
+          ip_icmp.o ip_input.o ip_output.o \
+          ip6_icmp.o ip6_input.o ip6_output.o \
+          mbuf.o misc.o sbuf.o slirp.o socket.o \
+          tcp_input.o tcp_output.o tcp_subr.o tcp_timer.o \
+          udp.o udp6.o \
+          util.o version.o \
+
 NETOBJ := network.o \
           net_pcap.o \
-          net_slirp.o tinyglib.o \
-          arp_table.o bootp.o cksum.o dnssearch.o if.o ip_icmp.o ip_input.o \
-          ip_output.o mbuf.o misc.o sbuf.o slirp.o socket.o tcp_input.o \
-          tcp_output.o tcp_subr.o tcp_timer.o udp.o util.o version.o \
+          ${SLIRPOBJ} \
           net_dp8390.o net_3c501.o \
           net_3c503.o net_ne2000.o \
           net_pcnet.o net_wd8003.o \
@@ -736,7 +750,7 @@ VOODOOOBJ := vid_voodoo.o vid_voodoo_banshee.o \
 PLATOBJ := win.o \
            win_dynld.o \
            win_cdrom.o win_keyboard.o \
-           win_mouse.o
+           win_mouse.o win_serial_passthrough.o
 
 UIOBJ := win_ui.o win_icon.o win_stbar.o discord.o \
          win_sdl.o win_opengl.o win_opengl_glslp.o glad.o \
@@ -757,6 +771,10 @@ else
  SNDOBJ += xaudio2.o
 endif
 
+ifeq ($(RTMIDI), y)
+ SNDOBJ += midi_rtmidi.o
+endif
+
 OBJ := $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
        $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) $(MINIVHDOBJ) \
        $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) $(VOODOOOBJ) \
@@ -765,20 +783,24 @@ ifdef EXOBJ
  OBJ += $(EXOBJ)
 endif
 
+ifeq ($(LOG), y)
+ MWIN := -lcomdlg32
+else
+ MWIN := -mwindows
+endif
+
 ifeq ($(OPENAL), y)
- LIBS := -mwindows -lopenal -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+ LIBS := $(MWIN) -lopenal -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
 else
  ifeq ($(FAUDIO), y)
-  LIBS := -mwindows -lfaudio -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+  LIBS := $(MWIN) -lfaudio -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
  else
-  LIBS := -mwindows -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+  LIBS := $(MWIN) -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
  endif
 endif
 
 ifeq ($(RTMIDI), y)
- SNDOBJ += midi_rtmidi.o
- OPTS += -DUSE_RTMIDI
- LIBS += -lrtmidi
+ LIBS +=  -lrtmidi -lwinmm
 endif
 
 ifeq ($(VNC), y)

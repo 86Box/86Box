@@ -34,6 +34,37 @@
 #undef if_mtu
 #endif
 
+#if defined(_WIN32)
+
+#define INITIAL_DNS_ADDR_BUF_SIZE 32 * 1024
+#define REALLOC_RETRIES 5
+
+// Broadcast site local DNS resolvers. We do not use these because they are
+// highly unlikely to be valid.
+// https://www.ietf.org/proceedings/52/I-D/draft-ietf-ipngwg-dns-discovery-03.txt
+static const struct in6_addr SITE_LOCAL_DNS_BROADCAST_ADDRS[] = {
+    {
+        {{
+            0xfe, 0xc0, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01
+        }}
+    },
+    {
+        {{
+            0xfe, 0xc0, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02
+        }}
+    },
+    {
+        {{
+            0xfe, 0xc0, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03,
+        }}
+    },
+};
+
+#endif
+
 int slirp_debug;
 
 /* Define to 1 if you want KEEPALIVE timers */
@@ -51,20 +82,17 @@ static const uint8_t special_ethaddr[ETH_ALEN] = { 0x52, 0x55, 0x00,
 unsigned curtime;
 
 static struct in_addr dns_addr;
-#ifndef _WIN32
 static struct in6_addr dns6_addr;
-#endif
+static uint32_t dns6_scope_id;
 static unsigned dns_addr_time;
-#ifndef _WIN32
 static unsigned dns6_addr_time;
-#endif
 
 #define TIMEOUT_FAST 2 /* milliseconds */
 #define TIMEOUT_SLOW 499 /* milliseconds */
 /* for the aging of certain requests like DNS */
 #define TIMEOUT_DEFAULT 1000 /* milliseconds */
 
-#ifdef _WIN32
+#if defined(_WIN32)
 
 int get_dns_addr(struct in_addr *pdns_addr)
 {
@@ -111,8 +139,108 @@ int get_dns_addr(struct in_addr *pdns_addr)
     return 0;
 }
 
+int is_site_local_dns_broadcast(struct in6_addr *address)
+{
+    int i;
+    for (i = 0; i < G_N_ELEMENTS(SITE_LOCAL_DNS_BROADCAST_ADDRS); i++) {
+        if (in6_equal(address, &SITE_LOCAL_DNS_BROADCAST_ADDRS[i])) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void print_dns_v6_address(struct in6_addr address)
+{
+    char address_str[INET6_ADDRSTRLEN] = "";
+    if (inet_ntop(AF_INET6, &address, address_str, INET6_ADDRSTRLEN)
+        == NULL) {
+        DEBUG_ERROR("Failed to stringify IPv6 address for logging.");
+        return;
+    }
+    DEBUG_CALL("IPv6 DNS server found: %s", address_str);
+}
+
+// Gets the first valid DNS resolver with an IPv6 address.
+// Ignores any site local broadcast DNS servers, as these
+// are on deprecated addresses and not generally expected
+// to work. Further details at:
+// https://www.ietf.org/proceedings/52/I-D/draft-ietf-ipngwg-dns-discovery-03.txt
+int get_ipv6_dns_server(struct in6_addr *dns_server_address, uint32_t *scope_id)
+{
+    PIP_ADAPTER_ADDRESSES addresses = NULL;
+    PIP_ADAPTER_ADDRESSES address = NULL;
+    IP_ADAPTER_DNS_SERVER_ADDRESS *dns_server = NULL;
+    struct sockaddr_in6 *dns_v6_addr = NULL;
+
+    ULONG buf_size = INITIAL_DNS_ADDR_BUF_SIZE;
+    DWORD res = ERROR_BUFFER_OVERFLOW;
+    int i;
+
+    for (i = 0; i < REALLOC_RETRIES; i++) {
+        // If non null, we hit buffer overflow, free it so we can try again.
+        if (addresses != NULL) {
+            g_free(addresses);
+        }
+
+        addresses = g_malloc(buf_size);
+        res = GetAdaptersAddresses(AF_UNSPEC, GAA_FLAG_INCLUDE_PREFIX, NULL,
+                                   addresses, &buf_size);
+
+        if (res != ERROR_BUFFER_OVERFLOW) {
+            break;
+        }
+    }
+
+    if (res != NO_ERROR) {
+        DEBUG_ERROR("Failed to get IPv6 DNS addresses due to error %lX", res);
+        goto failure;
+    }
+
+    address = addresses;
+    for (address = addresses; address != NULL; address = address->Next) {
+        for (dns_server = address->FirstDnsServerAddress;
+             dns_server != NULL;
+             dns_server = dns_server->Next) {
+
+            if (dns_server->Address.lpSockaddr->sa_family != AF_INET6) {
+                continue;
+            }
+
+            dns_v6_addr = (struct sockaddr_in6 *)dns_server->Address.lpSockaddr;
+            if (is_site_local_dns_broadcast(&dns_v6_addr->sin6_addr) == 0) {
+                print_dns_v6_address(dns_v6_addr->sin6_addr);
+                *dns_server_address = dns_v6_addr->sin6_addr;
+                *scope_id = dns_v6_addr->sin6_scope_id;
+
+                g_free(addresses);
+                return 0;
+            }
+        }
+    }
+
+    DEBUG_ERROR("No IPv6 DNS servers found.\n");
+
+failure:
+    g_free(addresses);
+    return -1;
+}
+
 int get_dns6_addr(struct in6_addr *pdns6_addr, uint32_t *scope_id)
 {
+    if (!in6_zero(&dns6_addr) && (curtime - dns6_addr_time) < TIMEOUT_DEFAULT) {
+        *pdns6_addr = dns6_addr;
+        *scope_id = dns6_scope_id;
+        return 0;
+    }
+
+    if (get_ipv6_dns_server(pdns6_addr, scope_id) == 0) {
+        dns6_addr = *pdns6_addr;
+        dns6_addr_time = curtime;
+        dns6_scope_id = *scope_id;
+        return 0;
+    }
+
     return -1;
 }
 
@@ -121,7 +249,122 @@ static void winsock_cleanup(void)
     WSACleanup();
 }
 
+#elif defined(__APPLE__)
+
+#include <resolv.h>
+
+static int get_dns_addr_cached(void *pdns_addr, void *cached_addr,
+                               socklen_t addrlen, unsigned *cached_time)
+{
+    if (curtime - *cached_time < TIMEOUT_DEFAULT) {
+        memcpy(pdns_addr, cached_addr, addrlen);
+        return 0;
+    }
+    return 1;
+}
+
+static int get_dns_addr_libresolv(int af, void *pdns_addr, void *cached_addr,
+                                  socklen_t addrlen,
+                                  uint32_t *scope_id, uint32_t *cached_scope_id,
+                                  unsigned *cached_time)
+{
+    struct __res_state state;
+    union res_sockaddr_union servers[NI_MAXSERV];
+    int count;
+    int found;
+    void *addr;
+
+    // we only support IPv4 and IPv4, we assume it's one or the other
+    assert(af == AF_INET || af == AF_INET6);
+
+    if (res_ninit(&state) != 0) {
+        return -1;
+    }
+
+    count = res_getservers(&state, servers, NI_MAXSERV);
+    found = 0;
+    DEBUG_MISC("IP address of your DNS(s):");
+    for (int i = 0; i < count; i++) {
+        if (af == servers[i].sin.sin_family) {
+            found++;
+        }
+        if (af == AF_INET) {
+            addr = &servers[i].sin.sin_addr;
+        } else { // af == AF_INET6
+            addr = &servers[i].sin6.sin6_addr;
+        }
+
+        // we use the first found entry
+        if (found == 1) {
+            memcpy(pdns_addr, addr, addrlen);
+            memcpy(cached_addr, addr, addrlen);
+            if (scope_id) {
+                *scope_id = 0;
+            }
+            if (cached_scope_id) {
+                *cached_scope_id = 0;
+            }
+            *cached_time = curtime;
+        }
+
+        if (found > 3) {
+            DEBUG_MISC("  (more)");
+            break;
+        } else if (slirp_debug & DBG_MISC) {
+            char s[INET6_ADDRSTRLEN];
+            const char *res = inet_ntop(af, addr, s, sizeof(s));
+            if (!res) {
+                res = "  (string conversion error)";
+            }
+            DEBUG_MISC("  %s", res);
+        }
+    }
+
+    res_ndestroy(&state);
+    if (!found)
+        return -1;
+    return 0;
+}
+
+int get_dns_addr(struct in_addr *pdns_addr)
+{
+    if (dns_addr.s_addr != 0) {
+        int ret;
+        ret = get_dns_addr_cached(pdns_addr, &dns_addr, sizeof(dns_addr),
+                                  &dns_addr_time);
+        if (ret <= 0) {
+            return ret;
+        }
+    }
+    return get_dns_addr_libresolv(AF_INET, pdns_addr, &dns_addr,
+                                  sizeof(dns_addr), NULL, NULL, &dns_addr_time);
+}
+
+int get_dns6_addr(struct in6_addr *pdns6_addr, uint32_t *scope_id)
+{
+    if (!in6_zero(&dns6_addr)) {
+        int ret;
+        ret = get_dns_addr_cached(pdns6_addr, &dns6_addr, sizeof(dns6_addr),
+                                  &dns6_addr_time);
+        if (ret == 0) {
+            *scope_id = dns6_scope_id;
+        }
+        if (ret <= 0) {
+            return ret;
+        }
+    }
+    return get_dns_addr_libresolv(AF_INET6, pdns6_addr, &dns6_addr,
+                                  sizeof(dns6_addr),
+                                  scope_id, &dns6_scope_id, &dns6_addr_time);
+}
+
+#else // !defined(_WIN32) && !defined(__APPLE__)
+
+#if defined(__HAIKU__)
+#define RESOLV_CONF_PATH "/boot/system/settings/network/resolv.conf"
 #else
+#define RESOLV_CONF_PATH "/etc/resolv.conf"
+#endif
 
 static int get_dns_addr_cached(void *pdns_addr, void *cached_addr,
                                socklen_t addrlen, struct stat *cached_stat,
@@ -133,7 +376,7 @@ static int get_dns_addr_cached(void *pdns_addr, void *cached_addr,
         return 0;
     }
     old_stat = *cached_stat;
-    if (stat("/etc/resolv.conf", cached_stat) != 0) {
+    if (stat(RESOLV_CONF_PATH, cached_stat) != 0) {
         return -1;
     }
     if (cached_stat->st_dev == old_stat.st_dev &&
@@ -147,17 +390,22 @@ static int get_dns_addr_cached(void *pdns_addr, void *cached_addr,
 }
 
 static int get_dns_addr_resolv_conf(int af, void *pdns_addr, void *cached_addr,
-                                    socklen_t addrlen, uint32_t *scope_id,
+                                    socklen_t addrlen,
+                                    uint32_t *scope_id, uint32_t *cached_scope_id,
                                     unsigned *cached_time)
 {
     char buff[512];
     char buff2[257];
     FILE *f;
     int found = 0;
-    void *tmp_addr = alloca(addrlen);
+    union {
+        struct in_addr dns_addr;
+        struct in6_addr dns6_addr;
+    } tmp_addr;
     unsigned if_index;
 
-    f = fopen("/etc/resolv.conf", "r");
+    assert(sizeof(tmp_addr) >= addrlen);
+    f = fopen(RESOLV_CONF_PATH, "r");
     if (!f)
         return -1;
 
@@ -172,15 +420,18 @@ static int get_dns_addr_resolv_conf(int af, void *pdns_addr, void *cached_addr,
                 if_index = 0;
             }
 
-            if (!inet_pton(af, buff2, tmp_addr)) {
+            if (!inet_pton(af, buff2, &tmp_addr)) {
                 continue;
             }
             /* If it's the first one, set it to dns_addr */
             if (!found) {
-                memcpy(pdns_addr, tmp_addr, addrlen);
-                memcpy(cached_addr, tmp_addr, addrlen);
+                memcpy(pdns_addr, &tmp_addr, addrlen);
+                memcpy(cached_addr, &tmp_addr, addrlen);
                 if (scope_id) {
                     *scope_id = if_index;
+                }
+                if (cached_scope_id) {
+                    *cached_scope_id = if_index;
                 }
                 *cached_time = curtime;
             }
@@ -190,7 +441,7 @@ static int get_dns_addr_resolv_conf(int af, void *pdns_addr, void *cached_addr,
                 break;
             } else if (slirp_debug & DBG_MISC) {
                 char s[INET6_ADDRSTRLEN];
-                const char *res = inet_ntop(af, tmp_addr, s, sizeof(s));
+                const char *res = inet_ntop(af, &tmp_addr, s, sizeof(s));
                 if (!res) {
                     res = "  (string conversion error)";
                 }
@@ -217,7 +468,8 @@ int get_dns_addr(struct in_addr *pdns_addr)
         }
     }
     return get_dns_addr_resolv_conf(AF_INET, pdns_addr, &dns_addr,
-                                    sizeof(dns_addr), NULL, &dns_addr_time);
+                                    sizeof(dns_addr),
+                                    NULL, NULL, &dns_addr_time);
 }
 
 int get_dns6_addr(struct in6_addr *pdns6_addr, uint32_t *scope_id)
@@ -228,13 +480,16 @@ int get_dns6_addr(struct in6_addr *pdns6_addr, uint32_t *scope_id)
         int ret;
         ret = get_dns_addr_cached(pdns6_addr, &dns6_addr, sizeof(dns6_addr),
                                   &dns6_addr_stat, &dns6_addr_time);
+        if (ret == 0) {
+            *scope_id = dns6_scope_id;
+        }
         if (ret <= 0) {
             return ret;
         }
     }
     return get_dns_addr_resolv_conf(AF_INET6, pdns6_addr, &dns6_addr,
-                                    sizeof(dns6_addr), scope_id,
-                                    &dns6_addr_time);
+                                    sizeof(dns6_addr),
+                                    scope_id, &dns6_scope_id, &dns6_addr_time);
 }
 
 #endif
@@ -267,8 +522,46 @@ static void slirp_init_once(void)
             { "misc", DBG_MISC },
             { "error", DBG_ERROR },
             { "tftp", DBG_TFTP },
+            { "verbose_call", DBG_VERBOSE_CALL },
         };
         slirp_debug = g_parse_debug_string(debug, keys, G_N_ELEMENTS(keys));
+    }
+}
+
+static void ra_timer_handler_cb(void *opaque)
+{
+    Slirp *slirp = opaque;
+
+    return ra_timer_handler(slirp, NULL);
+}
+
+void slirp_handle_timer(Slirp *slirp, SlirpTimerId id, void *cb_opaque)
+{
+//    g_return_if_fail(id >= 0 && id < SLIRP_TIMER_NUM);
+
+    switch (id) {
+    case SLIRP_TIMER_RA:
+        return ra_timer_handler(slirp, cb_opaque);
+    default:
+        abort();
+    }
+}
+
+void *slirp_timer_new(Slirp *slirp, SlirpTimerId id, void *cb_opaque)
+{
+    g_return_val_if_fail(id >= 0 && id < SLIRP_TIMER_NUM, NULL);
+
+    if (slirp->cfg_version >= 4 && slirp->cb->timer_new_opaque) {
+        return slirp->cb->timer_new_opaque(id, cb_opaque, slirp->opaque);
+    }
+
+    switch (id) {
+    case SLIRP_TIMER_RA:
+        g_return_val_if_fail(cb_opaque == NULL, NULL);
+        return slirp->cb->timer_new(ra_timer_handler_cb, slirp, slirp->opaque);
+
+    default:
+	abort();
     }
 }
 
@@ -291,6 +584,7 @@ Slirp *slirp_new(const SlirpConfig *cfg, const SlirpCb *callbacks, void *opaque)
 
     slirp_init_once();
 
+    slirp->cfg_version = cfg->version;
     slirp->opaque = opaque;
     slirp->cb = callbacks;
     slirp->grand = g_rand_new();
@@ -301,7 +595,6 @@ Slirp *slirp_new(const SlirpConfig *cfg, const SlirpCb *callbacks, void *opaque)
 
     if_init(slirp);
     ip_init(slirp);
-    ip6_init(slirp);
 
     m_init(slirp);
 
@@ -345,6 +638,17 @@ Slirp *slirp_new(const SlirpConfig *cfg, const SlirpCb *callbacks, void *opaque)
         slirp->disable_dns = false;
     }
 
+    if (cfg->version >= 4) {
+        slirp->disable_dhcp = cfg->disable_dhcp;
+    } else {
+        slirp->disable_dhcp = false;
+    }
+
+    if (slirp->cfg_version >= 4 && slirp->cb->init_completed) {
+        slirp->cb->init_completed(slirp, slirp->opaque);
+    }
+
+    ip6_post_init(slirp);
     return slirp;
 }
 
@@ -501,7 +805,10 @@ void slirp_pollfds_fill(Slirp *slirp, uint32_t *timeout,
 
         /*
          * Set for reading (and urgent data) if we are connected, can
-         * receive more, and we have room for it XXX /2 ?
+         * receive more, and we have room for it.
+         *
+         * If sb is already half full, we will wait for the guest to consume it,
+         * and notify again in sbdrop() when the sb becomes less than half full.
          */
         if (CONN_CANFRCV(so) &&
             (so->so_snd.sb_cc < (so->so_snd.sb_datalen / 2))) {
@@ -623,10 +930,16 @@ void slirp_pollfds_poll(Slirp *slirp, int select_error,
                 continue;
             }
 
+#ifndef __APPLE__
             /*
              * Check for URG data
              * This will soread as well, so no need to
-             * test for SLIRP_POLL_IN below if this succeeds
+             * test for SLIRP_POLL_IN below if this succeeds.
+             *
+             * This is however disabled on MacOS, which apparently always
+             * reports data as PRI when it is the last data of the
+             * connection. We would then report it out of band, which the guest
+             * would most probably not be ready for.
              */
             if (revents & SLIRP_POLL_PRI) {
                 ret = sorecvoob(so);
@@ -639,8 +952,10 @@ void slirp_pollfds_poll(Slirp *slirp, int select_error,
             /*
              * Check sockets for reading
              */
-            else if (revents &
-                     (SLIRP_POLL_IN | SLIRP_POLL_HUP | SLIRP_POLL_ERR)) {
+            else
+#endif
+                if (revents &
+                     (SLIRP_POLL_IN | SLIRP_POLL_HUP | SLIRP_POLL_ERR | SLIRP_POLL_PRI)) {
                 /*
                  * Check for incoming connections
                  */
@@ -761,6 +1076,10 @@ static void arp_input(Slirp *slirp, const uint8_t *pkt, int pkt_len)
 
     if (!slirp->in_enabled) {
         return;
+    }
+
+    if (pkt_len < ETH_HLEN + sizeof(struct slirp_arphdr)) {
+        return; /* packet too short */
     }
 
     ar_op = ntohs(ah->ar_op);
@@ -953,6 +1272,7 @@ int if_encap(Slirp *slirp, struct mbuf *ifm)
     uint8_t ethaddr[ETH_ALEN];
     const struct ip *iph = (const struct ip *)ifm->m_data;
     int ret;
+//    char ethaddr_str[ETH_ADDRSTRLEN];
 
     if (ifm->m_len + ETH_HLEN > sizeof(buf)) {
         return 1;
@@ -978,19 +1298,18 @@ int if_encap(Slirp *slirp, struct mbuf *ifm)
     }
 
     memcpy(eh->h_dest, ethaddr, ETH_ALEN);
-    DEBUG_ARG("src = %02x:%02x:%02x:%02x:%02x:%02x", eh->h_source[0],
-              eh->h_source[1], eh->h_source[2], eh->h_source[3],
-              eh->h_source[4], eh->h_source[5]);
-    DEBUG_ARG("dst = %02x:%02x:%02x:%02x:%02x:%02x", eh->h_dest[0],
-              eh->h_dest[1], eh->h_dest[2], eh->h_dest[3], eh->h_dest[4],
-              eh->h_dest[5]);
+/*
+    DEBUG_ARG("src = %s", slirp_ether_ntoa(eh->h_source, ethaddr_str,
+                                           sizeof(ethaddr_str)));
+    DEBUG_ARG("dst = %s", slirp_ether_ntoa(eh->h_dest, ethaddr_str,
+                                           sizeof(ethaddr_str)));
+*/
     memcpy(buf + sizeof(struct ethhdr), ifm->m_data, ifm->m_len);
     slirp_send_packet_all(slirp, buf, ifm->m_len + ETH_HLEN);
     return 1;
 }
 
 /* Drop host forwarding rule, return 0 if found. */
-/* TODO: IPv6 */
 int slirp_remove_hostfwd(Slirp *slirp, int is_udp, struct in_addr host_addr,
                          int host_port)
 {
@@ -1004,7 +1323,10 @@ int slirp_remove_hostfwd(Slirp *slirp, int is_udp, struct in_addr host_addr,
         addr_len = sizeof(addr);
         if ((so->so_state & SS_HOSTFWD) &&
             getsockname(so->s, (struct sockaddr *)&addr, &addr_len) == 0 &&
-            addr.sin_addr.s_addr == host_addr.s_addr && addr.sin_port == port) {
+            addr_len == sizeof(addr) &&
+            addr.sin_family == AF_INET &&
+            addr.sin_addr.s_addr == host_addr.s_addr &&
+            addr.sin_port == port) {
             so->slirp->cb->unregister_poll_fd(so->s, so->slirp->opaque);
             closesocket(so->s);
             sofree(so);
@@ -1015,7 +1337,6 @@ int slirp_remove_hostfwd(Slirp *slirp, int is_udp, struct in_addr host_addr,
     return -1;
 }
 
-/* TODO: IPv6 */
 int slirp_add_hostfwd(Slirp *slirp, int is_udp, struct in_addr host_addr,
                       int host_port, struct in_addr guest_addr, int guest_port)
 {
@@ -1029,6 +1350,83 @@ int slirp_add_hostfwd(Slirp *slirp, int is_udp, struct in_addr host_addr,
     } else {
         if (!tcp_listen(slirp, host_addr.s_addr, htons(host_port),
                         guest_addr.s_addr, htons(guest_port), SS_HOSTFWD))
+            return -1;
+    }
+    return 0;
+}
+
+int slirp_remove_hostxfwd(Slirp *slirp,
+                          const struct sockaddr *haddr, socklen_t haddrlen,
+                          int flags)
+{
+    struct socket *so;
+    struct socket *head = (flags & SLIRP_HOSTFWD_UDP ? &slirp->udb : &slirp->tcb);
+    struct sockaddr_storage addr;
+    socklen_t addr_len;
+
+    for (so = head->so_next; so != head; so = so->so_next) {
+        addr_len = sizeof(addr);
+        if ((so->so_state & SS_HOSTFWD) &&
+            getsockname(so->s, (struct sockaddr *)&addr, &addr_len) == 0 &&
+            sockaddr_equal(&addr, (const struct sockaddr_storage *) haddr)) {
+            so->slirp->cb->unregister_poll_fd(so->s, so->slirp->opaque);
+            closesocket(so->s);
+            sofree(so);
+            return 0;
+        }
+    }
+
+    return -1;
+}
+
+int slirp_add_hostxfwd(Slirp *slirp,
+                       const struct sockaddr *haddr, socklen_t haddrlen,
+                       const struct sockaddr *gaddr, socklen_t gaddrlen,
+                       int flags)
+{
+    struct sockaddr_in gdhcp_addr;
+    int fwd_flags = SS_HOSTFWD;
+
+    if (flags & SLIRP_HOSTFWD_V6ONLY)
+        fwd_flags |= SS_HOSTFWD_V6ONLY;
+
+    if (gaddr->sa_family == AF_INET) {
+        const struct sockaddr_in *gaddr_in = (const struct sockaddr_in *) gaddr;
+
+        if (gaddrlen < sizeof(struct sockaddr_in)) {
+            errno = EINVAL;
+            return -1;
+        }
+
+        if (!gaddr_in->sin_addr.s_addr) {
+            gdhcp_addr = *gaddr_in;
+            gdhcp_addr.sin_addr = slirp->vdhcp_startaddr;
+            gaddr = (struct sockaddr *) &gdhcp_addr;
+            gaddrlen = sizeof(gdhcp_addr);
+        }
+    } else {
+        if (gaddrlen < sizeof(struct sockaddr_in6)) {
+            errno = EINVAL;
+            return -1;
+        }
+
+        /*
+         * Libslirp currently only provides a stateless DHCPv6 server, thus
+         * we can't translate "addr-any" to the guest here. Instead, we defer
+         * performing the translation to when it's needed. See
+         * soassign_guest_addr_if_needed().
+         */
+    }
+
+    if (flags & SLIRP_HOSTFWD_UDP) {
+        if (!udpx_listen(slirp, haddr, haddrlen,
+                                gaddr, gaddrlen,
+                                fwd_flags))
+            return -1;
+    } else {
+        if (!tcpx_listen(slirp, haddr, haddrlen,
+                                gaddr, gaddrlen,
+                                fwd_flags))
             return -1;
     }
     return 0;
@@ -1158,6 +1556,8 @@ size_t slirp_socket_can_recv(Slirp *slirp, struct in_addr guest_addr,
     }
 
     if (!CONN_CANFRCV(so) || so->so_snd.sb_cc >= (so->so_snd.sb_datalen / 2)) {
+        /* If the sb is already half full, we will wait for the guest to consume it,
+         * and notify again in sbdrop() when the sb becomes less than half full. */
         return 0;
     }
 

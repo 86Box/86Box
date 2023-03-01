@@ -84,16 +84,20 @@ typedef struct scat_t {
 } scat_t;
 
 static const uint8_t max_map[32] = {
+// clang-format off
     0, 1,  1,  1,  2,  3,  4,  8,
     4, 8, 12, 16, 20, 24, 28, 32,
     0, 5,  9, 13,  6, 10,  0,  0,
     0, 0,  0,  0,  0,  0,  0,  0
+// clang-format om
 };
 static const uint8_t max_map_sx[32] = {
-    0,  1,  2,  1,  3,  4,  6, 10,
-    5,  9, 13,  4,  8, 12, 16, 14,
-   18, 22, 26, 20, 24, 28, 32, 18,
-   20, 32,  0,  0,  0,  0,  0,  0
+// clang-format off
+     0,  1,  2,  1,  3,  4,  6, 10,
+     5,  9, 13,  4,  8, 12, 16, 14,
+    18, 22, 26, 20, 24, 28, 32, 18,
+    20, 32,  0,  0,  0,  0,  0,  0
+// clang-format om
 };
 static const uint8_t scatsx_external_is_RAS[33] = {
     0, 0, 0, 0, 0, 0, 0, 0,

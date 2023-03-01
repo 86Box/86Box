@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -279,7 +279,7 @@ typedef struct _machine_ {
     const char *name;
     const char *internal_name;
     uint32_t    type;
-    uint32_t    chipset;
+    uintptr_t   chipset;
     int (*init)(const struct _machine_ *);
     uintptr_t              pad, pad0, pad1, pad2;
     const machine_cpu_t    cpu;
@@ -288,7 +288,11 @@ typedef struct _machine_ {
     const machine_memory_t ram;
     int                    ram_granularity;
     int                    nvrmask;
-    uint16_t               kbc;
+#ifdef EMU_DEVICE_H
+    const device_t *kbc_device;
+#else
+    void *kbc_device;
+#endif /* EMU_DEVICE_H */
     /* Bits:
         7-0	Set bits are forced set on P1 (no forced set = 0x00);
         15-8	Clear bits are forced clear on P1 (no foced clear = 0xff). */
@@ -297,11 +301,15 @@ typedef struct _machine_ {
     uint32_t gpio_acpi;
 #ifdef EMU_DEVICE_H
     const device_t *device;
+    const device_t *fdc_device;
+    const device_t *sio_device;
     const device_t *vid_device;
     const device_t *snd_device;
     const device_t *net_device;
 #else
     void *device;
+    void *fdc_device;
+    void *sio_device;
     void *vid_device;
     void *snd_device;
     void *net_device;
@@ -324,10 +332,13 @@ extern char *machine_get_internal_name(void);
 extern int   machine_get_machine_from_internal_name(char *s);
 extern void  machine_init(void);
 #ifdef EMU_DEVICE_H
-extern const device_t *machine_getdevice(int m);
-extern const device_t *machine_getviddevice(int m);
-extern const device_t *machine_getsnddevice(int m);
-extern const device_t *machine_getnetdevice(int m);
+extern const device_t *machine_get_kbc_device(int m);
+extern const device_t *machine_get_device(int m);
+extern const device_t *machine_get_fdc_device(int m);
+extern const device_t *machine_get_sio_device(int m);
+extern const device_t *machine_get_vid_device(int m);
+extern const device_t *machine_get_snd_device(int m);
+extern const device_t *machine_get_net_device(int m);
 #endif
 extern char *machine_get_internal_name_ex(int m);
 extern int   machine_get_nvrmask(int m);
@@ -513,6 +524,9 @@ extern int machine_at_atc1415_init(const machine_t *);
 extern int machine_at_actionpc2600_init(const machine_t *);
 extern int machine_at_m919_init(const machine_t *);
 extern int machine_at_spc7700plw_init(const machine_t *);
+extern int machine_at_ms4134_init(const machine_t *);
+extern int machine_at_tg486gp_init(const machine_t *);
+extern int machine_at_tg486g_init(const machine_t *);
 
 /* m_at_commodore.c */
 extern int machine_at_cmdpc_init(const machine_t *);
@@ -555,10 +569,8 @@ extern int machine_at_430nx_init(const machine_t *);
 
 extern int machine_at_acerv30_init(const machine_t *);
 extern int machine_at_apollo_init(const machine_t *);
-extern int machine_at_exp8551_init(const machine_t *);
 extern int machine_at_zappa_init(const machine_t *);
 extern int machine_at_powermatev_init(const machine_t *);
-extern int machine_at_mb500n_init(const machine_t *);
 extern int machine_at_hawk_init(const machine_t *);
 
 extern int machine_at_pat54pv_init(const machine_t *);
@@ -567,16 +579,19 @@ extern int machine_at_hot543_init(const machine_t *);
 
 extern int machine_at_p54sp4_init(const machine_t *);
 extern int machine_at_sq588_init(const machine_t *);
+extern int machine_at_p54sps_init(const machine_t *);
 
 /* m_at_socket7_3v.c */
 extern int machine_at_p54tp4xe_init(const machine_t *);
 extern int machine_at_p54tp4xe_mr_init(const machine_t *);
+extern int machine_at_exp8551_init(const machine_t *);
 extern int machine_at_gw2katx_init(const machine_t *);
 extern int machine_at_thor_init(const machine_t *);
 extern int machine_at_mrthor_init(const machine_t *);
 extern int machine_at_endeavor_init(const machine_t *);
 extern int machine_at_ms5119_init(const machine_t *);
 extern int machine_at_pb640_init(const machine_t *);
+extern int machine_at_mb500n_init(const machine_t *);
 extern int machine_at_fmb_init(const machine_t *);
 
 extern int machine_at_acerm3a_init(const machine_t *);
@@ -596,6 +611,7 @@ extern int machine_at_acerv35n_init(const machine_t *);
 extern int machine_at_p55t2p4_init(const machine_t *);
 extern int machine_at_m7shi_init(const machine_t *);
 extern int machine_at_tc430hx_init(const machine_t *);
+extern int machine_at_infinia7200_init(const machine_t *);
 extern int machine_at_equium5200_init(const machine_t *);
 extern int machine_at_pcv90_init(const machine_t *);
 extern int machine_at_p65up5_cp55t2d_init(const machine_t *);
@@ -609,6 +625,7 @@ extern int machine_at_presario4500_init(const machine_t *);
 extern int machine_at_p55va_init(const machine_t *);
 extern int machine_at_brio80xx_init(const machine_t *);
 extern int machine_at_pb680_init(const machine_t *);
+extern int machine_at_pb810_init(const machine_t *);
 extern int machine_at_mb520n_init(const machine_t *);
 extern int machine_at_i430vx_init(const machine_t *);
 
@@ -681,6 +698,7 @@ extern int machine_at_p6sba_init(const machine_t *);
 extern int machine_at_ficka6130_init(const machine_t *);
 extern int machine_at_p3v133_init(const machine_t *);
 extern int machine_at_p3v4x_init(const machine_t *);
+extern int machine_at_gt694va_init(const machine_t *);
 
 extern int machine_at_vei8_init(const machine_t *);
 
@@ -702,11 +720,11 @@ extern int machine_at_awo671r_init(const machine_t *);
 extern int machine_at_63a1_init(const machine_t *);
 extern int machine_at_s370sba_init(const machine_t *);
 extern int machine_at_apas3_init(const machine_t *);
-extern int machine_at_gt694va_init(const machine_t *);
 extern int machine_at_cuv4xls_init(const machine_t *);
 extern int machine_at_6via90ap_init(const machine_t *);
 extern int machine_at_s1857_init(const machine_t *);
 extern int machine_at_p6bap_init(const machine_t *);
+extern int machine_at_p6bat_init(const machine_t *);
 
 /* m_at_misc.c */
 extern int machine_at_vpc2007_init(const machine_t *);

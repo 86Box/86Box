@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Common storage devices module.
+ *          Common storage devices module.
  *
  *
  *
- * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *          Teemu Korhonen
  *
- *		Copyright 2021 Joakim L. Gilje
- *      Copyright 2022 Cacodemon345
- *      Copyright 2022 Teemu Korhonen
+ *          Copyright 2021 Joakim L. Gilje
+ *          Copyright 2022 Cacodemon345
+ *          Copyright 2022 Teemu Korhonen
  */
 #include "qt_newfloppydialog.hpp"
 #include "ui_qt_newfloppydialog.h"
@@ -25,6 +25,7 @@
 #include "qt_util.hpp"
 
 extern "C" {
+#include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/random.h>
 #include <86box/scsi_device.h>
@@ -59,21 +60,29 @@ struct disk_size_t {
 };
 
 static const disk_size_t disk_sizes[14] = {
-    {0,  1,  2, 1, 0, 40,  8,  2, 0xfe, 2, 2, 1, 64 }, /* 160k */
-    { 0, 1,  2, 1, 0, 40,  9,  2, 0xfc, 2, 2, 1, 64 }, /* 180k */
-    { 0, 2,  2, 1, 0, 40,  8,  2, 0xff, 2, 2, 1, 112}, /* 320k */
-    { 0, 2,  2, 1, 0, 40,  9,  2, 0xfd, 2, 2, 2, 112}, /* 360k */
-    { 0, 2,  2, 1, 0, 80,  8,  2, 0xfb, 2, 2, 2, 112}, /* 640k */
-    { 0, 2,  2, 1, 0, 80,  9,  2, 0xf9, 2, 2, 3, 112}, /* 720k */
-    { 1, 2,  0, 1, 1, 80,  15, 2, 0xf9, 1, 2, 7, 224}, /* 1.2M */
-    { 1, 2,  0, 1, 1, 77,  8,  3, 0xfe, 1, 2, 2, 192}, /* 1.25M */
-    { 1, 2,  0, 1, 0, 80,  18, 2, 0xf0, 1, 2, 9, 224}, /* 1.44M */
-    { 1, 2,  0, 1, 0, 80,  21, 2, 0xf0, 2, 2, 5, 16 }, /* DMF cluster 1024 */
-    { 1, 2,  0, 1, 0, 80,  21, 2, 0xf0, 4, 2, 3, 16 }, /* DMF cluster 2048 */
-    { 2, 2,  3, 1, 0, 80,  36, 2, 0xf0, 2, 2, 9, 240}, /* 2.88M */
-    { 0, 64, 0, 0, 0, 96,  32, 2, 0,    0, 0, 0, 0  }, /* ZIP 100 */
-    { 0, 64, 0, 0, 0, 239, 32, 2, 0,    0, 0, 0, 0  }
-}; /* ZIP 250 */
+// clang-format off
+//  { 1,  1, 2, 1, 1,  77, 26, 0, 0,    4, 2, 6,  68 }, /* 250k 8" */
+//  { 1,  2, 2, 1, 1,  77, 26, 0, 0,    4, 2, 6,  68 }, /* 500k 8" */
+//  { 1,  1, 2, 1, 1,  77,  8, 3, 0,    1, 2, 2, 192 }, /* 616k 8" */
+//  { 1,  2, 0, 1, 1,  77,  8, 3, 0,    1, 2, 2, 192 }, /* 1232k 8" */
+    { 0,  1, 2, 1, 0,  40,  8, 2, 0xfe, 2, 2, 1,  64 }, /* 160k */
+    { 0,  1, 2, 1, 0,  40,  9, 2, 0xfc, 2, 2, 1,  64 }, /* 180k */
+    { 0,  2, 2, 1, 0,  40,  8, 2, 0xff, 2, 2, 1, 112 }, /* 320k */
+    { 0,  2, 2, 1, 0,  40,  9, 2, 0xfd, 2, 2, 2, 112 }, /* 360k */
+    { 0,  2, 2, 1, 0,  80,  8, 2, 0xfb, 2, 2, 2, 112 }, /* 640k */
+    { 0,  2, 2, 1, 0,  80,  9, 2, 0xf9, 2, 2, 3, 112 }, /* 720k */
+    { 1,  2, 0, 1, 1,  80, 15, 2, 0xf9, 1, 2, 7, 224 }, /* 1.2M */
+    { 1,  2, 0, 1, 1,  77,  8, 3, 0xfe, 1, 2, 2, 192 }, /* 1.25M */
+    { 1,  2, 0, 1, 0,  80, 18, 2, 0xf0, 1, 2, 9, 224 }, /* 1.44M */
+    { 1,  2, 0, 1, 0,  80, 21, 2, 0xf0, 2, 2, 5,  16 }, /* DMF cluster 1024 */
+    { 1,  2, 0, 1, 0,  80, 21, 2, 0xf0, 4, 2, 3,  16 }, /* DMF cluster 2048 */
+    { 2,  2, 3, 1, 0,  80, 36, 2, 0xf0, 2, 2, 9, 240 }, /* 2.88M */
+    { 0, 64, 0, 0, 0,  96, 32, 2,    0, 0, 0, 0,   0 }, /* ZIP 100 */
+    { 0, 64, 0, 0, 0, 239, 32, 2,    0, 0, 0, 0,   0 }, /* ZIP 250 */
+//  { 0,  8, 0, 0, 0, 963, 32, 2,    0, 0, 0, 0,   0 }, /* LS-120 */
+//  { 0, 32, 0, 0, 0, 262, 56, 2,    0, 0, 0, 0,   0 }  /* LS-240 */
+// clang-format on
+};
 
 static const QStringList rpmModes = {
     "Perfect RPM",
@@ -130,20 +139,20 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent)
                 Models::AddEntry(model, tr(floppyTypes[i].toUtf8().data()), i);
             }
             ui->fileField->setFilter(
-                tr("All images") % util::DlgFilter({ "86f", "dsk", "flp", "im?", "*fd?" }) % tr("Basic sector images") % util::DlgFilter({ "dsk", "flp", "im?", "img", "*fd?" }) % tr("Surface images") % util::DlgFilter({ "86f" }, true));
+                tr("All images") % util::DlgFilter({ "86f", "dsk", "flp", "im?", "img", "*fd?" }) % tr("Basic sector images") % util::DlgFilter({ "dsk", "flp", "im?", "img", "*fd?" }) % tr("Surface images") % util::DlgFilter({ "86f" }, true));
 
             break;
         case MediaType::Zip:
             for (int i = 0; i < zipTypes.size(); ++i) {
                 Models::AddEntry(model, tr(zipTypes[i].toUtf8().data()), i);
             }
-            ui->fileField->setFilter(tr("ZIP images") % util::DlgFilter({ "im?", "zdi" }, true));
+            ui->fileField->setFilter(tr("ZIP images") % util::DlgFilter({ "im?", "img", "zdi" }, true));
             break;
         case MediaType::Mo:
             for (int i = 0; i < moTypes.size(); ++i) {
                 Models::AddEntry(model, tr(moTypes[i].toUtf8().data()), i);
             }
-            ui->fileField->setFilter(tr("MO images") % util::DlgFilter({ "im?", "mdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+            ui->fileField->setFilter(tr("MO images") % util::DlgFilter({ "im?", "img", "mdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
             break;
     }
 
@@ -185,6 +194,8 @@ NewFloppyDialog::onCreate()
 {
     auto      filename = ui->fileField->fileName();
     QFileInfo fi(filename);
+    filename = (fi.isRelative() && !fi.filePath().isEmpty()) ? (usr_path + fi.filePath()) : fi.filePath();
+    ui->fileField->setFileName(filename);
     FileType  fileType;
 
     QProgressDialog progress("Creating floppy image", QString(), 0, 100, this);
@@ -545,7 +556,7 @@ NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_size_t
         empty[0x5003] = empty[0x1D003] = 0xFF;
 
         /* Root directory = 0x35000
-       Data = 0x39000 */
+        Data = 0x39000 */
     } else {
         /* ZIP 250 */
         /* MBR */
@@ -567,7 +578,7 @@ NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_size_t
         memset(&(empty[0x0200]), 0x48, 0x3E00);
 
         /* The second sector begins with some strange data
-       in my reference image. */
+           in my reference image. */
         *(uint64_t *) &(empty[0x0200]) = 0x3831393230334409LL;
         *(uint64_t *) &(empty[0x0208]) = 0x6A57766964483130LL;
         *(uint64_t *) &(empty[0x0210]) = 0x3C3A34676063653FLL;
@@ -616,7 +627,7 @@ NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_size_t
         empty[0x4203] = empty[0x22003] = 0xFF;
 
         /* Root directory = 0x3FE00
-       Data = 0x38200 */
+        Data = 0x38200 */
     }
 
     pbar.setMaximum(pbar_max);

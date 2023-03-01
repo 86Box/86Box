@@ -11,11 +11,13 @@
 # Authors: Cacodemon345
 #          David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#          Copyright 2021 Cacodemon345.
-#          Copyright 2021 David Hrdlička.
+#          Copyright 2021      Cacodemon345.
+#          Copyright 2021      David Hrdlička.
+#          Copyright 2021      Andreas J. Reichel.
+#          Copyright 2021-2022 Jasmine Iwanek.
 #
 
-add_library(plat OBJECT unix.c)
+add_library(plat OBJECT unix.c unix_serial_passthrough.c)
 
 if (NOT CPPTHREADS)
     target_sources(plat PRIVATE unix_thread.c)

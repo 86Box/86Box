@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <Windows.h>
-#include <CommCtrl.h>
+#include <windows.h>
+#include <commctrl.h>
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/resource.h>

@@ -1,19 +1,20 @@
 /*
- * 86Box A hypervisor and IBM PC system emulator that specializes in
- *      running old operating systems and software designed for IBM
- *      PC systems and compatibles from 1981 through fairly recent
- *      system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *      This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *      Windows raw input native filter for QT
+ *          Windows raw input native filter for QT
  *
- * Authors:
- *      Teemu Korhonen
- *      Miran Grca, <mgrca8@gmail.com>
  *
- *      Copyright 2021 Teemu Korhonen
- *      Copyright 2016-2018 Miran Grca.
+ *
+ * Authors: Teemu Korhonen
+ *          Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2021 Teemu Korhonen
+ *          Copyright 2016-2018 Miran Grca.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,7 +35,7 @@
 
 #include <QMenuBar>
 
-#include <Windows.h>
+#include <windows.h>
 
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
@@ -339,6 +340,16 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
     else if (state.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
         buttons &= ~2;
 
+    if (state.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN)
+        buttons |= 8;
+    else if (state.usButtonFlags & RI_MOUSE_BUTTON_4_UP)
+        buttons &= ~8;
+
+    if (state.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN)
+        buttons |= 16;
+    else if (state.usButtonFlags & RI_MOUSE_BUTTON_5_UP)
+        buttons &= ~16;
+    
     if (state.usButtonFlags & RI_MOUSE_WHEEL) {
         dwheel += (SHORT) state.usButtonData / 120;
     }
@@ -372,6 +383,7 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
 void
 WindowsRawInputFilter::mousePoll()
 {
+    if (mouse_mode >= 1) return;
     if (mouse_capture || video_fullscreen) {
         static int b = 0;
 

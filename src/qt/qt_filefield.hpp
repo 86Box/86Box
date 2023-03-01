@@ -24,7 +24,7 @@ public:
     bool createFile() { return createFile_; }
 
 signals:
-    void fileSelected(const QString &fileName);
+    void fileSelected(const QString &fileName, bool precheck = false);
 
 private slots:
     void on_pushButton_clicked();

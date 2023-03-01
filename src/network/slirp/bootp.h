@@ -71,6 +71,7 @@
 #define RFC2132_MAX_SIZE 57
 #define RFC2132_RENEWAL_TIME 58
 #define RFC2132_REBIND_TIME 59
+#define RFC2132_VENDOR_CLASS_ID 60
 #define RFC2132_TFTP_SERVER_NAME 66
 
 #define DHCPDISCOVER 1
@@ -114,7 +115,7 @@ struct bootp_t {
     uint8_t bp_hwaddr[16];
     uint8_t bp_sname[64];
     char bp_file[128];
-    uint8_t bp_vend[DHCP_OPT_LEN];
+    uint8_t bp_vend[];
 };
 
 typedef struct {

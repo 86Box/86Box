@@ -1,21 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *      Common platform functions.
+ *          Common platform functions.
  *
  *
- * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ *
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *          Teemu Korhonen
  *
- *		Copyright 2021 Joakim L. Gilje
- *      Copyright 2021-2022 Cacodemon345
- *      Copyright 2021-2022 Teemu Korhonen
+ *          Copyright 2021 Joakim L. Gilje
+ *          Copyright 2021-2022 Cacodemon345
+ *          Copyright 2021-2022 Teemu Korhonen
  */
 #include <cstdio>
 
@@ -102,7 +103,9 @@ extern "C" {
 #include <86box/rom.h>
 #include <86box/config.h>
 #include <86box/ui.h>
-#include <86box/discord.h>
+#ifdef DISCORD
+#   include <86box/discord.h>
+#endif
 
 #include "../cpu/cpu.h"
 #include <86box/plat.h>
@@ -376,7 +379,11 @@ plat_pause(int p)
     } else {
         ui_window_title(oldtitle);
     }
+
+#ifdef DISCORD
     discord_update_activity(dopause);
+#endif
+
     QTimer::singleShot(0, main_window, &MainWindow::updateUiPauseState);
 
 #ifdef Q_OS_WINDOWS
@@ -590,6 +597,7 @@ ProgSettings::reloadStrings()
     translatedstrings[IDS_2115] = QCoreApplication::translate("", "Unable to initialize Ghostscript").toStdWString();
     translatedstrings[IDS_2063] = QCoreApplication::translate("", "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.").toStdWString();
     translatedstrings[IDS_2064] = QCoreApplication::translate("", "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.").toStdWString();
+    translatedstrings[IDS_2163] = QCoreApplication::translate("", "Video card #2 \"%hs\"  is not available due to missing ROMs in the roms/video directory. Disabling the second video card.").toStdWString();
     translatedstrings[IDS_2129] = QCoreApplication::translate("", "Hardware not available").toStdWString();
     translatedstrings[IDS_2143] = QCoreApplication::translate("", "Monitor in sleep mode").toStdWString();
     translatedstrings[IDS_2121] = QCoreApplication::translate("", "No ROMs found").toStdWString();
@@ -627,6 +635,18 @@ int
 plat_chdir(char *path)
 {
     return QDir::setCurrent(QString(path)) ? 0 : -1;
+}
+
+void
+plat_get_global_config_dir(char* strptr)
+{
+#ifdef __APPLE__
+    auto dir = QDir(QStandardPaths::standardLocations(QStandardPaths::GenericConfigLocation)[0] + "/net.86Box.86Box/");
+#else
+    auto dir = QDir(QStandardPaths::standardLocations(QStandardPaths::GenericConfigLocation)[0] + "/86Box/");
+#endif
+    if (!dir.exists()) dir.mkpath(".");
+    strncpy(strptr, dir.canonicalPath().toUtf8().constData(), 1024);
 }
 
 void

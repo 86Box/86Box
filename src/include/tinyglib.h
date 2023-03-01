@@ -124,6 +124,8 @@ extern gboolean g_spawn_async_with_fds(const gchar *working_directory, gchar **a
                                        GSpawnChildSetupFunc child_setup,
                                        gpointer user_data, GPid *child_pid, gint stdin_fd,
                                        gint stdout_fd, gint stderr_fd, GError **error);
+extern gboolean g_str_has_prefix (const gchar *str,
+                                  const gchar *prefix);
 extern GString *g_string_new(gchar *base);
 extern gchar   *g_string_free(GString *string, gboolean free_segment);
 extern gchar   *g_strstr_len(const gchar *haystack, gssize haystack_len, const gchar *needle);

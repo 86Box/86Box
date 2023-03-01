@@ -254,6 +254,14 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf[addr] = val & 0xcf;
             /* This actually enables/disables the USB *device* rather than the interface itself. */
             dev->usb_dev_enable = !(val & 0x40);
+            if (dev->type == 1) {
+                nvr_at_index_read_handler(0, 0x0070, dev->nvr);
+                nvr_at_index_read_handler(0, 0x0072, dev->nvr);
+                if (val & 0x20) {
+                    nvr_at_index_read_handler(1, 0x0070, dev->nvr);
+                    nvr_at_index_read_handler(1, 0x0072, dev->nvr);
+                }
+            }
             break;
 
         /* Hardware setting status bits, read-only (register 0x54) */

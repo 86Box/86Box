@@ -43,10 +43,23 @@ AboutDialogCreate(HWND hwnd)
     };
 
     wchar_t emu_version[256];
-    i = swprintf(emu_version, sizeof(emu_version), L"%ls v%ls", EMU_NAME_W, EMU_VERSION_FULL_W);
+    i = swprintf(emu_version, sizeof_w(emu_version), L"%ls v%ls", EMU_NAME_W, EMU_VERSION_FULL_W);
 #ifdef EMU_GIT_HASH
-    swprintf(&emu_version[i], sizeof(emu_version) - i, L" [%ls]", EMU_GIT_HASH_W);
+    i += swprintf(&emu_version[i], sizeof_w(emu_version) - i, L" [%ls]", EMU_GIT_HASH_W);
 #endif
+
+#if defined(__arm__) || defined(__TARGET_ARCH_ARM)
+#    define ARCH_STR L"arm"
+#elif defined(__aarch64__) || defined(_M_ARM64)
+#    define ARCH_STR L"arm64"
+#elif defined(__i386) || defined(__i386__) || defined(_M_IX86)
+#    define ARCH_STR L"i386"
+#elif defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined(_M_X64)
+#    define ARCH_STR L"x86_64"
+#else
+#    define ARCH_STR L"unknown"
+#endif
+    swprintf(&emu_version[i], sizeof_w(emu_version) - i, L" [%ls, %ls]", ARCH_STR, plat_get_string(IDS_DYNAREC));
 
     tdconfig.cbSize             = sizeof(tdconfig);
     tdconfig.hwndParent         = hwnd;

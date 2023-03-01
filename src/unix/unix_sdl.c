@@ -46,7 +46,7 @@ double              mouse_sensitivity = 1.0;                  /* Unused. */
 double              mouse_x_error = 0.0, mouse_y_error = 0.0; /* Unused. */
 static uint8_t      interpixels[17842176];
 
-extern void RenderImGui();
+extern void RenderImGui(void);
 static void
 sdl_integer_scale(double *d, double *g)
 {
@@ -61,7 +61,7 @@ sdl_integer_scale(double *d, double *g)
     }
 }
 
-void sdl_reinit_texture();
+void sdl_reinit_texture(void);
 
 static void
 sdl_stretch(int *w, int *h, int *x, int *y)
@@ -141,7 +141,7 @@ sdl_blit_shim(int x, int y, int w, int h, int monitor_index)
     video_blit_complete_monitor(monitor_index);
 }
 
-void ui_window_title_real();
+void ui_window_title_real(void);
 
 void
 sdl_real_blit(SDL_Rect *r_src)
@@ -286,7 +286,7 @@ sdl_select_best_hw_driver(void)
 }
 
 void
-sdl_reinit_texture()
+sdl_reinit_texture(void)
 {
     sdl_destroy_texture();
 
@@ -416,19 +416,19 @@ sdl_init_common(int flags)
 }
 
 int
-sdl_inits()
+sdl_inits(void)
 {
     return sdl_init_common(0);
 }
 
 int
-sdl_inith()
+sdl_inith(void)
 {
     return sdl_init_common(RENDERER_HARDWARE);
 }
 
 int
-sdl_initho()
+sdl_initho(void)
 {
     return sdl_init_common(RENDERER_HARDWARE | RENDERER_OPENGL);
 }
@@ -462,7 +462,7 @@ wchar_t    sdl_win_title[512] = { L'8', L'6', L'B', L'o', L'x', 0 };
 SDL_mutex *titlemtx           = NULL;
 
 void
-ui_window_title_real()
+ui_window_title_real(void)
 {
     char *res;
     if (sizeof(wchar_t) == 1) {

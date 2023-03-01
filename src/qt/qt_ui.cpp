@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Common UI functions.
+ *          Common UI functions.
  *
  *
  *
- * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *
- *		Copyright 2021 Joakim L. Gilje
- *      Copyright 2021-2022 Cacodemon345
+ *          Copyright 2021 Joakim L. Gilje
+ *          Copyright 2021-2022 Cacodemon345
  */
 #include <cstdint>
 
@@ -72,6 +72,12 @@ ui_window_title(wchar_t *str)
         emit main_window->setTitle(QString::fromWCharArray(str));
     }
     return str;
+}
+
+void
+ui_hard_reset_completed()
+{
+    emit main_window->hardResetCompleted();
 }
 
 extern "C" void

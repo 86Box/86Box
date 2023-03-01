@@ -10,10 +10,10 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
- *          EngiNerd <webmaster.crrc@yahoo.it>
+ *          EngiNerd, <webmaster.crrc@yahoo.it>
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
@@ -1291,8 +1291,8 @@ write64_generic(void *priv, uint8_t val)
             } else {
                 if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) && ((dev->flags & KBC_VEN_MASK) != KBC_VEN_INTEL_AMI))
 #if 0
-				add_to_kbc_queue_front(dev, (dev->input_port | fixed_bits) &
-						       (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0xeb : 0xef), 0, 0x00);
+                    add_to_kbc_queue_front(dev, (dev->input_port | fixed_bits) &
+                                          (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0xeb : 0xef), 0, 0x00);
 #else
                     add_to_kbc_queue_front(dev, ((dev->input_port | fixed_bits) & 0xf0) | (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0x08 : 0x0c), 0, 0x00);
 #endif
@@ -1947,7 +1947,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                             val &= ~0x0c;
                             val |= (dev->output_port & 0x0c);
                         }
-                        write_output(dev, val);
+                        write_output(dev, val | 0x01);
                         break;
 
                     case 0xd2: /* write to keyboard output buffer */
@@ -2491,7 +2491,7 @@ kbd_init(const device_t *info)
 
     dev->flags = info->local;
 
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
     kbd_reset(dev);
 
     io_sethandler(0x0060, 1, kbd_read, NULL, NULL, kbd_write, NULL, NULL, dev);

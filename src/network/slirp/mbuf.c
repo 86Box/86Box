@@ -30,12 +30,12 @@ void m_init(Slirp *slirp)
     slirp->m_usedlist.qh_link = slirp->m_usedlist.qh_rlink = &slirp->m_usedlist;
 }
 
-void m_cleanup(Slirp *slirp)
+static void m_cleanup_list(struct slirp_quehead *list_head)
 {
     struct mbuf *m, *next;
 
-    m = (struct mbuf *)slirp->m_usedlist.qh_link;
-    while ((struct quehead *)m != &slirp->m_usedlist) {
+    m = (struct mbuf *)list_head->qh_link;
+    while ((struct slirp_quehead *)m != list_head) {
         next = m->m_next;
         if (m->m_flags & M_EXT) {
             g_free(m->m_ext);
@@ -43,12 +43,16 @@ void m_cleanup(Slirp *slirp)
         g_free(m);
         m = next;
     }
-    m = (struct mbuf *)slirp->m_freelist.qh_link;
-    while ((struct quehead *)m != &slirp->m_freelist) {
-        next = m->m_next;
-        g_free(m);
-        m = next;
-    }
+    list_head->qh_link = list_head;
+    list_head->qh_rlink = list_head;
+}
+
+void m_cleanup(Slirp *slirp)
+{
+    m_cleanup_list(&slirp->m_usedlist);
+    m_cleanup_list(&slirp->m_freelist);
+    m_cleanup_list(&slirp->if_batchq);
+    m_cleanup_list(&slirp->if_fastq);
 }
 
 /*
@@ -66,19 +70,19 @@ struct mbuf *m_get(Slirp *slirp)
 
     DEBUG_CALL("m_get");
 
-    if (slirp->m_freelist.qh_link == &slirp->m_freelist) {
+    if (MBUF_DEBUG || slirp->m_freelist.qh_link == &slirp->m_freelist) {
         m = g_malloc(SLIRP_MSIZE(slirp->if_mtu));
         slirp->mbuf_alloced++;
-        if (slirp->mbuf_alloced > MBUF_THRESH)
+        if (MBUF_DEBUG || slirp->mbuf_alloced > MBUF_THRESH)
             flags = M_DOFREE;
         m->slirp = slirp;
     } else {
         m = (struct mbuf *)slirp->m_freelist.qh_link;
-        remque(m);
+        slirp_remque(m);
     }
 
     /* Insert it in the used list */
-    insque(m, &slirp->m_usedlist);
+    slirp_insque(m, &slirp->m_usedlist);
     m->m_flags = (flags | M_USEDLIST);
 
     /* Initialise it */
@@ -101,11 +105,12 @@ void m_free(struct mbuf *m)
     if (m) {
         /* Remove from m_usedlist */
         if (m->m_flags & M_USEDLIST)
-            remque(m);
+            slirp_remque(m);
 
         /* If it's M_EXT, free() it */
         if (m->m_flags & M_EXT) {
             g_free(m->m_ext);
+            m->m_flags &= ~M_EXT;
         }
         /*
          * Either free() it or put it on the free list
@@ -114,7 +119,7 @@ void m_free(struct mbuf *m)
             m->slirp->mbuf_alloced--;
             g_free(m);
         } else if ((m->m_flags & M_FREELIST) == 0) {
-            insque(m, &m->slirp->m_freelist);
+            slirp_insque(m, &m->slirp->m_freelist);
             m->m_flags = M_FREELIST; /* Clobber other flags */
         }
     } /* if(m) */
@@ -209,7 +214,7 @@ struct mbuf *dtom(Slirp *slirp, void *dat)
 
     /* bug corrected for M_EXT buffers */
     for (m = (struct mbuf *)slirp->m_usedlist.qh_link;
-         (struct quehead *)m != &slirp->m_usedlist; m = m->m_next) {
+         (struct slirp_quehead *)m != &slirp->m_usedlist; m = m->m_next) {
         if (m->m_flags & M_EXT) {
             if ((char *)dat >= m->m_ext && (char *)dat < (m->m_ext + m->m_size))
                 return m;
@@ -222,4 +227,56 @@ struct mbuf *dtom(Slirp *slirp, void *dat)
     DEBUG_ERROR("dtom failed");
 
     return (struct mbuf *)0;
+}
+
+/*
+ * Duplicate the mbuf
+ *
+ * copy_header specifies whether the bytes before m_data should also be copied.
+ * header_size specifies how many bytes are to be reserved before m_data.
+ */
+struct mbuf *m_dup(Slirp *slirp, struct mbuf *m,
+                   bool copy_header,
+                   size_t header_size)
+{
+    struct mbuf *n;
+    int mcopy_result;
+
+    /* The previous mbuf was supposed to have it already, we can check it along
+     * the way */
+    assert(M_ROOMBEFORE(m) >= header_size);
+
+    n = m_get(slirp);
+    m_inc(n, m->m_len + header_size);
+
+    if (copy_header) {
+        m->m_len += header_size;
+        m->m_data -= header_size;
+        mcopy_result = m_copy(n, m, 0, m->m_len + header_size);
+        n->m_data += header_size;
+        m->m_len -= header_size;
+        m->m_data += header_size;
+    } else {
+        n->m_data += header_size;
+        mcopy_result = m_copy(n, m, 0, m->m_len);
+    }
+    g_assert(mcopy_result == 0);
+
+    return n;
+}
+
+void *mtod_check(struct mbuf *m, size_t len)
+{
+    if (m->m_len >= len) {
+        return m->m_data;
+    }
+
+    DEBUG_ERROR("mtod failed");
+
+    return NULL;
+}
+
+void *m_end(struct mbuf *m)
+{
+    return m->m_data + m->m_len;
 }

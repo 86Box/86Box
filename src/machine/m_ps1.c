@@ -24,7 +24,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -300,7 +300,7 @@ ps1_setup(int model)
                  0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
 
         /* Initialize the video controller. */
-        if (gfxcard == VID_INTERNAL)
+        if (gfxcard[0] == VID_INTERNAL)
             device_add(&ibm_ps1_2121_device);
 
         device_add(&fdc_at_ps1_device);

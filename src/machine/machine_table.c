@@ -13,7 +13,7 @@
  *
  *
  *
- * Authors: Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
@@ -230,10 +230,12 @@ const machine_t machines[] = {
             .step = 16
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_pc_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -266,10 +268,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_pc82_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -302,10 +306,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PCJR,
+        .kbc_device = NULL, /* TODO: No specific kbd_device yet */
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &pcjr_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -338,10 +344,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -374,10 +382,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt86_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -410,10 +420,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -446,10 +458,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -482,10 +496,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -518,10 +534,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_pc82_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -554,10 +572,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt_compaq_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -590,10 +610,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -626,10 +648,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_pc82_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -662,10 +686,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -698,10 +724,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -734,10 +762,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -770,10 +800,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -806,10 +838,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -832,20 +866,22 @@ const machine_t machines[] = {
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
-            .max_multi = 0,
+            .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 128,
             .max = 640,
-            .step = 64,
+            .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -878,10 +914,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_pc_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -914,10 +952,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_pc_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -950,10 +990,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -986,10 +1028,12 @@ const machine_t machines[] = {
             .step = 256
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1022,10 +1066,12 @@ const machine_t machines[] = {
             .step = 256
         },
         .nvrmask = 0,
-        .kbc = KBC_OLIVETTI_XT,
+        .kbc_device = &keyboard_xt_olivetti_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &m19_vid_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1058,10 +1104,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1094,10 +1142,12 @@ const machine_t machines[] = {
             .step = 256
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1130,10 +1180,12 @@ const machine_t machines[] = {
             .step = 256
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_pc_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1166,10 +1218,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1202,10 +1256,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_pravetz_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1231,17 +1287,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PC,
-        MACHINE_FLAGS_NONE,
+        .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 256,
             .max = 640,
             .step = 256
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1274,10 +1332,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 15,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1310,10 +1370,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1346,10 +1408,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 0,
-        .kbc = KBC_TANDY,
+        .kbc_device = &keyboard_tandy_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &vid_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1382,10 +1446,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 0,
-        .kbc = KBC_TANDY,
+        .kbc_device = &keyboard_tandy_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &vid_device_hx,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1418,10 +1484,12 @@ const machine_t machines[] = {
             .step = 768
         },
         .nvrmask = 63,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt_t1x00_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &t1000_video_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1454,10 +1522,12 @@ const machine_t machines[] = {
             .step = 256
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1491,15 +1561,17 @@ const machine_t machines[] = {
             .step = 256
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif
+#endif /* defined(DEV_BRANCH) && defined(USE_LASERXT) */
     /* Has a standard PS/2 KBC (so, use IBM PS/2 Type 1). */
     {
         .name = "[8088] Xi8088",
@@ -1529,10 +1601,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_VIA_VT82C4XN_XI8088,
+        .kbc_device = &keyboard_ps2_xi8088_device,
         .kbc_p1 = 0xff04,
         .gpio = 0xffffffff,
         .device = &xi8088_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1565,10 +1639,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1601,10 +1677,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt_zenith_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1637,10 +1715,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt_zenith_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1673,10 +1753,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt_zenith_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &cga_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1709,10 +1791,12 @@ const machine_t machines[] = {
             .step = 256
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_pc_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1745,10 +1829,12 @@ const machine_t machines[] = {
             .step = 64
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1783,10 +1869,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 63,
-        .kbc = KBC_AMSTRAD,
+        .kbc_device = NULL /* TODO: No specific kbd_device yet */,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &vid_1512_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1819,10 +1907,12 @@ const machine_t machines[] = {
             .step = 640
         },
         .nvrmask = 63,
-        .kbc = KBC_AMSTRAD,
+        .kbc_device = NULL /* TODO: No specific kbd_device yet */,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &vid_1640_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1855,10 +1945,12 @@ const machine_t machines[] = {
             .step = 640
         },
         .nvrmask = 63,
-        .kbc = KBC_AMSTRAD,
+        .kbc_device = NULL /* TODO: No specific kbd_device yet */,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &vid_pc2086_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1891,10 +1983,12 @@ const machine_t machines[] = {
             .step = 640
         },
         .nvrmask = 63,
-        .kbc = KBC_AMSTRAD,
+        .kbc_device = NULL /* TODO: No specific kbd_device yet */,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &vid_pc3086_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1927,10 +2021,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 63,
-        .kbc = KBC_AMSTRAD,
+        .kbc_device = NULL /* TODO: No specific kbd_device yet */,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &vid_200_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1963,10 +2059,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 63,
-        .kbc = KBC_AMSTRAD,
+        .kbc_device = NULL /* TODO: No specific kbd_device yet */,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &vid_ppc512_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -1999,10 +2097,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt_compaq_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2035,10 +2135,12 @@ const machine_t machines[] = {
             .step = 640
         },
         .nvrmask = 0x3f,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2071,10 +2173,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 15,
-        .kbc = KBC_OLIVETTI_XT,
+        .kbc_device = NULL /* TODO: No specific kbd_device yet */,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &ogc_m24_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2108,10 +2212,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 15,
-        .kbc = KBC_OLIVETTI,
+        .kbc_device = NULL /* TODO: No specific kbd_device yet */,
         .kbc_p1 = 0xff04,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2144,10 +2250,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xtclone_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2180,10 +2288,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 0,
-        .kbc = KBC_TANDY_SL2,
+        .kbc_device = NULL /* TODO: No specific kbd_device yet */,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &vid_device_sl,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2216,10 +2326,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt_t1x00_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = &t1200_video_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2252,10 +2364,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2290,15 +2404,17 @@ const machine_t machines[] = {
             .step = 256
         },
         .nvrmask = 0,
-        .kbc = KBC_IBM_PC_XT,
+        .kbc_device = &keyboard_xt_lxt3_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif
+#endif /* defined(DEV_BRANCH) && defined(USE_LASERXT) */
 
     /* 286 AT machines */
     /* Has IBM AT KBC firmware. */
@@ -2330,10 +2446,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2367,10 +2485,12 @@ const machine_t machines[] = {
             .step = 512
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2404,10 +2524,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2441,10 +2563,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2478,10 +2602,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2516,10 +2642,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2553,10 +2681,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2590,10 +2720,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &compaq_plasma_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2627,10 +2759,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2664,10 +2798,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2702,15 +2838,17 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif
+#endif /* defined(DEV_BRANCH) && defined(USE_OLIVETTI) */
 #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
     /* Has IBM AT KBC firmware. */
     {
@@ -2741,15 +2879,17 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif
+#endif /* defined(DEV_BRANCH) && defined(USE_OPEN_AT) */
     /* Has IBM AT KBC firmware. */
     {
         .name = "[ISA] Phoenix IBM AT",
@@ -2779,10 +2919,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2816,10 +2958,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2853,10 +2997,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2890,10 +3036,12 @@ const machine_t machines[] = {
             .step = 256
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2927,10 +3075,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -2964,10 +3114,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3001,10 +3153,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3038,10 +3192,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3075,10 +3231,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3112,10 +3270,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3149,10 +3309,12 @@ const machine_t machines[] = {
             .step = 512
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3186,10 +3348,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3223,10 +3387,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3260,10 +3426,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3297,10 +3465,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3334,10 +3504,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3371,10 +3543,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3410,10 +3584,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3447,10 +3623,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3487,10 +3665,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3524,10 +3704,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3561,10 +3743,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3598,10 +3782,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3635,10 +3821,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3674,10 +3862,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &tvga8900d_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3712,10 +3902,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3749,10 +3941,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3786,10 +3980,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3825,10 +4021,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &oti067_ama932j_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3864,10 +4062,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3900,10 +4100,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3939,10 +4141,12 @@ const machine_t machines[] = {
             .step = 512
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -3976,10 +4180,12 @@ const machine_t machines[] = {
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4013,10 +4219,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4052,10 +4260,12 @@ const machine_t machines[] = {
             .step = 512
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &gd5402_onboard_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4091,10 +4301,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4128,10 +4340,12 @@ const machine_t machines[] = {
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &ati28800k_spc6033p_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4166,10 +4380,12 @@ const machine_t machines[] = {
             .step = 512
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4203,10 +4419,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4242,10 +4460,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4279,10 +4499,12 @@ const machine_t machines[] = {
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4312,17 +4534,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 16384,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4350,17 +4574,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 16384,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4387,17 +4613,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 16384,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4424,17 +4652,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = 0,
+        .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4462,22 +4692,24 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 14336,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif
+#endif /* defined(DEV_BRANCH) && defined(USE_DESKPRO386) */
     {
         .name = "[ISA] Compaq Portable III (386)",
         .internal_name = "portableiii386",
@@ -4499,17 +4731,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .flags = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 14336,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &compaq_plasma_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4536,17 +4770,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_APM,
         .ram = {
             .min = 512,
             .max = 8192,
             .step = 128
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4573,17 +4809,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4612,17 +4850,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags = MACHINE_VIDEO,
+        .flags = MACHINE_VIDEO | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4652,17 +4892,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4689,17 +4931,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4726,17 +4970,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4763,17 +5009,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags = MACHINE_VIDEO,
+        .flags = MACHINE_VIDEO | MACHINE_APM,
         .ram = {
             .min = 2048,
             .max = 65536,
             .step = 2048
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4800,17 +5048,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags = MACHINE_VIDEO,
+        .flags = MACHINE_VIDEO | MACHINE_APM,
         .ram = {
             .min = 2048,
             .max = 65536,
             .step = 2048
         },
         .nvrmask = 63,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4843,17 +5093,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4882,17 +5134,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4920,17 +5174,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4957,17 +5213,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -4994,17 +5252,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5032,17 +5292,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5069,17 +5331,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5109,17 +5373,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 64512,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5148,17 +5414,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .flags = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
         .ram = {
             .min = 2048,
             .max = 32768,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &gd5428_onboard_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5185,17 +5453,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .flags = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
         .ram = {
             .min = 2048,
             .max = 32768,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &gd5428_onboard_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5226,17 +5496,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .flags = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
         .ram = {
             .min = 4096,
             .max = 36864,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5263,17 +5535,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM,
         .ram = {
             .min = 4096,
             .max = 36864,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &gd5428_onboard_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5300,17 +5574,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5337,18 +5613,20 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &s3_86c805_onboard_vlb_device,
         .vid_device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -5374,17 +5652,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 32768,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5412,17 +5692,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags = MACHINE_IDE | MACHINE_VIDEO,
+        .flags = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5451,17 +5733,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5491,17 +5775,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5528,17 +5814,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5565,17 +5853,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5602,17 +5892,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5639,17 +5931,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5676,17 +5970,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_VLB,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5713,17 +6009,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5750,23 +6048,142 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* TriGem AMIBIOS Pre-Color with TriGem AMI 'Z' keyboard controller */
+    {
+        .name = "[SiS 471] TriGem 486G",
+        .internal_name = "tg486g",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_SIS_471,
+        .init = machine_at_tg486g_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_VLB,
+        .flags = MACHINE_IDE | MACHINE_APM,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },
 
     /* 486 machines which utilize the PCI bus */
+    /* Machine with ALi M1429G chipset and M1435 southbridge */
+    {
+        .name = "[ALi M1429G] MSI MS-4134",
+        .internal_name = "ms4134",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_ALI_M1429G,
+        .init = machine_at_ms4134_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCIV,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* TriGem machine with M1429G and PhoenixBIOS */
+    {
+        .name = "[ALi M1429G] TriGem 486GP",
+        .internal_name = "tg486gp",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_ALI_M1429G,
+        .init = machine_at_tg486gp_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCIV,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
         .name = "[ALi M1489] AAEON SBC-490",
@@ -5789,17 +6206,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &tgui9440_onboard_pci_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5827,17 +6246,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5868,17 +6289,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5909,17 +6332,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5946,17 +6371,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -5983,17 +6410,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6020,17 +6449,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCIV,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6057,17 +6488,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6094,17 +6527,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_SCSI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6131,17 +6566,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6169,17 +6606,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_SCSI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6206,17 +6645,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6243,17 +6684,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6280,17 +6723,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCIV,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 261120,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6317,17 +6762,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6354,17 +6801,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6391,17 +6840,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 261120,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6429,17 +6880,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCIV,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 261120,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6467,17 +6920,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 261120,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6504,17 +6959,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6541,17 +6998,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6578,17 +7037,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 262144,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6616,17 +7077,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PCIV,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6653,17 +7116,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6690,17 +7155,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 262144,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6727,17 +7194,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PCIV,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6764,17 +7233,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCIV,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 131072,
             .step = 1024
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6805,17 +7276,19 @@ const machine_t machines[] = {
             .max_multi = 1.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6843,17 +7316,19 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 32768,
             .max = 163840,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6881,17 +7356,19 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 32768,
             .max = 163840,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6919,17 +7396,19 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 32768,
             .max = 98304,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -6957,17 +7436,19 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 32768,
             .max = 131072,
             .step = 32768
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7001,17 +7482,19 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7038,17 +7521,19 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
             .max = 196608,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7075,17 +7560,19 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7112,17 +7599,19 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7151,17 +7640,19 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7188,17 +7679,19 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7225,17 +7718,19 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7262,17 +7757,19 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7299,17 +7796,19 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 139264,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &gd5434_onboard_pci_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7340,17 +7839,19 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_VLB,
-        .flags = MACHINE_IDE,
+        .flags = MACHINE_IDE | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
             .max = 65536,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7379,17 +7880,19 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PCIV,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7418,17 +7921,19 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7455,17 +7960,19 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7495,17 +8002,19 @@ const machine_t machines[] = {
             .max_multi = 1.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7533,17 +8042,19 @@ const machine_t machines[] = {
             .max_multi = 1.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
             .max = 131072,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7570,17 +8081,19 @@ const machine_t machines[] = {
             .max_multi = 1.5
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
-            .max = 131072,
+            .max = 262144,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7609,17 +8122,19 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7646,54 +8161,19 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-    /* Has AMIKey H KBC firmware. */
-    {
-        .name = "[i430FX] DataExpert EXP8551",
-        .internal_name = "exp8551",
-        .type = MACHINE_TYPE_SOCKET5,
-        .chipset = MACHINE_CHIPSET_INTEL_430FX,
-        .init = machine_at_exp8551_init,
-        .pad = 0,
-        .pad0 = 0,
-        .pad1 = MACHINE_AVAILABLE,
-        .pad2 = 0,
-        .cpu = {
-            .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 50000000,
-            .max_bus = 66666667,
-            .min_voltage = 3380,
-            .max_voltage = 3520,
-            .min_multi = 1.5,
-            .max_multi = 3.0
-        },
-        .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_GAMEPORT,
-        .ram = {
-            .min = 8192,
-            .max = 131072,
-            .step = 8192
-        },
-        .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
-        .kbc_p1 = 0,
-        .gpio = 0,
-        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7722,17 +8202,19 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7759,54 +8241,19 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-    /* Has a VIA VT82C42N KBC. */
-    {
-        .name = "[i430FX] PC Partner MB500N",
-        .internal_name = "mb500n",
-        .type = MACHINE_TYPE_SOCKET5,
-        .chipset = MACHINE_CHIPSET_INTEL_430FX,
-        .init = machine_at_mb500n_init,
-        .pad = 0,
-        .pad0 = 0,
-        .pad1 = MACHINE_AVAILABLE,
-        .pad2 = 0,
-        .cpu = {
-            .package = CPU_PKG_SOCKET5_7,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 50000000,
-            .max_bus = 66666667,
-            .min_voltage = 3380,
-            .max_voltage = 3520,
-            .min_multi = 1.5,
-            .max_multi = 3.0
-        },
-        .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL,
-        .ram = {
-            .min = 8192,
-            .max = 131072,
-            .step = 8192
-        },
-        .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
-        .kbc_p1 = 0,
-        .gpio = 0,
-        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7833,17 +8280,19 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7874,17 +8323,19 @@ const machine_t machines[] = {
             .max_multi = 1.5
         },
         .bus_flags = MACHINE_VLB,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
             .max = 65536,
             .step = 2048
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7912,17 +8363,19 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PCIV,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7951,17 +8404,19 @@ const machine_t machines[] = {
             .max_multi = 1.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -7979,7 +8434,7 @@ const machine_t machines[] = {
         .pad2 = 0,
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
-        CPU_BLOCK(CPU_PENTIUMMMX),
+            .block = CPU_BLOCK(CPU_PENTIUMMMX),
             .min_bus = 50000000,
             .max_bus = 66666667,
             .min_voltage = 3520,
@@ -7988,17 +8443,58 @@ const machine_t machines[] = {
             .max_multi = 1.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* This machine has a Winbond W83C842 KBC */
+    {
+        .name = "[SiS 501] Gemlight GMB-P54SPS",
+        .internal_name = "p54sps",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_SIS_501,
+        .init = machine_at_p54sps_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+        CPU_BLOCK(CPU_PENTIUMMMX),
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 1.5
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc_device = &keyboard_at_ami_device,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8028,17 +8524,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8065,17 +8563,58 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Has AMIKey H KBC firmware. */
+    {
+        .name = "[i430FX] DataExpert EXP8551",
+        .internal_name = "exp8551",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_exp8551_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_GAMEPORT | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8104,17 +8643,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8142,17 +8683,19 @@ const machine_t machines[] = {
             .max_multi = 2.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 511,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &s3_phoenix_trio64_onboard_pci_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8181,17 +8724,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &s3_phoenix_trio64vplus_onboard_pci_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8220,17 +8765,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &s3_phoenix_trio64vplus_onboard_pci_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8259,17 +8806,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &s3_phoenix_trio64_onboard_pci_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8296,17 +8845,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8334,17 +8885,58 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &gd5440_onboard_pci_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Has a VIA VT82C42N KBC. */
+    {
+        .name = "[i430FX] PC Partner MB500N",
+        .internal_name = "mb500n",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430FX,
+        .init = machine_at_mb500n_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8371,17 +8963,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8412,17 +9006,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 196608,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8449,17 +9045,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8486,17 +9084,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8524,17 +9124,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8563,17 +9165,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8602,17 +9206,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8641,17 +9247,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8678,17 +9286,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8718,17 +9328,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 196608,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8755,17 +9367,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8792,17 +9406,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 511,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8831,17 +9447,59 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* OEM version of Intel TC430HX, has AMI MegaKey KBC firmware on the PC87306
+       Super I/O chip */
+    {
+        .name = "[i430HX] Toshiba Infinia 7200",
+        .internal_name = "infinia7200",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430HX,
+        .init = machine_at_infinia7200_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8870,17 +9528,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 196608,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8910,17 +9570,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 196608,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8947,17 +9609,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -8986,17 +9650,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_SCSI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SCSI | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9023,17 +9689,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9061,17 +9729,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9098,17 +9768,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9136,17 +9808,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &s3_trio64v2_dx_onboard_pci_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9173,17 +9847,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &s3_trio64v2_dx_onboard_pci_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9210,17 +9886,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9247,17 +9925,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9286,17 +9966,58 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* This machine has Phoenix MultiKey/42i KBC */
+    {
+        .name = "[i430VX] Packard Bell PB810",
+        .internal_name = "pb810",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_pb810_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9324,17 +10045,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9362,17 +10085,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_GAMEPORT,
+        .flags = MACHINE_IDE_DUAL | MACHINE_GAMEPORT | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9401,17 +10126,19 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9438,17 +10165,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9476,22 +10205,24 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif
+#endif /* defined(DEV_BRANCH) && defined(USE_AN430TX) */
     /* This has the AMIKey KBC firmware, which is an updated 'F' type. */
     {
         .name = "[i430TX] Intel YM430TX",
@@ -9514,17 +10245,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9551,17 +10284,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9578,27 +10313,29 @@ const machine_t machines[] = {
         .pad1 = MACHINE_AVAILABLE,
         .pad2 = 0,
         .cpu = {
-           .package = CPU_PKG_SOCKET5_7,
-           .block = CPU_BLOCK_NONE,
-           .min_bus = 55000000,
-           .max_bus = 75000000,
-           .min_voltage = 2800,
-           .max_voltage = 3520,
-           .min_multi = 1.5,
-           .max_multi = 5.5,
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 55000000,
+            .max_bus = 75000000,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9625,17 +10362,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9665,17 +10404,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9705,17 +10446,19 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9744,17 +10487,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 393216,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9781,17 +10526,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 262144,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9820,17 +10567,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9857,17 +10606,19 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9897,17 +10648,19 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 1024,
             .max = 1572864,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9935,17 +10688,19 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 1024,
             .max = 1572864,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -9972,17 +10727,19 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 1024,
             .max = 1572864,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10009,17 +10766,19 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 1024,
             .max = 1572864,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10049,17 +10808,19 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10087,17 +10848,19 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10125,17 +10888,19 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_A97,
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10163,17 +10928,19 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10203,17 +10970,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10242,17 +11011,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10279,17 +11050,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10317,17 +11090,19 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10353,17 +11128,19 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10392,17 +11169,19 @@ const machine_t machines[] = {
             .max_multi = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10431,17 +11210,19 @@ const machine_t machines[] = {
             .max_multi = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10468,17 +11249,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10507,17 +11290,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10547,17 +11332,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 1024,
             .max = 1572864,
             .step = 8192
         },
-        255,
-        .kbc = KBC_UNKNOWN,
+        .nvrmask = 255,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10586,17 +11373,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10624,17 +11413,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
         },
         .nvrmask = 127,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10664,17 +11455,19 @@ const machine_t machines[] = {
             .max_multi = 5.5
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10702,17 +11495,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10741,18 +11536,20 @@ const machine_t machines[] = {
             .min_multi = 3.0,
             .max_multi = 8.0
         },
-        .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10782,17 +11579,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10820,17 +11619,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10858,17 +11659,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10896,17 +11699,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10934,17 +11739,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -10972,17 +11779,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11010,17 +11819,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &es1371_onboard_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11048,17 +11859,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11088,17 +11901,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL | MACHINE_AV,
+        .flags = MACHINE_IDE_DUAL | MACHINE_AV | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &voodoo_3_2000_agp_onboard_8m_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11126,17 +11941,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL | MACHINE_AV,
+        .flags = MACHINE_IDE_DUAL | MACHINE_AV | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &voodoo_3_2000_agp_onboard_8m_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11166,17 +11983,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11206,17 +12025,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11244,17 +12065,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1572864,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11282,17 +12105,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 2097152,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11320,17 +12145,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 3145728,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &es1371_onboard_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11361,17 +12188,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_NOISA,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 16384,
             .max = 2097152,
             .step = 16384
         },
         .nvrmask = 511,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11402,17 +12231,60 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &es1371_onboard_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* VIA Apollo Pro */
+    /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware. */
+    {
+        .name = "[VIA Apollo Pro 133] ECS P6BAT-A+",
+        .internal_name = "p6bat",
+        .type = MACHINE_TYPE_SLOT1_370,
+        .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO_133,
+        .init = machine_at_p6bat_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SLOT1 | CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &cmi8738_onboard_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11443,17 +12315,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 16384,
             .max = 2097152,
             .step = 16384
         },
         .nvrmask = 511,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11481,17 +12355,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 16384,
             .max = 2097152,
             .step = 16384
         },
         .nvrmask = 511,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11522,17 +12398,19 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED,
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11562,17 +12440,19 @@ const machine_t machines[] = {
             .max_multi = 8.0 /* limits assumed */
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11600,17 +12480,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11638,17 +12520,19 @@ const machine_t machines[] = {
             .max_multi = 8.0 /* limits assumed */ 
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11678,17 +12562,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 524288,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11718,17 +12604,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11758,17 +12646,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 786432,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11776,7 +12666,7 @@ const machine_t machines[] = {
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
-        .name = "[VIA Apollo Pro 133] ECS P6BAP",
+        .name = "[VIA Apollo Pro 133] ECS P6BAP-A+",
         .internal_name = "p6bap",
         .type = MACHINE_TYPE_SOCKET370,
         .chipset = MACHINE_CHIPSET_VIA_APOLLO_PRO_133,
@@ -11796,17 +12686,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1572864,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11831,20 +12723,22 @@ const machine_t machines[] = {
             .min_voltage = 1300,
             .max_voltage = 3500,
             .min_multi = MACHINE_MULTIPLIER_FIXED,
-            .max_multi = MACHINE_MULTIPLIER_FIXED,
+            .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_A97,
-        .flags = MACHINE_IDE_DUAL | MACHINE_AG,
+        .flags = MACHINE_IDE_DUAL | MACHINE_AG | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 16384,
             .max = 3145728,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11872,17 +12766,19 @@ const machine_t machines[] = {
             .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_NOI97,
-        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 16384,
             .max = 4194304,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = &cmi8738_onboard_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11912,17 +12808,19 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 1048576,
             .step = 8192
         },
         .nvrmask = 255,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -11956,10 +12854,12 @@ const machine_t machines[] = {
             .step = 0
         },
         .nvrmask = 0,
-        .kbc = KBC_UNKNOWN,
+        .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
         .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
@@ -12021,7 +12921,16 @@ machine_getname_ex(int m)
 }
 
 const device_t *
-machine_getdevice(int m)
+machine_get_kbc_device(int m)
+{
+    if (machines[m].kbc_device)
+        return (machines[m].kbc_device);
+
+    return (NULL);
+}
+
+const device_t *
+machine_get_device(int m)
 {
     if (machines[m].device)
         return (machines[m].device);
@@ -12030,7 +12939,25 @@ machine_getdevice(int m)
 }
 
 const device_t *
-machine_getviddevice(int m)
+machine_get_fdc_device(int m)
+{
+    if (machines[m].fdc_device)
+        return (machines[m].fdc_device);
+
+    return (NULL);
+}
+
+const device_t *
+machine_get_sio_device(int m)
+{
+    if (machines[m].sio_device)
+        return (machines[m].sio_device);
+
+    return (NULL);
+}
+
+const device_t *
+machine_get_vid_device(int m)
 {
     if (machines[m].vid_device)
         return (machines[m].vid_device);
@@ -12039,7 +12966,7 @@ machine_getviddevice(int m)
 }
 
 const device_t *
-machine_getsnddevice(int m)
+machine_get_snd_device(int m)
 {
     if (machines[m].snd_device)
         return (machines[m].snd_device);
@@ -12048,7 +12975,7 @@ machine_getsnddevice(int m)
 }
 
 const device_t *
-machine_getnetdevice(int m)
+machine_get_net_device(int m)
 {
     if (machines[m].net_device)
         return (machines[m].net_device);

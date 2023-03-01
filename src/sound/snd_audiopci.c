@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors:  Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
  *           RichardG, <richardg867@gmail.com>
  *           Miran Grca, <mgrca8@gmail.com>
  *
@@ -1958,7 +1958,7 @@ generate_es1371_filter(void)
     for (n = 0; n < ES1371_NCoef; n++)
         gain += low_fir_es1371_coef[n] / (float) N;
 
-    gain /= 0.95;
+    gain /= 0.65;
 
     /* Normalise filter, to produce unity gain */
     for (n = 0; n < ES1371_NCoef; n++)
@@ -2045,7 +2045,7 @@ es1371_speed_changed(void *p)
 {
     es1371_t *dev = (es1371_t *) p;
 
-    dev->dac[1].latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 48000.0));
+    dev->dac[1].latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) SOUND_FREQ));
 }
 
 static const device_config_t es1371_config[] = {

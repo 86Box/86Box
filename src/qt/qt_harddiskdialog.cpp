@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Hard disk dialog code.
+ *          Hard disk dialog code.
  *
  *
  *
- * Authors:	Joakim L. Gilje <jgilje@jgilje.net>
+ * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
  *
- *		Copyright 2021 Joakim L. Gilje
- *      Copyright 2022 Cacodemon345
+ *          Copyright 2021 Joakim L. Gilje
+ *          Copyright 2022 Cacodemon345
  */
 #include "qt_harddiskdialog.hpp"
 #include "ui_qt_harddiskdialog.h"
@@ -51,6 +51,40 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
 {
     ui->setupUi(this);
 
+    auto *model = ui->comboBoxFormat->model();
+    model->insertRows(0, 6);
+    model->setData(model->index(0, 0), tr("Raw image (.img)"));
+    model->setData(model->index(1, 0), tr("HDI image (.hdi)"));
+    model->setData(model->index(2, 0), tr("HDX image (.hdx)"));
+    model->setData(model->index(3, 0), tr("Fixed-size VHD (.vhd)"));
+    model->setData(model->index(4, 0), tr("Dynamic-size VHD (.vhd)"));
+    model->setData(model->index(5, 0), tr("Differencing VHD (.vhd)"));
+
+    model = ui->comboBoxBlockSize->model();
+    model->insertRows(0, 2);
+    model->setData(model->index(0, 0), tr("Large blocks (2 MB)"));
+    model->setData(model->index(1, 0), tr("Small blocks (512 KB)"));
+
+    ui->comboBoxBlockSize->hide();
+    ui->labelBlockSize->hide();
+
+    Harddrives::populateBuses(ui->comboBoxBus->model());
+    ui->comboBoxBus->setCurrentIndex(3);
+
+    model = ui->comboBoxType->model();
+    for (int i = 0; i < 127; i++) {
+        uint64_t size    = ((uint64_t) hdd_table[i][0]) * hdd_table[i][1] * hdd_table[i][2];
+        uint32_t size_mb = size >> 11LL;
+        // QString text = QString("%1 MiB (CHS: %2, %3, %4)").arg(size_mb).arg(hdd_table[i][0]).arg(hdd_table[i][1]).arg(hdd_table[i][2]);
+        QString text = QString::asprintf(tr("%u MB (CHS: %i, %i, %i)").toUtf8().constData(), (size_mb), (hdd_table[i][0]), (hdd_table[i][1]), (hdd_table[i][2]));
+        Models::AddEntry(model, text, i);
+    }
+    Models::AddEntry(model, tr("Custom..."), 127);
+    Models::AddEntry(model, tr("Custom (large)..."), 128);
+
+    ui->lineEditSize->setValidator(new QIntValidator());
+    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+
     if (existing) {
         ui->fileField->setFilter(tr("Hard disk images") % util::DlgFilter({ "hd?", "im?", "vhd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
 
@@ -85,40 +119,6 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
             ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
         });
     }
-
-    auto *model = ui->comboBoxFormat->model();
-    model->insertRows(0, 6);
-    model->setData(model->index(0, 0), tr("Raw image (.img)"));
-    model->setData(model->index(1, 0), tr("HDI image (.hdi)"));
-    model->setData(model->index(2, 0), tr("HDX image (.hdx)"));
-    model->setData(model->index(3, 0), tr("Fixed-size VHD (.vhd)"));
-    model->setData(model->index(4, 0), tr("Dynamic-size VHD (.vhd)"));
-    model->setData(model->index(5, 0), tr("Differencing VHD (.vhd)"));
-
-    model = ui->comboBoxBlockSize->model();
-    model->insertRows(0, 2);
-    model->setData(model->index(0, 0), tr("Large blocks (2 MB)"));
-    model->setData(model->index(1, 0), tr("Small blocks (512 KB)"));
-
-    ui->comboBoxBlockSize->hide();
-    ui->labelBlockSize->hide();
-
-    Harddrives::populateBuses(ui->comboBoxBus->model());
-    ui->comboBoxBus->setCurrentIndex(3);
-
-    model = ui->comboBoxType->model();
-    for (int i = 0; i < 127; i++) {
-        uint64_t size    = ((uint64_t) hdd_table[i][0]) * hdd_table[i][1] * hdd_table[i][2];
-        uint32_t size_mb = size >> 11LL;
-        // QString text = QString("%1 MiB (CHS: %2, %3, %4)").arg(size_mb).arg(hdd_table[i][0]).arg(hdd_table[i][1]).arg(hdd_table[i][2]);
-        QString text = QString::asprintf(tr("%u MB (CHS: %i, %i, %i)").toUtf8().constData(), (size_mb), (hdd_table[i][0]), (hdd_table[i][1]), (hdd_table[i][2]));
-        Models::AddEntry(model, text, i);
-    }
-    Models::AddEntry(model, tr("Custom..."), 127);
-    Models::AddEntry(model, tr("Custom (large)..."), 128);
-
-    ui->lineEditSize->setValidator(new QIntValidator());
-    ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
 }
 
 HarddiskDialog::~HarddiskDialog()
@@ -499,7 +499,7 @@ HarddiskDialog::recalcSelection()
 }
 
 void
-HarddiskDialog::onExistingFileSelected(const QString &fileName)
+HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
 {
     // TODO : Over to non-existing file selected
     /*
@@ -531,7 +531,11 @@ HarddiskDialog::onExistingFileSelected(const QString &fileName)
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
     QFile file(fileName);
     if (!file.open(QIODevice::ReadOnly)) {
-        QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable."));
+        // No message box during precheck (performed when the file input loses focus and this function is called)
+        // If precheck is false, the file has been chosen from a file dialog and the alert should display.
+        if(!precheck) {
+            QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable."));
+        }
         return;
     }
     QByteArray fileNameUtf8 = fileName.toUtf8();
@@ -703,13 +707,13 @@ HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index)
             max_cylinders = 266305;
             break;
         case HDD_BUS_IDE:
-            max_sectors   = 63;
+            max_sectors   = 255;
             max_heads     = 255;
             max_cylinders = 266305;
             break;
         case HDD_BUS_ATAPI:
         case HDD_BUS_SCSI:
-            max_sectors   = 99;
+            max_sectors   = 255;
             max_heads     = 255;
             max_cylinders = 266305;
             break;

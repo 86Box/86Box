@@ -1,21 +1,19 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the language management module.
- *
- * NOTE:	FIXME: Strings 2176 and 2193 are same.
+ *          Definitions for the language management module.
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
- *		Copyright 2022      Jasmine Iwanek.
+ *          Copyright 2017-2018 Fred N. van Kempen.
+ *          Copyright 2022      Jasmine Iwanek.
  */
 
 #ifndef LANG_UAGE_H
@@ -152,6 +150,19 @@
 #define IDS_2160      2160 // "ACPI shutdown"
 #define IDS_2161      2161 // "Settings"
 #define IDS_2162      2162 // "Early drive"
+#define IDS_2163      2163 // "no dynarec"
+#define IDS_2164      2164 // "old dynarec"
+#define IDS_2165      2165 // "new dynarec"
+#ifdef USE_DYNAREC
+#    ifdef USE_NEW_DYNAREC
+#        define IDS_DYNAREC IDS_2165
+#    else
+#        define IDS_DYNAREC IDS_2164
+#    endif
+#else
+#    define IDS_DYNAREC IDS_2163
+#endif
+#define IDS_2166      2166 // "Video card #2 ""%hs"" is not..."
 
 #define IDS_4096      4096 // "Hard disk (%s)"
 #define IDS_4097      4097 // "%01i:%01i"
@@ -260,7 +271,7 @@
 
 #define IDS_LANG_ENUS IDS_7168
 
-#define STR_NUM_2048  115
+#define STR_NUM_2048  118
 // UNUSED: #define STR_NUM_3072  11
 #define STR_NUM_4096 40
 #define STR_NUM_4352 6

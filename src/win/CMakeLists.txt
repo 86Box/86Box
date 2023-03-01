@@ -11,12 +11,13 @@
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #
 #          Copyright 2020,2021 David Hrdlička.
+#          Copyright 2021-2022 Jasmine Iwanek.
 #
 
 enable_language(RC)
 
 add_library(plat OBJECT win.c win_dynld.c win_cdrom.c win_keyboard.c
-    win_mouse.c)
+    win_mouse.c win_serial_passthrough.c)
 
 add_library(ui OBJECT win_ui.c win_icon.c win_stbar.c win_sdl.c win_dialog.c win_about.c
     win_settings.c win_devconf.c win_snd_gain.c win_specify_dim.c win_new_floppy.c

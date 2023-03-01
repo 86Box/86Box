@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the Texas Instruments TVP3026 true colour RAMDAC
- *		family.
+ *          Emulation of the Texas Instruments TVP3026 true colour RAMDAC
+ *          family.
  *
  *
- *		TODO: Clock and other parts.
+ * TODO:    Clock and other parts.
  *
- * Authors:	TheCollector1995,
+ * Authors: TheCollector1995,
  *
- *		Copyright 2021 TheCollector1995.
+ *          Copyright 2021 TheCollector1995.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -162,12 +162,20 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
         case 0x0a: /* Indexed Data (RS value = 1010) */
             switch (ramdac->ind_idx) {
                 case 0x06: /* Indirect Cursor Control */
-                    ramdac->ccr                  = val;
-                    svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 64;
-                    svga->dac_hwcursor.x                                        = ramdac->hwc_x - svga->dac_hwcursor.cur_xsize;
-                    svga->dac_hwcursor.y                                        = ramdac->hwc_y - svga->dac_hwcursor.cur_ysize;
-                    svga->dac_hwcursor.ena                                      = !!(val & 0x03);
-                    ramdac->mode                                                = val & 0x03;
+                    ramdac->ccr = val;
+                    if (!(ramdac->ccr & 0x80)) {
+                        svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 64;
+                        svga->dac_hwcursor.x                                        = ramdac->hwc_x - svga->dac_hwcursor.cur_xsize;
+                        svga->dac_hwcursor.y                                        = ramdac->hwc_y - svga->dac_hwcursor.cur_ysize;
+                        svga->dac_hwcursor.ena                                      = !!(val & 0x03);
+                        ramdac->mode                                                = val & 0x03;
+                    } else {
+                        svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 64;
+                        svga->dac_hwcursor.x                                        = ramdac->hwc_x - svga->dac_hwcursor.cur_xsize;
+                        svga->dac_hwcursor.y                                        = ramdac->hwc_y - svga->dac_hwcursor.cur_ysize;
+                        svga->dac_hwcursor.ena                                      = !!(ramdac->dcc & 0x03);
+                        ramdac->mode                                                = ramdac->dcc & 0x03;
+                    }
                     break;
                 case 0x0f: /* Latch Control */
                     ramdac->latch_cntl = val;
@@ -244,7 +252,7 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
             }
             break;
         case 0x0b: /* Cursor RAM Data Register (RS value = 1011) */
-            index          = svga->dac_addr & da_mask;
+            index          = (svga->dac_addr & da_mask) | ((ramdac->ccr & 0x0c) << 6);
             cd             = (uint8_t *) ramdac->cursor64_data;
             cd[index]      = val;
             svga->dac_addr = (svga->dac_addr + 1) & da_mask;
@@ -410,7 +418,7 @@ tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
             }
             break;
         case 0x0b: /* Cursor RAM Data Register (RS value = 1011) */
-            index = (svga->dac_addr - 1) & da_mask;
+            index = ((svga->dac_addr - 1) & da_mask) | ((ramdac->ccr & 0x0c) << 6);
             cd    = (uint8_t *) ramdac->cursor64_data;
             temp  = cd[index];
 

@@ -1,22 +1,23 @@
 /*
- * 86Box	An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA, EISA, VLB, MCA, and PCI system buses,
- *		roughly spanning the era between 1981 and 1995.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box Project.
+ *          This file is part of the 86Box Project.
  *
- *		Implementation of the following network controller:
- *			- 3Com Etherlink 3c500/3c501 (ISA 8-bit).
+ *          Implementation of the following network controller:
+ *            - 3Com Etherlink 3c500/3c501 (ISA 8-bit).
  *
  *
  *
  * Based on	@(#)Dev3C501.cpp Oracle (VirtualBox)
  *
- * Authors:	TheCollector1995, <mariogplayer@gmail.com>
- *		Oracle
+ * Authors: TheCollector1995, <mariogplayer@gmail.com>
+ *          Oracle
  *
- *		Copyright 2022 TheCollector1995.
- *		Portions Copyright (C) 2022  Oracle and/or its affilitates.
+ *          Copyright 2022 TheCollector1995.
+ *          Portions Copyright (C) 2022  Oracle and/or its affilitates.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

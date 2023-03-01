@@ -8,7 +8,7 @@
  *
  *          Implementation of the ALi M1429 chipset.
  *
- *    Note: This chipset has no datasheet, everything were done via
+ * Note:    This chipset has no datasheet, everything were done via
  *          reverse engineering the BIOS of various machines using it.
  *
  *
@@ -16,8 +16,8 @@
  * Authors: Tiseno100,
  *          Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2020,2021 Tiseno100.
- *          Copyright 2021,2021 Miran Grca.
+ *          Copyright 2020-2021 Tiseno100.
+ *          Copyright 2021      Miran Grca.
  */
 
 /*
@@ -161,9 +161,11 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
 #endif
 
             if (dev->index == 0x03)
-                dev->cfg_locked = !(val == 0xc5);
+                dev->cfg_locked = (val != 0xc5);
 
             if (!dev->cfg_locked) {
+                pclog("M1429: dev->regs[%02x] = %02x\n", dev->index, val);
+
                 /* Common M1429 Registers */
                 switch (dev->index) {
                     case 0x10:
@@ -324,8 +326,8 @@ ali1429_init(const device_t *info)
     GREEN           = info->local;
 
     /* M1429 Ports:
-                22h Index Port
-                23h Data Port
+                22h	Index Port
+                23h	Data Port
     */
     io_sethandler(0x0022, 0x0002, ali1429_read, NULL, NULL, ali1429_write, NULL, NULL, dev);
 

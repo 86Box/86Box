@@ -14,7 +14,7 @@
 CF_IMPLICIT_BRIDGING_ENABLED
 CF_EXTERN_C_BEGIN
 void getDefaultROMPath(char *);
-int  toto();
+int  toto(void);
 
 CF_EXTERN_C_END
 CF_IMPLICIT_BRIDGING_DISABLED

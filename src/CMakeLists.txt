@@ -19,7 +19,7 @@ if(APPLE)
 endif()
 
 add_executable(86Box 86box.c config.c log.c random.c timer.c io.c acpi.c apm.c
-    dma.c ddma.c discord.c nmi.c pic.c pit.c pit_fast.c port_6x.c port_92.c ppi.c pci.c
+    dma.c ddma.c nmi.c pic.c pit.c pit_fast.c port_6x.c port_92.c ppi.c pci.c
     mca.c usb.c fifo8.c device.c nvr.c nvr_at.c nvr_ps2.c machine_status.c ini.c)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -51,12 +51,20 @@ if(DEV_BRANCH)
     add_compile_definitions(DEV_BRANCH)
 endif()
 
+if(DISCORD)
+    add_compile_definitions(DISCORD)
+    target_sources(86Box PRIVATE discord.c)
+endif()
+
 if(VNC)
-    add_compile_definitions(USE_VNC)
-    add_library(vnc OBJECT vnc.c vnc_keymap.c)
-    target_link_libraries(86Box vnc vncserver)
-    if(WIN32)
-        target_link_libraries(86Box ws2_32)
+    find_package(LibVNCServer)
+    if(LibVNCServer_FOUND)
+        add_compile_definitions(USE_VNC)
+        add_library(vnc OBJECT vnc.c vnc_keymap.c)
+            target_link_libraries(86Box vnc LibVNCServer::vncserver)
+        if(WIN32)
+            target_link_libraries(86Box ws2_32)
+        endif()
     endif()
 endif()
 

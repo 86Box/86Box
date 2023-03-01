@@ -163,10 +163,10 @@ video_cards[] = {
     { &et4000w32p_pci_device                         },
     { &gd5430_pci_device,                            },
     { &gd5434_pci_device                             },
-    { &gd5436_pci_device                             },
+    { &gd5436_pci_device,    VIDEO_FLAG_TYPE_SPECIAL },
     { &gd5440_pci_device                             },
-    { &gd5446_pci_device                             },
-    { &gd5446_stb_pci_device                         },
+    { &gd5446_pci_device,    VIDEO_FLAG_TYPE_SPECIAL },
+    { &gd5446_stb_pci_device,VIDEO_FLAG_TYPE_SPECIAL },
     { &gd5480_pci_device                             },
     { &s3_spea_mercury_lite_86c928_pci_device        },
     { &s3_diamond_stealth64_964_pci_device           },
@@ -331,7 +331,7 @@ video_reset(int card)
     if ((video_get_type() != VIDEO_FLAG_TYPE_NONE) && was_reset)
         return;
 
-    vid_table_log("VIDEO: reset (gfxcard=%d, internal=%d)\n",
+    vid_table_log("VIDEO: reset (gfxcard[0]=%d, internal=%d)\n",
                   card, machine_has_flags(machine, MACHINE_VIDEO) ? 1 : 0);
 
     monitor_index_global = 0;
@@ -349,12 +349,11 @@ video_reset(int card)
 
     if (!(card == VID_NONE)
         && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)
-        && gfxcard_2 != 0
-        && (video_cards[gfxcard_2].flags != video_cards[gfxcard].flags)
-        && device_is_valid(video_card_getdevice(gfxcard_2), machine)) {
+        && gfxcard[1] != 0
+        && device_is_valid(video_card_getdevice(gfxcard[1]), machine)) {
         video_monitor_init(1);
         monitor_index_global = 1;
-        device_add(video_cards[gfxcard_2].device);
+        device_add(video_cards[gfxcard[1]].device);
         monitor_index_global = 0;
     }
 

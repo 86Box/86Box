@@ -8,6 +8,8 @@
  *
  *          Implementation of the Phoenix 486 Jumper Readout
  *
+ *
+ *
  * Authors: Tiseno100
  *
  *          Copyright 2020 Tiseno100
@@ -89,7 +91,7 @@ phoenix_486_jumper_reset(void *priv)
         dev->jumper = 0x00;
     else {
         dev->jumper = 0x9f;
-        if (gfxcard != 0x01)
+        if (gfxcard[0] != 0x01)
             dev->jumper |= 0x40;
     }
 }

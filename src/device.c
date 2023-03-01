@@ -13,11 +13,13 @@
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
- *          Sarah Walker, <tommowalker@tommowalker.co.uk>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2021      Andreas J. Reichel.
+ *          Copyright 2021-2022 Jasmine Iwanek.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -90,7 +92,8 @@ device_set_context(device_context_t *c, const device_t *d, int inst)
     void *sec, *single_sec;
 
     memset(c, 0, sizeof(device_context_t));
-    c->dev = d;
+    c->dev      = d;
+    c->instance = inst;
     if (inst) {
         sprintf(c->name, "%s #%i", d->name, inst);
 
@@ -132,7 +135,7 @@ device_context_restore(void)
 }
 
 static void *
-device_add_common(const device_t *d, const device_t *cd, void *p, int inst)
+device_add_common(const device_t *d, const device_t *cd, void *p, void *params, int inst)
 {
     void *priv = NULL;
     int   c;
@@ -157,7 +160,7 @@ device_add_common(const device_t *d, const device_t *cd, void *p, int inst)
         device_set_context(&device_current, cd, inst);
 
         if (d->init != NULL) {
-            priv = d->init(d);
+            priv = (d->flags & DEVICE_EXTPARAMS) ? d->init_ext(d, params) : d->init(d);
             if (priv == NULL) {
                 if (d->name)
                     device_log("DEVICE: device '%s' init failed\n", d->name);
@@ -196,55 +199,103 @@ device_get_internal_name(const device_t *d)
 void *
 device_add(const device_t *d)
 {
-    return device_add_common(d, d, NULL, 0);
+    return device_add_common(d, d, NULL, NULL, 0);
+}
+
+void *
+device_add_parameters(const device_t *d, void *params)
+{
+    return device_add_common(d, d, NULL, params, 0);
 }
 
 /* For devices that do not have an init function (internal video etc.) */
 void
 device_add_ex(const device_t *d, void *priv)
 {
-    device_add_common(d, d, priv, 0);
+    device_add_common(d, d, priv, NULL, 0);
+}
+
+void
+device_add_ex_parameters(const device_t *d, void *priv, void *params)
+{
+    device_add_common(d, d, priv, params, 0);
 }
 
 void *
 device_add_inst(const device_t *d, int inst)
 {
-    return device_add_common(d, d, NULL, inst);
+    return device_add_common(d, d, NULL, NULL, inst);
+}
+
+void *
+device_add_inst_parameters(const device_t *d, int inst, void *params)
+{
+    return device_add_common(d, d, NULL, params, inst);
 }
 
 /* For devices that do not have an init function (internal video etc.) */
 void
 device_add_inst_ex(const device_t *d, void *priv, int inst)
 {
-    device_add_common(d, d, priv, inst);
+    device_add_common(d, d, priv, NULL, inst);
 }
 
-/* These four are to add a device with another device's context - will be
+void
+device_add_inst_ex_parameters(const device_t *d, void *priv, int inst, void *params)
+{
+    device_add_common(d, d, priv, params, inst);
+}
+
+/* These eight are to add a device with another device's context - will be
    used to add machines' internal devices. */
 void *
 device_cadd(const device_t *d, const device_t *cd)
 {
-    return device_add_common(d, cd, NULL, 0);
+    return device_add_common(d, cd, NULL, NULL, 0);
+}
+
+void *
+device_cadd_parameters(const device_t *d, const device_t *cd, void *params)
+{
+    return device_add_common(d, cd, NULL, params, 0);
 }
 
 /* For devices that do not have an init function (internal video etc.) */
 void
 device_cadd_ex(const device_t *d, const device_t *cd, void *priv)
 {
-    device_add_common(d, cd, priv, 0);
+    device_add_common(d, cd, priv, NULL, 0);
+}
+
+void
+device_cadd_ex_parameters(const device_t *d, const device_t *cd, void *priv, void *params)
+{
+    device_add_common(d, cd, priv, params, 0);
 }
 
 void *
 device_cadd_inst(const device_t *d, const device_t *cd, int inst)
 {
-    return device_add_common(d, cd, NULL, inst);
+    return device_add_common(d, cd, NULL, NULL, inst);
+}
+
+void *
+device_cadd_inst_parameters(const device_t *d, const device_t *cd, int inst, void *params)
+{
+    return device_add_common(d, cd, NULL, params, inst);
 }
 
 /* For devices that do not have an init function (internal video etc.) */
 void
 device_cadd_inst_ex(const device_t *d, const device_t *cd, void *priv, int inst)
 {
-    device_add_common(d, cd, priv, inst);
+    device_add_common(d, cd, priv, NULL, inst);
+}
+
+void
+device_cadd_inst_ex_parameters(const device_t *d, const device_t *cd, void *priv, int inst, void *params)
+{
+    device_add_common(d, cd, priv, params, inst);
 }
 
 void
@@ -347,6 +398,39 @@ device_available(const device_t *d)
     return (0);
 }
 
+const char *
+device_get_bios_file(const device_t *d, const char *internal_name, int file_no)
+{
+    device_config_t      *config = NULL;
+    device_config_bios_t *bios   = NULL;
+
+    if (d != NULL) {
+        config = (device_config_t *) d->config;
+        if (config != NULL) {
+            while (config->type != -1) {
+                if (config->type == CONFIG_BIOS) {
+                    bios = (device_config_bios_t *) config->bios;
+
+                    /* Go through the ROM's in the device configuration. */
+                    while (bios->files_no != 0) {
+                        if (!strcmp(internal_name, bios->internal_name)) {
+                            if (file_no < bios->files_no)
+                                return bios->files[file_no];
+                            else
+                                return NULL;
+                        }
+                        bios++;
+                    }
+                }
+                config++;
+            }
+        }
+    }
+
+    /* A NULL device is never available. */
+    return (NULL);
+}
+
 int
 device_has_config(const device_t *d)
 {
@@ -379,7 +463,7 @@ device_poll(const device_t *d, int x, int y, int z, int b)
         if (devices[c] != NULL) {
             if (devices[c] == d) {
                 if (devices[c]->poll)
-                    return (devices[c]->poll(x, y, z, b, device_priv[c]));
+                    return (devices[c]->poll(x, y, z, b, 0, 0, device_priv[c]));
             }
         }
     }
@@ -521,6 +605,12 @@ device_force_redraw(void)
                 devices[c]->force_redraw(device_priv[c]);
         }
     }
+}
+
+const int
+device_get_instance(void)
+{
+    return device_current.instance;
 }
 
 const char *
@@ -715,7 +805,7 @@ device_is_valid(const device_t *device, int m)
 int
 machine_get_config_int(char *s)
 {
-    const device_t        *d = machine_getdevice(machine);
+    const device_t        *d = machine_get_device(machine);
     const device_config_t *c;
 
     if (d == NULL)
@@ -735,7 +825,7 @@ machine_get_config_int(char *s)
 char *
 machine_get_config_string(char *s)
 {
-    const device_t        *d = machine_getdevice(machine);
+    const device_t        *d = machine_get_device(machine);
     const device_config_t *c;
 
     if (d == NULL)

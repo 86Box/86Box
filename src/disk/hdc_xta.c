@@ -50,7 +50,7 @@
  *
  *          Based on my earlier HD20 driver for the EuroPC.
  *
- *          Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  *
  *          Redistribution and  use  in source  and binary forms, with
  *          or  without modification, are permitted  provided that the
@@ -102,9 +102,10 @@
 #include <86box/hdc.h>
 #include <86box/hdd.h>
 
-#define HDC_TIME     (50 * TIMER_USEC)
+#define HDC_TIME           (50 * TIMER_USEC)
 
-#define WD_BIOS_FILE "roms/hdd/xta/idexywd2.bin"
+#define WD_REV_1_BIOS_FILE "roms/hdd/xta/idexywd2.bin"
+#define WD_REV_2_BIOS_FILE "roms/hdd/xta/infowdbios.rom"
 
 enum {
     STATE_IDLE = 0,
@@ -962,17 +963,12 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
-static int
-xta_available(void)
-{
-    return (rom_present(WD_BIOS_FILE));
-}
-
 static void *
 xta_init(const device_t *info)
 {
     drive_t *drive;
-    char    *fn = NULL;
+    char    *bios_rev = NULL;
+    char    *fn       = NULL;
     hdc_t   *dev;
     int      c, i;
     int      max = XTA_NUM;
@@ -990,7 +986,8 @@ xta_init(const device_t *info)
             dev->irq      = device_get_config_int("irq");
             dev->rom_addr = device_get_config_hex20("bios_addr");
             dev->dma      = 3;
-            fn            = WD_BIOS_FILE;
+            bios_rev      = (char *) device_get_config_bios("bios_rev");
+            fn            = (char *) device_get_bios_file(info, (const char *) bios_rev, 0);
             max           = 1;
             break;
 
@@ -1123,6 +1120,22 @@ static const device_config_t wdxt150_config[] = {
             { .description = ""                        }
         },
     },
+    {
+        .name = "bios_rev",
+        .description = "BIOS Revision",
+        .type = CONFIG_BIOS,
+        .default_string = "rev_1",
+        .default_int = 0,
+        .file_filter = "",
+        .spinner = { 0 }, /*W1*/
+        .bios = {
+            { .name = "Revision 1.0", .internal_name = "rev_1", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 8192, .files = { WD_REV_1_BIOS_FILE, "" } },
+            { .name = "Revision 2.0", .internal_name = "rev_2", .bios_type = BIOS_NORMAL,
+              .files_no = 1, .local = 0, .size = 8192, .files = { WD_REV_2_BIOS_FILE, "" } },
+            { .files_no = 0 }
+        },
+    },
     { .name = "", .description = "", .type = CONFIG_END }
 // clang-format off
 };
@@ -1135,7 +1148,7 @@ const device_t xta_wdxt150_device = {
     .init = xta_init,
     .close = xta_close,
     .reset = NULL,
-    { .available = xta_available },
+    { .available = NULL /*xta_available*/ },
     .speed_changed = NULL,
     .force_redraw = NULL,
     .config = wdxt150_config

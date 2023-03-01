@@ -1,26 +1,26 @@
 #
-# 86Box         A hypervisor and IBM PC system emulator that specializes in
-#               running old operating systems and software designed for IBM
-#               PC systems and compatibles from 1981 through fairly recent
-#               system designs based on the PCI bus.
+# 86Box    A hypervisor and IBM PC system emulator that specializes in
+#          running old operating systems and software designed for IBM
+#          PC systems and compatibles from 1981 through fairly recent
+#          system designs based on the PCI bus.
 #
-#               This file is part of the 86Box distribution.
+#          This file is part of the 86Box distribution.
 #
-#               Recipe file for appimage-builder.
+#          Recipe file for appimage-builder.
 #
-#               build.sh processes conditional comments based on CMakeCache
-#               options at the end of each line. For example, a line ending in:
+#          build.sh processes conditional comments based on CMakeCache
+#          options at the end of each line. For example, a line ending in:
 #
-#                 # if QT:BOOL=ON
+#            # if QT:BOOL=ON
 #
-#               will be removed from the dynamically-generated copy of this
-#               file if "QT" is not a boolean option set to ON, either through
-#               a -D definition or the option's default value in CMakeLists.
+#          will be removed from the dynamically-generated copy of this
+#          file if "QT" is not a boolean option set to ON, either through
+#          a -D definition or the option's default value in CMakeLists.
 #
 #
-# Authors:      RichardG, <richardg867@gmail.com>
+# Authors: RichardG, <richardg867@gmail.com>
 #
-#               Copyright 2022 RichardG.
+#          Copyright 2022 RichardG.
 #
 
 version: 1
@@ -45,7 +45,6 @@ AppDir:
     include:
     - libedit2 # if (CLI:BOOL=ON|QT:BOOL=OFF)
     - libevdev2 # if QT:BOOL=ON
-    - libfluidsynth2
     - libfreetype6
     - libgbm1 # if QT:BOOL=ON
     - libgl1 # if QT:BOOL=ON

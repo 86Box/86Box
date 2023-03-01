@@ -29,9 +29,20 @@ extern "C" {
 #include <86box/snd_opl.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
+
+// Disable c99-designator to avoid the warnings in *_ymfm_device
+#ifdef __clang__
+#    if __has_warning("-Wc99-designator")
+#        pragma clang diagnostic push
+#        pragma clang diagnostic ignored "-Wc99-designator"
+#    endif
+#endif
+
 }
 
 #define RSM_FRAC 10
+
+#define OPL_FREQ FREQ_48000
 
 enum {
     FLAG_CYCLES = (1 << 0)
@@ -285,15 +296,15 @@ ymfm_drv_init(const device_t *info)
     switch (info->local) {
         case FM_YM3812:
         default:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3812>(3579545, FM_YM3812, 48000);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3812>(3579545, FM_YM3812, OPL_FREQ);
             break;
 
         case FM_YMF262:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf262>(14318181, FM_YMF262, 48000);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf262>(14318181, FM_YMF262, OPL_FREQ);
             break;
 
         case FM_YMF289B:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(33868800, FM_YMF289B, 48000);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(33868800, FM_YMF289B, OPL_FREQ);
             break;
 
         case FM_YMF278B:
@@ -440,4 +451,11 @@ const fm_drv_t ymfm_drv {
     NULL,
     ymfm_drv_generate,
 };
+
+#ifdef __clang__
+#    if __has_warning("-Wc99-designator")
+#        pragma clang diagnostic pop
+#    endif
+#endif
+
 }

@@ -57,6 +57,12 @@ BEGIN
             MENUITEM "&1x",                                             IDM_VID_SCALE_2X
             MENUITEM "1.&5x",                                           IDM_VID_SCALE_3X
             MENUITEM "&2x",                                             IDM_VID_SCALE_4X
+            MENUITEM "&3x",                                             IDM_VID_SCALE_5X
+            MENUITEM "&4x",                                             IDM_VID_SCALE_6X
+            MENUITEM "&5x",                                             IDM_VID_SCALE_7X
+            MENUITEM "&6x",                                             IDM_VID_SCALE_8X
+            MENUITEM "&7x",                                             IDM_VID_SCALE_9X
+            MENUITEM "&8x",                                             IDM_VID_SCALE_10X
         END
         POPUP "&Suodatusmetodi"
         BEGIN
@@ -104,7 +110,9 @@ BEGIN
         MENUITEM "Ota &kuvakaappaus\tCtrl+F11",                         IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Sovellusasetukset...",                               IDM_PREFERENCES
+#ifdef DISCORD
         MENUITEM "Käytä &Discord-integraatiota",                        IDM_DISCORD
+#endif
         MENUITEM SEPARATOR
         MENUITEM "&Äänitasot...",                                       IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -178,7 +186,7 @@ BEGIN
         MENUITEM "&Lataa edellinen levykuva uudelleen",                 IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "L&evykuva...",                                           IDM_CDROM_IMAGE
-        MENUITEM "&Kansio...",						IDM_CDROM_DIR
+        MENUITEM "&Kansio...",                        IDM_CDROM_DIR
     END
 END
 
@@ -274,7 +282,7 @@ END
 #define STR_VIDEO           "Näytönohjain:"
 #define STR_VIDEO_2         "Näytönohjain 2:"
 #define STR_VOODOO          "Voodoo-grafiikkasuoritin"
-#define STR_IBM8514	    "IBM 8514/a-grafiikkasuoritin"
+#define STR_IBM8514        "IBM 8514/a-grafiikkasuoritin"
 #define STR_XGA             "XGA-grafiikkasuoritin"
 
 #define STR_MOUSE           "Hiiri:"
@@ -284,13 +292,13 @@ END
 #define STR_JOY3            "Peliohjain 3..."
 #define STR_JOY4            "Peliohjain 4..."
 
-#define STR_SOUND           "Äänikortti:"
+#define STR_SOUND1           "Äänikortti 1:"
+#define STR_SOUND2           "Äänikortti 2:"
+#define STR_SOUND3           "Äänikortti 3:"
+#define STR_SOUND4           "Äänikortti 4:"
 #define STR_MIDI_OUT        "MIDI-ulostulo:"
 #define STR_MIDI_IN         "MIDI-sisääntulo:"
 #define STR_MPU401          "Erillinen MPU-401"
-#define STR_SSI             "Innovation SSI-2001"
-#define STR_CMS             "CMS / Game Blaster"
-#define STR_GUS             "Gravis Ultrasound"
 #define STR_FLOAT           "Käytä FLOAT32-ääntä"
 #define STR_FM_DRIVER       "FM-syntetisaattoriohjain"
 #define STR_FM_DRV_NUKED    "Nuked (tarkempi)"
@@ -299,6 +307,10 @@ END
 #define STR_NET_TYPE        "Verkon tyyppi:"
 #define STR_PCAP            "PCap-laite:"
 #define STR_NET             "Verkkokortti:"
+#define STR_NET1            "Network card 1:"
+#define STR_NET2            "Network card 2:"
+#define STR_NET3            "Network card 3:"
+#define STR_NET4            "Network card 4:"
 
 #define STR_COM1            "COM1-laite:"
 #define STR_COM2            "COM2-laite:"
@@ -316,6 +328,10 @@ END
 #define STR_PARALLEL2       "Rinnakkaisportti 2"
 #define STR_PARALLEL3       "Rinnakkaisportti 3"
 #define STR_PARALLEL4       "Rinnakkaisportti 4"
+#define STR_SERIAL_PASS1    "Serial port passthrough 1"
+#define STR_SERIAL_PASS2    "Serial port passthrough 2"
+#define STR_SERIAL_PASS3    "Serial port passthrough 3"
+#define STR_SERIAL_PASS4    "Serial port passthrough 4"
 
 #define STR_HDC             "Kiintolevyohjain:"
 #define STR_FDC             "Levykeohjain:"
@@ -335,7 +351,7 @@ END
 #define STR_BUS             "Väylä:"
 #define STR_CHANNEL         "Kanava:"
 #define STR_ID              "ID:"
-#define STR_SPEED		"Speed:"
+#define STR_SPEED        "Speed:"
 
 #define STR_SPECIFY         "&Määritä..."
 #define STR_SECTORS         "Sektorit:"
@@ -366,8 +382,8 @@ END
 #define STR_BUGGER          "ISABugger-laite"
 #define STR_POSTCARD        "POST-kortti"
 
-#define FONT_SIZE		9
-#define FONT_NAME		"Segoe UI"
+#define FONT_SIZE        9
+#define FONT_NAME        "Segoe UI"
 
 #include "dialogs.rc"
 
@@ -512,16 +528,20 @@ BEGIN
     IDS_2150    "Kasettitiedostot (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Kaikki tiedostot (*.*)\0*.*\0"
     IDS_2151    "ROM-moduuli %i: %ls"
     IDS_2152    "ROM-moduulikuvat (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Kaikki tiedostot (*.*)\0*.*\0"
-    IDS_2153	"Virhe renderöijän alustuksessa"
-    IDS_2154	"OpenGL (3.0 Core) -renderöijän alustus epäonnistui. Käytä toista renderöijää."
-    IDS_2155	"Jatka suoritusta"
-    IDS_2156	"Pysäytä suoritus"
-    IDS_2157	"Paina Ctrl+Alt+Del"
-    IDS_2158	"Paina Ctrl+Alt+Esc"
-    IDS_2159	"Kylmä uudelleenkäynnistys"
-    IDS_2160	"ACPI-sammutus"
-    IDS_2161	"Asetukset"
+    IDS_2153    "Virhe renderöijän alustuksessa"
+    IDS_2154    "OpenGL (3.0 Core) -renderöijän alustus epäonnistui. Käytä toista renderöijää."
+    IDS_2155    "Jatka suoritusta"
+    IDS_2156    "Pysäytä suoritus"
+    IDS_2157    "Paina Ctrl+Alt+Del"
+    IDS_2158    "Paina Ctrl+Alt+Esc"
+    IDS_2159    "Kylmä uudelleenkäynnistys"
+    IDS_2160    "ACPI-sammutus"
+    IDS_2161    "Asetukset"
     IDS_2162    "Aiemmat asemat"
+    IDS_2163    "No Dynarec"
+    IDS_2164    "Old Dynarec"
+    IDS_2165    "New Dynarec"
+    IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
 END
 
 STRINGTABLE DISCARDABLE

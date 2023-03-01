@@ -9,7 +9,7 @@
 #define _DISCORD_GAME_SDK_H_
 
 #ifdef _WIN32
-#include <Windows.h>
+#include <windows.h>
 #include <dxgi.h>
 #endif
 

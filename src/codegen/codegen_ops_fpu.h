@@ -667,14 +667,16 @@ ropFCHS(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
         return op_pc;                                                                                                   \
     }
 
+// clang-format off
 opFLDimm(1, 1.0)
-    opFLDimm(L2T, 3.3219280948873623)
-        opFLDimm(L2E, 1.4426950408889634);
+opFLDimm(L2T, 3.3219280948873623)
+opFLDimm(L2E, 1.4426950408889634);
 opFLDimm(PI, 3.141592653589793);
 opFLDimm(EG2, 0.3010299956639812);
 opFLDimm(Z, 0.0)
+// clang-format on
 
-    static uint32_t ropFLDLN2(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+static uint32_t ropFLDLN2(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
     FP_ENTER();
     FP_LOAD_IMM_Q(0x3fe62e42fefa39f0ull);

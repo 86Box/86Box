@@ -10,7 +10,7 @@
 #
 # Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#          Copyright 2020,2021 David Hrdlička.
+#          Copyright 2020-2021 David Hrdlička.
 #
 
 add_library(snd OBJECT sound.c snd_opl.c snd_opl_nuked.c snd_opl_ymfm.cpp snd_resid.cc
