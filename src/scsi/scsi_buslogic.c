@@ -1,30 +1,30 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		Emulation of BusLogic ISA and PCI SCSI controllers. Boards
- *		supported:
+ *          Emulation of BusLogic ISA and PCI SCSI controllers. Boards
+ *          supported:
  *
- *		  0 - BT-542BH ISA;
- *		  1 - BT-545S ISA;
- *		  2 - BT-958D PCI
+ *            0 - BT-542BH ISA;
+ *            1 - BT-545S ISA;
+ *            2 - BT-958D PCI
  *
  *
  *
- * Authors:	TheCollector1995, <mariogplayer@gmail.com>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: TheCollector1995, <mariogplayer@gmail.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -1152,7 +1152,7 @@ BuslogicPCIRead(int func, int addr, void *p)
         case 0x13:
             return buslogic_pci_bar[0].addr_regs[3];
         case 0x14:
-            // return (buslogic_pci_bar[1].addr_regs[0] & 0xe0);	/*Memory space*/
+            // return (buslogic_pci_bar[1].addr_regs[0] & 0xe0); /*Memory space*/
             return 0x00;
         case 0x15:
             return buslogic_pci_bar[1].addr_regs[1] & 0xc0;

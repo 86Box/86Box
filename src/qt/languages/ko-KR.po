@@ -76,6 +76,24 @@ msgstr "1.5배(&5)"
 msgid "&2x"
 msgstr "2배(&2)"
 
+msgid "&3x"
+msgstr "3배(&3)"
+
+msgid "&4x"
+msgstr "4배(&4)"
+
+msgid "&5x"
+msgstr "5배(&5)"
+
+msgid "&6x"
+msgstr "6배(&6)"
+
+msgid "&7x"
+msgstr "7배(&7)"
+
+msgid "&8x"
+msgstr "8배(&8)"
+
 msgid "Filter method"
 msgstr "필터 형식"
 
@@ -226,11 +244,8 @@ msgstr "비었음(&M)"
 msgid "&Reload previous image"
 msgstr "이전 이미지 다시 불러오기(&R)"
 
-msgid "&Image"
-msgstr "이미지(&I)"
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "폴더(&F)..."
 
 msgid "Target &framerate"
 msgstr "목표 프레임 레이트(&F)"
@@ -367,6 +382,12 @@ msgstr "비디오 카드:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo 그래픽"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a 그래픽"
+
+msgid "XGA Graphics"
+msgstr "XGA 그래픽"
+
 msgid "Mouse:"
 msgstr "마우스:"
 
@@ -385,8 +406,17 @@ msgstr "조이스틱 3..."
 msgid "Joystick 4..."
 msgstr "조이스틱 4..."
 
-msgid "Sound card:"
-msgstr "사운드 카드:"
+msgid "Sound card 1:"
+msgstr "사운드 카드 1:"
+
+msgid "Sound card 2:"
+msgstr "사운드 카드 2:"
+
+msgid "Sound card 3:"
+msgstr "사운드 카드 3:"
+
+msgid "Sound card 4:"
+msgstr "사운드 카드 4:"
 
 msgid "MIDI Out Device:"
 msgstr "MIDI 출력 장치:"
@@ -397,17 +427,17 @@ msgstr "MIDI 입력 장치:"
 msgid "Standalone MPU-401"
 msgstr "MPU-401 단독 사용"
 
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
-
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32 사운드 사용"
+
+msgid "FM synth driver"
+msgstr "FM 신디사이저 드라이버"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (더 정확한)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (더 빠르게)"
 
 msgid "Network type:"
 msgstr "네트워크 종류:"
@@ -552,6 +582,9 @@ msgstr "BPB 확인"
 
 msgid "CD-ROM drives:"
 msgstr "CD-ROM 드라이브:"
+
+msgid "Earlier drive"
+msgstr "이전 드라이브"
 
 msgid "MO drives:"
 msgstr "광자기 드라이브:"
@@ -923,28 +956,28 @@ msgid "Cartridge images"
 msgstr "카트리지 이미지"
 
 msgid "Error initializing renderer"
-msgstr "Error initializing renderer"
+msgstr "렌더러 초기화 오류"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "OpenGL (3.0 Core) 렌더러를 초기화할 수 없습니다. 다른 렌더러를 사용하십시오."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "실행 재개"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "실행 일시 중지"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "재시작"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "ACPI 종료"
 
 msgid "Hard disk (%s)"
 msgstr "하드 디스크 (%s)"

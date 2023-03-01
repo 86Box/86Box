@@ -1,4 +1,4 @@
-name: MinGW64 Makefile
+name: MSYS2 Makefile
 
 on:
 
@@ -15,10 +15,10 @@ on:
     - "!**/CMakeLists.txt"
 
 jobs:
-  build:
-    name: ${{ matrix.environment.msystem }} Makefile build (DEV_BUILD=${{ matrix.dev-build }}, NEW_DYNAREC=${{ matrix.new-dynarec }})
+  msys2:
+    name: "Windows MSYS2 Makefile (Win32 GUI, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }})"
 
-    runs-on: windows-latest
+    runs-on: windows-2022
 
     defaults:
       run:
@@ -27,32 +27,81 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        dev-build: ['y', 'n']
-        new-dynarec: ['y', 'n']
+        build:
+#          - name: Regular
+#            debug: n
+#            dev: n
+          - name: Debug
+            debug: y
+            dev: n
+            slug: -Debug
+          - name: Dev
+            debug: y
+            dev: y
+            slug: -Dev
+        dynarec:
+          - name: ODR
+            new: n
+            slug: -ODR
+          - name: NDR
+            new: y
+            slug: -NDR
         environment:
+#          - msystem: MSYS
+#            clang: n
+#            x64: y
           - msystem: MINGW32
             prefix: mingw-w64-i686
+            clang: n
             x64: n
           - msystem: MINGW64
             prefix: mingw-w64-x86_64
+            clang: n
+            x64: y
+#          - msystem: CLANG32
+#            prefix: mingw-w64-clang-i686
+#            clang: y
+#            x64: n
+#          - msystem: CLANG64
+#            prefix: mingw-w64-clang-x86_64
+#            clang: y
+#            x64: y
+          - msystem: UCRT64
+            prefix: mingw-w64-ucrt-x86_64
+            clang: n
             x64: y
 
     steps:
-    - uses: msys2/setup-msys2@v2
-      with:
-        update: true
-        msystem: ${{ matrix.environment.msystem }}
-        install: >-
-          make
-          ${{ matrix.environment.prefix }}-gcc
-          ${{ matrix.environment.prefix }}-pkg-config
-          ${{ matrix.environment.prefix }}-freetype
-          ${{ matrix.environment.prefix }}-SDL2
-          ${{ matrix.environment.prefix }}-zlib
-          ${{ matrix.environment.prefix }}-libpng
-          ${{ matrix.environment.prefix }}-libvncserver
-          ${{ matrix.environment.prefix }}-rtmidi
-    - uses: actions/checkout@v2
-    - name: make
-      run: make -fwin/makefile.mingw -j DEV_BUILD=${{ matrix.dev-build }} NEW_DYNAREC=${{ matrix.new-dynarec }} X64=${{ matrix.environment.x64 }} VNC=n
-      working-directory: ./src
+      - name: Prepare MSYS2 environment
+        uses: msys2/setup-msys2@v2
+        with:
+          release: false
+          update: true
+          msystem: ${{ matrix.environment.msystem }}
+          install: >-
+            make
+          pacboy: >-
+            gcc:p
+            clang:p
+            pkg-config:p
+            freetype:p
+            SDL2:p
+            zlib:p
+            libpng:p
+            openal:p
+            rtmidi:p
+            libvncserver:p
+      - uses: actions/checkout@v3
+      - name: make
+        run: >-
+          make -fwin/Makefile.mingw -j
+          DEV_BUILD=${{ matrix.build.dev }}
+          DEBUG=${{ matrix.build.debug }}
+          NEW_DYNAREC=${{ matrix.dynarec.new }}
+          CLANG=${{ matrix.environment.clang }}
+          X64=${{ matrix.environment.x64 }}
+        working-directory: ./src
+      - uses: actions/upload-artifact@v3
+        with:
+          name: '86Box${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
+          path: src/86Box.exe

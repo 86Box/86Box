@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Common code to handle all sorts of hard disk images.
+ *          Common code to handle all sorts of hard disk images.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <inttypes.h>
@@ -53,7 +53,7 @@ hdd_string_to_bus(char *str, int cdrom)
     if (!strcmp(str, "mfm") || !strcmp(str, "rll")) {
         if (cdrom) {
 no_cdrom:
-            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2130, (wchar_t *) IDS_4099);
+            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2131, (wchar_t *) IDS_4099);
             return (0);
         }
 
@@ -419,25 +419,20 @@ hdd_zones_init(hard_disk_t *hdd)
 }
 
 static hdd_preset_t hdd_speed_presets[] = {
-    {.name = "RAM Disk (max. speed)", .internal_name = "ramdisk", .rcache_num_seg = 16, .rcache_seg_size = 128, .max_multiple = 32},
-
-    { .name = "[1989] 3500 RPM", .internal_name = "1989_3500rpm", .zones = 1,  .avg_spt = 35,  .heads = 2, .rpm = 3500, .full_stroke_ms = 40, .track_seek_ms = 8, .rcache_num_seg = 1, .rcache_seg_size = 16, .max_multiple = 8 },
-
-    {                     .name = "[1992] 3600 RPM", .internal_name = "1992_3600rpm", .zones = 1,  .avg_spt = 45,  .heads = 2, .rpm = 3600, .full_stroke_ms = 30, .track_seek_ms = 6, .rcache_num_seg = 4, .rcache_seg_size = 16, .max_multiple = 8 },
-
-    {                     .name = "[1994] 4500 RPM", .internal_name = "1994_4500rpm", .zones = 8,  .avg_spt = 80,  .heads = 4, .rpm = 4500, .full_stroke_ms = 26, .track_seek_ms = 5, .rcache_num_seg = 4, .rcache_seg_size = 32, .max_multiple = 16 },
-
-    {                    .name = "[1996] 5400 RPM", .internal_name = "1996_5400rpm", .zones = 16, .avg_spt = 135, .heads = 4, .rpm = 5400, .full_stroke_ms = 24, .track_seek_ms = 3, .rcache_num_seg = 4, .rcache_seg_size = 64, .max_multiple = 16 },
-
-    {                    .name = "[1997] 5400 RPM", .internal_name = "1997_5400rpm", .zones = 16, .avg_spt = 185, .heads = 6, .rpm = 5400, .full_stroke_ms = 20, .track_seek_ms = 2.5, .rcache_num_seg = 8, .rcache_seg_size = 64, .max_multiple = 32 },
-
-    {                  .name = "[1998] 5400 RPM", .internal_name = "1998_5400rpm", .zones = 16, .avg_spt = 300, .heads = 8, .rpm = 5400, .full_stroke_ms = 20, .track_seek_ms = 2, .rcache_num_seg = 8, .rcache_seg_size = 128, .max_multiple = 32 },
-
-    {                   .name = "[2000] 7200 RPM", .internal_name = "2000_7200rpm", .zones = 16, .avg_spt = 350, .heads = 6, .rpm = 7200, .full_stroke_ms = 15, .track_seek_ms = 2, .rcache_num_seg = 16, .rcache_seg_size = 128, .max_multiple = 32 },
+  // clang-format off
+    { .name = "RAM Disk (max. speed)", .internal_name = "ramdisk",                                                                                                        .rcache_num_seg = 16, .rcache_seg_size = 128, .max_multiple = 32 },
+    { .name = "[1989] 3500 RPM",       .internal_name = "1989_3500rpm", .zones =  1,  .avg_spt = 35, .heads = 2, .rpm = 3500, .full_stroke_ms = 40, .track_seek_ms = 8,   .rcache_num_seg =  1, .rcache_seg_size =  16, .max_multiple =  8 },
+    { .name = "[1992] 3600 RPM",       .internal_name = "1992_3600rpm", .zones =  1,  .avg_spt = 45, .heads = 2, .rpm = 3600, .full_stroke_ms = 30, .track_seek_ms = 6,   .rcache_num_seg =  4, .rcache_seg_size =  16, .max_multiple =  8 },
+    { .name = "[1994] 4500 RPM",       .internal_name = "1994_4500rpm", .zones =  8,  .avg_spt = 80, .heads = 4, .rpm = 4500, .full_stroke_ms = 26, .track_seek_ms = 5,   .rcache_num_seg =  4, .rcache_seg_size =  32, .max_multiple = 16 },
+    { .name = "[1996] 5400 RPM",       .internal_name = "1996_5400rpm", .zones = 16, .avg_spt = 135, .heads = 4, .rpm = 5400, .full_stroke_ms = 24, .track_seek_ms = 3,   .rcache_num_seg =  4, .rcache_seg_size =  64, .max_multiple = 16 },
+    { .name = "[1997] 5400 RPM",       .internal_name = "1997_5400rpm", .zones = 16, .avg_spt = 185, .heads = 6, .rpm = 5400, .full_stroke_ms = 20, .track_seek_ms = 2.5, .rcache_num_seg =  8, .rcache_seg_size =  64, .max_multiple = 32 },
+    { .name = "[1998] 5400 RPM",       .internal_name = "1998_5400rpm", .zones = 16, .avg_spt = 300, .heads = 8, .rpm = 5400, .full_stroke_ms = 20, .track_seek_ms = 2,   .rcache_num_seg =  8, .rcache_seg_size = 128, .max_multiple = 32 },
+    { .name = "[2000] 7200 RPM",       .internal_name = "2000_7200rpm", .zones = 16, .avg_spt = 350, .heads = 6, .rpm = 7200, .full_stroke_ms = 15, .track_seek_ms = 2,   .rcache_num_seg = 16, .rcache_seg_size = 128, .max_multiple = 32 },
+  // clang-format on
 };
 
 int
-hdd_preset_get_num()
+hdd_preset_get_num(void)
 {
     return sizeof(hdd_speed_presets) / sizeof(hdd_preset_t);
 }

@@ -1,23 +1,23 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Platform main support module for Windows.
+ *          Platform main support module for Windows.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2021 Laci bá'
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2021 Laci bá'
  */
 #define UNICODE
 #define NTDDI_VERSION 0x06010000
@@ -105,12 +105,13 @@ static const struct {
     void (*set_fs)(int fs);
     void (*reload)(void);
 } vid_apis[RENDERERS_NUM] = {
-  {	"SDL_Software", 1, (int(*)(void*))sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload	},
-  {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload	},
-  {	"SDL_OpenGL", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload	}
- ,{	"OpenGL_Core", 1, (int(*)(void*))opengl_init, opengl_close, opengl_resize, opengl_pause, NULL, opengl_set_fs, opengl_reload}
+    { "SDL_Software", 1, (int (*)(void *)) sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload },
+    { "SDL_Hardware", 1, (int (*)(void *)) sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload },
+    { "SDL_OpenGL", 1, (int (*)(void *)) sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload },
+    { "OpenGL_Core", 1, (int (*)(void *)) opengl_init, opengl_close, opengl_resize, opengl_pause, NULL, opengl_set_fs, opengl_reload }
 #ifdef USE_VNC
- ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL, NULL						}
+    ,
+    { "VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL, NULL }
 #endif
 };
 
@@ -487,8 +488,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
         return (1);
     }
 
-    extern int gfxcard_2;
-    gfxcard_2 = 0;
+    extern int gfxcard[2];
+    gfxcard[1] = 0;
 
     /* Create console window. */
     if (force_debug) {
@@ -883,7 +884,27 @@ plat_mmap(size_t size, uint8_t executable)
 }
 
 void
-plat_init_rom_paths()
+plat_get_global_config_dir(char *strptr)
+{
+    wchar_t appdata_dir[1024] = { L'\0' };
+
+    if (_wgetenv(L"LOCALAPPDATA") && _wgetenv(L"LOCALAPPDATA")[0] != L'\0') {
+        size_t len = 0;
+        wcsncpy(appdata_dir, _wgetenv(L"LOCALAPPDATA"), 1024);
+        len = wcslen(appdata_dir);
+        if (appdata_dir[len - 1] != L'\\') {
+            appdata_dir[len]     = L'\\';
+            appdata_dir[len + 1] = L'\0';
+        }
+        wcscat(appdata_dir, L"86box");
+        CreateDirectoryW(appdata_dir, NULL);
+        wcscat(appdata_dir, L"\\");
+        c16stombs(strptr, appdata_dir, 1024);
+    }
+}
+
+void
+plat_init_rom_paths(void)
 {
     wchar_t appdata_dir[1024] = { L'\0' };
 
@@ -1097,7 +1118,7 @@ plat_setfullscreen(int on)
 
     if (on && video_fullscreen_first) {
         video_fullscreen |= 2;
-        if (ui_msgbox_header(MBX_INFO | MBX_DONTASK, (wchar_t *) IDS_2134, (wchar_t *) IDS_2052) == 10) {
+        if (ui_msgbox_header(MBX_INFO | MBX_DONTASK, (wchar_t *) IDS_2135, (wchar_t *) IDS_2052) == 10) {
             video_fullscreen_first = 0;
             config_save();
         }

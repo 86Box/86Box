@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Handle the dialog for specifying the dimensions of the main window.
+ *          Handle the dialog for specifying the dimensions of the main window.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016-2018 Miran Grca.
+ *          Copyright 2016-2018 Miran Grca.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -130,6 +130,12 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
                     EnableMenuItem(hmenu, IDM_VID_SCALE_2X, vid_resize ? MF_GRAYED : MF_ENABLED);
                     EnableMenuItem(hmenu, IDM_VID_SCALE_3X, vid_resize ? MF_GRAYED : MF_ENABLED);
                     EnableMenuItem(hmenu, IDM_VID_SCALE_4X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_5X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_6X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_7X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_8X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_9X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_10X, vid_resize ? MF_GRAYED : MF_ENABLED);
 
                     scrnsz_x = fixed_size_x;
                     scrnsz_y = fixed_size_y;

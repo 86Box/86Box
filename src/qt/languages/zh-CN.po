@@ -76,6 +76,24 @@ msgstr "1.5x(&5)"
 msgid "&2x"
 msgstr "2x(&2)"
 
+msgid "&3x"
+msgstr "3x(&3)"
+
+msgid "&4x"
+msgstr "4x(&4)"
+
+msgid "&5x"
+msgstr "5x(&5)"
+
+msgid "&6x"
+msgstr "6x(&6)"
+
+msgid "&7x"
+msgstr "7x(&7)"
+
+msgid "&8x"
+msgstr "8x(&8)"
+
 msgid "Filter method"
 msgstr "过滤方式"
 
@@ -226,11 +244,8 @@ msgstr "空置驱动器(&M)"
 msgid "&Reload previous image"
 msgstr "载入上一个镜像(&R)"
 
-msgid "&Image"
-msgstr "镜像(&I)"
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "文件夹(&F)..."
 
 msgid "Target &framerate"
 msgstr "目标帧率(&F)"
@@ -367,6 +382,12 @@ msgstr "显卡:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo Graphics"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a Graphics"
+
+msgid "XGA Graphics"
+msgstr "XGA Graphics"
+
 msgid "Mouse:"
 msgstr "鼠标:"
 
@@ -385,8 +406,17 @@ msgstr "操纵杆 3..."
 msgid "Joystick 4..."
 msgstr "操纵杆 4..."
 
-msgid "Sound card:"
-msgstr "声卡:"
+msgid "Sound card 1:"
+msgstr "声卡 1:"
+
+msgid "Sound card 2:"
+msgstr "声卡 2:"
+
+msgid "Sound card 3:"
+msgstr "声卡 3:"
+
+msgid "Sound card 4:"
+msgstr "声卡 4:"
 
 msgid "MIDI Out Device:"
 msgstr "MIDI 输出设备:"
@@ -397,17 +427,17 @@ msgstr "MIDI 输入设备:"
 msgid "Standalone MPU-401"
 msgstr "独立 MPU-401"
 
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
-
 msgid "Use FLOAT32 sound"
 msgstr "使用单精度浮点 (FLOAT32)"
+
+msgid "FM synth driver"
+msgstr "调频合成器驱动器"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (更准确)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (更快)"
 
 msgid "Network type:"
 msgstr "网络类型:"
@@ -552,6 +582,9 @@ msgstr "检查 BPB"
 
 msgid "CD-ROM drives:"
 msgstr "光盘驱动器:"
+
+msgid "Earlier drive"
+msgstr "早先的驱动器"
 
 msgid "MO drives:"
 msgstr "磁光盘驱动器:"

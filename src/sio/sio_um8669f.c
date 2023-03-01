@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the UMC UM8669F Super I/O chip.
+ *          Emulation of the UMC UM8669F Super I/O chip.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		RichardG, <richardg867@gmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2008-2021 Sarah Walker.
- *		Copyright 2016-2021 Miran Grca.
- *		Copyright 2021 RichardG.
+ *          Copyright 2008-2021 Sarah Walker.
+ *          Copyright 2016-2021 Miran Grca.
+ *          Copyright 2021 RichardG.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -69,27 +69,27 @@ static uint8_t um8669f_pnp_rom[] = {
 };
 static const isapnp_device_config_t um8669f_pnp_defaults[] = {
     {
-	.activate = 1,
-	.io = { { .base = FDC_PRIMARY_ADDR }, },
-	.irq = { { .irq = FDC_PRIMARY_IRQ }, },
-	.dma = { { .dma = FDC_PRIMARY_DMA }, }
+        .activate = 1,
+        .io = { { .base = FDC_PRIMARY_ADDR }, },
+        .irq = { { .irq = FDC_PRIMARY_IRQ }, },
+        .dma = { { .dma = FDC_PRIMARY_DMA }, }
     }, {
-	.activate = 1,
-	.io = { { .base = COM1_ADDR }, },
-	.irq = { { .irq = COM1_IRQ }, }
+        .activate = 1,
+        .io = { { .base = COM1_ADDR }, },
+        .irq = { { .irq = COM1_IRQ }, }
     }, {
-	.activate = 1,
-	.io = { { .base = COM2_ADDR }, },
-	.irq = { { .irq = COM2_IRQ }, }
+        .activate = 1,
+        .io = { { .base = COM2_ADDR }, },
+        .irq = { { .irq = COM2_IRQ }, }
     }, {
-	.activate = 1,
-	.io = { { .base = LPT1_ADDR }, },
-	.irq = { { .irq = LPT1_IRQ }, }
+        .activate = 1,
+        .io = { { .base = LPT1_ADDR }, },
+        .irq = { { .irq = LPT1_IRQ }, }
     }, {
-	.activate = 0
+        .activate = 0
     }, {
-	.activate = 0,
-	.io = { { .base = 0x200 }, }
+        .activate = 0,
+        .io = { { .base = 0x200 }, }
     }
 };
 

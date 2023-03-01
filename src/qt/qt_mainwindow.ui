@@ -61,8 +61,16 @@
     <property name="title">
      <string>&amp;Action</string>
     </property>
+    <widget class="QMenu" name="menuTablet_tool">
+     <property name="title">
+      <string>Tablet tool</string>
+     </property>
+     <addaction name="actionPen"/>
+     <addaction name="actionCursor_Puck"/>
+    </widget>
     <addaction name="actionKeyboard_requires_capture"/>
     <addaction name="actionRight_CTRL_is_left_ALT"/>
+    <addaction name="menuTablet_tool"/>
     <addaction name="separator"/>
     <addaction name="actionHard_Reset"/>
     <addaction name="actionCtrl_Alt_Del"/>
@@ -118,6 +126,12 @@
      <addaction name="action1x"/>
      <addaction name="action1_5x"/>
      <addaction name="action2x"/>
+     <addaction name="action3x"/>
+     <addaction name="action4x"/>
+     <addaction name="action5x"/>
+     <addaction name="action6x"/>
+     <addaction name="action7x"/>
+     <addaction name="action8x"/>
     </widget>
     <widget class="QMenu" name="menuFilter_method">
      <property name="title">
@@ -211,6 +225,9 @@
    </property>
    <property name="windowTitle">
     <string notr="true">toolBar</string>
+   </property>
+   <property name="autoFillBackground">
+    <bool>true</bool>
    </property>
    <property name="movable">
     <bool>false</bool>
@@ -478,6 +495,54 @@
     <string>&amp;2x</string>
    </property>
   </action>
+  <action name="action3x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;3x</string>
+   </property>
+  </action>
+  <action name="action4x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;4x</string>
+   </property>
+  </action>
+  <action name="action5x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;5x</string>
+   </property>
+  </action>
+  <action name="action6x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;6x</string>
+   </property>
+  </action>
+  <action name="action7x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;7x</string>
+   </property>
+  </action>
+  <action name="action8x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;8x</string>
+   </property>
+  </action>
   <action name="actionNearest">
    <property name="checkable">
     <bool>true</bool>
@@ -686,7 +751,7 @@
   </action>
   <action name="actionACPI_Shutdown">
    <property name="enabled">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
@@ -699,7 +764,7 @@
     <string>ACPI Shutdown</string>
    </property>
    <property name="visible">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
   </action>
   <action name="actionBegin_trace">
@@ -792,6 +857,22 @@
    </property>
    <property name="text">
     <string>Apply fullscreen stretch mode when maximized</string>
+   </property>
+  </action>
+  <action name="actionCursor_Puck">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Cursor/Puck</string>
+   </property>
+  </action>
+  <action name="actionPen">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Pen</string>
    </property>
   </action>
  </widget>

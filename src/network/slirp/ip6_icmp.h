@@ -35,7 +35,7 @@ struct ndp_rs { /* Router Solicitation Message */
 
 struct ndp_ra { /* Router Advertisement Message */
     uint8_t chl; /* Cur Hop Limit */
-#if G_BYTE_ORDER == G_BIG_ENDIAN
+#if (G_BYTE_ORDER == G_BIG_ENDIAN) && !defined(_MSC_VER)
     uint8_t M : 1, O : 1, reserved : 6;
 #else
     uint8_t reserved : 6, O : 1, M : 1;
@@ -55,7 +55,7 @@ struct ndp_ns { /* Neighbor Solicitation Message */
 G_STATIC_ASSERT(sizeof(struct ndp_ns) == 20);
 
 struct ndp_na { /* Neighbor Advertisement Message */
-#if G_BYTE_ORDER == G_BIG_ENDIAN
+#if (G_BYTE_ORDER == G_BIG_ENDIAN) && !defined(_MSC_VER)
     uint32_t R : 1, /* Router Flag */
         S : 1, /* Solicited Flag */
         O : 1, /* Override Flag */
@@ -124,9 +124,12 @@ struct ndpopt {
     union {
         unsigned char linklayer_addr[6]; /* Source/Target Link-layer */
 #define ndpopt_linklayer ndpopt_body.linklayer_addr
+#if defined(_MSC_VER) && !defined (__clang__)
+#pragma pack(push, 1)
+#endif
         struct prefixinfo { /* Prefix Information */
             uint8_t prefix_length;
-#if G_BYTE_ORDER == G_BIG_ENDIAN
+#if (G_BYTE_ORDER == G_BIG_ENDIAN) && !defined(_MSC_VER)
             uint8_t L : 1, A : 1, reserved1 : 6;
 #else
             uint8_t reserved1 : 6, A : 1, L : 1;
@@ -136,12 +139,21 @@ struct ndpopt {
             uint32_t reserved2;
             struct in6_addr prefix;
         } SLIRP_PACKED prefixinfo;
+#if defined(_MSC_VER) && !defined (__clang__)
+#pragma pack(pop)
+#endif
 #define ndpopt_prefixinfo ndpopt_body.prefixinfo
+#if defined(_MSC_VER) && !defined (__clang__)
+#pragma pack(push, 1)
+#endif
         struct rdnss {
             uint16_t reserved;
             uint32_t lifetime;
             struct in6_addr addr;
         } SLIRP_PACKED rdnss;
+#if defined(_MSC_VER) && !defined (__clang__)
+#pragma pack(pop)
+#endif
 #define ndpopt_rdnss ndpopt_body.rdnss
     } ndpopt_body;
 } SLIRP_PACKED;
@@ -215,11 +227,12 @@ struct ndpopt {
 #define NDP_AdvPrefLifetime 14400
 #define NDP_AdvAutonomousFlag 1
 
-void icmp6_init(Slirp *slirp);
+void icmp6_post_init(Slirp *slirp);
 void icmp6_cleanup(Slirp *slirp);
 void icmp6_input(struct mbuf *);
+void icmp6_forward_error(struct mbuf *m, uint8_t type, uint8_t code, struct in6_addr *src);
 void icmp6_send_error(struct mbuf *m, uint8_t type, uint8_t code);
-void ndp_send_ra(Slirp *slirp);
 void ndp_send_ns(Slirp *slirp, struct in6_addr addr);
+void ra_timer_handler(Slirp *slirp, void *unused);
 
 #endif

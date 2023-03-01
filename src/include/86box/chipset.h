@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Handling of the emulated chipsets.
+ *          Handling of the emulated chipsets.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2019,2020 Miran Grca.
+ *          Copyright 2019-2020 Miran Grca.
  */
 #ifndef EMU_CHIPSET_H
 #define EMU_CHIPSET_H
@@ -24,6 +24,7 @@ extern const device_t acc2168_device;
 extern const device_t ali1217_device;
 extern const device_t ali1429_device;
 extern const device_t ali1429g_device;
+extern const device_t ali1435_device;
 extern const device_t ali1489_device;
 extern const device_t ali1531_device;
 extern const device_t ali1541_device;
@@ -91,6 +92,7 @@ extern const device_t sio_device;
 extern const device_t sio_zb_device;
 
 extern const device_t piix_device;
+extern const device_t piix_no_mirq_device;
 extern const device_t piix_old_device;
 extern const device_t piix_rev02_device;
 extern const device_t piix3_device;
@@ -107,10 +109,12 @@ extern const device_t opti291_device;
 extern const device_t opti493_device;
 extern const device_t opti495_device;
 extern const device_t opti802g_device;
+extern const device_t opti802g_pci_device;
 extern const device_t opti822_device;
 extern const device_t opti895_device;
 
 extern const device_t opti5x7_device;
+extern const device_t opti5x7_pci_device;
 
 /* SiS */
 extern const device_t rabbit_device;

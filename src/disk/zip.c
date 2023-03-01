@@ -1,19 +1,19 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Iomega ZIP drive with SCSI(-like)
- *		commands, for both ATAPI and SCSI usage.
+ *          Implementation of the Iomega ZIP drive with SCSI(-like)
+ *          commands, for both ATAPI and SCSI usage.
  *
  *
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2018,2019 Miran Grca.
+ *          Copyright 2018-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -199,7 +199,8 @@ static const mode_sense_pages_t zip_250_mode_sense_pages_default =
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
-    {                        0,    0 },	{                        0,    0 },
+    {                        0,    0 },
+    {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
     {                        0,    0 },
@@ -2072,7 +2073,7 @@ zip_phase_data_out(scsi_common_t *sc)
                     dev->buffer[2] = (i >> 8) & 0xff;
                     dev->buffer[3] = i & 0xff;
                 } else if (dev->current_cdb[1] & 4) {
-                    /* CHS are 96,1,2048 (ZIP 100) and 239,1,2048 (ZIP 250) */
+                    /* CHS are 96, 1, 2048 (ZIP 100) and 239, 1, 2048 (ZIP 250) */
                     s              = (i % 2048);
                     h              = ((i - s) / 2048) % 1;
                     c              = ((i - s) / 2048) / 1;

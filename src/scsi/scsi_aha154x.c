@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the AHA-154x series of SCSI Host Adapters
- *		made by Adaptec, Inc. These controllers were designed for
- *		the ISA bus.
+ *          Implementation of the AHA-154x series of SCSI Host Adapters
+ *          made by Adaptec, Inc. These controllers were designed for
+ *          the ISA bus.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Original Buslogic version by SA1988 and Miran Grca.
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Original Buslogic version by SA1988 and Miran Grca.
  *
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -519,7 +519,7 @@ aha_mca_write(int port, uint8_t val, void *priv)
 
     /* Get the new assigned I/O base address. */
     dev->Base = (dev->pos_regs[3] & 7) << 8;
-    dev->Base |= ((dev->pos_regs[3] & 0xc0) ? 0x34 : 0x30);
+    dev->Base |= ((dev->pos_regs[3] & 0x40) ? 0x34 : 0x30);
 
     /* Save the new IRQ and DMA channel values. */
     dev->Irq        = (dev->pos_regs[4] & 0x07) + 8;
@@ -641,8 +641,8 @@ aha_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
                  * their way of handling issues like these at the time..
                  *
                  * Patch 1: emulate the I/O ADDR SW setting by patching a
-                 *	    byte in the BIOS that indicates the I/O ADDR
-                 *	    switch setting on the board.
+                 *      byte in the BIOS that indicates the I/O ADDR
+                 *      switch setting on the board.
                  */
                 if (dev->rom_ioaddr != 0x0000) {
                     /* Look up the I/O address in the table. */
@@ -789,8 +789,8 @@ aha_setbios(x54x_t *dev)
      * their way of handling issues like these at the time..
      *
      * Patch 1: emulate the I/O ADDR SW setting by patching a
-     *	    byte in the BIOS that indicates the I/O ADDR
-     *	    switch setting on the board.
+     *      byte in the BIOS that indicates the I/O ADDR
+     *      switch setting on the board.
      */
     if (dev->rom_ioaddr != 0x0000) {
         /* Look up the I/O address in the table. */
@@ -880,11 +880,11 @@ aha_initnvr(x54x_t *dev)
         dev->nvr[0] |= EE0_ALTFLOP;
     dev->nvr[1] = dev->Irq - 9;            /* IRQ15 */
     dev->nvr[1] |= (dev->DmaChannel << 4); /* DMA6 */
-    dev->nvr[2] = (EE2_HABIOS |            /* BIOS enabled		*/
-                   EE2_DYNSCAN |           /* scan bus		*/
-                   EE2_EXT1G | EE2_RMVOK); /* Imm return on seek	*/
-    dev->nvr[3] = SPEED_50;                /* speed 5.0 MB/s	*/
-    dev->nvr[6] = (EE6_TERM |              /* host term enable	*/
+    dev->nvr[2] = (EE2_HABIOS |            /* BIOS enabled */
+                   EE2_DYNSCAN |           /* scan bus */
+                   EE2_EXT1G | EE2_RMVOK); /* Imm return on seek */
+    dev->nvr[3] = SPEED_50;                /* speed 5.0 MB/s */
+    dev->nvr[6] = (EE6_TERM |              /* host term enable */
                    EE6_RSTBUS);            /* reset SCSI bus on boot*/
 }
 

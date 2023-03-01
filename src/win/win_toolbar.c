@@ -2,8 +2,8 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <Windows.h>
-#include <CommCtrl.h>
+#include <windows.h>
+#include <commctrl.h>
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/resource.h>
@@ -28,7 +28,7 @@ enum image_index {
 };
 
 void
-ToolBarLoadIcons()
+ToolBarLoadIcons(void)
 {
     if (!hwndToolbar)
         return;
@@ -72,25 +72,25 @@ ToolBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                         switch (idButton) {
                             case IDM_ACTION_PAUSE:
                                 if (dopause)
-                                    lpttt->lpszText = MAKEINTRESOURCE(IDS_2154);
-                                else
                                     lpttt->lpszText = MAKEINTRESOURCE(IDS_2155);
+                                else
+                                    lpttt->lpszText = MAKEINTRESOURCE(IDS_2156);
                                 break;
 
                             case IDM_ACTION_RESET_CAD:
-                                lpttt->lpszText = MAKEINTRESOURCE(IDS_2156);
-                                break;
-
-                            case IDM_ACTION_CTRL_ALT_ESC:
                                 lpttt->lpszText = MAKEINTRESOURCE(IDS_2157);
                                 break;
 
-                            case IDM_ACTION_HRESET:
+                            case IDM_ACTION_CTRL_ALT_ESC:
                                 lpttt->lpszText = MAKEINTRESOURCE(IDS_2158);
                                 break;
 
+                            case IDM_ACTION_HRESET:
+                                lpttt->lpszText = MAKEINTRESOURCE(IDS_2159);
+                                break;
+
                             case IDM_CONFIG:
-                                lpttt->lpszText = MAKEINTRESOURCE(IDS_2160);
+                                lpttt->lpszText = MAKEINTRESOURCE(IDS_2161);
                                 break;
                         }
 

@@ -1,36 +1,36 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Chips & Technologies 82C425 display controller emulation,
- *		with support for 640x200 LCD and SMARTMAP text contrast
- *		enhancement.
+ *          Chips & Technologies 82C425 display controller emulation,
+ *          with support for 640x200 LCD and SMARTMAP text contrast
+ *          enhancement.
  *
- *		Relevant literature:
+ *          Relevant literature:
  *
- *		[1] Chips and Technologies, Inc., 82C425 CGA LCD/CRT Controller,
- *		    Data Sheet, Revision No. 2.2, September 1991.
- *		    <https://archive.org/download/82C425/82C425.pdf>
+ *          [1] Chips and Technologies, Inc., 82C425 CGA LCD/CRT Controller,
+ *              Data Sheet, Revision No. 2.2, September 1991.
+ *              <https://archive.org/download/82C425/82C425.pdf>
  *
- *		[2] Pleva et al., COLOR TO MONOCHROME CONVERSION,
- *		    U.S. Patent 4,977,398, Dec. 11, 1990.
- *		    <https://pimg-fpiw.uspto.gov/fdd/98/773/049/0.pdf>
+ *          [2] Pleva et al., COLOR TO MONOCHROME CONVERSION,
+ *              U.S. Patent 4,977,398, Dec. 11, 1990.
+ *              <https://pimg-fpiw.uspto.gov/fdd/98/773/049/0.pdf>
  *
- *		Based on Toshiba T1000 plasma display emulation code.
+ *          Based on Toshiba T1000 plasma display emulation code.
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
- *		Lubomir Rintel, <lkundrak@v3.sk>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Lubomir Rintel, <lkundrak@v3.sk>
  *
- *		Copyright 2018,2019 Fred N. van Kempen.
- *		Copyright 2018,2019 Miran Grca.
- *		Copyright 2018,2019 Sarah Walker.
- *		Copyright 2021 Lubomir Rintel.
+ *          Copyright 2018-2019 Fred N. van Kempen.
+ *          Copyright 2018-2019 Miran Grca.
+ *          Copyright 2018-2019 Sarah Walker.
+ *          Copyright 2021      Lubomir Rintel.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -96,7 +96,7 @@ f82c425_display_set(uint8_t internal)
 }
 
 uint8_t
-f82c425_display_get()
+f82c425_display_get(void)
 {
     return (uint8_t) st_display_internal;
 }

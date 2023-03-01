@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of Serial Mouse devices.
+ *          Implementation of Serial Mouse devices.
  *
- * TODO:	Add the Genius Serial Mouse.
+ * TODO:    Add the Genius Serial Mouse.
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -511,7 +511,7 @@ sermouse_command_timer(void *priv)
 }
 
 static int
-sermouse_poll(int x, int y, int z, int b, void *priv)
+sermouse_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
 {
     mouse_t *dev = (mouse_t *) priv;
 
@@ -878,7 +878,7 @@ static const device_config_t ltsermouse_config[] = {
         }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t mouse_mssystems_device = {

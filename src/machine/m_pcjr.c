@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the IBM PCjr.
+ *          Emulation of the IBM PCjr.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -37,6 +37,7 @@
 #include <86box/pit.h>
 #include <86box/mem.h>
 #include <86box/device.h>
+#include <86box/gameport.h>
 #include <86box/serial.h>
 #include <86box/keyboard.h>
 #include <86box/rom.h>
@@ -433,6 +434,9 @@ vid_poll(void *p)
         if (pcjr->composite) {
             Composite_Process(pcjr->array[0], 0, x >> 2, buffer32->line[(pcjr->displine << 1)]);
             Composite_Process(pcjr->array[0], 0, x >> 2, buffer32->line[(pcjr->displine << 1) + 1]);
+        } else {
+            video_process_8(x, pcjr->displine << 1);
+            video_process_8(x, (pcjr->displine << 1) + 1);
         }
         pcjr->sc = oldsc;
         if (pcjr->vc == pcjr->crtc[7] && !pcjr->sc) {
@@ -519,19 +523,11 @@ vid_poll(void *p)
                         }
 
                         if (enable_overscan) {
-                            if (pcjr->composite)
-                                video_blit_memtoscreen(0, (pcjr->firstline - 4) << 1,
-                                                       xsize, ((pcjr->lastline - pcjr->firstline) + 8) << 1);
-                            else
-                                video_blit_memtoscreen_8(0, (pcjr->firstline - 4) << 1,
-                                                         xsize, ((pcjr->lastline - pcjr->firstline) + 8) << 1);
+                            video_blit_memtoscreen(0, (pcjr->firstline - 4) << 1,
+                                                   xsize, ((pcjr->lastline - pcjr->firstline) + 8) << 1);
                         } else {
-                            if (pcjr->composite)
-                                video_blit_memtoscreen(8, pcjr->firstline << 1,
-                                                       xsize, (pcjr->lastline - pcjr->firstline) << 1);
-                            else
-                                video_blit_memtoscreen_8(8, pcjr->firstline << 1,
-                                                         xsize, (pcjr->lastline - pcjr->firstline) << 1);
+                            video_blit_memtoscreen(8, pcjr->firstline << 1,
+                                                   xsize, (pcjr->lastline - pcjr->firstline) << 1);
                         }
                     }
 
@@ -747,17 +743,17 @@ static const device_config_t pcjr_config[] = {
 };
 
 const device_t pcjr_device = {
-    "IBM PCjr",
-    "pcjr",
-    0,
-    0,
-    NULL,
-    NULL,
-    NULL,
-    { NULL },
-    speed_changed,
-    NULL,
-    pcjr_config
+    .name          = "IBM PCjr",
+    .internal_name = "pcjr",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = speed_changed,
+    .force_redraw  = NULL,
+    .config        = pcjr_config
 };
 
 int
@@ -786,7 +782,7 @@ machine_pcjr_init(const machine_t *model)
     cpu_set();
 
     /* Initialize the video controller. */
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
     loadfont("roms/video/mda/mda.rom", 0);
     mem_mapping_add(&pcjr->mapping, 0xb8000, 0x08000,
                     vid_read, NULL, NULL,
@@ -819,6 +815,9 @@ machine_pcjr_init(const machine_t *model)
 
     device_add(&ns8250_pcjr_device);
     serial_set_next_inst(SERIAL_MAX); /* So that serial_standalone_init() won't do anything. */
+
+    /* "All the inputs are 'read' with one 'IN' from address hex 201." - PCjr Technical Reference (Nov. 83), p.2-119 */
+    standalone_gameport_type = &gameport_201_device;
 
     return ret;
 }

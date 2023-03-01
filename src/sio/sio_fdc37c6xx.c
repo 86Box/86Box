@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the SMC FDC37C663 and FDC37C665 Super
- *		I/O Chips.
+ *          Implementation of the SMC FDC37C663 and FDC37C665 Super
+ *          I/O Chips.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -216,7 +216,7 @@ static uint8_t
 fdc37c6xx_read(uint16_t port, void *priv)
 {
     fdc37c6xx_t *dev = (fdc37c6xx_t *) priv;
-    uint8_t      ret = 0x00;
+    uint8_t      ret = 0xff;
 
     if (dev->tries == 2) {
         if (port == 0x3f1)
@@ -428,6 +428,20 @@ const device_t fdc37c665_ide_device = {
     .internal_name = "fdc37c665_ide",
     .flags         = 0,
     .local         = 0x265,
+    .init          = fdc37c6xx_init,
+    .close         = fdc37c6xx_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc37c665_ide_pri_device = {
+    .name          = "SMC FDC37C665 Super I/O (With Primary IDE)",
+    .internal_name = "fdc37c665_ide_pri",
+    .flags         = 0,
+    .local         = 0x165,
     .init          = fdc37c6xx_init,
     .close         = fdc37c6xx_close,
     .reset         = NULL,

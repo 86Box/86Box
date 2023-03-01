@@ -1,29 +1,29 @@
 /*
  * 86Box    A hypervisor and IBM PC system emulator that specializes in
- *        running old operating systems and software designed for IBM
- *        PC systems and compatibles from 1981 through fairly recent
- *        system designs based on the PCI bus.
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *        This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *        Configuration file handler.
+ *          Configuration file handler.
  *
  *
  *
- * Authors:    Sarah Walker,
- *        Miran Grca, <mgrca8@gmail.com>
- *        Fred N. van Kempen, <decwiz@yahoo.com>
- *        Overdoze,
- *        David Hrdlička, <hrdlickadavid@outlook.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Overdoze,
+ *          David Hrdlička, <hrdlickadavid@outlook.com>
  *
- *        Copyright 2008-2019 Sarah Walker.
- *        Copyright 2016-2019 Miran Grca.
- *        Copyright 2017-2019 Fred N. van Kempen.
- *        Copyright 2018,2019 David Hrdlička.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2018-2019 David Hrdlička.
  *
  * NOTE:    Forcing config files to be in Unicode encoding breaks
- *        it on Windows XP, and possibly also Vista. Use the
- *        -DANSI_CFG for use on these systems.
+ *          it on Windows XP, and possibly also Vista. Use the
+ *          -DANSI_CFG for use on these systems.
  */
 
 #include <inttypes.h>
@@ -141,7 +141,7 @@ ini_rename_section(ini_section_t section, char *name)
 }
 
 static entry_t *
-find_entry(section_t *section, char *name)
+find_entry(section_t *section, const char *name)
 {
     entry_t *ent;
 
@@ -222,7 +222,7 @@ ini_find_or_create_section(ini_t ini, char *name)
 }
 
 static entry_t *
-create_entry(section_t *section, char *name)
+create_entry(section_t *section, const char *name)
 {
     entry_t *ne = malloc(sizeof(entry_t));
 
@@ -492,7 +492,7 @@ ini_write(ini_t ini, char *fn)
 }
 
 ini_t
-ini_new()
+ini_new(void)
 {
     ini_t ini = malloc(sizeof(list_t));
     memset(ini, 0, sizeof(list_t));
@@ -750,7 +750,7 @@ ini_section_set_mac(ini_section_t self, char *name, int val)
 }
 
 void
-ini_section_set_string(ini_section_t self, char *name, char *val)
+ini_section_set_string(ini_section_t self, const char *name, const char *val)
 {
     section_t *section = (section_t *) self;
     entry_t   *ent;

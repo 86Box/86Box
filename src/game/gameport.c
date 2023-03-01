@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of a generic Game Port.
+ *          Implementation of a generic Game Port.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
- *		RichardG, <richardg867@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2021 RichardG.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2021 RichardG.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -116,7 +116,7 @@ static uint8_t gameport_pnp_rom[] = {
 static const isapnp_device_config_t gameport_pnp_defaults[] = {
     {.activate = 1,
      .io       = {
-                { .base = 0x200 },
+          { .base = 0x200 },
       }}
 };
 
@@ -642,7 +642,7 @@ static const device_config_t tmacm_config[] = {
         }
     },
     { "", "", -1 }
-// clang-format on
+  // clang-format on
 };
 
 const device_t gameport_tm_acm_device = {

@@ -1,29 +1,29 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the floppy drive emulation.
+ *          Definitions for the floppy drive emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <tommowalker@tommowalker.co.uk>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2018 Fred N. van Kempen.
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2018 Fred N. van Kempen.
  */
 #ifndef EMU_FDD_H
 #define EMU_FDD_H
 
-#define FDD_NUM          4
-#define FLOPPY_IMAGE_HISTORY         4
-#define SEEK_RECALIBRATE -999
+#define FDD_NUM              4
+#define FLOPPY_IMAGE_HISTORY 4
+#define SEEK_RECALIBRATE     -999
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,6 +42,7 @@ extern int  fdd_can_read_medium(int drive);
 extern int  fdd_doublestep_40(int drive);
 extern int  fdd_is_525(int drive);
 extern int  fdd_is_dd(int drive);
+extern int  fdd_is_hd(int drive);
 extern int  fdd_is_ed(int drive);
 extern int  fdd_is_double_sided(int drive);
 extern void fdd_set_head(int drive, int head);
@@ -84,7 +85,7 @@ typedef struct {
 
 extern DRIVE      drives[FDD_NUM];
 extern char       floppyfns[FDD_NUM][512];
-extern char       *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
+extern char      *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
 extern pc_timer_t fdd_poll_time[FDD_NUM];
 extern int        ui_writeprot[FDD_NUM];
 

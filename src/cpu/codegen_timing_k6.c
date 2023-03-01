@@ -1,5 +1,5 @@
 /*Most of the vector instructions here are a total guess.
-  Some of the timings are based on http://users.atw.hu/instlatx64/AuthenticAMD0000562_K6_InstLatX86.txt*/
+  Some of the timings are based on http://http://web.archive.org/web/20181122095446/http://users.atw.hu/instlatx64/AuthenticAMD0000562_K6_InstLatX86.txt*/
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -1858,7 +1858,7 @@ static int fpu_st_timestamp[8];
   dependent uop chains*/
 static int last_uop_timestamp = 0;
 
-void decode_flush()
+void decode_flush(void)
 {
         int c;
         int uop_timestamp = 0;
@@ -2112,7 +2112,7 @@ static void decode_instruction(const risc86_instruction_t *ins, uint64_t deps, u
         }
 }
 
-void codegen_timing_k6_block_start()
+void codegen_timing_k6_block_start(void)
 {
         int c;
 
@@ -2136,7 +2136,7 @@ void codegen_timing_k6_block_start()
                 fpu_st_timestamp[c] = 0;
 }
 
-void codegen_timing_k6_start()
+void codegen_timing_k6_start(void)
 {
         if (cpu_s->cpu_type == CPU_K6)
         {
@@ -2324,7 +2324,7 @@ void codegen_timing_k6_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uint
         codegen_block_cycles += (last_complete_timestamp - old_last_complete_timestamp);
 }
 
-void codegen_timing_k6_block_end()
+void codegen_timing_k6_block_end(void)
 {
         if (decode_buffer.nr_uops)
         {
@@ -2334,7 +2334,7 @@ void codegen_timing_k6_block_end()
         }
 }
 
-int codegen_timing_k6_jump_cycles()
+int codegen_timing_k6_jump_cycles(void)
 {
         if (decode_buffer.nr_uops)
                 return 1;

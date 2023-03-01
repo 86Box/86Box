@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of a generic PostScript printer.
+ *          Implementation of a generic PostScript printer.
  *
  *
  *
- * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
+ * Authors: David Hrdlička, <hrdlickadavid@outlook.com>
  *
- *		Copyright 2019 David Hrdlička.
+ *          Copyright 2019 David Hrdlička.
  */
 
 #include <inttypes.h>
@@ -340,7 +340,7 @@ ps_init(void *lpt)
     /* Try loading the DLL. */
     ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
     if (ghostscript_handle == NULL)
-        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2114, (wchar_t *) IDS_2132);
+        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2115, (wchar_t *) IDS_2133);
     else {
         if (gsapi_revision(&rev, sizeof(rev)) == 0)
             pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
@@ -350,7 +350,7 @@ ps_init(void *lpt)
         }
     }
 
-/* Cache print folder path. */
+    /* Cache print folder path. */
     memset(dev->printer_path, 0x00, sizeof(dev->printer_path));
     path_append_filename(dev->printer_path, usr_path, "printer");
     if (!plat_dir_check(dev->printer_path))

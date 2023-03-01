@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of various Compaq PC's.
+ *          Emulation of various Compaq PC's.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		TheCollector1995, <mariogplayer@gmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          TheCollector1995, <mariogplayer@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -527,9 +527,9 @@ compaq_plasma_recalcattrs(compaq_plasma_t *self)
      *     Bit 0: Attributes 01-06, 08-0E are inverse video
      *     Bit 1: Attributes 01-06, 08-0E are bold
      *     Bit 2: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
-     * 	      are inverse video
+     *            are inverse video
      *     Bit 3: Attributes 11-16, 18-1F, 21-26, 28-2F ... F1-F6, F8-FF
-     * 	      are bold */
+     *            are bold */
 
     /* Set up colours */
     amber = makecol(0xff, 0x7D, 0x00);
@@ -686,8 +686,8 @@ const device_config_t compaq_plasma_config[] = {
     },
     {
         .name = "rgb_type",
-		.description = "RGB type",
-		.type = CONFIG_SELECTION,
+        .description = "RGB type",
+        .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 0,
         .file_filter = "",
@@ -702,7 +702,7 @@ const device_config_t compaq_plasma_config[] = {
         }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t compaq_plasma_device = {
@@ -787,21 +787,21 @@ machine_at_compaq_init(const machine_t *model, int type)
                     write_ram, write_ramw, write_raml,
                     0xa0000 + ram, MEM_MAPPING_INTERNAL, NULL);
 
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
 
     switch (type) {
         case COMPAQ_PORTABLEII:
             break;
 
         case COMPAQ_PORTABLEIII:
-            if (gfxcard == VID_INTERNAL)
+            if (gfxcard[0] == VID_INTERNAL)
                 device_add(&compaq_plasma_device);
             break;
 
         case COMPAQ_PORTABLEIII386:
             if (hdc_current == 1)
                 device_add(&ide_isa_device);
-            if (gfxcard == VID_INTERNAL)
+            if (gfxcard[0] == VID_INTERNAL)
                 device_add(&compaq_plasma_device);
             break;
 

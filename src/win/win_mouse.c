@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *  		running old operating systems and software designed for IBM
- * 			PC systems and compatibles from 1981 through fairly recent
- *  		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *  		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *  		RawInput mouse interface.
+ *          RawInput mouse interface.
  *
- * 			Version:	@(#)win_mouse_rawinput.cpp	1.0.0	2019/3/19
  *
- *  		Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *  					Miran Grca, <mgrca8@gmail.com>
- *  					GH Cao, <driver1998.ms@outlook.com>
  *
- *  		Copyright 2008-2017 Sarah Walker.
- *  		Copyright 2016,2017 Miran Grca.
- *  		Copyright 2019 GH Cao.
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          GH Cao, <driver1998.ms@outlook.com>
+ *
+ *          Copyright 2008-2017 Sarah Walker.
+ *          Copyright 2016-2017 Miran Grca.
+ *          Copyright 2019 GH Cao.
  */
 #include <windows.h>
 #include <windowsx.h>
@@ -80,6 +80,16 @@ win_mouse_handle(PRAWINPUT raw)
         mousestate.buttons |= 2;
     else if (state.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
         mousestate.buttons &= ~2;
+
+    if (state.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN)
+        mousestate.buttons |= 8;
+    else if (state.usButtonFlags & RI_MOUSE_BUTTON_4_UP)
+        mousestate.buttons &= ~8;
+
+    if (state.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN)
+        mousestate.buttons |= 16;
+    else if (state.usButtonFlags & RI_MOUSE_BUTTON_5_UP)
+        mousestate.buttons &= ~16;
 
     if (state.usButtonFlags & RI_MOUSE_WHEEL) {
         mousestate.dwheel += (SHORT) state.usButtonData / 120;

@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Define the various platform support functions.
+ *          Define the various platform support functions.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2021 Laci bá'
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2021 Laci bá'
  */
 
 #ifndef EMU_PLAT_H
@@ -49,7 +49,7 @@ extern int strnicmp(const char *s1, const char *s2, size_t n);
 #    define ftello64 ftello
 #    define off64_t  off_t
 #elif defined(_MSC_VER)
-//# define fopen64	fopen
+// # define fopen64	fopen
 #    define fseeko64 _fseeki64
 #    define ftello64 _ftelli64
 #    define off64_t  off_t
@@ -106,7 +106,8 @@ extern int      plat_getcwd(char *bufp, int max);
 extern int      plat_chdir(char *path);
 extern void     plat_tempfile(char *bufp, char *prefix, char *suffix);
 extern void     plat_get_exe_name(char *s, int size);
-extern void     plat_init_rom_paths();
+extern void     plat_get_global_config_dir(char* strptr);
+extern void     plat_init_rom_paths(void);
 extern int      plat_dir_check(char *path);
 extern int      plat_dir_create(char *path);
 extern void    *plat_mmap(size_t size, uint8_t executable);

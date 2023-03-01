@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		ACPI emulation.
+ *          ACPI emulation.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2020 Miran Grca.
+ *          Copyright 2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -40,7 +40,9 @@
 #include <86box/i2c.h>
 #include <86box/video.h>
 
-int acpi_rtc_status = 0;
+int        acpi_rtc_status     = 0;
+atomic_int acpi_pwrbut_pressed = 0;
+int        acpi_enabled        = 0;
 
 static double cpu_to_acpi;
 
@@ -63,7 +65,7 @@ acpi_log(const char *fmt, ...)
 #endif
 
 static uint64_t
-acpi_clock_get()
+acpi_clock_get(void)
 {
     return tsc * cpu_to_acpi;
 }
@@ -670,6 +672,7 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
             /* PMCNTRL - Power Management Control Register (IO) */
             if ((addr == 0x05) && (val & 0x20)) {
                 sus_typ = dev->suspend_types[(val >> 2) & 7];
+                acpi_log("ACPI suspend type %d flags %02X\n", (val >> 2) & 7, sus_typ);
 
                 if (sus_typ & SUS_POWER_OFF) {
                     /* Soft power off. */
@@ -1516,6 +1519,21 @@ acpi_ali_soft_smi_status_write(acpi_t *dev, uint8_t soft_smi)
     dev->regs.ali_soft_smi = soft_smi;
 }
 
+void
+acpi_pwrbtn_timer(void *priv)
+{
+    acpi_t *dev = (acpi_t *) priv;
+
+    timer_on_auto(&dev->pwrbtn_timer, 16. * 1000.);
+    if (acpi_pwrbut_pressed) {
+        acpi_pwrbut_pressed = 0;
+        if (dev->regs.pmen & PWRBTN_EN) {
+            dev->regs.pmsts |= PWRBTN_STS;
+            acpi_update_irq(dev);
+        }
+    }
+}
+
 static void
 acpi_apm_out(uint16_t port, uint8_t val, void *p)
 {
@@ -1681,6 +1699,7 @@ acpi_init(const device_t *info)
             dev->suspend_types[1] = SUS_POWER_OFF;
             dev->suspend_types[2] = SUS_SUSPEND | SUS_NVR | SUS_RESET_CPU | SUS_RESET_PCI;
             dev->suspend_types[3] = SUS_SUSPEND;
+            dev->suspend_types[5] = SUS_POWER_OFF; /* undocumented, used for S4/S5 by ASUS P5A ACPI table */
             break;
 
         case VEN_VIA:
@@ -1707,9 +1726,13 @@ acpi_init(const device_t *info)
 
     timer_add(&dev->timer, acpi_timer_overflow, dev, 0);
     timer_add(&dev->resume_timer, acpi_timer_resume, dev, 0);
+    timer_add(&dev->pwrbtn_timer, acpi_pwrbtn_timer, dev, 0);
+
+    timer_on_auto(&dev->pwrbtn_timer, 16. * 1000.);
 
     acpi_reset(dev);
 
+    acpi_enabled = 1;
     return dev;
 }
 

@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Hercules emulation.
+ *          Hercules emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -361,6 +361,13 @@ hercules_poll(void *priv)
             }
 
             hercules_render_overscan_right(dev);
+
+            if (dev->ctrl & 0x02)
+                x = dev->crtc[1] << 4;
+            else
+                x = dev->crtc[1] * 9;
+
+            video_process_8(x + 16, dev->displine + 14);
         }
         dev->sc = oldsc;
 
@@ -475,9 +482,9 @@ hercules_poll(void *priv)
                     }
 
                     if (enable_overscan)
-                        video_blit_memtoscreen_8(0, dev->firstline, xsize + 16, ysize + 28);
+                        video_blit_memtoscreen(0, dev->firstline, xsize + 16, ysize + 28);
                     else
-                        video_blit_memtoscreen_8(8, dev->firstline + 14, xsize, ysize);
+                        video_blit_memtoscreen(8, dev->firstline + 14, xsize, ysize);
                     frames++;
                     // if ((dev->ctrl & 2) && (dev->ctrl2 & 1)) {
                     if (dev->ctrl & 0x02) {
@@ -634,7 +641,7 @@ static const device_config_t hercules_config[] = {
     {
         .type = CONFIG_END
     }
-// clang-format on
+  // clang-format on
 };
 
 const device_t hercules_device = {

@@ -1,20 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		RawInput joystick interface.
+ *          RawInput joystick interface.
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *              GH Cao, <driver1998.ms@outlook.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2020 GH Cao.
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          GH Cao, <driver1998.ms@outlook.com>
+ *
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2020 GH Cao.
  */
 #include <windows.h>
 #include <windowsx.h>
@@ -246,7 +248,7 @@ joystick_get_device_name(raw_joystick_t *rawjoy, plat_joystick_t *joy, PRID_DEVI
 }
 
 void
-joystick_init()
+joystick_init(void)
 {
     UINT size = 0;
     atexit(joystick_close);
@@ -316,7 +318,7 @@ end_loop:
 }
 
 void
-joystick_close()
+joystick_close(void)
 {
     RAWINPUTDEVICE ridev[2];
     ridev[0].dwFlags     = RIDEV_REMOVE;

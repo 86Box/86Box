@@ -1,24 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the code common to the AHA-154x series of
- *		SCSI Host Adapters made by Adaptec, Inc. and the BusLogic
- *		series of SCSI Host Adapters made by Mylex.
- *		These controllers were designed for various buses.
+ *          Implementation of the code common to the AHA-154x series of
+ *          SCSI Host Adapters made by Adaptec, Inc. and the BusLogic
+ *          series of SCSI Host Adapters made by Mylex.
+ *          These controllers were designed for various buses.
  *
  *
  *
- * Authors:	TheCollector1995, <mariogplayer@gmail.com>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: TheCollector1995, <mariogplayer@gmail.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
 #include <inttypes.h>
 #include <stdio.h>
@@ -957,7 +957,7 @@ x54x_scsi_cmd_phase1(x54x_t *dev)
     }
 
     dev->callback_sub_phase = 3;
-    x54x_log("scsi_devices[%02xi][%02i].Status = %02X\n", x54x->bus, req->TargetID, sd->status);
+    x54x_log("scsi_devices[%02xi][%02i].Status = %02X\n", dev->bus, req->TargetID, sd->status);
 }
 
 static void
@@ -1312,14 +1312,14 @@ x54x_in(uint16_t port, void *priv)
 
         case 3:
             /* Bits according to ASPI4DOS.SYS v3.36:
-                    0		Not checked
-                    1		Must be 0
-                    2		Must be 0-0-0-1
-                    3		Must be 0
-                    4		Must be 0-1-0-0
-                    5		Must be 0
-                    6		Not checked
-                    7		Not checked
+                    0       Not checked
+                    1       Must be 0
+                    2       Must be 0-0-0-1
+                    3       Must be 0
+                    4       Must be 0-1-0-0
+                    5       Must be 0
+                    6       Not checked
+                    7       Not checked
             */
             if (dev->flags & X54X_INT_GEOM_WRITABLE)
                 ret = dev->Geometry;
@@ -1402,7 +1402,7 @@ x54x_reset(x54x_t *dev)
 
     clear_irq(dev);
     if (dev->flags & X54X_INT_GEOM_WRITABLE)
-        dev->Geometry = 0x80;
+        dev->Geometry = 0x90;
     else
         dev->Geometry = 0x00;
     dev->callback_phase     = 0;

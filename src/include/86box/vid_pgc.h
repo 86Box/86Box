@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the PGC driver.
+ *          Definitions for the PGC driver.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		John Elliott, <jce@seasip.info>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          John Elliott, <jce@seasip.info>
  *
- *		Copyright 2019 Fred N. van Kempen.
- *		Copyright 2019 John Elliott.
+ *          Copyright 2019 Fred N. van Kempen.
+ *          Copyright 2019 John Elliott.
  */
 #ifndef VID_PGC_H
 #define VID_PGC_H

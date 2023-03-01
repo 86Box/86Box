@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the 86F floppy image format (stores the
- *		data in the form of FM/MFM-encoded transitions) which also
- *		forms the core of the emulator's floppy disk emulation.
+ *          Implementation of the 86F floppy image format (stores the
+ *          data in the form of FM/MFM-encoded transitions) which also
+ *          forms the core of the emulator's floppy disk emulation.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2018,2019 Fred N. van Kempen.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2018-2019 Fred N. van Kempen.
  */
 #include <stdint.h>
 #include <stdio.h>
@@ -155,23 +155,23 @@ typedef struct {
 } sector_t;
 
 /* Disk flags:
- *  Bit 0	Has surface data (1 = yes, 0 = no)
- *  Bits 2, 1	Hole (3 = ED + 2000 kbps, 2 = ED, 1 = HD, 0 = DD)
- *  Bit 3	Sides (1 = 2 sides, 0 = 1 side)
- *  Bit 4	Write protect (1 = yes, 0 = no)
- *  Bits 6, 5	RPM slowdown (3 = 2%, 2 = 1.5%, 1 = 1%, 0 = 0%)
- *  Bit 7	Bitcell mode (1 = Extra bitcells count specified after
- *		disk flags, 0 = No extra bitcells)
- *		The maximum number of extra bitcells is 1024 (which
- *		after decoding translates to 64 bytes)
- *  Bit 8	Disk type (1 = Zoned, 0 = Fixed RPM)
- *  Bits 10, 9	Zone type (3 = Commodore 64 zoned, 2 = Apple zoned,
- *		1 = Pre-Apple zoned #2, 0 = Pre-Apple zoned #1)
- *  Bit 11	Data and surface bits are stored in reverse byte endianness
- *  Bit 12	If bits 6, 5 are not 0, they specify % of speedup instead
- *		of slowdown;
- *		If bits 6, 5 are 0, and bit 7 is 1, the extra bitcell count
- *		specifies the entire bitcell count
+ *  Bit 0   Has surface data (1 = yes, 0 = no)
+ *  Bits 2, 1   Hole (3 = ED + 2000 kbps, 2 = ED, 1 = HD, 0 = DD)
+ *  Bit 3   Sides (1 = 2 sides, 0 = 1 side)
+ *  Bit 4   Write protect (1 = yes, 0 = no)
+ *  Bits 6, 5   RPM slowdown (3 = 2%, 2 = 1.5%, 1 = 1%, 0 = 0%)
+ *  Bit 7   Bitcell mode (1 = Extra bitcells count specified after
+ *      disk flags, 0 = No extra bitcells)
+ *      The maximum number of extra bitcells is 1024 (which
+ *      after decoding translates to 64 bytes)
+ *  Bit 8   Disk type (1 = Zoned, 0 = Fixed RPM)
+ *  Bits 10, 9  Zone type (3 = Commodore 64 zoned, 2 = Apple zoned,
+ *      1 = Pre-Apple zoned #2, 0 = Pre-Apple zoned #1)
+ *  Bit 11  Data and surface bits are stored in reverse byte endianness
+ *  Bit 12  If bits 6, 5 are not 0, they specify % of speedup instead
+ *      of slowdown;
+ *      If bits 6, 5 are 0, and bit 7 is 1, the extra bitcell count
+ *      specifies the entire bitcell count
  */
 typedef struct {
     FILE   *f;
@@ -2732,14 +2732,14 @@ d86f_prepare_sector(int drive, int side, int prev_pos, uint8_t *id_buf, uint8_t 
  *   ((track << 1) + 1);
  *
  * - Any bits that differ are treated as thus:
- *	- Both are regular but contents differ -> Output is fuzzy;
- *	- One is regular and one is fuzzy -> Output is fuzzy;
- *	- Both are fuzzy -> Output is fuzzy;
- *	- Both are physical holes -> Output is a physical hole;
- *	- One is regular and one is a physical hole -> Output is fuzzy,
- *	  the hole half is handled appropriately on writeback;
- *	- One is fuzzy and one is a physical hole -> Output is fuzzy,
- *	  the hole half is handled appropriately on writeback;
+ * - Both are regular but contents differ -> Output is fuzzy;
+ * - One is regular and one is fuzzy -> Output is fuzzy;
+ * - Both are fuzzy -> Output is fuzzy;
+ * - Both are physical holes -> Output is a physical hole;
+ * - One is regular and one is a physical hole -> Output is fuzzy,
+ *   the hole half is handled appropriately on writeback;
+ * - One is fuzzy and one is a physical hole -> Output is fuzzy,
+ *   the hole half is handled appropriately on writeback;
  * - On write back, apart from the above notes, the final two tracks
  *   are written;
  * - Destination ALWAYS has surface data even if the image does not.

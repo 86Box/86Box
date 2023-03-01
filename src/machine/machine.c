@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Handling of the emulated machines.
+ *          Handling of the emulated machines.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -96,7 +96,7 @@ machine_init_ex(int m)
 
         /* Prepare some video-related things if we're using internal
            or no video. */
-        video_pre_reset(gfxcard);
+        video_pre_reset(gfxcard[0]);
 
         /* Reset any ISA memory cards. */
         isamem_reset();
@@ -112,7 +112,7 @@ machine_init_ex(int m)
     if (bios_only || !ret)
         return ret;
 
-    if (gfxcard != VID_NONE) {
+    if (gfxcard[0] != VID_NONE) {
         if (ibm8514_enabled) {
             ibm8514_device_add();
         }
@@ -122,7 +122,7 @@ machine_init_ex(int m)
 
     /* Reset the graphics card (or do nothing if it was already done
        by the machine's init function). */
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
 
     return ret;
 }
@@ -138,7 +138,7 @@ int
 machine_available(int m)
 {
     int       ret;
-    device_t *d = (device_t *) machine_getdevice(m);
+    device_t *d = (device_t *) machine_get_device(m);
 
     bios_only = 1;
 

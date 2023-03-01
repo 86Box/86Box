@@ -1,17 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the ALi M5123/1543C Super I/O Chip.
+ *          Implementation of the ALi M5123/1543C Super I/O Chip.
  *
  *
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2018 Miran Grca.
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -65,7 +66,7 @@ static void
 ali5123_fdc_handler(ali5123_t *dev)
 {
     uint16_t ld_port       = 0;
-    uint8_t  global_enable = !!(dev->regs[0x22] & (1 << 0));
+    uint8_t  global_enable = !(dev->regs[0x22] & (1 << 0));
     uint8_t  local_enable  = !!dev->ld_regs[0][0x30];
 
     fdc_remove(dev->fdc);
@@ -80,7 +81,7 @@ static void
 ali5123_lpt_handler(ali5123_t *dev)
 {
     uint16_t ld_port       = 0;
-    uint8_t  global_enable = !!(dev->regs[0x22] & (1 << 3));
+    uint8_t  global_enable = !(dev->regs[0x22] & (1 << 3));
     uint8_t  local_enable  = !!dev->ld_regs[3][0x30];
     uint8_t  lpt_irq       = dev->ld_regs[3][0x70];
 
@@ -99,9 +100,10 @@ ali5123_lpt_handler(ali5123_t *dev)
 static void
 ali5123_serial_handler(ali5123_t *dev, int uart)
 {
+    uint8_t  uart_nos[2][3]= { { 4, 5, 0xb }, { 4, 0xb, 5 } };
     uint16_t ld_port       = 0;
-    uint8_t  uart_no       = (uart == 2) ? 0x0b : (4 + uart);
-    uint8_t  global_enable = !!(dev->regs[0x22] & (1 << uart_no));
+    uint8_t  uart_no       = uart_nos[!!(dev->regs[0x2d] & 0x20)][uart];
+    uint8_t  global_enable = !(dev->regs[0x22] & (1 << (4 + uart)));
     uint8_t  local_enable  = !!dev->ld_regs[uart_no][0x30];
     uint8_t  mask          = (uart == 1) ? 0x04 : 0x05;
 
@@ -206,8 +208,7 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
 {
     ali5123_t *dev    = (ali5123_t *) priv;
     uint8_t    index  = (port & 1) ? 0 : 1;
-    uint8_t    valxor = 0x00, keep = 0x00;
-    uint8_t    cur_ld;
+    uint8_t    valxor = 0x00, cur_ld = dev->regs[7];
 
     if (index) {
         if (((val == 0x51) && (!dev->tries) && (!dev->locked)) || ((val == 0x23) && (dev->tries) && (!dev->locked))) {
@@ -235,27 +236,25 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
         if (dev->locked) {
             if (dev->cur_reg < 48) {
                 valxor = val ^ dev->regs[dev->cur_reg];
-                if ((val == 0x1f) || (val == 0x20) || (val == 0x21))
+                if ((val >= 0x1f) && (val <= 0x21))
                     return;
                 dev->regs[dev->cur_reg] = val;
             } else {
-                valxor = val ^ dev->ld_regs[dev->regs[7]][dev->cur_reg];
-                if (((dev->cur_reg & 0xf0) == 0x70) && (dev->regs[7] < 4))
+                valxor = val ^ dev->ld_regs[cur_ld][dev->cur_reg];
+                if (((dev->cur_reg & 0xf0) == 0x70) && (cur_ld < 4))
                     return;
                 /* Block writes to some logical devices. */
-                if (dev->regs[7] > 0x0c)
+                if (cur_ld > 0x0c)
                     return;
                 else
-                    switch (dev->regs[7]) {
+                    switch (cur_ld) {
                         case 0x01:
                         case 0x02:
                         case 0x06:
-                        case 0x08:
-                        case 0x09:
-                        case 0x0a:
+                        case 0x08 ... 0x0a:
                             return;
                     }
-                dev->ld_regs[dev->regs[7]][dev->cur_reg] = val | keep;
+                dev->ld_regs[cur_ld][dev->cur_reg] = val;
             }
         } else
             return;
@@ -280,16 +279,18 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                 if (valxor & 0x40)
                     ali5123_serial_handler(dev, 2);
                 break;
+            case 0x2d:
+                if (valxor & 0x20) {
+                    ali5123_serial_handler(dev, 1);
+                    ali5123_serial_handler(dev, 2);
+                }
+                break;
         }
 
         return;
     }
 
     cur_ld = dev->regs[7];
-    if ((dev->regs[7] == 5) && (dev->regs[0x2d] & 0x20))
-        cur_ld = 0x0b;
-    else if ((dev->regs[7] == 0x0b) && (dev->regs[0x2d] & 0x20))
-        cur_ld = 5;
     switch (cur_ld) {
         case 0:
             /* FDD */
@@ -298,7 +299,7 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                 case 0x60:
                 case 0x61:
                     if ((dev->cur_reg == 0x30) && (val & 0x01))
-                        dev->regs[0x22] |= 0x01;
+                        dev->regs[0x22] &= ~0x01;
                     if (valxor)
                         ali5123_fdc_handler(dev);
                     break;
@@ -338,7 +339,7 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                 case 0x61:
                 case 0x70:
                     if ((dev->cur_reg == 0x30) && (val & 0x01))
-                        dev->regs[0x22] |= 0x08;
+                        dev->regs[0x22] &= ~0x08;
                     if (valxor)
                         ali5123_lpt_handler(dev);
                     break;
@@ -353,7 +354,7 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                 case 0x70:
                 case 0xf0:
                     if ((dev->cur_reg == 0x30) && (val & 0x01))
-                        dev->regs[0x22] |= 0x10;
+                        dev->regs[0x22] &= ~0x10;
                     if (valxor)
                         ali5123_serial_handler(dev, 0);
                     break;
@@ -368,9 +369,9 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                 case 0x70:
                 case 0xf0:
                     if ((dev->cur_reg == 0x30) && (val & 0x01))
-                        dev->regs[0x22] |= 0x20;
+                        dev->regs[0x22] &= ~((dev->regs[0x2d] & 0x20) ? 0x40 : 0x20);
                     if (valxor)
-                        ali5123_serial_handler(dev, 1);
+                        ali5123_serial_handler(dev, (dev->regs[0x2d] & 0x20) ? 2 : 1);
                     break;
             }
             break;
@@ -383,9 +384,9 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                 case 0x70:
                 case 0xf0:
                     if ((dev->cur_reg == 0x30) && (val & 0x01))
-                        dev->regs[0x22] |= 0x40;
+                        dev->regs[0x22] &= ~((dev->regs[0x2d] & 0x20) ? 0x20 : 0x40);
                     if (valxor)
-                        ali5123_serial_handler(dev, 2);
+                        ali5123_serial_handler(dev, (dev->regs[0x2d] & 0x20) ? 1 : 2);
                     break;
             }
             break;
@@ -410,12 +411,7 @@ ali5123_read(uint16_t port, void *priv)
                     ret = dev->regs[dev->cur_reg];
             } else {
                 cur_ld = dev->regs[7];
-                if ((dev->regs[7] == 5) && (dev->regs[0x2d] & 0x20))
-                    cur_ld = 0x0b;
-                else if ((dev->regs[7] == 0x0b) && (dev->regs[0x2d] & 0x20))
-                    cur_ld = 5;
-
-                ret = dev->ld_regs[cur_ld][dev->cur_reg];
+                ret    = dev->ld_regs[cur_ld][dev->cur_reg];
             }
         }
     }

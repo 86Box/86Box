@@ -1,35 +1,35 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		XT-IDE controller emulation.
+ *          XT-IDE controller emulation.
  *
- *		The XT-IDE project is intended to allow 8-bit ("XT") systems
- *		to use regular IDE drives. IDE is a standard based on the
- *		16b PC/AT design, and so a special board (with its own BIOS)
- *		had to be created for this.
+ *          The XT-IDE project is intended to allow 8-bit ("XT") systems
+ *          to use regular IDE drives. IDE is a standard based on the
+ *          16b PC/AT design, and so a special board (with its own BIOS)
+ *          had to be created for this.
  *
- *		XT-IDE is *NOT* the same as XTA, or X-IDE, which is an older
- *		standard where the actual MFM/RLL controller for the PC/XT
- *		was placed on the hard drive (hard drives where its drive
- *		type would end in "X" or "XT", such as the 8425XT.) This was
- *		more or less the original IDE, but since those systems were
- *		already on their way out, the newer IDE standard based on the
- *		PC/AT controller and 16b design became the IDE we now know.
+ *          XT-IDE is *NOT* the same as XTA, or X-IDE, which is an older
+ *          standard where the actual MFM/RLL controller for the PC/XT
+ *          was placed on the hard drive (hard drives where its drive
+ *          type would end in "X" or "XT", such as the 8425XT.) This was
+ *          more or less the original IDE, but since those systems were
+ *          already on their way out, the newer IDE standard based on the
+ *          PC/AT controller and 16b design became the IDE we now know.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -45,6 +45,7 @@
 #include <86box/hdc_ide.h>
 
 #define ROM_PATH_XT     "roms/hdd/xtide/ide_xt.bin"
+#define ROM_PATH_XTP    "roms/hdd/xtide/ide_xtp.bin"
 #define ROM_PATH_AT     "roms/hdd/xtide/ide_at.bin"
 #define ROM_PATH_PS2    "roms/hdd/xtide/SIDE1V12.BIN"
 #define ROM_PATH_PS2AT  "roms/hdd/xtide/ide_at_1_1_5.bin"
@@ -130,8 +131,13 @@ xtide_init(const device_t *info)
 
     memset(xtide, 0x00, sizeof(xtide_t));
 
-    rom_init(&xtide->bios_rom, ROM_PATH_XT,
-             0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+    if (info->local == 1) {
+        rom_init(&xtide->bios_rom, ROM_PATH_XTP,
+                 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+    } else {
+        rom_init(&xtide->bios_rom, ROM_PATH_XT,
+                 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+    }
 
     xtide->ide_board = ide_xtide_init();
 
@@ -146,6 +152,12 @@ static int
 xtide_available(void)
 {
     return (rom_present(ROM_PATH_XT));
+}
+
+static int
+xtide_plus_available(void)
+{
+    return (rom_present(ROM_PATH_XTP));
 }
 
 static void *
@@ -253,6 +265,20 @@ const device_t xtide_device = {
     .close         = xtide_close,
     .reset         = NULL,
     { .available = xtide_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t xtide_plus_device = {
+    .name          = "PC/XT XTIDE (V20/V30/8018x)",
+    .internal_name = "xtide_plus",
+    .flags         = DEVICE_ISA,
+    .local         = 1,
+    .init          = xtide_init,
+    .close         = xtide_close,
+    .reset         = NULL,
+    { .available = xtide_plus_available },
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL

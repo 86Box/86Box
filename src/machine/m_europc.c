@@ -1,83 +1,83 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Schneider EuroPC system.
+ *          Implementation of the Schneider EuroPC system.
  *
- * NOTES:	BIOS info (taken from MAME, thanks guys!!)
+ * NOTES:  BIOS info (taken from MAME, thanks guys!!)
  *
- *		f000:e107	bios checksum test
- *				memory test
- *		f000:e145	irq vector init
- *		f000:e156
- *		f000:e169-d774	test of special registers 254/354
- *		f000:e16c-e817
- *		f000:e16f
- *		f000:ec08	test of special registers 800a rtc time
- *				or date error, rtc corrected
- *		f000:ef66 0xf
- *		f000:db3e 0x8..0xc
- *		f000:d7f8
- *		f000:db5f
- *		f000:e172
- *		f000:ecc5	801a video setup error
- *		f000:d6c9	copyright output
- *		f000:e1b7
- *		f000:e1be	DI bits set mean output text!!!	(801a)
- *		f000:		0x8000 output
- *				  1 rtc error
- *				  2 rtc time or date error
- *				  4 checksum error in setup
- *				  8 rtc status corrected
- *			   	 10 video setup error
- *			  	 20 video ram bad
- *			 	 40 monitor type not recogniced
- *				 80 mouse port enabled
- *			 	100 joystick port enabled
- *		f000:e1e2-dc0c	CPU speed is 4.77 mhz
- *		f000:e1e5-f9c0	keyboard processor error
- *		f000:e1eb-c617	external lpt1 at 0x3bc
- *		f000:e1ee-e8ee	external coms at
+ *         f000:e107      bios checksum test
+ *                        memory test
+ *         f000:e145      irq vector init
+ *         f000:e156
+ *         f000:e169-d774 test of special registers 254/354
+ *         f000:e16c-e817
+ *         f000:e16f
+ *         f000:ec08      test of special registers 800a rtc time
+ *                        or date error, rtc corrected
+ *         f000:ef66 0xf
+ *         f000:db3e 0x8..0xc
+ *         f000:d7f8
+ *         f000:db5f
+ *         f000:e172
+ *         f000:ecc5      801a video setup error
+ *         f000:d6c9      copyright output
+ *         f000:e1b7
+ *         f000:e1be      DI bits set mean output text!!! (801a)
+ *         f000:          0x8000 output
+ *                             1 rtc error
+ *                             2 rtc time or date error
+ *                             4 checksum error in setup
+ *                             8 rtc status corrected
+ *                            10 video setup error
+ *                            20 video ram bad
+ *                            40 monitor type not recogniced
+ *                            80 mouse port enabled
+ *                           100 joystick port enabled
+ *         f000:e1e2-dc0c CPU speed is 4.77 mhz
+ *         f000:e1e5-f9c0 keyboard processor error
+ *         f000:e1eb-c617 external lpt1 at 0x3bc
+ *         f000:e1ee-e8ee external coms at
  *
- *		Routines:
- *		  f000:c92d	output text at bp
- *		  f000:db3e	RTC read reg cl
- *	  	  f000:e8ee	piep
- *		  f000:e95e	RTC write reg cl
- *				polls until JIM 0xa is zero,
- *				output cl at jim 0xa
- *				write ah hinibble as lownibble into jim 0xa
- *				write ah lownibble into jim 0xa
- *		  f000:ef66	RTC read reg cl
- *				polls until jim 0xa is zero,
- *				output cl at jim 0xa
- *				read low 4 nibble at jim 0xa
- *				read low 4 nibble at jim 0xa
- *				return first nibble<<4|second nibble in ah
- *		  f000:f046	seldom compares ret
- *		  f000:fe87	0 -> ds
+ *         Routines:
+ *           f000:c92d output text at bp
+ *           f000:db3e RTC read reg cl
+ *           f000:e8ee piep
+ *           f000:e95e RTC write reg cl
+ *                     polls until JIM 0xa is zero,
+ *                     output cl at jim 0xa
+ *                     write ah hinibble as lownibble into jim 0xa
+ *                     write ah lownibble into jim 0xa
+ *           f000:ef66 RTC read reg cl
+ *                     polls until jim 0xa is zero,
+ *                     output cl at jim 0xa
+ *                     read low 4 nibble at jim 0xa
+ *                     read low 4 nibble at jim 0xa
+ *                     return first nibble<<4|second nibble in ah
+ *           f000:f046 seldom compares ret
+ *           f000:fe87 0 -> ds
  *
- *		Memory:
- *		  0000:0469	bit 0: b0000 memory available
- *				bit 1: b8000 memory available
- *		  0000:046a:	00 jim 250 01 jim 350
+ *         Memory:
+ *          0000:0469 bit 0: b0000 memory available
+ *                    bit 1: b8000 memory available
+ *          0000:046a: 00 jim 250 01 jim 350
  *
- * WARNING	THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
+ * WARNING THIS IS A WORK-IN-PROGRESS MODULE. USE AT OWN RISK.
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Inspired by the "jim.c" file originally present, but a
- *		fully re-written module, based on the information from
- *		Schneider's schematics and technical manuals, and the
- *		input from people with real EuroPC hardware.
+ *          Inspired by the "jim.c" file originally present, but a
+ *          fully re-written module, based on the information from
+ *          Schneider's schematics and technical manuals, and the
+ *          input from people with real EuroPC hardware.
  *
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -293,50 +293,50 @@ rtc_reset(nvr_t *nvr)
     /*
      * EuroPC System Configuration:
      *
-     * [A]	unknown
+     * [A]  unknown
      *
-     * [B]	7	1  bootdrive extern
-     *			0  bootdribe intern
-     *		6:5	11 invalid hard disk type
-     *			10 hard disk installed, type 2
-     *			01 hard disk installed, type 1
-     *			00 hard disk not installed
-     *		4:3	11 invalid external drive type
-     *			10 external drive 720K
-     *			01 external drive 360K
-     *			00 external drive disabled
-     *		2	unknown
-     *		1:0	11 invalid internal drive type
-     *			10 internal drive 360K
-     *			01 internal drive 720K
-     *			00 internal drive disabled
+     * [B]  7   1  bootdrive extern
+     *          0  bootdrive intern
+     *      6:5 11 invalid hard disk type
+     *          10 hard disk installed, type 2
+     *          01 hard disk installed, type 1
+     *          00 hard disk not installed
+     *      4:3 11 invalid external drive type
+     *          10 external drive 720K
+     *          01 external drive 360K
+     *          00 external drive disabled
+     *      2   unknown
+     *      1:0 11 invalid internal drive type
+     *          10 internal drive 360K
+     *          01 internal drive 720K
+     *          00 internal drive disabled
      *
-     *	 [C]	7:6	unknown
-     *		5	monitor detection OFF
-     *		4	unknown
-     *		3:2	11 illegal memory size
-     *			10 512K
-     *			01 256K
-     *			00 640K
-     *		1:0	11 illegal game port
-     *			10 gameport as mouse port
-     *			01 gameport as joysticks
-     *			00 gameport disabled
+     * [C]  7:6 unknown
+     *      5   monitor detection OFF
+     *      4   unknown
+     *      3:2 11 illegal memory size
+     *          10 512K
+     *          01 256K
+     *          00 640K
+     *      1:0 11 illegal game port
+     *          10 gameport as mouse port
+     *          01 gameport as joysticks
+     *          00 gameport disabled
      *
-     * [D]	7:6	10 9MHz CPU speed
-     *			01 7MHz CPU speed
-     *			00 4.77 MHz CPU
-     *		5	unknown
-     *		4	external: color, internal: mono
-     *		3	unknown
-     *		2	internal video ON
-     *		1:0	11 mono
-     *			10 color80
-     *			01 color40
-     *			00 special (EGA,VGA etc)
+     * [D]  7:6 10 9MHz CPU speed
+     *          01 7MHz CPU speed
+     *          00 4.77 MHz CPU
+     *      5   unknown
+     *      4   external: color, internal: mono
+     *      3   unknown
+     *      2   internal video ON
+     *      1:0 11 mono
+     *          10 color80
+     *          01 color40
+     *          00 special (EGA,VGA etc)
      *
-     * [E]	7:4	unknown
-     *		3:0	country	(00=Deutschland, 0A=ASCII)
+     * [E]  7:4 unknown
+     *      3:0 country (00=Deutschland, 0A=ASCII)
      */
     nvr->regs[MRTC_CONF_A] = 0x00; /* CONFIG A */
     nvr->regs[MRTC_CONF_B] = 0x0A; /* CONFIG B */
@@ -400,15 +400,15 @@ jim_set(europc_t *sys, uint8_t reg, uint8_t val)
         case 4: /* CPU Speed control */
             switch (val & 0xc0) {
                 case 0x00: /* 4.77 MHz */
-                           //				cpu_set_clockscale(0, 1.0/2);
+                           // cpu_set_clockscale(0, 1.0/2);
                     break;
 
                 case 0x40: /* 7.16 MHz */
-                           //				cpu_set_clockscale(0, 3.0/4);
+                           // cpu_set_clockscale(0, 3.0/4);
                     break;
 
                 default: /* 9.54 MHz */
-                         //				cpu_set_clockscale(0, 1);break;
+                         // cpu_set_clockscale(0, 1);break;
                     break;
             }
             break;
@@ -549,7 +549,7 @@ europc_boot(const device_t *info)
      * with values set by the user.
      */
     b = (sys->nvr.regs[MRTC_CONF_D] & ~0x17);
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
     if (video_is_cga())
         b |= 0x12; /* external video, CGA80 */
     else if (video_is_mda())

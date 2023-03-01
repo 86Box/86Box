@@ -10,13 +10,12 @@ extern "C" {
 }
 class QMenu;
 
-class MediaMenu : QObject
-{
+class MediaMenu : QObject {
     Q_OBJECT
 public:
-    MediaMenu(QWidget* parent);
+    MediaMenu(QWidget *parent);
 
-    void refresh(QMenu* parentMenu);
+    void refresh(QMenu *parentMenu);
 
     // because some 86box C-only code needs to call zip and
     // mo eject directly
@@ -24,18 +23,18 @@ public:
 
     void cassetteNewImage();
     void cassetteSelectImage(bool wp);
-    void cassetteMount(const QString& filename, bool wp);
+    void cassetteMount(const QString &filename, bool wp);
     void cassetteEject();
     void cassetteUpdateMenu();
 
     void cartridgeSelectImage(int i);
-    void cartridgeMount(int i, const QString& filename);
+    void cartridgeMount(int i, const QString &filename);
     void cartridgeEject(int i);
     void cartridgeUpdateMenu(int i);
 
     void floppyNewImage(int i);
     void floppySelectImage(int i, bool wp);
-    void floppyMount(int i, const QString& filename, bool wp);
+    void floppyMount(int i, const QString &filename, bool wp);
     void floppyEject(int i);
     void floppyMenuSelect(int index, int slot);
     void floppyExportTo86f(int i);
@@ -43,7 +42,7 @@ public:
 
     void cdromMute(int i);
     void cdromMount(int i, int dir);
-    void cdromMount(int i, const QString& filename);
+    void cdromMount(int i, const QString &filename);
     void cdromEject(int i);
     void cdromReload(int index, int slot);
     void updateImageHistory(int index, int slot, ui::MediaType type);
@@ -52,14 +51,14 @@ public:
 
     void zipNewImage(int i);
     void zipSelectImage(int i, bool wp);
-    void zipMount(int i, const QString& filename, bool wp);
+    void zipMount(int i, const QString &filename, bool wp);
     void zipEject(int i);
     void zipReload(int i);
     void zipUpdateMenu(int i);
 
     void moNewImage(int i);
     void moSelectImage(int i, bool wp);
-    void moMount(int i, const QString& filename, bool wp);
+    void moMount(int i, const QString &filename, bool wp);
     void moEject(int i);
     void moReload(int i);
     void moUpdateMenu(int i);
@@ -67,18 +66,19 @@ public:
     void nicConnect(int i);
     void nicDisconnect(int i);
     void nicUpdateMenu(int i);
+
 private:
-    QWidget* parentWidget = nullptr;
+    QWidget *parentWidget = nullptr;
 
-    QMenu* cassetteMenu = nullptr;
-    QMap<int, QMenu*> cartridgeMenus;
-    QMap<int, QMenu*> floppyMenus;
-    QMap<int, QMenu*> cdromMenus;
-    QMap<int, QMenu*> zipMenus;
-    QMap<int, QMenu*> moMenus;
-    QMap<int, QMenu*> netMenus;
+    QMenu             *cassetteMenu = nullptr;
+    QMap<int, QMenu *> cartridgeMenus;
+    QMap<int, QMenu *> floppyMenus;
+    QMap<int, QMenu *> cdromMenus;
+    QMap<int, QMenu *> zipMenus;
+    QMap<int, QMenu *> moMenus;
+    QMap<int, QMenu *> netMenus;
 
-    QString getMediaOpenDirectory();
+    QString                 getMediaOpenDirectory();
     ui::MediaHistoryManager mhm;
 
     int cassetteRecordPos;

@@ -1,24 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the NCR NGA (K511, K201) video cards.
+ *          Emulation of the NCR NGA (K511, K201) video cards.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		EngiNerd, <webmaster.crrc@yahoo.it>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          EngiNerd, <webmaster.crrc@yahoo.it>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2020 EngiNerd.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2020      EngiNerd.
  */
 
 #include <stdio.h>
@@ -347,6 +347,14 @@ nga_poll(void *priv)
                 }
             }
 
+            if ((nga->cga.cgamode & 1))
+                /* set screen width */
+                x = (nga->cga.crtc[1] << 3) + 16;
+            else
+                x = (nga->cga.crtc[1] << 4) + 16;
+
+            video_process_8(x, nga->cga.displine);
+
             nga->cga.sc = oldsc;
             /* vertical sync */
             if (nga->cga.vc == nga->cga.crtc[7] && !nga->cga.sc)
@@ -465,19 +473,11 @@ nga_poll(void *priv)
                                 }
                                 /* nga specific */
                                 if (enable_overscan) {
-                                    if (nga->cga.composite)
-                                        video_blit_memtoscreen(0, (nga->cga.firstline - 8),
-                                                               xsize, (nga->cga.lastline - nga->cga.firstline) + 16);
-                                    else
-                                        video_blit_memtoscreen_8(0, (nga->cga.firstline - 8),
-                                                                 xsize, (nga->cga.lastline - nga->cga.firstline) + 16);
+                                    video_blit_memtoscreen(0, (nga->cga.firstline - 8),
+                                                           xsize, (nga->cga.lastline - nga->cga.firstline) + 16);
                                 } else {
-                                    if (nga->cga.composite)
-                                        video_blit_memtoscreen(8, nga->cga.firstline,
-                                                               xsize, (nga->cga.lastline - nga->cga.firstline));
-                                    else
-                                        video_blit_memtoscreen_8(8, nga->cga.firstline,
-                                                                 xsize, (nga->cga.lastline - nga->cga.firstline));
+                                    video_blit_memtoscreen(8, nga->cga.firstline,
+                                                           xsize, (nga->cga.lastline - nga->cga.firstline));
                                 }
                             }
                             frames++;
@@ -677,7 +677,7 @@ const device_config_t nga_config[] = {
     {
         .type = CONFIG_END
     }
-// clang-format on
+  // clang-format on
 };
 
 const device_t nga_device = {

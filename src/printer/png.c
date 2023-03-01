@@ -1,36 +1,34 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * VARCem   Virtual ARchaeological Computer EMulator.
+ *          An emulator of (mostly) x86-based PC systems and devices,
+ *          using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *          spanning the era between 1981 and 1995.
  *
- *		This file is part of the VARCem Project.
- *
- *		Provide centralized access to the PNG image handler.
+ *          Provide centralized access to the PNG image handler.
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2018 Fred N. van Kempen.
+ *          Copyright 2018 Fred N. van Kempen.
  *
- *		Redistribution and  use  in source  and binary forms, with
- *		or  without modification, are permitted  provided that the
- *		following conditions are met:
+ *          Redistribution and  use  in source  and binary forms, with
+ *          or  without modification, are permitted  provided that the
+ *          following conditions are met:
  *
- *		1. Redistributions of  source  code must retain the entire
- *		   above notice, this list of conditions and the following
- *		   disclaimer.
+ *          1. Redistributions of  source  code must retain the entire
+ *             above notice, this list of conditions and the following
+ *             disclaimer.
  *
- *		2. Redistributions in binary form must reproduce the above
- *		   copyright  notice,  this list  of  conditions  and  the
- *		   following disclaimer in  the documentation and/or other
- *		   materials provided with the distribution.
+ *          2. Redistributions in binary form must reproduce the above
+ *             copyright  notice,  this list  of  conditions  and  the
+ *             following disclaimer in  the documentation and/or other
+ *             materials provided with the distribution.
  *
- *		3. Neither the  name of the copyright holder nor the names
- *		   of  its  contributors may be used to endorse or promote
- *		   products  derived from  this  software without specific
- *		   prior written permission.
+ *          3. Neither the  name of the copyright holder nor the names
+ *             of  its  contributors may be used to endorse or promote
+ *             products  derived from  this  software without specific
+ *             prior written permission.
  *
  * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
  * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
@@ -44,6 +42,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -52,6 +51,7 @@
 #include <errno.h>
 #define PNG_DEBUG 0
 #include <png.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
@@ -73,15 +73,15 @@
 
 #define PNGFUNC(x) png_##x
 
-#ifdef ENABLE_ESCP_LOG
-int png_do_log = ENABLE_ESCP_LOG;
+#ifdef ENABLE_PNG_LOG
+int png_do_log = ENABLE_PNG_LOG;
 
 static void
 png_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (escp_do_log) {
+    if (png_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
@@ -124,7 +124,7 @@ error:
             png_log("PNG: fatal error, bailing out, error = %i\n", errno);
         if (png != NULL)
             PNGFUNC(destroy_write_struct)
-            (&png, &info);
+        (&png, &info);
         if (fp != NULL)
             (void) fclose(fp);
         return (0);
@@ -206,7 +206,7 @@ png_write_rgb(char *fn, uint8_t *pix, int16_t w, int16_t h, uint16_t pitch, PALE
 error:
         if (png != NULL)
             PNGFUNC(destroy_write_struct)
-            (&png, &info);
+        (&png, &info);
         if (fp != NULL)
             (void) fclose(fp);
         return;

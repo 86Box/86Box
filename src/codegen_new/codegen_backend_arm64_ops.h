@@ -251,13 +251,11 @@ void host_arm64_call(codeblock_t *block, void *dst_addr);
 void host_arm64_jump(codeblock_t *block, uintptr_t dst_addr);
 void host_arm64_mov_imm(codeblock_t *block, int reg, uint32_t imm_data);
 
-
-#define in_range7_x(offset) (((offset) >= -0x200) && ((offset) < (0x200)) && !((offset) & 7))
+#define in_range7_x(offset)  (((offset) >= -0x200) && ((offset) < (0x200)) && !((offset) &7))
 #define in_range12_b(offset) (((offset) >= 0) && ((offset) < 0x1000))
-#define in_range12_h(offset) (((offset) >= 0) && ((offset) < 0x2000) && !((offset) & 1))
-#define in_range12_w(offset) (((offset) >= 0) && ((offset) < 0x4000) && !((offset) & 3))
-#define in_range12_q(offset) (((offset) >= 0) && ((offset) < 0x8000) && !((offset) & 7))
-
+#define in_range12_h(offset) (((offset) >= 0) && ((offset) < 0x2000) && !((offset) &1))
+#define in_range12_w(offset) (((offset) >= 0) && ((offset) < 0x4000) && !((offset) &3))
+#define in_range12_q(offset) (((offset) >= 0) && ((offset) < 0x8000) && !((offset) &7))
 
 void codegen_direct_read_8(codeblock_t *block, int host_reg, void *p);
 

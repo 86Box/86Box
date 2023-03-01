@@ -76,6 +76,24 @@ msgstr "1.5x(&5)"
 msgid "&2x"
 msgstr "2x(&2)"
 
+msgid "&3x"
+msgstr "3x(&3)"
+
+msgid "&4x"
+msgstr "4x(&4)"
+
+msgid "&5x"
+msgstr "5x(&5)"
+
+msgid "&6x"
+msgstr "6x(&6)"
+
+msgid "&7x"
+msgstr "7x(&7)"
+
+msgid "&8x"
+msgstr "8x(&8)"
+
 msgid "Filter method"
 msgstr "フィルター方式"
 
@@ -226,11 +244,8 @@ msgstr "空(&M)"
 msgid "&Reload previous image"
 msgstr "前のイメージを再読み込み(&R)"
 
-msgid "&Image"
-msgstr "イメージ(&I)"
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "フォルダ(&F)..."
 
 msgid "Target &framerate"
 msgstr "目標フレームレート(&F)"
@@ -367,6 +382,12 @@ msgstr "ビデオカード:"
 msgid "Voodoo Graphics"
 msgstr "Voodooグラフィック"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/aグラフィック"
+
+msgid "XGA Graphics"
+msgstr "XGAグラフィック"
+
 msgid "Mouse:"
 msgstr "マウス:"
 
@@ -385,8 +406,17 @@ msgstr "ジョイスティック3..."
 msgid "Joystick 4..."
 msgstr "ジョイスティック4..."
 
-msgid "Sound card:"
-msgstr "サウンドカード:"
+msgid "Sound card 1:"
+msgstr "サウンドカード 1:"
+
+msgid "Sound card 2:"
+msgstr "サウンドカード 2:"
+
+msgid "Sound card 3:"
+msgstr "サウンドカード 3:"
+
+msgid "Sound card 4:"
+msgstr "サウンドカード 4:"
 
 msgid "MIDI Out Device:"
 msgstr "MIDI出力デバイス:"
@@ -397,17 +427,17 @@ msgstr "MIDI入力デバイス:"
 msgid "Standalone MPU-401"
 msgstr "独立型MPU-401"
 
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
-
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32サウンドを使用する"
+
+msgid "FM synth driver"
+msgstr "FMシンセドライバー"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (高精度化)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (より速く)"
 
 msgid "Network type:"
 msgstr "ネットワークタイプ:"
@@ -552,6 +582,9 @@ msgstr "BPBをチェック"
 
 msgid "CD-ROM drives:"
 msgstr "CD-ROMドライブ:"
+
+msgid "Earlier drive"
+msgstr "アーリードライブ"
 
 msgid "MO drives:"
 msgstr "光磁気ドライブ:"

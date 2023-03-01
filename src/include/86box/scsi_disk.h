@@ -1,15 +1,16 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		Emulation of SCSI fixed and removable disks.
+ *          Emulation of SCSI fixed and removable disks.
  *
  *
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2017,2018 Miran Grca.
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2017-2018 Miran Grca.
  */
 
 #ifndef SCSI_DISK_H

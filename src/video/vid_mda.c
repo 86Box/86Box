@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		MDA emulation.
+ *          MDA emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -163,6 +163,8 @@ mda_poll(void *p)
                         buffer32->line[mda->displine][(x * 9) + c] ^= mdacols[attr][0][1];
                 }
             }
+
+            video_process_8(mda->crtc[1] * 9, mda->displine);
         }
         mda->sc = oldsc;
         if (mda->vc == mda->crtc[7] && !mda->sc) {
@@ -235,7 +237,7 @@ mda_poll(void *p)
                         if (video_force_resize_get())
                             video_force_resize_set(0);
                     }
-                    video_blit_memtoscreen_8(0, mda->firstline, xsize, ysize);
+                    video_blit_memtoscreen(0, mda->firstline, xsize, ysize);
                     frames++;
                     video_res_x = mda->crtc[1];
                     video_res_y = mda->crtc[6];
@@ -368,7 +370,7 @@ static const device_config_t mda_config[] = {
     {
         .type = CONFIG_END
     }
-// clang-format on
+  // clang-format on
 };
 
 const device_t mda_device = {

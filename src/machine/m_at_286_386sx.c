@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of 286 and 386SX machines.
+ *          Implementation of 286 and 386SX machines.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		EngiNerd <webmaster.crrc@yahoo.it>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          EngiNerd <webmaster.crrc@yahoo.it>
  *
- *		Copyright 2010-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2020 EngiNerd.
+ *          Copyright 2010-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2020 EngiNerd.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -37,6 +37,7 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/hdc.h>
+#include <86box/nvr.h>
 #include <86box/port_6x.h>
 #include <86box/sio.h>
 #include <86box/serial.h>
@@ -113,7 +114,7 @@ machine_at_ama932j_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&oti067_ama932j_device);
 
     machine_at_headland_common_init(2);
@@ -254,10 +255,21 @@ machine_at_micronics386_init(const machine_t *model)
 }
 
 static void
-machine_at_scat_init(const machine_t *model, int is_v4)
+machine_at_scat_init(const machine_t *model, int is_v4, int is_ami)
 {
     machine_at_common_init(model);
-    device_add(&keyboard_at_ami_device);
+
+    if (machines[machine].bus_flags & MACHINE_BUS_PS2) {
+        if (is_ami)
+            device_add(&keyboard_ps2_ami_device);
+        else
+            device_add(&keyboard_ps2_device);
+    } else {
+        if (is_ami)
+            device_add(&keyboard_at_ami_device);
+        else
+            device_add(&keyboard_at_device);
+    }
 
     if (is_v4)
         device_add(&scat_4_device);
@@ -289,7 +301,7 @@ machine_at_award286_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_scat_init(model, 0);
+    machine_at_scat_init(model, 0, 1);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -308,7 +320,7 @@ machine_at_gdc212m_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_scat_init(model, 0);
+    machine_at_scat_init(model, 0, 1);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -331,10 +343,7 @@ machine_at_gw286ct_init(const machine_t *model)
 
     device_add(&f82c710_device);
 
-    machine_at_common_init(model);
-    device_add(&keyboard_at_device);
-
-    device_add(&scat_4_device);
+    machine_at_scat_init(model, 1, 0);
 
     device_add(&ide_isa_device);
 
@@ -352,7 +361,7 @@ machine_at_super286tr_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_scat_init(model, 0);
+    machine_at_scat_init(model, 0, 1);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -371,7 +380,7 @@ machine_at_spc4200p_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_scat_init(model, 0);
+    machine_at_scat_init(model, 0, 1);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -391,7 +400,7 @@ machine_at_spc4216p_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_scat_init(model, 1);
+    machine_at_scat_init(model, 1, 1);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -411,10 +420,10 @@ machine_at_spc4620p_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&ati28800k_spc4620p_device);
 
-    machine_at_scat_init(model, 1);
+    machine_at_scat_init(model, 1, 1);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -449,7 +458,7 @@ machine_at_deskmaster286_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_scat_init(model, 0);
+    machine_at_scat_init(model, 0, 1);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -492,7 +501,8 @@ machine_at_adi386sx_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    device_add(&amstrad_megapc_nvr_device); /* NVR that is initialized to all 0x00's. */
 
     device_add(&intel_82335_device);
     device_add(&keyboard_at_ami_device);
@@ -517,7 +527,7 @@ machine_at_wd76c10_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&paradise_wd90c11_megapc_device);
 
     device_add(&keyboard_ps2_quadtel_device);
@@ -581,7 +591,7 @@ machine_at_cmdsl386sx25_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5402_onboard_device);
 
     machine_at_scamp_common_init(model, 1);
@@ -616,7 +626,7 @@ machine_at_spc6033p_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&ati28800k_spc6033p_device);
 
     machine_at_scamp_common_init(model, 1);
@@ -701,7 +711,7 @@ machine_at_flytech386_init(const machine_t *model)
     device_add(&ali1217_device);
     device_add(&w83787f_ide_en_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&tvga8900d_device);
 
     device_add(&keyboard_ps2_device);
@@ -720,11 +730,10 @@ machine_at_mr1217_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_ide_init(model);
 
     device_add(&ali1217_device);
     device_add(&fdc_at_device);
-    device_add(&ide_isa_device);
     device_add(&keyboard_ps2_device);
 
     return ret;
@@ -824,7 +833,7 @@ machine_at_3302_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&paradise_pvga1a_ncr3302_device);
 
     device_add(&keyboard_at_ncr_device);

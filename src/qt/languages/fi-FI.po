@@ -76,6 +76,24 @@ msgstr "1.&5x"
 msgid "&2x"
 msgstr "&2x"
 
+msgid "&3x"
+msgstr "&3x"
+
+msgid "&4x"
+msgstr "&4x"
+
+msgid "&5x"
+msgstr "&5x"
+
+msgid "&6x"
+msgstr "&6x"
+
+msgid "&7x"
+msgstr "&7x"
+
+msgid "&8x"
+msgstr "&8x"
+
 msgid "Filter method"
 msgstr "&Suodatusmetodi"
 
@@ -110,7 +128,7 @@ msgid "E&GA/(S)VGA settings"
 msgstr "&EGA/(S)VGA-asetukset"
 
 msgid "&Inverted VGA monitor"
-msgstr "&VGA näyttö käänteisillä väreillä"
+msgstr "&VGA-näyttö käänteisillä väreillä"
 
 msgid "VGA screen &type"
 msgstr "VGA-näytön &tyyppi"
@@ -143,7 +161,7 @@ msgid "&Average"
 msgstr "&Keskiarvo"
 
 msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA-&yliskannaus"
+msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA &yliskannaus"
 
 msgid "Change contrast for &monochrome display"
 msgstr "&Muuta harmaavärinäytön kontrastia"
@@ -188,13 +206,13 @@ msgid "&About 86Box..."
 msgstr "&Tietoja 86Boxista..."
 
 msgid "&New image..."
-msgstr "&Uusi levykuva..."
+msgstr "&Uusi kasettikuva..."
 
 msgid "&Existing image..."
-msgstr "&Olemassaoleva levykuva..."
+msgstr "&Olemassaoleva kasettikuva..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "Olemassaoleva levykuva (&kirjoitussuojattu)..."
+msgstr "Olemassaoleva kasettikuva (&kirjoitussuojattu)..."
 
 msgid "&Record"
 msgstr "&Nauhoita"
@@ -209,7 +227,7 @@ msgid "&Fast forward to the end"
 msgstr "Kelaa &loppuun"
 
 msgid "E&ject"
-msgstr "&Poista asemasta"
+msgstr "&Poista kasettipesästä"
 
 msgid "&Image..."
 msgstr "&ROM-moduulikuva..."
@@ -226,11 +244,8 @@ msgstr "&Tyhjä"
 msgid "&Reload previous image"
 msgstr "&Lataa edellinen levykuva uudelleen"
 
-msgid "&Image"
-msgstr "L&evykuva"
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "&Kansio..."
 
 msgid "Target &framerate"
 msgstr "&Kuvataajuustavoite"
@@ -367,6 +382,12 @@ msgstr "Näytönohjain:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo-grafiikkasuoritin"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a-grafiikkasuoritin"
+
+msgid "XGA Graphics"
+msgstr "XGA-grafiikkasuoritin"
+
 msgid "Mouse:"
 msgstr "Hiiri:"
 
@@ -385,8 +406,17 @@ msgstr "Peliohjain 3..."
 msgid "Joystick 4..."
 msgstr "Peliohjain 4..."
 
-msgid "Sound card:"
-msgstr "Äänikortti:"
+msgid "Sound card 1:"
+msgstr "Äänikortti 1:"
+
+msgid "Sound card 2:"
+msgstr "Äänikortti 2:"
+
+msgid "Sound card 3:"
+msgstr "Äänikortti 3:"
+
+msgid "Sound card 4:"
+msgstr "Äänikortti 4:"
 
 msgid "MIDI Out Device:"
 msgstr "MIDI-ulostulo:"
@@ -397,17 +427,17 @@ msgstr "MIDI-sisääntulo:"
 msgid "Standalone MPU-401"
 msgstr "Erillinen MPU-401"
 
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
-
 msgid "Use FLOAT32 sound"
 msgstr "Käytä FLOAT32-ääntä"
+
+msgid "FM synth driver"
+msgstr "FM-syntetisaattoriohjain"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (tarkempi)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (nopeampi)"
 
 msgid "Network type:"
 msgstr "Verkon tyyppi:"
@@ -552,6 +582,9 @@ msgstr "Tarkista BPB"
 
 msgid "CD-ROM drives:"
 msgstr "CD-ROM-asemat:"
+
+msgid "Earlier drive"
+msgstr "Aiemmat asemat"
 
 msgid "MO drives:"
 msgstr "Magneettisoptiset asemat (MO):"
@@ -1172,16 +1205,16 @@ msgid "5.25\" 1.3 GB"
 msgstr "5.25\" 1.3 Gt"
 
 msgid "Perfect RPM"
-msgstr "Täydellinen kierrosluku"
+msgstr "Täydellinen RPM"
 
 msgid "1% below perfect RPM"
-msgstr "1% alle täydellisen kierrosluvun"
+msgstr "1% alle täydellisen RPM:n"
 
 msgid "1.5% below perfect RPM"
-msgstr "1.5% alle täydellisen kierrosluvun"
+msgstr "1.5% alle täydellisen RPM:n"
 
 msgid "2% below perfect RPM"
-msgstr "2% alle täydellisen kierrosluvun"
+msgstr "2% alle täydellisen RPM:n"
 
 msgid "(System Default)"
 msgstr "(Järjestelmän oletus)"

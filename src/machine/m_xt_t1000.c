@@ -1,65 +1,65 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Toshiba T1000 and T1200 portables.
+ *          Implementation of the Toshiba T1000 and T1200 portables.
  *
- *		The T1000 is the T3100e's little brother -- a real laptop
- *		with a rechargeable battery.
+ *          The T1000 is the T3100e's little brother -- a real laptop
+ *          with a rechargeable battery.
  *
- *		Features: 80C88 at 4.77MHz
- *		- 512k system RAM
- *		- 640x200 monochrome LCD
- *		- 82-key keyboard
- *		- Real-time clock. Not the normal 146818, but a TC8521,
- *		   which is a 4-bit chip.
- *		- A ROM drive (128k, 256k or 512k) which acts as a mini
- *		  hard drive and contains a copy of DOS 2.11.
- *		- 160 bytes of non-volatile RAM for the CONFIG.SYS used
- *		  when booting from the ROM drive. Possibly physically
- *		  located in the keyboard controller RAM.
+ *          Features: 80C88 at 4.77MHz
+ *          - 512k system RAM
+ *          - 640x200 monochrome LCD
+ *          - 82-key keyboard
+ *          - Real-time clock. Not the normal 146818, but a TC8521,
+ *             which is a 4-bit chip.
+ *          - A ROM drive (128k, 256k or 512k) which acts as a mini
+ *            hard drive and contains a copy of DOS 2.11.
+ *          - 160 bytes of non-volatile RAM for the CONFIG.SYS used
+ *            when booting from the ROM drive. Possibly physically
+ *            located in the keyboard controller RAM.
  *
- *		An optional memory expansion board can be fitted. This adds
- *		768k of RAM, which can be used for up to three purposes:
- *		> Conventional memory -- 128k between 512k and 640k
- *		> HardRAM -- a battery-backed RAM drive.
- *		> EMS
+ *          An optional memory expansion board can be fitted. This adds
+ *          768k of RAM, which can be used for up to three purposes:
+ *          > Conventional memory -- 128k between 512k and 640k
+ *          > HardRAM -- a battery-backed RAM drive.
+ *          > EMS
  *
- *		This means that there are up to three different
- *		implementations of non-volatile RAM in the same computer
- *		(52 nibbles in the TC8521, 160 bytes of CONFIG.SYS, and
- *		up to 768k of HardRAM).
+ *          This means that there are up to three different
+ *          implementations of non-volatile RAM in the same computer
+ *          (52 nibbles in the TC8521, 160 bytes of CONFIG.SYS, and
+ *          up to 768k of HardRAM).
  *
- *		The T1200 is a slightly upgraded version with a turbo mode
- *		(double CPU clock, 9.54MHz) and an optional hard drive.
- *		The interface for this is proprietary both at the physical
- *		and programming level.
+ *          The T1200 is a slightly upgraded version with a turbo mode
+ *          (double CPU clock, 9.54MHz) and an optional hard drive.
+ *          The interface for this is proprietary both at the physical
+ *          and programming level.
  *
- *		01F2h: If hard drive is present, low 4 bits are 0Ch [20Mb]
- *			or 0Dh [10Mb].
+ *          01F2h: If hard drive is present, low 4 bits are 0Ch [20Mb]
+ *          or 0Dh [10Mb].
  *
- *		The hard drive is a 20MB (615/2/26) RLL 3.5" drive.
+ *          The hard drive is a 20MB (615/2/26) RLL 3.5" drive.
  *
- *		The TC8521 is a 4-bit RTC, so each memory location can only
- *		hold a single BCD digit. Hence everything has 'ones' and
- *		'tens' digits.
+ *          The TC8521 is a 4-bit RTC, so each memory location can only
+ *          hold a single BCD digit. Hence everything has 'ones' and
+ *          'tens' digits.
  *
- * NOTE:	Still need to figure out a way to load/save ConfigSys and
- *		HardRAM stuff. Needs to be linked in to the NVR code.
+ * NOTE:    Still need to figure out a way to load/save ConfigSys and
+ *          HardRAM stuff. Needs to be linked in to the NVR code.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
- *		Copyright 2018,2019 Fred N. van Kempen.
- *		Copyright 2018,2019 Miran Grca.
- *		Copyright 2018,2019 Sarah Walker.
+ *          Copyright 2018-2019 Fred N. van Kempen.
+ *          Copyright 2018-2019 Miran Grca.
+ *          Copyright 2018-2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -103,6 +103,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/gameport.h>
+#include <86box/hdc.h>
 #include <86box/video.h>
 #include <86box/plat.h>
 #include <86box/machine.h>
@@ -686,8 +687,8 @@ t1000_read_nvram(uint16_t addr, void *priv)
             tmp = fdc_read(0x03f7, t1000.fdc);
 
             tmp = (tmp & 0x80) >> 3;              /* Bit 4 is changeline */
-            tmp |= (sys->nvr_active & 0xc0);      /* Bits 6,7 are r/w mode */
-            tmp |= 0x2e;                          /* Bits 5,3,2,1 always 1 */
+            tmp |= (sys->nvr_active & 0xc0);      /* Bits 6, 7 are r/w mode */
+            tmp |= 0x2e;                          /* Bits 5, 3, 2, 1 always 1 */
             tmp |= (sys->nvr_active & 0x40) >> 6; /* Ready state */
             break;
     }
@@ -887,7 +888,7 @@ machine_xt_t1000_init(const machine_t *model)
     machine_common_init(model);
 
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
-    device_add(&keyboard_xt_device);
+    device_add(&keyboard_xt_t1x00_device);
     t1000.fdc = device_add(&fdc_xt_device);
     nmi_init();
 
@@ -896,7 +897,7 @@ machine_xt_t1000_init(const machine_t *model)
     t1000_nvr_load();
     nvr_set_ven_save(t1000_nvr_save);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&t1000_video_device);
 
     return ret;
@@ -947,7 +948,7 @@ machine_xt_t1200_init(const machine_t *model)
                     NULL, MEM_MAPPING_EXTERNAL, &t1000);
 
     pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_xt);
-    device_add(&keyboard_xt_device);
+    device_add(&keyboard_xt_t1x00_device);
     t1000.fdc = device_add(&fdc_xt_t1x00_device);
     nmi_init();
 
@@ -956,8 +957,11 @@ machine_xt_t1200_init(const machine_t *model)
     t1200_nvr_load();
     nvr_set_ven_save(t1200_nvr_save);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&t1200_video_device);
+
+    if (hdc_current <= 1)
+        device_add(&st506_xt_toshiba_t1200_device);
 
     return ret;
 }

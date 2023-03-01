@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors:  Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
  *           DOSBox Team,
  *           Miran Grca, <mgrca8@gmail.com>
  *           TheCollector1995, <mariogplayer@gmail.com>
@@ -1958,7 +1958,7 @@ static const device_config_t mpu401_standalone_mca_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t mpu401_device = {

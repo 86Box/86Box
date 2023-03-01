@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		MDSI Genius VHR emulation.
+ *          MDSI Genius VHR emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -659,6 +659,8 @@ genius_poll(void *p)
              * of the lot */
             if (genius->mda_ctrl & 8)
                 genius_textline(genius, background, 1, 1);
+
+            video_process_8(GENIUS_XSIZE, genius->displine);
         }
         genius->displine++;
         /* Hardcode a fixed refresh rate and VSYNC timing */
@@ -696,7 +698,7 @@ genius_poll(void *p)
                     video_force_resize_set(0);
             }
 
-            video_blit_memtoscreen_8(0, 0, xsize, ysize);
+            video_blit_memtoscreen(0, 0, xsize, ysize);
 
             frames++;
             /* Fixed 728x1008 resolution */
@@ -781,7 +783,7 @@ genius_close(void *p)
 }
 
 static int
-genius_available()
+genius_available(void)
 {
     return rom_present(BIOS_ROM_PATH);
 }

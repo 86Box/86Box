@@ -1,16 +1,16 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Victor V86P portable computer emulation.
+ *          Victor V86P portable computer emulation.
  *
- * Author:	Lubomir Rintel, <lkundrak@v3.sk>
+ * Authors: Lubomir Rintel, <lkundrak@v3.sk>
  *
- *		Copyright 2021 Lubomir Rintel.
+ *          Copyright 2021 Lubomir Rintel.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
  *
  * This program is  distributed in the hope that it will be useful, but
  * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
- * MERCHANTABILITY  or FITNESS	FOR A PARTICULAR  PURPOSE. See	the GNU
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
@@ -42,6 +42,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
+#include <86box/hdc.h>
 #include <86box/keyboard.h>
 #include <86box/chipset.h>
 #include <86box/sio.h>
@@ -89,8 +90,11 @@ machine_v86p_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_xt_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&f82c425_video_device);
+
+    if (hdc_current <= 1)
+        device_add(&st506_xt_victor_v86p_device);
 
     return ret;
 }

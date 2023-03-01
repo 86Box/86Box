@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of 386DX and 486 machines.
+ *          Implementation of 386DX and 486 machines.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2010-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2010-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -168,7 +168,7 @@ machine_at_valuepoint433_init(const machine_t *model) // hangs without the PS/2 
 
     machine_at_common_ide_init(model);
     device_add(&sis_85c461_device);
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&et4000w32_onboard_device);
 
     device_add(&keyboard_ps2_device);
@@ -310,7 +310,7 @@ machine_at_pb410a_init(const machine_t *model)
 
     device_add(&phoenix_486_jumper_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&ht216_32_pb410a_device);
 
     return ret;
@@ -331,7 +331,7 @@ machine_at_vect486vl_init(const machine_t *model) // has HDC problems
 
     device_add(&vl82c480_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5428_onboard_device);
 
     device_add(&keyboard_ps2_ami_device);
@@ -355,7 +355,7 @@ machine_at_d824_init(const machine_t *model)
 
     device_add(&vl82c480_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5428_onboard_device);
 
     device_add(&keyboard_ps2_device);
@@ -378,7 +378,7 @@ machine_at_acera1g_init(const machine_t *model)
     machine_at_common_init(model);
     device_add(&ali1429g_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&gd5428_onboard_device);
 
     device_add(&keyboard_ps2_acer_pci_device);
@@ -428,7 +428,7 @@ machine_at_decpclpv_init(const machine_t *model)
 
     device_add(&sis_85c461_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&s3_86c805_onboard_vlb_device);
 
     /* TODO: Phoenix MultiKey KBC */
@@ -632,12 +632,14 @@ machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU oth
         return ret;
 
     machine_at_common_init(model);
-    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
 
-    device_add(&opti802g_device);
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 4, 1, 2);
+
+    device_add(&opti802g_pci_device);
     device_add(&opti822_device);
     device_add(&keyboard_ps2_device);
     device_add(&fdc37c665_device);
@@ -1000,10 +1002,10 @@ machine_at_alfredo_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_IDE, 0, 0, 0, 0);
-    pci_register_slot(0x06, PCI_CARD_NORMAL, 3, 2, 1, 4);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 1, 3, 4);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 3, 2, 4);
+    pci_register_slot(0x01, PCI_CARD_IDE,         0, 0, 0, 0);
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      3, 2, 1, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 1, 3, 4);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 3, 2, 4);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&keyboard_ps2_pci_device);
     device_add(&sio_device);
@@ -1030,9 +1032,9 @@ machine_at_ninja_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1 | PCI_NO_IRQ_STEERING);
     pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 1, 2);
-    pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 1, 2, 1);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 1, 2, 1);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 1, 2);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 1, 2, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 1, 2, 1);
     device_add(&keyboard_ps2_intel_ami_pci_device);
     device_add(&intel_flash_bxt_ami_device);
 
@@ -1058,11 +1060,11 @@ machine_at_486sp3_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_SCSI, 1, 2, 3, 4);		/* 01 = SCSI */
-    pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);	/* 03 = Slot 1 */
-    pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);	/* 04 = Slot 2 */
-    pci_register_slot(0x05, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 05 = Slot 3 */
-    pci_register_slot(0x06, PCI_CARD_NORMAL, 4, 1, 2, 3);	/* 06 = Slot 4 */
+    pci_register_slot(0x01, PCI_CARD_SCSI,        1, 2, 3, 4); /* 01 = SCSI */
+    pci_register_slot(0x03, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 03 = Slot 1 */
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      2, 3, 4, 1); /* 04 = Slot 2 */
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 05 = Slot 3 */
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      4, 1, 2, 3); /* 06 = Slot 4 */
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&keyboard_ps2_ami_pci_device); /* Uses the AMIKEY KBC */
     device_add(&sio_device);
@@ -1092,12 +1094,12 @@ machine_at_pci400cb_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0F, PCI_CARD_NORMAL, 4, 3, 2, 1);	/* 0F = Slot 1 */
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 0E = Slot 2 */
-    pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);	/* 0D = Slot 3 */
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);	/* 0C = Slot 4 */
-    device_add(&keyboard_ps2_ami_pci_device);			/* Assume AMI Megakey 1993 standalone ('P')
-								   because of the Tekram machine below. */
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 3, 2, 1); /* 0F = Slot 1 */
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 0E = Slot 2 */
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      2, 3, 4, 1); /* 0D = Slot 3 */
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 0C = Slot 4 */
+    device_add(&keyboard_ps2_ami_pci_device);                  /* Assume AMI Megakey 1993 standalone ('P')
+                                                                  because of the Tekram machine below. */
 
     device_add(&ims8848_device);
 
@@ -1124,10 +1126,10 @@ machine_at_g486ip_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 03 = Slot 1 */
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 3, 4, 1);	/* 04 = Slot 2 */
-    pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);	/* 05 = Slot 3 */
-    device_add(&keyboard_ps2_ami_pci_device);			/* AMI Megakey 1993 stanalone ('P') */
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 03 = Slot 1 */
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 3, 4, 1); /* 04 = Slot 2 */
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 05 = Slot 3 */
+    device_add(&keyboard_ps2_ami_pci_device);                  /* AMI Megakey 1993 stanalone ('P') */
 
     device_add(&ims8848_device);
 
@@ -1153,12 +1155,12 @@ machine_at_486sp3g_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_2);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_SCSI, 1, 2, 3, 4);		/* 01 = SCSI */
-    pci_register_slot(0x06, PCI_CARD_NORMAL, 1, 2, 3, 4);	/* 06 = Slot 1 */
-    pci_register_slot(0x05, PCI_CARD_NORMAL, 2, 3, 4, 1);	/* 05 = Slot 2 */
-    pci_register_slot(0x04, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 04 = Slot 3 */
+    pci_register_slot(0x01, PCI_CARD_SCSI,        1, 2, 3, 4); /* 01 = SCSI */
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 06 = Slot 1 */
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      2, 3, 4, 1); /* 05 = Slot 2 */
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 04 = Slot 3 */
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&keyboard_ps2_ami_pci_device); /* Uses the AMIKEY KBC */
+    device_add(&keyboard_ps2_ami_pci_device);                  /* Uses the AMIKEY KBC */
     device_add(&sio_zb_device);
     device_add(&pc87332_398_ide_device);
     device_add(&sst_flash_29ee010_device);
@@ -1185,11 +1187,11 @@ machine_at_486ap4_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1 | PCI_NO_IRQ_STEERING);
     /* Excluded: 5, 6, 7, 8 */
     pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);	/* 09 = Slot 1 */
-    pci_register_slot(0x0a, PCI_CARD_NORMAL, 2, 3, 4, 1);	/* 0a = Slot 2 */
-    pci_register_slot(0x0b, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 0b = Slot 3 */
-    pci_register_slot(0x0c, PCI_CARD_NORMAL, 4, 1, 2, 3);	/* 0c = Slot 4 */
-    device_add(&keyboard_ps2_ami_pci_device); /* Uses the AMIKEY KBC */
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 09 = Slot 1 */
+    pci_register_slot(0x0a, PCI_CARD_NORMAL,      2, 3, 4, 1); /* 0a = Slot 2 */
+    pci_register_slot(0x0b, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 0b = Slot 3 */
+    pci_register_slot(0x0c, PCI_CARD_NORMAL,      4, 1, 2, 3); /* 0c = Slot 4 */
+    device_add(&keyboard_ps2_ami_pci_device);                  /* Uses the AMIKEY KBC */
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
@@ -1214,10 +1216,10 @@ machine_at_g486vpa_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&via_vt82c49x_pci_ide_device);
     device_add(&via_vt82c505_device);
@@ -1243,10 +1245,10 @@ machine_at_486vipio2_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&via_vt82c49x_pci_ide_device);
     device_add(&via_vt82c505_device);
@@ -1272,9 +1274,9 @@ machine_at_abpb4_init(const machine_t *model)
 
     pci_init(PCI_CAN_SWITCH_TYPE);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x05, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x03, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2);
 
     device_add(&ali1489_device);
     device_add(&w83787f_device);
@@ -1300,9 +1302,9 @@ machine_at_win486pci_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x05, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x03, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2);
 
     device_add(&ali1489_device);
     device_add(&prime3b_device);
@@ -1326,10 +1328,10 @@ machine_at_ms4145_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x05, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x06, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x03, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&ali1489_device);
     device_add(&w83787f_device);
@@ -1354,16 +1356,16 @@ machine_at_sbc490_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0F, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x01, PCI_CARD_VIDEO, 4, 1, 2, 3);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_VIDEO,       4, 1, 2, 3);
 
     device_add(&ali1489_device);
     device_add(&fdc37c665_device);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&tgui9440_onboard_pci_device);
 
     device_add(&keyboard_ps2_ami_device);
@@ -1387,7 +1389,7 @@ machine_at_tf486_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
 
     device_add(&ali1489_device);
     device_add(&w83977ef_device);
@@ -1413,7 +1415,7 @@ machine_at_itoxstar_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x0B, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0C, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x1F, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x1F, PCI_CARD_NORMAL,      1, 2, 3, 4);
     device_add(&w83977f_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_client_device);
@@ -1442,9 +1444,9 @@ machine_at_arb1423c_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x0B, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0C, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x1F, PCI_CARD_NORMAL, 1, 0, 0, 0);
-    pci_register_slot(0x1E, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x1D, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x1F, PCI_CARD_NORMAL,      1, 0, 0, 0);
+    pci_register_slot(0x1E, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x1D, PCI_CARD_NORMAL,      3, 4, 1, 2);
     device_add(&w83977f_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_consumer2_device);
@@ -1469,9 +1471,9 @@ machine_at_arb1479_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x0B, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0C, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x1F, PCI_CARD_NORMAL, 1, 0, 0, 0);
-    pci_register_slot(0x1E, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x1D, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x1F, PCI_CARD_NORMAL,      1, 0, 0, 0);
+    pci_register_slot(0x1E, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x1D, PCI_CARD_NORMAL,      3, 4, 1, 2);
     device_add(&w83977f_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_consumer2_device);
@@ -1496,9 +1498,9 @@ machine_at_pcm9340_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x0B, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0C, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x1D, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x1E, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x1F, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x1D, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x1E, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x1F, PCI_CARD_NORMAL,      2, 3, 4, 1);
     device_add_inst(&w83977f_device, 1);
     device_add_inst(&w83977f_device, 2);
     device_add(&keyboard_ps2_ami_pci_device);
@@ -1526,7 +1528,7 @@ machine_at_pcm5330_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0D, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0E, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x13, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 2, 3, 4);
     device_add(&stpc_serial_device);
     device_add(&w83977f_370_device);
     device_add(&keyboard_ps2_ami_pci_device);
@@ -1552,10 +1554,10 @@ machine_at_ecs486_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x0F, PCI_CARD_IDE, 0, 0, 0, 0);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0F, PCI_CARD_IDE,         0, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 1, 2);
 
     device_add(&umc_hb4_device);
     device_add(&umc_8886f_device);
@@ -1583,10 +1585,10 @@ machine_at_hot433_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x0F, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
 
     device_add(&umc_hb4_device);
     device_add(&umc_8886af_device);
@@ -1615,9 +1617,9 @@ machine_at_atc1415_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x13, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x14, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      3, 4, 1, 2);
 
     device_add(&umc_hb4_device);
     device_add(&umc_8886af_device);
@@ -1646,10 +1648,10 @@ machine_at_actionpc2600_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x0F, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
 
     device_add(&umc_hb4_device);
     device_add(&umc_8886af_device);
@@ -1676,9 +1678,9 @@ machine_at_m919_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 1, 2);
 
     device_add(&umc_hb4_device);
     device_add(&umc_8886af_device);
@@ -1705,15 +1707,106 @@ machine_at_spc7700plw_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 1, 2);
 
     device_add(&umc_hb4_device);
     device_add(&umc_8886af_device);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
     device_add(&keyboard_at_ami_device);
+
+    return ret;
+}
+
+int
+machine_at_ms4134_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ms4134/4alm001.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&ali1429g_device);
+
+    device_add(&fdc37c665_ide_pri_device);
+
+    pci_init(PCI_CAN_SWITCH_TYPE | PCI_ALWAYS_EXPOSE_DEV0);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+
+    pci_register_slot(0x0B, PCI_CARD_SCSI, 4, 1, 2, 3);
+    pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORMAL, 1, 2, 3, 4);
+
+    device_add(&ali1435_device);
+    device_add(&sst_flash_29ee010_device);
+
+    device_add(&keyboard_ps2_ami_device);
+
+    return ret;
+}
+
+int
+machine_at_tg486gp_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/tg486gp/tg486gp.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&ali1429g_device);
+
+    device_add(&fdc37c665_ide_pri_device);
+
+    pci_init(PCI_CAN_SWITCH_TYPE | PCI_ALWAYS_EXPOSE_DEV0);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORMAL, 1, 2, 3, 4);
+
+    device_add(&ali1435_device);
+    device_add(&sst_flash_29ee010_device);
+
+    device_add(&keyboard_ps2_ami_device);
+
+    return ret;
+}
+
+int
+machine_at_tg486g_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/tg486g/tg486g.bin",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+    else {
+        mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
+        mem_mapping_set_exec(&bios_mapping, rom);
+    }
+
+    machine_at_common_init(model);
+    device_add(&sis_85c471_device);
+    device_add(&ide_isa_device);
+    device_add(&fdc37c651_ide_device);
+    device_add(&keyboard_ps2_intel_ami_pci_device);
 
     return ret;
 }

@@ -1,24 +1,32 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the hard disk image handler.
+ *          Definitions for the hard disk image handler.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
 #ifndef EMU_HDD_H
 #define EMU_HDD_H
 
-#define HDD_NUM 88 /* total of 88 images supported */
+#define IMG_FMT_RAW         0
+#define IMG_FMT_HDI         1
+#define IMG_FMT_HDX         2
+#define IMG_FMT_VHD_FIXED   3
+#define IMG_FMT_VHD_DYNAMIC 4
+#define IMG_FMT_VHD_DIFF    5
+
+#define HDD_NUM             88 /* total of 88 images supported */
 
 /* Hard Disk bus types. */
 #if 0
@@ -206,7 +214,7 @@ extern int image_is_vhd(const char *s, int check_signature);
 extern double      hdd_timing_write(hard_disk_t *hdd, uint32_t addr, uint32_t len);
 extern double      hdd_timing_read(hard_disk_t *hdd, uint32_t addr, uint32_t len);
 extern double      hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_t continuous, double max_seek_time);
-int                hdd_preset_get_num();
+int                hdd_preset_get_num(void);
 const char        *hdd_preset_getname(int preset);
 extern const char *hdd_preset_get_internal_name(int preset);
 extern int         hdd_preset_get_from_internal_name(char *s);

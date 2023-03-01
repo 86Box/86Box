@@ -1,26 +1,28 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		ICS2494 clock generator emulation.
+ *          ICS2494 clock generator emulation.
  *
- *		Used by the AMI S3 924.
+ *          Used by the AMI S3 924.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2020 Miran Grca.
+ *          Copyright 2020 Miran Grca.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 
@@ -28,8 +30,8 @@ typedef struct ics2494_t {
     float freq[16];
 } ics2494_t;
 
-#ifdef ENABLE_ics2494_LOG
-int ics2494_do_log = ENABLE_ics2494_LOG;
+#ifdef ENABLE_ICS2494_LOG
+int ics2494_do_log = ENABLE_ICS2494_LOG;
 
 static void
 ics2494_log(const char *fmt, ...)

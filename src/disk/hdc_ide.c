@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the IDE emulation for hard disks and ATAPI
- *		CD-ROM devices.
+ *          Implementation of the IDE emulation for hard disks and ATAPI
+ *          CD-ROM devices.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -425,7 +425,7 @@ static int
 ide_get_max(ide_t *ide, int type)
 {
     if (ide->type == IDE_ATAPI)
-        return ide->get_max(!ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL), type);
+        return ide->get_max(!ide->sc->pad0 && !ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL), type);
 
     switch (type) {
         case TYPE_PIO: /* PIO */
@@ -458,7 +458,7 @@ static int
 ide_get_timings(ide_t *ide, int type)
 {
     if (ide->type == IDE_ATAPI)
-        return ide->get_timings(!ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL), type);
+        return ide->get_timings(!ide->sc->pad0 && !ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL), type);
 
     switch (type) {
         case TIMINGS_DMA:
@@ -537,7 +537,7 @@ ide_hd_identify(ide_t *ide)
         /*
                 Bit 0 = The fields reported in words 54-58 are valid;
                 Bit 1 = The fields reported in words 64-70 are valid;
-                Bit 2 = The fields reported in word 88 are valid.	*/
+                Bit 2 = The fields reported in word 88 are valid. */
         ide->buffer[53] = 1;
 
         if (ide->cfg_spt != 0) {
@@ -584,7 +584,7 @@ ide_identify(ide_t *ide)
     memset(ide->buffer, 0, 512);
 
     if (ide->type == IDE_ATAPI)
-        ide->identify(ide, !ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL));
+        ide->identify(ide, !ide->sc->pad0 && !ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL));
     else if (ide->type != IDE_NONE)
         ide_hd_identify(ide);
     else {
@@ -737,8 +737,9 @@ ide_set_signature(ide_t *ide)
         ide->secount            = ide->sc->phase;
         ide->cylinder           = ide->sc->request_length;
     } else {
-        ide->secount  = 1;
-        ide->cylinder = ((ide->type == IDE_HDD) ? 0 : 0xFFFF);
+        ide->secount = 1;
+        // ide->cylinder = ((ide->type == IDE_HDD) ? 0 : 0xFFFF);
+        ide->cylinder = ((ide->type == IDE_HDD) ? 0 : 0x7F7F);
         if (ide->type == IDE_HDD)
             ide->drive = 0;
     }
@@ -884,9 +885,12 @@ ide_atapi_attach(ide_t *ide)
     ide->type = IDE_ATAPI;
     ide_allocate_buffer(ide);
     ide_set_signature(ide);
-    ide->mdma_mode = (1 << ide->get_max(ide_boards[ide->board]->force_ata3 || !ide_bm[ide->board], TYPE_PIO));
+    ide->mdma_mode = (1 << ide->get_max(!ide->sc->pad0 && !ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL), TYPE_PIO));
     ide->error     = 1;
     ide->cfg_spt = ide->cfg_hpc = 0;
+#ifndef EARLY_ATAPI
+    ide->sc->status = 0;
+#endif
 }
 
 void
@@ -984,7 +988,7 @@ ide_atapi_callback(ide_t *ide)
 #endif
             out = (ide->sc->packet_status & 0x01);
 
-            if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->dma) {
+            if (!ide->sc->pad0 && !ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->dma) {
                 ret = ide_bm[ide->board]->dma(ide->board,
                                               ide->sc->temp_buffer, ide->sc->packet_len,
                                               out, ide_bm[ide->board]->priv);
@@ -1146,6 +1150,9 @@ ide_atapi_packet_write(ide_t *ide, uint32_t val, int length)
 
     bufferw = (uint16_t *) bufferb;
     bufferl = (uint32_t *) bufferb;
+
+    if (dev->packet_status == PHASE_DATA_IN)
+        return;
 
     switch (length) {
         case 1:
@@ -1628,12 +1635,16 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                             double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
                             double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
                             wait_time        = seek_time > xfer_time ? seek_time : xfer_time;
-                        } else if (val == WIN_READ_MULTIPLE) {
-                            sec_count        = (ide->secount < ide->blocksize) ? ide->secount : ide->blocksize;
+                        } else if ((val == WIN_READ_MULTIPLE) && (ide->blocksize > 0)) {
+                            sec_count = ide->secount ? ide->secount : 256;
+                            if (sec_count > ide->blocksize)
+                                sec_count = ide->blocksize;
                             double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
                             double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
                             wait_time        = seek_time + xfer_time;
-                        } else {
+                        } else if ((val == WIN_READ_MULTIPLE) && (ide->blocksize == 0))
+                            wait_time = 200.0;
+                        else {
                             sec_count        = 1;
                             double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
                             double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
@@ -1684,9 +1695,10 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                         double   wait_time = seek_time > xfer_time ? seek_time : xfer_time;
                         ide_set_callback(ide, wait_time);
                     } else if ((ide->type == IDE_HDD) && ((val == WIN_VERIFY) || (val == WIN_VERIFY_ONCE))) {
-                        double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), ide->secount);
+                        uint32_t sec_count = ide->secount ? ide->secount : 256;
+                        double   seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
                         ide_set_callback(ide, seek_time + ide_get_xfer_time(ide, 2));
-                    } else if (val == WIN_IDENTIFY)
+                    } else if ((val == WIN_IDENTIFY) || (val == WIN_SET_FEATURES))
                         ide_callback(ide);
                     else
                         ide_set_callback(ide, 200.0 * IDE_TIME);
@@ -1854,9 +1866,11 @@ ide_read_data(ide_t *ide, int length)
                 ide->atastat = BSY_STAT | READY_STAT | DSC_STAT;
                 if (ide->command == WIN_READ_MULTIPLE) {
                     if (!ide->blockcount) {
-                        uint32_t sec_count = (ide->secount < ide->blocksize) ? ide->secount : ide->blocksize;
-                        double   seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
-                        double   xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
+                        uint32_t sec_count = ide->secount ? ide->secount : 256;
+                        if (sec_count > ide->blocksize)
+                            sec_count = ide->blocksize;
+                        double seek_time = hdd_timing_read(&hdd[ide->hdd_num], ide_get_sector(ide), sec_count);
+                        double xfer_time = ide_get_xfer_time(ide, 512 * sec_count);
                         ide_set_callback(ide, seek_time + xfer_time);
                     } else {
                         ide_callback(ide);
@@ -1878,11 +1892,7 @@ static uint8_t
 ide_status(ide_t *ide, ide_t *ide_other, int ch)
 {
     if ((ide->type == IDE_NONE) && ((ide_other->type == IDE_NONE) || !(ch & 1)))
-#ifdef STATUS_BIT_7_PULLDOWN
-        return 0x7F; /* Bit 7 pulled down, all other bits pulled up, per the spec. */
-#else
-        return 0xFF;
-#endif
+        return 0x7f; /* Bit 7 pulled down, all other bits pulled up, per the spec. */
     else if ((ide->type == IDE_NONE) && (ch & 1))
         return 0x00; /* On real hardware, a slave with a present master always returns a status of 0x00. */
     else if (ide->type == IDE_ATAPI)
@@ -1896,7 +1906,7 @@ ide_readb(uint16_t addr, void *priv)
 {
     ide_board_t *dev = (ide_board_t *) priv;
 
-    int    ch;
+    int    ch, absent = 0;
     ide_t *ide;
 
     ch  = dev->cur_dev;
@@ -1908,18 +1918,31 @@ ide_readb(uint16_t addr, void *priv)
     addr |= 0x90;
     addr &= 0xFFF7;
 
+    if ((ide->type == IDE_NONE) && ((ide_drives[ch ^ 1]->type == IDE_NONE) || !(ch & 1)))
+        absent = 1; /* Absent and is master or both are absent. */
+    else if ((ide->type == IDE_NONE) && (ch & 1))
+        absent = 2; /* Absent and is slave and master is present. */
+
     switch (addr & 0x7) {
         case 0x0: /* Data */
-            tempw = ide_read_data(ide, 2);
-            temp  = tempw & 0xff;
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x00;
+            else {
+                tempw = ide_read_data(ide, 2);
+                temp  = tempw & 0xff;
+            }
             break;
 
         /* For ATAPI: Bits 7-4 = sense key, bit 3 = MCR (media change requested),
                       Bit 2 = ABRT (aborted command), Bit 1 = EOM (end of media),
                       and Bit 0 = ILI (illegal length indication). */
         case 0x1: /* Error */
-            if (ide->type == IDE_NONE)
-                temp = 0;
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x01;
             else if (ide->type == IDE_ATAPI)
                 temp = ide->sc->error;
             else
@@ -1933,27 +1956,37 @@ ide_readb(uint16_t addr, void *priv)
                         Direction:
                                 To device if set;
                                 From device if clear.
-                IO		DRQ		CoD
-                0		1		1		Ready to accept command packet
-                1		1		1		Message - ready to send message to host
-                1		1		0		Data to host
-                0		1		0		Data from host
-                1		0		1		Status. */
+                IO      DRQ     CoD
+                0       1       1       Ready to accept command packet
+                1       1       1       Message - ready to send message to host
+                1       1       0       Data to host
+                0       1       0       Data from host
+                1       0       1       Status. */
         case 0x2: /* Sector count */
-            if (ide->type == IDE_ATAPI)
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x01;
+            else if (ide->type == IDE_ATAPI)
                 temp = ide->sc->phase;
-            else if (ide->type != IDE_NONE)
+            else
                 temp = ide->secount;
             break;
 
         case 0x3: /* Sector */
-            if (ide->type != IDE_NONE)
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x01;
+            else
                 temp = (uint8_t) ide->sector;
             break;
 
         case 0x4: /* Cylinder low */
-            if (ide->type == IDE_NONE)
-                temp = 0xFF;
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x00;
             else if (ide->type == IDE_ATAPI)
                 temp = ide->sc->request_length & 0xff;
             else
@@ -1961,8 +1994,10 @@ ide_readb(uint16_t addr, void *priv)
             break;
 
         case 0x5: /* Cylinder high */
-            if (ide->type == IDE_NONE)
-                temp = 0xFF;
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x00;
             else if (ide->type == IDE_ATAPI)
                 temp = ide->sc->request_length >> 8;
             else
@@ -1970,7 +2005,12 @@ ide_readb(uint16_t addr, void *priv)
             break;
 
         case 0x6: /* Drive/Head */
-            temp = (uint8_t) (ide->head | ((ch & 1) ? 0x10 : 0) | (ide->lba ? 0x40 : 0) | 0xa0);
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0xb0;
+            else
+                temp = (uint8_t) (ide->head | ((ch & 1) ? 0x10 : 0) | (ide->lba ? 0x40 : 0) | 0xa0);
             break;
 
         /* For ATAPI: Bit 5 is DMA ready, but without overlapped or interlaved DMA, it is
@@ -2080,18 +2120,27 @@ ide_board_callback(void *priv)
 #endif
 
     dev->ide[0]->atastat = DRDY_STAT | DSC_STAT;
-    if (dev->ide[0]->type == IDE_ATAPI)
-        dev->ide[0]->sc->status = DRDY_STAT | DSC_STAT;
+    if (dev->ide[0]->type == IDE_ATAPI) {
+        if (dev->ide[0]->sc->pad0)
+            dev->ide[0]->sc->status = DRDY_STAT | DSC_STAT;
+        else
+            dev->ide[0]->sc->status = 0;
+    }
 
     dev->ide[1]->atastat = DRDY_STAT | DSC_STAT;
-    if (dev->ide[1]->type == IDE_ATAPI)
-        dev->ide[1]->sc->status = DRDY_STAT | DSC_STAT;
+    if (dev->ide[1]->type == IDE_ATAPI) {
+        if (dev->ide[1]->sc->pad0)
+            dev->ide[1]->sc->status = DRDY_STAT | DSC_STAT;
+        else
+            dev->ide[1]->sc->status = 0;
+    }
 
     dev->cur_dev &= ~1;
 
     if (dev->diag) {
         dev->diag = 0;
-        ide_irq_raise(dev->ide[0]);
+        if ((dev->ide[0]->type != IDE_ATAPI) || dev->ide[0]->sc->pad0)
+            ide_irq_raise(dev->ide[0]);
     }
 }
 
@@ -2147,13 +2196,16 @@ ide_callback(void *priv)
             ide_set_signature(ide);
 
             if (ide->type == IDE_ATAPI) {
-                ide->sc->status = DRDY_STAT | DSC_STAT;
-                ide->sc->error  = 1;
+                ide->sc->error = 1;
                 if (ide->device_reset)
                     ide->device_reset(ide->sc);
+                if (ide->sc->pad0) /* pad0 = early */
+                    ide->sc->status = DRDY_STAT | DSC_STAT;
+                else
+                    ide->sc->status = 0;
             }
             ide_irq_raise(ide);
-            if (ide->type == IDE_ATAPI)
+            if ((ide->type == IDE_ATAPI) && !ide->sc->pad0)
                 ide->service = 0;
             return;
 
@@ -2442,6 +2494,8 @@ ide_callback(void *priv)
 
         case WIN_SET_MULTIPLE_MODE:
             if (ide->type == IDE_ATAPI)
+                goto abort_cmd;
+            if ((ide->secount < 2) || (ide->secount > hdd[ide->hdd_num].max_multiple_block))
                 goto abort_cmd;
             ide->blocksize = ide->secount;
             ide->atastat   = DRDY_STAT | DSC_STAT;
@@ -2787,6 +2841,8 @@ ide_board_setup(int board)
         dev->error     = 1;
         if (dev->type != IDE_HDD)
             dev->cfg_spt = dev->cfg_hpc = 0;
+        if (dev->type == IDE_HDD)
+            dev->blocksize = hdd[dev->hdd_num].max_multiple_block;
     }
 }
 

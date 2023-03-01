@@ -1,24 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the XT-style keyboard.
+ *          Implementation of the XT-style keyboard.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
- *      EngiNerd, <webmaster.crrc@yahoo.it>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          EngiNerd, <webmaster.crrc@yahoo.it>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van kempen.
- *      Copyright 2020 EngiNerd.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van kempen.
+ *          Copyright 2020 EngiNerd.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -66,13 +66,14 @@
 #define KBD_TYPE_OLIVETTI 8
 #define KBD_TYPE_ZENITH   9
 #define KBD_TYPE_PRAVETZ  10
+#define KBD_TYPE_XTCLONE  11
 
 typedef struct {
     int want_irq;
     int blocked;
     int tandy;
 
-    uint8_t pa, pb, pd;
+    uint8_t pa, pb, pd, clock;
     uint8_t key_waiting;
     uint8_t type, pravetz_flags;
 
@@ -125,219 +126,219 @@ const scancode scancode_xt[512] = {
     { {0x50, 0}, {0xd0, 0} }, { {0x51, 0}, {0xd1, 0} },
     { {0x52, 0}, {0xd2, 0} }, { {0x53, 0}, {0xd3, 0} },
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*054*/
+    { {0},             {0} }, { {0},             {0} }, /*054*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*058*/
+    { {0},             {0} }, { {0},             {0} }, /*058*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*05c*/
+    { {0},             {0} }, { {0},             {0} }, /*05c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*060*/
+    { {0},             {0} }, { {0},             {0} }, /*060*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*064*/
+    { {0},             {0} }, { {0},             {0} }, /*064*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*068*/
+    { {0},             {0} }, { {0},             {0} }, /*068*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*06c*/
+    { {0},             {0} }, { {0},             {0} }, /*06c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*070*/
+    { {0},             {0} }, { {0},             {0} }, /*070*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*074*/
+    { {0},             {0} }, { {0},             {0} }, /*074*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*078*/
+    { {0},             {0} }, { {0},             {0} }, /*078*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*07c*/
+    { {0},             {0} }, { {0},             {0} }, /*07c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*080*/
+    { {0},             {0} }, { {0},             {0} }, /*080*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*084*/
+    { {0},             {0} }, { {0},             {0} }, /*084*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*088*/
+    { {0},             {0} }, { {0},             {0} }, /*088*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*08c*/
+    { {0},             {0} }, { {0},             {0} }, /*08c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*090*/
+    { {0},             {0} }, { {0},             {0} }, /*090*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*094*/
+    { {0},             {0} }, { {0},             {0} }, /*094*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*098*/
+    { {0},             {0} }, { {0},             {0} }, /*098*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*09c*/
+    { {0},             {0} }, { {0},             {0} }, /*09c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0a0*/
+    { {0},             {0} }, { {0},             {0} }, /*0a0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0a4*/
+    { {0},             {0} }, { {0},             {0} }, /*0a4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0a8*/
+    { {0},             {0} }, { {0},             {0} }, /*0a8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0ac*/
+    { {0},             {0} }, { {0},             {0} }, /*0ac*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0b0*/
+    { {0},             {0} }, { {0},             {0} }, /*0b0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0b4*/
+    { {0},             {0} }, { {0},             {0} }, /*0b4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0b8*/
+    { {0},             {0} }, { {0},             {0} }, /*0b8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0bc*/
+    { {0},             {0} }, { {0},             {0} }, /*0bc*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0c0*/
+    { {0},             {0} }, { {0},             {0} }, /*0c0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0c4*/
+    { {0},             {0} }, { {0},             {0} }, /*0c4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0c8*/
+    { {0},             {0} }, { {0},             {0} }, /*0c8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0cc*/
+    { {0},             {0} }, { {0},             {0} }, /*0cc*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0d0*/
+    { {0},             {0} }, { {0},             {0} }, /*0d0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0d4*/
+    { {0},             {0} }, { {0},             {0} }, /*0d4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0d8*/
+    { {0},             {0} }, { {0},             {0} }, /*0d8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0dc*/
+    { {0},             {0} }, { {0},             {0} }, /*0dc*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0e0*/
+    { {0},             {0} }, { {0},             {0} }, /*0e0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0e4*/
+    { {0},             {0} }, { {0},             {0} }, /*0e4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0e8*/
+    { {0},             {0} }, { {0},             {0} }, /*0e8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0ec*/
+    { {0},             {0} }, { {0},             {0} }, /*0ec*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0f0*/
+    { {0},             {0} }, { {0},             {0} }, /*0f0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0f4*/
+    { {0},             {0} }, { {0},             {0} }, /*0f4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0f8*/
+    { {0},             {0} }, { {0},             {0} }, /*0f8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0fc*/
+    { {0},             {0} }, { {0},             {0} }, /*0fc*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*100*/
+    { {0},             {0} }, { {0},             {0} }, /*100*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*104*/
+    { {0},             {0} }, { {0},             {0} }, /*104*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*108*/
+    { {0},             {0} }, { {0},             {0} }, /*108*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*10c*/
+    { {0},             {0} }, { {0},             {0} }, /*10c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*110*/
+    { {0},             {0} }, { {0},             {0} }, /*110*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*114*/
+    { {0},             {0} }, { {0},             {0} }, /*114*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*118*/
+    { {0},             {0} }, { {0},             {0} }, /*118*/
     { {0x1c, 0}, {0x9c, 0} }, { {0x1d, 0}, {0x9d, 0} },
-    { {0},             {0} }, { {0},             {0} },	/*11c*/
+    { {0},             {0} }, { {0},             {0} }, /*11c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*120*/
+    { {0},             {0} }, { {0},             {0} }, /*120*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*124*/
+    { {0},             {0} }, { {0},             {0} }, /*124*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*128*/
+    { {0},             {0} }, { {0},             {0} }, /*128*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*12c*/
+    { {0},             {0} }, { {0},             {0} }, /*12c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*130*/
+    { {0},             {0} }, { {0},             {0} }, /*130*/
     { {0},             {0} }, { {0x35, 0}, {0xb5, 0} },
-    { {0},             {0} }, { {0x37, 0}, {0xb7, 0} },	/*134*/
+    { {0},             {0} }, { {0x37, 0}, {0xb7, 0} }, /*134*/
     { {0x38, 0}, {0xb8, 0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*138*/
+    { {0},             {0} }, { {0},             {0} }, /*138*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*13c*/
+    { {0},             {0} }, { {0},             {0} }, /*13c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*140*/
+    { {0},             {0} }, { {0},             {0} }, /*140*/
     { {0},             {0} }, { {0},             {0} },
-    { {0x46, 0}, {0xc6, 0} }, { {0x47, 0}, {0xc7, 0} },	/*144*/
+    { {0x46, 0}, {0xc6, 0} }, { {0x47, 0}, {0xc7, 0} }, /*144*/
     { {0x48, 0}, {0xc8, 0} }, { {0x49, 0}, {0xc9, 0} },
-    { {0},             {0} }, { {0x4b, 0}, {0xcb, 0} },	/*148*/
+    { {0},             {0} }, { {0x4b, 0}, {0xcb, 0} }, /*148*/
     { {0},             {0} }, { {0x4d, 0}, {0xcd, 0} },
-    { {0},             {0} }, { {0x4f, 0}, {0xcf, 0} },	/*14c*/
+    { {0},             {0} }, { {0x4f, 0}, {0xcf, 0} }, /*14c*/
     { {0x50, 0}, {0xd0, 0} }, { {0x51, 0}, {0xd1, 0} },
-    { {0x52, 0}, {0xd2, 0} }, { {0x53, 0}, {0xd3, 0} },	/*150*/
+    { {0x52, 0}, {0xd2, 0} }, { {0x53, 0}, {0xd3, 0} }, /*150*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*154*/
+    { {0},             {0} }, { {0},             {0} }, /*154*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*158*/
+    { {0},             {0} }, { {0},             {0} }, /*158*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*15c*/
+    { {0},             {0} }, { {0},             {0} }, /*15c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*160*/
+    { {0},             {0} }, { {0},             {0} }, /*160*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*164*/
+    { {0},             {0} }, { {0},             {0} }, /*164*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*168*/
+    { {0},             {0} }, { {0},             {0} }, /*168*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*16c*/
+    { {0},             {0} }, { {0},             {0} }, /*16c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*170*/
+    { {0},             {0} }, { {0},             {0} }, /*170*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*174*/
+    { {0},             {0} }, { {0},             {0} }, /*174*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*148*/
+    { {0},             {0} }, { {0},             {0} }, /*148*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*17c*/
+    { {0},             {0} }, { {0},             {0} }, /*17c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*180*/
+    { {0},             {0} }, { {0},             {0} }, /*180*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*184*/
+    { {0},             {0} }, { {0},             {0} }, /*184*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*88*/
+    { {0},             {0} }, { {0},             {0} }, /*88*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*18c*/
+    { {0},             {0} }, { {0},             {0} }, /*18c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*190*/
+    { {0},             {0} }, { {0},             {0} }, /*190*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*194*/
+    { {0},             {0} }, { {0},             {0} }, /*194*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*198*/
+    { {0},             {0} }, { {0},             {0} }, /*198*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*19c*/
+    { {0},             {0} }, { {0},             {0} }, /*19c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1a0*/
+    { {0},             {0} }, { {0},             {0} }, /*1a0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1a4*/
+    { {0},             {0} }, { {0},             {0} }, /*1a4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1a8*/
+    { {0},             {0} }, { {0},             {0} }, /*1a8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1ac*/
+    { {0},             {0} }, { {0},             {0} }, /*1ac*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1b0*/
+    { {0},             {0} }, { {0},             {0} }, /*1b0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1b4*/
+    { {0},             {0} }, { {0},             {0} }, /*1b4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1b8*/
+    { {0},             {0} }, { {0},             {0} }, /*1b8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1bc*/
+    { {0},             {0} }, { {0},             {0} }, /*1bc*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1c0*/
+    { {0},             {0} }, { {0},             {0} }, /*1c0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1c4*/
+    { {0},             {0} }, { {0},             {0} }, /*1c4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1c8*/
+    { {0},             {0} }, { {0},             {0} }, /*1c8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1cc*/
+    { {0},             {0} }, { {0},             {0} }, /*1cc*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1d0*/
+    { {0},             {0} }, { {0},             {0} }, /*1d0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1d4*/
+    { {0},             {0} }, { {0},             {0} }, /*1d4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1d8*/
+    { {0},             {0} }, { {0},             {0} }, /*1d8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1dc*/
+    { {0},             {0} }, { {0},             {0} }, /*1dc*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1e0*/
+    { {0},             {0} }, { {0},             {0} }, /*1e0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1e4*/
+    { {0},             {0} }, { {0},             {0} }, /*1e4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1e8*/
+    { {0},             {0} }, { {0},             {0} }, /*1e8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1ec*/
+    { {0},             {0} }, { {0},             {0} }, /*1ec*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1f0*/
+    { {0},             {0} }, { {0},             {0} }, /*1f0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1f4*/
+    { {0},             {0} }, { {0},             {0} }, /*1f4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1f8*/
+    { {0},             {0} }, { {0},             {0} }, /*1f8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} }	/*1fc*/
+    { {0},             {0} }, { {0},             {0} } /*1fc*/
   // clang-format on
 };
 
@@ -366,7 +367,7 @@ kbd_log(const char *fmt, ...)
 #endif
 
 static uint8_t
-get_fdd_switch_settings()
+get_fdd_switch_settings(void)
 {
 
     int i, fdd_count = 0;
@@ -383,7 +384,7 @@ get_fdd_switch_settings()
 }
 
 static uint8_t
-get_videomode_switch_settings()
+get_videomode_switch_settings(void)
 {
 
     if (video_is_mda())
@@ -410,7 +411,7 @@ kbd_poll(void *priv)
         kbd->blocked  = 1;
         picint(2);
 #ifdef ENABLE_KEYBOARD_XT_LOG
-        kbd_log("kbd_poll(): keyboard_xt : take IRQ\n");
+        kbd_log("XTkbd: kbd_poll(): keyboard_xt : take IRQ\n");
 #endif
     }
 
@@ -428,8 +429,8 @@ kbd_adddata(uint16_t val)
 {
     /* Test for T1000 'Fn' key (Right Alt / Right Ctrl) */
     if (is_t1x00) {
-        if (keyboard_recv(0xb8) || keyboard_recv(0x9d)) { /* 'Fn' pressed */
-            t1000_syskey(0x00, 0x04, 0x00);               /* Set 'Fn' indicator */
+        if (keyboard_recv(0x138) || keyboard_recv(0x11d)) { /* 'Fn' pressed */
+            t1000_syskey(0x00, 0x04, 0x00);                 /* Set 'Fn' indicator */
             switch (val) {
                 case 0x45: /* Num Lock => toggle numpad */
                     t1000_syskey(0x00, 0x00, 0x10);
@@ -514,18 +515,23 @@ static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     xtkbd_t *kbd = (xtkbd_t *) priv;
-    uint8_t bit, set;
+    uint8_t  bit, set, new_clock;
 
     switch (port) {
         case 0x61: /* Keyboard Control Register (aka Port B) */
-            if (!(kbd->pb & 0x40) && (val & 0x40)) {
-                key_queue_start = key_queue_end = 0;
-                kbd->want_irq                   = 0;
-                kbd->blocked                    = 0;
-                kbd_adddata(0xaa);
+            if (!(val & 0x80)) {
+                new_clock = !!(val & 0x40);
+                if (!kbd->clock && new_clock) {
+                    key_queue_start = key_queue_end = 0;
+                    kbd->want_irq                   = 0;
+                    kbd->blocked                    = 0;
+                    kbd_adddata(0xaa);
+                }
             }
             kbd->pb = val;
-            ppi.pb  = val;
+            if (!(kbd->pb & 0x80))
+                kbd->clock = !!(kbd->pb & 0x40);
+            ppi.pb = val;
 
             timer_process();
 
@@ -550,21 +556,21 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
 #ifdef ENABLE_KEYBOARD_XT_LOG
             if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ))
-                kbd_log("Cassette motor is %s\n", !(val & 0x08) ? "ON" : "OFF");
+                kbd_log("XTkbd: Cassette motor is %s\n", !(val & 0x08) ? "ON" : "OFF");
 #endif
             break;
 #ifdef ENABLE_KEYBOARD_XT_LOG
         case 0x62: /* Switch Register (aka Port C) */
             if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ))
-                kbd_log("Cassette IN is %i\n", !!(val & 0x10));
+                kbd_log("XTkbd: Cassette IN is %i\n", !!(val & 0x10));
             break;
 #endif
 
         case 0xc0 ... 0xcf: /* Pravetz Flags */
-            kbd_log("Port %02X out: %02X\n", port, val);
+            kbd_log("XTkbd: Port %02X out: %02X\n", port, val);
             if (kbd->type == KBD_TYPE_PRAVETZ) {
-                bit = (port >> 1) & 0x07;
-                set = (port & 0x01) << bit;
+                bit                = (port >> 1) & 0x07;
+                set                = (port & 0x01) << bit;
                 kbd->pravetz_flags = (kbd->pravetz_flags & ~(1 << bit)) | set;
             }
             break;
@@ -579,8 +585,9 @@ kbd_read(uint16_t port, void *priv)
 
     switch (port) {
         case 0x60: /* Keyboard Data Register  (aka Port A) */
-            if ((kbd->pb & 0x80) && ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_ZENITH))) {
-                if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ))
+            if ((kbd->pb & 0x80) && ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_XT82) ||
+                (kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_ZENITH))) {
+                if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_PRAVETZ))
                     ret = (kbd->pd & ~0x02) | (hasfpu ? 0x02 : 0x00);
                 else if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86))
                     ret = 0xff; /* According to Ruud on the PCem forum, this is supposed to return 0xFF on the XT. */
@@ -664,16 +671,16 @@ kbd_read(uint16_t port, void *priv)
             break;
 
         case 0x63: /* Keyboard Configuration Register (aka Port D) */
-            if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86)
-                || (kbd->type == KBD_TYPE_COMPAQ)
-                || (kbd->type == KBD_TYPE_TOSHIBA))
+            if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86) ||
+                (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) ||
+                (kbd->type == KBD_TYPE_TOSHIBA))
                 ret = kbd->pd;
             break;
 
         case 0xc0: /* Pravetz Flags */
             if (kbd->type == KBD_TYPE_PRAVETZ)
                 ret = kbd->pravetz_flags;
-            kbd_log("Port %02X in : %02X\n", port, ret);
+            kbd_log("XTkbd: Port %02X in : %02X\n", port, ret);
             break;
     }
 
@@ -685,10 +692,10 @@ kbd_reset(void *priv)
 {
     xtkbd_t *kbd = (xtkbd_t *) priv;
 
-    kbd->want_irq = 0;
-    kbd->blocked  = 0;
-    kbd->pa       = 0x00;
-    kbd->pb       = 0x00;
+    kbd->want_irq      = 0;
+    kbd->blocked       = 0;
+    kbd->pa            = 0x00;
+    kbd->pb            = 0x00;
     kbd->pravetz_flags = 0x00;
 
     keyboard_scan = 1;
@@ -717,19 +724,19 @@ kbd_init(const device_t *info)
     kbd_reset(kbd);
     kbd->type = info->local;
     if (kbd->type == KBD_TYPE_PRAVETZ) {
-        pclog("Pravetz keyboard!\n");
         io_sethandler(0x00c0, 16,
                       kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
     }
 
     key_queue_start = key_queue_end = 0;
 
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
 
     if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
         (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_XT82) ||
-        (kbd->type <= KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_COMPAQ) ||
-        (kbd->type == KBD_TYPE_TOSHIBA) || (kbd->type == KBD_TYPE_OLIVETTI)) {
+        (kbd->type <= KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_XTCLONE) ||
+        (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_TOSHIBA) ||
+        (kbd->type == KBD_TYPE_OLIVETTI)) {
 
         /* DIP switch readout: bit set = OFF, clear = ON. */
         if (kbd->type == KBD_TYPE_OLIVETTI)
@@ -748,9 +755,8 @@ kbd_init(const device_t *info)
         kbd->pd |= get_videomode_switch_settings();
 
         /* Switches 3, 4 - memory size. */
-        if ((kbd->type == KBD_TYPE_XT86)
-            || (kbd->type == KBD_TYPE_COMPAQ)
-            || (kbd->type == KBD_TYPE_TOSHIBA)) {
+        if ((kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_XTCLONE) ||
+            (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_TOSHIBA)) {
             switch (mem_size) {
                 case 256:
                     kbd->pd |= 0x00;
@@ -1036,6 +1042,20 @@ const device_t keyboard_xt_zenith_device = {
     .internal_name = "keyboard_xt_zenith",
     .flags         = 0,
     .local         = KBD_TYPE_ZENITH,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t keyboard_xtclone_device = {
+    .name          = "XT (Clone) Keyboard",
+    .internal_name = "keyboard_xtclone",
+    .flags         = 0,
+    .local         = KBD_TYPE_XTCLONE,
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,

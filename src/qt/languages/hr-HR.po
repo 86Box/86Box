@@ -76,6 +76,24 @@ msgstr "1,&5x"
 msgid "&2x"
 msgstr "&2x"
 
+msgid "&3x"
+msgstr "&3x"
+
+msgid "&4x"
+msgstr "&4x"
+
+msgid "&5x"
+msgstr "&5x"
+
+msgid "&6x"
+msgstr "&6x"
+
+msgid "&7x"
+msgstr "&7x"
+
+msgid "&8x"
+msgstr "&8x"
+
 msgid "Filter method"
 msgstr "Metoda filtriranja"
 
@@ -226,11 +244,8 @@ msgstr "&Prazno"
 msgid "&Reload previous image"
 msgstr "&Ponovo učitaj prethodnu sliku"
 
-msgid "&Image"
-msgstr "&Slika"
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "&Mapa..."
 
 msgid "Target &framerate"
 msgstr "&Ciljni broj okvira u sekundi"
@@ -367,6 +382,12 @@ msgstr "Video:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo grafika"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a grafika"
+
+msgid "XGA Graphics"
+msgstr "XGA grafika"
+
 msgid "Mouse:"
 msgstr "Miš:"
 
@@ -385,8 +406,17 @@ msgstr "Palica za igru 3..."
 msgid "Joystick 4..."
 msgstr "Palica za igru 4..."
 
-msgid "Sound card:"
-msgstr "Zvučna kartica:"
+msgid "Sound card 1:"
+msgstr "Zvučna kartica 1:"
+
+msgid "Sound card 2:"
+msgstr "Zvučna kartica 2:"
+
+msgid "Sound card 3:"
+msgstr "Zvučna kartica 3:"
+
+msgid "Sound card 4:"
+msgstr "Zvučna kartica 4:"
 
 msgid "MIDI Out Device:"
 msgstr "Izlazni uređaj MIDI:"
@@ -397,17 +427,17 @@ msgstr "Ulazni uređaj MIDI:"
 msgid "Standalone MPU-401"
 msgstr "Samostalni MPU-401"
 
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
-
 msgid "Use FLOAT32 sound"
 msgstr "Koristi FLOAT32 za zvuk"
+
+msgid "FM synth driver"
+msgstr "Drajver za FM sintisajzer"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (precizniji)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (brži)"
 
 msgid "Network type:"
 msgstr "Tip mreže:"
@@ -552,6 +582,9 @@ msgstr "Provjeraj BPB"
 
 msgid "CD-ROM drives:"
 msgstr "CD-ROM pogoni:"
+
+msgid "Earlier drive"
+msgstr "Raniji pogon"
 
 msgid "MO drives:"
 msgstr "MO pogoni:"

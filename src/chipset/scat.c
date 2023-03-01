@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of Chips&Technology's SCAT (82C235) chipset.
+ *          Implementation of Chips&Technology's SCAT (82C235) chipset.
  *
- *		Re-worked version based on the 82C235 datasheet and errata.
+ *          Re-worked version based on the 82C235 datasheet and errata.
  *
  *
  *
- * Authors:	Original by GreatPsycho for PCem.
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Original by GreatPsycho for PCem.
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2017-2019 GreatPsycho.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2017-2019 GreatPsycho.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdint.h>
 #include <stdio.h>
@@ -84,16 +84,20 @@ typedef struct scat_t {
 } scat_t;
 
 static const uint8_t max_map[32] = {
+// clang-format off
     0, 1,  1,  1,  2,  3,  4,  8,
     4, 8, 12, 16, 20, 24, 28, 32,
     0, 5,  9, 13,  6, 10,  0,  0,
     0, 0,  0,  0,  0,  0,  0,  0
+// clang-format om
 };
 static const uint8_t max_map_sx[32] = {
-    0,  1,  2,  1,  3,  4,  6, 10,
-    5,  9, 13,  4,  8, 12, 16, 14,
-   18, 22, 26, 20, 24, 28, 32, 18,
-   20, 32,  0,  0,  0,  0,  0,  0
+// clang-format off
+     0,  1,  2,  1,  3,  4,  6, 10,
+     5,  9, 13,  4,  8, 12, 16, 14,
+    18, 22, 26, 20, 24, 28, 32, 18,
+    20, 32,  0,  0,  0,  0,  0,  0
+// clang-format om
 };
 static const uint8_t scatsx_external_is_RAS[33] = {
     0, 0, 0, 0, 0, 0, 0, 0,

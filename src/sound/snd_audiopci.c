@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors:  Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
  *           RichardG, <richardg867@gmail.com>
  *           Miran Grca, <mgrca8@gmail.com>
  *
@@ -493,10 +493,6 @@ es1371_read_frame_reg(es1371_t *dev, int frame, int page)
                     break;
             }
             break;
-    }
-
-    if (page == 0x0e || page == 0x0f) {
-        audiopci_log("Read frame = %02x, page = %02x, uart fifo valid = %02x, temp = %03x\n", frame, page, dev->valid, ret);
     }
 
     return ret;
@@ -1962,7 +1958,7 @@ generate_es1371_filter(void)
     for (n = 0; n < ES1371_NCoef; n++)
         gain += low_fir_es1371_coef[n] / (float) N;
 
-    gain /= 0.95;
+    gain /= 0.65;
 
     /* Normalise filter, to produce unity gain */
     for (n = 0; n < ES1371_NCoef; n++)
@@ -2049,7 +2045,7 @@ es1371_speed_changed(void *p)
 {
     es1371_t *dev = (es1371_t *) p;
 
-    dev->dac[1].latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 48000.0));
+    dev->dac[1].latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) SOUND_FREQ));
 }
 
 static const device_config_t es1371_config[] = {
@@ -2103,7 +2099,7 @@ static const device_config_t es1371_onboard_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t es1371_device = {

@@ -1,23 +1,25 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Matrox MGA graphics card emulation.
+ *          Matrox MGA graphics card emulation.
  *
  *
  *
- * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Copyright 2008-2020 Sarah Walker.
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *
+ *          Copyright 2008-2020 Sarah Walker.
  */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <stdatomic.h>
 #include <86box/86box.h>
 #include <86box/io.h>
 #include <86box/timer.h>
@@ -429,7 +431,7 @@ typedef struct mystique_t {
         xzoomctrl,
         pixel_count, trap_count;
 
-    volatile int busy, blitter_submit_refcount,
+    atomic_int busy, blitter_submit_refcount,
         blitter_submit_dma_refcount, blitter_complete_refcount,
         endprdmasts_pending, softrap_pending,
         fifo_read_idx, fifo_write_idx;
@@ -470,7 +472,7 @@ typedef struct mystique_t {
             ta_key, ta_mask, lastpix_r, lastpix_g,
             lastpix_b, highv_line, beta, dither;
 
-        int pattern[8][8];
+        int pattern[8][16];
 
         uint32_t dwgctrl, dwgctrl_running, bcol, fcol,
             pitch, plnwt, ybot, ydstorg,
@@ -846,7 +848,7 @@ mystique_recalctimings(svga_t *svga)
     mystique_t *mystique = (mystique_t *) svga->p;
     int         clk_sel  = (svga->miscout >> 2) & 3;
 
-    svga->clock = (cpuclock * (float) (1ull << 32)) / svga->getclock(clk_sel & 2, svga->clock_gen);
+    svga->clock = (cpuclock * (float) (1ull << 32)) / svga->getclock(clk_sel & 3, svga->clock_gen);
 
     if (mystique->crtcext_regs[1] & CRTCX_R1_HTOTAL8)
         svga->htotal += 0x100;
@@ -894,6 +896,8 @@ mystique_recalctimings(svga_t *svga)
                     svga->ma = svga->maback = (svga->maback - (mystique->ma_latch_old << 2)) + (svga->ma_latch << 2);
                 mystique->ma_latch_old = svga->ma_latch;
             }
+
+            svga->rowoffset <<= 1;
 
             switch (mystique->xmulctrl & XMULCTRL_DEPTH_MASK) {
                 case XMULCTRL_DEPTH_8:
@@ -1617,7 +1621,7 @@ mystique_accel_ctrl_write_b(uint32_t addr, uint8_t val, void *p)
         case REG_PAT1 + 2:
         case REG_PAT1 + 3:
             for (x = 0; x < 8; x++)
-                mystique->dwgreg.pattern[addr & 7][x] = val & (1 << (7 - x));
+                mystique->dwgreg.pattern[addr & 7][x] = mystique->dwgreg.pattern[addr & 7][x + 8] = val & (1 << (7 - x));
             break;
 
         case REG_XYSTRT:
@@ -2173,7 +2177,7 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *p)
                 int x, y;
 
                 for (y = 0; y < 8; y++) {
-                    for (x = 0; x < 8; x++)
+                    for (x = 0; x < 16; x++)
                         mystique->dwgreg.pattern[y][x] = 1;
                 }
                 mystique->dwgreg.src[0] = 0xffffffff;
@@ -2246,25 +2250,61 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *p)
             break;
 
         case REG_SRC0:
-            mystique->dwgreg.src[0] = val;
-            if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
-                blit_iload_write(mystique, mystique->dwgreg.src[0], 32);
+            {
+                int x = 0, y = 0;
+                mystique->dwgreg.src[0] = val;
+                for (y = 0; y < 2; y++) {
+                    for (x = 0; x < 16; x++) {
+                        mystique->dwgreg.pattern[y][x] = val & (1 << (x + (y * 16)));
+                    }
+                }
+                // pclog("SRC0 = 0x%08X\n", val);
+                if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
+                    blit_iload_write(mystique, mystique->dwgreg.src[0], 32);
+            }
             break;
         case REG_SRC1:
-            mystique->dwgreg.src[1] = val;
-            if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
-                blit_iload_write(mystique, mystique->dwgreg.src[1], 32);
+            {
+                int x = 0, y = 0;
+                mystique->dwgreg.src[1] = val;
+                for (y = 2; y < 4; y++) {
+                    for (x = 0; x < 16; x++) {
+                        mystique->dwgreg.pattern[y][x] = val & (1 << (x + ((y - 2) * 16)));
+                    }
+                }
+                // pclog("SRC1 = 0x%08X\n", val);
+                if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
+                    blit_iload_write(mystique, mystique->dwgreg.src[1], 32);
+            }
             break;
         case REG_SRC2:
-            mystique->dwgreg.src[2] = val;
-            if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
-                blit_iload_write(mystique, mystique->dwgreg.src[2], 32);
-            break;
+            {
+                int x = 0, y = 0;
+                mystique->dwgreg.src[2] = val;
+                for (y = 4; y < 6; y++) {
+                    for (x = 0; x < 16; x++) {
+                        mystique->dwgreg.pattern[y][x] = val & (1 << (x + ((y - 4) * 16)));
+                    }
+                }
+                // pclog("SRC2 = 0x%08X\n", val);
+                if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
+                    blit_iload_write(mystique, mystique->dwgreg.src[2], 32);
+                break;
+            }
         case REG_SRC3:
-            mystique->dwgreg.src[3] = val;
-            if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
-                blit_iload_write(mystique, mystique->dwgreg.src[3], 32);
-            break;
+            {
+                int x = 0, y = 0;
+                mystique->dwgreg.src[3] = val;
+                for (y = 6; y < 8; y++) {
+                    for (x = 0; x < 16; x++) {
+                        mystique->dwgreg.pattern[y][x] = val & (1 << (x + ((y - 6) * 16)));
+                    }
+                }
+                // pclog("SRC3 = 0x%08X\n", val);
+                if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
+                    blit_iload_write(mystique, mystique->dwgreg.src[3], 32);
+                break;
+            }
 
         case REG_DMAPAD:
             if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
@@ -4050,7 +4090,7 @@ blit_trap(mystique_t *mystique)
 
                 while (x_l != x_r) {
                     if (x_l >= mystique->dwgreg.cxleft && x_l <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot && trans[x_l & 3]) {
-                        int      xoff    = (mystique->dwgreg.xoff + x_l) & 7;
+                        int      xoff    = (mystique->dwgreg.xoff + (x_l & 7)) & 15;
                         int      pattern = mystique->dwgreg.pattern[yoff][xoff];
                         uint32_t dst;
 
@@ -4117,7 +4157,7 @@ blit_trap(mystique_t *mystique)
 
                 while (x_l != x_r) {
                     if (x_l >= mystique->dwgreg.cxleft && x_l <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot && trans[x_l & 3]) {
-                        int      xoff    = (mystique->dwgreg.xoff + x_l) & 7;
+                        int      xoff    = (mystique->dwgreg.xoff + (x_l & 7)) & 15;
                         int      pattern = mystique->dwgreg.pattern[yoff][xoff];
                         uint32_t src     = pattern ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
                         uint32_t dst, old_dst;
@@ -5577,7 +5617,7 @@ static const device_config_t mystique_config[] = {
     {
         .type = CONFIG_END
     }
-// clang-format on
+  // clang-format on
 };
 
 const device_t millennium_device = {

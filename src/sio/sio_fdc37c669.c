@@ -1,17 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the SMC FDC37C669 Super I/O Chip.
+ *          Implementation of the SMC FDC37C669 Super I/O Chip.
  *
  *
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2018 Miran Grca.
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -337,9 +338,9 @@ const device_t fdc37c669_370_device = {
     .internal_name = "fdc37c669_370",
     .flags         = 0,
     .local         = 1,
-    fdc37c669_init,
-    fdc37c669_close,
-    .reset = NULL,
+    .init          = fdc37c669_init,
+    .close         = fdc37c669_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,

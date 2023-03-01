@@ -1,19 +1,19 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Iomega ZIP drive with SCSI(-like)
- *		commands, for both ATAPI and SCSI usage.
+ *          Implementation of the Iomega ZIP drive with SCSI(-like)
+ *          commands, for both ATAPI and SCSI usage.
  *
  *
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2018,2019 Miran Grca.
+ *          Copyright 2018-2019 Miran Grca.
  */
 
 #ifndef EMU_ZIP_H
@@ -113,7 +113,7 @@ extern void zip_hard_reset(void);
 
 extern void zip_reset(scsi_common_t *sc);
 extern int  zip_load(zip_t *dev, char *fn);
-extern void zip_close();
+extern void zip_close(void);
 
 #ifdef __cplusplus
 }

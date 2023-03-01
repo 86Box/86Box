@@ -7,8 +7,7 @@ namespace Ui {
 class SettingsSound;
 }
 
-class SettingsSound : public QWidget
-{
+class SettingsSound : public QWidget {
     Q_OBJECT
 
 public:
@@ -21,24 +20,24 @@ public slots:
     void onCurrentMachineChanged(int machineId);
 
 private slots:
-    void on_pushButtonConfigureGUS_clicked();
-    void on_pushButtonConfigureCMS_clicked();
-    void on_pushButtonConfigureSSI2001_clicked();
     void on_pushButtonConfigureMPU401_clicked();
-    void on_checkBoxGUS_stateChanged(int arg1);
-    void on_checkBoxCMS_stateChanged(int arg1);
-    void on_checkBoxSSI2001_stateChanged(int arg1);
     void on_checkBoxMPU401_stateChanged(int arg1);
     void on_pushButtonConfigureMidiIn_clicked();
     void on_pushButtonConfigureMidiOut_clicked();
     void on_comboBoxMidiIn_currentIndexChanged(int index);
     void on_comboBoxMidiOut_currentIndexChanged(int index);
-    void on_pushButtonConfigureSoundCard_clicked();
-    void on_comboBoxSoundCard_currentIndexChanged(int index);
+    void on_pushButtonConfigureSoundCard1_clicked();
+    void on_comboBoxSoundCard1_currentIndexChanged(int index);
+    void on_pushButtonConfigureSoundCard2_clicked();
+    void on_comboBoxSoundCard2_currentIndexChanged(int index);
+    void on_pushButtonConfigureSoundCard3_clicked();
+    void on_comboBoxSoundCard3_currentIndexChanged(int index);
+    void on_pushButtonConfigureSoundCard4_clicked();
+    void on_comboBoxSoundCard4_currentIndexChanged(int index);
 
 private:
     Ui::SettingsSound *ui;
-    int machineId = 0;
+    int                machineId = 0;
 };
 
 #endif // QT_SETTINGSSOUND_HPP

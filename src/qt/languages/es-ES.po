@@ -76,6 +76,24 @@ msgstr "1.&5x"
 msgid "&2x"
 msgstr "&2x"
 
+msgid "&3x"
+msgstr "&3x"
+
+msgid "&4x"
+msgstr "&4x"
+
+msgid "&5x"
+msgstr "&5x"
+
+msgid "&6x"
+msgstr "&6x"
+
+msgid "&7x"
+msgstr "&7x"
+
+msgid "&8x"
+msgstr "&8x"
+
 msgid "Filter method"
 msgstr "&Método de filtrado"
 
@@ -226,11 +244,8 @@ msgstr "E&xtraer disco"
 msgid "&Reload previous image"
 msgstr "&Recargar imagen previa"
 
-msgid "&Image"
-msgstr "&Imagen..."
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "&Carpeta..."
 
 msgid "Target &framerate"
 msgstr "&Tasa de refresco objetivo"
@@ -367,6 +382,12 @@ msgstr "Vídeo:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo Graphics"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a Graphics"
+
+msgid "XGA Graphics"
+msgstr "XGA Graphics"
+
 msgid "Mouse:"
 msgstr "Ratón:"
 
@@ -385,8 +406,17 @@ msgstr "Mando 3..."
 msgid "Joystick 4..."
 msgstr "Mando 4..."
 
-msgid "Sound card:"
-msgstr "Tarjeta de sonido:"
+msgid "Sound card 1:"
+msgstr "Tarjeta de sonido 1:"
+
+msgid "Sound card 2:"
+msgstr "Tarjeta de sonido 2:"
+
+msgid "Sound card 3:"
+msgstr "Tarjeta de sonido 3:"
+
+msgid "Sound card 4:"
+msgstr "Tarjeta de sonido 4:"
 
 msgid "MIDI Out Device:"
 msgstr "Dispositivo MIDI de salida:"
@@ -397,17 +427,17 @@ msgstr "Dispositivo MIDI de entrada:"
 msgid "Standalone MPU-401"
 msgstr "MPU-401 independiente"
 
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
-
 msgid "Use FLOAT32 sound"
 msgstr "Usar sonido FLOAT32"
+
+msgid "FM synth driver"
+msgstr "Controlador de sintet. FM"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (más preciso)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (más rápido)"
 
 msgid "Network type:"
 msgstr "Tipo de red:"
@@ -552,6 +582,9 @@ msgstr "Chequear BPB"
 
 msgid "CD-ROM drives:"
 msgstr "Unidades de CD-ROM:"
+
+msgid "Earlier drive"
+msgstr "Unidad anterior"
 
 msgid "MO drives:"
 msgstr "Unidades MO:"

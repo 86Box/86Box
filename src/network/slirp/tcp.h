@@ -55,7 +55,7 @@ struct tcphdr {
     uint16_t th_dport; /* destination port */
     tcp_seq th_seq; /* sequence number */
     tcp_seq th_ack; /* acknowledgement number */
-#if G_BYTE_ORDER == G_BIG_ENDIAN
+#if (G_BYTE_ORDER == G_BIG_ENDIAN) && !defined(_MSC_VER)
     uint8_t th_off : 4, /* data offset */
         th_x2 : 4; /* (unused) */
 #else

@@ -25,13 +25,13 @@ extern char *midi_out_device_get_internal_name(int card);
 extern char *midi_in_device_get_internal_name(int card);
 extern int   midi_out_device_get_from_internal_name(char *s);
 extern int   midi_in_device_get_from_internal_name(char *s);
-extern void  midi_out_device_init();
-extern void  midi_in_device_init();
+extern void  midi_out_device_init(void);
+extern void  midi_in_device_init(void);
 
 typedef struct midi_device_t {
     void (*play_sysex)(uint8_t *sysex, unsigned int len);
     void (*play_msg)(uint8_t *msg);
-    void (*poll)();
+    void (*poll)(void);
     int (*write)(uint8_t val);
 } midi_device_t;
 
@@ -60,13 +60,13 @@ extern midi_t *midi_out, *midi_in;
 
 extern void midi_out_init(midi_device_t *device);
 extern void midi_in_init(midi_device_t *device, midi_t **mididev);
-extern void midi_out_close();
+extern void midi_out_close(void);
 extern void midi_in_close(void);
 extern void midi_raw_out_rt_byte(uint8_t val);
 extern void midi_raw_out_thru_rt_byte(uint8_t val);
 extern void midi_raw_out_byte(uint8_t val);
 extern void midi_clear_buffer(void);
-extern void midi_poll();
+extern void midi_poll(void);
 
 extern void midi_in_handler(int set, void (*msg)(void *p, uint8_t *msg, uint32_t len), int (*sysex)(void *p, uint8_t *buffer, uint32_t len, int abort), void *p);
 extern void midi_in_handlers_clear(void);

@@ -37,11 +37,13 @@
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2013-2018 Alexey Khokholov (Nuke.YKT)
  */
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/snd_opl_nuked.h>
 #include <86box/sound.h>
@@ -52,6 +54,8 @@
 #define WRBUF_SIZE  1024
 #define WRBUF_DELAY 1
 #define RSM_FRAC    10
+
+#define OPL_FREQ FREQ_48000
 
 // Channel types
 enum {
@@ -208,14 +212,18 @@ enum {
 };
 
 #ifdef ENABLE_OPL_LOG
+int nuked_do_log = ENABLE_OPL_LOG;
+
 static void
 nuked_log(const char *fmt, ...)
 {
     va_list ap;
 
-    va_start(ap, fmt);
-    pclog_ex(fmt, ap);
-    va_end(ap);
+    if (nuked_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
 }
 #else
 #    define nuked_log(fmt, ...)
@@ -1475,7 +1483,7 @@ nuked_drv_init(const device_t *info)
         dev->status = 0x06;
 
     /* Initialize the NukedOPL object. */
-    nuked_init(&dev->opl, 48000);
+    nuked_init(&dev->opl, OPL_FREQ);
 
     timer_add(&dev->timers[0], nuked_timer_1, dev, 0);
     timer_add(&dev->timers[1], nuked_timer_2, dev, 0);

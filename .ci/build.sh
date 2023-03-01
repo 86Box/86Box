@@ -1,18 +1,18 @@
 #!/bin/sh
 #
-# 86Box		A hypervisor and IBM PC system emulator that specializes in
-#		running old operating systems and software designed for IBM
-#		PC systems and compatibles from 1981 through fairly recent
-#		system designs based on the PCI bus.
+# 86Box    A hypervisor and IBM PC system emulator that specializes in
+#          running old operating systems and software designed for IBM
+#          PC systems and compatibles from 1981 through fairly recent
+#          system designs based on the PCI bus.
 #
-#		This file is part of the 86Box distribution.
+#          This file is part of the 86Box distribution.
 #
-#		Jenkins build script.
+#          Jenkins build script.
 #
 #
-# Authors:	RichardG, <richardg867@gmail.com>
+# Authors: RichardG, <richardg867@gmail.com>
 #
-#		Copyright 2021-2022 RichardG.
+#          Copyright 2021-2023 RichardG.
 #
 
 #
@@ -26,7 +26,6 @@
 #   - Packaging the Ghostscript DLL requires 32-bit and/or 64-bit Ghostscript on Program Files
 #   - Packaging the FluidSynth DLL requires it to be at /home/86Box/dll32/libfluidsynth.dll
 #     and/or /home/86Box/dll64/libfluidsynth64.dll (for 32-bit and 64-bit builds respectively)
-#   - Packaging the Discord DLL requires wget (MSYS should come with it)
 # - For Linux builds:
 #   - Only Debian and derivatives are supported
 #   - dpkg and apt-get are called through sudo to manage dependencies; make sure those
@@ -136,6 +135,7 @@ package_name=
 arch=
 tarball_name=
 skip_archive=0
+dep_report=0
 strip=0
 cmake_flags=
 while [ $# -gt 0 ]
@@ -154,6 +154,11 @@ do
 			skip_archive=1
 			;;
 
+		-p)
+			shift
+			dep_report=1
+			;;
+
 		-s)
 			shift
 			tarball_name="$1"
@@ -166,19 +171,23 @@ do
 			;;
 
 		*)
-			if echo $1 | grep -q " "
-			then
-				cmake_flag="\"$1\""
-			else
-				cmake_flag="$1"
-			fi
-			if [ -z "$cmake_flags" ]
-			then
-				cmake_flags="$cmake_flag"
-			else
-				cmake_flags="$cmake_flags $cmake_flag"
-			fi
-			shift
+			# Consume remaining arguments as CMake flags.
+			while [ $# -gt 0 ]
+			do
+				if echo $1 | grep -q " "
+				then
+					cmake_flag="\"$1\""
+				else
+					cmake_flag="$1"
+				fi
+				if [ -z "$cmake_flags" ]
+				then
+					cmake_flags="$cmake_flag"
+				else
+					cmake_flags="$cmake_flags $cmake_flag"
+				fi
+				shift
+			done
 			;;
 	esac
 done
@@ -274,7 +283,7 @@ then
 		then
 			# Update keyring as well, since the package signing keys sometimes change.
 			echo [-] Updating package databases and keyring
-			yes | pacman -Sy --needed msys2-keyring
+			pacman -Sy --needed --noconfirm msys2-keyring
 
 			# Save build tag to skip pacman sync/keyring later.
 			save_buildtag pacmansync
@@ -282,100 +291,29 @@ then
 			echo [-] Not updating package databases and keyring again
 		fi
 
-		# Query installed packages.
-		pacman -Qe > "$cache_dir/pacman.txt"
-
-		# Download the specified versions of architecture-specific dependencies.
-		echo -n [-] Downloading dependencies:
-		pkg_dir="/var/cache/pacman/pkg"
-		repo_base="https://repo.msys2.org/mingw/$(echo $MSYSTEM | tr '[:upper:]' '[:lower:]')"
-		cat .ci/dependencies_msys.txt | tr -d '\r' > "$cache_dir/deps.txt"
-		pkgs=""
-		while IFS=" " read pkg version
-		do
-			prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
-			installed_version=$(grep -E "^$prefixed_pkg " "$cache_dir/pacman.txt" | cut -d " " -f 2)
-			if [ "$installed_version" != "$version" ] # installed_version will be empty if not installed
-			then
-				echo -n " [$pkg"
-
-				# Download package if not already present in the local cache.
-				pkg_tar="$prefixed_pkg-$version-any.pkg.tar"
-				if [ -s "$pkg_dir/$pkg_tar.xz" ]
-				then
-					pkg_fn="$pkg_tar.xz"
-					pkg_dest="$pkg_dir/$pkg_fn"
-				else
-					pkg_fn="$pkg_tar.zst"
-					pkg_dest="$pkg_dir/$pkg_fn"
-					if [ ! -s "$pkg_dest" ]
-					then
-						if ! wget -qO "$pkg_dest" "$repo_base/$pkg_fn"
-						then
-							rm -f "$pkg_dest"
-							pkg_fn="$pkg_tar.xz"
-							pkg_dest="$pkg_dir/$pkg_fn"
-							wget -qO "$pkg_dest" "$repo_base/$pkg_fn" || rm -f "$pkg_dest"
-						fi
-						if [ -s "$pkg_dest" ]
-						then
-							wget -qO "$pkg_dest.sig" "$repo_base/$pkg_fn.sig" || rm -f "$pkg_dest.sig"
-							[ ! -s "$pkg_dest.sig" ] && rm -f "$pkg_dest.sig"
-						fi
-					fi
-				fi
-
-				# Check if the cached package is valid.
-				if [ -s "$pkg_dest" ]
-				then
-					# Add cached zst package.
-					pkgs="$pkgs $pkg_fn"
-				else
-					# Not valid, remove if it exists.
-					rm -f "$pkg_dest" "$pkg_dest.sig"
-					echo -n " FAIL"
-				fi
-				echo -n "]"
-			fi
-		done < "$cache_dir/deps.txt"
-		[ -z "$pkgs" ] && echo -n ' none required'
-		echo
-
-		# Install the downloaded architecture-specific dependencies.
-		echo [-] Installing dependencies through pacman
-		if [ -n "$pkgs" ]
-		then
-			pushd "$pkg_dir"
-			yes | pacman -U --needed $pkgs
-			if [ $? -ne 0 ]
-			then
-				# Install packages individually if installing them all together failed.
-				for pkg in $pkgs
-				do
-					yes | pacman -U --needed "$pkg"
-				done
-			fi
-			popd
-
-			# Query installed packages again.
-			pacman -Qe > "$cache_dir/pacman.txt"
-		fi
-
-		# Install the latest versions for any missing packages (if the specified version couldn't be installed).
+		# Establish general dependencies.
 		pkgs="git"
-		while IFS=" " read pkg version
+
+		# Gather installed architecture-specific packages for updating.
+		# This prevents outdated shared libraries, unmet dependencies
+		# and potentially other issues caused by the fact pacman doesn't
+		# update a package's dependencies unless explicitly told to.
+		pkgs="$pkgs $(pacman -Quq | grep -E "^$MINGW_PACKAGE_PREFIX-")"
+
+		# Establish architecture-specific dependencies.
+		while read pkg rest
 		do
-			prefixed_pkg="$MINGW_PACKAGE_PREFIX-$pkg"
-			grep -qE "^$prefixed_pkg " "$cache_dir/pacman.txt" || pkgs="$pkgs $prefixed_pkg"
-		done < "$cache_dir/deps.txt"
-		rm -f "$cache_dir/pacman.txt" "$cache_dir/deps.txt"
-		yes | pacman -S --needed $pkgs
-		if [ $? -ne 0 ]
+			pkgs="$pkgs $MINGW_PACKAGE_PREFIX-$(echo "$pkg" | tr -d '\r')" # CR removal required
+		done < .ci/dependencies_msys.txt
+
+		# Install or update dependencies.
+		echo [-] Installing dependencies through pacman
+		if ! pacman -S --needed --noconfirm $pkgs
 		then
 			# Install packages individually if installing them all together failed.
 			for pkg in $pkgs
 			do
-				yes | pacman -S --needed "$pkg"
+				pacman -S --needed --noconfirm "$pkg"
 			done
 		fi
 
@@ -545,8 +483,8 @@ then
 
 	# Switch into the correct architecture if required.
 	case $arch in
-		x86_64*) arch_mac="i386";;
-		*)	 arch_mac="$arch";;
+		x86_64*) arch_mac="i386"; arch_cmd="x86_64";;
+		*)	 arch_mac="$arch"; arch_cmd="$arch";;
 	esac
 	if [ "$(arch)" != "$arch" -a "$(arch)" != "$arch_mac" ]
 	then
@@ -556,7 +494,7 @@ then
 		args=
 		[ $strip -ne 0 ] && args="-t $args"
 		[ $skip_archive -ne 0 ] && args="-n $args"
-		arch -"$arch" zsh -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
+		arch -"$arch_cmd" zsh -lc 'exec "'"$0"'" -b "'"$package_name"'" "'"$arch"'" '"$args""$cmake_flags"
 		exit $?
 	fi
 	echo [-] Using architecture [$(arch)]
@@ -589,7 +527,21 @@ then
 			sudo sed -i -e 's/-no-feature-vulkan/-feature-vulkan/g' "$qt5_portfile"
 			sudo sed -i -e 's/configure.env-append MAKE=/configure.env-append VULKAN_SDK=${prefix} MAKE=/g' "$qt5_portfile"
 		fi
-		sudo "$macports/bin/port" install $(cat .ci/dependencies_macports.txt)
+		while :
+		do
+			# Attempt to install dependencies.
+			sudo "$macports/bin/port" install $(cat .ci/dependencies_macports.txt) 2>&1 | tee macports.log
+
+			# Stop if no port version activation errors were found.
+			stuck_dep=$(grep " cannot be built while another version of " macports.log | cut -d" " -f10)
+			[ -z $stuck_dep ] && break
+
+			# Deactivate the stuck dependency and try again.
+			sudo "$macports/bin/port" -f deactivate $stuck_dep
+		done
+
+		# Remove MacPorts error detection log.
+		rm -f macports.log
 
 		# Save build tag to skip this later. Doing it here (once everything is
 		# in place) is important to avoid potential issues with retried builds.
@@ -609,6 +561,7 @@ else
 
 	# Establish general dependencies.
 	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream"
+	[ $dep_report -ne 0 ] && pkgs="$pkgs pax-utils"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -924,14 +877,19 @@ else
 
 	if grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
-		# Build openal-soft 1.21.1 manually to fix audio issues. This is a temporary
+		# Build openal-soft 1.22.2 manually to fix audio issues. This is a temporary
 		# workaround until a newer version of openal-soft trickles down to Debian repos.
-		prefix="$cache_dir/openal-soft-1.21.1"
+		prefix="$cache_dir/openal-soft-1.22.2"
 		if [ ! -d "$prefix" ]
 		then
 			rm -rf "$cache_dir/openal-soft-"* # remove old versions
-			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.21.1.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.22.2.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 		fi
+
+		# Patches to build with the old PipeWire version in Debian.
+		sed -i -e 's/>=0.3.23//' "$prefix/CMakeLists.txt"
+		sed -i -e 's/PW_KEY_CONFIG_NAME/"config.name"/g' "$prefix/alc/backends/pipewire.cpp"
+
 		prefix_build="$prefix/build-$arch_deb"
 		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 		cmake --build "$prefix_build" -j$(nproc) || exit 99
@@ -957,11 +915,12 @@ else
 		sdl_ss=ON
 	fi
 
-	# Build SDL2 with video systems (and some dependencies) only if the SDL interface is used.
+	# Build SDL2 with video systems (and dependencies) only if the SDL interface is used.
 	sdl_ui=OFF
 	grep -qiE "^QT:BOOL=ON" build/CMakeCache.txt || sdl_ui=ON
 
-	# Build rtmidi without JACK support to remove the dependency on libjack.
+	# Build rtmidi without JACK support to remove the dependency on libjack, as
+	# the Debian libjack is very likely to be incompatible with the system jackd.
 	prefix="$cache_dir/rtmidi-4.0.0"
 	if [ ! -d "$prefix" ]
 	then
@@ -972,6 +931,24 @@ else
 	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
+
+	# Build FluidSynth without sound systems to remove the dependencies on libjack
+	# and other sound system libraries. We don't output audio through FluidSynth.
+	prefix="$cache_dir/fluidsynth-2.3.0"
+	if [ ! -d "$prefix" ]
+	then
+		rm -rf "$cache_dir/fluidsynth-"* # remove old versions
+		wget -qO - https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.3.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+	fi
+	cp cmake/flags-gcc.cmake cmake/flags-gcc.cmake.old
+	sed -i -e 's/ -Werror=.*\([" ]\)/\1/g' cmake/flags-gcc.cmake # temporary hack for -Werror=old-style-definition non-compliance on FluidSynth and SDL2
+	prefix_build="$prefix/build-$arch_deb"
+	cmake -G Ninja -D enable-dbus=OFF -D enable-jack=OFF -D enable-oss=OFF -D enable-sdl2=OFF -D enable-pulseaudio=OFF -D enable-pipewire=OFF -D enable-alsa=OFF \
+		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
+		-S "$prefix" -B "$prefix_build" || exit 99
+	cmake --build "$prefix_build" -j$(nproc) || exit 99
+	cmake --install "$prefix_build" || exit 99
+	cp -p "$cwd_root/archive_tmp/usr/bin/fluidsynth" fluidsynth
 
 	# Build SDL2 for joystick and FAudio support, with most components
 	# disabled to remove the dependencies on PulseAudio and libdrm.
@@ -1003,6 +980,7 @@ else
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
+	mv cmake/flags-gcc.cmake.old cmake/flags-gcc.cmake
 
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"
@@ -1024,11 +1002,18 @@ else
 	metainfo_base=archive_tmp/usr/share/metainfo
 	mkdir -p "$metainfo_base"
 	cp -p "src/unix/assets/$project_id."*".xml" "$metainfo_base/$project_id.appdata.xml"
+	applications_base=archive_tmp/usr/share/applications
+	mkdir -p "$applications_base"
+	cp -p "src/unix/assets/$project_id.desktop" "$applications_base/"
 
 	# Archive icons.
-	icon_base=archive_tmp/usr/share/icons
-	mkdir -p "$icon_base"
-	cp -rp src/unix/assets/[0-9]*x[0-9]* "$icon_base/"
+	icon_base=archive_tmp/usr/share/icons/hicolor
+	for icon_size in src/unix/assets/[0-9]*x[0-9]*
+	do
+		icon_dir="$icon_base/$(basename "$icon_size")"
+		mkdir -p "$icon_dir"
+		cp -rp "$icon_size" "$icon_dir/apps"
+	done
 	project_icon=$(ls "$icon_base/"[0-9]*x[0-9]*/* | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+$)')
 
 	# Archive executable, while also stripping it if requested.
@@ -1088,7 +1073,7 @@ else
 
 	# Generate modified AppImage metadata to suit build requirements.
 	cat << EOF > AppImageBuilder-generated.yml
-# This file is generated automatically by .ci/build.sh and will be
+# This file is automatically generated by .ci/build.sh and will be
 # overwritten if edited. Please edit .ci/AppImageBuilder.yml instead.
 EOF
 	while IFS= read line
@@ -1096,7 +1081,7 @@ EOF
 		# Skip blank or comment lines.
 		echo "$line" | grep -qE '^(#|$)' && continue
 
-		# Parse "# if OPTION VALUE" condition lines.
+		# Parse "# if OPTION:TYPE=VALUE" CMake condition lines.
 		condition=$(echo "$line" | grep -oP '# if \K(.+)')
 		if [ -n "$condition" ]
 		then
@@ -1106,10 +1091,31 @@ EOF
 
 		# Copy line.
 		echo "$line" >> AppImageBuilder-generated.yml
+
+		# Workaround for appimage-builder issues 272 and 283 (i686 and armhf are also missing)
+		if [ "$arch_appimage" != "x86_64" -a "$line" = "  files:" ]
+		then
+			# Some mild arbitrary code execution with a dummy package...
+			[ ! -d /runtime ] && sudo apt-get -y -o 'DPkg::Post-Invoke::=mkdir -p /runtime; chmod 777 /runtime' install libsixel1 > /dev/null 2>&1
+
+			echo "    include:" >> AppImageBuilder-generated.yml
+			for loader in "/lib/$libdir/ld-linux"*.so.*
+			do
+				for loader_copy in "$loader" "/lib/$(basename "$loader")"
+				do
+					if [ ! -e "/runtime/compat$loader_copy" ]
+					then
+						mkdir -p "/runtime/compat$(dirname "$loader_copy")"
+						ln -s "$loader" "/runtime/compat$loader_copy"
+					fi
+					echo "    - /runtime/compat$loader_copy" >> AppImageBuilder-generated.yml
+				done
+			done
+		fi
 	done < .ci/AppImageBuilder.yml
 
 	# Download appimage-builder if necessary.
-	appimage_builder_url="https://github.com/AppImageCrafters/appimage-builder/releases/download/v0.9.2/appimage-builder-0.9.2-35e3eab-x86_64.AppImage"
+	appimage_builder_url="https://github.com/AppImageCrafters/appimage-builder/releases/download/v1.1.0/appimage-builder-1.1.0-$(uname -m).AppImage"
 	appimage_builder_binary="$cache_dir/$(basename "$appimage_builder_url")"
 	if [ ! -e "$appimage_builder_binary" ]
 	then
@@ -1125,18 +1131,27 @@ EOF
 	ln -s "$cache_dir/appimage-builder-cache" appimage-builder-cache
 
 	# Run appimage-builder in extract-and-run mode for Docker compatibility.
-	project="$project" project_id="$project_id" project_version="$project_version" project_icon="$project_icon" arch_deb="$arch_deb" \
-		arch_appimage="$arch_appimage" APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage --recipe AppImageBuilder-generated.yml
-	status=$?
-
-	# Rename AppImage to the final name if the build succeeded.
-	if [ $status -eq 0 ]
-	then
-		mv "$project-"*".AppImage" "$cwd/$package_name.AppImage"
+	# --appdir is a workaround for appimage-builder issue 270 reported by us.
+	for retry in 1 2 3 4 5
+	do
+		project="$project" project_id="$project_id" project_version="$project_version" project_icon="$project_icon" arch_deb="$arch_deb" \
+			arch_appimage="$arch_appimage" appimage_path="$cwd/$package_name.AppImage" APPIMAGE_EXTRACT_AND_RUN=1 ./appimage-builder.AppImage \
+			--recipe AppImageBuilder-generated.yml --appdir "$(grep -oP '^\s+path: \K(.+)' AppImageBuilder-generated.yml)"
 		status=$?
-	else
-		# Remove appimage-builder binary just in case it's corrupted.
-		rm -f "$appimage_builder_binary"
+		[ $status -eq 0 ] && break
+	done
+
+	# Remove appimage-builder binary on failure, just in case it's corrupted.
+	[ $status -ne 0 ] && rm -f "$appimage_builder_binary"
+
+	# Generate library dependency report if requested.
+	if [ $dep_report -ne 0 ]
+	then
+		echo '[-] Library dependency report:'
+
+		# Run lddtree with AppImage lib directories included in the search path.
+		LD_LIBRARY_PATH=$(find "$(pwd)/archive_tmp" -type d -name lib -o -name lib64 | while read dir; do find "$dir" -type d; done | tr '\n' ':') \
+			lddtree "archive_tmp/usr/local/bin/$project" 2>&1 | tee depreport.txt
 	fi
 fi
 

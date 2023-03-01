@@ -1,56 +1,54 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * VARCem   Virtual ARchaeological Computer EMulator.
+ *          An emulator of (mostly) x86-based PC systems and devices,
+ *          using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *          spanning the era between 1981 and 1995.
  *
- *		This file is part of the VARCem Project.
+ *          Implementation of a Clock/RTC Card for the ISA PC/XT.
  *
- *		Implementation of a Clock/RTC Card for the ISA PC/XT.
+ *          Systems starting with the PC/XT had, by default, a realtime
+ *          clock and NVR chip on the mainboard. The BIOS stored config
+ *          data in the NVR, and the system could maintain time and date
+ *          using the RTC.
  *
- *		Systems starting with the PC/XT had, by default, a realtime
- *		clock and NVR chip on the mainboard. The BIOS stored config
- *		data in the NVR, and the system could maintain time and date
- *		using the RTC.
+ *          Originally, PC systems did not have this, and they first did
+ *          show up in non-IBM clone systems. Shortly after, expansion
+ *          cards with this function became available for the PC's (ISA)
+ *          bus, and they came in many forms and designs.
  *
- *		Originally, PC systems did not have this, and they first did
- *		show up in non-IBM clone systems. Shortly after, expansion
- *		cards with this function became available for the PC's (ISA)
- *		bus, and they came in many forms and designs.
+ *          This implementation offers some of those boards:
  *
- *		This implementation offers some of those boards:
+ *            Everex EV-170 (using NatSemi MM58167 chip)
+ *            DTK PII-147 Hexa I/O Plus (using UMC 82C8167 chip)
  *
- *		  Everex EV-170 (using NatSemi MM58167 chip)
- *		  DTK PII-147 Hexa I/O Plus (using UMC 82C8167 chip)
+ *          and more will follow as time permits.
  *
- *		and more will follow as time permits.
- *
- * NOTE:	The IRQ functionalities have been implemented, but not yet
- *		tested, as I need to write test software for them first :)
+ * NOTE:    The IRQ functionalities have been implemented, but not yet
+ *          tested, as I need to write test software for them first :)
  *
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2018 Fred N. van Kempen.
+ *          Copyright 2018 Fred N. van Kempen.
  *
- *		Redistribution and  use  in source  and binary forms, with
- *		or  without modification, are permitted  provided that the
- *		following conditions are met:
+ *          Redistribution and  use  in source  and binary forms, with
+ *          or  without modification, are permitted  provided that the
+ *          following conditions are met:
  *
- *		1. Redistributions of  source  code must retain the entire
- *		   above notice, this list of conditions and the following
- *		   disclaimer.
+ *          1. Redistributions of  source  code must retain the entire
+ *             above notice, this list of conditions and the following
+ *             disclaimer.
  *
- *		2. Redistributions in binary form must reproduce the above
- *		   copyright  notice,  this list  of  conditions  and  the
- *		   following disclaimer in  the documentation and/or other
- *		   materials provided with the distribution.
+ *          2. Redistributions in binary form must reproduce the above
+ *             copyright  notice,  this list  of  conditions  and  the
+ *             following disclaimer in  the documentation and/or other
+ *             materials provided with the distribution.
  *
- *		3. Neither the  name of the copyright holder nor the names
- *		   of  its  contributors may be used to endorse or promote
- *		   products  derived from  this  software without specific
- *		   prior written permission.
+ *          3. Neither the  name of the copyright holder nor the names
+ *             of  its  contributors may be used to endorse or promote
+ *             products  derived from  this  software without specific
+ *             prior written permission.
  *
  * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
  * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
@@ -64,12 +62,14 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/timer.h>
@@ -82,12 +82,13 @@
 #include <86box/pic.h>
 #include <86box/isartc.h>
 
-#define ISARTC_EV170 0
-#define ISARTC_DTK   1
-#define ISARTC_P5PAK 2
-#define ISARTC_A6PAK 3
+#define ISARTC_EV170  0
+#define ISARTC_DTK    1
+#define ISARTC_P5PAK  2
+#define ISARTC_A6PAK  3
+#define ISARTC_VENDEX 4
 
-#define ISARTC_DEBUG 0
+#define ISARTC_DEBUG  0
 
 typedef struct {
     const char *name;  /* board name */
@@ -111,9 +112,9 @@ typedef struct {
 } rtcdev_t;
 
 /************************************************************************
- *									*
- *		    Driver for the NatSemi MM58167 chip.		*
- *									*
+ *                                    *
+ *            Driver for the NatSemi MM58167 chip.        *
+ *                                    *
  ************************************************************************/
 #define MM67_REGS 32
 
@@ -480,9 +481,9 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 }
 
 /************************************************************************
- *									*
- *		    Generic code for all supported chips.		*
- *									*
+ *                                    *
+ *            Generic code for all supported chips.        *
+ *                                    *
  ************************************************************************/
 
 /* Initialize the device for use. */
@@ -544,6 +545,18 @@ isartc_init(const device_t *info)
             dev->year        = MM67_AL_DOM; /* year, NON STANDARD */
             break;
 
+        case ISARTC_VENDEX: /* Vendex HeadStart Turbo 888-XT RTC */
+            dev->flags |= FLAG_YEAR80 | FLAG_YEARBCD;
+            dev->base_addr   = 0x0300;
+            dev->base_addrsz = 32;
+            dev->f_rd        = mm67_read;
+            dev->f_wr        = mm67_write;
+            dev->nvr.reset   = mm67_reset;
+            dev->nvr.start   = mm67_start;
+            dev->nvr.tick    = mm67_tick;
+            dev->year        = MM67_AL_DOM; /* year, NON STANDARD */
+            break;
+
         default:
             break;
     }
@@ -559,7 +572,7 @@ isartc_init(const device_t *info)
                   dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
 
     /* Hook into the NVR backend. */
-    dev->nvr.fn  = isartc_get_internal_name(isartc_type);
+    dev->nvr.fn  = (char *) info->internal_name;
     dev->nvr.irq = dev->irq;
     if (!is_at)
         nvr_init(&dev->nvr);
@@ -709,6 +722,21 @@ static const device_t a6pak_device = {
     .config        = a6pak_config
 };
 
+/* Onboard RTC devices */
+const device_t vendex_xt_rtc_onboard_device = {
+    .name          = "National Semiconductor MM58167 (Vendex)",
+    .internal_name = "vendex_xt_rtc",
+    .flags         = DEVICE_ISA,
+    .local         = ISARTC_VENDEX,
+    .init          = isartc_init,
+    .close         = isartc_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 static const device_t isartc_none_device = {
     .name          = "None",
     .internal_name = "none",
@@ -763,7 +791,7 @@ isartc_get_from_internal_name(char *s)
         c++;
     }
 
-/* Not found. */
+    /* Not found. */
     return (0);
 }
 

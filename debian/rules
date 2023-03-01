@@ -1,0 +1,42 @@
+#!/usr/bin/make -f
+# See debhelper(7) (uncomment to enable)
+# output every command that modifies files on the build system.
+#export DH_VERBOSE = 1
+
+ARCH=$(shell dpkg-architecture -qDEB_HOST_ARCH)
+
+ifeq ($(ARCH), $(filter $(ARCH), amd64 i386))
+	NDR=off
+	ifeq ($(ARCH),amd64)
+		TOOLCHAIN=cmake/flags-gcc-x86_64.cmake
+	else
+		TOOLCHAIN=cmake/flags-gcc-i686.cmake
+	endif
+else
+	NDR=on
+	ifeq ($(ARCH),armhf)
+		TOOLCHAIN=cmake/flags-gcc-armv7.cmake
+	else
+		TOOLCHAIN=cmake/flags-gcc-aarch64.cmake
+	endif
+endif
+
+%:
+	dh $@ --buildsystem cmake+ninja
+
+override_dh_auto_configure:
+	dh_auto_configure --buildsystem cmake+ninja -- --preset regular --toolchain $(TOOLCHAIN) -DNEW_DYNAREC=$(NDR) -DSLIRP_EXTERNAL=on
+
+override_dh_auto_test:
+
+override_dh_auto_install:
+	dh_auto_install --buildsystem cmake+ninja
+	for i in 48x48 64x64 72x72 96x96 128x128 192x192 256x256 512x512 ; do \
+		install -Dm644 src/unix/assets/$$i/net.86box.86Box.png -t debian/86box/usr/share/icons/hicolor/$$i/apps ; \
+	done
+	mkdir debian/86box/usr/share/applications
+	sed 's/^Exec.*/Exec=86Box -P .local\/share\/86Box/' "src/unix/assets/net.86box.86Box.desktop" > "debian/86box/usr/share/applications/net.86box.86Box.desktop"
+
+override_dh_installdocs:
+
+override_dh_installman:

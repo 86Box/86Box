@@ -1,22 +1,22 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *          This file is part of the 86Box distribution.
  *
- *		Miscellaneous x86 CPU Instructions.
+ *          Miscellaneous x86 CPU Instructions.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2018 Fred N. van Kempen.
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *          Copyright 2018 Fred N. van Kempen.
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,16 +39,14 @@
 #ifndef _X86_OPS_H
 #define _X86_OPS_H
 
-
-#define UN_USED(x)	(void)(x)
-
+#define UN_USED(x) (void) (x)
 
 typedef int (*OpFn)(uint32_t fetchdat);
 
 #ifdef USE_DYNAREC
 void x86_setopcodes(const OpFn *opcodes, const OpFn *opcodes_0f,
-		    const OpFn *dynarec_opcodes,
-		    const OpFn *dynarec_opcodes_0f);
+                    const OpFn *dynarec_opcodes,
+                    const OpFn *dynarec_opcodes_0f);
 
 extern const OpFn *x86_dynarec_opcodes;
 extern const OpFn *x86_dynarec_opcodes_0f;
@@ -72,6 +70,9 @@ extern const OpFn *x86_dynarec_opcodes_REPE;
 extern const OpFn *x86_dynarec_opcodes_REPNE;
 extern const OpFn *x86_dynarec_opcodes_3DNOW;
 
+extern const OpFn dynarec_ops_186[1024];
+extern const OpFn dynarec_ops_186_0f[1024];
+
 extern const OpFn dynarec_ops_286[1024];
 extern const OpFn dynarec_ops_286_0f[1024];
 
@@ -89,10 +90,10 @@ extern const OpFn dynarec_ops_winchip2_0f[1024];
 extern const OpFn dynarec_ops_pentium_0f[1024];
 extern const OpFn dynarec_ops_pentiummmx_0f[1024];
 
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
+#    if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 extern const OpFn dynarec_ops_c6x86_0f[1024];
 extern const OpFn dynarec_ops_c6x86mx_0f[1024];
-#endif
+#    endif
 
 extern const OpFn dynarec_ops_k6_0f[1024];
 extern const OpFn dynarec_ops_k62_0f[1024];
@@ -145,6 +146,7 @@ extern const OpFn dynarec_ops_fpu_686_df_a32[256];
 extern const OpFn dynarec_ops_REPE[1024];
 extern const OpFn dynarec_ops_REPNE[1024];
 extern const OpFn dynarec_ops_3DNOW[256];
+extern const OpFn dynarec_ops_3DNOWE[256];
 #else
 void x86_setopcodes(const OpFn *opcodes, const OpFn *opcodes_0f);
 #endif
@@ -170,6 +172,9 @@ extern const OpFn *x86_opcodes_df_a32;
 extern const OpFn *x86_opcodes_REPE;
 extern const OpFn *x86_opcodes_REPNE;
 extern const OpFn *x86_opcodes_3DNOW;
+
+extern const OpFn ops_186[1024];
+extern const OpFn ops_186_0f[1024];
 
 extern const OpFn ops_286[1024];
 extern const OpFn ops_286_0f[1024];
@@ -244,10 +249,11 @@ extern const OpFn ops_fpu_686_df_a32[256];
 extern const OpFn ops_REPE[1024];
 extern const OpFn ops_REPNE[1024];
 extern const OpFn ops_3DNOW[256];
+extern const OpFn ops_3DNOWE[256];
 
-#define C0 (1<<8)
-#define C1 (1<<9)
-#define C2 (1<<10)
-#define C3 (1<<14)
+#define C0 (1 << 8)
+#define C1 (1 << 9)
+#define C2 (1 << 10)
+#define C3 (1 << 14)
 
 #endif /*_X86_OPS_H*/

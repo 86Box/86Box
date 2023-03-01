@@ -1,24 +1,28 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the ACPI emulation.
+ *          Definitions for the ACPI emulation.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2020 Miran Grca.
+ *          Copyright 2020 Miran Grca.
  */
 #ifndef ACPI_H
 #define ACPI_H
 
 #ifdef __cplusplus
+#include <atomic>
+using atomic_int = std::atomic_int;
 extern "C" {
+#else
+#include <stdatomic.h>
 #endif
 
 #define ACPI_TIMER_FREQ 3579545
@@ -90,7 +94,7 @@ typedef struct
         slot, irq_mode,
         irq_pin, irq_line,
         mirq_is_level;
-    pc_timer_t timer, resume_timer;
+    pc_timer_t timer, resume_timer, pwrbtn_timer;
     nvr_t     *nvr;
     apm_t     *apm;
     void      *i2c,
@@ -98,7 +102,9 @@ typedef struct
 } acpi_t;
 
 /* Global variables. */
-extern int acpi_rtc_status;
+extern int        acpi_rtc_status;
+extern atomic_int acpi_pwrbut_pressed;
+extern int        acpi_enabled;
 
 extern const device_t acpi_ali_device;
 extern const device_t acpi_intel_device;

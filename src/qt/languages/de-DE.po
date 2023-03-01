@@ -29,7 +29,7 @@ msgid "&Hide status bar"
 msgstr "&Statusleiste ausblenden"
 
 msgid "Hide &toolbar"
-msgstr "Werkzeugleiste &ausblenden"
+msgstr "&Werkzeugleiste ausblenden"
 
 msgid "&Resizeable window"
 msgstr "&Größenverstellbares Fenster"
@@ -75,6 +75,24 @@ msgstr "1,&5x"
 
 msgid "&2x"
 msgstr "&2x"
+
+msgid "&3x"
+msgstr "&3x"
+
+msgid "&4x"
+msgstr "&4x"
+
+msgid "&5x"
+msgstr "&5x"
+
+msgid "&6x"
+msgstr "&6x"
+
+msgid "&7x"
+msgstr "&7x"
+
+msgid "&8x"
+msgstr "&8x"
 
 msgid "Filter method"
 msgstr "Filteringmethode"
@@ -226,11 +244,8 @@ msgstr "L&eer"
 msgid "&Reload previous image"
 msgstr "&Voriges Image neu laden"
 
-msgid "&Image"
-msgstr "&Image"
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "&Verzeichnis..."
 
 msgid "Target &framerate"
 msgstr "Ziel&framerate"
@@ -332,7 +347,7 @@ msgid "CPU type:"
 msgstr "CPU-Typ:"
 
 msgid "Speed:"
-msgstr "Geschwindigkeit:"
+msgstr "Takt:"
 
 msgid "FPU:"
 msgstr "FPU-Einheit:"
@@ -367,6 +382,12 @@ msgstr "Videokarte:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo-Grafik"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a-Grafik"
+
+msgid "XGA Graphics"
+msgstr "XGA-Grafik"
+
 msgid "Mouse:"
 msgstr "Maus:"
 
@@ -385,8 +406,17 @@ msgstr "Joystick 3..."
 msgid "Joystick 4..."
 msgstr "Joystick 4..."
 
-msgid "Sound card:"
-msgstr "Soundkarte:"
+msgid "Sound card 1:"
+msgstr "Soundkarte 1:"
+
+msgid "Sound card 2:"
+msgstr "Soundkarte 2:"
+
+msgid "Sound card 3:"
+msgstr "Soundkarte 3:"
+
+msgid "Sound card 4:"
+msgstr "Soundkarte 4:"
 
 msgid "MIDI Out Device:"
 msgstr "MIDI Out-Gerät:"
@@ -397,17 +427,17 @@ msgstr "MIDI In-Gerät:"
 msgid "Standalone MPU-401"
 msgstr "Standalone-MPU-401-Gerät"
 
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
-
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32-Wiedergabe benutzen"
+
+msgid "FM synth driver"
+msgstr "FM-Synth-Treiber"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (genauer)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (schneller)"
 
 msgid "Network type:"
 msgstr "Netzwerktyp:"
@@ -552,6 +582,9 @@ msgstr "BPB überprüfen"
 
 msgid "CD-ROM drives:"
 msgstr "CD-ROM-Laufwerke:"
+
+msgid "Earlier drive"
+msgstr "Früheres Laufwerk"
 
 msgid "MO drives:"
 msgstr "MO-Laufwerke:"

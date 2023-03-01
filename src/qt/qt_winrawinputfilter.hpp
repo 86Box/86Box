@@ -1,17 +1,18 @@
 /*
- * 86Box A hypervisor and IBM PC system emulator that specializes in
- *      running old operating systems and software designed for IBM
- *      PC systems and compatibles from 1981 through fairly recent
- *      system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *      This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *      Header file for windows raw input native filter for QT
+ *          Header file for windows raw input native filter for QT
  *
- * Authors:
- *      Teemu Korhonen
  *
- *      Copyright 2021 Teemu Korhonen
+ *
+ * Authors: Teemu Korhonen
+ *
+ *          Copyright 2021 Teemu Korhonen
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -36,18 +37,17 @@
 #include <QAbstractNativeEventFilter>
 #include <QByteArray>
 
-#include <Windows.h>
+#include <windows.h>
 
 #include <memory>
 
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-#define result_t qintptr
+#    define result_t qintptr
 #else
-#define result_t long
+#    define result_t long
 #endif
 
-class WindowsRawInputFilter : public QObject, public QAbstractNativeEventFilter
-{
+class WindowsRawInputFilter : public QObject, public QAbstractNativeEventFilter {
     Q_OBJECT
 
 public:
@@ -62,20 +62,20 @@ public slots:
 
 private:
     QMainWindow *window;
-    uint16_t scancode_map[768];
-    int buttons = 0;
-	int dx = 0;
-	int dy = 0;
-	int dwheel = 0;
-    int menus_open = 0;
+    uint16_t     scancode_map[768];
+    int          buttons    = 0;
+    int          dx         = 0;
+    int          dy         = 0;
+    int          dwheel     = 0;
+    int          menus_open = 0;
 
     WindowsRawInputFilter(QMainWindow *window);
 
-    void handle_input(HRAWINPUT input);
-    void keyboard_handle(PRAWINPUT raw);
-    void mouse_handle(PRAWINPUT raw);
+    void          handle_input(HRAWINPUT input);
+    void          keyboard_handle(PRAWINPUT raw);
+    void          mouse_handle(PRAWINPUT raw);
     static UINT16 convert_scan_code(UINT16 scan_code);
-    void keyboard_getkeymap();
+    void          keyboard_getkeymap();
 };
 
 #endif

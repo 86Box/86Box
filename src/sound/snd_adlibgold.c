@@ -131,7 +131,7 @@ static int treble_cut[6] = {
     (int) (0.354 * 16384)  /*-3 dB - filter output is at +6 dB*/
 };
 
-void adgold_timer_poll();
+void adgold_timer_poll(void *p);
 void adgold_update(adgold_t *adgold);
 
 void
@@ -1076,7 +1076,7 @@ static const device_config_t adgold_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t adgold_device = {

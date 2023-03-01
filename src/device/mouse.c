@@ -1,23 +1,23 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Common driver module for MOUSE devices.
+ *          Common driver module for MOUSE devices.
  *
- * TODO:	Add the Genius bus- and serial mouse.
- *		Remove the '3-button' flag from mouse types.
+ * TODO:    Add the Genius bus- and serial mouse.
+ *          Remove the '3-button' flag from mouse types.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -37,7 +37,13 @@ int mouse_type = 0;
 int mouse_x,
     mouse_y,
     mouse_z,
-    mouse_buttons;
+    mouse_buttons,
+    mouse_mode,
+    mouse_tablet_in_proximity = 0,
+    tablet_tool_type          = 1; /* 0 = Puck/Cursor, 1 = Pen */
+
+double mouse_x_abs,
+    mouse_y_abs;
 
 static const device_t mouse_none_device = {
     .name          = "None",
@@ -80,6 +86,7 @@ static mouse_t mouse_devices[] = {
     { &mouse_msserial_device  },
     { &mouse_ltserial_device  },
     { &mouse_ps2_device       },
+    { &mouse_wacom_device     },
     { NULL                    }
     // clang-format on
 };
@@ -87,7 +94,8 @@ static mouse_t mouse_devices[] = {
 static const device_t *mouse_curr;
 static void           *mouse_priv;
 static int             mouse_nbut;
-static int (*mouse_dev_poll)();
+static int (*mouse_dev_poll)(int x, int y, int z, int b, void *priv);
+static void (*mouse_poll_ex)(void) = NULL;
 
 #ifdef ENABLE_MOUSE_LOG
 int mouse_do_log = ENABLE_MOUSE_LOG;
@@ -146,6 +154,7 @@ mouse_reset(void)
     /* Clear local data. */
     mouse_x = mouse_y = mouse_z = 0;
     mouse_buttons               = 0x00;
+    mouse_mode                  = 0;
 
     /* If no mouse configured, we're done. */
     if (mouse_type == 0)
@@ -165,29 +174,31 @@ mouse_set_buttons(int buttons)
 }
 
 void
+mouse_set_poll_ex(void (*poll_ex)(void))
+{
+    mouse_poll_ex = poll_ex;
+}
+
+void
 mouse_process(void)
 {
-    static int poll_delay = 2;
-
     if (mouse_curr == NULL)
         return;
 
-    if (--poll_delay)
-        return;
-
-    mouse_poll();
+    if (mouse_poll_ex)
+        mouse_poll_ex();
+    else
+        mouse_poll();
 
     if ((mouse_dev_poll != NULL) || (mouse_curr->poll != NULL)) {
         if (mouse_curr->poll != NULL)
-            mouse_curr->poll(mouse_x, mouse_y, mouse_z, mouse_buttons, mouse_priv);
+            mouse_curr->poll(mouse_x, mouse_y, mouse_z, mouse_buttons, mouse_x_abs, mouse_y_abs, mouse_priv);
         else
             mouse_dev_poll(mouse_x, mouse_y, mouse_z, mouse_buttons, mouse_priv);
 
         /* Reset mouse deltas. */
         mouse_x = mouse_y = mouse_z = 0;
     }
-
-    poll_delay = 2;
 }
 
 void

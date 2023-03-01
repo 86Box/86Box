@@ -192,7 +192,7 @@ sn76489_init(sn76489_t *sn76489, uint16_t base, uint16_t size, int type, int fre
     sn76489->noise    = 3;
     sn76489->shift    = 0x4000;
     sn76489->type     = type;
-    sn76489->psgconst = (((double) freq / 64.0) / 48000.0);
+    sn76489->psgconst = (((double) freq / 64.0) / (double) FREQ_48000);
 
     sn76489_mute = 0;
 
@@ -281,7 +281,7 @@ static const device_config_t tndy_config[] = {
         }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t sn76489_device = {

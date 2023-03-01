@@ -1,70 +1,70 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of Bus Mouse devices.
+ *          Implementation of Bus Mouse devices.
  *
- *		These devices were made by both Microsoft and Logitech. At
- *		first, Microsoft used the same protocol as Logitech, but did
- *		switch to their new protocol for their InPort interface. So,
- *		although alike enough to be handled in the same driver, they
- *		are not the same.
+ *          These devices were made by both Microsoft and Logitech. At
+ *          first, Microsoft used the same protocol as Logitech, but did
+ *          switch to their new protocol for their InPort interface. So,
+ *          although alike enough to be handled in the same driver, they
+ *          are not the same.
  *
- * NOTES:	Ported from Bochs with extensive modifications per testing
- *		of the real hardware, testing of drivers, and the old code.
+ * NOTES:   Ported from Bochs with extensive modifications per testing
+ *          of the real hardware, testing of drivers, and the old code.
  *
- *		Logitech Bus Mouse verified with:
- *		  Linux Slackware 3.0
- *		  Logitech LMouse.com 3.12
- *		  Logitech LMouse.com 3.30
- *		  Logitech LMouse.com 3.41
- *		  Logitech LMouse.com 3.42
- *		  Logitech LMouse.com 4.00
- *		  Logitech LMouse.com 5.00
- *		  Logitech LMouse.com 6.00
- *		  Logitech LMouse.com 6.02 Beta
- *		  Logitech LMouse.com 6.02
- *		  Logitech LMouse.com 6.12
- *		  Logitech LMouse.com 6.20
- *		  Logitech LMouse.com 6.23
- *		  Logitech LMouse.com 6.30
- *		  Logitech LMouse.com 6.31E
- *		  Logitech LMouse.com 6.34
- *		  Logitech Mouse.exe 6.40
- *		  Logitech Mouse.exe 6.41
- *		  Logitech Mouse.exe 6.44
- *		  Logitech Mouse.exe 6.46
- *		  Logitech Mouse.exe 6.50
- *		  Microsoft Mouse.com 2.00
- *		  Microsoft Mouse.sys 3.00
- *		  Microsoft Mouse.com 7.04
- *		  Microsoft Mouse.com 8.21J
- *		  Microsoft Windows 1.00 DR5
- *		  Microsoft Windows 3.10.026
- *		  Microsoft Windows 3.10.068 both MOUSE.DRV and LMOUSE.DRV
- *		  Microsoft Windows NT 3.1
- *		  Microsoft Windows 95
+ *          Logitech Bus Mouse verified with:
+ *            Linux Slackware 3.0
+ *            Logitech LMouse.com 3.12
+ *            Logitech LMouse.com 3.30
+ *            Logitech LMouse.com 3.41
+ *            Logitech LMouse.com 3.42
+ *            Logitech LMouse.com 4.00
+ *            Logitech LMouse.com 5.00
+ *            Logitech LMouse.com 6.00
+ *            Logitech LMouse.com 6.02 Beta
+ *            Logitech LMouse.com 6.02
+ *            Logitech LMouse.com 6.12
+ *            Logitech LMouse.com 6.20
+ *            Logitech LMouse.com 6.23
+ *            Logitech LMouse.com 6.30
+ *            Logitech LMouse.com 6.31E
+ *            Logitech LMouse.com 6.34
+ *            Logitech Mouse.exe 6.40
+ *            Logitech Mouse.exe 6.41
+ *            Logitech Mouse.exe 6.44
+ *            Logitech Mouse.exe 6.46
+ *            Logitech Mouse.exe 6.50
+ *            Microsoft Mouse.com 2.00
+ *            Microsoft Mouse.sys 3.00
+ *            Microsoft Mouse.com 7.04
+ *            Microsoft Mouse.com 8.21J
+ *            Microsoft Windows 1.00 DR5
+ *            Microsoft Windows 3.10.026
+ *            Microsoft Windows 3.10.068 both MOUSE.DRV and LMOUSE.DRV
+ *            Microsoft Windows NT 3.1
+ *            Microsoft Windows 95
  *
- *		InPort verified with:
- *		  Linux Slackware 3.0
- *		  Logitech LMouse.com 6.12
- *		  Logitech LMouse.com 6.41
- *		  Microsoft Windows 3.10.068 both MOUSE.DRV and LMOUSE.DRV
- *		  Microsoft Windows NT 3.1
- *		  Microsoft Windows 98 SE
+ *          InPort verified with:
+ *            Linux Slackware 3.0
+ *            Logitech LMouse.com 6.12
+ *            Logitech LMouse.com 6.41
+ *            Microsoft Windows 3.10.068 both MOUSE.DRV and LMOUSE.DRV
+ *            Microsoft Windows NT 3.1
+ *            Microsoft Windows 98 SE
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 200?-2019 Bochs.
- *		Copyright 2017-2019 Miran Grca.
- *		Copyright 1989-2019 Fred N. van Kempen.
+ *          Copyright 200?-2019 Bochs.
+ *          Copyright 2017-2019 Miran Grca.
+ *          Copyright 1989-2019 Fred N. van Kempen.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -317,14 +317,14 @@ lt_write(uint16_t port, uint8_t val, void *priv)
              * This indicates the mode of operation of D7:
              * 1 = Mode set, 0 = Bit set/reset
              * D6,D5 =  Mode selection (port A)
-             *		00 = Mode 0 = Basic I/O
-             *		01 = Mode 1 = Strobed I/O
-             * 		10 = Mode 2 = Bi-dir bus
+             *      00 = Mode 0 = Basic I/O
+             *      01 = Mode 1 = Strobed I/O
+             *      10 = Mode 2 = Bi-dir bus
              * D4    =  Port A direction (1 = input)
              * D3    =  Port C (upper 4 bits) direction. (1 = input)
              * D2    =  Mode selection (port B & C)
-             *		0 = Mode 0 = Basic I/O
-             *		1 = Mode 1 = Strobed I/O
+             *      0 = Mode 0 = Basic I/O
+             *      1 = Mode 1 = Strobed I/O
              * D1    =  Port B direction (1 = input)
              * D0    =  Port C (lower 4 bits) direction. (1 = input)
              *
@@ -333,8 +333,8 @@ lt_write(uint16_t port, uint8_t val, void *priv)
              * being an output port and lower 4 bits an input port, and
              * enable the sucker.  Courtesy Intel 8255 databook. Lars
              *
-             * 1001 1011	9B	1111	Default state
-             * 1001 0001	91	1001	Driver-initialized state
+             * 1001 1011    9B  1111    Default state
+             * 1001 0001    91  1001    Driver-initialized state
              * The only difference is - port C upper and port B go from
              * input to output.
              */
@@ -449,7 +449,7 @@ ms_write(uint16_t port, uint8_t val, void *priv)
 
 /* The emulator calls us with an update on the host mouse device. */
 static int
-bm_poll(int x, int y, int z, int b, void *priv)
+bm_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
 {
     mouse_t *dev = (mouse_t *) priv;
     int xor ;
@@ -800,7 +800,7 @@ static const device_config_t ms_config[] = {
         }
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t mouse_logibus_device = {

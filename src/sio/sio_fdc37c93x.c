@@ -1,18 +1,19 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the SMC FDC37C932FR and FDC37C935 Super
- *		I/O Chips.
+ *          Implementation of the SMC FDC37C932FR and FDC37C935 Super
+ *          I/O Chips.
  *
  *
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2016-2018 Miran Grca.
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -792,17 +793,17 @@ access_bus_init(const device_t *info)
 }
 
 static const device_t access_bus_device = {
-    "SMC FDC37C932FR ACCESS.bus",
-    "access_bus",
-    0,
-    0x03,
-    access_bus_init,
-    access_bus_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name          = "SMC FDC37C932FR ACCESS.bus",
+    .internal_name = "access_bus",
+    .flags         = 0,
+    .local         = 0x03,
+    .init          = access_bus_init,
+    .close         = access_bus_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 static void

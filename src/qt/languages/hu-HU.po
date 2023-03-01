@@ -76,6 +76,24 @@ msgstr "1,&5x"
 msgid "&2x"
 msgstr "&2x"
 
+msgid "&3x"
+msgstr "&3x"
+
+msgid "&4x"
+msgstr "&4x"
+
+msgid "&5x"
+msgstr "&5x"
+
+msgid "&6x"
+msgstr "&6x"
+
+msgid "&7x"
+msgstr "&7x"
+
+msgid "&8x"
+msgstr "&8x"
+
 msgid "Filter method"
 msgstr "Szűrési mód"
 
@@ -226,11 +244,8 @@ msgstr "&Kiadás"
 msgid "&Reload previous image"
 msgstr "Előző képfájl &újratöltése"
 
-msgid "&Image"
-msgstr "&Meglévő képfájl &megnyitása..."
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "&Mappa..."
 
 msgid "Target &framerate"
 msgstr "Cél &képkockasebesség"
@@ -367,6 +382,12 @@ msgstr "Videokártya:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo-gyorsítókártya"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a-gyorsítókártya"
+
+msgid "XGA Graphics"
+msgstr "XGA-gyorsítókártya"
+
 msgid "Mouse:"
 msgstr "Egér:"
 
@@ -385,8 +406,17 @@ msgstr "Játékvez. 3..."
 msgid "Joystick 4..."
 msgstr "Játékvez. 4..."
 
-msgid "Sound card:"
-msgstr "Hangkártya:"
+msgid "Sound card 1:"
+msgstr "Hangkártya 1:"
+
+msgid "Sound card 2:"
+msgstr "Hangkártya 2:"
+
+msgid "Sound card 3:"
+msgstr "Hangkártya 3:"
+
+msgid "Sound card 4:"
+msgstr "Hangkártya 4:"
 
 msgid "MIDI Out Device:"
 msgstr "MIDI-kimenet:"
@@ -397,17 +427,17 @@ msgstr "MIDI-bemenet:"
 msgid "Standalone MPU-401"
 msgstr "Különálló MPU-401"
 
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
-
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32 használata"
+
+msgid "FM synth driver"
+msgstr "FM szintetizátor meghajtó"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (pontosabb)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (gyorsabb)"
 
 msgid "Network type:"
 msgstr "Hálózati típusa:"
@@ -552,6 +582,9 @@ msgstr "BPB ellenőrzés"
 
 msgid "CD-ROM drives:"
 msgstr "CD-ROM meghajtók:"
+
+msgid "Earlier drive"
+msgstr "Korábbi meghajtó"
 
 msgid "MO drives:"
 msgstr "MO-meghajtók:"

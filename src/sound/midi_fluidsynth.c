@@ -130,7 +130,7 @@ fluidsynth_poll(void)
 {
     fluidsynth_t *data = &fsdev;
     data->midi_pos++;
-    if (data->midi_pos == 48000 / RENDER_RATE) {
+    if (data->midi_pos == SOUND_FREQ / RENDER_RATE) {
         data->midi_pos = 0;
         thread_set_event(data->event);
     }
@@ -244,7 +244,7 @@ fluidsynth_init(const device_t *info)
         fluidsynth_handle = dynld_module("libfluidsynth.so.2", fluidsynth_imports);
 #    endif
     if (fluidsynth_handle == NULL) {
-        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2080, (wchar_t *) IDS_2133);
+        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2080, (wchar_t *) IDS_2134);
         return NULL;
     }
 
@@ -563,4 +563,4 @@ const device_t fluidsynth_device = {
     .config        = fluidsynth_config
 };
 
-#endif/*USE_FLUIDSYNTH*/
+#endif /*USE_FLUIDSYNTH*/

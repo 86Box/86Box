@@ -1,20 +1,20 @@
 /*
- * 86Box     A hypervisor and IBM PC system emulator that specializes in
- *           running old operating systems and software designed for IBM
- *           PC systems and compatibles from 1981 through fairly recent
- *           system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *           This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *           Define all known video cards.
+ *          Define all known video cards.
  *
  *
  *
- * Authors:  Miran Grca, <mgrca8@gmail.com>
- *           Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *           Copyright 2016-2020 Miran Grca.
- *           Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -73,9 +73,9 @@ static const device_t vid_internal_device = {
     .config        = NULL
 };
 
-// clang-format off
 static const VIDEO_CARD
 video_cards[] = {
+  // clang-format off
     { &vid_none_device                               },
     { &vid_internal_device                           },
     { &atiega_device                                 },
@@ -146,6 +146,7 @@ video_cards[] = {
     { &nec_sv9000_device                             },
     { &et4000k_isa_device                            },
     { &et2000_device                                 },
+    { &et3000_isa_device                             },
     { &et4000_isa_device                             },
     { &et4000w32_device                              },
     { &et4000w32i_isa_device                         },
@@ -165,10 +166,10 @@ video_cards[] = {
     { &et4000w32p_pci_device                         },
     { &gd5430_pci_device,                            },
     { &gd5434_pci_device                             },
-    { &gd5436_pci_device                             },
+    { &gd5436_pci_device,    VIDEO_FLAG_TYPE_SPECIAL },
     { &gd5440_pci_device                             },
-    { &gd5446_pci_device                             },
-    { &gd5446_stb_pci_device                         },
+    { &gd5446_pci_device,    VIDEO_FLAG_TYPE_SPECIAL },
+    { &gd5446_stb_pci_device,VIDEO_FLAG_TYPE_SPECIAL },
     { &gd5480_pci_device                             },
     { &s3_spea_mercury_lite_86c928_pci_device        },
     { &s3_diamond_stealth64_964_pci_device           },
@@ -210,6 +211,7 @@ video_cards[] = {
     { &tgui9680_pci_device                           },
     { &voodoo_banshee_device                         },
     { &creative_voodoo_banshee_device                },
+    { &voodoo_3_1000_device                          },
     { &voodoo_3_2000_device                          },
     { &voodoo_3_3000_device                          },
     { &mach64gx_vlb_device                           },
@@ -252,11 +254,18 @@ video_cards[] = {
     { &s3_diamond_stealth_4000_agp_device            },
     { &s3_trio3d2x_agp_device                        },
     { &velocity_100_agp_device                       },
+    { &velocity_200_agp_device                       },
+    { &voodoo_3_1000_agp_device                      },
     { &voodoo_3_2000_agp_device                      },
     { &voodoo_3_3000_agp_device                      },
+    { &voodoo_3_3500_agp_ntsc_device                 },
+    { &voodoo_3_3500_agp_pal_device                  },
+    { &compaq_voodoo_3_3500_agp_device               },
+    { &voodoo_3_3500_se_agp_device                   },
+    { &voodoo_3_3500_si_agp_device                   },
     { NULL                                           }
+  // clang-format on
 };
-// clang-format on
 
 #ifdef ENABLE_VID_TABLE_LOG
 int vid_table_do_log = ENABLE_VID_TABLE_LOG;
@@ -325,7 +334,7 @@ video_reset(int card)
     if ((video_get_type() != VIDEO_FLAG_TYPE_NONE) && was_reset)
         return;
 
-    vid_table_log("VIDEO: reset (gfxcard=%d, internal=%d)\n",
+    vid_table_log("VIDEO: reset (gfxcard[0]=%d, internal=%d)\n",
                   card, machine_has_flags(machine, MACHINE_VIDEO) ? 1 : 0);
 
     monitor_index_global = 0;
@@ -333,7 +342,7 @@ video_reset(int card)
 
     /* Do not initialize internal cards here. */
     if (!(card == VID_NONE) && !(card == VID_INTERNAL) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
-        vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].name);
+        vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].device->name);
 
         video_prepare();
 
@@ -343,12 +352,11 @@ video_reset(int card)
 
     if (!(card == VID_NONE)
         && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)
-        && gfxcard_2 != 0
-        && (video_cards[gfxcard_2].flags != video_cards[gfxcard].flags)
-        && device_is_valid(video_card_getdevice(gfxcard_2), machine)) {
+        && gfxcard[1] != 0
+        && device_is_valid(video_card_getdevice(gfxcard[1]), machine)) {
         video_monitor_init(1);
         monitor_index_global = 1;
-        device_add(video_cards[gfxcard_2].device);
+        device_add(video_cards[gfxcard[1]].device);
         monitor_index_global = 0;
     }
 

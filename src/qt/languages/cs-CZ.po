@@ -76,6 +76,24 @@ msgstr "1.&5x"
 msgid "&2x"
 msgstr "&2x"
 
+msgid "&3x"
+msgstr "&3x"
+
+msgid "&4x"
+msgstr "&4x"
+
+msgid "&5x"
+msgstr "&5x"
+
+msgid "&6x"
+msgstr "&6x"
+
+msgid "&7x"
+msgstr "&7x"
+
+msgid "&8x"
+msgstr "&8x"
+
 msgid "Filter method"
 msgstr "Metoda &filtrování"
 
@@ -226,11 +244,8 @@ msgstr "&Vyjmout"
 msgid "&Reload previous image"
 msgstr "&Načíst znova předchozí obraz"
 
-msgid "&Image"
-msgstr "&Obraz..."
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "&Složka..."
 
 msgid "Target &framerate"
 msgstr "&Cílová snímková frekvence"
@@ -367,6 +382,12 @@ msgstr "Grafika:"
 msgid "Voodoo Graphics"
 msgstr "Použít grafický akcelerátor Voodoo"
 
+msgid "IBM 8514/a Graphics"
+msgstr "Grafika IBM 8514/a"
+
+msgid "XGA Graphics"
+msgstr "Grafika XGA"
+
 msgid "Mouse:"
 msgstr "Myš:"
 
@@ -385,8 +406,17 @@ msgstr "Joystick 3..."
 msgid "Joystick 4..."
 msgstr "Joystick 4..."
 
-msgid "Sound card:"
-msgstr "Zvuková karta:"
+msgid "Sound card 1:"
+msgstr "Zvuková karta 1:"
+
+msgid "Sound card 2:"
+msgstr "Zvuková karta 2:"
+
+msgid "Sound card 3:"
+msgstr "Zvuková karta 3:"
+
+msgid "Sound card 4:"
+msgstr "Zvuková karta 4:"
 
 msgid "MIDI Out Device:"
 msgstr "MIDI výstup:"
@@ -397,17 +427,17 @@ msgstr "MIDI vstup:"
 msgid "Standalone MPU-401"
 msgstr "Samostatný MPU-401"
 
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
-
 msgid "Use FLOAT32 sound"
 msgstr "Použít zvuk FLOAT32"
+
+msgid "FM synth driver"
+msgstr "FM synth driver"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (přesnější)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (rychlejší)"
 
 msgid "Network type:"
 msgstr "Druh sítě:"
@@ -552,6 +582,9 @@ msgstr "Kontrola BPB"
 
 msgid "CD-ROM drives:"
 msgstr "Mechaniky CD-ROM:"
+
+msgid "Earlier drive"
+msgstr "Časná mechanika"
 
 msgid "MO drives:"
 msgstr "Magnetooptické mechaniky:"

@@ -1,24 +1,26 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of Chips&Technology's 82C100 chipset.
+ *          Implementation of Chips&Technology's 82C100 chipset.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2021 Miran Grca.
+ *          Copyright 2021 Miran Grca.
  */
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 #include "cpu.h"
@@ -48,7 +50,7 @@ typedef struct
 } ct_82c100_t;
 
 #ifdef ENABLE_CT_82C100_LOG
-int ct_82c100_do_log = ENABLE_CT82C100_LOG;
+int ct_82c100_do_log = ENABLE_CT_82C100_LOG;
 
 static void
 ct_82c100_log(const char *fmt, ...)

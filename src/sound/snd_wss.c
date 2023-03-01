@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors:  Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
  *           TheCollector1995, <mariogplayer@gmail.com>
  *
  *           Copyright 2012-2018 Sarah Walker.
@@ -264,7 +264,7 @@ static const device_config_t wss_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t wss_device = {

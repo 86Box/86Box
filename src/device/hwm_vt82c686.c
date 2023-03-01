@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the VIA VT82C686A/B integrated hardware monitor.
+ *          Emulation of the VIA VT82C686A/B integrated hardware monitor.
  *
  *
  *
- * Author:	RichardG, <richardg867@gmail.com>
+ * Authors: RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2020 RichardG.
+ *          Copyright 2020 RichardG.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -182,7 +182,7 @@ vt82c686_init(const device_t *info)
     /* Set default values. Since this hardware monitor has a complex voltage factor system,
        the values struct contains voltage values *before* applying their respective factors. */
     hwm_values_t defaults = {
-// clang-format on
+  // clang-format off
         { /* fan speeds */
             3000,   /* usually CPU */
             3000    /* usually Chassis */
@@ -197,7 +197,7 @@ vt82c686_init(const device_t *info)
             5000,   /* +5V */
             12000   /* +12V */
         }
-// clang-format on
+  // clang-format on
     };
     hwm_values  = defaults;
     dev->values = &hwm_values;

@@ -4,7 +4,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-void   *sid_init();
+void   *sid_init(void);
 void    sid_close(void *p);
 void    sid_reset(void *p);
 uint8_t sid_read(uint16_t addr, void *p);

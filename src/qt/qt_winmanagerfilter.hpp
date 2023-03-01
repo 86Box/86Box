@@ -1,17 +1,18 @@
 /*
- * 86Box A hypervisor and IBM PC system emulator that specializes in
- *      running old operating systems and software designed for IBM
- *      PC systems and compatibles from 1981 through fairly recent
- *      system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *      This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *      Header file for Windows VM-managers native messages filter
+ *          Header file for Windows VM-managers native messages filter
  *
- * Authors:
- *      Teemu Korhonen
  *
- *      Copyright 2022 Teemu Korhonen
+ *
+ * Authors: Teemu Korhonen
+ *
+ *          Copyright 2022 Teemu Korhonen
  */
 
 #ifndef QT_WINDOWSMANAGERFILTER_HPP
@@ -23,17 +24,16 @@
 #include <QEvent>
 
 #if QT_VERSION_MAJOR >= 6
-#define result_t qintptr
+#    define result_t qintptr
 #else
-#define result_t long
+#    define result_t long
 #endif
 
 /*
  * Filters native events for messages from VM-manager and
  * window blocked events to notify about open modal dialogs.
  */
-class WindowsManagerFilter : public QObject, public QAbstractNativeEventFilter
-{
+class WindowsManagerFilter : public QObject, public QAbstractNativeEventFilter {
     Q_OBJECT
 
 public:

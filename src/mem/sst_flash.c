@@ -1,22 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of an SST flash chip.
+ *          Implementation of an SST flash chip.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Melissa Goad, <mszoopers@protonmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Melissa Goad, <mszoopers@protonmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2020 Melissa Goad.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2020      Melissa Goad.
+ *          Copyright 2022-2023 Jasmine Iwanek.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -67,22 +69,69 @@ static char flash_path[1024];
                                  /* 1st cycle variant only on 39 */
 
 #define SST           0xbf /* SST Manufacturer's ID */
+
+#define SST29EE512    0x5d00
+#define SST29LE_VE512 0x3d00
 #define SST29EE010    0x0700
 #define SST29LE_VE010 0x0800
 #define SST29EE020    0x1000
 #define SST29LE_VE020 0x1200
+
 #define SST39SF512    0xb400
 #define SST39SF010    0xb500
 #define SST39SF020    0xb600
 #define SST39SF040    0xb700
 
-#define WINBOND       0xda /* Winbond Manufacturer's ID */
-#define W29C020       0x4500
+#define SST39LF512    0xd400
+#define SST39LF010    0xd500
+#define SST39LF020    0xd600
+#define SST39LF040    0xd700
+#define SST39LF080    0xd800
+#define SST39LF016    0xd900
 
-#define SIZE_512K     0x010000
-#define SIZE_1M       0x020000
-#define SIZE_2M       0x040000
-#define SIZE_4M       0x080000
+/*
+// 16 wide
+#define SST39WF400      0x272f
+#define SST39WF400B     0x272e
+#define SST39WF800      0x273f
+#define SST39WF800B     0x273e
+#define SST39WF1601     0xbf274b
+#define SST39WF1602     0xbf274a
+
+#define SST39LF100      0x2788
+#define SST39LF200      0x2789
+#define SST39LF400      0x2780
+#define SST39LF800      0x2781
+#define SST39LF160      0x2782
+*/
+
+#define SST49LF002  0x5700
+#define SST49LF020  0x6100
+#define SST49LF020A 0x5200
+#define SST49LF003  0x1b00
+#define SST49LF004  0x6000
+#define SST49LF004C 0x5400
+#define SST49LF040  0x5100
+#define SST49LF008  0x5a00
+#define SST49LF008C 0x5900
+#define SST49LF080  0x5b00
+#define SST49LF030  0x1c00
+#define SST49LF160  0x4c00
+#define SST49LF016  0x5c00
+
+#define WINBOND     0xda /* Winbond Manufacturer's ID */
+#define W29C512     0xc800
+#define W29C010     0xc100
+#define W29C020     0x4500
+#define W29C040     0x4600
+
+#define SIZE_512K   0x010000
+#define SIZE_1M     0x020000
+#define SIZE_2M     0x040000
+#define SIZE_3M     0x060000
+#define SIZE_4M     0x080000
+#define SIZE_8M     0x100000
+#define SIZE_16M    0x200000
 
 static void
 sst_sector_erase(sst_t *dev, uint32_t addr)
@@ -496,11 +545,67 @@ const device_t sst_flash_29ee020_device = {
     .config        = NULL
 };
 
+const device_t winbond_flash_w29c512_device = {
+    .name          = "Winbond W29C512 Flash BIOS",
+    .internal_name = "winbond_flash_w29c512",
+    .flags         = 0,
+    .local         = WINBOND | W29C010 | SIZE_512K,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t winbond_flash_w29c010_device = {
+    .name          = "Winbond W29C010 Flash BIOS",
+    .internal_name = "winbond_flash_w29c010",
+    .flags         = 0,
+    .local         = WINBOND | W29C010 | SIZE_1M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t winbond_flash_w29c020_device = {
     .name          = "Winbond W29C020 Flash BIOS",
     .internal_name = "winbond_flash_w29c020",
     .flags         = 0,
     .local         = WINBOND | W29C020 | SIZE_2M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t winbond_flash_w29c040_device = {
+    .name          = "Winbond W29C040 Flash BIOS",
+    .internal_name = "winbond_flash_w29c040",
+    .flags         = 0,
+    .local         = WINBOND | W29C040 | SIZE_4M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_39sf512_device = {
+    .name          = "SST 39SF512 Flash BIOS",
+    .internal_name = "sst_flash_39sf512",
+    .flags         = 0,
+    .local         = SST | SST39SF512 | SIZE_512K,
     .init          = sst_init,
     .close         = sst_close,
     .reset         = NULL,
@@ -543,6 +648,281 @@ const device_t sst_flash_39sf040_device = {
     .internal_name = "sst_flash_39sf040",
     .flags         = 0,
     .local         = SST | SST39SF040 | SIZE_4M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_39lf512_device = {
+    .name          = "SST 39LF512 Flash BIOS",
+    .internal_name = "sst_flash_39lf512",
+    .flags         = 0,
+    .local         = SST | SST39LF512 | SIZE_512K,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_39lf010_device = {
+    .name          = "SST 39LF010 Flash BIOS",
+    .internal_name = "sst_flash_39lf010",
+    .flags         = 0,
+    .local         = SST | SST39LF010 | SIZE_1M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_39lf020_device = {
+    .name          = "SST 39LF020 Flash BIOS",
+    .internal_name = "sst_flash_39lf020",
+    .flags         = 0,
+    .local         = SST | SST39LF020 | SIZE_2M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_39lf040_device = {
+    .name          = "SST 39LF040 Flash BIOS",
+    .internal_name = "sst_flash_39lf040",
+    .flags         = 0,
+    .local         = SST | SST39LF040 | SIZE_4M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_39lf080_device = {
+    .name          = "SST 39LF080 Flash BIOS",
+    .internal_name = "sst_flash_39lf080",
+    .flags         = 0,
+    .local         = SST | SST39LF080 | SIZE_8M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_39lf016_device = {
+    .name          = "SST 39LF016 Flash BIOS",
+    .internal_name = "sst_flash_39lf016",
+    .flags         = 0,
+    .local         = SST | SST39LF016 | SIZE_16M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+/*
+ * Firmware Hubs. The FWH signals are not implemented yet. Firmware Hubs do write cycles
+ * to read/write on the flash. SST Flashes still do traditional flashing via PP Mode. Our
+ * BIOS firmwares don't seem to utilize FWH R/W thus the FWH ports remain unknown for an
+ * implementation. We just contain the ID's so the BIOS can do ESCD & DMI writes with no
+ * worries.
+ */
+
+const device_t sst_flash_49lf002_device = {
+    .name          = "SST 49LF002 Firmware Hub",
+    .internal_name = "sst_flash_49lf002",
+    .flags         = 0,
+    .local         = SST | SST49LF002 | SIZE_2M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_49lf020_device = {
+    .name          = "SST 49LF020 Firmware Hub",
+    .internal_name = "sst_flash_49lf0020",
+    .flags         = 0,
+    .local         = SST | SST49LF020 | SIZE_2M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_49lf020a_device = {
+    .name          = "SST 49LF020A Firmware Hub",
+    .internal_name = "sst_flash_49lf0020a",
+    .flags         = 0,
+    .local         = SST | SST49LF020A | SIZE_2M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_49lf003_device = {
+    .name          = "SST 49LF003 Firmware Hub",
+    .internal_name = "sst_flash_49lf003",
+    .flags         = 0,
+    .local         = SST | SST49LF003 | SIZE_3M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_49lf030_device = {
+    .name          = "SST 49LF030 Firmware Hub",
+    .internal_name = "sst_flash_49lf030",
+    .flags         = 0,
+    .local         = SST | SST49LF030 | SIZE_3M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_49lf004_device = {
+    .name          = "SST 49LF004 Firmware Hub",
+    .internal_name = "sst_flash_49lf004",
+    .flags         = 0,
+    .local         = SST | SST49LF004 | SIZE_4M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_49lf004c_device = {
+    .name          = "SST 49LF004C Firmware Hub",
+    .internal_name = "sst_flash_49lf004c",
+    .flags         = 0,
+    .local         = SST | SST49LF004C | SIZE_4M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_49lf040_device = {
+    .name          = "SST 49LF040 Firmware Hub",
+    .internal_name = "sst_flash_49lf040",
+    .flags         = 0,
+    .local         = SST | SST49LF040 | SIZE_4M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_49lf008_device = {
+    .name          = "SST 49LF008 Firmware Hub",
+    .internal_name = "sst_flash_49lf008",
+    .flags         = 0,
+    .local         = SST | SST49LF008 | SIZE_8M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_49lf008c_device = {
+    .name          = "SST 49LF008C Firmware Hub",
+    .internal_name = "sst_flash_49lf008c",
+    .flags         = 0,
+    .local         = SST | SST49LF008C | SIZE_8M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_49lf080_device = {
+    .name          = "SST 49LF080 Firmware Hub",
+    .internal_name = "sst_flash_49lf080",
+    .flags         = 0,
+    .local         = SST | SST49LF080 | SIZE_8M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_49lf016_device = {
+    .name          = "SST 49LF016 Firmware Hub",
+    .internal_name = "sst_flash_49lf016",
+    .flags         = 0,
+    .local         = SST | SST49LF016 | SIZE_16M,
+    .init          = sst_init,
+    .close         = sst_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sst_flash_49lf160_device = {
+
+    .name          = "SST 49LF160 Firmware Hub",
+    .internal_name = "sst_flash_49lf160",
+    .flags         = 0,
+    .local         = SST | SST49LF160 | SIZE_16M,
     .init          = sst_init,
     .close         = sst_close,
     .reset         = NULL,

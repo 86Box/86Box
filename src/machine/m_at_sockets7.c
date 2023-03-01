@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of Super Socket 7 machines.
+ *          Implementation of Super Socket 7 machines.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Melissa Goad, <mszoopers@protonmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Melissa Goad, <mszoopers@protonmail.com>
  *
- *		Copyright 2010-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2020 Melissa Goad.
+ *          Copyright 2010-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2020 Melissa Goad.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -268,7 +268,7 @@ machine_at_ficva503a_init(const machine_t *model)
     hwm_values.temperatures[1] += 2; /* System offset */
     hwm_values.temperatures[2] = 0;  /* unused */
 
-    if (sound_card_current == SOUND_INTERNAL)
+    if (sound_card_current[0] == SOUND_INTERNAL)
         device_add(&wm9701a_device); /* on daughtercard */
 
     return ret;

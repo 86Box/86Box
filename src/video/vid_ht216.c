@@ -1,26 +1,28 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Video 7 VGA 1024i emulation.
+ *          Video 7 VGA 1024i emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2019 Sarah Walker.
- *		Copyright 2019 Miran Grca.
+ *          Copyright 2019 Sarah Walker.
+ *          Copyright 2019 Miran Grca.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/io.h>
@@ -1627,17 +1629,17 @@ ht216_force_redraw(void *p)
 }
 
 static const device_config_t v7_vga_1024i_config[] = {
-    {.name        = "memory",
+    { .name        = "memory",
      .description = "Memory size",
      .type        = CONFIG_SELECTION,
      .default_int = 512,
      .selection   = {
-            { .description = "256 kB",
+          { .description = "256 kB",
               .value       = 256 },
-            { .description = "512 kB",
+          { .description = "512 kB",
               .value       = 512 },
-            { .description = "" } } },
-    { .type = CONFIG_END}
+          { .description = "" } } },
+    { .type = CONFIG_END }
 };
 
 // clang-format off

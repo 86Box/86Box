@@ -1,3 +1,14 @@
+#
+# 86Box    A hypervisor and IBM PC system emulator that specializes in
+#          running old operating systems and software designed for IBM
+#          PC systems and compatibles from 1981 through fairly recent
+#          system designs based on the PCI bus.
+#
+#          This file is part of the 86Box distribution.
+#
+#          CMake build script.
+#
+
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
@@ -172,11 +183,9 @@ add_library(ui STATIC
     ../qt_resources.qrc
 )
 
-
 if(RTMIDI)
     target_compile_definitions(ui PRIVATE USE_RTMIDI)
 endif()
-
 
 if(WIN32)
     enable_language(RC)
@@ -210,6 +219,12 @@ endif()
 
 if(WIN32 AND NOT MINGW)
     target_sources(plat PRIVATE ../win/win_opendir.c)
+endif()
+
+if(WIN32)
+    target_sources(plat PRIVATE ../win/win_serial_passthrough.c)
+else()
+    target_sources(plat PRIVATE ../unix/unix_serial_passthrough.c)
 endif()
 
 if (APPLE)

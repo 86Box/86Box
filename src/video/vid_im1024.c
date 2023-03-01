@@ -1,50 +1,50 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the ImageManager 1024 video controller.
+ *          Emulation of the ImageManager 1024 video controller.
  *
- *		Just enough of the Vermont Microsystems IM-1024 is implemented
- *		to support the Windows 1.03 driver. Functions are partially
- *		implemented or hardwired to the behavior expected by the
- *		Windows driver.
+ *          Just enough of the Vermont Microsystems IM-1024 is implemented
+ *          to support the Windows 1.03 driver. Functions are partially
+ *          implemented or hardwired to the behavior expected by the
+ *          Windows driver.
  *
- *		One major difference seems to be that in hex mode, coordinates
- *		are passed as 2-byte integer words rather than 4-byte
- *		fixed-point fractions.
+ *          One major difference seems to be that in hex mode, coordinates
+ *          are passed as 2-byte integer words rather than 4-byte
+ *          fixed-point fractions.
  *
- *		It is unknown what triggers this, so for now it's always on.
+ *          It is unknown what triggers this, so for now it's always on.
  *
- *		As well as the usual PGC ring buffer at 0xC6000, the IM1024
- *		appears to have an alternate method of passing commands. This
- *		is enabled by setting 0xC6330 to 1, and then:
+ *          As well as the usual PGC ring buffer at 0xC6000, the IM1024
+ *          appears to have an alternate method of passing commands. This
+ *          is enabled by setting 0xC6330 to 1, and then:
  *
- *		  CX = count to write
- *		  SI -> bytes to write
+ *            CX = count to write
+ *            SI -> bytes to write
  *
- *		  Set pending bytes to 0
- *		  Read [C6331]. This gives number of bytes that can be written:
- *		    0xFF => 0, 0xFE => 1, 0xFD => 2 etc.
- *		  Write that number of bytes to C6000.
- *		  If there are more to come, go back to reading [C6331].
+ *            Set pending bytes to 0
+ *            Read [C6331]. This gives number of bytes that can be written:
+ *              0xFF => 0, 0xFE => 1, 0xFD => 2 etc.
+ *            Write that number of bytes to C6000.
+ *            If there are more to come, go back to reading [C6331].
  *
- *		As far as can be determined, at least one byte is always
- *		written; there is no provision to pause if the queue is full.
+ *            As far as can be determined, at least one byte is always
+ *            written; there is no provision to pause if the queue is full.
  *
- *		This is implemented by holding a FIFO of unlimited depth in
- *		the IM1024 to receive the data.
+ *            This is implemented by holding a FIFO of unlimited depth in
+ *            the IM1024 to receive the data.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		John Elliott, <jce@seasip.info>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          John Elliott, <jce@seasip.info>
  *
- *		Copyright 2019 Fred N. van Kempen.
- *		Copyright 2019 John Elliott.
+ *          Copyright 2019 Fred N. van Kempen.
+ *          Copyright 2019 John Elliott.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -1034,7 +1034,7 @@ im1024_close(void *priv)
 }
 
 static int
-im1024_available()
+im1024_available(void)
 {
     return rom_present(BIOS_ROM_PATH);
 }

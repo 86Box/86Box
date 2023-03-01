@@ -7,8 +7,7 @@ namespace Ui {
 class SettingsFloppyCDROM;
 }
 
-class SettingsFloppyCDROM : public QWidget
-{
+class SettingsFloppyCDROM : public QWidget {
     Q_OBJECT
 
 public:
@@ -18,6 +17,7 @@ public:
     void save();
 
 private slots:
+    void on_comboBoxCDROMType_activated(int index);
     void on_comboBoxChannel_activated(int index);
     void on_comboBoxBus_activated(int index);
     void on_comboBoxSpeed_activated(int index);

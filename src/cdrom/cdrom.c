@@ -1,16 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Generic CD-ROM drive core.
+ *          Generic CD-ROM drive core.
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2018-2021 Miran Grca.
+ *
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2018-2021 Miran Grca.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -21,9 +23,12 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/device.h>
 #include <86box/config.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
+#include <86box/cdrom_interface.h>
+#include <86box/cdrom_mitsumi.h>
 #include <86box/plat.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
@@ -40,9 +45,6 @@
 
 #define MIN_SEEK           2000
 #define MAX_SEEK           333333
-
-#define CD_BCD(x)          (((x) % 10) | (((x) / 10) << 4))
-#define CD_DCB(x)          ((((x) &0xf0) >> 4) * 10 + ((x) &0x0f))
 
 #pragma pack(push, 1)
 typedef struct {
@@ -92,6 +94,8 @@ static uint8_t extra_buffer[296];
 
 cdrom_t cdrom[CDROM_NUM];
 
+int cdrom_interface_current;
+
 #ifdef ENABLE_CDROM_LOG
 int cdrom_do_log = ENABLE_CDROM_LOG;
 
@@ -109,6 +113,145 @@ cdrom_log(const char *fmt, ...)
 #else
 #    define cdrom_log(fmt, ...)
 #endif
+
+static const device_t cdrom_interface_none_device = {
+    .name          = "None",
+    .internal_name = "none",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+static const struct {
+    const device_t *device;
+} controllers[] = {
+    // clang-format off
+    { &cdrom_interface_none_device  },
+    { NULL                          }
+    // clang-format on
+};
+
+/* Reset the CD-ROM Interface, whichever one that is. */
+void
+cdrom_interface_reset(void)
+{
+    cdrom_log("CD-ROM Interface: reset(current=%d)\n",
+            cdrom_interface_current);
+
+    /* If we have a valid controller, add its device. */
+    if (!controllers[cdrom_interface_current].device)
+        return;
+
+    device_add(controllers[cdrom_interface_current].device);
+}
+
+char *
+cdrom_interface_get_internal_name(int cdinterface)
+{
+    return device_get_internal_name(controllers[cdinterface].device);
+}
+
+int
+cdrom_interface_get_from_internal_name(char *s)
+{
+    int c = 0;
+
+    while (controllers[c].device != NULL) {
+        if (!strcmp((char *) controllers[c].device->internal_name, s))
+            return c;
+        c++;
+    }
+
+    return 0;
+}
+
+const device_t *
+cdrom_interface_get_device(int cdinterface)
+{
+    return (controllers[cdinterface].device);
+}
+
+int
+cdrom_interface_has_config(int cdinterface)
+{
+    const device_t *dev = cdrom_interface_get_device(cdinterface);
+
+    if (dev == NULL)
+        return (0);
+
+    if (!device_has_config(dev))
+        return (0);
+
+    return (1);
+}
+
+int
+cdrom_interface_get_flags(int cdinterface)
+{
+    return (controllers[cdinterface].device->flags);
+}
+
+int
+cdrom_interface_available(int cdinterface)
+{
+    return (device_available(controllers[cdinterface].device));
+}
+
+char *
+cdrom_getname(int type)
+{
+    return (char *) cdrom_drive_types[type].name;
+}
+
+char *
+cdrom_get_internal_name(int type)
+{
+    return (char *) cdrom_drive_types[type].internal_name;
+}
+
+int
+cdrom_get_from_internal_name(char *s)
+{
+    int c = 0;
+
+    while (strlen(cdrom_drive_types[c].internal_name)) {
+        if (!strcmp((char *) cdrom_drive_types[c].internal_name, s))
+            return c;
+        c++;
+    }
+
+    return 0;
+}
+
+void
+cdrom_set_type(int model, int type)
+{
+    cdrom[model].type = type;
+}
+
+int
+cdrom_get_type(int model)
+{
+    return cdrom[model].type;
+}
+
+static __inline int
+bin2bcd(int x)
+{
+    return (x % 10) | ((x / 10) << 4);
+}
+
+static __inline int
+bcd2bin(int x)
+{
+    return (x >> 4) * 10 + (x & 0x0f);
+}
 
 int
 cdrom_lba_to_msf_accurate(int lba)
@@ -256,12 +399,26 @@ cdrom_stop(cdrom_t *dev)
 }
 
 void
-cdrom_seek(cdrom_t *dev, uint32_t pos)
+cdrom_seek(cdrom_t *dev, uint32_t pos, uint8_t vendor_type)
 {
+    int      m, s, f;
+
     if (!dev)
         return;
 
-    cdrom_log("CD-ROM %i: Seek to LBA %08X\n", dev->id, pos);
+    cdrom_log("CD-ROM %i: Seek to LBA %08X, vendor type = %02x.\n", dev->id, pos, vendor_type);
+
+    switch (vendor_type) {
+        case 0x40:
+            m = bcd2bin((pos >> 24) & 0xff);
+            s = bcd2bin((pos >> 16) & 0xff);
+            f = bcd2bin((pos >> 8) & 0xff);
+            pos = MSFtoLBA(m, s, f) - 150;
+            break;
+        case 0x80:
+            pos = bcd2bin((pos >> 24) & 0xff);
+            break;
+    }
 
     dev->seek_pos = pos;
     cdrom_stop(dev);
@@ -321,6 +478,22 @@ cdrom_audio_callback(cdrom_t *dev, int16_t *output, int len)
     return ret;
 }
 
+static void
+msf_from_bcd(int *m, int *s, int *f)
+{
+    *m = bcd2bin(*m);
+    *s = bcd2bin(*s);
+    *f = bcd2bin(*f);
+}
+
+static void
+msf_to_bcd(int *m, int *s, int *f)
+{
+    *m = bin2bcd(*m);
+    *s = bin2bcd(*s);
+    *f = bin2bcd(*f);
+}
+
 uint8_t
 cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
 {
@@ -335,17 +508,23 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
         /* Track-relative audio play. */
         dev->ops->get_track_info(dev, ismsf & 0xff, 0, &ti);
         pos += MSFtoLBA(ti.m, ti.s, ti.f) - 150;
-    } else if (ismsf == 2) {
+    } else if ((ismsf == 2) || (ismsf == 3)) {
         dev->ops->get_track_info(dev, pos, 0, &ti);
         pos = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
-        /* We have to end at the *end* of the specified track,
-           not at the beginning. */
-        dev->ops->get_track_info(dev, len, 1, &ti);
-        len = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
+        if (ismsf == 2) {
+            /* We have to end at the *end* of the specified track,
+               not at the beginning. */
+            dev->ops->get_track_info(dev, len, 1, &ti);
+            len = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
+        }
     } else if (ismsf == 1) {
         m = (pos >> 16) & 0xff;
         s = (pos >> 8) & 0xff;
         f = pos & 0xff;
+
+        /* NEC CDR-260 speaks BCD. */
+        if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) /*NEC*/
+            msf_from_bcd(&m, &s, &f);
 
         if (pos == 0xffffff) {
             cdrom_log("CD-ROM %i: Playing from current position (MSF)\n", dev->id);
@@ -353,9 +532,14 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
         } else
             pos = MSFtoLBA(m, s, f) - 150;
 
-        m   = (len >> 16) & 0xff;
-        s   = (len >> 8) & 0xff;
-        f   = len & 0xff;
+        m = (len >> 16) & 0xff;
+        s = (len >> 8) & 0xff;
+        f = len & 0xff;
+
+        /* NEC CDR-260 speaks BCD. */
+        if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) /*NEC*/
+            msf_from_bcd(&m, &s, &f);
+
         len = MSFtoLBA(m, s, f) - 150;
 
         cdrom_log("CD-ROM %i: MSF - pos = %08X len = %08X\n", dev->id, pos, len);
@@ -391,49 +575,116 @@ cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit)
     if (dev->cd_status == CD_STATUS_DATA_ONLY)
         return 0;
 
+    cdrom_log("Audio Track Search: MSF = %06x, type = %02x, playbit = %02x\n", pos, type, playbit);
     switch (type) {
+        case 0x00:
+            if (pos == 0xffffffff) {
+                cdrom_log("CD-ROM %i: (type 0) Search from current position\n", dev->id);
+                pos = dev->seek_pos;
+            }
+            dev->seek_pos = pos;
+            break;
         case 0x40:
-            cdrom_log("Audio Track Search: MSF = %06x, type = %02x\n", pos, type);
-            m   = CD_DCB((pos >> 24) & 0xff);
-            s   = CD_DCB((pos >> 16) & 0xff);
-            f   = CD_DCB((pos >> 8) & 0xff);
-            pos = MSFtoLBA(m, s, f) - 150;
+            m   = bcd2bin((pos >> 24) & 0xff);
+            s   = bcd2bin((pos >> 16) & 0xff);
+            f   = bcd2bin((pos >> 8) & 0xff);
+            if (pos == 0xffffffff) {
+                cdrom_log("CD-ROM %i: (type 1) Search from current position\n", dev->id);
+                pos = dev->seek_pos;
+            } else
+                pos = MSFtoLBA(m, s, f) - 150;
+
+            dev->seek_pos = pos;
+            break;
+        case 0x80:
+            if (pos == 0xffffffff) {
+                cdrom_log("CD-ROM %i: (type 2) Search from current position\n", dev->id);
+                pos = dev->seek_pos;
+            }
+            dev->seek_pos = (pos >> 24) & 0xff;
             break;
     }
 
-    /* Do this at this point, since it's at this point that we know the
-       actual LBA position to start playing from. */
-    if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
-        cdrom_log("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
-        cdrom_stop(dev);
-        return 0;
-    }
-
-    dev->seek_pos  = pos;
-    dev->noplay    = !playbit;
+    /* Unlike standard commands, if there's a data track on an Audio CD (mixed mode)
+       the playback continues with the audio muted (Toshiba CD-ROM SCSI-2 manual reference). */
+    dev->cd_buflen = 0;
     dev->cd_status = playbit ? CD_STATUS_PLAYING : CD_STATUS_PAUSED;
     return 1;
 }
 
 uint8_t
-cdrom_toshiba_audio_play(cdrom_t *dev, uint32_t pos, int type)
+cdrom_audio_play_toshiba(cdrom_t *dev, uint32_t pos, int type)
 {
     int m = 0, s = 0, f = 0;
 
     if (dev->cd_status == CD_STATUS_DATA_ONLY)
         return 0;
 
-    if (dev->cd_status == CD_STATUS_STOPPED || dev->cd_status == CD_STATUS_PAUSED)
-        dev->cd_status = CD_STATUS_PLAYING;
-
     /*Preliminary support, revert if too incomplete*/
     switch (type) {
+        case 0x00:
+            dev->cd_end = pos;
+            break;
         case 0x40:
-            cdrom_log("Toshiba Play Audio: MSF = %06x, type = %02x\n", pos, type);
-            m   = CD_DCB((pos >> 24) & 0xff);
-            s   = CD_DCB((pos >> 16) & 0xff);
-            f   = CD_DCB((pos >> 8) & 0xff);
+            m   = bcd2bin((pos >> 24) & 0xff);
+            s   = bcd2bin((pos >> 16) & 0xff);
+            f   = bcd2bin((pos >> 8) & 0xff);
             pos = MSFtoLBA(m, s, f) - 150;
+            dev->cd_end = pos;
+            break;
+        case 0x80:
+            dev->cd_end = (pos >> 24) & 0xff;
+            break;
+        case 0xc0:
+            if (pos == 0xffffffff) {
+                cdrom_log("CD-ROM %i: Playing from current position\n", dev->id);
+                pos = dev->cd_end;
+            }
+            dev->cd_end = pos;
+            break;
+    }
+
+    cdrom_log("Toshiba/NEC Play Audio: MSF = %06x, type = %02x, cdstatus = %02x\n", pos, type, dev->cd_status);
+
+    /* Unlike standard commands, if there's a data track on an Audio CD (mixed mode)
+       the playback continues with the audio muted (Toshiba CD-ROM SCSI-2 manual reference). */
+
+    dev->cd_buflen = 0;
+    dev->cd_status = CD_STATUS_PLAYING;
+    return 1;
+}
+
+uint8_t
+cdrom_audio_scan(cdrom_t *dev, uint32_t pos, int type)
+{
+    int m = 0, s = 0, f = 0;
+
+    if (dev->cd_status == CD_STATUS_DATA_ONLY)
+        return 0;
+
+    cdrom_log("Audio Scan: MSF = %06x, type = %02x\n", pos, type);
+    switch (type) {
+        case 0x00:
+            if (pos == 0xffffffff) {
+                cdrom_log("CD-ROM %i: (type 0) Search from current position\n", dev->id);
+                pos = dev->seek_pos;
+            }
+            dev->seek_pos = pos;
+            break;
+        case 0x40:
+            m   = bcd2bin((pos >> 24) & 0xff);
+            s   = bcd2bin((pos >> 16) & 0xff);
+            f   = bcd2bin((pos >> 8) & 0xff);
+            if (pos == 0xffffffff) {
+                cdrom_log("CD-ROM %i: (type 1) Search from current position\n", dev->id);
+                pos = dev->seek_pos;
+            } else
+                pos = MSFtoLBA(m, s, f) - 150;
+
+            dev->seek_pos = pos;
+            break;
+        case 0x80:
+            dev->seek_pos = (pos >> 24) & 0xff;
             break;
     }
 
@@ -445,7 +696,6 @@ cdrom_toshiba_audio_play(cdrom_t *dev, uint32_t pos, int type)
         return 0;
     }
 
-    dev->cd_end    = pos;
     dev->cd_buflen = 0;
     return 1;
 }
@@ -462,11 +712,10 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
 {
     uint8_t      ret;
     subchannel_t subc;
-    int          pos = 1;
+    int          pos = 1, m, s, f;
     uint32_t     dat;
 
     dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
-    cdrom_log("CD-ROM %i: Returned subchannel at %02i:%02i.%02i\n", subc.abs_m, subc.abs_s, subc.abs_f);
 
     if (dev->cd_status == CD_STATUS_DATA_ONLY)
         ret = 0x15;
@@ -479,23 +728,54 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
             ret = 0x13;
     }
 
-    if (b[pos] > 1)
+    cdrom_log("CD-ROM %i: Returned subchannel at %02i:%02i.%02i, ret = %02x, seek pos = %08x, cd_end = %08x.\n", dev->id, subc.abs_m, subc.abs_s, subc.abs_f, ret, dev->seek_pos, dev->cd_end);
+
+    if (b[pos] > 1) {
+        cdrom_log("B[%i] = %02x, ret = %02x.\n", pos, b[pos], ret);
         return ret;
+    }
 
     b[pos++] = subc.attr;
     b[pos++] = subc.track;
     b[pos++] = subc.index;
 
     if (msf) {
-        b[pos]     = 0;
-        b[pos + 1] = subc.abs_m;
-        b[pos + 2] = subc.abs_s;
-        b[pos + 3] = subc.abs_f;
+        b[pos] = 0;
+
+        /* NEC CDR-260 speaks BCD. */
+        if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) /*NEC*/ {
+            m = subc.abs_m;
+            s = subc.abs_s;
+            f = subc.abs_f;
+            msf_to_bcd(&m, &s, &f);
+            b[pos + 1] = m;
+            b[pos + 2] = s;
+            b[pos + 3] = f;
+        } else {
+            b[pos + 1] = subc.abs_m;
+            b[pos + 2] = subc.abs_s;
+            b[pos + 3] = subc.abs_f;
+        }
+
         pos += 4;
-        b[pos]     = 0;
-        b[pos + 1] = subc.rel_m;
-        b[pos + 2] = subc.rel_s;
-        b[pos + 3] = subc.rel_f;
+
+        b[pos] = 0;
+
+        /* NEC CDR-260 speaks BCD. */
+        if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) /*NEC*/ {
+            m = subc.rel_m;
+            s = subc.rel_s;
+            f = subc.rel_f;
+            msf_to_bcd(&m, &s, &f);
+            b[pos + 1] = m;
+            b[pos + 2] = s;
+            b[pos + 3] = f;
+        } else {
+            b[pos + 1] = subc.rel_m;
+            b[pos + 2] = subc.rel_s;
+            b[pos + 3] = subc.rel_f;
+        }
+
         pos += 4;
     } else {
         dat      = MSFtoLBA(subc.abs_m, subc.abs_s, subc.abs_f) - 150;
@@ -513,6 +793,77 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
     return ret;
 }
 
+void
+cdrom_get_current_subchannel_sony(cdrom_t *dev, uint8_t *b, int msf)
+{
+    subchannel_t subc;
+    int          pos = 0;
+    uint32_t     dat;
+
+    dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
+
+    cdrom_log("CD-ROM %i: Returned subchannel at %02i:%02i.%02i, seek pos = %08x, cd_end = %08x.\n", dev->id, subc.abs_m, subc.abs_s, subc.abs_f, dev->seek_pos, dev->cd_end);
+
+    b[pos++] = subc.attr;
+    b[pos++] = subc.track;
+    b[pos++] = subc.index;
+
+    if (msf) {
+        b[pos++] = subc.rel_m;
+        b[pos++] = subc.rel_s;
+        b[pos++] = subc.rel_f;
+        b[pos++] = subc.abs_m;
+        b[pos++] = subc.abs_s;
+        b[pos++] = subc.abs_f;
+    } else {
+        dat      = MSFtoLBA(subc.rel_m, subc.rel_s, subc.rel_f);
+        b[pos++] = (dat >> 16) & 0xff;
+        b[pos++] = (dat >> 8) & 0xff;
+        b[pos++] = dat & 0xff;
+        dat      = MSFtoLBA(subc.abs_m, subc.abs_s, subc.abs_f) - 150;
+        b[pos++] = (dat >> 16) & 0xff;
+        b[pos++] = (dat >> 8) & 0xff;
+        b[pos++] = dat & 0xff;
+    }
+}
+
+
+uint8_t
+cdrom_get_audio_status_sony(cdrom_t *dev, uint8_t *b, int msf)
+{
+    uint8_t      ret;
+    subchannel_t subc;
+    uint32_t     dat;
+
+    dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
+
+    if (dev->cd_status == CD_STATUS_DATA_ONLY)
+        ret = 0x05;
+    else {
+        if (dev->cd_status == CD_STATUS_PLAYING)
+            ret = dev->sound_on ? 0x00 : 0x02;
+        else if (dev->cd_status == CD_STATUS_PAUSED)
+            ret = 0x01;
+        else
+            ret = 0x03;
+    }
+
+    if (msf) {
+        b[0] = 0;
+        b[1] = subc.abs_m;
+        b[2] = subc.abs_s;
+        b[3] = subc.abs_f;
+    } else {
+        dat = MSFtoLBA(subc.abs_m, subc.abs_s, subc.abs_f) - 150;
+        b[0] = (dat >> 24) & 0xff;
+        b[1] = (dat >> 16) & 0xff;
+        b[2] = (dat >> 8) & 0xff;
+        b[3] = dat & 0xff;
+    }
+
+    return ret;
+}
+
 uint8_t
 cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b)
 {
@@ -521,27 +872,22 @@ cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b)
 
     dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
 
-    if (dev->cd_status == CD_STATUS_PLAYING)
-        ret = 0x00;
-    else if (dev->cd_status == CD_STATUS_PAUSED) {
-        if (dev->noplay)
-            ret = 0x02;
-        else
-            ret = 0x01;
-    } else
+    cdrom_log("Get Current Subcode-q Play Status = %02x, op = %02x.\n", dev->cd_status, dev->audio_op);
+
+    if ((dev->cd_status == CD_STATUS_DATA_ONLY) || (dev->cd_status == CD_STATUS_PLAYING_COMPLETED))
         ret = 0x03;
+    else
+        ret = (dev->cd_status == CD_STATUS_PLAYING) ? 0x00 : dev->audio_op;
 
     b[0] = subc.attr;
-    b[1] = CD_BCD(subc.track);
-    b[2] = CD_BCD(subc.index);
-    b[3] = CD_BCD(subc.rel_m);
-    b[4] = CD_BCD(subc.rel_s);
-    b[5] = CD_BCD(subc.rel_f);
-    b[6] = CD_BCD(subc.abs_m);
-    b[7] = CD_BCD(subc.abs_s);
-    b[8] = CD_BCD(subc.abs_f);
-    cdrom_log("CD-ROM %i: Returned subcode-q at %02i:%02i.%02i, track=%02x\n", dev->id, b[3], b[4], b[5], b[1]);
-
+    b[1] = bin2bcd(subc.track);
+    b[2] = bin2bcd(subc.index);
+    b[3] = bin2bcd(subc.rel_m);
+    b[4] = bin2bcd(subc.rel_s);
+    b[5] = bin2bcd(subc.rel_f);
+    b[6] = bin2bcd(subc.abs_m);
+    b[7] = bin2bcd(subc.abs_s);
+    b[8] = bin2bcd(subc.abs_f);
     return ret;
 }
 
@@ -550,6 +896,7 @@ read_toc_normal(cdrom_t *dev, unsigned char *b, unsigned char start_track, int m
 {
     track_info_t ti;
     int          i, len = 4;
+    int          m, s, f;
     int          first_track, last_track;
     uint32_t     temp;
 
@@ -600,9 +947,21 @@ read_toc_normal(cdrom_t *dev, unsigned char *b, unsigned char start_track, int m
 
         if (msf) {
             b[len++] = 0;
-            b[len++] = ti.m;
-            b[len++] = ti.s;
-            b[len++] = ti.f;
+
+            /* NEC CDR-260 speaks BCD. */
+            if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) { /*NEC*/
+                m = ti.m;
+                s = ti.s;
+                f = ti.f;
+                msf_to_bcd(&m, &s, &f);
+                b[len++] = m;
+                b[len++] = s;
+                b[len++] = f;
+            } else {
+                b[len++] = ti.m;
+                b[len++] = ti.s;
+                b[len++] = ti.f;
+            }
         } else {
             temp     = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
             b[len++] = temp >> 24;
@@ -619,7 +978,7 @@ static int
 read_toc_session(cdrom_t *dev, unsigned char *b, int msf)
 {
     track_info_t ti;
-    int          len = 4;
+    int          len = 4, m, s, f;
     uint32_t     temp;
 
     cdrom_log("read_toc_session(%08X, %08X, %i)\n", dev, b, msf);
@@ -638,9 +997,21 @@ read_toc_session(cdrom_t *dev, unsigned char *b, int msf)
 
     if (msf) {
         b[len++] = 0;
-        b[len++] = ti.m;
-        b[len++] = ti.s;
-        b[len++] = ti.f;
+
+        /* NEC CDR-260 speaks BCD. */
+        if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) { /*NEC*/
+            m = ti.m;
+            s = ti.s;
+            f = ti.f;
+            msf_to_bcd(&m, &s, &f);
+            b[len++] = m;
+            b[len++] = s;
+            b[len++] = f;
+        } else {
+            b[len++] = ti.m;
+            b[len++] = ti.s;
+            b[len++] = ti.f;
+        }
     } else {
         temp     = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
         b[len++] = temp >> 24;
@@ -686,6 +1057,74 @@ read_toc_raw(cdrom_t *dev, unsigned char *b)
     return len;
 }
 
+static int
+read_toc_sony(cdrom_t *dev, unsigned char *b, unsigned char start_track, int msf)
+{
+    track_info_t ti;
+    int          i, len = 4;
+    int          first_track, last_track;
+    uint32_t     temp;
+
+    cdrom_log("read_toc_sony(%08X, %08X, %02X, %i)\n", dev, b, start_track, msf);
+
+    dev->ops->get_tracks(dev, &first_track, &last_track);
+
+    /* Byte 2 = Number of the first track */
+    dev->ops->get_track_info(dev, 1, 0, &ti);
+    b[2] = ti.number;
+    cdrom_log("    b[2] = %02X\n", b[2]);
+
+    /* Byte 3 = Number of the last track before the lead-out track */
+    dev->ops->get_track_info(dev, last_track, 0, &ti);
+    b[3] = ti.number;
+    cdrom_log("    b[3] = %02X\n", b[2]);
+
+    if (start_track == 0x00)
+        first_track = 0;
+    else {
+        first_track = -1;
+        for (i = 0; i <= last_track; i++) {
+            dev->ops->get_track_info(dev, i + 1, 0, &ti);
+            if (ti.number >= start_track) {
+                first_track = i;
+                break;
+            }
+        }
+    }
+    cdrom_log("    first_track = %i, last_track = %i\n", first_track, last_track);
+
+    /* No suitable starting track, return with error. */
+    if (first_track == -1) {
+#ifdef ENABLE_CDROM_LOG
+        cdrom_log("    [ERROR] No suitable track found\n");
+#endif
+        return -1;
+    }
+
+    for (i = first_track; i <= last_track; i++) {
+        cdrom_log("    tracks(%i) = %02X, %02X, %i:%02i.%02i\n", i, ti.attr, ti.number, ti.m, ti.s, ti.f);
+        dev->ops->get_track_info(dev, i + 1, 0, &ti);
+
+        b[len++] = ti.attr;
+        b[len++] = ti.number; /* track number */
+
+        if (msf) {
+            b[len++] = 0;
+            b[len++] = ti.m;
+            b[len++] = ti.s;
+            b[len++] = ti.f;
+        } else {
+            temp     = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
+            b[len++] = temp >> 24;
+            b[len++] = temp >> 16;
+            b[len++] = temp >> 8;
+            b[len++] = temp;
+        }
+    }
+
+    return len;
+}
+
 int
 cdrom_read_toc(cdrom_t *dev, unsigned char *b, int type, unsigned char start_track, int msf, int max_len)
 {
@@ -714,7 +1153,22 @@ cdrom_read_toc(cdrom_t *dev, unsigned char *b, int type, unsigned char start_tra
     return len;
 }
 
-/* A new API call for Mitsumi CD-ROM. */
+int
+cdrom_read_toc_sony(cdrom_t *dev, unsigned char *b, unsigned char start_track, int msf, int max_len)
+{
+    int len;
+
+    len = read_toc_sony(dev, b, start_track, msf);
+
+    len = MIN(len, max_len);
+
+    b[0] = (uint8_t) (((len - 2) >> 8) & 0xff);
+    b[1] = (uint8_t) ((len - 2) & 0xff);
+
+    return len;
+}
+
+/* New API calls for Mitsumi CD-ROM. */
 void
 cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf)
 {
@@ -739,34 +1193,107 @@ cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf)
 }
 
 void
-cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, int type)
+cdrom_get_q(cdrom_t *dev, uint8_t *buf, int *curtoctrk, uint8_t mode)
 {
     track_info_t ti;
     int          first_track, last_track;
 
+    if (dev != NULL) {
+        dev->ops->get_tracks(dev, &first_track, &last_track);
+        dev->ops->get_track_info(dev, *curtoctrk, 0, &ti);
+        buf[0] = (ti.attr << 4) & 0xf0;
+        buf[1] = ti.number;
+        buf[2] = bin2bcd(*curtoctrk + 1);
+        buf[3] = ti.m;
+        buf[4] = ti.s;
+        buf[5] = ti.f;
+        buf[6] = 0x00;
+        dev->ops->get_track_info(dev, 1, 0, &ti);
+        buf[7] = ti.m;
+        buf[8] = ti.s;
+        buf[9] = ti.f;
+        if (*curtoctrk >= (last_track + 1))
+            *curtoctrk = 0;
+        else if (mode)
+            *curtoctrk = *curtoctrk + 1;
+    } else
+        memset(buf, 0x00, 10);
+}
+
+uint8_t
+cdrom_mitsumi_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len)
+{
+    track_info_t ti;
+
+    if (dev->cd_status == CD_STATUS_DATA_ONLY)
+        return 0;
+
+    cdrom_log("CD-ROM 0: Play Mitsumi audio - %08X %08X\n", pos, len);
+    dev->ops->get_track_info(dev, pos, 0, &ti);
+    pos = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
+    dev->ops->get_track_info(dev, len, 1, &ti);
+    len = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
+
+    /* Do this at this point, since it's at this point that we know the
+       actual LBA position to start playing from. */
+    if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
+        cdrom_log("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
+        cdrom_stop(dev);
+        return 0;
+    }
+
+    dev->seek_pos  = pos;
+    dev->cd_end    = len;
+    dev->cd_status = CD_STATUS_PLAYING;
+    dev->cd_buflen = 0;
+
+    return 1;
+}
+
+uint8_t
+cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, int type)
+{
+    track_info_t ti;
+    int          first_track, last_track;
+    int          m = 0, s = 0, f = 0;
+
     dev->ops->get_tracks(dev, &first_track, &last_track);
 
+    cdrom_log("Read DISC Info TOC Type = %d, track = %d, first_track = %d, last_track = %d.\n", type, track, first_track, last_track);
     switch (type) {
         case 0:
-            b[0] = CD_BCD(first_track);
-            b[1] = CD_BCD(last_track);
+            b[0] = bin2bcd(first_track);
+            b[1] = bin2bcd(last_track);
             b[2] = 0;
             b[3] = 0;
+            cdrom_log("CD-ROM %i: Returned Toshiba/NEC disc information (type 0) at %02i:%02i\n", dev->id, b[0], b[1]);
             break;
         case 1:
-            dev->ops->get_track_info(dev, 0xAA, 0, &ti);
-            b[0] = CD_BCD(ti.m);
-            b[1] = CD_BCD(ti.s);
-            b[2] = CD_BCD(ti.f);
+            dev->ops->get_track_info(dev, 0xaa, 0, &ti);
+            m = ti.m;
+            s = ti.s;
+            f = ti.f;
+            msf_to_bcd(&m, &s, &f);
+            b[0] = m;
+            b[1] = s;
+            b[2] = f;
             b[3] = 0;
+            cdrom_log("CD-ROM %i: Returned Toshiba/NEC disc information (type 1) at %02i:%02i.%02i, track=%d\n", dev->id, b[0], b[1], b[2], bcd2bin(track));
             break;
         case 2:
-            dev->ops->get_track_info(dev, CD_DCB(track), 0, &ti);
-            b[0] = CD_BCD(ti.m);
-            b[1] = CD_BCD(ti.s);
-            b[2] = CD_BCD(ti.f);
+            if (track > bin2bcd(last_track))
+                return 0;
+
+            dev->ops->get_track_info(dev, bcd2bin(track), 0, &ti);
+            m = ti.m;
+            s = ti.s;
+            f = ti.f;
+            msf_to_bcd(&m, &s, &f);
+            b[0] = m;
+            b[1] = s;
+            b[2] = f;
             b[3] = ti.attr;
-            cdrom_log("CD-ROM %i: Returned Toshiba disc information at %02i:%02i.%02i, track=%d\n", dev->id, b[0], b[1], b[2], CD_DCB(track));
+            cdrom_log("CD-ROM %i: Returned Toshiba/NEC disc information (type 2) at %02i:%02i.%02i, track=%d, m=%02i,s=%02i,f=%02i, tno=%02x.\n", dev->id, b[0], b[1], b[2], bcd2bin(track), m, s, f, ti.attr);
             break;
         case 3:
             b[0] = 0x00; /*TODO: correct it further, mark it as CD-Audio/CD-ROM disc for now*/
@@ -775,6 +1302,8 @@ cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, in
             b[3] = 0;
             break;
     }
+
+    return 1;
 }
 
 static int
@@ -1052,7 +1581,7 @@ read_mode2_xa_form2(cdrom_t *dev, int cdrom_sector_flags, uint32_t lba, uint32_t
 
 int
 cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf, int cdrom_sector_type,
-                     int cdrom_sector_flags, int *len)
+                     int cdrom_sector_flags, int *len, uint8_t vendor_type)
 {
     uint8_t *b, *temp_b;
     uint32_t msf, lba;
@@ -1073,8 +1602,26 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf, int c
         lba = MSFtoLBA(m, s, f) - 150;
         msf = sector;
     } else {
-        lba = sector;
-        msf = cdrom_lba_to_msf_accurate(sector);
+        switch (vendor_type) {
+            case 0x00:
+                lba = sector;
+                msf = cdrom_lba_to_msf_accurate(sector);
+                break;
+            case 0x40:
+                m = bcd2bin((sector >> 24) & 0xff);
+                s = bcd2bin((sector >> 16) & 0xff);
+                f = bcd2bin((sector >> 8) & 0xff);
+                lba = MSFtoLBA(m, s, f) - 150;
+                msf = sector;
+                break;
+            case 0x80:
+                lba = bcd2bin((sector >> 24) & 0xff);
+                msf = sector;
+                break;
+            /* Never used values but the compiler complains. */
+            default:
+                lba = msf = 0;
+        }
     }
 
     if (dev->ops->track_type)

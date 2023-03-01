@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Discord integration module.
+ *          Discord integration module.
  *
  *
  *
- * Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
+ * Authors: David Hrdlička, <hrdlickadavid@outlook.com>
  *
- *		Copyright 2019 David Hrdlička.
+ *          Copyright 2019 David Hrdlička.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -88,7 +88,7 @@ discord_update_activity(int paused)
         *(paren - 1) = '\0';
 
 #pragma GCC diagnostic push
-#if defined(__GNUC__)
+#if defined(__GNUC__) && !defined(__clang__)
 #    pragma GCC diagnostic ignored "-Wformat-truncation"
 #endif
     if (strlen(vm_name) < 100) {
@@ -132,7 +132,7 @@ discord_update_activity(int paused)
 }
 
 int
-discord_load()
+discord_load(void)
 {
     if (discord_handle != NULL)
         return (1);
@@ -152,7 +152,7 @@ discord_load()
 }
 
 void
-discord_init()
+discord_init(void)
 {
     enum EDiscordResult        result;
     struct DiscordCreateParams params;
@@ -177,7 +177,7 @@ discord_init()
 }
 
 void
-discord_close()
+discord_close(void)
 {
     if (discord_core != NULL)
         discord_core->destroy(discord_core);
@@ -187,7 +187,7 @@ discord_close()
 }
 
 void
-discord_run_callbacks()
+discord_run_callbacks(void)
 {
     if (discord_core == NULL)
         return;

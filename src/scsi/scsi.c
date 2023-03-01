@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Handling of the SCSI controllers.
+ *          Handling of the SCSI controllers.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		TheCollector1995, <mariogplayer@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          TheCollector1995, <mariogplayer@gmail.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -41,9 +41,6 @@
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/scsi_pcscsi.h>
 #include <86box/scsi_spock.h>
-#ifdef WALTJE
-#    include "scsi_wd33c93.h"
-#endif
 
 int scsi_card_current[SCSI_BUS_MAX] = { 0, 0 };
 
@@ -85,9 +82,6 @@ static SCSI_CARD scsi_cards[] = {
     { &scsi_rt1000mc_device,     },
     { &scsi_t128_device,         },
     { &scsi_t130b_device,        },
-#ifdef WALTJE
-    { &scsi_wd33c93_device,      },
-#endif
     { &aha1640_device,           },
     { &buslogic_640a_device,     },
     { &ncr53c90_mca_device,      },
@@ -179,8 +173,8 @@ scsi_card_init(void)
     if (machine_has_flags(machine, MACHINE_SCSI))
         max--;
 
-/* Do not initialize any controllers if we have do not have any SCSI
-       bus left. */
+    /* Do not initialize any controllers if we have do not have any SCSI
+           bus left. */
     if (max > 0) {
         for (i = 0; i < max; i++) {
             if (!scsi_cards[scsi_card_current[i]].device)

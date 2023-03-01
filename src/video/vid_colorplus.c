@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Plantronics ColorPlus emulation.
+ *          Plantronics ColorPlus emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2016-2018 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -207,6 +207,8 @@ colorplus_poll(void *p)
 
         if (colorplus->cga.composite)
             Composite_Process(colorplus->cga.cgamode, 0, x >> 2, buffer32->line[colorplus->cga.displine]);
+        else
+            video_process_8(x, colorplus->cga.displine);
 
         colorplus->cga.sc = oldsc;
         if (colorplus->cga.vc == colorplus->cga.crtc[7] && !colorplus->cga.sc)
@@ -281,10 +283,7 @@ colorplus_poll(void *p)
                         set_screen_size(xsize, (ysize << 1) + 16);
                     }
 
-                    if (colorplus->cga.composite)
-                        video_blit_memtoscreen(0, colorplus->cga.firstline - 4, xsize, (colorplus->cga.lastline - colorplus->cga.firstline) + 8);
-                    else
-                        video_blit_memtoscreen_8(0, colorplus->cga.firstline - 4, xsize, (colorplus->cga.lastline - colorplus->cga.firstline) + 8);
+                    video_blit_memtoscreen(0, colorplus->cga.firstline - 4, xsize, (colorplus->cga.lastline - colorplus->cga.firstline) + 8);
                     frames++;
 
                     video_res_x = xsize - 16;
@@ -426,7 +425,7 @@ static const device_config_t colorplus_config[] = {
     {
         .type = CONFIG_END
     }
-// clang-format on
+  // clang-format on
 };
 
 const device_t colorplus_device = {

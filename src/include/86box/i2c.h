@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the I2C handler.
+ *          Definitions for the I2C handler.
  *
  *
  *
- * Authors:	RichardG, <richardg867@gmail.com>
+ * Authors: RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2020 RichardG.
+ *          Copyright 2020 RichardG.
  */
 #ifndef EMU_I2C_H
 #define EMU_I2C_H
@@ -62,6 +62,6 @@ extern void    i2c_gpio_close(void *dev_handle);
 extern void    i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda);
 extern uint8_t i2c_gpio_get_scl(void *dev_handle);
 extern uint8_t i2c_gpio_get_sda(void *dev_handle);
-extern void   *i2c_gpio_get_bus();
+extern void   *i2c_gpio_get_bus(void *dev_handle);
 
 #endif /*EMU_I2C_H*/

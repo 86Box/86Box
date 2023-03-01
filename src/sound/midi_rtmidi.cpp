@@ -39,6 +39,7 @@ extern "C" {
 // Disable c99-designator to avoid the warnings in rtmidi_*_device
 #ifdef __clang__
 #    if __has_warning("-Wc99-designator")
+#        pragma clang diagnostic push
 #        pragma clang diagnostic ignored "-Wc99-designator"
 #    endif
 #endif
@@ -272,7 +273,7 @@ static const device_config_t midi_input_config[] = {
         .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t rtmidi_output_device = {
@@ -302,4 +303,11 @@ const device_t rtmidi_input_device = {
     .force_redraw  = NULL,
     .config        = midi_input_config
 };
+
+#ifdef __clang__
+#    if __has_warning("-Wc99-designator")
+#        pragma clang diagnostic pop
+#    endif
+#endif
+
 }

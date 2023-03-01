@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Main include file for the application.
+ *          Main include file for the application.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *f		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2017-2020 Fred N. van Kempen.
- *		Copyright 2021 Laci bá'
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2021 Laci bá'
  */
 #ifndef EMU_86BOX_H
 #define EMU_86BOX_H
@@ -107,16 +107,13 @@ extern int      vid_cga_contrast, /* (C) video */
     video_filter_method,          /* (C) video */
     video_vsync,                  /* (C) video */
     video_framerate,              /* (C) video */
-    gfxcard;                      /* (C) graphics/video card */
+    gfxcard[2];                   /* (C) graphics/video card */
 extern char video_shader[512];    /* (C) video */
 extern int  bugger_enabled,       /* (C) enable ISAbugger */
     postcard_enabled,             /* (C) enable POST card */
     isamem_type[],                /* (C) enable ISA mem cards */
     isartc_type;                  /* (C) enable ISA RTC card */
 extern int sound_is_float,        /* (C) sound uses FP values */
-    GAMEBLASTER,                  /* (C) sound option */
-    GUS, GUSMAX,                  /* (C) sound option */
-    SSI2001,                      /* (C) sound option */
     voodoo_enabled,               /* (C) video option */
     ibm8514_enabled,              /* (C) video option */
     xga_enabled;                  /* (C) video option */
@@ -162,7 +159,7 @@ extern void set_screen_size_monitor(int x, int y, int monitor_index);
 extern void reset_screen_size(void);
 extern void reset_screen_size_monitor(int monitor_index);
 extern void set_screen_size_natural(void);
-extern void update_mouse_msg();
+extern void update_mouse_msg(void);
 #if 0
 extern void	pc_reload(wchar_t *fn);
 #endif

@@ -1,19 +1,19 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Voodoo Graphics, 2, Banshee, 3 emulation.
+ *          Voodoo Graphics, 2, Banshee, 3 emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		leilei
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          leilei
  *
- *		Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2008-2020 Sarah Walker.
  */
 
 #ifndef VIDEO_VOODOO_COMMON_H
@@ -31,6 +31,13 @@
 #define TEX_DIRTY_SHIFT 10
 
 #define TEX_CACHE_MAX   64
+
+#ifdef __cplusplus
+#    include <atomic>
+using atomic_int = std::atomic<int>;
+#else
+#    include <stdatomic.h>
+#endif
 
 enum {
     VOODOO_1 = 0,
@@ -170,13 +177,13 @@ typedef struct voodoo_params_t {
 } voodoo_params_t;
 
 typedef struct texture_t {
-    uint32_t     base;
-    uint32_t     tLOD;
-    volatile int refcount, refcount_r[4];
-    int          is16;
-    uint32_t     palette_checksum;
-    uint32_t     addr_start[4], addr_end[4];
-    uint32_t    *data;
+    uint32_t   base;
+    uint32_t   tLOD;
+    atomic_int refcount, refcount_r[4];
+    int        is16;
+    uint32_t   palette_checksum;
+    uint32_t   addr_start[4], addr_end[4];
+    uint32_t  *data;
 } texture_t;
 
 typedef struct vert_t {
@@ -299,19 +306,21 @@ typedef struct voodoo_t {
     int type;
 
     fifo_entry_t fifo[FIFO_SIZE];
-    volatile int fifo_read_idx, fifo_write_idx;
-    volatile int cmd_read, cmd_written, cmd_written_fifo;
+    atomic_int   fifo_read_idx, fifo_write_idx;
+    atomic_int   cmd_read, cmd_written, cmd_written_fifo;
 
     voodoo_params_t params_buffer[PARAM_SIZE];
-    volatile int    params_read_idx[4], params_write_idx;
+    atomic_int      params_read_idx[4], params_write_idx;
 
-    uint32_t     cmdfifo_base, cmdfifo_end, cmdfifo_size;
-    int          cmdfifo_rp, cmdfifo_ret_addr;
-    int          cmdfifo_in_sub;
-    volatile int cmdfifo_depth_rd, cmdfifo_depth_wr;
-    volatile int cmdfifo_enabled;
-    uint32_t     cmdfifo_amin, cmdfifo_amax;
-    int          cmdfifo_holecount;
+    uint32_t   cmdfifo_base, cmdfifo_end, cmdfifo_size;
+    int        cmdfifo_rp, cmdfifo_ret_addr;
+    int        cmdfifo_in_sub;
+    atomic_int cmdfifo_depth_rd, cmdfifo_depth_wr;
+    atomic_int cmdfifo_enabled;
+    uint32_t   cmdfifo_amin, cmdfifo_amax;
+    int        cmdfifo_holecount;
+
+    atomic_uint cmd_status;
 
     uint32_t     sSetupMode;
     vert_t       verts[4];
@@ -497,6 +506,7 @@ typedef struct voodoo_t {
     uint8_t *vram, *changedvram;
 
     void *p;
+    uint8_t monitor_index;
 } voodoo_t;
 
 typedef struct voodoo_set_t {

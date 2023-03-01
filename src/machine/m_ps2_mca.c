@@ -1,22 +1,22 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of MCA-based PS/2 machines.
+ *          Implementation of MCA-based PS/2 machines.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2008-2019 Sarah Walker.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -806,7 +806,7 @@ ps2_mca_write(uint16_t port, uint8_t val, void *p)
 }
 
 static void
-ps2_mca_board_common_init()
+ps2_mca_board_common_init(void)
 {
     io_sethandler(0x0091, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
     io_sethandler(0x0094, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
@@ -950,7 +950,7 @@ ps2_mca_board_model_50_init(int slots)
         ps2_mca_mem_fffc_init(2);
     }
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&ps1vga_mca_device);
 }
 
@@ -1008,7 +1008,7 @@ ps2_mca_board_model_55sx_init(int has_sec_nvram, int slots)
     ps2.planar_read  = model_55sx_read;
     ps2.planar_write = model_55sx_write;
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&ps1vga_mca_device);
 
     model_55sx_mem_recalc();
@@ -1244,7 +1244,7 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
         }
     }
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&ps1vga_mca_device);
 }
 
@@ -1318,7 +1318,7 @@ ps2_mca_board_model_80_type2_init(int is486)
         }
     }
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         device_add(&ps1vga_mca_device);
 
     ps2.split_size = 0;
@@ -1385,7 +1385,7 @@ machine_ps2_model_60_init(const machine_t *model)
 
     machine_ps2_common_init(model);
 
-    ps2.planar_id = 0xf7ff;
+    ps2.planar_id = 0xfbff;
     ps2_mca_board_model_50_init(8);
 
     return ret;
@@ -1405,7 +1405,7 @@ machine_ps2_model_55sx_init(const machine_t *model)
 
     machine_ps2_common_init(model);
 
-    ps2.planar_id = 0xfffb;
+    ps2.planar_id = 0xfbff;
     ps2_mca_board_model_55sx_init(0, 4);
 
     return ret;

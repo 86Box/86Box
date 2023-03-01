@@ -1,24 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Intel 8042 (AT keyboard controller) emulation.
+ *          Intel 8042 (AT keyboard controller) emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		EngiNerd <webmaster.crrc@yahoo.it>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          EngiNerd, <webmaster.crrc@yahoo.it>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2017-2020 Fred N. van Kempen.
- *		Copyright 2020 EngiNerd.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2020 EngiNerd.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -866,7 +866,7 @@ add_data_kbd(uint16_t val)
     }
 
     /* Test for T3100E 'Fn' key (Right Alt / Right Ctrl) */
-    if ((dev != NULL) && (kbc_ven == KBC_VEN_TOSHIBA) && (keyboard_recv(0xb8) || keyboard_recv(0x9d)))
+    if ((dev != NULL) && (kbc_ven == KBC_VEN_TOSHIBA) && (keyboard_recv(0x138) || keyboard_recv(0x11d)))
         switch (val) {
             case 0x4f:
                 t3100e_notify_set(0x01);
@@ -1120,11 +1120,20 @@ write_output(atkbd_t *dev, uint8_t val)
         if (!(val & 0x01)) {  /* Pin 0 selected. */
             /* Pin 0 selected. */
             kbd_log("write_output(): Pulse reset!\n");
-            softresetx86(); /*Pulse reset!*/
-            cpu_set_edx();
-            flushmmucache();
-            if (kbc_ven == KBC_VEN_ALI)
-                smbase = 0x00030000;
+            if (machines[machine].flags & MACHINE_COREBOOT) {
+                /* The SeaBIOS hard reset code attempts a KBC reset if ACPI RESET_REG
+                   is not available. However, the KBC reset is normally a soft reset, so
+                   SeaBIOS gets caught in a soft reset loop as it tries to hard reset the
+                   machine. Hack around this by making the KBC reset a hard reset only on
+                   coreboot machines. */
+                pc_reset_hard();
+            } else {
+                softresetx86(); /*Pulse reset!*/
+                cpu_set_edx();
+                flushmmucache();
+                if (kbc_ven == KBC_VEN_ALI)
+                    smbase = 0x00030000;
+            }
         }
     }
 
@@ -1282,8 +1291,8 @@ write64_generic(void *priv, uint8_t val)
             } else {
                 if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) && ((dev->flags & KBC_VEN_MASK) != KBC_VEN_INTEL_AMI))
 #if 0
-				add_to_kbc_queue_front(dev, (dev->input_port | fixed_bits) &
-						       (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0xeb : 0xef), 0, 0x00);
+                    add_to_kbc_queue_front(dev, (dev->input_port | fixed_bits) &
+                                          (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0xeb : 0xef), 0, 0x00);
 #else
                     add_to_kbc_queue_front(dev, ((dev->input_port | fixed_bits) & 0xf0) | (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0x08 : 0x0c), 0, 0x00);
 #endif
@@ -1938,7 +1947,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                             val &= ~0x0c;
                             val |= (dev->output_port & 0x0c);
                         }
-                        write_output(dev, val);
+                        write_output(dev, val | 0x01);
                         break;
 
                     case 0xd2: /* write to keyboard output buffer */
@@ -2482,7 +2491,7 @@ kbd_init(const device_t *info)
 
     dev->flags = info->local;
 
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
     kbd_reset(dev);
 
     io_sethandler(0x0060, 1, kbd_read, NULL, NULL, kbd_write, NULL, NULL, dev);

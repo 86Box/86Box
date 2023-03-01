@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the Realtek RTG series of VGA ISA chips.
+ *          Emulation of the Realtek RTG series of VGA ISA chips.
  *
  *
  *
- * Authors:	TheCollector1995, <mariogplayer90@gmail.com>
+ * Authors: TheCollector1995, <mariogplayer90@gmail.com>
  *
- *		Copyright 2021 TheCollector1995.
+ *          Copyright 2021 TheCollector1995.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -380,7 +380,7 @@ static const device_config_t rtg_config[] = {
     {
         .type = CONFIG_END
     }
-// clang-format on
+  // clang-format on
 };
 
 const device_t realtek_rtg3106_device = {

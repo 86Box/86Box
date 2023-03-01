@@ -1,19 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Voodoo Banshee and 3 specific emulation.
+ *          Voodoo Banshee and 3 specific emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *
- *		Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2008-2020 Sarah Walker.
  */
+#include <assert.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -21,6 +23,7 @@
 #include <stddef.h>
 #include <wchar.h>
 #include <math.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/machine.h>
@@ -44,6 +47,19 @@
 #include <86box/vid_voodoo_regs.h>
 #include <86box/vid_voodoo_render.h>
 
+#define ROM_BANSHEE                 "roms/video/voodoo/Pci_sg.rom"
+#define ROM_CREATIVE_BANSHEE        "roms/video/voodoo/BlasterPCI.rom"
+#define ROM_VOODOO3_1000            "roms/video/voodoo/1k11sg.rom"
+#define ROM_VOODOO3_2000            "roms/video/voodoo/2k11sd.rom"
+#define ROM_VOODOO3_3000            "roms/video/voodoo/3k12sd.rom"
+#define ROM_VOODOO3_3500_AGP_NTSC   "roms/video/voodoo/35k05n.rom"
+#define ROM_VOODOO3_3500_AGP_PAL    "roms/video/voodoo/35k05p.rom"
+#define ROM_VOODOO3_3500_AGP_COMPAQ "roms/video/voodoo/V3_3500_AGP_SD_2.15.05_Compaq.rom"
+#define ROM_VOODOO3_3500_SE_AGP     "roms/video/voodoo/V3_3500_AGP_SD_2.15.06_NTSC_Falcon_Northwest.rom"
+#define ROM_VOODOO3_3500_SI_AGP     "roms/video/voodoo/V3_3500_AGP_SD_2.15.07_PAL_3500TV-SI.rom"
+#define ROM_VELOCITY_100            "roms/video/voodoo/Velocity100.VBI"
+#define ROM_VELOCITY_200            "roms/video/voodoo/Velocity200sg.rom"
+
 static video_timings_t timing_banshee     = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 static video_timings_t timing_banshee_agp = { .type = VIDEO_AGP, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 
@@ -59,9 +75,14 @@ static uint8_t vb_filter_bx_g[256][256];
 
 enum {
     TYPE_BANSHEE = 0,
+    TYPE_V3_1000,
     TYPE_V3_2000,
     TYPE_V3_3000,
-    TYPE_VELOCITY100
+    TYPE_V3_3500,
+    TYPE_V3_3500_COMPAQ,
+    TYPE_V3_3500_SI,
+    TYPE_VELOCITY100,
+    TYPE_VELOCITY200
 };
 
 typedef struct banshee_t {
@@ -95,6 +116,12 @@ typedef struct banshee_t {
     uint32_t vidProcCfg;
     uint32_t vidScreenSize;
     uint32_t vidSerialParallelPort;
+
+    uint32_t agpReqSize;
+    uint32_t agpHostAddressHigh;
+    uint32_t agpHostAddressLow;
+    uint32_t agpGraphicsAddress;
+    uint32_t agpGraphicsStride;
 
     int overlay_pix_fmt;
 
@@ -159,7 +186,7 @@ enum {
     Video_vidOverlayDvdy               = 0xac,
     Video_vidOverlayDvdyOffset         = 0xe0,
     Video_vidDesktopStartAddr          = 0xe4,
-    Video_vidDesktopOverlayStride      = 0xe8
+    Video_vidDesktopOverlayStride      = 0xe8,
 };
 
 enum {
@@ -170,8 +197,15 @@ enum {
     cmdRdPtrH0    = 0x30,
     cmdAMin0      = 0x34,
     cmdAMax0      = 0x3c,
+    cmdStatus0    = 0x40,
     cmdFifoDepth0 = 0x44,
-    cmdHoleCnt0   = 0x48
+    cmdHoleCnt0   = 0x48,
+
+    Agp_agpReqSize         = 0x00,
+    Agp_agpHostAddressLow  = 0x04,
+    Agp_agpHostAddressHigh = 0x08,
+    Agp_agpGraphicsAddress = 0x0C,
+    Agp_agpGraphicsStride  = 0x10,
 };
 
 #define VGAINIT0_EXTENDED_SHIFT_OUT         (1 << 12)
@@ -420,7 +454,7 @@ banshee_render_16bpp_tiled(svga_t *svga)
 {
     banshee_t *banshee = (banshee_t *) svga->p;
     int        x;
-    uint32_t  *p = &((uint32_t *) buffer32->line[svga->displine + svga->y_add])[svga->x_add];
+    uint32_t  *p = &((uint32_t *) svga->monitor->target_buffer->line[svga->displine + svga->y_add])[svga->x_add];
     uint32_t   addr;
     int        drawn = 0;
 
@@ -513,7 +547,7 @@ banshee_recalctimings(svga_t *svga)
                 svga->bpp    = 32;
                 break;
             default:
-                fatal("Unknown pixel format %08x\n", banshee->vgaInit0);
+                fatal("Unknown pixel format %08x (vgaInit0=%08x)\n", VIDPROCCFG_DESKTOP_PIX_FORMAT, banshee->vgaInit0);
         }
         if (!(banshee->vidProcCfg & VIDPROCCFG_DESKTOP_TILE) && (banshee->vidProcCfg & VIDPROCCFG_HALF_MODE))
             svga->rowcount = 1;
@@ -1121,6 +1155,26 @@ banshee_cmd_read(banshee_t *banshee, uint32_t addr)
     uint32_t  ret    = 0xffffffff;
 
     switch (addr & 0x1fc) {
+        case Agp_agpHostAddressLow:
+            ret = banshee->agpHostAddressLow;
+            break;
+
+        case Agp_agpHostAddressHigh:
+            ret = banshee->agpHostAddressHigh;
+            break;
+
+        case Agp_agpGraphicsAddress:
+            ret = banshee->agpGraphicsAddress;
+            break;
+
+        case Agp_agpGraphicsStride:
+            ret = banshee->agpGraphicsStride;
+            break;
+
+        case Agp_agpReqSize:
+            ret = banshee->agpReqSize;
+            break;
+
         case cmdBaseAddr0:
             ret = voodoo->cmdfifo_base >> 12;
             //                banshee_log("Read cmdfifo_base %08x\n", ret);
@@ -1136,11 +1190,19 @@ banshee_cmd_read(banshee_t *banshee, uint32_t addr)
             //                banshee_log("Read cmdfifo_depth %08x\n", ret);
             break;
 
+        case cmdStatus0:
+            ret = voodoo->cmd_status;
+            break;
+
+        case cmdBaseSize0:
+            ret = voodoo->cmdfifo_size;
+            break;
+
         case 0x108:
             break;
 
         default:
-            fatal("Unknown banshee_cmd_read %08x\n", addr);
+            fatal("Unknown banshee_cmd_read 0x%08x (reg 0x%03x)\n", addr, addr & 0x1fc);
     }
 
     return ret;
@@ -1346,6 +1408,26 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
     voodoo_t *voodoo = banshee->voodoo;
     //        banshee_log("banshee_cmd_write: addr=%03x val=%08x\n", addr & 0x1fc, val);
     switch (addr & 0x1fc) {
+        case Agp_agpHostAddressLow:
+            banshee->agpHostAddressLow = val;
+            break;
+
+        case Agp_agpHostAddressHigh:
+            banshee->agpHostAddressHigh = val;
+            break;
+
+        case Agp_agpGraphicsAddress:
+            banshee->agpGraphicsAddress = val;
+            break;
+
+        case Agp_agpGraphicsStride:
+            banshee->agpGraphicsStride = val;
+            break;
+
+        case Agp_agpReqSize:
+            banshee->agpReqSize = val;
+            break;
+
         case cmdBaseAddr0:
             voodoo->cmdfifo_base = (val & 0xfff) << 12;
             voodoo->cmdfifo_end  = voodoo->cmdfifo_base + (((voodoo->cmdfifo_size & 0xff) + 1) << 12);
@@ -1380,7 +1462,7 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
             break;
 
         default:
-            banshee_log("Unknown banshee_cmd_write: addr=%08x val=%08x\n", addr, val);
+            banshee_log("Unknown banshee_cmd_write: addr=%08x val=%08x reg=0x%03x\n", addr, val, addr & 0x1fc);
             break;
     }
 
@@ -1486,7 +1568,7 @@ banshee_reg_writel(uint32_t addr, uint32_t val, void *p)
             break;
 
         case 0x0600000:
-        case 0x0700000: /*Texture download*/
+        case 0x0700000: /*TMU0 Texture download*/
             voodoo->tex_count++;
             voodoo_queue_command(voodoo, (addr & 0x1ffffc) | FIFO_WRITEL_TEX, val);
             break;
@@ -1521,6 +1603,9 @@ banshee_read_linear(uint32_t addr, void *p)
 
     cycles -= voodoo->read_time;
 
+    if ((banshee->pci_regs[0x30] & 0x01) && addr >= banshee->bios_rom.mapping.base && addr < (banshee->bios_rom.mapping.base + banshee->bios_rom.sz)) {
+        return rom_read(addr & (banshee->bios_rom.sz - 1), &banshee->bios_rom);
+    }
     addr &= svga->decode_mask;
     if (addr >= voodoo->tile_base) {
         int x, y;
@@ -1535,7 +1620,7 @@ banshee_read_linear(uint32_t addr, void *p)
     if (addr >= svga->vram_max)
         return 0xff;
 
-    cycles -= video_timing_read_b;
+    cycles -= svga->monitor->mon_video_timing_read_b;
 
     //        banshee_log("read_linear: addr=%08x val=%02x\n", addr, svga->vram[addr & svga->vram_mask]);
 
@@ -1553,6 +1638,9 @@ banshee_read_linear_w(uint32_t addr, void *p)
         return banshee_read_linear(addr, p) | (banshee_read_linear(addr + 1, p) << 8);
 
     cycles -= voodoo->read_time;
+    if ((banshee->pci_regs[0x30] & 0x01) && addr >= banshee->bios_rom.mapping.base && addr < (banshee->bios_rom.mapping.base + banshee->bios_rom.sz)) {
+        return rom_readw(addr & (banshee->bios_rom.sz - 1), &banshee->bios_rom);
+    }
     addr &= svga->decode_mask;
     if (addr >= voodoo->tile_base) {
         int x, y;
@@ -1567,7 +1655,7 @@ banshee_read_linear_w(uint32_t addr, void *p)
     if (addr >= svga->vram_max)
         return 0xff;
 
-    cycles -= video_timing_read_w;
+    cycles -= svga->monitor->mon_video_timing_read_w;
 
     //        banshee_log("read_linear: addr=%08x val=%02x\n", addr, svga->vram[addr & svga->vram_mask]);
 
@@ -1586,6 +1674,9 @@ banshee_read_linear_l(uint32_t addr, void *p)
 
     cycles -= voodoo->read_time;
 
+    if ((banshee->pci_regs[0x30] & 0x01) && addr >= banshee->bios_rom.mapping.base && addr < (banshee->bios_rom.mapping.base + banshee->bios_rom.sz)) {
+        return rom_readl(addr & (banshee->bios_rom.sz - 1), &banshee->bios_rom);
+    }
     addr &= svga->decode_mask;
     if (addr >= voodoo->tile_base) {
         int x, y;
@@ -1600,7 +1691,7 @@ banshee_read_linear_l(uint32_t addr, void *p)
     if (addr >= svga->vram_max)
         return 0xff;
 
-    cycles -= video_timing_read_l;
+    cycles -= svga->monitor->mon_video_timing_read_l;
 
     //        banshee_log("read_linear: addr=%08x val=%02x\n", addr, svga->vram[addr & svga->vram_mask]);
 
@@ -1631,7 +1722,7 @@ banshee_write_linear(uint32_t addr, uint8_t val, void *p)
     if (addr >= svga->vram_max)
         return;
 
-    cycles -= video_timing_write_b;
+    cycles -= svga->monitor->mon_video_timing_write_b;
 
     svga->changedvram[addr >> 12]      = changeframecount;
     svga->vram[addr & svga->vram_mask] = val;
@@ -1666,7 +1757,7 @@ banshee_write_linear_w(uint32_t addr, uint16_t val, void *p)
     if (addr >= svga->vram_max)
         return;
 
-    cycles -= video_timing_write_w;
+    cycles -= svga->monitor->mon_video_timing_write_w;
 
     svga->changedvram[addr >> 12]                     = changeframecount;
     *(uint16_t *) &svga->vram[addr & svga->vram_mask] = val;
@@ -1709,7 +1800,7 @@ banshee_write_linear_l(uint32_t addr, uint32_t val, void *p)
     if (addr >= svga->vram_max)
         return;
 
-    cycles -= video_timing_write_l;
+    cycles -= svga->monitor->mon_video_timing_write_l;
 
     svga->changedvram[addr >> 12]                     = changeframecount;
     *(uint32_t *) &svga->vram[addr & svga->vram_mask] = val;
@@ -1781,7 +1872,7 @@ banshee_hwcursor_draw(svga_t *svga, int displine)
             if (x_off > -8) {
                 for (xx = 0; xx < 8; xx++) {
                     if (plane0[x >> 3] & (1 << 7))
-                        ((uint32_t *) buffer32->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
+                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
 
                     plane0[x >> 3] <<= 1;
                     plane1[x >> 3] <<= 1;
@@ -1796,9 +1887,9 @@ banshee_hwcursor_draw(svga_t *svga, int displine)
             if (x_off > -8) {
                 for (xx = 0; xx < 8; xx++) {
                     if (!(plane0[x >> 3] & (1 << 7)))
-                        ((uint32_t *) buffer32->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
+                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
                     else if (plane1[x >> 3] & (1 << 7))
-                        ((uint32_t *) buffer32->line[displine])[x_off + xx + svga->x_add] ^= 0xffffff;
+                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] ^= 0xffffff;
 
                     plane0[x >> 3] <<= 1;
                     plane1[x >> 3] <<= 1;
@@ -2123,7 +2214,7 @@ banshee_overlay_draw(svga_t *svga, int displine)
     //        pclog("displine=%i addr=%08x %08x  %08x  %08x\n", displine, svga->overlay_latch.addr, src_addr, voodoo->overlay.vidOverlayDvdy, *(uint32_t *)src);
     //        if (src_addr >= 0x800000)
     //                fatal("overlay out of range!\n");
-    p = &((uint32_t *) buffer32->line[displine])[svga->overlay_latch.x + svga->x_add];
+    p = &((uint32_t *) svga->monitor->target_buffer->line[displine])[svga->overlay_latch.x + svga->x_add];
 
     if (banshee->voodoo->scrfilter && banshee->voodoo->scrfilterEnabled)
         skip_filtering = ((banshee->vidProcCfg & VIDPROCCFG_FILTER_MODE_MASK) != VIDPROCCFG_FILTER_MODE_BILINEAR && !(banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) && !(banshee->vidProcCfg & VIDPROCCFG_FILTER_MODE_DITHER_4X4) && !(banshee->vidProcCfg & VIDPROCCFG_FILTER_MODE_DITHER_2X2));
@@ -2174,9 +2265,10 @@ banshee_overlay_draw(svga_t *svga, int displine)
 
             case VIDPROCCFG_FILTER_MODE_DITHER_4X4:
                 if (banshee->voodoo->scrfilter && banshee->voodoo->scrfilterEnabled) {
-                    uint8_t *fil  = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *fil3 = malloc((svga->overlay_latch.cur_xsize) * 3);
+                    uint8_t fil[64 * 3];
+                    uint8_t fil3[64 * 3];
 
+                    assert(svga->overlay_latch.cur_xsize <= 64);
                     if (banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) /* leilei HACK - don't know of real 4x1 hscaled behavior yet, double for now */
                     {
                         for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
@@ -2227,9 +2319,6 @@ banshee_overlay_draw(svga_t *svga, int displine)
                         fil[(x) *3 + 2] = vb_filter_v1_rb[fil[x * 3 + 2]][fil3[(x + 1) * 3 + 2]];
                         p[x]            = (fil[x * 3 + 2] << 16) | (fil[x * 3 + 1] << 8) | fil[x * 3];
                     }
-
-                    free(fil);
-                    free(fil3);
                 } else /* filter disabled by emulator option */
                 {
                     if (banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) {
@@ -2246,15 +2335,16 @@ banshee_overlay_draw(svga_t *svga, int displine)
 
             case VIDPROCCFG_FILTER_MODE_DITHER_2X2:
                 if (banshee->voodoo->scrfilter && banshee->voodoo->scrfilterEnabled) {
-                    uint8_t *fil   = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *soak  = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *soak2 = malloc((svga->overlay_latch.cur_xsize) * 3);
+                    uint8_t fil[64 * 3];
+                    uint8_t soak[64 * 3];
+                    uint8_t soak2[64 * 3];
 
-                    uint8_t *samp1 = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *samp2 = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *samp3 = malloc((svga->overlay_latch.cur_xsize) * 3);
-                    uint8_t *samp4 = malloc((svga->overlay_latch.cur_xsize) * 3);
+                    uint8_t samp1[64 * 3];
+                    uint8_t samp2[64 * 3];
+                    uint8_t samp3[64 * 3];
+                    uint8_t samp4[64 * 3];
 
+                    assert(svga->overlay_latch.cur_xsize <= 64);
                     src = &svga->vram[src_addr2 & svga->vram_mask];
                     OVERLAY_SAMPLE(banshee->overlay_buffer[1]);
                     for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
@@ -2302,14 +2392,6 @@ banshee_overlay_draw(svga_t *svga, int displine)
                             p[x] = (fil[x * 3 + 2] << 16) | (fil[x * 3 + 1] << 8) | fil[x * 3];
                         }
                     }
-
-                    free(fil);
-                    free(soak);
-                    free(soak2);
-                    free(samp1);
-                    free(samp2);
-                    free(samp3);
-                    free(samp4);
                 } else /* filter disabled by emulator option */
                 {
                     if (banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) {
@@ -2855,7 +2937,8 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
     }
 
     if (!banshee->has_bios)
-        mem_size = info->local; /* fixed size for on-board chips */
+        // mem_size = info->local; /* fixed size for on-board chips */
+        mem_size = device_get_config_int("memory"); /* MS-6168 / Bora Pro can do both 8 and 16 MB. */
     else if (has_sgram) {
         if (banshee->type == TYPE_VELOCITY100)
             mem_size = 8; /* Velocity 100 only supports 8 MB */
@@ -2926,6 +3009,7 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
     banshee->voodoo->tex_mem[1]   = banshee->svga.vram;
     banshee->voodoo->tex_mem_w[1] = (uint16_t *) banshee->svga.vram;
     banshee->voodoo->texture_mask = banshee->svga.vram_mask;
+    banshee->voodoo->cmd_status   = (1 << 28);
     voodoo_generate_filter_v1(banshee->voodoo);
 
     banshee->vidSerialParallelPort = VIDSERIAL_DDC_DCK_W | VIDSERIAL_DDC_DDA_W;
@@ -2949,6 +3033,13 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
             }
             break;
 
+        case TYPE_V3_1000:
+            banshee->pci_regs[0x2c] = 0x1a;
+            banshee->pci_regs[0x2d] = 0x12;
+            banshee->pci_regs[0x2e] = 0x52;
+            banshee->pci_regs[0x2f] = 0x00;
+            break;
+
         case TYPE_V3_2000:
             banshee->pci_regs[0x2c] = 0x1a;
             banshee->pci_regs[0x2d] = 0x12;
@@ -2963,10 +3054,38 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
             banshee->pci_regs[0x2f] = 0x00;
             break;
 
+        case TYPE_V3_3500:
+            banshee->pci_regs[0x2c] = 0x1a;
+            banshee->pci_regs[0x2d] = 0x12;
+            banshee->pci_regs[0x2e] = 0x60;
+            banshee->pci_regs[0x2f] = 0x00;
+            break;
+
+        case TYPE_V3_3500_COMPAQ:
+            banshee->pci_regs[0x2c] = 0x1a;
+            banshee->pci_regs[0x2d] = 0x12;
+            banshee->pci_regs[0x2e] = 0x4f;
+            banshee->pci_regs[0x2f] = 0x12;
+            break;
+
+        case TYPE_V3_3500_SI:
+            banshee->pci_regs[0x2c] = 0x1a;
+            banshee->pci_regs[0x2d] = 0x12;
+            banshee->pci_regs[0x2e] = 0x61;
+            banshee->pci_regs[0x2f] = 0x00;
+            break;
+
         case TYPE_VELOCITY100:
             banshee->pci_regs[0x2c] = 0x1a;
             banshee->pci_regs[0x2d] = 0x12;
             banshee->pci_regs[0x2e] = 0x4b;
+            banshee->pci_regs[0x2f] = 0x00;
+            break;
+
+        case TYPE_VELOCITY200:
+            banshee->pci_regs[0x2c] = 0x1a;
+            banshee->pci_regs[0x2d] = 0x12;
+            banshee->pci_regs[0x2e] = 0x54;
             banshee->pci_regs[0x2f] = 0x00;
             break;
     }
@@ -2979,70 +3098,172 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
 static void *
 banshee_init(const device_t *info)
 {
-    return banshee_init_common(info, "roms/video/voodoo/Pci_sg.rom", 1, TYPE_BANSHEE, VOODOO_BANSHEE, 0);
+    return banshee_init_common(info, ROM_BANSHEE, 1, TYPE_BANSHEE, VOODOO_BANSHEE, 0);
 }
+
 static void *
 creative_banshee_init(const device_t *info)
 {
-    return banshee_init_common(info, "roms/video/voodoo/BlasterPCI.rom", 0, TYPE_BANSHEE, VOODOO_BANSHEE, 0);
+    return banshee_init_common(info, ROM_CREATIVE_BANSHEE, 0, TYPE_BANSHEE, VOODOO_BANSHEE, 0);
 }
+
+static void *
+v3_1000_init(const device_t *info)
+{
+    return banshee_init_common(info, ROM_VOODOO3_1000, 1, TYPE_V3_1000, VOODOO_3, 0);
+}
+
+static void *
+v3_1000_agp_init(const device_t *info)
+{
+    return banshee_init_common(info, ROM_VOODOO3_1000, 1, TYPE_V3_1000, VOODOO_3, 1);
+}
+
 static void *
 v3_2000_init(const device_t *info)
 {
-    return banshee_init_common(info, "roms/video/voodoo/2k11sd.rom", 0, TYPE_V3_2000, VOODOO_3, 0);
+    return banshee_init_common(info, ROM_VOODOO3_2000, 0, TYPE_V3_2000, VOODOO_3, 0);
 }
+
 static void *
 v3_2000_agp_init(const device_t *info)
 {
-    return banshee_init_common(info, "roms/video/voodoo/2k11sd.rom", 0, TYPE_V3_2000, VOODOO_3, 1);
+    return banshee_init_common(info, ROM_VOODOO3_2000, 0, TYPE_V3_2000, VOODOO_3, 1);
 }
+
 static void *
 v3_2000_agp_onboard_init(const device_t *info)
 {
-    return banshee_init_common(info, NULL, 0, TYPE_V3_2000, VOODOO_3, 1);
+    return banshee_init_common(info, NULL, 1, TYPE_V3_2000, VOODOO_3, 1);
 }
+
 static void *
 v3_3000_init(const device_t *info)
 {
-    return banshee_init_common(info, "roms/video/voodoo/3k12sd.rom", 0, TYPE_V3_3000, VOODOO_3, 0);
+    return banshee_init_common(info, ROM_VOODOO3_3000, 0, TYPE_V3_3000, VOODOO_3, 0);
 }
+
 static void *
 v3_3000_agp_init(const device_t *info)
 {
-    return banshee_init_common(info, "roms/video/voodoo/3k12sd.rom", 0, TYPE_V3_3000, VOODOO_3, 1);
+    return banshee_init_common(info, ROM_VOODOO3_3000, 0, TYPE_V3_3000, VOODOO_3, 1);
 }
+
+static void *
+v3_3500_agp_ntsc_init(const device_t *info)
+{
+    return banshee_init_common(info, ROM_VOODOO3_3500_AGP_NTSC, 0, TYPE_V3_3500, VOODOO_3, 1);
+}
+
+static void *
+v3_3500_agp_pal_init(const device_t *info)
+{
+    return banshee_init_common(info, ROM_VOODOO3_3500_AGP_PAL, 0, TYPE_V3_3500, VOODOO_3, 1);
+}
+
+static void *
+compaq_v3_3500_agp_init(const device_t *info)
+{
+    return banshee_init_common(info, ROM_VOODOO3_3500_AGP_COMPAQ, 0, TYPE_V3_3500_COMPAQ, VOODOO_3, 1);
+}
+
+static void *
+v3_3500_se_agp_init(const device_t *info)
+{
+    return banshee_init_common(info, ROM_VOODOO3_3500_SE_AGP, 0, TYPE_V3_3500, VOODOO_3, 1);
+}
+
+static void *
+v3_3500_si_agp_init(const device_t *info)
+{
+    return banshee_init_common(info, ROM_VOODOO3_3500_SI_AGP, 0, TYPE_V3_3500_SI, VOODOO_3, 1);
+}
+
 static void *
 velocity_100_agp_init(const device_t *info)
 {
-    return banshee_init_common(info, "roms/video/voodoo/Velocity100.VBI", 1, TYPE_VELOCITY100, VOODOO_3, 1);
+    return banshee_init_common(info, ROM_VELOCITY_100, 1, TYPE_VELOCITY100, VOODOO_3, 1);
+}
+
+static void *
+velocity_200_agp_init(const device_t *info)
+{
+    return banshee_init_common(info, ROM_VELOCITY_200, 1, TYPE_VELOCITY200, VOODOO_3, 1);
 }
 
 static int
 banshee_available(void)
 {
-    return rom_present("roms/video/voodoo/Pci_sg.rom");
+    return rom_present(ROM_BANSHEE);
 }
+
 static int
 creative_banshee_available(void)
 {
-    return rom_present("roms/video/voodoo/BlasterPCI.rom");
+    return rom_present(ROM_CREATIVE_BANSHEE);
 }
+
+static int
+v3_1000_available(void)
+{
+    return rom_present(ROM_VOODOO3_1000);
+}
+#define v3_1000_agp_available v3_1000_available
+
 static int
 v3_2000_available(void)
 {
-    return rom_present("roms/video/voodoo/2k11sd.rom");
+    return rom_present(ROM_VOODOO3_2000);
 }
 #define v3_2000_agp_available v3_2000_available
+
 static int
 v3_3000_available(void)
 {
-    return rom_present("roms/video/voodoo/3k12sd.rom");
+    return rom_present(ROM_VOODOO3_3000);
 }
 #define v3_3000_agp_available v3_3000_available
+
+static int
+v3_3500_agp_ntsc_available(void)
+{
+    return rom_present(ROM_VOODOO3_3500_AGP_NTSC);
+}
+
+static int
+v3_3500_agp_pal_available(void)
+{
+    return rom_present(ROM_VOODOO3_3500_AGP_PAL);
+}
+
+static int
+compaq_v3_3500_agp_available(void)
+{
+    return rom_present(ROM_VOODOO3_3500_AGP_COMPAQ);
+}
+
+static int
+v3_3500_se_agp_available(void)
+{
+    return rom_present(ROM_VOODOO3_3500_SE_AGP);
+}
+
+static int
+v3_3500_si_agp_available(void)
+{
+    return rom_present(ROM_VOODOO3_3500_SI_AGP);
+}
+
 static int
 velocity_100_available(void)
 {
-    return rom_present("roms/video/voodoo/Velocity100.VBI");
+    return rom_present(ROM_VELOCITY_100);
+}
+
+static int
+velocity_200_available(void)
+{
+    return rom_present(ROM_VELOCITY_200);
 }
 
 static void
@@ -3103,6 +3324,34 @@ const device_t creative_voodoo_banshee_device = {
     banshee_sdram_config
 };
 
+const device_t voodoo_3_1000_device = {
+    .name          = "3dfx Voodoo3 1000",
+    .internal_name = "voodoo3_1k_pci",
+    .flags         = DEVICE_PCI,
+    .local         = 0,
+    .init          = v3_1000_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    { .available = v3_1000_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    banshee_sgram_config
+};
+
+const device_t voodoo_3_1000_agp_device = {
+    .name          = "3dfx Voodoo3 1000",
+    .internal_name = "voodoo3_1k_agp",
+    .flags         = DEVICE_AGP,
+    .local         = 0,
+    .init          = v3_1000_agp_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    { .available = v3_1000_agp_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    banshee_sgram_config
+};
+
 const device_t voodoo_3_2000_device = {
     .name          = "3dfx Voodoo3 2000",
     .internal_name = "voodoo3_2k_pci",
@@ -3142,7 +3391,7 @@ const device_t voodoo_3_2000_agp_onboard_8m_device = {
     { .available = NULL },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sdram_config
+    banshee_sgram_config
 };
 
 const device_t voodoo_3_3000_device = {
@@ -3173,6 +3422,76 @@ const device_t voodoo_3_3000_agp_device = {
     banshee_sdram_config
 };
 
+const device_t voodoo_3_3500_agp_ntsc_device = {
+    .name          = "3dfx Voodoo3 3500 TV (NTSC)",
+    .internal_name = "voodoo3_3500_agp_ntsc",
+    .flags         = DEVICE_AGP,
+    .local         = 0,
+    .init          = v3_3500_agp_ntsc_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    { .available = v3_3500_agp_ntsc_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    banshee_sdram_config
+};
+
+const device_t voodoo_3_3500_agp_pal_device = {
+    .name          = "3dfx Voodoo3 3500 TV (PAL)",
+    .internal_name = "voodoo3_3500_agp_pal",
+    .flags         = DEVICE_AGP,
+    .local         = 0,
+    .init          = v3_3500_agp_pal_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    { .available = v3_3500_agp_pal_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    banshee_sdram_config
+};
+
+const device_t compaq_voodoo_3_3500_agp_device = {
+    .name          = "Compaq Voodoo3 3500 TV",
+    .internal_name = "compaq_voodoo3_3500_agp",
+    .flags         = DEVICE_AGP,
+    .local         = 0,
+    .init          = compaq_v3_3500_agp_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    { .available = compaq_v3_3500_agp_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    banshee_sdram_config
+};
+
+const device_t voodoo_3_3500_se_agp_device = {
+    .name          = "Falcon Northwest Voodoo3 3500 SE",
+    .internal_name = "voodoo3_3500_se_agp",
+    .flags         = DEVICE_AGP,
+    .local         = 0,
+    .init          = v3_3500_se_agp_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    { .available = v3_3500_se_agp_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    banshee_sdram_config
+};
+
+const device_t voodoo_3_3500_si_agp_device = {
+    .name          = "3dfx Voodoo3 3500 SI",
+    .internal_name = "voodoo3_3500_si_agp",
+    .flags         = DEVICE_AGP,
+    .local         = 0,
+    .init          = v3_3500_si_agp_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    { .available = v3_3500_si_agp_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    banshee_sdram_config
+};
+
 const device_t velocity_100_agp_device = {
     .name          = "3dfx Velocity 100",
     .internal_name = "velocity100_agp",
@@ -3185,4 +3504,18 @@ const device_t velocity_100_agp_device = {
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
     banshee_sdram_config
+};
+
+const device_t velocity_200_agp_device = {
+    .name          = "3dfx Velocity 200",
+    .internal_name = "velocity200_agp",
+    .flags         = DEVICE_AGP,
+    .local         = 0,
+    .init          = velocity_200_agp_init,
+    .close         = banshee_close,
+    .reset         = NULL,
+    { .available = velocity_200_available },
+    .speed_changed = banshee_speed_changed,
+    .force_redraw  = banshee_force_redraw,
+    banshee_sgram_config
 };

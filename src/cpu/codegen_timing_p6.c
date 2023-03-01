@@ -23,10 +23,10 @@ typedef enum uop_type_t
         UOP_ALUP0,     /*Executes in Port 0 ALU unit*/
         UOP_LOAD,      /*Executes in Load unit*/
         UOP_STORED,    /*Executes in Data Store unit*/
-	UOP_STOREA,    /*Executes in Address Store unit*/
+        UOP_STOREA,    /*Executes in Address Store unit*/
         UOP_FLOAD,     /*Executes in Load unit*/
         UOP_FSTORED,   /*Executes in Data Store unit*/
-	UOP_FSTOREA,   /*Executes in Address Store unit*/
+        UOP_FSTOREA,   /*Executes in Address Store unit*/
         UOP_MLOAD,     /*Executes in Load unit*/
         UOP_MSTORED,   /*Executes in Data Store unit*/
         UOP_MSTOREA,   /*Executes in Address Store unit*/
@@ -93,7 +93,7 @@ static const macro_op_t alu_store_op =
         .uop[1] = {.type = UOP_ALU,     .latency = 1},
         .uop[2] = {.type = UOP_STORED,  .latency = 1},
         .uop[3] = {.type = UOP_STOREA,  .latency = 1}
-	};
+};
 static const macro_op_t alup0_store_op =
 {
         .nr_uops = 4,
@@ -162,8 +162,8 @@ static const macro_op_t loop_op =
         .decode_type = DECODE_COMPLEX,
         .uop[0] = {.type = UOP_ALU,    .latency = 1},
         .uop[1] = {.type = UOP_ALU,    .latency = 1},
-        .uop[2] = {.type = UOP_ALU,    .latency = 1},	
-        .uop[3] = {.type = UOP_ALU,    .latency = 1},			
+        .uop[2] = {.type = UOP_ALU,    .latency = 1},
+        .uop[3] = {.type = UOP_ALU,    .latency = 1},
         .uop[4] = {.type = UOP_BRANCH, .latency = 1}
 };
 static const macro_op_t mov_reg_seg_op =
@@ -219,7 +219,7 @@ static const macro_op_t push_seg_op =
         .uop[0] = {.type = UOP_LOAD,   .latency = 1},
         .uop[1] = {.type = UOP_STORED, .latency = 1},
         .uop[2] = {.type = UOP_STOREA, .latency = 1},
-	.uop[3] = {.type = UOP_ALU,    .latency = 1}
+        .uop[3] = {.type = UOP_ALU,    .latency = 1}
 };
 static const macro_op_t stos_op =
 {
@@ -1607,24 +1607,24 @@ static p6_unit_t *units;
 /*Pentium Pro has no MMX*/
 static p6_unit_t ppro_units[] =
 {
-        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_ALUP0) | (1 << UOP_FLOAT)},     /*Port 0*/
-        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_BRANCH)},            		/*Port 1*/
-        {.uop_mask = (1 << UOP_LOAD)  | (1 << UOP_FLOAD)},          		/*Port 2*/
-        {.uop_mask = (1 << UOP_STORED) | (1 << UOP_FSTORED)},         		/*Port 3*/
-	{.uop_mask = (1 << UOP_STOREA) | (1 << UOP_FSTOREA)},       		/*Port 4*/
+        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_ALUP0) | (1 << UOP_FLOAT)}, /*Port 0*/
+        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_BRANCH)},                   /*Port 1*/
+        {.uop_mask = (1 << UOP_LOAD)  | (1 << UOP_FLOAD)},                  /*Port 2*/
+        {.uop_mask = (1 << UOP_STORED) | (1 << UOP_FSTORED)},               /*Port 3*/
+        {.uop_mask = (1 << UOP_STOREA) | (1 << UOP_FSTOREA)},               /*Port 4*/
 };
 #define NR_PPRO_UNITS (sizeof(ppro_units) / sizeof(p6_unit_t))
 
 /*Pentium II/Celeron assigns the multiplier to port 0, the shifter to port 1, and shares the MMX ALU*/
 static p6_unit_t p2_units[] =
 {
-        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_ALUP0) | (1 << UOP_FLOAT) |             /*Port 0*/
-	                 (1 << UOP_MMX) | (1 << UOP_MMX_MUL)},
-        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_BRANCH) |                               /*Port 1*/
-	                 (1 << UOP_MMX) | (1 << UOP_MMX_SHIFT)},
-        {.uop_mask = (1 << UOP_LOAD)  | (1 << UOP_FLOAD)  | (1 << UOP_MLOAD)},  	/*Port 2*/
-        {.uop_mask = (1 << UOP_STORED) | (1 << UOP_FSTORED) | (1 << UOP_MSTORED)},      /*Port 3*/
-	{.uop_mask = (1 << UOP_STOREA) | (1 << UOP_FSTOREA) | (1 << UOP_MSTOREA)}, 	/*Port 4*/
+        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_ALUP0) | (1 << UOP_FLOAT) |        /*Port 0*/
+                     (1 << UOP_MMX) | (1 << UOP_MMX_MUL)},
+        {.uop_mask = (1 << UOP_ALU) | (1 << UOP_BRANCH) |                          /*Port 1*/
+                     (1 << UOP_MMX) | (1 << UOP_MMX_SHIFT)},
+        {.uop_mask = (1 << UOP_LOAD)  | (1 << UOP_FLOAD)  | (1 << UOP_MLOAD)},     /*Port 2*/
+        {.uop_mask = (1 << UOP_STORED) | (1 << UOP_FSTORED) | (1 << UOP_MSTORED)}, /*Port 3*/
+        {.uop_mask = (1 << UOP_STOREA) | (1 << UOP_FSTOREA) | (1 << UOP_MSTOREA)}, /*Port 4*/
 };
 #define NR_P2_UNITS (sizeof(p2_units) / sizeof(p6_unit_t))
 
@@ -1691,7 +1691,7 @@ static int fpu_st_timestamp[8];
   dependent uop chains*/
 static int last_uop_timestamp = 0;
 
-void decode_flush_p6()
+void decode_flush_p6(void)
 {
         int c;
         int start_timestamp, uop_timestamp = 0;
@@ -1790,7 +1790,7 @@ static void decode_instruction(const macro_op_t *ins, uint64_t deps, uint32_t fe
         uint32_t regmask_required;
         uint32_t regmask_modified;
         int c;
-	int d = 0; /*Complex decoder uOPs*/
+        int d = 0; /*Complex decoder uOPs*/
         int earliest_start = 0;
         decode_type_t decode_type = ins->decode_type;
         int instr_length = codegen_timing_instr_length(deps, fetchdat, op_32);
@@ -1839,7 +1839,7 @@ static void decode_instruction(const macro_op_t *ins, uint64_t deps, uint32_t fe
                         decode_buffer.uops[decode_buffer.nr_uops] = &ins->uop[0];
                         decode_buffer.earliest_start[decode_buffer.nr_uops] = earliest_start;
                         decode_buffer.nr_uops = 2+d;
-			if (d)
+                    if (d)
                         decode_flush_p6();
                 }
                 else if (decode_buffer.nr_uops)
@@ -1869,7 +1869,7 @@ static void decode_instruction(const macro_op_t *ins, uint64_t deps, uint32_t fe
                                 decode_buffer.earliest_start[d] = earliest_start;
                         else
                                 decode_buffer.earliest_start[d] = -1;
-			d++;
+                        d++;
 
                         if ((d == 3) && (ins->nr_uops > 4)) /*Ins. with >4 uOPs require the use of special units only present on 3 translate PLAs*/
                         {
@@ -1878,10 +1878,10 @@ static void decode_instruction(const macro_op_t *ins, uint64_t deps, uint32_t fe
                                 decode_flush_p6(); /*The other two decoders are halted to preserve in-order issue*/
                         }
                 }
-		if (d)
-		{
-			decode_buffer.nr_uops = d;
-		}
+                if (d)
+                {
+                        decode_buffer.nr_uops = d;
+                }
                 break;
         }
 
@@ -1926,7 +1926,7 @@ static void decode_instruction(const macro_op_t *ins, uint64_t deps, uint32_t fe
         }
 }
 
-void codegen_timing_p6_block_start()
+void codegen_timing_p6_block_start(void)
 {
         int c;
 
@@ -1946,7 +1946,7 @@ void codegen_timing_p6_block_start()
                 fpu_st_timestamp[c] = 0;
 }
 
-void codegen_timing_p6_start()
+void codegen_timing_p6_start(void)
 {
         if (cpu_s->cpu_type == CPU_PENTIUMPRO)
         {
@@ -1982,8 +1982,8 @@ void codegen_timing_p6_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uint
         switch (last_prefix)
         {
                 case 0x0f:
-		ins_table = mod3 ? opcode_timings_0f_mod3 : opcode_timings_0f;
-		deps = mod3 ? opcode_deps_0f_mod3 : opcode_deps_0f;
+                ins_table = mod3 ? opcode_timings_0f_mod3 : opcode_timings_0f;
+                deps = mod3 ? opcode_deps_0f_mod3 : opcode_deps_0f;
                 break;
 
                 case 0xd8:
@@ -2083,7 +2083,7 @@ void codegen_timing_p6_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, uint
         codegen_block_cycles += (last_complete_timestamp - old_last_complete_timestamp);
 }
 
-void codegen_timing_p6_block_end()
+void codegen_timing_p6_block_end(void)
 {
         if (decode_buffer.nr_uops)
         {
@@ -2093,7 +2093,7 @@ void codegen_timing_p6_block_end()
         }
 }
 
-int codegen_timing_p6_jump_cycles()
+int codegen_timing_p6_jump_cycles(void)
 {
         if (decode_buffer.nr_uops)
                 return 1;

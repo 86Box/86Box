@@ -7,8 +7,7 @@ namespace Ui {
 class SettingsStorageControllers;
 }
 
-class SettingsStorageControllers : public QWidget
-{
+class SettingsStorageControllers : public QWidget {
     Q_OBJECT
 
 public:
@@ -33,14 +32,16 @@ private slots:
     void on_pushButtonTertiaryIDE_clicked();
     void on_pushButtonFD_clicked();
     void on_pushButtonHD_clicked();
+    void on_pushButtonCDInterface_clicked();
     void on_checkBoxQuaternaryIDE_stateChanged(int arg1);
     void on_checkBoxTertiaryIDE_stateChanged(int arg1);
     void on_comboBoxFD_currentIndexChanged(int index);
     void on_comboBoxHD_currentIndexChanged(int index);
+    void on_comboBoxCDInterface_currentIndexChanged(int index);
 
 private:
     Ui::SettingsStorageControllers *ui;
-    int machineId = 0;
+    int                             machineId = 0;
 };
 
 #endif // QT_SETTINGSSTORAGECONTROLLERS_HPP

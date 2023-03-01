@@ -1,23 +1,23 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Header file for OpenGL rendering module
+ *          Header file for OpenGL rendering module
  *
- * Authors:	Teemu Korhonen
+ * Authors: Teemu Korhonen
  *
- *		Copyright 2021 Teemu Korhonen
+ *          Copyright 2021 Teemu Korhonen
  */
 
 #ifndef WIN_OPENGL_H
 #define WIN_OPENGL_H
 
 #define UNICODE
-#include <Windows.h>
+#include <windows.h>
 
 extern int  opengl_init(HWND hwnd);
 extern int  opengl_pause(void);

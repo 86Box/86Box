@@ -1,17 +1,19 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Intel 82335(KU82335) chipset.
+ *          Implementation of the Intel 82335(KU82335) chipset.
  *
- *		Copyright 2021 Tiseno100
  *
+ *
+ * Authors: Tiseno100
+ *
+ *          Copyright 2021 Tiseno100.
  */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -65,6 +67,7 @@ typedef struct
 
 #ifdef ENABLE_INTEL_82335_LOG
 int intel_82335_do_log = ENABLE_INTEL_82335_LOG;
+
 static void
 intel_82335_log(const char *fmt, ...)
 {
@@ -103,7 +106,7 @@ intel_82335_write(uint16_t addr, uint16_t val, void *priv)
                     shadowbios_write = !!(dev->regs[0x22] & 0x01);
 
                     /* Base System 512/640KB set */
-                    mem_set_mem_state_both(0x80000, 0x20000, (dev->regs[0x22] & 0x08) ? ENABLE_TOP_128KB : DISABLE_TOP_128KB);
+                    // mem_set_mem_state_both(0x80000, 0x20000, (dev->regs[0x22] & 0x08) ? ENABLE_TOP_128KB : DISABLE_TOP_128KB);
 
                     /* Video RAM shadow*/
                     mem_set_mem_state_both(0xa0000, 0x20000, (dev->regs[0x22] & (0x04 << 8)) ? DETERMINE_VIDEO_RAM_WRITE_ACCESS : DISABLED_SHADOW);
@@ -166,6 +169,7 @@ intel_82335_init(const device_t *info)
 
     memset(dev->regs, 0, sizeof(dev->regs));
 
+    dev->regs[0x22] = 0x08;
     dev->regs[0x28] = 0xf9;
 
     dev->cfg_locked = 0;

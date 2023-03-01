@@ -1,22 +1,23 @@
 #
-# 86Box     A hypervisor and IBM PC system emulator that specializes in
-#           running old operating systems and software designed for IBM
-#           PC systems and compatibles from 1981 through fairly recent
-#           system designs based on the PCI bus.
+# 86Box    A hypervisor and IBM PC system emulator that specializes in
+#          running old operating systems and software designed for IBM
+#          PC systems and compatibles from 1981 through fairly recent
+#          system designs based on the PCI bus.
 #
-#           This file is part of the 86Box distribution.
+#          This file is part of the 86Box distribution.
 #
-#           CMake build script.
+#          CMake build script.
 #
-# Authors:  David Hrdlička, <hrdlickadavid@outlook.com>
+# Authors: David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#           Copyright 2020,2021 David Hrdlička.
+#          Copyright 2020,2021 David Hrdlička.
+#          Copyright 2021-2022 Jasmine Iwanek.
 #
 
 enable_language(RC)
 
 add_library(plat OBJECT win.c win_dynld.c win_cdrom.c win_keyboard.c
-    win_mouse.c)
+    win_mouse.c win_serial_passthrough.c)
 
 add_library(ui OBJECT win_ui.c win_icon.c win_stbar.c win_sdl.c win_dialog.c win_about.c
     win_settings.c win_devconf.c win_snd_gain.c win_specify_dim.c win_new_floppy.c

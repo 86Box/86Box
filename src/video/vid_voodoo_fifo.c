@@ -1,19 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		3DFX Voodoo emulation.
+ *          3DFX Voodoo emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *
- *		Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2008-2020 Sarah Walker.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -21,6 +22,7 @@
 #include <stddef.h>
 #include <wchar.h>
 #include <math.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/machine.h>
@@ -104,6 +106,7 @@ voodoo_queue_command(voodoo_t *voodoo, uint32_t addr_type, uint32_t val)
     fifo->addr_type = addr_type;
 
     voodoo->fifo_write_idx++;
+    voodoo->cmd_status &= ~(1 << 24);
 
     if (FIFO_ENTRIES > 0xe000)
         voodoo_wake_fifo_thread(voodoo);
@@ -281,6 +284,8 @@ voodoo_fifo_thread(void *param)
             voodoo->time += end_time - start_time;
         }
 
+        voodoo->cmd_status |= (1 << 24);
+
         while (voodoo->cmdfifo_enabled && (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr || voodoo->cmdfifo_in_sub)) {
             uint64_t start_time = plat_timer_read();
             uint64_t end_time;
@@ -294,9 +299,13 @@ voodoo_fifo_thread(void *param)
 
             //                        voodoo_fifo_log(" CMDFIFO header %08x at %08x\n", header, voodoo->cmdfifo_rp);
 
+            voodoo->cmd_status &= ~7;
+            voodoo->cmd_status |= (header & 7);
+            voodoo->cmd_status |= (1 << 11);
             switch (header & 7) {
                 case 0:
                     //                                voodoo_fifo_log("CMDFIFO0\n");
+                    voodoo->cmd_status = (voodoo->cmd_status & 0xffff8fff) | (((header >> 3) & 7) << 12);
                     switch ((header >> 3) & 7) {
                         case 0: /*NOP*/
                             break;
@@ -321,6 +330,7 @@ voodoo_fifo_thread(void *param)
                         default:
                             fatal("Bad CMDFIFO0 %08x\n", header);
                     }
+                    voodoo->cmd_status = (voodoo->cmd_status & ~(1 << 27)) | (voodoo->cmdfifo_in_sub << 27);
                     break;
 
                 case 1:
@@ -349,8 +359,8 @@ voodoo_fifo_thread(void *param)
                     break;
 
                 case 2:
-                    if (voodoo->type < VOODOO_BANSHEE)
-                        fatal("CMDFIFO2: Not Banshee\n");
+                    if (voodoo->type < VOODOO_2)
+                        fatal("CMDFIFO2: Not Voodoo 2\n");
                     mask = (header >> 3);
                     addr = 8;
                     while (mask) {
@@ -419,6 +429,8 @@ voodoo_fifo_thread(void *param)
                         if (v_num == 3 && ((header >> 3) & 7) == 0)
                             v_num = 0;
                     }
+                    while (num--)
+                        cmdfifo_get(voodoo);
                     break;
 
                 case 4:

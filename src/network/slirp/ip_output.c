@@ -51,6 +51,8 @@
 int ip_output(struct socket *so, struct mbuf *m0)
 {
     Slirp *slirp = m0->slirp;
+    M_DUP_DEBUG(slirp, m0, 0, 0);
+
     register struct ip *ip;
     register struct mbuf *m = m0;
     register int hlen = sizeof(struct ip);

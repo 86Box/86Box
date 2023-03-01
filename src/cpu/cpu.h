@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		CPU type handler.
+ *          CPU type handler.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		leilei,
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          leilei,
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 leilei.
- *		Copyright 2016,2018 Miran Grca.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2018 leilei.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #ifndef EMU_CPU_H
 #define EMU_CPU_H
@@ -24,6 +24,7 @@
 enum {
     FPU_NONE,
     FPU_8087,
+    FPU_80187,
     FPU_287,
     FPU_287XL,
     FPU_387,
@@ -34,10 +35,10 @@ enum {
 enum {
     CPU_8088 = 1, /* 808x class CPUs */
     CPU_8086,
-#ifdef USE_NEC_808X
-    CPU_V20, /* NEC 808x class CPUs - future proofing */
+    CPU_V20, /* NEC 808x class CPUs */
     CPU_V30,
-#endif
+    CPU_188, /* 18x class CPUs */
+    CPU_186,
     CPU_286,   /* 286 class CPUs */
     CPU_386SX, /* 386 class CPUs */
     CPU_IBM386SLC,
@@ -86,26 +87,30 @@ enum {
     CPU_PKG_8088          = (1 << 0),
     CPU_PKG_8088_EUROPC   = (1 << 1),
     CPU_PKG_8086          = (1 << 2),
-    CPU_PKG_286           = (1 << 3),
-    CPU_PKG_386SX         = (1 << 4),
-    CPU_PKG_386DX         = (1 << 5),
-    CPU_PKG_M6117         = (1 << 6),
-    CPU_PKG_386SLC_IBM    = (1 << 7),
-    CPU_PKG_486SLC        = (1 << 8),
-    CPU_PKG_486SLC_IBM    = (1 << 9),
-    CPU_PKG_486BL         = (1 << 10),
-    CPU_PKG_486DLC        = (1 << 11),
-    CPU_PKG_SOCKET1       = (1 << 12),
-    CPU_PKG_SOCKET3       = (1 << 13),
-    CPU_PKG_SOCKET3_PC330 = (1 << 14),
-    CPU_PKG_STPC          = (1 << 15),
-    CPU_PKG_SOCKET4       = (1 << 16),
-    CPU_PKG_SOCKET5_7     = (1 << 17),
-    CPU_PKG_SOCKET8       = (1 << 18),
-    CPU_PKG_SLOT1         = (1 << 19),
-    CPU_PKG_SLOT2         = (1 << 20),
-    CPU_PKG_SOCKET370     = (1 << 21),
-    CPU_PKG_EBGA368       = (1 << 22)
+    CPU_PKG_188           = (1 << 3),
+    CPU_PKG_186           = (1 << 4),
+    CPU_PKG_286           = (1 << 5),
+    CPU_PKG_386SX         = (1 << 6),
+    CPU_PKG_386DX         = (1 << 7),
+    CPU_PKG_M6117         = (1 << 8),
+    CPU_PKG_386SLC_IBM    = (1 << 9),
+    CPU_PKG_486SLC        = (1 << 10),
+    CPU_PKG_486SLC_IBM    = (1 << 11),
+    CPU_PKG_486BL         = (1 << 12),
+    CPU_PKG_486DLC        = (1 << 13),
+    CPU_PKG_SOCKET1       = (1 << 14),
+    CPU_PKG_SOCKET3       = (1 << 15),
+    CPU_PKG_SOCKET3_PC330 = (1 << 16),
+    CPU_PKG_STPC          = (1 << 17),
+    CPU_PKG_SOCKET4       = (1 << 18),
+    CPU_PKG_SOCKET5_7     = (1 << 19),
+    CPU_PKG_SOCKET8       = (1 << 20),
+    CPU_PKG_SLOT1         = (1 << 21),
+    CPU_PKG_SLOT2         = (1 << 22),
+    CPU_PKG_SLOTA         = (1 << 23),
+    CPU_PKG_SOCKET370     = (1 << 24),
+    CPU_PKG_SOCKETA       = (1 << 25),
+    CPU_PKG_EBGA368       = (1 << 26)
 };
 
 #define MANU_INTEL           0
@@ -113,6 +118,7 @@ enum {
 #define MANU_CYRIX           2
 #define MANU_IDT             3
 #define MANU_NEC             4
+#define MANU_IBM             5
 
 #define CPU_SUPPORTS_DYNAREC 1
 #define CPU_REQUIRES_DYNAREC 2
@@ -166,34 +172,42 @@ typedef struct {
     const cpu_legacy_table_t **tables;
 } cpu_legacy_machine_t;
 
-#define C_FLAG   0x0001
-#define P_FLAG   0x0004
-#define A_FLAG   0x0010
-#define Z_FLAG   0x0040
-#define N_FLAG   0x0080
-#define T_FLAG   0x0100
-#define I_FLAG   0x0200
-#define D_FLAG   0x0400
-#define V_FLAG   0x0800
-#define NT_FLAG  0x4000
+#define C_FLAG     0x0001
+#define P_FLAG     0x0004
+#define A_FLAG     0x0010
+#define Z_FLAG     0x0040
+#define N_FLAG     0x0080
+#define T_FLAG     0x0100
+#define I_FLAG     0x0200
+#define D_FLAG     0x0400
+#define V_FLAG     0x0800
+#define NT_FLAG    0x4000
+#define MD_FLAG    0x8000
 
-#define RF_FLAG  0x0001 /* in EFLAGS */
-#define VM_FLAG  0x0002 /* in EFLAGS */
-#define VIF_FLAG 0x0008 /* in EFLAGS */
-#define VIP_FLAG 0x0010 /* in EFLAGS */
-#define VID_FLAG 0x0020 /* in EFLAGS */
+#define RF_FLAG    0x0001 /* in EFLAGS */
+#define VM_FLAG    0x0002 /* in EFLAGS */
+#define VIF_FLAG   0x0008 /* in EFLAGS */
+#define VIP_FLAG   0x0010 /* in EFLAGS */
+#define VID_FLAG   0x0020 /* in EFLAGS */
 
-#define WP_FLAG  0x10000 /* in CR0 */
-#define CR4_VME  (1 << 0)
-#define CR4_PVI  (1 << 1)
-#define CR4_PSE  (1 << 4)
-#define CR4_PAE  (1 << 5)
+#define WP_FLAG    0x10000 /* in CR0 */
 
-#define CPL      ((cpu_state.seg_cs.access >> 5) & 3)
+#define CR4_VME    (1 << 0) /* Virtual 8086 Mode Extensions */
+#define CR4_PVI    (1 << 1) /* Protected-mode Virtual Interrupts */
+#define CR4_TSD    (1 << 2) /* Time Stamp Disable */
+#define CR4_DE     (1 << 3) /* Debugging Extensions */
+#define CR4_PSE    (1 << 4) /* Page Size Extension */
+#define CR4_PAE    (1 << 5) /* Physical Address Extension */
+#define CR4_MCE    (1 << 6) /* Machine Check Exception */
+#define CR4_PGE    (1 << 7) /* Page Global Enabled */
+#define CR4_PCE    (1 << 8) /* Performance-Monitoring Counter enable */
+#define CR4_OSFXSR (1 << 9) /* Operating system support for FXSAVE and FXRSTOR instructions */
 
-#define IOPL     ((cpu_state.flags >> 12) & 3)
+#define CPL        ((cpu_state.seg_cs.access >> 5) & 3)
 
-#define IOPLp    ((!(msw & 1)) || (CPL <= IOPL))
+#define IOPL       ((cpu_state.flags >> 12) & 3)
+
+#define IOPLp      ((!(msw & 1)) || (CPL <= IOPL))
 
 typedef union {
     uint32_t l;
@@ -386,6 +400,8 @@ typedef struct {
     uint16_t flags, eflags;
 
     uint32_t _smbase;
+
+    uint8_t inside_emulation_mode;
 } cpu_state_t;
 
 #define in_smm   cpu_state._in_smm
@@ -458,15 +474,9 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 #    define fpu_cycles cpu_state._fpu_cycles
 #endif
 
-#define cpu_rm     cpu_state.rm_data.rm_mod_reg.rm
-#define cpu_mod    cpu_state.rm_data.rm_mod_reg.mod
-#define cpu_reg    cpu_state.rm_data.rm_mod_reg.reg
-
-#define CR4_TSD    (1 << 2)
-#define CR4_DE     (1 << 3)
-#define CR4_MCE    (1 << 6)
-#define CR4_PCE    (1 << 8)
-#define CR4_OSFXSR (1 << 9)
+#define cpu_rm  cpu_state.rm_data.rm_mod_reg.rm
+#define cpu_mod cpu_state.rm_data.rm_mod_reg.mod
+#define cpu_reg cpu_state.rm_data.rm_mod_reg.reg
 
 /* Global variables. */
 extern cpu_state_t cpu_state;
@@ -487,19 +497,22 @@ extern double fpu_multi;
 extern int    cpu_cyrix_alignment; /*Cyrix 5x86/6x86 only has data misalignment
                                      penalties when crossing 8-byte boundaries*/
 
-extern int is8086, is286, is386, is6117, is486;
+extern int is8086, is186, is286, is386, is6117, is486;
 extern int is_am486, is_am486dxl, is_pentium, is_k5, is_k6, is_p6, is_cxsmm;
 extern int hascache;
 extern int isibm486;
+extern int is_nec;
 extern int is_rapidcad;
 extern int hasfpu;
-#define CPU_FEATURE_RDTSC (1 << 0)
-#define CPU_FEATURE_MSR   (1 << 1)
-#define CPU_FEATURE_MMX   (1 << 2)
-#define CPU_FEATURE_CR4   (1 << 3)
-#define CPU_FEATURE_VME   (1 << 4)
-#define CPU_FEATURE_CX8   (1 << 5)
-#define CPU_FEATURE_3DNOW (1 << 6)
+#define CPU_FEATURE_RDTSC   (1 << 0)
+#define CPU_FEATURE_MSR     (1 << 1)
+#define CPU_FEATURE_MMX     (1 << 2)
+#define CPU_FEATURE_CR4     (1 << 3)
+#define CPU_FEATURE_VME     (1 << 4)
+#define CPU_FEATURE_CX8     (1 << 5)
+#define CPU_FEATURE_3DNOW   (1 << 6)
+#define CPU_FEATURE_SYSCALL (1 << 7)
+#define CPU_FEATURE_3DNOWE  (1 << 8)
 
 extern uint32_t cpu_features;
 
@@ -721,13 +734,14 @@ extern void (*cpu_exec)(int cycs);
 extern uint8_t do_translate, do_translate2;
 
 extern void reset_808x(int hard);
+extern void interrupt_808x(uint16_t addr);
 
 extern void cpu_register_fast_off_handler(void *timer);
 extern void cpu_fast_off_advance(void);
 extern void cpu_fast_off_period_set(uint16_t vla, double period);
 extern void cpu_fast_off_reset(void);
 
-extern void smi_raise();
-extern void nmi_raise();
+extern void smi_raise(void);
+extern void nmi_raise(void);
 
 #endif /*EMU_CPU_H*/

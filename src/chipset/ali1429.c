@@ -1,21 +1,23 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the ALi M1429 chipset.
+ *          Implementation of the ALi M1429 chipset.
  *
- *		Note: This chipset has no datasheet, everything were done via
- *		reverse engineering the BIOS of various machines using it.
+ * Note:    This chipset has no datasheet, everything were done via
+ *          reverse engineering the BIOS of various machines using it.
  *
- * Authors:	Tiseno100,
- *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2020,2021 Tiseno100.
- *		Copyright 2021,2021 Miran Grca.
+ *
+ * Authors: Tiseno100,
+ *          Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2020-2021 Tiseno100.
+ *          Copyright 2021      Miran Grca.
  */
 
 /*
@@ -72,7 +74,6 @@
          1 1 0: CLK2IN/12
 
 */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -160,9 +161,11 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
 #endif
 
             if (dev->index == 0x03)
-                dev->cfg_locked = !(val == 0xc5);
+                dev->cfg_locked = (val != 0xc5);
 
             if (!dev->cfg_locked) {
+                pclog("M1429: dev->regs[%02x] = %02x\n", dev->index, val);
+
                 /* Common M1429 Registers */
                 switch (dev->index) {
                     case 0x10:

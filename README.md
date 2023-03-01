@@ -1,6 +1,6 @@
 86Box
 =====
-[![Build Status](http://ci.86box.net/job/86Box/badge/icon)](http://ci.86box.net/job/86Box)
+[![Build Status](https://ci.86box.net/job/86Box/badge/icon)](https://ci.86box.net/job/86Box/)
 
 **86Box** is a low level x86 emulator that runs older operating systems and software designed for IBM PC systems and compatibles from 1981 through fairly recent system designs based on the PCI bus.
 
@@ -48,6 +48,16 @@ Licensing
 86Box is released under the [GNU General Public License, version 2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html) or later. For more information, see the `COPYING` file in the root of the repository.
 
 The emulator can also optionally make use of [munt](https://github.com/munt/munt), [FluidSynth](https://www.fluidsynth.org/), [Ghostscript](https://www.ghostscript.com/) and [Discord Game SDK](https://discord.com/developers/docs/game-sdk/sdk-starter-guide), which are distributed under their respective licenses.
+
+Contribution requirements
+-------------------------
+ Formal codification of the project's emulated hardware contribution requirements, which all have to be met to accept an addition:
+* A ROM must be available;
+* Documentation must be available or it must be feasible to reverse engineer with a reasonable amount of time and effort;
+* It must be feasible to implement with a reasonable amount of time and effort;
+* It has to fall inside the project's scope.
+
+Where unsure or for more details about the project's emulated hardware contribution requirements, contact a Contributor or higher.
 
 Donations
 ---------

@@ -2075,12 +2075,12 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         addbyte(0x05);
         addlong((uint32_t) &xmm_ff_b);
     }
-    //#if 0
-    //        addbyte(0x66); /*MOVD state->out[EDI], XMM0*/
-    //        addbyte(0x0f);
-    //        addbyte(0x7e);
-    //        addbyte(0x87);
-    //        addlong(offsetof(voodoo_state_t, out));
+    // #if 0
+    //         addbyte(0x66); /*MOVD state->out[EDI], XMM0*/
+    //         addbyte(0x0f);
+    //         addbyte(0x7e);
+    //         addbyte(0x87);
+    //         addlong(offsetof(voodoo_state_t, out));
     if (params->fogMode & FOG_ENABLE) {
         if (params->fogMode & FOG_CONSTANT) {
             addbyte(0x66); /*MOVD XMM3, params->fogColor[ESI]*/
@@ -2695,7 +2695,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         addbyte(0x67);
         addbyte(0xc0);
     }
-    //#endif
+    // #endif
 
     //        addbyte(0x8b); /*MOV EDX, x (ESP+12)*/
     //        addbyte(0x54);

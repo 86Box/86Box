@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Generic SVGA handling.
+ *          Generic SVGA handling.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Miran Grca.
  */
 
 #include <86box/thread.h>
@@ -32,6 +32,8 @@
 #    define FLAG_ADDR_BY16    32
 #    define FLAG_RAMDAC_SHIFT 64
 #    define FLAG_128K_MASK    128
+
+struct monitor_t;
 
 typedef struct {
     int ena,
@@ -170,6 +172,12 @@ typedef struct svga_t {
     uint32_t (*remap_func)(struct svga_t *svga, uint32_t in_addr);
 
     void *ramdac, *clock_gen;
+
+    /* Monitor Index */
+    uint8_t monitor_index;
+
+    /* Pointer to monitor */
+    monitor_t* monitor;
 } svga_t;
 
 extern int vga_on, ibm8514_on;
@@ -211,7 +219,7 @@ extern uint8_t svga_rotate[8][256];
 void    svga_out(uint16_t addr, uint8_t val, void *p);
 uint8_t svga_in(uint16_t addr, void *p);
 
-svga_t *svga_get_pri();
+svga_t *svga_get_pri(void);
 void    svga_set_override(svga_t *svga, int val);
 
 void svga_set_ramdac_type(svga_t *svga, int type);

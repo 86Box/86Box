@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of a generic Magneto-Optical Disk drive
- *		commands, for both ATAPI and SCSI usage.
+ *          Implementation of a generic Magneto-Optical Disk drive
+ *          commands, for both ATAPI and SCSI usage.
  *
  *
  *
- * Authors:	Natalia Portillo <claunia@claunia.com>
+ * Authors: Natalia Portillo <claunia@claunia.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
- *		    Miran Grca, <mgrca8@gmail.com>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2020 Miran Grca.
+ *          Copyright 2020 Miran Grca.
  */
 
 #ifndef EMU_MO_H
@@ -168,7 +168,7 @@ extern void mo_hard_reset(void);
 
 extern void mo_reset(scsi_common_t *sc);
 extern int  mo_load(mo_t *dev, char *fn);
-extern void mo_close();
+extern void mo_close(void);
 
 #ifdef __cplusplus
 }

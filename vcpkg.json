@@ -1,8 +1,8 @@
 {
     "name": "86box",
-    "version-string": "3.8",
+    "version-string": "4.0",
     "homepage": "https://86box.net/",
-    "documentation": "http://86box.readthedocs.io/",
+    "documentation": "https://86box.readthedocs.io/",
     "license": "GPL-2.0-or-later",
     "dependencies": [
         "freetype",
@@ -21,6 +21,7 @@
                         "concurrent",
                         "default-features",
                         "gui",
+                        "opengl",
                         "harfbuzz",
                         "network",
                         "vulkan",

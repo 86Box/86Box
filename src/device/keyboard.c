@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		General keyboard driver interface.
+ *          General keyboard driver interface.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2015-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2015-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -34,7 +34,7 @@ void (*keyboard_send)(uint16_t val);
 static int recv_key[512]; /* keyboard input buffer */
 static int oldkey[512];
 #if 0
-static int	keydelay[512];
+static int keydelay[512];
 #endif
 static scancode *scan_table; /* scancode table for keyboard */
 
@@ -140,10 +140,10 @@ keyboard_input(int down, uint16_t scan)
     if (recv_key[scan & 0x1ff] ^ down) {
         if (down) {
             switch (scan & 0x1ff) {
-                case 0x01c: /* Left Ctrl */
+                case 0x01d: /* Left Ctrl */
                     shift |= 0x01;
                     break;
-                case 0x11c: /* Right Ctrl */
+                case 0x11d: /* Right Ctrl */
                     shift |= 0x10;
                     break;
                 case 0x02a: /* Left Shift */
@@ -161,10 +161,10 @@ keyboard_input(int down, uint16_t scan)
             }
         } else {
             switch (scan & 0x1ff) {
-                case 0x01c: /* Left Ctrl */
+                case 0x01d: /* Left Ctrl */
                     shift &= ~0x01;
                     break;
-                case 0x11c: /* Right Ctrl */
+                case 0x11d: /* Right Ctrl */
                     shift &= ~0x10;
                     break;
                 case 0x02a: /* Left Shift */

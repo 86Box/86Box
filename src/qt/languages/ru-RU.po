@@ -76,6 +76,24 @@ msgstr "1.&5x"
 msgid "&2x"
 msgstr "&2x"
 
+msgid "&3x"
+msgstr "&3x"
+
+msgid "&4x"
+msgstr "&4x"
+
+msgid "&5x"
+msgstr "&5x"
+
+msgid "&6x"
+msgstr "&6x"
+
+msgid "&7x"
+msgstr "&7x"
+
+msgid "&8x"
+msgstr "&8x"
+
 msgid "Filter method"
 msgstr "Метод фильтрации"
 
@@ -226,11 +244,8 @@ msgstr "П&устой"
 msgid "&Reload previous image"
 msgstr "&Снова загрузить предыдущий образ"
 
-msgid "&Image"
-msgstr "&Образ..."
-
 msgid "&Folder..."
-msgstr "&Folder..."
+msgstr "&Папка..."
 
 msgid "Target &framerate"
 msgstr "Целевая &частота кадров"
@@ -367,6 +382,12 @@ msgstr "Видеокарта:"
 msgid "Voodoo Graphics"
 msgstr "Ускоритель Voodoo"
 
+msgid "IBM 8514/a Graphics"
+msgstr "Ускоритель IBM 8514/a"
+
+msgid "XGA Graphics"
+msgstr "Ускоритель XGA"
+
 msgid "Mouse:"
 msgstr "Мышь:"
 
@@ -385,8 +406,17 @@ msgstr "Джойстик 3..."
 msgid "Joystick 4..."
 msgstr "Джойстик 4..."
 
-msgid "Sound card:"
-msgstr "Звуковая карта:"
+msgid "Sound card 1:"
+msgstr "Звуковая карта 1:"
+
+msgid "Sound card 2:"
+msgstr "Звуковая карта 2:"
+
+msgid "Sound card 3:"
+msgstr "Звуковая карта 3:"
+
+msgid "Sound card 4:"
+msgstr "Звуковая карта 4:"
 
 msgid "MIDI Out Device:"
 msgstr "MIDI Out устр-во:"
@@ -397,17 +427,17 @@ msgstr "MIDI In устр-во:"
 msgid "Standalone MPU-401"
 msgstr "Отдельный MPU-401"
 
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
-
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32 звук"
+
+msgid "FM synth driver"
+msgstr "Драйвер FM-синтезатора"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (более точный)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (быстрей)"
 
 msgid "Network type:"
 msgstr "Тип сети:"
@@ -552,6 +582,9 @@ msgstr "Проверять BPB"
 
 msgid "CD-ROM drives:"
 msgstr "Дисководы CD-ROM:"
+
+msgid "Earlier drive"
+msgstr "Предыдущий дисковод"
 
 msgid "MO drives:"
 msgstr "Магнитооптические дисководы:"

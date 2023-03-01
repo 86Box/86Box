@@ -1,21 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Handle the platform-side of CDROM/ZIP/MO drives.
+ *          Handle the platform-side of CDROM/ZIP/MO drives.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2018 Miran Grca.
- *		Copyright 2017,2018 Fred N. van Kempen.
+ *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2017-2018 Fred N. van Kempen.
  */
 
 #include <stdio.h>
@@ -45,11 +45,11 @@ plat_cdrom_ui_update(uint8_t id, uint8_t reload)
     cdrom_t *drv = &cdrom[id];
 
     if (drv->host_drive == 0) {
-	ui_sb_update_icon_state(SB_CDROM|id, 1);
+        ui_sb_update_icon_state(SB_CDROM | id, 1);
     } else {
-	ui_sb_update_icon_state(SB_CDROM|id, 0);
+        ui_sb_update_icon_state(SB_CDROM | id, 0);
     }
 
-    //media_menu_update_cdrom(id);
-    ui_sb_update_tip(SB_CDROM|id);
+    // media_menu_update_cdrom(id);
+    ui_sb_update_tip(SB_CDROM | id);
 }

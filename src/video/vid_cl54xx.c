@@ -1,23 +1,23 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of select Cirrus Logic cards (CL-GD 5428,
- *		CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
+ *          Emulation of select Cirrus Logic cards (CL-GD 5428,
+ *          CL-GD 5429, CL-GD 5430, CL-GD 5434 and CL-GD 5436 are supported).
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		tonioni,
- *		TheCollector1995,
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          tonioni,
+ *          TheCollector1995,
  *
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2020 tonioni.
- *		Copyright 2016-2020 TheCollector1995.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2020      tonioni.
+ *          Copyright 2016-2020 TheCollector1995.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -525,7 +525,7 @@ gd54xx_overlay_draw(svga_t *svga, int displine)
     uint8_t  *src2        = &svga->vram[(svga->ma - (svga->hdisp * bytesperpix)) & svga->vram_display_mask];
     int       occl, ckval;
 
-    p = &((uint32_t *) buffer32->line[displine])[gd54xx->overlay.region1size + svga->x_add];
+    p = &((uint32_t *) svga->monitor->target_buffer->line[displine])[gd54xx->overlay.region1size + svga->x_add];
     src2 += gd54xx->overlay.region1size * bytesperpix;
 
     OVERLAY_SAMPLE();
@@ -670,7 +670,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
             if ((svga->seqaddr == 2) && !gd54xx->unlocked) {
                 o = svga->seqregs[svga->seqaddr & 0x1f];
                 svga_out(addr, val, svga);
-                svga->seqregs[svga->seqaddr & 0x1f] = (o & 0xf0) | (val & 0x0f);
+                if (svga->gdcreg[0xb] & 0x04)
+                    svga->seqregs[svga->seqaddr & 0x1f] = (o & 0xf0) | (val & 0x0f);
                 return;
             } else if ((svga->seqaddr > 6) && !gd54xx->unlocked)
                 return;
@@ -875,13 +876,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
                     svga_recalctimings(svga);
             } else {
                 switch (svga->gdcaddr) {
-                    case 0x09:
-                    case 0x0a:
                     case 0x0b:
-                        if (svga->gdcreg[0xb] & 0x04)
-                            svga->writemode = svga->gdcreg[5] & 7;
-                        else
-                            svga->writemode = svga->gdcreg[5] & 3;
                         svga->adv_flags = 0;
                         if (svga->gdcreg[0xb] & 0x01)
                             svga->adv_flags = FLAG_EXTRA_BANKS;
@@ -891,8 +886,24 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
                             svga->adv_flags |= FLAG_EXT_WRITE;
                         if (svga->gdcreg[0xb] & 0x08)
                             svga->adv_flags |= FLAG_LATCH8;
-                        if (svga->gdcreg[0xb] & 0x10)
+                        if ((svga->gdcreg[0xb] & 0x10) && (svga->adv_flags & FLAG_EXT_WRITE))
                             svga->adv_flags |= FLAG_ADDR_BY16;
+                        if (svga->gdcreg[0xb] & 0x04)
+                            svga->writemode = svga->gdcreg[5] & 7;
+                        else if (o & 0x4) {
+                            svga->gdcreg[5] &= ~0x04;
+                            svga->writemode = svga->gdcreg[5] & 3;
+                            svga->adv_flags &= (FLAG_EXTRA_BANKS | FLAG_ADDR_BY8 | FLAG_LATCH8);
+                            if (svga->crtc[0x27] != CIRRUS_ID_CLGD5436) {
+                                svga->gdcreg[0] &= 0x0f;
+                                gd543x_mmio_write(0xb8000, svga->gdcreg[0], gd54xx);
+                                svga->gdcreg[1] &= 0x0f;
+                                gd543x_mmio_write(0xb8004, svga->gdcreg[1], gd54xx);
+                            }
+                            svga->seqregs[2] &= 0x0f;
+                        }
+                    case 0x09:
+                    case 0x0a:
                         gd54xx_recalc_banking(gd54xx);
                         break;
 
@@ -1019,6 +1030,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
             return;
         case 0x3d5:
             if (((svga->crtcreg == 0x19) || (svga->crtcreg == 0x1a) || (svga->crtcreg == 0x1b) || (svga->crtcreg == 0x1d) || (svga->crtcreg == 0x25) || (svga->crtcreg == 0x27)) && !gd54xx->unlocked)
+                return;
+            if ((svga->crtcreg == 0x25) || (svga->crtcreg == 0x27))
                 return;
             if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
                 return;
@@ -1845,16 +1858,16 @@ gd54xx_hwcursor_draw(svga_t *svga, int displine)
                         break;
                     case 1:
                         /* The pixel is shown in the cursor background color */
-                        ((uint32_t *) buffer32->line[displine])[offset + svga->x_add] = bgcol;
+                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[offset + svga->x_add] = bgcol;
                         break;
                     case 2:
                         /* The pixel is shown as the inverse of the original screen pixel
                            (XOR cursor) */
-                        ((uint32_t *) buffer32->line[displine])[offset + svga->x_add] ^= 0xffffff;
+                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[offset + svga->x_add] ^= 0xffffff;
                         break;
                     case 3:
                         /* The pixel is shown in the cursor foreground color */
-                        ((uint32_t *) buffer32->line[displine])[offset + svga->x_add] = fgcol;
+                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[offset + svga->x_add] = fgcol;
                         break;
                 }
             }
@@ -2206,7 +2219,7 @@ gd54xx_readw_linear(uint32_t addr, void *p)
             temp |= (svga_readb_linear(addr, svga) << 8);
 
             if (svga->fast)
-                cycles -= video_timing_read_w;
+                cycles -= svga->monitor->mon_video_timing_read_w;
 
             return temp;
         case 3:
@@ -2255,7 +2268,7 @@ gd54xx_readl_linear(uint32_t addr, void *p)
             temp |= (svga_readb_linear(addr + 2, svga) << 24);
 
             if (svga->fast)
-                cycles -= video_timing_read_l;
+                cycles -= svga->monitor->mon_video_timing_read_l;
 
             return temp;
         case 2:
@@ -2265,7 +2278,7 @@ gd54xx_readl_linear(uint32_t addr, void *p)
             temp |= (svga_readb_linear(addr, svga) << 24);
 
             if (svga->fast)
-                cycles -= video_timing_read_l;
+                cycles -= svga->monitor->mon_video_timing_read_l;
 
             return temp;
         case 3:
@@ -2441,7 +2454,7 @@ gd54xx_writew_linear(uint32_t addr, uint16_t val, void *p)
                 svga_writeb_linear(addr, val >> 8, svga);
 
                 if (svga->fast)
-                    cycles -= video_timing_write_w;
+                    cycles -= svga->monitor->mon_video_timing_write_w;
             case 3:
                 return;
         }
@@ -4254,7 +4267,7 @@ gd54xx_force_redraw(void *p)
 {
     gd54xx_t *gd54xx = (gd54xx_t *) p;
 
-    gd54xx->svga.fullchange = changeframecount;
+    gd54xx->svga.fullchange = gd54xx->svga.monitor->mon_changeframecount;
 }
 
 // clang-format off

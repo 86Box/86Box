@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors:  Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
  *           Miran Grca, <mgrca8@gmail.com>
  *           TheCollector1995, <mariogplayer@gmail.com>
  *
@@ -290,6 +290,9 @@ sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
             } else {
                 out_l = (((double) opl_buf[c]) * mixer->fm_l) * 0.7171630859375;
                 out_r = (((double) opl_buf[c + 1]) * mixer->fm_r) * 0.7171630859375;
+                if (sb->opl_mix && sb->opl_mixer) {
+                    sb->opl_mix(sb->opl_mixer, &out_l, &out_r);
+                }
             }
         }
 
@@ -361,7 +364,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
         out_l = 0.0, out_r = 0.0;
 
         if (sb->dsp.sb_type > SB16)
-            c_emu8k = ((((c / 2) * 44100) / 48000) * 2);
+            c_emu8k = ((((c / 2) * FREQ_44100) / SOUND_FREQ) * 2);
 
         if (sb->opl_enabled) {
             out_l = ((double) opl_buf[c]) * mixer->fm_l * 0.7171630859375;
@@ -430,7 +433,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
         }
 
         if (sb->dsp.sb_enable_i) {
-            c_record = dsp_rec_pos + ((c * sb->dsp.sb_freq) / 48000);
+            c_record = dsp_rec_pos + ((c * sb->dsp.sb_freq) / SOUND_FREQ);
             in_l <<= mixer->input_gain_L;
             in_r <<= mixer->input_gain_R;
 
@@ -2035,37 +2038,37 @@ sb_16_compat_init(const device_t *info)
 }
 
 static int
-sb_awe32_available()
+sb_awe32_available(void)
 {
     return rom_present("roms/sound/awe32.raw");
 }
 
 static int
-sb_32_pnp_available()
+sb_32_pnp_available(void)
 {
     return sb_awe32_available() && rom_present("roms/sound/CT3600 PnP.BIN");
 }
 
 static int
-sb_awe32_pnp_available()
+sb_awe32_pnp_available(void)
 {
     return sb_awe32_available() && rom_present("roms/sound/CT3980 PnP.BIN");
 }
 
 static int
-sb_awe64_value_available()
+sb_awe64_value_available(void)
 {
     return sb_awe32_available() && rom_present("roms/sound/CT4520 PnP.BIN");
 }
 
 static int
-sb_awe64_available()
+sb_awe64_available(void)
 {
     return sb_awe32_available() && rom_present("roms/sound/CT4520 PnP.BIN");
 }
 
 static int
-sb_awe64_gold_available()
+sb_awe64_gold_available(void)
 {
     return sb_awe32_available() && rom_present("roms/sound/CT4540 PnP.BIN");
 }

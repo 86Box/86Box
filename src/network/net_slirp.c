@@ -1,23 +1,23 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Handle SLiRP library processing.
+ *          Handle SLiRP library processing.
  *
- *		Some of the code was borrowed from libvdeslirp
- *		<https://github.com/virtualsquare/libvdeslirp>
+ *          Some of the code was borrowed from libvdeslirp
+ *          <https://github.com/virtualsquare/libvdeslirp>
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		RichardG, <richardg867@gmail.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2020 RichardG.
+ *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2020 RichardG.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -26,7 +26,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 #include <wchar.h>
-#include <slirp/libslirp.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -38,6 +37,10 @@
 #include <86box/ini.h>
 #include <86box/config.h>
 #include <86box/video.h>
+
+#define _SSIZE_T_DEFINED
+#include <slirp/libslirp.h>
+
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
@@ -414,7 +417,7 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
     /* Set up port forwarding. */
     int  udp, external, internal, i = 0;
     char category[32];
-    snprintf(category, sizeof(category), "SLiRP Port Forwarding #%i", card->card_num + 1);
+    snprintf(category, sizeof(category), "SLiRP Port Forwarding #%d", card->card_num + 1);
     char key[20];
     while (1) {
         sprintf(key, "%d_protocol", i);
@@ -490,15 +493,11 @@ const netdrv_t net_slirp_drv = {
 /* Stubs to stand in for the parts of libslirp we skip compiling. */
 void ncsi_input(void *slirp, const uint8_t *pkt, int pkt_len) {}
 void ip6_init(void *slirp) {}
-void ip6_cleanup(void *slirp) {}
-void ip6_input(void *m) {}
-int ip6_output(void *so, void *m, int fast) { return 0; }
 void in6_compute_ethaddr(struct in6_addr ip, uint8_t *eth) {}
 bool in6_equal(const void *a, const void *b) { return 0; }
 const struct in6_addr in6addr_any = { { { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 } } };
 const struct in6_addr in6addr_loopback = { { { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 } } };
-int udp6_output(void *so, void *m, void *saddr, void *daddr) { return 0; }
-void icmp6_send_error(void *m, uint8_t type, uint8_t code) {}
-void ndp_send_ns(void *slirp, struct in6_addr addr) {}
+void ndp_table_add(Slirp *slirp, struct in6_addr ip_addr,
+                   uint8_t ethaddr[6]) {} /* IPv6 */
 bool ndp_table_search(void *slirp, struct in6_addr ip_addr, uint8_t *out_ethaddr) { return 0; }
 void tftp_input(void *srcsas, void *m) {}

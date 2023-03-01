@@ -1,19 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the ALi M1543 Desktop South Bridge.
+ *          Implementation of the ALi M1543 Desktop South Bridge.
  *
  *
  *
- * Authors:	Tiseno100,
+ * Authors: Tiseno100,
  *
- *		Copyright 2021 Tiseno100.
- *
+ *          Copyright 2021 Tiseno100.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -78,6 +77,7 @@ int ali1533_irq_routing[16] = { PCI_IRQ_DISABLED, 9, 3, 10, 4, 5, 7, 6,
 
 #ifdef ENABLE_ALI1543_LOG
 int ali1543_do_log = ENABLE_ALI1543_LOG;
+
 static void
 ali1543_log(const char *fmt, ...)
 {
@@ -254,6 +254,14 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf[addr] = val & 0xcf;
             /* This actually enables/disables the USB *device* rather than the interface itself. */
             dev->usb_dev_enable = !(val & 0x40);
+            if (dev->type == 1) {
+                nvr_at_index_read_handler(0, 0x0070, dev->nvr);
+                nvr_at_index_read_handler(0, 0x0072, dev->nvr);
+                if (val & 0x20) {
+                    nvr_at_index_read_handler(1, 0x0070, dev->nvr);
+                    nvr_at_index_read_handler(1, 0x0072, dev->nvr);
+                }
+            }
             break;
 
         /* Hardware setting status bits, read-only (register 0x54) */
@@ -751,9 +759,15 @@ ali5229_write(int func, int addr, uint8_t val, void *priv)
         /* Bus Mastering Base Address */
         case 0x20:
         case 0x21:
-        case 0x22:
-        case 0x23:
-            dev->ide_conf[addr] = val;
+            /* Datasheet erratum: the PCI BAR's actually have different sizes. */
+            if (addr == 0x20)
+                dev->ide_conf[addr] = (val & 0xe0) | 0x01;
+            else if ((addr & 0x43) == 0x00)
+                dev->ide_conf[addr] = (val & 0xf8) | 0x01;
+            else if ((addr & 0x43) == 0x40)
+                dev->ide_conf[addr] = (val & 0xfc) | 0x01;
+            else
+                dev->ide_conf[addr] = val;
             ali5229_ide_handler(dev);
             break;
 
@@ -1568,7 +1582,7 @@ ali1543_init(const device_t *info)
     dev->offset = (info->local >> 8) & 0x7f;
     if (info->local & 0x8000)
         dev->offset = -dev->offset;
-    pclog("Offset = %i\n", dev->offset);
+    ali1543_log("Offset = %i\n", dev->offset);
 
     pci_enable_mirq(0);
     pci_enable_mirq(1);

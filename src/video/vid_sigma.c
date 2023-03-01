@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Sigma Color 400 emulation.
+ *          Sigma Color 400 emulation.
  *
  *
  *
- * Authors:	John Elliott,
+ * Authors: John Elliott,
  *
- *		Copyright 2018 John Elliott.
+ *          Copyright 2018 John Elliott.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -650,6 +650,8 @@ sigma_poll(void *p)
         for (c = 0; c < x; c++)
             buffer32->line[sigma->displine][c] = sigma->palette[buffer32->line[sigma->displine][c] & 0xf] | 16;
 
+        video_process_8(x, sigma->displine);
+
         sigma->sc = oldsc;
         if (sigma->vc == sigma->crtc[7] && !sigma->sc)
             sigma->sigmastat |= STATUS_RETR_V;
@@ -729,7 +731,7 @@ sigma_poll(void *p)
                             video_force_resize_set(0);
                     }
 
-                    video_blit_memtoscreen_8(0, sigma->firstline - 4, xsize, (sigma->lastline - sigma->firstline) + 8);
+                    video_blit_memtoscreen(0, sigma->firstline - 4, xsize, (sigma->lastline - sigma->firstline) + 8);
                     frames++;
 
                     video_res_x = xsize - 16;
@@ -944,7 +946,7 @@ device_config_t sigma_config[] = {
     {
         .type = CONFIG_END
     }
-// clang-format on
+  // clang-format on
 };
 
 const device_t sigma_device = {

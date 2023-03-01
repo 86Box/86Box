@@ -1,40 +1,38 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * VARCem   Virtual ARchaeological Computer EMulator.
+ *          An emulator of (mostly) x86-based PC systems and devices,
+ *          using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *          spanning the era between 1981 and 1995.
  *
- *		This file is part of the VARCem Project.
- *
- *		Implementation of the Generic ESC/P Dot-Matrix printer.
+ *          Implementation of the Generic ESC/P Dot-Matrix printer.
  *
  *
  *
- * Authors:	Michael Drüing, <michael@drueing.de>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Michael Drüing, <michael@drueing.de>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Based on code by Frederic Weymann (originally for DosBox.)
+ *          Based on code by Frederic Weymann (originally for DosBox.)
  *
- *		Copyright 2018,2019 Michael Drüing.
- *		Copyright 2019,2019 Fred N. van Kempen.
+ *          Copyright 2018-2019 Michael Drüing.
+ *          Copyright 2019      Fred N. van Kempen.
  *
- *		Redistribution and  use  in source  and binary forms, with
- *		or  without modification, are permitted  provided that the
- *		following conditions are met:
+ *          Redistribution and  use  in source  and binary forms, with
+ *          or  without modification, are permitted  provided that the
+ *          following conditions are met:
  *
- *		1. Redistributions of  source  code must retain the entire
- *		   above notice, this list of conditions and the following
- *		   disclaimer.
+ *          1. Redistributions of  source  code must retain the entire
+ *             above notice, this list of conditions and the following
+ *             disclaimer.
  *
- *		2. Redistributions in binary form must reproduce the above
- *		   copyright  notice,  this list  of  conditions  and  the
- *		   following disclaimer in  the documentation and/or other
- *		   materials provided with the distribution.
+ *          2. Redistributions in binary form must reproduce the above
+ *             copyright  notice,  this list  of  conditions  and  the
+ *             following disclaimer in  the documentation and/or other
+ *             materials provided with the distribution.
  *
- *		3. Neither the  name of the copyright holder nor the names
- *		   of  its  contributors may be used to endorse or promote
- *		   products  derived from  this  software without specific
- *		   prior written permission.
+ *          3. Neither the  name of the copyright holder nor the names
+ *             of  its  contributors may be used to endorse or promote
+ *             products  derived from  this  software without specific
+ *             prior written permission.
  *
  * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
  * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
@@ -48,6 +46,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -56,6 +55,7 @@
 #include <math.h>
 #include <ft2build.h>
 #include FT_FREETYPE_H
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/machine.h>
@@ -407,7 +407,7 @@ new_page(escp_t *dev, int8_t save, int8_t resetx)
     dev->curr_y = dev->top_margin;
     if (dev->page) {
         dev->page->dirty = 0;
-        memset(dev->page->pixels, 0x00, dev->page->pitch * dev->page->h);
+        memset(dev->page->pixels, 0x00, (size_t) dev->page->pitch * dev->page->h);
     }
 
     /* Make the page's file name. */
@@ -444,16 +444,16 @@ fill_palette(uint8_t redmax, uint8_t greenmax, uint8_t bluemax, uint8_t colorID,
     uint8_t colormask;
     int     i;
 
-    float red   = (float) redmax / (float) 30.9;
-    float green = (float) greenmax / (float) 30.9;
-    float blue  = (float) bluemax / (float) 30.9;
+    double red   = (double) redmax / (double) 30.9;
+    double green = (double) greenmax / (double) 30.9;
+    double blue  = (double) bluemax / (double) 30.9;
 
     colormask = colorID <<= 5;
 
     for (i = 0; i < 32; i++) {
-        dev->palcol[i + colormask].r = 255 - (uint8_t) floor(red * (float) i);
-        dev->palcol[i + colormask].g = 255 - (uint8_t) floor(green * (float) i);
-        dev->palcol[i + colormask].b = 255 - (uint8_t) floor(blue * (float) i);
+        dev->palcol[i + colormask].r = 255 - (uint8_t) floor(red * (double) i);
+        dev->palcol[i + colormask].g = 255 - (uint8_t) floor(green * (double) i);
+        dev->palcol[i + colormask].b = 255 - (uint8_t) floor(blue * (double) i);
     }
 }
 
@@ -695,8 +695,8 @@ process_char(escp_t *dev, uint8_t ch)
             case 0x5e: // Enable printing of all character codes on next character
             case 0x67: // Select 10.5-point, 15-cpi (ESC g)
 
-            case 0x834: // Select italic font (FS 4)	(= ESC 4)
-            case 0x835: // Cancel italic font (FS 5)	(= ESC 5)
+            case 0x834: // Select italic font (FS 4)    (= ESC 4)
+            case 0x835: // Cancel italic font (FS 5)    (= ESC 5)
             case 0x846: // Select forward feed mode (FS F)
             case 0x852: // Select reverse feed mode (FS R)
                 dev->esc_parms_req = 0;
@@ -733,14 +733,14 @@ process_char(escp_t *dev, uint8_t ch)
             case 0x77:  // Turn double-height printing on/off (ESC w)
             case 0x78:  // Select LQ or draft (ESC x)
             case 0x7e:  // Select/Deselect slash zero (ESC ~)
-            case 0x832: // Select 1/6-inch line spacing (FS 2)	(= ESC 2)
-            case 0x833: // Set n/360-inch line spacing (FS 3)	(= ESC +)
-            case 0x841: // Set n/60-inch line spacing (FS A)	(= ESC A)
-            case 0x843: // Select LQ type style (FS C)	(= ESC k)
+            case 0x832: // Select 1/6-inch line spacing (FS 2)    (= ESC 2)
+            case 0x833: // Set n/360-inch line spacing (FS 3)    (= ESC +)
+            case 0x841: // Set n/60-inch line spacing (FS A)    (= ESC A)
+            case 0x843: // Select LQ type style (FS C)    (= ESC k)
             case 0x845: // Select character width (FS E)
-            case 0x849: // Select character table (FS I)	(= ESC t)
+            case 0x849: // Select character table (FS I)    (= ESC t)
             case 0x853: // Select High Speed/High Density elite pitch (FS S)
-            case 0x856: // Turn double-height printing on/off (FS V)	(= ESC w)
+            case 0x856: // Turn double-height printing on/off (FS V)    (= ESC w)
                 dev->esc_parms_req = 1;
                 break;
 
@@ -1997,7 +1997,7 @@ escp_init(void *lpt)
     if (ft_handle == NULL) {
         ft_handle = dynld_module(fn, ft_imports);
         if (ft_handle == NULL) {
-            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2110, (wchar_t *) IDS_2131);
+            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2111, (wchar_t *) IDS_2132);
             return (NULL);
         }
     }
@@ -2005,7 +2005,7 @@ escp_init(void *lpt)
     /* Initialize FreeType. */
     if (ft_lib == NULL) {
         if (ft_Init_FreeType(&ft_lib)) {
-            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2110, (wchar_t *) IDS_2131);
+            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2111, (wchar_t *) IDS_2132);
             dynld_close(ft_lib);
             ft_lib = NULL;
             return (NULL);
@@ -2043,8 +2043,8 @@ escp_init(void *lpt)
     dev->page->w      = (int) (dev->dpi * dev->page_width);
     dev->page->h      = (int) (dev->dpi * dev->page_height);
     dev->page->pitch  = dev->page->w;
-    dev->page->pixels = (uint8_t *) malloc(dev->page->pitch * dev->page->h);
-    memset(dev->page->pixels, 0x00, dev->page->pitch * dev->page->h);
+    dev->page->pixels = (uint8_t *) malloc((size_t) dev->page->pitch * dev->page->h);
+    memset(dev->page->pixels, 0x00, (size_t) dev->page->pitch * dev->page->h);
 
     /* Initialize parameters. */
     for (i = 0; i < 32; i++) {

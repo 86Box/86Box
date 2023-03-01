@@ -1,19 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		3DFX Voodoo emulation.
+ *          3DFX Voodoo emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *
- *		Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2008-2020 Sarah Walker.
  */
+#include <assert.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -21,6 +23,7 @@
 #include <stddef.h>
 #include <wchar.h>
 #include <math.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/machine.h>
@@ -371,8 +374,9 @@ voodoo_filterline_v1(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
     int x;
 
     // Scratchpad for avoiding feedback streaks
-    uint8_t *fil3 = malloc((voodoo->h_disp) * 3);
+    uint8_t fil3[4096 * 3];
 
+    assert(voodoo->h_disp <= 4096);
     /* 16 to 32-bit */
     for (x = 0; x < column; x++) {
         fil[x * 3]     = ((src[x] & 31) << 3);
@@ -420,8 +424,6 @@ voodoo_filterline_v1(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
         fil[(x) *3 + 1] = voodoo->thefilterg[fil3[x * 3 + 1]][fil3[(x + 1) * 3 + 1]];
         fil[(x) *3 + 2] = voodoo->thefilter[fil3[x * 3 + 2]][fil3[(x + 1) * 3 + 2]];
     }
-
-    free(fil3);
 }
 
 static void
@@ -430,8 +432,9 @@ voodoo_filterline_v2(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
     int x;
 
     // Scratchpad for blending filter
-    uint8_t *fil3 = malloc((voodoo->h_disp) * 3);
+    uint8_t fil3[4096 * 3];
 
+    assert(voodoo->h_disp <= 4096);
     /* 16 to 32-bit */
     for (x = 0; x < column; x++) {
         // Blank scratchpads
@@ -485,14 +488,13 @@ voodoo_filterline_v2(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
     fil3[(column - 1) * 3]     = voodoo->thefilterb[fil[(column - 1) * 3]][((src[column] & 31) << 3)];
     fil3[(column - 1) * 3 + 1] = voodoo->thefilterg[fil[(column - 1) * 3 + 1]][(((src[column] >> 5) & 63) << 2)];
     fil3[(column - 1) * 3 + 2] = voodoo->thefilter[fil[(column - 1) * 3 + 2]][(((src[column] >> 11) & 31) << 3)];
-
-    free(fil3);
 }
 
 void
 voodoo_callback(void *p)
 {
-    voodoo_t *voodoo = (voodoo_t *) p;
+    voodoo_t  *voodoo  = (voodoo_t *) p;
+    monitor_t *monitor = &monitors[voodoo->monitor_index];
 
     if (voodoo->fbiInit0 & FBIINIT0_VGA_PASS) {
         if (voodoo->line < voodoo->v_disp) {
@@ -516,7 +518,7 @@ voodoo_callback(void *p)
             }
 
             if (draw_voodoo->dirty_line[draw_line]) {
-                uint32_t *p   = &buffer32->line[voodoo->line + 8][8];
+                uint32_t *p   = &monitor->target_buffer->line[voodoo->line + 8][8];
                 uint16_t *src = (uint16_t *) &draw_voodoo->fb_mem[draw_voodoo->front_offset + draw_line * draw_voodoo->row_width];
                 int       x;
 
@@ -524,18 +526,19 @@ voodoo_callback(void *p)
 
                 if (voodoo->line < voodoo->dirty_line_low) {
                     voodoo->dirty_line_low = voodoo->line;
-                    video_wait_for_buffer();
+                    video_wait_for_buffer_monitor(voodoo->monitor_index);
                 }
                 if (voodoo->line > voodoo->dirty_line_high)
                     voodoo->dirty_line_high = voodoo->line;
 
                 /* Draw left overscan. */
                 for (x = 0; x < 8; x++)
-                    buffer32->line[voodoo->line + 8][x] = 0x00000000;
+                    monitor->target_buffer->line[voodoo->line + 8][x] = 0x00000000;
 
                 if (voodoo->scrfilter && voodoo->scrfilterEnabled) {
-                    uint8_t *fil = malloc((voodoo->h_disp) * 3); /* interleaved 24-bit RGB */
+                    uint8_t fil[4096 * 3]; /* interleaved 24-bit RGB */
 
+                    assert(voodoo->h_disp <= 4096);
                     if (voodoo->type == VOODOO_2)
                         voodoo_filterline_v2(voodoo, fil, voodoo->h_disp, src, voodoo->line);
                     else
@@ -544,8 +547,6 @@ voodoo_callback(void *p)
                     for (x = 0; x < voodoo->h_disp; x++) {
                         p[x] = (voodoo->clutData256[fil[x * 3]].b << 0 | voodoo->clutData256[fil[x * 3 + 1]].g << 8 | voodoo->clutData256[fil[x * 3 + 2]].r << 16);
                     }
-
-                    free(fil);
                 } else {
                     for (x = 0; x < voodoo->h_disp; x++) {
                         p[x] = draw_voodoo->video_16to32[src[x]];
@@ -554,7 +555,7 @@ voodoo_callback(void *p)
 
                 /* Draw right overscan. */
                 for (x = 0; x < 8; x++)
-                    buffer32->line[voodoo->line + 8][voodoo->h_disp + x + 8] = 0x00000000;
+                    monitor->target_buffer->line[voodoo->line + 8][voodoo->h_disp + x + 8] = 0x00000000;
             }
         }
     }

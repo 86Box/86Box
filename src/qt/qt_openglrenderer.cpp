@@ -1,17 +1,18 @@
 /*
- * 86Box A hypervisor and IBM PC system emulator that specializes in
- *      running old operating systems and software designed for IBM
- *      PC systems and compatibles from 1981 through fairly recent
- *      system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *      This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *      OpenGL renderer for Qt
+ *          OpenGL renderer for Qt
  *
- * Authors:
- *      Teemu Korhonen
  *
- *      Copyright 2022 Teemu Korhonen
+ *
+ * Authors: Teemu Korhonen
+ *
+ *          Copyright 2022 Teemu Korhonen
  */
 
 #include <QCoreApplication>
@@ -27,11 +28,11 @@
 #include "qt_openglrenderer.hpp"
 
 #ifndef GL_MAP_PERSISTENT_BIT
-#define GL_MAP_PERSISTENT_BIT 0x0040
+#    define GL_MAP_PERSISTENT_BIT 0x0040
 #endif
 
 #ifndef GL_MAP_COHERENT_BIT
-#define GL_MAP_COHERENT_BIT 0x0080
+#    define GL_MAP_COHERENT_BIT 0x0080
 #endif
 
 OpenGLRenderer::OpenGLRenderer(QWidget *parent)
@@ -194,6 +195,9 @@ OpenGLRenderer::initialize()
 
         emit initialized();
 
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        context->swapBuffers(this);
     } catch (const opengl_init_error &e) {
         /* Mark all buffers as in use */
         for (auto &flag : buf_usage)
@@ -318,7 +322,10 @@ OpenGLRenderer::applyOptions()
 void
 OpenGLRenderer::reloadOptions()
 {
-    if (options) { delete options; options = nullptr; }
+    if (options) {
+        delete options;
+        options = nullptr;
+    }
     options = new OpenGLOptions(this, true, glslVersion);
 
     applyOptions();

@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the OPL interface.
+ *          Definitions for the OPL interface.
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2017-2020 Fred N. van Kempen.
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #ifndef SOUND_OPL_H
 #define SOUND_OPL_H
@@ -21,6 +21,7 @@ enum fm_type {
     FM_YM3812 = 0,
     FM_YMF262,
     FM_YMF289B,
+    FM_YMF278B,
     FM_MAX
 };
 
@@ -51,6 +52,7 @@ extern const device_t ymf262_nuked_device;
 extern const device_t ym3812_ymfm_device;
 extern const device_t ymf262_ymfm_device;
 extern const device_t ymf289b_ymfm_device;
+extern const device_t ymf278b_ymfm_device;
 #endif
 
 #endif /*SOUND_OPL_H*/

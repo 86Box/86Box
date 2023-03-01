@@ -1,17 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implement the application's icon changing system.
+ *          Implement the application's icon changing system.
  *
  *
- * Authors:	Laci bá'
  *
- *		Copyright 2021 Laci bá'.
+ * Authors: Laci bá'
+ *
+ *          Copyright 2021 Laci bá'.
  */
 
 #include <windows.h>
@@ -32,7 +33,7 @@ HICON hIcon[256];         /* icon data loaded from resources */
 char  icon_set[256] = ""; /* name of the iconset to be used */
 
 void
-win_clear_icon_set()
+win_clear_icon_set(void)
 {
     int i;
 
@@ -44,7 +45,7 @@ win_clear_icon_set()
 }
 
 void
-win_system_icon_set()
+win_system_icon_set(void)
 {
     int i, x = win_get_system_metrics(SM_CXSMICON, dpi), y = win_get_system_metrics(SM_CYSMICON, dpi);
 
@@ -125,7 +126,7 @@ win_get_icons_path(char *path_root)
 }
 
 void
-win_load_icon_set()
+win_load_icon_set(void)
 {
     win_clear_icon_set();
     win_system_icon_set();

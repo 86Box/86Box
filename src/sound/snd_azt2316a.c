@@ -1214,6 +1214,7 @@ azt_close(void *p)
 
     sb_close(azt2316a->sb);
 
+    free(azt2316a->mpu);
     free(azt2316a);
 }
 
@@ -1488,7 +1489,7 @@ static const device_config_t azt2316a_config[] = {
         .default_int = 0
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t azt2316a_device = {

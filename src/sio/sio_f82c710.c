@@ -1,28 +1,30 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Chips & Technologies F82C710 Universal Peripheral
- *		Controller (UPC) and 82C606 CHIPSpak Multifunction Controller.
+ *          Implementation of the Chips & Technologies F82C710 Universal Peripheral
+ *          Controller (UPC) and 82C606 CHIPSpak Multifunction Controller.
  *
- *		Relevant literature:
+ * Relevant literature:
  *
- *		[1] Chips and Technologies, Inc.,
- *		    82C605/82C606 CHIPSpak/CHIPSport MULTIFUNCTION CONTROLLERS,
- *		    PRELIMINARY Data Sheet, Revision 1, May 1987.
- *		    <https://archive.org/download/82C606/82C606.pdf>
+ *          [1] Chips and Technologies, Inc.,
+ *              82C605/82C606 CHIPSpak/CHIPSport MULTIFUNCTION CONTROLLERS,
+ *              PRELIMINARY Data Sheet, Revision 1, May 1987.
+ *              <https://archive.org/download/82C606/82C606.pdf>
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Eluan Costa Miranda <eluancm@gmail.com>
- *		Lubomir Rintel <lkundrak@v3.sk>
  *
- *		Copyright 2020 Sarah Walker.
- *		Copyright 2020 Eluan Costa Miranda.
- *		Copyright 2021 Lubomir Rintel.
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Eluan Costa Miranda <eluancm@gmail.com>
+ *          Lubomir Rintel <lkundrak@v3.sk>
+ *
+ *          Copyright 2020 Sarah Walker.
+ *          Copyright 2020 Eluan Costa Miranda.
+ *          Copyright 2021 Lubomir Rintel.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -59,6 +61,24 @@ typedef struct upc_t {
     void     *gameport;
     serial_t *uart[2];
 } upc_t;
+
+#ifdef ENABLE_F82C710_LOG
+int f82c710_do_log = ENABLE_F82C710_LOG;
+
+static void
+f82c710_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (f82c710_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define f82c710_log(fmt, ...)
+#endif
 
 static void
 f82c710_update_ports(upc_t *dev, int set)
@@ -171,28 +191,28 @@ f82c606_update_ports(upc_t *dev, int set)
 
     if (dev->regs[0] & 1) {
         gameport_remap(dev->gameport, ((uint16_t) dev->regs[7]) << 2);
-        pclog("Game port at %04X\n", ((uint16_t) dev->regs[7]) << 2);
+        f82c710_log("Game port at %04X\n", ((uint16_t) dev->regs[7]) << 2);
     }
 
     if (dev->regs[0] & 2) {
         serial_setup(dev->uart[0], ((uint16_t) dev->regs[4]) << 2, uart1_int);
-        pclog("UART 1 at %04X, IRQ %i\n", ((uint16_t) dev->regs[4]) << 2, uart1_int);
+        f82c710_log("UART 1 at %04X, IRQ %i\n", ((uint16_t) dev->regs[4]) << 2, uart1_int);
     }
 
     if (dev->regs[0] & 4) {
         serial_setup(dev->uart[1], ((uint16_t) dev->regs[5]) << 2, uart2_int);
-        pclog("UART 2 at %04X, IRQ %i\n", ((uint16_t) dev->regs[5]) << 2, uart2_int);
+        f82c710_log("UART 2 at %04X, IRQ %i\n", ((uint16_t) dev->regs[5]) << 2, uart2_int);
     }
 
     if (dev->regs[0] & 8) {
         lpt1_init(((uint16_t) dev->regs[6]) << 2);
         lpt1_irq(lpt1_int);
-        pclog("LPT1 at %04X, IRQ %i\n", ((uint16_t) dev->regs[6]) << 2, lpt1_int);
+        f82c710_log("LPT1 at %04X, IRQ %i\n", ((uint16_t) dev->regs[6]) << 2, lpt1_int);
     }
 
     nvr_at_handler(1, ((uint16_t) dev->regs[3]) << 2, dev->nvr);
     nvr_irq_set(nvr_int, dev->nvr);
-    pclog("RTC at %04X, IRQ %i\n", ((uint16_t) dev->regs[3]) << 2, nvr_int);
+    f82c710_log("RTC at %04X, IRQ %i\n", ((uint16_t) dev->regs[3]) << 2, nvr_int);
 }
 
 static uint8_t

@@ -44,7 +44,7 @@ static dllimp_t xaudio2_imports[] = {
 #    define XAudio2Create pXAudio2Create
 #endif
 
-static int                     midi_freq     = 44100;
+static int                     midi_freq     = FREQ_44100;
 static int                     midi_buf_size = 4410;
 static int                     initialized   = 0;
 static IXAudio2               *xaudio2       = NULL;
@@ -53,7 +53,7 @@ static IXAudio2SourceVoice    *srcvoice      = NULL;
 static IXAudio2SourceVoice    *srcvoicemidi  = NULL;
 static IXAudio2SourceVoice    *srcvoicecd    = NULL;
 
-#define FREQ   48000
+#define FREQ   SOUND_FREQ
 #define BUFLEN SOUNDBUFLEN
 
 static void WINAPI
@@ -107,7 +107,7 @@ static IXAudio2VoiceCallback callbacks = { &callbacksVtbl };
 #endif
 
 void
-inital()
+inital(void)
 {
 #if defined(_WIN32) && !defined(USE_FAUDIO)
     if (xaudio2_handle == NULL) {
@@ -182,7 +182,7 @@ inital()
 }
 
 void
-closeal()
+closeal(void)
 {
     if (!initialized)
         return;

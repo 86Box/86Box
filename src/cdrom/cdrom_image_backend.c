@@ -9,6 +9,8 @@
  *          CD-ROM image file handling module, translated to C from
  *          cdrom_dosbox.cpp.
  *
+ *
+ *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          The DOSBox Team, <unknown>
@@ -133,7 +135,7 @@ static track_file_t *
 bin_init(const char *filename, int *error)
 {
     track_file_t *tf = (track_file_t *) malloc(sizeof(track_file_t));
-    struct stat stats;
+    struct stat   stats;
 
     if (tf == NULL) {
         *error = 1;

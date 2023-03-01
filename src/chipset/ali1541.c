@@ -1,16 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the ALi M1541/2 CPU-to-PCI Bridge.
+ *          Implementation of the ALi M1541/2 CPU-to-PCI Bridge.
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2021 Miran Grca.
+ *
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2021 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -40,6 +42,7 @@ typedef struct ali1541_t {
 
 #ifdef ENABLE_ALI1541_LOG
 int ali1541_do_log = ENABLE_ALI1541_LOG;
+
 static void
 ali1541_log(const char *fmt, ...)
 {

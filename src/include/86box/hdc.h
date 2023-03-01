@@ -1,20 +1,20 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the common disk controller handler.
+ *          Definitions for the common disk controller handler.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2016-2020 Miran Grca.
- *		Copyright 2017-2020 Fred N. van Kempen.
+ *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2017-2020 Fred N. van Kempen.
  */
 #ifndef EMU_HDC_H
 #define EMU_HDC_H
@@ -28,18 +28,26 @@
                       * least 7 devices, with each device being  \
                       * able to support 8 units, but hey... */
 
+/* Controller types. */
+#define HDC_NONE     0
+#define HDC_INTERNAL 1
+
 extern int hdc_current;
 
-extern const device_t st506_xt_xebec_device;       /* st506_xt_xebec */
-extern const device_t st506_xt_dtc5150x_device;    /* st506_xt_dtc */
-extern const device_t st506_xt_st11_m_device;      /* st506_xt_st11_m */
-extern const device_t st506_xt_st11_r_device;      /* st506_xt_st11_m */
-extern const device_t st506_xt_wd1002a_wx1_device; /* st506_xt_wd1002a_wx1 */
-extern const device_t st506_xt_wd1002a_27x_device; /* st506_xt_wd1002a_27x */
-extern const device_t st506_at_wd1003_device;      /* st506_at_wd1003 */
-extern const device_t st506_xt_wd1004a_wx1_device; /* st506_xt_wd1004a_wx1 */
-extern const device_t st506_xt_wd1004_27x_device;  /* st506_xt_wd1004_27x */
-extern const device_t st506_xt_wd1004a_27x_device; /* st506_xt_wd1004a_27x */
+extern const device_t st506_xt_xebec_device;              /* st506_xt_xebec */
+extern const device_t st506_xt_wdxt_gen_device;           /* st506_xt_wdxt_gen */
+extern const device_t st506_xt_dtc5150x_device;           /* st506_xt_dtc */
+extern const device_t st506_xt_st11_m_device;             /* st506_xt_st11_m */
+extern const device_t st506_xt_st11_r_device;             /* st506_xt_st11_m */
+extern const device_t st506_xt_wd1002a_wx1_device;        /* st506_xt_wd1002a_wx1 */
+extern const device_t st506_xt_wd1002a_wx1_nobios_device; /* st506_xt_wd1002a_wx1 */
+extern const device_t st506_xt_wd1002a_27x_device;        /* st506_xt_wd1002a_27x */
+extern const device_t st506_at_wd1003_device;             /* st506_at_wd1003 */
+extern const device_t st506_xt_wd1004a_wx1_device;        /* st506_xt_wd1004a_wx1 */
+extern const device_t st506_xt_wd1004_27x_device;         /* st506_xt_wd1004_27x */
+extern const device_t st506_xt_wd1004a_27x_device;        /* st506_xt_wd1004a_27x */
+extern const device_t st506_xt_victor_v86p_device;        /* st506_xt_victor_v86p */
+extern const device_t st506_xt_toshiba_t1200_device;      /* st506_xt_toshiba_t1200 */
 
 extern const device_t esdi_at_wd1007vse1_device; /* esdi_at */
 extern const device_t esdi_ps2_device;           /* esdi_mca */
@@ -72,6 +80,7 @@ extern const device_t xta_wdxt150_device; /* xta_wdxt150 */
 extern const device_t xta_hd20_device;    /* EuroPC internal */
 
 extern const device_t xtide_device;           /* xtide_xt */
+extern const device_t xtide_plus_device;      /* xtide_xt_plus */
 extern const device_t xtide_at_device;        /* xtide_at */
 extern const device_t xtide_at_386_device;    /* xtide_at_386 */
 extern const device_t xtide_acculogic_device; /* xtide_ps2 */

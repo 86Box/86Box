@@ -1,45 +1,45 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Emulation of the Amstrad series of PC's: PC1512, PC1640 and
- *		PC200, including their keyboard, mouse and video devices, as
- *		well as the PC2086 and PC3086 systems.
+ *          Emulation of the Amstrad series of PC's: PC1512, PC1640 and
+ *          PC200, including their keyboard, mouse and video devices, as
+ *          well as the PC2086 and PC3086 systems.
  *
- * PC1512:	The PC1512 extends CGA with a bit-planar 640x200x16 mode.
- *		Most CRTC registers are fixed.
+ * PC1512:  The PC1512 extends CGA with a bit-planar 640x200x16 mode.
+ *          Most CRTC registers are fixed.
  *
- *		The Technical Reference Manual lists the video waitstate
- *		time as between 12 and 46 cycles. We currently always use
- *		the lower number.
+ *          The Technical Reference Manual lists the video waitstate
+ *          time as between 12 and 46 cycles. We currently always use
+ *          the lower number.
  *
- * PC1640:	Mostly standard EGA, but with CGA & Hercules emulation.
+ * PC1640:  Mostly standard EGA, but with CGA & Hercules emulation.
  *
- * PC200:	CGA with some NMI stuff. But we don't need that as it's only
- *		used for TV and LCD displays, and we're emulating a CRT.
+ * PC200:  CGA with some NMI stuff. But we don't need that as it's only
+ *         used for TV and LCD displays, and we're emulating a CRT.
  *
- * PPC512/640:	Portable with both CGA-compatible and MDA-compatible monitors.
+ * PPC512/640: Portable with both CGA-compatible and MDA-compatible monitors.
  *
- * TODO:	This module is not complete yet:
+ * TODO:   This module is not complete yet:
  *
- * All models:	The internal mouse controller does not work correctly with
- *		version 7.04 of the mouse driver.
+ * All models: The internal mouse controller does not work correctly with
+ *             version 7.04 of the mouse driver.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
- *		John Elliott, <jce@seasip.info>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          John Elliott, <jce@seasip.info>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van Kempen.
- *		Copyright 2019 John Elliott.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2019 John Elliott.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -162,10 +162,10 @@ static uint8_t key_queue[16];
 static int     key_queue_start = 0,
            key_queue_end       = 0;
 static uint8_t crtc_mask[32]   = {
-      0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f,
-      0xf3, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff,
-      0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-      0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f,
+    0xf3, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff,
+    0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
 static video_timings_t timing_pc1512 = { VIDEO_BUS, 0, 0, 0, 0, 0, 0 }; /*PC1512 video code handles waitstates itself*/
@@ -469,6 +469,14 @@ vid_poll_1512(void *priv)
             }
         }
 
+        if (vid->cgamode & 1)
+            x = (vid->crtc[1] << 3) + 16;
+        else
+            x = (vid->crtc[1] << 4) + 16;
+
+        video_process_8(x, vid->displine << 1);
+        video_process_8(x, (vid->displine << 1) + 1);
+
         vid->sc = oldsc;
         if (vid->vsynctime)
             vid->stat |= 8;
@@ -548,11 +556,11 @@ vid_poll_1512(void *priv)
                     }
 
                     if (enable_overscan) {
-                        video_blit_memtoscreen_8(0, (vid->firstline - 4) << 1,
-                                                 xsize, ((vid->lastline - vid->firstline) + 8) << 1);
+                        video_blit_memtoscreen(0, (vid->firstline - 4) << 1,
+                                               xsize, ((vid->lastline - vid->firstline) + 8) << 1);
                     } else {
-                        video_blit_memtoscreen_8(8, vid->firstline << 1,
-                                                 xsize, (vid->lastline - vid->firstline) << 1);
+                        video_blit_memtoscreen(8, vid->firstline << 1,
+                                               xsize, (vid->lastline - vid->firstline) << 1);
                     }
                 }
 
@@ -927,45 +935,45 @@ vid_speed_changed_200(void *priv)
  */
 static unsigned char mapping1[256] = {
     // clang-format off
-/*	0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
-/*00*/	0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-/*10*/	2, 0, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1,
-/*20*/	2, 2, 0, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1,
-/*30*/	2, 2, 2, 0, 2, 2, 1, 1, 2, 2, 2, 1, 2, 2, 1, 1,
-/*40*/	2, 2, 1, 1, 0, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1,
-/*50*/	2, 2, 1, 1, 2, 0, 1, 1, 2, 2, 1, 1, 2, 1, 1, 1,
-/*60*/	2, 2, 2, 2, 2, 2, 0, 1, 2, 2, 2, 2, 2, 2, 1, 1,
-/*70*/	2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 1,
-/*80*/	2, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
-/*90*/	2, 2, 1, 1, 1, 1, 1, 1, 2, 0, 1, 1, 1, 1, 1, 1,
-/*A0*/	2, 2, 2, 1, 2, 2, 1, 1, 2, 2, 0, 1, 2, 2, 1, 1,
-/*B0*/	2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 0, 2, 2, 1, 1,
-/*C0*/	2, 2, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 0, 1, 1, 1,
-/*D0*/	2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 0, 1, 1,
-/*E0*/	2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 0, 1,
-/*F0*/	2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0,
+/*      0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
+/*00*/  0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+/*10*/  2, 0, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 1,
+/*20*/  2, 2, 0, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1,
+/*30*/  2, 2, 2, 0, 2, 2, 1, 1, 2, 2, 2, 1, 2, 2, 1, 1,
+/*40*/  2, 2, 1, 1, 0, 1, 1, 1, 2, 2, 1, 1, 1, 1, 1, 1,
+/*50*/  2, 2, 1, 1, 2, 0, 1, 1, 2, 2, 1, 1, 2, 1, 1, 1,
+/*60*/  2, 2, 2, 2, 2, 2, 0, 1, 2, 2, 2, 2, 2, 2, 1, 1,
+/*70*/  2, 2, 2, 2, 2, 2, 2, 0, 2, 2, 2, 2, 2, 2, 2, 1,
+/*80*/  2, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
+/*90*/  2, 2, 1, 1, 1, 1, 1, 1, 2, 0, 1, 1, 1, 1, 1, 1,
+/*A0*/  2, 2, 2, 1, 2, 2, 1, 1, 2, 2, 0, 1, 2, 2, 1, 1,
+/*B0*/  2, 2, 2, 2, 2, 2, 1, 1, 2, 2, 2, 0, 2, 2, 1, 1,
+/*C0*/  2, 2, 1, 1, 2, 1, 1, 1, 2, 2, 1, 1, 0, 1, 1, 1,
+/*D0*/  2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 0, 1, 1,
+/*E0*/  2, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 0, 1,
+/*F0*/  2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0,
     // clang-format on
 };
 
 static unsigned char mapping2[256] = {
     // clang-format off
-/*	0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
-/*00*/	0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
-/*10*/	1, 3, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2,
-/*20*/	1, 1, 3, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2,
-/*30*/	1, 1, 1, 3, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 2, 2,
-/*40*/	1, 1, 2, 2, 3, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2,
-/*50*/	1, 1, 2, 2, 1, 3, 2, 2, 1, 1, 2, 2, 1, 2, 2, 2,
-/*60*/	1, 1, 1, 1, 1, 1, 3, 2, 1, 1, 1, 1, 1, 1, 2, 2,
-/*70*/	1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 2,
-/*80*/	2, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
-/*90*/	1, 1, 2, 2, 2, 2, 2, 2, 1, 3, 2, 2, 2, 2, 2, 2,
-/*A0*/	1, 1, 1, 2, 1, 1, 2, 2, 1, 1, 3, 2, 1, 1, 2, 2,
-/*B0*/	1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 3, 1, 1, 2, 2,
-/*C0*/	1, 1, 2, 2, 1, 2, 2, 2, 1, 1, 2, 2, 3, 2, 2, 2,
-/*D0*/	1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 3, 2, 2,
-/*E0*/	1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 3, 2,
-/*F0*/	1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3,
+/*      0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F */
+/*00*/  0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+/*10*/  1, 3, 2, 2, 2, 2, 2, 2, 1, 2, 2, 2, 2, 2, 2, 2,
+/*20*/  1, 1, 3, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2,
+/*30*/  1, 1, 1, 3, 1, 1, 2, 2, 1, 1, 1, 2, 1, 1, 2, 2,
+/*40*/  1, 1, 2, 2, 3, 2, 2, 2, 1, 1, 2, 2, 2, 2, 2, 2,
+/*50*/  1, 1, 2, 2, 1, 3, 2, 2, 1, 1, 2, 2, 1, 2, 2, 2,
+/*60*/  1, 1, 1, 1, 1, 1, 3, 2, 1, 1, 1, 1, 1, 1, 2, 2,
+/*70*/  1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 2,
+/*80*/  2, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1,
+/*90*/  1, 1, 2, 2, 2, 2, 2, 2, 1, 3, 2, 2, 2, 2, 2, 2,
+/*A0*/  1, 1, 1, 2, 1, 1, 2, 2, 1, 1, 3, 2, 1, 1, 2, 2,
+/*B0*/  1, 1, 1, 1, 1, 1, 2, 2, 1, 1, 1, 3, 1, 1, 2, 2,
+/*C0*/  1, 1, 2, 2, 1, 2, 2, 2, 1, 1, 2, 2, 3, 2, 2, 2,
+/*D0*/  1, 1, 2, 2, 1, 1, 2, 2, 1, 1, 2, 2, 1, 3, 2, 2,
+/*E0*/  1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 3, 2,
+/*F0*/  1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3,
     // clang-format on
 };
 
@@ -1046,7 +1054,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
     uint8_t   old;
 
     switch (addr) {
-            /* 	MDA writes ============================================================== */
+        /* MDA writes ============================================================== */
         case 0x3b1:
         case 0x3b3:
         case 0x3b5:
@@ -1079,7 +1087,7 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
                 nmi_raise();
             return;
 
-            /* 	CGA writes ============================================================== */
+        /* CGA writes ============================================================== */
         case 0x03d1:
         case 0x03d3:
         case 0x03d5:
@@ -1114,12 +1122,12 @@ vid_out_200(uint16_t addr, uint8_t val, void *priv)
                 set_lcd_cols(val);
             return;
 
-            /* 	PC200 control port writes ============================================== */
+        /* PC200 control port writes ============================================== */
         case 0x03de:
             vid->crtc_index = 0x1f;
-            /* 	NMI only seems to be triggered if the value being written has the high
-             * 	bit set (enable NMI). So it only protects writes to this port if you
-             * 	let it? */
+            /* NMI only seems to be triggered if the value being written has the high
+             * bit set (enable NMI). So it only protects writes to this port if you
+             * let it? */
             if (val & 0x80) {
                 vid->operation_ctrl = val;
                 vid->crtc_index |= 0x40;
@@ -2024,14 +2032,14 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
             /*
              * PortB - System Control.
              *
-             *  7	Enable Status-1/Disable Keyboard Code on Port A.
-             *  6	Enable incoming Keyboard Clock.
-             *  5	Prevent external parity errors from causing NMI.
-             *  4	Disable parity checking of on-board system Ram.
-             *  3	Undefined (Not Connected).
-             *  2	Enable Port C LSB / Disable MSB. (See 1.8.3)
-             *  1	Speaker Drive.
-             *  0	8253 GATE 2 (Speaker Modulate).
+             *  7   Enable Status-1/Disable Keyboard Code on Port A.
+             *  6   Enable incoming Keyboard Clock.
+             *  5   Prevent external parity errors from causing NMI.
+             *  4   Disable parity checking of on-board system Ram.
+             *  3   Undefined (Not Connected).
+             *  2   Enable Port C LSB / Disable MSB. (See 1.8.3)
+             *  1   Speaker Drive.
+             *  0   8253 GATE 2 (Speaker Modulate).
              *
              * This register is controlled by BIOS and/or ROS.
              */
@@ -2089,14 +2097,14 @@ kbd_read(uint16_t port, void *priv)
                 /*
                  * PortA - System Status 1
                  *
-                 *  7	Always 0			    (KBD7)
-                 *  6	Second Floppy disk drive installed  (KBD6)
-                 *  5	DDM1 - Default Display Mode bit 1   (KBD5)
-                 *  4	DDM0 - Default Display Mode bit 0   (KBD4)
-                 *  3	Always 1			    (KBD3)
-                 *  2	Always 1			    (KBD2)
-                 *  1	8087 NDP installed		    (KBD1)
-                 *  0	Always 1			    (KBD0)
+                 *  7   Always 0                            (KBD7)
+                 *  6   Second Floppy disk drive installed  (KBD6)
+                 *  5   DDM1 - Default Display Mode bit 1   (KBD5)
+                 *  4   DDM0 - Default Display Mode bit 0   (KBD4)
+                 *  3   Always 1                            (KBD3)
+                 *  2   Always 1                            (KBD2)
+                 *  1   8087 NDP installed                  (KBD1)
+                 *  0   Always 1                            (KBD0)
                  *
                  * DDM00
                  *    00 unknown, external color?
@@ -2129,27 +2137,27 @@ kbd_read(uint16_t port, void *priv)
             /*
              * PortC - System Status 2.
              *
-             *  7	On-board system RAM parity error.
-             *  6	External parity error (I/OCHCK from expansion bus).
-             *  5	8253 PIT OUT2 output.
-             *  4 	Undefined (Not Connected).
+             *  7   On-board system RAM parity error.
+             *  6   External parity error (I/OCHCK from expansion bus).
+             *  5   8253 PIT OUT2 output.
+             *  4    Undefined (Not Connected).
              *-------------------------------------------
-             *	LSB 	MSB (depends on PB2)
+             *  LSB     MSB (depends on PB2)
              *-------------------------------------------
-             *  3	RAM3	Undefined
-             *  2	RAM2	Undefined
-             *  1	RAM1	Undefined
-             *  0	RAM0	RAM4
+             *  3   RAM3    Undefined
+             *  2   RAM2    Undefined
+             *  1   RAM1    Undefined
+             *  0   RAM0    RAM4
              *
              * PC7 is forced to 0 when on-board system RAM parity
              * checking is disabled by PB4.
              *
              * RAM4:0
-             * 01110	512K bytes on-board.
-             * 01111	544K bytes (32K external).
-             * 10000	576K bytes (64K external).
-             * 10001	608K bytes (96K external).
-             * 10010	640K bytes (128K external or fitted on-board).
+             * 01110    512K bytes on-board.
+             * 01111    544K bytes (32K external).
+             * 10000    576K bytes (64K external).
+             * 10001    608K bytes (96K external).
+             * 10010    640K bytes (128K external or fitted on-board).
              */
             if (ams->pb & 0x04)
                 ret = ams->stat2 & 0x0f;
@@ -2218,14 +2226,14 @@ ams_read(uint16_t port, void *priv)
 
         case 0x0379: /* printer control, also set LK1-3.
                       * per John Elliott's site, this is xor'ed with 0x07
-                      *   7	English Language.
-                      *   6	German Language.
-                      *   5	French Language.
-                      *   4	Spanish Language.
-                      *   3	Danish Language.
-                      *   2	Swedish Language.
-                      *   1	Italian Language.
-                      *   0	Diagnostic Mode.
+                      *   7 English Language.
+                      *   6 German Language.
+                      *   5 French Language.
+                      *   4 Spanish Language.
+                      *   3 Danish Language.
+                      *   2 Swedish Language.
+                      *   1 Italian Language.
+                      *   0 Diagnostic Mode.
                       */
             ret = (lpt_read(port, &lpt_ports[0]) & 0xf8) | ams->language;
             break;
@@ -2285,6 +2293,138 @@ ams_read(uint16_t port, void *priv)
     return (ret);
 }
 
+static const scancode scancode_pc200[512] = {
+  // clang-format off
+    { {          0},{               0} }, { {     0x01,0},{          0x81,0} }, { {     0x02,0},{          0x82,0} }, { {     0x03,0},{          0x83,0} },        /*000*/
+    { {     0x04,0},{          0x84,0} }, { {     0x05,0},{          0x85,0} }, { {     0x06,0},{          0x86,0} }, { {     0x07,0},{          0x87,0} },        /*004*/
+    { {     0x08,0},{          0x88,0} }, { {     0x09,0},{          0x89,0} }, { {     0x0a,0},{          0x8a,0} }, { {     0x0b,0},{          0x8b,0} },        /*008*/
+    { {     0x0c,0},{          0x8c,0} }, { {     0x0d,0},{          0x8d,0} }, { {     0x0e,0},{          0x8e,0} }, { {     0x0f,0},{          0x8f,0} },        /*00c*/
+    { {     0x10,0},{          0x90,0} }, { {     0x11,0},{          0x91,0} }, { {     0x12,0},{          0x92,0} }, { {     0x13,0},{          0x93,0} },        /*010*/
+    { {     0x14,0},{          0x94,0} }, { {     0x15,0},{          0x95,0} }, { {     0x16,0},{          0x96,0} }, { {     0x17,0},{          0x97,0} },        /*014*/
+    { {     0x18,0},{          0x98,0} }, { {     0x19,0},{          0x99,0} }, { {     0x1a,0},{          0x9a,0} }, { {     0x1b,0},{          0x9b,0} },        /*018*/
+    { {     0x1c,0},{          0x9c,0} }, { {     0x1d,0},{          0x9d,0} }, { {     0x1e,0},{          0x9e,0} }, { {     0x1f,0},{          0x9f,0} },        /*01c*/
+    { {     0x20,0},{          0xa0,0} }, { {     0x21,0},{          0xa1,0} }, { {     0x22,0},{          0xa2,0} }, { {     0x23,0},{          0xa3,0} },        /*020*/
+    { {     0x24,0},{          0xa4,0} }, { {     0x25,0},{          0xa5,0} }, { {     0x26,0},{          0xa6,0} }, { {     0x27,0},{          0xa7,0} },        /*024*/
+    { {     0x28,0},{          0xa8,0} }, { {     0x29,0},{          0xa9,0} }, { {     0x2a,0},{          0xaa,0} }, { {     0x2b,0},{          0xab,0} },        /*028*/
+    { {     0x2c,0},{          0xac,0} }, { {     0x2d,0},{          0xad,0} }, { {     0x2e,0},{          0xae,0} }, { {     0x2f,0},{          0xaf,0} },        /*02c*/
+    { {     0x30,0},{          0xb0,0} }, { {     0x31,0},{          0xb1,0} }, { {     0x32,0},{          0xb2,0} }, { {     0x33,0},{          0xb3,0} },        /*030*/
+    { {     0x34,0},{          0xb4,0} }, { {     0x35,0},{          0xb5,0} }, { {     0x36,0},{          0xb6,0} }, { {     0x37,0},{          0xb7,0} },        /*034*/
+    { {     0x38,0},{          0xb8,0} }, { {     0x39,0},{          0xb9,0} }, { {     0x3a,0},{          0xba,0} }, { {     0x3b,0},{          0xbb,0} },        /*038*/
+    { {     0x3c,0},{          0xbc,0} }, { {     0x3d,0},{          0xbd,0} }, { {     0x3e,0},{          0xbe,0} }, { {     0x3f,0},{          0xbf,0} },        /*03c*/
+    { {     0x40,0},{          0xc0,0} }, { {     0x41,0},{          0xc1,0} }, { {     0x42,0},{          0xc2,0} }, { {     0x43,0},{          0xc3,0} },        /*040*/
+    { {     0x44,0},{          0xc4,0} }, { {     0x45,0},{          0xc5,0} }, { {     0x46,0},{          0xc6,0} }, { {     0x47,0},{          0xc7,0} },        /*044*/
+    { {     0x48,0},{          0xc8,0} }, { {     0x49,0},{          0xc9,0} }, { {     0x4a,0},{          0xca,0} }, { {     0x4b,0},{          0xcb,0} },        /*048*/
+    { {     0x4c,0},{          0xcc,0} }, { {     0x4d,0},{          0xcd,0} }, { {     0x4e,0},{          0xce,0} }, { {     0x4f,0},{          0xcf,0} },        /*04c*/
+    { {     0x50,0},{          0xd0,0} }, { {     0x51,0},{          0xd1,0} }, { {     0x52,0},{          0xd2,0} }, { {     0x53,0},{          0xd3,0} },        /*050*/
+    { {     0x54,0},{          0xd4,0} }, { {     0x55,0},{          0xd5,0} }, { {     0x56,0},{          0xd6,0} }, { {     0x57,0},{          0xd7,0} },        /*054*/
+    { {     0x58,0},{          0xd8,0} }, { {     0x59,0},{          0xd9,0} }, { {     0x5a,0},{          0xda,0} }, { {     0x5b,0},{          0xdb,0} },        /*058*/
+    { {     0x5c,0},{          0xdc,0} }, { {     0x5d,0},{          0xdd,0} }, { {     0x5e,0},{          0xde,0} }, { {     0x5f,0},{          0xdf,0} },        /*05c*/
+    { {     0x60,0},{          0xe0,0} }, { {     0x61,0},{          0xe1,0} }, { {     0x62,0},{          0xe2,0} }, { {     0x63,0},{          0xe3,0} },        /*060*/
+    { {     0x64,0},{          0xe4,0} }, { {     0x65,0},{          0xe5,0} }, { {     0x66,0},{          0xe6,0} }, { {     0x67,0},{          0xe7,0} },        /*064*/
+    { {     0x68,0},{          0xe8,0} }, { {     0x69,0},{          0xe9,0} }, { {     0x6a,0},{          0xea,0} }, { {     0x6b,0},{          0xeb,0} },        /*068*/
+    { {     0x6c,0},{          0xec,0} }, { {     0x6d,0},{          0xed,0} }, { {     0x6e,0},{          0xee,0} }, { {     0x6f,0},{          0xef,0} },        /*06c*/
+    { {     0x70,0},{          0xf0,0} }, { {     0x71,0},{          0xf1,0} }, { {     0x72,0},{          0xf2,0} }, { {     0x73,0},{          0xf3,0} },        /*070*/
+    { {     0x74,0},{          0xf4,0} }, { {     0x75,0},{          0xf5,0} }, { {     0x76,0},{          0xf6,0} }, { {     0x77,0},{          0xf7,0} },        /*074*/
+    { {     0x78,0},{          0xf8,0} }, { {     0x79,0},{          0xf9,0} }, { {     0x7a,0},{          0xfa,0} }, { {     0x7b,0},{          0xfb,0} },        /*078*/
+    { {     0x7c,0},{          0xfc,0} }, { {     0x7d,0},{          0xfd,0} }, { {     0x7e,0},{          0xfe,0} }, { {     0x7f,0},{          0xff,0} },        /*07c*/
+
+    { {     0x80,0},{               0} }, { {     0x81,0},{               0} }, { {     0x82,0},{               0} }, { {          0},{               0} },        /*080*/
+    { {          0},{               0} }, { {     0x85,0},{               0} }, { {     0x86,0},{               0} }, { {     0x87,0},{               0} },        /*084*/
+    { {     0x88,0},{               0} }, { {     0x89,0},{               0} }, { {     0x8a,0},{               0} }, { {     0x8b,0},{               0} },        /*088*/
+    { {     0x8c,0},{               0} }, { {     0x8d,0},{               0} }, { {     0x8e,0},{               0} }, { {     0x8f,0},{               0} },        /*08c*/
+    { {     0x90,0},{               0} }, { {     0x91,0},{               0} }, { {     0x92,0},{               0} }, { {     0x93,0},{               0} },        /*090*/
+    { {     0x94,0},{               0} }, { {     0x95,0},{               0} }, { {     0x96,0},{               0} }, { {     0x97,0},{               0} },        /*094*/
+    { {     0x98,0},{               0} }, { {     0x99,0},{               0} }, { {     0x9a,0},{               0} }, { {     0x9b,0},{               0} },        /*098*/
+    { {     0x9c,0},{               0} }, { {     0x9d,0},{               0} }, { {     0x9e,0},{               0} }, { {     0x9f,0},{               0} },        /*09c*/
+    { {     0xa0,0},{               0} }, { {     0xa1,0},{               0} }, { {     0xa2,0},{               0} }, { {     0xa3,0},{               0} },        /*0a0*/
+    { {     0xa4,0},{               0} }, { {     0xa5,0},{               0} }, { {     0xa6,0},{               0} }, { {     0xa7,0},{               0} },        /*0a4*/
+    { {     0xa8,0},{               0} }, { {     0xa9,0},{               0} }, { {     0xaa,0},{               0} }, { {     0xab,0},{               0} },        /*0a8*/
+    { {     0xac,0},{               0} }, { {     0xad,0},{               0} }, { {     0xae,0},{               0} }, { {     0xaf,0},{               0} },        /*0ac*/
+    { {     0xb0,0},{               0} }, { {     0xb1,0},{               0} }, { {     0xb2,0},{               0} }, { {     0xb3,0},{               0} },        /*0b0*/
+    { {     0xb4,0},{               0} }, { {     0xb5,0},{               0} }, { {     0xb6,0},{               0} }, { {     0xb7,0},{               0} },        /*0b4*/
+    { {     0xb8,0},{               0} }, { {     0xb9,0},{               0} }, { {     0xba,0},{               0} }, { {     0xbb,0},{               0} },        /*0b8*/
+    { {     0xbc,0},{               0} }, { {     0xbd,0},{               0} }, { {     0xbe,0},{               0} }, { {     0xbf,0},{               0} },        /*0bc*/
+    { {     0xc0,0},{               0} }, { {     0xc1,0},{               0} }, { {     0xc2,0},{               0} }, { {     0xc3,0},{               0} },        /*0c0*/
+    { {     0xc4,0},{               0} }, { {     0xc5,0},{               0} }, { {     0xc6,0},{               0} }, { {     0xc7,0},{               0} },        /*0c4*/
+    { {     0xc8,0},{               0} }, { {     0xc9,0},{               0} }, { {     0xca,0},{               0} }, { {     0xcb,0},{               0} },        /*0c8*/
+    { {     0xcc,0},{               0} }, { {     0xcd,0},{               0} }, { {     0xce,0},{               0} }, { {     0xcf,0},{               0} },        /*0cc*/
+    { {     0xd0,0},{               0} }, { {     0xd1,0},{               0} }, { {     0xd2,0},{               0} }, { {     0xd3,0},{               0} },        /*0d0*/
+    { {     0xd4,0},{               0} }, { {     0xd5,0},{               0} }, { {     0xd6,0},{               0} }, { {     0xd7,0},{               0} },        /*0d4*/
+    { {     0xd8,0},{               0} }, { {     0xd9,0},{               0} }, { {     0xda,0},{               0} }, { {     0xdb,0},{               0} },        /*0d8*/
+    { {     0xdc,0},{               0} }, { {     0xdd,0},{               0} }, { {     0xde,0},{               0} }, { {     0xdf,0},{               0} },        /*0dc*/
+    { {     0xe0,0},{               0} }, { {     0xe1,0},{               0} }, { {     0xe2,0},{               0} }, { {     0xe3,0},{               0} },        /*0e0*/
+    { {     0xe4,0},{               0} }, { {     0xe5,0},{               0} }, { {     0xe6,0},{               0} }, { {     0xe7,0},{               0} },        /*0e4*/
+    { {     0xe8,0},{               0} }, { {     0xe9,0},{               0} }, { {     0xea,0},{               0} }, { {     0xeb,0},{               0} },        /*0e8*/
+    { {     0xec,0},{               0} }, { {     0xed,0},{               0} }, { {     0xee,0},{               0} }, { {     0xef,0},{               0} },        /*0ec*/
+    { {          0},{               0} }, { {     0xf1,0},{               0} }, { {     0xf2,0},{               0} }, { {     0xf3,0},{               0} },        /*0f0*/
+    { {     0xf4,0},{               0} }, { {     0xf5,0},{               0} }, { {     0xf6,0},{               0} }, { {     0xf7,0},{               0} },        /*0f4*/
+    { {     0xf8,0},{               0} }, { {     0xf9,0},{               0} }, { {     0xfa,0},{               0} }, { {     0xfb,0},{               0} },        /*0f8*/
+    { {     0xfc,0},{               0} }, { {     0xfd,0},{               0} }, { {     0xfe,0},{               0} }, { {     0xff,0},{               0} },        /*0fc*/
+
+    { {0xe1,0x1d,0},{0xe1,     0x9d,0} }, { {0xe0,0x01,0},{0xe0,     0x81,0} }, { {0xe0,0x02,0},{0xe0,     0x82,0} }, { {0xe0,0x03,0},{0xe0,     0x83,0} },        /*100*/
+    { {0xe0,0x04,0},{0xe0,     0x84,0} }, { {0xe0,0x05,0},{0xe0,     0x85,0} }, { {0xe0,0x06,0},{0xe0,     0x86,0} }, { {0xe0,0x07,0},{0xe0,     0x87,0} },        /*104*/
+    { {0xe0,0x08,0},{0xe0,     0x88,0} }, { {0xe0,0x09,0},{0xe0,     0x89,0} }, { {0xe0,0x0a,0},{0xe0,     0x8a,0} }, { {0xe0,0x0b,0},{0xe0,     0x8b,0} },        /*108*/
+    { {0xe0,0x0c,0},{0xe0,     0x8c,0} }, { {          0},{               0} }, { {0xe0,0x0e,0},{0xe0,     0x8e,0} }, { {0xe0,0x0f,0},{0xe0,     0x8f,0} },        /*10c*/
+    { {0xe0,0x10,0},{0xe0,     0x90,0} }, { {0xe0,0x11,0},{0xe0,     0x91,0} }, { {0xe0,0x12,0},{0xe0,     0x92,0} }, { {0xe0,0x13,0},{0xe0,     0x93,0} },        /*110*/
+    { {0xe0,0x14,0},{0xe0,     0x94,0} }, { {0xe0,0x15,0},{0xe0,     0x95,0} }, { {0xe0,0x16,0},{0xe0,     0x96,0} }, { {0xe0,0x17,0},{0xe0,     0x97,0} },        /*114*/
+    { {0xe0,0x18,0},{0xe0,     0x98,0} }, { {0xe0,0x19,0},{0xe0,     0x99,0} }, { {0xe0,0x1a,0},{0xe0,     0x9a,0} }, { {0xe0,0x1b,0},{0xe0,     0x9b,0} },        /*118*/
+    { {0xe0,0x1c,0},{0xe0,     0x9c,0} }, { {0xe0,0x1d,0},{0xe0,     0x9d,0} }, { {0xe0,0x1e,0},{0xe0,     0x9e,0} }, { {0xe0,0x1f,0},{0xe0,     0x9f,0} },        /*11c*/
+    { {0xe0,0x20,0},{0xe0,     0xa0,0} }, { {0xe0,0x21,0},{0xe0,     0xa1,0} }, { {0xe0,0x22,0},{0xe0,     0xa2,0} }, { {0xe0,0x23,0},{0xe0,     0xa3,0} },        /*120*/
+    { {0xe0,0x24,0},{0xe0,     0xa4,0} }, { {0xe0,0x25,0},{0xe0,     0xa5,0} }, { {0xe0,0x26,0},{0xe0,     0xa6,0} }, { {          0},{               0} },        /*124*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*128*/
+    { {0xe0,0x2c,0},{0xe0,     0xac,0} }, { {0xe0,0x2d,0},{0xe0,     0xad,0} }, { {0xe0,0x2e,0},{0xe0,     0xae,0} }, { {0xe0,0x2f,0},{0xe0,     0xaf,0} },        /*12c*/
+    { {0xe0,0x30,0},{0xe0,     0xb0,0} }, { {0xe0,0x31,0},{0xe0,     0xb1,0} }, { {0xe0,0x32,0},{0xe0,     0xb2,0} }, { {          0},{               0} },        /*130*/
+    { {0xe0,0x34,0},{0xe0,     0xb4,0} }, { {0xe0,0x35,0},{0xe0,     0xb5,0} }, { {          0},{               0} }, { {0xe0,0x37,0},{0xe0,     0xb7,0} },        /*134*/
+    { {0xe0,0x38,0},{0xe0,     0xb8,0} }, { {          0},{               0} }, { {0xe0,0x3a,0},{0xe0,     0xba,0} }, { {0xe0,0x3b,0},{0xe0,     0xbb,0} },        /*138*/
+    { {0xe0,0x3c,0},{0xe0,     0xbc,0} }, { {0xe0,0x3d,0},{0xe0,     0xbd,0} }, { {0xe0,0x3e,0},{0xe0,     0xbe,0} }, { {0xe0,0x3f,0},{0xe0,     0xbf,0} },        /*13c*/
+    { {0xe0,0x40,0},{0xe0,     0xc0,0} }, { {0xe0,0x41,0},{0xe0,     0xc1,0} }, { {0xe0,0x42,0},{0xe0,     0xc2,0} }, { {0xe0,0x43,0},{0xe0,     0xc3,0} },        /*140*/
+    { {0xe0,0x44,0},{0xe0,     0xc4,0} }, { {          0},{               0} }, { {0xe0,0x46,0},{0xe0,     0xc6,0} }, { {0xe0,0x47,0},{0xe0,     0xc7,0} },        /*144*/
+    { {0xe0,0x48,0},{0xe0,     0xc8,0} }, { {0xe0,0x49,0},{0xe0,     0xc9,0} }, { {          0},{               0} }, { {0xe0,0x4b,0},{0xe0,     0xcb,0} },        /*148*/
+    { {0xe0,0x4c,0},{0xe0,     0xcc,0} }, { {0xe0,0x4d,0},{0xe0,     0xcd,0} }, { {0xe0,0x4e,0},{0xe0,     0xce,0} }, { {0xe0,0x4f,0},{0xe0,     0xcf,0} },        /*14c*/
+    { {0xe0,0x50,0},{0xe0,     0xd0,0} }, { {0xe0,0x51,0},{0xe0,     0xd1,0} }, { {0xe0,0x52,0},{0xe0,     0xd2,0} }, { {0xe0,0x53,0},{0xe0,     0xd3,0} },        /*150*/
+    { {          0},{               0} }, { {0xe0,0x55,0},{0xe0,     0xd5,0} }, { {          0},{               0} }, { {0xe0,0x57,0},{0xe0,     0xd7,0} },        /*154*/
+    { {0xe0,0x58,0},{0xe0,     0xd8,0} }, { {0xe0,0x59,0},{0xe0,     0xd9,0} }, { {0xe0,0x5a,0},{0xe0,     0xaa,0} }, { {0xe0,0x5b,0},{0xe0,     0xdb,0} },        /*158*/
+    { {0xe0,0x5c,0},{0xe0,     0xdc,0} }, { {0xe0,0x5d,0},{0xe0,     0xdd,0} }, { {0xe0,0x5e,0},{0xe0,     0xee,0} }, { {0xe0,0x5f,0},{0xe0,     0xdf,0} },        /*15c*/
+    { {          0},{               0} }, { {0xe0,0x61,0},{0xe0,     0xe1,0} }, { {0xe0,0x62,0},{0xe0,     0xe2,0} }, { {0xe0,0x63,0},{0xe0,     0xe3,0} },        /*160*/
+    { {0xe0,0x64,0},{0xe0,     0xe4,0} }, { {0xe0,0x65,0},{0xe0,     0xe5,0} }, { {0xe0,0x66,0},{0xe0,     0xe6,0} }, { {0xe0,0x67,0},{0xe0,     0xe7,0} },        /*164*/
+    { {0xe0,0x68,0},{0xe0,     0xe8,0} }, { {0xe0,0x69,0},{0xe0,     0xe9,0} }, { {0xe0,0x6a,0},{0xe0,     0xea,0} }, { {0xe0,0x6b,0},{0xe0,     0xeb,0} },        /*168*/
+    { {0xe0,0x6c,0},{0xe0,     0xec,0} }, { {0xe0,0x6d,0},{0xe0,     0xed,0} }, { {0xe0,0x6e,0},{0xe0,     0xee,0} }, { {          0},{               0} },        /*16c*/
+    { {0xe0,0x70,0},{0xe0,     0xf0,0} }, { {0xe0,0x71,0},{0xe0,     0xf1,0} }, { {0xe0,0x72,0},{0xe0,     0xf2,0} }, { {0xe0,0x73,0},{0xe0,     0xf3,0} },        /*170*/
+    { {0xe0,0x74,0},{0xe0,     0xf4,0} }, { {0xe0,0x75,0},{0xe0,     0xf5,0} }, { {          0},{               0} }, { {0xe0,0x77,0},{0xe0,     0xf7,0} },        /*174*/
+    { {0xe0,0x78,0},{0xe0,     0xf8,0} }, { {0xe0,0x79,0},{0xe0,     0xf9,0} }, { {0xe0,0x7a,0},{0xe0,     0xfa,0} }, { {0xe0,0x7b,0},{0xe0,     0xfb,0} },        /*178*/
+    { {0xe0,0x7c,0},{0xe0,     0xfc,0} }, { {0xe0,0x7d,0},{0xe0,     0xfd,0} }, { {0xe0,0x7e,0},{0xe0,     0xfe,0} }, { {0xe0,0x7f,0},{0xe0,     0xff,0} },        /*17c*/
+
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*180*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*184*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*188*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*18c*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*190*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*194*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*198*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*19c*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1a0*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1a4*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1a8*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1ac*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1c0*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1c4*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1c8*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1cc*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1d0*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1d4*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1d8*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1dc*/
+    { {          0},{               0} }, { {0xe0,0xe1,0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1e0*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1e4*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1e8*/
+    { {          0},{               0} }, { {          0},{               0} }, { {0xe0,0xee,0},{               0} }, { {          0},{               0} },        /*1ec*/
+    { {          0},{               0} }, { {0xe0,0xf1,0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1f0*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1f4*/
+    { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} }, { {          0},{               0} },        /*1f8*/
+    { {          0},{               0} }, { {          0},{               0} }, { {0xe0,0xfe,0},{               0} }, { {0xe0,0xff,0},{               0} }         /*1fc*/
+  // clang-format on
+};
+
 static void
 machine_amstrad_init(const machine_t *model, int type)
 {
@@ -2334,9 +2474,9 @@ machine_amstrad_init(const machine_t *model, int type)
 
     ams->language = 7;
 
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
 
-    if (gfxcard == VID_INTERNAL)
+    if (gfxcard[0] == VID_INTERNAL)
         switch (type) {
             case AMS_PC1512:
                 loadfont("roms/machines/pc1512/40078", 8);
@@ -2397,7 +2537,10 @@ machine_amstrad_init(const machine_t *model, int type)
     io_sethandler(0x0060, 7,
                   kbd_read, NULL, NULL, kbd_write, NULL, NULL, ams);
     timer_add(&ams->send_delay_timer, kbd_poll, ams, 1);
-    keyboard_set_table(scancode_xt);
+    if (type == AMS_PC200)
+        keyboard_set_table(scancode_pc200);
+    else
+        keyboard_set_table(scancode_xt);
     keyboard_send = kbd_adddata_ex;
     keyboard_scan = 1;
     keyboard_set_is_amstrad(((type == AMS_PC1512) || (type == AMS_PC1640)) ? 0 : 1);
@@ -2408,8 +2551,9 @@ machine_amstrad_init(const machine_t *model, int type)
                   ms_read, NULL, NULL, ms_write, NULL, NULL, ams);
 
     if (mouse_type == MOUSE_TYPE_INTERNAL) {
-/* Tell mouse driver about our internal mouse. */
+        /* Tell mouse driver about our internal mouse. */
         mouse_reset();
+        mouse_set_buttons(2);
         mouse_set_poll(ms_poll, ams);
     }
 

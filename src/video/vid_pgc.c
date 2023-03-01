@@ -1,56 +1,56 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		This implements just enough of the Professional Graphics
- *		Controller to act as a basis for the Vermont Microsystems
- *		IM-1024.
+ *          This implements just enough of the Professional Graphics
+ *          Controller to act as a basis for the Vermont Microsystems
+ *          IM-1024.
  *
- *		PGC features implemented include:
- *		> The CGA-compatible display modes
- *		> Switching to and from native mode
- *		> Communicating with the host PC
+ *          PGC features implemented include:
+ *          > The CGA-compatible display modes
+ *          > Switching to and from native mode
+ *          > Communicating with the host PC
  *
- *		Numerous features are implemented partially or not at all,
- *		such as:
- *		> 2D drawing
- *		> 3D drawing
- *		> Command lists
- *		Some of these are marked TODO.
+ *          Numerous features are implemented partially or not at all,
+ *          such as:
+ *          > 2D drawing
+ *          > 3D drawing
+ *          > Command lists
+ *          Some of these are marked TODO.
  *
- *		The PGC has two display modes: CGA (in which it appears in
- *		the normal CGA memory and I/O ranges) and native (in which
- *		all functions are accessed through reads and writes to 1K
- *		of memory at 0xC6000).
+ *          The PGC has two display modes: CGA (in which it appears in
+ *          the normal CGA memory and I/O ranges) and native (in which
+ *          all functions are accessed through reads and writes to 1K
+ *          of memory at 0xC6000).
  *
- *		The PGC's 8088 processor monitors this buffer and executes
- *		instructions left there for it. We simulate this behavior
- *		with a separate thread.
+ *          The PGC's 8088 processor monitors this buffer and executes
+ *          instructions left there for it. We simulate this behavior
+ *          with a separate thread.
  *
- * **NOTE**	This driver is not finished yet:
+ * **NOTE** This driver is not finished yet:
  *
- *		- cursor will blink at very high speed if used on a machine
- *		  with clock greater than 4.77MHz. We should  "scale down"
- *		  this speed, to become relative to a 4.77MHz-based system.
+ *          - cursor will blink at very high speed if used on a machine
+ *            with clock greater than 4.77MHz. We should  "scale down"
+ *            this speed, to become relative to a 4.77MHz-based system.
  *
- *		- pgc_plot() should be overloaded by clones if they support
- *		  modes other than WRITE and INVERT, like the IM-1024.
+ *          - pgc_plot() should be overloaded by clones if they support
+ *            modes other than WRITE and INVERT, like the IM-1024.
  *
- *		- test it with the Windows 1.x driver?
+ *          - test it with the Windows 1.x driver?
  *
- *		This is expected to be done shortly.
+ *            This is expected to be done shortly.
  *
  *
  *
- * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
- *		John Elliott, <jce@seasip.info>
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          John Elliott, <jce@seasip.info>
  *
- *		Copyright 2019 Fred N. van Kempen.
- *		Copyright 2019 John Elliott.
+ *          Copyright 2019 Fred N. van Kempen.
+ *          Copyright 2019 John Elliott.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -2130,13 +2130,18 @@ pgc_ito_raster(pgc_t *dev, int32_t *x, int32_t *y)
 void
 pgc_recalctimings(pgc_t *dev)
 {
-    double disptime, _dispontime, _dispofftime;
-    double pixel_clock = (cpuclock * (double) (1ull << 32)) / (dev->cga_selected ? 25175000.0 : dev->native_pixel_clock);
+    double  disptime, _dispontime, _dispofftime;
+    double  pixel_clock = (cpuclock / (dev->cga_selected ? 25175000.0 : dev->native_pixel_clock) * (double) (1ull << 32));
+    uint8_t crtc0 = 97, crtc1 = 80; /* Values from MDA, taken from there due to the 25 MHz refresh rate. */
 
+    /* Multiply pixel clock by 8. */
+    pixel_clock     *= 8.0;
     /* Use a fixed 640x400 display. */
-    disptime         = dev->screenw + 11;
-    _dispontime      = dev->screenw * pixel_clock;
-    _dispofftime     = (disptime - dev->screenw) * pixel_clock;
+    disptime         = crtc0 + 1;
+    _dispontime      = crtc1;
+    _dispofftime     = disptime - _dispontime;
+    _dispontime     *= pixel_clock;
+    _dispofftime    *= pixel_clock;
     dev->dispontime  = (uint64_t) (_dispontime);
     dev->dispofftime = (uint64_t) (_dispofftime);
 }
@@ -2452,6 +2457,8 @@ pgc_cga_poll(pgc_t *dev)
             hline(buffer32, 0, dev->displine, PGC_CGA_WIDTH, cols[0]);
         }
 
+        video_process_8(PGC_CGA_WIDTH, dev->displine);
+
         if (++dev->displine == PGC_CGA_HEIGHT) {
             dev->mapram[0x3da] |= 8;
             dev->cgadispon = 0;
@@ -2476,7 +2483,7 @@ pgc_cga_poll(pgc_t *dev)
                 if (video_force_resize_get())
                     video_force_resize_set(0);
             }
-            video_blit_memtoscreen_8(0, 0, xsize, ysize);
+            video_blit_memtoscreen(0, 0, xsize, ysize);
             frames++;
 
             /* We have a fixed 640x400 screen for CGA modes. */
@@ -2656,8 +2663,8 @@ pgc_init(pgc_t *dev, int maxw, int maxh, int visw, int vish,
     dev->visw = visw;
     dev->vish = vish;
 
-    dev->vram = (uint8_t *) malloc(maxw * maxh);
-    memset(dev->vram, 0x00, maxw * maxh);
+    dev->vram = (uint8_t *) malloc((size_t) maxw * maxh);
+    memset(dev->vram, 0x00, (size_t) maxw * maxh);
     dev->cga_vram = (uint8_t *) malloc(16384);
     memset(dev->cga_vram, 0x00, 16384);
 

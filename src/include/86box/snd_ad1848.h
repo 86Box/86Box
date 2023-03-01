@@ -1,22 +1,22 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for AD1848 / CS4248 / CS4231 (Windows Sound System) codec emulation.
+ *          Definitions for AD1848 / CS4248 / CS4231 (Windows Sound System) codec emulation.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		TheCollector1995, <mariogplayer@gmail.com>
- *		RichardG, <richardg867@gmail.com>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          TheCollector1995, <mariogplayer@gmail.com>
+ *          RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
- *		Copyright 2018-2020 TheCollector1995.
- *		Copyright 2021 RichardG.
+ *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2018-2020 TheCollector1995.
+ *          Copyright 2021 RichardG.
  */
 
 #ifndef SOUND_AD1848_H
@@ -66,6 +66,7 @@ extern void    ad1848_write(uint16_t addr, uint8_t val, void *priv);
 extern void ad1848_update(ad1848_t *ad1848);
 extern void ad1848_speed_changed(ad1848_t *ad1848);
 extern void ad1848_filter_cd_audio(int channel, double *buffer, void *priv);
+extern void ad1848_filter_aux2(void* priv, double* out_l, double* out_r);
 
 extern void ad1848_init(ad1848_t *ad1848, uint8_t type);
 

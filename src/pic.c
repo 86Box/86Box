@@ -1,19 +1,21 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Intel PIC chip emulation, partially
- *		ported from reenigne's XTCE.
+ *          Implementation of the Intel PIC chip emulation, partially
+ *          ported from reenigne's XTCE.
  *
- * Authors:	Andrew Jenner, <https://www.reenigne.org>
- *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2015-2020 Andrew Jenner.
- *		Copyright 2016-2020 Miran Grca.
+ *
+ * Authors: Andrew Jenner, <https://www.reenigne.org>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2015-2020 Andrew Jenner.
+ *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -247,7 +249,7 @@ pic_callback(void *priv)
 }
 
 void
-pic_reset()
+pic_reset(void)
 {
     int is_at = IS_AT(machine);
     is_at     = is_at || !strcmp(machine_get_internal_name(), "xi8088");
@@ -585,9 +587,9 @@ picint_common(uint16_t num, int level, int set)
 
         if (num & 0x00ff) {
             if (level)
-                pic.lines |= (num >> 8);
+                pic.lines |= (num & 0x00ff);
 
-            pic.irr |= num;
+            pic.irr |= (num & 0x00ff);
         }
     } else {
         smi_irq_status &= ~num;
@@ -598,8 +600,8 @@ picint_common(uint16_t num, int level, int set)
         }
 
         if (num & 0x00ff) {
-            pic.lines &= ~num;
-            pic.irr &= ~num;
+            pic.lines &= ~(num & 0x00ff);
+            pic.irr &= ~(num & 0x00ff);
         }
     }
 
@@ -707,7 +709,7 @@ pic_irq_ack(void)
 }
 
 int
-picinterrupt()
+picinterrupt(void)
 {
     int i, ret = -1;
 

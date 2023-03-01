@@ -1,23 +1,25 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Rendering module for OpenGL
+ *          Rendering module for OpenGL
  *
- * TODO:	More shader features
- *			- scaling
- *			- multipass
- *			- previous frames
- *		(UI) options
- *		More error handling
+ * TODO:    More shader features
+ *          - scaling
+ *          - multipass
+ *          - previous frames
+ *          (UI) options
+ *          More error handling
  *
- * Authors:	Teemu Korhonen
  *
- *		Copyright 2021 Teemu Korhonen
+ *
+ * Authors: Teemu Korhonen
+ *
+ *          Copyright 2021 Teemu Korhonen
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -34,7 +36,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
 #define UNICODE
-#include <Windows.h>
+#include <windows.h>
 #include <process.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
@@ -63,7 +65,7 @@ typedef LONG atomic_flag;
 
 static const int INIT_WIDTH   = 640;
 static const int INIT_HEIGHT  = 400;
-static const int BUFFERPIXELS = 4194304;  /* Same size as render_buffer, pow(2048+64,2). */
+static const int BUFFERPIXELS = 4194304;  /* Same size as render_buffer, pow(2048 + 64, 2). */
 static const int BUFFERBYTES  = 16777216; /* Pixel is 4 bytes. */
 static const int BUFFERCOUNT  = 3;        /* How many buffers to use for pixel transfer (2-3 is commonly recommended). */
 static const int ROW_LENGTH   = 2048;     /* Source buffer row lenght (including padding) */
@@ -438,15 +440,15 @@ render_and_swap(gl_identifiers *gl)
  * Keeps the thread sleeping until closing.
  */
 static void
-opengl_fail()
+opengl_fail(void)
 {
     if (window != NULL) {
         SDL_DestroyWindow(window);
         window = NULL;
     }
 
-    wchar_t *message = plat_get_string(IDS_2152);
-    wchar_t *header  = plat_get_string(IDS_2153);
+    wchar_t *message = plat_get_string(IDS_2153);
+    wchar_t *header  = plat_get_string(IDS_2154);
     MessageBox(parent, header, message, MB_OK);
 
     WaitForSingleObject(sync_objects.closing, INFINITE);
