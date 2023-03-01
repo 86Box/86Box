@@ -74,6 +74,12 @@ ui_window_title(wchar_t *str)
     return str;
 }
 
+void
+ui_hard_reset_completed()
+{
+    emit main_window->hardResetCompleted();
+}
+
 extern "C" void
 qt_blit(int x, int y, int w, int h, int monitor_index)
 {

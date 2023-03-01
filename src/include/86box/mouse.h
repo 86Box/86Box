@@ -34,6 +34,7 @@
 #define MOUSE_TYPE_LOGITECH  9  /* Logitech 2-button Serial Mouse */
 #define MOUSE_TYPE_LT3BUTTON 10 /* Logitech 3-button Serial Mouse */
 #define MOUSE_TYPE_PS2       11 /* PS/2 series Bus Mouse */
+#define MOUSE_TYPE_WACOM     12 /* WACOM tablet */
 
 #define MOUSE_TYPE_ONBOARD   0x80 /* Mouse is an on-board version of one of the above. */
 
@@ -43,7 +44,11 @@ extern "C" {
 
 extern int mouse_type;
 extern int mouse_x, mouse_y, mouse_z;
+extern int mouse_mode; /* 1 = Absolute, 0 = Relative */
+extern int mouse_tablet_in_proximity;
+extern double mouse_x_abs, mouse_y_abs;
 extern int mouse_buttons;
+extern int tablet_tool_type;
 
 #ifdef EMU_DEVICE_H
 extern const device_t *mouse_get_device(int mouse);
@@ -59,6 +64,7 @@ extern const device_t mouse_mssystems_device;
 extern const device_t mouse_msserial_device;
 extern const device_t mouse_ltserial_device;
 extern const device_t mouse_ps2_device;
+extern const device_t mouse_wacom_device;
 #endif
 
 extern void mouse_init(void);
