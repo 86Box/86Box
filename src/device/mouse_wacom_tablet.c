@@ -81,7 +81,6 @@ wacom_reset(mouse_wacom_t *wacom)
     wacom->mode                 = WACOM_MODE_POINT;
     wacom->data_pos             = 0;
     wacom->transmission_ongoing = 0;
-    wacom->mode                 = 0;
     wacom->transmission_stopped = 0;
     wacom->interval             = 0;
     wacom->transmit_id          = 0;
