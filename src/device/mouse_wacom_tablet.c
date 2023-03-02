@@ -481,6 +481,8 @@ wacom_report_timer(void *priv)
 
             case WACOM_MODE_POINT:
                 {
+                    if (wacom->suppressed_increment)
+                        break;
                     if (!(wacom_switch_off_to_on(wacom->b, wacom->oldb)))
                         return;
                     break;
