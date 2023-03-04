@@ -391,7 +391,7 @@ wacom_write(struct serial_s *serial, void *priv, uint8_t data)
                 fifo8_push_all(&wacom->data, "~C5039,3779\r", sizeof("~C5039,3779\r") - 1);
             } else if (!memcmp(wacom->data_rec, "~R", 2)) {
                 uint8_t data[256] = { 0 };
-                snprintf(data, sizeof(data), "~*%08X,%d,%d,%d,%d\r", wacom->settings, wacom->increment, wacom->x_res, wacom->y_res);
+                snprintf(data, sizeof(data), "~*%08X,%d,%d,%d,%d\r", wacom->settings, wacom->increment, wacom->interval, wacom->x_res, wacom->y_res);
                 fifo8_push_all(&wacom->data, data, strlen(data));
             }
         }
