@@ -45,9 +45,11 @@
 #include <array>
 #include <memory>
 
+#include "qt_rendererstack.hpp"
+
 extern "C" void win_joystick_handle(PRAWINPUT);
 std::unique_ptr<WindowsRawInputFilter>
-WindowsRawInputFilter::Register(QMainWindow *window)
+WindowsRawInputFilter::Register(MainWindow *window)
 {
     HWND wnd = (HWND) window->winId();
 
@@ -70,7 +72,7 @@ WindowsRawInputFilter::Register(QMainWindow *window)
     return inputfilter;
 }
 
-WindowsRawInputFilter::WindowsRawInputFilter(QMainWindow *window)
+WindowsRawInputFilter::WindowsRawInputFilter(MainWindow *window)
 {
     this->window = window;
 
@@ -108,8 +110,18 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
         MSG *msg = static_cast<MSG *>(message);
 
         if (msg->message == WM_INPUT) {
+
             if (window->isActiveWindow() && menus_open == 0)
                 handle_input((HRAWINPUT) msg->lParam);
+            else
+            {
+                for (auto &w : window->renderers) {
+                    if (w && w->isActiveWindow()) {
+                        handle_input((HRAWINPUT) msg->lParam);
+                        break;
+                    }
+                }
+            }
 
             return true;
         }
