@@ -98,6 +98,14 @@ vnc_mouse_poll(void)
         mouse_buttons = ms.buttons;
         b             = ms.buttons;
     }
+
+    mouse_x_abs = (double)ptr_x / (double)allowedX;
+    mouse_y_abs = (double)ptr_y / (double)allowedY;
+
+    if (mouse_x_abs > 1.0) mouse_x_abs = 1.0;
+    if (mouse_y_abs > 1.0) mouse_y_abs = 1.0;
+    if (mouse_x_abs < 0.0) mouse_x_abs = 0.0;
+    if (mouse_y_abs < 0.0) mouse_y_abs = 0.0;
 }
 
 static void
