@@ -784,12 +784,13 @@ pipc_fm_write(uint16_t addr, uint8_t val, void *priv)
        index port, and only fires NMI/SMI when writing to the data port. */
     if (!(addr & 0x01)) {
         dev->fmnmi_regs[0x00] = (addr & 0x02) ? 0x02 : 0x01;
-        dev->fmnmi_regs[0x01] = val;
-    } else {
         dev->fmnmi_regs[0x02] = val;
+    } else {
+        dev->fmnmi_regs[0x01] = val;
 
         /* Fire NMI/SMI if enabled. */
         if (dev->ac97_regs[0][0x48] & 0x01) {
+            pipc_log("PIPC: Raising %s\n", (dev->ac97_regs[0][0x48] & 0x04) ? "SMI" : "NMI");
             if (dev->ac97_regs[0][0x48] & 0x04)
                 smi_raise();
             else
