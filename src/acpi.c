@@ -40,9 +40,9 @@
 #include <86box/i2c.h>
 #include <86box/video.h>
 
-int acpi_rtc_status            = 0;
+int        acpi_rtc_status     = 0;
 atomic_int acpi_pwrbut_pressed = 0;
-int acpi_enabled               = 0;
+int        acpi_enabled        = 0;
 
 static double cpu_to_acpi;
 
@@ -1520,7 +1520,7 @@ acpi_ali_soft_smi_status_write(acpi_t *dev, uint8_t soft_smi)
 }
 
 void
-acpi_pwrbtn_timer(void* priv)
+acpi_pwrbtn_timer(void *priv)
 {
     acpi_t *dev = (acpi_t *) priv;
 

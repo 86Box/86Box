@@ -145,7 +145,7 @@ recalc_sb16_filter(int c, int playback_freq)
     /* Cutoff frequency = playback / 2 */
     int    n;
     double w, h;
-    double fC = ((double) playback_freq) / 96000.0;
+    double fC = ((double) playback_freq) / (double) FREQ_96000;
     double gain;
 
     for (n = 0; n < SB16_NCoef; n++) {
@@ -1139,7 +1139,7 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
     /* Initialise SB16 filter to same cutoff as 8-bit SBs (3.2 kHz). This will be recalculated when
        a set frequency command is sent. */
     recalc_sb16_filter(0, 3200 * 2);
-    recalc_sb16_filter(1, 44100);
+    recalc_sb16_filter(1, FREQ_44100);
 
     /* Initialize SB16 8051 RAM and ASP internal RAM */
     memset(dsp->sb_8051_ram, 0x00, sizeof(dsp->sb_8051_ram));

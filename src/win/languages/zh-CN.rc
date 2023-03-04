@@ -17,13 +17,13 @@ MainMenu MENU DISCARDABLE
 BEGIN
     POPUP "操作(&A)"
     BEGIN
-        MENUITEM "键盘需要捕捉(&K)",	IDM_ACTION_KBD_REQ_CAPTURE
-        MENUITEM "将右 CTRL 键映射为左 ALT 键(&R)",	IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM "键盘需要捕捉(&K)",    IDM_ACTION_KBD_REQ_CAPTURE
+        MENUITEM "将右 CTRL 键映射为左 ALT 键(&R)",    IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
         MENUITEM "硬重置(&H)...",                 IDM_ACTION_HRESET
         MENUITEM "Ctrl+Alt+Del(&C)\tCtrl+F12",     IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
-	MENUITEM "Ctrl+Alt+Esc(&E)",		IDM_ACTION_CTRL_ALT_ESC
+    MENUITEM "Ctrl+Alt+Esc(&E)",        IDM_ACTION_CTRL_ALT_ESC
         MENUITEM SEPARATOR
         MENUITEM "暂停(&P)",                      IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
@@ -31,8 +31,8 @@ BEGIN
     END
     POPUP "查看(&V)"
     BEGIN
-        MENUITEM "隐藏状态栏(&H)",		IDM_VID_HIDE_STATUS_BAR
-        MENUITEM "隐藏工具栏(&T)",		IDM_VID_HIDE_TOOLBAR
+        MENUITEM "隐藏状态栏(&H)",        IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "隐藏工具栏(&T)",        IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "Show non-primary monitors(&S)",  IDM_VID_MONITORS
         MENUITEM "窗口大小可调(&R)",          IDM_VID_RESIZE
@@ -101,11 +101,11 @@ BEGIN
         MENUITEM "CGA/PCjr/Tandy/EGA/(S)VGA 过扫描(&G)",     IDM_VID_OVERSCAN
         MENUITEM "更改单色显示对比度(&M)", IDM_VID_CGACON
     END
-    MENUITEM "介质(&M)",				IDM_MEDIA
+    MENUITEM "介质(&M)",                IDM_MEDIA
     POPUP "工具(&T)"
     BEGIN
         MENUITEM "设置(&S)...",                IDM_CONFIG
-        MENUITEM "更新状态栏图标(&U)",	IDM_UPDATE_ICONS
+        MENUITEM "更新状态栏图标(&U)",    IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
         MENUITEM "截图(&C)\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
@@ -137,17 +137,17 @@ CassetteSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新建镜像(&N)...",				IDM_CASSETTE_IMAGE_NEW
+        MENUITEM "新建镜像(&N)...",                IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "打开已存在的镜像(&E)...",				IDM_CASSETTE_IMAGE_EXISTING
-        MENUITEM "打开已存在的镜像并写保护(&W)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM "打开已存在的镜像(&E)...",                IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "打开已存在的镜像并写保护(&W)...",    IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "录制(&R)",					IDM_CASSETTE_RECORD
-        MENUITEM "播放(&P)",					IDM_CASSETTE_PLAY
-        MENUITEM "倒带至起点(&R)",			IDM_CASSETTE_REWIND
-        MENUITEM "快进至终点(&F)",			IDM_CASSETTE_FAST_FORWARD
+        MENUITEM "录制(&R)",                    IDM_CASSETTE_RECORD
+        MENUITEM "播放(&P)",                    IDM_CASSETTE_PLAY
+        MENUITEM "倒带至起点(&R)",            IDM_CASSETTE_REWIND
+        MENUITEM "快进至终点(&F)",            IDM_CASSETTE_FAST_FORWARD
         MENUITEM SEPARATOR
-        MENUITEM "弹出(&J)",					IDM_CASSETTE_EJECT
+        MENUITEM "弹出(&J)",                    IDM_CASSETTE_EJECT
     END
 END
 
@@ -155,9 +155,9 @@ CartridgeSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "镜像(&I)...",					IDM_CARTRIDGE_IMAGE
+        MENUITEM "镜像(&I)...",                    IDM_CARTRIDGE_IMAGE
         MENUITEM SEPARATOR
-        MENUITEM "弹出(&J)",					IDM_CARTRIDGE_EJECT
+        MENUITEM "弹出(&J)",                    IDM_CARTRIDGE_EJECT
     END
 END
 
@@ -165,14 +165,14 @@ FloppySubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新建镜像(&N)...",				IDM_FLOPPY_IMAGE_NEW
+        MENUITEM "新建镜像(&N)...",                IDM_FLOPPY_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "打开已存在的镜像(&E)...",				IDM_FLOPPY_IMAGE_EXISTING
-        MENUITEM "打开已存在的镜像并写保护(&W)...",	IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM "打开已存在的镜像(&E)...",                IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "打开已存在的镜像并写保护(&W)...",    IDM_FLOPPY_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "导出为 86F 格式(&x)...",				IDM_FLOPPY_EXPORT_TO_86F
+        MENUITEM "导出为 86F 格式(&x)...",                IDM_FLOPPY_EXPORT_TO_86F
         MENUITEM SEPARATOR
-        MENUITEM "弹出(&J)",					IDM_FLOPPY_EJECT
+        MENUITEM "弹出(&J)",                    IDM_FLOPPY_EJECT
     END
 END
 
@@ -180,13 +180,13 @@ CdromSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "静音(&M)",					IDM_CDROM_MUTE
+        MENUITEM "静音(&M)",                    IDM_CDROM_MUTE
         MENUITEM SEPARATOR
-        MENUITEM "空置驱动器(&M)",					IDM_CDROM_EMPTY
-        MENUITEM "载入上一个镜像(&R)",			IDM_CDROM_RELOAD
+        MENUITEM "空置驱动器(&M)",                    IDM_CDROM_EMPTY
+        MENUITEM "载入上一个镜像(&R)",            IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "镜像(&I)...",					IDM_CDROM_IMAGE
-        MENUITEM "文件夹(&F)...",					IDM_CDROM_DIR
+        MENUITEM "镜像(&I)...",                    IDM_CDROM_IMAGE
+        MENUITEM "文件夹(&F)...",                    IDM_CDROM_DIR
     END
 END
 
@@ -194,13 +194,13 @@ ZIPSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新建镜像(&N)...",				IDM_ZIP_IMAGE_NEW
+        MENUITEM "新建镜像(&N)...",                IDM_ZIP_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "打开已存在的镜像(&E)...",				IDM_ZIP_IMAGE_EXISTING
-        MENUITEM "打开已存在的镜像并写保护(&W)...",	IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM "打开已存在的镜像(&E)...",                IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "打开已存在的镜像并写保护(&W)...",    IDM_ZIP_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "弹出(&J)",					IDM_ZIP_EJECT
-        MENUITEM "载入上一个镜像(&R)",			IDM_ZIP_RELOAD
+        MENUITEM "弹出(&J)",                    IDM_ZIP_EJECT
+        MENUITEM "载入上一个镜像(&R)",            IDM_ZIP_RELOAD
     END
 END
 
@@ -208,13 +208,13 @@ MOSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新建镜像(&N)...",				IDM_MO_IMAGE_NEW
+        MENUITEM "新建镜像(&N)...",                IDM_MO_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "打开已存在的镜像(&E)...",				IDM_MO_IMAGE_EXISTING
-        MENUITEM "打开已存在的镜像并写保护(&W)...",	IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM "打开已存在的镜像(&E)...",                IDM_MO_IMAGE_EXISTING
+        MENUITEM "打开已存在的镜像并写保护(&W)...",    IDM_MO_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "弹出(&J)",					IDM_MO_EJECT
-        MENUITEM "载入上一个镜像(&R)",			IDM_MO_RELOAD
+        MENUITEM "弹出(&J)",                    IDM_MO_EJECT
+        MENUITEM "载入上一个镜像(&R)",            IDM_MO_RELOAD
     END
 END
 
@@ -240,150 +240,150 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES		"首选项"
-#define STR_SND_GAIN		"音量增益"
-#define STR_NEW_FLOPPY		"新建镜像"
-#define STR_CONFIG		"设置"
-#define STR_SPECIFY_DIM		"指定主窗口大小"
+#define STR_PREFERENCES        "首选项"
+#define STR_SND_GAIN        "音量增益"
+#define STR_NEW_FLOPPY        "新建镜像"
+#define STR_CONFIG        "设置"
+#define STR_SPECIFY_DIM        "指定主窗口大小"
 
-#define STR_OK			"确定"
-#define STR_CANCEL		"取消"
-#define STR_GLOBAL		"将以上设置存储为全局默认值(&G)"
-#define STR_DEFAULT		"默认(&D)"
-#define STR_LANGUAGE		"语言:"
-#define STR_ICONSET		"图标集:"
+#define STR_OK            "确定"
+#define STR_CANCEL        "取消"
+#define STR_GLOBAL        "将以上设置存储为全局默认值(&G)"
+#define STR_DEFAULT        "默认(&D)"
+#define STR_LANGUAGE        "语言:"
+#define STR_ICONSET        "图标集:"
 
-#define STR_GAIN		"增益"
+#define STR_GAIN        "增益"
 
-#define STR_FILE_NAME		"文件名:"
-#define STR_DISK_SIZE		"磁盘大小:"
-#define STR_RPM_MODE		"转速 (RPM) 模式:"
-#define STR_PROGRESS		"进度:"
+#define STR_FILE_NAME        "文件名:"
+#define STR_DISK_SIZE        "磁盘大小:"
+#define STR_RPM_MODE        "转速 (RPM) 模式:"
+#define STR_PROGRESS        "进度:"
 
-#define STR_WIDTH		"宽度:"
-#define STR_HEIGHT		"高度:"
-#define STR_LOCK_TO_SIZE	"锁定此大小"
+#define STR_WIDTH        "宽度:"
+#define STR_HEIGHT        "高度:"
+#define STR_LOCK_TO_SIZE    "锁定此大小"
 
-#define STR_MACHINE_TYPE	"机器类型:"
-#define STR_MACHINE		"机型:"
-#define STR_CONFIGURE		"配置"
-#define STR_CPU_TYPE		"CPU 类型:"
-#define STR_CPU_SPEED		"速度:"
-#define STR_FPU			"浮点处理器 (FPU):"
-#define STR_WAIT_STATES		"等待状态 (WS):"
-#define STR_MB			"MB"
-#define STR_MEMORY		"内存:"
-#define STR_TIME_SYNC		"时间同步"
-#define STR_DISABLED		"禁用"
-#define STR_ENABLED_LOCAL	"启用 (本地时间)"
-#define STR_ENABLED_UTC		"启用 (UTC)"
-#define STR_DYNAREC		"动态重编译器"
+#define STR_MACHINE_TYPE    "机器类型:"
+#define STR_MACHINE        "机型:"
+#define STR_CONFIGURE        "配置"
+#define STR_CPU_TYPE        "CPU 类型:"
+#define STR_CPU_SPEED        "速度:"
+#define STR_FPU            "浮点处理器 (FPU):"
+#define STR_WAIT_STATES        "等待状态 (WS):"
+#define STR_MB            "MB"
+#define STR_MEMORY        "内存:"
+#define STR_TIME_SYNC        "时间同步"
+#define STR_DISABLED        "禁用"
+#define STR_ENABLED_LOCAL    "启用 (本地时间)"
+#define STR_ENABLED_UTC        "启用 (UTC)"
+#define STR_DYNAREC        "动态重编译器"
 
-#define STR_VIDEO		"显卡:"
-#define STR_VIDEO_2		"显卡 2:"
-#define STR_VOODOO		"Voodoo Graphics"
-#define STR_IBM8514		"IBM 8514/a Graphics"
-#define STR_XGA			"XGA Graphics"
+#define STR_VIDEO        "显卡:"
+#define STR_VIDEO_2        "显卡 2:"
+#define STR_VOODOO        "Voodoo Graphics"
+#define STR_IBM8514        "IBM 8514/a Graphics"
+#define STR_XGA            "XGA Graphics"
 
-#define STR_MOUSE		"鼠标:"
-#define STR_JOYSTICK		"操纵杆:"
-#define STR_JOY1		"操纵杆 1..."
-#define STR_JOY2		"操纵杆 2..."
-#define STR_JOY3		"操纵杆 3..."
-#define STR_JOY4		"操纵杆 4..."
+#define STR_MOUSE        "鼠标:"
+#define STR_JOYSTICK        "操纵杆:"
+#define STR_JOY1        "操纵杆 1..."
+#define STR_JOY2        "操纵杆 2..."
+#define STR_JOY3        "操纵杆 3..."
+#define STR_JOY4        "操纵杆 4..."
 
-#define STR_SOUND1		"声卡 1:"
-#define STR_SOUND2		"声卡 2:"
-#define STR_SOUND3		"声卡 3:"
-#define STR_SOUND4		"声卡 4:"
-#define STR_MIDI_OUT		"MIDI 输出设备:"
-#define STR_MIDI_IN		"MIDI 输入设备:"
-#define STR_MPU401		"独立 MPU-401"
-#define STR_FLOAT		"使用单精度浮点 (FLOAT32)"
-#define STR_FM_DRIVER		"调频合成器驱动器"
-#define STR_FM_DRV_NUKED	"Nuked (更准确)"
-#define STR_FM_DRV_YMFM		"YMFM (更快)"
+#define STR_SOUND1        "声卡 1:"
+#define STR_SOUND2        "声卡 2:"
+#define STR_SOUND3        "声卡 3:"
+#define STR_SOUND4        "声卡 4:"
+#define STR_MIDI_OUT        "MIDI 输出设备:"
+#define STR_MIDI_IN        "MIDI 输入设备:"
+#define STR_MPU401        "独立 MPU-401"
+#define STR_FLOAT        "使用单精度浮点 (FLOAT32)"
+#define STR_FM_DRIVER        "调频合成器驱动器"
+#define STR_FM_DRV_NUKED    "Nuked (更准确)"
+#define STR_FM_DRV_YMFM        "YMFM (更快)"
 
-#define STR_NET_TYPE	"网络类型:"
-#define STR_PCAP		"PCap 设备:"
-#define STR_NET			"网络适配器:"
-#define STR_NET1		"Network card 1:"
-#define STR_NET2		"Network card 2:"
-#define STR_NET3		"Network card 3:"
-#define STR_NET4		"Network card 4:"
+#define STR_NET_TYPE    "网络类型:"
+#define STR_PCAP        "PCap 设备:"
+#define STR_NET            "网络适配器:"
+#define STR_NET1        "Network card 1:"
+#define STR_NET2        "Network card 2:"
+#define STR_NET3        "Network card 3:"
+#define STR_NET4        "Network card 4:"
 
-#define STR_COM1		"COM1 设备:"
-#define STR_COM2		"COM2 设备:"
-#define STR_COM3		"COM3 设备:"
-#define STR_COM4		"COM4 设备:"
-#define STR_LPT1		"LPT1 设备:"
-#define STR_LPT2		"LPT2 设备:"
-#define STR_LPT3		"LPT3 设备:"
-#define STR_LPT4		"LPT4 设备:"
-#define STR_SERIAL1		"串口 1"
-#define STR_SERIAL2		"串口 2"
-#define STR_SERIAL3		"串口 3"
-#define STR_SERIAL4		"串口 4"
-#define STR_PARALLEL1		"并口 1"
-#define STR_PARALLEL2		"并口 2"
-#define STR_PARALLEL3		"并口 3"
-#define STR_PARALLEL4		"并口 4"
-#define STR_SERIAL_PASS1	"Serial port passthrough 1"
-#define STR_SERIAL_PASS2	"Serial port passthrough 2"
-#define STR_SERIAL_PASS3	"Serial port passthrough 3"
-#define STR_SERIAL_PASS4	"Serial port passthrough 4"
+#define STR_COM1        "COM1 设备:"
+#define STR_COM2        "COM2 设备:"
+#define STR_COM3        "COM3 设备:"
+#define STR_COM4        "COM4 设备:"
+#define STR_LPT1        "LPT1 设备:"
+#define STR_LPT2        "LPT2 设备:"
+#define STR_LPT3        "LPT3 设备:"
+#define STR_LPT4        "LPT4 设备:"
+#define STR_SERIAL1        "串口 1"
+#define STR_SERIAL2        "串口 2"
+#define STR_SERIAL3        "串口 3"
+#define STR_SERIAL4        "串口 4"
+#define STR_PARALLEL1        "并口 1"
+#define STR_PARALLEL2        "并口 2"
+#define STR_PARALLEL3        "并口 3"
+#define STR_PARALLEL4        "并口 4"
+#define STR_SERIAL_PASS1    "Serial port passthrough 1"
+#define STR_SERIAL_PASS2    "Serial port passthrough 2"
+#define STR_SERIAL_PASS3    "Serial port passthrough 3"
+#define STR_SERIAL_PASS4    "Serial port passthrough 4"
 
-#define STR_HDC			"硬盘控制器:"
-#define STR_FDC			"软盘控制器:"
-#define STR_IDE_TER		"第三 IDE 控制器"
-#define STR_IDE_QUA		"第四 IDE 控制器"
-#define STR_SCSI		"SCSI"
-#define STR_SCSI_1		"控制器 1:"
-#define STR_SCSI_2		"控制器 2:"
-#define STR_SCSI_3		"控制器 3:"
-#define STR_SCSI_4		"控制器 4:"
-#define STR_CASSETTE		"磁带"
+#define STR_HDC            "硬盘控制器:"
+#define STR_FDC            "软盘控制器:"
+#define STR_IDE_TER        "第三 IDE 控制器"
+#define STR_IDE_QUA        "第四 IDE 控制器"
+#define STR_SCSI        "SCSI"
+#define STR_SCSI_1        "控制器 1:"
+#define STR_SCSI_2        "控制器 2:"
+#define STR_SCSI_3        "控制器 3:"
+#define STR_SCSI_4        "控制器 4:"
+#define STR_CASSETTE        "磁带"
 
-#define STR_HDD			"硬盘:"
-#define STR_NEW			"新建(&N)..."
-#define STR_EXISTING		"已有镜像(&E)..."
-#define STR_REMOVE		"移除(&R)"
-#define STR_BUS			"总线:"
-#define STR_CHANNEL		"通道:"
-#define STR_ID			"ID:"
-#define STR_SPEED		"Speed:"
+#define STR_HDD            "硬盘:"
+#define STR_NEW            "新建(&N)..."
+#define STR_EXISTING        "已有镜像(&E)..."
+#define STR_REMOVE        "移除(&R)"
+#define STR_BUS            "总线:"
+#define STR_CHANNEL        "通道:"
+#define STR_ID            "ID:"
+#define STR_SPEED        "Speed:"
 
-#define STR_SPECIFY		"指定(&S)..."
-#define STR_SECTORS		"扇区(S):"
-#define STR_HEADS		"磁头(H):"
-#define STR_CYLS		"柱面(C):"
-#define STR_SIZE_MB		"大小 (MB):"
-#define STR_TYPE		"类型:"
-#define STR_IMG_FORMAT		"镜像格式:"
-#define STR_BLOCK_SIZE		"块大小:"
+#define STR_SPECIFY        "指定(&S)..."
+#define STR_SECTORS        "扇区(S):"
+#define STR_HEADS        "磁头(H):"
+#define STR_CYLS        "柱面(C):"
+#define STR_SIZE_MB        "大小 (MB):"
+#define STR_TYPE        "类型:"
+#define STR_IMG_FORMAT        "镜像格式:"
+#define STR_BLOCK_SIZE        "块大小:"
 
-#define STR_FLOPPY_DRIVES	"软盘驱动器:"
-#define STR_TURBO		"加速时序"
-#define STR_CHECKBPB		"检查 BPB"
-#define STR_CDROM_DRIVES	"光盘驱动器:"
-#define STR_CD_SPEED		"速度:"
-#define STR_EARLY		"早先的驱动器"
+#define STR_FLOPPY_DRIVES    "软盘驱动器:"
+#define STR_TURBO        "加速时序"
+#define STR_CHECKBPB        "检查 BPB"
+#define STR_CDROM_DRIVES    "光盘驱动器:"
+#define STR_CD_SPEED        "速度:"
+#define STR_EARLY        "早先的驱动器"
 
-#define STR_MO_DRIVES		"磁光盘驱动器:"
-#define STR_ZIP_DRIVES		"ZIP 驱动器:"
-#define STR_250			"ZIP 250"
+#define STR_MO_DRIVES        "磁光盘驱动器:"
+#define STR_ZIP_DRIVES        "ZIP 驱动器:"
+#define STR_250            "ZIP 250"
 
-#define STR_ISARTC		"ISA 实时时钟:"
-#define STR_ISAMEM		"ISA 内存扩充"
-#define STR_ISAMEM_1		"扩展卡 1:"
-#define STR_ISAMEM_2		"扩展卡 2:"
-#define STR_ISAMEM_3		"扩展卡 3:"
-#define STR_ISAMEM_4		"扩展卡 4:"
-#define STR_BUGGER		"ISABugger 设备"
-#define STR_POSTCARD		"自检 (POST) 卡"
+#define STR_ISARTC        "ISA 实时时钟:"
+#define STR_ISAMEM        "ISA 内存扩充"
+#define STR_ISAMEM_1        "扩展卡 1:"
+#define STR_ISAMEM_2        "扩展卡 2:"
+#define STR_ISAMEM_3        "扩展卡 3:"
+#define STR_ISAMEM_4        "扩展卡 4:"
+#define STR_BUGGER        "ISABugger 设备"
+#define STR_POSTCARD        "自检 (POST) 卡"
 
-#define FONT_SIZE		9
-#define FONT_NAME		"Microsoft YaHei"
+#define FONT_SIZE        9
+#define FONT_NAME        "Microsoft YaHei"
 
 #include "dialogs.rc"
 
@@ -394,197 +394,198 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    2048	"86Box"
-    IDS_2049	"错误"
-    IDS_2050	"致命错误"
-    IDS_2051	" - 已暂停"
-    IDS_2052	"按下 Ctrl+Alt+PgDn 返回到窗口模式。"
-    IDS_2053	"速度"
-    IDS_2054	"ZIP %03i %i (%s): %ls"
-    IDS_2055	"ZIP 镜像 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"86Box 找不到任何可用的 ROM 镜像。\n\n请<a href=""https://github.com/86Box/roms/releases/latest"">下载</a>ROM 包并将其解压到 ""roms"" 文件夹。"
-    IDS_2057	"(空)"
-    IDS_2058	"ZIP 镜像 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0所有文件 (*.*)\0*.*\0"
-    IDS_2059	"加速"
-    IDS_2060	"开"
-    IDS_2061	"关"
-    IDS_2062	"所有镜像 (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0基本扇区镜像 (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0表面镜像 (*.86F)\0*.86F\0"
-    IDS_2063	"由于 roms/machines 文件夹中缺少合适的 ROM，机型 ""%hs"" 不可用。将切换到其他可用机型。"
+    2048    "86Box"
+    IDS_2049    "错误"
+    IDS_2050    "致命错误"
+    IDS_2051    " - 已暂停"
+    IDS_2052    "按下 Ctrl+Alt+PgDn 返回到窗口模式。"
+    IDS_2053    "速度"
+    IDS_2054    "ZIP %03i %i (%s): %ls"
+    IDS_2055    "ZIP 镜像 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
+    IDS_2056    "86Box 找不到任何可用的 ROM 镜像。\n\n请<a href=""https://github.com/86Box/roms/releases/latest"">下载</a>ROM 包并将其解压到 ""roms"" 文件夹。"
+    IDS_2057    "(空)"
+    IDS_2058    "ZIP 镜像 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0所有文件 (*.*)\0*.*\0"
+    IDS_2059    "加速"
+    IDS_2060    "开"
+    IDS_2061    "关"
+    IDS_2062    "所有镜像 (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0基本扇区镜像 (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0表面镜像 (*.86F)\0*.86F\0"
+    IDS_2063    "由于 roms/machines 文件夹中缺少合适的 ROM，机型 ""%hs"" 不可用。将切换到其他可用机型。"
 END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_2064	"由于 roms/video 文件夹中缺少合适的 ROM，显卡 ""%hs"" 不可用。将切换到其他可用显卡。"
-    IDS_2065	"机型"
-    IDS_2066	"显示"
-    IDS_2067	"输入设备"
-    IDS_2068	"声音"
-    IDS_2069	"网络"
-    IDS_2070	"端口 (COM 和 LPT)"
-    IDS_2071	"存储控制器"
-    IDS_2072	"硬盘"
-    IDS_2073	"软盘/光盘驱动器"
-    IDS_2074	"其他可移动设备"
-    IDS_2075	"其他外围设备"
-    IDS_2076	"表面镜像 (*.86F)\0*.86F\0"
-    IDS_2077	"单击窗口捕捉鼠标"
-    IDS_2078	"按下 F8+F12 释放鼠标"
-    IDS_2079	"按下 F8+F12 或鼠标中键释放鼠标"
+    IDS_2064    "由于 roms/video 文件夹中缺少合适的 ROM，显卡 ""%hs"" 不可用。将切换到其他可用显卡。"
+    IDS_2065    "机型"
+    IDS_2066    "显示"
+    IDS_2067    "输入设备"
+    IDS_2068    "声音"
+    IDS_2069    "网络"
+    IDS_2070    "端口 (COM 和 LPT)"
+    IDS_2071    "存储控制器"
+    IDS_2072    "硬盘"
+    IDS_2073    "软盘/光盘驱动器"
+    IDS_2074    "其他可移动设备"
+    IDS_2075    "其他外围设备"
+    IDS_2076    "表面镜像 (*.86F)\0*.86F\0"
+    IDS_2077    "单击窗口捕捉鼠标"
+    IDS_2078    "按下 F8+F12 释放鼠标"
+    IDS_2079    "按下 F8+F12 或鼠标中键释放鼠标"
 END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_2080	"无法初始化 FluidSynth"
-    IDS_2081	"总线"
-    IDS_2082	"文件"
-    IDS_2083	"C"
-    IDS_2084	"H"
-    IDS_2085	"S"
-    IDS_2086	"MB"
+    IDS_2080    "无法初始化 FluidSynth"
+    IDS_2081    "总线"
+    IDS_2082    "文件"
+    IDS_2083    "C"
+    IDS_2084    "H"
+    IDS_2085    "S"
+    IDS_2086    "MB"
     IDS_2087    "Speed"
-    IDS_2088	"检查 BPB"
-    IDS_2089	"KB"
-    IDS_2090	"无法初始化视频渲染器。"
-    IDS_2091	"默认"
-    IDS_2092	"%i 等待状态 (WS)"
-    IDS_2093	"类型"
-    IDS_2094	"设置 PCap 失败"
-    IDS_2095	"未找到 PCap 设备"
-    IDS_2096	"无效 PCap 设备"
-    IDS_2097	"标准 2 键操纵杆"
-    IDS_2098	"标准 4 键操纵杆"
-    IDS_2099	"标准 6 键操纵杆"
-    IDS_2100	"标准 8 键操纵杆"
-    IDS_2101	"CH Flightstick Pro"
-    IDS_2102	"Microsoft SideWinder Pad"
-    IDS_2103	"Thrustmaster Flight Control System"
-    IDS_2104	"无"
-    IDS_2105	"无法加载键盘加速器。"
-    IDS_2106	"无法注册原始输入。"
-    IDS_2107	"%u"
-    IDS_2108	"%u MB (CHS: %i, %i, %i)"
-    IDS_2109	"软盘 %i (%s): %ls"
-    IDS_2110	"所有镜像 (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0高级扇区镜像 (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0基本扇区镜像 (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux 镜像 (*.FDI)\0*.FDI\0表面镜像 (*.86F;*.MFM)\0*.86F;*.MFM\0所有文件 (*.*)\0*.*\0"
-    IDS_2111	"无法初始化 FreeType"
-    IDS_2112	"无法初始化 SDL，需要 SDL2.dll"
-    IDS_2113	"确定要硬重置模拟器吗？"
-    IDS_2114	"确定要退出 86Box 吗？"
-    IDS_2115	"无法初始化 Ghostscript"
-    IDS_2116	"磁光盘 %i (%ls): %ls"
-    IDS_2117	"磁光盘镜像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
-    IDS_2118	"欢迎使用 86Box！"
-    IDS_2119	"内部控制器"
-    IDS_2120	"退出"
-    IDS_2121	"找不到 ROM"
-    IDS_2122	"要保存设置吗？"
-    IDS_2123	"此操作将硬重置模拟器。"
-    IDS_2124	"保存"
-    IDS_2125	"关于 86Box"
-    IDS_2126	"86Box v" EMU_VERSION
+    IDS_2088    "检查 BPB"
+    IDS_2089    "KB"
+    IDS_2090    "无法初始化视频渲染器。"
+    IDS_2091    "默认"
+    IDS_2092    "%i 等待状态 (WS)"
+    IDS_2093    "类型"
+    IDS_2094    "设置 PCap 失败"
+    IDS_2095    "未找到 PCap 设备"
+    IDS_2096    "无效 PCap 设备"
+    IDS_2097    "标准 2 键操纵杆"
+    IDS_2098    "标准 4 键操纵杆"
+    IDS_2099    "标准 6 键操纵杆"
+    IDS_2100    "标准 8 键操纵杆"
+    IDS_2101    "CH Flightstick Pro"
+    IDS_2102    "Microsoft SideWinder Pad"
+    IDS_2103    "Thrustmaster Flight Control System"
+    IDS_2104    "无"
+    IDS_2105    "无法加载键盘加速器。"
+    IDS_2106    "无法注册原始输入。"
+    IDS_2107    "%u"
+    IDS_2108    "%u MB (CHS: %i, %i, %i)"
+    IDS_2109    "软盘 %i (%s): %ls"
+    IDS_2110    "所有镜像 (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0高级扇区镜像 (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0基本扇区镜像 (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux 镜像 (*.FDI)\0*.FDI\0表面镜像 (*.86F;*.MFM)\0*.86F;*.MFM\0所有文件 (*.*)\0*.*\0"
+    IDS_2111    "无法初始化 FreeType"
+    IDS_2112    "无法初始化 SDL，需要 SDL2.dll"
+    IDS_2113    "确定要硬重置模拟器吗？"
+    IDS_2114    "确定要退出 86Box 吗？"
+    IDS_2115    "无法初始化 Ghostscript"
+    IDS_2116    "磁光盘 %i (%ls): %ls"
+    IDS_2117    "磁光盘镜像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
+    IDS_2118    "欢迎使用 86Box！"
+    IDS_2119    "内部控制器"
+    IDS_2120    "退出"
+    IDS_2121    "找不到 ROM"
+    IDS_2122    "要保存设置吗？"
+    IDS_2123    "此操作将硬重置模拟器。"
+    IDS_2124    "保存"
+    IDS_2125    "关于 86Box"
+    IDS_2126    "86Box v" EMU_VERSION
 
-    IDS_2127	"一个旧式计算机模拟器\n\n作者: Sarah Walker、Miran Grca、Fred N. van Kempen (waltje)、SA1988、Tiseno100、reenigne、leilei、JohnElliott、greatpsycho 等人。\n\n本软件依据 GNU 通用公共许可证第二版或更新版本发布。详情见 LICENSE 文件。"
-    IDS_2128	"确定"
-    IDS_2129	"硬件不可用"
+    IDS_2127    "一个旧式计算机模拟器\n\n作者: Sarah Walker、Miran Grca、Fred N. van Kempen (waltje)、SA1988、Tiseno100、reenigne、leilei、JohnElliott、greatpsycho 等人。\n\n本软件依据 GNU 通用公共许可证第二版或更新版本发布。详情见 LICENSE 文件。"
+    IDS_2128    "确定"
+    IDS_2129    "硬件不可用"
 #ifdef _WIN32
 #define LIB_NAME_PCAP "WinPcap"
 #else
 #define LIB_NAME_PCAP "libpcap"
 #endif
-    IDS_2130	"请确认 " LIB_NAME_PCAP " 已安装且使用兼容 " LIB_NAME_PCAP " 的网络连接。"
-    IDS_2131	"无效配置"
+    IDS_2130    "请确认 " LIB_NAME_PCAP " 已安装且使用兼容 " LIB_NAME_PCAP " 的网络连接。"
+    IDS_2131    "无效配置"
 #ifdef _WIN32
 #define LIB_NAME_FREETYPE "freetype.dll"
 #else
 #define LIB_NAME_FREETYPE "libfreetype"
 #endif
-    IDS_2132	"ESC/P 打印机模拟需要" LIB_NAME_FREETYPE 
+    IDS_2132    "ESC/P 打印机模拟需要" LIB_NAME_FREETYPE 
 #ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
-    IDS_2133	LIB_NAME_GS " 是将 PostScript 文件转换为 PDF 所需要的库。\n\n使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
+    IDS_2133    LIB_NAME_GS " 是将 PostScript 文件转换为 PDF 所需要的库。\n\n使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
 #ifdef _WIN32
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
 #else
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth"
 #endif
-    IDS_2134	"FluidSynth MIDI 输出需要" LIB_NAME_FLUIDSYNTH 
-    IDS_2135	"正在进入全屏模式"
-    IDS_2136	"不要再显示此消息"
-    IDS_2137	"不退出"
-    IDS_2138	"重置"
-    IDS_2139	"不重置"
-    IDS_2140	"磁光盘镜像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
-    IDS_2141	"光盘镜像 (*.ISO;*.CUE)\0*.ISO;*.CUE\0所有文件 (*.*)\0*.*\0"
-    IDS_2142	"%hs 设备配置"
+    IDS_2134    "FluidSynth MIDI 输出需要" LIB_NAME_FLUIDSYNTH 
+    IDS_2135    "正在进入全屏模式"
+    IDS_2136    "不要再显示此消息"
+    IDS_2137    "不退出"
+    IDS_2138    "重置"
+    IDS_2139    "不重置"
+    IDS_2140    "磁光盘镜像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
+    IDS_2141    "光盘镜像 (*.ISO;*.CUE)\0*.ISO;*.CUE\0所有文件 (*.*)\0*.*\0"
+    IDS_2142    "%hs 设备配置"
     IDS_2143    "显示器处在睡眠状态"
-    IDS_2144	"OpenGL 着色器 (*.GLSL)\0*.GLSL\0所有文件 (*.*)\0*.*\0"
-    IDS_2145	"OpenGL 选项"
-    IDS_2146	"正在载入一个不受支持的配置"
-    IDS_2147	"此模拟计算机禁用了基于选定计算机的 CPU 类型过滤。\n\n能够选中与所选机器本不兼容的 CPU，但是可能会遇到与机器 BIOS 或其他软件不兼容的问题。\n\n启用此设置不受官方支持，并且提交的任何错误报告可能会视为无效而关闭。"
-    IDS_2148	"继续"
-    IDS_2149	"磁带: %s"
-    IDS_2150	"磁带镜像 (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0所有文件 (*.*)\0*.*\0"
-    IDS_2151	"卡带 %i: %ls"
-    IDS_2152	"卡带镜像 (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0所有文件 (*.*)\0*.*\0"
-    IDS_2153	"初始化渲染器时出错"
-    IDS_2154	"无法初始化 OpenGL (3.0 核心) 渲染器。请使用其他渲染器。"
-    IDS_2155	"恢复执行"
-    IDS_2156	"暂停执行"
-    IDS_2157	"按下 Ctrl+Alt+Del"
-    IDS_2158	"按下 Ctrl+Alt+Esc"
-    IDS_2159	"硬重置"
-    IDS_2160	"ACPI 关机"
-    IDS_2161	"设置"
+    IDS_2144    "OpenGL 着色器 (*.GLSL)\0*.GLSL\0所有文件 (*.*)\0*.*\0"
+    IDS_2145    "OpenGL 选项"
+    IDS_2146    "正在载入一个不受支持的配置"
+    IDS_2147    "此模拟计算机禁用了基于选定计算机的 CPU 类型过滤。\n\n能够选中与所选机器本不兼容的 CPU，但是可能会遇到与机器 BIOS 或其他软件不兼容的问题。\n\n启用此设置不受官方支持，并且提交的任何错误报告可能会视为无效而关闭。"
+    IDS_2148    "继续"
+    IDS_2149    "磁带: %s"
+    IDS_2150    "磁带镜像 (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0所有文件 (*.*)\0*.*\0"
+    IDS_2151    "卡带 %i: %ls"
+    IDS_2152    "卡带镜像 (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0所有文件 (*.*)\0*.*\0"
+    IDS_2153    "初始化渲染器时出错"
+    IDS_2154    "无法初始化 OpenGL (3.0 核心) 渲染器。请使用其他渲染器。"
+    IDS_2155    "恢复执行"
+    IDS_2156    "暂停执行"
+    IDS_2157    "按下 Ctrl+Alt+Del"
+    IDS_2158    "按下 Ctrl+Alt+Esc"
+    IDS_2159    "硬重置"
+    IDS_2160    "ACPI 关机"
+    IDS_2161    "设置"
     IDS_2162    "早先的驱动器"
-    IDS_2163    "no dynarec"
-    IDS_2164    "old dynarec"
-    IDS_2165    "new dynarec"
+    IDS_2163    "No Dynarec"
+    IDS_2164    "Old Dynarec"
+    IDS_2165    "New Dynarec"
+    IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
 END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
     IDS_4096    "硬盘 (%s)"
-    IDS_4097	"%01i:%01i"
-    IDS_4098	"%01i"
-    IDS_4099	"不存在 MFM/RLL 或 ESDI CD-ROM 驱动器"
-    IDS_4100	"自定义..."
-    IDS_4101	"自定义 (大容量)..."
-    IDS_4102	"添加新硬盘"
-    IDS_4103	"添加已存在的硬盘"
-    IDS_4104	"HDI 磁盘镜像不能超过 4 GB。"
-    IDS_4105	"磁盘镜像不能超过 127 GB。"
-    IDS_4106	"硬盘镜像 (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0所有文件 (*.*)\0*.*\0"
-    IDS_4107	"无法读取文件"
-    IDS_4108	"无法写入文件"
-    IDS_4109	"不支持非 512 字节扇区大小的 HDI 或 HDX 镜像。"
-    IDS_4110	"尚未支持 USB"
-    IDS_4111	"磁盘镜像文件已存在"
-    IDS_4112	"请指定有效的文件名。"
-    IDS_4113	"已创建磁盘镜像"
-    IDS_4114	"请确定此文件已存在并可读取。"
-    IDS_4115	"请确定此文件保存在可写目录中。"
-    IDS_4116	"磁盘镜像太大"
-    IDS_4117	"请记得为新创建的镜像分区并格式化。"
-    IDS_4118	"选定的文件将被覆盖。确定继续使用此文件吗？"
-    IDS_4119	"不支持的磁盘镜像"
-    IDS_4120	"覆盖"
-    IDS_4121	"不覆盖"
-    IDS_4122	"原始镜像 (.img)"
-    IDS_4123	"HDI 镜像 (.hdi)"
-    IDS_4124	"HDX 镜像 (.hdx)"
-    IDS_4125	"固定大小 VHD (.vhd)"
-    IDS_4126	"动态大小 VHD (.vhd)"
-    IDS_4127	"差分 VHD (.vhd)"
-    IDS_4128	"大块 (2 MB)"
-    IDS_4129	"小块 (512 KB)"
-    IDS_4130	"VHD 文件 (*.VHD)\0*.VHD\0所有文件 (*.*)\0*.*\0"
-    IDS_4131	"选择父 VHD 文件"
-    IDS_4132	"父映像可能在创建差异镜像后被修改。\n\n如果镜像文件被移动或复制，或创建此磁盘的程序中存在错误，也可能发生这种情况。\n\n是否需要修复时间戳？"
-    IDS_4133	"父盘与子盘的时间戳不匹配"
-    IDS_4134	"无法修复 VHD 时间戳。"
-    IDS_4135	"%01i:%02i"
+    IDS_4097    "%01i:%01i"
+    IDS_4098    "%01i"
+    IDS_4099    "不存在 MFM/RLL 或 ESDI CD-ROM 驱动器"
+    IDS_4100    "自定义..."
+    IDS_4101    "自定义 (大容量)..."
+    IDS_4102    "添加新硬盘"
+    IDS_4103    "添加已存在的硬盘"
+    IDS_4104    "HDI 磁盘镜像不能超过 4 GB。"
+    IDS_4105    "磁盘镜像不能超过 127 GB。"
+    IDS_4106    "硬盘镜像 (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0所有文件 (*.*)\0*.*\0"
+    IDS_4107    "无法读取文件"
+    IDS_4108    "无法写入文件"
+    IDS_4109    "不支持非 512 字节扇区大小的 HDI 或 HDX 镜像。"
+    IDS_4110    "尚未支持 USB"
+    IDS_4111    "磁盘镜像文件已存在"
+    IDS_4112    "请指定有效的文件名。"
+    IDS_4113    "已创建磁盘镜像"
+    IDS_4114    "请确定此文件已存在并可读取。"
+    IDS_4115    "请确定此文件保存在可写目录中。"
+    IDS_4116    "磁盘镜像太大"
+    IDS_4117    "请记得为新创建的镜像分区并格式化。"
+    IDS_4118    "选定的文件将被覆盖。确定继续使用此文件吗？"
+    IDS_4119    "不支持的磁盘镜像"
+    IDS_4120    "覆盖"
+    IDS_4121    "不覆盖"
+    IDS_4122    "原始镜像 (.img)"
+    IDS_4123    "HDI 镜像 (.hdi)"
+    IDS_4124    "HDX 镜像 (.hdx)"
+    IDS_4125    "固定大小 VHD (.vhd)"
+    IDS_4126    "动态大小 VHD (.vhd)"
+    IDS_4127    "差分 VHD (.vhd)"
+    IDS_4128    "大块 (2 MB)"
+    IDS_4129    "小块 (512 KB)"
+    IDS_4130    "VHD 文件 (*.VHD)\0*.VHD\0所有文件 (*.*)\0*.*\0"
+    IDS_4131    "选择父 VHD 文件"
+    IDS_4132    "父映像可能在创建差异镜像后被修改。\n\n如果镜像文件被移动或复制，或创建此磁盘的程序中存在错误，也可能发生这种情况。\n\n是否需要修复时间戳？"
+    IDS_4133    "父盘与子盘的时间戳不匹配"
+    IDS_4134    "无法修复 VHD 时间戳。"
+    IDS_4135    "%01i:%02i"
 
     IDS_4352    "MFM/RLL"
     IDS_4353    "XTA"
@@ -593,56 +594,56 @@ BEGIN
     IDS_4356    "ATAPI"
     IDS_4357    "SCSI"
 
-    IDS_4608	"MFM/RLL (%01i:%01i)"
-    IDS_4609	"XTA (%01i:%01i)"
-    IDS_4610	"ESDI (%01i:%01i)"
-    IDS_4611	"IDE (%01i:%01i)"
-    IDS_4612	"ATAPI (%01i:%01i)"
-    IDS_4613	"SCSI (%01i:%02i)"
+    IDS_4608    "MFM/RLL (%01i:%01i)"
+    IDS_4609    "XTA (%01i:%01i)"
+    IDS_4610    "ESDI (%01i:%01i)"
+    IDS_4611    "IDE (%01i:%01i)"
+    IDS_4612    "ATAPI (%01i:%01i)"
+    IDS_4613    "SCSI (%01i:%02i)"
 
-    IDS_5120	"光盘 %i (%s): %s"
+    IDS_5120    "光盘 %i (%s): %s"
 
-    IDS_5376	"禁用"
-    IDS_5381	"ATAPI"
+    IDS_5376    "禁用"
+    IDS_5381    "ATAPI"
     IDS_5382    "SCSI"
 
-    IDS_5632	"禁用"
-    IDS_5637	"ATAPI (%01i:%01i)"
+    IDS_5632    "禁用"
+    IDS_5637    "ATAPI (%01i:%01i)"
     IDS_5638    "SCSI (%01i:%02i)"
 
-    IDS_5888	"160 kB"
-    IDS_5889	"180 kB"
-    IDS_5890	"320 kB"
-    IDS_5891	"360 kB"
-    IDS_5892	"640 kB"
-    IDS_5893	"720 kB"
-    IDS_5894	"1.2 MB"
-    IDS_5895	"1.25 MB"
-    IDS_5896	"1.44 MB"
-    IDS_5897	"DMF (1024 簇)"
-    IDS_5898	"DMF (2048 簇)"
-    IDS_5899	"2.88 MB"
-    IDS_5900	"ZIP 100"
-    IDS_5901	"ZIP 250"
-    IDS_5902	"3.5 英寸 128 MB (ISO 10090)"
-    IDS_5903	"3.5 英寸 230 MB (ISO 13963)"
-    IDS_5904	"3.5 英寸 540 MB (ISO 15498)"
-    IDS_5905	"3.5 英寸 640 MB (ISO 15498)"
-    IDS_5906	"3.5 英寸 1.3 GB (GigaMO)"
-    IDS_5907	"3.5 英寸 2.3 GB (GigaMO 2)"
-    IDS_5908	"5.25 英寸 600 MB"
-    IDS_5909	"5.25 英寸 650 MB"
-    IDS_5910	"5.25 英寸 1 GB"
-    IDS_5911	"5.25 英寸 1.3 GB"
+    IDS_5888    "160 kB"
+    IDS_5889    "180 kB"
+    IDS_5890    "320 kB"
+    IDS_5891    "360 kB"
+    IDS_5892    "640 kB"
+    IDS_5893    "720 kB"
+    IDS_5894    "1.2 MB"
+    IDS_5895    "1.25 MB"
+    IDS_5896    "1.44 MB"
+    IDS_5897    "DMF (1024 簇)"
+    IDS_5898    "DMF (2048 簇)"
+    IDS_5899    "2.88 MB"
+    IDS_5900    "ZIP 100"
+    IDS_5901    "ZIP 250"
+    IDS_5902    "3.5 英寸 128 MB (ISO 10090)"
+    IDS_5903    "3.5 英寸 230 MB (ISO 13963)"
+    IDS_5904    "3.5 英寸 540 MB (ISO 15498)"
+    IDS_5905    "3.5 英寸 640 MB (ISO 15498)"
+    IDS_5906    "3.5 英寸 1.3 GB (GigaMO)"
+    IDS_5907    "3.5 英寸 2.3 GB (GigaMO 2)"
+    IDS_5908    "5.25 英寸 600 MB"
+    IDS_5909    "5.25 英寸 650 MB"
+    IDS_5910    "5.25 英寸 1 GB"
+    IDS_5911    "5.25 英寸 1.3 GB"
 
-    IDS_6144	"标准转速 (RPM)"
-    IDS_6145	"低于标准转速的 1%"
-    IDS_6146	"低于标准转速的 1.5%"
-    IDS_6147	"低于标准转速的 2%"
+    IDS_6144    "标准转速 (RPM)"
+    IDS_6145    "低于标准转速的 1%"
+    IDS_6146    "低于标准转速的 1.5%"
+    IDS_6147    "低于标准转速的 2%"
 
-    IDS_7168	"(系统默认)"
+    IDS_7168    "(系统默认)"
 END
-#define IDS_LANG_ENUS	IDS_7168
+#define IDS_LANG_ENUS    IDS_7168
 
 // Simplified Chinese resources
 /////////////////////////////////////////////////////////////////////////////

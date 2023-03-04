@@ -45,7 +45,7 @@
 #include <86box/win.h>
 #include <86box/version.h>
 #ifdef DISCORD
-#   include <86box/discord.h>
+#    include <86box/discord.h>
 #endif
 
 #ifdef MTR_ENABLED
@@ -1603,7 +1603,13 @@ void
 ui_init_monitor(int monitor_index)
 {
 }
+
 void
 ui_deinit_monitor(int monitor_index)
+{
+}
+
+void
+ui_hard_reset_completed(void)
 {
 }

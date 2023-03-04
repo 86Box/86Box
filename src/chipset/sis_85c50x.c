@@ -135,89 +135,90 @@ sis_85c50x_smm_recalc(sis_85c50x_t *dev)
 static void
 sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
 {
-    sis_85c50x_t *dev    = (sis_85c50x_t *) priv;
+    sis_85c50x_t *dev = (sis_85c50x_t *) priv;
 
     sis_85c50x_log("85C501: [W] (%02X, %02X) = %02X\n", func, addr, val);
 
-    if (func == 0x00)  switch (addr) {
-        case 0x04: /* Command - low byte */
-            dev->pci_conf[addr] = (dev->pci_conf[addr] & 0xb4) | (val & 0x4b);
-            break;
-        case 0x07: /* Status - high byte */
-            dev->pci_conf[addr] = ((dev->pci_conf[addr] & 0xf9) & ~(val & 0xf8)) | (val & 0x06);
-            break;
-        case 0x50:
-            dev->pci_conf[addr] = val;
-            break;
-        case 0x51: /* Cache */
-            dev->pci_conf[addr]   = val;
-            cpu_cache_ext_enabled = (val & 0x40);
-            cpu_update_waitstates();
-            break;
-        case 0x52:
-            dev->pci_conf[addr] = val;
-            break;
-        case 0x53: /* Shadow RAM */
-        case 0x54:
-        case 0x55:
-        case 0x56:
-            dev->pci_conf[addr] = val;
-            sis_85c50x_shadow_recalc(dev);
-            if (addr == 0x54)
+    if (func == 0x00)
+        switch (addr) {
+            case 0x04: /* Command - low byte */
+                dev->pci_conf[addr] = (dev->pci_conf[addr] & 0xb4) | (val & 0x4b);
+                break;
+            case 0x07: /* Status - high byte */
+                dev->pci_conf[addr] = ((dev->pci_conf[addr] & 0xf9) & ~(val & 0xf8)) | (val & 0x06);
+                break;
+            case 0x50:
+                dev->pci_conf[addr] = val;
+                break;
+            case 0x51: /* Cache */
+                dev->pci_conf[addr]   = val;
+                cpu_cache_ext_enabled = (val & 0x40);
+                cpu_update_waitstates();
+                break;
+            case 0x52:
+                dev->pci_conf[addr] = val;
+                break;
+            case 0x53: /* Shadow RAM */
+            case 0x54:
+            case 0x55:
+            case 0x56:
+                dev->pci_conf[addr] = val;
+                sis_85c50x_shadow_recalc(dev);
+                if (addr == 0x54)
+                    sis_85c50x_smm_recalc(dev);
+                break;
+            case 0x57:
+            case 0x58:
+            case 0x59:
+            case 0x5a:
+            case 0x5c:
+            case 0x5d:
+            case 0x5e:
+            case 0x61:
+            case 0x62:
+            case 0x63:
+            case 0x67:
+            case 0x68:
+            case 0x6a:
+            case 0x6b:
+            case 0x6c:
+            case 0x6d:
+            case 0x6e:
+            case 0x6f:
+                dev->pci_conf[addr] = val;
+                break;
+            case 0x5f:
+                dev->pci_conf[addr] = val & 0xfe;
+                break;
+            case 0x5b:
+                dev->pci_conf[addr] = val;
+                break;
+            case 0x60: /* SMI */
+                if ((dev->pci_conf[0x68] & 0x01) && !(dev->pci_conf[addr] & 0x02) && (val & 0x02)) {
+                    dev->pci_conf[0x69] |= 0x01;
+                    smi_raise();
+                }
+                dev->pci_conf[addr] = val & 0x3e;
+                break;
+            case 0x64: /* SMRAM */
+            case 0x65:
+                dev->pci_conf[addr] = val;
                 sis_85c50x_smm_recalc(dev);
-            break;
-        case 0x57:
-        case 0x58:
-        case 0x59:
-        case 0x5a:
-        case 0x5c:
-        case 0x5d:
-        case 0x5e:
-        case 0x61:
-        case 0x62:
-        case 0x63:
-        case 0x67:
-        case 0x68:
-        case 0x6a:
-        case 0x6b:
-        case 0x6c:
-        case 0x6d:
-        case 0x6e:
-        case 0x6f:
-            dev->pci_conf[addr] = val;
-            break;
-        case 0x5f:
-            dev->pci_conf[addr] = val & 0xfe;
-            break;
-        case 0x5b:
-            dev->pci_conf[addr] = val;
-            break;
-        case 0x60: /* SMI */
-            if ((dev->pci_conf[0x68] & 0x01) && !(dev->pci_conf[addr] & 0x02) && (val & 0x02)) {
-                dev->pci_conf[0x69] |= 0x01;
-                smi_raise();
-            }
-            dev->pci_conf[addr] = val & 0x3e;
-            break;
-        case 0x64: /* SMRAM */
-        case 0x65:
-            dev->pci_conf[addr] = val;
-            sis_85c50x_smm_recalc(dev);
-            break;
-        case 0x66:
-            dev->pci_conf[addr] = (val & 0x7f);
-            break;
-        case 0x69:
-            dev->pci_conf[addr] &= ~(val);
-            break;
-    }
+                break;
+            case 0x66:
+                dev->pci_conf[addr] = (val & 0x7f);
+                break;
+            case 0x69:
+                dev->pci_conf[addr] &= ~(val);
+                break;
+        }
 }
 
 static uint8_t
 sis_85c50x_read(int func, int addr, void *priv)
 {
     sis_85c50x_t *dev = (sis_85c50x_t *) priv;
-    uint8_t ret = 0xff;
+    uint8_t       ret = 0xff;
 
     if (func == 0x00)
         ret = dev->pci_conf[addr];
@@ -234,41 +235,42 @@ sis_85c50x_sb_write(int func, int addr, uint8_t val, void *priv)
 
     sis_85c50x_log("85C503: [W] (%02X, %02X) = %02X\n", func, addr, val);
 
-    if (func == 0x00)  switch (addr) {
-        case 0x04: /* Command */
-            dev->pci_conf_sb[addr] = val & 0x0f;
-            break;
-        case 0x07: /* Status */
-            dev->pci_conf_sb[addr] &= ~(val & 0x30);
-            break;
-        case 0x40: /* BIOS Control Register */
-            dev->pci_conf_sb[addr] = val & 0x3f;
-            break;
-        case 0x41:
-        case 0x42:
-        case 0x43:
-        case 0x44:
-            /* INTA/B/C/D# Remapping Control Register */
-            dev->pci_conf_sb[addr] = val & 0x8f;
-            if (val & 0x80)
-                pci_set_irq_routing(PCI_INTA + (addr - 0x41), PCI_IRQ_DISABLED);
-            else
-                pci_set_irq_routing(PCI_INTA + (addr - 0x41), val & 0xf);
-            break;
-        case 0x48: /* ISA Master/DMA Memory Cycle Control Register 1 */
-        case 0x49: /* ISA Master/DMA Memory Cycle Control Register 2 */
-        case 0x4a: /* ISA Master/DMA Memory Cycle Control Register 3 */
-        case 0x4b: /* ISA Master/DMA Memory Cycle Control Register 4 */
-            dev->pci_conf_sb[addr] = val;
-            break;
-    }
+    if (func == 0x00)
+        switch (addr) {
+            case 0x04: /* Command */
+                dev->pci_conf_sb[addr] = val & 0x0f;
+                break;
+            case 0x07: /* Status */
+                dev->pci_conf_sb[addr] &= ~(val & 0x30);
+                break;
+            case 0x40: /* BIOS Control Register */
+                dev->pci_conf_sb[addr] = val & 0x3f;
+                break;
+            case 0x41:
+            case 0x42:
+            case 0x43:
+            case 0x44:
+                /* INTA/B/C/D# Remapping Control Register */
+                dev->pci_conf_sb[addr] = val & 0x8f;
+                if (val & 0x80)
+                    pci_set_irq_routing(PCI_INTA + (addr - 0x41), PCI_IRQ_DISABLED);
+                else
+                    pci_set_irq_routing(PCI_INTA + (addr - 0x41), val & 0xf);
+                break;
+            case 0x48: /* ISA Master/DMA Memory Cycle Control Register 1 */
+            case 0x49: /* ISA Master/DMA Memory Cycle Control Register 2 */
+            case 0x4a: /* ISA Master/DMA Memory Cycle Control Register 3 */
+            case 0x4b: /* ISA Master/DMA Memory Cycle Control Register 4 */
+                dev->pci_conf_sb[addr] = val;
+                break;
+        }
 }
 
 static uint8_t
 sis_85c50x_sb_read(int func, int addr, void *priv)
 {
     sis_85c50x_t *dev = (sis_85c50x_t *) priv;
-    uint8_t ret = 0xff;
+    uint8_t       ret = 0xff;
 
     if (func == 0x00)
         ret = dev->pci_conf_sb[addr];

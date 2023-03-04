@@ -33,12 +33,12 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 
-#define BIOS_ADDR (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
+#define BIOS_ADDR       (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
 #define ROM_MONSTER_FDC "roms/floppy/monster-fdc/floppy_bios.bin"
 
 typedef struct
 {
-    rom_t bios_rom;
+    rom_t  bios_rom;
     fdc_t *fdc_pri;
     fdc_t *fdc_sec;
 } monster_fdc_t;
@@ -46,7 +46,7 @@ typedef struct
 static void
 monster_fdc_close(void *priv)
 {
-    monster_fdc_t *dev = (monster_fdc_t *)priv;
+    monster_fdc_t *dev = (monster_fdc_t *) priv;
 
     free(dev);
 }
@@ -56,7 +56,7 @@ monster_fdc_init(const device_t *info)
 {
     monster_fdc_t *dev;
 
-    dev = (monster_fdc_t *)malloc(sizeof(monster_fdc_t));
+    dev = (monster_fdc_t *) malloc(sizeof(monster_fdc_t));
     memset(dev, 0, sizeof(monster_fdc_t));
 
 #if 0
@@ -86,13 +86,14 @@ monster_fdc_init(const device_t *info)
     return dev;
 }
 
-static int monster_fdc_available(void)
+static int
+monster_fdc_available(void)
 {
     return rom_present(ROM_MONSTER_FDC);
 }
 
 static const device_config_t monster_fdc_config[] = {
-// clang-format off
+  // clang-format off
 #if 0
     {
         .name = "sec_enabled",
@@ -205,19 +206,19 @@ static const device_config_t monster_fdc_config[] = {
     },
 #endif
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t fdc_monster_device = {
-    .name = "Monster FDC Floppy Drive Controller",
+    .name          = "Monster FDC Floppy Drive Controller",
     .internal_name = "monster_fdc",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = monster_fdc_init,
-    .close = monster_fdc_close,
-    .reset = NULL,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = monster_fdc_init,
+    .close         = monster_fdc_close,
+    .reset         = NULL,
     { .available = monster_fdc_available },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config =monster_fdc_config
+    .force_redraw  = NULL,
+    .config        = monster_fdc_config
 };
