@@ -151,6 +151,9 @@ RendererStack::mousePoll()
             if (!mouse_tablet_in_proximity) {
                 mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
             }
+            if (mousedata.mouse_tablet_in_proximity) {
+                mouse_buttons = mousedata.mousebuttons;
+            }
         }
         return;
     }
