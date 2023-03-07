@@ -26,7 +26,7 @@
 
 #define MPU401_VERSION      0x15
 #define MPU401_REVISION     0x01
-#define MPU401_QUEUE        64
+#define MPU401_QUEUE        1024
 #define MPU401_INPUT_QUEUE  1024
 #define MPU401_TIMECONSTANT (60000000 / 1000.0f)
 #define MPU401_RESETBUSY    27.0f
