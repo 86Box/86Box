@@ -5126,9 +5126,9 @@ mystique_hwcursor_draw(svga_t *svga, int displine)
         case XCURCTRL_CURMODE_XGA:
             for (x = 0; x < 64; x++) {
                 if (!(dat[1] & (1ull << 63)))
-                    buffer32->line[displine][offset + svga->x_add] = (dat[0] & (1ull << 63)) ? mystique->cursor.col[1] : mystique->cursor.col[0];
+                    svga->monitor->target_buffer->line[displine][offset + svga->x_add] = (dat[0] & (1ull << 63)) ? mystique->cursor.col[1] : mystique->cursor.col[0];
                 else if (dat[0] & (1ull << 63))
-                    buffer32->line[displine][offset + svga->x_add] ^= 0xffffff;
+                    svga->monitor->target_buffer->line[displine][offset + svga->x_add] ^= 0xffffff;
 
                 offset++;
                 dat[0] <<= 1;
