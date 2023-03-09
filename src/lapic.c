@@ -1,5 +1,7 @@
 #include <86box/apic.h>
 
+#define INITIAL_LAPIC_ADDRESS 0xFEE00000
+
 static __inline uint8_t
 lapic_get_bit_irr(apic_t *lapic, uint8_t bit)
 {
@@ -39,6 +41,17 @@ lapic_set_bit_tmr(apic_t *lapic, uint8_t bit, uint8_t val)
     lapic->tmr_ll[bit / 64] |= (((uint64_t)val) << (bit & 63));
 }
 
+static __inline uint8_t
+lapic_get_highest_bit(apic_t *lapic, uint8_t (*get_bit)(apic_t*, uint8_t)) {
+    uint8_t highest_bit = 0xFF;
+    for (uint8_t bit = 0; bit <= 255; bit++) {
+        if (get_bit(lapic, bit)) {
+            highest_bit = bit;
+        }
+    }
+    return highest_bit;
+}
+
 void*
 lapic_init(const device_t* info)
 {
@@ -72,18 +85,14 @@ lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
     switch (interrupt.delmod) {
         case 2:
             smi_raise();
-            break;
+            return;
         case 4:
             nmi_raise();
-            break;
+            return;
     }
-    if (lapic->irq_queue_num == 2) {
-        /* Queue is full. Reject interrupt. */
-        apic_lapic_ioapic_remote_eoi(lapic, interrupt.intvec);
-        return;
-    }
-
-    lapic->irq_queue[lapic->irq_queue_num++].vectorconf = interrupt;
+    
+    lapic_set_bit_irr(lapic, interrupt.intvec, 1);
+    lapic_set_bit_tmr(lapic, interrupt.intvec, !!interrupt.trigmode);
 }
 
 void

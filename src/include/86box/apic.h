@@ -70,6 +70,7 @@ typedef struct apic_t
         uint8_t vector;
         apic_ioredtable_t vectorconf;
     } irq_queue[2];
+    mem_mapping_t lapic_mem_window;
     
     /* Common parts. */
     uint32_t lines; /* For level triggered interrupts. */
