@@ -493,8 +493,8 @@ voodoo_filterline_v2(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
 void
 voodoo_callback(void *p)
 {
-    voodoo_t *voodoo = (voodoo_t *) p;
-    monitor_t* monitor = &monitors[voodoo->monitor_index];
+    voodoo_t  *voodoo  = (voodoo_t *) p;
+    monitor_t *monitor = &monitors[voodoo->monitor_index];
 
     if (voodoo->fbiInit0 & FBIINIT0_VGA_PASS) {
         if (voodoo->line < voodoo->v_disp) {

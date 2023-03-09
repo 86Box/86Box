@@ -37,6 +37,7 @@
 #include <86box/pit.h>
 #include <86box/mem.h>
 #include <86box/device.h>
+#include <86box/gameport.h>
 #include <86box/serial.h>
 #include <86box/keyboard.h>
 #include <86box/rom.h>
@@ -742,17 +743,17 @@ static const device_config_t pcjr_config[] = {
 };
 
 const device_t pcjr_device = {
-    "IBM PCjr",
-    "pcjr",
-    0,
-    0,
-    NULL,
-    NULL,
-    NULL,
-    { NULL },
-    speed_changed,
-    NULL,
-    pcjr_config
+    .name          = "IBM PCjr",
+    .internal_name = "pcjr",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = speed_changed,
+    .force_redraw  = NULL,
+    .config        = pcjr_config
 };
 
 int
@@ -814,6 +815,9 @@ machine_pcjr_init(const machine_t *model)
 
     device_add(&ns8250_pcjr_device);
     serial_set_next_inst(SERIAL_MAX); /* So that serial_standalone_init() won't do anything. */
+
+    /* "All the inputs are 'read' with one 'IN' from address hex 201." - PCjr Technical Reference (Nov. 83), p.2-119 */
+    standalone_gameport_type = &gameport_201_device;
 
     return ret;
 }

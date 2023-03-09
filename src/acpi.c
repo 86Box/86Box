@@ -40,9 +40,9 @@
 #include <86box/i2c.h>
 #include <86box/video.h>
 
-int acpi_rtc_status            = 0;
+int        acpi_rtc_status     = 0;
 atomic_int acpi_pwrbut_pressed = 0;
-int acpi_enabled               = 0;
+int        acpi_enabled        = 0;
 
 static double cpu_to_acpi;
 
@@ -672,6 +672,7 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
             /* PMCNTRL - Power Management Control Register (IO) */
             if ((addr == 0x05) && (val & 0x20)) {
                 sus_typ = dev->suspend_types[(val >> 2) & 7];
+                acpi_log("ACPI suspend type %d flags %02X\n", (val >> 2) & 7, sus_typ);
 
                 if (sus_typ & SUS_POWER_OFF) {
                     /* Soft power off. */
@@ -1519,7 +1520,7 @@ acpi_ali_soft_smi_status_write(acpi_t *dev, uint8_t soft_smi)
 }
 
 void
-acpi_pwrbtn_timer(void* priv)
+acpi_pwrbtn_timer(void *priv)
 {
     acpi_t *dev = (acpi_t *) priv;
 
@@ -1698,6 +1699,7 @@ acpi_init(const device_t *info)
             dev->suspend_types[1] = SUS_POWER_OFF;
             dev->suspend_types[2] = SUS_SUSPEND | SUS_NVR | SUS_RESET_CPU | SUS_RESET_PCI;
             dev->suspend_types[3] = SUS_SUSPEND;
+            dev->suspend_types[5] = SUS_POWER_OFF; /* undocumented, used for S4/S5 by ASUS P5A ACPI table */
             break;
 
         case VEN_VIA:

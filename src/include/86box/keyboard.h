@@ -152,7 +152,7 @@ extern const device_t keyboard_xt_t1x00_device;
 extern const device_t keyboard_tandy_device;
 #    if defined(DEV_BRANCH) && defined(USE_LASERXT)
 extern const device_t keyboard_xt_lxt3_device;
-#    endif
+#    endif /*defined(DEV_BRANCH) && defined(USE_LASERXT) */
 extern const device_t keyboard_xt_olivetti_device;
 extern const device_t keyboard_xt_zenith_device;
 extern const device_t keyboard_xtclone_device;
@@ -176,7 +176,7 @@ extern const device_t keyboard_ps2_ami_pci_device;
 extern const device_t keyboard_ps2_intel_ami_pci_device;
 extern const device_t keyboard_ps2_acer_pci_device;
 extern const device_t keyboard_ps2_ali_pci_device;
-#endif
+#endif /*EMU_DEVICE_H*/
 
 extern void     keyboard_init(void);
 extern void     keyboard_close(void);

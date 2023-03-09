@@ -162,6 +162,7 @@
 #else
 #    define IDS_DYNAREC IDS_2163
 #endif
+#define IDS_2166      2166 // "Video card #2 ""%hs"" is not..."
 
 #define IDS_4096      4096 // "Hard disk (%s)"
 #define IDS_4097      4097 // "%01i:%01i"

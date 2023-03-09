@@ -92,7 +92,7 @@ device_set_context(device_context_t *c, const device_t *d, int inst)
     void *sec, *single_sec;
 
     memset(c, 0, sizeof(device_context_t));
-    c->dev = d;
+    c->dev      = d;
     c->instance = inst;
     if (inst) {
         sprintf(c->name, "%s #%i", d->name, inst);
@@ -135,7 +135,7 @@ device_context_restore(void)
 }
 
 static void *
-device_add_common(const device_t *d, const device_t *cd, void *p, void* params, int inst)
+device_add_common(const device_t *d, const device_t *cd, void *p, void *params, int inst)
 {
     void *priv = NULL;
     int   c;
@@ -203,7 +203,7 @@ device_add(const device_t *d)
 }
 
 void *
-device_add_parameters(const device_t *d, void* params)
+device_add_parameters(const device_t *d, void *params)
 {
     return device_add_common(d, d, NULL, params, 0);
 }
@@ -216,7 +216,7 @@ device_add_ex(const device_t *d, void *priv)
 }
 
 void
-device_add_ex_parameters(const device_t *d, void* priv, void *params)
+device_add_ex_parameters(const device_t *d, void *priv, void *params)
 {
     device_add_common(d, d, priv, params, 0);
 }
@@ -293,7 +293,7 @@ device_cadd_inst_ex(const device_t *d, const device_t *cd, void *priv, int inst)
 }
 
 void
-device_cadd_inst_ex_parameters(const device_t *d, const device_t *cd, void *priv, int inst, void* params)
+device_cadd_inst_ex_parameters(const device_t *d, const device_t *cd, void *priv, int inst, void *params)
 {
     device_add_common(d, cd, priv, params, inst);
 }
@@ -463,7 +463,7 @@ device_poll(const device_t *d, int x, int y, int z, int b)
         if (devices[c] != NULL) {
             if (devices[c] == d) {
                 if (devices[c]->poll)
-                    return (devices[c]->poll(x, y, z, b, device_priv[c]));
+                    return (devices[c]->poll(x, y, z, b, 0, 0, device_priv[c]));
             }
         }
     }

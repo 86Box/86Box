@@ -8584,7 +8584,7 @@ const machine_t machines[] = {
     {
         .name = "[i430FX] DataExpert EXP8551",
         .internal_name = "exp8551",
-        .type = MACHINE_TYPE_SOCKET5,
+        .type = MACHINE_TYPE_SOCKET7_3V,
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
         .init = machine_at_exp8551_init,
         .pad = 0,
@@ -8906,7 +8906,7 @@ const machine_t machines[] = {
     {
         .name = "[i430FX] PC Partner MB500N",
         .internal_name = "mb500n",
-        .type = MACHINE_TYPE_SOCKET5,
+        .type = MACHINE_TYPE_SOCKET7_3V,
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
         .init = machine_at_mb500n_init,
         .pad = 0,
@@ -12928,7 +12928,6 @@ machine_get_kbc_device(int m)
 
     return (NULL);
 }
-
 
 const device_t *
 machine_get_device(int m)

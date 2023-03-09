@@ -511,7 +511,7 @@ sermouse_command_timer(void *priv)
 }
 
 static int
-sermouse_poll(int x, int y, int z, int b, void *priv)
+sermouse_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
 {
     mouse_t *dev = (mouse_t *) priv;
 

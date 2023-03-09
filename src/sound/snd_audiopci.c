@@ -2045,7 +2045,7 @@ es1371_speed_changed(void *p)
 {
     es1371_t *dev = (es1371_t *) p;
 
-    dev->dac[1].latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 48000.0));
+    dev->dac[1].latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) SOUND_FREQ));
 }
 
 static const device_config_t es1371_config[] = {
