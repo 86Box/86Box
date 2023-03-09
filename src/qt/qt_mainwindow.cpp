@@ -733,7 +733,9 @@ MainWindow::initRendererMonitorSlot(int monitor_index)
                 secondaryRenderer->showMaximized();
             }
             secondaryRenderer->switchRenderer((RendererStack::Renderer) vid_api);
+            secondaryRenderer->setMouseTracking(true);
         }
+        connect(this, &MainWindow::pollMouse, secondaryRenderer.get(), &RendererStack::mousePoll, Qt::DirectConnection);
     }
 }
 

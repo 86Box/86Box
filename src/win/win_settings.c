@@ -101,21 +101,29 @@ static int temp_mouse, temp_joystick;
 
 /* Sound category */
 static int temp_sound_card[SOUND_CARD_MAX];
-static int temp_midi_output_device, temp_midi_input_device, temp_mpu401;
-static int temp_float, temp_fm_driver;
+static int temp_midi_output_device;
+static int temp_midi_input_device;
+static int temp_mpu401;
+static int temp_float;
+static int temp_fm_driver;
 
 /* Network category */
-static int  temp_net_type[NET_CARD_MAX];
-static int  temp_net_card[NET_CARD_MAX];
-static char temp_pcap_dev[NET_CARD_MAX][128];
+static int      temp_net_type[NET_CARD_MAX];
+static uint16_t temp_net_card[NET_CARD_MAX];
+static char     temp_pcap_dev[NET_CARD_MAX][128];
 
 /* Ports category */
-static int temp_lpt_devices[PARALLEL_MAX];
-static int temp_serial[SERIAL_MAX], temp_lpt[PARALLEL_MAX];
-static int temp_serial_passthrough_enabled[SERIAL_MAX];
+static int     temp_lpt_devices[PARALLEL_MAX];
+static uint8_t temp_serial[SERIAL_MAX];
+static uint8_t temp_lpt[PARALLEL_MAX];
+static int     temp_serial_passthrough_enabled[SERIAL_MAX];
 
 /* Other peripherals category */
-static int temp_fdc_card, temp_hdc, temp_ide_ter, temp_ide_qua, temp_cassette;
+static int temp_fdc_card;
+static int temp_hdc;
+static int temp_ide_ter;
+static int temp_ide_qua;
+static int temp_cassette;
 static int temp_scsi_card[SCSI_BUS_MAX];
 static int temp_bugger;
 static int temp_postcard;
@@ -442,7 +450,7 @@ win_settings_init(void)
 static int
 win_settings_changed(void)
 {
-    int i = 0, j = 0;
+    int i = 0;
 
     /* Machine category */
     i = i || (machine != temp_machine);
@@ -468,7 +476,7 @@ win_settings_changed(void)
     i = i || (joystick_type != temp_joystick);
 
     /* Sound category */
-    for (j = 0; j < SOUND_CARD_MAX; j++)
+    for (uint8_t j = 0; j < SOUND_CARD_MAX; j++)
         i = i || (sound_card_current[j] != temp_sound_card[j]);
     i = i || (midi_output_device_current != temp_midi_output_device);
     i = i || (midi_input_device_current != temp_midi_input_device);
@@ -477,24 +485,24 @@ win_settings_changed(void)
     i = i || (fm_driver != temp_fm_driver);
 
     /* Network category */
-    for (j = 0; j < NET_CARD_MAX; j++) {
+    for (uint8_t j = 0; j < NET_CARD_MAX; j++) {
         i = i || (net_cards_conf[j].net_type != temp_net_type[j]);
         i = i || strcmp(temp_pcap_dev[j], net_cards_conf[j].host_dev_name);
         i = i || (net_cards_conf[j].device_num != temp_net_card[j]);
     }
 
     /* Ports category */
-    for (j = 0; j < PARALLEL_MAX; j++) {
+    for (uint8_t j = 0; j < PARALLEL_MAX; j++) {
         i = i || (temp_lpt_devices[j] != lpt_ports[j].device);
         i = i || (temp_lpt[j] != lpt_ports[j].enabled);
     }
-    for (j = 0; j < SERIAL_MAX; j++) {
+    for (uint8_t j = 0; j < SERIAL_MAX; j++) {
         i = i || (temp_serial[j] != com_ports[j].enabled);
         i = i || (temp_serial_passthrough_enabled[i] != serial_passthrough_enabled[i]);
     }
 
     /* Storage devices category */
-    for (j = 0; j < SCSI_BUS_MAX; j++)
+    for (uint8_t j = 0; j < SCSI_BUS_MAX; j++)
         i = i || (temp_scsi_card[j] != scsi_card_current[j]);
     i = i || (fdc_type != temp_fdc_card);
     i = i || (hdc_current != temp_hdc);
@@ -506,7 +514,7 @@ win_settings_changed(void)
     i = i || memcmp(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
 
     /* Floppy drives category */
-    for (j = 0; j < FDD_NUM; j++) {
+    for (uint8_t j = 0; j < FDD_NUM; j++) {
         i = i || (temp_fdd_types[j] != fdd_get_type(j));
         i = i || (temp_fdd_turbo[j] != fdd_get_turbo(j));
         i = i || (temp_fdd_check_bpb[j] != fdd_get_check_bpb(j));
@@ -523,7 +531,7 @@ win_settings_changed(void)
     i = i || (temp_isartc != isartc_type);
 
     /* ISA memory boards. */
-    for (j = 0; j < ISAMEM_MAX; j++)
+    for (uint8_t j = 0; j < ISAMEM_MAX; j++)
         i = i || (temp_isamem[j] != isamem_type[j]);
 
     i = i || !!temp_deviceconfig;
@@ -535,8 +543,6 @@ win_settings_changed(void)
 static void
 win_settings_save(void)
 {
-    int i = 0;
-
     pc_reset_hard_close();
 
     /* Machine category */
@@ -563,7 +569,7 @@ win_settings_save(void)
     joystick_type = temp_joystick;
 
     /* Sound category */
-    for (i = 0; i < SOUND_CARD_MAX; i++)
+    for (uint8_t i = 0; i < SOUND_CARD_MAX; i++)
         sound_card_current[i] = temp_sound_card[i];
     midi_output_device_current = temp_midi_output_device;
     midi_input_device_current  = temp_midi_input_device;
@@ -572,7 +578,7 @@ win_settings_save(void)
     fm_driver                  = temp_fm_driver;
 
     /* Network category */
-    for (i = 0; i < NET_CARD_MAX; i++) {
+    for (uint8_t i = 0; i < NET_CARD_MAX; i++) {
         net_cards_conf[i].net_type = temp_net_type[i];
         memset(net_cards_conf[i].host_dev_name, '\0', sizeof(net_cards_conf[i].host_dev_name));
         strcpy(net_cards_conf[i].host_dev_name, temp_pcap_dev[i]);
@@ -580,17 +586,17 @@ win_settings_save(void)
     }
 
     /* Ports category */
-    for (i = 0; i < PARALLEL_MAX; i++) {
+    for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
         lpt_ports[i].device  = temp_lpt_devices[i];
         lpt_ports[i].enabled = temp_lpt[i];
     }
-    for (i = 0; i < SERIAL_MAX; i++) {
+    for (uint8_t i = 0; i < SERIAL_MAX; i++) {
         com_ports[i].enabled          = temp_serial[i];
         serial_passthrough_enabled[i] = temp_serial_passthrough_enabled[i];
     }
 
     /* Storage devices category */
-    for (i = 0; i < SCSI_BUS_MAX; i++)
+    for (uint8_t i = 0; i < SCSI_BUS_MAX; i++)
         scsi_card_current[i] = temp_scsi_card[i];
     hdc_current     = temp_hdc;
     fdc_type        = temp_fdc_card;
@@ -600,11 +606,11 @@ win_settings_save(void)
 
     /* Hard disks category */
     memcpy(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
-    for (i = 0; i < HDD_NUM; i++)
+    for (uint8_t i = 0; i < HDD_NUM; i++)
         hdd[i].priv = NULL;
 
     /* Floppy drives category */
-    for (i = 0; i < FDD_NUM; i++) {
+    for (uint8_t i = 0; i < FDD_NUM; i++) {
         fdd_set_type(i, temp_fdd_types[i]);
         fdd_set_turbo(i, temp_fdd_turbo[i]);
         fdd_set_check_bpb(i, temp_fdd_check_bpb[i]);
@@ -612,7 +618,7 @@ win_settings_save(void)
 
     /* Removable devices category */
     memcpy(cdrom, temp_cdrom, CDROM_NUM * sizeof(cdrom_t));
-    for (i = 0; i < CDROM_NUM; i++) {
+    for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom[i].is_dir      = 0;
         cdrom[i].priv        = NULL;
         cdrom[i].ops         = NULL;
@@ -623,12 +629,12 @@ win_settings_save(void)
         cdrom[i].get_channel = NULL;
     }
     memcpy(zip_drives, temp_zip_drives, ZIP_NUM * sizeof(zip_drive_t));
-    for (i = 0; i < ZIP_NUM; i++) {
+    for (uint8_t i = 0; i < ZIP_NUM; i++) {
         zip_drives[i].f    = NULL;
         zip_drives[i].priv = NULL;
     }
     memcpy(mo_drives, temp_mo_drives, MO_NUM * sizeof(mo_drive_t));
-    for (i = 0; i < MO_NUM; i++) {
+    for (uint8_t i = 0; i < MO_NUM; i++) {
         mo_drives[i].f    = NULL;
         mo_drives[i].priv = NULL;
     }
@@ -639,7 +645,7 @@ win_settings_save(void)
     isartc_type      = temp_isartc;
 
     /* ISA memory boards. */
-    for (i = 0; i < ISAMEM_MAX; i++)
+    for (uint8_t i = 0; i < ISAMEM_MAX; i++)
         isamem_type[i] = temp_isamem[i];
 
     /* Mark configuration as changed. */
@@ -2500,7 +2506,7 @@ win_settings_hard_disks_recalc_list(HWND hdlg)
     lvI.mask      = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
     lvI.stateMask = lvI.iSubItem = lvI.state = 0;
 
-    for (i = 0; i < HDD_NUM; i++) {
+    for (uint8_t i = 0; i < HDD_NUM; i++) {
         if (temp_hdd[i].bus > 0) {
             hdc_id_to_listview_index[i] = j;
             lvI.iSubItem                = 0;
