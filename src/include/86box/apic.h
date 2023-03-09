@@ -63,7 +63,9 @@ typedef struct apic_t
         uint32_t tmr_l[8];
         uint8_t tmr_b[8 * sizeof(uint32_t)];
     };
-    uint32_t tmr;
+    uint32_t lapic_id;
+    uint32_t lapic_spurious_interrupt;
+    uint32_t lapic_tpr;
     uint8_t irq_queue_num;
     struct
     {
@@ -94,6 +96,7 @@ extern const device_t i82093aa_ioapic_device;
 extern apic_t* current_apic;
 
 extern void apic_ioapic_set_base(uint8_t x_base, uint8_t y_base);
+extern void apic_lapic_set_base(uint32_t base);
 extern void apic_ioapic_lapic_interrupt_check(apic_t* ioapic, uint8_t irq);
 extern void apic_ioapic_set_irq(apic_t* ioapic, uint8_t irq);
 extern void apic_ioapic_clear_irq(apic_t* ioapic, uint8_t irq);

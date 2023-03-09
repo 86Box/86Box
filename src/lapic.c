@@ -1,5 +1,8 @@
 #include <86box/apic.h>
 
+/* Needed to set the default Local APIC base. */
+#include "cpu/cpu.h"
+
 #define INITIAL_LAPIC_ADDRESS 0xFEE00000
 
 static __inline uint8_t
@@ -52,6 +55,84 @@ lapic_get_highest_bit(apic_t *lapic, uint8_t (*get_bit)(apic_t*, uint8_t)) {
     return highest_bit;
 }
 
+void
+apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
+{
+    apic_t *dev = (apic_t *)priv;
+
+    switch(addr & 0x3FF) {
+        case 0x20:
+            dev->lapic_id = val;
+            break;
+
+        case 0x80:
+            dev->lapic_tpr = val;
+            break;
+        
+        case 0xF0:
+            dev->lapic_spurious_interrupt = val;
+            break;
+    }
+}
+
+uint32_t
+apic_lapic_readl(uint32_t addr, void *priv)
+{
+    apic_t *dev = (apic_t *)priv;
+
+    switch(addr & 0x3FF) {
+        case 0x20:
+            return dev->lapic_id;
+
+        case 0x30:
+            return 0x50014;
+
+        case 0x80:
+            return dev->lapic_tpr;
+
+        case 0xF0:
+            return dev->lapic_spurious_interrupt;
+
+        case 0x100:
+        case 0x110:
+        case 0x120:
+        case 0x130:
+        case 0x140:
+        case 0x150:
+        case 0x160:
+        case 0x170:
+            return dev->isr_l[(addr - 0x100) >> 4];
+
+        case 0x180:
+        case 0x190:
+        case 0x1A0:
+        case 0x1B0:
+        case 0x1C0:
+        case 0x1D0:
+        case 0x1E0:
+        case 0x1F0:
+            return dev->tmr_l[(addr - 0x180) >> 4];
+
+        case 0x200:
+        case 0x210:
+        case 0x220:
+        case 0x230:
+        case 0x240:
+        case 0x250:
+        case 0x260:
+        case 0x270:
+            return dev->irr_l[(addr - 0x180) >> 4];
+    }
+}
+
+void apic_lapic_set_base(uint32_t base)
+{
+    if (!current_apic)
+        return;
+
+    mem_mapping_set_addr(&current_apic->lapic_mem_window, base & 0xFFFFF000, 0x100000);
+}
+
 void*
 lapic_init(const device_t* info)
 {
@@ -64,6 +145,9 @@ lapic_init(const device_t* info)
         dev = (apic_t *) calloc(sizeof(apic_t), 1);
         current_apic = dev;
     }
+
+    msr.apic_base = INITIAL_LAPIC_ADDRESS;
+    mem_mapping_add(&dev->lapic_mem_window, INITIAL_LAPIC_ADDRESS, 0x100000, NULL, NULL, apic_lapic_readl, NULL, NULL, apic_lapic_writel, NULL, MEM_MAPPING_EXTERNAL, dev);
     return dev;
 }
 
@@ -99,6 +183,7 @@ void
 lapic_close(void* priv)
 {
     apic_t *dev = (apic_t *)priv;
+    mem_mapping_disable(&dev->lapic_mem_window);
     if ((--dev->ref_count) == 0) {
         current_apic = NULL;
         free(priv);
