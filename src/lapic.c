@@ -211,7 +211,7 @@ void apic_lapic_set_base(uint32_t base)
 }
 
 uint8_t
-apic_lapic_is_irr_pending()
+apic_lapic_is_irr_pending(void)
 {
     if (!current_apic)
         return 0;
@@ -252,7 +252,7 @@ lapic_init(const device_t* info)
 }
 
 uint8_t
-apic_lapic_picinterrupt()
+apic_lapic_picinterrupt(void)
 {
     apic_t *lapic = current_apic;
     uint8_t highest_irr = lapic_get_highest_bit(current_apic, lapic_get_bit_irr);

@@ -136,10 +136,10 @@ extern apic_t* current_apic;
 
 extern void apic_ioapic_set_base(uint8_t x_base, uint8_t y_base);
 extern void apic_lapic_set_base(uint32_t base);
-extern uint8_t apic_lapic_is_irr_pending();
+extern uint8_t apic_lapic_is_irr_pending(void);
 extern void apic_ioapic_lapic_interrupt_check(apic_t* ioapic, uint8_t irq);
 extern void apic_ioapic_set_irq(apic_t* ioapic, uint8_t irq);
 extern void apic_ioapic_clear_irq(apic_t* ioapic, uint8_t irq);
 extern void apic_lapic_ioapic_remote_eoi(apic_t* ioapic, uint8_t vector);
 extern void lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt);
-extern uint8_t apic_lapic_picinterrupt();
+extern uint8_t apic_lapic_picinterrupt(void);
