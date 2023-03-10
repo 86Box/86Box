@@ -2492,7 +2492,7 @@ static BOOL
 win_settings_hard_disks_recalc_list(HWND hdlg)
 {
     LVITEM lvI;
-    int    i, j = 0;
+    int    j = 0;
     WCHAR  szText[256], usr_path_w[1024];
     HWND   hwndList = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
 

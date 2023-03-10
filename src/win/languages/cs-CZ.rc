@@ -13,7 +13,7 @@ LANGUAGE LANG_CZECH, SUBLANG_DEFAULT
 // Menu
 //
 
-MainMenu MENU DISCARDABLE 
+MainMenu MENU DISCARDABLE
 BEGIN
     POPUP "&Akce"
     BEGIN
@@ -34,7 +34,7 @@ BEGIN
         MENUITEM "&Schovat stavový řádek", IDM_VID_HIDE_STATUS_BAR
         MENUITEM "Schovat panel &nástrojů", IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
-        MENUITEM "&Show non-primary monitors",   IDM_VID_MONITORS
+        MENUITEM "&Show non-primary monitors", IDM_VID_MONITORS
         MENUITEM "&Měnitelná velikost okna", IDM_VID_RESIZE
         MENUITEM "&Pamatovat velikost a pozici", IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -128,7 +128,7 @@ BEGIN
     END
 END
 
-StatusBarMenu MENU DISCARDABLE 
+StatusBarMenu MENU DISCARDABLE
 BEGIN
     MENUITEM SEPARATOR
 END
@@ -392,7 +392,7 @@ END
 // String Table
 //
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     2048        "86Box"
     IDS_2049    "Chyba"
@@ -412,7 +412,7 @@ BEGIN
     IDS_2063    "Počítač ""%hs"" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce ""roms/machines"". Konfigurace se přepne na jiný dostupný počítač."
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2064    "Video adaptér ""%hs"" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce ""roms/video"". Konfigurace se přepne na jiný dostupný adaptér."
     IDS_2065    "Počítač"
@@ -432,7 +432,7 @@ BEGIN
     IDS_2079    "Stiskněte F8+F12 nebo prostřední tlačítko pro uvolnění myši"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2080    "Nastala chyba při inicializaci knihovny FluidSynth."
     IDS_2081    "Sběrnice"
@@ -544,7 +544,7 @@ BEGIN
     IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_4096    "Pevný disk (%s)"
     IDS_4097    "%01i:%01i"
