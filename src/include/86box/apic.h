@@ -25,6 +25,17 @@ typedef struct apic_ioredtable_t {
     uint32_t dest_mask : 3;
 } apic_ioredtable_t;
 
+typedef struct apic_lapic_lvt_t
+{
+    uint32_t intvec    : 8;
+    uint32_t delmod    : 3;
+    uint32_t dummy     : 1;
+    uint32_t delivs    : 1;
+    uint32_t intpol    : 1;
+    uint32_t rirr      : 1;
+    uint32_t trigmode  : 1;
+} apic_lapic_icr_t;
+
 typedef struct apic_t
 {
     /* I/O APIC parts */
@@ -62,6 +73,13 @@ typedef struct apic_t
         uint64_t tmr_ll[4];
         uint32_t tmr_l[8];
         uint8_t tmr_b[8 * sizeof(uint32_t)];
+    };
+    union {
+        uint64_t icr;
+        struct {
+            uint32_t icr0;
+            uint32_t icr1;
+        };
     };
     uint32_t lapic_id;
     uint32_t lapic_spurious_interrupt;

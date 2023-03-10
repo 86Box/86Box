@@ -56,6 +56,15 @@ lapic_get_highest_bit(apic_t *lapic, uint8_t (*get_bit)(apic_t*, uint8_t)) {
 }
 
 void
+lapic_reset(apic_t *lapic)
+{
+    lapic->lapic_id = 0;
+    lapic->tmr_ll[0] = lapic->tmr_ll[1] = lapic->tmr_ll[2] = lapic->tmr_ll[3] = 
+    lapic->irr_ll[0] = lapic->irr_ll[1] = lapic->irr_ll[2] = lapic->irr_ll[3] = 
+    lapic->isr_ll[0] = lapic->isr_ll[1] = lapic->isr_ll[2] = lapic->isr_ll[3] = 0;
+}
+
+void
 apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
 {
     apic_t *dev = (apic_t *)priv;
@@ -66,7 +75,17 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
             break;
 
         case 0x80:
-            dev->lapic_tpr = val;
+            dev->lapic_tpr = val & 0xFF;
+            break;
+
+        case 0xB0:
+            uint8_t bit = lapic_get_highest_bit(dev, lapic_get_bit_isr);
+            if (bit != -1) {
+                lapic_set_bit_isr(dev, bit, 0);
+                if (lapic_get_bit_tmr(dev, bit)) {
+                    apic_lapic_ioapic_remote_eoi(dev, bit);
+                }
+            }
             break;
         
         case 0xF0:
