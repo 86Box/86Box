@@ -22,6 +22,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/machine.h>
+#include <86box/apic.h>
 #include <86box/gdbstub.h>
 #include "386_common.h"
 #ifdef USE_NEW_DYNAREC
@@ -222,7 +223,7 @@ exec386(int cycs)
 #else
                 nmi = 0;
 #endif
-            } else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins) {
+            } else if ((cpu_state.flags & I_FLAG) && (pic.int_pending || (apic_lapic_is_irr_pending())) && !cpu_end_block_after_ins) {
                 vector = picinterrupt();
                 if (vector != -1) {
                     flags_rebuild();

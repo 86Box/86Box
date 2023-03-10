@@ -58,10 +58,26 @@ lapic_get_highest_bit(apic_t *lapic, uint8_t (*get_bit)(apic_t*, uint8_t)) {
 void
 lapic_reset(apic_t *lapic)
 {
-    lapic->lapic_id = 0;
+    lapic->lapic_id = lapic->lapic_arb = 0;
     lapic->tmr_ll[0] = lapic->tmr_ll[1] = lapic->tmr_ll[2] = lapic->tmr_ll[3] = 
     lapic->irr_ll[0] = lapic->irr_ll[1] = lapic->irr_ll[2] = lapic->irr_ll[3] = 
     lapic->isr_ll[0] = lapic->isr_ll[1] = lapic->isr_ll[2] = lapic->isr_ll[3] = 0;
+
+    lapic->lapic_timer_divider = lapic->lapic_timer_initial_count = lapic->lapic_timer_current_count = 0;
+    lapic->lapic_timer_shift   = 1;
+    lapic->lapic_tpr           = 0;
+    lapic->icr                 = 0;
+    lapic->lapic_id            = 0;
+
+    lapic->lapic_lvt_timer_val   =
+    lapic->lapic_lvt_perf_val    =
+    lapic->lapic_lvt_lvt0_val    =
+    lapic->lapic_lvt_lvt1_val    =
+    lapic->lapic_lvt_thermal_val = 1 << 16;
+
+    lapic->lapic_spurious_interrupt = 0xFF;
+    lapic->lapic_dest_format        = -1;
+    lapic->lapic_local_dest         = 0;
 }
 
 void
@@ -90,6 +106,30 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
         
         case 0xF0:
             dev->lapic_spurious_interrupt = val;
+            break;
+
+        case 0x320:
+            dev->lapic_lvt_timer_val = val;
+            break;
+
+        case 0x330:
+            dev->lapic_lvt_thermal_val = val;
+            break;
+
+        case 0x340:
+            dev->lapic_lvt_perf_val = val;
+            break;
+
+        case 0x350:
+            dev->lapic_lvt_lvt0_val = val;
+            break;
+
+        case 0x360:
+            dev->lapic_lvt_lvt1_val = val;
+            break;
+
+        case 0x370:
+            dev->lapic_lvt_error_val = val;
             break;
     }
 }
@@ -141,6 +181,24 @@ apic_lapic_readl(uint32_t addr, void *priv)
         case 0x260:
         case 0x270:
             return dev->irr_l[(addr - 0x180) >> 4];
+
+        case 0x320:
+            return dev->lapic_lvt_timer_val;
+
+        case 0x330:
+            return dev->lapic_lvt_thermal_val;
+
+        case 0x340:
+            return dev->lapic_lvt_perf_val;
+
+        case 0x350:
+            return dev->lapic_lvt_lvt0_val;
+
+        case 0x360:
+            return dev->lapic_lvt_lvt1_val;
+
+        case 0x370:
+            return dev->lapic_lvt_error_val;
     }
 }
 
@@ -150,6 +208,29 @@ void apic_lapic_set_base(uint32_t base)
         return;
 
     mem_mapping_set_addr(&current_apic->lapic_mem_window, base & 0xFFFFF000, 0x100000);
+}
+
+uint8_t
+apic_lapic_is_irr_pending()
+{
+    if (!current_apic)
+        return 0;
+
+    if (current_apic->irr_ll[0] || current_apic->irr_ll[1] || current_apic->irr_ll[2] || current_apic->irr_ll[3]) {
+        uint8_t highest_irr = lapic_get_highest_bit(current_apic, lapic_get_bit_irr);
+        uint8_t highest_isr = lapic_get_highest_bit(current_apic, lapic_get_bit_isr);
+        uint8_t tpr         = current_apic->lapic_tpr;
+
+        if (highest_isr >= highest_irr)
+            return 0;
+
+        if ((highest_irr & 0xF0) < tpr)
+            return 0;
+        
+        return 1;
+    }
+    
+    return 0;
 }
 
 void*
@@ -170,21 +251,35 @@ lapic_init(const device_t* info)
     return dev;
 }
 
-void
-lapic_deliver_interrupt_to_cpu(apic_t *lapic)
-{
-
-}
-
-void
+uint8_t
 apic_lapic_picinterrupt()
 {
+    apic_t *lapic = current_apic;
+    uint8_t highest_irr = lapic_get_highest_bit(current_apic, lapic_get_bit_irr);
+    uint8_t highest_isr = lapic_get_highest_bit(current_apic, lapic_get_bit_isr);
+    uint8_t tpr         = current_apic->lapic_tpr;
+    
+    if (highest_isr >= highest_irr) {
+        return lapic->lapic_spurious_interrupt & 0xFF;
+    }
 
+    if ((highest_irr & 0xF0) <= (tpr & 0xF0)) {
+        return lapic->lapic_spurious_interrupt & 0xFF;
+    }
+
+    lapic_set_bit_irr(lapic, highest_irr, 0);
+    lapic_set_bit_isr(lapic, highest_isr, 1);
+    return highest_irr;
 }
 
 void
 lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
 {
+    if (!(lapic->lapic_spurious_interrupt & 0x100)) {
+        /* All interrupts are presumed masked. */
+        apic_lapic_ioapic_remote_eoi(lapic, interrupt.intvec);
+        return;
+    }
     switch (interrupt.delmod) {
         case 2:
             smi_raise();

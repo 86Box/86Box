@@ -25,6 +25,7 @@
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/apic.h>
 #include <86box/machine.h>
 #include <86box/gdbstub.h>
 #ifdef USE_DYNAREC
@@ -386,7 +387,7 @@ exec386_dynarec_int(void)
             CPU_BLOCK_END();
         else if (nmi && nmi_enable && nmi_mask)
             CPU_BLOCK_END();
-        else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins)
+        else if ((cpu_state.flags & I_FLAG) && (pic.int_pending || apic_lapic_is_irr_pending()) && !cpu_end_block_after_ins)
             CPU_BLOCK_END();
     }
 
@@ -614,7 +615,7 @@ exec386_dynarec_dyn(void)
                 CPU_BLOCK_END();
             if (nmi && nmi_enable && nmi_mask)
                 CPU_BLOCK_END();
-            if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins)
+            if ((cpu_state.flags & I_FLAG) && (pic.int_pending || apic_lapic_is_irr_pending()) && !cpu_end_block_after_ins)
                 CPU_BLOCK_END();
 
             if (cpu_end_block_after_ins) {
@@ -709,7 +710,7 @@ exec386_dynarec_dyn(void)
                 CPU_BLOCK_END();
             if (nmi && nmi_enable && nmi_mask)
                 CPU_BLOCK_END();
-            if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins)
+            if ((cpu_state.flags & I_FLAG) && (pic.int_pending || apic_lapic_is_irr_pending()) && !cpu_end_block_after_ins)
                 CPU_BLOCK_END();
 
             if (cpu_end_block_after_ins) {
@@ -819,7 +820,7 @@ exec386_dynarec(int cycs)
 #    else
                 nmi = 0;
 #    endif
-            } else if ((cpu_state.flags & I_FLAG) && pic.int_pending) {
+            } else if ((cpu_state.flags & I_FLAG) && (pic.int_pending || apic_lapic_is_irr_pending())) {
                 vector = picinterrupt();
                 if (vector != -1) {
 #    ifndef USE_NEW_DYNAREC

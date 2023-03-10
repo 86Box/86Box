@@ -27,14 +27,17 @@ typedef struct apic_ioredtable_t {
 
 typedef struct apic_lapic_lvt_t
 {
-    uint32_t intvec    : 8;
-    uint32_t delmod    : 3;
-    uint32_t dummy     : 1;
-    uint32_t delivs    : 1;
-    uint32_t intpol    : 1;
-    uint32_t rirr      : 1;
-    uint32_t trigmode  : 1;
-} apic_lapic_icr_t;
+    uint32_t intvec     : 8;
+    uint32_t delmod     : 3;
+    uint32_t dummy      : 1;
+    uint32_t delivs     : 1;
+    uint32_t intpol     : 1;
+    uint32_t rirr       : 1;
+    uint32_t trigmode   : 1;
+    uint32_t intr_mask  : 1;
+    uint32_t timer_mode : 1;
+    uint32_t reserved   : 14;
+} apic_lapic_lvt_t;
 
 typedef struct apic_t
 {
@@ -82,8 +85,26 @@ typedef struct apic_t
         };
     };
     uint32_t lapic_id;
+    uint32_t lapic_arb;
     uint32_t lapic_spurious_interrupt;
+    uint32_t lapic_dest_format;
+    uint32_t lapic_local_dest;
     uint32_t lapic_tpr;
+
+    uint32_t lapic_timer_divider;
+    uint32_t lapic_timer_shift;
+    uint32_t lapic_timer_current_count;
+    uint32_t lapic_timer_initial_count;
+
+    union { apic_lapic_lvt_t lapic_lvt_lvt0; uint32_t lapic_lvt_lvt0_val; };
+    union { apic_lapic_lvt_t lapic_lvt_lvt1; uint32_t lapic_lvt_lvt1_val; };
+    union { apic_lapic_lvt_t lapic_lvt_timer; uint32_t lapic_lvt_timer_val; };
+    union { apic_lapic_lvt_t lapic_lvt_perf; uint32_t lapic_lvt_perf_val; };
+    union { apic_lapic_lvt_t lapic_lvt_thermal; uint32_t lapic_lvt_thermal_val; }; /* Unused */
+
+    union { apic_lapic_lvt_t lapic_lvt_error; uint32_t lapic_lvt_error_val; };
+    union { apic_lapic_lvt_t lapic_lvt_read_error; uint32_t lapic_lvt_read_error_val; };
+
     uint8_t irq_queue_num;
     struct
     {
@@ -115,9 +136,10 @@ extern apic_t* current_apic;
 
 extern void apic_ioapic_set_base(uint8_t x_base, uint8_t y_base);
 extern void apic_lapic_set_base(uint32_t base);
+extern uint8_t apic_lapic_is_irr_pending();
 extern void apic_ioapic_lapic_interrupt_check(apic_t* ioapic, uint8_t irq);
 extern void apic_ioapic_set_irq(apic_t* ioapic, uint8_t irq);
 extern void apic_ioapic_clear_irq(apic_t* ioapic, uint8_t irq);
 extern void apic_lapic_ioapic_remote_eoi(apic_t* ioapic, uint8_t vector);
 extern void lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt);
-extern void apic_lapic_picinterrupt();
+extern uint8_t apic_lapic_picinterrupt();
