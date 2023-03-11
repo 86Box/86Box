@@ -136,3 +136,5 @@ extern void apic_ioapic_clear_irq(apic_t* ioapic, uint8_t irq);
 extern void apic_lapic_ioapic_remote_eoi(apic_t* ioapic, uint8_t vector);
 extern void lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt);
 extern uint8_t apic_lapic_picinterrupt(void);
+extern void apic_lapic_service_nmi(void);
+extern void apic_lapic_service_extint(void);

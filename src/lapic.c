@@ -34,6 +34,7 @@
 #define INITIAL_LAPIC_ADDRESS 0xFEE00000
 
 extern double bus_timing;
+extern int nmi;
 
 static __inline uint8_t
 lapic_get_bit_irr(apic_t *lapic, uint8_t bit)
@@ -452,6 +453,12 @@ apic_lapic_picinterrupt(void)
     uint8_t highest_isr = lapic_get_highest_bit(current_apic, lapic_get_bit_isr);
     uint8_t tpr         = current_apic->lapic_tpr;
 
+    if (pic.int_pending && (lapic->lapic_spurious_interrupt & 0x100)) {
+        if (!lapic->lapic_lvt_lvt0.intr_mask) {
+            lapic_service_interrupt(lapic, lapic->lapic_lvt_lvt0);
+        }
+    }
+
     if (lapic->lapic_extint_servicing) {
         uint8_t ret = lapic->lapic_extint_servicing;
         lapic->lapic_extint_servicing = 0;
@@ -475,6 +482,19 @@ apic_lapic_picinterrupt(void)
 }
 
 void
+apic_lapic_service_nmi(void)
+{
+    lapic_service_interrupt(current_apic, current_apic->lapic_lvt_lvt1);
+}
+
+/* TODO: Figure out how to wire this up to ExtINT. */
+void
+apic_lapic_service_extint(void)
+{
+    lapic_service_interrupt(current_apic, current_apic->lapic_lvt_lvt0);
+}
+
+void
 lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
 {
     if (!(lapic->lapic_spurious_interrupt & 0x100)) {
@@ -482,13 +502,15 @@ lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
         apic_lapic_ioapic_remote_eoi(lapic, interrupt.intvec);
         return;
     }
+    if (interrupt.intr_mask)
+        return;
     switch (interrupt.delmod) {
         case 2:
             smi_raise();
             apic_lapic_ioapic_remote_eoi(lapic, interrupt.intvec);
             return;
         case 4:
-            nmi_raise();
+            nmi = 1;
             apic_lapic_ioapic_remote_eoi(lapic, interrupt.intvec);
             return;
         case 5: /*INIT*/
