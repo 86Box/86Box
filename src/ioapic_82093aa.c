@@ -179,6 +179,32 @@ ioapic_i82093aa_writel(uint32_t addr, uint32_t val, void *priv)
     }
 }
 
+void
+ioapic_i82093aa_write(uint32_t addr, uint8_t val, void *priv)
+{
+    uint32_t mask = 0xFFFFFFFF & ~(0xFF << (8 * (addr & 3)));
+
+    return ioapic_i82093aa_writel(addr, (ioapic_i82093aa_readl(addr, priv) & mask) | ((val << (8 * (addr & 3)))), priv);
+}
+
+uint8_t
+ioapic_i82093aa_read(uint32_t addr, void *priv)
+{
+    return (ioapic_i82093aa_readl(addr, priv) >> (8 * (addr & 3))) & 0xFF;
+}
+
+void ioapic_i82093aa_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    ioapic_i82093aa_write(addr, val & 0xFF, priv);
+    ioapic_i82093aa_write(addr + 1, (val >> 8) & 0xFF, priv);
+}
+
+uint16_t
+ioapic_i82093aa_readw(uint32_t addr, uint16_t val, void *priv)
+{
+    return ioapic_i82093aa_read(addr, priv) | (ioapic_i82093aa_read(addr + 1, priv) << 8);
+}
+
 void*
 ioapic_i82093aa_init(const device_t* info)
 {
@@ -191,7 +217,7 @@ ioapic_i82093aa_init(const device_t* info)
         dev = (apic_t *) calloc(sizeof(apic_t), 1);
         current_apic = dev;
     }
-    mem_mapping_add(&dev->ioapic_mem_window, 0, 0, NULL, NULL, ioapic_i82093aa_readl, NULL, NULL, ioapic_i82093aa_writel, NULL, MEM_MAPPING_EXTERNAL, dev);
+    mem_mapping_add(&dev->ioapic_mem_window, 0xFEC00000, 0x20, ioapic_i82093aa_read, ioapic_i82093aa_readw, ioapic_i82093aa_readl, ioapic_i82093aa_write, ioapic_i82093aa_writew, ioapic_i82093aa_writel, NULL, MEM_MAPPING_EXTERNAL, dev);
     ioapic_i82093aa_reset(dev);
     return dev;
 }
