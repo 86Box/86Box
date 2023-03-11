@@ -112,7 +112,7 @@ lapic_reset(apic_t *lapic)
     lapic->lapic_dest_format        = -1;
     lapic->lapic_local_dest         = 0;
 
-    timer_on_auto(&lapic->apic_timer, (1000000. / bus_timing) * (1 << ((lapic->lapic_timer_divider & 3) | ((lapic->lapic_timer_divider & 0x8) >> 1)) + 1));
+    timer_on_auto(&lapic->apic_timer, (1000000. / bus_timing) * 2);
     pclog("LAPIC: RESET!\n");
 }
 
