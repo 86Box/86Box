@@ -124,6 +124,9 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
 
     pclog("APIC write: 0x%X, 0x%X\n", addr, val);
 
+    addr -= dev->lapic_mem_window.base;
+    if (addr >= 0x400)
+        return;
     switch(addr & 0x3FF) {
         case 0x20:
             dev->lapic_id = val;
@@ -236,6 +239,10 @@ apic_lapic_readl(uint32_t addr, void *priv)
     apic_t *dev = (apic_t *)priv;
 
     pclog("APIC read: 0x%X\n", addr);
+    addr -= dev->lapic_mem_window.base;
+    if (addr >= 0x400)
+        return -1;
+    
     switch(addr & 0x3FF) {
         case 0x20:
             return dev->lapic_id;

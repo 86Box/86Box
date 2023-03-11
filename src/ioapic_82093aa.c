@@ -129,9 +129,11 @@ uint32_t
 ioapic_i82093aa_readl(uint32_t addr, void *priv)
 {
     apic_t *dev = (apic_t *)priv;
-    addr = (addr >> 2) & 0xFF;
     uint32_t ret = (uint32_t)-1;
-    
+
+    if ((addr - dev->ioapic_mem_window.base) >= 0x40)
+        return -1;
+    addr = (addr >> 2) & 0xFF;
     switch (addr) {
         case 0:
             ret = dev->ioapicd;
@@ -155,8 +157,11 @@ void
 ioapic_i82093aa_writel(uint32_t addr, uint32_t val, void *priv)
 {
     apic_t *dev = (apic_t *)priv;
-    addr = (addr >> 2) & 0xFF;
 
+    if ((addr - dev->ioapic_mem_window.base) >= 0x40)
+        return;
+
+    addr = (addr >> 2) & 0xFF;
     switch (addr) {
         case 0:
             dev->ioapicd = val & 0xFF;
