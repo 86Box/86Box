@@ -38,6 +38,8 @@ void apic_ioapic_set_base(uint8_t x_base, uint8_t y_base)
         return;
 
     mem_mapping_set_addr(&current_apic->ioapic_mem_window, 0xFEC00000 | ((y_base & 0x3) << 8) | ((x_base & 0xF) << 16), 0x20);
+
+    pclog("I/O APIC base: 0x%08X\n", current_apic->ioapic_mem_window.base);
 }
 
 void
