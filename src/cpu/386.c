@@ -22,6 +22,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/machine.h>
+#include <86box/device.h>
 #include <86box/apic.h>
 #include <86box/gdbstub.h>
 #include "386_common.h"

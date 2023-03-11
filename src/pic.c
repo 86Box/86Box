@@ -37,6 +37,7 @@
 #include <86box/apm.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
+#include <86box/mem.h>
 #include <86box/apic.h>
 
 enum {
@@ -732,9 +733,11 @@ picinterrupt(void)
 {
     int i, ret = -1;
 
-    ret = apic_lapic_picinterrupt();
-    if (!(ret == -1 || (current_apic && ret == (current_apic->lapic_spurious_interrupt & 0xFF)))) {
-        return ret;
+    if (current_apic) {
+        ret = apic_lapic_picinterrupt();
+        if (!(ret == -1 || (current_apic && ret == (current_apic->lapic_spurious_interrupt & 0xFF)))) {
+            return ret;
+        }
     }
     if (pic.int_pending) {
         if (pic_slave_on(&pic, pic.interrupt)) {

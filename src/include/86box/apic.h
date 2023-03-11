@@ -1,14 +1,3 @@
-#include <stdint.h>
-#include <stdlib.h>
-#include <stdatomic.h>
-#include <stdio.h>
-
-#include "86box.h"
-#include "../../cpu/cpu.h"
-#include "timer.h"
-#include "device.h"
-#include "mem.h"
-
 #define IOAPIC_RED_TABL_SIZE 24
 
 /* We only target little-endian architectures. */

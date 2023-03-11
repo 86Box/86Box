@@ -1,3 +1,30 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Local APIC emulation.
+ *
+ *
+ *
+ * Authors: Cacodemon345
+ *
+ *          Copyright 2023 Cacodemon345.
+ */
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdatomic.h>
+#include <stdio.h>
+
+#include <86box/86box.h>
+#include "cpu/cpu.h"
+#include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/mem.h>
+
 #include <86box/apic.h>
 #include <86box/pic.h> /*ExtINT*/
 

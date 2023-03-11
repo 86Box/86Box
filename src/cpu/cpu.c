@@ -34,6 +34,7 @@
 #include "x86_ops.h"
 #include <86box/mem.h>
 #include <86box/nmi.h>
+#include <86box/timer.h>
 #include <86box/pic.h>
 #include <86box/apic.h>
 #include <86box/pci.h>
