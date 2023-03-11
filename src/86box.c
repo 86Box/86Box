@@ -103,6 +103,7 @@
 #include <86box/machine_status.h>
 #include <86box/apm.h>
 #include <86box/acpi.h>
+#include <86box/apic.h>
 
 // Disable c99-designator to avoid the warnings about int ng
 #ifdef __clang__
@@ -1117,6 +1118,10 @@ pc_reset_hard_init(void)
     dma_reset();
     pci_pic_reset();
     cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
+    
+    if (current_apic) {
+        device_add(&lapic_device);
+    }
 
     atfullspeed = 0;
     pc_full_speed();

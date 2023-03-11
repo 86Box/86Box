@@ -614,18 +614,36 @@ void
 picint(uint16_t num)
 {
     picint_common(num, 0, 1);
+    if (current_apic) {
+        uint8_t i = 0;
+        for (i = 0; i < 16; i++) {
+            if (num & (1 << i)) apic_ioapic_set_irq(current_apic, (i == 0) ? 2 : i);
+        }
+    }
 }
 
 void
 picintlevel(uint16_t num)
 {
     picint_common(num, 1, 1);
+    if (current_apic) {
+        uint8_t i = 0;
+        for (i = 0; i < 16; i++) {
+            if (num & (1 << i)) apic_ioapic_set_irq(current_apic, (i == 0) ? 2 : i);
+        }
+    }
 }
 
 void
 picintc(uint16_t num)
 {
     picint_common(num, 0, 0);
+    if (current_apic) {
+        uint8_t i = 0;
+        for (i = 0; i < 16; i++) {
+            if (num & (1 << i)) apic_ioapic_clear_irq(current_apic, (i == 0) ? 2 : i);
+        }
+    }
 }
 
 static uint8_t
@@ -714,7 +732,10 @@ picinterrupt(void)
 {
     int i, ret = -1;
 
-    apic_lapic_picinterrupt();
+    ret = apic_lapic_picinterrupt();
+    if (!(ret == -1 || (current_apic && ret == (current_apic->lapic_spurious_interrupt & 0xFF)))) {
+        return ret;
+    }
     if (pic.int_pending) {
         if (pic_slave_on(&pic, pic.interrupt)) {
             if (!pic.slaves[pic.interrupt]->int_pending) {

@@ -38,6 +38,7 @@
 #include <86box/video.h>
 #include "cpu.h"
 #include <86box/machine.h>
+#include <86box/apic.h>
 
 int
 machine_at_p6rp4_init(const machine_t *model)
@@ -304,7 +305,7 @@ machine_at_p65up5_common_init(const machine_t *model, const device_t *northbridg
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83877f_device);
     device_add(&sst_flash_29ee010_device);
-    device_add(&ioapic_device);
+    device_add(&i82093aa_ioapic_device);
 }
 
 int

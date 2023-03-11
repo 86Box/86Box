@@ -13,16 +13,17 @@
 
 /* We only target little-endian architectures. */
 typedef struct apic_ioredtable_t {
-    uint32_t intvec    : 8;
-    uint32_t delmod    : 3;
-    uint32_t destmod   : 1;
-    uint32_t delivs    : 1;
-    uint32_t intpol    : 1;
-    uint32_t rirr      : 1;
-    uint32_t trigmode  : 1;
-    uint32_t intr_mask : 1;
-    uint64_t reserved  : 45;
-    uint32_t dest_mask : 3;
+    uint32_t intvec     : 8;
+    uint32_t delmod     : 3;
+    uint32_t destmod    : 1;
+    uint32_t delivs     : 1;
+    uint32_t intpol     : 1;
+    uint32_t rirr       : 1;
+    uint32_t trigmode   : 1;
+    uint32_t intr_mask  : 1;
+    uint32_t timer_mode : 1;
+    uint64_t reserved   : 44;
+    uint32_t dest_mask  : 3;
 } apic_ioredtable_t;
 
 typedef struct apic_lapic_lvt_t
@@ -90,20 +91,22 @@ typedef struct apic_t
     uint32_t lapic_dest_format;
     uint32_t lapic_local_dest;
     uint32_t lapic_tpr;
+    uint32_t lapic_extint_servicing;
 
     uint32_t lapic_timer_divider;
-    uint32_t lapic_timer_shift;
     uint32_t lapic_timer_current_count;
     uint32_t lapic_timer_initial_count;
 
-    union { apic_lapic_lvt_t lapic_lvt_lvt0; uint32_t lapic_lvt_lvt0_val; };
-    union { apic_lapic_lvt_t lapic_lvt_lvt1; uint32_t lapic_lvt_lvt1_val; };
-    union { apic_lapic_lvt_t lapic_lvt_timer; uint32_t lapic_lvt_timer_val; };
-    union { apic_lapic_lvt_t lapic_lvt_perf; uint32_t lapic_lvt_perf_val; };
-    union { apic_lapic_lvt_t lapic_lvt_thermal; uint32_t lapic_lvt_thermal_val; }; /* Unused */
+    union { apic_ioredtable_t lapic_lvt_lvt0; uint64_t lapic_lvt_lvt0_val; };
+    union { apic_ioredtable_t lapic_lvt_lvt1; uint64_t lapic_lvt_lvt1_val; };
+    union { apic_ioredtable_t lapic_lvt_timer; uint64_t lapic_lvt_timer_val; };
+    union { apic_ioredtable_t lapic_lvt_perf; uint64_t lapic_lvt_perf_val; };
+    union { apic_ioredtable_t lapic_lvt_thermal; uint64_t lapic_lvt_thermal_val; }; /* Unused */
 
-    union { apic_lapic_lvt_t lapic_lvt_error; uint32_t lapic_lvt_error_val; };
-    union { apic_lapic_lvt_t lapic_lvt_read_error; uint32_t lapic_lvt_read_error_val; };
+    union { apic_ioredtable_t lapic_lvt_error; uint64_t lapic_lvt_error_val; };
+    union { apic_ioredtable_t lapic_lvt_read_error; uint64_t lapic_lvt_read_error_val; };
+
+    pc_timer_t lapic_timer;
 
     uint8_t irq_queue_num;
     struct
@@ -130,6 +133,7 @@ typedef struct apic_t
 #define IOAPIC_DEST_MASK      0xE000000000000000
 
 extern const device_t i82093aa_ioapic_device;
+extern const device_t lapic_device;
 
 /* Only one processor is emulated. */
 extern apic_t* current_apic;

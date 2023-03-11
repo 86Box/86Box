@@ -22,6 +22,7 @@ ioapic_i82093aa_reset(apic_t* ioapic)
     for (i = 0; i < IOAPIC_RED_TABL_SIZE; i++) {
         ioapic->ioredtabl_s[i].intr_mask = 1;
     }
+    pclog("IOAPIC: RESET!\n");
 }
 
 void
@@ -177,7 +178,7 @@ const device_t i82093aa_ioapic_device = {
     .local         = 0,
     .init          = ioapic_i82093aa_init,
     .close         = ioapic_i82093aa_close,
-    .reset         = NULL,
+    .reset         = (void (*)(void*))ioapic_i82093aa_reset,
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,

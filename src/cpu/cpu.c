@@ -35,6 +35,7 @@
 #include <86box/mem.h>
 #include <86box/nmi.h>
 #include <86box/pic.h>
+#include <86box/apic.h>
 #include <86box/pci.h>
 #include <86box/gdbstub.h>
 #ifdef USE_DYNAREC
@@ -58,6 +59,7 @@ enum {
     CPUID_PAE       = (1 << 6),
     CPUID_MCE       = (1 << 7),
     CPUID_CMPXCHG8B = (1 << 8),
+    CPUID_LAPIC     = (1 << 9),
     CPUID_AMDSEP    = (1 << 10),
     CPUID_SEP       = (1 << 11),
     CPUID_MTRR      = (1 << 12),
@@ -1960,7 +1962,8 @@ cpu_CPUID(void)
             } else if (EAX == 1) {
                 EAX = CPUID;
                 EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
+                EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_LAPIC | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
+                if (msr.apic_base & (1 << 11)) EDX &= ~CPUID_LAPIC;
             } else if (EAX == 2) {
                 EAX = 0x00000001;
                 EBX = ECX = 0;
@@ -1979,6 +1982,7 @@ cpu_CPUID(void)
                 EAX = CPUID;
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
+                if (msr.apic_base & (1 << 11)) EDX &= ~CPUID_LAPIC;
             } else if (EAX == 2) {
                 EAX = 0x00000001;
                 EBX = ECX = 0;
@@ -1997,6 +2001,7 @@ cpu_CPUID(void)
                 EAX = CPUID;
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_FXSR | CPUID_CMOV;
+                if (msr.apic_base & (1 << 11)) EDX &= ~CPUID_LAPIC;
             } else if (EAX == 2) {
                 EAX = 0x00000001;
                 EBX = ECX = 0;
@@ -2365,7 +2370,7 @@ amd_k_invalid_rdmsr:
                 case 0x1B:
                     EAX = msr.apic_base & 0xffffffff;
                     EDX = msr.apic_base >> 32;
-                    cpu_log("APIC_BASE read : %08X%08X\n", EDX, EAX);
+                    pclog("APIC_BASE read : %08X%08X\n", EDX, EAX);
                     break;
                 case 0x2a:
                     EAX = 0xc4000000;
@@ -2847,7 +2852,19 @@ amd_k_invalid_wrmsr:
                     tsc = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x1b:
-                    cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);
+                    pclog("APIC_BASE write: %08X%08X\n", EDX, EAX);
+                    
+                    if (current_apic) {
+                        uint8_t disabled = (!(msr.apic_base & (1 << 11)));
+                        
+                        msr.apic_base = EAX | ((uint64_t) EDX << 32);
+                        if (disabled) msr.apic_base &= ~(1 << 11);
+                        if (EDX) {
+                            fatal("LAPIC-on-PAE not implemented!");
+                        }
+                        apic_lapic_set_base(msr.apic_base & 0xFFFFFFFF);
+                    }
+                    
                     // msr.apic_base = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x2a:
