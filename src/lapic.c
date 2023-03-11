@@ -120,6 +120,7 @@ void
 apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
 {
     apic_t *dev = (apic_t *)priv;
+    uint8_t bit = 0;
 
     pclog("APIC write: 0x%X, 0x%X\n", addr, val);
 
@@ -133,12 +134,12 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
             break;
 
         case 0xB0:
-            uint8_t bit = lapic_get_highest_bit(dev, lapic_get_bit_isr);
+            bit = lapic_get_highest_bit(dev, lapic_get_bit_isr);
             if (bit != -1) {
                 lapic_set_bit_isr(dev, bit, 0);
-                if (lapic_get_bit_tmr(dev, bit)) {
+                if (lapic_get_bit_tmr(dev, bit)) 
                     apic_lapic_ioapic_remote_eoi(dev, bit);
-                }
+
             }
             break;
 
@@ -338,6 +339,7 @@ void
 lapic_timer_callback(void *priv)
 {
     apic_t *dev = (apic_t *)priv;
+    uint8_t timer_divider_shift = 1 + (dev->lapic_timer_divider & 3) + ((dev->lapic_timer_divider & 0x8) >> 1);
 
     if (dev->lapic_timer_current_count) {
         dev->lapic_timer_current_count--;
@@ -352,7 +354,7 @@ lapic_timer_callback(void *priv)
     if ((dev->lapic_timer_divider & 0xF) == 0xB)
         timer_on_auto(&dev->apic_timer, (1000000. / bus_timing));
     else
-        timer_on_auto(&dev->apic_timer, (1000000. / bus_timing) * (1 << ((dev->lapic_timer_divider & 3) | ((dev->lapic_timer_divider & 0x8) >> 1)) + 1));
+        timer_on_auto(&dev->apic_timer, (1000000. / bus_timing) * (1 << timer_divider_shift));
 }
 
 uint8_t
