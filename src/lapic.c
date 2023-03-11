@@ -177,7 +177,15 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
                 }
                 switch ((dev->icr0 >> 18) & 3) {
                     case 0:
-                        break;
+                        {
+                            uint8_t mode = (dev->icr >> 11) & 1;
+                            if (mode == 0 && (dev->icr >> 56) != dev->lapic_id) {
+                                break;
+                            }
+                            if (mode == 1 && !(((uint8_t)(dev->icr >> 56)) & (1 << (dev->lapic_id & 0xFF)))) {
+                                break;
+                            }
+                        }
                     case 1:
                     case 2:
                         if (deliverstruct.delmod == 6) {
