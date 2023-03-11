@@ -142,7 +142,6 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
                 lapic_set_bit_isr(dev, bit, 0);
                 if (lapic_get_bit_tmr(dev, bit)) 
                     apic_lapic_ioapic_remote_eoi(dev, bit);
-
             }
             break;
 
@@ -330,7 +329,34 @@ apic_lapic_readl(uint32_t addr, void *priv)
     }
 }
 
-void apic_lapic_set_base(uint32_t base)
+void
+apic_lapic_write(uint32_t addr, uint8_t val, void *priv)
+{
+    uint32_t mask = 0xFFFFFFFF & ~(0xFF << (8 * (addr & 3)));
+
+    return apic_lapic_writel(addr, (apic_lapic_readl(addr, priv) & mask) | ((val << (8 * (addr & 3)))), priv);
+}
+
+uint8_t
+apic_lapic_read(uint32_t addr, void *priv)
+{
+    return (apic_lapic_readl(addr, priv) >> (8 * (addr & 3))) & 0xFF;
+}
+
+void apic_lapic_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    apic_lapic_write(addr, val & 0xFF, priv);
+    apic_lapic_write(addr + 1, (val >> 8) & 0xFF, priv);
+}
+
+uint16_t
+apic_lapic_readw(uint32_t addr, uint16_t val, void *priv)
+{
+    return apic_lapic_read(addr, priv) | (apic_lapic_read(addr + 1, priv) << 8);
+}
+
+void
+apic_lapic_set_base(uint32_t base)
 {
     if (!current_apic)
         return;
@@ -404,7 +430,7 @@ lapic_init(const device_t* info)
     }
 
     msr.apic_base = INITIAL_LAPIC_ADDRESS | (1 << 11) | (1 << 8);
-    mem_mapping_add(&dev->lapic_mem_window, INITIAL_LAPIC_ADDRESS, 0x100000, NULL, NULL, apic_lapic_readl, NULL, NULL, apic_lapic_writel, NULL, MEM_MAPPING_EXTERNAL, dev);
+    mem_mapping_add(&dev->lapic_mem_window, INITIAL_LAPIC_ADDRESS, 0x100000, apic_lapic_read, NULL, apic_lapic_readl, apic_lapic_write, NULL, apic_lapic_writel, NULL, MEM_MAPPING_EXTERNAL, dev);
     timer_add(&dev->apic_timer, lapic_timer_callback, dev, 0);
     lapic_reset(dev);
     return dev;
