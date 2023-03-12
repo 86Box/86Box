@@ -113,7 +113,7 @@ lapic_reset(apic_t *lapic)
     lapic->lapic_dest_format        = -1;
     lapic->lapic_local_dest         = 0;
 
-    timer_on_auto(&lapic->apic_timer, (1000000. / cpu_busspeed) * 2);
+    timer_on_auto(&lapic->apic_timer, (1000000. / bus_timing) * 2);
     pclog("LAPIC: RESET!\n");
 }
 
@@ -394,9 +394,9 @@ lapic_timer_callback(void *priv)
     }
     
     if ((dev->lapic_timer_divider & 0xF) == 0xB)
-        timer_on_auto(&dev->apic_timer, (1000000. / cpu_busspeed));
+        timer_on_auto(&dev->apic_timer, (1000000. / bus_timing));
     else
-        timer_on_auto(&dev->apic_timer, (1000000. / cpu_busspeed) * (1 << timer_divider_shift));
+        timer_on_auto(&dev->apic_timer, (1000000. / bus_timing) * (1 << timer_divider_shift));
 }
 
 uint8_t
@@ -556,9 +556,9 @@ lapic_speed_changed(void* priv)
     apic_t* dev = (apic_t*)priv;
 
     if ((dev->lapic_timer_divider & 0xF) == 0xB)
-        timer_on_auto(&dev->apic_timer, (1000000. / cpu_busspeed));
+        timer_on_auto(&dev->apic_timer, (1000000. / bus_timing));
     else
-        timer_on_auto(&dev->apic_timer, (1000000. / cpu_busspeed) * (1 << ((dev->lapic_timer_divider & 3) | ((dev->lapic_timer_divider & 0x8) >> 1)) + 1));
+        timer_on_auto(&dev->apic_timer, (1000000. / bus_timing) * (1 << ((dev->lapic_timer_divider & 3) | ((dev->lapic_timer_divider & 0x8) >> 1)) + 1));
 }
 
 const device_t lapic_device = {
