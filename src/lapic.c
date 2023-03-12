@@ -33,7 +33,7 @@
 
 #define INITIAL_LAPIC_ADDRESS 0xFEE00000
 
-extern double bus_timing;
+extern double cpuclock;
 extern int nmi;
 
 static __inline uint8_t
@@ -113,7 +113,6 @@ lapic_reset(apic_t *lapic)
     lapic->lapic_dest_format        = -1;
     lapic->lapic_local_dest         = 0;
 
-    timer_on_auto(&lapic->apic_timer, (1000000. / bus_timing) * 2);
     pclog("LAPIC: RESET!\n");
 }
 
@@ -122,8 +121,9 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
 {
     apic_t *dev = (apic_t *)priv;
     uint8_t bit = 0;
+    uint32_t timer_current_count = dev->lapic_timer_current_count;
 
-    pclog("APIC write: 0x%X, 0x%X\n", addr, val);
+    //pclog("APIC write: 0x%X, 0x%X\n", addr, val);
 
     addr -= dev->lapic_mem_window.base;
     if (addr >= 0x400)
@@ -233,10 +233,23 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
 
         case 0x380:
             dev->lapic_timer_initial_count = dev->lapic_timer_current_count = val;
+            pclog("APIC: Timer count: %u\n", dev->lapic_timer_current_count);
+            if (timer_current_count && dev->lapic_timer_current_count == 0) {
+                pclog("APIC: Manual timer interrupt\n", dev->lapic_timer_current_count);
+                lapic_service_interrupt(dev, dev->lapic_lvt_timer);
+                break;
+            }
+            if ((dev->lapic_timer_divider & 0xF) == 0xB)
+                timer_on_auto(&dev->apic_timer, dev->lapic_timer_initial_count * (1000000. / cpuclock));
+            else {
+                uint8_t timer_divider_shift = 1 + (dev->lapic_timer_divider & 3) + ((dev->lapic_timer_divider & 0x8) >> 1);
+                timer_on_auto(&dev->apic_timer, dev->lapic_timer_initial_count * (1000000. / cpuclock) * (1 << timer_divider_shift));
+            }
             break;
 
         case 0x3E0:
             dev->lapic_timer_divider = val;
+            pclog("APIC: Timer divider: 0x%01X\n", dev->lapic_timer_divider);
             break;
     }
 }
@@ -246,7 +259,7 @@ apic_lapic_readl(uint32_t addr, void *priv)
 {
     apic_t *dev = (apic_t *)priv;
 
-    pclog("APIC read: 0x%X\n", addr);
+    //pclog("APIC read: 0x%X\n", addr);
     addr -= dev->lapic_mem_window.base;
     if (addr >= 0x400)
         return -1;
@@ -384,25 +397,29 @@ lapic_timer_callback(void *priv)
     uint8_t timer_divider_shift = 1 + (dev->lapic_timer_divider & 3) + ((dev->lapic_timer_divider & 0x8) >> 1);
 
     if (dev->lapic_timer_current_count) {
-        dev->lapic_timer_current_count--;
+        dev->lapic_timer_current_count = 0;
         if (dev->lapic_timer_current_count == 0) {
+            static int interrupt_count = 0;
+            pclog("APIC: Timer count 0 (%d) interrupt\n", interrupt_count++);
             lapic_service_interrupt(dev, dev->lapic_lvt_timer);
             if (dev->lapic_lvt_timer.timer_mode == 1) {
                 dev->lapic_timer_current_count = dev->lapic_timer_initial_count;
+                if ((dev->lapic_timer_divider & 0xF) == 0xB)
+                    timer_on_auto(&dev->apic_timer, dev->lapic_timer_initial_count * (1000000. / cpuclock));
+                else
+                    timer_on_auto(&dev->apic_timer, dev->lapic_timer_initial_count * (1000000. / cpuclock) * (1 << timer_divider_shift));
             }
         }
     }
-    
-    if ((dev->lapic_timer_divider & 0xF) == 0xB)
-        timer_on_auto(&dev->apic_timer, (1000000. / bus_timing));
-    else
-        timer_on_auto(&dev->apic_timer, (1000000. / bus_timing) * (1 << timer_divider_shift));
 }
 
 uint8_t
 apic_lapic_is_irr_pending(void)
 {
     if (!current_apic)
+        return 0;
+
+    if (!(current_apic->lapic_spurious_interrupt & 0x100))
         return 0;
 
     if (current_apic->lapic_extint_servicing)
@@ -416,7 +433,7 @@ apic_lapic_is_irr_pending(void)
         if (highest_isr >= highest_irr)
             return 0;
 
-        if ((highest_irr & 0xF0) < tpr)
+        if ((highest_irr & 0xF0) <= (tpr & 0xF0))
             return 0;
         
         return 1;
@@ -453,19 +470,21 @@ apic_lapic_picinterrupt(void)
     uint8_t highest_isr = lapic_get_highest_bit(current_apic, lapic_get_bit_isr);
     uint8_t tpr         = current_apic->lapic_tpr;
 
-    if (pic.int_pending && (lapic->lapic_spurious_interrupt & 0x100)) {
+    if (lapic->lapic_extint_servicing) {
+        uint8_t ret = lapic->lapic_extint_servicing;
+        lapic->lapic_extint_servicing = 0;
+        pclog("LAPIC: Service EXTINT INTVEC 0x%02X\n", ret);
+        return ret;
+    }
+
+#if 0
+    if (pic.int_pending && (lapic->lapic_spurious_interrupt & 0x100) && !lapic->lapic_extint_servicing_process) {
         if (!lapic->lapic_lvt_lvt0.intr_mask) {
             lapic_service_interrupt(lapic, lapic->lapic_lvt_lvt0);
         }
     }
+#endif
 
-    if (lapic->lapic_extint_servicing) {
-        uint8_t ret = lapic->lapic_extint_servicing;
-        lapic->lapic_extint_servicing = 0;
-        pclog("LAPIC: Service EXTINT INTVEC 0x%02X\n", highest_irr);
-        return ret;
-    }
-    
     if (highest_isr >= highest_irr) {
         return lapic->lapic_spurious_interrupt & 0xFF;
     }
@@ -525,12 +544,14 @@ lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
         case 7: /*ExtINT*/
             {
                 uint8_t extvector = 0xFF;
+                lapic->lapic_extint_servicing_process = 1;
                 /* ExtINT interrupts are to be delivered directly. */
                 extvector = picinterrupt();
                 if (extvector != -1) {
                     lapic->lapic_extint_servicing = extvector;
                 } else
                     lapic->lapic_extint_servicing = 0;
+                lapic->lapic_extint_servicing_process = 0;
                 return;
             }
     }
@@ -553,12 +574,17 @@ lapic_close(void* priv)
 void
 lapic_speed_changed(void* priv)
 {
+    #if 0
     apic_t* dev = (apic_t*)priv;
 
+    if (!dev->lapic_timer_current_count)
+        return;
+
     if ((dev->lapic_timer_divider & 0xF) == 0xB)
-        timer_on_auto(&dev->apic_timer, (1000000. / bus_timing));
+        timer_on_auto(&dev->apic_timer, (1000000. / cpuclock));
     else
-        timer_on_auto(&dev->apic_timer, (1000000. / bus_timing) * (1 << ((dev->lapic_timer_divider & 3) | ((dev->lapic_timer_divider & 0x8) >> 1)) + 1));
+        timer_on_auto(&dev->apic_timer, (1000000. / cpuclock) * (1 << ((dev->lapic_timer_divider & 3) | ((dev->lapic_timer_divider & 0x8) >> 1)) + 1));
+        #endif
 }
 
 const device_t lapic_device = {

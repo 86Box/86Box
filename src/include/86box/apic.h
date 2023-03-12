@@ -81,6 +81,8 @@ typedef struct apic_t
     uint32_t lapic_local_dest;
     uint32_t lapic_tpr;
     uint32_t lapic_extint_servicing;
+    uint32_t lapic_extint_servicing_process;
+    uint64_t old_tsc;
 
     uint32_t lapic_timer_divider;
     uint32_t lapic_timer_current_count;
@@ -138,3 +140,4 @@ extern void lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt);
 extern uint8_t apic_lapic_picinterrupt(void);
 extern void apic_lapic_service_nmi(void);
 extern void apic_lapic_service_extint(void);
+extern void lapic_timer_poll(void* priv);

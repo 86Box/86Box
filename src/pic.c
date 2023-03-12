@@ -733,7 +733,7 @@ picinterrupt(void)
 {
     int i, ret = -1;
 
-    if (current_apic) {
+    if (current_apic && (current_apic->lapic_spurious_interrupt & 0x100)) {
         ret = apic_lapic_picinterrupt();
         if (!(ret == -1 || (current_apic && ret == (current_apic->lapic_spurious_interrupt & 0xFF)))) {
             return ret;
