@@ -710,7 +710,7 @@ msgid "Floppy & CD-ROM drives"
 msgstr "軟碟/光碟機"
 
 msgid "Other removable devices"
-msgstr "其他可移除裝置"
+msgstr "其他卸除式裝置"
 
 msgid "Other peripherals"
 msgstr "其他周邊裝置"
@@ -845,13 +845,13 @@ msgid "No ROMs found"
 msgstr "找不到 ROM"
 
 msgid "Do you want to save the settings?"
-msgstr "要保存設定嗎？"
+msgstr "要儲存設定嗎？"
 
 msgid "This will hard reset the emulated machine."
 msgstr "此操作將硬重設模擬器。"
 
 msgid "Save"
-msgstr "保存"
+msgstr "儲存"
 
 msgid "About 86Box"
 msgstr "關於 86Box"
@@ -893,7 +893,7 @@ msgid "libgs"
 msgstr "libgs"
 
 msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " 是將 PostScript 檔案轉換為 PDF 所需要的庫。\n\n使用通用 PostScript 印表機列印的文件將被保存為 PostScript (.ps) 檔案。"
+msgstr " 是將 PostScript 檔案轉換為 PDF 所需要的庫。\n\n使用通用 PostScript 印表機列印的文件將被儲存為 PostScript (.ps) 檔案。"
 
 msgid "libfluidsynth.dll"
 msgstr "libfluidsynth.dll"
@@ -1037,7 +1037,7 @@ msgid "Make sure the file exists and is readable."
 msgstr "請確定此檔案已存在並可讀取。"
 
 msgid "Make sure the file is being saved to a writable directory."
-msgstr "請確定此檔案保存在可寫目錄中。"
+msgstr "請確定此檔案儲存在可寫目錄中。"
 
 msgid "Disk image too large"
 msgstr "磁碟映像太大"
