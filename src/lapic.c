@@ -123,8 +123,6 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
     uint8_t bit = 0;
     uint32_t timer_current_count = dev->lapic_timer_current_count;
 
-    //pclog("APIC write: 0x%X, 0x%X\n", addr, val);
-
     addr -= dev->lapic_mem_window.base;
     if (addr >= 0x400)
         return;
@@ -273,6 +271,16 @@ apic_lapic_readl(uint32_t addr, void *priv)
 
         case 0x80:
             return dev->lapic_tpr;
+
+        case 0xA0:
+            {
+                if (lapic_get_highest_bit(dev, lapic_get_bit_isr) != 0xFF) {
+                    return lapic_get_highest_bit(dev, lapic_get_bit_isr);
+                } else {
+                    return dev->lapic_tpr;
+                }
+                return dev->lapic_tpr;
+            }
 
         case 0xD0:
             return dev->lapic_local_dest;
@@ -429,13 +437,15 @@ apic_lapic_is_irr_pending(void)
         uint8_t highest_irr = lapic_get_highest_bit(current_apic, lapic_get_bit_irr);
         uint8_t highest_isr = lapic_get_highest_bit(current_apic, lapic_get_bit_isr);
         uint8_t tpr         = current_apic->lapic_tpr;
+                
+        //pclog("Highest ISR: 0x%X. Highest IRR: 0x%X. TPR: 0x%X\n", highest_isr, highest_irr, tpr);
 
-        if (highest_isr >= highest_irr)
+        if (highest_isr >= highest_irr && (current_apic->isr_ll[0] || current_apic->isr_ll[1] || current_apic->isr_ll[2] || current_apic->isr_ll[3]))
             return 0;
 
         if ((highest_irr & 0xF0) <= (tpr & 0xF0))
             return 0;
-        
+
         return 1;
     }
     
@@ -485,7 +495,11 @@ apic_lapic_picinterrupt(void)
     }
 #endif
 
-    if (highest_isr >= highest_irr) {
+    if (!(current_apic->irr_ll[0] || current_apic->irr_ll[1] || current_apic->irr_ll[2] || current_apic->irr_ll[3])) {
+        return lapic->lapic_spurious_interrupt & 0xFF;
+    }
+
+    if (highest_isr >= highest_irr && (current_apic->isr_ll[0] || current_apic->isr_ll[1] || current_apic->isr_ll[2] || current_apic->isr_ll[3])) {
         return lapic->lapic_spurious_interrupt & 0xFF;
     }
 
@@ -558,6 +572,7 @@ lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
     
     lapic_set_bit_irr(lapic, interrupt.intvec, 1);
     lapic_set_bit_tmr(lapic, interrupt.intvec, !!interrupt.trigmode);
+    pclog("LAPIC: Interrupt 0x%X serviced\n", interrupt.intvec);
 }
 
 void
