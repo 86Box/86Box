@@ -200,7 +200,7 @@ void ioapic_i82093aa_writew(uint32_t addr, uint16_t val, void *priv)
 }
 
 uint16_t
-ioapic_i82093aa_readw(uint32_t addr, uint16_t val, void *priv)
+ioapic_i82093aa_readw(uint32_t addr, void *priv)
 {
     return ioapic_i82093aa_read(addr, priv) | (ioapic_i82093aa_read(addr + 1, priv) << 8);
 }
