@@ -508,7 +508,7 @@ apic_lapic_picinterrupt(void)
     }
 
     lapic_set_bit_irr(lapic, highest_irr, 0);
-    lapic_set_bit_isr(lapic, highest_isr, 1);
+    lapic_set_bit_isr(lapic, highest_irr, 1);
 
     pclog("LAPIC: Service INTVEC 0x%02X\n", highest_irr);
     return highest_irr;
