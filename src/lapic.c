@@ -309,7 +309,7 @@ apic_lapic_readl(uint32_t addr, void *priv)
         case 0x250:
         case 0x260:
         case 0x270:
-            return dev->irr_l[(addr - 0x180) >> 4];
+            return dev->irr_l[(addr - 0x200) >> 4];
 
         case 0x280:
             return dev->lapic_lvt_read_error_val;
