@@ -72,6 +72,8 @@ enum {
 #define CPUID_3DNOW  (1UL << 31UL)
 #define CPUID_3DNOWE (1UL << 30UL)
 
+extern uint64_t tsc_old;
+
 /* Make sure this is as low as possible. */
 cpu_state_t cpu_state;
 
@@ -2628,7 +2630,12 @@ cpu_WRMSR(void)
                     msr.tr12 = EAX & 0x228;
                     break;
                 case 0x10:
-                    tsc = EAX | ((uint64_t) EDX << 32);
+#ifdef USE_DYNAREC
+                    if (cpu_use_dynarec) {
+                        update_tsc();
+                    }
+#endif
+                    tsc = tsc_old = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x11:
                     msr.cesr = EAX & 0xff00ff;
@@ -2667,7 +2674,12 @@ cpu_WRMSR(void)
                 case 0x01:
                     break;
                 case 0x10:
-                    tsc = EAX | ((uint64_t) EDX << 32);
+#ifdef USE_DYNAREC
+                    if (cpu_use_dynarec) {
+                        update_tsc();
+                    }
+#endif
+                    tsc = tsc_old = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x1107:
                     msr.fcr = EAX;
@@ -2746,7 +2758,12 @@ cpu_WRMSR(void)
                     msr.tr12 = EAX & 0x228;
                     break;
                 case 0x10:
-                    tsc = EAX | ((uint64_t) EDX << 32);
+#ifdef USE_DYNAREC
+                    if (cpu_use_dynarec) {
+                        update_tsc();
+                    }
+#endif
+                    tsc = tsc_old = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x83:
                     msr.ecx83 = EAX | ((uint64_t) EDX << 32);
@@ -2819,7 +2836,12 @@ amd_k_invalid_wrmsr:
                 case 0x01:
                     break;
                 case 0x10:
-                    tsc = EAX | ((uint64_t) EDX << 32);
+#ifdef USE_DYNAREC
+                    if (cpu_use_dynarec) {
+                        update_tsc();
+                    }
+#endif
+                    tsc = tsc_old = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x8b:
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
@@ -2844,7 +2866,12 @@ amd_k_invalid_wrmsr:
                         x86gpf(NULL, 0);
                     break;
                 case 0x10:
-                    tsc = EAX | ((uint64_t) EDX << 32);
+#ifdef USE_DYNAREC
+                    if (cpu_use_dynarec) {
+                        update_tsc();
+                    }
+#endif
+                    tsc = tsc_old = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x1b:
                     cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);

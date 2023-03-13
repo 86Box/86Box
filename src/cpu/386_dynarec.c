@@ -297,7 +297,7 @@ prefetch_flush(void)
 #ifdef USE_DYNAREC
 int             cycles_main = 0;
 static int      cycles_old  = 0;
-static uint64_t tsc_old     = 0;
+uint64_t tsc_old            = 0; /* Only intended for usage in cpu.c to set tsc_old to the correct value, when the TSC value is overwritten by software. */
 
 #    ifdef USE_ACYCS
 int acycs = 0;
@@ -329,6 +329,8 @@ update_tsc(void)
         if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
             timer_process_inline();
     }
+    tsc_old = tsc;
+    cycles_old = cycles;
 }
 
 static __inline void
@@ -744,7 +746,6 @@ exec386_dynarec(int cycs)
 {
     int      vector, tempi;
     int      cycdiff;
-    int      oldcyc, oldcyc2;
     uint64_t oldtsc, delta;
 
     int cyc_period = cycs / 2000; /*5us*/
@@ -768,7 +769,6 @@ exec386_dynarec(int cycs)
 
             cycdiff = 0;
 #    endif
-            oldcyc = oldcyc2 = cycles;
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
@@ -830,8 +830,8 @@ exec386_dynarec(int cycs)
                 }
             }
 
-            cycdiff = oldcyc - cycles;
-            delta   = tsc - oldtsc;
+            cycdiff = cycles_old - cycles;
+            delta   = tsc - tsc_old;
             if (delta > 0) {
                 /* TSC has changed, this means interim timer processing has happened,
                    see how much we still need to add. */
