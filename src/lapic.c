@@ -534,7 +534,6 @@ lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
         return;
     }
     if (interrupt.intr_mask) {
-        pclog("Interrupt 0x%08X masked.\n", *((uint64_t*)&interrupt));
         return;
     }
     switch (interrupt.delmod) {
