@@ -87,6 +87,7 @@ typedef struct apic_t
     uint32_t lapic_timer_divider;
     uint32_t lapic_timer_current_count;
     uint32_t lapic_timer_initial_count;
+    uint32_t lapic_timer_remainder;
 
     union { apic_ioredtable_t lapic_lvt_lvt0; uint64_t lapic_lvt_lvt0_val; };
     union { apic_ioredtable_t lapic_lvt_lvt1; uint64_t lapic_lvt_lvt1_val; };
@@ -97,7 +98,7 @@ typedef struct apic_t
     union { apic_ioredtable_t lapic_lvt_error; uint64_t lapic_lvt_error_val; };
     union { apic_ioredtable_t lapic_lvt_read_error; uint64_t lapic_lvt_read_error_val; };
 
-    pc_timer_t lapic_timer;
+    //pc_timer_t lapic_timer;
 
     uint8_t irq_queue_num;
     struct
@@ -141,3 +142,4 @@ extern uint8_t apic_lapic_picinterrupt(void);
 extern void apic_lapic_service_nmi(void);
 extern void apic_lapic_service_extint(void);
 extern void lapic_timer_poll(void* priv);
+extern void lapic_timer_advance_ticks(uint32_t ticks);

@@ -246,6 +246,8 @@ exec386(int cycs)
 
             ins_cycles -= cycles;
             tsc += ins_cycles;
+            if (current_apic)
+                lapic_timer_advance_ticks(ins_cycles);
 
             cycdiff = oldcyc - cycles;
 

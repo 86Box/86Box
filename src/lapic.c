@@ -231,18 +231,8 @@ apic_lapic_writel(uint32_t addr, uint32_t val, void *priv)
 
         case 0x380:
             dev->lapic_timer_initial_count = dev->lapic_timer_current_count = val;
-            pclog("APIC: Timer count: %u\n", dev->lapic_timer_current_count);
-            if (timer_current_count && dev->lapic_timer_current_count == 0) {
-                pclog("APIC: Manual timer interrupt\n", dev->lapic_timer_current_count);
-                lapic_service_interrupt(dev, dev->lapic_lvt_timer);
-                break;
-            }
-            if ((dev->lapic_timer_divider & 0xF) == 0xB)
-                timer_on_auto(&dev->apic_timer, dev->lapic_timer_initial_count * (1000000. / cpuclock));
-            else {
-                uint8_t timer_divider_shift = 1 + (dev->lapic_timer_divider & 3) + ((dev->lapic_timer_divider & 0x8) >> 1);
-                timer_on_auto(&dev->apic_timer, dev->lapic_timer_initial_count * (1000000. / cpuclock) * (1 << timer_divider_shift));
-            }
+            dev->lapic_timer_remainder = 0;
+            pclog("APIC: Timer count: %u\n", dev->lapic_timer_initial_count);
             break;
 
         case 0x3E0:
@@ -352,6 +342,7 @@ apic_lapic_readl(uint32_t addr, void *priv)
             return dev->lapic_timer_initial_count;
         
         case 0x390:
+            pclog("APIC: Read current timer count %d\n", dev->lapic_timer_current_count);
             return dev->lapic_timer_current_count;
 
         case 0x3E0:
@@ -399,23 +390,28 @@ apic_lapic_set_base(uint32_t base)
 }
 
 void
-lapic_timer_callback(void *priv)
+lapic_timer_advance_ticks(uint32_t ticks)
 {
-    apic_t *dev = (apic_t *)priv;
-    uint8_t timer_divider_shift = 1 + (dev->lapic_timer_divider & 3) + ((dev->lapic_timer_divider & 0x8) >> 1);
+    apic_t *dev = (apic_t *)current_apic;
+    uint32_t timer_divider_value = 1 << (1 + (dev->lapic_timer_divider & 3) + ((dev->lapic_timer_divider & 0x8) >> 1));
+
+    if (dev->lapic_timer_divider == 0xB) {
+        timer_divider_value = 1;
+    }
 
     if (dev->lapic_timer_current_count) {
-        dev->lapic_timer_current_count = 0;
-        if (dev->lapic_timer_current_count == 0) {
-            static int interrupt_count = 0;
-            pclog("APIC: Timer count 0 (%d) interrupt\n", interrupt_count++);
-            lapic_service_interrupt(dev, dev->lapic_lvt_timer);
-            if (dev->lapic_lvt_timer.timer_mode == 1) {
-                dev->lapic_timer_current_count = dev->lapic_timer_initial_count;
-                if ((dev->lapic_timer_divider & 0xF) == 0xB)
-                    timer_on_auto(&dev->apic_timer, dev->lapic_timer_initial_count * (1000000. / cpuclock));
-                else
-                    timer_on_auto(&dev->apic_timer, dev->lapic_timer_initial_count * (1000000. / cpuclock) * (1 << timer_divider_shift));
+        dev->lapic_timer_remainder += ticks;
+        if (dev->lapic_timer_remainder >= timer_divider_value) {
+            ticks = dev->lapic_timer_remainder / timer_divider_value;
+            dev->lapic_timer_remainder %= timer_divider_value;
+            if (ticks >= dev->lapic_timer_current_count) {
+                dev->lapic_timer_current_count = 0;
+                lapic_service_interrupt(dev, dev->lapic_lvt_timer);
+                if (dev->lapic_lvt_timer.timer_mode == 1) {
+                    dev->lapic_timer_current_count = dev->lapic_timer_initial_count;
+                }
+            } else {
+                dev->lapic_timer_current_count -= ticks;
             }
         }
     }
@@ -467,7 +463,6 @@ lapic_init(const device_t* info)
 
     msr.apic_base = INITIAL_LAPIC_ADDRESS | (1 << 11) | (1 << 8);
     mem_mapping_add(&dev->lapic_mem_window, INITIAL_LAPIC_ADDRESS, 0x100000, apic_lapic_read, apic_lapic_readw, apic_lapic_readl, apic_lapic_write, apic_lapic_writew, apic_lapic_writel, NULL, MEM_MAPPING_EXTERNAL, dev);
-    timer_add(&dev->apic_timer, lapic_timer_callback, dev, 0);
     lapic_reset(dev);
     return dev;
 }
