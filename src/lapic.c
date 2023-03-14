@@ -39,40 +39,40 @@ extern int nmi;
 static __inline uint8_t
 lapic_get_bit_irr(apic_t *lapic, uint8_t bit)
 {
-    return lapic->irr_ll[bit / 64] & (1ull << (bit & 63));
+    return !!(lapic->irr_ll[bit / 64] & (1ull << (bit & 63)));
 }
 
 static __inline void
 lapic_set_bit_irr(apic_t *lapic, uint8_t bit, uint8_t val)
 {
     lapic->irr_ll[bit / 64] &= ~(1ull << (bit & 63));
-    lapic->irr_ll[bit / 64] |= (((uint64_t)!!val) << (bit & 63));
+    lapic->irr_ll[bit / 64] |= ((uint64_t)!!val) << (bit & 63);
 }
 
 static __inline uint8_t
 lapic_get_bit_isr(apic_t *lapic, uint8_t bit)
 {
-    return lapic->isr_ll[bit / 64] & (1ull << (bit & 63));
+    return !!(lapic->isr_ll[bit / 64] & (1ull << (bit & 63)));
 }
 
 static __inline void
 lapic_set_bit_isr(apic_t *lapic, uint8_t bit, uint8_t val)
 {
     lapic->isr_ll[bit / 64] &= ~(1ull << (bit & 63));
-    lapic->isr_ll[bit / 64] |= (((uint64_t)!!val) << (bit & 63));
+    lapic->isr_ll[bit / 64] |= ((uint64_t)!!val) << (bit & 63);
 }
 
 static __inline uint8_t
 lapic_get_bit_tmr(apic_t *lapic, uint8_t bit)
 {
-    return lapic->tmr_ll[bit / 64] & (1ull << (bit & 63));
+    return !!(lapic->tmr_ll[bit / 64] & (1ull << (bit & 63)));
 }
 
 static __inline void
 lapic_set_bit_tmr(apic_t *lapic, uint8_t bit, uint8_t val)
 {
     lapic->tmr_ll[bit / 64] &= ~(1ull << (bit & 63));
-    lapic->tmr_ll[bit / 64] |= (((uint64_t)!!val) << (bit & 63));
+    lapic->tmr_ll[bit / 64] |= ((uint64_t)!!val) << (bit & 63);
 }
 
 static __inline uint8_t
@@ -342,7 +342,7 @@ apic_lapic_readl(uint32_t addr, void *priv)
             return dev->lapic_timer_initial_count;
         
         case 0x390:
-            pclog("APIC: Read current timer count %u\n", dev->lapic_timer_current_count);
+            //pclog("APIC: Read current timer count %u\n", dev->lapic_timer_current_count);
             return dev->lapic_timer_current_count;
 
         case 0x3E0:
