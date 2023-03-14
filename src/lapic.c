@@ -409,9 +409,9 @@ lapic_timer_advance_ticks(uint32_t ticks)
                 lapic_service_interrupt(dev, dev->lapic_lvt_timer);
                 if (dev->lapic_lvt_timer.timer_mode == 1) {
                     dev->lapic_timer_current_count = dev->lapic_timer_initial_count;
-                    pclog("APIC: Timer restart\n");
+                    //pclog("APIC: Timer restart (%f, %f, %f)\n", cpuclock, (double)cpu_busspeed, bus_timing);
                 } else {
-                    pclog("APIC: Timer one-shot finish\n");
+                    //pclog("APIC: Timer one-shot finish\n");
                 }
             } else {
                 dev->lapic_timer_current_count -= ticks;
@@ -508,7 +508,7 @@ apic_lapic_picinterrupt(void)
     lapic_set_bit_irr(lapic, highest_irr, 0);
     lapic_set_bit_isr(lapic, highest_irr, 1);
 
-    pclog("LAPIC: Service INTVEC 0x%02X\n", highest_irr);
+    //pclog("LAPIC: Service INTVEC 0x%02X\n", highest_irr);
     return highest_irr;
 }
 
@@ -571,7 +571,7 @@ lapic_service_interrupt(apic_t *lapic, apic_ioredtable_t interrupt)
     
     lapic_set_bit_irr(lapic, interrupt.intvec, 1);
     lapic_set_bit_tmr(lapic, interrupt.intvec, !!interrupt.trigmode);
-    pclog("LAPIC: Interrupt 0x%X serviced\n", interrupt.intvec);
+    //pclog("LAPIC: Interrupt 0x%X serviced\n", interrupt.intvec);
 }
 
 void
