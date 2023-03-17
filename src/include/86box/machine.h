@@ -448,6 +448,7 @@ extern int machine_at_asus386_init(const machine_t *);
 extern int machine_at_ecs386_init(const machine_t *);
 extern int machine_at_spc6000a_init(const machine_t *);
 extern int machine_at_micronics386_init(const machine_t *);
+extern int machine_at_ECS_386V_init(const machine_t *);
 
 extern int machine_at_rycleopardlx_init(const machine_t *);
 
