@@ -336,7 +336,7 @@ ega_render_2bpp_highres(ega_t *ega)
 void
 ega_render_4bpp_lowres(ega_t *ega)
 {
-    int      x, oddeven;
+    int      x, secondcclk;
     uint8_t  dat, edat[4];
     uint32_t addr, *p;
 
@@ -349,16 +349,19 @@ ega_render_4bpp_lowres(ega_t *ega)
         ega->firstline_draw = ega->displine;
     ega->lastline_draw = ega->displine;
 
+    secondcclk = 0;
     for (x = 0; x <= (ega->hdisp + ega->scrollcache); x += 16) {
         addr    = ega->remap_func(ega, ega->ma);
-        oddeven = 0;
 
         if (ega->seqregs[1] & 4) {
-            oddeven = (addr & 4) ? 1 : 0;
-            edat[0] = ega->vram[addr | oddeven];
-            edat[2] = ega->vram[addr | oddeven | 0x2];
-            edat[1] = edat[3] = 0;
-            ega->ma += 2;
+            // FIXME: Verify the behaviour of planes 1,3 on actual hardware
+            edat[0] = ega->vram[(addr | 0) ^ secondcclk];
+            edat[1] = ega->vram[(addr | 1) ^ secondcclk];
+            edat[2] = ega->vram[(addr | 2) ^ secondcclk];
+            edat[3] = ega->vram[(addr | 3) ^ secondcclk];
+            secondcclk = (secondcclk + 1) & 1;
+            if (secondcclk == 0)
+                ega->ma += 4;
         } else {
             *(uint32_t *) (&edat[0]) = *(uint32_t *) (&ega->vram[addr]);
             ega->ma += 4;
@@ -388,7 +391,7 @@ ega_render_4bpp_lowres(ega_t *ega)
 void
 ega_render_4bpp_highres(ega_t *ega)
 {
-    int      x, oddeven;
+    int      x, secondcclk;
     uint8_t  dat, edat[4];
     uint32_t addr, *p;
 
@@ -401,16 +404,18 @@ ega_render_4bpp_highres(ega_t *ega)
         ega->firstline_draw = ega->displine;
     ega->lastline_draw = ega->displine;
 
+    secondcclk = 0;
     for (x = 0; x <= (ega->hdisp + ega->scrollcache); x += 8) {
         addr    = ega->remap_func(ega, ega->ma);
-        oddeven = 0;
-
         if (ega->seqregs[1] & 4) {
-            oddeven = (addr & 4) ? 1 : 0;
-            edat[0] = ega->vram[addr | oddeven];
-            edat[2] = ega->vram[addr | oddeven | 0x2];
-            edat[1] = edat[3] = 0;
-            ega->ma += 2;
+            // FIXME: Verify the behaviour of planes 1,3 on actual hardware
+            edat[0] = ega->vram[(addr | 0) ^ secondcclk];
+            edat[1] = ega->vram[(addr | 1) ^ secondcclk];
+            edat[2] = ega->vram[(addr | 2) ^ secondcclk];
+            edat[3] = ega->vram[(addr | 3) ^ secondcclk];
+            secondcclk = (secondcclk + 1) & 1;
+            if (secondcclk == 0)
+                ega->ma += 4;
         } else {
             *(uint32_t *) (&edat[0]) = *(uint32_t *) (&ega->vram[addr]);
             ega->ma += 4;
