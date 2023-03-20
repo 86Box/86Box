@@ -752,6 +752,73 @@ ega_doblit(int wx, int wy, ega_t *ega)
         ega->y_add >>= 1;
 }
 
+uint32_t
+ega_remap_cpu_addr(uint32_t inaddr, ega_t *ega)
+{
+    int      a0mux;
+    uint32_t addr = inaddr;
+
+    // The CPU A0 line is multiplexed via a 3-to-8 mux.
+    // Input bits are:
+    // bit 0: 1 = 64K, 0 = 128K+ (from memory expansion connector)
+    // bit 1: 1 = Odd/Even mode, 0 = normal mode (from GC reg 6 bit 1)
+    // bit 2: 1 = 128K mapping, 0 = other mapping (from memory decode PROM)
+    a0mux = 0;
+
+    if (ega->gdcreg[6] & 2) {
+        a0mux |= 2;
+    }
+    if (ega->vram_limit <= 64*1024) {
+        a0mux |= 1;
+    }
+
+    switch ((ega->gdcreg[6] & 0xC)) {
+        case 0x0: // 128K A000
+            addr &= 0xFFFF;
+            // TODO: Confirm the behaviour of this on actual hardware
+            a0mux |= 4;
+            break;
+        case 0x4: // 64K A000
+            addr &= 0xFFFF;
+            break;
+        case 0x8: // 32K B000
+            addr &= 0x7FFF;
+            break;
+        case 0xC: // 32K B800
+            addr &= 0x7FFF;
+            break;
+    }
+
+    switch (a0mux) {
+        case 0:
+        case 1:
+        case 4:
+        case 5:
+        case 7: // A0 becomes A0
+            break;
+        case 2:
+            // A0 becomes the inversion of PGSEL (reg 0x3C2, miscout, bit 5)
+            // That is, 1 selects the "low" 64k, and 0 selects the "high" 64k.
+            addr &= ~1;
+            addr |= (~ega->miscout>>5)&1;
+            break;
+        case 3: // A0 becomes A14
+            addr &= ~1;
+            addr |= (inaddr>>14)&1;
+            break;
+        case 6: // A0 becomes A16
+            addr &= ~1;
+            addr |= (inaddr>>16)&1;
+            break;
+    }
+
+    // In 64k mode, only select the first 16Kword/64KB bank
+    if (!(ega->seqregs[4] & 2)) {
+        addr &= 0x3FFF;
+    }
+    return addr;
+}
+
 void
 ega_write(uint32_t addr, uint8_t val, void *p)
 {
@@ -761,20 +828,13 @@ ega_write(uint32_t addr, uint8_t val, void *p)
 
     cycles -= video_timing_write_b;
 
-    if (addr >= 0xB0000)
-        addr &= 0x7fff;
-    else
-        addr &= 0xffff;
-
     if (ega->chain2_write) {
         writemask2 &= ~0xa;
         if (addr & 1)
             writemask2 <<= 1;
-        addr &= ~1;
-        if (addr & 0x4000)
-            addr |= 1;
-        addr &= ~0x4000;
     }
+
+    addr = ega_remap_cpu_addr(addr, ega);
 
     addr <<= 2;
 
@@ -939,18 +999,12 @@ ega_read(uint32_t addr, void *p)
     int     readplane = ega->readplane;
 
     cycles -= video_timing_read_b;
-    if (addr >= 0xb0000)
-        addr &= 0x7fff;
-    else
-        addr &= 0xffff;
 
     if (ega->chain2_read) {
         readplane = (readplane & 2) | (addr & 1);
-        addr &= ~1;
-        if (addr & 0x4000)
-            addr |= 1;
-        addr &= ~0x4000;
     }
+
+    addr = ega_remap_cpu_addr(addr, ega);
 
     addr <<= 2;
 

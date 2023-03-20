@@ -352,6 +352,7 @@ ega_render_4bpp_lowres(ega_t *ega)
     secondcclk = 0;
     for (x = 0; x <= (ega->hdisp + ega->scrollcache); x += 16) {
         addr    = ega->remap_func(ega, ega->ma);
+        addr   &= ega->vrammask;
 
         if (ega->seqregs[1] & 4) {
             // FIXME: Verify the behaviour of planes 1,3 on actual hardware
@@ -366,7 +367,7 @@ ega_render_4bpp_lowres(ega_t *ega)
             *(uint32_t *) (&edat[0]) = *(uint32_t *) (&ega->vram[addr]);
             ega->ma += 4;
         }
-        ega->ma &= ega->vrammask;
+        ega->ma &= 0x3ffff;
 
         if (ega->crtc[0x17] & 0x80) {
             dat  = edatlookup[edat[0] >> 6][edat[1] >> 6] | (edatlookup[edat[2] >> 6][edat[3] >> 6] << 2);
@@ -407,6 +408,7 @@ ega_render_4bpp_highres(ega_t *ega)
     secondcclk = 0;
     for (x = 0; x <= (ega->hdisp + ega->scrollcache); x += 8) {
         addr    = ega->remap_func(ega, ega->ma);
+        addr   &= ega->vrammask;
         if (ega->seqregs[1] & 4) {
             // FIXME: Verify the behaviour of planes 1,3 on actual hardware
             edat[0] = ega->vram[(addr | 0) ^ secondcclk];
@@ -420,7 +422,7 @@ ega_render_4bpp_highres(ega_t *ega)
             *(uint32_t *) (&edat[0]) = *(uint32_t *) (&ega->vram[addr]);
             ega->ma += 4;
         }
-        ega->ma &= ega->vrammask;
+        ega->ma &= 0x3ffff;
 
         if (ega->crtc[0x17] & 0x80) {
             dat  = edatlookup[edat[0] >> 6][edat[1] >> 6] | (edatlookup[edat[2] >> 6][edat[3] >> 6] << 2);
