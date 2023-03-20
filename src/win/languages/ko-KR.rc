@@ -18,7 +18,7 @@ BEGIN
     POPUP "동작(&A)"
     BEGIN
         MENUITEM "키보드는 캡쳐가 필요함(&K)", IDM_ACTION_KBD_REQ_CAPTURE
-        MENUITEM "우측CTRL로 좌측ALT 입력(&R)", IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM "우측 CTRL로 좌측 ALT 입력(&R)", IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
         MENUITEM "재시작(&H)...", IDM_ACTION_HRESET
         MENUITEM "Ctrl+Alt+Del(&C)\tCtrl+F12", IDM_ACTION_RESET_CAD
@@ -32,9 +32,9 @@ BEGIN
     POPUP "표시(&V)"
     BEGIN
         MENUITEM "상태 바 숨기기(&H)", IDM_VID_HIDE_STATUS_BAR
-        MENUITEM "Hide &toolbar", IDM_VID_HIDE_TOOLBAR
+        MENUITEM "툴바 숨기기", IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
-        MENUITEM "&Show non-primary monitors", IDM_VID_MONITORS
+        MENUITEM "기본 모니터가 아닌 모니터 표시", IDM_VID_MONITORS
         MENUITEM "창 크기 조절 가능하게 하기(&R)", IDM_VID_RESIZE
         MENUITEM "창 크기와 위치를 기억하기(&E)", IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -307,10 +307,10 @@ END
 #define STR_NET_TYPE      "네트워크 종류:"
 #define STR_PCAP          "PCap 장치:"
 #define STR_NET           "네트워크 어댑터:"
-#define STR_NET1          "Network card 1:"
-#define STR_NET2          "Network card 2:"
-#define STR_NET3          "Network card 3:"
-#define STR_NET4          "Network card 4:"
+#define STR_NET1          "네트워크 카드 1:"
+#define STR_NET2          "네트워크 카드 2:"
+#define STR_NET3          "네트워크 카드 3:"
+#define STR_NET4          "네트워크 카드 4:"
 
 #define STR_COM1          "COM1 장치:"
 #define STR_COM2          "COM2 장치:"
@@ -328,10 +328,10 @@ END
 #define STR_PARALLEL2     "병렬 포트 2"
 #define STR_PARALLEL3     "병렬 포트 3"
 #define STR_PARALLEL4     "병렬 포트 4"
-#define STR_SERIAL_PASS1  "Serial port passthrough 1"
-#define STR_SERIAL_PASS2  "Serial port passthrough 2"
-#define STR_SERIAL_PASS3  "Serial port passthrough 3"
-#define STR_SERIAL_PASS4  "Serial port passthrough 4"
+#define STR_SERIAL_PASS1  "직렬 포트 패스쓰루 1"
+#define STR_SERIAL_PASS2  "직렬 포트 패스쓰루 2"
+#define STR_SERIAL_PASS3  "직렬 포트 패스쓰루 3"
+#define STR_SERIAL_PASS4  "직렬 포트 패스쓰루 4"
 
 #define STR_HDC           "HD 컨트롤러:"
 #define STR_FDC           "FD 컨트롤러:"
@@ -397,7 +397,7 @@ BEGIN
     2048        "86Box"
     IDS_2049    "오류"
     IDS_2050    "치명적인 오류"
-    IDS_2051    " - PAUSED"
+    IDS_2051    " - 일시중지"
     IDS_2052    "Ctrl+Alt+PgDn 키를 누르면 창 모드로 전환합니다."
     IDS_2053    "속도"
     IDS_2054    "ZIP %03i %i (%s): %ls"
@@ -541,7 +541,7 @@ BEGIN
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
-    IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+    IDS_2166    "두번째 비디오카드 ""%hs""는 roms/video 디렉토리에서 ROM이 누락되어 사용할 수 없습니다. 두번째 비디오 카드를 비활성화 합니다."
 END
 
 STRINGTABLE DISCARDABLE
