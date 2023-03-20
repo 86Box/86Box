@@ -307,10 +307,10 @@ END
 #define STR_NET_TYPE      "網路類型:"
 #define STR_PCAP          "PCap 裝置:"
 #define STR_NET           "網路配接器:"
-#define STR_NET1          "Network card 1:"
-#define STR_NET2          "Network card 2:"
-#define STR_NET3          "Network card 3:"
-#define STR_NET4          "Network card 4:"
+#define STR_NET1          "網路卡 1:"
+#define STR_NET2          "網路卡 2:"
+#define STR_NET3          "網路卡 3:"
+#define STR_NET4          "網路卡 4:"
 
 #define STR_COM1          "COM1 裝置:"
 #define STR_COM2          "COM2 裝置:"
@@ -328,10 +328,10 @@ END
 #define STR_PARALLEL2     "並列埠 2"
 #define STR_PARALLEL3     "並列埠 3"
 #define STR_PARALLEL4     "並列埠 4"
-#define STR_SERIAL_PASS1  "Serial port passthrough 1"
-#define STR_SERIAL_PASS2  "Serial port passthrough 2"
-#define STR_SERIAL_PASS3  "Serial port passthrough 3"
-#define STR_SERIAL_PASS4  "Serial port passthrough 4"
+#define STR_SERIAL_PASS1  "序列埠直通 1"
+#define STR_SERIAL_PASS2  "序列埠直通 2"
+#define STR_SERIAL_PASS3  "序列埠直通 3"
+#define STR_SERIAL_PASS4  "序列埠直通 4"
 
 #define STR_HDC           "硬碟控制器:"
 #define STR_FDC           "軟碟控制器:"
@@ -476,9 +476,9 @@ BEGIN
     IDS_2119    "內部控制器"
     IDS_2120    "退出"
     IDS_2121    "找不到 ROM"
-    IDS_2122    "要保存設定嗎？"
+    IDS_2122    "要儲存設定嗎？"
     IDS_2123    "此操作將硬重設模擬器。"
-    IDS_2124    "保存"
+    IDS_2124    "儲存"
     IDS_2125    "關於 86Box"
     IDS_2126    "86Box v" EMU_VERSION
 
@@ -503,7 +503,7 @@ BEGIN
 #else
 #define LIB_NAME_GS "libgs"
 #endif
-    IDS_2133    LIB_NAME_GS " 是將 PostScript 檔案轉換為 PDF 所需要的庫。\n\n使用通用 PostScript 印表機列印的文件將被保存為 PostScript (.ps) 檔案。"
+    IDS_2133    LIB_NAME_GS " 是將 PostScript 檔案轉換為 PDF 所需要的庫。\n\n使用通用 PostScript 印表機列印的文件將被儲存為 PostScript (.ps) 檔案。"
 #ifdef _WIN32
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
 #else
@@ -565,7 +565,7 @@ BEGIN
     IDS_4112    "請指定有效的檔案名。"
     IDS_4113    "已創建磁碟映像"
     IDS_4114    "請確定此檔案已存在並可讀取。"
-    IDS_4115    "請確定此檔案保存在可寫目錄中。"
+    IDS_4115    "請確定此檔案儲存在可寫目錄中。"
     IDS_4116    "磁碟映像太大"
     IDS_4117    "請記得為新創建的映像分區並格式化。"
     IDS_4118    "選定的檔案將被覆蓋。確定繼續使用此檔案嗎？"
