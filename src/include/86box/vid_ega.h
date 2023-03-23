@@ -121,9 +121,7 @@ void ega_render_blank(ega_t *ega);
 void ega_render_overscan_left(ega_t *ega);
 void ega_render_overscan_right(ega_t *ega);
 
-void ega_render_text_40(ega_t *ega);
-void ega_render_text_80(ega_t *ega);
-
+void ega_render_text(ega_t *ega);
 void ega_render_graphics(ega_t *ega);
 #endif
 

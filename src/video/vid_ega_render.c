@@ -106,16 +106,8 @@ ega_render_overscan_right(ega_t *ega)
 }
 
 void
-ega_render_text_40(ega_t *ega)
+ega_render_text(ega_t *ega)
 {
-    uint32_t *p;
-    int       x, xx;
-    int       drawcursor, xinc;
-    uint8_t   chr, attr, dat;
-    uint32_t  charaddr;
-    int       fg, bg;
-    uint32_t  addr;
-
     if ((ega->displine + ega->y_add) < 0)
         return;
 
@@ -124,25 +116,30 @@ ega_render_text_40(ega_t *ega)
     ega->lastline_draw = ega->displine;
 
     if (ega->fullchange) {
-        p    = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
-        xinc = (ega->seqregs[1] & 1) ? 16 : 18;
+        uint32_t *p = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
+        const int dwshift = (ega->seqregs[1] & 8) ? 1 : 0;
+        const int dotwidth = 1<<dwshift;
+        const int charwidth = dotwidth*((ega->seqregs[1] & 1) ? 8 : 9);
 
-        for (x = 0; x < (ega->hdisp + ega->scrollcache); x += xinc) {
-            addr = ega->remap_func(ega, ega->ma) & ega->vrammask;
+        for (int x = 0; x < (ega->hdisp + ega->scrollcache); x += charwidth) {
+            uint32_t addr = ega->remap_func(ega, ega->ma) & ega->vrammask;
 
-            drawcursor = ((ega->ma == ega->ca) && ega->con && ega->cursoron);
+            int drawcursor = ((ega->ma == ega->ca) && ega->con && ega->cursoron);
 
+            uint32_t chr, attr;
             if (ega->crtc[0x17] & 0x80) {
                 chr  = ega->vram[addr];
                 attr = ega->vram[addr + 1];
             } else
                 chr = attr = 0;
 
+            uint32_t charaddr;
             if (attr & 8)
                 charaddr = ega->charsetb + ((chr * 0x80));
             else
                 charaddr = ega->charseta + ((chr * 0x80));
 
+            int fg, bg;
             if (drawcursor) {
                 bg = ega->pallook[ega->egapal[attr & 0x0f]];
                 fg = ega->pallook[ega->egapal[attr >> 4]];
@@ -157,90 +154,16 @@ ega_render_text_40(ega_t *ega)
                 }
             }
 
-            dat = ega->vram[charaddr + (ega->sc << 2)];
-            if (ega->seqregs[1] & 1) {
-                for (xx = 0; xx < 16; xx += 2)
-                    p[xx] = p[xx + 1] = (dat & (0x80 >> (xx >> 1))) ? fg : bg;
-            } else {
-                for (xx = 0; xx < 16; xx += 2)
-                    p[xx] = p[xx + 1] = (dat & (0x80 >> (xx >> 1))) ? fg : bg;
-                if ((chr & ~0x1f) != 0xc0 || !(ega->attrregs[0x10] & 4))
-                    p[16] = p[17] = bg;
-                else
-                    p[16] = p[17] = (dat & 1) ? fg : bg;
-            }
+            uint32_t dat = ega->vram[charaddr + (ega->sc << 2)];
+            dat <<= 1;
+            if ((chr & ~0x1F) == 0xC0 && (ega->attrregs[0x10] & 4))
+                dat |= (dat >> 1) & 1;
+
+            for (int xx = 0; xx < charwidth; xx++)
+                p[xx] = (dat & (0x100 >> (xx>>dwshift))) ? fg : bg;
+
             ega->ma += 4;
-            p += xinc;
-        }
-        ega->ma &= ega->vrammask;
-    }
-}
-
-void
-ega_render_text_80(ega_t *ega)
-{
-    uint32_t *p;
-    int       x, xx;
-    int       drawcursor, xinc;
-    uint8_t   chr, attr, dat;
-    uint32_t  charaddr;
-    int       fg, bg;
-    uint32_t  addr;
-
-    if ((ega->displine + ega->y_add) < 0)
-        return;
-
-    if (ega->firstline_draw == 2000)
-        ega->firstline_draw = ega->displine;
-    ega->lastline_draw = ega->displine;
-
-    if (ega->fullchange) {
-        p    = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
-        xinc = (ega->seqregs[1] & 1) ? 8 : 9;
-
-        for (x = 0; x < (ega->hdisp + ega->scrollcache); x += xinc) {
-            addr = ega->remap_func(ega, ega->ma) & ega->vrammask;
-
-            drawcursor = ((ega->ma == ega->ca) && ega->con && ega->cursoron);
-
-            if (ega->crtc[0x17] & 0x80) {
-                chr  = ega->vram[addr];
-                attr = ega->vram[addr + 1];
-            } else
-                chr = attr = 0;
-
-            if (attr & 0x08)
-                charaddr = ega->charsetb + (chr * 0x80);
-            else
-                charaddr = ega->charseta + (chr * 0x80);
-
-            if (drawcursor) {
-                bg = ega->pallook[ega->egapal[attr & 0x0f]];
-                fg = ega->pallook[ega->egapal[attr >> 4]];
-            } else {
-                fg = ega->pallook[ega->egapal[attr & 0x0f]];
-                bg = ega->pallook[ega->egapal[attr >> 4]];
-                if ((attr & 0x80) && ega->attrregs[0x10] & 8) {
-                    bg = ega->pallook[ega->egapal[(attr >> 4) & 7]];
-                    if (ega->blink & 16)
-                        fg = bg;
-                }
-            }
-
-            dat = ega->vram[charaddr + (ega->sc << 2)];
-            if (ega->seqregs[1] & 1) {
-                for (xx = 0; xx < 8; xx++)
-                    p[xx] = (dat & (0x80 >> xx)) ? fg : bg;
-            } else {
-                for (xx = 0; xx < 8; xx++)
-                    p[xx] = (dat & (0x80 >> xx)) ? fg : bg;
-                if ((chr & ~0x1F) != 0xC0 || !(ega->attrregs[0x10] & 4))
-                    p[8] = bg;
-                else
-                    p[8] = (dat & 1) ? fg : bg;
-            }
-            ega->ma += 4;
-            p += xinc;
+            p += charwidth;
         }
         ega->ma &= ega->vrammask;
     }

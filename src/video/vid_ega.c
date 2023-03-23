@@ -409,13 +409,11 @@ ega_recalctimings(ega_t *ega)
     ega->render = ega_render_blank;
     if (!ega->scrblank && ega->attr_palette_enable) {
         if (!(ega->gdcreg[6] & 1)) {
-            if (ega->seqregs[1] & 8) {
-                ega->render = ega_render_text_40;
+            if (ega->seqregs[1] & 8)
                 ega->hdisp *= (ega->seqregs[1] & 1) ? 16 : 18;
-            } else {
-                ega->render = ega_render_text_80;
+            else
                 ega->hdisp *= (ega->seqregs[1] & 1) ? 8 : 9;
-            }
+            ega->render = ega_render_text;
             ega->hdisp_old = ega->hdisp;
         } else {
             ega->hdisp *= (ega->seqregs[1] & 8) ? 16 : 8;
