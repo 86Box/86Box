@@ -165,7 +165,7 @@ ega_render_text(ega_t *ega)
             ega->ma += 4;
             p += charwidth;
         }
-        ega->ma &= ega->vrammask;
+        ega->ma &= 0x3ffff;
     }
 }
 
