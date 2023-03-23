@@ -116,10 +116,16 @@ ega_render_text(ega_t *ega)
     ega->lastline_draw = ega->displine;
 
     if (ega->fullchange) {
+        const bool doublewidth = ((ega->seqregs[1] & 8) != 0);
+        const bool attrblink = ((ega->attrregs[0x10] & 8) != 0);
+        const bool attrlinechars = (ega->attrregs[0x10] & 4);
+        const bool crtcreset = ((ega->crtc[0x17] & 0x80) == 0);
+        const bool seq9dot = ((ega->seqregs[1] & 1) == 0);
+        const int dwshift = doublewidth ? 1 : 0;
+        const int dotwidth = 1 << dwshift;
+        const int charwidth = dotwidth*(seq9dot ? 9 : 8);
+        const bool blinked = ega->blink & 0x10;
         uint32_t *p = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
-        const int dwshift = (ega->seqregs[1] & 8) ? 1 : 0;
-        const int dotwidth = 1<<dwshift;
-        const int charwidth = dotwidth*((ega->seqregs[1] & 1) ? 8 : 9);
 
         for (int x = 0; x < (ega->hdisp + ega->scrollcache); x += charwidth) {
             uint32_t addr = ega->remap_func(ega, ega->ma) & ega->vrammask;
@@ -127,7 +133,7 @@ ega_render_text(ega_t *ega)
             int drawcursor = ((ega->ma == ega->ca) && ega->con && ega->cursoron);
 
             uint32_t chr, attr;
-            if (ega->crtc[0x17] & 0x80) {
+            if (!crtcreset) {
                 chr  = ega->vram[addr];
                 attr = ega->vram[addr + 1];
             } else
@@ -147,16 +153,16 @@ ega_render_text(ega_t *ega)
                 fg = ega->pallook[ega->egapal[attr & 0x0f]];
                 bg = ega->pallook[ega->egapal[attr >> 4]];
 
-                if ((attr & 0x80) && ega->attrregs[0x10] & 8) {
+                if ((attr & 0x80) && attrblink) {
                     bg = ega->pallook[ega->egapal[(attr >> 4) & 7]];
-                    if (ega->blink & 0x10)
+                    if (blinked)
                         fg = bg;
                 }
             }
 
             uint32_t dat = ega->vram[charaddr + (ega->sc << 2)];
             dat <<= 1;
-            if ((chr & ~0x1F) == 0xC0 && (ega->attrregs[0x10] & 4))
+            if ((chr & ~0x1F) == 0xC0 && attrlinechars)
                 dat |= (dat >> 1) & 1;
 
             for (int xx = 0; xx < charwidth; xx++)
@@ -175,22 +181,24 @@ ega_render_graphics(ega_t *ega)
     if ((ega->displine + ega->y_add) < 0)
         return;
 
-    uint32_t *p = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
-
     if (ega->firstline_draw == 2000)
         ega->firstline_draw = ega->displine;
     ega->lastline_draw = ega->displine;
 
     const bool doublewidth = ((ega->seqregs[1] & 8) != 0);
     const bool cga2bpp = ((ega->gdcreg[5] & 0x20) != 0);
-    const int dotwidth = (doublewidth ? 2 : 1);
+    const bool crtcreset = ((ega->crtc[0x17] & 0x80) == 0);
+    const bool seqoddeven = ((ega->seqregs[1] & 4) != 0);
+    uint32_t *p = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
+    const int dwshift = doublewidth ? 1 : 0;
+    const int dotwidth = 1 << dwshift;
     const int charwidth = dotwidth*8;
     int secondcclk = 0;
     for (int x = 0; x <= (ega->hdisp + ega->scrollcache); x += charwidth) {
         uint32_t addr = ega->remap_func(ega, ega->ma) & ega->vrammask;
 
         uint8_t edat[4];
-        if (ega->seqregs[1] & 4) {
+        if (seqoddeven) {
             // FIXME: Verify the behaviour of planes 1,3 on actual hardware
             edat[0] = ega->vram[(addr | 0) ^ secondcclk];
             edat[1] = ega->vram[(addr | 1) ^ secondcclk];
@@ -217,10 +225,10 @@ ega_render_graphics(ega_t *ega)
             edat[3] = dat3;
         }
 
-        if (ega->crtc[0x17] & 0x80) {
-            for (int i = 0; i < 4; i++) {
-                const int outoffs = i*(dotwidth<<1);
-                const int inshift = 6 - (i<<1);
+        if (!crtcreset) {
+            for (int i = 0; i < 8; i += 2) {
+                const int outoffs = i << dwshift;
+                const int inshift = 6 - i;
                 uint8_t dat = (edatlookup[(edat[0] >> inshift) & 3][(edat[1] >> inshift) & 3]     )
                             | (edatlookup[(edat[2] >> inshift) & 3][(edat[3] >> inshift) & 3] << 2);
                 uint32_t p0 = ega->pallook[ega->egapal[(dat >> 4) & ega->plane_mask]];
