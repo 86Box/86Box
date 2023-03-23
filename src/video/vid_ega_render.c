@@ -187,8 +187,11 @@ ega_render_graphics(ega_t *ega)
 
     const bool doublewidth = ((ega->seqregs[1] & 8) != 0);
     const bool cga2bpp = ((ega->gdcreg[5] & 0x20) != 0);
+    const bool attrblink = ((ega->attrregs[0x10] & 8) != 0);
+    const bool blinked = ega->blink & 0x10;
     const bool crtcreset = ((ega->crtc[0x17] & 0x80) == 0);
     const bool seqoddeven = ((ega->seqregs[1] & 4) != 0);
+    const uint8_t blinkmask = (attrblink && blinked ? 0x8 : 0x0);
     uint32_t *p = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
     const int dwshift = doublewidth ? 1 : 0;
     const int dotwidth = 1 << dwshift;
@@ -231,8 +234,9 @@ ega_render_graphics(ega_t *ega)
                 const int inshift = 6 - i;
                 uint8_t dat = (edatlookup[(edat[0] >> inshift) & 3][(edat[1] >> inshift) & 3]     )
                             | (edatlookup[(edat[2] >> inshift) & 3][(edat[3] >> inshift) & 3] << 2);
-                uint32_t p0 = ega->pallook[ega->egapal[(dat >> 4) & ega->plane_mask]];
-                uint32_t p1 = ega->pallook[ega->egapal[(dat     ) & ega->plane_mask]];
+                // FIXME: Confirm blink behaviour is actually XOR on real hardware
+                uint32_t p0 = ega->pallook[ega->egapal[((dat >> 4) & ega->plane_mask) ^ blinkmask]];
+                uint32_t p1 = ega->pallook[ega->egapal[((dat     ) & ega->plane_mask) ^ blinkmask]];
                 for (int subx = 0; subx < dotwidth; subx++)
                     p[outoffs + subx] = p0;
                 for (int subx = 0; subx < dotwidth; subx++)
