@@ -423,10 +423,7 @@ ega_recalctimings(ega_t *ega)
 
             switch (ega->gdcreg[5] & 0x20) {
                 case 0x00:
-                    if (ega->seqregs[1] & 8)
-                        ega->render = ega_render_4bpp_lowres;
-                    else
-                        ega->render = ega_render_4bpp_highres;
+                    ega->render = ega_render_4bpp;
                     break;
                 case 0x20:
                     if (ega->seqregs[1] & 8)
