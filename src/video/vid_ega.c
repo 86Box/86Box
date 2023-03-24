@@ -312,8 +312,25 @@ ega_in(uint16_t addr, void *p)
             break;
         case 0x3d1:
         case 0x3d5:
-            if (ega_type)
-                ret = ega->crtc[ega->crtcreg];
+            switch(ega->crtcreg) {
+                case 0xc:
+                case 0xd:
+                case 0xe:
+                case 0xf:
+                    ret = ega->crtc[ega->crtcreg];
+                    break;
+
+                case 0x10:
+                case 0x11:
+                    // TODO: Return light pen address once implemented
+                    if (ega_type)
+                        ret = ega->crtc[ega->crtcreg];
+                    break;
+
+                default:
+                    if (ega_type)
+                        ret = ega->crtc[ega->crtcreg];
+            }
             break;
         case 0x3da:
             ega->attrff = 0;
