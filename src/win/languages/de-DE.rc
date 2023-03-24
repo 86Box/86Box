@@ -13,7 +13,7 @@ LANGUAGE LANG_GERMAN, SUBLANG_DEFAULT
 // Menu
 //
 
-MainMenu MENU DISCARDABLE 
+MainMenu MENU DISCARDABLE
 BEGIN
     POPUP "&Aktionen"
     BEGIN
@@ -128,7 +128,7 @@ BEGIN
     END
 END
 
-StatusBarMenu MENU DISCARDABLE 
+StatusBarMenu MENU DISCARDABLE
 BEGIN
     MENUITEM SEPARATOR
 END
@@ -392,7 +392,7 @@ END
 // String Table
 //
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     2048        "86Box"
     IDS_2049    "Fehler"
@@ -412,7 +412,7 @@ BEGIN
     IDS_2063    "Das System ""%hs"" ist aufgrund von fehlenden ROMs im Verzeichnis roms/machines nicht verfügbar. Es wird auf ein verfügbares System gewechselt."
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2064    "Die Videokarte ""%hs"" ist aufgrund von fehlenden ROMs im Verzeichnis roms/video nicht verfügbar. Es wird auf eine verfügbare Videokarte gewechselt."
     IDS_2065    "System"
@@ -432,7 +432,7 @@ BEGIN
     IDS_2079    "Bitte F8+F12 oder die mittlere Maustaste zur Mausfreigabe drücken"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2080    "FluidSynth konnte nicht initialisiert werden"
     IDS_2081    "Bus"
@@ -544,7 +544,7 @@ BEGIN
     IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_4096    "Festplatte (%s)"
     IDS_4097    "%01i:%01i"
@@ -643,7 +643,7 @@ BEGIN
 
     IDS_7168    "(Systemstandard)"
 END
-#define IDS_LANG_ENUS    IDS_7168
+#define IDS_LANG_ENUS IDS_7168
 
 // German (de-DE) resources
 /////////////////////////////////////////////////////////////////////////////
