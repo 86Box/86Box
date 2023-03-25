@@ -316,11 +316,9 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
                         dev->sgd_regs[addr & 0xf0] |= 0x08;
                     } else {
                         /* Start SGD immediately. */
-                        dev->sgd_regs[addr & 0xf0] |= 0x80;
-                        dev->sgd_regs[addr & 0xf0] &= ~0x44;
+                        dev->sgd_regs[addr & 0xf0] = (dev->sgd_regs[addr & 0xf0] & ~0x47) | 0x80;
 
                         /* Start at the specified entry pointer. */
-                        dev->sgd[addr >> 4].sample_ptr = 0;
                         dev->sgd[addr >> 4].entry_ptr  = *((uint32_t *) &dev->sgd_regs[(addr & 0xf0) | 0x4]) & 0xfffffffe;
                         dev->sgd[addr >> 4].restart    = 2;
 
@@ -531,7 +529,7 @@ ac97_via_sgd_process(void *priv)
     timer_on_auto(&sgd->dma_timer, 10.0);
 
     /* Process SGD if it's active, and the FIFO has room or is disabled. */
-    if (((sgd_status & 0x84) == 0x80) && (sgd->always_run || ((sgd->fifo_end - sgd->fifo_pos) <= (sizeof(sgd->fifo) - 4)))) {
+    if (((sgd_status & 0xc7) == 0x80) && (sgd->always_run || ((sgd->fifo_end - sgd->fifo_pos) <= (sizeof(sgd->fifo) - 4)))) {
         /* Move on to the next block if no entry is present. */
         if (sgd->restart) {
             /* (Re)load entry pointer if required. */
@@ -586,7 +584,7 @@ ac97_via_sgd_process(void *priv)
             if (sgd->entry_flags & 0x40) {
                 ac97_via_log(" with FLAG");
 
-                /* Raise FLAG. */
+                /* Raise FLAG to pause SGD. */
                 dev->sgd_regs[sgd->id] |= 0x01;
 
 #ifdef ENABLE_AC97_VIA_LOG
