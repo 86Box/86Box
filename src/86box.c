@@ -8,8 +8,6 @@
  *
  *          Main emulator module where most things are controlled.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -19,11 +17,14 @@
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2021      Laci bá'
  *          Copyright 2021      dob205
+ *          Copyright 2021      Andreas J. Reichel.
+ *          Copyright 2021-2022 Jasmine Iwanek.
  */
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -68,6 +69,7 @@
 #include <86box/isartc.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
+#include <86box/serial_passthrough.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
 #include <86box/gameport.h>
@@ -97,6 +99,8 @@
 #include <86box/version.h>
 #include <86box/gdbstub.h>
 #include <86box/machine_status.h>
+#include <86box/apm.h>
+#include <86box/acpi.h>
 
 // Disable c99-designator to avoid the warnings about int ng
 #ifdef __clang__
@@ -144,50 +148,47 @@ uint64_t instru_run_ms  = 0;
 
 /* Configuration values. */
 int      window_remember;
-int      vid_resize;                                        /* (C) allow resizing */
-int      invert_display                   = 0;              /* (C) invert the display */
-int      suppress_overscan                = 0;              /* (C) suppress overscans */
-int      scale                            = 0;              /* (C) screen scale factor */
-int      dpi_scale                        = 0;              /* (C) DPI scaling of the emulated screen */
-int      vid_api                          = 0;              /* (C) video renderer */
-int      vid_cga_contrast                 = 0;              /* (C) video */
-int      video_fullscreen                 = 0;              /* (C) video */
-int      video_fullscreen_scale           = 0;              /* (C) video */
-int      video_fullscreen_first           = 0;              /* (C) video */
-int      enable_overscan                  = 0;              /* (C) video */
-int      force_43                         = 0;              /* (C) video */
-int      video_filter_method              = 1;              /* (C) video */
-int      video_vsync                      = 0;              /* (C) video */
-int      video_framerate                  = -1;             /* (C) video */
-char     video_shader[512]                = { '\0' };       /* (C) video */
-int      bugger_enabled                   = 0;              /* (C) enable ISAbugger */
-int      postcard_enabled                 = 0;              /* (C) enable POST card */
-int      isamem_type[ISAMEM_MAX]          = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
-int      isartc_type                      = 0;              /* (C) enable ISA RTC card */
-int      gfxcard                          = 0;              /* (C) graphics/video card */
-int      gfxcard_2                        = 0;              /* (C) graphics/video card */
-int      show_second_monitors             = 1;              /* (C) show non-primary monitors */
-int      sound_is_float                   = 1;              /* (C) sound uses FP values */
-int      GAMEBLASTER                      = 0;              /* (C) sound option */
-int      GUS                              = 0;              /* (C) sound option */
-int      SSI2001                          = 0;              /* (C) sound option */
-int      voodoo_enabled                   = 0;              /* (C) video option */
-int      ibm8514_enabled                  = 0;              /* (C) video option */
-int      xga_enabled                      = 0;              /* (C) video option */
-uint32_t mem_size                         = 0;              /* (C) memory size (Installed on system board)*/
-uint32_t isa_mem_size                     = 0;              /* (C) memory size (ISA Memory Cards) */
-int      cpu_use_dynarec                  = 0;              /* (C) cpu uses/needs Dyna */
-int      cpu                              = 0;              /* (C) cpu type */
-int      fpu_type                         = 0;              /* (C) fpu type */
-int      time_sync                        = 0;              /* (C) enable time sync */
-int      confirm_reset                    = 1;              /* (C) enable reset confirmation */
-int      confirm_exit                     = 1;              /* (C) enable exit confirmation */
-int      confirm_save                     = 1;              /* (C) enable save confirmation */
-int      enable_discord                   = 0;              /* (C) enable Discord integration */
-int      pit_mode                         = -1;             /* (C) force setting PIT mode */
-int      fm_driver                        = 0;              /* (C) select FM sound driver */
-int      open_dir_usr_path                = 0;              /* default file open dialog directory of usr_path */
-int      video_fullscreen_scale_maximized = 0;              /* (C) Whether fullscreen scaling settings also apply when maximized. */
+int      vid_resize;                                              /* (C) allow resizing */
+int      invert_display                         = 0;              /* (C) invert the display */
+int      suppress_overscan                      = 0;              /* (C) suppress overscans */
+int      scale                                  = 0;              /* (C) screen scale factor */
+int      dpi_scale                              = 0;              /* (C) DPI scaling of the emulated screen */
+int      vid_api                                = 0;              /* (C) video renderer */
+int      vid_cga_contrast                       = 0;              /* (C) video */
+int      video_fullscreen                       = 0;              /* (C) video */
+int      video_fullscreen_scale                 = 0;              /* (C) video */
+int      video_fullscreen_first                 = 0;              /* (C) video */
+int      enable_overscan                        = 0;              /* (C) video */
+int      force_43                               = 0;              /* (C) video */
+int      video_filter_method                    = 1;              /* (C) video */
+int      video_vsync                            = 0;              /* (C) video */
+int      video_framerate                        = -1;             /* (C) video */
+char     video_shader[512]                      = { '\0' };       /* (C) video */
+bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0 }; /* (C) activation and kind of pass-through for serial ports */
+int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
+int      postcard_enabled                       = 0;              /* (C) enable POST card */
+int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
+int      isartc_type                            = 0;              /* (C) enable ISA RTC card */
+int      gfxcard[2]                             = { 0, 0 };       /* (C) graphics/video card */
+int      show_second_monitors                   = 1;              /* (C) show non-primary monitors */
+int      sound_is_float                         = 1;              /* (C) sound uses FP values */
+int      voodoo_enabled                         = 0;              /* (C) video option */
+int      ibm8514_enabled                        = 0;              /* (C) video option */
+int      xga_enabled                            = 0;              /* (C) video option */
+uint32_t mem_size                               = 0;              /* (C) memory size (Installed on system board)*/
+uint32_t isa_mem_size                           = 0;              /* (C) memory size (ISA Memory Cards) */
+int      cpu_use_dynarec                        = 0;              /* (C) cpu uses/needs Dyna */
+int      cpu                                    = 0;              /* (C) cpu type */
+int      fpu_type                               = 0;              /* (C) fpu type */
+int      time_sync                              = 0;              /* (C) enable time sync */
+int      confirm_reset                          = 1;              /* (C) enable reset confirmation */
+int      confirm_exit                           = 1;              /* (C) enable exit confirmation */
+int      confirm_save                           = 1;              /* (C) enable save confirmation */
+int      enable_discord                         = 0;              /* (C) enable Discord integration */
+int      pit_mode                               = -1;             /* (C) force setting PIT mode */
+int      fm_driver                              = 0;              /* (C) select FM sound driver */
+int      open_dir_usr_path                      = 0;              /* default file open dialog directory of usr_path */
+int      video_fullscreen_scale_maximized       = 0;              /* (C) Whether fullscreen scaling settings also apply when maximized. */
 
 /* Statistics. */
 extern int mmuflush;
@@ -850,7 +851,7 @@ pc_init_modules(void)
 
     /* Load the ROMs for the selected machine. */
     if (!machine_available(machine)) {
-        swprintf(temp, sizeof(temp), plat_get_string(IDS_2063), machine_getname());
+        swprintf(temp, sizeof_w(temp), plat_get_string(IDS_2063), machine_getname());
         c       = 0;
         machine = -1;
         while (machine_get_internal_name_ex(c) != NULL) {
@@ -870,34 +871,34 @@ pc_init_modules(void)
     }
 
     /* Make sure we have a usable video card. */
-    if (!video_card_available(gfxcard)) {
+    if (!video_card_available(gfxcard[0])) {
         memset(tempc, 0, sizeof(tempc));
-        device_get_name(video_card_getdevice(gfxcard), 0, tempc);
-        swprintf(temp, sizeof(temp), plat_get_string(IDS_2064), tempc);
+        device_get_name(video_card_getdevice(gfxcard[0]), 0, tempc);
+        swprintf(temp, sizeof_w(temp), plat_get_string(IDS_2064), tempc);
         c = 0;
         while (video_get_internal_name(c) != NULL) {
-            gfxcard = -1;
+            gfxcard[0] = -1;
             if (video_card_available(c)) {
                 ui_msgbox_header(MBX_INFO, (wchar_t *) IDS_2129, temp);
-                gfxcard = c;
+                gfxcard[0] = c;
                 config_save();
                 break;
             }
             c++;
         }
-        if (gfxcard == -1) {
+        if (gfxcard[0] == -1) {
             fatal("No available video cards\n");
             exit(-1);
             return (0);
         }
     }
 
-    if (!video_card_available(gfxcard_2)) {
+    if (!video_card_available(gfxcard[1])) {
         char tempc[512] = { 0 };
-        device_get_name(video_card_getdevice(gfxcard_2), 0, tempc);
-        swprintf(temp, sizeof(temp), (wchar_t *) "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card.", tempc);
+        device_get_name(video_card_getdevice(gfxcard[1]), 0, tempc);
+        swprintf(temp, sizeof_w(temp), plat_get_string(IDS_2163), tempc);
         ui_msgbox_header(MBX_INFO, (wchar_t *) IDS_2129, temp);
-        gfxcard_2 = 0;
+        gfxcard[1] = 0;
     }
 
     atfullspeed = 0;
@@ -1019,6 +1020,9 @@ pc_reset_hard_init(void)
      * modules that are.
      */
 
+    /* Mark ACPI as unavailable */
+    acpi_enabled = 0;
+
     /* Reset the general machine support modules. */
     io_init();
 
@@ -1037,6 +1041,7 @@ pc_reset_hard_init(void)
 
     /* Reset and reconfigure the serial ports. */
     serial_standalone_init();
+    serial_passthrough_init();
 
     /* Reset and reconfigure the Sound Card layer. */
     sound_card_reset();
@@ -1123,6 +1128,8 @@ pc_reset_hard_init(void)
 #endif
 
     update_mouse_msg();
+
+    ui_hard_reset_completed();
 }
 
 void
@@ -1270,7 +1277,7 @@ pc_run(void)
     }
 
     if (title_update) {
-        mouse_msg_idx = (mouse_type == MOUSE_TYPE_NONE) ? 2 : !!mouse_capture;
+        mouse_msg_idx = ((mouse_type == MOUSE_TYPE_NONE) || (mouse_mode >= 1)) ? 2 : !!mouse_capture;
         swprintf(temp, sizeof_w(temp), mouse_msg[mouse_msg_idx], fps);
 #ifdef __APPLE__
         /* Needed due to modifying the UI on the non-main thread is a big no-no. */

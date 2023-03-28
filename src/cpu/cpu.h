@@ -490,10 +490,11 @@ extern int                        cpu_override;
 extern int    cpu_isintel;
 extern int    cpu_iscyrix;
 extern int    cpu_16bitbus, cpu_64bitbus;
-extern int    cpu_busspeed, cpu_pci_speed;
+extern int    cpu_pci_speed;
 extern int    cpu_multi;
 extern double cpu_dmulti;
 extern double fpu_multi;
+extern double cpu_busspeed;
 extern int    cpu_cyrix_alignment; /*Cyrix 5x86/6x86 only has data misalignment
                                      penalties when crossing 8-byte boundaries*/
 

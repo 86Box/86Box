@@ -8,6 +8,9 @@
 #ifdef __sun__
 #include <sys/filio.h>
 #endif
+#ifdef __linux__
+#include <linux/errqueue.h>
+#endif
 
 static void sofcantrcvmore(struct socket *so);
 static void sofcantsendmore(struct socket *so);
@@ -38,15 +41,17 @@ struct socket *solookup(struct socket **last, struct socket *head,
 /*
  * Create a new socket, initialise the fields
  * It is the responsibility of the caller to
- * insque() it into the correct linked-list
+ * slirp_insque() it into the correct linked-list
  */
-struct socket *socreate(Slirp *slirp)
+struct socket *socreate(Slirp *slirp, int type)
 {
     struct socket *so = g_new(struct socket, 1);
 
     memset(so, 0, sizeof(struct socket));
+    so->so_type = type;
     so->so_state = SS_NOFDREF;
     so->s = -1;
+    so->s_aux = -1;
     so->slirp = slirp;
     so->pollfds_idx = -1;
 
@@ -56,11 +61,11 @@ struct socket *socreate(Slirp *slirp)
 /*
  * Remove references to so from the given message queue.
  */
-static void soqfree(struct socket *so, struct quehead *qh)
+static void soqfree(struct socket *so, struct slirp_quehead *qh)
 {
     struct mbuf *ifq;
 
-    for (ifq = (struct mbuf *)qh->qh_link; (struct quehead *)ifq != qh;
+    for (ifq = (struct mbuf *)qh->qh_link; (struct slirp_quehead *)ifq != qh;
          ifq = ifq->ifq_next) {
         if (ifq->ifq_so == so) {
             struct mbuf *ifm;
@@ -73,11 +78,15 @@ static void soqfree(struct socket *so, struct quehead *qh)
 }
 
 /*
- * remque and free a socket, clobber cache
+ * slirp_remque and free a socket, clobber cache
  */
 void sofree(struct socket *so)
 {
     Slirp *slirp = so->slirp;
+
+    if (so->s_aux != -1) {
+        closesocket(so->s_aux);
+    }
 
     soqfree(so, &slirp->if_fastq);
     soqfree(so, &slirp->if_batchq);
@@ -92,7 +101,7 @@ void sofree(struct socket *so)
     m_free(so->so_m);
 
     if (so->so_next && so->so_prev)
-        remque(so); /* crashes if so is not in a queue */
+        slirp_remque(so); /* crashes if so is not in a queue */
 
     if (so->so_tcpcb) {
         g_free(so->so_tcpcb);
@@ -208,8 +217,8 @@ int soread(struct socket *so)
                        errno, strerror(errno));
             sofcantrcvmore(so);
 
-            if (err == ECONNRESET || err == ECONNREFUSED || err == ENOTCONN ||
-                err == EPIPE) {
+            if (err == ECONNABORTED || err == ECONNRESET || err == ECONNREFUSED ||
+                err == ENOTCONN || err == EPIPE) {
                 tcp_drop(sototcpcb(so), err);
             } else {
                 tcp_sockclosed(sototcpcb(so));
@@ -336,8 +345,8 @@ int sosendoob(struct socket *so)
     DEBUG_ARG("so = %p", so);
     DEBUG_ARG("sb->sb_cc = %d", sb->sb_cc);
 
-    if (so->so_urgc > 2048)
-        so->so_urgc = 2048; /* XXXX */
+    if (so->so_urgc > sizeof(buff))
+        so->so_urgc = sizeof(buff); /* XXXX */
 
     if (sb->sb_rptr < sb->sb_wptr) {
         /* We can send it directly */
@@ -349,7 +358,7 @@ int sosendoob(struct socket *so)
          * we must copy all data to a linear buffer then
          * send it all
          */
-        uint32_t urgc = so->so_urgc;
+        uint32_t urgc = so->so_urgc; /* Amount of room left in buff */
         int len = (sb->sb_data + sb->sb_datalen) - sb->sb_rptr;
         if (len > urgc) {
             len = urgc;
@@ -357,6 +366,7 @@ int sosendoob(struct socket *so)
         memcpy(buff, sb->sb_rptr, len);
         urgc -= len;
         if (urgc) {
+            /* We still have some room for the rest */
             n = sb->sb_wptr - sb->sb_data;
             if (n > urgc) {
                 n = urgc;
@@ -365,7 +375,7 @@ int sosendoob(struct socket *so)
             len += n;
         }
         n = slirp_send(so, buff, len, (MSG_OOB)); /* |MSG_DONTWAIT)); */
-#ifdef DEBUG
+#ifdef SLIRP_DEBUG
         if (n != len) {
             DEBUG_ERROR("Didn't send all data urgently XXXXX");
         }
@@ -493,12 +503,67 @@ void sorecvfrom(struct socket *so)
     struct sockaddr_storage addr;
     struct sockaddr_storage saddr, daddr;
     socklen_t addrlen = sizeof(struct sockaddr_storage);
+    char buff[256];
+
+#ifdef __linux__
+    ssize_t size;
+    struct msghdr msg;
+    struct iovec iov;
+    char control[1024];
+
+    /* First look for errors */
+    memset(&msg, 0, sizeof(msg));
+    msg.msg_name = &saddr;
+    msg.msg_namelen = sizeof(saddr);
+    msg.msg_control = control;
+    msg.msg_controllen = sizeof(control);
+    iov.iov_base = buff;
+    iov.iov_len = sizeof(buff);
+    msg.msg_iov = &iov;
+    msg.msg_iovlen = 1;
+
+    size = recvmsg(so->s, &msg, MSG_ERRQUEUE);
+    if (size >= 0) {
+        struct cmsghdr *cmsg;
+        for (cmsg = CMSG_FIRSTHDR(&msg); cmsg; cmsg = CMSG_NXTHDR(&msg, cmsg)) {
+
+            if (cmsg->cmsg_level == IPPROTO_IP &&
+                cmsg->cmsg_type == IP_RECVERR) {
+                struct sock_extended_err *ee =
+                    (struct sock_extended_err *) CMSG_DATA(cmsg);
+
+                if (ee->ee_origin == SO_EE_ORIGIN_ICMP) {
+                    /* Got an ICMP error, forward it */
+                    struct sockaddr_in *sin;
+
+                    sin = (struct sockaddr_in *) SO_EE_OFFENDER(ee);
+                    icmp_forward_error(so->so_m, ee->ee_type, ee->ee_code,
+                                       0, NULL, &sin->sin_addr);
+                }
+            }
+            else if (cmsg->cmsg_level == IPPROTO_IPV6 &&
+                     cmsg->cmsg_type == IPV6_RECVERR) {
+                struct sock_extended_err *ee =
+                    (struct sock_extended_err *) CMSG_DATA(cmsg);
+
+                if (ee->ee_origin == SO_EE_ORIGIN_ICMP6) {
+                    /* Got an ICMPv6 error, forward it */
+                    struct sockaddr_in6 *sin6;
+
+                    sin6 = (struct sockaddr_in6 *) SO_EE_OFFENDER(ee);
+                    icmp6_forward_error(so->so_m, ee->ee_type, ee->ee_code,
+                                        &sin6->sin6_addr);
+                }
+            }
+        }
+        return;
+    }
+#endif
 
     DEBUG_CALL("sorecvfrom");
     DEBUG_ARG("so = %p", so);
 
     if (so->so_type == IPPROTO_ICMP) { /* This is a "ping" reply */
-        char buff[256];
         int len;
 
         len = recvfrom(so->s, buff, 256, 0, (struct sockaddr *)&addr, &addrlen);
@@ -531,9 +596,6 @@ void sorecvfrom(struct socket *so)
 
         if (ioctlsocket(so->s, FIONREAD, &n) != 0) {
             DEBUG_MISC(" ioctlsocket errno = %d-%s\n", errno, strerror(errno));
-            return;
-        }
-        if (n == 0) {
             return;
         }
 
@@ -624,6 +686,28 @@ void sorecvfrom(struct socket *so)
              */
             saddr = addr;
             sotranslate_in(so, &saddr);
+
+            /* Perform lazy guest IP address resolution if needed. */
+            if (so->so_state & SS_HOSTFWD) {
+                if (soassign_guest_addr_if_needed(so) < 0) {
+                    DEBUG_MISC(" guest address not available yet");
+                    switch (so->so_lfamily) {
+                    case AF_INET:
+                        icmp_send_error(so->so_m, ICMP_UNREACH,
+                                        ICMP_UNREACH_HOST, 0,
+                                        "guest address not available yet");
+                        break;
+                    case AF_INET6:
+                        icmp6_send_error(so->so_m, ICMP6_UNREACH,
+                                         ICMP6_UNREACH_ADDRESS);
+                        break;
+                    default:
+                        g_assert_not_reached();
+                    }
+                    m_free(m);
+                    return;
+                }
+            }
             daddr = so->lhost.ss;
 
             switch (so->so_ffamily) {
@@ -679,32 +763,67 @@ int sosendto(struct socket *so, struct mbuf *m)
 
 /*
  * Listen for incoming TCP connections
+ * On failure errno contains the reason.
  */
-struct socket *tcp_listen(Slirp *slirp, uint32_t haddr, unsigned hport,
-                          uint32_t laddr, unsigned lport, int flags)
+struct socket *tcpx_listen(Slirp *slirp,
+                           const struct sockaddr *haddr, socklen_t haddrlen,
+                           const struct sockaddr *laddr, socklen_t laddrlen,
+                           int flags)
 {
-    /* TODO: IPv6 */
-    struct sockaddr_in addr;
     struct socket *so;
     int s, opt = 1;
-    socklen_t addrlen = sizeof(addr);
-    memset(&addr, 0, addrlen);
+    socklen_t addrlen;
 
-    DEBUG_CALL("tcp_listen");
-    DEBUG_ARG("haddr = %s", inet_ntoa((struct in_addr){ .s_addr = haddr }));
-    DEBUG_ARG("hport = %d", ntohs(hport));
-    DEBUG_ARG("laddr = %s", inet_ntoa((struct in_addr){ .s_addr = laddr }));
-    DEBUG_ARG("lport = %d", ntohs(lport));
+    DEBUG_CALL("tcpx_listen");
+    /* AF_INET6 addresses are bigger than AF_INET, so this is big enough. */
+    char addrstr[INET6_ADDRSTRLEN];
+    char portstr[6];
+    int ret;
+    switch (haddr->sa_family) {
+    case AF_INET:
+    case AF_INET6:
+        ret = getnameinfo(haddr, haddrlen, addrstr, sizeof(addrstr), portstr, sizeof(portstr), NI_NUMERICHOST|NI_NUMERICSERV);
+        g_assert(ret == 0);
+        DEBUG_ARG("hfamily = INET");
+        DEBUG_ARG("haddr = %s", addrstr);
+        DEBUG_ARG("hport = %s", portstr);
+        break;
+#ifndef _WIN32
+    case AF_UNIX:
+        DEBUG_ARG("hfamily = UNIX");
+        DEBUG_ARG("hpath = %s", ((struct sockaddr_un *) haddr)->sun_path);
+        break;
+#endif
+    default:
+        g_assert_not_reached();
+    }
+    switch (laddr->sa_family) {
+    case AF_INET:
+    case AF_INET6:
+        ret = getnameinfo(laddr, laddrlen, addrstr, sizeof(addrstr), portstr, sizeof(portstr), NI_NUMERICHOST|NI_NUMERICSERV);
+        g_assert(ret == 0);
+        DEBUG_ARG("laddr = %s", addrstr);
+        DEBUG_ARG("lport = %s", portstr);
+        break;
+    default:
+        g_assert_not_reached();
+    }
     DEBUG_ARG("flags = %x", flags);
 
-    so = socreate(slirp);
+    /*
+     * SS_HOSTFWD sockets can be accepted multiple times, so they can't be
+     * SS_FACCEPTONCE. Also, SS_HOSTFWD connections can be accepted and
+     * immediately closed if the guest address isn't available yet, which is
+     * incompatible with the "accept once" concept. Correct code will never
+     * request both, so disallow their combination by assertion.
+     */
+    g_assert(!((flags & SS_HOSTFWD) && (flags & SS_FACCEPTONCE)));
+
+    so = socreate(slirp, IPPROTO_TCP);
 
     /* Don't tcp_attach... we don't need so_snd nor so_rcv */
-    if ((so->so_tcpcb = tcp_newtcpcb(so)) == NULL) {
-        g_free(so);
-        return NULL;
-    }
-    insque(so, &slirp->tcb);
+    so->so_tcpcb = tcp_newtcpcb(so);
+    slirp_insque(so, &slirp->tcb);
 
     /*
      * SS_FACCEPTONCE sockets must time out.
@@ -714,20 +833,16 @@ struct socket *tcp_listen(Slirp *slirp, uint32_t haddr, unsigned hport,
 
     so->so_state &= SS_PERSISTENT_MASK;
     so->so_state |= (SS_FACCEPTCONN | flags);
-    so->so_lfamily = AF_INET;
-    so->so_lport = lport; /* Kept in network format */
-    so->so_laddr.s_addr = laddr; /* Ditto */
 
-    addr.sin_family = AF_INET;
-    addr.sin_addr.s_addr = haddr;
-    addr.sin_port = hport;
+    sockaddr_copy(&so->lhost.sa, sizeof(so->lhost), laddr, laddrlen);
 
-    if (((s = slirp_socket(AF_INET, SOCK_STREAM, 0)) < 0) ||
+    s = slirp_socket(haddr->sa_family, SOCK_STREAM, 0);
+    if ((s < 0) ||
+        (haddr->sa_family == AF_INET6 && slirp_socket_set_v6only(s, (flags & SS_HOSTFWD_V6ONLY) != 0) < 0) ||
         (slirp_socket_set_fast_reuse(s) < 0) ||
-        (bind(s, (struct sockaddr *)&addr, sizeof(addr)) < 0) ||
+        (bind(s, haddr, haddrlen) < 0) ||
         (listen(s, 1) < 0)) {
         int tmperrno = errno; /* Don't clobber the real reason we failed */
-
         if (s >= 0) {
             closesocket(s);
         }
@@ -741,20 +856,32 @@ struct socket *tcp_listen(Slirp *slirp, uint32_t haddr, unsigned hport,
         return NULL;
     }
     setsockopt(s, SOL_SOCKET, SO_OOBINLINE, &opt, sizeof(int));
-    opt = 1;
-    setsockopt(s, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(int));
+    slirp_socket_set_nodelay(s);
 
-    getsockname(s, (struct sockaddr *)&addr, &addrlen);
-    so->so_ffamily = AF_INET;
-    so->so_fport = addr.sin_port;
-    if (addr.sin_addr.s_addr == 0 ||
-        addr.sin_addr.s_addr == loopback_addr.s_addr)
-        so->so_faddr = slirp->vhost_addr;
-    else
-        so->so_faddr = addr.sin_addr;
+    addrlen = sizeof(so->fhost);
+    getsockname(s, &so->fhost.sa, &addrlen);
+    sotranslate_accept(so);
 
     so->s = s;
     return so;
+}
+
+struct socket *tcp_listen(Slirp *slirp, uint32_t haddr, unsigned hport,
+                          uint32_t laddr, unsigned lport, int flags)
+{
+    struct sockaddr_in hsa, lsa;
+
+    memset(&hsa, 0, sizeof(hsa));
+    hsa.sin_family = AF_INET;
+    hsa.sin_addr.s_addr = haddr;
+    hsa.sin_port = hport;
+
+    memset(&lsa, 0, sizeof(lsa));
+    lsa.sin_family = AF_INET;
+    lsa.sin_addr.s_addr = laddr;
+    lsa.sin_port = lport;
+
+    return tcpx_listen(slirp, (const struct sockaddr *) &hsa, sizeof(hsa), (struct sockaddr *) &lsa, sizeof(lsa), flags);
 }
 
 /*
@@ -941,6 +1068,108 @@ void sotranslate_accept(struct socket *so)
         }
         break;
 
+    case AF_UNIX: {
+        /* Translate Unix socket to random ephemeral source port. We obtain
+         * this source port by binding to port 0 so that the OS allocates a
+         * port for us. If this fails, we fall back to choosing a random port
+         * with a random number generator. */
+        int s;
+        struct sockaddr_in in_addr;
+        struct sockaddr_in6 in6_addr;
+        socklen_t in_addr_len;
+
+        if (so->slirp->in_enabled) {
+            so->so_ffamily = AF_INET;
+            so->so_faddr = slirp->vhost_addr;
+            so->so_fport = 0;
+
+            switch (so->so_type) {
+            case IPPROTO_TCP:
+                s = slirp_socket(PF_INET, SOCK_STREAM, 0);
+                break;
+            case IPPROTO_UDP:
+                s = slirp_socket(PF_INET, SOCK_DGRAM, 0);
+                break;
+            default:
+                g_assert_not_reached();
+                break;
+            }
+            if (s < 0) {
+                g_error("Ephemeral slirp_socket() allocation failed");
+                goto unix2inet_cont;
+            }
+            memset(&in_addr, 0, sizeof(in_addr));
+            in_addr.sin_family = AF_INET;
+            in_addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+            in_addr.sin_port = htons(0);
+            if (bind(s, (struct sockaddr *) &in_addr, sizeof(in_addr))) {
+                g_error("Ephemeral bind() failed");
+                closesocket(s);
+                goto unix2inet_cont;
+            }
+            in_addr_len = sizeof(in_addr);
+            if (getsockname(s, (struct sockaddr *) &in_addr, &in_addr_len)) {
+                g_error("Ephemeral getsockname() failed");
+                closesocket(s);
+                goto unix2inet_cont;
+            }
+            so->s_aux = s;
+            so->so_fport = in_addr.sin_port;
+
+unix2inet_cont:
+            if (!so->so_fport) {
+                g_warning("Falling back to random port allocation");
+                so->so_fport = htons(g_rand_int_range(slirp->grand, 49152, 65536));
+            }
+        } else if (so->slirp->in6_enabled) {
+            so->so_ffamily = AF_INET6;
+            so->so_faddr6 = slirp->vhost_addr6;
+            so->so_fport6 = 0;
+
+            switch (so->so_type) {
+            case IPPROTO_TCP:
+                s = slirp_socket(PF_INET6, SOCK_STREAM, 0);
+                break;
+            case IPPROTO_UDP:
+                s = slirp_socket(PF_INET6, SOCK_DGRAM, 0);
+                break;
+            default:
+                g_assert_not_reached();
+                break;
+            }
+            if (s < 0) {
+                g_error("Ephemeral slirp_socket() allocation failed");
+                goto unix2inet6_cont;
+            }
+            memset(&in6_addr, 0, sizeof(in6_addr));
+            in6_addr.sin6_family = AF_INET6;
+            in6_addr.sin6_addr = in6addr_loopback;
+            in6_addr.sin6_port = htons(0);
+            if (bind(s, (struct sockaddr *) &in6_addr, sizeof(in6_addr))) {
+                g_error("Ephemeral bind() failed");
+                closesocket(s);
+                goto unix2inet6_cont;
+            }
+            in_addr_len = sizeof(in6_addr);
+            if (getsockname(s, (struct sockaddr *) &in6_addr, &in_addr_len)) {
+                g_error("Ephemeral getsockname() failed");
+                closesocket(s);
+                goto unix2inet6_cont;
+            }
+            so->s_aux = s;
+            so->so_fport6 = in6_addr.sin6_port;
+
+unix2inet6_cont:
+            if (!so->so_fport6) {
+                g_warning("Falling back to random port allocation");
+                so->so_fport6 = htons(g_rand_int_range(slirp->grand, 49152, 65536));
+            }
+        } else {
+            g_assert_not_reached();
+        }
+        break;
+    } /* case AF_UNIX */
+
     default:
         break;
     }
@@ -951,4 +1180,54 @@ void sodrop(struct socket *s, int num)
     if (sbdrop(&s->so_snd, num)) {
         s->slirp->cb->notify(s->slirp->opaque);
     }
+}
+
+/*
+ * Translate "addr-any" in so->lhost to the guest's actual address.
+ * Returns 0 for success, or -1 if the guest doesn't have an address yet
+ * with errno set to EHOSTUNREACH.
+ *
+ * The guest address is taken from the first entry in the ARP table for IPv4
+ * and the first entry in the NDP table for IPv6.
+ * Note: The IPv4 path isn't exercised yet as all hostfwd "" guest translations
+ * are handled immediately by using slirp->vdhcp_startaddr.
+ */
+int soassign_guest_addr_if_needed(struct socket *so)
+{
+    Slirp *slirp = so->slirp;
+    /* AF_INET6 addresses are bigger than AF_INET, so this is big enough. */
+    char addrstr[INET6_ADDRSTRLEN];
+    char portstr[6];
+
+    g_assert(so->so_state & SS_HOSTFWD);
+
+    switch (so->so_ffamily) {
+    case AF_INET:
+        if (so->so_laddr.s_addr == INADDR_ANY) {
+            g_assert_not_reached();
+        }
+        break;
+
+    case AF_INET6:
+        if (in6_zero(&so->so_laddr6)) {
+            int ret;
+            if (in6_zero(&slirp->ndp_table.guest_in6_addr)) {
+                errno = EHOSTUNREACH;
+                return -1;
+            }
+            so->so_laddr6 = slirp->ndp_table.guest_in6_addr;
+            ret = getnameinfo((const struct sockaddr *) &so->lhost.ss,
+                              sizeof(so->lhost.ss), addrstr, sizeof(addrstr),
+                              portstr, sizeof(portstr),
+                              NI_NUMERICHOST|NI_NUMERICSERV);
+            g_assert(ret == 0);
+            DEBUG_MISC("%s: new ip = [%s]:%s", __func__, addrstr, portstr);
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    return 0;
 }

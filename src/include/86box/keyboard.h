@@ -39,8 +39,6 @@ typedef struct {
 #define RSHIFT_OFF       0x105
 
 /* KBC #define's */
-#define KBC_UNKNOWN 0x0000 /* As yet unknown keyboard */
-
 /* IBM-style controllers */
 #define KBC_IBM_PC_XT          0x0000 /* IBM PC/XT */
 #define KBC_IBM_PCJR           0x0001 /* IBM PCjr */
@@ -154,7 +152,7 @@ extern const device_t keyboard_xt_t1x00_device;
 extern const device_t keyboard_tandy_device;
 #    if defined(DEV_BRANCH) && defined(USE_LASERXT)
 extern const device_t keyboard_xt_lxt3_device;
-#    endif
+#    endif /*defined(DEV_BRANCH) && defined(USE_LASERXT) */
 extern const device_t keyboard_xt_olivetti_device;
 extern const device_t keyboard_xt_zenith_device;
 extern const device_t keyboard_xtclone_device;
@@ -178,7 +176,7 @@ extern const device_t keyboard_ps2_ami_pci_device;
 extern const device_t keyboard_ps2_intel_ami_pci_device;
 extern const device_t keyboard_ps2_acer_pci_device;
 extern const device_t keyboard_ps2_ali_pci_device;
-#endif
+#endif /*EMU_DEVICE_H*/
 
 extern void     keyboard_init(void);
 extern void     keyboard_close(void);

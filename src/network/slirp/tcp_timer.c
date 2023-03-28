@@ -52,7 +52,7 @@ void tcp_fasttimo(Slirp *slirp)
                 (tp->t_flags & TF_DELACK)) {
                 tp->t_flags &= ~TF_DELACK;
                 tp->t_flags |= TF_ACKNOW;
-                (void)tcp_output(tp);
+                tcp_output(tp);
             }
 }
 
@@ -233,7 +233,7 @@ static struct tcpcb *tcp_timers(register struct tcpcb *tp, int timer)
             tp->snd_ssthresh = win * tp->t_maxseg;
             tp->t_dupacks = 0;
         }
-        (void)tcp_output(tp);
+        tcp_output(tp);
         break;
 
     /*
@@ -243,7 +243,7 @@ static struct tcpcb *tcp_timers(register struct tcpcb *tp, int timer)
     case TCPT_PERSIST:
         tcp_setpersist(tp);
         tp->t_force = 1;
-        (void)tcp_output(tp);
+        tcp_output(tp);
         tp->t_force = 0;
         break;
 

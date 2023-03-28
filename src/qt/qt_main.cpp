@@ -43,7 +43,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #    include "qt_winrawinputfilter.hpp"
 #    include "qt_winmanagerfilter.hpp"
 #    include <86box/win.h>
-#    include <Shobjidl.h>
+#    include <shobjidl.h>
 #endif
 
 extern "C" {
@@ -52,7 +52,9 @@ extern "C" {
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/video.h>
-#include <86box/discord.h>
+#ifdef DISCORD
+#   include <86box/discord.h>
+#endif
 #include <86box/gdbstub.h>
 }
 
@@ -136,7 +138,11 @@ main_thread_fn()
     }
 
     is_quit = 1;
-    QTimer::singleShot(0, QApplication::instance(), []() { QApplication::instance()->quit(); });
+    if (gfxcard[1]) {
+        ui_deinit_monitor(1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+    QTimer::singleShot(0, QApplication::instance(), []() { QApplication::processEvents(); QApplication::instance()->quit(); });
 }
 
 static std::thread *main_thread;
@@ -196,7 +202,9 @@ main(int argc, char *argv[])
         return 0;
     }
 
+#ifdef DISCORD
     discord_load();
+#endif
 
     main_window = new MainWindow();
     if (startMaximized) {
@@ -246,7 +254,6 @@ main(int argc, char *argv[])
     auto rawInputFilter = WindowsRawInputFilter::Register(main_window);
     if (rawInputFilter) {
         app.installNativeEventFilter(rawInputFilter.get());
-        QObject::disconnect(main_window, &MainWindow::pollMouse, 0, 0);
         QObject::connect(main_window, &MainWindow::pollMouse, (WindowsRawInputFilter *) rawInputFilter.get(), &WindowsRawInputFilter::mousePoll, Qt::DirectConnection);
         main_window->setSendKeyboardInput(false);
     }
@@ -271,12 +278,14 @@ main(int argc, char *argv[])
     /* Set the PAUSE mode depending on the renderer. */
     // plat_pause(0);
     QTimer onesec;
-    QTimer discordupdate;
     QObject::connect(&onesec, &QTimer::timeout, &app, [] {
         pc_onesec();
     });
     onesec.setTimerType(Qt::PreciseTimer);
     onesec.start(1000);
+
+#ifdef DISCORD
+    QTimer discordupdate;
     if (discord_loaded) {
         QTimer::singleShot(1000, &app, [] {
             if (enable_discord) {
@@ -290,6 +299,7 @@ main(int argc, char *argv[])
         });
         discordupdate.start(1000);
     }
+#endif
 
     /* Initialize the rendering window, or fullscreen. */
     QTimer::singleShot(0, &app, [] {

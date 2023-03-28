@@ -91,14 +91,6 @@ setCDROMSpeed(QAbstractItemModel *model, const QModelIndex &idx, uint8_t speed)
 }
 
 static void
-setCDROMEarly(QAbstractItemModel *model, const QModelIndex &idx, bool early)
-{
-    auto i = idx.siblingAtColumn(2);
-    model->setData(i, (early == true) ? QObject::tr("On") : QObject::tr("Off"));
-    model->setData(i, early, Qt::UserRole);
-}
-
-static void
 setCDROMType(QAbstractItemModel *model, const QModelIndex &idx, int type)
 {
     auto i = idx.siblingAtColumn(2);

@@ -191,6 +191,12 @@ ps2_write(uint8_t val, void *priv)
                 keyboard_at_adddata_mouse(dev->sample_rate);
                 break;
 
+            case 0xea: /* set stream */
+                dev->flags &= ~FLAG_CTRLDAT;
+                mouse_scan = 1;
+                keyboard_at_adddata_mouse(0xfa); /* ACK for command byte */
+                break;
+
             case 0xeb: /* Get mouse data */
                 keyboard_at_adddata_mouse(0xfa);
 
@@ -261,7 +267,7 @@ mouse_reset:
 }
 
 static int
-ps2_poll(int x, int y, int z, int b, void *priv)
+ps2_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
 {
     mouse_t *dev = (mouse_t *) priv;
 

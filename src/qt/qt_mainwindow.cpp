@@ -39,12 +39,18 @@ extern "C" {
 #include <86box/keyboard.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
-#include <86box/discord.h>
+#ifdef DISCORD
+#   include <86box/discord.h>
+#endif
 #include <86box/device.h>
 #include <86box/video.h>
+#include <86box/mouse.h>
 #include <86box/machine.h>
 #include <86box/vid_ega.h>
 #include <86box/version.h>
+//#include <86box/acpi.h> /* Requires timer.h include, which conflicts with Qt headers */
+extern atomic_int acpi_pwrbut_pressed;
+extern int acpi_enabled;
 
 #ifdef USE_VNC
 #    include <86box/vnc.h>
@@ -188,6 +194,12 @@ MainWindow::MainWindow(QWidget *parent)
         vmname.truncate(vmname.size() - 1);
     this->setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
 
+    connect(this, &MainWindow::hardResetCompleted, this, [this]() {
+        ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
+        QApplication::setOverrideCursor(Qt::ArrowCursor);
+        ui->menuTablet_tool->menuAction()->setVisible(mouse_mode >= 1);
+    });
+
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
     connect(this, &MainWindow::setTitle, this, [this, toolbar_label](const QString &title) {
@@ -304,6 +316,10 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
     ui->actionEnable_Discord_integration->setChecked(enable_discord);
     ui->actionApply_fullscreen_stretch_mode_when_maximized->setChecked(video_fullscreen_scale_maximized);
+
+#ifndef DISCORD
+    ui->actionEnable_Discord_integration->setVisible(false);
+#endif
 
 #if defined Q_OS_WINDOWS || defined Q_OS_MACOS
     /* Make the option visible only if ANGLE is loaded. */
@@ -622,6 +638,16 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 #endif
+
+    actGroup = new QActionGroup(this);
+    actGroup->addAction(ui->actionCursor_Puck);
+    actGroup->addAction(ui->actionPen);
+
+    if (tablet_tool_type == 1) {
+        ui->actionPen->setChecked(true);
+    } else {
+        ui->actionCursor_Puck->setChecked(true);
+    }
 }
 
 void
@@ -707,7 +733,9 @@ MainWindow::initRendererMonitorSlot(int monitor_index)
                 secondaryRenderer->showMaximized();
             }
             secondaryRenderer->switchRenderer((RendererStack::Renderer) vid_api);
+            secondaryRenderer->setMouseTracking(true);
         }
+        connect(this, &MainWindow::pollMouse, secondaryRenderer.get(), &RendererStack::mousePoll, Qt::DirectConnection);
     }
 }
 
@@ -1673,6 +1701,7 @@ MainWindow::refreshMediaMenu()
     mm->refresh(ui->menuMedia);
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
+    ui->actionACPI_Shutdown->setEnabled(!!acpi_enabled);
 }
 
 void
@@ -2292,11 +2321,13 @@ void
 MainWindow::on_actionEnable_Discord_integration_triggered(bool checked)
 {
     enable_discord = checked;
+#ifdef DISCORD
     if (enable_discord) {
         discord_init();
         discord_update_activity(dopause);
     } else
         discord_close();
+#endif
 }
 
 void
@@ -2421,4 +2452,21 @@ MainWindow::on_actionApply_fullscreen_stretch_mode_when_maximized_triggered(bool
 
     device_force_redraw();
     config_save();
+}
+
+void MainWindow::on_actionCursor_Puck_triggered()
+{
+    tablet_tool_type = 0;
+    config_save();
+}
+
+void MainWindow::on_actionPen_triggered()
+{
+    tablet_tool_type = 1;
+    config_save();
+}
+
+void MainWindow::on_actionACPI_Shutdown_triggered()
+{
+    acpi_pwrbut_pressed = 1;
 }

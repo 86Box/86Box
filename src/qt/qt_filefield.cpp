@@ -29,7 +29,7 @@ FileField::FileField(QWidget *parent)
 
     connect(ui->label, &QLineEdit::editingFinished, this, [this]() {
         fileName_ = ui->label->text();
-        emit fileSelected(ui->label->text());
+        emit fileSelected(ui->label->text(), true);
     });
     this->setFixedWidth(this->sizeHint().width() + ui->pushButton->sizeHint().width());
 }

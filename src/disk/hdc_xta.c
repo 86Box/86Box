@@ -102,7 +102,7 @@
 #include <86box/hdc.h>
 #include <86box/hdd.h>
 
-#define HDC_TIME     (50 * TIMER_USEC)
+#define HDC_TIME           (50 * TIMER_USEC)
 
 #define WD_REV_1_BIOS_FILE "roms/hdd/xta/idexywd2.bin"
 #define WD_REV_2_BIOS_FILE "roms/hdd/xta/infowdbios.rom"
@@ -968,7 +968,7 @@ xta_init(const device_t *info)
 {
     drive_t *drive;
     char    *bios_rev = NULL;
-    char    *fn = NULL;
+    char    *fn       = NULL;
     hdc_t   *dev;
     int      c, i;
     int      max = XTA_NUM;

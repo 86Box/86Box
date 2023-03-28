@@ -20,11 +20,20 @@
 #ifndef EMU_SOUND_H
 #define EMU_SOUND_H
 
+#define SOUND_CARD_MAX 4 /* currently we support up to 4 sound cards and a standalome MPU401 */
+
 extern int sound_gain;
 
-#define SOUNDBUFLEN (48000 / 50)
+#define FREQ_44100 44100
+#define FREQ_48000 48000
+#define FREQ_49716 49716
+#define FREQ_88200 88200
+#define FREQ_96000 96000
 
-#define CD_FREQ     44100
+#define SOUND_FREQ FREQ_48000
+#define SOUNDBUFLEN (SOUND_FREQ / 50)
+
+#define CD_FREQ     FREQ_44100
 #define CD_BUFLEN   (CD_FREQ / 10)
 
 enum {
@@ -38,7 +47,7 @@ extern int gated,
     speakon;
 
 extern int sound_pos_global;
-extern int sound_card_current;
+extern int sound_card_current[SOUND_CARD_MAX];
 
 extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
                                                  int len, void *p),

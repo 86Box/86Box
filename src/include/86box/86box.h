@@ -107,16 +107,13 @@ extern int      vid_cga_contrast, /* (C) video */
     video_filter_method,          /* (C) video */
     video_vsync,                  /* (C) video */
     video_framerate,              /* (C) video */
-    gfxcard;                      /* (C) graphics/video card */
+    gfxcard[2];                   /* (C) graphics/video card */
 extern char video_shader[512];    /* (C) video */
 extern int  bugger_enabled,       /* (C) enable ISAbugger */
     postcard_enabled,             /* (C) enable POST card */
     isamem_type[],                /* (C) enable ISA mem cards */
     isartc_type;                  /* (C) enable ISA RTC card */
 extern int sound_is_float,        /* (C) sound uses FP values */
-    GAMEBLASTER,                  /* (C) sound option */
-    GUS, GUSMAX,                  /* (C) sound option */
-    SSI2001,                      /* (C) sound option */
     voodoo_enabled,               /* (C) video option */
     ibm8514_enabled,              /* (C) video option */
     xga_enabled;                  /* (C) video option */

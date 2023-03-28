@@ -68,7 +68,7 @@ void sbappend(struct socket *so, struct mbuf *m)
     if (so->so_urgc) {
         sbappendsb(&so->so_rcv, m);
         m_free(m);
-        (void)sosendoob(so);
+        sosendoob(so);
         return;
     }
 

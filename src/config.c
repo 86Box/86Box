@@ -20,6 +20,8 @@
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2018-2019 David Hrdlička.
+ *          Copyright 2021      Andreas J. Reichel.
+ *          Copyright 2021-2022 Jasmine Iwanek.
  *
  * NOTE:    Forcing config files to be in Unicode encoding breaks
  *          it on Windows XP, and possibly also Vista. Use the
@@ -54,6 +56,8 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/gameport.h>
+#include <86box/serial.h>
+#include <86box/serial_passthrough.h>
 #include <86box/machine.h>
 #include <86box/mouse.h>
 #include <86box/thread.h>
@@ -81,6 +85,7 @@ static ini_t config;
 static int backwards_compat  = 0;
 static int backwards_compat2 = 0;
 
+#define ENABLE_CONFIG_LOG 1
 #ifdef ENABLE_CONFIG_LOG
 int config_do_log = ENABLE_CONFIG_LOG;
 
@@ -530,7 +535,7 @@ load_video(void)
 
     if (machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
         ini_section_delete_var(cat, "gfxcard");
-        gfxcard = VID_INTERNAL;
+        gfxcard[0] = VID_INTERNAL;
     } else {
         p = ini_section_get_string(cat, "gfxcard", NULL);
         if (p == NULL) {
@@ -544,9 +549,9 @@ load_video(void)
             free_p = 1;
         }
         if (!strcmp(p, "virge375_vbe20_pci")) /* migrate renamed cards */
-            gfxcard = video_get_video_from_internal_name("virge385_pci");
+            gfxcard[0] = video_get_video_from_internal_name("virge385_pci");
         else
-            gfxcard = video_get_video_from_internal_name(p);
+            gfxcard[0] = video_get_video_from_internal_name(p);
         if (free_p)
             free(p);
     }
@@ -560,7 +565,7 @@ load_video(void)
     p = ini_section_get_string(cat, "gfxcard_2", NULL);
     if (!p)
         p = "none";
-    gfxcard_2 = video_get_video_from_internal_name(p);
+    gfxcard[1] = video_get_video_from_internal_name(p);
 }
 
 /* Load "Input Devices" section. */
@@ -651,6 +656,8 @@ load_input_devices(void)
             }
         }
     }
+
+    tablet_tool_type = !!ini_section_get_int(cat, "tablet_tool_type", 1);
 }
 
 /* Load "Sound" section. */
@@ -666,9 +673,36 @@ load_sound(void)
     if ((p != NULL) && (!strcmp(p, "sbpci128") || !strcmp(p, "sb128pci")))
         p = "es1371";
     if (p != NULL)
-        sound_card_current = sound_card_get_from_internal_name(p);
+        sound_card_current[0] = sound_card_get_from_internal_name(p);
     else
-        sound_card_current = 0;
+        sound_card_current[0] = 0;
+
+    p = ini_section_get_string(cat, "sndcard2", NULL);
+    /* FIXME: Hack to not break configs with the Sound Blaster 128 PCI set. */
+    if ((p != NULL) && (!strcmp(p, "sbpci128") || !strcmp(p, "sb128pci")))
+        p = "es1371";
+    if (p != NULL)
+        sound_card_current[1] = sound_card_get_from_internal_name(p);
+    else
+        sound_card_current[1] = 0;
+
+    p = ini_section_get_string(cat, "sndcard3", NULL);
+    /* FIXME: Hack to not break configs with the Sound Blaster 128 PCI set. */
+    if ((p != NULL) && (!strcmp(p, "sbpci128") || !strcmp(p, "sb128pci")))
+        p = "es1371";
+    if (p != NULL)
+        sound_card_current[2] = sound_card_get_from_internal_name(p);
+    else
+        sound_card_current[2] = 0;
+
+    p = ini_section_get_string(cat, "sndcard4", NULL);
+    /* FIXME: Hack to not break configs with the Sound Blaster 128 PCI set. */
+    if ((p != NULL) && (!strcmp(p, "sbpci128") || !strcmp(p, "sb128pci")))
+        p = "es1371";
+    if (p != NULL)
+        sound_card_current[3] = sound_card_get_from_internal_name(p);
+    else
+        sound_card_current[3] = 0;
 
     p = ini_section_get_string(cat, "midi_device", NULL);
     if (p != NULL)
@@ -683,10 +717,6 @@ load_sound(void)
         midi_input_device_current = 0;
 
     mpu401_standalone_enable = !!ini_section_get_int(cat, "mpu401_standalone", 0);
-
-    SSI2001     = !!ini_section_get_int(cat, "ssi2001", 0);
-    GAMEBLASTER = !!ini_section_get_int(cat, "gameblaster", 0);
-    GUS         = !!ini_section_get_int(cat, "gus", 0);
 
     memset(temp, '\0', sizeof(temp));
     p = ini_section_get_string(cat, "sound_type", "float");
@@ -811,6 +841,8 @@ load_ports(void)
     char          temp[512];
     int           c, d;
 
+    memset(temp, 0, sizeof(temp));
+
     for (c = 0; c < SERIAL_MAX; c++) {
         sprintf(temp, "serial%d_enabled", c + 1);
         com_ports[c].enabled = !!ini_section_get_int(cat, temp, (c >= 2) ? 0 : 1);
@@ -820,6 +852,12 @@ load_ports(void)
                 p = (char *) ini_section_get_string(cat, temp, "none");
                 com_ports[c].device = com_device_get_from_internal_name(p);
         */
+
+        sprintf(temp, "serial%d_passthrough_enabled", c + 1);
+        serial_passthrough_enabled[c] = !!ini_section_get_int(cat, temp, 0);
+
+        if (serial_passthrough_enabled[c])
+            config_log("Serial Port %d: passthrough enabled.\n\n", c + 1);
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {
@@ -1828,7 +1866,7 @@ config_load(void)
         dpi_scale       = 1;
 
         fpu_type               = fpu_get_type(cpu_f, cpu, "none");
-        gfxcard                = video_get_video_from_internal_name("cga");
+        gfxcard[0]             = video_get_video_from_internal_name("cga");
         vid_api                = plat_vidapi("default");
         vid_resize             = 0;
         video_fullscreen_first = 1;
@@ -2212,7 +2250,7 @@ save_video(void)
     ini_section_t cat = ini_find_or_create_section(config, "Video");
 
     ini_section_set_string(cat, "gfxcard",
-                           video_get_internal_name(gfxcard));
+                           video_get_internal_name(gfxcard[0]));
 
     if (voodoo_enabled == 0)
         ini_section_delete_var(cat, "voodoo");
@@ -2229,10 +2267,10 @@ save_video(void)
     else
         ini_section_set_int(cat, "xga", xga_enabled);
 
-    if (gfxcard_2 == 0)
+    if (gfxcard[1] == 0)
         ini_section_delete_var(cat, "gfxcard_2");
     else
-        ini_section_set_string(cat, "gfxcard_2", video_get_internal_name(gfxcard_2));
+        ini_section_set_string(cat, "gfxcard_2", video_get_internal_name(gfxcard[1]));
 
     if (show_second_monitors == 1)
         ini_section_delete_var(cat, "show_second_monitors");
@@ -2302,6 +2340,12 @@ save_input_devices(void)
         }
     }
 
+    if (tablet_tool_type != 1) {
+        ini_section_set_int(cat, "tablet_tool_type", tablet_tool_type);
+    } else {
+        ini_section_delete_var(cat, "tablet_tool_type");
+    }
+
     ini_delete_section_if_empty(config, cat);
 }
 
@@ -2311,10 +2355,25 @@ save_sound(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "Sound");
 
-    if (sound_card_current == 0)
+    if (sound_card_current[0] == 0)
         ini_section_delete_var(cat, "sndcard");
     else
-        ini_section_set_string(cat, "sndcard", sound_card_get_internal_name(sound_card_current));
+        ini_section_set_string(cat, "sndcard", sound_card_get_internal_name(sound_card_current[0]));
+
+    if (sound_card_current[1] == 0)
+        ini_section_delete_var(cat, "sndcard2");
+    else
+        ini_section_set_string(cat, "sndcard2", sound_card_get_internal_name(sound_card_current[1]));
+
+    if (sound_card_current[2] == 0)
+        ini_section_delete_var(cat, "sndcard3");
+    else
+        ini_section_set_string(cat, "sndcard3", sound_card_get_internal_name(sound_card_current[2]));
+
+    if (sound_card_current[3] == 0)
+        ini_section_delete_var(cat, "sndcard4");
+    else
+        ini_section_set_string(cat, "sndcard4", sound_card_get_internal_name(sound_card_current[3]));
 
     if (!strcmp(midi_out_device_get_internal_name(midi_output_device_current), "none"))
         ini_section_delete_var(cat, "midi_device");
@@ -2330,21 +2389,6 @@ save_sound(void)
         ini_section_delete_var(cat, "mpu401_standalone");
     else
         ini_section_set_int(cat, "mpu401_standalone", mpu401_standalone_enable);
-
-    if (SSI2001 == 0)
-        ini_section_delete_var(cat, "ssi2001");
-    else
-        ini_section_set_int(cat, "ssi2001", SSI2001);
-
-    if (GAMEBLASTER == 0)
-        ini_section_delete_var(cat, "gameblaster");
-    else
-        ini_section_set_int(cat, "gameblaster", GAMEBLASTER);
-
-    if (GUS == 0)
-        ini_section_delete_var(cat, "gus");
-    else
-        ini_section_set_int(cat, "gus", GUS);
 
     if (sound_is_float == 1)
         ini_section_delete_var(cat, "sound_type");
@@ -2435,6 +2479,13 @@ save_ports(void)
                             ini_section_set_string(cat, temp,
                               (char *) com_device_get_internal_name(com_ports[c].device));
                 */
+
+        sprintf(temp, "serial%d_passthrough_enabled", c + 1);
+        if (serial_passthrough_enabled[c]) {
+            ini_section_set_int(cat, temp, 1);
+        } else {
+            ini_section_delete_var(cat, temp);
+        }
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {
@@ -2489,7 +2540,7 @@ save_storage_controllers(void)
         ini_section_delete_var(cat, "cdrom_interface");
     else
         ini_section_set_string(cat, "cdrom_interface",
-                           cdrom_interface_get_internal_name(cdrom_interface_current));
+                               cdrom_interface_get_internal_name(cdrom_interface_current));
 
     if (ide_ter_enabled == 0)
         ini_section_delete_var(cat, "ide_ter");
