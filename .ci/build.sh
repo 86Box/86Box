@@ -317,9 +317,6 @@ then
 			done
 		fi
 
-		# Temporary workaround for broken CMake 3.26.1-1 package.
-		pacman -Qe | grep -qE "^$MINGW_PACKAGE_PREFIX-cmake 3.26.1-1$" && pacman -U --noconfirm "https://repo.msys2.org/mingw/$(echo $MSYSTEM | tr '[:upper:]' '[:lower:]')/$MINGW_PACKAGE_PREFIX-cmake-3.26.0-1-any.pkg.tar.zst"
-
 		# Generate a new freetype DLL for this architecture.
 		rm -f "$freetype_dll"
 
