@@ -636,12 +636,14 @@ kbc_queue_add(atkbd_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
 {
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
 
-    if ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF))
-        stat_hi |= ((dev->input_port & 0x80) ? 0x10 : 0x00);
-    else
-        stat_hi |= 0x10;
+    if (channel == 0) {
+        if ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF))
+            stat_hi |= ((dev->input_port & 0x80) ? 0x10 : 0x00);
+        else
+            stat_hi |= 0x10;
 
-    dev->status = (dev->status & 0x0f) | stat_hi;
+        dev->status = (dev->status & 0x0f) | stat_hi;
+    }
 
     if (channel == 2) {
         kbd_log("ATkbc: mouse_queue[%02X] = %02X;\n", mouse_queue_end, val);
@@ -744,7 +746,7 @@ kbd_poll(void *priv)
         if (dev->out_new & 0x100) {
             if (dev->mem[0] & 0x02)
                 picint(0x1000);
-            kbd_log("ATkbc: %02X coming from channel 2\n");
+            kbd_log("ATkbc: %02X coming from channel 2\n", dev->out_new & 0xff);
             dev->out      = dev->out_new & 0xff;
             dev->out_new  = -1;
             dev->status   = (dev->status & ~STAT_IFULL) | (STAT_OFULL | STAT_MFULL);
