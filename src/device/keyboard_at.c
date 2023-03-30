@@ -634,17 +634,6 @@ kbc_queue_reset(uint8_t channel)
 static void
 kbc_queue_add(atkbd_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
 {
-    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
-
-    if (channel == 0) {
-        if ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF))
-            stat_hi |= ((dev->input_port & 0x80) ? 0x10 : 0x00);
-        else
-            stat_hi |= 0x10;
-
-        dev->status = (dev->status & 0x0f) | stat_hi;
-    }
-
     if (channel == 2) {
         kbd_log("ATkbc: mouse_queue[%02X] = %02X;\n", mouse_queue_end, val);
         mouse_queue[mouse_queue_end] = val;
@@ -1231,7 +1220,7 @@ write64_generic(void *priv, uint8_t val)
         case 0xa4: /* check if password installed */
             if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
                 kbd_log("ATkbc: check if password installed\n");
-                add_data(dev, 0xf1);
+                add_to_kbc_queue_front(dev, 0xf1, 0, 0x00);
                 return 0;
             }
             break;
@@ -1255,14 +1244,14 @@ write64_generic(void *priv, uint8_t val)
         case 0xa9: /*Test mouse port*/
             kbd_log("ATkbc: test mouse port\n");
             if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
-                add_data(dev, 0x00); /* no error, this is testing the channel 2 interface */
+                add_to_kbc_queue_front(dev, 0x00, 0, 0x00); /* no error, this is testing the channel 2 interface */
                 return 0;
             }
             break;
 
         case 0xaf: /* read keyboard version */
             kbd_log("ATkbc: read keyboard version\n");
-            add_data(dev, 0x00);
+            add_to_kbc_queue_front(dev, 0x42, 0, 0x00);
             return 0;
 
         case 0xc0: /* read input port */
@@ -1452,7 +1441,7 @@ write64_ami(void *priv, uint8_t val)
         case 0x1e:
         case 0x1f:
             kbd_log("ATkbc: AMI - alias read from %08X\n", val);
-            add_data(dev, dev->mem[val]);
+            add_to_kbc_queue_front(dev, dev->mem[val], 0, 0x00);
             return 0;
 
         case 0x40:
@@ -1500,20 +1489,26 @@ write64_ami(void *priv, uint8_t val)
             kbd_log("ATkbc: AMI - get controller version\n");
             if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
                 if (kbc_ven == KBC_VEN_ALI)
-                    add_data(dev, 'F');
+                    add_to_kbc_queue_front(dev, 'F', 0, 0x00);
                 else if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_INTEL_AMI)
-                    add_data(dev, '5');
+                    add_to_kbc_queue_front(dev, '5', 0, 0x00);
+                else if (is_pentium)
+                    add_to_kbc_queue_front(dev, 'R', 0, 0x00);
                 else
-                    add_data(dev, 'H');
-            } else
-                add_data(dev, 'F');
+                    add_to_kbc_queue_front(dev, 'H', 0, 0x00);
+            } else if (is386 && !is486)
+                add_to_kbc_queue_front(dev, 'B', 0, 0x00);
+            else if (!is386)
+                add_to_kbc_queue_front(dev, '8', 0, 0x00);
+            else
+                add_to_kbc_queue_front(dev, 'F', 0, 0x00);
             return 0;
 
         case 0xa2: /* clear keyboard controller lines P22/P23 */
             if ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF) {
                 kbd_log("ATkbc: AMI - clear KBC lines P22 and P23\n");
                 write_output(dev, dev->output_port & 0xf3);
-                add_data(dev, 0x00);
+                add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
                 return 0;
             }
             break;
@@ -1522,7 +1517,7 @@ write64_ami(void *priv, uint8_t val)
             if ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF) {
                 kbd_log("ATkbc: AMI - set KBC lines P22 and P23\n");
                 write_output(dev, dev->output_port | 0x0c);
-                add_data(dev, 0x00);
+                add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
                 return 0;
             }
             break;
@@ -1594,7 +1589,7 @@ write64_ami(void *priv, uint8_t val)
             kbd_log("ATkbc: set KBC lines P10-P13 (input port bits 0-3) low\n");
             if (!(dev->flags & DEVICE_PCI) || (val > 0xb1))
                 dev->input_port &= ~(1 << (val & 0x03));
-            add_data(dev, 0x00);
+            add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
             return 0;
 
         case 0xb4:
@@ -1603,7 +1598,7 @@ write64_ami(void *priv, uint8_t val)
             kbd_log("ATkbc: set KBC lines P22-P23 (output port bits 2-3) low\n");
             if (!(dev->flags & DEVICE_PCI))
                 write_output(dev, dev->output_port & ~(4 << (val & 0x01)));
-            add_data(dev, 0x00);
+            add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
             return 0;
 
         case 0xb8:
@@ -1614,7 +1609,7 @@ write64_ami(void *priv, uint8_t val)
             kbd_log("ATkbc: set KBC lines P10-P13 (input port bits 0-3) high\n");
             if (!(dev->flags & DEVICE_PCI) || (val > 0xb9)) {
                 dev->input_port |= (1 << (val & 0x03));
-                add_data(dev, 0x00);
+                add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
             }
             return 0;
 
@@ -1624,7 +1619,7 @@ write64_ami(void *priv, uint8_t val)
             kbd_log("ATkbc: set KBC lines P22-P23 (output port bits 2-3) high\n");
             if (!(dev->flags & DEVICE_PCI))
                 write_output(dev, dev->output_port | (4 << (val & 0x01)));
-            add_data(dev, 0x00);
+            add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
             return 0;
 
         case 0xc1: /* write input port */
@@ -1636,13 +1631,13 @@ write64_ami(void *priv, uint8_t val)
             /* set KBC line P14 low */
             kbd_log("ATkbc: set KBC line P14 (input port bit 4) low\n");
             dev->input_port &= 0xef;
-            add_data(dev, 0x00);
+            add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
             return 0;
         case 0xc5:
             /* set KBC line P15 low */
             kbd_log("ATkbc: set KBC line P15 (input port bit 5) low\n");
             dev->input_port &= 0xdf;
-            add_data(dev, 0x00);
+            add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
             return 0;
 
         case 0xc8:
@@ -1667,13 +1662,13 @@ write64_ami(void *priv, uint8_t val)
             /* set KBC line P14 high */
             kbd_log("ATkbc: set KBC line P14 (input port bit 4) high\n");
             dev->input_port |= 0x10;
-            add_data(dev, 0x00);
+            add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
             return 0;
         case 0xcd:
             /* set KBC line P15 high */
             kbd_log("ATkbc: set KBC line P15 (input port bit 5) high\n");
             dev->input_port |= 0x20;
-            add_data(dev, 0x00);
+            add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
             return 0;
 
         case 0xef: /* ??? - sent by AMI486 */
@@ -1832,12 +1827,12 @@ write64_toshiba(void *priv, uint8_t val)
 
         case 0xb4: /* T3100e: Get configuration / status */
             kbd_log("ATkbc: T3100e: Get configuration / status\n");
-            add_data(dev, t3100e_config_get());
+            add_to_kbc_queue_front(dev, t3100e_config_get(), 0, 0x00);
             return 0;
 
         case 0xb5: /* T3100e: Get colour / mono byte */
             kbd_log("ATkbc: T3100e: Get colour / mono byte\n");
-            add_data(dev, t3100e_mono_get());
+            add_to_kbc_queue_front(dev, t3100e_mono_get(), 0, 0x00);
             return 0;
 
         case 0xb6: /* T3100e: Set colour / mono byte */
@@ -1864,9 +1859,9 @@ write64_toshiba(void *priv, uint8_t val)
             kbd_log("ATkbc: T3100e: Read 'Fn' key\n");
             if (keyboard_recv(0xb8) || /* Right Alt */
                 keyboard_recv(0x9d))   /* Right Ctrl */
-                add_data(dev, 0x04);
+                add_to_kbc_queue_front(dev, 0x04, 0, 0x00);
             else
-                add_data(dev, 0x00);
+                add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
             return 0;
 
         case 0xbc: /* T3100e: Reset Fn+Key notification */
@@ -1880,7 +1875,7 @@ write64_toshiba(void *priv, uint8_t val)
             /* The T3100e returns all bits set except bit 6 which
              * is set by t3100e_mono_set() */
             dev->input_port = (t3100e_mono_get() & 1) ? 0xff : 0xbf;
-            add_data(dev, dev->input_port);
+            add_to_kbc_queue_front(dev, dev->input_port, 0, 0x00);
             return 0;
     }
 
@@ -2221,7 +2216,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                 case 0x3d:
                 case 0x3e:
                 case 0x3f:
-                    add_data(dev, dev->mem[val & 0x1f]);
+                    add_to_kbc_queue_front(dev, dev->mem[val & 0x1f], 0, 0x00);
                     break;
 
                 /* Write data to KBC memory. */
@@ -2280,12 +2275,12 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                         write_cmd(dev, 0x30 | STAT_SYSFLAG);
                     else
                         write_cmd(dev, 0x10 | STAT_SYSFLAG);
-                    add_data(dev, 0x55);
+                    add_to_kbc_queue_front(dev, 0x55, 0, 0x00);
                     break;
 
                 case 0xab: /* interface test */
                     kbd_log("ATkbc: interface test\n");
-                    add_data(dev, 0x00); /*no error*/
+                    add_to_kbc_queue_front(dev, 0x00, 0, 0x00); /*no error*/
                     break;
 
                 case 0xac: /* diagnostic dump */
@@ -2309,7 +2304,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
                 case 0xca: /* read keyboard mode */
                     kbd_log("ATkbc: AMI - read keyboard mode\n");
-                    add_data(dev, dev->ami_flags);
+                    add_to_kbc_queue_front(dev, dev->ami_flags, 0, 0x00);
                     break;
 
                 case 0xcb: /* set keyboard mode */
@@ -2343,7 +2338,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
                 case 0xe0: /* read test inputs */
                     kbd_log("ATkbc: read test inputs\n");
-                    add_data(dev, 0x00);
+                    add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
                     break;
 
                 default:
