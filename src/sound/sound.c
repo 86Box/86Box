@@ -51,9 +51,9 @@ typedef struct {
     void *priv;
 } sound_handler_t;
 
-int sound_card_current = 0;
-int sound_pos_global   = 0;
-int sound_gain         = 0;
+int sound_card_current[SOUND_CARD_MAX] = { 0, 0, 0, 0 };
+int sound_pos_global                   = 0;
+int sound_gain                         = 0;
 
 static sound_handler_t sound_handlers[8];
 
@@ -79,30 +79,31 @@ static void (*filter_cd_audio)(int channel, double *buffer, void *p) = NULL;
 static void *filter_cd_audio_p                                       = NULL;
 
 static const device_t sound_none_device = {
-    "None",
-    "none",
-    0,
-    0,
-    NULL,
-    NULL,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name          = "None",
+    .internal_name = "none",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
+
 static const device_t sound_internal_device = {
-    "Internal",
-    "internal",
-    0,
-    0,
-    NULL,
-    NULL,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
-    NULL
+    .name          = "Internal",
+    .internal_name = "internal",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 static const SOUND_CARD sound_cards[] = {
@@ -115,8 +116,10 @@ static const SOUND_CARD sound_cards[] = {
     { &adgold_device             },
     { &azt2316a_device           },
     { &azt1605_device            },
+    { &cms_device                },
     { &cs4235_device             },
     { &cs4236b_device            },
+    { &gus_device                },
     { &sb_1_device               },
     { &sb_15_device              },
     { &sb_2_device               },
@@ -130,6 +133,7 @@ static const SOUND_CARD sound_cards[] = {
     { &sb_awe64_value_device     },
     { &sb_awe64_device           },
     { &sb_awe64_gold_device      },
+    { &ssi2001_device            },
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
     { &pas16_device              },
 #endif
@@ -214,8 +218,14 @@ sound_card_get_from_internal_name(char *s)
 void
 sound_card_init(void)
 {
-    if (sound_cards[sound_card_current].device)
-        device_add(sound_cards[sound_card_current].device);
+    if (sound_cards[sound_card_current[0]].device)
+        device_add(sound_cards[sound_card_current[0]].device);
+    if (sound_cards[sound_card_current[1]].device)
+        device_add(sound_cards[sound_card_current[1]].device);
+    if (sound_cards[sound_card_current[2]].device)
+        device_add(sound_cards[sound_card_current[2]].device);
+    if (sound_cards[sound_card_current[3]].device)
+        device_add(sound_cards[sound_card_current[3]].device);
 }
 
 void
@@ -465,7 +475,7 @@ sound_poll(void *priv)
         if (cd_thread_enable) {
             cd_buf_update--;
             if (!cd_buf_update) {
-                cd_buf_update = (44100 / SOUNDBUFLEN) / (CD_FREQ / CD_BUFLEN);
+                cd_buf_update = (SOUND_FREQ / SOUNDBUFLEN) / (CD_FREQ / CD_BUFLEN);
                 thread_set_event(sound_cd_event);
             }
         }
@@ -477,7 +487,7 @@ sound_poll(void *priv)
 void
 sound_speed_changed(void)
 {
-    sound_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 44100.0));
+    sound_poll_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) SOUND_FREQ));
 }
 
 void
@@ -511,15 +521,6 @@ sound_card_reset(void)
 
     if (mpu401_standalone_enable)
         mpu401_device_add();
-
-    if (GUS)
-        device_add(&gus_device);
-
-    if (GAMEBLASTER)
-        device_add(&cms_device);
-
-    if (SSI2001)
-        device_add(&ssi2001_device);
 }
 
 void
