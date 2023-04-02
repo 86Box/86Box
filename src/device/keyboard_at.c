@@ -2338,10 +2338,30 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
     switch (port) {
         case 0x60:
             dev->status &= ~STAT_CD;
+            if (dev->want60 && (dev->command == 0xd1)) {
+                kbd_log("ATkbc: write output port\n");
+                /* Bit 2 of AMI flags is P22-P23 blocked (1 = yes, 0 = no),
+                   discovered by reverse-engineering the AOpeN Vi15G BIOS. */
+                if (dev->ami_flags & 0x04) {
+                    /* If keyboard controller lines P22-P23 are blocked,
+                       we force them to remain unchanged. */
+                    val &= ~0x0c;
+                    val |= (dev->output_port & 0x0c);
+                }
+                write_output(dev, val | 0x01);
+                dev->want60 = 0;                
+                return;
+            }
             break;
 
         case 0x64:
             dev->status |= STAT_CD;
+            if (val == 0xd1) {
+                kbd_log("ATkbc: write output port\n");
+                dev->want60 = 1;
+                dev->command = 0xd1;
+                return;
+            }
             break;
     }
 
