@@ -757,6 +757,7 @@ kbd_poll(void *priv)
 #ifdef ENABLE_KEYBOARD_AT_LOG
     const uint8_t channels[4] = { 1, 2, 0, 0 };
 #endif
+    int mouse_enabled;
 
     timer_advance_u64(&dev->send_delay_timer, (100ULL * TIMER_USEC));
 
@@ -771,7 +772,7 @@ kbd_poll(void *priv)
     // if (dev->want60 != 0) || (dev->key_wantdata != 0)
         // return;
 
-    if (dev->out_new != -1 && !dev->last_irq) {
+    if ((dev->out_new != -1) && !dev->last_irq) {
         dev->wantirq = 0;
         if (dev->out_new & 0x100) {
             if (dev->mem[0x20] & 0x02)
@@ -792,26 +793,30 @@ kbd_poll(void *priv)
         }
     }
 
-    if (!(dev->status & STAT_OFULL) && dev->out_new == -1 && key_ctrl_queue_start != key_ctrl_queue_end) {
-        kbd_log("ATkbc: %02X on channel 0\n", key_ctrl_queue[key_ctrl_queue_start]);
-        dev->out_new         = key_ctrl_queue[key_ctrl_queue_start] | 0x200;
-        key_ctrl_queue_start = (key_ctrl_queue_start + 1) & 0x3f;
-    } else if (!(dev->status & STAT_OFULL) && dev->out_new == -1 && dev->out_delayed != -1) {
-        kbd_log("ATkbc: %02X delayed on channel %i\n", dev->out_delayed & 0xff, channels[(dev->out_delayed >> 8) & 0x03]);
-        dev->out_new     = dev->out_delayed;
-        dev->out_delayed = -1;
-    } else if (!(dev->status & STAT_OFULL) && dev->out_new == -1 && mouse_cmd_queue_start != mouse_cmd_queue_end) {
-        kbd_log("ATkbc: %02X on channel 2\n", mouse_cmd_queue[mouse_cmd_queue_start]);
-        dev->out_new      = mouse_cmd_queue[mouse_cmd_queue_start] | 0x100;
-        mouse_cmd_queue_start = (mouse_cmd_queue_start + 1) & 0xf;
-    } else if (!(dev->status & STAT_OFULL) && dev->out_new == -1 && mouse_queue_start != mouse_queue_end) {
-        kbd_log("ATkbc: %02X on channel 2\n", mouse_queue[mouse_queue_start]);
-        dev->out_new      = mouse_queue[mouse_queue_start] | 0x100;
-        mouse_queue_start = (mouse_queue_start + 1) & 0xf;
-    } else if (!(dev->status & STAT_OFULL) && dev->out_new == -1 && !(dev->mem[0x20] & 0x10) && key_queue_start != key_queue_end) {
-        kbd_log("ATkbc: %02X on channel 1\n", key_queue[key_queue_start]);
-        dev->out_new    = key_queue[key_queue_start];
-        key_queue_start = (key_queue_start + 1) & 0xf;
+    mouse_enabled = !(dev->mem[0x20] & 0x20) && ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF);
+
+    if (!(dev->status & STAT_OFULL) && dev->out_new == -1) {
+        if (key_ctrl_queue_start != key_ctrl_queue_end) {
+            kbd_log("ATkbc: %02X on channel 0\n", key_ctrl_queue[key_ctrl_queue_start]);
+            dev->out_new         = key_ctrl_queue[key_ctrl_queue_start] | 0x200;
+            key_ctrl_queue_start = (key_ctrl_queue_start + 1) & 0x3f;
+        } else if (dev->out_delayed != -1) {
+            kbd_log("ATkbc: %02X delayed on channel %i\n", dev->out_delayed & 0xff, channels[(dev->out_delayed >> 8) & 0x03]);
+            dev->out_new     = dev->out_delayed;
+            dev->out_delayed = -1;
+        } else if (!(dev->mem[0x20] & 0x10) && (key_queue_start != key_queue_end)) {
+            kbd_log("ATkbc: %02X on channel 1\n", key_queue[key_queue_start]);
+            dev->out_new    = key_queue[key_queue_start];
+            key_queue_start = (key_queue_start + 1) & 0xf;
+        } else if (mouse_enabled && (mouse_cmd_queue_start != mouse_cmd_queue_end)) {
+            kbd_log("ATkbc: %02X on channel 2\n", mouse_cmd_queue[mouse_cmd_queue_start]);
+            dev->out_new      = mouse_cmd_queue[mouse_cmd_queue_start] | 0x100;
+            mouse_cmd_queue_start = (mouse_cmd_queue_start + 1) & 0xf;
+        } else if (mouse_enabled && (mouse_queue_start != mouse_queue_end)) {
+            kbd_log("ATkbc: %02X on channel 2\n", mouse_queue[mouse_queue_start]);
+            dev->out_new      = mouse_queue[mouse_queue_start] | 0x100;
+            mouse_queue_start = (mouse_queue_start + 1) & 0xf;
+        }
     }
 
     if (dev->reset_delay) {
@@ -1347,6 +1352,7 @@ write64_generic(void *priv, uint8_t val)
 
         case 0xd4: /* write to mouse */
             kbd_log("ATkbc: write to mouse\n");
+            dev->mem[0x20] &= ~0x20;
             dev->want60 = 1;
             return 0;
 
@@ -2356,10 +2362,7 @@ kbd_read(uint16_t port, void *priv)
 
     switch (port) {
         case 0x60:
-            if (dev->status & STAT_OFULL)
-                ret = dev->out;
-            else
-                ret = 0xff;
+            ret = dev->out;
             dev->status &= ~STAT_OFULL;
             picintc(dev->last_irq);
             dev->last_irq = 0;
