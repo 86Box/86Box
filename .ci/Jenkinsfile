@@ -78,8 +78,7 @@ def dynarecSlugs = [
 ]
 
 def presets = [
-	'Regular',
-	'Debug'
+	'Regular'
 ]
 
 def presetSlugs = [
