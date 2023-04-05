@@ -790,9 +790,7 @@ static void
 kbd_poll(void *priv)
 {
     atkbd_t *dev = (atkbd_t *) priv;
-#ifdef ENABLE_KEYBOARD_AT_LOG
     const uint8_t channels[4] = { 1, 2, 0, 0 };
-#endif
     int mouse_enabled;
 
     timer_advance_u64(&dev->send_delay_timer, (100ULL * TIMER_USEC));
