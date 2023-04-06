@@ -1014,7 +1014,7 @@ else
 		mkdir -p "$icon_dir"
 		cp -rp "$icon_size" "$icon_dir/apps"
 	done
-	project_icon=$(find "$icon_base/"[0-9]*x[0-9]*/* -type f -name '*.png' | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+$)')
+	project_icon=$(find "$icon_base/"[0-9]*x[0-9]*/* -type f -name '*.png' -o -name '*.svg' | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+$)')
 
 	# Archive executable, while also stripping it if requested.
 	mkdir -p archive_tmp/usr/local/bin
