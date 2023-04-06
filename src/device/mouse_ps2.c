@@ -294,7 +294,11 @@ ps2_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
     dev->x += x;
     dev->y -= y;
     dev->z -= z;
+#if 0
     if ((dev->mode == MODE_STREAM) && (dev->flags & FLAG_ENABLED) && (keyboard_at_mouse_pos() < 13)) {
+#else
+    if ((dev->mode == MODE_STREAM) && (keyboard_at_mouse_pos() < 13)) {
+#endif
         dev->b = b;
 
         ps2_report_coordinates(dev, 0);
