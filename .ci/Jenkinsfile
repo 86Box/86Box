@@ -286,10 +286,10 @@ pipeline {
 															dir(dynarecNames[dynarec]) {
 																dir("$os - $archName") {
 																	ret = runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} $buildFlags")
-																	if (presets.size == 1)
+																	if (presets.size() == 1)
 																		writeFile file: '.forcedir', text: ''
 																}
-																if ((osArchs.size == 1) && (thisOsArchs.size == 1))
+																if ((osArchs.size() == 1) && (thisOsArchs.size() == 1))
 																	writeFile file: '.forcedir', text: ''
 															}
 
