@@ -823,33 +823,32 @@ kbd_poll(void *priv)
             break;
         /* Process commands and/or monitor the attached devices. */
         case KBC_STATE_NORMAL:
-            if (!(dev->status & STAT_OFULL)) {
-                if (dev->status & STAT_IFULL) {
+            /* Always process IBF, even if OBF is set. */
+            if (dev->status & STAT_IFULL) {
+                dev->status &= ~STAT_IFULL;
+                if ((dev->status & STAT_CD) || dev->want60)
+                    kbc_process_cmd(dev);
+                else if (!(dev->status & STAT_CD) && !dev->want60) {
                     dev->status &= ~STAT_IFULL;
-                    if ((dev->status & STAT_CD) || dev->want60)
-                        kbc_process_cmd(dev);
-                    else if (!(dev->status & STAT_CD) && !dev->want60) {
-                        dev->status &= ~STAT_IFULL;
-                        set_enable_kbd(dev, 1);
-                        kbc_queue_reset(4);
-                        dev->key_wantcmd = 1;
-                        dev->key_dat = dev->ib;
-                        dev->kbc_state = KBC_STATE_KBD;
-                    }
-                } else {
-                    if (key_ctrl_queue_start != key_ctrl_queue_end) {
-                        kbd_log("ATkbc: %02X coming from channel 0\n", dev->out_new & 0xff);
-                        add_to_kbc_queue_front(dev, key_ctrl_queue[key_ctrl_queue_start], 0, 0x00);
-                        key_ctrl_queue_start = (key_ctrl_queue_start + 1) & 0x3f;
-                    } else if (mouse_enabled && (dev->out_new_mouse != -1)) {
-                        kbd_log("ATkbc: %02X coming from channel 2\n", dev->out_new_mouse);
-                        add_to_kbc_queue_front(dev, dev->out_new_mouse, 2, 0x00);
-                        dev->out_new_mouse  = -1;
-                    } else if (!(dev->mem[0x20] & 0x10) && (dev->out_new != -1)) {
-                        kbd_log("ATkbc: %02X coming from channel 1\n", dev->out_new);
-                        add_to_kbc_queue_front(dev, dev->out_new, 1, 0x00);
-                        dev->out_new        = -1;
-                    }
+                    set_enable_kbd(dev, 1);
+                    kbc_queue_reset(4);
+                    dev->key_wantcmd = 1;
+                    dev->key_dat = dev->ib;
+                    dev->kbc_state = KBC_STATE_KBD;
+                }
+            } else if (!(dev->status & STAT_OFULL)) {
+                if (key_ctrl_queue_start != key_ctrl_queue_end) {
+                    kbd_log("ATkbc: %02X coming from channel 0\n", dev->out_new & 0xff);
+                    add_to_kbc_queue_front(dev, key_ctrl_queue[key_ctrl_queue_start], 0, 0x00);
+                    key_ctrl_queue_start = (key_ctrl_queue_start + 1) & 0x3f;
+                } else if (mouse_enabled && (dev->out_new_mouse != -1)) {
+                    kbd_log("ATkbc: %02X coming from channel 2\n", dev->out_new_mouse);
+                    add_to_kbc_queue_front(dev, dev->out_new_mouse, 2, 0x00);
+                    dev->out_new_mouse  = -1;
+                } else if (!(dev->mem[0x20] & 0x10) && (dev->out_new != -1)) {
+                    kbd_log("ATkbc: %02X coming from channel 1\n", dev->out_new);
+                    add_to_kbc_queue_front(dev, dev->out_new, 1, 0x00);
+                    dev->out_new        = -1;
                 }
             }
             break;
