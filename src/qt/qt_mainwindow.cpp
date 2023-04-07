@@ -1505,28 +1505,28 @@ x11_keycode_to_keysym(uint32_t keycode)
     finalkeycode = be_to_xt[keycode];
 #else
     static Display *x11display = nullptr;
-    if (QApplication::platformName().contains("wayland")) {
-        selected_keycode = x11_to_xt_2;
-    } else if (QApplication::platformName().contains("eglfs")) {
+    if (QApplication::platformName().contains("eglfs")) {
         keycode -= 8;
         if (keycode <= 88)
             finalkeycode = keycode;
         else
             finalkeycode = evdev_to_xt[keycode];
-    } else if (!x11display) {
-        x11display = XOpenDisplay(nullptr);
-        if (XKeysymToKeycode(x11display, XK_Home) == 110) {
+    } else {
+        if (QApplication::platformName().contains("wayland")) {
             selected_keycode = x11_to_xt_2;
-        } else if (XKeysymToKeycode(x11display, XK_Home) == 69) {
-            selected_keycode = x11_to_xt_vnc;
+        } else if (!x11display) {
+            x11display = XOpenDisplay(nullptr);
+            if (XKeysymToKeycode(x11display, XK_Home) == 110) {
+                selected_keycode = x11_to_xt_2;
+            } else if (XKeysymToKeycode(x11display, XK_Home) == 69) {
+                selected_keycode = x11_to_xt_vnc;
+            }
         }
-    }
-    if (!QApplication::platformName().contains("eglfs"))
         finalkeycode = selected_keycode[keycode];
-#endif
-    if (rctrl_is_lalt && finalkeycode == 0x11D) {
-        finalkeycode = 0x38;
     }
+#endif
+    if (rctrl_is_lalt && finalkeycode == 0x11D)
+        finalkeycode = 0x38;
     return finalkeycode;
 }
 
