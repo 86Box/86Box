@@ -2287,7 +2287,9 @@ kbc_process_cmd(void *priv)
                 } else {
                     if (dev->kbc_state != KBC_STATE_RESET) {
                         kbd_log("ATkbc: self-test reinitialization\n");
-                        dev->input_port |= 0xff;
+                        /* Yes, the firmware has an OR, but we need to make sure to keep any forcibly lowered bytes lowered. */
+                        /* TODO: Proper P1 implementation, with OR and AND flags in the machine table. */
+                        dev->input_port = dev->input_port & 0xff;
                         write_output(dev, 0xcf);
                     }
 
@@ -2309,27 +2311,6 @@ kbc_process_cmd(void *priv)
                 dev->kbc_state = KBC_STATE_NORMAL;
 
                 add_to_kbc_queue_front(dev, 0x55, 0, 0x00);
-
-#if 0
-                write_output(dev, ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) ? 0x4b : 0xcf);
-
-                /* Always reinitialize all queues - the real hardware pulls keyboard and mouse
-                   clocks high, which stops keyboard scanning. */
-                kbd_log("ATkbc: self-test reinitialization\n");
-                dev->out_new = dev->out_new_mouse = -1;
-                for (i = 0; i < 3; i++)
-                    kbc_queue_reset(i);
-                keyboard_scan = 0;
-                mouse_scan = 0;
-                kbd_last_scan_code = 0x00;
-                dev->status &= ~STAT_OFULL;
-
-                if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)
-                    write_cmd(dev, 0x30 | STAT_SYSFLAG);
-                else
-                    write_cmd(dev, 0x10 | STAT_SYSFLAG);
-                add_to_kbc_queue_front(dev, 0x55, 0, 0x00);
-#endif
                 break;
 
             case 0xab: /* interface test */
