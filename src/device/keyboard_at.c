@@ -920,78 +920,125 @@ kbc_poll_at(atkbd_t *dev)
     }
 }
 
-/* TODO: State machines for controller, keyboard, and mouse. */
-static void
-kbd_poll(void *priv)
+static int
+kbc_scan_kbd_ps2(atkbd_t *dev)
 {
-    atkbd_t *dev = (atkbd_t *) priv;
-    int mouse_enabled;
+    if (dev->out_new != -1) {
+        add_to_kbc_queue_front(dev, dev->out_new, 1, 0x00);
+        dev->out_new        = -1;
+        dev->kbc_state      = KBC_STATE_NORMAL;
+        return 1;
+    }
 
-    timer_advance_u64(&dev->send_delay_timer, (100ULL * TIMER_USEC));
+    return 0;
+}
 
-    mouse_enabled = !(dev->mem[0x20] & 0x20) && ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF);
+static int
+kbc_scan_aux_ps2(atkbd_t *dev)
+{
+    if (dev->out_new_mouse != -1) {
+        add_to_kbc_queue_front(dev, dev->out_new_mouse, 2, 0x00);
+        dev->out_new_mouse  = -1;
+        dev->kbc_state      = KBC_STATE_NORMAL;
+        return 1;
+    }
 
-    if ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF)
-        kbc_poll_at(dev);
-    else switch (dev->kbc_state) {
-        /* Reset state. */
+    return 0;
+}
+
+static void
+kbc_poll_ps2(atkbd_t *dev)
+{
+    switch (dev->kbc_state) {
         case KBC_STATE_RESET:
             if ((dev->status & STAT_IFULL) && (dev->status & STAT_CD) && (dev->ib == 0xaa)) {
                 dev->status &= ~STAT_IFULL;
                 kbc_process_cmd(dev);
             }
             break;
-        /* Process commands and/or monitor the attached devices. */
         case KBC_STATE_NORMAL:
-        case KBC_STATE_KBC_PARAM:
-            /* Always process IBF, even if OBF is set. */
+            if (dev->status & STAT_IFULL)
+                kbc_ibf_process(dev);
+            else if (!(dev->status & STAT_OFULL)) {
+                if (dev->mem[0x20] & 0x20) {
+                    if (!(dev->mem[0x20] & 0x10)) {
+                        dev->output_port &= 0xbf;
+
+                        if (kbc_scan_kbd_ps2(dev) == 0) {
+                            if (dev->status & STAT_IFULL)
+                                kbc_ibf_process(dev);
+                        }
+                    }
+                } else {
+                    dev->output_port &= 0xf7;
+                    if (dev->mem[0x20] & 0x10) {
+                        if (kbc_scan_aux_ps2(dev) == 0) {
+                            if (dev->status & STAT_IFULL)
+                                kbc_ibf_process(dev);
+                        }
+                    } else {
+                        dev->output_port &= 0xbf;
+
+                        if (kbc_scan_kbd_ps2(dev) == 0) {
+                            if (kbc_scan_aux_ps2(dev) == 0) {
+                                if (dev->status & STAT_IFULL)
+                                    kbc_ibf_process(dev);
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+        case KBC_STATE_KBC_OUT:
+            /* Keyboard controller command want to output multiple bytes. */
             if (dev->status & STAT_IFULL) {
+                /* Data from host aborts dumping. */
+                dev->kbc_state = KBC_STATE_NORMAL;
+                kbc_ibf_process(dev);
+            }
+            /* Do not continue dumping until OBF is clear. */
+            if (!(dev->status & STAT_OFULL)) {
+                kbd_log("ATkbc: %02X coming from channel 0\n", dev->out_new & 0xff);
+                add_to_kbc_queue_front(dev, key_ctrl_queue[key_ctrl_queue_start], 0, 0x00);
+                key_ctrl_queue_start = (key_ctrl_queue_start + 1) & 0x3f;
+                if (key_ctrl_queue_start == key_ctrl_queue_end)
+                    dev->kbc_state = KBC_STATE_NORMAL;
+            }
+            break;
+        case KBC_STATE_KBC_PARAM:
+            /* Keyboard controller command wants data, wait for said data. */
+            if (dev->status & STAT_IFULL) {
+                /* Command written, abort current command. */
+                if (dev->status & STAT_CD)
+                    dev->kbc_state = KBC_STATE_NORMAL;
+
                 dev->status &= ~STAT_IFULL;
-                if ((dev->status & STAT_CD) || dev->want60)
-                    kbc_process_cmd(dev);
-                else if (!(dev->status & STAT_CD) && !dev->want60) {
-                    dev->status &= ~STAT_IFULL;
-                    set_enable_kbd(dev, 1);
-                    kbc_queue_reset(4);
-                    dev->key_wantcmd = 1;
-                    dev->key_dat = dev->ib;
-                    dev->kbc_state = KBC_STATE_KBD;
-                }
-            } else if (!(dev->status & STAT_OFULL)) {
-                if (key_ctrl_queue_start != key_ctrl_queue_end) {
-                    kbd_log("ATkbc: %02X coming from channel 0\n", dev->out_new & 0xff);
-                    add_to_kbc_queue_front(dev, key_ctrl_queue[key_ctrl_queue_start], 0, 0x00);
-                    key_ctrl_queue_start = (key_ctrl_queue_start + 1) & 0x3f;
-                } else if (mouse_enabled && (dev->out_new_mouse != -1)) {
-                    kbd_log("ATkbc: %02X coming from channel 2\n", dev->out_new_mouse);
-                    add_to_kbc_queue_front(dev, dev->out_new_mouse, 2, 0x00);
-                    dev->out_new_mouse  = -1;
-                } else if (!(dev->mem[0x20] & 0x10) && (dev->out_new != -1)) {
-                    kbd_log("ATkbc: %02X coming from channel 1\n", dev->out_new);
-                    add_to_kbc_queue_front(dev, dev->out_new, 1, 0x00);
-                    dev->out_new        = -1;
-                }
+                kbc_process_cmd(dev);
             }
             break;
-        /* Wait for keyboard command response. */
-        case KBC_STATE_KBD:
-            if (!(dev->mem[0x20] & 0x10) && (dev->out_new != -1)) {
-                kbd_log("ATkbc: %02X coming from channel 1\n", dev->out_new);
-                add_to_kbc_queue_front(dev, dev->out_new, 1, 0x00);
-                dev->out_new        = -1;
-                dev->kbc_state = KBC_STATE_NORMAL;
-            }
+        case KBC_STATE_SCAN_KBD:
+            (void) kbc_scan_kbd_ps2(dev);
             break;
-        /* Wait for keyboard mouse response. */
-        case KBC_STATE_MOUSE:
-            if (mouse_enabled && (dev->out_new_mouse != -1)) {
-                kbd_log("ATkbc: %02X coming from channel 2\n", dev->out_new_mouse);
-                add_to_kbc_queue_front(dev, dev->out_new_mouse, 2, 0x00);
-                dev->out_new_mouse  = -1;
-                dev->kbc_state = KBC_STATE_NORMAL;
-            }
+        case KBC_STATE_SCAN_MOUSE:
+            (void) kbc_scan_aux_ps2(dev);
             break;
     }
+}
+
+/* TODO: State machines for controller, keyboard, and mouse. */
+static void
+kbd_poll(void *priv)
+{
+    atkbd_t *dev = (atkbd_t *) priv;
+
+    timer_advance_u64(&dev->send_delay_timer, (100ULL * TIMER_USEC));
+
+    /* TODO: Use a fuction pointer for this (also needed to the AMI KBC mode switching)
+             and implement the password security state. */
+    if ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF)
+        kbc_poll_at(dev);
+    else
+        kbc_poll_ps2(dev);
 
     if (dev->reset_delay) {
         dev->reset_delay--;
@@ -2520,7 +2567,7 @@ kbd_read(uint16_t port, void *priv)
                      This also means that in AT mode, the IRQ is level-triggered. */
             if ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF)
                 picintc(1 << 1);
-            else if ((dev->flags & KBC_TYPE_MASK) > KBC_TYPE_PS2_NOREF) {
+            else if (pic_get_pci_flag() || ((dev->flags & KBC_TYPE_MASK) > KBC_TYPE_PS2_NOREF)) {
                 /* PS/2 MCA: Latched as level-sensitive until port 0x60 is read (and with it, OBF is cleared),
                              in accordance with the IBM PS/2 Model 80 Technical Reference Manual. */
                 kbc_irq(dev, dev->irq_levels, 0);
