@@ -128,6 +128,7 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"AE13", 0x7d}, /* \| */
     {"KPPT", 0x7e}, /* Brazilian Num. */
     {"I06",  0x7e}, /* alias of KPPT on keycodes/xfree86 (i.e. X11 forwarding) */
+    {"I129", 0x7e}, /* another alias: KPCOMMA */
 
     /* Korean keys. */
     {"HJCV", 0xf1}, /* hancha toggle */
