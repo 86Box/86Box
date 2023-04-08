@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Definitions for xkbcommon keyboard input module.
+ *          Definitions for xkbcommon Wayland keyboard input module.
  *
  *
  *
@@ -14,7 +14,4 @@
  *
  *          Copyright 2023 RichardG.
  */
-extern void *xkbcommon_keymap;
-void xkbcommon_init(struct xkb_keymap *keymap);
-void xkbcommon_close();
-uint16_t xkbcommon_translate(uint32_t keycode);
+void xkbcommon_wl_init();

@@ -101,6 +101,9 @@ extern int qt_nvr_save(void);
 #        ifdef XKBCOMMON_X11
 #            include "xkbcommon_x11_keyboard.hpp"
 #        endif
+#        ifdef WAYLAND
+#            include "xkbcommon_wl_keyboard.hpp"
+#        endif
 #    endif
 #    include <X11/Xlib.h>
 #    include <X11/keysym.h>
@@ -652,9 +655,18 @@ MainWindow::MainWindow(QWidget *parent)
         ui->actionCursor_Puck->setChecked(true);
     }
 
-#ifdef XKBCOMMON_X11
+#ifdef XKBCOMMON
+#    ifdef XKBCOMMON_X11
     if (QApplication::platformName().contains("xcb"))
         xkbcommon_x11_init();
+    else
+#    endif
+#    ifdef WAYLAND
+    if (QApplication::platformName().contains("wayland"))
+        xkbcommon_wl_init();
+    else
+#    endif
+    {}
 #endif
 }
 

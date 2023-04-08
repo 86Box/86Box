@@ -228,7 +228,14 @@ struct xkb_keymap *xkbcommon_keymap = nullptr;
 void
 xkbcommon_init(struct xkb_keymap *keymap)
 {
-    xkbcommon_keymap = keymap;
+    if (keymap)
+        xkbcommon_keymap = keymap;
+}
+
+void
+xkbcommon_close()
+{
+    xkbcommon_keymap = NULL;
 }
 
 uint16_t

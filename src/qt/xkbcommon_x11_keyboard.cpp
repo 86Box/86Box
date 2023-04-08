@@ -77,6 +77,7 @@ xkbcommon_x11_init()
     }
 
     xkbcommon_init(keymap);
+    goto err_conn;
 
 err_ctx:
     xkb_context_unref(ctx);
