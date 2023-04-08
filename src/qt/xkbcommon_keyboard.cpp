@@ -141,8 +141,8 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"SYRQ", 0x137},
     {"FK13", 0x137}, /* F13 as SysRq */
     {"RALT", 0x138},
-    {"PAUS", 0x146}, /* special case */
-    {"FK15", 0x146}, /* F15 as Pause */
+    {"PAUS", 0x145},
+    {"FK15", 0x145}, /* F15 as Pause */
     {"HOME", 0x147},
     {"UP",   0x148},
     {"PGUP", 0x149},

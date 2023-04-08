@@ -1552,6 +1552,10 @@ x11_keycode_to_keysym(uint32_t keycode)
         }
     }
 #endif
+    /* Special case for Ctrl+Pause. */
+    if ((finalkeycode == 0x145) && (keyboard_recv(0x1d) || keyboard_recv(0x11d)))
+        finalkeycode = 0x146;
+
     if (rctrl_is_lalt && finalkeycode == 0x11D)
         finalkeycode = 0x38;
     return finalkeycode;
