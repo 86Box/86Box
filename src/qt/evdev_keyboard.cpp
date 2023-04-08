@@ -22,7 +22,6 @@ static std::unordered_map<uint32_t, uint16_t> evdev_keycodes = {
     {86,  0x56}, /* 102ND */
     {87,  0x57}, /* F11 */
     {88,  0x58}, /* F12 */
-    {117, 0x59}, /* KPEQUAL */
     {186, 0x5d}, /* F16 => F13 */
     {187, 0x5e}, /* F17 => F14 */
     {188, 0x5f}, /* F18 => F15 */
