@@ -96,6 +96,9 @@ extern int qt_nvr_save(void);
 #include "qt_util.hpp"
 
 #if defined __unix__ && !defined __HAIKU__
+#    ifndef Q_OS_MACOS
+#        include "evdev_keyboard.hpp"
+#    endif
 #    ifdef XKBCOMMON
 #        include "xkbcommon_keyboard.hpp"
 #        ifdef XKBCOMMON_X11
@@ -1378,27 +1381,6 @@ std::array<uint32_t, 256> darwin_to_xt {
 };
 #endif
 
-#if defined(__unix__) && !defined(__HAIKU__)
-static std::unordered_map<uint32_t, uint16_t> evdev_to_xt = {
-    {96,   0x11C},
-    { 97,  0x11D},
-    { 98,  0x135},
-    { 99,  0x71 },
-    { 100, 0x138},
-    { 101, 0x1C },
-    { 102, 0x147},
-    { 103, 0x148},
-    { 104, 0x149},
-    { 105, 0x14B},
-    { 106, 0x14D},
-    { 107, 0x14F},
-    { 108, 0x150},
-    { 109, 0x151},
-    { 110, 0x152},
-    { 111, 0x153}
-};
-#endif
-
 #ifdef __HAIKU__
 static std::unordered_map<uint8_t, uint16_t> be_to_xt = {
     {0x01,       0x01 },
@@ -1529,27 +1511,24 @@ x11_keycode_to_keysym(uint32_t keycode)
         finalkeycode = xkbcommon_translate(keycode);
     } else
 #    endif
+#    ifdef EVDEV_KEYBOARD_HPP
+    if (QApplication::platformName().contains("eglfs")) {
+        finalkeycode = evdev_translate(keycode);
+    } else
+#    endif
     {
         static Display *x11display = nullptr;
-        if (QApplication::platformName().contains("eglfs")) {
-            keycode -= 8;
-            if (keycode <= 88)
-                finalkeycode = keycode;
-            else
-                finalkeycode = evdev_to_xt[keycode];
-        } else {
-            if (QApplication::platformName().contains("wayland")) {
+        if (QApplication::platformName().contains("wayland")) {
+            selected_keycode = x11_to_xt_2;
+        } else if (!x11display) {
+            x11display = XOpenDisplay(nullptr);
+            if (XKeysymToKeycode(x11display, XK_Home) == 110) {
                 selected_keycode = x11_to_xt_2;
-            } else if (!x11display) {
-                x11display = XOpenDisplay(nullptr);
-                if (XKeysymToKeycode(x11display, XK_Home) == 110) {
-                    selected_keycode = x11_to_xt_2;
-                } else if (XKeysymToKeycode(x11display, XK_Home) == 69) {
-                    selected_keycode = x11_to_xt_vnc;
-                }
+            } else if (XKeysymToKeycode(x11display, XK_Home) == 69) {
+                selected_keycode = x11_to_xt_vnc;
             }
-            finalkeycode = selected_keycode[keycode];
         }
+        finalkeycode = selected_keycode[keycode];
     }
 #endif
     /* Special case for Ctrl+Pause. */

@@ -20,10 +20,12 @@ extern "C" {
 
 #include <unordered_map>
 #include <QtDebug>
+#include "evdev_keyboard.hpp"
 
-#define IS_HEX_DIGIT(c) ((((c) >= '0') && ((c) <= '9')) || (((c) >= 'A') && ((c) <= 'F')) || (((c) >= 'a') && ((c) <= 'f')))
+#define IS_DEC_DIGIT(c) (((c) >= '0') && ((c) <= '9'))
+#define IS_HEX_DIGIT(c) (IS_DEC_DIGIT(c) || (((c) >= 'A') && ((c) <= 'F')) || (((c) >= 'a') && ((c) <= 'f')))
 
-std::unordered_map<std::string, uint16_t> xkb_keycodes{
+static std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"ESC",  0x01},
     {"AE01", 0x02},
     {"AE02", 0x03},
@@ -100,7 +102,6 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
 
     {"NMLK", 0x45},
     {"SCLK", 0x46},
-    {"FK14", 0x46}, /* F14 => Scroll Lock */
     {"KP7",  0x47},
     {"KP8",  0x48},
     {"KP9",  0x49},
@@ -118,19 +119,22 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"LSGT", 0x56},
     {"FK11", 0x57},
     {"FK12", 0x58},
+    {"FK13", 0x5d},
+    {"FK14", 0x5e},
+    {"FK15", 0x5f},
 
     /* Japanese keys. */
-    {"HZTG", 0x29}, /* hankaku-zenkaku toggle => ~ */
-    {"HKTG", 0x70}, /* hiragana-katakana toggle... */
-    {"HIRA", 0x70}, /* ...and individual keys */
-    {"KATA", 0x70},
+    {"JPCM", 0x5c}, /* evdev KPJPCOMMA */
+    {"HKTG", 0x70}, /* hiragana-katakana toggle */
     {"AB11", 0x73}, /* \_ and Brazilian /? */
+    {"HZTG", 0x76}, /* hankaku-zenkaku toggle */
+    {"HIRA", 0x77},
+    {"KATA", 0x78},
     {"HENK", 0x79},
     {"MUHE", 0x7b},
     {"AE13", 0x7d}, /* \| */
     {"KPPT", 0x7e}, /* Brazilian Num. */
     {"I06",  0x7e}, /* alias of KPPT on keycodes/xfree86 (i.e. X11 forwarding) */
-    {"I129", 0x7e}, /* another alias: evdev KPCOMMA */
 
     /* Korean keys. */
     {"HJCV", 0xf1}, /* hancha toggle */
@@ -141,11 +145,9 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"KPDV", 0x135},
     {"PRSC", 0x137},
     {"SYRQ", 0x137},
-    {"FK13", 0x137}, /* F13 => SysRq */
     {"RALT", 0x138},
     {"PAUS", 0x145},
     {"BRK",  0x145},
-    {"FK15", 0x145}, /* F15 => Pause */
     {"HOME", 0x147},
     {"UP",   0x148},
     {"PGUP", 0x149},
@@ -164,84 +166,21 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"MENU", 0x15d},
     {"COMP", 0x15d}, /* Compose as Menu */
 
-    /* Multimedia keys, using Linux evdev-specific keycodes where required. Guideline is to try
-       and follow the Microsoft standard, then fill in some OEM-specific keys for redundancy sake.
-       Keys marked with # are not translated into evdev codes by the standard atkbd driver. */
+    /* Multimedia keys. Same notes as evdev_keyboard apply here. */
     {"KPEQ", 0x59},  /* Num= */
-    {"I426", 0x6a},  /* ZOOMIN# => Logitech */
-    {"I428", 0x6b},  /* ZOOMRESET# => Logitech */
-    {"I231", 0x6d},  /* CANCEL# => Logitech */
     {"FRNT", 0x101}, /* # Logitech Task Select */
-    {"I156", 0x102}, /* PROG1# => Samsung */
-    {"I157", 0x103}, /* PROG2# => Samsung */
-    {"I427", 0x104}, /* ZOOMOUT# => Logitech */
-    {"I152", 0x105}, /* FILE# => Messenger/Files */
-    {"I224", 0x105}, /* CHAT# => Messenger/Files */
-    {"I438", 0x105}, /* MESSENGER# */
-    {"I190", 0x107}, /* REDO# */
     {"UNDO", 0x108}, /* # */
     {"PAST", 0x10a}, /* # Paste */
-    {"I185", 0x10b}, /* SCROLLUP# => normal speed */
-    {"I173", 0x110}, /* PREVIOUSSONG */
     {"FIND", 0x112}, /* # Logitech */
-    {"I429", 0x113}, /* WORDPROCESSOR# => Word */
-    {"I431", 0x114}, /* SPREADSHEET# => Excel */
-    {"I405", 0x115}, /* CALENDAR# */
-    {"I441", 0x116}, /* LOGOFF# */
     {"CUT",  0x117}, /* # */
     {"COPY", 0x118}, /* # */
-    {"I171", 0x119}, /* NEXTSONG */
-    {"I162", 0x11e}, /* CYCLEWINDOWS => Application Right (no left counterpart) */
     {"MUTE", 0x120},
-    {"I148", 0x121}, /* CALC */
-    {"I172", 0x122}, /* PLAYPAUSE */
-    {"I440", 0x123}, /* SPELLCHECK# */
-    {"I174", 0x124}, /* STOPCD */
-    {"I147", 0x126}, /* MENU# => Shortcut/Menu/Help for a few OEMs */
     {"VOL-", 0x12e},
-    {"I168", 0x12f}, /* CLOSECD# => Logitech Eject */
-    {"I169", 0x12f}, /* EJECTCD# => Logitech */
-    {"I170", 0x12f}, /* EJECTCLOSECD# => Logitech */
     {"VOL+", 0x130},
-    {"I158", 0x132}, /* WWW# */
-    {"I180", 0x132}, /* HOMEPAGE */
-    {"I642", 0x137}, /* SELECTIVE_SCREENSHOT# => SysRq */
-    {"HELP", 0x13b}, /* # */
-    {"I221", 0x13c}, /* SOUND# => My Music/Office Home */
-    {"I368", 0x13c}, /* VENDOR# => My Music/Office Home */
-    {"I212", 0x13d}, /* DASHBOARD# => Task Pane */
-    {"I189", 0x13e}, /* NEW# */
-    {"OPEN", 0x13f}, /* # */
-    {"I214", 0x140}, /* CLOSE# */
-    {"I240", 0x141}, /* REPLY# */
-    {"I241", 0x142}, /* FORWARDMAIL# */
-    {"I239", 0x143}, /* SEND# */
-    {"I159", 0x144}, /* MSDOS# */
-    {"I120", 0x14c}, /* MACRO */
-    {"I187", 0x14c}, /* KPLEFTPAREN# */
-    {"I126", 0x14e}, /* KPPLUSMINUS */
-    {"I243", 0x155}, /* DOCUMENTS# => Logitech */
-    {"I242", 0x157}, /* SAVE# */
-    {"I218", 0x158}, /* PRINT# */
+    {"HELP", 0x13b},
+    {"OPEN", 0x13f},
     {"POWR", 0x15e},
-    {"I150", 0x15f}, /* SLEEP */
-    {"I151", 0x163}, /* WAKEUP */
-    {"I188", 0x164}, /* KPRIGHTPAREN# */
-    {"I220", 0x164}, /* CAMERA# => My Pictures */
-    {"I225", 0x165}, /* SEARCH */
-    {"I164", 0x166}, /* BOOKMARKS => Favorites */
-    {"I372", 0x166}, /* FAVORITES# */
-    {"I181", 0x167}, /* REFRESH */
     {"STOP", 0x168},
-    {"I167", 0x169}, /* FORWARD */
-    {"I166", 0x16a}, /* BACK */
-    {"I165", 0x16b}, /* COMPUTER */
-    {"I163", 0x16c}, /* MAIL */
-    {"I223", 0x16c}, /* EMAIL# */
-    {"I234", 0x16d}, /* MEDIA */
-    {"I175", 0x178}, /* RECORD# => Logitech */
-    {"I160", 0x17a}, /* COFFEE/SCREENLOCK# */
-    {"I186", 0x18b}, /* SCROLLDOWN# => normal speed */
 };
 struct xkb_keymap *xkbcommon_keymap = nullptr;
 
@@ -271,6 +210,10 @@ xkbcommon_translate(uint32_t keycode)
     /* Observed with multimedia keys on Windows VcXsrv. */
     if (!ret && (key_name_s.length() == 3) && (key_name_s[0] == 'I') && IS_HEX_DIGIT(key_name_s[1]) && IS_HEX_DIGIT(key_name_s[2]))
         ret = 0x100 | stoi(key_name_s.substr(1), nullptr, 16);
+
+    /* Translate unnamed evdev-specific keycodes. */
+    if (!ret && (key_name_s.length() >= 2) && (key_name_s[0] == 'I') && IS_DEC_DIGIT(key_name_s[1]))
+        ret = evdev_translate(stoi(key_name_s.substr(1)) - 8);
 
     if (!ret)
         qWarning() << "XKB Keyboard: Unknown key" << Qt::hex << keycode << QString::fromStdString(key_name_s);
