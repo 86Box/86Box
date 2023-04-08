@@ -124,7 +124,8 @@ static std::unordered_map<std::string, uint16_t> xkb_keycodes = {
     {"FK15", 0x5f},
 
     /* Japanese keys. */
-    {"JPCM", 0x5c}, /* evdev KPJPCOMMA */
+    {"JPCM", 0x5c}, /* Num, */
+    {"KPDC", 0x5c},
     {"HKTG", 0x70}, /* hiragana-katakana toggle */
     {"AB11", 0x73}, /* \_ and Brazilian /? */
     {"HZTG", 0x76}, /* hankaku-zenkaku toggle */
