@@ -53,6 +53,7 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"AD11", 0x1a},
     {"AD12", 0x1b},
     {"RTRN", 0x1c},
+    {"LNFD", 0x1c}, /* linefeed => Enter */
 
     {"LCTL", 0x1d},
     {"AC01", 0x1e},
@@ -99,7 +100,7 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
 
     {"NMLK", 0x45},
     {"SCLK", 0x46},
-    {"FK14", 0x46}, /* F14 as Scroll Lock */
+    {"FK14", 0x46}, /* F14 => Scroll Lock */
     {"KP7",  0x47},
     {"KP8",  0x48},
     {"KP9",  0x49},
@@ -119,6 +120,7 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"FK12", 0x58},
 
     /* Japanese keys. */
+    {"HZTG", 0x29}, /* hankaku-zenkaku toggle => ~ */
     {"HKTG", 0x70}, /* hiragana-katakana toggle... */
     {"HIRA", 0x70}, /* ...and individual keys */
     {"KATA", 0x70},
@@ -128,7 +130,7 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"AE13", 0x7d}, /* \| */
     {"KPPT", 0x7e}, /* Brazilian Num. */
     {"I06",  0x7e}, /* alias of KPPT on keycodes/xfree86 (i.e. X11 forwarding) */
-    {"I129", 0x7e}, /* another alias: KPCOMMA */
+    {"I129", 0x7e}, /* another alias: evdev KPCOMMA */
 
     /* Korean keys. */
     {"HJCV", 0xf1}, /* hancha toggle */
@@ -139,10 +141,11 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"KPDV", 0x135},
     {"PRSC", 0x137},
     {"SYRQ", 0x137},
-    {"FK13", 0x137}, /* F13 as SysRq */
+    {"FK13", 0x137}, /* F13 => SysRq */
     {"RALT", 0x138},
     {"PAUS", 0x145},
-    {"FK15", 0x145}, /* F15 as Pause */
+    {"BRK",  0x145},
+    {"FK15", 0x145}, /* F15 => Pause */
     {"HOME", 0x147},
     {"UP",   0x148},
     {"PGUP", 0x149},
@@ -155,25 +158,36 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"DELE", 0x153},
 
     {"LWIN", 0x15b},
+    {"LMTA", 0x15b},
     {"RWIN", 0x15c},
-    {"COMP", 0x15d},
+    {"RMTA", 0x15c},
+    {"MENU", 0x15d},
+    {"COMP", 0x15d}, /* Compose as Menu */
 
     /* Multimedia keys, using Linux evdev-specific keycodes where required. Guideline is to try
        and follow the Microsoft standard, then fill in some OEM-specific keys for redundancy sake.
        Keys marked with # are not translated into evdev codes by the standard atkbd driver. */
     {"KPEQ", 0x59},  /* Num= */
+    {"I426", 0x6a},  /* ZOOMIN# => Logitech */
+    {"I428", 0x6b},  /* ZOOMRESET# => Logitech */
+    {"I231", 0x6d},  /* CANCEL# => Logitech */
     {"FRNT", 0x101}, /* # Logitech Task Select */
+    {"I156", 0x102}, /* PROG1# => Samsung */
+    {"I157", 0x103}, /* PROG2# => Samsung */
+    {"I427", 0x104}, /* ZOOMOUT# => Logitech */
+    {"I152", 0x105}, /* FILE# => Messenger/Files */
     {"I224", 0x105}, /* CHAT# => Messenger/Files */
+    {"I438", 0x105}, /* MESSENGER# */
     {"I190", 0x107}, /* REDO# */
     {"UNDO", 0x108}, /* # */
     {"PAST", 0x10a}, /* # Paste */
     {"I185", 0x10b}, /* SCROLLUP# => normal speed */
     {"I173", 0x110}, /* PREVIOUSSONG */
     {"FIND", 0x112}, /* # Logitech */
-    {"I156", 0x113}, /* PROG1# => Word */
-    {"I157", 0x114}, /* PROG2# => Excel */
-    {"I210", 0x115}, /* PROG3# => Calendar */
-    {"I182", 0x116}, /* EXIT# => Log Off */
+    {"I429", 0x113}, /* WORDPROCESSOR# => Word */
+    {"I431", 0x114}, /* SPREADSHEET# => Excel */
+    {"I405", 0x115}, /* CALENDAR# */
+    {"I441", 0x116}, /* LOGOFF# */
     {"CUT",  0x117}, /* # */
     {"COPY", 0x118}, /* # */
     {"I171", 0x119}, /* NEXTSONG */
@@ -181,7 +195,7 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"MUTE", 0x120},
     {"I148", 0x121}, /* CALC */
     {"I172", 0x122}, /* PLAYPAUSE */
-    {"I158", 0x123}, /* WWW# => Compaq online start */
+    {"I440", 0x123}, /* SPELLCHECK# */
     {"I174", 0x124}, /* STOPCD */
     {"I147", 0x126}, /* MENU# => Shortcut/Menu/Help for a few OEMs */
     {"VOL-", 0x12e},
@@ -189,9 +203,12 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"I169", 0x12f}, /* EJECTCD# => Logitech */
     {"I170", 0x12f}, /* EJECTCLOSECD# => Logitech */
     {"VOL+", 0x130},
+    {"I158", 0x132}, /* WWW# */
     {"I180", 0x132}, /* HOMEPAGE */
+    {"I642", 0x137}, /* SELECTIVE_SCREENSHOT# => SysRq */
     {"HELP", 0x13b}, /* # */
-    {"I221", 0x13c}, /* SOUND# => My Music */
+    {"I221", 0x13c}, /* SOUND# => My Music/Office Home */
+    {"I368", 0x13c}, /* VENDOR# => My Music/Office Home */
     {"I212", 0x13d}, /* DASHBOARD# => Task Pane */
     {"I189", 0x13e}, /* NEW# */
     {"OPEN", 0x13f}, /* # */
@@ -213,6 +230,7 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"I220", 0x164}, /* CAMERA# => My Pictures */
     {"I225", 0x165}, /* SEARCH */
     {"I164", 0x166}, /* BOOKMARKS => Favorites */
+    {"I372", 0x166}, /* FAVORITES# */
     {"I181", 0x167}, /* REFRESH */
     {"STOP", 0x168},
     {"I167", 0x169}, /* FORWARD */
@@ -222,7 +240,7 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"I223", 0x16c}, /* EMAIL# */
     {"I234", 0x16d}, /* MEDIA */
     {"I175", 0x178}, /* RECORD# => Logitech */
-    {"I160", 0x17a}, /* COFFEE# */
+    {"I160", 0x17a}, /* COFFEE/SCREENLOCK# */
     {"I186", 0x18b}, /* SCROLLDOWN# => normal speed */
 };
 struct xkb_keymap *xkbcommon_keymap = nullptr;
@@ -244,23 +262,21 @@ uint16_t
 xkbcommon_translate(uint32_t keycode)
 {
     const char *key_name = xkb_keymap_key_get_name(xkbcommon_keymap, keycode);
-    if (!key_name) {
-        qWarning() << "XKB Keyboard: Unknown keycode" << Qt::hex << keycode;
-        return 0;
-    }
 
-    std::string key_name_s(key_name);
-    uint16_t ret = xkb_keycodes[key_name_s];
+    /* If XKB doesn't know the key name for this keycode, assume an unnamed Ixxx key.
+       This is useful for older XKB versions with an incomplete evdev keycode map. */
+    auto key_name_s = key_name ? std::string(key_name) : QString("I%1").arg(keycode).toStdString();
+    auto ret = xkb_keycodes[key_name_s];
 
-    /* Observed with multimedia keys on a Windows X11 client. */
+    /* Observed with multimedia keys on Windows VcXsrv. */
     if (!ret && (key_name_s.length() == 3) && (key_name_s[0] == 'I') && IS_HEX_DIGIT(key_name_s[1]) && IS_HEX_DIGIT(key_name_s[2]))
         ret = 0x100 | stoi(key_name_s.substr(1), nullptr, 16);
 
     if (!ret)
-        qWarning() << "XKB Keyboard: Unknown key" << Qt::hex << keycode << "/" << QString::fromStdString(key_name_s);
+        qWarning() << "XKB Keyboard: Unknown key" << Qt::hex << keycode << QString::fromStdString(key_name_s);
 #if 0
     else
-        qInfo() << "XKB Keyboard: Key" << Qt::hex << keycode << "/" << QString::fromStdString(key_name_s) << "scancode" << Qt::hex << ret;
+        qInfo() << "XKB Keyboard: Key" << Qt::hex << keycode << QString::fromStdString(key_name_s) << "scancode" << Qt::hex << ret;
 #endif
 
     return ret;
