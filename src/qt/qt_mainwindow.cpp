@@ -96,8 +96,11 @@ extern int qt_nvr_save(void);
 #include "qt_util.hpp"
 
 #if defined __unix__ && !defined __HAIKU__
-#    ifdef WAYLAND
-#        include "wl_mouse.hpp"
+#    ifdef XKBCOMMON
+#        include "xkbcommon_keyboard.hpp"
+#        ifdef XKBCOMMON_X11
+#            include "xkbcommon_x11_keyboard.hpp"
+#        endif
 #    endif
 #    include <X11/Xlib.h>
 #    include <X11/keysym.h>
@@ -648,6 +651,11 @@ MainWindow::MainWindow(QWidget *parent)
     } else {
         ui->actionCursor_Puck->setChecked(true);
     }
+
+#ifdef XKBCOMMON_X11
+    if (QApplication::platformName().contains("xcb"))
+        xkbcommon_x11_init();
+#endif
 }
 
 void
@@ -1504,29 +1512,36 @@ x11_keycode_to_keysym(uint32_t keycode)
 #elif defined(__HAIKU__)
     finalkeycode = be_to_xt[keycode];
 #else
-    static Display *x11display = nullptr;
-    if (QApplication::platformName().contains("wayland")) {
-        selected_keycode = x11_to_xt_2;
-    } else if (QApplication::platformName().contains("eglfs")) {
-        keycode -= 8;
-        if (keycode <= 88)
-            finalkeycode = keycode;
-        else
-            finalkeycode = evdev_to_xt[keycode];
-    } else if (!x11display) {
-        x11display = XOpenDisplay(nullptr);
-        if (XKeysymToKeycode(x11display, XK_Home) == 110) {
-            selected_keycode = x11_to_xt_2;
-        } else if (XKeysymToKeycode(x11display, XK_Home) == 69) {
-            selected_keycode = x11_to_xt_vnc;
+#    ifdef XKBCOMMON
+    if (xkbcommon_keymap) {
+        finalkeycode = xkbcommon_translate(keycode);
+    } else
+#    endif
+    {
+        static Display *x11display = nullptr;
+        if (QApplication::platformName().contains("eglfs")) {
+            keycode -= 8;
+            if (keycode <= 88)
+                finalkeycode = keycode;
+            else
+                finalkeycode = evdev_to_xt[keycode];
+        } else {
+            if (QApplication::platformName().contains("wayland")) {
+                selected_keycode = x11_to_xt_2;
+            } else if (!x11display) {
+                x11display = XOpenDisplay(nullptr);
+                if (XKeysymToKeycode(x11display, XK_Home) == 110) {
+                    selected_keycode = x11_to_xt_2;
+                } else if (XKeysymToKeycode(x11display, XK_Home) == 69) {
+                    selected_keycode = x11_to_xt_vnc;
+                }
+            }
+            finalkeycode = selected_keycode[keycode];
         }
     }
-    if (!QApplication::platformName().contains("eglfs"))
-        finalkeycode = selected_keycode[keycode];
 #endif
-    if (rctrl_is_lalt && finalkeycode == 0x11D) {
+    if (rctrl_is_lalt && finalkeycode == 0x11D)
         finalkeycode = 0x38;
-    }
     return finalkeycode;
 }
 
