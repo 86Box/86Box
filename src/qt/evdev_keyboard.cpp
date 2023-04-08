@@ -17,16 +17,18 @@
 #include <unordered_map>
 #include <QtDebug>
 
-static std::unordered_map<uint32_t, uint16_t> evdev_keycodes{
+static std::unordered_map<uint32_t, uint16_t> evdev_keycodes = {
     {99,  0x54}, /* SYSRQ */
     {86,  0x56}, /* 102ND */
     {87,  0x57}, /* F11 */
     {88,  0x58}, /* F12 */
     {117, 0x59}, /* KPEQUAL */
-    {95,  0x5c}, /* KPJPCOMMA */
     {183, 0x5d}, /* F13 */
     {184, 0x5e}, /* F14 */
     {185, 0x5f}, /* F15 */
+
+    /* Japanese keys. */
+    {95,  0x5c}, /* KPJPCOMMA */
     {93,  0x70}, /* KATAKANAHIRAGANA */
     {89,  0x73}, /* RO */
     {85,  0x76}, /* ZENKAKUHANKAKU */
@@ -36,6 +38,32 @@ static std::unordered_map<uint32_t, uint16_t> evdev_keycodes{
     {94,  0x7b}, /* MUHENKAN */
     {124, 0x7d}, /* YEN */
     {121, 0x7e}, /* KPCOMMA */
+
+    /* Korean keys. */
+    {123, 0xf1}, /* HANJA */
+    {122, 0xf2}, /* HANGUL */
+
+    {96,  0x11c}, /* KPENTER */
+    {97,  0x11d}, /* RIGHTCTRL */
+    {98,  0x135}, /* KPSLASH */
+    {99,  0x137}, /* SYSRQ */
+    {100, 0x138}, /* RIGHTALT */
+    {119, 0x145}, /* PAUSE */
+    {411, 0x145}, /* BREAK */
+    {102, 0x147}, /* HOME */
+    {103, 0x148}, /* UP */
+    {104, 0x149}, /* PAGEUP */
+    {105, 0x14b}, /* LEFT */
+    {106, 0x14d}, /* RIGHT */
+    {107, 0x14f}, /* END */
+    {108, 0x150}, /* DOWN */
+    {109, 0x151}, /* PAGEDOWN */
+    {110, 0x152}, /* INSERT */
+    {111, 0x153}, /* DELETE */
+
+    {125, 0x15b}, /* LEFTMETA */
+    {126, 0x15c}, /* RIGHTMETA */
+    {127, 0x15d}, /* COMPOSE => Menu */
 
     /* Multimedia keys. Guideline is to try and follow the Microsoft standard, then
        fill in remaining scancodes with OEM-specific keys for redundancy sake. Keys

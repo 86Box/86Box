@@ -25,7 +25,7 @@ extern "C" {
 #define IS_DEC_DIGIT(c) (((c) >= '0') && ((c) <= '9'))
 #define IS_HEX_DIGIT(c) (IS_DEC_DIGIT(c) || (((c) >= 'A') && ((c) <= 'F')) || (((c) >= 'a') && ((c) <= 'f')))
 
-static std::unordered_map<std::string, uint16_t> xkb_keycodes{
+static std::unordered_map<std::string, uint16_t> xkb_keycodes = {
     {"ESC",  0x01},
     {"AE01", 0x02},
     {"AE02", 0x03},

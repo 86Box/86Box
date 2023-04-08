@@ -1513,7 +1513,7 @@ x11_keycode_to_keysym(uint32_t keycode)
 #    endif
 #    ifdef EVDEV_KEYBOARD_HPP
     if (QApplication::platformName().contains("eglfs")) {
-        finalkeycode = evdev_translate(keycode);
+        finalkeycode = evdev_translate(keycode - 8);
     } else
 #    endif
     {
