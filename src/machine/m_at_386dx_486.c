@@ -1657,7 +1657,7 @@ machine_at_actionpc2600_init(const machine_t *model)
     device_add(&umc_8886af_device);
     device_add(&um8669f_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&keyboard_at_ami_device);
+    device_add(&keyboard_ps2_ami_device);
 
     return ret;
 }
