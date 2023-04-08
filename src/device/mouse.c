@@ -152,8 +152,8 @@ mouse_close(void)
 static void
 mouse_timer_poll(void *priv)
 {
-    /* Poll at 3600 Hz. */
-    timer_on_auto(&mouse_timer, 277.0 + (7.0 / 9.0));
+    /* Poll at 255 Hz, maximum supported by PS/2 mic. */
+    timer_on_auto(&mouse_timer, 1000000.0 / 255.0);
 
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     if (gdbstub_step == GDBSTUB_EXEC)
@@ -186,8 +186,8 @@ mouse_reset(void)
 
     timer_add(&mouse_timer, mouse_timer_poll, NULL, 0);
 
-    /* Poll at 3600 Hz. */
-    timer_on_auto(&mouse_timer, 277.0 + (7.0 / 9.0));
+    /* Poll at 255 Hz, maximum supported by PS/2 mic. */
+    timer_on_auto(&mouse_timer, 1000000.0 / 255.0);
 }
 
 /* Callback from the hardware driver. */

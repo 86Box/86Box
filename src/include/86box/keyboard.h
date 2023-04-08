@@ -159,7 +159,7 @@ extern const device_t keyboard_xt_zenith_device;
 extern const device_t keyboard_xtclone_device;
 extern const device_t keyboard_at_device;
 extern const device_t keyboard_at_ami_device;
-extern const device_t keyboard_at_samsung_device;
+extern const device_t keyboard_at_tg_ami_device;
 extern const device_t keyboard_at_toshiba_device;
 extern const device_t keyboard_at_olivetti_device;
 extern const device_t keyboard_at_ncr_device;
@@ -168,6 +168,8 @@ extern const device_t keyboard_ps2_ps1_device;
 extern const device_t keyboard_ps2_ps1_pci_device;
 extern const device_t keyboard_ps2_xi8088_device;
 extern const device_t keyboard_ps2_ami_device;
+extern const device_t keyboard_ps2_tg_ami_device;
+extern const device_t keyboard_ps2_tg_ami_green_device;
 extern const device_t keyboard_ps2_olivetti_device;
 extern const device_t keyboard_ps2_mca_device;
 extern const device_t keyboard_ps2_mca_2_device;
@@ -177,6 +179,7 @@ extern const device_t keyboard_ps2_ami_pci_device;
 extern const device_t keyboard_ps2_intel_ami_pci_device;
 extern const device_t keyboard_ps2_acer_pci_device;
 extern const device_t keyboard_ps2_ali_pci_device;
+extern const device_t keyboard_ps2_tg_ami_pci_device;
 #endif /*EMU_DEVICE_H*/
 
 extern void     keyboard_init(void);

@@ -284,6 +284,12 @@ pic_set_shadow(int sh)
     shadow = sh;
 }
 
+int
+pic_get_pci_flag(void)
+{
+    return pic_pci;
+}
+
 void
 pic_set_pci_flag(int pci)
 {
