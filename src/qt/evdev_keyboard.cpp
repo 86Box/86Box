@@ -18,14 +18,14 @@
 #include <QtDebug>
 
 static std::unordered_map<uint32_t, uint16_t> evdev_keycodes = {
-    {99,  0x54}, /* SYSRQ */
+    {184, 0x46}, /* F14 => Scroll Lock (for Apple keyboards) */
     {86,  0x56}, /* 102ND */
     {87,  0x57}, /* F11 */
     {88,  0x58}, /* F12 */
     {117, 0x59}, /* KPEQUAL */
-    {183, 0x5d}, /* F13 */
-    {184, 0x5e}, /* F14 */
-    {185, 0x5f}, /* F15 */
+    {186, 0x5d}, /* F16 => F13 */
+    {187, 0x5e}, /* F17 => F14 */
+    {188, 0x5f}, /* F18 => F15 */
 
     /* Japanese keys. */
     {95,  0x5c}, /* KPJPCOMMA */
@@ -47,9 +47,11 @@ static std::unordered_map<uint32_t, uint16_t> evdev_keycodes = {
     {97,  0x11d}, /* RIGHTCTRL */
     {98,  0x135}, /* KPSLASH */
     {99,  0x137}, /* SYSRQ */
+    {183, 0x137}, /* F13 => SysRq (for Apple keyboards) */
     {100, 0x138}, /* RIGHTALT */
     {119, 0x145}, /* PAUSE */
     {411, 0x145}, /* BREAK */
+    {185, 0x145}, /* F15 => Pause (for Apple keyboards) */
     {102, 0x147}, /* HOME */
     {103, 0x148}, /* UP */
     {104, 0x149}, /* PAGEUP */
