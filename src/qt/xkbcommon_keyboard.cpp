@@ -164,8 +164,8 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"KPEQ", 0x59},  /* Num= */
     {"FRNT", 0x101}, /* # Logitech Task Select */
     {"I224", 0x105}, /* CHAT# => Messenger/Files */
-    {"I190", 0x107}, /* REDO */
-    {"UNDO", 0x108},
+    {"I190", 0x107}, /* REDO# */
+    {"UNDO", 0x108}, /* # */
     {"PAST", 0x10a}, /* # Paste */
     {"I185", 0x10b}, /* SCROLLUP# => normal speed */
     {"I173", 0x110}, /* PREVIOUSSONG */
@@ -174,8 +174,8 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"I157", 0x114}, /* PROG2# => Excel */
     {"I210", 0x115}, /* PROG3# => Calendar */
     {"I182", 0x116}, /* EXIT# => Log Off */
-    {"CUT",  0x117},
-    {"COPY", 0x118},
+    {"CUT",  0x117}, /* # */
+    {"COPY", 0x118}, /* # */
     {"I171", 0x119}, /* NEXTSONG */
     {"I162", 0x11e}, /* CYCLEWINDOWS => Application Right (no left counterpart) */
     {"MUTE", 0x120},
@@ -202,6 +202,7 @@ std::unordered_map<std::string, uint16_t> xkb_keycodes{
     {"I159", 0x144}, /* MSDOS# */
     {"I120", 0x14c}, /* MACRO */
     {"I187", 0x14c}, /* KPLEFTPAREN# */
+    {"I126", 0x14e}, /* KPPLUSMINUS */
     {"I243", 0x155}, /* DOCUMENTS# => Logitech */
     {"I242", 0x157}, /* SAVE# */
     {"I218", 0x158}, /* PRINT# */
