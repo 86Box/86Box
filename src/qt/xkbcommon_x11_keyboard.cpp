@@ -33,7 +33,9 @@ extern "C" {
 };
 #include "xkbcommon_keyboard.hpp"
 
+#include <qpa/qplatformnativeinterface.h>
 #include <QtDebug>
+#include <QGuiApplication>
 
 void
 xkbcommon_x11_init()
@@ -43,9 +45,9 @@ xkbcommon_x11_init()
     int32_t core_kbd_device_id;
     struct xkb_keymap *keymap;
 
-    conn = xcb_connect(NULL, NULL);
-    if (!conn || xcb_connection_has_error(conn)) {
-        qWarning() << "XKB Keyboard: X server connection failed with error" << (conn ? xcb_connection_has_error(conn) : -1);
+    conn = (xcb_connection_t *) QGuiApplication::platformNativeInterface()->nativeResourceForIntegration("connection");
+    if (!conn) {
+        qWarning() << "XKB Keyboard: X server connection failed";
         return;
     }
 
@@ -55,13 +57,13 @@ xkbcommon_x11_init()
                                           NULL, NULL, NULL, NULL);
     if (!ret) {
         qWarning() << "XKB Keyboard: XKB extension setup failed";
-        goto err_conn;
+        return;
     }
 
     ctx = xkb_context_new(XKB_CONTEXT_NO_FLAGS);
     if (!ctx) {
         qWarning() << "XKB Keyboard: XKB context creation failed";
-        goto err_conn;
+        return;
     }
 
     core_kbd_device_id = xkb_x11_get_core_keyboard_device_id(conn);
@@ -77,10 +79,8 @@ xkbcommon_x11_init()
     }
 
     xkbcommon_init(keymap);
-    goto err_conn;
+    return;
 
 err_ctx:
     xkb_context_unref(ctx);
-err_conn:
-    xcb_disconnect(conn);
 }

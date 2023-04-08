@@ -55,7 +55,7 @@ xkbcommon_wl_set_keymap()
             return;
         }
     }
-    xkbcommon_close();
+    xkbcommon_close(); /* none found */
 }
 
 static void
