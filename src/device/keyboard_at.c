@@ -37,7 +37,6 @@
 #include <86box/mem.h>
 #include <86box/device.h>
 #include <86box/machine.h>
-#include <86box/m_xt_xi8088.h>
 #include <86box/m_at_t3100e.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
@@ -81,15 +80,15 @@
 #define KBC_VEN_IBM_MCA    0x08
 #define KBC_VEN_QUADTEL    0x0c
 #define KBC_VEN_TOSHIBA    0x10
-#define KBC_VEN_XI8088     0x14
-#define KBC_VEN_IBM_PS1    0x18
-#define KBC_VEN_ACER       0x1c
-#define KBC_VEN_INTEL_AMI  0x20
-#define KBC_VEN_OLIVETTI   0x24
-#define KBC_VEN_NCR        0x28
-#define KBC_VEN_SAMSUNG    0x2c
-#define KBC_VEN_ALI        0x30
-#define KBC_VEN_PHOENIX    0x3c
+#define KBC_VEN_IBM_PS1    0x14
+#define KBC_VEN_ACER       0x18
+#define KBC_VEN_INTEL_AMI  0x1c
+#define KBC_VEN_OLIVETTI   0x20
+#define KBC_VEN_NCR        0x24
+#define KBC_VEN_PHOENIX    0x28
+#define KBC_VEN_ALI        0x2c
+#define KBC_VEN_TG         0x30
+#define KBC_VEN_TG_GREEN   0x34
 #define KBC_VEN_MASK       0x3c
 
 enum {
@@ -109,9 +108,9 @@ typedef struct {
             output_port, old_output_port, key_command, output_locked,
             ami_stat, want60, key_wantdata, ami_flags,
             key_wantcmd, key_dat, mouse_wantcmd, mouse_dat,
-            kbc_state, kbd_state, mouse_state, pad;
+            kbc_state, kbd_state, mouse_state, pci;
 
-    uint16_t irq_levels, pad0;
+    uint16_t irq_levels, pad;
 
     uint8_t mem[0x100];
 
@@ -713,7 +712,8 @@ add_to_kbc_queue_front(atkbd_t *dev, uint8_t val, uint8_t channel, uint8_t stat_
 {
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
 
-    if ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF))
+    if ((kbc_ven == KBC_VEN_AMI) || (kbc_ven == KBC_VEN_TG) ||
+        (kbc_ven == KBC_VEN_TG_GREEN) || ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF))
         stat_hi |= ((dev->input_port & 0x80) ? 0x10 : 0x00);
     else
         stat_hi |= 0x10;
@@ -870,9 +870,10 @@ kbc_poll_at(atkbd_t *dev)
 {
     switch (dev->kbc_state) {
         case KBC_STATE_RESET:
-            if ((dev->status & STAT_IFULL) && (dev->status & STAT_CD) && (dev->ib == 0xaa)) {
-                dev->status &= ~STAT_IFULL;
-                kbc_process_cmd(dev);
+            if (dev->status & STAT_IFULL) {
+                dev->status = ((dev->status & 0x0f) | 0x10) & ~STAT_IFULL;
+                if ((dev->status & STAT_CD) && (dev->ib == 0xaa))
+                    kbc_process_cmd(dev);
             }
             break;
         case KBC_STATE_NORMAL:
@@ -951,9 +952,10 @@ kbc_poll_ps2(atkbd_t *dev)
 {
     switch (dev->kbc_state) {
         case KBC_STATE_RESET:
-            if ((dev->status & STAT_IFULL) && (dev->status & STAT_CD) && (dev->ib == 0xaa)) {
-                dev->status &= ~STAT_IFULL;
-                kbc_process_cmd(dev);
+            if (dev->status & STAT_IFULL) {
+                dev->status = ((dev->status & 0x0f) | 0x10) & ~STAT_IFULL;
+                if ((dev->status & STAT_CD) && (dev->ib == 0xaa))
+                    kbc_process_cmd(dev);
             }
             break;
         case KBC_STATE_NORMAL:
@@ -1451,13 +1453,15 @@ write_cmd(atkbd_t *dev, uint8_t val)
     /* ISA AT keyboard controllers use bit 5 for keyboard mode (1 = PC/XT, 2 = AT);
        PS/2 (and EISA/PCI) keyboard controllers use it as the PS/2 mouse enable switch.
        The AMIKEY firmware apparently uses this bit for something else. */
-    if ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)) {
+    if ((kbc_ven == KBC_VEN_AMI) || (kbc_ven == KBC_VEN_TG) ||
+        (kbc_ven == KBC_VEN_TG_GREEN) || ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)) {
         keyboard_mode &= ~CCB_PCMODE;
 
         kbd_log("ATkbc: mouse interrupt is now %s\n", (val & 0x02) ? "enabled" : "disabled");
     }
 
-    if ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF)) {
+    if ((kbc_ven == KBC_VEN_AMI) || (kbc_ven == KBC_VEN_TG) ||
+        (kbc_ven == KBC_VEN_TG_GREEN) || ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF)) {
         /* Update the output port to mirror the IBF and OBF bits, if active. */
         write_output(dev, (dev->output_port & 0x0f) | ((val & 0x03) << 4) | ((val & 0x20) ? 0xc0 : 0x00));
     }
@@ -1559,7 +1563,16 @@ write64_generic(void *priv, uint8_t val)
                                        0, 0x00);
                 dev->input_port = ((dev->input_port + 1) & 3) | (dev->input_port & 0xfc);
             } else {
-                if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) && ((dev->flags & KBC_VEN_MASK) != KBC_VEN_INTEL_AMI))
+                if ((kbc_ven == KBC_VEN_TG) || (kbc_ven == KBC_VEN_TG_GREEN)) {
+                    /* Bit 3, 2:
+                           1, 1: TriGem logo;
+                           1, 0: Garbled logo;
+                           0, 1: Epson logo;
+                           0, 0: Generic AMI logo. */
+                    if (dev->pci)
+                        fixed_bits |= 8;
+                    add_to_kbc_queue_front(dev, dev->input_port | fixed_bits, 0, 0x00);
+                } else if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) && ((dev->flags & KBC_VEN_MASK) != KBC_VEN_INTEL_AMI))
 #if 0
                     add_to_kbc_queue_front(dev, (dev->input_port | fixed_bits) &
                                           (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0xeb : 0xef), 0, 0x00);
@@ -1671,18 +1684,25 @@ write64_ami(void *priv, uint8_t val)
 
         case 0xa1: /* get controller version */
             kbd_log("ATkbc: AMI - get controller version\n");
-            if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
+            if ((kbc_ven == KBC_VEN_TG) || (kbc_ven == KBC_VEN_TG_GREEN))
+                    add_to_kbc_queue_front(dev, 'Z', 0, 0x00);
+            else if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
                 if (kbc_ven == KBC_VEN_ALI)
                     add_to_kbc_queue_front(dev, 'F', 0, 0x00);
                 else if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_INTEL_AMI)
                     add_to_kbc_queue_front(dev, '5', 0, 0x00);
-                else if (is_pentium)
+                else if (cpu_64bitbus)
                     add_to_kbc_queue_front(dev, 'R', 0, 0x00);
+                else if (is486)
+                    add_to_kbc_queue_front(dev, 'P', 0, 0x00);
                 else
                     add_to_kbc_queue_front(dev, 'H', 0, 0x00);
-            } else if (is386 && !is486)
-                add_to_kbc_queue_front(dev, 'B', 0, 0x00);
-            else if (!is386)
+            } else if (is386 && !is486) {
+                if (cpu_16bitbus)
+                    add_to_kbc_queue_front(dev, 'D', 0, 0x00);
+                else
+                    add_to_kbc_queue_front(dev, 'B', 0, 0x00);
+            } else if (!is386)
                 add_to_kbc_queue_front(dev, '8', 0, 0x00);
             else
                 add_to_kbc_queue_front(dev, 'F', 0, 0x00);
@@ -2583,7 +2603,7 @@ kbd_reset(void *priv)
     dev->key_wantdata                 = 0;
 
     /* Set up the correct Video Type bits. */
-    if ((kbc_ven == KBC_VEN_XI8088) || (kbc_ven == KBC_VEN_ACER))
+    if (!is286 || (kbc_ven == KBC_VEN_ACER))
         dev->input_port = video_is_mda() ? 0xb0 : 0xf0;
     else
         dev->input_port = video_is_mda() ? 0xf0 : 0xb0;
@@ -2664,6 +2684,7 @@ kbd_init(const device_t *info)
     memset(dev, 0x00, sizeof(atkbd_t));
 
     dev->flags = info->local;
+    dev->pci = !!(info->flags & DEVICE_PCI);
 
     video_reset(gfxcard[0]);
     kbd_reset(dev);
@@ -2683,7 +2704,6 @@ kbd_init(const device_t *info)
         case KBC_VEN_GENERIC:
         case KBC_VEN_NCR:
         case KBC_VEN_IBM_PS1:
-        case KBC_VEN_XI8088:
             dev->write64_ven = write64_generic;
             break;
 
@@ -2693,8 +2713,9 @@ kbd_init(const device_t *info)
 
         case KBC_VEN_AMI:
         case KBC_VEN_INTEL_AMI:
-        case KBC_VEN_SAMSUNG:
         case KBC_VEN_ALI:
+        case KBC_VEN_TG:
+        case KBC_VEN_TG_GREEN:
             dev->write60_ven = write60_ami;
             dev->write64_ven = write64_ami;
             break;
@@ -2748,11 +2769,11 @@ const device_t keyboard_at_ami_device = {
     .config        = NULL
 };
 
-const device_t keyboard_at_samsung_device = {
-    .name          = "PC/AT Keyboard (Samsung)",
-    .internal_name = "keyboard_at_samsung",
+const device_t keyboard_at_tg_ami_device = {
+    .name          = "PC/AT Keyboard (TriGem AMI)",
+    .internal_name = "keyboard_at_tg_ami",
     .flags         = 0,
-    .local         = KBC_TYPE_ISA | KBC_VEN_SAMSUNG,
+    .local         = KBC_TYPE_ISA | KBC_VEN_TG,
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
@@ -2850,7 +2871,7 @@ const device_t keyboard_ps2_xi8088_device = {
     .name          = "PS/2 Keyboard (Xi8088)",
     .internal_name = "keyboard_ps2_xi8088",
     .flags         = 0,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_XI8088,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
@@ -2865,6 +2886,20 @@ const device_t keyboard_ps2_ami_device = {
     .internal_name = "keyboard_ps2_ami",
     .flags         = 0,
     .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_AMI,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t keyboard_ps2_tg_ami_device = {
+    .name          = "PS/2 Keyboard (TriGem AMI)",
+    .internal_name = "keyboard_ps2_tg_ami",
+    .flags         = 0,
+    .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_TG,
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
@@ -2963,6 +2998,20 @@ const device_t keyboard_ps2_intel_ami_pci_device = {
     .internal_name = "keyboard_ps2_intel_ami_pci",
     .flags         = DEVICE_PCI,
     .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_INTEL_AMI,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t keyboard_ps2_tg_ami_pci_device = {
+    .name          = "PS/2 Keyboard (TriGem AMI)",
+    .internal_name = "keyboard_ps2_tg_ami_pci",
+    .flags         = DEVICE_PCI,
+    .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_TG,
     .init          = kbd_init,
     .close         = kbd_close,
     .reset         = kbd_reset,
