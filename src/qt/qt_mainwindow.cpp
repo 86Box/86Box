@@ -1170,8 +1170,10 @@ x11_keycode_to_keysym(uint32_t keycode)
         finalkeycode = 0;
 #    endif
 #endif
-    /* Special case for Ctrl+Pause. */
-    if ((finalkeycode == 0x145) && (keyboard_recv(0x1d) || keyboard_recv(0x11d)))
+    /* Special case for Alt+Print Screen and Ctrl+Pause. */
+    if ((finalkeycode == 0x137) && (keyboard_recv(0x38) || keyboard_recv(0x138)))
+        finalkeycode = 0x54;
+    else if ((finalkeycode == 0x145) && (keyboard_recv(0x1d) || keyboard_recv(0x11d)))
         finalkeycode = 0x146;
 
     if (rctrl_is_lalt && finalkeycode == 0x11D)
@@ -1386,7 +1388,10 @@ MainWindow::keyPressEvent(QKeyEvent *event)
         processMacKeyboardInput(true, event);
 #else
         auto scan = x11_keycode_to_keysym(event->nativeScanCode());
-        if (scan == 0x145) {
+        if (scan == 0x137) {
+            /* Special case for Print Screen. */
+            keyboard_input(1, 0x12a);
+        } else if (scan == 0x145) {
             /* Special case for Pause. */
             keyboard_input(1, 0xe11d);
             scan &= 0x00ff;
@@ -1440,7 +1445,11 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
     processMacKeyboardInput(false, event);
 #else
     auto scan = x11_keycode_to_keysym(event->nativeScanCode());
-    if (scan == 0x145) {
+    if (scan == 0x137) {
+        /* Special case for Print Screen. */
+        keyboard_input(0, scan);
+        scan = 0x12a;
+    } else if (scan == 0x145) {
         /* Special case for Pause. */
         keyboard_input(0, 0xe11d);
         scan &= 0x00ff;
