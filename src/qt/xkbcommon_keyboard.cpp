@@ -102,6 +102,7 @@ static std::unordered_map<std::string, uint16_t> xkb_keycodes = {
 
     {"NMLK", 0x45},
     {"SCLK", 0x46},
+    {"FK14", 0x46}, /* F14 => Scroll Lock (for Apple keyboards) */
     {"KP7",  0x47},
     {"KP8",  0x48},
     {"KP9",  0x49},
@@ -119,12 +120,13 @@ static std::unordered_map<std::string, uint16_t> xkb_keycodes = {
     {"LSGT", 0x56},
     {"FK11", 0x57},
     {"FK12", 0x58},
-    {"FK13", 0x5d},
-    {"FK14", 0x5e},
-    {"FK15", 0x5f},
+    {"FK16", 0x5d}, /* F16 => F13 */
+    {"FK17", 0x5e}, /* F17 => F14 */
+    {"FK18", 0x5f}, /* F18 => F15 */
 
     /* Japanese keys. */
-    {"JPCM", 0x5c}, /* evdev KPJPCOMMA */
+    {"JPCM", 0x5c}, /* Num, */
+    {"KPDC", 0x5c},
     {"HKTG", 0x70}, /* hiragana-katakana toggle */
     {"AB11", 0x73}, /* \_ and Brazilian /? */
     {"HZTG", 0x76}, /* hankaku-zenkaku toggle */
@@ -145,8 +147,11 @@ static std::unordered_map<std::string, uint16_t> xkb_keycodes = {
     {"KPDV", 0x135},
     {"PRSC", 0x137},
     {"SYRQ", 0x137},
+    {"FK13", 0x137}, /* F13 => SysRq (for Apple keyboards) */
     {"RALT", 0x138},
+    {"ALGR", 0x138},
     {"PAUS", 0x145},
+    {"FK15", 0x145}, /* F15 => Pause (for Apple keyboards) */
     {"BRK",  0x145},
     {"HOME", 0x147},
     {"UP",   0x148},

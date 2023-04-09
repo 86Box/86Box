@@ -1394,12 +1394,19 @@ MainWindow::keyPressEvent(QKeyEvent *event)
                 keyboard_input(1, 0x1D);
                 keyboard_input(1, 0x45);
             }
-        } else
+        } else {
 #ifdef Q_OS_MACOS
             processMacKeyboardInput(true, event);
 #else
-            keyboard_input(1, x11_keycode_to_keysym(event->nativeScanCode()));
+            auto scan = x11_keycode_to_keysym(event->nativeScanCode());
+            if (scan == 0x145) {
+                /* Special case for Pause. */
+                keyboard_input(1, scan & 0xff00);
+                scan &= 0x00ff;
+            }
+            keyboard_input(1, scan);
 #endif
+        }
     }
 
     if ((video_fullscreen > 0) && keyboard_isfsexit()) {
@@ -1446,7 +1453,13 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
 #ifdef Q_OS_MACOS
     processMacKeyboardInput(false, event);
 #else
-    keyboard_input(0, x11_keycode_to_keysym(event->nativeScanCode()));
+    auto scan = x11_keycode_to_keysym(event->nativeScanCode());
+    if (scan == 0x145) {
+        /* Special case for Pause. */
+        keyboard_input(0, scan & 0xff00);
+        scan &= 0x00ff;
+    }
+    keyboard_input(0, scan);
 #endif
 }
 

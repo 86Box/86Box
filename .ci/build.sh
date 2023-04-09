@@ -316,6 +316,9 @@ then
 				pacman -S --needed --noconfirm "$pkg"
 			done
 		fi
+		
+		# Clean pacman cache when running under Jenkins to save disk space.
+		[ "$CI" = "true" ] && rm -rf /var/cache/pacman/pkg
 
 		# Generate a new freetype DLL for this architecture.
 		rm -f "$freetype_dll"
