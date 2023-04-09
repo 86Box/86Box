@@ -99,7 +99,9 @@ enum {
     KBC_STATE_MAIN_BOTH,
     KBC_STATE_KBC_OUT,
     KBC_STATE_KBC_PARAM,
+    KBC_STATE_SEND_KBD,
     KBC_STATE_KBD,
+    KBC_STATE_SEND_MOUSE,
     KBC_STATE_MOUSE
 };
 #define KBC_STATE_SCAN_KBD KBC_STATE_KBD
@@ -836,7 +838,7 @@ kbc_ibf_process(atkbd_t *dev)
         set_enable_kbd(dev, 1);
         dev->key_wantcmd = 1;
         dev->key_dat = dev->ib;
-        dev->kbc_state = KBC_STATE_SCAN_KBD;
+        dev->kbc_state = KBC_STATE_SEND_KBD;
     }
 }
 
@@ -892,8 +894,7 @@ kbc_poll_at(atkbd_t *dev)
             }
             break;
         case KBC_STATE_MAIN_IBF:
-        case KBC_STATE_MAIN_MOUSE:
-        case KBC_STATE_SCAN_MOUSE:
+        default:
            if (dev->status & STAT_OFULL) {
                 /* OBF set, wait until it is cleared but still process commands. */
                 if ((dev->status & STAT_IFULL) && (dev->status & STAT_CD)) {
@@ -940,6 +941,10 @@ kbc_poll_at(atkbd_t *dev)
                 dev->status &= ~STAT_IFULL;
                 kbc_process_cmd(dev);
             }
+            break;
+        case KBC_STATE_SEND_KBD:
+            if (!dev->key_wantcmd)
+                dev->kbc_state = KBC_STATE_SCAN_KBD;
             break;
         case KBC_STATE_SCAN_KBD:
             kbc_scan_kbd_at(dev);
@@ -997,6 +1002,7 @@ kbc_poll_ps2(atkbd_t *dev)
             }
             break;
         case KBC_STATE_MAIN_IBF:
+        default:
             // pclog("KBC_STATE_MAIN_IBF\n");
             if (dev->status & STAT_IFULL)
                 kbc_ibf_process(dev);
@@ -1071,9 +1077,17 @@ kbc_poll_ps2(atkbd_t *dev)
                 kbc_process_cmd(dev);
             }
             break;
+        case KBC_STATE_SEND_KBD:
+            if (!dev->key_wantcmd)
+                dev->kbc_state = KBC_STATE_SCAN_KBD;
+            break;
         case KBC_STATE_SCAN_KBD:
             // pclog("KBC_STATE_SCAN_KBD\n");
             (void) kbc_scan_kbd_ps2(dev);
+            break;
+        case KBC_STATE_SEND_MOUSE:
+            if (!dev->mouse_wantcmd)
+                dev->kbc_state = KBC_STATE_SCAN_MOUSE;
             break;
         case KBC_STATE_SCAN_MOUSE:
             // pclog("KBC_STATE_SCAN_MOUSE\n");
@@ -2695,7 +2709,7 @@ kbc_process_cmd(void *priv)
                     if (mouse_write) {
                         dev->mouse_wantcmd = 1;
                         dev->mouse_dat = dev->ib;
-                        dev->kbc_state = KBC_STATE_SCAN_MOUSE;
+                        dev->kbc_state = KBC_STATE_SEND_MOUSE;
                     } else
                         add_to_kbc_queue_front(dev, 0xfe, 2, 0x40);
                 }
