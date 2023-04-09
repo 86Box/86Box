@@ -252,6 +252,7 @@ jobs:
             slug: -Qt
             packages: >-
               qtbase5-dev
+              qtbase5-private-dev
               qttools5-dev
               libevdev-dev
               libxkbcommon-x11-dev
