@@ -115,6 +115,7 @@ extern int qt_nvr_save(void);
 #endif
 
 #ifdef Q_OS_MACOS
+#    include "cocoa_keyboard.hpp"
 // The namespace is required to avoid clashing typedefs; we only use this
 // header for its #defines anyway.
 namespace IOKit {
@@ -905,139 +906,6 @@ MainWindow::on_actionSettings_triggered()
     plat_pause(currentPause);
 }
 
-#ifdef Q_OS_MACOS
-std::array<uint32_t, 256> darwin_to_xt {
-    0x1E,
-    0x1F,
-    0x20,
-    0x21,
-    0x23,
-    0x22,
-    0x2C,
-    0x2D,
-    0x2E,
-    0x2F,
-    0x2B,
-    0x30,
-    0x10,
-    0x11,
-    0x12,
-    0x13,
-    0x15,
-    0x14,
-    0x02,
-    0x03,
-    0x04,
-    0x05,
-    0x07,
-    0x06,
-    0x0D,
-    0x0A,
-    0x08,
-    0x0C,
-    0x09,
-    0x0B,
-    0x1B,
-    0x18,
-    0x16,
-    0x1A,
-    0x17,
-    0x19,
-    0x1C,
-    0x26,
-    0x24,
-    0x28,
-    0x25,
-    0x27,
-    0x2B,
-    0x33,
-    0x35,
-    0x31,
-    0x32,
-    0x34,
-    0x0F,
-    0x39,
-    0x29,
-    0x0E,
-    0x11C,
-    0x01,
-    0x15C,
-    0x15B,
-    0x2A,
-    0x3A,
-    0x38,
-    0x1D,
-    0x36,
-    0x138,
-    0x11D,
-    0x15C,
-    0,
-    0x53,
-    0,
-    0x37,
-    0,
-    0x4E,
-    0,
-    0x45,
-    0x130,
-    0x12E,
-    0x120,
-    0x135,
-    0x11C,
-    0,
-    0x4A,
-    0,
-    0,
-    0,
-    0x52,
-    0x4F,
-    0x50,
-    0x51,
-    0x4B,
-    0x4C,
-    0x4D,
-    0x47,
-    0,
-    0x48,
-    0x49,
-    0,
-    0,
-    0,
-    0x3F,
-    0x40,
-    0x41,
-    0x3D,
-    0x42,
-    0x43,
-    0,
-    0x57,
-    0,
-    0x137,
-    0,
-    0x46,
-    0,
-    0x44,
-    0x15D,
-    0x58,
-    0,
-    0, // Pause/Break key.
-    0x152,
-    0x147,
-    0x149,
-    0x153,
-    0x3E,
-    0x14F,
-    0x3C,
-    0x151,
-    0x3B,
-    0x14B,
-    0x14D,
-    0x150,
-    0x148,
-    0,
-};
-#endif
-
 #ifdef __HAIKU__
 static std::unordered_map<uint8_t, uint16_t> be_to_xt = {
     {0x01,       0x01 },
@@ -1155,7 +1023,7 @@ x11_keycode_to_keysym(uint32_t keycode)
 #if defined(Q_OS_WINDOWS)
     finalkeycode = (keycode & 0xFFFF);
 #elif defined(Q_OS_MACOS)
-    finalkeycode = darwin_to_xt[keycode];
+    finalkeycode = (keycode < 127) ? cocoa_keycodes[keycode] : 0;
 #elif defined(__HAIKU__)
     finalkeycode = be_to_xt[keycode];
 #else
@@ -1170,8 +1038,10 @@ x11_keycode_to_keysym(uint32_t keycode)
         finalkeycode = 0;
 #    endif
 #endif
-    /* Special case for Ctrl+Pause. */
-    if ((finalkeycode == 0x145) && (keyboard_recv(0x1d) || keyboard_recv(0x11d)))
+    /* Special case for Alt+Print Screen and Ctrl+Pause. */
+    if ((finalkeycode == 0x137) && (keyboard_recv(0x38) || keyboard_recv(0x138)))
+        finalkeycode = 0x54;
+    else if ((finalkeycode == 0x145) && (keyboard_recv(0x1d) || keyboard_recv(0x11d)))
         finalkeycode = 0x146;
 
     if (rctrl_is_lalt && finalkeycode == 0x11D)
@@ -1382,31 +1252,20 @@ void
 MainWindow::keyPressEvent(QKeyEvent *event)
 {
     if (send_keyboard_input && !(kbd_req_capture && !mouse_capture)) {
-        // Windows keys in Qt have one-to-one mapping.
-        if (event->key() == Qt::Key_Pause && !keyboard_recv(0x38) && !keyboard_recv(0x138)) {
-            if ((keyboard_recv(0x1D) || keyboard_recv(0x11D))) {
-                keyboard_input(1, 0x46);
-            } else {
-                keyboard_input(0, 0xE1);
-                keyboard_input(0, 0x1D);
-                keyboard_input(0, 0x45);
-                keyboard_input(0, 0xE1);
-                keyboard_input(1, 0x1D);
-                keyboard_input(1, 0x45);
-            }
-        } else {
 #ifdef Q_OS_MACOS
-            processMacKeyboardInput(true, event);
+        processMacKeyboardInput(true, event);
 #else
-            auto scan = x11_keycode_to_keysym(event->nativeScanCode());
-            if (scan == 0x145) {
-                /* Special case for Pause. */
-                keyboard_input(1, scan & 0xff00);
-                scan &= 0x00ff;
-            }
-            keyboard_input(1, scan);
-#endif
+        auto scan = x11_keycode_to_keysym(event->nativeScanCode());
+        if (scan == 0x137) {
+            /* Special case for Print Screen. */
+            keyboard_input(1, 0x12a);
+        } else if (scan == 0x145) {
+            /* Special case for Pause. */
+            keyboard_input(1, 0xe11d);
+            scan &= 0x00ff;
         }
+        keyboard_input(1, scan);
+#endif
     }
 
     if ((video_fullscreen > 0) && keyboard_isfsexit()) {
@@ -1454,9 +1313,13 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
     processMacKeyboardInput(false, event);
 #else
     auto scan = x11_keycode_to_keysym(event->nativeScanCode());
-    if (scan == 0x145) {
+    if (scan == 0x137) {
+        /* Special case for Print Screen. */
+        keyboard_input(0, scan);
+        scan = 0x12a;
+    } else if (scan == 0x145) {
         /* Special case for Pause. */
-        keyboard_input(0, scan & 0xff00);
+        keyboard_input(0, 0xe11d);
         scan &= 0x00ff;
     }
     keyboard_input(0, scan);
