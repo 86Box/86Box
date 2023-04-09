@@ -69,7 +69,7 @@ static std::unordered_map<uint32_t, uint16_t> evdev_keycodes = {
     /* Multimedia keys. Guideline is to try and follow the Microsoft standard, then
        fill in remaining scancodes with OEM-specific keys for redundancy sake. Keys
        marked with # are not translated into evdev codes by the standard atkbd driver. */
-    {117, 0x59},  /* Num= */
+    {117, 0x59},  /* KPEQUAL */
     {418, 0x6a},  /* ZOOMIN# => Logitech */
     {420, 0x6b},  /* ZOOMRESET# => Logitech */
     {223, 0x6d},  /* CANCEL# => Logitech */
