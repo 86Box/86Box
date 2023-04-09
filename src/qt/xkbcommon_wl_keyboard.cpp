@@ -70,15 +70,20 @@ kbd_keymap(void *data, struct wl_keyboard *wl_kbd, uint32_t format,
         return;
     }
 
+    if (seat->keymap) {
+        static struct xkb_keymap *keymap = seat->keymap;
+        seat->keymap = NULL;
+        xkbcommon_wl_set_keymap();
+        xkb_keymap_unref(keymap);
+    }
+
     seat->keymap = xkb_keymap_new_from_buffer(ctx, buf, size - 1,
                                               XKB_KEYMAP_FORMAT_TEXT_V1,
                                               XKB_KEYMAP_COMPILE_NO_FLAGS);
     munmap(buf, size);
     close(fd);
-    if (!seat->keymap) {
+    if (!seat->keymap)
         qWarning() << "XKB Keyboard: Keymap compilation failed";
-        return;
-    }
 
     xkbcommon_wl_set_keymap();
 }
