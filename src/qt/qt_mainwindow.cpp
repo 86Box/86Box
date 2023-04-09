@@ -907,37 +907,57 @@ MainWindow::on_actionSettings_triggered()
     plat_pause(currentPause);
 }
 
-uint16_t
-x11_keycode_to_keysym(uint32_t keycode)
+void
+MainWindow::processKeyboardInput(bool down, uint32_t keycode)
 {
-    uint16_t finalkeycode;
-#if defined(Q_OS_WINDOWS)
-    finalkeycode = (keycode & 0xFFFF);
+#if defined(Q_OS_WINDOWS) /* non-raw input */
+    keycode &= 0xffff;
 #elif defined(Q_OS_MACOS)
-    finalkeycode = (keycode < 127) ? cocoa_keycodes[keycode] : 0;
+    keycode = (keycode < 127) ? cocoa_keycodes[keycode] : 0;
 #elif defined(__HAIKU__)
-    finalkeycode = be_keycodes[keycode];
+    keycode = be_keycodes[keycode];
 #else
 #    ifdef XKBCOMMON
     if (xkbcommon_keymap)
-        finalkeycode = xkbcommon_translate(keycode);
+        keycode = xkbcommon_translate(keycode);
     else
 #    endif
 #    ifdef EVDEV_KEYBOARD_HPP
-        finalkeycode = evdev_translate(keycode - 8);
+        keycode = evdev_translate(keycode - 8);
 #    else
-        finalkeycode = 0;
+        keycode = 0;
 #    endif
 #endif
-    /* Special case for Alt+Print Screen and Ctrl+Pause. */
-    if ((finalkeycode == 0x137) && (keyboard_recv(0x38) || keyboard_recv(0x138)))
-        finalkeycode = 0x54;
-    else if ((finalkeycode == 0x145) && (keyboard_recv(0x1d) || keyboard_recv(0x11d)))
-        finalkeycode = 0x146;
 
-    if (rctrl_is_lalt && finalkeycode == 0x11D)
-        finalkeycode = 0x38;
-    return finalkeycode;
+    /* Apply special cases. */
+    switch (keycode) {
+        case 0x11d: /* Right Ctrl */
+            if (rctrl_is_lalt)
+                keycode = 0x38; /* map to Left Alt */
+            break;
+
+        case 0x137: /* Print Screen */
+            if (keyboard_recv(0x38) || keyboard_recv(0x138)) { /* Alt+ */
+                keycode = 0x54;
+            } else if (down) {
+                keyboard_input(down, 0x12a);
+            } else {
+                keyboard_input(down, keycode);
+                keycode = 0x12a;
+            }
+            break;
+
+        case 0x145: /* Pause */
+            if (keyboard_recv(0x1d) || keyboard_recv(0x11d)) { /* Ctrl+ */
+                keycode = 0x146;
+            } else {
+                keyboard_input(down, 0xe11d);
+                keycode &= 0x00ff;
+            }
+            break;
+    }
+
+    keyboard_input(down, keycode);
 }
 
 #ifdef Q_OS_MACOS
@@ -995,11 +1015,11 @@ MainWindow::processMacKeyboardInput(bool down, const QKeyEvent *event)
         // It's possible that other lock keys get delivered in this way, but
         // standard Apple keyboards don't have them, so this is untested.
         if (event->key() == Qt::Key_CapsLock) {
-            keyboard_input(1, 0x3A);
-            keyboard_input(0, 0x3A);
+            keyboard_input(1, 0x3a);
+            keyboard_input(0, 0x3a);
         }
     } else {
-        keyboard_input(down, x11_keycode_to_keysym(event->nativeVirtualKey()));
+        processKeyboardInput(down, event->nativeVirtualKey());
     }
 }
 #endif
@@ -1146,16 +1166,7 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 #ifdef Q_OS_MACOS
         processMacKeyboardInput(true, event);
 #else
-        auto scan = x11_keycode_to_keysym(event->nativeScanCode());
-        if (scan == 0x137) {
-            /* Special case for Print Screen. */
-            keyboard_input(1, 0x12a);
-        } else if (scan == 0x145) {
-            /* Special case for Pause. */
-            keyboard_input(1, 0xe11d);
-            scan &= 0x00ff;
-        }
-        keyboard_input(1, scan);
+        processKeyboardInput(true, event->nativeScanCode());
 #endif
     }
 
@@ -1203,17 +1214,7 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
 #ifdef Q_OS_MACOS
     processMacKeyboardInput(false, event);
 #else
-    auto scan = x11_keycode_to_keysym(event->nativeScanCode());
-    if (scan == 0x137) {
-        /* Special case for Print Screen. */
-        keyboard_input(0, scan);
-        scan = 0x12a;
-    } else if (scan == 0x145) {
-        /* Special case for Pause. */
-        keyboard_input(0, 0xe11d);
-        scan &= 0x00ff;
-    }
-    keyboard_input(0, scan);
+    processKeyboardInput(false, event->nativeScanCode());
 #endif
 }
 
