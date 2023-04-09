@@ -931,6 +931,16 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
 
     /* Apply special cases. */
     switch (keycode) {
+        case 0x54: /* Alt + Print Screen (special case, i.e. evdev SELECTIVE_SCREENSHOT) */
+            /* Send Alt as well. */
+            if (down) {
+                keyboard_input(down, 0x38);
+            } else {
+                keyboard_input(down, keycode);
+                keycode = 0x38;
+            }
+            break;
+
         case 0x11d: /* Right Ctrl */
             if (rctrl_is_lalt)
                 keycode = 0x38; /* map to Left Alt */
