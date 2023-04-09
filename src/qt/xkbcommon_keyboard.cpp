@@ -149,6 +149,7 @@ static std::unordered_map<std::string, uint16_t> xkb_keycodes = {
     {"SYRQ", 0x137},
     {"FK13", 0x137}, /* F13 => SysRq (for Apple keyboards) */
     {"RALT", 0x138},
+    {"ALGR", 0x138},
     {"PAUS", 0x145},
     {"FK15", 0x145}, /* F15 => Pause (for Apple keyboards) */
     {"BRK",  0x145},
