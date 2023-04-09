@@ -1382,31 +1382,17 @@ void
 MainWindow::keyPressEvent(QKeyEvent *event)
 {
     if (send_keyboard_input && !(kbd_req_capture && !mouse_capture)) {
-        // Windows keys in Qt have one-to-one mapping.
-        if (event->key() == Qt::Key_Pause && !keyboard_recv(0x38) && !keyboard_recv(0x138)) {
-            if ((keyboard_recv(0x1D) || keyboard_recv(0x11D))) {
-                keyboard_input(1, 0x46);
-            } else {
-                keyboard_input(0, 0xE1);
-                keyboard_input(0, 0x1D);
-                keyboard_input(0, 0x45);
-                keyboard_input(0, 0xE1);
-                keyboard_input(1, 0x1D);
-                keyboard_input(1, 0x45);
-            }
-        } else {
 #ifdef Q_OS_MACOS
-            processMacKeyboardInput(true, event);
+        processMacKeyboardInput(true, event);
 #else
-            auto scan = x11_keycode_to_keysym(event->nativeScanCode());
-            if (scan == 0x145) {
-                /* Special case for Pause. */
-                keyboard_input(1, scan & 0xff00);
-                scan &= 0x00ff;
-            }
-            keyboard_input(1, scan);
-#endif
+        auto scan = x11_keycode_to_keysym(event->nativeScanCode());
+        if (scan == 0x145) {
+            /* Special case for Pause. */
+            keyboard_input(1, 0xe11d);
+            scan &= 0x00ff;
         }
+        keyboard_input(1, scan);
+#endif
     }
 
     if ((video_fullscreen > 0) && keyboard_isfsexit()) {
@@ -1456,7 +1442,7 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
     auto scan = x11_keycode_to_keysym(event->nativeScanCode());
     if (scan == 0x145) {
         /* Special case for Pause. */
-        keyboard_input(0, scan & 0xff00);
+        keyboard_input(0, 0xe11d);
         scan &= 0x00ff;
     }
     keyboard_input(0, scan);
