@@ -1,4 +1,4 @@
-std::array<uint32_t, 127> cocoa_keycodes = { /* key names in parentheses are not declared by Apple headers */
+static std::array<uint32_t, 127> cocoa_keycodes = { /* key names in parentheses are not declared by Apple headers */
     0x1e,  /* ANSI_A */
     0x1f,  /* ANSI_S */
     0x20,  /* ANSI_D */
