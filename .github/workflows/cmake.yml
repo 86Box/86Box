@@ -253,6 +253,8 @@ jobs:
             packages: >-
               qtbase5-dev
               qttools5-dev
+              libevdev-dev
+              libxkbcommon-x11-dev
 
     steps:
       - name: Install dependencies
