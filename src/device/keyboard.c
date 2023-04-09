@@ -125,9 +125,13 @@ key_process(uint16_t scan, int down)
 void
 keyboard_input(int down, uint16_t scan)
 {
+    /* Special case for E1 1D, translate it to 0100 - special case. */
+    if ((scan >> 8) == 0xe1) {
+        if ((scan & 0xff) == 0x1d)
+            scan = 0x0100;
     /* Translate E0 xx scan codes to 01xx because we use 512-byte arrays for states
        and scan code sets. */
-    if ((scan >> 8) == 0xe0) {
+    } else if ((scan >> 8) == 0xe0) {
         scan &= 0x00ff;
         scan |= 0x0100; /* extended key code */
     } else if ((scan >> 8) != 0x01)
