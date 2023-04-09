@@ -1398,7 +1398,7 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 #ifdef Q_OS_MACOS
             processMacKeyboardInput(true, event);
 #else
-            auto scan = x11_keycode_to_keysym(event->nativeVirtualKey());
+            auto scan = x11_keycode_to_keysym(event->nativeScanCode());
             if (scan == 0x145) {
                 /* Special case for Pause. */
                 keyboard_input(1, scan & 0xff00);
@@ -1453,7 +1453,7 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
 #ifdef Q_OS_MACOS
     processMacKeyboardInput(false, event);
 #else
-    auto scan = x11_keycode_to_keysym(event->nativeVirtualKey());
+    auto scan = x11_keycode_to_keysym(event->nativeScanCode());
     if (scan == 0x145) {
         /* Special case for Pause. */
         keyboard_input(0, scan & 0xff00);
