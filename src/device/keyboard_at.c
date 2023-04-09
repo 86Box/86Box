@@ -878,6 +878,8 @@ kbc_scan_kbd_at(atkbd_t *dev)
     }
 }
 
+static void    write_output(atkbd_t *dev, uint8_t val);
+
 static void
 kbc_poll_at(atkbd_t *dev)
 {
@@ -905,8 +907,12 @@ kbc_poll_at(atkbd_t *dev)
             break;
         case KBC_STATE_MAIN_KBD:
         case KBC_STATE_MAIN_BOTH:
-            (void) kbc_scan_kbd_at(dev);
-            dev->kbc_state = KBC_STATE_MAIN_IBF;
+            if (dev->status & STAT_IFULL)
+                kbc_ibf_process(dev);
+            else {
+                (void) kbc_scan_kbd_at(dev);
+                dev->kbc_state = KBC_STATE_MAIN_IBF;
+            }
             break;
         case KBC_STATE_KBC_OUT:
             /* Keyboard controller command want to output multiple bytes. */
@@ -1013,13 +1019,21 @@ kbc_poll_ps2(atkbd_t *dev)
             break;
         case KBC_STATE_MAIN_KBD:
             // pclog("KBC_STATE_MAIN_KBD\n");
-            (void) kbc_scan_kbd_ps2(dev);
-            dev->kbc_state = KBC_STATE_MAIN_IBF;
+            if (dev->status & STAT_IFULL)
+                kbc_ibf_process(dev);
+            else {
+                (void) kbc_scan_kbd_ps2(dev);
+                dev->kbc_state = KBC_STATE_MAIN_IBF;
+            }
             break;
         case KBC_STATE_MAIN_MOUSE:
             // pclog("KBC_STATE_MAIN_MOUSE\n");
-            (void) kbc_scan_aux_ps2(dev);
-            dev->kbc_state = KBC_STATE_MAIN_IBF;
+            if (dev->status & STAT_IFULL)
+                kbc_ibf_process(dev);
+            else {
+                (void) kbc_scan_aux_ps2(dev);
+                dev->kbc_state = KBC_STATE_MAIN_IBF;
+            }
             break;
         case KBC_STATE_MAIN_BOTH:
             // pclog("KBC_STATE_MAIN_BOTH\n");
@@ -2230,7 +2244,9 @@ write64_toshiba(void *priv, uint8_t val)
 static void
 kbd_key_reset(atkbd_t *dev, int do_fa)
 {
+    dev->out_new = -1;
     kbc_queue_reset(1);
+
     kbd_last_scan_code = 0x00;
 
     /* Set scan code set to 2. */
@@ -2253,6 +2269,7 @@ kbd_key_reset(atkbd_t *dev, int do_fa)
 static void
 kbd_aux_reset(atkbd_t *dev, int do_fa)
 {
+    dev->out_new_mouse = -1;
     kbc_queue_reset(2);
 
     mouse_scan = 1;
@@ -2475,7 +2492,15 @@ kbc_process_cmd(void *priv)
                 kbd_log("ATkbc: self-test\n");
 
                 if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
-                    dev->status = 0x60;
+                    if (dev->kbc_state != KBC_STATE_RESET) {
+                        kbd_log("ATkbc: self-test reinitialization\n");
+                        /* Yes, the firmware has an OR, but we need to make sure to keep any forcibly lowered bytes lowered. */
+                        /* TODO: Proper P1 implementation, with OR and AND flags in the machine table. */
+                        dev->input_port = dev->input_port & 0xff;
+                        write_output(dev, 0x4b);
+                    }
+
+                    dev->status = (dev->status & 0x0f) | 0x60;
 
                     dev->mem[0x20] = 0x30;
                     dev->mem[0x21] = 0x01;
@@ -2497,7 +2522,7 @@ kbc_process_cmd(void *priv)
                         write_output(dev, 0xcf);
                     }
 
-                    dev->status = 0x60;
+                    dev->status = (dev->status & 0x0f) | 0x60;
 
                     dev->mem[0x20] = 0x10;
                     dev->mem[0x21] = 0x01;
@@ -2511,10 +2536,14 @@ kbc_process_cmd(void *priv)
                     dev->mem[0x2c] = 0x15;
                 }
 
+                dev->out_new = dev->out_new_mouse = -1;
                 kbc_queue_reset(0);
-                dev->kbc_state = KBC_STATE_MAIN_IBF;
 
-                add_to_kbc_queue_front(dev, 0x55, 0, 0x00);
+                // dev->kbc_state = KBC_STATE_MAIN_IBF;
+                dev->kbc_state = KBC_STATE_KBC_OUT;
+
+                // add_to_kbc_queue_front(dev, 0x55, 0, 0x00);
+                kbc_queue_add(dev, 0x55, 0);
                 break;
 
             case 0xab: /* interface test */
@@ -2814,6 +2843,7 @@ kbd_reset(void *priv)
     dev->ami_flags = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) ? 0x01 : 0x00;
     dev->ami_stat |= 0x02;
 
+    dev->output_port = 0xcd;
     if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
         write_output(dev, 0x4b);
     } else {
@@ -2839,6 +2869,20 @@ void
 keyboard_at_reset(void)
 {
     kbd_reset(SavedKbd);
+}
+
+void
+kbc_at_a20_reset(void)
+{
+    if (SavedKbd) {
+        SavedKbd->output_port = 0xcd;
+        if ((SavedKbd->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
+            write_output(SavedKbd, 0x4b);
+        } else {
+            /* The real thing writes CF and then AND's it with BF. */
+            write_output(SavedKbd, 0x8f);
+        }
+    }
 }
 
 static void

@@ -210,6 +210,7 @@ extern void    keyboard_at_set_mode(int ps2);
 extern uint8_t keyboard_at_get_mouse_scan(void);
 extern void    keyboard_at_set_mouse_scan(uint8_t val);
 extern void    keyboard_at_reset(void);
+extern void    kbc_at_a20_reset(void);
 
 #ifdef __cplusplus
 }

@@ -2530,11 +2530,12 @@ void
 mem_a20_init(void)
 {
     if (is286) {
-        rammask = cpu_16bitbus ? 0xefffff : 0xffefffff;
+        mem_a20_key = mem_a20_alt = mem_a20_state = 0;
+        rammask = cpu_16bitbus ? 0xffffff : 0xffffffff;
         if (is6117)
             rammask |= 0x03000000;
         flushmmucache();
-        mem_a20_state = mem_a20_key | mem_a20_alt;
+        // mem_a20_state = mem_a20_key | mem_a20_alt;
     } else {
         rammask = 0xfffff;
         flushmmucache();
