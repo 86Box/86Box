@@ -120,52 +120,74 @@ enum {
 };
 
 typedef struct {
-    uint8_t command, status, ib, out,
-            old_out, secr_phase, mem_addr, input_port,
-            output_port, old_output_port, key_command, output_locked,
-            ami_stat, want60, key_wantdata, ami_flags,
-            key_wantcmd, key_dat, mouse_wantcmd, mouse_dat,
-            kbc_state, kbd_state, mouse_state, pci;
+    /* Controller. */
+    uint8_t pci, kbc_state, command, want60,
+            status, ib, out, old_out,
+            secr_phase, mem_addr, input_port, output_port,
+            old_output_port, output_locked, ami_stat, ami_flags,
+            key_ctrl_queue_start, key_ctrl_queue_end;
 
-    uint16_t irq_levels, pad;
+    /* Keyboard. */
+    uint8_t kbd_state, key_command, key_wantdata, key_wantcmd,
+            key_dat, kbd_last_scan_code, sc_or,
+            key_cmd_queue_start, key_cmd_queue_end, key_queue_start, key_queue_end;
 
+    /* Mouse. */
+    uint8_t mouse_state, mouse_wantcmd, mouse_dat, mouse_cmd_queue_start, mouse_cmd_queue_end,
+            mouse_queue_start, mouse_queue_end;
+
+    /* Controller. */
     uint8_t mem[0x100];
 
-    int out_new, out_new_mouse,
-        reset_delay, mouse_reset_delay;
+    /* Controller - internal FIFO for the purpose of commands with multi-byte output. */
+    uint8_t key_ctrl_queue[64];
 
+    /* Keyboard - command response FIFO. */
+    uint8_t key_cmd_queue[16];
+
+    /* Keyboard - scan FIFO. */
+    uint8_t key_queue[16];
+
+    /* Mouse - command response FIFO. */
+    uint8_t mouse_cmd_queue[16];
+
+    /* Mouse - scan FIFO. */
+    uint8_t mouse_queue[16];
+
+    /* Controller. */
+    uint16_t irq_levels, pad1;
+
+    /* Keyboard. */
+    int out_new, reset_delay;
+
+    /* Mouse. */
+    int out_new_mouse, mouse_reset_delay;
+
+    /* Controller. */
     uint32_t flags;
 
+    /* Controller (main timer). */
+    pc_timer_t send_delay_timer;
+
+    /* Controller (P2 pulse callback timer). */
     pc_timer_t pulse_cb;
 
     uint8_t (*write60_ven)(void *p, uint8_t val);
     uint8_t (*write64_ven)(void *p, uint8_t val);
-
-    pc_timer_t send_delay_timer;
 } atkbd_t;
 
-/* bit 0 = repeat, bit 1 = makes break code? */
+/* Global keyboard flags for scan code set 3:
+   bit 0 = repeat, bit 1 = makes break code? */
 uint8_t keyboard_set3_flags[512];
 uint8_t keyboard_set3_all_repeat;
 uint8_t keyboard_set3_all_break;
 
-/* Bits 0 - 1 = scan code set, bit 6 = translate or not. */
-uint8_t keyboard_mode = 0x42;
+/* Global keyboard mode:
+   Bits 0 - 1 = scan code set, bit 6 = translate or not. */
+uint8_t        keyboard_mode = 0x42;
 
-static uint8_t key_ctrl_queue[64];
-static int     key_ctrl_queue_start = 0, key_ctrl_queue_end = 0;
-static uint8_t key_queue[16];
-static int     key_queue_start = 0, key_queue_end = 0;
-static uint8_t key_cmd_queue[16];
-static int     key_cmd_queue_start = 0, key_cmd_queue_end = 0;
-uint8_t        mouse_queue[16];
-int            mouse_queue_start = 0, mouse_queue_end = 0;
-uint8_t        mouse_cmd_queue[16];
-int            mouse_cmd_queue_start = 0, mouse_cmd_queue_end = 0;
-static uint8_t kbd_last_scan_code;
 static void (*mouse_write)(uint8_t val, void *priv) = NULL;
 static void    *mouse_p                             = NULL;
-static uint8_t  sc_or                               = 0;
 static atkbd_t *SavedKbd                            = NULL; // FIXME: remove!!! --FvK
 
 /* Non-translated to translated scan codes. */
@@ -655,29 +677,31 @@ set_scancode_map(atkbd_t *dev)
 static void
 kbc_queue_reset(uint8_t channel)
 {
+    atkbd_t *dev       = SavedKbd;
+
     switch (channel) {
         case 1:
-            key_queue_start = key_queue_end = 0;
-            memset(key_queue, 0x00, sizeof(key_queue));
+            dev->key_queue_start = dev->key_queue_end = 0;
+            memset(dev->key_queue, 0x00, sizeof(dev->key_queue));
             /* FALLTHROUGH */
         case 4:
-            key_cmd_queue_start = key_cmd_queue_end = 0;
-            memset(key_cmd_queue, 0x00, sizeof(key_cmd_queue));
+            dev->key_cmd_queue_start = dev->key_cmd_queue_end = 0;
+            memset(dev->key_cmd_queue, 0x00, sizeof(dev->key_cmd_queue));
             break;
 
         case 2:
-            mouse_queue_start = mouse_queue_end = 0;
-            memset(mouse_queue, 0x00, sizeof(mouse_queue));
+            dev->mouse_queue_start = dev->mouse_queue_end = 0;
+            memset(dev->mouse_queue, 0x00, sizeof(dev->mouse_queue));
             /* FALLTHROUGH */
         case 3:
-            mouse_cmd_queue_start = mouse_cmd_queue_end = 0;
-            memset(mouse_cmd_queue, 0x00, sizeof(mouse_cmd_queue));
+            dev->mouse_cmd_queue_start = dev->mouse_cmd_queue_end = 0;
+            memset(dev->mouse_cmd_queue, 0x00, sizeof(dev->mouse_cmd_queue));
             break;
 
         case 0:
         default:
-            key_ctrl_queue_start = key_ctrl_queue_end = 0;
-            memset(key_ctrl_queue, 0x00, sizeof(key_ctrl_queue));
+            dev->key_ctrl_queue_start = dev->key_ctrl_queue_end = 0;
+            memset(dev->key_ctrl_queue, 0x00, sizeof(dev->key_ctrl_queue));
     }
 }
 
@@ -686,30 +710,30 @@ kbc_queue_add(atkbd_t *dev, uint8_t val, uint8_t channel)
 {
     switch (channel) {
         case 4:
-            kbd_log("ATkbc: key_cmd_queue[%02X] = %02X;\n", key_cmd_queue_end, val);
-            key_cmd_queue[key_cmd_queue_end] = val;
-            key_cmd_queue_end            = (key_cmd_queue_end + 1) & 0xf;
+            kbd_log("ATkbc: dev->key_cmd_queue[%02X] = %02X;\n", dev->key_cmd_queue_end, val);
+            dev->key_cmd_queue[dev->key_cmd_queue_end] = val;
+            dev->key_cmd_queue_end       = (dev->key_cmd_queue_end + 1) & 0xf;
             break;
         case 3:
-            kbd_log("ATkbc: mouse_cmd_queue[%02X] = %02X;\n", mouse_cmd_queue_end, val);
-            mouse_cmd_queue[mouse_cmd_queue_end] = val;
-            mouse_cmd_queue_end          = (mouse_cmd_queue_end + 1) & 0xf;
+            kbd_log("ATkbc: dev->mouse_cmd_queue[%02X] = %02X;\n", dev->mouse_cmd_queue_end, val);
+            dev->mouse_cmd_queue[dev->mouse_cmd_queue_end] = val;
+            dev->mouse_cmd_queue_end     = (dev->mouse_cmd_queue_end + 1) & 0xf;
             break;
         case 2:
-            kbd_log("ATkbc: mouse_queue[%02X] = %02X;\n", mouse_queue_end, val);
-            mouse_queue[mouse_queue_end] = val;
-            mouse_queue_end              = (mouse_queue_end + 1) & 0xf;
+            kbd_log("ATkbc: dev->mouse_queue[%02X] = %02X;\n", dev->mouse_queue_end, val);
+            dev->mouse_queue[dev->mouse_queue_end] = val;
+            dev->mouse_queue_end         = (dev->mouse_queue_end + 1) & 0xf;
             break;
         case 1:
-            kbd_log("ATkbc: key_queue[%02X] = %02X;\n", key_queue_end, val);
-            key_queue[key_queue_end] = val;
-            key_queue_end            = (key_queue_end + 1) & 0xf;
+            kbd_log("ATkbc: dev->key_queue[%02X] = %02X;\n", dev->key_queue_end, val);
+            dev->key_queue[dev->key_queue_end] = val;
+            dev->key_queue_end           = (dev->key_queue_end + 1) & 0xf;
             break;
         case 0:
         default:
-            kbd_log("ATkbc: key_ctrl_queue[%02X] = %02X;\n", key_ctrl_queue_end, val);
-            key_ctrl_queue[key_ctrl_queue_end] = val;
-            key_ctrl_queue_end                 = (key_ctrl_queue_end + 1) & 0x3f;
+            kbd_log("ATkbc: dev->key_ctrl_queue[%02X] = %02X;\n", dev->key_ctrl_queue_end, val);
+            dev->key_ctrl_queue[dev->key_ctrl_queue_end] = val;
+            dev->key_ctrl_queue_end                 = (dev->key_ctrl_queue_end + 1) & 0x3f;
             break;
     }
 }
@@ -739,14 +763,14 @@ kbc_translate(uint8_t val)
     /* Allow for scan code translation. */
     if (translate && (val == 0xf0)) {
         kbd_log("ATkbd: translate is on, F0 prefix detected\n");
-        sc_or = 0x80;
+        dev->sc_or = 0x80;
         return ret;
     }
 
     /* Skip break code if translated make code has bit 7 set. */
-    if (translate && (sc_or == 0x80) && (nont_to_t[val] & 0x80)) {
+    if (translate && (dev->sc_or == 0x80) && (nont_to_t[val] & 0x80)) {
         kbd_log("ATkbd: translate is on, skipping scan code: %02X (original: F0 %02X)\n", nont_to_t[val], val);
-        sc_or = 0;
+        dev->sc_or = 0;
         return ret;
     }
 
@@ -804,18 +828,18 @@ kbc_translate(uint8_t val)
 #ifdef ENABLE_KEYBOARD_AT_LOG
     kbd_log("scan code: ");
     if (translate) {
-        kbd_log("%02X (original: ", (nont_to_t[val] | sc_or));
-        if (sc_or == 0x80)
+        kbd_log("%02X (original: ", (nont_to_t[val] | dev->sc_or));
+        if (dev->sc_or == 0x80)
             kbd_log("F0 ");
         kbd_log("%02X)\n", val);
     } else
         kbd_log("%02X\n", val);
 #endif
 
-    ret = translate ? (nont_to_t[val] | sc_or) : val;
+    ret = translate ? (nont_to_t[val] | dev->sc_or) : val;
 
-    if (sc_or == 0x80)
-        sc_or = 0;
+    if (dev->sc_or == 0x80)
+        dev->sc_or = 0;
 
     return ret;
 }
@@ -861,25 +885,25 @@ add_to_kbc_queue_front(atkbd_t *dev, uint8_t val, uint8_t channel, uint8_t stat_
 static void
 add_data_kbd_cmd_queue(atkbd_t *dev, uint8_t val)
 {
-    if ((dev->reset_delay > 0) || (key_cmd_queue_end >= 16)) {
-        kbd_log("ATkbc: Unable to add to queue, conditions: %i, %i\n", (dev->reset_delay > 0), (key_cmd_queue_end >= 16));
+    if ((dev->reset_delay > 0) || (dev->key_cmd_queue_end >= 16)) {
+        kbd_log("ATkbc: Unable to add to queue, conditions: %i, %i\n", (dev->reset_delay > 0), (dev->key_cmd_queue_end >= 16));
         return;
     }
-    kbd_log("ATkbc: key_cmd_queue[%02X] = %02X;\n", key_cmd_queue_end, val);
+    kbd_log("ATkbc: dev->key_cmd_queue[%02X] = %02X;\n", dev->key_cmd_queue_end, val);
     kbc_queue_add(dev, val, 4);
-    kbd_last_scan_code = val;
+    dev->kbd_last_scan_code = val;
 }
 
 static void
 add_data_kbd_queue(atkbd_t *dev, uint8_t val)
 {
-    if (!keyboard_scan || (dev->reset_delay > 0) || (key_queue_end >= 16)) {
-        kbd_log("ATkbc: Unable to add to queue, conditions: %i, %i, %i\n", !keyboard_scan, (dev->reset_delay > 0), (key_queue_end >= 16));
+    if (!keyboard_scan || (dev->reset_delay > 0) || (dev->key_queue_end >= 16)) {
+        kbd_log("ATkbc: Unable to add to queue, conditions: %i, %i, %i\n", !keyboard_scan, (dev->reset_delay > 0), (dev->key_queue_end >= 16));
         return;
     }
-    kbd_log("ATkbc: key_queue[%02X] = %02X;\n", key_queue_end, val);
+    kbd_log("ATkbc: key_queue[%02X] = %02X;\n", dev->key_queue_end, val);
     kbc_queue_add(dev, val, 1);
-    kbd_last_scan_code = val;
+    dev->kbd_last_scan_code = val;
 }
 
 static void
@@ -1006,10 +1030,10 @@ kbc_poll_at(atkbd_t *dev)
             }
             /* Do not continue dumping until OBF is clear. */
             if (!(dev->status & STAT_OFULL)) {
-                kbd_log("ATkbc: %02X coming from channel 0\n", key_ctrl_queue[key_ctrl_queue_start]);
-                add_to_kbc_queue_front(dev, key_ctrl_queue[key_ctrl_queue_start], 0, 0x00);
-                key_ctrl_queue_start = (key_ctrl_queue_start + 1) & 0x3f;
-                if (key_ctrl_queue_start == key_ctrl_queue_end)
+                kbd_log("ATkbc: %02X coming from channel 0\n", dev->key_ctrl_queue[dev-.key_ctrl_queue_start]);
+                add_to_kbc_queue_front(dev, dev->key_ctrl_queue[dev->key_ctrl_queue_start], 0, 0x00);
+                dev->key_ctrl_queue_start = (dev->key_ctrl_queue_start + 1) & 0x3f;
+                if (dev->key_ctrl_queue_start == dev->key_ctrl_queue_end)
                     dev->kbc_state = KBC_STATE_MAIN_IBF;
             }
             break;
@@ -1141,9 +1165,9 @@ kbc_poll_ps2(atkbd_t *dev)
             /* Do not continue dumping until OBF is clear. */
             if (!(dev->status & STAT_OFULL)) {
                 kbd_log("ATkbc: %02X coming from channel 0\n", dev->out_new & 0xff);
-                add_to_kbc_queue_front(dev, key_ctrl_queue[key_ctrl_queue_start], 0, 0x00);
-                key_ctrl_queue_start = (key_ctrl_queue_start + 1) & 0x3f;
-                if (key_ctrl_queue_start == key_ctrl_queue_end)
+                add_to_kbc_queue_front(dev, dev->key_ctrl_queue[dev->key_ctrl_queue_start], 0, 0x00);
+                dev->key_ctrl_queue_start = (dev->key_ctrl_queue_start + 1) & 0x3f;
+                if (dev->key_ctrl_queue_start == dev->key_ctrl_queue_end)
                     dev->kbc_state = KBC_STATE_MAIN_IBF;
             }
             break;
@@ -1206,33 +1230,33 @@ kbc_poll_kbd(atkbd_t *dev)
             break;
         case DEV_STATE_MAIN_2:
             /* Output from scan queue if needed and then return to main loop #1. */
-            if (keyboard_scan && (dev->out_new == -1) && (key_queue_start != key_queue_end)) {
-                kbd_log("ATkbc: %02X (DATA) on channel 1\n", key_queue[key_queue_start]);
-                dev->out_new        = key_queue[key_queue_start];
-                key_queue_start     = (key_queue_start + 1) & 0xf;
+            if (keyboard_scan && (dev->out_new == -1) && (dev->key_queue_start != dev->key_queue_end)) {
+                kbd_log("ATkbc: %02X (DATA) on channel 1\n", dev->key_queue[key_queue_start]);
+                dev->out_new         = dev->key_queue[dev->key_queue_start];
+                dev->key_queue_start = (dev->key_queue_start + 1) & 0xf;
             }
-            if (!keyboard_scan || (key_cmd_queue_start == key_cmd_queue_end))
+            if (!keyboard_scan || (dev->key_queue_start == dev->key_queue_end))
                 dev->kbd_state = DEV_STATE_MAIN_1;
             break;
         case DEV_STATE_MAIN_OUT:
         case DEV_STATE_RESET_OUT:
             /* Output command response and then return to main loop #2. */
-            if ((dev->out_new == -1) && (key_cmd_queue_start != key_cmd_queue_end)) {
+            if ((dev->out_new == -1) && (dev->key_cmd_queue_start != dev->key_cmd_queue_end)) {
                 kbd_log("ATkbc: %02X (CMD ) on channel 1\n", key_cmd_queue[key_cmd_queue_start]);
-                dev->out_new        = key_cmd_queue[key_cmd_queue_start];
-                key_cmd_queue_start = (key_cmd_queue_start + 1) & 0xf;
+                dev->out_new             = dev->key_cmd_queue[dev->key_cmd_queue_start];
+                dev->key_cmd_queue_start = (dev->key_cmd_queue_start + 1) & 0xf;
             }
-            if (key_cmd_queue_start == key_cmd_queue_end)
+            if (dev->key_cmd_queue_start == dev->key_cmd_queue_end)
                 dev->kbd_state = (dev->kbd_state == DEV_STATE_RESET_OUT) ? DEV_STATE_MAIN_1 : DEV_STATE_MAIN_2;
             break;
         case DEV_STATE_MAIN_WANT_IN:
             /* Output command response and then wait for host data. */
-            if ((dev->out_new == -1) && (key_cmd_queue_start != key_cmd_queue_end)) {
-                kbd_log("ATkbc: %02X (CMD ) on channel 1\n", key_cmd_queue[key_cmd_queue_start]);
-                dev->out_new        = key_cmd_queue[key_cmd_queue_start];
-                key_cmd_queue_start = (key_cmd_queue_start + 1) & 0xf;
+            if ((dev->out_new == -1) && (dev->key_cmd_queue_start != dev->key_cmd_queue_end)) {
+                kbd_log("ATkbc: %02X (CMD ) on channel 1\n", dev->key_cmd_queue[dev->key_cmd_queue_start]);
+                dev->out_new             = dev->key_cmd_queue[dev->key_cmd_queue_start];
+                dev->key_cmd_queue_start = (dev->key_cmd_queue_start + 1) & 0xf;
             }
-            if (key_cmd_queue_start == key_cmd_queue_end)
+            if (dev->key_cmd_queue_start == dev->key_cmd_queue_end)
                 dev->kbd_state = DEV_STATE_MAIN_IN;
             break;
         case DEV_STATE_MAIN_IN:
@@ -1247,12 +1271,12 @@ kbc_poll_kbd(atkbd_t *dev)
             break;
         case DEV_STATE_MAIN_WANT_RESET:
             /* Output command response and then go to the reset state. */
-            if ((dev->out_new == -1) && (key_cmd_queue_start != key_cmd_queue_end)) {
-                kbd_log("ATkbc: %02X (CMD ) on channel 1\n", key_cmd_queue[key_cmd_queue_start]);
-                dev->out_new        = key_cmd_queue[key_cmd_queue_start];
-                key_cmd_queue_start = (key_cmd_queue_start + 1) & 0xf;
+            if ((dev->out_new == -1) && (dev->key_cmd_queue_start != dev->key_cmd_queue_end)) {
+                kbd_log("ATkbc: %02X (CMD ) on channel 1\n", dev->key_cmd_queue[dev->key_cmd_queue_start]);
+                dev->out_new             = dev->key_cmd_queue[dev->key_cmd_queue_start];
+                dev->key_cmd_queue_start = (dev->key_cmd_queue_start + 1) & 0xf;
             }
-            if (key_cmd_queue_start == key_cmd_queue_end)
+            if (dev->key_cmd_queue_start == dev->key_cmd_queue_end)
                 dev->kbd_state = DEV_STATE_RESET;
             break;
     }
@@ -1292,33 +1316,33 @@ kbc_poll_aux(atkbd_t *dev)
             break;
         case DEV_STATE_MAIN_2:
             /* Output from scan queue if needed and then return to main loop #1. */
-            if (mouse_scan && (dev->out_new_mouse == -1) && (mouse_queue_start != mouse_queue_end)) {
-                kbd_log("ATkbc: %02X (DATA) on channel 2\n", mouse_queue[mouse_queue_start]);
-                dev->out_new_mouse  = mouse_queue[mouse_queue_start];
-                mouse_queue_start   = (mouse_queue_start + 1) & 0xf;
+            if (mouse_scan && (dev->out_new_mouse == -1) && (dev->mouse_queue_start != dev->mouse_queue_end)) {
+                kbd_log("ATkbc: %02X (DATA) on channel 2\n", dev->mouse_queue[dev->mouse_queue_start]);
+                dev->out_new_mouse       = dev->mouse_queue[dev->mouse_queue_start];
+                dev->mouse_queue_start   = (dev->mouse_queue_start + 1) & 0xf;
             }
-            if (!mouse_scan || (mouse_cmd_queue_start == mouse_cmd_queue_end))
+            if (!mouse_scan || (dev->mouse_queue_start == dev->mouse_queue_end))
                 dev->mouse_state = DEV_STATE_MAIN_1;
             break;
         case DEV_STATE_MAIN_OUT:
         case DEV_STATE_RESET_OUT:
             /* Output command response and then return to main loop #2. */
-            if ((dev->out_new_mouse == -1) && (mouse_cmd_queue_start != mouse_cmd_queue_end)) {
-                kbd_log("ATkbc: %02X (CMD ) on channel 2\n", mouse_cmd_queue[mouse_cmd_queue_start]);
-                dev->out_new_mouse    = mouse_cmd_queue[mouse_cmd_queue_start];
-                mouse_cmd_queue_start = (mouse_cmd_queue_start + 1) & 0xf;
+            if ((dev->out_new_mouse == -1) && (dev->mouse_cmd_queue_start != dev->mouse_cmd_queue_end)) {
+                kbd_log("ATkbc: %02X (CMD ) on channel 2\n", dev->mouse_cmd_queue[dev->mouse_cmd_queue_start]);
+                dev->out_new_mouse         = dev->mouse_cmd_queue[dev->mouse_cmd_queue_start];
+                dev->mouse_cmd_queue_start = (dev->mouse_cmd_queue_start + 1) & 0xf;
             }
-            if (mouse_cmd_queue_start == mouse_cmd_queue_end)
+            if (dev->mouse_cmd_queue_start == dev->mouse_cmd_queue_end)
                 dev->mouse_state = (dev->mouse_state == DEV_STATE_RESET_OUT) ? DEV_STATE_MAIN_1 : DEV_STATE_MAIN_2;
             break;
         case DEV_STATE_MAIN_WANT_IN:
             /* Output command response and then wait for host data. */
-            if ((dev->out_new_mouse == -1) && (mouse_cmd_queue_start != mouse_cmd_queue_end)) {
-                kbd_log("ATkbc: %02X (CMD ) on channel 2\n", mouse_cmd_queue[mouse_cmd_queue_start]);
-                dev->out_new_mouse    = mouse_cmd_queue[mouse_cmd_queue_start];
-                mouse_cmd_queue_start = (mouse_cmd_queue_start + 1) & 0xf;
+            if ((dev->out_new_mouse == -1) && (dev->mouse_cmd_queue_start != dev->mouse_cmd_queue_end)) {
+                kbd_log("ATkbc: %02X (CMD ) on channel 2\n", dev->mouse_cmd_queue[dev->mouse_cmd_queue_start]);
+                dev->out_new_mouse         = dev->mouse_cmd_queue[dev->mouse_cmd_queue_start];
+                dev->mouse_cmd_queue_start = (dev->mouse_cmd_queue_start + 1) & 0xf;
             }
-            if (mouse_cmd_queue_start == mouse_cmd_queue_end)
+            if (dev->mouse_cmd_queue_start == dev->mouse_cmd_queue_end)
                 dev->mouse_state = DEV_STATE_MAIN_IN;
             break;
         case DEV_STATE_MAIN_IN:
@@ -1334,12 +1358,12 @@ kbc_poll_aux(atkbd_t *dev)
             break;
         case DEV_STATE_MAIN_WANT_RESET:
             /* Output command response and then go to the reset state. */
-            if ((dev->out_new_mouse == -1) && (mouse_cmd_queue_start != mouse_cmd_queue_end)) {
-                kbd_log("ATkbc: %02X (CMD ) on channel 2\n", mouse_cmd_queue[mouse_cmd_queue_start]);
-                dev->out_new_mouse    = mouse_cmd_queue[mouse_cmd_queue_start];
-                mouse_cmd_queue_start = (mouse_cmd_queue_start + 1) & 0xf;
+            if ((dev->out_new_mouse == -1) && (dev->mouse_cmd_queue_start != dev->mouse_cmd_queue_end)) {
+                kbd_log("ATkbc: %02X (CMD ) on channel 2\n", dev->mouse_cmd_queue[dev->mouse_cmd_queue_start]);
+                dev->out_new_mouse         = dev->mouse_cmd_queue[dev->mouse_cmd_queue_start];
+                dev->mouse_cmd_queue_start = (dev->mouse_cmd_queue_start + 1) & 0xf;
             }
-            if (mouse_cmd_queue_start == mouse_cmd_queue_end)
+            if (dev->mouse_cmd_queue_start == dev->mouse_cmd_queue_end)
                 dev->mouse_state = DEV_STATE_RESET;
             break;
     }
@@ -2239,13 +2263,15 @@ kbd_key_reset(atkbd_t *dev, int do_fa)
     dev->out_new = -1;
     kbc_queue_reset(1);
 
-    kbd_last_scan_code = 0x00;
+    dev->kbd_last_scan_code = 0x00;
 
     /* Set scan code set to 2. */
     keyboard_mode = (keyboard_mode & 0xfc) | 0x02;
     set_scancode_map(dev);
 
     keyboard_scan = 1;
+
+    dev->sc_or = 0;
 
     if (do_fa)
         add_data_kbd_front(dev, 0xfa);
@@ -2432,8 +2458,8 @@ kbd_process_cmd(void *priv)
                 break;
 
             case 0xfe: /* resend last scan code */
-                kbd_log("ATkbd: reset last scan code\n");
-                add_data_kbd_front(dev, kbd_last_scan_code);
+                kbd_log("ATkbd: resend last scan code\n");
+                add_data_kbd_front(dev, dev->kbd_last_scan_code);
                 break;
 
             case 0xff: /* reset */
@@ -2824,9 +2850,9 @@ kbd_reset(void *priv)
     dev->out_new = dev->out_new_mouse = -1;
     for (i = 0; i < 3; i++)
         kbc_queue_reset(i);
-    kbd_last_scan_code = 0;
+    dev->kbd_last_scan_code = 0;
 
-    sc_or = 0;
+    dev->sc_or = 0;
 
     memset(keyboard_set3_flags, 0, 512);
 
@@ -3277,8 +3303,8 @@ keyboard_at_adddata_mouse(uint8_t val)
 {
     atkbd_t *dev = SavedKbd;
 
-    if (!mouse_scan || (dev->mouse_reset_delay > 0) || (mouse_queue_end >= 16)) {
-        kbd_log("ATkbc: Unable to add to queue, conditions: %i, %i, %i\n", !mouse_scan, (dev->mouse_reset_delay > 0), (mouse_queue_end >= 16));
+    if (!mouse_scan || (dev->mouse_reset_delay > 0) || (dev->mouse_queue_end >= 16)) {
+        kbd_log("ATkbc: Unable to add to queue, conditions: %i, %i, %i\n", !mouse_scan, (dev->mouse_reset_delay > 0), (dev->mouse_queue_end >= 16));
         return;
     }
     kbc_queue_add(dev, val, 2);
@@ -3289,8 +3315,8 @@ keyboard_at_adddata_mouse_cmd(uint8_t val)
 {
     atkbd_t *dev = SavedKbd;
 
-    if ((dev->mouse_reset_delay > 0) || (mouse_cmd_queue_end >= 16)) {
-        kbd_log("ATkbc: Unable to add to queue, conditions: %i, %i\n", (dev->mouse_reset_delay > 0), (mouse_cmd_queue_end >= 16));
+    if ((dev->mouse_reset_delay > 0) || (dev->mouse_cmd_queue_end >= 16)) {
+        kbd_log("ATkbc: Unable to add to queue, conditions: %i, %i\n", (dev->mouse_reset_delay > 0), (dev->mouse_cmd_queue_end >= 16));
         return;
     }
     kbc_queue_add(dev, val, 3);
@@ -3299,7 +3325,9 @@ keyboard_at_adddata_mouse_cmd(uint8_t val)
 uint8_t
 keyboard_at_mouse_pos(void)
 {
-    return ((mouse_queue_end - mouse_queue_start) & 0xf);
+    atkbd_t *dev = SavedKbd;
+
+    return ((dev->mouse_queue_end - dev->mouse_queue_start) & 0xf);
 }
 
 void
