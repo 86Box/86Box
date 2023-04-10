@@ -985,6 +985,7 @@ static std::unordered_map<uint32_t, uint16_t> mac_modifiers_to_xt = {
     { NX_DEVICE_ALPHASHIFT_STATELESS_MASK, 0x3A },
     { NX_DEVICERCTLKEYMASK,                0x11D},
 };
+static bool mac_iso_swap = false;
 
 void
 MainWindow::processMacKeyboardInput(bool down, const QKeyEvent *event)
@@ -1029,7 +1030,59 @@ MainWindow::processMacKeyboardInput(bool down, const QKeyEvent *event)
             keyboard_input(0, 0x3a);
         }
     } else {
-        processKeyboardInput(down, event->nativeVirtualKey());
+        /* Apple ISO keyboards are notorious for swapping ISO_Section and ANSI_Grave
+           on *some* layouts and/or models. While macOS can sort this mess out at
+           keymap level, it still provides applications with unfiltered, ambiguous
+           keycodes, so we have to disambiguate them by making some bold assumptions
+           about the user's keyboard layout based on the OS-provided key mappings. */
+        auto nvk = event->nativeVirtualKey();
+        if ((nvk == 0x0a) || (nvk == 0x32)) {
+            /* Flaws:
+               - Layouts with `~ on ISO_Section are partially detected due to a conflict with ANSI
+               - Czech and Slovak are not detected as they have <> ANSI_Grave and \| ISO_Section (differing from PC actually)
+               - Italian is partially detected due to \| conflicting with Brazilian
+               - Romanian third level ANSI_Grave is unknown
+               - Russian clusters <>, plusminus and paragraph into a four-level ANSI_Grave, with the aforementioned `~ on ISO_Section */
+            auto key = event->key();
+            if ((nvk == 0x32) && ( /* system reports ANSI_Grave for ISO_Section keys: */
+                    (key == Qt::Key_Less) || (key == Qt::Key_Greater) || /* Croatian, French, German, Icelandic, Italian, Norwegian, Portuguese, Spanish, Spanish Latin America, Turkish Q */
+                    (key == Qt::Key_Ugrave) || /* French Canadian */
+                    (key == Qt::Key_Icircumflex) || /* Romanian */
+                    (key == Qt::Key_Iacute) || /* Hungarian */
+                    (key == Qt::Key_BracketLeft) || (key == Qt::Key_BracketRight) || /* Russian upper two levels */
+                    (key == Qt::Key_W) /* Turkish F */
+                ))
+                mac_iso_swap = true;
+            else if ((nvk == 0x0a) && ( /* system reports ISO_Section for ANSI_Grave keys: */
+                    (key == Qt::Key_paragraph) || (key == Qt::Key_plusminus) || /* Arabic, British, Bulgarian, Danish shifted, Dutch, Greek, Hebrew, Hungarian shifted, International English, Norwegian shifted, Portuguese, Russian lower two levels, Swiss unshifted, Swedish unshifted, Turkish F */
+                    (key == Qt::Key_At) || (key == Qt::Key_NumberSign) || /* Belgian, French */
+                    (key == Qt::Key_Apostrophe) || /* Brazilian unshifted */
+                    (key == Qt::Key_QuoteDbl) || /* Brazilian shifted, Turkish Q unshifted */
+                    (key == Qt::Key_QuoteLeft) || /* Croatian (right quote unknown) */
+                    (key == Qt::Key_Dollar) || /* Danish unshifted */
+                    (key == Qt::Key_AsciiCircum) || /* German unshifted, Polish unshifted */
+                    (key == Qt::Key_degree) || /* German shifted, Icelandic unshifted, Spanish Latin America shifted, Swiss shifted, Swedish shifted */
+                    (key == Qt::Key_0) || /* Hungarian unshifted */
+                    (key == Qt::Key_diaeresis) || /* Icelandic shifted */
+                    (key == Qt::Key_acute) || /* Norwegian unshifted */
+                    (key == Qt::Key_Asterisk) || /* Polish shifted */
+                    (key == Qt::Key_masculine) || (key == Qt::Key_ordfeminine) || /* Spanish (masculine unconfirmed) */
+                    (key == Qt::Key_Eacute) || /* Turkish Q shifted */
+                    (key == Qt::Key_Slash) /* French Canadian unshifted, Ukrainian shifted */
+                ))
+                mac_iso_swap = true;
+
+            /* Temporary debug code. */
+            if (down) {
+                QMessageBox questionbox(QMessageBox::Icon::Information, QString("Mac key swap test"), QString("nativeVirtualKey 0x%1\nnativeScanCode 0x%2\nkey 0x%3\nmac_iso_swap %4").arg(nvk, 0, 16).arg(event->nativeScanCode(), 0, 16).arg(key, 0, 16).arg(mac_iso_swap ? "yes" : "no"), QMessageBox::Ok, this);
+                questionbox.exec();
+            }
+
+            if (mac_iso_swap)
+                nvk = (nvk == 0x0a) ? 0x32 : 0x0a;
+        }
+
+        processKeyboardInput(down, nvk);
     }
 }
 #endif
