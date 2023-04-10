@@ -724,10 +724,110 @@ kbc_irq(atkbd_t *dev, uint16_t irq, int raise)
         dev->irq_levels &= ~irq;
 }
 
+static int
+kbc_translate(uint8_t val)
+{
+    atkbd_t *dev       = SavedKbd;
+    int      xt_mode   = (keyboard_mode & 0x20) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF);
+    int      translate = (keyboard_mode & 0x40);
+    uint8_t  kbc_ven   = dev->flags & KBC_VEN_MASK;
+    int      ret       = - 1;
+
+    translate = translate || (keyboard_mode & 0x40) || xt_mode;
+    translate = translate || ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_PS2_2);
+
+    /* Allow for scan code translation. */
+    if (translate && (val == 0xf0)) {
+        kbd_log("ATkbd: translate is on, F0 prefix detected\n");
+        sc_or = 0x80;
+        return ret;
+    }
+
+    /* Skip break code if translated make code has bit 7 set. */
+    if (translate && (sc_or == 0x80) && (nont_to_t[val] & 0x80)) {
+        kbd_log("ATkbd: translate is on, skipping scan code: %02X (original: F0 %02X)\n", nont_to_t[val], val);
+        sc_or = 0;
+        return ret;
+    }
+
+    /* Test for T3100E 'Fn' key (Right Alt / Right Ctrl) */
+    if ((dev != NULL) && (kbc_ven == KBC_VEN_TOSHIBA) &&
+        (keyboard_recv(0x138) || keyboard_recv(0x11d)))  switch (val) {
+        case 0x4f:
+            t3100e_notify_set(0x01);
+            break; /* End */
+        case 0x50:
+            t3100e_notify_set(0x02);
+            break; /* Down */
+        case 0x51:
+            t3100e_notify_set(0x03);
+            break; /* PgDn */
+        case 0x52:
+            t3100e_notify_set(0x04);
+            break; /* Ins */
+        case 0x53:
+            t3100e_notify_set(0x05);
+            break; /* Del */
+        case 0x54:
+            t3100e_notify_set(0x06);
+            break; /* SysRQ */
+        case 0x45:
+            t3100e_notify_set(0x07);
+            break; /* NumLock */
+        case 0x46:
+            t3100e_notify_set(0x08);
+            break; /* ScrLock */
+        case 0x47:
+            t3100e_notify_set(0x09);
+            break; /* Home */
+        case 0x48:
+            t3100e_notify_set(0x0a);
+            break; /* Up */
+        case 0x49:
+            t3100e_notify_set(0x0b);
+            break; /* PgUp */
+        case 0x4a:
+            t3100e_notify_set(0x0c);
+            break; /* Keypad - */
+        case 0x4b:
+            t3100e_notify_set(0x0d);
+            break; /* Left */
+        case 0x4c:
+            t3100e_notify_set(0x0e);
+            break; /* KP 5 */
+        case 0x4d:
+            t3100e_notify_set(0x0f);
+            break; /* Right */
+    }
+
+    kbd_log("ATkbd: translate is %s, ", translate ? "on" : "off");
+#ifdef ENABLE_KEYBOARD_AT_LOG
+    kbd_log("scan code: ");
+    if (translate) {
+        kbd_log("%02X (original: ", (nont_to_t[val] | sc_or));
+        if (sc_or == 0x80)
+            kbd_log("F0 ");
+        kbd_log("%02X)\n", val);
+    } else
+        kbd_log("%02X\n", val);
+#endif
+
+    ret = translate ? (nont_to_t[val] | sc_or) : val;
+
+    if (sc_or == 0x80)
+        sc_or = 0;
+
+    return ret;
+}
+
 static void
 add_to_kbc_queue_front(atkbd_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
 {
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
+    int temp = (channel == 1) ? kbc_translate(val) : val;
+
+    if (temp == -1)
+        return;
 
     if ((kbc_ven == KBC_VEN_AMI) || (kbc_ven == KBC_VEN_TG) ||
         (kbc_ven == KBC_VEN_TG_GREEN) || ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF))
@@ -735,7 +835,7 @@ add_to_kbc_queue_front(atkbd_t *dev, uint8_t val, uint8_t channel, uint8_t stat_
     else
         stat_hi |= 0x10;
 
-    kbd_log("ATkbc: Adding %02X to front on channel %i...\n", val, channel);
+    kbd_log("ATkbc: Adding %02X to front on channel %i...\n", temp, channel);
     dev->status = (dev->status & ~0xf0) | STAT_OFULL | stat_hi;
 
     /* WARNING: On PS/2, all IRQ's are level-triggered, but the IBM PS/2 KBC firmware is explicitly
@@ -755,7 +855,7 @@ add_to_kbc_queue_front(atkbd_t *dev, uint8_t val, uint8_t channel, uint8_t stat_
     } else if (dev->mem[0x20] & 0x01)
         picintlevel(1 << 1); /* AT KBC: IRQ 1 is level-triggered because it is tied to OBF. */
 
-    dev->out = val;
+    dev->out = temp;
 }
 
 static void
@@ -784,27 +884,6 @@ add_data_kbd_queue(atkbd_t *dev, uint8_t val)
 
 static void
 add_data_kbd_front(atkbd_t *dev, uint8_t val)
-{
-    int     xt_mode   = (keyboard_mode & 0x20) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF);
-    int     translate = (keyboard_mode & 0x40);
-    uint8_t send;
-
-    if (dev->reset_delay)
-        return;
-
-    translate = translate || (keyboard_mode & 0x40) || xt_mode;
-    translate = translate || ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_PS2_2);
-
-    if (translate)
-        send = nont_to_t[val];
-    else
-        send = val;
-
-    add_data_kbd_cmd_queue(dev, send);
-}
-
-static void
-add_data_kbd_raw(atkbd_t *dev, uint8_t val)
 {
     if (dev->reset_delay)
         return;
@@ -1290,118 +1369,28 @@ kbd_poll(void *priv)
 static void
 add_data_vals(atkbd_t *dev, uint8_t *val, uint8_t len)
 {
-    int xt_mode   = (keyboard_mode & 0x20) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF);
-    int translate = (keyboard_mode & 0x40);
     int i;
-    uint8_t or = 0;
-    uint8_t send;
 
     if (dev->reset_delay)
         return;
 
-    translate = translate || (keyboard_mode & 0x40) || xt_mode;
-    translate = translate || ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_PS2_2);
-
-    for (i = 0; i < len; i++) {
-        if (translate) {
-            if (val[i] == 0xf0) {
-                or = 0x80;
-                continue;
-            }
-            send = nont_to_t[val[i]] | or ;
-            if (or == 0x80)
-                or = 0;
-        } else
-            send = val[i];
-
-        add_data_kbd_queue(dev, send);
-    }
+    for (i = 0; i < len; i++)
+        add_data_kbd_queue(dev, val[i]);
 }
 
 static void
 add_data_kbd(uint16_t val)
 {
     atkbd_t *dev       = SavedKbd;
-    int      xt_mode   = (keyboard_mode & 0x20) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF);
-    int      translate = (keyboard_mode & 0x40);
     uint8_t  fake_shift[4];
     uint8_t  num_lock = 0, shift_states = 0;
-    uint8_t  kbc_ven = dev->flags & KBC_VEN_MASK;
 
     if (dev->reset_delay)
         return;
 
-    translate = translate || (keyboard_mode & 0x40) || xt_mode;
-    translate = translate || ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_PS2_2);
-
     keyboard_get_states(NULL, &num_lock, NULL);
     shift_states = keyboard_get_shift() & STATE_SHIFT_MASK;
 
-    /* Allow for scan code translation. */
-    if (translate && (val == 0xf0)) {
-        kbd_log("ATkbd: translate is on, F0 prefix detected\n");
-        sc_or = 0x80;
-        return;
-    }
-
-    /* Skip break code if translated make code has bit 7 set. */
-    if (translate && (sc_or == 0x80) && (nont_to_t[val] & 0x80)) {
-        kbd_log("ATkbd: translate is on, skipping scan code: %02X (original: F0 %02X)\n", nont_to_t[val], val);
-        sc_or = 0;
-        return;
-    }
-
-    /* Test for T3100E 'Fn' key (Right Alt / Right Ctrl) */
-    if ((dev != NULL) && (kbc_ven == KBC_VEN_TOSHIBA) && (keyboard_recv(0x138) || keyboard_recv(0x11d)))
-        switch (val) {
-            case 0x4f:
-                t3100e_notify_set(0x01);
-                break; /* End */
-            case 0x50:
-                t3100e_notify_set(0x02);
-                break; /* Down */
-            case 0x51:
-                t3100e_notify_set(0x03);
-                break; /* PgDn */
-            case 0x52:
-                t3100e_notify_set(0x04);
-                break; /* Ins */
-            case 0x53:
-                t3100e_notify_set(0x05);
-                break; /* Del */
-            case 0x54:
-                t3100e_notify_set(0x06);
-                break; /* SysRQ */
-            case 0x45:
-                t3100e_notify_set(0x07);
-                break; /* NumLock */
-            case 0x46:
-                t3100e_notify_set(0x08);
-                break; /* ScrLock */
-            case 0x47:
-                t3100e_notify_set(0x09);
-                break; /* Home */
-            case 0x48:
-                t3100e_notify_set(0x0a);
-                break; /* Up */
-            case 0x49:
-                t3100e_notify_set(0x0b);
-                break; /* PgUp */
-            case 0x4A:
-                t3100e_notify_set(0x0c);
-                break; /* Keypad -*/
-            case 0x4B:
-                t3100e_notify_set(0x0d);
-                break; /* Left */
-            case 0x4C:
-                t3100e_notify_set(0x0e);
-                break; /* KP 5 */
-            case 0x4D:
-                t3100e_notify_set(0x0f);
-                break; /* Right */
-        }
-
-    kbd_log("ATkbd: translate is %s, ", translate ? "on" : "off");
     switch (val) {
         case FAKE_LSHIFT_ON:
             kbd_log("fake left shift on, scan code: ");
@@ -1549,23 +1538,9 @@ add_data_kbd(uint16_t val)
             break;
 
         default:
-#ifdef ENABLE_KEYBOARD_AT_LOG
-            kbd_log("scan code: ");
-            if (translate) {
-                kbd_log("%02X (original: ", (nont_to_t[val] | sc_or));
-                if (sc_or == 0x80)
-                    kbd_log("F0 ");
-                kbd_log("%02X)\n", val);
-            } else
-                kbd_log("%02X\n", val);
-#endif
-
-            add_data_kbd_queue(dev, translate ? (nont_to_t[val] | sc_or) : val);
+            add_data_kbd_queue(dev, val);
             break;
     }
-
-    if (sc_or == 0x80)
-        sc_or = 0;
 }
 
 static void
@@ -2273,7 +2248,7 @@ kbd_key_reset(atkbd_t *dev, int do_fa)
     keyboard_scan = 1;
 
     if (do_fa)
-        add_data_kbd_raw(dev, 0xfa);
+        add_data_kbd_front(dev, 0xfa);
 
     dev->reset_delay = RESET_DELAY_TIME;
 
@@ -2320,19 +2295,19 @@ kbd_process_cmd(void *priv)
          */
         if (dev->key_dat == dev->key_command) {
             /* Respond NAK and ignore it. */
-            add_data_kbd_raw(dev, 0xfe);
+            add_data_kbd_front(dev, 0xfe);
             dev->key_command = 0x00;
             return;
         }
 
         switch (dev->key_command) {
             case 0xed: /* set/reset LEDs */
-                add_data_kbd_raw(dev, 0xfa);
+                add_data_kbd_front(dev, 0xfa);
                 kbd_log("ATkbd: set LEDs [%02x]\n", dev->key_dat);
                 break;
 
             case 0xf0: /* get/set scancode set */
-                add_data_kbd_raw(dev, 0xfa);
+                add_data_kbd_front(dev, 0xfa);
                 if (dev->key_dat == 0) {
                     kbd_log("Get scan code set: %02X\n", keyboard_mode & 3);
                     add_data_kbd_front(dev, keyboard_mode & 3);
@@ -2347,12 +2322,12 @@ kbd_process_cmd(void *priv)
                 break;
 
             case 0xf3: /* set typematic rate/delay */
-                add_data_kbd_raw(dev, 0xfa);
+                add_data_kbd_front(dev, 0xfa);
                 break;
 
             default:
                 kbd_log("ATkbd: bad keyboard 0060 write %02X command %02X\n", dev->key_dat, dev->key_command);
-                add_data_kbd_raw(dev, 0xfe);
+                add_data_kbd_front(dev, 0xfe);
                 break;
         }
 
@@ -2366,12 +2341,12 @@ kbd_process_cmd(void *priv)
         switch (dev->key_dat) {
             case 0x00 ... 0x7f:
                 kbd_log("ATkbd: invalid command %02X\n", dev->key_dat);
-                add_data_kbd_raw(dev, 0xfe);
+                add_data_kbd_front(dev, 0xfe);
                 break;
 
             case 0xed: /* set/reset LEDs */
                 kbd_log("ATkbd: set/reset leds\n");
-                add_data_kbd_raw(dev, 0xfa);
+                add_data_kbd_front(dev, 0xfa);
 
                 dev->key_wantdata = 1;
                 dev->kbd_state = DEV_STATE_MAIN_WANT_IN;
@@ -2379,7 +2354,7 @@ kbd_process_cmd(void *priv)
 
             case 0xee: /* diagnostic echo */
                 kbd_log("ATkbd: ECHO\n");
-                add_data_kbd_raw(dev, 0xee);
+                add_data_kbd_front(dev, 0xee);
                 break;
 
             case 0xef: /* NOP (reserved for future use) */
@@ -2388,7 +2363,7 @@ kbd_process_cmd(void *priv)
 
             case 0xf0: /* get/set scan code set */
                 kbd_log("ATkbd: scan code set\n");
-                add_data_kbd_raw(dev, 0xfa);
+                add_data_kbd_front(dev, 0xfa);
                 dev->key_wantdata = 1;
                 dev->kbd_state = DEV_STATE_MAIN_WANT_IN;
                 break;
@@ -2398,21 +2373,21 @@ kbd_process_cmd(void *priv)
                 kbd_log("ATkbd: read keyboard id\n");
                 /* TODO: After keyboard type selection is implemented, make this
                          return the correct keyboard ID for the selected type. */
-                add_data_kbd_raw(dev, 0xfa);
+                add_data_kbd_front(dev, 0xfa);
                 add_data_kbd_front(dev, 0xab);
                 add_data_kbd_front(dev, 0x83);
                 break;
 
             case 0xf3: /* set typematic rate/delay */
                 kbd_log("ATkbd: set typematic rate/delay\n");
-                add_data_kbd_raw(dev, 0xfa);
+                add_data_kbd_front(dev, 0xfa);
                 dev->key_wantdata = 1;
                 dev->kbd_state = DEV_STATE_MAIN_WANT_IN;
                 break;
 
             case 0xf4: /* enable keyboard */
                 kbd_log("ATkbd: enable keyboard\n");
-                add_data_kbd_raw(dev, 0xfa);
+                add_data_kbd_front(dev, 0xfa);
                 keyboard_scan = 1;
                 break;
 
@@ -2422,7 +2397,7 @@ kbd_process_cmd(void *priv)
                 keyboard_scan = (dev->key_dat == 0xf6);
                 kbd_log("dev->key_dat = %02X, keyboard_scan = %i, dev->mem[0x20] = %02X\n",
                         dev->key_dat, keyboard_scan, dev->mem[0]);
-                add_data_kbd_raw(dev, 0xfa);
+                add_data_kbd_front(dev, 0xfa);
 
                 keyboard_set3_all_break  = 0;
                 keyboard_set3_all_repeat = 0;
@@ -2433,32 +2408,32 @@ kbd_process_cmd(void *priv)
 
             case 0xf7: /* set all keys to repeat */
                 kbd_log("ATkbd: set all keys to repeat\n");
-                add_data_kbd_raw(dev, 0xfa);
+                add_data_kbd_front(dev, 0xfa);
                 keyboard_set3_all_break = 1;
                 break;
 
             case 0xf8: /* set all keys to give make/break codes */
                 kbd_log("ATkbd: set all keys to give make/break codes\n");
-                add_data_kbd_raw(dev, 0xfa);
+                add_data_kbd_front(dev, 0xfa);
                 keyboard_set3_all_break = 1;
                 break;
 
             case 0xf9: /* set all keys to give make codes only */
                 kbd_log("ATkbd: set all keys to give make codes only\n");
-                add_data_kbd_raw(dev, 0xfa);
+                add_data_kbd_front(dev, 0xfa);
                 keyboard_set3_all_break = 0;
                 break;
 
             case 0xfa: /* set all keys to repeat and give make/break codes */
                 kbd_log("ATkbd: set all keys to repeat and give make/break codes\n");
-                add_data_kbd_raw(dev, 0xfa);
+                add_data_kbd_front(dev, 0xfa);
                 keyboard_set3_all_repeat = 1;
                 keyboard_set3_all_break  = 1;
                 break;
 
             case 0xfe: /* resend last scan code */
                 kbd_log("ATkbd: reset last scan code\n");
-                add_data_kbd_raw(dev, kbd_last_scan_code);
+                add_data_kbd_front(dev, kbd_last_scan_code);
                 break;
 
             case 0xff: /* reset */
