@@ -2934,6 +2934,9 @@ kbd_init(const device_t *info)
     dev->flags = info->local;
     dev->pci = !!(info->flags & DEVICE_PCI);
 
+    /* We need this, sadly. */
+    SavedKbd = dev;
+
     video_reset(gfxcard[0]);
     kbd_reset(dev);
 
@@ -2982,9 +2985,6 @@ kbd_init(const device_t *info)
             dev->write64_ven = write64_toshiba;
             break;
     }
-
-    /* We need this, sadly. */
-    SavedKbd = dev;
 
     return (dev);
 }
