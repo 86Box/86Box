@@ -404,7 +404,7 @@ machine_at_acerv10_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&sis_85c461_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&keyboard_ps2_acer_pci_device);
     device_add(&ide_isa_2ch_device);
 
     if (fdc_type == FDC_INTERNAL)

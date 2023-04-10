@@ -735,7 +735,7 @@ add_to_kbc_queue_front(atkbd_t *dev, uint8_t val, uint8_t channel, uint8_t stat_
     else
         stat_hi |= 0x10;
 
-    kbd_log("ATkbc: Adding %02X to front...\n", val);
+    kbd_log("ATkbc: Adding %02X to front on channel %i...\n", val, channel);
     dev->status = (dev->status & ~0xf0) | STAT_OFULL | stat_hi;
 
     /* WARNING: On PS/2, all IRQ's are level-triggered, but the IBM PS/2 KBC firmware is explicitly
@@ -806,6 +806,9 @@ add_data_kbd_front(atkbd_t *dev, uint8_t val)
 static void
 add_data_kbd_raw(atkbd_t *dev, uint8_t val)
 {
+    if (dev->reset_delay)
+        return;
+
     add_data_kbd_cmd_queue(dev, val);
 }
 
@@ -1342,7 +1345,7 @@ add_data_kbd(uint16_t val)
     }
 
     /* Skip break code if translated make code has bit 7 set. */
-    if (translate && (sc_or == 0x80) && (val & 0x80)) {
+    if (translate && (sc_or == 0x80) && (nont_to_t[val] & 0x80)) {
         kbd_log("ATkbd: translate is on, skipping scan code: %02X (original: F0 %02X)\n", nont_to_t[val], val);
         sc_or = 0;
         return;

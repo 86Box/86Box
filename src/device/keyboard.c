@@ -66,6 +66,7 @@ static uint8_t
 fake_shift_needed(uint16_t scan)
 {
     switch (scan) {
+        case 0x137:    /* Yes, Print Screen requires the fake shifts. */
         case 0x147:
         case 0x148:
         case 0x149:
