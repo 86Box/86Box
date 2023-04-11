@@ -1067,7 +1067,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
                 break;
 
             case 0x44:
-                if (dev->local <= VIA_PIPC_586B)
+                if (dev->local < VIA_PIPC_586B)
                     pic_mouse_latch(val & 0x01);
                 break;
 
