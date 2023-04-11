@@ -2822,6 +2822,10 @@ mem_remap_top(int kb)
         sis_mode = 1;
     }
 
+    /* Do not remap if we're have more than (16 MB - RAM) memory. */
+    if ((kb != 0) && (mem_size >= (16384 - kb)))
+        return;
+
     if (kb == 0) {
         kb  = old_kb;
         set = 0;

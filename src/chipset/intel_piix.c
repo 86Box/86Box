@@ -512,7 +512,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                 break;
             case 0x4e:
                 fregs[0x4e] = val;
-                keyboard_at_set_mouse_scan((val & 0x10) ? 1 : 0);
+                pic_mouse_latch(!!(val & 0x10));
                 if (dev->type >= 4)
                     kbc_alias_update_io_mapping(dev);
                 break;
@@ -1159,9 +1159,7 @@ piix_read(int func, int addr, void *priv)
     if ((func <= dev->max_func) || ((func == 1) && (dev->max_func == 0))) {
         fregs = (uint8_t *) dev->regs[func];
         ret   = fregs[addr];
-        if ((func == 0) && (addr == 0x4e))
-            ret |= keyboard_at_get_mouse_scan();
-        else if ((func == 2) && (addr == 0xff))
+        if ((func == 2) && (addr == 0xff))
             ret |= 0xef;
 
         piix_log("PIIX function %i read: %02X from %02X\n", func, ret, addr);
@@ -1277,6 +1275,7 @@ piix_reset_hard(piix_t *dev)
     fregs[0x0e] = ((dev->type > 1) || (dev->rev != 2)) ? 0x80 : 0x00;
     fregs[0x4c] = 0x4d;
     fregs[0x4e] = 0x03;
+    pic_mouse_latch(0x00);
     fregs[0x60] = fregs[0x61] = fregs[0x62] = fregs[0x63] = 0x80;
     fregs[0x64]                                           = (dev->type > 3) ? 0x10 : 0x00;
     fregs[0x69]                                           = 0x02;
@@ -1446,6 +1445,9 @@ piix_reset(void *p)
         piix_write(0, 0xa8, 0x0f, p);
     }
 
+    /* Disable the PIC mouse latch. */
+    piix_write(0, 0x4e, 0x03, p);
+
     if (dev->type == 5)
         piix_write(0, 0xe1, 0x40, p);
     piix_write(1, 0x04, 0x00, p);
@@ -1532,9 +1534,8 @@ piix_speed_changed(void *priv)
         timer_on_auto(&dev->fast_off_timer, ((double) cpu_fast_off_val + 1) * dev->fast_off_period);
 }
 
-static void
-    *
-    piix_init(const device_t *info)
+static void *
+piix_init(const device_t *info)
 {
     piix_t *dev = (piix_t *) malloc(sizeof(piix_t));
     memset(dev, 0, sizeof(piix_t));
@@ -1679,6 +1680,8 @@ static void
         dev->board_config[1] |= 0x00;
 
     // device_add(&i8254_sec_device);
+
+    pic_kbd_latch(0x01);
 
     return dev;
 }
