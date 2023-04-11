@@ -2628,7 +2628,8 @@ mem_init_ram_mapping(mem_mapping_t *mapping, uint32_t base, uint32_t size)
 void
 mem_reset(void)
 {
-    uint32_t c, m;
+    uint32_t c;
+    size_t m;
 
     memset(page_ff, 0xff, sizeof(page_ff));
 
@@ -2666,7 +2667,7 @@ mem_reset(void)
         mem_size = 2097152;
 #endif
 
-    m = 1024UL * mem_size;
+    m = 1024UL * (size_t) mem_size;
 
 #if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
     if (mem_size > 1048576) {
