@@ -15,7 +15,7 @@
  *          Copyright 2023 RichardG.
  */
 extern "C" {
-#include <xkbcommon/xkbcommon-x11.h>
+#include <xkbcommon/xkbcommon.h>
 };
 
 #include <unordered_map>
