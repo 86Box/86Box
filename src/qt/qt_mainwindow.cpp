@@ -1060,7 +1060,7 @@ MainWindow::processMacKeyboardInput(bool down, const QKeyEvent *event)
                     (key == Qt::Key_QuoteDbl) || /* Brazilian shifted, Turkish Q unshifted */
                     (key == Qt::Key_QuoteLeft) || /* Croatian (right quote unknown) */
                     (key == Qt::Key_Dollar) || /* Danish unshifted */
-                    (key == Qt::Key_AsciiCircum) || /* German unshifted, Polish unshifted */
+                    (key == Qt::Key_AsciiCircum) || (key == 0x1ffffff) || /* German unshifted (0x1ffffff according to one tester), Polish unshifted */
                     (key == Qt::Key_degree) || /* German shifted, Icelandic unshifted, Spanish Latin America shifted, Swiss shifted, Swedish shifted */
                     (key == Qt::Key_0) || /* Hungarian unshifted */
                     (key == Qt::Key_diaeresis) || /* Icelandic shifted */
@@ -1071,13 +1071,12 @@ MainWindow::processMacKeyboardInput(bool down, const QKeyEvent *event)
                     (key == Qt::Key_Slash) /* French Canadian unshifted, Ukrainian shifted */
                 ))
                 mac_iso_swap = true;
-
-            /* Temporary debug code. */
+#if 0
             if (down) {
                 QMessageBox questionbox(QMessageBox::Icon::Information, QString("Mac key swap test"), QString("nativeVirtualKey 0x%1\nnativeScanCode 0x%2\nkey 0x%3\nmac_iso_swap %4").arg(nvk, 0, 16).arg(event->nativeScanCode(), 0, 16).arg(key, 0, 16).arg(mac_iso_swap ? "yes" : "no"), QMessageBox::Ok, this);
                 questionbox.exec();
             }
-
+#endif
             if (mac_iso_swap)
                 nvk = (nvk == 0x0a) ? 0x32 : 0x0a;
         }
