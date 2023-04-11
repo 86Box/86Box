@@ -29,6 +29,7 @@
 #include <86box/dma.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
+#include <86box/pic.h>
 #include <86box/port_92.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
@@ -724,6 +725,9 @@ sis_5571_init(const device_t *info)
     dev->usb = device_add(&usb_device);
 
     sis_5571_reset(dev);
+
+    pic_kbd_latch(0x01);
+    pic_mouse_latch(0x01);
 
     return dev;
 }

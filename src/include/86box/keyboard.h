@@ -199,16 +199,11 @@ extern int      keyboard_ismsexit(void);
 extern void     keyboard_set_is_amstrad(int ams);
 
 extern void    keyboard_at_adddata_mouse(uint8_t val);
-extern void    keyboard_at_adddata_mouse_direct(uint8_t val);
 extern void    keyboard_at_adddata_mouse_cmd(uint8_t val);
 extern void    keyboard_at_mouse_reset(void);
 extern uint8_t keyboard_at_mouse_pos(void);
-extern int     keyboard_at_fixed_channel(void);
 extern void    keyboard_at_set_mouse(void (*mouse_write)(uint8_t val, void *), void *);
 extern void    keyboard_at_set_a20_key(int state);
-extern void    keyboard_at_set_mode(int ps2);
-extern uint8_t keyboard_at_get_mouse_scan(void);
-extern void    keyboard_at_set_mouse_scan(uint8_t val);
 extern void    keyboard_at_reset(void);
 extern void    kbc_at_a20_reset(void);
 
