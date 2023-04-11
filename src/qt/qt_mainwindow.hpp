@@ -155,6 +155,7 @@ private:
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
 
+    void     processKeyboardInput(bool down, uint32_t keycode);
 #ifdef Q_OS_MACOS
     uint32_t last_modifiers = 0;
     void     processMacKeyboardInput(bool down, const QKeyEvent *event);

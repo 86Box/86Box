@@ -85,15 +85,24 @@ static void
 ps2_report_coordinates(mouse_t *dev, int cmd)
 {
     uint8_t buff[3] = { 0x08, 0x00, 0x00 };
+    int temp_z;
 
-    if (dev->x > 255)
+    if (dev->x > 255) {
         dev->x = 255;
-    if (dev->x < -256)
+        buff[0] |= 0x40;
+    }
+    if (dev->x < -256) {
         dev->x = -256;
-    if (dev->y > 255)
+        buff[0] |= 0x40;
+    }
+    if (dev->y > 255) {
         dev->y = 255;
-    if (dev->y < -256)
+        buff[0] |= 0x80;
+    }
+    if (dev->y < -256) {
         dev->y = -256;
+        buff[0] |= 0x80;
+    }
     if (dev->z < -8)
         dev->z = -8;
     if (dev->z > 7)
@@ -124,13 +133,16 @@ ps2_report_coordinates(mouse_t *dev, int cmd)
         keyboard_at_adddata_mouse(buff[2]);
     }
     if (dev->flags & FLAG_INTMODE) {
-        int temp_z = dev->z;
+        temp_z = dev->z & 0x0f;
         if ((dev->flags & FLAG_5BTN)) {
-            temp_z &= 0xF;
             if (mouse_buttons & 8)
                 temp_z |= 0x10;
             if (mouse_buttons & 16)
                 temp_z |= 0x20;
+        } else {
+            /* The wheel coordinate is sign-extended. */
+            if (temp_z & 0x08)
+                temp_z |= 0xf0;
         }
         if (cmd)
             keyboard_at_adddata_mouse_cmd(temp_z);
@@ -262,16 +274,15 @@ mouse_reset:
 
         dev->last_data[5] = val;
 
-        if (dev->last_data[0] == 0xf3 && dev->last_data[1] == 0xc8
-            && dev->last_data[2] == 0xf3 && dev->last_data[3] == 0xc8
-            && dev->last_data[4] == 0xf3 && dev->last_data[5] == 0x50
-            && mouse_get_buttons() == 5) {
-            dev->flags |= FLAG_INTMODE | FLAG_5BTN;
-        } else if (dev->last_data[0] == 0xf3 && dev->last_data[1] == 0xc8
-                   && dev->last_data[2] == 0xf3 && dev->last_data[3] == 0x64
-                   && dev->last_data[4] == 0xf3 && dev->last_data[5] == 0x50) {
+        if ((dev->last_data[0] == 0xf3) && (dev->last_data[1] == 0xc8) &&
+            (dev->last_data[2] == 0xf3) && (dev->last_data[3] == 0x64) &&
+            (dev->last_data[4] == 0xf3) && (dev->last_data[5] == 0x50))
             dev->flags |= FLAG_INTMODE;
-        }
+
+        if ((dev->flags & FLAG_INTMODE) && (dev->last_data[0] == 0xf3) && (dev->last_data[1] == 0xc8) &&
+            (dev->last_data[2] == 0xf3) && (dev->last_data[3] == 0xc8) &&
+            (dev->last_data[4] == 0xf3) && (dev->last_data[5] == 0x50))
+            dev->flags |= FLAG_5BTN;
     }
 }
 

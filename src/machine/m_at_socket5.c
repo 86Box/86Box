@@ -237,7 +237,7 @@ machine_at_hawk_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&keyboard_ps2_tg_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
     device_add(&fdc37c665_device);

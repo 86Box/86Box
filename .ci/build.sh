@@ -316,6 +316,9 @@ then
 				pacman -S --needed --noconfirm "$pkg"
 			done
 		fi
+		
+		# Clean pacman cache when running under Jenkins to save disk space.
+		[ "$CI" = "true" ] && rm -rf /var/cache/pacman/pkg
 
 		# Generate a new freetype DLL for this architecture.
 		rm -f "$freetype_dll"
@@ -584,7 +587,7 @@ else
 	# ...and the ones we do want listed. Non-dev packages fill missing spots on the list.
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libglib2.0-dev libslirp-dev libfaudio-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev
+	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libfaudio-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
 		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/qtdeclarative/qt/" | wc -c)
@@ -629,7 +632,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 set(ENV{PKG_CONFIG_PATH} "")
-set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/$libdir/pkgconfig:/usr/share/$libdir/pkgconfig")
+set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/$libdir/pkgconfig:/usr/share/$libdir/pkgconfig:/usr/share/pkgconfig")
 
 include("$(realpath "$toolchain_file")")
 EOF
@@ -948,7 +951,6 @@ else
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
-	cp -p "$cwd_root/archive_tmp/usr/bin/fluidsynth" fluidsynth
 
 	# Build SDL2 for joystick and FAudio support, with most components
 	# disabled to remove the dependencies on PulseAudio and libdrm.
