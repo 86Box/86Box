@@ -941,6 +941,15 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
             }
             break;
 
+        case 0x10b: /* Microsoft scroll up normal */
+        case 0x18b: /* Microsoft scroll down normal */
+            /* This abuses make/break codes. Send them manually, only on press. */
+            if (down) {
+                keyboard_send(0xe0);
+                keyboard_send(keycode & 0xff);
+            }
+            return;
+
         case 0x11d: /* Right Ctrl */
             if (rctrl_is_lalt)
                 keycode = 0x38; /* map to Left Alt */
