@@ -22,8 +22,17 @@
  * Adapted and abridged for MiniVHD by Sherman Perry
  */
 #include <stdlib.h>
+#include <stdint.h>
+#include <stdbool.h>
+#include <stdio.h>
+#define BUILDING_LIBRARY
+#include "minivhd.h"
+#include "internal.h"
+#include "xml2_encoding.h"
+
 
 static int xmlLittleEndian = 1;
+
 
 /* Note: extracted from original 'void xmlInitCharEncodingHandlers(void)' function */
 void xmlEncodingInit(void)
@@ -96,8 +105,8 @@ int UTF16LEToUTF8(unsigned char* out, int *outlen,
                 c += 0x10000;
             }
             else {
-		*outlen = out - outstart;
-		*inlenb = processed - inb;
+		*outlen = (int)(out - outstart);
+		*inlenb = (int)(processed - inb);
 	        return(-2);
 	    }
         }
@@ -117,8 +126,8 @@ int UTF16LEToUTF8(unsigned char* out, int *outlen,
         }
 	processed = (const unsigned char*) in;
     }
-    *outlen = out - outstart;
-    *inlenb = processed - inb;
+    *outlen = (int)(out - outstart);
+    *inlenb = (int)(processed - inb);
     return(*outlen);
 }
 
@@ -163,16 +172,16 @@ int UTF8ToUTF16LE(unsigned char* outb, int *outlen,
       if      (d < 0x80)  { c= d; trailing= 0; }
       else if (d < 0xC0) {
           /* trailing byte in leading position */
-	  *outlen = (out - outstart) * 2;
-	  *inlen = processed - instart;
+	  *outlen = (int)((out - outstart) * 2);
+	  *inlen = (int)(processed - instart);
 	  return(-2);
       } else if (d < 0xE0)  { c= d & 0x1F; trailing= 1; }
       else if (d < 0xF0)  { c= d & 0x0F; trailing= 2; }
       else if (d < 0xF8)  { c= d & 0x07; trailing= 3; }
       else {
 	/* no chance for this in UTF-16 */
-	*outlen = (out - outstart) * 2;
-	*inlen = processed - instart;
+	*outlen = (int)((out - outstart) * 2);
+	*inlen = (int)(processed - instart);
 	return(-2);
       }
 
@@ -225,8 +234,8 @@ int UTF8ToUTF16LE(unsigned char* outb, int *outlen,
 	    break;
 	processed = in;
     }
-    *outlen = (out - outstart) * 2;
-    *inlen = processed - instart;
+    *outlen = (int)((out - outstart) * 2);
+    *inlen = (int)(processed - instart);
     return(*outlen);
 }
 
@@ -275,8 +284,8 @@ int UTF16BEToUTF8(unsigned char* out, int *outlen,
 	}
         if ((c & 0xFC00) == 0xD800) {    /* surrogates */
 	    if (in >= inend) {           /* (in > inend) shouldn't happens */
-		*outlen = out - outstart;
-		*inlenb = processed - inb;
+		*outlen = (int)(out - outstart);
+		*inlenb = (int)(processed - inb);
 	        return(-2);
 	    }
 	    if (xmlLittleEndian) {
@@ -295,8 +304,8 @@ int UTF16BEToUTF8(unsigned char* out, int *outlen,
                 c += 0x10000;
             }
             else {
-		*outlen = out - outstart;
-		*inlenb = processed - inb;
+		*outlen = (int)(out - outstart);
+		*inlenb = (int)(processed - inb);
 	        return(-2);
 	    }
         }
@@ -316,8 +325,8 @@ int UTF16BEToUTF8(unsigned char* out, int *outlen,
         }
 	processed = (const unsigned char*) in;
     }
-    *outlen = out - outstart;
-    *inlenb = processed - inb;
+    *outlen = (int)(out - outstart);
+    *inlenb = (int)(processed - inb);
     return(*outlen);
 }
 
@@ -362,16 +371,16 @@ int UTF8ToUTF16BE(unsigned char* outb, int *outlen,
       if      (d < 0x80)  { c= d; trailing= 0; }
       else if (d < 0xC0)  {
           /* trailing byte in leading position */
-	  *outlen = out - outstart;
-	  *inlen = processed - instart;
+	  *outlen = (int)(out - outstart);
+	  *inlen = (int)(processed - instart);
 	  return(-2);
       } else if (d < 0xE0)  { c= d & 0x1F; trailing= 1; }
       else if (d < 0xF0)  { c= d & 0x0F; trailing= 2; }
       else if (d < 0xF8)  { c= d & 0x07; trailing= 3; }
       else {
           /* no chance for this in UTF-16 */
-	  *outlen = out - outstart;
-	  *inlen = processed - instart;
+	  *outlen = (int)(out - outstart);
+	  *inlen = (int)(processed - instart);
 	  return(-2);
       }
 
@@ -421,8 +430,8 @@ int UTF8ToUTF16BE(unsigned char* outb, int *outlen,
 	    break;
 	processed = in;
     }
-    *outlen = (out - outstart) * 2;
-    *inlen = processed - instart;
+    *outlen = (int)((out - outstart) * 2);
+    *inlen = (int)(processed - instart);
     return(*outlen);
 }
 
