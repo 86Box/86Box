@@ -299,7 +299,7 @@ endif()
 
 # loads a macro to install Qt5 plugins on macOS
 # based on https://stackoverflow.com/questions/35612687/cmake-macos-x-bundle-with-bundleutiliies-for-qt-application
-macro(install_qt5_plugin _qt_plugin_name _qt_plugins_var _prefix)
+macro(install_qt5_plugin _qt_plugin_name _runtime_plugins_var _prefix)
     get_target_property(_qt_plugin_path "${_qt_plugin_name}" LOCATION)
     if(EXISTS "${_qt_plugin_path}")
         get_filename_component(_qt_plugin_file "${_qt_plugin_path}" NAME)
@@ -307,7 +307,7 @@ macro(install_qt5_plugin _qt_plugin_name _qt_plugins_var _prefix)
         get_filename_component(_qt_plugin_type "${_qt_plugin_type}" NAME)
         set(_qt_plugin_dest "${_prefix}/PlugIns/${_qt_plugin_type}")
         install(FILES "${_qt_plugin_path}" DESTINATION "${_qt_plugin_dest}")
-        list(APPEND ${_qt_plugins_var} "\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/${_qt_plugin_dest}/${_qt_plugin_file}")
+        list(APPEND ${_runtime_plugins_var} "\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/${_qt_plugin_dest}/${_qt_plugin_file}")
     else()
         message(FATAL_ERROR "QT plugin ${_qt_plugin_name} not found")
     endif()
@@ -320,10 +320,18 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
     set(INSTALL_LIB_DIR "${prefix}/Frameworks")
 
     # using the install_qt5_plugin to add Qt plugins into the macOS app bundle
-    install_qt5_plugin("Qt${QT_MAJOR}::QCocoaIntegrationPlugin" QT_PLUGINS ${prefix})
-    install_qt5_plugin("Qt${QT_MAJOR}::QMacStylePlugin" QT_PLUGINS ${prefix})
-    install_qt5_plugin("Qt${QT_MAJOR}::QICOPlugin" QT_PLUGINS ${prefix})
-    install_qt5_plugin("Qt${QT_MAJOR}::QICNSPlugin" QT_PLUGINS ${prefix})
+    install_qt5_plugin("Qt${QT_MAJOR}::QCocoaIntegrationPlugin" RUNTIME_PLUGINS ${prefix})
+    install_qt5_plugin("Qt${QT_MAJOR}::QMacStylePlugin" RUNTIME_PLUGINS ${prefix})
+    install_qt5_plugin("Qt${QT_MAJOR}::QICOPlugin" RUNTIME_PLUGINS ${prefix})
+    install_qt5_plugin("Qt${QT_MAJOR}::QICNSPlugin" RUNTIME_PLUGINS ${prefix})
+
+    # Install libraries that are loaded at runtime and not linked
+    if (GHOSTSCRIPT_LIB)
+        set(GS_LIBRARY_NAME "libgs.dylib")
+        file(REAL_PATH ${GHOSTSCRIPT_LIB} GS_LIB_RESOLVED)
+        install(FILES ${GS_LIB_RESOLVED} DESTINATION ${INSTALL_LIB_DIR} RENAME ${GS_LIBRARY_NAME})
+        list(APPEND RUNTIME_PLUGINS "\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/${INSTALL_LIB_DIR}/${GS_LIBRARY_NAME}")
+    endif ()
 
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
         "[Paths]\nPlugins = PlugIns\n")
@@ -345,7 +353,7 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
     install(CODE "
         include(BundleUtilities)
         get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX} ABSOLUTE)
-        fixup_bundle(\"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/86Box.app\" \"${QT_PLUGINS}\" \"${DIRS}\")
+        fixup_bundle(\"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/86Box.app\" \"${RUNTIME_PLUGINS}\" \"${DIRS}\")
         execute_process(
             COMMAND ${CMAKE_INSTALL_NAME_TOOL} -add_rpath \"@executable_path/../Frameworks/\"
             \"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/${INSTALL_RUNTIME_DIR}/86Box\")

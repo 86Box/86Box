@@ -237,7 +237,7 @@ fluidsynth_init(const device_t *info)
     fluidsynth_handle = dynld_module("libfluidsynth64.dll", fluidsynth_imports);
 #        endif
 #    elif defined __APPLE__
-    fluidsynth_handle = dynld_module("libfluidsynth.dylib", fluidsynth_imports);
+    fluidsynth_handle = dynld_module("libfluidsynth.3.dylib", fluidsynth_imports);
 #    else
     fluidsynth_handle = dynld_module("libfluidsynth.so.3", fluidsynth_imports);
     if (fluidsynth_handle == NULL)
