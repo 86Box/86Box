@@ -110,22 +110,22 @@ extern int mvhd_errno;
 /* Shared-library madness. */
 //#if defined(_WIN32)
 //# ifdef STATIC
-#  define MVHDAPI	/*nothing*/
+#  define MVHDAPI  /*nothing*/
 //# else
 //#  ifdef BUILDING_LIBRARY
-//#   define MVHDAPI	__declspec(dllexport)
+//#   define MVHDAPI __declspec(dllexport)
 //#  else
-//#   define MVHDAPI	__declspec(dllimport)
+//#   define MVHDAPI __declspec(dllimport)
 //#  endif
 //# endif
 //#elif defined(__GNUC__)
 //# ifdef BUILDING_LIBRARY
-//#  define MVHDAPI	__attribute__((visibility("default")))
+//#  define MVHDAPI  __attribute__((visibility("default")))
 //# else
-//#  define MVHDAPI	/*nothing*/
+//#  define MVHDAPI  /*nothing*/
 //# endif
 //#else
-//# define MVHDAPI	/*nothing*/
+//# define MVHDAPI   /*nothing*/
 //#endif
 
 
