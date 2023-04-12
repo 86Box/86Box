@@ -18,6 +18,7 @@
  */
 #define _GNU_SOURCE
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -32,7 +33,7 @@
 #include <86box/random.h>
 #include <86box/hdd.h>
 #include "minivhd/minivhd.h"
-#include "minivhd/minivhd_internal.h"
+#include "minivhd/internal.h"
 
 #define HDD_IMAGE_RAW 0
 #define HDD_IMAGE_HDI 1
