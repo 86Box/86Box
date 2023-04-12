@@ -223,7 +223,6 @@ static const uint8_t nont_to_t[256] = {
     0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff
 };
 
-#ifdef USE_SET1
 static const scancode scancode_set1[512] = {
   // clang-format off
     { {          0},{               0} }, { {     0x01,0},{          0x81,0} }, { {     0x02,0},{          0x82,0} }, { {     0x03,0},{          0x83,0} },        /*000*/
@@ -355,7 +354,6 @@ static const scancode scancode_set1[512] = {
     { {          0},{               0} }, { {          0},{               0} }, { {0xe0,0xfe,0},{               0} }, { {0xe0,0xff,0},{               0} }         /*1fc*/
   // clang-format on
 };
-#endif
 
 static const scancode scancode_set2[512] = {
   // clang-format off
@@ -644,14 +642,10 @@ static void
 set_scancode_map(atkbd_t *dev)
 {
     switch (keyboard_mode & 3) {
-#ifdef USE_SET1
         case 1:
         default:
             keyboard_set_table(scancode_set1);
             break;
-#else
-        default:
-#endif
         case 2:
             keyboard_set_table(scancode_set2);
             break;
@@ -662,11 +656,7 @@ set_scancode_map(atkbd_t *dev)
     }
 
     if (keyboard_mode & 0x20)
-#ifdef USE_SET1
         keyboard_set_table(scancode_set1);
-#else
-        keyboard_set_table(scancode_set2);
-#endif
 }
 
 static void
@@ -1082,7 +1072,6 @@ kbc_poll_ps2(atkbd_t *dev)
 {
     switch (dev->kbc_state) {
         case KBC_STATE_RESET:
-            // pclog("KBC_STATE_RESET\n");
             if (dev->status & STAT_IFULL) {
                 dev->status = ((dev->status & 0x0f) | 0x10) & ~STAT_IFULL;
                 if ((dev->status & STAT_CD) && (dev->ib == 0xaa))
@@ -1091,7 +1080,6 @@ kbc_poll_ps2(atkbd_t *dev)
             break;
         case KBC_STATE_MAIN_IBF:
         default:
-            // pclog("KBC_STATE_MAIN_IBF\n");
             if (dev->status & STAT_IFULL)
                 kbc_ibf_process(dev);
             else if (!(dev->status & STAT_OFULL)) {
@@ -1112,7 +1100,6 @@ kbc_poll_ps2(atkbd_t *dev)
             }
             break;
         case KBC_STATE_MAIN_KBD:
-            // pclog("KBC_STATE_MAIN_KBD\n");
             if (dev->status & STAT_IFULL)
                 kbc_ibf_process(dev);
             else {
@@ -1121,7 +1108,6 @@ kbc_poll_ps2(atkbd_t *dev)
             }
             break;
         case KBC_STATE_MAIN_MOUSE:
-            // pclog("KBC_STATE_MAIN_MOUSE\n");
             if (dev->status & STAT_IFULL)
                 kbc_ibf_process(dev);
             else {
@@ -1130,14 +1116,12 @@ kbc_poll_ps2(atkbd_t *dev)
             }
             break;
         case KBC_STATE_MAIN_BOTH:
-            // pclog("KBC_STATE_MAIN_BOTH\n");
             if (kbc_scan_kbd_ps2(dev))
                 dev->kbc_state = KBC_STATE_MAIN_IBF;
             else
                 dev->kbc_state = KBC_STATE_MAIN_MOUSE;
             break;
         case KBC_STATE_KBC_OUT:
-            // pclog("KBC_STATE_KBC_OUT\n");
             /* Keyboard controller command want to output multiple bytes. */
             if (dev->status & STAT_IFULL) {
                 /* Data from host aborts dumping. */
@@ -1154,7 +1138,6 @@ kbc_poll_ps2(atkbd_t *dev)
             }
             break;
         case KBC_STATE_KBC_PARAM:
-            // pclog("KBC_STATE_KBC_PARAM\n");
             /* Keyboard controller command wants data, wait for said data. */
             if (dev->status & STAT_IFULL) {
                 /* Command written, abort current command. */
@@ -1170,7 +1153,6 @@ kbc_poll_ps2(atkbd_t *dev)
                 dev->kbc_state = KBC_STATE_SCAN_KBD;
             break;
         case KBC_STATE_SCAN_KBD:
-            // pclog("KBC_STATE_SCAN_KBD\n");
             (void) kbc_scan_kbd_ps2(dev);
             break;
         case KBC_STATE_SEND_MOUSE:
@@ -1178,7 +1160,6 @@ kbc_poll_ps2(atkbd_t *dev)
                 dev->kbc_state = KBC_STATE_SCAN_MOUSE;
             break;
         case KBC_STATE_SCAN_MOUSE:
-            // pclog("KBC_STATE_SCAN_MOUSE\n");
             (void) kbc_scan_aux_ps2(dev);
             break;
     }
@@ -1202,7 +1183,7 @@ kbc_poll_kbd(atkbd_t *dev)
         case DEV_STATE_MAIN_1:
             /* Process the command if needed and then return to main loop #2. */
             if (dev->key_wantcmd) {
-                kbd_log("ATkbc: Processing keyboard command...\n");
+                kbd_log("ATkbc: Processing keyboard command %02X...\n", dev->key_dat);
                 kbc_queue_reset(dev, 4);
                 // dev->out_new = -1;
                 kbd_process_cmd(dev);
@@ -1244,7 +1225,7 @@ kbc_poll_kbd(atkbd_t *dev)
         case DEV_STATE_MAIN_IN:
             /* Wait for host data. */
             if (dev->key_wantcmd) {
-                kbd_log("ATkbc: Processing keyboard command...\n");
+                kbd_log("ATkbc: Processing keyboard command %02X parameter %02X...\n", dev->key_command, dev->key_dat);
                 kbc_queue_reset(dev, 4);
                 // dev->out_new = -1;
                 kbd_process_cmd(dev);
@@ -1285,7 +1266,7 @@ kbc_poll_aux(atkbd_t *dev)
         case DEV_STATE_MAIN_1:
             /* Process the command if needed and then return to main loop #2. */
             if (dev->mouse_wantcmd) {
-                kbd_log("ATkbc: Processing mouse command...\n");
+                kbd_log("ATkbc: Processing mouse command %02X...\n", dev->mouse_dat);
                 kbc_queue_reset(dev, 3);
                 // dev->out_new_mouse = -1;
                 dev->mouse_state = DEV_STATE_MAIN_OUT;
@@ -1330,7 +1311,7 @@ kbc_poll_aux(atkbd_t *dev)
         case DEV_STATE_MAIN_IN:
             /* Wait for host data. */
             if (dev->mouse_wantcmd) {
-                kbd_log("ATkbc: Processing mouse command...\n");
+                kbd_log("ATkbc: Processing mouse command parameter %02X...\n", dev->mouse_dat);
                 kbc_queue_reset(dev, 3);
                 // dev->out_new_mouse = -1;
                 dev->mouse_state = DEV_STATE_MAIN_OUT;
@@ -2337,7 +2318,7 @@ kbd_process_cmd(void *priv)
                     kbd_log("Get scan code set: %02X\n", keyboard_mode & 3);
                     add_data_kbd_front(dev, keyboard_mode & 3);
                 } else {
-                    if ((dev->key_dat <= 3) && (dev->key_dat != 1)) {
+                    if (dev->key_dat <= 3) {
                         keyboard_mode &= 0xfc;
                         keyboard_mode |= (dev->key_dat & 3);
                         kbd_log("Scan code set now: %02X\n", dev->key_dat);
@@ -2358,7 +2339,6 @@ kbd_process_cmd(void *priv)
 
         /* Keyboard command is now done. */
         dev->key_command = 0x00;
-    /* Do not process command if the existing command is outputting bytes. */
     } else {
         /* No keyboard command in progress. */
         dev->key_command = 0x00;
