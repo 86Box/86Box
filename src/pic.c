@@ -395,7 +395,7 @@ pic_latch_read(uint16_t addr, void *priv)
 {
     uint8_t ret = 0xff;
 
-    pic_log("pic_latch_read(): %02X%02X\n", pic2.lines & 0x10, pic.lines & 0x02);
+    pic_log("pic_latch_read(%i, %i): %02X%02X\n", kbd_latch, mouse_latch, pic2.lines & 0x10, pic.lines & 0x02);
 
     if (kbd_latch && (pic.lines & 0x02))
         picintc(0x0002);
@@ -542,10 +542,10 @@ pic_kbd_latch(int enable)
 {
     pic_log("PIC keyboard latch now %sabled\n", enable ? "en" : "dis");
 
-    if ((enable | mouse_latch) != (kbd_latch | mouse_latch)) {
-        kbd_latch = enable;
-        io_handler(kbd_latch | mouse_latch, 0x0060, 0x0001, pic_latch_read, NULL, NULL, NULL, NULL, NULL, NULL);
-    }
+    if (!!(enable | mouse_latch) != !!(kbd_latch | mouse_latch))
+        io_handler(!!(enable | mouse_latch), 0x0060, 0x0001, pic_latch_read, NULL, NULL, NULL, NULL, NULL, NULL);
+
+    kbd_latch = !!enable;
 
     if (!enable)
         picintc(0x0002);
@@ -556,10 +556,10 @@ pic_mouse_latch(int enable)
 {
     pic_log("PIC mouse latch now %sabled\n", enable ? "en" : "dis");
 
-    if ((kbd_latch | enable) != (kbd_latch | mouse_latch)) {
-        mouse_latch = enable;
-        io_handler(kbd_latch | mouse_latch, 0x0060, 0x0001, pic_latch_read, NULL, NULL, NULL, NULL, NULL, NULL);
-    }
+    if (!!(kbd_latch | enable) != !!(kbd_latch | mouse_latch))
+        io_handler(!!(kbd_latch | enable), 0x0060, 0x0001, pic_latch_read, NULL, NULL, NULL, NULL, NULL, NULL);
+
+    mouse_latch = !!enable;
 
     if (!enable)
         picintc(0x1000);

@@ -619,6 +619,8 @@ static const scancode scancode_set3[512] = {
   // clang-format on
 };
 
+#define USE_RESET_DELAY 1
+
 // #define ENABLE_KEYBOARD_AT_LOG 1
 #ifdef ENABLE_KEYBOARD_AT_LOG
 int keyboard_at_do_log = ENABLE_KEYBOARD_AT_LOG;
@@ -1532,6 +1534,7 @@ write_output(atkbd_t *dev, uint8_t val)
 
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
 
+#if 0
     /* PS/2: Handle IRQ's. */
     if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
         /* IRQ 12 */
@@ -1540,6 +1543,7 @@ write_output(atkbd_t *dev, uint8_t val)
         /* IRQ 1 */
         picint_common(1 << 1, 0, val & 0x10);
     }
+#endif
 
     /* AT, PS/2: Handle A20. */
     if ((old ^ val) & 0x02) { /* A20 enable change */
@@ -2232,15 +2236,23 @@ kbd_key_reset(atkbd_t *dev, int do_fa)
 
     dev->sc_or = 0;
 
-    if (do_fa)
+    if (do_fa) {
         add_data_kbd_front(dev, 0xfa);
+        add_data_kbd_front(dev, 0xaa);
+    }
 
+#ifdef USE_RESET_DELAY
     dev->reset_delay = RESET_DELAY_TIME;
 
     if (do_fa)
         dev->kbd_state = DEV_STATE_MAIN_WANT_RESET;
     else
         dev->kbd_state = DEV_STATE_RESET;
+#else
+
+    if (!do_fa)
+        dev->kbd_state = DEV_STATE_MAIN_1;
+#endif
 }
 
 static void
@@ -2592,7 +2604,7 @@ kbc_process_cmd(void *priv)
             case 0xdd: /* disable A20 address line */
             case 0xdf: /* enable A20 address line */
                 kbd_log("ATkbc: %sable A20\n", (dev->ib == 0xdd) ? "dis" : "en");
-                write_output(dev, (dev->output_port & 0xfd) | (dev->ib & 0x02));
+                write_output_fast_a20(dev, (dev->output_port & 0xfd) | (dev->ib & 0x02));
                 break;
 
             case 0xe0: /* read test inputs */
@@ -2827,8 +2839,10 @@ kbd_reset(void *priv)
 
     /* Stage 1. */
     dev->status = (dev->status & 0x0f) | (dev->input_port & 0xf0);
+#ifdef USE_RESET_DELAY
     /* Wait for command AA. */
     dev->kbc_state = KBC_STATE_RESET;
+#endif
 
     /* Reset the keyboard. */
     kbd_key_reset(dev, 0);
