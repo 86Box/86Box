@@ -52,6 +52,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <string.h>
+#include <time.h>
 #include "minivhd.h"
 #include "internal.h"
 

@@ -25,6 +25,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <time.h>
 #define BUILDING_LIBRARY
 #include "minivhd.h"
 #include "internal.h"
