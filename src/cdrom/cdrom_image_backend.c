@@ -159,7 +159,15 @@ bin_init(const char *filename, int *error)
         tf->get_length = bin_get_length;
         tf->close      = bin_close;
     } else {
-        free(tf);
+        /* From the check above, error may still be non-zero if opening a directory.
+         * The error is set for viso to try and open the directory following this function.
+         * However, we need to make sure the descriptor is closed. */
+        if ((tf->file != NULL) && ((stats.st_mode & S_IFMT) == S_IFDIR)) {
+            /* tf is freed by bin_close */
+            bin_close(tf);
+        } else {
+            free(tf);
+        }
         tf = NULL;
     }
 
