@@ -180,8 +180,8 @@ uint8_t keyboard_set3_all_repeat;
 uint8_t keyboard_set3_all_break;
 
 /* Global keyboard mode:
-   Bits 0 - 1 = scan code set, bit 6 = translate or not. */
-uint8_t        keyboard_mode = 0x42;
+   Bits 0 - 1 = scan code set. */
+uint8_t        keyboard_mode = 0x02;
 
 static void (*mouse_write)(uint8_t val, void *priv) = NULL;
 static void    *mouse_p                             = NULL;
@@ -641,7 +641,7 @@ kbd_log(const char *fmt, ...)
 static void
 set_scancode_map(atkbd_t *dev)
 {
-    switch (keyboard_mode & 3) {
+    switch (keyboard_mode) {
         case 1:
         default:
             keyboard_set_table(scancode_set1);
@@ -654,9 +654,6 @@ set_scancode_map(atkbd_t *dev)
             keyboard_set_table(scancode_set3);
             break;
     }
-
-    if (keyboard_mode & 0x20)
-        keyboard_set_table(scancode_set1);
 }
 
 static void
@@ -724,13 +721,10 @@ kbc_queue_add(atkbd_t *dev, uint8_t val, uint8_t channel)
 static int
 kbc_translate(atkbd_t *dev, uint8_t val)
 {
-    int      xt_mode   = (keyboard_mode & 0x20) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF);
-    int      translate = (keyboard_mode & 0x40);
+    int      xt_mode   = (dev->mem[0x20] & 0x20) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF);
+    int      translate = (dev->mem[0x20] & 0x40) || xt_mode || ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_PS2_2);
     uint8_t  kbc_ven   = dev->flags & KBC_VEN_MASK;
     int      ret       = - 1;
-
-    translate = translate || (keyboard_mode & 0x40) || xt_mode;
-    translate = translate || ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_PS2_2);
 
     /* Allow for scan code translation. */
     if (translate && (val == 0xf0)) {
@@ -1602,7 +1596,6 @@ write_output_fast_a20(atkbd_t *dev, uint8_t val)
 static void
 write_cmd(atkbd_t *dev, uint8_t val)
 {
-    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
     kbd_log("ATkbc: write command byte: %02X (old: %02X)\n", val, dev->mem[0x20]);
 
     /* PS/2 type 2 keyboard controllers always force the XLAT bit to 0. */
@@ -1614,21 +1607,7 @@ write_cmd(atkbd_t *dev, uint8_t val)
             dev->mem[0x2e] = 0x01;
     }
 
-    /* Scan code translate ON/OFF. */
-    keyboard_mode &= 0x93;
-    keyboard_mode |= (val & MODE_MASK);
-
     kbd_log("ATkbc: keyboard interrupt is now %s\n", (val & 0x01) ? "enabled" : "disabled");
-
-    /* ISA AT keyboard controllers use bit 5 for keyboard mode (1 = PC/XT, 2 = AT);
-       PS/2 (and EISA/PCI) keyboard controllers use it as the PS/2 mouse enable switch.
-       The AMIKEY firmware apparently uses this bit for something else. */
-    if ((kbc_ven == KBC_VEN_AMI) || (kbc_ven == KBC_VEN_TG) ||
-        (kbc_ven == KBC_VEN_TG_GREEN) || ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)) {
-        keyboard_mode &= ~CCB_PCMODE;
-
-        kbd_log("ATkbc: mouse interrupt is now %s\n", (val & 0x02) ? "enabled" : "disabled");
-    }
 
     if ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF) {
         /* Update the output port to mirror the IBF and OBF bits, if active. */
@@ -2246,7 +2225,7 @@ kbd_key_reset(atkbd_t *dev, int do_fa)
     dev->kbd_last_scan_code = 0x00;
 
     /* Set scan code set to 2. */
-    keyboard_mode = (keyboard_mode & 0xfc) | 0x02;
+    keyboard_mode = 0x02;
     set_scancode_map(dev);
 
     keyboard_scan = 1;
@@ -2315,13 +2294,12 @@ kbd_process_cmd(void *priv)
             case 0xf0: /* get/set scancode set */
                 add_data_kbd_front(dev, 0xfa);
                 if (dev->key_dat == 0) {
-                    kbd_log("Get scan code set: %02X\n", keyboard_mode & 3);
-                    add_data_kbd_front(dev, keyboard_mode & 3);
+                    kbd_log("Get scan code set: %02X\n", keyboard_mode);
+                    add_data_kbd_front(dev, keyboard_mode);
                 } else {
                     if (dev->key_dat <= 3) {
-                        keyboard_mode &= 0xfc;
-                        keyboard_mode |= (dev->key_dat & 3);
-                        kbd_log("Scan code set now: %02X\n", dev->key_dat);
+                        keyboard_mode = dev->key_dat;
+                        kbd_log("Scan code set now: %02X\n", keyboard_mode);
                     }
                     set_scancode_map(dev);
                 }
@@ -2406,7 +2384,7 @@ kbd_process_cmd(void *priv)
                 keyboard_set3_all_break  = 0;
                 keyboard_set3_all_repeat = 0;
                 memset(keyboard_set3_flags, 0, 512);
-                keyboard_mode = (keyboard_mode & 0xfc) | 0x02;
+                keyboard_mode = 0x02;
                 set_scancode_map(dev);
                 break;
 
@@ -2817,8 +2795,6 @@ kbd_reset(void *priv)
         dev->input_port = video_is_mda() ? 0xf0 : 0xb0;
     kbd_log("ATkbc: input port = %02x\n", dev->input_port);
 
-    keyboard_mode = 0x02 | (dev->mem[0x20] & CCB_TRANSLATE);
-
     /* Enable keyboard, disable mouse. */
     set_enable_kbd(dev, 1);
     keyboard_scan = 1;
@@ -2831,6 +2807,8 @@ kbd_reset(void *priv)
     dev->kbd_last_scan_code = 0;
 
     dev->sc_or = 0;
+
+    keyboard_mode = 0x02;
 
     memset(keyboard_set3_flags, 0, 512);
 
