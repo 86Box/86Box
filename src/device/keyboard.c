@@ -302,9 +302,28 @@ keyboard_recv(uint16_t key)
 
 /* Do we have Control-Alt-PgDn in the keyboard buffer? */
 int
+keyboard_isfsenter(void)
+{
+    return ((recv_key[0x01d] || recv_key[0x11d]) && (recv_key[0x038] || recv_key[0x138]) && (recv_key[0x049] || recv_key[0x149]));
+}
+
+int
+keyboard_isfsenter_down(void)
+{
+    return (!recv_key[0x01d] && !recv_key[0x11d] && !recv_key[0x038] && !recv_key[0x138] && !recv_key[0x049] && !recv_key[0x149]);
+}
+
+/* Do we have Control-Alt-PgDn in the keyboard buffer? */
+int
 keyboard_isfsexit(void)
 {
-    return ((recv_key[0x01D] || recv_key[0x11D]) && (recv_key[0x038] || recv_key[0x138]) && (recv_key[0x051] || recv_key[0x151]));
+    return ((recv_key[0x01d] || recv_key[0x11d]) && (recv_key[0x038] || recv_key[0x138]) && (recv_key[0x051] || recv_key[0x151]));
+}
+
+int
+keyboard_isfsexit_down(void)
+{
+    return (!recv_key[0x01d] && !recv_key[0x11d] && !recv_key[0x038] && !recv_key[0x138] && !recv_key[0x051] && !recv_key[0x151]);
 }
 
 /* Do we have F8-F12 in the keyboard buffer? */

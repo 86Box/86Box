@@ -580,7 +580,6 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
 #ifdef Q_OS_MACOS
-    ui->actionFullscreen->setShortcutVisibleInContextMenu(true);
     ui->actionCtrl_Alt_Del->setShortcutVisibleInContextMenu(true);
     ui->actionTake_screenshot->setShortcutVisibleInContextMenu(true);
 #endif
@@ -1241,13 +1240,14 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 #endif
     }
 
-    if ((video_fullscreen > 0) && keyboard_isfsexit()) {
-        ui->actionFullscreen->trigger();
-    }
+    if (!fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit())
+        fs_off_signal = true;
 
-    if (keyboard_ismsexit()) {
+    if (!fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter())
+        fs_on_signal = true;
+
+    if (keyboard_ismsexit())
         plat_mouse_capture(0);
-    }
 
     if ((video_fullscreen > 0) && (keyboard_recv(0x1D) || keyboard_recv(0x11D))) {
         if (keyboard_recv(0x57))
@@ -1279,6 +1279,17 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
             plat_pause(dopause ^ 1);
         }
     }
+
+    if (fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit_down()) {
+        ui->actionFullscreen->trigger();
+        fs_off_signal = false;
+    }
+
+    if (fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter_down()) {
+        ui->actionFullscreen->trigger();
+        fs_on_signal = false;
+    }
+
     if (!send_keyboard_input)
         return;
 

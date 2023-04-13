@@ -73,7 +73,6 @@
 #include <86box/win.h>
 #include <86box/serial_passthrough.h>
 #include "../disk/minivhd/minivhd.h"
-#include "../disk/minivhd/minivhd_util.h"
 
 /* Icon, Bus, File, C, H, S, Size, Speed */
 #define C_COLUMNS_HARD_DISKS    7
