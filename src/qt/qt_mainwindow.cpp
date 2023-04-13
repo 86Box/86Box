@@ -156,8 +156,6 @@ extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
 
 extern MainWindow *main_window;
 
-static int fs_on_signal = 0, fs_off_signal = 0;
-
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -1243,10 +1241,10 @@ MainWindow::keyPressEvent(QKeyEvent *event)
     }
 
     if (!fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit())
-        fs_off_signal = 1;
+        fs_off_signal = true;
 
     if (!fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter())
-        fs_on_signal = 1;
+        fs_on_signal = true;
 
     if (keyboard_ismsexit())
         plat_mouse_capture(0);
@@ -1284,12 +1282,12 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
 
     if (fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit_down()) {
         ui->actionFullscreen->trigger();
-        fs_off_signal = 0;
+        fs_off_signal = false;
     }
 
     if (fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter_down()) {
         ui->actionFullscreen->trigger();
-        fs_on_signal = 0;
+        fs_on_signal = false;
     }
 
     if (!send_keyboard_input)
