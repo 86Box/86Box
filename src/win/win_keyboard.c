@@ -107,8 +107,7 @@ void
 keyboard_handle(PRAWINPUT raw)
 {
     USHORT     scancode;
-    static int recv_lalt = 0, recv_ralt = 0, recv_tab = 0, recv_lctrl = 0, recv_rctrl = 0;
-    static int recv_npgup = 0, recv_pgup = 0;
+    static int recv_lalt = 0, recv_ralt = 0, recv_tab = 0;
 
     RAWKEYBOARD rawKB = raw->data.keyboard;
     scancode          = rawKB.MakeCode;
@@ -158,147 +157,16 @@ keyboard_handle(PRAWINPUT raw)
                is not captured, suppress the ALT and send a TAB key up. */
             keyboard_input(0, 0x00f);
             recv_tab = 0;
-        } else if (((scancode == 0x049) || (scancode == 0x149)) && !(rawKB.Flags & RI_KEY_BREAK) && (recv_lalt || recv_ralt) && (recv_lctrl || recv_rctrl) && (!kbd_req_capture || mouse_capture)) {
-            /* We received a NumPad Page Up or Page Up while CTRL+ALT was pressed, while the keyboard
-               is captured, suppress the Page Up and send an CTRL+ALT key up. */
-            if (recv_lctrl) {
-                keyboard_input(0, 0x01d);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x01d);
-                keyboard_input(0, 0x01d);
-                recv_lctrl = 0;
-            }
-            if (recv_rctrl) {
-                keyboard_input(0, 0x11d);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x11d);
-                keyboard_input(0, 0x11d);
-                recv_rctrl = 0;
-            }
-            if (recv_lalt) {
-                keyboard_input(0, 0x038);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x038);
-                keyboard_input(0, 0x038);
-                recv_lalt = 0;
-            }
-            if (recv_ralt) {
-                keyboard_input(0, 0x138);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x138);
-                keyboard_input(0, 0x138);
-                recv_ralt = 0;
-            }
-        } else if (((scancode == 0x038) || (scancode == 0x138)) && !(rawKB.Flags & RI_KEY_BREAK) && recv_npgup && (recv_lctrl || recv_rctrl) && (!kbd_req_capture || mouse_capture)) {
-            /* We received an ALT while CTRL+NumPad Page Up was pressed, while the mouse
-               is not captured, suppress the ALT and send a TAB key up. */
-            if (recv_lctrl) {
-                keyboard_input(0, 0x01d);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x01d);
-                keyboard_input(0, 0x01d);
-                recv_lctrl = 0;
-            }
-            if (recv_rctrl) {
-                keyboard_input(0, 0x11d);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x11d);
-                keyboard_input(0, 0x11d);
-                recv_rctrl = 0;
-            }
-            keyboard_input(0, 0x049);
-            recv_npgup = 0;
-        } else if (((scancode == 0x01d) || (scancode == 0x11d)) && !(rawKB.Flags & RI_KEY_BREAK) && recv_npgup && (recv_lalt || recv_ralt) && (!kbd_req_capture || mouse_capture)) {
-            /* We received an CTRL while ALT+NumPad Page Up was pressed, while the mouse
-               is not captured, suppress the ALT and send a TAB key up. */
-            if (recv_lalt) {
-                keyboard_input(0, 0x038);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x038);
-                keyboard_input(0, 0x038);
-                recv_lalt = 0;
-            }
-            if (recv_ralt) {
-                keyboard_input(0, 0x138);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x138);
-                keyboard_input(0, 0x138);
-                recv_ralt = 0;
-            }
-            keyboard_input(0, 0x049);
-            recv_npgup = 0;
-        } else if (((scancode == 0x038) || (scancode == 0x138)) && !(rawKB.Flags & RI_KEY_BREAK) && recv_pgup && (recv_lctrl || recv_rctrl) && (!kbd_req_capture || mouse_capture)) {
-            /* We received an ALT while CTRL+Page Up was pressed, while the mouse
-               is not captured, suppress the ALT and send a TAB key up. */
-            if (recv_lalt) {
-                keyboard_input(0, 0x038);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x038);
-                keyboard_input(0, 0x038);
-                recv_lalt = 0;
-            }
-            if (recv_ralt) {
-                keyboard_input(0, 0x138);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x138);
-                keyboard_input(0, 0x138);
-                recv_ralt = 0;
-            }
-            keyboard_input(0, 0x149);
-            recv_pgup = 0;
-        } else if (((scancode == 0x01d) || (scancode == 0x11d)) && !(rawKB.Flags & RI_KEY_BREAK) && recv_pgup && (recv_lalt || recv_ralt) && (!kbd_req_capture || mouse_capture)) {
-            /* We received an CTRL while ALT+Page Up was pressed, while the mouse
-               is not captured, suppress the ALT and send a TAB key up. */
-            if (recv_lctrl) {
-                keyboard_input(0, 0x01d);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x01d);
-                keyboard_input(0, 0x01d);
-                recv_lctrl = 0;
-            }
-            if (recv_rctrl) {
-                keyboard_input(0, 0x11d);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x11d);
-                keyboard_input(0, 0x11d);
-                recv_rctrl = 0;
-            }
-            keyboard_input(0, 0x149);
-            recv_pgup = 0;
         } else {
             switch (scancode) {
                 case 0x00f:
                     recv_tab = !(rawKB.Flags & RI_KEY_BREAK);
                     break;
-                case 0x01d:
-                    recv_lctrl = !(rawKB.Flags & RI_KEY_BREAK);
-                    break;
-                case 0x049:
-                    recv_npgup = !(rawKB.Flags & RI_KEY_BREAK);
-                    break;
                 case 0x038:
                     recv_lalt = !(rawKB.Flags & RI_KEY_BREAK);
                     break;
-                case 0x11d:
-                    recv_rctrl = !(rawKB.Flags & RI_KEY_BREAK);
-                    break;
                 case 0x138:
                     recv_ralt = !(rawKB.Flags & RI_KEY_BREAK);
-                    break;
-                case 0x149:
-                    recv_pgup = !(rawKB.Flags & RI_KEY_BREAK);
                     break;
             }
 

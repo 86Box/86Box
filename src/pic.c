@@ -541,6 +541,7 @@ void
 pic_kbd_latch(int enable)
 {
     pic_log("PIC keyboard latch now %sabled\n", enable ? "en" : "dis");
+    pclog("PIC keyboard latch now %sabled\n", enable ? "en" : "dis");
 
     if (!!(enable | mouse_latch) != !!(kbd_latch | mouse_latch))
         io_handler(!!(enable | mouse_latch), 0x0060, 0x0001, pic_latch_read, NULL, NULL, NULL, NULL, NULL, NULL);
@@ -555,6 +556,7 @@ void
 pic_mouse_latch(int enable)
 {
     pic_log("PIC mouse latch now %sabled\n", enable ? "en" : "dis");
+    pclog("PIC mouse latch now %sabled\n", enable ? "en" : "dis");
 
     if (!!(kbd_latch | enable) != !!(kbd_latch | mouse_latch))
         io_handler(!!(kbd_latch | enable), 0x0060, 0x0001, pic_latch_read, NULL, NULL, NULL, NULL, NULL, NULL);
