@@ -71,7 +71,7 @@ kbd_keymap(void *data, struct wl_keyboard *wl_kbd, uint32_t format,
     }
 
     if (seat->keymap) {
-        static struct xkb_keymap *keymap = seat->keymap;
+        struct xkb_keymap *keymap = seat->keymap;
         seat->keymap = NULL;
         xkbcommon_wl_set_keymap();
         xkb_keymap_unref(keymap);
@@ -142,7 +142,7 @@ seat_capabilities(void *data, struct wl_seat *wl_seat, uint32_t caps)
         else
             wl_keyboard_destroy(seat->wl_kbd);
 
-        static struct xkb_keymap *keymap = seat->keymap;
+        struct xkb_keymap *keymap = seat->keymap;
         seat->keymap = NULL;
         xkbcommon_wl_set_keymap();
         xkb_keymap_unref(keymap);
