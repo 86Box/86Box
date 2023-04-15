@@ -168,8 +168,8 @@ private:
     bool vnc_enabled         = false;
 
     /* Full screen ON and OFF signals */
-    static bool fs_on_signal = false;
-    static bool fs_off_signal = false;
+    bool fs_on_signal        = false;
+    bool fs_off_signal       = false;
 
     friend class SpecifyDimensions;
     friend class ProgSettings;
