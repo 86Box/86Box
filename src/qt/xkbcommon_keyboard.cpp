@@ -224,10 +224,10 @@ xkbcommon_translate(uint32_t keycode)
         ret = evdev_translate(stoi(key_name_s.substr(1)) - 8);
 
     if (!ret)
-        qWarning() << "XKB Keyboard: Unknown key" << Qt::hex << keycode << QString::fromStdString(key_name_s);
-#if 0
+        qWarning() << "XKB Keyboard: Unknown key" << QString::number(keycode, 16) << QString::fromStdString(key_name_s);
+#if 1
     else
-        qInfo() << "XKB Keyboard: Key" << Qt::hex << keycode << QString::fromStdString(key_name_s) << "scancode" << Qt::hex << ret;
+        qInfo() << "XKB Keyboard: Key" << QString::number(keycode, 16) << QString::fromStdString(key_name_s) << "scancode" << QString::number(ret, 16);
 #endif
 
     return ret;
