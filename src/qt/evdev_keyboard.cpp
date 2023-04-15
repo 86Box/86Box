@@ -154,7 +154,7 @@ evdev_translate(uint32_t keycode)
 
     if (!ret)
         qWarning() << "Evdev Keyboard: Unknown key" << keycode;
-#if 1
+#if 0
     else
         qInfo() << "Evdev Keyboard: Key" << keycode << "scancode" << QString::number(ret, 16);
 #endif

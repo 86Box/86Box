@@ -225,7 +225,7 @@ xkbcommon_translate(uint32_t keycode)
 
     if (!ret)
         qWarning() << "XKB Keyboard: Unknown key" << QString::number(keycode, 16) << QString::fromStdString(key_name_s);
-#if 1
+#if 0
     else
         qInfo() << "XKB Keyboard: Key" << QString::number(keycode, 16) << QString::fromStdString(key_name_s) << "scancode" << QString::number(ret, 16);
 #endif
