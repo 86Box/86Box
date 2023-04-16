@@ -2181,7 +2181,8 @@ kbd_key_reset(atkbd_t *dev, int do_fa)
     keyboard_mode = 0x02;
     set_scancode_map(dev);
 
-    keyboard_scan = 0;
+    /* The BAT enables scanning. */
+    keyboard_scan = 1;
 
     dev->sc_or = 0;
 
@@ -2199,7 +2200,8 @@ kbd_aux_reset(atkbd_t *dev, int do_fa)
     dev->out_new_mouse = -1;
     kbc_queue_reset(dev, 2);
 
-    mouse_scan = 0;
+    /* The BAT enables scanning. */
+    mouse_scan = 1;
 
     if (!do_fa) {
         add_data_kbd_front(dev, 0xaa);
