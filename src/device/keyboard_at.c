@@ -118,13 +118,13 @@ typedef struct {
     /* Controller. */
     uint8_t pci, kbc_state, command, want60,
             status, ib, out, old_out,
-            secr_phase, mem_addr, input_port, output_port,
-            old_output_port, output_locked, ami_stat, ami_flags,
-            key_ctrl_queue_start, key_ctrl_queue_end;
+            sc_or, secr_phase, mem_addr, input_port,
+            output_port, old_output_port, output_locked, ami_stat,
+            ami_flags, key_ctrl_queue_start, key_ctrl_queue_end;
 
     /* Keyboard. */
-    uint8_t kbd_state, key_command, key_wantdata, key_wantcmd,
-            key_dat, kbd_last_scan_code, sc_or, key_cmd_queue_start,
+    uint8_t key_command, key_wantdata, kbd_last_scan_code,
+            kbd_state, key_wantcmd, key_dat, key_cmd_queue_start,
             key_cmd_queue_end, key_queue_start, key_queue_end;
 
     /* Mouse. */
@@ -177,6 +177,9 @@ uint8_t keyboard_set3_all_break;
 /* Global keyboard mode:
    Bits 0 - 1 = scan code set. */
 uint8_t        keyboard_mode = 0x02;
+
+/* Keyboard controller ports. */
+kbc_port_t     *kbc_ports[2] = { NULL, NULL };
 
 static void (*mouse_write)(uint8_t val, void *priv) = NULL;
 static void    *mouse_p                             = NULL;
@@ -1177,15 +1180,15 @@ kbc_poll_kbd(atkbd_t *dev)
                 dev->kbd_state = DEV_STATE_MAIN_1;
             break;
         case DEV_STATE_MAIN_OUT:
-            /* Output command response and then return to main loop #2. */
-            if ((dev->out_new == -1) && (dev->key_cmd_queue_start != dev->key_cmd_queue_end)) {
-                kbd_log("ATkbc: %02X (CMD ) on channel 1\n", dev->key_cmd_queue[dev->key_cmd_queue_start]);
-                dev->out_new             = dev->key_cmd_queue[dev->key_cmd_queue_start];
-                dev->key_cmd_queue_start = (dev->key_cmd_queue_start + 1) & 0xf;
+            /* If host wants to send command while we're sending a byte to host, process the command. */
+            if (dev->key_wantcmd) {
+                kbd_log("ATkbc: Processing keyboard command %02X...\n", dev->key_dat);
+                kbc_queue_reset(dev, 4);
+                kbd_process_cmd(dev);
+                dev->key_wantcmd    = 0;
+                break;
             }
-            if (dev->key_cmd_queue_start == dev->key_cmd_queue_end)
-                dev->kbd_state = DEV_STATE_MAIN_2;
-            break;
+            /* FALLTHROUGH */
         case DEV_STATE_MAIN_WANT_IN:
             /* Output command response and then wait for host data. */
             if ((dev->out_new == -1) && (dev->key_cmd_queue_start != dev->key_cmd_queue_end)) {
@@ -1194,7 +1197,7 @@ kbc_poll_kbd(atkbd_t *dev)
                 dev->key_cmd_queue_start = (dev->key_cmd_queue_start + 1) & 0xf;
             }
             if (dev->key_cmd_queue_start == dev->key_cmd_queue_end)
-                dev->kbd_state = DEV_STATE_MAIN_IN;
+                dev->kbd_state = (dev->kbd_state == DEV_STATE_MAIN_OUT) ? DEV_STATE_MAIN_2 : DEV_STATE_MAIN_IN;
             break;
         case DEV_STATE_MAIN_IN:
             /* Wait for host data. */
@@ -1238,15 +1241,18 @@ kbc_poll_aux(atkbd_t *dev)
                 dev->mouse_state = DEV_STATE_MAIN_1;
             break;
         case DEV_STATE_MAIN_OUT:
-            /* Output command response and then return to main loop #2. */
-            if ((dev->out_new_mouse == -1) && (dev->mouse_cmd_queue_start != dev->mouse_cmd_queue_end)) {
-                kbd_log("ATkbc: %02X (CMD ) on channel 2\n", dev->mouse_cmd_queue[dev->mouse_cmd_queue_start]);
-                dev->out_new_mouse         = dev->mouse_cmd_queue[dev->mouse_cmd_queue_start];
-                dev->mouse_cmd_queue_start = (dev->mouse_cmd_queue_start + 1) & 0xf;
+            /* If host wants to send command while we're sending a byte to host, process the command. */
+            if (dev->mouse_wantcmd) {
+                kbd_log("ATkbc: Processing mouse command %02X...\n", dev->mouse_dat);
+                kbc_queue_reset(dev, 3);
+                dev->mouse_state = DEV_STATE_MAIN_OUT;
+                mouse_write(dev->mouse_dat, mouse_p);
+                if ((dev->mouse_dat == 0xe8) || (dev->mouse_dat == 0xf3))
+                    dev->mouse_state = DEV_STATE_MAIN_WANT_IN;
+                dev->mouse_wantcmd  = 0;
+                break;
             }
-            if (dev->mouse_cmd_queue_start == dev->mouse_cmd_queue_end)
-                dev->mouse_state = DEV_STATE_MAIN_2;
-            break;
+            /* FALLTHROUGH */
         case DEV_STATE_MAIN_WANT_IN:
             /* Output command response and then wait for host data. */
             if ((dev->out_new_mouse == -1) && (dev->mouse_cmd_queue_start != dev->mouse_cmd_queue_end)) {
@@ -1255,7 +1261,7 @@ kbc_poll_aux(atkbd_t *dev)
                 dev->mouse_cmd_queue_start = (dev->mouse_cmd_queue_start + 1) & 0xf;
             }
             if (dev->mouse_cmd_queue_start == dev->mouse_cmd_queue_end)
-                dev->mouse_state = DEV_STATE_MAIN_IN;
+                dev->mouse_state = (dev->mouse_state == DEV_STATE_MAIN_OUT) ? DEV_STATE_MAIN_2 : DEV_STATE_MAIN_IN;
             break;
         case DEV_STATE_MAIN_IN:
             /* Wait for host data. */
@@ -1290,6 +1296,12 @@ kbd_poll(void *priv)
 
     if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) && mouse_write)
         kbc_poll_aux(dev);
+
+    // if (kbc_ports[0] && kbc_ports[0]>-priv)
+        // kbc_ports[0]>poll(kbc_ports[0]>-priv);
+
+    // if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) && kbc_ports[1] && kbc_ports[1]>-priv)
+        // kbc_ports[1]>poll(kbc_ports[1]>-priv);
 }
 
 static void
@@ -2169,17 +2181,16 @@ kbd_key_reset(atkbd_t *dev, int do_fa)
     keyboard_mode = 0x02;
     set_scancode_map(dev);
 
-    keyboard_scan = 1;
+    keyboard_scan = 0;
 
     dev->sc_or = 0;
 
-    if (do_fa) {
+    if (do_fa)
         add_data_kbd_front(dev, 0xfa);
-        add_data_kbd_front(dev, 0xaa);
-    }
+    add_data_kbd_front(dev, 0xaa);
 
     if (!do_fa)
-        dev->kbd_state = DEV_STATE_MAIN_1;
+        dev->kbd_state = DEV_STATE_MAIN_OUT;
 }
 
 static void
@@ -2188,10 +2199,14 @@ kbd_aux_reset(atkbd_t *dev, int do_fa)
     dev->out_new_mouse = -1;
     kbc_queue_reset(dev, 2);
 
-    mouse_scan = 1;
+    mouse_scan = 0;
 
-    if (!do_fa)
-        dev->mouse_state = DEV_STATE_MAIN_1;
+    if (!do_fa) {
+        add_data_kbd_front(dev, 0xaa);
+        add_data_kbd_front(dev, 0x00);
+
+        dev->mouse_state = DEV_STATE_MAIN_OUT;
+    }
 }
 
 void
@@ -2735,8 +2750,8 @@ kbd_reset(void *priv)
     kbd_log("ATkbc: input port = %02x\n", dev->input_port);
 
     /* Enable keyboard, disable mouse. */
-    set_enable_kbd(dev, 1);
-    keyboard_scan = 1;
+    set_enable_kbd(dev, 0);
+    keyboard_scan = 0;
     set_enable_mouse(dev, 0);
     mouse_scan = 0;
 
@@ -2800,6 +2815,7 @@ static void
 kbd_close(void *priv)
 {
     atkbd_t *dev = (atkbd_t *) priv;
+    int i, max_ports = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) ? 2 : 1;
 
     kbd_reset(dev);
 
@@ -2813,6 +2829,14 @@ kbd_close(void *priv)
     keyboard_set_table(NULL);
 
     SavedKbd = NULL;
+
+    for (i = 0; i < max_ports; i++) {
+        if (kbc_ports[i] != NULL) {
+            free(kbc_ports[i]);
+            kbc_ports[i] = NULL;
+        }
+    }
+
     free(dev);
 }
 
@@ -2820,6 +2844,7 @@ static void *
 kbd_init(const device_t *info)
 {
     atkbd_t *dev;
+    int i, max_ports;
 
     dev = (atkbd_t *) malloc(sizeof(atkbd_t));
     memset(dev, 0x00, sizeof(atkbd_t));
@@ -2877,6 +2902,13 @@ kbd_init(const device_t *info)
             dev->write60_ven = write60_toshiba;
             dev->write64_ven = write64_toshiba;
             break;
+    }
+
+    max_ports = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) ? 2 : 1;
+
+    for (i = 0; i < max_ports; i++) {
+        kbc_ports[i] = (kbc_port_t *) malloc(sizeof(kbc_port_t));
+        memset(kbc_ports[i], 0x00, sizeof(kbc_port_t));
     }
 
     return (dev);

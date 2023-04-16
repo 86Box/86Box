@@ -22,6 +22,52 @@
 #ifndef EMU_KEYBOARD_H
 #define EMU_KEYBOARD_H
 
+enum {
+    DEV_KBD = 0,
+    DEV_AUX
+};
+
+/* Used by the AT / PS/2 keyboard controller, common device, keyboard, and mouse. */
+typedef struct {
+    uint8_t wantcmd, dat, pad, pad0;
+
+    int   out_new;
+
+    void *priv;
+
+    void  (*poll)(void *priv);
+} kbc_port_t;
+
+/* Used by the AT / PS/2 common device, keyboard, and mouse. */
+typedef struct {
+    const char *name; /* name of this device */
+
+    uint8_t type, inst, command, wantdata,
+            last_scan_code, state, resolution, rate,
+            cmd_queue_start, cmd_queue_end, queue_start, queue_end;
+
+    /* 6 bytes needed for mouse */
+    uint8_t last_data[6];
+
+    uint16_t flags;
+
+    /* Internal FIFO, not present on real devices, needed for commands that
+       output multiple bytes. */
+    uint8_t cmd_queue[16];
+
+    uint8_t queue[16];
+
+    int     mode,
+            x, y, z, b;
+
+    int     *scan;
+
+    void    (*process_cmd)(void *priv);
+    void    (*execute_bat)(void *priv);
+
+    kbc_port_t *port;
+} atkbc_dev_t;
+
 typedef struct {
     const uint8_t mk[4];
     const uint8_t brk[4];
@@ -141,6 +187,8 @@ extern uint8_t keyboard_set3_all_break;
 extern int     mouse_queue_start, mouse_queue_end;
 extern int     mouse_cmd_queue_start, mouse_cmd_queue_end;
 extern int     mouse_scan;
+
+extern kbc_port_t     *kbc_ports[2];
 
 #ifdef EMU_DEVICE_H
 extern const device_t keyboard_pc_device;
