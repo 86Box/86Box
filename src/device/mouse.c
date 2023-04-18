@@ -27,6 +27,8 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/timer.h>
+#include <86box/gdbstub.h>
 #include <86box/mouse.h>
 
 typedef struct {
@@ -44,6 +46,8 @@ int mouse_x,
 
 double mouse_x_abs,
     mouse_y_abs;
+
+pc_timer_t mouse_timer; /* mouse event timer */
 
 static const device_t mouse_none_device = {
     .name          = "None",
@@ -141,6 +145,20 @@ mouse_close(void)
     mouse_priv     = NULL;
     mouse_nbut     = 0;
     mouse_dev_poll = NULL;
+
+    timer_stop(&mouse_timer);
+}
+
+static void
+mouse_timer_poll(void *priv)
+{
+    /* Poll at 255 Hz, maximum supported by PS/2 mic. */
+    timer_on_auto(&mouse_timer, 1000000.0 / 255.0);
+
+#ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
+    if (gdbstub_step == GDBSTUB_EXEC)
+#endif
+        mouse_process();
 }
 
 void
@@ -165,6 +183,11 @@ mouse_reset(void)
 
     if (mouse_curr != NULL)
         mouse_priv = device_add(mouse_curr);
+
+    timer_add(&mouse_timer, mouse_timer_poll, NULL, 0);
+
+    /* Poll at 255 Hz, maximum supported by PS/2 mic. */
+    timer_on_auto(&mouse_timer, 1000000.0 / 255.0);
 }
 
 /* Callback from the hardware driver. */

@@ -114,7 +114,7 @@ int isa_cycles, cpu_inited,
     cpu_waitstates, cpu_cache_int_enabled, cpu_cache_ext_enabled,
     cpu_isa_speed, cpu_pci_speed, cpu_isa_pci_div, cpu_agp_speed, cpu_alt_reset,
 
-    cpu_override, cpu_effective, cpu_multi, cpu_16bitbus, cpu_64bitbus, cpu_busspeed,
+    cpu_override, cpu_effective, cpu_multi, cpu_16bitbus, cpu_64bitbus,
     cpu_cyrix_alignment, CPUID,
 
     is186, is_nec,
@@ -138,7 +138,7 @@ uint8_t  _cache[2048];
 uint64_t cpu_CR4_mask, tsc = 0;
 uint64_t pmc[2] = { 0, 0 };
 
-double cpu_dmulti;
+double cpu_dmulti, cpu_busspeed;
 
 msr_t msr;
 

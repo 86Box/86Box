@@ -133,7 +133,7 @@ keyboard_handle(PRAWINPUT raw)
            We use scan code 0xFFFF to mean a mapping that
            has a prefix other than E0 and that is not E1 1D,
            which is, for our purposes, invalid. */
-        if ((scancode == 0x00F) && !(rawKB.Flags & RI_KEY_BREAK) && (recv_lalt || recv_ralt) && !mouse_capture) {
+        if ((scancode == 0x00f) && !(rawKB.Flags & RI_KEY_BREAK) && (recv_lalt || recv_ralt) && (!kbd_req_capture || mouse_capture)) {
             /* We received a TAB while ALT was pressed, while the mouse
                is not captured, suppress the TAB and send an ALT key up. */
             if (recv_lalt) {
@@ -152,14 +152,14 @@ keyboard_handle(PRAWINPUT raw)
                 keyboard_input(0, 0x138);
                 recv_ralt = 0;
             }
-        } else if (((scancode == 0x038) || (scancode == 0x138)) && !(rawKB.Flags & RI_KEY_BREAK) && recv_tab && !mouse_capture) {
+        } else if (((scancode == 0x038) || (scancode == 0x138)) && !(rawKB.Flags & RI_KEY_BREAK) && recv_tab && (!kbd_req_capture || mouse_capture)) {
             /* We received an ALT while TAB was pressed, while the mouse
                is not captured, suppress the ALT and send a TAB key up. */
-            keyboard_input(0, 0x00F);
+            keyboard_input(0, 0x00f);
             recv_tab = 0;
         } else {
             switch (scancode) {
-                case 0x00F:
+                case 0x00f:
                     recv_tab = !(rawKB.Flags & RI_KEY_BREAK);
                     break;
                 case 0x038:
@@ -172,7 +172,7 @@ keyboard_handle(PRAWINPUT raw)
 
             /* Translate right CTRL to left ALT if the user has so
                chosen. */
-            if ((scancode == 0x11D) && rctrl_is_lalt)
+            if ((scancode == 0x11d) && rctrl_is_lalt)
                 scancode = 0x038;
 
             /* Normal scan code pass through, pass it through as is if

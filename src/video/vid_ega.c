@@ -57,7 +57,7 @@ static uint8_t         ega_rotate[8][256];
 static uint32_t        pallook16[256], pallook64[256];
 static int             ega_type = 0, old_overscan_color = 0;
 
-extern uint8_t edatlookup[4][4];
+uint8_t egaremap2bpp[256];
 
 /* 3C2 controls default mode on EGA. On VGA, it determines monitor type (mono or colour):
     7=CGA mode (200 lines), 9=EGA mode (350 lines), 8=EGA mode (200 lines). */
@@ -312,8 +312,25 @@ ega_in(uint16_t addr, void *p)
             break;
         case 0x3d1:
         case 0x3d5:
-            if (ega_type)
-                ret = ega->crtc[ega->crtcreg];
+            switch(ega->crtcreg) {
+                case 0xc:
+                case 0xd:
+                case 0xe:
+                case 0xf:
+                    ret = ega->crtc[ega->crtcreg];
+                    break;
+
+                case 0x10:
+                case 0x11:
+                    // TODO: Return light pen address once implemented
+                    if (ega_type)
+                        ret = ega->crtc[ega->crtcreg];
+                    break;
+
+                default:
+                    if (ega_type)
+                        ret = ega->crtc[ega->crtcreg];
+            }
             break;
         case 0x3da:
             ega->attrff = 0;
@@ -409,32 +426,16 @@ ega_recalctimings(ega_t *ega)
     ega->render = ega_render_blank;
     if (!ega->scrblank && ega->attr_palette_enable) {
         if (!(ega->gdcreg[6] & 1)) {
-            if (ega->seqregs[1] & 8) {
-                ega->render = ega_render_text_40;
+            if (ega->seqregs[1] & 8)
                 ega->hdisp *= (ega->seqregs[1] & 1) ? 16 : 18;
-            } else {
-                ega->render = ega_render_text_80;
+            else
                 ega->hdisp *= (ega->seqregs[1] & 1) ? 8 : 9;
-            }
+            ega->render = ega_render_text;
             ega->hdisp_old = ega->hdisp;
         } else {
             ega->hdisp *= (ega->seqregs[1] & 8) ? 16 : 8;
+            ega->render = ega_render_graphics;
             ega->hdisp_old = ega->hdisp;
-
-            switch (ega->gdcreg[5] & 0x20) {
-                case 0x00:
-                    if (ega->seqregs[1] & 8)
-                        ega->render = ega_render_4bpp_lowres;
-                    else
-                        ega->render = ega_render_4bpp_highres;
-                    break;
-                case 0x20:
-                    if (ega->seqregs[1] & 8)
-                        ega->render = ega_render_2bpp_lowres;
-                    else
-                        ega->render = ega_render_2bpp_highres;
-                    break;
-            }
         }
     }
 
@@ -752,6 +753,73 @@ ega_doblit(int wx, int wy, ega_t *ega)
         ega->y_add >>= 1;
 }
 
+uint32_t
+ega_remap_cpu_addr(uint32_t inaddr, ega_t *ega)
+{
+    int      a0mux;
+    uint32_t addr = inaddr;
+
+    // The CPU A0 line is multiplexed via a 3-to-8 mux.
+    // Input bits are:
+    // bit 0: 1 = 64K, 0 = 128K+ (from memory expansion connector)
+    // bit 1: 1 = Odd/Even mode, 0 = normal mode (from GC reg 6 bit 1)
+    // bit 2: 1 = 128K mapping, 0 = other mapping (from memory decode PROM)
+    a0mux = 0;
+
+    if (ega->gdcreg[6] & 2) {
+        a0mux |= 2;
+    }
+    if (ega->vram_limit <= 64*1024) {
+        a0mux |= 1;
+    }
+
+    switch ((ega->gdcreg[6] & 0xC)) {
+        case 0x0: // 128K A000
+            addr &= 0xFFFF;
+            // TODO: Confirm the behaviour of this on actual hardware
+            a0mux |= 4;
+            break;
+        case 0x4: // 64K A000
+            addr &= 0xFFFF;
+            break;
+        case 0x8: // 32K B000
+            addr &= 0x7FFF;
+            break;
+        case 0xC: // 32K B800
+            addr &= 0x7FFF;
+            break;
+    }
+
+    switch (a0mux) {
+        case 0:
+        case 1:
+        case 4:
+        case 5:
+        case 7: // A0 becomes A0
+            break;
+        case 2:
+            // A0 becomes the inversion of PGSEL (reg 0x3C2, miscout, bit 5)
+            // That is, 1 selects the "low" 64k, and 0 selects the "high" 64k.
+            addr &= ~1;
+            addr |= (~ega->miscout>>5)&1;
+            break;
+        case 3: // A0 becomes A14
+            addr &= ~1;
+            addr |= (inaddr>>14)&1;
+            break;
+        case 6: // A0 becomes A16
+            addr &= ~1;
+            addr |= (inaddr>>16)&1;
+            break;
+    }
+
+    // In 64k mode, only select the first 16Kword/64KB bank
+    if (!(ega->seqregs[4] & 2)) {
+        addr &= 0x3FFF;
+    }
+    return addr;
+}
+
 void
 ega_write(uint32_t addr, uint8_t val, void *p)
 {
@@ -761,20 +829,13 @@ ega_write(uint32_t addr, uint8_t val, void *p)
 
     cycles -= video_timing_write_b;
 
-    if (addr >= 0xB0000)
-        addr &= 0x7fff;
-    else
-        addr &= 0xffff;
-
     if (ega->chain2_write) {
         writemask2 &= ~0xa;
         if (addr & 1)
             writemask2 <<= 1;
-        addr &= ~1;
-        if (addr & 0x4000)
-            addr |= 1;
-        addr &= ~0x4000;
     }
+
+    addr = ega_remap_cpu_addr(addr, ega);
 
     addr <<= 2;
 
@@ -939,18 +1000,12 @@ ega_read(uint32_t addr, void *p)
     int     readplane = ega->readplane;
 
     cycles -= video_timing_read_b;
-    if (addr >= 0xb0000)
-        addr &= 0x7fff;
-    else
-        addr &= 0xffff;
 
     if (ega->chain2_read) {
         readplane = (readplane & 2) | (addr & 1);
-        addr &= ~1;
-        if (addr & 0x4000)
-            addr |= 1;
-        addr &= ~0x4000;
     }
+
+    addr = ega_remap_cpu_addr(addr, ega);
 
     addr <<= 2;
 
@@ -1007,6 +1062,18 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
             if (d & 2)
                 edatlookup[c][d] |= 0x20;
         }
+    }
+
+    for (c = 0; c < 256; c++) {
+        egaremap2bpp[c] = 0;
+        if (c & 0x01)
+            egaremap2bpp[c] |= 0x01;
+        if (c & 0x04)
+            egaremap2bpp[c] |= 0x02;
+        if (c & 0x10)
+            egaremap2bpp[c] |= 0x04;
+        if (c & 0x40)
+            egaremap2bpp[c] |= 0x08;
     }
 
     if (is_mono) {

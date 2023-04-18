@@ -73,7 +73,6 @@
 #include <86box/win.h>
 #include <86box/serial_passthrough.h>
 #include "../disk/minivhd/minivhd.h"
-#include "../disk/minivhd/minivhd_util.h"
 
 /* Icon, Bus, File, C, H, S, Size, Speed */
 #define C_COLUMNS_HARD_DISKS    7
@@ -2492,7 +2491,7 @@ static BOOL
 win_settings_hard_disks_recalc_list(HWND hdlg)
 {
     LVITEM lvI;
-    int    i, j = 0;
+    int    j = 0;
     WCHAR  szText[256], usr_path_w[1024];
     HWND   hwndList = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
 

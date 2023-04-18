@@ -8,8 +8,6 @@
  *
  *          Main emulator module where most things are controlled.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -1265,9 +1263,9 @@ pc_run(void)
     startblit();
     cpu_exec(cpu_s->rspeed / 100);
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
-    if (gdbstub_step == GDBSTUB_EXEC)
+    // if (gdbstub_step == GDBSTUB_EXEC)
 #endif
-        mouse_process();
+        // mouse_process();
     joystick_process();
     endblit();
 
