@@ -30,6 +30,7 @@
 #include <86box/mem.h>
 #include <86box/smram.h>
 #include <86box/pci.h>
+#include <86box/pic.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
@@ -387,6 +388,9 @@ ims8848_init(const device_t *info)
     cpu_update_waitstates();
 
     ims8848_reset(dev);
+
+    pic_kbd_latch(0x01);
+    pic_mouse_latch(0x01);
 
     return dev;
 }

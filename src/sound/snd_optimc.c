@@ -70,14 +70,14 @@ typedef struct optimc_t {
 } optimc_t, opti_82c929a_t;
 
 static void
-optimc_filter_opl(void* priv, double* out_l, double* out_r)
+optimc_filter_opl(void *priv, double *out_l, double *out_r)
 {
     optimc_t *optimc = (optimc_t *) priv;
 
     if (optimc->cur_wss_enabled) {
         *out_l /= optimc->sb->mixer_sbpro.fm_l;
         *out_r /= optimc->sb->mixer_sbpro.fm_r;
-        ad1848_filter_aux2((void*)&optimc->ad1848, out_l, out_r);
+        ad1848_filter_aux2((void *) &optimc->ad1848, out_l, out_r);
     }
 }
 
@@ -167,7 +167,7 @@ optimc_reg_write(uint16_t addr, uint8_t val, void *p)
                     switch ((val >> 4) & 0x3) {
                         case 0: /* WSBase = 0x530 */
                             optimc->cur_wss_addr = 0x530;
-                             break;
+                            break;
                         case 1: /* WSBase = 0xE80 */
                             optimc->cur_wss_addr = 0xE80;
                             break;
@@ -373,7 +373,7 @@ optimc_init(const device_t *info)
     sb_ct1345_mixer_reset(optimc->sb);
 
     optimc->sb->opl_mixer = optimc;
-    optimc->sb->opl_mix = optimc_filter_opl;
+    optimc->sb->opl_mix   = optimc_filter_opl;
 
     optimc->fm_type = (info->local & OPTIMC_OPL4) ? FM_YMF278B : FM_YMF262;
     fm_driver_get(optimc->fm_type, &optimc->sb->opl);

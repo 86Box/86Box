@@ -1520,7 +1520,7 @@ struct pulse_sample {
 static int                 pulse_limitval = 15; /* tolerance of 15% */
 static struct pulse_sample psarray[FDI_MAX_ARRAY];
 static int                 array_index;
-static uint32_t       total;
+static uint32_t            total;
 static int                 totaldiv;
 
 static void
@@ -2051,7 +2051,7 @@ decode_lowlevel_track(FDI *fdi, int track, struct fdi_cache *cache)
 }
 
 static unsigned char fdiid[]            = { "Formatted Disk Image file" };
-static int      bit_rate_table[16] = { 125, 150, 250, 300, 500, 1000 };
+static int           bit_rate_table[16] = { 125, 150, 250, 300, 500, 1000 };
 
 void
 fdi2raw_header_free(FDI *fdi)

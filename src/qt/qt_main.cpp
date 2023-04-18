@@ -138,7 +138,11 @@ main_thread_fn()
     }
 
     is_quit = 1;
-    QTimer::singleShot(0, QApplication::instance(), []() { QApplication::instance()->quit(); });
+    if (gfxcard[1]) {
+        ui_deinit_monitor(1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+    QTimer::singleShot(0, QApplication::instance(), []() { QApplication::processEvents(); QApplication::instance()->quit(); });
 }
 
 static std::thread *main_thread;

@@ -1343,6 +1343,9 @@ machine_ps2_common_init(const machine_t *model)
     nmi_mask = 0x80;
 
     ps2.uart = device_add_inst(&ns16550_device, 1);
+
+    pic_kbd_latch(0x01);
+    pic_mouse_latch(0x01);
 }
 
 int

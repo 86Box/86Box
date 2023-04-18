@@ -1003,6 +1003,10 @@ END
 #undef STR_NET_TYPE
 #undef STR_PCAP
 #undef STR_NET
+#undef STR_NET1
+#undef STR_NET2
+#undef STR_NET3
+#undef STR_NET4
 
 #undef STR_COM1
 #undef STR_COM2

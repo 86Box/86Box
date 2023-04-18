@@ -814,9 +814,9 @@ void
 plat_get_global_config_dir(char *strptr)
 {
 #ifdef __APPLE__
-    char* prefPath = SDL_GetPrefPath(NULL, "net.86Box.86Box")
+    char *prefPath = SDL_GetPrefPath(NULL, "net.86Box.86Box");
 #else
-    char* prefPath = SDL_GetPrefPath(NULL, "86Box");
+    char *prefPath = SDL_GetPrefPath(NULL, "86Box");
 #endif
     strncpy(strptr, prefPath, 1024);
     path_slash(strptr);
@@ -1089,7 +1089,7 @@ main(int argc, char **argv)
         return 6;
     }
 
-    gfxcard[1]   = 0;
+    gfxcard[1]  = 0;
     eventthread = SDL_ThreadID();
     blitmtx     = SDL_CreateMutex();
     if (!blitmtx) {

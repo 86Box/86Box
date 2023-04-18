@@ -2313,6 +2313,56 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
     }
 
     flushmmucache_cr3();
+
+#ifdef ENABLE_MEM_LOG
+    pclog("\nMemory map:\n");
+    mem_mapping_t *write = (mem_mapping_t *) -1, *read = (mem_mapping_t *) -1, *write_bus = (mem_mapping_t *) -1, *read_bus = (mem_mapping_t *) -1;
+    for (c = 0; c < (sizeof(write_mapping) / sizeof(write_mapping[0])); c++) {
+        if ((write_mapping[c] == write) && (read_mapping[c] == read) && (write_mapping_bus[c] == write_bus) && (read_mapping_bus[c] == read_bus))
+            continue;
+        write = write_mapping[c];
+        read = read_mapping[c];
+        write_bus = write_mapping_bus[c];
+        read_bus = read_mapping_bus[c];
+
+        pclog("%08X | ", c << MEM_GRANULARITY_BITS);
+        if (read) {
+            pclog("R%c%c%c %08X+% 8X",
+                read->read_b ? 'b' : ' ', read->read_w ? 'w' : ' ', read->read_l ? 'l' : ' ',
+                read->base, read->size);
+        } else {
+            pclog("                      ");
+        }
+        if (write) {
+            pclog(" | W%c%c%c %08X+% 8X",
+                write->write_b ? 'b' : ' ', write->write_w ? 'w' : ' ', write->write_l ? 'l' : ' ',
+                write->base, write->size);
+        } else {
+            pclog(" |                       ");
+        }
+        pclog(" | %c\n", _mem_exec[c] ? 'X' : ' ');
+
+        if ((write != write_bus) || (read != read_bus)) {
+            pclog("   ^ bus | ");
+            if (read_bus) {
+                pclog("R%c%c%c %08X+% 8X",
+                    read_bus->read_b ? 'b' : ' ', read_bus->read_w ? 'w' : ' ', read_bus->read_l ? 'l' : ' ',
+                    read_bus->base, read_bus->size);
+            } else {
+                pclog("                      ");
+            }
+            if (write_bus) {
+                pclog(" | W%c%c%c %08X+% 8X",
+                    write_bus->write_b ? 'b' : ' ', write_bus->write_w ? 'w' : ' ', write_bus->write_l ? 'l' : ' ',
+                    write_bus->base, write_bus->size);
+            } else {
+                pclog(" |                       ");
+            }
+            pclog(" |\n");
+        }
+    }
+    pclog("\n");
+#endif
 }
 
 void
@@ -2530,11 +2580,12 @@ void
 mem_a20_init(void)
 {
     if (is286) {
-        rammask = cpu_16bitbus ? 0xefffff : 0xffefffff;
+        mem_a20_key = mem_a20_alt = mem_a20_state = 0;
+        rammask = cpu_16bitbus ? 0xffffff : 0xffffffff;
         if (is6117)
             rammask |= 0x03000000;
         flushmmucache();
-        mem_a20_state = mem_a20_key | mem_a20_alt;
+        // mem_a20_state = mem_a20_key | mem_a20_alt;
     } else {
         rammask = 0xfffff;
         flushmmucache();
@@ -2577,7 +2628,8 @@ mem_init_ram_mapping(mem_mapping_t *mapping, uint32_t base, uint32_t size)
 void
 mem_reset(void)
 {
-    uint32_t c, m;
+    uint32_t c;
+    size_t m;
 
     memset(page_ff, 0xff, sizeof(page_ff));
 
@@ -2615,7 +2667,7 @@ mem_reset(void)
         mem_size = 2097152;
 #endif
 
-    m = 1024UL * mem_size;
+    m = 1024UL * (size_t) mem_size;
 
 #if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
     if (mem_size > 1048576) {
@@ -2820,6 +2872,10 @@ mem_remap_top(int kb)
         kb       = 256;
         sis_mode = 1;
     }
+
+    /* Do not remap if we're have more than (16 MB - RAM) memory. */
+    if ((kb != 0) && (mem_size >= (16384 - kb)))
+        return;
 
     if (kb == 0) {
         kb  = old_kb;

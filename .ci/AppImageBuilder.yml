@@ -67,6 +67,8 @@ AppDir:
     - libxcb-shape0 # if QT:BOOL=ON
     - libxcb-shm0 # if QT:BOOL=ON
     - libxcb-xfixes0 # if QT:BOOL=ON
+    - libxkbcommon-x11-0 # if QT:BOOL=ON
+    - qtwayland5 # if QT:BOOL=ON
     - zlib1g
   files:
     exclude:
