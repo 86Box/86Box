@@ -55,6 +55,8 @@
 #define WRBUF_DELAY 1
 #define RSM_FRAC    10
 
+#define OPL_FREQ FREQ_48000
+
 // Channel types
 enum {
     ch_2op  = 0,
@@ -1481,7 +1483,7 @@ nuked_drv_init(const device_t *info)
         dev->status = 0x06;
 
     /* Initialize the NukedOPL object. */
-    nuked_init(&dev->opl, 48000);
+    nuked_init(&dev->opl, OPL_FREQ);
 
     timer_add(&dev->timers[0], nuked_timer_1, dev, 0);
     timer_add(&dev->timers[1], nuked_timer_2, dev, 0);

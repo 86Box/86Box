@@ -12,7 +12,7 @@
 # After a successful build, you can install the RPMs as follows:
 #  sudo dnf install RPMS/$(uname -m)/86Box-3* RPMS/noarch/86Box-roms*
 
-%global romver v3.11
+%global romver 3.11
 
 Name:		86Box
 Version:	4.0
@@ -21,8 +21,8 @@ Summary:	Classic PC emulator
 License:	GPLv2+
 URL:		https://86box.net
 
-Source0:	https://github.com/86Box/86Box/archive/refs/tags/v%%{version}.tar.gz
-Source1:	https://github.com/86Box/roms/archive/refs/tags/%{romver}.zip
+Source0:	https://github.com/86Box/86Box/archive/refs/tags/v%{version}.tar.gz
+Source1:	https://github.com/86Box/roms/archive/refs/tags/v%{romver}.zip
 
 BuildRequires: cmake
 BuildRequires: desktop-file-utils
@@ -32,6 +32,7 @@ BuildRequires: gcc-c++
 BuildRequires: libFAudio-devel
 BuildRequires: libappstream-glib
 BuildRequires: libevdev-devel
+BuildRequires: libxkbcommon-x11-devel
 BuildRequires: libXi-devel
 BuildRequires: ninja-build
 BuildRequires: openal-soft-devel
@@ -98,7 +99,7 @@ cp src/unix/assets/net.86box.86Box.metainfo.xml %{buildroot}%{_metainfodir}
 appstream-util validate-relax --nonet %{buildroot}%{_metainfodir}/net.86box.86Box.metainfo.xml
 
 # install roms
-pushd roms-%{version}
+pushd roms-%{romver}
   mkdir -p %{buildroot}%{_datadir}/%{name}/roms
   cp -a * %{buildroot}%{_datadir}/%{name}/roms/
 popd

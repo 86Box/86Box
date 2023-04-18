@@ -220,7 +220,7 @@ machine_at_spc6000a_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&keyboard_at_samsung_device);
+    device_add(&keyboard_at_ami_device);
 
     return ret;
 }
@@ -404,7 +404,7 @@ machine_at_acerv10_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&sis_85c461_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&keyboard_ps2_acer_pci_device);
     device_add(&ide_isa_2ch_device);
 
     if (fdc_type == FDC_INTERNAL)
@@ -1066,7 +1066,7 @@ machine_at_486sp3_init(const machine_t *model)
     pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 05 = Slot 3 */
     pci_register_slot(0x06, PCI_CARD_NORMAL,      4, 1, 2, 3); /* 06 = Slot 4 */
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&keyboard_ps2_ami_pci_device);                  /* Uses the AMIKEY KBC */
+    device_add(&keyboard_ps2_ami_pci_device); /* Uses the AMIKEY KBC */
     device_add(&sio_device);
     device_add(&fdc37c663_ide_device);
     device_add(&sst_flash_29ee010_device);
@@ -1657,7 +1657,7 @@ machine_at_actionpc2600_init(const machine_t *model)
     device_add(&umc_8886af_device);
     device_add(&um8669f_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&keyboard_at_ami_device);
+    device_add(&keyboard_ps2_tg_ami_device);
 
     return ret;
 }
@@ -1725,11 +1725,11 @@ machine_at_ms4134_init(const machine_t *model)
 {
     int ret;
 
-       ret = bios_load_linear("roms/machines/ms4134/4alm001.bin",
+    ret = bios_load_linear("roms/machines/ms4134/4alm001.bin",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-    return ret;
+        return ret;
 
     machine_at_common_ide_init(model);
 
@@ -1760,10 +1760,10 @@ machine_at_tg486gp_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/tg486gp/tg486gp.bin",
-               0x000e0000, 131072, 0);
+                           0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
-    return ret;
+        return ret;
 
     machine_at_common_ide_init(model);
 
@@ -1782,7 +1782,7 @@ machine_at_tg486gp_init(const machine_t *model)
     device_add(&ali1435_device);
     device_add(&sst_flash_29ee010_device);
 
-    device_add(&keyboard_ps2_ami_device);
+    device_add(&keyboard_ps2_tg_ami_device);
 
     return ret;
 }
@@ -1793,10 +1793,10 @@ machine_at_tg486g_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/tg486g/tg486g.bin",
-               0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-    return ret;
+        return ret;
     else {
         mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
         mem_mapping_set_exec(&bios_mapping, rom);
@@ -1806,7 +1806,7 @@ machine_at_tg486g_init(const machine_t *model)
     device_add(&sis_85c471_device);
     device_add(&ide_isa_device);
     device_add(&fdc37c651_ide_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
+    device_add(&keyboard_ps2_tg_ami_pci_device);
 
     return ret;
 }

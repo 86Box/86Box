@@ -675,7 +675,7 @@ x54x_rd_sge(x54x_t *dev, int Is24bit, uint32_t Address, SGE32 *SG)
             memcpy((uint8_t *) &SGE24, bytes, sizeof(SGE));
         } else {
             /* 16-bit device, special handling not needed. */
-            dma_bm_read(Address, (uint8_t *) &SGE24, 8, dev->transfer_size);
+            dma_bm_read(Address, (uint8_t *) &SGE24, 6, dev->transfer_size);
         }
         x54x_add_to_period(dev, sizeof(SGE));
 

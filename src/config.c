@@ -857,7 +857,7 @@ load_ports(void)
         serial_passthrough_enabled[c] = !!ini_section_get_int(cat, temp, 0);
 
         if (serial_passthrough_enabled[c])
-            config_log("Serial Port %d: passthrough enabled.\n\n", c+1);
+            config_log("Serial Port %d: passthrough enabled.\n\n", c + 1);
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {
@@ -2345,7 +2345,7 @@ save_input_devices(void)
     } else {
         ini_section_delete_var(cat, "tablet_tool_type");
     }
-    
+
     ini_delete_section_if_empty(config, cat);
 }
 
@@ -2540,7 +2540,7 @@ save_storage_controllers(void)
         ini_section_delete_var(cat, "cdrom_interface");
     else
         ini_section_set_string(cat, "cdrom_interface",
-                           cdrom_interface_get_internal_name(cdrom_interface_current));
+                               cdrom_interface_get_internal_name(cdrom_interface_current));
 
     if (ide_ter_enabled == 0)
         ini_section_delete_var(cat, "ide_ter");

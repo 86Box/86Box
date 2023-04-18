@@ -41,6 +41,8 @@
 
 #include <memory>
 
+#include "qt_mainwindow.hpp"
+
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
 #    define result_t qintptr
 #else
@@ -51,7 +53,7 @@ class WindowsRawInputFilter : public QObject, public QAbstractNativeEventFilter 
     Q_OBJECT
 
 public:
-    static std::unique_ptr<WindowsRawInputFilter> Register(QMainWindow *window);
+    static std::unique_ptr<WindowsRawInputFilter> Register(MainWindow *window);
 
     bool nativeEventFilter(const QByteArray &eventType, void *message, result_t *result) override;
 
@@ -61,7 +63,7 @@ public slots:
     void mousePoll();
 
 private:
-    QMainWindow *window;
+    MainWindow *window;
     uint16_t     scancode_map[768];
     int          buttons    = 0;
     int          dx         = 0;
@@ -69,7 +71,7 @@ private:
     int          dwheel     = 0;
     int          menus_open = 0;
 
-    WindowsRawInputFilter(QMainWindow *window);
+    WindowsRawInputFilter(MainWindow *window);
 
     void          handle_input(HRAWINPUT input);
     void          keyboard_handle(PRAWINPUT raw);

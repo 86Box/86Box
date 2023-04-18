@@ -364,7 +364,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
         out_l = 0.0, out_r = 0.0;
 
         if (sb->dsp.sb_type > SB16)
-            c_emu8k = ((((c / 2) * 44100) / 48000) * 2);
+            c_emu8k = ((((c / 2) * FREQ_44100) / SOUND_FREQ) * 2);
 
         if (sb->opl_enabled) {
             out_l = ((double) opl_buf[c]) * mixer->fm_l * 0.7171630859375;
@@ -433,7 +433,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
         }
 
         if (sb->dsp.sb_enable_i) {
-            c_record = dsp_rec_pos + ((c * sb->dsp.sb_freq) / 48000);
+            c_record = dsp_rec_pos + ((c * sb->dsp.sb_freq) / SOUND_FREQ);
             in_l <<= mixer->input_gain_L;
             in_r <<= mixer->input_gain_R;
 

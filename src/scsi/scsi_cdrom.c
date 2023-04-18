@@ -63,138 +63,138 @@ typedef struct
 
 /* Table of all SCSI commands and their flags, needed for the new disc change / not ready handler. */
 uint8_t scsi_cdrom_command_flags[0x100] = {
-    IMPLEMENTED | CHECK_READY | NONDATA,                /* 0x00 */
-    IMPLEMENTED | ALLOW_UA | NONDATA | SCSI_ONLY,       /* 0x01 */
-    0,                                                  /* 0x02 */
-    IMPLEMENTED | ALLOW_UA,                             /* 0x03 */
-    0, 0, 0, 0,                                         /* 0x04-0x07 */
-    IMPLEMENTED | CHECK_READY,                          /* 0x08 */
-    0, 0,                                               /* 0x09-0x0A */
-    IMPLEMENTED | CHECK_READY | NONDATA,                /* 0x0B */
-    0,                                                  /* 0x0C */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0x0D */
-    0, 0, 0, 0,                                         /* 0x0E-0x11 */
-    IMPLEMENTED | ALLOW_UA,                             /* 0x12 */
-    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,    /* 0x13 */
-    0,                                                  /* 0x14 */
-    IMPLEMENTED,                                        /* 0x15 */
-    0, 0, 0, 0,                                         /* 0x16-0x19 */
-    IMPLEMENTED,                                        /* 0x1A */
-    IMPLEMENTED | CHECK_READY,                          /* 0x1B */
-    0, 0,                                               /* 0x1C-0x1D */
-    IMPLEMENTED | CHECK_READY,                          /* 0x1E */
-    0, 0, 0,                                            /* 0x1F-0x21*/
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0x22*/
-    0, 0,                                               /* 0x23-0x24 */
-    IMPLEMENTED | CHECK_READY,                          /* 0x25 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0x26 */
-    0,                                                  /* 0x27 */
-    IMPLEMENTED | CHECK_READY,                          /* 0x28 */
-    0, 0,                                               /* 0x29-0x2A */
-    IMPLEMENTED | CHECK_READY | NONDATA,                /* 0x2B */
-    0, 0, 0,                                            /* 0x2C-0x2E */
-    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,    /* 0x2F */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,     /* 0x30-0x3F */
-    0, 0,                                               /* 0x40-0x41 */
-    IMPLEMENTED | CHECK_READY,                          /* 0x42 */
-    IMPLEMENTED | CHECK_READY,                          /* 0x43 - Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
-                                                           NOTE: The ATAPI reference says otherwise, but I think this is a question of
-                                                           interpreting things right - the UNIT ATTENTION condition we have here
-                                                           is a tradition from not ready to ready, by definition the drive
-                                                           eventually becomes ready, make the condition go away. */
-    IMPLEMENTED | CHECK_READY,                          /* 0x44 */
-    IMPLEMENTED | CHECK_READY,                          /* 0x45 */
-    IMPLEMENTED | ALLOW_UA,                             /* 0x46 */
-    IMPLEMENTED | CHECK_READY,                          /* 0x47 */
-    IMPLEMENTED | CHECK_READY,                          /* 0x48 */
-    IMPLEMENTED | CHECK_READY,                          /* 0x49 */
-    IMPLEMENTED | ALLOW_UA,                             /* 0x4A */
-    IMPLEMENTED | CHECK_READY,                          /* 0x4B */
-    0, 0,                                               /* 0x4C-0x4D */
-    IMPLEMENTED | CHECK_READY,                          /* 0x4E */
-    0, 0,                                               /* 0x4F-0x50 */
-    IMPLEMENTED | CHECK_READY,                          /* 0x51 */
-    IMPLEMENTED | CHECK_READY,                          /* 0x52 */
-    0, 0,                                               /* 0x53-0x54 */
-    IMPLEMENTED,                                        /* 0x55 */
-    0, 0, 0, 0,                                         /* 0x56-0x59 */
-    IMPLEMENTED,                                        /* 0x5A */
-    0, 0, 0, 0, 0,                                      /* 0x5B-0x5F */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,     /* 0x60-0x6F */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,     /* 0x70-0x7F */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,     /* 0x80-0x8F */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,     /* 0x90-0x9F */
-    0, 0, 0, 0, 0,                                      /* 0xA0-0xA4 */
-    IMPLEMENTED | CHECK_READY,                          /* 0xA5 */
-    0, 0,                                               /* 0xA6-0xA7 */
-    IMPLEMENTED | CHECK_READY,                          /* 0xA8 */
-    IMPLEMENTED | CHECK_READY,                          /* 0xA9 */
-    0, 0, 0,                                            /* 0xAA-0xAC */
-    IMPLEMENTED | CHECK_READY,                          /* 0xAD */
-    0,                                                  /* 0xAE */
-    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY,    /* 0xAF */
-    0, 0, 0, 0,                                         /* 0xB0-0xB3 */
-    IMPLEMENTED | CHECK_READY | ATAPI_ONLY,             /* 0xB4 */
-    0, 0, 0,                                            /* 0xB5-0xB7 */
-    IMPLEMENTED | CHECK_READY | ATAPI_ONLY,             /* 0xB8 */
-    IMPLEMENTED | CHECK_READY,                          /* 0xB9 */
-    IMPLEMENTED | CHECK_READY,                          /* 0xBA */
-    IMPLEMENTED,                                        /* 0xBB */
-    IMPLEMENTED | CHECK_READY,                          /* 0xBC */
-    IMPLEMENTED,                                        /* 0xBD */
-    IMPLEMENTED | CHECK_READY,                          /* 0xBE */
-    IMPLEMENTED | CHECK_READY,                          /* 0xBF */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC0 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC1 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC2 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC3 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC4 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC5 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC6 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC7 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC8 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xC9 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xCA */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xCB */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xCC */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xCD */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,                       /* 0xCE-0xD7 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xD8 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xD9 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xDA */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xDB */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xDC */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xDD */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xDE */
-    0,                                                  /* 0xDF */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xE0 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xE1 */
-    0,                                                  /* 0xE2 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xE3 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xE4 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xE5 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xE6 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xE7 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xE8 */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xE9 */
-    0,                                                  /* 0xEA */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xEB */
-    0,                                                  /* 0xEC */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xED */
-    IMPLEMENTED | CHECK_READY | SCSI_ONLY,              /* 0xEE */
-    0,                                                  /* 0xEF */
-    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0      /* 0xF0-0xFF */
+    IMPLEMENTED | CHECK_READY | NONDATA,             /* 0x00 */
+    IMPLEMENTED | ALLOW_UA | NONDATA | SCSI_ONLY,    /* 0x01 */
+    0,                                               /* 0x02 */
+    IMPLEMENTED | ALLOW_UA,                          /* 0x03 */
+    0, 0, 0, 0,                                      /* 0x04-0x07 */
+    IMPLEMENTED | CHECK_READY,                       /* 0x08 */
+    0, 0,                                            /* 0x09-0x0A */
+    IMPLEMENTED | CHECK_READY | NONDATA,             /* 0x0B */
+    0,                                               /* 0x0C */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0x0D */
+    0, 0, 0, 0,                                      /* 0x0E-0x11 */
+    IMPLEMENTED | ALLOW_UA,                          /* 0x12 */
+    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY, /* 0x13 */
+    0,                                               /* 0x14 */
+    IMPLEMENTED,                                     /* 0x15 */
+    0, 0, 0, 0,                                      /* 0x16-0x19 */
+    IMPLEMENTED,                                     /* 0x1A */
+    IMPLEMENTED | CHECK_READY,                       /* 0x1B */
+    0, 0,                                            /* 0x1C-0x1D */
+    IMPLEMENTED | CHECK_READY,                       /* 0x1E */
+    0, 0, 0,                                         /* 0x1F-0x21*/
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0x22*/
+    0, 0,                                            /* 0x23-0x24 */
+    IMPLEMENTED | CHECK_READY,                       /* 0x25 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0x26 */
+    0,                                               /* 0x27 */
+    IMPLEMENTED | CHECK_READY,                       /* 0x28 */
+    0, 0,                                            /* 0x29-0x2A */
+    IMPLEMENTED | CHECK_READY | NONDATA,             /* 0x2B */
+    0, 0, 0,                                         /* 0x2C-0x2E */
+    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY, /* 0x2F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* 0x30-0x3F */
+    0, 0,                                            /* 0x40-0x41 */
+    IMPLEMENTED | CHECK_READY,                       /* 0x42 */
+    IMPLEMENTED | CHECK_READY,                       /* 0x43 - Read TOC - can get through UNIT_ATTENTION, per VIDE-CDD.SYS
+                                                        NOTE: The ATAPI reference says otherwise, but I think this is a question of
+                                                        interpreting things right - the UNIT ATTENTION condition we have here
+                                                        is a tradition from not ready to ready, by definition the drive
+                                                        eventually becomes ready, make the condition go away. */
+    IMPLEMENTED | CHECK_READY,                       /* 0x44 */
+    IMPLEMENTED | CHECK_READY,                       /* 0x45 */
+    IMPLEMENTED | ALLOW_UA,                          /* 0x46 */
+    IMPLEMENTED | CHECK_READY,                       /* 0x47 */
+    IMPLEMENTED | CHECK_READY,                       /* 0x48 */
+    IMPLEMENTED | CHECK_READY,                       /* 0x49 */
+    IMPLEMENTED | ALLOW_UA,                          /* 0x4A */
+    IMPLEMENTED | CHECK_READY,                       /* 0x4B */
+    0, 0,                                            /* 0x4C-0x4D */
+    IMPLEMENTED | CHECK_READY,                       /* 0x4E */
+    0, 0,                                            /* 0x4F-0x50 */
+    IMPLEMENTED | CHECK_READY,                       /* 0x51 */
+    IMPLEMENTED | CHECK_READY,                       /* 0x52 */
+    0, 0,                                            /* 0x53-0x54 */
+    IMPLEMENTED,                                     /* 0x55 */
+    0, 0, 0, 0,                                      /* 0x56-0x59 */
+    IMPLEMENTED,                                     /* 0x5A */
+    0, 0, 0, 0, 0,                                   /* 0x5B-0x5F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* 0x60-0x6F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* 0x70-0x7F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* 0x80-0x8F */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  /* 0x90-0x9F */
+    0, 0, 0, 0, 0,                                   /* 0xA0-0xA4 */
+    IMPLEMENTED | CHECK_READY,                       /* 0xA5 */
+    0, 0,                                            /* 0xA6-0xA7 */
+    IMPLEMENTED | CHECK_READY,                       /* 0xA8 */
+    IMPLEMENTED | CHECK_READY,                       /* 0xA9 */
+    0, 0, 0,                                         /* 0xAA-0xAC */
+    IMPLEMENTED | CHECK_READY,                       /* 0xAD */
+    0,                                               /* 0xAE */
+    IMPLEMENTED | CHECK_READY | NONDATA | SCSI_ONLY, /* 0xAF */
+    0, 0, 0, 0,                                      /* 0xB0-0xB3 */
+    IMPLEMENTED | CHECK_READY | ATAPI_ONLY,          /* 0xB4 */
+    0, 0, 0,                                         /* 0xB5-0xB7 */
+    IMPLEMENTED | CHECK_READY | ATAPI_ONLY,          /* 0xB8 */
+    IMPLEMENTED | CHECK_READY,                       /* 0xB9 */
+    IMPLEMENTED | CHECK_READY,                       /* 0xBA */
+    IMPLEMENTED,                                     /* 0xBB */
+    IMPLEMENTED | CHECK_READY,                       /* 0xBC */
+    IMPLEMENTED,                                     /* 0xBD */
+    IMPLEMENTED | CHECK_READY,                       /* 0xBE */
+    IMPLEMENTED | CHECK_READY,                       /* 0xBF */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC0 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC1 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC2 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC3 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC4 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC5 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC6 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC7 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC8 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xC9 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xCA */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xCB */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xCC */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xCD */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,                    /* 0xCE-0xD7 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xD8 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xD9 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xDA */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xDB */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xDC */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xDD */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xDE */
+    0,                                               /* 0xDF */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xE0 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xE1 */
+    0,                                               /* 0xE2 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xE3 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xE4 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xE5 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xE6 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xE7 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xE8 */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xE9 */
+    0,                                               /* 0xEA */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xEB */
+    0,                                               /* 0xEC */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xED */
+    IMPLEMENTED | CHECK_READY | SCSI_ONLY,           /* 0xEE */
+    0,                                               /* 0xEF */
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0   /* 0xF0-0xFF */
 };
 
-static uint64_t scsi_cdrom_mode_sense_page_flags = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_DISCONNECT_PAGE | GPMODEP_CDROM_PAGE | GPMODEP_CDROM_AUDIO_PAGE | (1ULL << 0x0fULL) | GPMODEP_CAPABILITIES_PAGE | GPMODEP_ALL_PAGES);
+static uint64_t scsi_cdrom_mode_sense_page_flags      = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_DISCONNECT_PAGE | GPMODEP_CDROM_PAGE | GPMODEP_CDROM_AUDIO_PAGE | (1ULL << 0x0fULL) | GPMODEP_CAPABILITIES_PAGE | GPMODEP_ALL_PAGES);
 static uint64_t scsi_cdrom_mode_sense_page_flags_sony = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_DISCONNECT_PAGE | GPMODEP_CDROM_PAGE_SONY | GPMODEP_CDROM_AUDIO_PAGE_SONY | (1ULL << 0x0fULL) | GPMODEP_CAPABILITIES_PAGE | GPMODEP_ALL_PAGES);
-static uint64_t scsi_cdrom_drive_status_page_flags = ((1ULL << 0x01ULL) | (1ULL << 0x02ULL) | (1ULL << 0x0fULL) | GPMODEP_ALL_PAGES);
+static uint64_t scsi_cdrom_drive_status_page_flags    = ((1ULL << 0x01ULL) | (1ULL << 0x02ULL) | (1ULL << 0x0fULL) | GPMODEP_ALL_PAGES);
 
 static const mode_sense_pages_t scsi_cdrom_drive_status_pages = {
     {{ 0, 0 },
      { 0x01, 0, 2, 0x0f, 0xbf }, /*Drive Status Data Format*/
-     { 0x02, 0, 1, 0}, /*Audio Play Status Format*/
-     { 0, 0 },
+      { 0x02, 0, 1, 0 }, /*Audio Play Status Format*/
+      { 0, 0 },
      { 0, 0 },
      { 0, 0 },
      { 0, 0 },
@@ -709,8 +709,8 @@ scsi_cdrom_drive_status(scsi_cdrom_t *dev, uint8_t *buf, uint32_t pos, uint8_t p
                 for (j = 0; j < msplen; j++) {
                     if (i == 0x01) {
                         buf[pos++] = scsi_cdrom_drive_status_read(dev, page_control, i, 3 + j);
-                        if (!(j & 1)) { /*MSB of Drive Status*/
-                            if (dev->drv->ops) /*Bit 11 of Drive Status, */
+                        if (!(j & 1)) {            /*MSB of Drive Status*/
+                            if (dev->drv->ops)     /*Bit 11 of Drive Status, */
                                 buf[pos] &= ~0x08; /*Disc is present*/
                             else
                                 buf[pos] |= 0x08; /*Disc not present*/
@@ -1702,13 +1702,13 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
     int           toc_format, block_desc = 0;
     int           ret, format            = 0;
     int           real_pos, track        = 0;
-    char     device_identify[9]     = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
-    char     device_identify_ex[15] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', ' ', 'v', '1', '.', '0', '0', 0 };
-    int32_t  blen = 0, *BufLen;
-    uint8_t *b;
-    uint32_t profiles[2] = { MMC_PROFILE_CD_ROM, MMC_PROFILE_DVD_ROM };
-    uint8_t  scsi_bus    = (dev->drv->scsi_device_id >> 4) & 0x0f;
-    uint8_t  scsi_id     = dev->drv->scsi_device_id & 0x0f;
+    char          device_identify[9]     = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
+    char          device_identify_ex[15] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', ' ', 'v', '1', '.', '0', '0', 0 };
+    int32_t       blen                   = 0, *BufLen;
+    uint8_t      *b;
+    uint32_t      profiles[2] = { MMC_PROFILE_CD_ROM, MMC_PROFILE_DVD_ROM };
+    uint8_t       scsi_bus    = (dev->drv->scsi_device_id >> 4) & 0x0f;
+    uint8_t       scsi_id     = dev->drv->scsi_device_id & 0x0f;
 
     if (dev->drv->bus_type == CDROM_BUS_SCSI) {
         BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
@@ -1876,7 +1876,7 @@ begin:
 
         case 0xC7:
             if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b"))) { /*GPCMD_PLAY_AUDIO_MSF_MATSUSHITA*/
-                cdb[0] = GPCMD_PLAY_AUDIO_MSF;
+                cdb[0]              = GPCMD_PLAY_AUDIO_MSF;
                 dev->current_cdb[0] = cdb[0];
                 goto begin;
                 break;
@@ -1884,10 +1884,10 @@ begin:
                 !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-76S_1.00")) { /*GPCMD_PLAY_MSF_SONY*/
                 cdb[0] = GPCMD_PLAY_AUDIO_MSF;
                 dev->current_cdb[0] = cdb[0];
-                dev->sony_vendor = 1;
+                dev->sony_vendor    = 1;
                 goto begin;
                 break;
-            } /*GPCMD_READ_DISC_INFORMATION_TOSHIBA*/
+            }      /*GPCMD_READ_DISC_INFORMATION_TOSHIBA*/
         case 0xDE: /*GPCMD_READ_DISC_INFORMATION_NEC*/
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
             scsi_cdrom_buf_alloc(dev, 4);
@@ -2405,7 +2405,7 @@ begin:
                 scsi_cdrom_command_complete(dev);
                 dev->sony_vendor = 1;
                 break;
-            } /*GPCMD_AUDIO_TRACK_SEARCH_TOSHIBA and GPCMD_EJECT_CHINON*/
+            }      /*GPCMD_AUDIO_TRACK_SEARCH_TOSHIBA and GPCMD_EJECT_CHINON*/
         case 0xD8: /*GPCMD_AUDIO_TRACK_SEARCH_NEC*/
             if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "CHINON_CD-ROM_CDS-431_H42"))) {
                 scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
@@ -2418,8 +2418,8 @@ begin:
                     scsi_cdrom_illegal_mode(dev);
                     break;
                 }
-                pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
-                ret = cdrom_audio_track_search(dev->drv, pos, cdb[9] & 0xc0, cdb[1] & 1);
+                pos                = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+                ret                = cdrom_audio_track_search(dev->drv, pos, cdb[9] & 0xc0, cdb[1] & 1);
                 dev->drv->audio_op = (cdb[1] & 1) ? 0x03 : 0x02;
 
                 if (ret)
@@ -2438,7 +2438,7 @@ begin:
                 if (strcmp(cdrom_drive_types[dev->drv->type].internal_name, "PIONEER_CD-ROM_DRM-604X_2403")) {
                     dev->sony_vendor = 0;
                 } else {
-                    msf = dev->ms_pages_saved_sony.pages[GPMODE_CDROM_PAGE_SONY][2] & 0x01;
+                    msf              = dev->ms_pages_saved_sony.pages[GPMODE_CDROM_PAGE_SONY][2] & 0x01;
                     dev->sony_vendor = 1;
                 }
 
@@ -2465,7 +2465,7 @@ begin:
 
                 scsi_cdrom_data_command_finish(dev, len, len, len, 0);
                 return;
-            } /*GPCMD_PLAY_AUDIO_TOSHIBA*/
+            }      /*GPCMD_PLAY_AUDIO_TOSHIBA*/
         case 0xD9: /*GPCMD_PLAY_AUDIO_NEC*/
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
@@ -2648,7 +2648,7 @@ begin:
                 else
                     scsi_cdrom_illegal_mode(dev);
                 break;
-            } /*GPCMD_READ_SUBCODEQ_PLAYING_STATUS_TOSHIBA and GPCMD_STOP_CHINON*/
+            }      /*GPCMD_READ_SUBCODEQ_PLAYING_STATUS_TOSHIBA and GPCMD_STOP_CHINON*/
         case 0xDD: /*GPCMD_READ_SUBCODEQ_PLAYING_STATUS_NEC*/
             if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "CHINON_CD-ROM_CDS-431_H42"))) {
                 scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
@@ -2658,7 +2658,7 @@ begin:
                 scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
 
                 alloc_length = cdb[1] & 0x1f;
-                len = 10;
+                len          = 10;
 
                 if (!dev->drv->ops) {
                     scsi_cdrom_not_ready(dev);
@@ -2753,7 +2753,7 @@ begin:
 
         case 0xC4:
             if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b"))) { /*GPCMD_READ_HEADER_MATSUSHITA*/
-                cdb[0] = GPCMD_READ_HEADER;
+                cdb[0]              = GPCMD_READ_HEADER;
                 dev->current_cdb[0] = cdb[0];
                 goto begin;
                 break;
@@ -2772,10 +2772,10 @@ begin:
                 len = max_len;
 
                 memset(dev->buffer, 0, 10);
-                dev->buffer[0] = 0x00; /*Reserved*/
-                dev->buffer[1] = 0x00; /*Reserved*/
-                dev->buffer[2] = cdb[7]; /*Audio Status data length*/
-                dev->buffer[3] = cdb[8]; /*Audio Status data length*/
+                dev->buffer[0] = 0x00;                                                        /*Reserved*/
+                dev->buffer[1] = 0x00;                                                        /*Reserved*/
+                dev->buffer[2] = cdb[7];                                                      /*Audio Status data length*/
+                dev->buffer[3] = cdb[8];                                                      /*Audio Status data length*/
                 dev->buffer[4] = cdrom_get_audio_status_sony(dev->drv, &dev->buffer[6], msf); /*Audio status*/
                 dev->buffer[5] = 0x00;
 
@@ -2842,15 +2842,14 @@ begin:
                         if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "86BOX_CD-ROM_1.00")))
                             ide_padstr8(dev->buffer + idx, 8, EMU_NAME); /* Vendor */
                         else
-                            ide_padstr8(dev->buffer + idx, 8, cdrom_drive_types[dev->drv->type].vendor);    /* Vendor */
+                            ide_padstr8(dev->buffer + idx, 8, cdrom_drive_types[dev->drv->type].vendor); /* Vendor */
 
                         idx += 8;
 
                         if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "86BOX_CD-ROM_1.00")))
                             ide_padstr8(dev->buffer + idx, 40, device_identify_ex); /* Product */
                         else
-                            ide_padstr8(dev->buffer + idx, 40, cdrom_drive_types[dev->drv->type].model);    /* Product */
-
+                            ide_padstr8(dev->buffer + idx, 40, cdrom_drive_types[dev->drv->type].model); /* Product */
 
                         idx += 40;
                         ide_padstr8(dev->buffer + idx, 20, "53R141"); /* Serial */
@@ -2959,7 +2958,7 @@ begin:
                 else {
                     if (max_len == 96) {
                         dev->buffer[4] = 91;
-                        idx = 96;
+                        idx            = 96;
                     }
                 }
             }
@@ -2995,7 +2994,7 @@ atapi_out:
 
         case 0xC3:
             if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b"))) { /*GPCMD_READ_TOC_MATSUSHITA*/
-                cdb[0] = GPCMD_READ_TOC_PMA_ATIP;
+                cdb[0]              = GPCMD_READ_TOC_PMA_ATIP;
                 dev->current_cdb[0] = cdb[0];
                 goto begin;
                 break;
@@ -3009,11 +3008,11 @@ atapi_out:
 
                 dev->sector_len = 1;
                 dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
-                real_pos = cdrom_lba_to_msf_accurate(dev->sector_pos);
-                dev->buffer[0] = ((real_pos >> 16) & 0xff);
-                dev->buffer[1] = ((real_pos >> 8) & 0xff);
-                dev->buffer[2] = real_pos & 0xff;
-                dev->buffer[3] = 1; /*2048 bytes user data*/
+                real_pos        = cdrom_lba_to_msf_accurate(dev->sector_pos);
+                dev->buffer[0]  = ((real_pos >> 16) & 0xff);
+                dev->buffer[1]  = ((real_pos >> 8) & 0xff);
+                dev->buffer[2]  = real_pos & 0xff;
+                dev->buffer[3]  = 1; /*2048 bytes user data*/
 
                 len = 4;
                 len = MIN(len, alloc_length);
@@ -3030,7 +3029,7 @@ atapi_out:
 
         case 0xC2:
             if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b"))) { /*GPCMD_READ_SUBCHANNEL_MATSUSHITA*/
-                cdb[0] = GPCMD_READ_SUBCHANNEL;
+                cdb[0]              = GPCMD_READ_SUBCHANNEL;
                 dev->current_cdb[0] = cdb[0];
                 goto begin;
                 break;
@@ -3135,7 +3134,7 @@ atapi_out:
 
         case 0xC5:
             if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b"))) { /*GPCMD_PLAY_AUDIO_MATSUSHITA*/
-                cdb[0] = GPCMD_PLAY_AUDIO_10;
+                cdb[0]              = GPCMD_PLAY_AUDIO_10;
                 dev->current_cdb[0] = cdb[0];
                 goto begin;
                 break;
@@ -3149,7 +3148,7 @@ atapi_out:
             }
         case 0xC8:
             if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b"))) { /*GPCMD_PLAY_AUDIO_TRACK_INDEX_MATSUSHITA*/
-                cdb[0] = GPCMD_PLAY_AUDIO_TRACK_INDEX;
+                cdb[0]              = GPCMD_PLAY_AUDIO_TRACK_INDEX;
                 dev->current_cdb[0] = cdb[0];
                 goto begin;
                 break;
@@ -3157,13 +3156,13 @@ atapi_out:
                 !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-76S_1.00")) { /*GPCMD_PLAY_AUDIO_SONY*/
                 cdb[0] = GPCMD_PLAY_AUDIO_10;
                 dev->current_cdb[0] = cdb[0];
-                dev->sony_vendor = 1;
+                dev->sony_vendor    = 1;
                 goto begin;
                 break;
             }
         case 0xC9:
             if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b"))) { /*GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10_MATSUSHITA*/
-                cdb[0] = GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10;
+                cdb[0]              = GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10;
                 dev->current_cdb[0] = cdb[0];
                 goto begin;
                 break;
@@ -3188,7 +3187,7 @@ atapi_out:
             }
         case 0xCB:
             if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b"))) { /*GPCMD_PAUSE_RESUME_MATSUSHITA*/
-                cdb[0] = GPCMD_PAUSE_RESUME;
+                cdb[0]              = GPCMD_PAUSE_RESUME;
                 dev->current_cdb[0] = cdb[0];
                 goto begin;
                 break;
@@ -3206,10 +3205,10 @@ atapi_out:
                 len = max_len;
 
                 memset(dev->buffer, 0, 10);
-                dev->buffer[0] = 0x00; /*Reserved*/
-                dev->buffer[1] = 0x00; /*Reserved*/
-                dev->buffer[2] = cdb[7]; /*Audio Status data length*/
-                dev->buffer[3] = cdb[8]; /*Audio Status data length*/
+                dev->buffer[0] = 0x00;                                                        /*Reserved*/
+                dev->buffer[1] = 0x00;                                                        /*Reserved*/
+                dev->buffer[2] = cdb[7];                                                      /*Audio Status data length*/
+                dev->buffer[3] = cdb[8];                                                      /*Audio Status data length*/
                 dev->buffer[4] = cdrom_get_audio_status_sony(dev->drv, &dev->buffer[6], msf); /*Audio status*/
                 dev->buffer[5] = 0x00;
 
@@ -3246,8 +3245,8 @@ atapi_out:
                 memset(dev->buffer, 0, len);
                 alloc_length = len;
 
-                len            = scsi_cdrom_drive_status(dev, dev->buffer, 0, cdb[2]);
-                len            = MIN(len, alloc_length);
+                len = scsi_cdrom_drive_status(dev, dev->buffer, 0, cdb[2]);
+                len = MIN(len, alloc_length);
 
                 scsi_cdrom_set_buf_len(dev, BufLen, &len);
 
@@ -3258,14 +3257,14 @@ atapi_out:
             }
         case 0xE5:
             if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b"))) { /*GPCMD_PLAY_AUDIO_12_MATSUSHITA*/
-                cdb[0] = GPCMD_PLAY_AUDIO_12;
+                cdb[0]              = GPCMD_PLAY_AUDIO_12;
                 dev->current_cdb[0] = cdb[0];
                 goto begin;
                 break;
             }
         case 0xE9:
             if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b"))) { /*GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12_MATSUSHITA*/
-                cdb[0] = GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12;
+                cdb[0]              = GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12;
                 dev->current_cdb[0] = cdb[0];
                 goto begin;
                 break;
@@ -3484,7 +3483,7 @@ static void
 scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
 {
     scsi_cdrom_t *dev;
-    char device_identify[9] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
+    char          device_identify[9] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
 
     dev = (scsi_cdrom_t *) ide->sc;
 
@@ -3492,13 +3491,13 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
     scsi_cdrom_log("ATAPI Identify: %s\n", device_identify);
 
     if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01")) || (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) /*NEC only*/
-        ide->buffer[0] = 0x8000 | (5 << 8) | 0x80 | (1 << 5); /* ATAPI device, CD-ROM drive, removable media, interrupt DRQ */
+        ide->buffer[0] = 0x8000 | (5 << 8) | 0x80 | (1 << 5);                                                                                                                             /* ATAPI device, CD-ROM drive, removable media, interrupt DRQ */
     else
         ide->buffer[0] = 0x8000 | (5 << 8) | 0x80 | (2 << 5); /* ATAPI device, CD-ROM drive, removable media, accelerated DRQ */
-    ide_padstr((char *) (ide->buffer + 10), "", 20);      /* Serial Number */
+    ide_padstr((char *) (ide->buffer + 10), "", 20);          /* Serial Number */
 
     if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "86BOX_CD-ROM_1.00"))) {
-        ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8); /* Firmware */
+        ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8);   /* Firmware */
         ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
     } else {
         if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01"))) {

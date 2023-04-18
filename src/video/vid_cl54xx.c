@@ -3945,7 +3945,10 @@ static void
     }
 
     if (info->flags & DEVICE_MCA) {
-        vram              = 1024;
+        if (id == CIRRUS_ID_CLGD5428)
+            vram              = 1024;
+        else
+            vram = device_get_config_int("memory");
         gd54xx->vram_size = vram << 10;
     } else {
         if (id <= CIRRUS_ID_CLGD5428) {

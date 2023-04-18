@@ -631,9 +631,8 @@ HDDOBJ := hdd.o \
           hdc_ide_cmd640.o hdc_ide_cmd646.o \
           hdc_ide_sff8038i.o
 
-MINIVHDOBJ  := cwalk.o libxml2_encoding.o minivhd_convert.o \
-               minivhd_create.o minivhd_io.o minivhd_manage.o \
-               minivhd_struct_rw.o minivhd_util.o
+MINIVHDOBJ  := cwalk.o xml2_encoding.o convert.o \
+               create.o minivhd_io.o manage.o struct_rw.o minivhd_util.o
 
 CDROMOBJ := cdrom.o \
             cdrom_image_backend.o cdrom_image_viso.o cdrom_image.o cdrom_mitsumi.o

@@ -13,6 +13,5 @@
 #          Copyright 2020,2021 David Hrdlička.
 #
 
-add_library(minivhd STATIC cwalk.c libxml2_encoding.c minivhd_convert.c
-    minivhd_create.c minivhd_io.c minivhd_manage.c minivhd_struct_rw.c
-    minivhd_util.c)
+add_library(minivhd STATIC cwalk.c xml2_encoding.c convert.c
+    create.c minivhd_io.c manage.c struct_rw.c minivhd_util.c)
