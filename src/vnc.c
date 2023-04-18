@@ -88,8 +88,8 @@ vnc_mouse_poll(void)
         mouse_x += ms.dx;
         mouse_y += ms.dy;
 
-        ms.dx     = 0;
-        ms.dy     = 0;
+        ms.dx = 0;
+        ms.dy = 0;
 
         // pclog("dx=%d, dy=%d, dwheel=%d\n", mouse_x, mouse_y, mouse_z);
     }
@@ -98,6 +98,14 @@ vnc_mouse_poll(void)
         mouse_buttons = ms.buttons;
         b             = ms.buttons;
     }
+
+    mouse_x_abs = (double)ptr_x / (double)allowedX;
+    mouse_y_abs = (double)ptr_y / (double)allowedY;
+
+    if (mouse_x_abs > 1.0) mouse_x_abs = 1.0;
+    if (mouse_y_abs > 1.0) mouse_y_abs = 1.0;
+    if (mouse_x_abs < 0.0) mouse_x_abs = 0.0;
+    if (mouse_y_abs < 0.0) mouse_y_abs = 0.0;
 }
 
 static void
@@ -186,7 +194,7 @@ vnc_display(rfbClientPtr cl)
 static void
 vnc_blit(int x, int y, int w, int h, int monitor_index)
 {
-    int       row;
+    int row;
 
     if (monitor_index || (x < 0) || (y < 0) || (w < VNC_MIN_X) || (h < VNC_MIN_Y) || (w > VNC_MAX_X) || (h > VNC_MAX_Y) || (buffer32 == NULL)) {
         video_blit_complete_monitor(monitor_index);

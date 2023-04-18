@@ -251,7 +251,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                             id += 2;
                             break;
                         case CONFIG_BIOS:
-                            bios    = config->bios;
+                            bios = config->bios;
 
                             val_str = config_get_string((char *) config_device.name,
                                                         (char *) config->name, (char *) config->default_string);
@@ -378,8 +378,8 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                             id += 2;
                             break;
                         case CONFIG_BIOS:
-                            bios    = config->bios;
-                            c = combo_to_struct[SendMessage(h, CB_GETCURSEL, 0, 0)];
+                            bios = config->bios;
+                            c    = combo_to_struct[SendMessage(h, CB_GETCURSEL, 0, 0)];
                             for (; c > 0; c--)
                                 bios++;
                             config_set_string((char *) config_device.name, (char *) config->name, (char *) bios->internal_name);

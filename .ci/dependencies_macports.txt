@@ -11,3 +11,5 @@ vulkan-headers
 MoltenVK
 qt5
 wget
+fluidsynth
+ghostscript

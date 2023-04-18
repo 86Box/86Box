@@ -445,9 +445,9 @@ spock_process_imm_cmd(spock_t *scsi)
     switch (scsi->command & CMD_MASK) {
         case CMD_ASSIGN:
             scsi->assign = 1;
-            adapter_id = (scsi->command >> 16) & 15;
-            phys_id    = (scsi->command >> 20) & 7;
-            lun_id     = (scsi->command >> 24) & 7;
+            adapter_id   = (scsi->command >> 16) & 15;
+            phys_id      = (scsi->command >> 20) & 7;
+            lun_id       = (scsi->command >> 24) & 7;
             if (adapter_id == 15) {
                 if (phys_id == 7) /*Device 15 always adapter*/
                     spock_set_irq(scsi, scsi->attention & 0x0f, IRQ_TYPE_IMM_CMD_COMPLETE);
@@ -1175,7 +1175,7 @@ static const device_config_t spock_rom_config[] = {
         },
     },
     { .name = "", .description = "", .type = CONFIG_END }
-// clang-format on
+  // clang-format on
 };
 
 const device_t spock_device = {

@@ -60,43 +60,42 @@
 #include <86box/bswap.h>
 
 /* Maximum number of times we report a link down to the guest (failure to send frame) */
-#define ELNK_MAX_LINKDOWN_REPORTED      3
+#define ELNK_MAX_LINKDOWN_REPORTED 3
 
 /* Maximum number of times we postpone restoring a link that is temporarily down. */
-#define ELNK_MAX_LINKRST_POSTPONED      3
+#define ELNK_MAX_LINKRST_POSTPONED 3
 
 /* Maximum frame size we handle */
-#define MAX_FRAME           1536
+#define MAX_FRAME 1536
 
 /* Size of the packet buffer. */
-#define ELNK_BUF_SIZE       2048
+#define ELNK_BUF_SIZE 2048
 
 /* The packet buffer address mask. */
-#define ELNK_BUF_ADR_MASK   (ELNK_BUF_SIZE - 1)
+#define ELNK_BUF_ADR_MASK (ELNK_BUF_SIZE - 1)
 
 /* The GP buffer pointer address within the buffer. */
-#define ELNK_GP(dev)        (dev->uGPBufPtr & ELNK_BUF_ADR_MASK)
+#define ELNK_GP(dev) (dev->uGPBufPtr & ELNK_BUF_ADR_MASK)
 
 /* The GP buffer pointer mask.
  * NB: The GP buffer pointer is internally a 12-bit counter. When addressing into the
  * packet buffer, bit 11 is ignored. Required to pass 3C501 diagnostics.
  */
-#define ELNK_GP_MASK        0xfff
+#define ELNK_GP_MASK 0xfff
 
 /*********************************************************************************************************************************
-*   Structures and Typedefs                                                                                                      *
-*********************************************************************************************************************************/
-
+ *   Structures and Typedefs                                                                                                      *
+ *********************************************************************************************************************************/
 
 /**
  *  EtherLink Transmit Command Register.
  */
 typedef struct ELNK_XMIT_CMD {
-    uint8_t     det_ufl   : 1;  /* Detect underflow. */
-    uint8_t     det_coll  : 1;  /* Detect collision. */
-    uint8_t     det_16col : 1;  /* Detect collision 16. */
-    uint8_t     det_succ  : 1;  /* Detect successful xmit. */
-    uint8_t     unused    : 4;
+    uint8_t det_ufl   : 1; /* Detect underflow. */
+    uint8_t det_coll  : 1; /* Detect collision. */
+    uint8_t det_16col : 1; /* Detect collision 16. */
+    uint8_t det_succ  : 1; /* Detect successful xmit. */
+    uint8_t unused    : 4;
 } EL_XMT_CMD;
 
 /**
@@ -107,151 +106,151 @@ typedef struct ELNK_XMIT_CMD {
  *  (something the 3C501 does not have a concept of).
  */
 typedef struct ELNK_XMIT_STAT {
-    uint8_t     uflow  : 1;     /* Underflow on transmit. */
-    uint8_t     coll   : 1;     /* Collision on transmit. */
-    uint8_t     coll16 : 1;     /* 16 collisions on transmit. */
-    uint8_t     ready  : 1;     /* Ready for a new frame. */
-    uint8_t     undef  : 4;
+    uint8_t uflow  : 1; /* Underflow on transmit. */
+    uint8_t coll   : 1; /* Collision on transmit. */
+    uint8_t coll16 : 1; /* 16 collisions on transmit. */
+    uint8_t ready  : 1; /* Ready for a new frame. */
+    uint8_t undef  : 4;
 } EL_XMT_STAT;
 
 /** Address match (adr_match) modes. */
 typedef enum {
-    EL_ADRM_DISABLED    = 0,        /* Receiver disabled. */
-    EL_ADRM_PROMISC     = 1,        /* Receive all addresses. */
-    EL_ADRM_BCAST       = 2,        /* Receive station + broadcast. */
-    EL_ADRM_MCAST       = 3         /* Receive station + multicast. */
+    EL_ADRM_DISABLED = 0, /* Receiver disabled. */
+    EL_ADRM_PROMISC  = 1, /* Receive all addresses. */
+    EL_ADRM_BCAST    = 2, /* Receive station + broadcast. */
+    EL_ADRM_MCAST    = 3  /* Receive station + multicast. */
 } EL_ADDR_MATCH;
 
 /**
  *  EtherLink Receive Command Register.
  */
 typedef struct ELNK_RECV_CMD {
-    uint8_t     det_ofl   : 1;  /* Detect overflow errors. */
-    uint8_t     det_fcs   : 1;  /* Detect FCS errors. */
-    uint8_t     det_drbl  : 1;  /* Detect dribble error. */
-    uint8_t     det_runt  : 1;  /* Detect short frames. */
-    uint8_t     det_eof   : 1;  /* Detect EOF (frames without overflow). */
-    uint8_t     acpt_good : 1;  /* Accept good frames. */
-    uint8_t     adr_match : 2;  /* Address match mode. */
+    uint8_t det_ofl   : 1; /* Detect overflow errors. */
+    uint8_t det_fcs   : 1; /* Detect FCS errors. */
+    uint8_t det_drbl  : 1; /* Detect dribble error. */
+    uint8_t det_runt  : 1; /* Detect short frames. */
+    uint8_t det_eof   : 1; /* Detect EOF (frames without overflow). */
+    uint8_t acpt_good : 1; /* Accept good frames. */
+    uint8_t adr_match : 2; /* Address match mode. */
 } EL_RCV_CMD;
 
 /**
  *  EtherLink Receive Status Register.
  */
 typedef struct ELNK_RECV_STAT {
-    uint8_t     oflow   : 1;    /* Overflow on receive. */
-    uint8_t     fcs     : 1;    /* FCS error. */
-    uint8_t     dribble : 1;    /* Dribble error. */
-    uint8_t     runt    : 1;    /* Short frame. */
-    uint8_t     no_ovf  : 1;    /* Received packet w/o overflow. */
-    uint8_t     good    : 1;    /* Received good packet. */
-    uint8_t     undef   : 1;
-    uint8_t     stale   : 1;    /* Stale receive status. */
+    uint8_t oflow   : 1; /* Overflow on receive. */
+    uint8_t fcs     : 1; /* FCS error. */
+    uint8_t dribble : 1; /* Dribble error. */
+    uint8_t runt    : 1; /* Short frame. */
+    uint8_t no_ovf  : 1; /* Received packet w/o overflow. */
+    uint8_t good    : 1; /* Received good packet. */
+    uint8_t undef   : 1;
+    uint8_t stale   : 1; /* Stale receive status. */
 } EL_RCV_STAT;
 
 /** Buffer control (buf_ctl) modes. */
 typedef enum {
-    EL_BCTL_SYSTEM      = 0,        /* Host has buffer access. */
-    EL_BCTL_XMT_RCV     = 1,        /* Transmit, then receive. */
-    EL_BCTL_RECEIVE     = 2,        /* Receive. */
-    EL_BCTL_LOOPBACK    = 3         /* Loopback. */
+    EL_BCTL_SYSTEM   = 0, /* Host has buffer access. */
+    EL_BCTL_XMT_RCV  = 1, /* Transmit, then receive. */
+    EL_BCTL_RECEIVE  = 2, /* Receive. */
+    EL_BCTL_LOOPBACK = 3  /* Loopback. */
 } EL_BUFFER_CONTROL;
 
 /**
  *  EtherLink Auxiliary Status Register.
  */
 typedef struct ELNK_AUX_CMD {
-    uint8_t     ire      : 1;   /* Interrupt Request Enable. */
-    uint8_t     xmit_bf  : 1;   /* Xmit packets with bad FCS. */
-    uint8_t     buf_ctl  : 2;   /* Packet buffer control. */
-    uint8_t     unused   : 1;
-    uint8_t     dma_req  : 1;   /* DMA request. */
-    uint8_t     ride     : 1;   /* Request Interrupt and DMA Enable. */
-    uint8_t     reset    : 1;   /* Card in reset while set. */
+    uint8_t ire     : 1; /* Interrupt Request Enable. */
+    uint8_t xmit_bf : 1; /* Xmit packets with bad FCS. */
+    uint8_t buf_ctl : 2; /* Packet buffer control. */
+    uint8_t unused  : 1;
+    uint8_t dma_req : 1; /* DMA request. */
+    uint8_t ride    : 1; /* Request Interrupt and DMA Enable. */
+    uint8_t reset   : 1; /* Card in reset while set. */
 } EL_AUX_CMD;
 
 /**
  *  EtherLink Auxiliary Status Register.
  */
 typedef struct ELNK_AUX_STAT {
-    uint8_t     recv_bsy : 1;   /* Receive busy. */
-    uint8_t     xmit_bf  : 1;   /* Xmit packets with bad FCS. */
-    uint8_t     buf_ctl  : 2;   /* Packet buffer control. */
-    uint8_t     dma_done : 1;   /* DMA done. */
-    uint8_t     dma_req  : 1;   /* DMA request. */
-    uint8_t     ride     : 1;   /* Request Interrupt and DMA Enable. */
-    uint8_t     xmit_bsy : 1;   /* Transmit busy. */
+    uint8_t recv_bsy : 1; /* Receive busy. */
+    uint8_t xmit_bf  : 1; /* Xmit packets with bad FCS. */
+    uint8_t buf_ctl  : 2; /* Packet buffer control. */
+    uint8_t dma_done : 1; /* DMA done. */
+    uint8_t dma_req  : 1; /* DMA request. */
+    uint8_t ride     : 1; /* Request Interrupt and DMA Enable. */
+    uint8_t xmit_bsy : 1; /* Transmit busy. */
 } EL_AUX_STAT;
 
 /**
  *  Internal interrupt status.
  */
 typedef struct ELNK_INTR_STAT {
-    uint8_t     recv_intr  : 1; /* Receive interrupt status. */
-    uint8_t     xmit_intr  : 1; /* Transmit interrupt status. */
-    uint8_t     dma_intr   : 1; /* DMA interrupt status. */
-    uint8_t     unused     : 5;
+    uint8_t recv_intr : 1; /* Receive interrupt status. */
+    uint8_t xmit_intr : 1; /* Transmit interrupt status. */
+    uint8_t dma_intr  : 1; /* DMA interrupt status. */
+    uint8_t unused    : 5;
 } EL_INTR_STAT;
 
 typedef struct {
-    uint32_t            base_address;
-    int                 base_irq;
-    uint32_t            bios_addr;
-    uint8_t             maclocal[6]; /* configured MAC (local) address. */
-    bool                fISR; /* Internal interrupt flag. */
-    int                 fDMA; /* Internal DMA active flag. */
-    int                 fInReset; /* Internal in-reset flag. */
-    uint8_t             aPROM[8]; /* The PROM contents. Only 8 bytes addressable, R/O. */
-    uint8_t             aStationAddr[6]; /* The station address programmed by the guest, W/O. */
-    uint16_t            uGPBufPtr; /* General Purpose (GP) Buffer Pointer, R/W. */
-    uint16_t            uRCVBufPtr; /* Receive (RCV) Buffer Pointer, R/W. */
+    uint32_t base_address;
+    int      base_irq;
+    uint32_t bios_addr;
+    uint8_t  maclocal[6];     /* configured MAC (local) address. */
+    bool     fISR;            /* Internal interrupt flag. */
+    int      fDMA;            /* Internal DMA active flag. */
+    int      fInReset;        /* Internal in-reset flag. */
+    uint8_t  aPROM[8];        /* The PROM contents. Only 8 bytes addressable, R/O. */
+    uint8_t  aStationAddr[6]; /* The station address programmed by the guest, W/O. */
+    uint16_t uGPBufPtr;       /* General Purpose (GP) Buffer Pointer, R/W. */
+    uint16_t uRCVBufPtr;      /* Receive (RCV) Buffer Pointer, R/W. */
     /** Transmit Command Register, W/O. */
     union {
-        uint8_t                         XmitCmdReg;
-        EL_XMT_CMD                      XmitCmd;
+        uint8_t    XmitCmdReg;
+        EL_XMT_CMD XmitCmd;
     };
     /** Transmit Status Register, R/O. */
     union {
-        uint8_t                         XmitStatReg;
-        EL_XMT_STAT                     XmitStat;
+        uint8_t     XmitStatReg;
+        EL_XMT_STAT XmitStat;
     };
     /** Receive Command Register, W/O. */
     union {
-        uint8_t                         RcvCmdReg;
-        EL_RCV_CMD                      RcvCmd;
+        uint8_t    RcvCmdReg;
+        EL_RCV_CMD RcvCmd;
     };
     /** Receive Status Register, R/O. */
     union {
-        uint8_t                         RcvStatReg;
-        EL_RCV_STAT                     RcvStat;
+        uint8_t     RcvStatReg;
+        EL_RCV_STAT RcvStat;
     };
     /** Auxiliary Command Register, W/O. */
     union {
-        uint8_t                         AuxCmdReg;
-        EL_AUX_CMD                      AuxCmd;
+        uint8_t    AuxCmdReg;
+        EL_AUX_CMD AuxCmd;
     };
     /** Auxiliary Status Register, R/O. */
     union {
-        uint8_t                         AuxStatReg;
-        EL_AUX_STAT                     AuxStat;
+        uint8_t     AuxStatReg;
+        EL_AUX_STAT AuxStat;
     };
-    int                 fLinkUp; /* If set the link is currently up. */
-    int                 fLinkTempDown; /* If set the link is temporarily down because of a saved state load. */
-    uint16_t            cLinkDownReported; /* Number of times we've reported the link down. */
-    uint16_t            cLinkRestorePostponed; /* Number of times we've postponed the link restore. */
+    int      fLinkUp;               /* If set the link is currently up. */
+    int      fLinkTempDown;         /* If set the link is temporarily down because of a saved state load. */
+    uint16_t cLinkDownReported;     /* Number of times we've reported the link down. */
+    uint16_t cLinkRestorePostponed; /* Number of times we've postponed the link restore. */
     /* Internal interrupt state. */
     union {
-        uint8_t         IntrStateReg;
-        EL_INTR_STAT    IntrState;
+        uint8_t      IntrStateReg;
+        EL_INTR_STAT IntrState;
     };
-    uint32_t            cMsLinkUpDelay; /* MS to wait before we enable the link. */
-    int                 dma_channel;
-    uint8_t             abLoopBuf[ELNK_BUF_SIZE]; /* The loopback transmit buffer (avoid stack allocations). */
-    uint8_t             abRuntBuf[64]; /* The runt pad buffer (only really needs 60 bytes). */
-    uint8_t             abPacketBuf[ELNK_BUF_SIZE]; /* The packet buffer. */
-    int                 dma_pos;
-    pc_timer_t          timer_restore;
-    netcard_t          *netcard;
+    uint32_t   cMsLinkUpDelay; /* MS to wait before we enable the link. */
+    int        dma_channel;
+    uint8_t    abLoopBuf[ELNK_BUF_SIZE];   /* The loopback transmit buffer (avoid stack allocations). */
+    uint8_t    abRuntBuf[64];              /* The runt pad buffer (only really needs 60 bytes). */
+    uint8_t    abPacketBuf[ELNK_BUF_SIZE]; /* The packet buffer. */
+    int        dma_pos;
+    pc_timer_t timer_restore;
+    netcard_t *netcard;
 } threec501_t;
 
 #ifdef ENABLE_3COM501_LOG
@@ -280,7 +279,7 @@ static void elnkR3HardReset(threec501_t *dev);
 #endif
 
 #define ETHER_ADDR_LEN ETH_ALEN
-#define ETH_ALEN 6
+#define ETH_ALEN       6
 #pragma pack(1)
 struct ether_header /** @todo Use RTNETETHERHDR? */
 {
@@ -325,8 +324,8 @@ static void
 elnkTempLinkDown(threec501_t *dev)
 {
     if (dev->fLinkUp) {
-        dev->fLinkTempDown     = 1;
-        dev->cLinkDownReported = 0;
+        dev->fLinkTempDown         = 1;
+        dev->cLinkDownReported     = 0;
         dev->cLinkRestorePostponed = 0;
         timer_set_delay_u64(&dev->timer_restore, (dev->cMsLinkUpDelay * 1000) * TIMER_USEC);
     }
@@ -341,7 +340,7 @@ elnkR3Reset(void *priv)
     threec501_t *dev = (threec501_t *) priv;
 
     if (dev->fLinkTempDown) {
-        dev->cLinkDownReported = 0x1000;
+        dev->cLinkDownReported     = 0x1000;
         dev->cLinkRestorePostponed = 0x1000;
         timer_disable(&dev->timer_restore);
     }
@@ -367,15 +366,14 @@ elnkR3HardReset(threec501_t *dev)
     elnkSoftReset(dev);
 }
 
-
 /**
  * Check if incoming frame matches the station address.
  */
 static __inline int
 padr_match(threec501_t *dev, const uint8_t *buf)
 {
-    struct  ether_header *hdr = (struct ether_header *)buf;
-    int     result;
+    struct ether_header *hdr = (struct ether_header *) buf;
+    int                  result;
 
     /* Checks own + broadcast as well as own + multicast. */
     result = (dev->RcvCmd.adr_match >= EL_ADRM_BCAST) && !memcmp(hdr->ether_dhost, dev->aStationAddr, 6);
@@ -389,12 +387,11 @@ padr_match(threec501_t *dev, const uint8_t *buf)
 static __inline int
 padr_bcast(threec501_t *dev, const uint8_t *buf)
 {
-    static uint8_t aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-    struct ether_header *hdr = (struct ether_header *)buf;
-    int result = (dev->RcvCmd.adr_match == EL_ADRM_BCAST) && !memcmp(hdr->ether_dhost, aBCAST, 6);
+    static uint8_t       aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+    struct ether_header *hdr       = (struct ether_header *) buf;
+    int                  result    = (dev->RcvCmd.adr_match == EL_ADRM_BCAST) && !memcmp(hdr->ether_dhost, aBCAST, 6);
     return result;
 }
-
 
 /**
  * Check if incoming frame is an accepted multicast frame.
@@ -402,8 +399,8 @@ padr_bcast(threec501_t *dev, const uint8_t *buf)
 static __inline int
 padr_mcast(threec501_t *dev, const uint8_t *buf)
 {
-    struct ether_header *hdr = (struct ether_header *)buf;
-    int result = (dev->RcvCmd.adr_match == EL_ADRM_MCAST) && ETHER_IS_MULTICAST(hdr->ether_dhost);
+    struct ether_header *hdr    = (struct ether_header *) buf;
+    int                  result = (dev->RcvCmd.adr_match == EL_ADRM_MCAST) && ETHER_IS_MULTICAST(hdr->ether_dhost);
     return result;
 }
 
@@ -475,9 +472,9 @@ elnkSoftReset(threec501_t *dev)
 static int
 elnkReceiveLocked(void *priv, uint8_t *src, int size)
 {
-    threec501_t *dev = (threec501_t *) priv;
-    int is_padr = 0, is_bcast = 0, is_mcast = 0;
-    bool fLoopback = dev->RcvCmd.adr_match == EL_BCTL_LOOPBACK;
+    threec501_t *dev     = (threec501_t *) priv;
+    int          is_padr = 0, is_bcast = 0, is_mcast = 0;
+    bool         fLoopback = dev->RcvCmd.adr_match == EL_BCTL_LOOPBACK;
 
     union {
         uint8_t     RcvStatNewReg;
@@ -513,8 +510,8 @@ elnkReceiveLocked(void *priv, uint8_t *src, int size)
      * filter are always ignored.
      */
     /// @todo cbToRecv must be 6 or more (complete address)
-    if ((dev->RcvCmd.adr_match == EL_ADRM_PROMISC)   /* promiscuous enabled */
-        || (is_padr  = padr_match(dev, src))
+    if ((dev->RcvCmd.adr_match == EL_ADRM_PROMISC) /* promiscuous enabled */
+        || (is_padr = padr_match(dev, src))
         || (is_bcast = padr_bcast(dev, src))
         || (is_mcast = padr_mcast(dev, src))) {
         uint8_t *dst = dev->abPacketBuf + dev->uRCVBufPtr;
@@ -524,9 +521,9 @@ elnkReceiveLocked(void *priv, uint8_t *src, int size)
 #endif
 
         /* Receive status is evaluated from scratch. The stale bit must remain set until we know better. */
-        rcvstatnew.RcvStatNewReg = 0;
+        rcvstatnew.RcvStatNewReg    = 0;
         rcvstatnew.RcvStatNew.stale = 1;
-        dev->RcvStatReg = 0x80;
+        dev->RcvStatReg             = 0x80;
 
         /* Detect errors: Runts, overflow, and FCS errors.
          * NB: Dribble errors can not happen because we can only receive an
@@ -549,7 +546,7 @@ elnkReceiveLocked(void *priv, uint8_t *src, int size)
                 memset(dev->abRuntBuf, 0, sizeof(dev->abRuntBuf));
                 memcpy(dev->abRuntBuf, src, size);
                 size = 60;
-                src = dev->abRuntBuf;
+                src  = dev->abRuntBuf;
             } else {
 #ifdef ENABLE_3COM501_LOG
                 threec501_log("3Com501 runt, size=%d\n", size);
@@ -582,7 +579,7 @@ elnkReceiveLocked(void *priv, uint8_t *src, int size)
         if (rcvstatnew.RcvStatNew.no_ovf && !rcvstatnew.RcvStatNew.fcs && !rcvstatnew.RcvStatNew.runt)
             rcvstatnew.RcvStatNew.good = 1;
 
-        uint16_t cbCopy = (uint16_t)MIN(ELNK_BUF_SIZE - dev->uRCVBufPtr, size);
+        uint16_t cbCopy = (uint16_t) MIN(ELNK_BUF_SIZE - dev->uRCVBufPtr, size);
 
         /* All packets that passed the address filter are copied to the buffer. */
 
@@ -604,15 +601,15 @@ elnkReceiveLocked(void *priv, uint8_t *src, int size)
          * NB: The precise receive logic is not very well described in the EtherLink
          * documentation. It was refined using the 3C501.EXE diagnostic utility.
          */
-        if (   (rcvstatnew.RcvStatNew.good    && dev->RcvCmd.acpt_good)
-            || (rcvstatnew.RcvStatNew.no_ovf  && dev->RcvCmd.det_eof)
-            || (rcvstatnew.RcvStatNew.runt    && dev->RcvCmd.det_runt)
+        if ((rcvstatnew.RcvStatNew.good && dev->RcvCmd.acpt_good)
+            || (rcvstatnew.RcvStatNew.no_ovf && dev->RcvCmd.det_eof)
+            || (rcvstatnew.RcvStatNew.runt && dev->RcvCmd.det_runt)
             || (rcvstatnew.RcvStatNew.dribble && dev->RcvCmd.det_drbl)
-            || (rcvstatnew.RcvStatNew.fcs     && dev->RcvCmd.det_fcs)
-            || (rcvstatnew.RcvStatNew.oflow   && dev->RcvCmd.det_ofl)) {
-            dev->AuxStat.recv_bsy    = 0;
-            dev->IntrState.recv_intr = 1;
-            rcvstatnew.RcvStatNew.stale         = 0; /* Prevents further receive until set again. */
+            || (rcvstatnew.RcvStatNew.fcs && dev->RcvCmd.det_fcs)
+            || (rcvstatnew.RcvStatNew.oflow && dev->RcvCmd.det_ofl)) {
+            dev->AuxStat.recv_bsy       = 0;
+            dev->IntrState.recv_intr    = 1;
+            rcvstatnew.RcvStatNew.stale = 0; /* Prevents further receive until set again. */
         }
 
         /* Finally update the receive status. */
@@ -715,7 +712,7 @@ elnkAsyncTransmit(threec501_t *dev)
 
         /* NB: The buffer control does *not* change to Receive and stays the way it was. */
         if (!fLoopback) {
-            dev->AuxStat.recv_bsy = 1;    /* Receive Busy now set until a packet is received. */
+            dev->AuxStat.recv_bsy = 1; /* Receive Busy now set until a packet is received. */
         }
     } while (0); /* No loop, because there isn't ever more than one packet to transmit. */
 
@@ -725,14 +722,14 @@ elnkAsyncTransmit(threec501_t *dev)
 static void
 elnkCsrWrite(threec501_t *dev, uint8_t data)
 {
-    bool        fTransmit = false;
-    bool        fReceive  = false;
-    bool        fDMAR;
-    int        mode;
+    bool fTransmit = false;
+    bool fReceive  = false;
+    bool fDMAR;
+    int  mode;
 
     union {
-        uint8_t     reg;
-        EL_AUX_CMD  val;
+        uint8_t    reg;
+        EL_AUX_CMD val;
     } auxcmd;
 
     auxcmd.reg = data;
@@ -759,7 +756,7 @@ elnkCsrWrite(threec501_t *dev, uint8_t data)
 #endif
             elnkSoftReset(dev);
         }
-        dev->AuxCmd.reset = auxcmd.val.reset;    /* Update the reset bit, if nothing else. */
+        dev->AuxCmd.reset = auxcmd.val.reset; /* Update the reset bit, if nothing else. */
     }
 
     /* If the card is in reset, stop right here. */
@@ -788,14 +785,14 @@ elnkCsrWrite(threec501_t *dev, uint8_t data)
                 }
             } else {
                 while (dev->dma_pos < (ELNK_BUF_SIZE - ELNK_GP(dev))) {
-                    int dma_data = dma_channel_read(dev->dma_channel);
+                    int dma_data                                  = dma_channel_read(dev->dma_channel);
                     dev->abPacketBuf[ELNK_GP(dev) + dev->dma_pos] = dma_data & 0xff;
                     dev->dma_pos++;
                 }
             }
             dev->uGPBufPtr = (dev->uGPBufPtr + dev->dma_pos) & ELNK_GP_MASK;
             dma_set_drq(dev->dma_channel, 0);
-            dev->dma_pos = 0;
+            dev->dma_pos            = 0;
             dev->IntrState.dma_intr = 1;
             dev->AuxStat.dma_done   = 1;
             elnkUpdateIrq(dev);
@@ -808,7 +805,7 @@ elnkCsrWrite(threec501_t *dev, uint8_t data)
     /* Interrupt enable changes. */
     if ((dev->AuxCmd.ire != auxcmd.val.ire) || (dev->AuxCmd.ride != auxcmd.val.ride)) {
         dev->AuxStat.ride = dev->AuxCmd.ride = auxcmd.val.ride;
-        dev->AuxCmd.ire   = auxcmd.val.ire;  /* NB: IRE is not visible in the aux status register. */
+        dev->AuxCmd.ire                      = auxcmd.val.ire; /* NB: IRE is not visible in the aux status register. */
     }
 
     /* DMA Request changes. */
@@ -824,15 +821,15 @@ elnkCsrWrite(threec501_t *dev, uint8_t data)
     /* Packet buffer control changes. */
     if (dev->AuxCmd.buf_ctl != auxcmd.val.buf_ctl) {
 #ifdef ENABLE_3COM501_LOG
-        static const char   *apszBuffCntrl[4] = { "System", "Xmit then Recv", "Receive", "Loopback" };
+        static const char *apszBuffCntrl[4] = { "System", "Xmit then Recv", "Receive", "Loopback" };
         threec501_log("3Com501: Packet buffer control `%s' -> `%s'\n", apszBuffCntrl[dev->AuxCmd.buf_ctl], apszBuffCntrl[auxcmd.val.buf_ctl]);
 #endif
         if (auxcmd.val.buf_ctl == EL_BCTL_XMT_RCV) {
             /* Transmit, then receive. */
-            fTransmit = true;
+            fTransmit             = true;
             dev->AuxStat.recv_bsy = 0;
         } else if (auxcmd.val.buf_ctl == EL_BCTL_SYSTEM) {
-            dev->AuxStat.xmit_bsy = 1;    /* Transmit Busy is set here and cleared once actual transmit completes. */
+            dev->AuxStat.xmit_bsy = 1; /* Transmit Busy is set here and cleared once actual transmit completes. */
             dev->AuxStat.recv_bsy = 0;
         } else if (auxcmd.val.buf_ctl == EL_BCTL_RECEIVE) {
             /* Special case: If going from xmit-then-receive mode to receive mode, and we received
@@ -845,8 +842,8 @@ elnkCsrWrite(threec501_t *dev, uint8_t data)
             /* For loopback, we go through the regular transmit and receive path. That may be an
              * overkill but the receive path is too complex for a special loopback-only case.
              */
-            fTransmit = true;
-            dev->AuxStat.recv_bsy = 1;    /* Receive Busy now set until a packet is received. */
+            fTransmit             = true;
+            dev->AuxStat.recv_bsy = 1; /* Receive Busy now set until a packet is received. */
         }
         dev->AuxStat.buf_ctl = dev->AuxCmd.buf_ctl = auxcmd.val.buf_ctl;
     }
@@ -863,7 +860,7 @@ elnkCsrWrite(threec501_t *dev, uint8_t data)
     if (fTransmit)
         elnkAsyncTransmit(dev);
     else if (fReceive) {
-        dev->AuxStat.recv_bsy = 1;    /* Receive Busy now set until a packet is received. */
+        dev->AuxStat.recv_bsy = 1; /* Receive Busy now set until a packet is received. */
     }
 }
 
@@ -874,52 +871,52 @@ threec501_read(uint16_t addr, void *priv)
     uint8_t      retval = 0xff;
 
     switch (addr & 0x0f) {
-        case 0x00:  /* Receive status register aliases.  The SEEQ 8001 */
-        case 0x02:  /* EDLC clearly only decodes one bit for reads.    */
+        case 0x00: /* Receive status register aliases.  The SEEQ 8001 */
+        case 0x02: /* EDLC clearly only decodes one bit for reads.    */
         case 0x04:
-        case 0x06:  /* Receive status register. */
-            retval = dev->RcvStatReg;
-            dev->RcvStat.stale = 1;       /* Allows further reception. */
+        case 0x06: /* Receive status register. */
+            retval                   = dev->RcvStatReg;
+            dev->RcvStat.stale       = 1; /* Allows further reception. */
             dev->IntrState.recv_intr = 0; /* Reading clears receive interrupt. */
             elnkUpdateIrq(dev);
             break;
 
-        case 0x01:  /* Transmit status register aliases. */
+        case 0x01: /* Transmit status register aliases. */
         case 0x03:
         case 0x05:
-        case 0x07:  /* Transmit status register. */
-            retval = dev->XmitStatReg;
+        case 0x07: /* Transmit status register. */
+            retval                   = dev->XmitStatReg;
             dev->IntrState.xmit_intr = 0; /* Reading clears transmit interrupt. */
             elnkUpdateIrq(dev);
             break;
 
-        case 0x08:  /* GP Buffer pointer LSB. */
+        case 0x08: /* GP Buffer pointer LSB. */
             retval = (dev->uGPBufPtr & 0xff);
             break;
-        case 0x09:  /* GP Buffer pointer MSB. */
+        case 0x09: /* GP Buffer pointer MSB. */
             retval = (dev->uGPBufPtr >> 8);
             break;
 
-        case 0x0a:  /* RCV Buffer pointer LSB. */
+        case 0x0a: /* RCV Buffer pointer LSB. */
             retval = (dev->uRCVBufPtr & 0xff);
             break;
-        case 0x0b:  /* RCV Buffer pointer MSB. */
+        case 0x0b: /* RCV Buffer pointer MSB. */
             retval = (dev->uRCVBufPtr >> 8);
             break;
 
-        case 0x0c:  /* Ethernet address PROM window. */
-        case 0x0d:  /* Alias. */
+        case 0x0c: /* Ethernet address PROM window. */
+        case 0x0d: /* Alias. */
             /* Reads use low 3 bits of GP buffer pointer, no auto-increment. */
             retval = dev->aPROM[dev->uGPBufPtr & 7];
             break;
 
-        case 0x0e:  /* Auxiliary status register. */
+        case 0x0e: /* Auxiliary status register. */
             retval = dev->AuxStatReg;
             break;
 
-        case 0x0f:  /* Buffer window. */
+        case 0x0f: /* Buffer window. */
             /* Reads use low 11 bits of GP buffer pointer, auto-increment. */
-            retval = dev->abPacketBuf[ELNK_GP(dev)];
+            retval         = dev->abPacketBuf[ELNK_GP(dev)];
             dev->uGPBufPtr = (dev->uGPBufPtr + 1) & ELNK_GP_MASK;
             break;
     }
@@ -973,40 +970,40 @@ threec501_write(uint16_t addr, uint8_t value, void *priv)
 #endif
             break;
 
-        case 0x08:  /* GP Buffer pointer LSB. */
+        case 0x08: /* GP Buffer pointer LSB. */
             dev->uGPBufPtr = (dev->uGPBufPtr & 0xff00) | value;
             break;
-        case 0x09:  /* GP Buffer pointer MSB. */
+        case 0x09: /* GP Buffer pointer MSB. */
             dev->uGPBufPtr = (dev->uGPBufPtr & 0x00ff) | (value << 8);
             break;
 
-        case 0x0a:  /* RCV Buffer pointer clear. */
+        case 0x0a: /* RCV Buffer pointer clear. */
             dev->uRCVBufPtr = 0;
 #ifdef ENABLE_3COM501_LOG
             threec501_log("3Com501: RCV Buffer Pointer cleared (%02X)\n", value);
 #endif
             break;
 
-        case 0x0b:  /* RCV buffer pointer MSB. */
-        case 0x0c:  /* Ethernet address PROM window. */
-        case 0x0d:  /* Undocumented. */
+        case 0x0b: /* RCV buffer pointer MSB. */
+        case 0x0c: /* Ethernet address PROM window. */
+        case 0x0d: /* Undocumented. */
 #ifdef ENABLE_3COM501_LOG
             threec501_log("3Com501: Writing read-only register %02X!\n", reg);
 #endif
             break;
 
-        case 0x0e:  /* Auxiliary Command (CSR). */
+        case 0x0e: /* Auxiliary Command (CSR). */
             elnkCsrWrite(dev, value);
             break;
 
-        case 0x0f:  /* Buffer window. */
+        case 0x0f: /* Buffer window. */
             /* Writes use low 11 bits of GP buffer pointer, auto-increment. */
             if (dev->AuxCmd.buf_ctl != EL_BCTL_SYSTEM) {
                 /// @todo Does this still increment GPBufPtr?
                 break;
             }
             dev->abPacketBuf[ELNK_GP(dev)] = value;
-            dev->uGPBufPtr = (dev->uGPBufPtr + 1) & ELNK_GP_MASK;
+            dev->uGPBufPtr                 = (dev->uGPBufPtr + 1) & ELNK_GP_MASK;
             break;
     }
 
@@ -1042,12 +1039,12 @@ elnkSetLinkState(void *priv, uint32_t link_state)
     if (dev->fLinkUp != link_up) {
         dev->fLinkUp = link_up;
         if (link_up) {
-            dev->fLinkTempDown     = 1;
-            dev->cLinkDownReported = 0;
+            dev->fLinkTempDown         = 1;
+            dev->cLinkDownReported     = 0;
             dev->cLinkRestorePostponed = 0;
             timer_set_delay_u64(&dev->timer_restore, (dev->cMsLinkUpDelay * 1000) * TIMER_USEC);
         } else {
-            dev->cLinkDownReported = 0;
+            dev->cLinkDownReported     = 0;
             dev->cLinkRestorePostponed = 0;
         }
     }
@@ -1060,8 +1057,7 @@ elnkR3TimerRestore(void *priv)
 {
     threec501_t *dev = (threec501_t *) priv;
 
-    if ((dev->cLinkDownReported <= ELNK_MAX_LINKDOWN_REPORTED) &&
-        (dev->cLinkRestorePostponed <= ELNK_MAX_LINKRST_POSTPONED)) {
+    if ((dev->cLinkDownReported <= ELNK_MAX_LINKDOWN_REPORTED) && (dev->cLinkRestorePostponed <= ELNK_MAX_LINKRST_POSTPONED)) {
         timer_advance_u64(&dev->timer_restore, 1500000 * TIMER_USEC);
         dev->cLinkRestorePostponed++;
     } else {
@@ -1117,7 +1113,7 @@ threec501_nic_init(const device_t *info)
 
     /* Initialize the PROM */
     memcpy(dev->aPROM, dev->maclocal, sizeof(dev->maclocal));
-    dev->aPROM[6] = dev->aPROM[7] = 0;  /* The two padding bytes. */
+    dev->aPROM[6] = dev->aPROM[7] = 0; /* The two padding bytes. */
 
 #ifdef ENABLE_3COM501_LOG
     threec501_log("I/O=%04x, IRQ=%d, DMA=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
@@ -1210,15 +1206,15 @@ static const device_config_t threec501_config[] = {
 };
 
 const device_t threec501_device = {
-    .name = "3Com EtherLink (3c500/3c501)",
+    .name          = "3Com EtherLink (3c500/3c501)",
     .internal_name = "3c501",
-    .flags = DEVICE_ISA,
-    .local = 0,
-    .init = threec501_nic_init,
-    .close = threec501_nic_close,
-    .reset = elnkR3Reset,
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = threec501_nic_init,
+    .close         = threec501_nic_close,
+    .reset         = elnkR3Reset,
     { .available = NULL },
     .speed_changed = NULL,
-    .force_redraw = NULL,
-    .config = threec501_config
+    .force_redraw  = NULL,
+    .config        = threec501_config
 };

@@ -162,7 +162,7 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t
         case 0x0a: /* Indexed Data (RS value = 1010) */
             switch (ramdac->ind_idx) {
                 case 0x06: /* Indirect Cursor Control */
-                    ramdac->ccr                  = val;
+                    ramdac->ccr = val;
                     if (!(ramdac->ccr & 0x80)) {
                         svga->dac_hwcursor.cur_xsize = svga->dac_hwcursor.cur_ysize = 64;
                         svga->dac_hwcursor.x                                        = ramdac->hwc_x - svga->dac_hwcursor.cur_xsize;
@@ -489,7 +489,7 @@ tvp3026_hwcursor_draw(svga_t *svga, int displine)
 
             y_pos = displine;
             x_pos = offset + svga->x_add;
-            p     = buffer32->line[y_pos];
+            p     = svga->monitor->target_buffer->line[y_pos];
 
             if (offset >= svga->dac_hwcursor_latch.x) {
                 switch (mode) {

@@ -3774,7 +3774,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PS2,
+        .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
@@ -3813,7 +3813,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PS2,
+        .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
@@ -3894,7 +3894,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PS2,
+        .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
@@ -7036,7 +7036,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PCI,
+        .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
@@ -13004,7 +13004,6 @@ machine_get_kbc_device(int m)
 
     return (NULL);
 }
-
 
 const device_t *
 machine_get_device(int m)

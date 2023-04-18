@@ -106,7 +106,6 @@ void *__cdecl (*video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy
 void *(*video_copy)(void *__restrict, const void *__restrict, size_t);
 #endif
 
-
 PALETTE		cgapal = {
     {0,0,0},    {0,42,0},   {42,0,0},   {42,21,0},
     {0,0,0},    {0,42,42},  {42,0,42},  {42,42,42},
@@ -172,7 +171,6 @@ PALETTE		cgapal_mono[6] = {
 	{0x34,0x35,0x33},{0x37,0x37,0x34},{0x3e,0x3e,0x3a},{0x3f,0x3f,0x3b},
     }
 };
-
 
 const uint32_t shade[5][256] =
 {

@@ -59,13 +59,15 @@
 
 /* Most revision numbers (PCI-ISA bridge or otherwise) were lifted from PCI device
    listings on forums, as VIA's datasheets are not very helpful regarding those. */
-#define VIA_PIPC_586A 0x05862500
-#define VIA_PIPC_586B 0x05864700
-#define VIA_PIPC_596A 0x05960900
-#define VIA_PIPC_596B 0x05962300
-#define VIA_PIPC_686A 0x06861400
-#define VIA_PIPC_686B 0x06864000
-#define VIA_PIPC_8231 0x82311000
+#define VIA_PIPC_586A         0x05862500
+#define VIA_PIPC_586B         0x05864700
+#define VIA_PIPC_596A         0x05960900
+#define VIA_PIPC_596B         0x05962300
+#define VIA_PIPC_686A         0x06861400
+#define VIA_PIPC_686B         0x06864000
+#define VIA_PIPC_8231         0x82311000
+
+#define VIA_PIPC_FM_EMULATION 1
 
 enum {
     TRAP_DRQ = 0,
@@ -118,7 +120,7 @@ typedef struct _pipc_ {
         ide_regs[256],
         usb_regs[2][256],
         power_regs[256],
-        ac97_regs[2][256], fmnmi_regs[4];
+        ac97_regs[2][256], fmnmi_regs[4], fmnmi_status;
 
     sff8038i_t    *bm[2];
     nvr_t         *nvr;
@@ -219,6 +221,9 @@ pipc_reset_hard(void *priv)
     dev->pci_isa_regs[0x0a] = 0x01;
     dev->pci_isa_regs[0x0b] = 0x06;
     dev->pci_isa_regs[0x0e] = 0x80;
+
+    pic_kbd_latch(0x01);
+    pic_mouse_latch(dev->local >= VIA_PIPC_586B);
 
     dev->pci_isa_regs[0x48] = 0x01;
     dev->pci_isa_regs[0x4a] = 0x04;
@@ -760,10 +765,10 @@ pipc_fmnmi_handlers(pipc_t *dev, uint8_t modem)
 static uint8_t
 pipc_fm_read(uint16_t addr, void *priv)
 {
-#ifdef VIA_PIPC_FM_EMULATION
-    uint8_t ret = 0x00;
-#else
     pipc_t *dev = (pipc_t *) priv;
+#ifdef VIA_PIPC_FM_EMULATION
+    uint8_t ret = ((addr & 0x03) == 0x00) ? dev->fmnmi_status : 0x00;
+#else
     uint8_t ret = dev->sb->opl.read(addr, dev->sb->opl.priv);
 #endif
 
@@ -784,12 +789,26 @@ pipc_fm_write(uint16_t addr, uint8_t val, void *priv)
        index port, and only fires NMI/SMI when writing to the data port. */
     if (!(addr & 0x01)) {
         dev->fmnmi_regs[0x00] = (addr & 0x02) ? 0x02 : 0x01;
-        dev->fmnmi_regs[0x01] = val;
-    } else {
         dev->fmnmi_regs[0x02] = val;
+    } else {
+        dev->fmnmi_regs[0x01] = val;
+
+        /* TODO: Probe how real hardware handles OPL timers. This assumed implementation
+           just sets the relevant interrupt flags as soon as a timer is started. */
+        if (!(addr & 0x02) && (dev->fmnmi_regs[0x02] == 0x04)) {
+            if (val & 0x80)
+                dev->fmnmi_status = 0x00;
+            if ((val & 0x41) == 0x01)
+                dev->fmnmi_status |= 0x40;
+            if ((val & 0x22) == 0x02)
+                dev->fmnmi_status |= 0x20;
+            if (dev->fmnmi_status & 0x60)
+                dev->fmnmi_status |= 0x80;
+        }
 
         /* Fire NMI/SMI if enabled. */
         if (dev->ac97_regs[0][0x48] & 0x01) {
+            pipc_log("PIPC: Raising %s\n", (dev->ac97_regs[0][0x48] & 0x04) ? "SMI" : "NMI");
             if (dev->ac97_regs[0][0x48] & 0x04)
                 smi_raise();
             else
@@ -1045,6 +1064,11 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
                         break;
                 }
 
+                break;
+
+            case 0x44:
+                if (dev->local < VIA_PIPC_586B)
+                    pic_mouse_latch(val & 0x01);
                 break;
 
             case 0x47:
@@ -1568,6 +1592,9 @@ pipc_reset(void *p)
         pipc_write(1, 0x40, 0x04, p);
     else
         pipc_write(1, 0x40, 0x00, p);
+
+    if (dev->local < VIA_PIPC_586B)
+        pipc_write(0, 0x44, 0x00, p);
 
     pipc_write(0, 0x77, 0x00, p);
 }
