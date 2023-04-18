@@ -719,7 +719,7 @@ load_sound(void)
     mpu401_standalone_enable = !!ini_section_get_int(cat, "mpu401_standalone", 0);
 
     /* Backwards compatibility for standalone SSI-2001, CMS and GUS from v3.11 and older. */
-    char *legacy_cards[][2] = {{"ssi2001", "ssi2001"}, {"gameblaster", "cms"}, {"gus", "gus"}};
+    const char *legacy_cards[][2] = {{"ssi2001", "ssi2001"}, {"gameblaster", "cms"}, {"gus", "gus"}};
     for (int i = 0, j = 0; i < (sizeof(legacy_cards) / sizeof(legacy_cards[0])); i++) {
         if (ini_section_get_int(cat, legacy_cards[i][0], 0) == 1) {
             /* Migrate to the first available sound card slot. */
@@ -2405,7 +2405,7 @@ save_sound(void)
         ini_section_set_int(cat, "mpu401_standalone", mpu401_standalone_enable);
 
     /* Downgrade compatibility for standalone SSI-2001, CMS and GUS from v3.11 and older. */
-    char *legacy_cards[][2] = {{"ssi2001", "ssi2001"}, {"gameblaster", "cms"}, {"gus", "gus"}};
+    const char *legacy_cards[][2] = {{"ssi2001", "ssi2001"}, {"gameblaster", "cms"}, {"gus", "gus"}};
     for (int i = 0; i < (sizeof(legacy_cards) / sizeof(legacy_cards[0])); i++) {
         int card_id = sound_card_get_from_internal_name(legacy_cards[i][1]);
         for (int j = 0; j < (sizeof(sound_card_current) / sizeof(sound_card_current[0])); j++) {

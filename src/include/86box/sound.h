@@ -62,7 +62,7 @@ extern const device_t *sound_card_getdevice(int card);
 #endif
 extern int   sound_card_has_config(int card);
 extern char *sound_card_get_internal_name(int card);
-extern int   sound_card_get_from_internal_name(char *s);
+extern int   sound_card_get_from_internal_name(const char *s);
 extern void  sound_card_init(void);
 extern void  sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r);
 
