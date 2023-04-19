@@ -153,7 +153,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
         case 0x41:
             /* TODO: Bit 7 selects keyboard controller type:
                      0 = AT, 1 = PS/2 */
-            pic_kbd_latch(!!(val & 0x80));
+            pic_kbd_latch(1);
             pic_mouse_latch(!!(val & 0x40));
             dev->pci_conf[addr] = val & 0xbf;
             break;

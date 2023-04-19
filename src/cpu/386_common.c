@@ -780,8 +780,8 @@ smram_restore_state_p6(uint32_t *saved_state)
     cpu_state.seg_gs.ar_high = (saved_state[SMRAM_FIELD_P6_GS_SELECTOR_AR] >> 24) & 0xff;
     smm_seg_load(&cpu_state.seg_gs);
 
-    mem_a20_alt = 0;
-    keyboard_at_set_a20_key(!saved_state[SMRAM_FIELD_P6_A20M]);
+    mem_a20_alt = 0x00;
+    mem_a20_key = saved_state[SMRAM_FIELD_P6_A20M] ? 0x00 : 0x02;
     mem_a20_recalc();
 
     if (SMM_REVISION_ID & SMM_SMBASE_RELOCATION)

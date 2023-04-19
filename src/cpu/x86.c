@@ -245,7 +245,7 @@ reset_common(int hard)
             /* TODO: Hack, but will do for time being, because all AT machines currently are 286+,
                      and vice-versa. */
             dma_set_at(is286);
-            device_reset_all();
+            device_reset_all(DEVICE_ALL);
         }
     }
 
@@ -322,7 +322,7 @@ reset_common(int hard)
 
         /* If we have an AT or PS/2 keyboard controller, make sure the A20 state
            is correct. */
-        kbc_at_a20_reset();
+        device_reset_all(DEVICE_KBC);
     }
 
     if (!is286)
@@ -359,7 +359,7 @@ hardresetx86(void)
     /* TODO: Hack, but will do for time being, because all AT machines currently are 286+,
        and vice-versa. */
     dma_set_at(is286);
-    device_reset_all();
+    device_reset_all(DEVICE_ALL);
 
     cpu_alt_reset = 0;
 

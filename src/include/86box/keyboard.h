@@ -27,6 +27,15 @@ enum {
     DEV_AUX
 };
 
+enum {
+    DEV_STATE_MAIN_1 = 0,
+    DEV_STATE_MAIN_2,
+    DEV_STATE_MAIN_CMD,
+    DEV_STATE_MAIN_OUT,
+    DEV_STATE_MAIN_WANT_IN,
+    DEV_STATE_MAIN_IN
+};
+
 /* Used by the AT / PS/2 keyboard controller, common device, keyboard, and mouse. */
 typedef struct {
     uint8_t wantcmd, dat, pad, pad0;
@@ -36,7 +45,7 @@ typedef struct {
     void *priv;
 
     void  (*poll)(void *priv);
-} kbc_port_t;
+} kbc_at_port_t;
 
 /* Used by the AT / PS/2 common device, keyboard, and mouse. */
 typedef struct {
@@ -65,7 +74,7 @@ typedef struct {
     void    (*process_cmd)(void *priv);
     void    (*execute_bat)(void *priv);
 
-    kbc_port_t *port;
+    kbc_at_port_t *port;
 } atkbc_dev_t;
 
 typedef struct {
@@ -188,7 +197,7 @@ extern int     mouse_queue_start, mouse_queue_end;
 extern int     mouse_cmd_queue_start, mouse_cmd_queue_end;
 extern int     mouse_scan;
 
-extern kbc_port_t     *kbc_ports[2];
+extern kbc_at_port_t     *kbc_at_ports[2];
 
 #ifdef EMU_DEVICE_H
 extern const device_t keyboard_pc_device;
@@ -228,6 +237,8 @@ extern const device_t keyboard_ps2_intel_ami_pci_device;
 extern const device_t keyboard_ps2_acer_pci_device;
 extern const device_t keyboard_ps2_ali_pci_device;
 extern const device_t keyboard_ps2_tg_ami_pci_device;
+
+extern const device_t keyboard_at_generic_device;
 #endif /*EMU_DEVICE_H*/
 
 extern void     keyboard_init(void);
@@ -249,14 +260,10 @@ extern int      keyboard_isfsexit_down(void);
 extern int      keyboard_ismsexit(void);
 extern void     keyboard_set_is_amstrad(int ams);
 
-extern void    keyboard_at_adddata_mouse(uint8_t val);
-extern void    keyboard_at_adddata_mouse_cmd(uint8_t val);
-extern void    keyboard_at_mouse_reset(void);
-extern uint8_t keyboard_at_mouse_pos(void);
-extern void    keyboard_at_set_mouse(void (*mouse_write)(uint8_t val, void *), void *);
-extern void    keyboard_at_set_a20_key(int state);
-extern void    keyboard_at_reset(void);
-extern void    kbc_at_a20_reset(void);
+extern uint8_t      kbc_at_dev_queue_pos(atkbc_dev_t *dev, uint8_t main);
+extern void         kbc_at_dev_queue_add(atkbc_dev_t *dev, uint8_t val, uint8_t main);
+extern void         kbc_at_dev_reset(atkbc_dev_t *dev, int do_fa);
+extern atkbc_dev_t *kbc_at_dev_init(uint8_t inst);
 
 #ifdef __cplusplus
 }

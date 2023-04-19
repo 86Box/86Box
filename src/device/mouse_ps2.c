@@ -30,22 +30,7 @@ enum {
     MODE_ECHO
 };
 
-typedef struct {
-    const char *name; /* name of this device */
-    int8_t      type; /* type of this device */
-
-    int mode;
-
-    uint16_t flags;
-    uint8_t  resolution;
-    uint8_t  sample_rate;
-
-    uint8_t command;
-
-    int x, y, z, b;
-
-    uint8_t last_data[6];
-} mouse_t;
+#define FLAG_EXPLORER 0x200 /* Has 5 buttons */
 #define FLAG_5BTN    0x100 /* using Intellimouse Optical mode */
 #define FLAG_INTELLI 0x80  /* device is IntelliMouse */
 #define FLAG_INTMODE 0x40  /* using Intellimouse mode */
@@ -76,13 +61,13 @@ mouse_ps2_log(const char *fmt, ...)
 void
 mouse_clear_data(void *priv)
 {
-    mouse_t *dev = (mouse_t *) priv;
+    atkbc_dev_t *dev = (atkbc_dev_t *) priv;
 
     dev->flags &= ~FLAG_CTRLDAT;
 }
 
 static void
-ps2_report_coordinates(mouse_t *dev, int cmd)
+ps2_report_coordinates(atkbc_dev_t *dev, int main)
 {
     uint8_t buff[3] = { 0x08, 0x00, 0x00 };
     int temp_z;
@@ -123,15 +108,9 @@ ps2_report_coordinates(mouse_t *dev, int cmd)
     buff[1] = (dev->x & 0xff);
     buff[2] = (dev->y & 0xff);
 
-    if (cmd) {
-        keyboard_at_adddata_mouse_cmd(buff[0]);
-        keyboard_at_adddata_mouse_cmd(buff[1]);
-        keyboard_at_adddata_mouse_cmd(buff[2]);
-    } else {
-        keyboard_at_adddata_mouse(buff[0]);
-        keyboard_at_adddata_mouse(buff[1]);
-        keyboard_at_adddata_mouse(buff[2]);
-    }
+    kbc_at_dev_queue_add(dev, buff[0], main);
+    kbc_at_dev_queue_add(dev, buff[1], main);
+    kbc_at_dev_queue_add(dev, buff[2], main);
     if (dev->flags & FLAG_INTMODE) {
         temp_z = dev->z & 0x0f;
         if ((dev->flags & FLAG_5BTN)) {
@@ -144,62 +123,94 @@ ps2_report_coordinates(mouse_t *dev, int cmd)
             if (temp_z & 0x08)
                 temp_z |= 0xf0;
         }
-        if (cmd)
-            keyboard_at_adddata_mouse_cmd(temp_z);
-        else
-            keyboard_at_adddata_mouse(temp_z);
+        kbc_at_dev_queue_add(dev, temp_z, main);
     }
 
     dev->x = dev->y = dev->z = 0;
 }
 
 static void
-ps2_write(uint8_t val, void *priv)
+ps2_set_defaults(atkbc_dev_t *dev)
 {
-    mouse_t *dev = (mouse_t *) priv;
-    uint8_t  temp;
+    dev->mode = MODE_STREAM;
+    dev->rate = 1;
+    dev->flags &= (0x88 | FLAG_ENABLED);
+}
+
+static void
+ps2_bat(void *priv)
+{
+    atkbc_dev_t *dev = (atkbc_dev_t *) priv;
+
+    ps2_set_defaults(dev);
+
+    mouse_scan = 1;
+    dev->flags |= FLAG_ENABLED;
+
+    kbc_at_dev_queue_add(dev, 0xaa, 0);
+    kbc_at_dev_queue_add(dev, 0x00, 0);
+}
+
+static void
+ps2_write(void *priv)
+{
+    atkbc_dev_t *dev = (atkbc_dev_t *) priv;
+    uint8_t  temp, val;
+
+    if (dev->port == NULL)
+        return;
+
+    val = dev->port->dat;
+
+    dev->state = DEV_STATE_MAIN_OUT;
 
     if (dev->flags & FLAG_CTRLDAT) {
         dev->flags &= ~FLAG_CTRLDAT;
 
         if (val == 0xff)
-            goto mouse_reset;
-
-        switch (dev->command) {
+            kbc_at_dev_reset(dev, 1);
+        else  switch (dev->command) {
             case 0xe8: /* set mouse resolution */
                 dev->resolution = val;
-                keyboard_at_adddata_mouse_cmd(0xfa);
+                kbc_at_dev_queue_add(dev, 0xfa, 0);
+                mouse_ps2_log("%s: Set mouse resolution [%02X]\n", dev->name, val);
                 break;
 
             case 0xf3: /* set sample rate */
-                dev->sample_rate = val;
-                keyboard_at_adddata_mouse_cmd(0xfa); /* Command response */
+                dev->rate = val;
+                kbc_at_dev_queue_add(dev, 0xfa, 0); /* Command response */
+                mouse_ps2_log("%s: Set sample rate [%02X]\n", dev->name, val);
                 break;
 
             default:
-                keyboard_at_adddata_mouse_cmd(0xfc);
+                kbc_at_dev_queue_add(dev, 0xfc, 0);
         }
     } else {
         dev->command = val;
 
         switch (dev->command) {
             case 0xe6: /* set scaling to 1:1 */
+                mouse_ps2_log("%s: Set scaling to 1:1\n", dev->name);
                 dev->flags &= ~FLAG_SCALED;
-                keyboard_at_adddata_mouse_cmd(0xfa);
+                kbc_at_dev_queue_add(dev, 0xfa, 0);
                 break;
 
             case 0xe7: /* set scaling to 2:1 */
+                mouse_ps2_log("%s: Set scaling to 2:1\n", dev->name);
                 dev->flags |= FLAG_SCALED;
-                keyboard_at_adddata_mouse_cmd(0xfa);
+                kbc_at_dev_queue_add(dev, 0xfa, 0);
                 break;
 
             case 0xe8: /* set mouse resolution */
+                mouse_ps2_log("%s: Set mouse resolution\n", dev->name);
                 dev->flags |= FLAG_CTRLDAT;
-                keyboard_at_adddata_mouse_cmd(0xfa);
+                kbc_at_dev_queue_add(dev, 0xfa, 0);
+                dev->state = DEV_STATE_MAIN_WANT_IN;
                 break;
 
             case 0xe9: /* status request */
-                keyboard_at_adddata_mouse_cmd(0xfa);
+                mouse_ps2_log("%s: Status request\n", dev->name);
+                kbc_at_dev_queue_add(dev, 0xfa, 0);
                 temp = (dev->flags & 0x30);
                 if (mouse_buttons & 1)
                     temp |= 4;
@@ -207,64 +218,68 @@ ps2_write(uint8_t val, void *priv)
                     temp |= 1;
                 if ((mouse_buttons & 4) && (dev->flags & FLAG_INTELLI))
                     temp |= 2;
-                keyboard_at_adddata_mouse_cmd(temp);
-                keyboard_at_adddata_mouse_cmd(dev->resolution);
-                keyboard_at_adddata_mouse_cmd(dev->sample_rate);
+                kbc_at_dev_queue_add(dev, temp, 0);
+                kbc_at_dev_queue_add(dev, dev->resolution, 0);
+                kbc_at_dev_queue_add(dev, dev->rate, 0);
                 break;
 
             case 0xea: /* set stream */
+                mouse_ps2_log("%s: Set stream\n", dev->name);
                 dev->flags &= ~FLAG_CTRLDAT;
                 mouse_scan = 1;
-                keyboard_at_adddata_mouse_cmd(0xfa); /* ACK for command byte */
+                kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK for command byte */
                 break;
 
             case 0xeb: /* Get mouse data */
-                keyboard_at_adddata_mouse_cmd(0xfa);
+                mouse_ps2_log("%s: Get mouse data\n", dev->name);
+                kbc_at_dev_queue_add(dev, 0xfa, 0);
 
-                ps2_report_coordinates(dev, 1);
+                ps2_report_coordinates(dev, 0);
                 break;
 
             case 0xf2: /* read ID */
-                keyboard_at_adddata_mouse_cmd(0xfa);
+                mouse_ps2_log("%s: Read ID\n", dev->name);
+                kbc_at_dev_queue_add(dev, 0xfa, 0);
                 if (dev->flags & FLAG_INTMODE)
-                    keyboard_at_adddata_mouse_cmd((dev->flags & FLAG_5BTN) ? 0x04 : 0x03);
+                    kbc_at_dev_queue_add(dev, (dev->flags & FLAG_5BTN) ? 0x04 : 0x03, 0);
                 else
-                    keyboard_at_adddata_mouse_cmd(0x00);
+                    kbc_at_dev_queue_add(dev, 0x00, 0);
                 break;
 
-            case 0xf3: /* set command mode */
+            case 0xf3: /* set sample rate */
+                mouse_ps2_log("%s: Set sample rate\n", dev->name);
                 dev->flags |= FLAG_CTRLDAT;
-                keyboard_at_adddata_mouse_cmd(0xfa); /* ACK for command byte */
+                kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK for command byte */
+                dev->state = DEV_STATE_MAIN_WANT_IN;
                 break;
 
             case 0xf4: /* enable */
+                mouse_ps2_log("%s: Enable\n", dev->name);
                 dev->flags |= FLAG_ENABLED;
                 mouse_scan = 1;
-                keyboard_at_adddata_mouse_cmd(0xfa);
+                kbc_at_dev_queue_add(dev, 0xfa, 0);
                 break;
 
             case 0xf5: /* disable */
+                mouse_ps2_log("%s: Disable\n", dev->name);
                 dev->flags &= ~FLAG_ENABLED;
                 mouse_scan = 0;
-                keyboard_at_adddata_mouse_cmd(0xfa);
+                kbc_at_dev_queue_add(dev, 0xfa, 0);
                 break;
 
             case 0xf6: /* set defaults */
+                mouse_ps2_log("%s: Set defaults\n", dev->name);
+                ps2_set_defaults(dev);
+                kbc_at_dev_queue_add(dev, 0xfa, 0);
+                break;
+
             case 0xff: /* reset */
-mouse_reset:
-                dev->mode = MODE_STREAM;
-                dev->flags &= 0x88;
-                mouse_scan = 1;
-                keyboard_at_mouse_reset();
-                keyboard_at_adddata_mouse_cmd(0xfa);
-                if (dev->command == 0xff) {
-                    keyboard_at_adddata_mouse_cmd(0xaa);
-                    keyboard_at_adddata_mouse_cmd(0x00);
-                }
+                mouse_ps2_log("%s: Reset\n", dev->name);
+                kbc_at_dev_reset(dev, 1);
                 break;
 
             default:
-                keyboard_at_adddata_mouse_cmd(0xfe);
+                kbc_at_dev_queue_add(dev, 0xfe, 0);
         }
     }
 
@@ -279,7 +294,8 @@ mouse_reset:
             (dev->last_data[4] == 0xf3) && (dev->last_data[5] == 0x50))
             dev->flags |= FLAG_INTMODE;
 
-        if ((dev->flags & FLAG_INTMODE) && (dev->last_data[0] == 0xf3) && (dev->last_data[1] == 0xc8) &&
+        if ((dev->flags & FLAG_EXPLORER) && (dev->flags & FLAG_INTMODE) &&
+            (dev->last_data[0] == 0xf3) && (dev->last_data[1] == 0xc8) &&
             (dev->last_data[2] == 0xf3) && (dev->last_data[3] == 0xc8) &&
             (dev->last_data[4] == 0xf3) && (dev->last_data[5] == 0x50))
             dev->flags |= FLAG_5BTN;
@@ -289,30 +305,18 @@ mouse_reset:
 static int
 ps2_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
 {
-    mouse_t *dev = (mouse_t *) priv;
+    atkbc_dev_t *dev = (atkbc_dev_t *) priv;
 
-    if (!x && !y && !z && (b == dev->b))
-        return (0xff);
-
-#if 0
-    if (!(dev->flags & FLAG_ENABLED))
-        return(0xff);
-#endif
-
-    if (!mouse_scan)
+    if (!mouse_scan || (!x && !y && !z && (b == dev->b)))
         return (0xff);
 
     dev->x += x;
     dev->y -= y;
     dev->z -= z;
-#if 0
-    if ((dev->mode == MODE_STREAM) && (dev->flags & FLAG_ENABLED) && (keyboard_at_mouse_pos() < 13)) {
-#else
-    if ((dev->mode == MODE_STREAM) && (keyboard_at_mouse_pos() < 13)) {
-#endif
+    if ((dev->mode == MODE_STREAM) && (kbc_at_dev_queue_pos(dev, 1) < 13)) {
         dev->b = b;
 
-        ps2_report_coordinates(dev, 0);
+        ps2_report_coordinates(dev, 1);
     }
 
     return (0);
@@ -326,11 +330,9 @@ ps2_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
 void *
 mouse_ps2_init(const device_t *info)
 {
-    mouse_t *dev;
+    atkbc_dev_t *dev = kbc_at_dev_init(DEV_AUX);
     int      i;
 
-    dev = (mouse_t *) malloc(sizeof(mouse_t));
-    memset(dev, 0x00, sizeof(mouse_t));
     dev->name = info->name;
     dev->type = info->local;
 
@@ -338,17 +340,24 @@ mouse_ps2_init(const device_t *info)
     i         = device_get_config_int("buttons");
     if (i > 2)
         dev->flags |= FLAG_INTELLI;
+    if (i > 4)
+        dev->flags |= FLAG_EXPLORER;
 
-    if (i == 4)
+    if (i >= 4)
         i = 3;
-
-    /* Hook into the general AT Keyboard driver. */
-    keyboard_at_set_mouse(ps2_write, dev);
 
     mouse_ps2_log("%s: buttons=%d\n", dev->name, i);
 
     /* Tell them how many buttons we have. */
     mouse_set_buttons(i);
+
+    dev->process_cmd = ps2_write;
+    dev->execute_bat = ps2_bat;
+
+    dev->scan        = &mouse_scan;
+
+    if (dev->port != NULL)
+        kbc_at_dev_reset(dev, 0);
 
     /* Return our private data to the I/O layer. */
     return (dev);
@@ -357,10 +366,7 @@ mouse_ps2_init(const device_t *info)
 static void
 ps2_close(void *priv)
 {
-    mouse_t *dev = (mouse_t *) priv;
-
-    /* Unhook from the general AT Keyboard driver. */
-    keyboard_at_set_mouse(NULL, NULL);
+    atkbc_dev_t *dev = (atkbc_dev_t *) priv;
 
     free(dev);
 }

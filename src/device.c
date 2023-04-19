@@ -315,27 +315,13 @@ device_close_all(void)
 }
 
 void
-device_reset_all(void)
+device_reset_all(uint32_t match_flags)
 {
     int c;
 
     for (c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
-            if (devices[c]->reset != NULL)
-                devices[c]->reset(device_priv[c]);
-        }
-    }
-}
-
-/* Reset all attached PCI devices - needed for PCI turbo reset control. */
-void
-device_reset_all_pci(void)
-{
-    int c;
-
-    for (c = 0; c < DEVICE_MAX; c++) {
-        if (devices[c] != NULL) {
-            if ((devices[c]->reset != NULL) && (devices[c]->flags & DEVICE_PCI))
+            if ((devices[c]->reset != NULL) && (devices[c]->flags & match_flags))
                 devices[c]->reset(device_priv[c]);
         }
     }
