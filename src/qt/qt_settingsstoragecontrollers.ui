@@ -54,15 +54,25 @@
        <property name="text">
         <string>CD-ROM Controller:</string>
        </property>
+       <property name="visible">
+        <bool>false</bool>
+       </property>
       </widget>
      </item>
      <item row="2" column="1">
-      <widget class="QComboBox" name="comboBoxCDInterface"/>
+      <widget class="QComboBox" name="comboBoxCDInterface">
+       <property name="visible">
+        <bool>false</bool>
+       </property>
+      </widget>
      </item>
      <item row="2" column="2">
       <widget class="QPushButton" name="pushButtonCDInterface">
        <property name="text">
         <string>Configure</string>
+       </property>
+       <property name="visible">
+        <bool>false</bool>
        </property>
       </widget>
      </item>
