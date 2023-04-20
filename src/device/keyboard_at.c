@@ -69,6 +69,8 @@ uint8_t        keyboard_mode = 0x02;
 
 static atkbc_dev_t *SavedKbd                        = NULL;
 
+static uint8_t     inv_cmd_response                 = 0xfa;
+
 static const scancode scancode_set1[512] = {
   // clang-format off
     { {          0},{               0} }, { {     0x01,0},{          0x81,0} }, { {     0x02,0},{          0x82,0} }, { {     0x03,0},{          0x83,0} },        /*000*/
@@ -685,7 +687,6 @@ static void
 keyboard_at_set_defaults(atkbc_dev_t *dev)
 {
     dev->rate = 1;
-    dev->flags &= FLAG_ENABLED;
 
     keyboard_set3_all_break  = 0;
     keyboard_set3_all_repeat = 0;
@@ -703,7 +704,6 @@ keyboard_at_bat(void *priv)
     keyboard_at_set_defaults(dev);
 
     keyboard_scan = 1;
-    dev->flags |= FLAG_ENABLED;
 
     kbc_at_dev_queue_add(dev, 0xaa, 0);
 }
@@ -711,18 +711,10 @@ keyboard_at_bat(void *priv)
 static void
 keyboard_at_invalid_cmd(atkbc_dev_t *dev)
 {
-    /* The AT firmware sends FA on unknown but semantically valid (ie. >= 0xED) commands. */
-    keyboard_at_log("%s: Invalid AT command [%02X]\n", dev->name, dev->port->dat);
-    kbc_at_dev_queue_add(dev, 0xfa, 0);
+    keyboard_at_log("%s: Invalid command [%02X]\n", dev->name, dev->port->dat);
+    kbc_at_dev_queue_add(dev, inv_cmd_response, 0);
 }
 
-static void
-keyboard_ps2_invalid_cmd(atkbc_dev_t *dev)
-{
-    /* Send FE on unknown/invalid command per the PS/2 technical reference. */
-    keyboard_at_log("%s: Invalid PS/2 command [%02X]\n", dev->name, dev->port->dat);
-    kbc_at_dev_queue_add(dev, 0xfe, 0);
-}
 
 static void
 keyboard_at_write(void *priv)
@@ -748,20 +740,22 @@ keyboard_at_write(void *priv)
 
             case 0xf0: /* Get/set scancode set */
                 kbc_at_dev_queue_add(dev, (val > 3) ? 0xfe : 0xfa, 0);
-                if (val == 0) {
-                    keyboard_at_log("%s: Get scan code set [%02X]\n", dev->name, keyboard_mode);
-                    kbc_at_dev_queue_add(dev, keyboard_mode, 0);
-                } else {
-                    if (val <= 3) {
+                switch (val) {
+                    case 0x00:
+                        keyboard_at_log("%s: Get scan code set [%02X]\n", dev->name, keyboard_mode);
+                        kbc_at_dev_queue_add(dev, keyboard_mode, 0);
+                        break;
+                    case 0x01 ... 0x03:
                         keyboard_mode = val;
                         keyboard_at_log("%s: Set scan code set [%02X]\n", dev->name, keyboard_mode);
                         keyboard_at_set_scancode_set();
-                    } else {
+                        break;
+                    default:
                         /* Fatal so any instance of anything attempting to set scan code > 3 can be reported to us. */
                         fatal("%s: Scan code set [%02X] invalid, resend\n", dev->name, val);
                         dev->flags |= FLAG_CTRLDAT;
                         dev->state = DEV_STATE_MAIN_WANT_IN;
-                    }
+                        break;
                 }
                 break;
 
@@ -784,23 +778,14 @@ keyboard_at_write(void *priv)
         }
     } else {
         if (dev->flags & FLAG_CTRLDAT) {
-            if (val == 0xfe) {
-                /* Special case - resend last scan code command during another command that wants
-                   input - output as normal but do not cancel the command (so keep waiting for
-                   input). */
-                keyboard_at_log("%s: resend last scan code during command [%02X]\n", dev->name, dev->command);
+            /* Special case - another command during another command that wants input - proceed
+               as normal but do not cancel the command (so keep waiting for input), unless the
+               command in progress is ED (Set/reset LEDs). */
+            if (val == 0xed) {
+                keyboard_scan = 1;
+                dev->flags &= ~FLAG_CTRLDAT;
+            } else
                 dev->state = DEV_STATE_MAIN_WANT_IN;
-                kbc_at_dev_queue_add(dev, 0xfa, dev->last_scan_code);
-            } else {
-                /* Special case - another command during another command that wants input - proceed
-                   as normal but do not cancel the command (so keep waiting for input), unless the
-                   command in progress is ED (Set/reset LEDs). */
-                if (dev->command == 0xed) {
-                    keyboard_scan = 1;
-                    dev->flags &= ~FLAG_CTRLDAT;
-                } else
-                    dev->state = DEV_STATE_MAIN_WANT_IN;
-            }
         }
 
         dev->command = val;
@@ -820,10 +805,8 @@ keyboard_at_write(void *priv)
 
             case 0xef: /* Invalid command */
             case 0xf1: /* Invalid command */
-                if (dev->type & FLAG_PS2)
-                    keyboard_ps2_invalid_cmd(dev);
-                else
-                    keyboard_at_invalid_cmd(dev);
+                keyboard_at_log("%s: Invalid command [%02X]\n", dev->name, dev->port->dat);
+                kbc_at_dev_queue_add(dev, inv_cmd_response, 0);
                 break;
 
             case 0xf0: /* get/set scan code set */
@@ -858,7 +841,6 @@ keyboard_at_write(void *priv)
 
             case 0xf4: /* enable */
                 keyboard_at_log("%s: enable keyboard\n", dev->name);
-                dev->flags |= FLAG_ENABLED;
                 keyboard_scan = 1;
                 kbc_at_dev_queue_add(dev, 0xfa, 0);
                 break;
@@ -866,7 +848,7 @@ keyboard_at_write(void *priv)
             case 0xf5: /* set defaults and disable keyboard */
             case 0xf6: /* set defaults */
                 keyboard_at_log("%s: set defaults%s\n", (val == 0xf6) ? "" : " and disable keyboard");
-                keyboard_scan = (val == 0xf6);
+                keyboard_scan = !(val & 0x01);
                 keyboard_at_log("%s: val = %02X, keyboard_scan = %i\n",
                                 dev->name, val, keyboard_scan);
                 kbc_at_dev_queue_add(dev, 0xfa, 0);
@@ -918,33 +900,24 @@ keyboard_at_write(void *priv)
 
             /* TODO: Actually implement these commands. */
             case 0xfb: /* set some keys to repeat */
-                if (dev->type & FLAG_PS2) {
-                    keyboard_at_log("%s: set some keys to repeat\n", dev->name);
-                    kbc_at_dev_queue_add(dev, 0xfe, 0);
-                } else
-                    keyboard_at_invalid_cmd(dev);
+                keyboard_at_log("%s: set some keys to repeat\n", dev->name);
+                kbc_at_dev_queue_add(dev, inv_cmd_response, 0);
                 break;
 
             case 0xfc: /* set some keys to give make/break codes */
-                if (dev->type & FLAG_PS2) {
-                    keyboard_at_log("%s: set some keys to give make/break codes\n", dev->name);
-                    kbc_at_dev_queue_add(dev, 0xfe, 0);
-                } else
-                    keyboard_at_invalid_cmd(dev);
+                keyboard_at_log("%s: set some keys to give make/break codes\n", dev->name);
+                kbc_at_dev_queue_add(dev, inv_cmd_response, 0);
                 break;
 
             case 0xfd: /* set some keys to give make codes only */
-                if (dev->type & FLAG_PS2) {
-                    keyboard_at_log("%s: set some keys to give make codes only\n", dev->name);
-                    kbc_at_dev_queue_add(dev, 0xfe, 0);
-                } else
-                    keyboard_at_invalid_cmd(dev);
+                keyboard_at_log("%s: set some keys to give make codes only\n", dev->name);
+                kbc_at_dev_queue_add(dev, inv_cmd_response, 0);
                 break;
 
             /* TODO: This is supposed to resend multiple bytes after some commands. */
             case 0xfe: /* resend last scan code */
                 keyboard_at_log("%s: resend last scan code\n", dev->name);
-                kbc_at_dev_queue_add(dev, 0xfa, dev->last_scan_code);
+                kbc_at_dev_queue_add(dev, dev->last_scan_code, 0);
                 break;
 
             case 0xff: /* reset */
@@ -991,6 +964,8 @@ keyboard_at_init(const device_t *info)
 
     keyboard_send = add_data_kbd;
     SavedKbd = dev;
+
+    inv_cmd_response = (dev->type & FLAG_PS2) ? 0xfe : 0xfa;
 
     /* Return our private data to the I/O layer. */
     return (dev);

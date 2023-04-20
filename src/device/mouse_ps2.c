@@ -134,7 +134,7 @@ ps2_set_defaults(atkbc_dev_t *dev)
 {
     dev->mode = MODE_STREAM;
     dev->rate = 1;
-    dev->flags &= (0x88 | FLAG_ENABLED);
+    dev->flags &= 0x88;
 }
 
 static void
@@ -145,7 +145,6 @@ ps2_bat(void *priv)
     ps2_set_defaults(dev);
 
     mouse_scan = 1;
-    dev->flags |= FLAG_ENABLED;
 
     kbc_at_dev_queue_add(dev, 0xaa, 0);
     kbc_at_dev_queue_add(dev, 0x00, 0);
@@ -156,6 +155,7 @@ ps2_write(void *priv)
 {
     atkbc_dev_t *dev = (atkbc_dev_t *) priv;
     uint8_t  temp, val;
+    static uint8_t last_data[6] = { 0x00 };
 
     if (dev->port == NULL)
         return;
@@ -211,7 +211,9 @@ ps2_write(void *priv)
             case 0xe9: /* status request */
                 mouse_ps2_log("%s: Status request\n", dev->name);
                 kbc_at_dev_queue_add(dev, 0xfa, 0);
-                temp = (dev->flags & 0x30);
+                temp = (dev->flags & 0x20);
+                if (mouse_scan)
+                    temp |= FLAG_ENABLED;
                 if (mouse_buttons & 1)
                     temp |= 4;
                 if (mouse_buttons & 2)
@@ -255,14 +257,12 @@ ps2_write(void *priv)
 
             case 0xf4: /* enable */
                 mouse_ps2_log("%s: Enable\n", dev->name);
-                dev->flags |= FLAG_ENABLED;
                 mouse_scan = 1;
                 kbc_at_dev_queue_add(dev, 0xfa, 0);
                 break;
 
             case 0xf5: /* disable */
                 mouse_ps2_log("%s: Disable\n", dev->name);
-                dev->flags &= ~FLAG_ENABLED;
                 mouse_scan = 0;
                 kbc_at_dev_queue_add(dev, 0xfa, 0);
                 break;
@@ -285,19 +285,19 @@ ps2_write(void *priv)
 
     if (dev->flags & FLAG_INTELLI) {
         for (temp = 0; temp < 5; temp++)
-            dev->last_data[temp] = dev->last_data[temp + 1];
+            last_data[temp] = last_data[temp + 1];
 
-        dev->last_data[5] = val;
+        last_data[5] = val;
 
-        if ((dev->last_data[0] == 0xf3) && (dev->last_data[1] == 0xc8) &&
-            (dev->last_data[2] == 0xf3) && (dev->last_data[3] == 0x64) &&
-            (dev->last_data[4] == 0xf3) && (dev->last_data[5] == 0x50))
+        if ((last_data[0] == 0xf3) && (last_data[1] == 0xc8) &&
+            (last_data[2] == 0xf3) && (last_data[3] == 0x64) &&
+            (last_data[4] == 0xf3) && (last_data[5] == 0x50))
             dev->flags |= FLAG_INTMODE;
 
         if ((dev->flags & FLAG_EXPLORER) && (dev->flags & FLAG_INTMODE) &&
-            (dev->last_data[0] == 0xf3) && (dev->last_data[1] == 0xc8) &&
-            (dev->last_data[2] == 0xf3) && (dev->last_data[3] == 0xc8) &&
-            (dev->last_data[4] == 0xf3) && (dev->last_data[5] == 0x50))
+            (last_data[0] == 0xf3) && (last_data[1] == 0xc8) &&
+            (last_data[2] == 0xf3) && (last_data[3] == 0xc8) &&
+            (last_data[4] == 0xf3) && (last_data[5] == 0x50))
             dev->flags |= FLAG_5BTN;
     }
 }

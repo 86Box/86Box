@@ -38,9 +38,9 @@ enum {
 
 /* Used by the AT / PS/2 keyboard controller, common device, keyboard, and mouse. */
 typedef struct {
-    uint8_t wantcmd, dat, pad, pad0;
+    uint8_t wantcmd, dat;
 
-    int   out_new;
+    int16_t out_new;
 
     void *priv;
 
@@ -51,12 +51,9 @@ typedef struct {
 typedef struct {
     const char *name; /* name of this device */
 
-    uint8_t type, inst, command, wantdata,
-            last_scan_code, state, resolution, rate,
-            cmd_queue_start, cmd_queue_end, queue_start, queue_end;
-
-    /* 6 bytes needed for mouse */
-    uint8_t last_data[6];
+    uint8_t type, command, last_scan_code, state,
+            resolution, rate, cmd_queue_start, cmd_queue_end,
+            queue_start, queue_end;
 
     uint16_t flags;
 
