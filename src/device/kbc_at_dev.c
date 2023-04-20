@@ -144,7 +144,7 @@ kbc_at_dev_poll(void *priv)
                 dev->cmd_queue_start = (dev->cmd_queue_start + 1) & 0xf;
             }
             if (dev->cmd_queue_start == dev->cmd_queue_end)
-                dev->state = (dev->state == DEV_STATE_MAIN_OUT) ? DEV_STATE_MAIN_2 : DEV_STATE_MAIN_IN;
+                dev->state++;
             break;
         case DEV_STATE_MAIN_IN:
             /* Wait for host data. */
