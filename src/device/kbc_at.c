@@ -133,6 +133,11 @@ typedef struct {
 /* Keyboard controller ports. */
 kbc_at_port_t  *kbc_at_ports[2] = { NULL, NULL };
 
+static uint8_t kbc_ami_revision   = '8';
+static uint8_t kbc_award_revision = 0x42;
+
+static void (*kbc_at_do_poll)(atkbc_t *dev);
+
 /* Non-translated to translated scan codes. */
 static const uint8_t nont_to_t[256] = {
     0xff, 0x43, 0x41, 0x3f, 0x3d, 0x3b, 0x3c, 0x58,
@@ -619,17 +624,13 @@ kbc_at_poll(void *priv)
 
     timer_advance_u64(&dev->send_delay_timer, (100ULL * TIMER_USEC));
 
-    /* TODO: Use a fuction pointer for this (also needed to the AMI KBC mode switching)
-             and implement the password security state. */
-    if (dev->misc_flags & FLAG_PS2)
-        kbc_at_poll_ps2(dev);
-    else
-        kbc_at_poll_at(dev);
+    /* TODO: Implement the password security state. */
+    kbc_at_do_poll(dev);
 
     if ((kbc_at_ports[0] != NULL) && (kbc_at_ports[0]->priv != NULL))
         kbc_at_ports[0]->poll(kbc_at_ports[0]->priv);
 
-    if ((dev->misc_flags & FLAG_PS2) && (kbc_at_ports[1] != NULL) && (kbc_at_ports[1]->priv != NULL))
+    if ((kbc_at_ports[1] != NULL) && (kbc_at_ports[1]->priv != NULL))
         kbc_at_ports[1]->poll(kbc_at_ports[1]->priv);
 }
 
@@ -793,7 +794,7 @@ write64_generic(void *priv, uint8_t val)
 
         case 0xaf: /* read keyboard version */
             kbc_at_log("ATkbc: read keyboard version\n");
-            add_to_kbc_queue_front(dev, 0x42, 0, 0x00);
+            add_to_kbc_queue_front(dev, kbc_award_revision, 0, 0x00);
             return 0;
 
         case 0xc0: /* read P1 */
@@ -806,7 +807,6 @@ write64_generic(void *priv, uint8_t val)
                 current_drive = fdc_get_current_drive();
                 add_to_kbc_queue_front(dev, dev->p1 | fixed_bits | (fdd_is_525(current_drive) ? 0x40 : 0x00),
                                        0, 0x00);
-                dev->p1 = ((dev->p1 + 1) & 3) | (dev->p1 & 0xfc) | (fdd_is_525(current_drive) ? 0x40 : 0x00);
             } else if (kbc_ven == KBC_VEN_NCR) {
                 /* switch settings
                  * bit 7: keyboard disable
@@ -820,28 +820,20 @@ write64_generic(void *priv, uint8_t val)
                  */
                 add_to_kbc_queue_front(dev, (dev->p1 | fixed_bits | (video_is_mda() ? 0x40 : 0x00) | (hasfpu ? 0x08 : 0x00)) & 0xdf,
                                        0, 0x00);
-                dev->p1 = ((dev->p1 + 1) & 3) | (dev->p1 & 0xfc);
-            } else {
-                if ((kbc_ven == KBC_VEN_TG) || (kbc_ven == KBC_VEN_TG_GREEN)) {
-                    /* Bit 3, 2:
-                           1, 1: TriGem logo;
-                           1, 0: Garbled logo;
-                           0, 1: Epson logo;
-                           0, 0: Generic AMI logo. */
-                    if (dev->misc_flags & FLAG_PCI)
-                        fixed_bits |= 8;
-                    add_to_kbc_queue_front(dev, dev->p1 | fixed_bits, 0, 0x00);
-                } else if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) && ((dev->flags & KBC_VEN_MASK) != KBC_VEN_INTEL_AMI))
-#if 0
-                    add_to_kbc_queue_front(dev, (dev->p1 | fixed_bits) &
-                                          (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0xeb : 0xef), 0, 0x00);
-#else
-                    add_to_kbc_queue_front(dev, ((dev->p1 | fixed_bits) & 0xf0) | (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0x08 : 0x0c), 0, 0x00);
-#endif
-                else
-                    add_to_kbc_queue_front(dev, dev->p1 | fixed_bits, 0, 0x00);
-                dev->p1 = ((dev->p1 + 1) & 3) | (dev->p1 & 0xfc);
-            }
+            } else if ((kbc_ven == KBC_VEN_TG) || (kbc_ven == KBC_VEN_TG_GREEN)) {
+                /* Bit 3, 2:
+                       1, 1: TriGem logo;
+                       1, 0: Garbled logo;
+                       0, 1: Epson logo;
+                       0, 0: Generic AMI logo. */
+                if (dev->misc_flags & FLAG_PCI)
+                    fixed_bits |= 8;
+                add_to_kbc_queue_front(dev, dev->p1 | fixed_bits, 0, 0x00);
+            } else if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) && ((dev->flags & KBC_VEN_MASK) != KBC_VEN_INTEL_AMI))
+                add_to_kbc_queue_front(dev, ((dev->p1 | fixed_bits) & 0xf0) | (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0x08 : 0x0c), 0, 0x00);
+            else
+                add_to_kbc_queue_front(dev, dev->p1 | fixed_bits, 0, 0x00);
+            dev->p1 = ((dev->p1 + 1) & 3) | (dev->p1 & 0xfc);
             return 0;
 
         case 0xd3: /* write auxiliary output buffer */
@@ -910,8 +902,11 @@ write60_ami(void *priv, uint8_t val)
             kbc_at_log("ATkbc: AMI - set keyboard mode\n");
             dev->ami_flags = val;
             dev->misc_flags &= ~FLAG_PS2;
-            if (val & 0x01)
+            if (val & 0x01) {
                 dev->misc_flags |= FLAG_PS2;
+                kbc_at_do_poll = kbc_at_poll_ps2;
+            } else
+                kbc_at_do_poll = kbc_at_poll_at;
             return 0;
     }
 
@@ -944,28 +939,7 @@ write64_ami(void *priv, uint8_t val)
 
         case 0xa1: /* get controller version */
             kbc_at_log("ATkbc: AMI - get controller version\n");
-            if ((kbc_ven == KBC_VEN_TG) || (kbc_ven == KBC_VEN_TG_GREEN))
-                    add_to_kbc_queue_front(dev, 'Z', 0, 0x00);
-            else if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
-                if (kbc_ven == KBC_VEN_ALI)
-                    add_to_kbc_queue_front(dev, 'F', 0, 0x00);
-                else if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_INTEL_AMI)
-                    add_to_kbc_queue_front(dev, '5', 0, 0x00);
-                else if (cpu_64bitbus)
-                    add_to_kbc_queue_front(dev, 'R', 0, 0x00);
-                else if (is486)
-                    add_to_kbc_queue_front(dev, 'P', 0, 0x00);
-                else
-                    add_to_kbc_queue_front(dev, 'H', 0, 0x00);
-            } else if (is386 && !is486) {
-                if (cpu_16bitbus)
-                    add_to_kbc_queue_front(dev, 'D', 0, 0x00);
-                else
-                    add_to_kbc_queue_front(dev, 'B', 0, 0x00);
-            } else if (!is386)
-                add_to_kbc_queue_front(dev, '8', 0, 0x00);
-            else
-                add_to_kbc_queue_front(dev, 'F', 0, 0x00);
+            add_to_kbc_queue_front(dev, kbc_ami_revision, 0, 0x00);
             return 0;
 
         case 0xa2: /* clear keyboard controller lines P22/P23 */
@@ -1038,16 +1012,14 @@ write64_ami(void *priv, uint8_t val)
             break;
 
         case 0xaf: /* set extended controller RAM */
-            if (kbc_ven == KBC_VEN_ALI) {
-                kbc_at_log("ATkbc: Award/ALi/VIA keyboard controller revision\n");
-                add_to_kbc_queue_front(dev, 0x43, 0, 0x00);
-            } else {
+            if (kbc_ven != KBC_VEN_ALI) {
                 kbc_at_log("ATkbc: set extended controller RAM\n");
                 dev->wantdata      = 1;
                 dev->state         = STATE_KBC_PARAM;
                 dev->command_phase = 1;
+                return 0;
             }
-            return 0;
+            break;
 
         case 0xb0 ... 0xb3:
             /* set KBC lines P10-P13 (P1 bits 0-3) low */
@@ -1373,15 +1345,11 @@ kbc_at_process_cmd(void *priv)
                     dev->status = (dev->status & 0x0f) | 0x60;
 
                     dev->mem[0x20] = 0x30;
-                    dev->mem[0x21] = 0x01;
                     dev->mem[0x22] = 0x0b;
                     dev->mem[0x25] = 0x02;
                     dev->mem[0x27] = 0xf8;
                     dev->mem[0x28] = 0xce;
                     dev->mem[0x29] = 0x0b;
-                    dev->mem[0x2a] = 0x10;
-                    dev->mem[0x2b] = 0x20;
-                    dev->mem[0x2c] = 0x15;
                     dev->mem[0x30] = 0x0b;
                 } else {
                     if (dev->state != STATE_RESET) {
@@ -1395,16 +1363,17 @@ kbc_at_process_cmd(void *priv)
                     dev->status = (dev->status & 0x0f) | 0x60;
 
                     dev->mem[0x20] = 0x10;
-                    dev->mem[0x21] = 0x01;
                     dev->mem[0x22] = 0x06;
                     dev->mem[0x25] = 0x01;
                     dev->mem[0x27] = 0xfb;
                     dev->mem[0x28] = 0xe0;
                     dev->mem[0x29] = 0x06;
-                    dev->mem[0x2a] = 0x10;
-                    dev->mem[0x2b] = 0x20;
-                    dev->mem[0x2c] = 0x15;
                 }
+
+                dev->mem[0x21] = 0x01;
+                dev->mem[0x2a] = 0x10;
+                dev->mem[0x2b] = 0x20;
+                dev->mem[0x2c] = 0x15;
 
                 if (dev->ports[0] != NULL)
                     dev->ports[0]->out_new = -1;
@@ -1699,9 +1668,14 @@ kbc_at_reset(void *priv)
     dev->sc_or = 0;
 
     dev->ami_flags = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) ? 0x01 : 0x00;
+    dev->misc_flags = 0x00;
 
-    if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)
+    if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
         dev->misc_flags |= FLAG_PS2;
+        kbc_at_do_poll = kbc_at_poll_ps2;
+    } else
+        kbc_at_do_poll = kbc_at_poll_at;
+
     dev->misc_flags |= FLAG_CACHE;
 
     dev->p2 = 0xcd;
@@ -1763,6 +1737,9 @@ kbc_at_init(const device_t *info)
     dev->write60_ven = NULL;
     dev->write64_ven = NULL;
 
+    kbc_ami_revision = '8';
+    kbc_award_revision = 0x42;
+
     switch (dev->flags & KBC_VEN_MASK) {
         case KBC_VEN_ACER:
         case KBC_VEN_GENERIC:
@@ -1775,11 +1752,44 @@ kbc_at_init(const device_t *info)
             dev->write64_ven = write64_olivetti;
             break;
 
-        case KBC_VEN_AMI:
         case KBC_VEN_INTEL_AMI:
+            kbc_ami_revision = '5';
+            dev->write60_ven = write60_ami;
+            dev->write64_ven = write64_ami;
+            break;
+
         case KBC_VEN_ALI:
+            kbc_ami_revision = 'F';
+            kbc_award_revision = 0x43;
+            dev->write60_ven = write60_ami;
+            dev->write64_ven = write64_ami;
+            break;
+
         case KBC_VEN_TG:
         case KBC_VEN_TG_GREEN:
+            kbc_ami_revision = 'Z';
+            dev->write60_ven = write60_ami;
+            dev->write64_ven = write64_ami;
+            break;
+
+        case KBC_VEN_AMI:
+            if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
+                if (cpu_64bitbus)
+                    kbc_ami_revision = 'R';
+                else if (is486)
+                    kbc_ami_revision = 'P';
+                else
+                    kbc_ami_revision = 'H';
+            } else if (is386 && !is486) {
+                if (cpu_16bitbus)
+                    kbc_ami_revision = 'D';
+                else
+                    kbc_ami_revision = 'B';
+            } else if (!is386)
+                kbc_ami_revision = '8';
+            else
+                kbc_ami_revision = 'F';
+
             dev->write60_ven = write60_ami;
             dev->write64_ven = write64_ami;
             break;
