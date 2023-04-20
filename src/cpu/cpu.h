@@ -416,7 +416,11 @@ typedef struct {
 #define CPU_STATUS_PMODE   (1 << 2)
 #define CPU_STATUS_V86     (1 << 3)
 #define CPU_STATUS_SMM     (1 << 4)
+#ifdef USE_NEW_DYNAREC
+#define CPU_STATUS_FLAGS   0xff
+#else
 #define CPU_STATUS_FLAGS   0xffff
+#endif
 
 /*If the cpu_state.flags below are set in cpu_cur_status, they must be set in block->status.
   Otherwise they are ignored*/
