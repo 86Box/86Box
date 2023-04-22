@@ -64,25 +64,22 @@
 #define MODE_MASK          0x6c
 
 #define KBC_TYPE_ISA       0x00 /* AT ISA-based chips */
-#define KBC_TYPE_PS2_NOREF 0x01 /* PS2 type, no refresh */
-#define KBC_TYPE_PS2_1     0x02 /* PS2 on PS/2, type 1 */
-#define KBC_TYPE_PS2_2     0x03 /* PS2 on PS/2, type 2 */
+#define KBC_TYPE_PS2_1     0x01 /* PS2 on PS/2, type 1 */
+#define KBC_TYPE_PS2_2     0x02 /* PS2 on PS/2, type 2 */
+#define KBC_TYPE_GREEN     0x03 /* PS2 green controller */
 #define KBC_TYPE_MASK      0x03
 
 #define KBC_VEN_GENERIC    0x00
-#define KBC_VEN_AMI        0x04
-#define KBC_VEN_IBM_MCA    0x08
-#define KBC_VEN_QUADTEL    0x0c
-#define KBC_VEN_TOSHIBA    0x10
-#define KBC_VEN_IBM_PS1    0x14
-#define KBC_VEN_ACER       0x18
-#define KBC_VEN_INTEL_AMI  0x1c
-#define KBC_VEN_OLIVETTI   0x20
+#define KBC_VEN_IBM_PS1    0x04
+#define KBC_VEN_TOSHIBA    0x08
+#define KBC_VEN_OLIVETTI   0x0c
+#define KBC_VEN_AMI        0x10
+#define KBC_VEN_TRIGEM_AMI 0x14
+#define KBC_VEN_QUADTEL    0x18
+#define KBC_VEN_PHOENIX    0x1c
+#define KBC_VEN_ACER       0x20
 #define KBC_VEN_NCR        0x24
-#define KBC_VEN_PHOENIX    0x28
-#define KBC_VEN_ALI        0x2c
-#define KBC_VEN_TG         0x30
-#define KBC_VEN_TG_GREEN   0x34
+#define KBC_VEN_ALI        0x28
 #define KBC_VEN_MASK       0x3c
 
 #define FLAG_CLOCK         0x01
@@ -210,6 +207,7 @@ kbc_at_queue_add(atkbc_t *dev, uint8_t val)
 static int
 kbc_translate(atkbc_t *dev, uint8_t val)
 {
+    /* TODO: Does the IBM AT keyboard controller firmware apply translation in XT mode or not? */
     int      xt_mode   = (dev->mem[0x20] & 0x20) && !(dev->misc_flags & FLAG_PS2);
     int      translate = (dev->mem[0x20] & 0x40) || xt_mode || ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_PS2_2);
     uint8_t  kbc_ven   = dev->flags & KBC_VEN_MASK;
@@ -308,8 +306,8 @@ add_to_kbc_queue_front(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_
     if (temp == -1)
         return;
 
-    if ((kbc_ven == KBC_VEN_AMI) || (kbc_ven == KBC_VEN_TG) ||
-        (kbc_ven == KBC_VEN_TG_GREEN) || (dev->misc_flags & FLAG_PS2))
+    if ((kbc_ven == KBC_VEN_AMI) || (kbc_ven == KBC_VEN_TRIGEM_AMI) ||
+        (dev->misc_flags & FLAG_PS2))
         stat_hi |= ((dev->p1 & 0x80) ? 0x10 : 0x00);
     else
         stat_hi |= 0x10;
@@ -675,7 +673,7 @@ write_p2(atkbc_t *dev, uint8_t val)
                    coreboot machines. */
                 pc_reset_hard();
             } else {
-                softresetx86(); /*Pulse reset!*/
+                softresetx86(); /* Pulse reset! */
                 cpu_set_edx();
                 flushmmucache();
                 if (kbc_ven == KBC_VEN_ALI)
@@ -797,11 +795,59 @@ write64_generic(void *priv, uint8_t val)
             add_to_kbc_queue_front(dev, kbc_award_revision, 0, 0x00);
             return 0;
 
+        /*
+                                                                                P1 bits: 76543210
+                                                                                -----------------
+           IBM PS/1:                                                                     xxxxxxxx
+           IBM PS/2 MCA:                                                                 xxxxx1xx
+           Intel AMI Pentium BIOS'es with AMI MegaKey KB-5 keyboard controller:          x1x1xxxx
+           Acer:                                                                         xxx0x0xx
+           Packard Bell PB450:                                                           xxxxx1xx
+           P6RP4:                                                                        xx1xx1xx
+           Epson Action Tower 2600:                                                      xxxx01xx
+           TriGem Hawk:                                                                  xxxx11xx
+
+           Bit 7: AT KBC only - keyboard inhibited (often physical lock): 0 = yes, 1 = no (also Compaq);
+           Bit 6: Mostly, display: 0 = CGA, 1 = MDA, inverted on Xi8088 and Acer KBC's;
+                  Intel AMI MegaKey KB-5: Used for green features, SMM handler expects it to be set;
+                  IBM PS/1 Model 2011: 0 = current FDD is 3.5", 1 = current FDD is 5.25";
+                  Comapq: 0 = Compaq dual-scan display, 1 = non-Compaq display.
+           Bit 5: Mostly, manufacturing jumper: 0 = installed (infinite loop at POST), 1 = not installed;
+                  NCR: power-on default speed: 0 = high, 1 = low;
+                  Compaq: System board DIP switch 5: 0 = ON, 1 = OFF.
+           Bit 4: (Which board?): RAM on motherboard: 0 = 512 kB, 1 = 256 kB;
+                  NCR: RAM on motherboard: 0 = unsupported, 1 = 512 kB;
+                  Acer: Must be 0;
+                  Intel AMI MegaKey KB-5: Must be 1;
+                  IBM PS/1: Ignored;
+                  Compaq: 0 = Auto speed selected, 1 = High speed selected.
+           Bit 3: TriGem AMIKey: most significant bit of 2-bit OEM ID;
+                  NCR: Coprocessor detect (1 = yes, 0 = no);
+                  Compaq: 0 = Slow (4 MHz), 1 = Fast (8 MHz);
+                  Sometimes configured for clock switching;
+           Bit 2: TriGem AMIKey: least significant bit of 2-bit OEM ID;
+                  Bit 3, 2:
+                      1, 1: TriGem logo;
+                      1, 0: Garbled logo;
+                      0, 1: Epson logo;
+                      0, 0: Generic AMI logo.
+                  NCR: Unused;
+                  IBM PS/2: Keyboard power: 0 = no power (fuse error), 1 = OK
+                  (for some reason, www.win.tue.nl has this in reverse);
+                  Compaq: FPU: 0 = 80287, 1 = none;
+                  Sometimes configured for clock switching;
+           Bit 1: PS/2: Auxiliary device data in;
+                  Compaq: Reserved;
+                  NCR: High/auto speed.
+           Bit 0: PS/2: Keyboard device data in;
+                  Compaq: Reserved;
+                  NCR: DMA mode.
+         */
         case 0xc0: /* read P1 */
             kbc_at_log("ATkbc: read P1\n");
             fixed_bits = 4;
             /* The SMM handlers of Intel AMI Pentium BIOS'es expect bit 6 to be set. */
-            if (kbc_ven == KBC_VEN_INTEL_AMI)
+            if ((kbc_ven == KBC_VEN_AMI) && ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_GREEN))
                 fixed_bits |= 0x40;
             if (kbc_ven == KBC_VEN_IBM_PS1) {
                 current_drive = fdc_get_current_drive();
@@ -820,7 +866,7 @@ write64_generic(void *priv, uint8_t val)
                  */
                 add_to_kbc_queue_front(dev, (dev->p1 | fixed_bits | (video_is_mda() ? 0x40 : 0x00) | (hasfpu ? 0x08 : 0x00)) & 0xdf,
                                        0, 0x00);
-            } else if ((kbc_ven == KBC_VEN_TG) || (kbc_ven == KBC_VEN_TG_GREEN)) {
+            } else if (kbc_ven == KBC_VEN_TRIGEM_AMI) {
                 /* Bit 3, 2:
                        1, 1: TriGem logo;
                        1, 0: Garbled logo;
@@ -829,12 +875,30 @@ write64_generic(void *priv, uint8_t val)
                 if (dev->misc_flags & FLAG_PCI)
                     fixed_bits |= 8;
                 add_to_kbc_queue_front(dev, dev->p1 | fixed_bits, 0, 0x00);
-            } else if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) && ((dev->flags & KBC_VEN_MASK) != KBC_VEN_INTEL_AMI))
+            } else if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_GREEN))
                 add_to_kbc_queue_front(dev, ((dev->p1 | fixed_bits) & 0xf0) | (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0x08 : 0x0c), 0, 0x00);
             else
                 add_to_kbc_queue_front(dev, dev->p1 | fixed_bits, 0, 0x00);
             dev->p1 = ((dev->p1 + 1) & 3) | (dev->p1 & 0xfc);
             return 0;
+
+        case 0xc1: /*Copy bits 0 to 3 of P1 to status bits 4 to 7*/
+            if (dev->misc_flags & FLAG_PS2) {
+                kbc_at_log("ATkbc: copy bits 0 to 3 of P1 to status bits 4 to 7\n");
+                dev->status &= 0x0f;
+                dev->status |= (dev->p1 << 4);
+                return 0;
+            }
+            break;
+
+        case 0xc2: /*Copy bits 4 to 7 of P1 to status bits 4 to 7*/
+            if (dev->misc_flags & FLAG_PS2) {
+                kbc_at_log("ATkbc: copy bits 4 to 7 of P1 to status bits 4 to 7\n");
+                dev->status &= 0x0f;
+                dev->status |= (dev->p1 & 0xf0);
+                return 0;
+            }
+            break;
 
         case 0xd3: /* write auxiliary output buffer */
             if (dev->misc_flags & FLAG_PS2) {
@@ -903,10 +967,13 @@ write60_ami(void *priv, uint8_t val)
             dev->ami_flags = val;
             dev->misc_flags &= ~FLAG_PS2;
             if (val & 0x01) {
+                kbc_at_log("ATkbc: AMI: Emulate PS/2 keyboard\n");
                 dev->misc_flags |= FLAG_PS2;
                 kbc_at_do_poll = kbc_at_poll_ps2;
-            } else
+            } else {
+                kbc_at_log("ATkbc: AMI: Emulate AT keyboard\n");
                 kbc_at_do_poll = kbc_at_poll_at;
+            }
             return 0;
     }
 
@@ -1113,37 +1180,6 @@ write64_ami(void *priv, uint8_t val)
 }
 
 static uint8_t
-write64_ibm_mca(void *priv, uint8_t val)
-{
-    atkbc_t *dev = (atkbc_t *) priv;
-
-    switch (val) {
-        case 0xc1: /*Copy bits 0 to 3 of P1 to status bits 4 to 7*/
-            kbc_at_log("ATkbc: copy bits 0 to 3 of P1 to status bits 4 to 7\n");
-            dev->status &= 0x0f;
-            dev->status |= ((((dev->p1 & 0xfc) | 0x84) & 0x0f) << 4);
-            return 0;
-
-        case 0xc2: /*Copy bits 4 to 7 of P1 to status bits 4 to 7*/
-            kbc_at_log("ATkbc: copy bits 4 to 7 of P1 to status bits 4 to 7\n");
-            dev->status &= 0x0f;
-            dev->status |= (((dev->p1 & 0xfc) | 0x84) & 0xf0);
-            return 0;
-
-        case 0xaf:
-            kbc_at_log("ATkbc: bad KBC command AF\n");
-            return 1;
-
-        case 0xf0 ... 0xff:
-            kbc_at_log("ATkbc: pulse: %01X\n", (val & 0x03) | 0x0c);
-            pulse_output(dev, (val & 0x03) | 0x0c);
-            return 0;
-    }
-
-    return write64_generic(dev, val);
-}
-
-static uint8_t
 write60_quadtel(void *priv, uint8_t val)
 {
     atkbc_t *dev = (atkbc_t *) priv;
@@ -1260,15 +1296,17 @@ write64_toshiba(void *priv, uint8_t val)
             dev->state     = STATE_KBC_PARAM;
             return 0;
 
+        /* TODO: Toshiba KBC mode switching. */
         case 0xb7: /* T3100e: Emulate PS/2 keyboard */
         case 0xb8: /* T3100e: Emulate AT keyboard */
-            dev->flags &= ~KBC_TYPE_MASK;
+            dev->misc_flags &= ~FLAG_PS2;
             if (val == 0xb7) {
                 kbc_at_log("ATkbc: T3100e: Emulate PS/2 keyboard\n");
-                dev->flags |= KBC_TYPE_PS2_NOREF;
+                dev->misc_flags |= FLAG_PS2;
+                kbc_at_do_poll = kbc_at_poll_ps2;
             } else {
                 kbc_at_log("ATkbc: T3100e: Emulate AT keyboard\n");
-                dev->flags |= KBC_TYPE_ISA;
+                kbc_at_do_poll = kbc_at_poll_at;
             }
             return 0;
 
@@ -1333,7 +1371,7 @@ kbc_at_process_cmd(void *priv)
             case 0xaa: /* self-test */
                 kbc_at_log("ATkbc: self-test\n");
 
-                if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
+                if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
                     if (dev->state != STATE_RESET) {
                         kbc_at_log("ATkbc: self-test reinitialization\n");
                         /* Yes, the firmware has an OR, but we need to make sure to keep any forcibly lowered bytes lowered. */
@@ -1531,7 +1569,7 @@ kbc_at_process_cmd(void *priv)
                 if (dev->ib == 0xbb)
                     break;
 
-                if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
+                if (dev->misc_flags & FLAG_PS2) {
                     set_enable_aux(dev, 1);
                     if ((dev->ports[1] != NULL) && (dev->ports[1]->priv != NULL)) {
                         dev->ports[1]->wantcmd = 1;
@@ -1614,7 +1652,7 @@ kbc_at_read(uint16_t port, void *priv)
     atkbc_t *dev     = (atkbc_t *) priv;
     uint8_t  ret     = 0xff;
 
-    if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)
+    if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1)
         cycles -= ISA_CYCLES(8);
 
     switch (port) {
@@ -1667,10 +1705,10 @@ kbc_at_reset(void *priv)
 
     dev->sc_or = 0;
 
-    dev->ami_flags = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) ? 0x01 : 0x00;
+    dev->ami_flags = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? 0x01 : 0x00;
     dev->misc_flags = 0x00;
 
-    if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
+    if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
         dev->misc_flags |= FLAG_PS2;
         kbc_at_do_poll = kbc_at_poll_ps2;
     } else
@@ -1679,7 +1717,7 @@ kbc_at_reset(void *priv)
     dev->misc_flags |= FLAG_CACHE;
 
     dev->p2 = 0xcd;
-    if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
+    if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
         write_p2(dev, 0x4b);
     } else {
         /* The real thing writes CF and then AND's it with BF. */
@@ -1694,7 +1732,7 @@ static void
 kbc_at_close(void *priv)
 {
     atkbc_t *dev = (atkbc_t *) priv;
-    int i, max_ports = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) ? 2 : 1;
+    int i, max_ports = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? 2 : 1;
 
     kbc_at_reset(dev);
 
@@ -1752,12 +1790,6 @@ kbc_at_init(const device_t *info)
             dev->write64_ven = write64_olivetti;
             break;
 
-        case KBC_VEN_INTEL_AMI:
-            kbc_ami_revision = '5';
-            dev->write60_ven = write60_ami;
-            dev->write64_ven = write64_ami;
-            break;
-
         case KBC_VEN_ALI:
             kbc_ami_revision = 'F';
             kbc_award_revision = 0x43;
@@ -1765,15 +1797,16 @@ kbc_at_init(const device_t *info)
             dev->write64_ven = write64_ami;
             break;
 
-        case KBC_VEN_TG:
-        case KBC_VEN_TG_GREEN:
+        case KBC_VEN_TRIGEM_AMI:
             kbc_ami_revision = 'Z';
             dev->write60_ven = write60_ami;
             dev->write64_ven = write64_ami;
             break;
 
         case KBC_VEN_AMI:
-            if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) {
+            if ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_GREEN)
+                kbc_ami_revision = '5';
+            else if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
                 if (cpu_64bitbus)
                     kbc_ami_revision = 'R';
                 else if (is486)
@@ -1794,10 +1827,6 @@ kbc_at_init(const device_t *info)
             dev->write64_ven = write64_ami;
             break;
 
-        case KBC_VEN_IBM_MCA:
-            dev->write64_ven = write64_ibm_mca;
-            break;
-
         case KBC_VEN_QUADTEL:
             dev->write60_ven = write60_quadtel;
             dev->write64_ven = write64_quadtel;
@@ -1809,7 +1838,7 @@ kbc_at_init(const device_t *info)
             break;
     }
 
-    max_ports = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) ? 2 : 1;
+    max_ports = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? 2 : 1;
 
     for (i = 0; i < max_ports; i++) {
         kbc_at_ports[i] = (kbc_at_port_t *) malloc(sizeof(kbc_at_port_t));
@@ -1858,7 +1887,7 @@ const device_t keyboard_at_tg_ami_device = {
     .name          = "PC/AT Keyboard (TriGem AMI)",
     .internal_name = "keyboard_at_tg_ami",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_ISA | KBC_VEN_TG,
+    .local         = KBC_TYPE_ISA | KBC_VEN_TRIGEM_AMI,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -1914,7 +1943,7 @@ const device_t keyboard_ps2_device = {
     .name          = "PS/2 Keyboard",
     .internal_name = "keyboard_ps2",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_GENERIC,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -1928,7 +1957,7 @@ const device_t keyboard_ps2_ps1_device = {
     .name          = "PS/2 Keyboard (IBM PS/1)",
     .internal_name = "keyboard_ps2_ps1",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_IBM_PS1,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_IBM_PS1,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -1942,7 +1971,7 @@ const device_t keyboard_ps2_ps1_pci_device = {
     .name          = "PS/2 Keyboard (IBM PS/1)",
     .internal_name = "keyboard_ps2_ps1_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
-    .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_IBM_PS1,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_IBM_PS1,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -1970,7 +1999,7 @@ const device_t keyboard_ps2_ami_device = {
     .name          = "PS/2 Keyboard (AMI)",
     .internal_name = "keyboard_ps2_ami",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_AMI,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_AMI,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -1984,21 +2013,7 @@ const device_t keyboard_ps2_tg_ami_device = {
     .name          = "PS/2 Keyboard (TriGem AMI)",
     .internal_name = "keyboard_ps2_tg_ami",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_TG,
-    .init          = kbc_at_init,
-    .close         = kbc_at_close,
-    .reset         = kbc_at_reset,
-    { .available = NULL },
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t keyboard_ps2_mca_device = {
-    .name          = "PS/2 Keyboard",
-    .internal_name = "keyboard_ps2_mca",
-    .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_1 | KBC_VEN_IBM_MCA,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_TRIGEM_AMI,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -2012,7 +2027,7 @@ const device_t keyboard_ps2_mca_2_device = {
     .name          = "PS/2 Keyboard",
     .internal_name = "keyboard_ps2_mca_2",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_2 | KBC_VEN_IBM_MCA,
+    .local         = KBC_TYPE_PS2_2 | KBC_VEN_GENERIC,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -2026,7 +2041,7 @@ const device_t keyboard_ps2_quadtel_device = {
     .name          = "PS/2 Keyboard (Quadtel/MegaPC)",
     .internal_name = "keyboard_ps2_quadtel",
     .flags         = DEVICE_KBC,
-    .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_QUADTEL,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_QUADTEL,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -2040,7 +2055,7 @@ const device_t keyboard_ps2_pci_device = {
     .name          = "PS/2 Keyboard",
     .internal_name = "keyboard_ps2_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
-    .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_GENERIC,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_GENERIC,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -2054,7 +2069,7 @@ const device_t keyboard_ps2_ami_pci_device = {
     .name          = "PS/2 Keyboard (AMI)",
     .internal_name = "keyboard_ps2_ami_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
-    .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_AMI,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_AMI,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -2068,7 +2083,7 @@ const device_t keyboard_ps2_ali_pci_device = {
     .name          = "PS/2 Keyboard (ALi M5123/M1543C)",
     .internal_name = "keyboard_ps2_ali_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
-    .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_ALI,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_ALI,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -2082,7 +2097,7 @@ const device_t keyboard_ps2_intel_ami_pci_device = {
     .name          = "PS/2 Keyboard (AMI)",
     .internal_name = "keyboard_ps2_intel_ami_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
-    .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_INTEL_AMI,
+    .local         = KBC_TYPE_GREEN | KBC_VEN_AMI,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -2096,7 +2111,7 @@ const device_t keyboard_ps2_tg_ami_pci_device = {
     .name          = "PS/2 Keyboard (TriGem AMI)",
     .internal_name = "keyboard_ps2_tg_ami_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
-    .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_TG,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_TRIGEM_AMI,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
@@ -2110,7 +2125,7 @@ const device_t keyboard_ps2_acer_pci_device = {
     .name          = "PS/2 Keyboard (Acer 90M002A)",
     .internal_name = "keyboard_ps2_acer_pci",
     .flags         = DEVICE_KBC | DEVICE_PCI,
-    .local         = KBC_TYPE_PS2_NOREF | KBC_VEN_ACER,
+    .local         = KBC_TYPE_PS2_1 | KBC_VEN_ACER,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
