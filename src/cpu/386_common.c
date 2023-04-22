@@ -1427,25 +1427,26 @@ x86illegal(void)
 }
 
 int
-checkio(uint32_t port)
+checkio(uint32_t port, int mask)
 {
     uint16_t t;
-    uint8_t  d;
 
     cpl_override = 1;
     t            = readmemw(tr.base, 0x66);
-    cpl_override = 0;
 
-    if (cpu_state.abrt)
+    if (cpu_state.abrt) {
+        cpl_override = 0;
         return 0;
+    }
 
-    if ((t + (port >> 3UL)) > tr.limit)
-        return 1;
+    if ((t + (port >> 3UL) + 1) > tr.limit) {
+        cpl_override = 0;
+        return mask;
+    }
 
-    cpl_override = 1;
-    d            = readmembl(tr.base + t + (port >> 3));
+    t            = readmemwl(tr.base + t + (port >> 3));
     cpl_override = 0;
-    return d & (1 << (port & 7));
+    return (t >> (port & 7)) & mask;
 }
 
 #ifdef OLD_DIVEXCP
