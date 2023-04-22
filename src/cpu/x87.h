@@ -1,11 +1,3 @@
-#define C0 (1 << 8)
-#define C1 (1 << 9)
-#define C2 (1 << 10)
-#define C3 (1 << 14)
-
-extern uint32_t x87_pc_off, x87_op_off;
-extern uint16_t x87_pc_seg, x87_op_seg;
-
 static __inline void
 x87_set_mmx(void)
 {

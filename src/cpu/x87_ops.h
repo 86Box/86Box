@@ -27,6 +27,8 @@
 #    include <intrin.h>
 #endif
 
+#include "softfloat/softfloatx80.h"
+
 #ifdef ENABLE_FPU_LOG
 extern void fpu_log(const char *fmt, ...);
 #else
@@ -39,12 +41,153 @@ static int rounding_modes[4] = { FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARD
 
 #define ST(x)             cpu_state.ST[((cpu_state.TOP + (x)) & 7)]
 
+/* Status Word */
+#define FPU_SW_Backward        (0x8000)  /* backward compatibility */
+#define FPU_SW_C3              (0x4000)  /* condition bit 3 */
+#define FPU_SW_Top             (0x3800)  /* top of stack */
+#define FPU_SW_C2              (0x0400)  /* condition bit 2 */
+#define FPU_SW_C1              (0x0200)  /* condition bit 1 */
+#define FPU_SW_C0              (0x0100)  /* condition bit 0 */
+#define FPU_SW_Summary         (0x0080)  /* exception summary */
+#define FPU_SW_Stack_Fault     (0x0040)  /* stack fault */
+#define FPU_SW_Precision       (0x0020)  /* loss of precision */
+#define FPU_SW_Underflow       (0x0010)  /* underflow */
+#define FPU_SW_Overflow        (0x0008)  /* overflow */
+#define FPU_SW_Zero_Div        (0x0004)  /* divide by zero */
+#define FPU_SW_Denormal_Op     (0x0002)  /* denormalized operand */
+#define FPU_SW_Invalid         (0x0001)  /* invalid operation */
+
 #define C0                (1 << 8)
 #define C1                (1 << 9)
 #define C2                (1 << 10)
 #define C3                (1 << 14)
 
-#define STATUS_ZERODIVIDE 4
+#define STATUS_ZERODIVIDE FPU_SW_Zero_Div
+
+#define FPU_SW_CC (C0 | C1 | C2 | C3)
+
+#define FPU_SW_Exceptions_Mask (0x027f)  /* status word exceptions bit mask */
+
+/* Exception flags: */
+#define FPU_EX_Precision    (0x0020)  /* loss of precision */
+#define FPU_EX_Underflow    (0x0010)  /* underflow */
+#define FPU_EX_Overflow     (0x0008)  /* overflow */
+#define FPU_EX_Zero_Div     (0x0004)  /* divide by zero */
+#define FPU_EX_Denormal     (0x0002)  /* denormalized operand */
+#define FPU_EX_Invalid      (0x0001)  /* invalid operation */
+
+/* Special exceptions: */
+#define FPU_EX_Stack_Overflow    (0x0041| C1)     /* stack overflow */
+#define FPU_EX_Stack_Underflow   (0x0041)        /* stack underflow */
+
+/* precision control */
+#define FPU_EX_Precision_Lost_Up    (EX_Precision | C1)
+#define FPU_EX_Precision_Lost_Dn    (EX_Precision)
+
+#define setcc(cc)  \
+  cpu_state.npxs = (cpu_state.npxs & ~(FPU_SW_CC)) | ((cc) & FPU_SW_CC)
+
+#define clear_C1() { cpu_state.npxs &= ~C1; }
+#define clear_C2() { cpu_state.npxs &= ~C2; }
+
+/* ************ */
+/* Control Word */
+/* ************ */
+
+#define FPU_CW_Inf		(0x1000)  /* infinity control, legacy */
+
+#define FPU_CW_RC		(0x0C00)  /* rounding control */
+#define FPU_CW_PC		(0x0300)  /* precision control */
+
+#define FPU_RC_RND		(0x0000)  /* rounding control */
+#define FPU_RC_DOWN		(0x0400)
+#define FPU_RC_UP		(0x0800)
+#define FPU_RC_CHOP		(0x0C00)
+
+#define FPU_CW_Precision	(0x0020)  /* loss of precision mask */
+#define FPU_CW_Underflow	(0x0010)  /* underflow mask */
+#define FPU_CW_Overflow		(0x0008)  /* overflow mask */
+#define FPU_CW_Zero_Div		(0x0004)  /* divide by zero mask */
+#define FPU_CW_Denormal		(0x0002)  /* denormalized operand mask */
+#define FPU_CW_Invalid		(0x0001)  /* invalid operation mask */
+
+#define FPU_CW_Exceptions_Mask 	(0x003f)  /* all masks */
+
+/* Precision control bits affect only the following:
+   ADD, SUB(R), MUL, DIV(R), and SQRT */
+#define FPU_PR_32_BITS          (0x000)
+#define FPU_PR_RESERVED_BITS    (0x100)
+#define FPU_PR_64_BITS          (0x200)
+#define FPU_PR_80_BITS          (0x300)
+
+static __inline const int
+is_IA_masked(void)
+{
+    return (cpu_state.npxc & FPU_CW_Invalid);
+}
+
+static __inline const uint16_t
+i387_get_control_word(void)
+{
+    return (cpu_state.npxc);
+}
+
+static __inline int
+i387cw_to_softfloat_status_word(float_status_t *status, uint16_t control_word)
+{
+  int precision = control_word & FPU_CW_PC;
+
+  switch(precision) {
+     case FPU_PR_32_BITS:
+       status->float_rounding_precision = 32;
+       pclog("32-bit.\n");
+       break;
+     case FPU_PR_64_BITS:
+       status->float_rounding_precision = 64;
+       pclog("64-bit.\n");
+       break;
+     case FPU_PR_80_BITS:
+       status->float_rounding_precision = 80;
+       pclog("80-bit.\n");
+       break;
+     default:
+    /* With the precision control bits set to 01 "(reserved)", a
+       real CPU behaves as if the precision control bits were
+       set to 11 "80 bits" */
+       status->float_rounding_precision = 80;
+       pclog("Reserved.\n");
+       break;
+  }
+
+  status->float_exception_flags = 0; // clear exceptions before execution
+  status->float_nan_handling_mode = float_first_operand_nan;
+  status->float_rounding_mode = (control_word & FPU_CW_RC) >> 10;
+  status->flush_underflow_to_zero = 0;
+  status->float_suppress_exception = 0;
+  status->float_exception_masks = control_word & FPU_CW_Exceptions_Mask;
+  status->denormals_are_zeros = 0;
+
+  return 0;
+}
+
+/* A fast way to find out whether x is one of RC_DOWN or RC_CHOP
+   (and not one of RC_RND or RC_UP).
+   */
+#define DOWN_OR_CHOP()  (cpu_state.npxc & FPU_CW_RC & FPU_RC_DOWN)
+
+static __inline int
+floatx80_is_zero(floatx80 fx)
+{
+	return (((fx.exp & 0x7fff) == 0) && ((fx.fraction << 1) == 0));
+}
+
+static __inline floatx80
+x87_round_const(const floatx80 a, int adj)
+{
+  floatx80 result = a;
+  result.fraction += adj;
+  return result;
+}
 
 #if defined(_MSC_VER) && !defined(__clang__)
 #    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
@@ -91,9 +234,282 @@ static int rounding_modes[4] = { FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARD
         } while (0)
 #endif
 
-static __inline void
-x87_checkexceptions(void)
+#define x87_div_ext(result, a, b, status) \
+do { \
+    result = floatx80_div(a, b, status); \
+} \
+while (0)
+
+#ifdef FPU_8087
+#    define x87_div_80(dst, src1, src2, status)                    \
+        do {                                            \
+            if (floatx80_is_zero(src2)) {               \
+                cpu_state.npxs |= FPU_SW_Zero_Div;    \
+                if (cpu_state.npxc & STATUS_ZERODIVIDE) \
+                    x87_div_ext(dst, src1, src2, status); \
+                else {                                  \
+                    pclog("FPU : divide by zero\n");  \
+                    if (!(cpu_state.npxc & 0x80)) {     \
+                        cpu_state.npxs |= FPU_SW_Summary;         \
+                        nmi = 1;                        \
+                    }                                   \
+                    return 1;                           \
+                }                                       \
+            } else                                      \
+                x87_div_ext(dst, src1, src2, status); \
+        } while (0)
+#else
+#    define x87_div_80(dst, src1, src2, status)                    \
+        do {                                            \
+            if (floatx80_is_zero(src2)) {               \
+                cpu_state.npxs |= FPU_SW_Zero_Div;    \
+                if (cpu_state.npxc & STATUS_ZERODIVIDE) \
+                    x87_div_ext(dst, src1, src2, status); \
+                else {                                  \
+                    pclog("FPU : divide by zero\n");  \
+                    picint(1 << 13);                    \
+                    return 1;                           \
+                }                                       \
+            } else                                      \
+                x87_div_ext(dst, src1, src2, status); \
+        } while (0)
+#endif
+
+#define X87_TAG_VALID   0
+#define X87_TAG_ZERO    1
+#define X87_TAG_INVALID 2
+#define X87_TAG_EMPTY   3
+
+#define IS_TAG_EMPTY(i) \
+    (x87_get_tag_ext(i) == X87_TAG_EMPTY)
+
+#include "softfloat/softfloat-specialize.h"
+/* -----------------------------------------------------------
+ * Slimmed down version used to compile against a CPU simulator
+ * rather than a kernel (ported by Kevin Lawton)
+ * ------------------------------------------------------------ */
+static __inline int
+SF_FPU_tagof(const floatx80 reg)
 {
+   int32_t exp = floatx80_exp(reg);
+   if (exp == 0) {
+        if (! floatx80_fraction(reg))
+            return X87_TAG_ZERO;
+
+        /* The number is a de-normal or pseudodenormal. */
+        return X87_TAG_INVALID;
+   }
+
+   if (exp == 0x7fff)
+   {
+      /* Is an Infinity, a NaN, or an unsupported data type. */
+      return X87_TAG_INVALID;
+   }
+
+   if (!(reg.fraction & BX_CONST64(0x8000000000000000)))
+   {
+      /* Unsupported data type. */
+      /* Valid numbers have the ms bit set to 1. */
+      return X87_TAG_INVALID;
+   }
+
+   return X87_TAG_VALID;
+}
+
+
+static __inline int
+x87_get_tag_ext(int stnr)
+{
+    return (fpu_state.tag >> (((stnr + cpu_state.TOP) & 7) << 1)) & 3;
+}
+
+static __inline void
+x87_set_tag_ext(int tag, int stnr, int valid)
+{
+    int regnr = (stnr + cpu_state.TOP) & 7;
+    fpu_state.tag &= ~(3 << (regnr << 1));
+    if (valid)
+        fpu_state.tag |= (tag & 3) << (regnr << 1);
+}
+
+static __inline void
+x87_push_ext(void)
+{
+    cpu_state.TOP = (cpu_state.TOP - 1) & 7;
+}
+
+static __inline void
+x87_pop_ext(void)
+{
+    fpu_state.tag |= (3 << (cpu_state.TOP << 1));
+    cpu_state.TOP = (cpu_state.TOP + 1) & 7;
+}
+
+static __inline floatx80
+x87_read_reg_ext(int stnr)
+{
+    return fpu_state.ST[(stnr + cpu_state.TOP) & 7];
+}
+
+static __inline void
+x87_save_reg_ext(floatx80 reg, int tag, int stnr, int valid)
+{
+    fpu_state.ST[(stnr + cpu_state.TOP) & 7] = reg;
+    x87_set_tag_ext(tag, stnr, valid);
+}
+
+static unsigned
+x87_checkexceptions(unsigned exceptions, int store)
+{
+    unsigned unmasked;
+    uint32_t status = cpu_state.npxs;
+
+    /* Extract only the bits which we use to set the status word */
+    exceptions &= FPU_SW_Exceptions_Mask;
+    unmasked = (exceptions & ~cpu_state.npxs) & FPU_CW_Exceptions_Mask;
+
+    // if IE or DZ exception happen nothing else will be reported
+    if (exceptions & (FPU_EX_Invalid | FPU_EX_Zero_Div)) {
+        pclog("Exceptions = %04x.\n", exceptions);
+        unmasked &= (FPU_EX_Invalid | FPU_EX_Zero_Div);
+    }
+
+    /* Set summary bits if exception isn't masked */
+    if (unmasked) {
+        cpu_state.npxs |= (FPU_SW_Summary | FPU_SW_Backward);
+    }
+
+    if (exceptions & FPU_EX_Invalid) {
+        // FPU_EX_Invalid cannot come with any other exception but x87 stack fault
+        cpu_state.npxs |= exceptions;
+        if (exceptions & FPU_SW_Stack_Fault) {
+            if (!(exceptions & C1)) {
+               /* This bit distinguishes over- from underflow for a stack fault,
+                  and roundup from round-down for precision loss. */
+                  cpu_state.npxs &= ~C1;
+            }
+        }
+        pclog("EX_Invalid.\n");
+        return unmasked;
+    }
+
+    if (exceptions & FPU_CW_Zero_Div) {
+        cpu_state.npxs |= FPU_EX_Zero_Div;
+        pclog("EX_ZeroDiv.\n");
+        return unmasked;
+    }
+
+    if (exceptions & FPU_EX_Denormal) {
+        cpu_state.npxs |= FPU_EX_Denormal;
+        if (unmasked & FPU_EX_Denormal) {
+            pclog("EX_Denormal.\n");
+            return (unmasked & FPU_EX_Denormal);
+        }
+    }
+
+    /* Set the corresponding exception bits */
+    cpu_state.npxs |= exceptions;
+
+    if (exceptions & FPU_EX_Precision) {
+        if (!(exceptions & C1)) {
+          /* This bit distinguishes over- from underflow for a stack fault,
+               and roundup from round-down for precision loss. */
+            cpu_state.npxs &= ~C1;
+        }
+    }
+
+    // If #P unmasked exception occurred the result still has to be
+    // written to the destination.
+    unmasked &= ~FPU_EX_Precision;
+
+    if (unmasked & (FPU_EX_Underflow | FPU_EX_Overflow)) {
+        // If unmasked over- or underflow occurs and dest is a memory location:
+        //   - the TOS and destination operands remain unchanged
+        //   - the inexact-result condition is not reported and C1 flag is cleared
+        //   - no result is stored in the memory
+        // If the destination is in the register stack, adjusted resulting value
+        // is stored in the destination operand.
+        if (!store)
+            unmasked &= ~(FPU_EX_Underflow | FPU_EX_Overflow);
+        else {
+            cpu_state.npxs &= ~C1;
+            if (!(status & FPU_EX_Precision))
+                cpu_state.npxs &= ~FPU_EX_Precision;
+        }
+    }
+    pclog("Unmasked = %08x.\n", unmasked);
+    return unmasked;
+}
+
+static void
+x87_stack_overflow(void)
+{
+    const floatx80 floatx80_default_nan = packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
+
+    /* The masked response */
+    if (is_IA_masked()) {
+        x87_push_ext();
+        x87_save_reg_ext(floatx80_default_nan, -1, 0, 0);
+    }
+    x87_checkexceptions(FPU_EX_Stack_Overflow, 0);
+}
+
+static void
+x87_stack_underflow(int stnr, int pop_stack)
+{
+    const floatx80 floatx80_default_nan = packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
+
+    /* The masked response */
+    if (is_IA_masked()) {
+        x87_save_reg_ext(floatx80_default_nan, -1, stnr, 0);
+        if (pop_stack)
+            x87_pop_ext();
+    }
+    x87_checkexceptions(FPU_EX_Stack_Underflow, 0);
+}
+
+static int
+x87_status_word_flags_fpu_compare(int float_relation)
+{
+  switch(float_relation) {
+     case float_relation_unordered:
+         return (C0 | C2 | C3);
+
+     case float_relation_greater:
+         return (0);
+
+     case float_relation_less:
+         return (C0);
+
+     case float_relation_equal:
+         return (C3);
+  }
+
+  return (-1);        // should never get here
+}
+
+static __inline void
+x87_write_eflags_fpu_compare(int float_relation)
+{
+    switch(float_relation) {
+        case float_relation_unordered:
+            cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
+            break;
+
+        case float_relation_greater:
+            break;
+
+        case float_relation_less:
+            cpu_state.flags |= (C_FLAG);
+            break;
+
+        case float_relation_equal:
+            cpu_state.flags |= (Z_FLAG);
+            break;
+
+        default:
+            break;
+    }
 }
 
 static __inline void
@@ -439,6 +855,7 @@ typedef union {
     double   d;
     uint64_t i;
 } x87_td;
+
 
 #ifdef FPU_8087
 #    define FP_ENTER() \

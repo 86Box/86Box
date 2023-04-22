@@ -21,6 +21,8 @@
 #ifndef EMU_CPU_H
 #define EMU_CPU_H
 
+#include "softfloat/softfloat.h"
+
 enum {
     FPU_NONE,
     FPU_8087,
@@ -335,6 +337,11 @@ typedef struct {
 } msr_t;
 
 typedef struct {
+    uint16_t tag;
+    floatx80 ST[8];
+} fpu_state_t;
+
+typedef struct {
     x86reg regs[8];
 
     uint8_t tag[8];
@@ -480,6 +487,7 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 
 /* Global variables. */
 extern cpu_state_t cpu_state;
+extern fpu_state_t fpu_state;
 
 extern const cpu_family_t         cpu_families[];
 extern const cpu_legacy_machine_t cpu_legacy_table[];
@@ -719,6 +727,9 @@ typedef struct
     uint32_t smhr;
 } cyrix_t;
 
+extern uint32_t x87_pc_off, x87_op_off;
+extern uint16_t x87_pc_seg, x87_op_seg, x87_opcode;
+
 extern uint32_t addr64, addr64_2;
 extern uint32_t addr64a[8], addr64a_2[8];
 
@@ -733,6 +744,8 @@ extern uint32_t custom_nmi_vector;
 
 extern void (*cpu_exec)(int cycs);
 extern uint8_t do_translate, do_translate2;
+
+extern void x87_reset(void);
 
 extern void reset_808x(int hard);
 extern void interrupt_808x(uint16_t addr);

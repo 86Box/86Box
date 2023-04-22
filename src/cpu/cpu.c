@@ -74,6 +74,10 @@ enum {
 
 /* Make sure this is as low as possible. */
 cpu_state_t cpu_state;
+fpu_state_t fpu_state;
+
+uint32_t x87_pc_off, x87_op_off;
+uint16_t x87_pc_seg, x87_op_seg, x87_opcode;
 
 /* Place this immediately after. */
 uint32_t abrt_error;
@@ -345,6 +349,24 @@ cpu_family_is_eligible(const cpu_family_t *cpu_family, int machine)
 }
 
 void
+x87_reset(void)
+{
+    if (fpu_type != FPU_NONE) {
+        cpu_state.npxc = 0x0040;
+        cpu_state.npxs = 0;
+        cpu_state.TOP = 0;
+        fpu_state.tag = 0x5555;
+        x87_opcode = 0;
+        x87_op_seg = 0;
+        x87_op_off = 0;
+        x87_pc_seg = 0;
+        x87_pc_off = 0;
+
+        memset(fpu_state.ST, 0, sizeof(floatx80)*8);
+    }
+}
+
+void
 cpu_set(void)
 {
     cpu_inited = 1;
@@ -434,6 +456,8 @@ cpu_set(void)
     x86_dynarec_opcodes_REPNE = dynarec_ops_REPNE;
     x86_dynarec_opcodes_3DNOW = dynarec_ops_3DNOW;
 #endif
+
+    x87_reset();
 
     if (hasfpu) {
 #ifdef USE_DYNAREC
