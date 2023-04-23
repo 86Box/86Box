@@ -24,11 +24,16 @@ D3D9Renderer::D3D9Renderer(QWidget *parent, int monitor_index)
 
     windowHandle = (HWND) winId();
     surfaceInUse = true;
+    finalized = true;
 
     RendererCommon::parentWidget = parent;
 
     this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     this->m_monitor_index = monitor_index;
+
+    d3d9surface = nullptr;
+    d3d9dev = nullptr;
+    d3d9 = nullptr;
 }
 
 D3D9Renderer::~D3D9Renderer()
@@ -67,6 +72,7 @@ D3D9Renderer::hideEvent(QHideEvent *event)
 void
 D3D9Renderer::showEvent(QShowEvent *event)
 {
+    if (d3d9) finalize();
     params = {};
 
     if (FAILED(Direct3DCreate9Ex(D3D_SDK_VERSION, &d3d9))) {
