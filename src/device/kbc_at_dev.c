@@ -119,7 +119,7 @@ kbc_at_dev_poll(void *priv)
         case DEV_STATE_MAIN_2:
             /* Output from scan queue if needed and then return to main loop #1. */
             if (*dev->scan && (dev->port->out_new == -1) && (dev->queue_start != dev->queue_end)) {
-                kbc_at_dev_log("%s %1: %02X (DATA) on channel 1\n", dev->name, dev->inst, dev->queue[dev->queue_start]);
+                kbc_at_dev_log("%s: %02X (DATA) on channel 1\n", dev->name, dev->queue[dev->queue_start]);
                 dev->port->out_new   = dev->queue[dev->queue_start];
                 dev->queue_start     = (dev->queue_start + 1) & 0xf;
             }

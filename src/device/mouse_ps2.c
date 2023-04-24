@@ -135,6 +135,7 @@ ps2_set_defaults(atkbc_dev_t *dev)
     dev->mode = MODE_STREAM;
     dev->rate = 1;
     dev->flags &= 0x88;
+    mouse_scan = 0;
 }
 
 static void
@@ -143,8 +144,6 @@ ps2_bat(void *priv)
     atkbc_dev_t *dev = (atkbc_dev_t *) priv;
 
     ps2_set_defaults(dev);
-
-    mouse_scan = 1;
 
     kbc_at_dev_queue_add(dev, 0xaa, 0);
     kbc_at_dev_queue_add(dev, 0x00, 0);

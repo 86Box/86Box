@@ -801,11 +801,29 @@ write64_generic(void *priv, uint8_t val)
            IBM PS/1:                                                                     xxxxxxxx
            IBM PS/2 MCA:                                                                 xxxxx1xx
            Intel AMI Pentium BIOS'es with AMI MegaKey KB-5 keyboard controller:          x1x1xxxx
-           Acer:                                                                         xxx0x0xx
+           Acer:                                                                         xxxxx0xx
            Packard Bell PB450:                                                           xxxxx1xx
            P6RP4:                                                                        xx1xx1xx
            Epson Action Tower 2600:                                                      xxxx01xx
            TriGem Hawk:                                                                  xxxx11xx
+
+           Machine input based on current code:                                          11111111
+           Everything non-Green:    Pull down bit 7 if not PS/2 and keyboard is inhibited.
+                                    Pull down bit 6 if primary display is CGA.
+           Xi8088:                  Pull down bit 6 if primary display is MDA.
+           Acer:                    Pull down bit 6 if primary display is MDA.
+                                    Pull down bit 2 always (must be so to enable CMOS Setup).
+           IBM PS/1:                Pull down bit 6 if current floppy drive is 3.5".
+           Epson Action Tower 2600: Pull down bit 3 always (for Epson logo).
+           NCR:                     Pull down bit 5 always (power-on default speed = high).
+                                    Pull down bit 3 if there is no FPU.
+                                    Pull down bits 1 and 0 always?
+           Compaq:                  Pull down bit 6 if Compaq dual-scan display is in use.
+                                    Pull down bit 5 if system board DIP switch is ON.
+                                    Pull down bit 4 if CPU speed selected is auto.
+                                    Pull down bit 3 if CPU speed selected is slow (4 MHz).
+                                    Pull down bit 2 if FPU is present.
+                                    Pull down bits 1 and 0 always?
 
            Bit 7: AT KBC only - keyboard inhibited (often physical lock): 0 = yes, 1 = no (also Compaq);
            Bit 6: Mostly, display: 0 = CGA, 1 = MDA, inverted on Xi8088 and Acer KBC's;
@@ -817,7 +835,6 @@ write64_generic(void *priv, uint8_t val)
                   Compaq: System board DIP switch 5: 0 = ON, 1 = OFF.
            Bit 4: (Which board?): RAM on motherboard: 0 = 512 kB, 1 = 256 kB;
                   NCR: RAM on motherboard: 0 = unsupported, 1 = 512 kB;
-                  Acer: Must be 0;
                   Intel AMI MegaKey KB-5: Must be 1;
                   IBM PS/1: Ignored;
                   Compaq: 0 = Auto speed selected, 1 = High speed selected.
@@ -851,6 +868,7 @@ write64_generic(void *priv, uint8_t val)
                 fixed_bits |= 0x40;
             if (kbc_ven == KBC_VEN_IBM_PS1) {
                 current_drive = fdc_get_current_drive();
+                /* (B0 or F0) | (fdd_is_525(current_drive) on bit 6) */
                 add_to_kbc_queue_front(dev, dev->p1 | fixed_bits | (fdd_is_525(current_drive) ? 0x40 : 0x00),
                                        0, 0x00);
             } else if (kbc_ven == KBC_VEN_NCR) {
@@ -864,6 +882,7 @@ write64_generic(void *priv, uint8_t val)
                  * bit 1: high/auto speed
                  * bit 0: dma mode
                  */
+                /* (B0 or F0) | 0x04 | (display on bit 6) | (fpu on bit 3) */
                 add_to_kbc_queue_front(dev, (dev->p1 | fixed_bits | (video_is_mda() ? 0x40 : 0x00) | (hasfpu ? 0x08 : 0x00)) & 0xdf,
                                        0, 0x00);
             } else if (kbc_ven == KBC_VEN_TRIGEM_AMI) {
@@ -874,10 +893,13 @@ write64_generic(void *priv, uint8_t val)
                        0, 0: Generic AMI logo. */
                 if (dev->misc_flags & FLAG_PCI)
                     fixed_bits |= 8;
+                /* (B0 or F0) | (0x04 or 0x0c) */
                 add_to_kbc_queue_front(dev, dev->p1 | fixed_bits, 0, 0x00);
             } else if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_GREEN))
+                /* (B0 or F0) | (0x08 or 0x0c) */
                 add_to_kbc_queue_front(dev, ((dev->p1 | fixed_bits) & 0xf0) | (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0x08 : 0x0c), 0, 0x00);
             else
+                /* (B0 or F0) | (0x04 or 0x44) */
                 add_to_kbc_queue_front(dev, dev->p1 | fixed_bits, 0, 0x00);
             dev->p1 = ((dev->p1 + 1) & 3) | (dev->p1 & 0xfc);
             return 0;
