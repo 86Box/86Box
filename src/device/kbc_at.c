@@ -1024,7 +1024,7 @@ write64_ami(void *priv, uint8_t val)
             kbc_at_queue_add(dev, 0x28);
             kbc_at_queue_add(dev, 0x00);
             dev->state = STATE_KBC_OUT;
-            break;
+            return 0;
 
         case 0xa1: /* get controller version */
             kbc_at_log("ATkbc: AMI - get controller version\n");
@@ -1118,6 +1118,7 @@ write64_ami(void *priv, uint8_t val)
             add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
             return 0;
 
+        /* TODO: The ICS SB486PV sends command B4 but expects to read *TWO* bytes. */
         case 0xb4: case 0xb5:
             /* set KBC lines P22-P23 (P2 bits 2-3) low */
             kbc_at_log("ATkbc: set KBC lines P22-P23 (P2 bits 2-3) low\n");

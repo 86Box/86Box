@@ -133,7 +133,9 @@ static void
 ps2_set_defaults(atkbc_dev_t *dev)
 {
     dev->mode = MODE_STREAM;
-    dev->rate = 1;
+    dev->rate = 100;
+    mouse_set_sample_rate(100.0);
+    dev->resolution = 2;
     dev->flags &= 0x88;
     mouse_scan = 0;
 }
@@ -177,6 +179,7 @@ ps2_write(void *priv)
 
             case 0xf3: /* set sample rate */
                 dev->rate = val;
+                mouse_set_sample_rate((double) val);
                 kbc_at_dev_queue_add(dev, 0xfa, 0); /* Command response */
                 mouse_ps2_log("%s: Set sample rate [%02X]\n", dev->name, val);
                 break;
@@ -227,6 +230,7 @@ ps2_write(void *priv)
             case 0xea: /* set stream */
                 mouse_ps2_log("%s: Set stream\n", dev->name);
                 dev->flags &= ~FLAG_CTRLDAT;
+                dev->mode = MODE_STREAM;
                 mouse_scan = 1;
                 kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK for command byte */
                 break;
@@ -236,6 +240,14 @@ ps2_write(void *priv)
                 kbc_at_dev_queue_add(dev, 0xfa, 0);
 
                 ps2_report_coordinates(dev, 0);
+                break;
+
+            case 0xf0: /* set remote */
+                mouse_ps2_log("%s: Set remote\n", dev->name);
+                dev->flags &= ~FLAG_CTRLDAT;
+                dev->mode = MODE_REMOTE;
+                mouse_scan = 1;
+                kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK for command byte */
                 break;
 
             case 0xf2: /* read ID */

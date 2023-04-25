@@ -173,9 +173,9 @@ kbc_at_dev_reset(atkbc_dev_t *dev, int do_fa)
     if (do_fa)
         kbc_at_dev_queue_add(dev, 0xfa, 0);
 
-    dev->execute_bat(dev);
-
     dev->state = DEV_STATE_MAIN_OUT;
+
+    dev->execute_bat(dev);
 }
 
 atkbc_dev_t *
