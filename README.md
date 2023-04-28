@@ -28,6 +28,8 @@ It is also recommended to use a manager application with 86Box for easier handli
 * [86Box Manager](https://github.com/86Box/86BoxManager) by [Overdoze](https://github.com/daviunic) (Windows only)
 * [86Box Manager Lite](https://github.com/insanemal/86box_manager_py) by [Insanemal](https://github.com/insanemal)
 * [WinBox for 86Box](https://github.com/86Box/WinBox-for-86Box) by Laci bá' (Windows only)
+* [Linbox-qt5](https://github.com/Dungeonseeker/linbox-qt5) by Dungeonseeker (Linux focused, should work on Windows though untested)
+* [MacBox for 86Box](https://github.com/Moonif/MacBox) by [Moonif](https://github.com/Moonif) (MacOS only)
 
 It is also possible to use 86Box on its own with the `--vmpath`/`-P` command line option.
 
