@@ -151,11 +151,13 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
             break;
 
         case 0x41:
-            /* TODO: Bit 7 selects keyboard controller type:
-                     0 = AT, 1 = PS/2 */
-            pic_kbd_latch(!!(val & 0x80));
-            pic_mouse_latch(!!(val & 0x40));
-            dev->pci_conf[addr] = val & 0xbf;
+            pic_kbd_latch(1);
+            // pic_kbd_latch(!!(val & 0x80));
+            if (dev->type == 1)
+                pic_mouse_latch(!!(val & 0x40) || !(dev->pci_conf[0x78] & 0x02));
+            else
+                pic_mouse_latch(!!(val & 0x40));
+            dev->pci_conf[addr] = val;
             break;
 
         case 0x42: /* ISA Bus Speed */
@@ -431,6 +433,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
             if (dev->type == 1) {
                 ali1543_log("PCI78 = %02X\n", val);
                 dev->pci_conf[addr] = val & 0x33;
+                pic_mouse_latch(!!(dev->pci_conf[0x41] & 0x40) || !(val & 0x02));
             }
             break;
 
@@ -1520,6 +1523,8 @@ ali1543_reset(void *priv)
     ali1533_write(0, 0x74, 0x00, dev);
     ali1533_write(0, 0x75, 0x00, dev);
     ali1533_write(0, 0x76, 0x00, dev);
+    if (dev->type == 1)
+        ali1533_write(0, 0x78, 0x00, dev);
 
     unmask_a20_in_smm = 1;
 }

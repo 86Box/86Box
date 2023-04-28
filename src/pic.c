@@ -202,7 +202,7 @@ find_best_interrupt(pic_t *dev)
 
     intr = dev->interrupt = (ret == -1) ? 0x17 : ret;
 
-    if (dev->at && (ret != 1)) {
+    if (dev->at && (ret != -1)) {
         if (dev == &pic2)
             intr += 8;
 
@@ -649,7 +649,7 @@ picint_common(uint16_t num, int level, int set)
                 pic2.lines |= (num >> 8);
 
             /* Latch IRQ 12 if the mouse latch is enabled. */
-            if (mouse_latch && (num & 0x1000))
+            if ((num & 0x1000) && mouse_latch)
                 pic2.lines |= 0x10;
 
             pic2.irr |= (num >> 8);

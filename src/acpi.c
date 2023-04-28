@@ -810,14 +810,13 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
                     }
 
                     if (sus_typ & SUS_RESET_PCI)
-                        device_reset_all_pci();
+                        device_reset_all(DEVICE_PCI);
 
                     if (sus_typ & SUS_RESET_CPU)
                         cpu_alt_reset = 0;
 
                     if (sus_typ & SUS_RESET_PCI) {
                         pci_reset();
-                        keyboard_at_reset();
 
                         mem_a20_alt = 0;
                         mem_a20_recalc();
