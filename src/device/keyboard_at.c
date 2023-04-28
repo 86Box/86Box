@@ -788,10 +788,9 @@ keyboard_at_write(void *priv)
                 dev->state = DEV_STATE_MAIN_WANT_IN;
         }
 
-        dev->command = val;
-
-        switch (dev->command) {
+        switch (val) {
             case 0xed: /* set/reset LEDs */
+                dev->command = val;
                 keyboard_at_log("%s: set/reset LEDs\n", dev->name);
                 dev->flags |= FLAG_CTRLDAT;
                 kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK for command byte */
@@ -811,6 +810,7 @@ keyboard_at_write(void *priv)
 
             case 0xf0: /* get/set scan code set */
                 if (dev->type & FLAG_PS2) {
+                    dev->command = val;
                     keyboard_at_log("%s: scan code set\n", dev->name);
                     dev->flags |= FLAG_CTRLDAT;
                     kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK for command byte */
@@ -833,6 +833,7 @@ keyboard_at_write(void *priv)
                 break;
 
             case 0xf3: /* set command mode */
+                dev->command = val;
                 keyboard_at_log("%s: set typematic rate/delay\n", dev->name);
                 dev->flags |= FLAG_CTRLDAT;
                 kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK for command byte */

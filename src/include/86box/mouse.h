@@ -80,6 +80,8 @@ extern void mouse_poll(void);
 
 extern void mouse_bus_set_irq(void *priv, int irq);
 
+extern void mouse_set_sample_rate(double new_rate);
+
 extern char *mouse_get_name(int mouse);
 extern char *mouse_get_internal_name(int mouse);
 extern int   mouse_get_from_internal_name(char *s);
