@@ -55,7 +55,7 @@ typedef union
         uint64_t exponent:11;
         uint64_t negative:1;
     };
-} double_decompose;
+} double_decompose_t;
 
 #if defined(_MSC_VER) && !defined(__clang__)
 #    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
