@@ -755,7 +755,6 @@ opFPREM(uint32_t fetchdat)
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fprem) : (x87_concurrency.fprem * cpu_multi));
     return 0;
 }
-#ifndef FPU_8087
 static int
 opFPREM1(uint32_t fetchdat)
 {
@@ -776,7 +775,6 @@ opFPREM1(uint32_t fetchdat)
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fprem1) : (x87_concurrency.fprem1 * cpu_multi));
     return 0;
 }
-#endif
 
 static int
 opFSQRT(uint32_t fetchdat)
