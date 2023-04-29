@@ -22,6 +22,7 @@
 extern "C" {
 #endif
 
+/* USB Host Controller device struct */
 typedef struct
 {
     uint8_t       uhci_io[32], ohci_mmio[4096];
@@ -30,6 +31,13 @@ typedef struct
     uint32_t      ohci_mem_base;
     mem_mapping_t ohci_mmio_mapping;
 } usb_t;
+
+/* USB endpoint device struct. Incomplete and unused. */
+typedef struct
+{
+    uint16_t vendor_id;
+    uint16_t device_id;
+} usb_device_t;
 
 /* Global variables. */
 extern const device_t usb_device;

@@ -208,6 +208,8 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
                 val &= ~0x01;
             }
             break;
+        case OHCI_HcHCCA:
+            return;
         case OHCI_HcInterruptStatus:
             dev->ohci_mmio[addr] &= ~(val & 0x7f);
             return;
