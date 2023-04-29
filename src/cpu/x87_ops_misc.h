@@ -34,6 +34,20 @@ opFNOP(uint32_t fetchdat)
 }
 
 static int
+opFXTRACT(uint32_t fetchdat)
+{
+    double_decompose_t temp = (double_decompose_t) ST(0);
+
+    FP_ENTER();
+    cpu_state.pc++;
+    ST(0) = (double) temp.exponent;
+    x87_push((double) temp.mantissa);
+    CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fxtract) : (x87_timings.fxtract * cpu_multi));
+    CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fxtract) : (x87_concurrency.fxtract * cpu_multi));
+    return 0;
+}
+
+static int
 opFCLEX(uint32_t fetchdat)
 {
     FP_ENTER();
