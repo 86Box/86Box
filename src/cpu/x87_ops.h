@@ -51,9 +51,9 @@ typedef union
     double d;
 
     struct {
-        unsigned int mantissa:52;
-        unsigned int exponent:11;
-        unsigned int negative:1;
+        uint64_t mantissa:52;
+        uint64_t exponent:11;
+        uint64_t negative:1;
     };
 } double_decompose;
 
