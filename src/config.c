@@ -504,6 +504,7 @@ load_machine(void)
         mem_size = machine_get_max_ram(machine);
 
     cpu_use_dynarec = !!ini_section_get_int(cat, "cpu_use_dynarec", 0);
+    fpu_softfloat = !!ini_section_get_int(cat, "fpu_softfloat", 0);
 
     p = ini_section_get_string(cat, "time_sync", NULL);
     if (p != NULL) {
@@ -2244,6 +2245,7 @@ save_machine(void)
     ini_section_set_int(cat, "mem_size", mem_size);
 
     ini_section_set_int(cat, "cpu_use_dynarec", cpu_use_dynarec);
+    ini_section_set_int(cat, "fpu_softfloat", fpu_softfloat);
 
     if (time_sync & TIME_SYNC_ENABLED)
         if (time_sync & TIME_SYNC_UTC)
