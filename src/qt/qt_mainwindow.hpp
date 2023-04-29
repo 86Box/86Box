@@ -155,6 +155,7 @@ private:
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
 
+    void     processKeyboardInput(bool down, uint32_t keycode);
 #ifdef Q_OS_MACOS
     uint32_t last_modifiers = 0;
     void     processMacKeyboardInput(bool down, const QKeyEvent *event);
@@ -165,6 +166,10 @@ private:
     bool shownonce           = false;
     bool resizableonce       = false;
     bool vnc_enabled         = false;
+
+    /* Full screen ON and OFF signals */
+    bool fs_on_signal        = false;
+    bool fs_off_signal       = false;
 
     friend class SpecifyDimensions;
     friend class ProgSettings;

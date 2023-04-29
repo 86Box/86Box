@@ -55,6 +55,14 @@
 #define BCD16(x)  ((((x) / 1000) << 12) | (((x) / 100) << 8) | BCD8(x))
 #define BCD32(x)  ((((x) / 10000000) << 28) | (((x) / 1000000) << 24) | (((x) / 100000) << 20) | (((x) / 10000) << 16) | BCD16(x))
 
+#if defined(__GNUC__) || defined(__clang__)
+#    define UNLIKELY(x) __builtin_expect((x), 0)
+#    define LIKELY(x)   __builtin_expect((x), 1)
+#else
+#    define UNLIKELY(x) (x)
+#    define LIKELY(x)   (x)
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

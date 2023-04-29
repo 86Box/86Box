@@ -29,6 +29,7 @@
 #include <86box/timer.h>
 
 #include <86box/apm.h>
+#include <86box/machine.h>
 #include <86box/mem.h>
 #include <86box/smram.h>
 #include <86box/pci.h>
@@ -415,6 +416,11 @@ sis_85c50x_init(const device_t *info)
     dev->port_92 = device_add(&port_92_device);
 
     sis_85c50x_reset(dev);
+
+    if (machine_has_bus(machine, MACHINE_BUS_PS2)) {
+        pic_kbd_latch(0x01);
+        pic_mouse_latch(0x01);
+    }
 
     return dev;
 }

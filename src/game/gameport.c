@@ -427,16 +427,16 @@ tmacm_init(const device_t *info)
 
     port = device_get_config_hex16("port2_addr");
     switch (port) {
-        case 0x201:
+        case 0x209:
             dev = gameport_add(&gameport_209_device);
             break;
-        case 0x203:
+        case 0x20b:
             dev = gameport_add(&gameport_20b_device);
             break;
-        case 0x205:
+        case 0x20d:
             dev = gameport_add(&gameport_20d_device);
             break;
-        case 0x207:
+        case 0x20f:
             dev = gameport_add(&gameport_20f_device);
             break;
         default:

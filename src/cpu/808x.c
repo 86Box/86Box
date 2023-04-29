@@ -426,13 +426,13 @@ pfq_write(void)
            free in the queue. */
         tempw                         = readmemwf(pfq_ip);
         *(uint16_t *) &(pfq[pfq_pos]) = tempw;
-        pfq_ip += 2;
+        pfq_ip = (pfq_ip + 2) & 0xffff;
         pfq_pos += 2;
     } else if (!is8086 && (pfq_pos < pfq_size)) {
         /* The 8088 fetches 1 byte at a time, and only if there's at least 1 byte
            free in the queue. */
         pfq[pfq_pos] = readmembf(pfq_ip);
-        pfq_ip++;
+        pfq_ip = (pfq_ip + 1) & 0xffff;
         pfq_pos++;
     }
 }
@@ -2248,7 +2248,7 @@ execx86(int cycs)
 
                             default:
                                 opcode = orig_opcode;
-                                cpu_state.pc--;
+                                cpu_state.pc = (cpu_state.pc - 1) & 0xffff;
                                 break;
                         }
                     } else

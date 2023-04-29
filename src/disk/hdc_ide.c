@@ -18,6 +18,7 @@
  *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>

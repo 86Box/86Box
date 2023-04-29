@@ -1183,6 +1183,7 @@ ui_init(int nCmdShow)
         {IDCANCEL, MAKEINTRESOURCE(IDS_2120)}
     };
     uint32_t helper_lang;
+    static int fs_on_signal = 0, fs_off_signal = 0;
 
     /* Load DPI related Windows 10 APIs */
     user32_handle = dynld_module("user32.dll", user32_imports);
@@ -1461,9 +1462,20 @@ ui_init(int nCmdShow)
             plat_mouse_capture(0);
         }
 
-        if (video_fullscreen && keyboard_isfsexit()) {
+        if (!fs_off_signal && video_fullscreen && keyboard_isfsexit()) {
             /* Signal "exit fullscreen mode". */
+            fs_off_signal = 1;
+        } else if (fs_off_signal && video_fullscreen && keyboard_isfsexit_down()) {
             plat_setfullscreen(0);
+            fs_off_signal = 0;
+        }
+
+        if (!fs_on_signal && !video_fullscreen && keyboard_isfsenter()) {
+            /* Signal "enter fullscreen mode". */
+            fs_on_signal = 1;
+        } else if (fs_on_signal && !video_fullscreen && keyboard_isfsenter_down()) {
+            plat_setfullscreen(1);
+            fs_on_signal = 0;
         }
 
 #ifdef DISCORD

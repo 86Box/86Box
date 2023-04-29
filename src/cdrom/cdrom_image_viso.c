@@ -218,7 +218,7 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
     return p - dest;
 }
 
-#define VISO_WRITE_STR_FUNC(func, dst_type, src_type, converter)                    \
+#define VISO_WRITE_STR_FUNC(func, dst_type, src_type, converter, bounds_chk)        \
     static void                                                                     \
     func(dst_type *dest, const src_type *src, ssize_t buf_size, int charset)        \
     {                                                                               \
@@ -284,7 +284,7 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
                                                                                     \
                 default:                                                            \
                     /* Not valid for D or A, but valid for filenames. */            \
-                    if ((charset < VISO_CHARSET_FN) || (c > 0xffff))                \
+                    if ((charset < VISO_CHARSET_FN) || (bounds_chk))                \
                         c = '_';                                                    \
                     break;                                                          \
             }                                                                       \
@@ -293,8 +293,8 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
             *dest++ = converter(c);                                                 \
         }                                                                           \
     }
-VISO_WRITE_STR_FUNC(viso_write_string, uint8_t, char, )
-VISO_WRITE_STR_FUNC(viso_write_wstring, uint16_t, wchar_t, cpu_to_be16)
+VISO_WRITE_STR_FUNC(viso_write_string, uint8_t, char, , 0)
+VISO_WRITE_STR_FUNC(viso_write_wstring, uint16_t, wchar_t, cpu_to_be16, c > 0xffff)
 
 static int
 viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries)

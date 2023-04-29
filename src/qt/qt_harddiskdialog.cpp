@@ -23,7 +23,6 @@ extern "C" {
 #include <86box/86box.h>
 #include <86box/hdd.h>
 #include "../disk/minivhd/minivhd.h"
-#include "../disk/minivhd/minivhd_util.h"
 }
 
 #include <thread>

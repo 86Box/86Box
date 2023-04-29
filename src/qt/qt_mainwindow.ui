@@ -362,12 +362,6 @@
    <property name="text">
     <string>&amp;Fullscreen</string>
    </property>
-   <property name="shortcut">
-    <string>Ctrl+Alt+PgUp</string>
-   </property>
-   <property name="shortcutVisibleInContextMenu">
-    <bool>false</bool>
-   </property>
   </action>
   <action name="actionSoftware_Renderer">
    <property name="checkable">

@@ -222,6 +222,9 @@ pipc_reset_hard(void *priv)
     dev->pci_isa_regs[0x0b] = 0x06;
     dev->pci_isa_regs[0x0e] = 0x80;
 
+    pic_kbd_latch(0x01);
+    pic_mouse_latch(dev->local >= VIA_PIPC_586B);
+
     dev->pci_isa_regs[0x48] = 0x01;
     dev->pci_isa_regs[0x4a] = 0x04;
     dev->pci_isa_regs[0x4f] = 0x03;
@@ -1063,6 +1066,11 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 
                 break;
 
+            case 0x44:
+                if (dev->local < VIA_PIPC_586B)
+                    pic_mouse_latch(val & 0x01);
+                break;
+
             case 0x47:
                 if (val & 0x01)
                     trc_write(0x0047, (val & 0x80) ? 0x06 : 0x04, NULL);
@@ -1584,6 +1592,9 @@ pipc_reset(void *p)
         pipc_write(1, 0x40, 0x04, p);
     else
         pipc_write(1, 0x40, 0x00, p);
+
+    if (dev->local < VIA_PIPC_586B)
+        pipc_write(0, 0x44, 0x00, p);
 
     pipc_write(0, 0x77, 0x00, p);
 }

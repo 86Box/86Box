@@ -97,11 +97,11 @@
     if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || (s) == 0xFFFFFFFF || (((s) + (a)) & 3)) \
     do_mmutranslate((s) + (a), b, 4, 1)
 
-int checkio(uint32_t port);
+int checkio(uint32_t port, int mask);
 
-#define check_io_perm(port)                                          \
+#define check_io_perm(port, size)                                    \
     if (msw & 1 && ((CPL > IOPL) || (cpu_state.eflags & VM_FLAG))) { \
-        int tempi = checkio(port);                                   \
+        int tempi = checkio(port, (1 << size) - 1);                  \
         if (cpu_state.abrt)                                          \
             return 1;                                                \
         if (tempi) {                                                 \

@@ -151,10 +151,13 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
             break;
 
         case 0x41:
-            /* TODO: Bit 7 selects keyboard controller type:
-                     0 = AT, 1 = PS/2 */
-            keyboard_at_set_mouse_scan((val & 0x40) ? 1 : 0);
-            dev->pci_conf[addr] = val & 0xbf;
+            pic_kbd_latch(1);
+            // pic_kbd_latch(!!(val & 0x80));
+            if (dev->type == 1)
+                pic_mouse_latch(!!(val & 0x40) || !(dev->pci_conf[0x78] & 0x02));
+            else
+                pic_mouse_latch(!!(val & 0x40));
+            dev->pci_conf[addr] = val;
             break;
 
         case 0x42: /* ISA Bus Speed */
@@ -430,6 +433,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
             if (dev->type == 1) {
                 ali1543_log("PCI78 = %02X\n", val);
                 dev->pci_conf[addr] = val & 0x33;
+                pic_mouse_latch(!!(dev->pci_conf[0x41] & 0x40) || !(val & 0x02));
             }
             break;
 
@@ -454,9 +458,7 @@ ali1533_read(int func, int addr, void *priv)
             ret = 0x00;
         else {
             ret = dev->pci_conf[addr];
-            if (addr == 0x41)
-                ret |= (keyboard_at_get_mouse_scan() << 2);
-            else if (addr == 0x58)
+            if (addr == 0x58)
                 ret = (ret & 0xbf) | (dev->ide_dev_enable ? 0x40 : 0x00);
             else if ((dev->type == 1) && ((addr >= 0x7c) && (addr <= 0xff)) && !dev->pmu_dev_enable) {
                 dev->pmu_dev_enable = 1;
@@ -1510,7 +1512,8 @@ ali1543_reset(void *priv)
     dev->pci_conf[0x0a] = 0x01;
     dev->pci_conf[0x0b] = 0x06;
 
-    ali1533_write(0, 0x48, 0x00, dev); // Disables all IRQ's
+    ali1533_write(0, 0x41, 0x00, dev);    /* Disables the keyboard and mouse IRQ latch. */
+    ali1533_write(0, 0x48, 0x00, dev);    /* Disables all IRQ's. */
     ali1533_write(0, 0x44, 0x00, dev);
     ali1533_write(0, 0x4d, 0x00, dev);
     ali1533_write(0, 0x53, 0x00, dev);
@@ -1520,6 +1523,8 @@ ali1543_reset(void *priv)
     ali1533_write(0, 0x74, 0x00, dev);
     ali1533_write(0, 0x75, 0x00, dev);
     ali1533_write(0, 0x76, 0x00, dev);
+    if (dev->type == 1)
+        ali1533_write(0, 0x78, 0x00, dev);
 
     unmask_a20_in_smm = 1;
 }
