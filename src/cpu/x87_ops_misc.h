@@ -54,6 +54,7 @@ opFXTRACT(uint32_t fetchdat)
     return 0;
 }
 
+static int
 opFCLEX(uint32_t fetchdat)
 {
     FP_ENTER();
