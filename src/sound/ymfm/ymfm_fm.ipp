@@ -1185,6 +1185,7 @@ fm_engine_base<RegisterType>::fm_engine_base(ymfm_interface &intf) :
 	m_irq_mask(STATUS_TIMERA | STATUS_TIMERB),
 	m_irq_state(0),
 	m_timer_running{0,0},
+	m_total_clocks(0),
 	m_active_channels(ALL_CHANNELS),
 	m_modified_channels(ALL_CHANNELS),
 	m_prepare_count(0)
@@ -1200,7 +1201,7 @@ fm_engine_base<RegisterType>::fm_engine_base(ymfm_interface &intf) :
 	for (uint32_t opnum = 0; opnum < OPERATORS; opnum++)
 		m_operator[opnum] = std::make_unique<fm_operator<RegisterType>>(*this, RegisterType::operator_offset(opnum));
 
-#if (DEBUG_LOG_WAVFILES)
+#if (YMFM_DEBUG_LOG_WAVFILES)
 	for (uint32_t chnum = 0; chnum < CHANNELS; chnum++)
 		m_wavfile[chnum].set_index(chnum);
 #endif
@@ -1332,7 +1333,7 @@ void fm_engine_base<RegisterType>::output(output_data &output, uint32_t rshift, 
 	chanmask &= debug::GLOBAL_FM_CHANNEL_MASK;
 
 	// mask out inactive channels
-	if (!DEBUG_LOG_WAVFILES)
+	if (!YMFM_DEBUG_LOG_WAVFILES)
 		chanmask &= m_active_channels;
 
 	// handle the rhythm case, where some of the operators are dedicated
@@ -1351,7 +1352,7 @@ void fm_engine_base<RegisterType>::output(output_data &output, uint32_t rshift, 
 		for (uint32_t chnum = 0; chnum < CHANNELS; chnum++)
 			if (bitfield(chanmask, chnum))
 			{
-#if (DEBUG_LOG_WAVFILES)
+#if (YMFM_DEBUG_LOG_WAVFILES)
 				auto reference = output;
 #endif
 				if (chnum == 6)
@@ -1364,7 +1365,7 @@ void fm_engine_base<RegisterType>::output(output_data &output, uint32_t rshift, 
 					m_channel[chnum]->output_4op(output, rshift, clipmax);
 				else
 					m_channel[chnum]->output_2op(output, rshift, clipmax);
-#if (DEBUG_LOG_WAVFILES)
+#if (YMFM_DEBUG_LOG_WAVFILES)
 				m_wavfile[chnum].add(output, reference);
 #endif
 			}
@@ -1375,14 +1376,14 @@ void fm_engine_base<RegisterType>::output(output_data &output, uint32_t rshift, 
 		for (uint32_t chnum = 0; chnum < CHANNELS; chnum++)
 			if (bitfield(chanmask, chnum))
 			{
-#if (DEBUG_LOG_WAVFILES)
+#if (YMFM_DEBUG_LOG_WAVFILES)
 				auto reference = output;
 #endif
 				if (m_channel[chnum]->is4op())
 					m_channel[chnum]->output_4op(output, rshift, clipmax);
 				else
 					m_channel[chnum]->output_2op(output, rshift, clipmax);
-#if (DEBUG_LOG_WAVFILES)
+#if (YMFM_DEBUG_LOG_WAVFILES)
 				m_wavfile[chnum].add(output, reference);
 #endif
 			}

@@ -922,12 +922,11 @@ trc_reset(uint8_t val)
         dma_reset();
         dma_set_at(1);
 
-        device_reset_all();
+        device_reset_all(DEVICE_ALL);
 
         cpu_alt_reset = 0;
 
         pci_reset();
-        keyboard_at_reset();
 
         mem_a20_alt = 0;
         mem_a20_recalc();

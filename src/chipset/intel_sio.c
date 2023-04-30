@@ -27,6 +27,7 @@
 #include <86box/dma.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
+#include <86box/pic.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/port_92.h>
@@ -199,8 +200,11 @@ sio_write(int func, int addr, uint8_t val, void *priv)
             dev->regs[addr] = val;
             break;
         case 0x4c:
+            dev->regs[addr] = (val & 0x7f);
+            break;
         case 0x4d:
             dev->regs[addr] = (val & 0x7f);
+            // pic_mouse_latch(!!(val & 0x10));
             break;
         case 0x4f:
             dev->regs[addr] = val;
@@ -392,6 +396,7 @@ sio_reset_hard(void *priv)
     dev->regs[0x4b] = 0x0f;
     dev->regs[0x4c] = 0x56;
     dev->regs[0x4d] = 0x40;
+    // pic_mouse_latch(0x00);
     dev->regs[0x4e] = 0x07;
     dev->regs[0x4f] = 0x4f;
     dev->regs[0x57] = 0x04;
@@ -443,6 +448,9 @@ static void
 sio_reset(void *p)
 {
     sio_t *dev = (sio_t *) p;
+
+    /* Disable the PIC mouse latch. */
+    sio_write(0, 0x4d, 0x40, p);
 
     sio_write(0, 0x57, 0x04, p);
 
@@ -537,6 +545,20 @@ sio_init(const device_t *info)
     timer_add(&dev->timer, NULL, NULL, 0);
 
     // device_add(&i8254_sec_device);
+
+    // pic_kbd_latch(0x01);
+
+    /* The situation is as follow: SIO.AB has the IRQ 1 latch but SIO.IB and SIO.ZB do not,
+       and I suspect that because of that, the IRQ 12 latch on SIO.IB and SIO.ZB, while
+       evidently planned and documented in the datashet, was basically non-functional, and
+       motherboard manufacturers had to install their own latches to use PS/2 keyboards
+       and/or mice. One such example is the AMI Excalibur PCI Pentium, which never enables
+       the SIO.ZB's IRQ 12 latch but clearly expects one since otherwise, the PS/2 mouse
+       behaves erractically in the WinBIOS CMOS Setup. */
+    if (machine_has_bus(machine, MACHINE_BUS_PS2)) {
+        pic_kbd_latch(0x01);
+        pic_mouse_latch(0x01);
+    }
 
     return dev;
 }

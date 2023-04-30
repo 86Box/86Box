@@ -51,7 +51,8 @@ static pc_timer_t pic_timer;
 
 static int shadow = 0, elcr_enabled = 0,
            tmr_inited = 0, latched = 0,
-           pic_pci = 0;
+           pic_pci = 0, kbd_latch = 0,
+           mouse_latch = 0;
 
 static uint16_t smi_irq_mask   = 0x0000,
                 smi_irq_status = 0x0000;
@@ -201,7 +202,7 @@ find_best_interrupt(pic_t *dev)
 
     intr = dev->interrupt = (ret == -1) ? 0x17 : ret;
 
-    if (dev->at && (ret != 1)) {
+    if (dev->at && (ret != -1)) {
         if (dev == &pic2)
             intr += 8;
 
@@ -282,6 +283,12 @@ void
 pic_set_shadow(int sh)
 {
     shadow = sh;
+}
+
+int
+pic_get_pci_flag(void)
+{
+    return pic_pci;
 }
 
 void
@@ -381,6 +388,23 @@ pic_command(pic_t *dev)
         pic_action(dev, irq, dev->ocw2 & 0x20, dev->ocw2 & 0x80);
     } else /* SL and EOI clear */
         dev->auto_eoi_rotate = !!(dev->ocw2 & 0x80);
+}
+
+uint8_t
+pic_latch_read(uint16_t addr, void *priv)
+{
+    uint8_t ret = 0xff;
+
+    pic_log("pic_latch_read(%i, %i): %02X%02X\n", kbd_latch, mouse_latch, pic2.lines & 0x10, pic.lines & 0x02);
+
+    if (kbd_latch && (pic.lines & 0x02))
+        picintc(0x0002);
+
+    if (mouse_latch && (pic2.lines & 0x10))
+        picintc(0x1000);
+
+    /* Return FF - we just lower IRQ 1 and IRQ 12. */
+    return ret;
 }
 
 uint8_t
@@ -514,9 +538,46 @@ pic_set_pci(void)
 }
 
 void
-pic_init(void)
+pic_kbd_latch(int enable)
+{
+    pic_log("PIC keyboard latch now %sabled\n", enable ? "en" : "dis");
+
+    if (!!(enable | mouse_latch) != !!(kbd_latch | mouse_latch))
+        io_handler(!!(enable | mouse_latch), 0x0060, 0x0001, pic_latch_read, NULL, NULL, NULL, NULL, NULL, NULL);
+
+    kbd_latch = !!enable;
+
+    if (!enable)
+        picintc(0x0002);
+}
+
+void
+pic_mouse_latch(int enable)
+{
+    pic_log("PIC mouse latch now %sabled\n", enable ? "en" : "dis");
+
+    if (!!(kbd_latch | enable) != !!(kbd_latch | mouse_latch))
+        io_handler(!!(kbd_latch | enable), 0x0060, 0x0001, pic_latch_read, NULL, NULL, NULL, NULL, NULL, NULL);
+
+    mouse_latch = !!enable;
+
+    if (!enable)
+        picintc(0x1000);
+}
+
+static void
+pic_reset_hard(void)
 {
     pic_reset();
+
+    pic_kbd_latch(0x00);
+    pic_mouse_latch(0x00);
+}
+
+void
+pic_init(void)
+{
+    pic_reset_hard();
 
     shadow = 0;
     io_sethandler(0x0020, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
@@ -525,7 +586,7 @@ pic_init(void)
 void
 pic_init_pcjr(void)
 {
-    pic_reset();
+    pic_reset_hard();
 
     shadow = 0;
     io_sethandler(0x0020, 0x0008, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
@@ -582,12 +643,19 @@ picint_common(uint16_t num, int level, int set)
             if (level)
                 pic2.lines |= (num >> 8);
 
+            /* Latch IRQ 12 if the mouse latch is enabled. */
+            if ((num & 0x1000) && mouse_latch)
+                pic2.lines |= 0x10;
+
             pic2.irr |= (num >> 8);
         }
 
         if (num & 0x00ff) {
             if (level)
                 pic.lines |= (num & 0x00ff);
+
+            if (kbd_latch && (num & 0x0002))
+                pic.lines |= 0x02;
 
             pic.irr |= (num & 0x00ff);
         }
@@ -596,11 +664,13 @@ picint_common(uint16_t num, int level, int set)
 
         if (num & 0xff00) {
             pic2.lines &= ~(num >> 8);
+
             pic2.irr &= ~(num >> 8);
         }
 
         if (num & 0x00ff) {
             pic.lines &= ~(num & 0x00ff);
+
             pic.irr &= ~(num & 0x00ff);
         }
     }

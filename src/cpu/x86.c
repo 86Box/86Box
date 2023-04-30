@@ -29,6 +29,7 @@
 #include <86box/device.h>
 #include <86box/dma.h>
 #include <86box/io.h>
+#include <86box/keyboard.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/nmi.h>
@@ -244,7 +245,7 @@ reset_common(int hard)
             /* TODO: Hack, but will do for time being, because all AT machines currently are 286+,
                      and vice-versa. */
             dma_set_at(is286);
-            device_reset_all();
+            device_reset_all(DEVICE_ALL);
         }
     }
 
@@ -265,9 +266,12 @@ reset_common(int hard)
     if (is286) {
         loadcs(0xF000);
         cpu_state.pc = 0xFFF0;
-        rammask      = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
-        if (is6117)
-            rammask |= 0x03000000;
+        if (hard) {
+            rammask      = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+            if (is6117)
+                rammask |= 0x03000000;
+            mem_a20_key = mem_a20_alt = mem_a20_state = 0;
+        }
     }
     idt.base        = 0;
     cpu_state.flags = 2;
@@ -315,6 +319,10 @@ reset_common(int hard)
         cache_index                      = 0;
         memset(_tr, 0x00, sizeof(_tr));
         memset(_cache, 0x00, sizeof(_cache));
+
+        /* If we have an AT or PS/2 keyboard controller, make sure the A20 state
+           is correct. */
+        device_reset_all(DEVICE_KBC);
     }
 
     if (!is286)
@@ -351,7 +359,7 @@ hardresetx86(void)
     /* TODO: Hack, but will do for time being, because all AT machines currently are 286+,
        and vice-versa. */
     dma_set_at(is286);
-    device_reset_all();
+    device_reset_all(DEVICE_ALL);
 
     cpu_alt_reset = 0;
 

@@ -14,3 +14,10 @@
 #
 
 add_library(print OBJECT png.c prt_cpmap.c prt_escp.c prt_text.c prt_ps.c)
+
+if(APPLE)
+    find_library(GHOSTSCRIPT_LIB gs)
+    if (NOT GHOSTSCRIPT_LIB)
+        message(WARNING "Could not find ghostscript. The library will not be bundled and any related features will not work.")
+    endif()
+endif ()
