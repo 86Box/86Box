@@ -481,13 +481,14 @@ typedef union {
 #    define FP_TAG_VALID_N cpu_state.tag[(cpu_state.TOP + 1) & 7] &= ~TAG_UINT64
 #endif
 
-#include "softfloat/x87_ops_arith.h"
-#include "softfloat/x87_ops_compare.h"
-#include "softfloat/x87_ops_const.h"
-#include "softfloat/x87_ops_load_store.h"
-#include "softfloat/x87_ops_misc.h"
-#include "softfloat/x87_ops_trans.h"
-#include "softfloat/x87_ops_other.h"
+#include "x87_ops_sf_arith.h"
+#include "x87_ops_sf_compare.h"
+#include "x87_ops_sf_const.h"
+#include "x87_ops_sf_load_store.h"
+#include "x87_ops_sf_misc.h"
+#include "x87_ops_sf_trans.h"
+#include "x87_ops_sf.h"
+
 #include "x87_ops_arith.h"
 #include "x87_ops_misc.h"
 #include "x87_ops_loadstore.h"

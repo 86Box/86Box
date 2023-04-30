@@ -106,6 +106,10 @@ SettingsMachine::save()
     fpu_type        = ui->comboBoxFPU->currentData().toInt();
     cpu_use_dynarec = ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0;
     fpu_softfloat   = (ui->checkBoxFPUSoftfloat->isChecked() && !cpu_use_dynarec) ? 1 : 0;
+    if (!strcmp(machines[machine].internal_name, "ibmps2_m70_type4")) {
+        cpu_use_dynarec = 0;
+        fpu_softfloat = 1;
+    }
 
     int64_t temp_mem_size;
     if (machine_get_ram_granularity(machine) < 1024) {
