@@ -1139,6 +1139,7 @@ EOF
 			--recipe AppImageBuilder-generated.yml --appdir "$(grep -oP '^\s+path: \K(.+)' AppImageBuilder-generated.yml)"
 		status=$?
 		[ $status -eq 0 ] && break
+		[ $status -eq 127 ] && rm -rf /tmp/appimage_extracted_*
 	done
 
 	# Remove appimage-builder binary on failure, just in case it's corrupted.

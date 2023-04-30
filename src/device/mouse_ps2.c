@@ -82,7 +82,7 @@ mouse_clear_data(void *priv)
 }
 
 static void
-ps2_report_coordinates(mouse_t *dev)
+ps2_report_coordinates(mouse_t *dev, int cmd)
 {
     uint8_t buff[3] = { 0x08, 0x00, 0x00 };
 
@@ -114,9 +114,15 @@ ps2_report_coordinates(mouse_t *dev)
     buff[1] = (dev->x & 0xff);
     buff[2] = (dev->y & 0xff);
 
-    keyboard_at_adddata_mouse(buff[0]);
-    keyboard_at_adddata_mouse(buff[1]);
-    keyboard_at_adddata_mouse(buff[2]);
+    if (cmd) {
+        keyboard_at_adddata_mouse_cmd(buff[0]);
+        keyboard_at_adddata_mouse_cmd(buff[1]);
+        keyboard_at_adddata_mouse_cmd(buff[2]);
+    } else {
+        keyboard_at_adddata_mouse(buff[0]);
+        keyboard_at_adddata_mouse(buff[1]);
+        keyboard_at_adddata_mouse(buff[2]);
+    }
     if (dev->flags & FLAG_INTMODE) {
         int temp_z = dev->z;
         if ((dev->flags & FLAG_5BTN)) {
@@ -126,7 +132,10 @@ ps2_report_coordinates(mouse_t *dev)
             if (mouse_buttons & 16)
                 temp_z |= 0x20;
         }
-        keyboard_at_adddata_mouse(temp_z);
+        if (cmd)
+            keyboard_at_adddata_mouse_cmd(temp_z);
+        else
+            keyboard_at_adddata_mouse(temp_z);
     }
 
     dev->x = dev->y = dev->z = 0;
@@ -147,16 +156,16 @@ ps2_write(uint8_t val, void *priv)
         switch (dev->command) {
             case 0xe8: /* set mouse resolution */
                 dev->resolution = val;
-                keyboard_at_adddata_mouse(0xfa);
+                keyboard_at_adddata_mouse_cmd(0xfa);
                 break;
 
             case 0xf3: /* set sample rate */
                 dev->sample_rate = val;
-                keyboard_at_adddata_mouse(0xfa); /* Command response */
+                keyboard_at_adddata_mouse_cmd(0xfa); /* Command response */
                 break;
 
             default:
-                keyboard_at_adddata_mouse(0xfc);
+                keyboard_at_adddata_mouse_cmd(0xfc);
         }
     } else {
         dev->command = val;
@@ -164,21 +173,21 @@ ps2_write(uint8_t val, void *priv)
         switch (dev->command) {
             case 0xe6: /* set scaling to 1:1 */
                 dev->flags &= ~FLAG_SCALED;
-                keyboard_at_adddata_mouse(0xfa);
+                keyboard_at_adddata_mouse_cmd(0xfa);
                 break;
 
             case 0xe7: /* set scaling to 2:1 */
                 dev->flags |= FLAG_SCALED;
-                keyboard_at_adddata_mouse(0xfa);
+                keyboard_at_adddata_mouse_cmd(0xfa);
                 break;
 
             case 0xe8: /* set mouse resolution */
                 dev->flags |= FLAG_CTRLDAT;
-                keyboard_at_adddata_mouse(0xfa);
+                keyboard_at_adddata_mouse_cmd(0xfa);
                 break;
 
             case 0xe9: /* status request */
-                keyboard_at_adddata_mouse(0xfa);
+                keyboard_at_adddata_mouse_cmd(0xfa);
                 temp = (dev->flags & 0x30);
                 if (mouse_buttons & 1)
                     temp |= 4;
@@ -186,46 +195,46 @@ ps2_write(uint8_t val, void *priv)
                     temp |= 1;
                 if ((mouse_buttons & 4) && (dev->flags & FLAG_INTELLI))
                     temp |= 2;
-                keyboard_at_adddata_mouse(temp);
-                keyboard_at_adddata_mouse(dev->resolution);
-                keyboard_at_adddata_mouse(dev->sample_rate);
+                keyboard_at_adddata_mouse_cmd(temp);
+                keyboard_at_adddata_mouse_cmd(dev->resolution);
+                keyboard_at_adddata_mouse_cmd(dev->sample_rate);
                 break;
 
             case 0xea: /* set stream */
                 dev->flags &= ~FLAG_CTRLDAT;
                 mouse_scan = 1;
-                keyboard_at_adddata_mouse(0xfa); /* ACK for command byte */
+                keyboard_at_adddata_mouse_cmd(0xfa); /* ACK for command byte */
                 break;
 
             case 0xeb: /* Get mouse data */
-                keyboard_at_adddata_mouse(0xfa);
+                keyboard_at_adddata_mouse_cmd(0xfa);
 
-                ps2_report_coordinates(dev);
+                ps2_report_coordinates(dev, 1);
                 break;
 
             case 0xf2: /* read ID */
-                keyboard_at_adddata_mouse(0xfa);
+                keyboard_at_adddata_mouse_cmd(0xfa);
                 if (dev->flags & FLAG_INTMODE)
-                    keyboard_at_adddata_mouse((dev->flags & FLAG_5BTN) ? 0x04 : 0x03);
+                    keyboard_at_adddata_mouse_cmd((dev->flags & FLAG_5BTN) ? 0x04 : 0x03);
                 else
-                    keyboard_at_adddata_mouse(0x00);
+                    keyboard_at_adddata_mouse_cmd(0x00);
                 break;
 
             case 0xf3: /* set command mode */
                 dev->flags |= FLAG_CTRLDAT;
-                keyboard_at_adddata_mouse(0xfa); /* ACK for command byte */
+                keyboard_at_adddata_mouse_cmd(0xfa); /* ACK for command byte */
                 break;
 
             case 0xf4: /* enable */
                 dev->flags |= FLAG_ENABLED;
                 mouse_scan = 1;
-                keyboard_at_adddata_mouse(0xfa);
+                keyboard_at_adddata_mouse_cmd(0xfa);
                 break;
 
             case 0xf5: /* disable */
                 dev->flags &= ~FLAG_ENABLED;
                 mouse_scan = 0;
-                keyboard_at_adddata_mouse(0xfa);
+                keyboard_at_adddata_mouse_cmd(0xfa);
                 break;
 
             case 0xf6: /* set defaults */
@@ -235,15 +244,15 @@ mouse_reset:
                 dev->flags &= 0x88;
                 mouse_scan = 1;
                 keyboard_at_mouse_reset();
-                keyboard_at_adddata_mouse(0xfa);
+                keyboard_at_adddata_mouse_cmd(0xfa);
                 if (dev->command == 0xff) {
-                    keyboard_at_adddata_mouse(0xaa);
-                    keyboard_at_adddata_mouse(0x00);
+                    keyboard_at_adddata_mouse_cmd(0xaa);
+                    keyboard_at_adddata_mouse_cmd(0x00);
                 }
                 break;
 
             default:
-                keyboard_at_adddata_mouse(0xfe);
+                keyboard_at_adddata_mouse_cmd(0xfe);
         }
     }
 
@@ -285,10 +294,14 @@ ps2_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
     dev->x += x;
     dev->y -= y;
     dev->z -= z;
+#if 0
     if ((dev->mode == MODE_STREAM) && (dev->flags & FLAG_ENABLED) && (keyboard_at_mouse_pos() < 13)) {
+#else
+    if ((dev->mode == MODE_STREAM) && (keyboard_at_mouse_pos() < 13)) {
+#endif
         dev->b = b;
 
-        ps2_report_coordinates(dev);
+        ps2_report_coordinates(dev, 0);
     }
 
     return (0);
