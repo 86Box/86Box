@@ -129,7 +129,8 @@ extern uint32_t mem_size;         /* (C) memory size (Installed on system board)
 extern uint32_t isa_mem_size;     /* (C) memory size (ISA Memory Cards) */
 extern int      cpu,              /* (C) cpu type */
     cpu_use_dynarec,              /* (C) cpu uses/needs Dyna */
-    fpu_type;                     /* (C) fpu type */
+    fpu_type,                     /* (C) fpu type */
+    fpu_softfloat;                /* (C) fpu uses softfloat */
 extern int time_sync;             /* (C) enable time sync */
 extern int hdd_format_type;       /* (C) hard disk file format */
 extern int confirm_reset,         /* (C) enable reset confirmation */
