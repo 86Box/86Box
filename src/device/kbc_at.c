@@ -1788,7 +1788,7 @@ kbc_at_reset(void *priv)
     dev->sc_or = 0;
 
     dev->ami_flags = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? 0x01 : 0x00;
-    dev->misc_flags = 0x00;
+    dev->misc_flags &= FLAG_PCI;
 
     if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
         dev->misc_flags |= FLAG_PS2;
@@ -1842,11 +1842,11 @@ kbc_at_init(const device_t *info)
 
     dev->flags = info->local;
 
-    if (info->flags & DEVICE_PCI)
-        dev->misc_flags |= FLAG_PCI;
-
     video_reset(gfxcard[0]);
     kbc_at_reset(dev);
+
+    if (info->flags & DEVICE_PCI)
+        dev->misc_flags |= FLAG_PCI;
 
     io_sethandler(0x0060, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, dev);
     io_sethandler(0x0064, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, dev);
