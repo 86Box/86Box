@@ -762,6 +762,7 @@ opFPREM(uint32_t fetchdat)
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fprem) : (x87_concurrency.fprem * cpu_multi));
     return 0;
 }
+
 static int
 opFPREM1(uint32_t fetchdat)
 {
