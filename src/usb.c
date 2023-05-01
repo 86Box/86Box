@@ -26,8 +26,8 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/mem.h>
+#include <86box/timer.h>
 #include <86box/usb.h>
-#include "cpu.h"
 
 #ifdef ENABLE_USB_LOG
 int usb_do_log = ENABLE_USB_LOG;
@@ -189,6 +189,28 @@ ohci_mmio_read(uint32_t addr, void *p)
     return ret;
 }
 
+void
+ohci_update_frame_counter(void* priv)
+{
+    usb_t *dev = (usb_t *) priv;
+}
+
+void
+ohci_port_reset_callback(void* priv)
+{
+    usb_t *dev = (usb_t *) priv;
+
+    dev->ohci_mmio[OHCI_HcRhPortStatus1] &= ~0x10;
+}
+
+void
+ohci_port_reset_callback_2(void* priv)
+{
+    usb_t *dev = (usb_t *) priv;
+
+    dev->ohci_mmio[OHCI_HcRhPortStatus2] &= ~0x10;
+}
+
 static void
 ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
 {
@@ -331,8 +353,7 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
             if (val & 0x10) {
                 if (old & 0x01) {
                     dev->ohci_mmio[addr] |= 0x10;
-                    /* TODO: The clear should be on a 10 ms timer. */
-                    dev->ohci_mmio[addr] &= ~0x10;
+                    timer_on_auto(&dev->ohci_port_reset_timer[(addr - OHCI_HcRhPortStatus1) / 4], 10000.);
                     dev->ohci_mmio[addr + 2] |= 0x10;
                 } else
                     dev->ohci_mmio[addr + 2] |= 0x01;
@@ -388,7 +409,6 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
 
     dev->ohci_mmio[addr] = val;
 }
-
 void
 ohci_update_mem_mapping(usb_t *dev, uint8_t base1, uint8_t base2, uint8_t base3, int enable)
 {
@@ -447,6 +467,9 @@ usb_init_ext(const device_t *info, void* params)
                     ohci_mmio_read, NULL, NULL,
                     ohci_mmio_write, NULL, NULL,
                     NULL, MEM_MAPPING_EXTERNAL, dev);
+    timer_add(&dev->ohci_frame_timer, ohci_update_frame_counter, dev, 0); /* Unused for now, to be used for frame counting. */
+    timer_add(&dev->ohci_port_reset_timer[0], ohci_port_reset_callback, dev, 0);
+    timer_add(&dev->ohci_port_reset_timer[1], ohci_port_reset_callback_2, dev, 0);
     usb_reset(dev);
 
     return dev;
