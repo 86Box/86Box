@@ -88,24 +88,27 @@
 #define FLAG_PCI           0x08
 
 enum {
-    STATE_RESET = 0,
-    STATE_MAIN_IBF,
-    STATE_MAIN_KBD,
-    STATE_MAIN_AUX,
-    STATE_MAIN_BOTH,
-    STATE_KBC_OUT,
-    STATE_KBC_PARAM,
-    STATE_SEND_KBD,
-    STATE_SCAN_KBD,
-    STATE_SEND_AUX,
-    STATE_SCAN_AUX
+    STATE_RESET = 0,       /* KBC reset state, only accepts command AA. */
+    STATE_KBC_DELAY_OUT,   /* KBC is sending one single byte. */
+    STATE_KBC_AMI_OUT,     /* KBC waiting for OBF - needed for AMIKey commands that require clearing of the output byte. */
+    STATE_MAIN_IBF,        /* KBC checking if the input buffer is full. */
+    STATE_MAIN_KBD,        /* KBC checking if the keyboard has anything to send. */
+    STATE_MAIN_AUX,        /* KBC checking if the auxiliary has anything to send. */
+    STATE_MAIN_BOTH,       /* KBC checking if either device has anything to send. */
+    STATE_KBC_OUT,         /* KBC is sending multiple bytes. */
+    STATE_KBC_PARAM,       /* KBC wants a parameter. */
+    STATE_SEND_KBD,        /* KBC is sending command to the keyboard. */
+    STATE_SCAN_KBD,        /* KBC is waiting for the keyboard command response. */
+    STATE_SEND_AUX,        /* KBC is sending command to the auxiliary device. */
+    STATE_SCAN_AUX         /* KBC is waiting for the auxiliary command response. */
 };
 
 typedef struct {
     uint8_t state, command, command_phase, status,
             wantdata, ib, ob, sc_or,
             mem_addr, p1, p2, old_p2,
-            misc_flags, ami_flags, key_ctrl_queue_start, key_ctrl_queue_end;
+            misc_flags, ami_flags, key_ctrl_queue_start, key_ctrl_queue_end,
+            val, channel, stat_hi, pending;
 
     uint8_t mem[0x100];
 
@@ -202,14 +205,15 @@ kbc_at_queue_add(atkbc_t *dev, uint8_t val)
     kbc_at_log("ATkbc: dev->key_ctrl_queue[%02X] = %02X;\n", dev->key_ctrl_queue_end, val);
     dev->key_ctrl_queue[dev->key_ctrl_queue_end] = val;
     dev->key_ctrl_queue_end                 = (dev->key_ctrl_queue_end + 1) & 0x3f;
+    dev->state = STATE_KBC_OUT;
 }
 
 static int
 kbc_translate(atkbc_t *dev, uint8_t val)
 {
-    /* TODO: Does the IBM AT keyboard controller firmware apply translation in XT mode or not? */
     int      xt_mode   = (dev->mem[0x20] & 0x20) && !(dev->misc_flags & FLAG_PS2);
-    int      translate = (dev->mem[0x20] & 0x40) || xt_mode || ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_PS2_2);
+    /* The IBM AT keyboard controller firmware does not apply translation in XT mode. */
+    int      translate = !xt_mode && ((dev->mem[0x20] & 0x40) || ((dev->flags & KBC_TYPE_MASK) == KBC_TYPE_PS2_2));
     uint8_t  kbc_ven   = dev->flags & KBC_VEN_MASK;
     int      ret       = - 1;
 
@@ -298,7 +302,7 @@ kbc_translate(atkbc_t *dev, uint8_t val)
 }
 
 static void
-add_to_kbc_queue_front(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
+kbc_send_to_ob(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
 {
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
     int temp = (channel == 1) ? kbc_translate(dev, val) : val;
@@ -312,7 +316,7 @@ add_to_kbc_queue_front(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_
     else
         stat_hi |= 0x10;
 
-    kbc_at_log("ATkbc: Adding %02X to front on channel %i...\n", temp, channel);
+    kbc_at_log("ATkbc: Sending %02X to the output buffer on channel %i...\n", temp, channel);
     dev->status = (dev->status & ~0xf0) | STAT_OFULL | stat_hi;
 
     /* WARNING: On PS/2, all IRQ's are level-triggered, but the IBM PS/2 KBC firmware is explicitly
@@ -333,6 +337,16 @@ add_to_kbc_queue_front(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_
         picintlevel(1 << 1); /* AT KBC: IRQ 1 is level-triggered because it is tied to OBF. */
 
     dev->ob = temp;
+}
+
+static void
+kbc_delay_to_ob(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
+{
+    dev->val = val;
+    dev->channel = channel;
+    dev->stat_hi = stat_hi;
+    dev->pending = 1;
+    dev->state = STATE_KBC_DELAY_OUT;
 }
 
 static void kbc_at_process_cmd(void *priv);
@@ -366,7 +380,7 @@ kbc_ibf_process(atkbc_t *dev)
             dev->ports[0]->dat = dev->ib;
             dev->state         = STATE_SEND_KBD;
         } else
-            add_to_kbc_queue_front(dev, 0xfe, 1, 0x40);
+            kbc_delay_to_ob(dev, 0xfe, 1, 0x40);
     }
 }
 
@@ -378,7 +392,7 @@ kbc_scan_kbd_at(atkbc_t *dev)
         /* XT mode. */
         if (dev->mem[0x20] & 0x20) {
             if ((dev->ports[0] != NULL) && (dev->ports[0]->out_new != -1)) {
-                add_to_kbc_queue_front(dev, dev->ports[0]->out_new, 1, 0x00);
+                kbc_send_to_ob(dev, dev->ports[0]->out_new, 1, 0x00);
                 dev->ports[0]->out_new = -1;
                 dev->state             = STATE_MAIN_IBF;
             } else if (dev->status & STAT_IFULL)
@@ -397,10 +411,10 @@ kbc_scan_kbd_at(atkbc_t *dev)
                 /* Read data from the keyboard. */
                 if (dev->mem[0x20] & 0x40) {
                     if ((dev->mem[0x20] & 0x08) || (dev->p1 & 0x80))
-                        add_to_kbc_queue_front(dev, dev->ports[0]->out_new, 1, 0x00);
+                        kbc_send_to_ob(dev, dev->ports[0]->out_new, 1, 0x00);
                     dev->mem[0x2d] = (dev->ports[0]->out_new == 0xf0) ? 0x80 : 0x00;
                 } else
-                    add_to_kbc_queue_front(dev, dev->ports[0]->out_new, 1, 0x00);
+                    kbc_send_to_ob(dev, dev->ports[0]->out_new, 1, 0x00);
                 dev->ports[0]->out_new = -1;
                 dev->state             = STATE_MAIN_IBF;
             }
@@ -421,8 +435,13 @@ kbc_at_poll_at(atkbc_t *dev)
                     kbc_at_process_cmd(dev);
             }
             break;
+        case STATE_KBC_AMI_OUT:
+            if (dev->status & STAT_OFULL)
+                break;
+            /* FALLTHROUGH */
         case STATE_MAIN_IBF:
         default:
+at_main_ibf:
            if (dev->status & STAT_OFULL) {
                 /* OBF set, wait until it is cleared but still process commands. */
                 if ((dev->status & STAT_IFULL) && (dev->status & STAT_CD)) {
@@ -443,6 +462,15 @@ kbc_at_poll_at(atkbc_t *dev)
                 dev->state = STATE_MAIN_IBF;
             }
             break;
+        case STATE_KBC_DELAY_OUT:
+            /* Keyboard controller command want to output a single byte. */
+            kbc_at_log("ATkbc: %02X coming from channel %i with high status %02X\n", dev->val, dev->channel, dev->stat_hi);
+            kbc_send_to_ob(dev, dev->val, dev->channel, dev->stat_hi);
+            // dev->state = (dev->pending == 2) ? STATE_KBC_AMI_OUT : STATE_MAIN_IBF;
+            dev->state = STATE_MAIN_IBF;
+            dev->pending = 0;
+            goto at_main_ibf;
+            break;
         case STATE_KBC_OUT:
             /* Keyboard controller command want to output multiple bytes. */
             if (dev->status & STAT_IFULL) {
@@ -453,7 +481,7 @@ kbc_at_poll_at(atkbc_t *dev)
             /* Do not continue dumping until OBF is clear. */
             if (!(dev->status & STAT_OFULL)) {
                 kbc_at_log("ATkbc: %02X coming from channel 0\n", dev->key_ctrl_queue[dev->key_ctrl_queue_start]);
-                add_to_kbc_queue_front(dev, dev->key_ctrl_queue[dev->key_ctrl_queue_start], 0, 0x00);
+                kbc_send_to_ob(dev, dev->key_ctrl_queue[dev->key_ctrl_queue_start], 0, 0x00);
                 dev->key_ctrl_queue_start = (dev->key_ctrl_queue_start + 1) & 0x3f;
                 if (dev->key_ctrl_queue_start == dev->key_ctrl_queue_end)
                     dev->state = STATE_MAIN_IBF;
@@ -494,7 +522,7 @@ kbc_scan_kbd_ps2(atkbc_t *dev)
 {
     if ((dev->ports[0] != NULL) && (dev->ports[0]->out_new != -1)) {
         kbc_at_log("ATkbc: %02X coming from channel 1\n", dev->ports[0]->out_new & 0xff);
-        add_to_kbc_queue_front(dev, dev->ports[0]->out_new, 1, 0x00);
+        kbc_send_to_ob(dev, dev->ports[0]->out_new, 1, 0x00);
         dev->ports[0]->out_new = -1;
         dev->state             = STATE_MAIN_IBF;
         return 1;
@@ -508,7 +536,7 @@ kbc_scan_aux_ps2(atkbc_t *dev)
 {
     if ((dev->ports[1] != NULL) && (dev->ports[1]->out_new != -1)) {
         kbc_at_log("ATkbc: %02X coming from channel 2\n", dev->ports[1]->out_new & 0xff);
-        add_to_kbc_queue_front(dev, dev->ports[1]->out_new, 2, 0x00);
+        kbc_send_to_ob(dev, dev->ports[1]->out_new, 2, 0x00);
         dev->ports[1]->out_new = -1;
         dev->state             = STATE_MAIN_IBF;
         return 1;
@@ -528,8 +556,13 @@ kbc_at_poll_ps2(atkbc_t *dev)
                     kbc_at_process_cmd(dev);
             }
             break;
+        case STATE_KBC_AMI_OUT:
+            if (dev->status & STAT_OFULL)
+                break;
+            /* FALLTHROUGH */
         case STATE_MAIN_IBF:
         default:
+ps2_main_ibf:
             if (dev->status & STAT_IFULL)
                 kbc_ibf_process(dev);
             else if (!(dev->status & STAT_OFULL)) {
@@ -571,6 +604,15 @@ kbc_at_poll_ps2(atkbc_t *dev)
             else
                 dev->state = STATE_MAIN_AUX;
             break;
+        case STATE_KBC_DELAY_OUT:
+            /* Keyboard controller command want to output a single byte. */
+            kbc_at_log("ATkbc: %02X coming from channel %i with high status %02X\n", dev->val, dev->channel, dev->stat_hi);
+            kbc_send_to_ob(dev, dev->val, dev->channel, dev->stat_hi);
+            // dev->state = (dev->pending == 2) ? STATE_KBC_AMI_OUT : STATE_MAIN_IBF;
+            dev->state = STATE_MAIN_IBF;
+            dev->pending = 0;
+            goto ps2_main_ibf;
+            break;
         case STATE_KBC_OUT:
             /* Keyboard controller command want to output multiple bytes. */
             if (dev->status & STAT_IFULL) {
@@ -581,7 +623,7 @@ kbc_at_poll_ps2(atkbc_t *dev)
             /* Do not continue dumping until OBF is clear. */
             if (!(dev->status & STAT_OFULL)) {
                 kbc_at_log("ATkbc: %02X coming from channel 0\n", dev->key_ctrl_queue[dev->key_ctrl_queue_start] & 0xff);
-                add_to_kbc_queue_front(dev, dev->key_ctrl_queue[dev->key_ctrl_queue_start], 0, 0x00);
+                kbc_send_to_ob(dev, dev->key_ctrl_queue[dev->key_ctrl_queue_start], 0, 0x00);
                 dev->key_ctrl_queue_start = (dev->key_ctrl_queue_start + 1) & 0x3f;
                 if (dev->key_ctrl_queue_start == dev->key_ctrl_queue_end)
                     dev->state = STATE_MAIN_IBF;
@@ -761,10 +803,16 @@ write64_generic(void *priv, uint8_t val)
         case 0xa4: /* check if password installed */
             if (dev->misc_flags & FLAG_PS2) {
                 kbc_at_log("ATkbc: check if password installed\n");
-                add_to_kbc_queue_front(dev, 0xf1, 0, 0x00);
+                kbc_delay_to_ob(dev, 0xf1, 0, 0x00);
                 return 0;
             }
             break;
+
+        case 0xa5: /* load security */
+            kbc_at_log("ATkbc: load security\n");
+            dev->wantdata = 1;
+            dev->state = STATE_KBC_PARAM;
+            return 0;
 
         case 0xa7: /* disable auxiliary port */
             if (dev->misc_flags & FLAG_PS2) {
@@ -785,14 +833,14 @@ write64_generic(void *priv, uint8_t val)
         case 0xa9: /* Test auxiliary port */
             kbc_at_log("ATkbc: test auxiliary port\n");
             if (dev->misc_flags & FLAG_PS2) {
-                add_to_kbc_queue_front(dev, 0x00, 0, 0x00); /* no error, this is testing the channel 2 interface */
+                kbc_delay_to_ob(dev, 0x00, 0, 0x00); /* no error, this is testing the channel 2 interface */
                 return 0;
             }
             break;
 
         case 0xaf: /* read keyboard version */
             kbc_at_log("ATkbc: read keyboard version\n");
-            add_to_kbc_queue_front(dev, kbc_award_revision, 0, 0x00);
+            kbc_delay_to_ob(dev, kbc_award_revision, 0, 0x00);
             return 0;
 
         /*
@@ -869,8 +917,8 @@ write64_generic(void *priv, uint8_t val)
             if (kbc_ven == KBC_VEN_IBM_PS1) {
                 current_drive = fdc_get_current_drive();
                 /* (B0 or F0) | (fdd_is_525(current_drive) on bit 6) */
-                add_to_kbc_queue_front(dev, dev->p1 | fixed_bits | (fdd_is_525(current_drive) ? 0x40 : 0x00),
-                                       0, 0x00);
+                kbc_delay_to_ob(dev, dev->p1 | fixed_bits | (fdd_is_525(current_drive) ? 0x40 : 0x00),
+                                0, 0x00);
             } else if (kbc_ven == KBC_VEN_NCR) {
                 /* switch settings
                  * bit 7: keyboard disable
@@ -883,8 +931,8 @@ write64_generic(void *priv, uint8_t val)
                  * bit 0: dma mode
                  */
                 /* (B0 or F0) | 0x04 | (display on bit 6) | (fpu on bit 3) */
-                add_to_kbc_queue_front(dev, (dev->p1 | fixed_bits | (video_is_mda() ? 0x40 : 0x00) | (hasfpu ? 0x08 : 0x00)) & 0xdf,
-                                       0, 0x00);
+                kbc_delay_to_ob(dev, (dev->p1 | fixed_bits | (video_is_mda() ? 0x40 : 0x00) | (hasfpu ? 0x08 : 0x00)) & 0xdf,
+                                0, 0x00);
             } else if (kbc_ven == KBC_VEN_TRIGEM_AMI) {
                 /* Bit 3, 2:
                        1, 1: TriGem logo;
@@ -894,13 +942,13 @@ write64_generic(void *priv, uint8_t val)
                 if (dev->misc_flags & FLAG_PCI)
                     fixed_bits |= 8;
                 /* (B0 or F0) | (0x04 or 0x0c) */
-                add_to_kbc_queue_front(dev, dev->p1 | fixed_bits, 0, 0x00);
+                kbc_delay_to_ob(dev, dev->p1 | fixed_bits, 0, 0x00);
             } else if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_GREEN))
                 /* (B0 or F0) | (0x08 or 0x0c) */
-                add_to_kbc_queue_front(dev, ((dev->p1 | fixed_bits) & 0xf0) | (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0x08 : 0x0c), 0, 0x00);
+                kbc_delay_to_ob(dev, ((dev->p1 | fixed_bits) & 0xf0) | (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0x08 : 0x0c), 0, 0x00);
             else
                 /* (B0 or F0) | (0x04 or 0x44) */
-                add_to_kbc_queue_front(dev, dev->p1 | fixed_bits, 0, 0x00);
+                kbc_delay_to_ob(dev, dev->p1 | fixed_bits, 0, 0x00);
             dev->p1 = ((dev->p1 + 1) & 3) | (dev->p1 & 0xfc);
             return 0;
 
@@ -961,11 +1009,6 @@ write60_ami(void *priv, uint8_t val)
                 write_cmd(dev, val);
             return 0;
 
-        case 0xa5: /* get extended controller RAM */
-            kbc_at_log("ATkbc: AMI - get extended controller RAM\n");
-            add_to_kbc_queue_front(dev, dev->mem[val], 0, 0x00);
-            return 0;
-
         case 0xaf: /* set extended controller RAM */
             kbc_at_log("ATkbc: AMI - set extended controller RAM\n");
             if (dev->command_phase == 1) {
@@ -1011,7 +1054,7 @@ write64_ami(void *priv, uint8_t val)
     switch (val) {
         case 0x00 ... 0x1f:
             kbc_at_log("ATkbc: AMI - alias read from %08X\n", val);
-            add_to_kbc_queue_front(dev, dev->mem[val + 0x20], 0, 0x00);
+            kbc_delay_to_ob(dev, dev->mem[val + 0x20], 0, 0x00);
             return 0;
 
         case 0x40 ... 0x5f:
@@ -1023,19 +1066,18 @@ write64_ami(void *priv, uint8_t val)
         case 0xa0: /* copyright message */
             kbc_at_queue_add(dev, 0x28);
             kbc_at_queue_add(dev, 0x00);
-            dev->state = STATE_KBC_OUT;
             return 0;
 
         case 0xa1: /* get controller version */
             kbc_at_log("ATkbc: AMI - get controller version\n");
-            add_to_kbc_queue_front(dev, kbc_ami_revision, 0, 0x00);
+            kbc_delay_to_ob(dev, kbc_ami_revision, 0, 0x00);
             return 0;
 
         case 0xa2: /* clear keyboard controller lines P22/P23 */
             if (!(dev->misc_flags & FLAG_PS2)) {
                 kbc_at_log("ATkbc: AMI - clear KBC lines P22 and P23\n");
                 write_p2(dev, dev->p2 & 0xf3);
-                add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
+                kbc_delay_to_ob(dev, 0x00, 0, 0x00);
                 return 0;
             }
             break;
@@ -1044,7 +1086,7 @@ write64_ami(void *priv, uint8_t val)
             if (!(dev->misc_flags & FLAG_PS2)) {
                 kbc_at_log("ATkbc: AMI - set KBC lines P22 and P23\n");
                 write_p2(dev, dev->p2 | 0x0c);
-                add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
+                kbc_delay_to_ob(dev, 0x00, 0, 0x00);
                 return 0;
             }
             break;
@@ -1061,17 +1103,13 @@ write64_ami(void *priv, uint8_t val)
             if (!(dev->misc_flags & FLAG_PS2)) {
                 kbc_at_log("ATkbc: AMI - write clock = high\n");
                 dev->misc_flags |= FLAG_CLOCK;
-            } else {
-                kbc_at_log("ATkbc: get extended controller RAM\n");
-                dev->wantdata  = 1;
-                dev->state     = STATE_KBC_PARAM;
+                return 0;
             }
-            return 0;
 
         case 0xa6: /* read clock */
             if (!(dev->misc_flags & FLAG_PS2)) {
                 kbc_at_log("ATkbc: AMI - read clock\n");
-                add_to_kbc_queue_front(dev, (dev->misc_flags & FLAG_CLOCK) ? 0xff : 0x00, 0, 0x00);
+                kbc_delay_to_ob(dev, (dev->misc_flags & FLAG_CLOCK) ? 0xff : 0x00, 0, 0x00);
                 return 0;
             }
             break;
@@ -1095,7 +1133,7 @@ write64_ami(void *priv, uint8_t val)
         case 0xa9: /* read cache */
             if (!(dev->misc_flags & FLAG_PS2)) {
                 kbc_at_log("ATkbc: AMI - read cache\n");
-                add_to_kbc_queue_front(dev, (dev->misc_flags & FLAG_CACHE) ? 0xff : 0x00, 0, 0x00);
+                kbc_delay_to_ob(dev, (dev->misc_flags & FLAG_CACHE) ? 0xff : 0x00, 0, 0x00);
                 return 0;
             }
             break;
@@ -1115,7 +1153,8 @@ write64_ami(void *priv, uint8_t val)
             kbc_at_log("ATkbc: set KBC lines P10-P13 (P1 bits 0-3) low\n");
             if (!(dev->flags & DEVICE_PCI) || (val > 0xb1))
                 dev->p1 &= ~(1 << (val & 0x03));
-            add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
+            kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+            dev->pending++;
             return 0;
 
         /* TODO: The ICS SB486PV sends command B4 but expects to read *TWO* bytes. */
@@ -1124,7 +1163,8 @@ write64_ami(void *priv, uint8_t val)
             kbc_at_log("ATkbc: set KBC lines P22-P23 (P2 bits 2-3) low\n");
             if (!(dev->flags & DEVICE_PCI))
                 write_p2(dev, dev->p2 & ~(4 << (val & 0x01)));
-            add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
+            kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+            dev->pending++;
             return 0;
 
         case 0xb8 ... 0xbb:
@@ -1132,7 +1172,8 @@ write64_ami(void *priv, uint8_t val)
             kbc_at_log("ATkbc: set KBC lines P10-P13 (P1 bits 0-3) high\n");
             if (!(dev->flags & DEVICE_PCI) || (val > 0xb9)) {
                 dev->p1 |= (1 << (val & 0x03));
-                add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
+                kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+                dev->pending++;
             }
             return 0;
 
@@ -1141,7 +1182,8 @@ write64_ami(void *priv, uint8_t val)
             kbc_at_log("ATkbc: set KBC lines P22-P23 (P2 bits 2-3) high\n");
             if (!(dev->flags & DEVICE_PCI))
                 write_p2(dev, dev->p2 | (4 << (val & 0x01)));
-            add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
+            kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+            dev->pending++;
             return 0;
 
         case 0xc1: /* write P1 */
@@ -1154,13 +1196,15 @@ write64_ami(void *priv, uint8_t val)
             /* set KBC line P14 low */
             kbc_at_log("ATkbc: set KBC line P14 (P1 bit 4) low\n");
             dev->p1 &= 0xef;
-            add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
+            kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+            dev->pending++;
             return 0;
         case 0xc5:
             /* set KBC line P15 low */
             kbc_at_log("ATkbc: set KBC line P15 (P1 bit 5) low\n");
             dev->p1 &= 0xdf;
-            add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
+            kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+            dev->pending++;
             return 0;
 
         case 0xc8:
@@ -1185,13 +1229,15 @@ write64_ami(void *priv, uint8_t val)
             /* set KBC line P14 high */
             kbc_at_log("ATkbc: set KBC line P14 (P1 bit 4) high\n");
             dev->p1 |= 0x10;
-            add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
+            kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+            dev->pending++;
             return 0;
         case 0xcd:
             /* set KBC line P15 high */
             kbc_at_log("ATkbc: set KBC line P15 (P1 bit 5) high\n");
             dev->p1 |= 0x20;
-            add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
+            kbc_delay_to_ob(dev, dev->ob, 0, 0x00);
+            dev->pending++;
             return 0;
 
         case 0xef: /* ??? - sent by AMI486 */
@@ -1230,7 +1276,7 @@ write64_olivetti(void *priv, uint8_t val)
              * bit 2: keyboard fuse present
              * bits 0-1: ???
              */
-            add_to_kbc_queue_front(dev, (0x0c | ((is386) ? 0x00 : 0x80)) & 0xdf, 0, 0x00);
+            kbc_delay_to_ob(dev, (0x0c | ((is386) ? 0x00 : 0x80)) & 0xdf, 0, 0x00);
             dev->p1 = ((dev->p1 + 1) & 3) | (dev->p1 & 0xfc);
             return 0;
     }
@@ -1305,12 +1351,12 @@ write64_toshiba(void *priv, uint8_t val)
 
         case 0xb4: /* T3100e: Get configuration / status */
             kbc_at_log("ATkbc: T3100e: Get configuration / status\n");
-            add_to_kbc_queue_front(dev, t3100e_config_get(), 0, 0x00);
+            kbc_delay_to_ob(dev, t3100e_config_get(), 0, 0x00);
             return 0;
 
         case 0xb5: /* T3100e: Get colour / mono byte */
             kbc_at_log("ATkbc: T3100e: Get colour / mono byte\n");
-            add_to_kbc_queue_front(dev, t3100e_mono_get(), 0, 0x00);
+            kbc_delay_to_ob(dev, t3100e_mono_get(), 0, 0x00);
             return 0;
 
         case 0xb6: /* T3100e: Set colour / mono byte */
@@ -1340,9 +1386,9 @@ write64_toshiba(void *priv, uint8_t val)
             kbc_at_log("ATkbc: T3100e: Read 'Fn' key\n");
             if (keyboard_recv(0xb8) || /* Right Alt */
                 keyboard_recv(0x9d))   /* Right Ctrl */
-                add_to_kbc_queue_front(dev, 0x04, 0, 0x00);
+                kbc_delay_to_ob(dev, 0x04, 0, 0x00);
             else
-                add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
+                kbc_delay_to_ob(dev, 0x00, 0, 0x00);
             return 0;
 
         case 0xbc: /* T3100e: Reset Fn+Key notification */
@@ -1356,7 +1402,7 @@ write64_toshiba(void *priv, uint8_t val)
             /* The T3100e returns all bits set except bit 6 which
              * is set by t3100e_mono_set() */
             dev->p1 = (t3100e_mono_get() & 1) ? 0xff : 0xbf;
-            add_to_kbc_queue_front(dev, dev->p1, 0, 0x00);
+            kbc_delay_to_ob(dev, dev->p1, 0, 0x00);
             return 0;
     }
 
@@ -1382,7 +1428,9 @@ kbc_at_process_cmd(void *priv)
         switch (dev->ib) {
             /* Read data from KBC memory. */
             case 0x20 ... 0x3f:
-                add_to_kbc_queue_front(dev, dev->mem[dev->ib], 0, 0x00);
+                kbc_delay_to_ob(dev, dev->mem[dev->ib], 0, 0x00);
+                if (dev->ib == 0x20)
+                    dev->pending++;
                 break;
 
             /* Write data to KBC memory. */
@@ -1442,16 +1490,12 @@ kbc_at_process_cmd(void *priv)
                     dev->ports[1]->out_new = -1;
                 kbc_at_queue_reset(dev);
 
-                // dev->state = STATE_MAIN_IBF;
-                dev->state = STATE_KBC_OUT;
-
-                // add_to_kbc_queue_front(dev, 0x55, 0, 0x00);
                 kbc_at_queue_add(dev, 0x55);
                 break;
 
             case 0xab: /* interface test */
                 kbc_at_log("ATkbc: interface test\n");
-                add_to_kbc_queue_front(dev, 0x00, 0, 0x00); /*no error*/
+                kbc_delay_to_ob(dev, 0x00, 0, 0x00); /*no error*/
                 break;
 
             case 0xac: /* diagnostic dump */
@@ -1467,7 +1511,6 @@ kbc_at_process_cmd(void *priv)
                         kbc_at_queue_add(dev, cmd_ac_conv[dev->mem[i + 0x20] & 0x0f]);
                         kbc_at_queue_add(dev, 0x39);
                     }
-                    dev->state = STATE_KBC_OUT;
                 }
                 break;
 
@@ -1489,7 +1532,7 @@ kbc_at_process_cmd(void *priv)
 
             case 0xca: /* read keyboard mode */
                 kbc_at_log("ATkbc: AMI - read keyboard mode\n");
-                add_to_kbc_queue_front(dev, dev->ami_flags, 0, 0x00);
+                kbc_delay_to_ob(dev, dev->ami_flags, 0, 0x00);
                 break;
 
             case 0xcb: /* set keyboard mode */
@@ -1503,7 +1546,7 @@ kbc_at_process_cmd(void *priv)
                 mask = 0xff;
                 if ((kbc_ven != KBC_VEN_OLIVETTI) && !(dev->misc_flags & FLAG_PS2) && (dev->mem[0x20] & 0x10))
                     mask &= 0xbf;
-                add_to_kbc_queue_front(dev, (((dev->p2 & 0xfd) | mem_a20_key) & mask), 0, 0x00);
+                kbc_delay_to_ob(dev, ((dev->p2 & 0xfd) | mem_a20_key) & mask, 0, 0x00);
                 break;
 
             case 0xd1: /* write P2 */
@@ -1526,7 +1569,7 @@ kbc_at_process_cmd(void *priv)
 
             case 0xe0: /* read test inputs */
                 kbc_at_log("ATkbc: read test inputs\n");
-                add_to_kbc_queue_front(dev, 0x00, 0, 0x00);
+                kbc_delay_to_ob(dev, 0x00, 0, 0x00);
                 break;
 
             default:
@@ -1558,6 +1601,17 @@ kbc_at_process_cmd(void *priv)
                     write_cmd(dev, dev->ib);
                 break;
 
+            case 0xa5: /* load security */
+                if (dev->misc_flags & FLAG_PS2) {
+                    kbc_at_log("ATkbc: load security (%02X)\n", dev->ib);
+
+                    if (dev->ib != 0x00) {
+                        dev->wantdata = 1;
+                        dev->state = STATE_KBC_PARAM;
+                    }
+                }
+                break;
+
             case 0xc7: /* set port1 bits */
                 kbc_at_log("ATkbc: Phoenix - set port1 bits\n");
                 dev->p1 |= dev->ib;
@@ -1578,12 +1632,12 @@ kbc_at_process_cmd(void *priv)
 
             case 0xd2: /* write to keyboard output buffer */
                 kbc_at_log("ATkbc: write to keyboard output buffer\n");
-                add_to_kbc_queue_front(dev, dev->ib, 0, 0x00);
+                kbc_delay_to_ob(dev, dev->ib, 0, 0x00);
                 break;
 
             case 0xd3: /* write to auxiliary output buffer */
                 kbc_at_log("ATkbc: write to auxiliary output buffer\n");
-                add_to_kbc_queue_front(dev, dev->ib, 2, 0x00);
+                kbc_delay_to_ob(dev, dev->ib, 2, 0x00);
                 break;
 
             case 0xd4: /* write to auxiliary port */
@@ -1599,7 +1653,7 @@ kbc_at_process_cmd(void *priv)
                         dev->ports[1]->dat = dev->ib;
                         dev->state         = STATE_SEND_AUX;
                     } else
-                        add_to_kbc_queue_front(dev, 0xfe, 2, 0x40);
+                        kbc_delay_to_ob(dev, 0xfe, 2, 0x40);
                 }
                 break;
 
@@ -1633,6 +1687,7 @@ kbc_at_write(uint16_t port, uint8_t val, void *priv)
             if (dev->wantdata && (dev->command == 0xd1)) {
                 kbc_at_log("ATkbc: write P2\n");
 
+#if 0
                 /* Fast A20 - ignore all other bits. */
                 val = (val & 0x02) | (dev->p2 & 0xfd);
 
@@ -1646,6 +1701,10 @@ kbc_at_write(uint16_t port, uint8_t val, void *priv)
                 }
 
                 write_p2_fast_a20(dev, val | 0x01);
+#else
+                /* Fast A20 - ignore all other bits. */
+                write_p2_fast_a20(dev, (dev->p2 & 0xfd) | (val & 0x02));
+#endif
 
                 dev->wantdata  = 0;                
                 dev->state     = STATE_MAIN_IBF;
@@ -1729,7 +1788,7 @@ kbc_at_reset(void *priv)
     dev->sc_or = 0;
 
     dev->ami_flags = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? 0x01 : 0x00;
-    dev->misc_flags = 0x00;
+    dev->misc_flags &= FLAG_PCI;
 
     if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) {
         dev->misc_flags |= FLAG_PS2;
@@ -1783,11 +1842,11 @@ kbc_at_init(const device_t *info)
 
     dev->flags = info->local;
 
-    if (info->flags & DEVICE_PCI)
-        dev->misc_flags |= FLAG_PCI;
-
     video_reset(gfxcard[0]);
     kbc_at_reset(dev);
+
+    if (info->flags & DEVICE_PCI)
+        dev->misc_flags |= FLAG_PCI;
 
     io_sethandler(0x0060, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, dev);
     io_sethandler(0x0064, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, dev);

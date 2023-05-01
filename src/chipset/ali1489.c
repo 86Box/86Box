@@ -180,9 +180,6 @@ ali1489_defaults(ali1489_t *dev)
     dev->regs[0x3d] = 0x01;
     dev->regs[0x40] = 0x03;
 
-    pic_kbd_latch(0x01);
-    pic_mouse_latch(0x00);
-
     ali1489_shadow_recalc(dev);
     cpu_cache_int_enabled = 0;
     cpu_cache_ext_enabled = 0;
@@ -298,7 +295,6 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
 
                     case 0x2a: /* I/O Recovery Register */
                         dev->regs[dev->index] = val;
-                        pic_mouse_latch(val & 0x80);
                         break;
 
                     case 0x2b: /* Turbo Function Register */

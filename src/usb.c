@@ -47,6 +47,48 @@ usb_log(const char *fmt, ...)
 #    define usb_log(fmt, ...)
 #endif
 
+/* OHCI registers */
+enum
+{
+    OHCI_HcRevision = 0x00,
+    OHCI_HcControl = 0x04,
+    OHCI_HcCommandStatus = 0x08,
+    OHCI_HcInterruptStatus = 0x0C,
+    OHCI_HcInterruptEnable = 0x10,
+    OHCI_HcInterruptDisable = 0x14,
+    OHCI_HcHCCA = 0x18,
+    OHCI_HcPeriodCurrentED = 0x1C,
+    OHCI_HcControlHeadED = 0x20,
+    OHCI_HcControlCurrentED = 0x24,
+    OHCI_HcBulkHeadED = 0x28,
+    OHCI_HcBulkCurrentED = 0x2C,
+    OHCI_HcDoneHead = 0x30,
+    OHCI_HcFMInterval = 0x34,
+    OHCI_HcFmRemaining = 0x38,
+    OHCI_HcFmNumber = 0x3C,
+    OHCI_HcPeriodicStart = 0x40,
+    OHCI_HcLSThreshold = 0x44,
+    OHCI_HcRhDescriptorA = 0x48,
+    OHCI_HcRhDescriptorB = 0x4C,
+    OHCI_HcRhStatus = 0x50,
+    OHCI_HcRhPortStatus1 = 0x54,
+    OHCI_HcRhPortStatus2 = 0x58,
+    OHCI_HcRhPortStatus3 = 0x5C
+};
+
+static void
+usb_interrupt_ohci(usb_t* usb)
+{
+    if (usb->ohci_mmio[OHCI_HcControl + 1] & 1) {
+        smi_raise();
+    }
+    else if (usb->usb_params != NULL) {
+        if (usb->usb_params->parent_priv != NULL && usb->usb_params->raise_interrupt != NULL) {
+            usb->usb_params->raise_interrupt(usb, usb->usb_params->parent_priv);
+        }
+    }
+}
+
 static uint8_t
 uhci_reg_read(uint16_t addr, void *p)
 {
@@ -130,35 +172,6 @@ uhci_update_io_mapping(usb_t *dev, uint8_t base_l, uint8_t base_h, int enable)
     if (dev->uhci_enable && (dev->uhci_io_base != 0x0000))
         io_sethandler(dev->uhci_io_base, 0x20, uhci_reg_read, NULL, NULL, uhci_reg_write, uhci_reg_writew, NULL, dev);
 }
-
-/* OHCI registers */
-enum
-{
-    OHCI_HcRevision = 0x00,
-    OHCI_HcControl = 0x04,
-    OHCI_HcCommandStatus = 0x08,
-    OHCI_HcInterruptStatus = 0x0C,
-    OHCI_HcInterruptEnable = 0x10,
-    OHCI_HcInterruptDisable = 0x14,
-    OHCI_HcHCCA = 0x18,
-    OHCI_HcPeriodCurrentED = 0x1C,
-    OHCI_HcControlHeadED = 0x20,
-    OHCI_HcControlCurrentED = 0x24,
-    OHCI_HcBulkHeadED = 0x28,
-    OHCI_HcBulkCurrentED = 0x2C,
-    OHCI_HcDoneHead = 0x30,
-    OHCI_HcFMInterval = 0x34,
-    OHCI_HcFmRemaining = 0x38,
-    OHCI_HcFmNumber = 0x3C,
-    OHCI_HcPeriodicStart = 0x40,
-    OHCI_HcLSThreshold = 0x44,
-    OHCI_HcRhDescriptorA = 0x48,
-    OHCI_HcRhDescriptorB = 0x4C,
-    OHCI_HcRhStatus = 0x50,
-    OHCI_HcRhPortStatus1 = 0x54,
-    OHCI_HcRhPortStatus2 = 0x58,
-    OHCI_HcRhPortStatus3 = 0x5C
-};
 
 static uint8_t
 ohci_mmio_read(uint32_t addr, void *p)
@@ -419,7 +432,7 @@ usb_close(void *priv)
 }
 
 static void *
-usb_init(const device_t *info)
+usb_init_ext(const device_t *info, void* params)
 {
     usb_t *dev;
 
@@ -427,6 +440,8 @@ usb_init(const device_t *info)
     if (dev == NULL)
         return (NULL);
     memset(dev, 0x00, sizeof(usb_t));
+
+    dev->usb_params = (usb_params_t*)params;
 
     mem_mapping_add(&dev->ohci_mmio_mapping, 0, 0,
                     ohci_mmio_read, NULL, NULL,
@@ -440,9 +455,9 @@ usb_init(const device_t *info)
 const device_t usb_device = {
     .name          = "Universal Serial Bus",
     .internal_name = "usb",
-    .flags         = DEVICE_PCI,
+    .flags         = DEVICE_PCI | DEVICE_EXTPARAMS,
     .local         = 0,
-    .init          = usb_init,
+    .init_ext      = usb_init_ext,
     .close         = usb_close,
     .reset         = usb_reset,
     { .available = NULL },

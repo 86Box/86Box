@@ -389,9 +389,6 @@ ims8848_init(const device_t *info)
 
     ims8848_reset(dev);
 
-    pic_kbd_latch(0x01);
-    pic_mouse_latch(0x01);
-
     return dev;
 }
 
