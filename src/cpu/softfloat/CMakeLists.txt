@@ -13,5 +13,5 @@
 #          Copyright 2020-2021 David Hrdlička.
 #
 
-add_library(softfloat OBJECT f2xm1.cc fpatan.cc fprem.cc fsincos.cc fyl2x.cc poly.cc softfloat.cc softfloat16.cc
+add_library(softfloat OBJECT f2xm1.cc fpatan.cc fprem.cc fsincos.cc fyl2x.cc softfloat_poly.cc softfloat.cc softfloat16.cc
 		softfloat-muladd.cc softfloat-round-pack.cc softfloat-specialize.cc softfloatx80.cc)
