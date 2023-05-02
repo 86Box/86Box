@@ -109,7 +109,7 @@ fpu_save_environment(void)
 static uint32_t
 fpu_load_environment(void)
 {
-    unsigned offset;
+    unsigned offset = 0;
 
     switch ((cr0 & 1) | (cpu_state.op32 & 0x100)) {
         case 0x000: { /*16-bit real mode*/
