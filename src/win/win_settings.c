@@ -91,6 +91,7 @@ static uint32_t      temp_mem_size;
 #ifdef USE_DYNAREC
 static int temp_dynarec;
 #endif
+static int temp_fpu_softfloat;
 
 /* Video category */
 static int temp_gfxcard[2], temp_ibm8514, temp_voodoo, temp_xga;
@@ -331,6 +332,7 @@ win_settings_init(void)
 #ifdef USE_DYNAREC
     temp_dynarec = cpu_use_dynarec;
 #endif
+    temp_fpu_softfloat = fpu_softfloat;
     temp_fpu  = fpu_type;
     temp_sync = time_sync;
 
@@ -460,6 +462,7 @@ win_settings_changed(void)
 #ifdef USE_DYNAREC
     i = i || (temp_dynarec != cpu_use_dynarec);
 #endif
+    i = i || (temp_fpu_softfloat != fpu_softfloat);
     i = i || (temp_fpu != fpu_type);
     i = i || (temp_sync != time_sync);
 
@@ -553,6 +556,7 @@ win_settings_save(void)
 #ifdef USE_DYNAREC
     cpu_use_dynarec = temp_dynarec;
 #endif
+    fpu_softfloat  = temp_fpu_softfloat;
     fpu_type  = temp_fpu;
     time_sync = temp_sync;
 
@@ -677,6 +681,8 @@ win_settings_machine_recalc_fpu(HWND hdlg)
 
         c++;
     }
+
+    settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, temp_fpu_softfloat);
 
     settings_enable_window(hdlg, IDC_COMBO_FPU, c > 1);
 
@@ -921,6 +927,8 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
             settings_set_check(hdlg, IDC_CHECK_DYNAREC, 0);
 #endif
 
+            settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, 0);
+
             h  = GetDlgItem(hdlg, IDC_MEMSPIN);
             h2 = GetDlgItem(hdlg, IDC_MEMTEXT);
             SendMessage(h, UDM_SETBUDDY, (WPARAM) h2, 0);
@@ -1013,6 +1021,8 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 #ifdef USE_DYNAREC
             temp_dynarec = settings_get_check(hdlg, IDC_CHECK_DYNAREC);
 #endif
+
+            temp_fpu_softfloat = settings_get_check(hdlg, IDC_CHECK_SOFTFLOAT);
 
             if (settings_get_check(hdlg, IDC_RADIO_TS_DISABLED))
                 temp_sync = TIME_SYNC_DISABLED;

@@ -883,7 +883,7 @@ all: $(PROG).exe
 
 86Box.res: 86Box.rc
 	@echo Processing $<
-	@$(WINDRES) $(RFLAGS) $(EXTRAS) -i $< -o 86Box.res
+	@$(WINDRES) -v $(RFLAGS) $(EXTRAS) -i $< -o 86Box.res
 
 $(PROG).exe: $(OBJ) 86Box.res
 	@echo Linking $(PROG).exe ..
