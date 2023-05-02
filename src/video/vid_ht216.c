@@ -1347,7 +1347,7 @@ ht216_read_common(ht216_t *ht216, uint32_t addr)
         temp = 0xff;
 
         for (pixel = 0; pixel < 8; pixel++) {
-            for (plane = 0; plane < (1 << count); plane++) {
+            for (plane = 0; plane < (uint8_t)(1 << count); plane++) {
                 if (svga->colournocare & (1 << plane)) {
                     /* If we care about a plane, and the pixel has a mismatch on it, clear its bit. */
                     if (((svga->latch.b[plane] >> pixel) & 1) != ((svga->colourcompare >> plane) & 1))

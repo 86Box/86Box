@@ -74,6 +74,7 @@ enum {
 
 /* Make sure this is as low as possible. */
 cpu_state_t cpu_state;
+fpu_state_t fpu_state;
 
 /* Place this immediately after. */
 uint32_t abrt_error;
@@ -201,6 +202,8 @@ void
 cpu_set_edx(void)
 {
     EDX = cpu_s->edx_reset;
+    if (!cpu_use_dynarec && fpu_softfloat)
+        SF_FPU_reset();
 }
 
 cpu_family_t *
@@ -345,6 +348,23 @@ cpu_family_is_eligible(const cpu_family_t *cpu_family, int machine)
 }
 
 void
+SF_FPU_reset(void)
+{
+    if (fpu_type != FPU_NONE) {
+        fpu_state.cwd = 0x0040;
+        fpu_state.swd = 0;
+        fpu_state.tos = 0;
+        fpu_state.tag = 0x5555;
+        fpu_state.foo = 0;
+        fpu_state.fip = 0;
+        fpu_state.fcs = 0;
+        fpu_state.fds = 0;
+        fpu_state.fdp = 0;
+        memset(fpu_state.st_space, 0, sizeof(floatx80)*8);
+    }
+}
+
+void
 cpu_set(void)
 {
     cpu_inited = 1;
@@ -454,22 +474,41 @@ cpu_set(void)
         x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_df_a16;
         x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_df_a32;
 #endif
-        x86_opcodes_d8_a16 = ops_fpu_d8_a16;
-        x86_opcodes_d8_a32 = ops_fpu_d8_a32;
-        x86_opcodes_d9_a16 = ops_fpu_d9_a16;
-        x86_opcodes_d9_a32 = ops_fpu_d9_a32;
-        x86_opcodes_da_a16 = ops_fpu_da_a16;
-        x86_opcodes_da_a32 = ops_fpu_da_a32;
-        x86_opcodes_db_a16 = ops_fpu_db_a16;
-        x86_opcodes_db_a32 = ops_fpu_db_a32;
-        x86_opcodes_dc_a16 = ops_fpu_dc_a16;
-        x86_opcodes_dc_a32 = ops_fpu_dc_a32;
-        x86_opcodes_dd_a16 = ops_fpu_dd_a16;
-        x86_opcodes_dd_a32 = ops_fpu_dd_a32;
-        x86_opcodes_de_a16 = ops_fpu_de_a16;
-        x86_opcodes_de_a32 = ops_fpu_de_a32;
-        x86_opcodes_df_a16 = ops_fpu_df_a16;
-        x86_opcodes_df_a32 = ops_fpu_df_a32;
+        if (fpu_softfloat) {
+            x86_opcodes_d8_a16 = ops_sf_fpu_d8_a16;
+            x86_opcodes_d8_a32 = ops_sf_fpu_d8_a32;
+            x86_opcodes_d9_a16 = ops_sf_fpu_d9_a16;
+            x86_opcodes_d9_a32 = ops_sf_fpu_d9_a32;
+            x86_opcodes_da_a16 = ops_sf_fpu_da_a16;
+            x86_opcodes_da_a32 = ops_sf_fpu_da_a32;
+            x86_opcodes_db_a16 = ops_sf_fpu_db_a16;
+            x86_opcodes_db_a32 = ops_sf_fpu_db_a32;
+            x86_opcodes_dc_a16 = ops_sf_fpu_dc_a16;
+            x86_opcodes_dc_a32 = ops_sf_fpu_dc_a32;
+            x86_opcodes_dd_a16 = ops_sf_fpu_dd_a16;
+            x86_opcodes_dd_a32 = ops_sf_fpu_dd_a32;
+            x86_opcodes_de_a16 = ops_sf_fpu_de_a16;
+            x86_opcodes_de_a32 = ops_sf_fpu_de_a32;
+            x86_opcodes_df_a16 = ops_sf_fpu_df_a16;
+            x86_opcodes_df_a32 = ops_sf_fpu_df_a32;
+        } else {
+            x86_opcodes_d8_a16 = ops_fpu_d8_a16;
+            x86_opcodes_d8_a32 = ops_fpu_d8_a32;
+            x86_opcodes_d9_a16 = ops_fpu_d9_a16;
+            x86_opcodes_d9_a32 = ops_fpu_d9_a32;
+            x86_opcodes_da_a16 = ops_fpu_da_a16;
+            x86_opcodes_da_a32 = ops_fpu_da_a32;
+            x86_opcodes_db_a16 = ops_fpu_db_a16;
+            x86_opcodes_db_a32 = ops_fpu_db_a32;
+            x86_opcodes_dc_a16 = ops_fpu_dc_a16;
+            x86_opcodes_dc_a32 = ops_fpu_dc_a32;
+            x86_opcodes_dd_a16 = ops_fpu_dd_a16;
+            x86_opcodes_dd_a32 = ops_fpu_dd_a32;
+            x86_opcodes_de_a16 = ops_fpu_de_a16;
+            x86_opcodes_de_a32 = ops_fpu_de_a32;
+            x86_opcodes_df_a16 = ops_fpu_df_a16;
+            x86_opcodes_df_a32 = ops_fpu_df_a32;
+        }
     } else {
 #ifdef USE_DYNAREC
         x86_dynarec_opcodes_d8_a16 = dynarec_ops_nofpu_a16;
@@ -557,20 +596,37 @@ cpu_set(void)
                 x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_287_df_a16;
                 x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_287_df_a32;
 #endif
-                x86_opcodes_d9_a16 = ops_fpu_287_d9_a16;
-                x86_opcodes_d9_a32 = ops_fpu_287_d9_a32;
-                x86_opcodes_da_a16 = ops_fpu_287_da_a16;
-                x86_opcodes_da_a32 = ops_fpu_287_da_a32;
-                x86_opcodes_db_a16 = ops_fpu_287_db_a16;
-                x86_opcodes_db_a32 = ops_fpu_287_db_a32;
-                x86_opcodes_dc_a16 = ops_fpu_287_dc_a16;
-                x86_opcodes_dc_a32 = ops_fpu_287_dc_a32;
-                x86_opcodes_dd_a16 = ops_fpu_287_dd_a16;
-                x86_opcodes_dd_a32 = ops_fpu_287_dd_a32;
-                x86_opcodes_de_a16 = ops_fpu_287_de_a16;
-                x86_opcodes_de_a32 = ops_fpu_287_de_a32;
-                x86_opcodes_df_a16 = ops_fpu_287_df_a16;
-                x86_opcodes_df_a32 = ops_fpu_287_df_a32;
+                if (fpu_softfloat) {
+                    x86_opcodes_d9_a16 = ops_sf_fpu_287_d9_a16;
+                    x86_opcodes_d9_a32 = ops_sf_fpu_287_d9_a32;
+                    x86_opcodes_da_a16 = ops_sf_fpu_287_da_a16;
+                    x86_opcodes_da_a32 = ops_sf_fpu_287_da_a32;
+                    x86_opcodes_db_a16 = ops_sf_fpu_287_db_a16;
+                    x86_opcodes_db_a32 = ops_sf_fpu_287_db_a32;
+                    x86_opcodes_dc_a16 = ops_sf_fpu_287_dc_a16;
+                    x86_opcodes_dc_a32 = ops_sf_fpu_287_dc_a32;
+                    x86_opcodes_dd_a16 = ops_sf_fpu_287_dd_a16;
+                    x86_opcodes_dd_a32 = ops_sf_fpu_287_dd_a32;
+                    x86_opcodes_de_a16 = ops_sf_fpu_287_de_a16;
+                    x86_opcodes_de_a32 = ops_sf_fpu_287_de_a32;
+                    x86_opcodes_df_a16 = ops_sf_fpu_287_df_a16;
+                    x86_opcodes_df_a32 = ops_sf_fpu_287_df_a32;
+                } else {
+                    x86_opcodes_d9_a16 = ops_fpu_287_d9_a16;
+                    x86_opcodes_d9_a32 = ops_fpu_287_d9_a32;
+                    x86_opcodes_da_a16 = ops_fpu_287_da_a16;
+                    x86_opcodes_da_a32 = ops_fpu_287_da_a32;
+                    x86_opcodes_db_a16 = ops_fpu_287_db_a16;
+                    x86_opcodes_db_a32 = ops_fpu_287_db_a32;
+                    x86_opcodes_dc_a16 = ops_fpu_287_dc_a16;
+                    x86_opcodes_dc_a32 = ops_fpu_287_dc_a32;
+                    x86_opcodes_dd_a16 = ops_fpu_287_dd_a16;
+                    x86_opcodes_dd_a32 = ops_fpu_287_dd_a32;
+                    x86_opcodes_de_a16 = ops_fpu_287_de_a16;
+                    x86_opcodes_de_a32 = ops_fpu_287_de_a32;
+                    x86_opcodes_df_a16 = ops_fpu_287_df_a16;
+                    x86_opcodes_df_a32 = ops_fpu_287_df_a32;
+                }
             }
 
             timing_rr  = 2;  /* register dest - register src */
@@ -633,20 +689,37 @@ cpu_set(void)
                 x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_287_df_a16;
                 x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_287_df_a32;
 #endif
-                x86_opcodes_d9_a16 = ops_fpu_287_d9_a16;
-                x86_opcodes_d9_a32 = ops_fpu_287_d9_a32;
-                x86_opcodes_da_a16 = ops_fpu_287_da_a16;
-                x86_opcodes_da_a32 = ops_fpu_287_da_a32;
-                x86_opcodes_db_a16 = ops_fpu_287_db_a16;
-                x86_opcodes_db_a32 = ops_fpu_287_db_a32;
-                x86_opcodes_dc_a16 = ops_fpu_287_dc_a16;
-                x86_opcodes_dc_a32 = ops_fpu_287_dc_a32;
-                x86_opcodes_dd_a16 = ops_fpu_287_dd_a16;
-                x86_opcodes_dd_a32 = ops_fpu_287_dd_a32;
-                x86_opcodes_de_a16 = ops_fpu_287_de_a16;
-                x86_opcodes_de_a32 = ops_fpu_287_de_a32;
-                x86_opcodes_df_a16 = ops_fpu_287_df_a16;
-                x86_opcodes_df_a32 = ops_fpu_287_df_a32;
+                if (fpu_softfloat) {
+                    x86_opcodes_d9_a16 = ops_sf_fpu_287_d9_a16;
+                    x86_opcodes_d9_a32 = ops_sf_fpu_287_d9_a32;
+                    x86_opcodes_da_a16 = ops_sf_fpu_287_da_a16;
+                    x86_opcodes_da_a32 = ops_sf_fpu_287_da_a32;
+                    x86_opcodes_db_a16 = ops_sf_fpu_287_db_a16;
+                    x86_opcodes_db_a32 = ops_sf_fpu_287_db_a32;
+                    x86_opcodes_dc_a16 = ops_sf_fpu_287_dc_a16;
+                    x86_opcodes_dc_a32 = ops_sf_fpu_287_dc_a32;
+                    x86_opcodes_dd_a16 = ops_sf_fpu_287_dd_a16;
+                    x86_opcodes_dd_a32 = ops_sf_fpu_287_dd_a32;
+                    x86_opcodes_de_a16 = ops_sf_fpu_287_de_a16;
+                    x86_opcodes_de_a32 = ops_sf_fpu_287_de_a32;
+                    x86_opcodes_df_a16 = ops_sf_fpu_287_df_a16;
+                    x86_opcodes_df_a32 = ops_sf_fpu_287_df_a32;
+                } else {
+                    x86_opcodes_d9_a16 = ops_fpu_287_d9_a16;
+                    x86_opcodes_d9_a32 = ops_fpu_287_d9_a32;
+                    x86_opcodes_da_a16 = ops_fpu_287_da_a16;
+                    x86_opcodes_da_a32 = ops_fpu_287_da_a32;
+                    x86_opcodes_db_a16 = ops_fpu_287_db_a16;
+                    x86_opcodes_db_a32 = ops_fpu_287_db_a32;
+                    x86_opcodes_dc_a16 = ops_fpu_287_dc_a16;
+                    x86_opcodes_dc_a32 = ops_fpu_287_dc_a32;
+                    x86_opcodes_dd_a16 = ops_fpu_287_dd_a16;
+                    x86_opcodes_dd_a32 = ops_fpu_287_dd_a32;
+                    x86_opcodes_de_a16 = ops_fpu_287_de_a16;
+                    x86_opcodes_de_a32 = ops_fpu_287_de_a32;
+                    x86_opcodes_df_a16 = ops_fpu_287_df_a16;
+                    x86_opcodes_df_a32 = ops_fpu_287_df_a32;
+                }
             }
 
             timing_rr = 2; /* register dest - register src */
@@ -1048,12 +1121,21 @@ cpu_set(void)
                 x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_686_df_a16;
                 x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_686_df_a32;
 #    endif
-                x86_opcodes_da_a16 = ops_fpu_686_da_a16;
-                x86_opcodes_da_a32 = ops_fpu_686_da_a32;
-                x86_opcodes_db_a16 = ops_fpu_686_db_a16;
-                x86_opcodes_db_a32 = ops_fpu_686_db_a32;
-                x86_opcodes_df_a16 = ops_fpu_686_df_a16;
-                x86_opcodes_df_a32 = ops_fpu_686_df_a32;
+                if (fpu_softfloat) {
+                    x86_opcodes_da_a16 = ops_sf_fpu_686_da_a16;
+                    x86_opcodes_da_a32 = ops_sf_fpu_686_da_a32;
+                    x86_opcodes_db_a16 = ops_sf_fpu_686_db_a16;
+                    x86_opcodes_db_a32 = ops_sf_fpu_686_db_a32;
+                    x86_opcodes_df_a16 = ops_sf_fpu_686_df_a16;
+                    x86_opcodes_df_a32 = ops_sf_fpu_686_df_a32;
+                } else {
+                    x86_opcodes_da_a16 = ops_fpu_686_da_a16;
+                    x86_opcodes_da_a32 = ops_fpu_686_da_a32;
+                    x86_opcodes_db_a16 = ops_fpu_686_db_a16;
+                    x86_opcodes_db_a32 = ops_fpu_686_db_a32;
+                    x86_opcodes_df_a16 = ops_fpu_686_df_a16;
+                    x86_opcodes_df_a32 = ops_fpu_686_df_a32;
+                }
             }
 
 #    ifdef USE_DYNAREC
@@ -1256,12 +1338,21 @@ cpu_set(void)
             else
                 x86_setopcodes(ops_386, ops_pentium2_0f);
 #endif
-            x86_opcodes_da_a16 = ops_fpu_686_da_a16;
-            x86_opcodes_da_a32 = ops_fpu_686_da_a32;
-            x86_opcodes_db_a16 = ops_fpu_686_db_a16;
-            x86_opcodes_db_a32 = ops_fpu_686_db_a32;
-            x86_opcodes_df_a16 = ops_fpu_686_df_a16;
-            x86_opcodes_df_a32 = ops_fpu_686_df_a32;
+            if (fpu_softfloat) {
+                x86_opcodes_da_a16 = ops_sf_fpu_686_da_a16;
+                x86_opcodes_da_a32 = ops_sf_fpu_686_da_a32;
+                x86_opcodes_db_a16 = ops_sf_fpu_686_db_a16;
+                x86_opcodes_db_a32 = ops_sf_fpu_686_db_a32;
+                x86_opcodes_df_a16 = ops_sf_fpu_686_df_a16;
+                x86_opcodes_df_a32 = ops_sf_fpu_686_df_a32;
+            } else {
+                x86_opcodes_da_a16 = ops_fpu_686_da_a16;
+                x86_opcodes_da_a32 = ops_fpu_686_da_a32;
+                x86_opcodes_db_a16 = ops_fpu_686_db_a16;
+                x86_opcodes_db_a32 = ops_fpu_686_db_a32;
+                x86_opcodes_df_a16 = ops_fpu_686_df_a16;
+                x86_opcodes_df_a32 = ops_fpu_686_df_a32;
+            }
 
             timing_rr  = 1; /* register dest - register src */
             timing_rm  = 2; /* register dest - memory src */

@@ -202,7 +202,7 @@ sound_card_get_internal_name(int card)
 }
 
 int
-sound_card_get_from_internal_name(char *s)
+sound_card_get_from_internal_name(const char *s)
 {
     int c = 0;
 

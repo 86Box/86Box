@@ -2898,7 +2898,7 @@ mem_remap_top(int kb)
             if (addr >= 0x000c0000)
                 addr += 0x00010000;
         }
-        if (start_addr != 0)
+        if (start_addr == 0)
             start_addr = addr;
         pages[c].mem     = set ? &ram[addr] : page_ff;
         pages[c].write_b = set ? mem_write_ramb_page : NULL;

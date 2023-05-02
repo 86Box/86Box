@@ -278,6 +278,7 @@ END
 #define STR_ENABLED_LOCAL "Etkin (yerel zaman)"
 #define STR_ENABLED_UTC   "Etkin (UTC)"
 #define STR_DYNAREC       "Dinamik Derleyici"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
 #define STR_VIDEO         "Ekran kartı:"
 #define STR_VIDEO_2       "Ekran kartı 2:"

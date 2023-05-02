@@ -512,7 +512,6 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                 break;
             case 0x4e:
                 fregs[0x4e] = val;
-                pic_mouse_latch(!!(val & 0x10));
                 if (dev->type >= 4)
                     kbc_alias_update_io_mapping(dev);
                 break;
@@ -1275,7 +1274,6 @@ piix_reset_hard(piix_t *dev)
     fregs[0x0e] = ((dev->type > 1) || (dev->rev != 2)) ? 0x80 : 0x00;
     fregs[0x4c] = 0x4d;
     fregs[0x4e] = 0x03;
-    pic_mouse_latch(0x00);
     fregs[0x60] = fregs[0x61] = fregs[0x62] = fregs[0x63] = 0x80;
     fregs[0x64]                                           = (dev->type > 3) ? 0x10 : 0x00;
     fregs[0x69]                                           = 0x02;
@@ -1680,8 +1678,6 @@ piix_init(const device_t *info)
         dev->board_config[1] |= 0x00;
 
     // device_add(&i8254_sec_device);
-
-    pic_kbd_latch(0x01);
 
     return dev;
 }

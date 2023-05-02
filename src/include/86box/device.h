@@ -57,21 +57,24 @@
 #define CONFIG_SERPORT   12
 
 enum {
-    DEVICE_PCJR      = 2,         /* requires an IBM PCjr */
-    DEVICE_AT        = 4,         /* requires an AT-compatible system */
-    DEVICE_PS2       = 8,         /* requires a PS/1 or PS/2 system */
-    DEVICE_ISA       = 0x10,      /* requires the ISA bus */
-    DEVICE_CBUS      = 0x20,      /* requires the C-BUS bus */
-    DEVICE_MCA       = 0x40,      /* requires the MCA bus */
-    DEVICE_EISA      = 0x80,      /* requires the EISA bus */
-    DEVICE_VLB       = 0x100,     /* requires the PCI bus */
-    DEVICE_PCI       = 0x200,     /* requires the VLB bus */
-    DEVICE_AGP       = 0x400,     /* requires the AGP bus */
-    DEVICE_AC97      = 0x800,     /* requires the AC'97 bus */
-    DEVICE_COM       = 0x1000,    /* requires a serial port */
-    DEVICE_LPT       = 0x2000,    /* requires a parallel port */
+    DEVICE_PCJR      = 2,          /* requires an IBM PCjr */
+    DEVICE_AT        = 4,          /* requires an AT-compatible system */
+    DEVICE_PS2       = 8,          /* requires a PS/1 or PS/2 system */
+    DEVICE_ISA       = 0x10,       /* requires the ISA bus */
+    DEVICE_CBUS      = 0x20,       /* requires the C-BUS bus */
+    DEVICE_MCA       = 0x40,       /* requires the MCA bus */
+    DEVICE_EISA      = 0x80,       /* requires the EISA bus */
+    DEVICE_VLB       = 0x100,      /* requires the PCI bus */
+    DEVICE_PCI       = 0x200,      /* requires the VLB bus */
+    DEVICE_AGP       = 0x400,      /* requires the AGP bus */
+    DEVICE_AC97      = 0x800,      /* requires the AC'97 bus */
+    DEVICE_COM       = 0x1000,     /* requires a serial port */
+    DEVICE_LPT       = 0x2000,     /* requires a parallel port */
+    DEVICE_KBC       = 0x4000,     /* is a keyboard controller */
 
-    DEVICE_EXTPARAMS = 0x40000000 /* accepts extended parameters */
+    DEVICE_EXTPARAMS = 0x40000000, /* accepts extended parameters */
+
+    DEVICE_ALL       = 0xffffffff  /* match all devices */
 };
 
 #define BIOS_NORMAL                      0
@@ -171,8 +174,7 @@ extern void *device_cadd_inst_parameters(const device_t *d, const device_t *cd, 
 extern void  device_cadd_inst_ex(const device_t *d, const device_t *cd, void *priv, int inst);
 extern void  device_cadd_inst_ex_parameters(const device_t *d, const device_t *cd, void *priv, int inst, void *params);
 extern void  device_close_all(void);
-extern void  device_reset_all(void);
-extern void  device_reset_all_pci(void);
+extern void  device_reset_all(uint32_t match_flags);
 extern void *device_get_priv(const device_t *d);
 extern int   device_available(const device_t *d);
 extern int   device_poll(const device_t *d, int x, int y, int z, int b);
