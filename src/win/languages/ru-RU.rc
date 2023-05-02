@@ -278,6 +278,7 @@ END
 #define STR_ENABLED_LOCAL "Включить (местное)"
 #define STR_ENABLED_UTC   "Включить (UTC)"
 #define STR_DYNAREC       "Динамический рекомпилятор"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
 #define STR_VIDEO         "Видеокарта:"
 #define STR_VIDEO_2       "Видеокарта 2:"
