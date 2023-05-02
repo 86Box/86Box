@@ -21,7 +21,7 @@ sf_FLDL2T(uint32_t fetchdat)
         FPU_stack_overflow(fetchdat);
     else {
         FPU_push();
-        FPU_save_regi(FPU_round_const(Const_L2T, (fpu_state.cwd & FPU_CW_RC) == X87_ROUNDING_UP), 0);
+        FPU_save_regi(FPU_round_const(Const_L2T, (fpu_state.cwd & FPU_CW_RC) == FPU_RC_UP), 0);
     }
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fld_const) : (x87_timings.fld_const * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fld_const) : (x87_concurrency.fld_const * cpu_multi));

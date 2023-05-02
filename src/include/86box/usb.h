@@ -39,6 +39,8 @@ typedef struct usb_t
     int           uhci_enable, ohci_enable;
     uint32_t      ohci_mem_base;
     mem_mapping_t ohci_mmio_mapping;
+    pc_timer_t    ohci_frame_timer;
+    pc_timer_t    ohci_port_reset_timer[2];
 
     usb_params_t* usb_params;
 } usb_t;

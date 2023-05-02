@@ -1969,9 +1969,8 @@ static void
 es1371_input_msg(void *p, uint8_t *msg, uint32_t len)
 {
     es1371_t *dev = (es1371_t *) p;
-    uint8_t   i;
 
-    for (i = 0; i < len; i++)
+    for (uint32_t i = 0; i < len; i++)
         es1371_write_fifo(dev, msg[i]);
 }
 

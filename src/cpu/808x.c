@@ -440,10 +440,10 @@ pfq_write(void)
 static uint8_t
 pfq_read(void)
 {
-    uint8_t temp, i;
+    uint8_t temp;
 
     temp = pfq[0];
-    for (i = 0; i < (pfq_size - 1); i++)
+    for (int i = 0; i < (pfq_size - 1); i++)
         pfq[i] = pfq[i + 1];
     pfq_pos--;
     cpu_state.pc = (cpu_state.pc + 1) & 0xffff;

@@ -851,8 +851,8 @@ const OpFn OP_TABLE(fpu_8087_d9)[256] = {
         ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16,  ILLEGAL_a16, /*Invalid*/
         opFCHS,       opFABS,       ILLEGAL_a16,  ILLEGAL_a16,  opFTST,       opFXAM,       ILLEGAL_a16,  ILLEGAL_a16,
         opFLD1,       opFLDL2T,     opFLDL2E,     opFLDPI,      opFLDEG2,     opFLDLN2,     opFLDZ,       ILLEGAL_a16,
-        opF2XM1,      opFYL2X,      opFPTAN,      opFPATAN,     opFXTRACT,  opFPREM1,  opFDECSTP,    opFINCSTP,
-        opFPREM,      opFYL2XP1,    opFSQRT,      ILLEGAL_a16,   opFRNDINT,   opFSCALE,     ILLEGAL_a16,  ILLEGAL_a16
+        opF2XM1,      opFYL2X,      opFPTAN,      opFPATAN,     opFXTRACT,    opFPREM1,     opFDECSTP,    opFINCSTP,
+        opFPREM,      opFYL2XP1,    opFSQRT,      ILLEGAL_a16,  opFRNDINT,    opFSCALE,     ILLEGAL_a16,  ILLEGAL_a16
     // clang-format on
 };
 
@@ -2414,7 +2414,7 @@ const OpFn OP_TABLE(fpu_287_d9_a32)[256] = {
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32, /*Invalid*/
         opFCHS,       opFABS,       ILLEGAL_a32,  ILLEGAL_a32,  opFTST,       opFXAM,       ILLEGAL_a32,  ILLEGAL_a32,
         opFLD1,       opFLDL2T,     opFLDL2E,     opFLDPI,      opFLDEG2,     opFLDLN2,     opFLDZ,       ILLEGAL_a32,
-        opF2XM1,      opFYL2X,      opFPTAN,      opFPATAN,     ILLEGAL_a32,  opFPREM1,     opFDECSTP,    opFINCSTP,
+        opF2XM1,      opFYL2X,      opFPTAN,      opFPATAN,     opFXTRACT,    opFPREM1,     opFDECSTP,    opFINCSTP,
         opFPREM,      opFYL2XP1,    opFSQRT,      opFSINCOS,    opFRNDINT,    opFSCALE,     opFSIN,       opFCOS
     // clang-format on
 };
@@ -2494,7 +2494,7 @@ const OpFn OP_TABLE(fpu_d9_a32)[256] = {
         opFSTP,       opFSTP,       opFSTP,       opFSTP,       opFSTP,       opFSTP,       opFSTP,       opFSTP,  /*Invalid*/
         opFCHS,       opFABS,       ILLEGAL_a32,  ILLEGAL_a32,  opFTST,       opFXAM,       ILLEGAL_a32,  ILLEGAL_a32,
         opFLD1,       opFLDL2T,     opFLDL2E,     opFLDPI,      opFLDEG2,     opFLDLN2,     opFLDZ,       ILLEGAL_a32,
-        opF2XM1,      opFYL2X,      opFPTAN,      opFPATAN,     ILLEGAL_a32,  opFPREM1,     opFDECSTP,    opFINCSTP,
+        opF2XM1,      opFYL2X,      opFPTAN,      opFPATAN,     opFXTRACT,    opFPREM1,     opFDECSTP,    opFINCSTP,
         opFPREM,      opFYL2XP1,    opFSQRT,      opFSINCOS,    opFRNDINT,    opFSCALE,     opFSIN,       opFCOS
     // clang-format on
 };

@@ -768,7 +768,6 @@ sf_FBSTP_PACKED_BCD_a16(uint32_t fetchdat)
     floatx80 reg;
     int64_t save_val;
     int sign;
-    int c;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -833,7 +832,6 @@ sf_FBSTP_PACKED_BCD_a32(uint32_t fetchdat)
     floatx80 reg;
     int64_t save_val;
     int sign;
-    int c;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
