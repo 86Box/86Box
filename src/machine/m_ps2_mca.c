@@ -998,7 +998,7 @@ ps2_mca_board_model_55sx_init(int has_sec_nvram, int slots)
     }
 
     mca_init(slots);
-    device_add(&keyboard_ps2_mca_device);
+    device_add(&keyboard_ps2_device);
 
     if (has_sec_nvram == 1)
         device_add(&ps2_nvr_55ls_device);
@@ -1162,7 +1162,7 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
 
     ps2.split_addr = mem_size * 1024;
     mca_init(slots);
-    device_add(&keyboard_ps2_mca_device);
+    device_add(&keyboard_ps2_device);
 
     ps2.planar_read  = model_70_type3_read;
     ps2.planar_write = model_70_type3_write;
@@ -1255,7 +1255,7 @@ ps2_mca_board_model_80_type2_init(int is486)
 
     ps2.split_addr = mem_size * 1024;
     mca_init(8);
-    device_add(&keyboard_ps2_mca_device);
+    device_add(&keyboard_ps2_device);
 
     ps2.planar_read  = model_80_read;
     ps2.planar_write = model_80_write;
@@ -1343,9 +1343,6 @@ machine_ps2_common_init(const machine_t *model)
     nmi_mask = 0x80;
 
     ps2.uart = device_add_inst(&ns16550_device, 1);
-
-    pic_kbd_latch(0x01);
-    pic_mouse_latch(0x01);
 }
 
 int
@@ -1492,6 +1489,27 @@ machine_ps2_model_80_axx_init(const machine_t *model)
     ps2.planar_id = 0xfff9;
 
     ps2_mca_board_model_70_type34_init(0, 8);
+
+    return ret;
+}
+
+int
+machine_ps2_model_70_type4_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ibmps2_m70_type4/64F3126.BIN",
+                                "roms/machines/ibmps2_m70_type4/64F3125.BIN",
+                                0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_ps2_common_init(model);
+
+    ps2.planar_id = 0xf9ff;
+
+    ps2_mca_board_model_70_type34_init(1, 4);
 
     return ret;
 }

@@ -278,6 +278,7 @@ END
 #define STR_ENABLED_LOCAL "사용 (현지 시간)"
 #define STR_ENABLED_UTC   "사용 (UTC)"
 #define STR_DYNAREC       "동적 재컴파일"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
 #define STR_VIDEO         "비디오 카드:"
 #define STR_VIDEO_2       "비디오 카드 2:"

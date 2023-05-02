@@ -174,6 +174,7 @@ ali5123_reset(ali5123_t *dev)
     serial_setup(dev->uart[1], 0x03e8, dev->ld_regs[5][0x70]);
 
     /* Logical device 7: Keyboard */
+    dev->ld_regs[7][0x30] = 1;
     dev->ld_regs[7][0x70] = 1;
     /* TODO: Register F0 bit 6: 0 = PS/2, 1 = AT */
 
@@ -253,6 +254,9 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                         case 0x06:
                         case 0x08 ... 0x0a:
                             return;
+                        case 0x07:
+                            if (dev->cur_reg == 0xf0)
+                                val &= 0xbf;
                     }
                 dev->ld_regs[cur_ld][dev->cur_reg] = val;
             }

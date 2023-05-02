@@ -726,9 +726,6 @@ sis_5571_init(const device_t *info)
 
     sis_5571_reset(dev);
 
-    pic_kbd_latch(0x01);
-    pic_mouse_latch(0x01);
-
     return dev;
 }
 

@@ -278,6 +278,7 @@ END
 #define STR_ENABLED_LOCAL "启用 (本地时间)"
 #define STR_ENABLED_UTC   "启用 (UTC)"
 #define STR_DYNAREC       "动态重编译器"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
 #define STR_VIDEO         "显卡:"
 #define STR_VIDEO_2       "显卡 2:"

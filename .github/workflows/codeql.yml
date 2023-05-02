@@ -1,6 +1,27 @@
 name: "CodeQL"
 
-on: [ push, pull_request]
+on:
+
+  push:
+    paths:
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - .github/workflows/codeql.yml
+      - vcpkg.json
+      - "!**/Makefile*"
+
+  pull_request:
+    paths:
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - .github/workflows/**
+      - .github/workflows/codeql.yml
+      - vcpkg.json
+      - "!**/Makefile*"
 
 jobs:
   analyze:

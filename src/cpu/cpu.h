@@ -21,6 +21,8 @@
 #ifndef EMU_CPU_H
 #define EMU_CPU_H
 
+#include "softfloat/softfloat.h"
+
 enum {
     FPU_NONE,
     FPU_8087,
@@ -404,6 +406,20 @@ typedef struct {
     uint8_t inside_emulation_mode;
 } cpu_state_t;
 
+typedef struct {
+    uint16_t cwd;
+    uint16_t swd;
+    uint16_t tag;
+    uint16_t foo;
+    uint32_t fip;
+    uint32_t fdp;
+    uint16_t fcs;
+    uint16_t fds;
+    floatx80 st_space[8];
+    unsigned char tos;
+    unsigned char align1, align2, align3;
+} fpu_state_t;
+
 #define in_smm   cpu_state._in_smm
 #define smi_line cpu_state._smi_line
 
@@ -416,7 +432,11 @@ typedef struct {
 #define CPU_STATUS_PMODE   (1 << 2)
 #define CPU_STATUS_V86     (1 << 3)
 #define CPU_STATUS_SMM     (1 << 4)
+#ifdef USE_NEW_DYNAREC
+#define CPU_STATUS_FLAGS   0xff
+#else
 #define CPU_STATUS_FLAGS   0xffff
+#endif
 
 /*If the cpu_state.flags below are set in cpu_cur_status, they must be set in block->status.
   Otherwise they are ignored*/
@@ -480,6 +500,7 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 
 /* Global variables. */
 extern cpu_state_t cpu_state;
+extern fpu_state_t fpu_state;
 
 extern const cpu_family_t         cpu_families[];
 extern const cpu_legacy_machine_t cpu_legacy_table[];
@@ -639,7 +660,7 @@ extern void cpu_RDMSR(void);
 extern void cpu_WRMSR(void);
 extern void cpu_INVD(uint8_t wb);
 
-extern int  checkio(uint32_t port);
+extern int  checkio(uint32_t port, int mask);
 extern void codegen_block_end(void);
 extern void codegen_reset(void);
 extern void cpu_set_edx(void);
@@ -734,6 +755,8 @@ extern uint32_t custom_nmi_vector;
 
 extern void (*cpu_exec)(int cycs);
 extern uint8_t do_translate, do_translate2;
+
+extern void SF_FPU_reset(void);
 
 extern void reset_808x(int hard);
 extern void interrupt_808x(uint16_t addr);

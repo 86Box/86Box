@@ -8928,7 +8928,7 @@ const device_t s3_9fx_771_pci_device = {
     { .available = s3_9fx_771_available },
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
-    .config        = s3_standard_config
+    .config        = s3_968_config
 };
 
 const device_t s3_phoenix_vision968_pci_device = {

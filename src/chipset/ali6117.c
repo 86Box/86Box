@@ -302,7 +302,6 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x36:
                     val &= 0xf0;
                     val |= dev->regs[dev->reg_offset];
-                    pic_mouse_latch(val & 0x40);
                     break;
 
                 case 0x37:
@@ -427,8 +426,6 @@ ali6117_reset(void *priv)
         /* On-board memory 15-16M is enabled by default. */
         mem_set_mem_state_both(0x00f00000, 0x00100000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
         ali6117_bank_recalc(dev);
-
-        pic_mouse_latch(0x00);
     }
 }
 
@@ -477,9 +474,6 @@ ali6117_init(const device_t *info)
             dev->mode  = i;
         }
     }
-
-    if (!(dev->local & 0x08))
-        pic_kbd_latch(0x01);
 
     ali6117_reset(dev);
 

@@ -278,6 +278,7 @@ END
 #define STR_ENABLED_LOCAL "Omogočeno (lokalni čas)"
 #define STR_ENABLED_UTC   "Omogočeno (UTC)"
 #define STR_DYNAREC       "Dinamični prevajalnik"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
 #define STR_VIDEO         "Video:"
 #define STR_VIDEO_2       "Video 2:"

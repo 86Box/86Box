@@ -101,10 +101,10 @@ ini_log(const char *fmt, ...)
 #endif
 
 static section_t *
-find_section(list_t *head, char *name)
+find_section(list_t *head, const char *name)
 {
     section_t *sec     = (section_t *) head->next;
-    char       blank[] = "";
+    const char blank[] = "";
 
     if (name == NULL)
         name = blank;
@@ -120,7 +120,7 @@ find_section(list_t *head, char *name)
 }
 
 ini_section_t
-ini_find_section(ini_t ini, char *name)
+ini_find_section(ini_t ini, const char *name)
 {
     if (ini == NULL)
         return NULL;
@@ -129,7 +129,7 @@ ini_find_section(ini_t ini, char *name)
 }
 
 void
-ini_rename_section(ini_section_t section, char *name)
+ini_rename_section(ini_section_t section, const char *name)
 {
     section_t *sec = (section_t *) section;
 
@@ -197,7 +197,7 @@ ini_delete_section_if_empty(ini_t ini, ini_section_t section)
 }
 
 static section_t *
-create_section(list_t *head, char *name)
+create_section(list_t *head, const char *name)
 {
     section_t *ns = malloc(sizeof(section_t));
 
@@ -209,7 +209,7 @@ create_section(list_t *head, char *name)
 }
 
 ini_section_t
-ini_find_or_create_section(ini_t ini, char *name)
+ini_find_or_create_section(ini_t ini, const char *name)
 {
     if (ini == NULL)
         return NULL;
@@ -263,7 +263,7 @@ ini_close(ini_t ini)
 }
 
 static int
-ini_detect_bom(char *fn)
+ini_detect_bom(const char *fn)
 {
     FILE         *f;
     unsigned char bom[4] = { 0, 0, 0, 0 };
@@ -311,7 +311,7 @@ ini_fgetws(wchar_t *str, int count, FILE *stream)
 
 /* Read and parse the configuration file into memory. */
 ini_t
-ini_read(char *fn)
+ini_read(const char *fn)
 {
     char       sname[128], ename[128];
     wchar_t    buff[1024];
@@ -438,7 +438,7 @@ ini_read(char *fn)
 
 /* Write the in-memory configuration to disk. */
 void
-ini_write(ini_t ini, char *fn)
+ini_write(ini_t ini, const char *fn)
 {
     wchar_t    wtemp[512];
     list_t    *list = (list_t *) ini;
@@ -521,7 +521,7 @@ ini_dump(ini_t ini)
 }
 
 void
-ini_section_delete_var(ini_section_t self, char *name)
+ini_section_delete_var(ini_section_t self, const char *name)
 {
     section_t *section = (section_t *) self;
     entry_t   *entry;
@@ -537,7 +537,7 @@ ini_section_delete_var(ini_section_t self, char *name)
 }
 
 int
-ini_section_get_int(ini_section_t self, char *name, int def)
+ini_section_get_int(ini_section_t self, const char *name, int def)
 {
     section_t *section = (section_t *) self;
     entry_t   *entry;
@@ -556,7 +556,7 @@ ini_section_get_int(ini_section_t self, char *name, int def)
 }
 
 double
-ini_section_get_double(ini_section_t self, char *name, double def)
+ini_section_get_double(ini_section_t self, const char *name, double def)
 {
     section_t *section = (section_t *) self;
     entry_t   *entry;
@@ -575,7 +575,7 @@ ini_section_get_double(ini_section_t self, char *name, double def)
 }
 
 int
-ini_section_get_hex16(ini_section_t self, char *name, int def)
+ini_section_get_hex16(ini_section_t self, const char *name, int def)
 {
     section_t   *section = (section_t *) self;
     entry_t     *entry;
@@ -594,7 +594,7 @@ ini_section_get_hex16(ini_section_t self, char *name, int def)
 }
 
 int
-ini_section_get_hex20(ini_section_t self, char *name, int def)
+ini_section_get_hex20(ini_section_t self, const char *name, int def)
 {
     section_t   *section = (section_t *) self;
     entry_t     *entry;
@@ -613,7 +613,7 @@ ini_section_get_hex20(ini_section_t self, char *name, int def)
 }
 
 int
-ini_section_get_mac(ini_section_t self, char *name, int def)
+ini_section_get_mac(ini_section_t self, const char *name, int def)
 {
     section_t   *section = (section_t *) self;
     entry_t     *entry;
@@ -632,7 +632,7 @@ ini_section_get_mac(ini_section_t self, char *name, int def)
 }
 
 char *
-ini_section_get_string(ini_section_t self, char *name, char *def)
+ini_section_get_string(ini_section_t self, const char *name, char *def)
 {
     section_t *section = (section_t *) self;
     entry_t   *entry;
@@ -648,7 +648,7 @@ ini_section_get_string(ini_section_t self, char *name, char *def)
 }
 
 wchar_t *
-ini_section_get_wstring(ini_section_t self, char *name, wchar_t *def)
+ini_section_get_wstring(ini_section_t self, const char *name, wchar_t *def)
 {
     section_t *section = (section_t *) self;
     entry_t   *entry;
@@ -664,7 +664,7 @@ ini_section_get_wstring(ini_section_t self, char *name, wchar_t *def)
 }
 
 void
-ini_section_set_int(ini_section_t self, char *name, int val)
+ini_section_set_int(ini_section_t self, const char *name, int val)
 {
     section_t *section = (section_t *) self;
     entry_t   *ent;
@@ -681,7 +681,7 @@ ini_section_set_int(ini_section_t self, char *name, int val)
 }
 
 void
-ini_section_set_double(ini_section_t self, char *name, double val)
+ini_section_set_double(ini_section_t self, const char *name, double val)
 {
     section_t *section = (section_t *) self;
     entry_t   *ent;
@@ -698,7 +698,7 @@ ini_section_set_double(ini_section_t self, char *name, double val)
 }
 
 void
-ini_section_set_hex16(ini_section_t self, char *name, int val)
+ini_section_set_hex16(ini_section_t self, const char *name, int val)
 {
     section_t *section = (section_t *) self;
     entry_t   *ent;
@@ -715,7 +715,7 @@ ini_section_set_hex16(ini_section_t self, char *name, int val)
 }
 
 void
-ini_section_set_hex20(ini_section_t self, char *name, int val)
+ini_section_set_hex20(ini_section_t self, const char *name, int val)
 {
     section_t *section = (section_t *) self;
     entry_t   *ent;
@@ -732,7 +732,7 @@ ini_section_set_hex20(ini_section_t self, char *name, int val)
 }
 
 void
-ini_section_set_mac(ini_section_t self, char *name, int val)
+ini_section_set_mac(ini_section_t self, const char *name, int val)
 {
     section_t *section = (section_t *) self;
     entry_t   *ent;
@@ -774,7 +774,7 @@ ini_section_set_string(ini_section_t self, const char *name, const char *val)
 }
 
 void
-ini_section_set_wstring(ini_section_t self, char *name, wchar_t *val)
+ini_section_set_wstring(ini_section_t self, const char *name, wchar_t *val)
 {
     section_t *section = (section_t *) self;
     entry_t   *ent;
