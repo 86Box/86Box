@@ -185,19 +185,20 @@
 #ifdef USE_DYNAREC
 #    define IDC_CHECK_DYNAREC 1017
 #endif
-#define IDC_MEMTEXT               1018
-#define IDC_MEMSPIN               1019
+#define IDC_CHECK_SOFTFLOAT       1018
+#define IDC_MEMTEXT               1019
+#define IDC_MEMSPIN               1020
 #define IDC_TEXT_MB               IDT_MB
 
-#define IDC_VIDEO                 1020 /* video config */
-#define IDC_COMBO_VIDEO           1021
-#define IDC_VIDEO_2               1022
-#define IDC_COMBO_VIDEO_2         1023
-#define IDC_CHECK_VOODOO          1024
-#define IDC_BUTTON_VOODOO         1025
-#define IDC_CHECK_IBM8514         1026
-#define IDC_CHECK_XGA             1027
-#define IDC_BUTTON_XGA            1028
+#define IDC_VIDEO                 1021 /* video config */
+#define IDC_COMBO_VIDEO           1022
+#define IDC_VIDEO_2               1023
+#define IDC_COMBO_VIDEO_2         1024
+#define IDC_CHECK_VOODOO          1025
+#define IDC_BUTTON_VOODOO         1026
+#define IDC_CHECK_IBM8514         1027
+#define IDC_CHECK_XGA             1028
+#define IDC_BUTTON_XGA            1029
 
 #define IDC_INPUT                 1030 /* input config */
 #define IDC_COMBO_MOUSE           1031
