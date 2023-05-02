@@ -682,6 +682,8 @@ win_settings_machine_recalc_fpu(HWND hdlg)
         c++;
     }
 
+    settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, temp_fpu_softfloat);
+
     settings_enable_window(hdlg, IDC_COMBO_FPU, c > 1);
 
     temp_fpu = fpu_get_type_from_index(temp_cpu_f, temp_cpu, settings_get_cur_sel(hdlg, IDC_COMBO_FPU));
