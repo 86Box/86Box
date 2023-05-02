@@ -1085,7 +1085,6 @@ static void
 gus_input_msg(void *p, uint8_t *msg, uint32_t len)
 {
     gus_t  *gus = (gus_t *) p;
-    uint8_t i;
 
     if (gus->sysex)
         return;
@@ -1093,7 +1092,7 @@ gus_input_msg(void *p, uint8_t *msg, uint32_t len)
     if (gus->uart_in) {
         gus->midi_status |= MIDI_INT_RECEIVE;
 
-        for (i = 0; i < len; i++) {
+        for (uint32_t i = 0; i < len; i++) {
             gus->midi_queue[gus->midi_w++] = msg[i];
             gus->midi_w &= 63;
         }
