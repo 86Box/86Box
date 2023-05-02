@@ -504,6 +504,14 @@ load_machine(void)
         mem_size = machine_get_max_ram(machine);
 
     cpu_use_dynarec = !!ini_section_get_int(cat, "cpu_use_dynarec", 0);
+    fpu_softfloat = !!ini_section_get_int(cat, "fpu_softfloat", 0);
+    /*The IBM PS/2 model 70 type 4 BIOS does heavy tests to the FPU in 80-bit precision mode, requiring softfloat 
+      otherwise it would always throw error 12903 on POST, so always disable dynarec and enable softfloat for this
+      machine only.*/
+    if (!strcmp(machines[machine].internal_name, "ibmps2_m70_type4")) {
+        cpu_use_dynarec = 0;
+        fpu_softfloat = 1;
+    }
 
     p = ini_section_get_string(cat, "time_sync", NULL);
     if (p != NULL) {
@@ -717,6 +725,24 @@ load_sound(void)
         midi_input_device_current = 0;
 
     mpu401_standalone_enable = !!ini_section_get_int(cat, "mpu401_standalone", 0);
+
+    /* Backwards compatibility for standalone SSI-2001, CMS and GUS from v3.11 and older. */
+    const char *legacy_cards[][2] = {
+        {"ssi2001",      "ssi2001"},
+        { "gameblaster", "cms"    },
+        { "gus",         "gus"    }
+    };
+    for (int i = 0, j = 0; i < (sizeof(legacy_cards) / sizeof(legacy_cards[0])); i++) {
+        if (ini_section_get_int(cat, legacy_cards[i][0], 0) == 1) {
+            /* Migrate to the first available sound card slot. */
+            for (; j < (sizeof(sound_card_current) / sizeof(sound_card_current[0])); j++) {
+                if (!sound_card_current[j]) {
+                    sound_card_current[j] = sound_card_get_from_internal_name(legacy_cards[i][1]);
+                    break;
+                }
+            }
+        }
+    }
 
     memset(temp, '\0', sizeof(temp));
     p = ini_section_get_string(cat, "sound_type", "float");
@@ -2159,7 +2185,7 @@ save_machine(void)
     else
         ini_section_delete_var(cat, "cpu_override");
 
-    /* Forwards compatibility with the previous CPU model system. */
+    /* Downgrade compatibility with the previous CPU model system. */
     ini_section_delete_var(cat, "cpu_manufacturer");
     ini_section_delete_var(cat, "cpu");
 
@@ -2226,6 +2252,7 @@ save_machine(void)
     ini_section_set_int(cat, "mem_size", mem_size);
 
     ini_section_set_int(cat, "cpu_use_dynarec", cpu_use_dynarec);
+    ini_section_set_int(cat, "fpu_softfloat", fpu_softfloat);
 
     if (time_sync & TIME_SYNC_ENABLED)
         if (time_sync & TIME_SYNC_UTC)
@@ -2389,6 +2416,27 @@ save_sound(void)
         ini_section_delete_var(cat, "mpu401_standalone");
     else
         ini_section_set_int(cat, "mpu401_standalone", mpu401_standalone_enable);
+
+    /* Downgrade compatibility for standalone SSI-2001, CMS and GUS from v3.11 and older. */
+    const char *legacy_cards[][2] = {
+        {"ssi2001",      "ssi2001"},
+        { "gameblaster", "cms"    },
+        { "gus",         "gus"    }
+    };
+    for (int i = 0; i < (sizeof(legacy_cards) / sizeof(legacy_cards[0])); i++) {
+        int card_id = sound_card_get_from_internal_name(legacy_cards[i][1]);
+        for (int j = 0; j < (sizeof(sound_card_current) / sizeof(sound_card_current[0])); j++) {
+            if (sound_card_current[j] == card_id) {
+                /* A special value of 2 still enables the cards on older versions,
+                   but lets newer versions know that they've already been migrated. */
+                ini_section_set_int(cat, legacy_cards[i][0], 2);
+                card_id = 0; /* mark as found */
+                break;
+            }
+        }
+        if (card_id > 0) /* not found */
+            ini_section_delete_var(cat, legacy_cards[i][0]);
+    }
 
     if (sound_is_float == 1)
         ini_section_delete_var(cat, "sound_type");

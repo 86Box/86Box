@@ -202,7 +202,7 @@ find_best_interrupt(pic_t *dev)
 
     intr = dev->interrupt = (ret == -1) ? 0x17 : ret;
 
-    if (dev->at && (ret != 1)) {
+    if (dev->at && (ret != -1)) {
         if (dev == &pic2)
             intr += 8;
 
@@ -570,8 +570,16 @@ pic_reset_hard(void)
 {
     pic_reset();
 
-    pic_kbd_latch(0x00);
-    pic_mouse_latch(0x00);
+    /* The situation is as follows: There is a giant mess when it comes to these latches on real hardware,
+       to the point that there's even boards with board-level latched that get used in place of the latches
+       on the chipset, therefore, I'm just doing this here for the sake of simplicity. */
+    if (machine_has_bus(machine, MACHINE_BUS_PS2)) {
+        pic_kbd_latch(0x01);
+        pic_mouse_latch(0x01);
+    } else {
+        pic_kbd_latch(0x00);
+        pic_mouse_latch(0x00);
+    }
 }
 
 void
@@ -644,7 +652,7 @@ picint_common(uint16_t num, int level, int set)
                 pic2.lines |= (num >> 8);
 
             /* Latch IRQ 12 if the mouse latch is enabled. */
-            if (mouse_latch && (num & 0x1000))
+            if ((num & 0x1000) && mouse_latch)
                 pic2.lines |= 0x10;
 
             pic2.irr |= (num >> 8);

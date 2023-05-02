@@ -278,6 +278,7 @@ END
 #define STR_ENABLED_LOCAL "Habilitado (hora local)"
 #define STR_ENABLED_UTC   "Habilitado (UTC)"
 #define STR_DYNAREC       "Recompilador Dinámico"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
 #define STR_VIDEO         "Vídeo:"
 #define STR_VIDEO_2       "Vídeo 2:"

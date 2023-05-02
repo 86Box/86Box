@@ -22,14 +22,35 @@
 extern "C" {
 #endif
 
+typedef struct usb_t usb_t;
+
+/* USB device creation parameters struct */
 typedef struct
+{
+    void (*raise_interrupt)(usb_t*, void*);
+    void* parent_priv;
+} usb_params_t;
+
+/* USB Host Controller device struct */
+typedef struct usb_t
 {
     uint8_t       uhci_io[32], ohci_mmio[4096];
     uint16_t      uhci_io_base;
     int           uhci_enable, ohci_enable;
     uint32_t      ohci_mem_base;
     mem_mapping_t ohci_mmio_mapping;
+    pc_timer_t    ohci_frame_timer;
+    pc_timer_t    ohci_port_reset_timer[2];
+
+    usb_params_t* usb_params;
 } usb_t;
+
+/* USB endpoint device struct. Incomplete and unused. */
+typedef struct
+{
+    uint16_t vendor_id;
+    uint16_t device_id;
+} usb_device_t;
 
 /* Global variables. */
 extern const device_t usb_device;

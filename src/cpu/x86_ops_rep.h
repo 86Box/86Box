@@ -9,7 +9,7 @@
             uint8_t temp;                                                                                         \
                                                                                                                   \
             SEG_CHECK_WRITE(&cpu_state.seg_es);                                                                   \
-            check_io_perm(DX);                                                                                    \
+            check_io_perm(DX, 1);                                                                                 \
             CHECK_WRITE(&cpu_state.seg_es, DEST_REG, DEST_REG);                                                   \
             high_page = 0;                                                                                        \
             do_mmut_wb(es, DEST_REG, &addr64);                                                                    \
@@ -48,8 +48,7 @@
             uint16_t temp;                                                                                        \
                                                                                                                   \
             SEG_CHECK_WRITE(&cpu_state.seg_es);                                                                   \
-            check_io_perm(DX);                                                                                    \
-            check_io_perm(DX + 1);                                                                                \
+            check_io_perm(DX, 2);                                                                                 \
             CHECK_WRITE(&cpu_state.seg_es, DEST_REG, DEST_REG + 1UL);                                             \
             high_page = 0;                                                                                        \
             do_mmut_ww(es, DEST_REG, addr64a);                                                                    \
@@ -88,10 +87,7 @@
             uint32_t temp;                                                                                        \
                                                                                                                   \
             SEG_CHECK_WRITE(&cpu_state.seg_es);                                                                   \
-            check_io_perm(DX);                                                                                    \
-            check_io_perm(DX + 1);                                                                                \
-            check_io_perm(DX + 2);                                                                                \
-            check_io_perm(DX + 3);                                                                                \
+            check_io_perm(DX, 4);                                                                                 \
             CHECK_WRITE(&cpu_state.seg_es, DEST_REG, DEST_REG + 3UL);                                             \
             high_page = 0;                                                                                        \
             do_mmut_wl(es, DEST_REG, addr64a);                                                                    \
@@ -132,7 +128,7 @@
             temp = readmemb(cpu_state.ea_seg->base, SRC_REG);                                                     \
             if (cpu_state.abrt)                                                                                   \
                 return 1;                                                                                         \
-            check_io_perm(DX);                                                                                    \
+            check_io_perm(DX, 1);                                                                                 \
             outb(DX, temp);                                                                                       \
             if (cpu_state.flags & D_FLAG)                                                                         \
                 SRC_REG--;                                                                                        \
@@ -163,8 +159,7 @@
             temp = readmemw(cpu_state.ea_seg->base, SRC_REG);                                                     \
             if (cpu_state.abrt)                                                                                   \
                 return 1;                                                                                         \
-            check_io_perm(DX);                                                                                    \
-            check_io_perm(DX + 1);                                                                                \
+            check_io_perm(DX, 2);                                                                                 \
             outw(DX, temp);                                                                                       \
             if (cpu_state.flags & D_FLAG)                                                                         \
                 SRC_REG -= 2;                                                                                     \
@@ -195,10 +190,7 @@
             temp = readmeml(cpu_state.ea_seg->base, SRC_REG);                                                     \
             if (cpu_state.abrt)                                                                                   \
                 return 1;                                                                                         \
-            check_io_perm(DX);                                                                                    \
-            check_io_perm(DX + 1);                                                                                \
-            check_io_perm(DX + 2);                                                                                \
-            check_io_perm(DX + 3);                                                                                \
+            check_io_perm(DX, 4);                                                                                 \
             outl(DX, temp);                                                                                       \
             if (cpu_state.flags & D_FLAG)                                                                         \
                 SRC_REG -= 4;                                                                                     \

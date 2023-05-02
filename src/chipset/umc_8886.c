@@ -374,9 +374,6 @@ umc_8886_init(const device_t *info)
 
     umc_8886_reset(dev);
 
-    pic_kbd_latch(0x01);
-    pic_mouse_latch(0x01);
-
     return dev;
 }
 
