@@ -131,7 +131,6 @@ next_ins:
 static int
 sf_FXTRACT(uint32_t fetchdat)
 {
-    const floatx80 floatx80_default_nan = packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
     struct float_status_t status;
     floatx80 a, b;
 
