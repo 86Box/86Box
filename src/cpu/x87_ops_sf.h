@@ -2,7 +2,7 @@ static uint32_t
 fpu_save_environment(void)
 {
     int tag;
-    unsigned offset;
+    unsigned offset = 0;
 
     /* read all registers in stack order and update x87 tag word */
     for (int n = 0; n < 8; n++) {
