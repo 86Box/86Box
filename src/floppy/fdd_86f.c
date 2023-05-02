@@ -2550,7 +2550,7 @@ uint16_t
 d86f_prepare_pretrack(int drive, int side, int iso)
 {
     d86f_t  *dev = d86f[drive];
-    uint16_t i, pos;
+    uint16_t pos;
     int      mfm;
     int      real_gap0_len;
     int      sync_len;
@@ -2575,22 +2575,22 @@ d86f_prepare_pretrack(int drive, int side, int iso)
 
     d86f_destroy_linked_lists(drive, side);
 
-    for (i = 0; i < raw_size; i++)
+    for (uint32_t i = 0; i < raw_size; i++)
         d86f_write_direct_common(drive, side, gap_fill, 0, i);
 
     pos = 0;
 
     if (!iso) {
-        for (i = 0; i < real_gap0_len; i++) {
+        for (int i = 0; i < real_gap0_len; i++) {
             d86f_write_direct_common(drive, side, gap_fill, 0, pos);
             pos = (pos + 1) % raw_size;
         }
-        for (i = 0; i < sync_len; i++) {
+        for (int i = 0; i < sync_len; i++) {
             d86f_write_direct_common(drive, side, 0, 0, pos);
             pos = (pos + 1) % raw_size;
         }
         if (mfm) {
-            for (i = 0; i < 3; i++) {
+            for (uint8_t i = 0; i < 3; i++) {
                 d86f_write_direct_common(drive, side, 0x2452, 1, pos);
                 pos = (pos + 1) % raw_size;
             }
@@ -2600,7 +2600,7 @@ d86f_prepare_pretrack(int drive, int side, int iso)
         pos = (pos + 1) % raw_size;
     }
 
-    for (i = 0; i < real_gap1_len; i++) {
+    for (int i = 0; i < real_gap1_len; i++) {
         d86f_write_direct_common(drive, side, gap_fill, 0, pos);
         pos = (pos + 1) % raw_size;
     }
