@@ -196,6 +196,17 @@ ohci_update_frame_counter(void* priv)
 }
 
 void
+ohci_poll_interrupt_descriptors(void* priv)
+{
+    usb_t *dev = (usb_t *) priv;
+
+    /* TODO: Actually poll the interrupt descriptors. */
+
+    dev->ohci_interrupt_counter++;
+    timer_on_auto(&dev->ohci_interrupt_desc_poll_timer, 1000.);
+}
+
+void
 ohci_port_reset_callback(void* priv)
 {
     usb_t *dev = (usb_t *) priv;
@@ -470,6 +481,7 @@ usb_init_ext(const device_t *info, void* params)
     timer_add(&dev->ohci_frame_timer, ohci_update_frame_counter, dev, 0); /* Unused for now, to be used for frame counting. */
     timer_add(&dev->ohci_port_reset_timer[0], ohci_port_reset_callback, dev, 0);
     timer_add(&dev->ohci_port_reset_timer[1], ohci_port_reset_callback_2, dev, 0);
+    timer_add(&dev->ohci_interrupt_desc_poll_timer, ohci_poll_interrupt_descriptors, dev, 0);
     usb_reset(dev);
 
     return dev;
