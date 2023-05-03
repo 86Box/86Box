@@ -91,7 +91,10 @@ jobs:
             openal:p
             rtmidi:p
             libvncserver:p
-      - uses: actions/checkout@v3
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
       - name: make
         run: >-
           make -fwin/Makefile.mingw -j
@@ -101,7 +104,9 @@ jobs:
           CLANG=${{ matrix.environment.clang }}
           X64=${{ matrix.environment.x64 }}
         working-directory: ./src
-      - uses: actions/upload-artifact@v3
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
         with:
           name: '86Box${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
           path: src/86Box.exe
