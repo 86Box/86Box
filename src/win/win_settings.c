@@ -4263,7 +4263,7 @@ win_settings_cdrom_drives_init_columns(HWND hdlg)
     if (ListView_InsertColumn(hwndList, 1, &lvc) == -1)
         return FALSE;
 
-    /* Earlier drive */
+    /* Type */
     lvc.iSubItem = 2;
     lvc.pszText  = plat_get_string(IDS_2162);
 

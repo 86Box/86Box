@@ -368,7 +368,6 @@ END
 #define STR_CHECKBPB      "檢查 BPB"
 #define STR_CDROM_DRIVES  "光碟機:"
 #define STR_CD_SPEED      "速度:"
-#define STR_EARLY         "早先的光碟機"
 
 #define STR_MO_DRIVES     "磁光碟機:"
 #define STR_ZIP_DRIVES    "ZIP 磁碟機:"
@@ -538,7 +537,7 @@ BEGIN
     IDS_2159    "硬重設"
     IDS_2160    "ACPI 關機"
     IDS_2161    "設定"
-    IDS_2162    "早先的光碟機"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"

@@ -142,26 +142,27 @@
 #define IDT_CD_LUN        1766 /* LUN: */
 #define IDT_CD_CHANNEL    1767 /* Channel: */
 #define IDT_CD_SPEED      1768 /* Speed: */
+#define IDT_CD_TYPE       1769 /* Type: */
 
 /* DLG_CFG_OTHER_REMOVABLE_DEVICES */
-#define IDT_MO_DRIVES   1769 /* MO drives: */
-#define IDT_MO_BUS      1770 /* Bus: */
-#define IDT_MO_ID       1771 /* ID: */
-#define IDT_MO_CHANNEL  1772 /* Channel */
-#define IDT_MO_TYPE     1773 /* Type: */
+#define IDT_MO_DRIVES   1770 /* MO drives: */
+#define IDT_MO_BUS      1771 /* Bus: */
+#define IDT_MO_ID       1772 /* ID: */
+#define IDT_MO_CHANNEL  1773 /* Channel */
+#define IDT_MO_TYPE     1774 /* Type: */
 
-#define IDT_ZIP_DRIVES  1774 /* ZIP drives: */
-#define IDT_ZIP_BUS     1775 /* Bus: */
-#define IDT_ZIP_ID      1776 /* ID: */
-#define IDT_ZIP_LUN     1777 /* LUN: */
-#define IDT_ZIP_CHANNEL 1778 /* Channel: */
+#define IDT_ZIP_DRIVES  1775 /* ZIP drives: */
+#define IDT_ZIP_BUS     1776 /* Bus: */
+#define IDT_ZIP_ID      1777 /* ID: */
+#define IDT_ZIP_LUN     1778 /* LUN: */
+#define IDT_ZIP_CHANNEL 1779 /* Channel: */
 
 /* DLG_CFG_PERIPHERALS */
-#define IDT_ISARTC   1779 /* ISA RTC: */
-#define IDT_ISAMEM_1 1780 /* ISAMEM Board #1: */
-#define IDT_ISAMEM_2 1781 /* ISAMEM Board #2: */
-#define IDT_ISAMEM_3 1782 /* ISAMEM Board #3: */
-#define IDT_ISAMEM_4 1783 /* ISAMEM Board #4: */
+#define IDT_ISARTC   1780 /* ISA RTC: */
+#define IDT_ISAMEM_1 1781 /* ISAMEM Board #1: */
+#define IDT_ISAMEM_2 1782 /* ISAMEM Board #2: */
+#define IDT_ISAMEM_3 1783 /* ISAMEM Board #3: */
+#define IDT_ISAMEM_4 1784 /* ISAMEM Board #4: */
 
 /*
  * To try to keep these organized, we now group the
@@ -302,7 +303,7 @@
 #define IDC_COMBO_CD_ID           1157
 #define IDC_COMBO_CD_LUN          1158
 #define IDC_COMBO_CD_CHANNEL_IDE  1159
-//#define IDC_CHECKEARLY            1160
+#define IDC_COMBO_CD_TYPE         1160
 
 #define IDC_LIST_ZIP_DRIVES       1170 /* other removable devices config */
 #define IDC_COMBO_ZIP_BUS         1171
