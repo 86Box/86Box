@@ -56,6 +56,18 @@ typedef struct
     uint8_t bLength;
     uint8_t bDescriptorType;
 } usb_desc_base_t;
+
+typedef struct
+{
+    usb_desc_base_t base;
+
+    uint16_t wTotalLength;
+    uint8_t  bNumInterfaces;
+    uint8_t  bConfigurationValue;
+    uint8_t  iConfiguration;
+    uint8_t  bmAttributes;
+    uint8_t  bMaxPower;
+} usb_desc_conf_t;
 #pragma pack(pop)
 
 /* USB endpoint device struct. Incomplete and unused. */
