@@ -47,11 +47,29 @@ typedef struct usb_t
     usb_params_t* usb_params;
 } usb_t;
 
+#pragma pack(push, 1)
+/* Base USB descriptor struct. */
+typedef struct
+{
+    uint8_t bLength;
+    uint8_t bDescriptorType;
+} usb_desc_base_t;
+#pragma pack(pop)
+
 /* USB endpoint device struct. Incomplete and unused. */
 typedef struct
 {
     uint16_t vendor_id;
     uint16_t device_id;
+
+    /* Reads from endpoint. Non-zero value indicates error. */
+    uint8_t (*device_in)(void* priv, uint8_t* data, uint32_t len);
+    /* Writes to endpoint. Non-zero value indicates error. */
+    uint8_t (*device_out)(void* priv, uint8_t* data, uint32_t len);
+    /* Process setup packets. */
+    uint8_t (*device_setup)(void* priv, uint8_t* data);
+
+    void* priv;
 } usb_device_t;
 
 /* Global variables. */
