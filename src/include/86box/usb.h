@@ -28,6 +28,8 @@ typedef struct usb_t usb_t;
 typedef struct
 {
     void (*raise_interrupt)(usb_t*, void*);
+    /* Handle (but do not raise) SMI. Returns 1 if SMI can be raised, 0 otherwise. */
+    uint8_t (*smi_handle)(usb_t*, void*);
     void* parent_priv;
 } usb_params_t;
 

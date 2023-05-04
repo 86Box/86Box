@@ -80,6 +80,9 @@ static void
 usb_interrupt_ohci(usb_t* usb)
 {
     if (usb->ohci_mmio[OHCI_HcControl + 1] & 1) {
+        if (usb->usb_params && usb->usb_params->smi_handle && !usb->usb_params->smi_handle(usb, usb->usb_params->parent_priv))
+            return;
+
         smi_raise();
     }
     else if (usb->usb_params != NULL) {
