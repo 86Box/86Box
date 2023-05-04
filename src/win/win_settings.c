@@ -4014,6 +4014,7 @@ win_settings_cdrom_drives_recalc_list(HWND hdlg)
         if (ListView_SetItem(hwndList, &lvI) == -1)
             return FALSE;
 
+/*
         lvI.iSubItem = 2;
         lvI.pszText  = plat_get_string(temp_cdrom[i].early ? IDS_2060 : IDS_2061);
         lvI.iItem    = i;
@@ -4021,6 +4022,7 @@ win_settings_cdrom_drives_recalc_list(HWND hdlg)
 
         if (ListView_SetItem(hwndList, &lvI) == -1)
             return FALSE;
+*/
     }
 
     return TRUE;
@@ -4489,6 +4491,7 @@ win_settings_cdrom_drives_update_item(HWND hdlg, int i)
     if (ListView_SetItem(hwndList, &lvI) == -1)
         return;
 
+/*
     lvI.iSubItem = 2;
     lvI.pszText  = plat_get_string(temp_cdrom[i].early ? IDS_2060 : IDS_2061);
     lvI.iItem    = i;
@@ -4496,6 +4499,7 @@ win_settings_cdrom_drives_update_item(HWND hdlg, int i)
 
     if (ListView_SetItem(hwndList, &lvI) == -1)
         return;
+*/
 }
 
 static void
@@ -4647,11 +4651,12 @@ cdrom_recalc_location_controls(HWND hdlg, int assign_id)
     settings_show_window(hdlg, IDC_COMBO_CD_CHANNEL_IDE, FALSE);
     settings_show_window(hdlg, IDC_COMBO_CD_SPEED, bus != CDROM_BUS_DISABLED);
     settings_show_window(hdlg, IDT_CD_SPEED, bus != CDROM_BUS_DISABLED);
+/*
     settings_show_window(hdlg, IDC_CHECKEARLY, bus != CDROM_BUS_DISABLED);
-
+*/
     if (bus != CDROM_BUS_DISABLED) {
         settings_set_cur_sel(hdlg, IDC_COMBO_CD_SPEED, temp_cdrom[lv2_current_sel].speed - 1);
-        settings_set_check(hdlg, IDC_CHECKEARLY, temp_cdrom[lv2_current_sel].early);
+//        settings_set_check(hdlg, IDC_CHECKEARLY, temp_cdrom[lv2_current_sel].early);
     }
 
     switch (bus) {
@@ -5042,10 +5047,12 @@ win_settings_floppy_and_cdrom_drives_proc(HWND hdlg, UINT message, WPARAM wParam
                     win_settings_cdrom_drives_update_item(hdlg, lv2_current_sel);
                     break;
 
+/*
                 case IDC_CHECKEARLY:
                     temp_cdrom[lv2_current_sel].early = settings_get_check(hdlg, IDC_CHECKEARLY);
                     win_settings_cdrom_drives_update_item(hdlg, lv2_current_sel);
                     break;
+*/
             }
             ignore_change = 0;
 

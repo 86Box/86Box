@@ -302,7 +302,7 @@
 #define IDC_COMBO_CD_ID           1157
 #define IDC_COMBO_CD_LUN          1158
 #define IDC_COMBO_CD_CHANNEL_IDE  1159
-#define IDC_CHECKEARLY            1160
+//#define IDC_CHECKEARLY            1160
 
 #define IDC_LIST_ZIP_DRIVES       1170 /* other removable devices config */
 #define IDC_COMBO_ZIP_BUS         1171
