@@ -29,7 +29,8 @@
 static const struct {
     const uint32_t vendor_id, min_rate, max_rate, misc_flags; /* definitions for misc_flags in snd_ac97.h */
     const uint16_t reset_flags, extid_flags,                  /* definitions in snd_ac97.h */
-        powerdown_mask;                                       /* bits [7:0] => register 26 bits [15:8]; bits [11:8] => register 2A bits [14:11] */
+        powerdown_mask;                                       /* bits [7:0] => register 26 bits [15:8]; bits [11:8] => register 2A bits [14:11]
+                                                                 when using the probing tool, always |0x030 as it doesn't touch full powerdowns */
     const ac97_vendor_reg_t *vendor_regs;                     /* bits [11:8] of index are the page number if applicable (registers [60:6F]) */
     const device_t          *device;
 } ac97_codecs[] = {
@@ -94,6 +95,14 @@ static const struct {
     .powerdown_mask = 0x0ff,
     .vendor_regs = (const ac97_vendor_reg_t []) {{0x6c, 0x0000, 0x0000}, {0x6e, 0x0000, 0x0003}, {0x70, 0x0000, 0xffff}, {0x72, 0x0000, 0x0006}, {0x74, 0x0000, 0x0003}, {0x76, 0x0000, 0xffff}, {0x78, 0x0000, 0x3802}, {0}},
     .device = &stac9721_device
+    },
+    [AC97_CODEC_TR28023] = {
+    .vendor_id = AC97_VENDOR_ID('T', 'R', 'A', 0x03),
+    .misc_flags = AC97_MASTER_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_POP | AC97_MS | AC97_LPBK,
+    .reset_flags = 0,
+    .extid_flags = 0,
+    .powerdown_mask = 0x03f,
+    .device = &tr28023_device
     },
     [AC97_CODEC_WM9701A] = {
     .vendor_id = AC97_VENDOR_ID('W', 'M', 'L', 0x00),
@@ -738,6 +747,20 @@ const device_t stac9721_device = {
     .internal_name = "stac9721",
     .flags         = DEVICE_AC97,
     .local         = AC97_CODEC_STAC9721,
+    .init          = ac97_codec_init,
+    .close         = ac97_codec_close,
+    .reset         = ac97_codec_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t tr28023_device = {
+    .name          = "TriTech TR28023 / Creative CT1297",
+    .internal_name = "tr28023",
+    .flags         = DEVICE_AC97,
+    .local         = AC97_CODEC_TR28023,
     .init          = ac97_codec_init,
     .close         = ac97_codec_close,
     .reset         = ac97_codec_reset,

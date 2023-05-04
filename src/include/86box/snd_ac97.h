@@ -100,7 +100,8 @@ enum {
     AC97_CODEC_WM9701A  = 4,
     AC97_CODEC_STAC9708 = 5,
     AC97_CODEC_STAC9721 = 6,
-    AC97_CODEC_AK4540   = 7
+    AC97_CODEC_AK4540   = 7,
+    AC97_CODEC_TR28023  = 8
 };
 
 typedef struct ac97_vendor_reg_t {
@@ -152,8 +153,10 @@ extern const device_t ak4540_device;
 extern const device_t alc100_device;
 extern const device_t cs4297_device;
 extern const device_t cs4297a_device;
+#define ct1297_device tr28023_device
 extern const device_t stac9708_device;
 extern const device_t stac9721_device;
+extern const device_t tr28023_device;
 extern const device_t wm9701a_device;
 
 extern const device_t ac97_via_device;

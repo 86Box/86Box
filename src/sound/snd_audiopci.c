@@ -2078,6 +2078,10 @@ static const device_config_t es1371_config[] = {
             {
                 .description = "SigmaTel STAC9721",
                 .value = AC97_CODEC_STAC9721
+            },
+            {
+                .description = "TriTech TR28023 / Creative CT1297",
+                .value = AC97_CODEC_TR28023
             }
         },
         .default_int = AC97_CODEC_CS4297A
