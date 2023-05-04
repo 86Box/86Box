@@ -56,6 +56,72 @@
                 "NEW_DYNAREC": "ON"
             },
             "inherits": "base"
+        },
+        {
+            "name": "llvm-macos-aarch64.cmake",
+            "displayName": "MacOS clang regular",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "cmake/llvm-macos-aarch64.cmake",
+                "NEW_DYNAREC": "ON",
+                "QT": "ON",
+                "USE_QT6": "OFF",
+                "Qt5_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5",
+                "MOLTENVK_DIR": "/opt/homebrew/opt/molten-vk",
+                "Qt5LinguistTools_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5LinguistTools",
+                "OpenAL_ROOT": "/opt/homebrew/opt/openal-soft"
+            },
+            "inherits": "regular"
+        },
+        {
+            "name": "llvm-macos-aarch64-debug",
+            "displayName": "MacOS clang debug",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "CMAKE_TOOLCHAIN_FILE": "cmake/llvm-macos-aarch64.cmake",
+                "NEW_DYNAREC": "ON",
+                "QT": "ON",
+                "USE_QT6": "OFF",
+                "Qt5_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5",
+                "MOLTENVK_DIR": "/opt/homebrew/opt/molten-vk",
+                "Qt5LinguistTools_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5LinguistTools",
+                "OpenAL_ROOT": "/opt/homebrew/opt/openal-soft",
+                "CMAKE_CXX_FLAGS_DEBUG": "-g -O0 -DENABLE_VDE_LOG",
+                "CMAKE_C_FLAGS_DEBUG": "-g -O0 -DENABLE_VDE_LOG"
+            },
+            "inherits": "debug"
+        },
+        {
+            "name": "flags-gcc-aarch64-debug",
+            "displayName": "Linux ARM 64 - Debug",
+            "description": "Linux ARM64 - Debug build",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "NEW_DYNAREC": "ON",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "CMAKE_TOOLCHAIN_FILE": "cmake/flags-gcc-aarch64.cmake",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_CXX_FLAGS_DEBUG": "-g -O0 -DENABLE_VDE_LOG",
+                "CMAKE_C_FLAGS_DEBUG": "-g -O0 -DENABLE_VDE_LOG"
+            },
+            "inherits": "debug"
+        },
+        {
+            "name": "flags-gcc-aarch64-regular",
+            "displayName": "Linux ARM 64 - Regular",
+            "description": "Linux ARM64 - Release build",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "cacheVariables": {
+                "NEW_DYNAREC": "ON",
+                "CMAKE_BUILD_TYPE": "Release",
+                "CMAKE_TOOLCHAIN_FILE": "cmake/flags-gcc-aarch64.cmake",
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
+            },
+            "inherits": "regular"
         }
     ],
     "buildPresets": [],
