@@ -368,7 +368,6 @@ END
 #define STR_CHECKBPB      "Preverjaj BPB"
 #define STR_CDROM_DRIVES  "Pogoni CD-ROM:"
 #define STR_CD_SPEED      "Hitrost:"
-#define STR_EARLY         "Zgodnejši pogon"
 
 #define STR_MO_DRIVES     "Magnetno-optični pogoni:"
 #define STR_ZIP_DRIVES    "Pogoni ZIP:"
@@ -538,7 +537,7 @@ BEGIN
     IDS_2159    "Ponovni zagon"
     IDS_2160    "Zaustavitev ACPI"
     IDS_2161    "Nastavitve"
-    IDS_2162    "Zgodnejši pogon"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"

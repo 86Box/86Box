@@ -368,7 +368,6 @@ END
 #define STR_CHECKBPB      "BPB überprüfen"
 #define STR_CDROM_DRIVES  "CD-ROM-Laufwerke:"
 #define STR_CD_SPEED      "Geschwindigkeit:"
-#define STR_EARLY         "Früheres Laufwerk"
 
 #define STR_MO_DRIVES     "MO-Laufwerke:"
 #define STR_ZIP_DRIVES    "ZIP-Laufwerke:"
@@ -538,7 +537,7 @@ BEGIN
     IDS_2159    "Hard-Reset"
     IDS_2160    "ACPI-basiertes Herunterfahren"
     IDS_2161    "Optionen"
-    IDS_2162    "Früheres Laufwerk"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
