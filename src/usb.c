@@ -215,6 +215,7 @@ ohci_port_reset_callback(void* priv)
     usb_t *dev = (usb_t *) priv;
 
     dev->ohci_mmio[OHCI_HcRhPortStatus1] &= ~0x10;
+    dev->ohci_mmio[OHCI_HcRhPortStatus1 + 2] |= 0x10;
 }
 
 void
@@ -223,6 +224,7 @@ ohci_port_reset_callback_2(void* priv)
     usb_t *dev = (usb_t *) priv;
 
     dev->ohci_mmio[OHCI_HcRhPortStatus2] &= ~0x10;
+    dev->ohci_mmio[OHCI_HcRhPortStatus2 + 2] |= 0x10;
 }
 
 static void
@@ -368,7 +370,6 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
                 if (old & 0x01) {
                     dev->ohci_mmio[addr] |= 0x10;
                     timer_on_auto(&dev->ohci_port_reset_timer[(addr - OHCI_HcRhPortStatus1) / 4], 10000.);
-                    dev->ohci_mmio[addr + 2] |= 0x10;
                 } else
                     dev->ohci_mmio[addr + 2] |= 0x01;
             }
@@ -449,6 +450,7 @@ usb_reset(void *priv)
     dev->ohci_mmio[OHCI_HcRevision] = 0x10;
     dev->ohci_mmio[OHCI_HcRevision + 1] = 0x01;
     dev->ohci_mmio[OHCI_HcRhDescriptorA] = 0x02;
+    dev->ohci_mmio[OHCI_HcRhDescriptorA + 1] = 0x02;
 
     io_removehandler(dev->uhci_io_base, 0x20, uhci_reg_read, NULL, NULL, uhci_reg_write, uhci_reg_writew, NULL, dev);
     dev->uhci_enable = 0;
