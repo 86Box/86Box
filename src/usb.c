@@ -186,6 +186,19 @@ ohci_mmio_read(uint32_t addr, void *p)
 
     ret = dev->ohci_mmio[addr];
 
+    switch (addr) {
+        case 0x101:
+            ret = (ret & 0xfe) | (!!mem_a20_key);
+            break;
+        case OHCI_HcRhPortStatus1 + 1:
+        case OHCI_HcRhPortStatus2 + 1:
+        case OHCI_HcRhPortStatus3 + 1:
+            ret |= 0x1;
+            break;
+        default:
+            break;
+    }
+
     if (addr == 0x101)
         ret = (ret & 0xfe) | (!!mem_a20_key);
 
