@@ -292,6 +292,36 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
             break;
         case OHCI_HcHCCA:
             return;
+        case OHCI_HcInterruptEnable:
+            dev->ohci_mmio[addr] = (val & 0x7f);
+            dev->ohci_mmio[OHCI_HcInterruptDisable] &= ~(val & 0x7f);
+            return;
+        case OHCI_HcInterruptEnable + 1:
+        case OHCI_HcInterruptEnable + 2:
+            return;
+        case OHCI_HcInterruptEnable + 3:
+            dev->ohci_mmio[addr] = (val & 0x40);
+            dev->ohci_mmio[addr] |= (val & 0x80);
+            if (val & 0x80)
+                dev->ohci_mmio[OHCI_HcInterruptDisable + 3] &= ~0x80;
+            if (val & 0x40)
+                dev->ohci_mmio[OHCI_HcInterruptDisable + 3] &= ~0x40;
+            return;
+        case OHCI_HcInterruptDisable:
+            dev->ohci_mmio[addr] = (val & 0x7f);
+            dev->ohci_mmio[OHCI_HcInterruptEnable] &= ~(val & 0x7f);
+            return;
+        case OHCI_HcInterruptDisable + 1:
+        case OHCI_HcInterruptDisable + 2:
+            return;
+        case OHCI_HcInterruptDisable + 3:
+            dev->ohci_mmio[addr] = (val & 0x40);
+            dev->ohci_mmio[addr] |= (val & 0x80);
+            if (val & 0x80)
+                dev->ohci_mmio[OHCI_HcInterruptEnable + 3] &= ~0x80;
+            if (val & 0x40)
+                dev->ohci_mmio[OHCI_HcInterruptEnable + 3] &= ~0x40;
+            return;
         case OHCI_HcInterruptStatus:
             dev->ohci_mmio[addr] &= ~(val & 0x7f);
             return;
