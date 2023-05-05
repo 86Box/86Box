@@ -258,6 +258,22 @@ ohci_port_reset_callback_2(void* priv)
     dev->ohci_mmio[OHCI_HcRhPortStatus2 + 2] |= 0x10;
 }
 
+void
+ohci_set_interrupt(usb_t* usb, uint8_t bit)
+{
+    if (!(usb->ohci_mmio[OHCI_HcInterruptEnable + 3] & 0x80))
+        return;
+    
+    if (!(usb->ohci_mmio[OHCI_HcInterruptEnable] & bit))
+        return;
+
+    if (usb->ohci_mmio[OHCI_HcInterruptDisable] & bit)
+        return;
+
+    usb->ohci_mmio[OHCI_HcInterruptStatus] |= bit;
+    usb_interrupt_ohci(usb);
+}
+
 static void
 ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
 {
