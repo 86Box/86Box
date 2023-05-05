@@ -195,6 +195,12 @@ ohci_mmio_read(uint32_t addr, void *p)
         case OHCI_HcRhPortStatus3 + 1:
             ret |= 0x1;
             break;
+        case OHCI_HcInterruptDisable:
+        case OHCI_HcInterruptDisable + 1:
+        case OHCI_HcInterruptDisable + 2:
+        case OHCI_HcInterruptDisable + 3:
+            ret = dev->ohci_mmio[OHCI_HcInterruptEnable + (addr - OHCI_HcInterruptDisable)];
+            break;
         default:
             break;
     }
@@ -432,6 +438,14 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
             return;
         case OHCI_HcRhPortStatus1 + 3:
         case OHCI_HcRhPortStatus2 + 3:
+            return;
+        case OHCI_HcDoneHead:
+        case OHCI_HcBulkCurrentED:
+        case OHCI_HcBulkHeadED:
+        case OHCI_HcControlCurrentED:
+        case OHCI_HcControlHeadED:
+        case OHCI_HcPeriodCurrentED:
+            dev->ohci_mmio[addr] = (val & 0xf0);
             return;
     }
 
