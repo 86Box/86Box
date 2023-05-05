@@ -464,6 +464,18 @@ ohci_update_mem_mapping(usb_t *dev, uint8_t base1, uint8_t base2, uint8_t base3,
         mem_mapping_set_addr(&dev->ohci_mmio_mapping, dev->ohci_mem_base, 0x1000);
 }
 
+uint8_t
+usb_attach_device(usb_t *dev, usb_device_t* device, uint8_t bus_type)
+{
+    return 255;
+}
+
+void
+usb_detach_device(usb_t *dev, uint8_t port, uint8_t bus_type)
+{
+    /* Unused. */
+}
+
 static void
 usb_reset(void *priv)
 {
