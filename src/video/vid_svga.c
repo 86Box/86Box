@@ -199,15 +199,19 @@ svga_out(uint16_t addr, uint8_t val, void *p)
                     break;
             }
             break;
+        case 0x2ea:
         case 0x3c6:
             svga->dac_mask = val;
             break;
+        case 0x2eb:
+        case 0x2ec:
         case 0x3c7:
         case 0x3c8:
             svga->dac_pos    = 0;
             svga->dac_status = addr & 0x03;
             svga->dac_addr   = (val + (addr & 0x01)) & 255;
             break;
+        case 0x2ed:
         case 0x3c9:
             if (svga->adv_flags & FLAG_RAMDAC_SHIFT)
                 val <<= 2;
@@ -311,15 +315,19 @@ svga_in(uint16_t addr, void *p)
         case 0x3c5:
             ret = svga->seqregs[svga->seqaddr & 0x0f];
             break;
+        case 0x2ea:
         case 0x3c6:
             ret = svga->dac_mask;
             break;
+        case 0x2eb:
         case 0x3c7:
             ret = svga->dac_status;
             break;
+        case 0x2ec:
         case 0x3c8:
             ret = svga->dac_addr;
             break;
+        case 0x2ed:
         case 0x3c9:
             index = (svga->dac_addr - 1) & 255;
             switch (svga->dac_pos) {
@@ -572,7 +580,7 @@ svga_recalctimings(svga_t *svga)
             svga->recalctimings_ex(svga);
         }
     } else {
-        if (ibm8514_on && ibm8514_enabled)
+        if (ibm8514_enabled)
             ibm8514_recalctimings(svga);
         if (xga_enabled)
             xga_recalctimings(svga);
@@ -872,7 +880,7 @@ svga_poll(void *p)
             svga->oddeven ^= 1;
 
             svga->monitor->mon_changeframecount = svga->interlace ? 3 : 2;
-            svga->vslines                       = 0;
+            svga->vslines    = 0;
 
             if (svga->interlace && svga->oddeven)
                 svga->ma = svga->maback = svga->ma_latch + (svga->rowoffset << 1) + ((svga->crtc[5] & 0x60) >> 5);
@@ -893,22 +901,24 @@ svga_poll(void *p)
             svga->dispon   = 1;
             svga->displine = (svga->interlace && svga->oddeven) ? 1 : 0;
 
-            svga->scrollcache = (svga->attrregs[0x13] & 0x0f);
-            if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-                if (svga->seqregs[1] & 1)
+            if (!ibm8514_on) {
+                svga->scrollcache = (svga->attrregs[0x13] & 0x0f);
+                if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
+                    if (svga->seqregs[1] & 1)
+                        svga->scrollcache &= 0x07;
+                    else {
+                        svga->scrollcache++;
+                        if (svga->scrollcache > 8)
+                            svga->scrollcache = 0;
+                    }
+                } else if ((svga->render == svga_render_2bpp_lowres) || (svga->render == svga_render_2bpp_highres) || (svga->render == svga_render_4bpp_lowres) || (svga->render == svga_render_4bpp_highres))
                     svga->scrollcache &= 0x07;
-                else {
-                    svga->scrollcache++;
-                    if (svga->scrollcache > 8)
-                        svga->scrollcache = 0;
-                }
-            } else if ((svga->render == svga_render_2bpp_lowres) || (svga->render == svga_render_2bpp_highres) || (svga->render == svga_render_4bpp_lowres) || (svga->render == svga_render_4bpp_highres))
-                svga->scrollcache &= 0x07;
-            else
-                svga->scrollcache = (svga->scrollcache & 0x06) >> 1;
+                else
+                    svga->scrollcache = (svga->scrollcache & 0x06) >> 1;
 
-            if ((svga->seqregs[1] & 8) || (svga->render == svga_render_8bpp_lowres))
-                svga->scrollcache <<= 1;
+                if ((svga->seqregs[1] & 8) || (svga->render == svga_render_8bpp_lowres))
+                    svga->scrollcache <<= 1;
+            }
 
             svga->x_add = (svga->monitor->mon_overscan_x >> 1) - svga->scrollcache;
 
@@ -938,9 +948,9 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
 {
     int c, d, e;
 
-    svga->p             = p;
+    svga->p = p;
     svga->monitor_index = monitor_index_global;
-    svga->monitor       = &monitors[svga->monitor_index];
+    svga->monitor = &monitors[svga->monitor_index];
 
     for (c = 0; c < 256; c++) {
         e = c;
@@ -954,10 +964,10 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
     svga->attrregs[0x11] = 0;
     svga->overscan_color = 0x000000;
 
-    svga->monitor->mon_overscan_x = 16;
-    svga->monitor->mon_overscan_y = 32;
-    svga->x_add                   = 8;
-    svga->y_add                   = 16;
+    svga->monitor->mon_overscan_x  = 16;
+    svga->monitor->mon_overscan_y  = 32;
+    svga->x_add = 8;
+    svga->y_add = 16;
 
     svga->crtc[0]           = 63;
     svga->crtc[6]           = 255;
@@ -1096,8 +1106,10 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
                     svga->xga.linear_endian_reverse            = 1;
                     return;
                 }
-            } else
+            } else {
                 svga->xga.on = 0;
+                vga_on = !svga->xga.on;
+            }
         }
         addr = svga_decode_addr(svga, addr, 1);
 
@@ -1286,16 +1298,20 @@ svga_read_common(uint32_t addr, uint8_t linear, void *p)
             if (((svga->xga.op_mode & 7) >= 4) && (svga->xga.aperture_cntl == 1)) {
                 if (svga->xga.test == 0xa5) { /*Memory size test of XGA*/
                     svga->xga.on = 1;
+                    vga_on = !svga->xga.on;
                     return svga->xga.test;
                 } else if (svga->xga.test == 0x5a) {
                     svga->xga.on = 1;
+                    vga_on = !svga->xga.on;
                     return svga->xga.test;
                 } else if (addr == 0xa0000 || addr == 0xa0010) {
                     addr += svga->xga.read_bank;
                     return svga->xga.vram[addr & svga->xga.vram_mask];
                 }
-            } else
+            } else {
                 svga->xga.on = 0;
+                vga_on = !svga->xga.on;
+            }
         }
         addr = svga_decode_addr(svga, addr, 0);
 
