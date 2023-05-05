@@ -28,6 +28,8 @@ typedef struct usb_t usb_t;
 typedef struct
 {
     void (*raise_interrupt)(usb_t*, void*);
+    /* Handle (but do not raise) SMI. Returns 1 if SMI can be raised, 0 otherwise. */
+    uint8_t (*smi_handle)(usb_t*, void*);
     void* parent_priv;
 } usb_params_t;
 
@@ -54,6 +56,18 @@ typedef struct
     uint8_t bLength;
     uint8_t bDescriptorType;
 } usb_desc_base_t;
+
+typedef struct
+{
+    usb_desc_base_t base;
+
+    uint16_t wTotalLength;
+    uint8_t  bNumInterfaces;
+    uint8_t  bConfigurationValue;
+    uint8_t  iConfiguration;
+    uint8_t  bmAttributes;
+    uint8_t  bMaxPower;
+} usb_desc_conf_t;
 #pragma pack(pop)
 
 /* USB endpoint device struct. Incomplete and unused. */
@@ -72,12 +86,22 @@ typedef struct
     void* priv;
 } usb_device_t;
 
+enum usb_bus_types
+{
+    USB_BUS_OHCI = 0,
+    USB_BUS_UHCI = 1
+};
+
 /* Global variables. */
 extern const device_t usb_device;
 
 /* Functions. */
 extern void uhci_update_io_mapping(usb_t *dev, uint8_t base_l, uint8_t base_h, int enable);
 extern void ohci_update_mem_mapping(usb_t *dev, uint8_t base1, uint8_t base2, uint8_t base3, int enable);
+/* Attach USB device to a port of a USB bus. Returns the port to which it got attached to. */
+extern uint8_t usb_attach_device(usb_t *dev, usb_device_t* device, uint8_t bus_type);
+/* Detach USB device from a port. */
+extern void usb_detach_device(usb_t *dev, uint8_t port, uint8_t bus_type);
 
 #ifdef __cplusplus
 }

@@ -76,10 +76,25 @@ enum
     OHCI_HcRhPortStatus3 = 0x5C
 };
 
+/* OHCI HcInterruptEnable/Disable bits */
+enum
+{
+    OHCI_HcInterruptEnable_SO = 1 << 0,
+    OHCI_HcInterruptEnable_WDH = 1 << 1,
+    OHCI_HcInterruptEnable_SF = 1 << 2,
+    OHCI_HcInterruptEnable_RD = 1 << 3,
+    OHCI_HcInterruptEnable_UE = 1 << 4,
+    OHCI_HcInterruptEnable_HNO = 1 << 5,
+    OHCI_HcInterruptEnable_RHSC = 1 << 6,
+};
+
 static void
 usb_interrupt_ohci(usb_t* usb)
 {
     if (usb->ohci_mmio[OHCI_HcControl + 1] & 1) {
+        if (usb->usb_params && usb->usb_params->smi_handle && !usb->usb_params->smi_handle(usb, usb->usb_params->parent_priv))
+            return;
+
         smi_raise();
     }
     else if (usb->usb_params != NULL) {
@@ -183,6 +198,25 @@ ohci_mmio_read(uint32_t addr, void *p)
 
     ret = dev->ohci_mmio[addr];
 
+    switch (addr) {
+        case 0x101:
+            ret = (ret & 0xfe) | (!!mem_a20_key);
+            break;
+        case OHCI_HcRhPortStatus1 + 1:
+        case OHCI_HcRhPortStatus2 + 1:
+        case OHCI_HcRhPortStatus3 + 1:
+            ret |= 0x1;
+            break;
+        case OHCI_HcInterruptDisable:
+        case OHCI_HcInterruptDisable + 1:
+        case OHCI_HcInterruptDisable + 2:
+        case OHCI_HcInterruptDisable + 3:
+            ret = dev->ohci_mmio[OHCI_HcInterruptEnable + (addr - OHCI_HcInterruptDisable)];
+            break;
+        default:
+            break;
+    }
+
     if (addr == 0x101)
         ret = (ret & 0xfe) | (!!mem_a20_key);
 
@@ -212,6 +246,7 @@ ohci_port_reset_callback(void* priv)
     usb_t *dev = (usb_t *) priv;
 
     dev->ohci_mmio[OHCI_HcRhPortStatus1] &= ~0x10;
+    dev->ohci_mmio[OHCI_HcRhPortStatus1 + 2] |= 0x10;
 }
 
 void
@@ -220,6 +255,23 @@ ohci_port_reset_callback_2(void* priv)
     usb_t *dev = (usb_t *) priv;
 
     dev->ohci_mmio[OHCI_HcRhPortStatus2] &= ~0x10;
+    dev->ohci_mmio[OHCI_HcRhPortStatus2 + 2] |= 0x10;
+}
+
+void
+ohci_set_interrupt(usb_t* usb, uint8_t bit)
+{
+    if (!(usb->ohci_mmio[OHCI_HcInterruptEnable + 3] & 0x80))
+        return;
+    
+    if (!(usb->ohci_mmio[OHCI_HcInterruptEnable] & bit))
+        return;
+
+    if (usb->ohci_mmio[OHCI_HcInterruptDisable] & bit)
+        return;
+
+    usb->ohci_mmio[OHCI_HcInterruptStatus] |= bit;
+    usb_interrupt_ohci(usb);
 }
 
 static void
@@ -255,6 +307,36 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
             }
             break;
         case OHCI_HcHCCA:
+            return;
+        case OHCI_HcInterruptEnable:
+            dev->ohci_mmio[addr] = (val & 0x7f);
+            dev->ohci_mmio[OHCI_HcInterruptDisable] &= ~(val & 0x7f);
+            return;
+        case OHCI_HcInterruptEnable + 1:
+        case OHCI_HcInterruptEnable + 2:
+            return;
+        case OHCI_HcInterruptEnable + 3:
+            dev->ohci_mmio[addr] = (val & 0x40);
+            dev->ohci_mmio[addr] |= (val & 0x80);
+            if (val & 0x80)
+                dev->ohci_mmio[OHCI_HcInterruptDisable + 3] &= ~0x80;
+            if (val & 0x40)
+                dev->ohci_mmio[OHCI_HcInterruptDisable + 3] &= ~0x40;
+            return;
+        case OHCI_HcInterruptDisable:
+            dev->ohci_mmio[addr] = (val & 0x7f);
+            dev->ohci_mmio[OHCI_HcInterruptEnable] &= ~(val & 0x7f);
+            return;
+        case OHCI_HcInterruptDisable + 1:
+        case OHCI_HcInterruptDisable + 2:
+            return;
+        case OHCI_HcInterruptDisable + 3:
+            dev->ohci_mmio[addr] = (val & 0x40);
+            dev->ohci_mmio[addr] |= (val & 0x80);
+            if (val & 0x80)
+                dev->ohci_mmio[OHCI_HcInterruptEnable + 3] &= ~0x80;
+            if (val & 0x40)
+                dev->ohci_mmio[OHCI_HcInterruptEnable + 3] &= ~0x40;
             return;
         case OHCI_HcInterruptStatus:
             dev->ohci_mmio[addr] &= ~(val & 0x7f);
@@ -365,7 +447,6 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
                 if (old & 0x01) {
                     dev->ohci_mmio[addr] |= 0x10;
                     timer_on_auto(&dev->ohci_port_reset_timer[(addr - OHCI_HcRhPortStatus1) / 4], 10000.);
-                    dev->ohci_mmio[addr + 2] |= 0x10;
                 } else
                     dev->ohci_mmio[addr + 2] |= 0x01;
             }
@@ -416,6 +497,14 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
         case OHCI_HcRhPortStatus1 + 3:
         case OHCI_HcRhPortStatus2 + 3:
             return;
+        case OHCI_HcDoneHead:
+        case OHCI_HcBulkCurrentED:
+        case OHCI_HcBulkHeadED:
+        case OHCI_HcControlCurrentED:
+        case OHCI_HcControlHeadED:
+        case OHCI_HcPeriodCurrentED:
+            dev->ohci_mmio[addr] = (val & 0xf0);
+            return;
     }
 
     dev->ohci_mmio[addr] = val;
@@ -433,6 +522,18 @@ ohci_update_mem_mapping(usb_t *dev, uint8_t base1, uint8_t base2, uint8_t base3,
         mem_mapping_set_addr(&dev->ohci_mmio_mapping, dev->ohci_mem_base, 0x1000);
 }
 
+uint8_t
+usb_attach_device(usb_t *dev, usb_device_t* device, uint8_t bus_type)
+{
+    return 255;
+}
+
+void
+usb_detach_device(usb_t *dev, uint8_t port, uint8_t bus_type)
+{
+    /* Unused. */
+}
+
 static void
 usb_reset(void *priv)
 {
@@ -446,6 +547,7 @@ usb_reset(void *priv)
     dev->ohci_mmio[OHCI_HcRevision] = 0x10;
     dev->ohci_mmio[OHCI_HcRevision + 1] = 0x01;
     dev->ohci_mmio[OHCI_HcRhDescriptorA] = 0x02;
+    dev->ohci_mmio[OHCI_HcRhDescriptorA + 1] = 0x02;
 
     io_removehandler(dev->uhci_io_base, 0x20, uhci_reg_read, NULL, NULL, uhci_reg_write, uhci_reg_writew, NULL, dev);
     dev->uhci_enable = 0;
