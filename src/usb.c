@@ -76,6 +76,18 @@ enum
     OHCI_HcRhPortStatus3 = 0x5C
 };
 
+/* OHCI HcInterruptEnable/Disable bits */
+enum
+{
+    OHCI_HcInterruptEnable_SO = 1 << 0,
+    OHCI_HcInterruptEnable_WDH = 1 << 1,
+    OHCI_HcInterruptEnable_SF = 1 << 2,
+    OHCI_HcInterruptEnable_RD = 1 << 3,
+    OHCI_HcInterruptEnable_UE = 1 << 4,
+    OHCI_HcInterruptEnable_HNO = 1 << 5,
+    OHCI_HcInterruptEnable_RHSC = 1 << 6,
+};
+
 static void
 usb_interrupt_ohci(usb_t* usb)
 {
