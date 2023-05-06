@@ -6,13 +6,19 @@
 extern uint32_t x87_pc_off, x87_op_off;
 extern uint16_t x87_pc_seg, x87_op_seg;
 
+
 static __inline void
 x87_set_mmx(void)
 {
     uint64_t *p;
-    cpu_state.TOP   = 0;
-    p               = (uint64_t *) cpu_state.tag;
-    *p              = 0x0101010101010101ull;
+    if (fpu_softfloat) {
+        fpu_state.tag = 0;
+        fpu_state.tos = 0;
+    } else {
+        cpu_state.TOP   = 0;
+        p               = (uint64_t *) cpu_state.tag;
+        *p              = 0x0101010101010101ull;
+    }
     cpu_state.ismmx = 1;
 }
 
@@ -20,8 +26,13 @@ static __inline void
 x87_emms(void)
 {
     uint64_t *p;
-    p               = (uint64_t *) cpu_state.tag;
-    *p              = 0;
+    if (fpu_softfloat) {
+        fpu_state.tag = 0xffff;
+        fpu_state.tos = 0;
+    } else {
+        p               = (uint64_t *) cpu_state.tag;
+        *p              = 0;
+    }
     cpu_state.ismmx = 0;
 }
 
@@ -141,6 +152,8 @@ void FPU_stack_underflow(uint32_t fetchdat, int stnr, int pop_stack);
 int FPU_handle_NaN32(floatx80 a, float32 b, floatx80 *r, struct float_status_t *status);
 int FPU_handle_NaN64(floatx80 a, float64 b, floatx80 *r, struct float_status_t *status);
 int FPU_tagof(const floatx80 reg);
+uint8_t pack_FPU_TW(uint16_t twd);
+uint16_t unpack_FPU_TW(uint16_t tag_byte);
 
 static __inline uint16_t
 i387_get_control_word(void)
