@@ -783,6 +783,8 @@ load_network(void)
                 net_cards_conf[c].net_type = NET_TYPE_PCAP;
             else if (!strcmp(p, "slirp") || !strcmp(p, "2"))
                 net_cards_conf[c].net_type = NET_TYPE_SLIRP;
+            else if (!strcmp(p, "vde") || !strcmp(p, "2"))
+                net_cards_conf[c].net_type = NET_TYPE_VDE;
             else
                 net_cards_conf[c].net_type = NET_TYPE_NONE;
         } else {
@@ -791,13 +793,17 @@ load_network(void)
 
         p = ini_section_get_string(cat, "net_host_device", NULL);
         if (p != NULL) {
-            if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
-                if (network_ndev == 1) {
-                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2130);
-                } else if (network_dev_to_id(p) == -1) {
-                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
+            if (net_cards_conf[c].net_type == NET_TYPE_PCAP) {
+                if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
+                    if (network_ndev == 1) {
+                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2130);
+                    } else if (network_dev_to_id(p) == -1) {
+                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
+                    }
+                    strcpy(net_cards_conf[c].host_dev_name, "none");
+                } else {
+                    strncpy(net_cards_conf[c].host_dev_name, p, sizeof(net_cards_conf[c].host_dev_name) - 1);
                 }
-                strcpy(net_cards_conf[c].host_dev_name, "none");
             } else {
                 strncpy(net_cards_conf[c].host_dev_name, p, sizeof(net_cards_conf[c].host_dev_name) - 1);
             }
@@ -828,6 +834,8 @@ load_network(void)
                 net_cards_conf[c].net_type = NET_TYPE_PCAP;
             } else if (!strcmp(p, "slirp") || !strcmp(p, "2")) {
                 net_cards_conf[c].net_type = NET_TYPE_SLIRP;
+            } else if (!strcmp(p, "vde") || !strcmp(p, "2")) {
+                net_cards_conf[c].net_type = NET_TYPE_VDE;
             } else {
                 net_cards_conf[c].net_type = NET_TYPE_NONE;
             }
@@ -838,13 +846,15 @@ load_network(void)
         sprintf(temp, "net_%02i_host_device", c + 1);
         p = ini_section_get_string(cat, temp, NULL);
         if (p != NULL) {
-            if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
-                if (network_ndev == 1) {
-                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2130);
-                } else if (network_dev_to_id(p) == -1) {
-                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
+            if (net_cards_conf[c].net_type == NET_TYPE_PCAP) {
+                if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
+                    if (network_ndev == 1) {
+                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2130);
+                    } else if (network_dev_to_id(p) == -1) {
+                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
+                    }
+                    strcpy(net_cards_conf[c].host_dev_name, "none");
                 }
-                strcpy(net_cards_conf[c].host_dev_name, "none");
             } else {
                 strncpy(net_cards_conf[c].host_dev_name, p, sizeof(net_cards_conf[c].host_dev_name) - 1);
             }
@@ -2469,11 +2479,19 @@ save_network(void)
         }
 
         sprintf(temp, "net_%02i_net_type", c + 1);
-        if (net_cards_conf[c].net_type == NET_TYPE_NONE) {
-            ini_section_delete_var(cat, temp);
-        } else {
-            ini_section_set_string(cat, temp,
-                                   (net_cards_conf[c].net_type == NET_TYPE_SLIRP) ? "slirp" : "pcap");
+        switch(net_cards_conf[c].net_type) {
+            case NET_TYPE_NONE:
+                ini_section_delete_var(cat, temp);
+                break;
+            case NET_TYPE_SLIRP:
+                ini_section_set_string(cat, temp, "slirp");
+                break;
+            case NET_TYPE_PCAP:
+                ini_section_set_string(cat, temp, "pcap");
+                break;
+            case NET_TYPE_VDE:
+                ini_section_set_string(cat, temp, "vde");
+                break;
         }
 
         sprintf(temp, "net_%02i_host_device", c + 1);
