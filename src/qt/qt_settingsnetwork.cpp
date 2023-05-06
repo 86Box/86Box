@@ -148,7 +148,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
 
         selectedRow = 0;
 
-        if (net_cards_conf[i].net_type == NET_TYPE_PCAP) {
+        if (network_ndev > 0) {
             QString currentPcapDevice = net_cards_conf[i].host_dev_name;
             cbox                      = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
             model                     = cbox->model();
@@ -161,7 +161,8 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             }
             model->removeRows(0, removeRows);
             cbox->setCurrentIndex(selectedRow);
-        } else if (net_cards_conf[i].net_type == NET_TYPE_VDE) {
+        }  
+        if (net_cards_conf[i].net_type == NET_TYPE_VDE) {
             QString currentVdeSocket = net_cards_conf[i].host_dev_name;
             auto editline = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i+1));
             editline->setText(currentVdeSocket);
