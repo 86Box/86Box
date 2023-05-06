@@ -59,6 +59,7 @@ typedef struct ali1543_t {
     sff8038i_t      *ide_controller[2];
     smbus_ali7101_t *smbus;
     usb_t           *usb;
+    usb_params_t     usb_params;
 
 } ali1543_t;
 
@@ -905,7 +906,11 @@ ali5237_write(int func, int addr, uint8_t val, void *priv)
 
         case 0x0c: /* Cache Line Size */
         case 0x0d: /* Latency Timer */
+            break;
+
         case 0x3c: /* Interrupt Line Register */
+            dev->usb_conf[addr] = val;
+            break;
 
         case 0x42: /* Test Mode Register */
             dev->usb_conf[addr] = val & 0x10;
@@ -1425,6 +1430,17 @@ ali7101_read(int func, int addr, void *priv)
 }
 
 static void
+ali5237_usb_raise_interrupt(void *priv)
+{
+    ali1543_t *dev = (ali1543_t *) priv;
+
+    if (!dev->usb_dev_enable)
+        return;
+
+    pci_set_irq(dev->usb_slot, PCI_INTA);
+}
+
+static void
 ali1543_reset(void *priv)
 {
     ali1543_t *dev = (ali1543_t *) priv;
@@ -1574,7 +1590,10 @@ ali1543_init(const device_t *info)
     dev->smbus = device_add(&ali7101_smbus_device);
 
     /* USB */
-    dev->usb = device_add(&usb_device);
+    dev->usb_params.parent_priv     = dev;
+    dev->usb_params.smi_handle      = NULL;
+    dev->usb_params.raise_interrupt = ali5237_usb_raise_interrupt;
+    dev->usb                        = device_add_parameters(&usb_device, &dev->usb_params);
 
     dev->type   = info->local & 0xff;
     dev->offset = (info->local >> 8) & 0x7f;

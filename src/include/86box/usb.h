@@ -82,6 +82,8 @@ typedef struct
     uint8_t (*device_out)(void* priv, uint8_t* data, uint32_t len);
     /* Process setup packets. */
     uint8_t (*device_setup)(void* priv, uint8_t* data);
+    /* Device reset */
+    void (*device_reset)(void* priv);
 
     void* priv;
 } usb_device_t;
