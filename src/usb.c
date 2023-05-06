@@ -240,18 +240,33 @@ ohci_set_interrupt(usb_t* usb, uint8_t bit)
 }
 
 void
+ohci_end_of_frame(usb_t* dev)
+{
+    /* TODO: Put endpoint and transfer descriptor processing here. */
+}
+
+void
+ohci_start_of_frame(usb_t* dev)
+{
+    ohci_set_interrupt(dev, OHCI_HcInterruptEnable_SO);
+}
+
+void
 ohci_update_frame_counter(void* priv)
 {
     usb_t *dev = (usb_t *) priv;
 
     dev->ohci_mmio_w[OHCI_HcFmRemaining / 2] &= 0x3fff;
     if (dev->ohci_mmio_w[OHCI_HcFmRemaining / 2] == 0) {
+        ohci_end_of_frame(dev);
         dev->ohci_mmio_w[OHCI_HcFmRemaining / 2] = dev->ohci_mmio_w[OHCI_HcFmInterval / 2] & 0x3fff;
         dev->ohci_mmio_l[OHCI_HcFmRemaining / 4] &= ~(1 << 31);
         dev->ohci_mmio_l[OHCI_HcFmRemaining / 4] |= dev->ohci_mmio_l[OHCI_HcFmInterval / 4] & (1 << 31);
-        ohci_set_interrupt(dev, OHCI_HcInterruptEnable_SO);
+        dev->ohci_mmio_w[OHCI_HcFmNumber / 2]++;
+        ohci_start_of_frame(dev);
     }
     if (dev->ohci_mmio_w[OHCI_HcFmRemaining / 2]) dev->ohci_mmio_w[OHCI_HcFmRemaining / 2]--;
+    timer_on_auto(&dev->ohci_frame_timer, 1. / (12. * 1000. * 1000.));
 }
 
 void
