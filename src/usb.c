@@ -28,6 +28,7 @@
 #include <86box/mem.h>
 #include <86box/timer.h>
 #include <86box/usb.h>
+#include <86box/dma.h>
 
 #ifdef ENABLE_USB_LOG
 int usb_do_log = ENABLE_USB_LOG;
