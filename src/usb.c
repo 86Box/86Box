@@ -28,6 +28,7 @@
 #include <86box/mem.h>
 #include <86box/timer.h>
 #include <86box/usb.h>
+#include <86box/dma.h>
 
 #ifdef ENABLE_USB_LOG
 int usb_do_log = ENABLE_USB_LOG;
@@ -243,6 +244,7 @@ void
 ohci_end_of_frame(usb_t* dev)
 {
     /* TODO: Put endpoint and transfer descriptor processing here. */
+    dev->ohci_mmio_w[OHCI_HcFmNumber / 2]++;
 }
 
 void
@@ -262,8 +264,9 @@ ohci_update_frame_counter(void* priv)
         dev->ohci_mmio_w[OHCI_HcFmRemaining / 2] = dev->ohci_mmio_w[OHCI_HcFmInterval / 2] & 0x3fff;
         dev->ohci_mmio_l[OHCI_HcFmRemaining / 4] &= ~(1 << 31);
         dev->ohci_mmio_l[OHCI_HcFmRemaining / 4] |= dev->ohci_mmio_l[OHCI_HcFmInterval / 4] & (1 << 31);
-        dev->ohci_mmio_w[OHCI_HcFmNumber / 2]++;
         ohci_start_of_frame(dev);
+        timer_on_auto(&dev->ohci_frame_timer, 1. / (12. * 1000. * 1000.));
+        return;
     }
     if (dev->ohci_mmio_w[OHCI_HcFmRemaining / 2]) dev->ohci_mmio_w[OHCI_HcFmRemaining / 2]--;
     timer_on_auto(&dev->ohci_frame_timer, 1. / (12. * 1000. * 1000.));

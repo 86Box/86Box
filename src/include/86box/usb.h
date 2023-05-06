@@ -76,6 +76,15 @@ typedef struct
 } usb_desc_conf_t;
 #pragma pack(pop)
 
+typedef struct
+{
+    uint32_t HccaInterrruptTable[32];
+    uint16_t HccaFrameNumber;
+    uint16_t HccaPad1;
+    uint32_t HccaDoneHead;
+    uint32_t Reserved[29];
+} usb_hcca_t;
+
 /* USB endpoint device struct. Incomplete and unused. */
 typedef struct
 {
