@@ -63,7 +63,7 @@ enum
     OHCI_HcBulkHeadED = 0x28,
     OHCI_HcBulkCurrentED = 0x2C,
     OHCI_HcDoneHead = 0x30,
-    OHCI_HcFMInterval = 0x34,
+    OHCI_HcFmInterval = 0x34,
     OHCI_HcFmRemaining = 0x38,
     OHCI_HcFmNumber = 0x3C,
     OHCI_HcPeriodicStart = 0x40,
@@ -224,9 +224,34 @@ ohci_mmio_read(uint32_t addr, void *p)
 }
 
 void
+ohci_set_interrupt(usb_t* usb, uint8_t bit)
+{
+    if (!(usb->ohci_mmio[OHCI_HcInterruptEnable + 3] & 0x80))
+        return;
+    
+    if (!(usb->ohci_mmio[OHCI_HcInterruptEnable] & bit))
+        return;
+
+    if (usb->ohci_mmio[OHCI_HcInterruptDisable] & bit)
+        return;
+
+    usb->ohci_mmio[OHCI_HcInterruptStatus] |= bit;
+    usb_interrupt_ohci(usb);
+}
+
+void
 ohci_update_frame_counter(void* priv)
 {
     usb_t *dev = (usb_t *) priv;
+
+    dev->ohci_mmio_w[OHCI_HcFmRemaining / 2] &= 0x3fff;
+    if (dev->ohci_mmio_w[OHCI_HcFmRemaining / 2] == 0) {
+        dev->ohci_mmio_w[OHCI_HcFmRemaining / 2] = dev->ohci_mmio_w[OHCI_HcFmInterval / 2] & 0x3fff;
+        dev->ohci_mmio_l[OHCI_HcFmRemaining / 4] &= ~(1 << 31);
+        dev->ohci_mmio_l[OHCI_HcFmRemaining / 4] |= dev->ohci_mmio_l[OHCI_HcFmInterval / 4] & (1 << 31);
+        ohci_set_interrupt(dev, OHCI_HcInterruptEnable_SO);
+    }
+    if (dev->ohci_mmio_w[OHCI_HcFmRemaining / 2]) dev->ohci_mmio_w[OHCI_HcFmRemaining / 2]--;
 }
 
 void
@@ -257,23 +282,6 @@ ohci_port_reset_callback_2(void* priv)
     dev->ohci_mmio[OHCI_HcRhPortStatus2] &= ~0x10;
     dev->ohci_mmio[OHCI_HcRhPortStatus2 + 2] |= 0x10;
 }
-
-void
-ohci_set_interrupt(usb_t* usb, uint8_t bit)
-{
-    if (!(usb->ohci_mmio[OHCI_HcInterruptEnable + 3] & 0x80))
-        return;
-    
-    if (!(usb->ohci_mmio[OHCI_HcInterruptEnable] & bit))
-        return;
-
-    if (usb->ohci_mmio[OHCI_HcInterruptDisable] & bit)
-        return;
-
-    usb->ohci_mmio[OHCI_HcInterruptStatus] |= bit;
-    usb_interrupt_ohci(usb);
-}
-
 static void
 ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
 {

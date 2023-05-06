@@ -36,7 +36,13 @@ typedef struct
 /* USB Host Controller device struct */
 typedef struct usb_t
 {
-    uint8_t       uhci_io[32], ohci_mmio[4096];
+    union
+    {
+        uint8_t  ohci_mmio[4096];
+        uint16_t ohci_mmio_w[2048];
+        uint32_t ohci_mmio_l[1024];
+    };
+    uint8_t       uhci_io[32];
     uint16_t      uhci_io_base;
     int           uhci_enable, ohci_enable;
     uint32_t      ohci_mem_base;
