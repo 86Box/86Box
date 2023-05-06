@@ -1430,7 +1430,7 @@ ali7101_read(int func, int addr, void *priv)
 }
 
 static void
-ali5237_usb_raise_interrupt(void *priv)
+ali5237_usb_raise_interrupt(usb_t* usb, void *priv)
 {
     ali1543_t *dev = (ali1543_t *) priv;
 
