@@ -387,7 +387,7 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
 
             /* bit HostControllerReset must be cleared for the controller to be seen as initialized */
             if (val & 0x01) {
-                memset(dev->ohci_mmio, 0x00, 4096);
+                memset(dev->ohci_mmio, 0x00, sizeof(dev->ohci_mmio));
                 dev->ohci_mmio[OHCI_HcRevision].b[0] = 0x10;
                 dev->ohci_mmio[OHCI_HcRevision].b[1] = 0x01;
                 dev->ohci_mmio[OHCI_HcRhDescriptorA].b[0] = 0x02;
@@ -673,10 +673,9 @@ usb_init_ext(const device_t *info, void *params)
 {
     usb_t *dev;
 
-    dev = (usb_t *) malloc(sizeof(usb_t));
+    dev = (usb_t *) calloc(1, sizeof(usb_t));
     if (dev == NULL)
         return (NULL);
-    memset(dev, 0x00, sizeof(usb_t));
 
     dev->usb_params = (usb_params_t *) params;
 
