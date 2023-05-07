@@ -24,6 +24,33 @@ extern "C" {
 
 typedef struct usb_t usb_t;
 
+/* USB endpoint device struct. Incomplete and unused. */
+typedef struct
+{
+    uint16_t vendor_id;
+    uint16_t device_id;
+
+    /* Reads from endpoint. Non-zero value indicates error. */
+    uint8_t (*device_in)(void* priv, uint8_t* data, uint32_t len);
+    /* Writes to endpoint. Non-zero value indicates error. */
+    uint8_t (*device_out)(void* priv, uint8_t* data, uint32_t len);
+    /* Process setup packets. */
+    uint8_t (*device_setup)(void* priv, uint8_t* data);
+    /* Device reset. */
+    void (*device_reset)(void* priv);
+    /* Get address. */
+    uint8_t (*device_get_address)(void* priv);
+    
+    void* priv;
+} usb_device_t;
+
+enum usb_bus_types
+{
+    USB_BUS_OHCI = 0,
+    USB_BUS_UHCI,
+    USB_BUS_MAX
+};
+
 /* USB device creation parameters struct */
 typedef struct
 {
@@ -52,6 +79,8 @@ typedef struct usb_t
     pc_timer_t    ohci_frame_timer;
     pc_timer_t    ohci_port_reset_timer[2];
     uint8_t       ohci_interrupt_counter : 3;
+    usb_device_t* ohci_devices[2];
+    usb_device_t* uhci_devices[2];
 
     usb_params_t* usb_params;
 } usb_t;
@@ -78,30 +107,6 @@ typedef struct
 } usb_desc_conf_t;
 
 #pragma pack(pop)
-
-/* USB endpoint device struct. Incomplete and unused. */
-typedef struct
-{
-    uint16_t vendor_id;
-    uint16_t device_id;
-
-    /* Reads from endpoint. Non-zero value indicates error. */
-    uint8_t (*device_in)(void* priv, uint8_t* data, uint32_t len);
-    /* Writes to endpoint. Non-zero value indicates error. */
-    uint8_t (*device_out)(void* priv, uint8_t* data, uint32_t len);
-    /* Process setup packets. */
-    uint8_t (*device_setup)(void* priv, uint8_t* data);
-    /* Device reset */
-    void (*device_reset)(void* priv);
-
-    void* priv;
-} usb_device_t;
-
-enum usb_bus_types
-{
-    USB_BUS_OHCI = 0,
-    USB_BUS_UHCI = 1
-};
 
 /* Global variables. */
 extern const device_t usb_device;

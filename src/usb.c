@@ -371,12 +371,85 @@ ohci_set_interrupt(usb_t *dev, uint8_t bit)
     ohci_update_irq(dev);
 }
 
+/* Next two functions ported over from QEMU. */
+static int ohci_copy_td_input(usb_t* dev, usb_td_t *td,
+                        uint8_t *buf, int len)
+{
+    uint32_t ptr, n;
+
+    ptr = td->CBP;
+    n = 0x1000 - (ptr & 0xfff);
+    if (n > len) {
+        n = len;
+    }
+    dma_bm_write(ptr, buf, n, 1);
+    if (n == len) {
+        return 0;
+    }
+    ptr = td->BE & ~0xfffu;
+    buf += n;
+    dma_bm_write(ptr, buf, len - n, 1);
+    return 0;
+}
+
+static int ohci_copy_td_output(usb_t* dev, usb_td_t *td,
+                        uint8_t *buf, int len)
+{
+    uint32_t ptr, n;
+
+    ptr = td->CBP;
+    n = 0x1000 - (ptr & 0xfff);
+    if (n > len) {
+        n = len;
+    }
+    dma_bm_read(ptr, buf, n, 1);
+    if (n == len) {
+        return 0;
+    }
+    ptr = td->BE & ~0xfffu;
+    buf += n;
+    dma_bm_read(ptr, buf, len - n, 1);
+    return 0;
+}
+
+uint8_t
+ohci_service_transfer_desc(usb_t* dev, usb_ed_t* endpoint_desc)
+{
+
+}
+
 uint8_t
 ohci_service_endpoint_desc(usb_t* dev, uint32_t head)
 {
     usb_ed_t endpoint_desc;
+    uint8_t active = 0;
+    uint32_t next = 0;
+    uint32_t cur = 0;
+    uint32_t limit_counter = 0;
+    
+    if (head == 0)
+        return 0;
 
-    return 0;
+    for (cur = head; cur && limit_counter++ < ENDPOINT_DESC_LIMIT; cur = next) {
+        dma_bm_read(cur, (uint8_t*)&endpoint_desc, sizeof(usb_ed_t), 4);
+
+        next = endpoint_desc.NextED & ~(0xFu);
+
+        if (endpoint_desc.flags.Skip || endpoint_desc.flags_2.Halted)
+            continue;
+
+        if (endpoint_desc.flags.Format) {
+            fatal("OHCI: Isochronous transfers not implemented!\n");
+        }
+
+        while ((endpoint_desc.HeadP & ~(0xFu)) != endpoint_desc.TailP) {
+            ohci_service_transfer_desc(dev, &endpoint_desc);
+        }
+
+        dma_bm_write(cur, (uint8_t*)&endpoint_desc, sizeof(usb_ed_t), 4);
+    }
+
+    return active;
 }
 
 void
