@@ -87,6 +87,25 @@ typedef struct
     uint16_t HccaPad1;
     uint32_t HccaDoneHead;
 } usb_hcca_t;
+
+/* Transfer descriptors */
+typedef struct
+{
+    uint32_t Control;
+    uint32_t CBP;
+    uint32_t NextTD;
+    uint32_t BE;
+} usb_td_t;
+
+/* Endpoint descriptors */
+typedef struct
+{
+    uint32_t Control;
+    uint32_t TailP;
+    uint32_t HeadP;
+    uint32_t NextED;
+} usb_ed_t;
+
 /* USB endpoint device struct. Incomplete and unused. */
 typedef struct
 {
