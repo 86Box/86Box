@@ -1003,7 +1003,7 @@ upi42_reset(upi42_t *upi42)
 void
 upi42_do_init(upi32_t type, uint8_t *rom)
 {
-    memset(upi42, 0, sizeof(upi42_t));
+    memset(upi42, 0x00, sizeof(upi42_t));
     upi42->rom = rom;
 
     /* Set chip type. */
@@ -1022,7 +1022,7 @@ upi42_do_init(upi32_t type, uint8_t *rom)
         upi42->ops[0xe2] = NULL; /* SUSPEND */
     }
 
-    memset(upi42_t->ports_in, 0xff, 0x08);
+    memset(upi42_t->ports_in, 0xff, sizeof(upi42_t->ports_in));
     upi42_t->t0 = 1;
     upi42_t->t1 = 1;
 }
