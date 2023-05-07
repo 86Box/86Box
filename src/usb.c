@@ -20,6 +20,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -115,6 +116,16 @@ enum
     OHCI_HcInterruptEnable_UE = 1 << 4,
     OHCI_HcInterruptEnable_HNO = 1 << 5,
     OHCI_HcInterruptEnable_RHSC = 1 << 6,
+};
+
+/* OHCI HcControl bits */
+enum
+{
+    OHCI_HcControl_ControlBulkServiceRatio = 1 << 0,
+    OHCI_HcControl_PeriodicListEnable = 1 << 1,
+    OHCI_HcControl_IsochronousEnable = 1 << 2,
+    OHCI_HcControl_ControlListEnable = 1 << 3,
+    OHCI_HcControl_BulkListEnable = 1 << 4
 };
 
 static void
@@ -216,6 +227,69 @@ uhci_update_io_mapping(usb_t *dev, uint8_t base_l, uint8_t base_h, int enable)
         io_sethandler(dev->uhci_io_base, 0x20, uhci_reg_read, NULL, NULL, uhci_reg_write, uhci_reg_writew, NULL, dev);
 }
 
+typedef struct
+{
+    uint32_t HccaInterrruptTable[32];
+    uint16_t HccaFrameNumber;
+    uint16_t HccaPad1;
+    uint32_t HccaDoneHead;
+} usb_hcca_t;
+
+/* Transfer descriptors */
+typedef struct
+{
+    union
+    {
+        uint32_t Control;
+        struct
+        {
+            uint32_t Reserved : 18;
+            uint8_t bufferRounding : 1;
+            uint8_t Direction : 2;
+            uint8_t DelayInterrupt : 3;
+            uint8_t DataToggle : 2;
+            uint8_t ErrorCount : 2;
+            uint8_t ConditionCode : 4;
+        } flags;
+    };
+    uint32_t CBP;
+    uint32_t NextTD;
+    uint32_t BE;
+} usb_td_t;
+
+/* Endpoint descriptors */
+typedef struct
+{
+    union
+    {
+        uint32_t Control;
+        struct
+        {
+            uint8_t FunctionAddress : 7;
+            uint8_t EndpointNumber : 4;
+            uint8_t Direction : 2;
+            bool Speed : 1;
+            bool Skip : 1;
+            bool Format : 1;
+            uint16_t MaximumPacketSize : 11;
+            uint8_t Reserved : 5;
+        } flags;
+    };
+    uint32_t TailP;
+    union
+    {
+        uint32_t HeadP;
+        struct
+        {
+            bool Halted : 1;
+            bool toggleCarry : 1;
+        } flags_2;
+    };
+    uint32_t NextED;
+} usb_ed_t;
+
+#define ENDPOINT_DESC_LIMIT 32
+
 static uint8_t
 ohci_mmio_read(uint32_t addr, void *p)
 {
@@ -297,6 +371,14 @@ ohci_set_interrupt(usb_t *dev, uint8_t bit)
     ohci_update_irq(dev);
 }
 
+uint8_t
+ohci_service_endpoint_desc(usb_t* dev, uint32_t head)
+{
+    usb_ed_t endpoint_desc;
+
+    return 0;
+}
+
 void
 ohci_end_of_frame(usb_t* dev)
 {
@@ -304,7 +386,49 @@ ohci_end_of_frame(usb_t* dev)
     /* TODO: Put endpoint and transfer descriptor processing here. */
     dma_bm_read(dev->ohci_mmio[OHCI_HcHCCA].l, (uint8_t*)&hcca, sizeof(usb_hcca_t), 4);
 
+    if (dev->ohci_mmio[OHCI_HcControl].l & OHCI_HcControl_PeriodicListEnable) {
+        ohci_service_endpoint_desc(dev, hcca.HccaInterrruptTable[dev->ohci_mmio[OHCI_HcFmNumber].l & 0x1f]);
+    }
+
+    if ((dev->ohci_mmio[OHCI_HcControl].l & OHCI_HcControl_ControlListEnable)
+        && (dev->ohci_mmio[OHCI_HcCommandStatus].l & 0x2)) {
+        uint8_t result = ohci_service_endpoint_desc(dev, dev->ohci_mmio[OHCI_HcControlHeadED].l);
+        if (!result) {
+            dev->ohci_mmio[OHCI_HcControlHeadED].l = 0;
+            dev->ohci_mmio[OHCI_HcCommandStatus].l &= ~0x2;
+        }
+    }
+
+    if ((dev->ohci_mmio[OHCI_HcControl].l & OHCI_HcControl_BulkListEnable)
+        && (dev->ohci_mmio[OHCI_HcCommandStatus].l & 0x4)) {
+        uint8_t result = ohci_service_endpoint_desc(dev, dev->ohci_mmio[OHCI_HcBulkHeadED].l);
+        if (!result) {
+            dev->ohci_mmio[OHCI_HcBulkHeadED].l = 0;
+            dev->ohci_mmio[OHCI_HcCommandStatus].l &= ~0x4;
+        }
+    }
+
+    if (dev->ohci_interrupt_counter == 0 && !(dev->ohci_mmio[OHCI_HcInterruptStatus].l & OHCI_HcInterruptEnable_WDH)) {
+        if (dev->ohci_mmio[OHCI_HcDoneHead].l == 0) {
+            fatal("OHCI: HcDoneHead is still NULL!");
+        }
+
+        if (dev->ohci_mmio[OHCI_HcInterruptStatus].l & dev->ohci_mmio[OHCI_HcInterruptEnable].l) {
+            dev->ohci_mmio[OHCI_HcDoneHead].l |= 1;
+        }
+
+        hcca.HccaDoneHead = dev->ohci_mmio[OHCI_HcDoneHead].l;
+        dev->ohci_mmio[OHCI_HcDoneHead].l = 0;
+        dev->ohci_interrupt_counter = 7;
+        ohci_set_interrupt(dev, OHCI_HcInterruptEnable_WDH);
+    }
+
+    if (dev->ohci_interrupt_counter != 0 && dev->ohci_interrupt_counter != 7) {
+        dev->ohci_interrupt_counter--;
+    }
+
     dev->ohci_mmio[OHCI_HcFmNumber].w[0]++;
+    hcca.HccaFrameNumber = dev->ohci_mmio[OHCI_HcFmNumber].w[0];
 
     dma_bm_write(dev->ohci_mmio[OHCI_HcHCCA].l, (uint8_t*)&hcca, sizeof(usb_hcca_t), 4);
 }
@@ -327,21 +451,11 @@ ohci_update_frame_counter(void* priv)
         dev->ohci_mmio[OHCI_HcFmRemaining].l &= ~(1 << 31);
         dev->ohci_mmio[OHCI_HcFmRemaining].l |= dev->ohci_mmio[OHCI_HcFmInterval].l & (1 << 31);
         ohci_start_of_frame(dev);
-        timer_on_auto(&dev->ohci_frame_timer, 1. / (12. * 1000. * 1000.));
+        timer_on_auto(&dev->ohci_frame_timer, 1. / 12.);
         return;
     }
-    if (dev->ohci_mmio[OHCI_HcFmRemaining].w[0]) dev->ohci_mmio[OHCI_HcFmRemaining].w[0]--;
-    timer_on_auto(&dev->ohci_frame_timer, 1. / (12. * 1000. * 1000.));
-}
-
-void
-ohci_poll_interrupt_descriptors(void* priv)
-{
-    usb_t *dev = (usb_t *) priv;
-
-    /* TODO: Actually poll the interrupt descriptors. */
-
-    timer_on_auto(&dev->ohci_interrupt_desc_poll_timer, 1000.);
+    dev->ohci_mmio[OHCI_HcFmRemaining].w[0]--;
+    timer_on_auto(&dev->ohci_frame_timer, 1. / 12.);
 }
 
 void
@@ -694,7 +808,6 @@ usb_init_ext(const device_t *info, void *params)
     timer_add(&dev->ohci_frame_timer, ohci_update_frame_counter, dev, 0); /* Unused for now, to be used for frame counting. */
     timer_add(&dev->ohci_port_reset_timer[0], ohci_port_reset_callback, dev, 0);
     timer_add(&dev->ohci_port_reset_timer[1], ohci_port_reset_callback_2, dev, 0);
-    timer_add(&dev->ohci_interrupt_desc_poll_timer, ohci_poll_interrupt_descriptors, dev, 0);
 
     usb_reset(dev);
 

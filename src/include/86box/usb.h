@@ -50,9 +50,8 @@ typedef struct usb_t
     uint32_t      ohci_mem_base, irq_level;
     mem_mapping_t ohci_mmio_mapping;
     pc_timer_t    ohci_frame_timer;
-    pc_timer_t    ohci_interrupt_desc_poll_timer;
     pc_timer_t    ohci_port_reset_timer[2];
-    uint8_t       ohci_interrupt_counter : 5;
+    uint8_t       ohci_interrupt_counter : 3;
 
     usb_params_t* usb_params;
 } usb_t;
@@ -79,32 +78,6 @@ typedef struct
 } usb_desc_conf_t;
 
 #pragma pack(pop)
-
-typedef struct
-{
-    uint32_t HccaInterrruptTable[32];
-    uint16_t HccaFrameNumber;
-    uint16_t HccaPad1;
-    uint32_t HccaDoneHead;
-} usb_hcca_t;
-
-/* Transfer descriptors */
-typedef struct
-{
-    uint32_t Control;
-    uint32_t CBP;
-    uint32_t NextTD;
-    uint32_t BE;
-} usb_td_t;
-
-/* Endpoint descriptors */
-typedef struct
-{
-    uint32_t Control;
-    uint32_t TailP;
-    uint32_t HeadP;
-    uint32_t NextED;
-} usb_ed_t;
 
 /* USB endpoint device struct. Incomplete and unused. */
 typedef struct
