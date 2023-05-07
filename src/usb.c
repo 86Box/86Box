@@ -617,11 +617,8 @@ ohci_update_mem_mapping(usb_t *dev, uint8_t base1, uint8_t base2, uint8_t base3,
     dev->ohci_mem_base = ((base1 << 8) | (base2 << 16) | (base3 << 24)) & 0xfffff000;
     dev->ohci_enable   = enable;
 
-    if (dev->ohci_enable && (dev->ohci_mem_base != 0x00000000)) {
-        dev->ohci_mmio_mapping.flags = MEM_MAPPING_EXTERNAL;
+    if (dev->ohci_enable && (dev->ohci_mem_base != 0x00000000))
         mem_mapping_set_addr(&dev->ohci_mmio_mapping, dev->ohci_mem_base, 0x1000);
-        mem_mapping_enable(&dev->ohci_mmio_mapping);
-    }
 
     usb_log("ohci_update_mem_mapping(): OHCI %sabled at %08X\n", dev->ohci_enable ? "en" : "dis", dev->ohci_mem_base);
 }
