@@ -300,8 +300,13 @@ ohci_set_interrupt(usb_t *dev, uint8_t bit)
 void
 ohci_end_of_frame(usb_t* dev)
 {
+    usb_hcca_t hcca;
     /* TODO: Put endpoint and transfer descriptor processing here. */
+    dma_bm_read(dev->ohci_mmio[OHCI_HcHCCA].l, (uint8_t*)&hcca, sizeof(usb_hcca_t), 4);
+
     dev->ohci_mmio[OHCI_HcFmNumber].w[0]++;
+
+    dma_bm_write(dev->ohci_mmio[OHCI_HcHCCA].l, (uint8_t*)&hcca, sizeof(usb_hcca_t), 4);
 }
 
 void

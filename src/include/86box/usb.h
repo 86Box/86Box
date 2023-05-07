@@ -58,6 +58,7 @@ typedef struct usb_t
 } usb_t;
 
 #pragma pack(push, 1)
+
 /* Base USB descriptor struct. */
 typedef struct
 {
@@ -76,6 +77,7 @@ typedef struct
     uint8_t  bmAttributes;
     uint8_t  bMaxPower;
 } usb_desc_conf_t;
+
 #pragma pack(pop)
 
 typedef struct
@@ -84,9 +86,7 @@ typedef struct
     uint16_t HccaFrameNumber;
     uint16_t HccaPad1;
     uint32_t HccaDoneHead;
-    uint32_t Reserved[29];
 } usb_hcca_t;
-
 /* USB endpoint device struct. Incomplete and unused. */
 typedef struct
 {
