@@ -341,7 +341,6 @@ ohci_poll_interrupt_descriptors(void* priv)
 
     /* TODO: Actually poll the interrupt descriptors. */
 
-    dev->ohci_interrupt_counter++;
     timer_on_auto(&dev->ohci_interrupt_desc_poll_timer, 1000.);
 }
 
