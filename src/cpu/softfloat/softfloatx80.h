@@ -80,7 +80,11 @@ int floatx80_compare_quiet(floatx80 a, floatx80 b, struct float_status_t *status
 | for Binary Floating-Point Arithmetic.
 *----------------------------------------------------------------------------*/
 
+#ifdef __cplusplus
+BX_CPP_INLINE floatx80& floatx80_abs(floatx80 &reg)
+#else
 BX_CPP_INLINE floatx80 floatx80_abs(floatx80 reg)
+#endif
 {
     reg.exp &= 0x7FFF;
     return reg;
@@ -92,7 +96,11 @@ BX_CPP_INLINE floatx80 floatx80_abs(floatx80 reg)
 | Floating-Point Arithmetic.
 *----------------------------------------------------------------------------*/
 
+#ifdef __cplusplus
+BX_CPP_INLINE floatx80& floatx80_chs(floatx80 &reg)
+#else
 BX_CPP_INLINE floatx80 floatx80_chs(floatx80 reg)
+#endif
 {
     reg.exp ^= 0x8000;
     return reg;
