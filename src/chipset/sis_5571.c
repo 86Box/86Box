@@ -641,7 +641,7 @@ pci_isa_bridge_read(int func, int addr, void *priv)
 }
 
 static void
-sis_5571_usb_raise_interrupt(usb_t* usb, void* priv)
+sis_5571_usb_update_interrupt(usb_t* usb, void* priv)
 {
     sis_5571_t *dev = (sis_5571_t *) priv;
 
@@ -655,11 +655,17 @@ sis_5571_usb_raise_interrupt(usb_t* usb, void* priv)
             case 0x0d:
                 break;
             default:
-                picint(1 << dev->pci_conf_sb[0][0x68] & 0x0F);
+                if (usb->irq_level)
+                    picint(1 << dev->pci_conf_sb[0][0x68] & 0x0f);
+                else
+                    picintc(1 << dev->pci_conf_sb[0][0x68] & 0x0f);
                 break;
         }
     } else {
-        pci_set_irq(dev->sb_pci_slot, PCI_INTA);
+        if (usb->irq_level)
+            pci_set_irq(dev->sb_pci_slot, PCI_INTA);
+        else
+            pci_clear_irq(dev->sb_pci_slot, PCI_INTA);
     }
 }
 
@@ -754,10 +760,10 @@ sis_5571_init(const device_t *info)
     dev->ide_drive[1] = device_add_inst(&sff8038i_device, 2);
 
     /* USB */
-    dev->usb_params.parent_priv     = dev;
-    dev->usb_params.raise_interrupt = sis_5571_usb_raise_interrupt;
-    dev->usb_params.smi_handle      = sis_5571_usb_handle_smi;
-    dev->usb                        = device_add_parameters(&usb_device, &dev->usb_params);
+    dev->usb_params.parent_priv      = dev;
+    dev->usb_params.update_interrupt = sis_5571_usb_update_interrupt;
+    dev->usb_params.smi_handle       = sis_5571_usb_handle_smi;
+    dev->usb                         = device_add_parameters(&usb_device, &dev->usb_params);
 
     sis_5571_reset(dev);
 

@@ -27,25 +27,27 @@ typedef struct usb_t usb_t;
 /* USB device creation parameters struct */
 typedef struct
 {
-    void (*raise_interrupt)(usb_t*, void*);
+    void (*update_interrupt)(usb_t*, void*);
     /* Handle (but do not raise) SMI. Returns 1 if SMI can be raised, 0 otherwise. */
     uint8_t (*smi_handle)(usb_t*, void*);
     void* parent_priv;
 } usb_params_t;
 
+typedef union
+{
+    uint32_t l;
+    uint16_t w[2];
+    uint8_t  b[4];
+} ohci_mmio_t;
+
 /* USB Host Controller device struct */
 typedef struct usb_t
 {
-    union
-    {
-        uint8_t  ohci_mmio[4096];
-        uint16_t ohci_mmio_w[2048];
-        uint32_t ohci_mmio_l[1024];
-    };
     uint8_t       uhci_io[32];
+    ohci_mmio_t   ohci_mmio[1024];
     uint16_t      uhci_io_base;
     int           uhci_enable, ohci_enable;
-    uint32_t      ohci_mem_base;
+    uint32_t      ohci_mem_base, irq_level;
     mem_mapping_t ohci_mmio_mapping;
     pc_timer_t    ohci_frame_timer;
     pc_timer_t    ohci_interrupt_desc_poll_timer;

@@ -1427,11 +1427,14 @@ piix_fast_off_count(void *priv)
 }
 
 static void
-piix_usb_raise_interrupt(usb_t* usb, void *priv)
+piix_usb_update_interrupt(usb_t* usb, void *priv)
 {
     piix_t *dev = (piix_t *) priv;
 
-    pci_set_irq(dev->pci_slot, PCI_INTD);
+    if (usb->irq_level)
+        pci_set_irq(dev->pci_slot, PCI_INTD);
+    else
+        pci_clear_irq(dev->pci_slot, PCI_INTD);
 }
 
 static void
@@ -1579,10 +1582,10 @@ piix_init(const device_t *info)
     }
 
     if (dev->type >= 3) {
-        dev->usb_params.parent_priv     = dev;
-        dev->usb_params.smi_handle      = NULL;
-        dev->usb_params.raise_interrupt = piix_usb_raise_interrupt;
-        dev->usb                        = device_add_parameters(&usb_device, &dev->usb_params);
+        dev->usb_params.parent_priv      = dev;
+        dev->usb_params.smi_handle       = NULL;
+        dev->usb_params.update_interrupt = piix_usb_update_interrupt;
+        dev->usb                         = device_add_parameters(&usb_device, &dev->usb_params);
     }
 
     if (dev->type > 3) {
