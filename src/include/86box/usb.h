@@ -24,18 +24,29 @@ extern "C" {
 
 typedef struct usb_t usb_t;
 
+enum usb_pid
+{
+    USB_PID_OUT = 0xE1,
+    USB_PID_IN = 0x69,
+    USB_PID_SETUP = 0x2D
+};
+
+enum usb_errors
+{
+    USB_ERROR_NO_ERROR = 0,
+    USB_ERROR_NAK = 1,
+    USB_ERROR_OVERRUN = 2,
+    USB_ERROR_UNDERRUN = 3
+};
+
 /* USB endpoint device struct. Incomplete and unused. */
 typedef struct
 {
     uint16_t vendor_id;
     uint16_t device_id;
 
-    /* Reads from endpoint. Non-zero value indicates error. */
-    uint8_t (*device_in)(void* priv, uint8_t* data, uint32_t len);
-    /* Writes to endpoint. Non-zero value indicates error. */
-    uint8_t (*device_out)(void* priv, uint8_t* data, uint32_t len);
-    /* Process setup packets. */
-    uint8_t (*device_setup)(void* priv, uint8_t* data);
+    /* General-purpose function for I/O. Non-zero value indicates error. */
+    uint8_t (*device_process)(void* priv, uint8_t* data, uint32_t *len, uint8_t pid_token, uint8_t endpoint, uint8_t underrun_not_allowed);
     /* Device reset. */
     void (*device_reset)(void* priv);
     /* Get address. */
@@ -81,6 +92,8 @@ typedef struct usb_t
     uint8_t       ohci_interrupt_counter : 3;
     usb_device_t* ohci_devices[2];
     usb_device_t* uhci_devices[2];
+    uint8_t       ohci_usb_buf[4096];
+    uint8_t       ohci_initial_start;
 
     usb_params_t* usb_params;
 } usb_t;
