@@ -681,6 +681,9 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
     switch (addr) {
         case OHCI_aHcControl:
             old = dev->ohci_mmio[OHCI_HcControl].b[0];
+#ifdef ENABLE_USB_LOG
+            usb_log("OHCI: OHCI state 0x%X\n", (val & 0xc0));
+#endif
             if ((val & 0xc0) == 0x00) {
                 /* UsbReset */
                 dev->ohci_mmio[OHCI_HcRhPortStatus1].b[2] = dev->ohci_mmio[OHCI_HcRhPortStatus2].b[2] = 0x16;
