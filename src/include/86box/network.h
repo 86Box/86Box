@@ -48,7 +48,7 @@
 #include <stdint.h>
 
 /* Network provider types. */
-#define NET_TYPE_NONE  0 /* networking disabled */
+#define NET_TYPE_NONE  0 /* use the null network driver */
 #define NET_TYPE_SLIRP 1 /* use the SLiRP port forwarder */
 #define NET_TYPE_PCAP  2 /* use the (Win)Pcap API */
 #define NET_TYPE_VDE   3 /* use the VDE plug API */
@@ -57,6 +57,7 @@
 /* Queue size must be a power of 2 */
 #define NET_QUEUE_LEN      16
 #define NET_QUEUE_LEN_MASK (NET_QUEUE_LEN - 1)
+#define NET_QUEUE_COUNT 3
 #define NET_CARD_MAX       4
 #define NET_HOST_INTF_MAX  64
 
@@ -125,6 +126,7 @@ typedef struct netdrv_t {
 extern const netdrv_t net_pcap_drv;
 extern const netdrv_t net_slirp_drv;
 extern const netdrv_t net_vde_drv;
+extern const netdrv_t net_null_drv;
 
 struct _netcard_t {
     const device_t *device;
@@ -132,7 +134,7 @@ struct _netcard_t {
     struct netdrv_t host_drv;
     NETRXCB         rx;
     NETSETLINKSTATE set_link_state;
-    netqueue_t      queues[3];
+    netqueue_t      queues[NET_QUEUE_COUNT];
     netpkt_t        queued_pkt;
     mutex_t        *tx_mutex;
     mutex_t        *rx_mutex;
