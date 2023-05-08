@@ -552,7 +552,8 @@ void
 ohci_end_of_frame(usb_t* dev)
 {
     usb_hcca_t hcca;
-    /* TODO: Put endpoint and transfer descriptor processing here. */
+    if (dev->ohci_initial_start)
+        return;
     dma_bm_read(dev->ohci_mmio[OHCI_HcHCCA].l, (uint8_t*)&hcca, sizeof(usb_hcca_t), 4);
 
     if (dev->ohci_mmio[OHCI_HcControl].l & OHCI_HcControl_PeriodicListEnable) {
@@ -605,6 +606,7 @@ ohci_end_of_frame(usb_t* dev)
 void
 ohci_start_of_frame(usb_t* dev)
 {
+    dev->ohci_initial_start = 0;
     ohci_set_interrupt(dev, OHCI_HcInterruptEnable_SO);
 }
 
