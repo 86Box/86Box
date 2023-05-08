@@ -111,12 +111,42 @@ typedef struct
 {
     usb_desc_base_t base;
 
+    uint8_t bInterfaceNumber;
+    uint8_t bAlternateSetting;
+    uint8_t bNumEndpoints;
+    uint8_t bInterfaceClass;
+    uint8_t bInterfaceSubClass;
+    uint8_t bInterfaceProtocol;
+    uint8_t iInterface;
+} usb_desc_interface_t;
+
+typedef struct
+{
+    usb_desc_base_t base;
+    uint8_t bEndpointAddress;
+    uint8_t bmAttributes;
+    uint8_t wMaxPacketSize;
+    uint8_t bInterval;
+} usb_desc_endpoint_t;
+
+typedef struct
+{
+    usb_desc_base_t base;
+    uint16_t bString[];
+} usb_desc_string_t;
+
+typedef struct
+{
+    usb_desc_base_t base;
+
     uint16_t wTotalLength;
     uint8_t  bNumInterfaces;
     uint8_t  bConfigurationValue;
     uint8_t  iConfiguration;
     uint8_t  bmAttributes;
     uint8_t  bMaxPower;
+    
+    usb_desc_interface_t interface_descs[];
 } usb_desc_conf_t;
 
 #pragma pack(pop)
