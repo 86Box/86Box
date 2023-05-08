@@ -123,6 +123,7 @@ typedef struct
 
 /* Global variables. */
 extern const device_t usb_device;
+extern usb_t* usb_device_inst;
 
 /* Functions. */
 extern void uhci_update_io_mapping(usb_t *dev, uint8_t base_l, uint8_t base_h, int enable);

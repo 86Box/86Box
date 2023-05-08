@@ -129,6 +129,8 @@ enum
     OHCI_HcControl_BulkListEnable = 1 << 4
 };
 
+usb_t* usb_device_inst = NULL;
+
 static void
 usb_interrupt_ohci(usb_t *dev, uint32_t level)
 {
@@ -851,8 +853,12 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
             }
             if (val & 0x08)
                 dev->ohci_mmio[addr >> 2].b[addr & 3] &= ~0x04;
-            if (val & 0x04)
-                dev->ohci_mmio[addr >> 2].b[addr & 3] |= 0x04;
+            if (val & 0x04) {
+                if (old & 0x01)
+                    dev->ohci_mmio[addr >> 2].b[addr & 3] |= 0x04;
+                else
+                    dev->ohci_mmio[(addr + 2) >> 2].b[(addr + 2) & 3] |= 0x01;
+            }
             if (val & 0x02) {
                 if (old & 0x01)
                     dev->ohci_mmio[addr >> 2].b[addr & 3] |= 0x02;
@@ -946,13 +952,16 @@ usb_attach_device(usb_t *dev, usb_device_t* device, uint8_t bus_type)
             {
                 for (int i = 0; i < 2; i++) {
                     if (!dev->ohci_devices[i]) {
+                        uint32_t old = dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].l;
                         dev->ohci_devices[i] = device;
                         dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].b[0] |= 0x1;
-                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].b[2] |= 0x1;
                         if ((dev->ohci_mmio[OHCI_HcControl].b[0] & 0xc0) == 0xc0) {
                             ohci_set_interrupt(dev, OHCI_HcInterruptEnable_RD);
                         }
-                        ohci_set_interrupt(dev, OHCI_HcInterruptEnable_RHSC);
+                        if (old != dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].l) {
+                            dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].b[2] |= 0x1;
+                            ohci_set_interrupt(dev, OHCI_HcInterruptEnable_RHSC);
+                        }
                         return i;
                     }
                 }
@@ -968,23 +977,24 @@ usb_detach_device(usb_t *dev, uint8_t port, uint8_t bus_type)
     switch (bus_type) {
         case USB_BUS_OHCI:
             {
-                for (int i = 0; i < 2; i++) {
-                    if (dev->ohci_devices[i]) {
-                        uint32_t old = dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].l;
-                        dev->ohci_devices[i] = NULL;
-                        if (dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].b[0] & 0x1) {
-                            dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].b[0] &= ~0x1;
-                            dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].b[2] |= 0x1;
-                        }
-                        if (dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].b[0] & 0x2) {
-                            dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].b[0] &= ~0x2;
-                            dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].b[2] |= 0x2;
-                        }
-                        if (old != dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].l)
-                            ohci_set_interrupt(dev, OHCI_HcInterruptEnable_RHSC);
-                        return;
+                if (port > 2)
+                    return;
+                if (dev->ohci_devices[port]) {
+                    uint32_t old = dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].l;
+                    dev->ohci_devices[port] = NULL;
+                    if (dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].b[0] & 0x1) {
+                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].b[0] &= ~0x1;
+                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].b[2] |= 0x1;
                     }
+                    if (dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].b[0] & 0x2) {
+                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].b[0] &= ~0x2;
+                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].b[2] |= 0x2;
+                    }
+                    if (old != dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].l)
+                        ohci_set_interrupt(dev, OHCI_HcInterruptEnable_RHSC);
+                    return;
                 }
+
             }
             break;
     }
@@ -1045,6 +1055,8 @@ usb_init_ext(const device_t *info, void *params)
     timer_add(&dev->ohci_port_reset_timer[1], ohci_port_reset_callback_2, dev, 0);
 
     usb_reset(dev);
+
+    usb_device_inst = dev;
 
     return dev;
 }
