@@ -83,6 +83,8 @@ typedef struct sis_5571_t {
     smram_t    *smram;
     usb_t      *usb;
 
+    usb_params_t usb_params;
+
 } sis_5571_t;
 
 static void
@@ -639,6 +641,42 @@ pci_isa_bridge_read(int func, int addr, void *priv)
 }
 
 static void
+sis_5571_usb_update_interrupt(usb_t* usb, void* priv)
+{
+    sis_5571_t *dev = (sis_5571_t *) priv;
+
+    if (dev->pci_conf_sb[0][0x68] & 0x80) {
+        /* TODO: Is the normal PCI interrupt inhibited when USB IRQ remapping is enabled? */
+        switch (dev->pci_conf_sb[0][0x68] & 0x0F) {
+            case 0x00:
+            case 0x01:
+            case 0x02:
+            case 0x08:
+            case 0x0d:
+                break;
+            default:
+                if (usb->irq_level)
+                    picint(1 << dev->pci_conf_sb[0][0x68] & 0x0f);
+                else
+                    picintc(1 << dev->pci_conf_sb[0][0x68] & 0x0f);
+                break;
+        }
+    } else {
+        if (usb->irq_level)
+            pci_set_irq(dev->sb_pci_slot, PCI_INTA);
+        else
+            pci_clear_irq(dev->sb_pci_slot, PCI_INTA);
+    }
+}
+
+static uint8_t
+sis_5571_usb_handle_smi(usb_t* usb, void* priv)
+{
+    /* Left unimplemented for now. */
+    return 1;
+}
+
+static void
 sis_5571_reset(void *priv)
 {
     sis_5571_t *dev = (sis_5571_t *) priv;
@@ -722,7 +760,10 @@ sis_5571_init(const device_t *info)
     dev->ide_drive[1] = device_add_inst(&sff8038i_device, 2);
 
     /* USB */
-    dev->usb = device_add(&usb_device);
+    dev->usb_params.parent_priv      = dev;
+    dev->usb_params.update_interrupt = sis_5571_usb_update_interrupt;
+    dev->usb_params.smi_handle       = sis_5571_usb_handle_smi;
+    dev->usb                         = device_add_parameters(&usb_device, &dev->usb_params);
 
     sis_5571_reset(dev);
 

@@ -56,3 +56,6 @@ CMakeLists.txt.user
 /debian/debhelper-build-stamp
 /debian/files
 /obj-*-linux-gnu
+
+# MacOS Finder stuff
+.DS_Store
