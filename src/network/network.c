@@ -123,7 +123,7 @@ netcard_conf_t net_cards_conf[NET_CARD_MAX];
 uint16_t       net_card_current = 0;
 
 /* Global variables. */
-network_devmap_t network_devmap;
+network_devmap_t network_devmap = {0};
 int  network_ndev;
 netdev_t network_devs[NET_HOST_INTF_MAX];
 
