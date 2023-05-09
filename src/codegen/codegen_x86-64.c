@@ -883,7 +883,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
 
             case 0xd8:
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_d8_a32 : x86_dynarec_opcodes_d8_a16;
-                recomp_op_table = recomp_opcodes_d8;
+                recomp_op_table = fpu_softfloat ? recomp_opcodes_NULL : recomp_opcodes_d8;
                 opcode_shift    = 3;
                 opcode_mask     = 0x1f;
                 over            = 1;
@@ -893,7 +893,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 break;
             case 0xd9:
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_d9_a32 : x86_dynarec_opcodes_d9_a16;
-                recomp_op_table = recomp_opcodes_d9;
+                recomp_op_table = fpu_softfloat ? recomp_opcodes_NULL : recomp_opcodes_d9;
                 opcode_mask     = 0xff;
                 over            = 1;
                 pc_off          = -1;
@@ -902,7 +902,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 break;
             case 0xda:
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_da_a32 : x86_dynarec_opcodes_da_a16;
-                recomp_op_table = recomp_opcodes_da;
+                recomp_op_table = fpu_softfloat ? recomp_opcodes_NULL : recomp_opcodes_da;
                 opcode_mask     = 0xff;
                 over            = 1;
                 pc_off          = -1;
@@ -911,7 +911,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 break;
             case 0xdb:
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_db_a32 : x86_dynarec_opcodes_db_a16;
-                recomp_op_table = recomp_opcodes_db;
+                recomp_op_table = fpu_softfloat ? recomp_opcodes_NULL : recomp_opcodes_db;
                 opcode_mask     = 0xff;
                 over            = 1;
                 pc_off          = -1;
@@ -920,7 +920,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 break;
             case 0xdc:
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_dc_a32 : x86_dynarec_opcodes_dc_a16;
-                recomp_op_table = recomp_opcodes_dc;
+                recomp_op_table = fpu_softfloat ? recomp_opcodes_NULL : recomp_opcodes_dc;
                 opcode_shift    = 3;
                 opcode_mask     = 0x1f;
                 over            = 1;
@@ -930,7 +930,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 break;
             case 0xdd:
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_dd_a32 : x86_dynarec_opcodes_dd_a16;
-                recomp_op_table = recomp_opcodes_dd;
+                recomp_op_table = fpu_softfloat ? recomp_opcodes_NULL : recomp_opcodes_dd;
                 opcode_mask     = 0xff;
                 over            = 1;
                 pc_off          = -1;
@@ -939,7 +939,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 break;
             case 0xde:
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_de_a32 : x86_dynarec_opcodes_de_a16;
-                recomp_op_table = recomp_opcodes_de;
+                recomp_op_table = fpu_softfloat ? recomp_opcodes_NULL : recomp_opcodes_de;
                 opcode_mask     = 0xff;
                 over            = 1;
                 pc_off          = -1;
@@ -948,7 +948,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 break;
             case 0xdf:
                 op_table        = (op_32 & 0x200) ? x86_dynarec_opcodes_df_a32 : x86_dynarec_opcodes_df_a16;
-                recomp_op_table = recomp_opcodes_df;
+                recomp_op_table = fpu_softfloat ? recomp_opcodes_NULL : recomp_opcodes_df;
                 opcode_mask     = 0xff;
                 over            = 1;
                 pc_off          = -1;

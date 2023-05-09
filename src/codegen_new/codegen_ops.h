@@ -20,6 +20,7 @@ extern RecompOpFn recomp_opcodes_de[512];
 extern RecompOpFn recomp_opcodes_df[512];
 /*extern RecompOpFn recomp_opcodes_REPE[512];
 extern RecompOpFn recomp_opcodes_REPNE[512];*/
+extern RecompOpFn recomp_opcodes_NULL[512];
 
 #define REG_EAX 0
 #define REG_ECX 1

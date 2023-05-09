@@ -123,7 +123,8 @@ netcard_conf_t net_cards_conf[NET_CARD_MAX];
 uint16_t       net_card_current = 0;
 
 /* Global variables. */
-int      network_ndev;
+network_devmap_t network_devmap;
+int  network_ndev;
 netdev_t network_devs[NET_HOST_INTF_MAX];
 
 /* Local variables. */
@@ -214,9 +215,20 @@ network_init(void)
     network_ndev = 1;
 
     /* Initialize the Pcap system module, if present. */
+
+    network_devmap.has_slirp = 1;
     i = net_pcap_prepare(&network_devs[network_ndev]);
-    if (i > 0)
+    if (i > 0) {
+        network_devmap.has_pcap = 1;
         network_ndev += i;
+    }
+    
+#ifdef HAS_VDE
+    // Try to load the VDE plug library
+    if(net_vde_prepare()==0) {
+        network_devmap.has_vde = 1;
+    }
+#endif
 
 #if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
     /* Start packet dump. */
@@ -286,6 +298,17 @@ int
 network_queue_put_swap(netqueue_t *queue, netpkt_t *src_pkt)
 {
     if (src_pkt->len == 0 || src_pkt->len > NET_MAX_FRAME || network_queue_full(queue)) {
+#ifdef DEBUG
+        if (src_pkt->len == 0) {
+            network_log("Discarded zero length packet.\n");
+        } else if (src_pkt->len > NET_MAX_FRAME) {
+            network_log("Discarded oversized packet of len=%d.\n", src_pkt->len);
+            network_dump_packet(src_pkt);
+        } else {
+            network_log("Discarded %d bytes packet because the queue is full.\n", src_pkt->len);
+            network_dump_packet(src_pkt);
+        }
+#endif
         return 0;
     }
 
@@ -434,6 +457,12 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
             card->host_drv      = net_pcap_drv;
             card->host_drv.priv = card->host_drv.init(card, mac, net_cards_conf[net_card_current].host_dev_name);
             break;
+#ifdef HAS_VDE
+        case NET_TYPE_VDE:
+            card->host_drv      = net_vde_drv;
+            card->host_drv.priv = card->host_drv.init(card, mac, net_cards_conf[net_card_current].host_dev_name);
+            break;
+#endif
     }
 
     if (!card->host_drv.priv) {
@@ -616,6 +645,8 @@ network_dev_available(int id)
 
     if ((net_cards_conf[id].net_type == NET_TYPE_PCAP && (network_dev_to_id(net_cards_conf[id].host_dev_name) <= 0)))
         available = 0;
+
+    // TODO: Handle VDE device
 
     return available;
 }
