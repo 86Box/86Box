@@ -368,7 +368,6 @@ END
 #define STR_CHECKBPB      "Vérifier BPB"
 #define STR_CDROM_DRIVES  "Lecterus CD-ROM:"
 #define STR_CD_SPEED      "Vitesse:"
-#define STR_EARLY         "Lecteur plus tôt"
 
 #define STR_MO_DRIVES     "Lecteurs magnéto-optiques:"
 #define STR_ZIP_DRIVES    "Lecteurs ZIP:"
@@ -538,7 +537,7 @@ BEGIN
     IDS_2159    "Hard reset"
     IDS_2160    "ACPI shutdown"
     IDS_2161    "Settings"
-    IDS_2162    "Lecteur plus tôt"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"

@@ -373,7 +373,6 @@ END
 #define STR_CHECKBPB      "BPB ellenőrzés"
 #define STR_CDROM_DRIVES  "CD-ROM meghajtók:"
 #define STR_CD_SPEED      "Seb.:"
-#define STR_EARLY         "Korábbi meghajtó"
 
 #define STR_MO_DRIVES     "MO-meghajtók:"
 #define STR_ZIP_DRIVES    "ZIP-meghajtók:"
@@ -542,7 +541,7 @@ BEGIN
     IDS_2159    "Hard reset"
     IDS_2160    "ACPI shutdown"
     IDS_2161    "Settings"
-    IDS_2162    "Korábbi meghajtó"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
