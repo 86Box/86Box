@@ -371,7 +371,6 @@ END
 #define STR_CHECKBPB      "Verificar BPB"
 #define STR_CDROM_DRIVES  "Unidades de CD-ROM:"
 #define STR_CD_SPEED      "Veloc.:"
-#define STR_EARLY         "Unidade anterior"
 
 #define STR_MO_DRIVES     "Unidades magneto-ópticas:"
 #define STR_ZIP_DRIVES    "Unidades ZIP:"
@@ -541,7 +540,7 @@ BEGIN
     IDS_2159    "Reinicialização completa"
     IDS_2160    "Desligamento por ACPI"
     IDS_2161    "Configurações"
-    IDS_2162    "Unidade anterior"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"

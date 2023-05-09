@@ -368,7 +368,6 @@ END
 #define STR_CHECKBPB      "Перевіряти BPB"
 #define STR_CDROM_DRIVES  "Дисководи CD-ROM:"
 #define STR_CD_SPEED      "Швидкість:"
-#define STR_EARLY         "Більш ранній дисковод"
 
 #define STR_MO_DRIVES     "Магнітооптичні дисководи:"
 #define STR_ZIP_DRIVES    "ZIP дисководи:"
@@ -538,7 +537,7 @@ BEGIN
     IDS_2159    "Холодне перезавантаження"
     IDS_2160    "Сигнал завершення ACPI"
     IDS_2161    "Налаштування машини"
-    IDS_2162    "Більш ранній дисковод"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"

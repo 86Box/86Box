@@ -857,6 +857,9 @@ MediaMenu::nicUpdateMenu(int i)
         case NET_TYPE_PCAP:
             netType = "PCAP";
             break;
+        case NET_TYPE_VDE:
+            netType = "VDE";
+            break;
     }
 
     QString devName = DeviceConfig::DeviceName(network_card_getdevice(net_cards_conf[i].device_num), network_card_get_internal_name(net_cards_conf[i].device_num), 1);

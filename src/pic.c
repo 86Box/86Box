@@ -575,6 +575,9 @@ pic_reset_hard(void)
 {
     pic_reset();
 
+    /* Explicitly reset the latches. */
+    kbd_latch = mouse_latch = 0;
+
     /* The situation is as follows: There is a giant mess when it comes to these latches on real hardware,
        to the point that there's even boards with board-level latched that get used in place of the latches
        on the chipset, therefore, I'm just doing this here for the sake of simplicity. */
