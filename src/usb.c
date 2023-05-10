@@ -22,6 +22,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <wchar.h>
+#include <uchar.h>
 #include <assert.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -702,8 +703,9 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
             /* bit OwnershipChangeRequest triggers an ownership change (SMM <-> OS) */
             if (val & 0x08) {
                 dev->ohci_mmio[OHCI_HcInterruptStatus].b[3] = 0x40;
-                if ((dev->ohci_mmio[OHCI_HcInterruptEnable].b[3] & 0xc0) == 0xc0)
+                if ((dev->ohci_mmio[OHCI_HcInterruptEnable].b[3] & 0x40) == 0x40) {
                     smi_raise();
+                }
             }
 
             /* bit HostControllerReset must be cleared for the controller to be seen as initialized */

@@ -23,6 +23,7 @@ extern "C" {
 #endif
 
 typedef struct usb_t usb_t;
+typedef struct usb_device_t usb_device_t;
 
 enum usb_pid
 {
@@ -38,22 +39,6 @@ enum usb_errors
     USB_ERROR_OVERRUN = 2,
     USB_ERROR_UNDERRUN = 3
 };
-
-/* USB endpoint device struct. Incomplete and unused. */
-typedef struct
-{
-    uint16_t vendor_id;
-    uint16_t device_id;
-
-    /* General-purpose function for I/O. Non-zero value indicates error. */
-    uint8_t (*device_process)(void* priv, uint8_t* data, uint32_t *len, uint8_t pid_token, uint8_t endpoint, uint8_t underrun_not_allowed);
-    /* Device reset. */
-    void (*device_reset)(void* priv);
-    /* Get address. */
-    uint8_t (*device_get_address)(void* priv);
-    
-    void* priv;
-} usb_device_t;
 
 enum usb_bus_types
 {
@@ -109,6 +94,35 @@ typedef struct
 
 typedef struct
 {
+    uint8_t bmRequestType;
+    uint8_t bRequest;
+    uint16_t wValue;
+    uint16_t wIndex;
+    uint16_t wLength;
+} usb_desc_setup_t;
+
+typedef struct
+{
+    usb_desc_base_t base;
+    uint8_t bEndpointAddress;
+    uint8_t bmAttributes;
+    uint16_t wMaxPacketSize;
+    uint8_t bInterval;
+} usb_desc_endpoint_t;
+
+typedef struct
+{
+    usb_desc_base_t base;
+
+    uint16_t bcdHID;
+    uint8_t bCountryCode;
+    uint8_t bNumDescriptors;
+    uint8_t bDescriptorType;
+    uint16_t wDescriptorLength;
+} usb_desc_hid_t;
+
+typedef struct
+{
     usb_desc_base_t base;
 
     uint8_t bInterfaceNumber;
@@ -123,16 +137,7 @@ typedef struct
 typedef struct
 {
     usb_desc_base_t base;
-    uint8_t bEndpointAddress;
-    uint8_t bmAttributes;
-    uint8_t wMaxPacketSize;
-    uint8_t bInterval;
-} usb_desc_endpoint_t;
-
-typedef struct
-{
-    usb_desc_base_t base;
-    uint16_t bString[];
+    char16_t bString[];
 } usb_desc_string_t;
 
 typedef struct
@@ -145,11 +150,46 @@ typedef struct
     uint8_t  iConfiguration;
     uint8_t  bmAttributes;
     uint8_t  bMaxPower;
-    
-    usb_desc_interface_t interface_descs[];
 } usb_desc_conf_t;
 
+typedef struct
+{
+    usb_desc_base_t base;
+
+    uint16_t bcdUSB;
+    uint8_t bDeviceClass;
+    uint8_t bDeviceSubClass;
+    uint8_t bDeviceProtocol;
+    uint8_t bMaxPacketSize;
+    uint16_t idVendor;
+    uint16_t idProduct;
+    uint16_t bcdDevice;
+    uint8_t iManufacturer;
+    uint8_t iProduct;
+    uint8_t iSerialNumber;
+    uint8_t bNumConfigurations;
+} usb_desc_device_t;
+
 #pragma pack(pop)
+
+/* USB endpoint device struct. Incomplete and unused. */
+typedef struct usb_device_t
+{
+    usb_desc_device_t device_desc;
+    struct {
+        usb_desc_conf_t conf_desc;
+        usb_desc_base_t* other_descs[16];
+    } conf_desc_items;
+
+    /* General-purpose function for I/O. Non-zero value indicates error. */
+    uint8_t (*device_process)(void* priv, uint8_t* data, uint32_t *len, uint8_t pid_token, uint8_t endpoint, uint8_t underrun_not_allowed);
+    /* Device reset. */
+    void (*device_reset)(void* priv);
+    /* Get address. */
+    uint8_t (*device_get_address)(void* priv);
+    
+    void* priv;
+} usb_device_t;
 
 /* Global variables. */
 extern const device_t usb_device;
