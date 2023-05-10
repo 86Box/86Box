@@ -390,7 +390,7 @@ ohci_service_transfer_desc(usb_t* dev, usb_ed_t* endpoint_desc)
 {
     uint32_t td_addr = endpoint_desc->HeadP & ~(0xf);
     usb_td_t td;
-    uint8_t dir, pid_token;
+    uint8_t dir, pid_token = 255;
     uint32_t len = 0, pktlen = 0;
     uint32_t actual_length = 0;
     uint32_t i = 0;
@@ -418,6 +418,8 @@ ohci_service_transfer_desc(usb_t* dev, usb_ed_t* endpoint_desc)
         case 2: /* IN */
             pid_token = USB_PID_IN;
             break;
+        default:
+            return 1;
     }
 
     if (td.CBP && td.BE) {
