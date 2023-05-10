@@ -22,7 +22,6 @@
 #include <string.h>
 #include <stdbool.h>
 #include <wchar.h>
-#include <uchar.h>
 #include <assert.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>

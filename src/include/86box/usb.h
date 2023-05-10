@@ -92,6 +92,18 @@ typedef struct
     uint8_t bDescriptorType;
 } usb_desc_base_t;
 
+enum usb_desc_setup_req_types
+{
+    USB_SETUP_TYPE_DEVICE = 0x0,
+    USB_SETUP_TYPE_INTERFACE = 0x1,
+    USB_SETUP_TYPE_ENDPOING = 0x2,
+    USB_SETUP_TYPE_OTHER = 0x3,
+};
+
+#define USB_SETUP_TYPE_MAX 0x1F
+
+#define USB_SETUP_DEV_TO_HOST 0x80
+
 typedef struct
 {
     uint8_t bmRequestType;
@@ -137,7 +149,7 @@ typedef struct
 typedef struct
 {
     usb_desc_base_t base;
-    char16_t bString[];
+    uint16_t bString[];
 } usb_desc_string_t;
 
 typedef struct
