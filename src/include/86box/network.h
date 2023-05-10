@@ -150,9 +150,9 @@ typedef struct {
 } netdev_t;
 
 typedef struct {
-    int has_slirp: 1;
-    int has_pcap: 1;
-    int has_vde:  1;
+    int has_slirp;
+    int has_pcap;
+    int has_vde;
 } network_devmap_t;
 
 
