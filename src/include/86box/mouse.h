@@ -36,6 +36,7 @@
 #define MOUSE_TYPE_PS2       11 /* PS/2 series Bus Mouse */
 #define MOUSE_TYPE_WACOM     12 /* WACOM tablet */
 #define MOUSE_TYPE_WACOMARTP 13 /* WACOM tablet (ArtPad) */
+#define MOUSE_TYPE_WACOMPENP 14 /* WACOM tablet (PenPartner, USB) */
 
 #define MOUSE_TYPE_ONBOARD   0x80 /* Mouse is an on-board version of one of the above. */
 

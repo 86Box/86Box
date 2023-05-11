@@ -29,6 +29,7 @@
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/timer.h>
+#include <86box/fifo8.h>
 #include <86box/usb.h>
 #include <86box/dma.h>
 
@@ -451,7 +452,7 @@ ohci_service_transfer_desc(usb_t* dev, usb_ed_t* endpoint_desc)
         
         assert(dev->ohci_devices[i]->device_get_address != NULL);
 
-        if (dev->ohci_devices[i]->device_get_address(dev->ohci_devices[i]->priv) != (endpoint_desc->Control & 0x7f))
+        if (dev->ohci_devices[i]->address != (endpoint_desc->Control & 0x7f))
             continue;
         
         target = dev->ohci_devices[i];
@@ -494,6 +495,9 @@ ohci_service_transfer_desc(usb_t* dev, usb_ed_t* endpoint_desc)
             switch (device_result) {
                 case USB_ERROR_NAK:
                     return 1;
+                case USB_ERROR_STALL:
+                    td.Control |= (0x4 << 28); /* STALL PID returned */
+                    break;
             }
             dev->ohci_interrupt_counter = 0;
         }
@@ -1003,6 +1007,92 @@ usb_detach_device(usb_t *dev, uint8_t port, uint8_t bus_type)
             break;
     }
     return;
+}
+
+uint8_t
+usb_parse_control_endpoint(usb_device_t* usb_device, uint8_t* data, uint32_t *len, uint8_t pid_token, uint8_t endpoint, uint8_t underrun_not_allowed)
+{
+    usb_desc_setup_t* setup_packet = (usb_desc_setup_t*)data;
+    uint8_t ret = 255;
+    
+    if (endpoint != 0)
+        return USB_ERROR_STALL;
+
+    if (!usb_device->fifo.data) {
+        fifo8_create(&usb_device->fifo, 4096);
+    }
+
+    switch (pid_token) {
+        case USB_PID_SETUP:
+        {
+            usb_device->setup_desc = *setup_packet;
+            switch (setup_packet->bmRequestType & 0x1f) {
+                case USB_SETUP_TYPE_DEVICE:
+                    {
+                        if (setup_packet->bmRequestType & 0x80) {
+                            switch (setup_packet->bRequest) {
+                                case USB_SETUP_GET_STATUS: {
+                                    fifo8_push_all(&usb_device->fifo, (uint8_t*)&usb_device->status_bits, sizeof(uint16_t));
+                                    ret = 0;
+                                    *len = 2;
+                                    break;
+                                }
+                                case USB_SETUP_GET_CONFIGURATION: {
+                                    fifo8_push(&usb_device->fifo, usb_device->current_configuration);
+                                    ret = 0;
+                                    *len = 1;
+                                    break;
+                                }
+                                case USB_SETUP_GET_DESCRIPTOR: {
+                                    switch (setup_packet->wValue & 0xFF) {
+                                        case 0x01:
+                                        {
+                                            fifo8_push_all(&usb_device->fifo, (uint8_t*)&usb_device->device_desc, sizeof(usb_device->device_desc));
+                                            ret = 0;
+                                            *len = sizeof(usb_device->device_desc); 
+                                            break;
+                                        }
+                                        case 0x02:
+                                        {
+                                            int i = 0;
+                                            ret = 0;
+                                            *len = usb_device->conf_desc_items.conf_desc.wTotalLength;
+                                            fifo8_push_all(&usb_device->fifo, (uint8_t*)&usb_device->conf_desc_items.conf_desc, usb_device->conf_desc_items.conf_desc.base.bLength);
+                                            for (i = 0; i < 16; i++)
+                                            {
+                                                if (usb_device->conf_desc_items.other_descs[i] == NULL)
+                                                    break;
+
+                                                fifo8_push_all(&usb_device->fifo, (uint8_t*)usb_device->conf_desc_items.other_descs[i], usb_device->conf_desc_items.other_descs[i]->bLength);
+                                            }
+                                            break;
+                                        }
+                                        default:
+                                            break;
+                                    }
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                    }
+            }
+            break;
+        }
+        case USB_PID_IN: {
+            const uint8_t* buf = NULL;
+            uint32_t used = 0;
+            buf = fifo8_pop_buf(&usb_device->fifo, *len, len);
+            memcpy(data, buf, *len);
+            ret = 0;
+            break;
+        }
+        case USB_PID_OUT: {
+            *len = 0;
+            return 0;
+        }
+    }
+    return ret;
 }
 
 static void

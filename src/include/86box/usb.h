@@ -37,7 +37,8 @@ enum usb_errors
     USB_ERROR_NO_ERROR = 0,
     USB_ERROR_NAK = 1,
     USB_ERROR_OVERRUN = 2,
-    USB_ERROR_UNDERRUN = 3
+    USB_ERROR_UNDERRUN = 3,
+    USB_ERROR_STALL = 4
 };
 
 enum usb_bus_types
@@ -98,6 +99,21 @@ enum usb_desc_setup_req_types
     USB_SETUP_TYPE_INTERFACE = 0x1,
     USB_SETUP_TYPE_ENDPOING = 0x2,
     USB_SETUP_TYPE_OTHER = 0x3,
+};
+
+enum usb_desc_setup_reqs
+{
+    USB_SETUP_GET_STATUS = 0x00,
+    USB_SETUP_CLEAR_FEATURE = 0x01,
+    USB_SETUP_SET_FEATURE = 0x03,
+    USB_SETUP_SET_ADDRESS = 0x05,
+    USB_SETUP_GET_DESCRIPTOR = 0x06,
+    USB_SETUP_SET_DESCRIPTOR = 0x07,
+    USB_SETUP_GET_CONFIGURATION = 0x08,
+    USB_SETUP_SET_CONFIGURATION = 0x09,
+    USB_SETUP_GET_INTERFACE = 0x0A,
+    USB_SETUP_SET_INTERFACE = 0x0B,
+    USB_SETUP_SYNCH_FRAME = 0x0C
 };
 
 #define USB_SETUP_TYPE_MAX 0x1F
@@ -197,8 +213,14 @@ typedef struct usb_device_t
     uint8_t (*device_process)(void* priv, uint8_t* data, uint32_t *len, uint8_t pid_token, uint8_t endpoint, uint8_t underrun_not_allowed);
     /* Device reset. */
     void (*device_reset)(void* priv);
-    /* Get address. */
-    uint8_t (*device_get_address)(void* priv);
+    /* Current address of device */
+    uint8_t address;
+    /* Buffer for endpoint 0 setups/ins/outs */
+    Fifo8 fifo;
+    uint16_t status_bits;
+    uint8_t control_endpoint_pid;
+    uint8_t current_configuration;
+    usb_desc_setup_t setup_desc;
     
     void* priv;
 } usb_device_t;
@@ -214,6 +236,9 @@ extern void ohci_update_mem_mapping(usb_t *dev, uint8_t base1, uint8_t base2, ui
 extern uint8_t usb_attach_device(usb_t *dev, usb_device_t* device, uint8_t bus_type);
 /* Detach USB device from a port. */
 extern void usb_detach_device(usb_t *dev, uint8_t port, uint8_t bus_type);
+/* General-purpose control endpoint parsing function. */
+extern uint8_t usb_parse_control_endpoint(usb_device_t* usb_device, uint8_t* data, uint32_t *len, uint8_t pid_token, uint8_t endpoint, uint8_t underrun_not_allowed);
+/* TODO: Implement remote wakeup from device. */
 
 #ifdef __cplusplus
 }
