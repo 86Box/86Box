@@ -328,7 +328,9 @@ lm78_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv)
 static uint8_t
 lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
 {
-    uint8_t ret = 0, masked_reg = reg, bankswitched = ((reg & 0xf8) == 0x50);
+    uint8_t ret = 0;
+    uint8_t masked_reg = reg;
+    uint8_t bankswitched = ((reg & 0xf8) == 0x50);
     lm75_t *lm75;
 
     if ((dev->local & LM78_AS99127F) && (bank == 3) && (reg != 0x4e)) {

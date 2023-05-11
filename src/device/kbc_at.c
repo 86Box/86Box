@@ -795,7 +795,8 @@ static uint8_t
 write64_generic(void *priv, uint8_t val)
 {
     atkbc_t *dev = (atkbc_t *) priv;
-    uint8_t  current_drive, fixed_bits;
+    uint8_t  current_drive;
+    uint8_t  fixed_bits;
     uint8_t  kbc_ven = 0x0;
     kbc_ven          = dev->flags & KBC_VEN_MASK;
 
@@ -1276,7 +1277,7 @@ write64_olivetti(void *priv, uint8_t val)
              * bit 2: keyboard fuse present
              * bits 0-1: ???
              */
-            kbc_delay_to_ob(dev, (0x0c | ((is386) ? 0x00 : 0x80)) & 0xdf, 0, 0x00);
+            kbc_delay_to_ob(dev, (0x0c | (is386 ? 0x00 : 0x80)) & 0xdf, 0, 0x00);
             dev->p1 = ((dev->p1 + 1) & 3) | (dev->p1 & 0xfc);
             return 0;
     }
@@ -1413,8 +1414,9 @@ static void
 kbc_at_process_cmd(void *priv)
 {
     atkbc_t *dev = (atkbc_t *) priv;
-    int      i = 0, bad    = 1;
-    uint8_t  mask, kbc_ven = dev->flags & KBC_VEN_MASK;
+    int      bad = 1;
+    uint8_t  mask;
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
     uint8_t  cmd_ac_conv[16] = { 0x0b, 2, 3, 4, 5, 6, 7, 8, 9, 0x0a, 0x1e, 0x30, 0x2e, 0x20, 0x12, 0x21 };
 
     if (dev->status & STAT_CD) {
@@ -1508,7 +1510,7 @@ kbc_at_process_cmd(void *priv)
                     dev->mem[0x32] = 0x00;    /* T0 and T1. */
                     dev->mem[0x33] = 0x00;    /* PSW - Program Status Word - always return 0x00 because we do not emulate this byte. */
                     /* 20 bytes in high nibble in set 1, low nibble in set 1, set 1 space format = 60 bytes. */
-                    for (i = 0; i < 20; i++) {
+                    for (uint8_t i = 0; i < 20; i++) {
                         kbc_at_queue_add(dev, cmd_ac_conv[dev->mem[i + 0x20] >> 4]);
                         kbc_at_queue_add(dev, cmd_ac_conv[dev->mem[i + 0x20] & 0x0f]);
                         kbc_at_queue_add(dev, 0x39);
@@ -1760,7 +1762,7 @@ kbc_at_read(uint16_t port, void *priv)
 
     kbc_at_log("ATkbc: [%04X:%08X] read (%04X) = %02X\n",  CS, cpu_state.pc, port, ret);
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -1816,14 +1818,14 @@ static void
 kbc_at_close(void *priv)
 {
     atkbc_t *dev = (atkbc_t *) priv;
-    int i, max_ports = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? 2 : 1;
+    int max_ports = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? 2 : 1;
 
     kbc_at_reset(dev);
 
     /* Stop timers. */
     timer_disable(&dev->send_delay_timer);
 
-    for (i = 0; i < max_ports; i++) {
+    for (int i = 0; i < max_ports; i++) {
         if (kbc_at_ports[i] != NULL) {
             free(kbc_at_ports[i]);
             kbc_at_ports[i] = NULL;
@@ -1837,7 +1839,7 @@ static void *
 kbc_at_init(const device_t *info)
 {
     atkbc_t *dev;
-    int i, max_ports;
+    int max_ports;
 
     dev = (atkbc_t *) malloc(sizeof(atkbc_t));
     memset(dev, 0x00, sizeof(atkbc_t));
@@ -1924,7 +1926,7 @@ kbc_at_init(const device_t *info)
 
     max_ports = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? 2 : 1;
 
-    for (i = 0; i < max_ports; i++) {
+    for (int i = 0; i < max_ports; i++) {
         kbc_at_ports[i] = (kbc_at_port_t *) malloc(sizeof(kbc_at_port_t));
         memset(kbc_at_ports[i], 0x00, sizeof(kbc_at_port_t));
         kbc_at_ports[i]->out_new = -1;
@@ -1936,7 +1938,7 @@ kbc_at_init(const device_t *info)
     /* The actual keyboard. */
     device_add(&keyboard_at_generic_device);
 
-    return (dev);
+    return dev;
 }
 
 const device_t keyboard_at_device = {

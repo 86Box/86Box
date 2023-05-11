@@ -473,7 +473,11 @@ pci_bridge_reset(void *priv)
 static void *
 pci_bridge_init(const device_t *info)
 {
-    uint8_t interrupts[4], interrupt_count, interrupt_mask, slot_count, i;
+    uint8_t interrupts[4];
+    uint8_t interrupt_count;
+    uint8_t interrupt_mask;
+    uint8_t slot_count;
+    uint8_t i;
 
     pci_bridge_t *dev = (pci_bridge_t *) malloc(sizeof(pci_bridge_t));
     memset(dev, 0, sizeof(pci_bridge_t));

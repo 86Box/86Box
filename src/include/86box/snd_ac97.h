@@ -104,14 +104,22 @@ enum {
 };
 
 typedef struct {
-    const uint16_t index, value, write_mask;
+    const uint16_t index;
+    const uint16_t value;
+    const uint16_t write_mask;
 } ac97_vendor_reg_t;
 
 typedef struct {
-    uint32_t vendor_id, min_rate, max_rate, misc_flags;
-    uint16_t reset_flags, extid_flags,
-        powerdown_mask, regs[64];
-    uint8_t                  codec_id, vendor_reg_page_max;
+    uint32_t vendor_id;
+    uint32_t min_rate;
+    uint32_t max_rate;
+    uint32_t misc_flags;
+    uint16_t reset_flags;
+    uint16_t extid_flags;
+    uint16_t powerdown_mask;
+    uint16_t regs[64];
+    uint8_t                  codec_id;
+    uint8_t                  vendor_reg_page_max;
     const ac97_vendor_reg_t *vendor_regs;
     uint16_t                *vendor_reg_pages;
 } ac97_codec_t;
@@ -131,9 +139,12 @@ extern void    ac97_via_remap_modem_sgd(void *priv, uint16_t new_io_base, uint8_
 extern void    ac97_via_remap_audio_codec(void *priv, uint16_t new_io_base, uint8_t enable);
 extern void    ac97_via_remap_modem_codec(void *priv, uint16_t new_io_base, uint8_t enable);
 
-extern ac97_codec_t **ac97_codec, **ac97_modem_codec;
-extern int            ac97_codec_count, ac97_modem_codec_count,
-    ac97_codec_id, ac97_modem_codec_id;
+extern ac97_codec_t **ac97_codec;
+extern ac97_codec_t **ac97_modem_codec;
+extern int            ac97_codec_count;
+extern int            ac97_modem_codec_count;
+extern int            ac97_codec_id;
+extern int            ac97_modem_codec_id;
 
 #ifdef EMU_DEVICE_H
 extern const device_t ad1881_device;

@@ -207,5 +207,5 @@ kbc_at_dev_init(uint8_t inst)
     }
 
     /* Return our private data to the I/O layer. */
-    return (dev);
+    return dev;
 }

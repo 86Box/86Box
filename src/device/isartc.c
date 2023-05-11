@@ -193,7 +193,9 @@ mm67_tick(nvr_t *nvr)
 {
     rtcdev_t *dev  = (rtcdev_t *) nvr->data;
     uint8_t  *regs = nvr->regs;
-    int       mon, year, f = 0;
+    int       mon;
+    int       year;
+    int       f = 0;
 
     /* Update and set interrupt if needed. */
     regs[MM67_SEC] = RTC_BCDINC(nvr->regs[MM67_SEC], 1);
@@ -372,10 +374,8 @@ mm67_start(nvr_t *nvr)
 static void
 mm67_reset(nvr_t *nvr)
 {
-    int i;
-
     /* Initialize the RTC to a known state. */
-    for (i = MM67_MSEC; i <= MM67_MON; i++)
+    for (uint8_t i = MM67_MSEC; i <= MM67_MON; i++)
         nvr->regs[i] = RTC_BCD(0);
     nvr->regs[MM67_DOW] = RTC_BCD(1);
     nvr->regs[MM67_DOM] = RTC_BCD(1);
@@ -410,7 +410,7 @@ mm67_read(uint16_t port, void *priv)
     isartc_log("ISARTC: read(%04x) = %02x\n", port - dev->base_addr, ret);
 #endif
 
-    return (ret);
+    return ret;
 }
 
 /* Handle a WRITE operation to one of our registers. */
@@ -790,12 +790,12 @@ isartc_get_from_internal_name(char *s)
 
     while (boards[c].dev != NULL) {
         if (!strcmp(boards[c].dev->internal_name, s))
-            return (c);
+            return c;
         c++;
     }
 
     /* Not found. */
-    return (0);
+    return 0;
 }
 
 const device_t *

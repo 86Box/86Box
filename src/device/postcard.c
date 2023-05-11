@@ -31,7 +31,8 @@
 
 static uint16_t postcard_port;
 static uint8_t  postcard_written;
-static uint8_t  postcard_code, postcard_prev_code;
+static uint8_t  postcard_code;
+static uint8_t  postcard_prev_code;
 #define UISTR_LEN 13
 static char postcard_str[UISTR_LEN]; /* UI output string */
 

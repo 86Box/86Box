@@ -86,8 +86,11 @@ intel_82335_log(const char *fmt, ...)
 static void
 intel_82335_write(uint16_t addr, uint16_t val, void *priv)
 {
-    intel_82335_t *dev     = (intel_82335_t *) priv;
-    uint32_t       romsize = 0, base = 0, i = 0, rc1_remap = 0, rc2_remap = 0;
+    intel_82335_t *dev       = (intel_82335_t *) priv;
+    uint32_t       romsize   = 0;
+    uint32_t       base      = 0;
+    uint32_t       rc1_remap = 0;
+    uint32_t       rc2_remap = 0;
 
     dev->regs[addr] = val;
 
@@ -128,7 +131,7 @@ intel_82335_write(uint16_t addr, uint16_t val, void *priv)
 
             case 0x2e: /* Extended Granularity (Enabled if Bit 0 in Register 2Ch is set) */
                 if (EXTENDED_GRANULARITY_ENABLED) {
-                    for (i = 0; i < 8; i++) {
+                    for (uint8_t i = 0; i < 8; i++) {
                         base             = 0xc0000 + (i << 15);
                         shadowbios       = (dev->regs[0x2e] & (1 << (i + 8))) && (base == romsize);
                         shadowbios_write = (dev->regs[0x2e] & (1 << i)) && (base == romsize);

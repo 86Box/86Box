@@ -119,7 +119,8 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
     uint8_t *reg     = (dev->type >= INTEL_430LX) ? &(regs[0x72]) : &(regs[0x57]);
     uint8_t *ext_reg = (dev->type >= INTEL_440BX) ? &(regs[0x73]) : &(regs[0x71]);
 
-    uint32_t s, base[2] = { 0x000a0000, 0x00000000 };
+    uint32_t s;
+    uint32_t base[2] = { 0x000a0000, 0x00000000 };
     uint32_t size[2] = { 0x00010000, 0x00000000 };
 
     if ((dev->type <= INTEL_420ZX) || (dev->type >= INTEL_430FX)) {
@@ -242,7 +243,6 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
     i4x0_t  *dev    = (i4x0_t *) priv;
     uint8_t *regs   = (uint8_t *) dev->regs;
     uint8_t *regs_l = (uint8_t *) dev->regs_locked;
-    int      i;
 
     if (func > 0)
         return;
@@ -1358,7 +1358,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440ZX:
                     case INTEL_440GX:
                         regs[0xe7] = 0x80;
-                        for (i = 0; i < 16; i++)
+                        for (uint8_t i = 0; i < 16; i++)
                             regs_l[0xe0 + i] = !!(val & 0x80);
                         if (!regs_l[0xe7]) {
                             regs[0xe7] |= (val & 0x7f);
@@ -1484,9 +1484,9 @@ static void
             regs[0x0d] = 0x20;
             /* According to information from FreeBSD 3.x source code:
                     0x00 = 486DX, 0x20 = 486SX, 0x40 = 486DX2 or 486DX4, 0x80 = Pentium OverDrive. */
-            if (!(hasfpu) && (cpu_multi == 1))
+            if (!hasfpu && (cpu_multi == 1))
                 regs[0x50] = 0x20;
-            else if (!(hasfpu) && (cpu_multi == 2))
+            else if (!hasfpu && (cpu_multi == 2))
                 regs[0x50] = 0x60; /* Guess based on the SX, DX, and DX2 values. */
             else if (hasfpu && (cpu_multi == 1))
                 regs[0x50] = 0x00;

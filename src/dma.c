@@ -132,7 +132,7 @@ dma_sg_next_addr(dma_t *dev)
 static void
 dma_block_transfer(int channel)
 {
-    int i, bit16;
+    int bit16;
 
     bit16 = (channel >= 4);
 
@@ -140,7 +140,7 @@ dma_block_transfer(int channel)
         bit16 = !!(dma_transfer_size(&(dma[channel])) == 2);
 
     dma_req_is_soft = 1;
-    for (i = 0; i <= dma[channel].cb; i++) {
+    for (uint16_t i = 0; i <= dma[channel].cb; i++) {
         if ((dma[channel].mode & 0x8c) == 0x84) {
             if (bit16)
                 dma_channel_write(channel, dma16_buffer[i]);
@@ -422,10 +422,9 @@ dma_ext_mode_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 dma_sg_int_status_read(uint16_t addr, void *priv)
 {
-    int     i;
     uint8_t ret = 0x00;
 
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         if (i != 4)
             ret = (!!(dma[i].sg_status & 8)) << i;
     }
@@ -458,17 +457,17 @@ dma_read(uint16_t addr, void *priv)
                 temp = dma[channel].cc & 0xff;
             else
                 temp = dma[channel].cc >> 8;
-            return (temp);
+            return temp;
 
         case 8: /*Status register*/
             temp = dma_stat_rq_pc & 0xf;
             temp <<= 4;
             temp |= dma_stat & 0xf;
             dma_stat &= ~0xf;
-            return (temp);
+            return temp;
 
         case 0xd: /*Temporary register*/
-            return (0);
+            return 0;
     }
 
     return (dmaregs[0][addr & 0xf]);
@@ -628,7 +627,7 @@ dma_ps2_read(uint16_t addr, void *priv)
             }
             break;
     }
-    return (temp);
+    return temp;
 }
 
 static void
@@ -754,13 +753,13 @@ dma16_read(uint16_t addr, void *priv)
                 temp = dma[channel].cc & 0xff;
             else
                 temp = dma[channel].cc >> 8;
-            return (temp);
+            return temp;
 
         case 8: /*Status register*/
             temp = (dma_stat_rq_pc & 0xf0);
             temp |= dma_stat >> 4;
             dma_stat &= ~0xf0;
-            return (temp);
+            return temp;
     }
 
     return (dmaregs[1][addr & 0xf]);
@@ -890,7 +889,7 @@ dma_page_write(uint16_t addr, uint8_t val, void *priv)
             dma[addr].ab   = (dma[addr].ab & 0xff01ffff & dma_mask) | (dma[addr].page << 16);
             dma[addr].ac   = (dma[addr].ac & 0xff01ffff & dma_mask) | (dma[addr].page << 16);
         } else {
-            dma[addr].page = (dma_at) ? val : val & 0xf;
+            dma[addr].page = dma_at ? val : val & 0xf;
             dma[addr].ab   = (dma[addr].ab & 0xff00ffff & dma_mask) | (dma[addr].page << 16);
             dma[addr].ac   = (dma[addr].ac & 0xff00ffff & dma_mask) | (dma[addr].page << 16);
         }
@@ -966,11 +965,9 @@ dma_set_params(uint8_t advanced, uint32_t mask)
 void
 dma_set_mask(uint32_t mask)
 {
-    int i;
-
     dma_mask = mask;
 
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         dma[i].ab &= mask;
         dma[i].ac &= mask;
     }
@@ -1021,14 +1018,12 @@ dma_reset(void)
 void
 dma_remove_sg(void)
 {
-    int i;
-
     io_removehandler(dma_sg_base + 0x0a, 0x01,
                      dma_sg_int_status_read, NULL, NULL,
                      NULL, NULL, NULL,
                      NULL);
 
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         io_removehandler(dma_sg_base + 0x10 + i, 0x01,
                          dma_sg_read, dma_sg_readw, dma_sg_readl,
                          dma_sg_write, dma_sg_writew, dma_sg_writel,
@@ -1047,8 +1042,6 @@ dma_remove_sg(void)
 void
 dma_set_sg_base(uint8_t sg_base)
 {
-    int i;
-
     dma_sg_base = sg_base << 8;
 
     io_sethandler(dma_sg_base + 0x0a, 0x01,
@@ -1056,7 +1049,7 @@ dma_set_sg_base(uint8_t sg_base)
                   NULL, NULL, NULL,
                   NULL);
 
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         io_sethandler(dma_sg_base + 0x10 + i, 0x01,
                       dma_sg_read, dma_sg_readw, dma_sg_readl,
                       dma_sg_write, dma_sg_writew, dma_sg_writel,
@@ -1178,7 +1171,8 @@ dma_sg(uint8_t *data, int transfer_length, int out, void *priv)
     char *sop;
 #endif
 
-    int force_end = 0, buffer_pos = 0;
+    int force_end = 0;
+    int buffer_pos = 0;
 
 #ifdef ENABLE_DMA_LOG
     sop = out ? "Read" : "Writ";
@@ -1247,7 +1241,7 @@ _dma_read(uint32_t addr, dma_t *dma_c)
     } else
         temp = mem_readb_phys(addr);
 
-    return (temp);
+    return temp;
 }
 
 static uint16_t
@@ -1263,7 +1257,7 @@ _dma_readw(uint32_t addr, dma_t *dma_c)
     } else
         temp = _dma_read(addr, dma_c) | (_dma_read(addr + 1, dma_c) << 8);
 
-    return (temp);
+    return temp;
 }
 
 static void
@@ -1416,7 +1410,7 @@ dma_channel_read(int channel)
         return (temp | DMA_OVER);
     }
 
-    return (temp);
+    return temp;
 }
 
 int
@@ -1500,10 +1494,10 @@ dma_channel_write(int channel, uint16_t val)
             dma_c->sg_status |= 8;
         }
 
-        return (DMA_OVER);
+        return DMA_OVER;
     }
 
-    return (0);
+    return 0;
 }
 
 static void
@@ -1604,7 +1598,8 @@ dma_mode(int channel)
 void
 dma_bm_read(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalSize, int TransferSize)
 {
-    uint32_t i        = 0, n, n2;
+    uint32_t n;
+    uint32_t n2;
     uint8_t  bytes[4] = { 0, 0, 0, 0 };
 
     n  = TotalSize & ~(TransferSize - 1);
@@ -1612,7 +1607,7 @@ dma_bm_read(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalSize, int Tra
 
     /* Do the divisible block, if there is one. */
     if (n) {
-        for (i = 0; i < n; i += TransferSize)
+        for (uint32_t i = 0; i < n; i += TransferSize)
             mem_read_phys((void *) &(DataRead[i]), PhysAddress + i, TransferSize);
     }
 
@@ -1626,7 +1621,8 @@ dma_bm_read(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalSize, int Tra
 void
 dma_bm_write(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize, int TransferSize)
 {
-    uint32_t i        = 0, n, n2;
+    uint32_t n;
+    uint32_t n2;
     uint8_t  bytes[4] = { 0, 0, 0, 0 };
 
     n  = TotalSize & ~(TransferSize - 1);
@@ -1634,7 +1630,7 @@ dma_bm_write(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize,
 
     /* Do the divisible block, if there is one. */
     if (n) {
-        for (i = 0; i < n; i += TransferSize)
+        for (uint32_t i = 0; i < n; i += TransferSize)
             mem_write_phys((void *) &(DataWrite[i]), PhysAddress + i, TransferSize);
     }
 
