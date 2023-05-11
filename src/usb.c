@@ -492,13 +492,19 @@ ohci_service_transfer_desc(usb_t* dev, usb_ed_t* endpoint_desc)
     } else {
         if (actual_length != 0xFFFFFFFF && actual_length >= 0) {
             td.Control &= ~0xF0000000;
-            td.Control |= 0x90000000;
+            td.Control |= (0x9 << 28);
         } else {
             switch (device_result) {
                 case USB_ERROR_NAK:
                     return 1;
                 case USB_ERROR_STALL:
                     td.Control |= (0x4 << 28); /* STALL PID returned */
+                    break;
+                case USB_ERROR_OVERRUN:
+                    td.Control |= (0x8 << 28); /* Data overrun from endpoint. */
+                    break;
+                case USB_ERROR_UNDERRUN:
+                    td.Control |= (0x9 << 28); /* Data underrun from endpoint. */
                     break;
             }
             dev->ohci_interrupt_counter = 0;
@@ -1015,7 +1021,7 @@ uint8_t
 usb_parse_control_endpoint(usb_device_t* usb_device, uint8_t* data, uint32_t *len, uint8_t pid_token, uint8_t endpoint, uint8_t underrun_not_allowed)
 {
     usb_desc_setup_t* setup_packet = (usb_desc_setup_t*)data;
-    uint8_t ret = 255;
+    uint8_t ret = USB_ERROR_STALL;
     
     if (endpoint != 0)
         return USB_ERROR_STALL;
@@ -1027,8 +1033,51 @@ usb_parse_control_endpoint(usb_device_t* usb_device, uint8_t* data, uint32_t *le
     switch (pid_token) {
         case USB_PID_SETUP:
         {
+            if (*len != 8) {
+                return *len > 8 ? USB_ERROR_OVERRUN : USB_ERROR_UNDERRUN;
+            }
             usb_device->setup_desc = *setup_packet;
+            fifo8_reset(&usb_device->fifo);
             switch (setup_packet->bmRequestType & 0x1f) {
+                case USB_SETUP_TYPE_INTERFACE:
+                {
+                    if (setup_packet->bmRequestType & 0x80) {
+                        switch (setup_packet->bRequest) {
+                            case USB_SETUP_GET_STATUS: {
+                                ret = 0;
+                                fifo8_push(&usb_device->fifo, 0x00);
+                                fifo8_push(&usb_device->fifo, 0x00);
+                                break;
+                            }
+                            case USB_SETUP_GET_INTERFACE: {
+                                ret = 0;
+                                fifo8_push(&usb_device->fifo, usb_device->interface_altsetting[setup_packet->wIndex]);
+                                break;
+                            }
+                        }
+                    } else {
+                        switch (setup_packet->bRequest) {
+                            case USB_SETUP_SET_FEATURE:
+                            case USB_SETUP_CLEAR_FEATURE: {
+                                ret = 0;
+                                break;
+                            }
+                            case USB_SETUP_SET_INTERFACE: {
+                                ret = 0;
+                                usb_device->interface_altsetting[setup_packet->wIndex] = setup_packet->wValue;
+                                break;
+                            }
+                        }
+                    }
+                    break;
+                }
+                case USB_SETUP_TYPE_ENDPOINT:
+                    /* Consider it all handled. */
+                    if (setup_packet->bRequest == USB_SETUP_GET_STATUS && (setup_packet->bmRequestType & 0x80)) {
+                        fifo8_push(&usb_device->fifo, 0x00);
+                        fifo8_push(&usb_device->fifo, 0x00);
+                    }
+                    return 0;
                 case USB_SETUP_TYPE_DEVICE:
                     {
                         if (setup_packet->bmRequestType & 0x80) {
@@ -1036,42 +1085,69 @@ usb_parse_control_endpoint(usb_device_t* usb_device, uint8_t* data, uint32_t *le
                                 case USB_SETUP_GET_STATUS: {
                                     fifo8_push_all(&usb_device->fifo, (uint8_t*)&usb_device->status_bits, sizeof(uint16_t));
                                     ret = 0;
-                                    *len = 2;
                                     break;
                                 }
                                 case USB_SETUP_GET_CONFIGURATION: {
                                     fifo8_push(&usb_device->fifo, usb_device->current_configuration);
                                     ret = 0;
-                                    *len = 1;
                                     break;
                                 }
                                 case USB_SETUP_GET_DESCRIPTOR: {
-                                    switch (setup_packet->wValue & 0xFF) {
-                                        case 0x01:
+                                    switch (setup_packet->wValue >> 8) {
+                                        case 0x01: /* Device descriptor */
                                         {
                                             fifo8_push_all(&usb_device->fifo, (uint8_t*)&usb_device->device_desc, sizeof(usb_device->device_desc));
                                             ret = 0;
-                                            *len = sizeof(usb_device->device_desc); 
                                             break;
                                         }
-                                        case 0x02:
+                                        case 0x02: /* Configuration descriptor (with all associated descriptors) */
                                         {
                                             int i = 0;
                                             ret = 0;
-                                            *len = usb_device->conf_desc_items.conf_desc.wTotalLength;
                                             fifo8_push_all(&usb_device->fifo, (uint8_t*)&usb_device->conf_desc_items.conf_desc, usb_device->conf_desc_items.conf_desc.base.bLength);
-                                            for (i = 0; i < 16; i++)
-                                            {
+                                            for (i = 0; i < 16; i++) {
                                                 if (usb_device->conf_desc_items.other_descs[i] == NULL)
                                                     break;
 
-                                                fifo8_push_all(&usb_device->fifo, (uint8_t*)usb_device->conf_desc_items.other_descs[i], usb_device->conf_desc_items.other_descs[i]->bLength);
+                                                if (usb_device->conf_desc_items.other_descs[i]->bDescriptorType == 0xFF) {
+                                                    fifo8_push_all(&usb_device->fifo, ((usb_desc_ptr_t*)usb_device->conf_desc_items.other_descs[i])->ptr, usb_device->conf_desc_items.other_descs[i]->bLength);
+                                                }
+                                                else
+                                                    fifo8_push_all(&usb_device->fifo, (uint8_t*)usb_device->conf_desc_items.other_descs[i], usb_device->conf_desc_items.other_descs[i]->bLength);
                                             }
                                             break;
                                         }
-                                        default:
+                                        case 0x03: /* String descriptor */
+                                        {
+                                            ret = 0;
+                                            if (!usb_device->string_desc[setup_packet->wValue & 0xff]) {
+                                                return USB_ERROR_STALL;
+                                            }
+                                            fifo8_push_all(&usb_device->fifo, (uint8_t*)usb_device->string_desc[setup_packet->wValue & 0xff], usb_device->string_desc[setup_packet->wValue & 0xff]->base.bLength);
                                             break;
+                                        }
+                                        default:
+                                            return USB_ERROR_STALL;
                                     }
+                                    break;
+                                }
+                            }
+                        } else {
+                            switch (setup_packet->bRequest) {
+                                case USB_SETUP_SET_FEATURE: {
+                                    usb_device->status_bits |= (setup_packet->wValue & 0x1);
+                                    break;
+                                }
+                                case USB_SETUP_CLEAR_FEATURE: {
+                                    usb_device->status_bits &= ~(setup_packet->wValue & 0x1);
+                                    break;
+                                }
+                                case USB_SETUP_SET_ADDRESS: {
+                                    usb_device->address = setup_packet->wValue & 0xFF;
+                                    break;
+                                }
+                                case USB_SETUP_SET_CONFIGURATION: {
+                                    usb_device->current_configuration = setup_packet->wValue & 0xFF;
                                     break;
                                 }
                             }
@@ -1084,12 +1160,20 @@ usb_parse_control_endpoint(usb_device_t* usb_device, uint8_t* data, uint32_t *le
         case USB_PID_IN: {
             const uint8_t* buf = NULL;
             uint32_t used = 0;
+            if (!(usb_device->setup_desc.bmRequestType & 0x80))
+                return USB_ERROR_STALL;
+            if (fifo8_num_used(&usb_device->fifo) == 0 && *len != 0)
+                return USB_ERROR_STALL;
+            if (fifo8_num_used(&usb_device->fifo) == 0 && *len == 0)
+                return USB_ERROR_NO_ERROR;
             buf = fifo8_pop_buf(&usb_device->fifo, *len, len);
             memcpy(data, buf, *len);
             ret = 0;
             break;
         }
         case USB_PID_OUT: {
+            if (usb_device->setup_desc.bmRequestType & 0x80)
+                return USB_ERROR_STALL;
             *len = 0;
             return 0;
         }

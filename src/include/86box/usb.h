@@ -97,7 +97,7 @@ enum usb_desc_setup_req_types
 {
     USB_SETUP_TYPE_DEVICE = 0x0,
     USB_SETUP_TYPE_INTERFACE = 0x1,
-    USB_SETUP_TYPE_ENDPOING = 0x2,
+    USB_SETUP_TYPE_ENDPOINT = 0x2,
     USB_SETUP_TYPE_OTHER = 0x3,
 };
 
@@ -198,6 +198,15 @@ typedef struct
     uint8_t bNumConfigurations;
 } usb_desc_device_t;
 
+/* Fake descriptor with type of 0xFF, used as pointers to real USB descriptors that doesn't follow the length/type pair.
+   Length describes length in bytes of data pointed to by "ptr" variable. */
+typedef struct
+{
+    usb_desc_base_t base;
+
+    uint8_t* ptr;
+} usb_desc_ptr_t;
+
 #pragma pack(pop)
 
 /* USB endpoint device struct. Incomplete and unused. */
@@ -208,6 +217,9 @@ typedef struct usb_device_t
         usb_desc_conf_t conf_desc;
         usb_desc_base_t* other_descs[16];
     } conf_desc_items;
+
+    usb_desc_string_t* string_desc[256];
+    uint16_t interface_altsetting[0x10000];
 
     /* General-purpose function for I/O. Non-zero value indicates error. */
     uint8_t (*device_process)(void* priv, uint8_t* data, uint32_t *len, uint8_t pid_token, uint8_t endpoint, uint8_t underrun_not_allowed);
