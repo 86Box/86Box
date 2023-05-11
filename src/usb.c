@@ -1160,8 +1160,16 @@ usb_parse_control_endpoint(usb_device_t* usb_device, uint8_t* data, uint32_t *le
         case USB_PID_IN: {
             const uint8_t* buf = NULL;
             uint32_t used = 0;
-            if (!(usb_device->setup_desc.bmRequestType & 0x80))
-                return USB_ERROR_STALL;
+            if (!(usb_device->setup_desc.bmRequestType & 0x80)) {
+                if (usb_device->setup_desc.wLength && fifo8_num_used(&usb_device->fifo) >= usb_device->setup_desc.wLength) {
+                    uint32_t len = 8;
+                    return usb_device->device_process(usb_device->priv, (uint8_t*)&usb_device->setup_desc, &len, USB_PID_SETUP, 0, underrun_not_allowed);
+                }
+                else if (*len == 0)
+                    return USB_ERROR_NO_ERROR;
+                else
+                    return USB_ERROR_STALL;
+            }
             if (fifo8_num_used(&usb_device->fifo) == 0 && *len != 0)
                 return USB_ERROR_STALL;
             if (fifo8_num_used(&usb_device->fifo) == 0 && *len == 0)
@@ -1172,9 +1180,13 @@ usb_parse_control_endpoint(usb_device_t* usb_device, uint8_t* data, uint32_t *le
             break;
         }
         case USB_PID_OUT: {
+            if (!(usb_device->setup_desc.bmRequestType & 0x80)) {
+                if (*len)
+                    fifo8_push_all(&usb_device->fifo, data, *len);
+                return 0;
+            }
             if (usb_device->setup_desc.bmRequestType & 0x80)
                 return USB_ERROR_STALL;
-            *len = 0;
             return 0;
         }
     }

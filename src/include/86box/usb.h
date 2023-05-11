@@ -116,6 +116,16 @@ enum usb_desc_setup_reqs
     USB_SETUP_SYNCH_FRAME = 0x0C
 };
 
+enum usb_desc_setup_reqs_hid
+{
+    USB_SETUP_HID_GET_REPORT = 0x01,
+    USB_SETUP_HID_SET_REPORT = 0x09,
+    USB_SETUP_HID_GET_IDLE = 0x02,
+    USB_SETUP_HID_SET_IDLE = 0x0a,
+    USB_SETUP_HID_GET_PROTOCOL = 0x03,
+    USB_SETUP_HID_SET_PROTOCOL = 0x0b,
+};
+
 #define USB_SETUP_TYPE_MAX 0x1F
 
 #define USB_SETUP_DEV_TO_HOST 0x80
