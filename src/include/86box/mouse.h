@@ -67,6 +67,7 @@ extern const device_t mouse_ltserial_device;
 extern const device_t mouse_ps2_device;
 extern const device_t mouse_wacom_device;
 extern const device_t mouse_wacom_artpad_device;
+extern const device_t mouse_usb_device;
 #endif
 
 extern void mouse_init(void);

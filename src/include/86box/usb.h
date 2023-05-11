@@ -255,9 +255,9 @@ extern usb_t* usb_device_inst;
 extern void uhci_update_io_mapping(usb_t *dev, uint8_t base_l, uint8_t base_h, int enable);
 extern void ohci_update_mem_mapping(usb_t *dev, uint8_t base1, uint8_t base2, uint8_t base3, int enable);
 /* Attach USB device to a port of a USB bus. Returns the port to which it got attached to. */
-extern uint8_t usb_attach_device(usb_t *dev, usb_device_t* device, uint8_t bus_type);
+extern uint16_t usb_attach_device(usb_t *dev, usb_device_t* device, uint8_t bus_type);
 /* Detach USB device from a port. */
-extern void usb_detach_device(usb_t *dev, uint8_t port, uint8_t bus_type);
+extern void usb_detach_device(usb_t *dev, uint16_t port);
 /* General-purpose control endpoint parsing function. */
 extern uint8_t usb_parse_control_endpoint(usb_device_t* usb_device, uint8_t* data, uint32_t *len, uint8_t pid_token, uint8_t endpoint, uint8_t underrun_not_allowed);
 /* TODO: Implement remote wakeup from device. */

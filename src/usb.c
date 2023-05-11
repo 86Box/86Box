@@ -960,9 +960,11 @@ ohci_update_mem_mapping(usb_t *dev, uint8_t base1, uint8_t base2, uint8_t base3,
     usb_log("ohci_update_mem_mapping(): OHCI %sabled at %08X\n", dev->ohci_enable ? "en" : "dis", dev->ohci_mem_base);
 }
 
-uint8_t
+uint16_t
 usb_attach_device(usb_t *dev, usb_device_t* device, uint8_t bus_type)
 {
+    if (!usb_device_inst)
+        return (uint16_t)-1;
     switch (bus_type) {
         case USB_BUS_OHCI:
             {
@@ -978,21 +980,22 @@ usb_attach_device(usb_t *dev, usb_device_t* device, uint8_t bus_type)
                             dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].b[2] |= 0x1;
                             ohci_set_interrupt(dev, OHCI_HcInterruptEnable_RHSC);
                         }
-                        return i;
+                        return i | (bus_type << 8);
                     }
                 }
             }
             break;
     }
-    return 255;
+    return (uint16_t)-1;
 }
 
 void
-usb_detach_device(usb_t *dev, uint8_t port, uint8_t bus_type)
+usb_detach_device(usb_t *dev, uint16_t port)
 {
-    switch (bus_type) {
+    switch (port >> 8) {
         case USB_BUS_OHCI:
             {
+                port &= 0xFF;
                 if (port > 2)
                     return;
                 if (dev->ohci_devices[port]) {
@@ -1220,6 +1223,7 @@ usb_close(void *priv)
 {
     usb_t *dev = (usb_t *) priv;
 
+    usb_device_inst = NULL;
     free(dev);
 }
 

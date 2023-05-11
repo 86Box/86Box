@@ -92,6 +92,7 @@ static mouse_t mouse_devices[] = {
     { &mouse_ps2_device          },
     { &mouse_wacom_device        },
     { &mouse_wacom_artpad_device },
+    { &mouse_usb_device          },
     { NULL                       }
     // clang-format on
 };
