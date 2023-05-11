@@ -312,6 +312,7 @@ usb_mouse_init(const device_t* info)
         free(usb_mouse);
         return NULL;
     }
+    mouse_set_buttons(4);
     return usb_mouse;
 }
 
