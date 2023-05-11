@@ -45,6 +45,7 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
+#include <86box/fifo8.h>
 #include <86box/usb.h>
 #include <86box/machine.h>
 #include <86box/smbus.h>

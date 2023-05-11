@@ -31,6 +31,7 @@
 #include <86box/pit.h>
 #include <86box/device.h>
 #include <86box/port_92.h>
+#include <86box/fifo8.h>
 #include <86box/usb.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>

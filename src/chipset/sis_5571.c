@@ -34,6 +34,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/smram.h>
+#include <86box/fifo8.h>
 #include <86box/usb.h>
 
 #include <86box/chipset.h>

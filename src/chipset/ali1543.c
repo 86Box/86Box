@@ -39,6 +39,7 @@
 #include <86box/port_92.h>
 #include <86box/sio.h>
 #include <86box/smbus.h>
+#include <86box/fifo8.h>
 #include <86box/usb.h>
 
 #include <86box/acpi.h>
