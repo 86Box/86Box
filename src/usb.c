@@ -33,6 +33,7 @@
 #include <86box/usb.h>
 #include <86box/dma.h>
 
+//#define ENABLE_USB_LOG 1
 #ifdef ENABLE_USB_LOG
 int usb_do_log = ENABLE_USB_LOG;
 
@@ -542,7 +543,9 @@ ohci_service_endpoint_desc(usb_t* dev, uint32_t head)
 
         next = endpoint_desc.NextED & ~(0xFu);
 
-        if ((endpoint_desc.Control & (1 << 13)) || (endpoint_desc.HeadP & (1 << 0)))
+        pclog("endpoint_desc.Control = 0x%X\n", endpoint_desc.Control);
+
+        if ((endpoint_desc.Control & (1 << 14)) || (endpoint_desc.HeadP & (1 << 0)))
             continue;
 
         if (endpoint_desc.Control & 0x8000) {
@@ -568,6 +571,8 @@ ohci_end_of_frame(usb_t* dev)
     if (dev->ohci_initial_start)
         return;
     dma_bm_read(dev->ohci_mmio[OHCI_HcHCCA].l, (uint8_t*)&hcca, sizeof(usb_hcca_t), 4);
+
+    pclog("dev->ohci_mmio[OHCI_HcControl].l = 0x%08X\n", dev->ohci_mmio[OHCI_HcControl].l);
 
     if (dev->ohci_mmio[OHCI_HcControl].l & OHCI_HcControl_PeriodicListEnable) {
         ohci_service_endpoint_desc(dev, hcca.HccaInterrruptTable[dev->ohci_mmio[OHCI_HcFmNumber].l & 0x1f]);
@@ -621,6 +626,7 @@ ohci_start_of_frame(usb_t* dev)
 {
     dev->ohci_initial_start = 0;
     ohci_set_interrupt(dev, OHCI_HcInterruptEnable_SO);
+    //pclog("OHCI: Start of frame 0x%X\n", dev->ohci_mmio[OHCI_HcFmNumber].w[0]);
 }
 
 void
