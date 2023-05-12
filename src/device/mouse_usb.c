@@ -284,6 +284,19 @@ usb_mouse_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *pri
     return 0;
 }
 
+static void usb_mouse_handle_reset(void *priv)
+{
+    usb_mouse_t *usb_mouse = (usb_mouse_t *) priv;
+
+    usb_mouse->dx = 0;
+    usb_mouse->dy = 0;
+    usb_mouse->dz = 0;
+    usb_mouse->buttons_state = 0;
+    usb_mouse->device_instance.address = 0;
+    usb_mouse->device_instance.current_configuration = 0;
+}
+
+
 void*
 usb_mouse_init(const device_t* info)
 {
@@ -303,6 +316,7 @@ usb_mouse_init(const device_t* info)
 
     usb_mouse->device_instance.device_desc = usb_mouse_device_desc;
     usb_mouse->device_instance.priv = usb_mouse;
+    usb_mouse->device_instance.device_reset = usb_mouse_handle_reset;
 
     fifo8_create(&usb_mouse->device_instance.fifo, 4096);
     
