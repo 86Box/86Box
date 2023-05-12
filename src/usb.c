@@ -277,11 +277,6 @@ ohci_mmio_read(uint32_t addr, void *p)
         case 0x101:
             ret = (ret & 0xfe) | (!!mem_a20_key);
             break;
-        case OHCI_aHcRhPortStatus1 + 1:
-        case OHCI_aHcRhPortStatus2 + 1:
-        case OHCI_aHcRhPortStatus3 + 1:
-            ret |= 0x1;
-            break;
         case OHCI_aHcInterruptDisable:
         case OHCI_aHcInterruptDisable + 1:
         case OHCI_aHcInterruptDisable + 2:
@@ -656,6 +651,7 @@ ohci_port_reset_callback(void* priv)
 
     dev->ohci_mmio[OHCI_HcRhPortStatus1].b[0] &= ~0x10;
     dev->ohci_mmio[OHCI_HcRhPortStatus1].b[2] |= 0x10;
+    ohci_set_interrupt(dev, OHCI_HcInterruptEnable_RHSC);
 }
 
 void
@@ -665,6 +661,7 @@ ohci_port_reset_callback_2(void* priv)
 
     dev->ohci_mmio[OHCI_HcRhPortStatus2].b[0] &= ~0x10;
     dev->ohci_mmio[OHCI_HcRhPortStatus2].b[2] |= 0x10;
+    ohci_set_interrupt(dev, OHCI_HcInterruptEnable_RHSC);
 }
 
 static void
@@ -866,8 +863,12 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
 
             if (val & 0x10) {
                 if (old & 0x01) {
-                    dev->ohci_mmio[addr >> 2].b[addr & 3] |= 0x10;
-                    timer_on_auto(&dev->ohci_port_reset_timer[(addr - OHCI_aHcRhPortStatus1) / 4], 10000.);
+                    dev->ohci_mmio[addr >> 2].b[(addr + 2) & 3] |= 0x10;
+                    if (!(dev->ohci_mmio[addr >> 2].b[addr & 3] & 0x02)) {
+                        dev->ohci_mmio[addr >> 2].b[(addr + 2) & 3] |= 0x02;
+                    }
+                    dev->ohci_mmio[addr >> 2].b[addr & 3] |= 0x02;
+                    //timer_on_auto(&dev->ohci_port_reset_timer[(addr - OHCI_aHcRhPortStatus1) / 4], 10000.);
                     if (dev->ohci_devices[(addr - OHCI_aHcRhPortStatus1) >> 2])
                         dev->ohci_devices[(addr - OHCI_aHcRhPortStatus1) >> 2]->device_reset(dev->ohci_devices[(addr - OHCI_aHcRhPortStatus1) >> 2]->priv);
                 } else
@@ -898,6 +899,9 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
                 dev->ohci_mmio[(addr + 2) >> 2].b[(addr + 2) & 3] |= 0x04;
             /* if (!(dev->ohci_mmio[addr >> 2].b[addr & 3] & 0x02))
                     dev->ohci_mmio[(addr + 2) >> 2].b[(addr + 2) & 3] |= 0x02; */
+            if (old != dev->ohci_mmio[addr >> 2].b[addr & 3]) {
+                ohci_set_interrupt(dev, OHCI_HcInterruptEnable_RHSC);
+            }
             return;
         case OHCI_aHcRhPortStatus1 + 1:
             if ((val & 0x02) && ((dev->ohci_mmio[OHCI_HcRhDescriptorA].b[1] & 0x03) == 0x00) && (dev->ohci_mmio[OHCI_HcRhDescriptorB].b[2] & 0x02)) {
