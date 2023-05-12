@@ -451,8 +451,7 @@ ohci_service_transfer_desc(usb_t* dev, usb_ed_t* endpoint_desc)
     for (i = 0; i < 2; i++) {
         if (!dev->ohci_devices[i])
             continue;
-        
-        assert(dev->ohci_devices[i]->device_get_address != NULL);
+
 
         if (dev->ohci_devices[i]->address != (endpoint_desc->Control & 0x7f))
             continue;
