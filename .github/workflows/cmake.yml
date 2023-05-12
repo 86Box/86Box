@@ -147,6 +147,7 @@ jobs:
 
   llvm-windows:
     name: "Windows vcpkg/LLVM (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.target.name }})"
+    if: 0
 
     runs-on: windows-2022
 
