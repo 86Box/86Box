@@ -326,7 +326,9 @@ ohci_update_irq(usb_t *dev)
 
 void
 ohci_set_interrupt(usb_t *dev, uint8_t bit)
-{
+{    
+    dev->ohci_mmio[OHCI_HcInterruptStatus].b[0] |= bit;
+
     if (!(dev->ohci_mmio[OHCI_HcInterruptEnable].b[3] & 0x80))
         return;
     
@@ -335,8 +337,6 @@ ohci_set_interrupt(usb_t *dev, uint8_t bit)
 
     if (dev->ohci_mmio[OHCI_HcInterruptDisable].b[0] & bit)
         return;
-
-    dev->ohci_mmio[OHCI_HcInterruptStatus].b[0] |= bit;
 
     /* TODO: Does setting UnrecoverableError also assert PERR# on any emulated USB chipsets? */
 
@@ -546,6 +546,7 @@ ohci_service_endpoint_desc(usb_t* dev, uint32_t head)
         pclog("endpoint_desc.Control = 0x%X\n", endpoint_desc.Control);
 
         if ((endpoint_desc.Control & (1 << 14)) || (endpoint_desc.HeadP & (1 << 0)))
+            pclog("Skipping endpoint 0x%X to 0x%X\n", cur, next);
             continue;
 
         if (endpoint_desc.Control & 0x8000) {
