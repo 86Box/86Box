@@ -129,8 +129,8 @@ jobs:
           -D STATIC_BUILD=${{ matrix.ui.static }}
 
       - name: Build
-        run: cmake --build build
-
+        run: |
+          cmake --build build
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
@@ -212,7 +212,8 @@ jobs:
           -D QT=${{ matrix.ui.qt }}
 
       - name: Build
-        run: cmake --build build
+        run: |
+          cmake --build build
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
@@ -290,7 +291,8 @@ jobs:
           -D OpenAL_ROOT=$(brew --prefix openal-soft)
 
       - name: Build
-        run: cmake --build build
+        run: |
+          cmake --build build
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
