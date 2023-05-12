@@ -225,10 +225,10 @@ typedef struct usb_device_t
     usb_desc_device_t device_desc;
     struct {
         usb_desc_conf_t conf_desc;
-        usb_desc_base_t* other_descs[16];
+        const usb_desc_base_t* other_descs[16];
     } conf_desc_items;
 
-    usb_desc_string_t* string_desc[256];
+    const usb_desc_string_t* string_desc[256];
     uint16_t interface_altsetting[0x10000];
 
     /* General-purpose function for I/O. Non-zero value indicates error. */

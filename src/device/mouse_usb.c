@@ -201,9 +201,10 @@ static int usb_mouse_poll_hid(usb_mouse_t *s, uint8_t *buf, int len)
 }
 
 uint8_t
-wacom_process_transfer(void* priv, uint8_t* data, uint32_t *len, uint8_t pid_token, uint8_t endpoint, uint8_t underrun_not_allowed)
+usb_mouse_process_transfer(void* priv, uint8_t* data, uint32_t *len, uint8_t pid_token, uint8_t endpoint, uint8_t underrun_not_allowed)
 {
     usb_mouse_t* usb_mouse = (usb_mouse_t*)priv;
+    pclog("USB Mouse: Transfer (PID = 0x%X, len = %d, endpoint = %d)\n", pid_token, *len, endpoint);
     if (endpoint == 0) {
         if (pid_token == USB_PID_SETUP) {
             usb_desc_setup_t* setup_packet = (usb_desc_setup_t*)data;
@@ -317,6 +318,7 @@ usb_mouse_init(const device_t* info)
     usb_mouse->device_instance.device_desc = usb_mouse_device_desc;
     usb_mouse->device_instance.priv = usb_mouse;
     usb_mouse->device_instance.device_reset = usb_mouse_handle_reset;
+    usb_mouse->device_instance.device_process = usb_mouse_process_transfer;
 
     fifo8_create(&usb_mouse->device_instance.fifo, 4096);
     
