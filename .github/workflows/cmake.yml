@@ -30,6 +30,9 @@ jobs:
 
     runs-on: windows-2022
 
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
+
     defaults:
       run:
         shell: msys2 {0}
@@ -106,6 +109,11 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v1
 
       - name: Configure CMake
         run: >-
@@ -117,7 +125,15 @@ jobs:
           -D STATIC_BUILD=${{ matrix.ui.static }}
 
       - name: Build
-        run: cmake --build build
+        run: |
+          build-wrapper-win-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
+
+      - name: Run sonar-scanner
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
 
       - name: Generate package
         run: cmake --install build
@@ -134,6 +150,7 @@ jobs:
     runs-on: windows-2022
 
     env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
       VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
 
     strategy:
@@ -209,6 +226,11 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v1
 
       - name: Configure CMake
         run: >
@@ -229,13 +251,23 @@ jobs:
 
       - name: Reconfigure CMake
         if: matrix.ui.qt == 'on'
-        run: cmake clean build
+        run: |
+          cmake clean build
 
       - name: Build
-        run: cmake --build build
+        run: |
+          build-wrapper-win-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
+
+      - name: Run sonar-scanner
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
 
       - name: Generate package
-        run: cmake --install build
+        run: |
+          cmake --install build
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -247,6 +279,9 @@ jobs:
     name: "Linux GCC 11 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
 
     runs-on: ubuntu-22.04
+
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
 
     strategy:
       fail-fast: true
@@ -295,6 +330,11 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v1
 
       - name: Configure CMake
         run: >-
@@ -305,10 +345,19 @@ jobs:
           -D QT=${{ matrix.ui.qt }}
 
       - name: Build
-        run: cmake --build build
+        run: |
+          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
+
+      - name: Run sonar-scanner
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
 
       - name: Generate package
-        run: cmake --install build
+        run: |
+          cmake --install build
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -320,6 +369,9 @@ jobs:
     name: "macOS 11 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
 
     runs-on: macos-11
+
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
 
     strategy:
       fail-fast: true
@@ -362,6 +414,11 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v1
 
       - name: Configure CMake
         run: >-
@@ -375,10 +432,19 @@ jobs:
           -D OpenAL_ROOT=$(brew --prefix openal-soft)
 
       - name: Build
-        run: cmake --build build
+        run: |
+          build-wrapper-macosx-x86 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
+
+      - name: Run sonar-scanner
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
 
       - name: Generate package
-        run: cmake --install build
+        run: |
+          cmake --install build
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
