@@ -57,6 +57,8 @@ static int shadow = 0, elcr_enabled = 0,
 static uint16_t smi_irq_mask   = 0x0000,
                 smi_irq_status = 0x0000;
 
+static uint16_t latched_irqs   = 0x0000;
+
 static void (*update_pending)(void);
 
 #ifdef ENABLE_PIC_LOG
@@ -397,10 +399,10 @@ pic_latch_read(uint16_t addr, void *priv)
 
     pic_log("pic_latch_read(%i, %i): %02X%02X\n", kbd_latch, mouse_latch, pic2.lines & 0x10, pic.lines & 0x02);
 
-    if (kbd_latch && (pic.lines & 0x02))
+    if (kbd_latch && (latched_irqs & 0x0002))
         picintc(0x0002);
 
-    if (mouse_latch && (pic2.lines & 0x10))
+    if (mouse_latch && (latched_irqs & 0x1000))
         picintc(0x1000);
 
     /* Return FF - we just lower IRQ 1 and IRQ 12. */
@@ -572,6 +574,7 @@ pic_reset_hard(void)
 
     /* Explicitly reset the latches. */
     kbd_latch = mouse_latch = 0;
+    latched_irqs = 0x0000;
 
     /* The situation is as follows: There is a giant mess when it comes to these latches on real hardware,
        to the point that there's even boards with board-level latched that get used in place of the latches
@@ -656,7 +659,7 @@ picint_common(uint16_t num, int level, int set)
 
             /* Latch IRQ 12 if the mouse latch is enabled. */
             if ((num & 0x1000) && mouse_latch)
-                pic2.lines |= 0x10;
+                latched_irqs |= 0x1000;
 
             pic2.irr |= (num >> 8);
         }
@@ -665,8 +668,9 @@ picint_common(uint16_t num, int level, int set)
             if (level)
                 pic.lines |= (num & 0x00ff);
 
+            /* Latch IRQ 1 if the keyboard latch is enabled. */
             if (kbd_latch && (num & 0x0002))
-                pic.lines |= 0x02;
+                latched_irqs |= 0x0002;
 
             pic.irr |= (num & 0x00ff);
         }
@@ -676,11 +680,19 @@ picint_common(uint16_t num, int level, int set)
         if (num & 0xff00) {
             pic2.lines &= ~(num >> 8);
 
+            /* Unlatch IRQ 12 if the mouse latch is enabled. */
+            if ((num & 0x1000) && mouse_latch)
+                latched_irqs &= 0xefff;
+
             pic2.irr &= ~(num >> 8);
         }
 
         if (num & 0x00ff) {
             pic.lines &= ~(num & 0x00ff);
+
+            /* Unlatch IRQ 1 if the keyboard latch is enabled. */
+            if (kbd_latch && (num & 0x0002))
+                latched_irqs &= 0xfffd;
 
             pic.irr &= ~(num & 0x00ff);
         }
