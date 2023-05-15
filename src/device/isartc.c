@@ -236,7 +236,10 @@ mm67_tick(nvr_t *nvr)
                 regs[MM67_DOM] = RTC_BCDINC(regs[MM67_DOM], 1);
                 mon            = RTC_DCB(regs[MM67_MON]);
                 if (dev->year != -1) {
-                    year = RTC_DCB(regs[dev->year]);
+                    if (dev->flags & FLAG_YEARBCD)
+                        year = RTC_DCB(regs[dev->year]);
+                    else
+                        year = regs[dev->year];
                     if (dev->flags & FLAG_YEAR80)
                         year += 80;
                 } else
