@@ -23,6 +23,29 @@ extern "C" {
 #endif
 
 typedef struct usb_t usb_t;
+typedef struct usb_device_t usb_device_t;
+
+enum usb_pid
+{
+    USB_PID_OUT = 0xE1,
+    USB_PID_IN = 0x69,
+    USB_PID_SETUP = 0x2D
+};
+
+enum usb_errors
+{
+    USB_ERROR_NO_ERROR = 0,
+    USB_ERROR_NAK = 1,
+    USB_ERROR_OVERRUN = 2,
+    USB_ERROR_UNDERRUN = 3
+};
+
+enum usb_bus_types
+{
+    USB_BUS_OHCI = 0,
+    USB_BUS_UHCI,
+    USB_BUS_MAX
+};
 
 /* USB device creation parameters struct */
 typedef struct
@@ -50,20 +73,84 @@ typedef struct usb_t
     uint32_t      ohci_mem_base, irq_level;
     mem_mapping_t ohci_mmio_mapping;
     pc_timer_t    ohci_frame_timer;
-    pc_timer_t    ohci_interrupt_desc_poll_timer;
     pc_timer_t    ohci_port_reset_timer[2];
-    uint8_t       ohci_interrupt_counter : 5;
+    uint8_t       ohci_interrupt_counter : 3;
+    usb_device_t* ohci_devices[2];
+    usb_device_t* uhci_devices[2];
+    uint8_t       ohci_usb_buf[4096];
+    uint8_t       ohci_initial_start;
 
     usb_params_t* usb_params;
 } usb_t;
 
 #pragma pack(push, 1)
+
 /* Base USB descriptor struct. */
 typedef struct
 {
     uint8_t bLength;
     uint8_t bDescriptorType;
 } usb_desc_base_t;
+
+enum usb_desc_setup_req_types
+{
+    USB_SETUP_TYPE_DEVICE = 0x0,
+    USB_SETUP_TYPE_INTERFACE = 0x1,
+    USB_SETUP_TYPE_ENDPOING = 0x2,
+    USB_SETUP_TYPE_OTHER = 0x3,
+};
+
+#define USB_SETUP_TYPE_MAX 0x1F
+
+#define USB_SETUP_DEV_TO_HOST 0x80
+
+typedef struct
+{
+    uint8_t bmRequestType;
+    uint8_t bRequest;
+    uint16_t wValue;
+    uint16_t wIndex;
+    uint16_t wLength;
+} usb_desc_setup_t;
+
+typedef struct
+{
+    usb_desc_base_t base;
+    uint8_t bEndpointAddress;
+    uint8_t bmAttributes;
+    uint16_t wMaxPacketSize;
+    uint8_t bInterval;
+} usb_desc_endpoint_t;
+
+typedef struct
+{
+    usb_desc_base_t base;
+
+    uint16_t bcdHID;
+    uint8_t bCountryCode;
+    uint8_t bNumDescriptors;
+    uint8_t bDescriptorType;
+    uint16_t wDescriptorLength;
+} usb_desc_hid_t;
+
+typedef struct
+{
+    usb_desc_base_t base;
+
+    uint8_t bInterfaceNumber;
+    uint8_t bAlternateSetting;
+    uint8_t bNumEndpoints;
+    uint8_t bInterfaceClass;
+    uint8_t bInterfaceSubClass;
+    uint8_t bInterfaceProtocol;
+    uint8_t iInterface;
+} usb_desc_interface_t;
+
+typedef struct
+{
+    usb_desc_base_t base;
+    uint16_t bString[];
+} usb_desc_string_t;
 
 typedef struct
 {
@@ -76,43 +163,49 @@ typedef struct
     uint8_t  bmAttributes;
     uint8_t  bMaxPower;
 } usb_desc_conf_t;
+
+typedef struct
+{
+    usb_desc_base_t base;
+
+    uint16_t bcdUSB;
+    uint8_t bDeviceClass;
+    uint8_t bDeviceSubClass;
+    uint8_t bDeviceProtocol;
+    uint8_t bMaxPacketSize;
+    uint16_t idVendor;
+    uint16_t idProduct;
+    uint16_t bcdDevice;
+    uint8_t iManufacturer;
+    uint8_t iProduct;
+    uint8_t iSerialNumber;
+    uint8_t bNumConfigurations;
+} usb_desc_device_t;
+
 #pragma pack(pop)
 
-typedef struct
-{
-    uint32_t HccaInterrruptTable[32];
-    uint16_t HccaFrameNumber;
-    uint16_t HccaPad1;
-    uint32_t HccaDoneHead;
-    uint32_t Reserved[29];
-} usb_hcca_t;
-
 /* USB endpoint device struct. Incomplete and unused. */
-typedef struct
+typedef struct usb_device_t
 {
-    uint16_t vendor_id;
-    uint16_t device_id;
+    usb_desc_device_t device_desc;
+    struct {
+        usb_desc_conf_t conf_desc;
+        usb_desc_base_t* other_descs[16];
+    } conf_desc_items;
 
-    /* Reads from endpoint. Non-zero value indicates error. */
-    uint8_t (*device_in)(void* priv, uint8_t* data, uint32_t len);
-    /* Writes to endpoint. Non-zero value indicates error. */
-    uint8_t (*device_out)(void* priv, uint8_t* data, uint32_t len);
-    /* Process setup packets. */
-    uint8_t (*device_setup)(void* priv, uint8_t* data);
-    /* Device reset */
+    /* General-purpose function for I/O. Non-zero value indicates error. */
+    uint8_t (*device_process)(void* priv, uint8_t* data, uint32_t *len, uint8_t pid_token, uint8_t endpoint, uint8_t underrun_not_allowed);
+    /* Device reset. */
     void (*device_reset)(void* priv);
-
+    /* Get address. */
+    uint8_t (*device_get_address)(void* priv);
+    
     void* priv;
 } usb_device_t;
 
-enum usb_bus_types
-{
-    USB_BUS_OHCI = 0,
-    USB_BUS_UHCI = 1
-};
-
 /* Global variables. */
 extern const device_t usb_device;
+extern usb_t* usb_device_inst;
 
 /* Functions. */
 extern void uhci_update_io_mapping(usb_t *dev, uint8_t base_l, uint8_t base_h, int enable);
