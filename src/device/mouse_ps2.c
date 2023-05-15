@@ -108,7 +108,7 @@ ps2_report_coordinates(atkbc_dev_t *dev, int main)
     kbc_at_dev_queue_add(dev, buff[2], main);
     if (dev->flags & FLAG_INTMODE) {
         temp_z = dev->z & 0x0f;
-        if ((dev->flags & FLAG_5BTN)) {
+        if (dev->flags & FLAG_5BTN) {
             if (mouse_buttons & 8)
                 temp_z |= 0x10;
             if (mouse_buttons & 16)
@@ -150,7 +150,8 @@ static void
 ps2_write(void *priv)
 {
     atkbc_dev_t *dev = (atkbc_dev_t *) priv;
-    uint8_t  temp, val;
+    uint8_t  temp;
+    uint8_t  val;
     static uint8_t last_data[6] = { 0x00 };
 
     if (dev->port == NULL)
@@ -315,7 +316,7 @@ ps2_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
     int packet_size = (dev->flags & FLAG_INTMODE) ? 4 : 3;
 
     if (!mouse_scan || (!x && !y && !z && (b == dev->b)))
-        return (0xff);
+        return 0xff;
 
     if ((dev->mode == MODE_STREAM) && (kbc_at_dev_queue_pos(dev, 1) < (FIFO_SIZE - packet_size))) {
         dev->x = x;
@@ -332,7 +333,7 @@ ps2_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
     if ((dev->mode == MODE_STREAM) && (kbc_at_dev_queue_pos(dev, 1) < (FIFO_SIZE - packet_size)))
         ps2_report_coordinates(dev, 1);
 
-    return (0);
+    return 0;
 }
 
 /*
@@ -375,7 +376,7 @@ mouse_ps2_init(const device_t *info)
         kbc_at_dev_reset(dev, 0);
 
     /* Return our private data to the I/O layer. */
-    return (dev);
+    return dev;
 }
 
 static void

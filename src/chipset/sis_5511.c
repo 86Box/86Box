@@ -79,10 +79,10 @@ typedef struct sis_5511_t {
 static void
 sis_5511_shadow_recalc(sis_5511_t *dev)
 {
-    int      i, state;
+    int      state;
     uint32_t base;
 
-    for (i = 0x80; i <= 0x86; i++) {
+    for (uint8_t i = 0x80; i <= 0x86; i++) {
         if (i == 0x86) {
             state = (dev->pci_conf[i] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
             state |= (dev->pci_conf[i] & 0x20) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;

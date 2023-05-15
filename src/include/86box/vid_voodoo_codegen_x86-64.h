@@ -70,7 +70,8 @@ static __m128i xmm_01_w; // = 0x0001000100010001ull;
 static __m128i xmm_ff_w; // = 0x00ff00ff00ff00ffull;
 static __m128i xmm_ff_b; // = 0x00000000ffffffffull;
 
-static __m128i  alookup[257], aminuslookup[256];
+static __m128i  alookup[257];
+static __m128i  aminuslookup[256];
 static __m128i  minus_254; // = 0xff02ff02ff02ff02ull;
 static __m128i  bilinear_lookup[256 * 2];
 static __m128i  xmm_00_ff_w[2];

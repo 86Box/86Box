@@ -149,8 +149,9 @@ usb_interrupt_ohci(usb_t *dev, uint32_t level)
 static uint8_t
 uhci_reg_read(uint16_t addr, void *p)
 {
-    usb_t  *dev = (usb_t *) p;
-    uint8_t ret, *regs = dev->uhci_io;
+    usb_t   *dev = (usb_t *) p;
+    uint8_t  ret;
+    uint8_t *regs = dev->uhci_io;
 
     addr &= 0x0000001f;
 
@@ -345,7 +346,8 @@ ohci_set_interrupt(usb_t *dev, uint8_t bit)
 static int ohci_copy_td_input(usb_t* dev, usb_td_t *td,
                         uint8_t *buf, int len)
 {
-    uint32_t ptr, n;
+    uint32_t ptr;
+    uint32_t n;
 
     ptr = td->CBP;
     n = 0x1000 - (ptr & 0xfff);
@@ -365,7 +367,8 @@ static int ohci_copy_td_input(usb_t* dev, usb_td_t *td,
 static int ohci_copy_td_output(usb_t* dev, usb_td_t *td,
                         uint8_t *buf, int len)
 {
-    uint32_t ptr, n;
+    uint32_t ptr;
+    uint32_t n;
 
     ptr = td->CBP;
     n = 0x1000 - (ptr & 0xfff);
@@ -388,10 +391,12 @@ static int ohci_copy_td_output(usb_t* dev, usb_td_t *td,
 uint8_t
 ohci_service_transfer_desc(usb_t* dev, usb_ed_t* endpoint_desc)
 {
-    uint32_t td_addr = endpoint_desc->HeadP & ~(0xf);
+    uint32_t td_addr = endpoint_desc->HeadP & ~0xf;
     usb_td_t td;
-    uint8_t dir, pid_token = 255;
-    uint32_t len = 0, pktlen = 0;
+    uint8_t dir;
+    uint8_t pid_token = 255;
+    uint32_t len = 0;
+    uint32_t pktlen = 0;
     uint32_t actual_length = 0;
     uint32_t i = 0;
     uint8_t device_result = 0;
@@ -522,16 +527,15 @@ ohci_service_endpoint_desc(usb_t* dev, uint32_t head)
     usb_ed_t endpoint_desc;
     uint8_t active = 0;
     uint32_t next = 0;
-    uint32_t cur = 0;
     uint32_t limit_counter = 0;
     
     if (head == 0)
         return 0;
 
-    for (cur = head; cur && limit_counter++ < ENDPOINT_DESC_LIMIT; cur = next) {
+    for (uint32_t cur = head; cur && limit_counter++ < ENDPOINT_DESC_LIMIT; cur = next) {
         dma_bm_read(cur, (uint8_t*)&endpoint_desc, sizeof(usb_ed_t), 4);
 
-        next = endpoint_desc.NextED & ~(0xFu);
+        next = endpoint_desc.NextED & ~0xFu;
 
         if ((endpoint_desc.Control & (1 << 13)) || (endpoint_desc.HeadP & (1 << 0)))
             continue;
@@ -542,7 +546,7 @@ ohci_service_endpoint_desc(usb_t* dev, uint32_t head)
 
         active = 1;
 
-        while ((endpoint_desc.HeadP & ~(0xFu)) != endpoint_desc.TailP) {
+        while ((endpoint_desc.HeadP & ~0xFu) != endpoint_desc.TailP) {
             ohci_service_transfer_desc(dev, &endpoint_desc);
         }
 

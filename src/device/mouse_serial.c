@@ -284,7 +284,7 @@ static uint8_t
 sermouse_data_hex(mouse_t *dev, int x, int y, int b)
 {
     char    ret[6] = { 0, 0, 0, 0, 0, 0 };
-    uint8_t i, but = 0x00;
+    uint8_t but = 0x00;
 
     but |= (b & 0x01) ? 0x04 : 0x00; /* left button */
     but |= (b & 0x04) ? 0x02 : 0x00; /* middle button */
@@ -292,7 +292,7 @@ sermouse_data_hex(mouse_t *dev, int x, int y, int b)
 
     sprintf(ret, "%02X%02X%01X", (int8_t) y, (int8_t) x, but & 0x0f);
 
-    for (i = 0; i < 5; i++)
+    for (uint8_t i = 0; i < 5; i++)
         dev->data[i] = ret[4 - i];
 
     return 5;
@@ -371,7 +371,8 @@ sermouse_last_button_status(mouse_t *dev)
 static void
 sermouse_update_delta(mouse_t *dev, int *local, int *global)
 {
-    int min, max;
+    int min;
+    int max;
 
     if (dev->format == 3) {
         min = -2048;
@@ -397,7 +398,9 @@ static uint8_t
 sermouse_update_data(mouse_t *dev)
 {
     uint8_t ret = 0;
-    int     delta_x, delta_y, delta_z;
+    int     delta_x;
+    int     delta_y;
+    int     delta_z;
 
     /* Update the deltas and the delays. */
     sermouse_update_delta(dev, &delta_x, &dev->rel_x);
@@ -529,7 +532,7 @@ sermouse_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv
 
     if (!x && !y && !z && (b == dev->oldb)) {
         dev->oldb = b;
-        return (1);
+        return 1;
     }
 
     dev->oldb = b;
@@ -568,7 +571,7 @@ sermouse_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv
     dev->rel_y += y;
     dev->rel_z += z;
 
-    return (0);
+    return 0;
 }
 
 static void

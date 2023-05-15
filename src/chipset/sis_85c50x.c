@@ -68,7 +68,9 @@ typedef struct sis_85c50x_t {
 static void
 sis_85c50x_shadow_recalc(sis_85c50x_t *dev)
 {
-    uint32_t base, i, can_read, can_write;
+    uint32_t base;
+    uint32_t can_read;
+    uint32_t can_write;
 
     can_read  = (dev->pci_conf[0x53] & 0x40) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
     can_write = (dev->pci_conf[0x53] & 0x20) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL;
@@ -79,7 +81,7 @@ sis_85c50x_shadow_recalc(sis_85c50x_t *dev)
     shadowbios       = 1;
     shadowbios_write = 1;
 
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         base = 0xe0000 + (i << 14);
         mem_set_mem_state_both(base, 0x4000, (dev->pci_conf[0x54] & (1 << (7 - i))) ? (can_read | can_write) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
         base = 0xd0000 + (i << 14);

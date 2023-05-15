@@ -192,8 +192,10 @@ extern const scancode scancode_xt[512];
 extern uint8_t keyboard_set3_flags[512];
 extern uint8_t keyboard_set3_all_repeat;
 extern uint8_t keyboard_set3_all_break;
-extern int     mouse_queue_start, mouse_queue_end;
-extern int     mouse_cmd_queue_start, mouse_cmd_queue_end;
+extern int     mouse_queue_start;
+extern int     mouse_queue_end;
+extern int     mouse_cmd_queue_start;
+extern int     mouse_cmd_queue_end;
 extern int     mouse_scan;
 
 extern kbc_at_port_t     *kbc_at_ports[2];

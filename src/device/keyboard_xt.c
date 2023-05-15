@@ -343,10 +343,11 @@ const scancode scancode_xt[512] = {
 };
 
 static uint8_t key_queue[16];
-static int     key_queue_start = 0,
-           key_queue_end       = 0;
-static int is_tandy = 0, is_t1x00 = 0,
-           is_amstrad = 0;
+static int     key_queue_start = 0;
+static int     key_queue_end   = 0;
+static int     is_tandy = 0;
+static int     is_t1x00 = 0;
+static int     is_amstrad = 0;
 
 #ifdef ENABLE_KEYBOARD_XT_LOG
 int keyboard_xt_do_log = ENABLE_KEYBOARD_XT_LOG;
@@ -370,9 +371,9 @@ static uint8_t
 get_fdd_switch_settings(void)
 {
 
-    int i, fdd_count = 0;
+    uint8_t fdd_count = 0;
 
-    for (i = 0; i < FDD_NUM; i++) {
+    for (uint8_t i = 0; i < FDD_NUM; i++) {
         if (fdd_get_flags(i))
             fdd_count++;
     }
@@ -467,7 +468,8 @@ kbd_adddata(uint16_t val)
 void
 kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
 {
-    uint8_t num_lock = 0, shift_states = 0;
+    uint8_t num_lock = 0;
+    uint8_t shift_states = 0;
 
     if (!adddata)
         return;
@@ -515,7 +517,9 @@ static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     xtkbd_t *kbd = (xtkbd_t *) priv;
-    uint8_t  bit, set, new_clock;
+    uint8_t  bit;
+    uint8_t  set;
+    uint8_t  new_clock;
 
     switch (port) {
         case 0x61: /* Keyboard Control Register (aka Port B) */
@@ -684,7 +688,7 @@ kbd_read(uint16_t port, void *priv)
             break;
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -700,7 +704,7 @@ kbd_reset(void *priv)
 
     keyboard_scan = 1;
 
-    key_queue_start = 0,
+    key_queue_start = 0;
     key_queue_end   = 0;
 }
 
@@ -873,7 +877,7 @@ kbd_init(const device_t *info)
 
     is_amstrad = 0;
 
-    return (kbd);
+    return kbd;
 }
 
 static void

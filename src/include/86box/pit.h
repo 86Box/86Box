@@ -84,15 +84,18 @@ typedef struct {
 extern pit_intf_t       pit_devs[2];
 extern const pit_intf_t pit_classic_intf;
 
-extern double SYSCLK, PCICLK, AGPCLK;
+extern double SYSCLK;
+extern double PCICLK;
+extern double AGPCLK;
 
-extern uint64_t PITCONST, ISACONST,
-    CGACONST,
-    MDACONST,
-    HERCCONST,
-    VGACONST1,
-    VGACONST2,
-    RTCCONST;
+extern uint64_t PITCONST;
+extern uint64_t ISACONST;
+extern uint64_t CGACONST;
+extern uint64_t MDACONST;
+extern uint64_t HERCCONST;
+extern uint64_t VGACONST1;
+extern uint64_t VGACONST2;
+extern uint64_t RTCCONST;
 
 extern int refresh_at_enable;
 

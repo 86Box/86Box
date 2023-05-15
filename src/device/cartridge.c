@@ -175,15 +175,13 @@ cart_close(int drive)
 void
 cart_reset(void)
 {
-    int i;
-
     cart_image_close(1);
     cart_image_close(0);
 
     if (!machine_has_cartridge(machine))
         return;
 
-    for (i = 0; i < 2; i++) {
+    for (uint8_t i = 0; i < 2; i++) {
         mem_mapping_add(&cart_mappings[i], 0x000d0000, 0x00002000,
                         cart_read, NULL, NULL,
                         NULL, NULL, NULL,

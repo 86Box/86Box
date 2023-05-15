@@ -74,7 +74,8 @@
 #define VID_CLOCK (double) (651 * 416 * 60)
 
 /* Mapping of attributes to colours */
-static uint32_t amber, black;
+static uint32_t amber;
+static uint32_t black;
 static uint8_t  boldcols[256]; /* Which attributes use the bold font */
 static uint32_t blinkcols[256][2];
 static uint32_t normcols[256][2];
@@ -222,7 +223,8 @@ void
 t3100e_recalctimings(t3100e_t *t3100e)
 {
     double disptime;
-    double _dispontime, _dispofftime;
+    double _dispontime;
+    double _dispofftime;
 
     if (!t3100e->internal) {
         cga_recalctimings(&t3100e->cga);
@@ -231,8 +233,8 @@ t3100e_recalctimings(t3100e_t *t3100e)
     disptime            = 651;
     _dispontime         = 640;
     _dispofftime        = disptime - _dispontime;
-    t3100e->dispontime  = (uint64_t) (_dispontime * (cpuclock / VID_CLOCK) * (double) (1ull << 32));
-    t3100e->dispofftime = (uint64_t) (_dispofftime * (cpuclock / VID_CLOCK) * (double) (1ull << 32));
+    t3100e->dispontime  = (uint64_t) (_dispontime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
+    t3100e->dispofftime = (uint64_t) (_dispofftime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
 }
 
 /* Draw a row of text in 80-column mode */
@@ -240,8 +242,9 @@ void
 t3100e_text_row80(t3100e_t *t3100e)
 {
     uint32_t cols[2];
-    int      x, c;
-    uint8_t  chr, attr;
+    int      c;
+    uint8_t  chr;
+    uint8_t  attr;
     int      drawcursor;
     int      cursorline;
     int      bold;
@@ -260,7 +263,7 @@ t3100e_text_row80(t3100e_t *t3100e)
     } else {
         cursorline = ((t3100e->cga.crtc[10] & 0x0F) * 2 <= sc) && ((t3100e->cga.crtc[11] & 0x0F) * 2 >= sc);
     }
-    for (x = 0; x < 80; x++) {
+    for (uint8_t x = 0; x < 80; x++) {
         chr        = t3100e->vram[(addr + 2 * x) & 0x7FFF];
         attr       = t3100e->vram[(addr + 2 * x + 1) & 0x7FFF];
         drawcursor = ((ma == ca) && cursorline && (t3100e->cga.cgamode & 8) && (t3100e->cga.cgablink & 16));
@@ -300,8 +303,9 @@ void
 t3100e_text_row40(t3100e_t *t3100e)
 {
     uint32_t cols[2];
-    int      x, c;
-    uint8_t  chr, attr;
+    int      c;
+    uint8_t  chr;
+    uint8_t  attr;
     int      drawcursor;
     int      cursorline;
     int      bold;
@@ -320,7 +324,7 @@ t3100e_text_row40(t3100e_t *t3100e)
     } else {
         cursorline = ((t3100e->cga.crtc[10] & 0x0F) * 2 <= sc) && ((t3100e->cga.crtc[11] & 0x0F) * 2 >= sc);
     }
-    for (x = 0; x < 40; x++) {
+    for (uint8_t x = 0; x < 40; x++) {
         chr        = t3100e->vram[(addr + 2 * x) & 0x7FFF];
         attr       = t3100e->vram[(addr + 2 * x + 1) & 0x7FFF];
         drawcursor = ((ma == ca) && cursorline && (t3100e->cga.cgamode & 8) && (t3100e->cga.cgablink & 16));
@@ -360,7 +364,6 @@ t3100e_text_row40(t3100e_t *t3100e)
 void
 t3100e_cgaline6(t3100e_t *t3100e)
 {
-    int      x, c;
     uint8_t  dat;
     uint32_t ink = 0;
     uint16_t addr;
@@ -375,11 +378,11 @@ t3100e_cgaline6(t3100e_t *t3100e)
     } else {
         addr = ((t3100e->displine >> 1) & 1) * 0x2000 + (t3100e->displine >> 2) * 80 + ((ma & ~1) << 1);
     }
-    for (x = 0; x < 80; x++) {
+    for (uint8_t x = 0; x < 80; x++) {
         dat = t3100e->vram[addr & 0x7FFF];
         addr++;
 
-        for (c = 0; c < 8; c++) {
+        for (uint8_t c = 0; c < 8; c++) {
             ink = (dat & 0x80) ? fg : bg;
             if (!(t3100e->cga.cgamode & 8))
                 ink = black;
@@ -394,9 +397,10 @@ t3100e_cgaline6(t3100e_t *t3100e)
 void
 t3100e_cgaline4(t3100e_t *t3100e)
 {
-    int      x, c;
-    uint8_t  dat, pattern;
-    uint32_t ink0 = 0, ink1 = 0;
+    uint8_t  dat;
+    uint8_t  pattern;
+    uint32_t ink0 = 0;
+    uint32_t ink1 = 0;
     uint16_t addr;
 
     uint16_t ma = (t3100e->cga.crtc[13] | (t3100e->cga.crtc[12] << 8)) & 0x7fff;
@@ -407,11 +411,11 @@ t3100e_cgaline4(t3100e_t *t3100e)
     {
         addr = ((t3100e->displine >> 1) & 1) * 0x2000 + (t3100e->displine >> 2) * 80 + ((ma & ~1) << 1);
     }
-    for (x = 0; x < 80; x++) {
+    for (uint8_t x = 0; x < 80; x++) {
         dat = t3100e->vram[addr & 0x7FFF];
         addr++;
 
-        for (c = 0; c < 4; c++) {
+        for (uint8_t c = 0; c < 4; c++) {
             pattern = (dat & 0xC0) >> 6;
             if (!(t3100e->cga.cgamode & 8))
                 pattern = 0;
