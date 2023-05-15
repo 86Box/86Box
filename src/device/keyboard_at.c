@@ -28,6 +28,8 @@
 #define FLAG_AT        0x00  /* dev is AT or PS/2 */
 #define FLAG_TYPE_MASK 0x07  /* mask for type     */
 
+#define FIFO_SIZE      16
+
 enum {
     KBD_84_KEY = 0,
     KBD_101_KEY,
@@ -959,6 +961,8 @@ keyboard_at_init(const device_t *info)
     dev->execute_bat = keyboard_at_bat;
 
     dev->scan        = &keyboard_scan;
+
+    dev->fifo_mask   = FIFO_SIZE - 1;
 
     if (dev->port != NULL)
         kbc_at_dev_reset(dev, 0);

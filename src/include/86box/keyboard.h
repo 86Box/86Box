@@ -33,7 +33,9 @@ enum {
     DEV_STATE_MAIN_2,
     DEV_STATE_MAIN_CMD,
     DEV_STATE_MAIN_WANT_IN,
-    DEV_STATE_MAIN_IN
+    DEV_STATE_MAIN_IN,
+    DEV_STATE_EXECUTE_BAT,
+    DEV_STATE_MAIN_WANT_EXECUTE_BAT
 };
 
 /* Used by the AT / PS/2 keyboard controller, common device, keyboard, and mouse. */
@@ -61,9 +63,9 @@ typedef struct {
        output multiple bytes. */
     uint8_t cmd_queue[16];
 
-    uint8_t queue[16];
+    uint8_t queue[64];
 
-    int     mode,
+    int     fifo_mask, mode,
             x, y, z, b;
 
     int     *scan;

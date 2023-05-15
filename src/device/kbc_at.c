@@ -1449,6 +1449,7 @@ kbc_at_process_cmd(void *priv)
                         /* TODO: Proper P1 implementation, with OR and AND flags in the machine table. */
                         dev->p1 = dev->p1 & 0xff;
                         write_p2(dev, 0x4b);
+                        picintc(0x1002);
                     }
 
                     dev->status = (dev->status & 0x0f) | 0x60;
@@ -1467,6 +1468,7 @@ kbc_at_process_cmd(void *priv)
                         /* TODO: Proper P1 implementation, with OR and AND flags in the machine table. */
                         dev->p1 = dev->p1 & 0xff;
                         write_p2(dev, 0xcf);
+                        picintc(0x0002);
                     }
 
                     dev->status = (dev->status & 0x0f) | 0x60;
