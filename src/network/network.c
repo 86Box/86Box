@@ -123,7 +123,7 @@ netcard_conf_t net_cards_conf[NET_CARD_MAX];
 uint16_t       net_card_current = 0;
 
 /* Global variables. */
-network_devmap_t network_devmap;
+network_devmap_t network_devmap = {0};
 int  network_ndev;
 netdev_t network_devs[NET_HOST_INTF_MAX];
 
@@ -442,13 +442,12 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
     card->card_num        = net_card_current;
     card->byte_period     = NET_PERIOD_10M;
 
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < NET_QUEUE_COUNT; i++) {
         network_queue_init(&card->queues[i]);
     }
 
     switch (net_cards_conf[net_card_current].net_type) {
         case NET_TYPE_SLIRP:
-        default:
             card->host_drv      = net_slirp_drv;
             card->host_drv.priv = card->host_drv.init(card, mac, NULL);
             break;
@@ -463,18 +462,45 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
             card->host_drv.priv = card->host_drv.init(card, mac, net_cards_conf[net_card_current].host_dev_name);
             break;
 #endif
+        default:
+            card->host_drv.priv = NULL;
+            break;
     }
 
+    // Use null driver on:
+    // * No specific driver selected (card->host_drv.priv is set to null above)
+    // * Failure to init a specific driver (in which case card->host_drv.priv is null)
     if (!card->host_drv.priv) {
-        thread_close_mutex(card->tx_mutex);
-        thread_close_mutex(card->rx_mutex);
-        for (int i = 0; i < 3; i++) {
-            network_queue_clear(&card->queues[i]);
+
+        if(net_cards_conf[net_card_current].net_type != NET_TYPE_NONE) {
+            // We're here because of a failure
+            // Placeholder to display a msgbox about falling back to null
+            ui_msgbox(MBX_ERROR | MBX_ANSI, "Network driver initialization failed. Falling back to NULL driver.");
         }
 
-        free(card->queued_pkt.data);
-        free(card);
-        return NULL;
+        // Init null driver
+        card->host_drv      = net_null_drv;
+        card->host_drv.priv = card->host_drv.init(card, mac, NULL);
+        // Set link state to disconnected by default
+        network_connect(card->card_num, 0);
+        ui_sb_update_icon_state(SB_NETWORK | card->card_num, 1);
+
+        // If null fails, something is very wrong
+        // Clean up and fatal
+        if(!card->host_drv.priv) {
+            thread_close_mutex(card->tx_mutex);
+            thread_close_mutex(card->rx_mutex);
+            for (int i = 0; i < NET_QUEUE_COUNT; i++) {
+                network_queue_clear(&card->queues[i]);
+            }
+
+            free(card->queued_pkt.data);
+            free(card);
+            // Placeholder - insert the error message
+            fatal("Error initializing the network device: Null driver initialization failed");
+            return NULL;
+        }
+
     }
 
     timer_add(&card->timer, network_rx_queue, card, 0);
@@ -491,7 +517,7 @@ netcard_close(netcard_t *card)
 
     thread_close_mutex(card->tx_mutex);
     thread_close_mutex(card->rx_mutex);
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < NET_QUEUE_COUNT; i++) {
         network_queue_clear(&card->queues[i]);
     }
 
@@ -641,7 +667,7 @@ network_dev_to_id(char *devname)
 int
 network_dev_available(int id)
 {
-    int available = (net_cards_conf[id].device_num > 0) && (net_cards_conf[id].net_type != NET_TYPE_NONE);
+    int available = (net_cards_conf[id].device_num > 0);
 
     if ((net_cards_conf[id].net_type == NET_TYPE_PCAP && (network_dev_to_id(net_cards_conf[id].host_dev_name) <= 0)))
         available = 0;

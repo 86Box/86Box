@@ -163,12 +163,12 @@ extern volatile int screenshots;
 #define efscrnsz_y           (monitors[monitor_index_global].mon_efscrnsz_y)
 #define unscaled_size_x      (monitors[monitor_index_global].mon_unscaled_size_x)
 #define unscaled_size_y      (monitors[monitor_index_global].mon_unscaled_size_y)
-extern PALETTE cgapal,
-    cgapal_mono[6];
+extern PALETTE cgapal;
+extern PALETTE cgapal_mono[6];
 // extern uint32_t	pal_lookup[256];
-extern int video_fullscreen,
-    video_fullscreen_scale,
-    video_fullscreen_first;
+extern int video_fullscreen;
+extern int video_fullscreen_scale;
+extern int video_fullscreen_first;
 extern uint8_t      fontdat[2048][8];
 extern uint8_t      fontdatm[2048][16];
 extern uint8_t      fontdatw[512][32];
@@ -190,9 +190,9 @@ extern int video_grayscale;
 extern int video_graytype;
 
 extern double cpuclock;
-extern int    emu_fps,
-    frames;
-extern int readflash;
+extern int    emu_fps;
+extern int    frames;
+extern int    readflash;
 
 /* Function handler pointers. */
 extern void (*video_recalctimings)(void);

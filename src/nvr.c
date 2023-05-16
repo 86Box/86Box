@@ -89,13 +89,13 @@ int
 nvr_is_leap(int year)
 {
     if (year % 400 == 0)
-        return (1);
+        return 1;
     if (year % 100 == 0)
-        return (0);
+        return 0;
     if (year % 4 == 0)
-        return (1);
+        return 1;
 
-    return (0);
+    return 0;
 }
 
 /* Determine the days in the current month. */
@@ -207,7 +207,7 @@ nvr_path(char *str)
     path_slash(temp);
     strcat(temp, str);
 
-    return (temp);
+    return temp;
 }
 
 /*
@@ -230,7 +230,7 @@ nvr_load(void)
 
     /* Make sure we have been initialized. */
     if (saved_nvr == NULL)
-        return (0);
+        return 0;
 
     /* Clear out any old data. */
     memset(saved_nvr->regs, 0x00, sizeof(saved_nvr->regs));
@@ -261,7 +261,7 @@ nvr_load(void)
     if (saved_nvr->start != NULL)
         saved_nvr->start(saved_nvr);
 
-    return (1);
+    return 1;
 }
 
 void
@@ -279,7 +279,7 @@ nvr_save(void)
 
     /* Make sure we have been initialized. */
     if (saved_nvr == NULL)
-        return (0);
+        return 0;
 
     if (saved_nvr->size != 0) {
         path = nvr_path(saved_nvr->fn);
@@ -298,7 +298,7 @@ nvr_save(void)
     /* Device is clean again. */
     nvr_dosave = 0;
 
-    return (1);
+    return 1;
 }
 
 void
@@ -328,8 +328,12 @@ nvr_time_sync(void)
 void
 nvr_time_get(struct tm *tm)
 {
-    uint8_t  dom, mon, sum, wd;
-    uint16_t cent, yr;
+    uint8_t  dom;
+    uint8_t  mon;
+    uint8_t  sum;
+    uint8_t  wd;
+    uint16_t cent;
+    uint16_t yr;
 
     tm->tm_sec  = intclk.tm_sec;
     tm->tm_min  = intclk.tm_min;

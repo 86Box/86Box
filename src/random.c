@@ -51,7 +51,8 @@ static __inline unsigned long long
 rdtsc(void)
 {
 #if defined(__i386__) || defined(__x86_64__)
-    unsigned hi, lo;
+    unsigned int hi;
+    unsigned int lo;
 #    ifdef _MSC_VER
     __asm {
         rdtsc

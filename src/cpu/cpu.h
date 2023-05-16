@@ -402,8 +402,6 @@ typedef struct {
     uint16_t flags, eflags;
 
     uint32_t _smbase;
-
-    uint8_t inside_emulation_mode;
 } cpu_state_t;
 
 typedef struct {

@@ -77,14 +77,14 @@ i2c_addbus(char *name)
 void
 i2c_removebus(void *bus_handle)
 {
-    int        c;
-    i2c_t     *p, *q;
+    i2c_t     *p;
+    i2c_t     *q;
     i2c_bus_t *bus = (i2c_bus_t *) bus_handle;
 
     if (!bus_handle)
         return;
 
-    for (c = 0; c < NADDRS; c++) {
+    for (uint8_t c = 0; c < NADDRS; c++) {
         p = bus->devices[c];
         if (!p)
             continue;
@@ -117,14 +117,14 @@ i2c_sethandler(void *bus_handle, uint8_t base, int size,
                void (*stop)(void *bus, uint8_t addr, void *priv),
                void *priv)
 {
-    int        c;
-    i2c_t     *p, *q = NULL;
+    i2c_t     *p;
+    i2c_t     *q = NULL;
     i2c_bus_t *bus = (i2c_bus_t *) bus_handle;
 
     if (!bus_handle || ((base + size) > NADDRS))
         return;
 
-    for (c = 0; c < size; c++) {
+    for (int c = 0; c < size; c++) {
         p = bus->last[base + c];
         q = (i2c_t *) malloc(sizeof(i2c_t));
         memset(q, 0, sizeof(i2c_t));
@@ -156,14 +156,14 @@ i2c_removehandler(void *bus_handle, uint8_t base, int size,
                   void (*stop)(void *bus, uint8_t addr, void *priv),
                   void *priv)
 {
-    int        c;
-    i2c_t     *p, *q;
+    i2c_t     *p;
+    i2c_t     *q;
     i2c_bus_t *bus = (i2c_bus_t *) bus_handle;
 
     if (!bus_handle || ((base + size) > NADDRS))
         return;
 
-    for (c = 0; c < size; c++) {
+    for (int c = 0; c < size; c++) {
         p = bus->devices[base + c];
         if (!p)
             continue;
@@ -209,7 +209,7 @@ i2c_start(void *bus_handle, uint8_t addr, uint8_t read)
     i2c_t     *p;
 
     if (!bus)
-        return (ret);
+        return ret;
 
     p = bus->devices[addr];
     if (p) {
@@ -223,7 +223,7 @@ i2c_start(void *bus_handle, uint8_t addr, uint8_t read)
 
     i2c_log("I2C %s: start(%02X) = %d\n", bus->name, addr, ret);
 
-    return (ret);
+    return ret;
 }
 
 uint8_t
@@ -234,7 +234,7 @@ i2c_read(void *bus_handle, uint8_t addr)
     i2c_t     *p;
 
     if (!bus)
-        return (ret);
+        return ret;
 
     p = bus->devices[addr];
     if (p) {
@@ -249,7 +249,7 @@ i2c_read(void *bus_handle, uint8_t addr)
 
     i2c_log("I2C %s: read(%02X) = %02X\n", bus->name, addr, ret);
 
-    return (ret);
+    return ret;
 }
 
 uint8_t
@@ -260,7 +260,7 @@ i2c_write(void *bus_handle, uint8_t addr, uint8_t data)
     i2c_bus_t *bus = (i2c_bus_t *) bus_handle;
 
     if (!bus)
-        return (ret);
+        return ret;
 
     p = bus->devices[addr];
     if (p) {
@@ -274,7 +274,7 @@ i2c_write(void *bus_handle, uint8_t addr, uint8_t data)
 
     i2c_log("I2C %s: write(%02X, %02X) = %d\n", bus->name, addr, data, ret);
 
-    return (ret);
+    return ret;
 }
 
 void

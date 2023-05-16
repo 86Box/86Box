@@ -173,7 +173,8 @@ static void
 europc_rtc_tick(nvr_t *nvr)
 {
     uint8_t *regs;
-    int      mon, yr;
+    int      mon;
+    int      yr;
 
     /* Only if RTC is running.. */
     regs = nvr->regs;
@@ -266,14 +267,13 @@ static uint8_t
 rtc_checksum(uint8_t *ptr)
 {
     uint8_t sum;
-    int     i;
 
     /* Calculate all bytes with XOR. */
     sum = 0x00;
-    for (i = MRTC_CONF_A; i <= MRTC_CONF_E; i++)
+    for (uint8_t i = MRTC_CONF_A; i <= MRTC_CONF_E; i++)
         sum += ptr[i];
 
-    return (sum);
+    return sum;
 }
 
 /* Reset the machine's NVR to a sane state. */
@@ -523,7 +523,7 @@ jim_read(uint16_t addr, void *priv)
     europc_log("EuroPC: jim_rd(%04x): %02x\n", addr, r);
 #endif
 
-    return (r);
+    return r;
 }
 
 /* Initialize the mainboard 'device' of the machine. */
@@ -638,7 +638,7 @@ europc_boot(const device_t *info)
     if (hdc_current == 1)
         (void) device_add(&xta_hd20_device);
 
-    return (sys);
+    return sys;
 }
 
 static void

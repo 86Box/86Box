@@ -577,11 +577,9 @@ ctr_reset(ctrf_t *ctr)
 static void
 pitf_reset(pitf_t *dev)
 {
-    int i;
-
     memset(dev, 0, sizeof(pitf_t));
 
-    for (i = 0; i < 3; i++)
+    for (uint8_t i = 0; i < 3; i++)
         ctr_reset(&dev->counters[i]);
 
     /* Disable speaker gate. */

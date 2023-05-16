@@ -112,7 +112,6 @@ static void
 ali1533_write(int func, int addr, uint8_t val, void *priv)
 {
     ali1543_t *dev = (ali1543_t *) priv;
-    int        irq;
     ali1543_log("M1533: dev->pci_conf[%02x] = %02x\n", addr, val);
 
     if (func > 0)
@@ -219,7 +218,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
         case 0x4c: /* PCI INT to ISA Level to Edge transfer */
             dev->pci_conf[addr] = val;
 
-            for (irq = 1; irq < 9; irq++)
+            for (uint8_t irq = 1; irq < 9; irq++)
                 pci_set_irq_level(irq, !(val & (1 << (irq - 1))));
             break;
 
@@ -468,7 +467,8 @@ ali1533_read(int func, int addr, void *priv)
 static void
 ali5229_ide_irq_handler(ali1543_t *dev)
 {
-    int ctl = 0, ch = 0;
+    int ctl = 0;
+    int ch = 0;
     int bit = 0;
 
     if (dev->ide_conf[0x52] & 0x10) {
@@ -555,17 +555,20 @@ ali5229_ide_handler(ali1543_t *dev)
 {
     uint32_t ch = 0;
 
-    uint16_t native_base_pri_addr = ((dev->ide_conf[0x11] | dev->ide_conf[0x10] << 8)) & 0xfffe;
-    uint16_t native_side_pri_addr = ((dev->ide_conf[0x15] | dev->ide_conf[0x14] << 8)) & 0xfffe;
-    uint16_t native_base_sec_addr = ((dev->ide_conf[0x19] | dev->ide_conf[0x18] << 8)) & 0xfffe;
-    uint16_t native_side_sec_addr = ((dev->ide_conf[0x1c] | dev->ide_conf[0x1b] << 8)) & 0xfffe;
+    uint16_t native_base_pri_addr = (dev->ide_conf[0x11] | dev->ide_conf[0x10] << 8) & 0xfffe;
+    uint16_t native_side_pri_addr = (dev->ide_conf[0x15] | dev->ide_conf[0x14] << 8) & 0xfffe;
+    uint16_t native_base_sec_addr = (dev->ide_conf[0x19] | dev->ide_conf[0x18] << 8) & 0xfffe;
+    uint16_t native_side_sec_addr = (dev->ide_conf[0x1c] | dev->ide_conf[0x1b] << 8) & 0xfffe;
 
     uint16_t comp_base_pri_addr = 0x01f0;
     uint16_t comp_side_pri_addr = 0x03f6;
     uint16_t comp_base_sec_addr = 0x0170;
     uint16_t comp_side_sec_addr = 0x0376;
 
-    uint16_t current_pri_base, current_pri_side, current_sec_base, current_sec_side;
+    uint16_t current_pri_base;
+    uint16_t current_pri_side;
+    uint16_t current_sec_base;
+    uint16_t current_sec_side;
 
     /* Primary Channel Programming */
     if (dev->ide_conf[0x52] & 0x10) {
@@ -618,7 +621,7 @@ ali5229_ide_handler(ali1543_t *dev)
             ali1543_log("ali5229_ide_handler(): Enabling secondary IDE...\n");
             ide_sec_enable();
 
-            sff_bus_master_handler(dev->ide_controller[1], dev->ide_conf[0x04] & 0x01, (((dev->ide_conf[0x20] & 0xf0) | (dev->ide_conf[0x21] << 8))) + (8 ^ ch));
+            sff_bus_master_handler(dev->ide_controller[1], dev->ide_conf[0x04] & 0x01, ((dev->ide_conf[0x20] & 0xf0) | (dev->ide_conf[0x21] << 8)) + (8 ^ ch));
             ali1543_log("M5229 SEC: BASE %04x SIDE %04x\n", current_sec_base, current_sec_side);
         }
     } else {

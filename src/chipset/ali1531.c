@@ -91,12 +91,15 @@ ali1531_smram_recalc(uint8_t val, ali1531_t *dev)
 static void
 ali1531_shadow_recalc(int cur_reg, ali1531_t *dev)
 {
-    int      i, bit, r_reg, w_reg;
-    uint32_t base, flags = 0;
+    int      bit;
+    int      r_reg;
+    int      w_reg;
+    uint32_t base;
+    uint32_t flags = 0;
 
     shadowbios = shadowbios_write = 0;
 
-    for (i = 0; i < 16; i++) {
+    for (uint8_t i = 0; i < 16; i++) {
         base  = 0x000c0000 + (i << 14);
         bit   = i & 7;
         r_reg = 0x4c + (i >> 3);

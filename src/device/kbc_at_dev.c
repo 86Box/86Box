@@ -75,7 +75,7 @@ kbc_at_dev_queue_pos(atkbc_dev_t *dev, uint8_t main)
     uint8_t ret;
 
     if (main)
-        ret = ((dev->queue_end - dev->queue_start) & 0xf);
+        ret = ((dev->queue_end - dev->queue_start) & dev->fifo_mask);
     else
         ret = ((dev->cmd_queue_end - dev->cmd_queue_start) & 0xf);
 
@@ -88,7 +88,7 @@ kbc_at_dev_queue_add(atkbc_dev_t *dev, uint8_t val, uint8_t main)
     if (main) {
         kbc_at_dev_log("%s: dev->queue[%02X]     = %02X;\n", dev->name, dev->queue_end, val);
         dev->queue[dev->queue_end]         = val;
-        dev->queue_end                     = (dev->queue_end + 1) & 0xf;
+        dev->queue_end                     = (dev->queue_end + 1) & dev->fifo_mask;
     } else {
         kbc_at_dev_log("%s: dev->cmd_queue[%02X] = %02X;\n", dev->name, dev->cmd_queue_end, val);
         dev->cmd_queue[dev->cmd_queue_end] = val;
@@ -121,7 +121,7 @@ kbc_at_dev_poll(void *priv)
             if (*dev->scan && (dev->port->out_new == -1) && (dev->queue_start != dev->queue_end)) {
                 kbc_at_dev_log("%s: %02X (DATA) on channel 1\n", dev->name, dev->queue[dev->queue_start]);
                 dev->port->out_new   = dev->queue[dev->queue_start];
-                dev->queue_start     = (dev->queue_start + 1) & 0xf;
+                dev->queue_start     = (dev->queue_start + 1) & dev->fifo_mask;
             }
             if (!(*dev->scan) || dev->port->wantcmd)
                 dev->state = DEV_STATE_MAIN_1;
@@ -155,6 +155,20 @@ kbc_at_dev_poll(void *priv)
                 dev->port->wantcmd    = 0;
             }
             break;
+        case DEV_STATE_EXECUTE_BAT:
+            dev->state = DEV_STATE_MAIN_OUT;
+            dev->execute_bat(dev);
+            break;
+        case DEV_STATE_MAIN_WANT_EXECUTE_BAT:
+            /* Output command response and then return to main loop #2. */
+            if ((dev->port->out_new == -1) && (dev->cmd_queue_start != dev->cmd_queue_end)) {
+                kbc_at_dev_log("%s: %02X (CMD ) on channel 1\n", dev->name, dev->cmd_queue[dev->cmd_queue_start]);
+                dev->port->out_new   = dev->cmd_queue[dev->cmd_queue_start];
+                dev->cmd_queue_start = (dev->cmd_queue_start + 1) & 0xf;
+            }
+            if (dev->cmd_queue_start == dev->cmd_queue_end)
+                dev->state = DEV_STATE_EXECUTE_BAT;
+            break;
     }
 }
 
@@ -170,12 +184,11 @@ kbc_at_dev_reset(atkbc_dev_t *dev, int do_fa)
 
     *dev->scan = 1;
 
-    if (do_fa)
+    if (do_fa) {
         kbc_at_dev_queue_add(dev, 0xfa, 0);
-
-    dev->state = DEV_STATE_MAIN_OUT;
-
-    dev->execute_bat(dev);
+        dev->state = DEV_STATE_MAIN_WANT_EXECUTE_BAT;
+    } else
+        dev->state = DEV_STATE_EXECUTE_BAT;
 }
 
 atkbc_dev_t *
@@ -194,5 +207,5 @@ kbc_at_dev_init(uint8_t inst)
     }
 
     /* Return our private data to the I/O layer. */
-    return (dev);
+    return dev;
 }

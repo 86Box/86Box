@@ -160,12 +160,11 @@ static void
 vt82c505_reset(void *priv)
 {
     vt82c505_t *dev = (vt82c505_t *) malloc(sizeof(vt82c505_t));
-    int         i;
 
     dev->pci_conf[0x04] = 0x07;
     dev->pci_conf[0x07] = 0x00;
 
-    for (i = 0x80; i <= 0x9f; i++) {
+    for (uint8_t i = 0x80; i <= 0x9f; i++) {
         switch (i) {
             case 0x81:
                 vt82c505_write(0, i, 0x01, priv);

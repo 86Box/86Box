@@ -105,7 +105,11 @@ static const int mem_conf_cr1[41] = {
 static uint32_t
 get_addr(headland_t *dev, uint32_t addr, headland_mr_t *mr)
 {
-    uint32_t bank_base[4], bank_shift[4], shift, other_shift, bank;
+    uint32_t bank_base[4];
+    uint32_t bank_shift[4];
+    uint32_t shift;
+    uint32_t other_shift;
+    uint32_t bank;
 
     if ((addr >= 0x0e0000) && (addr <= 0x0fffff))
         return addr;
@@ -173,7 +177,8 @@ hl_ems_disable(headland_t *dev, uint8_t mar, uint32_t base_addr, uint8_t indx)
 static void
 hl_ems_update(headland_t *dev, uint8_t mar)
 {
-    uint32_t base_addr, virt_addr;
+    uint32_t base_addr;
+    uint32_t virt_addr;
     uint8_t  indx = mar & 0x1f;
 
     base_addr = (indx + 16) << 14;
@@ -202,9 +207,7 @@ hl_ems_update(headland_t *dev, uint8_t mar)
 static void
 set_global_EMS_state(headland_t *dev, int state)
 {
-    int i;
-
-    for (i = 0; i < 32; i++) {
+    for (uint8_t i = 0; i < 32; i++) {
         hl_ems_update(dev, i | (((dev->cr[0] & 0x01) << 5) ^ 0x20));
         hl_ems_update(dev, i | ((dev->cr[0] & 0x01) << 5));
     }
@@ -229,7 +232,6 @@ static void
 memmap_state_update(headland_t *dev)
 {
     uint32_t addr;
-    int      i;
     uint8_t  ht_cr0   = dev->cr[0];
     uint8_t  ht_romcs = !(dev->cr[4] & 0x01);
     if (dev->revision <= 1)
@@ -237,7 +239,7 @@ memmap_state_update(headland_t *dev)
     if (!(dev->cr[0] & 0x04))
         ht_cr0 &= ~0x18;
 
-    for (i = 0; i < 24; i++) {
+    for (uint8_t i = 0; i < 24; i++) {
         addr = get_addr(dev, 0x40000 + (i << 14), NULL);
         mem_mapping_set_exec(&dev->upper_mapping[i], addr < ((uint32_t) mem_size << 10) ? ram + addr : NULL);
     }
@@ -684,7 +686,7 @@ headland_init(const device_t *info)
 
     memmap_state_update(dev);
 
-    return (dev);
+    return dev;
 }
 
 const device_t headland_gc10x_device = {

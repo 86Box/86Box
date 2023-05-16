@@ -183,10 +183,8 @@ sw_write(void *p)
         if (time_since_last > 9900 && time_since_last < 9940) {
             sw->poll_mode = 0;
             sw->poll_left = 49;
-            sw->poll_data = 0x2400ull | (0x1830ull << 15) | (0x19b0ull << 30);
+            sw->poll_data = 0x2400ULL | (0x1830ULL << 15) | (0x19b0ULL << 30);
         } else {
-            int c;
-
             sw->poll_mode = sw->data_mode;
             sw->data_mode = !sw->data_mode;
 
@@ -198,9 +196,8 @@ sw_write(void *p)
                 sw->poll_data = 1;
             }
 
-            for (c = 0; c < 4; c++) {
+            for (uint8_t c = 0; c < 4; c++) {
                 uint16_t data = 0x3fff;
-                int      b;
 
                 if (!JOYSTICK_PRESENT(c))
                     break;
@@ -214,7 +211,7 @@ sw_write(void *p)
                 if (joystick_state[c].axis[0] < -16383)
                     data &= ~8;
 
-                for (b = 0; b < 10; b++) {
+                for (uint8_t b = 0; b < 10; b++) {
                     if (joystick_state[c].button[b])
                         data &= ~(1 << (b + 4));
                 }
