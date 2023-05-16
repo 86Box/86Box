@@ -24,10 +24,14 @@ on:
       - "!**/Makefile*"
 
 jobs:
+
   msys2:
     name: "Windows MSYS2 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }})"
 
     runs-on: windows-2022
+
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
 
     defaults:
       run:
@@ -102,7 +106,15 @@ jobs:
             rtmidi:p
             libvncserver:p
             ${{ matrix.ui.packages }}
-      - uses: actions/checkout@v3
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v1
+
       - name: Configure CMake
         run: >-
           cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
@@ -111,21 +123,36 @@ jobs:
           -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D QT=${{ matrix.ui.qt }}
           -D STATIC_BUILD=${{ matrix.ui.static }}
+
       - name: Build
-        run: cmake --build build
+        run: |
+          cmake --build build
+
+      - name: Run sonar-scanner
+        if: 0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+
       - name: Generate package
         run: cmake --install build
-      - uses: actions/upload-artifact@v3
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
         with:
           name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
           path: build/artifacts/**
 
   llvm-windows:
     name: "Windows vcpkg/LLVM (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.target.name }})"
+    if: 0
 
     runs-on: windows-2022
 
     env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
       VCPKG_BINARY_SOURCES: 'clear;nuget,GitHub,readwrite'
 
     strategy:
@@ -177,12 +204,15 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: ${{ matrix.target.vcvars }}
+
       - name: Add LLVM to path
         run: echo "C:/Program Files/LLVM/bin" >> $env:GITHUB_PATH
+
       - name: Download Ninja
         run: >
           Invoke-WebRequest https://github.com/ninja-build/ninja/releases/download/v1.11.1/ninja-win.zip -OutFile ninja-win.zip && 
           Expand-Archive ninja-win.zip -DestinationPath .
+
       - name: Setup NuGet Credentials
         run: >
           & (C:/vcpkg/vcpkg fetch nuget | tail -n 2)
@@ -192,9 +222,18 @@ jobs:
           -name "GitHub"
           -username "86Box"
           -password "${{ secrets.GITHUB_TOKEN }}"
+
       - name: Fix MSVC atomic headers
         run: dir "C:/Program Files/Microsoft Visual Studio/2022/*/VC/Tools/MSVC/*/include" -include stdatomic.h -recurse | del
-      - uses: actions/checkout@v3
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v1
+
       - name: Configure CMake
         run: >
           cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
@@ -205,19 +244,36 @@ jobs:
           -D VCPKG_TARGET_TRIPLET=${{ matrix.target.triplet }}
           -D VCPKG_HOST_TRIPLET=x64-windows
           -D VCPKG_USE_HOST_TOOLS=ON
+
       - name: Fix Qt
         if: matrix.ui.qt == 'on'
         run: |
          $qtTargetsPath = "${{ github.workspace }}/build/vcpkg_installed/${{ matrix.target.triplet }}/share/Qt6/Qt6Targets.cmake"
          (Get-Content $qtTargetsPath) -replace "^.*-Zc:__cplusplus;-permissive-.*$","#$&" | Set-Content $qtTargetsPath
+
       - name: Reconfigure CMake
         if: matrix.ui.qt == 'on'
-        run: cmake clean build
+        run: |
+          cmake clean build
+
       - name: Build
-        run: cmake --build build
+        run: |
+          build-wrapper-win-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
+
+      - name: Run sonar-scanner
+#        if: 0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+
       - name: Generate package
-        run: cmake --install build
-      - uses: actions/upload-artifact@v3
+        run: |
+          cmake --install build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
         with:
           name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-LLVM-${{ matrix.target.name }}-gha${{ github.run_number }}'
           path: build/artifacts/**
@@ -226,6 +282,9 @@ jobs:
     name: "Linux GCC 11 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
 
     runs-on: ubuntu-22.04
+
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
 
     strategy:
       fail-fast: true
@@ -271,7 +330,15 @@ jobs:
           libopenal-dev
           libvncserver-dev
           ${{ matrix.ui.packages }}
-      - uses: actions/checkout@v3
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v1
+
       - name: Configure CMake
         run: >-
           cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
@@ -279,11 +346,25 @@ jobs:
           -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D CMAKE_INSTALL_PREFIX=./build/artifacts
           -D QT=${{ matrix.ui.qt }}
+
       - name: Build
-        run: cmake --build build
+        run: |
+          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
+
+      - name: Run sonar-scanner
+#        if: 0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+
       - name: Generate package
-        run: cmake --install build
-      - uses: actions/upload-artifact@v3
+        run: |
+          cmake --install build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
         with:
           name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-UbuntuJammy-x86_64-gha${{ github.run_number }}'
           path: build/artifacts/**
@@ -292,6 +373,9 @@ jobs:
     name: "macOS 11 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
 
     runs-on: macos-11
+
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
 
     strategy:
       fail-fast: true
@@ -331,7 +415,15 @@ jobs:
           openal-soft
           libvncserver
           ${{ matrix.ui.packages }}
-      - uses: actions/checkout@v3
+
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v1
+
       - name: Configure CMake
         run: >-
           cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
@@ -342,11 +434,25 @@ jobs:
           -D Qt5_ROOT=$(brew --prefix qt@5)
           -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
           -D OpenAL_ROOT=$(brew --prefix openal-soft)
+
       - name: Build
-        run: cmake --build build
+        run: |
+          build-wrapper-macosx-x86 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
+
+      - name: Run sonar-scanner
+#        if: 0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+
       - name: Generate package
-        run: cmake --install build
-      - uses: actions/upload-artifact@v3
+        run: |
+          cmake --install build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
         with:
           name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
           path: build/artifacts/**

@@ -65,7 +65,11 @@ typedef struct stpc_t {
     smram_t    *smram;
     usb_t      *usb;
     int         ide_slot;
+    int         usb_slot;
     sff8038i_t *bm[2];
+
+    /* Miscellaneous */
+    usb_params_t usb_params;
 } stpc_t;
 
 typedef struct stpc_serial_t {
@@ -100,15 +104,15 @@ stpc_log(const char *fmt, ...)
 static void
 stpc_recalcmapping(stpc_t *dev)
 {
-    uint8_t  reg, bitpair;
-    uint32_t base, size;
+    uint32_t base;
+    uint32_t size;
     int      state;
 
     shadowbios       = 0;
     shadowbios_write = 0;
 
-    for (reg = 0; reg <= 3; reg++) {
-        for (bitpair = 0; bitpair <= ((reg == 3) ? 0 : 3); bitpair++) {
+    for (uint8_t reg = 0; reg <= 3; reg++) {
+        for (uint8_t bitpair = 0; bitpair <= ((reg == 3) ? 0 : 3); bitpair++) {
             if (reg == 3) {
                 size = 0x10000;
                 base = 0xf0000;
@@ -267,7 +271,8 @@ stpc_nb_read(int func, int addr, void *priv)
 static void
 stpc_ide_handlers(stpc_t *dev, int bus)
 {
-    uint16_t main, side;
+    uint16_t main;
+    uint16_t side;
 
     if (bus & 0x01) {
         ide_pri_disable();
@@ -603,8 +608,10 @@ stpc_serial_handlers(uint8_t val)
         return 0;
     }
 
-    uint16_t uart0_io = 0x3f8, uart1_io = 0x3f8;
-    uint8_t  uart0_irq = 4, uart1_irq = 3;
+    uint16_t uart0_io = 0x3f8;
+    uint16_t uart1_io = 0x3f8;
+    uint8_t  uart0_irq = 4;
+    uint8_t  uart1_irq = 3;
 
     if (val & 0x10)
         uart1_io &= 0xfeff;
@@ -871,6 +878,17 @@ stpc_setup(stpc_t *dev)
 }
 
 static void
+stpc_usb_update_interrupt(usb_t* usb, void* priv)
+{
+    stpc_t *dev = (stpc_t *) priv;
+
+    if (usb->irq_level)
+        pci_set_irq(dev->usb_slot, PCI_INTA);
+    else
+        pci_clear_irq(dev->usb_slot, PCI_INTA);
+}
+
+static void
 stpc_close(void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
@@ -895,9 +913,13 @@ stpc_init(const device_t *info)
     pci_add_card(PCI_ADD_NORTHBRIDGE, stpc_nb_read, stpc_nb_write, dev);
     dev->ide_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_isab_read, stpc_isab_write, dev);
     if (dev->local == STPC_ATLAS) {
+        dev->usb_params.smi_handle       = NULL;
+        dev->usb_params.update_interrupt = stpc_usb_update_interrupt;
+        dev->usb_params.parent_priv      = dev;
+
         dev->ide_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_ide_read, stpc_ide_write, dev);
-        dev->usb      = device_add(&usb_device);
-        pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_usb_read, stpc_usb_write, dev);
+        dev->usb      = device_add_parameters(&usb_device, &dev->usb_params);
+        dev->usb_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_usb_read, stpc_usb_write, dev);
     }
 
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
@@ -953,7 +975,8 @@ stpc_serial_init(const device_t *info)
 static void
 stpc_lpt_handlers(stpc_lpt_t *dev, uint8_t val)
 {
-    uint8_t old_addr = (dev->reg1 & 0x03), new_addr = (val & 0x03);
+    uint8_t old_addr = (dev->reg1 & 0x03);
+    uint8_t new_addr = (val & 0x03);
 
     switch (old_addr) {
         case 0x1:

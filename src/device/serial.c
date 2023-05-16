@@ -266,13 +266,11 @@ serial_transmit(serial_t *dev, uint8_t val)
 static void
 serial_move_to_txsr(serial_t *dev)
 {
-    int i = 0;
-
     if (dev->fifo_enabled) {
         dev->txsr = dev->xmit_fifo[0];
         if (dev->xmit_fifo_pos > 0) {
             /* Move the entire fifo forward by one byte. */
-            for (i = 1; i < 16; i++)
+            for (uint8_t i = 1; i < 16; i++)
                 dev->xmit_fifo[i - 1] = dev->xmit_fifo[i];
             /* Decrease FIFO position. */
             dev->xmit_fifo_pos--;
@@ -476,7 +474,8 @@ void
 serial_write(uint16_t addr, uint8_t val, void *p)
 {
     serial_t *dev = (serial_t *) p;
-    uint8_t   new_msr, old;
+    uint8_t   new_msr;
+    uint8_t   old;
 
     // serial_log("UART: Write %02X to port %02X\n", val, addr);
     serial_log("UART: [%04X:%08X] Write %02X to port %02X\n", CS, cpu_state.pc, val, addr);

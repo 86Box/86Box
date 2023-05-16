@@ -53,7 +53,7 @@ ioapic_log(const char *fmt, ...)
 static void
 ioapic_write(uint16_t port, uint8_t val, void *priv)
 {
-    uint32_t addr, pcmp;
+    uint32_t pcmp;
 
     /* target POST FF, issued by Award before jumping to the bootloader */
     if (val != 0xff)
@@ -63,7 +63,7 @@ ioapic_write(uint16_t port, uint8_t val, void *priv)
 
     /* The _MP_ table must be located in the BIOS area, the EBDA, or the last 1k of conventional
        memory; at a 16-byte boundary in all cases. Award writes both tables to the BIOS area. */
-    for (addr = 0xf0000; addr <= 0xfffff; addr += 16) {
+    for (uint32_t addr = 0xf0000; addr <= 0xfffff; addr += 16) {
         /* check signature for the _MP_ table (Floating Point Structure) */
         if (mem_readl_phys(addr) != 0x5f504d5f) /* ASCII "_MP_" */
             continue;

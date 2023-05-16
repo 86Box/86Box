@@ -165,7 +165,7 @@ typedef struct cdrom {
     char *image_history[CD_IMAGE_HISTORY];
 
     uint32_t sound_on, cdrom_capacity,
-        early, seek_pos,
+        seek_pos,
         seek_diff, cd_end, type;
 
     int host_drive, prev_host_drive,

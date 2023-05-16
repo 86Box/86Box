@@ -241,7 +241,7 @@ PROG := 86Box
 #########################################################################
 #              Nothing should need changing from here on..              #
 #########################################################################
-VPATH := $(EXPATH) . $(CODEGEN) minitrace cpu \
+VPATH := $(EXPATH) . $(CODEGEN) minitrace cpu cpu/softfloat \
          cdrom chipset device disk disk/minivhd floppy \
          game machine mem printer \
          sio sound \
@@ -551,7 +551,9 @@ CPUOBJ := $(DYNARECOBJ) \
           $(CGTOBJ) \
           cpu.o cpu_table.o fpu.o x86.o \
           8080.o 808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o \
-          x86seg.o x87.o x87_timings.o
+          x86seg.o x87.o x87_timings.o \
+	  f2xm1.o fpatan.o fprem.o fsincos.o fyl2x.o softfloat_poly.o softfloat.o softfloat16.o \
+	  softfloat-muladd.o softfloat-round-pack.o softfloat-specialize.o softfloatx80.o
 
 CHIPSETOBJ := 82c100.o acc2168.o \
               contaq_82c59x.o \
@@ -667,7 +669,8 @@ NETOBJ := network.o \
           net_dp8390.o net_3c501.o \
           net_3c503.o net_ne2000.o \
           net_pcnet.o net_wd8003.o \
-          net_plip.o net_event.o
+          net_plip.o net_event.o \
+          net_null.o
 
 PRINTOBJ := png.o prt_cpmap.o \
             prt_escp.o prt_text.o prt_ps.o
@@ -874,7 +877,7 @@ all: $(PROG).exe
 
 86Box.res: 86Box.rc
 	@echo Processing $<
-	@$(WINDRES) $(RFLAGS) $(EXTRAS) -i $< -o 86Box.res
+	@$(WINDRES) -v $(RFLAGS) $(EXTRAS) -i $< -o 86Box.res
 
 $(PROG).exe: $(OBJ) 86Box.res
 	@echo Linking $(PROG).exe ..

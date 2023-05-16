@@ -502,15 +502,14 @@ static int
 ibm_drive_type(drive_t *drive)
 {
     const geom_t *ptr;
-    int           i;
 
-    for (i = 0; i < (sizeof(ibm_type_table) / sizeof(geom_t)); i++) {
+    for (uint16_t i = 0; i < (sizeof(ibm_type_table) / sizeof(geom_t)); i++) {
         ptr = &ibm_type_table[i];
         if ((drive->tracks == ptr->cyl) && (drive->hpc == ptr->hpc) && (drive->spt == ptr->spt))
-            return (i);
+            return i;
     }
 
-    return (HDC_TYPE_USER);
+    return HDC_TYPE_USER;
 }
 
 static void
@@ -534,25 +533,25 @@ get_sector(hdc_t *dev, drive_t *drive, off64_t *addr)
         ps1_hdc_log("HDC: get_sector: wrong cylinder %d/%d\n",
                     drive->cur_cyl, dev->track);
         dev->ssb.wrong_cyl = 1;
-        return (1);
+        return 1;
     }
 
     if (dev->head >= drive->hpc) {
         ps1_hdc_log("HDC: get_sector: past end of heads\n");
         dev->ssb.cylinder_err = 1;
-        return (1);
+        return 1;
     }
 
     if (dev->sector > drive->spt) {
         ps1_hdc_log("HDC: get_sector: past end of sectors\n");
         dev->ssb.mark_not_found = 1;
-        return (1);
+        return 1;
     }
 
     /* Calculate logical address (block number) of desired sector. */
     *addr = ((((off64_t) dev->track * drive->hpc) + dev->head) * drive->spt) + dev->sector - 1;
 
-    return (0);
+    return 0;
 }
 
 static void
@@ -590,13 +589,13 @@ do_seek(hdc_t *dev, drive_t *drive, uint16_t cyl)
 {
     if (cyl >= drive->tracks) {
         dev->ssb.cylinder_err = 1;
-        return (1);
+        return 1;
     }
 
     dev->track     = cyl;
     drive->cur_cyl = dev->track;
 
-    return (0);
+    return 0;
 }
 
 /* Format a track or an entire drive. */
@@ -1128,7 +1127,7 @@ hdc_read(uint16_t port, void *priv)
             break;
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -1240,7 +1239,7 @@ ps1_hdc_init(const device_t *info)
 {
     drive_t *drive;
     hdc_t   *dev;
-    int      c, i;
+    int      c;
 
     /* Allocate and initialize device block. */
     dev = malloc(sizeof(hdc_t));
@@ -1256,7 +1255,7 @@ ps1_hdc_init(const device_t *info)
 
     /* Load any disks for this device class. */
     c = 0;
-    for (i = 0; i < HDD_NUM; i++) {
+    for (uint8_t i = 0; i < HDD_NUM; i++) {
         if ((hdd[i].bus == HDD_BUS_XTA) && (hdd[i].xta_channel < 1)) {
             drive = &dev->drives[hdd[i].xta_channel];
 
@@ -1299,7 +1298,7 @@ ps1_hdc_init(const device_t *info)
     /* Create a timer for command delays. */
     timer_add(&dev->timer, hdc_callback, dev, 0);
 
-    return (dev);
+    return dev;
 }
 
 static void
@@ -1307,14 +1306,13 @@ ps1_hdc_close(void *priv)
 {
     hdc_t   *dev = (hdc_t *) priv;
     drive_t *drive;
-    int      d;
 
     /* Remove the I/O handler. */
     io_removehandler(dev->base, 5,
                      hdc_read, NULL, NULL, hdc_write, NULL, NULL, dev);
 
     /* Close all disks and their images. */
-    for (d = 0; d < XTA_NUM; d++) {
+    for (uint8_t d = 0; d < XTA_NUM; d++) {
         drive = &dev->drives[d];
 
         if (drive->present)

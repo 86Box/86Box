@@ -148,7 +148,8 @@ ims8848_log(const char *fmt, ...)
 static void
 ims8848_recalc(ims8848_t *dev)
 {
-    int      i, state_on;
+    int      i;
+    int      state_on;
     uint32_t base;
     ims8848_log("SHADOW: 00 = %02X, 08 = %02X, 1B = %02X, 1C = %02X\n",
                 dev->regs[0x00], dev->regs[0x08], dev->regs[0x1b], dev->regs[0x1c]);
@@ -388,9 +389,6 @@ ims8848_init(const device_t *info)
     cpu_update_waitstates();
 
     ims8848_reset(dev);
-
-    pic_kbd_latch(0x01);
-    pic_mouse_latch(0x01);
 
     return dev;
 }

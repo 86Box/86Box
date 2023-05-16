@@ -70,10 +70,9 @@ ct_82c100_log(const char *fmt, ...)
 static void
 ct_82c100_ems_pages_recalc(ct_82c100_t *dev)
 {
-    int      i;
     uint32_t page_base;
 
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         page_base = dev->ems_window_base + (i << 14);
         if ((i == 1) || (i == 2))
             page_base ^= 0xc000;
@@ -353,7 +352,6 @@ static void *
 ct_82c100_init(const device_t *info)
 {
     ct_82c100_t *dev;
-    uint32_t     i;
 
     dev = (ct_82c100_t *) malloc(sizeof(ct_82c100_t));
     memset(dev, 0x00, sizeof(ct_82c100_t));
@@ -367,7 +365,7 @@ ct_82c100_init(const device_t *info)
     io_sethandler(0x007e, 2,
                   ct_82c100_in, NULL, NULL, ct_82c100_out, NULL, NULL, dev);
 
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         mem_mapping_add(&(dev->ems_mappings[i]), (i + 28) << 14, 0x04000,
                         mem_read_emsb, mem_read_emsw, NULL,
                         mem_write_emsb, mem_write_emsw, NULL,
@@ -379,7 +377,7 @@ ct_82c100_init(const device_t *info)
 
     device_add(&port_92_device);
 
-    return (dev);
+    return dev;
 }
 
 const device_t ct_82c100_device = {

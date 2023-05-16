@@ -132,7 +132,8 @@ timer_process(void)
 void
 timer_close(void)
 {
-    pc_timer_t *t = timer_head, *r;
+    pc_timer_t *t = timer_head;
+    pc_timer_t *r;
 
     /* Set all timers' prev and next to NULL so it is assured that
        timers that are not in malloc'd structs don't keep pointing

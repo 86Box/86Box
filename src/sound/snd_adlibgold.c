@@ -842,7 +842,6 @@ static void
 adgold_input_msg(void *p, uint8_t *msg, uint32_t len)
 {
     adgold_t *adgold = (adgold_t *) p;
-    uint8_t   i;
 
     if (adgold->sysex)
         return;
@@ -850,7 +849,7 @@ adgold_input_msg(void *p, uint8_t *msg, uint32_t len)
     if (adgold->uart_in) {
         adgold->adgold_mma_status |= 0x04;
 
-        for (i = 0; i < len; i++) {
+        for (uint32_t i = 0; i < len; i++) {
             adgold->midi_queue[adgold->midi_w++] = msg[i];
             adgold->midi_w &= 0x0f;
         }

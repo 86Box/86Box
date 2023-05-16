@@ -77,6 +77,7 @@ typedef struct _piix_ {
     piix_io_trap_t io_traps[26];
     port_92_t     *port_92;
     pc_timer_t     fast_off_timer;
+    usb_params_t   usb_params;
 } piix_t;
 
 #ifdef ENABLE_PIIX_LOG
@@ -100,7 +101,8 @@ piix_log(const char *fmt, ...)
 static void
 smsc_ide_irqs(piix_t *dev)
 {
-    int irq_line = 3, irq_mode[2] = { 0, 0 };
+    int irq_line = 3;
+    uint8_t irq_mode[2] = { 0, 0 };
 
     if (dev->regs[1][0x09] & 0x01)
         irq_mode[0] = (dev->regs[0][0xe1] & 0x01) ? 3 : 1;
@@ -147,7 +149,8 @@ smsc_ide_irqs(piix_t *dev)
 static void
 piix_ide_handlers(piix_t *dev, int bus)
 {
-    uint16_t main, side;
+    uint16_t main;
+    uint16_t side;
 
     if (bus & 0x01) {
         ide_pri_disable();
@@ -316,7 +319,8 @@ static void
 piix_trap_update(void *priv)
 {
     piix_t  *dev     = (piix_t *) priv;
-    uint8_t  trap_id = 0, *fregs = dev->regs[3];
+    uint8_t  trap_id = 0;
+    uint8_t *fregs   = dev->regs[3];
     uint16_t temp;
 
     piix_trap_update_devctl(dev, trap_id++, 0, 0x00000002, 1, 0x1f0, 8);
@@ -458,7 +462,6 @@ piix_write(int func, int addr, uint8_t val, void *priv)
     piix_t  *dev = (piix_t *) priv;
     uint8_t *fregs;
     uint16_t base;
-    int      i;
 
     /* Return on unsupported function. */
     if (dev->max_func > 0) {
@@ -512,7 +515,6 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                 break;
             case 0x4e:
                 fregs[0x4e] = val;
-                pic_mouse_latch(!!(val & 0x10));
                 if (dev->type >= 4)
                     kbc_alias_update_io_mapping(dev);
                 break;
@@ -639,7 +641,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                     base = fregs[addr | 0x01] << 8;
                     base |= fregs[addr & 0xfe];
 
-                    for (i = 0; i < 4; i++)
+                    for (uint8_t i = 0; i < 4; i++)
                         ddma_update_io_mapping(dev->ddma, (addr & 4) + i, fregs[addr & 0xfe] + (i << 4), fregs[addr | 0x01], (base != 0x0000));
                 }
                 break;
@@ -1149,8 +1151,9 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 piix_read(int func, int addr, void *priv)
 {
-    piix_t *dev = (piix_t *) priv;
-    uint8_t ret = 0xff, *fregs;
+    piix_t  *dev = (piix_t *) priv;
+    uint8_t  ret = 0xff;
+    uint8_t *fregs;
 
     if ((dev->type == 3) && (func == 2) && (dev->max_func == 1) && (addr >= 0x40))
         ret = 0x00;
@@ -1202,7 +1205,6 @@ board_read(uint16_t port, void *priv)
 static void
 piix_reset_hard(piix_t *dev)
 {
-    int      i;
     uint8_t *fregs;
 
     uint16_t old_base = (dev->regs[1][0x20] & 0xf0) | (dev->regs[1][0x21] << 8);
@@ -1239,7 +1241,7 @@ piix_reset_hard(piix_t *dev)
     }
 
     /* Clear all 4 functions' arrays and set their vendor and device ID's. */
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         memset(dev->regs[i], 0, 256);
         if (dev->type == 5) {
             dev->regs[i][0x00] = 0x55;
@@ -1275,7 +1277,6 @@ piix_reset_hard(piix_t *dev)
     fregs[0x0e] = ((dev->type > 1) || (dev->rev != 2)) ? 0x80 : 0x00;
     fregs[0x4c] = 0x4d;
     fregs[0x4e] = 0x03;
-    pic_mouse_latch(0x00);
     fregs[0x60] = fregs[0x61] = fregs[0x62] = fregs[0x63] = 0x80;
     fregs[0x64]                                           = (dev->type > 3) ? 0x10 : 0x00;
     fregs[0x69]                                           = 0x02;
@@ -1292,7 +1293,7 @@ piix_reset_hard(piix_t *dev)
     fregs[0xa0] = (dev->type < 4) ? 0x08 : 0x00;
     fregs[0xa8] = (dev->type < 4) ? 0x0f : 0x00;
     if (dev->type > 3)
-        fregs[0xb0] = (is_pentium) ? 0x00 : 0x04;
+        fregs[0xb0] = is_pentium ? 0x00 : 0x04;
     fregs[0xcb] = (dev->type > 3) ? 0x21 : 0x00;
     if (dev->type > 4) {
         fregs[0xd4] = 0x70;
@@ -1428,6 +1429,17 @@ piix_fast_off_count(void *priv)
 }
 
 static void
+piix_usb_update_interrupt(usb_t* usb, void *priv)
+{
+    piix_t *dev = (piix_t *) priv;
+
+    if (usb->irq_level)
+        pci_set_irq(dev->pci_slot, PCI_INTD);
+    else
+        pci_clear_irq(dev->pci_slot, PCI_INTD);
+}
+
+static void
 piix_reset(void *p)
 {
     piix_t *dev = (piix_t *) p;
@@ -1487,7 +1499,7 @@ piix_reset(void *p)
     }
 
     if (dev->type >= 4) {
-        piix_write(0, 0xb0, (is_pentium) ? 0x00 : 0x04, p);
+        piix_write(0, 0xb0, is_pentium ? 0x00 : 0x04, p);
         piix_write(3, 0x40, 0x01, p);
         piix_write(3, 0x41, 0x00, p);
         piix_write(3, 0x5b, 0x00, p);
@@ -1571,8 +1583,12 @@ piix_init(const device_t *info)
         sff_set_irq_mode(dev->bm[1], 1, 2);
     }
 
-    if (dev->type >= 3)
-        dev->usb = device_add(&usb_device);
+    if (dev->type >= 3) {
+        dev->usb_params.parent_priv      = dev;
+        dev->usb_params.smi_handle       = NULL;
+        dev->usb_params.update_interrupt = piix_usb_update_interrupt;
+        dev->usb                         = device_add_parameters(&usb_device, &dev->usb_params);
+    }
 
     if (dev->type > 3) {
         dev->nvr   = device_add(&piix4_nvr_device);
@@ -1680,8 +1696,6 @@ piix_init(const device_t *info)
         dev->board_config[1] |= 0x00;
 
     // device_add(&i8254_sec_device);
-
-    pic_kbd_latch(0x01);
 
     return dev;
 }

@@ -222,9 +222,6 @@ pipc_reset_hard(void *priv)
     dev->pci_isa_regs[0x0b] = 0x06;
     dev->pci_isa_regs[0x0e] = 0x80;
 
-    pic_kbd_latch(0x01);
-    pic_mouse_latch(dev->local >= VIA_PIPC_586B);
-
     dev->pci_isa_regs[0x48] = 0x01;
     dev->pci_isa_regs[0x4a] = 0x04;
     dev->pci_isa_regs[0x4f] = 0x03;
@@ -513,7 +510,8 @@ pipc_reset_hard(void *priv)
 static void
 pipc_ide_handlers(pipc_t *dev)
 {
-    uint16_t main, side;
+    uint16_t main;
+    uint16_t side;
 
     ide_pri_disable();
     ide_sec_disable();
@@ -576,10 +574,14 @@ pipc_bus_master_handlers(pipc_t *dev)
 static void
 pipc_pcs_update(pipc_t *dev)
 {
-    uint8_t  i, io_base_reg, io_mask_reg, io_mask_shift, enable;
-    uint16_t io_base, io_mask;
+    uint8_t  io_base_reg;
+    uint8_t  io_mask_reg;
+    uint8_t  io_mask_shift;
+    uint8_t  enable;
+    uint16_t io_base;
+    uint16_t io_mask;
 
-    for (i = 0; i <= dev->max_pcs; i++) {
+    for (uint8_t i = 0; i <= dev->max_pcs; i++) {
         if (i & 2) {
             io_base_reg = 0x8c;
             io_mask_reg = 0x8a;
@@ -653,7 +655,6 @@ static void
 pipc_trap_update_596(void *priv)
 {
     pipc_t *dev = (pipc_t *) priv;
-    int     i;
 
     /* TRAP_DRQ (00000001) and TRAP_PIRQ (00000002) not implemented. */
 
@@ -684,7 +685,7 @@ pipc_trap_update_596(void *priv)
        by the Positive Decoding Control registers. I couldn't probe this behavior on hardware.
        It's better to be safe and cover all of them than to assume Intel-like behavior (one range). */
 
-    for (i = 0; i < 3; i++) {
+    for (uint8_t i = 0; i < 3; i++) {
         pipc_trap_update_paden(dev, TRAP_AUD_MIDI_0 + i,
                                0x00000400, (dev->local <= VIA_PIPC_596B) || (dev->power_regs[0x40] & 0x01),
                                0x300 + (0x10 * i), 4);
@@ -1067,8 +1068,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
                 break;
 
             case 0x44:
-                if (dev->local < VIA_PIPC_586B)
-                    pic_mouse_latch(val & 0x01);
+                dev->pci_isa_regs[0x44] = val;
                 break;
 
             case 0x47:
@@ -1162,7 +1162,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
             case 0x71:
             case 0x72:
             case 0x73:
-                dev->pci_isa_regs[(addr - 0x44)] = val;
+                dev->pci_isa_regs[addr - 0x44] = val;
                 break;
 
             case 0x74:
@@ -1432,7 +1432,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
             case 0x61:
             case 0x62:
             case 0x63:
-                dev->power_regs[(addr - 0x58)] = val;
+                dev->power_regs[addr - 0x58] = val;
                 break;
 
             case 0x70:

@@ -30,7 +30,6 @@
 #include <86box/pit.h>
 #include <86box/device.h>
 #include <86box/port_92.h>
-#include <86box/usb.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/chipset.h>
@@ -103,8 +102,8 @@ ali6117_log(const char *fmt, ...)
 static void
 ali6117_recalcmapping(ali6117_t *dev)
 {
-    uint8_t  reg, bitpair;
-    uint32_t base, size;
+    uint32_t base;
+    uint32_t size;
     int      state;
 
     shadowbios       = 0;
@@ -113,8 +112,8 @@ ali6117_recalcmapping(ali6117_t *dev)
     ali6117_log("ALI6117: Shadowing for A0000-BFFFF (reg 12 bit 1) = %s\n", (dev->regs[0x12] & 0x02) ? "on" : "off");
     mem_set_mem_state(0xa0000, 0x20000, (dev->regs[0x12] & 0x02) ? (MEM_WRITE_INTERNAL | MEM_READ_INTERNAL) : (MEM_WRITE_EXTANY | MEM_READ_EXTANY));
 
-    for (reg = 0; reg <= 1; reg++) {
-        for (bitpair = 0; bitpair <= 3; bitpair++) {
+    for (uint8_t reg = 0; reg <= 1; reg++) {
+        for (uint8_t bitpair = 0; bitpair <= 3; bitpair++) {
             size = 0x8000;
             base = 0xc0000 + (size * ((reg * 4) + bitpair));
             ali6117_log("ALI6117: Shadowing for %05X-%05X (reg %02X bp %d wmask %02X rmask %02X) =", base, base + size - 1, 0x14 + reg, bitpair, 1 << ((bitpair * 2) + 1), 1 << (bitpair * 2));
@@ -149,10 +148,10 @@ ali6117_recalcmapping(ali6117_t *dev)
 static void
 ali6117_bank_recalc(ali6117_t *dev)
 {
-    int      i;
-    uint32_t bank, addr;
+    uint32_t bank;
+    uint32_t addr;
 
-    for (i = 0x00000000; i < (mem_size << 10); i += 4096) {
+    for (uint32_t i = 0x00000000; i < (mem_size << 10); i += 4096) {
         if ((i >= 0x000a0000) && (i < 0x00100000))
             continue;
 
@@ -302,7 +301,6 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x36:
                     val &= 0xf0;
                     val |= dev->regs[dev->reg_offset];
-                    pic_mouse_latch(val & 0x40);
                     break;
 
                 case 0x37:
@@ -427,8 +425,6 @@ ali6117_reset(void *priv)
         /* On-board memory 15-16M is enabled by default. */
         mem_set_mem_state_both(0x00f00000, 0x00100000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
         ali6117_bank_recalc(dev);
-
-        pic_mouse_latch(0x00);
     }
 }
 
@@ -458,7 +454,7 @@ ali6117_close(void *priv)
 static void *
 ali6117_init(const device_t *info)
 {
-    int i, last_match = 0;
+    int last_match = 0;
 
     ali6117_log("ALI6117: init()\n");
 
@@ -471,15 +467,12 @@ ali6117_init(const device_t *info)
 
     ali6117_setup(dev);
 
-    for (i = 31; i >= 0; i--) {
+    for (int8_t i = 31; i >= 0; i--) {
         if ((mem_size >= ali6117_modes[i][0]) && (ali6117_modes[i][0] > last_match)) {
             last_match = ali6117_modes[i][0];
             dev->mode  = i;
         }
     }
-
-    if (!(dev->local & 0x08))
-        pic_kbd_latch(0x01);
 
     ali6117_reset(dev);
 

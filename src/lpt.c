@@ -80,9 +80,7 @@ lpt_device_get_from_internal_name(char *s)
 void
 lpt_devices_init(void)
 {
-    int i = 0;
-
-    for (i = 0; i < PARALLEL_MAX; i++) {
+    for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
         lpt_ports[i].dt = (lpt_device_t *) lpt_devices[lpt_ports[i].device].device;
 
         if (lpt_ports[i].dt && lpt_ports[i].dt->init)
@@ -93,10 +91,9 @@ lpt_devices_init(void)
 void
 lpt_devices_close(void)
 {
-    int         i = 0;
     lpt_port_t *dev;
 
-    for (i = 0; i < PARALLEL_MAX; i++) {
+    for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
         dev = &lpt_ports[i];
 
         if (lpt_ports[i].dt && lpt_ports[i].dt->close)
@@ -178,11 +175,10 @@ lpt_irq(void *priv, int raise)
 void
 lpt_init(void)
 {
-    int      i;
     uint16_t default_ports[PARALLEL_MAX] = { LPT1_ADDR, LPT2_ADDR, LPT_MDA_ADDR, LPT4_ADDR };
     uint8_t  default_irqs[PARALLEL_MAX]  = { LPT1_IRQ, LPT2_IRQ, LPT_MDA_IRQ, LPT4_IRQ };
 
-    for (i = 0; i < PARALLEL_MAX; i++) {
+    for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
         lpt_ports[i].addr       = 0xffff;
         lpt_ports[i].irq        = 0xff;
         lpt_ports[i].enable_irq = 0x10;

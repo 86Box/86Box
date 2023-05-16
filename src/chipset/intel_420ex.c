@@ -113,8 +113,9 @@ i420ex_smram_handler_phase1(i420ex_t *dev)
 {
     uint8_t *regs = (uint8_t *) dev->regs;
 
-    uint32_t host_base = 0x000a0000, ram_base = 0x000a0000;
-    uint32_t size = 0x00010000;
+    uint32_t host_base = 0x000a0000;
+    uint32_t ram_base  = 0x000a0000;
+    uint32_t size      = 0x00010000;
 
     switch (regs[0x70] & 0x07) {
         case 0:
@@ -218,7 +219,6 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
             break;
         case 0x4e:
             dev->regs[addr] = (val & 0xf7);
-            pic_mouse_latch(!!(val & 0x10));
             break;
         case 0x50:
             dev->regs[addr] = (val & 0x0f);
@@ -389,7 +389,6 @@ i420ex_reset_hard(void *priv)
 
     dev->regs[0x4c] = 0x4d;
     dev->regs[0x4e] = 0x03;
-    pic_mouse_latch(0x00);
    /* Bits 2:1 of register 50h are 00 is 25 MHz, and 01 if 33 MHz, 10 and 11 are reserved. */
     if (cpu_busspeed >= 33333333)
         dev->regs[0x50] |= 0x02;
@@ -525,8 +524,6 @@ i420ex_init(const device_t *info)
     device_add(&ide_pci_2ch_device);
 
     i420ex_reset_hard(dev);
-
-    pic_kbd_latch(0x01);
 
     return dev;
 }

@@ -303,7 +303,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 128,
             .max = 640,
-            .step = 128
+            .step = 64
         },
         .nvrmask = 0,
         .kbc_device = NULL, /* TODO: No specific kbd_device yet */
@@ -5470,7 +5470,45 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    {
+        .name = "[MCA] IBM PS/2 model 70 (type 4)",
+        .internal_name = "ibmps2_m70_type4",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps2_model_70_type4_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags = MACHINE_VIDEO,
+        .ram = {
+            .min = 2048,
+            .max = 65536,
+            .step = 2048
+        },
+        .nvrmask = 63,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* 486 machines - Socket 2 */
     /* 486 machines with just the ISA slot */
     /* Uses some variant of Phoenix MultiKey/42 as the BIOS sends keyboard controller
@@ -12517,7 +12555,7 @@ const machine_t machines[] = {
             .min_voltage = 1300,
             .max_voltage = 3500,
             .min_multi = 1.5,
-            .max_multi = 8.0 /* limits assumed */ 
+            .max_multi = 8.0 /* limits assumed */
         },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
@@ -13054,11 +13092,11 @@ machine_get_machine_from_internal_name(char *s)
 
     while (machines[c].init != NULL) {
         if (!strcmp(machines[c].internal_name, (const char *) s))
-            return (c);
+            return c;
         c++;
     }
 
-    return (0);
+    return 0;
 }
 
 int

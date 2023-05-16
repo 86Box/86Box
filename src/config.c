@@ -78,7 +78,10 @@
 #include <86box/ui.h>
 #include <86box/snd_opl.h>
 
-static int   cx, cy, cw, ch;
+static int   cx;
+static int   cy;
+static int   cw;
+static int   ch;
 static ini_t config;
 
 /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
@@ -223,7 +226,8 @@ static void
 load_monitor(int monitor_index)
 {
     ini_section_t cat;
-    char          name[512], temp[512];
+    char          name[512];
+    char          temp[512];
     char         *p = NULL;
 
     sprintf(name, "Monitor #%i", monitor_index + 1);
@@ -251,8 +255,14 @@ static void
 load_machine(void)
 {
     ini_section_t cat = ini_find_section(config, "Machine");
-    char         *p, *migrate_from = NULL;
-    int           c, i, j, speed, legacy_mfg, legacy_cpu;
+    char         *p;
+    char         *migrate_from = NULL;
+    int           c;
+    int           i;
+    int           j;
+    int           speed;
+    int           legacy_mfg;
+    int           legacy_cpu;
     double        multi;
 
     p = ini_section_get_string(cat, "machine", NULL);
@@ -504,6 +514,14 @@ load_machine(void)
         mem_size = machine_get_max_ram(machine);
 
     cpu_use_dynarec = !!ini_section_get_int(cat, "cpu_use_dynarec", 0);
+    fpu_softfloat = !!ini_section_get_int(cat, "fpu_softfloat", 0);
+    /*The IBM PS/2 model 70 type 4 BIOS does heavy tests to the FPU in 80-bit precision mode, requiring softfloat 
+      otherwise it would always throw error 12903 on POST, so always disable dynarec and enable softfloat for this
+      machine only.*/
+    if (!strcmp(machines[machine].internal_name, "ibmps2_m70_type4")) {
+        cpu_use_dynarec = 0;
+        fpu_softfloat = 1;
+    }
 
     p = ini_section_get_string(cat, "time_sync", NULL);
     if (p != NULL) {
@@ -574,7 +592,8 @@ load_input_devices(void)
 {
     ini_section_t cat = ini_find_section(config, "Input devices");
     char          temp[512];
-    int           c, d;
+    int           c;
+    int           d;
     char         *p;
 
     p = ini_section_get_string(cat, "mouse_type", NULL);
@@ -762,7 +781,8 @@ load_network(void)
     ini_section_t cat = ini_find_section(config, "Network");
     char         *p;
     char          temp[512];
-    uint16_t      c = 0, min = 0;
+    uint16_t      c = 0;
+    uint16_t      min = 0;
 
     /* Handle legacy configuration which supported only one NIC */
     p = ini_section_get_string(cat, "net_card", NULL);
@@ -775,6 +795,8 @@ load_network(void)
                 net_cards_conf[c].net_type = NET_TYPE_PCAP;
             else if (!strcmp(p, "slirp") || !strcmp(p, "2"))
                 net_cards_conf[c].net_type = NET_TYPE_SLIRP;
+            else if (!strcmp(p, "vde") || !strcmp(p, "2"))
+                net_cards_conf[c].net_type = NET_TYPE_VDE;
             else
                 net_cards_conf[c].net_type = NET_TYPE_NONE;
         } else {
@@ -783,13 +805,17 @@ load_network(void)
 
         p = ini_section_get_string(cat, "net_host_device", NULL);
         if (p != NULL) {
-            if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
-                if (network_ndev == 1) {
-                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2130);
-                } else if (network_dev_to_id(p) == -1) {
-                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
+            if (net_cards_conf[c].net_type == NET_TYPE_PCAP) {
+                if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
+                    if (network_ndev == 1) {
+                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2130);
+                    } else if (network_dev_to_id(p) == -1) {
+                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
+                    }
+                    strcpy(net_cards_conf[c].host_dev_name, "none");
+                } else {
+                    strncpy(net_cards_conf[c].host_dev_name, p, sizeof(net_cards_conf[c].host_dev_name) - 1);
                 }
-                strcpy(net_cards_conf[c].host_dev_name, "none");
             } else {
                 strncpy(net_cards_conf[c].host_dev_name, p, sizeof(net_cards_conf[c].host_dev_name) - 1);
             }
@@ -820,6 +846,8 @@ load_network(void)
                 net_cards_conf[c].net_type = NET_TYPE_PCAP;
             } else if (!strcmp(p, "slirp") || !strcmp(p, "2")) {
                 net_cards_conf[c].net_type = NET_TYPE_SLIRP;
+            } else if (!strcmp(p, "vde") || !strcmp(p, "2")) {
+                net_cards_conf[c].net_type = NET_TYPE_VDE;
             } else {
                 net_cards_conf[c].net_type = NET_TYPE_NONE;
             }
@@ -830,13 +858,15 @@ load_network(void)
         sprintf(temp, "net_%02i_host_device", c + 1);
         p = ini_section_get_string(cat, temp, NULL);
         if (p != NULL) {
-            if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
-                if (network_ndev == 1) {
-                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2130);
-                } else if (network_dev_to_id(p) == -1) {
-                    ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
+            if (net_cards_conf[c].net_type == NET_TYPE_PCAP) {
+                if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
+                    if (network_ndev == 1) {
+                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2130);
+                    } else if (network_dev_to_id(p) == -1) {
+                        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
+                    }
+                    strcpy(net_cards_conf[c].host_dev_name, "none");
                 }
-                strcpy(net_cards_conf[c].host_dev_name, "none");
             } else {
                 strncpy(net_cards_conf[c].host_dev_name, p, sizeof(net_cards_conf[c].host_dev_name) - 1);
             }
@@ -857,7 +887,8 @@ load_ports(void)
     ini_section_t cat = ini_find_section(config, "Ports (COM & LPT)");
     char         *p;
     char          temp[512];
-    int           c, d;
+    int           c;
+    int           d;
 
     memset(temp, 0, sizeof(temp));
 
@@ -901,8 +932,10 @@ static void
 load_storage_controllers(void)
 {
     ini_section_t cat = ini_find_section(config, "Storage controllers");
-    char         *p, temp[512];
-    int           c, min = 0;
+    char         *p;
+    char          temp[512];
+    int           c;
+    int           min = 0;
     int           free_p = 0;
 
     /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
@@ -1024,15 +1057,18 @@ static void
 load_hard_disks(void)
 {
     ini_section_t cat = ini_find_section(config, "Hard disks");
-    char          temp[512], tmp2[512];
+    char          temp[512];
+    char          tmp2[512];
     char          s[512];
-    int           c;
     char         *p;
-    uint32_t      max_spt, max_hpc, max_tracks;
-    uint32_t      board = 0, dev = 0;
+    uint32_t      max_spt;
+    uint32_t      max_hpc;
+    uint32_t      max_tracks;
+    uint32_t      board = 0;
+    uint32_t      dev = 0;
 
     memset(temp, '\0', sizeof(temp));
-    for (c = 0; c < HDD_NUM; c++) {
+    for (uint8_t c = 0; c < HDD_NUM; c++) {
         sprintf(temp, "hdd_%02i_parameters", c + 1);
         p = ini_section_get_string(cat, temp, "0, 0, 0, 0, none");
         sscanf(p, "%u, %u, %u, %i, %s",
@@ -1225,13 +1261,13 @@ static void
 load_floppy_drives(void)
 {
     ini_section_t cat = ini_find_section(config, "Floppy drives");
-    char          temp[512], *p;
-    int           c;
+    char          temp[512];
+    char         *p;
 
     if (!backwards_compat)
         return;
 
-    for (c = 0; c < FDD_NUM; c++) {
+    for (uint8_t c = 0; c < FDD_NUM; c++) {
         sprintf(temp, "fdd_%02i_type", c + 1);
         p = ini_section_get_string(cat, temp, (c < 2) ? "525_2dd" : "none");
         fdd_set_type(c, fdd_get_from_internal_name(p));
@@ -1286,10 +1322,14 @@ static void
 load_floppy_and_cdrom_drives(void)
 {
     ini_section_t cat = ini_find_section(config, "Floppy and CD-ROM drives");
-    char          temp[512], tmp2[512], *p;
+    char          temp[512];
+    char          tmp2[512];
+    char         *p;
     char          s[512];
-    unsigned int  board = 0, dev = 0;
-    int           c, d           = 0;
+    unsigned int  board = 0;
+    unsigned int  dev = 0;
+    int           c;
+    int           d = 0;
 
     /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
     backwards_compat = (cat == NULL);
@@ -1506,10 +1546,14 @@ static void
 load_other_removable_devices(void)
 {
     ini_section_t cat = ini_find_section(config, "Other removable devices");
-    char          temp[512], tmp2[512], *p;
+    char          temp[512];
+    char          tmp2[512];
+    char         *p;
     char          s[512];
-    unsigned int  board = 0, dev = 0;
-    int           c, d           = 0;
+    unsigned int  board = 0;
+    unsigned int  dev = 0;
+    int           c;
+    int           d = 0;
 
     /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
     if (backwards_compat) {
@@ -1784,7 +1828,7 @@ load_other_peripherals(void)
     ini_section_t cat = ini_find_section(config, "Other peripherals");
     char         *p;
     char          temp[512];
-    int           c, free_p = 0;
+    int           free_p = 0;
 
     if (backwards_compat2) {
         p = ini_section_get_string(cat, "scsicard", NULL);
@@ -1841,7 +1885,7 @@ load_other_peripherals(void)
     bugger_enabled   = !!ini_section_get_int(cat, "bugger_enabled", 0);
     postcard_enabled = !!ini_section_get_int(cat, "postcard_enabled", 0);
 
-    for (c = 0; c < ISAMEM_MAX; c++) {
+    for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
         sprintf(temp, "isamem%d_type", c);
 
         p              = ini_section_get_string(cat, temp, "none");
@@ -1962,7 +2006,8 @@ static void
 save_general(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "General");
-    char          temp[512], buffer[512] = { 0 };
+    char          temp[512];
+    char          buffer[512] = { 0 };
 
     char *va_name;
 
@@ -2164,7 +2209,11 @@ save_machine(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "Machine");
     char         *p;
-    int           c, i = 0, legacy_mfg, legacy_cpu = -1, closest_legacy_cpu = -1;
+    int           c;
+    int           i = 0;
+    int           legacy_mfg;
+    int           legacy_cpu = -1;
+    int           closest_legacy_cpu = -1;
 
     p = machine_get_internal_name();
     ini_section_set_string(cat, "machine", p);
@@ -2244,6 +2293,7 @@ save_machine(void)
     ini_section_set_int(cat, "mem_size", mem_size);
 
     ini_section_set_int(cat, "cpu_use_dynarec", cpu_use_dynarec);
+    ini_section_set_int(cat, "fpu_softfloat", fpu_softfloat);
 
     if (time_sync & TIME_SYNC_ENABLED)
         if (time_sync & TIME_SYNC_UTC)
@@ -2308,8 +2358,10 @@ static void
 save_input_devices(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "Input devices");
-    char          temp[512], tmp2[512];
-    int           c, d;
+    char          temp[512];
+    char          tmp2[512];
+    int           c;
+    int           d;
 
     ini_section_set_string(cat, "mouse_type", mouse_get_internal_name(mouse_type));
 
@@ -2443,7 +2495,6 @@ save_sound(void)
 static void
 save_network(void)
 {
-    int           c = 0;
     char          temp[512];
     ini_section_t cat = ini_find_or_create_section(config, "Network");
 
@@ -2451,7 +2502,7 @@ save_network(void)
     ini_section_delete_var(cat, "net_host_device");
     ini_section_delete_var(cat, "net_card");
 
-    for (c = 0; c < NET_CARD_MAX; c++) {
+    for (uint8_t c = 0; c < NET_CARD_MAX; c++) {
         sprintf(temp, "net_%02i_card", c + 1);
         if (net_cards_conf[c].device_num == 0) {
             ini_section_delete_var(cat, temp);
@@ -2460,11 +2511,19 @@ save_network(void)
         }
 
         sprintf(temp, "net_%02i_net_type", c + 1);
-        if (net_cards_conf[c].net_type == NET_TYPE_NONE) {
-            ini_section_delete_var(cat, temp);
-        } else {
-            ini_section_set_string(cat, temp,
-                                   (net_cards_conf[c].net_type == NET_TYPE_SLIRP) ? "slirp" : "pcap");
+        switch(net_cards_conf[c].net_type) {
+            case NET_TYPE_NONE:
+                ini_section_delete_var(cat, temp);
+                break;
+            case NET_TYPE_SLIRP:
+                ini_section_set_string(cat, temp, "slirp");
+                break;
+            case NET_TYPE_PCAP:
+                ini_section_set_string(cat, temp, "pcap");
+                break;
+            case NET_TYPE_VDE:
+                ini_section_set_string(cat, temp, "vde");
+                break;
         }
 
         sprintf(temp, "net_%02i_host_device", c + 1);
@@ -2495,7 +2554,8 @@ save_ports(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "Ports (COM & LPT)");
     char          temp[512];
-    int           c, d;
+    int           c;
+    int           d;
 
     for (c = 0; c < SERIAL_MAX; c++) {
         sprintf(temp, "serial%d_enabled", c + 1);
@@ -2648,7 +2708,6 @@ save_other_peripherals(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "Other peripherals");
     char          temp[512];
-    int           c;
 
     if (bugger_enabled == 0)
         ini_section_delete_var(cat, "bugger_enabled");
@@ -2660,7 +2719,7 @@ save_other_peripherals(void)
     else
         ini_section_set_int(cat, "postcard_enabled", postcard_enabled);
 
-    for (c = 0; c < ISAMEM_MAX; c++) {
+    for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
         sprintf(temp, "isamem%d_type", c);
         if (isamem_type[c] == 0)
             ini_section_delete_var(cat, temp);
@@ -2683,12 +2742,12 @@ static void
 save_hard_disks(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "Hard disks");
-    char          temp[32], tmp2[512];
+    char          temp[32];
+    char          tmp2[512];
     char         *p;
-    int           c;
 
     memset(temp, 0x00, sizeof(temp));
-    for (c = 0; c < HDD_NUM; c++) {
+    for (uint8_t c = 0; c < HDD_NUM; c++) {
         sprintf(temp, "hdd_%02i_parameters", c + 1);
         if (hdd_is_valid(c)) {
             p = hdd_bus_to_string(hdd[c].bus, 0);
@@ -2762,7 +2821,8 @@ static void
 save_floppy_and_cdrom_drives(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "Floppy and CD-ROM drives");
-    char          temp[512], tmp2[512];
+    char          temp[512];
+    char          tmp2[512];
     int           c;
 
     for (c = 0; c < FDD_NUM; c++) {
@@ -2898,7 +2958,8 @@ static void
 save_other_removable_devices(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "Other removable devices");
-    char          temp[512], tmp2[512];
+    char          temp[512];
+    char          tmp2[512];
     int           c;
 
     for (c = 0; c < ZIP_NUM; c++) {
@@ -2985,10 +3046,8 @@ save_other_removable_devices(void)
 void
 config_save(void)
 {
-    int i;
-
     save_general(); /* General */
-    for (i = 0; i < MONITORS_NUM; i++)
+    for (uint8_t i = 0; i < MONITORS_NUM; i++)
         save_monitor(i);
     save_machine();                 /* Machine */
     save_video();                   /* Video */

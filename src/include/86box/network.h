@@ -48,14 +48,16 @@
 #include <stdint.h>
 
 /* Network provider types. */
-#define NET_TYPE_NONE  0 /* networking disabled */
+#define NET_TYPE_NONE  0 /* use the null network driver */
 #define NET_TYPE_SLIRP 1 /* use the SLiRP port forwarder */
 #define NET_TYPE_PCAP  2 /* use the (Win)Pcap API */
+#define NET_TYPE_VDE   3 /* use the VDE plug API */
 
 #define NET_MAX_FRAME  1518
 /* Queue size must be a power of 2 */
 #define NET_QUEUE_LEN      16
 #define NET_QUEUE_LEN_MASK (NET_QUEUE_LEN - 1)
+#define NET_QUEUE_COUNT 3
 #define NET_CARD_MAX       4
 #define NET_HOST_INTF_MAX  64
 
@@ -123,6 +125,8 @@ typedef struct netdrv_t {
 
 extern const netdrv_t net_pcap_drv;
 extern const netdrv_t net_slirp_drv;
+extern const netdrv_t net_vde_drv;
+extern const netdrv_t net_null_drv;
 
 struct _netcard_t {
     const device_t *device;
@@ -130,7 +134,7 @@ struct _netcard_t {
     struct netdrv_t host_drv;
     NETRXCB         rx;
     NETSETLINKSTATE set_link_state;
-    netqueue_t      queues[3];
+    netqueue_t      queues[NET_QUEUE_COUNT];
     netpkt_t        queued_pkt;
     mutex_t        *tx_mutex;
     mutex_t        *rx_mutex;
@@ -147,14 +151,26 @@ typedef struct {
     char description[128];
 } netdev_t;
 
+typedef struct {
+    int has_slirp;
+    int has_pcap;
+    int has_vde;
+} network_devmap_t;
+
+
+#define HAS_NOSLIRP_NET(x)  (x.has_pcap || x.has_vde)
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /* Global variables. */
 extern int      nic_do_log; /* config */
-extern int      network_ndev;
+extern network_devmap_t network_devmap;
+extern int      network_ndev;           // Number of pcap devices
+extern network_devmap_t network_devmap; // Bitmap of available network types
 extern netdev_t network_devs[NET_HOST_INTF_MAX];
+
 
 /* Function prototypes. */
 extern void       network_init(void);
@@ -166,6 +182,8 @@ extern int        network_available(void);
 extern void       network_tx(netcard_t *card, uint8_t *, int);
 
 extern int net_pcap_prepare(netdev_t *);
+extern int net_vde_prepare(void);
+
 
 extern void            network_connect(int id, int connect);
 extern int             network_is_connected(int id);
