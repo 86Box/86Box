@@ -280,7 +280,7 @@ void *net_vde_init(const netcard_t *card, const uint8_t *mac_addr, void *priv) {
         // TODO: Once there is a solution for the mentioned crash, this should be removed
         // and/or replaced by proper error handling code.
         //-
-        fatal("Could not open the specified VDE socket (%s). Please fix your networking configuration.", socket_name);
+        // fatal("Could not open the specified VDE socket (%s). Please fix your networking configuration.", socket_name);
         // It makes no sense to issue this warning since the program will crash anyway...
         // ui_msgbox_header(MBX_WARNING, (wchar_t *) IDS_2167, (wchar_t *) IDS_2168);
         return NULL;

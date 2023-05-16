@@ -120,7 +120,8 @@ extern int disable_write;
 
 extern int defaultwriteprot;
 
-extern int writeprot[FDD_NUM], fwriteprot[FDD_NUM];
+extern int writeprot[FDD_NUM];
+extern int fwriteprot[FDD_NUM];
 extern int fdd_changed[FDD_NUM];
 extern int drive_empty[FDD_NUM];
 

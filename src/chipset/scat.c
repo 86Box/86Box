@@ -113,13 +113,16 @@ static void    scat_out(uint16_t port, uint8_t val, void *priv);
 static void
 shadow_state_update(scat_t *dev)
 {
-    int i, val;
+    int val;
 
-    uint32_t base, bit, romcs, shflags = 0;
+    uint32_t base;
+    uint32_t bit;
+    uint32_t romcs;
+    uint32_t shflags = 0;
 
     shadowbios = shadowbios_write = 0;
 
-    for (i = 0; i < 24; i++) {
+    for (uint8_t i = 0; i < 24; i++) {
         if ((dev->regs[SCAT_DRAM_CONFIGURATION] & 0xf) < 4)
             val = 0;
         else
@@ -150,7 +153,6 @@ static void
 set_xms_bound(scat_t *dev, uint8_t val)
 {
     uint32_t xms_max = ((dev->regs[SCAT_VERSION] & 0xf0) != 0 && ((val & 0x10) != 0)) || (dev->regs[SCAT_VERSION] >= 4) ? 0xfe0000 : 0xfc0000;
-    int      i;
 
     switch (val & 0x0f) {
         case 1:
@@ -245,7 +247,7 @@ set_xms_bound(scat_t *dev, uint8_t val)
     mem_mapping_set_addr(&dev->low_mapping[31], 0xf80000,
                          ((dev->regs[SCAT_VERSION] & 0xf0) != 0 && ((val & 0x10) != 0)) || (dev->regs[SCAT_VERSION] >= 4) ? 0x60000 : 0x40000);
     if (dev->regs[SCAT_VERSION] & 0xf0) {
-        for (i = 0; i < 8; i++) {
+        for (uint8_t i = 0; i < 8; i++) {
             if (val & 0x10)
                 mem_mapping_disable(&bios_high_mapping);
             else
@@ -258,7 +260,8 @@ static uint32_t
 get_addr(scat_t *dev, uint32_t addr, ems_page_t *p)
 {
 #if 1
-    int      nbanks_2048k, nbanks_512k;
+    int      nbanks_2048k;
+    int      nbanks_512k;
     uint32_t addr2;
     int      nbank;
 #else
@@ -882,10 +885,11 @@ get_addr(scat_t *dev, uint32_t addr, ems_page_t *p)
 static void
 set_global_EMS_state(scat_t *dev, int state)
 {
-    uint32_t base_addr, virt_addr;
-    int      i, conf;
+    uint32_t base_addr;
+    uint32_t virt_addr;
+    int      conf;
 
-    for (i = ((dev->regs[SCAT_VERSION] & 0xf0) == 0) ? 0 : 24; i < 32; i++) {
+    for (uint32_t i = ((dev->regs[SCAT_VERSION] & 0xf0) == 0) ? 0 : 24; i < 32; i++) {
         base_addr = (i + 16) << 14;
 
         if (i >= 24)
@@ -1009,12 +1013,13 @@ memmap_state_update(scat_t *dev)
 static void
 scat_out(uint16_t port, uint8_t val, void *priv)
 {
-    scat_t *dev           = (scat_t *) priv;
-    uint8_t reg_valid     = 0,
-            shadow_update = 0,
-            map_update    = 0,
-            indx;
-    uint32_t base_addr, virt_addr;
+    scat_t  *dev           = (scat_t *) priv;
+    uint8_t  reg_valid     = 0;
+    uint8_t  shadow_update = 0;
+    uint8_t  map_update    = 0;
+    uint8_t  indx;
+    uint32_t base_addr;
+    uint32_t virt_addr;
 
     switch (port) {
         case 0x22:
@@ -1193,7 +1198,8 @@ static uint8_t
 scat_in(uint16_t port, void *priv)
 {
     scat_t *dev = (scat_t *) priv;
-    uint8_t ret = 0xff, indx;
+    uint8_t ret = 0xff;
+    uint8_t indx;
 
     switch (port) {
         case 0x23:
@@ -1304,7 +1310,8 @@ mem_write_scatb(uint32_t addr, uint8_t val, void *priv)
 {
     ems_page_t *page    = (ems_page_t *) priv;
     scat_t     *dev     = (scat_t *) page->scat;
-    uint32_t    oldaddr = addr, chkaddr;
+    uint32_t    oldaddr = addr;
+    uint32_t    chkaddr;
 
     addr    = get_addr(dev, addr, page);
     chkaddr = page->valid ? addr : oldaddr;
@@ -1322,7 +1329,8 @@ mem_write_scatw(uint32_t addr, uint16_t val, void *priv)
 {
     ems_page_t *page    = (ems_page_t *) priv;
     scat_t     *dev     = (scat_t *) page->scat;
-    uint32_t    oldaddr = addr, chkaddr;
+    uint32_t    oldaddr = addr;
+    uint32_t    chkaddr;
 
     addr    = get_addr(dev, addr, page);
     chkaddr = page->valid ? addr : oldaddr;
@@ -1340,7 +1348,8 @@ mem_write_scatl(uint32_t addr, uint32_t val, void *priv)
 {
     ems_page_t *page    = (ems_page_t *) priv;
     scat_t     *dev     = (scat_t *) page->scat;
-    uint32_t    oldaddr = addr, chkaddr;
+    uint32_t    oldaddr = addr;
+    uint32_t    chkaddr;
 
     addr    = get_addr(dev, addr, page);
     chkaddr = page->valid ? addr : oldaddr;
@@ -1365,7 +1374,8 @@ static void *
 scat_init(const device_t *info)
 {
     scat_t  *dev;
-    uint32_t i, k;
+    uint32_t i;
+    uint32_t k;
     int      sx;
 
     dev = (scat_t *) malloc(sizeof(scat_t));
@@ -1418,7 +1428,7 @@ scat_init(const device_t *info)
         mem_mapping_disable(&ram_mid_mapping);
     mem_mapping_disable(&ram_high_mapping);
 
-    k = (sx) ? 0x80000 : 0x40000;
+    k = sx ? 0x80000 : 0x40000;
 
     dev->null_page.valid    = 0;
     dev->null_page.regs_2x8 = 0xff;
@@ -1511,7 +1521,7 @@ scat_init(const device_t *info)
 
     device_add(&port_92_device);
 
-    return (dev);
+    return dev;
 }
 
 const device_t scat_device = {

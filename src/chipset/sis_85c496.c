@@ -121,12 +121,12 @@ static void
 sis_85c496_recalcmapping(sis_85c496_t *dev)
 {
     uint32_t base;
-    uint32_t i, shflags = 0;
+    uint32_t shflags = 0;
 
     shadowbios       = 0;
     shadowbios_write = 0;
 
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         base = 0xc0000 + (i << 15);
 
         if (dev->pci_conf[0x44] & (1 << i)) {
@@ -185,9 +185,12 @@ static void
 sis_85c49x_pci_write(int func, int addr, uint8_t val, void *priv)
 {
     sis_85c496_t *dev = (sis_85c496_t *) priv;
-    uint8_t       old, valxor;
+    uint8_t       old;
+    uint8_t       valxor;
     uint8_t       smm_irq[4] = { 10, 11, 12, 15 };
-    uint32_t      host_base, ram_base, size;
+    uint32_t      host_base;
+    uint32_t      ram_base;
+    uint32_t      size;
 
     old    = dev->pci_conf[addr];
     valxor = (dev->pci_conf[addr]) ^ val;
@@ -526,7 +529,6 @@ static void
 sis_85c496_reset(void *priv)
 {
     sis_85c496_t *dev = (sis_85c496_t *) priv;
-    int           i;
 
     sis_85c49x_pci_write(0, 0x44, 0x00, dev);
     sis_85c49x_pci_write(0, 0x45, 0x00, dev);
@@ -535,7 +537,7 @@ sis_85c496_reset(void *priv)
     sis_85c49x_pci_write(0, 0x5a, 0x00, dev);
     // sis_85c49x_pci_write(0, 0x5a, 0x06, dev);
 
-    for (i = 0; i < 8; i++)
+    for (uint8_t i = 0; i < 8; i++)
         sis_85c49x_pci_write(0, 0x48 + i, 0x00, dev);
 
     sis_85c49x_pci_write(0, 0x80, 0x00, dev);

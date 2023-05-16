@@ -1,17 +1,17 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		Emulation of ALi M1435 chipset that acts as both the
- *		southbridge.
+ *          Emulation of ALi M1435 chipset that acts as both the
+ *          southbridge.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2020 Miran Grca.
+ *          Copyright 2020 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -74,12 +74,13 @@ static void
 ali1435_update_irqs(ali1435_t *dev, int set)
 {
     uint8_t val;
-    int     i, reg;
-    int     shift, irq;
+    int     reg;
+    int     shift;
+    int     irq;
     int     irq_map[8] = { -1, 5, 9, 10, 11, 12, 14, 15 };
     pic_t  *temp_pic;
 
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         reg   = 0x80 + (i >> 1);
         shift = (i & 1) << 2;
         val   = (dev->pci_regs[reg] >> shift) & 0x0f;
@@ -99,7 +100,8 @@ static void
 ali1435_pci_write(int func, int addr, uint8_t val, void *priv)
 {
     ali1435_t *dev = (ali1435_t *) priv;
-    int        irq, irq_map[8] = { -1, 5, 9, 10, 11, 12, 14, 15 };
+    int        irq;
+    int        irq_map[8] = { -1, 5, 9, 10, 11, 12, 14, 15 };
 
     ali1435_log("ali1435_write(%02X, %02X, %02X)\n", func, addr, val);
 
@@ -283,8 +285,8 @@ ali1435_init(const device_t *info)
     dev->cfg_locked = 1;
 
     /* M1435 Ports:
-                22h	Index Port
-                23h	Data Port
+                22h Index Port
+                23h Data Port
     */
     io_sethandler(0x0022, 0x0002, ali1435_read, NULL, NULL, ali1435_write, NULL, NULL, dev);
 

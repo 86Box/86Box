@@ -51,7 +51,8 @@
 int
 machine_v86p_init(const machine_t *model)
 {
-    int ret, rom = 0;
+    int ret;
+    int rom = 0;
 
     ret = bios_load_interleavedr("roms/machines/v86p/INTEL8086AWD_BIOS_S3.1_V86P_122089_Even.rom",
                                  "roms/machines/v86p/INTEL8086AWD_BIOS_S3.1_V86P_122089_Odd.rom",

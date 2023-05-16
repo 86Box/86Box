@@ -62,10 +62,13 @@ sis_85c4xx_recalcremap(sis_85c4xx_t *dev)
 static void
 sis_85c4xx_recalcmapping(sis_85c4xx_t *dev)
 {
-    uint32_t base, n    = 0;
-    uint32_t i, shflags = 0;
-    uint32_t readext, writeext;
-    uint8_t  romcs = 0xc0, cur_romcs;
+    uint32_t base;
+    uint32_t n         = 0;
+    uint32_t shflags   = 0;
+    uint32_t readext;
+    uint32_t writeext;
+    uint8_t  romcs     = 0xc0;
+    uint8_t  cur_romcs;
 
     dev->shadowed = 0x00;
 
@@ -79,7 +82,7 @@ sis_85c4xx_recalcmapping(sis_85c4xx_t *dev)
     if (dev->regs[0x08] & 0x04)
         romcs |= 0x02;
 
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         base      = 0xc0000 + (i << 15);
         cur_romcs = romcs & (1 << i);
         readext   = cur_romcs ? MEM_READ_EXTANY : MEM_READ_EXTERNAL;
@@ -155,7 +158,8 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
     sis_85c4xx_t *dev       = (sis_85c4xx_t *) priv;
     uint8_t       rel_reg   = dev->cur_reg - dev->reg_base;
     uint8_t       valxor    = 0x00;
-    uint32_t      host_base = 0x000e0000, ram_base = 0x000a0000;
+    uint32_t      host_base = 0x000e0000;
+    uint32_t      ram_base  = 0x000a0000;
 
     switch (port) {
         case 0x22:

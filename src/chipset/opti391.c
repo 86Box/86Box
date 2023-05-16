@@ -60,9 +60,12 @@ typedef struct
 static void
 opti391_shadow_recalc(opti391_t *dev)
 {
-    uint32_t i, base;
-    uint8_t  sh_enable, sh_master;
-    uint8_t  sh_wp, sh_write_internal;
+    uint32_t i;
+    uint32_t base;
+    uint8_t  sh_enable;
+    uint8_t  sh_master;
+    uint8_t  sh_wp;
+    uint8_t  sh_write_internal;
 
     shadowbios = shadowbios_write = 0;
 

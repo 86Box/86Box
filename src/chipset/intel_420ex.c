@@ -113,8 +113,9 @@ i420ex_smram_handler_phase1(i420ex_t *dev)
 {
     uint8_t *regs = (uint8_t *) dev->regs;
 
-    uint32_t host_base = 0x000a0000, ram_base = 0x000a0000;
-    uint32_t size = 0x00010000;
+    uint32_t host_base = 0x000a0000;
+    uint32_t ram_base  = 0x000a0000;
+    uint32_t size      = 0x00010000;
 
     switch (regs[0x70] & 0x07) {
         case 0:

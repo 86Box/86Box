@@ -339,9 +339,9 @@ static uint32_t
 ems_execaddr(t1000_t *sys, int pg, uint16_t val)
 {
     if (!(val & 0x80))
-        return (0); /* Bit 7 reset => not mapped */
+        return 0; /* Bit 7 reset => not mapped */
     if (!sys->ems_pages)
-        return (0); /* No EMS available: all used by
+        return 0; /* No EMS available: all used by
                      * HardRAM or conventional RAM */
     val &= 0x7f;
 
@@ -354,7 +354,7 @@ ems_execaddr(t1000_t *sys, int pg, uint16_t val)
         return ((512 * 1024) + (sys->ems_base * 0x10000) + (0x4000 * val));
     }
 
-    return (0);
+    return 0;
 }
 
 static uint8_t
@@ -392,8 +392,6 @@ ems_out(uint16_t addr, uint8_t val, void *priv)
 static void
 ems_set_hardram(t1000_t *sys, uint8_t val)
 {
-    int n;
-
     val &= 0x1f; /* Mask off pageframe address */
     if (val && mem_size > 512)
         sys->ems_base = val;
@@ -408,7 +406,7 @@ ems_set_hardram(t1000_t *sys, uint8_t val)
         sys->ems_pages = 0;
 
     /* Recalculate EMS mappings */
-    for (n = 0; n < 4; n++)
+    for (uint8_t n = 0; n < 4; n++)
         ems_out(n << 14, sys->ems_reg[n], sys);
 }
 
@@ -473,7 +471,7 @@ ems_read_ram(uint32_t addr, void *priv)
     int      pg  = addr_to_page(addr);
 
     if (pg < 0)
-        return (0xff);
+        return 0xff;
     addr = sys->page_exec[pg] + (addr & 0x3fff);
 
     return (ram[addr]);
@@ -486,7 +484,7 @@ ems_read_ramw(uint32_t addr, void *priv)
     int      pg  = addr_to_page(addr);
 
     if (pg < 0)
-        return (0xff);
+        return 0xff;
 
 #if 0
     t1000_log("ems_read_ramw addr=%05x ", addr);
@@ -507,7 +505,7 @@ ems_read_raml(uint32_t addr, void *priv)
     int      pg  = addr_to_page(addr);
 
     if (pg < 0)
-        return (0xff);
+        return 0xff;
     addr = sys->page_exec[pg] + (addr & 0x3fff);
 
     return (*(uint32_t *) &ram[addr]);
@@ -604,7 +602,7 @@ read_ctl(uint16_t addr, void *priv)
             ret = (sys->sys_ctl[addr & 0x0f]);
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -693,7 +691,7 @@ t1000_read_nvram(uint16_t addr, void *priv)
             break;
     }
 
-    return (tmp);
+    return tmp;
 }
 
 static void
@@ -790,7 +788,7 @@ t1000_read_rom(uint32_t addr, void *priv)
     t1000_t *sys = (t1000_t *) priv;
 
     if (!sys->romdrive)
-        return (0xff);
+        return 0xff;
 
     return (sys->romdrive[sys->rom_offset + (addr & 0xffff)]);
 }
@@ -801,7 +799,7 @@ t1000_read_romw(uint32_t addr, void *priv)
     t1000_t *sys = (t1000_t *) priv;
 
     if (!sys->romdrive)
-        return (0xffff);
+        return 0xffff;
 
     return (*(uint16_t *) (&sys->romdrive[sys->rom_offset + (addr & 0xffff)]));
 }
@@ -812,7 +810,7 @@ t1000_read_roml(uint32_t addr, void *priv)
     t1000_t *sys = (t1000_t *) priv;
 
     if (!sys->romdrive)
-        return (0xffffffff);
+        return 0xffffffff;
 
     return (*(uint32_t *) (&sys->romdrive[sys->rom_offset + (addr & 0xffff)]));
 }
@@ -821,8 +819,6 @@ int
 machine_xt_t1000_init(const machine_t *model)
 {
     FILE *f;
-    int   pg;
-
     int ret;
 
     ret = bios_load_linear("roms/machines/t1000/t1000.rom",
@@ -861,7 +857,7 @@ machine_xt_t1000_init(const machine_t *model)
     mem_mapping_disable(&t1000.rom_mapping);
 
     /* Map the EMS page frame */
-    for (pg = 0; pg < 4; pg++) {
+    for (uint8_t pg = 0; pg < 4; pg++) {
         mem_mapping_add(&t1000.mapping[pg], 0xd0000 + (0x4000 * pg), 16384,
                         ems_read_ram, ems_read_ramw, ems_read_raml,
                         ems_write_ram, ems_write_ramw, ems_write_raml,
@@ -906,8 +902,6 @@ machine_xt_t1000_init(const machine_t *model)
 int
 machine_xt_t1200_init(const machine_t *model)
 {
-    int pg;
-
     int ret;
 
     ret = bios_load_linear("roms/machines/t1200/t1200_019e.ic15.bin",
@@ -924,7 +918,7 @@ machine_xt_t1200_init(const machine_t *model)
     loadfont("roms/machines/t1000/t1000font.bin", 2);
 
     /* Map the EMS page frame */
-    for (pg = 0; pg < 4; pg++) {
+    for (uint8_t pg = 0; pg < 4; pg++) {
         mem_mapping_add(&t1000.mapping[pg],
                         0xd0000 + (0x4000 * pg), 16384,
                         ems_read_ram, ems_read_ramw, ems_read_raml,

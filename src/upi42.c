@@ -224,7 +224,8 @@ upi42_op_XCH_A_Rr(upi42_t *upi42, uint32_t fetchdat)
 static int
 upi42_op_XCH_A_indRr(upi42_t *upi42, uint32_t fetchdat)
 {
-    uint8_t temp = upi42->a, addr = upi42->ram[fetchdat & 1] & upi42->rammask;
+    uint8_t temp = upi42->a;
+    uint8_t addr = upi42->ram[fetchdat & 1] & upi42->rammask;
     upi42->a         = upi42->ram[addr];
     upi42->ram[addr] = temp;
     return 1;
@@ -233,7 +234,8 @@ upi42_op_XCH_A_indRr(upi42_t *upi42, uint32_t fetchdat)
 static int
 upi42_op_XCHD_A_indRr(upi42_t *upi42, uint32_t fetchdat)
 {
-    uint8_t temp = upi42->a, addr = upi42->ram[fetchdat & 1] & upi42->rammask;
+    uint8_t temp = upi42->a;
+    uint8_t addr = upi42->ram[fetchdat & 1] & upi42->rammask;
     upi42->a         = (upi42->a & 0xf0) | (upi42->ram[addr] & 0x0f);
     upi42->ram[addr] = (upi42->ram[addr] & 0xf0) | (temp & 0x0f);
     return 1;
@@ -1003,7 +1005,7 @@ upi42_reset(upi42_t *upi42)
 void
 upi42_do_init(upi32_t type, uint8_t *rom)
 {
-    memset(upi42, 0, sizeof(upi42_t));
+    memset(upi42, 0x00, sizeof(upi42_t));
     upi42->rom = rom;
 
     /* Set chip type. */
@@ -1022,7 +1024,7 @@ upi42_do_init(upi32_t type, uint8_t *rom)
         upi42->ops[0xe2] = NULL; /* SUSPEND */
     }
 
-    memset(upi42_t->ports_in, 0xff, 0x08);
+    memset(upi42_t->ports_in, 0xff, sizeof(upi42_t->ports_in));
     upi42_t->t0 = 1;
     upi42_t->t1 = 1;
 }
@@ -1172,7 +1174,8 @@ static void
 upi42_write(uint16_t port, uint8_t val, void *priv)
 {
     upi42_t *upi42 = (upi42_t *) priv;
-    uint32_t temp_type, uint8_t *temp_rom;
+    uint32_t temp_type;
+    uint8_t *temp_rom;
     int i;
 
     switch (port) {

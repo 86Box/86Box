@@ -44,20 +44,28 @@
 
 pit_intf_t pit_devs[2];
 
-double cpuclock, PITCONSTD,
-    SYSCLK,
-    isa_timing,
-    bus_timing, pci_timing, agp_timing,
-    PCICLK, AGPCLK;
+double cpuclock;
+double PITCONSTD;
+double SYSCLK;
+double isa_timing;
+double bus_timing;
+double pci_timing;
+double agp_timing;
+double PCICLK;
+double AGPCLK;
 
-uint64_t PITCONST, ISACONST,
-    CGACONST,
-    MDACONST, HERCCONST,
-    VGACONST1, VGACONST2,
-    RTCCONST, ACPICONST;
+uint64_t PITCONST;
+uint64_t ISACONST;
+uint64_t CGACONST;
+uint64_t MDACONST;
+uint64_t HERCCONST;
+uint64_t VGACONST1;
+uint64_t VGACONST2;
+uint64_t RTCCONST;
+uint64_t ACPICONST;
 
-int refresh_at_enable = 1,
-    io_delay          = 5;
+int refresh_at_enable = 1;
+int io_delay          = 5;
 
 int64_t firsttime = 1;
 
@@ -482,11 +490,10 @@ static void
 pit_timer_over(void *p)
 {
     pit_t *dev = (pit_t *) p;
-    int    i;
 
     dev->clock ^= 1;
 
-    for (i = 0; i < 3; i++)
+    for (uint8_t i = 0; i < 3; i++)
         pit_ctr_set_clock_common(&dev->counters[i], dev->clock);
 
     timer_advance_u64(&dev->callback_timer, PITCONST >> 1ULL);
@@ -605,7 +612,8 @@ pit_read(uint16_t addr, void *priv)
 {
     pit_t  *dev = (pit_t *) priv;
     uint8_t ret = 0xff;
-    int     count, t = (addr & 3);
+    int     count;
+    int     t = (addr & 3);
     ctr_t  *ctr;
 
     switch (addr & 3) {
@@ -752,13 +760,11 @@ ctr_reset(ctr_t *ctr)
 void
 pit_reset(pit_t *dev)
 {
-    int i;
-
     memset(dev, 0, sizeof(pit_t));
 
     dev->clock = 0;
 
-    for (i = 0; i < 3; i++)
+    for (uint8_t i = 0; i < 3; i++)
         ctr_reset(&dev->counters[i]);
 
     /* Disable speaker gate. */
@@ -880,7 +886,6 @@ const device_t i8254_ps2_device = {
 pit_t *
 pit_common_init(int type, void (*out0)(int new_out, int old_out), void (*out1)(int new_out, int old_out))
 {
-    int   i;
     void *pit;
 
     pit_intf_t *pit_intf = &pit_devs[0];
@@ -907,7 +912,7 @@ pit_common_init(int type, void (*out0)(int new_out, int old_out), void (*out1)(i
 
     pit_intf->data = pit;
 
-    for (i = 0; i < 3; i++) {
+    for (uint8_t i = 0; i < 3; i++) {
         pit_intf->set_gate(pit_intf->data, i, 1);
         pit_intf->set_using_timer(pit_intf->data, i, 1);
     }
@@ -972,9 +977,9 @@ pit_set_clock(int clock)
             cpuclock = (double) clock;
 
         PITCONSTD    = (cpuclock / 1193182.0);
-        PITCONST     = (uint64_t) (PITCONSTD * (double) (1ull << 32));
-        CGACONST     = (uint64_t) ((cpuclock / (19687503.0 / 11.0)) * (double) (1ull << 32));
-        ISACONST     = (uint64_t) ((cpuclock / (double) cpu_isa_speed) * (double) (1ull << 32));
+        PITCONST     = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
+        CGACONST     = (uint64_t) ((cpuclock / (19687503.0 / 11.0)) * (double) (1ULL << 32));
+        ISACONST     = (uint64_t) ((cpuclock / (double) cpu_isa_speed) * (double) (1ULL << 32));
         xt_cpu_multi = 1ULL;
     } else {
         cpuclock     = 14318184.0;
@@ -1022,8 +1027,8 @@ pit_set_clock(int clock)
             CGACONST  = (16ULL << 32LL);
         } else if (cpuclock != 14318184.0) {
             PITCONSTD = (cpuclock / 1193182.0);
-            PITCONST  = (uint64_t) (PITCONSTD * (double) (1ull << 32));
-            CGACONST  = (uint64_t) (((cpuclock / (19687503.0 / 11.0)) * (double) (1ull << 32)));
+            PITCONST  = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
+            CGACONST  = (uint64_t) ((cpuclock / (19687503.0 / 11.0)) * (double) (1ULL << 32));
         }
 
         ISACONST = (1ULL << 32ULL);
@@ -1033,13 +1038,13 @@ pit_set_clock(int clock)
     /* Delay for empty I/O ports. */
     io_delay = (int) round(((double) cpu_s->rspeed) / 3000000.0);
 
-    MDACONST  = (uint64_t) (cpuclock / 2032125.0 * (double) (1ull << 32));
+    MDACONST  = (uint64_t) (cpuclock / 2032125.0 * (double) (1ULL << 32));
     HERCCONST = MDACONST;
-    VGACONST1 = (uint64_t) (cpuclock / 25175000.0 * (double) (1ull << 32));
-    VGACONST2 = (uint64_t) (cpuclock / 28322000.0 * (double) (1ull << 32));
-    RTCCONST  = (uint64_t) (cpuclock / 32768.0 * (double) (1ull << 32));
+    VGACONST1 = (uint64_t) (cpuclock / 25175000.0 * (double) (1ULL << 32));
+    VGACONST2 = (uint64_t) (cpuclock / 28322000.0 * (double) (1ULL << 32));
+    RTCCONST  = (uint64_t) (cpuclock / 32768.0 * (double) (1ULL << 32));
 
-    TIMER_USEC = (uint64_t) ((cpuclock / 1000000.0) * (double) (1ull << 32));
+    TIMER_USEC = (uint64_t) ((cpuclock / 1000000.0) * (double) (1ULL << 32));
 
     isa_timing = (cpuclock / (double) cpu_isa_speed);
     if (cpu_64bitbus)

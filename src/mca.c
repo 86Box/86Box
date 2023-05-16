@@ -17,9 +17,7 @@ static int mca_nr_cards;
 void
 mca_init(int nr_cards)
 {
-    int c;
-
-    for (c = 0; c < 8; c++) {
+    for (uint8_t c = 0; c < 8; c++) {
         mca_card_read[c]  = NULL;
         mca_card_write[c] = NULL;
         mca_card_reset[c] = NULL;
@@ -83,9 +81,7 @@ mca_feedb(void)
 void
 mca_reset(void)
 {
-    int c;
-
-    for (c = 0; c < 8; c++) {
+    for (uint8_t c = 0; c < 8; c++) {
         if (mca_card_reset[c])
             mca_card_reset[c](mca_priv[c]);
     }
@@ -94,9 +90,7 @@ mca_reset(void)
 void
 mca_add(uint8_t (*read)(int addr, void *priv), void (*write)(int addr, uint8_t val, void *priv), uint8_t (*feedb)(void *priv), void (*reset)(void *priv), void *priv)
 {
-    int c;
-
-    for (c = 0; c < mca_nr_cards; c++) {
+    for (int c = 0; c < mca_nr_cards; c++) {
         if (!mca_card_read[c] && !mca_card_write[c]) {
             mca_card_read[c]  = read;
             mca_card_write[c] = write;
