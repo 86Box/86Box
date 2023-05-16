@@ -103,9 +103,9 @@ static int
 get_track_index(int drive, int side, int track)
 {
     mfm_t *dev = mfm[drive];
-    int    i, ret = -1;
+    int    ret = -1;
 
-    for (i = 0; i < dev->total_tracks; i++) {
+    for (int i = 0; i < dev->total_tracks; i++) {
         if ((dev->tracks[i].track_no == track) && (dev->tracks[i].side_no == side)) {
             ret = i;
             break;
@@ -119,9 +119,9 @@ static int
 get_adv_track_index(int drive, int side, int track)
 {
     mfm_t *dev = mfm[drive];
-    int    i, ret = -1;
+    int    ret = -1;
 
-    for (i = 0; i < dev->total_tracks; i++) {
+    for (int i = 0; i < dev->total_tracks; i++) {
         if ((dev->adv_tracks[i].track_no == track) && (dev->adv_tracks[i].side_no == side)) {
             ret = i;
             break;
@@ -154,7 +154,8 @@ get_adv_track_bitrate(int drive, int side, int track, int *br, int *rpm)
 static void
 set_disk_flags(int drive)
 {
-    int      br = 250, rpm = 300;
+    int      br = 250;
+    int      rpm = 300;
     mfm_t   *dev             = mfm[drive];
     uint16_t temp_disk_flags = 0x1080; /* We ALWAYS claim to have extra bit cells, even if the actual amount is 0;
                                           Bit 12 = 1, bits 6, 5 = 0 - extra bit cells field specifies the entire
@@ -203,7 +204,8 @@ set_side_flags(int drive, int side)
 {
     mfm_t   *dev             = mfm[drive];
     uint16_t temp_side_flags = 0;
-    int      br = 250, rpm = 300;
+    int      br = 250;
+    int      rpm = 300;
 
     if (dev->hdr.if_type & 0x80)
         get_adv_track_bitrate(drive, side, dev->cur_track, &br, &rpm);
@@ -264,8 +266,10 @@ static uint32_t
 get_raw_size(int drive, int side)
 {
     mfm_t *dev = mfm[drive];
-    int    track_index, is_300_rpm;
-    int    br = 250, rpm = 300;
+    int    track_index;
+    int    is_300_rpm;
+    int    br = 250;
+    int    rpm = 300;
 
     if (dev->hdr.if_type & 0x80) {
         track_index = get_adv_track_index(drive, side, dev->cur_track);
@@ -319,8 +323,10 @@ void
 mfm_read_side(int drive, int side)
 {
     mfm_t *dev = mfm[drive];
-    int    track_index, track_size;
-    int    track_bytes, ret;
+    int    track_index;
+    int    track_size;
+    int    track_bytes;
+    int    ret;
 
     if (dev->hdr.if_type & 0x80)
         track_index = get_adv_track_index(drive, side, dev->cur_track);
@@ -382,7 +388,7 @@ mfm_load(int drive, char *fn)
 {
     mfm_t *dev;
     double dbr;
-    int    i, size;
+    int    size;
 
     writeprot[drive] = fwriteprot[drive] = 1;
 
@@ -427,7 +433,7 @@ mfm_load(int drive, char *fn)
         dev->hdr.tracks_no >>= 1;
         dev->hdr.sides_no <<= 1;
 
-        for (i = 0; i < dev->total_tracks; i++) {
+        for (int i = 0; i < dev->total_tracks; i++) {
             if (dev->hdr.if_type & 0x80) {
                 dev->adv_tracks[i].side_no <<= 1;
                 dev->adv_tracks[i].side_no |= (dev->adv_tracks[i].track_no & 1);
