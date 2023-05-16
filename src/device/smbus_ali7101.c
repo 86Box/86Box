@@ -90,7 +90,10 @@ static void
 smbus_ali7101_write(uint16_t addr, uint8_t val, void *priv)
 {
     smbus_ali7101_t *dev = (smbus_ali7101_t *) priv;
-    uint8_t          smbus_addr, cmd, read, prev_stat;
+    uint8_t          smbus_addr;
+    uint8_t          cmd;
+    uint8_t          read;
+    uint8_t          prev_stat;
     uint16_t         timer_bytes = 0;
 
     smbus_ali7101_log("SMBus ALI7101: write(%02X, %02X)\n", addr, val);

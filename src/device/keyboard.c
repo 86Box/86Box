@@ -90,14 +90,18 @@ key_process(uint16_t scan, int down)
     scancode *codes = scan_table;
     int       c;
 
+    if (!codes)
+        return;
+
     if (!keyboard_scan || (keyboard_send == NULL))
         return;
 
     oldkey[scan] = down;
-    if (down && codes[scan].mk[0] == 0)
+
+    if (down && (codes[scan].mk[0] == 0))
         return;
 
-    if (!down && codes[scan].brk[0] == 0)
+    if (!down && (codes[scan].brk[0] == 0))
         return;
 
     /* TODO: The keyboard controller needs to report the AT flag to us here. */

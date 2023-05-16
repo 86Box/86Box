@@ -1147,7 +1147,8 @@ static uint8_t
 ics9xxx_find_bus_match(ics9xxx_t *dev, uint32_t bus, uint8_t preset_mask, uint8_t preset)
 {
     uint8_t  best_match = 0;
-    uint32_t delta, best_delta = -1;
+    uint32_t delta;
+    uint32_t best_delta = -1;
 
 #ifdef ENABLE_ICS9xxx_DETECT
     if (dev->model_idx == ICS9xxx_xx)

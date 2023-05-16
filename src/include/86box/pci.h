@@ -94,8 +94,10 @@ typedef union {
     uint8_t  addr_regs[4];
 } bar_t;
 
-extern int pci_burst_time, agp_burst_time,
-    pci_nonburst_time, agp_nonburst_time;
+extern int pci_burst_time;
+extern int agp_burst_time;
+extern int pci_nonburst_time;
+extern int agp_nonburst_time;
 
 extern void pci_set_irq_routing(int pci_int, int irq);
 extern void pci_set_irq_level(int pci_int, int level);

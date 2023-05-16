@@ -151,8 +151,10 @@ ram_mirrored_256k_in_4mi_read(uint32_t addr, void *priv)
 {
     ram_struct_t *rs   = (ram_struct_t *) priv;
     scamp_t      *dev  = rs->parent;
-    int           bank = rs->bank, byte;
-    int           row, column;
+    int           bank = rs->bank;
+    int           byte;
+    int           row;
+    int           column;
 
     addr -= dev->ram_virt_base[bank];
     byte = addr & 1;
@@ -180,8 +182,10 @@ ram_mirrored_256k_in_4mi_write(uint32_t addr, uint8_t val, void *priv)
 {
     ram_struct_t *rs   = (ram_struct_t *) priv;
     scamp_t      *dev  = rs->parent;
-    int           bank = rs->bank, byte;
-    int           row, column;
+    int           bank = rs->bank;
+    int           byte;
+    int           row;
+    int           column;
 
     addr -= dev->ram_virt_base[bank];
     byte = addr & 1;
@@ -211,8 +215,10 @@ ram_mirrored_interleaved_read(uint32_t addr, void *priv)
 {
     ram_struct_t *rs   = (ram_struct_t *) priv;
     scamp_t      *dev  = rs->parent;
-    int           bank = rs->bank, byte;
-    int           row, column;
+    int           bank = rs->bank;
+    int           byte;
+    int           row;
+    int           column;
 
     addr -= dev->ram_virt_base[bank];
     byte = addr & 1;
@@ -240,8 +246,10 @@ ram_mirrored_interleaved_write(uint32_t addr, uint8_t val, void *priv)
 {
     ram_struct_t *rs   = (ram_struct_t *) priv;
     scamp_t      *dev  = rs->parent;
-    int           bank = rs->bank, byte;
-    int           row, column;
+    int           bank = rs->bank;
+    int           byte;
+    int           row;
+    int           column;
 
     addr -= dev->ram_virt_base[bank];
     byte = addr & 1;
@@ -269,8 +277,10 @@ ram_mirrored_read(uint32_t addr, void *priv)
 {
     ram_struct_t *rs   = (ram_struct_t *) priv;
     scamp_t      *dev  = rs->parent;
-    int           bank = rs->bank, byte;
-    int           row, column;
+    int           bank = rs->bank;
+    int           byte;
+    int           row;
+    int           column;
 
     addr -= dev->ram_virt_base[bank];
     byte   = addr & 1;
@@ -286,8 +296,10 @@ ram_mirrored_write(uint32_t addr, uint8_t val, void *priv)
 {
     ram_struct_t *rs   = (ram_struct_t *) priv;
     scamp_t      *dev  = rs->parent;
-    int           bank = rs->bank, byte;
-    int           row, column;
+    int           bank = rs->bank;
+    int           byte;
+    int           row;
+    int           column;
 
     addr -= dev->ram_virt_base[bank];
     byte   = addr & 1;
@@ -302,15 +314,16 @@ static void
 recalc_mappings(void *priv)
 {
     scamp_t *dev = (scamp_t *) priv;
-    int      c;
-    uint32_t virt_base  = 0, old_virt_base;
+    uint32_t virt_base  = 0;
+    uint32_t old_virt_base;
     uint8_t  cur_rammap = dev->cfg_regs[CFG_RAMMAP] & 0xf;
-    int      bank_nr    = 0, phys_bank;
+    int      bank_nr    = 0;
+    int      phys_bank;
 
     mem_set_mem_state_both((1 << 20), (16256 - 1024) * 1024, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
     mem_set_mem_state(0xfe0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 
-    for (c = 0; c < 2; c++)
+    for (uint8_t c = 0; c < 2; c++)
         mem_mapping_disable(&dev->ram_mapping[c]);
 
     /* Once the BIOS programs the correct DRAM configuration, switch to regular

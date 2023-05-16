@@ -71,11 +71,13 @@ opti822_log(const char *fmt, ...)
 static void
 opti822_recalc(opti822_t *dev)
 {
-    int      i, reg, bit_r, bit_w;
+    int      reg;
+    int      bit_r;
+    int      bit_w;
     int      state;
     uint32_t base;
 
-    for (i = 0; i < 12; i++) {
+    for (uint8_t i = 0; i < 12; i++) {
         base  = 0x000c0000 + (i << 14);
         reg   = 0x44 + ((i >> 2) ^ 3);
         bit_w = (i & 3);
@@ -99,15 +101,16 @@ static void
 opti822_update_irqs(opti822_t *dev, int set)
 {
     uint8_t val;
-    int     i, reg;
-    int     shift, irq;
+    int     reg;
+    int     shift;
+    int     irq;
     int     irq_map[8] = { -1, 5, 9, 10, 11, 12, 14, 15 };
     pic_t  *temp_pic;
 
     // dev->irq_convert = (dev->pci_regs[0x53] & 0x08);
     dev->irq_convert = 1;
 
-    for (i = 0; i < 16; i++) {
+    for (uint8_t i = 0; i < 16; i++) {
         reg   = 0x88 + (i >> 1);
         shift = (i & 1) << 2;
         val   = (dev->pci_regs[reg] >> shift) & 0x0f;
@@ -127,8 +130,10 @@ static void
 opti822_pci_write(int func, int addr, uint8_t val, void *priv)
 {
     opti822_t *dev = (opti822_t *) priv;
-    int        irq, irq_map[8] = { -1, 5, 9, 10, 11, 12, 14, 15 };
-    int        pin, slot;
+    int        irq;
+    int        irq_map[8] = { -1, 5, 9, 10, 11, 12, 14, 15 };
+    int        pin;
+    int        slot;
 
     opti822_log("opti822_write(%02X, %02X, %02X)\n", func, addr, val);
 
@@ -343,7 +348,6 @@ static void
 opti822_reset(void *priv)
 {
     opti822_t *dev = (opti822_t *) priv;
-    int        i;
 
     memset(dev->pci_regs, 0, 256);
 
@@ -366,7 +370,7 @@ opti822_reset(void *priv)
 
     dev->irq_convert = 1 /*0*/;
 
-    for (i = 0; i < 16; i++)
+    for (uint8_t i = 0; i < 16; i++)
         pci_set_irq_routing(PCI_INTA + i, PCI_IRQ_DISABLED);
 }
 

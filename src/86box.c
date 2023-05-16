@@ -404,19 +404,25 @@ pc_log(const char *fmt, ...)
 int
 pc_init(int argc, char *argv[])
 {
-    char      *ppath = NULL, *rpath = NULL;
-    char      *cfg = NULL, *p;
-    char       temp[2048], *fn[FDD_NUM] = { NULL };
-    char       drive = 0, *temp2 = NULL;
+    char      *ppath = NULL;
+    char      *rpath = NULL;
+    char      *cfg = NULL;
+    char      *p;
+    char       temp[2048];
+    char      *fn[FDD_NUM] = { NULL };
+    char       drive = 0;
+    char      *temp2 = NULL;
     struct tm *info;
     time_t     now;
-    int        c, lvmp = 0;
+    int        c;
+    int        lvmp = 0;
     int        i;
 #ifdef ENABLE_NG
     int ng = 0;
 #endif
 #ifdef _WIN32
-    uint32_t *uid, *shwnd;
+    uint32_t *uid;
+    uint32_t *shwnd;
 #endif
     uint32_t lang_init = 0;
 
@@ -493,7 +499,7 @@ usage:
             printf("-V or --vmname name  - overrides the name of the running VM\n");
             printf("-Z or --lastvmpath   - the last parameter is VM path rather than config\n");
             printf("\nA config file can be specified. If none is, the default file will be used.\n");
-            return (0);
+            return 0;
         } else if (!strcasecmp(argv[c], "--lastvmpath") || !strcasecmp(argv[c], "-Z")) {
             lvmp = 1;
         } else if (!strcasecmp(argv[c], "--dumpcfg") || !strcasecmp(argv[c], "-O")) {
@@ -585,7 +591,7 @@ usage:
             /* some (undocumented) test function here.. */
 
             /* .. and then exit. */
-            return (0);
+            return 0;
 #ifdef USE_INSTRUMENT
         } else if (!strcasecmp(argv[c], "--instrument")) {
             if ((c + 1) == argc)
@@ -786,7 +792,7 @@ usage:
     gdbstub_init();
 
     /* All good! */
-    return (1);
+    return 1;
 }
 
 void
@@ -812,7 +818,8 @@ pc_full_speed(void)
 int
 pc_init_modules(void)
 {
-    int     c, m;
+    int     c;
+    int     m;
     wchar_t temp[512];
     char    tempc[512];
 
@@ -846,7 +853,7 @@ pc_init_modules(void)
     }
     if (c == 0) {
         /* No usable ROMs found, aborting. */
-        return (0);
+        return 0;
     }
     pc_log("A total of %d ROM sets have been loaded.\n", c);
 
@@ -867,7 +874,7 @@ pc_init_modules(void)
         if (machine == -1) {
             fatal("No available machines\n");
             exit(-1);
-            return (0);
+            return 0;
         }
     }
 
@@ -890,7 +897,7 @@ pc_init_modules(void)
         if (gfxcard[0] == -1) {
             fatal("No available video cards\n");
             exit(-1);
-            return (0);
+            return 0;
         }
     }
 
@@ -933,7 +940,7 @@ pc_init_modules(void)
 
     machine_status_init();
 
-    return (1);
+    return 1;
 }
 
 void
@@ -1136,7 +1143,10 @@ pc_reset_hard_init(void)
 void
 update_mouse_msg(void)
 {
-    wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
+    wchar_t wcpufamily[2048];
+    wchar_t wcpu[2048];
+    wchar_t wmachine[2048];
+    wchar_t *wcp;
 
     mbstowcs(wmachine, machine_getname(), strlen(machine_getname()) + 1);
 
@@ -1176,8 +1186,6 @@ pc_reset_hard(void)
 void
 pc_close(thread_t *ptr)
 {
-    int i;
-
     /* Wait a while so things can shut down. */
     plat_delay_ms(200);
 
@@ -1205,7 +1213,7 @@ pc_close(thread_t *ptr)
 
     lpt_devices_close();
 
-    for (i = 0; i < FDD_NUM; i++)
+    for (uint8_t i = 0; i < FDD_NUM; i++)
         fdd_close(i);
 
 #ifdef ENABLE_808X_LOG
@@ -1305,7 +1313,10 @@ set_screen_size_monitor(int x, int y, int monitor_index)
 {
     int    temp_overscan_x = monitors[monitor_index].mon_overscan_x;
     int    temp_overscan_y = monitors[monitor_index].mon_overscan_y;
-    double dx, dy, dtx, dty;
+    double dx;
+    double dy;
+    double dtx;
+    double dty;
 
     /* Make sure we keep usable values. */
 #if 0

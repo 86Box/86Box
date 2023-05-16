@@ -52,9 +52,7 @@ serial_passthrough_log(const char *fmt, ...)
 void
 serial_passthrough_init(void)
 {
-    int c;
-
-    for (c = 0; c < SERIAL_MAX; c++) {
+    for (uint8_t c = 0; c < SERIAL_MAX; c++) {
         if (serial_passthrough_enabled[c]) {
             /* Instance n for COM n */
             device_add_inst(&serial_passthrough_device, c + 1);
@@ -139,7 +137,7 @@ serial_passthrough_transmit_period(serial_t *serial, void *p, double transmit_pe
 
     if (dev->mode != SERPT_MODE_HOSTSER)
         return;
-    dev->baudrate = 1000000.0 / (transmit_period);
+    dev->baudrate = 1000000.0 / transmit_period;
 
     serial_passthrough_speed_changed(p);
     plat_serpt_set_params(dev);

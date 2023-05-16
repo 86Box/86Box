@@ -65,9 +65,12 @@ vt82c49x_log(const char *fmt, ...)
 static void
 vt82c49x_recalc(vt82c49x_t *dev)
 {
-    int      i, relocate;
-    uint8_t  reg, bit;
-    uint32_t base, state;
+    int      i;
+    int      relocate;
+    uint8_t  reg;
+    uint8_t  bit;
+    uint32_t base;
+    uint32_t state;
     uint32_t shadow_bitmap = 0x00000000;
 
     relocate = (dev->regs[0x33] >> 2) & 0x03;
@@ -308,9 +311,7 @@ vt82c49x_read(uint16_t addr, void *priv)
 static void
 vt82c49x_reset(void *priv)
 {
-    uint16_t i;
-
-    for (i = 0; i < 256; i++)
+    for (uint16_t i = 0; i < 256; i++)
         vt82c49x_write(i, 0x00, priv);
 }
 

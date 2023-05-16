@@ -40,9 +40,10 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
         auto *socket_line   = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i + 1));
 
         int  netType         = net_type_cbox->currentData().toInt();
-        bool adaptersEnabled = netType == NET_TYPE_SLIRP 
-                                    || NET_TYPE_VDE  
-                                    || (netType == NET_TYPE_PCAP && intf_cbox->currentData().toInt() > 0);
+        bool adaptersEnabled =  netType == NET_TYPE_NONE
+                            ||  netType == NET_TYPE_SLIRP
+                            ||  netType == NET_TYPE_VDE
+                            || (netType == NET_TYPE_PCAP && intf_cbox->currentData().toInt() > 0);
 
         intf_cbox->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_PCAP);
         nic_cbox->setEnabled(adaptersEnabled);
@@ -133,7 +134,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
         cbox       = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
         model      = cbox->model();
         removeRows = model->rowCount();
-        Models::AddEntry(model, tr("None"), NET_TYPE_NONE);
+        Models::AddEntry(model, tr("Null Driver"), NET_TYPE_NONE);
         Models::AddEntry(model, "SLiRP", NET_TYPE_SLIRP);
 
         if (network_ndev > 1) {

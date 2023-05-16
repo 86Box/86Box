@@ -111,9 +111,9 @@ plat_serpt_set_params(void *p)
         } else {
             serialattr.fParity = 1;
             if (dev->serial->lcr & 0x20) {
-                serialattr.Parity = (MARKPARITY) + !!(dev->serial->lcr & 0x10);
+                serialattr.Parity = MARKPARITY + !!(dev->serial->lcr & 0x10);
             } else {
-                serialattr.Parity = (ODDPARITY) + !!(dev->serial->lcr & 0x10);
+                serialattr.Parity = ODDPARITY + !!(dev->serial->lcr & 0x10);
             }
         }
 

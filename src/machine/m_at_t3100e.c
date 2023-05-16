@@ -382,7 +382,6 @@ void dump_mappings(void)
 void
 t3100e_map_ram(uint8_t val)
 {
-    int     n;
     int32_t upper_len;
 
 #ifdef ENABLE_T3100E_LOG
@@ -433,7 +432,7 @@ t3100e_map_ram(uint8_t val)
         mem_mapping_disable(&t3100e_ems.upper_mapping);
     }
     /* Recalculate EMS mappings */
-    for (n = 0; n < 4; n++) {
+    for (uint8_t n = 0; n < 4; n++) {
         t3100e_ems_out(t3100e_ems_page_reg[n], t3100e_ems.page[n],
                        &t3100e_ems);
     }

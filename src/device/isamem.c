@@ -186,7 +186,7 @@ ram_readb(uint32_t addr, void *priv)
     /* Grab the data. */
     ret = *(uint8_t *) (dev->ptr + (addr - dev->base));
 
-    return (ret);
+    return ret;
 }
 
 /* Read one word from onboard RAM. */
@@ -199,7 +199,7 @@ ram_readw(uint32_t addr, void *priv)
     /* Grab the data. */
     ret = *(uint16_t *) (dev->ptr + (addr - dev->base));
 
-    return (ret);
+    return ret;
 }
 
 /* Write one byte to onboard RAM. */
@@ -230,13 +230,13 @@ ems_readb(uint32_t addr, void *priv)
     uint8_t   ret = 0xff;
 
     /* Grab the data. */
-    ret = *(uint8_t *) (dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff));
+    ret = *(uint8_t *) (dev->ems[(addr & 0xffff) >> 14].addr + (addr & 0x3fff));
 #if ISAMEM_DEBUG
     if ((addr % 4096) == 0)
         isamem_log("EMS readb(%06x) = %02x\n", addr - dev & 0x3fff, ret);
 #endif
 
-    return (ret);
+    return ret;
 }
 
 /* Read one word from onboard paged RAM. */
@@ -247,13 +247,13 @@ ems_readw(uint32_t addr, void *priv)
     uint16_t  ret = 0xffff;
 
     /* Grab the data. */
-    ret = *(uint16_t *) (dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff));
+    ret = *(uint16_t *) (dev->ems[(addr & 0xffff) >> 14].addr + (addr & 0x3fff));
 #if ISAMEM_DEBUG
     if ((addr % 4096) == 0)
         isamem_log("EMS readw(%06x) = %04x\n", addr - dev & 0x3fff, ret);
 #endif
 
-    return (ret);
+    return ret;
 }
 
 /* Write one byte to onboard paged RAM. */
@@ -267,7 +267,7 @@ ems_writeb(uint32_t addr, uint8_t val, void *priv)
     if ((addr % 4096) == 0)
         isamem_log("EMS writeb(%06x, %02x)\n", addr - dev & 0x3fff, val);
 #endif
-    *(uint8_t *) (dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff)) = val;
+    *(uint8_t *) (dev->ems[(addr & 0xffff) >> 14].addr + (addr & 0x3fff)) = val;
 }
 
 /* Write one word to onboard paged RAM. */
@@ -281,7 +281,7 @@ ems_writew(uint32_t addr, uint16_t val, void *priv)
     if ((addr % 4096) == 0)
         isamem_log("EMS writew(%06x, %04x)\n", addr & 0x3fff, val);
 #endif
-    *(uint16_t *) (dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff)) = val;
+    *(uint16_t *) (dev->ems[(addr & 0xffff) >> 14].addr + (addr & 0x3fff)) = val;
 }
 
 /* Handle a READ operation from one of our registers. */
@@ -311,7 +311,7 @@ ems_read(uint16_t port, void *priv)
     isamem_log("ISAMEM: read(%04x) = %02x)\n", port, ret);
 #endif
 
-    return (ret);
+    return ret;
 }
 
 /* Handle a WRITE operation to one of our registers. */
@@ -391,11 +391,11 @@ static void *
 isamem_init(const device_t *info)
 {
     memdev_t *dev;
-    uint32_t  k, t;
+    uint32_t  k;
+    uint32_t  t;
     uint32_t  addr;
     uint32_t  tot;
     uint8_t  *ptr;
-    int       i;
 
     /* Find our device and create an instance. */
     dev = (memdev_t *) malloc(sizeof(memdev_t));
@@ -624,7 +624,7 @@ isamem_init(const device_t *info)
          * create, initialize and disable the mappings, and set
          * up the I/O control handler.
          */
-        for (i = 0; i < EMS_MAXPAGE; i++) {
+        for (uint8_t i = 0; i < EMS_MAXPAGE; i++) {
             /* Create and initialize a page mapping. */
             mem_mapping_add(&dev->ems[i].mapping,
                             dev->frame_addr + (EMS_PGSIZE * i), EMS_PGSIZE,
@@ -655,10 +655,9 @@ static void
 isamem_close(void *priv)
 {
     memdev_t *dev = (memdev_t *) priv;
-    int       i;
 
     if (dev->flags & FLAG_EMS) {
-        for (i = 0; i < EMS_MAXPAGE; i++) {
+        for (uint8_t i = 0; i < EMS_MAXPAGE; i++) {
             io_removehandler(dev->base_addr + (EMS_PGSIZE * i), 2,
                              ems_read, NULL, NULL, ems_write, NULL, NULL, dev);
         }
@@ -1566,12 +1565,12 @@ static const struct {
 void
 isamem_reset(void)
 {
-    int k, i;
+    int k;
 
     /* We explicitly set to zero here or bad things happen */
     isa_mem_size = 0;
 
-    for (i = 0; i < ISAMEM_MAX; i++) {
+    for (uint8_t i = 0; i < ISAMEM_MAX; i++) {
         k = isamem_type[i];
         if (k == 0)
             continue;
@@ -1603,12 +1602,12 @@ isamem_get_from_internal_name(const char *s)
 
     while (boards[c].dev != NULL) {
         if (!strcmp(boards[c].dev->internal_name, s))
-            return (c);
+            return c;
         c++;
     }
 
     /* Not found. */
-    return (0);
+    return 0;
 }
 
 const device_t *

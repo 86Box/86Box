@@ -59,7 +59,8 @@ static void
 opti499_recalc(opti499_t *dev)
 {
     uint32_t base;
-    uint32_t i, shflags = 0;
+    uint32_t i;
+    uint32_t shflags = 0;
 
     shadowbios       = 0;
     shadowbios_write = 0;

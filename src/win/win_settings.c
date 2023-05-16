@@ -2062,7 +2062,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
             lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
             for (uint8_t i = 0; i < NET_CARD_MAX; i++) {
-                settings_add_string(hdlg, IDC_COMBO_NET1_TYPE + i, (LPARAM) L"None");
+                settings_add_string(hdlg, IDC_COMBO_NET1_TYPE + i, (LPARAM) L"Null Driver");
                 settings_add_string(hdlg, IDC_COMBO_NET1_TYPE + i, (LPARAM) L"SLiRP");
                 settings_add_string(hdlg, IDC_COMBO_NET1_TYPE + i, (LPARAM) L"PCap");
                 settings_set_cur_sel(hdlg, IDC_COMBO_NET1_TYPE + i, temp_net_type[i]);

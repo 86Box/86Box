@@ -36,16 +36,16 @@ typedef struct {
 } mouse_t;
 
 int mouse_type = 0;
-int mouse_x,
-    mouse_y,
-    mouse_z,
-    mouse_buttons,
-    mouse_mode,
-    mouse_tablet_in_proximity = 0,
-    tablet_tool_type          = 1; /* 0 = Puck/Cursor, 1 = Pen */
+int mouse_x;
+int mouse_y;
+int mouse_z;
+int mouse_buttons;
+int mouse_mode;
+int mouse_tablet_in_proximity = 0;
+int tablet_tool_type          = 1; /* 0 = Puck/Cursor, 1 = Pen */
 
-double mouse_x_abs,
-    mouse_y_abs;
+double mouse_x_abs;
+double mouse_y_abs;
 
 pc_timer_t mouse_timer; /* mouse event timer */
 
@@ -266,18 +266,18 @@ mouse_get_from_internal_name(char *s)
 
     while (mouse_devices[c].device != NULL) {
         if (!strcmp((char *) mouse_devices[c].device->internal_name, s))
-            return (c);
+            return c;
         c++;
     }
 
-    return (0);
+    return 0;
 }
 
 int
 mouse_has_config(int mouse)
 {
     if (mouse_devices[mouse].device == NULL)
-        return (0);
+        return 0;
 
     return (mouse_devices[mouse].device->config ? 1 : 0);
 }
@@ -291,7 +291,7 @@ mouse_get_device(int mouse)
 int
 mouse_get_buttons(void)
 {
-    return (mouse_nbut);
+    return mouse_nbut;
 }
 
 /* Return number of MOUSE types we know about. */

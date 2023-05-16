@@ -162,7 +162,7 @@ acpi_raise_smi(void *priv, int do_smi)
 
     if (dev->regs.glbctl & 0x01) {
         if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
-            if ((!dev->regs.smi_lock || !dev->regs.smi_active)) {
+            if (!dev->regs.smi_lock || !dev->regs.smi_active) {
                 if (do_smi)
                     smi_raise();
                 dev->regs.smi_active = 1;
@@ -188,7 +188,8 @@ acpi_reg_read_common_regs(int size, uint16_t addr, void *p)
 {
     acpi_t  *dev = (acpi_t *) p;
     uint32_t ret = 0x00000000;
-    int      shift16, shift32;
+    int      shift16;
+    int      shift32;
 
     addr &= 0x3f;
     shift16 = (addr & 1) << 3;
@@ -239,7 +240,8 @@ acpi_reg_read_ali(int size, uint16_t addr, void *p)
 {
     acpi_t  *dev = (acpi_t *) p;
     uint32_t ret = 0x00000000;
-    int      shift16, shift32;
+    int      shift16;
+    int      shift32;
 
     addr &= 0x3f;
     shift16 = (addr & 1) << 3;
@@ -306,7 +308,8 @@ acpi_reg_read_intel(int size, uint16_t addr, void *p)
 {
     acpi_t  *dev = (acpi_t *) p;
     uint32_t ret = 0x00000000;
-    int      shift16, shift32;
+    int      shift16;
+    int      shift32;
 
     addr &= 0x3f;
     shift16 = (addr & 1) << 3;
@@ -507,7 +510,8 @@ acpi_reg_read_via_common(int size, uint16_t addr, void *p)
 {
     acpi_t  *dev = (acpi_t *) p;
     uint32_t ret = 0x00000000;
-    int      shift16, shift32;
+    int      shift16;
+    int      shift32;
 
     addr &= 0xff;
     shift16 = (addr & 1) << 3;
@@ -659,7 +663,8 @@ acpi_reg_read_via_596b(int size, uint16_t addr, void *p)
 {
     acpi_t  *dev = (acpi_t *) p;
     uint32_t ret = 0x00000000;
-    int      shift16, shift32;
+    int      shift16;
+    int      shift32;
 
     addr &= 0x7f;
     shift16 = (addr & 1) << 3;
@@ -763,7 +768,8 @@ static void
 acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
-    int     shift16, sus_typ;
+    int     shift16;
+    int     sus_typ;
 
     addr &= 0x3f;
 #ifdef ENABLE_ACPI_LOG
@@ -843,7 +849,8 @@ static void
 acpi_reg_write_ali(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
-    int     shift16, shift32;
+    int     shift16;
+    int     shift32;
 
     addr &= 0x3f;
 #ifdef ENABLE_ACPI_LOG
@@ -914,7 +921,8 @@ static void
 acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
-    int     shift16, shift32;
+    int     shift16;
+    int     shift32;
 
     addr &= 0x3f;
 #ifdef ENABLE_ACPI_LOG
@@ -1130,7 +1138,8 @@ static void
 acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
-    int     shift16, shift32;
+    int     shift16;
+    int     shift32;
 
     addr &= 0xff;
     acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
@@ -1223,7 +1232,8 @@ static void
 acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
-    int     shift16, shift32;
+    int     shift16;
+    int     shift32;
 
     addr &= 0xff;
     acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
@@ -1286,7 +1296,8 @@ static void
 acpi_reg_write_via_596b(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
-    int     shift16, shift32;
+    int     shift16;
+    int     shift32;
 
     addr &= 0x7f;
     acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
@@ -1849,7 +1860,6 @@ static void
 acpi_reset(void *priv)
 {
     acpi_t *dev = (acpi_t *) priv;
-    int     i;
 
     memset(&dev->regs, 0x00, sizeof(acpi_regs_t));
     dev->regs.gpireg[0] = 0xff;
@@ -1860,7 +1870,7 @@ acpi_reset(void *priv)
        Gigabyte GA-686BX:
        - Bit 1: CMOS battery low (active high) */
     dev->regs.gpireg[2] = dev->gpireg2_default;
-    for (i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 4; i++)
         dev->regs.gporeg[i] = dev->gporeg_default[i];
     if (dev->vendor == VEN_VIA_596B) {
         dev->regs.gpo_val = 0x7fffffff;

@@ -180,7 +180,8 @@ typedef struct svga_t {
     monitor_t* monitor;
 } svga_t;
 
-extern int vga_on, ibm8514_on;
+extern int vga_on;
+extern int ibm8514_on;
 
 extern void ibm8514_poll(ibm8514_t *dev, svga_t *svga);
 extern void ibm8514_recalctimings(svga_t *svga);

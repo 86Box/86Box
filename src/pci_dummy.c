@@ -278,9 +278,9 @@ const device_t pci_dummy_device = {
 void
 pci_dummy_init(int min_slot, int max_slot, int nb_slot, int sb_slot)
 {
-    int i = 0, j = 1;
+    int j = 1;
 
-    for (i = min_slot; i <= max_slot; i++) {
+    for (int i = min_slot; i <= max_slot; i++) {
         if ((i != nb_slot) && (i != sb_slot)) {
             pci_register_slot(i, PCI_CARD_NORMAL, 1, 3, 2, 4);
             device_add_inst(&pci_dummy_device, j);

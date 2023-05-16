@@ -45,17 +45,23 @@ enum {
     STATE_ICW4
 };
 
-pic_t pic, pic2;
+pic_t pic;
+pic_t pic2;
 
 static pc_timer_t pic_timer;
 
-static int shadow = 0, elcr_enabled = 0,
-           tmr_inited = 0, latched = 0,
-           pic_pci = 0, kbd_latch = 0,
-           mouse_latch = 0;
+static int shadow = 0;
+static int elcr_enabled = 0;
+static int tmr_inited = 0;
+static int latched = 0;
+static int pic_pci = 0;
+static int kbd_latch = 0;
+static int mouse_latch = 0;
 
-static uint16_t smi_irq_mask   = 0x0000,
-                smi_irq_status = 0x0000;
+static uint16_t smi_irq_mask   = 0x0000;
+static uint16_t smi_irq_status = 0x0000;
+
+static uint16_t latched_irqs   = 0x0000;
 
 static void (*update_pending)(void);
 
@@ -185,10 +191,10 @@ find_best_interrupt(pic_t *dev)
 {
     uint8_t b;
     uint8_t intr;
-    int     i, j;
+    int     j;
     int     ret = -1;
 
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         j = (i + dev->priority) & 7;
         b = 1 << j;
 
@@ -328,10 +334,11 @@ pic_acknowledge(pic_t *dev)
 static uint8_t
 pic_non_specific_find(pic_t *dev)
 {
-    int     i, j;
-    uint8_t b, irq = 0xff;
+    int     j;
+    uint8_t b;
+    uint8_t irq = 0xff;
 
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         j = (i + dev->priority) & 7;
         b = (1 << j);
 
@@ -397,10 +404,10 @@ pic_latch_read(uint16_t addr, void *priv)
 
     pic_log("pic_latch_read(%i, %i): %02X%02X\n", kbd_latch, mouse_latch, pic2.lines & 0x10, pic.lines & 0x02);
 
-    if (kbd_latch && (pic.lines & 0x02))
+    if (kbd_latch && (latched_irqs & 0x0002))
         picintc(0x0002);
 
-    if (mouse_latch && (pic2.lines & 0x10))
+    if (mouse_latch && (latched_irqs & 0x1000))
         picintc(0x1000);
 
     /* Return FF - we just lower IRQ 1 and IRQ 12. */
@@ -577,6 +584,7 @@ pic_reset_hard(void)
 
     /* Explicitly reset the latches. */
     kbd_latch = mouse_latch = 0;
+    latched_irqs = 0x0000;
 
     /* The situation is as follows: There is a giant mess when it comes to these latches on real hardware,
        to the point that there's even boards with board-level latched that get used in place of the latches
@@ -618,12 +626,13 @@ pic2_init(void)
 void
 picint_common(uint16_t num, int level, int set)
 {
-    int     i, raise;
-    uint8_t b, slaves = 0;
+    int     raise;
+    uint8_t b;
+    uint8_t slaves = 0;
 
     /* Make sure to ignore all slave IRQ's, and in case of AT+,
        translate IRQ 2 to IRQ 9. */
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         b     = (1 << i);
         raise = num & b;
 
@@ -661,7 +670,7 @@ picint_common(uint16_t num, int level, int set)
 
             /* Latch IRQ 12 if the mouse latch is enabled. */
             if ((num & 0x1000) && mouse_latch)
-                pic2.lines |= 0x10;
+                latched_irqs |= 0x1000;
 
             pic2.irr |= (num >> 8);
         }
@@ -670,8 +679,9 @@ picint_common(uint16_t num, int level, int set)
             if (level)
                 pic.lines |= (num & 0x00ff);
 
+            /* Latch IRQ 1 if the keyboard latch is enabled. */
             if (kbd_latch && (num & 0x0002))
-                pic.lines |= 0x02;
+                latched_irqs |= 0x0002;
 
             pic.irr |= (num & 0x00ff);
         }
@@ -681,11 +691,19 @@ picint_common(uint16_t num, int level, int set)
         if (num & 0xff00) {
             pic2.lines &= ~(num >> 8);
 
+            /* Unlatch IRQ 12 if the mouse latch is enabled. */
+            if ((num & 0x1000) && mouse_latch)
+                latched_irqs &= 0xefff;
+
             pic2.irr &= ~(num >> 8);
         }
 
         if (num & 0x00ff) {
             pic.lines &= ~(num & 0x00ff);
+
+            /* Unlatch IRQ 1 if the keyboard latch is enabled. */
+            if (kbd_latch && (num & 0x0002))
+                latched_irqs &= 0xfffd;
 
             pic.irr &= ~(num & 0x00ff);
         }
@@ -797,7 +815,7 @@ pic_irq_ack(void)
 int
 picinterrupt(void)
 {
-    int i, ret = -1;
+    int ret = -1;
 
     if (pic.int_pending) {
         if (pic_slave_on(&pic, pic.interrupt)) {
@@ -815,7 +833,7 @@ picinterrupt(void)
             pit_devs[1].set_gate(pit_devs[1].data, 0, 0);
 
         /* Two ACK's - do them in a loop to avoid potential compiler misoptimizations. */
-        for (i = 0; i < 2; i++) {
+        for (uint8_t i = 0; i < 2; i++) {
             ret           = pic_irq_ack_read(&pic, pic.ack_bytes);
             pic.ack_bytes = (pic.ack_bytes + 1) % (pic_i86_mode(&pic) ? 2 : 3);
 

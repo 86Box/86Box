@@ -54,7 +54,8 @@ typedef struct {
 } io_trap_t;
 
 int   initialized = 0;
-io_t *io[NPORTS], *io_last[NPORTS];
+io_t *io[NPORTS];
+io_t *io_last[NPORTS];
 
 #ifdef ENABLE_IO_LOG
 int io_do_log = ENABLE_IO_LOG;
@@ -78,7 +79,8 @@ void
 io_init(void)
 {
     int   c;
-    io_t *p, *q;
+    io_t *p;
+    io_t *q;
 
     if (!initialized) {
         for (c = 0; c < NPORTS; c++)
@@ -114,10 +116,10 @@ io_sethandler_common(uint16_t base, int size,
                      void (*outl)(uint16_t addr, uint32_t val, void *priv),
                      void *priv, int step)
 {
-    int   c;
-    io_t *p, *q = NULL;
+    io_t *p;
+    io_t *q = NULL;
 
-    for (c = 0; c < size; c += step) {
+    for (int c = 0; c < size; c += step) {
         p = io_last[base + c];
         q = (io_t *) malloc(sizeof(io_t));
         memset(q, 0, sizeof(io_t));
@@ -154,10 +156,10 @@ io_removehandler_common(uint16_t base, int size,
                         void (*outl)(uint16_t addr, uint32_t val, void *priv),
                         void *priv, int step)
 {
-    int   c;
-    io_t *p, *q;
+    io_t *p;
+    io_t *q;
 
-    for (c = 0; c < size; c += step) {
+    for (int c = 0; c < size; c += step) {
         p = io[base + c];
         if (!p)
             continue;
@@ -279,7 +281,8 @@ uint8_t
 inb(uint16_t port)
 {
     uint8_t ret = 0xff;
-    io_t   *p, *q;
+    io_t   *p;
+    io_t   *q;
     int     found  = 0;
     int     qfound = 0;
 
@@ -312,13 +315,14 @@ inb(uint16_t port)
 
     io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
-    return (ret);
+    return ret;
 }
 
 void
 outb(uint16_t port, uint8_t val)
 {
-    io_t *p, *q;
+    io_t *p;
+    io_t *q;
     int   found  = 0;
     int   qfound = 0;
 
@@ -349,12 +353,12 @@ outb(uint16_t port, uint8_t val)
 uint16_t
 inw(uint16_t port)
 {
-    io_t    *p, *q;
+    io_t    *p;
+    io_t    *q;
     uint16_t ret    = 0xffff;
     int      found  = 0;
     int      qfound = 0;
     uint8_t  ret8[2];
-    int      i = 0;
 
     p = io[port];
     while (p) {
@@ -369,7 +373,7 @@ inw(uint16_t port)
 
     ret8[0] = ret & 0xff;
     ret8[1] = (ret >> 8) & 0xff;
-    for (i = 0; i < 2; i++) {
+    for (uint8_t i = 0; i < 2; i++) {
         p = io[(port + i) & 0xffff];
         while (p) {
             q = p->next;
@@ -403,10 +407,10 @@ inw(uint16_t port)
 void
 outw(uint16_t port, uint16_t val)
 {
-    io_t *p, *q;
+    io_t *p;
+    io_t *q;
     int   found  = 0;
     int   qfound = 0;
-    int   i      = 0;
 
     p = io[port];
     while (p) {
@@ -419,7 +423,7 @@ outw(uint16_t port, uint16_t val)
         p = q;
     }
 
-    for (i = 0; i < 2; i++) {
+    for (uint8_t i = 0; i < 2; i++) {
         p = io[(port + i) & 0xffff];
         while (p) {
             q = p->next;
@@ -448,13 +452,13 @@ outw(uint16_t port, uint16_t val)
 uint32_t
 inl(uint16_t port)
 {
-    io_t    *p, *q;
+    io_t    *p;
+    io_t    *q;
     uint32_t ret = 0xffffffff;
     uint16_t ret16[2];
     uint8_t  ret8[4];
     int      found  = 0;
     int      qfound = 0;
-    int      i      = 0;
 
     p = io[port];
     while (p) {
@@ -496,7 +500,7 @@ inl(uint16_t port)
     ret8[1] = (ret >> 8) & 0xff;
     ret8[2] = (ret >> 16) & 0xff;
     ret8[3] = (ret >> 24) & 0xff;
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         p = io[(port + i) & 0xffff];
         while (p) {
             q = p->next;
@@ -530,7 +534,8 @@ inl(uint16_t port)
 void
 outl(uint16_t port, uint32_t val)
 {
-    io_t *p, *q;
+    io_t *p;
+    io_t *q;
     int   found  = 0;
     int   qfound = 0;
     int   i      = 0;
