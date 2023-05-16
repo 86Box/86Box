@@ -111,7 +111,7 @@ find_section(list_t *head, const char *name)
 
     while (sec != NULL) {
         if (!strncmp(sec->name, name, sizeof(sec->name)))
-            return (sec);
+            return sec;
 
         sec = (section_t *) sec->list.next;
     }
@@ -149,7 +149,7 @@ find_entry(section_t *section, const char *name)
 
     while (ent != NULL) {
         if (!strncmp(ent->name, name, sizeof(ent->name)))
-            return (ent);
+            return ent;
 
         ent = (entry_t *) ent->list.next;
     }
@@ -172,7 +172,7 @@ entries_num(section_t *section)
         ent = (entry_t *) ent->list.next;
     }
 
-    return (i);
+    return i;
 }
 
 static void
@@ -205,7 +205,7 @@ create_section(list_t *head, const char *name)
     memcpy(ns->name, name, strlen(name) + 1);
     list_add(&ns->list, head);
 
-    return (ns);
+    return ns;
 }
 
 ini_section_t
@@ -230,13 +230,14 @@ create_entry(section_t *section, const char *name)
     memcpy(ne->name, name, strlen(name) + 1);
     list_add(&ne->list, &section->entry_head);
 
-    return (ne);
+    return ne;
 }
 
 void
 ini_close(ini_t ini)
 {
-    section_t *sec, *ns;
+    section_t *sec;
+    section_t *ns;
     entry_t   *ent;
     list_t    *list = (list_t *) ini;
 
@@ -274,7 +275,7 @@ ini_detect_bom(const char *fn)
     f = plat_fopen(fn, "rt, ccs=UTF-8");
 #endif
     if (f == NULL)
-        return (0);
+        return 0;
     (void) !fread(bom, 1, 3, f);
     if (bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF) {
         fclose(f);
@@ -313,11 +314,15 @@ ini_fgetws(wchar_t *str, int count, FILE *stream)
 ini_t
 ini_read(const char *fn)
 {
-    char       sname[128], ename[128];
+    char       sname[128];
+    char       ename[128];
     wchar_t    buff[1024];
-    section_t *sec, *ns;
+    section_t *sec;
+    section_t *ns;
     entry_t   *ne;
-    int        c, d, bom;
+    int        c;
+    int        d;
+    int        bom;
     FILE      *f;
     list_t    *head;
 
@@ -544,15 +549,15 @@ ini_section_get_int(ini_section_t self, const char *name, int def)
     int        value;
 
     if (section == NULL)
-        return (def);
+        return def;
 
     entry = find_entry(section, name);
     if (entry == NULL)
-        return (def);
+        return def;
 
     sscanf(entry->data, "%i", &value);
 
-    return (value);
+    return value;
 }
 
 double
@@ -563,15 +568,15 @@ ini_section_get_double(ini_section_t self, const char *name, double def)
     double     value;
 
     if (section == NULL)
-        return (def);
+        return def;
 
     entry = find_entry(section, name);
     if (entry == NULL)
-        return (def);
+        return def;
 
     sscanf(entry->data, "%lg", &value);
 
-    return (value);
+    return value;
 }
 
 int
@@ -582,15 +587,15 @@ ini_section_get_hex16(ini_section_t self, const char *name, int def)
     unsigned int value;
 
     if (section == NULL)
-        return (def);
+        return def;
 
     entry = find_entry(section, name);
     if (entry == NULL)
-        return (def);
+        return def;
 
     sscanf(entry->data, "%04X", &value);
 
-    return (value);
+    return value;
 }
 
 int
@@ -601,15 +606,15 @@ ini_section_get_hex20(ini_section_t self, const char *name, int def)
     unsigned int value;
 
     if (section == NULL)
-        return (def);
+        return def;
 
     entry = find_entry(section, name);
     if (entry == NULL)
-        return (def);
+        return def;
 
     sscanf(entry->data, "%05X", &value);
 
-    return (value);
+    return value;
 }
 
 int
@@ -617,14 +622,16 @@ ini_section_get_mac(ini_section_t self, const char *name, int def)
 {
     section_t   *section = (section_t *) self;
     entry_t     *entry;
-    unsigned int val0 = 0, val1 = 0, val2 = 0;
+    unsigned int val0 = 0;
+    unsigned int val1 = 0;
+    unsigned int val2 = 0;
 
     if (section == NULL)
-        return (def);
+        return def;
 
     entry = find_entry(section, name);
     if (entry == NULL)
-        return (def);
+        return def;
 
     sscanf(entry->data, "%02x:%02x:%02x", &val0, &val1, &val2);
 
@@ -638,11 +645,11 @@ ini_section_get_string(ini_section_t self, const char *name, char *def)
     entry_t   *entry;
 
     if (section == NULL)
-        return (def);
+        return def;
 
     entry = find_entry(section, name);
     if (entry == NULL)
-        return (def);
+        return def;
 
     return (entry->data);
 }
@@ -654,11 +661,11 @@ ini_section_get_wstring(ini_section_t self, const char *name, wchar_t *def)
     entry_t   *entry;
 
     if (section == NULL)
-        return (def);
+        return def;
 
     entry = find_entry(section, name);
     if (entry == NULL)
-        return (def);
+        return def;
 
     return (entry->wdata);
 }

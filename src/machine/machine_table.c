@@ -303,7 +303,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 128,
             .max = 640,
-            .step = 128
+            .step = 64
         },
         .nvrmask = 0,
         .kbc_device = NULL, /* TODO: No specific kbd_device yet */
@@ -13130,11 +13130,11 @@ machine_get_machine_from_internal_name(char *s)
 
     while (machines[c].init != NULL) {
         if (!strcmp(machines[c].internal_name, (const char *) s))
-            return (c);
+            return c;
         c++;
     }
 
-    return (0);
+    return 0;
 }
 
 int

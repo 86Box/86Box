@@ -398,12 +398,14 @@ model_50_write(uint16_t port, uint8_t val)
 static void
 model_55sx_mem_recalc(void)
 {
-    int i, j, state;
+    int state;
 #ifdef ENABLE_PS2_MCA_LOG
     int enabled_mem = 0;
 #endif
-    int base = 0, remap_size = (ps2.option[3] & 0x10) ? 384 : 256;
-    int bit_mask = 0x00, max_rows = 4;
+    int base = 0;
+    int remap_size = (ps2.option[3] & 0x10) ? 384 : 256;
+    int bit_mask = 0x00;
+    int max_rows = 4;
     int bank_to_rows[16] = { 4, 2, 1, 0, 0, 2, 1, 0, 0, 0, 0, 0, 0, 2, 1, 0 };
 
     ps2_mca_log("%02X %02X\n", ps2.option[1], ps2.option[3]);
@@ -412,13 +414,13 @@ model_55sx_mem_recalc(void)
     mem_set_mem_state(0x00000000, (mem_size + 384) * 1024, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
     mem_set_mem_state(0x000e0000, 0x00020000, MEM_READ_EXTANY | MEM_WRITE_DISABLED);
 
-    for (i = 0; i < 2; i++) {
+    for (uint8_t i = 0; i < 2; i++) {
         max_rows = bank_to_rows[(ps2.memory_bank[i] >> 4) & 0x0f];
 
         if (max_rows == 0)
             continue;
 
-        for (j = 0; j < max_rows; j++) {
+        for (int j = 0; j < max_rows; j++) {
             if (ps2.memory_bank[i] & (1 << j)) {
                 ps2_mca_log("Set memory at %06X-%06X to internal\n", (base * 1024), (base * 1024) + (((base > 0) ? 1024 : 640) * 1024) - 1);
                 mem_set_mem_state(base * 1024, ((base > 0) ? 1024 : 640) * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
@@ -850,7 +852,8 @@ ps2_mem_expansion_feedb(void *p)
 static void
 ps2_mca_mem_fffc_init(int start_mb)
 {
-    uint32_t planar_size, expansion_start;
+    uint32_t planar_size;
+    uint32_t expansion_start;
 
     planar_size     = (start_mb - 1) << 20;
     expansion_start = start_mb << 20;
@@ -906,7 +909,8 @@ ps2_mca_mem_fffc_init(int start_mb)
 static void
 ps2_mca_mem_d071_init(int start_mb)
 {
-    uint32_t planar_size, expansion_start;
+    uint32_t planar_size;
+    uint32_t expansion_start;
 
     planar_size     = (start_mb - 1) << 20;
     expansion_start = start_mb << 20;
@@ -1212,7 +1216,7 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
 
     mem_mapping_add(&ps2.cache_mapping,
                     0,
-                    (is_type4) ? (8 * 1024) : (64 * 1024),
+                    is_type4 ? (8 * 1024) : (64 * 1024),
                     ps2_read_cache_ram,
                     ps2_read_cache_ramw,
                     ps2_read_cache_raml,

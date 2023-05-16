@@ -94,7 +94,8 @@ ali1621_log(const char *fmt, ...)
 static void
 ali1621_smram_recalc(uint8_t val, ali1621_t *dev)
 {
-    uint16_t access_smm = 0x0000, access_normal = 0x0000;
+    uint16_t access_smm    = 0x0000;
+    uint16_t access_normal = 0x0000;
 
     smram_disable_all();
 
@@ -138,13 +139,16 @@ ali1621_smram_recalc(uint8_t val, ali1621_t *dev)
 static void
 ali1621_shadow_recalc(int cur_reg, ali1621_t *dev)
 {
-    int      i, r_bit, w_bit, reg;
-    uint32_t base, flags = 0;
+    int      r_bit;
+    int      w_bit;
+    int      reg;
+    uint32_t base;
+    uint32_t flags = 0;
 
     shadowbios = shadowbios_write = 0;
 
     /* C0000-EFFFF */
-    for (i = 0; i < 12; i++) {
+    for (uint8_t i = 0; i < 12; i++) {
         base  = 0x000c0000 + (i << 14);
         r_bit = (i << 1) + 4;
         reg   = 0x84;
@@ -199,7 +203,8 @@ ali1621_shadow_recalc(int cur_reg, ali1621_t *dev)
 static void
 ali1621_mask_bar(ali1621_t *dev)
 {
-    uint32_t bar, mask;
+    uint32_t bar;
+    uint32_t mask;
 
     switch (dev->pci_conf[0xbc] & 0x0f) {
         case 0x00:
@@ -578,7 +583,6 @@ static void
 ali1621_reset(void *priv)
 {
     ali1621_t *dev = (ali1621_t *) priv;
-    int        i;
 
     /* Default Registers */
     dev->pci_conf[0x00] = 0xb9;
@@ -633,7 +637,7 @@ ali1621_reset(void *priv)
 
     ali1621_write(0, 0x83, 0x08, dev);
 
-    for (i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 4; i++)
         ali1621_write(0, 0x84 + i, 0x00, dev);
 }
 

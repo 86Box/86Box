@@ -121,7 +121,8 @@ isapnp_device_config_changed(isapnp_card_t *card, isapnp_device_t *ld)
 
     /* Populate config structure, performing endianness conversion as needed. */
     card->config.activate = ld->regs[0x30] & 0x01;
-    uint8_t i, reg_base;
+    uint8_t i;
+    uint8_t reg_base;
     for (i = 0; i < 4; i++) {
         reg_base                 = 0x40 + (8 * i);
         card->config.mem[i].base = (ld->regs[reg_base] << 16) | (ld->regs[reg_base + 1] << 8);
@@ -168,7 +169,8 @@ isapnp_reset_ld_config(isapnp_device_t *ld)
 
     /* Populate configuration registers. */
     ld->regs[0x30] = !!config->activate;
-    uint8_t  i, reg_base;
+    uint8_t  i;
+    uint8_t reg_base;
     uint32_t size;
     for (i = 0; i < 4; i++) {
         reg_base               = 0x40 + (8 * i);
@@ -253,7 +255,9 @@ static uint8_t
 isapnp_read_data(uint16_t addr, void *priv)
 {
     isapnp_t      *dev = (isapnp_t *) priv;
-    uint8_t        ret = 0xff, bit, next_shift;
+    uint8_t        ret = 0xff;
+    uint8_t        bit;
+    uint8_t        next_shift;
     isapnp_card_t *card;
 
     switch (dev->reg) {
@@ -450,7 +454,8 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
     isapnp_t        *dev = (isapnp_t *) priv;
     isapnp_card_t   *card;
     isapnp_device_t *ld;
-    uint16_t         io_addr, reset_cards = 0;
+    uint16_t         io_addr;
+    uint16_t         reset_cards = 0;
 
     isapnp_log("ISAPnP: write_data(%02X)\n", val);
 
@@ -701,8 +706,10 @@ static void
 isapnp_close(void *priv)
 {
     isapnp_t        *dev  = (isapnp_t *) priv;
-    isapnp_card_t   *card = dev->first_card, *next_card;
-    isapnp_device_t *ld, *next_ld;
+    isapnp_card_t   *card = dev->first_card;
+    isapnp_card_t   *next_card;
+    isapnp_device_t *ld;
+    isapnp_device_t *next_ld;
 
     while (card) {
         ld = card->first_ld;
@@ -773,11 +780,22 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
     uint16_t vendor = (card->rom[0] << 8) | card->rom[1];
     isapnp_log("ISAPnP: Parsing ROM resources for card %c%c%c%02X%02X (serial %08X)\n", '@' + ((vendor >> 10) & 0x1f), '@' + ((vendor >> 5) & 0x1f), '@' + (vendor & 0x1f), card->rom[2], card->rom[3], (card->rom[7] << 24) | (card->rom[6] << 16) | (card->rom[5] << 8) | card->rom[4]);
 #endif
-    uint16_t         i        = 9, j;
-    uint8_t          existing = 0, ldn = 0, res, in_df = 0;
-    uint8_t          irq = 0, io = 0, mem_range = 0, mem_range_32 = 0, irq_df = 0, io_df = 0, mem_range_df = 0, mem_range_32_df = 0;
+    uint16_t         i        = 9;
+    uint8_t          existing = 0;
+    uint8_t          ldn = 0;
+    uint8_t          res;
+    uint8_t          in_df = 0;
+    uint8_t          irq = 0;
+    uint8_t          io = 0;
+    uint8_t          mem_range = 0;
+    uint8_t          mem_range_32 = 0;
+    uint8_t          irq_df = 0;
+    uint8_t          io_df = 0;
+    uint8_t          mem_range_df = 0;
+    uint8_t          mem_range_32_df = 0;
     uint32_t         len;
-    isapnp_device_t *ld = NULL, *prev_ld = NULL;
+    isapnp_device_t *ld = NULL;
+    isapnp_device_t *prev_ld = NULL;
 
     /* Check if this is an existing card which already has logical devices.
        Any new logical devices will be added to the list after existing ones.
@@ -994,7 +1012,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                 case 0x0f: /* end tag */
                     /* Calculate checksum. */
                     res = 0x00;
-                    for (j = 9; j <= i; j++)
+                    for (uint16_t j = 9; j <= i; j++)
                         res += card->rom[j];
                     card->rom[i + 1] = -res;
 

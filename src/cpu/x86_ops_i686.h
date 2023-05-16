@@ -52,7 +52,64 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
     uint8_t   ftwb       = 0;
     uint16_t  rec_ftw    = 0;
     uint16_t  fpus       = 0;
-    uint64_t *p;
+    int       i, mmx_tags = 0;
+    uint16_t  exp        = 0x0000;
+    uint64_t  mant       = 0x0000000000000000ULL;
+    uint64_t  fraction;
+    uint8_t   jm, valid;
+                                      /* Exp_all_1 Exp_all_0 Frac_all_0 J M FTW_Valid  |  Ent
+                                         ----------------------------------------------+------ */
+    uint8_t   ftw_table_idx;
+    uint8_t   ftw_table[48] = { 0x03,   /* 0         0         0          0 0 0          |  0x00 */
+                                0x02,   /* 0         0         0          0 0 1          |  0x01 */
+                                0x03,   /* 0         0         0          0 0 0          |  0x02 */
+                                0x02,   /* 0         0         0          0 1 1          |  0x03 */
+                                0x03,   /* 0         0         0          1 0 0          |  0x04 */
+                                0x00,   /* 0         0         0          1 0 1          |  0x05 */
+                                0x03,   /* 0         0         0          1 1 0          |  0x06 */
+                                0x00,   /* 0         0         0          1 1 1          |  0x07 */
+                                0x03,   /* 0         0         1          0 0 0          |  0x08 */
+                                0x02,   /* 0         0         1          0 0 1          |  0x09 */
+                                0x03,   /* 0         0         1          0 1 0          |  0x0a - Impossible */
+                                0x03,   /* 0         0         1          0 1 1          |  0x0b - Impossible */
+                                0x03,   /* 0         0         1          1 0 0          |  0x0c */
+                                0x02,   /* 0         0         1          1 0 1          |  0x0d */
+                                0x03,   /* 0         0         1          1 1 0          |  0x0e - Impossible */
+                                0x03,   /* 0         0         1          1 1 1          |  0x0f - Impossible */
+                                0x03,   /* 0         1         0          0 0 0          |  0x10 */
+                                0x02,   /* 0         1         0          0 0 1          |  0x11 */
+                                0x03,   /* 0         1         0          0 1 0          |  0x12 */
+                                0x02,   /* 0         1         0          0 1 1          |  0x13 */
+                                0x03,   /* 0         1         0          1 0 0          |  0x14 */
+                                0x02,   /* 0         1         0          1 0 1          |  0x15 */
+                                0x03,   /* 0         1         0          1 1 0          |  0x16 */
+                                0x02,   /* 0         1         0          1 1 1          |  0x17 */
+                                0x03,   /* 0         1         1          0 0 0          |  0x18 */
+                                0x01,   /* 0         1         1          0 0 1          |  0x19 */
+                                0x03,   /* 0         1         1          0 1 0          |  0x1a - Impossible */
+                                0x03,   /* 0         1         1          0 1 1          |  0x1b - Impossible */
+                                0x03,   /* 0         1         1          1 0 0          |  0x1c */
+                                0x01,   /* 0         1         1          1 0 1          |  0x1d */
+                                0x03,   /* 0         1         1          1 1 0          |  0x1e - Impossible */
+                                0x03,   /* 0         1         1          1 1 1          |  0x1f - Impossible */
+                                0x03,   /* 1         0         0          0 0 0          |  0x20 */
+                                0x02,   /* 1         0         0          0 0 1          |  0x21 */
+                                0x03,   /* 1         0         0          0 1 0          |  0x22 */
+                                0x02,   /* 1         0         0          0 1 1          |  0x23 */
+                                0x03,   /* 1         0         0          1 0 0          |  0x24 */
+                                0x02,   /* 1         0         0          1 0 1          |  0x25 */
+                                0x03,   /* 1         0         0          1 1 0          |  0x26 */
+                                0x02,   /* 1         0         0          1 1 1          |  0x27 */
+                                0x03,   /* 1         0         1          0 0 0          |  0x28 */
+                                0x02,   /* 1         0         1          0 0 1          |  0x29 */
+                                0x03,   /* 1         0         1          0 1 0          |  0x2a - Impossible */
+                                0x03,   /* 1         0         1          0 1 1          |  0x2b - Impossible */
+                                0x03,   /* 1         0         1          1 0 0          |  0x2c */
+                                0x02,   /* 1         0         1          1 0 1          |  0x2d */
+                                0x03,   /* 1         0         1          1 1 0          |  0x2e - Impossible */
+                                0x03 }; /* 1         0         1          1 1 1          |  0x2f - Impossible */
+                                  /* M is the most significant bit of the franction, so it is impossible
+                                     for M to o be 1 when the fraction is all 0's. */
 
     if (CPUID < 0x650)
         return ILLEGAL(fetchdat);
@@ -96,90 +153,70 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
         ftwb = readmemb(easeg, cpu_state.eaaddr + 4);
 
-        if (ftwb & 0x01)
-            rec_ftw |= 0x0003;
-        if (ftwb & 0x02)
-            rec_ftw |= 0x000C;
-        if (ftwb & 0x04)
-            rec_ftw |= 0x0030;
-        if (ftwb & 0x08)
-            rec_ftw |= 0x00C0;
-        if (ftwb & 0x10)
-            rec_ftw |= 0x0300;
-        if (ftwb & 0x20)
-            rec_ftw |= 0x0C00;
-        if (ftwb & 0x40)
-            rec_ftw |= 0x3000;
-        if (ftwb & 0x80)
-            rec_ftw |= 0xC000;
-
         x87_op_off = readmeml(easeg, cpu_state.eaaddr + 16);
         x87_op_off |= (readmemw(easeg, cpu_state.eaaddr + 6) >> 12) << 16;
         x87_op_seg = readmemw(easeg, cpu_state.eaaddr + 20);
 
-        cpu_state.eaaddr = old_eaaddr + 32;
-        x87_ldmmx(&(cpu_state.MM[0]), &(cpu_state.MM_w4[0]));
-        x87_ld_frstor(0);
+        for (i = 0; i <= 7; i++) {
+            cpu_state.eaaddr = old_eaaddr + 32 + (i << 4);
+            mant = readmemq(easeg, cpu_state.eaaddr);
+            fraction = mant & 0x7fffffffffffffffULL;
+            exp = readmemw(easeg, cpu_state.eaaddr + 8);
+            jm = (mant >> 62) & 0x03;
+            valid = !(ftwb & (1 << i));
 
-        cpu_state.eaaddr = old_eaaddr + 48;
-        x87_ldmmx(&(cpu_state.MM[1]), &(cpu_state.MM_w4[1]));
-        x87_ld_frstor(1);
+            ftw_table_idx = (!!(exp == 0x1111)) << 5;
+            ftw_table_idx |= (!!(exp == 0x0000)) << 4;
+            ftw_table_idx |= (!!(fraction == 0x0000000000000000ULL)) << 3;
+            ftw_table_idx |= (jm << 1);
+            ftw_table_idx |= valid;
 
-        cpu_state.eaaddr = old_eaaddr + 64;
-        x87_ldmmx(&(cpu_state.MM[2]), &(cpu_state.MM_w4[2]));
-        x87_ld_frstor(2);
+            rec_ftw |= (ftw_table[ftw_table_idx] << (i << 1));
 
-        cpu_state.eaaddr = old_eaaddr + 80;
-        x87_ldmmx(&(cpu_state.MM[3]), &(cpu_state.MM_w4[3]));
-        x87_ld_frstor(3);
-
-        cpu_state.eaaddr = old_eaaddr + 96;
-        x87_ldmmx(&(cpu_state.MM[4]), &(cpu_state.MM_w4[4]));
-        x87_ld_frstor(4);
-
-        cpu_state.eaaddr = old_eaaddr + 112;
-        x87_ldmmx(&(cpu_state.MM[5]), &(cpu_state.MM_w4[5]));
-        x87_ld_frstor(5);
-
-        cpu_state.eaaddr = old_eaaddr + 128;
-        x87_ldmmx(&(cpu_state.MM[6]), &(cpu_state.MM_w4[6]));
-        x87_ld_frstor(6);
-
-        cpu_state.eaaddr = old_eaaddr + 144;
-        x87_ldmmx(&(cpu_state.MM[7]), &(cpu_state.MM_w4[7]));
-        x87_ld_frstor(7);
+            if (exp == 0xffff)
+                mmx_tags++;
+        }
 
         cpu_state.ismmx = 0;
-        /*Horrible hack, but as 86Box doesn't keep the FPU stack in 80-bit precision at all times
-          something like this is needed*/
-        p = (uint64_t *) cpu_state.tag;
-#ifdef USE_NEW_DYNAREC
-        if (cpu_state.MM_w4[0] == 0xffff && cpu_state.MM_w4[1] == 0xffff && cpu_state.MM_w4[2] == 0xffff && cpu_state.MM_w4[3] == 0xffff && cpu_state.MM_w4[4] == 0xffff && cpu_state.MM_w4[5] == 0xffff && cpu_state.MM_w4[6] == 0xffff && cpu_state.MM_w4[7] == 0xffff && !cpu_state.TOP && (*p == 0x0101010101010101ull))
-#else
-        if (cpu_state.MM_w4[0] == 0xffff && cpu_state.MM_w4[1] == 0xffff && cpu_state.MM_w4[2] == 0xffff && cpu_state.MM_w4[3] == 0xffff && cpu_state.MM_w4[4] == 0xffff && cpu_state.MM_w4[5] == 0xffff && cpu_state.MM_w4[6] == 0xffff && cpu_state.MM_w4[7] == 0xffff && !cpu_state.TOP && !(*p))
-#endif
+        /* Determine, whether or not the saved state is x87 or MMX based on a heuristic,
+           because we do not keep the internal state in 64-bit precision.
+
+           TODO: Is there no way to unify the whole lot? */
+        if ((mmx_tags == 8) && !cpu_state.TOP)
             cpu_state.ismmx = 1;
 
         x87_settag(rec_ftw);
 
+        if (cpu_state.ismmx) {
+            for (i = 0; i <= 7; i++) {
+                cpu_state.eaaddr = old_eaaddr + 32 + (i << 4);
+                x87_ldmmx(&(cpu_state.MM[i]), &(cpu_state.MM_w4[i]));
+            }
+        } else {
+            for (i = 0; i <= 7; i++) {
+                cpu_state.eaaddr = old_eaaddr + 32 + (i << 4);
+                x87_ld_frstor(i);
+            }
+        }
+
         CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
     } else {
         /* FXSAVE */
-        if ((twd & 0x0003) == 0x0003)
+        if ((twd & 0x0003) != 0x0003)
             ftwb |= 0x01;
-        if ((twd & 0x000C) == 0x000C)
+        if ((twd & 0x000c) != 0x000c)
             ftwb |= 0x02;
-        if ((twd & 0x0030) == 0x0030)
+        if ((twd & 0x0030) != 0x0030)
             ftwb |= 0x04;
-        if ((twd & 0x00C0) == 0x00C0)
+        if ((twd & 0x00c0) != 0x00c0)
             ftwb |= 0x08;
-        if ((twd & 0x0300) == 0x0300)
+        if ((twd & 0x0300) != 0x0300)
             ftwb |= 0x10;
-        if ((twd & 0x0C00) == 0x0C00)
+        if ((twd & 0x0c00) != 0x0c00)
             ftwb |= 0x20;
-        if ((twd & 0x3000) == 0x3000)
+        if ((twd & 0x3000) != 0x3000)
             ftwb |= 0x40;
-        if ((twd & 0xC000) == 0xC000)
+        if ((twd & 0xc000) != 0xc000)
             ftwb |= 0x80;
 
         writememw(easeg, cpu_state.eaaddr, cpu_state.npxc);
@@ -193,43 +230,19 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
         writememl(easeg, cpu_state.eaaddr + 16, x87_op_off);
         writememw(easeg, cpu_state.eaaddr + 20, x87_op_seg);
 
-        cpu_state.eaaddr = old_eaaddr + 32;
-        cpu_state.ismmx ? x87_stmmx(cpu_state.MM[0]) : x87_st_fsave(0);
-
-        cpu_state.eaaddr = old_eaaddr + 48;
-        cpu_state.ismmx ? x87_stmmx(cpu_state.MM[1]) : x87_st_fsave(1);
-
-        cpu_state.eaaddr = old_eaaddr + 64;
-        cpu_state.ismmx ? x87_stmmx(cpu_state.MM[2]) : x87_st_fsave(2);
-
-        cpu_state.eaaddr = old_eaaddr + 80;
-        cpu_state.ismmx ? x87_stmmx(cpu_state.MM[3]) : x87_st_fsave(3);
-
-        cpu_state.eaaddr = old_eaaddr + 96;
-        cpu_state.ismmx ? x87_stmmx(cpu_state.MM[4]) : x87_st_fsave(4);
-
-        cpu_state.eaaddr = old_eaaddr + 112;
-        cpu_state.ismmx ? x87_stmmx(cpu_state.MM[5]) : x87_st_fsave(5);
-
-        cpu_state.eaaddr = old_eaaddr + 128;
-        cpu_state.ismmx ? x87_stmmx(cpu_state.MM[6]) : x87_st_fsave(6);
-
-        cpu_state.eaaddr = old_eaaddr + 144;
-        cpu_state.ismmx ? x87_stmmx(cpu_state.MM[7]) : x87_st_fsave(7);
+        if (cpu_state.ismmx) {
+            for (i = 0; i <= 7; i++) {
+                cpu_state.eaaddr = old_eaaddr + 32 + (i << 4);
+                x87_stmmx(cpu_state.MM[i]);
+            }
+        } else {
+            for (i = 0; i <= 7; i++) {
+                cpu_state.eaaddr = old_eaaddr + 32 + (i << 4);
+                x87_st_fsave(i);
+            }
+        }
 
         cpu_state.eaaddr = old_eaaddr;
-
-        cpu_state.npxc = 0x37F;
-        codegen_set_rounding_mode(X87_ROUNDING_NEAREST);
-        cpu_state.npxs = 0;
-        p              = (uint64_t *) cpu_state.tag;
-#ifdef USE_NEW_DYNAREC
-        *p = 0;
-#else
-        *p = 0x0303030303030303ll;
-#endif
-        cpu_state.TOP   = 0;
-        cpu_state.ismmx = 0;
 
         CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
     }

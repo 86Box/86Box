@@ -191,10 +191,10 @@ hb4_shadow_bios_low(hb4_t *dev)
 int
 hb4_shadow_main(hb4_t *dev)
 {
-    int i, state;
+    int state;
     int n = 0;
 
-    for (i = 0; i < 6; i++) {
+    for (uint8_t i = 0; i < 6; i++) {
         state = shadow_read[dev->shadow && ((dev->pci_conf[0x54] >> (i + 2)) & 0x01)] | shadow_write[(dev->pci_conf[0x55] >> 6) & 0x01];
 
         if (state != dev->mem_state[i + 1]) {

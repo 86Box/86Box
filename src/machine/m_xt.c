@@ -67,7 +67,8 @@ machine_pc_init(const machine_t *model)
 int
 machine_pc82_init(const machine_t *model)
 {
-    int ret, ret2;
+    int ret;
+    int ret2;
 
     ret = bios_load_linear("roms/machines/ibmpc82/pc102782.bin",
                            0x000fe000, 40960, 0);

@@ -49,25 +49,33 @@ typedef struct {
     uint8_t irq_line;
 } pci_mirq_t;
 
-int pci_burst_time, agp_burst_time,
-    pci_nonburst_time, agp_nonburst_time;
+int pci_burst_time;
+int agp_burst_time;
+int pci_nonburst_time;
+int agp_nonburst_time;
 
 static pci_card_t pci_cards[32];
-static uint8_t    pci_pmc = 0, last_pci_card = 0, last_normal_pci_card = 0, last_pci_bus = 1;
-static uint8_t    pci_card_to_slot_mapping[256][32], pci_bus_number_to_index_mapping[256];
-static uint8_t    pci_irqs[16], pci_irq_level[16];
+static uint8_t    pci_pmc = 0;
+static uint8_t    last_pci_card = 0;
+static uint8_t    last_normal_pci_card = 0;
+static uint8_t    last_pci_bus = 1;
+static uint8_t    pci_card_to_slot_mapping[256][32];
+static uint8_t    pci_bus_number_to_index_mapping[256];
+static uint8_t    pci_irqs[16];
+static uint8_t    pci_irq_level[16];
 static uint64_t   pci_irq_hold[16];
 static pci_mirq_t pci_mirqs[8];
-static int        pci_type,
-                  pci_switch,
-                  pci_index,
-                  pci_func,
-                  pci_card,
-                  pci_bus,
-                  pci_enable,
-                  pci_key;
+static int        pci_type;
+static int        pci_switch;
+static int        pci_index;
+static int        pci_func;
+static int        pci_card;
+static int        pci_bus;
+static int        pci_enable;
+static int        pci_key;
 static int        trc_reg = 0;
-static uint32_t   pci_base = 0xc000, pci_size = 0x1000;
+static uint32_t   pci_base = 0xc000;
+static uint32_t   pci_size = 0x1000;
 
 static void pci_reset_regs(void);
 
@@ -92,14 +100,12 @@ pci_log(const char *fmt, ...)
 static void
 pci_clear_slot(int card)
 {
-    int i;
-
     pci_card_to_slot_mapping[pci_cards[card].bus][pci_cards[card].id] = 0xff;
 
     pci_cards[card].id   = 0xff;
     pci_cards[card].type = 0xff;
 
-    for (i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 4; i++)
         pci_cards[card].irq_routing[i] = 0;
 
     pci_cards[card].read  = NULL;
@@ -110,14 +116,14 @@ pci_clear_slot(int card)
 void
 pci_relocate_slot(int type, int new_slot)
 {
-    int     i, card = -1;
+    int     card = -1;
     int     old_slot;
     uint8_t mapping;
 
     if ((new_slot < 0) || (new_slot > 31))
         return;
 
-    for (i = 0; i < 32; i++) {
+    for (uint8_t i = 0; i < 32; i++) {
         if ((pci_cards[i].bus == 0) && (pci_cards[i].type == type)) {
             card = i;
             break;
@@ -495,9 +501,7 @@ pci_type2_write(uint16_t port, uint8_t val, void *priv)
 static void
 pci_type2_writel(uint16_t port, uint32_t val, void *priv)
 {
-    int i;
-
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         /* Make sure to have the DWORD write not pass through to PMC if mechanism 1 is in use,
            as otherwise, the PCI enable bits clobber it. */
         if (!pci_pmc || ((port + i) != 0x0cfb))
@@ -837,11 +841,9 @@ pci_pic_reset(void)
 static void
 pci_reset_hard(void)
 {
-    int i;
-
     pci_reset_regs();
 
-    for (i = 0; i < 16; i++) {
+    for (uint8_t i = 0; i < 16; i++) {
         if (pci_irq_hold[i]) {
             pci_irq_hold[i] = 0;
 
@@ -879,8 +881,7 @@ pci_reset(void)
 static void
 pci_slots_clear(void)
 {
-    uint8_t i, j;
-
+    uint8_t i;
     last_pci_card = last_normal_pci_card = 0;
     last_pci_bus                         = 1;
 
@@ -889,7 +890,7 @@ pci_slots_clear(void)
 
     i = 0;
     do {
-        for (j = 0; j < 32; j++)
+        for (uint8_t j = 0; j < 32; j++)
             pci_card_to_slot_mapping[i][j] = 0xff;
         pci_bus_number_to_index_mapping[i] = 0xff;
     } while (i++ < 0xff);
@@ -1095,9 +1096,9 @@ uint8_t
 pci_find_slot(uint8_t add_type, uint8_t ignore_slot)
 {
     pci_card_t *dev;
-    uint8_t     i, ret = 0xff;
+    uint8_t     ret = 0xff;
 
-    for (i = 0; i < last_pci_card; i++) {
+    for (uint8_t i = 0; i < last_pci_card; i++) {
         dev = &pci_cards[i];
 
         if (!dev->read && !dev->write && ((ignore_slot == 0xff) || (i != ignore_slot))) {
@@ -1122,7 +1123,8 @@ uint8_t
 pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv)
 {
     pci_card_t *dev;
-    uint8_t     i, j;
+    uint8_t     i;
+    uint8_t     j;
 
     if (add_type < PCI_ADD_AGP)
         pci_log("pci_add_card(): Adding PCI CARD at specific slot %02X [SPECIFIC]\n", add_type);

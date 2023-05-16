@@ -532,7 +532,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
             break;
 
         case 0x70:
-            if ((dev->id >= VIA_693A))
+            if (dev->id >= VIA_693A)
                 dev->pci_conf[0x70] = (dev->pci_conf[0x70] & ~0xdf) | (val & 0xdf);
             else if (dev->id == VIA_597)
                 dev->pci_conf[0x70] = (dev->pci_conf[0x70] & ~0xf1) | (val & 0xf1);

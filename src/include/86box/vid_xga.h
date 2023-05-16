@@ -22,7 +22,12 @@
 
 typedef struct {
     int      ena;
-    int      x, y, xoff, yoff, cur_xsize, cur_ysize;
+    int      x;
+    int      y;
+    int      xoff;
+    int      yoff;
+    int      cur_xsize;
+    int      cur_ysize;
     uint32_t addr;
 } xga_hwcursor_t;
 

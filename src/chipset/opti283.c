@@ -113,10 +113,12 @@ opti283_write_remapped_raml(uint32_t addr, uint32_t val, void *priv)
 static void
 opti283_shadow_recalc(opti283_t *dev)
 {
-    uint32_t i, base;
+    uint32_t base;
     uint32_t rbase;
-    uint8_t  sh_enable, sh_mode;
-    uint8_t  rom, sh_copy;
+    uint8_t  sh_enable;
+    uint8_t  sh_mode;
+    uint8_t  rom;
+    uint8_t  sh_copy;
 
     shadowbios = shadowbios_write = 0;
     dev->shadow_high              = 0;
@@ -143,7 +145,7 @@ opti283_shadow_recalc(opti283_t *dev)
     }
 
     sh_copy = dev->regs[0x11] & 0x08;
-    for (i = 0; i < 12; i++) {
+    for (uint8_t i = 0; i < 12; i++) {
         base = 0xc0000 + (i << 14);
         if (i >= 4)
             sh_enable = dev->regs[0x12] & (1 << (i - 4));

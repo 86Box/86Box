@@ -89,7 +89,8 @@ static void
 i450kx_smram_recalc(i450kx_t *dev, int bus)
 {
     uint8_t *regs = bus ? dev->pb_pci_conf : dev->mc_pci_conf;
-    uint32_t addr, size;
+    uint32_t addr;
+    uint32_t size;
 
     smram_disable(dev->smram[bus]);
 
@@ -386,10 +387,8 @@ pb_read(int func, int addr, void *priv)
 static void
 mc_fill_drbs(i450kx_t *dev)
 {
-    int i;
-
     spd_write_drbs_interleaved(dev->mc_pci_conf, 0x60, 0x6f, 4);
-    for (i = 0x60; i <= 0x6f; i++) {
+    for (uint8_t i = 0x60; i <= 0x6f; i++) {
         if (i & 0x01)
             dev->mc_pci_conf[i] = 0x00;
         else

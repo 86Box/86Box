@@ -144,7 +144,8 @@ typedef struct mpu_t {
     void *priv;
 } mpu_t;
 
-extern int mpu401_standalone_enable, mpu401_already_loaded;
+extern int mpu401_standalone_enable;
+extern int mpu401_already_loaded;
 
 extern const device_t mpu401_device;
 extern const device_t mpu401_mca_device;

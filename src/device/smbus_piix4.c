@@ -94,8 +94,13 @@ static void
 smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 {
     smbus_piix4_t *dev = (smbus_piix4_t *) priv;
-    uint8_t        smbus_addr, cmd, read, block_len, prev_stat;
-    uint16_t       timer_bytes = 0, i = 0;
+    uint8_t        smbus_addr;
+    uint8_t        cmd;
+    uint8_t        read;
+    uint8_t        block_len;
+    uint8_t        prev_stat;
+    uint16_t       timer_bytes = 0;
+    uint16_t       i = 0;
 
     smbus_piix4_log("SMBus PIIX4: write(%02X, %02X)\n", addr, val);
 

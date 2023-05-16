@@ -373,7 +373,8 @@ wacom_write(struct serial_s *serial, void *priv, uint8_t data)
             if (!memcmp(wacom->data_rec, "~*", 2)) {
                 uint32_t settings_dword = wacom->settings;
                 if (strstr((const char *) wacom->data_rec, ",")) {
-                    uint32_t x_res = wacom->x_res, y_res = wacom->y_res;
+                    uint32_t x_res = wacom->x_res;
+                    uint32_t y_res = wacom->y_res;
                     uint32_t increment = wacom->increment;
                     uint32_t interval = wacom->interval;
 
@@ -423,7 +424,7 @@ wacom_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
     if (wacom->b != b)
         wacom->oldb = wacom->b;
     wacom->b = b;
-    return (0);
+    return 0;
 }
 
 static int

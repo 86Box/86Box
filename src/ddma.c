@@ -91,7 +91,7 @@ ddma_reg_write(uint16_t addr, uint8_t val, void *p)
     ddma_channel_t *dev          = (ddma_channel_t *) p;
     int             ch           = dev->channel;
     int             page_regs[4] = { 7, 3, 1, 2 };
-    int             i, dmab = (ch >= 4) ? 0xc0 : 0x00;
+    int             dmab = (ch >= 4) ? 0xc0 : 0x00;
 
     switch (addr & 0x0f) {
         case 0x00:
@@ -132,7 +132,7 @@ ddma_reg_write(uint16_t addr, uint8_t val, void *p)
             outb(dmab + 0x0d, val);
             break;
         case 0x0e:
-            for (i = 0; i < 4; i++)
+            for (uint8_t i = 0; i < 4; i++)
                 outb(dmab + 0x0a, i);
             break;
         case 0x0f:
@@ -166,14 +166,13 @@ static void *
 ddma_init(const device_t *info)
 {
     ddma_t *dev;
-    int     i;
 
     dev = (ddma_t *) malloc(sizeof(ddma_t));
     if (dev == NULL)
         return (NULL);
     memset(dev, 0x00, sizeof(ddma_t));
 
-    for (i = 0; i < 8; i++)
+    for (uint8_t i = 0; i < 8; i++)
         dev->channels[i].channel = i;
 
     return dev;

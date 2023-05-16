@@ -28,6 +28,8 @@
 #define FLAG_AT        0x00  /* dev is AT or PS/2 */
 #define FLAG_TYPE_MASK 0x07  /* mask for type     */
 
+#define FIFO_SIZE      16
+
 enum {
     KBD_84_KEY = 0,
     KBD_101_KEY,
@@ -507,9 +509,7 @@ keyboard_at_set_scancode_set(void)
 static void
 add_data_vals(atkbc_dev_t *dev, uint8_t *val, uint8_t len)
 {
-    int i;
-
-    for (i = 0; i < len; i++)
+    for (uint8_t i = 0; i < len; i++)
         kbc_at_dev_queue_add(dev, val[i], 1);
 }
 
@@ -518,7 +518,8 @@ add_data_kbd(uint16_t val)
 {
     atkbc_dev_t *dev = SavedKbd;
     uint8_t  fake_shift[4];
-    uint8_t  num_lock = 0, shift_states = 0;
+    uint8_t  num_lock = 0;
+    uint8_t  shift_states = 0;
 
     keyboard_get_states(NULL, &num_lock, NULL);
     shift_states = keyboard_get_shift() & STATE_SHIFT_MASK;
@@ -720,7 +721,7 @@ static void
 keyboard_at_write(void *priv)
 {
     atkbc_dev_t *dev = (atkbc_dev_t *) priv;
-    uint8_t  i, val;
+    uint8_t val;
 
     if (dev->port == NULL)
         return;
@@ -824,7 +825,7 @@ keyboard_at_write(void *priv)
                 /* TODO: After keyboard type selection is implemented, make this
                          return the correct keyboard ID for the selected type. */
                 kbc_at_dev_queue_add(dev, 0xfa, 0);
-                for (i = 0; i < 4; i++) {
+                for (uint8_t i = 0; i < 4; i++) {
                     if (id_bytes[dev->type][i] == 0)
                         break;
 
@@ -960,6 +961,8 @@ keyboard_at_init(const device_t *info)
 
     dev->scan        = &keyboard_scan;
 
+    dev->fifo_mask   = FIFO_SIZE - 1;
+
     if (dev->port != NULL)
         kbc_at_dev_reset(dev, 0);
 
@@ -969,7 +972,7 @@ keyboard_at_init(const device_t *info)
     inv_cmd_response = (dev->type & FLAG_PS2) ? 0xfe : 0xfa;
 
     /* Return our private data to the I/O layer. */
-    return (dev);
+    return dev;
 }
 
 static void

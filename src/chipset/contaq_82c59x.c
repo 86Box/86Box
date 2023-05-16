@@ -89,7 +89,8 @@ contaq_82c59x_isa_speed_recalc(contaq_82c59x_t *dev)
 static void
 contaq_82c59x_shadow_recalc(contaq_82c59x_t *dev)
 {
-    uint32_t i, base;
+    uint32_t i;
+    uint32_t base;
     uint8_t  bit;
 
     shadowbios = shadowbios_write = 0;

@@ -59,7 +59,8 @@
 
 static device_t        *devices[DEVICE_MAX];
 static void            *device_priv[DEVICE_MAX];
-static device_context_t device_current, device_prev;
+static device_context_t device_current;
+static device_context_t device_prev;
 
 #ifdef ENABLE_DEVICE_LOG
 int device_do_log = ENABLE_DEVICE_LOG;
@@ -89,7 +90,8 @@ device_init(void)
 void
 device_set_context(device_context_t *c, const device_t *d, int inst)
 {
-    void *sec, *single_sec;
+    void *sec;
+    void *single_sec;
 
     memset(c, 0, sizeof(device_context_t));
     c->dev      = d;
@@ -184,7 +186,7 @@ device_add_common(const device_t *d, const device_t *cd, void *p, void *params, 
     } else
         device_priv[c] = p;
 
-    return (priv);
+    return priv;
 }
 
 char *
@@ -301,9 +303,7 @@ device_cadd_inst_ex_parameters(const device_t *d, const device_t *cd, void *priv
 void
 device_close_all(void)
 {
-    int c;
-
-    for (c = (DEVICE_MAX - 1); c >= 0; c--) {
+    for (int16_t c = (DEVICE_MAX - 1); c >= 0; c--) {
         if (devices[c] != NULL) {
             if (devices[c]->name)
                 device_log("Closing device: \"%s\"...\n", devices[c]->name);
@@ -317,9 +317,7 @@ device_close_all(void)
 void
 device_reset_all(uint32_t match_flags)
 {
-    int c;
-
-    for (c = 0; c < DEVICE_MAX; c++) {
+    for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
             if ((devices[c]->reset != NULL) && (devices[c]->flags & match_flags))
                 devices[c]->reset(device_priv[c]);
@@ -330,9 +328,7 @@ device_reset_all(uint32_t match_flags)
 void *
 device_get_priv(const device_t *d)
 {
-    int c;
-
-    for (c = 0; c < DEVICE_MAX; c++) {
+    for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
             if (devices[c] == d)
                 return (device_priv[c]);
@@ -347,7 +343,7 @@ device_available(const device_t *d)
 {
     device_config_t      *config = NULL;
     device_config_bios_t *bios   = NULL;
-    int                   bf, roms_present = 0;
+    int                   roms_present = 0;
     int                   i = 0;
 
     if (d != NULL) {
@@ -360,7 +356,7 @@ device_available(const device_t *d)
                     /* Go through the ROM's in the device configuration. */
                     while (bios->files_no != 0) {
                         i = 0;
-                        for (bf = 0; bf < bios->files_no; bf++)
+                        for (int bf = 0; bf < bios->files_no; bf++)
                             i += !!rom_present((char *) bios->files[bf]);
                         if (i == bios->files_no)
                             roms_present++;
@@ -377,11 +373,11 @@ device_available(const device_t *d)
         if (d->available != NULL)
             return (d->available());
         else
-            return (1);
+            return 1;
     }
 
     /* A NULL device is never available. */
-    return (0);
+    return 0;
 }
 
 const char *
@@ -443,9 +439,7 @@ device_has_config(const device_t *d)
 int
 device_poll(const device_t *d, int x, int y, int z, int b)
 {
-    int c;
-
-    for (c = 0; c < DEVICE_MAX; c++) {
+    for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
             if (devices[c] == d) {
                 if (devices[c]->poll)
@@ -454,15 +448,13 @@ device_poll(const device_t *d, int x, int y, int z, int b)
         }
     }
 
-    return (0);
+    return 0;
 }
 
 void
 device_register_pci_slot(const device_t *d, int device, int type, int inta, int intb, int intc, int intd)
 {
-    int c;
-
-    for (c = 0; c < DEVICE_MAX; c++) {
+    for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
             if (devices[c] == d) {
                 if (devices[c]->register_pci_slot)
@@ -478,8 +470,10 @@ device_register_pci_slot(const device_t *d, int device, int type, int inta, int 
 void
 device_get_name(const device_t *d, int bus, char *name)
 {
-    char *sbus = NULL, *fbus;
-    char *tname, pbus[8] = { 0 };
+    char *sbus = NULL;
+    char *fbus;
+    char *tname;
+    char  pbus[8] = { 0 };
 
     if (d == NULL)
         return;
@@ -568,9 +562,7 @@ device_get_name(const device_t *d, int bus, char *name)
 void
 device_speed_changed(void)
 {
-    int c;
-
-    for (c = 0; c < DEVICE_MAX; c++) {
+    for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
             if (devices[c]->speed_changed != NULL)
                 devices[c]->speed_changed(device_priv[c]);
@@ -583,9 +575,7 @@ device_speed_changed(void)
 void
 device_force_redraw(void)
 {
-    int c;
-
-    for (c = 0; c < DEVICE_MAX; c++) {
+    for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
             if (devices[c]->force_redraw != NULL)
                 devices[c]->force_redraw(device_priv[c]);
@@ -626,7 +616,7 @@ device_get_config_int(const char *s)
         c++;
     }
 
-    return (0);
+    return 0;
 }
 
 int
@@ -641,7 +631,7 @@ device_get_config_int_ex(const char *s, int def)
         c++;
     }
 
-    return (def);
+    return def;
 }
 
 int
@@ -656,7 +646,7 @@ device_get_config_hex16(const char *s)
         c++;
     }
 
-    return (0);
+    return 0;
 }
 
 int
@@ -671,7 +661,7 @@ device_get_config_hex20(const char *s)
         c++;
     }
 
-    return (0);
+    return 0;
 }
 
 int
@@ -686,7 +676,7 @@ device_get_config_mac(const char *s, int def)
         c++;
     }
 
-    return (def);
+    return def;
 }
 
 void
@@ -753,39 +743,39 @@ int
 device_is_valid(const device_t *device, int m)
 {
     if (device == NULL)
-        return (1);
+        return 1;
 
     if ((device->flags & DEVICE_AT) && !machine_has_bus(m, MACHINE_BUS_ISA16))
-        return (0);
+        return 0;
 
     if ((device->flags & DEVICE_CBUS) && !machine_has_bus(m, MACHINE_BUS_CBUS))
-        return (0);
+        return 0;
 
     if ((device->flags & DEVICE_ISA) && !machine_has_bus(m, MACHINE_BUS_ISA))
-        return (0);
+        return 0;
 
     if ((device->flags & DEVICE_MCA) && !machine_has_bus(m, MACHINE_BUS_MCA))
-        return (0);
+        return 0;
 
     if ((device->flags & DEVICE_EISA) && !machine_has_bus(m, MACHINE_BUS_EISA))
-        return (0);
+        return 0;
 
     if ((device->flags & DEVICE_VLB) && !machine_has_bus(m, MACHINE_BUS_VLB))
-        return (0);
+        return 0;
 
     if ((device->flags & DEVICE_PCI) && !machine_has_bus(m, MACHINE_BUS_PCI))
-        return (0);
+        return 0;
 
     if ((device->flags & DEVICE_AGP) && !machine_has_bus(m, MACHINE_BUS_AGP))
-        return (0);
+        return 0;
 
     if ((device->flags & DEVICE_PS2) && !machine_has_bus(m, MACHINE_BUS_PS2))
-        return (0);
+        return 0;
 
     if ((device->flags & DEVICE_AC97) && !machine_has_bus(m, MACHINE_BUS_AC97))
-        return (0);
+        return 0;
 
-    return (1);
+    return 1;
 }
 
 int
@@ -795,7 +785,7 @@ machine_get_config_int(char *s)
     const device_config_t *c;
 
     if (d == NULL)
-        return (0);
+        return 0;
 
     c = d->config;
     while (c && c->type != -1) {
@@ -805,7 +795,7 @@ machine_get_config_int(char *s)
         c++;
     }
 
-    return (0);
+    return 0;
 }
 
 char *
@@ -815,7 +805,7 @@ machine_get_config_string(char *s)
     const device_config_t *c;
 
     if (d == NULL)
-        return (0);
+        return 0;
 
     c = d->config;
     while (c && c->type != -1) {
@@ -825,5 +815,5 @@ machine_get_config_string(char *s)
         c++;
     }
 
-    return (NULL);
+    return NULL;
 }
