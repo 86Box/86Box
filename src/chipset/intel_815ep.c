@@ -65,8 +65,10 @@ typedef struct intel_815ep_t {
 static void
 intel_815ep_agp_aperature(intel_815ep_t *dev)
 {
-    uint32_t aperature_base, aperature_size_calc;
-    int      aperature_size, aperature_enable;
+    uint32_t aperature_base;
+    uint32_t aperature_size_calc;
+    int      aperature_size;
+    int      aperature_enable;
 
     aperature_base      = dev->pci_conf[0x13] << 24;
     aperature_size      = !!(dev->pci_conf[0xb4] & 8);

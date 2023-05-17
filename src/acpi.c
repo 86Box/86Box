@@ -405,7 +405,8 @@ acpi_reg_read_intel_ich2(int size, uint16_t addr, void *p)
 {
     acpi_t  *dev = (acpi_t *) p;
     uint32_t ret = 0x00000000;
-    int      shift16, shift32;
+    int      shift16;
+    int      shift32;
 
     addr &= 0x7f;
     shift16 = (addr & 1) << 3;
@@ -1018,7 +1019,8 @@ static void
 acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
-    int     shift16, shift32;
+    int     shift16;
+    int     shift32;
 
     addr &= 0x7f;
 #ifdef ENABLE_ACPI_LOG

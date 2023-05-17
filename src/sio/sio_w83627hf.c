@@ -136,7 +136,11 @@ typedef struct
 } w83627hf_t;
 
 /* These differ per board and must be programmed manually */
-int fan1_rpm, fan2_rpm, fan3_rpm, vcorea_voltage, vcoreb_voltage;
+int fan1_rpm;
+int fan2_rpm;
+int fan3_rpm;
+int vcorea_voltage;
+int vcoreb_voltage;
 
 void
 w83627hf_stabilizer(int vcoreb, int fan1, int fan2, int fan3)
