@@ -2764,7 +2764,8 @@ i686_invalid_rdmsr:
 void
 cpu_WRMSR(void)
 {
-    uint64_t temp, temp2;
+    uint64_t temp;
+    uint64_t temp2;
 
     cpu_log("WRMSR %08X %08X%08X\n", ECX, EDX, EAX);
 
