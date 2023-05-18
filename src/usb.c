@@ -690,6 +690,14 @@ static void
 ohci_rhport_reset(usb_t* dev)
 {
     dev->ohci_mmio[OHCI_HcRhPortStatus1].b[2] = dev->ohci_mmio[OHCI_HcRhPortStatus2].b[2] = 0x16;
+    if (dev->ohci_devices[0]) {
+        dev->ohci_mmio[OHCI_HcRhPortStatus1].b[2] |= 0x1;
+        dev->ohci_mmio[OHCI_HcRhPortStatus1].b[0] |= 0x1;
+    }
+    if (dev->ohci_devices[1]) {
+        dev->ohci_mmio[OHCI_HcRhPortStatus2].b[2] |= 0x1;
+        dev->ohci_mmio[OHCI_HcRhPortStatus2].b[0] |= 0x1;
+    }
     dev->ohci_mmio[OHCI_HcRhDescriptorA].b[0] = 0x02;
     dev->ohci_mmio[OHCI_HcRhDescriptorA].b[1] = 0x02;
     for (int i = 0; i < 2; i++) {
