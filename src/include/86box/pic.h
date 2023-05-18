@@ -29,7 +29,8 @@ typedef struct pic {
     struct pic *slaves[8];
 } pic_t;
 
-extern pic_t pic, pic2;
+extern pic_t pic;
+extern pic_t pic2;
 
 extern void     pic_reset_smi_irq_mask(void);
 extern void     pic_set_smi_irq_mask(int irq, int set);

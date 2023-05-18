@@ -285,7 +285,8 @@ gameport_update_joystick_type(void)
 void
 gameport_remap(void *priv, uint16_t address)
 {
-    gameport_t *dev = (gameport_t *) priv, *other_dev;
+    gameport_t *dev = (gameport_t *) priv;
+    gameport_t *other_dev;
 
     if (dev->addr) {
         /* Remove this port from the active ports list. */

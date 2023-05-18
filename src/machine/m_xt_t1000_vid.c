@@ -231,8 +231,9 @@ static void
 t1000_text_row80(t1000_t *t1000)
 {
     uint32_t cols[2];
-    int      x, c;
-    uint8_t  chr, attr;
+    int      c;
+    uint8_t  chr;
+    uint8_t  attr;
     int      drawcursor;
     int      cursorline;
     int      bold;
@@ -251,7 +252,7 @@ t1000_text_row80(t1000_t *t1000)
     } else {
         cursorline = ((t1000->cga.crtc[10] & 0x0F) <= sc) && ((t1000->cga.crtc[11] & 0x0F) >= sc);
     }
-    for (x = 0; x < 80; x++) {
+    for (uint8_t x = 0; x < 80; x++) {
         chr        = t1000->vram[(addr + 2 * x) & 0x3FFF];
         attr       = t1000->vram[(addr + 2 * x + 1) & 0x3FFF];
         drawcursor = ((ma == ca) && cursorline && (t1000->cga.cgamode & 8) && (t1000->cga.cgablink & 16));

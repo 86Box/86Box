@@ -78,7 +78,7 @@ ps2_nvr_read(uint16_t port, void *priv)
             break;
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -134,7 +134,7 @@ ps2_nvr_init(const device_t *info)
         fclose(f);
     }
 
-    return (nvr);
+    return nvr;
 }
 
 static void

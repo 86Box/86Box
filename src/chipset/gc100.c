@@ -70,9 +70,9 @@ gc100_log(const char *fmt, ...)
 static uint8_t
 get_fdd_switch_settings(void)
 {
-    int i, fdd_count = 0;
+    int fdd_count = 0;
 
-    for (i = 0; i < FDD_NUM; i++) {
+    for (uint8_t i = 0; i < FDD_NUM; i++) {
         if (fdd_get_flags(i))
             fdd_count++;
     }

@@ -42,9 +42,9 @@ enum {
 };
 
 extern int ppispeakon;
-extern int gated,
-    speakval,
-    speakon;
+extern int gated;
+extern int speakval;
+extern int speakon;
 
 extern int sound_pos_global;
 extern int sound_card_current[SOUND_CARD_MAX];

@@ -56,7 +56,8 @@ typedef struct midi_t {
     midi_device_t *m_out_device, *m_in_device;
 } midi_t;
 
-extern midi_t *midi_out, *midi_in;
+extern midi_t *midi_out;
+extern midi_t *midi_in;
 
 extern void midi_out_init(midi_device_t *device);
 extern void midi_in_init(midi_device_t *device, midi_t **mididev);

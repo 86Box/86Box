@@ -54,28 +54,30 @@
 #    define BLOCK_INVALID    0
 #endif
 
-mem_mapping_t ram_low_mapping, /* 0..640K mapping */
-    ram_mid_mapping,           /* 640..1024K mapping */
-    ram_mid_mapping2,          /* 640..1024K mapping, second part, for SiS 471 in relocate mode  */
-    ram_remapped_mapping,      /* 640..1024K mapping */
-    ram_remapped_mapping2,     /* 640..1024K second mapping, for SiS 471 mode */
-    ram_high_mapping,          /* 1024K+ mapping */
-    ram_2gb_mapping,           /* 1024M+ mapping */
-    ram_split_mapping,
-    bios_mapping,
-    bios_high_mapping;
+mem_mapping_t ram_low_mapping;       /* 0..640K mapping */
+mem_mapping_t ram_mid_mapping;       /* 640..1024K mapping */
+mem_mapping_t ram_mid_mapping2;      /* 640..1024K mapping, second part, for SiS 471 in relocate mode  */
+mem_mapping_t ram_remapped_mapping;  /* 640..1024K mapping */
+mem_mapping_t ram_remapped_mapping2; /* 640..1024K second mapping, for SiS 471 mode */
+mem_mapping_t ram_high_mapping;      /* 1024K+ mapping */
+mem_mapping_t ram_2gb_mapping;       /* 1024M+ mapping */
+mem_mapping_t ram_split_mapping;
+mem_mapping_t bios_mapping;
+mem_mapping_t bios_high_mapping;
 
-page_t *pages,     /* RAM page table */
-    **page_lookup; /* pagetable lookup */
-uint32_t pages_sz; /* #pages in table */
+page_t  *pages;       /* RAM page table */
+page_t **page_lookup; /* pagetable lookup */
+uint32_t pages_sz;    /* #pages in table */
 
-uint8_t *ram, *ram2; /* the virtual RAM */
+uint8_t *ram;
+uint8_t *ram2; /* the virtual RAM */
 uint8_t  page_ff[4096];
 uint32_t rammask;
 uint32_t addr_space_size;
 
 uint8_t *rom; /* the virtual ROM */
-uint32_t biosmask, biosaddr;
+uint32_t biosmask;
+uint32_t biosaddr;
 
 uint32_t pccache;
 uint8_t *pccache2;
@@ -91,18 +93,18 @@ uintptr_t *writelookup2;
 
 uint32_t mem_logical_addr;
 
-int shadowbios = 0,
-    shadowbios_write;
-int readlnum  = 0,
-    writelnum = 0;
+int shadowbios = 0;
+int shadowbios_write;
+int readlnum  = 0;
+int writelnum = 0;
 int cachesize = 256;
 
-uint32_t get_phys_virt,
-    get_phys_phys;
+uint32_t get_phys_virt;
+uint32_t get_phys_phys;
 
-int mem_a20_key   = 0,
-    mem_a20_alt   = 0,
-    mem_a20_state = 0;
+int mem_a20_key   = 0;
+int mem_a20_alt   = 0;
+int mem_a20_state = 0;
 
 int mmuflush = 0;
 int mmu_perm = 4;
@@ -121,7 +123,8 @@ uint8_t high_page = 0; /* if a high (> 4 gb) page was detected */
 static uint8_t       *page_lookupp; /* pagetable mmu_perm lookup */
 static uint8_t       *readlookupp;
 static uint8_t       *writelookupp;
-static mem_mapping_t *base_mapping, *last_mapping;
+static mem_mapping_t *base_mapping;
+static mem_mapping_t *last_mapping;
 static mem_mapping_t *read_mapping[MEM_MAPPINGS_NO];
 static mem_mapping_t *write_mapping[MEM_MAPPINGS_NO];
 static mem_mapping_t *read_mapping_bus[MEM_MAPPINGS_NO];
@@ -129,9 +132,11 @@ static mem_mapping_t *write_mapping_bus[MEM_MAPPINGS_NO];
 static uint8_t       *_mem_exec[MEM_MAPPINGS_NO];
 static uint8_t        ff_pccache[4] = { 0xff, 0xff, 0xff, 0xff };
 static mem_state_t    _mem_state[MEM_MAPPINGS_NO];
-static uint32_t       remap_start_addr, remap_start_addr2;
+static uint32_t       remap_start_addr;
+static uint32_t       remap_start_addr2;
 #if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-static size_t ram_size = 0, ram2_size = 0;
+static size_t ram_size = 0;
+static size_t ram2_size = 0;
 #else
 static size_t ram_size = 0;
 #endif
@@ -166,13 +171,11 @@ mem_addr_is_ram(uint32_t addr)
 void
 resetreadlookup(void)
 {
-    int c;
-
     /* Initialize the page lookup table. */
     memset(page_lookup, 0x00, (1 << 20) * sizeof(page_t *));
 
     /* Initialize the tables for lower (<= 1024K) RAM. */
-    for (c = 0; c < 256; c++) {
+    for (uint16_t c = 0; c < 256; c++) {
         readlookup[c]  = 0xffffffff;
         writelookup[c] = 0xffffffff;
     }
@@ -193,9 +196,7 @@ resetreadlookup(void)
 void
 flushmmucache(void)
 {
-    int c;
-
-    for (c = 0; c < 256; c++) {
+    for (uint16_t c = 0; c < 256; c++) {
         if (readlookup[c] != (int) 0xffffffff) {
             readlookup2[readlookup[c]] = LOOKUP_INV;
             readlookupp[readlookup[c]] = 4;
@@ -222,9 +223,7 @@ flushmmucache(void)
 void
 flushmmucache_nopc(void)
 {
-    int c;
-
-    for (c = 0; c < 256; c++) {
+    for (uint16_t c = 0; c < 256; c++) {
         if (readlookup[c] != (int) 0xffffffff) {
             readlookup2[readlookup[c]] = LOOKUP_INV;
             readlookupp[readlookup[c]] = 4;
@@ -244,12 +243,11 @@ void
 mem_flush_write_page(uint32_t addr, uint32_t virt)
 {
     page_t *page_target = &pages[addr >> 12];
-    int     c;
 #if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
     uint32_t a;
 #endif
 
-    for (c = 0; c < 256; c++) {
+    for (uint16_t c = 0; c < 256; c++) {
         if (writelookup[c] != (int) 0xffffffff) {
 #if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
             uintptr_t target = (uintptr_t) &ram[(uintptr_t) (addr & ~0xfff) - (virt & ~0xfff)];
@@ -280,7 +278,9 @@ mem_flush_write_page(uint32_t addr, uint32_t virt)
 static __inline uint64_t
 mmutranslatereal_normal(uint32_t addr, int rw)
 {
-    uint32_t temp, temp2, temp3;
+    uint32_t temp;
+    uint32_t temp2;
+    uint32_t temp3;
     uint32_t addr2;
 
     if (cpu_state.abrt)
@@ -345,8 +345,13 @@ mmutranslatereal_normal(uint32_t addr, int rw)
 static __inline uint64_t
 mmutranslatereal_pae(uint32_t addr, int rw)
 {
-    uint64_t temp, temp2, temp3, temp4;
-    uint64_t addr2, addr3, addr4;
+    uint64_t temp;
+    uint64_t temp2;
+    uint64_t temp3;
+    uint64_t temp4;
+    uint64_t addr2;
+    uint64_t addr3;
+    uint64_t addr4;
 
     if (cpu_state.abrt)
         return 0xffffffffffffffffULL;
@@ -449,7 +454,9 @@ mmutranslatereal32(uint32_t addr, int rw)
 static __inline uint64_t
 mmutranslate_noabrt_normal(uint32_t addr, int rw)
 {
-    uint32_t temp, temp2, temp3;
+    uint32_t temp;
+    uint32_t temp2;
+    uint32_t temp3;
     uint32_t addr2;
 
     if (cpu_state.abrt)
@@ -481,8 +488,13 @@ mmutranslate_noabrt_normal(uint32_t addr, int rw)
 static __inline uint64_t
 mmutranslate_noabrt_pae(uint32_t addr, int rw)
 {
-    uint64_t temp, temp2, temp3, temp4;
-    uint64_t addr2, addr3, addr4;
+    uint64_t temp;
+    uint64_t temp2;
+    uint64_t temp3;
+    uint64_t temp4;
+    uint64_t addr2;
+    uint64_t addr3;
+    uint64_t addr4;
 
     if (cpu_state.abrt)
         return 0xffffffffffffffffULL;
@@ -885,7 +897,6 @@ uint16_t
 readmemwl(uint32_t addr)
 {
     mem_mapping_t *map;
-    int            i;
     uint64_t       a;
 
     addr64a[0] = addr;
@@ -901,7 +912,7 @@ readmemwl(uint32_t addr)
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffe) {
             if (cr0 >> 31) {
-                for (i = 0; i < 2; i++) {
+                for (uint8_t i = 0; i < 2; i++) {
                     a          = mmutranslate_read(addr + i);
                     addr64a[i] = (uint32_t) a;
 
@@ -944,7 +955,6 @@ void
 writememwl(uint32_t addr, uint16_t val)
 {
     mem_mapping_t *map;
-    int            i;
     uint64_t       a;
 
     addr64a[0] = addr;
@@ -960,7 +970,7 @@ writememwl(uint32_t addr, uint16_t val)
             cycles -= timing_misaligned;
         if ((addr & 0xfff) > 0xffe) {
             if (cr0 >> 31) {
-                for (i = 0; i < 2; i++) {
+                for (uint8_t i = 0; i < 2; i++) {
                     /* Do not translate a page that has a valid lookup, as that is by definition valid
                        and the whole purpose of the lookup is to avoid repeat identical translations. */
                     if (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b) {
@@ -1563,7 +1573,8 @@ writememql(uint32_t addr, uint64_t val)
 void
 do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
 {
-    int      i, cond = 1;
+    int      i;
+    int      cond = 1;
     uint32_t last_addr = addr + (num - 1);
     uint64_t a         = 0x0000000000000000ULL;
 
@@ -1631,7 +1642,8 @@ uint16_t
 mem_readw_phys(uint32_t addr)
 {
     mem_mapping_t *map = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
-    uint16_t       ret, *p;
+    uint16_t       ret;
+    uint16_t      *p;
 
     mem_logical_addr = 0xffffffff;
 
@@ -1652,7 +1664,8 @@ uint32_t
 mem_readl_phys(uint32_t addr)
 {
     mem_mapping_t *map = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
-    uint32_t       ret, *p;
+    uint32_t       ret;
+    uint32_t      *p;
 
     mem_logical_addr = 0xffffffff;
 
@@ -2530,12 +2543,10 @@ mem_mapping_enable(mem_mapping_t *map)
 void
 mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t size, uint16_t access)
 {
-    uint32_t       c;
-    uint16_t       mask, smstate = 0x0000;
+    uint16_t       mask;
+    uint16_t       smstate = 0x0000;
     const uint16_t smstates[4] = { 0x0000, (MEM_READ_SMRAM | MEM_WRITE_SMRAM),
                                    MEM_READ_SMRAM_EX, (MEM_READ_DISABLED_EX | MEM_WRITE_DISABLED_EX) };
-
-    int i;
 
     if (mode)
         mask = 0x2d6b;
@@ -2558,8 +2569,8 @@ mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t size, uint16_t 
     } else
         smstate = access & 0x6f7b;
 
-    for (c = 0; c < size; c += MEM_GRANULARITY_SIZE) {
-        for (i = 0; i < 4; i++) {
+    for (uint32_t c = 0; c < size; c += MEM_GRANULARITY_SIZE) {
+        for (uint8_t i = 0; i < 4; i++) {
             if (bitmap & (1 << i)) {
                 _mem_state[(c + base) >> MEM_GRANULARITY_BITS].vals[i] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS].vals[i] & mask) | smstate;
             }
@@ -2597,7 +2608,8 @@ mem_a20_init(void)
 void
 mem_close(void)
 {
-    mem_mapping_t *map = base_mapping, *next;
+    mem_mapping_t *map = base_mapping;
+    mem_mapping_t *next;
 
     while (map != NULL) {
         next      = map->next;
@@ -2628,7 +2640,6 @@ mem_init_ram_mapping(mem_mapping_t *mapping, uint32_t base, uint32_t size)
 void
 mem_reset(void)
 {
-    uint32_t c;
     size_t m;
 
     memset(page_ff, 0xff, sizeof(page_ff));
@@ -2744,7 +2755,7 @@ mem_reset(void)
     memset(byte_code_present_mask, 0, (mem_size * 1024) / 8);
 #endif
 
-    for (c = 0; c < pages_sz; c++) {
+    for (uint32_t c = 0; c < pages_sz; c++) {
         if ((c << 12) >= (mem_size << 10))
             pages[c].mem = page_ff;
         else {
@@ -2857,11 +2868,13 @@ mem_remap_top(int kb)
 {
     uint32_t   c;
     uint32_t   start = (mem_size >= 1024) ? mem_size : 1024;
-    int        offset, size = mem_size - 640;
+    int        offset;
+    int        size = mem_size - 640;
     int        set        = 1;
     static int old_kb     = 0;
     int        sis_mode   = 0;
-    uint32_t   start_addr = 0, addr = 0;
+    uint32_t   start_addr = 0;
+    uint32_t   addr = 0;
 
     mem_log("MEM: remapping top %iKB (mem=%i)\n", kb, mem_size);
     if (mem_size <= 640)
@@ -2983,12 +2996,10 @@ mem_remap_top(int kb)
 void
 mem_reset_page_blocks(void)
 {
-    uint32_t c;
-
     if (pages == NULL)
         return;
 
-    for (c = 0; c < pages_sz; c++) {
+    for (uint32_t c = 0; c < pages_sz; c++) {
         pages[c].write_b = mem_write_ramb_page;
         pages[c].write_w = mem_write_ramw_page;
         pages[c].write_l = mem_write_raml_page;
@@ -3019,12 +3030,12 @@ mem_a20_recalc(void)
 
     state = mem_a20_key | mem_a20_alt;
     if (state && !mem_a20_state) {
-        rammask = (cpu_16bitbus) ? 0xffffff : 0xffffffff;
+        rammask = cpu_16bitbus ? 0xffffff : 0xffffffff;
         if (is6117)
             rammask |= 0x03000000;
         flushmmucache();
     } else if (!state && mem_a20_state) {
-        rammask = (cpu_16bitbus) ? 0xefffff : 0xffefffff;
+        rammask = cpu_16bitbus ? 0xefffff : 0xffefffff;
         if (is6117)
             rammask |= 0x03000000;
         flushmmucache();

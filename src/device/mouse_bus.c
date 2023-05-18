@@ -455,11 +455,11 @@ bm_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
     int xor ;
 
     if (!(dev->flags & FLAG_ENABLED))
-        return (1); /* Mouse is disabled, do nothing. */
+        return 1; /* Mouse is disabled, do nothing. */
 
     if (!x && !y && !((b ^ dev->mouse_buttons_last) & 0x07)) {
         dev->mouse_buttons_last = b;
-        return (1); /* State has not changed, do nothing. */
+        return 1; /* State has not changed, do nothing. */
     }
 
     /* Converts button states from MRL to LMR. */
@@ -512,7 +512,7 @@ bm_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
             bm_log("DEBUG: Data Interrupt Fired...\n");
         }
     }
-    return (0);
+    return 0;
 }
 
 /* The timer calls us on every tick if the mouse is in timer mode
@@ -520,7 +520,8 @@ bm_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
 static void
 bm_update_data(mouse_t *dev)
 {
-    int delta_x, delta_y;
+    int delta_x;
+    int delta_y;
     int xor ;
 
     /* If the counters are not frozen, update them. */

@@ -58,7 +58,8 @@ enum {
 #define VID_CLOCK (double) (651 * 416 * 60)
 
 /* Mapping of attributes to colours */
-static uint32_t amber, black;
+static uint32_t amber;
+static uint32_t black;
 static uint32_t blinkcols[256][2];
 static uint32_t normcols[256][2];
 
@@ -108,7 +109,9 @@ static void compaq_plasma_recalcattrs(compaq_plasma_t *self);
 static void
 compaq_plasma_recalctimings(compaq_plasma_t *self)
 {
-    double _dispontime, _dispofftime, disptime;
+    double _dispontime;
+    double _dispofftime;
+    double disptime;
 
     if (!self->internal_monitor && !(self->port_23c6 & 1)) {
         cga_recalctimings(&self->cga);
@@ -118,8 +121,8 @@ compaq_plasma_recalctimings(compaq_plasma_t *self)
     disptime          = 651;
     _dispontime       = 640;
     _dispofftime      = disptime - _dispontime;
-    self->dispontime  = (uint64_t) (_dispontime * (cpuclock / VID_CLOCK) * (double) (1ull << 32));
-    self->dispofftime = (uint64_t) (_dispofftime * (cpuclock / VID_CLOCK) * (double) (1ull << 32));
+    self->dispontime  = (uint64_t) (_dispontime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
+    self->dispofftime = (uint64_t) (_dispofftime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
 }
 
 static void
@@ -146,8 +149,9 @@ static void
 compaq_plasma_text80(compaq_plasma_t *self)
 {
     uint32_t cols[2];
-    int      x, c;
-    uint8_t  chr, attr;
+    int      c;
+    uint8_t  chr;
+    uint8_t  attr;
     int      drawcursor;
     int      cursorline;
     int      blink;
@@ -165,7 +169,7 @@ compaq_plasma_text80(compaq_plasma_t *self)
     else
         cursorline = ((self->cga.crtc[10] & 0x0F) * 2 <= sc) && ((self->cga.crtc[11] & 0x0F) * 2 >= sc);
 
-    for (x = 0; x < 80; x++) {
+    for (uint8_t x = 0; x < 80; x++) {
         chr        = self->vram[(addr + 2 * x) & 0x7FFF];
         attr       = self->vram[(addr + 2 * x + 1) & 0x7FFF];
         drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 8) && (self->cga.cgablink & 16));
@@ -197,8 +201,9 @@ static void
 compaq_plasma_text40(compaq_plasma_t *self)
 {
     uint32_t cols[2];
-    int      x, c;
-    uint8_t  chr, attr;
+    int      c;
+    uint8_t  chr;
+    uint8_t  attr;
     int      drawcursor;
     int      cursorline;
     int      blink;
@@ -216,7 +221,7 @@ compaq_plasma_text40(compaq_plasma_t *self)
     else
         cursorline = ((self->cga.crtc[10] & 0x0F) * 2 <= sc) && ((self->cga.crtc[11] & 0x0F) * 2 >= sc);
 
-    for (x = 0; x < 40; x++) {
+    for (uint8_t x = 0; x < 40; x++) {
         chr        = self->vram[(addr + 2 * x) & 0x7FFF];
         attr       = self->vram[(addr + 2 * x + 1) & 0x7FFF];
         drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 8) && (self->cga.cgablink & 16));
@@ -249,7 +254,6 @@ compaq_plasma_text40(compaq_plasma_t *self)
 static void
 compaq_plasma_cgaline6(compaq_plasma_t *self)
 {
-    int      x, c;
     uint8_t  dat;
     uint32_t ink = 0;
     uint16_t addr;
@@ -263,11 +267,11 @@ compaq_plasma_cgaline6(compaq_plasma_t *self)
     } else {
         addr = ((self->displine >> 1) & 1) * 0x2000 + (self->displine >> 2) * 80 + ((ma & ~1) << 1);
     }
-    for (x = 0; x < 80; x++) {
-        dat = self->vram[(addr & 0x7FFF)];
+    for (uint8_t x = 0; x < 80; x++) {
+        dat = self->vram[addr & 0x7FFF];
         addr++;
 
-        for (c = 0; c < 8; c++) {
+        for (uint8_t c = 0; c < 8; c++) {
             ink = (dat & 0x80) ? fg : bg;
             if (!(self->cga.cgamode & 8))
                 ink = black;
@@ -282,9 +286,10 @@ compaq_plasma_cgaline6(compaq_plasma_t *self)
 static void
 compaq_plasma_cgaline4(compaq_plasma_t *self)
 {
-    int      x, c;
-    uint8_t  dat, pattern;
-    uint32_t ink0 = 0, ink1 = 0;
+    uint8_t  dat;
+    uint8_t  pattern;
+    uint32_t ink0 = 0;
+    uint32_t ink1 = 0;
     uint16_t addr;
 
     uint16_t ma = (self->cga.crtc[13] | (self->cga.crtc[12] << 8)) & 0x7fff;
@@ -292,11 +297,11 @@ compaq_plasma_cgaline4(compaq_plasma_t *self)
     /* 320*200 */
     addr = ((self->displine >> 1) & 1) * 0x2000 + (self->displine >> 2) * 80 + ((ma & ~1) << 1);
 
-    for (x = 0; x < 80; x++) {
-        dat = self->vram[(addr & 0x7FFF)];
+    for (uint8_t x = 0; x < 80; x++) {
+        dat = self->vram[addr & 0x7FFF];
         addr++;
 
-        for (c = 0; c < 4; c++) {
+        for (uint8_t c = 0; c < 4; c++) {
             pattern = (dat & 0xC0) >> 6;
             if (!(self->cga.cgamode & 8))
                 pattern = 0;

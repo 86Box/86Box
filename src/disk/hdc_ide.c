@@ -1455,9 +1455,15 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
             }
             ide->cylprecomp = val;
 
+/* The ATA-3 specification says this register is the parameter for the
+   command and is unclear as to whether or not it's written to both
+   devices at once. Writing it to both devices at once breaks CD boot
+   on the AMI Apollo. */
+#ifdef WRITE_PARAM_TO_BOTH_DEVICES
             if (ide_other->type == IDE_ATAPI)
                 ide_other->sc->features = val;
             ide_other->cylprecomp = val;
+#endif
             return;
 
         case 0x2: /* Sector count */
