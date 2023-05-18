@@ -678,14 +678,25 @@ ohci_soft_reset(usb_t* dev)
     memset(dev->ohci_mmio, 0x00, 4096);
     dev->ohci_mmio[OHCI_HcRevision].b[0] = 0x10;
     dev->ohci_mmio[OHCI_HcRevision].b[1] = 0x01;
-    dev->ohci_mmio[OHCI_HcRhDescriptorA].b[0] = 0x02;
-    dev->ohci_mmio[OHCI_HcRhDescriptorA].b[1] = 0x02;
     dev->ohci_mmio[OHCI_HcFmInterval].l = 0x27782edf; /* FrameInterval = 11999, FSLargestDataPacket = 10104 */
     dev->ohci_mmio[OHCI_HcLSThreshold].l = 0x628;
     dev->ohci_mmio[OHCI_HcInterruptEnable].l |= (1 << 31);
     dev->ohci_mmio[OHCI_HcControl].l = old_HcControl;
     dev->ohci_interrupt_counter = 7;
     ohci_update_irq(dev);
+}
+
+static void
+ohci_rhport_reset(usb_t* dev)
+{
+    dev->ohci_mmio[OHCI_HcRhPortStatus1].b[2] = dev->ohci_mmio[OHCI_HcRhPortStatus2].b[2] = 0x16;
+    dev->ohci_mmio[OHCI_HcRhDescriptorA].b[0] = 0x02;
+    dev->ohci_mmio[OHCI_HcRhDescriptorA].b[1] = 0x02;
+    for (int i = 0; i < 2; i++) {
+        if (dev->ohci_devices[i]) {
+            dev->ohci_devices[i]->device_reset(dev->ohci_devices[i]->priv);
+        }
+    }
 }
 
 static void
@@ -708,16 +719,15 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
 #endif
             if ((val & 0xc0) == 0x00) {
                 /* UsbReset */
-                dev->ohci_mmio[OHCI_HcRhPortStatus1].b[2] = dev->ohci_mmio[OHCI_HcRhPortStatus2].b[2] = 0x16;
-                for (int i = 0; i < 2; i++) {
-                    if (dev->ohci_devices[i]) {
-                        dev->ohci_devices[i]->device_reset(dev->ohci_devices[i]->priv);
-                    }
-                }
+                ohci_rhport_reset(dev);
             } else if ((val & 0xc0) == 0x80 && (old & 0xc0) != (val & 0xc0)) {
-                dev->ohci_mmio[OHCI_HcFmRemaining].l = 0;
+                dev->ohci_mmio[OHCI_HcFmRemaining].w[0] = 0;
                 dev->ohci_initial_start = 1;
                 timer_on_auto(&dev->ohci_frame_timer, 1000.);
+            }
+            if ((val & 0xc0) != 0x80) {
+                timer_disable(&dev->ohci_frame_timer);
+                dev->ohci_mmio[OHCI_HcFmRemaining].w[0] = 0;
             }
             break;
         case OHCI_aHcCommandStatus:
@@ -1247,6 +1257,7 @@ usb_reset(void *priv)
 
     ohci_soft_reset(dev);
     dev->ohci_mmio[OHCI_HcControl].l = 0x00;
+    ohci_rhport_reset(dev);
 
     io_removehandler(dev->uhci_io_base, 0x20, uhci_reg_read, NULL, NULL, uhci_reg_write, uhci_reg_writew, NULL, dev);
     dev->uhci_enable = 0;
