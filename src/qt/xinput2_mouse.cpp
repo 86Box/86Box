@@ -92,6 +92,13 @@ xinput2_get_xtest_pointer()
         if ((dev->use == XISlavePointer) && !strcmp(dev->name, "TigerVNC pointer"))
             return dev->deviceid;
     }
+    /* Steam Input on SteamOS uses XTEST the intended way for trackpad movement.
+       Hope nobody is remoting into their Steam Deck with a non-TigerVNC server. */
+    for (int i = 0; i < devs; i++) {
+        dev = &info[i];
+        if ((dev->use == XISlavePointer) && !strncmp(dev->name, "Valve Software Steam Deck", 25))
+            return -1;
+    }
     for (int i = 0; i < devs; i++) {
         dev = &info[i];
         if ((dev->use == XISlavePointer) && !strcmp(dev->name, "Virtual core XTEST pointer"))
