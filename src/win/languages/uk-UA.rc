@@ -542,6 +542,8 @@ BEGIN
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
     IDS_2166    "Відеокарта #2 ""%hs"" недоступна через відсутність файлу її ПЗУ в каталозі roms/video. Відключення другої відеокарти."
+    IDS_2167    "Failed to initialize network driver"
+    IDS_2168    "The network configuration will be switched to the null driver"
 END
 
 STRINGTABLE DISCARDABLE

@@ -602,6 +602,8 @@ ProgSettings::reloadStrings()
     translatedstrings[IDS_2143] = QCoreApplication::translate("", "Monitor in sleep mode").toStdWString();
     translatedstrings[IDS_2121] = QCoreApplication::translate("", "No ROMs found").toStdWString();
     translatedstrings[IDS_2056] = QCoreApplication::translate("", "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory.").toStdWString();
+    translatedstrings[IDS_2167] = QCoreApplication::translate("", "Failed to initialize network driver").toStdWString();
+    translatedstrings[IDS_2168] = QCoreApplication::translate("", "The network configuration will be switched to the null driver").toStdWString();
 
     auto flsynthstr = QCoreApplication::translate("", " is required for FluidSynth MIDI output.");
     if (flsynthstr.contains("libfluidsynth")) {

@@ -1219,3 +1219,10 @@ msgstr "2% alle täydellisen RPM:n"
 msgid "(System Default)"
 msgstr "(Järjestelmän oletus)"
 
+msgid "Failed to initialize network driver"
+msgstr "Failed to initialize network driver"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "The network configuration will be switched to the null driver"
+
+

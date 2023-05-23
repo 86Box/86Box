@@ -158,7 +158,7 @@ net_null_thread(void *priv)
 #endif
 
 void *
-net_null_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
+net_null_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char *netdrv_errbuf)
 {
     net_null_log("Null Network: Init\n");
 
