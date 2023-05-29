@@ -473,7 +473,15 @@ ohci_service_transfer_desc(usb_t* dev, usb_ed_t* endpoint_desc)
 
     pclog("Device result: 0x%X\n", device_result);
 
-    if ((actual_length == pktlen) || (pid_token == USB_PID_IN && (endpoint_desc->Control & (1 << 18)) && device_result == USB_ERROR_NO_ERROR)) {
+    if (device_result == USB_ERROR_NO_ERROR) {
+        if (pid_token == USB_PID_IN) {
+            ohci_copy_td_input(dev, &td, dev->ohci_usb_buf, actual_length);
+        } else {
+            actual_length = pktlen;
+        }
+    }
+
+    if ((actual_length == pktlen) || (pid_token == USB_PID_IN && (td.Control & (1 << 18)) && device_result == USB_ERROR_NO_ERROR)) {
         if (len == actual_length) {
             td.CBP = 0;
         } else {
@@ -1270,7 +1278,7 @@ usb_parse_control_endpoint(usb_device_t* usb_device, uint8_t* data, uint32_t *le
     if (!usb_device->fifo.data) {
         fifo8_create(&usb_device->fifo, 4096);
     }
-
+    //pclog("Control endpoint of device 0x%08X: Transfer (PID = 0x%X, len = %d)\n", usb_device, pid_token, *len);
     switch (pid_token) {
         case USB_PID_SETUP:
         {
@@ -1279,6 +1287,11 @@ usb_parse_control_endpoint(usb_device_t* usb_device, uint8_t* data, uint32_t *le
             }
             usb_device->setup_desc = *setup_packet;
             fifo8_reset(&usb_device->fifo);
+            //pclog("bmRequestType = 0x%X, \n", usb_device->setup_desc.bmRequestType);
+            //pclog("bRequest = 0x%X, \n", usb_device->setup_desc.bRequest);
+            //pclog("wIndex = 0x%X, \n", usb_device->setup_desc.wIndex);
+            //pclog("wLength = 0x%X, \n", usb_device->setup_desc.wLength);
+            //pclog("wValue = 0x%X\n", usb_device->setup_desc.wValue);
             switch (setup_packet->bmRequestType & 0x1f) {
                 case USB_SETUP_TYPE_INTERFACE:
                 {
@@ -1377,18 +1390,22 @@ usb_parse_control_endpoint(usb_device_t* usb_device, uint8_t* data, uint32_t *le
                             switch (setup_packet->bRequest) {
                                 case USB_SETUP_SET_FEATURE: {
                                     usb_device->status_bits |= (setup_packet->wValue & 0x1);
+                                    ret = 0;
                                     break;
                                 }
                                 case USB_SETUP_CLEAR_FEATURE: {
                                     usb_device->status_bits &= ~(setup_packet->wValue & 0x1);
+                                    ret = 0;
                                     break;
                                 }
                                 case USB_SETUP_SET_ADDRESS: {
                                     usb_device->address = setup_packet->wValue & 0xFF;
+                                    ret = 0;
                                     break;
                                 }
                                 case USB_SETUP_SET_CONFIGURATION: {
                                     usb_device->current_configuration = setup_packet->wValue & 0xFF;
+                                    ret = 0;
                                     break;
                                 }
                             }
