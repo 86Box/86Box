@@ -90,12 +90,11 @@ FILE *
 rom_fopen(const char *fn, char *mode)
 {
     char        temp[1024];
-    rom_path_t *rom_path;
     FILE       *fp = NULL;
 
     if (strstr(fn, "roms/") == fn) {
         /* Relative path */
-        for (rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+        for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
             path_append_filename(temp, rom_path->path, fn + 5);
 
             if ((fp = plat_fopen(temp, mode)) != NULL) {
@@ -114,11 +113,10 @@ int
 rom_getfile(char *fn, char *s, int size)
 {
     char        temp[1024];
-    rom_path_t *rom_path;
 
     if (strstr(fn, "roms/") == fn) {
         /* Relative path */
-        for (rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
+        for (rom_path_t *rom_path = &rom_paths; rom_path != NULL; rom_path = rom_path->next) {
             path_append_filename(temp, rom_path->path, fn + 5);
 
             if (rom_present(temp)) {
@@ -147,10 +145,10 @@ rom_present(char *fn)
     f = rom_fopen(fn, "rb");
     if (f != NULL) {
         (void) fclose(f);
-        return (1);
+        return 1;
     }
 
-    return (0);
+    return 0;
 }
 
 uint8_t
@@ -212,7 +210,7 @@ rom_load_linear_oddeven(const char *fn, uint32_t addr, int sz, int off, uint8_t 
 
     if (f == NULL) {
         rom_log("ROM: image '%s' not found\n", fn);
-        return (0);
+        return 0;
     }
 
     /* Make sure we only look at the base-256K offset. */
@@ -236,7 +234,7 @@ rom_load_linear_oddeven(const char *fn, uint32_t addr, int sz, int off, uint8_t 
 
     (void) fclose(f);
 
-    return (1);
+    return 1;
 }
 
 /* Load a ROM BIOS from its chips, interleaved mode. */
@@ -247,7 +245,7 @@ rom_load_linear(const char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 
     if (f == NULL) {
         rom_log("ROM: image '%s' not found\n", fn);
-        return (0);
+        return 0;
     }
 
     /* Make sure we only look at the base-256K offset. */
@@ -265,7 +263,7 @@ rom_load_linear(const char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 
     (void) fclose(f);
 
-    return (1);
+    return 1;
 }
 
 /* Load a ROM BIOS from its chips, linear mode with high bit flipped. */
@@ -276,7 +274,7 @@ rom_load_linear_inverted(const char *fn, uint32_t addr, int sz, int off, uint8_t
 
     if (f == NULL) {
         rom_log("ROM: image '%s' not found\n", fn);
-        return (0);
+        return 0;
     }
 
     /* Make sure we only look at the base-256K offset. */
@@ -289,7 +287,7 @@ rom_load_linear_inverted(const char *fn, uint32_t addr, int sz, int off, uint8_t
     (void) fseek(f, 0, SEEK_END);
     if (ftell(f) < sz) {
         (void) fclose(f);
-        return (0);
+        return 0;
     }
 
     if (ptr != NULL) {
@@ -303,7 +301,7 @@ rom_load_linear_inverted(const char *fn, uint32_t addr, int sz, int off, uint8_t
 
     (void) fclose(f);
 
-    return (1);
+    return 1;
 }
 
 /* Load a ROM BIOS from its chips, interleaved mode. */
@@ -312,7 +310,6 @@ rom_load_interleaved(const char *fnl, const char *fnh, uint32_t addr, int sz, in
 {
     FILE *fl = rom_fopen(fnl, "rb");
     FILE *fh = rom_fopen(fnh, "rb");
-    int   c;
 
     if (fl == NULL || fh == NULL) {
         if (fl == NULL)
@@ -324,7 +321,7 @@ rom_load_interleaved(const char *fnl, const char *fnh, uint32_t addr, int sz, in
         else
             (void) fclose(fh);
 
-        return (0);
+        return 0;
     }
 
     /* Make sure we only look at the base-256K offset. */
@@ -337,7 +334,7 @@ rom_load_interleaved(const char *fnl, const char *fnh, uint32_t addr, int sz, in
     if (ptr != NULL) {
         (void) fseek(fl, off, SEEK_SET);
         (void) fseek(fh, off, SEEK_SET);
-        for (c = 0; c < sz; c += 2) {
+        for (int c = 0; c < sz; c += 2) {
             ptr[addr + c]     = fgetc(fl) & 0xff;
             ptr[addr + c + 1] = fgetc(fh) & 0xff;
         }
@@ -346,7 +343,7 @@ rom_load_interleaved(const char *fnl, const char *fnh, uint32_t addr, int sz, in
     (void) fclose(fh);
     (void) fclose(fl);
 
-    return (1);
+    return 1;
 }
 
 static int
@@ -428,8 +425,10 @@ bios_readl(uint32_t addr, void *priv)
 static void
 bios_add(void)
 {
-    int temp_cpu_type, temp_cpu_16bitbus = 1;
-    int temp_is286 = 0, temp_is6117 = 0;
+    int temp_cpu_type;
+    int temp_cpu_16bitbus = 1;
+    int temp_is286 = 0;
+    int temp_is6117 = 0;
 
     if (/*AT && */ cpu_s) {
         temp_cpu_type     = cpu_s->cpu_type;
@@ -482,7 +481,7 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
 {
     uint8_t  ret = 0;
     uint8_t *ptr = NULL;
-    int      i, old_sz = sz;
+    int      old_sz = sz;
 
     /*
         f0000, 65536 = prepare 64k rom starting at f0000, load 64k bios at 0000
@@ -512,7 +511,7 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
 
     if (!bios_only && (flags & FLAG_REP) && (old_sz >= 65536) && (sz < old_sz)) {
         old_sz /= sz;
-        for (i = 0; i < (old_sz - 1); i++) {
+        for (int i = 0; i < (old_sz - 1); i++) {
             rom_log("Copying ptr[%08X] to ptr[%08X]\n", addr - biosaddr, i * sz);
             memcpy(&(ptr[i * sz]), &(ptr[addr - biosaddr]), sz);
         }
@@ -591,7 +590,7 @@ rom_init(rom_t *rom, const char *fn, uint32_t addr, int sz, int mask, int off, u
                     NULL, NULL, NULL,
                     rom->rom, flags | MEM_MAPPING_ROM_WS, rom);
 
-    return (0);
+    return 0;
 }
 
 int
@@ -620,7 +619,7 @@ rom_init_oddeven(rom_t *rom, const char *fn, uint32_t addr, int sz, int mask, in
                     NULL, NULL, NULL,
                     rom->rom, flags | MEM_MAPPING_ROM_WS, rom);
 
-    return (0);
+    return 0;
 }
 
 int
@@ -647,5 +646,5 @@ rom_init_interleaved(rom_t *rom, const char *fnl, const char *fnh, uint32_t addr
                     NULL, NULL, NULL,
                     rom->rom, flags | MEM_MAPPING_ROM_WS, rom);
 
-    return (0);
+    return 0;
 }

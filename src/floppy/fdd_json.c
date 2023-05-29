@@ -125,10 +125,11 @@ static void
 handle(json_t *dev, char *name, char *str)
 {
     sector_t *sec = NULL;
-    uint32_t  l, pat;
+    uint32_t  l;
+    uint32_t pat;
     uint8_t  *p;
     char     *sp;
-    int       i, s;
+    int       s;
 
     /* Point to the currently selected sector. */
     sec = &dev->sects[dev->track][dev->side][dev->dmf - 1];
@@ -163,7 +164,7 @@ handle(json_t *dev, char *name, char *str)
             sec->data = (uint8_t *) malloc(sec->size);
         p = sec->data;
         s = (sec->size / sizeof(uint32_t));
-        for (i = 0; i < s; i++) {
+        for (int i = 0; i < s; i++) {
             l    = pat;
             *p++ = (l & 0x000000ff);
             l >>= 8;
@@ -207,18 +208,21 @@ unexpect(int c, int state, int level)
 static int
 load_image(json_t *dev)
 {
-    char  buff[4096], name[32];
-    int   c, i, j, state, level;
+    char  buff[4096];
+    char  name[32];
+    int   c;
+    int   state;
+    int   level;
     char *ptr;
 
     if (dev->f == NULL) {
         json_log("JSON: no file loaded!\n");
-        return (0);
+        return 0;
     }
 
     /* Initialize. */
-    for (i = 0; i < NTRACKS; i++) {
-        for (j = 0; j < NSIDES; j++)
+    for (uint16_t i = 0; i < NTRACKS; i++) {
+        for (uint8_t j = 0; j < NSIDES; j++)
             memset(dev->sects[i][j], 0x00, sizeof(sector_t));
     }
     dev->track = dev->side = dev->dmf = 0; /* "dmf" is "sector#" */
@@ -375,7 +379,7 @@ load_image(json_t *dev)
     dev->tracks = dev->track;
     dev->sides  = dev->side;
 
-    return (1);
+    return 1;
 }
 
 /* Seek the heads to a track, and prepare to read data from that track. */
@@ -384,9 +388,13 @@ json_seek(int drive, int track)
 {
     uint8_t id[4] = { 0, 0, 0, 0 };
     json_t *dev   = images[drive];
-    int     side, sector;
-    int     rate, gap2, gap3, pos;
-    int     ssize, rsec, asec;
+    int     rate;
+    int     gap2;
+    int     gap3;
+    int     pos;
+    int     ssize;
+    int     rsec;
+    int     asec;
 
     if (dev->f == NULL) {
         json_log("JSON: seek: no file loaded!\n");
@@ -412,7 +420,7 @@ json_seek(int drive, int track)
         return;
     }
 
-    for (side = 0; side < dev->sides; side++) {
+    for (uint8_t side = 0; side < dev->sides; side++) {
         /* Get transfer rate for this side. */
         rate = dev->track_flags & 0x07;
         if (!rate && (dev->track_flags & 0x20))
@@ -428,7 +436,7 @@ json_seek(int drive, int track)
 
         pos = d86f_prepare_pretrack(drive, side, 0);
 
-        for (sector = 0; sector < dev->spt[track][side]; sector++) {
+        for (uint8_t sector = 0; sector < dev->spt[track][side]; sector++) {
             rsec = dev->sects[track][side][sector].sector;
             asec = sector;
 
@@ -473,7 +481,6 @@ static void
 set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 {
     json_t *dev = images[drive];
-    int     i;
 
     dev->sector[side] = 0;
 
@@ -485,7 +492,7 @@ set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
     dev->side = side;
 
     /* Now loop over all sector ID's on this side to find our sector. */
-    for (i = 0; i < dev->spt[c][side]; i++) {
+    for (uint8_t i = 0; i < dev->spt[c][side]; i++) {
         if ((dev->sects[dev->track][side][i].track == c) && (dev->sects[dev->track][side][i].side == h) && (dev->sects[dev->track][side][i].sector == r) && (dev->sects[dev->track][side][i].size == n)) {
             dev->sector[side] = i;
         }
@@ -514,7 +521,6 @@ json_load(int drive, char *fn)
     int       temp_rate;
     sector_t *sec;
     json_t   *dev;
-    int       i;
 
     /* Just in case- remove ourselves from 86F. */
     d86f_unregister(drive);
@@ -571,7 +577,7 @@ json_load(int drive, char *fn)
 
     temp_rate = 0xff;
     sec       = &dev->sects[0][0][0];
-    for (i = 0; i < 6; i++) {
+    for (uint8_t i = 0; i < 6; i++) {
         if (dev->spt[0][0] > fdd_max_sectors[sec->size][i])
             continue;
 
@@ -667,7 +673,6 @@ void
 json_close(int drive)
 {
     json_t *dev = images[drive];
-    int     t, h, s;
 
     if (dev == NULL)
         return;
@@ -676,10 +681,10 @@ json_close(int drive)
     d86f_unregister(drive);
 
     /* Release all the sector buffers. */
-    for (t = 0; t < 256; t++) {
-        for (h = 0; h < 2; h++) {
+    for (uint16_t t = 0; t < 256; t++) {
+        for (uint8_t h = 0; h < 2; h++) {
             memset(dev->sects[t][h], 0x00, sizeof(sector_t));
-            for (s = 0; s < 256; s++) {
+            for (uint16_t s = 0; s < 256; s++) {
                 if (dev->sects[t][h][s].data != NULL)
                     free(dev->sects[t][h][s].data);
                 dev->sects[t][h][s].data = NULL;

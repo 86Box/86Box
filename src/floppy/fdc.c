@@ -146,7 +146,7 @@ fdc_card_available(int card)
     if (fdc_cards[card].device)
         return (device_available(fdc_cards[card].device));
 
-    return (1);
+    return 1;
 }
 
 const device_t *
@@ -159,7 +159,7 @@ int
 fdc_card_has_config(int card)
 {
     if (!fdc_cards[card].device)
-        return (0);
+        return 0;
 
     return (device_has_config(fdc_cards[card].device) ? 1 : 0);
 }
@@ -177,11 +177,11 @@ fdc_card_get_from_internal_name(char *s)
 
     while (fdc_cards[c].device != NULL) {
         if (!strcmp((char *) fdc_cards[c].device->internal_name, s))
-            return (c);
+            return c;
         c++;
     }
 
-    return (0);
+    return 0;
 }
 
 void
@@ -710,7 +710,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 {
     fdc_t *fdc = (fdc_t *) priv;
 
-    int drive, i, drive_num;
+    int drive;
+    int i;
+    int drive_num;
 
     fdc_log("Write FDC %04X %02X\n", addr, val);
 
@@ -1630,7 +1632,7 @@ fdc_callback(void *priv)
                         fdc_poll_readwrite_finish(fdc, compare);
                     return;
                 }
-                if ((fdd_get_head(real_drive(fdc, fdc->drive)) == 0)) {
+                if (fdd_get_head(real_drive(fdc, fdc->drive)) == 0) {
                     fdc->sector = 1;
                     fdc->head |= 1;
                     fdd_set_head(real_drive(fdc, fdc->drive), 1);
@@ -1883,7 +1885,7 @@ fdc_is_verify(fdc_t *fdc)
 int
 fdc_data(fdc_t *fdc, uint8_t data, int last)
 {
-    int i, result = 0;
+    int result = 0;
     int n;
 
     if (fdc->deleted & 2) {
@@ -1945,7 +1947,7 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
                 if (fdc->fifobufpos > 0)
                     fdc->fifobufpos = 0;
 
-                for (i = 0; i <= n; i++) {
+                for (int i = 0; i <= n; i++) {
                     result = dma_channel_write(fdc->dma_ch, fdc->fifobuf[i]);
 
                     if (result & DMA_OVER) {
@@ -2057,7 +2059,7 @@ fdc_writeprotect(fdc_t *fdc)
 int
 fdc_getdata(fdc_t *fdc, int last)
 {
-    int i, data = 0;
+    int data = 0;
 
     if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma) {
         if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->fifo || (fdc->tfifo < 1)) {
@@ -2085,7 +2087,7 @@ fdc_getdata(fdc_t *fdc, int last)
             }
         } else {
             if (fdc->fifobufpos == 0) {
-                for (i = 0; i <= fdc->tfifo; i++) {
+                for (int i = 0; i <= fdc->tfifo; i++) {
                     data            = dma_channel_read(fdc->dma_ch);
                     fdc->fifobuf[i] = data;
 
@@ -2242,7 +2244,6 @@ fdc_remove(fdc_t *fdc)
 void
 fdc_reset(void *priv)
 {
-    int     i = 0;
     uint8_t default_rwc;
 
     fdc_t *fdc = (fdc_t *) priv;
@@ -2313,7 +2314,7 @@ fdc_reset(void *priv)
 
     current_drive = 0;
 
-    for (i = 0; i < FDD_NUM; i++)
+    for (uint8_t i = 0; i < FDD_NUM; i++)
         ui_sb_update_icon(SB_FLOPPY | i, 0);
 }
 

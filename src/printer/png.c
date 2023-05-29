@@ -110,7 +110,6 @@ png_write_gray(char *fn, int inv, uint8_t *pix, int16_t w, int16_t h)
     png_structp png  = NULL;
     png_infop   info = NULL;
     png_bytep   row;
-    int16_t     x, y;
     FILE       *fp;
 
     /* Create the image file. */
@@ -127,7 +126,7 @@ error:
         (&png, &info);
         if (fp != NULL)
             (void) fclose(fp);
-        return (0);
+        return 0;
     }
 
     /* Initialize PNG stuff. */
@@ -159,8 +158,8 @@ error:
     row = (png_bytep) malloc(PNGFUNC(get_rowbytes)(png, info));
 
     /* Process all scanlines in the image. */
-    for (y = 0; y < h; y++) {
-        for (x = 0; x < w; x++) {
+    for (int16_t y = 0; y < h; y++) {
+        for (int16_t x = 0; x < w; x++) {
             /* Copy the pixel data. */
             if (inv)
                 row[x] = 255 - pix[(y * w) + x];
@@ -185,7 +184,7 @@ error:
     /* Clean up. */
     (void) fclose(fp);
 
-    return (1);
+    return 1;
 }
 
 /* Write the given BITMAP-format image as an 8-bit RGBA PNG image file. */
