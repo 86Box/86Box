@@ -467,7 +467,11 @@ ohci_service_transfer_desc(usb_t* dev, usb_ed_t* endpoint_desc)
     if (!target)
         return 1;
 
+    actual_length = pktlen;
+
     device_result = target->device_process(target->priv, dev->ohci_usb_buf, &actual_length, pid_token, (endpoint_desc->Control & 0x780) >> 7, !(endpoint_desc->Control & (1 << 18)));
+
+    pclog("Device result: 0x%X\n", device_result);
 
     if ((actual_length == pktlen) || (pid_token == USB_PID_IN && (endpoint_desc->Control & (1 << 18)) && device_result == USB_ERROR_NO_ERROR)) {
         if (len == actual_length) {
