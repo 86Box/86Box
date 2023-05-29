@@ -552,15 +552,13 @@ network_close(void)
 void
 network_reset(void)
 {
-    int i = -1;
-
     ui_sb_update_icon(SB_NETWORK, 0);
 
 #if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
     network_dump_mutex = thread_create_mutex();
 #endif
 
-    for (i = 0; i < NET_CARD_MAX; i++) {
+    for (uint8_t i = 0; i < NET_CARD_MAX; i++) {
         if (!network_dev_available(i)) {
             continue;
         }
@@ -656,15 +654,13 @@ network_is_connected(int id)
 int
 network_dev_to_id(char *devname)
 {
-    int i = 0;
-
-    for (i = 0; i < network_ndev; i++) {
+    for (int i = 0; i < network_ndev; i++) {
         if (!strcmp((char *) network_devs[i].device, devname)) {
-            return (i);
+            return i;
         }
     }
 
-    return (-1);
+    return -1;
 }
 
 /* UI */
@@ -673,7 +669,7 @@ network_dev_available(int id)
 {
     int available = (net_cards_conf[id].device_num > 0);
 
-    if ((net_cards_conf[id].net_type == NET_TYPE_PCAP && (network_dev_to_id(net_cards_conf[id].host_dev_name) <= 0)))
+    if (net_cards_conf[id].net_type == NET_TYPE_PCAP && (network_dev_to_id(net_cards_conf[id].host_dev_name) <= 0))
         available = 0;
 
     // TODO: Handle VDE device
@@ -700,7 +696,7 @@ network_card_available(int card)
     if (net_cards[card])
         return (device_available(net_cards[card]));
 
-    return (1);
+    return 1;
 }
 
 /* UI */
@@ -715,7 +711,7 @@ int
 network_card_has_config(int card)
 {
     if (!net_cards[card])
-        return (0);
+        return 0;
 
     return (device_has_config(net_cards[card]) ? 1 : 0);
 }
@@ -735,7 +731,7 @@ network_card_get_from_internal_name(char *s)
 
     while (net_cards[c] != NULL) {
         if (!strcmp((char *) net_cards[c]->internal_name, s))
-            return (c);
+            return c;
         c++;
     }
 

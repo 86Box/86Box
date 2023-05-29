@@ -90,7 +90,8 @@ private:
     [[nodiscard]] const master_list_t &getMasterList() const;
     void                               setMasterList(const master_list_t &masterList);
 
-    device_index_list_t index_list, empty_device_index_list;
+    device_index_list_t index_list;
+    device_index_list_t empty_device_index_list;
 
     // Return a blank, initialized image history list
     master_list_t &blankImageHistory(master_list_t &initialized_master_list) const;

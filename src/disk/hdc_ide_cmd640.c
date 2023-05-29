@@ -102,7 +102,8 @@ cmd640_set_irq(int channel, void *priv)
 static void
 cmd640_ide_handlers(cmd640_t *dev)
 {
-    uint16_t main, side;
+    uint16_t main;
+    uint16_t side;
 
     ide_pri_disable();
 

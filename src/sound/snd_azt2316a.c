@@ -250,14 +250,14 @@ azt1605_create_config_word(void *p)
         case 0x240:
             temp += 1 << 0;
             break;
-            /*
-                    case 0x260: // TODO: INVALID?
-                        temp += 2 << 0;
-                        break;
-                    case 0x280: // TODO: INVALID?
-                        temp += 3 << 0;
-                        break;
-            */
+#if 0
+        case 0x260: // TODO: INVALID?
+            temp += 2 << 0;
+            break;
+        case 0x280: // TODO: INVALID?
+            temp += 3 << 0;
+            break;
+#endif
     }
 
     switch (azt2316a->cur_irq) {
@@ -414,14 +414,14 @@ azt2316a_create_config_word(void *p)
         case 0x240:
             temp += 1 << 0;
             break;
-            /*
-                    case 0x260: // TODO: INVALID?
-                        temp += 2 << 0;
-                        break;
-                    case 0x280: // TODO: INVALID?
-                        temp += 3 << 0;
-                        break;
-            */
+#if 0
+        case 0x260: // TODO: INVALID?
+            temp += 2 << 0;
+            break;
+        case 0x280: // TODO: INVALID?
+            temp += 3 << 0;
+            break;
+#endif
     }
 
     switch (azt2316a->cur_irq) {
@@ -440,13 +440,13 @@ azt2316a_create_config_word(void *p)
     }
 
     switch (azt2316a->cur_dma) {
-            /*
-                    // TODO: INVALID?
-                    case 0xFF: // -1
-                        // do nothing
-                        //temp += 0 << 6;
-                        break;
-            */
+#if 0
+        // TODO: INVALID?
+        case 0xFF: // -1
+            // do nothing
+            //temp += 0 << 6;
+            break;
+#endif
         case 0:
             temp += 1 << 6;
             break;
@@ -541,11 +541,11 @@ azt2316a_create_config_word(void *p)
         case 0:
             temp += 1 << 20;
             break;
-            /*
-                    case 1: // TODO: INVALID?
-                        temp += 2 << 20;
-                        break;
-            */
+#if 0
+        case 1: // TODO: INVALID?
+            temp += 2 << 20;
+            break;
+#endif
         case 3:
             temp += 3 << 20;
             break;
@@ -665,12 +665,12 @@ azt1605_config_write(uint16_t addr, uint8_t val, void *p)
                     azt2316a->cur_addr = 0x220;
                 else if (temp == 1)
                     azt2316a->cur_addr = 0x240;
-                /*
-                                else if (temp == 2)
-                                    azt2316a->cur_addr = 0x260; // TODO: INVALID
-                                else if (temp == 3)
-                                    azt2316a->cur_addr = 0x280; // TODO: INVALID
-                */
+#if 0
+                else if (temp == 2)
+                    azt2316a->cur_addr = 0x260; // TODO: INVALID
+                else if (temp == 3)
+                    azt2316a->cur_addr = 0x280; // TODO: INVALID
+#endif
                 if (val & 0x4)
                     azt2316a->cur_mpu401_addr = 0x330;
                 else
@@ -866,11 +866,10 @@ static void
 azt2316a_get_buffer(int32_t *buffer, int len, void *p)
 {
     azt2316a_t *azt2316a = (azt2316a_t *) p;
-    int         c;
 
     /* wss part */
     ad1848_update(&azt2316a->ad1848);
-    for (c = 0; c < len * 2; c++)
+    for (int c = 0; c < len * 2; c++)
         buffer[c] += (azt2316a->ad1848.buffer[c] / 2);
 
     azt2316a->ad1848.pos = 0;
@@ -1189,7 +1188,6 @@ azt_close(void *p)
     char       *fn       = NULL;
     FILE       *f;
     uint8_t     checksum = 0x7f;
-    int         i;
 
     if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
         fn = "azt1605.nvr";
@@ -1200,7 +1198,7 @@ azt_close(void *p)
     /* always save to eeprom (recover from bad values) */
     f = nvr_fopen(fn, "wb");
     if (f) {
-        for (i = 0; i < AZTECH_EEPROM_SIZE; i++)
+        for (uint8_t i = 0; i < AZTECH_EEPROM_SIZE; i++)
             checksum += azt2316a->sb->dsp.azt_eeprom[i];
         fwrite(azt2316a->sb->dsp.azt_eeprom, AZTECH_EEPROM_SIZE, 1, f);
 

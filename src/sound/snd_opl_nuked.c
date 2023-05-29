@@ -514,7 +514,8 @@ env_calc(slot_t *slot)
     uint8_t  rate_lo;
     uint8_t  reg_rate = 0;
     uint8_t  ks;
-    uint8_t  eg_shift, shift;
+    uint8_t  eg_shift;
+    uint8_t  shift;
     uint16_t eg_rout;
     int16_t  eg_inc;
     uint8_t  eg_off;
@@ -646,7 +647,8 @@ phase_generate(slot_t *slot)
 {
     uint16_t f_num;
     uint32_t basefreq;
-    uint8_t  rm_xor, n_bit;
+    uint8_t  rm_xor;
+    uint8_t  n_bit;
     uint32_t noise;
     uint16_t phase;
     int8_t   range;
@@ -891,7 +893,9 @@ channel_setup_alg(chan_t *ch)
 static void
 channel_update_rhythm(nuked_t *dev, uint8_t data)
 {
-    chan_t *ch6, *ch7, *ch8;
+    chan_t *ch6;
+    chan_t *ch7;
+    chan_t *ch8;
     uint8_t chnum;
 
     dev->rhy = data & 0x3f;
@@ -1076,9 +1080,8 @@ static void
 channel_set_4op(nuked_t *dev, uint8_t data)
 {
     uint8_t chnum;
-    uint8_t bit;
 
-    for (bit = 0; bit < 6; bit++) {
+    for (uint8_t bit = 0; bit < 6; bit++) {
         chnum = bit;
 
         if (bit >= 3)
@@ -1104,7 +1107,7 @@ nuked_write_addr(void *priv, uint16_t port, uint8_t val)
     if ((port & 0x0002) && ((addr == 0x0005) || dev->newm))
         addr |= 0x0100;
 
-    return (addr);
+    return addr;
 }
 
 void
@@ -1195,7 +1198,8 @@ void
 nuked_write_reg_buffered(void *priv, uint16_t reg, uint8_t val)
 {
     nuked_t *dev = (nuked_t *) priv;
-    uint64_t time1, time2;
+    uint64_t time1;
+    uint64_t time2;
 
     if (dev->wrbuf[dev->wrbuf_last].reg & 0x0200) {
         nuked_write_reg(dev, dev->wrbuf[dev->wrbuf_last].reg & 0x01ff,
@@ -1222,8 +1226,10 @@ void
 nuked_generate(void *priv, int32_t *bufp)
 {
     nuked_t *dev = (nuked_t *) priv;
-    int16_t  accm, shift = 0;
-    uint8_t  i, j;
+    int16_t  accm;
+    int16_t  shift = 0;
+    uint8_t  i;
+    uint8_t  j;
 
     bufp[1] = dev->mixbuff[1];
 
@@ -1352,9 +1358,7 @@ nuked_generate_resampled(nuked_t *dev, int32_t *bufp)
 void
 nuked_generate_stream(nuked_t *dev, int32_t *sndptr, uint32_t num)
 {
-    uint32_t i;
-
-    for (i = 0; i < num; i++) {
+    for (uint32_t i = 0; i < num; i++) {
         nuked_generate_resampled(dev, sndptr);
         sndptr += 2;
     }

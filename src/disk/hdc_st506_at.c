@@ -177,35 +177,35 @@ get_sector(mfm_t *mfm, off64_t *addr)
               diagnostics v2.07 will error with: ERROR 152 - SYSTEM BOARD. */
     if (drive->curcyl != mfm->cylinder) {
         st506_at_log("WD1003(%d) sector: wrong cylinder\n");
-        return (1);
+        return 1;
     }
 
     if (mfm->head > drive->cfg_hpc) {
         st506_at_log("WD1003(%d) get_sector: past end of configured heads\n",
                      mfm->drvsel);
-        return (1);
+        return 1;
     }
 
     if (mfm->sector >= drive->cfg_spt + 1) {
         st506_at_log("WD1003(%d) get_sector: past end of configured sectors\n",
                      mfm->drvsel);
-        return (1);
+        return 1;
     }
 
     /* We should check this in the SET_DRIVE_PARAMETERS command!  --FvK */
     if (mfm->head > drive->hpc) {
         st506_at_log("WD1003(%d) get_sector: past end of heads\n", mfm->drvsel);
-        return (1);
+        return 1;
     }
 
     if (mfm->sector >= drive->spt + 1) {
         st506_at_log("WD1003(%d) get_sector: past end of sectors\n", mfm->drvsel);
-        return (1);
+        return 1;
     }
 
     *addr = ((((off64_t) mfm->cylinder * drive->cfg_hpc) + mfm->head) * drive->cfg_spt) + (mfm->sector - 1);
 
-    return (0);
+    return 0;
 }
 
 /* Move to the next sector using CHS addressing. */
@@ -468,7 +468,7 @@ mfm_readw(uint16_t port, void *priv)
         }
     }
 
-    return (ret);
+    return ret;
 }
 
 static uint8_t
@@ -517,7 +517,7 @@ mfm_read(uint16_t port, void *priv)
 
     st506_at_log("WD1003 read(%04x) = %02x\n", port, ret);
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -689,14 +689,14 @@ static void *
 mfm_init(const device_t *info)
 {
     mfm_t *mfm;
-    int    c, d;
+    int    c;
 
     st506_at_log("WD1003: ISA MFM/RLL Fixed Disk Adapter initializing ...\n");
     mfm = malloc(sizeof(mfm_t));
     memset(mfm, 0x00, sizeof(mfm_t));
 
     c = 0;
-    for (d = 0; d < HDD_NUM; d++) {
+    for (uint8_t d = 0; d < HDD_NUM; d++) {
         if ((hdd[d].bus == HDD_BUS_MFM) && (hdd[d].mfm_channel < MFM_NUM)) {
             loadhd(mfm, hdd[d].mfm_channel, d, hdd[d].fn);
 
@@ -722,16 +722,15 @@ mfm_init(const device_t *info)
 
     ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
 
-    return (mfm);
+    return mfm;
 }
 
 static void
 mfm_close(void *priv)
 {
     mfm_t *mfm = (mfm_t *) priv;
-    int    d;
 
-    for (d = 0; d < 2; d++) {
+    for (uint8_t d = 0; d < 2; d++) {
         drive_t *drive = &mfm->drives[d];
 
         hdd_image_close(drive->hdd_num);

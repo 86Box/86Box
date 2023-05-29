@@ -75,7 +75,7 @@ ps1snd_read(uint16_t port, void *priv)
             ret = 0;
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -144,11 +144,10 @@ static void
 ps1snd_get_buffer(int32_t *buffer, int len, void *priv)
 {
     ps1snd_t *ps1snd = (ps1snd_t *) priv;
-    int       c;
 
     ps1snd_update(ps1snd);
 
-    for (c = 0; c < len * 2; c++)
+    for (int c = 0; c < len * 2; c++)
         buffer[c] += ps1snd->buffer[c >> 1];
 
     ps1snd->pos = 0;
@@ -175,7 +174,7 @@ ps1snd_init(const device_t *info)
 
     sound_add_handler(ps1snd_get_buffer, ps1snd);
 
-    return (ps1snd);
+    return ps1snd;
 }
 
 static void

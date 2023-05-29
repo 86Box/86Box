@@ -464,7 +464,7 @@ bit_dedrop(FDI *fdi)
 static void
 byte_add(FDI *fdi, uint8_t v)
 {
-    for (uint8_t i = 7; i >= 0; i--)
+    for (int8_t i = 7; i >= 0; i--)
         bit_add(fdi, v & (1 << i));
 }
 /* add one word */
@@ -478,7 +478,7 @@ word_add(FDI *fdi, uint16_t v)
 static void
 byte_mfm_add(FDI *fdi, uint8_t v)
 {
-    for (uint8_t i = 7; i >= 0; i--)
+    for (int8_t i = 7; i >= 0; i--)
         bit_mfm_add(fdi, v & (1 << i));
 }
 /* add multiple bytes and mfm encode them */
@@ -492,7 +492,7 @@ bytes_mfm_add(FDI *fdi, uint8_t v, int len)
 static void
 word_post_mfm_add(FDI *fdi, uint16_t v)
 {
-    for (uint8_t i = 14; i >= 0; i -= 2)
+    for (int8_t i = 14; i >= 0; i -= 2)
         bit_mfm_add(fdi, v & (1 << i));
 }
 

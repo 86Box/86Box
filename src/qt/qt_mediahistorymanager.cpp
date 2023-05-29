@@ -241,7 +241,7 @@ MediaHistoryManager::addImageToHistory(int index, ui::MediaType type, const QStr
     }
 
     // Pop any extras
-    if ((device_history.size() > MAX_PREV_IMAGES)) {
+    if (device_history.size() > MAX_PREV_IMAGES) {
         device_history.pop_back();
     }
 

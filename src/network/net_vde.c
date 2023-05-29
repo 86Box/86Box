@@ -253,7 +253,6 @@ void net_vde_error(char *errbuf, const char *message) {
 //-
 void *net_vde_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char *netdrv_errbuf) {
     struct vde_open_args vde_args;
-    int i;
 
     char *socket_name = (char *) priv;
 
@@ -288,7 +287,7 @@ void *net_vde_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, c
     }
     vde_log("VDE: Socket opened (%s).\n", socket_name);
 
-    for(i=0; i < VDE_PKT_BATCH; i++) {
+    for(uint8_t i = 0; i < VDE_PKT_BATCH; i++) {
         vde->pktv[i].data = calloc(1, NET_MAX_FRAME);
     }
     vde->pkt.data = calloc(1,NET_MAX_FRAME);

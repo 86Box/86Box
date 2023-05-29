@@ -473,7 +473,9 @@ static int
 elnkReceiveLocked(void *priv, uint8_t *src, int size)
 {
     threec501_t *dev     = (threec501_t *) priv;
-    int          is_padr = 0, is_bcast = 0, is_mcast = 0;
+    int          is_padr = 0;
+    int          is_bcast = 0;
+    int          is_mcast = 0;
     bool         fLoopback = dev->RcvCmd.adr_match == EL_BCTL_LOOPBACK;
 
     union {
@@ -644,7 +646,7 @@ elnkAsyncTransmit(threec501_t *dev)
         return;
     }
 
-    if (((dev->AuxCmd.buf_ctl != EL_BCTL_XMT_RCV) && (dev->AuxCmd.buf_ctl != EL_BCTL_LOOPBACK))) {
+    if ((dev->AuxCmd.buf_ctl != EL_BCTL_XMT_RCV) && (dev->AuxCmd.buf_ctl != EL_BCTL_LOOPBACK)) {
 #ifdef ENABLE_3COM501_LOG
         threec501_log("3Com501: Nope, not in xmit-then-receive or loopback state\n");
 #endif
@@ -656,8 +658,8 @@ elnkAsyncTransmit(threec501_t *dev)
      */
     do {
         /* Don't send anything when the link is down. */
-        if ((!elnkIsLinkUp(dev)
-             && dev->cLinkDownReported > ELNK_MAX_LINKDOWN_REPORTED))
+        if (!elnkIsLinkUp(dev)
+             && dev->cLinkDownReported > ELNK_MAX_LINKDOWN_REPORTED)
             break;
 
         bool const fLoopback = dev->AuxCmd.buf_ctl == EL_BCTL_LOOPBACK;
@@ -925,7 +927,7 @@ threec501_read(uint16_t addr, void *priv)
 #ifdef ENABLE_3COM501_LOG
     threec501_log("3Com501: read addr %x, value %x\n", addr & 0x0f, retval);
 #endif
-    return (retval);
+    return retval;
 }
 
 static uint8_t
@@ -1130,7 +1132,7 @@ threec501_nic_init(const device_t *info)
 
     timer_add(&dev->timer_restore, elnkR3TimerRestore, dev, 0);
 
-    return (dev);
+    return dev;
 }
 
 static void

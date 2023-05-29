@@ -249,10 +249,9 @@ static void
 fdc37m60x_reset(void *priv)
 {
     fdc37m60x_t *dev = (fdc37m60x_t *) priv;
-    uint8_t      i;
 
     memset(dev->regs, 0, sizeof(dev->regs));
-    for (i = 0; i < 10; i++)
+    for (uint8_t i = 0; i < 10; i++)
         memset(dev->device_regs[i], 0, sizeof(dev->device_regs[i]));
 
     dev->regs[0x20] = 0x47;

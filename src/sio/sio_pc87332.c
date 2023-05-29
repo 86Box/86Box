@@ -149,7 +149,8 @@ static void
 pc87332_write(uint16_t port, uint8_t val, void *priv)
 {
     pc87332_t *dev = (pc87332_t *) priv;
-    uint8_t    index, valxor;
+    uint8_t    index;
+    uint8_t    valxor;
 
     index = (port & 1) ? 0 : 1;
 
@@ -244,7 +245,8 @@ uint8_t
 pc87332_read(uint16_t port, void *priv)
 {
     pc87332_t *dev = (pc87332_t *) priv;
-    uint8_t    ret = 0xff, index;
+    uint8_t    ret = 0xff;
+    uint8_t    index;
 
     index = (port & 1) ? 0 : 1;
 
@@ -316,7 +318,7 @@ pc87332_init(const device_t *info)
     dev->fdc_on  = (info->local >> 16) & 0xff;
     pc87332_reset(dev);
 
-    if ((info->local & 0xff) == (0x01)) {
+    if ((info->local & 0xff) == 0x01) {
         io_sethandler(0x398, 0x0002,
                       pc87332_read, NULL, NULL, pc87332_write, NULL, NULL, dev);
     } else {

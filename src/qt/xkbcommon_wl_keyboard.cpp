@@ -48,7 +48,8 @@ static void
 xkbcommon_wl_set_keymap()
 {
     /* Grab keymap from the first seat with one. */
-    seat_t *seat, *tmp;
+    seat_t *seat;
+    seat_t *tmp;
     wl_list_for_each_safe(seat, tmp, &seats, link) {
         if (seat->keymap) {
             xkbcommon_init(seat->keymap);
@@ -180,7 +181,8 @@ display_global_remove(void *data, struct wl_registry *wl_registry, uint32_t id)
 {
     xkbcommon_close();
 
-    seat_t *seat, *tmp;
+    seat_t *seat;
+    seat_t *tmp;
     wl_list_for_each_safe(seat, tmp, &seats, link) {
         if (seat->wl_kbd) {
             if (seat->version >= WL_SEAT_RELEASE_SINCE_VERSION)

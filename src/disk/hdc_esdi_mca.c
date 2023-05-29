@@ -868,7 +868,7 @@ esdi_read(uint16_t port, void *priv)
             break;
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -987,7 +987,7 @@ esdi_readw(uint16_t port, void *priv)
     switch (port & 7) {
         case 0: /*Status Interface Register*/
             if (dev->status_pos >= dev->status_len)
-                return (0);
+                return 0;
             ret = dev->status_data[dev->status_pos++];
             if (dev->status_pos >= dev->status_len) {
                 dev->status &= ~STATUS_STATUS_OUT_FULL;
@@ -999,7 +999,7 @@ esdi_readw(uint16_t port, void *priv)
             fatal("esdi_readw port=%04x\n", port);
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -1117,7 +1117,8 @@ esdi_init(const device_t *info)
 {
     drive_t *drive;
     esdi_t  *dev;
-    int      c, i;
+    uint8_t  c;
+    uint8_t  i;
 
     dev = malloc(sizeof(esdi_t));
     if (dev == NULL)
@@ -1178,7 +1179,7 @@ esdi_init(const device_t *info)
     /* Set the reply timer. */
     timer_add(&dev->timer, esdi_callback, dev, 0);
 
-    return (dev);
+    return dev;
 }
 
 static void
@@ -1186,11 +1187,10 @@ esdi_close(void *priv)
 {
     esdi_t  *dev = (esdi_t *) priv;
     drive_t *drive;
-    int      d;
 
     dev->drives[0].present = dev->drives[1].present = 0;
 
-    for (d = 0; d < 2; d++) {
+    for (uint8_t d = 0; d < 2; d++) {
         drive = &dev->drives[d];
 
         hdd_image_close(drive->hdd_num);

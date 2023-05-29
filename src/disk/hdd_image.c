@@ -107,7 +107,7 @@ image_is_hdx(const char *s, int check_signature)
             if (fread(&signature, 1, 8, f) != 8)
                 fatal("image_is_hdx(): Error reading signature\n");
             fclose(f);
-            if (signature == 0xD778A82044445459ll)
+            if (signature == 0xD778A82044445459LL)
                 return 1;
             else
                 return 0;
@@ -143,7 +143,11 @@ hdd_image_calc_chs(uint32_t *c, uint32_t *h, uint32_t *s, uint32_t size)
     /* Calculate the geometry from size (in MB), using the algorithm provided in
     "Virtual Hard Disk Image Format Specification, Appendix: CHS Calculation" */
     uint64_t ts = ((uint64_t) size) << 11LL;
-    uint32_t spt, heads, cyl, cth;
+    uint32_t spt;
+    uint32_t heads;
+    uint32_t cyl;
+    uint32_t cth;
+
     if (ts > 65535 * 16 * 255)
         ts = 65535 * 16 * 255;
 
@@ -180,7 +184,7 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
     uint64_t target_size = (full_size + hdd_images[id].base) - ftello64(hdd_images[id].file);
 
     uint32_t size;
-    uint32_t t, i;
+    uint32_t t;
 
     t    = (uint32_t) (target_size >> 20);     /* Amount of 1 MB blocks. */
     size = (uint32_t) (target_size & 0xfffff); /* 1 MB mask. */
@@ -195,7 +199,7 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
 
     /* First, write all the 1 MB blocks. */
     if (t > 0) {
-        for (i = 0; i < t; i++) {
+        for (uint32_t i = 0; i < t; i++) {
             fseek(hdd_images[id].file, 0, SEEK_END);
             fwrite(empty_sector_1mb, 1, 1048576, hdd_images[id].file);
             pclog("#");
@@ -224,9 +228,7 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
 void
 hdd_image_init(void)
 {
-    int i;
-
-    for (i = 0; i < HDD_NUM; i++)
+    for (uint8_t i = 0; i < HDD_NUM; i++)
         memset(&hdd_images[i], 0, sizeof(hdd_image_t));
 }
 
@@ -235,10 +237,12 @@ hdd_image_load(int id)
 {
     uint32_t sector_size = 512;
     uint32_t zero        = 0;
-    uint64_t signature   = 0xD778A82044445459ll;
+    uint64_t signature   = 0xD778A82044445459LL;
     uint64_t full_size   = 0;
-    uint64_t spt = 0, hpc = 0, tracks = 0;
-    int      c, ret;
+    uint64_t spt         = 0;
+    uint64_t hpc         = 0;
+    uint64_t tracks      = 0;
+    int      ret;
     uint64_t s         = 0;
     char    *fn        = hdd[id].fn;
     int      is_hdx[2] = { 0, 0 };
@@ -306,7 +310,7 @@ hdd_image_load(int id)
                     fwrite(&(hdd[id].spt), 1, 4, hdd_images[id].file);
                     fwrite(&(hdd[id].hpc), 1, 4, hdd_images[id].file);
                     fwrite(&(hdd[id].tracks), 1, 4, hdd_images[id].file);
-                    for (c = 0; c < 0x3f8; c++)
+                    for (uint16_t c = 0; c < 0x3f8; c++)
                         fwrite(&zero, 1, 4, hdd_images[id].file);
                     hdd_images[id].type = HDD_IMAGE_HDI;
                 } else if (is_hdx[0]) {
@@ -560,8 +564,6 @@ hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
         int non_transferred_sectors = mvhd_format_sectors(hdd_images[id].vhd, sector, count);
         hdd_images[id].pos          = sector + count - non_transferred_sectors - 1;
     } else {
-        uint32_t i = 0;
-
         memset(empty_sector, 0, 512);
 
         if (fseeko64(hdd_images[id].file, ((uint64_t) (sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1) {
@@ -569,7 +571,7 @@ hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
             return;
         }
 
-        for (i = 0; i < count; i++) {
+        for (uint32_t i = 0; i < count; i++) {
             if (feof(hdd_images[id].file))
                 break;
 
