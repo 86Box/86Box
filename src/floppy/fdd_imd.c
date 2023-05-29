@@ -218,8 +218,6 @@ track_is_xdf(int drive, int side, int track)
 
         return 0;
     }
-
-    return 0;
 }
 
 static int

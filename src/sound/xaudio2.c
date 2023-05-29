@@ -221,10 +221,10 @@ givealbuffer_common(void *buf, IXAudio2SourceVoice *sourcevoice, size_t buflen)
     buffer.Flags          = 0;
     if (sound_is_float) {
         buffer.pAudioData = calloc(buflen, sizeof(float));
-        buffer.AudioBytes = (buflen) * sizeof(float);
+        buffer.AudioBytes = buflen * sizeof(float);
     } else {
         buffer.pAudioData = calloc(buflen, sizeof(int16_t));
-        buffer.AudioBytes = (buflen) * sizeof(int16_t);
+        buffer.AudioBytes = buflen * sizeof(int16_t);
     }
     if (buffer.pAudioData == NULL) {
         fatal("xaudio2: Out Of Memory!");

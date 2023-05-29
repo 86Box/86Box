@@ -48,7 +48,9 @@
 #    include <sys/mman.h>
 #endif
 
-// static QByteArray buf;
+#if 0
+static QByteArray buf;
+#endif
 extern QElapsedTimer elapsed_timer;
 extern MainWindow   *main_window;
 QElapsedTimer        elapsed_timer;
@@ -145,7 +147,9 @@ void
 do_stop(void)
 {
     cpu_thread_run = 0;
-    // main_window->close();
+#if 0
+    main_window->close();
+#endif
 }
 
 void
@@ -249,7 +253,7 @@ path_get_filename(char *s)
         c--;
     }
 
-    return (s);
+    return s;
 #else
     auto idx               = QByteArray::fromRawData(s, strlen(s)).lastIndexOf(QDir::separator().toLatin1());
     if (idx >= 0) {
@@ -353,7 +357,8 @@ void
 plat_pause(int p)
 {
     static wchar_t oldtitle[512];
-    wchar_t        title[1024], paused_msg[512];
+    wchar_t        title[1024];
+    wchar_t        paused_msg[512];
 
     if (p == dopause) {
 #ifdef Q_OS_WINDOWS

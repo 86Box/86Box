@@ -416,7 +416,10 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char 
     }
 
     /* Set up port forwarding. */
-    int  udp, external, internal, i = 0;
+    int  udp;
+    int  i = 0;
+    int  external;
+    int  internal;
     char category[32];
     snprintf(category, sizeof(category), "SLiRP Port Forwarding #%d", card->card_num + 1);
     char key[20];

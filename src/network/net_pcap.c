@@ -357,7 +357,7 @@ int
 net_pcap_prepare(netdev_t *list)
 {
     char       errbuf[PCAP_ERRBUF_SIZE];
-    pcap_if_t *devlist, *dev;
+    pcap_if_t *devlist;
     int        i = 0;
 
     /* Try loading the DLL. */
@@ -379,7 +379,7 @@ net_pcap_prepare(netdev_t *list)
         return (-1);
     }
 
-    for (dev = devlist; dev != NULL; dev = dev->next) {
+    for (pcap_if_t *dev = devlist; dev != NULL; dev = dev->next) {
         if (i >= (NET_HOST_INTF_MAX - 1))
             break;
 
@@ -405,7 +405,7 @@ net_pcap_prepare(netdev_t *list)
     /* Release the memory. */
     f_pcap_freealldevs(devlist);
 
-    return (i);
+    return i;
 }
 
 /*

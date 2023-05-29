@@ -59,7 +59,8 @@ parse_valuators(const double        *input_values,
                 const unsigned char *mask, int mask_len,
                 double *output_values, int output_values_len)
 {
-    int i = 0, z = 0;
+    int i = 0;
+    int z = 0;
     int top = mask_len * 8;
     if (top > 16)
         top = 16;
@@ -260,7 +261,10 @@ xinput2_init()
         qWarning() << "Cannot open current X11 display";
         return;
     }
-    auto event = 0, err = 0, minor = 1, major = 2;
+    auto event = 0;
+    auto err   = 0;
+    auto minor = 1;
+    auto major = 2;
     if (XQueryExtension(disp, "XInputExtension", &xi2opcode, &event, &err)) {
         if (XIQueryVersion(disp, &major, &minor) == Success) {
             procThread = QThread::create(xinput2_proc);

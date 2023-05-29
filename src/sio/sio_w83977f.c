@@ -96,7 +96,8 @@ w83977f_fdc_handler(w83977f_t *dev)
 static void
 w83977f_lpt_handler(w83977f_t *dev)
 {
-    uint16_t io_mask, io_base = (dev->dev_regs[1][0x30] << 8) | dev->dev_regs[1][0x31];
+    uint16_t io_mask;
+    uint16_t io_base = (dev->dev_regs[1][0x30] << 8) | dev->dev_regs[1][0x31];
     int      io_len = get_lpt_length(dev);
     io_base &= (0xff8 | io_len);
     io_mask = 0xffc;
@@ -362,10 +363,8 @@ w83977f_read(uint16_t port, void *priv)
 static void
 w83977f_reset(w83977f_t *dev)
 {
-    int i;
-
     memset(dev->regs, 0, 48);
-    for (i = 0; i < 256; i++)
+    for (uint16_t i = 0; i < 256; i++)
         memset(dev->dev_regs[i], 0, 208);
 
     if (dev->type < 2) {

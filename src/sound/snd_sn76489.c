@@ -24,10 +24,9 @@ void
 sn76489_update(sn76489_t *sn76489)
 {
     for (; sn76489->pos < sound_pos_global; sn76489->pos++) {
-        int     c;
         int16_t result = 0;
 
-        for (c = 1; c < 4; c++) {
+        for (uint8_t c = 1; c < 4; c++) {
             if (sn76489->latch[c] > 256)
                 result += (int16_t) (volslog[sn76489->vol[c]] * sn76489->stat[c]);
             else
@@ -64,12 +63,10 @@ sn76489_get_buffer(int32_t *buffer, int len, void *p)
 {
     sn76489_t *sn76489 = (sn76489_t *) p;
 
-    int c;
-
     sn76489_update(sn76489);
 
     if (!sn76489_mute) {
-        for (c = 0; c < len * 2; c++)
+        for (int c = 0; c < len * 2; c++)
             buffer[c] += sn76489->buffer[c >> 1];
     }
 

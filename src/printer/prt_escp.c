@@ -787,7 +787,6 @@ process_char(escp_t *dev, uint8_t ch)
             case 0x2e:
                 fatal("ESC/P: Print Raster Graphics (2E) command is not implemented.\nTerminating the emulator to avoid endless PNG generation.\n");
                 exit(-1);
-                return 1;
 
             default:
                 escp_log("ESC/P: Unknown command ESC %c (0x%02x). Unable to skip parameters.\n",
@@ -1561,11 +1560,9 @@ process_char(escp_t *dev, uint8_t ch)
             return 1;
 
         default:
+            /* This is a printable character -> print it. */
             return 0;
     }
-
-    /* This is a printable character -> print it. */
-    return 0;
 }
 
 static void

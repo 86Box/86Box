@@ -172,16 +172,19 @@ get_sector(esdi_t *esdi, off64_t *addr)
     drive_t *drive   = &esdi->drives[esdi->drive_sel];
     int      heads   = drive->cfg_hpc;
     int      sectors = drive->cfg_spt;
-    int      c, h, s, sector;
+    int      c;
+    int      h;
+    int      s;
+    int      sector;
 
     if (esdi->head > heads) {
         esdi_at_log("esdi_get_sector: past end of configured heads\n");
-        return (1);
+        return 1;
     }
 
     if (esdi->sector >= sectors + 1) {
         esdi_at_log("esdi_get_sector: past end of configured sectors\n");
-        return (1);
+        return 1;
     }
 
     sector = esdi->sector ? esdi->sector : 1;
@@ -203,7 +206,7 @@ get_sector(esdi_t *esdi, off64_t *addr)
         *addr = ((((off64_t) c * drive->real_hpc) + h) * drive->real_spt) + s;
     }
 
-    return (0);
+    return 0;
 }
 
 /* Move to the next sector using CHS addressing. */
@@ -253,7 +256,8 @@ static void
 esdi_write(uint16_t port, uint8_t val, void *priv)
 {
     esdi_t *esdi = (esdi_t *) priv;
-    double  seek_time, xfer_time;
+    double  seek_time;
+    double  xfer_time;
     off64_t addr;
 
     esdi_at_log("WD1007 write(%04x, %02x)\n", port, val);
@@ -452,7 +456,7 @@ esdi_readw(uint16_t port, void *priv)
         }
     }
 
-    return (temp);
+    return temp;
 }
 
 static uint8_t
@@ -498,7 +502,7 @@ esdi_read(uint16_t port, void *priv)
 
     esdi_at_log("WD1007 read(%04x) = %02x\n", port, temp);
 
-    return (temp);
+    return temp;
 }
 
 static void
@@ -820,13 +824,13 @@ esdi_rom_write(uint32_t addr, uint8_t val, void *p)
 static void *
 wd1007vse1_init(const device_t *info)
 {
-    int c, d;
+    int c;
 
     esdi_t *esdi = malloc(sizeof(esdi_t));
     memset(esdi, 0x00, sizeof(esdi_t));
 
     c = 0;
-    for (d = 0; d < HDD_NUM; d++) {
+    for (uint8_t d = 0; d < HDD_NUM; d++) {
         if ((hdd[d].bus == HDD_BUS_ESDI) && (hdd[d].esdi_channel < ESDI_NUM)) {
             loadhd(esdi, hdd[d].esdi_channel, d, hdd[d].fn);
 
@@ -858,7 +862,7 @@ wd1007vse1_init(const device_t *info)
 
     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
 
-    return (esdi);
+    return esdi;
 }
 
 static void
@@ -866,9 +870,8 @@ wd1007vse1_close(void *priv)
 {
     esdi_t  *esdi = (esdi_t *) priv;
     drive_t *drive;
-    int      d;
 
-    for (d = 0; d < 2; d++) {
+    for (uint8_t d = 0; d < 2; d++) {
         drive = &esdi->drives[d];
 
         hdd_image_close(drive->hdd_num);

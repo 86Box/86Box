@@ -238,9 +238,9 @@ completion_code(uint8_t *sense)
         case ASC_MEDIUM_NOT_PRESENT:
             ret = 0xaa;
             break;
-    };
+    }
 
-    return (ret);
+    return ret;
 }
 
 static uint8_t
@@ -256,7 +256,7 @@ x54x_bios_scsi_command(scsi_device_t *dev, uint8_t *cdb, uint8_t *buf, int len, 
     if (len > 0) {
         if (dev->buffer_length == -1) {
             fatal("Buffer length -1 when doing SCSI DMA\n");
-            return (0xff);
+            return 0xff;
         }
 
         if (dev->phase == SCSI_PHASE_DATA_IN) {
@@ -292,7 +292,7 @@ x54x_bios_read_capacity(scsi_device_t *sd, uint8_t *buf, int transfer_size)
 
     free(cdb);
 
-    return (ret);
+    return ret;
 }
 
 static uint8_t
@@ -311,7 +311,7 @@ x54x_bios_inquiry(scsi_device_t *sd, uint8_t *buf, int transfer_size)
 
     free(cdb);
 
-    return (ret);
+    return ret;
 }
 
 static uint8_t
@@ -327,7 +327,7 @@ x54x_bios_command_08(scsi_device_t *sd, uint8_t *buffer, int transfer_size)
     ret   = x54x_bios_read_capacity(sd, rcbuf, transfer_size);
     if (ret) {
         free(rcbuf);
-        return (ret);
+        return ret;
     }
 
     memset(buffer, 0x00, 6);
@@ -340,15 +340,15 @@ x54x_bios_command_08(scsi_device_t *sd, uint8_t *buffer, int transfer_size)
 
     free(rcbuf);
 
-    return (0);
+    return 0;
 }
 
 static int
 x54x_bios_command_15(scsi_device_t *sd, uint8_t *buffer, int transfer_size)
 {
-    uint8_t *inqbuf, *rcbuf;
+    uint8_t *inqbuf;
+    uint8_t *rcbuf;
     uint8_t  ret;
-    int      i;
 
     memset(buffer, 0x00, 6);
 
@@ -356,7 +356,7 @@ x54x_bios_command_15(scsi_device_t *sd, uint8_t *buffer, int transfer_size)
     ret    = x54x_bios_inquiry(sd, inqbuf, transfer_size);
     if (ret) {
         free(inqbuf);
-        return (ret);
+        return ret;
     }
 
     buffer[4] = inqbuf[0];
@@ -367,10 +367,10 @@ x54x_bios_command_15(scsi_device_t *sd, uint8_t *buffer, int transfer_size)
     if (ret) {
         free(rcbuf);
         free(inqbuf);
-        return (ret);
+        return ret;
     }
 
-    for (i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 4; i++)
         buffer[i] = rcbuf[i];
 
     x54x_log("BIOS Command 0x15: %02X %02X %02X %02X %02X %02X\n",
@@ -379,7 +379,7 @@ x54x_bios_command_15(scsi_device_t *sd, uint8_t *buffer, int transfer_size)
     free(rcbuf);
     free(inqbuf);
 
-    return (0);
+    return 0;
 }
 
 /* This returns the completion code. */
@@ -428,7 +428,7 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 
             if ((dev->type == SCSI_REMOVABLE_CDROM) && !(x54x->flags & X54X_CDROM_BOOT)) {
                 x54x_log("BIOS Target ID %i is CD-ROM on unsupported BIOS\n", cmd->id);
-                return (0x80);
+                return 0x80;
             } else {
                 dma_address = ADDR_TO_U32(cmd->dma_address);
 
@@ -458,7 +458,7 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
                     dma_bm_write(dma_address, scsi_device_sense(dev), 14, x54x->transfer_size);
                 }
 
-                return (0);
+                return 0;
                 break;
 
             case 0x02: /* Read Desired Sectors to Memory */
@@ -533,7 +533,7 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
         }
 
     x54x_log("BIOS Request %02X complete: %02X\n", cmd->command, ret);
-    return (ret);
+    return ret;
 }
 
 static void
@@ -692,10 +692,11 @@ x54x_rd_sge(x54x_t *dev, int Is24bit, uint32_t Address, SGE32 *SG)
 static int
 x54x_get_length(x54x_t *dev, Req_t *req, int Is24bit)
 {
-    uint32_t DataPointer, DataLength;
+    uint32_t DataPointer;
+    uint32_t DataLength;
     uint32_t SGEntryLength = (Is24bit ? sizeof(SGE) : sizeof(SGE32));
     SGE32    SGBuffer;
-    uint32_t DataToTransfer = 0, i = 0;
+    uint32_t DataToTransfer = 0;
 
     if (Is24bit) {
         DataPointer = ADDR_TO_U32(req->CmdBlock.old.DataPointer);
@@ -709,23 +710,23 @@ x54x_get_length(x54x_t *dev, Req_t *req, int Is24bit)
              DataLength, DataPointer);
 
     if (!DataLength)
-        return (0);
+        return 0;
 
     if (req->CmdBlock.common.ControlByte != 0x03) {
         if (req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND || req->CmdBlock.common.Opcode == SCATTER_GATHER_COMMAND_RES) {
-            for (i = 0; i < DataLength; i += SGEntryLength) {
+            for (uint32_t i = 0; i < DataLength; i += SGEntryLength) {
                 x54x_rd_sge(dev, Is24bit, DataPointer + i, &SGBuffer);
 
                 DataToTransfer += SGBuffer.Segment;
             }
-            return (DataToTransfer);
+            return DataToTransfer;
         } else if (req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND || req->CmdBlock.common.Opcode == SCSI_INITIATOR_COMMAND_RES) {
-            return (DataLength);
+            return DataLength;
         } else {
-            return (0);
+            return 0;
         }
     } else {
-        return (0);
+        return 0;
     }
 }
 
@@ -763,9 +764,10 @@ x54x_set_residue(x54x_t *dev, Req_t *req, int32_t TransferLength)
 static void
 x54x_buf_dma_transfer(x54x_t *dev, Req_t *req, int Is24bit, int TransferLength, int dir)
 {
-    uint32_t DataPointer, DataLength;
+    uint32_t DataPointer;
+    uint32_t DataLength;
     uint32_t SGEntryLength = (Is24bit ? sizeof(SGE) : sizeof(SGE32));
-    uint32_t Address, i;
+    uint32_t Address;
     int32_t  BufLen         = scsi_devices[dev->bus][req->TargetID].buffer_length;
     uint8_t  read_from_host = (dir && ((req->CmdBlock.common.ControlByte == CCB_DATA_XFER_OUT) || (req->CmdBlock.common.ControlByte == 0x00)));
     uint8_t  write_to_host  = (!dir && ((req->CmdBlock.common.ControlByte == CCB_DATA_XFER_IN) || (req->CmdBlock.common.ControlByte == 0x00)));
@@ -789,7 +791,7 @@ x54x_buf_dma_transfer(x54x_t *dev, Req_t *req, int Is24bit, int TransferLength, 
             /* If the control byte is 0x00, it means that the transfer direction is set up by the SCSI command without
                checking its length, so do this procedure for both no read/write commands. */
             if ((DataLength > 0) && (req->CmdBlock.common.ControlByte < 0x03)) {
-                for (i = 0; i < DataLength; i += SGEntryLength) {
+                for (uint32_t i = 0; i < DataLength; i += SGEntryLength) {
                     x54x_rd_sge(dev, Is24bit, DataPointer + i, &SGBuffer);
 
                     Address        = SGBuffer.SegmentPointer;
@@ -838,7 +840,7 @@ ConvertSenseLength(uint8_t RequestSenseLength)
 
     x54x_log("Request Sense length %i\n", RequestSenseLength);
 
-    return (RequestSenseLength);
+    return RequestSenseLength;
 }
 
 uint32_t
@@ -852,7 +854,7 @@ SenseBufferPointer(Req_t *req)
         SenseBufferAddress = req->CmdBlock.new.SensePointer;
     }
 
-    return (SenseBufferAddress);
+    return SenseBufferAddress;
 }
 
 static void
@@ -888,7 +890,7 @@ x54x_scsi_cmd(x54x_t *dev)
 {
     Req_t         *req   = &dev->Req;
     uint8_t        bit24 = !!req->Is24bit;
-    uint32_t       i, target_cdb_len = 12;
+    uint32_t       target_cdb_len = 12;
     scsi_device_t *sd;
 
     sd = &scsi_devices[dev->bus][req->TargetID];
@@ -904,7 +906,7 @@ x54x_scsi_cmd(x54x_t *dev)
     x54x_log("SCSI command being executed on ID %i, LUN %i\n", req->TargetID, req->LUN);
 
     x54x_log("SCSI CDB[0]=0x%02X\n", req->CmdBlock.common.Cdb[0]);
-    for (i = 1; i < req->CmdBlock.common.CdbLength; i++)
+    for (uint8_t i = 1; i < req->CmdBlock.common.CdbLength; i++)
         x54x_log("SCSI CDB[%i]=%i\n", i, req->CmdBlock.common.Cdb[i]);
 
     memset(dev->temp_cdb, 0x00, target_cdb_len);
@@ -1036,7 +1038,8 @@ static void
 x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 {
     Req_t         *req = &dev->Req;
-    uint8_t        id, lun;
+    uint8_t        id;
+    uint8_t        lun;
     scsi_device_t *sd;
 
     /* Fetch data from the Command Control Block. */
@@ -1141,7 +1144,7 @@ x54x_mbo(x54x_t *dev, Mailbox32_t *Mailbox32)
         x54x_add_to_period(dev, sizeof(Mailbox32_t));
     }
 
-    return (Outgoing);
+    return Outgoing;
 }
 
 uint8_t
@@ -1169,10 +1172,10 @@ x54x_mbo_process(x54x_t *dev)
         else
             dev->MailboxReq--;
 
-        return (1);
+        return 1;
     }
 
-    return (0);
+    return 0;
 }
 
 static void
@@ -1218,7 +1221,8 @@ x54x_cmd_callback(void *priv)
     double  period;
     x54x_t *dev = (x54x_t *) priv;
 
-    int mailboxes_present, bios_mailboxes_present;
+    int mailboxes_present;
+    int bios_mailboxes_present;
 
     mailboxes_present      = (!(dev->Status & STAT_INIT) && dev->MailboxInit && dev->MailboxReq);
     bios_mailboxes_present = (dev->ven_callback && dev->BIOSMailboxInit && dev->BIOSMailboxReq);
@@ -1354,7 +1358,7 @@ x54x_in(uint16_t port, void *priv)
         x54x_log("x54x_in(): %04X, %02X\n", port, ret);
 #endif
 
-    return (ret);
+    return ret;
 }
 
 static uint16_t
@@ -1398,8 +1402,6 @@ x54x_reset_poll(void *priv)
 static void
 x54x_reset(x54x_t *dev)
 {
-    int i;
-
     clear_irq(dev);
     if (dev->flags & X54X_INT_GEOM_WRITABLE)
         dev->Geometry = 0x90;
@@ -1421,7 +1423,7 @@ x54x_reset(x54x_t *dev)
     dev->MailboxOutPosCur     = 0;
 
     /* Reset all devices on controller reset. */
-    for (i = 0; i < 16; i++)
+    for (uint8_t i = 0; i < 16; i++)
         scsi_device_reset(&scsi_devices[dev->bus][i]);
 
     if (dev->ven_reset)
@@ -1878,7 +1880,7 @@ x54x_init(const device_t *info)
     /* Allocate control block and set up basic stuff. */
     dev = malloc(sizeof(x54x_t));
     if (dev == NULL)
-        return (dev);
+        return dev;
     memset(dev, 0x00, sizeof(x54x_t));
     dev->type = info->local;
 
@@ -1895,7 +1897,7 @@ x54x_init(const device_t *info)
     else
         dev->transfer_size = 2;
 
-    return (dev);
+    return dev;
 }
 
 void

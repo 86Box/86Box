@@ -106,7 +106,8 @@ joystick_get_axis(int joystick_nr, int mapping)
 void
 joystick_process()
 {
-    int c, d;
+    int c;
+    int d;
 
     if (!joystick_type)
         return;
