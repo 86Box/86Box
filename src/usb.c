@@ -675,13 +675,17 @@ static void
 ohci_soft_reset(usb_t* dev)
 {
     uint32_t old_HcControl = (dev->ohci_mmio[OHCI_HcControl].l & 0x100) | 0xc0;
-    memset(dev->ohci_mmio, 0x00, 4096);
     dev->ohci_mmio[OHCI_HcRevision].b[0] = 0x10;
     dev->ohci_mmio[OHCI_HcRevision].b[1] = 0x01;
     dev->ohci_mmio[OHCI_HcFmInterval].l = 0x27782edf; /* FrameInterval = 11999, FSLargestDataPacket = 10104 */
     dev->ohci_mmio[OHCI_HcLSThreshold].l = 0x628;
+    dev->ohci_mmio[OHCI_HcInterruptStatus].l = 0;
     dev->ohci_mmio[OHCI_HcInterruptEnable].l |= (1 << 31);
     dev->ohci_mmio[OHCI_HcControl].l = old_HcControl;
+    dev->ohci_mmio[OHCI_HcBulkHeadED].l = dev->ohci_mmio[OHCI_HcBulkCurrentED].l = 0;
+    dev->ohci_mmio[OHCI_HcControlHeadED].l = dev->ohci_mmio[OHCI_HcControlCurrentED].l = 0;
+    dev->ohci_mmio[OHCI_HcPeriodCurrentED].l = 0;
+    dev->ohci_mmio[OHCI_HcBulkHeadED].l = dev->ohci_mmio[OHCI_HcDoneHead].l = 0;
     dev->ohci_interrupt_counter = 7;
     ohci_update_irq(dev);
 }
@@ -736,6 +740,9 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
             if ((val & 0xc0) != 0x80) {
                 timer_disable(&dev->ohci_frame_timer);
                 dev->ohci_mmio[OHCI_HcFmRemaining].w[0] = 0;
+            }
+            if ((val & 0xc0) == 0xc0) {
+                dev->ohci_mmio[OHCI_HcInterruptStatus].l &= ~OHCI_HcInterruptEnable_SF;
             }
             break;
         case OHCI_aHcCommandStatus:
