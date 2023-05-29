@@ -81,6 +81,8 @@ typedef struct usb_t
     uint8_t       ohci_usb_buf[4096];
     uint8_t       ohci_initial_start;
 
+    ohci_mmio_t* ohci_rhports;
+
     usb_params_t* usb_params;
 } usb_t;
 

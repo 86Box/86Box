@@ -545,10 +545,10 @@ ohci_service_endpoint_desc(usb_t* dev, uint32_t head)
 
         next = endpoint_desc.NextED & ~0xFu;
 
-        pclog("endpoint_desc.Control = 0x%X\n", endpoint_desc.Control);
+        //pclog("endpoint_desc.Control = 0x%X\n", endpoint_desc.Control);
 
         if ((endpoint_desc.Control & (1 << 14)) || (endpoint_desc.HeadP & (1 << 0)))
-            pclog("Skipping endpoint 0x%X to 0x%X\n", cur, next);
+            //pclog("Skipping endpoint 0x%X to 0x%X\n", cur, next);
             continue;
 
         if (endpoint_desc.Control & 0x8000) {
@@ -681,35 +681,184 @@ ohci_soft_reset(usb_t* dev)
     dev->ohci_mmio[OHCI_HcLSThreshold].l = 0x628;
     dev->ohci_mmio[OHCI_HcInterruptStatus].l = 0;
     dev->ohci_mmio[OHCI_HcInterruptEnable].l |= (1 << 31);
+    dev->ohci_mmio[OHCI_HcInterruptDisable].l = 0;
     dev->ohci_mmio[OHCI_HcControl].l = old_HcControl;
     dev->ohci_mmio[OHCI_HcBulkHeadED].l = dev->ohci_mmio[OHCI_HcBulkCurrentED].l = 0;
     dev->ohci_mmio[OHCI_HcControlHeadED].l = dev->ohci_mmio[OHCI_HcControlCurrentED].l = 0;
     dev->ohci_mmio[OHCI_HcPeriodCurrentED].l = 0;
+    dev->ohci_mmio[OHCI_HcHCCA].l = 0;
     dev->ohci_mmio[OHCI_HcBulkHeadED].l = dev->ohci_mmio[OHCI_HcDoneHead].l = 0;
+    dev->ohci_mmio[OHCI_HcCommandStatus].l = 0;
     dev->ohci_interrupt_counter = 7;
+    timer_disable(&dev->ohci_frame_timer);
     ohci_update_irq(dev);
 }
 
 static void
 ohci_rhport_reset(usb_t* dev)
 {
-    dev->ohci_mmio[OHCI_HcRhPortStatus1].b[2] = dev->ohci_mmio[OHCI_HcRhPortStatus2].b[2] = 0x16;
-    if (dev->ohci_devices[0]) {
-        dev->ohci_mmio[OHCI_HcRhPortStatus1].b[2] |= 0x1;
-        dev->ohci_mmio[OHCI_HcRhPortStatus1].b[0] |= 0x1;
-    }
-    if (dev->ohci_devices[1]) {
-        dev->ohci_mmio[OHCI_HcRhPortStatus2].b[2] |= 0x1;
-        dev->ohci_mmio[OHCI_HcRhPortStatus2].b[0] |= 0x1;
-    }
+    dev->ohci_mmio[OHCI_HcRhPortStatus1].l = dev->ohci_mmio[OHCI_HcRhPortStatus2].l = 0;
+    
     dev->ohci_mmio[OHCI_HcRhDescriptorA].b[0] = 0x02;
     dev->ohci_mmio[OHCI_HcRhDescriptorA].b[1] = 0x02;
+    dev->ohci_mmio[OHCI_HcRhDescriptorB].l = 0x00;
+    timer_disable(&dev->ohci_frame_timer);
     for (int i = 0; i < 2; i++) {
         if (dev->ohci_devices[i]) {
+            usb_device_t* usbdev = dev->ohci_devices[i];
+            usb_detach_device(dev, i | (USB_BUS_OHCI << 16));
+            usb_attach_device(dev, usbdev, USB_BUS_OHCI);
             dev->ohci_devices[i]->device_reset(dev->ohci_devices[i]->priv);
         }
     }
 }
+
+#define OHCI_PORT_CCS         (1 << 0)
+#define OHCI_PORT_PES         (1 << 1)
+#define OHCI_PORT_PSS         (1 << 2)
+#define OHCI_PORT_POCI        (1 << 3)
+#define OHCI_PORT_PRS         (1 << 4)
+#define OHCI_PORT_PPS         (1 << 8)
+#define OHCI_PORT_LSDA        (1 << 9)
+#define OHCI_PORT_CSC         (1 << 16)
+#define OHCI_PORT_PESC        (1 << 17)
+#define OHCI_PORT_PSSC        (1 << 18)
+#define OHCI_PORT_OCIC        (1 << 19)
+#define OHCI_PORT_PRSC        (1 << 20)
+#define OHCI_PORT_WTC         (OHCI_PORT_CSC | OHCI_PORT_PESC | \
+                               OHCI_PORT_PSSC | OHCI_PORT_OCIC | \
+                               OHCI_PORT_PRSC)
+
+static void ohci_port_power(usb_t *dev, int i, int p)
+{
+    if (p) {
+        dev->ohci_rhports[i].l |= OHCI_PORT_PPS;
+    } else {
+        dev->ohci_rhports[i].l &= ~(OHCI_PORT_PPS | OHCI_PORT_CCS |
+                                  OHCI_PORT_PSS | OHCI_PORT_PRS);
+    }
+}
+
+/*
+ * Sets a flag in a port status reg but only set it if the port is connected.
+ * If not set ConnectStatusChange flag. If flag is enabled return 1.
+ */
+static int ohci_port_set_if_connected(usb_t *dev, int i, uint32_t val)
+{
+    int ret = 1;
+
+    /* writing a 0 has no effect */
+    if (val == 0) {
+        return 0;
+    }
+    /* If CurrentConnectStatus is cleared we set ConnectStatusChange */
+    if (!(dev->ohci_rhports[i].l & OHCI_PORT_CCS)) {
+        dev->ohci_rhports[i].l |= OHCI_PORT_CSC;
+        #if 0
+        if (ohci->rhstatus & OHCI_RHS_DRWE) {
+            /* CSC is a wakeup event */
+            if (ohci_resume(ohci)) {
+                ohci_set_interrupt(ohci, OHCI_INTR_RD);
+            }
+        }
+        #endif
+        return 0;
+    }
+
+    if (dev->ohci_rhports[i].l & val) {
+        ret = 0;
+    }
+    /* set the bit */
+    dev->ohci_rhports[i].l |= val;
+
+    return ret;
+}
+
+
+static void ohci_port_set_status(usb_t *dev, int portnum, uint32_t val)
+{
+    uint32_t old_state;
+    ohci_mmio_t *port;
+
+    port = &dev->ohci_rhports[portnum];
+    old_state = port->l;
+
+    /* Write to clear CSC, PESC, PSSC, OCIC, PRSC */
+    if (val & OHCI_PORT_WTC) {
+        port->l &= ~(val & OHCI_PORT_WTC);
+    }
+    if (val & OHCI_PORT_CCS) {
+        port->l &= ~OHCI_PORT_PES;
+    }
+    ohci_port_set_if_connected(dev, portnum, val & OHCI_PORT_PES);
+
+    if (ohci_port_set_if_connected(dev, portnum, val & OHCI_PORT_PSS)) {
+    }
+
+    if (ohci_port_set_if_connected(dev, portnum, val & OHCI_PORT_PRS)) {
+        dev->ohci_devices[portnum]->device_reset(dev->ohci_devices[portnum]->priv);
+        port->l &= ~OHCI_PORT_PRS;
+        /* ??? Should this also set OHCI_PORT_PESC. */
+        port->l |= OHCI_PORT_PES | OHCI_PORT_PRSC | OHCI_PORT_PESC;
+    }
+
+    /* Invert order here to ensure in ambiguous case, device is powered up. */
+    if (val & OHCI_PORT_LSDA) {
+        ohci_port_power(dev, portnum, 0);
+    }
+    if (val & OHCI_PORT_PPS) {
+        ohci_port_power(dev, portnum, 1);
+    }
+    if (old_state != port->l) {
+        ohci_set_interrupt(dev, OHCI_HcInterruptEnable_RHSC);
+    }
+}
+
+#define OHCI_RHS_LPS          (1U << 0)
+#define OHCI_RHS_OCI          (1U << 1)
+#define OHCI_RHS_DRWE         (1U << 15)
+#define OHCI_RHS_LPSC         (1U << 16)
+#define OHCI_RHS_OCIC         (1U << 17)
+#define OHCI_RHS_CRWE         (1U << 31)
+
+/* Set root hub status */
+static void ohci_set_hub_status(usb_t *dev, uint32_t val)
+{
+    uint32_t old_state;
+
+    old_state = dev->ohci_mmio[OHCI_HcRhStatus].l;
+
+    /* write 1 to clear OCIC */
+    if (val & OHCI_RHS_OCIC) {
+        dev->ohci_mmio[OHCI_HcRhStatus].l &= ~OHCI_RHS_OCIC;
+    }
+    if (val & OHCI_RHS_LPS) {
+        int i;
+
+        for (i = 0; i < 2; i++) {
+            ohci_port_power(dev, i, 0);
+        }
+    }
+
+    if (val & OHCI_RHS_LPSC) {
+        int i;
+
+        for (i = 0; i < 2; i++) {
+            ohci_port_power(dev, i, 1);
+        }
+    }
+
+    if (val & OHCI_RHS_DRWE) {
+        dev->ohci_mmio[OHCI_HcRhStatus].l |= OHCI_RHS_DRWE;
+    }
+    if (val & OHCI_RHS_CRWE) {
+        dev->ohci_mmio[OHCI_HcRhStatus].l &= ~OHCI_RHS_DRWE;
+    }
+    if (old_state != dev->ohci_mmio[OHCI_HcRhStatus].l) {
+        ohci_set_interrupt(dev, OHCI_HcInterruptEnable_RHSC);
+    }
+}
+
 
 static void
 ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
@@ -723,26 +872,27 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
 
     addr &= 0x00000fff;
 
+    //pclog("dev->ohci_mmio[0x%X].b[%d] = 0x%X\n", addr >> 2, addr & 3, val);
+
     switch (addr) {
         case OHCI_aHcControl:
             old = dev->ohci_mmio[OHCI_HcControl].b[0];
 #ifdef ENABLE_USB_LOG
             usb_log("OHCI: OHCI state 0x%X\n", (val & 0xc0));
 #endif
+            if ((old & 0xc0) == (val & 0xc0))
+                return;
             if ((val & 0xc0) == 0x00) {
                 /* UsbReset */
                 ohci_rhport_reset(dev);
-            } else if ((val & 0xc0) == 0x80 && (old & 0xc0) != (val & 0xc0)) {
+            } else if ((val & 0xc0) == 0x80) {
                 dev->ohci_mmio[OHCI_HcFmRemaining].w[0] = 0;
                 dev->ohci_initial_start = 1;
                 timer_on_auto(&dev->ohci_frame_timer, 1000.);
             }
-            if ((val & 0xc0) != 0x80) {
-                timer_disable(&dev->ohci_frame_timer);
-                dev->ohci_mmio[OHCI_HcFmRemaining].w[0] = 0;
-            }
             if ((val & 0xc0) == 0xc0) {
                 dev->ohci_mmio[OHCI_HcInterruptStatus].l &= ~OHCI_HcInterruptEnable_SF;
+                timer_disable(&dev->ohci_frame_timer);
             }
             break;
         case OHCI_aHcCommandStatus:
@@ -791,17 +941,20 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
             return;
         case OHCI_aHcInterruptStatus:
             dev->ohci_mmio[addr >> 2].b[addr & 3] &= ~(val & 0x7f);
+            ohci_update_irq(dev);
             return;
         case OHCI_aHcInterruptStatus + 1:
         case OHCI_aHcInterruptStatus + 2:
             return;
         case OHCI_aHcInterruptStatus + 3:
             dev->ohci_mmio[addr >> 2].b[addr & 3] &= ~(val & 0x40);
+            ohci_update_irq(dev);
             return;
         case OHCI_aHcFmRemaining + 3:
             dev->ohci_mmio[addr >> 2].b[addr & 3] = (val & 0x80);
             return;
         case OHCI_aHcFmRemaining + 1:
+            return;
         case OHCI_aHcPeriodicStart + 1:
             dev->ohci_mmio[addr >> 2].b[addr & 3] = (val & 0x3f);
             return;
@@ -815,6 +968,10 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
         case OHCI_aHcPeriodicStart + 3:
         case OHCI_aHcLSThreshold + 2:
         case OHCI_aHcLSThreshold + 3:
+            return;
+        case OHCI_aHcRhDescriptorB ... OHCI_aHcRhDescriptorB + 3:
+            return;
+#if 0
         case OHCI_aHcRhDescriptorA:
         case OHCI_aHcRhDescriptorA + 2:
             return;
@@ -845,6 +1002,8 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
         case OHCI_aHcRhDescriptorB + 1:
         case OHCI_aHcRhDescriptorB + 3:
             return;
+#endif
+#if 0
         case OHCI_aHcRhStatus:
             if (val & 0x01) {
                 if ((dev->ohci_mmio[OHCI_HcRhDescriptorA].b[1] & 0x03) == 0x00) {
@@ -937,10 +1096,10 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
             }
             return;
         case OHCI_aHcRhPortStatus1 + 1:
-            if ((val & 0x02) && ((dev->ohci_mmio[OHCI_HcRhDescriptorA].b[1] & 0x03) == 0x00) && (dev->ohci_mmio[OHCI_HcRhDescriptorB].b[2] & 0x02)) {
+            if ((val & 0x02)) {
                 dev->ohci_mmio[addr >> 2].b[addr & 3] &= ~0x01;
             }
-            if ((val & 0x01) && ((dev->ohci_mmio[OHCI_HcRhDescriptorA].b[1] & 0x03) == 0x00) && (dev->ohci_mmio[OHCI_HcRhDescriptorB].b[2] & 0x02)) {
+            if ((val & 0x01)) {
                 dev->ohci_mmio[addr >> 2].b[addr & 3] |= 0x01;
             }
             if (!(dev->ohci_mmio[addr >> 2].b[addr & 3] & 0x01)) {
@@ -955,12 +1114,12 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
             }
             return;
         case OHCI_aHcRhPortStatus2 + 1:
-            if ((val & 0x02) && ((dev->ohci_mmio[OHCI_HcRhDescriptorA].b[1] & 0x03) == 0x00) && (dev->ohci_mmio[OHCI_HcRhDescriptorB].b[2] & 0x04)) {
+            if ((val & 0x02)) {
                 dev->ohci_mmio[addr >> 2].b[addr & 3] &= ~0x01;
                 dev->ohci_mmio[OHCI_HcRhPortStatus2].b[0] &= ~0x17;
                 dev->ohci_mmio[OHCI_HcRhPortStatus2].b[2] &= ~0x17;
             }
-            if ((val & 0x01) && ((dev->ohci_mmio[OHCI_HcRhDescriptorA].b[1] & 0x03) == 0x00) && (dev->ohci_mmio[OHCI_HcRhDescriptorB].b[2] & 0x04)) {
+            if ((val & 0x01)) {
                 dev->ohci_mmio[addr >> 2].b[addr & 3] |= 0x01;
                 if (!(dev->ohci_mmio[OHCI_HcRhPortStatus2].b[0] & 0x1) && dev->ohci_devices[1]) {
                     dev->ohci_mmio[OHCI_HcRhPortStatus2].b[0] |= 0x1;
@@ -982,6 +1141,16 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
             return;
         case OHCI_aHcRhPortStatus1 + 3:
         case OHCI_aHcRhPortStatus2 + 3:
+            return;
+#endif
+        case OHCI_aHcRhStatus ... OHCI_aHcRhStatus + 3:
+            ohci_set_hub_status(dev, val << (8 * (addr & 3)));
+            return;
+        case OHCI_aHcRhPortStatus1 ... OHCI_aHcRhPortStatus1 + 3:
+            ohci_port_set_status(dev, 0, val << (8 * (addr & 3)));
+            return;
+        case OHCI_aHcRhPortStatus2 ... OHCI_aHcRhPortStatus2 + 3:
+            ohci_port_set_status(dev, 1, val << (8 * (addr & 3)));
             return;
         case OHCI_aHcDoneHead:
         case OHCI_aHcBulkCurrentED:
@@ -1035,14 +1204,14 @@ usb_attach_device(usb_t *dev, usb_device_t* device, uint8_t bus_type)
             {
                 for (int i = 0; i < 2; i++) {
                     if (!dev->ohci_devices[i]) {
-                        uint32_t old = dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].l;
+                        uint32_t old = dev->ohci_mmio[OHCI_HcRhPortStatus1 + (i)].l;
                         dev->ohci_devices[i] = device;
-                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].b[0] |= 0x1;
+                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (i)].b[0] |= 0x1;
+                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (i)].b[2] |= 0x1;
                         if ((dev->ohci_mmio[OHCI_HcControl].b[0] & 0xc0) == 0xc0) {
                             ohci_set_interrupt(dev, OHCI_HcInterruptEnable_RD);
                         }
-                        if (old != dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].l) {
-                            dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].b[2] |= 0x1;
+                        if (old != dev->ohci_mmio[OHCI_HcRhPortStatus1 + (i)].l) {
                             ohci_set_interrupt(dev, OHCI_HcInterruptEnable_RHSC);
                         }
                         return i | (bus_type << 8);
@@ -1064,17 +1233,17 @@ usb_detach_device(usb_t *dev, uint16_t port)
                 if (port > 2)
                     return;
                 if (dev->ohci_devices[port]) {
-                    uint32_t old = dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].l;
+                    uint32_t old = dev->ohci_mmio[OHCI_HcRhPortStatus1 + (port)].l;
                     dev->ohci_devices[port] = NULL;
-                    if (dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].b[0] & 0x1) {
-                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].b[0] &= ~0x1;
-                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].b[2] |= 0x1;
+                    if (dev->ohci_mmio[OHCI_HcRhPortStatus1 + (port)].b[0] & 0x1) {
+                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (port)].b[0] &= ~0x1;
+                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (port)].b[2] |= 0x1;
                     }
-                    if (dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].b[0] & 0x2) {
-                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].b[0] &= ~0x2;
-                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].b[2] |= 0x2;
+                    if (dev->ohci_mmio[OHCI_HcRhPortStatus1 + (port)].b[0] & 0x2) {
+                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (port)].b[0] &= ~0x2;
+                        dev->ohci_mmio[OHCI_HcRhPortStatus1 + (port)].b[2] |= 0x2;
                     }
-                    if (old != dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * port)].l)
+                    if (old != dev->ohci_mmio[OHCI_HcRhPortStatus1 + (port)].l)
                         ohci_set_interrupt(dev, OHCI_HcInterruptEnable_RHSC);
                     return;
                 }
@@ -1314,6 +1483,8 @@ usb_init_ext(const device_t *info, void *params)
     timer_add(&dev->ohci_frame_timer, ohci_update_frame_counter, dev, 0); /* Unused for now, to be used for frame counting. */
     timer_add(&dev->ohci_port_reset_timer[0], ohci_port_reset_callback, dev, 0);
     timer_add(&dev->ohci_port_reset_timer[1], ohci_port_reset_callback_2, dev, 0);
+
+    dev->ohci_rhports = &dev->ohci_mmio[OHCI_HcRhPortStatus1];
 
     usb_reset(dev);
 
