@@ -900,9 +900,8 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
                 /* UsbReset */
                 ohci_rhport_reset(dev);
             } else if ((val & 0xc0) == 0x80) {
-                dev->ohci_mmio[OHCI_HcFmRemaining].w[0] = 0;
-                dev->ohci_initial_start = 1;
-                timer_on_auto(&dev->ohci_frame_timer, 1000.);
+                dev->ohci_mmio[OHCI_HcFmRemaining].w[0] = dev->ohci_mmio[OHCI_HcFmInterval].w[0];
+                timer_on_auto(&dev->ohci_frame_timer, 1. / 12.);
             }
             if ((val & 0xc0) == 0xc0) {
                 dev->ohci_mmio[OHCI_HcInterruptStatus].l &= ~OHCI_HcInterruptEnable_SF;
