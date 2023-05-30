@@ -154,8 +154,8 @@ typedef struct {
 
     void *priv;
 
-    char fn[1024],     /* Name of current image file */
-        prev_fn[1024]; /* Name of previous image file */
+    char fn[1024];         /* Name of current image file */
+    char vhd_parent[1041]; /* Differential VHD parent file */
 
     uint32_t res0, pad1,
         base,
@@ -176,6 +176,7 @@ typedef struct {
     uint32_t cur_addr;
 
     uint32_t speed_preset;
+    uint32_t vhd_blocksize;
 
     double avg_rotation_lat_usec;
     double full_stroke_usec;
