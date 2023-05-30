@@ -334,11 +334,35 @@ hdd_image_load(int id)
                     full_size                  = ((uint64_t) hdd[id].spt) * ((uint64_t) hdd[id].hpc) * ((uint64_t) hdd[id].tracks) << 9LL;
                     hdd_images[id].last_sector = (full_size >> 9LL) - 1;
 
-                    hdd_images[id].vhd = mvhd_create_fixed(fn, geometry, &vhd_error, NULL);
-                    if (hdd_images[id].vhd == NULL)
-                        fatal("hdd_image_load(): VHD: Could not create VHD : %s\n", mvhd_strerr(vhd_error));
+                    if (hdd[id].vhd_blocksize || hdd[id].vhd_parent[0]) {
+                        MVHDCreationOptions options;
+retry_vhd:
+                        options.block_size_in_sectors = hdd[id].vhd_blocksize;
+                        options.path                  = fn;
+                        options.size_in_bytes         = 0;
+                        options.geometry              = geometry;
+                        if (hdd[id].vhd_parent[0]) {
+                            options.type        = MVHD_TYPE_DIFF;
+                            options.parent_path = hdd[id].vhd_parent;
+                        } else {
+                            options.type        = MVHD_TYPE_DYNAMIC;
+                            options.parent_path = NULL;
+                        }
 
+                        hdd_images[id].vhd = mvhd_create_ex(options, &vhd_error);
+                    } else {
+                        hdd_images[id].vhd = mvhd_create_fixed(fn, geometry, &vhd_error, NULL);
+                    }
+                    if (hdd_images[id].vhd == NULL) {
+                        /* Don't lock out if the parent of a differential VHD doesn't exist. */
+                        if (hdd[id].vhd_parent[0]) {
+                            hdd[id].vhd_parent[0] = '\0';
+                            goto retry_vhd;
+                        }
+                        fatal("hdd_image_load(): VHD: Could not create VHD : %s\n", mvhd_strerr(vhd_error));
+                    }
                     hdd_images[id].type = HDD_IMAGE_VHD;
+
                     return 1;
                 } else {
                     hdd_images[id].type = HDD_IMAGE_RAW;
@@ -429,9 +453,12 @@ hdd_image_load(int id)
                 fatal("hdd_image_load(): VHD: Parent/child timestamp mismatch for VHD file '%s'\n", fn);
             }
 
-            hdd[id].tracks      = hdd_images[id].vhd->footer.geom.cyl;
-            hdd[id].hpc         = hdd_images[id].vhd->footer.geom.heads;
-            hdd[id].spt         = hdd_images[id].vhd->footer.geom.spt;
+            hdd[id].tracks        = hdd_images[id].vhd->footer.geom.cyl;
+            hdd[id].hpc           = hdd_images[id].vhd->footer.geom.heads;
+            hdd[id].spt           = hdd_images[id].vhd->footer.geom.spt;
+            hdd[id].vhd_blocksize = (hdd_images[id].vhd->footer.disk_type == MVHD_TYPE_FIXED) ? 0 : (hdd_images[id].vhd->sparse.block_sz / MVHD_SECTOR_SIZE);
+            if (hdd_images[id].vhd->parent && hdd_images[id].vhd->parent->filename[0])
+                strncpy(hdd[id].vhd_parent, hdd_images[id].vhd->parent->filename, sizeof(hdd[id].vhd_parent) - 1);
             full_size           = ((uint64_t) hdd[id].spt) * ((uint64_t) hdd[id].hpc) * ((uint64_t) hdd[id].tracks) << 9LL;
             hdd_images[id].type = HDD_IMAGE_VHD;
             /* If we're here, this means there is a valid VHD footer in the
@@ -628,9 +655,6 @@ hdd_image_unload(uint8_t id, int fn_preserve)
 
     hdd_images[id].last_sector = -1;
 
-    memset(hdd[id].prev_fn, 0, sizeof(hdd[id].prev_fn));
-    if (fn_preserve)
-        strcpy(hdd[id].prev_fn, hdd[id].fn);
     memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
 }
 
