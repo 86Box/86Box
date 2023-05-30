@@ -337,6 +337,7 @@ void
 ohci_set_interrupt(usb_t *dev, uint8_t bit)
 {    
     dev->ohci_mmio[OHCI_HcInterruptStatus].b[0] |= bit;
+    pclog("OHCI: Interrupt bit 0x%X\n", bit);
 
     /* TODO: Does setting UnrecoverableError also assert PERR# on any emulated USB chipsets? */
 
@@ -575,9 +576,6 @@ ohci_service_endpoint_desc(usb_t* dev, uint32_t head)
             if (ohci_service_transfer_desc(dev, &endpoint_desc))
                 break;
         }
-        if (((endpoint_desc.HeadP ^ endpoint_desc.TailP) & (~0xF)) != 0) {
-            pclog("Unconcluded endpoint transfer\n");
-        }
 
         dma_bm_write(cur, (uint8_t*)&endpoint_desc, sizeof(usb_ed_t), 4);
     }
@@ -696,7 +694,7 @@ ohci_soft_reset(usb_t* dev)
     dev->ohci_mmio[OHCI_HcFmInterval].l = 0x27782edf; /* FrameInterval = 11999, FSLargestDataPacket = 10104 */
     dev->ohci_mmio[OHCI_HcLSThreshold].l = 0x628;
     dev->ohci_mmio[OHCI_HcInterruptStatus].l = 0;
-    dev->ohci_mmio[OHCI_HcInterruptEnable].l |= (1 << 31);
+    dev->ohci_mmio[OHCI_HcInterruptEnable].l = (1 << 31);
     dev->ohci_mmio[OHCI_HcInterruptDisable].l = 0;
     dev->ohci_mmio[OHCI_HcControl].l = old_HcControl;
     dev->ohci_mmio[OHCI_HcBulkHeadED].l = dev->ohci_mmio[OHCI_HcBulkCurrentED].l = 0;
