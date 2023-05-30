@@ -284,6 +284,12 @@ ohci_mmio_read(uint32_t addr, void *p)
         case OHCI_aHcInterruptDisable + 3:
             ret = dev->ohci_mmio[OHCI_HcInterruptEnable].b[addr & 3];
             break;
+        case OHCI_aHcFmRemaining + 3:
+            update_tsc();
+        case OHCI_aHcFmRemaining + 2:
+        case OHCI_aHcFmRemaining + 1:
+        case OHCI_aHcFmRemaining:
+            break;
         default:
             {
                 if (addr >= OHCI_aHcRhPortStatus1 && (addr & 0x3) == 1) {
@@ -317,6 +323,10 @@ ohci_update_irq(usb_t *dev)
 {
     uint32_t level = !!(dev->ohci_mmio[OHCI_HcInterruptStatus].l & dev->ohci_mmio[OHCI_HcInterruptEnable].l);
 
+    if (!(dev->ohci_mmio[OHCI_HcInterruptEnable].l & (1 << 31))) {
+        level = 0;
+    }
+
     if (level != dev->irq_level) {
         dev->irq_level = level;
         usb_interrupt_ohci(dev, level);
@@ -327,15 +337,6 @@ void
 ohci_set_interrupt(usb_t *dev, uint8_t bit)
 {    
     dev->ohci_mmio[OHCI_HcInterruptStatus].b[0] |= bit;
-
-    if (!(dev->ohci_mmio[OHCI_HcInterruptEnable].b[3] & 0x80))
-        return;
-    
-    if (!(dev->ohci_mmio[OHCI_HcInterruptEnable].b[0] & bit))
-        return;
-
-    if (dev->ohci_mmio[OHCI_HcInterruptDisable].b[0] & bit)
-        return;
 
     /* TODO: Does setting UnrecoverableError also assert PERR# on any emulated USB chipsets? */
 
@@ -538,7 +539,8 @@ ohci_service_transfer_desc(usb_t* dev, usb_ed_t* endpoint_desc)
     }
 exit_no_retire:
     dma_bm_write(td_addr, (uint8_t*)&td, sizeof(usb_td_t), 4);
-    return !(td.Control & 0xF0000000);
+    pclog("td.Control = 0x%08X\n", td.Control);
+    return (td.Control & 0xF0000000);
 }
 
 uint8_t
@@ -570,7 +572,11 @@ ohci_service_endpoint_desc(usb_t* dev, uint32_t head)
         active = 1;
 
         while ((endpoint_desc.HeadP & ~0xFu) != endpoint_desc.TailP) {
-            ohci_service_transfer_desc(dev, &endpoint_desc);
+            if (ohci_service_transfer_desc(dev, &endpoint_desc))
+                break;
+        }
+        if (((endpoint_desc.HeadP ^ endpoint_desc.TailP) & (~0xF)) != 0) {
+            pclog("Unconcluded endpoint transfer\n");
         }
 
         dma_bm_write(cur, (uint8_t*)&endpoint_desc, sizeof(usb_ed_t), 4);
@@ -583,11 +589,9 @@ void
 ohci_end_of_frame(usb_t* dev)
 {
     usb_hcca_t hcca;
-    if (dev->ohci_initial_start)
-        return;
     dma_bm_read(dev->ohci_mmio[OHCI_HcHCCA].l, (uint8_t*)&hcca, sizeof(usb_hcca_t), 4);
 
-    pclog("dev->ohci_mmio[OHCI_HcControl].l = 0x%08X\n", dev->ohci_mmio[OHCI_HcControl].l);
+//    pclog("dev->ohci_mmio[OHCI_HcControl].l = 0x%08X\n", dev->ohci_mmio[OHCI_HcControl].l);
 
     if (dev->ohci_mmio[OHCI_HcControl].l & OHCI_HcControl_PeriodicListEnable) {
         ohci_service_endpoint_desc(dev, hcca.HccaInterrruptTable[dev->ohci_mmio[OHCI_HcFmNumber].l & 0x1f]);
@@ -640,7 +644,7 @@ void
 ohci_start_of_frame(usb_t* dev)
 {
     dev->ohci_initial_start = 0;
-    ohci_set_interrupt(dev, OHCI_HcInterruptEnable_SO);
+    ohci_set_interrupt(dev, OHCI_HcInterruptEnable_SF);
     //pclog("OHCI: Start of frame 0x%X\n", dev->ohci_mmio[OHCI_HcFmNumber].w[0]);
 }
 
@@ -650,6 +654,7 @@ ohci_update_frame_counter(void* priv)
     usb_t *dev = (usb_t *) priv;
 
     dev->ohci_mmio[OHCI_HcFmRemaining].w[0] &= 0x3fff;
+    if (dev->ohci_mmio[OHCI_HcFmRemaining].w[0]) dev->ohci_mmio[OHCI_HcFmRemaining].w[0]--;
     if (dev->ohci_mmio[OHCI_HcFmRemaining].w[0] == 0) {
         ohci_end_of_frame(dev);
         dev->ohci_mmio[OHCI_HcFmRemaining].w[0] = dev->ohci_mmio[OHCI_HcFmInterval].w[0] & 0x3fff;
@@ -659,7 +664,6 @@ ohci_update_frame_counter(void* priv)
         timer_on_auto(&dev->ohci_frame_timer, 1. / 12.);
         return;
     }
-    dev->ohci_mmio[OHCI_HcFmRemaining].w[0]--;
     timer_on_auto(&dev->ohci_frame_timer, 1. / 12.);
 }
 
@@ -974,6 +978,8 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
             dev->ohci_mmio[addr >> 2].b[addr & 3] = (val & 0x0f);
             return;
         case OHCI_aHcFmRemaining + 2:
+        case OHCI_aHcFmNumber:
+        case OHCI_aHcFmNumber + 1:
         case OHCI_aHcFmNumber + 2:
         case OHCI_aHcFmNumber + 3:
         case OHCI_aHcPeriodicStart + 2:
