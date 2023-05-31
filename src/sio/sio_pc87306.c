@@ -85,7 +85,8 @@ static void
 lpt1_handler(pc87306_t *dev)
 {
     int      temp;
-    uint16_t lptba, lpt_port = LPT1_ADDR;
+    uint16_t lptba;
+    uint16_t lpt_port = LPT1_ADDR;
     uint8_t  lpt_irq = LPT2_IRQ;
 
     temp  = dev->regs[0x01] & 3;
@@ -126,8 +127,10 @@ static void
 serial_handler(pc87306_t *dev, int uart)
 {
     int     temp;
-    uint8_t fer_irq, pnp1_irq;
-    uint8_t fer_shift, pnp_shift;
+    uint8_t fer_irq;
+    uint8_t pnp1_irq;
+    uint8_t fer_shift;
+    uint8_t pnp_shift;
     uint8_t irq;
 
     temp = (dev->regs[1] >> (2 << uart)) & 3;
@@ -187,7 +190,8 @@ static void
 pc87306_write(uint16_t port, uint8_t val, void *priv)
 {
     pc87306_t *dev = (pc87306_t *) priv;
-    uint8_t    index, valxor;
+    uint8_t    index;
+    uint8_t    valxor;
 
     index = (port & 1) ? 0 : 1;
 
@@ -327,7 +331,8 @@ uint8_t
 pc87306_read(uint16_t port, void *priv)
 {
     pc87306_t *dev = (pc87306_t *) priv;
-    uint8_t    ret = 0xff, index;
+    uint8_t    ret = 0xff;
+    uint8_t    index;
 
     index = (port & 1) ? 0 : 1;
 

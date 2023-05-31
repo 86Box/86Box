@@ -89,7 +89,7 @@ static char flash_path[1024];
 #define SST39LF080    0xd800
 #define SST39LF016    0xd900
 
-/*
+#if 0
 // 16 wide
 #define SST39WF400      0x272f
 #define SST39WF400B     0x272e
@@ -103,7 +103,7 @@ static char flash_path[1024];
 #define SST39LF400      0x2780
 #define SST39LF800      0x2781
 #define SST39LF160      0x2782
-*/
+#endif
 
 #define SST49LF002  0x5700
 #define SST49LF020  0x6100
@@ -150,7 +150,8 @@ sst_sector_erase(sst_t *dev, uint32_t addr)
 static void
 sst_new_command(sst_t *dev, uint32_t addr, uint8_t val)
 {
-    uint32_t base = 0x00000, size = dev->size;
+    uint32_t base = 0x00000;
+    uint32_t size = dev->size;
 
     if (dev->command_state == 5)
         switch (val) {
@@ -230,11 +231,10 @@ static void
 sst_page_write(void *priv)
 {
     sst_t *dev = (sst_t *) priv;
-    int    i;
 
     if (dev->last_addr != 0xffffffff) {
         dev->page_base = dev->last_addr & dev->page_mask;
-        for (i = 0; i < 128; i++) {
+        for (uint8_t i = 0; i < 128; i++) {
             if (dev->page_dirty[i]) {
                 if (((dev->page_base + i) < 0x2000) && (dev->bbp_first_8k & 0x01))
                     continue;
@@ -419,14 +419,15 @@ sst_readl(uint32_t addr, void *p)
 static void
 sst_add_mappings(sst_t *dev)
 {
-    int      i = 0, count;
-    uint32_t base, fbase;
+    int      count;
+    uint32_t base;
+    uint32_t fbase;
     uint32_t root_base;
 
     count     = dev->size >> 16;
     root_base = 0x100000 - dev->size;
 
-    for (i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++) {
         base  = root_base + (i << 16);
         fbase = base & biosmask;
 

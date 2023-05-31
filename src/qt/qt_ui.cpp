@@ -29,7 +29,9 @@
 
 MainWindow *main_window = nullptr;
 
-static QString sb_text, sb_buguitext, sb_mt32lcdtext;
+static QString sb_text;
+static QString sb_buguitext;
+static QString sb_mt32lcdtext;
 
 extern "C" {
 
@@ -221,7 +223,6 @@ ui_sb_bugui(char *str)
 {
     sb_buguitext = str;
     ui_sb_update_text();
-    ;
 }
 
 void

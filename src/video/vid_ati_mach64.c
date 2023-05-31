@@ -474,7 +474,7 @@ mach64_recalctimings(svga_t *svga)
         svga->hdisp_time = svga->hdisp = ((mach64->crtc_h_total_disp >> 16) & 255) + 1;
         svga->vsyncstart               = (mach64->crtc_v_sync_strt_wid & 2047) + 1;
         svga->rowoffset                = (mach64->crtc_off_pitch >> 22);
-        svga->clock                    = (cpuclock * (double) (1ull << 32)) / ics2595_getclock(svga->clock_gen);
+        svga->clock                    = (cpuclock * (double) (1ULL << 32)) / ics2595_getclock(svga->clock_gen);
         svga->ma_latch                 = (mach64->crtc_off_pitch & 0x1fffff) * 2;
         svga->linedbl = svga->rowcount = 0;
         svga->split                    = 0xffffff;
@@ -1179,7 +1179,8 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 void
 mach64_start_fill(mach64_t *mach64)
 {
-    int x, y;
+    int x;
+    int y;
 
     mach64->accel.dst_x       = 0;
     mach64->accel.dst_y       = 0;
@@ -1309,7 +1310,8 @@ mach64_start_fill(mach64_t *mach64)
 void
 mach64_start_line(mach64_t *mach64)
 {
-    int x, y;
+    int x;
+    int y;
 
     mach64->accel.dst_x = (mach64->dst_y_x >> 16) & 0xfff;
     mach64->accel.dst_y = mach64->dst_y_x & 0xfff;
@@ -1490,7 +1492,8 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
     switch (mach64->accel.op) {
         case OP_RECT:
             while (count) {
-                uint32_t src_dat  = 0, dest_dat;
+                uint32_t src_dat  = 0;
+                uint32_t dest_dat;
                 uint32_t host_dat = 0;
                 uint32_t old_dest_dat;
                 int      mix   = 0;
@@ -1698,7 +1701,8 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
             if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24) {
                 int x = 0;
                 while (count) {
-                    uint32_t src_dat  = 0, dest_dat;
+                    uint32_t src_dat  = 0;
+                    uint32_t dest_dat;
                     uint32_t host_dat = 0;
                     int      mix      = 0;
 
@@ -1825,7 +1829,8 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                 }
             } else {
                 while (count) {
-                    uint32_t src_dat    = 0, dest_dat;
+                    uint32_t src_dat    = 0;
+                    uint32_t dest_dat;
                     uint32_t host_dat   = 0;
                     int      mix        = 0;
                     int      draw_pixel = !(mach64->dst_cntl & DST_POLYGON_EN);
@@ -3857,7 +3862,8 @@ mach64_overlay_draw(svga_t *svga, int displine)
     } else {
         for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++) {
             int h      = h_acc >> 12;
-            int gr_cmp = 0, vid_cmp = 0;
+            int gr_cmp = 0;
+            int vid_cmp = 0;
             int use_video = 0;
 
             switch (video_key_fn) {

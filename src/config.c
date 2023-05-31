@@ -1196,7 +1196,6 @@ load_hard_disks(void)
         ini_section_delete_var(cat, temp);
 
         memset(hdd[c].fn, 0x00, sizeof(hdd[c].fn));
-        memset(hdd[c].prev_fn, 0x00, sizeof(hdd[c].prev_fn));
         sprintf(temp, "hdd_%02i_fn", c + 1);
         p = ini_section_get_string(cat, temp, "");
 
@@ -1228,6 +1227,13 @@ load_hard_disks(void)
             path_append_filename(hdd[c].fn, usr_path, p);
         }
         path_normalize(hdd[c].fn);
+
+        sprintf(temp, "hdd_%02i_vhd_blocksize", c + 1);
+        hdd[c].vhd_blocksize = ini_section_get_int(cat, temp, 0);
+
+        sprintf(temp, "hdd_%02i_vhd_parent", c + 1);
+        p = ini_section_get_string(cat, temp, "");
+        strncpy(hdd[c].vhd_parent, p, sizeof(hdd[c].vhd_parent) - 1);
 
         /* If disk is empty or invalid, mark it for deletion. */
         if (!hdd_is_valid(c)) {
@@ -2803,6 +2809,19 @@ save_hard_disks(void)
                 ini_section_set_string(cat, temp, &hdd[c].fn[strlen(usr_path)]);
             else
                 ini_section_set_string(cat, temp, hdd[c].fn);
+        } else
+            ini_section_delete_var(cat, temp);
+
+        sprintf(temp, "hdd_%02i_vhd_blocksize", c + 1);
+        if (hdd_is_valid(c) && (hdd[c].vhd_blocksize > 0))
+            ini_section_set_int(cat, temp, hdd[c].vhd_blocksize);
+        else
+            ini_section_delete_var(cat, temp);
+
+        sprintf(temp, "hdd_%02i_vhd_parent", c + 1);
+        if (hdd_is_valid(c) && hdd[c].vhd_parent[0]) {
+            path_normalize(hdd[c].vhd_parent);
+            ini_section_set_string(cat, temp, hdd[c].vhd_parent);
         } else
             ini_section_delete_var(cat, temp);
 

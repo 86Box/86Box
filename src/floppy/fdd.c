@@ -80,12 +80,14 @@ char *fdd_image_history[FDD_NUM][FLOPPY_IMAGE_HISTORY];
 
 pc_timer_t fdd_poll_time[FDD_NUM];
 
-static int fdd_notfound = 0,
-           driveloaders[FDD_NUM];
+static int fdd_notfound = 0;
+static int driveloaders[FDD_NUM];
 
-int writeprot[FDD_NUM], fwriteprot[FDD_NUM],
-    fdd_changed[FDD_NUM], ui_writeprot[FDD_NUM] = { 0, 0, 0, 0 },
-                          drive_empty[FDD_NUM] = { 1, 1, 1, 1 };
+int writeprot[FDD_NUM];
+int fwriteprot[FDD_NUM];
+int fdd_changed[FDD_NUM];
+int ui_writeprot[FDD_NUM] = { 0, 0, 0, 0 };
+int drive_empty[FDD_NUM] = { 1, 1, 1, 1 };
 
 DRIVE drives[FDD_NUM];
 
@@ -296,9 +298,7 @@ fdd_current_track(int drive)
 void
 fdd_set_densel(int densel)
 {
-    int i = 0;
-
-    for (i = 0; i < FDD_NUM; i++) {
+    for (uint8_t i = 0; i < FDD_NUM; i++) {
         if (drive_types[fdd[i].type].flags & FLAG_INVERT_DENSEL)
             fdd[i].densel = densel ^ 1;
         else
@@ -451,7 +451,8 @@ fdd_get_densel(int drive)
 void
 fdd_load(int drive, char *fn)
 {
-    int   c = 0, size;
+    int   c = 0;
+    int   size;
     char *p;
     FILE *f;
 
@@ -593,9 +594,7 @@ fdd_get_bitcell_period(int rate)
 void
 fdd_reset(void)
 {
-    int i;
-
-    for (i = 0; i < FDD_NUM; i++) {
+    for (uint8_t i = 0; i < FDD_NUM; i++) {
         drives[i].id = i;
         timer_add(&(fdd_poll_time[i]), fdd_poll, &drives[i], 0);
     }

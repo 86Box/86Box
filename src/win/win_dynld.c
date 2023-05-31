@@ -47,7 +47,6 @@ void *
 dynld_module(const char *name, dllimp_t *table)
 {
     HMODULE   h;
-    dllimp_t *imp;
     void     *func;
 
     /* See if we can load the desired module. */
@@ -57,7 +56,7 @@ dynld_module(const char *name, dllimp_t *table)
     }
 
     /* Now load the desired function pointers. */
-    for (imp = table; imp->name != NULL; imp++) {
+    for (dllimp_t *imp = table; imp->name != NULL; imp++) {
         func = GetProcAddress(h, imp->name);
         if (func == NULL) {
             dynld_log("DynLd(\"%s\"): function '%s' not found! (%08X)\n",

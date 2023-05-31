@@ -36,10 +36,12 @@ static int midi_output_device_last    = 0;
 int        midi_input_device_current  = 0;
 static int midi_input_device_last     = 0;
 
-midi_t *midi_out = NULL, *midi_in = NULL;
+midi_t *midi_out = NULL;
+midi_t *midi_in  = NULL;
 
-midi_in_handler_t *mih_first = NULL, *mih_last = NULL,
-                  *mih_cur = NULL;
+midi_in_handler_t *mih_first = NULL;
+midi_in_handler_t *mih_last = NULL;
+midi_in_handler_t *mih_cur = NULL;
 
 uint8_t MIDI_InSysexBuf[SYSEX_SIZE];
 
@@ -306,7 +308,7 @@ midi_raw_out_rt_byte(uint8_t val)
     if (!midi_in->midi_realtime)
         return;
 
-    if ((!midi_in->midi_clockout && (val == 0xf8)))
+    if (!midi_in->midi_clockout && (val == 0xf8))
         return;
 
     midi_in->midi_cmd_r = val << 24;
@@ -329,7 +331,7 @@ midi_raw_out_byte(uint8_t val)
     if (!midi_out || !midi_out->m_out_device)
         return;
 
-    if ((midi_out->m_out_device->write && midi_out->m_out_device->write(val)))
+    if (midi_out->m_out_device->write && midi_out->m_out_device->write(val))
         return;
 
     if (midi_out->midi_sysex_start) {
@@ -408,7 +410,8 @@ midi_clear_buffer(void)
 void
 midi_in_handler(int set, void (*msg)(void *p, uint8_t *msg, uint32_t len), int (*sysex)(void *p, uint8_t *buffer, uint32_t len, int abort), void *p)
 {
-    midi_in_handler_t *temp = NULL, *next;
+    midi_in_handler_t *temp = NULL;
+    midi_in_handler_t *next;
 
     if (set) {
         /* Add MIDI IN handler. */
@@ -468,7 +471,8 @@ midi_in_handler(int set, void (*msg)(void *p, uint8_t *msg, uint32_t len), int (
 void
 midi_in_handlers_clear(void)
 {
-    midi_in_handler_t *temp = mih_first, *next;
+    midi_in_handler_t *temp = mih_first;
+    midi_in_handler_t *next;
 
     while (1) {
         if (temp == NULL)
@@ -532,7 +536,8 @@ static int
 midi_do_sysex(void)
 {
     midi_in_handler_t *temp = mih_first;
-    int                ret, cnt_acc = 0;
+    int                ret;
+    int                cnt_acc = 0;
 
     while (1) {
         if (temp == NULL)

@@ -64,6 +64,9 @@
 #define NET_PERIOD_10M     0.8
 #define NET_PERIOD_100M    0.08
 
+/* Error buffers for network driver init */
+#define NET_DRV_ERRBUF_SIZE 384
+
 enum {
     NET_LINK_DOWN      = (1 << 1),
     NET_LINK_TEMP_DOWN = (1 << 2),
@@ -118,7 +121,7 @@ typedef struct _netcard_t netcard_t;
 
 typedef struct netdrv_t {
     void (*notify_in)(void *priv);
-    void *(*init)(const netcard_t *card, const uint8_t *mac_addr, void *priv);
+    void *(*init)(const netcard_t *card, const uint8_t *mac_addr, void *priv, char *netdrv_errbuf);
     void (*close)(void *priv);
     void *priv;
 } netdrv_t;

@@ -48,7 +48,9 @@
 #    include <sys/mman.h>
 #endif
 
-// static QByteArray buf;
+#if 0
+static QByteArray buf;
+#endif
 extern QElapsedTimer elapsed_timer;
 extern MainWindow   *main_window;
 QElapsedTimer        elapsed_timer;
@@ -145,7 +147,9 @@ void
 do_stop(void)
 {
     cpu_thread_run = 0;
-    // main_window->close();
+#if 0
+    main_window->close();
+#endif
 }
 
 void
@@ -249,7 +253,7 @@ path_get_filename(char *s)
         c--;
     }
 
-    return (s);
+    return s;
 #else
     auto idx               = QByteArray::fromRawData(s, strlen(s)).lastIndexOf(QDir::separator().toLatin1());
     if (idx >= 0) {
@@ -353,7 +357,8 @@ void
 plat_pause(int p)
 {
     static wchar_t oldtitle[512];
-    wchar_t        title[1024], paused_msg[512];
+    wchar_t        title[1024];
+    wchar_t        paused_msg[512];
 
     if (p == dopause) {
 #ifdef Q_OS_WINDOWS
@@ -602,6 +607,8 @@ ProgSettings::reloadStrings()
     translatedstrings[IDS_2143] = QCoreApplication::translate("", "Monitor in sleep mode").toStdWString();
     translatedstrings[IDS_2121] = QCoreApplication::translate("", "No ROMs found").toStdWString();
     translatedstrings[IDS_2056] = QCoreApplication::translate("", "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory.").toStdWString();
+    translatedstrings[IDS_2167] = QCoreApplication::translate("", "Failed to initialize network driver").toStdWString();
+    translatedstrings[IDS_2168] = QCoreApplication::translate("", "The network configuration will be switched to the null driver").toStdWString();
 
     auto flsynthstr = QCoreApplication::translate("", " is required for FluidSynth MIDI output.");
     if (flsynthstr.contains("libfluidsynth")) {

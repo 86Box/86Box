@@ -188,7 +188,8 @@ struct node {
 };
 typedef struct node NODE;
 
-static uint8_t temp, temp2;
+static uint8_t temp;
+static uint8_t temp2;
 
 static uint8_t *
 expand_tree(uint8_t *stream, NODE *node)
@@ -280,8 +281,9 @@ sign_extend8(uint32_t v)
 static void
 fdi_decode(uint8_t *stream, int size, uint8_t *out)
 {
-    int     i;
-    uint8_t sign_extend, sixteen_bit, sub_stream_shift;
+    uint8_t sign_extend;
+    uint8_t sixteen_bit;
+    uint8_t sub_stream_shift;
     NODE    root;
     NODE   *current_node;
 
@@ -310,7 +312,7 @@ fdi_decode(uint8_t *stream, int size, uint8_t *out)
 
         /* sub-stream data decode */
         temp2 = 0;
-        for (i = 0; i < size; i++) {
+        for (int i = 0; i < size; i++) {
             uint32_t v;
             uint8_t  decode = 1;
             current_node    = &root;
@@ -462,8 +464,7 @@ bit_dedrop(FDI *fdi)
 static void
 byte_add(FDI *fdi, uint8_t v)
 {
-    int i;
-    for (i = 7; i >= 0; i--)
+    for (int8_t i = 7; i >= 0; i--)
         bit_add(fdi, v & (1 << i));
 }
 /* add one word */
@@ -477,24 +478,21 @@ word_add(FDI *fdi, uint16_t v)
 static void
 byte_mfm_add(FDI *fdi, uint8_t v)
 {
-    int i;
-    for (i = 7; i >= 0; i--)
+    for (int8_t i = 7; i >= 0; i--)
         bit_mfm_add(fdi, v & (1 << i));
 }
 /* add multiple bytes and mfm encode them */
 static void
 bytes_mfm_add(FDI *fdi, uint8_t v, int len)
 {
-    int i;
-    for (i = 0; i < len; i++)
+    for (int i = 0; i < len; i++)
         byte_mfm_add(fdi, v);
 }
 /* add one mfm encoded word and re-mfm encode it */
 static void
 word_post_mfm_add(FDI *fdi, uint16_t v)
 {
-    int i;
-    for (i = 14; i >= 0; i -= 2)
+    for (int8_t i = 14; i >= 0; i -= 2)
         bit_mfm_add(fdi, v & (1 << i));
 }
 
@@ -557,7 +555,8 @@ s09(FDI *fdi)
 static void
 s0a(FDI *fdi)
 {
-    int     i, bits = (fdi->track_src[0] << 8) | fdi->track_src[1];
+    int     i;
+    int     bits = (fdi->track_src[0] << 8) | fdi->track_src[1];
     uint8_t b;
     fdi->track_src += 2;
     fdi2raw_log("s0a:bits=%d,data=%s", bits, datalog(fdi->track_src, (bits + 7) / 8));
@@ -578,7 +577,8 @@ s0a(FDI *fdi)
 static void
 s0b(FDI *fdi)
 {
-    int     i, bits = ((fdi->track_src[0] << 8) | fdi->track_src[1]) + 65536;
+    int     i;
+    int     bits = ((fdi->track_src[0] << 8) | fdi->track_src[1]) + 65536;
     uint8_t b;
     fdi->track_src += 2;
     fdi2raw_log("s0b:bits=%d,data=%s", bits, datalog(fdi->track_src, (bits + 7) / 8));
@@ -599,7 +599,8 @@ s0b(FDI *fdi)
 static void
 s0c(FDI *fdi)
 {
-    int     i, bits = (fdi->track_src[0] << 8) | fdi->track_src[1];
+    int     i;
+    int     bits = (fdi->track_src[0] << 8) | fdi->track_src[1];
     uint8_t b;
     fdi->track_src += 2;
     bit_drop_next(fdi);
@@ -621,7 +622,8 @@ s0c(FDI *fdi)
 static void
 s0d(FDI *fdi)
 {
-    int     i, bits = ((fdi->track_src[0] << 8) | fdi->track_src[1]) + 65536;
+    int     i;
+    int     bits = ((fdi->track_src[0] << 8) | fdi->track_src[1]) + 65536;
     uint8_t b;
     fdi->track_src += 2;
     bit_drop_next(fdi);
@@ -854,10 +856,11 @@ static void
 amiga_data(FDI *fdi, uint8_t *secbuf)
 {
     uint16_t mfmbuf[4 + 512];
-    uint32_t dodd, deven, dck;
-    int      i;
+    uint32_t dodd;
+    uint32_t deven;
+    uint32_t dck;
 
-    for (i = 0; i < 512; i += 4) {
+    for (uint16_t i = 0; i < 512; i += 4) {
         deven = ((secbuf[i + 0] << 24) | (secbuf[i + 1] << 16)
                  | (secbuf[i + 2] << 8) | (secbuf[i + 3]));
         dodd  = deven >> 1;
@@ -869,7 +872,7 @@ amiga_data(FDI *fdi, uint8_t *secbuf)
         mfmbuf[(i >> 1) + 256 + 5] = (uint16_t) deven;
     }
     dck = 0;
-    for (i = 4; i < 4 + 512; i += 2)
+    for (uint32_t i = 4; i < 4 + 512; i += 2)
         dck ^= (mfmbuf[i] << 16) | mfmbuf[i + 1];
     deven = dodd = dck;
     dodd >>= 1;
@@ -880,17 +883,19 @@ amiga_data(FDI *fdi, uint8_t *secbuf)
     mfmbuf[2] = (uint16_t) (deven >> 16);
     mfmbuf[3] = (uint16_t) deven;
 
-    for (i = 0; i < 4 + 512; i++)
+    for (uint32_t i = 0; i < 4 + 512; i++)
         word_post_mfm_add(fdi, mfmbuf[i]);
 }
 
 static void
 amiga_sector_header(FDI *fdi, uint8_t *header, uint8_t *data, int sector, int untilgap)
 {
-    uint8_t  headerbuf[4], databuf[16];
-    uint32_t deven, dodd, hck;
+    uint8_t  headerbuf[4];
+    uint8_t  databuf[16];
+    uint32_t deven;
+    uint32_t dodd;
+    uint32_t hck;
     uint16_t mfmbuf[24];
-    int      i;
 
     byte_mfm_add(fdi, 0);
     byte_mfm_add(fdi, 0);
@@ -918,7 +923,7 @@ amiga_sector_header(FDI *fdi, uint8_t *header, uint8_t *data, int sector, int un
     mfmbuf[1] = (uint16_t) dodd;
     mfmbuf[2] = (uint16_t) (deven >> 16);
     mfmbuf[3] = (uint16_t) deven;
-    for (i = 0; i < 16; i += 4) {
+    for (uint8_t i = 0; i < 16; i += 4) {
         deven = ((databuf[i] << 24) | (databuf[i + 1] << 16)
                  | (databuf[i + 2] << 8) | (databuf[i + 3]));
         dodd  = deven >> 1;
@@ -930,7 +935,7 @@ amiga_sector_header(FDI *fdi, uint8_t *header, uint8_t *data, int sector, int un
         mfmbuf[(i >> 1) + 8 + 5] = (uint16_t) deven;
     }
     hck = 0;
-    for (i = 0; i < 4 + 16; i += 2)
+    for (uint32_t i = 0; i < 4 + 16; i += 2)
         hck ^= (mfmbuf[i] << 16) | mfmbuf[i + 1];
     deven = dodd = hck;
     dodd >>= 1;
@@ -941,7 +946,7 @@ amiga_sector_header(FDI *fdi, uint8_t *header, uint8_t *data, int sector, int un
     mfmbuf[22] = (uint16_t) (deven >> 16);
     mfmbuf[23] = (uint16_t) deven;
 
-    for (i = 0; i < 4 + 16 + 4; i++)
+    for (uint32_t i = 0; i < 4 + 16 + 4; i++)
         word_post_mfm_add(fdi, mfmbuf[i]);
 }
 
@@ -1025,11 +1030,10 @@ static uint16_t
 ibm_crc(uint8_t byte, int reset)
 {
     static uint16_t crc;
-    int             i;
 
     if (reset)
         crc = 0xcdb4;
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         if (crc & 0x8000) {
             crc <<= 1;
             if (!(byte & 0x80))
@@ -1047,7 +1051,6 @@ ibm_crc(uint8_t byte, int reset)
 static void
 ibm_data(FDI *fdi, uint8_t *data, uint8_t *crc, int len)
 {
-    int      i;
     uint8_t  crcbuf[2];
     uint16_t crcv = 0;
 
@@ -1056,7 +1059,7 @@ ibm_data(FDI *fdi, uint8_t *data, uint8_t *crc, int len)
     word_add(fdi, 0x4489);
     byte_mfm_add(fdi, 0xfb);
     ibm_crc(0xfb, 1);
-    for (i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++) {
         byte_mfm_add(fdi, data[i]);
         crcv = ibm_crc(data[i], 0);
     }
@@ -1075,7 +1078,6 @@ ibm_sector_header(FDI *fdi, uint8_t *data, uint8_t *crc, int secnum, int pre)
     uint8_t  secbuf[5];
     uint8_t  crcbuf[2];
     uint16_t crcv;
-    int      i;
 
     if (pre)
         bytes_mfm_add(fdi, 0, 12);
@@ -1103,7 +1105,7 @@ ibm_sector_header(FDI *fdi, uint8_t *data, uint8_t *crc, int secnum, int pre)
         crcbuf[1] = (uint8_t) crcv;
     }
     /* data */
-    for (i = 0; i < 5; i++)
+    for (uint8_t i = 0; i < 5; i++)
         byte_mfm_add(fdi, secbuf[i]);
     /* crc */
     byte_mfm_add(fdi, crcbuf[0]);
@@ -1263,11 +1265,9 @@ static decode_described_track_func decode_sectors_described_track[] = {
 static void
 track_amiga(struct fdi *fdi, int first_sector, int max_sector)
 {
-    int i;
-
     bit_add(fdi, 0);
     bit_drop_next(fdi);
-    for (i = 0; i < max_sector; i++) {
+    for (int i = 0; i < max_sector; i++) {
         amiga_sector_header(fdi, 0, 0, first_sector, max_sector - i);
         amiga_data(fdi, fdi->track_src + first_sector * 512);
         first_sector++;
@@ -1279,7 +1279,7 @@ track_amiga(struct fdi *fdi, int first_sector, int max_sector)
 static void
 track_atari_st(struct fdi *fdi, int max_sector)
 {
-    int      i, gap3 = 0;
+    int      gap3 = 0;
     uint8_t *p = fdi->track_src;
 
     switch (max_sector) {
@@ -1291,7 +1291,7 @@ track_atari_st(struct fdi *fdi, int max_sector)
             break;
     }
     s15(fdi);
-    for (i = 0; i < max_sector; i++) {
+    for (int i = 0; i < max_sector; i++) {
         byte_mfm_add(fdi, 0x4e);
         byte_mfm_add(fdi, 0x4e);
         ibm_sector_header(fdi, 0, 0, fdi->current_track, 1);
@@ -1304,7 +1304,7 @@ track_atari_st(struct fdi *fdi, int max_sector)
 static void
 track_pc(struct fdi *fdi, int max_sector)
 {
-    int      i, gap3;
+    int      gap3;
     uint8_t *p = fdi->track_src;
 
     switch (max_sector) {
@@ -1319,7 +1319,7 @@ track_pc(struct fdi *fdi, int max_sector)
             break;
     }
     s11(fdi);
-    for (i = 0; i < max_sector; i++) {
+    for (int i = 0; i < max_sector; i++) {
         byte_mfm_add(fdi, 0x4e);
         byte_mfm_add(fdi, 0x4e);
         ibm_sector_header(fdi, 0, 0, fdi->current_track, 1);
@@ -1402,9 +1402,15 @@ static decode_normal_track_func decode_normal_track[] = {
 static void
 fix_mfm_sync(FDI *fdi)
 {
-    int i, pos, off1, off2, off3, mask1, mask2, mask3;
+    int pos;
+    int off1;
+    int off2;
+    int off3;
+    int mask1;
+    int mask2;
+    int mask3;
 
-    for (i = 0; i < fdi->mfmsync_offset; i++) {
+    for (int i = 0; i < fdi->mfmsync_offset; i++) {
         pos   = fdi->mfmsync_buffer[i];
         off1  = (pos - 1) >> 3;
         off2  = (pos + 1) >> 3;
@@ -1464,7 +1470,7 @@ fdi_decompress(int pulses, uint8_t *sizep, uint8_t *src, int *dofree)
     uint32_t *dst2;
     int       len = size & 0x3fffff;
     uint8_t  *dst;
-    int       mode = size >> 22, i;
+    int       mode = size >> 22;
 
     *dofree = 0;
     if (mode == 0 && pulses * 2 > len)
@@ -1472,7 +1478,7 @@ fdi_decompress(int pulses, uint8_t *sizep, uint8_t *src, int *dofree)
     if (mode == 0) {
         dst2 = (uint32_t *) src;
         dst  = src;
-        for (i = 0; i < pulses; i++) {
+        for (int i = 0; i < pulses; i++) {
             *dst2++ = get_u32(src);
             src += 4;
         }
@@ -1526,9 +1532,7 @@ static int                 totaldiv;
 static void
 init_array(uint32_t standard_MFM_2_bit_cell_size, int nb_of_bits)
 {
-    int i;
-
-    for (i = 0; i < FDI_MAX_ARRAY; i++) {
+    for (uint8_t i = 0; i < FDI_MAX_ARRAY; i++) {
         psarray[i].size = standard_MFM_2_bit_cell_size; /* That is (total track length / 50000) for Amiga double density */
         total += psarray[i].size;
         psarray[i].number_of_bits = nb_of_bits;
@@ -1672,11 +1676,18 @@ fdi2_decode(FDI *fdi, uint32_t totalavg, uint32_t *avgp, uint32_t *minp, uint32_
     uint32_t  adjusted_pulse;
     uint32_t  standard_MFM_2_bit_cell_size = totalavg / 50000;
     uint32_t  standard_MFM_8_bit_cell_size = totalavg / 12500;
-    int       real_size, i, j, nexti, eodat, outstep, randval;
+    int       real_size;
+    int       i;
+    int       j;
+    int       nexti;
+    int       eodat;
+    int       outstep;
+    int       randval;
     int       indexoffset = *indexoffsetp;
     uint8_t  *d           = fdi->track_dst_buffer;
     uint16_t *pt          = fdi->track_dst_buffer_timing;
-    uint32_t  ref_pulse, pulse;
+    uint32_t  ref_pulse;
+    uint32_t  pulse;
     int32_t   jitter;
 
     /* detects a long-enough stable pulse coming just after another stable pulse */
@@ -1714,7 +1725,9 @@ fdi2_decode(FDI *fdi, uint32_t totalavg, uint32_t *avgp, uint32_t *minp, uint32_
         /* gets the next long-enough pulse (this may require more than one pulse) */
         pulse = 0;
         while (pulse < ((avg_size / 4) - (avg_size / 16))) {
-            uint32_t avg_pulse, min_pulse, max_pulse;
+            uint32_t avg_pulse;
+            uint32_t min_pulse;
+            uint32_t max_pulse;
             i++;
             if (i >= pulses)
                 i = 0;
@@ -1742,7 +1755,7 @@ fdi2_decode(FDI *fdi, uint32_t totalavg, uint32_t *avgp, uint32_t *minp, uint32_
                 randval = rand();
                 if (randval < (RAND_MAX / 2)) {
                     if (randval > (RAND_MAX / 4)) {
-                        if (randval <= (((3LL * (uint64_t) RAND_MAX) / 8)))
+                        if (randval <= ((3LL * (uint64_t) RAND_MAX) / 8))
                             randval = (2 * randval) - (RAND_MAX / 4);
                         else
                             randval = (4 * randval) - RAND_MAX;
@@ -1751,7 +1764,7 @@ fdi2_decode(FDI *fdi, uint32_t totalavg, uint32_t *avgp, uint32_t *minp, uint32_
                 } else {
                     randval -= RAND_MAX / 2;
                     if (randval > (RAND_MAX / 4)) {
-                        if (randval <= (((3LL * (uint64_t) RAND_MAX) / 8)))
+                        if (randval <= ((3LL * (uint64_t) RAND_MAX) / 8))
                             randval = (2 * randval) - (RAND_MAX / 4);
                         else
                             randval = (4 * randval) - RAND_MAX;
@@ -1777,7 +1790,7 @@ fdi2_decode(FDI *fdi, uint32_t totalavg, uint32_t *avgp, uint32_t *minp, uint32_
                 randval   = rand();
                 if (randval < (RAND_MAX / 2)) {
                     if (randval > (RAND_MAX / 4)) {
-                        if (randval <= (((3LL * (uint64_t) RAND_MAX) / 8)))
+                        if (randval <= ((3LL * (uint64_t) RAND_MAX) / 8))
                             randval = (2 * randval) - (RAND_MAX / 4);
                         else
                             randval = (4 * randval) - RAND_MAX;
@@ -1786,7 +1799,7 @@ fdi2_decode(FDI *fdi, uint32_t totalavg, uint32_t *avgp, uint32_t *minp, uint32_
                 } else {
                     randval -= RAND_MAX / 2;
                     if (randval > (RAND_MAX / 4)) {
-                        if (randval <= (((3LL * (uint64_t) RAND_MAX) / 8)))
+                        if (randval <= ((3LL * (uint64_t) RAND_MAX) / 8))
                             randval = (2 * randval) - (RAND_MAX / 4);
                         else
                             randval = (4 * randval) - RAND_MAX;
@@ -1899,14 +1912,14 @@ fdi2_decode(FDI *fdi, uint32_t totalavg, uint32_t *avgp, uint32_t *minp, uint32_
 static void
 fdi2_celltiming(FDI *fdi, uint32_t totalavg, int bitoffset, uint16_t *out)
 {
-    uint16_t *pt2, *pt;
+    uint16_t *pt2;
+    uint16_t *pt;
     double    avg_bit_len;
-    int       i;
 
     avg_bit_len = (double) totalavg / (double) bitoffset;
     pt2         = fdi->track_dst_buffer_timing;
     pt          = out;
-    for (i = 0; i < bitoffset / 8; i++) {
+    for (int i = 0; i < bitoffset / 8; i++) {
         double v = (pt2[0] + pt2[1] + pt2[2] + pt2[3] + pt2[4] + pt2[5] + pt2[6] + pt2[7]) / 8.0;
         v        = 1000.0 * v / avg_bit_len;
         *pt++    = (uint16_t) v;
@@ -1921,12 +1934,25 @@ decode_lowlevel_track(FDI *fdi, int track, struct fdi_cache *cache)
 {
     uint8_t  *p1;
     uint32_t *p2;
-    uint32_t *avgp, *minp = 0, *maxp = 0;
+    uint32_t *avgp;
+    uint32_t *minp = 0;
+    uint32_t *maxp = 0;
     uint8_t  *idxp = 0;
-    uint32_t  maxidx, totalavg, weakbits;
-    int       i, j, len, pulses, indexoffset;
-    int       avg_free, min_free = 0, max_free = 0, idx_free;
-    int       idx_off1 = 0, idx_off2 = 0, idx_off3 = 0;
+    uint32_t  maxidx;
+    uint32_t  totalavg;
+    uint32_t  weakbits;
+    int       i;
+    int       j;
+    int       len;
+    int       pulses;
+    int       indexoffset;
+    int       avg_free;
+    int       min_free = 0;
+    int       max_free = 0;
+    int       idx_free;
+    int       idx_off1 = 0;
+    int       idx_off2 = 0;
+    int       idx_off3 = 0;
 
     p1     = fdi->track_src;
     pulses = get_u32(p1);
@@ -2056,13 +2082,11 @@ static int           bit_rate_table[16] = { 125, 150, 250, 300, 500, 1000 };
 void
 fdi2raw_header_free(FDI *fdi)
 {
-    int i;
-
     fdi_free(fdi->mfmsync_buffer);
     fdi_free(fdi->track_src_buffer);
     fdi_free(fdi->track_dst_buffer);
     fdi_free(fdi->track_dst_buffer_timing);
-    for (i = 0; i < MAX_TRACKS; i++) {
+    for (uint8_t i = 0; i < MAX_TRACKS; i++) {
         struct fdi_cache *c = &fdi->cache[i];
         if (c->idx_free)
             fdi_free(c->idxp);
@@ -2130,8 +2154,11 @@ fdi2raw_get_tpi(FDI *fdi)
 FDI *
 fdi2raw_header(FILE *f)
 {
-    long    i, offset, oldseek;
-    uint8_t type, size;
+    long    i;
+    long    offset;
+    long    oldseek;
+    uint8_t type;
+    uint8_t size;
     FDI    *fdi;
 
     fdi2raw_log("ALLOC: memory allocated %d\n", fdi_allocated);
@@ -2204,7 +2231,8 @@ static int
 fdi2raw_loadrevolution_2(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int track, int *tracklength, int *indexoffsetp, int *multirev, int mfm)
 {
     struct fdi_cache *cache = &fdi->cache[track];
-    int               len, i, idx;
+    int               len;
+    int               idx;
 
     memset(fdi->track_dst_buffer, 0, MAX_DST_BUFFER);
     idx = cache->indexoffset;
@@ -2218,7 +2246,7 @@ fdi2raw_loadrevolution_2(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int 
         *multirev = 1;
     *tracklength = len;
 
-    for (i = 0; i < (len + 15) / (2 * 8); i++) {
+    for (int i = 0; i < (len + 15) / (2 * 8); i++) {
         uint8_t *data = fdi->track_dst_buffer + i * 2;
         *mfmbuf++     = 256 * *data + *(data + 1);
     }
@@ -2239,7 +2267,7 @@ int
 fdi2raw_loadtrack(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int track, int *tracklength, int *indexoffsetp, int *multirev, int mfm)
 {
     uint8_t          *p;
-    int               outlen, i;
+    int               outlen;
     struct fdi_cache *cache = &fdi->cache[track];
 
     track ^= fdi->reversed_side;
@@ -2285,7 +2313,7 @@ fdi2raw_loadtrack(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int track, 
 
         outlen = handle_sectors_described_track(fdi);
 
-    } else if ((fdi->track_type & 0xf0)) {
+    } else if (fdi->track_type & 0xf0) {
 
         zxx(fdi);
         outlen = -1;
@@ -2309,7 +2337,7 @@ fdi2raw_loadtrack(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int track, 
         if (cache->lowlevel)
             return fdi2raw_loadrevolution_2(fdi, mfmbuf, tracktiming, track, tracklength, indexoffsetp, multirev, mfm);
         *tracklength = fdi->out;
-        for (i = 0; i < ((*tracklength) + 15) / (2 * 8); i++) {
+        for (int i = 0; i < ((*tracklength) + 15) / (2 * 8); i++) {
             uint8_t *data = fdi->track_dst_buffer + i * 2;
             *mfmbuf++     = 256 * *data + *(data + 1);
         }

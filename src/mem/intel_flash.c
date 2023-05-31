@@ -282,8 +282,9 @@ flash_writel(uint32_t addr, uint32_t val, void *p)
 static void
 intel_flash_add_mappings(flash_t *dev)
 {
-    int      max = 2, i = 0;
-    uint32_t base, fbase;
+    int      max = 2;
+    uint32_t base;
+    uint32_t fbase;
     uint32_t sub = 0x20000;
 
     if (biosmask == 0x7ffff) {
@@ -294,7 +295,7 @@ intel_flash_add_mappings(flash_t *dev)
         max = 4;
     }
 
-    for (i = 0; i < max; i++) {
+    for (int i = 0; i < max; i++) {
         if (biosmask == 0x7ffff)
             base = 0x80000 + (i << 16);
         else if (biosmask == 0x3ffff)

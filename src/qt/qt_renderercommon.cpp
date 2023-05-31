@@ -55,7 +55,11 @@ RendererCommon::onResize(int width, int height)
         destination.setRect(0, 0, width, height);
         return;
     }
-    double dx, dy, dw, dh, gsr;
+    double dx;
+    double dy;
+    double dw;
+    double dh;
+    double gsr;
 
     double hw  = width;
     double hh  = height;
