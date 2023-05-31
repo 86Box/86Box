@@ -405,6 +405,7 @@ ohci_service_transfer_desc(usb_t* dev, usb_ed_t* endpoint_desc)
     usb_device_t* target = NULL;
 
     dma_bm_read(td_addr, (uint8_t*)&td, sizeof(usb_td_t), 4);
+    pclog("td.Control (b) = 0x%08X\n", td.Control);
 
     switch (dir = OHCI_ED_DIR(endpoint_desc->Control)) {
         case 1:
@@ -540,7 +541,7 @@ ohci_service_transfer_desc(usb_t* dev, usb_ed_t* endpoint_desc)
     }
 exit_no_retire:
     dma_bm_write(td_addr, (uint8_t*)&td, sizeof(usb_td_t), 4);
-    pclog("td.Control = 0x%08X\n", td.Control);
+    pclog("td.Control (a) = 0x%08X\n", td.Control);
     return (td.Control & 0xF0000000);
 }
 
@@ -702,7 +703,7 @@ ohci_soft_reset(usb_t* dev)
     dev->ohci_mmio[OHCI_HcPeriodCurrentED].l = 0;
     dev->ohci_mmio[OHCI_HcHCCA].l = 0;
     dev->ohci_mmio[OHCI_HcBulkHeadED].l = dev->ohci_mmio[OHCI_HcDoneHead].l = 0;
-    dev->ohci_mmio[OHCI_HcCommandStatus].l = 0;
+    dev->ohci_mmio[OHCI_HcCommandStatus].l = 0x00;
     dev->ohci_interrupt_counter = 7;
     timer_disable(&dev->ohci_frame_timer);
     ohci_update_irq(dev);
@@ -900,8 +901,8 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
                 /* UsbReset */
                 ohci_rhport_reset(dev);
             } else if ((val & 0xc0) == 0x80) {
-                dev->ohci_mmio[OHCI_HcFmRemaining].w[0] = dev->ohci_mmio[OHCI_HcFmInterval].w[0];
-                timer_on_auto(&dev->ohci_frame_timer, 1. / 12.);
+                dev->ohci_mmio[OHCI_HcFmRemaining].w[0] = 0;
+                timer_on_auto(&dev->ohci_frame_timer, 1000.);
             }
             if ((val & 0xc0) == 0xc0) {
                 dev->ohci_mmio[OHCI_HcInterruptStatus].l &= ~OHCI_HcInterruptEnable_SF;
