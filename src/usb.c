@@ -261,6 +261,21 @@ typedef struct
 
 #define ENDPOINT_DESC_LIMIT 32
 
+static uint16_t
+ohci_get_remaining_frame_time(usb_t* usb)
+{
+    uint32_t remaining = timer_get_remaining_us(&usb->ohci_frame_timer);
+
+    if ((usb->ohci_mmio[OHCI_HcControl].l & 0xc0) != 0x80) {
+        return 0;
+    }
+
+    if (remaining > 1000)
+        remaining = 1000;
+
+    return (uint16_t)(remaining * 12.);
+}
+
 static uint8_t
 ohci_mmio_read(uint32_t addr, void *p)
 {
@@ -285,11 +300,18 @@ ohci_mmio_read(uint32_t addr, void *p)
             ret = dev->ohci_mmio[OHCI_HcInterruptEnable].b[addr & 3];
             break;
         case OHCI_aHcFmRemaining + 3:
-            update_tsc();
         case OHCI_aHcFmRemaining + 2:
         case OHCI_aHcFmRemaining + 1:
         case OHCI_aHcFmRemaining:
+        {
+            uint32_t remaining = ohci_get_remaining_frame_time(dev);
+            ret = ((remaining >> ((addr - OHCI_aHcFmRemaining) * 8)) & 0xFF);
+            if (addr == (OHCI_aHcFmRemaining + 3)) {
+                ret |= !!(dev->ohci_mmio[OHCI_HcFmInterval].l & 0x80000000) << 7;
+                update_tsc();
+            }
             break;
+        }
         default:
             {
                 if (addr >= OHCI_aHcRhPortStatus1 && (addr & 0x3) == 1) {
@@ -642,28 +664,17 @@ ohci_end_of_frame(usb_t* dev)
 void
 ohci_start_of_frame(usb_t* dev)
 {
-    dev->ohci_initial_start = 0;
     ohci_set_interrupt(dev, OHCI_HcInterruptEnable_SF);
     //pclog("OHCI: Start of frame 0x%X\n", dev->ohci_mmio[OHCI_HcFmNumber].w[0]);
+    timer_on_auto(&dev->ohci_frame_timer, 1000.);
 }
 
 void
-ohci_update_frame_counter(void* priv)
+ohci_frame_boundary(void* priv)
 {
     usb_t *dev = (usb_t *) priv;
-
-    dev->ohci_mmio[OHCI_HcFmRemaining].w[0] &= 0x3fff;
-    if (dev->ohci_mmio[OHCI_HcFmRemaining].w[0]) dev->ohci_mmio[OHCI_HcFmRemaining].w[0]--;
-    if (dev->ohci_mmio[OHCI_HcFmRemaining].w[0] == 0) {
-        ohci_end_of_frame(dev);
-        dev->ohci_mmio[OHCI_HcFmRemaining].w[0] = dev->ohci_mmio[OHCI_HcFmInterval].w[0] & 0x3fff;
-        dev->ohci_mmio[OHCI_HcFmRemaining].l &= ~(1 << 31);
-        dev->ohci_mmio[OHCI_HcFmRemaining].l |= dev->ohci_mmio[OHCI_HcFmInterval].l & (1 << 31);
-        ohci_start_of_frame(dev);
-        timer_on_auto(&dev->ohci_frame_timer, 1. / 12.);
-        return;
-    }
-    timer_on_auto(&dev->ohci_frame_timer, 1. / 12.);
+    ohci_end_of_frame(dev);
+    ohci_start_of_frame(dev);
 }
 
 void
@@ -1505,7 +1516,7 @@ usb_init_ext(const device_t *info, void *params)
 
     mem_mapping_disable(&dev->ohci_mmio_mapping);
 
-    timer_add(&dev->ohci_frame_timer, ohci_update_frame_counter, dev, 0); /* Unused for now, to be used for frame counting. */
+    timer_add(&dev->ohci_frame_timer, ohci_frame_boundary, dev, 0);
     timer_add(&dev->ohci_port_reset_timer[0], ohci_port_reset_callback, dev, 0);
     timer_add(&dev->ohci_port_reset_timer[1], ohci_port_reset_callback_2, dev, 0);
 
