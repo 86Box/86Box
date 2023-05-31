@@ -419,7 +419,6 @@ pas16_pit_out(uint16_t port, uint8_t val, void *p)
                 if (!(val & 0x20)) {
                     if (val & 2)
                         pas16->pit.rl[0] = timer_get_remaining_u64(&pas16->pit.timer[0]) / PITCONST;
-                    ;
                     if (val & 4)
                         pas16->pit.rl[1] = pas16->pit.c[1];
                     if (val & 8)
@@ -700,12 +699,11 @@ void
 pas16_get_buffer(int32_t *buffer, int len, void *p)
 {
     pas16_t *pas16 = (pas16_t *) p;
-    int      c;
 
     int32_t *opl_buf = pas16->opl.update(pas16->opl.priv);
     sb_dsp_update(&pas16->dsp);
     pas16_update(pas16);
-    for (c = 0; c < len * 2; c++) {
+    for (int c = 0; c < len * 2; c++) {
         buffer[c] += opl_buf[c];
         buffer[c] += (int16_t) (sb_iir(0, c & 1, (double) pas16->dsp.buffer[c]) / 1.3) / 2;
         buffer[c] += (pas16->pcm_buffer[c & 1][c >> 1] / 2);

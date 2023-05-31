@@ -84,7 +84,8 @@ static void
 image_get_subchannel(cdrom_t *dev, uint32_t lba, subchannel_t *subc)
 {
     cd_img_t *img = (cd_img_t *) dev->image;
-    TMSF      rel_pos, abs_pos;
+    TMSF      rel_pos;
+    TMSF      abs_pos;
 
     cdi_get_audio_sub(img, lba, &subc->attr, &subc->track, &subc->index,
                       &rel_pos, &abs_pos);
@@ -102,17 +103,19 @@ static int
 image_get_capacity(cdrom_t *dev)
 {
     cd_img_t     *img = (cd_img_t *) dev->image;
-    int           first_track, last_track;
-    int           number, c;
+    int           first_track;
+    int           last_track;
+    int           number;
     unsigned char attr;
-    uint32_t      address = 0, lb = 0;
+    uint32_t      address = 0;
+    uint32_t      lb = 0;
 
     if (!img)
         return 0;
 
     cdi_get_audio_tracks_lba(img, &first_track, &last_track, &lb);
 
-    for (c = 0; c <= last_track; c++) {
+    for (int c = 0; c <= last_track; c++) {
         cdi_get_audio_track_info_lba(img, 0, c + 1, &number, &address, &attr);
         if (address > lb)
             lb = address;
@@ -127,8 +130,11 @@ image_is_track_audio(cdrom_t *dev, uint32_t pos, int ismsf)
     cd_img_t *img = (cd_img_t *) dev->image;
     uint8_t   attr;
     TMSF      tmsf;
-    int       m, s, f;
-    int       number, track;
+    int       m;
+    int       s;
+    int       f;
+    int       number;
+    int       track;
 
     if (!img || (dev->cd_status == CD_STATUS_DATA_ONLY))
         return 0;

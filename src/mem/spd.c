@@ -92,7 +92,9 @@ comp_ui16_rev(const void *elem1, const void *elem2)
 void
 spd_populate(uint16_t *rows, uint8_t slot_count, uint16_t total_size, uint16_t min_module_size, uint16_t max_module_size, uint8_t enable_asym)
 {
-    uint8_t  row, next_empty_row, split, i;
+    uint8_t  row;
+    uint8_t  next_empty_row;
+    uint8_t  split;
     uint16_t asym;
 
     /* Populate rows with modules in power-of-2 capacities. */
@@ -138,7 +140,7 @@ spd_populate(uint16_t *rows, uint8_t slot_count, uint16_t total_size, uint16_t m
 
             /* Find next empty row. */
             next_empty_row = 0;
-            for (i = row + 1; i < slot_count && !next_empty_row; i++) {
+            for (uint8_t i = row + 1; i < slot_count && !next_empty_row; i++) {
                 if (!rows[i])
                     next_empty_row = i;
             }
@@ -176,8 +178,13 @@ spd_write_part_no(char *part_no, char *type, uint16_t size)
 void
 spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 {
-    uint8_t      slot, slot_count, row, i;
-    uint16_t     min_module_size, rows[SPD_MAX_SLOTS], asym;
+    uint8_t      slot;
+    uint8_t      slot_count;
+    uint8_t      row;
+    uint8_t      i;
+    uint16_t     min_module_size;
+    uint16_t     rows[SPD_MAX_SLOTS];
+    uint16_t     asym;
     spd_edo_t   *edo_data;
     spd_sdram_t *sdram_data;
 
@@ -336,8 +343,11 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 void
 spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit)
 {
-    uint8_t  row, dimm, drb, apollo = 0;
-    uint16_t size, rows[SPD_MAX_SLOTS];
+    uint8_t  dimm;
+    uint8_t  drb;
+    uint8_t  apollo = 0;
+    uint16_t size;
+    uint16_t rows[SPD_MAX_SLOTS];
 
     /* Special case for VIA Apollo Pro family, which jumps from 5F to 56. */
     if (reg_max < reg_min) {
@@ -353,7 +363,7 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
 
     /* Write DRBs for each row. */
     spd_log("SPD: Writing DRBs... regs=[%02X:%02X] unit=%d\n", reg_min, reg_max, drb_unit);
-    for (row = 0; row <= (reg_max - reg_min); row++) {
+    for (uint8_t row = 0; row <= (reg_max - reg_min); row++) {
         dimm = (row >> 1);
         size = 0;
 
@@ -392,8 +402,11 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
 void
 spd_write_drbs_with_ext(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit)
 {
-    uint8_t  row, dimm, drb;
-    uint16_t size, row_val = 0, rows[SPD_MAX_SLOTS];
+    uint8_t  dimm;
+    uint8_t  drb;
+    uint16_t size;
+    uint16_t row_val = 0;
+    uint16_t rows[SPD_MAX_SLOTS];
     int      shift;
 
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
@@ -404,7 +417,7 @@ spd_write_drbs_with_ext(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t
 
     /* Write DRBs for each row. */
     spd_log("SPD: Writing DRBs... regs=[%02X:%02X] unit=%d\n", reg_min, reg_max, drb_unit);
-    for (row = 0; row <= (reg_max - reg_min); row++) {
+    for (uint8_t row = 0; row <= (reg_max - reg_min); row++) {
         dimm = (row >> 1);
         size = 0;
 
@@ -441,9 +454,10 @@ spd_write_drbs_with_ext(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t
 void
 spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit)
 {
-    uint8_t  row, dimm;
+    uint8_t  dimm;
     uint8_t  drb;
-    uint16_t size, size_acc = 0;
+    uint16_t size;
+    uint16_t size_acc = 0;
     uint16_t rows[SPD_MAX_SLOTS];
 
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
@@ -454,7 +468,7 @@ spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint
 
     /* Write DRBs for each row. */
     spd_log("SPD: Writing DRBs... regs=[%02X:%02X] unit=%d\n", reg_min, reg_max, drb_unit);
-    for (row = 0; row <= (reg_max - reg_min); row += 2) {
+    for (uint8_t row = 0; row <= (reg_max - reg_min); row += 2) {
         dimm = (row >> 2);
         size = 0;
 
@@ -493,7 +507,8 @@ spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint
 void
 spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max)
 {
-    uint8_t  dimm, drb;
+    uint8_t  dimm;
+    uint8_t  drb;
     uint16_t size;
     uint16_t rows[SPD_MAX_SLOTS];
 

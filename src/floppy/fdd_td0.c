@@ -237,11 +237,11 @@ dsk_identify(int drive)
 
     fdd_image_read(drive, header, 0, 2);
     if (header[0] == 'T' && header[1] == 'D')
-        return (1);
+        return 1;
     else if (header[0] == 't' && header[1] == 'd')
-        return (1);
+        return 1;
 
-    return (0);
+    return 0;
 }
 
 static int
@@ -259,7 +259,7 @@ state_data_read(td0dsk_t *state, uint8_t *buf, uint16_t size)
         fatal("TD0: Error reading data in state_data_read()\n");
     state->fdd_file_offset += size;
 
-    return (size);
+    return size;
 }
 
 static int
@@ -277,7 +277,7 @@ state_next_word(td0dsk_t *state)
         state->getlen += 8;
     }
 
-    return (0);
+    return 0;
 }
 
 /* get one bit */
@@ -293,9 +293,9 @@ state_GetBit(td0dsk_t *state)
     state->getbuf <<= 1;
     state->getlen--;
     if (i < 0)
-        return (1);
+        return 1;
 
-    return (0);
+    return 0;
 }
 
 /* get a byte */
@@ -305,7 +305,7 @@ state_GetByte(td0dsk_t *state)
     uint16_t i;
 
     if (state_next_word(state) != 0)
-        return (-1);
+        return -1;
 
     i = state->getbuf;
     state->getbuf <<= 8;
@@ -319,7 +319,8 @@ state_GetByte(td0dsk_t *state)
 static void
 state_StartHuff(td0dsk_t *state)
 {
-    int i, j;
+    int i;
+    int j;
 
     for (i = 0; i < N_CHAR; i++) {
         state->freq[i]     = 1;
@@ -343,8 +344,11 @@ state_StartHuff(td0dsk_t *state)
 static void
 state_reconst(td0dsk_t *state)
 {
-    int16_t  i, j, k;
-    uint16_t f, l;
+    int16_t  i;
+    int16_t  j;
+    int16_t  k;
+    uint16_t f;
+    uint16_t l;
 
     /* halven cumulative freq for leaf nodes */
     j = 0;
@@ -385,7 +389,10 @@ state_reconst(td0dsk_t *state)
 static void
 state_update(td0dsk_t *state, int c)
 {
-    int i, j, k, l;
+    int i;
+    int j;
+    int k;
+    int l;
 
     if (state->freq[R] == MAX_FREQ)
         state_reconst(state);
@@ -444,14 +451,16 @@ state_DecodeChar(td0dsk_t *state)
 
     state_update(state, c);
 
-    return (c);
+    return c;
 }
 
 static int16_t
 state_DecodePosition(td0dsk_t *state)
 {
     int16_t  bit;
-    uint16_t i, j, c;
+    uint16_t i;
+    uint16_t j;
+    uint16_t c;
 
     /* decode upper 6 bits from given table */
     if ((bit = state_GetByte(state)) < 0)
@@ -476,15 +485,13 @@ state_DecodePosition(td0dsk_t *state)
 static void
 state_init_Decode(td0dsk_t *state)
 {
-    int i;
-
     state->getbuf        = 0;
     state->getlen        = 0;
     state->tdctl.ibufcnt = state->tdctl.ibufndx = 0; /* input buffer is empty */
     state->tdctl.bufcnt                         = 0;
 
     state_StartHuff(state);
-    for (i = 0; i < N - F; i++)
+    for (uint16_t i = 0; i < N - F; i++)
         state->text_buf[i] = ' ';
 
     state->tdctl.r = N - F;
@@ -494,13 +501,14 @@ state_init_Decode(td0dsk_t *state)
 static int
 state_Decode(td0dsk_t *state, uint8_t *buf, int len)
 {
-    int16_t c, pos;
+    int16_t c;
+    int16_t pos;
     int     count; /* was an unsigned long, seems unnecessary */
 
     for (count = 0; count < len;) {
         if (state->tdctl.bufcnt == 0) {
             if ((c = state_DecodeChar(state)) < 0)
-                return (count); /* fatal error */
+                return count; /* fatal error */
             if (c < 256) {
                 *(buf++)                          = c & 0xff;
                 state->text_buf[state->tdctl.r++] = c & 0xff;
@@ -508,7 +516,7 @@ state_Decode(td0dsk_t *state, uint8_t *buf, int len)
                 count++;
             } else {
                 if ((pos = state_DecodePosition(state)) < 0)
-                    return (count); /* fatal error */
+                    return count; /* fatal error */
                 state->tdctl.bufpos = (state->tdctl.r - pos - 1) & (N - 1);
                 state->tdctl.bufcnt = c - 255 + THRESHOLD;
                 state->tdctl.bufndx = 0;
@@ -530,7 +538,7 @@ state_Decode(td0dsk_t *state, uint8_t *buf, int len)
         }
     }
 
-    return (count); /* count == len, success */
+    return count; /* count == len, success */
 }
 
 static uint32_t
@@ -578,7 +586,7 @@ get_raw_tsize(int side_flags, int slower_rpm)
             break;
     }
 
-    return (size);
+    return size;
 }
 
 static int
@@ -586,15 +594,19 @@ td0_initialize(int drive)
 {
     td0_t   *dev = td0[drive];
     uint8_t  header[12];
-    int      fm, head, track;
+    int      fm;
+    int      head;
+    int      track;
     int      track_count = 0;
     int      head_count  = 0;
-    int      track_spt, track_spt_adjusted;
+    int      track_spt;
+    int      track_spt_adjusted;
     int      offset    = 0;
     int      density   = 0;
     int      temp_rate = 0;
     uint32_t file_size;
-    uint16_t len, rep;
+    uint16_t len;
+    uint16_t rep;
     td0dsk_t disk_decode;
     uint8_t *hs;
     uint16_t size;
@@ -606,12 +618,15 @@ td0_initialize(int drive)
     int32_t  raw_tsize    = 0;
     uint32_t minimum_gap3 = 0;
     uint32_t minimum_gap4 = 0;
-    int      i, j, k;
-    int      size_diff, gap_sum;
+    int      i;
+    int      j;
+    int      k;
+    int      size_diff;
+    int      gap_sum;
 
     if (dev->f == NULL) {
         td0_log("TD0: Attempted to initialize without loading a file first\n");
-        return (0);
+        return 0;
     }
 
     fseek(dev->f, 0, SEEK_END);
@@ -619,12 +634,12 @@ td0_initialize(int drive)
 
     if (file_size < 12) {
         td0_log("TD0: File is too small to even contain the header\n");
-        return (0);
+        return 0;
     }
 
     if (file_size > TD0_MAX_BUFSZ) {
         td0_log("TD0: File exceeds the maximum size\n");
-        return (0);
+        return 0;
     }
 
     fseek(dev->f, 0, SEEK_SET);
@@ -652,14 +667,14 @@ td0_initialize(int drive)
     if (track_spt == 255) {
         /* Empty file? */
         td0_log("TD0: File has no tracks\n");
-        return (0);
+        return 0;
     }
 
     density = (header[5] >> 1) & 3;
 
     if (density == 3) {
         td0_log("TD0: Unknown density\n");
-        return (0);
+        return 0;
     }
 
     /*
@@ -737,7 +752,7 @@ td0_initialize(int drive)
             size = 128 << hs[3];
             if ((total_size + size) >= TD0_MAX_BUFSZ) {
                 td0_log("TD0: Processed buffer overflow\n");
-                return (0);
+                return 0;
             }
 
             if (hs[4] & 0x30)
@@ -747,7 +762,7 @@ td0_initialize(int drive)
                 switch (hs[8]) {
                     default:
                         td0_log("TD0: Image uses an unsupported sector data encoding: %i\n", hs[8]);
-                        return (0);
+                        return 0;
 
                     case 0:
                         memcpy(dbuf, &dev->imagebuf[offset], size);
@@ -862,7 +877,7 @@ td0_initialize(int drive)
 
     td0_log("TD0: File loaded: %i tracks, %i sides, disk flags: %02X, side flags: %02X, %02X, GAP3 length: %02X\n", dev->tracks, dev->sides, dev->disk_flags, dev->current_side_flags[0], dev->current_side_flags[1], dev->gap3_len);
 
-    return (1);
+    return 1;
 }
 
 static uint16_t
@@ -883,19 +898,19 @@ side_flags(int drive)
     side   = fdd_get_head(drive);
     sflags = dev->current_side_flags[side];
 
-    return (sflags);
+    return sflags;
 }
 
 static void
 set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 {
     td0_t *dev = td0[drive];
-    int    i = 0, cyl = c;
+    int    cyl = c;
 
     dev->current_sector_index[side] = 0;
     if (cyl != dev->track)
         return;
-    for (i = 0; i < dev->track_spt[cyl][side]; i++) {
+    for (uint8_t i = 0; i < dev->track_spt[cyl][side]; i++) {
         if ((dev->sects[cyl][side][i].track == c) && (dev->sects[cyl][side][i].head == h) && (dev->sects[cyl][side][i].sector == r) && (dev->sects[cyl][side][i].size == n)) {
             dev->current_sector_index[side] = i;
         }
@@ -915,9 +930,14 @@ track_is_xdf(int drive, int side, int track)
 {
     td0_t  *dev   = td0[drive];
     uint8_t id[4] = { 0, 0, 0, 0 };
-    int     i, effective_sectors, xdf_sectors;
-    int     high_sectors, low_sectors;
-    int     max_high_id, expected_high_count, expected_low_count;
+    int     i;
+    int     effective_sectors;
+    int     xdf_sectors;
+    int     high_sectors;
+    int     low_sectors;
+    int     max_high_id;
+    int     expected_high_count;
+    int     expected_low_count;
 
     effective_sectors = xdf_sectors = high_sectors = low_sectors = 0;
 
@@ -976,23 +996,24 @@ track_is_xdf(int drive, int side, int track)
 
         if ((effective_sectors == 3) && (xdf_sectors == 3)) {
             dev->current_side_flags[side] = 0x28;
-            return (1); /* 5.25" 2HD XDF */
+            return 1; /* 5.25" 2HD XDF */
         }
 
         if ((effective_sectors == 4) && (xdf_sectors == 4)) {
             dev->current_side_flags[side] = 0x08;
-            return (2); /* 3.5" 2HD XDF */
+            return 2; /* 3.5" 2HD XDF */
         }
     }
 
-    return (0);
+    return 0;
 }
 
 static int
 track_is_interleave(int drive, int side, int track)
 {
     td0_t *dev = td0[drive];
-    int    i, effective_sectors;
+    int    i;
+    int    effective_sectors;
     int    track_spt;
 
     effective_sectors = 0;
@@ -1003,7 +1024,7 @@ track_is_interleave(int drive, int side, int track)
     track_spt = dev->track_spt[track][side];
 
     if (track_spt != 21)
-        return (0);
+        return 0;
 
     for (i = 0; i < track_spt; i++) {
         if ((dev->sects[track][side][i].track == track) && (dev->sects[track][side][i].head == side) && (dev->sects[track][side][i].sector >= 1) && (dev->sects[track][side][i].sector <= track_spt) && (dev->sects[track][side][i].size == 2)) {
@@ -1013,18 +1034,18 @@ track_is_interleave(int drive, int side, int track)
     }
 
     if (effective_sectors == track_spt)
-        return (1);
+        return 1;
 
-    return (0);
+    return 0;
 }
 
 static void
 td0_seek(int drive, int track)
 {
     td0_t  *dev = td0[drive];
-    int     side;
     uint8_t id[4] = { 0, 0, 0, 0 };
-    int     sector, current_pos;
+    int     sector;
+    int     current_pos;
     int     ssize           = 512;
     int     track_rate      = 0;
     int     track_gap2      = 22;
@@ -1037,7 +1058,8 @@ td0_seek(int drive, int track)
     int     ordered_pos     = 0;
     int     real_sector     = 0;
     int     actual_sector   = 0;
-    int     fm, sector_adjusted;
+    int     fm;
+    int     sector_adjusted;
 
     if (dev->f == NULL)
         return;
@@ -1064,7 +1086,7 @@ td0_seek(int drive, int track)
         return;
     }
 
-    for (side = 0; side < dev->sides; side++) {
+    for (int side = 0; side < dev->sides; side++) {
         track_rate = dev->current_side_flags[side] & 7;
         /* Make sure 300 kbps @ 360 rpm is treated the same as 250 kbps @ 300 rpm. */
         if (!track_rate && (dev->current_side_flags[side] & 0x20))
@@ -1234,7 +1256,6 @@ void
 td0_close(int drive)
 {
     td0_t *dev = td0[drive];
-    int    i, j, k;
 
     if (dev == NULL)
         return;
@@ -1246,18 +1267,18 @@ td0_close(int drive)
     if (dev->processed_buf)
         free(dev->processed_buf);
 
-    for (i = 0; i < 256; i++) {
-        for (j = 0; j < 2; j++) {
-            for (k = 0; k < 256; k++)
+    for (uint16_t i = 0; i < 256; i++) {
+        for (uint8_t j = 0; j < 2; j++) {
+            for (uint16_t k = 0; k < 256; k++)
                 dev->sects[i][j][k].data = NULL;
         }
     }
 
-    for (i = 0; i < 256; i++) {
+    for (uint16_t i = 0; i < 256; i++) {
         memset(dev->side_flags[i], 0, 4);
         memset(dev->track_in_file[i], 0, 2);
         memset(dev->calculated_gap3_lengths[i], 0, 2);
-        for (j = 0; j < 2; j++)
+        for (uint8_t j = 0; j < 2; j++)
             memset(dev->sects[i][j], 0, sizeof(td0_sector_t));
     }
 

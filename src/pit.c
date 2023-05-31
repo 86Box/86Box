@@ -139,6 +139,9 @@ ctr_load_count(ctr_t *ctr)
     pit_log("ctr->count = %i\n", l);
     ctr->null_count = 0;
     ctr->newcount   = !!(l & 1);
+
+    /* Undocumented feature - writing MSB after reload after writing LSB causes an instant reload. */
+    ctr->incomplete = !!(ctr->wm & 0x80);
 }
 
 static void
@@ -146,16 +149,13 @@ ctr_tick(ctr_t *ctr)
 {
     uint8_t state = ctr->state;
 
-    if (state == 1) {
+    if ((state & 0x03) == 0x01) {
         /* This is true for all modes */
         ctr_load_count(ctr);
-        ctr->state = 2;
-        if ((ctr->m & 0x07) == 0x01)
+        ctr->state++;
+        if (((ctr->m & 0x07) == 0x01) && (ctr->state == 2))
             ctr_set_out(ctr, 0);
-        return;
-    }
-
-    switch (ctr->m & 0x07) {
+    } else  switch (ctr->m & 0x07) {
         case 0:
             /* Interrupt on terminal count */
             switch (state) {
@@ -176,11 +176,6 @@ ctr_tick(ctr_t *ctr)
         case 1:
             /* Hardware retriggerable one-shot */
             switch (state) {
-                case 1:
-                    ctr_load_count(ctr);
-                    ctr->state = 2;
-                    ctr_set_out(ctr, 0);
-                    break;
                 case 2:
                     if (ctr->count >= 1) {
                         ctr_decrease_count(ctr);
@@ -191,6 +186,7 @@ ctr_tick(ctr_t *ctr)
                     }
                     break;
                 case 3:
+                case 6:
                     ctr_decrease_count(ctr);
                     break;
             }
@@ -267,6 +263,7 @@ ctr_tick(ctr_t *ctr)
             if ((ctr->gate != 0) || (ctr->m != 4)) {
                 switch (state) {
                     case 0:
+                    case 6:
                         ctr_decrease_count(ctr);
                         break;
                     case 2:
@@ -310,9 +307,12 @@ static void
 ctr_set_state_1(ctr_t *ctr)
 {
     uint8_t mode = (ctr->m & 0x03);
+    int do_reload = !!ctr->incomplete || (ctr->state == 0);
 
-    if ((mode == 0) || ((mode > 1) && (ctr->state == 0)))
-        ctr->state = 1;
+    ctr->incomplete = 0;
+
+    if (do_reload)
+        ctr->state = 1 + ((mode == 1) << 2);
 }
 
 static void
@@ -606,6 +606,8 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
             break;
     }
 }
+
+extern uint8_t *ram;
 
 static uint8_t
 pit_read(uint16_t addr, void *priv)

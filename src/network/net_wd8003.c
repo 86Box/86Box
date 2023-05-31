@@ -194,9 +194,9 @@ wd_ram_write(uint32_t addr, uint8_t val, void *priv)
 static int
 wd_get_irq_index(wd_t *dev)
 {
-    uint8_t i, irq = 255;
+    uint8_t irq = 255;
 
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         if (we_int_table[i] == dev->irq)
             irq = i;
     }
@@ -285,7 +285,7 @@ wd_smc_read(wd_t *dev, uint32_t off)
     wdlog("%s: ASIC read addr=0x%02x, value=0x%04x\n",
           dev->name, (unsigned) off, (unsigned) retval);
 
-    return (retval);
+    return retval;
 }
 
 static void
@@ -423,7 +423,7 @@ wd_read(uint16_t addr, void *priv, int len)
         }
     }
 
-    return (retval);
+    return retval;
 }
 
 static uint8_t
@@ -776,7 +776,7 @@ wd_init(const device_t *info)
               dev->base_address, dev->irq, dev->ram_addr);
     }
 
-    return (dev);
+    return dev;
 }
 
 static void

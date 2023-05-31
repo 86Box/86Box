@@ -792,7 +792,6 @@ pic_irq_ack(void)
             /* If we are on AT, IRQ 2 is pending, and we cannot find a pending IRQ on PIC 2, fatal out. */
             fatal("IRQ %i pending on AT without a pending IRQ on PIC %i (normal)\n", pic.interrupt, pic.interrupt);
             exit(-1);
-            return -1;
         }
 
         pic.interrupt |= 0x40; /* Mark slave pending. */
@@ -823,7 +822,6 @@ picinterrupt(void)
                 /* If we are on AT, IRQ 2 is pending, and we cannot find a pending IRQ on PIC 2, fatal out. */
                 fatal("IRQ %i pending on AT without a pending IRQ on PIC %i (normal)\n", pic.interrupt, pic.interrupt);
                 exit(-1);
-                return -1;
             }
 
             pic.interrupt |= 0x40; /* Mark slave pending. */

@@ -168,11 +168,10 @@ static void
 pssj_get_buffer(int32_t *buffer, int len, void *p)
 {
     pssj_t *pssj = (pssj_t *) p;
-    int     c;
 
     pssj_update(pssj);
 
-    for (c = 0; c < len * 2; c++)
+    for (int c = 0; c < len * 2; c++)
         buffer[c] += pssj->buffer[c >> 1];
 
     pssj->pos = 0;

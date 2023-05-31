@@ -339,7 +339,8 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 {
     fdc37c93x_t *dev    = (fdc37c93x_t *) priv;
     uint8_t      index  = (port & 1) ? 0 : 1;
-    uint8_t      valxor = 0x00, keep = 0x00;
+    uint8_t      valxor = 0x00;
+    uint8_t      keep = 0x00;
 
     /* Compaq Presario 4500: Unlock at FB, Register at EA, Data at EB, Lock at F9. */
     if ((port == 0xea) || (port == 0xf9) || (port == 0xfb))
@@ -669,8 +670,6 @@ fdc37c93x_read(uint16_t port, void *priv)
 static void
 fdc37c93x_reset(fdc37c93x_t *dev)
 {
-    int i = 0;
-
     memset(dev->regs, 0, 48);
 
     dev->regs[0x03] = 0x03;
@@ -681,7 +680,7 @@ fdc37c93x_reset(fdc37c93x_t *dev)
     dev->regs[0x26] = 0xF0;
     dev->regs[0x27] = 0x03;
 
-    for (i = 0; i < 11; i++)
+    for (uint8_t i = 0; i < 11; i++)
         memset(dev->ld_regs[i], 0, 256);
 
     /* Logical device 0: FDD */

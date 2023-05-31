@@ -36,7 +36,8 @@ private:
     IDirect3DDevice9Ex   *d3d9dev     = nullptr;
     IDirect3DSurface9    *d3d9surface = nullptr;
 
-    std::atomic<bool> surfaceInUse { false }, finalized { false };
+    std::atomic<bool> surfaceInUse { false };
+    std::atomic<bool> finalized { false };
     bool              alreadyInitialized = false;
     int               m_monitor_index    = 0;
 };

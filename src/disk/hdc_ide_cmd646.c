@@ -96,7 +96,8 @@ cmd646_bus_master_dma(int channel, uint8_t *data, int transfer_length, int out, 
 static void
 cmd646_ide_handlers(cmd646_t *dev)
 {
-    uint16_t main, side;
+    uint16_t main;
+    uint16_t side;
     int      irq_mode[2] = { 0, 0 };
 
     ide_pri_disable();
