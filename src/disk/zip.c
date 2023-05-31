@@ -460,9 +460,7 @@ zip_log(const char *fmt, ...)
 int
 find_zip_for_channel(uint8_t channel)
 {
-    uint8_t i = 0;
-
-    for (i = 0; i < ZIP_NUM; i++) {
+    for (uint8_t i = 0; i < ZIP_NUM; i++) {
         if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && (zip_drives[i].ide_channel == channel))
             return i;
     }
@@ -753,9 +751,6 @@ zip_mode_sense(zip_t *dev, uint8_t *buf, uint32_t pos, uint8_t page, uint8_t blo
     else
         pf = zip_mode_sense_page_flags;
 
-    int i = 0;
-    int j = 0;
-
     uint8_t msplen;
 
     page &= 0x3f;
@@ -771,14 +766,14 @@ zip_mode_sense(zip_t *dev, uint8_t *buf, uint32_t pos, uint8_t page, uint8_t blo
         buf[pos++] = 0;
     }
 
-    for (i = 0; i < 0x40; i++) {
+    for (uint8_t i = 0; i < 0x40; i++) {
         if ((page == GPMODE_ALL_PAGES) || (page == i)) {
             if (pf & (1LL << ((uint64_t) page))) {
                 buf[pos++] = zip_mode_sense_read(dev, page_control, i, 0);
                 msplen     = zip_mode_sense_read(dev, page_control, i, 1);
                 buf[pos++] = msplen;
                 zip_log("ZIP %i: MODE SENSE: Page [%02X] length %i\n", dev->id, i, msplen);
-                for (j = 0; j < msplen; j++)
+                for (uint8_t j = 0; j < msplen; j++)
                     buf[pos++] = zip_mode_sense_read(dev, page_control, i, 2 + j);
             }
         }
@@ -790,7 +785,8 @@ zip_mode_sense(zip_t *dev, uint8_t *buf, uint32_t pos, uint8_t page, uint8_t blo
 static void
 zip_update_request_length(zip_t *dev, int len, int block_len)
 {
-    int bt, min_len = 0;
+    int bt;
+    int min_len = 0;
 
     dev->max_transfer_len = dev->request_length;
 
@@ -865,7 +861,8 @@ zip_bus_speed(zip_t *dev)
 static void
 zip_command_common(zip_t *dev)
 {
-    double bytes_per_second, period;
+    double bytes_per_second;
+    double period;
 
     dev->status = BUSY_STAT;
     dev->phase  = 1;
@@ -1122,7 +1119,6 @@ static int
 zip_blocks(zip_t *dev, int32_t *len, int first_batch, int out)
 {
     *len = 0;
-    int i;
 
     if (!dev->sector_len) {
         zip_command_complete(dev);
@@ -1139,7 +1135,7 @@ zip_blocks(zip_t *dev, int32_t *len, int first_batch, int out)
 
     *len = dev->requested_blocks << 9;
 
-    for (i = 0; i < dev->requested_blocks; i++) {
+    for (int i = 0; i < dev->requested_blocks; i++) {
         if (fseek(dev->drv->f, dev->drv->base + (dev->sector_pos << 9) + (i << 9), SEEK_SET) == 1)
             break;
 
@@ -1355,12 +1351,15 @@ static void
 zip_command(scsi_common_t *sc, uint8_t *cdb)
 {
     zip_t   *dev = (zip_t *) sc;
-    int      pos = 0, block_desc = 0;
+    int      pos = 0;
+    int      block_desc = 0;
     int      ret;
-    int32_t  len, max_len;
+    int32_t  len;
+    int32_t  max_len;
     int32_t  alloc_length;
     uint32_t i = 0;
-    int      size_idx, idx = 0;
+    int      size_idx;
+    int      idx = 0;
     unsigned preamble_len;
     int32_t  blen = 0;
     int32_t *BufLen;
@@ -2032,18 +2031,25 @@ zip_phase_data_out(scsi_common_t *sc)
 {
     zip_t *dev = (zip_t *) sc;
 
-    uint16_t block_desc_len, pos;
+    uint16_t block_desc_len;
+    uint16_t pos;
     uint16_t param_list_len;
 
     uint8_t error = 0;
-    uint8_t page, page_len;
+    uint8_t page;
+    uint8_t page_len;
 
     uint32_t i = 0;
 
-    uint8_t hdr_len, val, old_val, ch;
+    uint8_t hdr_len;
+    uint8_t val;
+    uint8_t old_val;
+    uint8_t ch;
 
     uint32_t last_to_write = 0;
-    uint32_t c, h, s;
+    uint32_t c;
+    uint32_t h;
+    uint32_t s;
 
     int len = 0;
 
@@ -2325,10 +2331,10 @@ void
 zip_hard_reset(void)
 {
     zip_t  *dev;
-    int     c;
-    uint8_t scsi_id, scsi_bus;
+    uint8_t scsi_id;
+    uint8_t scsi_bus;
 
-    for (c = 0; c < ZIP_NUM; c++) {
+    for (uint8_t c = 0; c < ZIP_NUM; c++) {
         if ((zip_drives[c].bus_type == ZIP_BUS_ATAPI) || (zip_drives[c].bus_type == ZIP_BUS_SCSI)) {
             zip_log("ZIP hard_reset drive=%d\n", c);
 
@@ -2375,10 +2381,10 @@ void
 zip_close(void)
 {
     zip_t  *dev;
-    int     c;
-    uint8_t scsi_bus, scsi_id;
+    uint8_t scsi_bus;
+    uint8_t scsi_id;
 
-    for (c = 0; c < ZIP_NUM; c++) {
+    for (uint8_t c = 0; c < ZIP_NUM; c++) {
         if (zip_drives[c].bus_type == ZIP_BUS_SCSI) {
             scsi_bus = (zip_drives[c].scsi_device_id >> 4) & 0x0f;
             scsi_id  = zip_drives[c].scsi_device_id & 0x0f;

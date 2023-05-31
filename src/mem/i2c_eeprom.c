@@ -117,7 +117,7 @@ uint8_t
 log2i(uint32_t i)
 {
     uint8_t ret = 0;
-    while ((i >>= 1))
+    while (i >>= 1)
         ret++;
     return ret;
 }

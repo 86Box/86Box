@@ -21,7 +21,6 @@ void *
 sid_init(void)
 {
     //    psid_t *psid;
-    int             c;
     sampling_method method         = SAMPLE_INTERPOLATE;
     float           cycles_per_sec = 14318180.0 / 16.0;
 
@@ -40,7 +39,7 @@ sid_init(void)
 
     psid->sid->reset();
 
-    for (c = 0; c < 32; c++)
+    for (uint8_t c = 0; c < 32; c++)
         psid->sid->write(c, 0);
 
     if (!psid->sid->set_sampling_parameters((float) cycles_per_sec, method,
@@ -70,11 +69,10 @@ void
 sid_reset(UNUSED(void *p))
 {
     //    psid_t *psid = (psid_t *)p;
-    int c;
 
     psid->sid->reset();
 
-    for (c = 0; c < 32; c++)
+    for (uint8_t c = 0; c < 32; c++)
         psid->sid->write(c, 0);
 }
 

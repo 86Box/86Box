@@ -357,7 +357,7 @@ int
 net_pcap_prepare(netdev_t *list)
 {
     char       errbuf[PCAP_ERRBUF_SIZE];
-    pcap_if_t *devlist, *dev;
+    pcap_if_t *devlist;
     int        i = 0;
 
     /* Try loading the DLL. */
@@ -379,7 +379,7 @@ net_pcap_prepare(netdev_t *list)
         return (-1);
     }
 
-    for (dev = devlist; dev != NULL; dev = dev->next) {
+    for (pcap_if_t *dev = devlist; dev != NULL; dev = dev->next) {
         if (i >= (NET_HOST_INTF_MAX - 1))
             break;
 
@@ -405,7 +405,16 @@ net_pcap_prepare(netdev_t *list)
     /* Release the memory. */
     f_pcap_freealldevs(devlist);
 
-    return (i);
+    return i;
+}
+
+/*
+ * Copy error message to the error buffer
+ * and log if enabled.
+ */
+void net_pcap_error(char *errbuf, const char *message) {
+    strncpy(errbuf, message, NET_DRV_ERRBUF_SIZE);
+    pcap_log("PCAP: %s\n", message);
 }
 
 /*
@@ -416,18 +425,19 @@ net_pcap_prepare(netdev_t *list)
  * tries to attach to the network module.
  */
 void *
-net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
+net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char *netdrv_errbuf)
 {
     char               errbuf[PCAP_ERRBUF_SIZE];
     char              *str;
     char               filter_exp[255];
     struct bpf_program fp;
+    char errbuf_prep[NET_DRV_ERRBUF_SIZE];
 
     char *intf_name = (char *) priv;
 
     /* Did we already load the library? */
     if (libpcap_handle == NULL) {
-        pcap_log("PCAP: net_pcap_init without handle.\n");
+        net_pcap_error(netdrv_errbuf, "net_pcap_init without handle");
         return NULL;
     }
 
@@ -440,7 +450,7 @@ net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
 
     /* Get the value of our capture interface. */
     if ((intf_name[0] == '\0') || !strcmp(intf_name, "none")) {
-        pcap_log("PCAP: no interface configured!\n");
+        net_pcap_error(netdrv_errbuf, "No interface configured");
         return NULL;
     }
 
@@ -451,7 +461,8 @@ net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
     memcpy(pcap->mac_addr, mac_addr, sizeof(pcap->mac_addr));
 
     if ((pcap->pcap = f_pcap_create(intf_name, errbuf)) == NULL) {
-        pcap_log(" Unable to open device: %s!\n", intf_name);
+        snprintf(errbuf_prep, NET_DRV_ERRBUF_SIZE, " Unable to open device: %s!\n", intf_name);
+        net_pcap_error(netdrv_errbuf, errbuf_prep);
         free(pcap);
         return NULL;
     }
@@ -469,7 +480,8 @@ net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
         pcap_log("PCAP: error setting snaplen\n");
 
     if (f_pcap_activate((void *) pcap->pcap) != 0) {
-        pcap_log("PCAP: failed pcap_activate");
+        snprintf(errbuf_prep, NET_DRV_ERRBUF_SIZE, "%s", (char *)f_pcap_geterr(pcap->pcap));
+        net_pcap_error(netdrv_errbuf, errbuf_prep);
         f_pcap_close((void *) pcap->pcap);
         free(pcap);
         return NULL;
@@ -484,13 +496,15 @@ net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
     if (f_pcap_compile((void *) pcap->pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
         if (f_pcap_setfilter((void *) pcap->pcap, &fp) != 0) {
-            pcap_log("PCAP: error installing filter (%s) !\n", filter_exp);
+            snprintf(errbuf_prep, NET_DRV_ERRBUF_SIZE, "Error installing filter (%s)\n", filter_exp);
+            net_pcap_error(netdrv_errbuf, errbuf_prep);
             f_pcap_close((void *) pcap->pcap);
             free(pcap);
             return NULL;
         }
     } else {
-        pcap_log("PCAP: could not compile filter (%s) : %s!\n", filter_exp, f_pcap_geterr((void *) pcap->pcap));
+        snprintf(errbuf_prep, NET_DRV_ERRBUF_SIZE, "Could not compile filter (%s) : %s!\n", filter_exp, (char *)f_pcap_geterr((void *) pcap->pcap));
+        net_pcap_error(netdrv_errbuf, errbuf_prep);
         f_pcap_close((void *) pcap->pcap);
         free(pcap);
         return NULL;

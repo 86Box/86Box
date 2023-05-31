@@ -439,7 +439,7 @@ pc_init(int argc, char *argv[])
     }
     if (!strncmp(exe_path, "/private/var/folders/", 21)) {
         ui_msgbox_header(MBX_FATAL, L"App Translocation", EMU_NAME_W L" cannot determine the emulated machine's location due to a macOS security feature. Please move the " EMU_NAME_W L" app to another folder (not /Applications), or make a copy of it and open that copy instead.");
-        return (0);
+        return 0;
     }
 #elif !defined(_WIN32)
     /* Grab the actual path if we are an AppImage. */
@@ -874,7 +874,6 @@ pc_init_modules(void)
         if (machine == -1) {
             fatal("No available machines\n");
             exit(-1);
-            return 0;
         }
     }
 
@@ -897,7 +896,6 @@ pc_init_modules(void)
         if (gfxcard[0] == -1) {
             fatal("No available video cards\n");
             exit(-1);
-            return 0;
         }
     }
 

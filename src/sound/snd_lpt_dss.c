@@ -77,13 +77,12 @@ static void
 dss_get_buffer(int32_t *buffer, int len, void *p)
 {
     dss_t  *dss = (dss_t *) p;
-    int     c;
     int16_t val;
     float   fval;
 
     dss_update(dss);
 
-    for (c = 0; c < len * 2; c += 2) {
+    for (int c = 0; c < len * 2; c += 2) {
         fval = dss_iir((float) dss->buffer[c >> 1]);
         val  = (float) fval;
 

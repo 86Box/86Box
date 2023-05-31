@@ -1219,3 +1219,9 @@ msgstr "mükemmel RPM değerinin 2% altı"
 msgid "(System Default)"
 msgstr "(Sistem Varsayılanı)"
 
+msgid "Failed to initialize network driver"
+msgstr "Failed to initialize network driver"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "The network configuration will be switched to the null driver"
+

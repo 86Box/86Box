@@ -90,8 +90,7 @@ SettingsNetwork::save()
         if (net_cards_conf[i].net_type == NET_TYPE_PCAP) {
             strncpy(net_cards_conf[i].host_dev_name, network_devs[cbox->currentData().toInt()].device, sizeof(net_cards_conf[i].host_dev_name) - 1);
         } else if (net_cards_conf[i].net_type == NET_TYPE_VDE) {
-            const char *str_socket = socket_line->text().toStdString().c_str();
-            strncpy(net_cards_conf[i].host_dev_name, str_socket, strlen(str_socket));
+            strncpy(net_cards_conf[i].host_dev_name, socket_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
         }
     }
 }

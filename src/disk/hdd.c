@@ -41,23 +41,23 @@ hdd_init(void)
     /* Clear all global data. */
     memset(hdd, 0x00, sizeof(hdd));
 
-    return (0);
+    return 0;
 }
 
 int
 hdd_string_to_bus(char *str, int cdrom)
 {
     if (!strcmp(str, "none"))
-        return (HDD_BUS_DISABLED);
+        return HDD_BUS_DISABLED;
 
     if (!strcmp(str, "mfm") || !strcmp(str, "rll")) {
         if (cdrom) {
 no_cdrom:
             ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2131, (wchar_t *) IDS_4099);
-            return (0);
+            return 0;
         }
 
-        return (HDD_BUS_MFM);
+        return HDD_BUS_MFM;
     }
 
     /* FIXME: delete 'rll' in a year or so.. --FvK */
@@ -65,40 +65,40 @@ no_cdrom:
         if (cdrom)
             goto no_cdrom;
 
-        return (HDD_BUS_ESDI);
+        return HDD_BUS_ESDI;
     }
 
     if (!strcmp(str, "ide_pio_only"))
-        return (HDD_BUS_IDE);
+        return HDD_BUS_IDE;
 
     if (!strcmp(str, "ide"))
-        return (HDD_BUS_IDE);
+        return HDD_BUS_IDE;
 
     if (!strcmp(str, "atapi_pio_only"))
-        return (HDD_BUS_ATAPI);
+        return HDD_BUS_ATAPI;
 
     if (!strcmp(str, "atapi"))
-        return (HDD_BUS_ATAPI);
+        return HDD_BUS_ATAPI;
 
     if (!strcmp(str, "eide"))
-        return (HDD_BUS_IDE);
+        return HDD_BUS_IDE;
 
     if (!strcmp(str, "xta"))
-        return (HDD_BUS_XTA);
+        return HDD_BUS_XTA;
 
     if (!strcmp(str, "atide"))
-        return (HDD_BUS_IDE);
+        return HDD_BUS_IDE;
 
     if (!strcmp(str, "ide_pio_and_dma"))
-        return (HDD_BUS_IDE);
+        return HDD_BUS_IDE;
 
     if (!strcmp(str, "atapi_pio_and_dma"))
-        return (HDD_BUS_ATAPI);
+        return HDD_BUS_ATAPI;
 
     if (!strcmp(str, "scsi"))
-        return (HDD_BUS_SCSI);
+        return HDD_BUS_SCSI;
 
-    return (0);
+    return 0;
 }
 
 char *
@@ -136,22 +136,22 @@ hdd_bus_to_string(int bus, int cdrom)
             break;
     }
 
-    return (s);
+    return s;
 }
 
 int
 hdd_is_valid(int c)
 {
     if (hdd[c].bus == HDD_BUS_DISABLED)
-        return (0);
+        return 0;
 
     if (strlen(hdd[c].fn) == 0)
-        return (0);
+        return 0;
 
     if ((hdd[c].tracks == 0) || (hdd[c].hpc == 0) || (hdd[c].spt == 0))
-        return (0);
+        return 0;
 
-    return (1);
+    return 1;
 }
 
 double
@@ -204,8 +204,9 @@ static void
 hdd_readahead_update(hard_disk_t *hdd)
 {
     uint64_t elapsed_cycles;
-    double   elapsed_us, seek_time;
-    uint32_t max_read_ahead, i;
+    double   elapsed_us;
+    double   seek_time;
+    uint32_t max_read_ahead;
     uint32_t space_needed;
 
     hdd_cache_t *cache = &hdd->cache;
@@ -219,7 +220,7 @@ hdd_readahead_update(hard_disk_t *hdd)
 
         seek_time = 0.0;
 
-        for (i = 0; i < max_read_ahead; i++) {
+        for (uint32_t i = 0; i < max_read_ahead; i++) {
             seek_time += hdd_seek_get_time(hdd, segment->ra_addr, HDD_OP_READ, 1, elapsed_us - seek_time);
             if (seek_time > elapsed_us)
                 break;
@@ -252,7 +253,8 @@ static void
 hdd_writecache_update(hard_disk_t *hdd)
 {
     uint64_t elapsed_cycles;
-    double   elapsed_us, seek_time;
+    double   elapsed_us;
+    double   seek_time;
 
     if (hdd->cache.write_pending) {
         elapsed_cycles = tsc - hdd->cache.write_start_time;
@@ -383,13 +385,12 @@ static void
 hdd_cache_init(hard_disk_t *hdd)
 {
     hdd_cache_t *cache = &hdd->cache;
-    uint32_t     i;
 
     cache->ra_segment    = 0;
     cache->ra_ongoing    = 0;
     cache->ra_start_time = 0;
 
-    for (i = 0; i < cache->num_segments; i++) {
+    for (uint32_t i = 0; i < cache->num_segments; i++) {
         cache->segments[i].valid     = 0;
         cache->segments[i].lru       = 0;
         cache->segments[i].id        = i;
@@ -401,12 +402,13 @@ hdd_cache_init(hard_disk_t *hdd)
 static void
 hdd_zones_init(hard_disk_t *hdd)
 {
-    uint32_t    lba = 0, track = 0;
-    uint32_t    i, tracks;
+    uint32_t    lba = 0;
+    uint32_t    track = 0;
+    uint32_t    tracks;
     double      revolution_usec = 60.0 / (double) hdd->rpm * 1000000.0;
     hdd_zone_t *zone;
 
-    for (i = 0; i < hdd->num_zones; i++) {
+    for (uint32_t i = 0; i < hdd->num_zones; i++) {
         zone                   = &hdd->zones[i];
         zone->start_sector     = lba;
         zone->start_track      = track;
@@ -467,10 +469,15 @@ void
 hdd_preset_apply(int hdd_id)
 {
     hard_disk_t *hd = &hdd[hdd_id];
-    double       revolution_usec, zone_percent;
-    uint32_t     disk_sectors, sectors_per_surface, cylinders, cylinders_per_zone;
-    uint32_t     total_sectors = 0, i;
-    uint32_t     spt, zone_sectors;
+    double       revolution_usec;
+    double       zone_percent;
+    uint32_t     disk_sectors;
+    uint32_t     sectors_per_surface;
+    uint32_t     cylinders;
+    uint32_t     cylinders_per_zone;
+    uint32_t     total_sectors = 0;
+    uint32_t     spt;
+    uint32_t     zone_sectors;
 
     if (hd->speed_preset >= hdd_preset_get_num())
         hd->speed_preset = 0;
@@ -503,7 +510,7 @@ hdd_preset_apply(int hdd_id)
     hd->phy_cyl         = cylinders;
     cylinders_per_zone  = cylinders / preset->zones;
 
-    for (i = 0; i < preset->zones; i++) {
+    for (uint32_t i = 0; i < preset->zones; i++) {
         zone_percent = i * 100 / (double) preset->zones;
 
         if (i < preset->zones - 1) {

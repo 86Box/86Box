@@ -1218,3 +1218,10 @@ msgstr "低於標準轉速的 2%"
 
 msgid "(System Default)"
 msgstr "(系統預設)"
+
+msgid "Failed to initialize network driver"
+msgstr "Failed to initialize network driver"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "The network configuration will be switched to the null driver"
+

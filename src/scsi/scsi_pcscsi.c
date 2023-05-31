@@ -360,7 +360,8 @@ static uint32_t
 esp_get_cmd(esp_t *dev, uint32_t maxlen)
 {
     uint8_t  buf[ESP_CMDFIFO_SZ];
-    uint32_t dmalen, n;
+    uint32_t dmalen;
+    uint32_t n;
 
     dev->id = dev->wregs[ESP_WBUSID] & BUSID_DID;
     if (dev->dma) {
@@ -1313,7 +1314,8 @@ esp_io_pci_read(esp_t *dev, uint32_t addr, unsigned int size)
 static void
 esp_io_pci_write(esp_t *dev, uint32_t addr, uint32_t val, unsigned int size)
 {
-    uint32_t current, mask;
+    uint32_t current;
+    uint32_t mask;
     int      shift;
 
     addr &= 0x7f;
@@ -1691,7 +1693,7 @@ esp_pci_read(int func, int addr, void *p)
             return esp_pci_regs[addr];
     }
 
-    return (0);
+    return 0;
 }
 
 static void
@@ -1844,7 +1846,7 @@ dc390_init(const device_t *info)
 
     timer_add(&dev->timer, esp_callback, dev, 0);
 
-    return (dev);
+    return dev;
 }
 
 static uint16_t
@@ -2011,7 +2013,7 @@ ncr53c90_mca_init(const device_t *info)
 
     timer_add(&dev->timer, esp_callback, dev, 0);
 
-    return (dev);
+    return dev;
 }
 
 static void
