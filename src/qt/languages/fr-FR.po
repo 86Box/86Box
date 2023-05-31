@@ -1219,3 +1219,9 @@ msgstr "Précision RPM de moins 2%"
 msgid "(System Default)"
 msgstr "(Défaut du système)"
 
+msgid "Failed to initialize network driver"
+msgstr "Failed to initialize network driver"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "The network configuration will be switched to the null driver"
+

@@ -145,7 +145,7 @@ xtide_init(const device_t *info)
                   xtide_read, NULL, NULL,
                   xtide_write, NULL, NULL, xtide);
 
-    return (xtide);
+    return xtide;
 }
 
 static int
@@ -177,7 +177,7 @@ xtide_at_init(const device_t *info)
 
     device_add(&ide_isa_2ch_device);
 
-    return (xtide);
+    return xtide;
 }
 
 static int
@@ -208,7 +208,7 @@ xtide_acculogic_init(const device_t *info)
                   xtide_read, NULL, NULL,
                   xtide_write, NULL, NULL, xtide);
 
-    return (xtide);
+    return xtide;
 }
 
 static int
@@ -239,7 +239,7 @@ xtide_at_ps2_init(const device_t *info)
 
     device_add(&ide_isa_2ch_device);
 
-    return (xtide);
+    return xtide;
 }
 
 static int

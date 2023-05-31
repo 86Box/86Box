@@ -200,7 +200,7 @@ SettingsMachine::on_comboBoxMachine_currentIndexChanged(int index)
     ui->comboBoxCPU->setCurrentIndex(selectedCpuFamilyRow);
 
     int divisor;
-    if ((machine_get_ram_granularity(machineId) < 1024)) {
+    if (machine_get_ram_granularity(machineId) < 1024) {
         divisor = 1;
         ui->spinBoxRAM->setSuffix(QCoreApplication::translate("", "KB").prepend(' '));
     } else {

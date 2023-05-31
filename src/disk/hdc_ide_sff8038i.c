@@ -302,7 +302,8 @@ sff_bus_master_dma(int channel, uint8_t *data, int transfer_length, int out, voi
     char *sop;
 #endif
 
-    int force_end = 0, buffer_pos = 0;
+    int force_end = 0;
+    int buffer_pos = 0;
 
 #ifdef ENABLE_SFF_LOG
     sop = out ? "Read" : "Writ";

@@ -369,7 +369,7 @@ get_sector(hdc_t *dev, drive_t *drive, off64_t *addr)
     if (!drive->present) {
         /* No need to log this. */
         dev->error = dev->nr_err;
-        return (0);
+        return 0;
     }
 
 #if 0
@@ -387,19 +387,19 @@ get_sector(hdc_t *dev, drive_t *drive, off64_t *addr)
         st506_xt_log("ST506: get_sector: past end of configured heads\n");
 #endif
         dev->error = ERR_ILLEGAL_ADDR;
-        return (0);
+        return 0;
     }
     if (dev->sector >= drive->cfg_spt) {
 #ifdef ENABLE_ST506_XT_LOG
         st506_xt_log("ST506: get_sector: past end of configured sectors\n");
 #endif
         dev->error = ERR_ILLEGAL_ADDR;
-        return (0);
+        return 0;
     }
 
     *addr = ((((off64_t) dev->cylinder * drive->cfg_hpc) + dev->head) * drive->cfg_spt) + dev->sector;
 
-    return (1);
+    return 1;
 }
 
 static void
@@ -446,12 +446,12 @@ get_chs(hdc_t *dev, drive_t *drive)
          * result in an ERR_ILLEGAL_ADDR.  --FvK
          */
         drive->cylinder = drive->cfg_cyl - 1;
-        return (0);
+        return 0;
     }
 
     drive->cylinder = dev->cylinder;
 
-    return (1);
+    return 1;
 }
 
 static void
@@ -1217,7 +1217,7 @@ st506_read(uint16_t port, void *priv)
     }
     st506_xt_log("ST506: read(%04x) = %02x\n", port, ret);
 
-    return (ret);
+    return ret;
 }
 
 /* Write to one of the registers. */
@@ -1287,7 +1287,8 @@ static void
 mem_write(uint32_t addr, uint8_t val, void *priv)
 {
     hdc_t   *dev = (hdc_t *) priv;
-    uint32_t ptr, mask = 0;
+    uint32_t ptr;
+    uint32_t mask = 0;
 
     /* Ignore accesses to anything below the configured address,
        needed because of the emulator's 4k mapping granularity. */
@@ -1317,7 +1318,8 @@ static uint8_t
 mem_read(uint32_t addr, void *priv)
 {
     hdc_t   *dev = (hdc_t *) priv;
-    uint32_t ptr, mask = 0;
+    uint32_t ptr;
+    uint32_t mask = 0;
     uint8_t  ret = 0xff;
 
     /* Ignore accesses to anything below the configured address,
@@ -1373,7 +1375,7 @@ mem_read(uint32_t addr, void *priv)
     else
         ret = dev->bios_rom.rom[addr];
 
-    return (ret);
+    return ret;
 }
 
 /*
@@ -1467,12 +1469,11 @@ static void
 set_switches(hdc_t *dev, hd_type_t *hdt, int num)
 {
     drive_t *drive;
-    int      c, d;
     int      e;
 
     dev->switches = 0x00;
 
-    for (d = 0; d < MFM_NUM; d++) {
+    for (uint8_t d = 0; d < MFM_NUM; d++) {
         drive = &dev->drives[d];
 
         if (!drive->present) {
@@ -1481,7 +1482,7 @@ set_switches(hdc_t *dev, hd_type_t *hdt, int num)
             continue;
         }
 
-        for (c = 0; c < num; c++) {
+        for (int c = 0; c < num; c++) {
             /* Does the Xebec also support more than 4 types? */
             if ((drive->spt == hdt[c].spt) && (drive->hpc == hdt[c].hpc) && (drive->tracks == hdt[c].tracks)) {
                 /* Olivetti M24/M240: Move the upper 2 bites up by 2 bits, as the
@@ -1511,7 +1512,8 @@ st506_init(const device_t *info)
 {
     char  *fn = NULL;
     hdc_t *dev;
-    int    i, c;
+    int    i;
+    int    c;
 
     dev = (hdc_t *) malloc(sizeof(hdc_t));
     memset(dev, 0x00, sizeof(hdc_t));
@@ -1703,7 +1705,7 @@ st506_init(const device_t *info)
         dev->drives[c].cfg_spt = dev->drives[c].spt;
     }
 
-    return (dev);
+    return dev;
 }
 
 static void
@@ -1711,9 +1713,8 @@ st506_close(void *priv)
 {
     hdc_t   *dev = (hdc_t *) priv;
     drive_t *drive;
-    int      d;
 
-    for (d = 0; d < MFM_NUM; d++) {
+    for (uint8_t d = 0; d < MFM_NUM; d++) {
         drive = &dev->drives[d];
 
         hdd_image_close(drive->hdd_num);

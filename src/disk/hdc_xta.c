@@ -308,25 +308,25 @@ get_sector(hdc_t *dev, drive_t *drive, off64_t *addr)
         xta_log("%s: get_sector: wrong cylinder %d/%d\n",
                 dev->name, drive->cur_cyl, dev->track);
         dev->sense = ERR_ILLADDR;
-        return (1);
+        return 1;
     }
 
     if (dev->head >= drive->hpc) {
         xta_log("%s: get_sector: past end of heads\n", dev->name);
         dev->sense = ERR_ILLADDR;
-        return (1);
+        return 1;
     }
 
     if (dev->sector >= drive->spt) {
         xta_log("%s: get_sector: past end of sectors\n", dev->name);
         dev->sense = ERR_ILLADDR;
-        return (1);
+        return 1;
     }
 
     /* Calculate logical address (block number) of desired sector. */
     *addr = ((((off64_t) dev->track * drive->hpc) + dev->head) * drive->spt) + dev->sector;
 
-    return (0);
+    return 0;
 }
 
 static void
@@ -375,10 +375,11 @@ do_seek(hdc_t *dev, drive_t *drive, int cyl)
 static void
 do_format(hdc_t *dev, drive_t *drive, dcb_t *dcb)
 {
-    int     start_cyl, end_cyl;
-    int     start_hd, end_hd;
+    int     start_cyl;
+    int     end_cyl;
+    int     start_hd;
+    int     end_hd;
     off64_t addr;
-    int     h, s;
 
     /* Get the parameters from the DCB. */
     if (dcb->cmd == CMD_FORMAT_DRIVE) {
@@ -413,8 +414,8 @@ do_fmt:
              * data to fill the sectors with, so we will use
              * that at least.
              */
-            for (h = start_hd; h < end_hd; h++) {
-                for (s = 0; s < drive->spt; s++) {
+            for (int h = start_hd; h < end_hd; h++) {
+                for (uint8_t s = 0; s < drive->spt; s++) {
                     /* Set the sector we need to write. */
                     dev->head   = h;
                     dev->sector = s;
@@ -901,7 +902,7 @@ hdc_read(uint16_t port, void *priv)
             break;
     }
 
-    return (ret);
+    return ret;
 }
 
 /* Write to one of the controller registers. */
@@ -970,7 +971,7 @@ xta_init(const device_t *info)
     char    *bios_rev = NULL;
     char    *fn       = NULL;
     hdc_t   *dev;
-    int      c, i;
+    int      c;
     int      max = XTA_NUM;
 
     /* Allocate and initialize device block. */
@@ -1007,7 +1008,7 @@ xta_init(const device_t *info)
 
     /* Load any disks for this device class. */
     c = 0;
-    for (i = 0; i < HDD_NUM; i++) {
+    for (uint8_t i = 0; i < HDD_NUM; i++) {
         if ((hdd[i].bus == HDD_BUS_XTA) && (hdd[i].xta_channel < max)) {
             drive = &dev->drives[hdd[i].xta_channel];
 
@@ -1051,7 +1052,7 @@ xta_init(const device_t *info)
     /* Create a timer for command delays. */
     timer_add(&dev->timer, hdc_callback, dev, 0);
 
-    return (dev);
+    return dev;
 }
 
 static void
@@ -1059,14 +1060,13 @@ xta_close(void *priv)
 {
     hdc_t   *dev = (hdc_t *) priv;
     drive_t *drive;
-    int      d;
 
     /* Remove the I/O handler. */
     io_removehandler(dev->base, 4,
                      hdc_read, NULL, NULL, hdc_write, NULL, NULL, dev);
 
     /* Close all disks and their images. */
-    for (d = 0; d < XTA_NUM; d++) {
+    for (uint8_t d = 0; d < XTA_NUM; d++) {
         drive = &dev->drives[d];
 
         hdd_image_close(drive->hdd_num);

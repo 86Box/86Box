@@ -1219,3 +1219,9 @@ msgstr "2%低い回転数"
 msgid "(System Default)"
 msgstr "(システム既定値)"
 
+msgid "Failed to initialize network driver"
+msgstr "Failed to initialize network driver"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "The network configuration will be switched to the null driver"
+

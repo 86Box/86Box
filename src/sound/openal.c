@@ -111,9 +111,12 @@ closeal(void)
 void
 inital(void)
 {
-    float   *buf = NULL, *cd_buf = NULL, *midi_buf = NULL;
-    int16_t *buf_int16 = NULL, *cd_buf_int16 = NULL, *midi_buf_int16 = NULL;
-    int      c;
+    float   *buf            = NULL;
+    float   *cd_buf         = NULL;
+    float   *midi_buf       = NULL;
+    int16_t *buf_int16      = NULL;
+    int16_t *cd_buf_int16   = NULL;
+    int16_t *midi_buf_int16 = NULL;
 
     char *mdn;
     int   init_midi = 0;
@@ -182,7 +185,7 @@ inital(void)
             memset(midi_buf_int16, 0, midi_buf_size * sizeof(int16_t));
     }
 
-    for (c = 0; c < 4; c++) {
+    for (uint8_t c = 0; c < 4; c++) {
         if (sound_is_float) {
             alBufferData(buffers[c], AL_FORMAT_STEREO_FLOAT32, buf, BUFLEN * 2 * sizeof(float), FREQ);
             alBufferData(buffers_cd[c], AL_FORMAT_STEREO_FLOAT32, cd_buf, CD_BUFLEN * 2 * sizeof(float), CD_FREQ);

@@ -102,7 +102,8 @@ pc87309_pm_init(pc87309_t *dev, uint16_t addr)
 static void
 fdc_handler(pc87309_t *dev)
 {
-    uint8_t  irq, active;
+    uint8_t  irq;
+    uint8_t  active;
     uint16_t addr;
 
     fdc_remove(dev->fdc);
@@ -120,7 +121,8 @@ fdc_handler(pc87309_t *dev)
 static void
 lpt1_handler(pc87309_t *dev)
 {
-    uint8_t  irq, active;
+    uint8_t  irq;
+    uint8_t  active;
     uint16_t addr;
 
     lpt1_remove();
@@ -138,7 +140,8 @@ lpt1_handler(pc87309_t *dev)
 static void
 serial_handler(pc87309_t *dev, int uart)
 {
-    uint8_t  irq, active;
+    uint8_t  irq;
+    uint8_t  active;
     uint16_t addr;
 
     serial_remove(dev->uart[uart]);
@@ -326,7 +329,8 @@ uint8_t
 pc87309_read(uint16_t port, void *priv)
 {
     pc87309_t *dev = (pc87309_t *) priv;
-    uint8_t    ret = 0xff, index;
+    uint8_t    ret = 0xff;
+    uint8_t    index;
 
     index = (port & 1) ? 0 : 1;
 
@@ -345,10 +349,8 @@ pc87309_read(uint16_t port, void *priv)
 void
 pc87309_reset(pc87309_t *dev)
 {
-    int i;
-
     memset(dev->regs, 0x00, 0x30);
-    for (i = 0; i < 256; i++)
+    for (uint16_t i = 0; i < 256; i++)
         memset(dev->ld_regs[i], 0x00, 0xd0);
     memset(dev->pm, 0x00, 0x08);
 

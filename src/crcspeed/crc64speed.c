@@ -36,7 +36,8 @@
  * each 8x256 lookup table is 16k. */
 #ifndef CRC64SPEED_DUAL
 static uint64_t crc64_table[8][256] = {{0}};
-static void *crc64_table_little = NULL, *crc64_table_big = NULL;
+static void *crc64_table_little = NULL;
+static void *crc64_table_big = NULL;
 static const bool dual = false;
 #else
 static uint64_t crc64_table_little[8][256] = {{0}};

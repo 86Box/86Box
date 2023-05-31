@@ -183,12 +183,12 @@ cdrom_interface_has_config(int cdinterface)
     const device_t *dev = cdrom_interface_get_device(cdinterface);
 
     if (dev == NULL)
-        return (0);
+        return 0;
 
     if (!device_has_config(dev))
-        return (0);
+        return 0;
 
-    return (1);
+    return 1;
 }
 
 int
@@ -257,7 +257,9 @@ int
 cdrom_lba_to_msf_accurate(int lba)
 {
     int pos;
-    int m, s, f;
+    int m;
+    int s;
+    int f;
 
     pos = lba + 150;
     f   = pos % 75;
@@ -401,7 +403,9 @@ cdrom_stop(cdrom_t *dev)
 void
 cdrom_seek(cdrom_t *dev, uint32_t pos, uint8_t vendor_type)
 {
-    int      m, s, f;
+    int      m;
+    int      s;
+    int      f;
 
     if (!dev)
         return;
@@ -498,7 +502,9 @@ uint8_t
 cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
 {
     track_info_t ti;
-    int          m = 0, s = 0, f = 0;
+    int          m = 0;
+    int          s = 0;
+    int          f = 0;
 
     if (dev->cd_status == CD_STATUS_DATA_ONLY)
         return 0;
@@ -570,7 +576,9 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
 uint8_t
 cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit)
 {
-    int m = 0, s = 0, f = 0;
+    int m = 0;
+    int s = 0;
+    int f = 0;
 
     if (dev->cd_status == CD_STATUS_DATA_ONLY)
         return 0;
@@ -615,7 +623,9 @@ cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit)
 uint8_t
 cdrom_audio_play_toshiba(cdrom_t *dev, uint32_t pos, int type)
 {
-    int m = 0, s = 0, f = 0;
+    int m = 0;
+    int s = 0;
+    int f = 0;
 
     if (dev->cd_status == CD_STATUS_DATA_ONLY)
         return 0;
@@ -657,7 +667,9 @@ cdrom_audio_play_toshiba(cdrom_t *dev, uint32_t pos, int type)
 uint8_t
 cdrom_audio_scan(cdrom_t *dev, uint32_t pos, int type)
 {
-    int m = 0, s = 0, f = 0;
+    int m = 0;
+    int s = 0;
+    int f = 0;
 
     if (dev->cd_status == CD_STATUS_DATA_ONLY)
         return 0;
@@ -712,7 +724,10 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
 {
     uint8_t      ret;
     subchannel_t subc;
-    int          pos = 1, m, s, f;
+    int          pos = 1;
+    int          m;
+    int          s;
+    int          f;
     uint32_t     dat;
 
     dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
@@ -895,9 +910,13 @@ static int
 read_toc_normal(cdrom_t *dev, unsigned char *b, unsigned char start_track, int msf)
 {
     track_info_t ti;
-    int          i, len = 4;
-    int          m, s, f;
-    int          first_track, last_track;
+    int          i;
+    int          len = 4;
+    int          m;
+    int          s;
+    int          f;
+    int          first_track;
+    int          last_track;
     uint32_t     temp;
 
     cdrom_log("read_toc_normal(%08X, %08X, %02X, %i)\n", dev, b, start_track, msf);
@@ -978,7 +997,10 @@ static int
 read_toc_session(cdrom_t *dev, unsigned char *b, int msf)
 {
     track_info_t ti;
-    int          len = 4, m, s, f;
+    int          len = 4;
+    int          m;
+    int          s;
+    int          f;
     uint32_t     temp;
 
     cdrom_log("read_toc_session(%08X, %08X, %i)\n", dev, b, msf);
@@ -1027,8 +1049,9 @@ static int
 read_toc_raw(cdrom_t *dev, unsigned char *b)
 {
     track_info_t ti;
-    int          i, len = 4;
-    int          first_track, last_track;
+    int          len = 4;
+    int          first_track;
+    int          last_track;
 
     cdrom_log("read_toc_raw(%08X, %08X)\n", dev, b);
 
@@ -1037,7 +1060,7 @@ read_toc_raw(cdrom_t *dev, unsigned char *b)
     /* Bytes 2 and 3 = Number of first and last sessions */
     b[2] = b[3] = 1;
 
-    for (i = 0; i <= last_track; i++) {
+    for (int i = 0; i <= last_track; i++) {
         dev->ops->get_track_info(dev, i + 1, 0, &ti);
 
         cdrom_log("    tracks(%i) = %02X, %02X, %i:%02i.%02i\n", i, ti.attr, ti.number, ti.m, ti.s, ti.f);
@@ -1061,8 +1084,10 @@ static int
 read_toc_sony(cdrom_t *dev, unsigned char *b, unsigned char start_track, int msf)
 {
     track_info_t ti;
-    int          i, len = 4;
-    int          first_track, last_track;
+    int          i;
+    int          len = 4;
+    int          first_track;
+    int          last_track;
     uint32_t     temp;
 
     cdrom_log("read_toc_sony(%08X, %08X, %02X, %i)\n", dev, b, start_track, msf);
@@ -1173,7 +1198,8 @@ void
 cdrom_get_track_buffer(cdrom_t *dev, uint8_t *buf)
 {
     track_info_t ti;
-    int          first_track, last_track;
+    int          first_track;
+    int          last_track;
 
     if (dev != NULL) {
         dev->ops->get_tracks(dev, &first_track, &last_track);
@@ -1196,7 +1222,8 @@ void
 cdrom_get_q(cdrom_t *dev, uint8_t *buf, int *curtoctrk, uint8_t mode)
 {
     track_info_t ti;
-    int          first_track, last_track;
+    int          first_track;
+    int          last_track;
 
     if (dev != NULL) {
         dev->ops->get_tracks(dev, &first_track, &last_track);
@@ -1254,8 +1281,11 @@ uint8_t
 cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, int type)
 {
     track_info_t ti;
-    int          first_track, last_track;
-    int          m = 0, s = 0, f = 0;
+    int          first_track;
+    int          last_track;
+    int          m = 0;
+    int          s = 0;
+    int          f = 0;
 
     dev->ops->get_tracks(dev, &first_track, &last_track);
 
@@ -1583,10 +1613,15 @@ int
 cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf, int cdrom_sector_type,
                      int cdrom_sector_flags, int *len, uint8_t vendor_type)
 {
-    uint8_t *b, *temp_b;
-    uint32_t msf, lba;
-    int      audio = 0, mode2 = 0;
-    int      m, s, f;
+    uint8_t *b;
+    uint8_t *temp_b;
+    uint32_t msf;
+    uint32_t lba;
+    int      audio = 0;
+    int      mode2 = 0;
+    int      m;
+    int      s;
+    int      f;
 
     if (dev->cd_status == CD_STATUS_EMPTY)
         return 0;
@@ -1763,9 +1798,8 @@ void
 cdrom_hard_reset(void)
 {
     cdrom_t *dev;
-    int      i;
 
-    for (i = 0; i < CDROM_NUM; i++) {
+    for (uint8_t i = 0; i < CDROM_NUM; i++) {
         dev = &cdrom[i];
         if (dev->bus_type) {
             cdrom_log("CD-ROM %i: Hard reset\n", i);
@@ -1798,9 +1832,8 @@ void
 cdrom_close(void)
 {
     cdrom_t *dev;
-    int      i;
 
-    for (i = 0; i < CDROM_NUM; i++) {
+    for (uint8_t i = 0; i < CDROM_NUM; i++) {
         dev = &cdrom[i];
 
         if (dev->bus_type == CDROM_BUS_SCSI)

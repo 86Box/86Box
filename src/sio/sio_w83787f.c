@@ -123,8 +123,10 @@ w83787f_serial_handler(w83787f_t *dev, int uart)
     int      urs0 = !!(dev->regs[1] & (1 << uart));
     int      urs1 = !!(dev->regs[1] & (4 << uart));
     int      urs2 = !!(dev->regs[3] & (8 >> uart));
-    int      urs, irq = COM1_IRQ;
-    uint16_t addr = COM1_ADDR, enable = 1;
+    int      urs;
+    int      irq = COM1_IRQ;
+    uint16_t addr = COM1_ADDR;
+    uint16_t enable = 1;
 
     urs = (urs1 << 1) | urs0;
 
@@ -165,7 +167,8 @@ w83787f_lpt_handler(w83787f_t *dev)
 {
     int      ptras = (dev->regs[1] >> 4) & 0x03;
     int      irq   = LPT1_IRQ;
-    uint16_t addr = LPT1_ADDR, enable = 1;
+    uint16_t addr = LPT1_ADDR;
+    uint16_t enable = 1;
 
     switch (ptras) {
         case 0x00:

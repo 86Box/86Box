@@ -284,7 +284,8 @@ void
 ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 {
     ac97_via_t   *dev   = (ac97_via_t *) priv;
-    uint8_t       modem = (addr & 0xff00) == dev->modem_sgd_base, i;
+    uint8_t       modem = (addr & 0xff00) == dev->modem_sgd_base;
+    uint8_t       i;
     ac97_codec_t *codec;
     addr &= 0xff;
 
@@ -496,8 +497,8 @@ ac97_via_remap_modem_codec(void *priv, uint16_t new_io_base, uint8_t enable)
 static void
 ac97_via_update_stereo(ac97_via_t *dev, ac97_via_sgd_t *sgd)
 {
-    int32_t l = (((sgd->out_l * sgd->vol_l) >> 15) * dev->master_vol_l) >> 15,
-            r = (((sgd->out_r * sgd->vol_r) >> 15) * dev->master_vol_r) >> 15;
+    int32_t l = (((sgd->out_l * sgd->vol_l) >> 15) * dev->master_vol_l) >> 15;
+    int32_t r = (((sgd->out_r * sgd->vol_r) >> 15) * dev->master_vol_r) >> 15;
 
     if (l < -32768)
         l = -32768;
@@ -728,7 +729,8 @@ static void
 ac97_via_filter_cd_audio(int channel, double *buffer, void *priv)
 {
     ac97_via_t *dev = (ac97_via_t *) priv;
-    double      c, volume = channel ? dev->cd_vol_r : dev->cd_vol_l;
+    double      c;
+    double      volume = channel ? dev->cd_vol_r : dev->cd_vol_l;
 
     c       = ((*buffer) * volume) / 65536.0;
     *buffer = c;
