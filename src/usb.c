@@ -315,6 +315,11 @@ ohci_mmio_read(uint32_t addr, void *p)
             }
             break;
         }
+        case OHCI_aHcControl + 3:
+        {
+            update_tsc();
+            break;
+        }
         default:
             {
                 if (addr >= OHCI_aHcRhPortStatus1 && (addr & 0x3) == 1) {
@@ -347,7 +352,7 @@ static void
 ohci_update_irq(usb_t *dev)
 {
     uint32_t level = !!(dev->ohci_mmio[OHCI_HcInterruptStatus].l & dev->ohci_mmio[OHCI_HcInterruptEnable].l);
-    pclog("dev->ohci_mmio[OHCI_HcInterruptStatus].l = 0x%08X, dev->ohci_mmio[OHCI_HcInterruptEnable].l = 0x%08X\n", dev->ohci_mmio[OHCI_HcInterruptStatus].l, dev->ohci_mmio[OHCI_HcInterruptEnable].l);
+    //pclog("dev->ohci_mmio[OHCI_HcInterruptStatus].l = 0x%08X, dev->ohci_mmio[OHCI_HcInterruptEnable].l = 0x%08X\n", dev->ohci_mmio[OHCI_HcInterruptStatus].l, dev->ohci_mmio[OHCI_HcInterruptEnable].l);
 
     if (!(dev->ohci_mmio[OHCI_HcInterruptEnable].l & (1 << 31))) {
         level = 0;
@@ -616,7 +621,11 @@ void
 ohci_end_of_frame(usb_t* dev)
 {
     usb_hcca_t hcca;
-    dma_bm_read(dev->ohci_mmio[OHCI_HcHCCA].l, (uint8_t*)&hcca, sizeof(usb_hcca_t), 4);
+    if (dev->ohci_mmio[OHCI_HcHCCA].l == 0x00) {
+        ohci_set_interrupt(dev, OHCI_HcInterruptEnable_UE);
+        return;
+    }
+    dma_bm_read(dev->ohci_mmio[OHCI_HcHCCA].l & ~0xFF, (uint8_t*)&hcca, sizeof(usb_hcca_t), 4);
 
 //    pclog("dev->ohci_mmio[OHCI_HcControl].l = 0x%08X\n", dev->ohci_mmio[OHCI_HcControl].l);
 
@@ -664,7 +673,7 @@ ohci_end_of_frame(usb_t* dev)
     dev->ohci_mmio[OHCI_HcFmNumber].w[0]++;
     hcca.HccaFrameNumber = dev->ohci_mmio[OHCI_HcFmNumber].w[0];
 
-    dma_bm_write(dev->ohci_mmio[OHCI_HcHCCA].l, (uint8_t*)&hcca, sizeof(usb_hcca_t), 4);
+    dma_bm_write(dev->ohci_mmio[OHCI_HcHCCA].l & ~0xFF, (uint8_t*)&hcca, sizeof(usb_hcca_t), 4);
 }
 
 void
@@ -672,7 +681,7 @@ ohci_start_of_frame(usb_t* dev)
 {
     ohci_set_interrupt(dev, OHCI_HcInterruptEnable_SF);
     //pclog("OHCI: Start of frame 0x%X\n", dev->ohci_mmio[OHCI_HcFmNumber].w[0]);
-    timer_on_auto(&dev->ohci_frame_timer, 1000.);
+    timer_on_auto(&dev->ohci_frame_timer, 999.);
 }
 
 void
@@ -710,6 +719,7 @@ ohci_soft_reset(usb_t* dev)
     dev->ohci_mmio[OHCI_HcRevision].b[0] = 0x10;
     dev->ohci_mmio[OHCI_HcRevision].b[1] = 0x01;
     dev->ohci_mmio[OHCI_HcFmInterval].l = 0x27782edf; /* FrameInterval = 11999, FSLargestDataPacket = 10104 */
+    dev->ohci_mmio[OHCI_HcFmNumber].l = 0x0;
     dev->ohci_mmio[OHCI_HcLSThreshold].l = 0x628;
     dev->ohci_mmio[OHCI_HcInterruptStatus].l = 0;
     dev->ohci_mmio[OHCI_HcInterruptEnable].l = (1 << 31);
@@ -922,8 +932,8 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
                 timer_on_auto(&dev->ohci_frame_timer, 1000.);
             }
             if ((val & 0xc0) == 0xc0) {
-                dev->ohci_mmio[OHCI_HcInterruptStatus].l &= ~OHCI_HcInterruptEnable_SF;
-                timer_disable(&dev->ohci_frame_timer);
+                //dev->ohci_mmio[OHCI_HcInterruptStatus].l &= ~OHCI_HcInterruptEnable_SF;
+                //timer_disable(&dev->ohci_frame_timer);
             }
             break;
         case OHCI_aHcCommandStatus:
