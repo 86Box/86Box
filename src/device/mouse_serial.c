@@ -674,7 +674,6 @@ ltsermouse_process_data(mouse_t *dev)
         case 0x2a:
             switch (dev->ib) {
                 default:
-                    mouse_serial_log("Serial mouse: Invalid period %02X, using 1200 bps\n", data);
                     fallthrough;
                 case 0x6e:
                     dev->bps = 1200;
