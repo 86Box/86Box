@@ -69,7 +69,8 @@ oti_out(uint16_t addr, uint8_t val, void *p)
     oti_t  *oti  = (oti_t *) p;
     svga_t *svga = &oti->svga;
     uint8_t old;
-    uint8_t idx, enable;
+    uint8_t idx;
+    uint8_t enable;
 
     if (!oti->chip_id && !(oti->enable_register & 1) && (addr != 0x3C3))
         return;
@@ -202,7 +203,8 @@ oti_in(uint16_t addr, void *p)
 {
     oti_t  *oti  = (oti_t *) p;
     svga_t *svga = &oti->svga;
-    uint8_t idx, temp;
+    uint8_t idx;
+    uint8_t temp;
 
     if (!oti->chip_id && !(oti->enable_register & 1) && (addr != 0x3C3))
         return 0xff;
@@ -313,7 +315,7 @@ oti_in(uint16_t addr, void *p)
             break;
     }
 
-    return (temp);
+    return temp;
 }
 
 static void
@@ -374,7 +376,7 @@ oti_recalctimings(svga_t *svga)
     oti_t *oti     = (oti_t *) svga->p;
     int    clk_sel = ((svga->miscout >> 2) & 3) | ((oti->regs[0x0d] & 0x20) >> 3);
 
-    svga->clock = (cpuclock * (double) (1ull << 32)) / oti_getclock(clk_sel);
+    svga->clock = (cpuclock * (double) (1ULL << 32)) / oti_getclock(clk_sel);
 
     if (oti->chip_id > 0) {
         if (oti->regs[0x14] & 0x08)
@@ -473,7 +475,7 @@ oti_init(const device_t *info)
     oti->svga.miscout       = 1;
     oti->svga.packed_chain4 = 1;
 
-    return (oti);
+    return oti;
 }
 
 static void

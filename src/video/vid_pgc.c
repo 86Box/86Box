@@ -324,7 +324,6 @@ read_command(pgc_t *dev)
 static int
 parse_command(pgc_t *dev, const pgc_cmd_t **pcmd)
 {
-    const pgc_cmd_t *cmd;
     char             match[7];
 
     *pcmd            = NULL;
@@ -343,7 +342,7 @@ parse_command(pgc_t *dev, const pgc_cmd_t **pcmd)
      * dev->commands may be a subclass list (terminated with '*')
      * or the core list (terminated with '@')
      */
-    for (cmd = dev->commands; cmd->ascii[0] != '@'; cmd++) {
+    for (const pgc_cmd_t *cmd = dev->commands; cmd->ascii[0] != '@'; cmd++) {
         /* End of subclass command list, chain to core. */
         if (cmd->ascii[0] == '*')
             cmd = dev->master;
@@ -465,12 +464,11 @@ static void
 hndl_clread(pgc_t *dev)
 {
     uint8_t  param = 0;
-    uint32_t n;
 
     if (!pgc_param_byte(dev, &param))
         return;
 
-    for (n = 0; n < dev->clist[param].wrptr; n++) {
+    for (uint32_t n = 0; n < dev->clist[param].wrptr; n++) {
         if (!pgc_result_byte(dev, dev->clist[param].list[n]))
             return;
     }
@@ -493,12 +491,11 @@ static void
 hndl_clears(pgc_t *dev)
 {
     uint8_t  param = 0;
-    uint32_t y;
 
     if (!pgc_param_byte(dev, &param))
         return;
 
-    for (y = 0; y < dev->screenh; y++)
+    for (uint32_t y = 0; y < dev->screenh; y++)
         memset(dev->vram + y * dev->maxw, param, dev->screenw);
 }
 
@@ -569,7 +566,8 @@ hndl_prmfil(pgc_t *dev)
 static void
 hndl_move(pgc_t *dev)
 {
-    int32_t x = 0, y = 0;
+    int32_t x = 0;
+    int32_t y = 0;
 
     if (!pgc_param_coord(dev, &x))
         return;
@@ -586,7 +584,9 @@ hndl_move(pgc_t *dev)
 static void
 hndl_move3(pgc_t *dev)
 {
-    int32_t x = 0, y = 0, z = 0;
+    int32_t x = 0;
+    int32_t y = 0;
+    int32_t z = 0;
 
     if (!pgc_param_coord(dev, &x))
         return;
@@ -604,7 +604,8 @@ hndl_move3(pgc_t *dev)
 static void
 hndl_mover(pgc_t *dev)
 {
-    int32_t x = 0, y = 0;
+    int32_t x = 0;
+    int32_t y = 0;
 
     if (!pgc_param_coord(dev, &x))
         return;
@@ -619,7 +620,9 @@ hndl_mover(pgc_t *dev)
 static void
 hndl_mover3(pgc_t *dev)
 {
-    int32_t x = 0, y = 0, z = 0;
+    int32_t x = 0;
+    int32_t y = 0;
+    int32_t z = 0;
 
     if (!pgc_param_coord(dev, &x))
         return;
@@ -752,7 +755,12 @@ pgc_plot(pgc_t *dev, uint16_t x, uint16_t y)
 uint16_t
 pgc_draw_line_r(pgc_t *dev, int32_t x0, int32_t y0, int32_t x1, int32_t y1, uint16_t linemask)
 {
-    int32_t dx, dy, sx, sy, err, e2;
+    int32_t dx;
+    int32_t dy;
+    int32_t sx;
+    int32_t sy;
+    int32_t err;
+    int32_t e2;
 
     dx  = abs(x1 - x0);
     dy  = abs(y1 - y0);
@@ -850,8 +858,11 @@ pgc_fill_polygon(pgc_t *dev, unsigned corners, int32_t *x, int32_t *y)
     double  *nodex;
     double  *dx;
     double  *dy;
-    unsigned n, nodes, i, j;
-    double   ymin, ymax, ypos;
+    unsigned nodes;
+    unsigned i;
+    unsigned j;
+    double   ymin;
+    double   ymax;
 
     pgc_log("PGC: fill_polygon(%i corners)\n", corners);
 
@@ -878,7 +889,7 @@ pgc_fill_polygon(pgc_t *dev, unsigned corners, int32_t *x, int32_t *y)
     }
 
     ymin = ymax = y[0] / 65536.0;
-    for (n = 0; n < corners; n++) {
+    for (unsigned int n = 0; n < corners; n++) {
         /* Convert from PGC fixed-point to native floating-point. */
         dx[n] = x[n] / 65536.0;
         dy[n] = y[n] / 65536.0;
@@ -892,7 +903,7 @@ pgc_fill_polygon(pgc_t *dev, unsigned corners, int32_t *x, int32_t *y)
     /* Polygon fill. Based on <http://alienryderflex.com/polygon_fill/> */
     /* For each row, work out where the polygon lines intersect with
      * that row. */
-    for (ypos = ymin; ypos <= ymax; ypos++) {
+    for (double ypos = ymin; ypos <= ymax; ypos++) {
         nodes = 0;
         j     = corners - 1;
         for (i = 0; i < corners; i++) {
@@ -908,8 +919,10 @@ pgc_fill_polygon(pgc_t *dev, unsigned corners, int32_t *x, int32_t *y)
 
         /* And fill between them. */
         for (i = 0; i < nodes; i += 2) {
-            int16_t x1 = (int16_t) nodex[i], x2 = (int16_t) nodex[i + 1],
-                    y1 = (int16_t) ypos, y2 = (int16_t) ypos;
+            int16_t x1 = (int16_t) nodex[i];
+            int16_t x2 = (int16_t) nodex[i + 1];
+            int16_t y1 = (int16_t) ypos;
+            int16_t y2 = (int16_t) ypos;
             pgc_sto_raster(dev, &x1, &y1);
             pgc_sto_raster(dev, &x2, &y2);
             pgc_fill_line_r(dev, x1, x2, y1);
@@ -930,7 +943,6 @@ pgc_draw_ellipse(pgc_t *dev, int32_t x, int32_t y)
     double  w  = x / 65536.0;
     double  y0 = dev->y / 65536.0;
     double  x0 = dev->x / 65536.0;
-    double  ypos, xpos;
     double  x1;
     double  xlast    = 0.0;
     int16_t linemask = dev->line_pattern;
@@ -940,7 +952,7 @@ pgc_draw_ellipse(pgc_t *dev, int32_t x, int32_t y)
 
     pgc_dto_raster(dev, &x0, &y0);
 
-    for (ypos = 0; ypos <= h; ypos++) {
+    for (double ypos = 0; ypos <= h; ypos++) {
         if (ypos == 0) {
             if (dev->fill_mode)
                 pgc_fill_line_r(dev, (uint16_t) (x0 - w),
@@ -966,7 +978,7 @@ pgc_draw_ellipse(pgc_t *dev, int32_t x, int32_t y)
             }
 
             /* Draw border. */
-            for (xpos = xlast; xpos >= x1; xpos--) {
+            for (double xpos = xlast; xpos >= x1; xpos--) {
                 if (linemask & 0x8000) {
                     pgc_plot(dev, (uint16_t) (x0 + xpos),
                              (uint16_t) (y0 + ypos));
@@ -990,7 +1002,8 @@ pgc_draw_ellipse(pgc_t *dev, int32_t x, int32_t y)
 static void
 hndl_ellipse(pgc_t *dev)
 {
-    int32_t x = 0, y = 0;
+    int32_t x = 0;
+    int32_t y = 0;
 
     if (!pgc_param_coord(dev, &x))
         return;
@@ -1007,13 +1020,12 @@ hndl_poly(pgc_t *dev)
     uint8_t count;
     int32_t x[256];
     int32_t y[256];
-    int32_t n;
 
     if (!pgc_param_byte(dev, &count))
         return;
 
     pgc_log("PGC: POLY (%i)\n", count);
-    for (n = 0; n < count; n++) {
+    for (uint8_t n = 0; n < count; n++) {
         if (!pgc_param_coord(dev, &x[n]))
             return;
         if (!pgc_param_coord(dev, &y[n]))
@@ -1064,8 +1076,11 @@ hndl_display(pgc_t *dev)
 static void
 hndl_imagew(pgc_t *dev)
 {
-    int16_t row, col1, col2;
-    uint8_t v1, v2;
+    int16_t row;
+    int16_t col1;
+    int16_t col2;
+    uint8_t v1;
+    uint8_t v2;
 
     if (!pgc_param_word(dev, &row))
         return;
@@ -1174,9 +1189,8 @@ static void
 hndl_lut(pgc_t *dev)
 {
     uint8_t param[4];
-    int     n;
 
-    for (n = 0; n < 4; n++) {
+    for (uint8_t n = 0; n < 4; n++) {
         if (!pgc_param_byte(dev, &param[n]))
             return;
         if (n > 0 && param[n] > 15) {
@@ -1215,9 +1229,8 @@ void
 pgc_hndl_lut8(pgc_t *dev)
 {
     uint8_t param[4];
-    int     n;
 
-    for (n = 0; n < 4; n++)
+    for (uint8_t n = 0; n < 4; n++)
         if (!pgc_param_byte(dev, &param[n]))
             return;
 
@@ -1229,9 +1242,8 @@ static void
 hndl_areapt(pgc_t *dev)
 {
     int16_t pat[16];
-    int     n;
 
-    for (n = 0; n < 16; n++)
+    for (uint8_t n = 0; n < 16; n++)
         if (!pgc_param_word(dev, &pat[n]))
             return;
 
@@ -1319,7 +1331,10 @@ hndl_tsize(pgc_t *pgc)
 static void
 hndl_vwport(pgc_t *dev)
 {
-    int16_t x1, x2, y1, y2;
+    int16_t x1;
+    int16_t x2;
+    int16_t y1;
+    int16_t y2;
 
     if (!pgc_param_word(dev, &x1))
         return;
@@ -1341,7 +1356,10 @@ hndl_vwport(pgc_t *dev)
 static void
 hndl_window(pgc_t *dev)
 {
-    int16_t x1, x2, y1, y2;
+    int16_t x1;
+    int16_t x2;
+    int16_t y1;
+    int16_t y2;
 
     if (!pgc_param_word(dev, &x1))
         return;
@@ -1583,8 +1601,6 @@ pgc_error(pgc_t *dev, int err)
 void
 pgc_reset(pgc_t *dev)
 {
-    int n;
-
     memset(dev->mapram, 0x00, sizeof(dev->mapram));
 
     /* The 'CGA disable' jumper is not currently implemented. */
@@ -1617,7 +1633,7 @@ pgc_reset(pgc_t *dev)
     dev->vp_y2 = dev->vish - 1;
 
     /* Empty command lists. */
-    for (n = 0; n < 256; n++) {
+    for (uint16_t n = 0; n < 256; n++) {
         dev->clist[n].wrptr  = 0;
         dev->clist[n].rdptr  = 0;
         dev->clist[n].repeat = 0;
@@ -1763,7 +1779,8 @@ pgc_param_byte(pgc_t *dev, uint8_t *val)
 int
 pgc_param_word(pgc_t *dev, int16_t *val)
 {
-    uint8_t lo, hi;
+    uint8_t lo;
+    uint8_t hi;
     int32_t c;
 
     if (dev->clcur) {
@@ -1995,14 +2012,13 @@ int
 pgc_parse_bytes(pgc_t *dev, pgc_cl_t *cl, int count)
 {
     uint8_t *param = (uint8_t *) malloc(count);
-    int      n;
 
     if (!param) {
         pgc_error(dev, PGC_ERROR_OVERFLOW);
         return 0;
     }
 
-    for (n = 0; n < count; n++) {
+    for (int n = 0; n < count; n++) {
         if (!pgc_param_byte(dev, &param[n])) {
             free(param);
             return 0;
@@ -2025,14 +2041,13 @@ int
 pgc_parse_words(pgc_t *dev, pgc_cl_t *cl, int count)
 {
     int16_t *param = (int16_t *) malloc(count * sizeof(int16_t));
-    int      n;
 
     if (!param) {
         pgc_error(dev, PGC_ERROR_OVERFLOW);
         return 0;
     }
 
-    for (n = 0; n < count; n++) {
+    for (int n = 0; n < count; n++) {
         if (!pgc_param_word(dev, &param[n])) {
             free(param);
             return 0;
@@ -2110,7 +2125,8 @@ pgc_dto_raster(pgc_t *dev, double *x, double *y)
 void
 pgc_sto_raster(pgc_t *dev, int16_t *x, int16_t *y)
 {
-    double xd = *x, yd = *y;
+    double xd = *x;
+    double yd = *y;
 
     pgc_dto_raster(dev, &xd, &yd);
     *x = (int16_t) xd;
@@ -2120,7 +2136,8 @@ pgc_sto_raster(pgc_t *dev, int16_t *x, int16_t *y)
 void
 pgc_ito_raster(pgc_t *dev, int32_t *x, int32_t *y)
 {
-    double xd = *x, yd = *y;
+    double xd = *x;
+    double yd = *y;
 
     pgc_dto_raster(dev, &xd, &yd);
     *x = (int32_t) xd;
@@ -2130,9 +2147,12 @@ pgc_ito_raster(pgc_t *dev, int32_t *x, int32_t *y)
 void
 pgc_recalctimings(pgc_t *dev)
 {
-    double  disptime, _dispontime, _dispofftime;
-    double  pixel_clock = (cpuclock / (dev->cga_selected ? 25175000.0 : dev->native_pixel_clock) * (double) (1ull << 32));
-    uint8_t crtc0 = 97, crtc1 = 80; /* Values from MDA, taken from there due to the 25 MHz refresh rate. */
+    double  disptime;
+    double _dispontime;
+    double _dispofftime;
+    double  pixel_clock = (cpuclock / (dev->cga_selected ? 25175000.0 : dev->native_pixel_clock) * (double) (1ULL << 32));
+    uint8_t crtc0 = 97; /* Value from MDA, taken from there due to the 25 MHz refresh rate. */
+    uint8_t crtc1 = 80; /* Value from MDA, taken from there due to the 25 MHz refresh rate. */
 
     /* Multiply pixel clock by 8. */
     pixel_clock     *= 8.0;
@@ -2309,8 +2329,8 @@ pgc_read(uint32_t addr, void *priv)
 void
 pgc_cga_text(pgc_t *dev, int w)
 {
-    int      x, c;
-    uint8_t  chr, attr;
+    uint8_t  chr;
+    uint8_t  attr;
     int      drawcursor = 0;
     uint32_t cols[2];
     int      pitch = (dev->mapram[0x3e9] + 1) * 2;
@@ -2324,7 +2344,7 @@ pgc_cga_text(pgc_t *dev, int w)
     addr = &dev->cga_vram[((ma + ((dev->displine / pitch) * w)) * 2) & 0x3ffe];
     ma += (dev->displine / pitch) * w;
 
-    for (x = 0; x < w; x++) {
+    for (int x = 0; x < w; x++) {
         chr  = *addr++;
         attr = *addr++;
 
@@ -2344,7 +2364,7 @@ pgc_cga_text(pgc_t *dev, int w)
             cols[0] = (attr >> 4) + 16;
         }
 
-        for (c = 0; c < cw; c++) {
+        for (int c = 0; c < cw; c++) {
             if (drawcursor)
                 val = cols[(fontdatm[chr + dev->fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ 0x0f;
             else
@@ -2365,7 +2385,6 @@ pgc_cga_text(pgc_t *dev, int w)
 void
 pgc_cga_gfx40(pgc_t *dev)
 {
-    int      x, c;
     uint32_t cols[4];
     int      col;
     uint16_t ma = (dev->mapram[0x3ed] | (dev->mapram[0x3ec] << 8)) & 0x3fff;
@@ -2394,11 +2413,11 @@ pgc_cga_gfx40(pgc_t *dev)
         cols[3] = col | 6;
     }
 
-    for (x = 0; x < 40; x++) {
+    for (uint8_t x = 0; x < 40; x++) {
         addr = &dev->cga_vram[(ma + 2 * x + 80 * (dev->displine >> 2) + 0x2000 * ((dev->displine >> 1) & 1)) & 0x3fff];
         dat  = (addr[0] << 8) | addr[1];
         dev->ma++;
-        for (c = 0; c < 8; c++) {
+        for (uint8_t c = 0; c < 8; c++) {
             buffer32->line[dev->displine][(x << 4) + (c << 1)] = buffer32->line[dev->displine][(x << 4) + (c << 1) + 1] = cols[dat >> 14];
             dat <<= 2;
         }
@@ -2409,7 +2428,6 @@ pgc_cga_gfx40(pgc_t *dev)
 void
 pgc_cga_gfx80(pgc_t *dev)
 {
-    int      x, c;
     uint32_t cols[2];
     uint16_t ma = (dev->mapram[0x3ed] | (dev->mapram[0x3ec] << 8)) & 0x3fff;
     uint8_t *addr;
@@ -2418,11 +2436,11 @@ pgc_cga_gfx80(pgc_t *dev)
     cols[0] = 16;
     cols[1] = (dev->mapram[0x3d9] & 15) + 16;
 
-    for (x = 0; x < 40; x++) {
+    for (uint8_t x = 0; x < 40; x++) {
         addr = &dev->cga_vram[(ma + 2 * x + 80 * (dev->displine >> 2) + 0x2000 * ((dev->displine >> 1) & 1)) & 0x3fff];
         dat  = (addr[0] << 8) | addr[1];
         dev->ma++;
-        for (c = 0; c < 16; c++) {
+        for (uint8_t c = 0; c < 16; c++) {
             buffer32->line[dev->displine][(x << 4) + c] = cols[dat >> 15];
             dat <<= 1;
         }
@@ -2512,7 +2530,7 @@ void
 pgc_poll(void *priv)
 {
     pgc_t   *dev = (pgc_t *) priv;
-    uint32_t x, y;
+    uint32_t y;
 
     if (dev->cga_selected) {
         pgc_cga_poll(dev);
@@ -2532,7 +2550,7 @@ pgc_poll(void *priv)
              * the IM1024 driver uses PAN -112 for an offset of
              * 224. */
             y = dev->displine - 2 * dev->pan_y;
-            for (x = 0; x < dev->screenw; x++) {
+            for (uint32_t x = 0; x < dev->screenw; x++) {
                 if (x + dev->pan_x < dev->maxw)
                     buffer32->line[dev->displine][x] = dev->palette[dev->vram[y * dev->maxw + x]];
                 else
@@ -2643,8 +2661,6 @@ void
 pgc_init(pgc_t *dev, int maxw, int maxh, int visw, int vish,
          int (*inpbyte)(pgc_t *, uint8_t *), double npc)
 {
-    int i;
-
     /* Make it a 16k mapping at C4000 (will be C4000-C7FFF),
        because of the emulator's granularity - the original
        mapping will conflict with hard disk controller BIOS'es. */
@@ -2671,7 +2687,7 @@ pgc_init(pgc_t *dev, int maxw, int maxh, int visw, int vish,
     /* Create and initialize command lists. */
     dev->clist = (pgc_cl_t *) malloc(256 * sizeof(pgc_cl_t));
     memset(dev->clist, 0x00, 256 * sizeof(pgc_cl_t));
-    for (i = 0; i < 256; i++) {
+    for (uint16_t i = 0; i < 256; i++) {
         dev->clist[i].list    = NULL;
         dev->clist[i].listmax = 0;
         dev->clist[i].wrptr   = 0;
@@ -2708,7 +2724,7 @@ pgc_standalone_init(const device_t *info)
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_pgc);
 
-    return (dev);
+    return dev;
 }
 
 const device_t pgc_device = {

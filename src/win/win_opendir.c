@@ -72,7 +72,7 @@ opendir(const char *name)
     }
 
     /* All OK. */
-    return (p);
+    return p;
 }
 
 /* Close an open directory. */
@@ -80,7 +80,7 @@ int
 closedir(DIR *p)
 {
     if (p == NULL)
-        return (0);
+        return 0;
 
     _findclose(p->handle);
 
@@ -88,7 +88,7 @@ closedir(DIR *p)
         free(p->dta);
     free(p);
 
-    return (0);
+    return 0;
 }
 
 /*

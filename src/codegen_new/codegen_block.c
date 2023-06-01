@@ -21,7 +21,8 @@
 
 uint8_t *block_write_data = NULL;
 
-int      codegen_flat_ds, codegen_flat_ss;
+int      codegen_flat_ds;
+int      codegen_flat_ss;
 int      mmx_ebx_ecx_loaded;
 int      codegen_flags_changed = 0;
 int      codegen_fpu_entered   = 0;
@@ -61,7 +62,8 @@ static void     delete_dirty_block(codeblock_t *block);
 
   The size of this list is limited to DIRTY_LIST_MAX_SIZE blocks. When this is
   exceeded the oldest entry will be moved to the free list.*/
-static uint16_t block_dirty_list_head, block_dirty_list_tail;
+static uint16_t block_dirty_list_head;
+static uint16_t block_dirty_list_tail;
 static int      dirty_list_size = 0;
 #define DIRTY_LIST_MAX_SIZE 64
 
@@ -210,13 +212,11 @@ block_free_list_get(void)
 void
 codegen_init(void)
 {
-    int c;
-
     codegen_allocator_init();
 
     codegen_backend_init();
     block_free_list = 0;
-    for (c = 0; c < BLOCK_SIZE; c++)
+    for (uint32_t c = 0; c < BLOCK_SIZE; c++)
         block_free_list_add(&codeblock[c]);
     block_dirty_list_head = block_dirty_list_tail = 0;
     dirty_list_size                               = 0;
@@ -472,7 +472,6 @@ codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
 {
     uint16_t block_nr               = page->block;
     int      remove_from_evict_list = 0;
-    int      c;
 
     while (block_nr) {
         codeblock_t *block      = &codeblock[block_nr];
@@ -509,7 +508,7 @@ codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
     page->code_present_mask &= ~page->dirty_mask;
     page->dirty_mask = 0;
 
-    for (c = 0; c < 64; c++) {
+    for (uint8_t c = 0; c < 64; c++) {
         if (page->byte_code_present_mask[c] & page->byte_dirty_mask[c])
             remove_from_evict_list = 0;
         page->byte_code_present_mask[c] &= ~page->byte_dirty_mask[c];

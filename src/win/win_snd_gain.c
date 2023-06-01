@@ -79,7 +79,7 @@ SoundGainDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
             break;
     }
 
-    return (FALSE);
+    return FALSE;
 }
 
 void

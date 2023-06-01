@@ -195,13 +195,13 @@ et3000_recalctimings(svga_t *svga)
         case 1:
             break;
         case 3:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 40000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 40000000.0;
             break;
         case 5:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 65000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 65000000.0;
             break;
         default:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 36000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 36000000.0;
             break;
     }
 }
@@ -237,7 +237,7 @@ et3000_init(const device_t *info)
 
     dev->svga.packed_chain4 = 1;
 
-    return (dev);
+    return dev;
 }
 
 static void

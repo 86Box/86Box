@@ -48,7 +48,12 @@
 #include <86box/vid_voodoo_render.h>
 #include <86box/vid_voodoo_texture.h>
 
-rgba8_t rgb332[0x100], ai44[0x100], rgb565[0x10000], argb1555[0x10000], argb4444[0x10000], ai88[0x10000];
+rgba8_t rgb332[0x100];
+rgba8_t ai44[0x100];
+rgba8_t rgb565[0x10000];
+rgba8_t argb1555[0x10000];
+rgba8_t argb4444[0x10000];
+rgba8_t ai88[0x10000];
 
 int tris = 0;
 
@@ -1208,8 +1213,6 @@ voodoo_init(const device_t *info)
 void
 voodoo_card_close(voodoo_t *voodoo)
 {
-    int c;
-
     voodoo->fifo_thread_run = 0;
     thread_set_event(voodoo->wake_fifo_thread);
     thread_wait(voodoo->fifo_thread);
@@ -1237,7 +1240,7 @@ voodoo_card_close(voodoo_t *voodoo)
     thread_destroy_event(voodoo->render_not_full_event[0]);
     thread_destroy_event(voodoo->render_not_full_event[1]);
 
-    for (c = 0; c < TEX_CACHE_MAX; c++) {
+    for (uint8_t c = 0; c < TEX_CACHE_MAX; c++) {
         if (voodoo->dual_tmus)
             free(voodoo->texture_cache[1][c].data);
         free(voodoo->texture_cache[0][c].data);
