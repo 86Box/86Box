@@ -320,6 +320,11 @@ ohci_mmio_read(uint32_t addr, void *p)
             update_tsc();
             break;
         }
+        case OHCI_aHcHCCA:
+        {
+            ret = 0x00;
+            break;
+        }
         default:
             {
                 if (addr >= OHCI_aHcRhPortStatus1 && (addr & 0x3) == 1) {
@@ -973,7 +978,7 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
         case OHCI_aHcInterruptDisable + 2:
             return;
         case OHCI_aHcInterruptDisable + 3:
-            dev->ohci_mmio[addr >> 2].b[OHCI_HcInterruptEnable] = ~(val & 0xc0);
+            dev->ohci_mmio[OHCI_HcInterruptEnable].b[addr & 3] &= ~(val & 0xc0);
             ohci_update_irq(dev);
             return;
         case OHCI_aHcInterruptStatus:
