@@ -38,7 +38,8 @@ static LCID temp_language;
 
 static char temp_icon_set[256] = { 0 };
 
-int enum_helper, c;
+int enum_helper;
+int c;
 
 HWND hwndPreferences;
 
@@ -112,7 +113,8 @@ preferences_fill_iconsets(HWND hdlg)
     if (hFind != INVALID_HANDLE_VALUE) {
         do {
             if (wcscmp(data.cFileName, L".") && wcscmp(data.cFileName, L"..") && (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)) {
-                wchar_t temp[512] = { 0 }, dispname[512] = { 0 };
+                wchar_t temp[512]     = { 0 };
+                wchar_t dispname[512] = { 0 };
                 mbstoc16s(temp, icon_path_root, strlen(icon_path_root) + 1);
                 wcscat(temp, data.cFileName);
                 wcscat(temp, L"\\iconinfo.txt");
@@ -279,7 +281,7 @@ PreferencesDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
             break;
     }
 
-    return (FALSE);
+    return FALSE;
 }
 
 void

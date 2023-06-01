@@ -55,18 +55,20 @@
 #define TIMER_1SEC 1 /* ID of the one-second timer */
 
 /* Platform Public data, specific. */
-HWND hwndMain   = NULL, /* application main window */
-    hwndRender  = NULL, /* machine render window */
-    hwndRender2 = NULL; /* machine second screen render window */
+HWND  hwndMain    = NULL; /* application main window */
+HWND  hwndRender  = NULL; /* machine render window */
+HWND  hwndRender2 = NULL; /* machine second screen render window */
 HMENU menuMain;         /* application main menu */
 RECT  oldclip;          /* mouse rect */
 int   sbar_height = 23; /* statusbar height */
 int   tbar_height = 23; /* toolbar height */
 int   minimized   = 0;
-int   infocus = 1, button_down = 0;
+int   infocus       = 1;
+int   button_down   = 0;
 int   rctrl_is_lalt = 0;
 int   user_resize   = 0;
-int   fixed_size_x = 0, fixed_size_y = 0;
+int   fixed_size_x  = 0;
+int   fixed_size_y  = 0;
 int   kbd_req_capture = 0;
 int   hide_status_bar = 0;
 int   hide_tool_bar   = 0;
@@ -77,9 +79,10 @@ extern WCHAR wopenfilestring[512];
 
 /* Local data. */
 static int manager_wm      = 0;
-static int save_window_pos = 0, pause_state = 0;
-static int padded_frame = 0;
-static int vis          = -1;
+static int save_window_pos = 0;
+static int pause_state     = 0;
+static int padded_frame    = 0;
+static int vis             = -1;
 
 /* Per Monitor DPI Aware v2 APIs, Windows 10 v1703+ */
 void *user32_handle = NULL;
@@ -463,12 +466,14 @@ input_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
 
         default:
-            return (1);
-            /* return(CallWindowProc((WNDPROC)input_orig_proc,
-                                  hwnd, message, wParam, lParam)); */
+            return 1;
+#if 0
+            return(CallWindowProc((WNDPROC)input_orig_proc,
+                                  hwnd, message, wParam, lParam));
+#endif
     }
 
-    return (0);
+    return 0;
 }
 
 static LRESULT CALLBACK
@@ -476,12 +481,14 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HMENU hmenu;
 
-    int  i;
-    RECT rect, *rect_p;
+    int   i;
+    RECT  rect;
+    RECT *rect_p;
 
     WINDOWPOS *pos;
 
-    int temp_x, temp_y;
+    int temp_x;
+    int temp_y;
 
     if (input_proc(hwnd, message, wParam, lParam) == 0)
         return (0);
@@ -1136,14 +1143,14 @@ SubWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             return (DefWindowProc(hwnd, message, wParam, lParam));
     }
 
-    return (0);
+    return 0;
 }
 
 static LRESULT CALLBACK
 SDLMainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     if (input_proc(hwnd, message, wParam, lParam) == 0)
-        return (0);
+        return 0;
 
     return (DefWindowProc(hwnd, message, wParam, lParam));
 }
@@ -1183,7 +1190,8 @@ ui_init(int nCmdShow)
         {IDCANCEL, MAKEINTRESOURCE(IDS_2120)}
     };
     uint32_t helper_lang;
-    static int fs_on_signal = 0, fs_off_signal = 0;
+    static int fs_on_signal  = 0;
+    static int fs_off_signal = 0;
 
     /* Load DPI related Windows 10 APIs */
     user32_handle = dynld_module("user32.dll", user32_imports);
@@ -1550,7 +1558,7 @@ plat_pause(int p)
 
     /* Update the actual menu. */
     CheckMenuItem(menuMain, IDM_ACTION_PAUSE,
-                  (dopause) ? MF_CHECKED : MF_UNCHECKED);
+                  dopause ? MF_CHECKED : MF_UNCHECKED);
 
 #ifdef DISCORD
     /* Update Discord status */
