@@ -136,13 +136,16 @@ usb_t* usb_device_inst = NULL;
 static void
 usb_interrupt_ohci(usb_t *dev, uint32_t level)
 {
+    pclog("OHCI: Interrupt level %d ", level);
     if (dev->ohci_mmio[OHCI_HcControl].b[1] & 1) {
+        pclog("(SMI)\n");
         if (dev->usb_params && dev->usb_params->smi_handle && !dev->usb_params->smi_handle(dev, dev->usb_params->parent_priv))
             return;
 
         if (level)
             smi_raise();
     } else if (dev->usb_params != NULL) {
+        pclog("(normal)\n");
         if ((dev->usb_params->parent_priv != NULL) && (dev->usb_params->update_interrupt != NULL))
             dev->usb_params->update_interrupt(dev, dev->usb_params->parent_priv);
     }
@@ -344,10 +347,13 @@ static void
 ohci_update_irq(usb_t *dev)
 {
     uint32_t level = !!(dev->ohci_mmio[OHCI_HcInterruptStatus].l & dev->ohci_mmio[OHCI_HcInterruptEnable].l);
+    pclog("dev->ohci_mmio[OHCI_HcInterruptStatus].l = 0x%08X, dev->ohci_mmio[OHCI_HcInterruptEnable].l = 0x%08X\n", dev->ohci_mmio[OHCI_HcInterruptStatus].l, dev->ohci_mmio[OHCI_HcInterruptEnable].l);
 
     if (!(dev->ohci_mmio[OHCI_HcInterruptEnable].l & (1 << 31))) {
         level = 0;
     }
+
+    //pclog("level = %d\n", level);
 
     if (level != dev->irq_level) {
         dev->irq_level = level;
@@ -359,7 +365,7 @@ void
 ohci_set_interrupt(usb_t *dev, uint8_t bit)
 {    
     dev->ohci_mmio[OHCI_HcInterruptStatus].b[0] |= bit;
-    pclog("OHCI: Interrupt bit 0x%X\n", bit);
+    //pclog("OHCI: Interrupt bit 0x%X\n", bit);
 
     /* TODO: Does setting UnrecoverableError also assert PERR# on any emulated USB chipsets? */
 
@@ -825,7 +831,7 @@ static void ohci_port_set_status(usb_t *dev, int portnum, uint32_t val)
         dev->ohci_devices[portnum]->device_reset(dev->ohci_devices[portnum]->priv);
         port->l &= ~OHCI_PORT_PRS;
         /* ??? Should this also set OHCI_PORT_PESC. */
-        port->l |= OHCI_PORT_PES | OHCI_PORT_PRSC | OHCI_PORT_PESC;
+        port->l |= OHCI_PORT_PES | OHCI_PORT_PRSC;
     }
 
     /* Invert order here to ensure in ambiguous case, device is powered up. */
@@ -939,29 +945,25 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
         case OHCI_aHcHCCA:
             return;
         case OHCI_aHcInterruptEnable:
-            dev->ohci_mmio[addr >> 2].b[addr & 3] = (val & 0x7f);
-            dev->ohci_mmio[OHCI_HcInterruptDisable].b[0] &= ~(val & 0x7f);
+            dev->ohci_mmio[addr >> 2].b[addr & 3] |= (val & 0x7f);
             ohci_update_irq(dev);
             return;
         case OHCI_aHcInterruptEnable + 1:
         case OHCI_aHcInterruptEnable + 2:
             return;
         case OHCI_aHcInterruptEnable + 3:
-            dev->ohci_mmio[addr >> 2].b[addr & 3] = (val & 0xc0);
-            dev->ohci_mmio[OHCI_HcInterruptDisable].b[3] &= ~(val & 0xc0);
+            dev->ohci_mmio[addr >> 2].b[addr & 3] |= (val & 0xc0);
             ohci_update_irq(dev);
             return;
         case OHCI_aHcInterruptDisable:
-            dev->ohci_mmio[addr >> 2].b[addr & 3] = (val & 0x7f);
-            dev->ohci_mmio[OHCI_HcInterruptEnable].b[0] &= ~(val & 0x7f);
+            dev->ohci_mmio[OHCI_HcInterruptEnable].b[addr & 3] &= ~(val & 0x7f);
             ohci_update_irq(dev);
             return;
         case OHCI_aHcInterruptDisable + 1:
         case OHCI_aHcInterruptDisable + 2:
             return;
         case OHCI_aHcInterruptDisable + 3:
-            dev->ohci_mmio[addr >> 2].b[addr & 3] = (val & 0xc0);
-            dev->ohci_mmio[OHCI_HcInterruptEnable].b[3] &= ~(val & 0xc0);
+            dev->ohci_mmio[addr >> 2].b[OHCI_HcInterruptEnable] = ~(val & 0xc0);
             ohci_update_irq(dev);
             return;
         case OHCI_aHcInterruptStatus:
