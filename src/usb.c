@@ -937,8 +937,8 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
                 timer_on_auto(&dev->ohci_frame_timer, 1000.);
             }
             if ((val & 0xc0) == 0xc0) {
-                //dev->ohci_mmio[OHCI_HcInterruptStatus].l &= ~OHCI_HcInterruptEnable_SF;
-                //timer_disable(&dev->ohci_frame_timer);
+                dev->ohci_mmio[OHCI_HcInterruptStatus].l &= ~OHCI_HcInterruptEnable_SF;
+                timer_disable(&dev->ohci_frame_timer);
             }
             break;
         case OHCI_aHcCommandStatus:
@@ -1201,8 +1201,12 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
         case OHCI_aHcBulkHeadED:
         case OHCI_aHcControlCurrentED:
         case OHCI_aHcControlHeadED:
-        case OHCI_aHcPeriodCurrentED:
             dev->ohci_mmio[addr >> 2].b[addr & 3] = (val & 0xf0);
+            return;
+        case OHCI_aHcPeriodCurrentED:
+        case OHCI_aHcPeriodCurrentED + 1:
+        case OHCI_aHcPeriodCurrentED + 2:
+        case OHCI_aHcPeriodCurrentED + 3:
             return;
     }
 
