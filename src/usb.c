@@ -686,7 +686,7 @@ ohci_start_of_frame(usb_t* dev)
 {
     ohci_set_interrupt(dev, OHCI_HcInterruptEnable_SF);
     //pclog("OHCI: Start of frame 0x%X\n", dev->ohci_mmio[OHCI_HcFmNumber].w[0]);
-    timer_on_auto(&dev->ohci_frame_timer, 999.);
+    timer_on_auto(&dev->ohci_frame_timer, 1000.);
 }
 
 void
