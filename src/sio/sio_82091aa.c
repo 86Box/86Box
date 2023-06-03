@@ -134,7 +134,8 @@ static void
 i82091aa_write(uint16_t port, uint8_t val, void *priv)
 {
     i82091aa_t *dev = (i82091aa_t *) priv;
-    uint8_t     index, valxor;
+    uint8_t     index;
+    uint8_t     valxor;
     uint8_t     uart = (dev->cur_reg >> 4) - 0x03;
     uint8_t    *reg  = &(dev->regs[dev->cur_reg]);
 
@@ -199,7 +200,8 @@ uint8_t
 i82091aa_read(uint16_t port, void *priv)
 {
     i82091aa_t *dev = (i82091aa_t *) priv;
-    uint8_t     ret = 0xff, index;
+    uint8_t     ret = 0xff;
+    uint8_t     index;
 
     index = (port & 1) ? 0 : 1;
 

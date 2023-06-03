@@ -108,14 +108,13 @@ static void
 optimc_get_buffer(int32_t *buffer, int len, void *p)
 {
     optimc_t *optimc = (optimc_t *) p;
-    int       c;
 
     if (optimc->regs[3] & 0x4)
         return;
 
     /* wss part */
     ad1848_update(&optimc->ad1848);
-    for (c = 0; c < len * 2; c++)
+    for (int c = 0; c < len * 2; c++)
         buffer[c] += (optimc->ad1848.buffer[c] / 2);
 
     optimc->ad1848.pos = 0;

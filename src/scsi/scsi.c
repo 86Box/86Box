@@ -125,7 +125,7 @@ scsi_card_available(int card)
     if (scsi_cards[card].device)
         return (device_available(scsi_cards[card].device));
 
-    return (1);
+    return 1;
 }
 
 const device_t *
@@ -138,7 +138,7 @@ int
 scsi_card_has_config(int card)
 {
     if (!scsi_cards[card].device)
-        return (0);
+        return 0;
 
     return (device_has_config(scsi_cards[card].device) ? 1 : 0);
 }
@@ -156,17 +156,17 @@ scsi_card_get_from_internal_name(char *s)
 
     while (scsi_cards[c].device != NULL) {
         if (!strcmp((char *) scsi_cards[c].device->internal_name, s))
-            return (c);
+            return c;
         c++;
     }
 
-    return (0);
+    return 0;
 }
 
 void
 scsi_card_init(void)
 {
-    int i = 0, max = SCSI_BUS_MAX;
+    int max = SCSI_BUS_MAX;
 
     /* On-board SCSI controllers get the first bus, so if one is present,
        increase our instance number here. */
@@ -176,7 +176,7 @@ scsi_card_init(void)
     /* Do not initialize any controllers if we have do not have any SCSI
            bus left. */
     if (max > 0) {
-        for (i = 0; i < max; i++) {
+        for (int i = 0; i < max; i++) {
             if (!scsi_cards[scsi_card_current[i]].device)
                 continue;
 

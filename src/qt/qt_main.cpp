@@ -86,8 +86,10 @@ void qt_set_sequence_auto_mnemonic(bool b);
 void
 main_thread_fn()
 {
-    uint64_t old_time, new_time;
-    int      drawits, frames;
+    uint64_t old_time;
+    uint64_t new_time;
+    int      drawits;
+    int      frames;
 
     QThread::currentThread()->setPriority(QThread::HighestPriority);
     framecountx = 0;

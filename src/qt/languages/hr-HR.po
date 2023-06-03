@@ -1219,3 +1219,9 @@ msgstr "2% ispod savršenog broja okretaja"
 msgid "(System Default)"
 msgstr "(Zadana postavka operativnog sustava)"
 
+msgid "Failed to initialize network driver"
+msgstr "Failed to initialize network driver"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "The network configuration will be switched to the null driver"
+

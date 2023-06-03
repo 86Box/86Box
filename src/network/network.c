@@ -442,6 +442,9 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
     card->card_num        = net_card_current;
     card->byte_period     = NET_PERIOD_10M;
 
+    char net_drv_error[NET_DRV_ERRBUF_SIZE];
+    wchar_t tempmsg[NET_DRV_ERRBUF_SIZE * 2];
+
     for (int i = 0; i < NET_QUEUE_COUNT; i++) {
         network_queue_init(&card->queues[i]);
     }
@@ -449,17 +452,17 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
     switch (net_cards_conf[net_card_current].net_type) {
         case NET_TYPE_SLIRP:
             card->host_drv      = net_slirp_drv;
-            card->host_drv.priv = card->host_drv.init(card, mac, NULL);
+            card->host_drv.priv = card->host_drv.init(card, mac, NULL, net_drv_error);
             break;
 
         case NET_TYPE_PCAP:
             card->host_drv      = net_pcap_drv;
-            card->host_drv.priv = card->host_drv.init(card, mac, net_cards_conf[net_card_current].host_dev_name);
+            card->host_drv.priv = card->host_drv.init(card, mac, net_cards_conf[net_card_current].host_dev_name, net_drv_error);
             break;
 #ifdef HAS_VDE
         case NET_TYPE_VDE:
             card->host_drv      = net_vde_drv;
-            card->host_drv.priv = card->host_drv.init(card, mac, net_cards_conf[net_card_current].host_dev_name);
+            card->host_drv.priv = card->host_drv.init(card, mac, net_cards_conf[net_card_current].host_dev_name, net_drv_error);
             break;
 #endif
         default:
@@ -474,13 +477,14 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
 
         if(net_cards_conf[net_card_current].net_type != NET_TYPE_NONE) {
             // We're here because of a failure
-            // Placeholder to display a msgbox about falling back to null
-            ui_msgbox(MBX_ERROR | MBX_ANSI, "Network driver initialization failed. Falling back to NULL driver.");
+            swprintf(tempmsg, sizeof_w(tempmsg), L"%ls:<br /><br />%s<br /><br />%ls", plat_get_string(IDS_2167), net_drv_error, plat_get_string(IDS_2168));
+            ui_msgbox(MBX_ERROR, tempmsg);
+            net_cards_conf[net_card_current].net_type = NET_TYPE_NONE;
         }
 
         // Init null driver
         card->host_drv      = net_null_drv;
-        card->host_drv.priv = card->host_drv.init(card, mac, NULL);
+        card->host_drv.priv = card->host_drv.init(card, mac, NULL, net_drv_error);
         // Set link state to disconnected by default
         network_connect(card->card_num, 0);
         ui_sb_update_icon_state(SB_NETWORK | card->card_num, 1);
@@ -548,15 +552,13 @@ network_close(void)
 void
 network_reset(void)
 {
-    int i = -1;
-
     ui_sb_update_icon(SB_NETWORK, 0);
 
 #if defined ENABLE_NETWORK_LOG && !defined(_WIN32)
     network_dump_mutex = thread_create_mutex();
 #endif
 
-    for (i = 0; i < NET_CARD_MAX; i++) {
+    for (uint8_t i = 0; i < NET_CARD_MAX; i++) {
         if (!network_dev_available(i)) {
             continue;
         }
@@ -652,15 +654,13 @@ network_is_connected(int id)
 int
 network_dev_to_id(char *devname)
 {
-    int i = 0;
-
-    for (i = 0; i < network_ndev; i++) {
+    for (int i = 0; i < network_ndev; i++) {
         if (!strcmp((char *) network_devs[i].device, devname)) {
-            return (i);
+            return i;
         }
     }
 
-    return (-1);
+    return -1;
 }
 
 /* UI */
@@ -669,7 +669,7 @@ network_dev_available(int id)
 {
     int available = (net_cards_conf[id].device_num > 0);
 
-    if ((net_cards_conf[id].net_type == NET_TYPE_PCAP && (network_dev_to_id(net_cards_conf[id].host_dev_name) <= 0)))
+    if (net_cards_conf[id].net_type == NET_TYPE_PCAP && (network_dev_to_id(net_cards_conf[id].host_dev_name) <= 0))
         available = 0;
 
     // TODO: Handle VDE device
@@ -696,7 +696,7 @@ network_card_available(int card)
     if (net_cards[card])
         return (device_available(net_cards[card]));
 
-    return (1);
+    return 1;
 }
 
 /* UI */
@@ -711,7 +711,7 @@ int
 network_card_has_config(int card)
 {
     if (!net_cards[card])
-        return (0);
+        return 0;
 
     return (device_has_config(net_cards[card]) ? 1 : 0);
 }
@@ -731,7 +731,7 @@ network_card_get_from_internal_name(char *s)
 
     while (net_cards[c] != NULL) {
         if (!strcmp((char *) net_cards[c]->internal_name, s))
-            return (c);
+            return c;
         c++;
     }
 

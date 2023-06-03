@@ -56,7 +56,8 @@
 #include <86box/win.h>
 
 HWND hwndSBAR;
-int  update_icons = 1, reset_occurred = 1;
+int  update_icons   = 1;
+int  reset_occurred = 1;
 
 static LONG_PTR OriginalProcedure;
 static WCHAR  **sbTips;
@@ -103,7 +104,7 @@ fdd_type_to_icon(int type)
             break;
     }
 
-    return (ret);
+    return ret;
 }
 
 /* FIXME: should be hdd_count() in hdd.c */
@@ -111,14 +112,13 @@ static int
 hdd_count(int bus)
 {
     int c = 0;
-    int i;
 
-    for (i = 0; i < HDD_NUM; i++) {
+    for (uint8_t i = 0; i < HDD_NUM; i++) {
         if (hdd[i].bus == bus)
             c++;
     }
 
-    return (c);
+    return c;
 }
 
 void
@@ -147,7 +147,7 @@ ui_sb_update_icon(int tag, int active)
     if (!update_icons || !sb_ready)
         return;
 
-    if (((tag & 0xf0) >= SB_TEXT))
+    if ((tag & 0xf0) >= SB_TEXT)
         return;
 
     found = sb_map[tag];
@@ -453,15 +453,13 @@ ui_sb_update_tip(int meaning)
 static void
 StatusBarDestroyTips(void)
 {
-    int i;
-
     if (sb_parts == 0)
         return;
 
     if (!sbTips)
         return;
 
-    for (i = 0; i < sb_parts; i++) {
+    for (int i = 0; i < sb_parts; i++) {
         if (sbTips[i]) {
             free(sbTips[i]);
             sbTips[i] = NULL;
@@ -879,7 +877,7 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message) {
         case WM_COMMAND:
             media_menu_proc(hwnd, message, wParam, lParam);
-            return (0);
+            return 0;
 
         case WM_LBUTTONDOWN:
         case WM_RBUTTONDOWN:
@@ -924,7 +922,7 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                                    hwnd, message, wParam, lParam));
     }
 
-    return (0);
+    return 0;
 }
 
 /* API: Create and set up the Status Bar window. */

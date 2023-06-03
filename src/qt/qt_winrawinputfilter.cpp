@@ -172,7 +172,9 @@ void
 WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
 {
     USHORT     scancode;
-    static int recv_lalt = 0, recv_ralt = 0, recv_tab = 0;
+    static int recv_lalt = 0;
+    static int recv_ralt = 0;
+    static int recv_tab = 0;
 
     RAWKEYBOARD rawKB = raw->data.keyboard;
     scancode          = rawKB.MakeCode;
@@ -334,7 +336,8 @@ void
 WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
 {
     RAWMOUSE   state = raw->data.mouse;
-    static int x, y;
+    static int x;
+    static int y;
 
     /* read mouse buttons and wheel */
     if (state.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)

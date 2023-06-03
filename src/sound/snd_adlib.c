@@ -42,11 +42,10 @@ static void
 adlib_get_buffer(int32_t *buffer, int len, void *p)
 {
     adlib_t *adlib = (adlib_t *) p;
-    int      c;
 
     int32_t *opl_buf = adlib->opl.update(adlib->opl.priv);
 
-    for (c = 0; c < len * 2; c++)
+    for (int c = 0; c < len * 2; c++)
         buffer[c] += (int32_t) opl_buf[c];
 
     adlib->opl.reset_buffer(adlib->opl.priv);

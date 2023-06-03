@@ -401,6 +401,14 @@ mm67_read(uint16_t port, void *priv)
                 picintc(1 << dev->irq);
             break;
 
+        case MM67_AL_MSEC:
+            ret                = dev->nvr.regs[reg] & 0xf0;
+            break;
+
+        case MM67_AL_DOW:
+            ret                = dev->nvr.regs[reg] & 0x0f;
+            break;
+
         default:
             ret = dev->nvr.regs[reg];
             break;
@@ -475,6 +483,14 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 
         case MM67_TEST:
             isartc_log("RTC: write test=%02x\n", val);
+            break;
+
+        case MM67_AL_MSEC:
+            dev->nvr.regs[reg] = val & 0xf0;
+            break;
+
+        case MM67_AL_DOW:
+            dev->nvr.regs[reg] = val & 0x0f;
             break;
 
         default:

@@ -48,7 +48,9 @@ extern "C" {
 #include <86box/machine.h>
 #include <86box/vid_ega.h>
 #include <86box/version.h>
-//#include <86box/acpi.h> /* Requires timer.h include, which conflicts with Qt headers */
+#if 0
+#include <86box/acpi.h> /* Requires timer.h include, which conflicts with Qt headers */
+#endif
 extern atomic_int acpi_pwrbut_pressed;
 extern int acpi_enabled;
 
@@ -413,19 +415,19 @@ MainWindow::MainWindow(QWidget *parent)
                 newVidApi = RendererStack::Renderer::Software;
                 break;
             case 1:
-                newVidApi = (RendererStack::Renderer::OpenGL);
+                newVidApi = RendererStack::Renderer::OpenGL;
                 break;
             case 2:
-                newVidApi = (RendererStack::Renderer::OpenGLES);
+                newVidApi = RendererStack::Renderer::OpenGLES;
                 break;
             case 3:
-                newVidApi = (RendererStack::Renderer::OpenGL3);
+                newVidApi = RendererStack::Renderer::OpenGL3;
                 break;
             case 4:
-                newVidApi = (RendererStack::Renderer::Vulkan);
+                newVidApi = RendererStack::Renderer::Vulkan;
                 break;
             case 5:
-                newVidApi = (RendererStack::Renderer::Direct3D9);
+                newVidApi = RendererStack::Renderer::Direct3D9;
                 break;
 #ifdef USE_VNC
             case 6:

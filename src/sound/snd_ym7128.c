@@ -112,13 +112,13 @@ ym7128_write(ym7128_t *ym7128, uint8_t val)
 void
 ym7128_apply(ym7128_t *ym7128, int16_t *buffer, int len)
 {
-    int c, d;
-
-    for (c = 0; c < len * 2; c += 4) {
+    for (int c = 0; c < len * 2; c += 4) {
         /*YM7128 samples a mono stream at ~24 kHz, so downsample*/
         int32_t samp = ((int32_t) buffer[c] + (int32_t) buffer[c + 1] + (int32_t) buffer[c + 2] + (int32_t) buffer[c + 3]) / 4;
-        int32_t filter_temp, filter_out;
-        int32_t samp_l = 0, samp_r = 0;
+        int32_t filter_temp;
+        int32_t filter_out;
+        int32_t samp_l = 0;
+        int32_t samp_r = 0;
 
         filter_temp = GET_DELAY_SAMPLE(ym7128, ym7128->t[0]);
         filter_out  = ((filter_temp * ym7128->c0) >> 11) + ((ym7128->filter_dat * ym7128->c1) >> 11);
@@ -129,7 +129,7 @@ ym7128_apply(ym7128_t *ym7128, int16_t *buffer, int len)
 
         ym7128->delay_buffer[ym7128->delay_pos] = samp;
 
-        for (d = 0; d < 8; d++) {
+        for (uint8_t d = 0; d < 8; d++) {
             samp_l += (GET_DELAY_SAMPLE(ym7128, ym7128->t[d + 1]) * ym7128->gl[d]) >> 16;
             samp_r += (GET_DELAY_SAMPLE(ym7128, ym7128->t[d + 1]) * ym7128->gr[d]) >> 16;
         }

@@ -143,7 +143,9 @@ convert_to_pdf(ps_t *dev)
 {
     volatile int code;
     void        *instance = NULL;
-    char         input_fn[1024], output_fn[1024], *gsargv[9];
+    char         input_fn[1024];
+    char         output_fn[1024];
+    char        *gsargv[9];
 
     strcpy(input_fn, dev->printer_path);
     path_slash(input_fn);
@@ -323,7 +325,7 @@ ps_read_status(void *p)
     if (!dev->ack)
         ret |= 0x40;
 
-    return (ret);
+    return ret;
 }
 
 static void *
@@ -362,7 +364,7 @@ ps_init(void *lpt)
 
     reset_ps(dev);
 
-    return (dev);
+    return dev;
 }
 
 static void

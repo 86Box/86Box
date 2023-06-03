@@ -49,7 +49,8 @@ create_86f(char *file_name, disk_size_t disk_size, uint8_t rpm_mode)
     uint32_t index_hole_pos = 0;
     uint32_t tarray[512];
     uint32_t array_size;
-    uint32_t track_base, track_size;
+    uint32_t track_base;
+    uint32_t track_size;
     int      i;
     uint32_t shift = 0;
 
@@ -262,7 +263,6 @@ create_zip_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_zdi, 
     uint32_t zero_bytes     = 0;
     uint16_t base           = 0x1000;
     uint32_t pbar_max       = 0;
-    uint32_t i;
     MSG      msg;
 
     f = plat_fopen(file_name, "wb");
@@ -466,7 +466,7 @@ create_zip_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_zdi, 
            Data = 0x38200 */
     }
 
-    for (i = 0; i < pbar_max; i++) {
+    for (uint32_t i = 0; i < pbar_max; i++) {
         fwrite(&empty[i << 11], 1, 2048, f);
         SendMessage(h, PBM_SETPOS, (WPARAM) i + 2, (LPARAM) 0);
 
@@ -489,13 +489,16 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
     HWND             h;
     FILE            *f;
     const mo_type_t *dp = &mo_types[disk_size];
-    uint8_t         *empty, *empty2 = NULL;
-    uint32_t         total_size    = 0, total_size2;
+    uint8_t         *empty;
+    uint8_t         *empty2 = NULL;
+    uint32_t         total_size    = 0;
+    uint32_t         total_size2;
     uint32_t         total_sectors = 0;
     uint32_t         sector_bytes  = 0;
     uint16_t         base          = 0x1000;
-    uint32_t         pbar_max      = 0, blocks_num;
-    uint32_t         i, j;
+    uint32_t         pbar_max      = 0;
+    uint32_t         blocks_num;
+    uint32_t         j;
     MSG              msg;
 
     f = plat_fopen(file_name, "wb");
@@ -574,7 +577,7 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
         memset(empty, 0x00, total_size2);
     }
 
-    for (i = 0; i < blocks_num; i++) {
+    for (uint32_t i = 0; i < blocks_num; i++) {
         fwrite(empty, 1, 1048576, f);
 
         SendMessage(h, PBM_SETPOS, (WPARAM) i + j, (LPARAM) 0);
@@ -605,7 +608,8 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
     return 1;
 }
 
-static int fdd_id, sb_part;
+static int fdd_id;
+static int sb_part;
 
 static int  file_type = 0; /* 0 = IMG, 1 = Japanese FDI, 2 = 86F */
 static char fd_file_name[1024];
@@ -624,7 +628,7 @@ new_floppy_msgbox_header(HWND hwnd, int flags, void *header, void *message)
 
     hwndMain = h;
 
-    return (i);
+    return i;
 }
 
 static int
@@ -640,7 +644,7 @@ new_floppy_msgbox_ex(HWND hwnd, int flags, void *header, void *message, void *bt
 
     hwndMain = h;
 
-    return (i);
+    return i;
 }
 
 #if defined(__amd64__) || defined(__aarch64__)
@@ -652,12 +656,16 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND     h;
     int      i = 0;
-    int      wcs_len, ext_offs;
+    int      wcs_len;
+    int      ext_offs;
     wchar_t *ext;
-    uint8_t  disk_size, rpm_mode;
+    uint8_t  disk_size;
+    uint8_t  rpm_mode;
     int      ret;
     FILE    *f;
-    int      zip_types, mo_types, floppy_types;
+    int      zip_types;
+    int      mo_types;
+    int      floppy_types;
     wchar_t *twcs;
 
     switch (message) {
@@ -770,19 +778,19 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                         ext_offs = wcs_len - 4;
                         ext      = &(wopenfilestring[ext_offs]);
                         if (is_zip) {
-                            if (((wcs_len >= 4) && !wcsicmp(ext, L".ZDI")))
+                            if ((wcs_len >= 4) && !wcsicmp(ext, L".ZDI"))
                                 file_type = 1;
                             else
                                 file_type = 0;
                         } else if (is_mo) {
-                            if (((wcs_len >= 4) && !wcsicmp(ext, L".MDI")))
+                            if ((wcs_len >= 4) && !wcsicmp(ext, L".MDI"))
                                 file_type = 1;
                             else
                                 file_type = 0;
                         } else {
-                            if (((wcs_len >= 4) && !wcsicmp(ext, L".FDI")))
+                            if ((wcs_len >= 4) && !wcsicmp(ext, L".FDI"))
                                 file_type = 1;
-                            else if ((((wcs_len >= 4) && !wcsicmp(ext, L".86F")) || (filterindex == 3)))
+                            else if (((wcs_len >= 4) && !wcsicmp(ext, L".86F")) || (filterindex == 3))
                                 file_type = 2;
                             else
                                 file_type = 0;
@@ -815,7 +823,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
             break;
     }
 
-    return (FALSE);
+    return FALSE;
 }
 
 void

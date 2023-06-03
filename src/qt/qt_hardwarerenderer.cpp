@@ -141,7 +141,8 @@ HardwareRenderer::paintGL()
 {
     m_context->makeCurrent(this);
     glClear(GL_COLOR_BUFFER_BIT);
-    QVector<QVector2D> verts, texcoords;
+    QVector<QVector2D> verts;
+    QVector<QVector2D> texcoords;
     QMatrix4x4         mat;
     mat.setToIdentity();
     mat.ortho(QRectF(0, 0, (qreal) width(), (qreal) height()));

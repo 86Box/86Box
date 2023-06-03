@@ -103,7 +103,14 @@ private:
 
     Ui::RendererStack *ui;
 
-    int x, y, w, h, sx, sy, sw, sh;
+    int x;
+    int y;
+    int w;
+    int h;
+    int sx;
+    int sy;
+    int sw;
+    int sh;
 
     int currentBuf      = 0;
     int isMouseDown     = 0;

@@ -138,7 +138,6 @@ static void
 dump_page(prnt_t *dev)
 {
     char     path[1024];
-    uint16_t x, y;
     uint8_t  ch;
     FILE    *fp;
 
@@ -162,8 +161,8 @@ dump_page(prnt_t *dev)
     if (ftell(fp) != 0)
         fputc('\014', fp);
 
-    for (y = 0; y < dev->curr_y; y++) {
-        for (x = 0; x < dev->page->w; x++) {
+    for (uint16_t y = 0; y < dev->curr_y; y++) {
+        for (uint16_t x = 0; x < dev->page->w; x++) {
             ch = dev->page->chars[(y * dev->page->w) + x];
             if (ch == 0x00) {
                 /* End of line marker. */
@@ -329,7 +328,7 @@ process_char(prnt_t *dev, uint8_t ch)
     }
 
     /* Just a printable character. */
-    return (0);
+    return 0;
 }
 
 static void
@@ -416,7 +415,7 @@ read_status(void *priv)
     if (!dev->ack)
         ret |= 0x40;
 
-    return (ret);
+    return ret;
 }
 
 static void *
@@ -443,7 +442,7 @@ prnt_init(void *lpt)
     timer_add(&dev->pulse_timer, pulse_timer, dev, 0);
     timer_add(&dev->timeout_timer, timeout_timer, dev, 0);
 
-    return (dev);
+    return dev;
 }
 
 static void

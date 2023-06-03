@@ -23,7 +23,7 @@ typedef struct {
     uint8_t m, ctrl,
         read_status, latch,
         s1_det, l_det,
-        bcd, pad;
+        bcd, incomplete;
 
     uint16_t rl;
 

@@ -26,13 +26,11 @@
 
 SettingsBusTracking::SettingsBusTracking()
 {
-    int i;
-
     mfm_tracking  = 0x0000000000000000ULL;
     esdi_tracking = 0x0000000000000000ULL;
     xta_tracking  = 0x0000000000000000ULL;
 
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         if (i < 4)
             ide_tracking[i] = 0x0000000000000000ULL;
 
@@ -79,11 +77,11 @@ SettingsBusTracking::next_free_xta_channel()
 uint8_t
 SettingsBusTracking::next_free_ide_channel()
 {
-    int      i, element;
+    int      element;
     uint64_t mask;
     uint8_t  ret = CHANNEL_NONE;
 
-    for (i = 0; i < 32; i++) {
+    for (uint8_t i = 0; i < 32; i++) {
         element = ((i << 3) >> 6);
         mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
@@ -99,11 +97,11 @@ SettingsBusTracking::next_free_ide_channel()
 uint8_t
 SettingsBusTracking::next_free_scsi_id()
 {
-    int      i, element;
+    int      element;
     uint64_t mask;
     uint8_t  ret = CHANNEL_NONE;
 
-    for (i = 0; i < 64; i++) {
+    for (uint8_t i = 0; i < 64; i++) {
         element = ((i << 3) >> 6);
         mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
@@ -119,11 +117,10 @@ SettingsBusTracking::next_free_scsi_id()
 int
 SettingsBusTracking::mfm_bus_full()
 {
-    int      i;
     uint64_t mask;
     uint8_t  count = 0;
 
-    for (i = 0; i < 2; i++) {
+    for (uint8_t i = 0; i < 2; i++) {
         mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
         if (mfm_tracking & mask)
@@ -136,11 +133,10 @@ SettingsBusTracking::mfm_bus_full()
 int
 SettingsBusTracking::esdi_bus_full()
 {
-    int      i;
     uint64_t mask;
     uint8_t  count = 0;
 
-    for (i = 0; i < 2; i++) {
+    for (uint8_t i = 0; i < 2; i++) {
         mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
         if (esdi_tracking & mask)
@@ -153,11 +149,10 @@ SettingsBusTracking::esdi_bus_full()
 int
 SettingsBusTracking::xta_bus_full()
 {
-    int      i;
     uint64_t mask;
     uint8_t  count = 0;
 
-    for (i = 0; i < 2; i++) {
+    for (uint8_t i = 0; i < 2; i++) {
         mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
         if (xta_tracking & mask)
@@ -170,11 +165,11 @@ SettingsBusTracking::xta_bus_full()
 int
 SettingsBusTracking::ide_bus_full()
 {
-    int      i, element;
+    int      element;
     uint64_t mask;
     uint8_t  count = 0;
 
-    for (i = 0; i < 32; i++) {
+    for (uint8_t i = 0; i < 32; i++) {
         element = ((i << 3) >> 6);
         mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
@@ -188,11 +183,11 @@ SettingsBusTracking::ide_bus_full()
 int
 SettingsBusTracking::scsi_bus_full()
 {
-    int      i, element;
+    int      element;
     uint64_t mask;
     uint8_t  count = 0;
 
-    for (i = 0; i < 64; i++) {
+    for (uint8_t i = 0; i < 64; i++) {
         element = ((i << 3) >> 6);
         mask    = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 

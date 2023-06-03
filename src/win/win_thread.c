@@ -46,7 +46,7 @@ int
 thread_test_mutex(thread_t *arg)
 {
     if (arg == NULL)
-        return (0);
+        return 0;
 
     return (WaitForSingleObject(arg, 0) == WAIT_OBJECT_0) ? 1 : 0;
 }
@@ -55,12 +55,12 @@ int
 thread_wait(thread_t *arg)
 {
     if (arg == NULL)
-        return (0);
+        return 0;
 
     if (WaitForSingleObject(arg, INFINITE))
-        return (1);
+        return 1;
 
-    return (0);
+    return 0;
 }
 
 event_t *
@@ -101,18 +101,18 @@ thread_wait_event(event_t *arg, int timeout)
     win_event_t *ev = (win_event_t *) arg;
 
     if (arg == NULL)
-        return (0);
+        return 0;
 
     if (ev->handle == NULL)
-        return (0);
+        return 0;
 
     if (timeout == -1)
         timeout = INFINITE;
 
     if (WaitForSingleObject(ev->handle, timeout))
-        return (1);
+        return 1;
 
-    return (0);
+    return 0;
 }
 
 void
@@ -142,7 +142,7 @@ int
 thread_wait_mutex(mutex_t *mutex)
 {
     if (mutex == NULL)
-        return (0);
+        return 0;
 
     LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION) mutex;
 
@@ -155,7 +155,7 @@ int
 thread_release_mutex(mutex_t *mutex)
 {
     if (mutex == NULL)
-        return (0);
+        return 0;
 
     LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION) mutex;
 

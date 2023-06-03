@@ -39,12 +39,16 @@ static BOOL CALLBACK
 #endif
 SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    HWND     h, h2;
+    HWND     h;
+    HWND     h2;
     HMENU    hmenu;
-    UDACCEL  accel, accel2;
+    UDACCEL  accel;
+    UDACCEL  accel2;
     RECT     r;
-    uint32_t temp_x = 0, temp_y = 0;
-    int      dpi = 96, lock;
+    uint32_t temp_x = 0;
+    uint32_t temp_y = 0;
+    int      dpi = 96;
+    int      lock;
     LPTSTR   lptsTemp;
     char    *stransi;
 

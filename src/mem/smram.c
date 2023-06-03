@@ -29,7 +29,8 @@
 #include <86box/mem.h>
 #include <86box/smram.h>
 
-static smram_t *base_smram, *last_smram;
+static smram_t *base_smram;
+static smram_t *last_smram;
 
 static uint8_t use_separate_smram = 0;
 static uint8_t smram[0x40000];
@@ -135,7 +136,8 @@ smram_writel(uint32_t addr, uint32_t val, void *priv)
 void
 smram_backup_all(void)
 {
-    smram_t *temp_smram = base_smram, *next;
+    smram_t *temp_smram = base_smram;
+    smram_t *next;
 
     while (temp_smram != NULL) {
         temp_smram->old_host_base = temp_smram->host_base;
@@ -150,7 +152,8 @@ smram_backup_all(void)
 void
 smram_recalc_all(int ret)
 {
-    smram_t *temp_smram = base_smram, *next;
+    smram_t *temp_smram = base_smram;
+    smram_t *next;
 
     if (base_smram == NULL)
         return;
@@ -316,7 +319,8 @@ smram_disable(smram_t *smr)
 void
 smram_disable_all(void)
 {
-    smram_t *temp_smram = base_smram, *next;
+    smram_t *temp_smram = base_smram;
+    smram_t *next;
 
     while (temp_smram != NULL) {
         smram_disable(temp_smram);
@@ -339,7 +343,7 @@ smram_enable_ex(smram_t *smr, uint32_t host_base, uint32_t ram_base, uint32_t si
 
     if ((size != 0x00000000) && (flags_normal || flags_smm)) {
         smr->host_base = host_base;
-        smr->ram_base  = ram_base,
+        smr->ram_base  = ram_base;
         smr->size      = size;
 
         mem_mapping_set_addr(&(smr->mapping), smr->host_base, smr->size);
