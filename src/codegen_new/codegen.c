@@ -31,9 +31,7 @@ static struct
 int
 codegen_get_instruction_uop(codeblock_t *block, uint32_t pc, int *first_instruction, int *TOP)
 {
-    int c;
-
-    for (c = 0; c <= block->ins; c++) {
+    for (uint8_t c = 0; c <= block->ins; c++) {
         if (codegen_instructions[c].pc == pc) {
             *first_instruction = c;
             *TOP               = codegen_instructions[c].TOP;
@@ -137,7 +135,9 @@ codegen_generate_ea_16_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
         uop_MOV_IMM(ir, IREG_eaaddr, addr);
         (*op_pc) += 2;
     } else {
-        int base_reg, index_reg, offset;
+        int base_reg;
+        int index_reg;
+        int offset;
 
         switch (cpu_rm & 7) {
             case 0:

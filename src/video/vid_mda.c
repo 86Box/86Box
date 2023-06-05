@@ -105,7 +105,9 @@ mda_read(uint32_t addr, void *p)
 void
 mda_recalctimings(mda_t *mda)
 {
-    double _dispontime, _dispofftime, disptime;
+    double _dispontime;
+    double _dispofftime;
+    double disptime;
     disptime     = mda->crtc[0] + 1;
     _dispontime  = mda->crtc[1];
     _dispofftime = disptime - _dispontime;
@@ -121,9 +123,11 @@ mda_poll(void *p)
     mda_t   *mda = (mda_t *) p;
     uint16_t ca  = (mda->crtc[15] | (mda->crtc[14] << 8)) & 0x3fff;
     int      drawcursor;
-    int      x, c;
+    int      x;
+    int      c;
     int      oldvc;
-    uint8_t  chr, attr;
+    uint8_t  chr;
+    uint8_t  attr;
     int      oldsc;
     int      blink;
 
@@ -252,7 +256,7 @@ mda_poll(void *p)
             mda->sc &= 31;
             mda->ma = mda->maback;
         }
-        if ((mda->sc == (mda->crtc[10] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[10] & 31) >> 1)))) {
+        if (mda->sc == (mda->crtc[10] & 31) || ((mda->crtc[8] & 3) == 3 && mda->sc == ((mda->crtc[10] & 31) >> 1))) {
             mda->con = 1;
         }
     }
@@ -262,9 +266,7 @@ mda_poll(void *p)
 void
 mda_init(mda_t *mda)
 {
-    int c;
-
-    for (c = 0; c < 256; c++) {
+    for (uint16_t c = 0; c < 256; c++) {
         mdacols[c][0][0] = mdacols[c][1][0] = mdacols[c][1][1] = 16;
         if (c & 8)
             mdacols[c][0][1] = 15 + 16;

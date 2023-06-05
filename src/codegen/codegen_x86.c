@@ -69,7 +69,8 @@
 #        include <windows.h>
 #    endif
 
-int      codegen_flat_ds, codegen_flat_ss;
+int      codegen_flat_ds;
+int      codegen_flat_ss;
 int      mmx_ebx_ecx_loaded;
 int      codegen_flags_changed = 0;
 int      codegen_fpu_entered   = 0;

@@ -207,7 +207,7 @@ ati18800_init(const device_t *info)
         case ATI18800_EDGE16:
             rom_init(&ati18800->bios_rom, BIOS_ROM_PATH_EDGE16, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
             break;
-    };
+    }
 
     if (info->local == ATI18800_EDGE16) {
         svga_init(info, &ati18800->svga, ati18800, 1 << 18, /*256kb*/

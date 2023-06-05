@@ -281,7 +281,8 @@ ROP_ARITH_RM(SUB, SUB, 1)
 static uint32_t
 ropCMP_b_rm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-    int src_reg, dst_reg;
+    int src_reg;
+    int dst_reg;
 
     if ((fetchdat & 0xc0) == 0xc0) {
         src_reg = LOAD_REG_B(fetchdat & 7);
@@ -307,7 +308,8 @@ ropCMP_b_rm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, c
 static uint32_t
 ropCMP_w_rm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-    int src_reg, dst_reg;
+    int src_reg;
+    int dst_reg;
 
     if ((fetchdat & 0xc0) == 0xc0) {
         src_reg = LOAD_REG_W(fetchdat & 7);
@@ -333,7 +335,8 @@ ropCMP_w_rm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, c
 static uint32_t
 ropCMP_l_rm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-    int src_reg, dst_reg;
+    int src_reg;
+    int dst_reg;
 
     if ((fetchdat & 0xc0) == 0xc0) {
         src_reg = LOAD_REG_L(fetchdat & 7);
@@ -360,7 +363,8 @@ ropCMP_l_rm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, c
 static uint32_t
 ropCMP_b_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-    int src_reg, dst_reg;
+    int src_reg;
+    int dst_reg;
 
     if ((fetchdat & 0xc0) == 0xc0) {
         dst_reg = LOAD_REG_B(fetchdat & 7);
@@ -386,7 +390,8 @@ ropCMP_b_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
 static uint32_t
 ropCMP_w_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-    int src_reg, dst_reg;
+    int src_reg;
+    int dst_reg;
 
     if ((fetchdat & 0xc0) == 0xc0) {
         dst_reg = LOAD_REG_W(fetchdat & 7);
@@ -412,7 +417,8 @@ ropCMP_w_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
 static uint32_t
 ropCMP_l_rmw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-    int src_reg, dst_reg;
+    int src_reg;
+    int dst_reg;
 
     if ((fetchdat & 0xc0) == 0xc0) {
         dst_reg = LOAD_REG_L(fetchdat & 7);

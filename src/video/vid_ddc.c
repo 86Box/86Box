@@ -133,7 +133,8 @@ ddc_init(void *i2c)
     memset(edid, 0, sizeof(edid_t));
 
     uint8_t *edid_bytes = (uint8_t *) edid;
-    double horiz_mm = PIXEL_MM(800), vert_mm = PIXEL_MM(600);
+    double horiz_mm     = PIXEL_MM(800);
+    double vert_mm      = PIXEL_MM(600);
 
     memset(&edid->magic[1], 0xff, sizeof(edid->magic) - 2);
 

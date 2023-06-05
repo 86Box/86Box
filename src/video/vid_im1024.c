@@ -147,7 +147,7 @@ fifo_read(im1024_t *dev)
 
     im1024_log("IM1024: fifo_read: %02x\n", ret);
 
-    return (ret);
+    return ret;
 }
 
 /*
@@ -168,12 +168,12 @@ input_byte(pgc_t *pgc, uint8_t *result)
     }
 
     if (pgc->stopped)
-        return (0);
+        return 0;
 
     if (pgc->mapram[0x3ff]) {
         /* Reset triggered. */
         pgc_reset(pgc);
-        return (0);
+        return 0;
     }
 
     if (dev->fifo_wrptr == dev->fifo_rdptr) {
@@ -182,7 +182,7 @@ input_byte(pgc_t *pgc, uint8_t *result)
     } else
         *result = fifo_read(dev);
 
-    return (1);
+    return 1;
 }
 
 /* Macros to disable clipping and save clip state. */
@@ -214,7 +214,7 @@ im1024_read(uint32_t addr, void *priv)
 
     if (addr == 0xc6331 && dev->pgc.mapram[0x330] == 1) {
         /* Hardcode that there are 128 bytes free. */
-        return (0x80);
+        return 0x80;
     }
 
     return (pgc_read(addr, &dev->pgc));
@@ -255,8 +255,10 @@ hndl_imgsiz(pgc_t *pgc)
 #if 0
     im1024_t *dev = (im1024_t *)pgc;
 #endif
-    int16_t w, h;
-    uint8_t a, b;
+    int16_t w;
+    int16_t h;
+    uint8_t a;
+    uint8_t b;
 
     if (!pgc_param_word(pgc, &w))
         return;
@@ -318,7 +320,8 @@ hndl_linfun(pgc_t *pgc)
 static void
 hndl_pan(pgc_t *pgc)
 {
-    int16_t x, y;
+    int16_t x;
+    int16_t y;
 
     if (!pgc_param_word(pgc, &x))
         return;
@@ -335,7 +338,8 @@ hndl_pan(pgc_t *pgc)
 static void
 hndl_pline(pgc_t *pgc)
 {
-    int16_t  x[257], y[257];
+    int16_t  x[257];
+    int16_t  y[257];
     uint16_t linemask = pgc->line_pattern;
     uint8_t  count;
     unsigned n;
@@ -405,9 +409,12 @@ blkmov_row(pgc_t *pgc, int16_t x0, int16_t x1, int16_t x2, int16_t sy, int16_t t
 static void
 hndl_blkmov(pgc_t *pgc)
 {
-    int16_t x0, y0;
-    int16_t x1, y1;
-    int16_t x2, y2;
+    int16_t x0;
+    int16_t y0;
+    int16_t x1;
+    int16_t y1;
+    int16_t x2;
+    int16_t y2;
     int16_t y;
 
     if (!pgc_param_word(pgc, &x0))
@@ -451,7 +458,8 @@ hndl_blkmov(pgc_t *pgc)
 static void
 hndl_ellipse(pgc_t *pgc)
 {
-    int16_t x, y;
+    int16_t x;
+    int16_t y;
 
     if (!pgc_param_word(pgc, &x))
         return;
@@ -471,7 +479,8 @@ hndl_ellipse(pgc_t *pgc)
 static void
 hndl_move(pgc_t *pgc)
 {
-    int16_t x, y;
+    int16_t x;
+    int16_t y;
 
     if (!pgc_param_word(pgc, &x))
         return;
@@ -491,7 +500,8 @@ hndl_move(pgc_t *pgc)
 static void
 hndl_draw(pgc_t *pgc)
 {
-    int16_t x, y;
+    int16_t x;
+    int16_t y;
 
     if (!pgc_param_word(pgc, &x))
         return;
@@ -513,10 +523,16 @@ hndl_draw(pgc_t *pgc)
 static void
 hndl_poly(pgc_t *pgc)
 {
-    int32_t *x, *y, *nx, *ny;
-    int16_t  xw, yw, mask;
+    int32_t *x;
+    int32_t *y;
+    int32_t *nx;
+    int32_t *ny;
+    int16_t  xw;
+    int16_t  yw;
+    int16_t  mask;
     unsigned realcount = 0;
-    unsigned n, as = 256;
+    unsigned n;
+    unsigned as = 256;
     int      parsing = 1;
     uint8_t  count;
 
@@ -596,7 +612,7 @@ hndl_poly(pgc_t *pgc)
             /* Swallow the POLY. */
             pgc->clcur->rdptr++;
         }
-    };
+    }
 
     im1024_log("IM1024: POLY (%i) fill_mode=%i\n", realcount, pgc->fill_mode);
 #ifdef ENABLE_IM1024_LOG
@@ -648,7 +664,12 @@ parse_poly(pgc_t *pgc, pgc_cl_t *cl, int c)
 static void
 hndl_rect(pgc_t *pgc)
 {
-    int16_t x0, y0, x1, y1, p, q;
+    int16_t x0;
+    int16_t y0;
+    int16_t x1;
+    int16_t y1;
+    int16_t p;
+    int16_t q;
 
     x0 = pgc->x >> 16;
     y0 = pgc->y >> 16;
@@ -698,9 +719,11 @@ static void
 hndl_tdefin(pgc_t *pgc)
 {
     im1024_t *dev = (im1024_t *) pgc;
-    uint8_t   ch, bt;
-    uint8_t   rows, cols;
-    unsigned  len, n;
+    uint8_t   ch;
+    uint8_t   bt;
+    uint8_t   rows;
+    uint8_t   cols;
+    unsigned  len;
 
     if (!pgc_param_byte(pgc, &ch))
         return;
@@ -713,7 +736,7 @@ hndl_tdefin(pgc_t *pgc)
                ch, rows, cols, pgc->mapram[0x300], pgc->mapram[0x301]);
 
     len = ((cols + 7) / 8) * rows;
-    for (n = 0; n < len; n++) {
+    for (unsigned int n = 0; n < len; n++) {
         if (!pgc_param_byte(pgc, &bt))
             return;
 
@@ -742,8 +765,11 @@ hndl_twrite(pgc_t *pgc)
 {
     uint8_t   buf[256];
     im1024_t *dev = (im1024_t *) pgc;
-    uint8_t   count, mask, *row;
-    int       x, y, wb, n;
+    uint8_t   count;
+    uint8_t   mask;
+    uint8_t  *row;
+    int       wb;
+    int       n;
     int16_t   x0 = pgc->x >> 16;
     int16_t   y0 = pgc->y >> 16;
 
@@ -764,10 +790,10 @@ hndl_twrite(pgc_t *pgc)
         im1024_log("IM1024: ch=0x%02x w=%i h=%i wb=%i\n",
                    buf[n], dev->fontx[buf[n]], dev->fonty[buf[n]], wb);
 
-        for (y = 0; y < dev->fonty[buf[n]]; y++) {
+        for (uint8_t y = 0; y < dev->fonty[buf[n]]; y++) {
             mask = 0x80;
             row  = &dev->font[buf[n]][y * wb];
-            for (x = 0; x < dev->fontx[buf[n]]; x++) {
+            for (uint8_t x = 0; x < dev->fontx[buf[n]]; x++) {
                 if (row[0] & mask)
                     pgc_plot(pgc, x + x0, y0 - y);
                 mask = mask >> 1;
@@ -786,11 +812,12 @@ static void
 hndl_txt88(pgc_t *pgc)
 {
     uint8_t  buf[256];
-    uint8_t  count, mask, *row;
+    uint8_t  count;
+    uint8_t  mask;
+    uint8_t *row;
     int16_t  x0 = pgc->x >> 16;
     int16_t  y0 = pgc->y >> 16;
     unsigned n;
-    int      x, y;
 
     if (!pgc_param_byte(pgc, &count))
         return;
@@ -807,10 +834,10 @@ hndl_txt88(pgc_t *pgc)
     for (n = 0; n < count; n++) {
         im1024_log("ch=0x%02x w=12 h=18\n", buf[n]);
 
-        for (y = 0; y < 18; y++) {
+        for (uint8_t y = 0; y < 18; y++) {
             mask = 0x80;
             row  = &fontdat12x18[buf[n]][y * 2];
-            for (x = 0; x < 12; x++) {
+            for (uint8_t x = 0; x < 12; x++) {
                 if (row[0] & mask)
                     pgc_plot(pgc, x + x0, y0 - y);
                 mask = mask >> 1;
@@ -828,9 +855,15 @@ hndl_txt88(pgc_t *pgc)
 static void
 hndl_imagew(pgc_t *pgc)
 {
-    int16_t vp_x1, vp_y1, vp_x2, vp_y2;
-    int16_t row1, col1, col2;
-    uint8_t v1, v2;
+    int16_t vp_x1;
+    int16_t vp_y1;
+    int16_t vp_x2;
+    int16_t vp_y2;
+    int16_t row1;
+    int16_t col1;
+    int16_t col2;
+    uint8_t v1;
+    uint8_t v2;
 
     if (!pgc_param_word(pgc, &row1))
         return;
@@ -908,8 +941,8 @@ hndl_imagew(pgc_t *pgc)
 static void
 hndl_dot(pgc_t *pgc)
 {
-    int16_t x = pgc->x >> 16,
-            y = pgc->y >> 16;
+    int16_t x = pgc->x >> 16;
+    int16_t y = pgc->y >> 16;
 
     pgc_sto_raster(pgc, &x, &y);
 
@@ -928,8 +961,10 @@ hndl_dot(pgc_t *pgc)
 static void
 hndl_imagex(pgc_t *pgc)
 {
-    int16_t x0, x1, y0, y1;
-    int16_t p, q;
+    int16_t x0;
+    int16_t x1;
+    int16_t y0;
+    int16_t y1;
 
     if (!pgc_param_word(pgc, &x0))
         return;
@@ -943,8 +978,8 @@ hndl_imagex(pgc_t *pgc)
     /* Already using raster coordinates, no need to convert. */
     im1024_log("IM1024: IMAGEX (%i,%i,%i,%i)\n", x0, y0, x1, y1);
 
-    for (p = y0; p <= y1; p++) {
-        for (q = x0; q <= x1; q++) {
+    for (int16_t p = y0; p <= y1; p++) {
+        for (int16_t q = x0; q <= x1; q++) {
             if (!pgc_result_byte(pgc, pgc_read_pixel(pgc, q, p)))
                 return;
         }
@@ -1020,7 +1055,7 @@ im1024_init(const device_t *info)
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_im1024);
 
-    return (dev);
+    return dev;
 }
 
 static void

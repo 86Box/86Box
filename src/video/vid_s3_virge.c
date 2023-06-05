@@ -796,7 +796,7 @@ s3_virge_recalctimings(svga_t *svga)
         int    m    = svga->seqregs[0x13] & 0x7f;
         double freq = (((double) m + 2) / (((double) n + 2) * (double) (1 << r))) * 14318184.0;
 
-        svga->clock = (cpuclock * (float) (1ull << 32)) / freq;
+        svga->clock = (cpuclock * (float) (1ULL << 32)) / freq;
     }
 
     if ((svga->crtc[0x67] & 0xc) != 0xc) /*VGA mode*/
@@ -1179,7 +1179,7 @@ s3_virge_mmio_fifo_write_l(uint32_t addr, uint32_t val, virge_t *virge)
                 {
                     int x = addr & 4;
                     int y = (addr >> 3) & 7;
-                    int color, xx;
+                    int color;
                     int byte;
                     virge->s3d.pattern_8[y * 8 + x]     = val & 0xff;
                     virge->s3d.pattern_8[y * 8 + x + 1] = val >> 8;
@@ -1192,7 +1192,7 @@ s3_virge_mmio_fifo_write_l(uint32_t addr, uint32_t val, virge_t *virge)
                     virge->s3d.pattern_16[y * 8 + x + 1] = val >> 16;
 
                     addr &= 0x00ff;
-                    for (xx = 0; xx < 4; xx++) {
+                    for (uint8_t xx = 0; xx < 4; xx++) {
                         x     = ((addr + xx) / 3) % 8;
                         y     = ((addr + xx) / 24) % 8;
                         color = ((addr + xx) % 3) << 3;
@@ -2045,10 +2045,13 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
     int       x_mul;
     int       cpu_dat_shift;
     uint32_t *pattern_data;
-    uint32_t  src_fg_clr, src_bg_clr;
+    uint32_t  src_fg_clr;
+    uint32_t  src_bg_clr;
     uint32_t  src_addr;
     uint32_t  dest_addr;
-    uint32_t  source = 0, dest = 0, pattern;
+    uint32_t  source = 0;
+    uint32_t  dest = 0;
+    uint32_t  pattern;
     uint32_t  out = 0;
     int       update;
 
@@ -2095,9 +2098,8 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
             break;
     }
     if (virge->s3d.cmd_set & CMD_SET_MP) {
-        int x, y;
-        for (y = 0; y < 4; y++) {
-            for (x = 0; x < 8; x++) {
+        for (uint8_t y = 0; y < 4; y++) {
+            for (uint8_t x = 0; x < 8; x++) {
                 if (virge->s3d.mono_pat_0 & (1 << (x + y * 8)))
                     mono_pattern[y * 8 + (7 - x)] = virge->s3d.pat_fg_clr;
                 else
@@ -2311,7 +2313,9 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
 
                 do {
                     uint32_t dest_addr = virge->s3d.dest_base + (x * x_mul) + (virge->s3d.dest_y * virge->s3d.dest_str);
-                    uint32_t source = 0, dest = 0, pattern;
+                    uint32_t source = 0;
+                    uint32_t dest = 0;
+                    uint32_t pattern;
                     uint32_t out    = 0;
                     int      update = 1;
 
@@ -2361,7 +2365,9 @@ skip_line:
                 int xdir = (x < xend) ? 1 : -1;
                 do {
                     uint32_t dest_addr = virge->s3d.dest_base + (x * x_mul) + (y * virge->s3d.dest_str);
-                    uint32_t source = 0, dest = 0, pattern;
+                    uint32_t source = 0;
+                    uint32_t dest = 0;
+                    uint32_t pattern;
                     uint32_t out    = 0;
                     int      update = 1;
 
@@ -2452,7 +2458,8 @@ static void (*dest_pixel)(s3d_state_t *state);
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-static int _x, _y;
+static int _x;
+static int _y;
 
 static void
 tex_ARGB1555(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out)
@@ -2553,7 +2560,8 @@ tex_sample_normal_filter(s3d_state_t *state)
     s3d_texture_state_t texture_state;
     int                 tex_offset;
     rgba_t              tex_samples[4];
-    int                 du, dv;
+    int                 du;
+    int                 dv;
     int                 d[4];
 
     texture_state.level         = state->max_d;
@@ -2610,7 +2618,8 @@ tex_sample_mipmap_filter(s3d_state_t *state)
     s3d_texture_state_t texture_state;
     int                 tex_offset;
     rgba_t              tex_samples[4];
-    int                 du, dv;
+    int                 du;
+    int                 dv;
     int                 d[4];
 
     texture_state.level = (state->d < 0) ? state->max_d : state->max_d - ((state->d >> 27) & 0xf);
@@ -2669,10 +2678,13 @@ static void
 tex_sample_persp_normal_filter(s3d_state_t *state)
 {
     s3d_texture_state_t texture_state;
-    int32_t             w = 0, u, v;
+    int32_t             w = 0;
+    int32_t             u;
+    int32_t             v;
     int                 tex_offset;
     rgba_t              tex_samples[4];
-    int                 du, dv;
+    int                 du;
+    int                 dv;
     int                 d[4];
 
     if (state->w)
@@ -2735,10 +2747,13 @@ static void
 tex_sample_persp_normal_filter_375(s3d_state_t *state)
 {
     s3d_texture_state_t texture_state;
-    int32_t             w = 0, u, v;
+    int32_t             w = 0;
+    int32_t             u;
+    int32_t             v;
     int                 tex_offset;
     rgba_t              tex_samples[4];
-    int                 du, dv;
+    int                 du;
+    int                 dv;
     int                 d[4];
 
     if (state->w)
@@ -2803,10 +2818,13 @@ static void
 tex_sample_persp_mipmap_filter(s3d_state_t *state)
 {
     s3d_texture_state_t texture_state;
-    int32_t             w = 0, u, v;
+    int32_t             w = 0;
+    int32_t             u;
+    int32_t             v;
     int                 tex_offset;
     rgba_t              tex_samples[4];
-    int                 du, dv;
+    int                 du;
+    int                 dv;
     int                 d[4];
 
     if (state->w)
@@ -2873,10 +2891,13 @@ static void
 tex_sample_persp_mipmap_filter_375(s3d_state_t *state)
 {
     s3d_texture_state_t texture_state;
-    int32_t             w = 0, u, v;
+    int32_t             w = 0;
+    int32_t             u;
+    int32_t             v;
     int                 tex_offset;
     rgba_t              tex_samples[4];
-    int                 du, dv;
+    int                 du;
+    int                 dv;
     int                 d[4];
 
     if (state->w)
@@ -3031,10 +3052,13 @@ tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int
 
     int bpp = (s3d_tri->cmd_set >> 2) & 7;
 
-    uint32_t dest_offset = 0, z_offset = 0;
+    uint32_t dest_offset = 0;
+    uint32_t z_offset = 0;
 
     uint32_t src_col;
-    int      src_r = 0, src_g = 0, src_b = 0;
+    int      src_r = 0;
+    int      src_g = 0;
+    int      src_b = 0;
 
     int      x;
     int      xe;
@@ -3324,7 +3348,6 @@ s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri)
     s3d_state_t state;
 
     uint32_t tex_base;
-    int      c;
 
     uint64_t start_time = plat_timer_read();
     uint64_t end_time;
@@ -3349,7 +3372,7 @@ s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri)
     state.base_w = s3d_tri->tws;
 
     tex_base = s3d_tri->tex_base;
-    for (c = 9; c >= 0; c--) {
+    for (uint8_t c = 9; c >= 0; c--) {
         state.texture[c] = (uint16_t *) &virge->svga.vram[tex_base];
         if (c <= state.max_d)
             tex_base += ((1 << (c * 2)) * tex_size[(s3d_tri->cmd_set >> 5) & 7]) / 2;
@@ -3464,11 +3487,11 @@ static void
 s3_virge_hwcursor_draw(svga_t *svga, int displine)
 {
     virge_t *virge = (virge_t *) svga->p;
-    int      x;
     uint16_t dat[2];
     int      xx;
     int      offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
-    uint32_t fg, bg;
+    uint32_t fg;
+    uint32_t bg;
     uint32_t vram_mask = virge->vram_mask;
 
     if (svga->interlace && svga->hwcursor_oddeven)
@@ -3497,7 +3520,7 @@ s3_virge_hwcursor_draw(svga_t *svga, int displine)
             break;
     }
 
-    for (x = 0; x < 64; x += 16) {
+    for (uint8_t x = 0; x < 64; x += 16) {
         dat[0] = (svga->vram[svga->hwcursor_latch.addr & vram_mask] << 8) | svga->vram[(svga->hwcursor_latch.addr + 1) & vram_mask];
         dat[1] = (svga->vram[(svga->hwcursor_latch.addr + 2) & vram_mask] << 8) | svga->vram[(svga->hwcursor_latch.addr + 3) & vram_mask];
         if (svga->crtc[0x55] & 0x10) {
@@ -3751,9 +3774,12 @@ s3_virge_overlay_draw(svga_t *svga, int displine)
     virge_t  *virge  = (virge_t *) svga->p;
     int       offset = (virge->streams.sec_x - virge->streams.pri_x) + 1;
     int       h_acc  = virge->streams.dda_horiz_accumulator;
-    int       r[8], g[8], b[8];
-    int       x_size, x_read = 4, x_write = 4;
-    int       x;
+    int       r[8];
+    int       g[8];
+    int       b[8];
+    int       x_size;
+    int       x_read = 4;
+    int       x_write = 4;
     uint32_t *p;
     uint8_t  *src = &svga->vram[svga->overlay_latch.addr];
 
@@ -3766,7 +3792,7 @@ s3_virge_overlay_draw(svga_t *svga, int displine)
 
     OVERLAY_SAMPLE();
 
-    for (x = 0; x < x_size; x++) {
+    for (int x = 0; x < x_size; x++) {
         *p++ = r[x_read] | (g[x_read] << 8) | (b[x_read] << 16);
 
         h_acc += virge->streams.k1_horiz_scale;
@@ -4039,8 +4065,8 @@ s3_virge_reset(void *priv)
     memset(svga->crtc, 0x00, sizeof(svga->crtc));
     svga->crtc[0]     = 63;
     svga->crtc[6]     = 255;
-    svga->dispontime  = 1000ull << 32;
-    svga->dispofftime = 1000ull << 32;
+    svga->dispontime  = 1000ULL << 32;
+    svga->dispofftime = 1000ULL << 32;
     svga->bpp         = 8;
 
     io_removehandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);

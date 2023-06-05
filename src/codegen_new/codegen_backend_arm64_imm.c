@@ -1313,7 +1313,8 @@ static uint32_t imm_table[][2] = {
 uint32_t
 host_arm64_find_imm(uint32_t data)
 {
-    int l = 0, r = IMM_NR - 1;
+    int l = 0;
+    int r = IMM_NR - 1;
 
     while (l <= r) {
         int m = (l + r) >> 1;
