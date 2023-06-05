@@ -13,6 +13,7 @@
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #define UNICODE
 #define _WIN32_WINNT 0x0501

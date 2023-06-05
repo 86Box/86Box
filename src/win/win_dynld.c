@@ -13,6 +13,7 @@
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2017-2018 Fred N. van Kempen
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #include <stdarg.h>
 #include <stdint.h>

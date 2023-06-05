@@ -12,11 +12,12 @@
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          David Hrdlička, <hrdlickadavid@outlook.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2018-2019 David Hrdlička.
  *          Copyright 2021 Laci bá'
- *          Copyright 2021-2022 Jasmine Iwanek.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
