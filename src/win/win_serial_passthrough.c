@@ -13,7 +13,7 @@
  *              Jasmine Iwanek <jasmine@iwanek.co.uk>
  *
  *              Copyright 2021      Andreas J. Reichel
- *              Copyright 2021-2022 Jasmine Iwanek
+ *              Copyright 2021-2023 Jasmine Iwanek
  */
 
 #define _XOPEN_SOURCE 500

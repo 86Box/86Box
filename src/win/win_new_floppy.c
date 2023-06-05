@@ -13,6 +13,7 @@
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP

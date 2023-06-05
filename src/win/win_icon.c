@@ -13,6 +13,7 @@
  * Authors: Laci bá'
  *
  *          Copyright 2021 Laci bá'.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 
 #include <windows.h>

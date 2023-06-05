@@ -17,6 +17,7 @@
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2020 GH Cao.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #include <windows.h>
 #include <windowsx.h>

@@ -15,6 +15,7 @@
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>

@@ -18,6 +18,7 @@
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2021 Laci bá'
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #define UNICODE
 #define NTDDI_VERSION 0x06010000
