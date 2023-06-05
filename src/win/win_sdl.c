@@ -10,7 +10,7 @@
  *
  * NOTE:    Given all the problems reported with FULLSCREEN use of SDL,
  *          we will not use that, but, instead, use a new window which
- *          coverrs the entire desktop.
+ *          covers the entire desktop.
  *
  *
  *
