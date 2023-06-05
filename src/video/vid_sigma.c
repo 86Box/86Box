@@ -419,7 +419,7 @@ sigma_text80(sigma_t *sigma)
 
     /* The Sigma 400 seems to use screen widths stated in words
        (40 for 80-column, 20 for 40-column) */
-    for (uint8_t x = 0; x < (sigma->crtc[1] << 1); x++) {
+    for (uint32_t x = 0; x < (sigma->crtc[1] << 1); x++) {
         chr        = vram[x << 1];
         attr       = vram[(x << 1) + 1];
         drawcursor = ((ma == ca) && sigma->con && sigma->cursoron);
@@ -474,7 +474,7 @@ sigma_text40(sigma_t *sigma)
 
     /* The Sigma 400 seems to use screen widths stated in words
        (40 for 80-column, 20 for 40-column) */
-    for (uint8_t x = 0; x < (sigma->crtc[1] << 1); x++) {
+    for (uint32_t x = 0; x < (sigma->crtc[1] << 1); x++) {
         chr        = vram[x << 1];
         attr       = vram[(x << 1) + 1];
         drawcursor = ((ma == ca) && sigma->con && sigma->cursoron);
@@ -512,7 +512,7 @@ sigma_gfx400(sigma_t *sigma)
     uint8_t        plane[4];
     uint8_t        col;
 
-    for (uint8_t x = 0; x < (sigma->crtc[1] << 1); x++) {
+    for (uint32_t x = 0; x < (sigma->crtc[1] << 1); x++) {
         plane[0] = vram[x];
         plane[1] = vram[0x8000 + x];
         plane[2] = vram[0x10000 + x];
@@ -540,7 +540,7 @@ sigma_gfx200(sigma_t *sigma)
     uint8_t        plane[4];
     uint8_t        col;
 
-    for (uint8_t x = 0; x < (sigma->crtc[1] << 1); x++) {
+    for (uint32_t x = 0; x < (sigma->crtc[1] << 1); x++) {
         plane[0] = vram[x];
         plane[1] = vram[0x8000 + x];
         plane[2] = vram[0x10000 + x];
@@ -566,7 +566,7 @@ sigma_gfx4col(sigma_t *sigma)
     uint8_t        mask;
     uint8_t        col;
 
-    for (uint8_t x = 0; x < (sigma->crtc[1] << 1); x++) {
+    for (uint32_t x = 0; x < (sigma->crtc[1] << 1); x++) {
         plane[0] = vram[x];
         plane[1] = vram[0x8000 + x];
         plane[2] = vram[0x10000 + x];

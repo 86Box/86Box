@@ -253,7 +253,7 @@ ati68860_hwcursor_draw(svga_t *svga, int displine)
     uint32_t           col1 = ramdac->pallook[1];
 
     offset = svga->dac_hwcursor_latch.xoff;
-    for (uint8_t x = 0; x < 64 - svga->dac_hwcursor_latch.xoff; x += 4) {
+    for (uint32_t x = 0; x < 64 - svga->dac_hwcursor_latch.xoff; x += 4) {
         dat = svga->vram[svga->dac_hwcursor_latch.addr + (offset >> 2)];
         if (!(dat & 2))
             buffer32->line[displine][svga->dac_hwcursor_latch.x + x + svga->x_add] = (dat & 1) ? col1 : col0;
