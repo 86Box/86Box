@@ -273,7 +273,7 @@
 
 #define IDS_LANG_ENUS IDS_7168
 
-#define STR_NUM_2048  120
+#define STR_NUM_2048  121
 // UNUSED: #define STR_NUM_3072  11
 #define STR_NUM_4096 40
 #define STR_NUM_4352 6
