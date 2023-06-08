@@ -178,7 +178,10 @@ typedef struct {
                              0xFF. */
         id1;              /* 0x70 for the RTL8019AS, 0x43 for the
                              RTL8029AS, otherwise 0xFF. */
-    int mem_size, mem_start, mem_end;
+    uint32_t mem_size;
+    uint32_t mem_start;
+    uint32_t mem_end;
+    uint32_t mem_wrap;
 
     int tx_timer_index;
     int tx_timer_active;
