@@ -348,10 +348,6 @@ then
 			# Run build for the architecture.
 			args=
 			[ $strip -ne 0 ] && args="-t $args"
-			case $arch_universal in # workaround: force new dynarec on for ARM
-				arm*) cmake_flags_extra="-D NEW_DYNAREC=ON";;
-				*)    cmake_flags_extra=;;
-			esac
 			zsh -lc 'exec "'"$0"'" -n -b "universal slice" "'"$arch_universal"'" '"$args""$cmake_flags"' '"$cmake_flags_extra"
 			status=$?
 
@@ -677,7 +673,7 @@ rm -rf build
 case $arch in
 	32 | x86)	cmake_flags_extra="$cmake_flags_extra -D ARCH=i386";;
 	64 | x86_64*)	cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
-	ARM32 | arm32)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm";;
+	ARM32 | arm32)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm -D NEW_DYNAREC=ON";;
 	ARM64 | arm64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64 -D NEW_DYNAREC=ON";;
 	*)		cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
 esac
