@@ -194,7 +194,7 @@ open_host_serial_port(serial_passthrough_t *dev)
     DCB *serialattr = calloc(1, sizeof(DCB));
     if (!serialattr)
         return 0;
-    dev->master_fd = (intptr_t) CreateFileA(dev->host_serial_path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+    dev->master_fd = (intptr_t) CreateFileA(dev->host_serial_path, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_WRITE_THROUGH, NULL);
     if (dev->master_fd == (intptr_t) INVALID_HANDLE_VALUE) {
         free(serialattr);
         return 0;
