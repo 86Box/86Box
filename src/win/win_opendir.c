@@ -16,6 +16,7 @@
  *
  *          Copyright 1998-2007 MicroWalt Corporation
  *          Copyright 2017 Fred N. van Kempen
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #include <io.h>
 #include <stdio.h>
@@ -72,7 +73,7 @@ opendir(const char *name)
     }
 
     /* All OK. */
-    return (p);
+    return p;
 }
 
 /* Close an open directory. */
@@ -80,7 +81,7 @@ int
 closedir(DIR *p)
 {
     if (p == NULL)
-        return (0);
+        return 0;
 
     _findclose(p->handle);
 
@@ -88,7 +89,7 @@ closedir(DIR *p)
         free(p->dta);
     free(p);
 
-    return (0);
+    return 0;
 }
 
 /*

@@ -195,7 +195,7 @@ dp8390_write_cr(dp8390_t *dev, uint32_t val)
     /* Check for start-tx */
     if ((val & 0x04) && dev->TCR.loop_cntl) {
         if (dev->TCR.loop_cntl) {
-            dp8390_rx_common(dev, &dev->mem[(dev->tx_page_start * 256) - dev->mem_start],
+            dp8390_rx_common(dev, &dev->mem[((dev->tx_page_start * 256) - dev->mem_start) & dev->mem_wrap],
                              dev->tx_bytes);
         }
     } else if (val & 0x04) {
@@ -217,7 +217,7 @@ dp8390_write_cr(dp8390_t *dev, uint32_t val)
 
         /* TODO: report TX error to the driver ? */
         if (!(dev->card->link_state & NET_LINK_DOWN))
-            network_tx(dev->card, &dev->mem[(dev->tx_page_start * 256) - dev->mem_start], dev->tx_bytes);
+            network_tx(dev->card, &dev->mem[((dev->tx_page_start * 256) - dev->mem_start) & dev->mem_wrap], dev->tx_bytes);
 
             /* some more debug */
 #ifdef ENABLE_DP8390_LOG
@@ -390,7 +390,7 @@ dp8390_rx_common(void *priv, uint8_t *buf, int io_len)
     } else {
         endbytes = (dev->page_stop - dev->curr_page) * 256;
         memcpy(startptr + sizeof(pkthdr), buf, endbytes - sizeof(pkthdr));
-        startptr = &dev->mem[(dev->page_start * 256) - dev->mem_start];
+        startptr = &dev->mem[((dev->tx_page_start * 256) - dev->mem_start) & dev->mem_wrap];
         memcpy(startptr, buf + endbytes - sizeof(pkthdr), io_len - endbytes + 8);
     }
     dev->curr_page = nextpage;
@@ -917,6 +917,7 @@ dp8390_mem_alloc(dp8390_t *dev, uint32_t start, uint32_t size)
     dev->mem_start = start;
     dev->mem_end   = start + size;
     dev->mem_size  = size;
+    dev->mem_wrap  = size - 1;
     dp8390_log("DP8390: Mapped %i bytes of memory at address %04X in the address space\n", size, start);
 }
 

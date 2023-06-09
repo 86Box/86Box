@@ -13,6 +13,7 @@
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #define UNICODE
 #define _WIN32_WINNT 0x0501
@@ -107,7 +108,9 @@ void
 keyboard_handle(PRAWINPUT raw)
 {
     USHORT     scancode;
-    static int recv_lalt = 0, recv_ralt = 0, recv_tab = 0;
+    static int recv_lalt = 0;
+    static int recv_ralt = 0;
+    static int recv_tab = 0;
 
     RAWKEYBOARD rawKB = raw->data.keyboard;
     scancode          = rawKB.MakeCode;

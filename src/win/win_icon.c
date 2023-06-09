@@ -13,6 +13,7 @@
  * Authors: Laci bá'
  *
  *          Copyright 2021 Laci bá'.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 
 #include <windows.h>
@@ -35,9 +36,7 @@ char  icon_set[256] = ""; /* name of the iconset to be used */
 void
 win_clear_icon_set(void)
 {
-    int i;
-
-    for (i = 0; i < 256; i++)
+    for (uint16_t i = 0; i < 256; i++)
         if (hIcon[i] != 0) {
             DestroyIcon(hIcon[i]);
             hIcon[i] = 0;
@@ -47,9 +46,10 @@ win_clear_icon_set(void)
 void
 win_system_icon_set(void)
 {
-    int i, x = win_get_system_metrics(SM_CXSMICON, dpi), y = win_get_system_metrics(SM_CYSMICON, dpi);
+    int x = win_get_system_metrics(SM_CXSMICON, dpi);
+    int y = win_get_system_metrics(SM_CYSMICON, dpi);
 
-    for (i = 0; i < 256; i++)
+    for (uint16_t i = 0; i < 256; i++)
         hIcon[i] = LoadImage(hinstance, MAKEINTRESOURCE(i), IMAGE_ICON, x, y, LR_DEFAULTCOLOR);
 }
 
@@ -136,16 +136,18 @@ win_load_icon_set(void)
         return;
     }
 
-    char    path_root[2048] = { 0 }, temp[2048] = { 0 };
-    wchar_t wtemp[2048] = { 0 };
+    char    path_root[2048] = { 0 };
+    char    temp[2048]      = { 0 };
+    wchar_t wtemp[2048]     = { 0 };
 
     win_get_icons_path(path_root);
     strcat(path_root, icon_set);
     path_slash(path_root);
 
-    int i, count = sizeof(icon_files) / sizeof(_ICON_DATA),
-           x = win_get_system_metrics(SM_CXSMICON, dpi), y = win_get_system_metrics(SM_CYSMICON, dpi);
-    for (i = 0; i < count; i++) {
+    int count = sizeof(icon_files) / sizeof(_ICON_DATA);
+    int x     = win_get_system_metrics(SM_CXSMICON, dpi);
+    int y     = win_get_system_metrics(SM_CYSMICON, dpi);
+    for (int i = 0; i < count; i++) {
         path_append_filename(temp, path_root, icon_files[i].filename);
         mbstoc16s(wtemp, temp, strlen(temp) + 1);
 

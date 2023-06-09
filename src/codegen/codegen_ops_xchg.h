@@ -45,7 +45,9 @@ OP_XCHG_EAX_(EBP)
 static uint32_t
 ropXCHG_b(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-    int src_reg, dst_reg, temp_reg;
+    int src_reg;
+    int dst_reg;
+    int temp_reg;
 
     if ((fetchdat & 0xc0) != 0xc0)
         return 0;
@@ -61,7 +63,9 @@ ropXCHG_b(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
 static uint32_t
 ropXCHG_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-    int src_reg, dst_reg, temp_reg;
+    int src_reg;
+    int dst_reg;
+    int temp_reg;
 
     if ((fetchdat & 0xc0) != 0xc0)
         return 0;
@@ -77,7 +81,9 @@ ropXCHG_w(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, cod
 static uint32_t
 ropXCHG_l(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-    int src_reg, dst_reg, temp_reg;
+    int src_reg;
+    int dst_reg;
+    int temp_reg;
 
     if ((fetchdat & 0xc0) != 0xc0)
         return 0;

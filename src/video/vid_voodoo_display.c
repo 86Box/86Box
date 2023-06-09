@@ -61,15 +61,17 @@ voodoodisp_log(const char *fmt, ...)
 void
 voodoo_update_ncc(voodoo_t *voodoo, int tmu)
 {
-    int tbl;
-
-    for (tbl = 0; tbl < 2; tbl++) {
-        int col;
-
-        for (col = 0; col < 256; col++) {
-            int y = (col >> 4), i = (col >> 2) & 3, q = col & 3;
-            int i_r, i_g, i_b;
-            int q_r, q_g, q_b;
+    for (uint8_t tbl = 0; tbl < 2; tbl++) {
+        for (uint16_t col = 0; col < 256; col++) {
+            int y = (col >> 4);
+            int i = (col >> 2) & 3;
+            int q = col & 3;
+            int i_r;
+            int i_g;
+            int i_b;
+            int q_r;
+            int q_g;
+            int q_b;
 
             y = (voodoo->nccTable[tmu][tbl].y[y >> 2] >> ((y & 3) * 8)) & 0xff;
 
@@ -121,7 +123,7 @@ voodoo_pixelclock_update(voodoo_t *voodoo)
     voodoo->pixel_clock = t;
 
     clock_const       = cpuclock / t;
-    voodoo->line_time = (uint64_t) ((double) line_length * clock_const * (double) (1ull << 32));
+    voodoo->line_time = (uint64_t) ((double) line_length * clock_const * (double) (1ULL << 32));
 }
 
 static void
@@ -149,23 +151,31 @@ voodoo_calc_clutData(voodoo_t *voodoo)
 
 #define FILTDIV 256
 
-static int FILTCAP, FILTCAPG, FILTCAPB = 0; /* color filter threshold values */
+static int FILTCAP;
+static int FILTCAPG;
+static int FILTCAPB = 0; /* color filter threshold values */
 
 void
 voodoo_generate_filter_v1(voodoo_t *voodoo)
 {
-    int   g, h;
-    float difference, diffg, diffb;
-    float thiscol, thiscolg, thiscolb, lined;
-    float fcr, fcg, fcb;
+    float difference;
+    float diffg;
+    float diffb;
+    float thiscol;
+    float thiscolg;
+    float thiscolb;
+    float lined;
+    float fcr;
+    float fcg;
+    float fcb;
 
     fcr = FILTCAP * 5;
     fcg = FILTCAPG * 6;
     fcb = FILTCAPB * 5;
 
-    for (g = 0; g < FILTDIV; g++) // pixel 1
+    for (uint16_t g = 0; g < FILTDIV; g++) // pixel 1
     {
-        for (h = 0; h < FILTDIV; h++) // pixel 2
+        for (uint16_t h = 0; h < FILTDIV; h++) // pixel 2
         {
             difference = (float) (h - g);
             diffg      = difference;
@@ -236,11 +246,16 @@ voodoo_generate_filter_v1(voodoo_t *voodoo)
 void
 voodoo_generate_filter_v2(voodoo_t *voodoo)
 {
-    int   g, h;
     float difference;
-    float thiscol, thiscolg, thiscolb;
-    float clr, clg, clb = 0;
-    float fcr, fcg, fcb = 0;
+    float thiscol;
+    float thiscolg;
+    float thiscolb;
+    float clr;
+    float clg;
+    float clb = 0;
+    float fcr;
+    float fcg;
+    float fcb = 0;
 
     // pre-clamping
 
@@ -255,9 +270,9 @@ voodoo_generate_filter_v2(voodoo_t *voodoo)
     if (fcb > 32)
         fcb = 32;
 
-    for (g = 0; g < 256; g++) // pixel 1 - our target pixel we want to bleed into
+    for (uint16_t g = 0; g < 256; g++) // pixel 1 - our target pixel we want to bleed into
     {
-        for (h = 0; h < 256; h++) // pixel 2 - our main pixel
+        for (uint16_t h = 0; h < 256; h++) // pixel 2 - our main pixel
         {
             float avg;
             float avgdiff;
@@ -325,9 +340,9 @@ voodoo_generate_filter_v2(voodoo_t *voodoo)
                 thiscolb = 255;
 
             // add to the table
-            voodoo->thefilter[g][h]  = (thiscol);
-            voodoo->thefilterg[g][h] = (thiscolg);
-            voodoo->thefilterb[g][h] = (thiscolb);
+            voodoo->thefilter[g][h]  = thiscol;
+            voodoo->thefilterg[g][h] = thiscolg;
+            voodoo->thefilterb[g][h] = thiscolb;
 
             // debug the ones that don't give us much of a difference
             // if (difference < FILTCAP)
@@ -339,7 +354,9 @@ voodoo_generate_filter_v2(voodoo_t *voodoo)
 void
 voodoo_threshold_check(voodoo_t *voodoo)
 {
-    int r, g, b;
+    int r;
+    int g;
+    int b;
 
     if (!voodoo->scrfilterEnabled)
         return; /* considered disabled; don't check and generate */
@@ -371,14 +388,12 @@ voodoo_threshold_check(voodoo_t *voodoo)
 static void
 voodoo_filterline_v1(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, int line)
 {
-    int x;
-
     // Scratchpad for avoiding feedback streaks
     uint8_t fil3[4096 * 3];
 
     assert(voodoo->h_disp <= 4096);
     /* 16 to 32-bit */
-    for (x = 0; x < column; x++) {
+    for (int x = 0; x < column; x++) {
         fil[x * 3]     = ((src[x] & 31) << 3);
         fil[x * 3 + 1] = (((src[x] >> 5) & 63) << 2);
         fil[x * 3 + 2] = (((src[x] >> 11) & 31) << 3);
@@ -392,7 +407,7 @@ voodoo_filterline_v1(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
     /* lines */
 
     if (line & 1) {
-        for (x = 0; x < column; x++) {
+        for (int x = 0; x < column; x++) {
             fil[x * 3]     = voodoo->purpleline[fil[x * 3]][0];
             fil[x * 3 + 1] = voodoo->purpleline[fil[x * 3 + 1]][1];
             fil[x * 3 + 2] = voodoo->purpleline[fil[x * 3 + 2]][2];
@@ -401,28 +416,28 @@ voodoo_filterline_v1(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
 
     /* filtering time */
 
-    for (x = 1; x < column; x++) {
-        fil3[(x) *3]     = voodoo->thefilterb[fil[x * 3]][fil[(x - 1) * 3]];
-        fil3[(x) *3 + 1] = voodoo->thefilterg[fil[x * 3 + 1]][fil[(x - 1) * 3 + 1]];
-        fil3[(x) *3 + 2] = voodoo->thefilter[fil[x * 3 + 2]][fil[(x - 1) * 3 + 2]];
+    for (int x = 1; x < column; x++) {
+        fil3[x * 3]     = voodoo->thefilterb[fil[x * 3]][fil[(x - 1) * 3]];
+        fil3[x * 3 + 1] = voodoo->thefilterg[fil[x * 3 + 1]][fil[(x - 1) * 3 + 1]];
+        fil3[x * 3 + 2] = voodoo->thefilter[fil[x * 3 + 2]][fil[(x - 1) * 3 + 2]];
     }
 
-    for (x = 1; x < column; x++) {
-        fil[(x) *3]     = voodoo->thefilterb[fil3[x * 3]][fil3[(x - 1) * 3]];
-        fil[(x) *3 + 1] = voodoo->thefilterg[fil3[x * 3 + 1]][fil3[(x - 1) * 3 + 1]];
-        fil[(x) *3 + 2] = voodoo->thefilter[fil3[x * 3 + 2]][fil3[(x - 1) * 3 + 2]];
+    for (int x = 1; x < column; x++) {
+        fil[x * 3]     = voodoo->thefilterb[fil3[x * 3]][fil3[(x - 1) * 3]];
+        fil[x * 3 + 1] = voodoo->thefilterg[fil3[x * 3 + 1]][fil3[(x - 1) * 3 + 1]];
+        fil[x * 3 + 2] = voodoo->thefilter[fil3[x * 3 + 2]][fil3[(x - 1) * 3 + 2]];
     }
 
-    for (x = 1; x < column; x++) {
-        fil3[(x) *3]     = voodoo->thefilterb[fil[x * 3]][fil[(x - 1) * 3]];
-        fil3[(x) *3 + 1] = voodoo->thefilterg[fil[x * 3 + 1]][fil[(x - 1) * 3 + 1]];
-        fil3[(x) *3 + 2] = voodoo->thefilter[fil[x * 3 + 2]][fil[(x - 1) * 3 + 2]];
+    for (int x = 1; x < column; x++) {
+        fil3[x * 3]     = voodoo->thefilterb[fil[x * 3]][fil[(x - 1) * 3]];
+        fil3[x * 3 + 1] = voodoo->thefilterg[fil[x * 3 + 1]][fil[(x - 1) * 3 + 1]];
+        fil3[x * 3 + 2] = voodoo->thefilter[fil[x * 3 + 2]][fil[(x - 1) * 3 + 2]];
     }
 
-    for (x = 0; x < column - 1; x++) {
-        fil[(x) *3]     = voodoo->thefilterb[fil3[x * 3]][fil3[(x + 1) * 3]];
-        fil[(x) *3 + 1] = voodoo->thefilterg[fil3[x * 3 + 1]][fil3[(x + 1) * 3 + 1]];
-        fil[(x) *3 + 2] = voodoo->thefilter[fil3[x * 3 + 2]][fil3[(x + 1) * 3 + 2]];
+    for (int x = 0; x < column - 1; x++) {
+        fil[x * 3]     = voodoo->thefilterb[fil3[x * 3]][fil3[(x + 1) * 3]];
+        fil[x * 3 + 1] = voodoo->thefilterg[fil3[x * 3 + 1]][fil3[(x + 1) * 3 + 1]];
+        fil[x * 3 + 2] = voodoo->thefilter[fil3[x * 3 + 2]][fil3[(x + 1) * 3 + 2]];
     }
 }
 
@@ -446,48 +461,48 @@ voodoo_filterline_v2(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
     /* filtering time */
 
     for (x = 1; x < column - 3; x++) {
-        fil3[(x + 3) * 3]     = voodoo->thefilterb[((src[x + 3] & 31) << 3)][((src[x] & 31) << 3)];
-        fil3[(x + 3) * 3 + 1] = voodoo->thefilterg[(((src[x + 3] >> 5) & 63) << 2)][(((src[x] >> 5) & 63) << 2)];
-        fil3[(x + 3) * 3 + 2] = voodoo->thefilter[(((src[x + 3] >> 11) & 31) << 3)][(((src[x] >> 11) & 31) << 3)];
+        fil3[(x + 3) * 3]     = voodoo->thefilterb[(src[x + 3] & 31) << 3][(src[x] & 31) << 3];
+        fil3[(x + 3) * 3 + 1] = voodoo->thefilterg[((src[x + 3] >> 5) & 63) << 2][((src[x] >> 5) & 63) << 2];
+        fil3[(x + 3) * 3 + 2] = voodoo->thefilter[((src[x + 3] >> 11) & 31) << 3][((src[x] >> 11) & 31) << 3];
 
-        fil[(x + 2) * 3]     = voodoo->thefilterb[fil3[(x + 2) * 3]][((src[x] & 31) << 3)];
-        fil[(x + 2) * 3 + 1] = voodoo->thefilterg[fil3[(x + 2) * 3 + 1]][(((src[x] >> 5) & 63) << 2)];
-        fil[(x + 2) * 3 + 2] = voodoo->thefilter[fil3[(x + 2) * 3 + 2]][(((src[x] >> 11) & 31) << 3)];
+        fil[(x + 2) * 3]     = voodoo->thefilterb[fil3[(x + 2) * 3]][(src[x] & 31) << 3];
+        fil[(x + 2) * 3 + 1] = voodoo->thefilterg[fil3[(x + 2) * 3 + 1]][((src[x] >> 5) & 63) << 2];
+        fil[(x + 2) * 3 + 2] = voodoo->thefilter[fil3[(x + 2) * 3 + 2]][((src[x] >> 11) & 31) << 3];
 
-        fil3[(x + 1) * 3]     = voodoo->thefilterb[fil[(x + 1) * 3]][((src[x] & 31) << 3)];
-        fil3[(x + 1) * 3 + 1] = voodoo->thefilterg[fil[(x + 1) * 3 + 1]][(((src[x] >> 5) & 63) << 2)];
-        fil3[(x + 1) * 3 + 2] = voodoo->thefilter[fil[(x + 1) * 3 + 2]][(((src[x] >> 11) & 31) << 3)];
+        fil3[(x + 1) * 3]     = voodoo->thefilterb[fil[(x + 1) * 3]][(src[x] & 31) << 3];
+        fil3[(x + 1) * 3 + 1] = voodoo->thefilterg[fil[(x + 1) * 3 + 1]][((src[x] >> 5) & 63) << 2];
+        fil3[(x + 1) * 3 + 2] = voodoo->thefilter[fil[(x + 1) * 3 + 2]][((src[x] >> 11) & 31) << 3];
 
-        fil[(x - 1) * 3]     = voodoo->thefilterb[fil3[(x - 1) * 3]][((src[x] & 31) << 3)];
-        fil[(x - 1) * 3 + 1] = voodoo->thefilterg[fil3[(x - 1) * 3 + 1]][(((src[x] >> 5) & 63) << 2)];
-        fil[(x - 1) * 3 + 2] = voodoo->thefilter[fil3[(x - 1) * 3 + 2]][(((src[x] >> 11) & 31) << 3)];
+        fil[(x - 1) * 3]     = voodoo->thefilterb[fil3[(x - 1) * 3]][(src[x] & 31) << 3];
+        fil[(x - 1) * 3 + 1] = voodoo->thefilterg[fil3[(x - 1) * 3 + 1]][((src[x] >> 5) & 63) << 2];
+        fil[(x - 1) * 3 + 2] = voodoo->thefilter[fil3[(x - 1) * 3 + 2]][((src[x] >> 11) & 31) << 3];
     }
 
     // unroll for edge cases
 
-    fil3[(column - 3) * 3]     = voodoo->thefilterb[((src[column - 3] & 31) << 3)][((src[column] & 31) << 3)];
-    fil3[(column - 3) * 3 + 1] = voodoo->thefilterg[(((src[column - 3] >> 5) & 63) << 2)][(((src[column] >> 5) & 63) << 2)];
-    fil3[(column - 3) * 3 + 2] = voodoo->thefilter[(((src[column - 3] >> 11) & 31) << 3)][(((src[column] >> 11) & 31) << 3)];
+    fil3[(column - 3) * 3]     = voodoo->thefilterb[(src[column - 3] & 31) << 3][(src[column] & 31) << 3];
+    fil3[(column - 3) * 3 + 1] = voodoo->thefilterg[((src[column - 3] >> 5) & 63) << 2][((src[column] >> 5) & 63) << 2];
+    fil3[(column - 3) * 3 + 2] = voodoo->thefilter[((src[column - 3] >> 11) & 31) << 3][((src[column] >> 11) & 31) << 3];
 
-    fil3[(column - 2) * 3]     = voodoo->thefilterb[((src[column - 2] & 31) << 3)][((src[column] & 31) << 3)];
-    fil3[(column - 2) * 3 + 1] = voodoo->thefilterg[(((src[column - 2] >> 5) & 63) << 2)][(((src[column] >> 5) & 63) << 2)];
-    fil3[(column - 2) * 3 + 2] = voodoo->thefilter[(((src[column - 2] >> 11) & 31) << 3)][(((src[column] >> 11) & 31) << 3)];
+    fil3[(column - 2) * 3]     = voodoo->thefilterb[(src[column - 2] & 31) << 3][(src[column] & 31) << 3];
+    fil3[(column - 2) * 3 + 1] = voodoo->thefilterg[((src[column - 2] >> 5) & 63) << 2][((src[column] >> 5) & 63) << 2];
+    fil3[(column - 2) * 3 + 2] = voodoo->thefilter[((src[column - 2] >> 11) & 31) << 3][((src[column] >> 11) & 31) << 3];
 
-    fil3[(column - 1) * 3]     = voodoo->thefilterb[((src[column - 1] & 31) << 3)][((src[column] & 31) << 3)];
-    fil3[(column - 1) * 3 + 1] = voodoo->thefilterg[(((src[column - 1] >> 5) & 63) << 2)][(((src[column] >> 5) & 63) << 2)];
-    fil3[(column - 1) * 3 + 2] = voodoo->thefilter[(((src[column - 1] >> 11) & 31) << 3)][(((src[column] >> 11) & 31) << 3)];
+    fil3[(column - 1) * 3]     = voodoo->thefilterb[(src[column - 1] & 31) << 3][(src[column] & 31) << 3];
+    fil3[(column - 1) * 3 + 1] = voodoo->thefilterg[((src[column - 1] >> 5) & 63) << 2][((src[column] >> 5) & 63) << 2];
+    fil3[(column - 1) * 3 + 2] = voodoo->thefilter[((src[column - 1] >> 11) & 31) << 3][((src[column] >> 11) & 31) << 3];
 
-    fil[(column - 2) * 3]     = voodoo->thefilterb[fil3[(column - 2) * 3]][((src[column] & 31) << 3)];
-    fil[(column - 2) * 3 + 1] = voodoo->thefilterg[fil3[(column - 2) * 3 + 1]][(((src[column] >> 5) & 63) << 2)];
-    fil[(column - 2) * 3 + 2] = voodoo->thefilter[fil3[(column - 2) * 3 + 2]][(((src[column] >> 11) & 31) << 3)];
+    fil[(column - 2) * 3]     = voodoo->thefilterb[fil3[(column - 2) * 3]][(src[column] & 31) << 3];
+    fil[(column - 2) * 3 + 1] = voodoo->thefilterg[fil3[(column - 2) * 3 + 1]][((src[column] >> 5) & 63) << 2];
+    fil[(column - 2) * 3 + 2] = voodoo->thefilter[fil3[(column - 2) * 3 + 2]][((src[column] >> 11) & 31) << 3];
 
-    fil[(column - 1) * 3]     = voodoo->thefilterb[fil3[(column - 1) * 3]][((src[column] & 31) << 3)];
-    fil[(column - 1) * 3 + 1] = voodoo->thefilterg[fil3[(column - 1) * 3 + 1]][(((src[column] >> 5) & 63) << 2)];
-    fil[(column - 1) * 3 + 2] = voodoo->thefilter[fil3[(column - 1) * 3 + 2]][(((src[column] >> 11) & 31) << 3)];
+    fil[(column - 1) * 3]     = voodoo->thefilterb[fil3[(column - 1) * 3]][(src[column] & 31) << 3];
+    fil[(column - 1) * 3 + 1] = voodoo->thefilterg[fil3[(column - 1) * 3 + 1]][((src[column] >> 5) & 63) << 2];
+    fil[(column - 1) * 3 + 2] = voodoo->thefilter[fil3[(column - 1) * 3 + 2]][((src[column] >> 11) & 31) << 3];
 
-    fil3[(column - 1) * 3]     = voodoo->thefilterb[fil[(column - 1) * 3]][((src[column] & 31) << 3)];
-    fil3[(column - 1) * 3 + 1] = voodoo->thefilterg[fil[(column - 1) * 3 + 1]][(((src[column] >> 5) & 63) << 2)];
-    fil3[(column - 1) * 3 + 2] = voodoo->thefilter[fil[(column - 1) * 3 + 2]][(((src[column] >> 11) & 31) << 3)];
+    fil3[(column - 1) * 3]     = voodoo->thefilterb[fil[(column - 1) * 3]][(src[column] & 31) << 3];
+    fil3[(column - 1) * 3 + 1] = voodoo->thefilterg[fil[(column - 1) * 3 + 1]][((src[column] >> 5) & 63) << 2];
+    fil3[(column - 1) * 3 + 2] = voodoo->thefilter[fil[(column - 1) * 3 + 2]][((src[column] >> 11) & 31) << 3];
 }
 
 void
