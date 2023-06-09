@@ -64,46 +64,86 @@ extern "C" {
 
 typedef struct
 {
-    uint8_t acpitst, auxen, auxsts, bus_cyc_track, plvl2, plvl3,
-        smicmd, gpio_dir,
-        gpio_val, muxcntrl, ali_soft_smi,
-        timer32, smireg,
-        gpireg[3], gporeg[4],
-        extiotrapsts, extiotrapen;
-    uint16_t pmsts, pmen,
-        pmcntrl, bus_addr_track, devact_sts,
-        devtrap_en, gpsts, gpsts1,
-        gpen, gpen1, gpscien,
-        gpcntrl, gplvl, gpmux,
-        gpsel, gpsmien, pscntrl,
-        gpscists, mon_smi;
-    int      smi_lock, smi_active;
-    uint32_t pcntrl, p2cntrl, glbsts,
-        devsts, glben,
-        glbctl, devctl,
-        padsts, paden,
-        gptren, gptimer,
-        gpo_val, gpi_val,
-        extsmi_val, smi_en, smi_sts, pad0;
+    uint8_t  acpitst;
+    uint8_t  auxen;
+    uint8_t  auxsts;
+    uint8_t  bus_cyc_track;
+    uint8_t  plvl2;
+    uint8_t  plvl3;
+    uint8_t  smicmd;
+    uint8_t  gpio_dir;
+    uint8_t  gpio_val;
+    uint8_t  muxcntrl;
+    uint8_t  ali_soft_smi;
+    uint8_t  timer32;
+    uint8_t  smireg;
+    uint8_t  gpireg[3];
+    uint8_t  gporeg[4];
+    uint8_t  extiotrapsts;
+    uint8_t  extiotrapen;
+    uint16_t pmsts;
+    uint16_t pmen;
+    uint16_t pmcntrl;
+    uint16_t bus_addr_track;
+    uint16_t devact_sts;
+    uint16_t devtrap_en;
+    uint16_t gpsts;
+    uint16_t gpsts1;
+    uint16_t gpen;
+    uint16_t gpen1;
+    uint16_t gpscien;
+    uint16_t gpcntrl;
+    uint16_t gplvl;
+    uint16_t gpmux;
+    uint16_t gpsel;
+    uint16_t gpsmien;
+    uint16_t pscntrl;
+    uint16_t gpscists;
+    uint16_t mon_smi;
+    int      smi_lock;
+    int      smi_active;
+    uint32_t pcntrl;
+    uint32_t p2cntrl;
+    uint32_t glbsts;
+    uint32_t devsts;
+    uint32_t glben;
+    uint32_t glbctl;
+    uint32_t devctl;
+    uint32_t padsts;
+    uint32_t paden;
+    uint32_t gptren;
+    uint32_t gptimer;
+    uint32_t gpo_val;
+    uint32_t gpi_val;
+    uint32_t extsmi_val;
+    uint32_t smi_en;
+    uint32_t smi_sts;
+    uint32_t pad0;
 } acpi_regs_t;
 
 typedef struct
 {
     acpi_regs_t regs;
-    uint8_t     gpireg2_default, pad[3],
-        gporeg_default[4],
-        suspend_types[8];
-    uint16_t io_base, aux_io_base;
-    int      vendor,
-        slot, irq_mode,
-        irq_pin, irq_line,
-        mirq_is_level;
-    pc_timer_t timer, resume_timer, pwrbtn_timer;
-    nvr_t     *nvr;
-    apm_t     *apm;
-    tco_t     *tco;
-    void      *i2c,
-        (*trap_update)(void *priv), *trap_priv;
+    uint8_t     gpireg2_default;
+    uint8_t     pad[3];
+    uint8_t     gporeg_default[4];
+    uint8_t     suspend_types[8];
+    uint16_t    io_base;
+    uint16_t    aux_io_base;
+    int         vendor;
+    int         slot;
+    int         irq_mode;
+    int         irq_pin;
+    int         irq_line;
+    int         mirq_is_level;
+    pc_timer_t  timer;
+    pc_timer_t  resume_timer;
+    pc_timer_t  pwrbtn_timer;
+    nvr_t      *nvr;
+    apm_t      *apm;
+    tco_t      *tco;
+    void       *i2c;
+    void      (*trap_update)(void *priv), *trap_priv;
 } acpi_t;
 
 /* Global variables. */
