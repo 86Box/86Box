@@ -74,6 +74,7 @@ AppDir:
   files:
     exclude:
     - etc
+    - lib/udev
     - usr/[!ls]* # * except lib, local, share
     - usr/lib/*/libasound.so.* # using our own ALSA can cause issues, and the API is pretty stable anyway
     - usr/lib/*.a # produced by library compilation
