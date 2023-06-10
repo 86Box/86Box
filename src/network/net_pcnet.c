@@ -47,6 +47,7 @@
 #include <86box/network.h>
 #include <86box/net_pcnet.h>
 #include <86box/bswap.h>
+#include <86box/plat_unused.h>
 
 /* PCI info. */
 #define PCI_VENDID  0x1022 /* AMD */
@@ -744,11 +745,12 @@ static const uint32_t crctab[256] =
 };
 
 static __inline int
-padr_match(nic_t *dev, const uint8_t *buf, int size)
+padr_match(nic_t *dev, const uint8_t *buf, UNUSED(int size))
 {
     struct ether_header *hdr = (struct ether_header *) buf;
     int                  result;
     uint8_t              padr[6];
+
     padr[0] = dev->aCSR[12] & 0xff;
     padr[1] = dev->aCSR[12] >> 8;
     padr[2] = dev->aCSR[13] & 0xff;
@@ -768,19 +770,22 @@ padr_match(nic_t *dev, const uint8_t *buf, int size)
 }
 
 static __inline int
-padr_bcast(nic_t *dev, const uint8_t *buf, size_t size)
+padr_bcast(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 {
     static uint8_t       aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
     struct ether_header *hdr       = (struct ether_header *) buf;
     int                  result    = !CSR_DRCVBC(dev) && !memcmp(hdr->ether_dhost, aBCAST, 6);
+
     pcnet_log(3, "%s: padr_bcast result=%d\n", dev->name, result);
+
     return result;
 }
 
 static int
-ladr_match(nic_t *dev, const uint8_t *buf, size_t size)
+ladr_match(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 {
     struct ether_header *hdr = (struct ether_header *) buf;
+
     if ((hdr->ether_dhost[0] & 0x01) && ((uint64_t *) &dev->aCSR[8])[0] != 0LL) {
         int     index;
         uint8_t ladr[8];
@@ -860,6 +865,9 @@ pcnetSoftReset(nic_t *dev)
         case DEV_AM79C961:
             dev->aCSR[88] = 0x3003;
             dev->aCSR[89] = 0x0262;
+            break;
+
+        default:
             break;
     }
 
@@ -1680,9 +1688,9 @@ pcnetPollRxTx(nic_t *dev)
 }
 
 static void
-pcnetPollTimer(void *p)
+pcnetPollTimer(void *priv)
 {
-    nic_t *dev = (nic_t *) p;
+    nic_t *dev = (nic_t *) priv;
 
     timer_advance_u64(&dev->timer, 2000 * TIMER_USEC);
 
@@ -2223,6 +2231,9 @@ pcnet_word_write(nic_t *dev, uint32_t addr, uint16_t val)
             case 0x06:
                 pcnet_bcr_writew(dev, dev->u32RAP, val);
                 break;
+
+            default:
+                break;
         }
     }
 }
@@ -2237,6 +2248,9 @@ pcnet_byte_read(nic_t *dev, uint32_t addr)
             case 0x04:
                 pcnetSoftReset(dev);
                 val = 0;
+                break;
+
+            default:
                 break;
         }
     }
@@ -2275,6 +2289,9 @@ pcnet_word_read(nic_t *dev, uint32_t addr)
             case 0x06:
                 val = pcnet_bcr_readw(dev, dev->u32RAP);
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -2301,6 +2318,9 @@ pcnet_dword_write(nic_t *dev, uint32_t addr, uint32_t val)
                 break;
             case 0x0c:
                 pcnet_bcr_writew(dev, dev->u32RAP, val & 0xffff);
+                break;
+
+            default:
                 break;
         }
     } else if ((addr & 0x0f) == 0) {
@@ -2333,6 +2353,9 @@ pcnet_dword_read(nic_t *dev, uint32_t addr)
                 break;
             case 0x0c:
                 val = pcnet_bcr_readw(dev, dev->u32RAP);
+                break;
+
+            default:
                 break;
         }
     }
@@ -2540,9 +2563,9 @@ pcnet_ioset(nic_t *dev, uint16_t addr, int len)
 }
 
 static void
-pcnet_pci_write(int func, int addr, uint8_t val, void *p)
+pcnet_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
-    nic_t  *dev = (nic_t *) p;
+    nic_t  *dev = (nic_t *) priv;
     uint8_t valxor;
 
     pcnet_log(4, "%s: Write value %02X to register %02X\n", dev->name, val, addr & 0xff);
@@ -2616,13 +2639,16 @@ pcnet_pci_write(int func, int addr, uint8_t val, void *p)
             dev->base_irq        = val;
             pcnet_pci_regs[addr] = val;
             return;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-pcnet_pci_read(int func, int addr, void *p)
+pcnet_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    nic_t *dev = (nic_t *) p;
+    nic_t *dev = (nic_t *) priv;
 
     pcnet_log(4, "%s: Read to register %02X\n", dev->name, addr & 0xff);
 
@@ -2687,6 +2713,9 @@ pcnet_pci_read(int func, int addr, void *p)
             return 0x06;
         case 0x3F:
             return 0xff;
+
+        default:
+            break;
     }
 
     return 0;

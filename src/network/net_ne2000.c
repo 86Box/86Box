@@ -68,6 +68,7 @@
 #include <86box/net_ne2000.h>
 #include <86box/bswap.h>
 #include <86box/isapnp.h>
+#include <86box/plat_unused.h>
 
 /* ROM BIOS file paths. */
 #define ROM_PATH_NE1000  "roms/network/ne1000/ne1000.rom"
@@ -93,28 +94,33 @@ static uint8_t rtl8019as_pnp_rom[] = {
     0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
 };
 
-typedef struct {
+typedef struct nic_t {
     dp8390_t   *dp8390;
     const char *name;
     int         board;
-    int         is_pci, is_mca, is_8bit;
+    int         is_pci;
+    int         is_mca;
+    int         is_8bit;
     uint32_t    base_address;
     int         base_irq;
-    uint32_t    bios_addr,
-        bios_size,
-        bios_mask;
-    int     card; /* PCI card slot */
-    int     has_bios, pad;
-    bar_t   pci_bar[2];
-    uint8_t pci_regs[PCI_REGSIZE];
-    uint8_t eeprom[128]; /* for RTL8029AS */
-    rom_t   bios_rom;
-    void   *pnp_card;
-    uint8_t pnp_csnsav;
-    uint8_t maclocal[6]; /* configured MAC (local) address */
+    uint32_t    bios_addr;
+    uint32_t    bios_size;
+    uint32_t    bios_mask;
+    int         card; /* PCI card slot */
+    int         has_bios;
+    int         pad;
+    bar_t       pci_bar[2];
+    uint8_t     pci_regs[PCI_REGSIZE];
+    uint8_t     eeprom[128]; /* for RTL8029AS */
+    rom_t       bios_rom;
+    void       *pnp_card;
+    uint8_t     pnp_csnsav;
+    uint8_t     maclocal[6]; /* configured MAC (local) address */
 
     /* RTL8019AS/RTL8029AS registers */
-    uint8_t  config0, config2, config3;
+    uint8_t  config0;
+    uint8_t  config2;
+    uint8_t  config3;
     uint8_t  _9346cr;
     uint32_t pad0;
 
@@ -308,7 +314,7 @@ asic_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
 
 /* Writes to this page are illegal. */
 static uint32_t
-page3_read(nic_t *dev, uint32_t off, unsigned int len)
+page3_read(nic_t *dev, uint32_t off, UNUSED(unsigned int len))
 {
     if (dev->board >= NE2K_RTL8019AS)
         switch (off) {
@@ -346,7 +352,7 @@ page3_read(nic_t *dev, uint32_t off, unsigned int len)
 }
 
 static void
-page3_write(nic_t *dev, uint32_t off, uint32_t val, unsigned len)
+page3_write(nic_t *dev, uint32_t off, uint32_t val, UNUSED(unsigned len))
 {
     if (dev->board >= NE2K_RTL8019AS) {
         nelog(3, "%s: Page2 write to register 0x%02x, len=%u, value=0x%04x\n",
@@ -535,6 +541,9 @@ nic_pnp_read_vendor_reg(uint8_t ld, uint8_t reg, void *priv)
 
         case 0xF5:
             return dev->pnp_csnsav;
+
+        default:
+            break;
     }
 
     return 0x00;
@@ -623,7 +632,7 @@ nic_update_bios(nic_t *dev)
 }
 
 static uint8_t
-nic_pci_read(int func, int addr, void *priv)
+nic_pci_read(UNUSED(int func), int addr, void *priv)
 {
     nic_t  *dev = (nic_t *) priv;
     uint8_t ret = 0x00;
@@ -707,6 +716,9 @@ nic_pci_read(int func, int addr, void *priv)
         case 0x3D: /* PCI_IPR */
             ret = dev->pci_regs[addr];
             break;
+
+        default:
+            break;
     }
 
     nelog(2, "%s: PCI_Read(%d, %04x) = %02x\n", dev->name, func, addr, ret);
@@ -715,7 +727,7 @@ nic_pci_read(int func, int addr, void *priv)
 }
 
 static void
-nic_pci_write(int func, int addr, uint8_t val, void *priv)
+nic_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     nic_t  *dev = (nic_t *) priv;
     uint8_t valxor;
@@ -737,7 +749,7 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
         case 0x10:       /* PCI_BAR */
             val &= 0xe0; /* 0xe0 acc to RTL DS */
             val |= 0x01; /* re-enable IOIN bit */
-                         /*FALLTHROUGH*/
+            [[fallthrough]];
 
         case 0x11: /* PCI_BAR */
         case 0x12: /* PCI_BAR */
@@ -767,7 +779,9 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
         case 0x32: /* PCI_ROMBAR */
         case 0x33: /* PCI_ROMBAR */
             dev->pci_bar[1].addr_regs[addr & 3] = val;
-            /* dev->pci_bar[1].addr_regs[1] &= dev->bios_mask; */
+#if 0
+            dev->pci_bar[1].addr_regs[1] &= dev->bios_mask;
+#endif
             dev->pci_bar[1].addr &= 0xffff8001;
             dev->bios_addr = dev->pci_bar[1].addr & 0xffff8000;
             nic_update_bios(dev);
@@ -778,6 +792,9 @@ nic_pci_write(int func, int addr, uint8_t val, void *priv)
             dev->base_irq       = val;
             dev->pci_regs[addr] = dev->base_irq;
             return;
+
+        default:
+            break;
     }
 }
 
@@ -999,6 +1016,9 @@ nic_init(const device_t *info)
                 dp8390_set_defaults(dev->dp8390, DP8390_FLAG_EVEN_MAC | DP8390_FLAG_CLEAR_IRQ);
             dp8390_set_id(dev->dp8390, 0x50, (dev->board == NE2K_RTL8019AS) ? 0x70 : 0x43);
             dp8390_mem_alloc(dev->dp8390, 0x4000, 0x8000);
+            break;
+
+        default:
             break;
     }
 

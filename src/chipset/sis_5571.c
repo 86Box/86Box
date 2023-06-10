@@ -638,6 +638,7 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
                     break;
             }
             sis_5571_log("SiS5571-USB: dev->pci_conf[%02x] = %02x\n", addr, val);
+            break;
 
         default:
             break;

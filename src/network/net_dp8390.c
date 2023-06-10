@@ -29,6 +29,7 @@
 #include <86box/timer.h>
 #include <86box/network.h>
 #include <86box/net_dp8390.h>
+#include <86box/plat_unused.h>
 
 static void dp8390_tx(dp8390_t *dev, uint32_t val);
 static int  dp8390_rx_common(void *priv, uint8_t *buf, int io_len);
@@ -242,7 +243,7 @@ dp8390_write_cr(dp8390_t *dev, uint32_t val)
 }
 
 static void
-dp8390_tx(dp8390_t *dev, uint32_t val)
+dp8390_tx(dp8390_t *dev, UNUSED(uint32_t val))
 {
     dev->CR.tx_packet = 0;
     dev->TSR.tx_ok    = 1;
@@ -506,7 +507,7 @@ dp8390_page0_read(dp8390_t *dev, uint32_t off, unsigned int len)
 }
 
 void
-dp8390_page0_write(dp8390_t *dev, uint32_t off, uint32_t val, unsigned len)
+dp8390_page0_write(dp8390_t *dev, uint32_t off, uint32_t val, UNUSED(unsigned len))
 {
     uint8_t val2;
 
@@ -697,7 +698,7 @@ dp8390_page0_write(dp8390_t *dev, uint32_t off, uint32_t val, unsigned len)
 
 /* Handle reads/writes to the first page of the DS8390 register file. */
 uint32_t
-dp8390_page1_read(dp8390_t *dev, uint32_t off, unsigned int len)
+dp8390_page1_read(dp8390_t *dev, uint32_t off, UNUSED(unsigned int len))
 {
     dp8390_log("DP8390: Page1 read from register 0x%02x, len=%u\n",
                off, len);
@@ -734,7 +735,7 @@ dp8390_page1_read(dp8390_t *dev, uint32_t off, unsigned int len)
 }
 
 void
-dp8390_page1_write(dp8390_t *dev, uint32_t off, uint32_t val, unsigned len)
+dp8390_page1_write(dp8390_t *dev, uint32_t off, uint32_t val, UNUSED(unsigned len))
 {
     dp8390_log("DP8390: Page1 write to register 0x%02x, len=%u, value=0x%04x\n",
                off, len, val);
@@ -778,7 +779,7 @@ dp8390_page1_write(dp8390_t *dev, uint32_t off, uint32_t val, unsigned len)
 
 /* Handle reads/writes to the second page of the DS8390 register file. */
 uint32_t
-dp8390_page2_read(dp8390_t *dev, uint32_t off, unsigned int len)
+dp8390_page2_read(dp8390_t *dev, uint32_t off, UNUSED(unsigned int len))
 {
     dp8390_log("DP8390: Page2 read from register 0x%02x, len=%u\n",
                off, len);
@@ -835,7 +836,7 @@ dp8390_page2_read(dp8390_t *dev, uint32_t off, unsigned int len)
 }
 
 void
-dp8390_page2_write(dp8390_t *dev, uint32_t off, uint32_t val, unsigned len)
+dp8390_page2_write(dp8390_t *dev, uint32_t off, uint32_t val, UNUSED(unsigned len))
 {
     /* Maybe all writes here should be BX_PANIC()'d, since they
        affect internal operation, but let them through for now
@@ -999,7 +1000,7 @@ dp8390_soft_reset(dp8390_t *dev)
 }
 
 static void *
-dp8390_init(const device_t *info)
+dp8390_init(UNUSED(const device_t *info))
 {
     dp8390_t *dp8390 = (dp8390_t *) malloc(sizeof(dp8390_t));
     memset(dp8390, 0, sizeof(dp8390_t));

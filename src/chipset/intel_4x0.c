@@ -1068,6 +1068,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440ZX:
                     case INTEL_440GX:
                         regs[addr] = val;
+                        break;
+
                     default:
                         break;
                 }
@@ -1077,6 +1079,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440BX:
                     case INTEL_440ZX:
                         regs[0x77] = val & 0x03;
+                        break;
+
                     default:
                         break;
                 }

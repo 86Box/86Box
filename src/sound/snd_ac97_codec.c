@@ -418,7 +418,7 @@ rate:              /* Writable only if VRA/VRM is set. */
                 prev = dev->vendor_reg_pages[(i << 3) | ((reg & 0x0e) >> 1)];
             }
 
-            /* fall-through */
+            [[fallthrough]];
 
         case 0x5a ... 0x5e: /* Vendor Reserved */
         case 0x70 ... 0x7a:

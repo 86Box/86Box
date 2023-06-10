@@ -286,7 +286,7 @@ mem_read_emsb(uint32_t addr, void *priv)
 
     addr = addr - page->virt + page->phys;
 
-    if (addr < ((uint32_t) mem_size << 10))
+    if (addr < (mem_size << 10))
         ret = ram[addr];
 
     ct_82c100_log("mem_read_emsb(%08X = %08X): %02X\n", old_addr, addr, ret);
@@ -305,7 +305,7 @@ mem_read_emsw(uint32_t addr, void *priv)
 
     addr = addr - page->virt + page->phys;
 
-    if (addr < ((uint32_t) mem_size << 10))
+    if (addr < (mem_size << 10))
         ret = *(uint16_t *) &ram[addr];
 
     ct_82c100_log("mem_read_emsw(%08X = %08X): %04X\n", old_addr, addr, ret);
@@ -323,7 +323,7 @@ mem_write_emsb(uint32_t addr, uint8_t val, void *priv)
 
     addr = addr - page->virt + page->phys;
 
-    if (addr < ((uint32_t) mem_size << 10))
+    if (addr < (mem_size << 10))
         ram[addr] = val;
 
     ct_82c100_log("mem_write_emsb(%08X = %08X, %02X)\n", old_addr, addr, val);
@@ -339,7 +339,7 @@ mem_write_emsw(uint32_t addr, uint16_t val, void *priv)
 
     addr = addr - page->virt + page->phys;
 
-    if (addr < ((uint32_t) mem_size << 10))
+    if (addr < (mem_size << 10))
         *(uint16_t *) &ram[addr] = val;
 
     ct_82c100_log("mem_write_emsw(%08X = %08X, %04X)\n", old_addr, addr, val);

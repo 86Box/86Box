@@ -165,15 +165,14 @@ i420ex_smram_handler_phase1(i420ex_t *dev)
 static void
 i420ex_drb_recalc(i420ex_t *dev)
 {
-    int i;
     uint32_t boundary;
 
-    for (i = 4; i >= 0; i--)
+    for (uint8_t i = 4; i >= 0; i--)
         row_disable(i);
 
-    for (i = 0; i <= 4; i++) {
-	boundary = ((uint32_t) dev->regs[0x60 + i]) & 0xff;
-	row_set_boundary(i, boundary);
+    for (uint8_t i = 0; i <= 4; i++) {
+        boundary = ((uint32_t) dev->regs[0x60 + i]) & 0xff;
+        row_set_boundary(i, boundary);
     }
 
     flushmmucache();

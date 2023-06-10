@@ -286,9 +286,9 @@ spock_add_to_period(spock_t *scsi, int TransferLength)
 }
 
 static void
-spock_write(uint16_t port, uint8_t val, void *p)
+spock_write(uint16_t port, uint8_t val, void *priv)
 {
-    spock_t *scsi = (spock_t *) p;
+    spock_t *scsi = (spock_t *) priv;
 
     spock_log("spock_write: port=%04x val=%02x %04x:%04x\n", port, val, CS, cpu_state.pc);
 
@@ -320,13 +320,16 @@ spock_write(uint16_t port, uint8_t val, void *p)
             scsi->basic_ctrl = val;
             spock_rethink_irqs(scsi);
             break;
+
+        default:
+            break;
     }
 }
 
 static void
-spock_writew(uint16_t port, uint16_t val, void *p)
+spock_writew(uint16_t port, uint16_t val, void *priv)
 {
-    spock_t *scsi = (spock_t *) p;
+    spock_t *scsi = (spock_t *) priv;
 
     switch (port & 7) {
         case 0: /*Command Interface Register*/
@@ -339,15 +342,18 @@ spock_writew(uint16_t port, uint16_t val, void *p)
             scsi->cir_pending[3] = val >> 8;
             scsi->cir_status |= 2;
             break;
+
+        default:
+            break;
     }
 
     spock_log("spock_writew: port=%04x val=%04x\n", port, val);
 }
 
 static uint8_t
-spock_read(uint16_t port, void *p)
+spock_read(uint16_t port, void *priv)
 {
-    spock_t *scsi = (spock_t *) p;
+    spock_t *scsi = (spock_t *) priv;
     uint8_t  temp = 0xff;
 
     switch (port & 7) {
@@ -378,6 +384,9 @@ spock_read(uint16_t port, void *p)
                 temp |= STATUS_CMD_FULL;
             }
             break;
+
+        default:
+            break;
     }
 
     spock_log("spock_read: port=%04x val=%02x %04x(%05x):%04x.\n", port, temp, CS, cs, cpu_state.pc);
@@ -385,9 +394,9 @@ spock_read(uint16_t port, void *p)
 }
 
 static uint16_t
-spock_readw(uint16_t port, void *p)
+spock_readw(uint16_t port, void *priv)
 {
-    spock_t *scsi = (spock_t *) p;
+    spock_t *scsi = (spock_t *) priv;
     uint16_t temp = 0xffff;
 
     switch (port & 7) {
@@ -396,6 +405,9 @@ spock_readw(uint16_t port, void *p)
             break;
         case 2: /*Command Interface Register*/
             temp = scsi->cir_pending[2] | (scsi->cir_pending[3] << 8);
+            break;
+
+        default:
             break;
     }
 
@@ -797,6 +809,9 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
                         scsi->scsi_state = SCSI_STATE_SELECT;
                         scsi->scb_state  = 2;
                         return;
+
+                    default:
+                        break;
                 }
                 break;
 
@@ -842,6 +857,9 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
                     scsi->scb_state = 0;
                     spock_log("Complete SCB ID = %d.\n", scsi->attention & 0x0f);
                 }
+                break;
+
+            default:
                 break;
         }
     } while (scsi->scb_state != old_scb_state);
@@ -1000,6 +1018,9 @@ spock_callback(void *priv)
                         case CMD_RESET:
                             spock_process_imm_cmd(scsi);
                             break;
+
+                        default:
+                            break;
                     }
                     break;
 
@@ -1023,6 +1044,9 @@ spock_callback(void *priv)
                 case 0x0e: /*EOI*/
                     scsi->irq_status = 0;
                     spock_clear_irq(scsi, scsi->attention & 0x0f);
+                    break;
+
+                default:
                     break;
             }
         }
@@ -1097,7 +1121,7 @@ spock_mca_reset(void *priv)
 }
 
 static void *
-spock_init(const device_t *info)
+spock_init(UNUSED(const device_t *info))
 {
     spock_t *scsi = malloc(sizeof(spock_t));
     memset(scsi, 0x00, sizeof(spock_t));
@@ -1116,6 +1140,9 @@ spock_init(const device_t *info)
         case 0:
             rom_init_interleaved(&scsi->bios_rom, SPOCK_U68_1990_ROM, SPOCK_U69_1990_ROM,
                                  0xc8000, 0x8000, 0x7fff, 0x4000, MEM_MAPPING_EXTERNAL);
+            break;
+
+        default:
             break;
     }
     mem_mapping_disable(&scsi->bios_rom.mapping);
@@ -1142,9 +1169,9 @@ spock_init(const device_t *info)
 }
 
 static void
-spock_close(void *p)
+spock_close(void *priv)
 {
-    spock_t *scsi = (spock_t *) p;
+    spock_t *scsi = (spock_t *) priv;
 
     if (scsi) {
         free(scsi);

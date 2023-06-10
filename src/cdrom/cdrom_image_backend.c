@@ -652,7 +652,7 @@ cdi_cue_get_buffer(char *str, char **line, int up)
                     done = 1;
                     break;
                 }
-                /*FALLTHROUGH*/
+                [[fallthrough]];
 
             default:
                 if (up && islower((int) *s))
@@ -787,7 +787,7 @@ cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, u
         *total_pregap += cur_pregap;
         cur->start += *total_pregap;
     } else {
-        temp         = prev->file->get_length(prev->file) - ((uint64_t) prev->skip);
+        temp         = prev->file->get_length(prev->file) - (prev->skip);
         prev->length = temp / ((uint64_t) prev->sector_size);
         if ((temp % prev->sector_size) != 0)
             prev->length++;

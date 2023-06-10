@@ -25,6 +25,7 @@
 #include <86box/sound.h>
 #include <86box/timer.h>
 #include <86box/snd_sb.h>
+#include <86box/plat_unused.h>
 
 #define ADPCM_4  1
 #define ADPCM_26 2
@@ -33,8 +34,8 @@
 /*The recording safety margin is intended for uneven "len" calls to the get_buffer mixer calls on sound_sb*/
 #define SB_DSP_REC_SAFEFTY_MARGIN 4096
 
-void pollsb(void *p);
-void sb_poll_i(void *p);
+void pollsb(void *priv);
+void sb_poll_i(void *priv);
 
 static int sbe2dat[4][9] = {
     {0x01,   -0x02, -0x04, 0x08,  -0x10, 0x20,  0x40,  -0x80, -106},
@@ -205,8 +206,8 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
     int masked = 0;
 
     switch (bit) {
-        case 0:
         default:
+        case 0:
             dsp->sb_irq8 = set;
             masked       = dsp->sb_irqm8;
             break;
@@ -595,7 +596,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x75: /* 4-bit ADPCM output with reference */
             dsp->sbref  = dsp->dma_readb(dsp->dma_priv);
             dsp->sbstep = 0;
-            /* Fall through */
+            [[fallthrough]];
         case 0x74: /* 4-bit ADPCM output */
             sb_start_dma(dsp, 1, 0, ADPCM_4, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
             dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
@@ -917,6 +918,9 @@ sb_exec_command(sb_dsp_t *dsp)
              *  0FCh           DSP Auxiliary Status                                SB16
              *  0FDh           DSP Command Status                                  SB16
              */
+
+        default:
+            break;
     }
 
     /* Update 8051 ram with the last DSP command.
@@ -1045,6 +1049,9 @@ sb_read(uint16_t a, void *priv)
                 dsp->irq_update(dsp->irq_priv, 0);
             sb_dsp_log("SB 16-bit ACK read 0xFF\n");
             ret = 0xff;
+            break;
+
+        default:
             break;
     }
 
@@ -1192,9 +1199,9 @@ sb_dsp_dma_attach(sb_dsp_t *dsp,
 }
 
 void
-pollsb(void *p)
+pollsb(void *priv)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) p;
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
     int       tempi;
     int       ref;
     int       data[2];
@@ -1378,6 +1385,9 @@ pollsb(void *p)
                 } else
                     dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
                 break;
+
+            default:
+                break;
         }
 
         if (dsp->sb_8_length < 0) {
@@ -1426,6 +1436,9 @@ pollsb(void *p)
                 dsp->sbdatr = data[1];
                 dsp->sb_16_length -= 2;
                 break;
+
+            default:
+                break;
         }
 
         if (dsp->sb_16_length < 0) {
@@ -1451,9 +1464,9 @@ pollsb(void *p)
 }
 
 void
-sb_poll_i(void *p)
+sb_poll_i(void *priv)
 {
-    sb_dsp_t *dsp       = (sb_dsp_t *) p;
+    sb_dsp_t *dsp       = (sb_dsp_t *) priv;
     int       processed = 0;
 
     timer_advance_u64(&dsp->input_timer, dsp->sblatchi);
@@ -1485,6 +1498,9 @@ sb_poll_i(void *p)
                 dsp->sb_8_length -= 2;
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
+                break;
+
+            default:
                 break;
         }
 
@@ -1531,6 +1547,9 @@ sb_poll_i(void *p)
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
                 break;
+
+            default:
+                break;
         }
 
         if (dsp->sb_16_length < 0) {
@@ -1565,6 +1584,7 @@ sb_dsp_update(sb_dsp_t *dsp)
 }
 
 void
-sb_dsp_close(sb_dsp_t *dsp)
+sb_dsp_close(UNUSED(sb_dsp_t *dsp))
 {
+    //
 }

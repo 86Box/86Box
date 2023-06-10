@@ -463,7 +463,7 @@ kbc_at_poll_at(atkbc_t *dev)
         case STATE_KBC_AMI_OUT:
             if (dev->status & STAT_OFULL)
                 break;
-            /* FALLTHROUGH */
+            [[fallthrough]];
         case STATE_MAIN_IBF:
         default:
 at_main_ibf:
@@ -586,7 +586,7 @@ kbc_at_poll_ps2(atkbc_t *dev)
         case STATE_KBC_AMI_OUT:
             if (dev->status & STAT_OFULL)
                 break;
-            /* FALLTHROUGH */
+            [[fallthrough]];
         case STATE_MAIN_IBF:
         default:
 ps2_main_ibf:
@@ -1027,6 +1027,9 @@ write64_generic(void *priv, uint8_t val)
             kbc_at_log("ATkbc: pulse %01X\n", val & 0x0f);
             pulse_output(dev, val & 0x0f);
             return 0;
+
+        default:
+            break;
     }
 
     kbc_at_log("ATkbc: bad command %02X\n", val);
@@ -1328,12 +1331,13 @@ write64_siemens(void *priv, uint8_t val)
 static uint8_t
 write60_quadtel(void *priv, UNUSED(uint8_t val))
 {
-    atkbc_t *dev = (atkbc_t *) priv;
+    const atkbc_t *dev = (atkbc_t *) priv;
 
     switch (dev->command) {
         case 0xcf: /*??? - sent by MegaPC BIOS*/
             kbc_at_log("ATkbc: ??? - sent by MegaPC BIOS\n");
             return 0;
+
         default:
             break;
     }

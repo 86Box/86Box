@@ -33,6 +33,7 @@
 #include <86box/timer.h>
 #include <86box/snd_ad1848.h>
 #include <86box/snd_opl.h>
+#include <86box/plat_unused.h>
 
 /* 530, 11, 3 - 530=23
  * 530, 11, 1 - 530=22
@@ -59,14 +60,14 @@ typedef struct wss_t {
 } wss_t;
 
 uint8_t
-wss_read(uint16_t addr, void *priv)
+wss_read(UNUSED(uint16_t addr), void *priv)
 {
     wss_t *wss = (wss_t *) priv;
     return 4 | (wss->config & 0x40);
 }
 
 void
-wss_write(uint16_t addr, uint8_t val, void *priv)
+wss_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     wss_t *wss = (wss_t *) priv;
 
@@ -97,7 +98,7 @@ wss_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 void *
-wss_init(const device_t *info)
+wss_init(UNUSED(const device_t *info))
 {
     wss_t *wss = malloc(sizeof(wss_t));
     memset(wss, 0, sizeof(wss_t));
@@ -196,7 +197,7 @@ ncr_audio_mca_feedb(void *priv)
 }
 
 void *
-ncr_audio_init(const device_t *info)
+ncr_audio_init(UNUSED(const device_t *info))
 {
     wss_t *wss = malloc(sizeof(wss_t));
     memset(wss, 0, sizeof(wss_t));

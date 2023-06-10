@@ -62,15 +62,15 @@ static volatile void *libvde_handle = NULL;
 //+
 // VDE connection structure
 //-
-typedef struct {
-    void *vdeconn;          // VDEPLUG Connection          
-    netcard_t *card;        // NIC linked to
-    thread_t *poll_tid;     // Polling thread
-    net_evt_t tx_event;     // Packets to transmit event
-    net_evt_t stop_event;   // Stop thread event
-    netpkt_t pkt;                       // Packet read/sent
-    netpkt_t pktv[VDE_PKT_BATCH];       // Packet queue
-    uint8_t  mac_addr[6];               // MAC Address
+typedef struct net_vde_t {
+    void      *vdeconn;             // VDEPLUG Connection
+    netcard_t *card;                // NIC linked to
+    thread_t  *poll_tid;            // Polling thread
+    net_evt_t  tx_event;            // Packets to transmit event
+    net_evt_t  stop_event;          // Stop thread event
+    netpkt_t   pkt;                 // Packet read/sent
+    netpkt_t   pktv[VDE_PKT_BATCH]; // Packet queue
+    uint8_t    mac_addr[6];         // MAC Address
 } net_vde_t;
 
 //+
@@ -221,7 +221,7 @@ void net_vde_close(void *priv) {
         free(vde->pktv[i].data);
     }
     free(vde->pkt.data);
-    f_vde_close((void *) vde->vdeconn);
+    f_vde_close(vde->vdeconn);
     net_event_close(&vde->tx_event);
     net_event_close(&vde->stop_event);
     free(vde);

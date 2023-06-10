@@ -135,7 +135,7 @@ enum TC8521_ADDR {
     TC8521_LEAPYEAR = 0x1B
 };
 
-typedef struct {
+typedef struct t1000_t {
     /* ROM drive */
     uint8_t      *romdrive;
     uint8_t       rom_ctl;
@@ -237,7 +237,7 @@ tc8521_time_get(uint8_t *regs, struct tm *tm)
 
 /* This is called every second through the NVR/RTC hook. */
 static void
-tc8521_tick(nvr_t *nvr)
+tc8521_tick(UNUSED(nvr_t *nvr))
 {
     t1000_log("TC8521: ping\n");
 }
@@ -336,7 +336,7 @@ tc8521_init(nvr_t *nvr, int size)
 
 /* Given an EMS page ID, return its physical address in RAM. */
 static uint32_t
-ems_execaddr(t1000_t *sys, int pg, uint16_t val)
+ems_execaddr(t1000_t *sys, UNUSED(int pg), uint16_t val)
 {
     if (!(val & 0x80))
         return 0; /* Bit 7 reset => not mapped */
@@ -595,6 +595,9 @@ read_ctl(uint16_t addr, void *priv)
                 case 0x52:
                     ret = (sys->is_640k ? 0x80 : 0);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -656,7 +659,13 @@ write_ctl(uint16_t addr, uint8_t val, void *priv)
                 case 0x52:
                     ems_set_640k(sys, val);
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -688,6 +697,9 @@ t1000_read_nvram(uint16_t addr, void *priv)
             tmp |= (sys->nvr_active & 0xc0);      /* Bits 6, 7 are r/w mode */
             tmp |= 0x2e;                          /* Bits 5, 3, 2, 1 always 1 */
             tmp |= (sys->nvr_active & 0x40) >> 6; /* Ready state */
+            break;
+
+        default:
             break;
     }
 
@@ -733,6 +745,9 @@ t1000_write_nvram(uint16_t addr, uint8_t val, void *priv)
             if (val == 0x80)
                 sys->nvr_addr = -1;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -757,7 +772,7 @@ write_t1200_nvram(uint32_t addr, uint8_t value, void *priv)
 
 /* Port 0xC8 controls the ROM drive */
 static uint8_t
-t1000_read_rom_ctl(uint16_t addr, void *priv)
+t1000_read_rom_ctl(UNUSED(uint16_t addr), void *priv)
 {
     t1000_t *sys = (t1000_t *) priv;
 
@@ -765,7 +780,7 @@ t1000_read_rom_ctl(uint16_t addr, void *priv)
 }
 
 static void
-t1000_write_rom_ctl(uint16_t addr, uint8_t val, void *priv)
+t1000_write_rom_ctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     t1000_t *sys = (t1000_t *) priv;
 

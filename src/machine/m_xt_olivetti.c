@@ -57,6 +57,7 @@
 #include <86box/vid_ogc.h>
 #include <86box/vid_colorplus.h>
 #include <86box/vid_cga_comp.h>
+#include <86box/plat_unused.h>
 
 #define STAT_PARITY       0x80
 #define STAT_RTIMEOUT     0x40
@@ -115,7 +116,7 @@ enum MM58274_ADDR {
 
 static struct tm intclk;
 
-typedef struct {
+typedef struct m24_kbd_t {
     /* Keyboard stuff. */
     int     wantirq;
     uint8_t command;
@@ -123,18 +124,20 @@ typedef struct {
     uint8_t out;
     uint8_t output_port;
     uint8_t id;
-    int     param,
-        param_total;
+    int     param;
+    int     param_total;
     uint8_t params[16];
     uint8_t scan[7];
 
     /* Mouse stuff. */
     int        mouse_mode;
-    int        x, y, b;
+    int        x;
+    int        y;
+    int        b;
     pc_timer_t send_delay_timer;
 } m24_kbd_t;
 
-typedef struct {
+typedef struct m19_vid_t {
     ogc_t       ogc;
     colorplus_t colorplus;
     int         mode;
@@ -635,6 +638,10 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
 
             if (val == 0x02)
                 m24_kbd_adddata(0x00);
+            break;
+
+        default:
+            break;
     }
 }
 
@@ -725,7 +732,7 @@ m24_kbd_reset(void *priv)
 }
 
 static int
-ms_poll(int x, int y, int z, int b, void *priv)
+ms_poll(int x, int y, UNUSED(int z), int b, void *priv)
 {
     m24_kbd_t *m24_kbd = (m24_kbd_t *) priv;
 
@@ -1492,12 +1499,16 @@ m19_vid_init(m19_vid_t *vid)
 {
     device_context(&m19_vid_device);
 
-    /* int display_type; */
+#if 0
+    int display_type;
+#endif
     vid->mode = OLIVETTI_OGC_MODE;
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_m19_vid);
 
-    /* display_type = device_get_config_int("display_type"); */
+#if 0
+    display_type = device_get_config_int("display_type");
+#endif
 
     /* OGC emulation part begin */
     loadfont_ex("roms/machines/m19/BIOS.BIN", 1, 90);
@@ -1508,7 +1519,9 @@ m19_vid_init(m19_vid_t *vid)
 
     vid->ogc.cga.vram = malloc(0x8000);
 
-    /* cga_comp_init(vid->ogc.cga.revision); */
+#if 0
+    cga_comp_init(vid->ogc.cga.revision);
+#endif
 
     vid->ogc.cga.rgb_type = device_get_config_int("rgb_type");
     cga_palette           = (vid->ogc.cga.rgb_type << 1);
@@ -1525,11 +1538,15 @@ m19_vid_init(m19_vid_t *vid)
     /* Plantronics emulation part begin*/
     /* composite is not working yet */
     vid->colorplus.cga.composite = 0; //(display_type != CGA_RGB);
-    /* vid->colorplus.cga.snow_enabled = device_get_config_int("snow_enabled"); */
+#if 0
+    vid->colorplus.cga.snow_enabled = device_get_config_int("snow_enabled");
+#endif
 
     vid->colorplus.cga.vram = malloc(0x8000);
 
-    /* vid->colorplus.cga.cgamode = 0x1; */
+#if 0
+    vid->colorplus.cga.cgamode = 0x1;
+#endif
     /* Plantronics emulation part end*/
 
     timer_add(&vid->ogc.cga.timer, ogc_poll, &vid->ogc, 1);
@@ -1602,7 +1619,7 @@ const device_t m19_vid_device = {
 };
 
 static uint8_t
-m24_read(uint16_t port, void *priv)
+m24_read(uint16_t port, UNUSED(void *priv))
 {
     uint8_t ret       = 0x00;
     int     fdd_count = 0;
@@ -1706,13 +1723,16 @@ m24_read(uint16_t port, void *priv)
             /* 1 = 720 kB (3.5"), 0 = 360 kB (5.25") */
             ret |= (fdd_doublestep_40(0) || fdd_doublestep_40(1)) ? 0x1 : 0x0;
             break;
+
+        default:
+            break;
     }
 
     return ret;
 }
 
 static uint8_t
-m240_read(uint16_t port, void *priv)
+m240_read(uint16_t port, UNUSED(void *priv))
 {
     uint8_t ret = 0x00;
     int     fdd_count = 0;
@@ -1760,6 +1780,9 @@ m240_read(uint16_t port, void *priv)
             ret = (fdd_is_hd(0) || fdd_is_hd(1)) ? 0x80 : 0x00;
             ret |= fdd_doublestep_40(1) ? 0x40 : 0x00;
             ret |= fdd_doublestep_40(0) ? 0x20 : 0x00;
+            break;
+
+        default:
             break;
     }
 

@@ -1144,9 +1144,9 @@ pc_reset_hard_init(void)
 void
 update_mouse_msg(void)
 {
-    wchar_t wcpufamily[2048];
-    wchar_t wcpu[2048];
-    wchar_t wmachine[2048];
+    wchar_t  wcpufamily[2048];
+    wchar_t  wcpu[2048];
+    wchar_t  wmachine[2048];
     wchar_t *wcp;
 
     mbstowcs(wmachine, machine_getname(), strlen(machine_getname()) + 1);
@@ -1185,7 +1185,7 @@ pc_reset_hard(void)
 }
 
 void
-pc_close(thread_t *ptr)
+pc_close(UNUSED(thread_t *ptr))
 {
     /* Wait a while so things can shut down. */
     plat_delay_ms(200);

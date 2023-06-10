@@ -138,13 +138,13 @@ static uint8_t genius_pal[4];
 static uint8_t mdaattr[256][2][2];
 
 void    genius_recalctimings(genius_t *genius);
-void    genius_write(uint32_t addr, uint8_t val, void *p);
-uint8_t genius_read(uint32_t addr, void *p);
+void    genius_write(uint32_t addr, uint8_t val, void *priv);
+uint8_t genius_read(uint32_t addr, void *priv);
 
 void
-genius_out(uint16_t addr, uint8_t val, void *p)
+genius_out(uint16_t addr, uint8_t val, void *priv)
 {
-    genius_t *genius = (genius_t *) p;
+    genius_t *genius = (genius_t *) priv;
 
     switch (addr) {
         case 0x3b0: /* Command / control register */
@@ -208,9 +208,9 @@ genius_out(uint16_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-genius_in(uint16_t addr, void *p)
+genius_in(uint16_t addr, void *priv)
 {
-    genius_t *genius = (genius_t *) p;
+    genius_t *genius = (genius_t *) priv;
     uint8_t   ret    = 0xff;
 
     switch (addr) {
@@ -269,9 +269,9 @@ genius_waitstates(void)
 }
 
 void
-genius_write(uint32_t addr, uint8_t val, void *p)
+genius_write(uint32_t addr, uint8_t val, void *priv)
 {
-    genius_t *genius = (genius_t *) p;
+    genius_t *genius = (genius_t *) priv;
     genius_waitstates();
 
     if (genius->genius_control & 1) {
@@ -293,9 +293,9 @@ genius_write(uint32_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-genius_read(uint32_t addr, void *p)
+genius_read(uint32_t addr, void *priv)
 {
-    genius_t *genius = (genius_t *) p;
+    genius_t *genius = (genius_t *) priv;
     uint8_t   ret;
     genius_waitstates();
 
@@ -623,9 +623,9 @@ genius_hiresline(genius_t *genius)
 }
 
 void
-genius_poll(void *p)
+genius_poll(void *priv)
 {
-    genius_t *genius = (genius_t *) p;
+    genius_t *genius = (genius_t *) priv;
     uint8_t   background;
 
     if (!genius->linepos) {
@@ -784,9 +784,9 @@ void
 }
 
 void
-genius_close(void *p)
+genius_close(void *priv)
 {
-    genius_t *genius = (genius_t *) p;
+    genius_t *genius = (genius_t *) priv;
 
     free(genius->vram);
     free(genius);
@@ -799,9 +799,9 @@ genius_available(void)
 }
 
 void
-genius_speed_changed(void *p)
+genius_speed_changed(void *priv)
 {
-    genius_t *genius = (genius_t *) p;
+    genius_t *genius = (genius_t *) priv;
 
     genius_recalctimings(genius);
 }

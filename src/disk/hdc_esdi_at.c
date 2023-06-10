@@ -338,7 +338,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                             esdi->command &= ~0x03;
                             if (val & 0x02)
                                 fatal("Read with ECC\n");
-                            /*FALLTHROUGH*/
+                            [[fallthrough]];
 
                         case 0xa0:
                             esdi->status = STAT_BUSY;
@@ -397,7 +397,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 
                         default:
                             esdi_at_log("WD1007: bad command %02X\n", val);
-                            /*FALLTHROUGH*/
+                            [[fallthrough]];
                         case 0xe8: /*???*/
                             esdi->status = STAT_BUSY;
                             esdi_set_callback(esdi, 200 * HDC_TIME);

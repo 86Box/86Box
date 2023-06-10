@@ -93,9 +93,15 @@
 #define STATUS_BUFFER_NOT_READY 0x04
 #define STATUS_53C80_ACCESSIBLE 0x80
 
-typedef struct {
-    uint8_t icr, mode, tcr, data_wait;
-    uint8_t isr, output_data, target_id, tx_data;
+typedef struct ncr_t {
+    uint8_t icr;
+    uint8_t mode;
+    uint8_t tcr;
+    uint8_t data_wait;
+    uint8_t isr;
+    uint8_t output_data;
+    uint8_t target_id;
+    uint8_t tx_data;
     uint8_t msglun;
 
     uint8_t command[20];
@@ -103,12 +109,19 @@ typedef struct {
     int     msgout_pos;
     int     is_msgout;
 
-    int dma_mode, cur_bus, bus_in, new_phase;
-    int state, clear_req, wait_data, wait_complete;
-    int command_pos, data_pos;
+    int dma_mode;
+    int cur_bus;
+    int bus_in;
+    int new_phase;
+    int state;
+    int clear_req;
+    int wait_data;
+    int wait_complete;
+    int command_pos;
+    int data_pos;
 } ncr_t;
 
-typedef struct {
+typedef struct t128_t {
     uint8_t ctrl;
     uint8_t status;
     uint8_t buffer[512];
@@ -121,14 +134,15 @@ typedef struct {
     int bios_enabled;
 } t128_t;
 
-typedef struct {
+typedef struct ncr5380_t {
     ncr_t  ncr;
     t128_t t128;
 
     const char *name;
 
     uint8_t buffer[128];
-    uint8_t int_ram[0x40], ext_ram[0x600];
+    uint8_t int_ram[0x40];
+    uint8_t ext_ram[0x600];
 
     uint32_t rom_addr;
     uint16_t base;
@@ -440,7 +454,9 @@ ncr_bus_update(void *priv, int bus)
                 if (ncr->command_pos == cmd_len[(ncr->command[0] >> 5) & 7]) {
                     if (ncr->is_msgout) {
                         ncr->is_msgout = 0;
-                        // ncr->command[1] = (ncr->command[1] & 0x1f) | (ncr->msglun << 5);
+#if 0
+                        ncr->command[1] = (ncr->command[1] & 0x1f) | (ncr->msglun << 5);
+#endif
                     }
 
                     /*Reset data position to default*/
@@ -564,6 +580,9 @@ ncr_bus_update(void *priv, int bus)
                 ncr->command_pos = 0;
                 SET_BUS_STATE(ncr, SCSI_PHASE_COMMAND);
             }
+            break;
+
+        default:
             break;
     }
 
@@ -823,7 +842,7 @@ ncr_read(uint16_t port, void *priv)
 
     ncr_log("NCR5380 read(%04x)=%02x\n", port & 7, ret);
 
-    return (ret);
+    return ret;
 }
 
 /* Memory-mapped I/O READ handler. */
@@ -899,7 +918,13 @@ memio_read(uint32_t addr, void *priv)
                     case 0x3983:
                         ret = 0xff;
                         break;
+
+                    default:
+                        break;
                 }
+                break;
+
+            default:
                 break;
         }
 
@@ -976,7 +1001,13 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
                             ncr_dev->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
                         }
                         break;
+
+                    default:
+                        break;
                 }
+                break;
+
+            default:
                 break;
         }
 }
@@ -995,7 +1026,7 @@ t130b_read(uint32_t addr, void *priv)
         ret = ncr_dev->ext_ram[addr & 0x7f];
 
     ncr_log("MEM: Reading %02X from %08X\n", ret, addr);
-    return (ret);
+    return ret;
 }
 
 /* Memory-mapped I/O WRITE handler for the Trantor T130B. */
@@ -1039,10 +1070,13 @@ t130b_in(uint16_t port, void *priv)
         case 0x0f:
             ret = ncr_read(port, ncr_dev);
             break;
+
+        default:
+            break;
     }
 
     ncr_log("I/O: Reading %02X from %04X\n", ret, port);
-    return (ret);
+    return ret;
 }
 
 static void
@@ -1074,6 +1108,9 @@ t130b_out(uint16_t port, uint8_t val, void *priv)
         case 0x0e:
         case 0x0f:
             ncr_write(port, val, ncr_dev);
+            break;
+
+        default:
             break;
     }
 }
@@ -1325,6 +1362,9 @@ ncr_callback(void *priv)
             }
             ncr_dma_initiator_receive(ncr_dev, ncr, dev);
             break;
+
+        default:
+            break;
     }
 
     ncr_bus_read(ncr_dev);
@@ -1457,6 +1497,9 @@ rt1000b_mc_write(int port, uint8_t val, void *priv)
             case 0xe0:
                 ncr_dev->rom_addr = 0xd8000;
                 break;
+
+            default:
+                break;
         }
 
         mem_mapping_set_addr(&ncr_dev->bios_rom.mapping, ncr_dev->rom_addr, 0x4000);
@@ -1576,6 +1619,9 @@ ncr_init(const device_t *info)
                             memio_read, NULL, NULL,
                             memio_write, NULL, NULL,
                             ncr_dev->bios_rom.rom, MEM_MAPPING_EXTERNAL, ncr_dev);
+            break;
+
+        default:
             break;
     }
 

@@ -979,6 +979,7 @@ static void
 pci_slots_clear(void)
 {
     uint8_t i;
+
     last_pci_card = last_normal_pci_card = 0;
     last_pci_bus                         = 1;
 

@@ -228,7 +228,7 @@ opti283_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x14:
                     reset_on_hlt = !!(val & 0x40);
-                    /* FALLTHROUGH */
+                    [[fallthrough]];
                 case 0x11:
                 case 0x12:
                 case 0x13:

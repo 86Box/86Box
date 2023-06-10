@@ -283,7 +283,7 @@ process_char(prnt_t *dev, uint8_t ch)
             dev->curr_x = 0;
             if (!dev->autofeed)
                 return 1;
-            /*FALLTHROUGH*/
+            [[fallthrough]];
 
         case 0x0a: /* Line feed */
             dev->curr_x = 0;

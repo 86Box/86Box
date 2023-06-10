@@ -30,38 +30,59 @@
 #include <86box/snd_ac97.h>
 #include <86box/sound.h>
 #include <86box/timer.h>
+#include <86box/plat_unused.h>
 
-typedef struct {
-    uint8_t            id, always_run;
+typedef struct ac97_via_sgd_t {
+    uint8_t            id;
+    uint8_t            always_run;
     struct _ac97_via_ *dev;
 
-    uint32_t entry_ptr, sample_ptr, fifo_pos, fifo_end;
+    uint32_t entry_ptr;
+    uint32_t sample_ptr;
+    uint32_t fifo_pos;
+    uint32_t fifo_end;
     int32_t  sample_count;
-    uint8_t  entry_flags, fifo[32], restart;
+    uint8_t  entry_flags;
+    uint8_t  fifo[32];
+    uint8_t  restart;
 
-    int16_t  out_l, out_r;
-    int      vol_l, vol_r, pos;
+    int16_t  out_l;
+    int16_t  out_r;
+    int      vol_l;
+    int      vol_r;
+    int      pos;
     int32_t  buffer[SOUNDBUFLEN * 2];
     uint64_t timer_latch;
 
-    pc_timer_t dma_timer, poll_timer;
+    pc_timer_t dma_timer;
+    pc_timer_t poll_timer;
 } ac97_via_sgd_t;
 
 typedef struct _ac97_via_ {
-    uint16_t audio_sgd_base, audio_codec_base, modem_sgd_base, modem_codec_base;
-    uint8_t  sgd_regs[256], pcm_enabled : 1, fm_enabled : 1, vsr_enabled : 1;
+    uint16_t audio_sgd_base;
+    uint16_t audio_codec_base;
+    uint16_t modem_sgd_base;
+    uint16_t modem_codec_base;
+    uint8_t  sgd_regs[256];
+    uint8_t  pcm_enabled : 1;
+    uint8_t  fm_enabled : 1;
+    uint8_t  vsr_enabled : 1;
     struct {
         union {
             uint8_t regs_codec[2][128];
             uint8_t regs_linear[256];
         };
     } codec_shadow[2];
-    int slot, irq_pin;
+    int slot;
+    int irq_pin;
 
     ac97_codec_t  *codec[2][2];
     ac97_via_sgd_t sgd[6];
 
-    int master_vol_l, master_vol_r, cd_vol_l, cd_vol_r;
+    int master_vol_l;
+    int master_vol_r;
+    int cd_vol_l;
+    int cd_vol_r;
 } ac97_via_t;
 
 #ifdef ENABLE_AC97_VIA_LOG
@@ -350,6 +371,9 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
             case 0x8 ... 0xf:
                 /* Read-only registers. */
                 return;
+
+            default:
+                break;
         }
     } else {
         /* Process regular registers. */
@@ -403,6 +427,9 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 #else
                 val = dev->sgd_regs[addr] | (val & 0xc0);
 #endif
+                break;
+
+            default:
                 break;
         }
     }
@@ -676,6 +703,9 @@ ac97_via_poll_stereo(void *priv)
                 return;
             }
             break;
+
+        default:
+            break;
     }
 
     /* Feed silence if the FIFO is empty. */
@@ -753,7 +783,7 @@ ac97_via_speed_changed(void *priv)
 }
 
 static void *
-ac97_via_init(const device_t *info)
+ac97_via_init(UNUSED(const device_t *info))
 {
     ac97_via_t *dev = malloc(sizeof(ac97_via_t));
     memset(dev, 0, sizeof(ac97_via_t));

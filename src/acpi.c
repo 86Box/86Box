@@ -1694,7 +1694,7 @@ acpi_init(const device_t *info)
 
     dev = (acpi_t *) malloc(sizeof(acpi_t));
     if (dev == NULL)
-        return (NULL);
+        return NULL;
     memset(dev, 0x00, sizeof(acpi_t));
 
     cpu_to_acpi = ACPI_TIMER_FREQ / cpuclock;

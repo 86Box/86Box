@@ -33,6 +33,7 @@
 #include <86box/86box.h>
 #include <86box/midi.h>
 #include <86box/sound.h>
+#include <86box/plat_unused.h>
 
 #define FREQ   SOUND_FREQ
 #define BUFLEN SOUNDBUFLEN
@@ -58,7 +59,7 @@ al_set_midi(int freq, int buf_size)
 
 void closeal(void);
 ALvoid
-alutInit(ALint *argc, ALbyte **argv)
+alutInit(UNUSED(ALint *argc), UNUSED(ALbyte **argv))
 {
     /* Open device */
     Device = alcOpenDevice((ALCchar *) "");

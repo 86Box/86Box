@@ -166,6 +166,7 @@
 #include <86box/fdc_ext.h>
 #include <86box/machine.h>
 #include <86box/m_at_t3100e.h>
+#include <86box/plat_unused.h>
 
 extern uint8_t *ram; /* Physical RAM */
 
@@ -191,12 +192,12 @@ static unsigned t3100e_ems_page_reg[] = {
     0x4208,
     0x8208,
     0xc208, /* The first four map the first 2Mb */
-    /* of RAM into the page frame */
+            /* of RAM into the page frame */
     0x218,
     0x4218,
     0x8218,
     0xc218, /* The next four map the next 2Mb */
-    /* of RAM */
+            /* of RAM */
     0x258,
     0x4258,
     0x8258,
@@ -221,7 +222,7 @@ struct t3100e_ems_regs {
     /* Bit 0 is 0 for colour, 1 for mono */
 } t3100e_ems;
 
-void t3100e_ems_out(uint16_t addr, uint8_t val, void *p);
+void t3100e_ems_out(uint16_t addr, uint8_t val, void *priv);
 
 #ifdef ENABLE_T3100E_LOG
 int t3100e_do_log = ENABLE_T3100E_LOG;
@@ -331,11 +332,15 @@ port_to_page(uint16_t addr)
             return 14;
         case 0xC268:
             return 15;
+
+        default:
+            break;
     }
     return -1;
 }
 
-/* Used to dump the memory mapping table, for debugging
+/* Used to dump the memory mapping table, for debugging */
+#if 0
 void dump_mappings(void)
 {
         mem_mapping_t *mm = base_mapping.next;
@@ -377,7 +382,8 @@ void dump_mappings(void)
 
                 mm = mm->next;
         }
-}*/
+}
+#endif
 
 void
 t3100e_map_ram(uint8_t val)
@@ -437,7 +443,9 @@ t3100e_map_ram(uint8_t val)
                        &t3100e_ems);
     }
 
-    // dump_mappings();
+#if 0
+    dump_mappings();
+#endif
 }
 
 void
@@ -470,9 +478,9 @@ t3100e_turbo_set(uint8_t value)
 }
 
 uint8_t
-t3100e_sys_in(uint16_t addr, void *p)
+t3100e_sys_in(UNUSED(uint16_t addr), void *priv)
 {
-    struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *) p;
+    struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *) priv;
 
     /* The low 4 bits always seem to be 0x0C. The high 4 are a
      * notification sent by the keyboard controller when it detects
@@ -483,9 +491,11 @@ t3100e_sys_in(uint16_t addr, void *p)
 
 /* Handle writes to the T3100e system control port at 0x8084 */
 void
-t3100e_sys_out(uint16_t addr, uint8_t val, void *p)
+t3100e_sys_out(UNUSED(uint16_t addr), uint8_t val, UNUSED(void *priv))
 {
-    //    struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)p;
+#if 0
+    struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *) priv;
+#endif
 
     switch (val & 0xE0) {
         case 0x00: /* Set serial port IRQs. Not implemented */
@@ -551,6 +561,9 @@ t3100e_config_get(void)
                     value |= 0x10;
                     break; /* Tri-mode */
                            /* All others will be treated as 1.4M */
+
+                default:
+                    break;
             }
             break;
         case 4:
@@ -574,7 +587,11 @@ t3100e_config_get(void)
                 prt_switch = 0; /* No external drive */
             }
             break;
+
+        default:
+            break;
     } /* End switch */
+
     switch (prt_switch) {
         case 0:
             value |= 4;
@@ -585,15 +602,18 @@ t3100e_config_get(void)
         case 2:
             value |= 6;
             break; /* External floppy is B: */
+
+        default:
+            break;
     }
     return value;
 }
 
 /* Read EMS page register */
 uint8_t
-t3100e_ems_in(uint16_t addr, void *p)
+t3100e_ems_in(uint16_t addr, void *priv)
 {
-    struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *) p;
+    struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *) priv;
 
     int page = port_to_page(addr);
     if (page >= 0)
@@ -606,9 +626,9 @@ t3100e_ems_in(uint16_t addr, void *p)
 
 /* Write EMS page register */
 void
-t3100e_ems_out(uint16_t addr, uint8_t val, void *p)
+t3100e_ems_out(uint16_t addr, uint8_t val, void *priv)
 {
-    struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *) p;
+    struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *) priv;
     int                     pg   = port_to_page(addr);
 
     if (pg == -1)
@@ -654,9 +674,13 @@ ems_read_ramw(uint32_t addr, void *priv)
 
     if (pg < 0)
         return 0xFFFF;
-    // t3100e_log("ems_read_ramw addr=%05x ", addr);
+#if 0
+    t3100e_log("ems_read_ramw addr=%05x ", addr);
+#endif
     addr = regs->page_exec[pg] + (addr & 0x3FFF);
-    // t3100e_log("-> %06x val=%04x\n", addr, *(uint16_t *)&ram[addr]);
+#if 0
+    // t3100e_log("-> %06x val=%04x\n", addr, *(uint16_t *) &ram[addr]);
+#endif
     return *(uint16_t *) &ram[addr];
 }
 
@@ -693,9 +717,13 @@ ems_write_ramw(uint32_t addr, uint16_t val, void *priv)
 
     if (pg < 0)
         return;
-    // t3100e_log("ems_write_ramw addr=%05x ", addr);
+#if 0
+    t3100e_log("ems_write_ramw addr=%05x ", addr);
+#endif
     addr = regs->page_exec[pg] + (addr & 0x3FFF);
-    // t3100e_log("-> %06x val=%04x\n", addr, val);
+#if 0
+    t3100e_log("-> %06x val=%04x\n", addr, val);
+#endif
 
     *(uint16_t *) &ram[addr] = val;
 }

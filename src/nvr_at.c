@@ -834,7 +834,9 @@ nvr_reset(nvr_t *nvr)
 {
     local_t *local = (local_t *) nvr->data;
 
-    /* memset(nvr->regs, local->def, RTC_REGS); */
+#if 0
+    memset(nvr->regs, local->def, RTC_REGS);
+#endif
     memset(nvr->regs, local->def, nvr->size);
     nvr->regs[RTC_DOM]   = 1;
     nvr->regs[RTC_MONTH] = 1;

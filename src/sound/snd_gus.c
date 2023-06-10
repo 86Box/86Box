@@ -17,6 +17,7 @@
 #include <86box/sound.h>
 #include <86box/timer.h>
 #include <86box/snd_ad1848.h>
+#include <86box/plat_unused.h>
 
 enum {
     MIDI_INT_RECEIVE  = 0x01,
@@ -48,28 +49,42 @@ typedef struct gus_t {
     int reset;
 
     int      global;
-    uint32_t addr, dmaaddr;
+    uint32_t addr;
+    uint32_t dmaaddr;
     int      voice;
-    uint32_t start[32], end[32], cur[32];
-    uint32_t startx[32], endx[32], curx[32];
-    int      rstart[32], rend[32];
+    uint32_t start[32];
+    uint32_t end[32];
+    uint32_t cur[32];
+    uint32_t startx[32];
+    uint32_t endx[32];
+    uint32_t curx[32];
+    int      rstart[32];
+    int      rend[32];
     int      rcur[32];
     uint16_t freq[32];
     uint16_t rfreq[32];
     uint8_t  ctrl[32];
     uint8_t  rctrl[32];
     int      curvol[32];
-    int      pan_l[32], pan_r[32];
-    int      t1on, t2on;
+    int      pan_l[32];
+    int      pan_r[32];
+    int      t1on;
+    int      t2on;
     uint8_t  tctrl;
-    uint16_t t1, t2, t1l, t2l;
-    uint8_t  irqstatus, irqstatus2;
+    uint16_t t1;
+    uint16_t t2;
+    uint16_t t1l;
+    uint16_t t2l;
+    uint8_t  irqstatus;
+    uint8_t  irqstatus2;
     uint8_t  adcommand;
-    int      waveirqs[32], rampirqs[32];
+    int      waveirqs[32];
+    int      rampirqs[32];
     int      voices;
     uint8_t  dmactrl;
 
-    int32_t out_l, out_r;
+    int32_t out_l;
+    int32_t out_r;
 
     int16_t buffer[2][SOUNDBUFLEN];
     int     pos;
@@ -82,27 +97,41 @@ typedef struct gus_t {
 
     int irqnext;
 
-    pc_timer_t timer_1, timer_2;
+    pc_timer_t timer_1;
+    pc_timer_t timer_2;
 
-    int      irq, dma, irq_midi;
+    int      irq;
+    int      dma;
+    int      irq_midi;
     uint16_t base;
     int      latch_enable;
 
-    uint8_t sb_2xa, sb_2xc, sb_2xe;
+    uint8_t sb_2xa;
+    uint8_t sb_2xc;
+    uint8_t sb_2xe;
     uint8_t sb_ctrl;
     int     sb_nmi;
 
     uint8_t reg_ctrl;
 
-    uint8_t ad_status, ad_data;
+    uint8_t ad_status;
+    uint8_t ad_data;
     uint8_t ad_timer_ctrl;
 
-    uint8_t midi_ctrl, midi_status, midi_queue[64], midi_data;
-    int     midi_r, midi_w;
-    int     uart_in, uart_out, sysex;
+    uint8_t midi_ctrl;
+    uint8_t midi_status;
+    uint8_t midi_queue[64];
+    uint8_t midi_data;
+    int     midi_r;
+    int     midi_w;
+    int     uart_in;
+    int     uart_out;
+    int     sysex;
 
-    uint8_t  gp1, gp2;
-    uint16_t gp1_addr, gp2_addr;
+    uint8_t  gp1;
+    uint8_t  gp2;
+    uint16_t gp1_addr;
+    uint16_t gp2_addr;
 
     uint8_t usrr;
 
@@ -127,13 +156,12 @@ double vol16bit[4096];
 void
 gus_update_int_status(gus_t *gus)
 {
-    int c;
     int irq_pending      = 0;
     int midi_irq_pending = 0;
 
     gus->irqstatus &= ~0x60;
     gus->irqstatus2 = 0xE0;
-    for (c = 0; c < 32; c++) {
+    for (uint8_t c = 0; c < 32; c++) {
         if (gus->waveirqs[c]) {
             gus->irqstatus2 = 0x60 | c;
             if (gus->rampirqs[c])
@@ -199,9 +227,9 @@ gus_midi_update_int_status(gus_t *gus)
 }
 
 void
-writegus(uint16_t addr, uint8_t val, void *p)
+writegus(uint16_t addr, uint8_t val, void *priv)
 {
-    gus_t   *gus = (gus_t *) p;
+    gus_t   *gus = (gus_t *) priv;
     int      c;
     int      d;
     int      old;
@@ -298,6 +326,9 @@ writegus(uint16_t addr, uint8_t val, void *p)
                 case 0x45: /*Timer control*/
                     gus->tctrl = val;
                     gus_update_int_status(gus);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -479,6 +510,9 @@ writegus(uint16_t addr, uint8_t val, void *p)
                 case 0x4c: /*Reset*/
                     gus->reset = val;
                     break;
+
+                default:
+                    break;
             }
             break;
         case 0x307: /*DRAM access*/
@@ -566,6 +600,9 @@ writegus(uint16_t addr, uint8_t val, void *p)
                     break;
                 case 6:
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -589,7 +626,7 @@ writegus(uint16_t addr, uint8_t val, void *p)
                 else if (gus->irq != -1)
                     picint(1 << gus->irq);
             }
-            /*FALLTHROUGH*/
+            [[fallthrough]];
         case 0x20d:
             gus->sb_2xc = val;
             break;
@@ -619,13 +656,16 @@ writegus(uint16_t addr, uint8_t val, void *p)
             }
 #endif
             break;
+
+        default:
+            break;
     }
 }
 
 uint8_t
-readgus(uint16_t addr, void *p)
+readgus(uint16_t addr, void *priv)
 {
-    gus_t   *gus = (gus_t *) p;
+    gus_t   *gus = (gus_t *) priv;
     uint8_t  val = 0xff;
     uint16_t port;
 
@@ -717,6 +757,9 @@ readgus(uint16_t addr, void *p)
                 case 0x0f:
                     val = 0xff;
                     break;
+
+                default:
+                    break;
             }
             break;
         case 0x305: /*Global high*/
@@ -777,6 +820,9 @@ readgus(uint16_t addr, void *p)
                 case 0x0f:
                     val = 0xff;
                     break;
+
+                default:
+                    break;
             }
             break;
         case 0x306:
@@ -787,7 +833,6 @@ readgus(uint16_t addr, void *p)
                 val = 0xff; /*Pre 3.7 - no mixer*/
             break;
 
-            break;
         case 0x307: /*DRAM access*/
             val = gus->ram[gus->addr];
             gus->addr &= 0xFFFFF;
@@ -812,6 +857,9 @@ readgus(uint16_t addr, void *p)
                     break;
                 case 4:
                     val = gus->gp2_addr;
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -848,14 +896,17 @@ readgus(uint16_t addr, void *p)
         case 0x20A:
             val = gus->adcommand;
             break;
+
+        default:
+            break;
     }
     return val;
 }
 
 void
-gus_poll_timer_1(void *p)
+gus_poll_timer_1(void *priv)
 {
-    gus_t *gus = (gus_t *) p;
+    gus_t *gus = (gus_t *) priv;
 
     timer_advance_u64(&gus->timer_1, (uint64_t) (TIMER_USEC * 80));
     if (gus->t1on) {
@@ -879,9 +930,9 @@ gus_poll_timer_1(void *p)
 }
 
 void
-gus_poll_timer_2(void *p)
+gus_poll_timer_2(void *priv)
 {
-    gus_t *gus = (gus_t *) p;
+    gus_t *gus = (gus_t *) priv;
 
     timer_advance_u64(&gus->timer_2, (uint64_t) (TIMER_USEC * 320));
     if (gus->t2on) {
@@ -922,9 +973,9 @@ gus_update(gus_t *gus)
 }
 
 void
-gus_poll_wave(void *p)
+gus_poll_wave(void *priv)
 {
-    gus_t   *gus = (gus_t *) p;
+    gus_t   *gus = (gus_t *) priv;
     uint32_t addr;
     int16_t  v;
     int32_t  vl;
@@ -1055,9 +1106,9 @@ gus_poll_wave(void *p)
 }
 
 static void
-gus_get_buffer(int32_t *buffer, int len, void *p)
+gus_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    gus_t *gus = (gus_t *) p;
+    gus_t *gus = (gus_t *) priv;
 
 #if defined(DEV_BRANCH) && defined(USE_GUSMAX)
     if (gus->max_ctrl)
@@ -1121,7 +1172,7 @@ gus_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 }
 
 void *
-gus_init(const device_t *info)
+gus_init(UNUSED(const device_t *info))
 {
     int     c;
     double  out     = 1.0;
@@ -1180,18 +1231,18 @@ gus_init(const device_t *info)
 }
 
 void
-gus_close(void *p)
+gus_close(void *priv)
 {
-    gus_t *gus = (gus_t *) p;
+    gus_t *gus = (gus_t *) priv;
 
     free(gus->ram);
     free(gus);
 }
 
 void
-gus_speed_changed(void *p)
+gus_speed_changed(void *priv)
 {
-    gus_t *gus = (gus_t *) p;
+    gus_t *gus = (gus_t *) priv;
 
     if (gus->voices < 14)
         gus->samp_latch = (uint64_t) (TIMER_USEC * (1000000.0 / 44100.0));

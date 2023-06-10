@@ -143,7 +143,7 @@ device_add_common(const device_t *dev, const device_t *cd, void *p, void *params
     int   c;
 
     for (c = 0; c < 256; c++) {
-        if (!inst && (devices[c] == (device_t *) dev)) {
+        if (!inst && (devices[c] == dev)) {
             device_log("DEVICE: device already exists!\n");
             return (NULL);
         }
@@ -349,7 +349,7 @@ device_available(const device_t *dev)
     int                   i = 0;
 
     if (dev != NULL) {
-        config = (device_config_t *) dev->config;
+        config = dev->config;
         if (config != NULL) {
             while (config->type != -1) {
                 if (config->type == CONFIG_BIOS) {
@@ -359,7 +359,7 @@ device_available(const device_t *dev)
                     while (bios->files_no != 0) {
                         i = 0;
                         for (int bf = 0; bf < bios->files_no; bf++)
-                            i += !!rom_present((char *) bios->files[bf]);
+                            i += !!rom_present(bios->files[bf]);
                         if (i == bios->files_no)
                             roms_present++;
                         bios++;
@@ -389,11 +389,11 @@ device_get_bios_file(const device_t *dev, const char *internal_name, int file_no
     device_config_bios_t *bios   = NULL;
 
     if (dev != NULL) {
-        config = (device_config_t *) dev->config;
+        config = dev->config;
         if (config != NULL) {
             while (config->type != -1) {
                 if (config->type == CONFIG_BIOS) {
-                    bios = (device_config_bios_t *) config->bios;
+                    bios = config->bios;
 
                     /* Go through the ROM's in the device configuration. */
                     while (bios->files_no != 0) {
@@ -427,7 +427,7 @@ device_has_config(const device_t *dev)
     if (dev->config == NULL)
         return 0;
 
-    config = (device_config_t *) dev->config;
+    config = dev->config;
 
     while (config->type != -1) {
         if (config->type != CONFIG_MAC)

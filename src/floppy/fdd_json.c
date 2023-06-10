@@ -62,7 +62,7 @@
 #define NSIDES   2
 #define NSECTORS 256
 
-typedef struct {
+typedef struct sector_t {
     uint8_t  track;  /* ID: track number */
     uint8_t  side;   /*     side number */
     uint8_t  sector; /*     sector number 1.. */
@@ -70,8 +70,8 @@ typedef struct {
     uint8_t *data;   /* allocated data for it */
 } sector_t;
 
-typedef struct {
-    FILE *f;
+typedef struct json_t {
+    FILE *fp;
 
     /* Geometry. */
     uint8_t tracks;               /* number of tracks */
@@ -215,7 +215,7 @@ load_image(json_t *dev)
     int   level;
     char *ptr;
 
-    if (dev->f == NULL) {
+    if (dev->fp == NULL) {
         json_log("JSON: no file loaded!\n");
         return 0;
     }
@@ -232,8 +232,8 @@ load_image(json_t *dev)
     level = state = 0;
     while (state >= 0) {
         /* Get a character from the input. */
-        c = fgetc(dev->f);
-        if ((c == EOF) || ferror(dev->f)) {
+        c = fgetc(dev->fp);
+        if ((c == EOF) || ferror(dev->fp)) {
             state = -1;
             break;
         }
@@ -372,6 +372,9 @@ load_image(json_t *dev)
                 }
                 dev->track++;
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -396,7 +399,7 @@ json_seek(int drive, int track)
     int     rsec;
     int     asec;
 
-    if (dev->f == NULL) {
+    if (dev->fp == NULL) {
         json_log("JSON: seek: no file loaded!\n");
         return;
     }
@@ -530,8 +533,8 @@ json_load(int drive, char *fn)
     memset(dev, 0x00, sizeof(json_t));
 
     /* Open the image file. */
-    dev->f = plat_fopen(fn, "rb");
-    if (dev->f == NULL) {
+    dev->fp = plat_fopen(fn, "rb");
+    if (dev->fp == NULL) {
         free(dev);
         memset(fn, 0x00, sizeof(char));
         return;
@@ -546,7 +549,7 @@ json_load(int drive, char *fn)
     /* Load all sectors from the image file. */
     if (!load_image(dev)) {
         json_log("JSON: failed to initialize\n");
-        (void) fclose(dev->f);
+        (void) fclose(dev->fp);
         free(dev);
         images[drive] = NULL;
         memset(fn, 0x00, sizeof(char));
@@ -608,8 +611,8 @@ json_load(int drive, char *fn)
 
     if (temp_rate == 0xff) {
         json_log("JSON: invalid image (temp_rate=0xff)\n");
-        (void) fclose(dev->f);
-        dev->f = NULL;
+        (void) fclose(dev->fp);
+        dev->fp = NULL;
         free(dev);
         images[drive] = NULL;
         memset(fn, 0x00, sizeof(char));
@@ -630,8 +633,8 @@ json_load(int drive, char *fn)
     if (!dev->gap3_len) {
         json_log("JSON: image of unknown format was inserted into drive %c:!\n",
                  'C' + drive);
-        (void) fclose(dev->f);
-        dev->f = NULL;
+        (void) fclose(dev->fp);
+        dev->fp = NULL;
         free(dev);
         images[drive] = NULL;
         memset(fn, 0x00, sizeof(char));
@@ -692,8 +695,8 @@ json_close(int drive)
         }
     }
 
-    if (dev->f != NULL)
-        (void) fclose(dev->f);
+    if (dev->fp != NULL)
+        (void) fclose(dev->fp);
 
     /* Release the memory. */
     free(dev);

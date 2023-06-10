@@ -64,7 +64,7 @@
 #define FLAG_IGNORE_DENSEL 512
 #define FLAG_PS2           1024
 
-typedef struct {
+typedef struct fdd_t {
     int type;
     int track;
     int densel;
@@ -585,6 +585,9 @@ fdd_get_bitcell_period(int rate)
             break;
         case 3: /*Extended density*/
             bit_rate = 1000;
+            break;
+
+        default:
             break;
     }
 

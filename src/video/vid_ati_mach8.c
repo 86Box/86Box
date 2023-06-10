@@ -147,10 +147,10 @@ static video_timings_t timing_mach32_vlb = { .type = VIDEO_BUS, .write_b = 2, .w
 static video_timings_t timing_mach32_pci = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 
 
-static void     mach_accel_outb(uint16_t port, uint8_t val, void *p);
-static void     mach_accel_outw(uint16_t port, uint16_t val, void *p);
-static uint8_t  mach_accel_inb(uint16_t port, void *p);
-static uint16_t mach_accel_inw(uint16_t port, void *p);
+static void     mach_accel_outb(uint16_t port, uint8_t val, void *priv);
+static void     mach_accel_outw(uint16_t port, uint16_t val, void *priv);
+static uint8_t  mach_accel_inb(uint16_t port, void *priv);
+static uint16_t mach_accel_inw(uint16_t port, void *priv);
 
 static void mach32_updatemapping(mach_t *mach);
 
@@ -368,7 +368,7 @@ mach_pixel_read(mach_t *mach)
 }
 
 static void
-mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint32_t cpu_dat, mach_t *mach, ibm8514_t *dev, int len)
+mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint32_t cpu_dat, mach_t *mach, ibm8514_t *dev, UNUSED(int len))
 {
     svga_t *svga = &mach->svga;
     int compare_mode;
@@ -376,9 +376,12 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
     uint16_t rd_mask = dev->accel.rd_mask;
     uint16_t wrt_mask = dev->accel.wrt_mask;
     uint16_t dest_cmp_clr = dev->accel.color_cmp;
-    int frgd_sel, bkgd_sel, mono_src;
+    int frgd_sel;
+    int bkgd_sel;
+    int mono_src;
     int compare = 0;
-    uint16_t src_dat = 0, dest_dat = 0;
+    uint16_t src_dat = 0;
+    uint16_t dest_dat = 0;
     uint16_t old_dest_dat;
     uint16_t *vram_w = (uint16_t *) svga->vram;
     uint16_t mix = 0;
@@ -386,7 +389,8 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
     int16_t clip_t = dev->accel.clip_top & 0x7ff;
     int16_t clip_r = dev->accel.multifunc[4] & 0x7ff;
     int16_t clip_b = dev->accel.multifunc[3] & 0x7ff;
-    uint32_t mono_dat0 = 0, mono_dat1 = 0;
+    uint32_t mono_dat0 = 0;
+    uint32_t mono_dat1 = 0;
 
     if ((svga->bpp == 8) || (svga->bpp == 24)) {
         rd_mask &= 0xff;
@@ -518,9 +522,12 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                             }
                             mix = (mix & rd_mask) == rd_mask;
                             break;
+
+                        default:
+                            break;
                     }
 
-                    if ((((dev->accel.dx) >= clip_l) && ((dev->accel.dx) <= clip_r) && ((dev->accel.dy) >= clip_t) && ((dev->accel.dy) <= clip_b))) {
+                    if (((dev->accel.dx) >= clip_l) && ((dev->accel.dx) <= clip_r) && ((dev->accel.dy) >= clip_t) && ((dev->accel.dy) <= clip_b)) {
                         if (mach->accel.linedraw_opt & 0x02) {
                             if ((svga->bpp == 15) || (svga->bpp == 16)) {
                                 READ((mach->accel.ge_offset << 1) + ((dev->accel.cy) * (dev->pitch)) + (dev->accel.cx), poly_src, dev->local);
@@ -563,6 +570,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                     } else
                                         src_dat = 0;
                                     break;
+
+                                default:
+                                    break;
                             }
 
                             if ((svga->bpp == 15) || (svga->bpp == 16)) {
@@ -577,22 +587,25 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                 compare = 1;
                                 break;
                             case 2:
-                                compare = ((dest_dat) >= dest_cmp_clr) ? 0 : 1;
+                                compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
                                 break;
                             case 3:
-                                compare = ((dest_dat) < dest_cmp_clr) ? 0 : 1;
+                                compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
                                 break;
                             case 4:
-                                compare = ((dest_dat) != dest_cmp_clr) ? 0 : 1;
+                                compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
                                 break;
                             case 5:
-                                compare = ((dest_dat) == dest_cmp_clr) ? 0 : 1;
+                                compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
                                 break;
                             case 6:
-                                compare = ((dest_dat) <= dest_cmp_clr) ? 0 : 1;
+                                compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
                                 break;
                             case 7:
-                                compare = ((dest_dat) > dest_cmp_clr) ? 0 : 1;
+                                compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                break;
+
+                            default:
                                 break;
                         }
 
@@ -674,6 +687,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                             dev->accel.cy++;
                             dev->accel.dy++;
                             break;
+
+                        default:
+                            break;
                     }
 
                     dev->accel.sx++;
@@ -717,9 +733,12 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                             }
                             mix = (mix & rd_mask) == rd_mask;
                             break;
+
+                        default:
+                            break;
                     }
 
-                    if ((((dev->accel.dx) >= clip_l) && ((dev->accel.dx) <= clip_r) && ((dev->accel.dy) >= clip_t) && ((dev->accel.dy) <= clip_b))) {
+                    if (((dev->accel.dx) >= clip_l) && ((dev->accel.dx) <= clip_r) && ((dev->accel.dy) >= clip_t) && ((dev->accel.dy) <= clip_b)) {
                         if (mach->accel.linedraw_opt & 0x02) {
                             if ((svga->bpp == 15) || (svga->bpp == 16)) {
                                 READ((mach->accel.ge_offset << 1) + ((dev->accel.cy) * (dev->pitch)) + (dev->accel.cx), poly_src, dev->local);
@@ -762,6 +781,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                     } else
                                         src_dat = 0;
                                     break;
+
+                                default:
+                                    break;
                             }
 
                             if ((svga->bpp == 15) || (svga->bpp == 16)) {
@@ -776,22 +798,25 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                 compare = 1;
                                 break;
                             case 2:
-                                compare = ((dest_dat) >= dest_cmp_clr) ? 0 : 1;
+                                compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
                                 break;
                             case 3:
-                                compare = ((dest_dat) < dest_cmp_clr) ? 0 : 1;
+                                compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
                                 break;
                             case 4:
-                                compare = ((dest_dat) != dest_cmp_clr) ? 0 : 1;
+                                compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
                                 break;
                             case 5:
-                                compare = ((dest_dat) == dest_cmp_clr) ? 0 : 1;
+                                compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
                                 break;
                             case 6:
-                                compare = ((dest_dat) <= dest_cmp_clr) ? 0 : 1;
+                                compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
                                 break;
                             case 7:
-                                compare = ((dest_dat) > dest_cmp_clr) ? 0 : 1;
+                                compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                break;
+
+                            default:
                                 break;
                         }
 
@@ -1051,7 +1076,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                     mach->accel.color_pattern_idx = mach->accel.patt_idx;
             }
 
-            if ((mach->accel.dy_end == mach->accel.dy_start)) {
+            if (mach->accel.dy_end == mach->accel.dy_start) {
                 mach_log("No DEST.\n");
                 return;
             }
@@ -1112,10 +1137,13 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         READ(dev->accel.src + ((dev->accel.cx)), mix, dev->local);
                         mix = (mix & rd_mask) == rd_mask;
                         break;
+
+                    default:
+                        break;
                 }
 
-                if (((dev->accel.dx) >= (clip_l) && (dev->accel.dx) <= (clip_r) &&
-                    (dev->accel.dy) >= (clip_t) && (dev->accel.dy) <= (clip_b))) {
+                if ((dev->accel.dx) >= clip_l && (dev->accel.dx) <= clip_r &&
+                    (dev->accel.dy) >= clip_t && (dev->accel.dy) <= clip_b) {
                     if (mach->accel.dp_config & 0x02) {
                         READ(dev->accel.src + (dev->accel.cx), poly_src, dev->local);
                         poly_src = ((poly_src & rd_mask) == rd_mask);
@@ -1154,6 +1182,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                 } else
                                     src_dat = 0;
                                 break;
+
+                            default:
+                                break;
                         }
                     }
 
@@ -1172,22 +1203,25 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                             compare = 1;
                             break;
                         case 2:
-                            compare = ((dest_dat) >= dest_cmp_clr) ? 0 : 1;
+                            compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
                             break;
                         case 3:
-                            compare = ((dest_dat) < dest_cmp_clr) ? 0 : 1;
+                            compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
                             break;
                         case 4:
-                            compare = ((dest_dat) != dest_cmp_clr) ? 0 : 1;
+                            compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
                             break;
                         case 5:
-                            compare = ((dest_dat) == dest_cmp_clr) ? 0 : 1;
+                            compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
                             break;
                         case 6:
-                            compare = ((dest_dat) <= dest_cmp_clr) ? 0 : 1;
+                            compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
                             break;
                         case 7:
-                            compare = ((dest_dat) > dest_cmp_clr) ? 0 : 1;
+                            compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                            break;
+
+                        default:
                             break;
                     }
 
@@ -1367,7 +1401,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         mix_dat <<= 1;
                         mix_dat |= 1;
 
-                        if ((((dev->accel.cx) >= clip_l) && ((dev->accel.cx) <= clip_r) && ((dev->accel.cy) >= clip_t) && ((dev->accel.cy) <= clip_b))) {
+                        if (((dev->accel.cx) >= clip_l) && ((dev->accel.cx) <= clip_r) && ((dev->accel.cy) >= clip_t) && ((dev->accel.cy) <= clip_b)) {
                             mach->accel.clip_overrun = 0;
                             switch (mix ? frgd_sel : bkgd_sel) {
                                 case 0:
@@ -1392,6 +1426,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                     } else
                                         src_dat = 0;
                                     break;
+
+                                default:
+                                    break;
                             }
 
                             if ((svga->bpp == 15) || (svga->bpp == 16)) {
@@ -1405,22 +1442,25 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                     compare = 1;
                                     break;
                                 case 2:
-                                    compare = ((dest_dat) >= dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 3:
-                                    compare = ((dest_dat) < dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 4:
-                                    compare = ((dest_dat) != dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 5:
-                                    compare = ((dest_dat) == dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 6:
-                                    compare = ((dest_dat) <= dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 7:
-                                    compare = ((dest_dat) > dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                    break;
+
+                                default:
                                     break;
                             }
 
@@ -1478,9 +1518,12 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                     }
                                 }
                                 break;
+
+                            default:
+                               break;
                         }
 
-                        if ((((dev->accel.cx) >= clip_l) && ((dev->accel.cx) <= clip_r) && ((dev->accel.cy) >= clip_t) && ((dev->accel.cy) <= clip_b))) {
+                        if (((dev->accel.cx) >= clip_l) && ((dev->accel.cx) <= clip_r) && ((dev->accel.cy) >= clip_t) && ((dev->accel.cy) <= clip_b)) {
                             mach->accel.clip_overrun = 0;
                             switch (mix ? frgd_sel : bkgd_sel) {
                                 case 0:
@@ -1505,6 +1548,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                     } else
                                         src_dat = 0;
                                     break;
+
+                                default:
+                                    break;
                             }
 
                             if ((svga->bpp == 15) || (svga->bpp == 16)) {
@@ -1518,22 +1564,25 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                     compare = 1;
                                     break;
                                 case 2:
-                                    compare = ((dest_dat) >= dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 3:
-                                    compare = ((dest_dat) < dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 4:
-                                    compare = ((dest_dat) != dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 5:
-                                    compare = ((dest_dat) == dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 6:
-                                    compare = ((dest_dat) <= dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 7:
-                                    compare = ((dest_dat) > dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                    break;
+
+                                default:
                                     break;
                             }
 
@@ -1596,7 +1645,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         mix_dat <<= 1;
                         mix_dat |= 1;
 
-                        if ((((dev->accel.cx) >= clip_l) && ((dev->accel.cx) <= clip_r) && ((dev->accel.cy) >= clip_t) && ((dev->accel.cy) <= clip_b))) {
+                        if (((dev->accel.cx) >= clip_l) && ((dev->accel.cx) <= clip_r) && ((dev->accel.cy) >= clip_t) && ((dev->accel.cy) <= clip_b)) {
                             mach->accel.clip_overrun = 0;
                             switch (mix ? frgd_sel : bkgd_sel) {
                                 case 0:
@@ -1621,6 +1670,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                     } else
                                         src_dat = 0;
                                     break;
+
+                                default:
+                                    break;
                             }
 
                             if ((svga->bpp == 15) || (svga->bpp == 16)) {
@@ -1633,22 +1685,25 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                     compare = 1;
                                     break;
                                 case 2:
-                                    compare = ((dest_dat) >= dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 3:
-                                    compare = ((dest_dat) < dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 4:
-                                    compare = ((dest_dat) != dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 5:
-                                    compare = ((dest_dat) == dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 6:
-                                    compare = ((dest_dat) <= dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 7:
-                                    compare = ((dest_dat) > dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                    break;
+
+                                default:
                                     break;
                             }
 
@@ -1707,9 +1762,12 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                     }
                                 }
                                 break;
+
+                            default:
+                                break;
                         }
 
-                        if ((((dev->accel.cx) >= clip_l) && ((dev->accel.cx) <= clip_r) && ((dev->accel.cy) >= clip_t) && ((dev->accel.cy) <= clip_b))) {
+                        if (((dev->accel.cx) >= clip_l) && ((dev->accel.cx) <= clip_r) && ((dev->accel.cy) >= clip_t) && ((dev->accel.cy) <= clip_b)) {
                             mach->accel.clip_overrun = 0;
                             switch (mix ? frgd_sel : bkgd_sel) {
                                 case 0:
@@ -1734,6 +1792,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                     } else
                                         src_dat = 0;
                                     break;
+
+                                default:
+                                    break;
                             }
 
                             if ((svga->bpp == 15) || (svga->bpp == 16)) {
@@ -1747,22 +1808,25 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                                     compare = 1;
                                     break;
                                 case 2:
-                                    compare = ((dest_dat) >= dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 3:
-                                    compare = ((dest_dat) < dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 4:
-                                    compare = ((dest_dat) != dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 5:
-                                    compare = ((dest_dat) == dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 6:
-                                    compare = ((dest_dat) <= dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
                                     break;
                                 case 7:
-                                    compare = ((dest_dat) > dest_cmp_clr) ? 0 : 1;
+                                    compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                                    break;
+
+                                default:
                                     break;
                             }
 
@@ -2004,10 +2068,13 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         READ(dev->accel.src + (dev->accel.cx), mix, dev->local);
                         mix = (mix & rd_mask) == rd_mask;
                         break;
+
+                    default:
+                        break;
                 }
 
-                if ((dev->accel.dx) >= (clip_l) && (dev->accel.dx) <= (clip_r) &&
-                    (dev->accel.dy) >= (clip_t) && (dev->accel.dy) <= (clip_b)) {
+                if ((dev->accel.dx) >= clip_l && (dev->accel.dx) <= clip_r &&
+                    (dev->accel.dy) >= clip_t && (dev->accel.dy) <= clip_b) {
                     switch (mix ? frgd_sel : bkgd_sel) {
                         case 0:
                             src_dat = dev->accel.bkgd_color;
@@ -2040,6 +2107,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                             } else
                                 src_dat = 0;
                             break;
+
+                        default:
+                            break;
                     }
 
                     READ(dev->accel.dest + (dev->accel.dx), dest_dat, dev->local);
@@ -2049,22 +2119,25 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                             compare = 1;
                             break;
                         case 2:
-                            compare = ((dest_dat) >= dest_cmp_clr) ? 0 : 1;
+                            compare = (dest_dat >= dest_cmp_clr) ? 0 : 1;
                             break;
                         case 3:
-                            compare = ((dest_dat) < dest_cmp_clr) ? 0 : 1;
+                            compare = (dest_dat < dest_cmp_clr) ? 0 : 1;
                             break;
                         case 4:
-                            compare = ((dest_dat) != dest_cmp_clr) ? 0 : 1;
+                            compare = (dest_dat != dest_cmp_clr) ? 0 : 1;
                             break;
                         case 5:
-                            compare = ((dest_dat) == dest_cmp_clr) ? 0 : 1;
+                            compare = (dest_dat == dest_cmp_clr) ? 0 : 1;
                             break;
                         case 6:
-                            compare = ((dest_dat) <= dest_cmp_clr) ? 0 : 1;
+                            compare = (dest_dat <= dest_cmp_clr) ? 0 : 1;
                             break;
                         case 7:
-                            compare = ((dest_dat) > dest_cmp_clr) ? 0 : 1;
+                            compare = (dest_dat > dest_cmp_clr) ? 0 : 1;
+                            break;
+
+                        default:
                             break;
                     }
 
@@ -2134,13 +2207,18 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 }
             }
             break;
+
+        default:
+            break;
     }
 }
 
 static void
-mach_accel_out_pixtrans(mach_t *mach, ibm8514_t *dev, uint16_t port, uint16_t val, uint16_t len)
+mach_accel_out_pixtrans(mach_t *mach, ibm8514_t *dev, UNUSED(uint16_t port), uint16_t val, uint16_t len)
 {
-    int frgd_sel, bkgd_sel, mono_src;
+    int frgd_sel;
+    int bkgd_sel;
+    int mono_src;
 
     frgd_sel = (mach->accel.dp_config >> 13) & 7;
     bkgd_sel = (mach->accel.dp_config >> 7) & 3;
@@ -2152,7 +2230,7 @@ mach_accel_out_pixtrans(mach_t *mach, ibm8514_t *dev, uint16_t port, uint16_t va
 
     switch (mach->accel.dp_config & 0x200) {
         case 0x000: /*8-bit size*/
-            if ((mono_src == 2)) {
+            if (mono_src == 2) {
                 if ((frgd_sel != 2) && (bkgd_sel != 2)) {
                     if ((mach->accel.dp_config & 0x1000) && dev->local)
                         val = (val >> 8) | (val << 8);
@@ -2163,7 +2241,7 @@ mach_accel_out_pixtrans(mach_t *mach, ibm8514_t *dev, uint16_t port, uint16_t va
                 mach_accel_start(mach->accel.cmd_type, 1, 1, -1, val | (val << 16), mach, dev, len);
             break;
         case 0x200: /*16-bit size*/
-            if ((mono_src == 2)) {
+            if (mono_src == 2) {
                 if ((frgd_sel != 2) && (bkgd_sel != 2)) {
                     if (mach->accel.dp_config & 0x1000)
                         val = (val >> 8) | (val << 8);
@@ -2175,13 +2253,16 @@ mach_accel_out_pixtrans(mach_t *mach, ibm8514_t *dev, uint16_t port, uint16_t va
                 mach_accel_start(mach->accel.cmd_type, 1, 2, -1, val | (val << 16), mach, dev, len);
             }
             break;
+
+        default:
+            break;
     }
 }
 
 static void
-mach_out(uint16_t addr, uint8_t val, void *p)
+mach_out(uint16_t addr, uint8_t val, void *priv)
 {
-    mach_t     *mach     = (mach_t *) p;
+    mach_t     *mach     = (mach_t *) priv;
     svga_t     *svga     = &mach->svga;
     ibm8514_t  *dev      = &svga->dev8514;
     uint8_t     old;
@@ -2225,15 +2306,15 @@ mach_out(uint16_t addr, uint8_t val, void *p)
                         mach->bank_r = (((mach->regs[0xb2] & 1) << 3) | ((mach->regs[0xb2] & 0xe0) >> 5));
                         mach->bank_w = ((mach->regs[0xb2] & 0x1e) >> 1);
                         if (dev->local) {
-                            mach->bank_r |= (((mach->regs[0xae] & 0x0c) << 2));
-                            mach->bank_w |= (((mach->regs[0xae] & 3) << 4));
+                            mach->bank_r |= ((mach->regs[0xae] & 0x0c) << 2);
+                            mach->bank_w |= ((mach->regs[0xae] & 3) << 4);
                         }
                         if (ibm8514_on)
                             mach_log("Separate B2Bank = %02x, AEbank = %02x.\n", mach->regs[0xb2], mach->regs[0xae]);
                     } else { /* Single bank mode */
                         mach->bank_w = ((mach->regs[0xb2] & 0x1e) >> 1);
                         if (dev->local) {
-                            mach->bank_w |= (((mach->regs[0xae] & 3) << 4));
+                            mach->bank_w |= ((mach->regs[0xae] & 3) << 4);
                         }
                         mach->bank_r = mach->bank_w;
                         if (ibm8514_on)
@@ -2271,6 +2352,9 @@ mach_out(uint16_t addr, uint8_t val, void *p)
                 case 0xb9:
                     if ((old ^ val) & 2)
                         svga_recalctimings(svga);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -2336,14 +2420,17 @@ mach_out(uint16_t addr, uint8_t val, void *p)
                 }
             }
             break;
+
+        default:
+            break;
     }
     svga_out(addr, val, svga);
 }
 
 static uint8_t
-mach_in(uint16_t addr, void *p)
+mach_in(uint16_t addr, void *priv)
 {
-    mach_t     *mach     = (mach_t *) p;
+    mach_t     *mach     = (mach_t *) priv;
     svga_t     *svga     = &mach->svga;
     ibm8514_t  *dev      = &svga->dev8514;
     uint8_t     temp;
@@ -2436,59 +2523,60 @@ mach_in(uint16_t addr, void *p)
 static void
 mach_recalctimings(svga_t *svga)
 {
-    mach_t *mach = (mach_t *) svga->p;
+    mach_t *mach = (mach_t *) svga->priv;
     ibm8514_t *dev = &svga->dev8514;
 
     if (vga_on && !ibm8514_on) {
         switch (((mach->regs[0xbe] & 0x10) >> 1) | ((mach->regs[0xb9] & 2) << 1) | ((svga->miscout & 0x0c) >> 2)) {
             case 0x00:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 42954000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 42954000.0;
                 break;
             case 0x01:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 48771000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 48771000.0;
                 break;
             case 0x02:
                 mach_log("clock 2\n");
                 break;
             case 0x03:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 36000000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 36000000.0;
                 break;
             case 0x04:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 50350000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 50350000.0;
                 break;
             case 0x05:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 56640000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 56640000.0;
                 break;
             case 0x06:
                 mach_log("clock 2\n");
                 break;
             case 0x07:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 44900000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
                 break;
             case 0x08:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 30240000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 30240000.0;
                 break;
             case 0x09:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 32000000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 32000000.0;
                 break;
             case 0x0A:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 37500000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 37500000.0;
                 break;
             case 0x0B:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 39000000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 39000000.0;
                 break;
             case 0x0C:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 50350000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 50350000.0;
                 break;
             case 0x0D:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 56644000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 56644000.0;
                 break;
             case 0x0E:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 75000000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 75000000.0;
                 break;
             case 0x0F:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 65000000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 65000000.0;
                 break;
+
             default:
                 break;
         }
@@ -2519,6 +2607,9 @@ mach_recalctimings(svga_t *svga)
                 break;
             case 0xc0:
                 svga->clock *= 4;
+                break;
+
+            default:
                 break;
         }
     }
@@ -2567,7 +2658,12 @@ mach_recalctimings(svga_t *svga)
                                 }
                                 break;
 
+                            default:
+                                break;
                         }
+                        break;
+
+                    default:
                         break;
                 }
             }
@@ -2617,7 +2713,7 @@ mach_recalctimings(svga_t *svga)
                 dev->pitch = dev->ext_pitch;
                 svga->rowoffset = dev->ext_crt_pitch;
 
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 44900000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
             } else {
                 if (dev->ibm_mode) {
                     if ((svga->hdisp == 1024) && !dev->internal_pitch) {
@@ -2638,11 +2734,11 @@ mach_recalctimings(svga_t *svga)
                 dev->pitch = dev->ext_pitch;
                 svga->rowoffset = dev->ext_crt_pitch;
 
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 25175000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
             }
             switch (svga->bpp) {
-                case 8:
                 default:
+                case 8:
                     svga->render = svga_render_8bpp_highres;
                     break;
                 case 15:
@@ -2664,7 +2760,10 @@ mach_recalctimings(svga_t *svga)
 static void
 mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, uint32_t val, int len)
 {
-    int frgd_sel, bkgd_sel, mono_src;
+    int frgd_sel;
+    int bkgd_sel;
+    int mono_src;
+
     switch (port) {
         case 0x82e8:
         case 0xc2e8:
@@ -2739,6 +2838,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
         case 0x92e8:
             if (len != 1)
                 dev->test = val;
+            [[fallthrough]];
         case 0xd2e8:
             mach_log("92E8 = %04x\n", val);
             if (len == 1)
@@ -2929,6 +3029,9 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                                     } else
                                         mach_accel_start(mach->accel.cmd_type, 1, 2, -1, mach->accel.pix_trans[0] | (mach->accel.pix_trans[1] << 8), mach, dev, len);
                                     break;
+
+                                default:
+                                    break;
                             }
                         }
                     }
@@ -3010,6 +3113,9 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                                             mach_accel_start(mach->accel.cmd_type, 1, 2, -1, mach->accel.pix_trans[0] | (mach->accel.pix_trans[1] << 8), mach, dev, len);
                                     } else
                                         mach_accel_start(mach->accel.cmd_type, 1, 2, -1, mach->accel.pix_trans[0] | (mach->accel.pix_trans[1] << 8), mach, dev, len);
+                                    break;
+
+                                default:
                                     break;
                             }
                         }
@@ -3455,6 +3561,9 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                 }
                 mach->accel.line_idx++;
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -3968,6 +4077,9 @@ mach_accel_out(uint16_t port, uint32_t val, mach_t *mach, int len)
                             svga->bpp = 24;
                             dev->ext_crt_pitch *= 3;
                             break;
+
+                        default:
+                            break;
                     }
                     if (mach->accel.ext_ge_config & 0x800) {
                         svga_recalctimings(svga);
@@ -3998,6 +4110,9 @@ mach_accel_out(uint16_t port, uint32_t val, mach_t *mach, int len)
                             svga->bpp = 24;
                             dev->ext_crt_pitch *= 3;
                             break;
+
+                        default:
+                            break;
                     }
                     if (mach->accel.ext_ge_config & 0x800) {
                         svga_recalctimings(svga);
@@ -4010,6 +4125,9 @@ mach_accel_out(uint16_t port, uint32_t val, mach_t *mach, int len)
             case 0x7eee:
                 mach->accel.eeprom_control = val;
                 break;
+
+            default:
+                break;
         }
     }
 }
@@ -4017,14 +4135,16 @@ mach_accel_out(uint16_t port, uint32_t val, mach_t *mach, int len)
 static uint32_t
 mach_accel_in(uint16_t port, mach_t *mach, int len)
 {
-    svga_t *svga = &mach->svga;
+    svga_t    *svga = &mach->svga;
     ibm8514_t *dev = &svga->dev8514;
-    uint16_t *vram_w = (uint16_t *) svga->vram;
+    uint16_t  *vram_w = (uint16_t *) svga->vram;
     uint16_t   temp = 0;
     int        cmd;
-    int vpos = dev->displine + svga->y_add;
-    int vblankend = svga->vblankstart + svga->crtc[0x16];
-    int frgd_sel, bkgd_sel, mono_src;
+    int        vpos = dev->displine + svga->y_add;
+    int        vblankend = svga->vblankstart + svga->crtc[0x16];
+    int        frgd_sel;
+    int        bkgd_sel;
+    int        mono_src;
 
     switch (port) {
         case 0x2e8:
@@ -4281,6 +4401,9 @@ mach_accel_in(uint16_t port, mach_t *mach, int len)
                                 } else
                                     mach_accel_start(mach->accel.cmd_type, 1, 2, -1, mach->accel.pix_trans[0] | (mach->accel.pix_trans[1] << 8), mach, dev, len);
                                 break;
+
+                            default:
+                                break;
                         }
                     }
                 }
@@ -4318,6 +4441,9 @@ mach_accel_in(uint16_t port, mach_t *mach, int len)
                         break;
                     case 0x0a:
                         temp = dev->accel.multifunc[0x0a];
+                        break;
+
+                    default:
                         break;
                 }
             }
@@ -4662,6 +4788,9 @@ mach_accel_in(uint16_t port, mach_t *mach, int len)
                     temp = 0x22;
             }
             break;
+
+        default:
+            break;
     }
     if (port != 0x9ae8 && port != 0x9ae9 && port != 0x62ee && port != 0x9aee) {
         mach_log("Port accel in = %04x, temp = %04x, len = %d, mode = %d.\n", port, temp, len, dev->ibm_mode);
@@ -4670,40 +4799,40 @@ mach_accel_in(uint16_t port, mach_t *mach, int len)
 }
 
 static void
-mach_accel_outb(uint16_t port, uint8_t val, void *p)
+mach_accel_outb(uint16_t port, uint8_t val, void *priv)
 {
-    mach_t *mach = (mach_t *) p;
+    mach_t *mach = (mach_t *) priv;
     mach_accel_out(port, val, mach, 1);
 }
 
 static void
-mach_accel_outw(uint16_t port, uint16_t val, void *p)
+mach_accel_outw(uint16_t port, uint16_t val, void *priv)
 {
-    mach_t *mach = (mach_t *) p;
+    mach_t *mach = (mach_t *) priv;
     mach_accel_out(port, val, mach, 2);
 }
 
 static uint8_t
-mach_accel_inb(uint16_t port, void *p)
+mach_accel_inb(uint16_t port, void *priv)
 {
-    mach_t *mach = (mach_t *) p;
+    mach_t *mach = (mach_t *) priv;
     return mach_accel_in(port, mach, 1);
 }
 
 static uint16_t
-mach_accel_inw(uint16_t port, void *p)
+mach_accel_inw(uint16_t port, void *priv)
 {
-    mach_t *mach = (mach_t *) p;
+    mach_t *mach = (mach_t *) priv;
     return mach_accel_in(port, mach, 2);
 }
 
 static void
-mach32_ap_writeb(uint32_t addr, uint8_t val, void *p)
+mach32_ap_writeb(uint32_t addr, uint8_t val, void *priv)
 {
-    mach_t *mach = (mach_t *) p;
+    mach_t *mach = (mach_t *) priv;
     uint8_t port_dword = addr & 0xfc;
 
-    if (((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20)))) {
+    if ((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20))) {
         if (addr & 0x100) {
             mach_log("Port WORDB Write=%04x.\n", 0x02ee + (port_dword << 8));
             mach_accel_outb(0x02ee + (addr & 1) + (port_dword << 8), val, mach);
@@ -4718,12 +4847,12 @@ mach32_ap_writeb(uint32_t addr, uint8_t val, void *p)
 }
 
 static void
-mach32_ap_writew(uint32_t addr, uint16_t val, void *p)
+mach32_ap_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    mach_t *mach = (mach_t *) p;
+    mach_t *mach = (mach_t *) priv;
     uint8_t port_dword = addr & 0xfc;
 
-    if (((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20)))) {
+    if ((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20))) {
         if (addr & 0x100) {
             mach_log("Port WORDW Write=%04x.\n", 0x02ee + (port_dword << 8));
             mach_accel_outw(0x02ee + (port_dword << 8), val, mach);
@@ -4738,12 +4867,12 @@ mach32_ap_writew(uint32_t addr, uint16_t val, void *p)
 }
 
 static void
-mach32_ap_writel(uint32_t addr, uint32_t val, void *p)
+mach32_ap_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    mach_t *mach = (mach_t *) p;
+    mach_t *mach = (mach_t *) priv;
     uint8_t port_dword = addr & 0xfc;
 
-    if (((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20)))) {
+    if ((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20))) {
         if (addr & 0x100) {
             mach_log("Port WORDL Write=%04x.\n", 0x02ee + (port_dword << 8));
             mach_accel_outw(0x02ee + (port_dword << 8), val & 0xffff, mach);
@@ -4760,13 +4889,13 @@ mach32_ap_writel(uint32_t addr, uint32_t val, void *p)
 }
 
 static uint8_t
-mach32_ap_readb(uint32_t addr, void *p)
+mach32_ap_readb(uint32_t addr, void *priv)
 {
-    mach_t *mach = (mach_t *) p;
+    mach_t *mach = (mach_t *) priv;
     uint8_t temp;
     uint8_t port_dword = addr & 0xfc;
 
-    if (((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20)))) {
+    if ((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20))) {
         if (addr & 0x100) {
             temp = mach_accel_inb(0x02ee + (addr & 1) + (port_dword << 8), mach);
         } else {
@@ -4779,13 +4908,13 @@ mach32_ap_readb(uint32_t addr, void *p)
 }
 
 static uint16_t
-mach32_ap_readw(uint32_t addr, void *p)
+mach32_ap_readw(uint32_t addr, void *priv)
 {
-    mach_t *mach = (mach_t *) p;
+    mach_t *mach = (mach_t *) priv;
     uint16_t temp;
     uint8_t port_dword = addr & 0xfc;
 
-    if (((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20)))) {
+    if ((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20))) {
         if (addr & 0x100) {
             temp = mach_accel_inw(0x02ee + (port_dword << 8), mach);
         } else {
@@ -4798,13 +4927,13 @@ mach32_ap_readw(uint32_t addr, void *p)
 }
 
 static uint32_t
-mach32_ap_readl(uint32_t addr, void *p)
+mach32_ap_readl(uint32_t addr, void *priv)
 {
-    mach_t *mach = (mach_t *) p;
+    mach_t *mach = (mach_t *) priv;
     uint32_t temp;
     uint8_t port_dword = addr & 0xfc;
 
-    if (((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20)))) {
+    if ((addr >= ((mach->ap_size << 20) - 0x200)) && (addr < (mach->ap_size << 20))) {
         if (addr & 0x100) {
             temp = mach_accel_inw(0x02ee + (port_dword << 8), mach);
             temp |= (mach_accel_inw(0x02ee + (port_dword << 8) + 4, mach) << 8);
@@ -4823,7 +4952,7 @@ mach32_updatemapping(mach_t *mach)
 {
     svga_t *svga = &mach->svga;
 
-    if ((mach->pci_bus && (!(mach->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM)))) {
+    if (mach->pci_bus && (!(mach->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))) {
         mem_mapping_disable(&svga->mapping);
         mem_mapping_disable(&mach->mmio_linear_mapping);
         return;
@@ -4850,6 +4979,9 @@ mach32_updatemapping(mach_t *mach)
             case 0xC: /*32k at B8000*/
                 mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
                 svga->banked_mask = 0x7fff;
+                break;
+
+            default:
                 break;
         }
     }
@@ -4882,11 +5014,12 @@ mach32_updatemapping(mach_t *mach)
 static void
 mach32_hwcursor_draw(svga_t *svga, int displine)
 {
-    mach_t   *mach = (mach_t *) svga->p;
+    mach_t   *mach = (mach_t *) svga->priv;
     uint16_t dat;
     int      comb;
     int      offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
-    uint32_t color0, color1;
+    uint32_t color0;
+    uint32_t color1;
 
     if (svga->bpp == 8) {
         color0 = svga->pallook[mach->cursor_col_0];
@@ -4916,13 +5049,16 @@ mach32_hwcursor_draw(svga_t *svga, int displine)
             if (offset >= svga->hwcursor_latch.x) {
                 switch (comb) {
                     case 0:
-                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[offset + svga->x_add] = color0;
+                        (svga->monitor->target_buffer->line[displine])[offset + svga->x_add] = color0;
                         break;
                     case 1:
-                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[offset + svga->x_add] = color1;
+                        (svga->monitor->target_buffer->line[displine])[offset + svga->x_add] = color1;
                         break;
                     case 3:
-                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[offset + svga->x_add] ^= 0xffffff;
+                        (svga->monitor->target_buffer->line[displine])[offset + svga->x_add] ^= 0xffffff;
+                        break;
+
+                    default:
                         break;
                 }
             }
@@ -5175,10 +5311,10 @@ mach_io_set(mach_t *mach)
 }
 
 static uint8_t
-mach32_pci_read(int func, int addr, void *p)
+mach32_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    mach_t *mach = (mach_t *) p;
-    uint8_t   ret    = 0x00;
+    mach_t  *mach = (mach_t *) priv;
+    uint8_t  ret    = 0x00;
 
     switch (addr) {
         case 0x00:
@@ -5242,15 +5378,18 @@ mach32_pci_read(int func, int addr, void *p)
         case 0x3d:
             ret = PCI_INTA;
             break;
+
+        default:
+            break;
     }
 
     return ret;
 }
 
 static void
-mach32_pci_write(int func, int addr, uint8_t val, void *p)
+mach32_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
-    mach_t *mach = (mach_t *) p;
+    mach_t *mach = (mach_t *) priv;
 
     switch (addr) {
         case PCI_REG_COMMAND:
@@ -5287,6 +5426,9 @@ mach32_pci_write(int func, int addr, uint8_t val, void *p)
 
         case 0x3c:
             mach->int_line = val;
+            break;
+
+        default:
             break;
     }
 }
@@ -5355,6 +5497,9 @@ mach8_init(const device_t *info)
             case 4096:
                 mach->misc |= 0x0c;
                 break;
+
+            default:
+                break;
         }
         svga->hwcursor.cur_ysize = 64;
         mach->config1 = 0x20;
@@ -5414,7 +5559,7 @@ mach8_init(const device_t *info)
         ati_eeprom_load_mach8(&mach->eeprom, "mach8.nvr");
     }
 
-    return (mach);
+    return mach;
 }
 
 static int
@@ -5442,9 +5587,9 @@ mach32_pci_available(void)
 }
 
 static void
-mach_close(void *p)
+mach_close(void *priv)
 {
-    mach_t *mach = (mach_t *) p;
+    mach_t *mach = (mach_t *) priv;
     svga_t *svga = &mach->svga;
     ibm8514_t *dev = &svga->dev8514;
 
@@ -5458,18 +5603,18 @@ mach_close(void *p)
 }
 
 static void
-mach_speed_changed(void *p)
+mach_speed_changed(void *priv)
 {
-    mach_t *mach = (mach_t *) p;
+    mach_t *mach = (mach_t *) priv;
     svga_t *svga = &mach->svga;
 
     svga_recalctimings(svga);
 }
 
 static void
-mach_force_redraw(void *p)
+mach_force_redraw(void *priv)
 {
-    mach_t *mach = (mach_t *) p;
+    mach_t *mach = (mach_t *) priv;
     svga_t *svga = &mach->svga;
 
     svga->fullchange = changeframecount;

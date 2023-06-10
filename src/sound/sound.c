@@ -47,7 +47,7 @@ typedef struct {
 } SOUND_CARD;
 
 typedef struct {
-    void (*get_buffer)(int32_t *buffer, int len, void *p);
+    void (*get_buffer)(int32_t *buffer, int len, void *priv);
     void *priv;
 } sound_handler_t;
 
@@ -76,7 +76,7 @@ static int          cd_buf_update    = CD_BUFLEN / SOUNDBUFLEN;
 static volatile int cdaudioon        = 0;
 static int          cd_thread_enable = 0;
 
-static void (*filter_cd_audio)(int channel, double *buffer, void *p) = NULL;
+static void (*filter_cd_audio)(int channel, double *buffer, void *priv) = NULL;
 static void *filter_cd_audio_p                                       = NULL;
 
 static const device_t sound_none_device = {
@@ -208,7 +208,7 @@ sound_card_get_from_internal_name(const char *s)
     int c = 0;
 
     while (sound_cards[c].device != NULL) {
-        if (!strcmp((char *) sound_cards[c].device->internal_name, s))
+        if (!strcmp(sound_cards[c].device->internal_name, s))
             return c;
         c++;
     }
@@ -246,7 +246,7 @@ sound_cd_clean_buffers(void)
 }
 
 static void
-sound_cd_thread(void *param)
+sound_cd_thread(UNUSED(void *param))
 {
     uint32_t lba;
     int      r;
@@ -425,24 +425,24 @@ sound_init(void)
 }
 
 void
-sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *p), void *p)
+sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *priv), void *priv)
 {
     sound_handlers[sound_handlers_num].get_buffer = get_buffer;
-    sound_handlers[sound_handlers_num].priv       = p;
+    sound_handlers[sound_handlers_num].priv       = priv;
     sound_handlers_num++;
 }
 
 void
-sound_set_cd_audio_filter(void (*filter)(int channel, double *buffer, void *p), void *p)
+sound_set_cd_audio_filter(void (*filter)(int channel, double *buffer, void *priv), void *priv)
 {
     if ((filter_cd_audio == NULL) || (filter == NULL)) {
         filter_cd_audio   = filter;
-        filter_cd_audio_p = p;
+        filter_cd_audio_p = priv;
     }
 }
 
 void
-sound_poll(void *priv)
+sound_poll(UNUSED(void *priv))
 {
     timer_advance_u64(&sound_poll_timer, sound_poll_latch);
 
@@ -459,7 +459,7 @@ sound_poll(void *priv)
 
         for (c = 0; c < SOUNDBUFLEN * 2; c++) {
             if (sound_is_float)
-                outbuffer_ex[c] = ((float) outbuffer[c]) / 32768.0;
+                outbuffer_ex[c] = ((float) outbuffer[c]) / (float) 32768.0;
             else {
                 if (outbuffer[c] > 32767)
                     outbuffer[c] = 32767;

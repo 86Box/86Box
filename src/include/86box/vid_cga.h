@@ -28,21 +28,31 @@ typedef struct cga_t {
 
     uint8_t cgastat;
 
-    uint8_t cgamode, cgacol;
+    uint8_t cgamode;
+    uint8_t cgacol;
 
     int      fontbase;
-    int      linepos, displine;
-    int      sc, vc;
+    int      linepos;
+    int      displine;
+    int      sc;
+    int      vc;
     int      cgadispon;
-    int      con, coff, cursoron, cgablink;
-    int      vsynctime, vadj;
-    uint16_t ma, maback;
+    int      con;
+    int      coff;
+    int      cursoron;
+    int      cgablink;
+    int      vsynctime;
+    int      vadj;
+    uint16_t ma;
+    uint16_t maback;
     int      oddeven;
 
-    uint64_t   dispontime, dispofftime;
+    uint64_t   dispontime;
+    uint64_t   dispofftime;
     pc_timer_t timer;
 
-    int firstline, lastline;
+    int firstline;
+    int lastline;
 
     int drawcursor;
 

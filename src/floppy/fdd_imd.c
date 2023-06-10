@@ -31,7 +31,7 @@
 #include <86box/fdd_imd.h>
 #include <86box/fdc.h>
 
-typedef struct {
+typedef struct imd_track_t {
     uint8_t  is_present;
     uint32_t file_offs;
     uint8_t  params[5];
@@ -47,8 +47,8 @@ typedef struct {
     uint8_t  max_sector_size;
 } imd_track_t;
 
-typedef struct {
-    FILE       *f;
+typedef struct imd_t {
+    FILE       *fp;
     char       *buffer;
     uint32_t    start_offs;
     int         track_count;
@@ -150,7 +150,7 @@ track_is_xdf(int drive, int side, int track)
 
     effective_sectors = xdf_sectors = high_sectors = low_sectors = 0;
 
-    for (i = 0; i < 256; i++)
+    for (uint16_t i = 0; i < 256; i++)
         dev->xdf_ordered_pos[i][side] = 0;
 
     if (dev->tracks[track][side].params[2] & 0xC0)
@@ -175,7 +175,7 @@ track_is_xdf(int drive, int side, int track)
             expected_low_count  = 0;
         }
 
-        for (i = 0; i < dev->tracks[track][side].params[3]; i++) {
+        for (uint8_t i = 0; i < dev->tracks[track][side].params[3]; i++) {
             if ((r_map[i] >= 0x81) && (r_map[i] <= max_high_id)) {
                 high_sectors++;
                 dev->xdf_ordered_pos[(int) r_map[i]][side] = i;
@@ -196,7 +196,7 @@ track_is_xdf(int drive, int side, int track)
 
         n_map = (uint8_t *) (dev->buffer + dev->tracks[track][side].n_map_offs);
 
-        for (i = 0; i < dev->tracks[track][side].params[3]; i++) {
+        for (uint8_t i = 0; i < dev->tracks[track][side].params[3]; i++) {
             effective_sectors++;
             if (!(r_map[i]) && !(n_map[i]))
                 effective_sectors--;
@@ -310,7 +310,7 @@ imd_seek(int drive, int track)
     uint8_t *data;
     int      flags = 0x00;
 
-    if (dev->f == NULL)
+    if (dev->fp == NULL)
         return;
 
     if (!dev->track_width && fdd_doublestep_40(drive))
@@ -526,26 +526,26 @@ imd_writeback(int drive)
 
     for (int side = 0; side < dev->sides; side++) {
         if (dev->tracks[track][side].is_present) {
-            fseek(dev->f, dev->tracks[track][side].file_offs, SEEK_SET);
+            fseek(dev->fp, dev->tracks[track][side].file_offs, SEEK_SET);
             h   = dev->tracks[track][side].params[2];
             spt = dev->tracks[track][side].params[3];
             n   = dev->tracks[track][side].params[4];
-            fwrite(dev->tracks[track][side].params, 1, 5, dev->f);
+            fwrite(dev->tracks[track][side].params, 1, 5, dev->fp);
 
             if (h & 0x80)
-                fwrite(dev->buffer + dev->tracks[track][side].c_map_offs, 1, spt, dev->f);
+                fwrite(dev->buffer + dev->tracks[track][side].c_map_offs, 1, spt, dev->fp);
 
             if (h & 0x40)
-                fwrite(dev->buffer + dev->tracks[track][side].h_map_offs, 1, spt, dev->f);
+                fwrite(dev->buffer + dev->tracks[track][side].h_map_offs, 1, spt, dev->fp);
 
             if (n == 0xFF) {
                 n_map = dev->buffer + dev->tracks[track][side].n_map_offs;
-                fwrite(n_map, 1, spt, dev->f);
+                fwrite(n_map, 1, spt, dev->fp);
             }
             for (uint8_t i = 0; i < spt; i++) {
                 ssize = (n == 0xFF) ? n_map[i] : n;
                 ssize = 128 << ssize;
-                fwrite(dev->buffer + dev->tracks[track][side].sector_data_offs[i], 1, ssize, dev->f);
+                fwrite(dev->buffer + dev->tracks[track][side].sector_data_offs[i], 1, ssize, dev->fp);
             }
         }
     }
@@ -637,10 +637,10 @@ imd_load(int drive, char *fn)
     dev = (imd_t *) malloc(sizeof(imd_t));
     memset(dev, 0x00, sizeof(imd_t));
 
-    dev->f = plat_fopen(fn, "rb+");
-    if (dev->f == NULL) {
-        dev->f = plat_fopen(fn, "rb");
-        if (dev->f == NULL) {
+    dev->fp = plat_fopen(fn, "rb+");
+    if (dev->fp == NULL) {
+        dev->fp = plat_fopen(fn, "rb");
+        if (dev->fp == NULL) {
             memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
             free(dev);
             return;
@@ -652,40 +652,40 @@ imd_load(int drive, char *fn)
         writeprot[drive] = 1;
     fwriteprot[drive] = writeprot[drive];
 
-    if (fseek(dev->f, 0, SEEK_SET) == -1)
+    if (fseek(dev->fp, 0, SEEK_SET) == -1)
         fatal("imd_load(): Error seeking to the beginning of the file\n");
-    if (fread(&magic, 1, 4, dev->f) != 4)
+    if (fread(&magic, 1, 4, dev->fp) != 4)
         fatal("imd_load(): Error reading the magic number\n");
     if (magic != 0x20444D49) {
         imd_log("IMD: Not a valid ImageDisk image\n");
-        fclose(dev->f);
+        fclose(dev->fp);
         free(dev);
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         return;
     } else
         imd_log("IMD: Valid ImageDisk image\n");
 
-    if (fseek(dev->f, 0, SEEK_END) == -1)
+    if (fseek(dev->fp, 0, SEEK_END) == -1)
         fatal("imd_load(): Error seeking to the end of the file\n");
-    fsize = ftell(dev->f);
+    fsize = ftell(dev->fp);
     if (fsize <= 0) {
         imd_log("IMD: Too small ImageDisk image\n");
-        fclose(dev->f);
+        fclose(dev->fp);
         free(dev);
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         return;
     }
-    if (fseek(dev->f, 0, SEEK_SET) == -1)
+    if (fseek(dev->fp, 0, SEEK_SET) == -1)
         fatal("imd_load(): Error seeking to the beginning of the file again\n");
     dev->buffer = malloc(fsize);
-    if (fread(dev->buffer, 1, fsize, dev->f) != fsize)
+    if (fread(dev->buffer, 1, fsize, dev->fp) != fsize)
         fatal("imd_load(): Error reading data\n");
     buffer = dev->buffer;
 
     buffer2 = memchr(buffer, 0x1A, fsize);
     if (buffer2 == NULL) {
         imd_log("IMD: No ASCII EOF character\n");
-        fclose(dev->f);
+        fclose(dev->fp);
         free(dev);
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         return;
@@ -696,7 +696,7 @@ imd_load(int drive, char *fn)
     buffer2++;
     if ((buffer2 - buffer) == fsize) {
         imd_log("IMD: File ends after ASCII EOF character\n");
-        fclose(dev->f);
+        fclose(dev->fp);
         free(dev);
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         return;
@@ -775,7 +775,7 @@ imd_load(int drive, char *fn)
 
             dev->tracks[track][side].data_offs = last_offset;
 
-            for (i = 0; i < track_spt; i++) {
+            for (int i = 0; i < track_spt; i++) {
                 data_size                                    = buffer2[i];
                 data_size                                    = 128 << data_size;
                 dev->tracks[track][side].sector_data_offs[i] = last_offset;
@@ -784,7 +784,7 @@ imd_load(int drive, char *fn)
                     /* Invalid sector data type, possibly a malformed HxC IMG image (it outputs data errored
                        sectors with a variable amount of bytes, against the specification). */
                     imd_log("IMD: Invalid sector data type %02X\n", dev->buffer[dev->tracks[track][side].sector_data_offs[i]]);
-                    fclose(dev->f);
+                    fclose(dev->fp);
                     free(dev);
                     imd[drive] = NULL;
                     memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
@@ -807,7 +807,7 @@ imd_load(int drive, char *fn)
         } else {
             dev->tracks[track][side].data_offs = last_offset;
 
-            for (i = 0; i < track_spt; i++) {
+            for (int i = 0; i < track_spt; i++) {
                 data_size                                    = sector_size;
                 data_size                                    = 128 << data_size;
                 dev->tracks[track][side].sector_data_offs[i] = last_offset;
@@ -816,7 +816,7 @@ imd_load(int drive, char *fn)
                     /* Invalid sector data type, possibly a malformed HxC IMG image (it outputs data errored
                        sectors with a variable amount of bytes, against the specification). */
                     imd_log("IMD: Invalid sector data type %02X\n", dev->buffer[dev->tracks[track][side].sector_data_offs[i]]);
-                    fclose(dev->f);
+                    fclose(dev->fp);
                     free(dev);
                     imd[drive] = NULL;
                     memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
@@ -865,7 +865,7 @@ imd_load(int drive, char *fn)
                 if (size_diff < gap_sum) {
                     /* If we can't fit the sectors with a reasonable minimum gap even at 2% slower RPM, abort. */
                     imd_log("IMD: Unable to fit the %i sectors in a track\n", track_spt);
-                    fclose(dev->f);
+                    fclose(dev->fp);
                     free(dev);
                     imd[drive] = NULL;
                     memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
@@ -931,10 +931,10 @@ imd_close(int drive)
 
     d86f_unregister(drive);
 
-    if (dev->f != NULL) {
+    if (dev->fp != NULL) {
         free(dev->buffer);
 
-        fclose(dev->f);
+        fclose(dev->fp);
     }
 
     /* Release the memory. */

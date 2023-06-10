@@ -58,8 +58,7 @@
 
 #define POSTSCRIPT_BUFFER_LENGTH 65536
 
-typedef struct
-{
+typedef struct ps_t {
     const char *name;
 
     void *lpt;

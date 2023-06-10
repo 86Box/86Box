@@ -102,9 +102,8 @@ apm_close(void *priv)
     free(dev);
 }
 
-static void
-    *
-    apm_init(const device_t *info)
+static void *
+apm_init(const device_t *info)
 {
     apm_t *dev = (apm_t *) malloc(sizeof(apm_t));
     memset(dev, 0, sizeof(apm_t));

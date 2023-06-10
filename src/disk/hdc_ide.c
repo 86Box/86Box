@@ -1655,7 +1655,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                        disabled, the Read Multiple operation is rejected with an Aborted Com-
                        mand error. */
                     ide->blockcount = 0;
-                    /*FALLTHROUGH*/
+                    [[fallthrough]];
 
                 case WIN_READ:
                 case WIN_READ_NORETRY:
@@ -1704,7 +1704,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                     /* Turn on the activity indicator *here* so that it gets turned on
                        less times. */
                     ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
-                    /*FALLTHROUGH*/
+                    [[fallthrough]];
 
                 case WIN_WRITE:
                 case WIN_WRITE_NORETRY:
@@ -1843,6 +1843,9 @@ ide_bad_command:
                     return;
             }
             return;
+
+        default:
+            break;
     }
 }
 
@@ -2061,6 +2064,9 @@ ide_readb(uint16_t addr, void *priv)
         case 0x7: /* Status */
             ide_irq_lower(ide);
             temp = ide_status(ide, ide_drives[ch ^ 1], ch);
+            break;
+
+        default:
             break;
     }
 

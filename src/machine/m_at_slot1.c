@@ -211,7 +211,9 @@ machine_at_p2bls_init(const machine_t *model)
     device_add(&piix4e_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83977ef_device);
-    // device_add(ics9xxx_get(ICS9150_08)); /* setting proper speeds requires some interaction with the AS97127F ASIC */
+#if 0
+    device_add(ics9xxx_get(ICS9150_08)); /* setting proper speeds requires some interaction with the AS97127F ASIC */
+#endif
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
     device_add(&w83781d_device);     /* fans: Chassis, CPU, Power; temperatures: MB, unused, CPU */

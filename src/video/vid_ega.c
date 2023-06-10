@@ -67,12 +67,12 @@ int egaswitchread;
 int egaswitches = 9;
 int update_overscan = 0;
 
-uint8_t ega_in(uint16_t addr, void *p);
+uint8_t ega_in(uint16_t addr, void *priv);
 
 void
-ega_out(uint16_t addr, uint8_t val, void *p)
+ega_out(uint16_t addr, uint8_t val, void *priv)
 {
-    ega_t  *ega = (ega_t *) p;
+    ega_t  *ega = (ega_t *) priv;
     uint8_t o;
     uint8_t old;
 
@@ -248,9 +248,9 @@ ega_out(uint16_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-ega_in(uint16_t addr, void *p)
+ega_in(uint16_t addr, void *priv)
 {
-    ega_t  *ega = (ega_t *) p;
+    ega_t  *ega = (ega_t *) priv;
     uint8_t ret = 0xff;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1))
@@ -481,9 +481,9 @@ ega_recalctimings(ega_t *ega)
 }
 
 void
-ega_poll(void *p)
+ega_poll(void *priv)
 {
-    ega_t   *ega = (ega_t *) p;
+    ega_t   *ega = (ega_t *) priv;
     int      x;
     int      old_ma;
     int      wx = 640;
@@ -831,9 +831,9 @@ ega_remap_cpu_addr(uint32_t inaddr, ega_t *ega)
 }
 
 void
-ega_write(uint32_t addr, uint8_t val, void *p)
+ega_write(uint32_t addr, uint8_t val, void *priv)
 {
-    ega_t  *ega = (ega_t *) p;
+    ega_t  *ega = (ega_t *) priv;
     uint8_t vala;
     uint8_t valb;
     uint8_t valc;
@@ -1006,9 +1006,9 @@ ega_write(uint32_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-ega_read(uint32_t addr, void *p)
+ega_read(uint32_t addr, void *priv)
 {
-    ega_t  *ega = (ega_t *) p;
+    ega_t  *ega = (ega_t *) priv;
     uint8_t temp;
     uint8_t temp2;
     uint8_t temp3;
@@ -1292,9 +1292,9 @@ et2000_standalone_available(void)
 }
 
 static void
-ega_close(void *p)
+ega_close(void *priv)
 {
-    ega_t *ega = (ega_t *) p;
+    ega_t *ega = (ega_t *) priv;
 
     if (ega->eeprom)
         free(ega->eeprom);
@@ -1303,9 +1303,9 @@ ega_close(void *p)
 }
 
 static void
-ega_speed_changed(void *p)
+ega_speed_changed(void *priv)
 {
-    ega_t *ega = (ega_t *) p;
+    ega_t *ega = (ega_t *) priv;
 
     ega_recalctimings(ega);
 }

@@ -118,7 +118,7 @@ dma_sg_next_addr(dma_t *dev)
     dev->eot = dev->count >> 31;
     dev->count &= 0xfffe;
     dev->cb = (uint16_t) dev->count;
-    dev->cc = (int) dev->count;
+    dev->cc = dev->count;
     if (!dev->count)
         dev->count = 65536;
     if (ts == 2)
@@ -133,9 +133,7 @@ dma_sg_next_addr(dma_t *dev)
 static void
 dma_block_transfer(int channel)
 {
-    int bit16;
-
-    bit16 = (channel >= 4);
+    int bit16 = (channel >= 4);
 
     if (dma_advanced)
         bit16 = !!(dma_transfer_size(&(dma[channel])) == 2);
@@ -1280,7 +1278,7 @@ dma_sg(uint8_t *data, int transfer_length, int out, void *priv)
 uint8_t
 _dma_read(uint32_t addr, dma_t *dma_c)
 {
-    uint8_t temp;
+    uint8_t temp = 0;
 
     if (dma_advanced) {
         if (dma_c->sg_status & 1)
@@ -1296,7 +1294,7 @@ _dma_read(uint32_t addr, dma_t *dma_c)
 static uint16_t
 _dma_readw(uint32_t addr, dma_t *dma_c)
 {
-    uint16_t temp;
+    uint16_t temp = 0;
 
     if (dma_advanced) {
         if (dma_c->sg_status & 1)
