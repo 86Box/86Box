@@ -2219,7 +2219,7 @@ mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
         if (p) {
             p->dirty_mask = 0xffffffffffffffffULL;
 
-            if (p->byte_dirty_mask)
+            if ((p->mem != page_ff) && p->byte_dirty_mask)
                 memset(p->byte_dirty_mask, 0xff, 64 * sizeof(uint64_t));
 
             if (!page_in_evict_list(p))
