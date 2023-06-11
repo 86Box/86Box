@@ -582,10 +582,11 @@ ega_poll(void *p)
         ega->vc++;
         ega->vc &= 511;
         if (ega->vc == ega->split) {
+            // TODO: Implement the hardware bug where the first scanline is drawn twice when the split happens
             if (ega->interlace && ega->oddeven)
-                ega->ma = ega->maback = ega->ma_latch + (ega->rowoffset << 1);
+                ega->ma = ega->maback = ega->rowoffset << 1;
             else
-                ega->ma = ega->maback = ega->ma_latch;
+                ega->ma = ega->maback = 0;
             ega->ma <<= 2;
             ega->maback <<= 2;
             ega->sc = 0;
