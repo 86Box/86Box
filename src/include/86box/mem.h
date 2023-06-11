@@ -229,7 +229,7 @@ typedef struct page_t {
 
 extern uint32_t purgable_page_list_head;
 static inline int
-page_in_evict_list(page_t *p)
+page_in_evict_list(page_t *p) __attribute__((always_inline))  
 {
     return (p->evict_prev != EVICT_NOT_IN_LIST);
 }
