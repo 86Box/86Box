@@ -142,7 +142,7 @@
         </widget>
        </item>
        <item row="3" column="0">
-        <widget class="QLabel" name="label_3">
+        <widget class="QLabel" name="labelVDESocket1">
          <property name="text">
           <string>VDE Socket</string>
          </property>
@@ -248,7 +248,7 @@
         </widget>
        </item>
        <item row="3" column="0">
-        <widget class="QLabel" name="label_4">
+        <widget class="QLabel" name="labelVDESocket2">
          <property name="text">
           <string>VDE Socket</string>
          </property>
@@ -353,9 +353,9 @@
         </widget>
        </item>
        <item row="3" column="0">
-        <widget class="QLabel" name="label_5">
+        <widget class="QLabel" name="labelVDESocket3">
          <property name="text">
-          <string>VDE Socket </string>
+          <string>VDE Socket</string>
          </property>
         </widget>
        </item>
@@ -481,7 +481,7 @@
         <widget class="QLineEdit" name="socketVDENIC4"/>
        </item>
        <item row="3" column="0">
-        <widget class="QLabel" name="label_6">
+        <widget class="QLabel" name="labelVDESocket4">
          <property name="text">
           <string>VDE Socket</string>
          </property>

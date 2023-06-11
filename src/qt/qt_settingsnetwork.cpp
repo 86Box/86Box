@@ -64,7 +64,12 @@ SettingsNetwork::SettingsNetwork(QWidget *parent)
         auto *nic_cbox      = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
         auto *net_type_cbox = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
         auto *intf_cbox     = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
+#ifdef Q_OS_WINDOWS
         auto *socket_line   = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i + 1));
+        auto *socket_label  = findChild<QLabel *>(QString("labelVDESocket%1").arg(i + 1));
+        socket_line->setVisible(false);
+        socket_label->setVisible(false);
+#endif
         connect(nic_cbox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SettingsNetwork::on_comboIndexChanged);
         connect(net_type_cbox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SettingsNetwork::on_comboIndexChanged);
         connect(intf_cbox, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SettingsNetwork::on_comboIndexChanged);
