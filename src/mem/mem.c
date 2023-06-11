@@ -2319,7 +2319,7 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
         map = map->next;
     }
 
-    flushmmucache_cr3();
+    flushmmucache_nopc();
 
 #ifdef ENABLE_MEM_LOG
     pclog("\nMemory map:\n");

@@ -246,7 +246,7 @@ sigma_out(uint16_t addr, uint8_t val, void *p)
                 return;
             case 0x2DD: /* Page in RAM at 0xC1800 */
                 if (sigma->rom_paged != 0)
-                    flushmmucache_cr3();
+                    flushmmucache_nopc();
                 sigma->rom_paged = 0x00;
                 return;
 
@@ -290,7 +290,7 @@ sigma_in(uint16_t addr, void *p)
         case 0x2DD: /* Page in ROM at 0xC1800 */
             result = (sigma->rom_paged ? 0x80 : 0);
             if (sigma->rom_paged != 0x80)
-                flushmmucache_cr3();
+                flushmmucache_nopc();
             sigma->rom_paged = 0x80;
             break;
         case 0x3D1:

@@ -157,8 +157,6 @@
     mem_set_access((smm ? ACCESS_CPU_SMM : ACCESS_CPU), 1, base, size, is_smram)
 #define mem_set_access_smram_bus(smm, base, size, is_smram) \
     mem_set_access((smm ? ACCESS_BUS_SMM : ACCESS_BUS), 1, base, size, is_smram)
-#define flushmmucache_cr3 \
-    flushmmucache_nopc
 
 typedef struct {
     uint16_t x : 5,
