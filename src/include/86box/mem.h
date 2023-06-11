@@ -415,7 +415,6 @@ extern void mem_reset_page_blocks(void);
 
 extern void flushmmucache(void);
 extern void flushmmucache_nopc(void);
-extern void mmu_invalidate(uint32_t addr);
 
 extern void mem_a20_init(void);
 extern void mem_a20_recalc(void);
