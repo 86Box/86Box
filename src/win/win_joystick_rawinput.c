@@ -99,6 +99,8 @@ joystick_add_button(raw_joystick_t *rawjoy, plat_joystick_t *joy, USAGE usage)
 void
 joystick_add_axis(raw_joystick_t *rawjoy, plat_joystick_t *joy, PHIDP_VALUE_CAPS prop)
 {
+    LONG               center;
+
     if (joy->nr_axes >= 8)
         return;
 
@@ -142,7 +144,10 @@ joystick_add_axis(raw_joystick_t *rawjoy, plat_joystick_t *joy, PHIDP_VALUE_CAPS
     }
     rawjoy->axis[joy->nr_axes].min = prop->LogicalMin;
 
-    joy->nr_axes++;
+    center = (rawjoy->axis[joy->nr_axes].max - rawjoy->axis[joy->nr_axes].min + 1) / 2;
+
+    if (center != 0x00)
+        joy->nr_axes++;
 }
 
 void
