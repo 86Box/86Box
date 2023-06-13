@@ -119,6 +119,7 @@
 #define MEM_MAPPING_SMRAM     32 /* On internal bus (RAM) but SMRAM. */
 #define MEM_MAPPING_CACHE     64 /* Cache or MTRR - please avoid such mappings unless \
                                     stricly necessary (eg. for CoreBoot). */
+#define MEM_MAPPING_RAM       128 /* On internal bus (RAM), but with simple non-chipset-specific mapping. */
 
 /* #define's for memory granularity, currently 4k, less does
    not work because of internal 4k pages. */
@@ -365,12 +366,9 @@ extern void mem_mapping_set_handler(mem_mapping_t *,
                                     void (*write_w)(uint32_t addr, uint16_t val, void *p),
                                     void (*write_l)(uint32_t addr, uint32_t val, void *p));
 
-extern void mem_mapping_set_p(mem_mapping_t *, void *p);
-
 extern void mem_mapping_set_addr(mem_mapping_t *,
                                  uint32_t base, uint32_t size);
 extern void mem_mapping_set_exec(mem_mapping_t *, uint8_t *exec);
-extern void mem_mapping_set_mask(mem_mapping_t *, uint32_t mask);
 extern void mem_mapping_disable(mem_mapping_t *);
 extern void mem_mapping_enable(mem_mapping_t *);
 extern void mem_mapping_recalc(uint64_t base, uint64_t size);
@@ -424,6 +422,13 @@ extern void mem_init(void);
 extern void mem_close(void);
 extern void mem_reset(void);
 extern void mem_remap_top(int kb);
+
+__attribute__ ((always_inline))
+inline void
+mem_mapping_set_p(mem_mapping_t *map, void *p)
+{
+    map->p = p;
+}
 
 #ifdef EMU_CPU_H
 static __inline uint32_t

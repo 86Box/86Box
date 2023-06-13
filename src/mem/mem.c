@@ -164,8 +164,7 @@ mem_addr_is_ram(uint32_t addr)
 {
     mem_mapping_t *mapping = read_mapping[addr >> MEM_GRANULARITY_BITS];
 
-    return (mapping == &ram_low_mapping) || (mapping == &ram_high_mapping) || (mapping == &ram_mid_mapping) ||
-           (mapping == &ram_mid_mapping2) || (mapping == &ram_remapped_mapping);
+    return (mapping && (mapping->flags & MEM_MAPPING_RAM));
 }
 
 void
@@ -2477,6 +2476,13 @@ mem_mapping_set_handler(mem_mapping_t *map,
                         void (*write_w)(uint32_t addr, uint16_t val, void *p),
                         void (*write_l)(uint32_t addr, uint32_t val, void *p))
 {
+    uint8_t map_recalc_needed = 0;
+
+    if (((map->read_b || map->read_w || map->read_l) != (read_b || read_w || read_l))
+    || ((map->write_b || map->write_w || map->write_l) != (write_b || write_w || write_l))) {
+        map_recalc_needed = 1;
+    }
+
     map->read_b  = read_b;
     map->read_w  = read_w;
     map->read_l  = read_l;
@@ -2484,7 +2490,8 @@ mem_mapping_set_handler(mem_mapping_t *map,
     map->write_w = write_w;
     map->write_l = write_l;
 
-    mem_mapping_recalc(map->base, map->size);
+    if (map_recalc_needed)
+        mem_mapping_recalc(map->base, map->size);
 }
 
 void
@@ -2508,20 +2515,6 @@ mem_mapping_set_exec(mem_mapping_t *map, uint8_t *exec)
     map->exec = exec;
 
     mem_mapping_recalc(map->base, map->size);
-}
-
-void
-mem_mapping_set_mask(mem_mapping_t *map, uint32_t mask)
-{
-    map->mask = mask;
-
-    mem_mapping_recalc(map->base, map->size);
-}
-
-void
-mem_mapping_set_p(mem_mapping_t *map, void *p)
-{
-    map->p = p;
 }
 
 void
@@ -2626,7 +2619,7 @@ mem_add_ram_mapping(mem_mapping_t *mapping, uint32_t base, uint32_t size)
     mem_mapping_add(mapping, base, size,
                     mem_read_ram, mem_read_ramw, mem_read_raml,
                     mem_write_ram, mem_write_ramw, mem_write_raml,
-                    ram + base, MEM_MAPPING_INTERNAL, NULL);
+                    ram + base, MEM_MAPPING_INTERNAL | MEM_MAPPING_RAM, NULL);
 }
 
 static void
@@ -2828,7 +2821,7 @@ mem_reset(void)
     mem_mapping_add(&ram_remapped_mapping, mem_size * 1024, 256 * 1024,
                     mem_read_remapped, mem_read_remappedw, mem_read_remappedl,
                     mem_write_remapped, mem_write_remappedw, mem_write_remappedl,
-                    ram + 0xa0000, MEM_MAPPING_INTERNAL, NULL);
+                    ram + 0xa0000, MEM_MAPPING_INTERNAL | MEM_MAPPING_RAM, NULL);
     mem_mapping_disable(&ram_remapped_mapping);
 
     /* Mapping for SiS 471 relocation which relocates A0000-BFFFF, D0000-EFFFF, which is non-contiguous. */

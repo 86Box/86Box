@@ -556,7 +556,7 @@ isamem_init(const device_t *info)
                             addr + tot, t,
                             ram_readb, ram_readw, NULL,
                             ram_writeb, ram_writew, NULL,
-                            ptr, MEM_MAPPING_EXTERNAL,
+                            ptr, MEM_MAPPING_EXTERNAL | MEM_MAPPING_RAM,
                             &dev->ext_ram[EXTRAM_HIGH]);
             mem_mapping_disable(&ram_remapped_mapping);
 
