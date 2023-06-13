@@ -21,7 +21,7 @@
 #    define _DEFAULT_SOURCE 1
 #    define _BSD_SOURCE     1
 #endif
-#ifdef __FreeBSD__
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
 #    define __BSD_VISIBLE   1
 #endif
 #include <stdio.h>
@@ -168,7 +168,7 @@ plat_serpt_set_params(void *p)
         term_attr.c_cflag &= CSTOPB;
         if (dev->serial->lcr & 0x04)
             term_attr.c_cflag |= CSTOPB;
-#if defined(__APPLE__) || defined(__FreeBSD__)
+#if !defined(__linux__)
         term_attr.c_cflag &= PARENB | PARODD;
 #else
         term_attr.c_cflag &= PARENB | PARODD | CMSPAR;
@@ -177,7 +177,7 @@ plat_serpt_set_params(void *p)
             term_attr.c_cflag |= PARENB;
             if (!(dev->serial->lcr & 0x10))
                 term_attr.c_cflag |= PARODD;
-#if !defined(__APPLE__) && !defined(__FreeBSD__)
+#if defined(__linux__)
             if ((dev->serial->lcr & 0x20))
                 term_attr.c_cflag |= CMSPAR;
 #endif

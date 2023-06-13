@@ -876,13 +876,13 @@ else
 
 	if grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
-		# Build openal-soft 1.22.2 manually to fix audio issues. This is a temporary
+		# Build openal-soft 1.23.1 manually to fix audio issues. This is a temporary
 		# workaround until a newer version of openal-soft trickles down to Debian repos.
-		prefix="$cache_dir/openal-soft-1.22.2"
+		prefix="$cache_dir/openal-soft-1.23.1"
 		if [ ! -d "$prefix" ]
 		then
 			rm -rf "$cache_dir/openal-soft-"* # remove old versions
-			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.22.2.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.23.1.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 		fi
 
 		# Patches to build with the old PipeWire version in Debian.
@@ -890,7 +890,7 @@ else
 		sed -i -e 's/PW_KEY_CONFIG_NAME/"config.name"/g' "$prefix/alc/backends/pipewire.cpp"
 
 		prefix_build="$prefix/build-$arch_deb"
-		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+		cmake -G Ninja -D ALSOFT_UTILS=OFF -D ALSOFT_EXAMPLES=OFF -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 		cmake --build "$prefix_build" -j$(nproc) || exit 99
 		cmake --install "$prefix_build" || exit 99
 

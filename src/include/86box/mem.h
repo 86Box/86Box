@@ -158,8 +158,6 @@
     mem_set_access((smm ? ACCESS_CPU_SMM : ACCESS_CPU), 1, base, size, is_smram)
 #define mem_set_access_smram_bus(smm, base, size, is_smram) \
     mem_set_access((smm ? ACCESS_BUS_SMM : ACCESS_BUS), 1, base, size, is_smram)
-#define flushmmucache_cr3 \
-    flushmmucache_nopc
 
 typedef struct {
     uint16_t x : 5,
@@ -413,7 +411,6 @@ extern void mem_reset_page_blocks(void);
 
 extern void flushmmucache(void);
 extern void flushmmucache_nopc(void);
-extern void mmu_invalidate(uint32_t addr);
 
 extern void mem_a20_init(void);
 extern void mem_a20_recalc(void);
