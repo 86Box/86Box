@@ -2512,6 +2512,14 @@ mem_mapping_set_exec(mem_mapping_t *map, uint8_t *exec)
 }
 
 void
+mem_mapping_set_mask(mem_mapping_t *map, uint32_t mask)
+{
+    map->mask = mask;
+
+    mem_mapping_recalc(map->base, map->size);
+}
+
+void
 mem_mapping_disable(mem_mapping_t *map)
 {
     map->enable = 0;
