@@ -148,11 +148,9 @@ voodoo_wait_for_swap_complete(voodoo_t *voodoo)
                 voodoo->swap_count--;
             voodoo->swap_pending = 0;
             thread_release_mutex(voodoo->swap_mutex);
-            ;
             break;
         } else
             thread_release_mutex(voodoo->swap_mutex);
-        ;
     }
 }
 

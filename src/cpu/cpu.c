@@ -1526,7 +1526,7 @@ cpu_set(void)
             break;
 
         default:
-            fatal("cpu_set : unknown CPU type %i\n", cpu_s->cpu_type);
+            fatal("cpu_set : unknown CPU type %llu\n", cpu_s->cpu_type);
     }
 
     switch (fpu_type) {

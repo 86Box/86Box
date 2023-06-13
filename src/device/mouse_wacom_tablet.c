@@ -134,6 +134,8 @@ typedef struct {
     serial_t *serial;
 } mouse_wacom_t;
 
+/* TODO: What is this needed for? */
+#if 0
 static unsigned int
 reverse(register unsigned int x)
 {
@@ -143,6 +145,7 @@ reverse(register unsigned int x)
     x = (((x & 0xff00ff00) >> 8) | ((x & 0x00ff00ff) << 8));
     return ((x >> 16) | (x << 16));
 }
+#endif
 
 static double
 wacom_transmit_period(mouse_wacom_t *dev, int bps, int rps)

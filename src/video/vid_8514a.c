@@ -2241,7 +2241,7 @@ rect_fill_pix:
                             }
                         } else if (dev->accel.output && !dev->accel.input) {
                             while (count-- && (dev->accel.sy >= 0)) {
-                                if ((dev->accel.cx >= dev->accel.clip_left && dev->accel.cx <= clip_r && dev->accel.cy >= dev->accel.clip_top && dev->accel.cy <= clip_b)) {
+                                if (dev->accel.cx >= dev->accel.clip_left && dev->accel.cx <= clip_r && dev->accel.cy >= dev->accel.clip_top && dev->accel.cy <= clip_b) {
                                     src_dat = cpu_dat;
                                     if (!dev->accel.odd_out && !dev->accel.sx) {
                                         READ(dev->accel.newdest_out + dev->accel.cur_x, dest_dat);
@@ -3363,7 +3363,6 @@ static void
 ibm8514_render_8bpp(svga_t *svga)
 {
     ibm8514_t *dev = &svga->dev8514;
-    int        x;
     uint32_t  *p;
     uint32_t   dat;
 
@@ -3378,7 +3377,7 @@ ibm8514_render_8bpp(svga_t *svga)
             dev->firstline_draw = dev->displine;
         dev->lastline_draw = dev->displine;
 
-        for (x = 0; x <= dev->h_disp; x += 8) {
+        for (int x = 0; x <= dev->h_disp; x += 8) {
             dat  = *(uint32_t *) (&dev->vram[dev->ma & dev->vram_mask]);
             p[0] = dev->map8[dat & 0xff];
             p[1] = dev->map8[(dat >> 8) & 0xff];
@@ -3401,22 +3400,19 @@ ibm8514_render_8bpp(svga_t *svga)
 static void
 ibm8514_render_overscan_left(ibm8514_t *dev, svga_t *svga)
 {
-    int i;
-
     if ((dev->displine + svga->y_add) < 0)
         return;
 
     if (svga->scrblank || (dev->h_disp == 0))
         return;
 
-    for (i = 0; i < svga->x_add; i++)
+    for (int i = 0; i < svga->x_add; i++)
         buffer32->line[dev->displine + svga->y_add][i] = svga->overscan_color;
 }
 
 static void
 ibm8514_render_overscan_right(ibm8514_t *dev, svga_t *svga)
 {
-    int i;
     int right;
 
     if ((dev->displine + svga->y_add) < 0)
@@ -3426,7 +3422,7 @@ ibm8514_render_overscan_right(ibm8514_t *dev, svga_t *svga)
         return;
 
     right = (overscan_x >> 1);
-    for (i = 0; i < right; i++)
+    for (int i = 0; i < right; i++)
         buffer32->line[dev->displine + svga->y_add][svga->x_add + dev->h_disp + i] = svga->overscan_color;
 }
 

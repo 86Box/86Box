@@ -247,7 +247,9 @@ sdac_getclock(int clock, void *p)
 {
     sdac_ramdac_t *ramdac = (sdac_ramdac_t *) p;
     float          t;
-    int            m, n1, n2;
+    int            m;
+    int            n1;
+    int            n2;
 
     if (ramdac->regs[0xe] & (1 << 5))
         clock = ramdac->regs[0xe] & 7;

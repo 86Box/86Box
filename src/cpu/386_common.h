@@ -257,6 +257,51 @@ get_ram_ptr(uint32_t a)
     }
 }
 
+extern int opcode_length[256];
+
+static __inline uint16_t
+fastreadw_fetch(uint32_t a)
+{
+    uint8_t *t;
+    uint16_t val;
+    if ((a & 0xFFF) > 0xFFE) {
+        val = fastreadb(a);
+        if (opcode_length[val & 0xff] > 1)
+            val |= (fastreadb(a + 1) << 8);
+        return val;
+    }
+    if ((a >> 12) == pccache)
+        return *((uint16_t *) &pccache2[a]);
+    t = getpccache(a);
+    if (cpu_state.abrt)
+        return 0;
+
+    pccache  = a >> 12;
+    pccache2 = t;
+    return *((uint16_t *) &pccache2[a]);
+}
+
+static __inline uint32_t
+fastreadl_fetch(uint32_t a)
+{
+    uint8_t *t;
+    uint32_t val;
+    if ((a & 0xFFF) < 0xFFD) {
+        if ((a >> 12) != pccache) {
+            t = getpccache(a);
+            if (cpu_state.abrt)
+                return 0;
+            pccache2 = t;
+            pccache  = a >> 12;
+        }
+        return *((uint32_t *) &pccache2[a]);
+    }
+    val = fastreadw_fetch(a);
+    if (opcode_length[val & 0xff] > 2)
+        val |= (fastreadw(a + 2) << 16);
+    return val;
+}
+
 static __inline uint8_t
 getbyte(void)
 {

@@ -54,14 +54,17 @@ enum {
 
 static video_timings_t timing_ega = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 static uint8_t         ega_rotate[8][256];
-static uint32_t        pallook16[256], pallook64[256];
-static int             ega_type = 0, old_overscan_color = 0;
+static uint32_t        pallook16[256];
+static uint32_t        pallook64[256];
+static int             ega_type = 0;
+static int             old_overscan_color = 0;
 
 uint8_t egaremap2bpp[256];
 
 /* 3C2 controls default mode on EGA. On VGA, it determines monitor type (mono or colour):
     7=CGA mode (200 lines), 9=EGA mode (350 lines), 8=EGA mode (200 lines). */
-int egaswitchread, egaswitches = 9;
+int egaswitchread;
+int egaswitches = 9;
 int update_overscan = 0;
 
 uint8_t ega_in(uint16_t addr, void *p);
@@ -70,8 +73,8 @@ void
 ega_out(uint16_t addr, uint8_t val, void *p)
 {
     ega_t  *ega = (ega_t *) p;
-    int     c;
-    uint8_t o, old;
+    uint8_t o;
+    uint8_t old;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1))
         addr ^= 0x60;
@@ -117,7 +120,7 @@ ega_out(uint16_t addr, uint8_t val, void *p)
                 if (ega->attraddr < 16)
                     ega->fullchange = changeframecount;
                 if (ega->attraddr == 0x10 || ega->attraddr == 0x14 || ega->attraddr < 0x10) {
-                    for (c = 0; c < 16; c++) {
+                    for (uint8_t c = 0; c < 16; c++) {
                         if (ega->attrregs[0x10] & 0x80)
                             ega->egapal[c] = (ega->attrregs[c] & 0xf) | ((ega->attrregs[0x14] & 0xf) << 4);
                         else
@@ -347,7 +350,9 @@ ega_recalctimings(ega_t *ega)
 {
     int clksel;
 
-    double _dispontime, _dispofftime, disptime;
+    double _dispontime;
+    double _dispofftime;
+    double disptime;
     double crtcconst;
 
     ega->vtotal     = ega->crtc[6];
@@ -392,20 +397,20 @@ ega_recalctimings(ega_t *ega)
 
         switch (clksel) {
             case 0:
-                crtcconst = (cpuclock / 25175000.0 * (double) (1ull << 32));
+                crtcconst = (cpuclock / 25175000.0 * (double) (1ULL << 32));
                 break;
             case 1:
-                crtcconst = (cpuclock / 28322000.0 * (double) (1ull << 32));
+                crtcconst = (cpuclock / 28322000.0 * (double) (1ULL << 32));
                 break;
             case 4:
-                crtcconst = (cpuclock / 14318181.0 * (double) (1ull << 32));
+                crtcconst = (cpuclock / 14318181.0 * (double) (1ULL << 32));
                 break;
             case 5:
-                crtcconst = (cpuclock / 16257000.0 * (double) (1ull << 32));
+                crtcconst = (cpuclock / 16257000.0 * (double) (1ULL << 32));
                 break;
             case 7:
             default:
-                crtcconst = (cpuclock / 36000000.0 * (double) (1ull << 32));
+                crtcconst = (cpuclock / 36000000.0 * (double) (1ULL << 32));
                 break;
         }
         if (!(ega->seqregs[1] & 1))
@@ -479,8 +484,10 @@ void
 ega_poll(void *p)
 {
     ega_t   *ega = (ega_t *) p;
-    int      x, old_ma;
-    int      wx = 640, wy = 350;
+    int      x;
+    int      old_ma;
+    int      wx = 640;
+    int      wy = 350;
     uint32_t blink_delay;
 
     if (!ega->linepos) {
@@ -575,10 +582,11 @@ ega_poll(void *p)
         ega->vc++;
         ega->vc &= 511;
         if (ega->vc == ega->split) {
+            // TODO: Implement the hardware bug where the first scanline is drawn twice when the split happens
             if (ega->interlace && ega->oddeven)
-                ega->ma = ega->maback = ega->ma_latch + (ega->rowoffset << 1);
+                ega->ma = ega->maback = ega->rowoffset << 1;
             else
-                ega->ma = ega->maback = ega->ma_latch;
+                ega->ma = ega->maback = 0;
             ega->ma <<= 2;
             ega->maback <<= 2;
             ega->sc = 0;
@@ -680,14 +688,16 @@ ega_poll(void *p)
 void
 ega_doblit(int wx, int wy, ega_t *ega)
 {
-    int       y_add   = (enable_overscan) ? overscan_y : 0;
-    int       x_add   = (enable_overscan) ? overscan_x : 0;
-    int       y_start = (enable_overscan) ? 0 : (overscan_y >> 1);
-    int       x_start = (enable_overscan) ? 0 : (overscan_x >> 1);
+    int       y_add   = enable_overscan ? overscan_y : 0;
+    int       x_add   = enable_overscan ? overscan_x : 0;
+    int       y_start = enable_overscan ? 0 : (overscan_y >> 1);
+    int       x_start = enable_overscan ? 0 : (overscan_x >> 1);
     int       bottom  = (overscan_y >> 1) + (ega->crtc[8] & 0x1f);
     uint32_t *p;
-    int       i, j;
-    int       xs_temp, ys_temp;
+    int       i;
+    int       j;
+    int       xs_temp;
+    int       ys_temp;
 
     if (ega->vres) {
         y_add <<= 1;
@@ -773,7 +783,7 @@ ega_remap_cpu_addr(uint32_t inaddr, ega_t *ega)
         a0mux |= 1;
     }
 
-    switch ((ega->gdcreg[6] & 0xC)) {
+    switch (ega->gdcreg[6] & 0xC) {
         case 0x0: // 128K A000
             addr &= 0xFFFF;
             // TODO: Confirm the behaviour of this on actual hardware
@@ -824,7 +834,10 @@ void
 ega_write(uint32_t addr, uint8_t val, void *p)
 {
     ega_t  *ega = (ega_t *) p;
-    uint8_t vala, valb, valc, vald;
+    uint8_t vala;
+    uint8_t valb;
+    uint8_t valc;
+    uint8_t vald;
     int     writemask2 = ega->writemask;
 
     cycles -= video_timing_write_b;
@@ -996,7 +1009,10 @@ uint8_t
 ega_read(uint32_t addr, void *p)
 {
     ega_t  *ega = (ega_t *) p;
-    uint8_t temp, temp2, temp3, temp4;
+    uint8_t temp;
+    uint8_t temp2;
+    uint8_t temp3;
+    uint8_t temp4;
     int     readplane = ega->readplane;
 
     cycles -= video_timing_read_b;
@@ -1037,7 +1053,9 @@ ega_read(uint32_t addr, void *p)
 void
 ega_init(ega_t *ega, int monitor_type, int is_mono)
 {
-    int c, d, e;
+    int c;
+    int d;
+    int e;
 
     ega->vram     = malloc(0x40000);
     ega->vrammask = 0x3ffff;
@@ -1166,7 +1184,7 @@ static void *
 ega_standalone_init(const device_t *info)
 {
     ega_t *ega = malloc(sizeof(ega_t));
-    int    monitor_type, c;
+    int    monitor_type;
 
     memset(ega, 0, sizeof(ega_t));
 
@@ -1211,7 +1229,7 @@ ega_standalone_init(const device_t *info)
     }
 
     if ((ega->bios_rom.rom[0x3ffe] == 0xaa) && (ega->bios_rom.rom[0x3fff] == 0x55)) {
-        for (c = 0; c < 0x2000; c++) {
+        for (uint16_t c = 0; c < 0x2000; c++) {
             uint8_t temp                  = ega->bios_rom.rom[c];
             ega->bios_rom.rom[c]          = ega->bios_rom.rom[0x3fff - c];
             ega->bios_rom.rom[0x3fff - c] = temp;

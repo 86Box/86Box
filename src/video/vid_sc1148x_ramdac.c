@@ -93,7 +93,8 @@ uint8_t
 sc1148x_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
 {
     sc1148x_ramdac_t *ramdac = (sc1148x_ramdac_t *) p;
-    uint8_t           ret = 0xff, rs = (addr & 0x03) | ((!!rs2) << 2);
+    uint8_t           ret = 0xff;
+    uint8_t           rs = (addr & 0x03) | ((!!rs2) << 2);
 
     switch (rs) {
         case 2:

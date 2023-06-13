@@ -307,7 +307,7 @@ static void
 ctr_set_state_1(ctr_t *ctr)
 {
     uint8_t mode = (ctr->m & 0x03);
-    int do_reload = !!ctr->incomplete || (ctr->state == 0);
+    int do_reload = !!ctr->incomplete || (mode == 0) || (ctr->state == 0);
 
     ctr->incomplete = 0;
 
@@ -984,7 +984,7 @@ pit_set_clock(int clock)
         ISACONST     = (uint64_t) ((cpuclock / (double) cpu_isa_speed) * (double) (1ULL << 32));
         xt_cpu_multi = 1ULL;
     } else {
-        cpuclock     = 14318184.0;
+        cpuclock     = (157500000.0 / 11.0);
         PITCONSTD    = 12.0;
         PITCONST     = (12ULL << 32ULL);
         CGACONST     = (8ULL << 32ULL);
