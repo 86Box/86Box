@@ -285,7 +285,7 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *p)
                 }
             }
 
-            if (((et4000->type == ET4000W32) && (svga->hwcursor.cur_xsize == 128))) {
+            if ((et4000->type == ET4000W32) && (svga->hwcursor.cur_xsize == 128)) {
                 switch (svga->bpp) {
                     case 8:
                         svga->hwcursor.xoff += 32;
@@ -437,7 +437,7 @@ et4000w32p_recalctimings(svga_t *svga)
     if (svga->attrregs[0x16] & 0x20)
         svga->hdisp <<= 1;
 
-    svga->clock = (cpuclock * (double) (1ull << 32)) / svga->getclock((svga->miscout >> 2) & 3, svga->clock_gen);
+    svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock((svga->miscout >> 2) & 3, svga->clock_gen);
 
     if (et4000->type != ET4000W32P_DIAMOND) {
         if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
@@ -463,7 +463,7 @@ et4000w32p_recalctimings(svga_t *svga)
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /* Text mode */
             svga->ma_latch--;
 
-            if ((svga->seqregs[1] & 8)) /*40 column*/
+            if (svga->seqregs[1] & 8) /*40 column*/
                 svga->hdisp += (svga->seqregs[1] & 1) ? 16 : 18;
             else
                 svga->hdisp += (svga->seqregs[1] & 1) ? 8 : 9;
@@ -2080,7 +2080,9 @@ static void
 et4000w32_blit(int count, int cpu_input, uint32_t src_dat, uint32_t mix_dat, et4000w32p_t *et4000)
 {
     svga_t *svga = &et4000->svga;
-    uint8_t pattern, source, dest;
+    uint8_t pattern;
+    uint8_t source;
+    uint8_t dest;
     uint8_t rop;
     uint8_t out;
     int     mixmap;
@@ -2255,7 +2257,10 @@ static void
 et4000w32p_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et4000w32p_t *et4000)
 {
     svga_t *svga = &et4000->svga;
-    uint8_t pattern, source, dest, out;
+    uint8_t pattern;
+    uint8_t source;
+    uint8_t dest;
+    uint8_t out;
     uint8_t rop;
     int     mixdat;
 
@@ -2449,7 +2454,9 @@ void
 et4000w32p_hwcursor_draw(svga_t *svga, int displine)
 {
     et4000w32p_t *et4000 = (et4000w32p_t *) svga->p;
-    int           x, offset, xx, xx2;
+    int           offset;
+    int           xx;
+    int           xx2;
     int           shift       = (et4000->adjust_cursor + 1);
     int           width       = (svga->hwcursor_latch.cur_xsize - svga->hwcursor_latch.xoff);
     int           pitch       = (svga->hwcursor_latch.cur_xsize == 128) ? 32 : 16;
@@ -2472,7 +2479,7 @@ et4000w32p_hwcursor_draw(svga_t *svga, int displine)
         }
     }
 
-    for (x = 0; x < (width - minus_width); x += x_acc) {
+    for (int x = 0; x < (width - minus_width); x += x_acc) {
         dat = svga->vram[svga->hwcursor_latch.addr + (offset >> 2)];
 
         xx = svga->hwcursor_latch.x + svga->x_add + x;

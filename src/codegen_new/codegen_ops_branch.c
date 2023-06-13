@@ -264,7 +264,8 @@ ropJNE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
 static int
 ropJBE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t next_pc)
 {
-    int jump_uop, jump_uop2 = -1;
+    int jump_uop;
+    int jump_uop2 = -1;
     int do_unroll = ((CF_SET() || ZF_SET()) && codegen_can_unroll(block, ir, next_pc, dest_addr));
 
     switch (codegen_flags_changed ? cpu_state.flags_op : FLAGS_UNKNOWN) {
@@ -331,7 +332,8 @@ ropJBE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
 static int
 ropJNBE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t next_pc)
 {
-    int jump_uop, jump_uop2 = -1;
+    int jump_uop;
+    int jump_uop2 = -1;
     int do_unroll = ((!CF_SET() && !ZF_SET()) && codegen_can_unroll(block, ir, next_pc, dest_addr));
 
     switch (codegen_flags_changed ? cpu_state.flags_op : FLAGS_UNKNOWN) {
@@ -686,7 +688,8 @@ ropJNL_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
 static int
 ropJLE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t next_pc)
 {
-    int jump_uop, jump_uop2 = -1;
+    int jump_uop;
+    int jump_uop2 = -1;
     int do_unroll = (((NF_SET() ? 1 : 0) != (VF_SET() ? 1 : 0) || ZF_SET()) && codegen_can_unroll(block, ir, next_pc, dest_addr));
 
     switch (codegen_flags_changed ? cpu_state.flags_op : FLAGS_UNKNOWN) {
@@ -748,7 +751,8 @@ ropJLE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
 static int
 ropJNLE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t next_pc)
 {
-    int jump_uop, jump_uop2 = -1;
+    int jump_uop;
+    int jump_uop2 = -1;
     int do_unroll = ((NF_SET() ? 1 : 0) == (VF_SET() ? 1 : 0) && !ZF_SET() && codegen_can_unroll(block, ir, next_pc, dest_addr));
 
     switch (codegen_flags_changed ? cpu_state.flags_op : FLAGS_UNKNOWN) {
@@ -928,7 +932,8 @@ ropLOOPE(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, u
 {
     uint32_t offset    = (int32_t) (int8_t) fastreadb(cs + op_pc);
     uint32_t dest_addr = op_pc + 1 + offset;
-    int      jump_uop, jump_uop2;
+    int      jump_uop;
+    int      jump_uop2;
 
     if (!(op_32 & 0x100))
         dest_addr &= 0xffff;
@@ -960,7 +965,8 @@ ropLOOPNE(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, 
 {
     uint32_t offset    = (int32_t) (int8_t) fastreadb(cs + op_pc);
     uint32_t dest_addr = op_pc + 1 + offset;
-    int      jump_uop, jump_uop2;
+    int      jump_uop;
+    int      jump_uop2;
 
     if (!(op_32 & 0x100))
         dest_addr &= 0xffff;

@@ -1249,8 +1249,10 @@ cmi8x38_speed_changed(void *priv)
 {
     cmi8x38_t *dev = (cmi8x38_t *) priv;
     double     freq;
-    uint8_t    dsr = dev->io_regs[0x09], freqreg = dev->io_regs[0x05] >> 2;
-    uint8_t    chfmt45 = dev->io_regs[0x0b], chfmt6 = dev->io_regs[0x15];
+    uint8_t    dsr = dev->io_regs[0x09];
+    uint8_t    freqreg = dev->io_regs[0x05] >> 2;
+    uint8_t    chfmt45 = dev->io_regs[0x0b];
+    uint8_t    chfmt6 = dev->io_regs[0x15];
 
 #ifdef ENABLE_CMI8X38_LOG
     char buf[256];

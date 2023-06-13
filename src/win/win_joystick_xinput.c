@@ -17,6 +17,7 @@
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2019 GH Cao.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #include <xinput.h>
 #define _USE_MATH_DEFINES
@@ -79,15 +80,13 @@ XINPUT_STATE controllers[XINPUT_MAX_JOYSTICKS];
 void
 joystick_init()
 {
-    int c;
-
     atexit(joystick_close);
 
     joysticks_present = 0;
 
     memset(controllers, 0, sizeof(XINPUT_STATE) * XINPUT_MAX_JOYSTICKS);
 
-    for (c = 0; c < XINPUT_MAX_JOYSTICKS; c++) {
+    for (uint8_t c = 0; c < XINPUT_MAX_JOYSTICKS; c++) {
         int value = XInputGetState(c, &controllers[c]);
         if (value != ERROR_SUCCESS)
             continue;
@@ -171,7 +170,8 @@ joystick_poll(void)
         plat_joystick_state[c].b[10] = (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_THUMB) ? 128 : 0;
         plat_joystick_state[c].b[11] = (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_THUMB) ? 128 : 0;
 
-        int dpad_x = 0, dpad_y = 0;
+        int dpad_x = 0;
+        int dpad_y = 0;
         if (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_UP)
             dpad_y -= 32767;
         if (controllers[c].Gamepad.wButtons & XINPUT_GAMEPAD_DPAD_DOWN)
@@ -217,14 +217,14 @@ joystick_get_axis(int joystick_nr, int mapping)
 void
 joystick_process(void)
 {
-    int c, d;
+    int d;
 
     if (!joystick_type)
         return;
 
     joystick_poll();
 
-    for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++) {
+    for (int c = 0; c < joystick_get_max_joysticks(joystick_type); c++) {
         if (joystick_state[c].plat_joystick_nr) {
             int joystick_nr = joystick_state[c].plat_joystick_nr - 1;
 
@@ -234,8 +234,10 @@ joystick_process(void)
                 joystick_state[c].button[d] = plat_joystick_state[joystick_nr].b[joystick_state[c].button_mapping[d]];
 
             for (d = 0; d < joystick_get_pov_count(joystick_type); d++) {
-                int    x, y;
-                double angle, magnitude;
+                int    x;
+                int    y;
+                double angle;
+                double magnitude;
 
                 x = joystick_get_axis(joystick_nr, joystick_state[c].pov_mapping[d][0]);
                 y = joystick_get_axis(joystick_nr, joystick_state[c].pov_mapping[d][1]);
@@ -262,4 +264,5 @@ joystick_process(void)
 void
 win_joystick_handle(PRAWINPUT raw)
 {
+    // Nothing to be done here, atleast currently
 }

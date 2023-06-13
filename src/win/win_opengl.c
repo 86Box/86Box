@@ -494,8 +494,12 @@ opengl_main(void *param)
     }
 
     /* Keep track of certain parameters, only changed in this thread to avoid race conditions */
-    int fullscreen = resize_info.fullscreen, video_width = INIT_WIDTH, video_height = INIT_HEIGHT,
-        output_width = resize_info.width, output_height = resize_info.height, frametime = options.frametime;
+    int fullscreen    = resize_info.fullscreen;
+    int video_width   = INIT_WIDTH;
+    int video_height  = INIT_HEIGHT;
+    int output_width  = resize_info.width;
+    int output_height = resize_info.height;
+    int frametime     = options.frametime;
 
     SDL_SysWMinfo wmi = { 0 };
     SDL_VERSION(&wmi.version);
@@ -703,7 +707,11 @@ opengl_main(void *param)
             }
 
             if (fullscreen) {
-                int         width, height, pad_x = 0, pad_y = 0, px_size = 1;
+                int         width;
+                int         height;
+                int         pad_x   = 0;
+                int         pad_y   = 0;
+                int         px_size = 1;
                 float       ratio   = 0;
                 const float ratio43 = 4.f / 3.f;
 
@@ -821,14 +829,12 @@ opengl_main(void *param)
 static void
 opengl_blit(int x, int y, int w, int h, int monitor_index)
 {
-    int row;
-
     if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (thread == NULL) || atomic_flag_test_and_set(&blit_info[write_pos].in_use) || monitor_index >= 1) {
         video_blit_complete_monitor(monitor_index);
         return;
     }
 
-    for (row = 0; row < h; ++row)
+    for (int row = 0; row < h; ++row)
         video_copy(&(((uint8_t *) blit_info[write_pos].buffer)[row * ROW_LENGTH * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
 
     if (monitors[0].mon_screenshots)

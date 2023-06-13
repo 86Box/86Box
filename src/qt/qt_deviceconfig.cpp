@@ -109,7 +109,6 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
 {
     DeviceConfig dc(settings);
     dc.setWindowTitle(QString("%1 Device Configuration").arg(device->name));
-    int c;
     int p;
     int q;
 
@@ -216,7 +215,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     char *selected;
                     selected = config_get_string(device_context.name, const_cast<char *>(config->name), const_cast<char *>(config->default_string));
 
-                    c = q = 0;
+                    q = 0;
                     for (auto *bios = config->bios; (bios != nullptr) && (bios->name != nullptr) && (strlen(bios->name) > 0); ++bios) {
                         p = 0;
                         for (int d = 0; d < bios->files_no; d++)
@@ -226,7 +225,6 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                             if (!strcmp(selected, bios->internal_name)) {
                                 currentIndex = row;
                             }
-                            c++;
                         }
                         q++;
                     }
