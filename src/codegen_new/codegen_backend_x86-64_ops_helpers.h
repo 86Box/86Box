@@ -3,29 +3,17 @@
 static inline void
 codegen_addbyte(codeblock_t *block, uint8_t val)
 {
-    if (block_pos >= BLOCK_MAX) {
-        fatal("codegen_addbyte over! %i\n", block_pos);
-        //                CPU_BLOCK_END();
-    }
     block_write_data[block_pos++] = val;
 }
 static inline void
 codegen_addbyte2(codeblock_t *block, uint8_t vala, uint8_t valb)
 {
-    if (block_pos > (BLOCK_MAX - 2)) {
-        fatal("codegen_addbyte2 over! %i\n", block_pos);
-        CPU_BLOCK_END();
-    }
     block_write_data[block_pos++] = vala;
     block_write_data[block_pos++] = valb;
 }
 static inline void
 codegen_addbyte3(codeblock_t *block, uint8_t vala, uint8_t valb, uint8_t valc)
 {
-    if (block_pos > (BLOCK_MAX - 3)) {
-        fatal("codegen_addbyte3 over! %i\n", block_pos);
-        CPU_BLOCK_END();
-    }
     block_write_data[block_pos++] = vala;
     block_write_data[block_pos++] = valb;
     block_write_data[block_pos++] = valc;
@@ -33,10 +21,6 @@ codegen_addbyte3(codeblock_t *block, uint8_t vala, uint8_t valb, uint8_t valc)
 static inline void
 codegen_addbyte4(codeblock_t *block, uint8_t vala, uint8_t valb, uint8_t valc, uint8_t vald)
 {
-    if (block_pos > (BLOCK_MAX - 4)) {
-        fatal("codegen_addbyte4 over! %i\n", block_pos);
-        CPU_BLOCK_END();
-    }
     block_write_data[block_pos++] = vala;
     block_write_data[block_pos++] = valb;
     block_write_data[block_pos++] = valc;
@@ -46,10 +30,6 @@ codegen_addbyte4(codeblock_t *block, uint8_t vala, uint8_t valb, uint8_t valc, u
 static inline void
 codegen_addword(codeblock_t *block, uint16_t val)
 {
-    if (block_pos > (BLOCK_MAX - 2)) {
-        fatal("codegen_addword over! %i\n", block_pos);
-        CPU_BLOCK_END();
-    }
     *(uint16_t *) &block_write_data[block_pos] = val;
     block_pos += 2;
 }
@@ -57,10 +37,6 @@ codegen_addword(codeblock_t *block, uint16_t val)
 static inline void
 codegen_addlong(codeblock_t *block, uint32_t val)
 {
-    if (block_pos > (BLOCK_MAX - 4)) {
-        fatal("codegen_addlong over! %i\n", block_pos);
-        CPU_BLOCK_END();
-    }
     *(uint32_t *) &block_write_data[block_pos] = val;
     block_pos += 4;
 }
@@ -68,10 +44,6 @@ codegen_addlong(codeblock_t *block, uint32_t val)
 static inline void
 codegen_addquad(codeblock_t *block, uint64_t val)
 {
-    if (block_pos > (BLOCK_MAX - 8)) {
-        fatal("codegen_addquad over! %i\n", block_pos);
-        CPU_BLOCK_END();
-    }
     *(uint64_t *) &block_write_data[block_pos] = val;
     block_pos += 8;
 }
