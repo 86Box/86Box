@@ -342,6 +342,8 @@ ohci_set_interrupt(usb_t *dev, uint8_t bit)
     ohci_update_irq(dev);
 }
 
+/* TODO: Actually use this function somewhere. */
+#if 0
 /* Next two functions ported over from QEMU. */
 static int ohci_copy_td_input(usb_t* dev, usb_td_t *td,
                         uint8_t *buf, int len)
@@ -363,6 +365,7 @@ static int ohci_copy_td_input(usb_t* dev, usb_td_t *td,
     dma_bm_write(ptr, buf, len - n, 1);
     return 0;
 }
+#endif
 
 static int ohci_copy_td_output(usb_t* dev, usb_td_t *td,
                         uint8_t *buf, int len)

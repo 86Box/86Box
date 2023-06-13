@@ -212,7 +212,8 @@ codeblock_tree_delete(codeblock_t *block)
         return;
     } else {
         /*Difficult case - node has two children. Walk right child to find lowest node*/
-        codeblock_t *lowest = block->right, *highest;
+        codeblock_t *lowest = block->right;
+        codeblock_t *highest;
         codeblock_t *old_parent;
 
         while (lowest->left)

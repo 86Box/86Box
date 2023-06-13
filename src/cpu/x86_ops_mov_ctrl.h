@@ -251,12 +251,12 @@ opMOV_DRx_r_a32(uint32_t fetchdat)
 static void
 opMOV_r_TRx(void)
 {
-    uint32_t base;
+    // uint32_t base;
 
-    base = _tr[4] & 0xfffff800;
+    // base = _tr[4] & 0xfffff800;
     switch (cpu_reg) {
         case 3:
-            pclog("[R] %08X cache = %08X\n", base + cache_index, _tr[3]);
+            // pclog("[R] %08X cache = %08X\n", base + cache_index, _tr[3]);
             _tr[3]      = *(uint32_t *) &(_cache[cache_index]);
             cache_index = (cache_index + 4) & 0xf;
             break;
@@ -300,35 +300,35 @@ opMOV_TRx_r(void)
     ctl          = _tr[5] & 3;
     switch (cpu_reg) {
         case 3:
-            pclog("[W] %08X cache = %08X\n", base + cache_index, _tr[3]);
+            // pclog("[W] %08X cache = %08X\n", base + cache_index, _tr[3]);
             *(uint32_t *) &(_cache[cache_index]) = _tr[3];
             cache_index                          = (cache_index + 4) & 0xf;
             break;
         case 4:
-            if (!(cr0 & 1) && !(_tr[5] & (1 << 19)))
-                pclog("TAG = %08X, DEST = %08X\n", base, base + cache_index - 16);
+            // if (!(cr0 & 1) && !(_tr[5] & (1 << 19)))
+                // pclog("TAG = %08X, DEST = %08X\n", base, base + cache_index - 16);
             break;
         case 5:
-            pclog("[16] EXT = %i (%i), SET = %04X\n", !!(_tr[5] & (1 << 19)), _tr[5] & 0x03, _tr[5] & 0x7f0);
+            // pclog("[16] EXT = %i (%i), SET = %04X\n", !!(_tr[5] & (1 << 19)), _tr[5] & 0x03, _tr[5] & 0x7f0);
             if (!(_tr[5] & (1 << 19))) {
                 switch (ctl) {
                     case 0:
-                        pclog("    Cache fill or read...\n", base);
+                        // pclog("    Cache fill or read...\n", base);
                         break;
                     case 1:
                         base += (_tr[5] & 0x7f0);
-                        pclog("    Writing 16 bytes to   %08X...\n", base);
+                        // pclog("    Writing 16 bytes to   %08X...\n", base);
                         for (i = 0; i < 16; i += 4)
                             mem_writel_phys(base + i, *(uint32_t *) &(_cache[i]));
                         break;
                     case 2:
                         base += (_tr[5] & 0x7f0);
-                        pclog("    Reading 16 bytes from %08X...\n", base);
+                        // pclog("    Reading 16 bytes from %08X...\n", base);
                         for (i = 0; i < 16; i += 4)
                             *(uint32_t *) &(_cache[i]) = mem_readl_phys(base + i);
                         break;
                     case 3:
-                        pclog("    Cache invalidate/flush...\n", base);
+                        // pclog("    Cache invalidate/flush...\n", base);
                         break;
                 }
             }

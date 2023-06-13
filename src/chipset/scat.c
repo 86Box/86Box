@@ -1007,7 +1007,7 @@ memmap_state_update(scat_t *dev)
 
     set_global_EMS_state(dev, dev->regs[SCAT_EMS_CONTROL] & 0x80);
 
-    flushmmucache_cr3();
+    flushmmucache_nopc();
 }
 
 static void

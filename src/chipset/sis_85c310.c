@@ -21,7 +21,8 @@ typedef struct
 static void
 rabbit_recalcmapping(rabbit_t *dev)
 {
-    uint32_t shread, shwrite;
+    uint32_t shread;
+    uint32_t shwrite;
     uint32_t shflags = 0;
 
     shread  = !!(dev->regs[0x101] & 0x40);

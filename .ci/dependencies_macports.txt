@@ -13,3 +13,4 @@ qt5
 wget
 fluidsynth
 ghostscript
+vde2

@@ -122,9 +122,11 @@ void
 colorplus_poll(void *p)
 {
     colorplus_t     *colorplus = (colorplus_t *) p;
-    int              x, c;
+    int              x;
+    int              c;
     int              oldvc;
-    uint16_t         dat0, dat1;
+    uint16_t         dat0;
+    uint16_t         dat1;
     int              cols[4];
     int              col;
     int              oldsc;
@@ -315,11 +317,11 @@ colorplus_poll(void *p)
         }
         if (colorplus->cga.cgadispon)
             colorplus->cga.cgastat &= ~1;
-        if ((colorplus->cga.sc == (colorplus->cga.crtc[10] & 31) || ((colorplus->cga.crtc[8] & 3) == 3 && colorplus->cga.sc == ((colorplus->cga.crtc[10] & 31) >> 1))))
+        if (colorplus->cga.sc == (colorplus->cga.crtc[10] & 31) || ((colorplus->cga.crtc[8] & 3) == 3 && colorplus->cga.sc == ((colorplus->cga.crtc[10] & 31) >> 1)))
             colorplus->cga.con = 1;
         if (colorplus->cga.cgadispon && (colorplus->cga.cgamode & 1)) {
             for (x = 0; x < (colorplus->cga.crtc[1] << 1); x++)
-                colorplus->cga.charbuffer[x] = colorplus->cga.vram[(((colorplus->cga.ma << 1) + x) & 0x3fff)];
+                colorplus->cga.charbuffer[x] = colorplus->cga.vram[((colorplus->cga.ma << 1) + x) & 0x3fff];
         }
     }
 }

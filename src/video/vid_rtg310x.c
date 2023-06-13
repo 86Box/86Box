@@ -209,22 +209,22 @@ rtg_recalctimings(svga_t *svga)
         case 1:
             break;
         case 2:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 36000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 36000000.0;
             break;
         case 3:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 65100000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 65100000.0;
             break;
         case 4:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 44900000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
             break;
         case 5:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 50000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 50000000.0;
             break;
         case 6:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 80000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 80000000.0;
             break;
         case 7:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 75000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 75000000.0;
             break;
     }
 
@@ -317,7 +317,7 @@ rtg_init(const device_t *info)
     rom_init(&dev->bios_rom, (char *) fn,
              0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
-    return (dev);
+    return dev;
 }
 
 static void

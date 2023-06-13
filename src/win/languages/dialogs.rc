@@ -665,22 +665,28 @@ BEGIN
     LTEXT           STR_BUS,IDT_BUS,
                     CFG_HMARGIN, 188, 24, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_HD_BUS,
-                    33, 186, 130, 12,CBS_DROPDOWNLIST | 
+                    33, 186, 40, 12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_CHANNEL, IDT_CHANNEL,
-                    181, 188, 38, CFG_PANE_LTEXT_HEIGHT
+                    91, 188, 38, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_HD_CHANNEL,
-                    221, 186, 140, 12,
+                    131, 186, 40, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     COMBOBOX        IDC_COMBO_HD_CHANNEL_IDE,
-                    221, 186, 140, 12,
+                    131, 186, 40, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     LTEXT           STR_ID, IDT_ID,
-                    181, 188, 38, CFG_PANE_LTEXT_HEIGHT
+                    91, 188, 38, CFG_PANE_LTEXT_HEIGHT
     COMBOBOX        IDC_COMBO_HD_ID,
-                    221, 186, 140, 12,
+                    131, 186, 70, 12,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+
+    LTEXT           STR_SPEED, IDT_SPEED,
+                    201, 188, 38, CFG_PANE_LTEXT_HEIGHT
+    COMBOBOX        IDC_COMBO_HD_SPEED,
+                    241, 186, 70, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
     PUSHBUTTON      STR_NEW, IDC_BUTTON_HDD_ADD_NEW,
@@ -835,13 +841,13 @@ BEGIN
     COMBOBOX        IDC_COMBO_CD_SPEED,
                     33, 205, 140, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-/*
+
     LTEXT           STR_TYPE, IDT_CD_TYPE,
-                    CFG_HMARGIN, 233, 34, CFG_PANE_LTEXT_HEIGHT
-    COMBOBOX        IDC_COMBO_CD_SPEED,
-                    33, 231, 140, 12,
+                    181, 207, 34, CFG_PANE_LTEXT_HEIGHT
+    COMBOBOX        IDC_COMBO_CD_TYPE,
+                    221, 205, 140, 12,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-*/
+
 END
 
 DLG_CFG_OTHER_REMOVABLE_DEVICES DIALOG DISCARDABLE  CFG_PANE_LEFT, CFG_PANE_TOP, CFG_PANE_WIDTH, CFG_PANE_HEIGHT

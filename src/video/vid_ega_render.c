@@ -33,7 +33,7 @@
 int
 ega_display_line(ega_t *ega)
 {
-    int          y_add = (enable_overscan) ? (overscan_y >> 1) : 0;
+    int          y_add = enable_overscan ? (overscan_y >> 1) : 0;
     unsigned int dl    = ega->displine;
 
     if (ega->crtc[9] & 0x1f)
@@ -47,12 +47,12 @@ ega_display_line(ega_t *ega)
 void
 ega_render_blank(ega_t *ega)
 {
-    int x, xx;
+    int xx;
 
     if ((ega->displine + ega->y_add) < 0)
         return;
 
-    for (x = 0; x < (ega->hdisp + ega->scrollcache); x++) {
+    for (int x = 0; x < (ega->hdisp + ega->scrollcache); x++) {
         switch (ega->seqregs[1] & 9) {
             case 0:
                 for (xx = 0; xx < 9; xx++)
@@ -77,22 +77,20 @@ ega_render_blank(ega_t *ega)
 void
 ega_render_overscan_left(ega_t *ega)
 {
-    int i;
-
     if ((ega->displine + ega->y_add) < 0)
         return;
 
     if (ega->scrblank || (ega->hdisp == 0))
         return;
 
-    for (i = 0; i < ega->x_add; i++)
+    for (int i = 0; i < ega->x_add; i++)
         buffer32->line[ega->displine + ega->y_add][i] = ega->overscan_color;
 }
 
 void
 ega_render_overscan_right(ega_t *ega)
 {
-    int i, right;
+    int right;
 
     if ((ega->displine + ega->y_add) < 0)
         return;
@@ -101,7 +99,7 @@ ega_render_overscan_right(ega_t *ega)
         return;
 
     right = (overscan_x >> 1) + ega->scrollcache;
-    for (i = 0; i < right; i++)
+    for (int i = 0; i < right; i++)
         buffer32->line[ega->displine + ega->y_add][ega->x_add + ega->hdisp + i] = ega->overscan_color;
 }
 
@@ -132,7 +130,8 @@ ega_render_text(ega_t *ega)
 
             int drawcursor = ((ega->ma == ega->ca) && ega->con && ega->cursoron);
 
-            uint32_t chr, attr;
+            uint32_t chr;
+            uint32_t attr;
             if (!crtcreset) {
                 chr  = ega->vram[addr];
                 attr = ega->vram[addr + 1];
@@ -141,11 +140,12 @@ ega_render_text(ega_t *ega)
 
             uint32_t charaddr;
             if (attr & 8)
-                charaddr = ega->charsetb + ((chr * 0x80));
+                charaddr = ega->charsetb + (chr * 0x80);
             else
-                charaddr = ega->charseta + ((chr * 0x80));
+                charaddr = ega->charseta + (chr * 0x80);
 
-            int fg, bg;
+            int fg;
+            int bg;
             if (drawcursor) {
                 bg = ega->pallook[ega->egapal[attr & 0x0f]];
                 fg = ega->pallook[ega->egapal[attr >> 4]];
@@ -236,7 +236,7 @@ ega_render_graphics(ega_t *ega)
                             | (edatlookup[(edat[2] >> inshift) & 3][(edat[3] >> inshift) & 3] << 2);
                 // FIXME: Confirm blink behaviour is actually XOR on real hardware
                 uint32_t p0 = ega->pallook[ega->egapal[((dat >> 4) & ega->plane_mask) ^ blinkmask]];
-                uint32_t p1 = ega->pallook[ega->egapal[((dat     ) & ega->plane_mask) ^ blinkmask]];
+                uint32_t p1 = ega->pallook[ega->egapal[(dat      & ega->plane_mask) ^ blinkmask]];
                 for (int subx = 0; subx < dotwidth; subx++)
                     p[outoffs + subx] = p0;
                 for (int subx = 0; subx < dotwidth; subx++)

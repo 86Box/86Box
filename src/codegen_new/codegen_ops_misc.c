@@ -269,7 +269,8 @@ uint32_t
 ropFF_16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     x86seg *target_seg = NULL;
-    int     src_reg, sp_reg;
+    int     src_reg;
+    int     sp_reg;
 
     if ((fetchdat & 0x38) != 0x00 && (fetchdat & 0x38) != 0x08 && (fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x20 && (fetchdat & 0x38) != 0x28 && (fetchdat & 0x38) != 0x30)
         return 0;
@@ -367,7 +368,8 @@ uint32_t
 ropFF_32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     x86seg *target_seg = NULL;
-    int     src_reg, sp_reg;
+    int     src_reg;
+    int     sp_reg;
 
     if ((fetchdat & 0x38) != 0x00 && (fetchdat & 0x38) != 0x08 && (fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x20 && (fetchdat & 0x38) != 0x28 && (fetchdat & 0x38) != 0x30)
         return 0;

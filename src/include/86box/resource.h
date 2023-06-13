@@ -280,7 +280,7 @@
 #define IDC_COMBO_HD_BUS          1135
 #define IDC_COMBO_HD_CHANNEL      1136
 #define IDC_COMBO_HD_ID           1137
-#define IDC_COMBO_HD_LUN          1138
+#define IDC_COMBO_HD_SPEED        1138
 #define IDC_COMBO_HD_CHANNEL_IDE  1139
 
 #define IDC_EDIT_HD_FILE_NAME     1140 /* add hard disk dialog */

@@ -327,7 +327,7 @@ RendererStack::switchRenderer(Renderer renderer)
                 createRenderer(renderer);
                 disconnect(this, &RendererStack::blit, this, &RendererStack::blitDummy);
                 blitDummied = false;
-                QTimer::singleShot(1000, this, [this]() { blitDummied = false; });
+                QTimer::singleShot(1000, this, []() { blitDummied = false; });
             });
 
             rendererWindow->hasBlitFunc() ? current.reset() : current.release()->deleteLater();

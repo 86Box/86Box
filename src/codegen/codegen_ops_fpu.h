@@ -156,7 +156,8 @@ static uint32_t
 ropFSTd(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
     x86seg *target_seg;
-    int     host_reg1, host_reg2 = 0;
+    int     host_reg1;
+    int     host_reg2 = 0;
 
     FP_ENTER();
     op_pc--;
@@ -593,7 +594,8 @@ static uint32_t
 ropFISTPq(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
     x86seg *target_seg;
-    int     host_reg1, host_reg2;
+    int     host_reg1;
+    int     host_reg2;
 
     FP_ENTER();
     op_pc--;
@@ -679,7 +681,7 @@ opFLDimm(Z, 0.0)
 static uint32_t ropFLDLN2(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
     FP_ENTER();
-    FP_LOAD_IMM_Q(0x3fe62e42fefa39f0ull);
+    FP_LOAD_IMM_Q(0x3fe62e42fefa39f0ULL);
 
     return op_pc;
 }
