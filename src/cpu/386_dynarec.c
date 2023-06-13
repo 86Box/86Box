@@ -593,6 +593,11 @@ exec386_dynarec_dyn(void)
             }
 
 #    ifndef USE_NEW_DYNAREC
+            if (block_pos >= BLOCK_MAX)
+                CPU_BLOCK_END();
+#    endif
+
+#    ifndef USE_NEW_DYNAREC
             if (!use32)
                 cpu_state.pc &= 0xffff;
 #    endif

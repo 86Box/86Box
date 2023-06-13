@@ -319,9 +319,6 @@ static inline void
 addbyte(uint8_t val)
 {
     codeblock[block_current].data[block_pos++] = val;
-    if (block_pos >= BLOCK_MAX) {
-        CPU_BLOCK_END();
-    }
 }
 
 static inline void
@@ -330,9 +327,6 @@ addword(uint16_t val)
     uint16_t *p = (uint16_t *) &codeblock[block_current].data[block_pos];
     *p          = val;
     block_pos += 2;
-    if (block_pos >= BLOCK_MAX) {
-        CPU_BLOCK_END();
-    }
 }
 
 static inline void
@@ -341,9 +335,6 @@ addlong(uint32_t val)
     uint32_t *p = (uint32_t *) &codeblock[block_current].data[block_pos];
     *p          = val;
     block_pos += 4;
-    if (block_pos >= BLOCK_MAX) {
-        CPU_BLOCK_END();
-    }
 }
 
 static inline void
@@ -352,9 +343,6 @@ addquad(uint64_t val)
     uint64_t *p = (uint64_t *) &codeblock[block_current].data[block_pos];
     *p          = val;
     block_pos += 8;
-    if (block_pos >= BLOCK_MAX) {
-        CPU_BLOCK_END();
-    }
 }
 
 /*Current physical page of block being recompiled. -1 if no recompilation taking place */
