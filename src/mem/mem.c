@@ -544,12 +544,6 @@ mmutranslate_noabrt(uint32_t addr, int rw)
         return mmutranslate_noabrt_normal(addr, rw);
 }
 
-void
-mmu_invalidate(uint32_t addr)
-{
-    flushmmucache_cr3();
-}
-
 uint8_t
 mem_addr_range_match(uint32_t addr, uint32_t start, uint32_t len)
 {
@@ -2219,7 +2213,7 @@ mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
         if (p) {
             p->dirty_mask = 0xffffffffffffffffULL;
 
-            if (p->byte_dirty_mask)
+            if ((p->mem != page_ff) && p->byte_dirty_mask)
                 memset(p->byte_dirty_mask, 0xff, 64 * sizeof(uint64_t));
 
             if (!page_in_evict_list(p))
@@ -2325,7 +2319,7 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
         map = map->next;
     }
 
-    flushmmucache_cr3();
+    flushmmucache_nopc();
 
 #ifdef ENABLE_MEM_LOG
     pclog("\nMemory map:\n");

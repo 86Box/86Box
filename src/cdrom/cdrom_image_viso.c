@@ -632,7 +632,11 @@ pad_susp:
     }
 
     if ((p - data) > 255)
-        fatal("VISO: Directory record overflow (%d) on entry %08X\n", p - data, entry);
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+        fatal("VISO: Directory record overflow (%d) on entry %016" PRIX64 "\n", (uint32_t) (uintptr_t) (p - data), (uint64_t) (uintptr_t) entry);
+#else
+        fatal("VISO: Directory record overflow (%d) on entry %08X\n", (uint32_t) (uintptr_t) (p - data), (uint32_t) (uintptr_t) entry);
+#endif
 
     data[0] = p - data; /* length */
     return data[0];
