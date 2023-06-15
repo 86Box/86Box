@@ -104,7 +104,7 @@ add_to_block_list(codeblock_t *block)
 {
     codeblock_t *block_prev = pages[block->phys >> 12].block[(block->phys >> 10) & 3];
 
-    if (!block->page_mask)
+    if (UNLIKELY(!block->page_mask))
         fatal("add_to_block_list - mask = 0\n");
 
     if (block_prev) {
@@ -117,7 +117,7 @@ add_to_block_list(codeblock_t *block)
     }
 
     if (block->next) {
-        if (block->next->valid == 0)
+        if (UNLIKELY(block->next->valid == 0))
             fatal("block->next->valid=0 %p %p %x %x\n", (void *) block->next, (void *) codeblock, block_current, block_pos);
     }
 
@@ -153,7 +153,7 @@ remove_from_block_list(codeblock_t *block, uint32_t pc)
             mem_flush_write_page(block->phys, 0);
     }
     if (!block->page_mask2) {
-        if (block->prev_2 || block->next_2)
+        if (UNLIKELY(block->prev_2 || block->next_2))
             fatal("Invalid block_2\n");
         return;
     }
@@ -179,7 +179,7 @@ delete_block(codeblock_t *block)
     if (block == codeblock_hash[HASH(block->phys)])
         codeblock_hash[HASH(block->phys)] = NULL;
 
-    if (block->valid == 0)
+    if (UNLIKELY(block->valid == 0))
         fatal("Deleting deleted block\n");
     block->valid = 0;
 
@@ -196,7 +196,7 @@ codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
         if (mask & block->page_mask) {
             delete_block(block);
         }
-        if (block == block->next)
+        if (UNLIKELY(block == block->next))
             fatal("Broken 1\n");
         block = block->next;
     }
@@ -207,7 +207,7 @@ codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
         if (mask & block->page_mask2) {
             delete_block(block);
         }
-        if (block == block->next_2)
+        if (UNLIKELY(block == block->next_2))
             fatal("Broken 2\n");
         block = block->next_2;
     }
@@ -264,7 +264,7 @@ codegen_block_start_recompile(codeblock_t *block)
     block_num     = HASH(block->phys);
     block_current = block->pnt;
 
-    if (block->pc != cs + cpu_state.pc || block->was_recompiled)
+    if (UNLIKELY(block->pc != cs + cpu_state.pc || block->was_recompiled))
         fatal("Recompile to used block!\n");
 
     block->status = cpu_cur_status;
@@ -420,10 +420,10 @@ codegen_block_generate_end_mask(void)
             if (!pages[block->phys_2 >> 12].block_2[(block->phys_2 >> 10) & 3])
                 mem_flush_write_page(block->phys_2, block->endpc);
 
-            if (!block->page_mask2)
+            if (UNLIKELY(!block->page_mask2))
                 fatal("!page_mask2\n");
             if (block->next_2) {
-                if (block->next_2->valid == 0)
+                if (UNLIKELY(block->next_2->valid == 0))
                     fatal("block->next_2->valid=0 %p\n", (void *) block->next_2);
             }
 

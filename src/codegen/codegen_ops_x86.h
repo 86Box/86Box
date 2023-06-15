@@ -17,7 +17,7 @@ find_host_reg(void)
             break;
     }
 
-    if (c == NR_HOST_REGS)
+    if (UNLIKELY(c == NR_HOST_REGS))
         fatal("Out of host regs!\n");
     return c;
 }
@@ -30,7 +30,7 @@ find_host_xmm_reg(void)
             break;
     }
 
-    if (c == HOST_REG_XMM_END)
+    if (UNLIKELY(c == HOST_REG_XMM_END))
         fatal("Out of host XMM regs!\n");
     return c;
 }

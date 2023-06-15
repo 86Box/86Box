@@ -17,7 +17,7 @@ find_host_xmm_reg(void)
             break;
     }
 
-    if (c == HOST_REG_XMM_END)
+    if (UNLIKELY(c == HOST_REG_XMM_END))
         fatal("Out of host XMM regs!\n");
     return c;
 }
