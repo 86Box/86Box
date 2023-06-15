@@ -116,9 +116,8 @@ add_to_block_list(codeblock_t *block)
         pages[block->phys >> 12].block[(block->phys >> 10) & 3] = block;
     }
 
-    if (block->next) {
-        if (UNLIKELY(block->next->valid == 0))
-            fatal("block->next->valid=0 %p %p %x %x\n", (void *) block->next, (void *) codeblock, block_current, block_pos);
+    if (UNLIKELY(block->next && !block->next->valid)) {
+        fatal("block->next->valid=0 %p %p %x %x\n", (void *) block->next, (void *) codeblock, block_current, block_pos);
     }
 
     if (block->page_mask2) {
@@ -422,10 +421,10 @@ codegen_block_generate_end_mask(void)
 
             if (UNLIKELY(!block->page_mask2))
                 fatal("!page_mask2\n");
-            if (block->next_2) {
-                if (UNLIKELY(block->next_2->valid == 0))
-                    fatal("block->next_2->valid=0 %p\n", (void *) block->next_2);
-            }
+
+            if (UNLIKELY(block->next_2 && !block->next_2->valid))
+                fatal("block->next_2->valid=0 %p\n", (void *) block->next_2);
+
 
             block->dirty_mask2 = &page_2->dirty_mask[(block->phys_2 >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK];
         }
