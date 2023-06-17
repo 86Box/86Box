@@ -874,6 +874,11 @@ else
 	cwd_root="$(pwd)"
 	check_buildtag "libs.$arch_deb"
 
+	cp cmake/flags-gcc.cmake cmake/flags-gcc.cmake.old
+	sed -i -e 's/ -Werror=.*\([" ]\)/\1/g' cmake/flags-gcc.cmake # temporary hack for -Werror=old-style-definition non-compliance on FluidSynth and SDL2
+	sed -i -e 's/ C;CXX/ IGNORED/' cmake/flags-gcc.cmake # workaround for dynamic c(xx)flags system overwriting library flags and breaking (at least) openal-soft
+	sed -i -e 's/_INIT / /g' cmake/flags-gcc.cmake # still append our own flags
+
 	if grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
 		# Build openal-soft 1.23.1 manually to fix audio issues. This is a temporary
@@ -890,7 +895,7 @@ else
 		sed -i -e 's/PW_KEY_CONFIG_NAME/"config.name"/g' "$prefix/alc/backends/pipewire.cpp"
 
 		prefix_build="$prefix/build-$arch_deb"
-		cmake -G Ninja -D ALSOFT_UTILS=OFF -D ALSOFT_EXAMPLES=OFF -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 		cmake --build "$prefix_build" -j$(nproc) || exit 99
 		cmake --install "$prefix_build" || exit 99
 
@@ -939,8 +944,6 @@ else
 		rm -rf "$cache_dir/fluidsynth-"* # remove old versions
 		wget -qO - https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.3.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
-	cp cmake/flags-gcc.cmake cmake/flags-gcc.cmake.old
-	sed -i -e 's/ -Werror=.*\([" ]\)/\1/g' cmake/flags-gcc.cmake # temporary hack for -Werror=old-style-definition non-compliance on FluidSynth and SDL2
 	prefix_build="$prefix/build-$arch_deb"
 	cmake -G Ninja -D enable-dbus=OFF -D enable-jack=OFF -D enable-oss=OFF -D enable-sdl2=OFF -D enable-pulseaudio=OFF -D enable-pipewire=OFF -D enable-alsa=OFF \
 		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
@@ -978,6 +981,7 @@ else
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
+
 	mv cmake/flags-gcc.cmake.old cmake/flags-gcc.cmake
 
 	# Archive Discord Game SDK library.
