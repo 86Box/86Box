@@ -156,7 +156,18 @@ do
 
 		-p)
 			shift
-			dep_report=1
+
+			# Check for lddtree and install it if required.
+			which lddtree > /dev/null || DEBIAN_FRONTEND=noninteractive sudo apt-get -y install pax-utils
+
+			# Default to main binary.
+			binary="$1"
+			[ -z "$binary" ] && binary="archive_tmp/usr/local/bin/$project"
+
+			# Run lddtree with AppImage lib directories included in the search path.
+			LD_LIBRARY_PATH=$(find "$(pwd)/archive_tmp" -type d -name lib -o -name lib64 | while read dir; do find "$dir" -type d; done | tr '\n' ':') \
+				lddtree "$binary"
+			exit $?
 			;;
 
 		-s)
@@ -198,6 +209,7 @@ if [ -z "$package_name" -a -z "$tarball_name" ] || [ -n "$package_name" -a -z "$
 then
 	echo '[!] Usage: build.sh -b {package_name} {architecture} [-t] [cmake_flags...]'
 	echo '           build.sh -s {source_tarball_name}'
+	echo 'Dep. tree: build.sh -p [archive_tmp/path/to/binary]'
 	exit 100
 fi
 
@@ -316,7 +328,7 @@ then
 				pacman -S --needed --noconfirm "$pkg"
 			done
 		fi
-		
+
 		# Clean pacman cache when running under Jenkins to save disk space.
 		[ "$CI" = "true" ] && rm -rf /var/cache/pacman/pkg
 
@@ -560,7 +572,6 @@ else
 
 	# Establish general dependencies.
 	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream"
-	[ $dep_report -ne 0 ] && pkgs="$pkgs pax-utils"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
@@ -569,7 +580,7 @@ else
 		if ! dpkg --print-foreign-architectures | grep -qE '^'"$arch_deb"'$'
 		then
 			sudo dpkg --add-architecture "$arch_deb"
-			
+
 			# Force an apt-get update.
 			save_buildtag aptupdate "arch_$arch_deb"
 		fi
@@ -1146,16 +1157,6 @@ EOF
 
 	# Remove appimage-builder binary on failure, just in case it's corrupted.
 	[ $status -ne 0 ] && rm -f "$appimage_builder_binary"
-
-	# Generate library dependency report if requested.
-	if [ $dep_report -ne 0 ]
-	then
-		echo '[-] Library dependency report:'
-
-		# Run lddtree with AppImage lib directories included in the search path.
-		LD_LIBRARY_PATH=$(find "$(pwd)/archive_tmp" -type d -name lib -o -name lib64 | while read dir; do find "$dir" -type d; done | tr '\n' ':') \
-			lddtree "archive_tmp/usr/local/bin/$project" 2>&1 | tee depreport.txt
-	fi
 fi
 
 # Check if the archival succeeded.
