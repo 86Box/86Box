@@ -142,7 +142,7 @@ device_add_common(const device_t *d, const device_t *cd, void *p, void *params, 
     void *priv = NULL;
     int   c;
 
-    for (c = 0; c <= 256; c++) {
+    for (c = 0; c < 256; c++) {
         if (!inst && (devices[c] == (device_t *) d)) {
             device_log("DEVICE: device already exists!\n");
             return (NULL);
@@ -150,8 +150,10 @@ device_add_common(const device_t *d, const device_t *cd, void *p, void *params, 
         if (devices[c] == NULL)
             break;
     }
-    if (c >= DEVICE_MAX)
+    if ((c >= DEVICE_MAX) || (c >= 256)) {
         fatal("DEVICE: too many devices\n");
+        retrn NULL;
+    }
 
     /* Do this so that a chained device_add will not identify the same ID
        its master device is already trying to assign. */
