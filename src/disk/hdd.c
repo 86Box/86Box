@@ -161,6 +161,10 @@ hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_
         return HDD_OVERHEAD_TIME;
 
     hdd_zone_t *zone = NULL;
+    if (hdd->num_zones <= 0) {
+        fatal("hdd_seek_get_time(): hdd->num_zones < 0)\n");
+        return 0.0;
+    }
     for (int i = 0; i < hdd->num_zones; i++) {
         zone = &hdd->zones[i];
         if (zone->end_sector >= dst_addr)
