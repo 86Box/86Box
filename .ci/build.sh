@@ -156,7 +156,18 @@ do
 
 		-p)
 			shift
-			dep_report=1
+
+			# Check for lddtree and install it if required.
+			which lddtree > /dev/null || DEBIAN_FRONTEND=noninteractive sudo apt-get -y install pax-utils
+
+			# Default to main binary.
+			binary="$1"
+			[ -z "$binary" ] && binary="archive_tmp/usr/local/bin/$project"
+
+			# Run lddtree with AppImage lib directories included in the search path.
+			LD_LIBRARY_PATH=$(find "$(pwd)/archive_tmp" -type d -name lib -o -name lib64 | while read dir; do find "$dir" -type d; done | tr '\n' ':') \
+				lddtree "$binary"
+			exit $?
 			;;
 
 		-s)
@@ -198,6 +209,7 @@ if [ -z "$package_name" -a -z "$tarball_name" ] || [ -n "$package_name" -a -z "$
 then
 	echo '[!] Usage: build.sh -b {package_name} {architecture} [-t] [cmake_flags...]'
 	echo '           build.sh -s {source_tarball_name}'
+	echo 'Dep. tree: build.sh -p [archive_tmp/path/to/binary]'
 	exit 100
 fi
 
@@ -316,7 +328,7 @@ then
 				pacman -S --needed --noconfirm "$pkg"
 			done
 		fi
-		
+
 		# Clean pacman cache when running under Jenkins to save disk space.
 		[ "$CI" = "true" ] && rm -rf /var/cache/pacman/pkg
 
@@ -560,16 +572,15 @@ else
 
 	# Establish general dependencies.
 	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream"
-	[ $dep_report -ne 0 ] && pkgs="$pkgs pax-utils"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
 	else
 		# Add foreign architecture if required.
-		if ! dpkg --print-foreign-architectures | grep -qE '^'"$arch_deb"'$'
+		if ! dpkg --print-foreign-architectures | grep -Fx "$arch_deb"
 		then
 			sudo dpkg --add-architecture "$arch_deb"
-			
+
 			# Force an apt-get update.
 			save_buildtag aptupdate "arch_$arch_deb"
 		fi
@@ -874,6 +885,11 @@ else
 	cwd_root="$(pwd)"
 	check_buildtag "libs.$arch_deb"
 
+	cp cmake/flags-gcc.cmake cmake/flags-gcc.cmake.old
+	sed -i -e 's/ -Werror=.*\([" ]\)/\1/g' cmake/flags-gcc.cmake # temporary hack for -Werror=old-style-definition non-compliance on FluidSynth and SDL2
+	sed -i -e 's/ C;CXX/ IGNORED/' cmake/flags-gcc.cmake # workaround for dynamic c(xx)flags system overwriting library flags and breaking (at least) openal-soft
+	sed -i -e 's/_INIT / /g' cmake/flags-gcc.cmake # still append our own flags
+
 	if grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
 		# Build openal-soft 1.23.1 manually to fix audio issues. This is a temporary
@@ -890,7 +906,7 @@ else
 		sed -i -e 's/PW_KEY_CONFIG_NAME/"config.name"/g' "$prefix/alc/backends/pipewire.cpp"
 
 		prefix_build="$prefix/build-$arch_deb"
-		cmake -G Ninja -D ALSOFT_UTILS=OFF -D ALSOFT_EXAMPLES=OFF -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 		cmake --build "$prefix_build" -j$(nproc) || exit 99
 		cmake --install "$prefix_build" || exit 99
 
@@ -939,8 +955,6 @@ else
 		rm -rf "$cache_dir/fluidsynth-"* # remove old versions
 		wget -qO - https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.3.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
-	cp cmake/flags-gcc.cmake cmake/flags-gcc.cmake.old
-	sed -i -e 's/ -Werror=.*\([" ]\)/\1/g' cmake/flags-gcc.cmake # temporary hack for -Werror=old-style-definition non-compliance on FluidSynth and SDL2
 	prefix_build="$prefix/build-$arch_deb"
 	cmake -G Ninja -D enable-dbus=OFF -D enable-jack=OFF -D enable-oss=OFF -D enable-sdl2=OFF -D enable-pulseaudio=OFF -D enable-pipewire=OFF -D enable-alsa=OFF \
 		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
@@ -978,6 +992,7 @@ else
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
+
 	mv cmake/flags-gcc.cmake.old cmake/flags-gcc.cmake
 
 	# Archive Discord Game SDK library.
@@ -1142,16 +1157,6 @@ EOF
 
 	# Remove appimage-builder binary on failure, just in case it's corrupted.
 	[ $status -ne 0 ] && rm -f "$appimage_builder_binary"
-
-	# Generate library dependency report if requested.
-	if [ $dep_report -ne 0 ]
-	then
-		echo '[-] Library dependency report:'
-
-		# Run lddtree with AppImage lib directories included in the search path.
-		LD_LIBRARY_PATH=$(find "$(pwd)/archive_tmp" -type d -name lib -o -name lib64 | while read dir; do find "$dir" -type d; done | tr '\n' ':') \
-			lddtree "archive_tmp/usr/local/bin/$project" 2>&1 | tee depreport.txt
-	fi
 fi
 
 # Check if the archival succeeded.
