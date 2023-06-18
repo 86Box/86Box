@@ -577,7 +577,7 @@ else
 		pkgs="$pkgs build-essential"
 	else
 		# Add foreign architecture if required.
-		if ! dpkg --print-foreign-architectures | grep -qE '^'"$arch_deb"'$'
+		if ! dpkg --print-foreign-architectures | grep -Fx "$arch_deb"
 		then
 			sudo dpkg --add-architecture "$arch_deb"
 
