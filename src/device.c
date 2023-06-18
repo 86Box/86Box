@@ -142,7 +142,7 @@ device_add_common(const device_t *d, const device_t *cd, void *p, void *params, 
     void *priv = NULL;
     int   c;
 
-    for (c = 0; c < 256; c++) {
+    for (c = 0; c <= 256; c++) {
         if (!inst && (devices[c] == (device_t *) d)) {
             device_log("DEVICE: device already exists!\n");
             return (NULL);
