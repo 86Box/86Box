@@ -196,7 +196,7 @@ it8661_ldn(uint16_t addr, uint8_t val, it8661f_t *dev)
             break;
         case 1:
         case 2:
-            it8661_serial(LDN & 2, addr, val, dev);
+            it8661_serial((LDN & 2) - 1, addr, val, dev);
             break;
         case 3:
             it8661_lpt(addr, val, dev);
