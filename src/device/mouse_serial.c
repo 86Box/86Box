@@ -214,13 +214,14 @@ sermouse_data_mmseries(mouse_t *dev, int x, int y, int b)
     dev->data[0] = 0x80;
     if (x >= 0)
         dev->data[0] |= 0x10;
-    if (y >= 0)
+    /* It appears we have inverted Y polarity. */
+    if (y < 0)
         dev->data[0] |= 0x08;
     dev->data[0] |= (b & 0x01) ? 0x04 : 0x00; /* left button */
     dev->data[0] |= (b & 0x04) ? 0x02 : 0x00; /* middle button */
     dev->data[0] |= (b & 0x02) ? 0x01 : 0x00; /* right button */
-    dev->data[1] = abs(x);
-    dev->data[2] = abs(y);
+    dev->data[1] = abs(x) & 0x7f;
+    dev->data[2] = abs(y) & 0x7f;
 
     return 3;
 }
