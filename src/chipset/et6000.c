@@ -35,7 +35,7 @@
 
 typedef struct
 {
-    uint8_t index, regs[6];
+    uint8_t index, regs[256];
 } et6000_t;
 
 #ifdef ENABLE_ET6000_LOG

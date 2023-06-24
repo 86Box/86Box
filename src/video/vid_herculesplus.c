@@ -327,7 +327,7 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
         if ((attr & 0x77) == 0)
             cfg = ibg; /* 'blank' attribute */
 
-        buffer32->line[dev->displine][x * cw + i] = dev->cols[attr][blink][cfg];
+        buffer32->line[dev->displine][x * cw + i] = dev->cols[attr][!!blink][cfg];
         val                                       = val << 1;
     }
 }
@@ -423,7 +423,7 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
         else
             cfg |= ibg;
 
-        buffer32->line[dev->displine][(x * cw) + i] = dev->cols[attr][blink][cfg];
+        buffer32->line[dev->displine][(x * cw) + i] = dev->cols[attr][!!blink][cfg];
         val                                         = val << 1;
     }
 }
