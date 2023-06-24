@@ -13,8 +13,8 @@
  * Authors: Tiseno100,
  *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2022 Tiseno100.
- *          Copyright 2022 Jasmine Iwanek.
+ *          Copyright 2022      Tiseno100.
+ *          Copyright 2022-2023 Jasmine Iwanek.
  */
 
 #include <stdarg.h>
@@ -30,6 +30,7 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
+#include <86box/plat.h> // Replace with plat_unused.h when upstreamed
 
 #include <86box/apm.h>
 #include <86box/nvr.h>
@@ -81,7 +82,6 @@ typedef struct intel_ich2_t {
     smbus_piix4_t     *smbus;
     tco_t             *tco;
     usb_t             *usb_hub[2];
-
 } intel_ich2_t;
 
 /* LPC Bridge functions */
@@ -208,6 +208,9 @@ intel_ich2_trap_update(void *priv)
         case 7:
             temp_addr = 0x3e8;
             break;
+
+        default:
+            break;
     }
     intel_ich2_device_trap_setup(0x48, 0x10, temp_addr, 8, dev->trap_device[2]);
 
@@ -244,6 +247,9 @@ intel_ich2_trap_update(void *priv)
         case 7:
             temp_addr = 0x3e8;
             break;
+
+        default:
+            break;
     }
     intel_ich2_device_trap_setup(0x48, 0x10, temp_addr, 8, dev->trap_device[3]);
 
@@ -259,6 +265,9 @@ intel_ich2_trap_update(void *priv)
 
         case 2:
             temp_addr = 0x3bc;
+            break;
+
+        default:
             break;
     }
     intel_ich2_device_trap_setup(0x48, 0x10, temp_addr, 8, dev->trap_device[4]);
@@ -283,6 +292,9 @@ intel_ich2_trap_update(void *priv)
 
         case 3:
             temp_addr = 0xf40;
+            break;
+
+        default:
             break;
     }
     intel_ich2_device_trap_setup(0x49, 0x04, temp_addr, 8, dev->trap_device[6]);
@@ -566,6 +578,9 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf[func][addr] = val & ((addr & 1) ? 0x01 : 0xfe);
                 intel_ich2_function_disable(dev);
                 break;
+
+            default:
+                break;
         }
     } else if ((func == 1) && !(dev->pci_conf[0][0xf2] & 2)) {
         intel_ich2_log("Intel ICH2 IDE: dev->regs[%02x] = %02x\n", addr, val);
@@ -607,6 +622,9 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
             case 0x4a ... 0x4b:
                 dev->pci_conf[func][addr] = val & 0x33;
                 break;
+
+            default:
+                break;
         }
     } else if (((func == 2) && !(dev->pci_conf[0][0xf2] & 4)) || ((func == 4) && !(dev->pci_conf[0][0xf2] & 0x10))) {
         intel_ich2_log("Intel ICH2 USB Hub %d: dev->regs[%02x] = %02x\n", (func == 4), addr, val);
@@ -636,6 +654,9 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
             case 0xc4:
                 dev->pci_conf[func][addr] = val & 3;
                 break;
+
+            default:
+                break;
         }
     } else if ((func == 3) && !(dev->pci_conf[0][0xf2] & 8)) {
         intel_ich2_log("Intel ICH2 SMBus: dev->regs[%02x] = %02x\n", addr, val);
@@ -664,6 +685,9 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf[func][addr] = val & 7;
                 intel_ich2_smbus_setup(dev);
                 smbus_piix4_smi_en(!!(val & 2), dev->smbus);
+                break;
+
+            default:
                 break;
         }
     }
@@ -699,6 +723,9 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
                 if (sound_card_current[0] == SOUND_INTERNAL) /* can't use pointers as whatever recieved from there is temporary.  */
                     intel_ac97_set_irq(pci_get_int(0x1f, 2), dev->ac97);
                 break;
+
+            default:
+                break;
         }
     } else if ((func == 6) && !(dev->pci_conf[0][0xf2] & 0x40)) {
         intel_ich2_log("Intel ICH2 AC'97 Modem: dev->regs[%02x] = %02x\n", addr, val);
@@ -722,6 +749,9 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x3c:
                 dev->pci_conf[func][addr] = val;
+                break;
+
+            default:
                 break;
         }
     }
@@ -977,7 +1007,7 @@ intel_ich2_close(void *priv)
 }
 
 static void *
-intel_ich2_init(const device_t *info)
+intel_ich2_init(UNUSED(const device_t *info))
 {
     intel_ich2_t *dev = (intel_ich2_t *) malloc(sizeof(intel_ich2_t));
     memset(dev, 0, sizeof(intel_ich2_t));

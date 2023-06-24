@@ -11,9 +11,11 @@
  *
  * Authors: Tiseno100,
  *          Miran Grca, <mgrca8@gmail.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2020-2022 Tiseno100.
  *          Copyright 2021-2022 Miran Grca.
+ *          Copyright 2022-2023 Jasmine Iwanek.
  */
 
 /*
@@ -92,6 +94,7 @@ Notes : ISAPnP is missing and the Hardware Monitor I2C is not implemented.
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
+#include <86box/plat.h> // Replace with plat_unused.h when upstreamed
 
 #include <86box/fdd.h>
 #include <86box/fdc.h>
@@ -122,12 +125,14 @@ w83627hf_log(const char *fmt, ...)
 #    define w83627hf_log(fmt, ...)
 #endif
 
-typedef struct
-{
-    uint8_t hwm_index, hwm_regs[256];
+typedef struct {
+    uint8_t hwm_index;
+    uint8_t hwm_regs[256];
 
-    uint8_t index, cfg_unlocked,
-        regs[48], dev_regs[12][256];
+    uint8_t index;
+    uint8_t cfg_unlocked;
+    uint8_t regs[48];
+    uint8_t dev_regs[12][256];
 
     int        has_hwm;
     fdc_t     *fdc_controller;
@@ -238,7 +243,13 @@ w83627hf_hwm_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x5c:
                     dev->hwm_regs[dev->hwm_index] = val & 0x77;
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -289,6 +300,9 @@ w83627hf_hwm_read(uint16_t addr, void *priv)
 
                         case 0x0b ... 0x1f:
                             return dev->hwm_regs[dev->hwm_index & 0x1f];
+
+                        default:
+                            break;
                     }
 
                 case 0x4f:
@@ -356,6 +370,9 @@ w83627hf_fdc_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
             dev->dev_regs[0][cur_reg] = val & 0x5b;
             fdc_update_drvrate(dev->fdc_controller, cur_reg & 1, (val & 0x18) >> 3);
             break;
+
+        default:
+            break;
     }
 
     if (dev->dev_regs[0][0x30] & 1) {
@@ -387,6 +404,9 @@ w83627hf_lpt_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 
         case 0xf0:
             dev->dev_regs[1][cur_reg] = val & 0x7f;
+            break;
+
+        default:
             break;
     }
 
@@ -435,12 +455,18 @@ w83627hf_uart_write(int uart, uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
                 case 3:
                     uart_clock = 24000000.0;
                     break;
+
+                default:
+                    break;
             }
             break;
 
         case 0xf1:
             if (uart)
                 dev->dev_regs[2 + uart][cur_reg] = val & 0x7f;
+            break;
+
+        default:
             break;
     }
 
@@ -478,6 +504,9 @@ w83627hf_kbc_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
         case 0xf0:
             dev->dev_regs[5][cur_reg] = val & 0xc7;
             break;
+
+        default:
+            break;
     }
 
     if (dev->dev_regs[5][0x30] & 1) {
@@ -503,6 +532,9 @@ w83627hf_cir_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
         case 0x70:
             dev->dev_regs[6][cur_reg] = val & 0x0f;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -524,6 +556,9 @@ w83627hf_gameport_midi_gpio1_write(uint16_t cur_reg, uint8_t val, w83627hf_t *de
 
         case 0xf0 ... 0xf2:
             dev->dev_regs[7][cur_reg] = val;
+            break;
+
+        default:
             break;
     }
 }
@@ -547,6 +582,9 @@ w83627hf_watchdog_timer_gpio2_write(uint16_t cur_reg, uint8_t val, w83627hf_t *d
         case 0xf6 ... 0xf7:
             dev->dev_regs[8][cur_reg] = val;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -564,6 +602,9 @@ w83627hf_gpio3_vsb_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 
         case 0xf3:
             dev->dev_regs[9][cur_reg] = val & 0xc0;
+            break;
+
+        default:
             break;
     }
 }
@@ -620,6 +661,9 @@ w83627hf_acpi_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
         case 0xf7:
             dev->dev_regs[0x0a][cur_reg] = val & 0x3f;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -637,6 +681,9 @@ w83627hf_hwm_lpc_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 
         case 0xf0:
             dev->dev_regs[0x0b][cur_reg] = val & 1;
+            break;
+
+        default:
             break;
     }
 }
@@ -848,13 +895,19 @@ w83627hf_write(uint16_t addr, uint8_t val, void *priv)
                                 break;
                         }
                         break;
+
+                    default:
+                        break;
                 }
+            break;
+
+        default:
             break;
     }
 }
 
 static uint8_t
-w83627hf_read(uint16_t addr, void *priv)
+w83627hf_read(UNUSED(uint16_t addr), void *priv)
 {
     w83627hf_t *dev = (w83627hf_t *) priv;
 

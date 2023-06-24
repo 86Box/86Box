@@ -11,8 +11,10 @@
  *
  *
  * Authors: Tiseno100,
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2022 Tiseno100.
+ *          Copyright 2022      Tiseno100.
+ *          Copyright 2022-2023 Jasmine Iwanek.
  */
 
 /* This is a hack because the 86Box SPD calculation algorithm is not made for the 815EP banking.

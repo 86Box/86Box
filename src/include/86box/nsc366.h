@@ -11,8 +11,10 @@
  *
  *
  * Authors: Tiseno100,
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2022 Tiseno100.
+ *          Copyright 2022      Tiseno100.
+ *          Copyright 2022-2023 Jasmine Iwanek.
  */
 
 #ifndef EMU_NSC_366_H
@@ -22,8 +24,7 @@
 extern "C" {
 #endif
 
-typedef struct
-{
+typedef struct {
     hwm_values_t *values;
 
     uint8_t  fscm_enable;

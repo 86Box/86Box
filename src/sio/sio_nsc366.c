@@ -12,8 +12,10 @@
  *
  *
  * Authors: Tiseno100,
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2022 Tiseno100.
+ *          Copyright 2022      Tiseno100.
+ *          Copyright 2022-2023 Jasmine Iwanek.
  */
 
 #include <stdarg.h>
@@ -39,21 +41,22 @@
 #include <86box/port_92.h>
 #include <86box/sio.h>
 
-typedef struct
-{
+typedef struct {
     fdc_t        *fdc;
     serial_t     *uart[2];
     nsc366_hwm_t *hwm;
 
-    uint8_t index, ldn, sio_config[14],
-        ld_activate[15],
-        io_base0[2][15],
-        io_base1[2][15],
-        int_num_irq[15],
-        irq[15],
-        dma_select0[15],
-        dma_select1[15],
-        dev_specific_config[3][15];
+    uint8_t index;
+    uint8_t ldn;
+    uint8_t sio_config[14];
+    uint8_t ld_activate[15];
+    uint8_t io_base0[2][15];
+    uint8_t io_base1[2][15];
+    uint8_t int_num_irq[15];
+    uint8_t irq[15];
+    uint8_t dma_select0[15];
+    uint8_t dma_select1[15];
+    uint8_t dev_specific_config[3][15];
 
     int siofc_lock;
 } nsc366_t;
@@ -113,8 +116,8 @@ static void
 nsc366_uart(int uart, nsc366_t *dev)
 {
     serial_remove(dev->uart[uart]);
-    int base = ((dev->io_base0[0][2 + uart] & 7) << 8) | (dev->io_base0[1][2 + uart] & 0xf8);
-    int irq  = (dev->int_num_irq[2 + uart] & 0x0f);
+    uint16_t base = ((dev->io_base0[0][2 + uart] & 7) << 8) | (dev->io_base0[1][2 + uart] & 0xf8);
+    uint8_t irq  = (dev->int_num_irq[2 + uart] & 0x0f);
 
     if (dev->ld_activate[2 + uart]) {
         nsc366_log("NSC 366 UART Serial %d: Reconfigured with Base 0x%04x IRQ: %d\n", uart, base, irq);
@@ -196,6 +199,9 @@ nsc366_ldn_redirect(nsc366_t *dev)
         case 14:
             nsc366_tms(dev);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -263,6 +269,9 @@ nsc366_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x0c ... 0x0d:
                         dev->sio_config[dev->index - 0x20] = val & 0xf3;
                         break;
+
+                    default:
+                        break;
                 }
                 break;
 
@@ -305,6 +314,9 @@ nsc366_write(uint16_t addr, uint8_t val, void *priv)
             case 0xf0 ... 0xf2:
                 dev->dev_specific_config[dev->index - 0xf0][dev->ldn] = val;
                 nsc366_ldn_redirect(dev);
+                break;
+
+            default:
                 break;
         }
     else

@@ -11,8 +11,10 @@
  *
  *
  * Authors: Tiseno100,
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2022 Tiseno100.
+ *          Copyright 2022      Tiseno100.
+ *          Copyright 2022-2023 Jasmine Iwanek.
  */
 
 #include <stdarg.h>
@@ -27,6 +29,7 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
+#include <86box/plat.h> // Replace with plat_unused.h when upstreamed
 
 #include <86box/apm.h>
 #include <86box/nvr.h>
@@ -58,7 +61,7 @@ intel_ich2_trap_set_acpi(intel_ich2_trap_t *dev, acpi_t *acpi)
 }
 
 static void
-intel_ich2_trap_kick(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+intel_ich2_trap_kick(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t write), UNUSED(uint8_t val), void *priv)
 {
     intel_ich2_trap_t *dev = (intel_ich2_trap_t *) priv;
     intel_ich2_trap_log("Intel ICH2 Trap: Entered an I/O Trap. Provoking an SMI.\n");
@@ -87,7 +90,7 @@ intel_ich2_trap_close(void *priv)
 }
 
 static void *
-intel_ich2_trap_init(const device_t *info)
+intel_ich2_trap_init(UNUSED(const device_t *info))
 {
     intel_ich2_trap_t *dev = (intel_ich2_trap_t *) malloc(sizeof(intel_ich2_trap_t));
     memset(dev, 0, sizeof(intel_ich2_trap_t));

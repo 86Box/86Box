@@ -12,8 +12,10 @@
  *          not implemented
  *
  * Authors: Tiseno100,
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2022 Tiseno100.
+ *          Copyright 2022      Tiseno100.
+ *          Copyright 2022-2023 Jasmine Iwanek.
  */
 
 /* Note: There's a TCO Timer too but for now it's of no use thus not implemented */
@@ -34,6 +36,7 @@
 #include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/tco.h>
+#include <86box/plat.h> // Replace with plat_unused.h when upstreamed
 
 #ifdef ENABLE_TCO_LOG
 int tco_do_log = ENABLE_TCO_LOG;
@@ -54,10 +57,12 @@ tco_log(const char *fmt, ...)
 #endif
 
 void
-tco_timer_handler(void *priv)
+tco_timer_handler(UNUSED(void *priv))
 {
     /* TODO: Implement the TCO timer. */
-    // tco_t *dev = (tco_t *) priv;
+#if 0
+    tco_t *dev = (tco_t *) priv;
+#endif
 }
 
 void
@@ -128,6 +133,9 @@ tco_write(uint16_t addr, uint8_t val, tco_t *dev)
         case 0x10:
             dev->regs[addr] = val & 0x03;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -164,7 +172,7 @@ tco_close(void *priv)
 }
 
 static void *
-tco_init(const device_t *info)
+tco_init(UNUSED(const device_t *info))
 {
     tco_t *dev = (tco_t *) malloc(sizeof(tco_t));
     memset(dev, 0, sizeof(tco_t));

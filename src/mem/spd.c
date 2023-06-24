@@ -651,6 +651,9 @@ spd_write_drbs_intel_815ep(uint8_t *regs)
             case 2:
                 regs[0x54] |= reg_apply;
                 break;
+
+            default:
+                break;
         }
     }
 }

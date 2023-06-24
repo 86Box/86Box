@@ -11,8 +11,10 @@
  *
  *
  * Authors: Tiseno100,
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2022 Tiseno100.
+ *          Copyright 2022      Tiseno100.
+ *          Copyright 2022-2023 Jasmine Iwanek.
  *
  */
 
@@ -41,16 +43,18 @@
 
 #include <86box/sio.h>
 
-typedef struct
-{
-    int ldn, unlock;
+typedef struct {
+    int ldn;
+    int unlock;
 
-    uint8_t index, regs[15], sw_lock,
-        enable[11],
-        b_addr[4][11],
-        irq[11],
-        dma[11],
-        d_spec[15][11];
+    uint8_t index;
+    uint8_t regs[15];
+    uint8_t sw_lock;
+    uint8_t enable[11];
+    uint8_t b_addr[4][11];
+    uint8_t irq[11];
+    uint8_t dma[11];
+    uint8_t d_spec[15][11];
 
     fdc_t    *fdc;
     serial_t *uart[2];
@@ -160,6 +164,9 @@ it8702_ldn(it8702_t *dev)
         case 2 ... 3:
             it8702_uart((dev->ldn == 3), dev);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -260,6 +267,9 @@ it8702_write(uint16_t addr, uint8_t val, void *priv)
                     dev->d_spec[dev->index & 0x0f][dev->ldn] = val;
 
                 it8702_ldn(dev);
+                break;
+
+            default:
                 break;
         }
     }

@@ -616,7 +616,9 @@ machine_at_m6tss_init(const machine_t *model)
 {
     int ret;
 
-//    ret = bios_load_linear("roms/machines/m6tss/tss0518b.bin",
+#if 0
+    ret = bios_load_linear("roms/machines/m6tss/tss0518b.bin",
+#endif
     ret = bios_load_linear("roms/machines/m6tss/Tss0619f.bin",
                            0x00080000, 524288, 0);
 

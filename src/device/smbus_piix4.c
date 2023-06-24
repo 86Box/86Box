@@ -115,6 +115,9 @@ smbus_piix4_read(uint16_t addr, void *priv)
             if (dev->index >= SMBUS_PIIX4_BLOCK_DATA_SIZE)
                 dev->index = 0;
             break;
+
+        default:
+            break;
     }
 
     smbus_piix4_log("SMBus PIIX4: read(%02X) = %02x\n", addr, ret);
@@ -377,6 +380,9 @@ unknown_protocol:
                     dev->index = 0;
             }
             break;
+
+        default:
+            break;
     }
 
     if (dev->next_stat) { /* schedule dispatch of any pending status register update */
@@ -438,6 +444,9 @@ smbus_piix4_init(const device_t *info)
 
         case SMBUS_VIA:
             i2c_smbus = dev->i2c = i2c_addbus("smbus_vt82c686b");
+            break;
+
+        default:
             break;
     }
 

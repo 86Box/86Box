@@ -11,8 +11,10 @@
  *
  *
  * Authors: Tiseno100,
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2022 Tiseno100.
+ *          Copyright 2022      Tiseno100.
+ *          Copyright 2022-2023 Jasmine Iwanek.
  *
  */
 
@@ -33,6 +35,7 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
+#include <86box/plat.h> // Replace with plat_unused.h when upstreamed
 
 #include <86box/snd_ac97.h>
 #include <86box/snd_ac97_intel.h>
@@ -131,6 +134,9 @@ intel_ac97_write(uint16_t addr, uint8_t val, void *priv)
         case 0x34: /* Codec Access Semaphore */
             dev->regs[addr] = val & 1;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -178,7 +184,7 @@ intel_ac97_close(void *priv)
 }
 
 static void *
-intel_ac97_init(const device_t *info)
+intel_ac97_init(UNUSED(const device_t *info))
 {
     intel_ac97_t *dev = (intel_ac97_t *) malloc(sizeof(intel_ac97_t));
     memset(dev, 0, sizeof(intel_ac97_t));

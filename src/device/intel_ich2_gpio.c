@@ -11,8 +11,10 @@
  *
  *
  * Authors: Tiseno100,
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2022 Tiseno100.
+ *          Copyright 2022      Tiseno100.
+ *          Copyright 2022-2023 Jasmine Iwanek.
  */
 
 #include <stdarg.h>
@@ -28,6 +30,7 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/intel_ich2_gpio.h>
+#include <86box/plat.h> // Replace with plat_unused.h when upstreamed
 
 #ifdef ENABLE_INTEL_ICH2_GPIO_LOG
 int intel_ich2_gpio_do_log = ENABLE_INTEL_ICH2_GPIO_LOG;
@@ -97,6 +100,9 @@ intel_ich2_gpio_write(uint16_t addr, uint8_t val, void *priv)
         case 0x2d:
             dev->gpio_regs[addr] = val & 0x39;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -158,7 +164,7 @@ intel_ich2_gpio_close(void *priv)
 }
 
 static void *
-intel_ich2_gpio_init(const device_t *info)
+intel_ich2_gpio_init(UNUSED(const device_t *info))
 {
     intel_ich2_gpio_t *dev = (intel_ich2_gpio_t *) malloc(sizeof(intel_ich2_gpio_t));
     memset(dev, 0, sizeof(intel_ich2_gpio_t));

@@ -11,8 +11,10 @@
  *
  *
  * Authors: Tiseno100,
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2022 Tiseno100.
+ *          Copyright 2022      Tiseno100.
+ *          Copyright 2022-2023 Jasmine Iwanek.
  */
 
 /* The conversion algorithms were taken by the pc87360.c driver of the Linux kernel.
@@ -29,6 +31,7 @@
 #include <86box/io.h>
 #include <86box/timer.h>
 #include <86box/device.h>
+#include <86box/plat.h> // Replace with plat_unused.h when upstreamed
 
 #include <86box/hwm.h>
 #include <86box/nsc366.h>
@@ -102,6 +105,9 @@ nsc366_fscm_write(uint16_t addr, uint8_t val, void *priv)
         case 0x0b:
         case 0x0d:
             dev->fscm_config[addr] = (val & 0x78) | 1;
+            break;
+
+        default:
             break;
     }
 }
@@ -192,6 +198,9 @@ nsc366_vlm_write(uint16_t addr, uint8_t val, void *priv)
             if (VLM_BANK < 13)
                 dev->vlm_config_bank[VLM_BANK][addr - 0x0a] = val;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -278,6 +287,9 @@ nsc366_tms_write(uint16_t addr, uint8_t val, void *priv)
         case 0x0c ... 0x0e:
             if (TMS_BANK < 3)
                 dev->tms_config_bank[TMS_BANK][addr - 0x0a] = val;
+            break;
+
+        default:
             break;
     }
 }
@@ -370,7 +382,7 @@ nsc366_hwm_close(void *priv)
 }
 
 static void *
-nsc366_hwm_init(const device_t *info)
+nsc366_hwm_init(UNUSED(const device_t *info))
 {
     nsc366_hwm_t *dev = (nsc366_hwm_t *) malloc(sizeof(nsc366_hwm_t));
     memset(dev, 0, sizeof(nsc366_hwm_t));

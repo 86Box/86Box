@@ -13,8 +13,8 @@
  * Authors: Tiseno100,
  *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2022 Tiseno100.
- *          Copyright 2022 Jasmine Iwanek.
+ *          Copyright 2022      Tiseno100.
+ *          Copyright 2022-2023 Jasmine Iwanek.
  */
 
 #include <stdarg.h>
@@ -30,6 +30,7 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
+#include <86box/plat.h> // Replace with plat_unused.h when upstreamed
 
 #include <86box/mem.h>
 #include <86box/pci.h>
@@ -57,9 +58,10 @@ intel_815ep_log(const char *fmt, ...)
 
 typedef struct intel_815ep_t {
     uint8_t    pci_conf[256];
-    smram_t   *lsmm_segment, *h_segment, *usmm_segment;
+    smram_t   *lsmm_segment;
+    smram_t   *h_segment;
+    smram_t   *usmm_segment;
     agpgart_t *agpgart;
-
 } intel_815ep_t;
 
 static void
@@ -125,6 +127,8 @@ intel_lsmm_segment_recalc(intel_815ep_t *dev, uint8_t val)
 
         case 3:
             smram_enable(dev->lsmm_segment, 0x000a0000, 0x000a0000, 0x20000, 0, 1);
+            break;
+        default:
             break;
     }
 
@@ -305,6 +309,9 @@ intel_815ep_write(int func, int addr, uint8_t val, void *priv)
         case 0xcb:
             dev->pci_conf[addr] = val & 0x3f;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -414,7 +421,7 @@ intel_815ep_close(void *priv)
 }
 
 static void *
-intel_815ep_init(const device_t *info)
+intel_815ep_init(UNUSED(const device_t *info))
 {
     intel_815ep_t *dev = (intel_815ep_t *) malloc(sizeof(intel_815ep_t));
     memset(dev, 0, sizeof(intel_815ep_t));
