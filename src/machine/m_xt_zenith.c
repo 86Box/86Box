@@ -211,9 +211,13 @@ machine_xt_z150_init(const machine_t *model)
     device_add(&keyboard_pc82_device);
     device_add(&zenith_scratchpad_device);
     machine_common_init(model);
-    //pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+#if 0
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+#endif
     device_add(&fdc_xt_device);
-    //nmi_init();
+#if 0
+    nmi_init();
+#endif
 
     return ret;
 }
