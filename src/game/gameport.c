@@ -35,6 +35,7 @@
 #include <86box/joystick_standard.h>
 #include <86box/joystick_sw_pad.h>
 #include <86box/joystick_tm_fcs.h>
+#include <86box/plat_unused.h>
 
 typedef struct {
     pc_timer_t                  timer;
@@ -214,7 +215,7 @@ gameport_time(joystick_instance_t *joystick, int nr, int axis)
 }
 
 static void
-gameport_write(uint16_t addr, uint8_t val, void *priv)
+gameport_write(UNUSED(uint16_t addr), UNUSED(uint8_t val), void *priv)
 {
     gameport_t          *dev      = (gameport_t *) priv;
     joystick_instance_t *joystick = dev->joystick;
@@ -238,7 +239,7 @@ gameport_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-gameport_read(uint16_t addr, void *priv)
+gameport_read(UNUSED(uint16_t addr), void *priv)
 {
     gameport_t          *dev      = (gameport_t *) priv;
     joystick_instance_t *joystick = dev->joystick;
@@ -400,7 +401,7 @@ gameport_init(const device_t *info)
 }
 
 static void *
-tmacm_init(const device_t *info)
+tmacm_init(UNUSED(const device_t *info))
 {
     uint16_t    port = 0x0000;
     gameport_t *dev  = NULL;

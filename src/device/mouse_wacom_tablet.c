@@ -197,6 +197,9 @@ wacom_process_settings_dword(mouse_wacom_t *wacom, uint32_t dword)
         case 3:
             wacom->transmit_period = wacom_transmit_period(wacom, 19200, -1);
             break;
+
+        default:
+            break;
     }
 
     mouse_mode = !wacom->settings_bits.coord_sys;
@@ -245,7 +248,7 @@ wacom_reset_artpad(mouse_wacom_t *wacom)
 }
 
 static void
-wacom_callback(struct serial_s *serial, void *priv)
+wacom_callback(UNUSED(struct serial_s *serial), void *priv)
 {
     mouse_wacom_t *wacom = (mouse_wacom_t *) priv;
 
@@ -265,13 +268,16 @@ wacom_callback(struct serial_s *serial, void *priv)
         case 3:
             wacom->transmit_period = wacom_transmit_period(wacom, 19200, -1);
             break;
+
+        default:
+            break;
     }
     timer_stop(&wacom->report_timer);
     timer_on_auto(&wacom->report_timer, wacom->transmit_period);
 }
 
 static void
-wacom_write(struct serial_s *serial, void *priv, uint8_t data)
+wacom_write(UNUSED(struct serial_s *serial), void *priv, uint8_t data)
 {
     mouse_wacom_t *wacom           = (mouse_wacom_t *) priv;
     static int     special_command = 0;
@@ -295,6 +301,8 @@ wacom_write(struct serial_s *serial, void *priv, uint8_t data)
                     wacom->data_rec[wacom->data_rec_pos++] = data;
                     break;
                 }
+            default:
+                break;
         }
         special_command = 0;
         return;
@@ -403,7 +411,7 @@ wacom_write(struct serial_s *serial, void *priv, uint8_t data)
 }
 
 static int
-wacom_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
+wacom_poll(int x, int y, UNUSED(int z), int b, double abs_x, double abs_y, void *priv)
 {
     mouse_wacom_t *wacom = (mouse_wacom_t *) priv;
 
@@ -563,8 +571,8 @@ wacom_report_timer(void *priv)
             return;
 
         switch (wacom->mode) {
-            case WACOM_MODE_STREAM:
             default:
+            case WACOM_MODE_STREAM:
                 break;
 
             case WACOM_MODE_POINT:

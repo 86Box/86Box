@@ -793,7 +793,7 @@ mo_data_command_finish(mo_t *dev, int len, int block_len, int alloc_len, int dir
 }
 
 static void
-mo_sense_clear(mo_t *dev, int command)
+mo_sense_clear(mo_t *dev, UNUSED(int command))
 {
     mo_sense_key = mo_asc = mo_ascq = 0;
 }
@@ -938,7 +938,7 @@ mo_invalid_field_pl(mo_t *dev)
 }
 
 static int
-mo_blocks(mo_t *dev, int32_t *len, int first_batch, int out)
+mo_blocks(mo_t *dev, int32_t *len, UNUSED(int first_batch), int out)
 {
     *len = 0;
 
@@ -1179,7 +1179,9 @@ mo_pre_execution_check(mo_t *dev, uint8_t *cdb)
 static void
 mo_seek(mo_t *dev, uint32_t pos)
 {
-    /* mo_log("MO %i: Seek %08X\n", dev->id, pos); */
+#if 0
+    mo_log("MO %i: Seek %08X\n", dev->id, pos);
+#endif
     dev->sector_pos = pos;
 }
 
@@ -1687,7 +1689,9 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
                 dev->buffer[1] = 0x80;                                              /*Removable*/
                 dev->buffer[2] = (dev->drv->bus_type == MO_BUS_SCSI) ? 0x02 : 0x00; /*SCSI-2 compliant*/
                 dev->buffer[3] = (dev->drv->bus_type == MO_BUS_SCSI) ? 0x02 : 0x21;
-                // dev->buffer[4] = 31;
+#if 0
+                dev->buffer[4] = 31;
+#endif
                 dev->buffer[4] = 0;
                 if (dev->drv->bus_type == MO_BUS_SCSI) {
                     dev->buffer[6] = 1;    /* 16-bit transfers supported */
@@ -1830,7 +1834,9 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
             break;
     }
 
-    /* mo_log("MO %i: Phase: %02X, request length: %i\n", dev->id, dev->phase, dev->request_length); */
+#if 0
+    mo_log("MO %i: Phase: %02X, request length: %i\n", dev->id, dev->phase, dev->request_length);
+#endif
 
     if (mo_atapi_phase_to_scsi(dev) == SCSI_PHASE_STATUS)
         mo_buf_free(dev);

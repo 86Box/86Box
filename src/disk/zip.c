@@ -1768,7 +1768,9 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                 case 1: /* Start the disc and read the TOC. */
                     break;
                 case 2: /* Eject the disc if possible. */
-                    /* zip_eject(dev->id); */
+#if 0
+                    zip_eject(dev->id);
+#endif
                     break;
                 case 3: /* Load the disc (close tray). */
                     zip_reload(dev->id);
@@ -1850,7 +1852,9 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                 dev->buffer[1] = 0x80;                                               /*Removable*/
                 dev->buffer[2] = (dev->drv->bus_type == ZIP_BUS_SCSI) ? 0x02 : 0x00; /*SCSI-2 compliant*/
                 dev->buffer[3] = (dev->drv->bus_type == ZIP_BUS_SCSI) ? 0x02 : 0x21;
-                // dev->buffer[4] = 31;
+#if 0
+                dev->buffer[4] = 31;
+#endif
                 dev->buffer[4] = 0;
                 if (dev->drv->bus_type == ZIP_BUS_SCSI) {
                     dev->buffer[6] = 1;    /* 16-bit transfers supported */
@@ -2010,7 +2014,9 @@ atapi_out:
             break;
     }
 
-    /* zip_log("ZIP %i: Phase: %02X, request length: %i\n", dev->id, dev->phase, dev->request_length); */
+#if 0
+    zip_log("ZIP %i: Phase: %02X, request length: %i\n", dev->id, dev->phase, dev->request_length);
+#endif
 
     if (zip_atapi_phase_to_scsi(dev) == SCSI_PHASE_STATUS)
         zip_buf_free(dev);

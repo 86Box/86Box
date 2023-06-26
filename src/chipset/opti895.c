@@ -185,6 +185,8 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
                             break;
                         }
                         break;
+                    default:
+                        break;
                 }
             }
             break;
@@ -192,6 +194,8 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
         case 0xe1:
         case 0xe2:
             dev->scratch[addr - 0xe1] = val;
+            break;
+        default:
             break;
     }
 }
@@ -217,6 +221,8 @@ opti895_read(uint16_t addr, void *priv)
         case 0xe1:
         case 0xe2:
             ret = dev->scratch[addr - 0xe1];
+            break;
+        default:
             break;
     }
 

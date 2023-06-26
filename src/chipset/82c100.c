@@ -28,6 +28,7 @@
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/nmi.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/rom.h>
 #include <86box/chipset.h>
@@ -349,7 +350,7 @@ ct_82c100_close(void *priv)
 }
 
 static void *
-ct_82c100_init(const device_t *info)
+ct_82c100_init(UNUSED(const device_t *info))
 {
     ct_82c100_t *dev;
 

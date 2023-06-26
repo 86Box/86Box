@@ -28,6 +28,7 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/mem.h>
 #include <86box/smram.h>
@@ -124,7 +125,7 @@ sis_85c4xx_recalcmapping(sis_85c4xx_t *dev)
 }
 
 static void
-sis_85c4xx_sw_smi_out(uint16_t port, uint8_t val, void *priv)
+sis_85c4xx_sw_smi_out(UNUSED(uint16_t port), UNUSED(uint8_t val), void *priv)
 {
     sis_85c4xx_t *dev = (sis_85c4xx_t *) priv;
 
@@ -235,6 +236,8 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
                                 port_92_add(dev->port_92);
                         }
                         break;
+                    default:
+                        break;
                 }
             } else if ((dev->reg_base == 0x60) && (dev->cur_reg == 0x00))
                 dev->reg_00 = val;
@@ -245,6 +248,8 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
         case 0xe2:
             dev->scratch[port - 0xe1] = val;
             return;
+        default:
+            break;
     }
 }
 
@@ -273,6 +278,8 @@ sis_85c4xx_in(uint16_t port, void *priv)
         case 0xe1:
         case 0xe2:
             ret = dev->scratch[port - 0xe1];
+        default:
+            break;
     }
 
     return ret;

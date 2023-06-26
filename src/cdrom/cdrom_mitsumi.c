@@ -242,9 +242,11 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 ret |= FLAG_NOSTAT;
             pclog("Read port 1: ret = %02x\n", ret | FLAG_UNK);
             return ret | FLAG_UNK;
+        default:
+            break;
     }
 
-    return (0xff);
+    return 0xff;
 }
 
 static void
@@ -283,6 +285,8 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                     case 0x10:
                                         dev->enable_irq = val;
                                         break;
+                                    default:
+                                        break;
                                 }
                                 dev->cmdbuf[1]    = 0;
                                 dev->cmdbuf_count = 2;
@@ -296,6 +300,8 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                 dev->conf = val;
                                 if (dev->conf == 1)
                                     dev->cmdrd_count++;
+                                break;
+                            default:
                                 break;
                         }
                         break;
@@ -320,7 +326,11 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                             case 3:
                                 dev->readmsf |= CD_DCB(val) << ((dev->cmdrd_count - 3) << 3);
                                 break;
+                            default:
+                                break;
                         }
+                        break;
+                    default:
                         break;
                 }
                 if (!dev->cmdrd_count)
@@ -406,11 +416,13 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
         case 1:
             mitsumi_cdrom_reset(dev);
             break;
+        default:
+            break;
     }
 }
 
 static void *
-mitsumi_cdrom_init(const device_t *info)
+mitsumi_cdrom_init(UNUSED(const device_t *info))
 {
     mcd_t *dev;
 

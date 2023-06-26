@@ -29,6 +29,7 @@
 #include <86box/device.h>
 #include <86box/mem.h>
 #include <86box/port_92.h>
+#include <86box/plat_unused.h>
 #include <86box/chipset.h>
 
 typedef struct
@@ -154,6 +155,8 @@ opti499_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x2d:
                         opti499_recalc(dev);
                         break;
+                    default:
+                        break;
                 }
             }
             break;
@@ -161,6 +164,8 @@ opti499_write(uint16_t addr, uint8_t val, void *priv)
         case 0xe1:
         case 0xe2:
             dev->scratch[~addr & 0x01] = val;
+            break;
+        default:
             break;
     }
 }
@@ -187,6 +192,8 @@ opti499_read(uint16_t addr, void *priv)
         case 0xe1:
         case 0xe2:
             ret = dev->scratch[~addr & 0x01];
+            break;
+        default:
             break;
     }
 
@@ -230,7 +237,7 @@ opti499_close(void *priv)
 }
 
 static void *
-opti499_init(const device_t *info)
+opti499_init(UNUSED(const device_t *info))
 {
     opti499_t *dev = (opti499_t *) malloc(sizeof(opti499_t));
     memset(dev, 0, sizeof(opti499_t));

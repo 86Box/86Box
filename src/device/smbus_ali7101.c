@@ -79,6 +79,9 @@ smbus_ali7101_read(uint16_t addr, void *priv)
         case 0x07:
             ret = dev->cmd;
             break;
+
+        default:
+            break;
     }
 
     smbus_ali7101_log("SMBus ALI7101: read(%02X) = %02x\n", addr, ret);
@@ -222,6 +225,9 @@ smbus_ali7101_write(uint16_t addr, uint8_t val, void *priv)
 
         case 0x07:
             dev->cmd = val;
+            break;
+
+        default:
             break;
     }
 

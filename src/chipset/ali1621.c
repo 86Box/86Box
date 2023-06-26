@@ -28,6 +28,7 @@
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
+#include <86box/plat_unused.h>
 #include <86box/smram.h>
 #include <86box/spd.h>
 
@@ -111,6 +112,8 @@ ali1621_smram_recalc(uint8_t val, ali1621_t *dev)
                 case 0x30: /* Protect. */
                     access_smm |= ACCESS_SMRAM_R;
                     break;
+                default:
+                    break;
             }
         }
 
@@ -121,6 +124,8 @@ ali1621_smram_recalc(uint8_t val, ali1621_t *dev)
                     /* FALLTHROUGH */
                 case 0x30: /* Protect. */
                     access_smm |= ACCESS_SMRAM_W;
+                    break;
+                default:
                     break;
             }
 
@@ -137,7 +142,7 @@ ali1621_smram_recalc(uint8_t val, ali1621_t *dev)
 }
 
 static void
-ali1621_shadow_recalc(int cur_reg, ali1621_t *dev)
+ali1621_shadow_recalc(UNUSED(int cur_reg), ali1621_t *dev)
 {
     int      r_bit;
     int      w_bit;
@@ -207,8 +212,8 @@ ali1621_mask_bar(ali1621_t *dev)
     uint32_t mask;
 
     switch (dev->pci_conf[0xbc] & 0x0f) {
-        case 0x00:
         default:
+        case 0x00:
             mask = 0x00000000;
             break;
         case 0x01:
@@ -246,7 +251,7 @@ ali1621_mask_bar(ali1621_t *dev)
 }
 
 static void
-ali1621_write(int func, int addr, uint8_t val, void *priv)
+ali1621_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     ali1621_t *dev = (ali1621_t *) priv;
 
@@ -565,11 +570,14 @@ ali1621_write(int func, int addr, uint8_t val, void *priv)
         case 0xf0 ... 0xff:
             dev->pci_conf[addr] = val;
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-ali1621_read(int func, int addr, void *priv)
+ali1621_read(UNUSED(int func), int addr, void *priv)
 {
     ali1621_t *dev = (ali1621_t *) priv;
     uint8_t    ret = 0xff;
@@ -653,7 +661,7 @@ ali1621_close(void *priv)
 }
 
 static void *
-ali1621_init(const device_t *info)
+ali1621_init(UNUSED(const device_t *info))
 {
     ali1621_t *dev = (ali1621_t *) malloc(sizeof(ali1621_t));
     memset(dev, 0, sizeof(ali1621_t));

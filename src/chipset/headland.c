@@ -34,6 +34,7 @@
 #include <86box/device.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
@@ -205,7 +206,7 @@ hl_ems_update(headland_t *dev, uint8_t mar)
 }
 
 static void
-set_global_EMS_state(headland_t *dev, int state)
+set_global_EMS_state(headland_t *dev, UNUSED(int state))
 {
     for (uint8_t i = 0; i < 32; i++) {
         hl_ems_update(dev, i | (((dev->cr[0] & 0x01) << 5) ^ 0x20));

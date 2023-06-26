@@ -32,6 +32,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/pci.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/smram.h>
 
@@ -121,6 +122,8 @@ sis_5511_smram_recalc(sis_5511_t *dev)
         case 2:
             smram_enable(dev->smram, 0x000e0000, 0x000b0000, 0x8000, dev->pci_conf[0x65] & 0x10, 1);
             break;
+        default:
+            break;
     }
 
     flushmmucache();
@@ -153,7 +156,7 @@ sis_5513_bm_handler(sis_5511_t *dev)
 }
 
 static void
-sis_5511_write(int func, int addr, uint8_t val, void *priv)
+sis_5511_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     sis_5511_t *dev = (sis_5511_t *) priv;
 
@@ -331,12 +334,14 @@ sis_5511_write(int func, int addr, uint8_t val, void *priv)
         case 0x93: /* 5512 General Purpose Register Index */
             dev->pci_conf[addr] = val;
             break;
+        default:
+            break;
     }
     sis_5511_log("SiS 5511: dev->pci_conf[%02x] = %02x POST: %02x\n", addr, dev->pci_conf[addr], inb(0x80));
 }
 
 static uint8_t
-sis_5511_read(int func, int addr, void *priv)
+sis_5511_read(UNUSED(int func), int addr, void *priv)
 {
     sis_5511_t *dev = (sis_5511_t *) priv;
     sis_5511_log("SiS 5511: dev->pci_conf[%02x] (%02x) POST %02x\n", addr, dev->pci_conf[addr], inb(0x80));
@@ -428,6 +433,8 @@ sis_5513_pci_to_isa_write(int addr, uint8_t val, sis_5511_t *dev)
         case 0x6a: /* GPIO Status Register */
             dev->pci_conf_sb[0][addr] &= val & 0x15;
             break;
+        default:
+            break;
     }
 }
 
@@ -514,6 +521,8 @@ sis_5513_ide_write(int addr, uint8_t val, sis_5511_t *dev)
         case 0x4f: /* Prefetch Count of Secondary Channel (High Byte) */
             dev->pci_conf_sb[1][addr] = val;
             break;
+        default:
+            break;
     }
 }
 
@@ -527,6 +536,8 @@ sis_5513_write(int func, int addr, uint8_t val, void *priv)
             break;
         case 1:
             sis_5513_ide_write(addr, val, dev);
+            break;
+        default:
             break;
     }
     sis_5511_log("SiS 5513: dev->pci_conf[%02x][%02x] = %02x POST: %02x\n", func, addr, dev->pci_conf_sb[func][addr], inb(0x80));
@@ -567,6 +578,8 @@ sis_5513_isa_write(uint16_t addr, uint8_t val, void *priv)
                         case 2:
                             cpu_set_isa_pci_div(3);
                             break;
+                        default:
+                            break;
                     }
                     break;
                 case 0x01:
@@ -587,8 +600,12 @@ sis_5513_isa_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x0b:
                     dev->regs[dev->index] = val;
                     break;
+                default:
+                    break;
             }
             sis_5511_log("SiS 5513-ISA: dev->regs[%02x] = %02x POST: %02x\n", dev->index + 0x50, dev->regs[dev->index], inb(0x80));
+            break;
+        default:
             break;
     }
 }
@@ -700,7 +717,7 @@ sis_5511_close(void *priv)
 }
 
 static void *
-sis_5511_init(const device_t *info)
+sis_5511_init(UNUSED(const device_t *info))
 {
     sis_5511_t *dev = (sis_5511_t *) malloc(sizeof(sis_5511_t));
     memset(dev, 0, sizeof(sis_5511_t));

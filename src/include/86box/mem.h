@@ -159,10 +159,10 @@
     mem_set_access((smm ? ACCESS_BUS_SMM : ACCESS_BUS), 1, base, size, is_smram)
 
 typedef struct {
-    uint16_t x : 5,
-        w      : 5,
-        r      : 5,
-        pad    : 1;
+    uint16_t x : 5;
+    uint16_t w : 5;
+    uint16_t r : 5;
+    uint16_t pad : 1;
 } state_t;
 
 typedef union {
@@ -255,7 +255,8 @@ extern uint8_t *ram, *ram2;
 extern uint32_t rammask;
 
 extern uint8_t *rom;
-extern uint32_t biosmask, biosaddr;
+extern uint32_t biosmask;
+extern uint32_t biosaddr;
 
 extern int        readlookup[256];
 extern uintptr_t *readlookup2;
@@ -283,7 +284,8 @@ extern uint32_t mem_logical_addr;
 extern page_t  *pages;
 extern page_t **page_lookup;
 
-extern uint32_t get_phys_virt, get_phys_phys;
+extern uint32_t get_phys_virt;
+extern uint32_t get_phys_phys;
 
 extern int shadowbios;
 extern int shadowbios_write;

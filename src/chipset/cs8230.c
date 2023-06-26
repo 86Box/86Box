@@ -25,6 +25,7 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/chipset.h>
@@ -50,6 +51,8 @@ shadow_control(uint32_t addr, uint32_t size, int state)
             break;
         case 0x11:
             mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+            break;
+        default:
             break;
     }
 
@@ -112,6 +115,8 @@ cs8230_read(uint16_t port, void *p)
             case 0x2a:
                 ret = cs8230->regs[cs8230->idx];
                 break;
+            default:
+                break;
         }
     }
 
@@ -137,6 +142,8 @@ cs8230_write(uint16_t port, uint8_t val, void *p)
             case 0x0f: /* Address maps */
                 rethink_shadow_mappings(cs8230);
                 break;
+            default:
+                break;
         }
     }
 }
@@ -151,7 +158,7 @@ cs8230_close(void *priv)
 
 static void
     *
-    cs8230_init(const device_t *info)
+    cs8230_init(UNUSED(const device_t *info))
 {
     cs8230_t *cs8230 = (cs8230_t *) malloc(sizeof(cs8230_t));
     memset(cs8230, 0, sizeof(cs8230_t));

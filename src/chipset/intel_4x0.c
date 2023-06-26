@@ -28,6 +28,7 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/pci.h>
+#include <86box/plat_unused.h>
 #include <86box/chipset.h>
 #include <86box/spd.h>
 #include <86box/machine.h>
@@ -165,8 +166,8 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
     } else {
         size[0] = 0x00010000;
         switch (*reg & 0x03) {
-            case 0:
             default:
+            case 0:
                 base[0] = (mem_size << 10) - size[0];
                 s       = 1;
                 break;
@@ -222,17 +223,17 @@ i4x0_mask_bar(uint8_t *regs, void *agpgart)
 }
 
 static uint8_t
-pm2_cntrl_read(uint16_t addr, void *p)
+pm2_cntrl_read(UNUSED(uint16_t addr), void *priv)
 {
-    i4x0_t *dev = (i4x0_t *) p;
+    i4x0_t *dev = (i4x0_t *) priv;
 
     return dev->pm2_cntrl & 0x01;
 }
 
 static void
-pm2_cntrl_write(uint16_t addr, uint8_t val, void *p)
+pm2_cntrl_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
-    i4x0_t *dev = (i4x0_t *) p;
+    i4x0_t *dev = (i4x0_t *) priv;
 
     dev->pm2_cntrl = val & 0x01;
 }
@@ -251,6 +252,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
         switch (addr) {
             case 0x04: /*Command register*/
                 switch (dev->type) {
+                    default:
                     case INTEL_420TX:
                     case INTEL_420ZX:
                     case INTEL_430LX:
@@ -258,7 +260,6 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440BX:
                     case INTEL_440GX:
                     case INTEL_440ZX:
-                    default:
                         regs[0x04] = (regs[0x04] & ~0x42) | (val & 0x42);
                         break;
                     case INTEL_430FX:
@@ -291,16 +292,18 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440EX:
                         regs[0x05] = val & 0x01;
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x07:
                 switch (dev->type) {
+                    default:
                     case INTEL_420TX:
                     case INTEL_420ZX:
                     case INTEL_430LX:
                     case INTEL_430NX:
                     case INTEL_430HX:
-                    default:
                         regs[0x07] &= ~(val & 0x70);
                         break;
                     case INTEL_430FX:
@@ -343,6 +346,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_430TX:
                         regs[0x0f] = (val & 0x40);
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x12:
@@ -355,6 +360,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         regs[0x12] = (val & 0xc0);
                         i4x0_mask_bar(regs, dev->agpgart);
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x13:
@@ -366,6 +373,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440GX:
                         regs[0x13] = val;
                         i4x0_mask_bar(regs, dev->agpgart);
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -382,6 +391,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                             regs_l[addr] = 1;
                         }
                         break;
+                    default:
+                        break;
                 }
                 break;
 
@@ -396,14 +407,16 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_430TX:
                         regs[0x4f] = (val & 0x80);
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x50:
                 switch (dev->type) {
+                    default:
                     case INTEL_420TX:
                     case INTEL_420ZX:
                     case INTEL_430LX:
-                    default:
                         regs[0x50] = (val & 0xe5);
                         break;
                     case INTEL_430NX:
@@ -467,17 +480,19 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         regs[0x51] = (regs[0x51] & 0xb0) | (val & 0x4f);
                         i4x0_mask_bar(regs, dev->agpgart);
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x52: /* Cache Control Register */
                 switch (dev->type) {
+                    default:
                     case INTEL_420TX:
                     case INTEL_420ZX:
                     case INTEL_430LX:
                     case INTEL_430FX:
                     case INTEL_430VX:
                     case INTEL_430TX:
-                    default:
                         regs[0x52] = (val & 0xfb);
                         break;
                     case INTEL_430NX:
@@ -515,6 +530,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         /* Not applicable to 440ZX as that does not support ECC. */
                         regs[0x53] = val;
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x54:
@@ -534,6 +551,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440FX:
                         regs[0x54] = val & 0x82;
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x55:
@@ -552,6 +571,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440LX:
                     case INTEL_440EX:
                         regs[0x55] = val;
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -576,6 +597,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440LX:
                     case INTEL_440EX:
                         regs[0x56] = val;
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -628,10 +651,10 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                 break;
             case 0x58:
                 switch (dev->type) {
+                    default:
                     case INTEL_420TX:
                     case INTEL_420ZX:
                     case INTEL_430LX:
-                    default:
                         regs[0x58] = val & 0x01;
                         break;
                     case INTEL_430NX:
@@ -720,6 +743,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     break;
                 }
                 switch (dev->type) {
+                    default:
                     case INTEL_420TX:
                     case INTEL_420ZX:
                     case INTEL_430LX:
@@ -731,7 +755,6 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440BX:
                     case INTEL_440ZX:
                     case INTEL_440GX:
-                    default:
                         regs[addr] = val;
                         break;
                     case INTEL_430FX:
@@ -768,6 +791,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_430TX:
                         regs[addr] = val & 0x7f;
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x66:
@@ -785,6 +810,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440BX:
                     case INTEL_440ZX:
                         regs[addr] = val;
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -809,6 +836,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         break;
                     case INTEL_430TX:
                         regs[addr] = val & 0xb7;
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -838,6 +867,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440ZX:
                         regs[0x68] = (regs[0x68] & 0x3f) | (val & 0xc0);
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x69:
@@ -855,6 +886,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         break;
                     case INTEL_440ZX:
                         regs[0x69] = val & 0x3f;
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -880,6 +913,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         else
                             regs[addr] = val & 0x33;
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x6c:
@@ -899,6 +934,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         else if (addr == 0x6d)
                             regs[addr] = val & 0xcf;
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x6f:
@@ -908,6 +945,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         break;
                     case INTEL_440EX:
                         regs[addr] = val & 0xcf;
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -929,6 +968,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440LX:
                     case INTEL_440EX:
                         regs[addr] = val & 0xf8;
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -952,6 +993,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440FX:
                     case INTEL_440LX:
                         regs[addr] = val & 0x1f;
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -998,6 +1041,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                             i4x0_smram_handler_phase1(dev);
                         }
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x74:
@@ -1007,6 +1052,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440ZX:
                     case INTEL_440GX:
                         regs[0x74] = val;
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -1018,6 +1065,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440ZX:
                     case INTEL_440GX:
                         regs[addr] = val;
+                    default:
+                        break;
                 }
                 break;
             case 0x77:
@@ -1025,6 +1074,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440BX:
                     case INTEL_440ZX:
                         regs[0x77] = val & 0x03;
+                    default:
+                        break;
                 }
                 break;
             case 0x78:
@@ -1038,6 +1089,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         break;
                     case INTEL_440GX:
                         regs[0x78] = val & 0x1f;
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -1054,6 +1107,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440GX:
                         regs[0x79] = val;
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x7a:
@@ -1065,6 +1120,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         io_removehandler(0x0022, 0x01, pm2_cntrl_read, NULL, NULL, pm2_cntrl_write, NULL, NULL, dev);
                         if (val & 0x40)
                             io_sethandler(0x0022, 0x01, pm2_cntrl_read, NULL, NULL, pm2_cntrl_write, NULL, NULL, dev);
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -1081,6 +1138,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440ZX:
                         regs[0x7c] = val & 0x1f;
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x7d:
@@ -1090,6 +1149,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_430LX:
                     case INTEL_430NX:
                         regs[0x7d] = val & 0x32;
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -1102,6 +1163,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_430NX:
                         regs[addr] = val;
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x80:
@@ -1110,6 +1173,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440ZX:
                     case INTEL_440GX:
                         regs[0x80] &= ~(val & 0x03);
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -1132,6 +1197,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440GX:
                         regs[0x90] = val;
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x91:
@@ -1143,6 +1210,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440GX:
                         /* Not applicable on 82443EX and 82443ZX. */
                         regs[0x91] &= ~(val & 0x11);
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -1157,6 +1226,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440GX:
                         regs[0x92] &= ~(val & 0x1f);
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0x93:
@@ -1170,6 +1241,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         regs[0x93] = (val & 0x0e);
                         trc_write(0x0093, val & 0x06, NULL);
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0xa7:
@@ -1177,6 +1250,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440LX:
                     case INTEL_440EX:
                         regs[0xa7] = val & 0x1f;
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -1190,6 +1265,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440GX:
                         regs[addr] = (val & 0x03);
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0xb0:
@@ -1200,6 +1277,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440ZX:
                     case INTEL_440GX:
                         regs[0xb0] = (val & 0x80);
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -1214,6 +1293,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440GX:
                         regs[0xb1] = (val & 0xa0);
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0xb4:
@@ -1226,6 +1307,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         regs[0xb4] = (val & 0x3f);
                         i4x0_mask_bar(regs, dev->agpgart);
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0xb9:
@@ -1237,6 +1320,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440GX:
                         regs[0xb9] = (val & 0xf0);
                         i4x0_mask_bar(regs, dev->agpgart);
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -1252,6 +1337,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         regs[addr] = val;
                         i4x0_mask_bar(regs, dev->agpgart);
                         break;
+                    default:
+                        break;
                 }
                 break;
 
@@ -1261,6 +1348,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440EX:
                         regs[addr] = (val & 0xf8);
                         break;
+                    default:
+                        break;
                 }
                 break;
 
@@ -1269,6 +1358,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440LX:
                     case INTEL_440EX:
                         regs[addr] = (val & 0xf8);
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -1287,6 +1378,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440GX:
                         regs[addr] = val;
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0xca:
@@ -1297,6 +1390,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         break;
                     case INTEL_440ZX:
                         regs[addr] = val & 0xe7;
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -1309,6 +1404,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440ZX:
                         regs[addr] = val & 0xa7;
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0xcc:
@@ -1319,6 +1416,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         break;
                     case INTEL_440ZX:
                         regs[0xcc] = (val & 0x58);
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -1339,6 +1438,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         if (!regs_l[addr])
                             regs[addr] = val;
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0xe5:
@@ -1349,6 +1450,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440GX:
                         if (!regs_l[addr])
                             regs[addr] = (val & 0x3f);
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -1364,6 +1467,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                             regs[0xe7] |= (val & 0x7f);
                         }
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0xf0:
@@ -1373,6 +1478,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440GX:
                         regs[0xf0] = (val & 0xc0);
                         break;
+                    default:
+                        break;
                 }
                 break;
             case 0xf1:
@@ -1381,6 +1488,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440ZX:
                     case INTEL_440GX:
                         regs[0xf1] = (val & 0x03);
+                        break;
+                    default:
                         break;
                 }
                 break;
@@ -1745,6 +1854,8 @@ static void
             dev->max_drb                                                                                          = 7;
             dev->drb_unit                                                                                         = 8;
             dev->drb_default                                                                                      = 0x01;
+            break;
+        default:
             break;
     }
 

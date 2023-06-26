@@ -305,6 +305,9 @@ ems_read(uint16_t port, void *priv)
 
         case 0x0001: /* W/O */
             break;
+
+        default:
+            break;
     }
 
 #if ISAMEM_DEBUG
@@ -383,6 +386,9 @@ ems_write(uint16_t port, uint8_t val, void *priv)
             if (val)
                 dev->flags |= FLAG_CONFIG;
             break;
+        
+        default:
+            break;
     }
 }
 
@@ -458,6 +464,9 @@ isamem_init(const device_t *info)
             if (!!device_get_config_int("speed"))
                 dev->flags |= FLAG_FAST;
             break;
+
+        default:
+            break;
     }
 
     /* Fix up the memory start address. */
@@ -471,6 +480,7 @@ isamem_init(const device_t *info)
         isamem_log(", FAST");
     if (dev->flags & FLAG_WIDE)
         isamem_log(", 16BIT");
+
     isamem_log(")\n");
 
     /* Force (back to) 8-bit bus if needed. */
@@ -617,6 +627,7 @@ isamem_init(const device_t *info)
                    dev->base_addr, dev->ems_size, dev->ems_pages);
         if (dev->frame_addr > 0)
             isamem_log(", Frame=%05XH", dev->frame_addr);
+
         isamem_log("\n");
 
         /*

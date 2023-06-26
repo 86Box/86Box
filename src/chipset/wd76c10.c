@@ -37,6 +37,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/lpt.h>
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/serial.h>
 #include <86box/chipset.h>
@@ -100,6 +101,8 @@ wd76c10_refresh_control(wd76c10_t *dev)
         case 4:
             serial_setup(dev->uart[1], 0x2e8, 3);
             break;
+        default:
+            break;
     }
 
     serial_remove(dev->uart[0]);
@@ -116,6 +119,8 @@ wd76c10_refresh_control(wd76c10_t *dev)
             break;
         case 4:
             serial_setup(dev->uart[0], 0x2e8, 4);
+            break;
+        default:
             break;
     }
 
@@ -153,6 +158,8 @@ wd76c10_split_addr(wd76c10_t *dev)
             if (((dev->shadow_ram >> 8) & 3) == 3)
                 mem_remap_top(384);
             break;
+        default:
+            break;
     }
 }
 
@@ -187,6 +194,8 @@ wd76c10_shadow_recalc(wd76c10_t *dev)
         case 3:
             mem_set_mem_state_both(0x20000, 0x80000, MEM_READ_DISABLED | MEM_WRITE_DISABLED);
             break;
+        default:
+            break;
     }
 
     switch ((dev->shadow_ram >> 8) & 3) {
@@ -202,6 +211,8 @@ wd76c10_shadow_recalc(wd76c10_t *dev)
             break;
         case 3:
             mem_set_mem_state_both(0x20000, 0x80000, MEM_READ_DISABLED | (!!(dev->shadow_ram & 0x1000) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL));
+            break;
+        default:
             break;
     }
 }
@@ -424,7 +435,7 @@ wd76c10_close(void *priv)
 }
 
 static void *
-wd76c10_init(const device_t *info)
+wd76c10_init(UNUSED(const device_t *info))
 {
     wd76c10_t *dev = (wd76c10_t *) malloc(sizeof(wd76c10_t));
     memset(dev, 0, sizeof(wd76c10_t));

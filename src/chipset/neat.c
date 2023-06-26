@@ -30,6 +30,7 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 #include <86box/chipset.h>
 
 #define NEAT_DEBUG  0
@@ -340,6 +341,8 @@ ems_write(uint16_t port, uint8_t val, void *priv)
             ems->page |= (val & 0x7f); /* add new bits */
             ems_recalc(dev, ems);
             break;
+        default:
+            break;
     }
 }
 
@@ -358,6 +361,8 @@ ems_read(uint16_t port, void *priv)
             ret = dev->ems[vpage].page & 0x7f;
             if (dev->ems[vpage].enabled)
                 ret |= 0x80;
+            break;
+        default:
             break;
     }
 
@@ -608,6 +613,8 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                         case 7: /* 7 MB */
                             dev->ems_size = i << 10;
                             break;
+                        default:
+                            break;
                     }
                     dev->ems_pages = (dev->ems_size << 10) / EMS_PGSIZE;
                     if (dev->regs[REG_RB7] & RB7_EMSEN) {
@@ -621,6 +628,8 @@ neat_write(uint16_t port, uint8_t val, void *priv)
                              dev->indx, val);
                     break;
             }
+            break;
+        default:
             break;
     }
 }
@@ -660,7 +669,7 @@ neat_close(void *priv)
 }
 
 static void *
-neat_init(const device_t *info)
+neat_init(UNUSED(const device_t *info))
 {
     neat_t *dev;
     int     i;

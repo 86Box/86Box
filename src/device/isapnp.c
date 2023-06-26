@@ -26,6 +26,7 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/isapnp.h>
+#include <86box/plat_unused.h>
 
 #define CHECK_CURRENT_LD()                                  \
     if (!dev->current_ld) {                                 \
@@ -245,14 +246,14 @@ isapnp_reset_ld_regs(isapnp_device_t *ld)
 }
 
 static uint8_t
-isapnp_read_rangecheck(uint16_t addr, void *priv)
+isapnp_read_rangecheck(UNUSED(uint16_t addr), void *priv)
 {
     isapnp_device_t *dev = (isapnp_device_t *) priv;
     return (dev->regs[0x31] & 0x01) ? 0x55 : 0xaa;
 }
 
 static uint8_t
-isapnp_read_data(uint16_t addr, void *priv)
+isapnp_read_data(UNUSED(uint16_t addr), void *priv)
 {
     isapnp_t      *dev = (isapnp_t *) priv;
     uint8_t        ret = 0xff;
@@ -418,7 +419,7 @@ isapnp_set_read_data(uint16_t addr, isapnp_t *dev)
 }
 
 static void
-isapnp_write_addr(uint16_t addr, uint8_t val, void *priv)
+isapnp_write_addr(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     isapnp_t      *dev  = (isapnp_t *) priv;
     isapnp_card_t *card = dev->first_card;
@@ -449,7 +450,7 @@ isapnp_write_addr(uint16_t addr, uint8_t val, void *priv)
 }
 
 static void
-isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
+isapnp_write_data(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     isapnp_t        *dev = (isapnp_t *) priv;
     isapnp_card_t   *card;
@@ -681,6 +682,9 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
                             val |= 0x02;
 
                         break;
+
+                    default:
+                        break;
                 }
 
                 dev->current_ld->regs[dev->reg] = val;
@@ -691,7 +695,7 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
 }
 
 static void *
-isapnp_init(const device_t *info)
+isapnp_init(UNUSED(const device_t *info))
 {
     isapnp_t *dev = (isapnp_t *) malloc(sizeof(isapnp_t));
     memset(dev, 0, sizeof(isapnp_t));
@@ -862,6 +866,9 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                 default:
                     isapnp_log("ISAPnP: >%s%s Large resource %02X (length %d)\n", ldn ? ">" : "", in_df ? ">" : "", res, (card->rom[i + 2] << 8) | card->rom[i + 1]);
                     break;
+#else
+                default:
+                    break;
 #endif
             }
 
@@ -1022,11 +1029,11 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                     card->rom_size = i + 2;
                     break;
 
-#ifdef ENABLE_ISAPNP_LOG
                 default:
+#ifdef ENABLE_ISAPNP_LOG
                     isapnp_log("ISAPnP: >%s%s Small resource %02X (length %d)\n", ldn ? ">" : "", in_df ? ">" : "", res, card->rom[i] & 0x07);
-                    break;
 #endif
+                    break;
             }
 
             i++; /* header */

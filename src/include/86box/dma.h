@@ -44,21 +44,36 @@
 #define DMA_VERIFY 0x20000
 
 typedef struct {
-    uint8_t m, mode, page, stat,
-        stat_rq, command,
-        ps2_mode, arb_level,
-        sg_command, sg_status,
-        ptr0, enabled,
-        ext_mode, page_l,
-        page_h, pad;
-    uint16_t cb, io_addr,
-        base, transfer_mode;
-    uint32_t ptr, ptr_cur,
-        addr,
-        ab, ac;
-    int cc, wp,
-        size, count,
-        eot;
+    uint8_t  m;
+    uint8_t  mode;
+    uint8_t  page;
+    uint8_t  stat;
+    uint8_t  stat_rq;
+    uint8_t  command;
+    uint8_t  ps2_mode;
+    uint8_t  arb_level;
+    uint8_t  sg_command;
+    uint8_t  sg_status;
+    uint8_t  ptr0;
+    uint8_t  enabled;
+    uint8_t  ext_mode;
+    uint8_t  page_l;
+    uint8_t  page_h;
+    uint8_t  pad;
+    uint16_t cb;
+    uint16_t io_addr;
+    uint16_t base;
+    uint16_t transfer_mode;
+    uint32_t ptr;
+    uint32_t ptr_cur;
+    uint32_t addr;
+    uint32_t ab;
+    uint32_t ac;
+    int      cc;
+    int      wp;
+    int      size;
+    int      count;
+    int      eot;
 } dma_t;
 
 extern dma_t   dma[8];

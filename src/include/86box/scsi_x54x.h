@@ -196,28 +196,28 @@
 #define MAX_SG_DESCRIPTORS 32 /* Always make the array 32 elements long, if less are used, that's not an issue. */
 
 #pragma pack(push, 1)
-typedef struct {
+typedef struct addr24_s {
     uint8_t hi;
     uint8_t mid;
     uint8_t lo;
-} addr24;
+} addr24_t;
 
 /* Structure for the INQUIRE_SETUP_INFORMATION reply. */
 typedef struct {
-    uint8_t uOffset     : 4,
-        uTransferPeriod : 3,
-        fSynchronous    : 1;
+    uint8_t uOffset         : 4;
+    uint8_t uTransferPeriod : 3;
+    uint8_t fSynchronous    : 1;
 } ReplyInquireSetupInformationSynchronousValue;
 
 typedef struct {
-    uint8_t fSynchronousInitiationEnabled : 1,
-        fParityCheckingEnabled            : 1,
-        uReserved1                        : 6;
+    uint8_t fSynchronousInitiationEnabled     : 1;
+    uint8_t fParityCheckingEnabled            : 1;
+    uint8_t uReserved1                        : 6;
     uint8_t                                      uBusTransferRate;
     uint8_t                                      uPreemptTimeOnBus;
     uint8_t                                      uTimeOffBus;
     uint8_t                                      cMailbox;
-    addr24                                       MailboxAddress;
+    addr24_t                                     MailboxAddress;
     ReplyInquireSetupInformationSynchronousValue SynchronousValuesId0To7[8];
     uint8_t                                      uDisconnectPermittedId0To7;
     uint8_t                                      VendorSpecificData[28];
@@ -225,12 +225,12 @@ typedef struct {
 
 typedef struct {
     uint8_t Count;
-    addr24  Address;
+    addr24_t Address;
 } MailboxInit_t;
 
 typedef struct {
-    uint8_t CmdStatus;
-    addr24  CCBPointer;
+    uint8_t  CmdStatus;
+    addr24_t CCBPointer;
 } Mailbox_t;
 
 typedef struct {
@@ -278,20 +278,20 @@ typedef struct {
 } CCB32;
 
 typedef struct {
-    uint8_t Opcode;
-    uint8_t Lun     : 3,
-        ControlByte : 2,
-        Id          : 3;
-    uint8_t CdbLength;
-    uint8_t RequestSenseLength;
-    addr24  DataLength;
-    addr24  DataPointer;
-    addr24  LinkPointer;
-    uint8_t LinkId;
-    uint8_t HostStatus;
-    uint8_t TargetStatus;
-    uint8_t Reserved[2];
-    uint8_t Cdb[12];
+    uint8_t  Opcode;
+    uint8_t  Lun         : 3;
+    uint8_t  ControlByte : 2;
+    uint8_t  Id          : 3;
+    uint8_t  CdbLength;
+    uint8_t  RequestSenseLength;
+    addr24_t DataLength;
+    addr24_t DataPointer;
+    addr24_t LinkPointer;
+    uint8_t  LinkId;
+    uint8_t  HostStatus;
+    uint8_t  TargetStatus;
+    uint8_t  Reserved[2];
+    uint8_t  Cdb[12];
 } CCB;
 
 typedef struct {
@@ -347,7 +347,7 @@ typedef struct
         } lba;
     } u;
     uint8_t secount;
-    addr24  dma_address;
+    addr24_t  dma_address;
 } BIOSCMD;
 
 typedef struct {
@@ -356,8 +356,8 @@ typedef struct {
 } SGE32;
 
 typedef struct {
-    addr24 Segment;
-    addr24 SegmentPointer;
+    addr24_t Segment;
+    addr24_t SegmentPointer;
 } SGE;
 #pragma pack(pop)
 
