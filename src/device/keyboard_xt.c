@@ -454,6 +454,9 @@ kbd_adddata(uint16_t val)
                 case 0x54: /* SysRQ => toggle window */
                     t1000_syskey(0x00, 0x00, 0x08);
                     break;
+
+                default:
+                    break;
             }
         } else
             t1000_syskey(0x04, 0x00, 0x00); /* Reset 'Fn' indicator */
@@ -578,6 +581,9 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                 kbd->pravetz_flags = (kbd->pravetz_flags & ~(1 << bit)) | set;
             }
             break;
+
+        default:
+            break;
     }
 }
 
@@ -685,6 +691,9 @@ kbd_read(uint16_t port, void *priv)
             if (kbd->type == KBD_TYPE_PRAVETZ)
                 ret = kbd->pravetz_flags;
             kbd_log("XTkbd: Port %02X in : %02X\n", port, ret);
+            break;
+
+        default:
             break;
     }
 

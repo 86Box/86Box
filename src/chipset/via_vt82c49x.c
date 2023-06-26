@@ -189,6 +189,8 @@ vt82c49x_recalc(vt82c49x_t *dev)
             if (!shadow_bitmap)
                 mem_remap_top(384);
             break;
+        default:
+            break;
     }
 }
 
@@ -280,7 +282,12 @@ vt82c49x_write(uint16_t addr, uint8_t val, void *priv)
                                      (val & 0x40) ? "second" : "prim");
                     }
                     break;
+
+                default:
+                    break;
             }
+            break;
+        default:
             break;
     }
 }
@@ -302,6 +309,8 @@ vt82c49x_read(uint16_t addr, void *priv)
                 ret = pic_elcr_read(dev->index, &pic) | (dev->regs[dev->index] & 0x07);
             else if (dev->index < 0x80)
                 ret = dev->regs[dev->index];
+            break;
+        default:
             break;
     }
 

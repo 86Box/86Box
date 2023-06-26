@@ -31,6 +31,7 @@
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/nmi.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
@@ -424,6 +425,8 @@ recalc_mappings(void *priv)
                     virt_base += (1 << 24);
                     dev->row_virt_shift[bank_nr] = 12;
                     break;
+                default:
+                    break;
             }
         } else {
             switch (rammap[cur_rammap].bank[bank_nr]) {
@@ -489,6 +492,8 @@ recalc_mappings(void *priv)
                     virt_base += (1 << 24);
                     dev->row_virt_shift[bank_nr] = 12;
                     break;
+                default:
+                    break;
             }
         }
         switch (rammap[cur_rammap].bank[bank_nr]) {
@@ -533,6 +538,8 @@ recalc_mappings(void *priv)
                                                 ram_mirrored_interleaved_read, NULL, NULL,
                                                 ram_mirrored_interleaved_write, NULL, NULL);
                 }
+                break;
+            default:
                 break;
         }
     }
@@ -643,6 +650,8 @@ shadow_control(uint32_t addr, uint32_t size, int state, int ems_enable)
                 break;
             case 3:
                 mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                break;
+            default:
                 break;
         }
 
@@ -756,6 +765,8 @@ scamp_write(uint16_t addr, uint8_t val, void *priv)
                     case CFG_FEAXS:
                         shadow_recalc(dev);
                         break;
+                    default:
+                        break;
                 }
             }
             break;
@@ -766,6 +777,8 @@ scamp_write(uint16_t addr, uint8_t val, void *priv)
                 mem_a20_alt = 0;
                 mem_a20_recalc();
             }
+            break;
+        default:
             break;
     }
 }
@@ -809,6 +822,8 @@ scamp_read(uint16_t addr, void *priv)
             softresetx86();
             cpu_set_edx();
             break;
+        default:
+            break;
     }
 
     return ret;
@@ -823,7 +838,7 @@ scamp_close(void *priv)
 }
 
 static void *
-scamp_init(const device_t *info)
+scamp_init(UNUSED(const device_t *info))
 {
     uint32_t addr;
     int      c;
@@ -923,6 +938,8 @@ scamp_init(const device_t *info)
                 dev->row_phys_shift[c]  = 12;
                 dev->ibank_shift[c]     = 23;
                 dev->ram_interleaved[c] = 1;
+                break;
+            default:
                 break;
         }
     }

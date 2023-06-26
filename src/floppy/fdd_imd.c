@@ -51,7 +51,8 @@ typedef struct {
     FILE       *f;
     char       *buffer;
     uint32_t    start_offs;
-    int         track_count, sides;
+    int         track_count;
+    int         sides;
     int         track;
     uint16_t    disk_flags;
     int         track_width;
@@ -895,7 +896,9 @@ imd_load(int drive, char *fn)
     if (dev->sides == 2)
         dev->disk_flags |= 8;
 
-    /* imd_log("%i tracks, %i sides\n", dev->track_count, dev->sides); */
+#if 0
+    imd_log("%i tracks, %i sides\n", dev->track_count, dev->sides);
+#endif
 
     /* Attach this format to the D86F engine. */
     d86f_handler[drive].disk_flags        = disk_flags;

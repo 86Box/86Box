@@ -131,6 +131,8 @@ hasp_write_data(uint8_t val, void *priv)
                 return;
             }
             break;
+        default:
+            break;
     }
 
     dev->status = 0;
@@ -163,6 +165,8 @@ hasp_write_data(uint8_t val, void *priv)
                        I guessed the implicit ones with a bit of trial and error */
                     dev->status = 0x20;
                     return;
+                default:
+                    break;
             }
         }
 
@@ -198,6 +202,8 @@ hasp_write_data(uint8_t val, void *priv)
             case 0xf6:
                 /* again, just the relevant bits instead of the true values */
                 dev->status = 0x20;
+                break;
+            default:
                 break;
         }
     } else if (dev->state == HASP_STATE_PASSWORD_END) {

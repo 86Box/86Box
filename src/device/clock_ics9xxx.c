@@ -26,6 +26,7 @@
 #include <86box/i2c.h>
 #include "cpu.h"
 #include <86box/clock.h>
+#include <86box/plat_unused.h>
 
 #ifdef ENABLE_ICS9xxx_LOG
 int ics9xxx_do_log = ENABLE_ICS9xxx_LOG;
@@ -983,7 +984,7 @@ ics9xxx_detect(ics9xxx_t *dev)
 #endif
 
 static uint8_t
-ics9xxx_start(void *bus, uint8_t addr, uint8_t read, void *priv)
+ics9xxx_start(UNUSED(void *bus), UNUSED(uint8_t addr), UNUSED(uint8_t read), void *priv)
 {
     ics9xxx_t *dev = (ics9xxx_t *) priv;
 
@@ -995,7 +996,7 @@ ics9xxx_start(void *bus, uint8_t addr, uint8_t read, void *priv)
 }
 
 static uint8_t
-ics9xxx_read(void *bus, uint8_t addr, void *priv)
+ics9xxx_read(UNUSED(void *bus), UNUSED(uint8_t addr), void *priv)
 {
     ics9xxx_t *dev = (ics9xxx_t *) priv;
     uint8_t    ret = 0xff;
@@ -1049,7 +1050,7 @@ ics9xxx_set(ics9xxx_t *dev, uint8_t val)
 }
 
 static uint8_t
-ics9xxx_write(void *bus, uint8_t addr, uint8_t data, void *priv)
+ics9xxx_write(UNUSED(void *bus), UNUSED(uint8_t addr), uint8_t data, void *priv)
 {
     ics9xxx_t *dev = (ics9xxx_t *) priv;
 

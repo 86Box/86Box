@@ -27,6 +27,7 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 #include <86box/chipset.h>
 
 #ifdef ENABLE_OPTI391_LOG
@@ -164,7 +165,11 @@ opti391_write(uint16_t addr, uint8_t val, void *priv)
                     dev->regs[dev->index] = val;
                     opti391_shadow_recalc(dev);
                     break;
+                default:
+                    break;
             }
+            break;
+        default:
             break;
     }
 }
@@ -190,7 +195,7 @@ opti391_close(void *priv)
 }
 
 static void *
-opti391_init(const device_t *info)
+opti391_init(UNUSED(const device_t *info))
 {
     opti391_t *dev = (opti391_t *) malloc(sizeof(opti391_t));
     memset(dev, 0x00, sizeof(opti391_t));

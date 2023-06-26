@@ -31,6 +31,7 @@
 #include <86box/smram.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
@@ -244,10 +245,16 @@ ims8848_write(uint16_t addr, uint8_t val, void *priv)
                         /* Base Memory */
                         ims8848_base_memory(dev);
                         break;
+
+                    default:
+                        break;
                 }
                 dev->access_data = 0;
             }
             break;
+
+            default:
+                break;
     }
 }
 
@@ -275,6 +282,8 @@ ims8848_read(uint16_t addr, void *priv)
                 dev->access_data = 0;
             }
             ims8848_log("[R] [%i] REG %02X = %02X\n", old_ad, dev->idx, ret);
+            break;
+        default:
             break;
     }
 
@@ -308,6 +317,9 @@ ims8849_pci_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x52 ... 0x55:
                 dev->pci_conf[addr] = val;
+                break;
+
+            default:
                 break;
         }
 }
@@ -364,7 +376,7 @@ ims8848_close(void *priv)
 }
 
 static void *
-ims8848_init(const device_t *info)
+ims8848_init(UNUSED(const device_t *info))
 {
     ims8848_t *dev = (ims8848_t *) malloc(sizeof(ims8848_t));
     memset(dev, 0, sizeof(ims8848_t));

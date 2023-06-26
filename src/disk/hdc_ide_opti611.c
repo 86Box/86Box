@@ -28,6 +28,7 @@
 #include <86box/mem.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
+#include <86box/plat_unused.h>
 
 typedef struct
 {
@@ -67,6 +68,9 @@ opti611_cfg_write(uint16_t addr, uint8_t val, void *priv)
             break;
         case 0x0006:
             dev->regs[0x06] = val;
+            break;
+
+        default:
             break;
     }
 }
@@ -108,6 +112,9 @@ opti611_cfg_read(uint16_t addr, void *priv)
         case 0x0005:
         case 0x0006:
             ret = dev->regs[addr];
+            break;
+
+        default:
             break;
     }
 
@@ -153,7 +160,7 @@ opti611_ide_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static void
-opti611_ide_writew(uint16_t addr, uint16_t val, void *priv)
+opti611_ide_writew(uint16_t addr, UNUSED(uint16_t val), void *priv)
 {
     opti611_t *dev = (opti611_t *) priv;
 
@@ -169,7 +176,7 @@ opti611_ide_writew(uint16_t addr, uint16_t val, void *priv)
 }
 
 static void
-opti611_ide_writel(uint16_t addr, uint32_t val, void *priv)
+opti611_ide_writel(uint16_t addr, UNUSED(uint32_t val), void *priv)
 {
     opti611_t *dev = (opti611_t *) priv;
 
@@ -281,7 +288,7 @@ opti611_close(void *priv)
 }
 
 static void *
-opti611_init(const device_t *info)
+opti611_init(UNUSED(const device_t *info))
 {
     opti611_t *dev = (opti611_t *) malloc(sizeof(opti611_t));
     memset(dev, 0, sizeof(opti611_t));

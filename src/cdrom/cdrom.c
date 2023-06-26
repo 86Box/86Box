@@ -422,6 +422,8 @@ cdrom_seek(cdrom_t *dev, uint32_t pos, uint8_t vendor_type)
         case 0x80:
             pos = bcd2bin((pos >> 24) & 0xff);
             break;
+        default:
+            break;
     }
 
     dev->seek_pos = pos;
@@ -611,6 +613,8 @@ cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit)
             }
             dev->seek_pos = (pos >> 24) & 0xff;
             break;
+        default:
+            break;
     }
 
     /* Unlike standard commands, if there's a data track on an Audio CD (mixed mode)
@@ -651,6 +655,8 @@ cdrom_audio_play_toshiba(cdrom_t *dev, uint32_t pos, int type)
                 pos = dev->cd_end;
             }
             dev->cd_end = pos;
+            break;
+        default:
             break;
     }
 
@@ -697,6 +703,8 @@ cdrom_audio_scan(cdrom_t *dev, uint32_t pos, int type)
             break;
         case 0x80:
             dev->seek_pos = (pos >> 24) & 0xff;
+            break;
+        default:
             break;
     }
 
@@ -1331,13 +1339,15 @@ cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, in
             b[2] = 0;
             b[3] = 0;
             break;
+        default:
+            break;
     }
 
     return 1;
 }
 
 static int
-track_type_is_valid(uint8_t id, int type, int flags, int audio, int mode2)
+track_type_is_valid(UNUSED(uint8_t id), int type, int flags, int audio, int mode2)
 {
     if (!(flags & 0x70) && (flags & 0xf8)) { /* 0x08/0x80/0x88 are illegal modes */
         cdrom_log("CD-ROM %i: [Any Mode] 0x08/0x80/0x88 are illegal modes\n", id);

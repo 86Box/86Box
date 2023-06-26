@@ -277,6 +277,9 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
                         case 0x7:
                             cpu_set_isa_speed(cpu_busspeed / 6);
                             break;
+
+                        default:
+                            break;
                     }
                     break;
 
@@ -371,6 +374,9 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x71:
                     val &= 0x1f;
+                    break;
+
+                default:
                     break;
             }
 

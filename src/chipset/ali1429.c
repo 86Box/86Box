@@ -239,11 +239,15 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
                             case 6:
                                 cpu_set_isa_speed(cpu_busspeed / 12);
                                 break;
+                            default:
+                                break;
                         }
                         break;
 
                     case 0x21 ... 0x27:
                         dev->regs[dev->index] = val;
+                        break;
+                    default:
                         break;
                 }
 
@@ -260,9 +264,13 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
                         case 0x57:
                             dev->reg_57h = val;
                             break;
+                        default:
+                            break;
                     }
                 }
             }
+            break;
+        default:
             break;
     }
 }

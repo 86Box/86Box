@@ -315,6 +315,8 @@ sio_write(int func, int addr, uint8_t val, void *priv)
             cpu_fast_off_count = val + 1;
             cpu_fast_off_period_set(cpu_fast_off_val, dev->fast_off_period);
             break;
+        default:
+            break;
     }
 }
 
@@ -542,7 +544,9 @@ sio_init(const device_t *info)
 
     timer_add(&dev->timer, NULL, NULL, 0);
 
-    // device_add(&i8254_sec_device);
+#if 0
+    device_add(&i8254_sec_device);
+#endif
 
     return dev;
 }

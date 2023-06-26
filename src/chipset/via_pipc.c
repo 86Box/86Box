@@ -41,6 +41,7 @@
 #include <86box/ddma.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
@@ -162,7 +163,7 @@ static uint8_t pipc_read(int func, int addr, void *priv);
 static void    pipc_write(int func, int addr, uint8_t val, void *priv);
 
 static void
-pipc_io_trap_pact(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+pipc_io_trap_pact(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t write), UNUSED(uint8_t val), void *priv)
 {
     pipc_io_trap_t *trap = (pipc_io_trap_t *) priv;
 
@@ -175,7 +176,7 @@ pipc_io_trap_pact(int size, uint16_t addr, uint8_t write, uint8_t val, void *pri
 }
 
 static void
-pipc_io_trap_glb(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+pipc_io_trap_glb(UNUSED(int size), UNUSED(uint16_t addr), uint8_t write, UNUSED(uint8_t val), void *priv)
 {
     pipc_io_trap_t *trap = (pipc_io_trap_t *) priv;
 
@@ -332,6 +333,8 @@ pipc_reset_hard(void *priv)
             case VIA_PIPC_8231:
                 dev->usb_regs[i][0x08] = 0x1e;
                 break;
+            default:
+                break;
         }
 
         dev->usb_regs[i][0x0a] = 0x03;
@@ -391,6 +394,9 @@ pipc_reset_hard(void *priv)
 
             case VIA_PIPC_686B:
                 dev->power_regs[0x08] = 0x40;
+                break;
+
+            default:
                 break;
         }
         if (dev->local == VIA_PIPC_686B)
@@ -452,6 +458,9 @@ pipc_reset_hard(void *priv)
 
                 case VIA_PIPC_8231:
                     dev->ac97_regs[i][0x08] = (i == 0) ? 0x40 : 0x20;
+                    break;
+
+                default:
                     break;
             }
 

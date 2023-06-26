@@ -80,6 +80,7 @@
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/mouse.h>
+#include <86box/plat_unused.h>
 #include <86box/random.h>
 
 #define IRQ_MASK ((1 << 5) >> dev->irq)
@@ -216,6 +217,8 @@ lt_read(uint16_t port, void *priv)
             else
                 return 0xff;
             break;
+        default:
+            break;
     }
 
     bm_log("DEBUG: read from address 0x%04x, value = 0x%02x\n", port, value);
@@ -262,6 +265,8 @@ ms_read(uint16_t port, void *priv)
             break;
         case INP_PORT_CONFIG:
             bm_log("ERROR: Unsupported read from port 0x%04x\n", port);
+            break;
+        default:
             break;
     }
 
@@ -355,6 +360,9 @@ lt_write(uint16_t port, uint8_t val, void *priv)
                     dev->control_val &= ~bit; /* Reset */
             }
             break;
+
+        default:
+            break;
     }
 }
 
@@ -444,12 +452,15 @@ ms_write(uint16_t port, uint8_t val, void *priv)
         case INP_PORT_CONFIG:
             bm_log("ERROR: Unsupported write to port 0x%04x (value = 0x%02x)\n", port, val);
             break;
+
+        default:
+            break;
     }
 }
 
 /* The emulator calls us with an update on the host mouse device. */
 static int
-bm_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
+bm_poll(int x, int y, UNUSED(int z), int b, UNUSED(double abs_x), UNUSED(double abs_y), void *priv)
 {
     mouse_t *dev = (mouse_t *) priv;
     int xor ;

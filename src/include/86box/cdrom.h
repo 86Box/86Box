@@ -55,9 +55,9 @@ extern "C" {
 enum {
     CDROM_BUS_DISABLED = 0,
     CDROM_BUS_ATAPI    = 5,
-    CDROM_BUS_SCSI,
-    CDROM_BUS_MITSUMI,
-    CDROM_BUS_USB
+    CDROM_BUS_SCSI     = 6,
+    CDROM_BUS_MITSUMI  = 7,
+    CDROM_BUS_USB      = 8
 };
 
 #define KNOWN_CDROM_DRIVE_TYPES 35
@@ -67,12 +67,12 @@ enum {
 
 static const struct
 {
-    const char vendor[9];
-    const char model[17];
-    const char revision[5];
+    const char  vendor[9];
+    const char  model[17];
+    const char  revision[5];
     const char *name;
     const char *internal_name;
-    const int  bus_type;
+    const int   bus_type;
 } cdrom_drive_types[] =
 {
     { "86BOX",    "CD-ROM",             "1.00", "(ATAPI/SCSI) 86BOX CD-ROM 1.00", "86BOX_CD-ROM_1.00", BUS_TYPE_ALL}, /*1*/
@@ -117,15 +117,23 @@ static const struct
 struct cdrom;
 
 typedef struct {
-    uint8_t attr, track,
-        index,
-        abs_m, abs_s, abs_f,
-        rel_m, rel_s, rel_f;
+    uint8_t attr;
+    uint8_t track;
+    uint8_t index;
+    uint8_t abs_m;
+    uint8_t abs_s;
+    uint8_t abs_f;
+    uint8_t rel_m;
+    uint8_t rel_s;
+    uint8_t rel_f;
 } subchannel_t;
 
 typedef struct {
     int     number;
-    uint8_t attr, m, s, f;
+    uint8_t attr;
+    uint8_t m;
+    uint8_t s;
+    uint8_t f;
 } track_info_t;
 
 /* Define the various CD-ROM drive operations (ops). */
@@ -144,32 +152,39 @@ typedef struct cdrom {
     uint8_t id;
 
     union {
-        uint8_t res, res0, /* Reserved for other ID's. */
-            res1,
-            ide_channel, scsi_device_id;
+        uint8_t res;
+        uint8_t res0; /* Reserved for other ID's. */
+        uint8_t res1;
+        uint8_t ide_channel;
+        uint8_t scsi_device_id;
     };
 
-    uint8_t bus_type, /* 0 = ATAPI, 1 = SCSI */
-        bus_mode,     /* Bit 0 = PIO suported;
-                         Bit 1 = DMA supportd. */
-        cd_status,    /* Struct variable reserved for
-                         media status. */
-        speed, cur_speed;
+    uint8_t bus_type;  /* 0 = ATAPI, 1 = SCSI */
+    uint8_t bus_mode;  /* Bit 0 = PIO suported;
+                          Bit 1 = DMA supportd. */
+    uint8_t cd_status; /* Struct variable reserved for
+                          media status. */
+    uint8_t speed;
+    uint8_t cur_speed;
 
     int   is_dir;
     void *priv;
 
-    char image_path[1024],
-        prev_image_path[1024];
+    char image_path[1024];
+    char prev_image_path[1024];
 
     char *image_history[CD_IMAGE_HISTORY];
 
-    uint32_t sound_on, cdrom_capacity,
-        seek_pos,
-        seek_diff, cd_end, type;
+    uint32_t sound_on;
+    uint32_t cdrom_capacity;
+    uint32_t seek_pos;
+    uint32_t seek_diff;
+    uint32_t cd_end, type;
 
-    int host_drive, prev_host_drive,
-        cd_buflen, audio_op;
+    int host_drive;
+    int prev_host_drive;
+    int cd_buflen;
+    int audio_op;
 
     const cdrom_ops_t *ops;
 

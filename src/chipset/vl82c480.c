@@ -40,8 +40,8 @@ vl82c480_shflags(uint8_t access)
     int ret = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
 
     switch (access) {
-        case 0x00:
         default:
+        case 0x00:
             ret = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
             break;
         case 0x01:
@@ -125,6 +125,9 @@ vl82c480_write(uint16_t addr, uint8_t val, void *p)
             if (mem_a20_alt)
                 outb(0x92, inb(0x92) & ~2);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -151,6 +154,9 @@ vl82c480_read(uint16_t addr, void *p)
         case 0xef:
             softresetx86();
             cpu_set_edx();
+            break;
+
+        default:
             break;
     }
 

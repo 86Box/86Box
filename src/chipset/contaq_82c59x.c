@@ -82,6 +82,8 @@ contaq_82c59x_isa_speed_recalc(contaq_82c59x_t *dev)
             case 0x03:
                 cpu_set_isa_speed(cpu_busspeed / 5);
                 break;
+            default:
+                break;
         }
     }
 }
@@ -274,7 +276,13 @@ contaq_82c59x_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x7c:
                     dev->regs[dev->index] = val;
                     break;
+
+                default:
+                    break;
             }
+            break;
+        
+        default:
             break;
     }
 }

@@ -1191,6 +1191,8 @@ scat_out(uint16_t port, uint8_t val, void *priv)
             if ((dev->regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 dev->reg_2xA = ((dev->regs[SCAT_VERSION] & 0xf0) == 0) ? val : val & 0xc3;
             break;
+        default:
+            break;
     }
 }
 
@@ -1257,6 +1259,8 @@ scat_in(uint16_t port, void *priv)
         case 0x21a:
             if ((dev->regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 ret = dev->reg_2xA;
+            break;
+        default:
             break;
     }
 

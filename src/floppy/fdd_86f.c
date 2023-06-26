@@ -149,8 +149,14 @@ typedef union {
 } decoded_t;
 
 typedef struct {
-    uint8_t c, h, r, n;
-    uint8_t flags, pad, pad0, pad1;
+    uint8_t c;
+    uint8_t h;
+    uint8_t r;
+    uint8_t n;
+    uint8_t flags;
+    uint8_t pad;
+    uint8_t pad0;
+    uint8_t pad1;
     void   *prev;
 } sector_t;
 
@@ -175,9 +181,16 @@ typedef struct {
  */
 typedef struct {
     FILE   *f;
-    uint8_t state, fill, sector_count, format_state,
-        error_condition, id_found;
-    uint16_t  version, disk_flags, satisfying_bytes, turbo_pos;
+    uint8_t   state;
+    uint8_t   fill;
+    uint8_t   sector_count;
+    uint8_t   format_state;
+    uint8_t   error_condition;
+    uint8_t   id_found;
+    uint16_t  version;
+    uint16_t  disk_flags;
+    uint16_t  satisfying_bytes;
+    uint16_t  turbo_pos;
     uint16_t  cur_track;
     uint16_t  track_encoded_data[2][53048];
     uint16_t *track_surface_data[2];
@@ -191,9 +204,13 @@ typedef struct {
 #ifdef D86F_COMPRESS
     int is_compressed;
 #endif
-    int32_t  extra_bit_cells[2];
-    uint32_t file_size, index_count, track_pos, datac,
-        id_pos, dma_over;
+    int32_t     extra_bit_cells[2];
+    uint32_t    file_size;
+    uint32_t    index_count;
+    uint32_t    track_pos;
+    uint32_t    datac;
+    uint32_t    id_pos;
+    uint32_t    dma_over;
     uint32_t    index_hole_pos[2];
     uint32_t    track_offset[512];
     sector_id_t last_sector;
@@ -203,7 +220,8 @@ typedef struct {
     crc_t       calc_crc;
     crc_t       track_crc;
     char        original_file_name[2048];
-    uint8_t    *filebuf, *outbuf;
+    uint8_t    *filebuf;
+    uint8_t    *outbuf;
     sector_t   *last_side_sector[2];
 } d86f_t;
 
