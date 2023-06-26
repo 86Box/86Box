@@ -44,6 +44,7 @@
 #include <86box/timer.h>
 #include <86box/gameport.h>
 #include <86box/joystick_standard.h>
+#include <86box/plat_unused.h>
 
 static void *
 ch_flightstick_pro_init(void)
@@ -52,12 +53,13 @@ ch_flightstick_pro_init(void)
 }
 
 static void
-ch_flightstick_pro_close(void *p)
+ch_flightstick_pro_close(UNUSED(void *priv))
 {
+    //
 }
 
 static uint8_t
-ch_flightstick_pro_read(void *p)
+ch_flightstick_pro_read(UNUSED(void *priv))
 {
     uint8_t ret = 0xf0;
 
@@ -86,12 +88,13 @@ ch_flightstick_pro_read(void *p)
 }
 
 static void
-ch_flightstick_pro_write(void *p)
+ch_flightstick_pro_write(UNUSED(void *priv))
 {
+    //
 }
 
 static int
-ch_flightstick_pro_read_axis(void *p, int axis)
+ch_flightstick_pro_read_axis(UNUSED(void *priv), int axis)
 {
     if (!JOYSTICK_PRESENT(0))
         return AXIS_NOT_PRESENT;
@@ -111,8 +114,9 @@ ch_flightstick_pro_read_axis(void *p, int axis)
 }
 
 static void
-ch_flightstick_pro_a0_over(void *p)
+ch_flightstick_pro_a0_over(UNUSED(void *priv))
 {
+    //
 }
 
 const joystick_if_t joystick_ch_flightstick_pro = {

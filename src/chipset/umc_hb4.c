@@ -106,6 +106,7 @@
 
 #include <86box/mem.h>
 #include <86box/pci.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/smram.h>
 
@@ -261,7 +262,7 @@ hb4_smram(hb4_t *dev)
 }
 
 static void
-hb4_write(int func, int addr, uint8_t val, void *priv)
+hb4_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     hb4_t *dev = (hb4_t *) priv;
 
@@ -321,6 +322,9 @@ hb4_write(int func, int addr, uint8_t val, void *priv)
 
         case 0x61:
             dev->pci_conf[addr] = val;
+            break;
+
+        default:
             break;
     }
 }
@@ -383,7 +387,7 @@ hb4_close(void *priv)
 }
 
 static void *
-hb4_init(const device_t *info)
+hb4_init(UNUSED(const device_t *info))
 {
     hb4_t *dev = (hb4_t *) malloc(sizeof(hb4_t));
     memset(dev, 0, sizeof(hb4_t));

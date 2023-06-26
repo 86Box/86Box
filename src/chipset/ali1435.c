@@ -31,6 +31,7 @@
 #include <86box/timer.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc.h>
@@ -188,11 +189,12 @@ ali1435_write(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x23:
-            /* #ifdef ENABLE_ALI1435_LOG
-                            if (dev->index != 0x03)
-                                    ali1435_log("M1435: dev->regs[%02x] = %02x\n", dev->index, val);
-            #endif */
-
+#if 0
+#ifdef ENABLE_ALI1435_LOG
+            if (dev->index != 0x03)
+                ali1435_log("M1435: dev->regs[%02x] = %02x\n", dev->index, val);
+#endif
+#endif
             if (dev->index == 0x03)
                 dev->cfg_locked = (val != 0x69);
 
@@ -216,8 +218,13 @@ ali1435_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x07:
                         dev->regs[dev->index] = val;
                         break;
+
+                    default:
+                        break;
                 }
             }
+            break;
+        default:
             break;
     }
 }
@@ -277,7 +284,7 @@ ali1435_close(void *p)
 }
 
 static void *
-ali1435_init(const device_t *info)
+ali1435_init(UNUSED(const device_t *info))
 {
     ali1435_t *dev = (ali1435_t *) malloc(sizeof(ali1435_t));
     memset(dev, 0, sizeof(ali1435_t));
@@ -294,10 +301,12 @@ ali1435_init(const device_t *info)
 
     ali1435_reset(dev);
 
-    /* pci_set_irq_level(PCI_INTA, 0);
+#if 0
+    pci_set_irq_level(PCI_INTA, 0);
     pci_set_irq_level(PCI_INTB, 0);
     pci_set_irq_level(PCI_INTC, 0);
-    pci_set_irq_level(PCI_INTD, 0); */
+    pci_set_irq_level(PCI_INTD, 0);
+#endif
 
     return dev;
 }

@@ -30,6 +30,7 @@
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/port_92.h>
+#include <86box/plat_unused.h>
 #include <86box/chipset.h>
 
 #define ENABLED_SHADOW  (MEM_READ_INTERNAL | ((dev->regs[0x02] & 0x20) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL))
@@ -158,6 +159,8 @@ acc2168_write(uint16_t addr, uint8_t val, void *p)
                     break;
             }
             break;
+        default:
+            break;
     }
 }
 
@@ -178,7 +181,7 @@ acc2168_close(void *priv)
 }
 
 static void *
-acc2168_init(const device_t *info)
+acc2168_init(UNUSED(const device_t *info))
 {
     acc2168_t *dev = (acc2168_t *) malloc(sizeof(acc2168_t));
     memset(dev, 0, sizeof(acc2168_t));

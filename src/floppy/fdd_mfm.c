@@ -69,11 +69,14 @@ typedef struct {
     mfm_track_t     *tracks;
     mfm_adv_track_t *adv_tracks;
 
-    uint16_t disk_flags, pad;
+    uint16_t disk_flags;
+    uint16_t pad;
     uint16_t side_flags[2];
 
-    int br_rounded, rpm_rounded,
-        total_tracks, cur_track;
+    int br_rounded;
+    int rpm_rounded;
+    int total_tracks;
+    int cur_track;
 
     uint8_t track_data[2][256 * 1024];
 } mfm_t;
@@ -170,14 +173,14 @@ set_disk_flags(int drive)
     }
 
     switch (br) {
-        case 500:
-            temp_disk_flags |= 2;
+        default:
+        case 250:
+        case 300:
+            temp_disk_flags |= 0;
             break;
 
-        case 300:
-        case 250:
-        default:
-            temp_disk_flags |= 0;
+        case 500:
+            temp_disk_flags |= 2;
             break;
 
         case 1000:
@@ -285,8 +288,8 @@ get_raw_size(int drive, int side)
     if (track_index == -1) {
         mfm_log("MFM: Unable to find track (%i, %i)\n", dev->cur_track, side);
         switch (br) {
-            case 250:
             default:
+            case 250:
                 return is_300_rpm ? 100000 : 83333;
             case 300:
                 return is_300_rpm ? 120000 : 100000;

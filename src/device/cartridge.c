@@ -68,7 +68,7 @@ cart_read(uint32_t addr, void *priv)
 }
 
 static void
-cart_load_error(int drive, char *fn)
+cart_load_error(int drive, UNUSED(char *fn))
 {
     cartridge_log("Cartridge: could not load '%s'\n", fn);
     memset(cart_fns[drive], 0, sizeof(cart_fns[drive]));

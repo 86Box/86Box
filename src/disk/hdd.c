@@ -102,7 +102,7 @@ no_cdrom:
 }
 
 char *
-hdd_bus_to_string(int bus, int cdrom)
+hdd_bus_to_string(int bus, UNUSED(int cdrom))
 {
     char *s = "none";
 

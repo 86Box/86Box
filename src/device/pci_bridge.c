@@ -398,6 +398,9 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
                     return;
             }
             break;
+
+        default:
+            break;
     }
 
     dev->regs[addr] = val;
@@ -489,6 +492,9 @@ pci_bridge_reset(void *priv)
             dev->regs[0x04] = 0x07;
             dev->regs[0x06] = 0x20;
             dev->regs[0x07] = 0x02;
+            break;
+
+        default:
             break;
     }
 

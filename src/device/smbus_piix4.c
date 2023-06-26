@@ -383,6 +383,9 @@ unknown_protocol:
 
         default:
             break;
+
+        default:
+            break;
     }
 
     if (dev->next_stat) { /* schedule dispatch of any pending status register update */

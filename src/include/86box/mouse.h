@@ -43,16 +43,16 @@
 extern "C" {
 #endif
 
-extern int mouse_type;
-extern int mouse_x;
-extern int mouse_y;
-extern int mouse_z;
-extern int mouse_mode; /* 1 = Absolute, 0 = Relative */
-extern int mouse_tablet_in_proximity;
+extern int    mouse_type;
+extern int    mouse_x;
+extern int    mouse_y;
+extern int    mouse_z;
+extern int    mouse_mode; /* 1 = Absolute, 0 = Relative */
+extern int    mouse_tablet_in_proximity;
 extern double mouse_x_abs;
 extern double mouse_y_abs;
-extern int mouse_buttons;
-extern int tablet_tool_type;
+extern int    mouse_buttons;
+extern int    tablet_tool_type;
 
 #ifdef EMU_DEVICE_H
 extern const device_t *mouse_get_device(int mouse);

@@ -72,12 +72,12 @@ static uint8_t *aha1542cp_pnp_rom = NULL;
 
 #pragma pack(push, 1)
 typedef struct {
-    uint8_t CustomerSignature[20];
-    uint8_t uAutoRetry;
-    uint8_t uBoardSwitches;
-    uint8_t uChecksum;
-    uint8_t uUnknown;
-    addr24  BIOSMailboxAddress;
+    uint8_t  CustomerSignature[20];
+    uint8_t  uAutoRetry;
+    uint8_t  uBoardSwitches;
+    uint8_t  uChecksum;
+    uint8_t  uUnknown;
+    addr24_t BIOSMailboxAddress;
 } aha_setup_t;
 #pragma pack(pop)
 

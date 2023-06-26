@@ -31,6 +31,7 @@
 #include <86box/apm.h>
 #include <86box/machine.h>
 #include <86box/pic.h>
+#include <86box/plat_unused.h>
 #include <86box/mem.h>
 #include <86box/smram.h>
 #include <86box/pci.h>
@@ -133,6 +134,8 @@ sis_85c50x_smm_recalc(sis_85c50x_t *dev)
             smram_enable(dev->smram[0], host_base, 0xb0000, 0x8000, (dev->pci_conf[0x65] & 0x10), 1);
             smram_enable(dev->smram[1], host_base ^ 0x00100000, 0xa0000, 0x8000, (dev->pci_conf[0x65] & 0x10), 1);
             break;
+        default:
+            break;
     }
 }
 
@@ -213,7 +216,9 @@ sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf[addr] = (val & 0x7f);
                 break;
             case 0x69:
-                dev->pci_conf[addr] &= ~(val);
+                dev->pci_conf[addr] &= ~val;
+                break;
+            default:
                 break;
         }
 }
@@ -267,6 +272,8 @@ sis_85c50x_sb_write(int func, int addr, uint8_t val, void *priv)
             case 0x4b: /* ISA Master/DMA Memory Cycle Control Register 4 */
                 dev->pci_conf_sb[addr] = val;
                 break;
+            default:
+                break;
         }
 }
 
@@ -314,7 +321,11 @@ sis_85c50x_isa_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x85:
                     outb(0x70, val);
                     break;
+                default:
+                    break;
             }
+            break;
+        default:
             break;
     }
 }
@@ -335,6 +346,8 @@ sis_85c50x_isa_read(uint16_t addr, void *priv)
                 ret = inb(0x70);
             else
                 ret = dev->regs[dev->index];
+            break;
+        default:
             break;
     }
 
@@ -401,7 +414,7 @@ sis_85c50x_close(void *priv)
 }
 
 static void *
-sis_85c50x_init(const device_t *info)
+sis_85c50x_init(UNUSED(const device_t *info))
 {
     sis_85c50x_t *dev = (sis_85c50x_t *) malloc(sizeof(sis_85c50x_t));
     memset(dev, 0x00, sizeof(sis_85c50x_t));

@@ -212,6 +212,8 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
                             case 2:
                                 cpu_set_isa_pci_div(2);
                                 break;
+                            default:
+                                break;
                         }
 
                         break;
@@ -250,6 +252,9 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
                     case 0xa5 ... 0xa8:
                         dev->pci_conf_sb[func][addr] = val;
                         break;
+
+                    default:
+                        break;
                 }
                 break;
 
@@ -271,7 +276,12 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
                     case 0x41:
                         dev->pci_conf_sb[func][addr] = val;
                         break;
+
+                    default:
+                        break;
                 }
+                break;
+            default:
                 break;
         }
 }

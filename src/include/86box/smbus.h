@@ -29,9 +29,9 @@
 #define SMBUS_ALI7101_BLOCK_DATA_MASK (SMBUS_ALI7101_BLOCK_DATA_SIZE - 1)
 
 enum {
-    SMBUS_PIIX4 = 0,
-    SMBUS_INTEL_ICH2,
-    SMBUS_VIA
+    SMBUS_PIIX4      = 0,
+    SMBUS_INTEL_ICH2 = 1,
+    SMBUS_VIA        = 2
 };
 
 typedef struct {

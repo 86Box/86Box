@@ -34,6 +34,7 @@
 #include <86box/pic.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc.h>
@@ -97,6 +98,8 @@ i420ex_map(uint32_t addr, uint32_t size, int state)
         case 3:
             mem_set_mem_state_both(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
             break;
+        default:
+            break;
     }
     flushmmucache_nopc();
 }
@@ -118,9 +121,9 @@ i420ex_smram_handler_phase1(i420ex_t *dev)
     uint32_t size      = 0x00010000;
 
     switch (regs[0x70] & 0x07) {
+        default:
         case 0:
         case 1:
-        default:
             host_base = ram_base = 0x00000000;
             size                 = 0x00000000;
             break;
@@ -194,6 +197,8 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
                         ide_set_base(0, 0x0170);
                         ide_set_side(0, 0x0376);
                         ide_pri_enable();
+                        break;
+                    default:
                         break;
                 }
             }
@@ -356,6 +361,8 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
             cpu_fast_off_count = val + 1;
             cpu_fast_off_period_set(cpu_fast_off_val, dev->fast_off_period);
             break;
+        default:
+            break;
     }
 }
 
@@ -411,9 +418,9 @@ i420ex_reset_hard(void *priv)
 }
 
 static void
-i420ex_apm_out(uint16_t port, uint8_t val, void *p)
+i420ex_apm_out(UNUSED(uint16_t port), UNUSED(uint8_t val), void *priv)
 {
-    i420ex_t *dev = (i420ex_t *) p;
+    i420ex_t *dev = (i420ex_t *) priv;
 
     if (dev->apm->do_smi)
         dev->regs[0xaa] |= 0x80;

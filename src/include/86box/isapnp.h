@@ -25,25 +25,29 @@
 #define ISAPNP_DMA_DISABLED 4
 
 enum {
-    ISAPNP_CARD_DISABLE = 0,
-    ISAPNP_CARD_ENABLE  = 1,
-    ISAPNP_CARD_FORCE_CONFIG, /* cheat code for UMC UM8669F */
-    ISAPNP_CARD_NO_KEY        /* cheat code for Crystal CS423x */
+    ISAPNP_CARD_DISABLE      = 0,
+    ISAPNP_CARD_ENABLE       = 1,
+    ISAPNP_CARD_FORCE_CONFIG = 2, /* cheat code for UMC UM8669F */
+    ISAPNP_CARD_NO_KEY       = 3  /* cheat code for Crystal CS423x */
 };
 
 typedef struct {
     uint8_t activate;
     struct {
-        uint32_t base : 24, size : 24;
+        uint32_t base : 24;
+        uint32_t size : 24;
     } mem[4];
     struct {
-        uint32_t base, size;
+        uint32_t base;
+        uint32_t size;
     } mem32[4];
     struct {
         uint16_t base;
     } io[8];
     struct {
-        uint8_t irq : 4, level : 1, type : 1;
+        uint8_t irq : 4;
+        uint8_t level : 1;
+        uint8_t type : 1;
     } irq[2];
     struct {
         uint8_t dma : 3;

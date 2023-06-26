@@ -359,7 +359,7 @@ fdd_get_gap3_size(int rate, int size, int sector)
 uint8_t
 fdd_sector_size_code(int size)
 {
-    int ret = 2;
+    uint8_t ret = 2;
 
     switch (size) {
         case 128:

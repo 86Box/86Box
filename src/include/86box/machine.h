@@ -143,31 +143,31 @@
 #endif
 
 enum {
-    MACHINE_TYPE_NONE = 0,
-    MACHINE_TYPE_8088,
-    MACHINE_TYPE_8086,
-    MACHINE_TYPE_286,
-    MACHINE_TYPE_386SX,
-    MACHINE_TYPE_486SLC,
-    MACHINE_TYPE_386DX,
-    MACHINE_TYPE_386DX_486,
-    MACHINE_TYPE_486,
-    MACHINE_TYPE_486_S2,
-    MACHINE_TYPE_486_S3,
-    MACHINE_TYPE_486_MISC,
-    MACHINE_TYPE_SOCKET4,
-    MACHINE_TYPE_SOCKET5,
-    MACHINE_TYPE_SOCKET7_3V,
-    MACHINE_TYPE_SOCKET7,
-    MACHINE_TYPE_SOCKETS7,
-    MACHINE_TYPE_SOCKET8,
-    MACHINE_TYPE_SLOT1,
-    MACHINE_TYPE_SLOT1_2,
-    MACHINE_TYPE_SLOT1_370,
-    MACHINE_TYPE_SLOT2,
-    MACHINE_TYPE_SOCKET370,
-    MACHINE_TYPE_MISC,
-    MACHINE_TYPE_MAX
+    MACHINE_TYPE_NONE       = 0,
+    MACHINE_TYPE_8088       = 1,
+    MACHINE_TYPE_8086       = 2,
+    MACHINE_TYPE_286        = 3,
+    MACHINE_TYPE_386SX      = 4,
+    MACHINE_TYPE_486SLC     = 5,
+    MACHINE_TYPE_386DX      = 6,
+    MACHINE_TYPE_386DX_486  = 7,
+    MACHINE_TYPE_486        = 8,
+    MACHINE_TYPE_486_S2     = 9,
+    MACHINE_TYPE_486_S3     = 10,
+    MACHINE_TYPE_486_MISC   = 11,
+    MACHINE_TYPE_SOCKET4    = 12,
+    MACHINE_TYPE_SOCKET5    = 13,
+    MACHINE_TYPE_SOCKET7_3V = 14,
+    MACHINE_TYPE_SOCKET7    = 15,
+    MACHINE_TYPE_SOCKETS7   = 16,
+    MACHINE_TYPE_SOCKET8    = 17,
+    MACHINE_TYPE_SLOT1      = 18,
+    MACHINE_TYPE_SLOT1_2    = 19,
+    MACHINE_TYPE_SLOT1_370  = 20,
+    MACHINE_TYPE_SLOT2      = 21,
+    MACHINE_TYPE_SOCKET370  = 22,
+    MACHINE_TYPE_MISC       = 23,
+    MACHINE_TYPE_MAX        = 24
 };
 
 enum {
@@ -282,7 +282,10 @@ typedef struct _machine_ {
     uint32_t    type;
     uintptr_t   chipset;
     int (*init)(const struct _machine_ *);
-    uintptr_t              pad, pad0, pad1, pad2;
+    uintptr_t              pad;
+    uintptr_t              pad0;
+    uintptr_t              pad1;
+    uintptr_t              pad2;
     const machine_cpu_t    cpu;
     uintptr_t              bus_flags;
     uintptr_t              flags;

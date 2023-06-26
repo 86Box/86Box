@@ -136,6 +136,9 @@ i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda)
                     dev->slave_sda = !i2c_write(dev->i2c, dev->slave_addr, dev->byte);
                     i2c_gpio_log(2, "I2C GPIO %s: Write %02X %sACK\n", dev->bus_name, dev->byte, dev->slave_sda ? "N" : "");
                     break;
+                
+                default:
+                    break;
             }
         } else if (dev->pos == 9) {
             switch (dev->slave_read) {

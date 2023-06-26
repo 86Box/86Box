@@ -40,6 +40,7 @@
 #include <86box/pci.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
+#include <86box/plat.h>
 #include <86box/port_92.h>
 #include <86box/scsi_device.h>
 #include <86box/hdc.h>
@@ -135,6 +136,8 @@ smsc_ide_irqs(piix_t *dev)
         case 0x07:
             irq_line = 15;
             break;
+        default:
+            break;
     }
 
     sff_set_irq_line(dev->bm[0], irq_line);
@@ -203,7 +206,7 @@ piix_ide_bm_handlers(piix_t *dev)
 }
 
 static uint8_t
-kbc_alias_reg_read(uint16_t addr, void *p)
+kbc_alias_reg_read(UNUSED(uint16_t addr), UNUSED(void *priv))
 {
     uint8_t ret = inb(0x61);
 
@@ -211,7 +214,7 @@ kbc_alias_reg_read(uint16_t addr, void *p)
 }
 
 static void
-kbc_alias_reg_write(uint16_t addr, uint8_t val, void *p)
+kbc_alias_reg_write(UNUSED(uint16_t addr), uint8_t val, UNUSED(void *priv))
 {
     outb(0x61, val);
 }
@@ -267,7 +270,7 @@ nvr_update_io_mapping(piix_t *dev)
 }
 
 static void
-piix_trap_io(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+piix_trap_io(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t write), UNUSED(uint8_t val), void *priv)
 {
     piix_io_trap_t *trap = (piix_io_trap_t *) priv;
 
@@ -555,8 +558,8 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                 break;
             case 0x6a:
                 switch (dev->type) {
-                    case 1:
                     default:
+                    case 1:
                         fregs[0x6a] = (fregs[0x6a] & 0xfb) | (val & 0x04);
                         fregs[0x0e] = (val & 0x04) ? 0x80 : 0x00;
                         piix_log("PIIX: Write %02X\n", val);
@@ -791,6 +794,8 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                     }
                 }
                 break;
+            default:
+                break;
         }
     else if (func == 1)
         switch (addr) { /* IDE */
@@ -1012,6 +1017,8 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                     nvr_read_addr_set(!!(val & 0x10), dev->nvr);
                 }
                 break;
+            default:
+                break;
         }
     else if (func == 3)
         switch (addr) { /* Power Management */
@@ -1144,6 +1151,8 @@ piix_write(int func, int addr, uint8_t val, void *priv)
             case 0x91:
                 fregs[0x91] = val;
                 smbus_update_io_mapping(dev);
+                break;
+            default:
                 break;
         }
 }
@@ -1409,9 +1418,9 @@ piix_reset_hard(piix_t *dev)
 }
 
 static void
-piix_apm_out(uint16_t port, uint8_t val, void *p)
+piix_apm_out(UNUSED(uint16_t port), UNUSED(uint8_t val), void *priv)
 {
-    piix_t *dev = (piix_t *) p;
+    piix_t *dev = (piix_t *) priv;
 
     if (dev->apm->do_smi) {
         if (dev->type < 4)
@@ -1695,7 +1704,9 @@ piix_init(const device_t *info)
     else
         dev->board_config[1] |= 0x00;
 
-    // device_add(&i8254_sec_device);
+#if 0
+    device_add(&i8254_sec_device);
+#endif
 
     return dev;
 }

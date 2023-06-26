@@ -23,6 +23,7 @@
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
+#include <86box/plat_unused.h>
 
 enum {
     MODE_STREAM,
@@ -310,7 +311,7 @@ ps2_write(void *priv)
 }
 
 static int
-ps2_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
+ps2_poll(int x, int y, int z, int b, UNUSED(double abs_x), UNUSED(double abs_y), void *priv)
 {
     atkbc_dev_t *dev = (atkbc_dev_t *) priv;
     int packet_size = (dev->flags & FLAG_INTMODE) ? 4 : 3;

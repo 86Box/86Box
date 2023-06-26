@@ -491,8 +491,8 @@ static void
 keyboard_at_set_scancode_set(void)
 {
     switch (keyboard_mode) {
-        case 0x01:
         default:
+        case 0x01:
             keyboard_set_table(scancode_set1);
             break;
 

@@ -35,6 +35,7 @@ i450GX is way more popular of an option but needs more stuff.
 #include <86box/device.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
+#include <86box/plat_unused.h>
 #include <86box/smram.h>
 #include <86box/spd.h>
 #include <86box/chipset.h>
@@ -112,7 +113,9 @@ i450kx_vid_buf_recalc(i450kx_t *dev, int bus)
 {
     uint8_t *regs = bus ? dev->pb_pci_conf : dev->mc_pci_conf;
 
+#if 0
     // int state = (regs[0x58] & 0x02) ? (MEM_READ_EXTANY | MEM_WRITE_EXTANY) : (MEM_READ_DISABLED | MEM_WRITE_DISABLED);
+#endif
     int state = (regs[0x58] & 0x02) ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 
     if (bus)
@@ -167,8 +170,10 @@ pb_write(int func, int addr, uint8_t val, void *priv)
             case 0x4a:
             case 0x4b:
                 dev->pb_pci_conf[addr] = val;
-                // if (addr == 0x4a)
-                // pci_remap_bus(dev->bus_index, val);
+#if 0
+                if (addr == 0x4a)
+                    pci_remap_bus(dev->bus_index, val);
+#endif
                 break;
 
             case 0x4c:
@@ -365,6 +370,9 @@ pb_write(int func, int addr, uint8_t val, void *priv)
             case 0xca:
             case 0xcb:
                 dev->pb_pci_conf[addr] = val;
+                break;
+
+            default:
                 break;
         }
 }
@@ -590,6 +598,9 @@ mc_write(int func, int addr, uint8_t val, void *priv)
             case 0xcb:
                 dev->mc_pci_conf[addr] = val;
                 break;
+
+            default:
+                break;
         }
 }
 
@@ -613,7 +624,9 @@ i450kx_reset(void *priv)
     i450kx_t *dev = (i450kx_t *) priv;
     uint32_t  i;
 
+#if 0
     // pclog("i450KX: i450kx_reset()\n");
+#endif
 
     /* Defaults PB */
     dev->pb_pci_conf[0x00] = 0x86;
@@ -671,8 +684,10 @@ i450kx_reset(void *priv)
     dev->pb_pci_conf[0xa6] = 0xfe;
     dev->pb_pci_conf[0xa7] = 0x00;
     /* Note: Do NOT reset these two registers on programmed (TRC) hard reset! */
-    // dev->pb_pci_conf[0xb0] = 0x00;
-    // dev->pb_pci_conf[0xb1] = 0x00;
+#if 0
+    dev->pb_pci_conf[0xb0] = 0x00;
+    dev->pb_pci_conf[0xb1] = 0x00;
+#endif
     dev->pb_pci_conf[0xb4] = 0x00;
     dev->pb_pci_conf[0xb5] = 0x00;
     dev->pb_pci_conf[0xb8] = 0x05;
@@ -693,7 +708,9 @@ i450kx_reset(void *priv)
     dev->pb_pci_conf[0xca] = 0x00;
     dev->pb_pci_conf[0xcb] = 0x00;
 
-    // pci_remap_bus(dev->bus_index, 0x00);
+#if 0
+    pci_remap_bus(dev->bus_index, 0x00);
+#endif
     i450kx_smram_recalc(dev, 1);
     i450kx_vid_buf_recalc(dev, 1);
     pb_write(0, 0x59, 0x30, dev);
@@ -786,7 +803,7 @@ i450kx_close(void *priv)
 }
 
 static void *
-i450kx_init(const device_t *info)
+i450kx_init(UNUSED(const device_t *info))
 {
     i450kx_t *dev = (i450kx_t *) malloc(sizeof(i450kx_t));
     memset(dev, 0, sizeof(i450kx_t));

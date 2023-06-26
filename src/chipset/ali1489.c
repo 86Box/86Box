@@ -35,6 +35,7 @@
 #include <86box/nmi.h>
 #include <86box/pic.h>
 #include <86box/pci.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/smram.h>
 
@@ -125,6 +126,8 @@ ali1489_smram_recalc(ali1489_t *dev)
                 smram_enable(dev->smram, 0x68000, 0xa8000, 0x08000, (dev->regs[0x19] & 0x08), 1);
             else
                 smram_enable(dev->smram, 0x38000, 0xa8000, 0x08000, (dev->regs[0x19] & 0x08), 1);
+            break;
+        default:
             break;
     }
 
@@ -320,6 +323,8 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
                                 case 0x30:
                                     picint(1 << 10);
                                     break;
+                                default:
+                                    break;
                             }
                             dev->regs[0x35] |= 0x0e;
                         } else if (!(val & 0x10))
@@ -381,6 +386,8 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
                         /* TODO: When doing the IRQ and PCI IRQ rewrite, bits 0 to 3 toggle edge/level output. */
                         dev->regs[dev->index] = val;
                         break;
+                    default:
+                        break;
                 }
 
                 if (dev->index != 0x03) {
@@ -389,6 +396,9 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
             } else if (dev->index == 0x03)
                 dev->regs[dev->index] = val;
 
+            break;
+
+        default:
             break;
     }
 }
@@ -409,6 +419,8 @@ ali1489_read(uint16_t addr, void *priv)
             else
                 ret = dev->regs[dev->index];
             break;
+        default:
+            break;
     }
 
     ali1489_log("M1489: dev->regs[%02x] (%02x)\n", dev->index, ret);
@@ -417,7 +429,7 @@ ali1489_read(uint16_t addr, void *priv)
 }
 
 static void
-ali1489_pci_write(int func, int addr, uint8_t val, void *priv)
+ali1489_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     ali1489_t *dev = (ali1489_t *) priv;
 
@@ -433,11 +445,13 @@ ali1489_pci_write(int func, int addr, uint8_t val, void *priv)
         case 0x07:
             dev->pci_conf[0x07] &= ~(val & 0xb8);
             break;
+        default:
+            break;
     }
 }
 
 static uint8_t
-ali1489_pci_read(int func, int addr, void *priv)
+ali1489_pci_read(UNUSED(int func), int addr, void *priv)
 {
     ali1489_t *dev = (ali1489_t *) priv;
     uint8_t    ret = 0xff;
@@ -529,7 +543,11 @@ ali1489_ide_write(uint16_t addr, uint8_t val, void *priv)
                     dev->ide_regs[dev->ide_index] = val;
                     ali1489_ide_handler(dev);
                     break;
+                default:
+                    break;
             }
+            break;
+        default:
             break;
     }
 }
@@ -547,6 +565,8 @@ ali1489_ide_read(uint16_t addr, void *priv)
         case 0xfc:
             ret = dev->ide_regs[dev->ide_index];
             ali1489_log("M1489-IDE: dev->regs[%02x] (%02x)\n", dev->ide_index, ret);
+            break;
+        default:
             break;
     }
 
@@ -576,7 +596,7 @@ ali1489_close(void *priv)
 }
 
 static void *
-ali1489_init(const device_t *info)
+ali1489_init(UNUSED(const device_t *info))
 {
     ali1489_t *dev = (ali1489_t *) malloc(sizeof(ali1489_t));
     memset(dev, 0, sizeof(ali1489_t));

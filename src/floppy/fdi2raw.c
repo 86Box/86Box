@@ -30,15 +30,11 @@
 #include <stdlib.h>
 #include <wchar.h>
 
-/* IF UAE */
-/*#include "sysconfig.h"
-#include "sysdeps.h"
-#include "zfile.h"*/
-/* ELSE */
 #define xmalloc malloc
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <fdi2raw.h>
+#include <86box/plat_unused.h>
 
 #undef DEBUG
 #define VERBOSE
@@ -69,7 +65,8 @@ datalog(uint8_t *src, int len)
 {
     static char buf[1000];
     static int  offset;
-    int         i = 0, offset2;
+    int         i = 0;
+    int         offset2;
 
     offset2       = offset;
     buf[offset++] = '\'';
@@ -360,7 +357,7 @@ decode_raw_track(FDI *fdi)
 
 /* unknown track */
 static void
-zxx(FDI *fdi)
+zxx(UNUSED(FDI *fdi))
 {
     fdi2raw_log("track %d: unknown track type 0x%02.2X\n", fdi->current_track, fdi->track_type);
 }
@@ -373,7 +370,7 @@ static void zyy (FDI *fdi)
 #endif
 /* empty track */
 static void
-track_empty(FDI *fdi)
+track_empty(UNUSED(FDI *fdi))
 {
     return;
 }
@@ -647,8 +644,9 @@ s0d(FDI *fdi)
 /* ***** */
 
 /* just for testing integrity of Amiga sectors */
-
-/*static void rotateonebit (uint8_t *start, uint8_t *end, int shift)
+#if 0
+static void
+rotateonebit (uint8_t *start, uint8_t *end, int shift)
 {
         if (shift == 0)
                 return;
@@ -657,9 +655,10 @@ s0d(FDI *fdi)
                 start[0] |= start[1] >> (8 - shift);
                 start++;
         }
-}*/
+}
 
-/*static uint16_t getmfmword (uint8_t *mbuf)
+static uint16_t
+getmfmword (uint8_t *mbuf)
 {
         uint32_t v;
 
@@ -670,13 +669,15 @@ s0d(FDI *fdi)
         v |= mbuf[2];
         v >>= check_offset;
         return (uint16_t)v;
-}*/
+}
 
 #define MFMMASK 0x55555555
-/*static uint32_t getmfmlong (uint8_t * mbuf)
+static uint32_t
+getmfmlong (uint8_t * mbuf)
 {
         return ((getmfmword (mbuf) << 16) | getmfmword (mbuf + 2)) & MFMMASK;
-}*/
+}
+#endif
 
 #if 0
 static int amiga_check_track (FDI *fdi)
@@ -1237,7 +1238,7 @@ s1d(FDI *fdi)
 
 /* end marker */
 static void
-sff(FDI *fdi)
+sff(UNUSED(FDI *fdi))
 {
 }
 
@@ -1493,7 +1494,7 @@ fdi_decompress(int pulses, uint8_t *sizep, uint8_t *src, int *dofree)
 }
 
 static void
-dumpstream(int track, uint8_t *stream, int len)
+dumpstream(UNUSED(int track), UNUSED(uint8_t *stream), UNUSED(int len))
 {
 #if 0
     char name[100];
@@ -1713,7 +1714,9 @@ fdi2_decode(FDI *fdi, uint32_t totalavg, uint32_t *avgp, uint32_t *minp, uint32_
 
         /* calculates the current average bitrate from previous decoded data */
         uint32_t avg_size = (uint32_t) ((total << (2 + mfm)) / totaldiv); /* this is the new average size for one MFM bit */
-        /* uint32_t avg_size = (uint32_t)((((float)total)*((float)(mfm+1))*4.0) / ((float)totaldiv)); */
+#if 0
+        uint32_t avg_size = (uint32_t)((((float)total)*((float)(mfm+1))*4.0) / ((float)totaldiv));
+#endif
         /* you can try tighter ranges than 25%, or wider ranges. I would probably go for tighter... */
         if ((avg_size < (standard_MFM_8_bit_cell_size - (pulse_limitval * standard_MFM_8_bit_cell_size / 100))) || (avg_size > (standard_MFM_8_bit_cell_size + (pulse_limitval * standard_MFM_8_bit_cell_size / 100)))) {
             avg_size = standard_MFM_8_bit_cell_size;
@@ -2056,8 +2059,10 @@ decode_lowlevel_track(FDI *fdi, int track, struct fdi_cache *cache)
         idxp[i] = sum;
     }
     len = totalavg / 100000;
-    /* fdi2raw_log("totalavg=%u index=%d (%d) maxidx=%d weakbits=%d len=%d\n",
-            totalavg, indexoffset, maxidx, weakbits, len); */
+#if 0
+    fdi2raw_log("totalavg=%u index=%d (%d) maxidx=%d weakbits=%d len=%d\n",
+                totalavg, indexoffset, maxidx, weakbits, len);
+#endif
     cache->avgp        = avgp;
     cache->idxp        = idxp;
     cache->minp        = minp;
@@ -2239,8 +2244,10 @@ fdi2raw_loadrevolution_2(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int 
     fdi2_decode(fdi, cache->totalavg,
                 cache->avgp, cache->minp, cache->maxp, cache->idxp,
                 cache->maxidx, &idx, cache->pulses, mfm);
-    /* fdi2raw_log("track %d: nbits=%d avg len=%.2f weakbits=%d idx=%d\n",
-            track, bitoffset, (double)cache->totalavg / bitoffset, cache->weakbits, cache->indexoffset); */
+#if 0
+    fdi2raw_log("track %d: nbits=%d avg len=%.2f weakbits=%d idx=%d\n",
+                track, bitoffset, (double)cache->totalavg / bitoffset, cache->weakbits, cache->indexoffset);
+#endif
     len = fdi->out;
     if (cache->weakbits >= 10 && multirev)
         *multirev = 1;
@@ -2298,8 +2305,10 @@ fdi2raw_loadtrack(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int track, 
     else
         fdi->bit_rate = 250;
 
-    /* fdi2raw_log("track %d: srclen: %d track_type: %02.2X, bitrate: %d\n",
-            fdi->current_track, fdi->track_src_len, fdi->track_type, fdi->bit_rate); */
+#if 0
+    fdi2raw_log("track %d: srclen: %d track_type: %02.2X, bitrate: %d\n",
+                fdi->current_track, fdi->track_src_len, fdi->track_type, fdi->bit_rate);
+#endif
 
     if ((fdi->track_type & 0xc0) == 0x80) {
 

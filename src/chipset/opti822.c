@@ -33,6 +33,7 @@
 #include <86box/timer.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc.h>
@@ -107,7 +108,9 @@ opti822_update_irqs(opti822_t *dev, int set)
     int     irq_map[8] = { -1, 5, 9, 10, 11, 12, 14, 15 };
     pic_t  *temp_pic;
 
-    // dev->irq_convert = (dev->pci_regs[0x53] & 0x08);
+#if 0
+    dev->irq_convert = (dev->pci_regs[0x53] & 0x08);
+#endif
     dev->irq_convert = 1;
 
     for (uint8_t i = 0; i < 16; i++) {
@@ -325,6 +328,8 @@ opti822_pci_write(int func, int addr, uint8_t val, void *priv)
             }
             opti822_update_irqs(dev, 1);
             break;
+        default:
+            break;
     }
 }
 
@@ -383,7 +388,7 @@ opti822_close(void *p)
 }
 
 static void *
-opti822_init(const device_t *info)
+opti822_init(UNUSED(const device_t *info))
 {
     opti822_t *dev = (opti822_t *) malloc(sizeof(opti822_t));
     memset(dev, 0, sizeof(opti822_t));

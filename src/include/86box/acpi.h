@@ -143,7 +143,8 @@ typedef struct
     apm_t      *apm;
     tco_t      *tco;
     void       *i2c;
-    void      (*trap_update)(void *priv), *trap_priv;
+    void      (*trap_update)(void *priv);
+    void       *trap_priv;
 } acpi_t;
 
 /* Global variables. */

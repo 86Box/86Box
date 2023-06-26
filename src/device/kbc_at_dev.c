@@ -169,6 +169,8 @@ kbc_at_dev_poll(void *priv)
             if (dev->cmd_queue_start == dev->cmd_queue_end)
                 dev->state = DEV_STATE_EXECUTE_BAT;
             break;
+        default:
+            break;
     }
 }
 

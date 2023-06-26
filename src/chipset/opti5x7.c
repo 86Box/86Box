@@ -143,8 +143,12 @@ opti5x7_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x11: /* Master Cycle Control Register */
                     dev->regs[dev->idx] = val;
                     break;
+                default:
+                    break;
             }
             opti5x7_log("OPTi 5x7: dev->regs[%02x] = %02x\n", dev->idx, dev->regs[dev->idx]);
+            break;
+        default:
             break;
     }
 }

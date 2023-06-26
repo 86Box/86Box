@@ -544,7 +544,7 @@ pc_cas_set_out(pc_cassette_t *cas, unsigned char val)
 }
 
 void
-pc_cas_print_state(const pc_cassette_t *cas)
+pc_cas_print_state(UNUSED(const pc_cassette_t *cas))
 {
     cassette_log("%s %s %lu %s %lu\n", (cas->fname != NULL) ? cas->fname : "<none>", cas->pcm ? "pcm" : "cas", cas->srate, cas->save ? "save" : "load", cas->position);
 }
@@ -642,7 +642,7 @@ pc_cas_advance(pc_cassette_t *cas)
 }
 
 static void
-cassette_close(void *p)
+cassette_close(UNUSED(void *priv))
 {
     if (cassette != NULL) {
         free(cassette);
@@ -664,7 +664,7 @@ cassette_callback(void *p)
 }
 
 static void *
-cassette_init(const device_t *info)
+cassette_init(UNUSED(const device_t *info))
 {
     cassette = NULL;
 

@@ -427,7 +427,6 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 {
     rtcdev_t *dev = (rtcdev_t *) priv;
     int       reg = port - dev->base_addr;
-    int       i;
 
 #if ISARTC_DEBUG
     isartc_log("ISARTC: write(%04x, %02x)\n", port - dev->base_addr, val);
@@ -452,7 +451,7 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 
         case MM67_RSTRAM:
             if (val == 0xff) {
-                for (i = MM67_AL_MSEC; i <= MM67_AL_MON; i++)
+                for (uint8_t i = MM67_AL_MSEC; i <= MM67_AL_MON; i++)
                     dev->nvr.regs[i] = RTC_BCD(0);
                 dev->nvr.regs[MM67_DOW] = RTC_BCD(1);
                 dev->nvr.regs[MM67_DOM] = RTC_BCD(1);
