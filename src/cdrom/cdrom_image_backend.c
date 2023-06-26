@@ -768,7 +768,7 @@ cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, u
     }
 
     /* First track (track number must be 1). */
-    if (cdi->tracks_num == 0) {
+    if ((prev == NULL) || (cdi->tracks_num == 0)) {
         /* I guess this makes sure the structure is not filled with invalid data. */
         if (cur->number != 1)
             return 0;
