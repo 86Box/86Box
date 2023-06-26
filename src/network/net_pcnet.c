@@ -1208,6 +1208,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
     uint32_t iRxDesc;
     int      cbPacket;
     uint8_t  buf1[60];
+    RMD      rmd      = { 0 };
 
     if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev) || !size)
         return 0;
@@ -1254,7 +1255,6 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
             iRxDesc               = CSR_RCVRL(dev);
 
             while (iRxDesc-- > 0) {
-                RMD rmd;
                 pcnetRmdLoad(dev, &rmd, PHYSADDR(dev, GCPhys), 0);
                 GCPhys += cb;
             }

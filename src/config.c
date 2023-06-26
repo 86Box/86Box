@@ -866,6 +866,8 @@ load_network(void)
                         ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
                     }
                     strcpy(net_cards_conf[c].host_dev_name, "none");
+                } else {
+                    strncpy(net_cards_conf[c].host_dev_name, p, sizeof(net_cards_conf[c].host_dev_name) - 1);
                 }
             } else {
                 strncpy(net_cards_conf[c].host_dev_name, p, sizeof(net_cards_conf[c].host_dev_name) - 1);

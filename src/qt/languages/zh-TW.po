@@ -341,7 +341,7 @@ msgid "Machine:"
 msgstr "機型:"
 
 msgid "Configure"
-msgstr "配置"
+msgstr "設定"
 
 msgid "CPU type:"
 msgstr "CPU 類型:"
@@ -650,7 +650,7 @@ msgid "ZIP images"
 msgstr "ZIP 映像"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box 找不到任何可用的 ROM 映像。\n\n請<a href=\"https://github.com/86Box/roms/releases/latest\">下載</a>ROM 包並將其解壓到 \"roms\" 資料夾。"
+msgstr "86Box 找不到任何可用的 ROM 映像。\n\n請<a href=\"https://github.com/86Box/roms/releases/latest\">下載</a> ROM 套件並將其解壓到 \"roms\" 資料夾。"
 
 msgid "(empty)"
 msgstr "(空)"
@@ -875,7 +875,7 @@ msgid "Make sure libpcap is installed and that you are on a libpcap-compatible n
 msgstr "請確認 libpcap 已安裝且使用相容 libpcap 的網路連線。"
 
 msgid "Invalid configuration"
-msgstr "無效配置"
+msgstr "無效設定"
 
 msgid "freetype.dll"
 msgstr "freetype.dll"
@@ -923,7 +923,7 @@ msgid "CD-ROM images"
 msgstr "光碟映像"
 
 msgid "%hs Device Configuration"
-msgstr "%hs 裝置配置"
+msgstr "%hs 裝置設定"
 
 msgid "Monitor in sleep mode"
 msgstr "顯示器處在睡眠狀態"
@@ -935,7 +935,7 @@ msgid "OpenGL options"
 msgstr "OpenGL 選項"
 
 msgid "You are loading an unsupported configuration"
-msgstr "正在載入一個不受支援的配置"
+msgstr "正在載入一個不受支援的設定"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
 msgstr "此模擬電腦禁用了基於選定電腦的 CPU 類型過濾。\n\n能夠選中與所選機器本不相容的 CPU，但是可能會遇到與機器 BIOS 或其他軟體不相容的問題。\n\n啟用此設定不受官方支援，並且提交的任何錯誤報告可能會視為無效而關閉。"
@@ -998,10 +998,10 @@ msgid "Custom (large)..."
 msgstr "自訂 (大容量)..."
 
 msgid "Add New Hard Disk"
-msgstr "添加新硬碟"
+msgstr "增加新硬碟"
 
 msgid "Add Existing Hard Disk"
-msgstr "添加已存在的硬碟"
+msgstr "增加已存在的硬碟"
 
 msgid "HDI disk images cannot be larger than 4 GB."
 msgstr "HDI 磁碟映像不能超過 4 GB。"

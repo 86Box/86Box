@@ -587,6 +587,7 @@ ac97_codec_init(const device_t *info)
     /* Associate this codec to the current controller. */
     if (!ac97_codec || (ac97_codec_count <= 0)) {
         pclog("AC97 Codec %d: No controller to associate codec\n", ac97_codec_id);
+        free(dev);
         return NULL;
     }
     *ac97_codec = dev;

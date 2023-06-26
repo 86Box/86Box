@@ -150,8 +150,10 @@ device_add_common(const device_t *d, const device_t *cd, void *p, void *params, 
         if (devices[c] == NULL)
             break;
     }
-    if (c >= DEVICE_MAX)
+    if ((c >= DEVICE_MAX) || (c >= 256)) {
         fatal("DEVICE: too many devices\n");
+        return NULL;
+    }
 
     /* Do this so that a chained device_add will not identify the same ID
        its master device is already trying to assign. */

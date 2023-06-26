@@ -20,6 +20,7 @@
 #define _386_COMMON_H_
 
 #include <stddef.h>
+  #include <inttypes.h>
 
 #define readmemb_n(s, a, b) ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || (s) == 0xFFFFFFFF) ? readmembl_no_mmut((s) + (a), b) : *(uint8_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))))
 #define readmemw_n(s, a, b) ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || (s) == 0xFFFFFFFF || (((s) + (a)) & 1)) ? readmemwl_no_mmut((s) + (a), b) : *(uint16_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uint32_t) ((s) + (a))))
@@ -196,13 +197,21 @@ fastreadb(uint32_t a)
     uint8_t *t;
 
     if ((a >> 12) == pccache)
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+        return *((uint8_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
+#else
         return *((uint8_t *) &pccache2[a]);
+#endif
     t = getpccache(a);
     if (cpu_state.abrt)
         return 0;
     pccache  = a >> 12;
     pccache2 = t;
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+    return *((uint8_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
+#else
     return *((uint8_t *) &pccache2[a]);
+#endif
 }
 
 static __inline uint16_t
@@ -216,14 +225,22 @@ fastreadw(uint32_t a)
         return val;
     }
     if ((a >> 12) == pccache)
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+        return *((uint16_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
+#else
         return *((uint16_t *) &pccache2[a]);
+#endif
     t = getpccache(a);
     if (cpu_state.abrt)
         return 0;
 
     pccache  = a >> 12;
     pccache2 = t;
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+    return *((uint16_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
+#else
     return *((uint16_t *) &pccache2[a]);
+#endif
 }
 
 static __inline uint32_t
@@ -239,7 +256,11 @@ fastreadl(uint32_t a)
             pccache2 = t;
             pccache  = a >> 12;
         }
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+        return *((uint32_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
+#else
         return *((uint32_t *) &pccache2[a]);
+#endif
     }
     val = fastreadw(a);
     val |= (fastreadw(a + 2) << 16);
@@ -250,10 +271,18 @@ static __inline void *
 get_ram_ptr(uint32_t a)
 {
     if ((a >> 12) == pccache)
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+        return (void *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL));
+#else
         return &pccache2[a];
+#endif
     else {
         uint8_t *t = getpccache(a);
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+        return (void *) (((uintptr_t) &t[a] & 0x00000000ffffffffULL) | ((uintptr_t) &t[0] & 0xffffffff00000000ULL));
+#else
         return &t[a];
+#endif
     }
 }
 
@@ -271,14 +300,22 @@ fastreadw_fetch(uint32_t a)
         return val;
     }
     if ((a >> 12) == pccache)
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+        return *((uint16_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
+#else
         return *((uint16_t *) &pccache2[a]);
+#endif
     t = getpccache(a);
     if (cpu_state.abrt)
         return 0;
 
     pccache  = a >> 12;
     pccache2 = t;
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+    return *((uint16_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
+#else
     return *((uint16_t *) &pccache2[a]);
+#endif
 }
 
 static __inline uint32_t
@@ -294,7 +331,11 @@ fastreadl_fetch(uint32_t a)
             pccache2 = t;
             pccache  = a >> 12;
         }
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+        return *((uint32_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
+#else
         return *((uint32_t *) &pccache2[a]);
+#endif
     }
     val = fastreadw_fetch(a);
     if (opcode_length[val & 0xff] > 2)
