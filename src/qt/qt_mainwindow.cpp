@@ -1282,12 +1282,12 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
         }
     }
 
-    if (fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit_down()) {
+    if (fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit()) {
         ui->actionFullscreen->trigger();
         fs_off_signal = false;
     }
 
-    if (fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter_down()) {
+    if (fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter()) {
         ui->actionFullscreen->trigger();
         fs_on_signal = false;
     }
