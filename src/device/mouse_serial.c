@@ -48,27 +48,40 @@ enum {
     REPORT_PHASE_TRANSMIT
 };
 
-typedef struct {
-    const char *name; /* name of this device */
-    int8_t      type, /* type of this device */
-        port;
-    uint8_t flags, but, /* device flags */
-        want_data,
-        status, format,
-        prompt, on_change,
-        id_len, id[255],
-        data_len, data[5];
-    int abs_x, abs_y,
-        rel_x, rel_y,
-        rel_z,
-        oldb, lastb;
+typedef struct mouse_t {
+    const char *name;  /* name of this device */
+    int8_t      type;  /* type of this device */
+    int8_t      port;
+    uint8_t     flags; /* device flags */
+    uint8_t     but; 
+    uint8_t     want_data;
+    uint8_t     status;
+    uint8_t     format;
+    uint8_t     prompt;
+    uint8_t     on_change;
+    uint8_t     id_len;
+    uint8_t     id[255];
+    uint8_t     data_len;
+    uint8_t     data[5];
+    int         abs_x;
+    int         abs_y;
+    int         rel_x;
+    int         rel_y;
+    int         rel_z;
+    int         oldb;
+    int         lastb;
 
-    int command_pos, command_phase,
-        report_pos, report_phase,
-        command_enabled, report_enabled;
-    double     transmit_period, report_period,
-               auto_period;
-    pc_timer_t command_timer, report_timer;
+    int        command_pos;
+    int        command_phase;
+    int        report_pos;
+    int        report_phase;
+    int        command_enabled;
+    int        report_enabled;
+    double     transmit_period;
+    double     report_period;
+    double     auto_period;
+    pc_timer_t command_timer;
+    pc_timer_t report_timer;
 
     serial_t *serial;
 } mouse_t;
@@ -734,6 +747,7 @@ ltsermouse_write(UNUSED(struct serial_s *serial), void *priv, uint8_t data)
             case 0x6B:
                 ltsermouse_command_phase(dev, PHASE_BUTTONS);
                 break;
+
             default:
                 break;
         }

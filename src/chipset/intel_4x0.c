@@ -51,17 +51,20 @@ enum {
     INTEL_440ZX
 };
 
-typedef struct
-{
-    uint8_t pm2_cntrl,
-        smram_locked, max_drb,
-        drb_unit, drb_default;
-    uint8_t    regs[256], regs_locked[256];
+typedef struct i4x0_t {
+    uint8_t    pm2_cntrl;
+    uint8_t    smram_locked;
+    uint8_t    max_drb;
+    uint8_t    drb_unit;
+    uint8_t    drb_default;
+    uint8_t    regs[256];
+    uint8_t    regs_locked[256];
     uint8_t    mem_state[256];
     int        type;
-    smram_t   *smram_low, *smram_high;
+    smram_t   *smram_low;
+    smram_t   *smram_high;
     agpgart_t *agpgart;
-    void (*write_drbs)(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit);
+    void     (*write_drbs)(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit);
 } i4x0_t;
 
 #ifdef ENABLE_I4X0_LOG
@@ -1493,6 +1496,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                         break;
                 }
                 break;
+
+            default:
+                break;
         }
 }
 
@@ -1518,7 +1524,6 @@ static void
 i4x0_reset(void *priv)
 {
     i4x0_t *dev = (i4x0_t *) priv;
-    int     i;
 
     if ((dev->type == INTEL_440LX) || (dev->type == INTEL_440BX) || (dev->type == INTEL_440ZX))
         memset(dev->regs_locked, 0x00, 256 * sizeof(uint8_t));
@@ -1528,10 +1533,10 @@ i4x0_reset(void *priv)
     else
         i4x0_write(0, 0x59, 0x0f, priv);
 
-    for (i = 0; i < 6; i++)
+    for (uint8_t i = 0; i < 6; i++)
         i4x0_write(0, 0x5a + i, 0x00, priv);
 
-    for (i = 0; i <= dev->max_drb; i++)
+    for (uint8_t i = 0; i <= dev->max_drb; i++)
         i4x0_write(0, 0x60 + i, dev->drb_default, priv);
 
     if (dev->type >= INTEL_430FX) {
@@ -1552,9 +1557,9 @@ i4x0_reset(void *priv)
 }
 
 static void
-i4x0_close(void *p)
+i4x0_close(void *priv)
 {
-    i4x0_t *dev = (i4x0_t *) p;
+    i4x0_t *dev = (i4x0_t *) priv;
 
     smram_del(dev->smram_high);
     smram_del(dev->smram_low);
@@ -1562,9 +1567,8 @@ i4x0_close(void *p)
     free(dev);
 }
 
-static void
-    *
-    i4x0_init(const device_t *info)
+static void *
+i4x0_init(const device_t *info)
 {
     i4x0_t  *dev = (i4x0_t *) malloc(sizeof(i4x0_t));
     uint8_t *regs;

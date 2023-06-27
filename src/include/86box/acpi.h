@@ -75,7 +75,8 @@ typedef struct
     uint8_t  smireg;
     uint8_t  gpireg[3];
     uint8_t  gporeg[4];
-    uint8_t  extiotrapsts, extiotrapen;
+    uint8_t  extiotrapsts;
+    uint8_t  extiotrapen;
     uint16_t pmsts;
     uint16_t pmen;
     uint16_t pmcntrl;
@@ -120,8 +121,10 @@ typedef struct
     uint16_t    io_base;
     uint16_t    aux_io_base;
     int         vendor;
-    int         slot, irq_mode;
-    int         irq_pin, irq_line;
+    int         slot;
+    int         irq_mode;
+    int         irq_pin;
+    int         irq_line;
     int         mirq_is_level;
     pc_timer_t  timer;
     pc_timer_t  resume_timer;

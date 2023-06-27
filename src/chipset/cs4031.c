@@ -31,10 +31,9 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
-typedef struct
-{
-    uint8_t index,
-        regs[256];
+typedef struct cs4031_t {
+    uint8_t    index;
+    uint8_t    regs[256];
     port_92_t *port_92;
 } cs4031_t;
 

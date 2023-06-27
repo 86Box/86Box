@@ -460,6 +460,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
                         apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 3);
                         apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 3);
                         break;
+
                     default:
                         break;
                 }

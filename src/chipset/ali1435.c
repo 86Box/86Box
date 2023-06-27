@@ -43,10 +43,11 @@
 #define MEM_STATE_SHADOW_W 0x02
 #define MEM_STATE_SMRAM    0x04
 
-typedef struct
-{
-    uint8_t index, cfg_locked,
-        regs[16], pci_regs[256];
+typedef struct ali_1435_t {
+    uint8_t index;
+    uint8_t cfg_locked;
+    uint8_t regs[16];
+    uint8_t pci_regs[256];
 } ali1435_t;
 
 #define ENABLE_ALI1435_LOG 1
@@ -276,9 +277,9 @@ ali1435_reset(void *priv)
 }
 
 static void
-ali1435_close(void *p)
+ali1435_close(void *priv)
 {
-    ali1435_t *dev = (ali1435_t *) p;
+    ali1435_t *dev = (ali1435_t *) priv;
 
     free(dev);
 }

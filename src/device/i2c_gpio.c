@@ -24,11 +24,18 @@
 #include <86box/86box.h>
 #include <86box/i2c.h>
 
-typedef struct {
+typedef struct i2c_gpio_t {
     char   *bus_name;
     void   *i2c;
-    uint8_t prev_scl, prev_sda, slave_sda, started,
-        slave_addr_received, slave_addr, slave_read, pos, byte;
+    uint8_t prev_scl;
+    uint8_t prev_sda;
+    uint8_t slave_sda;
+    uint8_t started;
+    uint8_t slave_addr_received;
+    uint8_t slave_addr;
+    uint8_t slave_read;
+    uint8_t pos;
+    uint8_t byte;
 } i2c_gpio_t;
 
 #ifdef ENABLE_I2C_GPIO_LOG

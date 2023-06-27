@@ -66,37 +66,49 @@ static const uint32_t wacom_resolution_values[4] = {
     1270
 };
 
-typedef struct {
+typedef struct mouse_wacom_t {
     const char *name; /* name of this device */
-    int8_t      type, /* type of this device */
-        port;
-    uint8_t flags, but, /* device flags */
-        status, bits,
-        data_rec[0x200];
-    int abs_x, abs_y,
-        rel_x, rel_y,
-        oldb, b;
+    int8_t      type; /* type of this device */
+    int8_t      port;
+    uint8_t     flags; /* device flags */
+    uint8_t     but;
+    uint8_t     status;
+    uint8_t     bits;
+    uint8_t     data_rec[0x200];
+    int         abs_x;
+    int         abs_y;
+    int         rel_x;
+    int         rel_y;
+    int         oldb;
+    int         b;
 
     Fifo8 data;
 
-    int data_rec_pos, mode, interval;
-    int increment, suppressed_increment;
+    int data_rec_pos;
+    int mode;
+    int interval;
+    int increment;
+    int suppressed_increment;
     int transmission_stopped;
     int reset;
-    int transmit_id, transmit_id_pending;
+    int transmit_id;
+    int transmit_id_pending;
     int pressure_mode;
-    int suppressed, measurement;
+    int suppressed;
+    int measurement;
     int remote_req;
     
-    uint32_t x_res, y_res;
-    const wacom_tablet_id* tablet_type;
+    uint32_t               x_res;
+    uint32_t               y_res;
+    const wacom_tablet_id *tablet_type;
 
-    int last_abs_x, last_abs_y; /* Suppressed/Increment Mode. */
+    int last_abs_x; /* Suppressed/Increment Mode. */
+    int last_abs_y; /* Suppressed/Increment Mode. */
     union {
         uint32_t settings; /* Settings DWORD */
         /* We don't target any architectures except x86/x64/ARM32/ARM64.
            (The ABIs for those are explicit in little-endian bit ordering) */
-        struct {
+        struct settings_bits {
             uint8_t remote_mode            : 1;
             uint8_t bitpad_two_cursor_data : 1;
             uint8_t mm961_orientation      : 1;
@@ -128,7 +140,8 @@ typedef struct {
     };
 
     double     transmit_period;
-    double     old_tsc, reset_tsc;
+    double     old_tsc;
+    double     reset_tsc;
     pc_timer_t report_timer;
 
     serial_t *serial;

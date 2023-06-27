@@ -116,7 +116,9 @@ typedef struct {
 /* The addresses sent from the guest are absolute, ie. a LBA of 0 corresponds to a MSF of 00:00:00. Otherwise, the counter displayed by the guest is wrong:
    there is a seeming 2 seconds in which audio plays but counter does not move, while a data track before audio jumps to 2 seconds before the actual start
    of the audio while audio still plays. With an absolute conversion, the counter is fine. */
+#ifdef MSFtoLBA
 #undef MSFtoLBA
+#endif
 #define MSFtoLBA(m, s, f) ((((m * 60) + s) * 75) + f)
 
 #define CD_BCD(x)         (((x) % 10) | (((x) / 10) << 4))

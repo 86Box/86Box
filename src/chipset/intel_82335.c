@@ -57,12 +57,10 @@
 #define DEFINE_RC1_REMAP_SIZE ((dev->regs[0x24] & 0x02) ? 128 : 256)
 #define DEFINE_RC2_REMAP_SIZE ((dev->regs[0x26] & 0x02) ? 128 : 256)
 
-typedef struct
-{
+typedef struct intel_82335_t {
+    uint16_t regs[256];
 
-    uint16_t regs[256],
-
-        cfg_locked;
+    uint16_t cfg_locked;
 
 } intel_82335_t;
 
@@ -140,8 +138,8 @@ intel_82335_write(uint16_t addr, uint16_t val, void *priv)
                         shadowbios_write = (dev->regs[0x2e] & (1 << i)) && (base == romsize);
                         mem_set_mem_state_both(base, 0x8000, GRANULARITY_RECALC);
                     }
-                    break;
                 }
+                break;
 
             default:
                 break;

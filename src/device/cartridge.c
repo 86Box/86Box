@@ -29,8 +29,7 @@
 #include <86box/machine.h>
 #include <86box/cartridge.h>
 
-typedef struct
-{
+typedef struct cart_t {
     uint8_t *buf;
     uint32_t base;
 } cart_t;

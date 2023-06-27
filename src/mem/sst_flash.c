@@ -17,7 +17,7 @@
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
- *          Copyright 2020      Melissa Goad.
+ *          Copyright 2020      Melody Goad.
  *          Copyright 2022-2023 Jasmine Iwanek.
  */
 #include <stdio.h>

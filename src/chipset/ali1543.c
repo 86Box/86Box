@@ -47,10 +47,19 @@
 #include <86box/chipset.h>
 
 typedef struct ali1543_t {
-    uint8_t pci_conf[256], pmu_conf[256], usb_conf[256], ide_conf[256],
-        pci_slot, ide_slot, usb_slot, pmu_slot, usb_dev_enable, ide_dev_enable,
-        pmu_dev_enable, type;
-    int offset;
+    uint8_t pci_conf[256];
+    uint8_t pmu_conf[256];
+    uint8_t usb_conf[256];
+    uint8_t ide_conf[256];
+    uint8_t pci_slot;
+    uint8_t ide_slot;
+    uint8_t usb_slot;
+    uint8_t pmu_slot;
+    uint8_t usb_dev_enable;
+    uint8_t ide_dev_enable;
+    uint8_t pmu_dev_enable;
+    uint8_t type;
+    int     offset;
 
     apm_t           *apm;
     acpi_t          *acpi;
@@ -523,6 +532,7 @@ ali5229_ide_irq_handler(ali1543_t *dev)
                 sff_set_irq_mode(dev->ide_controller[ctl], 0 ^ ch, 0);
                 sff_set_irq_mode(dev->ide_controller[ctl], 1 ^ ch, 2);
                 break;
+
             default:
                 break;
         }
@@ -562,6 +572,7 @@ ali5229_ide_irq_handler(ali1543_t *dev)
                 sff_set_irq_mode(dev->ide_controller[ctl], 0 ^ ch, 0);
                 sff_set_irq_mode(dev->ide_controller[ctl], 1 ^ ch, 2);
                 break;
+
             default:
                 break;
         }

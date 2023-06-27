@@ -36,14 +36,16 @@
 #define GL518SM_VOLTAGE_TO_REG(v) ((uint8_t) round((v) / 19.0))
 #define GL518SM_VDD_TO_REG(v)     ((uint8_t) (((v) *4) / 95.0))
 
-typedef struct {
+typedef struct gl518sm_t {
     uint32_t      local;
     hwm_values_t *values;
 
     uint16_t regs[32];
     uint8_t  addr_register : 5;
 
-    uint8_t i2c_addr : 7, i2c_state : 2, i2c_enabled : 1;
+    uint8_t i2c_addr : 7;
+    uint8_t i2c_state : 2;
+    uint8_t i2c_enabled : 1;
 } gl518sm_t;
 
 static uint8_t  gl518sm_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv);

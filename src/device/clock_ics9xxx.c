@@ -52,26 +52,26 @@ ics9xxx_log(const char *fmt, ...)
     ,
 #define agp_div ram_mult /* temporarily saves space while neither field matters */
 
-typedef struct {
+typedef struct ics9xxx_frequency_t {
     uint16_t bus      : 15;
     uint8_t  ram_mult : 2; /* change to full float when this becomes useful */
     uint8_t  pci_div  : 3;
 } ics9xxx_frequency_t;
 
-typedef struct {
+typedef struct ics9xxx_model_t {
 #if defined(ENABLE_ICS9xxx_LOG) || defined(ENABLE_ICS9xxx_DETECT)
     const char *name; /* populated by macro */
 #endif
     uint8_t max_reg : 3;        /* largest register index */
     uint8_t regs[7];            /* default registers */
-    struct {                    /* for each hardware frequency select bit [FS0:FS4]: */
+    struct fs_regs {            /* for each hardware frequency select bit [FS0:FS4]: */
         uint8_t normal_reg : 3; /* which register (or -1) for non-inverted input (FSn) */
         uint8_t normal_bit : 3; /* which bit (0-7) for non-inverted input (FSn) */
         uint8_t inv_reg    : 3; /* which register (or -1) for inverted input (FSn#) */
         uint8_t inv_bit    : 3; /* which bit (0-7) for inverted input (FSn#) */
     } fs_regs[5];
     uint8_t normal_bits_fixed : 1; /* set to 1 if the non-inverted bits are straps (hardware select only) */
-    struct {                       /* hardware select bit, which should be cleared for hardware select (latched inputs), or set for programming */
+    struct hw_select {             /* hardware select bit, which should be cleared for hardware select (latched inputs), or set for programming */
         uint8_t normal_reg : 3;    /* which register (or -1) */
         uint8_t normal_bit : 3;    /* which bit (0-7) */
     } hw_select;
@@ -80,7 +80,7 @@ typedef struct {
     const ics9xxx_frequency_t *frequencies;     /* frequency table, if not using another model's table */
 } ics9xxx_model_t;
 
-typedef struct {
+typedef struct ics9xxx_t {
     uint8_t          model_idx;
     ics9xxx_model_t *model;
     device_t        *dyn_device;
@@ -942,7 +942,10 @@ ics9xxx_detect(ics9xxx_t *dev)
     if (!(dev->regs[detect_reg] & 0x40))
         pclog("Bit 3 of register %d is clear, probably in hardware select mode!\n", detect_reg);
 
-    uint8_t              i = 0, matches = 0, val, bitmask;
+    uint8_t              i = 0;
+    uint8_t              matches = 0;
+    uint8_t              val;
+    uint8_t              bitmask;
     ics9xxx_frequency_t *frequencies_ptr;
     uint32_t             delta;
     for (uint8_t j = 0; j < ICS9xxx_MAX; j++) {

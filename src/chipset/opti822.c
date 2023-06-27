@@ -41,10 +41,9 @@
 #include <86box/chipset.h>
 #include <86box/spd.h>
 
-typedef struct
-{
-    uint8_t irq_convert,
-        pci_regs[256];
+typedef struct opti822_t {
+    uint8_t irq_convert;
+    uint8_t pci_regs[256];
 } opti822_t;
 
 // #define ENABLE_OPTI822_LOG 1
@@ -328,6 +327,7 @@ opti822_pci_write(int func, int addr, uint8_t val, void *priv)
             }
             opti822_update_irqs(dev, 1);
             break;
+
         default:
             break;
     }

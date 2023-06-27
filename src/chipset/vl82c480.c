@@ -29,9 +29,9 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
-typedef struct {
-    uint8_t idx,
-        regs[256];
+typedef struct vl82c480_t {
+    uint8_t idx;
+    uint8_t regs[256];
 } vl82c480_t;
 
 static int
@@ -81,9 +81,9 @@ vl82c480_recalc(vl82c480_t *dev)
 }
 
 static void
-vl82c480_write(uint16_t addr, uint8_t val, void *p)
+vl82c480_write(uint16_t addr, uint8_t val, void *priv)
 {
-    vl82c480_t *dev = (vl82c480_t *) p;
+    vl82c480_t *dev = (vl82c480_t *) priv;
 
     switch (addr) {
         case 0xec:
@@ -132,9 +132,9 @@ vl82c480_write(uint16_t addr, uint8_t val, void *p)
 }
 
 static uint8_t
-vl82c480_read(uint16_t addr, void *p)
+vl82c480_read(uint16_t addr, void *priv)
 {
-    vl82c480_t *dev = (vl82c480_t *) p;
+    vl82c480_t *dev = (vl82c480_t *) priv;
     uint8_t     ret = 0xff;
 
     switch (addr) {
@@ -164,9 +164,9 @@ vl82c480_read(uint16_t addr, void *p)
 }
 
 static void
-vl82c480_close(void *p)
+vl82c480_close(void *priv)
 {
-    vl82c480_t *dev = (vl82c480_t *) p;
+    vl82c480_t *dev = (vl82c480_t *) priv;
 
     free(dev);
 }
