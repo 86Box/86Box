@@ -30,7 +30,7 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/intel_ich2_gpio.h>
-#include <86box/plat.h> // Replace with plat_unused.h when upstreamed
+#include <86box/plat_unused.h>
 
 #ifdef ENABLE_INTEL_ICH2_GPIO_LOG
 int intel_ich2_gpio_do_log = ENABLE_INTEL_ICH2_GPIO_LOG;

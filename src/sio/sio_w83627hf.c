@@ -94,7 +94,7 @@ Notes : ISAPnP is missing and the Hardware Monitor I2C is not implemented.
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
-#include <86box/plat.h> // Replace with plat_unused.h when upstreamed
+#include <86box/plat_unused.h>
 
 #include <86box/fdd.h>
 #include <86box/fdc.h>

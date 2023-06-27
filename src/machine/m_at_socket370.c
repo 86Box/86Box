@@ -597,7 +597,7 @@ machine_at_m6tsl_init(const machine_t *model)
     device_add(ics9xxx_get(ICS9250_08));    /* ICS Clock Chip */
     intel_815ep_spd_init();                 /* SPD */
 #if 0
-//  spd_register(SPD_TYPE_SDRAM, 0x7, 512); /* SPD */
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512); /* SPD */
 #endif
 
     return ret;

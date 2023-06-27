@@ -36,7 +36,7 @@
 #include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/tco.h>
-#include <86box/plat.h> // Replace with plat_unused.h when upstreamed
+#include <86box/plat_unused.h>
 
 #ifdef ENABLE_TCO_LOG
 int tco_do_log = ENABLE_TCO_LOG;

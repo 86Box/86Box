@@ -35,7 +35,7 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
-#include <86box/plat.h> // Replace with plat_unused.h when upstreamed
+#include <86box/plat_unused.h>
 
 #include <86box/snd_ac97.h>
 #include <86box/snd_ac97_intel.h>
