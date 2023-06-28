@@ -40,8 +40,6 @@ SettingsStorageControllers::SettingsStorageControllers(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->checkBoxCassette->setChecked(cassette_enable > 0);
-
     onCurrentMachineChanged(machine);
 }
 
@@ -198,6 +196,14 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     ui->checkBoxQuaternaryIDE->setEnabled(is_at > 0);
     ui->checkBoxTertiaryIDE->setChecked(ui->checkBoxTertiaryIDE->isEnabled() && ide_ter_enabled);
     ui->checkBoxQuaternaryIDE->setChecked(ui->checkBoxQuaternaryIDE->isEnabled() && ide_qua_enabled);
+
+    if (machine_has_bus(machineId, MACHINE_BUS_CASSETTE)) {
+        ui->checkBoxCassette->setChecked(cassette_enable > 0);
+        ui->checkBoxCassette->setEnabled(true);
+    } else {
+        ui->checkBoxCassette->setChecked(false);
+        ui->checkBoxCassette->setEnabled(false);
+    }
 }
 
 void
