@@ -40,6 +40,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/sio.h>
+#include <86box/plat_unused.h>
 
 #define HAS_IDE_FUNCTIONALITY dev->ide_function
 
@@ -61,9 +62,10 @@ pc87310_log(const char *fmt, ...)
 #    define pc87310_log(fmt, ...)
 #endif
 
-typedef struct {
-    uint8_t tries, ide_function,
-        reg;
+typedef struct pc87310_t {
+    uint8_t   tries;
+    uint8_t   ide_function;
+    uint8_t   reg;
     fdc_t    *fdc;
     serial_t *uart[2];
 } pc87310_t;
@@ -97,6 +99,9 @@ lpt1_handler(pc87310_t *dev)
             lpt_port = 0x000;
             lpt_irq  = 0xff;
             break;
+
+        default:
+            break;
     }
 
     if (lpt_port)
@@ -127,7 +132,7 @@ serial_handler(pc87310_t *dev, int uart)
 }
 
 static void
-pc87310_write(uint16_t port, uint8_t val, void *priv)
+pc87310_write(UNUSED(uint16_t port), uint8_t val, void *priv)
 {
     pc87310_t *dev = (pc87310_t *) priv;
     uint8_t    valxor;
@@ -189,7 +194,7 @@ pc87310_write(uint16_t port, uint8_t val, void *priv)
 }
 
 uint8_t
-pc87310_read(uint16_t port, void *priv)
+pc87310_read(UNUSED(uint16_t port), void *priv)
 {
     pc87310_t *dev = (pc87310_t *) priv;
     uint8_t    ret = 0xff;
@@ -219,7 +224,9 @@ pc87310_reset(pc87310_t *dev)
     serial_handler(dev, 0);
     serial_handler(dev, 1);
     fdc_reset(dev->fdc);
-    // ide_pri_enable();
+#if 0
+    ide_pri_enable();
+#endif
 }
 
 static void

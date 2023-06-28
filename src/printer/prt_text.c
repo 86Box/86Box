@@ -81,7 +81,7 @@
 #define PAGE_CPI 10.0 /* standard 10 cpi */
 #define PAGE_LPI 6.0  /* standard 6 lpi */
 
-typedef struct {
+typedef struct psurface_t {
     int8_t dirty; /* has the page been printed on? */
     char   pad;
 
@@ -91,7 +91,7 @@ typedef struct {
     char *chars; /* character data */
 } psurface_t;
 
-typedef struct {
+typedef struct prnt_t {
     const char *name;
 
     void *lpt;
@@ -104,23 +104,23 @@ typedef struct {
     pc_timer_t timeout_timer;
 
     /* page data (TODO: make configurable) */
-    double page_width, /* all in inches */
-        page_height,
-        left_margin,
-        top_margin,
-        right_margin,
-        bot_margin;
+    double page_width; /* all in inches */
+    double page_height;
+    double left_margin;
+    double top_margin;
+    double right_margin;
+    double bot_margin;
 
     /* internal page data */
     psurface_t *page;
-    uint8_t     max_chars,
-        max_lines;
-    uint8_t curr_x, /* print head position (chars) */
-        curr_y;
+    uint8_t     max_chars;
+    uint8_t     max_lines;
+    uint8_t     curr_x; /* print head position (x, chars) */
+    uint8_t     curr_y; /* print head position (y, chars) */
 
     /* font data */
-    double cpi, /* defined chars per inch */
-        lpi;    /* defined lines per inch */
+    double cpi; /* defined chars per inch */
+    double lpi; /* defined lines per inch */
 
     /* handshake data */
     uint8_t data;

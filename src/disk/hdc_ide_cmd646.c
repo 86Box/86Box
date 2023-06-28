@@ -37,7 +37,7 @@
 #include <86box/zip.h>
 #include <86box/mo.h>
 
-typedef struct {
+typedef struct cmd646_t {
     uint8_t     vlb_idx;
     uint8_t     single_channel;
     uint8_t     in_cfg;

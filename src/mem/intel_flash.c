@@ -58,25 +58,30 @@ enum {
 };
 
 typedef struct flash_t {
-    uint8_t command, status,
-        pad, flags,
-        *array;
+    uint8_t  command;
+    uint8_t  status;
+    uint8_t  pad;
+    uint8_t  flags;
+    uint8_t *array;
 
-    uint16_t flash_id, pad16;
+    uint16_t flash_id;
+    uint16_t pad16;
 
-    uint32_t program_addr,
-        block_start[BLOCKS_NUM], block_end[BLOCKS_NUM],
-        block_len[BLOCKS_NUM];
+    uint32_t program_addr;
+    uint32_t block_start[BLOCKS_NUM];
+    uint32_t block_end[BLOCKS_NUM];
+    uint32_t block_len[BLOCKS_NUM];
 
-    mem_mapping_t mapping[4], mapping_h[16];
+    mem_mapping_t mapping[4];
+    mem_mapping_t mapping_h[16];
 } flash_t;
 
 static char flash_path[1024];
 
 static uint8_t
-flash_read(uint32_t addr, void *p)
+flash_read(uint32_t addr, void *priv)
 {
-    flash_t *dev = (flash_t *) p;
+    flash_t *dev = (flash_t *) priv;
     uint8_t  ret = 0xff;
 
     if (dev->flags & FLAG_INV_A16)
@@ -84,8 +89,8 @@ flash_read(uint32_t addr, void *p)
     addr &= biosmask;
 
     switch (dev->command) {
-        case CMD_READ_ARRAY:
         default:
+        case CMD_READ_ARRAY:
             ret = dev->array[addr];
             break;
 
@@ -105,9 +110,9 @@ flash_read(uint32_t addr, void *p)
 }
 
 static uint16_t
-flash_readw(uint32_t addr, void *p)
+flash_readw(uint32_t addr, void *priv)
 {
-    flash_t  *dev = (flash_t *) p;
+    flash_t  *dev = (flash_t *) priv;
     uint16_t *q;
     uint16_t  ret = 0xffff;
 
@@ -123,8 +128,8 @@ flash_readw(uint32_t addr, void *p)
 
     if (dev->flags & FLAG_WORD)
         switch (dev->command) {
-            case CMD_READ_ARRAY:
             default:
+            case CMD_READ_ARRAY:
                 break;
 
             case CMD_IID:
@@ -143,9 +148,9 @@ flash_readw(uint32_t addr, void *p)
 }
 
 static uint32_t
-flash_readl(uint32_t addr, void *p)
+flash_readl(uint32_t addr, void *priv)
 {
-    flash_t  *dev = (flash_t *) p;
+    flash_t  *dev = (flash_t *) priv;
     uint32_t *q;
 
     if (dev->flags & FLAG_INV_A16)
@@ -158,10 +163,9 @@ flash_readl(uint32_t addr, void *p)
 }
 
 static void
-flash_write(uint32_t addr, uint8_t val, void *p)
+flash_write(uint32_t addr, uint8_t val, void *priv)
 {
-    flash_t *dev = (flash_t *) p;
-    int      i;
+    flash_t *dev = (flash_t *) priv;
     uint32_t bb_mask = biosmask & 0xffffe000;
     if (biosmask == 0x7ffff)
         bb_mask &= 0xffff8000;
@@ -175,7 +179,7 @@ flash_write(uint32_t addr, uint8_t val, void *p)
     switch (dev->command) {
         case CMD_ERASE_SETUP:
             if (val == CMD_ERASE_CONFIRM) {
-                for (i = 0; i < 6; i++) {
+                for (uint8_t i = 0; i < 6; i++) {
                     if ((i == dev->program_addr) && (addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
                         memset(&(dev->array[dev->block_start[i]]), 0xff, dev->block_len[i]);
                 }
@@ -200,7 +204,7 @@ flash_write(uint32_t addr, uint8_t val, void *p)
                     dev->status = 0;
                     break;
                 case CMD_ERASE_SETUP:
-                    for (i = 0; i < 7; i++) {
+                    for (uint8_t i = 0; i < 7; i++) {
                         if ((addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
                             dev->program_addr = i;
                     }
@@ -208,6 +212,9 @@ flash_write(uint32_t addr, uint8_t val, void *p)
                 case CMD_PROGRAM_SETUP:
                 case CMD_PROGRAM_SETUP_ALT:
                     dev->program_addr = addr;
+                    break;
+
+                default:
                     break;
             }
     }
@@ -266,16 +273,19 @@ flash_writew(uint32_t addr, uint16_t val, void *p)
                     case CMD_PROGRAM_SETUP_ALT:
                         dev->program_addr = addr;
                         break;
+
+                    default:
+                        break;
                 }
         }
 }
 
 static void
-flash_writel(uint32_t addr, uint32_t val, void *p)
+flash_writel(UNUSED(uint32_t addr), UNUSED(uint32_t val), UNUSED(void *priv))
 {
 #if 0
-    flash_writew(addr, val & 0xffff, p);
-    flash_writew(addr + 2, (val >> 16) & 0xffff, p);
+    flash_writew(addr, val & 0xffff, priv);
+    flash_writew(addr + 2, (val >> 16) & 0xffff, priv);
 #endif
 }
 
@@ -522,10 +532,10 @@ intel_flash_init(const device_t *info)
 }
 
 static void
-intel_flash_close(void *p)
+intel_flash_close(void *priv)
 {
     FILE    *f;
-    flash_t *dev = (flash_t *) p;
+    flash_t *dev = (flash_t *) priv;
 
     f = nvr_fopen(flash_path, "wb");
     fwrite(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, f);

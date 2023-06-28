@@ -36,6 +36,7 @@
 #include <86box/ppi.h>
 #include <86box/video.h>
 #include <86box/port_6x.h>
+#include <86box/plat_unused.h>
 
 #define PS2_REFRESH_TIME (16 * TIMER_USEC)
 
@@ -68,11 +69,14 @@ port_6x_write(uint16_t port, uint8_t val, void *priv)
             if (dev->flags & PORT_6X_TURBO)
                 xi8088_turbo_set(!!(val & 0x04));
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-port_61_read_simple(uint16_t port, void *priv)
+port_61_read_simple(UNUSED(uint16_t port), UNUSED(void *priv))
 {
     uint8_t ret = ppi.pb & 0x1f;
 
@@ -83,7 +87,7 @@ port_61_read_simple(uint16_t port, void *priv)
 }
 
 static uint8_t
-port_61_read(uint16_t port, void *priv)
+port_61_read(UNUSED(uint16_t port), void *priv)
 {
     port_6x_t *dev = (port_6x_t *) priv;
     uint8_t    ret = 0xff;
@@ -106,7 +110,7 @@ port_61_read(uint16_t port, void *priv)
 }
 
 static uint8_t
-port_62_read(uint16_t port, void *priv)
+port_62_read(UNUSED(uint16_t port), UNUSED(void *priv))
 {
     uint8_t ret = 0xff;
 

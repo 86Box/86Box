@@ -27,7 +27,7 @@
 
 #define MO_TIME  10.0
 
-typedef struct {
+typedef struct mo_type_t {
     uint32_t sectors;
     uint16_t bytes_per_sector;
 } mo_type_t;
@@ -48,8 +48,7 @@ static const mo_type_t mo_types[KNOWN_MO_TYPES] = {
     { 637041,  1024},
 };
 
-typedef struct
-{
+typedef struct mo_drive_type_t {
     const char vendor[9];
     const char model[16];
     const char revision[5];
@@ -89,7 +88,7 @@ enum {
     MO_BUS_USB      = 7
 };
 
-typedef struct {
+typedef struct mo_drive_t {
     uint8_t id;
 
     union {
@@ -121,7 +120,7 @@ typedef struct {
 
 } mo_drive_t;
 
-typedef struct {
+typedef struct mo_t {
     mode_sense_pages_t ms_pages_saved;
 
     mo_drive_t *drv;

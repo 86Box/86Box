@@ -37,6 +37,7 @@
 #include <86box/gameport.h>
 #include <86box/sio.h>
 #include <86box/isapnp.h>
+#include <86box/plat_unused.h>
 
 /* This ROM was reconstructed out of many assumptions, some of which based on the IT8671F. */
 static uint8_t um8669f_pnp_rom[] = {
@@ -112,7 +113,8 @@ um8669f_log(const char *fmt, ...)
 #endif
 
 typedef struct um8669f_t {
-    int                     locked, cur_reg_108;
+    int                     locked;
+    int                     cur_reg_108;
     void                   *pnp_card;
     isapnp_device_config_t *pnp_config[5];
 
@@ -184,6 +186,9 @@ um8669f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
                 um8669f_log("UM8669F: Game port disabled\n");
                 gameport_remap(dev->gameport, 0);
             }
+
+        default:
+            break;
     }
 }
 
@@ -263,7 +268,7 @@ um8669f_close(void *priv)
 }
 
 static void *
-um8669f_init(const device_t *info)
+um8669f_init(UNUSED(const device_t *info))
 {
     um8669f_log("UM8669F: init()\n");
 

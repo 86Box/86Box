@@ -17,8 +17,7 @@
 #define LPT6_IRQ  5
 #endif
 
-typedef struct
-{
+typedef struct lpt_device_t {
     const char *name;
     const char *internal_name;
 

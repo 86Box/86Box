@@ -550,7 +550,9 @@ flush_texture_cache(voodoo_t *voodoo, uint32_t dirty_addr, int tmu)
     int wait_for_idle = 0;
 
     memset(voodoo->texture_present[tmu], 0, sizeof(voodoo->texture_present[0]));
-    //        voodoo_texture_log("Evict %08x %i\n", dirty_addr, sizeof(voodoo->texture_present));
+#if 0
+    voodoo_texture_log("Evict %08x %i\n", dirty_addr, sizeof(voodoo->texture_present));
+#endif
     for (uint8_t c = 0; c < TEX_CACHE_MAX; c++) {
         if (voodoo->texture_cache[tmu][c].base != -1) {
             for (uint8_t d = 0; d < 4; d++) {
@@ -618,8 +620,10 @@ voodoo_tex_writel(uint32_t addr, uint32_t val, void *p)
         if (lod > LOD_MAX)
             return;
 
-        //                if (addr >= 0x200000)
-        //                        return;
+#if 0
+        if (addr >= 0x200000)
+            return;
+#endif
 
         if (voodoo->params.tformat[tmu] & 8)
             addr = voodoo->params.tex_base[tmu][lod] + s * 2 + (t << voodoo->params.tex_shift[tmu][lod]) * 2;
@@ -629,11 +633,15 @@ voodoo_tex_writel(uint32_t addr, uint32_t val, void *p)
         addr = (addr & 0x1ffffc) + voodoo->params.tex_base[tmu][0];
 
     if (voodoo->texture_present[tmu][(addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT]) {
-        //                voodoo_texture_log("texture_present at %08x %i\n", addr, (addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT);
+#if 0
+        voodoo_texture_log("texture_present at %08x %i\n", addr, (addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT);
+#endif
         flush_texture_cache(voodoo, addr & voodoo->texture_mask, tmu);
     }
     if (voodoo->type == VOODOO_3 && voodoo->texture_present[tmu ^ 1][(addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT]) {
-        //                voodoo_texture_log("texture_present at %08x %i\n", addr, (addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT);
+#if 0
+        voodoo_texture_log("texture_present at %08x %i\n", addr, (addr & voodoo->texture_mask) >> TEX_DIRTY_SHIFT);
+#endif
         flush_texture_cache(voodoo, addr & voodoo->texture_mask, tmu ^ 1);
     }
     *(uint32_t *) (&voodoo->tex_mem[tmu][addr & voodoo->texture_mask]) = val;
