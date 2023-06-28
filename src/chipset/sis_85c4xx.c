@@ -36,14 +36,19 @@
 #include <86box/machine.h>
 #include <86box/chipset.h>
 
-typedef struct
-{
-    uint8_t cur_reg, tries,
-        reg_base, reg_last,
-        reg_00, is_471,
-        force_flush, shadowed,
-        smram_enabled, pad,
-        regs[39], scratch[2];
+typedef struct sis_85c4xx_t {
+    uint8_t    cur_reg;
+    uint8_t    tries;
+    uint8_t    reg_base;
+    uint8_t    reg_last;
+    uint8_t    reg_00;
+    uint8_t    is_471;
+    uint8_t    force_flush;
+    uint8_t    shadowed;
+    uint8_t    smram_enabled;
+    uint8_t    pad;
+    uint8_t    regs[39];
+    uint8_t    scratch[2];
     uint32_t   mem_state[8];
     smram_t   *smram;
     port_92_t *port_92;
@@ -278,6 +283,8 @@ sis_85c4xx_in(uint16_t port, void *priv)
         case 0xe1:
         case 0xe2:
             ret = dev->scratch[port - 0xe1];
+            break;
+
         default:
             break;
     }

@@ -35,13 +35,14 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
-typedef struct
-{
-    uint8_t has_ide, index,
-        regs[256];
+typedef struct vt82c49x_t {
+    uint8_t has_ide;
+    uint8_t index;
+    uint8_t regs[256];
 
-    smram_t *smram_smm, *smram_low,
-        *smram_high;
+    smram_t *smram_smm;
+    smram_t *smram_low;
+    smram_t *smram_high;
 } vt82c49x_t;
 
 #ifdef ENABLE_VT82C49X_LOG
@@ -65,7 +66,6 @@ vt82c49x_log(const char *fmt, ...)
 static void
 vt82c49x_recalc(vt82c49x_t *dev)
 {
-    int      i;
     int      relocate;
     uint8_t  reg;
     uint8_t  bit;
@@ -78,7 +78,7 @@ vt82c49x_recalc(vt82c49x_t *dev)
     shadowbios       = 0;
     shadowbios_write = 0;
 
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         base = 0xc0000 + (i << 14);
         reg  = 0x30 + (i >> 2);
         bit  = (i & 3) << 1;
@@ -123,7 +123,7 @@ vt82c49x_recalc(vt82c49x_t *dev)
         mem_set_mem_state_both(base, 0x4000, state);
     }
 
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         base = 0xe0000 + (i << 15);
         bit  = 6 - (i & 2);
 
@@ -287,6 +287,7 @@ vt82c49x_write(uint16_t addr, uint8_t val, void *priv)
                     break;
             }
             break;
+
         default:
             break;
     }
@@ -310,6 +311,7 @@ vt82c49x_read(uint16_t addr, void *priv)
             else if (dev->index < 0x80)
                 ret = dev->regs[dev->index];
             break;
+
         default:
             break;
     }

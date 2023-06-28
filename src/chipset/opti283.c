@@ -50,15 +50,15 @@ opti283_log(const char *fmt, ...)
 #    define opti283_log(fmt, ...)
 #endif
 
-typedef struct
-{
-    uint32_t phys, virt;
+typedef struct mem_remapping_t {
+    uint32_t phys;
+    uint32_t virt;
 } mem_remapping_t;
 
-typedef struct
-{
-    uint8_t index, shadow_high,
-        regs[256];
+typedef struct opti283_t {
+    uint8_t         index;
+    uint8_t         shadow_high;
+    uint8_t         regs[256];
     mem_remapping_t mem_remappings[2];
     mem_mapping_t   mem_mappings[2];
 } opti283_t;
@@ -235,10 +235,12 @@ opti283_write(uint16_t addr, uint8_t val, void *priv)
                     dev->regs[dev->index] = val;
                     opti283_shadow_recalc(dev);
                     break;
+
                 default:
                     break;
             }
             break;
+
         default:
             break;
     }

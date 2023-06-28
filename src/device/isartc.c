@@ -90,7 +90,7 @@
 
 #define ISARTC_DEBUG  0
 
-typedef struct {
+typedef struct rtcdev_t {
     const char *name;  /* board name */
     uint8_t     board; /* board type */
 
@@ -103,18 +103,18 @@ typedef struct {
     uint32_t base_addr; /* configured I/O address */
 
     /* Fields for the specific driver. */
-    void (*f_wr)(uint16_t, uint8_t, void *);
+    void    (*f_wr)(uint16_t, uint8_t, void *);
     uint8_t (*f_rd)(uint16_t, void *);
-    int8_t year; /* register for YEAR value */
-    char   pad[3];
+    int8_t    year; /* register for YEAR value */
+    char      pad[3];
 
     nvr_t nvr; /* RTC/NVR */
 } rtcdev_t;
 
 /************************************************************************
- *                                    *
- *            Driver for the NatSemi MM58167 chip.        *
- *                                    *
+ *                                                                      *
+ *            Driver for the NatSemi MM58167 chip.                      *
+ *                                                                      *
  ************************************************************************/
 #define MM67_REGS 32
 
@@ -499,9 +499,9 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 }
 
 /************************************************************************
- *                                    *
- *            Generic code for all supported chips.        *
- *                                    *
+ *                                                                      *
+ *            Generic code for all supported chips.                     *
+ *                                                                      *
  ************************************************************************/
 
 /* Initialize the device for use. */

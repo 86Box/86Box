@@ -572,7 +572,6 @@ static void
 ali1541_reset(void *priv)
 {
     ali1541_t *dev = (ali1541_t *) priv;
-    int        i;
 
     /* Default Registers */
     dev->pci_conf[0x00] = 0xb9;
@@ -615,12 +614,13 @@ ali1541_reset(void *priv)
     ali1541_write(0, 0x54, 0x00, dev);
     ali1541_write(0, 0x55, 0x00, dev);
 
-    for (i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 4; i++)
         ali1541_write(0, 0x56 + i, 0x00, dev);
 
-    ali1541_write(0, 0x60 + i, 0x07, dev);
-    ali1541_write(0, 0x61 + i, 0x40, dev);
-    for (i = 0; i < 14; i += 2) {
+    ali1541_write(0, 0x60, 0x07, dev);
+    ali1541_write(0, 0x61, 0x40, dev);
+
+    for (uint8_t i = 0; i < 14; i += 2) {
         ali1541_write(0, 0x62 + i, 0x00, dev);
         ali1541_write(0, 0x63 + i, 0x00, dev);
     }

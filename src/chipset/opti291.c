@@ -50,9 +50,9 @@ opti291_log(const char *fmt, ...)
 #    define opti291_log(fmt, ...)
 #endif
 
-typedef struct
-{
-    uint8_t    index, regs[256];
+typedef struct opti291_t {
+    uint8_t    index;
+    uint8_t    regs[256];
     port_92_t *port_92;
 } opti291_t;
 
@@ -108,10 +108,12 @@ opti291_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x2c:
                     dev->regs[dev->index] = val;
                     break;
+
                 default:
                     break;
             }
             break;
+
         default:
             break;
     }

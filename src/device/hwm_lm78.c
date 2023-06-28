@@ -49,7 +49,7 @@
 #define LM78_NEG_VOLTAGE(v, r)  (v * (604.0 / ((double) r)))                                /* negative voltage formula from the W83781D datasheet */
 #define LM78_NEG_VOLTAGE2(v, r) (((3600 + v) * (((double) r) / (((double) r) + 56.0))) - v) /* negative voltage formula from the W83782D datasheet */
 
-typedef struct {
+typedef struct lm78_t {
     uint32_t      local;
     hwm_values_t *values;
     device_t     *lm75[2];
@@ -57,10 +57,10 @@ typedef struct {
 
     uint8_t regs[256];
     union {
-        struct {
+        struct w83782d {
             uint8_t regs[2][16];
         } w83782d;
-        struct {
+        struct as99127f {
             uint8_t regs[3][128];
 
             uint8_t  nvram[1024], nvram_i2c_state : 2, nvram_updated : 1;
@@ -70,9 +70,12 @@ typedef struct {
             uint8_t security_i2c_state : 1, security_addr_register : 7;
         } as99127f;
     };
-    uint8_t addr_register, data_register;
+    uint8_t addr_register;
+    uint8_t data_register;
 
-    uint8_t i2c_addr : 7, i2c_state : 1, i2c_enabled : 1;
+    uint8_t i2c_addr : 7;
+    uint8_t i2c_state : 1;
+    uint8_t i2c_enabled : 1;
 } lm78_t;
 
 static void lm78_remap(lm78_t *dev, uint8_t addr);
@@ -624,6 +627,7 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
                     i2c_sethandler(i2c_smbus, (val & 0xf8) >> 1, 4, lm78_nvram_start, lm78_nvram_read, lm78_nvram_write, NULL, dev);
             }
             break;
+
         default:
             break;
     }
@@ -707,6 +711,7 @@ lm78_as99127f_write(void *priv, uint8_t reg, uint8_t val)
                 resetx86();
             }
             break;
+
         default:
             break;
     }

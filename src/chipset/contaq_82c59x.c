@@ -48,16 +48,17 @@ contaq_82c59x_log(const char *fmt, ...)
 #    define contaq_82c59x_log(fmt, ...)
 #endif
 
-typedef struct
-{
-    uint32_t phys, virt;
+typedef struct mem_remapping_t {
+    uint32_t phys;
+    uint32_t virt;
 } mem_remapping_t;
 
-typedef struct
-{
-    uint8_t index, green,
-        smi_status_set,
-        regs[256], smi_status[2];
+typedef struct contaq_82c59x_t {
+    uint8_t index;
+    uint8_t green;
+    uint8_t smi_status_set;
+    uint8_t regs[256];
+    uint8_t smi_status[2];
 
     smram_t *smram[2];
 } contaq_82c59x_t;

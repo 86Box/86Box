@@ -121,10 +121,10 @@ umc_8886_log(const char *fmt, ...)
 #define SB_ID dev->sb_id
 
 typedef struct umc_8886_t {
-    uint8_t max_func,        /* Last function number */
-        pci_conf_sb[2][256]; /* PCI Registers */
-    uint16_t sb_id;          /* Southbridge Revision */
-    int      has_ide;        /* Check if Southbridge Revision is AF or F */
+    uint8_t max_func;            /* Last function number */
+    uint8_t pci_conf_sb[2][256]; /* PCI Registers */
+    uint16_t sb_id;              /* Southbridge Revision */
+    int      has_ide;            /* Check if Southbridge Revision is AF or F */
 } umc_8886_t;
 
 static void
@@ -349,7 +349,7 @@ umc_8886_reset(void *priv)
         umc_8886_ide_handler(1);
     }
 
-    for (int i = 1; i < 5; i++) /* Disable all IRQ interrupts */
+    for (uint8_t i = 1; i < 5; i++) /* Disable all IRQ interrupts */
         pci_set_irq_routing(i, PCI_IRQ_DISABLED);
 
     cpu_set_isa_pci_div(3);

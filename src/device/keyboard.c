@@ -167,6 +167,7 @@ keyboard_input(int down, uint16_t scan)
                 case 0x138: /* Right Alt */
                     shift |= 0x40;
                     break;
+
                 default:
                     break;
             }
@@ -199,6 +200,7 @@ keyboard_input(int down, uint16_t scan)
                 case 0x046:
                     scroll_lock ^= 1;
                     break;
+
                 default:
                     break;
             }

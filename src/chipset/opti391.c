@@ -48,20 +48,19 @@ opti391_log(const char *fmt, ...)
 #    define opti391_log(fmt, ...)
 #endif
 
-typedef struct
-{
-    uint32_t phys, virt;
+typedef struct mem_remapping_t {
+    uint32_t phys;
+    uint32_t virt;
 } mem_remapping_t;
 
-typedef struct
-{
-    uint8_t index, regs[256];
+typedef struct opti391_t {
+    uint8_t index;
+    uint8_t regs[256];
 } opti391_t;
 
 static void
 opti391_shadow_recalc(opti391_t *dev)
 {
-    uint32_t i;
     uint32_t base;
     uint8_t  sh_enable;
     uint8_t  sh_master;
@@ -79,7 +78,7 @@ opti391_shadow_recalc(opti391_t *dev)
 
     sh_write_internal = (dev->regs[0x26] & 0x40);
     /* D0000-EFFFF */
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         base = 0xd0000 + (i << 14);
         if (base >= 0xe0000) {
             sh_master = (dev->regs[0x22] & 0x40);
@@ -109,7 +108,7 @@ opti391_shadow_recalc(opti391_t *dev)
     /* C0000-CFFFF */
     sh_master = !(dev->regs[0x26] & 0x10);
     sh_wp     = (dev->regs[0x26] & 0x20);
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         base      = 0xc0000 + (i << 14);
         sh_enable = dev->regs[0x26] & (1 << i);
 
@@ -165,10 +164,12 @@ opti391_write(uint16_t addr, uint8_t val, void *priv)
                     dev->regs[dev->index] = val;
                     opti391_shadow_recalc(dev);
                     break;
+
                 default:
                     break;
             }
             break;
+
         default:
             break;
     }

@@ -552,9 +552,8 @@ pc_cas_print_state(UNUSED(const pc_cassette_t *cas))
 static void
 pc_cas_clock_pcm(pc_cassette_t *cas, unsigned long cnt)
 {
-    unsigned long i;
-    unsigned long n;
-    int           v = 0;
+    uint64_t n;
+    int      v = 0;
 
     n = cas->srate * cnt + cas->clk_pcm;
 
@@ -567,11 +566,11 @@ pc_cas_clock_pcm(pc_cassette_t *cas, unsigned long cnt)
     }
 
     if (cas->save) {
-        for (i = 0; i < n; i++) {
+        for (uint64_t i = 0; i < n; i++) {
             pc_cas_write_smp(cas, cas->pcm_out_val);
         }
     } else {
-        for (i = 0; i < n; i++) {
+        for (uint64_t i = 0; i < n; i++) {
             v = pc_cas_read_smp(cas);
         }
 

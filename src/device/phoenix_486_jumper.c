@@ -41,9 +41,9 @@
     Bit 0 = ????.
 */
 
-typedef struct
-{
-    uint8_t type, jumper;
+typedef struct phoenix_486_jumper_t {
+    uint8_t type;
+    uint8_t jumper;
 } phoenix_486_jumper_t;
 
 #ifdef ENABLE_PHOENIX_486_JUMPER_LOG

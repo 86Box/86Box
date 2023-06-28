@@ -167,6 +167,9 @@ lm75_i2c_write(UNUSED(void *bus), UNUSED(uint8_t addr), uint8_t data, void *priv
             case 0x3: /* Tos */
                 lm75_write(dev, (dev->i2c_state == 1) ? 0x5 : 0x6, data);
                 break;
+
+            default:
+                break;
         }
     }
 

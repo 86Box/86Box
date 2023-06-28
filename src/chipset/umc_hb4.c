@@ -143,9 +143,10 @@ hb4_log(const char *fmt, ...)
 #endif
 
 typedef struct hb4_t {
-    uint8_t shadow,
-        shadow_read, shadow_write,
-        pci_conf[256]; /* PCI Registers */
+    uint8_t  shadow;
+    uint8_t  shadow_read;
+    uint8_t  shadow_write;
+    uint8_t  pci_conf[256]; /* PCI Registers */
     int      mem_state[9];
     smram_t *smram[3]; /* SMRAM Handlers */
 } hb4_t;

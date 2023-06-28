@@ -40,9 +40,10 @@
 #include <86box/spd.h>
 
 typedef struct sis_85c496_t {
-    uint8_t cur_reg, rmsmiblk_count,
-        regs[127],
-        pci_conf[256];
+    uint8_t    cur_reg;
+    uint8_t    rmsmiblk_count;
+    uint8_t    regs[127];
+    uint8_t    pci_conf[256];
     smram_t   *smram;
     pc_timer_t rmsmiblk_timer;
     port_92_t *port_92;
@@ -466,6 +467,7 @@ sis_85c49x_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             dev->pci_conf[addr] = val & 0x6e;
             nvr_bank_set(0, !!(val & 0x40), dev->nvr);
             break;
+
         default:
             break;
     }
@@ -490,6 +492,7 @@ sis_85c49x_pci_read(UNUSED(int func), int addr, void *priv)
         case 0x83: /*Port 70h Mirror*/
             ret = inb(0x70);
             break;
+
         default:
             break;
     }

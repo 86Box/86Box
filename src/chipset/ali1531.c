@@ -83,6 +83,7 @@ ali1531_smram_recalc(uint8_t val, ali1531_t *dev)
                 if (val & 0x10)
                     mem_set_mem_state_smram_ex(1, 0x30000, 0x10000, 0x02);
                 break;
+
             default:
                 break;
         }
@@ -314,7 +315,6 @@ static void
 ali1531_reset(void *priv)
 {
     ali1531_t *dev = (ali1531_t *) priv;
-    int        i;
 
     /* Default Registers */
     dev->pci_conf[0x00] = 0xb9;
@@ -350,10 +350,10 @@ ali1531_reset(void *priv)
     ali1531_write(0, 0x47, 0x00, dev);
     ali1531_write(0, 0x48, 0x00, dev);
 
-    for (i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 4; i++)
         ali1531_write(0, 0x4c + i, 0x00, dev);
 
-    for (i = 0; i < 16; i += 2) {
+    for (uint8_t i = 0; i < 16; i += 2) {
         ali1531_write(0, 0x60 + i, 0x08, dev);
         ali1531_write(0, 0x61 + i, 0x40, dev);
     }

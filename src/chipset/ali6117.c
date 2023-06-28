@@ -38,7 +38,8 @@ typedef struct ali6117_t {
     uint32_t local;
 
     /* Main registers (port 22h/23h) */
-    uint8_t unlocked, mode;
+    uint8_t unlocked;
+    uint8_t mode;
     uint8_t reg_offset;
     uint8_t regs[256];
 } ali6117_t;

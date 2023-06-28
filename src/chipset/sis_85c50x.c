@@ -58,9 +58,10 @@ sis_85c50x_log(const char *fmt, ...)
 #endif
 
 typedef struct sis_85c50x_t {
-    uint8_t index,
-        pci_conf[256], pci_conf_sb[256],
-        regs[256];
+    uint8_t index;
+    uint8_t pci_conf[256];
+    uint8_t pci_conf_sb[256];
+    uint8_t regs[256];
 
     smram_t   *smram[2];
     port_92_t *port_92;
@@ -218,6 +219,7 @@ sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
             case 0x69:
                 dev->pci_conf[addr] &= ~val;
                 break;
+
             default:
                 break;
         }
@@ -272,6 +274,7 @@ sis_85c50x_sb_write(int func, int addr, uint8_t val, void *priv)
             case 0x4b: /* ISA Master/DMA Memory Cycle Control Register 4 */
                 dev->pci_conf_sb[addr] = val;
                 break;
+
             default:
                 break;
         }
@@ -321,10 +324,12 @@ sis_85c50x_isa_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x85:
                     outb(0x70, val);
                     break;
+
                 default:
                     break;
             }
             break;
+
         default:
             break;
     }
@@ -347,6 +352,7 @@ sis_85c50x_isa_read(uint16_t addr, void *priv)
             else
                 ret = dev->regs[dev->index];
             break;
+
         default:
             break;
     }

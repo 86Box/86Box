@@ -13,10 +13,10 @@
 #include <86box/plat_unused.h>
 #include <86box/chipset.h>
 
-typedef struct
-{
-    uint8_t cur_reg, tries,
-        regs[258];
+typedef struct rabbit_t {
+    uint8_t cur_reg;
+    uint8_t tries;
+    uint8_t regs[258];
 } rabbit_t;
 
 static void
@@ -111,6 +111,7 @@ rabbit_read(uint16_t addr, void *priv)
             } else
                 ret = dev->regs[dev->cur_reg];
             break;
+
         default:
             break;
     }

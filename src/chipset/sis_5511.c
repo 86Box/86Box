@@ -66,10 +66,13 @@ sis_5511_log(const char *fmt, ...)
 #endif
 
 typedef struct sis_5511_t {
-    uint8_t pci_conf[256], pci_conf_sb[2][256],
-        index, regs[16];
+    uint8_t pci_conf[256];
+    uint8_t pci_conf_sb[2][256];
+    uint8_t index;
+    uint8_t regs[16];
 
-    int nb_pci_slot, sb_pci_slot;
+    int nb_pci_slot;
+    int sb_pci_slot;
 
     sff8038i_t *ide_drive[2];
     smram_t    *smram;
@@ -122,6 +125,7 @@ sis_5511_smram_recalc(sis_5511_t *dev)
         case 2:
             smram_enable(dev->smram, 0x000e0000, 0x000b0000, 0x8000, dev->pci_conf[0x65] & 0x10, 1);
             break;
+
         default:
             break;
     }
@@ -334,6 +338,7 @@ sis_5511_write(UNUSED(int func), int addr, uint8_t val, void *priv)
         case 0x93: /* 5512 General Purpose Register Index */
             dev->pci_conf[addr] = val;
             break;
+
         default:
             break;
     }
@@ -433,6 +438,7 @@ sis_5513_pci_to_isa_write(int addr, uint8_t val, sis_5511_t *dev)
         case 0x6a: /* GPIO Status Register */
             dev->pci_conf_sb[0][addr] &= val & 0x15;
             break;
+
         default:
             break;
     }
@@ -521,6 +527,7 @@ sis_5513_ide_write(int addr, uint8_t val, sis_5511_t *dev)
         case 0x4f: /* Prefetch Count of Secondary Channel (High Byte) */
             dev->pci_conf_sb[1][addr] = val;
             break;
+
         default:
             break;
     }
@@ -537,6 +544,7 @@ sis_5513_write(int func, int addr, uint8_t val, void *priv)
         case 1:
             sis_5513_ide_write(addr, val, dev);
             break;
+
         default:
             break;
     }
@@ -578,6 +586,7 @@ sis_5513_isa_write(uint16_t addr, uint8_t val, void *priv)
                         case 2:
                             cpu_set_isa_pci_div(3);
                             break;
+
                         default:
                             break;
                     }
@@ -600,11 +609,13 @@ sis_5513_isa_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x0b:
                     dev->regs[dev->index] = val;
                     break;
+
                 default:
                     break;
             }
             sis_5511_log("SiS 5513-ISA: dev->regs[%02x] = %02x POST: %02x\n", dev->index + 0x50, dev->regs[dev->index], inb(0x80));
             break;
+
         default:
             break;
     }

@@ -249,6 +249,7 @@ stpc_nb_write(int func, int addr, uint8_t val, void *priv)
         case 0x52:
             val &= 0x70;
             break;
+
         default:
             break;
     }
@@ -435,6 +436,7 @@ stpc_ide_write(int func, int addr, uint8_t val, void *priv)
                 sff_bus_master_set_irq(0x00, dev->bm[1]);
             }
             break;
+
         default:
             break;
     }
@@ -494,6 +496,7 @@ stpc_isab_write(int func, int addr, uint8_t val, void *priv)
         case 0x05:
             val &= 0x01;
             break;
+
         default:
             break;
     }
