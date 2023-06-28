@@ -41,11 +41,12 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
 {
     this->machineId = machineId;
 
-    ui->checkBoxISABugger->setChecked(bugger_enabled > 0 ? true : false);
+    bool machineHasIsa = (machine_has_bus(machineId, MACHINE_BUS_ISA) > 0);
+    ui->checkBoxISABugger->setChecked((machineHasIsa && (bugger_enabled > 0)) ? true : false);
     ui->checkBoxPOSTCard->setChecked(postcard_enabled > 0 ? true : false);
-    ui->checkBoxISABugger->setEnabled(machine_has_bus(machineId, MACHINE_BUS_ISA));
-    ui->comboBoxRTC->setEnabled(machine_has_bus(machineId, MACHINE_BUS_ISA));
-    ui->pushButtonConfigureRTC->setEnabled(machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->checkBoxISABugger->setEnabled(machineHasIsa);
+    ui->comboBoxRTC->setEnabled(machineHasIsa);
+    ui->pushButtonConfigureRTC->setEnabled(machineHasIsa);
 
     ui->comboBoxCard1->clear();
     ui->comboBoxCard2->clear();
@@ -97,8 +98,8 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
         }
         cbox->setCurrentIndex(-1);
         cbox->setCurrentIndex(selectedRow);
-        cbox->setEnabled(machine_has_bus(machineId, MACHINE_BUS_ISA));
-        findChild<QPushButton *>(QString("pushButtonConfigureCard%1").arg(c + 1))->setEnabled(isamem_type[c] != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
+        cbox->setEnabled(machineHasIsa);
+        findChild<QPushButton *>(QString("pushButtonConfigureCard%1").arg(c + 1))->setEnabled(isamem_type[c] != 0 && machineHasIsa);
     }
 }
 
