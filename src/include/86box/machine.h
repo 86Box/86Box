@@ -98,19 +98,20 @@
 #define MACHINE_AV            (MACHINE_VIDEO | MACHINE_SOUND)    /* sys has video and sound */
 #define MACHINE_AG            (MACHINE_SOUND | MACHINE_GAMEPORT) /* sys has sound and game port */
 /* Feature flags for internal storage controllers. */
-#define MACHINE_HDC      0x03FE0000 /* sys has int HDC */
-#define MACHINE_MFM      0x00020000 /* sys has int MFM/RLL */
-#define MACHINE_XTA      0x00040000 /* sys has int XTA */
-#define MACHINE_ESDI     0x00080000 /* sys has int ESDI */
-#define MACHINE_IDE_PRI  0x00100000 /* sys has int pri IDE/ATAPI */
-#define MACHINE_IDE_SEC  0x00200000 /* sys has int sec IDE/ATAPI */
-#define MACHINE_IDE_TER  0x00400000 /* sys has int ter IDE/ATAPI */
-#define MACHINE_IDE_QUA  0x00800000 /* sys has int qua IDE/ATAPI */
-#define MACHINE_SCSI_PRI 0x01000000 /* sys has int pri SCSI */
-#define MACHINE_SCSI_SEC 0x02000000 /* sys has int sec SCSI */
-#define MACHINE_USB_PRI  0x04000000 /* sys has int pri USB */
-#define MACHINE_USB_SEC  0x08000000 /* sys has int sec USB */
-#define MACHINE_COREBOOT 0x10000000 /* sys has coreboot BIOS */
+#define MACHINE_HDC            0x03FE0000 /* sys has int HDC */
+#define MACHINE_MFM            0x00020000 /* sys has int MFM/RLL */
+#define MACHINE_XTA            0x00040000 /* sys has int XTA */
+#define MACHINE_ESDI           0x00080000 /* sys has int ESDI */
+#define MACHINE_IDE_PRI        0x00100000 /* sys has int pri IDE/ATAPI */
+#define MACHINE_IDE_SEC        0x00200000 /* sys has int sec IDE/ATAPI */
+#define MACHINE_IDE_TER        0x00400000 /* sys has int ter IDE/ATAPI */
+#define MACHINE_IDE_QUA        0x00800000 /* sys has int qua IDE/ATAPI */
+#define MACHINE_SCSI_PRI       0x01000000 /* sys has int pri SCSI */
+#define MACHINE_SCSI_SEC       0x02000000 /* sys has int sec SCSI */
+#define MACHINE_USB_PRI        0x04000000 /* sys has int pri USB */
+#define MACHINE_USB_SEC        0x08000000 /* sys has int sec USB */
+#define MACHINE_COREBOOT       0x10000000 /* sys has coreboot BIOS */
+#define MACHINE_SOFTFLOAT_ONLY 0x20000000 /* sys requires softfloat FPU */
 /* Combined flags. */
 #define MACHINE_IDE        (MACHINE_IDE_PRI)                   /* sys has int single IDE/ATAPI - mark as pri IDE/ATAPI */
 #define MACHINE_IDE_DUAL   (MACHINE_IDE_PRI | MACHINE_IDE_SEC) /* sys has int dual IDE/ATAPI - mark as both pri and sec IDE/ATAPI */

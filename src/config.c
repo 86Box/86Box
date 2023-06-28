@@ -515,13 +515,8 @@ load_machine(void)
 
     cpu_use_dynarec = !!ini_section_get_int(cat, "cpu_use_dynarec", 0);
     fpu_softfloat = !!ini_section_get_int(cat, "fpu_softfloat", 0);
-    /*The IBM PS/2 model 70 type 4 BIOS does heavy tests to the FPU in 80-bit precision mode, requiring softfloat 
-      otherwise it would always throw error 12903 on POST, so always disable dynarec and enable softfloat for this
-      machine only.*/
-    if (!strcmp(machines[machine].internal_name, "ibmps2_m70_type4")) {
-        cpu_use_dynarec = 0;
+    if (machine_has_flags(machine, MACHINE_SOFTFLOAT_ONLY))
         fpu_softfloat = 1;
-    }
 
     p = ini_section_get_string(cat, "time_sync", NULL);
     if (p != NULL) {
