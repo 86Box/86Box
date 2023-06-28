@@ -2002,9 +2002,10 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
             settings_enable_window(hdlg, IDC_BUTTON_IDE_TER, is_at && temp_ide_ter);
             settings_enable_window(hdlg, IDC_CHECK_IDE_QUA, is_at);
             settings_enable_window(hdlg, IDC_BUTTON_IDE_QUA, is_at && temp_ide_qua);
+            settings_enable_window(hdlg, IDC_CHECK_CASSETTE, machine_has_bus(temp_machine, MACHINE_BUS_CASSETTE));
             settings_set_check(hdlg, IDC_CHECK_IDE_TER, temp_ide_ter);
             settings_set_check(hdlg, IDC_CHECK_IDE_QUA, temp_ide_qua);
-            settings_set_check(hdlg, IDC_CHECK_CASSETTE, temp_cassette);
+            settings_set_check(hdlg, IDC_CHECK_CASSETTE, (temp_cassette && machine_has_bus(temp_machine, MACHINE_BUS_CASSETTE)));
 
             free(stransi);
             free(lptsTemp);
