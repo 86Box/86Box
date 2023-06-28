@@ -58,20 +58,21 @@ acc2168_log(const char *fmt, ...)
 #endif
 
 typedef struct acc2168_t {
-    uint8_t reg_idx, regs[256];
+    uint8_t reg_idx;
+    uint8_t regs[256];
 } acc2168_t;
 
 static void
 acc2168_shadow_recalc(acc2168_t *dev)
 {
-    for (uint32_t i = 0; i < 5; i++)
+    for (uint8_t i = 0; i < 5; i++)
         mem_set_mem_state_both(SHADOW_ADDR, SHADOW_SIZE, SHADOW_RECALC);
 }
 
 static void
-acc2168_write(uint16_t addr, uint8_t val, void *p)
+acc2168_write(uint16_t addr, uint8_t val, void *priv)
 {
-    acc2168_t *dev = (acc2168_t *) p;
+    acc2168_t *dev = (acc2168_t *) priv;
 
     switch (addr) {
         case 0xf2:
@@ -165,9 +166,9 @@ acc2168_write(uint16_t addr, uint8_t val, void *p)
 }
 
 static uint8_t
-acc2168_read(uint16_t addr, void *p)
+acc2168_read(uint16_t addr, void *priv)
 {
-    acc2168_t *dev = (acc2168_t *) p;
+    acc2168_t *dev = (acc2168_t *) priv;
 
     return (addr == 0xf3) ? dev->regs[dev->reg_idx] : dev->reg_idx;
 }

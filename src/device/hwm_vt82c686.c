@@ -33,7 +33,7 @@
 #define VT82C686_TEMP_TO_REG(t)       (-1.160370e-10 * (t * t * t * t * t * t) + 3.193693e-08 * (t * t * t * t * t) - 1.464447e-06 * (t * t * t * t) - 2.525453e-04 * (t * t * t) + 1.424593e-02 * (t * t) + 2.148941e+00 * t + 7.275808e+01)
 #define VT82C686_VOLTAGE_TO_REG(v, f) CLAMP((((v) * (2.628 / (f))) - 120.5) / 25, 0, 255)
 
-typedef struct {
+typedef struct vt82c686_t {
     hwm_values_t *values;
 
     uint8_t  enable;
@@ -114,6 +114,7 @@ vt82c686_write(uint16_t port, uint8_t val, void *priv)
         case 0x48:
             val &= 0x7f;
             break;
+
         default:
             break;
     }

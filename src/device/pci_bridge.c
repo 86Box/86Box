@@ -49,10 +49,10 @@
 #define AGP_BRIDGE_VIA(x)      (((x) >> 16) == 0x1106)
 #define AGP_BRIDGE(x)          (((x) >= AGP_BRIDGE_ALI_M5243) && ((x) != PCI_BRIDGE_INTEL_ICH2))
 
-typedef struct
-{
+typedef struct pci_bridge_t {
     uint32_t local;
-    uint8_t  type, ctl;
+    uint8_t  type;
+    uint8_t  ctl;
 
     uint8_t regs[256];
     uint8_t bus_index;
@@ -542,7 +542,6 @@ pci_bridge_init(const device_t *info)
     uint8_t interrupt_count;
     uint8_t interrupt_mask;
     uint8_t slot_count;
-    uint8_t i;
 
     pci_bridge_t *dev = (pci_bridge_t *) malloc(sizeof(pci_bridge_t));
     memset(dev, 0, sizeof(pci_bridge_t));
@@ -559,7 +558,7 @@ pci_bridge_init(const device_t *info)
         interrupt_count = sizeof(interrupts);
         interrupt_mask  = interrupt_count - 1;
         if (dev->slot < 32) {
-            for (i = 0; i < interrupt_count; i++)
+            for (uint8_t i = 0; i < interrupt_count; i++)
                 interrupts[i] = pci_get_int(dev->slot, PCI_INTA + i);
         }
 
@@ -570,7 +569,7 @@ pci_bridge_init(const device_t *info)
         else
             slot_count = 1; /* AGP bridges always have 1 slot */
 
-        for (i = 0; i < slot_count; i++) {
+        for (uint8_t i = 0; i < slot_count; i++) {
             /* Interrupts for bridge slots are assigned in round-robin: ABCD, BCDA, CDAB and so on. */
             pci_bridge_log("PCI Bridge %d: downstream slot %02X interrupts %02X %02X %02X %02X\n", dev->bus_index, i, interrupts[i & interrupt_mask], interrupts[(i + 1) & interrupt_mask], interrupts[(i + 2) & interrupt_mask], interrupts[(i + 3) & interrupt_mask]);
             pci_register_bus_slot(dev->bus_index, i, AGP_BRIDGE(dev->local) ? PCI_CARD_AGP : PCI_CARD_NORMAL,

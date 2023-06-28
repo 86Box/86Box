@@ -34,9 +34,9 @@
 
 #define INDEX (dev->index - 0x10)
 
-typedef struct
-{
-    uint8_t index, regs[256];
+typedef struct et6000_t {
+    uint8_t index;
+    uint8_t regs[256];
 } et6000_t;
 
 #ifdef ENABLE_ET6000_LOG

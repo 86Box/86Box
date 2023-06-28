@@ -68,14 +68,18 @@
 #define KBD_TYPE_PRAVETZ  10
 #define KBD_TYPE_XTCLONE  11
 
-typedef struct {
+typedef struct xtkbd_t {
     int want_irq;
     int blocked;
     int tandy;
 
-    uint8_t pa, pb, pd, clock;
+    uint8_t pa;
+    uint8_t pb;
+    uint8_t pd;
+    uint8_t clock;
     uint8_t key_waiting;
-    uint8_t type, pravetz_flags;
+    uint8_t type;
+    uint8_t pravetz_flags;
 
     pc_timer_t send_delay_timer;
 } xtkbd_t;

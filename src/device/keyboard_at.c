@@ -67,7 +67,7 @@ uint8_t keyboard_set3_all_break;
 
 /* Global keyboard mode:
    Bits 0 - 1 = scan code set. */
-uint8_t        keyboard_mode = 0x02;
+uint8_t keyboard_mode = 0x02;
 
 static atkbc_dev_t *SavedKbd                        = NULL;
 

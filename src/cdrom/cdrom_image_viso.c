@@ -117,7 +117,7 @@ typedef struct {
     uint64_t vol_size_offsets[2];
     uint64_t pt_meta_offsets[2];
     int      format;
-    int      use_version_suffix : 1;
+    uint8_t  use_version_suffix : 1;
     size_t   metadata_sectors, all_sectors, entry_map_size, sector_size, file_fifo_pos;
     uint8_t *metadata;
 
@@ -630,6 +630,9 @@ pad_susp:
 
             if (!(*q & 1)) /* padding for even file ID lengths */
                 *p++ = 0;
+            break;
+
+        default:
             break;
     }
 

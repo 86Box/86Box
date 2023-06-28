@@ -30,8 +30,7 @@
 #include <86box/port_92.h>
 #include <86box/machine.h>
 
-typedef struct
-{
+typedef struct ibm_5161_t {
     uint8_t regs[8];
 } ibm_5161_t;
 
@@ -86,9 +85,9 @@ ibm_5161_in(uint16_t port, void *priv)
 }
 
 static void
-ibm_5161_close(void *p)
+ibm_5161_close(void *priv)
 {
-    ibm_5161_t *dev = (ibm_5161_t *) p;
+    ibm_5161_t *dev = (ibm_5161_t *) priv;
 
     free(dev);
 }

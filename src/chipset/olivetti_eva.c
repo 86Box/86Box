@@ -34,8 +34,7 @@
 #include <86box/mem.h>
 #include <86box/plat_unused.h>
 
-typedef struct
-{
+typedef struct olivetti_eva_t {
     uint8_t reg_065;
     uint8_t reg_067;
     uint8_t reg_069;

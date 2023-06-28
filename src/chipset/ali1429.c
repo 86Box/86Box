@@ -115,10 +115,12 @@ ali1429_log(const char *fmt, ...)
 #    define ali1429_log(fmt, ...)
 #endif
 
-typedef struct
-{
-    uint8_t is_g, index, cfg_locked, reg_57h,
-        regs[90];
+typedef struct ali_1429_t {
+    uint8_t is_g;
+    uint8_t index;
+    uint8_t cfg_locked;
+    uint8_t reg_57h;
+    uint8_t regs[90];
 } ali1429_t;
 
 static void

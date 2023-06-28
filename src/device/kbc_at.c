@@ -104,12 +104,27 @@ enum {
     STATE_SCAN_AUX         /* KBC is waiting for the auxiliary command response. */
 };
 
-typedef struct {
-    uint8_t state, command, command_phase, status,
-            wantdata, ib, ob, sc_or,
-            mem_addr, p1, p2, old_p2,
-            misc_flags, ami_flags, key_ctrl_queue_start, key_ctrl_queue_end,
-            val, channel, stat_hi, pending;
+typedef struct atkbc_t {
+    uint8_t state;
+    uint8_t command;
+    uint8_t command_phase;
+    uint8_t status;
+    uint8_t wantdata;
+    uint8_t ib;
+    uint8_t ob;
+    uint8_t sc_or;
+    uint8_t mem_addr;
+    uint8_t p1;
+    uint8_t p2;
+    uint8_t old_p2;
+    uint8_t misc_flags;
+    uint8_t ami_flags;
+    uint8_t key_ctrl_queue_start;
+    uint8_t key_ctrl_queue_end;
+    uint8_t val;
+    uint8_t channel;
+    uint8_t stat_hi;
+    uint8_t pending;
 
     uint8_t mem[0x100];
 
@@ -308,7 +323,7 @@ static void
 kbc_send_to_ob(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
 {
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
-    int temp = (channel == 1) ? kbc_translate(dev, val) : val;
+    uint8_t temp = (channel == 1) ? kbc_translate(dev, val) : val;
 
     if (temp == -1)
         return;
@@ -429,7 +444,8 @@ kbc_scan_kbd_at(atkbc_t *dev)
     }
 }
 
-static void    write_p2(atkbc_t *dev, uint8_t val);
+static void
+write_p2(atkbc_t *dev, uint8_t val);
 
 static void
 kbc_at_poll_at(atkbc_t *dev)
@@ -1299,6 +1315,7 @@ write64_olivetti(void *priv, uint8_t val)
             kbc_delay_to_ob(dev, (0x0c | (is386 ? 0x00 : 0x80)) & 0xdf, 0, 0x00);
             dev->p1 = ((dev->p1 + 1) & 3) | (dev->p1 & 0xfc);
             return 0;
+
         default:
             break;
     }
@@ -1339,6 +1356,7 @@ write60_toshiba(void *priv, uint8_t val)
             kbc_at_log("ATkbc: T3100e - set color/mono switch\n");
             t3100e_mono_set(val);
             return 0;
+
         default:
             break;
     }

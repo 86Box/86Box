@@ -201,7 +201,7 @@
 #define RB11_EMSLEN    0xe0 /*  EMS memory chunk size */
 #define RB11_EMSLEN_SH 5
 
-typedef struct {
+typedef struct emspage_t {
     int8_t        enabled; /* 1=ENABLED */
     char          pad;
     uint16_t      page;    /* selected page in EMS block */
@@ -210,18 +210,18 @@ typedef struct {
     mem_mapping_t mapping; /* mapping entry for page */
 } emspage_t;
 
-typedef struct {
+typedef struct neat_t {
     uint8_t regs[128]; /* all the CS8221 registers */
     uint8_t indx;      /* programmed index into registers */
 
     char pad;
 
-    uint16_t ems_base, /* configured base address */
-        ems_oldbase;
-    uint32_t ems_frame, /* configured frame address */
-        ems_oldframe;
-    uint16_t ems_size,          /* EMS size in KB */
-        ems_pages;              /* EMS size in pages */
+    uint16_t ems_base;          /* configured base address */
+    uint16_t ems_oldbase;
+    uint32_t ems_frame;         /* configured frame address */
+    uint32_t ems_oldframe;
+    uint16_t ems_size;          /* EMS size in KB */
+    uint16_t ems_pages;         /* EMS size in pages */
     emspage_t ems[EMS_MAXPAGE]; /* EMS page registers */
 } neat_t;
 
@@ -377,12 +377,12 @@ ems_read(uint16_t port, void *priv)
 static void
 ems_init(neat_t *dev, int en)
 {
-    int i;
+    uint8_t j;
 
     /* Remove if needed. */
     if (!en) {
         if (dev->ems_base > 0)
-            for (i = 0; i < EMS_MAXPAGE; i++) {
+            for (uint8_t i = 0; i < EMS_MAXPAGE; i++) {
                 /* Disable for now. */
                 mem_mapping_disable(&dev->ems[i].mapping);
 
@@ -399,19 +399,19 @@ ems_init(neat_t *dev, int en)
     }
 
     /* Get configured I/O address. */
-    i             = (dev->regs[REG_RB9] & RB9_BASE) >> RB9_BASE_SH;
-    dev->ems_base = 0x0208 + (0x10 * i);
+    j             = (dev->regs[REG_RB9] & RB9_BASE) >> RB9_BASE_SH;
+    dev->ems_base = 0x0208 + (0x10 * j);
 
     /* Get configured frame address. */
-    i              = (dev->regs[REG_RB9] & RB9_FRAME) >> RB9_FRAME_SH;
-    dev->ems_frame = 0xC0000 + (EMS_PGSIZE * i);
+    j              = (dev->regs[REG_RB9] & RB9_FRAME) >> RB9_FRAME_SH;
+    dev->ems_frame = 0xC0000 + (EMS_PGSIZE * j);
 
     /*
      * For each supported page (we can have a maximum of 4),
      * create, initialize and disable the mappings, and set
      * up the I/O control handler.
      */
-    for (i = 0; i < EMS_MAXPAGE; i++) {
+    for (uint8_t i = 0; i < EMS_MAXPAGE; i++) {
         /* Create and initialize a page mapping. */
         mem_mapping_add(&dev->ems[i].mapping,
                         dev->ems_frame + (EMS_PGSIZE * i), EMS_PGSIZE,
@@ -672,14 +672,14 @@ static void *
 neat_init(UNUSED(const device_t *info))
 {
     neat_t *dev;
-    int     i;
+    uint8_t dram_mode = 0;
 
     /* Create an instance. */
     dev = (neat_t *) malloc(sizeof(neat_t));
     memset(dev, 0x00, sizeof(neat_t));
 
     /* Initialize some of the registers to specific defaults. */
-    for (i = REG_RA0; i <= REG_RB11; i++) {
+    for (uint8_t i = REG_RA0; i <= REG_RB11; i++) {
         dev->indx = i;
         neat_write(0x0023, 0x00, dev);
     }
@@ -691,7 +691,6 @@ neat_init(UNUSED(const device_t *info))
      * TODO: We might also want to set 'valid' waitstate
      *       bits, based on our cpu speed.
      */
-    i = 0;
     switch (mem_size) {
         case 512: /* 512KB */
             /* 256K, 0, 0, 0 */
@@ -699,7 +698,7 @@ neat_init(UNUSED(const device_t *info))
             dev->regs[REG_RB6] |= (RTYPE_256K << RTYPE_SH); /* 256K */
             dev->regs[REG_RB8] &= ~RB8_BANKS;               /* one bank */
             dev->regs[REG_RB8] |= (RTYPE_NONE << RTYPE_SH); /* NONE */
-            i = 2;
+            dram_mode = 2;
             break;
 
         case 640: /* 640KB */
@@ -708,7 +707,7 @@ neat_init(UNUSED(const device_t *info))
             dev->regs[REG_RB6] |= (RTYPE_MIXED << RTYPE_SH); /* mixed */
             dev->regs[REG_RB8] &= ~RB8_BANKS;                /* one bank */
             dev->regs[REG_RB8] |= (RTYPE_NONE << RTYPE_SH);  /* NONE */
-            i = 4;
+            dram_mode = 4;
             break;
 
         case 1024: /* 1MB */
@@ -717,7 +716,7 @@ neat_init(UNUSED(const device_t *info))
             dev->regs[REG_RB6] |= (RTYPE_256K << RTYPE_SH); /* 256K */
             dev->regs[REG_RB8] &= ~RB8_BANKS;               /* one bank */
             dev->regs[REG_RB8] |= (RTYPE_NONE << RTYPE_SH); /* NONE */
-            i = 5;
+            dram_mode = 5;
             break;
 
         case 1536: /* 1.5MB */
@@ -726,7 +725,7 @@ neat_init(UNUSED(const device_t *info))
             dev->regs[REG_RB6] |= (RTYPE_256K << RTYPE_SH); /* 256K */
             dev->regs[REG_RB8] &= ~RB8_BANKS;               /* one bank */
             dev->regs[REG_RB8] |= (RTYPE_256K << RTYPE_SH); /* 256K */
-            i = 7;
+            dram_mode = 7;
             break;
 
         case 1664: /* 1.64MB */
@@ -735,7 +734,7 @@ neat_init(UNUSED(const device_t *info))
             dev->regs[REG_RB6] |= (RTYPE_MIXED << RTYPE_SH); /* mixed */
             dev->regs[REG_RB8] |= RB8_BANKS;                 /* two banks */
             dev->regs[REG_RB8] |= (RTYPE_256K << RTYPE_SH);  /* 256K */
-            i = 10;
+            dram_mode = 10;
             break;
 
         case 2048: /* 2MB */
@@ -746,14 +745,14 @@ neat_init(UNUSED(const device_t *info))
             dev->regs[REG_RB8] |= RB8_BANKS;                /* two banks */
             dev->regs[REG_RB8] |= (RTYPE_256K << RTYPE_SH); /* 256K */
             dev->regs[REG_RB8] |= RB8_4WAY;                 /* 4way intl */
-            i = 11;
+            dram_mode = 11;
 #else
             /* 1M, 0, 0, 0 */
             dev->regs[REG_RB6] &= ~RB6_BANKS;               /* one bank */
             dev->regs[REG_RB6] |= (RTYPE_1M << RTYPE_SH);   /* 1M */
             dev->regs[REG_RB8] &= ~RB8_BANKS;               /* one bank */
             dev->regs[REG_RB8] |= (RTYPE_NONE << RTYPE_SH); /* NONE */
-            i = 3;
+            dram_mode = 3;
 #endif
             break;
 
@@ -763,7 +762,7 @@ neat_init(UNUSED(const device_t *info))
             dev->regs[REG_RB6] |= (RTYPE_256K << RTYPE_SH); /* 256K */
             dev->regs[REG_RB8] &= ~RB8_BANKS;               /* one bank */
             dev->regs[REG_RB8] |= (RTYPE_1M << RTYPE_SH);   /* 1M */
-            i = 8;
+            dram_mode = 8;
             break;
 
         case 4096: /* 4MB */
@@ -772,7 +771,7 @@ neat_init(UNUSED(const device_t *info))
             dev->regs[REG_RB6] |= (RTYPE_1M << RTYPE_SH);   /* 1M */
             dev->regs[REG_RB8] &= ~RB8_BANKS;               /* one bank */
             dev->regs[REG_RB8] |= (RTYPE_NONE << RTYPE_SH); /* NONE */
-            i = 6;
+            dram_mode = 6;
             break;
 
         case 4224: /* 4.64MB */
@@ -781,7 +780,7 @@ neat_init(UNUSED(const device_t *info))
             dev->regs[REG_RB6] |= (RTYPE_MIXED << RTYPE_SH); /* mixed */
             dev->regs[REG_RB8] |= RB8_BANKS;                 /* two banks */
             dev->regs[REG_RB8] |= (RTYPE_1M << RTYPE_SH);    /* 1M */
-            i = 12;
+            dram_mode = 12;
             break;
 
         case 5120: /* 5MB */
@@ -790,7 +789,7 @@ neat_init(UNUSED(const device_t *info))
             dev->regs[REG_RB6] |= (RTYPE_256K << RTYPE_SH); /* 256K */
             dev->regs[REG_RB8] |= RB8_BANKS;                /* two banks */
             dev->regs[REG_RB8] |= (RTYPE_1M << RTYPE_SH);   /* 1M */
-            i = 13;
+            dram_mode = 13;
             break;
 
         case 6144: /* 6MB */
@@ -799,7 +798,7 @@ neat_init(UNUSED(const device_t *info))
             dev->regs[REG_RB6] |= (RTYPE_1M << RTYPE_SH); /* 1M */
             dev->regs[REG_RB8] &= ~RB8_BANKS;             /* one bank */
             dev->regs[REG_RB8] |= (RTYPE_1M << RTYPE_SH); /* 1M */
-            i = 9;
+            dram_mode = 9;
             break;
 
         case 8192: /* 8MB */
@@ -809,13 +808,13 @@ neat_init(UNUSED(const device_t *info))
             dev->regs[REG_RB8] |= RB8_BANKS;              /* two banks */
             dev->regs[REG_RB8] |= (RTYPE_1M << RTYPE_SH); /* 1M */
             dev->regs[REG_RB8] |= RB8_4WAY;               /* 4way intl */
-            i = 14;
+            dram_mode = 14;
             break;
 
         default:
             neat_log("NEAT: **INVALID DRAM SIZE %iKB !**\n", mem_size);
     }
-    if (i > 0) {
+    if (dram_mode > 0) {
         neat_log("NEAT: using DRAM mode #%i (mem=%iKB)\n", i, mem_size);
     }
 

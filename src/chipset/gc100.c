@@ -44,8 +44,7 @@
 #include <86box/io.h>
 #include <86box/video.h>
 
-typedef struct
-{
+typedef struct gc100_t {
     uint8_t reg[0x10];
 } gc100_t;
 

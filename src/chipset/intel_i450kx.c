@@ -62,7 +62,8 @@ i450kx_log(const char *fmt, ...)
 typedef struct i450kx_t {
     smram_t *smram[2];
 
-    uint8_t pb_pci_conf[256], mc_pci_conf[256];
+    uint8_t pb_pci_conf[256];
+    uint8_t mc_pci_conf[256];
     uint8_t mem_state[2][256];
 
     uint8_t bus_index;

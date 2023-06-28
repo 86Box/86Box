@@ -32,7 +32,7 @@
 #include <86box/mouse.h>
 #include <86box/plat_unused.h>
 
-typedef struct {
+typedef struct mouse_t {
     const device_t *device;
 } mouse_t;
 

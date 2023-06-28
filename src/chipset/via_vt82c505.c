@@ -117,6 +117,7 @@ vt82c505_write(int func, int addr, uint8_t val, void *priv)
         case 0x93:
             dev->pci_conf[addr] = val & 0xe0;
             break;
+
         default:
             break;
     }
