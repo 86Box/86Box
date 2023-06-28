@@ -56,12 +56,12 @@ SettingsStorageControllers::save()
         auto *cbox           = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
         scsi_card_current[i] = cbox->currentData().toInt();
     }
-    hdc_current     		= ui->comboBoxHD->currentData().toInt();
-    fdc_type        		= ui->comboBoxFD->currentData().toInt();
-	cdrom_interface_current = ui->comboBoxCDInterface->currentData().toInt();
-    ide_ter_enabled 		= ui->checkBoxTertiaryIDE->isChecked() ? 1 : 0;
-    ide_qua_enabled 		= ui->checkBoxQuaternaryIDE->isChecked() ? 1 : 0;
-    cassette_enable 		= ui->checkBoxCassette->isChecked() ? 1 : 0;
+    hdc_current             = ui->comboBoxHD->currentData().toInt();
+    fdc_type                = ui->comboBoxFD->currentData().toInt();
+    cdrom_interface_current = ui->comboBoxCDInterface->currentData().toInt();
+    ide_ter_enabled         = ui->checkBoxTertiaryIDE->isChecked() ? 1 : 0;
+    ide_qua_enabled         = ui->checkBoxQuaternaryIDE->isChecked() ? 1 : 0;
+    cassette_enable         = ui->checkBoxCassette->isChecked() ? 1 : 0;
 }
 
 void
@@ -132,9 +132,9 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     ui->comboBoxFD->setCurrentIndex(selectedRow);
 
     /*CD interface controller config*/
-    model 		= ui->comboBoxCDInterface->model();
-    removeRows 	= model->rowCount();
-    c 			= 0;
+    model      = ui->comboBoxCDInterface->model();
+    removeRows = model->rowCount();
+    c          = 0;
     selectedRow = 0;
     while (true) {
         /* Skip "internal" if machine doesn't have it. */
