@@ -323,7 +323,7 @@ static void
 kbc_send_to_ob(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
 {
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
-    uint8_t temp = (channel == 1) ? kbc_translate(dev, val) : val;
+    int temp = (channel == 1) ? kbc_translate(dev, val) : ((int) val);
 
     if (temp == -1)
         return;
