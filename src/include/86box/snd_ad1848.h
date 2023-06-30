@@ -24,26 +24,42 @@
 
 enum {
     AD1848_TYPE_DEFAULT = 0,
-    AD1848_TYPE_CS4248,
-    AD1848_TYPE_CS4231,
-    AD1848_TYPE_CS4235,
-    AD1848_TYPE_CS4236
+    AD1848_TYPE_CS4248  = 1,
+    AD1848_TYPE_CS4231  = 2,
+    AD1848_TYPE_CS4235  = 3,
+    AD1848_TYPE_CS4236  = 4
 };
 
 typedef struct {
-    uint8_t type, index, xindex, regs[32], xregs[32], status; /* 16 original registers + 16 CS4231A extensions + 32 CS4236 extensions */
+    uint8_t type;
+    uint8_t index;
+    uint8_t xindex;
+    uint8_t regs[32];
+    uint8_t xregs[32];
+    uint8_t status; /* 16 original registers + 16 CS4231A extensions + 32 CS4236 extensions */
 
     int     count;
-    uint8_t trd, mce, wten : 1;
+    uint8_t trd;
+    uint8_t mce;
+    uint8_t wten : 1;
 
-    int16_t out_l, out_r;
-    double  cd_vol_l, cd_vol_r;
-    int     fm_vol_l, fm_vol_r;
-    uint8_t fmt_mask, wave_vol_mask;
+    int16_t out_l;
+    int16_t out_r;
+    double  cd_vol_l;
+    double  cd_vol_r;
+    int     fm_vol_l;
+    int     fm_vol_r;
+    uint8_t fmt_mask;
+    uint8_t wave_vol_mask;
 
-    uint8_t enable : 1, irq : 4, dma : 3, adpcm_ref;
+    uint8_t enable : 1;
+    uint8_t irq    : 4;
+    uint8_t dma    : 3;
+    uint8_t adpcm_ref;
     int8_t  adpcm_step;
-    int     freq, adpcm_data, adpcm_pos;
+    int     freq;
+    int     adpcm_data;
+    int     adpcm_pos;
 
     pc_timer_t timer_count;
     uint64_t   timer_latch;

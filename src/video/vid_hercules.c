@@ -39,7 +39,8 @@ static void
 recalc_timings(hercules_t *dev)
 {
     double disptime;
-    double _dispontime, _dispofftime;
+    double _dispontime;
+    double _dispofftime;
 
     disptime     = dev->crtc[0] + 1;
     _dispontime  = dev->crtc[1];
@@ -187,7 +188,7 @@ hercules_in(uint16_t addr, void *priv)
             break;
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -236,7 +237,6 @@ hercules_read(uint32_t addr, void *priv)
 static void
 hercules_render_overscan_left(hercules_t *dev)
 {
-    int      i;
     uint32_t width;
 
     if (dev->ctrl & 0x02)
@@ -250,14 +250,13 @@ hercules_render_overscan_left(hercules_t *dev)
     if (width == 0)
         return;
 
-    for (i = 0; i < 8; i++)
+    for (uint8_t i = 0; i < 8; i++)
         buffer32->line[dev->displine + 14][i] = 0x00000000;
 }
 
 static void
 hercules_render_overscan_right(hercules_t *dev)
 {
-    int      i;
     uint32_t width;
 
     if (dev->ctrl & 0x02)
@@ -271,7 +270,7 @@ hercules_render_overscan_right(hercules_t *dev)
     if (width == 0)
         return;
 
-    for (i = 0; i < 8; i++)
+    for (uint8_t i = 0; i < 8; i++)
         buffer32->line[dev->displine + 14][8 + width + i] = 0x00000000;
 }
 
@@ -279,11 +278,19 @@ static void
 hercules_poll(void *priv)
 {
     hercules_t *dev = (hercules_t *) priv;
-    uint8_t     chr, attr;
-    uint16_t    ca, dat;
+    uint8_t     chr;
+    uint8_t     attr;
+    uint16_t    ca;
+    uint16_t    dat;
     uint16_t    pa;
-    int         oldsc, blink;
-    int         x, xx, y, yy, c, oldvc;
+    int         oldsc;
+    int         blink;
+    int         x;
+    int         xx;
+    int         y;
+    int         yy;
+    int         c;
+    int         oldvc;
     int         drawcursor;
     uint32_t   *p;
 
@@ -507,7 +514,7 @@ hercules_poll(void *priv)
             dev->ma = dev->maback;
         }
 
-        if ((dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1))))
+        if (dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1)))
             dev->con = 1;
         if (dev->dispon && !(dev->ctrl & 0x02)) {
             for (x = 0; x < (dev->crtc[1] << 1); x++) {
@@ -523,7 +530,6 @@ static void *
 hercules_init(const device_t *info)
 {
     hercules_t *dev;
-    int         c;
 
     dev = (hercules_t *) malloc(sizeof(hercules_t));
     memset(dev, 0x00, sizeof(hercules_t));
@@ -543,7 +549,7 @@ hercules_init(const device_t *info)
     io_sethandler(0x03b0, 16,
                   hercules_in, NULL, NULL, hercules_out, NULL, NULL, dev);
 
-    for (c = 0; c < 256; c++) {
+    for (uint16_t c = 0; c < 256; c++) {
         dev->cols[c][0][0] = dev->cols[c][1][0] = dev->cols[c][1][1] = 16;
 
         if (c & 0x08)
@@ -578,7 +584,7 @@ hercules_init(const device_t *info)
     /* Force the LPT3 port to be enabled. */
     lpt3_init(0x3BC);
 
-    return (dev);
+    return dev;
 }
 
 static void

@@ -26,27 +26,39 @@
 
 enum {
     SMBUS_PIIX4 = 0,
-    SMBUS_VIA
+    SMBUS_VIA   = 1
 };
 
 typedef struct {
-    uint32_t local;
-    uint16_t io_base;
-    int      clock;
-    double   bit_period;
-    uint8_t  stat, next_stat, ctl, cmd, addr,
-        data0, data1,
-        index, data[SMBUS_PIIX4_BLOCK_DATA_SIZE];
+    uint32_t   local;
+    uint16_t   io_base;
+    int        clock;
+    double     bit_period;
+    uint8_t    stat;
+    uint8_t    next_stat;
+    uint8_t    ctl;
+    uint8_t    cmd;
+    uint8_t    addr;
+    uint8_t    data0;
+    uint8_t    data1;
+    uint8_t    index;
+    uint8_t    data[SMBUS_PIIX4_BLOCK_DATA_SIZE];
     pc_timer_t response_timer;
     void      *i2c;
 } smbus_piix4_t;
 
 typedef struct {
-    uint32_t local;
-    uint16_t io_base;
-    uint8_t  stat, next_stat, ctl, cmd, addr,
-        data0, data1,
-        index, data[SMBUS_ALI7101_BLOCK_DATA_SIZE];
+    uint32_t   local;
+    uint16_t   io_base;
+    uint8_t    stat;
+    uint8_t    next_stat;
+    uint8_t    ctl;
+    uint8_t    cmd;
+    uint8_t    addr;
+    uint8_t    data0;
+    uint8_t    data1;
+    uint8_t    index;
+    uint8_t    data[SMBUS_ALI7101_BLOCK_DATA_SIZE];
     pc_timer_t response_timer;
     void      *i2c;
 } smbus_ali7101_t;

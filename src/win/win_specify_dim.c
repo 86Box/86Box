@@ -13,6 +13,7 @@
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
  *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -47,7 +48,7 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
     RECT     r;
     uint32_t temp_x = 0;
     uint32_t temp_y = 0;
-    int      dpi = 96;
+    int      dpi    = 96;
     int      lock;
     LPTSTR   lptsTemp;
     char    *stransi;

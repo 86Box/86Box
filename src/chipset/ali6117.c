@@ -38,7 +38,8 @@ typedef struct ali6117_t {
     uint32_t local;
 
     /* Main registers (port 22h/23h) */
-    uint8_t unlocked, mode;
+    uint8_t unlocked;
+    uint8_t mode;
     uint8_t reg_offset;
     uint8_t regs[256];
 } ali6117_t;
@@ -277,6 +278,9 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
                         case 0x7:
                             cpu_set_isa_speed(cpu_busspeed / 6);
                             break;
+
+                        default:
+                            break;
                     }
                     break;
 
@@ -371,6 +375,9 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x71:
                     val &= 0x1f;
+                    break;
+
+                default:
                     break;
             }
 

@@ -29,6 +29,7 @@
 #include <86box/io.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
+#include <86box/plat_unused.h>
 #include <86box/ppi.h>
 #include <86box/mem.h>
 #include <86box/device.h>
@@ -103,12 +104,27 @@ enum {
     STATE_SCAN_AUX         /* KBC is waiting for the auxiliary command response. */
 };
 
-typedef struct {
-    uint8_t state, command, command_phase, status,
-            wantdata, ib, ob, sc_or,
-            mem_addr, p1, p2, old_p2,
-            misc_flags, ami_flags, key_ctrl_queue_start, key_ctrl_queue_end,
-            val, channel, stat_hi, pending;
+typedef struct atkbc_t {
+    uint8_t state;
+    uint8_t command;
+    uint8_t command_phase;
+    uint8_t status;
+    uint8_t wantdata;
+    uint8_t ib;
+    uint8_t ob;
+    uint8_t sc_or;
+    uint8_t mem_addr;
+    uint8_t p1;
+    uint8_t p2;
+    uint8_t old_p2;
+    uint8_t misc_flags;
+    uint8_t ami_flags;
+    uint8_t key_ctrl_queue_start;
+    uint8_t key_ctrl_queue_end;
+    uint8_t val;
+    uint8_t channel;
+    uint8_t stat_hi;
+    uint8_t pending;
 
     uint8_t mem[0x100];
 
@@ -279,6 +295,8 @@ kbc_translate(atkbc_t *dev, uint8_t val)
         case 0x4d:
             t3100e_notify_set(0x0f);
             break; /* Right */
+        default:
+            break;
     }
 
     kbc_at_log("ATkbc: translate is %s, ", translate ? "on" : "off");
@@ -305,7 +323,7 @@ static void
 kbc_send_to_ob(atkbc_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
 {
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
-    int temp = (channel == 1) ? kbc_translate(dev, val) : val;
+    int temp = (channel == 1) ? kbc_translate(dev, val) : ((int) val);
 
     if (temp == -1)
         return;
@@ -399,10 +417,14 @@ kbc_scan_kbd_at(atkbc_t *dev)
                 kbc_ibf_process(dev);
         /* AT mode. */
         } else {
-            // dev->t = dev->mem[0x28];
+#if 0
+            dev->t = dev->mem[0x28];
+#endif
             if (dev->mem[0x2e] != 0x00) {
-                // if (!(dev->t & 0x02))
-                    // return;
+#if 0
+                if (!(dev->t & 0x02))
+                    return;
+#endif
                 dev->mem[0x2e] = 0x00;
             }
             dev->p2 &= 0xbf;
@@ -422,7 +444,8 @@ kbc_scan_kbd_at(atkbc_t *dev)
     }
 }
 
-static void    write_p2(atkbc_t *dev, uint8_t val);
+static void
+write_p2(atkbc_t *dev, uint8_t val);
 
 static void
 kbc_at_poll_at(atkbc_t *dev)
@@ -466,7 +489,9 @@ at_main_ibf:
             /* Keyboard controller command want to output a single byte. */
             kbc_at_log("ATkbc: %02X coming from channel %i with high status %02X\n", dev->val, dev->channel, dev->stat_hi);
             kbc_send_to_ob(dev, dev->val, dev->channel, dev->stat_hi);
-            // dev->state = (dev->pending == 2) ? STATE_KBC_AMI_OUT : STATE_MAIN_IBF;
+#if 0
+            dev->state = (dev->pending == 2) ? STATE_KBC_AMI_OUT : STATE_MAIN_IBF;
+#endif
             dev->state = STATE_MAIN_IBF;
             dev->pending = 0;
             goto at_main_ibf;
@@ -608,7 +633,9 @@ ps2_main_ibf:
             /* Keyboard controller command want to output a single byte. */
             kbc_at_log("ATkbc: %02X coming from channel %i with high status %02X\n", dev->val, dev->channel, dev->stat_hi);
             kbc_send_to_ob(dev, dev->val, dev->channel, dev->stat_hi);
-            // dev->state = (dev->pending == 2) ? STATE_KBC_AMI_OUT : STATE_MAIN_IBF;
+#if 0
+            dev->state = (dev->pending == 2) ? STATE_KBC_AMI_OUT : STATE_MAIN_IBF;
+#endif
             dev->state = STATE_MAIN_IBF;
             dev->pending = 0;
             goto ps2_main_ibf;
@@ -1041,6 +1068,9 @@ write60_ami(void *priv, uint8_t val)
                 kbc_at_do_poll = kbc_at_poll_at;
             }
             return 0;
+
+        default:
+            break;
     }
 
     return 1;
@@ -1244,13 +1274,16 @@ write64_ami(void *priv, uint8_t val)
         case 0xef: /* ??? - sent by AMI486 */
             kbc_at_log("ATkbc: ??? - sent by AMI486\n");
             return 0;
+
+        default:
+            break;
     }
 
     return write64_generic(dev, val);
 }
 
 static uint8_t
-write60_quadtel(void *priv, uint8_t val)
+write60_quadtel(void *priv, UNUSED(uint8_t val))
 {
     atkbc_t *dev = (atkbc_t *) priv;
 
@@ -1258,6 +1291,8 @@ write60_quadtel(void *priv, uint8_t val)
         case 0xcf: /*??? - sent by MegaPC BIOS*/
             kbc_at_log("ATkbc: ??? - sent by MegaPC BIOS\n");
             return 0;
+        default:
+            break;
     }
 
     return 1;
@@ -1280,6 +1315,9 @@ write64_olivetti(void *priv, uint8_t val)
             kbc_delay_to_ob(dev, (0x0c | (is386 ? 0x00 : 0x80)) & 0xdf, 0, 0x00);
             dev->p1 = ((dev->p1 + 1) & 3) | (dev->p1 & 0xfc);
             return 0;
+
+        default:
+            break;
     }
 
     return write64_generic(dev, val);
@@ -1300,6 +1338,9 @@ write64_quadtel(void *priv, uint8_t val)
             dev->wantdata  = 1;
             dev->state     = STATE_KBC_PARAM;
             return 0;
+
+        default:
+            break;
     }
 
     return write64_generic(dev, val);
@@ -1315,6 +1356,9 @@ write60_toshiba(void *priv, uint8_t val)
             kbc_at_log("ATkbc: T3100e - set color/mono switch\n");
             t3100e_mono_set(val);
             return 0;
+
+        default:
+            break;
     }
 
     return 1;
@@ -1405,6 +1449,9 @@ write64_toshiba(void *priv, uint8_t val)
             dev->p1 = (t3100e_mono_get() & 1) ? 0xff : 0xbf;
             kbc_delay_to_ob(dev, dev->p1, 0, 0x00);
             return 0;
+
+        default:
+            break;
     }
 
     return write64_generic(dev, val);
@@ -1726,6 +1773,9 @@ kbc_at_write(uint16_t port, uint8_t val, void *priv)
                 return;
             }
             break;
+
+        default:
+            break;
     }
 
     dev->ib = val;
@@ -1921,6 +1971,9 @@ kbc_at_init(const device_t *info)
         case KBC_VEN_TOSHIBA:
             dev->write60_ven = write60_toshiba;
             dev->write64_ven = write64_toshiba;
+            break;
+
+        default:
             break;
     }
 

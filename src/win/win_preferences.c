@@ -13,6 +13,7 @@
  * Authors: Laci bá'
  *
  *          Copyright 2021 Laci bá'
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -168,8 +169,7 @@ preferences_settings_changed(void)
 static int
 preferences_indexof(HWND combo, LPARAM itemdata)
 {
-    int i;
-    for (i = 0; i < SendMessage(combo, CB_GETCOUNT, 0, 0); i++)
+    for (int i = 0; i < SendMessage(combo, CB_GETCOUNT, 0, 0); i++)
         if (SendMessage(combo, CB_GETITEMDATA, i, 0) == itemdata)
             return i;
 
@@ -267,10 +267,9 @@ PreferencesDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
         case WM_DESTROY:
             {
-                int     i;
                 LRESULT temp;
                 HWND    combo = GetDlgItem(hdlg, IDC_COMBO_ICON);
-                for (i = 0; i < SendMessage(combo, CB_GETCOUNT, 0, 0); i++) {
+                for (int i = 0; i < SendMessage(combo, CB_GETCOUNT, 0, 0); i++) {
                     temp = SendMessage(combo, CB_GETITEMDATA, i, 0);
                     if (temp) {
                         free((void *) temp);

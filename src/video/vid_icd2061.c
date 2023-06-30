@@ -61,8 +61,16 @@ icd2061_write(void *p, int val)
 {
     icd2061_t *icd2061 = (icd2061_t *) p;
 
-    int nd, oc, nc;
-    int a, qa, q, pa, p_, m, ps;
+    int nd;
+    int oc;
+    int nc;
+    int a;
+    int qa;
+    int q;
+    int pa;
+    int p_;
+    int m;
+    int ps;
 
     nd = (val & 2) >> 1;     /* Old data. */
     oc = icd2061->state & 1; /* Old clock. */

@@ -111,10 +111,14 @@
 #define IDE_TIME                       10.0
 
 typedef struct {
-    int bit32, cur_dev,
-        irq, inited,
-        diag, force_ata3;
-    uint16_t   base_main, side_main;
+    int        bit32;
+    int        cur_dev;
+    int        irq;
+    int        inited;
+    int        diag;
+    int        force_ata3;
+    uint16_t   base_main;
+    uint16_t   side_main;
     pc_timer_t timer;
     ide_t     *ide[2];
 } ide_board_t;
@@ -717,7 +721,7 @@ ide_next_sector(ide_t *ide)
 }
 
 static void
-loadhd(ide_t *ide, int d, const char *fn)
+loadhd(ide_t *ide, int d, UNUSED(const char *fn))
 {
     if (!hdd_image_load(d)) {
         ide->type = IDE_NONE;
@@ -746,7 +750,9 @@ ide_set_signature(ide_t *ide)
         ide->cylinder           = ide->sc->request_length;
     } else {
         ide->secount = 1;
-        // ide->cylinder = ((ide->type == IDE_HDD) ? 0 : 0xFFFF);
+#if 0
+        ide->cylinder = ((ide->type == IDE_HDD) ? 0 : 0xFFFF);
+#endif
         ide->cylinder = ((ide->type == IDE_HDD) ? 0 : 0x7F7F);
         if (ide->type == IDE_HDD)
             ide->drive = 0;
@@ -851,7 +857,7 @@ ide_set_sector(ide_t *ide, int64_t sector_num)
     if (ide->lba) {
         ide->head     = (sector_num >> 24);
         ide->cylinder = (sector_num >> 8);
-        ide->sector   = (sector_num);
+        ide->sector   = sector_num;
     } else {
         cyl           = sector_num / (hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
         r             = sector_num % (hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
@@ -1334,7 +1340,7 @@ dev_reset(ide_t *ide)
 }
 
 void
-ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
+ide_write_devctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     ide_board_t *dev = (ide_board_t *) priv;
 
@@ -2048,7 +2054,7 @@ ide_readb(uint16_t addr, void *priv)
 }
 
 uint8_t
-ide_read_alt_status(uint16_t addr, void *priv)
+ide_read_alt_status(UNUSED(uint16_t addr), void *priv)
 {
     uint8_t temp = 0xff;
 
@@ -2957,7 +2963,7 @@ ide_ter_init(const device_t *info)
 
 /* Close a standalone IDE unit. */
 static void
-ide_ter_close(void *priv)
+ide_ter_close(UNUSED(void *priv))
 {
     ide_board_close(2);
 }
@@ -2988,7 +2994,7 @@ ide_qua_init(const device_t *info)
 
 /* Close a standalone IDE unit. */
 static void
-ide_qua_close(void *priv)
+ide_qua_close(UNUSED(void *priv))
 {
     ide_board_close(3);
 }
@@ -3087,7 +3093,7 @@ ide_board_reset(int board)
 
 /* Reset a standalone IDE unit. */
 static void
-ide_reset(void *p)
+ide_reset(UNUSED(void *priv))
 {
     ide_log("Resetting IDE...\n");
 
@@ -3100,7 +3106,7 @@ ide_reset(void *p)
 
 /* Close a standalone IDE unit. */
 static void
-ide_close(void *priv)
+ide_close(UNUSED(void *priv))
 {
     ide_log("Closing IDE...\n");
 

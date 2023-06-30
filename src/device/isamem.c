@@ -112,7 +112,7 @@
 #define EXTRAM_HIGH            1
 #define EXTRAM_XMS             2
 
-typedef struct {
+typedef struct emsreg_t {
     int8_t        enabled; /* 1=ENABLED */
     uint8_t       page;    /* page# in EMS RAM */
     uint8_t       frame;   /* (varies with board) */
@@ -121,15 +121,15 @@ typedef struct {
     mem_mapping_t mapping; /* mapping entry for page */
 } emsreg_t;
 
-typedef struct {
+typedef struct ext_ram_t {
     uint32_t base;
     uint8_t *ptr;
 } ext_ram_t;
 
-typedef struct {
+typedef struct memdev_t {
     const char *name;
-    uint8_t     board : 6, /* board type */
-        reserved      : 2;
+    uint8_t     board    : 6; /* board type */
+    uint8_t     reserved : 2;
 
     uint8_t flags;
 #define FLAG_CONFIG 0x01 /* card is configured */
@@ -138,12 +138,12 @@ typedef struct {
 #define FLAG_EMS    0x40 /* card has EMS mode enabled */
 
     uint16_t total_size; /* configured size in KB */
-    uint32_t base_addr,  /* configured I/O address */
-        start_addr,      /* configured memory start */
-        frame_addr;      /* configured frame address */
+    uint32_t base_addr;  /* configured I/O address */
+    uint32_t start_addr; /* configured memory start */
+    uint32_t frame_addr; /* configured frame address */
 
-    uint16_t ems_size,  /* EMS size in KB */
-        ems_pages;      /* EMS size in pages */
+    uint16_t ems_size;  /* EMS size in KB */
+    uint16_t ems_pages; /* EMS size in pages */
     uint32_t ems_start; /* start of EMS in RAM */
 
     uint8_t *ram; /* allocated RAM buffer */
@@ -305,6 +305,9 @@ ems_read(uint16_t port, void *priv)
 
         case 0x0001: /* W/O */
             break;
+
+        default:
+            break;
     }
 
 #if ISAMEM_DEBUG
@@ -383,6 +386,9 @@ ems_write(uint16_t port, uint8_t val, void *priv)
             if (val)
                 dev->flags |= FLAG_CONFIG;
             break;
+        
+        default:
+            break;
     }
 }
 
@@ -458,6 +464,9 @@ isamem_init(const device_t *info)
             if (!!device_get_config_int("speed"))
                 dev->flags |= FLAG_FAST;
             break;
+
+        default:
+            break;
     }
 
     /* Fix up the memory start address. */
@@ -471,6 +480,7 @@ isamem_init(const device_t *info)
         isamem_log(", FAST");
     if (dev->flags & FLAG_WIDE)
         isamem_log(", 16BIT");
+
     isamem_log(")\n");
 
     /* Force (back to) 8-bit bus if needed. */
@@ -617,6 +627,7 @@ isamem_init(const device_t *info)
                    dev->base_addr, dev->ems_size, dev->ems_pages);
         if (dev->frame_addr > 0)
             isamem_log(", Frame=%05XH", dev->frame_addr);
+
         isamem_log("\n");
 
         /*

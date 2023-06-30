@@ -322,7 +322,8 @@ void
 genius_recalctimings(genius_t *genius)
 {
     double disptime;
-    double _dispontime, _dispofftime;
+    double _dispontime;
+    double _dispofftime;
 
     disptime     = 0x31;
     _dispontime  = 0x28;
@@ -374,15 +375,24 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
 {
     int            w  = 80; /* 80 characters across */
     int            cw = 9;  /* Each character is 9 pixels wide */
-    uint8_t        chr, attr, sc, ctrl;
-    uint8_t       *crtc, bitmap[2];
-    int            x, blink, c, row, charh;
-    int            drawcursor, cursorline;
+    uint8_t        chr;
+    uint8_t        attr;
+    uint8_t        sc;
+    uint8_t        ctrl;
+    uint8_t       *crtc;
+    uint8_t        bitmap[2];
+    int            blink;
+    int            c;
+    int            row;
+    int            charh;
+    int            drawcursor;
+    int            cursorline;
     uint16_t       addr;
     uint16_t       ma       = (genius->mda_crtc[13] | (genius->mda_crtc[12] << 8)) & 0x3fff;
     uint16_t       ca       = (genius->mda_crtc[15] | (genius->mda_crtc[14] << 8)) & 0x3fff;
     unsigned char *framebuf = genius->vram + 0x10000;
-    uint32_t       col, dl = genius->displine;
+    uint32_t       col;
+    uint32_t       dl = genius->displine;
 
     /* Character height is 12-15 */
     if (mda) {
@@ -437,7 +447,7 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
     else
         cursorline = ((crtc[10] & 0x1F) <= sc) && ((crtc[11] & 0x1F) >= sc);
 
-    for (x = 0; x < w; x++) {
+    for (int x = 0; x < w; x++) {
 #if 0
 	if ((genius->genius_charh & 0x10) && ((addr + 2 * x) > 0x0FFF))
 		chr = 0x00;
@@ -549,9 +559,10 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
 void
 genius_cgaline(genius_t *genius)
 {
-    int      x, c;
-    uint32_t dat, addr;
-    uint8_t  ink_f, ink_b;
+    uint32_t dat;
+    uint32_t addr;
+    uint8_t  ink_f;
+    uint8_t  ink_b;
 
     ink_f = (genius->genius_control & 0x20) ? genius_pal[0] : genius_pal[3];
     ink_b = (genius->genius_control & 0x20) ? genius_pal[3] : genius_pal[0];
@@ -564,11 +575,11 @@ genius_cgaline(genius_t *genius)
     if ((genius->displine - 512) & 2)
         addr += 0x2000;
 
-    for (x = 0; x < 80; x++) {
+    for (uint8_t x = 0; x < 80; x++) {
         dat = genius->vram[addr];
         addr++;
 
-        for (c = 0; c < 8; c++) {
+        for (uint8_t c = 0; c < 8; c++) {
             if (dat & 0x80)
                 buffer32->line[genius->displine][(x << 3) + c] = ink_f;
             else
@@ -583,9 +594,10 @@ genius_cgaline(genius_t *genius)
 void
 genius_hiresline(genius_t *genius)
 {
-    int      x, c;
-    uint32_t dat, addr;
-    uint8_t  ink_f, ink_b;
+    uint32_t dat;
+    uint32_t addr;
+    uint8_t  ink_f;
+    uint8_t  ink_b;
 
     ink_f = (genius->genius_control & 0x20) ? genius_pal[0] : genius_pal[3];
     ink_b = (genius->genius_control & 0x20) ? genius_pal[3] : genius_pal[0];
@@ -596,10 +608,10 @@ genius_hiresline(genius_t *genius)
     else /* The second 496 live at B8000 */
         addr = 0x18000 + (128 * (genius->displine - 512));
 
-    for (x = 0; x < 91; x++) {
+    for (uint8_t x = 0; x < 91; x++) {
         dat = genius->vram[addr + x];
 
-        for (c = 0; c < 8; c++) {
+        for (uint8_t c = 0; c < 8; c++) {
             if (dat & 0x80)
                 buffer32->line[genius->displine][(x << 3) + c] = ink_f;
             else
@@ -614,7 +626,6 @@ void
 genius_poll(void *p)
 {
     genius_t *genius = (genius_t *) p;
-    int       x;
     uint8_t   background;
 
     if (!genius->linepos) {
@@ -633,7 +644,7 @@ genius_poll(void *p)
                 video_wait_for_buffer();
 
             /* Start off with a blank line */
-            for (x = 0; x < GENIUS_XSIZE; x++)
+            for (uint16_t x = 0; x < GENIUS_XSIZE; x++)
                 buffer32->line[genius->displine][x] = background;
 
             /* If graphics display enabled, draw graphics on top
@@ -714,7 +725,6 @@ void
     *
     genius_init(const device_t *info)
 {
-    int       c;
     genius_t *genius = malloc(sizeof(genius_t));
 
     memset(genius, 0, sizeof(genius_t));
@@ -744,7 +754,7 @@ void
     /* MDA attributes */
     /* I don't know if the Genius's MDA emulation actually does
      * emulate bright / non-bright. For the time being pretend it does. */
-    for (c = 0; c < 256; c++) {
+    for (uint16_t c = 0; c < 256; c++) {
         mdaattr[c][0][0] = mdaattr[c][1][0] = mdaattr[c][1][1] = genius_pal[0];
         if (c & 8)
             mdaattr[c][0][1] = genius_pal[3];

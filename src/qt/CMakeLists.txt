@@ -239,7 +239,6 @@ if (APPLE)
         if (NOT MOLTENVK_LIB)
             message(FATAL_ERROR "Could not find MoltenVK library")
         endif()
-        target_link_libraries(ui PRIVATE "${MOLTENVK_LIB}")
     endif()
 endif()
 
@@ -313,6 +312,20 @@ macro(install_qt5_plugin _qt_plugin_name _runtime_plugins_var _prefix)
     endif()
 endmacro()
 
+macro(install_bundle_library _library_path _installed_name _runtime_plugins_var _prefix)
+    if(EXISTS "${_library_path}")
+        file(REAL_PATH "${_library_path}" _lib_resolved)
+        if(EXISTS "${_lib_resolved}")
+            install(FILES "${_lib_resolved}" DESTINATION "${_prefix}" RENAME "${_installed_name}")
+            list(APPEND ${_runtime_plugins_var} "\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/${_prefix}/${_installed_name}")
+        else()
+            message(WARNING "Library ${_installed_name} will not be bundled: The library was found but could not be resolved.")
+        endif()
+    else()
+        message(STATUS "Library ${_installed_name} was not found - skipping")
+    endif()
+endmacro()
+
 if (APPLE AND CMAKE_MACOSX_BUNDLE)
     set(prefix "86Box.app/Contents")
     set(INSTALL_RUNTIME_DIR "${prefix}/MacOS")
@@ -326,19 +339,10 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
     install_qt5_plugin("Qt${QT_MAJOR}::QICNSPlugin" RUNTIME_PLUGINS ${prefix})
 
     # Install libraries that are loaded at runtime and not linked
-    if (GHOSTSCRIPT_LIB)
-        set(GS_LIBRARY_NAME "libgs.dylib")
-        file(REAL_PATH ${GHOSTSCRIPT_LIB} GS_LIB_RESOLVED)
-        install(FILES ${GS_LIB_RESOLVED} DESTINATION ${INSTALL_LIB_DIR} RENAME ${GS_LIBRARY_NAME})
-        list(APPEND RUNTIME_PLUGINS "\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/${INSTALL_LIB_DIR}/${GS_LIBRARY_NAME}")
-    endif ()
-
-    if (FLUIDSYNTH_LIB)
-        set(FLUIDSYNTH_LIBRARY_NAME "libfluidsynth.dylib")
-        file(REAL_PATH ${FLUIDSYNTH_LIB} FLUIDSYNTH_LIB_RESOLVED)
-        install(FILES ${FLUIDSYNTH_LIB_RESOLVED} DESTINATION ${INSTALL_LIB_DIR} RENAME ${FLUIDSYNTH_LIBRARY_NAME})
-        list(APPEND RUNTIME_PLUGINS "\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/${INSTALL_LIB_DIR}/${FLUIDSYNTH_LIBRARY_NAME}")
-    endif ()
+    install_bundle_library("${GHOSTSCRIPT_LIB}" "libgs.dylib" RUNTIME_PLUGINS ${INSTALL_LIB_DIR})
+    install_bundle_library("${FLUIDSYNTH_LIB}" "libfluidsynth.dylib" RUNTIME_PLUGINS ${INSTALL_LIB_DIR})
+    install_bundle_library("${VDE_LIB}" "libvdeplug.dylib" RUNTIME_PLUGINS ${INSTALL_LIB_DIR})
+    install_bundle_library("${MOLTENVK_LIB}" "libVulkan.dylib" RUNTIME_PLUGINS ${INSTALL_LIB_DIR})
 
     file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/qt.conf"
         "[Paths]\nPlugins = PlugIns\n")
@@ -365,16 +369,6 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
             COMMAND ${CMAKE_INSTALL_NAME_TOOL} -add_rpath \"@executable_path/../Frameworks/\"
             \"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/${INSTALL_RUNTIME_DIR}/86Box\")
         ")
-    if(MOLTENVK)
-        install(CODE "
-        execute_process(
-            COMMAND bash -c \"set -e
-            echo \\\"-- Creating vulkan dylib symlink for QT (libVulkan.dylib -> libMoltenVK.dylib)\\\"
-            cd \${CMAKE_INSTALL_PREFIX_ABSOLUTE}/${INSTALL_LIB_DIR}
-            ln -sf libMoltenVK.dylib libVulkan.dylib
-            \")
-        ")
-    endif()
 endif()
 
 if (UNIX AND NOT APPLE AND NOT HAIKU)

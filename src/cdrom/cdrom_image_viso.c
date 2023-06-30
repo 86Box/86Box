@@ -114,8 +114,10 @@ typedef struct _viso_entry_ {
 } viso_entry_t;
 
 typedef struct {
-    uint64_t vol_size_offsets[2], pt_meta_offsets[2];
-    int      format, use_version_suffix : 1;
+    uint64_t vol_size_offsets[2];
+    uint64_t pt_meta_offsets[2];
+    int      format;
+    uint8_t  use_version_suffix : 1;
     size_t   metadata_sectors, all_sectors, entry_map_size, sector_size, file_fifo_pos;
     uint8_t *metadata;
 
@@ -629,10 +631,17 @@ pad_susp:
             if (!(*q & 1)) /* padding for even file ID lengths */
                 *p++ = 0;
             break;
+
+        default:
+            break;
     }
 
     if ((p - data) > 255)
-        fatal("VISO: Directory record overflow (%d) on entry %08X\n", p - data, entry);
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+        fatal("VISO: Directory record overflow (%d) on entry %016" PRIX64 "\n", (uint32_t) (uintptr_t) (p - data), (uint64_t) (uintptr_t) entry);
+#else
+        fatal("VISO: Directory record overflow (%d) on entry %08X\n", (uint32_t) (uintptr_t) (p - data), (uint32_t) (uintptr_t) entry);
+#endif
 
     data[0] = p - data; /* length */
     return data[0];

@@ -445,6 +445,9 @@ rate:              /* Writable only if VRA/VRM is set. */
         case 0x7c: /* Vendor ID1 */
         case 0x7e: /* Vendor ID2 */
             return;
+
+        default:
+            break;
     }
 
     dev->regs[reg >> 1] = val;
@@ -587,6 +590,7 @@ ac97_codec_init(const device_t *info)
     /* Associate this codec to the current controller. */
     if (!ac97_codec || (ac97_codec_count <= 0)) {
         pclog("AC97 Codec %d: No controller to associate codec\n", ac97_codec_id);
+        free(dev);
         return NULL;
     }
     *ac97_codec = dev;

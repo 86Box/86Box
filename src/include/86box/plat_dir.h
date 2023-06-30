@@ -68,7 +68,7 @@ extern int            closedir(DIR *);
 #    define rewinddir(dirp) seekdir(dirp, 0L)
 #else
 /* On linux and macOS, use the standard functions and types */
-#    include <sys/dir.h>
+#    include <dirent.h>
 #endif
 
 #endif /*PLAT_DIR_H*/

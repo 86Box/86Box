@@ -15,6 +15,7 @@
  *
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -492,11 +493,20 @@ ui_sb_set_ready(int ready)
 void
 ui_sb_update_panes(void)
 {
-    int   i, id;
-    int   cart_int, mfm_int, xta_int, esdi_int, ide_int, scsi_int;
+    int   i;
+    int   id;
+    int   cart_int;
+    int   mfm_int;
+    int   xta_int;
+    int   esdi_int;
+    int   ide_int;
+    int   scsi_int;
     int   edge = 0;
-    int   c_mfm, c_esdi, c_xta;
-    int   c_ide, c_scsi;
+    int   c_mfm;
+    int   c_esdi;
+    int   c_xta;
+    int   c_ide;
+    int   c_scsi;
     int   do_net;
     char *hdc_name;
 
@@ -930,7 +940,8 @@ void
 StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
 {
     RECT rectDialog;
-    int  dw, dh;
+    int  dw;
+    int  dh;
 
     /* Get current DPI and calculate icon sizes */
     dpi        = win_get_dpi(hwndParent);

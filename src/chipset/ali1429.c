@@ -115,10 +115,12 @@ ali1429_log(const char *fmt, ...)
 #    define ali1429_log(fmt, ...)
 #endif
 
-typedef struct
-{
-    uint8_t is_g, index, cfg_locked, reg_57h,
-        regs[90];
+typedef struct ali_1429_t {
+    uint8_t is_g;
+    uint8_t index;
+    uint8_t cfg_locked;
+    uint8_t reg_57h;
+    uint8_t regs[90];
 } ali1429_t;
 
 static void
@@ -166,7 +168,7 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
                 dev->cfg_locked = (val != 0xc5);
 
             if (!dev->cfg_locked) {
-                pclog("M1429: dev->regs[%02x] = %02x\n", dev->index, val);
+                ali1429_log("M1429: dev->regs[%02x] = %02x\n", dev->index, val);
 
                 /* Common M1429 Registers */
                 switch (dev->index) {
@@ -239,11 +241,15 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
                             case 6:
                                 cpu_set_isa_speed(cpu_busspeed / 12);
                                 break;
+                            default:
+                                break;
                         }
                         break;
 
                     case 0x21 ... 0x27:
                         dev->regs[dev->index] = val;
+                        break;
+                    default:
                         break;
                 }
 
@@ -260,9 +266,13 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
                         case 0x57:
                             dev->reg_57h = val;
                             break;
+                        default:
+                            break;
                     }
                 }
             }
+            break;
+        default:
             break;
     }
 }

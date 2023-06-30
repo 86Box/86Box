@@ -461,7 +461,7 @@ op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
                     break;
                 }
                 SEG_CHECK_READ(cpu_state.ea_seg);
-                mmu_invalidate(ds + cpu_state.eaaddr);
+                flushmmucache_nopc();
                 CLOCK_CYCLES(12);
                 PREFETCH_RUN(12, 2, rmdat, 0, 0, 0, 0, ea32);
                 break;

@@ -31,11 +31,10 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
-typedef struct
-{
-    uint8_t idx,
-        regs[256],
-        scratch[2];
+typedef struct opti495_t {
+    uint8_t idx;
+    uint8_t regs[256];
+    uint8_t scratch[2];
 } opti495_t;
 
 #ifdef ENABLE_OPTI495_LOG
@@ -60,7 +59,6 @@ static void
 opti495_recalc(opti495_t *dev)
 {
     uint32_t base;
-    uint32_t i;
     uint32_t shflags = 0;
 
     shadowbios       = 0;
@@ -78,7 +76,7 @@ opti495_recalc(opti495_t *dev)
 
     mem_set_mem_state_both(0xf0000, 0x10000, shflags);
 
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         base = 0xd0000 + (i << 14);
 
         if ((dev->regs[0x22] & ((base >= 0xe0000) ? 0x20 : 0x40)) && (dev->regs[0x23] & (1 << i))) {
@@ -95,7 +93,7 @@ opti495_recalc(opti495_t *dev)
         mem_set_mem_state_both(base, 0x4000, shflags);
     }
 
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         base = 0xc0000 + (i << 14);
 
         if ((dev->regs[0x26] & 0x10) && (dev->regs[0x26] & (1 << i))) {
@@ -141,6 +139,8 @@ opti495_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x26:
                         opti495_recalc(dev);
                         break;
+                    default:
+                        break;
                 }
             }
             break;
@@ -148,6 +148,8 @@ opti495_write(uint16_t addr, uint8_t val, void *priv)
         case 0xe1:
         case 0xe2:
             dev->scratch[~addr & 0x01] = val;
+            break;
+        default:
             break;
     }
 }
@@ -171,6 +173,8 @@ opti495_read(uint16_t addr, void *priv)
         case 0xe1:
         case 0xe2:
             ret = dev->scratch[~addr & 0x01];
+            break;
+        default:
             break;
     }
 

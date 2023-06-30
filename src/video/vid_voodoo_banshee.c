@@ -329,8 +329,10 @@ banshee_out(uint16_t addr, uint8_t val, void *p)
     svga_t    *svga    = &banshee->svga;
     uint8_t    old;
 
-    //        /*if (addr != 0x3c9) */banshee_log("banshee_out : %04X %02X  %04X:%04X\n", addr, val, CS,cpu_state.pc);
-
+#if 0
+    if (addr != 0x3c9)
+        banshee_log("banshee_out : %04X %02X  %04X:%04X\n", addr, val, CS,cpu_state.pc);
+#endif
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
         addr ^= 0x60;
 
@@ -453,7 +455,6 @@ static void
 banshee_render_16bpp_tiled(svga_t *svga)
 {
     banshee_t *banshee = (banshee_t *) svga->p;
-    int        x;
     uint32_t  *p = &((uint32_t *) svga->monitor->target_buffer->line[svga->displine + svga->y_add])[svga->x_add];
     uint32_t   addr;
     int        drawn = 0;
@@ -466,14 +467,13 @@ banshee_render_16bpp_tiled(svga_t *svga)
     else
         addr = banshee->desktop_addr + (banshee->desktop_y & 31) * 128 + ((banshee->desktop_y >> 5) * banshee->desktop_stride_tiled);
 
-    for (x = 0; x <= svga->hdisp; x += 64) {
+    for (int x = 0; x <= svga->hdisp; x += 64) {
         if (svga->hwcursor_on || svga->overlay_on)
             svga->changedvram[addr >> 12] = 2;
         if (svga->changedvram[addr >> 12] || svga->fullchange) {
             uint16_t *vram_p = (uint16_t *) &svga->vram[addr & svga->vram_display_mask];
-            int       xx;
 
-            for (xx = 0; xx < 64; xx++)
+            for (uint8_t xx = 0; xx < 64; xx++)
                 *p++ = video_16to32[*vram_p++];
 
             drawn = 1;
@@ -608,7 +608,7 @@ banshee_recalctimings(svga_t *svga)
         int    n    = (banshee->pllCtrl0 >> 8) & 0xff;
         double freq = (((double) n + 2) / (((double) m + 2) * (double) (1 << k))) * 14318184.0;
 
-        svga->clock = (cpuclock * (float) (1ull << 32)) / freq;
+        svga->clock = (cpuclock * (float) (1ULL << 32)) / freq;
         //                svga->clock = cpuclock / freq;
 
         //                banshee_log("svga->clock = %g %g  m=%i k=%i n=%i\n", freq, freq / 1000000.0, m, k, n);
@@ -1127,7 +1127,10 @@ banshee_ext_inl(uint16_t addr, void *p)
             break;
     }
 
-    //        /*if (addr) */banshee_log("banshee_ext_inl: addr=%04x val=%08x\n", addr, ret);
+#if 0
+    if (addr)
+        banshee_log("banshee_ext_inl: addr=%04x val=%08x\n", addr, ret);
+#endif
 
     return ret;
 }
@@ -1360,7 +1363,10 @@ banshee_reg_readl(uint32_t addr, void *p)
             break;
     }
 
-    //        /*if (addr != 0xe0000000) */banshee_log("banshee_reg_readl: addr=%08x ret=%08x %04x(%08x):%08x\n", addr, ret, CS,cs,cpu_state.pc);
+#if 0
+    if (addr != 0xe0000000)
+        banshee_log("banshee_reg_readl: addr=%08x ret=%08x %04x(%08x):%08x\n", addr, ret, CS,cs,cpu_state.pc);
+#endif
 
     return ret;
 }
@@ -1368,7 +1374,9 @@ banshee_reg_readl(uint32_t addr, void *p)
 static void
 banshee_reg_write(uint32_t addr, uint8_t val, void *p)
 {
-    //        banshee_log("banshee_reg_writeb: addr=%08x val=%02x\n", addr, val);
+#if 0
+    banshee_log("banshee_reg_writeb: addr=%08x val=%02x\n", addr, val);
+#endif
 }
 
 static void
@@ -1379,7 +1387,9 @@ banshee_reg_writew(uint32_t addr, uint16_t val, void *p)
 
     cycles -= voodoo->write_time;
 
-    //        banshee_log("banshee_reg_writew: addr=%08x val=%04x\n", addr, val);
+#if 0
+    banshee_log("banshee_reg_writew: addr=%08x val=%04x\n", addr, val);
+#endif
     switch (addr & 0x1f00000) {
         case 0x1000000:
         case 0x1100000:
@@ -1406,7 +1416,9 @@ static void
 banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
 {
     voodoo_t *voodoo = banshee->voodoo;
-    //        banshee_log("banshee_cmd_write: addr=%03x val=%08x\n", addr & 0x1fc, val);
+#if 0
+    banshee_log("banshee_cmd_write: addr=%03x val=%08x\n", addr & 0x1fc, val);
+#endif
     switch (addr & 0x1fc) {
         case Agp_agpHostAddressLow:
             banshee->agpHostAddressLow = val;
@@ -1431,7 +1443,9 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
         case cmdBaseAddr0:
             voodoo->cmdfifo_base = (val & 0xfff) << 12;
             voodoo->cmdfifo_end  = voodoo->cmdfifo_base + (((voodoo->cmdfifo_size & 0xff) + 1) << 12);
-            //                banshee_log("cmdfifo_base=%08x  cmdfifo_end=%08x %08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end, val);
+#if 0
+            banshee_log("cmdfifo_base=%08x  cmdfifo_end=%08x %08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end, val);
+#endif
             break;
 
         case cmdBaseSize0:
@@ -1440,12 +1454,16 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
             voodoo->cmdfifo_enabled = val & 0x100;
             if (!voodoo->cmdfifo_enabled)
                 voodoo->cmdfifo_in_sub = 0; /*Not sure exactly when this should be reset*/
-                                            //                banshee_log("cmdfifo_base=%08x  cmdfifo_end=%08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end);
+#if 0
+            banshee_log("cmdfifo_base=%08x  cmdfifo_end=%08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end);
+#endif
             break;
 
-            //                voodoo->cmdfifo_end = ((val >> 16) & 0x3ff) << 12;
-            //                banshee_log("CMDFIFO base=%08x end=%08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end);
-            //                break;
+#if 0
+            voodoo->cmdfifo_end = ((val >> 16) & 0x3ff) << 12;
+            banshee_log("CMDFIFO base=%08x end=%08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end);
+            break;
+#endif
 
         case cmdRdPtrL0:
             voodoo->cmdfifo_rp = val;
@@ -1466,15 +1484,17 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
             break;
     }
 
-    /*        cmdBaseSize0  = 0x24,
-            cmdBump0      = 0x28,
-            cmdRdPtrL0    = 0x2c,
-            cmdRdPtrH0    = 0x30,
-            cmdAMin0      = 0x34,
-            cmdAMax0      = 0x3c,
-            cmdFifoDepth0 = 0x44,
-            cmdHoleCnt0   = 0x48
-            }*/
+#if 0
+    cmdBaseSize0  = 0x24,
+    cmdBump0      = 0x28,
+    cmdRdPtrL0    = 0x2c,
+    cmdRdPtrH0    = 0x30,
+    cmdAMin0      = 0x34,
+    cmdAMax0      = 0x3c,
+    cmdFifoDepth0 = 0x44,
+    cmdHoleCnt0   = 0x48
+    }
+#endif
 }
 
 static void
@@ -1489,7 +1509,9 @@ banshee_reg_writel(uint32_t addr, uint32_t val, void *p)
         cycles -= voodoo->write_time;
     voodoo->last_write_addr = addr;
 
-    //        banshee_log("banshee_reg_writel: addr=%08x val=%08x\n", addr, val);
+#if 0
+    banshee_log("banshee_reg_writel: addr=%08x val=%08x\n", addr, val);
+#endif
 
     switch (addr & 0x1f00000) {
         case 0x0000000: /*IO remap*/
@@ -1497,7 +1519,9 @@ banshee_reg_writel(uint32_t addr, uint32_t val, void *p)
                 banshee_ext_outl(addr & 0xff, val, banshee);
             else
                 banshee_cmd_write(banshee, addr, val);
-            //                        banshee_log("CMD!!! write %08x %08x\n", addr, val);
+#if 0
+            banshee_log("CMD!!! write %08x %08x\n", addr, val);
+#endif
             break;
 
         case 0x0100000: /*2D registers*/
@@ -1515,7 +1539,9 @@ banshee_reg_writel(uint32_t addr, uint32_t val, void *p)
             switch (addr & 0x3fc) {
                 case SST_intrCtrl:
                     banshee->intrCtrl = val & 0x0030003f;
-                    //                        banshee_log("intrCtrl=%08x\n", val);
+#if 0
+                    banshee_log("intrCtrl=%08x\n", val);
+#endif
                     break;
 
                 case SST_userIntrCMD:
@@ -1527,7 +1553,9 @@ banshee_reg_writel(uint32_t addr, uint32_t val, void *p)
                     voodoo_queue_command(voodoo, (addr & 0x3fc) | FIFO_WRITEL_REG, val);
                     if (!voodoo->voodoo_busy)
                         voodoo_wake_fifo_threads(voodoo->set, voodoo);
-                    //                        banshee_log("SST_swapbufferCMD write: %i %i\n", voodoo->cmd_written, voodoo->cmd_written_fifo);
+#if 0
+                    banshee_log("SST_swapbufferCMD write: %i %i\n", voodoo->cmd_written, voodoo->cmd_written_fifo);
+#endif
                     break;
                 case SST_triangleCMD:
                     voodoo->cmd_written++;
@@ -1558,7 +1586,9 @@ banshee_reg_writel(uint32_t addr, uint32_t val, void *p)
                     thread_wait_mutex(voodoo->swap_mutex);
                     voodoo->swap_count++;
                     thread_release_mutex(voodoo->swap_mutex);
-                    //                        voodoo->cmd_written++;
+#if 0
+                    voodoo->cmd_written++;
+#endif
                     break;
 
                 default:
@@ -1608,21 +1638,26 @@ banshee_read_linear(uint32_t addr, void *p)
     }
     addr &= svga->decode_mask;
     if (addr >= voodoo->tile_base) {
-        int x, y;
+        int x;
+        int y;
 
         addr -= voodoo->tile_base;
         x = addr & (voodoo->tile_stride - 1);
         y = addr >> voodoo->tile_stride_shift;
 
         addr = voodoo->tile_base + (x & 127) + ((x >> 7) * 128 * 32) + ((y & 31) * 128) + (y >> 5) * voodoo->tile_x_real;
-        //                banshee_log("  Tile rb %08x->%08x %i %i\n", old_addr, addr, x, y);
+#if 0
+        banshee_log("  Tile rb %08x->%08x %i %i\n", old_addr, addr, x, y);
+#endif
     }
     if (addr >= svga->vram_max)
         return 0xff;
 
     cycles -= svga->monitor->mon_video_timing_read_b;
 
-    //        banshee_log("read_linear: addr=%08x val=%02x\n", addr, svga->vram[addr & svga->vram_mask]);
+#if 0
+    banshee_log("read_linear: addr=%08x val=%02x\n", addr, svga->vram[addr & svga->vram_mask]);
+#endif
 
     return svga->vram[addr & svga->vram_mask];
 }
@@ -1643,21 +1678,26 @@ banshee_read_linear_w(uint32_t addr, void *p)
     }
     addr &= svga->decode_mask;
     if (addr >= voodoo->tile_base) {
-        int x, y;
+        int x;
+        int y;
 
         addr -= voodoo->tile_base;
         x = addr & (voodoo->tile_stride - 1);
         y = addr >> voodoo->tile_stride_shift;
 
         addr = voodoo->tile_base + (x & 127) + ((x >> 7) * 128 * 32) + ((y & 31) * 128) + (y >> 5) * voodoo->tile_x_real;
-        //                banshee_log("  Tile rb %08x->%08x %i %i\n", old_addr, addr, x, y);
+#if 0
+        banshee_log("  Tile rb %08x->%08x %i %i\n", old_addr, addr, x, y);
+#endif
     }
     if (addr >= svga->vram_max)
         return 0xff;
 
     cycles -= svga->monitor->mon_video_timing_read_w;
 
-    //        banshee_log("read_linear: addr=%08x val=%02x\n", addr, svga->vram[addr & svga->vram_mask]);
+#if 0
+    banshee_log("read_linear: addr=%08x val=%02x\n", addr, svga->vram[addr & svga->vram_mask]);
+#endif
 
     return *(uint16_t *) &svga->vram[addr & svga->vram_mask];
 }
@@ -1679,21 +1719,26 @@ banshee_read_linear_l(uint32_t addr, void *p)
     }
     addr &= svga->decode_mask;
     if (addr >= voodoo->tile_base) {
-        int x, y;
+        int x;
+        int y;
 
         addr -= voodoo->tile_base;
         x = addr & (voodoo->tile_stride - 1);
         y = addr >> voodoo->tile_stride_shift;
 
         addr = voodoo->tile_base + (x & 127) + ((x >> 7) * 128 * 32) + ((y & 31) * 128) + (y >> 5) * voodoo->tile_x_real;
-        //                banshee_log("  Tile rb %08x->%08x %i %i\n", old_addr, addr, x, y);
+#if 0
+        banshee_log("  Tile rb %08x->%08x %i %i\n", old_addr, addr, x, y);
+#endif
     }
     if (addr >= svga->vram_max)
         return 0xff;
 
     cycles -= svga->monitor->mon_video_timing_read_l;
 
-    //        banshee_log("read_linear: addr=%08x val=%02x\n", addr, svga->vram[addr & svga->vram_mask]);
+#if 0
+    banshee_log("read_linear: addr=%08x val=%02x\n", addr, svga->vram[addr & svga->vram_mask]);
+#endif
 
     return *(uint32_t *) &svga->vram[addr & svga->vram_mask];
 }
@@ -1707,17 +1752,22 @@ banshee_write_linear(uint32_t addr, uint8_t val, void *p)
 
     cycles -= voodoo->write_time;
 
-    //        banshee_log("write_linear: addr=%08x val=%02x\n", addr, val);
+#if 0
+    banshee_log("write_linear: addr=%08x val=%02x\n", addr, val);
+#endif
     addr &= svga->decode_mask;
     if (addr >= voodoo->tile_base) {
-        int x, y;
+        int x;
+        int y;
 
         addr -= voodoo->tile_base;
         x = addr & (voodoo->tile_stride - 1);
         y = addr >> voodoo->tile_stride_shift;
 
         addr = voodoo->tile_base + (x & 127) + ((x >> 7) * 128 * 32) + ((y & 31) * 128) + (y >> 5) * voodoo->tile_x_real;
-        //                banshee_log("  Tile b %08x->%08x %i %i\n", old_addr, addr, x, y);
+#if 0
+        banshee_log("  Tile b %08x->%08x %i %i\n", old_addr, addr, x, y);
+#endif
     }
     if (addr >= svga->vram_max)
         return;
@@ -1742,17 +1792,22 @@ banshee_write_linear_w(uint32_t addr, uint16_t val, void *p)
     }
 
     cycles -= voodoo->write_time;
-    //        banshee_log("write_linear: addr=%08x val=%02x\n", addr, val);
+#if 0
+    banshee_log("write_linear: addr=%08x val=%02x\n", addr, val);
+#endif
     addr &= svga->decode_mask;
     if (addr >= voodoo->tile_base) {
-        int x, y;
+        int x;
+        int y;
 
         addr -= voodoo->tile_base;
         x = addr & (voodoo->tile_stride - 1);
         y = addr >> voodoo->tile_stride_shift;
 
         addr = voodoo->tile_base + (x & 127) + ((x >> 7) * 128 * 32) + ((y & 31) * 128) + (y >> 5) * voodoo->tile_x_real;
-        //                banshee_log("  Tile b %08x->%08x %i %i\n", old_addr, addr, x, y);
+#if 0
+        banshee_log("  Tile b %08x->%08x %i %i\n", old_addr, addr, x, y);
+#endif
     }
     if (addr >= svga->vram_max)
         return;
@@ -1784,17 +1839,23 @@ banshee_write_linear_l(uint32_t addr, uint32_t val, void *p)
     cycles -= timing;
     voodoo->last_write_addr = addr;
 
-    //        /*if (val) */banshee_log("write_linear_l: addr=%08x val=%08x  %08x\n", addr, val, voodoo->tile_base);
+#if 0
+    if (val)
+        banshee_log("write_linear_l: addr=%08x val=%08x  %08x\n", addr, val, voodoo->tile_base);
+#endif
     addr &= svga->decode_mask;
     if (addr >= voodoo->tile_base) {
-        int x, y;
+        int x;
+        int y;
 
         addr -= voodoo->tile_base;
         x = addr & (voodoo->tile_stride - 1);
         y = addr >> voodoo->tile_stride_shift;
 
         addr = voodoo->tile_base + (x & 127) + ((x >> 7) * 128 * 32) + ((y & 31) * 128) + (y >> 5) * voodoo->tile_x_real;
-        //                banshee_log("  Tile %08x->%08x->%08x->%08x %i %i  tile_x=%i\n", old_addr, addr_off, addr2, addr, x, y, voodoo->tile_x_real);
+#if 0
+        banshee_log("  Tile %08x->%08x->%08x->%08x %i %i  tile_x=%i\n", old_addr, addr_off, addr2, addr, x, y, voodoo->tile_x_real);
+#endif
     }
 
     if (addr >= svga->vram_max)
@@ -1805,26 +1866,34 @@ banshee_write_linear_l(uint32_t addr, uint32_t val, void *p)
     svga->changedvram[addr >> 12]                     = changeframecount;
     *(uint32_t *) &svga->vram[addr & svga->vram_mask] = val;
     if (voodoo->cmdfifo_enabled && addr >= voodoo->cmdfifo_base && addr < voodoo->cmdfifo_end) {
-        //                banshee_log("CMDFIFO write %08x %08x  old amin=%08x amax=%08x hlcnt=%i depth_wr=%i rp=%08x\n", addr, val, voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, voodoo->cmdfifo_holecount, voodoo->cmdfifo_depth_wr, voodoo->cmdfifo_rp);
+#if 0
+        banshee_log("CMDFIFO write %08x %08x  old amin=%08x amax=%08x hlcnt=%i depth_wr=%i rp=%08x\n", addr, val, voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, voodoo->cmdfifo_holecount, voodoo->cmdfifo_depth_wr, voodoo->cmdfifo_rp);
+#endif
         if (addr == voodoo->cmdfifo_base && !voodoo->cmdfifo_holecount) {
-            //                        if (voodoo->cmdfifo_holecount)
-            //                                fatal("CMDFIFO reset pointers while outstanding holes\n");
+#if 0
+            if (voodoo->cmdfifo_holecount)
+                fatal("CMDFIFO reset pointers while outstanding holes\n");
+#endif
             /*Reset pointers*/
             voodoo->cmdfifo_amin = voodoo->cmdfifo_base;
             voodoo->cmdfifo_amax = voodoo->cmdfifo_base;
             voodoo->cmdfifo_depth_wr++;
             voodoo_wake_fifo_thread(voodoo);
         } else if (voodoo->cmdfifo_holecount) {
-            //                        if ((addr <= voodoo->cmdfifo_amin && voodoo->cmdfifo_amin != -4) || addr >= voodoo->cmdfifo_amax)
-            //                                fatal("CMDFIFO holecount write outside of amin/amax - amin=%08x amax=%08x holecount=%i\n", voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, voodoo->cmdfifo_holecount);
-            //                        banshee_log("holecount %i\n", voodoo->cmdfifo_holecount);
+#if 0
+            if ((addr <= voodoo->cmdfifo_amin && voodoo->cmdfifo_amin != -4) || addr >= voodoo->cmdfifo_amax)
+                fatal("CMDFIFO holecount write outside of amin/amax - amin=%08x amax=%08x holecount=%i\n", voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, voodoo->cmdfifo_holecount);
+            banshee_log("holecount %i\n", voodoo->cmdfifo_holecount);
+#endif
             voodoo->cmdfifo_holecount--;
             if (!voodoo->cmdfifo_holecount) {
                 /*Filled in holes, resume normal operation*/
                 voodoo->cmdfifo_depth_wr += ((voodoo->cmdfifo_amax - voodoo->cmdfifo_amin) >> 2);
                 voodoo->cmdfifo_amin = voodoo->cmdfifo_amax;
                 voodoo_wake_fifo_thread(voodoo);
-                //                                banshee_log("hole filled! amin=%08x amax=%08x added %i words\n", voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, words_to_add);
+#if 0
+                banshee_log("hole filled! amin=%08x amax=%08x added %i words\n", voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, words_to_add);
+#endif
             }
         } else if (addr == voodoo->cmdfifo_amax + 4) {
             /*In-order write*/
@@ -1838,11 +1907,15 @@ banshee_write_linear_l(uint32_t addr, uint32_t val, void *p)
                 /*Reset back to start. Note that write is still out of order!*/
                 voodoo->cmdfifo_amin = voodoo->cmdfifo_base - 4;
             }
-            //                        else if (addr < voodoo->cmdfifo_amax)
-            //                                fatal("Out-of-order write really out of order\n");
+#if 0
+            else if (addr < voodoo->cmdfifo_amax)
+                fatal("Out-of-order write really out of order\n");
+#endif
             voodoo->cmdfifo_amax      = addr;
             voodoo->cmdfifo_holecount = ((voodoo->cmdfifo_amax - voodoo->cmdfifo_amin) >> 2) - 1;
-            //                        banshee_log("CMDFIFO out of order: amin=%08x amax=%08x holecount=%i\n", voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, voodoo->cmdfifo_holecount);
+#if 0
+            banshee_log("CMDFIFO out of order: amin=%08x amax=%08x holecount=%i\n", voodoo->cmdfifo_amin, voodoo->cmdfifo_amax, voodoo->cmdfifo_holecount);
+#endif
         }
     }
 }
@@ -1851,16 +1924,17 @@ void
 banshee_hwcursor_draw(svga_t *svga, int displine)
 {
     banshee_t *banshee = (banshee_t *) svga->p;
-    int        x, c;
+    int        x;
     int        x_off;
     int        xx;
     uint32_t   col0 = banshee->hwCurC0;
     uint32_t   col1 = banshee->hwCurC1;
-    uint8_t    plane0[8], plane1[8];
+    uint8_t    plane0[8];
+    uint8_t    plane1[8];
 
-    for (c = 0; c < 8; c++)
+    for (uint8_t c = 0; c < 8; c++)
         plane0[c] = svga->vram[svga->hwcursor_latch.addr + c];
-    for (c = 0; c < 8; c++)
+    for (uint8_t c = 0; c < 8; c++)
         plane1[c] = svga->vram[svga->hwcursor_latch.addr + c + 8];
     svga->hwcursor_latch.addr += 16;
 
@@ -2054,10 +2128,14 @@ banshee_hwcursor_draw(svga_t *svga, int displine)
 void
 voodoo_generate_vb_filters(voodoo_t *voodoo, int fcr, int fcg)
 {
-    int   g, h;
-    float difference, diffg;
-    float thiscol, thiscolg;
-    float clr, clg = 0;
+    int   g;
+    int   h;
+    float difference;
+    float diffg;
+    float thiscol;
+    float thiscolg;
+    float clr;
+    float clg = 0;
     float hack = 1.0f;
     // pre-clamping
 
@@ -2129,8 +2207,8 @@ voodoo_generate_vb_filters(voodoo_t *voodoo, int fcr, int fcg)
             if (thiscolg > 255)
                 thiscolg = 255;
 
-            vb_filter_bx_rb[g][h] = (thiscol);
-            vb_filter_bx_g[g][h]  = (thiscolg);
+            vb_filter_bx_rb[g][h] = thiscol;
+            vb_filter_bx_g[g][h]  = thiscolg;
         }
         float lined = g + 4;
         if (lined > 255)
@@ -2145,8 +2223,10 @@ voodoo_generate_vb_filters(voodoo_t *voodoo, int fcr, int fcg)
     }
 
     /* 4x1 and 2x2 filter */
-    // fcr *= 5;
-    // fcg *= 6;
+#if 0
+    fcr *= 5;
+    fcg *= 6;
+#endif
 
     for (g = 0; g < 256; g++) // pixel 1
     {
@@ -2211,9 +2291,11 @@ banshee_overlay_draw(svga_t *svga, int displine)
 
     if ((voodoo->overlay.src_y >> 20) < 2048)
         voodoo->dirty_line[voodoo->overlay.src_y >> 20] = 0;
-    //        pclog("displine=%i addr=%08x %08x  %08x  %08x\n", displine, svga->overlay_latch.addr, src_addr, voodoo->overlay.vidOverlayDvdy, *(uint32_t *)src);
-    //        if (src_addr >= 0x800000)
-    //                fatal("overlay out of range!\n");
+#if 0
+    pclog("displine=%i addr=%08x %08x  %08x  %08x\n", displine, svga->overlay_latch.addr, src_addr, voodoo->overlay.vidOverlayDvdy, *(uint32_t *)src);
+    if (src_addr >= 0x800000)
+        fatal("overlay out of range!\n");
+#endif
     p = &((uint32_t *) svga->monitor->target_buffer->line[displine])[svga->overlay_latch.x + svga->x_add];
 
     if (banshee->voodoo->scrfilter && banshee->voodoo->scrfilterEnabled)
@@ -2271,9 +2353,9 @@ banshee_overlay_draw(svga_t *svga, int displine)
                     if (banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) /* leilei HACK - don't know of real 4x1 hscaled behavior yet, double for now */
                     {
                         for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
-                            fil[x * 3]      = ((banshee->overlay_buffer[0][src_x >> 20]));
-                            fil[x * 3 + 1]  = ((banshee->overlay_buffer[0][src_x >> 20] >> 8));
-                            fil[x * 3 + 2]  = ((banshee->overlay_buffer[0][src_x >> 20] >> 16));
+                            fil[x * 3]      = (banshee->overlay_buffer[0][src_x >> 20]);
+                            fil[x * 3 + 1]  = (banshee->overlay_buffer[0][src_x >> 20] >> 8);
+                            fil[x * 3 + 2]  = (banshee->overlay_buffer[0][src_x >> 20] >> 16);
                             fil3[x * 3 + 0] = fil[x * 3 + 0];
                             fil3[x * 3 + 1] = fil[x * 3 + 1];
                             fil3[x * 3 + 2] = fil[x * 3 + 2];
@@ -2281,9 +2363,9 @@ banshee_overlay_draw(svga_t *svga, int displine)
                         }
                     } else {
                         for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
-                            fil[x * 3]      = ((banshee->overlay_buffer[0][x]));
-                            fil[x * 3 + 1]  = ((banshee->overlay_buffer[0][x] >> 8));
-                            fil[x * 3 + 2]  = ((banshee->overlay_buffer[0][x] >> 16));
+                            fil[x * 3]      = (banshee->overlay_buffer[0][x]);
+                            fil[x * 3 + 1]  = (banshee->overlay_buffer[0][x] >> 8);
+                            fil[x * 3 + 2]  = (banshee->overlay_buffer[0][x] >> 16);
                             fil3[x * 3 + 0] = fil[x * 3 + 0];
                             fil3[x * 3 + 1] = fil[x * 3 + 1];
                             fil3[x * 3 + 2] = fil[x * 3 + 2];
@@ -2298,24 +2380,24 @@ banshee_overlay_draw(svga_t *svga, int displine)
                     }
 
                     for (x = 1; x < svga->overlay_latch.cur_xsize; x++) {
-                        fil3[(x) *3]     = vb_filter_v1_rb[fil[x * 3]][fil[(x - 1) * 3]];
-                        fil3[(x) *3 + 1] = vb_filter_v1_g[fil[x * 3 + 1]][fil[(x - 1) * 3 + 1]];
-                        fil3[(x) *3 + 2] = vb_filter_v1_rb[fil[x * 3 + 2]][fil[(x - 1) * 3 + 2]];
+                        fil3[x * 3]     = vb_filter_v1_rb[fil[x * 3]][fil[(x - 1) * 3]];
+                        fil3[x * 3 + 1] = vb_filter_v1_g[fil[x * 3 + 1]][fil[(x - 1) * 3 + 1]];
+                        fil3[x * 3 + 2] = vb_filter_v1_rb[fil[x * 3 + 2]][fil[(x - 1) * 3 + 2]];
                     }
                     for (x = 1; x < svga->overlay_latch.cur_xsize; x++) {
-                        fil[(x) *3]     = vb_filter_v1_rb[fil[x * 3]][fil3[(x - 1) * 3]];
-                        fil[(x) *3 + 1] = vb_filter_v1_g[fil[x * 3 + 1]][fil3[(x - 1) * 3 + 1]];
-                        fil[(x) *3 + 2] = vb_filter_v1_rb[fil[x * 3 + 2]][fil3[(x - 1) * 3 + 2]];
+                        fil[x * 3]     = vb_filter_v1_rb[fil[x * 3]][fil3[(x - 1) * 3]];
+                        fil[x * 3 + 1] = vb_filter_v1_g[fil[x * 3 + 1]][fil3[(x - 1) * 3 + 1]];
+                        fil[x * 3 + 2] = vb_filter_v1_rb[fil[x * 3 + 2]][fil3[(x - 1) * 3 + 2]];
                     }
                     for (x = 1; x < svga->overlay_latch.cur_xsize; x++) {
-                        fil3[(x) *3]     = vb_filter_v1_rb[fil[x * 3]][fil[(x - 1) * 3]];
-                        fil3[(x) *3 + 1] = vb_filter_v1_g[fil[x * 3 + 1]][fil[(x - 1) * 3 + 1]];
-                        fil3[(x) *3 + 2] = vb_filter_v1_rb[fil[x * 3 + 2]][fil[(x - 1) * 3 + 2]];
+                        fil3[x * 3]     = vb_filter_v1_rb[fil[x * 3]][fil[(x - 1) * 3]];
+                        fil3[x * 3 + 1] = vb_filter_v1_g[fil[x * 3 + 1]][fil[(x - 1) * 3 + 1]];
+                        fil3[x * 3 + 2] = vb_filter_v1_rb[fil[x * 3 + 2]][fil[(x - 1) * 3 + 2]];
                     }
                     for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
-                        fil[(x) *3]     = vb_filter_v1_rb[fil[x * 3]][fil3[(x + 1) * 3]];
-                        fil[(x) *3 + 1] = vb_filter_v1_g[fil[x * 3 + 1]][fil3[(x + 1) * 3 + 1]];
-                        fil[(x) *3 + 2] = vb_filter_v1_rb[fil[x * 3 + 2]][fil3[(x + 1) * 3 + 2]];
+                        fil[x * 3]     = vb_filter_v1_rb[fil[x * 3]][fil3[(x + 1) * 3]];
+                        fil[x * 3 + 1] = vb_filter_v1_g[fil[x * 3 + 1]][fil3[(x + 1) * 3 + 1]];
+                        fil[x * 3 + 2] = vb_filter_v1_rb[fil[x * 3 + 2]][fil3[(x + 1) * 3 + 2]];
                         p[x]            = (fil[x * 3 + 2] << 16) | (fil[x * 3 + 1] << 8) | fil[x * 3];
                     }
                 } else /* filter disabled by emulator option */
@@ -2346,21 +2428,21 @@ banshee_overlay_draw(svga_t *svga, int displine)
                     src = &svga->vram[src_addr2 & svga->vram_mask];
                     OVERLAY_SAMPLE(banshee->overlay_buffer[1]);
                     for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
-                        samp1[x * 3]     = ((banshee->overlay_buffer[0][x]));
-                        samp1[x * 3 + 1] = ((banshee->overlay_buffer[0][x] >> 8));
-                        samp1[x * 3 + 2] = ((banshee->overlay_buffer[0][x] >> 16));
+                        samp1[x * 3]     = (banshee->overlay_buffer[0][x]);
+                        samp1[x * 3 + 1] = (banshee->overlay_buffer[0][x] >> 8);
+                        samp1[x * 3 + 2] = (banshee->overlay_buffer[0][x] >> 16);
 
-                        samp2[x * 3 + 0] = ((banshee->overlay_buffer[0][x + 1]));
-                        samp2[x * 3 + 1] = ((banshee->overlay_buffer[0][x + 1] >> 8));
-                        samp2[x * 3 + 2] = ((banshee->overlay_buffer[0][x + 1] >> 16));
+                        samp2[x * 3 + 0] = (banshee->overlay_buffer[0][x + 1]);
+                        samp2[x * 3 + 1] = (banshee->overlay_buffer[0][x + 1] >> 8);
+                        samp2[x * 3 + 2] = (banshee->overlay_buffer[0][x + 1] >> 16);
 
-                        samp3[x * 3 + 0] = ((banshee->overlay_buffer[1][x]));
-                        samp3[x * 3 + 1] = ((banshee->overlay_buffer[1][x] >> 8));
-                        samp3[x * 3 + 2] = ((banshee->overlay_buffer[1][x] >> 16));
+                        samp3[x * 3 + 0] = (banshee->overlay_buffer[1][x]);
+                        samp3[x * 3 + 1] = (banshee->overlay_buffer[1][x] >> 8);
+                        samp3[x * 3 + 2] = (banshee->overlay_buffer[1][x] >> 16);
 
-                        samp4[x * 3 + 0] = ((banshee->overlay_buffer[1][x + 1]));
-                        samp4[x * 3 + 1] = ((banshee->overlay_buffer[1][x + 1] >> 8));
-                        samp4[x * 3 + 2] = ((banshee->overlay_buffer[1][x + 1] >> 16));
+                        samp4[x * 3 + 0] = (banshee->overlay_buffer[1][x + 1]);
+                        samp4[x * 3 + 1] = (banshee->overlay_buffer[1][x + 1] >> 8);
+                        samp4[x * 3 + 2] = (banshee->overlay_buffer[1][x + 1] >> 16);
 
                         /* sample two lines */
 
@@ -2662,7 +2744,9 @@ banshee_pci_read(int func, int addr, void *p)
             ret = banshee->pci_regs[0x67];
             break;
     }
-    //        banshee_log("%02X\n", ret);
+#if 0
+    banshee_log("%02X\n", ret);
+#endif
     return ret;
 }
 
@@ -2670,11 +2754,15 @@ static void
 banshee_pci_write(int func, int addr, uint8_t val, void *p)
 {
     banshee_t *banshee = (banshee_t *) p;
-    //        svga_t *svga = &banshee->svga;
+#if 0
+    svga_t *svga = &banshee->svga;
+#endif
 
     if (func)
         return;
-    //        banshee_log("Banshee write %08X %02X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+#if 0
+    banshee_log("Banshee write %08X %02X %04X:%08X\n", addr, val, CS, cpu_state.pc);
+#endif
     switch (addr) {
         case 0x00:
         case 0x01:
@@ -2935,7 +3023,9 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
     }
 
     if (!banshee->has_bios)
-        // mem_size = info->local; /* fixed size for on-board chips */
+#if 0
+        mem_size = info->local; /* fixed size for on-board chips */
+#endif
         mem_size = device_get_config_int("memory"); /* MS-6168 / Bora Pro can do both 8 and 16 MB. */
     else if (has_sgram) {
         if (banshee->type == TYPE_VELOCITY100)
@@ -2982,7 +3072,9 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
 
     banshee->svga.vblank_start = banshee_vblank_start;
 
-    //        io_sethandler(0x03c0, 0x0020, banshee_in, NULL, NULL, banshee_out, NULL, NULL, banshee);
+#if 0
+    io_sethandler(0x03c0, 0x0020, banshee_in, NULL, NULL, banshee_out, NULL, NULL, banshee);
+#endif
 
     banshee->svga.bpp     = 8;
     banshee->svga.miscout = 1;
@@ -3305,7 +3397,7 @@ const device_t voodoo_banshee_device = {
     { .available = banshee_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sgram_config
+    .config        = banshee_sgram_config
 };
 
 const device_t creative_voodoo_banshee_device = {
@@ -3319,7 +3411,7 @@ const device_t creative_voodoo_banshee_device = {
     { .available = creative_banshee_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sdram_config
+    .config        = banshee_sdram_config
 };
 
 const device_t voodoo_3_1000_device = {
@@ -3333,7 +3425,7 @@ const device_t voodoo_3_1000_device = {
     { .available = v3_1000_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sgram_config
+    .config        = banshee_sgram_config
 };
 
 const device_t voodoo_3_1000_agp_device = {
@@ -3347,7 +3439,7 @@ const device_t voodoo_3_1000_agp_device = {
     { .available = v3_1000_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sgram_config
+    .config        = banshee_sgram_config
 };
 
 const device_t voodoo_3_2000_device = {
@@ -3361,7 +3453,7 @@ const device_t voodoo_3_2000_device = {
     { .available = v3_2000_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sdram_config
+    .config        = banshee_sdram_config
 };
 
 const device_t voodoo_3_2000_agp_device = {
@@ -3375,7 +3467,7 @@ const device_t voodoo_3_2000_agp_device = {
     { .available = v3_2000_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sdram_config
+    .config        = banshee_sdram_config
 };
 
 const device_t voodoo_3_2000_agp_onboard_8m_device = {
@@ -3389,7 +3481,7 @@ const device_t voodoo_3_2000_agp_onboard_8m_device = {
     { .available = NULL },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sgram_config
+    .config        = banshee_sgram_config
 };
 
 const device_t voodoo_3_3000_device = {
@@ -3403,7 +3495,7 @@ const device_t voodoo_3_3000_device = {
     { .available = v3_3000_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sdram_config
+    .config        = banshee_sdram_config
 };
 
 const device_t voodoo_3_3000_agp_device = {
@@ -3417,7 +3509,7 @@ const device_t voodoo_3_3000_agp_device = {
     { .available = v3_3000_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sdram_config
+    .config        = banshee_sdram_config
 };
 
 const device_t voodoo_3_3500_agp_ntsc_device = {
@@ -3431,7 +3523,7 @@ const device_t voodoo_3_3500_agp_ntsc_device = {
     { .available = v3_3500_agp_ntsc_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sdram_config
+    .config        = banshee_sdram_config
 };
 
 const device_t voodoo_3_3500_agp_pal_device = {
@@ -3445,7 +3537,7 @@ const device_t voodoo_3_3500_agp_pal_device = {
     { .available = v3_3500_agp_pal_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sdram_config
+    .config        = banshee_sdram_config
 };
 
 const device_t compaq_voodoo_3_3500_agp_device = {
@@ -3459,7 +3551,7 @@ const device_t compaq_voodoo_3_3500_agp_device = {
     { .available = compaq_v3_3500_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sdram_config
+    .config        = banshee_sdram_config
 };
 
 const device_t voodoo_3_3500_se_agp_device = {
@@ -3473,7 +3565,7 @@ const device_t voodoo_3_3500_se_agp_device = {
     { .available = v3_3500_se_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sdram_config
+    .config        = banshee_sdram_config
 };
 
 const device_t voodoo_3_3500_si_agp_device = {
@@ -3487,7 +3579,7 @@ const device_t voodoo_3_3500_si_agp_device = {
     { .available = v3_3500_si_agp_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sdram_config
+    .config        = banshee_sdram_config
 };
 
 const device_t velocity_100_agp_device = {
@@ -3501,7 +3593,7 @@ const device_t velocity_100_agp_device = {
     { .available = velocity_100_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sdram_config
+    .config        = banshee_sdram_config
 };
 
 const device_t velocity_200_agp_device = {
@@ -3515,5 +3607,5 @@ const device_t velocity_200_agp_device = {
     { .available = velocity_200_available },
     .speed_changed = banshee_speed_changed,
     .force_redraw  = banshee_force_redraw,
-    banshee_sgram_config
+    .config        = banshee_sgram_config
 };

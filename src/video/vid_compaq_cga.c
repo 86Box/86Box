@@ -69,7 +69,9 @@ compaq_cga_log(const char *fmt, ...)
 void
 compaq_cga_recalctimings(compaq_cga_t *self)
 {
-    double _dispontime, _dispofftime, disptime;
+    double _dispontime;
+    double _dispofftime;
+    double disptime;
     disptime = self->cga.crtc[0] + 1;
 
     _dispontime  = self->cga.crtc[1];
@@ -86,9 +88,13 @@ compaq_cga_poll(void *p)
     compaq_cga_t *self = (compaq_cga_t *) p;
     uint16_t      ca   = (self->cga.crtc[15] | (self->cga.crtc[14] << 8)) & 0x3fff;
     int           drawcursor;
-    int           x, c, xs_temp, ys_temp;
+    int           x;
+    int           c;
+    int           xs_temp;
+    int           ys_temp;
     int           oldvc;
-    uint8_t       chr, attr;
+    uint8_t       chr;
+    uint8_t       attr;
     uint8_t       border;
     uint8_t       cols[4];
     int           oldsc;
@@ -176,8 +182,8 @@ compaq_cga_poll(void *p)
                 }
             } else {
                 for (x = 0; x < self->cga.crtc[1]; x++) {
-                    chr        = self->cga.vram[((self->cga.ma << 1) & 0x3fff)];
-                    attr       = self->cga.vram[(((self->cga.ma << 1) + 1) & 0x3fff)];
+                    chr        = self->cga.vram[(self->cga.ma << 1) & 0x3fff];
+                    attr       = self->cga.vram[((self->cga.ma << 1) + 1) & 0x3fff];
                     drawcursor = ((self->cga.ma == ca) && self->cga.con && self->cga.cursoron);
 
                     if (vflags) {
@@ -380,12 +386,12 @@ compaq_cga_poll(void *p)
         if (self->cga.cgadispon)
             self->cga.cgastat &= ~1;
 
-        if ((self->cga.sc == (self->cga.crtc[10] & 31) || ((self->cga.crtc[8] & 3) == 3 && self->cga.sc == ((self->cga.crtc[10] & 31) >> 1))))
+        if (self->cga.sc == (self->cga.crtc[10] & 31) || ((self->cga.crtc[8] & 3) == 3 && self->cga.sc == ((self->cga.crtc[10] & 31) >> 1)))
             self->cga.con = 1;
 
         if (self->cga.cgadispon && (self->cga.cgamode & 1)) {
             for (x = 0; x < (self->cga.crtc[1] << 1); x++)
-                self->cga.charbuffer[x] = self->cga.vram[(((self->cga.ma << 1) + x) & 0x3fff)];
+                self->cga.charbuffer[x] = self->cga.vram[((self->cga.ma << 1) + x) & 0x3fff];
         }
     }
 }
@@ -394,7 +400,6 @@ void *
 compaq_cga_init(const device_t *info)
 {
     int           display_type;
-    int           c;
     compaq_cga_t *self = malloc(sizeof(compaq_cga_t));
     memset(self, 0, sizeof(compaq_cga_t));
 
@@ -411,7 +416,7 @@ compaq_cga_init(const device_t *info)
     io_sethandler(0x03d0, 0x0010, cga_in, NULL, NULL, cga_out, NULL, NULL, self);
 
     if (info->local) {
-        for (c = 0; c < 256; c++) {
+        for (uint16_t c = 0; c < 256; c++) {
             mdaattr[c][0][0] = mdaattr[c][1][0] = mdaattr[c][1][1] = 16;
             if (c & 8)
                 mdaattr[c][0][1] = 15 + 16;

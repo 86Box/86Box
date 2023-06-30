@@ -58,7 +58,6 @@ ati_eeprom_save(ati_eeprom_t *eeprom)
 void
 ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
 {
-    int c;
     if (!ena) {
         eeprom->out = 1;
     }
@@ -157,7 +156,7 @@ ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
 
                             case EEPROM_OP_WRALMAIN:
                                 if (!eeprom->wp) {
-                                    for (c = 0; c < 256; c++)
+                                    for (uint16_t c = 0; c < 256; c++)
                                         eeprom->data[c] = eeprom->dat;
                                     ati_eeprom_save(eeprom);
                                 }

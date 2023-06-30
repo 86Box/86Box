@@ -34,6 +34,7 @@
 #include <86box/device.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
@@ -52,8 +53,9 @@ enum {
 #define HEADLAND_HAS_CRI   0x10
 #define HEADLAND_HAS_SLEEP 0x20
 
-typedef struct {
-    uint8_t  valid, enabled;
+typedef struct headland_mr_t {
+    uint8_t  valid;
+    uint8_t  enabled;
     uint16_t mr;
     uint32_t virt_base;
 
@@ -62,7 +64,8 @@ typedef struct {
 
 typedef struct headland_t {
     uint8_t revision;
-    uint8_t has_cri, has_sleep;
+    uint8_t has_cri;
+    uint8_t  has_sleep;
 
     uint8_t cri;
     uint8_t cr[7];
@@ -72,8 +75,8 @@ typedef struct headland_t {
 
     uint8_t ems_mar;
 
-    headland_mr_t null_mr,
-        ems_mr[64];
+    headland_mr_t null_mr;
+    headland_mr_t ems_mr[64];
 
     mem_mapping_t low_mapping;
     mem_mapping_t ems_mapping[64];
@@ -205,7 +208,7 @@ hl_ems_update(headland_t *dev, uint8_t mar)
 }
 
 static void
-set_global_EMS_state(headland_t *dev, int state)
+set_global_EMS_state(headland_t *dev, UNUSED(int state))
 {
     for (uint8_t i = 0; i < 32; i++) {
         hl_ems_update(dev, i | (((dev->cr[0] & 0x01) << 5) ^ 0x20));
@@ -590,7 +593,6 @@ headland_init(const device_t *info)
 {
     headland_t *dev;
     int         ht386 = 0;
-    uint32_t    i;
 
     dev = (headland_t *) malloc(sizeof(headland_t));
     memset(dev, 0x00, sizeof(headland_t));
@@ -615,7 +617,7 @@ headland_init(const device_t *info)
     dev->null_mr.mr       = 0xff;
     dev->null_mr.headland = dev;
 
-    for (i = 0; i < 64; i++) {
+    for (uint8_t i = 0; i < 64; i++) {
         dev->ems_mr[i].valid    = 1;
         dev->ems_mr[i].mr       = 0x00;
         dev->ems_mr[i].headland = dev;
@@ -647,7 +649,7 @@ headland_init(const device_t *info)
         mem_mapping_enable(&dev->high_mapping);
     }
 
-    for (i = 0; i < 24; i++) {
+    for (uint8_t i = 0; i < 24; i++) {
         mem_mapping_add(&dev->upper_mapping[i],
                         0x40000 + (i << 14), 0x4000,
                         mem_read_b, mem_read_w, mem_read_l,
@@ -673,7 +675,7 @@ headland_init(const device_t *info)
                     MEM_MAPPING_INTERNAL, &dev->null_mr);
     mem_mapping_disable(&dev->shadow_mapping[1]);
 
-    for (i = 0; i < 64; i++) {
+    for (uint8_t i = 0; i < 64; i++) {
         dev->ems_mr[i].mr = 0x00;
         mem_mapping_add(&dev->ems_mapping[i],
                         ((i & 31) + ((i & 31) >= 24 ? 24 : 16)) << 14, 0x04000,

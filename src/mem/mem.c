@@ -544,12 +544,6 @@ mmutranslate_noabrt(uint32_t addr, int rw)
         return mmutranslate_noabrt_normal(addr, rw);
 }
 
-void
-mmu_invalidate(uint32_t addr)
-{
-    flushmmucache_cr3();
-}
-
 uint8_t
 mem_addr_range_match(uint32_t addr, uint32_t start, uint32_t len)
 {
@@ -663,6 +657,9 @@ uint8_t *
 getpccache(uint32_t a)
 {
     uint64_t a64 = (uint64_t) a;
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+    uint8_t *p;
+#endif
     uint32_t a2;
 
     a2 = a;
@@ -683,7 +680,12 @@ getpccache(uint32_t a)
                 cpu_prefetch_cycles = cpu_mem_prefetch_cycles;
         }
 
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+        p = &_mem_exec[a64 >> MEM_GRANULARITY_BITS][(uintptr_t) (a64 & MEM_GRANULARITY_PAGE) - (uintptr_t) (a2 & ~0xfff)];
+        return (uint8_t *) (((uintptr_t) p & 0x00000000ffffffffULL) | ((uintptr_t) &_mem_exec[a64 >> MEM_GRANULARITY_BITS][0] & 0xffffffff00000000ULL));
+#else
         return &_mem_exec[a64 >> MEM_GRANULARITY_BITS][(uintptr_t) (a64 & MEM_GRANULARITY_PAGE) - (uintptr_t) (a2 & ~0xfff)];
+#endif
     }
 
     mem_log("Bad getpccache %08X%08X\n", (uint32_t) (a64 >> 32), (uint32_t) (a64 & 0xffffffffULL));
@@ -2219,7 +2221,7 @@ mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
         if (p) {
             p->dirty_mask = 0xffffffffffffffffULL;
 
-            if (p->byte_dirty_mask)
+            if ((p->mem != page_ff) && p->byte_dirty_mask)
                 memset(p->byte_dirty_mask, 0xff, 64 * sizeof(uint64_t));
 
             if (!page_in_evict_list(p))
@@ -2325,7 +2327,7 @@ mem_mapping_recalc(uint64_t base, uint64_t size)
         map = map->next;
     }
 
-    flushmmucache_cr3();
+    flushmmucache_nopc();
 
 #ifdef ENABLE_MEM_LOG
     pclog("\nMemory map:\n");

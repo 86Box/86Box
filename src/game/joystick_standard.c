@@ -44,6 +44,7 @@
 #include <86box/timer.h>
 #include <86box/gameport.h>
 #include <86box/joystick_standard.h>
+#include <86box/plat_unused.h>
 
 static void *
 joystick_standard_init(void)
@@ -52,12 +53,13 @@ joystick_standard_init(void)
 }
 
 static void
-joystick_standard_close(void *p)
+joystick_standard_close(UNUSED(void *priv))
 {
+    //
 }
 
 static uint8_t
-joystick_standard_read(void *p)
+joystick_standard_read(UNUSED(void *priv))
 {
     uint8_t ret = 0xf0;
 
@@ -78,7 +80,7 @@ joystick_standard_read(void *p)
 }
 
 static uint8_t
-joystick_standard_read_4button(void *p)
+joystick_standard_read_4button(UNUSED(void *priv))
 {
     uint8_t ret = 0xf0;
 
@@ -97,12 +99,13 @@ joystick_standard_read_4button(void *p)
 }
 
 static void
-joystick_standard_write(void *p)
+joystick_standard_write(UNUSED(void *priv))
 {
+    //
 }
 
 static int
-joystick_standard_read_axis(void *p, int axis)
+joystick_standard_read_axis(UNUSED(void *priv), int axis)
 {
     switch (axis) {
         case 0:
@@ -127,7 +130,7 @@ joystick_standard_read_axis(void *p, int axis)
 }
 
 static int
-joystick_standard_read_axis_4button(void *p, int axis)
+joystick_standard_read_axis_4button(UNUSED(void *priv), int axis)
 {
     if (!JOYSTICK_PRESENT(0))
         return AXIS_NOT_PRESENT;
@@ -147,7 +150,7 @@ joystick_standard_read_axis_4button(void *p, int axis)
 }
 
 static int
-joystick_standard_read_axis_3axis(void *p, int axis)
+joystick_standard_read_axis_3axis(UNUSED(void *priv), int axis)
 {
     if (!JOYSTICK_PRESENT(0))
         return AXIS_NOT_PRESENT;
@@ -167,7 +170,7 @@ joystick_standard_read_axis_3axis(void *p, int axis)
 }
 
 static int
-joystick_standard_read_axis_4axis(void *p, int axis)
+joystick_standard_read_axis_4axis(UNUSED(void *priv), int axis)
 {
     if (!JOYSTICK_PRESENT(0))
         return AXIS_NOT_PRESENT;
@@ -187,7 +190,7 @@ joystick_standard_read_axis_4axis(void *p, int axis)
 }
 
 static int
-joystick_standard_read_axis_6button(void *p, int axis)
+joystick_standard_read_axis_6button(UNUSED(void *priv), int axis)
 {
     if (!JOYSTICK_PRESENT(0))
         return AXIS_NOT_PRESENT;
@@ -206,7 +209,7 @@ joystick_standard_read_axis_6button(void *p, int axis)
     }
 }
 static int
-joystick_standard_read_axis_8button(void *p, int axis)
+joystick_standard_read_axis_8button(UNUSED(void *priv), int axis)
 {
     if (!JOYSTICK_PRESENT(0))
         return AXIS_NOT_PRESENT;
@@ -234,8 +237,9 @@ joystick_standard_read_axis_8button(void *p, int axis)
 }
 
 static void
-joystick_standard_a0_over(void *p)
+joystick_standard_a0_over(UNUSED(void *priv))
 {
+    //
 }
 
 const joystick_if_t joystick_2axis_2button = {

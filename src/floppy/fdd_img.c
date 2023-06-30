@@ -450,7 +450,7 @@ side_flags(int drive)
 }
 
 static void
-set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
+set_sector(int drive, UNUSED(int side), UNUSED(uint8_t c), uint8_t h, uint8_t r, UNUSED(uint8_t n))
 {
     img_t *dev = img[drive];
 
@@ -459,7 +459,7 @@ set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 }
 
 static uint8_t
-poll_read_data(int drive, int side, uint16_t pos)
+poll_read_data(int drive, UNUSED(int side), uint16_t pos)
 {
     img_t *dev = img[drive];
 
@@ -467,7 +467,7 @@ poll_read_data(int drive, int side, uint16_t pos)
 }
 
 static void
-poll_write_data(int drive, int side, uint16_t pos, uint8_t data)
+poll_write_data(int drive, UNUSED(int side), uint16_t pos, uint8_t data)
 {
     img_t *dev = img[drive];
 
@@ -1028,9 +1028,6 @@ jump_if_fdf:
             dev->sectors = 9;
             dev->tracks  = 70;
             dev->sides   = 1;
-        } else if (size <= (320 * 1024)) {
-            dev->sectors = 8;
-            dev->tracks  = 40;
         } else if (size <= (320 * 1024)) {
             dev->sectors = 8;
             dev->tracks  = 40;
