@@ -22,7 +22,8 @@
 #ifdef _TIMER_H_
 typedef struct
 {
-    uint8_t reg, flags;
+    uint8_t reg;
+    uint8_t flags;
 
     pc_timer_t pulse_timer;
 

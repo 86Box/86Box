@@ -29,9 +29,9 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
-typedef struct {
-    uint8_t idx,
-        regs[256];
+typedef struct vl82c480_t {
+    uint8_t idx;
+    uint8_t regs[256];
 } vl82c480_t;
 
 static int
@@ -40,8 +40,8 @@ vl82c480_shflags(uint8_t access)
     int ret = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
 
     switch (access) {
-        case 0x00:
         default:
+        case 0x00:
             ret = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
             break;
         case 0x01:
@@ -81,9 +81,9 @@ vl82c480_recalc(vl82c480_t *dev)
 }
 
 static void
-vl82c480_write(uint16_t addr, uint8_t val, void *p)
+vl82c480_write(uint16_t addr, uint8_t val, void *priv)
 {
-    vl82c480_t *dev = (vl82c480_t *) p;
+    vl82c480_t *dev = (vl82c480_t *) priv;
 
     switch (addr) {
         case 0xec:
@@ -125,13 +125,16 @@ vl82c480_write(uint16_t addr, uint8_t val, void *p)
             if (mem_a20_alt)
                 outb(0x92, inb(0x92) & ~2);
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-vl82c480_read(uint16_t addr, void *p)
+vl82c480_read(uint16_t addr, void *priv)
 {
-    vl82c480_t *dev = (vl82c480_t *) p;
+    vl82c480_t *dev = (vl82c480_t *) priv;
     uint8_t     ret = 0xff;
 
     switch (addr) {
@@ -152,15 +155,18 @@ vl82c480_read(uint16_t addr, void *p)
             softresetx86();
             cpu_set_edx();
             break;
+
+        default:
+            break;
     }
 
     return ret;
 }
 
 static void
-vl82c480_close(void *p)
+vl82c480_close(void *priv)
 {
-    vl82c480_t *dev = (vl82c480_t *) p;
+    vl82c480_t *dev = (vl82c480_t *) priv;
 
     free(dev);
 }

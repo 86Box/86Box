@@ -36,6 +36,7 @@
 #include <86box/nvr.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/sio.h>
 #include <86box/smbus.h>
@@ -46,10 +47,19 @@
 #include <86box/chipset.h>
 
 typedef struct ali1543_t {
-    uint8_t pci_conf[256], pmu_conf[256], usb_conf[256], ide_conf[256],
-        pci_slot, ide_slot, usb_slot, pmu_slot, usb_dev_enable, ide_dev_enable,
-        pmu_dev_enable, type;
-    int offset;
+    uint8_t pci_conf[256];
+    uint8_t pmu_conf[256];
+    uint8_t usb_conf[256];
+    uint8_t ide_conf[256];
+    uint8_t pci_slot;
+    uint8_t ide_slot;
+    uint8_t usb_slot;
+    uint8_t pmu_slot;
+    uint8_t usb_dev_enable;
+    uint8_t ide_dev_enable;
+    uint8_t pmu_dev_enable;
+    uint8_t type;
+    int     offset;
 
     apm_t           *apm;
     acpi_t          *acpi;
@@ -95,7 +105,7 @@ ali1543_log(const char *fmt, ...)
 #endif
 
 static void
-ali1533_ddma_handler(ali1543_t *dev)
+ali1533_ddma_handler(UNUSED(ali1543_t *dev))
 {
     /* TODO: Find any documentation that actually explains the ALi southbridge DDMA mapping. */
 }
@@ -168,6 +178,8 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
                 case 6:
                     cpu_set_isa_pci_div((val & 7) + 1);
                     break;
+                default:
+                    break;
             }
             break;
 
@@ -227,8 +239,10 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf[addr] = val;
 
                 ali1543_log("SIRQI = IRQ %i; SIRQII = IRQ %i\n", ali1533_irq_routing[(val >> 4) & 0x0f], ali1533_irq_routing[val & 0x0f]);
-                // pci_set_mirq_routing(PCI_MIRQ0, ali1533_irq_routing[(val >> 4) & 0x0f]);
-                // pci_set_mirq_routing(PCI_MIRQ1, ali1533_irq_routing[val & 0x0f]);
+#if 0
+                pci_set_mirq_routing(PCI_MIRQ0, ali1533_irq_routing[(val >> 4) & 0x0f]);
+                pci_set_mirq_routing(PCI_MIRQ1, ali1533_irq_routing[val & 0x0f]);
+#endif
             }
             break;
 
@@ -292,6 +306,8 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
                     break;
                 case 0x30:
                     dev->ide_slot = 0x0d; /* A24 = slot 13 */
+                    break;
+                default:
                     break;
             }
             pci_relocate_slot(PCI_CARD_SOUTHBRIDGE_IDE, ((int) dev->ide_slot) + dev->offset);
@@ -364,6 +380,8 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
                 case 0x0c:
                     dev->pmu_slot = 0x04; /* A15 = slot 04 */
                     break;
+                default:
+                    break;
             }
             pci_relocate_slot(PCI_CARD_SOUTHBRIDGE_PMU, ((int) dev->pmu_slot) + dev->offset);
             ali1543_log("PMU slot = %02X (A%0i)\n", ((int) dev->pmu_slot) + dev->offset, dev->pmu_slot + 11);
@@ -379,6 +397,8 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
                     break;
                 case 0x03:
                     dev->usb_slot = 0x01; /* A12 = slot 01 */
+                    break;
+                default:
                     break;
             }
             pci_relocate_slot(PCI_CARD_SOUTHBRIDGE_USB, ((int) dev->usb_slot) + dev->offset);
@@ -436,6 +456,9 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
                 ali7101_write(func, addr, val, priv);
                 dev->pmu_dev_enable = 0;
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -509,6 +532,9 @@ ali5229_ide_irq_handler(ali1543_t *dev)
                 sff_set_irq_mode(dev->ide_controller[ctl], 0 ^ ch, 0);
                 sff_set_irq_mode(dev->ide_controller[ctl], 1 ^ ch, 2);
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -545,6 +571,9 @@ ali5229_ide_irq_handler(ali1543_t *dev)
                 ali1543_log("Secondary IDE IRQ mode: IRQ14, SIRQI\n");
                 sff_set_irq_mode(dev->ide_controller[ctl], 0 ^ ch, 0);
                 sff_set_irq_mode(dev->ide_controller[ctl], 1 ^ ch, 2);
+                break;
+
+            default:
                 break;
         }
     }
@@ -857,6 +886,9 @@ ali5229_write(int func, int addr, uint8_t val, void *priv)
         case 0x5f:
             dev->ide_conf[addr] = val & 0x7f;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -941,6 +973,9 @@ ali5237_write(int func, int addr, uint8_t val, void *priv)
         case 0x2f:
             if (!(dev->usb_conf[0x42] & 0x10))
                 dev->usb_conf[addr] = val;
+            break;
+
+        default:
             break;
     }
 }
@@ -1425,6 +1460,9 @@ ali7101_read(int func, int addr, void *priv)
 
                 case 0x74:
                     dev->pmu_conf[addr] &= 0xcc;
+                    break;
+
+                default:
                     break;
             }
         }

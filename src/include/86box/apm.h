@@ -23,8 +23,9 @@ extern "C" {
 
 typedef struct
 {
-    uint8_t cmd,
-        stat, do_smi;
+    uint8_t cmd;
+    uint8_t stat;
+    uint8_t do_smi;
 } apm_t;
 
 /* Global variables. */

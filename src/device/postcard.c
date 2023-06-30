@@ -86,7 +86,7 @@ postcard_reset(void)
 }
 
 static void
-postcard_write(uint16_t port, uint8_t val, void *priv)
+postcard_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
 {
     if (postcard_written && (val == postcard_code))
         return;
@@ -100,7 +100,7 @@ postcard_write(uint16_t port, uint8_t val, void *priv)
 }
 
 static void *
-postcard_init(const device_t *info)
+postcard_init(UNUSED(const device_t *info))
 {
     postcard_reset();
 

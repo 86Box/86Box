@@ -28,14 +28,15 @@
 #include <86box/device.h>
 #include <86box/mem.h>
 #include <86box/pit.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
 #define INDEX (dev->index - 0x10)
 
-typedef struct
-{
-    uint8_t index, regs[256];
+typedef struct et6000_t {
+    uint8_t index;
+    uint8_t regs[256];
 } et6000_t;
 
 #ifdef ENABLE_ET6000_LOG
@@ -105,8 +106,14 @@ et6000_write(uint16_t addr, uint8_t val, void *priv)
                     et6000_shadow_control(0xe0000, 0x10000, val & 0x20, (val & 0x20) && (val & 0x10));
                     et6000_shadow_control(0xf0000, 0x10000, val & 0x40, !(val & 0x40));
                     break;
+
+                default:
+                    break;
             }
             et6000_log("ET6000: dev->regs[%02x] = %02x\n", dev->index, dev->regs[dev->index]);
+            break;
+
+        default:
             break;
     }
 }
@@ -128,7 +135,7 @@ et6000_close(void *priv)
 }
 
 static void *
-et6000_init(const device_t *info)
+et6000_init(UNUSED(const device_t *info))
 {
     et6000_t *dev = (et6000_t *) malloc(sizeof(et6000_t));
     memset(dev, 0, sizeof(et6000_t));

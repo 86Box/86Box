@@ -14,8 +14,10 @@ extern int sn76489_mute;
 
 typedef struct sn76489_t {
     int      stat[4];
-    int      latch[4], count[4];
-    int      freqlo[4], freqhi[4];
+    int      latch[4];
+    int      count[4];
+    int      freqlo[4];
+    int      freqhi[4];
     int      vol[4];
     uint32_t shift;
     uint8_t  noise;

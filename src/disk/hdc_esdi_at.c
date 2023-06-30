@@ -84,7 +84,11 @@ typedef struct {
 typedef struct {
     uint8_t status;
     uint8_t error;
-    int     secount, sector, cylinder, head, cylprecomp;
+    int     secount;
+    int     sector;
+    int     cylinder;
+    int     head;
+    int     cylprecomp;
     uint8_t command;
     uint8_t fdisk;
     int     pos;
@@ -132,13 +136,13 @@ irq_raise(esdi_t *esdi)
 }
 
 static __inline void
-irq_lower(esdi_t *esdi)
+irq_lower(UNUSED(esdi_t *esdi))
 {
     picintc(1 << 14);
 }
 
 static __inline void
-irq_update(esdi_t *esdi)
+irq_update(UNUSED(esdi_t *esdi))
 {
     if (esdi->irqstat && !((pic2.irr | pic2.isr) & 0x40) && !(esdi->fdisk & 2))
         picint(1 << 14);
@@ -159,7 +163,7 @@ esdi_set_callback(esdi_t *esdi, double callback)
 }
 
 double
-esdi_get_xfer_time(esdi_t *esdi, int size)
+esdi_get_xfer_time(UNUSED(esdi_t *esdi), int size)
 {
     /* 390.625 us per sector at 10 Mbit/s = 1280 kB/s. */
     return (3125.0 / 8.0) * (double) size;
@@ -417,6 +421,9 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
             esdi->fdisk = val;
             irq_update(esdi);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -497,6 +504,9 @@ esdi_read(uint16_t port, void *priv)
         case 0x1f7: /* status */
             irq_lower(esdi);
             temp = esdi->status;
+            break;
+
+        default:
             break;
     }
 
@@ -791,7 +801,7 @@ esdi_callback(void *priv)
 }
 
 static void
-loadhd(esdi_t *esdi, int hdd_num, int d, const char *fn)
+loadhd(esdi_t *esdi, int hdd_num, int d, UNUSED(const char *fn))
 {
     drive_t *drive = &esdi->drives[hdd_num];
 
@@ -822,7 +832,7 @@ esdi_rom_write(uint32_t addr, uint8_t val, void *p)
 }
 
 static void *
-wd1007vse1_init(const device_t *info)
+wd1007vse1_init(UNUSED(const device_t *info))
 {
     int c;
 

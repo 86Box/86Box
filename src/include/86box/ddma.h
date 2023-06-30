@@ -24,7 +24,8 @@ extern "C" {
 typedef struct
 {
     uint16_t io_base;
-    int      channel, enable;
+    int      channel;
+    int      enable;
 } ddma_channel_t;
 
 typedef struct

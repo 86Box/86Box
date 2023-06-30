@@ -68,14 +68,18 @@
 #define KBD_TYPE_PRAVETZ  10
 #define KBD_TYPE_XTCLONE  11
 
-typedef struct {
+typedef struct xtkbd_t {
     int want_irq;
     int blocked;
     int tandy;
 
-    uint8_t pa, pb, pd, clock;
+    uint8_t pa;
+    uint8_t pb;
+    uint8_t pd;
+    uint8_t clock;
     uint8_t key_waiting;
-    uint8_t type, pravetz_flags;
+    uint8_t type;
+    uint8_t pravetz_flags;
 
     pc_timer_t send_delay_timer;
 } xtkbd_t;
@@ -454,6 +458,9 @@ kbd_adddata(uint16_t val)
                 case 0x54: /* SysRQ => toggle window */
                     t1000_syskey(0x00, 0x00, 0x08);
                     break;
+
+                default:
+                    break;
             }
         } else
             t1000_syskey(0x04, 0x00, 0x00); /* Reset 'Fn' indicator */
@@ -578,6 +585,9 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                 kbd->pravetz_flags = (kbd->pravetz_flags & ~(1 << bit)) | set;
             }
             break;
+
+        default:
+            break;
     }
 }
 
@@ -685,6 +695,9 @@ kbd_read(uint16_t port, void *priv)
             if (kbd->type == KBD_TYPE_PRAVETZ)
                 ret = kbd->pravetz_flags;
             kbd_log("XTkbd: Port %02X in : %02X\n", port, ret);
+            break;
+
+        default:
             break;
     }
 

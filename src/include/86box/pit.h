@@ -20,16 +20,28 @@
 #define EMU_PIT_H
 
 typedef struct {
-    uint8_t m, ctrl,
-        read_status, latch,
-        s1_det, l_det,
-        bcd, incomplete;
+    uint8_t m;
+    uint8_t ctrl;
+    uint8_t read_status;
+    uint8_t latch;
+    uint8_t s1_det;
+    uint8_t l_det;
+    uint8_t bcd;
+    uint8_t incomplete;
 
     uint16_t rl;
 
-    int rm, wm, gate, out,
-        newcount, clock, using_timer, latched,
-        state, null_count, do_read_status;
+    int rm;
+    int wm;
+    int gate;
+    int out;
+    int newcount;
+    int clock;
+    int using_timer;
+    int latched;
+    int state;
+    int null_count;
+    int do_read_status;
 
     union {
         int count;
@@ -49,7 +61,8 @@ typedef struct {
 } ctr_t;
 
 typedef struct PIT {
-    int        flags, clock;
+    int        flags;
+    int        clock;
     pc_timer_t callback_timer;
 
     ctr_t counters[3];
@@ -58,10 +71,10 @@ typedef struct PIT {
 } pit_t;
 
 enum {
-    PIT_8253 = 0,
-    PIT_8254,
-    PIT_8253_FAST,
-    PIT_8254_FAST
+    PIT_8253      = 0,
+    PIT_8254      = 1,
+    PIT_8253_FAST = 2,
+    PIT_8254_FAST = 3
 };
 
 typedef struct {

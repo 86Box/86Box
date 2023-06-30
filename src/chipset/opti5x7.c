@@ -32,10 +32,10 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
-typedef struct
-{
-    uint8_t idx, is_pci,
-        regs[16];
+typedef struct opti5x7_t {
+    uint8_t idx;
+    uint8_t is_pci;
+    uint8_t regs[16];
 } opti5x7_t;
 
 #ifdef ENABLE_OPTI5X7_LOG
@@ -84,7 +84,7 @@ opti5x7_shadow_map(int cur_reg, opti5x7_t *dev)
             mem_set_mem_state_both(0xf0000, 0x10000, ((dev->regs[6] & 4) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[6] & 8) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
         }
     } else {
-        for (int i = 0; i < 4; i++) {
+        for (uint8_t i = 0; i < 4; i++) {
             if (dev->is_pci)
                 mem_set_mem_state_cpu_both(0xc0000 + ((cur_reg & 1) << 16) + (i << 14), 0x4000, ((dev->regs[cur_reg] & (1 << (2 * i))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[cur_reg] & (2 << (2 * i))) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
             else
@@ -143,8 +143,12 @@ opti5x7_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x11: /* Master Cycle Control Register */
                     dev->regs[dev->idx] = val;
                     break;
+                default:
+                    break;
             }
             opti5x7_log("OPTi 5x7: dev->regs[%02x] = %02x\n", dev->idx, dev->regs[dev->idx]);
+            break;
+        default:
             break;
     }
 }

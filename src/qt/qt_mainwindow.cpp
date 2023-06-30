@@ -942,11 +942,13 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
             }
             break;
 
+        case 0x80 ... 0xff: /* regular break codes */
         case 0x10b: /* Microsoft scroll up normal */
-        case 0x18b: /* Microsoft scroll down normal */
-            /* This abuses make/break codes. Send them manually, only on press. */
+        case 0x180 ... 0x1ff: /* E0 break codes (including Microsoft scroll down normal) */
+            /* This key uses a break code as make. Send it manually, only on press. */
             if (down) {
-                keyboard_send(0xe0);
+                if (keycode & 0x100)
+                    keyboard_send(0xe0);
                 keyboard_send(keycode & 0xff);
             }
             return;
@@ -1282,12 +1284,12 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
         }
     }
 
-    if (fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit_down()) {
+    if (fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit()) {
         ui->actionFullscreen->trigger();
         fs_off_signal = false;
     }
 
-    if (fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter_down()) {
+    if (fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter()) {
         ui->actionFullscreen->trigger();
         fs_on_signal = false;
     }
