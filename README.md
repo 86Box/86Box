@@ -45,6 +45,10 @@ We operate an IRC channel and a Discord server for discussing 86Box, its develop
 
 [![Visit our Discord server](https://discordapp.com/api/guilds/262614059009048590/embed.png)](https://discord.gg/QXK9XTv)
 
+Contributions
+---------
+We welcome all contributions to the project, as long as the [contribution guidelines](CONTRIBUTING.md) are followed.
+
 Licensing
 ---------
 86Box is released under the [GNU General Public License, version 2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html) or later. For more information, see the `COPYING` file in the root of the repository.

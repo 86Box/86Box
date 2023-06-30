@@ -85,34 +85,38 @@ static const mo_drive_type_t mo_drive_types[KNOWN_MO_DRIVE_TYPES] = {
 enum {
     MO_BUS_DISABLED = 0,
     MO_BUS_ATAPI    = 5,
-    MO_BUS_SCSI,
-    MO_BUS_USB
+    MO_BUS_SCSI     = 6,
+    MO_BUS_USB      = 7
 };
 
 typedef struct {
     uint8_t id;
 
     union {
-        uint8_t res, res0, /* Reserved for other ID's. */
-            res1,
-            ide_channel, scsi_device_id;
+        uint8_t res;
+        uint8_t res0; /* Reserved for other ID's. */
+        uint8_t res1;
+        uint8_t ide_channel;
+        uint8_t scsi_device_id;
     };
 
-    uint8_t bus_type, /* 0 = ATAPI, 1 = SCSI */
-        bus_mode,     /* Bit 0 = PIO suported;
-                         Bit 1 = DMA supportd. */
-        read_only,    /* Struct variable reserved for
-                         media status. */
-        pad, pad0;
+    uint8_t bus_type;  /* 0 = ATAPI, 1 = SCSI */
+    uint8_t bus_mode;  /* Bit 0 = PIO suported;
+                          Bit 1 = DMA supportd. */
+    uint8_t read_only; /* Struct variable reserved for
+                          media status. */
+    uint8_t pad;
+    uint8_t pad0;
 
     FILE *f;
     void *priv;
 
-    char image_path[1024],
-        prev_image_path[1024];
+    char image_path[1024];
+    char prev_image_path[1024];
 
-    uint32_t type, medium_size,
-        base;
+    uint32_t type;
+    uint32_t medium_size;
+    uint32_t base;
     uint16_t sector_size;
 
 } mo_drive_t;
@@ -122,25 +126,36 @@ typedef struct {
 
     mo_drive_t *drv;
 
-    uint8_t *buffer,
-        atapi_cdb[16],
-        current_cdb[16],
-        sense[256];
+    uint8_t *buffer;
+    uint8_t  atapi_cdb[16];
+    uint8_t  current_cdb[16];
+    uint8_t  sense[256];
 
-    uint8_t status, phase,
-        error, id,
-        features, cur_lun,
-        pad0, pad1;
+    uint8_t status;
+    uint8_t phase;
+    uint8_t error;
+    uint8_t id;
+    uint8_t features;
+    uint8_t cur_lun;
+    uint8_t pad0;
+    uint8_t pad1;
 
-    uint16_t request_length, max_transfer_len;
+    uint16_t request_length;
+    uint16_t max_transfer_len;
 
-    int requested_blocks, packet_status,
-        total_length, do_page_save,
-        unit_attention, request_pos,
-        old_len, pad3;
+    int requested_blocks;
+    int packet_status;
+    int total_length;
+    int do_page_save;
+    int unit_attention;
+    int request_pos;
+    int old_len;
+    int pad3;
 
-    uint32_t sector_pos, sector_len,
-        packet_len, pos;
+    uint32_t sector_pos;
+    uint32_t sector_len;
+    uint32_t packet_len;
+    uint32_t pos;
 
     double callback;
 } mo_t;

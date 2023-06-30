@@ -43,6 +43,7 @@
 #include <86box/device.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
+#include <86box/plat_unused.h>
 
 #define ROM_PATH_XT     "roms/hdd/xtide/ide_xt.bin"
 #define ROM_PATH_XTP    "roms/hdd/xtide/ide_xtp.bin"
@@ -193,7 +194,7 @@ xtide_at_386_available(void)
 }
 
 static void *
-xtide_acculogic_init(const device_t *info)
+xtide_acculogic_init(UNUSED(const device_t *info))
 {
     xtide_t *xtide = malloc(sizeof(xtide_t));
 
@@ -228,7 +229,7 @@ xtide_close(void *priv)
 }
 
 static void *
-xtide_at_ps2_init(const device_t *info)
+xtide_at_ps2_init(UNUSED(const device_t *info))
 {
     xtide_t *xtide = malloc(sizeof(xtide_t));
 

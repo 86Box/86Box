@@ -38,9 +38,10 @@ typedef struct _i2c_ {
     struct _i2c_ *prev, *next;
 } i2c_t;
 
-typedef struct {
+typedef struct i2c_bus_t {
     char  *name;
-    i2c_t *devices[NADDRS], *last[NADDRS];
+    i2c_t *devices[NADDRS];
+    i2c_t *last[NADDRS];
 } i2c_bus_t;
 
 void *i2c_smbus;

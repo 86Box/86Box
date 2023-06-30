@@ -30,8 +30,9 @@
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
 #include <86box/mouse.h>
+#include <86box/plat_unused.h>
 
-typedef struct {
+typedef struct mouse_t {
     const device_t *device;
 } mouse_t;
 
@@ -152,7 +153,7 @@ mouse_close(void)
 }
 
 static void
-mouse_timer_poll(void *priv)
+mouse_timer_poll(UNUSED(void *priv))
 {
     /* Poll at 255 Hz, maximum supported by PS/2 mic. */
     timer_on_auto(&mouse_timer, 1000000.0 / sample_rate);

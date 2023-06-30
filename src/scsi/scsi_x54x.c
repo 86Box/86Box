@@ -606,13 +606,13 @@ x54x_mbi(x54x_t *dev)
 {
     Req_t *req = &dev->Req;
     //  uint32_t CCBPointer = req->CCBPointer;
-    addr24   CCBPointer;
-    CCBU    *CmdBlock              = &(req->CmdBlock);
-    uint8_t  HostStatus            = req->HostStatus;
-    uint8_t  TargetStatus          = req->TargetStatus;
-    uint32_t MailboxCompletionCode = req->MailboxCompletionCode;
-    uint32_t Incoming;
-    uint8_t  bytes[4] = { 0, 0, 0, 0 };
+    addr24_t  CCBPointer;
+    CCBU     *CmdBlock              = &(req->CmdBlock);
+    uint8_t   HostStatus            = req->HostStatus;
+    uint8_t   TargetStatus          = req->TargetStatus;
+    uint32_t  MailboxCompletionCode = req->MailboxCompletionCode;
+    uint32_t  Incoming;
+    uint8_t   bytes[4] = { 0, 0, 0, 0 };
 
     Incoming = dev->MailboxInAddr + (dev->MailboxInPosCur * ((dev->flags & X54X_MBX_24BIT) ? sizeof(Mailbox_t) : sizeof(Mailbox32_t)));
 
@@ -734,7 +734,7 @@ static void
 x54x_set_residue(x54x_t *dev, Req_t *req, int32_t TransferLength)
 {
     uint32_t Residue = 0;
-    addr24   Residue24;
+    addr24_t Residue24;
     int32_t  BufLen   = scsi_devices[dev->bus][req->TargetID].buffer_length;
     uint8_t  bytes[4] = { 0, 0, 0, 0 };
 
@@ -1459,7 +1459,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
     int                           suppress = 0;
     uint32_t                      FIFOBuf;
     uint8_t                       reset;
-    addr24                        Address;
+    addr24_t                      Address;
     uint8_t                       host_id = dev->HostID;
     uint8_t                       irq     = 0;
 

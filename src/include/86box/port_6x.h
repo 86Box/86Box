@@ -22,7 +22,8 @@
 #ifdef _TIMER_H_
 typedef struct
 {
-    uint8_t refresh, flags;
+    uint8_t refresh;
+    uint8_t flags;
 
     pc_timer_t refresh_timer;
 } port_6x_t;

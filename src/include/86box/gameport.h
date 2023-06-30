@@ -57,8 +57,7 @@ typedef struct {
         int  id;
     } pov[4];
 
-    struct
-    {
+    struct {
         char name[260];
         int  id;
     } slider[2];
@@ -84,16 +83,16 @@ typedef struct {
     const char *name;
     const char *internal_name;
 
-    void *(*init)(void);
-    void (*close)(void *p);
+    void   *(*init)(void);
+    void    (*close)(void *p);
     uint8_t (*read)(void *p);
-    void (*write)(void *p);
-    int (*read_axis)(void *p, int axis);
-    void (*a0_over)(void *p);
+    void    (*write)(void *p);
+    int     (*read_axis)(void *p, int axis);
+    void    (*a0_over)(void *p);
 
-    int axis_count,
-        button_count,
-        pov_count;
+    int         axis_count;
+    int         button_count;
+    int         pov_count;
     int         max_joysticks;
     const char *axis_names[8];
     const char *button_names[32];

@@ -93,14 +93,14 @@
 
 /* New codecs should be added to the end of this enum to avoid breaking configs. */
 enum {
-    AC97_CODEC_AD1881 = 0,
-    AC97_CODEC_ALC100,
-    AC97_CODEC_CS4297,
-    AC97_CODEC_CS4297A,
-    AC97_CODEC_WM9701A,
-    AC97_CODEC_STAC9708,
-    AC97_CODEC_STAC9721,
-    AC97_CODEC_AK4540
+    AC97_CODEC_AD1881   = 0,
+    AC97_CODEC_ALC100   = 1,
+    AC97_CODEC_CS4297   = 2,
+    AC97_CODEC_CS4297A  = 3,
+    AC97_CODEC_WM9701A  = 4,
+    AC97_CODEC_STAC9708 = 5,
+    AC97_CODEC_STAC9721 = 6,
+    AC97_CODEC_AK4540   = 7
 };
 
 typedef struct {

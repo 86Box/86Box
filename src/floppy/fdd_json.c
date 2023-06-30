@@ -63,25 +63,25 @@
 #define NSECTORS 256
 
 typedef struct {
-    uint8_t track, /* ID: track number */
-        side,      /*     side number */
-        sector;    /*     sector number 1.. */
-    uint16_t size; /* encoded size of sector */
-    uint8_t *data; /* allocated data for it */
+    uint8_t  track;  /* ID: track number */
+    uint8_t  side;   /*     side number */
+    uint8_t  sector; /*     sector number 1.. */
+    uint16_t size;   /* encoded size of sector */
+    uint8_t *data;   /* allocated data for it */
 } sector_t;
 
 typedef struct {
     FILE *f;
 
     /* Geometry. */
-    uint8_t tracks,           /* number of tracks */
-        sides,                /* number of sides */
-        sectors,              /* number of sectors per track */
-        spt[NTRACKS][NSIDES]; /* number of sectors per track */
+    uint8_t tracks;               /* number of tracks */
+    uint8_t sides;                /* number of sides */
+    uint8_t sectors;              /* number of sectors per track */
+    uint8_t spt[NTRACKS][NSIDES]; /* number of sectors per track */
 
-    uint8_t track,      /* current track */
-        side,           /* current side */
-        sector[NSIDES]; /* current sector */
+    uint8_t track;          /* current track */
+    uint8_t side;           /* current side */
+    uint8_t sector[NSIDES]; /* current sector */
 
     uint8_t dmf; /* disk is DMF format */
     uint8_t interleave;
@@ -92,8 +92,8 @@ typedef struct {
     uint8_t gap3_len;
     int     track_width;
 
-    uint16_t disk_flags, /* flags for the entire disk */
-        track_flags;     /* flags for the current track */
+    uint16_t disk_flags;  /* flags for the entire disk */
+    uint16_t track_flags; /* flags for the current track */
 
     uint8_t interleave_ordered[NTRACKS][NSIDES];
 

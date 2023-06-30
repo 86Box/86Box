@@ -21,26 +21,37 @@ typedef struct {
 
     hard_disk_t *drv;
 
-    uint8_t *temp_buffer,
-        pad[16], /* This is atapi_cdb in ATAPI-supporting devices,
-                    and pad in SCSI-only devices. */
-        current_cdb[16],
-        sense[256];
+    uint8_t *temp_buffer;
+    uint8_t pad[16]; /* This is atapi_cdb in ATAPI-supporting devices,
+                        and pad in SCSI-only devices. */
+    uint8_t current_cdb[16];
+    uint8_t sense[256];
 
-    uint8_t status, phase,
-        error, id,
-        pad0, cur_lun,
-        pad1, pad2;
+    uint8_t status;
+    uint8_t phase;
+    uint8_t error;
+    uint8_t id;
+    uint8_t pad0;
+    uint8_t cur_lun;
+    uint8_t pad1;
+    uint8_t pad2;
 
-    uint16_t request_length, pad4;
+    uint16_t request_length;
+    uint16_t pad4;
 
-    int requested_blocks, packet_status,
-        total_length, do_page_save,
-        unit_attention, pad5,
-        pad6, pad7;
+    int requested_blocks;
+    int packet_status;
+    int total_length;
+    int do_page_save;
+    int unit_attention;
+    int pad5;
+    int pad6;
+    int pad7;
 
-    uint32_t sector_pos, sector_len,
-        packet_len, pos;
+    uint32_t sector_pos;
+    uint32_t sector_len;
+    uint32_t packet_len;
+    uint32_t pos;
 
     double callback;
 } scsi_disk_t;

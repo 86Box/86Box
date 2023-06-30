@@ -61,12 +61,15 @@
 /* reaches to this value */
 
 typedef struct {
-    uint16_t r,
-        bufcnt, bufndx, bufpos, /* string buffer */
-                                /* the following to allow block reads
-                                   from input in next_word() */
-        ibufcnt, ibufndx;       /* input buffer counters */
-    uint8_t inbuf[BUFSZ];       /* input buffer */
+    uint16_t r;
+    uint16_t bufcnt;      /* string buffer */
+    uint16_t bufndx;      /* string buffer */
+    uint16_t bufpos;      /* string buffer */
+                          /* the following to allow block reads
+                             from input in next_word() */
+    uint16_t ibufcnt;     /* input buffer counters */
+    uint16_t ibufndx;     /* input buffer counters */
+    uint8_t inbuf[BUFSZ]; /* input buffer */
 } tdlzhuf;
 
 typedef struct {
@@ -364,7 +367,7 @@ state_reconst(td0dsk_t *state)
     for (i = 0, j = N_CHAR; j < T; i += 2, j++) {
         k = i + 1;
         f = state->freq[j] = state->freq[i] + state->freq[k];
-        for (k = j - 1; f < state->freq[k]; k--) { };
+        for (k = j - 1; f < state->freq[k]; k--) { }
         k++;
         l = (j - k) * 2;
 
@@ -405,7 +408,7 @@ state_update(td0dsk_t *state, int c)
 
         /* swap nodes to keep the tree freq-ordered */
         if (k > state->freq[l = c + 1]) {
-            while (k > state->freq[++l]) { };
+            while (k > state->freq[++l]) { }
             l--;
             state->freq[c] = state->freq[l];
             state->freq[l] = k;

@@ -995,6 +995,15 @@ else
 
 	mv cmake/flags-gcc.cmake.old cmake/flags-gcc.cmake
 
+	# We rely on the host to provide Vulkan libs to sidestep any potential
+	# dependency issues. While Qt expects libvulkan.so, at least Debian only
+	# ships libvulkan.so.1 without a symlink, so make our own as a workaround.
+	# The relative paths prevent appimage-builder from flattening the links.
+	mkdir -p "archive_tmp/usr/lib/$arch_triplet"
+	relroot="../../../../../../../../../../../../../../../../../../../../../../../../../../../../.."
+	ln -s "$relroot/usr/lib/libvulkan.so.1" "archive_tmp/usr/lib/libvulkan.so"
+	ln -s "$relroot/usr/lib/$arch_triplet/libvulkan.so.1" "archive_tmp/usr/lib/$arch_triplet/libvulkan.so"
+
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"
 	[ ! -e "archive_tmp/usr/lib/discord_game_sdk.so" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]

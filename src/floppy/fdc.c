@@ -36,6 +36,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
+#include <86box/plat_unused.h>
 
 extern uint64_t motoron[FDD_NUM];
 
@@ -94,7 +95,7 @@ fdc_log(const char *fmt, ...)
 #    define fdc_log(fmt, ...)
 #endif
 
-/*
+#if 0
 const device_t fdc_none_device = {
     .name          = "None",
     .internal_name = "none",
@@ -108,7 +109,7 @@ const device_t fdc_none_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
-*/
+#endif
 
 const device_t fdc_internal_device = {
     .name          = "Internal",
@@ -130,7 +131,9 @@ typedef const struct {
 
 static fdc_cards_t fdc_cards[] = {
     // clang-format off
-//  { &fdc_none_device     },
+#if 0
+    { &fdc_none_device     },
+#endif
     { &fdc_internal_device },
     { &fdc_b215_device     },
     { &fdc_pii151b_device  },
@@ -598,7 +601,9 @@ static void
 fdc_rate(fdc_t *fdc, int drive)
 {
     fdc_update_rate(fdc, drive);
-    // fdc_log("FDD %c: Setting rate: %i, %i, %i (%i, %i)\n", 0x41 + drive, fdc->drvrate[drive], fdc->rate, fdc_get_densel(fdc, drive), fdc->rwc[drive], fdc->densel_force);
+#if 0
+    fdc_log("FDD %c: Setting rate: %i, %i, %i (%i, %i)\n", 0x41 + drive, fdc->drvrate[drive], fdc->rate, fdc_get_densel(fdc, drive), fdc->rwc[drive], fdc->densel_force);
+#endif
     fdc_log("FDD %c: [%i] Setting rate: %i, %i, %i (%i, %i, %i)\n", 0x41 + drive, fdc->enh_mode, fdc->drvrate[drive], fdc->rate, fdc_get_densel(fdc, drive), fdc->rwc[drive], fdc->densel_force, fdc->densel_polarity);
     fdd_set_densel(fdc_get_densel(fdc, drive));
     fdc_log("FDD %c: [%i] Densel: %i\n", 0x41 + drive, fdc->enh_mode, fdc_get_densel(fdc, drive));
@@ -1136,7 +1141,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                             fdc->stat     = (1 << fdc->drive);
                             if (!(fdc->flags & FDC_FLAG_PCJR))
                                 fdc->stat |= 0x80;
-                            /* fdc->head = (fdc->params[0] & 4) ? 1 : 0; */
+#if 0
+                            fdc->head = (fdc->params[0] & 4) ? 1 : 0;
+#endif
                             fdc->head = 0; /* TODO: See if this is correct. */
                             fdc->st0  = fdc->params[0] & 0x03;
                             fdc->st0 |= (fdc->params[0] & 4);
@@ -2113,7 +2120,7 @@ fdc_getdata(fdc_t *fdc, int last)
 }
 
 void
-fdc_sectorid(fdc_t *fdc, uint8_t track, uint8_t side, uint8_t sector, uint8_t size, uint8_t crc1, uint8_t crc2)
+fdc_sectorid(fdc_t *fdc, uint8_t track, uint8_t side, uint8_t sector, uint8_t size, UNUSED(uint8_t crc1), UNUSED(uint8_t crc2))
 {
     fdc_int(fdc, 1);
     fdc->stat = 0xD0;

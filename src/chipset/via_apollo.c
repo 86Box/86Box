@@ -69,6 +69,8 @@ apollo_map(uint32_t addr, uint32_t size, int state)
         case 3:
             mem_set_mem_state_both(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
             break;
+        default:
+            break;
     }
 
     flushmmucache_nopc();
@@ -392,8 +394,8 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
             smram_disable_all();
             if (dev->id >= VIA_691)
                 switch (val & 0x03) {
-                    case 0x00:
                     default:
+                    case 0x00:
                         apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 1); /* SMM: Code DRAM, Data DRAM */
                         apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 0); /* Non-SMM: Code PCI, Data PCI */
                         break;
@@ -412,8 +414,8 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
                 }
             else if (dev->id >= VIA_597)
                 switch (val & 0x03) {
-                    case 0x00:
                     default:
+                    case 0x00:
                         /* Disable SMI Address Redirection (default) */
                         apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 0);
                         apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 0);
@@ -457,6 +459,9 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
                         apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 1);
                         apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 3);
                         apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 3);
+                        break;
+
+                    default:
                         break;
                 }
             break;
@@ -673,6 +678,8 @@ via_apollo_read(int func, int addr, void *priv)
         case 0:
             ret = dev->pci_conf[addr];
             break;
+        default:
+            break;
     }
 
     return ret;
@@ -684,6 +691,8 @@ via_apollo_write(int func, int addr, uint8_t val, void *priv)
     switch (func) {
         case 0:
             via_apollo_host_bridge_write(func, addr, val, priv);
+            break;
+        default:
             break;
     }
 }
@@ -727,6 +736,9 @@ via_apollo_init(const device_t *info)
         case VIA_693A:
         case VIA_694:
             device_add(&via_mvp3_agp_device);
+            break;
+
+        default:
             break;
     }
 

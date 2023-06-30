@@ -27,6 +27,8 @@
 #include <86box/io.h>
 #include <86box/i2c.h>
 #include <86box/hwm.h>
+#include <86box/plat_unused.h>
+
 
 #define CLAMP(a, min, max) (((a) < (min)) ? (min) : (((a) > (max)) ? (max) : (a)))
 /* Formulas and factors derived from Linux's gl518sm.c driver. */
@@ -34,14 +36,16 @@
 #define GL518SM_VOLTAGE_TO_REG(v) ((uint8_t) round((v) / 19.0))
 #define GL518SM_VDD_TO_REG(v)     ((uint8_t) (((v) *4) / 95.0))
 
-typedef struct {
+typedef struct gl518sm_t {
     uint32_t      local;
     hwm_values_t *values;
 
     uint16_t regs[32];
     uint8_t  addr_register : 5;
 
-    uint8_t i2c_addr : 7, i2c_state : 2, i2c_enabled : 1;
+    uint8_t i2c_addr : 7;
+    uint8_t i2c_state : 2;
+    uint8_t i2c_enabled : 1;
 } gl518sm_t;
 
 static uint8_t  gl518sm_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv);
@@ -85,7 +89,7 @@ gl518sm_remap(gl518sm_t *dev, uint8_t addr)
 }
 
 static uint8_t
-gl518sm_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv)
+gl518sm_i2c_start(UNUSED(void *bus), UNUSED(uint8_t addr), UNUSED(uint8_t read), void *priv)
 {
     gl518sm_t *dev = (gl518sm_t *) priv;
 
@@ -95,7 +99,7 @@ gl518sm_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv)
 }
 
 static uint8_t
-gl518sm_i2c_read(void *bus, uint8_t addr, void *priv)
+gl518sm_i2c_read(UNUSED(void *bus), UNUSED(uint8_t addr), void *priv)
 {
     gl518sm_t *dev  = (gl518sm_t *) priv;
     uint16_t   read = gl518sm_read(dev, dev->addr_register);
@@ -159,7 +163,7 @@ gl518sm_read(gl518sm_t *dev, uint8_t reg)
 }
 
 static uint8_t
-gl518sm_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv)
+gl518sm_i2c_write(UNUSED(void *bus), UNUSED(uint8_t addr), uint8_t data, void *priv)
 {
     gl518sm_t *dev = (gl518sm_t *) priv;
 

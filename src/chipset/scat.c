@@ -55,8 +55,9 @@
 #define SCATSX_HIGH_PERFORMANCE_REFRESH 0x63
 #define SCATSX_CAS_TIMING_FOR_DMA       0x64
 
-typedef struct {
-    uint8_t valid, pad;
+typedef struct ems_page_t {
+    uint8_t valid;
+    uint8_t pad;
 
     uint8_t regs_2x8;
     uint8_t regs_2x9;
@@ -75,7 +76,8 @@ typedef struct scat_t {
 
     int external_is_RAS;
 
-    ems_page_t null_page, page[32];
+    ems_page_t null_page;
+    ems_page_t page[32];
 
     mem_mapping_t low_mapping[32];
     mem_mapping_t remap_mapping[6];
@@ -931,9 +933,8 @@ static void
 memmap_state_update(scat_t *dev)
 {
     uint32_t addr;
-    int      i;
 
-    for (i = (((dev->regs[SCAT_VERSION] & 0xf0) == 0) ? 0 : 16); i < 44; i++) {
+    for (uint8_t i = (((dev->regs[SCAT_VERSION] & 0xf0) == 0) ? 0 : 16); i < 44; i++) {
         addr = get_addr(dev, 0x40000 + (i << 14), &dev->null_page);
         mem_mapping_set_exec(&dev->efff_mapping[i],
                              addr < ((uint32_t) mem_size << 10) ? ram + addr : NULL);
@@ -947,37 +948,40 @@ memmap_state_update(scat_t *dev)
     mem_mapping_set_exec(&dev->low_mapping[1],
                          addr < ((uint32_t) mem_size << 10) ? ram + addr : NULL);
 
-    for (i = 2; i < 32; i++) {
+    for (uint8_t i = 2; i < 32; i++) {
         addr = get_addr(dev, i << 19, &dev->null_page);
         mem_mapping_set_exec(&dev->low_mapping[i],
                              addr < ((uint32_t) mem_size << 10) ? ram + addr : NULL);
     }
 
     if ((dev->regs[SCAT_VERSION] & 0xf0) == 0) {
-        for (i = 0; i < max_map[(dev->regs[SCAT_DRAM_CONFIGURATION] & 0x0f) | ((dev->regs[SCAT_EXTENDED_BOUNDARY] & 0x40) >> 2)]; i++)
-            mem_mapping_enable(&dev->low_mapping[i]);
+        uint8_t j = 0;
 
-        for (; i < 32; i++)
-            mem_mapping_disable(&dev->low_mapping[i]);
+        for (j = 0; j < max_map[(dev->regs[SCAT_DRAM_CONFIGURATION] & 0x0f) | ((dev->regs[SCAT_EXTENDED_BOUNDARY] & 0x40) >> 2)]; j++)
+            mem_mapping_enable(&dev->low_mapping[j]);
 
-        for (i = 24; i < 36; i++) {
+        for (; j < 32; j++)
+            mem_mapping_disable(&dev->low_mapping[j]);
+
+        for (j = 24; j < 36; j++) {
             if (((dev->regs[SCAT_DRAM_CONFIGURATION] & 0x0f) | (dev->regs[SCAT_EXTENDED_BOUNDARY] & 0x40)) < 4)
-                mem_mapping_disable(&dev->efff_mapping[i]);
+                mem_mapping_disable(&dev->efff_mapping[j]);
             else
-                mem_mapping_enable(&dev->efff_mapping[i]);
+                mem_mapping_enable(&dev->efff_mapping[j]);
         }
     } else {
-        for (i = 0; i < max_map_sx[dev->regs[SCAT_DRAM_CONFIGURATION] & 0x1f]; i++)
-            mem_mapping_enable(&dev->low_mapping[i]);
+        uint8_t j = 0;
+        for (j = 0; j < max_map_sx[dev->regs[SCAT_DRAM_CONFIGURATION] & 0x1f]; j++)
+            mem_mapping_enable(&dev->low_mapping[j]);
 
-        for (; i < 32; i++)
-            mem_mapping_disable(&dev->low_mapping[i]);
+        for (; j < 32; j++)
+            mem_mapping_disable(&dev->low_mapping[j]);
 
-        for (i = 24; i < 36; i++) {
+        for (j = 24; j < 36; j++) {
             if ((dev->regs[SCAT_DRAM_CONFIGURATION] & 0x1f) < 2 || (dev->regs[SCAT_DRAM_CONFIGURATION] & 0x1f) == 3)
-                mem_mapping_disable(&dev->efff_mapping[i]);
+                mem_mapping_disable(&dev->efff_mapping[j]);
             else
-                mem_mapping_enable(&dev->efff_mapping[i]);
+                mem_mapping_enable(&dev->efff_mapping[j]);
         }
     }
 
@@ -985,21 +989,21 @@ memmap_state_update(scat_t *dev)
         if ((((dev->regs[SCAT_VERSION] & 0xf0) == 0) && (dev->regs[SCAT_DRAM_CONFIGURATION] & 0x0f) == 3) || (((dev->regs[SCAT_VERSION] & 0xf0) != 0) && (dev->regs[SCAT_DRAM_CONFIGURATION] & 0x1f) == 3)) {
             mem_mapping_disable(&dev->low_mapping[2]);
 
-            for (i = 0; i < 6; i++) {
+            for (uint8_t i = 0; i < 6; i++) {
                 addr = get_addr(dev, 0x100000 + (i << 16), &dev->null_page);
                 mem_mapping_set_exec(&dev->remap_mapping[i],
                                      addr < ((uint32_t) mem_size << 10) ? ram + addr : NULL);
                 mem_mapping_enable(&dev->remap_mapping[i]);
             }
         } else {
-            for (i = 0; i < 6; i++)
+            for (uint8_t i = 0; i < 6; i++)
                 mem_mapping_disable(&dev->remap_mapping[i]);
 
             if ((((dev->regs[SCAT_VERSION] & 0xf0) == 0) && (dev->regs[SCAT_DRAM_CONFIGURATION] & 0x0f) > 4) || (((dev->regs[SCAT_VERSION] & 0xf0) != 0) && (dev->regs[SCAT_DRAM_CONFIGURATION] & 0x1f) > 3))
                 mem_mapping_enable(&dev->low_mapping[2]);
         }
     } else {
-        for (i = 0; i < 6; i++)
+        for (uint8_t i = 0; i < 6; i++)
             mem_mapping_disable(&dev->remap_mapping[i]);
 
         mem_mapping_enable(&dev->low_mapping[2]);
@@ -1191,6 +1195,9 @@ scat_out(uint16_t port, uint8_t val, void *priv)
             if ((dev->regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 dev->reg_2xA = ((dev->regs[SCAT_VERSION] & 0xf0) == 0) ? val : val & 0xc3;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -1257,6 +1264,8 @@ scat_in(uint16_t port, void *priv)
         case 0x21a:
             if ((dev->regs[SCAT_EMS_CONTROL] & 0x41) == (0x40 | ((port & 0x10) >> 4)))
                 ret = dev->reg_2xA;
+            break;
+        default:
             break;
     }
 
@@ -1374,7 +1383,7 @@ static void *
 scat_init(const device_t *info)
 {
     scat_t  *dev;
-    uint32_t i;
+    uint32_t j;
     uint32_t k;
     int      sx;
 
@@ -1384,7 +1393,7 @@ scat_init(const device_t *info)
 
     sx = (dev->type == 32) ? 1 : 0;
 
-    for (i = 0; i < sizeof(dev->regs); i++)
+    for (uint32_t i = 0; i < sizeof(dev->regs); i++)
         dev->regs[i] = 0xff;
 
     if (sx) {
@@ -1445,7 +1454,7 @@ scat_init(const device_t *info)
                     mem_write_scatb, mem_write_scatw, mem_write_scatl,
                     ram + 0xf0000, MEM_MAPPING_INTERNAL, &dev->null_page);
 
-    for (i = 2; i < 32; i++) {
+    for (uint8_t i = 2; i < 32; i++) {
         mem_mapping_add(&dev->low_mapping[i], (i << 19), 0x80000,
                         mem_read_scatb, mem_read_scatw, mem_read_scatl,
                         mem_write_scatb, mem_write_scatw, mem_write_scatl,
@@ -1453,27 +1462,27 @@ scat_init(const device_t *info)
     }
 
     if (sx) {
-        i = 16;
+        j = 16;
         k = 0x40000;
     } else {
-        i = 0;
+        j = 0;
         k = (dev->regs[SCAT_VERSION] < 4) ? 0x40000 : 0x60000;
     }
     mem_mapping_set_addr(&dev->low_mapping[31], 0xf80000, k);
 
-    for (; i < 44; i++) {
-        mem_mapping_add(&dev->efff_mapping[i], 0x40000 + (i << 14), 0x4000,
+    for (; j < 44; j++) {
+        mem_mapping_add(&dev->efff_mapping[j], 0x40000 + (j << 14), 0x4000,
                         mem_read_scatb, mem_read_scatw, mem_read_scatl,
                         mem_write_scatb, mem_write_scatw, mem_write_scatl,
-                        mem_size > (256 + (i << 4)) ? ram + 0x40000 + (i << 14) : NULL,
+                        mem_size > (256 + (j << 4)) ? ram + 0x40000 + (j << 14) : NULL,
                         MEM_MAPPING_INTERNAL, &dev->null_page);
 
         if (sx)
-            mem_mapping_enable(&dev->efff_mapping[i]);
+            mem_mapping_enable(&dev->efff_mapping[j]);
     }
 
     if (sx) {
-        for (i = 24; i < 32; i++) {
+        for (uint8_t i = 24; i < 32; i++) {
             dev->page[i].valid    = 1;
             dev->page[i].regs_2x8 = 0xff;
             dev->page[i].regs_2x9 = 0x03;
@@ -1485,7 +1494,7 @@ scat_init(const device_t *info)
             mem_mapping_disable(&dev->ems_mapping[i]);
         }
     } else {
-        for (i = 0; i < 32; i++) {
+        for (uint8_t i = 0; i < 32; i++) {
             dev->page[i].valid    = 1;
             dev->page[i].regs_2x8 = 0xff;
             dev->page[i].regs_2x9 = 0x03;
@@ -1498,7 +1507,7 @@ scat_init(const device_t *info)
         }
     }
 
-    for (i = 0; i < 6; i++) {
+    for (uint8_t i = 0; i < 6; i++) {
         mem_mapping_add(&dev->remap_mapping[i], 0x100000 + (i << 16), 0x10000,
                         mem_read_scatb, mem_read_scatw, mem_read_scatl,
                         mem_write_scatb, mem_write_scatw, mem_write_scatl,

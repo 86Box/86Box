@@ -30,6 +30,7 @@
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
@@ -74,9 +75,11 @@ sis_5571_log(const char *fmt, ...)
 #endif
 
 typedef struct sis_5571_t {
-    uint8_t pci_conf[256], pci_conf_sb[3][256];
+    uint8_t pci_conf[256];
+    uint8_t pci_conf_sb[3][256];
 
-    int nb_pci_slot, sb_pci_slot;
+    int nb_pci_slot;
+    int sb_pci_slot;
 
     port_92_t  *port_92;
     sff8038i_t *ide_drive[2];
@@ -117,6 +120,9 @@ sis_5571_smm_recalc(sis_5571_t *dev)
         case 0x03:
             smram_enable(dev->smram, 0xa0000, 0xa0000, 0x10000, (dev->pci_conf[0xa3] & 0x10), 1);
             break;
+
+        default:
+            break;
     }
 
     flushmmucache();
@@ -149,7 +155,7 @@ sis_5571_bm_handler(sis_5571_t *dev)
 }
 
 static void
-memory_pci_bridge_write(int func, int addr, uint8_t val, void *priv)
+memory_pci_bridge_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     sis_5571_t *dev = (sis_5571_t *) priv;
 
@@ -324,12 +330,15 @@ memory_pci_bridge_write(int func, int addr, uint8_t val, void *priv)
             dev->pci_conf[addr] = val & 0xd0;
             sis_5571_smm_recalc(dev);
             break;
+
+        default:
+            break;
     }
     sis_5571_log("SiS5571: dev->pci_conf[%02x] = %02x\n", addr, val);
 }
 
 static uint8_t
-memory_pci_bridge_read(int func, int addr, void *priv)
+memory_pci_bridge_read(UNUSED(int func), int addr, void *priv)
 {
     sis_5571_t *dev = (sis_5571_t *) priv;
     sis_5571_log("SiS5571: dev->pci_conf[%02x] (%02x)\n", addr, dev->pci_conf[addr]);
@@ -374,6 +383,9 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
                             break;
                         case 2:
                             cpu_set_isa_pci_div(3);
+                            break;
+
+                        default:
                             break;
                     }
                     break;
@@ -498,6 +510,9 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
                 case 0x77: /* Monitor Standby Timer Reload And Monitor Standby State ExitControl */
                     dev->pci_conf_sb[0][addr] = val;
                     break;
+
+                default:
+                    break;
             }
             sis_5571_log("SiS5571-SB: dev->pci_conf[%02x] = %02x\n", addr, val);
             break;
@@ -577,6 +592,9 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
                 case 0x4f: /* Prefetch Count of Secondary Channel (High Byte) */
                     dev->pci_conf_sb[1][addr] = val;
                     break;
+
+                default:
+                    break;
             }
             sis_5571_log("SiS5571-IDE: dev->pci_conf[%02x] = %02x\n", addr, val);
             break;
@@ -615,8 +633,14 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
                 case 0x3c: /* Interrupt Line */
                     dev->pci_conf_sb[2][addr] = val;
                     break;
+
+                default:
+                    break;
             }
             sis_5571_log("SiS5571-USB: dev->pci_conf[%02x] = %02x\n", addr, val);
+
+        default:
+            break;
     }
 }
 
@@ -635,6 +659,7 @@ pci_isa_bridge_read(int func, int addr, void *priv)
         case 2:
             sis_5571_log("SiS5571-USB: dev->pci_conf[%02x] (%02x)\n", addr, dev->pci_conf_sb[2][addr]);
             return dev->pci_conf_sb[2][addr];
+
         default:
             return 0xff;
     }
@@ -654,6 +679,7 @@ sis_5571_usb_update_interrupt(usb_t* usb, void* priv)
             case 0x08:
             case 0x0d:
                 break;
+
             default:
                 if (usb->irq_level)
                     picint(1 << dev->pci_conf_sb[0][0x68] & 0x0f);
@@ -670,7 +696,7 @@ sis_5571_usb_update_interrupt(usb_t* usb, void* priv)
 }
 
 static uint8_t
-sis_5571_usb_handle_smi(usb_t* usb, void* priv)
+sis_5571_usb_handle_smi(UNUSED(usb_t* usb), UNUSED(void* priv))
 {
     /* Left unimplemented for now. */
     return 1;
@@ -740,7 +766,7 @@ sis_5571_close(void *priv)
 }
 
 static void *
-sis_5571_init(const device_t *info)
+sis_5571_init(UNUSED(const device_t *info))
 {
     sis_5571_t *dev = (sis_5571_t *) malloc(sizeof(sis_5571_t));
     memset(dev, 0x00, sizeof(sis_5571_t));

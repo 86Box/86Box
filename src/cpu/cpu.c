@@ -80,66 +80,147 @@ fpu_state_t fpu_state;
 uint32_t abrt_error;
 
 #ifdef USE_DYNAREC
-const OpFn *x86_dynarec_opcodes, *x86_dynarec_opcodes_0f,
-    *x86_dynarec_opcodes_d8_a16, *x86_dynarec_opcodes_d8_a32,
-    *x86_dynarec_opcodes_d9_a16, *x86_dynarec_opcodes_d9_a32,
-    *x86_dynarec_opcodes_da_a16, *x86_dynarec_opcodes_da_a32,
-    *x86_dynarec_opcodes_db_a16, *x86_dynarec_opcodes_db_a32,
-    *x86_dynarec_opcodes_dc_a16, *x86_dynarec_opcodes_dc_a32,
-    *x86_dynarec_opcodes_dd_a16, *x86_dynarec_opcodes_dd_a32,
-    *x86_dynarec_opcodes_de_a16, *x86_dynarec_opcodes_de_a32,
-    *x86_dynarec_opcodes_df_a16, *x86_dynarec_opcodes_df_a32,
-    *x86_dynarec_opcodes_REPE, *x86_dynarec_opcodes_REPNE,
-    *x86_dynarec_opcodes_3DNOW;
+const OpFn *x86_dynarec_opcodes;
+const OpFn *x86_dynarec_opcodes_0f;
+const OpFn *x86_dynarec_opcodes_d8_a16;
+const OpFn *x86_dynarec_opcodes_d8_a32;
+const OpFn *x86_dynarec_opcodes_d9_a16;
+const OpFn *x86_dynarec_opcodes_d9_a32;
+const OpFn *x86_dynarec_opcodes_da_a16;
+const OpFn *x86_dynarec_opcodes_da_a32;
+const OpFn *x86_dynarec_opcodes_db_a16;
+const OpFn *x86_dynarec_opcodes_db_a32;
+const OpFn *x86_dynarec_opcodes_dc_a16;
+const OpFn *x86_dynarec_opcodes_dc_a32;
+const OpFn *x86_dynarec_opcodes_dd_a16;
+const OpFn *x86_dynarec_opcodes_dd_a32;
+const OpFn *x86_dynarec_opcodes_de_a16;
+const OpFn *x86_dynarec_opcodes_de_a32;
+const OpFn *x86_dynarec_opcodes_df_a16;
+const OpFn *x86_dynarec_opcodes_df_a32;
+const OpFn *x86_dynarec_opcodes_REPE;
+const OpFn *x86_dynarec_opcodes_REPNE;
+const OpFn *x86_dynarec_opcodes_3DNOW;
 #endif
 
-const OpFn *x86_opcodes, *x86_opcodes_0f,
-    *x86_opcodes_d8_a16, *x86_opcodes_d8_a32,
-    *x86_opcodes_d9_a16, *x86_opcodes_d9_a32,
-    *x86_opcodes_da_a16, *x86_opcodes_da_a32,
-    *x86_opcodes_db_a16, *x86_opcodes_db_a32,
-    *x86_opcodes_dc_a16, *x86_opcodes_dc_a32,
-    *x86_opcodes_dd_a16, *x86_opcodes_dd_a32,
-    *x86_opcodes_de_a16, *x86_opcodes_de_a32,
-    *x86_opcodes_df_a16, *x86_opcodes_df_a32,
-    *x86_opcodes_REPE, *x86_opcodes_REPNE,
-    *x86_opcodes_3DNOW;
+const OpFn *x86_opcodes;
+const OpFn *x86_opcodes_0f;
+const OpFn *x86_opcodes_d8_a16;
+const OpFn *x86_opcodes_d8_a32;
+const OpFn *x86_opcodes_d9_a16;
+const OpFn *x86_opcodes_d9_a32;
+const OpFn *x86_opcodes_da_a16;
+const OpFn *x86_opcodes_da_a32;
+const OpFn *x86_opcodes_db_a16;
+const OpFn *x86_opcodes_db_a32;
+const OpFn *x86_opcodes_dc_a16;
+const OpFn *x86_opcodes_dc_a32;
+const OpFn *x86_opcodes_dd_a16;
+const OpFn *x86_opcodes_dd_a32;
+const OpFn *x86_opcodes_de_a16;
+const OpFn *x86_opcodes_de_a32;
+const OpFn *x86_opcodes_df_a16;
+const OpFn *x86_opcodes_df_a32;
+const OpFn *x86_opcodes_REPE;
+const OpFn *x86_opcodes_REPNE;
+const OpFn *x86_opcodes_3DNOW;
 
-uint16_t cpu_fast_off_count, cpu_fast_off_val;
+uint16_t cpu_fast_off_count;
+uint16_t cpu_fast_off_val;
 uint16_t temp_seg_data[4] = { 0, 0, 0, 0 };
 
-int isa_cycles, cpu_inited,
+int isa_cycles;
+int cpu_inited;
 
-    cpu_cycles_read, cpu_cycles_read_l, cpu_cycles_write, cpu_cycles_write_l,
-    cpu_prefetch_cycles, cpu_prefetch_width, cpu_mem_prefetch_cycles, cpu_rom_prefetch_cycles,
-    cpu_waitstates, cpu_cache_int_enabled, cpu_cache_ext_enabled,
-    cpu_isa_speed, cpu_pci_speed, cpu_isa_pci_div, cpu_agp_speed, cpu_alt_reset,
+int cpu_cycles_read;
+int cpu_cycles_read_l;
+int cpu_cycles_write;
+int cpu_cycles_write_l;
+int cpu_prefetch_cycles;
+int cpu_prefetch_width;
+int cpu_mem_prefetch_cycles;
+int cpu_rom_prefetch_cycles;
+int cpu_waitstates;
+int cpu_cache_int_enabled;
+int cpu_cache_ext_enabled;
+int cpu_isa_speed;
+int cpu_pci_speed;
+int cpu_isa_pci_div;
+int cpu_agp_speed;
+int cpu_alt_reset;
 
-    cpu_override, cpu_effective, cpu_multi, cpu_16bitbus, cpu_64bitbus,
-    cpu_cyrix_alignment, CPUID,
+int cpu_override;
+int cpu_effective;
+int cpu_multi;
+int cpu_16bitbus;
+int cpu_64bitbus;
+int cpu_cyrix_alignment;
+int CPUID;
 
-    is186, is_nec,
-    is286, is386, is6117, is486 = 1,
-                          cpu_isintel, cpu_iscyrix, hascache, isibm486, israpidcad, is_vpc,
-                          is_am486, is_am486dxl, is_pentium, is_k5, is_k6, is_p6, is_cxsmm, hasfpu,
+int is186;
+int is_nec;
+int is286;
+int is386;
+int is6117;
+int is486 = 1;
+int cpu_isintel;
+int cpu_iscyrix;
+int hascache;
+int isibm486;
+int israpidcad;
+int is_vpc;
+int is_am486;
+int is_am486dxl;
+int is_pentium;
+int is_k5;
+int is_k6;
+int is_p6;
+int is_cxsmm;
+int hasfpu;
 
-                          timing_rr, timing_mr, timing_mrl, timing_rm, timing_rml,
-                          timing_mm, timing_mml, timing_bt, timing_bnt,
-                          timing_int, timing_int_rm, timing_int_v86, timing_int_pm,
-                          timing_int_pm_outer, timing_iret_rm, timing_iret_v86, timing_iret_pm,
-                          timing_iret_pm_outer, timing_call_rm, timing_call_pm, timing_call_pm_gate,
-                          timing_call_pm_gate_inner, timing_retf_rm, timing_retf_pm, timing_retf_pm_outer,
-                          timing_jmp_rm, timing_jmp_pm, timing_jmp_pm_gate, timing_misaligned;
-uint32_t cpu_features, cpu_fast_off_flags;
+int timing_rr;
+int timing_mr;
+int timing_mrl;
+int timing_rm;
+int timing_rml;
+int timing_mm;
+int timing_mml;
+int timing_bt;
+int timing_bnt;
+int timing_int;
+int timing_int_rm;
+int timing_int_v86;
+int timing_int_pm;
+int timing_int_pm_outer;
+int timing_iret_rm;
+int timing_iret_v86;
+int timing_iret_pm;
+int timing_iret_pm_outer;
+int timing_call_rm;
+int timing_call_pm;
+int timing_call_pm_gate;
+int timing_call_pm_gate_inner;
+int timing_retf_rm;
+int timing_retf_pm;
+int timing_retf_pm_outer;
+int timing_jmp_rm;
+int timing_jmp_pm;
+int timing_jmp_pm_gate;
+int timing_misaligned;
+
+uint32_t cpu_features;
+uint32_t cpu_fast_off_flags;
 
 uint32_t _tr[8]      = { 0, 0, 0, 0, 0, 0, 0, 0 };
 uint32_t cache_index = 0;
 uint8_t  _cache[2048];
 
-uint64_t cpu_CR4_mask, tsc = 0;
+uint64_t cpu_CR4_mask;
+uint64_t tsc = 0;
 uint64_t pmc[2] = { 0, 0 };
 
-double cpu_dmulti, cpu_busspeed;
+double cpu_dmulti;
+double cpu_busspeed;
 
 msr_t msr;
 
@@ -148,11 +229,18 @@ cyrix_t cyrix;
 cpu_family_t *cpu_f;
 CPU          *cpu_s;
 
-uint8_t do_translate = 0, do_translate2 = 0;
+uint8_t do_translate = 0;
+uint8_t do_translate2 = 0;
 
 void (*cpu_exec)(int cycs);
 
-static uint8_t ccr0, ccr1, ccr2, ccr3, ccr4, ccr5, ccr6;
+static uint8_t ccr0;
+static uint8_t ccr1;
+static uint8_t ccr2;
+static uint8_t ccr3;
+static uint8_t ccr4;
+static uint8_t ccr5;
+static uint8_t ccr6;
 
 static int cyrix_addr;
 
@@ -225,7 +313,8 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 {
     const machine_t *machine_s = &machines[machine];
     const CPU       *cpu_s     = &cpu_family->cpus[cpu];
-    uint32_t         packages, bus_speed;
+    uint32_t         packages;
+    uint32_t         bus_speed;
     uint8_t          i;
     double           multi;
 
@@ -1647,7 +1736,7 @@ cpu_current_pc(char *bufp)
 
     sprintf(bufp, "%04X:%04X", CS, cpu_state.pc);
 
-    return (bufp);
+    return bufp;
 }
 
 void
@@ -3225,7 +3314,7 @@ cpu_write(uint16_t addr, uint8_t val, void *priv)
                 if (!(ccr3 & CCR3_SMI_LOCK) || in_smm) {
                     cyrix.arr[3].base = (cyrix.arr[3].base & ~0x0000f000) | ((val & 0xf0) << 8);
                     if ((val & 0xf) == 0xf)
-                        cyrix.arr[3].size = 1ull << 32; /* 4 GB */
+                        cyrix.arr[3].size = 1ULL << 32; /* 4 GB */
                     else if (val & 0xf)
                         cyrix.arr[3].size = 2048 << (val & 0xf);
                     else
@@ -3287,6 +3376,9 @@ cpu_read(uint16_t addr, void *priv)
                 return cpu_s->cyrix_id & 0xff;
             case 0xff:
                 return cpu_s->cyrix_id >> 8;
+
+            default:
+                break;
         }
 
         if ((cyrix_addr & 0xf0) == 0xc0)

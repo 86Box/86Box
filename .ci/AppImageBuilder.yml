@@ -60,7 +60,6 @@ AppDir:
     - libslirp0 # if SLIRP_EXTERNAL:BOOL=ON
     - libsndio7.0 # if OPENAL:BOOL=ON
     - libvdeplug-dev # -dev also pulls in libvdeplug2. -dev is required to get the proper .so symlink to the library
-    - libwayland-client0 # if QT:BOOL=ON
     - libx11-6 # if QT:BOOL=ON
     - libx11-xcb1 # if QT:BOOL=ON
     - libxcb1 # if QT:BOOL=ON

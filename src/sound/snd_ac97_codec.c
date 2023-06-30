@@ -445,6 +445,9 @@ rate:              /* Writable only if VRA/VRM is set. */
         case 0x7c: /* Vendor ID1 */
         case 0x7e: /* Vendor ID2 */
             return;
+
+        default:
+            break;
     }
 
     dev->regs[reg >> 1] = val;

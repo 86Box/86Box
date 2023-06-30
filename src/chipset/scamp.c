@@ -31,6 +31,7 @@
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/nmi.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
@@ -66,20 +67,21 @@ enum {
     BANK_4M_INTERLEAVED
 };
 
-typedef struct {
+typedef struct ram_struct_t {
     void *parent;
     int   bank;
 } ram_struct_t;
 
-typedef struct {
+typedef struct ems_struct_t {
     void *parent;
     int   segment;
 } ems_struct_t;
 
-typedef struct {
+typedef struct scamp_t {
     int     cfg_index;
     uint8_t cfg_regs[256];
-    int     cfg_enable, ram_config;
+    int     cfg_enable;
+    int     ram_config;
 
     int           ems_index;
     int           ems_autoinc;
@@ -91,21 +93,23 @@ typedef struct {
     ram_struct_t  ram_struct[2];
     ems_struct_t  ems_struct[20];
 
-    uint32_t ram_virt_base[2], ram_phys_base[2];
+    uint32_t ram_virt_base[2];
+    uint32_t ram_phys_base[2];
     uint32_t ram_mask[2];
-    int      row_virt_shift[2], row_phys_shift[2];
-    int      ram_interleaved[2], ibank_shift[2];
+    int      row_virt_shift[2];
+    int      row_phys_shift[2];
+    int      ram_interleaved[2];
+    int      ibank_shift[2];
 
     port_92_t *port_92;
 } scamp_t;
 
-static const struct
-{
+static const struct {
     int size_kb;
     int rammap;
     int bank[2];
 } ram_configs[] = {
-    {512,    0x0, { BANK_256K, BANK_NONE }                        },
+    {  512,  0x0, { BANK_256K, BANK_NONE }                        },
     { 1024,  0x1, { BANK_256K_INTERLEAVED, BANK_NONE }            },
     { 1536,  0x2, { BANK_256K_INTERLEAVED, BANK_256K }            },
     { 2048,  0x3, { BANK_256K_INTERLEAVED, BANK_256K_INTERLEAVED }},
@@ -118,12 +122,11 @@ static const struct
     { 16384, 0x9, { BANK_4M_INTERLEAVED, BANK_NONE }              },
 };
 
-static const struct
-{
+static const struct {
     int bank[2];
     int remapped;
 } rammap[16] = {
-    {{ BANK_256K, BANK_NONE },                          0},
+    { { BANK_256K, BANK_NONE },                         0},
     { { BANK_256K_INTERLEAVED, BANK_NONE },             0},
     { { BANK_256K_INTERLEAVED, BANK_256K },             0},
     { { BANK_256K_INTERLEAVED, BANK_256K_INTERLEAVED }, 0},
@@ -424,6 +427,9 @@ recalc_mappings(void *priv)
                     virt_base += (1 << 24);
                     dev->row_virt_shift[bank_nr] = 12;
                     break;
+
+                default:
+                    break;
             }
         } else {
             switch (rammap[cur_rammap].bank[bank_nr]) {
@@ -489,6 +495,9 @@ recalc_mappings(void *priv)
                     virt_base += (1 << 24);
                     dev->row_virt_shift[bank_nr] = 12;
                     break;
+
+                default:
+                    break;
             }
         }
         switch (rammap[cur_rammap].bank[bank_nr]) {
@@ -533,6 +542,9 @@ recalc_mappings(void *priv)
                                                 ram_mirrored_interleaved_read, NULL, NULL,
                                                 ram_mirrored_interleaved_write, NULL, NULL);
                 }
+                break;
+
+            default:
                 break;
         }
     }
@@ -584,7 +596,6 @@ scamp_ems_write(uint32_t addr, uint8_t val, void *priv)
 static void
 recalc_ems(scamp_t *dev)
 {
-    int            segment;
     const uint32_t ems_base[12] = {
         0xc0000, 0xc4000, 0xc8000, 0xcc000,
         0xd0000, 0xd4000, 0xd8000, 0xdc000,
@@ -593,7 +604,7 @@ recalc_ems(scamp_t *dev)
     uint32_t new_mappings[20];
     uint16_t ems_enable;
 
-    for (segment = 0; segment < 20; segment++)
+    for (int segment = 0; segment < 20; segment++)
         new_mappings[segment] = 0xa0000 + segment * 0x4000;
 
     if (dev->cfg_regs[CFG_EMSEN1] & EMSEN1_EMSENAB)
@@ -601,7 +612,7 @@ recalc_ems(scamp_t *dev)
     else
         ems_enable = 0;
 
-    for (segment = 0; segment < 12; segment++) {
+    for (int segment = 0; segment < 12; segment++) {
         if (ems_enable & (1 << segment)) {
             uint32_t phys_addr = dev->ems[segment] << 14;
 
@@ -613,7 +624,7 @@ recalc_ems(scamp_t *dev)
         }
     }
 
-    for (segment = 0; segment < 20; segment++) {
+    for (int segment = 0; segment < 20; segment++) {
         if (new_mappings[segment] != dev->mappings[segment]) {
             dev->mappings[segment] = new_mappings[segment];
             if (new_mappings[segment] < (mem_size * 1024)) {
@@ -643,6 +654,8 @@ shadow_control(uint32_t addr, uint32_t size, int state, int ems_enable)
                 break;
             case 3:
                 mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                break;
+            default:
                 break;
         }
 
@@ -756,6 +769,8 @@ scamp_write(uint16_t addr, uint8_t val, void *priv)
                     case CFG_FEAXS:
                         shadow_recalc(dev);
                         break;
+                    default:
+                        break;
                 }
             }
             break;
@@ -766,6 +781,9 @@ scamp_write(uint16_t addr, uint8_t val, void *priv)
                 mem_a20_alt = 0;
                 mem_a20_recalc();
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -809,6 +827,9 @@ scamp_read(uint16_t addr, void *priv)
             softresetx86();
             cpu_set_edx();
             break;
+
+        default:
+            break;
     }
 
     return ret;
@@ -823,10 +844,9 @@ scamp_close(void *priv)
 }
 
 static void *
-scamp_init(const device_t *info)
+scamp_init(UNUSED(const device_t *info))
 {
     uint32_t addr;
-    int      c;
     scamp_t *dev = (scamp_t *) malloc(sizeof(scamp_t));
     memset(dev, 0x00, sizeof(scamp_t));
 
@@ -847,7 +867,7 @@ scamp_init(const device_t *info)
     dev->ram_config = 0;
 
     /* Find best fit configuration for the requested memory size */
-    for (c = 0; c < NR_ELEMS(ram_configs); c++) {
+    for (uint8_t c = 0; c < NR_ELEMS(ram_configs); c++) {
         if (mem_size < ram_configs[c].size_kb)
             break;
 
@@ -863,7 +883,7 @@ scamp_init(const device_t *info)
     mem_mapping_set_exec(&ram_mid_mapping, ram + 0xf0000);
 
     addr = 0;
-    for (c = 0; c < 2; c++) {
+    for (uint8_t c = 0; c < 2; c++) {
         dev->ram_struct[c].parent = dev;
         dev->ram_struct[c].bank   = c;
         mem_mapping_add(&dev->ram_mapping[c], 0, 0,
@@ -924,12 +944,15 @@ scamp_init(const device_t *info)
                 dev->ibank_shift[c]     = 23;
                 dev->ram_interleaved[c] = 1;
                 break;
+
+            default:
+                break;
         }
     }
 
     mem_set_mem_state(0xfe0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 
-    for (c = 0; c < 20; c++) {
+    for (uint8_t c = 0; c < 20; c++) {
         dev->ems_struct[c].parent  = dev;
         dev->ems_struct[c].segment = c;
         mem_mapping_add(&dev->ems_mappings[c],

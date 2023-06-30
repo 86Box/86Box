@@ -20,14 +20,23 @@
 #define EMU_PIT_FAST_H
 
 typedef struct {
-    uint8_t m, ctrl,
-        read_status, latch, bcd;
+    uint8_t m;
+    uint8_t ctrl;
+    uint8_t read_status;
+    uint8_t latch;
+    uint8_t bcd;
 
     uint16_t rl;
 
-    int rm, wm, gate, out,
-        newcount, clock, using_timer, latched,
-        do_read_status;
+    int rm;
+    int wm;
+    int gate;
+    int out;
+    int newcount;
+    int clock;
+    int using_timer;
+    int latched;
+    int do_read_status;
     int enabled;
     int disabled;
     int initial;
