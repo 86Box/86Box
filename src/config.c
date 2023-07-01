@@ -1008,9 +1008,11 @@ load_storage_controllers(void)
     ide_ter_enabled = !!ini_section_get_int(cat, "ide_ter", 0);
     ide_qua_enabled = !!ini_section_get_int(cat, "ide_qua", 0);
 
-    /* TODO: Re-enable by default after we actually have a proper machine flag for this. */
-    cassette_enable = !!ini_section_get_int(cat, "cassette_enabled", 0);
-    p               = ini_section_get_string(cat, "cassette_file", "");
+    if (machine_has_bus(machine, MACHINE_BUS_CASSETTE))
+        cassette_enable = !!ini_section_get_int(cat, "cassette_enabled", 0);
+    else
+        cassette_enable = 0;
+    p = ini_section_get_string(cat, "cassette_file", "");
     if (strlen(p) > 511)
         fatal("load_storage_controllers(): strlen(p) > 511\n");
     else
@@ -1971,8 +1973,7 @@ config_load(void)
         for (i = 0; i < ISAMEM_MAX; i++)
             isamem_type[i] = 0;
 
-        /* TODO: Re-enable by default when we have a proper machine flag for this. */
-        cassette_enable = 0;
+        cassette_enable = 1;
         memset(cassette_fname, 0x00, sizeof(cassette_fname));
         memcpy(cassette_mode, "load", strlen("load") + 1);
         cassette_pos          = 0;
