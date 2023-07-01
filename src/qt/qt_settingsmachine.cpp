@@ -90,6 +90,11 @@ SettingsMachine::SettingsMachine(QWidget *parent)
 
     ui->comboBoxMachineType->setCurrentIndex(-1);
     ui->comboBoxMachineType->setCurrentIndex(selectedMachineType);
+
+#ifndef USE_DYNAREC
+    ui->checkBoxDynamicRecompiler->setEnabled(false);
+    ui->checkBoxDynamicRecompiler->setVisible(false);
+#endif
 }
 
 SettingsMachine::~SettingsMachine()
