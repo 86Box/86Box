@@ -5416,7 +5416,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
             }
 
             settings_enable_window(hdlg, IDC_CHECK_BUGGER, machine_has_bus(temp_machine, MACHINE_BUS_ISA));
-            settings_set_check(hdlg, IDC_CHECK_BUGGER, temp_bugger);
+            settings_set_check(hdlg, IDC_CHECK_BUGGER, (temp_bugger && machine_has_bus(temp_machine, MACHINE_BUS_ISA)));
             settings_set_check(hdlg, IDC_CHECK_POSTCARD, temp_postcard);
 
             free(stransi);
