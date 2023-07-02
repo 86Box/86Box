@@ -771,7 +771,7 @@ device_is_valid(const device_t *device, int m)
     if ((device->flags & DEVICE_AGP) && !machine_has_bus(m, MACHINE_BUS_AGP))
         return 0;
 
-    if ((device->flags & DEVICE_PS2) && !machine_has_bus(m, MACHINE_BUS_PS2))
+    if ((device->flags & DEVICE_PS2) && !machine_has_bus(m, MACHINE_BUS_PS2_PORTS))
         return 0;
 
     if ((device->flags & DEVICE_AC97) && !machine_has_bus(m, MACHINE_BUS_AC97))
