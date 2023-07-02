@@ -107,6 +107,7 @@ jobs:
             libpng:p
             openal:p
             rtmidi:p
+            libslirp:p
             libvncserver:p
             ${{ matrix.ui.packages }}
 
@@ -191,6 +192,7 @@ jobs:
           libc6-dev
           librtmidi-dev
           libopenal-dev
+          libslirp-dev
           libvncserver-dev
           ${{ matrix.ui.packages }}
 
