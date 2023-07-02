@@ -32,7 +32,7 @@
 #define MACHINE_BUS_CBUS      0x00000010 /* sys has C-BUS bus */
 #define MACHINE_BUS_PS2_LATCH 0x00000020 /* system has PS/2 keyboard controller IRQ latch */
 #define MACHINE_BUS_PS2_PORTS 0x00000040 /* system has PS/2 keyboard and mouse ports */
-#define MACHINE_BUS_PS2       (MACHIN_BUS_PS2_LATCH | MACHINE_BUS_PS2_PORTS)
+#define MACHINE_BUS_PS2       (MACHINE_BUS_PS2_LATCH | MACHINE_BUS_PS2_PORTS)
 #define MACHINE_BUS_EISA      0x00000080 /* sys has EISA bus */
 #define MACHINE_BUS_VLB       0x00000100 /* sys has VL bus */
 #define MACHINE_BUS_MCA       0x00000200 /* sys has MCA bus */
