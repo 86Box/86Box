@@ -981,8 +981,6 @@ write64_generic(void *priv, uint8_t val)
             } else if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_GREEN))
                 /* (B0 or F0) | (0x08 or 0x0c) */
                 kbc_delay_to_ob(dev, ((dev->p1 | fixed_bits) & 0xf0) | (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0x08 : 0x0c), 0, 0x00);
-            else if (kbc_ven == KBC_VEN_SIEMENS)
-                kbc_delay_to_ob(dev, (dev->p1 ^ 0x40) | 0x0c, 0, 0x00);
             else
                 /* (B0 or F0) | (0x04 or 0x44) */
                 kbc_delay_to_ob(dev, dev->p1 | fixed_bits, 0, 0x00);
