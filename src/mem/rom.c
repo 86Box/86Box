@@ -442,7 +442,7 @@ bios_add(void)
         mem_mapping_add(&bios_mapping, 0xe0000, 0x20000,
                         bios_read, bios_readw, bios_readl,
                         NULL, NULL, NULL,
-                        &rom[0x20000], MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, 0);
+                        &rom[biosmask + 1 - 0x20000], MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, 0);
 
         mem_set_mem_state_both(0x0e0000, 0x20000,
                                MEM_READ_ROMCS | MEM_WRITE_ROMCS);
