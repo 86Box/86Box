@@ -74,13 +74,16 @@ w83787_log(const char *fmt, ...)
 
 #define HAS_IDE_FUNCTIONALITY dev->ide_function
 
-typedef struct {
-    uint8_t  tries, regs[42];
+typedef struct w83787f_t {
+    uint8_t  tries;
+    uint8_t  regs[42];
     uint16_t reg_init;
-    int      locked, rw_locked,
-        cur_reg,
-        key, ide_function,
-        ide_start;
+    int      locked;
+    int      rw_locked;
+    int      cur_reg;
+    int      key;
+    int      ide_function;
+    int      ide_start;
     fdc_t    *fdc;
     serial_t *uart[2];
     void     *gameport;
@@ -341,6 +344,9 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
         case 0xC:
             if (valxor & 0x20)
                 w83787f_remap(dev);
+            break;
+
+        default:
             break;
     }
 }

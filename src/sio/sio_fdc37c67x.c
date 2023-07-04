@@ -33,19 +33,23 @@
 #include <86box/fdc.h>
 #include "cpu.h"
 #include <86box/sio.h>
+#include <86box/plat_unused.h>
 
 #define AB_RST 0x80
 
-typedef struct {
-    uint8_t chip_id, is_apm,
-        tries,
-        gpio_regs[2], auxio_reg,
-        regs[48],
-        ld_regs[11][256];
-    uint16_t gpio_base, /* Set to EA */
-        auxio_base, sio_base;
-    int locked,
-        cur_reg;
+typedef struct fdc37c67x_t {
+    uint8_t   chip_id;
+    uint8_t   is_apm;
+    uint8_t   tries;
+    uint8_t   gpio_regs[2];
+    uint8_t   auxio_reg;
+    uint8_t   regs[48];
+    uint8_t   ld_regs[11][256];
+    uint16_t  gpio_base; /* Set to EA */
+    uint16_t  auxio_base;
+    uint16_t  sio_base;
+    int       locked;
+    int       cur_reg;
     fdc_t    *fdc;
     serial_t *uart[2];
 } fdc37c67x_t;
@@ -65,7 +69,7 @@ make_port(fdc37c67x_t *dev, uint8_t ld)
 }
 
 static uint8_t
-fdc37c67x_auxio_read(uint16_t port, void *priv)
+fdc37c67x_auxio_read(UNUSED(uint16_t port), void *priv)
 {
     fdc37c67x_t *dev = (fdc37c67x_t *) priv;
 
@@ -73,7 +77,7 @@ fdc37c67x_auxio_read(uint16_t port, void *priv)
 }
 
 static void
-fdc37c67x_auxio_write(uint16_t port, uint8_t val, void *priv)
+fdc37c67x_auxio_write(UNUSED(uint16_t port), uint8_t val, void *priv)
 {
     fdc37c67x_t *dev = (fdc37c67x_t *) priv;
 
@@ -168,7 +172,7 @@ fdc37c67x_auxio_handler(fdc37c67x_t *dev)
 }
 
 static void
-fdc37c67x_sio_handler(fdc37c67x_t *dev)
+fdc37c67x_sio_handler(UNUSED(fdc37c67x_t *dev))
 {
 #if 0
     if (dev->sio_base) {
@@ -206,6 +210,9 @@ fdc37c67x_gpio_handler(fdc37c67x_t *dev)
                 break;
             case 3:
                 ld_port = 0xea; /* Default */
+                break;
+
+            default:
                 break;
         }
         dev->gpio_base = ld_port;
@@ -279,6 +286,9 @@ fdc37c67x_write(uint16_t port, uint8_t val, void *priv)
                         case 0x02:
                         case 0x07:
                             return;
+
+                        default:
+                            break;
                     }
                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val | keep;
             }
@@ -306,6 +316,9 @@ fdc37c67x_write(uint16_t port, uint8_t val, void *priv)
             case 0x26:
             case 0x27:
                 fdc37c67x_sio_handler(dev);
+
+            default:
+                break;
         }
 
         return;
@@ -359,6 +372,9 @@ fdc37c67x_write(uint16_t port, uint8_t val, void *priv)
                     if (valxor & 0x18)
                         fdc_update_drvrate(dev->fdc, 3, (val & 0x18) >> 3);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 3:
@@ -374,6 +390,9 @@ fdc37c67x_write(uint16_t port, uint8_t val, void *priv)
                         fdc37c67x_lpt_handler(dev);
                     if (dev->cur_reg == 0x70)
                         fdc37c67x_smi_handler(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -391,6 +410,9 @@ fdc37c67x_write(uint16_t port, uint8_t val, void *priv)
                     if (dev->cur_reg == 0x70)
                         fdc37c67x_smi_handler(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 5:
@@ -406,6 +428,9 @@ fdc37c67x_write(uint16_t port, uint8_t val, void *priv)
                         fdc37c67x_serial_handler(dev, 1);
                     if (dev->cur_reg == 0x70)
                         fdc37c67x_smi_handler(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -423,7 +448,13 @@ fdc37c67x_write(uint16_t port, uint8_t val, void *priv)
                 case 0xb5:
                     fdc37c67x_smi_handler(dev);
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -570,7 +601,9 @@ fdc37c67x_init(const device_t *info)
     dev->chip_id = info->local & 0xff;
 
     dev->gpio_regs[0] = 0xff;
-    // dev->gpio_regs[1] = (info->local == 0x0030) ? 0xff : 0xfd;
+#if 0
+    dev->gpio_regs[1] = (info->local == 0x0030) ? 0xff : 0xfd;
+#endif
     dev->gpio_regs[1] = (dev->chip_id == 0x30) ? 0xff : 0xfd;
 
     fdc37c67x_reset(dev);

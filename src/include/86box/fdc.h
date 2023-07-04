@@ -56,7 +56,7 @@ extern int fdc_type;
 #define FDC_FLAG_TER            0x2000 /* Is Tertiary */
 #define FDC_FLAG_QUA            0x3000 /* Is Quaternary */
 
-typedef struct {
+typedef struct fdc_t {
     uint8_t dor;
     uint8_t stat;
     uint8_t command;

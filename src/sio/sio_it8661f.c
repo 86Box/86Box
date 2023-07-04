@@ -32,16 +32,19 @@
 #include <86box/fdc.h>
 #include <86box/fdd_common.h>
 #include <86box/sio.h>
+#include <86box/plat_unused.h>
 
 #define LDN dev->regs[7]
 
-typedef struct
-{
+typedef struct it8661f_t {
     fdc_t    *fdc_controller;
     serial_t *uart[2];
 
-    uint8_t index, regs[256], device_regs[6][256];
-    int     unlocked, enumerator;
+    uint8_t index;
+    uint8_t regs[256];
+    uint8_t device_regs[6][256];
+    int     unlocked;
+    int     enumerator;
 } it8661f_t;
 
 static uint8_t mb_pnp_key[32] = { 0x6a, 0xb5, 0xda, 0xed, 0xf6, 0xfb, 0x7d, 0xbe, 0xdf, 0x6f, 0x37, 0x1b, 0x0d, 0x86, 0xc3, 0x61, 0xb0, 0x58, 0x2c, 0x16, 0x8b, 0x45, 0xa2, 0xd1, 0xe8, 0x74, 0x3a, 0x9d, 0xce, 0xe7, 0x73, 0x39 };
@@ -99,6 +102,9 @@ it8661_fdc(uint16_t addr, uint8_t val, it8661f_t *dev)
             case 0xf0:
                 dev->device_regs[0][addr] = val & 0x0f;
                 break;
+
+            default:
+                break;
         }
 
         fdc_set_base(dev->fdc_controller, (dev->device_regs[0][0x60] << 8) | (dev->device_regs[0][0x61]));
@@ -140,6 +146,9 @@ it8661_serial(int uart, uint16_t addr, uint8_t val, it8661f_t *dev)
             case 0xf0:
                 dev->device_regs[1 + uart][addr] = val & 3;
                 break;
+
+            default:
+                break;
         }
 
         serial_setup(dev->uart[uart], (dev->device_regs[1 + uart][0x60] << 8) | (dev->device_regs[1 + uart][0x61]), dev->device_regs[1 + uart][0x70] & 0x0f);
@@ -177,6 +186,9 @@ it8661_lpt(uint16_t addr, uint8_t val, it8661f_t *dev)
             case 0xf0:
                 dev->device_regs[3][addr] = val & 3;
                 break;
+
+            default:
+                break;
         }
 
         lpt1_init((dev->device_regs[3][0x60] << 8) | (dev->device_regs[3][0x61]));
@@ -200,6 +212,9 @@ it8661_ldn(uint16_t addr, uint8_t val, it8661f_t *dev)
             break;
         case 3:
             it8661_lpt(addr, val, dev);
+            break;
+
+        default:
             break;
     }
 }
@@ -245,6 +260,9 @@ it8661f_write(uint16_t addr, uint8_t val, void *priv)
                         break;
                 }
             }
+            break;
+
+        default:
             break;
     }
 
@@ -300,7 +318,7 @@ it8661f_close(void *priv)
 }
 
 static void *
-it8661f_init(const device_t *info)
+it8661f_init(UNUSED(const device_t *info))
 {
     it8661f_t *dev = (it8661f_t *) malloc(sizeof(it8661f_t));
     memset(dev, 0, sizeof(it8661f_t));

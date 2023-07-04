@@ -39,7 +39,7 @@ struct dirent {
 };
 #    define d_namlen d_reclen
 
-typedef struct {
+typedef struct DIR_t {
     short flags;  /* internal flags		*/
     short offset; /* offset of entry into dir	*/
     long  handle; /* open handle to Win32 system	*/

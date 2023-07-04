@@ -70,7 +70,7 @@
 #define CMD_SET_PARAMETERS  0x91
 #define CMD_READ_PARAMETERS 0xec
 
-typedef struct {
+typedef struct drive_t {
     int cfg_spt;
     int cfg_hpc;
     int current_cylinder;
@@ -81,7 +81,7 @@ typedef struct {
     int hdd_num;
 } drive_t;
 
-typedef struct {
+typedef struct esdi_t {
     uint8_t status;
     uint8_t error;
     int     secount;
@@ -821,9 +821,9 @@ loadhd(esdi_t *esdi, int hdd_num, int d, UNUSED(const char *fn))
 }
 
 static void
-esdi_rom_write(uint32_t addr, uint8_t val, void *p)
+esdi_rom_write(uint32_t addr, uint8_t val, void *priv)
 {
-    rom_t *rom = (rom_t *) p;
+    rom_t *rom = (rom_t *) priv;
 
     addr &= rom->mask;
 

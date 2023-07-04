@@ -21,15 +21,13 @@
 extern "C" {
 #endif
 
-typedef struct
-{
+typedef struct ddma_channel_t {
     uint16_t io_base;
     int      channel;
     int      enable;
 } ddma_channel_t;
 
-typedef struct
-{
+typedef struct ddma_t {
     ddma_channel_t channels[8];
 } ddma_t;
 

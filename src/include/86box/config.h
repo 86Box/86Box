@@ -27,7 +27,7 @@ extern "C" {
 #endif
 
 #if 0
-typedef struct {
+typedef struct storage_cfg_t {
     uint8_t     id;
     uint8_t bus_type;    /* Bus type: IDE, SCSI, etc. */
     uint8_t bus, : 4;    /* ID of the bus (for example, for IDE,
@@ -47,7 +47,7 @@ typedef struct {
     uint32_t tracks;
 } storage_cfg_t;
 
-typedef struct {
+typedef struct config_t {
     /* General configuration */
     int vid_resize;           /* Window is resizable or not */
     int vid_renderer;         /* Renderer */

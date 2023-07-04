@@ -22,7 +22,7 @@
 #define CDROM_TIME 10.0
 
 #ifdef SCSI_DEVICE_H
-typedef struct {
+typedef struct scsi_cdrom_t {
     /* Common block. */
     mode_sense_pages_t ms_pages_saved;
 

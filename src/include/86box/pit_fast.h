@@ -19,7 +19,7 @@
 #ifndef EMU_PIT_FAST_H
 #define EMU_PIT_FAST_H
 
-typedef struct {
+typedef struct ctrf_t {
     uint8_t m;
     uint8_t ctrl;
     uint8_t read_status;
@@ -45,13 +45,13 @@ typedef struct {
     int rereadlatch;
 
     union {
-        int count;
+        int32_t count;
         struct {
-            int units     : 4;
-            int tens      : 4;
-            int hundreds  : 4;
-            int thousands : 4;
-            int myriads   : 4;
+            int32_t units     : 4;
+            int32_t tens      : 4;
+            int32_t hundreds  : 4;
+            int32_t thousands : 4;
+            int32_t myriads   : 4;
         };
     };
 
@@ -62,7 +62,7 @@ typedef struct {
     void (*out_func)(int new_out, int old_out);
 } ctrf_t;
 
-typedef struct {
+typedef struct pitf_t {
     int    flags;
     ctrf_t counters[3];
 

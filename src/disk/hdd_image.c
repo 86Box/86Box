@@ -40,8 +40,7 @@
 #define HDD_IMAGE_HDX 2
 #define HDD_IMAGE_VHD 3
 
-typedef struct
-{
+typedef struct hdd_image_t {
     FILE     *file; /* Used for HDD_IMAGE_RAW, HDD_IMAGE_HDI, and HDD_IMAGE_HDX. */
     MVHDMeta *vhd;  /* Used for HDD_IMAGE_VHD. */
     uint32_t  base;

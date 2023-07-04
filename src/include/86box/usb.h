@@ -56,16 +56,14 @@ typedef struct usb_params_t
     void* parent_priv;
 } usb_params_t;
 
-typedef union
-{
+typedef union {
     uint32_t l;
     uint16_t w[2];
     uint8_t  b[4];
 } ohci_mmio_t;
 
 /* USB Host Controller device struct */
-typedef struct usb_t
-{
+typedef struct usb_t {
     uint8_t       uhci_io[32];
     ohci_mmio_t   ohci_mmio[1024];
     uint16_t      uhci_io_base;
@@ -88,14 +86,12 @@ typedef struct usb_t
 #pragma pack(push, 1)
 
 /* Base USB descriptor struct. */
-typedef struct usb_desc_base_t
-{
+typedef struct usb_desc_base_t {
     uint8_t bLength;
     uint8_t bDescriptorType;
 } usb_desc_base_t;
 
-enum usb_desc_setup_req_types
-{
+enum usb_desc_setup_req_types {
     USB_SETUP_TYPE_DEVICE    = 0x0,
     USB_SETUP_TYPE_INTERFACE = 0x1,
     USB_SETUP_TYPE_ENDPOING  = 0x2,
@@ -106,8 +102,7 @@ enum usb_desc_setup_req_types
 
 #define USB_SETUP_DEV_TO_HOST 0x80
 
-typedef struct usb_desc_setup_t
-{
+typedef struct usb_desc_setup_t {
     uint8_t  bmRequestType;
     uint8_t  bRequest;
     uint16_t wValue;
@@ -115,8 +110,7 @@ typedef struct usb_desc_setup_t
     uint16_t wLength;
 } usb_desc_setup_t;
 
-typedef struct usb_desc_endpoint_t
-{
+typedef struct usb_desc_endpoint_t {
     usb_desc_base_t base;
     uint8_t         bEndpointAddress;
     uint8_t         bmAttributes;
@@ -124,8 +118,7 @@ typedef struct usb_desc_endpoint_t
     uint8_t         bInterval;
 } usb_desc_endpoint_t;
 
-typedef struct usb_desc_hid_t
-{
+typedef struct usb_desc_hid_t {
     usb_desc_base_t base;
 
     uint16_t bcdHID;
@@ -135,8 +128,7 @@ typedef struct usb_desc_hid_t
     uint16_t wDescriptorLength;
 } usb_desc_hid_t;
 
-typedef struct usb_desc_interface_t
-{
+typedef struct usb_desc_interface_t {
     usb_desc_base_t base;
 
     uint8_t bInterfaceNumber;
@@ -148,14 +140,12 @@ typedef struct usb_desc_interface_t
     uint8_t iInterface;
 } usb_desc_interface_t;
 
-typedef struct usb_desc_string_t
-{
+typedef struct usb_desc_string_t {
     usb_desc_base_t base;
     uint16_t        bString[];
 } usb_desc_string_t;
 
-typedef struct usb_desc_conf_t
-{
+typedef struct usb_desc_conf_t {
     usb_desc_base_t base;
 
     uint16_t wTotalLength;
@@ -166,8 +156,7 @@ typedef struct usb_desc_conf_t
     uint8_t  bMaxPower;
 } usb_desc_conf_t;
 
-typedef struct usb_desc_device_t
-{
+typedef struct usb_desc_device_t {
     usb_desc_base_t base;
 
     uint16_t bcdUSB;
@@ -187,8 +176,7 @@ typedef struct usb_desc_device_t
 #pragma pack(pop)
 
 /* USB endpoint device struct. Incomplete and unused. */
-typedef struct usb_device_t
-{
+typedef struct usb_device_t {
     usb_desc_device_t device_desc;
     struct {
         usb_desc_conf_t  conf_desc;

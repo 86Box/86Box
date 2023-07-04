@@ -35,9 +35,10 @@
 #include <86box/fdc.h>
 #include <86box/sio.h>
 
-typedef struct {
-    uint8_t cur_reg, has_ide,
-        regs[81];
+typedef struct i82091aa_t {
+    uint8_t   cur_reg;
+    uint8_t   has_ide;
+    uint8_t   regs[81];
     uint16_t  base_address;
     fdc_t    *fdc;
     serial_t *uart[2];
@@ -70,6 +71,9 @@ lpt1_handler(i82091aa_t *dev)
             break;
         case 3:
             lpt_port = 0x000;
+            break;
+
+        default:
             break;
     }
 
@@ -111,6 +115,9 @@ serial_handler(i82091aa_t *dev, int uart)
             break;
         case 0x07:
             uart_port = COM3_ADDR;
+            break;
+
+        default:
             break;
     }
 
@@ -192,6 +199,9 @@ i82091aa_write(uint16_t port, uint8_t val, void *priv)
             *reg = (val & 0x07);
             if (dev->has_ide && (valxor & 0x03))
                 ide_handler(dev);
+            break;
+
+        default:
             break;
     }
 }

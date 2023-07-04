@@ -35,9 +35,11 @@
 #include <86box/fdc.h>
 #include <86box/sio.h>
 
-typedef struct {
-    uint8_t tries, has_ide,
-        fdc_on, regs[15];
+typedef struct pc87332_t {
+    uint8_t   tries;
+    uint8_t   has_ide;
+    uint8_t   fdc_on;
+    uint8_t   regs[15];
     int       cur_reg;
     fdc_t    *fdc;
     serial_t *uart[2];
@@ -68,6 +70,9 @@ lpt1_handler(pc87332_t *dev)
         case 3:
             lpt_port = 0x000;
             lpt_irq  = 0xff;
+            break;
+
+        default:
             break;
     }
 
@@ -105,6 +110,9 @@ serial_handler(pc87332_t *dev, int uart)
                 case 3:
                     serial_setup(dev->uart[uart], 0x220, COM3_IRQ);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 3:
@@ -121,7 +129,13 @@ serial_handler(pc87332_t *dev, int uart)
                 case 3:
                     serial_setup(dev->uart[uart], 0x228, COM4_IRQ);
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -237,6 +251,9 @@ pc87332_write(uint16_t port, uint8_t val, void *priv)
                 if ((dev->regs[0] & 1) && !(dev->regs[2] & 1))
                     lpt1_handler(dev);
             }
+            break;
+
+        default:
             break;
     }
 }
