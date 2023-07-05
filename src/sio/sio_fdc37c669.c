@@ -32,11 +32,13 @@
 #include <86box/fdc.h>
 #include <86box/sio.h>
 
-typedef struct {
-    uint8_t id, tries,
-        regs[42];
-    int locked, rw_locked,
-        cur_reg;
+typedef struct fdc37c669_t {
+    uint8_t   id;
+    uint8_t   tries;
+    uint8_t   regs[42];
+    int       locked;
+    int       rw_locked;
+    int       cur_reg;
     fdc_t    *fdc;
     serial_t *uart[2];
 } fdc37c669_t;
@@ -61,6 +63,9 @@ make_port(fdc37c669_t *dev, uint8_t reg)
         case 0x24:
         case 0x25:
             mask = 0xfe;
+            break;
+
+        default:
             break;
     }
 
@@ -217,6 +222,9 @@ fdc37c669_write(uint16_t port, uint8_t val, void *priv)
                     serial_setup(dev->uart[0], make_port(dev, 0x24), (dev->regs[0x28] & 0xf0) >> 4);
             }
             break;
+
+        default:
+            break;
     }
 }
 
@@ -338,9 +346,9 @@ const device_t fdc37c669_370_device = {
     .internal_name = "fdc37c669_370",
     .flags         = 0,
     .local         = 1,
-    fdc37c669_init,
-    fdc37c669_close,
-    .reset = NULL,
+    .init          = fdc37c669_init,
+    .close         = fdc37c669_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,

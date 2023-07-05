@@ -42,6 +42,8 @@ extern "C" {
 
 #define RSM_FRAC 10
 
+#define OPL_FREQ FREQ_48000
+
 enum {
     FLAG_CYCLES = (1 << 0)
 };
@@ -238,7 +240,8 @@ public:
 private:
     ChipType                       m_chip;
     uint32_t                       m_clock;
-    double                         m_clock_us, m_subtract[2];
+    double                         m_clock_us;
+    double                         m_subtract[2];
     typename ChipType::output_data m_output;
     pc_timer_t                     m_timers[2];
     int32_t                        m_duration_in_clocks[2]; // Needed for clock switches.
@@ -294,15 +297,15 @@ ymfm_drv_init(const device_t *info)
     switch (info->local) {
         case FM_YM3812:
         default:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3812>(3579545, FM_YM3812, 48000);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3812>(3579545, FM_YM3812, OPL_FREQ);
             break;
 
         case FM_YMF262:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf262>(14318181, FM_YMF262, 48000);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf262>(14318181, FM_YMF262, OPL_FREQ);
             break;
 
         case FM_YMF289B:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(33868800, FM_YMF289B, 48000);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(33868800, FM_YMF289B, OPL_FREQ);
             break;
 
         case FM_YMF278B:
@@ -321,7 +324,7 @@ ymfm_drv_close(void *priv)
     YMFMChipBase *drv = (YMFMChipBase *) priv;
 
     if (drv != NULL)
-        delete (drv);
+        delete drv;
 }
 
 static uint8_t

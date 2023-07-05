@@ -143,7 +143,9 @@ convert_to_pdf(ps_t *dev)
 {
     volatile int code;
     void        *instance = NULL;
-    char         input_fn[1024], output_fn[1024], *gsargv[9];
+    char         input_fn[1024];
+    char         output_fn[1024];
+    char        *gsargv[9];
 
     strcpy(input_fn, dev->printer_path);
     path_slash(input_fn);
@@ -234,9 +236,9 @@ timeout_timer(void *priv)
 }
 
 static void
-ps_write_data(uint8_t val, void *p)
+ps_write_data(uint8_t val, void *priv)
 {
-    ps_t *dev = (ps_t *) p;
+    ps_t *dev = (ps_t *) priv;
 
     if (dev == NULL)
         return;
@@ -283,9 +285,9 @@ process_data(ps_t *dev)
 }
 
 static void
-ps_write_ctrl(uint8_t val, void *p)
+ps_write_ctrl(uint8_t val, void *priv)
 {
-    ps_t *dev = (ps_t *) p;
+    ps_t *dev = (ps_t *) priv;
 
     if (dev == NULL)
         return;
@@ -315,15 +317,15 @@ ps_write_ctrl(uint8_t val, void *p)
 }
 
 static uint8_t
-ps_read_status(void *p)
+ps_read_status(void *priv)
 {
-    ps_t   *dev = (ps_t *) p;
+    ps_t   *dev = (ps_t *) priv;
     uint8_t ret = 0x9f;
 
     if (!dev->ack)
         ret |= 0x40;
 
-    return (ret);
+    return ret;
 }
 
 static void *
@@ -362,13 +364,13 @@ ps_init(void *lpt)
 
     reset_ps(dev);
 
-    return (dev);
+    return dev;
 }
 
 static void
-ps_close(void *p)
+ps_close(void *priv)
 {
-    ps_t *dev = (ps_t *) p;
+    ps_t *dev = (ps_t *) priv;
 
     if (dev == NULL)
         return;

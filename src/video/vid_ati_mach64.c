@@ -474,7 +474,7 @@ mach64_recalctimings(svga_t *svga)
         svga->hdisp_time = svga->hdisp = ((mach64->crtc_h_total_disp >> 16) & 255) + 1;
         svga->vsyncstart               = (mach64->crtc_v_sync_strt_wid & 2047) + 1;
         svga->rowoffset                = (mach64->crtc_off_pitch >> 22);
-        svga->clock                    = (cpuclock * (double) (1ull << 32)) / ics2595_getclock(svga->clock_gen);
+        svga->clock                    = (cpuclock * (double) (1ULL << 32)) / ics2595_getclock(svga->clock_gen);
         svga->ma_latch                 = (mach64->crtc_off_pitch & 0x1fffff) * 2;
         svga->linedbl = svga->rowcount = 0;
         svga->split                    = 0xffffff;
@@ -1179,8 +1179,6 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 void
 mach64_start_fill(mach64_t *mach64)
 {
-    int x, y;
-
     mach64->accel.dst_x       = 0;
     mach64->accel.dst_y       = 0;
     mach64->accel.dst_x_start = (mach64->dst_y_x >> 16) & 0xfff;
@@ -1257,8 +1255,8 @@ mach64_start_fill(mach64_t *mach64)
 
     mach64->accel.source_host = ((mach64->dp_src & 7) == SRC_HOST) || (((mach64->dp_src >> 8) & 7) == SRC_HOST);
 
-    for (y = 0; y < 8; y++) {
-        for (x = 0; x < 8; x++) {
+    for (uint8_t y = 0; y < 8; y++) {
+        for (uint8_t x = 0; x < 8; x++) {
             uint32_t temp                   = (y & 4) ? mach64->pat_reg1 : mach64->pat_reg0;
             mach64->accel.pattern[y][7 - x] = (temp >> (x + ((y & 3) * 8))) & 1;
         }
@@ -1309,8 +1307,6 @@ mach64_start_fill(mach64_t *mach64)
 void
 mach64_start_line(mach64_t *mach64)
 {
-    int x, y;
-
     mach64->accel.dst_x = (mach64->dst_y_x >> 16) & 0xfff;
     mach64->accel.dst_y = mach64->dst_y_x & 0xfff;
 
@@ -1353,8 +1349,8 @@ mach64_start_line(mach64_t *mach64)
 
     mach64->accel.source_host = ((mach64->dp_src & 7) == SRC_HOST) || (((mach64->dp_src >> 8) & 7) == SRC_HOST);
 
-    for (y = 0; y < 8; y++) {
-        for (x = 0; x < 8; x++) {
+    for (uint8_t y = 0; y < 8; y++) {
+        for (uint8_t x = 0; x < 8; x++) {
             uint32_t temp                   = (y & 4) ? mach64->pat_reg1 : mach64->pat_reg0;
             mach64->accel.pattern[y][7 - x] = (temp >> (x + ((y & 3) * 8))) & 1;
         }
@@ -1490,7 +1486,8 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
     switch (mach64->accel.op) {
         case OP_RECT:
             while (count) {
-                uint32_t src_dat  = 0, dest_dat;
+                uint32_t src_dat  = 0;
+                uint32_t dest_dat;
                 uint32_t host_dat = 0;
                 uint32_t old_dest_dat;
                 int      mix   = 0;
@@ -1698,7 +1695,8 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
             if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24) {
                 int x = 0;
                 while (count) {
-                    uint32_t src_dat  = 0, dest_dat;
+                    uint32_t src_dat  = 0;
+                    uint32_t dest_dat;
                     uint32_t host_dat = 0;
                     int      mix      = 0;
 
@@ -1825,7 +1823,8 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                 }
             } else {
                 while (count) {
-                    uint32_t src_dat    = 0, dest_dat;
+                    uint32_t src_dat    = 0;
+                    uint32_t dest_dat;
                     uint32_t host_dat   = 0;
                     int      mix        = 0;
                     int      draw_pixel = !(mach64->dst_cntl & DST_POLYGON_EN);
@@ -2052,8 +2051,6 @@ mach64_load_context(mach64_t *mach64)
 static void
 pll_write(mach64_t *mach64, uint32_t addr, uint8_t val)
 {
-    int c;
-
     switch (addr & 3) {
         case 0: /*Clock sel*/
             break;
@@ -2064,7 +2061,7 @@ pll_write(mach64_t *mach64, uint32_t addr, uint8_t val)
             mach64->pll_regs[mach64->pll_addr] = val;
             mach64_log("pll_write %02x,%02x\n", mach64->pll_addr, val);
 
-            for (c = 0; c < 4; c++) {
+            for (uint8_t c = 0; c < 4; c++) {
                 double m = (double) mach64->pll_regs[PLL_REF_DIV];
                 double n = (double) mach64->pll_regs[VCLK0_FB_DIV + c];
                 double r = 14318184.0;
@@ -3857,7 +3854,8 @@ mach64_overlay_draw(svga_t *svga, int displine)
     } else {
         for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++) {
             int h      = h_acc >> 12;
-            int gr_cmp = 0, vid_cmp = 0;
+            int gr_cmp = 0;
+            int vid_cmp = 0;
             int use_video = 0;
 
             switch (video_key_fn) {
@@ -3968,7 +3966,6 @@ mach64_overlay_draw(svga_t *svga, int displine)
 static void
 mach64_io_remove(mach64_t *mach64)
 {
-    int      c;
     uint16_t io_base = 0x02ec;
 
     switch (mach64->io_base) {
@@ -3989,7 +3986,7 @@ mach64_io_remove(mach64_t *mach64)
 
     io_removehandler(0x03c0, 0x0020, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
 
-    for (c = 0; c < 8; c++) {
+    for (uint8_t c = 0; c < 8; c++) {
         io_removehandler((c * 0x1000) + 0x0000 + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
         io_removehandler((c * 0x1000) + 0x0400 + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
         io_removehandler((c * 0x1000) + 0x0800 + io_base, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
@@ -4005,14 +4002,12 @@ mach64_io_remove(mach64_t *mach64)
 static void
 mach64_io_set(mach64_t *mach64)
 {
-    int c;
-
     mach64_io_remove(mach64);
 
     io_sethandler(0x03c0, 0x0020, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
 
     if (!mach64->use_block_decoded_io) {
-        for (c = 0; c < 8; c++) {
+        for (uint8_t c = 0; c < 8; c++) {
             io_sethandler((c * 0x1000) + 0x2ec, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
             io_sethandler((c * 0x1000) + 0x6ec, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);
             io_sethandler((c * 0x1000) + 0xaec, 0x0004, mach64_ext_inb, mach64_ext_inw, mach64_ext_inl, mach64_ext_outb, mach64_ext_outw, mach64_ext_outl, mach64);

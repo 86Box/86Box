@@ -32,6 +32,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/sio.h>
+#include <86box/plat_unused.h>
 
 #define FSR                   dev->regs[0xa0]
 #define ASR                   dev->regs[0xa1]
@@ -56,10 +57,13 @@ prime3b_log(const char *fmt, ...)
 #    define prime3b_log(fmt, ...)
 #endif
 
-typedef struct
-{
-    uint8_t  index, regs[256], cfg_lock, ide_function;
-    uint16_t com3_addr, com4_addr;
+typedef struct prime3b_t {
+    uint8_t  index;
+    uint8_t  regs[256];
+    uint8_t  cfg_lock;
+    uint8_t  ide_function;
+    uint16_t com3_addr;
+    uint16_t com4_addr;
 
     fdc_t    *fdc_controller;
     serial_t *uart[2];
@@ -121,17 +125,23 @@ prime3b_write(uint16_t addr, uint8_t val, void *priv)
                         dev->com3_addr = 0x220;
                         dev->com4_addr = 0x228;
                         break;
+
+                    default:
+                        break;
                 }
                 break;
             case 0xa5: /* ECP Register */
                 dev->regs[0xa5] = val;
+                break;
+
+            default:
                 break;
         }
     }
 }
 
 static uint8_t
-prime3b_read(uint16_t addr, void *priv)
+prime3b_read(UNUSED(uint16_t addr), void *priv)
 {
     prime3b_t *dev = (prime3b_t *) priv;
 

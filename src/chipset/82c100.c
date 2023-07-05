@@ -28,23 +28,24 @@
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/nmi.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/rom.h>
 #include <86box/chipset.h>
 
-typedef struct
-{
+typedef struct ems_page_t {
     int      enabled;
-    uint32_t virt, phys;
+    uint32_t virt;
+    uint32_t phys;
 } ems_page_t;
 
-typedef struct
-{
-    uint8_t  index, access;
-    uint16_t ems_io_base;
-    uint32_t ems_window_base;
-    uint8_t  ems_page_regs[4],
-        regs[256];
+typedef struct ct_82c100_t {
+    uint8_t       index;
+    uint8_t       access;
+    uint16_t      ems_io_base;
+    uint32_t      ems_window_base;
+    uint8_t       ems_page_regs[4];
+    uint8_t       regs[256];
     ems_page_t    ems_pages[4];
     mem_mapping_t ems_mappings[4];
 } ct_82c100_t;
@@ -70,10 +71,9 @@ ct_82c100_log(const char *fmt, ...)
 static void
 ct_82c100_ems_pages_recalc(ct_82c100_t *dev)
 {
-    int      i;
     uint32_t page_base;
 
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         page_base = dev->ems_window_base + (i << 14);
         if ((i == 1) || (i == 2))
             page_base ^= 0xc000;
@@ -120,9 +120,7 @@ ct_82c100_ems_in(uint16_t port, void *priv)
 static void
 ct_82c100_ems_update(ct_82c100_t *dev)
 {
-    int i;
-
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         ct_82c100_log("Disabling EMS I/O handler %i at %04X\n", i, dev->ems_io_base + (i << 14));
         io_handler(0, dev->ems_io_base + (i << 14), 1,
                    ct_82c100_ems_in, NULL, NULL, ct_82c100_ems_out, NULL, NULL, dev);
@@ -130,7 +128,7 @@ ct_82c100_ems_update(ct_82c100_t *dev)
 
     dev->ems_io_base = 0x0208 + (dev->regs[0x4c] & 0xf0);
 
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         ct_82c100_log("Enabling EMS I/O handler %i at %04X\n", i, dev->ems_io_base + (i << 14));
         io_handler(1, dev->ems_io_base + (i << 14), 1,
                    ct_82c100_ems_in, NULL, NULL, ct_82c100_ems_out, NULL, NULL, dev);
@@ -222,6 +220,9 @@ ct_82c100_out(uint16_t port, uint8_t val, void *priv)
                     dev->regs[0x4c] = val;
                     ct_82c100_ems_update(dev);
                     break;
+
+                default:
+                    break;
             }
             dev->access = 0;
         }
@@ -257,6 +258,9 @@ ct_82c100_in(uint16_t port, void *priv)
                 case 0x4b:
                 case 0x4c:
                     ret = dev->regs[dev->index];
+                    break;
+
+                default:
                     break;
             }
             dev->access = 0;
@@ -350,10 +354,9 @@ ct_82c100_close(void *priv)
 }
 
 static void *
-ct_82c100_init(const device_t *info)
+ct_82c100_init(UNUSED(const device_t *info))
 {
     ct_82c100_t *dev;
-    uint32_t     i;
 
     dev = (ct_82c100_t *) malloc(sizeof(ct_82c100_t));
     memset(dev, 0x00, sizeof(ct_82c100_t));
@@ -367,7 +370,7 @@ ct_82c100_init(const device_t *info)
     io_sethandler(0x007e, 2,
                   ct_82c100_in, NULL, NULL, ct_82c100_out, NULL, NULL, dev);
 
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         mem_mapping_add(&(dev->ems_mappings[i]), (i + 28) << 14, 0x04000,
                         mem_read_emsb, mem_read_emsw, NULL,
                         mem_write_emsb, mem_write_emsw, NULL,
@@ -379,7 +382,7 @@ ct_82c100_init(const device_t *info)
 
     device_add(&port_92_device);
 
-    return (dev);
+    return dev;
 }
 
 const device_t ct_82c100_device = {

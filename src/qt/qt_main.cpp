@@ -43,7 +43,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #    include "qt_winrawinputfilter.hpp"
 #    include "qt_winmanagerfilter.hpp"
 #    include <86box/win.h>
-#    include <Shobjidl.h>
+#    include <shobjidl.h>
 #endif
 
 extern "C" {
@@ -86,8 +86,10 @@ void qt_set_sequence_auto_mnemonic(bool b);
 void
 main_thread_fn()
 {
-    uint64_t old_time, new_time;
-    int      drawits, frames;
+    uint64_t old_time;
+    uint64_t new_time;
+    int      drawits;
+    int      frames;
 
     QThread::currentThread()->setPriority(QThread::HighestPriority);
     framecountx = 0;
@@ -138,7 +140,11 @@ main_thread_fn()
     }
 
     is_quit = 1;
-    QTimer::singleShot(0, QApplication::instance(), []() { QApplication::instance()->quit(); });
+    if (gfxcard[1]) {
+        ui_deinit_monitor(1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+    QTimer::singleShot(0, QApplication::instance(), []() { QApplication::processEvents(); QApplication::instance()->quit(); });
 }
 
 static std::thread *main_thread;
@@ -250,7 +256,6 @@ main(int argc, char *argv[])
     auto rawInputFilter = WindowsRawInputFilter::Register(main_window);
     if (rawInputFilter) {
         app.installNativeEventFilter(rawInputFilter.get());
-        QObject::disconnect(main_window, &MainWindow::pollMouse, 0, 0);
         QObject::connect(main_window, &MainWindow::pollMouse, (WindowsRawInputFilter *) rawInputFilter.get(), &WindowsRawInputFilter::mousePoll, Qt::DirectConnection);
         main_window->setSendKeyboardInput(false);
     }

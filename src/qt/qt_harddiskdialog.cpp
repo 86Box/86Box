@@ -23,7 +23,6 @@ extern "C" {
 #include <86box/86box.h>
 #include <86box/hdd.h>
 #include "../disk/minivhd/minivhd.h"
-#include "../disk/minivhd/minivhd_util.h"
 }
 
 #include <thread>
@@ -76,7 +75,7 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
         uint64_t size    = ((uint64_t) hdd_table[i][0]) * hdd_table[i][1] * hdd_table[i][2];
         uint32_t size_mb = size >> 11LL;
         // QString text = QString("%1 MiB (CHS: %2, %3, %4)").arg(size_mb).arg(hdd_table[i][0]).arg(hdd_table[i][1]).arg(hdd_table[i][2]);
-        QString text = QString::asprintf(tr("%u MB (CHS: %i, %i, %i)").toUtf8().constData(), (size_mb), (hdd_table[i][0]), (hdd_table[i][1]), (hdd_table[i][2]));
+        QString text = QString::asprintf(tr("%u MB (CHS: %i, %i, %i)").toUtf8().constData(), size_mb, (hdd_table[i][0]), (hdd_table[i][1]), (hdd_table[i][2]));
         Models::AddEntry(model, text, i);
     }
     Models::AddEntry(model, tr("Custom..."), 127);
@@ -313,7 +312,7 @@ HarddiskDialog::onCreateNewFile()
     ui->progressBar->setEnabled(true);
     setResult(QDialog::Rejected);
     quint64 size = ui->lineEditSize->text().toULongLong() << 20U;
-    if (size > 0x1FFFFFFE00ll) {
+    if (size > 0x1FFFFFFE00LL) {
         QMessageBox::critical(this, tr("Disk image too large"), tr("Disk images cannot be larger than 127 GB."));
         return;
     }
@@ -358,7 +357,7 @@ HarddiskDialog::onCreateNewFile()
     if (img_format == IMG_FMT_HDI) { /* HDI file */
         QDataStream stream(&file);
         stream.setByteOrder(QDataStream::LittleEndian);
-        if (size >= 0x100000000ll) {
+        if (size >= 0x100000000LL) {
             QMessageBox::critical(this, tr("Disk image too large"), tr("HDI disk images cannot be larger than 4 GB."));
             return;
         }

@@ -18,6 +18,7 @@
  *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -109,16 +110,20 @@
 
 #define IDE_TIME                       10.0
 
-typedef struct {
-    int bit32, cur_dev,
-        irq, inited,
-        diag, force_ata3;
-    uint16_t   base_main, side_main;
+typedef struct ide_board_t {
+    int        bit32;
+    int        cur_dev;
+    int        irq;
+    int        inited;
+    int        diag;
+    int        force_ata3;
+    uint16_t   base_main;
+    uint16_t   side_main;
     pc_timer_t timer;
     ide_t     *ide[2];
 } ide_board_t;
 
-typedef struct {
+typedef struct ide_bm_t {
     int (*dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv);
     void (*set_irq)(int channel, void *priv);
     void *priv;
@@ -175,7 +180,8 @@ static uint8_t ide_qua_pnp_rom[] = {
 };
 
 ide_t *ide_drives[IDE_NUM];
-int    ide_ter_enabled = 0, ide_qua_enabled = 0;
+int    ide_ter_enabled = 0;
+int    ide_qua_enabled = 0;
 
 static void ide_atapi_callback(ide_t *ide);
 static void ide_callback(void *priv);
@@ -238,6 +244,9 @@ ide_get_xfer_time(ide_t *ide, int size)
                 case 0x10:
                     period = (50.0 / 3.0);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 0x100: /* Single Word DMA */
@@ -251,6 +260,9 @@ ide_get_xfer_time(ide_t *ide, int size)
                 case 0x04:
                     period = (25.0 / 3.0);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 0x200: /* Multiword DMA */
@@ -263,6 +275,9 @@ ide_get_xfer_time(ide_t *ide, int size)
                     break;
                 case 0x04:
                     period = (50.0 / 3.0);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -286,7 +301,13 @@ ide_get_xfer_time(ide_t *ide, int size)
                 case 0x20:
                     period = 100.0;
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 
@@ -388,9 +409,9 @@ ide_irq_update(ide_t *ide)
 void
 ide_padstr(char *str, const char *src, int len)
 {
-    int i, v;
+    int v;
 
-    for (i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++) {
         if (*src != '\0')
             v = *src++;
         else
@@ -411,9 +432,7 @@ ide_padstr(char *str, const char *src, int len)
 void
 ide_padstr8(uint8_t *buf, int buf_size, const char *src)
 {
-    int i;
-
-    for (i = 0; i < buf_size; i++) {
+    for (int i = 0; i < buf_size; i++) {
         if (*src != '\0')
             buf[i] = *src++;
         else
@@ -487,7 +506,9 @@ ide_hd_identify(ide_t *ide)
 {
     char device_identify[9] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
 
-    uint32_t d_hpc, d_spt, d_tracks;
+    uint32_t d_hpc;
+    uint32_t d_spt;
+    uint32_t d_tracks;
     uint64_t full_size = (((uint64_t) hdd[ide->hdd_num].tracks) * hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
 
     device_identify[6] = (ide->hdd_num / 10) + 0x30;
@@ -576,7 +597,12 @@ ide_hd_identify(ide_t *ide)
 static void
 ide_identify(ide_t *ide)
 {
-    int    d, i, max_pio, max_sdma, max_mdma, max_udma;
+    int    d;
+    int    i;
+    int    max_pio;
+    int    max_sdma;
+    int    max_mdma;
+    int    max_udma;
     ide_t *ide_other = ide_drives[ide->channel ^ 1];
 
     ide_log("IDE IDENTIFY or IDENTIFY PACKET DEVICE on board %i (channel %i)\n", ide->board, ide->channel);
@@ -673,7 +699,8 @@ ide_identify(ide_t *ide)
 static off64_t
 ide_get_sector(ide_t *ide)
 {
-    uint32_t heads, sectors;
+    uint32_t heads;
+    uint32_t sectors;
 
     if (ide->lba)
         return (off64_t) ide->lba_addr;
@@ -709,7 +736,7 @@ ide_next_sector(ide_t *ide)
 }
 
 static void
-loadhd(ide_t *ide, int d, const char *fn)
+loadhd(ide_t *ide, int d, UNUSED(const char *fn))
 {
     if (!hdd_image_load(d)) {
         ide->type = IDE_NONE;
@@ -737,8 +764,11 @@ ide_set_signature(ide_t *ide)
         ide->secount            = ide->sc->phase;
         ide->cylinder           = ide->sc->request_length;
     } else {
-        ide->secount  = 1;
+        ide->secount = 1;
+#if 0
         ide->cylinder = ((ide->type == IDE_HDD) ? 0 : 0xFFFF);
+#endif
+        ide->cylinder = ((ide->type == IDE_HDD) ? 0 : 0x7F7F);
         if (ide->type == IDE_HDD)
             ide->drive = 0;
     }
@@ -747,8 +777,11 @@ ide_set_signature(ide_t *ide)
 static int
 ide_set_features(ide_t *ide)
 {
-    uint8_t features, features_data;
-    int     mode, submode, max;
+    uint8_t features;
+    uint8_t features_data;
+    int     mode;
+    int     submode;
+    int     max;
 
     features      = ide->cylprecomp;
     features_data = ide->secount;
@@ -834,11 +867,12 @@ ide_set_features(ide_t *ide)
 void
 ide_set_sector(ide_t *ide, int64_t sector_num)
 {
-    unsigned int cyl, r;
+    unsigned int cyl;
+    unsigned int r;
     if (ide->lba) {
         ide->head     = (sector_num >> 24);
         ide->cylinder = (sector_num >> 8);
-        ide->sector   = (sector_num);
+        ide->sector   = sector_num;
     } else {
         cyl           = sector_num / (hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
         r             = sector_num % (hdd[ide->hdd_num].hpc * hdd[ide->hdd_num].spt);
@@ -940,7 +974,8 @@ ide_atapi_command_bus(ide_t *ide)
 static void
 ide_atapi_callback(ide_t *ide)
 {
-    int out, ret = 0;
+    int out;
+    int ret = 0;
 
     switch (ide->sc->packet_status) {
         case PHASE_IDLE:
@@ -1320,11 +1355,12 @@ dev_reset(ide_t *ide)
 }
 
 void
-ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
+ide_write_devctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     ide_board_t *dev = (ide_board_t *) priv;
 
-    ide_t  *ide, *ide_other;
+    ide_t  *ide;
+    ide_t  *ide_other;
     int     ch;
     uint8_t old;
 
@@ -1426,7 +1462,8 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 {
     ide_board_t *dev = (ide_board_t *) priv;
 
-    ide_t *ide, *ide_other;
+    ide_t *ide;
+    ide_t *ide_other;
     int    ch;
 
     ch        = dev->cur_dev;
@@ -1453,9 +1490,15 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
             }
             ide->cylprecomp = val;
 
+/* The ATA-3 specification says this register is the parameter for the
+   command and is unclear as to whether or not it's written to both
+   devices at once. Writing it to both devices at once breaks CD boot
+   on the AMI Apollo. */
+#ifdef WRITE_PARAM_TO_BOTH_DEVICES
             if (ide_other->type == IDE_ATAPI)
                 ide_other->sc->features = val;
             ide_other->cylprecomp = val;
+#endif
             return;
 
         case 0x2: /* Sector count */
@@ -1891,11 +1934,7 @@ static uint8_t
 ide_status(ide_t *ide, ide_t *ide_other, int ch)
 {
     if ((ide->type == IDE_NONE) && ((ide_other->type == IDE_NONE) || !(ch & 1)))
-#ifdef STATUS_BIT_7_PULLDOWN
-        return 0x7F; /* Bit 7 pulled down, all other bits pulled up, per the spec. */
-#else
-        return 0xFF;
-#endif
+        return 0x7f; /* Bit 7 pulled down, all other bits pulled up, per the spec. */
     else if ((ide->type == IDE_NONE) && (ch & 1))
         return 0x00; /* On real hardware, a slave with a present master always returns a status of 0x00. */
     else if (ide->type == IDE_ATAPI)
@@ -1910,6 +1949,7 @@ ide_readb(uint16_t addr, void *priv)
     ide_board_t *dev = (ide_board_t *) priv;
 
     int    ch;
+    int    absent = 0;
     ide_t *ide;
 
     ch  = dev->cur_dev;
@@ -1921,18 +1961,31 @@ ide_readb(uint16_t addr, void *priv)
     addr |= 0x90;
     addr &= 0xFFF7;
 
+    if ((ide->type == IDE_NONE) && ((ide_drives[ch ^ 1]->type == IDE_NONE) || !(ch & 1)))
+        absent = 1; /* Absent and is master or both are absent. */
+    else if ((ide->type == IDE_NONE) && (ch & 1))
+        absent = 2; /* Absent and is slave and master is present. */
+
     switch (addr & 0x7) {
         case 0x0: /* Data */
-            tempw = ide_read_data(ide, 2);
-            temp  = tempw & 0xff;
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x00;
+            else {
+                tempw = ide_read_data(ide, 2);
+                temp  = tempw & 0xff;
+            }
             break;
 
         /* For ATAPI: Bits 7-4 = sense key, bit 3 = MCR (media change requested),
                       Bit 2 = ABRT (aborted command), Bit 1 = EOM (end of media),
                       and Bit 0 = ILI (illegal length indication). */
         case 0x1: /* Error */
-            if (ide->type == IDE_NONE)
-                temp = 0;
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x01;
             else if (ide->type == IDE_ATAPI)
                 temp = ide->sc->error;
             else
@@ -1953,20 +2006,30 @@ ide_readb(uint16_t addr, void *priv)
                 0       1       0       Data from host
                 1       0       1       Status. */
         case 0x2: /* Sector count */
-            if (ide->type == IDE_ATAPI)
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x01;
+            else if (ide->type == IDE_ATAPI)
                 temp = ide->sc->phase;
-            else if (ide->type != IDE_NONE)
+            else
                 temp = ide->secount;
             break;
 
         case 0x3: /* Sector */
-            if (ide->type != IDE_NONE)
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x01;
+            else
                 temp = (uint8_t) ide->sector;
             break;
 
         case 0x4: /* Cylinder low */
-            if (ide->type == IDE_NONE)
-                temp = 0xFF;
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x00;
             else if (ide->type == IDE_ATAPI)
                 temp = ide->sc->request_length & 0xff;
             else
@@ -1974,8 +2037,10 @@ ide_readb(uint16_t addr, void *priv)
             break;
 
         case 0x5: /* Cylinder high */
-            if (ide->type == IDE_NONE)
-                temp = 0xFF;
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0x00;
             else if (ide->type == IDE_ATAPI)
                 temp = ide->sc->request_length >> 8;
             else
@@ -1983,7 +2048,12 @@ ide_readb(uint16_t addr, void *priv)
             break;
 
         case 0x6: /* Drive/Head */
-            temp = (uint8_t) (ide->head | ((ch & 1) ? 0x10 : 0) | (ide->lba ? 0x40 : 0) | 0xa0);
+            if (absent == 1)
+                temp = 0x7f;
+            else if (absent == 2)
+                temp = 0xb0;
+            else
+                temp = (uint8_t) (ide->head | ((ch & 1) ? 0x10 : 0) | (ide->lba ? 0x40 : 0) | 0xa0);
             break;
 
         /* For ATAPI: Bit 5 is DMA ready, but without overlapped or interlaved DMA, it is
@@ -1999,7 +2069,7 @@ ide_readb(uint16_t addr, void *priv)
 }
 
 uint8_t
-ide_read_alt_status(uint16_t addr, void *priv)
+ide_read_alt_status(UNUSED(uint16_t addr), void *priv)
 {
     uint8_t temp = 0xff;
 
@@ -2136,7 +2206,8 @@ atapi_error_no_ready(ide_t *ide)
 static void
 ide_callback(void *priv)
 {
-    int snum, ret = 0;
+    int snum;
+    int ret = 0;
 
     ide_t *ide = (ide_t *) priv;
 
@@ -2520,6 +2591,9 @@ ide_callback(void *priv)
 
         case 0xFF:
             goto abort_cmd;
+
+        default:
+            break;
     }
 
 abort_cmd:
@@ -2546,8 +2620,10 @@ id_not_found:
 uint8_t
 ide_read_ali_75(void)
 {
-    ide_t  *ide0, *ide1;
-    int     ch0, ch1;
+    ide_t  *ide0;
+    ide_t *ide1;
+    int     ch0;
+    int     ch1;
     uint8_t ret = 0x00;
 
     ch0  = ide_boards[0]->cur_dev;
@@ -2570,8 +2646,10 @@ ide_read_ali_75(void)
 uint8_t
 ide_read_ali_76(void)
 {
-    ide_t  *ide0, *ide1;
-    int     ch0, ch1;
+    ide_t  *ide0;
+    ide_t  *ide1;
+    int     ch0;
+    int     ch1;
     uint8_t ret = 0x00;
 
     ch0  = ide_boards[0]->cur_dev;
@@ -2709,7 +2787,7 @@ static void
 ide_board_close(int board)
 {
     ide_t *dev;
-    int    c, d;
+    int    c;
 
     ide_log("ide_board_close(%i)\n", board);
 
@@ -2723,7 +2801,7 @@ ide_board_close(int board)
     ide_clear_bus_master(board);
 
     /* Close hard disk image files (if previously open) */
-    for (d = 0; d < 2; d++) {
+    for (uint8_t d = 0; d < 2; d++) {
         c = (board << 1) + d;
 
         ide_boards[board]->ide[d] = NULL;
@@ -2763,9 +2841,13 @@ static void
 ide_board_setup(int board)
 {
     ide_t *dev;
-    int    c, d;
-    int    ch, is_ide, valid_ch;
-    int    min_ch, max_ch;
+    int    c;
+    int    d;
+    int    ch;
+    int    is_ide;
+    int    valid_ch;
+    int    min_ch;
+    int    max_ch;
 
     min_ch = (board << 1);
     max_ch = min_ch + 1;
@@ -2899,7 +2981,7 @@ ide_ter_init(const device_t *info)
 
 /* Close a standalone IDE unit. */
 static void
-ide_ter_close(void *priv)
+ide_ter_close(UNUSED(void *priv))
 {
     ide_board_close(2);
 }
@@ -2930,7 +3012,7 @@ ide_qua_init(const device_t *info)
 
 /* Close a standalone IDE unit. */
 static void
-ide_qua_close(void *priv)
+ide_qua_close(UNUSED(void *priv))
 {
     ide_board_close(3);
 }
@@ -2979,9 +3061,12 @@ ide_init(const device_t *info)
             if (info->local & 1)
                 ide_board_init(1, 15, 0x170, 0x376, info->local);
             break;
+
+        default:
+            break;
     }
 
-    return (ide_drives);
+    return ide_drives;
 }
 
 static void
@@ -3013,7 +3098,8 @@ ide_drive_reset(int d)
 static void
 ide_board_reset(int board)
 {
-    int d, min, max;
+    int min;
+    int max;
 
     ide_log("Resetting IDE board %i...\n", board);
 
@@ -3022,13 +3108,13 @@ ide_board_reset(int board)
     min = (board << 1);
     max = min + 2;
 
-    for (d = min; d < max; d++)
+    for (int d = min; d < max; d++)
         ide_drive_reset(d);
 }
 
 /* Reset a standalone IDE unit. */
 static void
-ide_reset(void *p)
+ide_reset(UNUSED(void *priv))
 {
     ide_log("Resetting IDE...\n");
 
@@ -3041,7 +3127,7 @@ ide_reset(void *p)
 
 /* Close a standalone IDE unit. */
 static void
-ide_close(void *priv)
+ide_close(UNUSED(void *priv))
 {
     ide_log("Closing IDE...\n");
 

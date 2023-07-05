@@ -29,9 +29,9 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
-typedef struct {
-    uint8_t idx,
-        regs[256];
+typedef struct vl82c480_t {
+    uint8_t idx;
+    uint8_t regs[256];
 } vl82c480_t;
 
 static int
@@ -40,8 +40,8 @@ vl82c480_shflags(uint8_t access)
     int ret = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
 
     switch (access) {
-        case 0x00:
         default:
+        case 0x00:
             ret = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
             break;
         case 0x01:
@@ -61,15 +61,14 @@ vl82c480_shflags(uint8_t access)
 static void
 vl82c480_recalc(vl82c480_t *dev)
 {
-    int      i, j;
     uint32_t base;
     uint8_t  access;
 
     shadowbios       = 0;
     shadowbios_write = 0;
 
-    for (i = 0; i < 6; i++) {
-        for (j = 0; j < 8; j += 2) {
+    for (uint8_t i = 0; i < 6; i++) {
+        for (uint8_t j = 0; j < 8; j += 2) {
             base   = 0x000a0000 + (i << 16) + (j << 13);
             access = (dev->regs[0x0d + i] >> j) & 3;
             mem_set_mem_state(base, 0x4000, vl82c480_shflags(access));
@@ -82,9 +81,9 @@ vl82c480_recalc(vl82c480_t *dev)
 }
 
 static void
-vl82c480_write(uint16_t addr, uint8_t val, void *p)
+vl82c480_write(uint16_t addr, uint8_t val, void *priv)
 {
-    vl82c480_t *dev = (vl82c480_t *) p;
+    vl82c480_t *dev = (vl82c480_t *) priv;
 
     switch (addr) {
         case 0xec:
@@ -126,13 +125,16 @@ vl82c480_write(uint16_t addr, uint8_t val, void *p)
             if (mem_a20_alt)
                 outb(0x92, inb(0x92) & ~2);
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-vl82c480_read(uint16_t addr, void *p)
+vl82c480_read(uint16_t addr, void *priv)
 {
-    vl82c480_t *dev = (vl82c480_t *) p;
+    vl82c480_t *dev = (vl82c480_t *) priv;
     uint8_t     ret = 0xff;
 
     switch (addr) {
@@ -153,15 +155,18 @@ vl82c480_read(uint16_t addr, void *p)
             softresetx86();
             cpu_set_edx();
             break;
+
+        default:
+            break;
     }
 
     return ret;
 }
 
 static void
-vl82c480_close(void *p)
+vl82c480_close(void *priv)
 {
-    vl82c480_t *dev = (vl82c480_t *) p;
+    vl82c480_t *dev = (vl82c480_t *) priv;
 
     free(dev);
 }

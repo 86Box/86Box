@@ -17,7 +17,7 @@
 #define WIN_OPENGL_H
 
 #define UNICODE
-#include <Windows.h>
+#include <windows.h>
 
 extern int  opengl_init(HWND hwnd);
 extern int  opengl_pause(void);

@@ -56,37 +56,37 @@
 #define PCI_ADD_STRICT         0x80
 
 enum {
-    PCI_CARD_NORTHBRIDGE = 0,
-    PCI_CARD_AGPBRIDGE,
-    PCI_CARD_SOUTHBRIDGE,
-    PCI_CARD_SOUTHBRIDGE_IDE,
-    PCI_CARD_SOUTHBRIDGE_PMU,
-    PCI_CARD_SOUTHBRIDGE_USB,
-    PCI_CARD_AGP    = 0x0f,
-    PCI_CARD_NORMAL = 0x10,
-    PCI_CARD_VIDEO,
-    PCI_CARD_SCSI,
-    PCI_CARD_SOUND,
-    PCI_CARD_IDE,
-    PCI_CARD_NETWORK,
-    PCI_CARD_BRIDGE,
+    PCI_CARD_NORTHBRIDGE     = 0,
+    PCI_CARD_AGPBRIDGE       = 1,
+    PCI_CARD_SOUTHBRIDGE     = 2,
+    PCI_CARD_SOUTHBRIDGE_IDE = 3,
+    PCI_CARD_SOUTHBRIDGE_PMU = 4,
+    PCI_CARD_SOUTHBRIDGE_USB = 5,
+    PCI_CARD_AGP             = 0x0f,
+    PCI_CARD_NORMAL          = 0x10,
+    PCI_CARD_VIDEO           = 0x11,
+    PCI_CARD_SCSI            = 0x12,
+    PCI_CARD_SOUND           = 0x13,
+    PCI_CARD_IDE             = 0x14,
+    PCI_CARD_NETWORK         = 0x15,
+    PCI_CARD_BRIDGE          = 0x16,
 };
 
 enum {
-    PCI_ADD_NORTHBRIDGE = 0,
-    PCI_ADD_AGPBRIDGE,
-    PCI_ADD_SOUTHBRIDGE,
-    PCI_ADD_SOUTHBRIDGE_IDE,
-    PCI_ADD_SOUTHBRIDGE_PMU,
-    PCI_ADD_SOUTHBRIDGE_USB,
-    PCI_ADD_AGP    = 0x0f,
-    PCI_ADD_NORMAL = 0x10,
-    PCI_ADD_VIDEO,
-    PCI_ADD_SCSI,
-    PCI_ADD_SOUND,
-    PCI_ADD_IDE,
-    PCI_ADD_NETWORK,
-    PCI_ADD_BRIDGE
+    PCI_ADD_NORTHBRIDGE     = 0,
+    PCI_ADD_AGPBRIDGE       = 1,
+    PCI_ADD_SOUTHBRIDGE     = 2,
+    PCI_ADD_SOUTHBRIDGE_IDE = 3,
+    PCI_ADD_SOUTHBRIDGE_PMU = 4,
+    PCI_ADD_SOUTHBRIDGE_USB = 5,
+    PCI_ADD_AGP             = 0x0f,
+    PCI_ADD_NORMAL          = 0x10,
+    PCI_ADD_VIDEO           = 0x11,
+    PCI_ADD_SCSI            = 0x12,
+    PCI_ADD_SOUND           = 0x13,
+    PCI_ADD_IDE             = 0x14,
+    PCI_ADD_NETWORK         = 0x15,
+    PCI_ADD_BRIDGE          = 0x16
 };
 
 typedef union {
@@ -94,8 +94,10 @@ typedef union {
     uint8_t  addr_regs[4];
 } bar_t;
 
-extern int pci_burst_time, agp_burst_time,
-    pci_nonburst_time, agp_nonburst_time;
+extern int pci_burst_time;
+extern int agp_burst_time;
+extern int pci_nonburst_time;
+extern int agp_nonburst_time;
 
 extern void pci_set_irq_routing(int pci_int, int irq);
 extern void pci_set_irq_level(int pci_int, int level);

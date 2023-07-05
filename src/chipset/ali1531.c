@@ -28,6 +28,7 @@
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
+#include <86box/plat_unused.h>
 #include <86box/smram.h>
 #include <86box/spd.h>
 
@@ -82,6 +83,9 @@ ali1531_smram_recalc(uint8_t val, ali1531_t *dev)
                 if (val & 0x10)
                     mem_set_mem_state_smram_ex(1, 0x30000, 0x10000, 0x02);
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -89,14 +93,17 @@ ali1531_smram_recalc(uint8_t val, ali1531_t *dev)
 }
 
 static void
-ali1531_shadow_recalc(int cur_reg, ali1531_t *dev)
+ali1531_shadow_recalc(UNUSED(int cur_reg), ali1531_t *dev)
 {
-    int      i, bit, r_reg, w_reg;
-    uint32_t base, flags = 0;
+    int      bit;
+    int      r_reg;
+    int      w_reg;
+    uint32_t base;
+    uint32_t flags = 0;
 
     shadowbios = shadowbios_write = 0;
 
-    for (i = 0; i < 16; i++) {
+    for (uint8_t i = 0; i < 16; i++) {
         base  = 0x000c0000 + (i << 14);
         bit   = i & 7;
         r_reg = 0x4c + (i >> 3);
@@ -121,7 +128,7 @@ ali1531_shadow_recalc(int cur_reg, ali1531_t *dev)
 }
 
 static void
-ali1531_write(int func, int addr, uint8_t val, void *priv)
+ali1531_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     ali1531_t *dev = (ali1531_t *) priv;
 
@@ -225,8 +232,10 @@ ali1531_write(int func, int addr, uint8_t val, void *priv)
         case 0x57: /* H2PO */
             dev->pci_conf[addr] = val & 0x60;
             /* Find where the Shut-down Special cycle is initiated. */
-            // if (!(val & 0x20))
-            // outb(0x92, 0x01);
+#if 0
+            if (!(val & 0x20))
+                outb(0x92, 0x01);
+#endif
             break;
 
         case 0x58:
@@ -285,11 +294,14 @@ ali1531_write(int func, int addr, uint8_t val, void *priv)
         case 0x83:
             dev->pci_conf[addr] = val & 0x10;
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-ali1531_read(int func, int addr, void *priv)
+ali1531_read(UNUSED(int func), int addr, void *priv)
 {
     ali1531_t *dev = (ali1531_t *) priv;
     uint8_t    ret = 0xff;
@@ -303,7 +315,6 @@ static void
 ali1531_reset(void *priv)
 {
     ali1531_t *dev = (ali1531_t *) priv;
-    int        i;
 
     /* Default Registers */
     dev->pci_conf[0x00] = 0xb9;
@@ -339,10 +350,10 @@ ali1531_reset(void *priv)
     ali1531_write(0, 0x47, 0x00, dev);
     ali1531_write(0, 0x48, 0x00, dev);
 
-    for (i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 4; i++)
         ali1531_write(0, 0x4c + i, 0x00, dev);
 
-    for (i = 0; i < 16; i += 2) {
+    for (uint8_t i = 0; i < 16; i += 2) {
         ali1531_write(0, 0x60 + i, 0x08, dev);
         ali1531_write(0, 0x61 + i, 0x40, dev);
     }
@@ -358,7 +369,7 @@ ali1531_close(void *priv)
 }
 
 static void *
-ali1531_init(const device_t *info)
+ali1531_init(UNUSED(const device_t *info))
 {
     ali1531_t *dev = (ali1531_t *) malloc(sizeof(ali1531_t));
     memset(dev, 0, sizeof(ali1531_t));

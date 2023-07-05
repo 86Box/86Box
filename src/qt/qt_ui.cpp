@@ -29,7 +29,9 @@
 
 MainWindow *main_window = nullptr;
 
-static QString sb_text, sb_buguitext, sb_mt32lcdtext;
+static QString sb_text;
+static QString sb_buguitext;
+static QString sb_mt32lcdtext;
 
 extern "C" {
 
@@ -72,6 +74,12 @@ ui_window_title(wchar_t *str)
         emit main_window->setTitle(QString::fromWCharArray(str));
     }
     return str;
+}
+
+void
+ui_hard_reset_completed()
+{
+    emit main_window->hardResetCompleted();
 }
 
 extern "C" void
@@ -215,7 +223,6 @@ ui_sb_bugui(char *str)
 {
     sb_buguitext = str;
     ui_sb_update_text();
-    ;
 }
 
 void

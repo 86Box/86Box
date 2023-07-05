@@ -34,6 +34,27 @@ opFNOP(uint32_t fetchdat)
 }
 
 static int
+opFXTRACT(uint32_t fetchdat)
+{
+    x87_conv_t test;
+    int64_t exp80, exp80final;
+    double mant;
+
+    FP_ENTER();
+    cpu_state.pc++;
+    test.eind.d = ST(0);
+    exp80 = test.eind.ll & (0x7ff0000000000000ll);
+    exp80final = (exp80 >> 52) - BIAS64;
+    mant = test.eind.d / (pow(2.0, (double)exp80final));
+    ST(0) = (double)exp80final;
+    FP_TAG_VALID;
+    x87_push(mant);
+    CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fxtract) : (x87_timings.fxtract * cpu_multi));
+    CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fxtract) : (x87_concurrency.fxtract * cpu_multi));
+    return 0;
+}
+
+static int
 opFCLEX(uint32_t fetchdat)
 {
     FP_ENTER();
@@ -741,7 +762,7 @@ opFPREM(uint32_t fetchdat)
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fprem) : (x87_concurrency.fprem * cpu_multi));
     return 0;
 }
-#ifndef FPU_8087
+
 static int
 opFPREM1(uint32_t fetchdat)
 {
@@ -762,7 +783,6 @@ opFPREM1(uint32_t fetchdat)
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fprem1) : (x87_concurrency.fprem1 * cpu_multi));
     return 0;
 }
-#endif
 
 static int
 opFSQRT(uint32_t fetchdat)

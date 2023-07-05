@@ -88,7 +88,7 @@ discord_update_activity(int paused)
         *(paren - 1) = '\0';
 
 #pragma GCC diagnostic push
-#if defined(__GNUC__) && !defined (__clang__)
+#if defined(__GNUC__) && !defined(__clang__)
 #    pragma GCC diagnostic ignored "-Wformat-truncation"
 #endif
     if (strlen(vm_name) < 100) {
@@ -135,7 +135,7 @@ int
 discord_load(void)
 {
     if (discord_handle != NULL)
-        return (1);
+        return 1;
 
     // Try to load the DLL
     discord_handle = dynld_module(PATH_DISCORD_DLL, discord_imports);
@@ -144,11 +144,11 @@ discord_load(void)
         discord_log("discord: couldn't load " PATH_DISCORD_DLL "\n");
         discord_close();
 
-        return (0);
+        return 0;
     }
 
     discord_loaded = 1;
-    return (1);
+    return 1;
 }
 
 void

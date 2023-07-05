@@ -15,19 +15,34 @@ typedef struct sb_dsp_t {
     int   sb_subtype; /* which clone */
     void *parent;     /* "sb_t *" if default subtype, "azt2316a_t *" if aztech. */
 
-    int sb_8_length, sb_8_origlength, sb_8_format, sb_8_autoinit, sb_8_pause, sb_8_enable, sb_8_autolen, sb_8_output;
+    int sb_8_length;
+    int sb_8_origlength;
+    int sb_8_format;
+    int sb_8_autoinit;
+    int sb_8_pause;
+    int sb_8_enable;
+    int sb_8_autolen;
+    int sb_8_output;
     int sb_8_dmanum;
-    int sb_16_length, sb_16_origlength, sb_16_format, sb_16_autoinit, sb_16_pause, sb_16_enable, sb_16_autolen, sb_16_output;
+    int sb_16_length;
+    int sb_16_origlength;
+    int sb_16_format;
+    int sb_16_autoinit;
+    int sb_16_pause;
+    int sb_16_enable;
+    int sb_16_autolen;
+    int sb_16_output;
     int sb_16_dmanum;
     int sb_pausetime;
-    int (*dma_readb)(void *priv),
-        (*dma_readw)(void *priv),
-        (*dma_writeb)(void *priv, uint8_t val),
-        (*dma_writew)(void *priv, uint16_t val);
+    int (*dma_readb)(void *priv);
+    int (*dma_readw)(void *priv);
+    int (*dma_writeb)(void *priv, uint8_t val);
+    int (*dma_writew)(void *priv, uint16_t val);
     void *dma_priv;
 
     uint8_t sb_read_data[256];
-    int     sb_read_wp, sb_read_rp;
+    int     sb_read_wp;
+    int     sb_read_rp;
     int     sb_speaker;
     int     muted;
 
@@ -41,8 +56,8 @@ typedef struct sb_dsp_t {
     int midi_in_timestamp;
 
     int sb_irqnum;
-    void (*irq_update)(void *priv, int set),
-        *irq_priv;
+    void (*irq_update)(void *priv, int set);
+    void  *irq_priv;
 
     uint8_t sbe2;
     int     sbe2count;
@@ -53,23 +68,30 @@ typedef struct sb_dsp_t {
 
     int16_t sbdat;
     int     sbdat2;
-    int16_t sbdatl, sbdatr;
+    int16_t sbdatl;
+    int16_t sbdatr;
 
     uint8_t sbref;
     int8_t  sbstep;
 
     int sbdacpos;
 
-    int sbleftright, sbleftright_default;
+    int sbleftright;
+    int sbleftright_default;
 
     int     sbreset;
     uint8_t sbreaddat;
     uint8_t sb_command;
     uint8_t sb_test;
-    int     sb_timei, sb_timeo;
+    int     sb_timei;
+    int     sb_timeo;
 
-    int sb_irq8, sb_irq16, sb_irq401;
-    int sb_irqm8, sb_irqm16, sb_irqm401;
+    int sb_irq8;
+    int sb_irq16;
+    int sb_irq401;
+    int sb_irqm8;
+    int sb_irqm16;
+    int sb_irqm401;
 
     uint8_t sb_asp_regs[256];
     uint8_t sb_asp_mode;
@@ -79,11 +101,14 @@ typedef struct sb_dsp_t {
 
     uint8_t sb_8051_ram[256];
 
-    int sbenable, sb_enable_i;
+    int sbenable;
+    int sb_enable_i;
 
-    pc_timer_t output_timer, input_timer;
+    pc_timer_t output_timer;
+    pc_timer_t input_timer;
 
-    double sblatcho, sblatchi;
+    double sblatcho;
+    double sblatchi;
 
     uint16_t sb_addr;
 

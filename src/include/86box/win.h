@@ -103,17 +103,21 @@ extern "C" {
 #endif
 
 extern HINSTANCE hinstance;
-extern HWND      hwndMain,
-    hwndRender,
-    hwndRender2;
-extern HANDLE ghMutex;
-extern HICON  hIcon[256];
-extern int    dpi;
-extern RECT   oldclip;
-extern int    sbar_height, tbar_height, user_resize;
-extern int    acp_utf8;
+extern HWND      hwndMain;
+extern HWND      hwndRender;
+extern HWND      hwndRender2;
+extern HANDLE    ghMutex;
+extern HICON     hIcon[256];
+extern int       dpi;
+extern RECT      oldclip;
+extern int       sbar_height;
+extern int       tbar_height;
+extern int       user_resize;
+extern int       acp_utf8;
 
-// extern int		status_is_open;
+#if 0
+extern int status_is_open;
+#endif
 
 extern char  openfilestring[512];
 extern WCHAR wopenfilestring[512];

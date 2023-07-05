@@ -202,7 +202,8 @@ void
 writegus(uint16_t addr, uint8_t val, void *p)
 {
     gus_t   *gus = (gus_t *) p;
-    int      c, d;
+    int      c;
+    int      d;
     int      old;
     uint16_t port;
 #if defined(DEV_BRANCH) && defined(USE_GUSMAX)
@@ -925,7 +926,6 @@ gus_poll_wave(void *p)
 {
     gus_t   *gus = (gus_t *) p;
     uint32_t addr;
-    int      d;
     int16_t  v;
     int32_t  vl;
     int      update_irqs = 0;
@@ -938,7 +938,7 @@ gus_poll_wave(void *p)
 
     if ((gus->reset & 3) != 3)
         return;
-    for (d = 0; d < 32; d++) {
+    for (uint8_t d = 0; d < 32; d++) {
         if (!(gus->ctrl[d] & 3)) {
             if (gus->ctrl[d] & 4) {
                 addr = gus->cur[d] >> 9;
@@ -1058,7 +1058,6 @@ static void
 gus_get_buffer(int32_t *buffer, int len, void *p)
 {
     gus_t *gus = (gus_t *) p;
-    int    c;
 
 #if defined(DEV_BRANCH) && defined(USE_GUSMAX)
     if (gus->max_ctrl)
@@ -1066,7 +1065,7 @@ gus_get_buffer(int32_t *buffer, int len, void *p)
 #endif
     gus_update(gus);
 
-    for (c = 0; c < len * 2; c++) {
+    for (int c = 0; c < len * 2; c++) {
 #if defined(DEV_BRANCH) && defined(USE_GUSMAX)
         if (gus->max_ctrl)
             buffer[c] += (int32_t) (gus->ad1848.buffer[c] / 2);
@@ -1085,7 +1084,6 @@ static void
 gus_input_msg(void *p, uint8_t *msg, uint32_t len)
 {
     gus_t  *gus = (gus_t *) p;
-    uint8_t i;
 
     if (gus->sysex)
         return;
@@ -1093,7 +1091,7 @@ gus_input_msg(void *p, uint8_t *msg, uint32_t len)
     if (gus->uart_in) {
         gus->midi_status |= MIDI_INT_RECEIVE;
 
-        for (i = 0; i < len; i++) {
+        for (uint32_t i = 0; i < len; i++) {
             gus->midi_queue[gus->midi_w++] = msg[i];
             gus->midi_w &= 63;
         }
@@ -1106,14 +1104,13 @@ static int
 gus_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 {
     gus_t   *gus = (gus_t *) p;
-    uint32_t i;
 
     if (abort) {
         gus->sysex = 0;
         return 0;
     }
     gus->sysex = 1;
-    for (i = 0; i < len; i++) {
+    for (uint32_t i = 0; i < len; i++) {
         if (gus->midi_r == gus->midi_w)
             return (len - i);
         gus->midi_queue[gus->midi_w++] = buffer[i];

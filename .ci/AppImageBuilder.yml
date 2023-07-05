@@ -59,7 +59,7 @@ AppDir:
     - libsixel1 # if CLI:BOOL=ON
     - libslirp0 # if SLIRP_EXTERNAL:BOOL=ON
     - libsndio7.0 # if OPENAL:BOOL=ON
-    - libwayland-client0 # if QT:BOOL=ON
+    - libvdeplug-dev # -dev also pulls in libvdeplug2. -dev is required to get the proper .so symlink to the library
     - libx11-6 # if QT:BOOL=ON
     - libx11-xcb1 # if QT:BOOL=ON
     - libxcb1 # if QT:BOOL=ON
@@ -67,10 +67,13 @@ AppDir:
     - libxcb-shape0 # if QT:BOOL=ON
     - libxcb-shm0 # if QT:BOOL=ON
     - libxcb-xfixes0 # if QT:BOOL=ON
+    - libxkbcommon-x11-0 # if QT:BOOL=ON
+    - qtwayland5 # if QT:BOOL=ON
     - zlib1g
   files:
     exclude:
     - etc
+    - lib/udev
     - usr/[!ls]* # * except lib, local, share
     - usr/lib/*/libasound.so.* # using our own ALSA can cause issues, and the API is pretty stable anyway
     - usr/lib/*.a # produced by library compilation

@@ -31,8 +31,10 @@
 #include <86box/mem.h>
 #include <86box/smram.h>
 #include <86box/pci.h>
+#include <86box/pic.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc.h>
@@ -44,19 +46,20 @@
 #define MEM_STATE_SHADOW_W 0x02
 #define MEM_STATE_SMRAM    0x04
 
-typedef struct
-{
-    uint8_t has_ide, smram_locked,
-        regs[256];
+typedef struct i420ex_t {
+    uint8_t has_ide;
+    uint8_t smram_locked;
+    uint8_t regs[256];
 
-    uint16_t timer_base,
-        timer_latch;
+    uint16_t timer_base;
+    uint16_t timer_latch;
 
     smram_t *smram;
 
     double fast_off_period;
 
-    pc_timer_t timer, fast_off_timer;
+    pc_timer_t timer;
+    pc_timer_t fast_off_timer;
 
     apm_t     *apm;
     port_92_t *port_92;
@@ -96,6 +99,8 @@ i420ex_map(uint32_t addr, uint32_t size, int state)
         case 3:
             mem_set_mem_state_both(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
             break;
+        default:
+            break;
     }
     flushmmucache_nopc();
 }
@@ -112,13 +117,14 @@ i420ex_smram_handler_phase1(i420ex_t *dev)
 {
     uint8_t *regs = (uint8_t *) dev->regs;
 
-    uint32_t host_base = 0x000a0000, ram_base = 0x000a0000;
-    uint32_t size = 0x00010000;
+    uint32_t host_base = 0x000a0000;
+    uint32_t ram_base  = 0x000a0000;
+    uint32_t size      = 0x00010000;
 
     switch (regs[0x70] & 0x07) {
+        default:
         case 0:
         case 1:
-        default:
             host_base = ram_base = 0x00000000;
             size                 = 0x00000000;
             break;
@@ -192,6 +198,8 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
                         ide_set_base(0, 0x0170);
                         ide_set_side(0, 0x0376);
                         ide_pri_enable();
+                        break;
+                    default:
                         break;
                 }
             }
@@ -354,6 +362,8 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
             cpu_fast_off_count = val + 1;
             cpu_fast_off_period_set(cpu_fast_off_val, dev->fast_off_period);
             break;
+        default:
+            break;
     }
 }
 
@@ -387,7 +397,7 @@ i420ex_reset_hard(void *priv)
 
     dev->regs[0x4c] = 0x4d;
     dev->regs[0x4e] = 0x03;
-    /* Bits 2:1 of register 50h are 00 is 25 MHz, and 01 if 33 MHz, 10 and 11 are reserved. */
+   /* Bits 2:1 of register 50h are 00 is 25 MHz, and 01 if 33 MHz, 10 and 11 are reserved. */
     if (cpu_busspeed >= 33333333)
         dev->regs[0x50] |= 0x02;
     dev->regs[0x51] = 0x80;
@@ -409,9 +419,9 @@ i420ex_reset_hard(void *priv)
 }
 
 static void
-i420ex_apm_out(uint16_t port, uint8_t val, void *p)
+i420ex_apm_out(UNUSED(uint16_t port), UNUSED(uint8_t val), void *priv)
 {
-    i420ex_t *dev = (i420ex_t *) p;
+    i420ex_t *dev = (i420ex_t *) priv;
 
     if (dev->apm->do_smi)
         dev->regs[0xaa] |= 0x80;
@@ -429,39 +439,41 @@ i420ex_fast_off_count(void *priv)
 }
 
 static void
-i420ex_reset(void *p)
+i420ex_reset(void *priv)
 {
-    i420ex_t *dev = (i420ex_t *) p;
-    int       i;
+    i420ex_t *dev = (i420ex_t *) priv;
 
-    i420ex_write(0, 0x48, 0x00, p);
+    i420ex_write(0, 0x48, 0x00, priv);
 
-    for (i = 0; i < 7; i++)
-        i420ex_write(0, 0x59 + i, 0x00, p);
+    /* Disable the PIC mouse latch. */
+    i420ex_write(0, 0x4e, 0x03, priv);
 
-    for (i = 0; i <= 4; i++)
-        i420ex_write(0, 0x60 + i, 0x01, p);
+    for (uint8_t i = 0; i < 7; i++)
+        i420ex_write(0, 0x59 + i, 0x00, priv);
+
+    for (uint8_t i = 0; i <= 4; i++)
+        i420ex_write(0, 0x60 + i, 0x01, priv);
 
     dev->regs[0x70] &= 0xef; /* Forcibly unlock the SMRAM register. */
     dev->smram_locked = 0;
-    i420ex_write(0, 0x70, 0x00, p);
+    i420ex_write(0, 0x70, 0x00, priv);
 
     mem_set_mem_state(0x000a0000, 0x00060000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
     mem_set_mem_state_smm(0x000a0000, 0x00060000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 
-    i420ex_write(0, 0xa0, 0x08, p);
-    i420ex_write(0, 0xa2, 0x00, p);
-    i420ex_write(0, 0xa4, 0x00, p);
-    i420ex_write(0, 0xa5, 0x00, p);
-    i420ex_write(0, 0xa6, 0x00, p);
-    i420ex_write(0, 0xa7, 0x00, p);
-    i420ex_write(0, 0xa8, 0x0f, p);
+    i420ex_write(0, 0xa0, 0x08, priv);
+    i420ex_write(0, 0xa2, 0x00, priv);
+    i420ex_write(0, 0xa4, 0x00, priv);
+    i420ex_write(0, 0xa5, 0x00, priv);
+    i420ex_write(0, 0xa6, 0x00, priv);
+    i420ex_write(0, 0xa7, 0x00, priv);
+    i420ex_write(0, 0xa8, 0x0f, priv);
 }
 
 static void
-i420ex_close(void *p)
+i420ex_close(void *priv)
 {
-    i420ex_t *dev = (i420ex_t *) p;
+    i420ex_t *dev = (i420ex_t *) priv;
 
     smram_del(dev->smram);
 

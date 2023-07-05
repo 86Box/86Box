@@ -44,7 +44,7 @@ static dllimp_t xaudio2_imports[] = {
 #    define XAudio2Create pXAudio2Create
 #endif
 
-static int                     midi_freq     = 44100;
+static int                     midi_freq     = FREQ_44100;
 static int                     midi_buf_size = 4410;
 static int                     initialized   = 0;
 static IXAudio2               *xaudio2       = NULL;
@@ -53,7 +53,7 @@ static IXAudio2SourceVoice    *srcvoice      = NULL;
 static IXAudio2SourceVoice    *srcvoicemidi  = NULL;
 static IXAudio2SourceVoice    *srcvoicecd    = NULL;
 
-#define FREQ   48000
+#define FREQ   SOUND_FREQ
 #define BUFLEN SOUNDBUFLEN
 
 static void WINAPI
@@ -221,10 +221,10 @@ givealbuffer_common(void *buf, IXAudio2SourceVoice *sourcevoice, size_t buflen)
     buffer.Flags          = 0;
     if (sound_is_float) {
         buffer.pAudioData = calloc(buflen, sizeof(float));
-        buffer.AudioBytes = (buflen) * sizeof(float);
+        buffer.AudioBytes = buflen * sizeof(float);
     } else {
         buffer.pAudioData = calloc(buflen, sizeof(int16_t));
-        buffer.AudioBytes = (buflen) * sizeof(int16_t);
+        buffer.AudioBytes = buflen * sizeof(int16_t);
     }
     if (buffer.pAudioData == NULL) {
         fatal("xaudio2: Out Of Memory!");

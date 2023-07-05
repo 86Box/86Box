@@ -26,6 +26,7 @@
 #include <86box/io.h>
 #include <86box/pic.h>
 #include <86box/pci.h>
+#include <86box/plat_unused.h>
 #include <86box/device.h>
 #include <86box/chipset.h>
 
@@ -116,6 +117,9 @@ vt82c505_write(int func, int addr, uint8_t val, void *priv)
         case 0x93:
             dev->pci_conf[addr] = val & 0xe0;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -160,12 +164,11 @@ static void
 vt82c505_reset(void *priv)
 {
     vt82c505_t *dev = (vt82c505_t *) malloc(sizeof(vt82c505_t));
-    int         i;
 
     dev->pci_conf[0x04] = 0x07;
     dev->pci_conf[0x07] = 0x00;
 
-    for (i = 0x80; i <= 0x9f; i++) {
+    for (uint8_t i = 0x80; i <= 0x9f; i++) {
         switch (i) {
             case 0x81:
                 vt82c505_write(0, i, 0x01, priv);
@@ -195,7 +198,7 @@ vt82c505_close(void *priv)
 }
 
 static void *
-vt82c505_init(const device_t *info)
+vt82c505_init(UNUSED(const device_t *info))
 {
     vt82c505_t *dev = (vt82c505_t *) malloc(sizeof(vt82c505_t));
     memset(dev, 0, sizeof(vt82c505_t));

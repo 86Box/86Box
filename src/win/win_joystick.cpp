@@ -15,6 +15,7 @@
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #define DIRECTINPUT_VERSION 0x0800
 #include <dinput.h>
@@ -242,7 +243,8 @@ joystick_get_axis(int joystick_nr, int mapping)
 void
 joystick_process(void)
 {
-    int c, d;
+    int c;
+    int d;
 
     if (!joystick_type)
         return;
@@ -288,8 +290,10 @@ joystick_process(void)
                 joystick_state[c].button[d] = plat_joystick_state[joystick_nr].b[joystick_state[c].button_mapping[d]];
 
             for (d = 0; d < joystick_get_pov_count(joystick_type); d++) {
-                int    x, y;
-                double angle, magnitude;
+                int    x;
+                int    y;
+                double angle;
+                double magnitude;
 
                 x = joystick_get_axis(joystick_nr, joystick_state[c].pov_mapping[d][0]);
                 y = joystick_get_axis(joystick_nr, joystick_state[c].pov_mapping[d][1]);
@@ -316,4 +320,5 @@ joystick_process(void)
 void
 win_joystick_handle(PRAWINPUT raw)
 {
+    // Nothing to be done here, atleast currently
 }

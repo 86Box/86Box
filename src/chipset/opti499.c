@@ -29,12 +29,13 @@
 #include <86box/device.h>
 #include <86box/mem.h>
 #include <86box/port_92.h>
+#include <86box/plat_unused.h>
 #include <86box/chipset.h>
 
-typedef struct
-{
+typedef struct opti499_t {
     uint8_t idx,
-        regs[256], scratch[2];
+    uint8_t regs[256];
+    uint8_t scratch[2];
 } opti499_t;
 
 #ifdef ENABLE_OPTI499_LOG
@@ -59,7 +60,7 @@ static void
 opti499_recalc(opti499_t *dev)
 {
     uint32_t base;
-    uint32_t i, shflags = 0;
+    uint32_t shflags = 0;
 
     shadowbios       = 0;
     shadowbios_write = 0;
@@ -76,7 +77,7 @@ opti499_recalc(opti499_t *dev)
 
     mem_set_mem_state_both(0xf0000, 0x10000, shflags);
 
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         base = 0xd0000 + (i << 14);
 
         if ((dev->regs[0x22] & ((base >= 0xe0000) ? 0x20 : 0x40)) && (dev->regs[0x23] & (1 << i))) {
@@ -92,7 +93,7 @@ opti499_recalc(opti499_t *dev)
         mem_set_mem_state_both(base, 0x4000, shflags);
     }
 
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         base = 0xc0000 + (i << 14);
 
         if ((dev->regs[0x26] & 0x10) && (dev->regs[0x26] & (1 << i))) {
@@ -153,6 +154,9 @@ opti499_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x2d:
                         opti499_recalc(dev);
                         break;
+
+                    default:
+                        break;
                 }
             }
             break;
@@ -160,6 +164,9 @@ opti499_write(uint16_t addr, uint8_t val, void *priv)
         case 0xe1:
         case 0xe2:
             dev->scratch[~addr & 0x01] = val;
+            break;
+
+        default:
             break;
     }
 }
@@ -186,6 +193,9 @@ opti499_read(uint16_t addr, void *priv)
         case 0xe1:
         case 0xe2:
             ret = dev->scratch[~addr & 0x01];
+            break;
+
+        default:
             break;
     }
 
@@ -229,7 +239,7 @@ opti499_close(void *priv)
 }
 
 static void *
-opti499_init(const device_t *info)
+opti499_init(UNUSED(const device_t *info))
 {
     opti499_t *dev = (opti499_t *) malloc(sizeof(opti499_t));
     memset(dev, 0, sizeof(opti499_t));

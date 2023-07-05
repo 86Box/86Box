@@ -26,11 +26,11 @@
 #include <86box/pci.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/machine.h>
 
-typedef struct
-{
+typedef struct ibm_5161_t {
     uint8_t regs[8];
 } ibm_5161_t;
 
@@ -76,21 +76,24 @@ ibm_5161_in(uint16_t port, void *priv)
                                             0 =On */
             ret = dev->regs[3] & 0x01;
             break;
+
+        default:
+            break;
     }
 
     return ret;
 }
 
 static void
-ibm_5161_close(void *p)
+ibm_5161_close(void *priv)
 {
-    ibm_5161_t *dev = (ibm_5161_t *) p;
+    ibm_5161_t *dev = (ibm_5161_t *) priv;
 
     free(dev);
 }
 
 static void *
-ibm_5161_init(const device_t *info)
+ibm_5161_init(UNUSED(const device_t *info))
 {
     ibm_5161_t *dev = (ibm_5161_t *) malloc(sizeof(ibm_5161_t));
     memset(dev, 0, sizeof(ibm_5161_t));

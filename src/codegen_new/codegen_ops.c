@@ -556,3 +556,4 @@ RecompOpFn recomp_opcodes_df[512] = {
 /*f0*/  NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,           NULL,
     // clang-format on
 };
+

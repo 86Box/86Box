@@ -72,12 +72,12 @@ static uint8_t *aha1542cp_pnp_rom = NULL;
 
 #pragma pack(push, 1)
 typedef struct {
-    uint8_t CustomerSignature[20];
-    uint8_t uAutoRetry;
-    uint8_t uBoardSwitches;
-    uint8_t uChecksum;
-    uint8_t uUnknown;
-    addr24  BIOSMailboxAddress;
+    uint8_t  CustomerSignature[20];
+    uint8_t  uAutoRetry;
+    uint8_t  uBoardSwitches;
+    uint8_t  uChecksum;
+    uint8_t  uUnknown;
+    addr24_t BIOSMailboxAddress;
 } aha_setup_t;
 #pragma pack(pop)
 
@@ -139,14 +139,14 @@ aha154x_shram(x54x_t *dev, uint8_t cmd)
 {
     /* If not supported, give up. */
     if (dev->rom_shram == 0x0000)
-        return (0x04);
+        return 0x04;
 
     /* Bit 0 = Shadow RAM write enable;
        Bit 1 = Shadow RAM read enable. */
     dev->shram_mode = cmd;
 
     /* Firmware expects 04 status. */
-    return (0x04);
+    return 0x04;
 }
 
 static void
@@ -173,7 +173,7 @@ aha154x_eeprom(x54x_t *dev, uint8_t cmd, uint8_t arg, uint8_t len, uint8_t off, 
 
     /* Only if we can handle it.. */
     if (dev->nvr == NULL)
-        return (r);
+        return r;
 
     if (cmd == 0x22) {
         /* Write data to the EEPROM. */
@@ -198,7 +198,7 @@ aha154x_eeprom(x54x_t *dev, uint8_t cmd, uint8_t arg, uint8_t len, uint8_t off, 
         r = len;
     }
 
-    return (r);
+    return r;
 }
 
 /* Map either the main or utility (Select) ROM into the memory space. */
@@ -219,7 +219,7 @@ aha154x_mmap(x54x_t *dev, uint8_t cmd)
             break;
     }
 
-    return (0);
+    return 0;
 }
 
 static uint8_t

@@ -36,7 +36,7 @@
 #define DP8390_FLAG_CHECK_CR   0x02
 #define DP8390_FLAG_CLEAR_IRQ  0x04
 
-typedef struct {
+typedef struct dp8390_t {
     /* Page 0 */
 
     /* Command Register - 00h read/write */
@@ -178,7 +178,10 @@ typedef struct {
                              0xFF. */
         id1;              /* 0x70 for the RTL8019AS, 0x43 for the
                              RTL8029AS, otherwise 0xFF. */
-    int mem_size, mem_start, mem_end;
+    uint32_t mem_size;
+    uint32_t mem_start;
+    uint32_t mem_end;
+    uint32_t mem_wrap;
 
     int tx_timer_index;
     int tx_timer_active;

@@ -59,7 +59,8 @@ parse_valuators(const double        *input_values,
                 const unsigned char *mask, int mask_len,
                 double *output_values, int output_values_len)
 {
-    int i = 0, z = 0;
+    int i = 0;
+    int z = 0;
     int top = mask_len * 8;
     if (top > 16)
         top = 16;
@@ -81,9 +82,24 @@ xinput2_get_xtest_pointer()
 {
     /* The XTEST pointer events injected by VNC servers to move the cursor always report
        absolute coordinates, despite XTEST declaring relative axes (related: SDL issue 1836).
-       This looks for the XTEST pointer so that we can assume it's absolute as a workaround. */
+       This looks for the XTEST pointer so that we can assume it's absolute as a workaround.
+
+       TigerVNC publishes both the XTEST pointer and a TigerVNC pointer, but actual
+       RawMotion events are published using the TigerVNC pointer */
     int           devs;
     XIDeviceInfo *info = XIQueryDevice(disp, XIAllDevices, &devs), *dev;
+    for (int i = 0; i < devs; i++) {
+        dev = &info[i];
+        if ((dev->use == XISlavePointer) && !strcmp(dev->name, "TigerVNC pointer"))
+            return dev->deviceid;
+    }
+    /* Steam Input on SteamOS uses XTEST the intended way for trackpad movement.
+       Hope nobody is remoting into their Steam Deck with a non-TigerVNC server. */
+    for (int i = 0; i < devs; i++) {
+        dev = &info[i];
+        if ((dev->use == XISlavePointer) && !strncmp(dev->name, "Valve Software Steam Deck", 25))
+            return -1;
+    }
     for (int i = 0; i < devs; i++) {
         dev = &info[i];
         if ((dev->use == XISlavePointer) && !strcmp(dev->name, "Virtual core XTEST pointer"))
@@ -245,7 +261,10 @@ xinput2_init()
         qWarning() << "Cannot open current X11 display";
         return;
     }
-    auto event = 0, err = 0, minor = 1, major = 2;
+    auto event = 0;
+    auto err   = 0;
+    auto minor = 1;
+    auto major = 2;
     if (XQueryExtension(disp, "XInputExtension", &xi2opcode, &event, &err)) {
         if (XIQueryVersion(disp, &major, &minor) == Success) {
             procThread = QThread::create(xinput2_proc);

@@ -305,7 +305,7 @@ msgid "&Default"
 msgstr "&За замовчуванням"
 
 msgid "Language:"
-msgstr "Язык:"
+msgstr "Мова:"
 
 msgid "Icon set:"
 msgstr "Набір іконок:"
@@ -446,7 +446,7 @@ msgid "PCap device:"
 msgstr "Пристрій PCap:"
 
 msgid "Network adapter:"
-msgstr "Мережева карта:"
+msgstr "Мережевий адаптер:"
 
 msgid "COM1 Device:"
 msgstr "Пристрій COM1:"
@@ -1218,4 +1218,10 @@ msgstr "На 2% повільніше точного RPM"
 
 msgid "(System Default)"
 msgstr "(Системний)"
+
+msgid "Failed to initialize network driver"
+msgstr "Failed to initialize network driver"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "The network configuration will be switched to the null driver"
 

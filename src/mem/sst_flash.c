@@ -17,7 +17,7 @@
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
- *          Copyright 2020      Melissa Goad.
+ *          Copyright 2020      Melody Goad.
  *          Copyright 2022-2023 Jasmine Iwanek.
  */
 #include <stdio.h>
@@ -35,21 +35,31 @@
 #include <86box/m_xt_xi8088.h>
 
 typedef struct sst_t {
-    uint8_t manufacturer, id, has_bbp, is_39,
-        page_bytes, sdp, bbp_first_8k, bbp_last_8k;
+    uint8_t manufacturer;
+    uint8_t id;
+    uint8_t has_bbp;
+    uint8_t is_39;
+    uint8_t page_bytes;
+    uint8_t sdp;
+    uint8_t bbp_first_8k;
+    uint8_t bbp_last_8k;
 
-    int command_state, id_mode,
-        dirty;
+    int command_state;
+    int id_mode;
+    int dirty;
 
-    uint32_t size, mask,
-        page_mask, page_base,
-        last_addr;
+    uint32_t size;
+    uint32_t mask;
+    uint32_t page_mask;
+    uint32_t page_base;
+    uint32_t last_addr;
 
-    uint8_t page_buffer[128],
-        page_dirty[128];
+    uint8_t  page_buffer[128];
+    uint8_t  page_dirty[128];
     uint8_t *array;
 
-    mem_mapping_t mapping[8], mapping_h[8];
+    mem_mapping_t mapping[8];
+    mem_mapping_t mapping_h[8];
 
     pc_timer_t page_write_timer;
 } sst_t;
@@ -89,7 +99,7 @@ static char flash_path[1024];
 #define SST39LF080    0xd800
 #define SST39LF016    0xd900
 
-/*
+#if 0
 // 16 wide
 #define SST39WF400      0x272f
 #define SST39WF400B     0x272e
@@ -103,7 +113,7 @@ static char flash_path[1024];
 #define SST39LF400      0x2780
 #define SST39LF800      0x2781
 #define SST39LF160      0x2782
-*/
+#endif
 
 #define SST49LF002  0x5700
 #define SST49LF020  0x6100
@@ -150,7 +160,8 @@ sst_sector_erase(sst_t *dev, uint32_t addr)
 static void
 sst_new_command(sst_t *dev, uint32_t addr, uint8_t val)
 {
-    uint32_t base = 0x00000, size = dev->size;
+    uint32_t base = 0x00000;
+    uint32_t size = dev->size;
 
     if (dev->command_state == 5)
         switch (val) {
@@ -230,11 +241,10 @@ static void
 sst_page_write(void *priv)
 {
     sst_t *dev = (sst_t *) priv;
-    int    i;
 
     if (dev->last_addr != 0xffffffff) {
         dev->page_base = dev->last_addr & dev->page_mask;
-        for (i = 0; i < 128; i++) {
+        for (uint8_t i = 0; i < 128; i++) {
             if (dev->page_dirty[i]) {
                 if (((dev->page_base + i) < 0x2000) && (dev->bbp_first_8k & 0x01))
                     continue;
@@ -252,9 +262,9 @@ sst_page_write(void *priv)
 }
 
 static uint8_t
-sst_read_id(uint32_t addr, void *p)
+sst_read_id(uint32_t addr, void *priv)
 {
-    sst_t  *dev = (sst_t *) p;
+    sst_t  *dev = (sst_t *) priv;
     uint8_t ret = 0x00;
 
     if ((addr & 0xffff) == 0)
@@ -291,9 +301,9 @@ sst_buf_write(sst_t *dev, uint32_t addr, uint8_t val)
 }
 
 static void
-sst_write(uint32_t addr, uint8_t val, void *p)
+sst_write(uint32_t addr, uint8_t val, void *priv)
 {
-    sst_t *dev = (sst_t *) p;
+    sst_t *dev = (sst_t *) priv;
 
     switch (dev->command_state) {
         case 0:
@@ -359,19 +369,22 @@ sst_write(uint32_t addr, uint8_t val, void *p)
                 dev->bbp_last_8k = 0xff;
             dev->command_state = 0;
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-sst_read(uint32_t addr, void *p)
+sst_read(uint32_t addr, void *priv)
 {
-    sst_t  *dev = (sst_t *) p;
+    sst_t  *dev = (sst_t *) priv;
     uint8_t ret = 0xff;
 
     addr &= 0x000fffff;
 
     if (dev->id_mode)
-        ret = sst_read_id(addr, p);
+        ret = sst_read_id(addr, priv);
     else {
         if ((addr >= biosaddr) && (addr <= (biosaddr + biosmask)))
             ret = dev->array[addr - biosaddr];
@@ -381,15 +394,15 @@ sst_read(uint32_t addr, void *p)
 }
 
 static uint16_t
-sst_readw(uint32_t addr, void *p)
+sst_readw(uint32_t addr, void *priv)
 {
-    sst_t   *dev = (sst_t *) p;
+    sst_t   *dev = (sst_t *) priv;
     uint16_t ret = 0xffff;
 
     addr &= 0x000fffff;
 
     if (dev->id_mode)
-        ret = sst_read(addr, p) | (sst_read(addr + 1, p) << 8);
+        ret = sst_read(addr, priv) | (sst_read(addr + 1, priv) << 8);
     else {
         if ((addr >= biosaddr) && (addr <= (biosaddr + biosmask)))
             ret = *(uint16_t *) &dev->array[addr - biosaddr];
@@ -399,15 +412,15 @@ sst_readw(uint32_t addr, void *p)
 }
 
 static uint32_t
-sst_readl(uint32_t addr, void *p)
+sst_readl(uint32_t addr, void *priv)
 {
-    sst_t   *dev = (sst_t *) p;
+    sst_t   *dev = (sst_t *) priv;
     uint32_t ret = 0xffffffff;
 
     addr &= 0x000fffff;
 
     if (dev->id_mode)
-        ret = sst_readw(addr, p) | (sst_readw(addr + 2, p) << 16);
+        ret = sst_readw(addr, priv) | (sst_readw(addr + 2, priv) << 16);
     else {
         if ((addr >= biosaddr) && (addr <= (biosaddr + biosmask)))
             ret = *(uint32_t *) &dev->array[addr - biosaddr];
@@ -419,14 +432,15 @@ sst_readl(uint32_t addr, void *p)
 static void
 sst_add_mappings(sst_t *dev)
 {
-    int      i = 0, count;
-    uint32_t base, fbase;
+    int      count;
+    uint32_t base;
+    uint32_t fbase;
     uint32_t root_base;
 
     count     = dev->size >> 16;
     root_base = 0x100000 - dev->size;
 
-    for (i = 0; i < count; i++) {
+    for (int i = 0; i < count; i++) {
         base  = root_base + (i << 16);
         fbase = base & biosmask;
 
@@ -498,10 +512,10 @@ sst_init(const device_t *info)
 }
 
 static void
-sst_close(void *p)
+sst_close(void *priv)
 {
     FILE  *f;
-    sst_t *dev = (sst_t *) p;
+    sst_t *dev = (sst_t *) priv;
 
     if (dev->dirty) {
         f = nvr_fopen(flash_path, "wb");

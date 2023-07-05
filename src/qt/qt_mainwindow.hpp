@@ -50,6 +50,7 @@ signals:
     void destroyRendererMonitor(int monitor_index);
     void initRendererMonitorForNonQtThread(int monitor_index);
     void destroyRendererMonitorForNonQtThread(int monitor_index);
+    void hardResetCompleted();
 
     void setTitle(const QString &title);
     void setFullscreen(bool state);
@@ -135,6 +136,11 @@ protected:
     void changeEvent(QEvent *event) override;
 
 private slots:
+    void on_actionPen_triggered();
+
+private slots:
+    void on_actionCursor_Puck_triggered();
+
     void on_actionACPI_Shutdown_triggered();
 
 private slots:
@@ -149,6 +155,7 @@ private:
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
 
+    void     processKeyboardInput(bool down, uint32_t keycode);
 #ifdef Q_OS_MACOS
     uint32_t last_modifiers = 0;
     void     processMacKeyboardInput(bool down, const QKeyEvent *event);
@@ -159,6 +166,10 @@ private:
     bool shownonce           = false;
     bool resizableonce       = false;
     bool vnc_enabled         = false;
+
+    /* Full screen ON and OFF signals */
+    bool fs_on_signal        = false;
+    bool fs_off_signal       = false;
 
     friend class SpecifyDimensions;
     friend class ProgSettings;

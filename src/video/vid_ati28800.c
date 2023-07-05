@@ -401,52 +401,52 @@ ati28800_recalctimings(svga_t *svga)
 
     switch (((ati28800->regs[0xbe] & 0x10) >> 1) | ((ati28800->regs[0xb9] & 2) << 1) | ((svga->miscout & 0x0C) >> 2)) {
         case 0x00:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 42954000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 42954000.0;
             break;
         case 0x01:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 48771000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 48771000.0;
             break;
         case 0x02:
             ati28800_log("clock 2\n");
             break;
         case 0x03:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 36000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 36000000.0;
             break;
         case 0x04:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 50350000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 50350000.0;
             break;
         case 0x05:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 56640000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 56640000.0;
             break;
         case 0x06:
             ati28800_log("clock 2\n");
             break;
         case 0x07:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 44900000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
             break;
         case 0x08:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 30240000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 30240000.0;
             break;
         case 0x09:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 32000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 32000000.0;
             break;
         case 0x0A:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 37500000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 37500000.0;
             break;
         case 0x0B:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 39000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 39000000.0;
             break;
         case 0x0C:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 50350000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 50350000.0;
             break;
         case 0x0D:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 56644000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 56644000.0;
             break;
         case 0x0E:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 75000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 75000000.0;
             break;
         case 0x0F:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 65000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 65000000.0;
             break;
         default:
             break;
@@ -665,7 +665,7 @@ ati28800_init(const device_t *info)
             break;
     }
 
-    return (ati28800);
+    return ati28800;
 }
 
 static int
@@ -677,20 +677,20 @@ ati28800_available(void)
 static int
 ati28800k_available(void)
 {
-    return ((rom_present(BIOS_ATIKOR_PATH) && rom_present(FONT_ATIKOR_PATH)));
+    return (rom_present(BIOS_ATIKOR_PATH) && rom_present(FONT_ATIKOR_PATH));
 }
 
 static int
 compaq_ati28800_available(void)
 {
-    return ((rom_present(BIOS_VGAXL_ROM_PATH)));
+    return (rom_present(BIOS_VGAXL_ROM_PATH));
 }
 
 #if defined(DEV_BRANCH) && defined(USE_XL24)
 static int
 ati28800_wonderxl24_available(void)
 {
-    return ((rom_present(BIOS_XL24_EVEN_PATH) && rom_present(BIOS_XL24_ODD_PATH)));
+    return (rom_present(BIOS_XL24_EVEN_PATH) && rom_present(BIOS_XL24_ODD_PATH));
 }
 #endif
 

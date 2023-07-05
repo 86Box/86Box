@@ -8,8 +8,6 @@
  *
  *          Main emulator module where most things are controlled.
  *
- *
- *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
@@ -19,11 +17,14 @@
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2021      Laci bá'
  *          Copyright 2021      dob205
+ *          Copyright 2021      Andreas J. Reichel.
+ *          Copyright 2021-2022 Jasmine Iwanek.
  */
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -68,6 +69,7 @@
 #include <86box/isartc.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
+#include <86box/serial_passthrough.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
 #include <86box/gameport.h>
@@ -146,46 +148,48 @@ uint64_t instru_run_ms  = 0;
 
 /* Configuration values. */
 int      window_remember;
-int      vid_resize;                                        /* (C) allow resizing */
-int      invert_display                   = 0;              /* (C) invert the display */
-int      suppress_overscan                = 0;              /* (C) suppress overscans */
-int      scale                            = 0;              /* (C) screen scale factor */
-int      dpi_scale                        = 0;              /* (C) DPI scaling of the emulated screen */
-int      vid_api                          = 0;              /* (C) video renderer */
-int      vid_cga_contrast                 = 0;              /* (C) video */
-int      video_fullscreen                 = 0;              /* (C) video */
-int      video_fullscreen_scale           = 0;              /* (C) video */
-int      video_fullscreen_first           = 0;              /* (C) video */
-int      enable_overscan                  = 0;              /* (C) video */
-int      force_43                         = 0;              /* (C) video */
-int      video_filter_method              = 1;              /* (C) video */
-int      video_vsync                      = 0;              /* (C) video */
-int      video_framerate                  = -1;             /* (C) video */
-char     video_shader[512]                = { '\0' };       /* (C) video */
-int      bugger_enabled                   = 0;              /* (C) enable ISAbugger */
-int      postcard_enabled                 = 0;              /* (C) enable POST card */
-int      isamem_type[ISAMEM_MAX]          = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
-int      isartc_type                      = 0;              /* (C) enable ISA RTC card */
-int      gfxcard[2]                       = { 0, 0 };       /* (C) graphics/video card */
-int      show_second_monitors             = 1;              /* (C) show non-primary monitors */
-int      sound_is_float                   = 1;              /* (C) sound uses FP values */
-int      voodoo_enabled                   = 0;              /* (C) video option */
-int      ibm8514_enabled                  = 0;              /* (C) video option */
-int      xga_enabled                      = 0;              /* (C) video option */
-uint32_t mem_size                         = 0;              /* (C) memory size (Installed on system board)*/
-uint32_t isa_mem_size                     = 0;              /* (C) memory size (ISA Memory Cards) */
-int      cpu_use_dynarec                  = 0;              /* (C) cpu uses/needs Dyna */
-int      cpu                              = 0;              /* (C) cpu type */
-int      fpu_type                         = 0;              /* (C) fpu type */
-int      time_sync                        = 0;              /* (C) enable time sync */
-int      confirm_reset                    = 1;              /* (C) enable reset confirmation */
-int      confirm_exit                     = 1;              /* (C) enable exit confirmation */
-int      confirm_save                     = 1;              /* (C) enable save confirmation */
-int      enable_discord                   = 0;              /* (C) enable Discord integration */
-int      pit_mode                         = -1;             /* (C) force setting PIT mode */
-int      fm_driver                        = 0;              /* (C) select FM sound driver */
-int      open_dir_usr_path                = 0;              /* default file open dialog directory of usr_path */
-int      video_fullscreen_scale_maximized = 0;              /* (C) Whether fullscreen scaling settings also apply when maximized. */
+int      vid_resize;                                              /* (C) allow resizing */
+int      invert_display                         = 0;              /* (C) invert the display */
+int      suppress_overscan                      = 0;              /* (C) suppress overscans */
+int      scale                                  = 0;              /* (C) screen scale factor */
+int      dpi_scale                              = 0;              /* (C) DPI scaling of the emulated screen */
+int      vid_api                                = 0;              /* (C) video renderer */
+int      vid_cga_contrast                       = 0;              /* (C) video */
+int      video_fullscreen                       = 0;              /* (C) video */
+int      video_fullscreen_scale                 = 0;              /* (C) video */
+int      video_fullscreen_first                 = 0;              /* (C) video */
+int      enable_overscan                        = 0;              /* (C) video */
+int      force_43                               = 0;              /* (C) video */
+int      video_filter_method                    = 1;              /* (C) video */
+int      video_vsync                            = 0;              /* (C) video */
+int      video_framerate                        = -1;             /* (C) video */
+char     video_shader[512]                      = { '\0' };       /* (C) video */
+bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0 }; /* (C) activation and kind of pass-through for serial ports */
+int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
+int      postcard_enabled                       = 0;              /* (C) enable POST card */
+int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
+int      isartc_type                            = 0;              /* (C) enable ISA RTC card */
+int      gfxcard[2]                             = { 0, 0 };       /* (C) graphics/video card */
+int      show_second_monitors                   = 1;              /* (C) show non-primary monitors */
+int      sound_is_float                         = 1;              /* (C) sound uses FP values */
+int      voodoo_enabled                         = 0;              /* (C) video option */
+int      ibm8514_enabled                        = 0;              /* (C) video option */
+int      xga_enabled                            = 0;              /* (C) video option */
+uint32_t mem_size                               = 0;              /* (C) memory size (Installed on system board)*/
+uint32_t isa_mem_size                           = 0;              /* (C) memory size (ISA Memory Cards) */
+int      cpu_use_dynarec                        = 0;              /* (C) cpu uses/needs Dyna */
+int      cpu                                    = 0;              /* (C) cpu type */
+int      fpu_type                               = 0;              /* (C) fpu type */
+int      fpu_softfloat                          = 0;              /* (C) fpu uses softfloat */
+int      time_sync                              = 0;              /* (C) enable time sync */
+int      confirm_reset                          = 1;              /* (C) enable reset confirmation */
+int      confirm_exit                           = 1;              /* (C) enable exit confirmation */
+int      confirm_save                           = 1;              /* (C) enable save confirmation */
+int      enable_discord                         = 0;              /* (C) enable Discord integration */
+int      pit_mode                               = -1;             /* (C) force setting PIT mode */
+int      fm_driver                              = 0;              /* (C) select FM sound driver */
+int      open_dir_usr_path                      = 0;              /* default file open dialog directory of usr_path */
+int      video_fullscreen_scale_maximized       = 0;              /* (C) Whether fullscreen scaling settings also apply when maximized. */
 
 /* Statistics. */
 extern int mmuflush;
@@ -204,16 +208,20 @@ char  exe_path[2048]; /* path (dir) of executable */
 char  usr_path[1024]; /* path (dir) of user data */
 char  cfg_path[1024]; /* full path of config file */
 FILE *stdlog = NULL;  /* file to log output to */
-// int   scrnsz_x = SCREEN_RES_X; /* current screen size, X */
-// int   scrnsz_y = SCREEN_RES_Y; /* current screen size, Y */
+#if 0
+int   scrnsz_x = SCREEN_RES_X; /* current screen size, X */
+int   scrnsz_y = SCREEN_RES_Y; /* current screen size, Y */
+#endif
 int config_changed; /* config has changed */
 int title_update;
 int framecountx        = 0;
 int hard_reset_pending = 0;
 
-// int unscaled_size_x = SCREEN_RES_X; /* current unscaled size X */
-// int unscaled_size_y = SCREEN_RES_Y; /* current unscaled size Y */
-// int efscrnsz_y = SCREEN_RES_Y;
+#if 0
+int unscaled_size_x = SCREEN_RES_X; /* current unscaled size X */
+int unscaled_size_y = SCREEN_RES_Y; /* current unscaled size Y */
+int efscrnsz_y = SCREEN_RES_Y;
+#endif
 
 static wchar_t mouse_msg[3][200];
 
@@ -400,19 +408,24 @@ pc_log(const char *fmt, ...)
 int
 pc_init(int argc, char *argv[])
 {
-    char      *ppath = NULL, *rpath = NULL;
-    char      *cfg = NULL, *p;
-    char       temp[2048], *fn[FDD_NUM] = { NULL };
-    char       drive = 0, *temp2 = NULL;
+    char      *ppath = NULL;
+    char      *rpath = NULL;
+    char      *cfg = NULL;
+    char      *p;
+    char       temp[2048];
+    char      *fn[FDD_NUM] = { NULL };
+    char       drive = 0;
+    char      *temp2 = NULL;
     struct tm *info;
     time_t     now;
-    int        c, lvmp = 0;
-    int        i;
+    int        c;
+    int        lvmp = 0;
 #ifdef ENABLE_NG
     int ng = 0;
 #endif
 #ifdef _WIN32
-    uint32_t *uid, *shwnd;
+    uint32_t *uid;
+    uint32_t *shwnd;
 #endif
     uint32_t lang_init = 0;
 
@@ -429,7 +442,7 @@ pc_init(int argc, char *argv[])
     }
     if (!strncmp(exe_path, "/private/var/folders/", 21)) {
         ui_msgbox_header(MBX_FATAL, L"App Translocation", EMU_NAME_W L" cannot determine the emulated machine's location due to a macOS security feature. Please move the " EMU_NAME_W L" app to another folder (not /Applications), or make a copy of it and open that copy instead.");
-        return (0);
+        return 0;
     }
 #elif !defined(_WIN32)
     /* Grab the actual path if we are an AppImage. */
@@ -457,7 +470,7 @@ pc_init(int argc, char *argv[])
 
         if (!strcasecmp(argv[c], "--help") || !strcasecmp(argv[c], "-?")) {
 usage:
-            for (i = 0; i < FDD_NUM; i++) {
+            for (uint8_t i = 0; i < FDD_NUM; i++) {
                 if (fn[i] != NULL) {
                     free(fn[i]);
                     fn[i] = NULL;
@@ -489,7 +502,7 @@ usage:
             printf("-V or --vmname name  - overrides the name of the running VM\n");
             printf("-Z or --lastvmpath   - the last parameter is VM path rather than config\n");
             printf("\nA config file can be specified. If none is, the default file will be used.\n");
-            return (0);
+            return 0;
         } else if (!strcasecmp(argv[c], "--lastvmpath") || !strcasecmp(argv[c], "-Z")) {
             lvmp = 1;
         } else if (!strcasecmp(argv[c], "--dumpcfg") || !strcasecmp(argv[c], "-O")) {
@@ -581,7 +594,7 @@ usage:
             /* some (undocumented) test function here.. */
 
             /* .. and then exit. */
-            return (0);
+            return 0;
 #ifdef USE_INSTRUMENT
         } else if (!strcasecmp(argv[c], "--instrument")) {
             if ((c + 1) == argc)
@@ -766,7 +779,7 @@ usage:
     /* Load the configuration file. */
     config_load();
 
-    for (i = 0; i < FDD_NUM; i++) {
+    for (uint8_t i = 0; i < FDD_NUM; i++) {
         if (fn[i] != NULL) {
             if (strlen(fn[i]) <= 511)
                 strncpy(floppyfns[i], fn[i], 511);
@@ -782,7 +795,7 @@ usage:
     gdbstub_init();
 
     /* All good! */
-    return (1);
+    return 1;
 }
 
 void
@@ -808,7 +821,8 @@ pc_full_speed(void)
 int
 pc_init_modules(void)
 {
-    int     c, m;
+    int     c;
+    int     m;
     wchar_t temp[512];
     char    tempc[512];
 
@@ -842,13 +856,13 @@ pc_init_modules(void)
     }
     if (c == 0) {
         /* No usable ROMs found, aborting. */
-        return (0);
+        return 0;
     }
     pc_log("A total of %d ROM sets have been loaded.\n", c);
 
     /* Load the ROMs for the selected machine. */
     if (!machine_available(machine)) {
-        swprintf(temp, sizeof(temp), plat_get_string(IDS_2063), machine_getname());
+        swprintf(temp, sizeof_w(temp), plat_get_string(IDS_2063), machine_getname());
         c       = 0;
         machine = -1;
         while (machine_get_internal_name_ex(c) != NULL) {
@@ -863,7 +877,6 @@ pc_init_modules(void)
         if (machine == -1) {
             fatal("No available machines\n");
             exit(-1);
-            return (0);
         }
     }
 
@@ -871,7 +884,7 @@ pc_init_modules(void)
     if (!video_card_available(gfxcard[0])) {
         memset(tempc, 0, sizeof(tempc));
         device_get_name(video_card_getdevice(gfxcard[0]), 0, tempc);
-        swprintf(temp, sizeof(temp), plat_get_string(IDS_2064), tempc);
+        swprintf(temp, sizeof_w(temp), plat_get_string(IDS_2064), tempc);
         c = 0;
         while (video_get_internal_name(c) != NULL) {
             gfxcard[0] = -1;
@@ -886,14 +899,13 @@ pc_init_modules(void)
         if (gfxcard[0] == -1) {
             fatal("No available video cards\n");
             exit(-1);
-            return (0);
         }
     }
 
     if (!video_card_available(gfxcard[1])) {
         char tempc[512] = { 0 };
         device_get_name(video_card_getdevice(gfxcard[1]), 0, tempc);
-        swprintf(temp, sizeof(temp), (wchar_t *) "Video card #2 \"%hs\" is not available due to missing ROMs in the roms/video directory. Disabling the second video card.", tempc);
+        swprintf(temp, sizeof_w(temp), plat_get_string(IDS_2163), tempc);
         ui_msgbox_header(MBX_INFO, (wchar_t *) IDS_2129, temp);
         gfxcard[1] = 0;
     }
@@ -929,7 +941,7 @@ pc_init_modules(void)
 
     machine_status_init();
 
-    return (1);
+    return 1;
 }
 
 void
@@ -1038,6 +1050,7 @@ pc_reset_hard_init(void)
 
     /* Reset and reconfigure the serial ports. */
     serial_standalone_init();
+    serial_passthrough_init();
 
     /* Reset and reconfigure the Sound Card layer. */
     sound_card_reset();
@@ -1124,12 +1137,17 @@ pc_reset_hard_init(void)
 #endif
 
     update_mouse_msg();
+
+    ui_hard_reset_completed();
 }
 
 void
 update_mouse_msg(void)
 {
-    wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
+    wchar_t wcpufamily[2048];
+    wchar_t wcpu[2048];
+    wchar_t wmachine[2048];
+    wchar_t *wcp;
 
     mbstowcs(wmachine, machine_getname(), strlen(machine_getname()) + 1);
 
@@ -1169,8 +1187,6 @@ pc_reset_hard(void)
 void
 pc_close(thread_t *ptr)
 {
-    int i;
-
     /* Wait a while so things can shut down. */
     plat_delay_ms(200);
 
@@ -1198,7 +1214,7 @@ pc_close(thread_t *ptr)
 
     lpt_devices_close();
 
-    for (i = 0; i < FDD_NUM; i++)
+    for (uint8_t i = 0; i < FDD_NUM; i++)
         fdd_close(i);
 
 #ifdef ENABLE_808X_LOG
@@ -1257,9 +1273,11 @@ pc_run(void)
     startblit();
     cpu_exec(cpu_s->rspeed / 100);
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
-    if (gdbstub_step == GDBSTUB_EXEC)
+    // if (gdbstub_step == GDBSTUB_EXEC)
 #endif
+#if 0
         mouse_process();
+#endif
     joystick_process();
     endblit();
 
@@ -1271,7 +1289,7 @@ pc_run(void)
     }
 
     if (title_update) {
-        mouse_msg_idx = (mouse_type == MOUSE_TYPE_NONE) ? 2 : !!mouse_capture;
+        mouse_msg_idx = ((mouse_type == MOUSE_TYPE_NONE) || (mouse_mode >= 1)) ? 2 : !!mouse_capture;
         swprintf(temp, sizeof_w(temp), mouse_msg[mouse_msg_idx], fps);
 #ifdef __APPLE__
         /* Needed due to modifying the UI on the non-main thread is a big no-no. */
@@ -1298,7 +1316,10 @@ set_screen_size_monitor(int x, int y, int monitor_index)
 {
     int    temp_overscan_x = monitors[monitor_index].mon_overscan_x;
     int    temp_overscan_y = monitors[monitor_index].mon_overscan_y;
-    double dx, dy, dtx, dty;
+    double dx;
+    double dy;
+    double dtx;
+    double dty;
 
     /* Make sure we keep usable values. */
 #if 0
@@ -1397,6 +1418,9 @@ set_screen_size_monitor(int x, int y, int monitor_index)
             monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x << 3);
             monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y << 3);
             break;
+
+        default:
+            break;
     }
 
     plat_resize_request(monitors[monitor_index].mon_scrnsz_x, monitors[monitor_index].mon_scrnsz_y, monitor_index);
@@ -1417,14 +1441,14 @@ reset_screen_size_monitor(int monitor_index)
 void
 reset_screen_size(void)
 {
-    for (int i = 0; i < MONITORS_NUM; i++)
+    for (uint8_t i = 0; i < MONITORS_NUM; i++)
         set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_efscrnsz_y);
 }
 
 void
 set_screen_size_natural(void)
 {
-    for (int i = 0; i < MONITORS_NUM; i++)
+    for (uint8_t i = 0; i < MONITORS_NUM; i++)
         set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_unscaled_size_y);
 }
 

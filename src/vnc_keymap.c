@@ -665,8 +665,8 @@ vnc_kbinput(int down, int k)
 
     /* Send this scancode sequence to the PC keyboard. */
     switch (scan >> 8) {
-        case 0x00:
         default:
+        case 0x00:
             if (scan & 0xff)
                 keyboard_input(down, scan & 0xff);
             break;

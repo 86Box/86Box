@@ -345,7 +345,7 @@ adgold_write(uint16_t addr, uint8_t val, void *p)
                         adgold_update_irq_status(adgold);
                         dma_set_drq(adgold->dma, 0);
                     }
-                    if ((val & 0x01)) /*Start playback*/
+                    if (val & 0x01) /*Start playback*/
                     {
                         if (!(adgold->adgold_mma_regs[0][0x9] & 1))
                             adgold->adgold_mma.voice_count[0] = adgold->adgold_mma.voice_latch[0];
@@ -468,7 +468,7 @@ adgold_write(uint16_t addr, uint8_t val, void *p)
                         adgold_update_irq_status(adgold);
                         dma_set_drq(adgold->dma, 0);
                     }
-                    if ((val & 0x01)) /*Start playback*/
+                    if (val & 0x01) /*Start playback*/
                     {
                         if (!(adgold->adgold_mma_regs[1][0x9] & 1))
                             adgold->adgold_mma.voice_count[1] = adgold->adgold_mma.voice_latch[1];
@@ -782,7 +782,9 @@ adgold_get_buffer(int32_t *buffer, int len, void *p)
     }
 
     for (c = 0; c < len * 2; c += 2) {
-        int32_t temp, lowpass, highpass;
+        int32_t temp;
+        int32_t lowpass;
+        int32_t highpass;
 
         /*Output is deliberately halved to avoid clipping*/
         temp     = ((int32_t) adgold_buffer[c] * adgold->vol_l) >> 17;
@@ -842,7 +844,6 @@ static void
 adgold_input_msg(void *p, uint8_t *msg, uint32_t len)
 {
     adgold_t *adgold = (adgold_t *) p;
-    uint8_t   i;
 
     if (adgold->sysex)
         return;
@@ -850,7 +851,7 @@ adgold_input_msg(void *p, uint8_t *msg, uint32_t len)
     if (adgold->uart_in) {
         adgold->adgold_mma_status |= 0x04;
 
-        for (i = 0; i < len; i++) {
+        for (uint32_t i = 0; i < len; i++) {
             adgold->midi_queue[adgold->midi_w++] = msg[i];
             adgold->midi_w &= 0x0f;
         }
@@ -863,14 +864,13 @@ static int
 adgold_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 {
     adgold_t *adgold = (adgold_t *) p;
-    uint32_t  i;
 
     if (abort) {
         adgold->sysex = 0;
         return 0;
     }
     adgold->sysex = 1;
-    for (i = 0; i < len; i++) {
+    for (uint32_t i = 0; i < len; i++) {
         if (adgold->midi_r == adgold->midi_w)
             return (len - i);
         adgold->midi_queue[adgold->midi_w++] = buffer[i];

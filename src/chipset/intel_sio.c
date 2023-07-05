@@ -27,23 +27,25 @@
 #include <86box/dma.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
+#include <86box/pic.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/port_92.h>
 #include <86box/machine.h>
 #include <86box/chipset.h>
+#include <86box/plat_unused.h>
 
-typedef struct
-{
-    uint8_t id,
-        regs[256];
+typedef struct sio_t {
+    uint8_t id;
+    uint8_t regs[256];
 
-    uint16_t timer_base,
-        timer_latch;
+    uint16_t timer_base;
+    uint16_t timer_latch;
 
     double fast_off_period;
 
-    pc_timer_t timer, fast_off_timer;
+    pc_timer_t timer;
+    pc_timer_t fast_off_timer;
 
     apm_t     *apm;
     port_92_t *port_92;
@@ -199,6 +201,8 @@ sio_write(int func, int addr, uint8_t val, void *priv)
             dev->regs[addr] = val;
             break;
         case 0x4c:
+            dev->regs[addr] = (val & 0x7f);
+            break;
         case 0x4d:
             dev->regs[addr] = (val & 0x7f);
             break;
@@ -312,6 +316,8 @@ sio_write(int func, int addr, uint8_t val, void *priv)
             cpu_fast_off_count = val + 1;
             cpu_fast_off_period_set(cpu_fast_off_val, dev->fast_off_period);
             break;
+        default:
+            break;
     }
 }
 
@@ -330,12 +336,13 @@ sio_read(int func, int addr, void *priv)
 }
 
 static void
-sio_config_write(uint16_t addr, uint8_t val, void *priv)
+sio_config_write(UNUSED(uint16_t addr), UNUSED(uint8_t val), UNUSED(void *priv))
 {
+    //
 }
 
 static uint8_t
-sio_config_read(uint16_t port, void *priv)
+sio_config_read(uint16_t port, UNUSED(void *priv))
 {
     uint8_t ret = 0x00;
 
@@ -361,6 +368,9 @@ sio_config_read(uint16_t port, void *priv)
                     ret |= 0x04;
                     break;
             }
+            break;
+
+        default:
             break;
     }
 
@@ -422,9 +432,9 @@ sio_reset_hard(void *priv)
 }
 
 static void
-sio_apm_out(uint16_t port, uint8_t val, void *p)
+sio_apm_out(UNUSED(uint16_t port), UNUSED(uint8_t val), void *priv)
 {
-    sio_t *dev = (sio_t *) p;
+    sio_t *dev = (sio_t *) priv;
 
     if (dev->apm->do_smi)
         dev->regs[0xaa] |= 0x80;
@@ -440,29 +450,32 @@ sio_fast_off_count(void *priv)
 }
 
 static void
-sio_reset(void *p)
+sio_reset(void *priv)
 {
-    sio_t *dev = (sio_t *) p;
+    sio_t *dev = (sio_t *) priv;
 
-    sio_write(0, 0x57, 0x04, p);
+    /* Disable the PIC mouse latch. */
+    sio_write(0, 0x4d, 0x40, priv);
+
+    sio_write(0, 0x57, 0x04, priv);
 
     dma_set_params(1, 0xffffffff);
 
     if (dev->id == 0x03) {
-        sio_write(0, 0xa0, 0x08, p);
-        sio_write(0, 0xa2, 0x00, p);
-        sio_write(0, 0xa4, 0x00, p);
-        sio_write(0, 0xa5, 0x00, p);
-        sio_write(0, 0xa6, 0x00, p);
-        sio_write(0, 0xa7, 0x00, p);
-        sio_write(0, 0xa8, 0x0f, p);
+        sio_write(0, 0xa0, 0x08, priv);
+        sio_write(0, 0xa2, 0x00, priv);
+        sio_write(0, 0xa4, 0x00, priv);
+        sio_write(0, 0xa5, 0x00, priv);
+        sio_write(0, 0xa6, 0x00, priv);
+        sio_write(0, 0xa7, 0x00, priv);
+        sio_write(0, 0xa8, 0x0f, priv);
     }
 }
 
 static void
-sio_close(void *p)
+sio_close(void *priv)
 {
-    sio_t *dev = (sio_t *) p;
+    sio_t *dev = (sio_t *) priv;
 
     free(dev);
 }
@@ -536,7 +549,9 @@ sio_init(const device_t *info)
 
     timer_add(&dev->timer, NULL, NULL, 0);
 
-    // device_add(&i8254_sec_device);
+#if 0
+    device_add(&i8254_sec_device);
+#endif
 
     return dev;
 }

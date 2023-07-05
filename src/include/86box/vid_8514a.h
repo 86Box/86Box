@@ -83,6 +83,7 @@ typedef struct ibm8514_t {
     } accel;
 
     uint16_t test;
+    int ibm_mode;
 
     int v_total, dispend, v_syncstart, split,
         h_disp, h_disp_old, h_total, h_disp_time, rowoffset,
@@ -107,5 +108,6 @@ typedef struct ibm8514_t {
     int      blitter_busy;
     uint64_t blitter_time;
     uint64_t status_time;
+    int pitch;
 } ibm8514_t;
 #endif /*VIDEO_8514A_H*/

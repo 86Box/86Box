@@ -305,46 +305,46 @@ tvga_recalctimings(svga_t *svga)
 
     switch (clksel) {
         case 0x2:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 44900000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
             break;
         case 0x3:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 36000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 36000000.0;
             break;
         case 0x4:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 57272000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 57272000.0;
             break;
         case 0x5:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 65000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 65000000.0;
             break;
         case 0x6:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 50350000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 50350000.0;
             break;
         case 0x7:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 40000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 40000000.0;
             break;
         case 0x8:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 88000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 88000000.0;
             break;
         case 0x9:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 98000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 98000000.0;
             break;
         case 0xa:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 118800000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 118800000.0;
             break;
         case 0xb:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 108000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 108000000.0;
             break;
         case 0xc:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 72000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 72000000.0;
             break;
         case 0xd:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 77000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 77000000.0;
             break;
         case 0xe:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 80000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 80000000.0;
             break;
         case 0xf:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 75000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 75000000.0;
             break;
     }
 
