@@ -457,7 +457,7 @@ extern int machine_at_asus386_init(const machine_t *);
 extern int machine_at_ecs386_init(const machine_t *);
 extern int machine_at_spc6000a_init(const machine_t *);
 extern int machine_at_micronics386_init(const machine_t *);
-extern int machine_at_ECS_386V_init(const machine_t *);
+extern int machine_at_ecs386v_init(const machine_t *);
 
 extern int machine_at_rycleopardlx_init(const machine_t *);
 
@@ -497,6 +497,7 @@ extern int machine_at_ami471_init(const machine_t *);
 extern int machine_at_dtk486_init(const machine_t *);
 extern int machine_at_px471_init(const machine_t *);
 extern int machine_at_win471_init(const machine_t *);
+extern int machine_at_pci400ca_init(const machine_t *);
 extern int machine_at_vi15g_init(const machine_t *);
 extern int machine_at_greenb_init(const machine_t *);
 

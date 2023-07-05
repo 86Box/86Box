@@ -226,7 +226,7 @@ machine_at_spc6000a_init(const machine_t *model)
 }
 
 int
-machine_at_ECS_386V_init(const machine_t *model)
+machine_at_ecs386v_init(const machine_t *model)
 {
     int ret;
 
@@ -787,6 +787,39 @@ machine_at_win471_init(const machine_t *model)
     machine_at_sis_85c471_common_init(model);
     device_add(&ide_vlb_device);
     device_add(&keyboard_at_ami_device);
+
+    return ret;
+}
+
+int
+machine_at_pci400ca_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/JB_PCI400C_A/486-AA008851.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SCSI,        1, 2, 3, 4);
+    pci_register_slot(0x03, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&keyboard_ps2_ami_device);
+    device_add(&sio_device);
+    device_add(&intel_flash_bxt_ami_device);
+
+    device_add(&i420tx_device);
+    device_add(&ncr53c810_onboard_pci_device);
+
+    if (fdc_type == FDC_INTERNAL)
+        device_add(&fdc_at_device);
 
     return ret;
 }
