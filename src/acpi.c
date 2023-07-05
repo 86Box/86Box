@@ -406,7 +406,7 @@ acpi_reg_read_intel(int size, uint16_t addr, void *priv)
 static uint32_t
 acpi_reg_read_intel_ich2(int size, uint16_t addr, void *priv)
 {
-    acpi_t  *dev = (acpi_t *) p;
+    acpi_t  *dev = (acpi_t *) priv;
     uint32_t ret = 0x00000000;
     int      shift16;
     int      shift32;
@@ -1133,7 +1133,7 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *priv)
             break;
 
         default:
-            acpi_reg_write_common_regs(size, addr, val, p);
+            acpi_reg_write_common_regs(size, addr, val, priv);
             if ((addr == 0x04) && !!(val & 4) && !!(dev->regs.smi_en & 4)) {
                 dev->regs.smi_sts = 0x00000004;
                 acpi_raise_smi(dev, 1);
