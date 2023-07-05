@@ -42,7 +42,7 @@ typedef struct _list_ {
     struct _list_ *next;
 } list_t;
 
-typedef struct {
+typedef struct section_t {
     list_t list;
 
     char name[128];
@@ -50,7 +50,7 @@ typedef struct {
     list_t entry_head;
 } section_t;
 
-typedef struct {
+typedef struct entry_t {
     list_t list;
 
     char    name[128];

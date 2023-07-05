@@ -323,9 +323,9 @@ banshee_vblank_start(svga_t *svga)
 }
 
 static void
-banshee_out(uint16_t addr, uint8_t val, void *p)
+banshee_out(uint16_t addr, uint8_t val, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
     svga_t    *svga    = &banshee->svga;
     uint8_t    old;
 
@@ -375,13 +375,16 @@ banshee_out(uint16_t addr, uint8_t val, void *p)
 }
 
 static uint8_t
-banshee_in(uint16_t addr, void *p)
+banshee_in(uint16_t addr, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
     svga_t    *svga    = &banshee->svga;
     uint8_t    temp;
 
-    //        if (addr != 0x3da) banshee_log("banshee_in : %04X ", addr);
+#if 0
+    if (addr != 0x3da)
+        banshee_log("banshee_in : %04X ", addr);
+#endif
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
         addr ^= 0x60;
@@ -405,7 +408,10 @@ banshee_in(uint16_t addr, void *p)
             temp = svga_in(addr, svga);
             break;
     }
-    //        if (addr != 0x3da) banshee_log("%02X  %04X:%04X %i\n", temp, CS,cpu_state.pc, ins);
+#if 0
+    if (addr != 0x3da)
+        banshee_log("%02X  %04X:%04X %i\n", temp, CS,cpu_state.pc, ins);
+#endif
     return temp;
 }
 
@@ -524,7 +530,9 @@ banshee_recalctimings(svga_t *svga)
         svga->vblankstart += 0x400;
     if (svga->crtc[0x1b] & 0x40)
         svga->vsyncstart += 0x400;
-    //        banshee_log("svga->hdisp=%i\n", svga->hdisp);
+#if 0
+    banshee_log("svga->hdisp=%i\n", svga->hdisp);
+#endif
 
     svga->interlace = 0;
 
@@ -559,7 +567,9 @@ banshee_recalctimings(svga_t *svga)
             svga->rowoffset = (banshee->vidDesktopOverlayStride & 0x3fff) >> 3;
         svga->ma_latch                = banshee->vidDesktopStartAddr >> 2;
         banshee->desktop_stride_tiled = (banshee->vidDesktopOverlayStride & 0x3fff) * 128 * 32;
-        //                banshee_log("Extended shift out %i rowoffset=%i %02x\n", VIDPROCCFG_DESKTOP_PIX_FORMAT, svga->rowoffset, svga->crtc[1]);
+#if 0
+        banshee_log("Extended shift out %i rowoffset=%i %02x\n", VIDPROCCFG_DESKTOP_PIX_FORMAT, svga->rowoffset, svga->crtc[1]);
+#endif
 
         svga->char_width = 8;
         svga->split      = 99999;
@@ -583,11 +593,13 @@ banshee_recalctimings(svga_t *svga)
         if (svga->overlay.cur_xsize <= 0 || svga->overlay.cur_ysize <= 0)
             svga->overlay.ena = 0;
         if (svga->overlay.ena) {
-            /*                        banshee_log("Overlay enabled : start=%i,%i end=%i,%i size=%i,%i pitch=%x\n",
-                                            voodoo->overlay.start_x, voodoo->overlay.start_y,
-                                            voodoo->overlay.end_x, voodoo->overlay.end_y,
-                                            voodoo->overlay.size_x, voodoo->overlay.size_y,
-                                            svga->overlay.pitch);*/
+#if 0
+            banshee_log("Overlay enabled : start=%i,%i end=%i,%i size=%i,%i pitch=%x\n",
+                        voodoo->overlay.start_x, voodoo->overlay.start_y,
+                        voodoo->overlay.end_x, voodoo->overlay.end_y,
+                        voodoo->overlay.size_x, voodoo->overlay.size_y,
+                        svga->overlay.pitch);
+#endif
             if (!voodoo->overlay.start_x && !voodoo->overlay.start_y && svga->hdisp == voodoo->overlay.size_x && svga->dispend == voodoo->overlay.size_y) {
                 /*Overlay is full screen, so don't bother rendering the desktop
                   behind it*/
@@ -596,7 +608,9 @@ banshee_recalctimings(svga_t *svga)
             }
         }
     } else {
-        //                banshee_log("Normal shift out\n");
+#if 0
+        banshee_log("Normal shift out\n");
+#endif
         svga->bpp = 8;
     }
 
@@ -609,19 +623,27 @@ banshee_recalctimings(svga_t *svga)
         double freq = (((double) n + 2) / (((double) m + 2) * (double) (1 << k))) * 14318184.0;
 
         svga->clock = (cpuclock * (float) (1ULL << 32)) / freq;
-        //                svga->clock = cpuclock / freq;
+#if 0
+        svga->clock = cpuclock / freq;
+#endif
 
-        //                banshee_log("svga->clock = %g %g  m=%i k=%i n=%i\n", freq, freq / 1000000.0, m, k, n);
+#if 0
+        banshee_log("svga->clock = %g %g  m=%i k=%i n=%i\n", freq, freq / 1000000.0, m, k, n);
+#endif
     }
 }
 
 static void
-banshee_ext_out(uint16_t addr, uint8_t val, void *p)
+banshee_ext_out(uint16_t addr, uint8_t val, void *priv)
 {
-    //        banshee_t *banshee = (banshee_t *)p;
-    //        svga_t *svga = &banshee->svga;
+#if 0
+    banshee_t *banshee = (banshee_t *)priv;
+    svga_t *svga = &banshee->svga;
+#endif
 
-    //        banshee_log("banshee_ext_out: addr=%04x val=%02x\n", addr, val);
+#if 0
+    banshee_log("banshee_ext_out: addr=%04x val=%02x\n", addr, val);
+#endif
 
     switch (addr & 0xff) {
         case 0xb0:
@@ -672,7 +694,7 @@ banshee_ext_out(uint16_t addr, uint8_t val, void *p)
         case 0xdd:
         case 0xde:
         case 0xdf:
-            banshee_out((addr & 0xff) + 0x300, val, p);
+            banshee_out((addr & 0xff) + 0x300, val, priv);
             break;
 
         default:
@@ -680,13 +702,15 @@ banshee_ext_out(uint16_t addr, uint8_t val, void *p)
     }
 }
 static void
-banshee_ext_outl(uint16_t addr, uint32_t val, void *p)
+banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
     voodoo_t  *voodoo  = banshee->voodoo;
     svga_t    *svga    = &banshee->svga;
 
-    //        banshee_log("banshee_ext_outl: addr=%04x val=%08x %04x(%08x):%08x\n", addr, val, CS,cs,cpu_state.pc);
+#if 0
+    banshee_log("banshee_ext_outl: addr=%04x val=%08x %04x(%08x):%08x\n", addr, val, CS,cs,cpu_state.pc);
+#endif
 
     switch (addr & 0xff) {
         case Init_pciInit0:
@@ -698,7 +722,9 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *p)
 
         case Init_lfbMemoryConfig:
             banshee->lfbMemoryConfig = val;
-            //                banshee_log("lfbMemoryConfig=%08x\n", val);
+#if 0
+            banshee_log("lfbMemoryConfig=%08x\n", val);
+#endif
             voodoo->tile_base         = (val & 0x1fff) << 12;
             voodoo->tile_stride       = 1024 << ((val >> 13) & 7);
             voodoo->tile_stride_shift = 10 + ((val >> 13) & 7);
@@ -764,7 +790,9 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *p)
 
         case Video_vidProcCfg:
             banshee->vidProcCfg = val;
-            //                banshee_log("vidProcCfg=%08x\n", val);
+#if 0
+            banshee_log("vidProcCfg=%08x\n", val);
+#endif
             banshee->overlay_pix_fmt = (val & VIDPROCCFG_OVERLAY_PIX_FORMAT_MASK) >> VIDPROCCFG_OVERLAY_PIX_FORMAT_SHIFT;
             svga->hwcursor.ena       = val & VIDPROCCFG_HWCURSOR_ENA;
             svga->fullchange         = changeframecount;
@@ -797,7 +825,9 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *p)
             svga->hwcursor.addr      = (banshee->hwCurPatAddr & 0xfffff0) + (svga->hwcursor.yoff * 16);
             svga->hwcursor.cur_xsize = 64;
             svga->hwcursor.cur_ysize = 64;
-            //                banshee_log("hwCurLoc %08x %i\n", val, svga->hwcursor.y);
+#if 0
+            banshee_log("hwCurLoc %08x %i\n", val, svga->hwcursor.y);
+#endif
             break;
         case Video_hwCurC0:
             banshee->hwCurC0 = val;
@@ -808,7 +838,9 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *p)
 
         case Video_vidSerialParallelPort:
             banshee->vidSerialParallelPort = val;
-            //                banshee_log("vidSerialParallelPort: write %08x %08x %04x(%08x):%08x\n", val, val & (VIDSERIAL_DDC_DCK_W | VIDSERIAL_DDC_DDA_W), CS,cs,cpu_state.pc);
+#if 0
+            banshee_log("vidSerialParallelPort: write %08x %08x %04x(%08x):%08x\n", val, val & (VIDSERIAL_DDC_DCK_W | VIDSERIAL_DDC_DDA_W), CS,cs,cpu_state.pc);
+#endif
             i2c_gpio_set(banshee->i2c_ddc, !!(val & VIDSERIAL_DDC_DCK_W), !!(val & VIDSERIAL_DDC_DDA_W));
             i2c_gpio_set(banshee->i2c, !!(val & VIDSERIAL_I2C_SCK_W), !!(val & VIDSERIAL_I2C_SDA_W));
             break;
@@ -836,16 +868,22 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *p)
             break;
         case Video_vidOverlayDudx:
             voodoo->overlay.vidOverlayDudx = val & VID_DUDX_MASK;
-            //                banshee_log("vidOverlayDudx=%08x\n", val);
+#if 0
+            banshee_log("vidOverlayDudx=%08x\n", val);
+#endif
             break;
         case Video_vidOverlayDudxOffsetSrcWidth:
             voodoo->overlay.vidOverlayDudxOffsetSrcWidth = val;
             voodoo->overlay.overlay_bytes                = (val & OVERLAY_SRC_WIDTH_MASK) >> OVERLAY_SRC_WIDTH_SHIFT;
-            //                banshee_log("vidOverlayDudxOffsetSrcWidth=%08x\n", val);
+#if 0
+            banshee_log("vidOverlayDudxOffsetSrcWidth=%08x\n", val);
+#endif
             break;
         case Video_vidOverlayDvdy:
             voodoo->overlay.vidOverlayDvdy = val & VID_DVDY_MASK;
-            //                banshee_log("vidOverlayDvdy=%08x\n", val);
+#if 0
+            banshee_log("vidOverlayDvdy=%08x\n", val);
+#endif
             break;
         case Video_vidOverlayDvdyOffset:
             voodoo->overlay.vidOverlayDvdyOffset = val;
@@ -853,26 +891,34 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *p)
 
         case Video_vidDesktopStartAddr:
             banshee->vidDesktopStartAddr = val & 0xffffff;
-            //                banshee_log("vidDesktopStartAddr=%08x\n", val);
+#if 0
+            banshee_log("vidDesktopStartAddr=%08x\n", val);
+#endif
             svga->fullchange = changeframecount;
             svga_recalctimings(svga);
             break;
         case Video_vidDesktopOverlayStride:
             banshee->vidDesktopOverlayStride = val;
-            //                banshee_log("vidDesktopOverlayStride=%08x\n", val);
+#if 0
+            banshee_log("vidDesktopOverlayStride=%08x\n", val);
+#endif
             svga->fullchange = changeframecount;
             svga_recalctimings(svga);
             break;
-            //                default:
-            //                fatal("bad banshee_ext_outl: addr=%04x val=%08x\n", addr, val);
+#if 0
+        default:
+            fatal("bad banshee_ext_outl: addr=%04x val=%08x\n", addr, val);
+#endif
     }
 }
 
 static uint8_t
-banshee_ext_in(uint16_t addr, void *p)
+banshee_ext_in(uint16_t addr, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
-    //        svga_t *svga = &banshee->svga;
+    banshee_t *banshee = (banshee_t *) priv;
+#if 0
+    svga_t *svga = &banshee->svga;
+#endif
     uint8_t ret = 0xff;
 
     switch (addr & 0xff) {
@@ -881,7 +927,9 @@ banshee_ext_in(uint16_t addr, void *p)
         case Init_status + 2:
         case Init_status + 3:
             ret = (banshee_status(banshee) >> ((addr & 3) * 8)) & 0xff;
-            //                banshee_log("Read status reg! %04x(%08x):%08x\n", CS, cs, cpu_state.pc);
+#if 0
+            banshee_log("Read status reg! %04x(%08x):%08x\n", CS, cs, cpu_state.pc);
+#endif
             break;
 
         case 0xb0:
@@ -932,7 +980,7 @@ banshee_ext_in(uint16_t addr, void *p)
         case 0xdd:
         case 0xde:
         case 0xdf:
-            ret = banshee_in((addr & 0xff) + 0x300, p);
+            ret = banshee_in((addr & 0xff) + 0x300, priv);
             break;
 
         default:
@@ -979,15 +1027,17 @@ banshee_status(banshee_t *banshee)
     if (!voodoo->voodoo_busy)
         voodoo_wake_fifo_thread(voodoo);
 
-    //        banshee_log("banshee_status: busy %i  %i (%i %i)  %i   %i %i  %04x(%08x):%08x %08x\n", busy, written, voodoo->cmd_written, voodoo->cmd_written_fifo, voodoo->cmd_read, voodoo->cmdfifo_depth_rd, voodoo->cmdfifo_depth_wr, CS,cs,cpu_state.pc, ret);
+#if 0
+    banshee_log("banshee_status: busy %i  %i (%i %i)  %i   %i %i  %04x(%08x):%08x %08x\n", busy, written, voodoo->cmd_written, voodoo->cmd_written_fifo, voodoo->cmd_read, voodoo->cmdfifo_depth_rd, voodoo->cmdfifo_depth_wr, CS,cs,cpu_state.pc, ret);
+#endif
 
     return ret;
 }
 
 static uint32_t
-banshee_ext_inl(uint16_t addr, void *p)
+banshee_ext_inl(uint16_t addr, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
     voodoo_t  *voodoo  = banshee->voodoo;
     svga_t    *svga    = &banshee->svga;
     uint32_t   ret     = 0xffffffff;
@@ -997,7 +1047,9 @@ banshee_ext_inl(uint16_t addr, void *p)
     switch (addr & 0xff) {
         case Init_status:
             ret = banshee_status(banshee);
-            //                banshee_log("Read status reg! %04x(%08x):%08x\n", CS, cs, cpu_state.pc);
+#if 0
+            banshee_log("Read status reg! %04x(%08x):%08x\n", CS, cs, cpu_state.pc);
+#endif
             break;
         case Init_pciInit0:
             ret = banshee->pciInit0;
@@ -1090,7 +1142,9 @@ banshee_ext_inl(uint16_t addr, void *p)
                 if (i2c_gpio_get_sda(banshee->i2c))
                     ret |= VIDSERIAL_I2C_SDA_R;
             }
-            //                banshee_log("vidSerialParallelPort: read %08x %08x  %04x(%08x):%08x\n", ret, ret & (VIDSERIAL_DDC_DCK_R | VIDSERIAL_DDC_DDA_R), CS,cs,cpu_state.pc);
+#if 0
+            banshee_log("vidSerialParallelPort: read %08x %08x  %04x(%08x):%08x\n", ret, ret & (VIDSERIAL_DDC_DCK_R | VIDSERIAL_DDC_DDA_R), CS,cs,cpu_state.pc);
+#endif
             break;
 
         case Video_vidScreenSize:
@@ -1135,20 +1189,24 @@ banshee_ext_inl(uint16_t addr, void *p)
     return ret;
 }
 
-static uint32_t banshee_reg_readl(uint32_t addr, void *p);
+static uint32_t banshee_reg_readl(uint32_t addr, void *priv);
 
 static uint8_t
-banshee_reg_read(uint32_t addr, void *p)
+banshee_reg_read(uint32_t addr, void *priv)
 {
-    //        banshee_log("banshee_reg_read: addr=%08x\n", addr);
-    return banshee_reg_readl(addr & ~3, p) >> (8 * (addr & 3));
+#if 0
+    banshee_log("banshee_reg_read: addr=%08x\n", addr);
+#endif
+    return banshee_reg_readl(addr & ~3, priv) >> (8 * (addr & 3));
 }
 
 static uint16_t
-banshee_reg_readw(uint32_t addr, void *p)
+banshee_reg_readw(uint32_t addr, void *priv)
 {
-    //        banshee_log("banshee_reg_readw: addr=%08x\n", addr);
-    return banshee_reg_readl(addr & ~3, p) >> (8 * (addr & 2));
+#if 0
+    banshee_log("banshee_reg_readw: addr=%08x\n", addr);
+#endif
+    return banshee_reg_readl(addr & ~3, priv) >> (8 * (addr & 2));
 }
 
 static uint32_t
@@ -1212,9 +1270,9 @@ banshee_cmd_read(banshee_t *banshee, uint32_t addr)
 }
 
 static uint32_t
-banshee_reg_readl(uint32_t addr, void *p)
+banshee_reg_readl(uint32_t addr, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
     voodoo_t  *voodoo  = banshee->voodoo;
     uint32_t   ret     = 0xffffffff;
 
@@ -1372,7 +1430,7 @@ banshee_reg_readl(uint32_t addr, void *p)
 }
 
 static void
-banshee_reg_write(uint32_t addr, uint8_t val, void *p)
+banshee_reg_write(UNUSED(uint32_t addr), UNUSED(uint8_t val), UNUSED(void *priv))
 {
 #if 0
     banshee_log("banshee_reg_writeb: addr=%08x val=%02x\n", addr, val);
@@ -1380,9 +1438,9 @@ banshee_reg_write(uint32_t addr, uint8_t val, void *p)
 }
 
 static void
-banshee_reg_writew(uint32_t addr, uint16_t val, void *p)
+banshee_reg_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
     voodoo_t  *voodoo  = banshee->voodoo;
 
     cycles -= voodoo->write_time;
@@ -1498,9 +1556,9 @@ banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
 }
 
 static void
-banshee_reg_writel(uint32_t addr, uint32_t val, void *p)
+banshee_reg_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
     voodoo_t  *voodoo  = banshee->voodoo;
 
     if (addr == voodoo->last_write_addr + 4)
@@ -1625,9 +1683,9 @@ banshee_reg_writel(uint32_t addr, uint32_t val, void *p)
 }
 
 static uint8_t
-banshee_read_linear(uint32_t addr, void *p)
+banshee_read_linear(uint32_t addr, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
     voodoo_t  *voodoo  = banshee->voodoo;
     svga_t    *svga    = &banshee->svga;
 
@@ -1663,14 +1721,14 @@ banshee_read_linear(uint32_t addr, void *p)
 }
 
 static uint16_t
-banshee_read_linear_w(uint32_t addr, void *p)
+banshee_read_linear_w(uint32_t addr, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
     voodoo_t  *voodoo  = banshee->voodoo;
     svga_t    *svga    = &banshee->svga;
 
     if (addr & 1)
-        return banshee_read_linear(addr, p) | (banshee_read_linear(addr + 1, p) << 8);
+        return banshee_read_linear(addr, priv) | (banshee_read_linear(addr + 1, priv) << 8);
 
     cycles -= voodoo->read_time;
     if ((banshee->pci_regs[0x30] & 0x01) && addr >= banshee->bios_rom.mapping.base && addr < (banshee->bios_rom.mapping.base + banshee->bios_rom.sz)) {
@@ -1703,14 +1761,14 @@ banshee_read_linear_w(uint32_t addr, void *p)
 }
 
 static uint32_t
-banshee_read_linear_l(uint32_t addr, void *p)
+banshee_read_linear_l(uint32_t addr, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
     voodoo_t  *voodoo  = banshee->voodoo;
     svga_t    *svga    = &banshee->svga;
 
     if (addr & 3)
-        return banshee_read_linear_w(addr, p) | (banshee_read_linear_w(addr + 2, p) << 16);
+        return banshee_read_linear_w(addr, priv) | (banshee_read_linear_w(addr + 2, priv) << 16);
 
     cycles -= voodoo->read_time;
 
@@ -1744,9 +1802,9 @@ banshee_read_linear_l(uint32_t addr, void *p)
 }
 
 static void
-banshee_write_linear(uint32_t addr, uint8_t val, void *p)
+banshee_write_linear(uint32_t addr, uint8_t val, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
     voodoo_t  *voodoo  = banshee->voodoo;
     svga_t    *svga    = &banshee->svga;
 
@@ -1779,15 +1837,15 @@ banshee_write_linear(uint32_t addr, uint8_t val, void *p)
 }
 
 static void
-banshee_write_linear_w(uint32_t addr, uint16_t val, void *p)
+banshee_write_linear_w(uint32_t addr, uint16_t val, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
     voodoo_t  *voodoo  = banshee->voodoo;
     svga_t    *svga    = &banshee->svga;
 
     if (addr & 1) {
-        banshee_write_linear(addr, val, p);
-        banshee_write_linear(addr + 1, val >> 8, p);
+        banshee_write_linear(addr, val, priv);
+        banshee_write_linear(addr + 1, val >> 8, priv);
         return;
     }
 
@@ -1819,16 +1877,16 @@ banshee_write_linear_w(uint32_t addr, uint16_t val, void *p)
 }
 
 static void
-banshee_write_linear_l(uint32_t addr, uint32_t val, void *p)
+banshee_write_linear_l(uint32_t addr, uint32_t val, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
     voodoo_t  *voodoo  = banshee->voodoo;
     svga_t    *svga    = &banshee->svga;
     int        timing;
 
     if (addr & 3) {
-        banshee_write_linear_w(addr, val, p);
-        banshee_write_linear_w(addr + 2, val >> 16, p);
+        banshee_write_linear_w(addr, val, priv);
+        banshee_write_linear_w(addr + 2, val >> 16, priv);
         return;
     }
 
@@ -2510,9 +2568,9 @@ banshee_overlay_draw(svga_t *svga, int displine)
 }
 
 void
-banshee_set_overlay_addr(void *p, uint32_t addr)
+banshee_set_overlay_addr(void *priv, UNUSED(uint32_t addr))
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
     voodoo_t  *voodoo  = banshee->voodoo;
 
     banshee->svga.overlay.addr       = banshee->voodoo->leftOverlayBuf & 0xfffffff;
@@ -2548,10 +2606,12 @@ banshee_vsync_callback(svga_t *svga)
 }
 
 static uint8_t
-banshee_pci_read(int func, int addr, void *p)
+banshee_pci_read(int func, int addr, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
-    //        svga_t *svga = &banshee->svga;
+    banshee_t *banshee = (banshee_t *) priv;
+#if 0
+    svga_t *svga = &banshee->svga;
+#endif
     uint8_t ret = 0;
 
     if (func)
@@ -2751,9 +2811,9 @@ banshee_pci_read(int func, int addr, void *p)
 }
 
 static void
-banshee_pci_write(int func, int addr, uint8_t val, void *p)
+banshee_pci_write(int func, int addr, uint8_t val, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
 #if 0
     svga_t *svga = &banshee->svga;
 #endif
@@ -3357,9 +3417,9 @@ velocity_200_available(void)
 }
 
 static void
-banshee_close(void *p)
+banshee_close(void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
 
     voodoo_card_close(banshee->voodoo);
     svga_close(&banshee->svga);
@@ -3371,17 +3431,17 @@ banshee_close(void *p)
 }
 
 static void
-banshee_speed_changed(void *p)
+banshee_speed_changed(void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
 
     svga_recalctimings(&banshee->svga);
 }
 
 static void
-banshee_force_redraw(void *p)
+banshee_force_redraw(void *priv)
 {
-    banshee_t *banshee = (banshee_t *) p;
+    banshee_t *banshee = (banshee_t *) priv;
 
     banshee->svga.fullchange = changeframecount;
 }

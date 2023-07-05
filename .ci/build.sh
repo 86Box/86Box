@@ -259,6 +259,7 @@ case $arch in
 esac
 [ ! -e "cmake/$toolchain.cmake" ] && toolchain=flags-gcc
 toolchain_file="cmake/$toolchain.cmake"
+toolchain_file_libs=
 
 # Perform platform-specific setup.
 strip_binary=strip
@@ -577,7 +578,7 @@ else
 		pkgs="$pkgs build-essential"
 	else
 		# Add foreign architecture if required.
-		if ! dpkg --print-foreign-architectures | grep -Fx "$arch_deb"
+		if ! dpkg --print-foreign-architectures | grep -Fqx "$arch_deb"
 		then
 			sudo dpkg --add-architecture "$arch_deb"
 
@@ -615,10 +616,7 @@ else
 		*)	libdir="$arch_triplet";;
 	esac
 
-	# Create CMake cross toolchain file. The file is saved on a fixed location for
-	# the library builds we do later, since running CMake again on a library we've
-	# already built before will *not* update its toolchain file path; therefore, we
-	# cannot point them to our working directory, which may change across builds.
+	# Create CMake cross toolchain file.
 	toolchain_file_new="$cache_dir/toolchain.$arch_deb.cmake"
 	cat << EOF > "$toolchain_file_new"
 set(CMAKE_SYSTEM_NAME Linux)
@@ -645,6 +643,14 @@ include("$(realpath "$toolchain_file")")
 EOF
 	toolchain_file="$toolchain_file_new"
 	strip_binary="$arch_triplet-strip"
+
+	# Create a separate toolchain file for library compilation without including
+	# our own toolchain files, letting libraries set their own C(XX)FLAGS instead.
+	# The file is saved on a fixed location, since running CMake again on a library
+	# we've already built before will *not* update its toolchain file path; therefore,
+	# we cannot point them to our working directory, which may change across builds.
+	toolchain_file_libs="$cache_dir/toolchain.$arch_deb.libs.cmake"
+	grep -Ev "^include\(" "$toolchain_file" > "$toolchain_file_libs"
 
 	# Install dependencies only if we're in a new build and/or architecture.
 	if check_buildtag "$arch_deb"
@@ -885,11 +891,6 @@ else
 	cwd_root="$(pwd)"
 	check_buildtag "libs.$arch_deb"
 
-	cp cmake/flags-gcc.cmake cmake/flags-gcc.cmake.old
-	sed -i -e 's/ -Werror=.*\([" ]\)/\1/g' cmake/flags-gcc.cmake # temporary hack for -Werror=old-style-definition non-compliance on FluidSynth and SDL2
-	sed -i -e 's/ C;CXX/ IGNORED/' cmake/flags-gcc.cmake # workaround for dynamic c(xx)flags system overwriting library flags and breaking (at least) openal-soft
-	sed -i -e 's/_INIT / /g' cmake/flags-gcc.cmake # still append our own flags
-
 	if grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
 		# Build openal-soft 1.23.1 manually to fix audio issues. This is a temporary
@@ -906,7 +907,7 @@ else
 		sed -i -e 's/PW_KEY_CONFIG_NAME/"config.name"/g' "$prefix/alc/backends/pipewire.cpp"
 
 		prefix_build="$prefix/build-$arch_deb"
-		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 		cmake --build "$prefix_build" -j$(nproc) || exit 99
 		cmake --install "$prefix_build" || exit 99
 
@@ -922,7 +923,7 @@ else
 			wget -qO - https://github.com/FNA-XNA/FAudio/archive/refs/tags/22.03.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 		fi
 		prefix_build="$prefix/build-$arch_deb"
-		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 		cmake --build "$prefix_build" -j$(nproc) || exit 99
 		cmake --install "$prefix_build" || exit 99
 
@@ -943,7 +944,7 @@ else
 		wget -qO - https://github.com/thestk/rtmidi/archive/refs/tags/4.0.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
 	prefix_build="$prefix/build-$arch_deb"
-	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
 
@@ -957,7 +958,7 @@ else
 	fi
 	prefix_build="$prefix/build-$arch_deb"
 	cmake -G Ninja -D enable-dbus=OFF -D enable-jack=OFF -D enable-oss=OFF -D enable-sdl2=OFF -D enable-pulseaudio=OFF -D enable-pipewire=OFF -D enable-alsa=OFF \
-		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
+		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
@@ -988,21 +989,19 @@ else
 		-D SDL_ATOMIC=OFF -D SDL_EVENTS=ON -D SDL_HAPTIC=OFF -D SDL_POWER=OFF -D SDL_THREADS=ON -D SDL_TIMERS=ON -D SDL_FILE=OFF \
 		-D SDL_LOADSO=ON -D SDL_CPUINFO=ON -D SDL_FILESYSTEM=$sdl_ui -D SDL_DLOPEN=OFF -D SDL_SENSOR=OFF -D SDL_LOCALE=OFF \
 		\
-		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
+		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
-
-	mv cmake/flags-gcc.cmake.old cmake/flags-gcc.cmake
 
 	# We rely on the host to provide Vulkan libs to sidestep any potential
 	# dependency issues. While Qt expects libvulkan.so, at least Debian only
 	# ships libvulkan.so.1 without a symlink, so make our own as a workaround.
 	# The relative paths prevent appimage-builder from flattening the links.
-	mkdir -p "archive_tmp/usr/lib/$arch_triplet"
+	mkdir -p "archive_tmp/usr/lib/$libdir"
 	relroot="../../../../../../../../../../../../../../../../../../../../../../../../../../../../.."
 	ln -s "$relroot/usr/lib/libvulkan.so.1" "archive_tmp/usr/lib/libvulkan.so"
-	ln -s "$relroot/usr/lib/$arch_triplet/libvulkan.so.1" "archive_tmp/usr/lib/$arch_triplet/libvulkan.so"
+	ln -s "$relroot/usr/lib/$libdir/libvulkan.so.1" "archive_tmp/usr/lib/$libdir/libvulkan.so"
 
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"

@@ -19,7 +19,7 @@
 #ifndef EMU_PIT_H
 #define EMU_PIT_H
 
-typedef struct {
+typedef struct ctr_t {
     uint8_t m;
     uint8_t ctrl;
     uint8_t read_status;
@@ -44,13 +44,13 @@ typedef struct {
     int do_read_status;
 
     union {
-        int count;
+        int32_t count;
         struct {
-            int units     : 4;
-            int tens      : 4;
-            int hundreds  : 4;
-            int thousands : 4;
-            int myriads   : 4;
+            int32_t units     : 4;
+            int32_t tens      : 4;
+            int32_t hundreds  : 4;
+            int32_t thousands : 4;
+            int32_t myriads   : 4;
         };
     };
 
@@ -77,7 +77,7 @@ enum {
     PIT_8254_FAST = 3
 };
 
-typedef struct {
+typedef struct pit_intf_t {
     uint8_t (*read)(uint16_t addr, void *priv);
     void (*write)(uint16_t addr, uint8_t val, void *priv);
     /* Gets a counter's count. */

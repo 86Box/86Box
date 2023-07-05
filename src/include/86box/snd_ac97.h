@@ -103,21 +103,21 @@ enum {
     AC97_CODEC_AK4540   = 7
 };
 
-typedef struct {
+typedef struct ac97_vendor_reg_t {
     const uint16_t index;
     const uint16_t value;
     const uint16_t write_mask;
 } ac97_vendor_reg_t;
 
-typedef struct {
-    uint32_t vendor_id;
-    uint32_t min_rate;
-    uint32_t max_rate;
-    uint32_t misc_flags;
-    uint16_t reset_flags;
-    uint16_t extid_flags;
-    uint16_t powerdown_mask;
-    uint16_t regs[64];
+typedef struct ac97_codec_t {
+    uint32_t                 vendor_id;
+    uint32_t                 min_rate;
+    uint32_t                 max_rate;
+    uint32_t                 misc_flags;
+    uint16_t                 reset_flags;
+    uint16_t                 extid_flags;
+    uint16_t                 powerdown_mask;
+    uint16_t                 regs[64];
     uint8_t                  codec_id;
     uint8_t                  vendor_reg_page_max;
     const ac97_vendor_reg_t *vendor_regs;

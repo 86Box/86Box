@@ -1275,7 +1275,9 @@ pc_run(void)
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     // if (gdbstub_step == GDBSTUB_EXEC)
 #endif
-        // mouse_process();
+#if 0
+        mouse_process();
+#endif
     joystick_process();
     endblit();
 
@@ -1415,6 +1417,9 @@ set_screen_size_monitor(int x, int y, int monitor_index)
         case 9: /* 800% */
             monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x << 3);
             monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y << 3);
+            break;
+
+        default:
             break;
     }
 

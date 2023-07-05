@@ -70,9 +70,9 @@ voodoo_reg_log(const char *fmt, ...)
 #endif
 
 void
-voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
+voodoo_reg_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    voodoo_t *voodoo                                      = (voodoo_t *) p;
+    voodoo_t *voodoo                                      = (voodoo_t *) priv;
     void (*voodoo_recalc_tex)(voodoo_t * voodoo, int tmu) = NULL;
     union {
         uint32_t i;
@@ -89,7 +89,9 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
         voodoo_recalc_tex = voodoo_recalc_tex12;
 
     tempif.i = val;
-    // voodoo_reg_log("voodoo_reg_write_l: addr=%08x val=%08x(%f) chip=%x\n", addr, val, tempif.f, chip);
+#if 0
+    voodoo_reg_log("voodoo_reg_write_l: addr=%08x val=%08x(%f) chip=%x\n", addr, val, tempif.f, chip);
+#endif
     addr &= 0x3fc;
 
     if ((voodoo->fbiInit3 & FBIINIT3_REMAP) && addr < 0x100 && ad21)
@@ -97,7 +99,9 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
     switch (addr) {
         case SST_swapbufferCMD:
             if (voodoo->type >= VOODOO_BANSHEE) {
-                //                        voodoo_reg_log("swapbufferCMD %08x %08x\n", val, voodoo->leftOverlayBuf);
+#if 0
+                voodoo_reg_log("swapbufferCMD %08x %08x\n", val, voodoo->leftOverlayBuf);
+#endif
 
                 voodoo_wait_for_render_thread_idle(voodoo);
                 if (!(val & 1)) {
@@ -136,8 +140,10 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
 
             voodoo->params.swapbufferCMD = val;
 
-            //                voodoo_reg_log("Swap buffer %08x %d %p %i\n", val, voodoo->swap_count, &voodoo->swap_count, (voodoo == voodoo->set->voodoos[1]) ? 1 : 0);
-            //                voodoo->front_offset = params->front_offset;
+#if 0
+            voodoo_reg_log("Swap buffer %08x %d %p %i\n", val, voodoo->swap_count, &voodoo->swap_count, (voodoo == voodoo->set->voodoos[1]) ? 1 : 0);
+            voodoo->front_offset = params->front_offset;
+#endif
             voodoo_wait_for_render_thread_idle(voodoo);
             if (!(val & 1)) {
                 memset(voodoo->dirty_line, 1, sizeof(voodoo->dirty_line));
@@ -670,7 +676,9 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
             if (voodoo->type >= VOODOO_BANSHEE) {
                 voodoo->params.draw_offset = val & 0xfffff0;
                 voodoo->fb_write_offset    = voodoo->params.draw_offset;
-                //                        voodoo_reg_log("colorBufferAddr=%06x\n", voodoo->params.draw_offset);
+#if 0
+                voodoo_reg_log("colorBufferAddr=%06x\n", voodoo->params.draw_offset);
+#endif
             }
             break;
         case SST_colBufferStride:
@@ -679,10 +687,14 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
                 voodoo->params.col_tiled = voodoo->col_tiled;
                 if (voodoo->col_tiled) {
                     voodoo->row_width = (val & 0x7f) * 128 * 32;
-                    //                                voodoo_reg_log("colBufferStride tiled = %i bytes, tiled  %08x\n", voodoo->row_width, val);
+#if 0
+                    voodoo_reg_log("colBufferStride tiled = %i bytes, tiled  %08x\n", voodoo->row_width, val);
+#endif
                 } else {
                     voodoo->row_width = val & 0x3fff;
-                    //                                voodoo_reg_log("colBufferStride linear = %i bytes, linear\n", voodoo->row_width);
+#if 0
+                    voodoo_reg_log("colBufferStride linear = %i bytes, linear\n", voodoo->row_width);
+#endif
                 }
                 voodoo->params.row_width = voodoo->row_width;
             }
@@ -690,7 +702,9 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
         case SST_auxBufferAddr:
             if (voodoo->type >= VOODOO_BANSHEE) {
                 voodoo->params.aux_offset = val & 0xfffff0;
-                //                        pclog("auxBufferAddr=%06x\n", voodoo->params.aux_offset);
+#if 0
+                pclog("auxBufferAddr=%06x\n", voodoo->params.aux_offset);
+#endif
             }
             break;
         case SST_auxBufferStride:
@@ -699,10 +713,14 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
                 voodoo->params.aux_tiled = voodoo->aux_tiled;
                 if (voodoo->aux_tiled) {
                     voodoo->aux_row_width = (val & 0x7f) * 128 * 32;
-                    //                                voodoo_reg_log("auxBufferStride tiled = %i bytes, tiled\n", voodoo->aux_row_width);
+#if 0
+                    voodoo_reg_log("auxBufferStride tiled = %i bytes, tiled\n", voodoo->aux_row_width);
+#endif
                 } else {
                     voodoo->aux_row_width = val & 0x3fff;
-                    //                                voodoo_reg_log("auxBufferStride linear = %i bytes, linear\n", voodoo->aux_row_width);
+#if 0
+                    voodoo_reg_log("auxBufferStride linear = %i bytes, linear\n", voodoo->aux_row_width);
+#endif
                 }
                 voodoo->params.aux_row_width = voodoo->aux_row_width;
             }
@@ -726,12 +744,16 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
         case SST_sVx:
             tempif.i             = val;
             voodoo->verts[3].sVx = tempif.f;
-            //                voodoo_reg_log("sVx[%i]=%f\n", voodoo->vertex_num, tempif.f);
+#if 0
+            voodoo_reg_log("sVx[%i]=%f\n", voodoo->vertex_num, tempif.f);
+#endif
             break;
         case SST_sVy:
             tempif.i             = val;
             voodoo->verts[3].sVy = tempif.f;
-            //                voodoo_reg_log("sVy[%i]=%f\n", voodoo->vertex_num, tempif.f);
+#if 0
+            voodoo_reg_log("sVy[%i]=%f\n", voodoo->vertex_num, tempif.f);
+#endif
             break;
         case SST_sARGB:
             voodoo->verts[3].sBlue  = (float) (val & 0xff);
@@ -789,7 +811,9 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
             break;
 
         case SST_sBeginTriCMD:
-            //                voodoo_reg_log("sBeginTriCMD %i %f\n", voodoo->vertex_num, voodoo->verts[4].sVx);
+#if 0
+            voodoo_reg_log("sBeginTriCMD %i %f\n", voodoo->vertex_num, voodoo->verts[4].sVx);
+#endif
             voodoo->verts[0]        = voodoo->verts[3];
             voodoo->verts[1]        = voodoo->verts[3];
             voodoo->verts[2]        = voodoo->verts[3];
@@ -800,7 +824,9 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
             voodoo->cull_pingpong = 0;
             break;
         case SST_sDrawTriCMD:
-            //                voodoo_reg_log("sDrawTriCMD %i %i\n", voodoo->num_verticies, voodoo->sSetupMode & SETUPMODE_STRIP_MODE);
+#if 0
+            voodoo_reg_log("sDrawTriCMD %i %i\n", voodoo->num_verticies, voodoo->sSetupMode & SETUPMODE_STRIP_MODE);
+#endif
             /*I'm not sure this is the vertex selection algorithm actually used in the 3dfx
               chips, but this works with a number of games that switch between strip and fan
               mode in the middle of a run (eg Black & White, Viper Racing)*/
@@ -840,7 +866,9 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
 
             voodoo->num_verticies++;
             if (voodoo->num_verticies == 3) {
-                //                        voodoo_reg_log("triangle_setup\n");
+#if 0
+                voodoo_reg_log("triangle_setup\n");
+#endif
                 voodoo_triangle_setup(voodoo);
                 voodoo->cull_pingpong = !voodoo->cull_pingpong;
 
@@ -852,7 +880,9 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
             voodoo->bltSrcBaseAddr = val & 0x3fffff;
             break;
         case SST_bltDstBaseAddr:
-            //                voodoo_reg_log("Write bltDstBaseAddr %08x\n", val);
+#if 0
+            voodoo_reg_log("Write bltDstBaseAddr %08x\n", val);
+#endif
             voodoo->bltDstBaseAddr = val & 0x3fffff;
             break;
         case SST_bltXYStrides:
@@ -969,7 +999,9 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
                     voodoo->params.texBaseAddr[0] = val & 0xfffff0;
                 else
                     voodoo->params.texBaseAddr[0] = (val & 0x7ffff) << 3;
-                //                        voodoo_reg_log("texBaseAddr = %08x %08x\n", voodoo->params.texBaseAddr[0], val);
+#if 0
+                voodoo_reg_log("texBaseAddr = %08x %08x\n", voodoo->params.texBaseAddr[0], val);
+#endif
                 voodoo_recalc_tex(voodoo, 0);
             }
             if (chip & CHIP_TREX1) {

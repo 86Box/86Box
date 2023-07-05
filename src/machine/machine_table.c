@@ -223,7 +223,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PC,
+        .bus_flags = MACHINE_PC5150,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 16,
@@ -261,7 +261,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PC,
+        .bus_flags = MACHINE_PC5150,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 64,
@@ -5493,7 +5493,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags = MACHINE_VIDEO,
+        .flags = MACHINE_VIDEO | MACHINE_SOFTFLOAT_ONLY,
         .ram = {
             .min = 2048,
             .max = 65536,
@@ -6800,7 +6800,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PCI,
+        .bus_flags = MACHINE_BUS_PS2_LATCH | MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
@@ -6878,7 +6878,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PCI,
+        .bus_flags = MACHINE_BUS_PS2_LATCH | MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,

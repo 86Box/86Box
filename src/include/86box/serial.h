@@ -107,7 +107,7 @@ typedef struct serial_device_s {
     serial_t *serial;
 } serial_device_t;
 
-typedef struct {
+typedef struct serial_port_s {
     uint8_t enabled;
 } serial_port_t;
 

@@ -236,9 +236,9 @@ timeout_timer(void *priv)
 }
 
 static void
-ps_write_data(uint8_t val, void *p)
+ps_write_data(uint8_t val, void *priv)
 {
-    ps_t *dev = (ps_t *) p;
+    ps_t *dev = (ps_t *) priv;
 
     if (dev == NULL)
         return;
@@ -285,9 +285,9 @@ process_data(ps_t *dev)
 }
 
 static void
-ps_write_ctrl(uint8_t val, void *p)
+ps_write_ctrl(uint8_t val, void *priv)
 {
-    ps_t *dev = (ps_t *) p;
+    ps_t *dev = (ps_t *) priv;
 
     if (dev == NULL)
         return;
@@ -317,9 +317,9 @@ ps_write_ctrl(uint8_t val, void *p)
 }
 
 static uint8_t
-ps_read_status(void *p)
+ps_read_status(void *priv)
 {
-    ps_t   *dev = (ps_t *) p;
+    ps_t   *dev = (ps_t *) priv;
     uint8_t ret = 0x9f;
 
     if (!dev->ack)
@@ -368,9 +368,9 @@ ps_init(void *lpt)
 }
 
 static void
-ps_close(void *p)
+ps_close(void *priv)
 {
-    ps_t *dev = (ps_t *) p;
+    ps_t *dev = (ps_t *) priv;
 
     if (dev == NULL)
         return;

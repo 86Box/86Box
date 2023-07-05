@@ -31,6 +31,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/sio.h>
+#include <86box/plat_unused.h>
 
 typedef struct acc3221_t {
     int       reg_idx;
@@ -344,9 +345,9 @@ acc3221_serial2_handler(acc3221_t *dev)
 }
 
 static void
-acc3221_write(uint16_t addr, uint8_t val, void *p)
+acc3221_write(uint16_t addr, uint8_t val, void *priv)
 {
-    acc3221_t *dev = (acc3221_t *) p;
+    acc3221_t *dev = (acc3221_t *) priv;
     uint8_t    old;
 
     if (!(addr & 1))
@@ -405,14 +406,17 @@ acc3221_write(uint16_t addr, uint8_t val, void *p)
                         ide_pri_enable();
                 }
                 break;
+
+            default:
+                break;
         }
     }
 }
 
 static uint8_t
-acc3221_read(uint16_t addr, void *p)
+acc3221_read(uint16_t addr, void *priv)
 {
-    acc3221_t *dev = (acc3221_t *) p;
+    acc3221_t *dev = (acc3221_t *) priv;
 
     if (!(addr & 1))
         return dev->reg_idx;
@@ -448,7 +452,7 @@ acc3221_close(void *priv)
 }
 
 static void *
-acc3221_init(const device_t *info)
+acc3221_init(UNUSED(const device_t *info))
 {
     acc3221_t *dev = (acc3221_t *) malloc(sizeof(acc3221_t));
     memset(dev, 0, sizeof(acc3221_t));

@@ -34,7 +34,7 @@ enum {
     SMBUS_VIA        = 2
 };
 
-typedef struct {
+typedef struct smbus_piix4_t {
     uint32_t   local;
     uint16_t   io_base;
     uint16_t   byte_rw;
@@ -57,7 +57,7 @@ typedef struct {
     void      *i2c;
 } smbus_piix4_t;
 
-typedef struct {
+typedef struct smbus_ali7101_t {
     uint32_t   local;
     uint16_t   io_base;
     uint8_t    stat;
