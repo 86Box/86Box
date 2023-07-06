@@ -498,6 +498,7 @@ extern int machine_at_dtk486_init(const machine_t *);
 extern int machine_at_px471_init(const machine_t *);
 extern int machine_at_win471_init(const machine_t *);
 extern int machine_at_pci400ca_init(const machine_t *);
+extern int machine_at_zmartin_init(const machine_t *);
 extern int machine_at_vi15g_init(const machine_t *);
 extern int machine_at_greenb_init(const machine_t *);
 

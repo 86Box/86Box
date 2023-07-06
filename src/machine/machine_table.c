@@ -5864,6 +5864,45 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* KBC?? Does the VLSI have On-Chip KBC? */
+    {
+        .name = "[VLSI 82C480] ZEOS Martin",
+        .internal_name = "zmartin",
+        .type = MACHINE_TYPE_486_S2,
+        .chipset = MACHINE_CHIPSET_VLSI_VL82C480,
+        .init = machine_at_zmartin_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_SUPER_IO,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL, //&fdc37c651_device,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
 
     /* 486 machines - Socket 3 */
     /* 486 machines with just the ISA slot */
