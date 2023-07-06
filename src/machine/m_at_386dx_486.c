@@ -1103,14 +1103,20 @@ machine_at_486sp3_init(const machine_t *model)
 {
     int ret;
 
+#if 0
     ret = bios_load_linear("roms/machines/486sp3/awsi2737.bin",
                            0x000e0000, 131072, 0);
+#else
+    ret = bios_load_linear("roms/machines/486sp3/140394.BIN",
+                           0x000e0000, 131072, 0);
+#endif
 
     if (bios_only || !ret)
         return ret;
 
     machine_at_common_init(model);
-    device_add(&ide_isa_device);
+    device_add(&ide_vlb_device);
+    // device_add(&ide_isa_device);
 
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -1122,8 +1128,9 @@ machine_at_486sp3_init(const machine_t *model)
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&keyboard_ps2_ami_pci_device); /* Uses the AMIKEY KBC */
     device_add(&sio_device);
-    device_add(&fdc37c663_ide_device);
-    device_add(&sst_flash_29ee010_device);
+    device_add(&fdc_at_device);
+    // device_add(&fdc37c663_ide_device);
+    // device_add(&sst_flash_29ee010_device);
 
     device_add(&i420tx_device);
     device_add(&ncr53c810_onboard_pci_device);
