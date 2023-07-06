@@ -32,6 +32,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/sio.h>
+#include <86box/plat_unused.h>
 
 #define HAS_IDE_FUNCTIONALITY dev->ide_function
 
@@ -64,10 +65,13 @@ pc87311_log(const char *fmt, ...)
 #    define pc87311_log(fmt, ...)
 #endif
 
-typedef struct
-{
-    uint8_t   index, regs[256], cfg_lock, ide_function;
-    uint16_t  base, irq;
+typedef struct pc87311_t {
+    uint8_t   index;
+    uint8_t   regs[256];
+    uint8_t   cfg_lock;
+    uint8_t   ide_function;
+    uint16_t  base;
+    uint16_t  irq;
     fdc_t    *fdc_controller;
     serial_t *uart[2];
 
@@ -102,7 +106,13 @@ pc87311_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x02:
                     POWER_TEST = val;
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 
@@ -110,7 +120,7 @@ pc87311_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-pc87311_read(uint16_t addr, void *priv)
+pc87311_read(UNUSED(uint16_t addr), void *priv)
 {
     pc87311_t *dev = (pc87311_t *) priv;
 
@@ -181,6 +191,9 @@ pc87311_uart_handler(uint8_t num, pc87311_t *dev)
             dev->base = com4(dev);
             dev->irq  = COM4_IRQ;
             break;
+
+        default:
+            break;
     }
     serial_setup(dev->uart[num & 1], dev->base, dev->irq);
     pc87311_log("PC87311-UART%01x: BASE %04x IRQ %01x\n", num & 1, dev->base, dev->irq);
@@ -202,6 +215,9 @@ pc87311_lpt_handler(pc87311_t *dev)
         case 2:
             dev->base = LPT2_ADDR;
             dev->irq  = LPT2_IRQ;
+            break;
+
+        default:
             break;
     }
     lpt1_init(dev->base);

@@ -39,7 +39,7 @@ enum {
 };
 
 /* Used by the AT / PS/2 keyboard controller, common device, keyboard, and mouse. */
-typedef struct {
+typedef struct kbc_at_port_t {
     uint8_t wantcmd;
     uint8_t dat;
 
@@ -51,7 +51,7 @@ typedef struct {
 } kbc_at_port_t;
 
 /* Used by the AT / PS/2 common device, keyboard, and mouse. */
-typedef struct {
+typedef struct atkbc_dev_t {
     const char *name; /* name of this device */
 
     uint8_t type;
@@ -88,7 +88,7 @@ typedef struct {
     kbc_at_port_t *port;
 } atkbc_dev_t;
 
-typedef struct {
+typedef struct scancode {
     const uint8_t mk[4];
     const uint8_t brk[4];
 } scancode;

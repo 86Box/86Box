@@ -48,10 +48,11 @@ typedef struct _io_ {
 } io_t;
 
 typedef struct {
-    uint8_t  enable;
-    uint16_t base, size;
-    void (*func)(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv),
-        *priv;
+    uint8_t   enable;
+    uint16_t  base;
+    uint16_t  size;
+    void    (*func)(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv);
+    void     *priv;
 } io_trap_t;
 
 int   initialized = 0;
@@ -321,8 +322,10 @@ inb(uint16_t port)
         cycles -= io_delay;
 
     /* TriGem 486-BIOS MHz output. */
-    /* if (port == 0x1ed)
-        ret = 0xfe; */
+#if 0
+    if (port == 0x1ed)
+        ret = 0xfe;
+#endif
 
     io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 

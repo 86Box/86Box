@@ -37,7 +37,7 @@
 #define BIOS_ADDR       (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
 #define ROM_MONSTER_FDC "roms/floppy/monster-fdc/floppy_bios.bin"
 
-typedef struct {
+typedef struct monster_fdc_t {
     rom_t  bios_rom;
     fdc_t *fdc_pri;
     fdc_t *fdc_sec;

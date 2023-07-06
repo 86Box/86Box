@@ -207,7 +207,7 @@ get_addr(voodoo_t *voodoo, int x, int y, int src_notdst, uint32_t src_stride)
 }
 
 static void
-PLOT(voodoo_t *voodoo, int x, int y, int pat_x, int pat_y, uint8_t pattern_mask, uint8_t rop, uint32_t src, int src_colorkey)
+PLOT(voodoo_t *voodoo, int x, int y, int pat_x, int pat_y, uint8_t pattern_mask, UNUSED(uint8_t rop), uint32_t src, int src_colorkey)
 {
     switch (voodoo->banshee_blt.dstFormat & DST_FORMAT_COL_MASK) {
         case DST_FORMAT_COL_8_BPP:
@@ -254,7 +254,7 @@ PLOT(voodoo_t *voodoo, int x, int y, int pat_x, int pat_y, uint8_t pattern_mask,
 }
 
 static void
-PLOT_LINE(voodoo_t *voodoo, int x, int y, uint8_t rop, uint32_t pattern, int src_colorkey)
+PLOT_LINE(voodoo_t *voodoo, int x, int y, UNUSED(uint8_t rop), uint32_t pattern, int src_colorkey)
 {
     switch (voodoo->banshee_blt.dstFormat & DST_FORMAT_COL_MASK) {
         case DST_FORMAT_COL_8_BPP:
@@ -984,7 +984,7 @@ banshee_do_screen_to_screen_stretch_blt(voodoo_t *voodoo)
 }
 
 static void
-banshee_do_host_to_screen_stretch_blt(voodoo_t *voodoo, int count, uint32_t data)
+banshee_do_host_to_screen_stretch_blt(voodoo_t *voodoo, UNUSED(int count), uint32_t data)
 {
 #if 0
     if (voodoo->banshee_blt.dstBaseAddr == 0xee5194)

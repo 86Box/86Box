@@ -49,7 +49,7 @@
 #include <86box/nvr_ps2.h>
 #include <86box/rom.h>
 
-typedef struct {
+typedef struct ps2_nvr_t {
     int addr;
 
     uint8_t *ram;
@@ -76,6 +76,9 @@ ps2_nvr_read(uint16_t port, void *priv)
         case 0x76:
             ret = nvr->ram[nvr->addr];
             break;
+
+        default:
+            break;
     }
 
     return ret;
@@ -97,6 +100,9 @@ ps2_nvr_write(uint16_t port, uint8_t val, void *priv)
 
         case 0x76:
             nvr->ram[nvr->addr] = val;
+            break;
+
+        default:
             break;
     }
 }

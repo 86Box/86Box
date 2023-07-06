@@ -80,7 +80,7 @@ MiniMicro 4 also won't work with the XT FDC which the Zilog claims to be.
 #define ROM_PII_151B "roms/floppy/dtk/pii-151b.rom"
 #define ROM_PII_158B "roms/floppy/dtk/pii-158b.rom"
 
-typedef struct {
+typedef struct pii_t {
     rom_t bios_rom;
 } pii_t;
 

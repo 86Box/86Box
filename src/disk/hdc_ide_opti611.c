@@ -30,11 +30,11 @@
 #include <86box/hdc_ide.h>
 #include <86box/plat_unused.h>
 
-typedef struct
-{
-    uint8_t tries,
-        in_cfg, cfg_locked,
-        regs[19];
+typedef struct opti611_t {
+    uint8_t tries;
+    uint8_t in_cfg;
+    uint8_t cfg_locked;
+    uint8_t regs[19];
 } opti611_t;
 
 static void opti611_ide_handler(opti611_t *dev);

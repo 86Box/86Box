@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <86box/plat_unused.h>
 
 #ifdef UPI42_STANDALONE
 #    define fatal(...)              \
@@ -160,7 +161,7 @@ upi42_op_MOV_A_imm(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_MOV_A_PSW(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_MOV_A_PSW(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->a = upi42->psw;
     upi42_mirror_f0(upi42);
@@ -168,7 +169,7 @@ upi42_op_MOV_A_PSW(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_MOV_PSW_A(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_MOV_PSW_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->psw = upi42->a;
     upi42_mirror_f0(upi42);
@@ -176,28 +177,28 @@ upi42_op_MOV_PSW_A(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_MOV_A_T(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_MOV_A_T(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->a = upi42->t;
     return 1;
 }
 
 static int
-upi42_op_MOV_T_A(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_MOV_T_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->t = upi42->a;
     return 1;
 }
 
 static int
-upi42_op_MOV_STS_A(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_MOV_STS_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->sts = (upi42->a & 0xf0) | (upi42->sts & 0x0f);
     return 1;
 }
 
 static int
-upi42_op_MOVP_A_indA(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_MOVP_A_indA(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->a = upi42->rom[(upi42->pc & 0xff00) | upi42->a];
     upi42->cycs--;
@@ -205,7 +206,7 @@ upi42_op_MOVP_A_indA(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_MOVP3_A_indA(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_MOVP3_A_indA(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->a = upi42->rom[0x300 | upi42->a];
     upi42->cycs--;
@@ -242,7 +243,7 @@ upi42_op_XCHD_A_indRr(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_SWAP_A(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_SWAP_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->a = (upi42->a << 4) | (upi42->a >> 4);
     return 1;
@@ -258,7 +259,7 @@ upi42_op_IN_A_Pp(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_IN_A_DBB(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_IN_A_DBB(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->a = upi42->dbb_in;
     upi42->sts &= ~0x02; /* clear IBF */
@@ -266,7 +267,7 @@ upi42_op_IN_A_DBB(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_OUTL_Pp_A(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_OUTL_Pp_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->ports_out[fetchdat & 3] = upi42->a;
     upi42->cycs--;
@@ -274,7 +275,7 @@ upi42_op_OUTL_Pp_A(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_OUT_DBB_A(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_OUT_DBB_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->dbb_out = upi42->a;
     upi42->sts |= 0x01; /* set OBF */
@@ -397,21 +398,21 @@ upi42_op_ORLD_Pp_A(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_RR_A(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_RR_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->a = (upi42->a << 7) | (upi42->a >> 1);
     return 1;
 }
 
 static int
-upi42_op_RL_A(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_RL_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->a = (upi42->a >> 7) | (upi42->a << 1);
     return 1;
 }
 
 static int
-upi42_op_RRC_A(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_RRC_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     uint8_t temp = upi42->a;
     upi42->a     = (upi42->psw & 0x80) | (temp >> 1);
@@ -420,7 +421,7 @@ upi42_op_RRC_A(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_RLC_A(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_RLC_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     uint8_t temp = upi42->a;
     upi42->a     = (temp << 1) | (upi42->psw >> 7);
@@ -429,7 +430,7 @@ upi42_op_RLC_A(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_INC_A(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_INC_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->a++;
     return 1;
@@ -450,7 +451,7 @@ upi42_op_INC_indRr(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_DEC_A(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_DEC_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->a--;
     return 1;
@@ -533,21 +534,21 @@ upi42_op_ADDC_A_imm(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_CLR_A(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_CLR_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->a = 0;
     return 1;
 }
 
 static int
-upi42_op_CPL_A(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_CPL_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->a = ~upi42->a;
     return 1;
 }
 
 static int
-upi42_op_DA_A(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_DA_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     if (((upi42->a & 0x0f) > 9) || (upi42->psw & 0x40))
         upi42->a += 6;
@@ -560,21 +561,21 @@ upi42_op_DA_A(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_CLR_C(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_CLR_C(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->psw &= ~0x80;
     return 1;
 }
 
 static int
-upi42_op_CPL_C(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_CPL_C(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->psw ^= 0x80;
     return 1;
 }
 
 static int
-upi42_op_CLR_F0(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_CLR_F0(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->psw &= ~0x20;
     upi42_mirror_f0(upi42);
@@ -582,7 +583,7 @@ upi42_op_CLR_F0(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_CPL_F0(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_CPL_F0(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->psw ^= 0x20;
     upi42_mirror_f0(upi42);
@@ -590,21 +591,21 @@ upi42_op_CPL_F0(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_CLR_F1(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_CLR_F1(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->sts &= ~0x08;
     return 1;
 }
 
 static int
-upi42_op_CPL_F1(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_CPL_F1(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->sts ^= 0x08;
     return 1;
 }
 
 static int
-upi42_op_EN_I(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_EN_I(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->i              = 1;
     upi42->skip_timer_inc = 1;
@@ -612,7 +613,7 @@ upi42_op_EN_I(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_DIS_I(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_DIS_I(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->i              = 0;
     upi42->skip_timer_inc = 1;
@@ -620,21 +621,21 @@ upi42_op_DIS_I(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_EN_TCNTI(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_EN_TCNTI(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->tcnti = 1;
     return 1;
 }
 
 static int
-upi42_op_DIS_TCNTI(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_DIS_TCNTI(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->tcnti = upi42->tcnti_raise = 0;
     return 1;
 }
 
 static int
-upi42_op_STRT_T(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_STRT_T(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->run_timer      = 1;
     upi42->prescaler      = 0;
@@ -643,7 +644,7 @@ upi42_op_STRT_T(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_STRT_CNT(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_STRT_CNT(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->run_counter    = 1;
     upi42->skip_timer_inc = 1;
@@ -651,7 +652,7 @@ upi42_op_STRT_CNT(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_STOP_TCNT(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_STOP_TCNT(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->run_timer = upi42->run_counter = 0;
     upi42->skip_timer_inc                 = 1;
@@ -659,35 +660,35 @@ upi42_op_STOP_TCNT(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_SEL_PMB0(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_SEL_PMB0(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->dbf = 0;
     return 1;
 }
 
 static int
-upi42_op_SEL_PMB1(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_SEL_PMB1(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->dbf = 1;
     return 1;
 }
 
 static int
-upi42_op_SEL_RB0(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_SEL_RB0(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->psw &= ~0x10;
     return 1;
 }
 
 static int
-upi42_op_SEL_RB1(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_SEL_RB1(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->psw |= 0x10;
     return 1;
 }
 
 static int
-upi42_op_NOP(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_NOP(UNUSED(upi42_t *upi42), UNUSED(uint32_t fetchdat))
 {
     return 1;
 }
@@ -741,7 +742,7 @@ upi42_op_JMP_imm(upi42_t *upi42, uint32_t fetchdat)
 }
 
 static int
-upi42_op_JMPP_indA(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_JMPP_indA(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->pc = (upi42->pc & 0xff00) | upi42->a;
     upi42->cycs--;
@@ -774,27 +775,27 @@ UPI42_COND_JMP_IMM(JNIBF, !(upi42->sts & 0x02), )
 UPI42_COND_JMP_IMM(JOBF, upi42->sts & 0x01, )
 
 static int
-upi42_op_EN_A20(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_EN_A20(UNUSED(upi42_t *upi42), UNUSED(uint32_t fetchdat))
 {
     /* Enable fast A20 until reset. */
     return 1;
 }
 
 static int
-upi42_op_EN_DMA(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_EN_DMA(UNUSED(upi42_t *upi42), UNUSED(uint32_t fetchdat))
 {
     return 1;
 }
 
 static int
-upi42_op_EN_FLAGS(upi42_t *upi42, uint32_t fetchdat)
+upi42_op_EN_FLAGS(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->flags = 1;
     return 1;
 }
 
 static int
-upi42_op_SUSPEND(upi42_t *upi42, uint32_t fetchdatr)
+upi42_op_SUSPEND(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     /* Inhibit execution until reset. */
     upi42->suspend = 1;
@@ -923,6 +924,8 @@ upi42_port_read(void *priv, int port)
 
     /* Apply special meanings. */
     switch (port) {
+        default:
+            break;
     }
 
     upi42_log("UPI42: port_read(%d) = %02X\n", port, ret);
@@ -944,7 +947,7 @@ upi42_port_write(void *priv, int port, uint8_t val)
 /* NOTE: The dbb/sts/cmd functions use I/O handler signatures; port is ignored. */
 
 uint8_t
-upi42_dbb_read(uint16_t port, void *priv)
+upi42_dbb_read(UNUSED(uint16_t port), void *priv)
 {
     upi42_t *upi42 = (upi42_t *) priv;
 
@@ -955,7 +958,7 @@ upi42_dbb_read(uint16_t port, void *priv)
 }
 
 void
-upi42_dbb_write(uint16_t port, uint8_t val, void *priv)
+upi42_dbb_write(UNUSED(uint16_t port), uint8_t val, void *priv)
 {
     upi42_t *upi42 = (upi42_t *) priv;
 
@@ -967,7 +970,7 @@ upi42_dbb_write(uint16_t port, uint8_t val, void *priv)
 }
 
 uint8_t
-upi42_sts_read(uint16_t port, void *priv)
+upi42_sts_read(UNUSED(uint16_t port), void *priv)
 {
     upi42_t *upi42 = (upi42_t *) priv;
 
@@ -977,7 +980,7 @@ upi42_sts_read(uint16_t port, void *priv)
 }
 
 void
-upi42_cmd_write(uint16_t port, uint8_t val, void *priv)
+upi42_cmd_write(UNUSED(uint16_t port), uint8_t val, void *priv)
 {
     upi42_t *upi42 = (upi42_t *) priv;
 

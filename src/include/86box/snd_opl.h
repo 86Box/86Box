@@ -31,7 +31,7 @@ enum fm_driver {
     FM_DRV_MAX   = 2
 };
 
-typedef struct {
+typedef struct fm_drv_t {
     uint8_t (*read)(uint16_t port, void *priv);
     void (*write)(uint16_t port, uint8_t val, void *priv);
     int32_t *(*update)(void *priv);

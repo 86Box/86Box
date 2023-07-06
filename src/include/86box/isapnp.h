@@ -31,25 +31,25 @@ enum {
     ISAPNP_CARD_NO_KEY       = 3  /* cheat code for Crystal CS423x */
 };
 
-typedef struct {
+typedef struct isapnp_device_config_t {
     uint8_t activate;
-    struct {
+    struct pnp_mem_t {
         uint32_t base : 24;
         uint32_t size : 24;
     } mem[4];
-    struct {
+    struct pnp_mem32_t {
         uint32_t base;
         uint32_t size;
     } mem32[4];
-    struct {
+    struct pnp_io_t {
         uint16_t base;
     } io[8];
-    struct {
+    struct pnp_irq_t {
         uint8_t irq : 4;
         uint8_t level : 1;
         uint8_t type : 1;
     } irq[2];
-    struct {
+    struct pnp_dma_t {
         uint8_t dma : 3;
     } dma[2];
 } isapnp_device_config_t;

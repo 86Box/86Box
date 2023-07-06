@@ -32,7 +32,7 @@
 #define bios_load_interleavedr(a, b, c, d, e)     bios_load(a, b, c, d, e, FLAG_INT | FLAG_REP)
 #define bios_load_aux_interleaved(a, b, c, d, e)  bios_load(a, b, c, d, e, FLAG_INT | FLAG_AUX)
 
-typedef struct {
+typedef struct rom_t {
     uint8_t      *rom;
     int           sz;
     uint32_t      mask;

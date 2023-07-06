@@ -65,7 +65,7 @@ extern int   fdd_get_from_internal_name(char *s);
 
 extern int fdd_current_track(int drive);
 
-typedef struct {
+typedef struct DRIVE {
     int id;
 
     void (*seek)(int drive, int track);

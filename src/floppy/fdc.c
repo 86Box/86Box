@@ -203,9 +203,9 @@ fdc_get_current_drive(void)
 }
 
 void
-fdc_ctrl_reset(void *p)
+fdc_ctrl_reset(void *priv)
 {
-    fdc_t *fdc = (fdc_t *) p;
+    fdc_t *fdc = (fdc_t *) priv;
 
     fdc->stat = 0x80;
     fdc->pnum = fdc->ptot = 0;
@@ -227,8 +227,8 @@ int
 fdc_get_compare_condition(fdc_t *fdc)
 {
     switch (fdc->interrupt) {
-        case 0x11:
         default:
+        case 0x11:
             return 0;
         case 0x19:
             return 1;
@@ -517,6 +517,9 @@ fdc_update_rate(fdc_t *fdc, int drive)
                     case 2:
                         fdc->bit_rate = 2000;
                         break;
+
+                    default:
+                        break;
                 }
                 break;
             case 2: /*Double density*/
@@ -524,6 +527,9 @@ fdc_update_rate(fdc_t *fdc, int drive)
                 break;
             case 3: /*Extended density*/
                 fdc->bit_rate = 1000;
+                break;
+
+            default:
                 break;
         }
 
@@ -544,8 +550,9 @@ fdc_get_bit_rate(fdc_t *fdc)
             return 2;
         case 1000:
             return 3;
+
         default:
-            return 2;
+            break;
     }
     return 2;
 }
@@ -566,6 +573,9 @@ fdc_get_densel(fdc_t *fdc, int drive)
                 return 0;
             case 2:
                 return 1;
+
+            default:
+                break;
         }
     }
 
@@ -575,6 +585,9 @@ fdc_get_densel(fdc_t *fdc, int drive)
                 return 1;
             case 3:
                 return 0;
+
+            default:
+                break;
         }
     } else {
         switch (fdc->densel_force) {
@@ -582,6 +595,9 @@ fdc_get_densel(fdc_t *fdc, int drive)
                 return 0;
             case 1:
                 return 1;
+
+            default:
+                break;
         }
     }
 
@@ -592,6 +608,9 @@ fdc_get_densel(fdc_t *fdc, int drive)
         case 1:
         case 2:
             return fdc->densel_polarity ? 0 : 1;
+
+        default:
+            break;
     }
 
     return 0;
@@ -1230,6 +1249,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc->perp |= (fdc->params[0] & 0x03);
                             }
                             return;
+
+                        default:
+                            break;
                     }
                 } else
                     fdc->stat = 0x90 | (fdc->stat & 0xf);
@@ -1242,6 +1264,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
             if (fdc->flags & FDC_FLAG_PS1)
                 fdc->noprec = !!(val & 0x04);
             return;
+
+        default:
+            break;
     }
 }
 
@@ -1299,6 +1324,9 @@ fdc_read(uint16_t addr, void *priv)
                         break;
                     case 3:
                         ret |= 0x61;
+                        break;
+
+                    default:
                         break;
                 }
             } else {
@@ -1684,6 +1712,9 @@ fdc_callback(void *priv)
                         fdc->stat = 0x90;
                     }
                     break;
+
+                default:
+                    break;
             }
             fdc->inread = 1;
             return;
@@ -1787,6 +1818,9 @@ fdc_callback(void *priv)
             fdc->paramstogo     = 1;
             fdc->interrupt      = 0;
             return;
+
+        default:
+            break;
     }
 }
 

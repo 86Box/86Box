@@ -893,11 +893,11 @@ load_ports(void)
         sprintf(temp, "serial%d_enabled", c + 1);
         com_ports[c].enabled = !!ini_section_get_int(cat, temp, (c >= 2) ? 0 : 1);
 
-        /*
+#if 0
                 sprintf(temp, "serial%d_device", c + 1);
                 p = (char *) ini_section_get_string(cat, temp, "none");
                 com_ports[c].device = com_device_get_from_internal_name(p);
-        */
+#endif
 
         sprintf(temp, "serial%d_passthrough_enabled", c + 1);
         serial_passthrough_enabled[c] = !!ini_section_get_int(cat, temp, 0);
@@ -1075,8 +1075,8 @@ load_hard_disks(void)
 
         hdd[c].bus = hdd_string_to_bus(s, 0);
         switch (hdd[c].bus) {
-            case HDD_BUS_DISABLED:
             default:
+            case HDD_BUS_DISABLED:
                 max_spt = max_hpc = max_tracks = 0;
                 break;
 
@@ -1306,8 +1306,10 @@ load_floppy_drives(void)
         else
             strncpy(floppyfns[c], p, 511);
 
-        /* if (*wp != L'\0')
-            config_log("Floppy%d: %ls\n", c, floppyfns[c]); */
+#if 0
+        if (*wp != L'\0')
+            config_log("Floppy%d: %ls\n", c, floppyfns[c]);
+#endif
         sprintf(temp, "fdd_%02i_writeprot", c + 1);
         ui_writeprot[c] = !!ini_section_get_int(cat, temp, 0);
         ini_section_delete_var(cat, temp);
@@ -1372,8 +1374,10 @@ load_floppy_and_cdrom_drives(void)
         else
             strncpy(floppyfns[c], p, 511);
 
-        /* if (*wp != L'\0')
-            config_log("Floppy%d: %ls\n", c, floppyfns[c]); */
+#if 0
+        if (*wp != L'\0')
+            config_log("Floppy%d: %ls\n", c, floppyfns[c]);
+#endif
         sprintf(temp, "fdd_%02i_writeprot", c + 1);
         ui_writeprot[c] = !!ini_section_get_int(cat, temp, 0);
         sprintf(temp, "fdd_%02i_turbo", c + 1);
@@ -2528,6 +2532,9 @@ save_network(void)
             case NET_TYPE_VDE:
                 ini_section_set_string(cat, temp, "vde");
                 break;
+
+            default:
+                break;
         }
 
         sprintf(temp, "net_%02i_host_device", c + 1);
@@ -2537,7 +2544,9 @@ save_network(void)
             else
                 ini_section_set_string(cat, temp, net_cards_conf[c].host_dev_name);
         } else {
-            /* ini_section_set_string(cat, temp, "none"); */
+#if 0
+            ini_section_set_string(cat, temp, "none");
+#endif
             ini_section_delete_var(cat, temp);
         }
 
@@ -2568,7 +2577,7 @@ save_ports(void)
         else
             ini_section_set_int(cat, temp, com_ports[c].enabled);
 
-        /*
+#if 0
                         sprintf(temp, "serial%d_type", c + 1);
                         if (!com_ports[c].enabled))
                             ini_section_delete_var(cat, temp);
@@ -2581,7 +2590,7 @@ save_ports(void)
                         else
                             ini_section_set_string(cat, temp,
                               (char *) com_device_get_internal_name(com_ports[c].device));
-                */
+#endif
 
         sprintf(temp, "serial%d_passthrough_enabled", c + 1);
         if (serial_passthrough_enabled[c]) {
