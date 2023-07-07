@@ -526,7 +526,6 @@ cpu_set(void)
     cpu_set_agp_speed(0);
 
     io_handler(cpu_iscyrix, 0x0022, 0x0002, cpu_read, NULL, NULL, cpu_write, NULL, NULL, NULL);
-    cpu_iscyrix = cpu_iscyrix || (cpu_s->cpu_type == CPU_386SX) || (cpu_s->cpu_type == CPU_386DX);
 
     io_handler(hasfpu, 0x00f0, 0x000f, cpu_read, NULL, NULL, cpu_write, NULL, NULL, NULL);
     io_handler(hasfpu, 0xf007, 0x0001, cpu_read, NULL, NULL, cpu_write, NULL, NULL, NULL);
