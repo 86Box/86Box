@@ -1158,6 +1158,36 @@ machine_at_486sp3_init(const machine_t *model)
 }
 
 int
+machine_at_amis76_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_inverted("roms/machines/s76p/s76p.rom", 
+                                    0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    // pci_register_slot(0x01, PCI_CARD_IDE,         1, 2, 3 ,4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&sio_device);
+    device_add(&fdc37c665_device);
+    device_add(&intel_flash_bxt_ami_device);
+
+    device_add(&i420tx_device);
+    // device_add(&ide_cmd640_pci_device); /* is this actually cmd640? is it single channel? */
+    device_add(&ide_pci_device);
+
+    return ret;
+}
+
+int
 machine_at_pci400cb_init(const machine_t *model)
 {
     int ret;
