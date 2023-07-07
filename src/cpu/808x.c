@@ -2375,7 +2375,7 @@ execx86(int cycs)
                     /* alu rm, r / r, rm */
                     bits = 8 << (opcode & 1);
                     do_mod_rm();
-                    access(46, bits);
+                    // access(46, bits);
                     tempw      = get_ea();
                     cpu_alu_op = (opcode >> 3) & 7;
                     if ((opcode & 2) == 0) {
@@ -2392,10 +2392,10 @@ execx86(int cycs)
                     wait(1, 0);
                     if (cpu_alu_op != 7) {
                         if ((opcode & 2) == 0) {
-                            access(10, bits);
-                            set_ea(cpu_data);
                             if (cpu_mod == 3)
                                 wait(2, 0);
+                            access(25, bits);
+                            set_ea(cpu_data);
                         } else
                             set_reg(cpu_reg, cpu_data);
                     }
@@ -2695,7 +2695,6 @@ execx86(int cycs)
                     /* MOV reg, rm */
                     bits = 8 << (opcode & 1);
                     do_mod_rm();
-                    access(50, bits);
                     set_reg(cpu_reg, get_ea());
                     wait(1, 0);
                     if (cpu_mod != 3)
@@ -2707,7 +2706,7 @@ execx86(int cycs)
                     wait(1, 0);
                     if (cpu_mod != 3)
                         wait(2, 0);
-                    access(14, 16);
+                    access(16, 16);
                     seteaw(_opseg[(rmdat & 0x18) >> 3]->seg);
                     break;
 
@@ -3334,37 +3333,44 @@ execx86(int cycs)
 
                 case 0xE4:
                 case 0xE5:
+                    bits = 8 << (opcode & 1);
+                    wait(1, 0);
+                    cpu_data = pfq_fetchb();
+                    cpu_state.eaaddr = cpu_data;
+                    access(46, bits);
+                    wait(1, 0);
+                    cpu_io(bits, 0, cpu_state.eaaddr);
+                    break;
                 case 0xE6:
                 case 0xE7:
+                    bits = 8 << (opcode & 1);
+                    wait(1, 0);
+                    cpu_data = pfq_fetchb();
+                    cpu_state.eaaddr = cpu_data;
+                    cpu_data = (bits == 16) ? AX : AL;
+                    access(46, bits);
+                    wait(2, 0);
+                    cpu_io(bits, 1, cpu_state.eaaddr);
+                    break;
                 case 0xEC:
                 case 0xED:
+                    bits = 8 << (opcode & 1);
+                    cpu_data = DX;
+                    cpu_state.eaaddr = cpu_data;
+                    access(3, bits);
+                    wait(1, 0);
+                    cpu_io(bits, 0, cpu_state.eaaddr);
+                    break;
                 case 0xEE:
                 case 0xEF:
                     bits = 8 << (opcode & 1);
-                    if ((opcode & 0x0e) != 0x0c)
-                        wait(1, 0);
-                    if ((opcode & 8) == 0)
-                        cpu_data = pfq_fetchb();
-                    else
-                        cpu_data = DX;
+                    wait(2, 0);
+                    cpu_data = DX;
                     cpu_state.eaaddr = cpu_data;
-                    if ((opcode & 2) == 0) {
-                        access(3, bits);
-                        if (opcode & 1)
-                            cpu_io(16, 0, cpu_data);
-                        else
-                            cpu_io(8, 0, cpu_data);
-                        wait(1, 0);
-                    } else {
-                        if ((opcode & 8) == 0)
-                            access(8, bits);
-                        else
-                            access(9, bits);
-                        if (opcode & 1)
-                            cpu_io(16, 1, cpu_data);
-                        else
-                            cpu_io(8, 1, cpu_data);
-                    }
+                    cpu_data = (bits == 16) ? AX : AL;
+                    access(3, bits);
+                    cpu_io(bits, 1, cpu_state.eaaddr);
+                    wait(1, 0);
                     break;
 
                 case 0xE8: /*CALL rel 16*/
