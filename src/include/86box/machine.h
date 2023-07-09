@@ -510,6 +510,7 @@ extern int machine_at_m4li_init(const machine_t *);
 extern int machine_at_alfredo_init(const machine_t *);
 extern int machine_at_amis76_init(const machine_t *);
 extern int machine_at_ninja_init(const machine_t *);
+extern int machine_at_bat4ip3e_init(const machine_t *);
 extern int machine_at_486sp3_init(const machine_t *);
 extern int machine_at_486sp3c_init(const machine_t *);
 extern int machine_at_486sp3g_init(const machine_t *);
