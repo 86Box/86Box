@@ -36,13 +36,17 @@
 
 #define HEFRAS (dev->regs[0x26] & 0x40)
 
-typedef struct {
-    uint8_t id, tries,
-        regs[48],
-        dev_regs[256][208];
-    int locked, rw_locked,
-        cur_reg, base_address,
-        type, hefras;
+typedef struct w83977f_t {
+    uint8_t   id;
+    uint8_t   tries;
+    uint8_t   regs[48];
+    uint8_t   dev_regs[256][208];
+    int       locked;
+    int       rw_locked;
+    int       cur_reg;
+    int       base_address;
+    int       type;
+    int       hefras;
     fdc_t    *fdc;
     serial_t *uart[2];
 } w83977f_t;
@@ -145,6 +149,9 @@ w83977f_serial_handler(w83977f_t *dev, int uart)
         case 0x03:
             clock_src = 24000000.0 / 1.625;
             break;
+
+        default:
+            break;
     }
 
     serial_set_clock_src(dev->uart[uart], clock_src);
@@ -194,8 +201,10 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
 
     switch (dev->cur_reg) {
         case 0x02:
-            /* if (valxor & 0x02)
-                    softresetx86(); */
+#if 0
+            if (valxor & 0x02)
+                    softresetx86();
+#endif
             break;
         case 0x22:
             if (valxor & 0x20)
@@ -226,6 +235,9 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
                     case 0x03:
                         w83977f_serial_handler(dev, ld - 2);
                         break;
+
+                    default:
+                        break;
                 }
             break;
         case 0x60:
@@ -242,6 +254,9 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
                     case 0x03:
                         w83977f_serial_handler(dev, ld - 2);
                         break;
+
+                    default:
+                        break;
                 }
             break;
         case 0x70:
@@ -256,6 +271,9 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
                     case 0x02:
                     case 0x03:
                         w83977f_serial_handler(dev, ld - 2);
+                        break;
+
+                    default:
                         break;
                 }
             break;
@@ -281,6 +299,9 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
                     if (valxor & 0x03)
                         w83977f_serial_handler(dev, ld - 2);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 0xf1:
@@ -297,6 +318,9 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
                         fdc_set_diswr(dev->fdc, (val & 0x02) ? 1 : 0);
                     if (!dev->id && (valxor & 0x01))
                         fdc_set_swwp(dev->fdc, (val & 0x01) ? 1 : 0);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -315,6 +339,9 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
                     if (!dev->id && (valxor & 0x03))
                         fdc_update_rwc(dev->fdc, 0, val & 0x03);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 0xf4:
@@ -329,7 +356,13 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
                     if (!dev->id && (valxor & 0x18))
                         fdc_update_drvrate(dev->fdc, dev->cur_reg & 0x03, (val & 0x18) >> 3);
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 }

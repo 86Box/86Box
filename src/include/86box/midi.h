@@ -47,13 +47,21 @@ typedef struct midi_in_handler_t {
 } midi_in_handler_t;
 
 typedef struct midi_t {
-    uint8_t midi_rt_buf[8], midi_cmd_buf[8],
-        midi_status, midi_sysex_data[SYSEX_SIZE];
-    int midi_cmd_pos, midi_cmd_len, midi_cmd_r,
-        midi_realtime, thruchan, midi_clockout;
-    unsigned int midi_sysex_start, midi_sysex_delay,
-        midi_pos;
-    midi_device_t *m_out_device, *m_in_device;
+    uint8_t        midi_rt_buf[8];
+    uint8_t        midi_cmd_buf[8];
+    uint8_t        midi_status;
+    uint8_t        midi_sysex_data[SYSEX_SIZE];
+    int            midi_cmd_pos;
+    int            midi_cmd_len;
+    int            midi_cmd_r;
+    int            midi_realtime;
+    int            thruchan;
+    int            midi_clockout;
+    unsigned int   midi_sysex_start;
+    unsigned int   midi_sysex_delay;
+    unsigned int   midi_pos;
+    midi_device_t *m_out_device;
+    midi_device_t *m_in_device;
 } midi_t;
 
 extern midi_t *midi_out;

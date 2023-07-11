@@ -90,7 +90,7 @@
 
 #define ISARTC_DEBUG  0
 
-typedef struct {
+typedef struct rtcdev_t {
     const char *name;  /* board name */
     uint8_t     board; /* board type */
 
@@ -103,18 +103,18 @@ typedef struct {
     uint32_t base_addr; /* configured I/O address */
 
     /* Fields for the specific driver. */
-    void (*f_wr)(uint16_t, uint8_t, void *);
+    void    (*f_wr)(uint16_t, uint8_t, void *);
     uint8_t (*f_rd)(uint16_t, void *);
-    int8_t year; /* register for YEAR value */
-    char   pad[3];
+    int8_t    year; /* register for YEAR value */
+    char      pad[3];
 
     nvr_t nvr; /* RTC/NVR */
 } rtcdev_t;
 
 /************************************************************************
- *                                    *
- *            Driver for the NatSemi MM58167 chip.        *
- *                                    *
+ *                                                                      *
+ *            Driver for the NatSemi MM58167 chip.                      *
+ *                                                                      *
  ************************************************************************/
 #define MM67_REGS 32
 
@@ -427,7 +427,6 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 {
     rtcdev_t *dev = (rtcdev_t *) priv;
     int       reg = port - dev->base_addr;
-    int       i;
 
 #if ISARTC_DEBUG
     isartc_log("ISARTC: write(%04x, %02x)\n", port - dev->base_addr, val);
@@ -452,7 +451,7 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 
         case MM67_RSTRAM:
             if (val == 0xff) {
-                for (i = MM67_AL_MSEC; i <= MM67_AL_MON; i++)
+                for (uint8_t i = MM67_AL_MSEC; i <= MM67_AL_MON; i++)
                     dev->nvr.regs[i] = RTC_BCD(0);
                 dev->nvr.regs[MM67_DOW] = RTC_BCD(1);
                 dev->nvr.regs[MM67_DOM] = RTC_BCD(1);
@@ -500,9 +499,9 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 }
 
 /************************************************************************
- *                                    *
- *            Generic code for all supported chips.        *
- *                                    *
+ *                                                                      *
+ *            Generic code for all supported chips.                     *
+ *                                                                      *
  ************************************************************************/
 
 /* Initialize the device for use. */

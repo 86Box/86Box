@@ -151,6 +151,9 @@ f82c606_update_ports(upc_t *dev, int set)
         case 0xc0:
             uart2_int = COM2_IRQ;
             break;
+
+        default:
+            break;
     }
 
     switch (dev->regs[8] & 0x30) {
@@ -162,6 +165,9 @@ f82c606_update_ports(upc_t *dev, int set)
             break;
         case 0x30:
             uart2_int = COM1_IRQ;
+            break;
+
+        default:
             break;
     }
 
@@ -175,6 +181,9 @@ f82c606_update_ports(upc_t *dev, int set)
         case 0x0c:
             lpt1_int = LPT2_IRQ;
             break;
+
+        default:
+            break;
     }
 
     switch (dev->regs[8] & 0x03) {
@@ -186,6 +195,9 @@ f82c606_update_ports(upc_t *dev, int set)
             break;
         case 0x03:
             lpt1_int = LPT1_IRQ;
+            break;
+
+        default:
             break;
     }
 

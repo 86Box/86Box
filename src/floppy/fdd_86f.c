@@ -125,32 +125,38 @@ enum {
     FMT_POSTTRK_GAP4
 };
 
-typedef struct {
+typedef struct sliding_buffer_t {
     uint8_t  buffer[10];
     uint32_t pos;
     uint32_t len;
 } sliding_buffer_t;
 
-typedef struct {
+typedef struct find_t {
     uint32_t bits_obtained;
     uint16_t bytes_obtained;
     uint16_t sync_marks;
     uint32_t sync_pos;
 } find_t;
 
-typedef struct {
+typedef struct split_byte_t {
     unsigned nibble0 : 4;
     unsigned nibble1 : 4;
 } split_byte_t;
 
-typedef union {
+typedef union decoded_t {
     uint8_t      byte;
     split_byte_t nibbles;
 } decoded_t;
 
-typedef struct {
-    uint8_t c, h, r, n;
-    uint8_t flags, pad, pad0, pad1;
+typedef struct sector_t {
+    uint8_t c;
+    uint8_t h;
+    uint8_t r;
+    uint8_t n;
+    uint8_t flags;
+    uint8_t pad;
+    uint8_t pad0;
+    uint8_t pad1;
     void   *prev;
 } sector_t;
 
@@ -173,11 +179,18 @@ typedef struct {
  *      If bits 6, 5 are 0, and bit 7 is 1, the extra bitcell count
  *      specifies the entire bitcell count
  */
-typedef struct {
+typedef struct d86f_t {
     FILE   *f;
-    uint8_t state, fill, sector_count, format_state,
-        error_condition, id_found;
-    uint16_t  version, disk_flags, satisfying_bytes, turbo_pos;
+    uint8_t   state;
+    uint8_t   fill;
+    uint8_t   sector_count;
+    uint8_t   format_state;
+    uint8_t   error_condition;
+    uint8_t   id_found;
+    uint16_t  version;
+    uint16_t  disk_flags;
+    uint16_t  satisfying_bytes;
+    uint16_t  turbo_pos;
     uint16_t  cur_track;
     uint16_t  track_encoded_data[2][53048];
     uint16_t *track_surface_data[2];
@@ -191,9 +204,13 @@ typedef struct {
 #ifdef D86F_COMPRESS
     int is_compressed;
 #endif
-    int32_t  extra_bit_cells[2];
-    uint32_t file_size, index_count, track_pos, datac,
-        id_pos, dma_over;
+    int32_t     extra_bit_cells[2];
+    uint32_t    file_size;
+    uint32_t    index_count;
+    uint32_t    track_pos;
+    uint32_t    datac;
+    uint32_t    id_pos;
+    uint32_t    dma_over;
     uint32_t    index_hole_pos[2];
     uint32_t    track_offset[512];
     sector_id_t last_sector;
@@ -203,7 +220,8 @@ typedef struct {
     crc_t       calc_crc;
     crc_t       track_crc;
     char        original_file_name[2048];
-    uint8_t    *filebuf, *outbuf;
+    uint8_t    *filebuf;
+    uint8_t    *outbuf;
     sector_t   *last_side_sector[2];
 } d86f_t;
 
@@ -351,43 +369,43 @@ d86f_index_hole_pos(int drive, int side)
 }
 
 uint32_t
-null_index_hole_pos(int drive, int side)
+null_index_hole_pos(UNUSED(int drive), UNUSED(int side))
 {
     return 0;
 }
 
 uint16_t
-null_disk_flags(int drive)
+null_disk_flags(UNUSED(int drive))
 {
     return 0x09;
 }
 
 uint16_t
-null_side_flags(int drive)
+null_side_flags(UNUSED(int drive))
 {
     return 0x0A;
 }
 
 void
-null_writeback(int drive)
+null_writeback(UNUSED(int drive))
 {
     return;
 }
 
 void
-null_set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
+null_set_sector(UNUSED(int drive), UNUSED(int side), UNUSED(uint8_t c), UNUSED(uint8_t h), UNUSED(uint8_t r), UNUSED(uint8_t n))
 {
     return;
 }
 
 void
-null_write_data(int drive, int side, uint16_t pos, uint8_t data)
+null_write_data(UNUSED(int drive), UNUSED(int side), UNUSED(uint16_t pos), UNUSED(uint8_t data))
 {
     return;
 }
 
 int
-null_format_conditions(int drive)
+null_format_conditions(UNUSED(int drive))
 {
     return 0;
 }
@@ -401,7 +419,7 @@ d86f_extra_bit_cells(int drive, int side)
 }
 
 int32_t
-null_extra_bit_cells(int drive, int side)
+null_extra_bit_cells(UNUSED(int drive), UNUSED(int side))
 {
     return 0;
 }
@@ -415,7 +433,7 @@ common_encoded_data(int drive, int side)
 }
 
 void
-common_read_revolution(int drive)
+common_read_revolution(UNUSED(int drive))
 {
     return;
 }
@@ -619,9 +637,9 @@ d86f_get_array_size(int drive, int side, int words)
         array_size = 0;
     else
         switch (hole) {
+            default:
             case 0:
             case 1:
-            default:
                 array_size = 12500;
                 switch (rm) {
                     case 1:
@@ -812,7 +830,7 @@ d86f_has_extra_bit_cells(int drive)
 }
 
 uint32_t
-d86f_header_size(int drive)
+d86f_header_size(UNUSED(int drive))
 {
     return 8;
 }
@@ -884,15 +902,14 @@ d86f_wrong_densel(int drive)
         is_3mode = 1;
 
     switch (d86f_hole(drive)) {
-        case 0:
         default:
+        case 0:
             if (fdd_is_dd(drive))
                 return 0;
             if (fdd_get_densel(drive))
                 return 1;
             else
                 return 0;
-            break;
 
         case 1:
             if (fdd_is_dd(drive))
@@ -905,7 +922,6 @@ d86f_wrong_densel(int drive)
                 else
                     return 1;
             }
-            break;
 
         case 2:
             if (fdd_is_dd(drive) || !fdd_is_ed(drive))
@@ -914,7 +930,6 @@ d86f_wrong_densel(int drive)
                 return 0;
             else
                 return 1;
-            break;
     }
 }
 
@@ -965,6 +980,9 @@ d86f_encode_byte(int drive, int sync, decoded_t b, decoded_t prev_b)
 
                 case 0xfc:
                     return result | d86f_encode_get_clock(0x01);
+
+                default:
+                    break;
             }
         } else {
             switch (b.byte) {
@@ -975,6 +993,9 @@ d86f_encode_byte(int drive, int sync, decoded_t b, decoded_t prev_b)
 
                 case 0xfc:
                     return result | d86f_encode_get_clock(0xd7);
+
+                default:
+                    break;
             }
         }
     }
@@ -1021,6 +1042,9 @@ d86f_get_bitcell_period(int drive)
 
         case 5:
             rate = 2000.0;
+            break;
+
+        default:
             break;
     }
 
@@ -1176,7 +1200,7 @@ d86f_put_bit(int drive, int side, int bit)
 }
 
 static uint8_t
-decodefm(int drive, uint16_t dat)
+decodefm(UNUSED(int drive), uint16_t dat)
 {
     uint8_t temp = 0;
 
@@ -1524,6 +1548,9 @@ d86f_compare_byte(int drive, uint8_t received_byte, uint8_t disk_byte)
             if ((received_byte >= disk_byte) || (received_byte == 0xFF))
                 dev->satisfying_bytes++;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -1832,7 +1859,7 @@ endian_swap(uint16_t word)
 }
 
 void
-d86f_format_finish(int drive, int side, int mfm, uint16_t sc, uint16_t gap_fill, int do_write)
+d86f_format_finish(int drive, int side, int mfm, UNUSED(uint16_t sc), uint16_t gap_fill, int do_write)
 {
     d86f_t *dev = d86f[drive];
 
@@ -1853,7 +1880,7 @@ d86f_format_finish(int drive, int side, int mfm, uint16_t sc, uint16_t gap_fill,
 }
 
 void
-d86f_format_turbo_finish(int drive, int side, int do_write)
+d86f_format_turbo_finish(int drive, UNUSED(int side), int do_write)
 {
     d86f_t *dev = d86f[drive];
 
@@ -2053,12 +2080,13 @@ d86f_format_track(int drive, int side, int do_write)
                     /* Sector within allotted amount, change state to SECTOR_ID_SYNC. */
                     dev->format_state = FMT_SECTOR_ID_SYNC;
                     fdc_request_next_sector_id(d86f_fdc);
-                    break;
                 } else {
                     dev->format_state = FMT_POSTTRK_GAP4;
                     dev->sector_count = 0;
-                    break;
                 }
+                break;
+
+            default:
                 break;
         }
     }
@@ -2904,8 +2932,8 @@ d86f_read_track(int drive, int track, int thin_track, int side, uint16_t *da, ui
     } else {
         if (!thin_track) {
             switch ((dev->disk_flags >> 1) & 3) {
-                case 0:
                 default:
+                case 0:
                     dev->side_flags[side] = 0x0A;
                     break;
 
@@ -3156,7 +3184,7 @@ d86f_stop(int drive)
 }
 
 int
-d86f_common_command(int drive, int sector, int track, int side, int rate, int sector_size)
+d86f_common_command(int drive, int sector, int track, int side, UNUSED(int rate), int sector_size)
 {
     d86f_t *dev = d86f[drive];
 
@@ -3240,7 +3268,7 @@ d86f_comparesector(int drive, int sector, int track, int side, int rate, int sec
 }
 
 void
-d86f_readaddress(int drive, int side, int rate)
+d86f_readaddress(int drive, UNUSED(int side), UNUSED(int rate))
 {
     d86f_t *dev = d86f[drive];
 
@@ -3290,7 +3318,7 @@ d86f_add_track(int drive, int track, int side)
 }
 
 void
-d86f_common_format(int drive, int side, int rate, uint8_t fill, int proxy)
+d86f_common_format(int drive, int side, UNUSED(int rate), uint8_t fill, int proxy)
 {
     d86f_t  *dev = d86f[drive];
     uint16_t temp;
@@ -3735,8 +3763,8 @@ d86f_load(int drive, char *fn)
         }
     } else {
         switch ((dev->disk_flags >> 1) >> 3) {
-            case 0:
             default:
+            case 0:
                 dev->side_flags[1] = 0x0a;
                 break;
 

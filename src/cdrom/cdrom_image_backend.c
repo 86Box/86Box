@@ -283,7 +283,7 @@ cdi_get_audio_track_pre(cd_img_t *cdi, int track)
 
 /* This replaces both Info and EndInfo, they are specified by a variable. */
 int
-cdi_get_audio_track_info(cd_img_t *cdi, int end, int track, int *track_num, TMSF *start, uint8_t *attr)
+cdi_get_audio_track_info(cd_img_t *cdi, UNUSED(int end), int track, int *track_num, TMSF *start, uint8_t *attr)
 {
     track_t *trk = &cdi->tracks[track - 1];
     int      pos = trk->start + 150;
@@ -302,7 +302,7 @@ cdi_get_audio_track_info(cd_img_t *cdi, int end, int track, int *track_num, TMSF
 }
 
 int
-cdi_get_audio_track_info_lba(cd_img_t *cdi, int end, int track, int *track_num, uint32_t *start, uint8_t *attr)
+cdi_get_audio_track_info_lba(cd_img_t *cdi, UNUSED(int end), int track, int *track_num, uint32_t *start, uint8_t *attr)
 {
     track_t *trk = &cdi->tracks[track - 1];
 

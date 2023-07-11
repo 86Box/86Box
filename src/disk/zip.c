@@ -643,6 +643,9 @@ zip_atapi_phase_to_scsi(zip_t *dev)
                 return 1;
             case 3:
                 return 7;
+
+            default:
+                break;
         }
     } else {
         if ((dev->phase & 3) == 3)
@@ -713,13 +716,11 @@ zip_mode_sense_read(zip_t *dev, uint8_t page_control, uint8_t page, uint8_t pos)
             if (dev->drv->is_250 && (page == 5) && (pos == 9) && (dev->drv->medium_size == ZIP_SECTORS))
                 return 0x60;
             return dev->ms_pages_saved.pages[page][pos];
-            break;
         case 1:
             if (dev->drv->is_250)
                 return zip_250_mode_sense_pages_changeable.pages[page][pos];
             else
                 return zip_mode_sense_pages_changeable.pages[page][pos];
-            break;
         case 2:
             if (dev->drv->is_250) {
                 if ((page == 5) && (pos == 9) && (dev->drv->medium_size == ZIP_SECTORS))
@@ -734,6 +735,8 @@ zip_mode_sense_read(zip_t *dev, uint8_t page_control, uint8_t page, uint8_t pos)
                 else
                     return zip_mode_sense_pages_default.pages[page][pos];
             }
+
+        default:
             break;
     }
 
@@ -962,7 +965,7 @@ zip_data_command_finish(zip_t *dev, int len, int block_len, int alloc_len, int d
 }
 
 static void
-zip_sense_clear(zip_t *dev, int command)
+zip_sense_clear(zip_t *dev, UNUSED(int command))
 {
     zip_sense_key = zip_asc = zip_ascq = 0;
 }
@@ -1116,7 +1119,7 @@ zip_data_phase_error(zip_t *dev)
 }
 
 static int
-zip_blocks(zip_t *dev, int32_t *len, int first_batch, int out)
+zip_blocks(zip_t *dev, int32_t *len, UNUSED(int first_batch), int out)
 {
     *len = 0;
 
@@ -1251,7 +1254,9 @@ zip_pre_execution_check(zip_t *dev, uint8_t *cdb)
 static void
 zip_seek(zip_t *dev, uint32_t pos)
 {
-    /* zip_log("ZIP %i: Seek %08X\n", dev->id, pos); */
+#if 0
+    zip_log("ZIP %i: Seek %08X\n", dev->id, pos);
+#endif
     dev->sector_pos = pos;
 }
 
@@ -1513,6 +1518,9 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                     dev->sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
                     dev->sector_pos = (((uint32_t) cdb[2]) << 24) | (((uint32_t) cdb[3]) << 16) | (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
                     break;
+
+                default:
+                    break;
             }
 
             if (!dev->sector_len) {
@@ -1596,6 +1604,9 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                 case GPCMD_WRITE_AND_VERIFY_12:
                     dev->sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
                     dev->sector_pos = (((uint32_t) cdb[2]) << 24) | (((uint32_t) cdb[3]) << 16) | (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
+                    break;
+
+                default:
                     break;
             }
 
@@ -1768,10 +1779,15 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                 case 1: /* Start the disc and read the TOC. */
                     break;
                 case 2: /* Eject the disc if possible. */
-                    /* zip_eject(dev->id); */
+#if 0
+                    zip_eject(dev->id);
+#endif
                     break;
                 case 3: /* Load the disc (close tray). */
                     zip_reload(dev->id);
+                    break;
+
+                default:
                     break;
             }
 
@@ -1850,7 +1866,9 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                 dev->buffer[1] = 0x80;                                               /*Removable*/
                 dev->buffer[2] = (dev->drv->bus_type == ZIP_BUS_SCSI) ? 0x02 : 0x00; /*SCSI-2 compliant*/
                 dev->buffer[3] = (dev->drv->bus_type == ZIP_BUS_SCSI) ? 0x02 : 0x21;
-                // dev->buffer[4] = 31;
+#if 0
+                dev->buffer[4] = 31;
+#endif
                 dev->buffer[4] = 0;
                 if (dev->drv->bus_type == ZIP_BUS_SCSI) {
                     dev->buffer[6] = 1;    /* 16-bit transfers supported */
@@ -1906,6 +1924,9 @@ atapi_out:
                     break;
                 case GPCMD_SEEK_10:
                     pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
+                    break;
+
+                default:
                     break;
             }
             zip_seek(dev, pos);
@@ -2010,7 +2031,9 @@ atapi_out:
             break;
     }
 
-    /* zip_log("ZIP %i: Phase: %02X, request length: %i\n", dev->id, dev->phase, dev->request_length); */
+#if 0
+    zip_log("ZIP %i: Phase: %02X, request length: %i\n", dev->id, dev->phase, dev->request_length);
+#endif
 
     if (zip_atapi_phase_to_scsi(dev) == SCSI_PHASE_STATUS)
         zip_buf_free(dev);
@@ -2170,6 +2193,9 @@ zip_phase_data_out(scsi_common_t *sc)
                 zip_invalid_field_pl(dev);
                 return 0;
             }
+            break;
+
+        default:
             break;
     }
 

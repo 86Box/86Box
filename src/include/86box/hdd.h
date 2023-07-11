@@ -34,60 +34,60 @@
    Bit 5 = Removable (0 = no, 1 yes). */
 
 enum {
-    BUS_DISABLED		= 0x00,
+    BUS_DISABLED            = 0x00,
 
-    BUS_MFM			= 0x01,	/* These four are for hard disk only. */
-    BUS_XIDE			= 0x02,
-    BUS_XTA			= 0x03,
-    BUS_ESDI			= 0x04,
+    BUS_MFM                 = 0x01,    /* These four are for hard disk only. */
+    BUS_XIDE                = 0x02,
+    BUS_XTA                 = 0x03,
+    BUS_ESDI                = 0x04,
 
-    BUS_PANASONIC		= 0x21,	/ These four are for CD-ROM only. */
-    BUS_PHILIPS			= 0x22,
-    BUS_SONY			= 0x23,
-    BUS_MITSUMI			= 0x24,
+    BUS_PANASONIC           = 0x21,    / These four are for CD-ROM only. */
+    BUS_PHILIPS             = 0x22,
+    BUS_SONY                = 0x23,
+    BUS_MITSUMI             = 0x24,
 
-    BUS_IDE_PIO_ONLY		= 0x05,
-    BUS_IDE_PIO_AND_DMA		= 0x15,
-    BUS_IDE_R_PIO_ONLY		= 0x25,
-    BUS_IDE_R_PIO_AND_DMA	= 0x35,
+    BUS_IDE_PIO_ONLY        = 0x05,
+    BUS_IDE_PIO_AND_DMA     = 0x15,
+    BUS_IDE_R_PIO_ONLY      = 0x25,
+    BUS_IDE_R_PIO_AND_DMA   = 0x35,
 
-    BUS_ATAPI_PIO_ONLY		= 0x06,
-    BUS_ATAPI_PIO_AND_DMA	= 0x16,
-    BUS_ATAPI_R_PIO_ONLY	= 0x26,
-    BUS_ATAPI_R_PIO_AND_DMA	= 0x36,
+    BUS_ATAPI_PIO_ONLY      = 0x06,
+    BUS_ATAPI_PIO_AND_DMA   = 0x16,
+    BUS_ATAPI_R_PIO_ONLY    = 0x26,
+    BUS_ATAPI_R_PIO_AND_DMA = 0x36,
 
-    BUS_SASI			= 0x07,
-    BUS_SASI_R			= 0x27,
+    BUS_SASI                = 0x07,
+    BUS_SASI_R              = 0x27,
 
-    BUS_SCSI			= 0x08,
-    BUS_SCSI_R			= 0x28,
+    BUS_SCSI                = 0x08,
+    BUS_SCSI_R              = 0x28,
 
-    BUS_USB			= 0x09,
-    BUS_USB_R			= 0x29
+    BUS_USB                 = 0x09,
+    BUS_USB_R               = 0x29
 };
 #else
 enum {
     HDD_BUS_DISABLED = 0,
-    HDD_BUS_MFM,
-    HDD_BUS_XTA,
-    HDD_BUS_ESDI,
-    HDD_BUS_IDE,
-    HDD_BUS_ATAPI,
-    HDD_BUS_SCSI,
-    HDD_BUS_USB
+    HDD_BUS_MFM      = 1,
+    HDD_BUS_XTA      = 2,
+    HDD_BUS_ESDI     = 3,
+    HDD_BUS_IDE      = 4,
+    HDD_BUS_ATAPI    = 5,
+    HDD_BUS_SCSI     = 6,
+    HDD_BUS_USB      = 7
 };
 #endif
 
 enum {
-    HDD_OP_SEEK = 0,
-    HDD_OP_READ,
-    HDD_OP_WRITE
+    HDD_OP_SEEK  = 0,
+    HDD_OP_READ  = 2,
+    HDD_OP_WRITE = 3
 };
 
 #define HDD_MAX_ZONES     16
 #define HDD_MAX_CACHE_SEG 16
 
-typedef struct {
+typedef struct hdd_preset_t {
     const char *name;
     const char *internal_name;
     uint32_t    zones;
@@ -101,7 +101,7 @@ typedef struct {
     double      track_seek_ms;
 } hdd_preset_t;
 
-typedef struct {
+typedef struct hdd_cache_seg_t {
     uint32_t id;
     uint32_t lba_addr;
     uint32_t ra_addr;
@@ -110,7 +110,7 @@ typedef struct {
     uint8_t  valid;
 } hdd_cache_seg_t;
 
-typedef struct {
+typedef struct hdd_cache_t {
     // Read cache
     hdd_cache_seg_t segments[HDD_MAX_CACHE_SEG];
     uint32_t        num_segments;
@@ -126,7 +126,7 @@ typedef struct {
     uint64_t write_start_time;
 } hdd_cache_t;
 
-typedef struct {
+typedef struct hdd_zone_t {
     uint32_t cylinders;
     uint32_t sectors_per_track;
     double   sector_time_usec;
@@ -136,7 +136,7 @@ typedef struct {
 } hdd_zone_t;
 
 /* Define the virtual Hard Disk. */
-typedef struct {
+typedef struct hard_disk_t {
     uint8_t id;
     union {
         uint8_t channel; /* Needed for Settings to reduce the number of if's */
@@ -147,21 +147,23 @@ typedef struct {
         uint8_t ide_channel;
         uint8_t scsi_id;
     };
-    uint8_t bus,
-        res;    /* Reserved for bus mode */
+    uint8_t bus;
+    uint8_t res;    /* Reserved for bus mode */
     uint8_t wp; /* Disk has been mounted READ-ONLY */
-    uint8_t pad, pad0;
+    uint8_t pad;
+    uint8_t pad0;
 
     void *priv;
 
     char fn[1024];         /* Name of current image file */
     char vhd_parent[1041]; /* Differential VHD parent file */
 
-    uint32_t res0, pad1,
-        base,
-        spt,
-        hpc, /* Physical geometry parameters */
-        tracks;
+    uint32_t res0;
+    uint32_t pad1;
+    uint32_t base;
+    uint32_t spt;
+    uint32_t hpc; /* Physical geometry parameters */
+    uint32_t tracks;
 
     hdd_zone_t  zones[HDD_MAX_ZONES];
     uint32_t    num_zones;

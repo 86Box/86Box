@@ -208,16 +208,20 @@ char  exe_path[2048]; /* path (dir) of executable */
 char  usr_path[1024]; /* path (dir) of user data */
 char  cfg_path[1024]; /* full path of config file */
 FILE *stdlog = NULL;  /* file to log output to */
-// int   scrnsz_x = SCREEN_RES_X; /* current screen size, X */
-// int   scrnsz_y = SCREEN_RES_Y; /* current screen size, Y */
+#if 0
+int   scrnsz_x = SCREEN_RES_X; /* current screen size, X */
+int   scrnsz_y = SCREEN_RES_Y; /* current screen size, Y */
+#endif
 int config_changed; /* config has changed */
 int title_update;
 int framecountx        = 0;
 int hard_reset_pending = 0;
 
-// int unscaled_size_x = SCREEN_RES_X; /* current unscaled size X */
-// int unscaled_size_y = SCREEN_RES_Y; /* current unscaled size Y */
-// int efscrnsz_y = SCREEN_RES_Y;
+#if 0
+int unscaled_size_x = SCREEN_RES_X; /* current unscaled size X */
+int unscaled_size_y = SCREEN_RES_Y; /* current unscaled size Y */
+int efscrnsz_y = SCREEN_RES_Y;
+#endif
 
 static wchar_t mouse_msg[3][200];
 
@@ -416,7 +420,6 @@ pc_init(int argc, char *argv[])
     time_t     now;
     int        c;
     int        lvmp = 0;
-    int        i;
 #ifdef ENABLE_NG
     int ng = 0;
 #endif
@@ -467,7 +470,7 @@ pc_init(int argc, char *argv[])
 
         if (!strcasecmp(argv[c], "--help") || !strcasecmp(argv[c], "-?")) {
 usage:
-            for (i = 0; i < FDD_NUM; i++) {
+            for (uint8_t i = 0; i < FDD_NUM; i++) {
                 if (fn[i] != NULL) {
                     free(fn[i]);
                     fn[i] = NULL;
@@ -776,7 +779,7 @@ usage:
     /* Load the configuration file. */
     config_load();
 
-    for (i = 0; i < FDD_NUM; i++) {
+    for (uint8_t i = 0; i < FDD_NUM; i++) {
         if (fn[i] != NULL) {
             if (strlen(fn[i]) <= 511)
                 strncpy(floppyfns[i], fn[i], 511);
@@ -1272,7 +1275,9 @@ pc_run(void)
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     // if (gdbstub_step == GDBSTUB_EXEC)
 #endif
-        // mouse_process();
+#if 0
+        mouse_process();
+#endif
     joystick_process();
     endblit();
 
@@ -1413,6 +1418,9 @@ set_screen_size_monitor(int x, int y, int monitor_index)
             monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x << 3);
             monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y << 3);
             break;
+
+        default:
+            break;
     }
 
     plat_resize_request(monitors[monitor_index].mon_scrnsz_x, monitors[monitor_index].mon_scrnsz_y, monitor_index);
@@ -1433,14 +1441,14 @@ reset_screen_size_monitor(int monitor_index)
 void
 reset_screen_size(void)
 {
-    for (int i = 0; i < MONITORS_NUM; i++)
+    for (uint8_t i = 0; i < MONITORS_NUM; i++)
         set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_efscrnsz_y);
 }
 
 void
 set_screen_size_natural(void)
 {
-    for (int i = 0; i < MONITORS_NUM; i++)
+    for (uint8_t i = 0; i < MONITORS_NUM; i++)
         set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_unscaled_size_y);
 }
 

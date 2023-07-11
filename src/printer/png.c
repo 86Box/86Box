@@ -92,13 +92,13 @@ png_log(const char *fmt, ...)
 #endif
 
 static void
-error_handler(png_structp arg, const char *str)
+error_handler(UNUSED(png_structp arg), UNUSED(const char *str))
 {
     png_log("PNG: stream 0x%08lx error '%s'\n", arg, str);
 }
 
 static void
-warning_handler(png_structp arg, const char *str)
+warning_handler(UNUSED(png_structp arg), UNUSED(const char *str))
 {
     png_log("PNG: stream 0x%08lx warning '%s'\n", arg, str);
 }

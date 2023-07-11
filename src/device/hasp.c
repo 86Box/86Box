@@ -52,9 +52,11 @@ enum {
     HASP_TYPE_SAVQUEST = 0
 };
 
-typedef struct {
-    const uint8_t *password, *prodinfo;
-    const uint8_t  password_size, prodinfo_size;
+typedef struct hasp_type_t {
+    const uint8_t *password;
+    const uint8_t *prodinfo;
+    const uint8_t  password_size;
+    const uint8_t  prodinfo_size;
 } hasp_type_t;
 
 typedef struct
@@ -62,8 +64,13 @@ typedef struct
     void              *lpt;
     const hasp_type_t *type;
 
-    int     index, state, passindex, passmode, prodindex;
-    uint8_t tmppass[0x29], status;
+    int     index;
+    int     state;
+    int     passindex;
+    int     passmode;
+    int     prodindex;
+    uint8_t tmppass[0x29];
+    uint8_t status;
 } hasp_t;
 
 static const hasp_type_t hasp_types[] = {
@@ -131,6 +138,8 @@ hasp_write_data(uint8_t val, void *priv)
                 return;
             }
             break;
+        default:
+            break;
     }
 
     dev->status = 0;
@@ -163,6 +172,8 @@ hasp_write_data(uint8_t val, void *priv)
                        I guessed the implicit ones with a bit of trial and error */
                     dev->status = 0x20;
                     return;
+                default:
+                    break;
             }
         }
 
@@ -198,6 +209,8 @@ hasp_write_data(uint8_t val, void *priv)
             case 0xf6:
                 /* again, just the relevant bits instead of the true values */
                 dev->status = 0x20;
+                break;
+            default:
                 break;
         }
     } else if (dev->state == HASP_STATE_PASSWORD_END) {

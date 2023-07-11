@@ -30,6 +30,7 @@
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/device.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/usb.h>
 #include <86box/hdc_ide.h>
@@ -248,6 +249,9 @@ stpc_nb_write(int func, int addr, uint8_t val, void *priv)
         case 0x52:
             val &= 0x70;
             break;
+
+        default:
+            break;
     }
 
     dev->pci_conf[0][addr] = val;
@@ -432,6 +436,9 @@ stpc_ide_write(int func, int addr, uint8_t val, void *priv)
                 sff_bus_master_set_irq(0x00, dev->bm[1]);
             }
             break;
+
+        default:
+            break;
     }
 }
 
@@ -488,6 +495,9 @@ stpc_isab_write(int func, int addr, uint8_t val, void *priv)
 
         case 0x05:
             val &= 0x01;
+            break;
+
+        default:
             break;
     }
 
@@ -550,6 +560,8 @@ stpc_usb_write(int func, int addr, uint8_t val, void *priv)
         case 0x13:
             dev->pci_conf[3][addr] = val;
             ohci_update_mem_mapping(dev->usb, dev->pci_conf[3][0x11], dev->pci_conf[3][0x12], dev->pci_conf[3][0x13], 1);
+            break;
+        default:
             break;
     }
 
@@ -719,6 +731,9 @@ stpc_reg_write(uint16_t addr, uint8_t val, void *priv)
             case 0x59:
                 val &= 0xf1;
                 stpc_serial_handlers(val);
+                break;
+
+            default:
                 break;
         }
 
@@ -957,7 +972,7 @@ stpc_serial_close(void *priv)
 }
 
 static void *
-stpc_serial_init(const device_t *info)
+stpc_serial_init(UNUSED(const device_t *info))
 {
     stpc_log("STPC: serial_init()\n");
 
@@ -989,6 +1004,8 @@ stpc_lpt_handlers(stpc_lpt_t *dev, uint8_t val)
 
         case 0x3:
             lpt2_remove();
+            break;
+        default:
             break;
     }
 
@@ -1068,7 +1085,7 @@ stpc_lpt_close(void *priv)
 }
 
 static void *
-stpc_lpt_init(const device_t *info)
+stpc_lpt_init(UNUSED(const device_t *info))
 {
     stpc_log("STPC: lpt_init()\n");
 

@@ -11,14 +11,14 @@
 #define TIMER_ENABLED 1
 
 #pragma pack(push, 1)
-typedef struct
+typedef struct ts_struct_t
 {
     uint32_t frac;
     uint32_t integer;
 } ts_struct_t;
 #pragma pack(pop)
 
-typedef union {
+typedef union ts_t {
     uint64_t    ts64;
     ts_struct_t ts32;
 } ts_t;
@@ -42,14 +42,16 @@ typedef struct pc_timer_t {
 #else
     ts_t ts;
 #endif
-    int    flags, pad; /* The flags are defined above. */
-    double period;     /* This is used for large period timers to count
-                          the microseconds and split the period. */
+    int    flags;  /* The flags are defined above. */
+    int    pad;
+    double period; /* This is used for large period timers to count
+                      the microseconds and split the period. */
 
     void (*callback)(void *p);
     void *p;
 
-    struct pc_timer_t *prev, *next;
+    struct pc_timer_t *prev;
+    struct pc_timer_t *next;
 } pc_timer_t;
 
 #ifdef __cplusplus

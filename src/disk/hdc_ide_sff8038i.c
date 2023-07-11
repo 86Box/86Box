@@ -42,6 +42,7 @@
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/zip.h>
 #include <86box/mo.h>
+#include <86box/plat_unused.h>
 
 static int next_id = 0;
 
@@ -160,6 +161,9 @@ sff_bus_master_write(uint16_t port, uint8_t val, void *priv)
             dev->ptr = (dev->ptr & 0x00fffffc) | (val << 24);
             dev->ptr %= (mem_size * 1024);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -185,6 +189,9 @@ sff_bus_master_writew(uint16_t port, uint16_t val, void *priv)
             dev->ptr = (dev->ptr & 0x0000fffc) | (val << 16);
             dev->ptr %= (mem_size * 1024);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -205,6 +212,9 @@ sff_bus_master_writel(uint16_t port, uint32_t val, void *priv)
             dev->ptr = (val & 0xfffffffc);
             dev->ptr %= (mem_size * 1024);
             dev->ptr0 = val & 0xff;
+            break;
+
+        default:
             break;
     }
 }
@@ -238,6 +248,9 @@ sff_bus_master_read(uint16_t port, void *priv)
         case 7:
             ret = dev->ptr >> 24;
             break;
+
+        default:
+            break;
     }
 
     sff_log("SFF-8038i Bus master BYTE  read : %04X       %02X\n", port, ret);
@@ -264,6 +277,9 @@ sff_bus_master_readw(uint16_t port, void *priv)
         case 6:
             ret = dev->ptr >> 16;
             break;
+
+        default:
+            break;
     }
 
     sff_log("SFF-8038i Bus master WORD  read : %04X     %04X\n", port, ret);
@@ -287,6 +303,9 @@ sff_bus_master_readl(uint16_t port, void *priv)
         case 4:
             ret = dev->ptr0 | (dev->ptr & 0xffffff00);
             break;
+
+        default:
+            break;
     }
 
     sff_log("sff Bus master DWORD read : %04X %08X\n", port, ret);
@@ -295,7 +314,7 @@ sff_bus_master_readl(uint16_t port, void *priv)
 }
 
 int
-sff_bus_master_dma(int channel, uint8_t *data, int transfer_length, int out, void *priv)
+sff_bus_master_dma(UNUSED(int channel), uint8_t *data, int transfer_length, int out, void *priv)
 {
     sff8038i_t *dev = (sff8038i_t *) priv;
 #ifdef ENABLE_SFF_LOG
@@ -379,8 +398,8 @@ sff_bus_master_set_irq(int channel, void *priv)
     channel &= 0x01;
 
     switch (dev->irq_mode[channel]) {
-        case 0:
         default:
+        case 0:
             /* Legacy IRQ mode. */
             if (irq)
                 picint(1 << (14 + channel));
@@ -443,29 +462,27 @@ sff_bus_master_reset(sff8038i_t *dev, uint16_t old_base)
 }
 
 static void
-sff_reset(void *p)
+sff_reset(void *priv)
 {
-    int i = 0;
-
 #ifdef ENABLE_SFF_LOG
     sff_log("SFF8038i: Reset\n");
 #endif
 
-    for (i = 0; i < CDROM_NUM; i++) {
+    for (uint8_t i = 0; i < CDROM_NUM; i++) {
         if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && (cdrom[i].ide_channel < 4) && cdrom[i].priv)
             scsi_cdrom_reset((scsi_common_t *) cdrom[i].priv);
     }
-    for (i = 0; i < ZIP_NUM; i++) {
+    for (uint8_t i = 0; i < ZIP_NUM; i++) {
         if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && (zip_drives[i].ide_channel < 4) && zip_drives[i].priv)
             zip_reset((scsi_common_t *) zip_drives[i].priv);
     }
-    for (i = 0; i < MO_NUM; i++) {
+    for (uint8_t i = 0; i < MO_NUM; i++) {
         if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && (mo_drives[i].ide_channel < 4) && mo_drives[i].priv)
             mo_reset((scsi_common_t *) mo_drives[i].priv);
     }
 
-    sff_bus_master_set_irq(0x00, p);
-    sff_bus_master_set_irq(0x01, p);
+    sff_bus_master_set_irq(0x00, priv);
+    sff_bus_master_set_irq(0x01, priv);
 }
 
 void
@@ -481,7 +498,7 @@ sff_set_irq_line(sff8038i_t *dev, int irq_line)
 }
 
 void
-sff_set_irq_level(sff8038i_t *dev, int channel, int irq_level)
+sff_set_irq_level(sff8038i_t *dev, int channel, UNUSED(int irq_level))
 {
     dev->irq_level[channel] = 0;
 }
@@ -492,8 +509,8 @@ sff_set_irq_mode(sff8038i_t *dev, int channel, int irq_mode)
     dev->irq_mode[channel] = irq_mode;
 
     switch (dev->irq_mode[channel]) {
-        case 0:
         default:
+        case 0:
             /* Legacy IRQ mode. */
             sff_log("[%08X] Setting channel %i to legacy IRQ %i\n", dev, channel, 14 + channel);
             break;
@@ -524,9 +541,9 @@ sff_set_irq_pin(sff8038i_t *dev, int irq_pin)
 }
 
 static void
-sff_close(void *p)
+sff_close(void *priv)
 {
-    sff8038i_t *dev = (sff8038i_t *) p;
+    sff8038i_t *dev = (sff8038i_t *) priv;
 
     free(dev);
 
@@ -535,9 +552,8 @@ sff_close(void *p)
         next_id = 0;
 }
 
-static void
-    *
-    sff_init(const device_t *info)
+static void *
+sff_init(UNUSED(const device_t *info))
 {
     sff8038i_t *dev = (sff8038i_t *) malloc(sizeof(sff8038i_t));
     memset(dev, 0, sizeof(sff8038i_t));

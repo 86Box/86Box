@@ -27,6 +27,7 @@
 #include <86box/spd.h>
 #include <86box/version.h>
 #include <86box/machine.h>
+#include <86box/plat_unused.h>
 
 #define SPD_ROLLUP(x) ((x) >= 16 ? ((x) -15) : (x))
 
@@ -54,7 +55,7 @@ spd_log(const char *fmt, ...)
 #endif
 
 static void
-spd_close(void *priv)
+spd_close(UNUSED(void *priv))
 {
     spd_log("SPD: close()\n");
 
@@ -67,7 +68,7 @@ spd_close(void *priv)
 }
 
 static void *
-spd_init(const device_t *info)
+spd_init(UNUSED(const device_t *info))
 {
     spd_log("SPD: init()\n");
 
@@ -181,7 +182,6 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     uint8_t      slot;
     uint8_t      slot_count;
     uint8_t      row;
-    uint8_t      i;
     uint16_t     min_module_size;
     uint16_t     rows[SPD_MAX_SLOTS];
     uint16_t     asym;
@@ -262,7 +262,7 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
                 edo_data->dram_width     = 8;
 
                 edo_data->spd_rev = 0x12;
-                for (i = spd_write_part_no(edo_data->part_no, (ram_type == SPD_TYPE_FPM) ? "FPM" : "EDO", rows[row]);
+                for (int i = spd_write_part_no(edo_data->part_no, (ram_type == SPD_TYPE_FPM) ? "FPM" : "EDO", rows[row]);
                      i < sizeof(edo_data->part_no); i++)
                     edo_data->part_no[i] = ' '; /* part number should be space-padded */
                 edo_data->rev_code[0] = BCD8(EMU_VERSION_MAJ);
@@ -270,9 +270,9 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
                 edo_data->mfg_year    = 20;
                 edo_data->mfg_week    = 17;
 
-                for (i = 0; i < 63; i++)
+                for (uint8_t i = 0; i < 63; i++)
                     edo_data->checksum += spd_modules[slot]->data[i];
-                for (i = 0; i < 129; i++)
+                for (uint8_t i = 0; i < 129; i++)
                     edo_data->checksum2 += spd_modules[slot]->data[i];
                 break;
 
@@ -316,7 +316,7 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
                 sdram_data->ca_hold = sdram_data->data_hold = 0x08;
 
                 sdram_data->spd_rev = 0x12;
-                for (i = spd_write_part_no(sdram_data->part_no, "SDR", rows[row]);
+                for (int i = spd_write_part_no(sdram_data->part_no, "SDR", rows[row]);
                      i < sizeof(sdram_data->part_no); i++)
                     sdram_data->part_no[i] = ' '; /* part number should be space-padded */
                 sdram_data->rev_code[0] = BCD8(EMU_VERSION_MAJ);
@@ -327,10 +327,13 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
                 sdram_data->freq     = 100;
                 sdram_data->features = 0xFF;
 
-                for (i = 0; i < 63; i++)
+                for (uint8_t i = 0; i < 63; i++)
                     sdram_data->checksum += spd_modules[slot]->data[i];
-                for (i = 0; i < 129; i++)
+                for (uint8_t i = 0; i < 129; i++)
                     sdram_data->checksum2 += spd_modules[slot]->data[i];
+                break;
+
+            default:
                 break;
         }
 
@@ -388,7 +391,7 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
         /* Write DRB register, adding the previous DRB's value. */
         if (row == 0)
             regs[drb] = 0;
-        else if ((apollo) && (drb == apollo))
+        else if (apollo && (drb == apollo))
             regs[drb] = regs[drb | 0xf]; /* 5F comes before 56 */
         else
             regs[drb] = regs[drb - 1];

@@ -37,14 +37,17 @@
 #include <86box/zip.h>
 #include <86box/mo.h>
 
-typedef struct
-{
-    uint8_t vlb_idx, id,
-        in_cfg, single_channel,
-        pci, regs[256];
+typedef struct cmd640_t {
+    uint8_t  vlb_idx;
+    uint8_t  id;
+    uint8_t  in_cfg;
+    uint8_t  single_channel;
+    uint8_t  pci, regs[256];
     uint32_t local;
-    int      slot, irq_mode[2],
-        irq_pin, irq_line;
+    int      slot;
+    int      irq_mode[2];
+    int      irq_pin;
+    int      irq_line;
 } cmd640_t;
 
 static int next_id = 0;
@@ -166,6 +169,9 @@ cmd640_common_write(int addr, uint8_t val, cmd640_t *dev)
         case 0x5b: /* Undocumented register that Linux attempts to use! */
             dev->regs[addr] = val;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -187,6 +193,9 @@ cmd640_vlb_write(uint16_t addr, uint8_t val, void *priv)
             cmd640_common_write(dev->vlb_idx, val, dev);
             if (dev->regs[0x50] & 0x80)
                 dev->in_cfg = 0;
+            break;
+
+        default:
             break;
     }
 }
@@ -226,6 +235,9 @@ cmd640_vlb_read(uint16_t addr, void *priv)
                 dev->regs[0x57] &= ~0x10;
             if (dev->regs[0x50] & 0x80)
                 dev->in_cfg = 0;
+            break;
+
+        default:
             break;
     }
 
@@ -462,7 +474,9 @@ cmd640_init(const device_t *info)
         ide_board_set_force_ata3(0, 1);
         ide_board_set_force_ata3(1, 1);
 
-        // ide_pri_disable();
+#if 0
+        ide_pri_disable();
+#endif
     } else if (info->flags & DEVICE_VLB) {
         device_add(&ide_vlb_2ch_device);
 

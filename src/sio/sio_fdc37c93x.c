@@ -35,10 +35,11 @@
 #include <86box/apm.h>
 #include <86box/acpi.h>
 #include <86box/sio.h>
+#include <86box/plat_unused.h>
 
 #define AB_RST 0x80
 
-typedef struct {
+typedef struct access_bus_t {
     uint8_t  control;
     uint8_t  status;
     uint8_t  own_addr;
@@ -47,16 +48,19 @@ typedef struct {
     uint16_t base;
 } access_bus_t;
 
-typedef struct {
-    uint8_t chip_id, is_apm,
-        tries,
-        gpio_regs[2], auxio_reg,
-        regs[48],
-        ld_regs[11][256];
-    uint16_t gpio_base, /* Set to EA */
-        auxio_base, nvr_sec_base;
-    int locked,
-        cur_reg;
+typedef struct fdc37c93x_t {
+    uint8_t       chip_id;
+    uint8_t       is_apm;
+    uint8_t       tries;
+    uint8_t       gpio_regs[2];
+    uint8_t       auxio_reg;
+    uint8_t       regs[48];
+    uint8_t       ld_regs[11][256];
+    uint16_t      gpio_base; /* Set to EA */
+    uint16_t      auxio_base;
+    uint16_t      nvr_sec_base;
+    int           locked;
+    int           cur_reg;
     fdc_t        *fdc;
     serial_t     *uart[2];
     access_bus_t *access_bus;
@@ -87,7 +91,7 @@ make_port_sec(fdc37c93x_t *dev, uint8_t ld)
 }
 
 static uint8_t
-fdc37c93x_auxio_read(uint16_t port, void *priv)
+fdc37c93x_auxio_read(UNUSED(uint16_t port), void *priv)
 {
     fdc37c93x_t *dev = (fdc37c93x_t *) priv;
 
@@ -95,7 +99,7 @@ fdc37c93x_auxio_read(uint16_t port, void *priv)
 }
 
 static void
-fdc37c93x_auxio_write(uint16_t port, uint8_t val, void *priv)
+fdc37c93x_auxio_write(UNUSED(uint16_t port), uint8_t val, void *priv)
 {
     fdc37c93x_t *dev = (fdc37c93x_t *) priv;
 
@@ -239,6 +243,9 @@ fdc37c93x_gpio_handler(fdc37c93x_t *dev)
             case 3:
                 ld_port = 0xea; /* Default */
                 break;
+
+            default:
+                break;
         }
         dev->gpio_base = ld_port;
         if (ld_port > 0x0000)
@@ -266,6 +273,9 @@ fdc37c93x_access_bus_read(uint16_t port, void *priv)
         case 3:
             ret = (dev->clock & 0x87);
             break;
+
+        default:
+            break;
     }
 
     return ret;
@@ -289,6 +299,9 @@ fdc37c93x_access_bus_write(uint16_t port, uint8_t val, void *priv)
         case 3:
             dev->clock &= 0x80;
             dev->clock |= (val & 0x07);
+            break;
+
+        default:
             break;
     }
 }
@@ -410,6 +423,9 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                             if (!dev->is_apm)
                                 return;
                             break;
+
+                        default:
+                            break;
                     }
                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val | keep;
             }
@@ -435,6 +451,9 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                     fdc37c93x_serial_handler(dev, 1);
                 if ((valxor & 0x40) && (dev->chip_id != 0x02))
                     fdc37c93x_access_bus_handler(dev);
+                break;
+
+            default:
                 break;
         }
 
@@ -489,6 +508,9 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                     if (valxor & 0x18)
                         fdc_update_drvrate(dev->fdc, 3, (val & 0x18) >> 3);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 3:
@@ -502,6 +524,9 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                         dev->regs[0x22] |= 0x08;
                     if (valxor)
                         fdc37c93x_lpt_handler(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -517,6 +542,9 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                     if (valxor)
                         fdc37c93x_serial_handler(dev, 0);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 5:
@@ -530,6 +558,9 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                         dev->regs[0x22] |= 0x20;
                     if (valxor)
                         fdc37c93x_serial_handler(dev, 1);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -554,8 +585,8 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                         nvr_lock_set(0xe0, 0x20, !!(dev->ld_regs[6][dev->cur_reg] & 0x08), dev->nvr);
                         if (dev->ld_regs[6][dev->cur_reg] & 0x80)
                             switch ((dev->ld_regs[6][dev->cur_reg] >> 4) & 0x07) {
-                                case 0x00:
                                 default:
+                                case 0x00:
                                     nvr_bank_set(0, 0xff, dev->nvr);
                                     nvr_bank_set(1, 1, dev->nvr);
                                     break;
@@ -588,6 +619,9 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                         }
                     }
                     break;
+
+                default:
+                    break;
             }
             break;
         case 8:
@@ -599,6 +633,9 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                 case 0x70:
                     if (valxor)
                         fdc37c93x_auxio_handler(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -614,6 +651,9 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                     if (valxor)
                         fdc37c93x_access_bus_handler(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 10:
@@ -628,7 +668,13 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
                     if (valxor)
                         fdc37c93x_acpi_handler(dev);
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -783,7 +829,7 @@ access_bus_close(void *priv)
 }
 
 static void *
-access_bus_init(const device_t *info)
+access_bus_init(UNUSED(const device_t *info))
 {
     access_bus_t *dev = (access_bus_t *) malloc(sizeof(access_bus_t));
     memset(dev, 0, sizeof(access_bus_t));
@@ -830,7 +876,9 @@ fdc37c93x_init(const device_t *info)
     is_compaq    = (info->local >> 8) & 0x02;
 
     dev->gpio_regs[0] = 0xff;
-    // dev->gpio_regs[1] = (info->local == 0x0030) ? 0xff : 0xfd;
+#if 0
+    dev->gpio_regs[1] = (info->local == 0x0030) ? 0xff : 0xfd;
+#endif
     dev->gpio_regs[1] = (dev->chip_id == 0x30) ? 0xff : 0xfd;
 
     if (dev->chip_id == 0x30) {

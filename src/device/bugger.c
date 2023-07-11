@@ -266,7 +266,7 @@ bug_reset(void)
 
 /* Handle a WRITE operation to one of our registers. */
 static void
-bug_write(uint16_t port, uint8_t val, void *priv)
+bug_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 {
     switch (port - BUGGER_ADDR) {
         case BUG_CTRL: /* control register */
@@ -284,12 +284,14 @@ bug_write(uint16_t port, uint8_t val, void *priv)
                 bug_wdata(val);
             }
             break;
+        default:
+            break;
     }
 }
 
 /* Handle a READ operation from one of our registers. */
 static uint8_t
-bug_read(uint16_t port, void *priv)
+bug_read(uint16_t port, UNUSED(void *priv))
 {
     uint8_t ret = 0xff;
 
@@ -319,7 +321,7 @@ bug_read(uint16_t port, void *priv)
 
 /* Initialize the ISA BusBugger emulator. */
 static void *
-bug_init(const device_t *info)
+bug_init(UNUSED(const device_t *info))
 {
     bugger_log("%s, I/O=%04x\n", info->name, BUGGER_ADDR);
 

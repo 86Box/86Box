@@ -3,7 +3,8 @@
 
 typedef struct PPI {
     int     s2;
-    uint8_t pa, pb;
+    uint8_t pa;
+    uint8_t pb;
 } PPI;
 
 extern int ppispeakon;

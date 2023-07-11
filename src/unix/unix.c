@@ -36,6 +36,7 @@
 #include <86box/unix_sdl.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
+#include <86box/version.h>
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/gdbstub.h>
@@ -935,9 +936,43 @@ monitor_thread(void *param)
                         "hardreset - hard reset the emulated system.\n"
                         "pause - pause the the emulated system.\n"
                         "fullscreen - toggle fullscreen.\n"
+                        "version - print version and license information.\n"
                         "exit - exit 86Box.\n");
                 } else if (strncasecmp(xargv[0], "exit", 4) == 0) {
                     exit_event = 1;
+                } else if (strncasecmp(xargv[0], "version", 7) == 0) {
+#    ifndef EMU_GIT_HASH
+#        define EMU_GIT_HASH "0000000"
+#    endif
+
+#    if defined(__arm__) || defined(__TARGET_ARCH_ARM)
+#        define ARCH_STR "arm"
+#    elif defined(__aarch64__) || defined(_M_ARM64)
+#        define ARCH_STR "arm64"
+#    elif defined(__i386) || defined(__i386__) || defined(_M_IX86)
+#        define ARCH_STR "i386"
+#    elif defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined(_M_X64)
+#        define ARCH_STR "x86_64"
+#    else
+#        define ARCH_STR "unknown arch"
+#    endif
+
+#    ifdef USE_DYNAREC
+#        ifdef USE_NEW_DYNAREC
+#            define DYNAREC_STR "new dynarec"
+#        else
+#            define DYNAREC_STR "old dynarec"
+#        endif
+#    else
+#        define DYNAREC_STR "no dynarec"
+#    endif
+
+                    printf(
+                        "%s v%s [%s] [%s, %s]\n\n"
+                        "An emulator of old computers\n"
+                        "Authors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\n"
+                        "Released under the GNU General Public License version 2 or later. See LICENSE for more information.\n",
+                        EMU_NAME, EMU_VERSION_FULL, EMU_GIT_HASH, ARCH_STR, DYNAREC_STR);
                 } else if (strncasecmp(xargv[0], "fullscreen", 10) == 0) {
                     video_fullscreen   = video_fullscreen ? 0 : 1;
                     fullscreen_pending = 1;

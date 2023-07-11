@@ -316,7 +316,7 @@ plat_tempfile(char *bufp, char *prefix, char *suffix)
         name.append(QString("%1-").arg(prefix));
     }
 
-    name.append(QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzzz"));
+    name.append(QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzz"));
     if (suffix)
         name.append(suffix);
     strcpy(bufp, name.toUtf8().data());

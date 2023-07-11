@@ -20,19 +20,27 @@
 #ifndef EMU_HDC_IDE_SFF8038I_H
 #define EMU_HDC_IDE_SFF8038I_H
 
-typedef struct
-{
-    uint8_t command, status,
-        ptr0, enabled,
-        dma_mode, pad,
-        pad0, pad1;
-    uint16_t base, pad2;
-    uint32_t ptr, ptr_cur,
-        addr;
-    int count, eot,
-        slot,
-        irq_mode[2], irq_level[2],
-        irq_pin, irq_line;
+typedef struct sff8038i_t {
+    uint8_t  command;
+    uint8_t  status;
+    uint8_t  ptr0;
+    uint8_t  enabled;
+    uint8_t  dma_mode;
+    uint8_t  pad;
+    uint8_t  pad0;
+    uint8_t  pad1;
+    uint16_t base;
+    uint16_t pad2;
+    uint32_t ptr;
+    uint32_t ptr_cur;
+    uint32_t addr;
+    int      count;
+    int      eot;
+    int      slot;
+    int      irq_mode[2];
+    int      irq_level[2];
+    int      irq_pin;
+    int      irq_line;
 } sff8038i_t;
 
 extern const device_t sff8038i_device;

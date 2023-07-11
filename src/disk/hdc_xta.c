@@ -182,15 +182,15 @@ enum {
 
 /* The device control block (6 bytes) */
 #pragma pack(push, 1)
-typedef struct {
+typedef struct dcb_t {
     uint8_t cmd; /* [7:5] class, [4:0] opcode    */
 
-    uint8_t head   : 5, /* [4:0] head number        */
-        drvsel     : 1, /* [5] drive select        */
-        mbz        : 2; /* [7:6] 00            */
+    uint8_t head   : 5; /* [4:0] head number        */
+    uint8_t drvsel : 1; /* [5] drive select        */
+    uint8_t mbz    : 2; /* [7:6] 00            */
 
-    uint8_t sector : 6, /* [5:0] sector number 0-63    */
-        cyl_high   : 2; /* [7:6] cylinder [9:8] bits    */
+    uint8_t sector   : 6; /* [5:0] sector number 0-63    */
+    uint8_t cyl_high : 2; /* [7:6] cylinder [9:8] bits    */
 
     uint8_t cyl_low; /* [7:0] cylinder [7:0] bits    */
 
@@ -202,7 +202,7 @@ typedef struct {
 
 /* The (configured) Drive Parameters. */
 #pragma pack(push, 1)
-typedef struct {
+typedef struct dprm_t {
     uint8_t cyl_high; /* (MSB) number of cylinders */
     uint8_t cyl_low;  /* (LSB) number of cylinders */
     uint8_t heads;    /* number of heads per cylinder */
@@ -215,24 +215,24 @@ typedef struct {
 #pragma pack(pop)
 
 /* Define an attached drive. */
-typedef struct {
-    int8_t id,   /* drive ID on bus */
-        present, /* drive is present */
-        hdd_num, /* index to global disk table */
-        type;    /* drive type ID */
+typedef struct drive_t {
+    int8_t id;   /* drive ID on bus */
+    int8_t present; /* drive is present */
+    int8_t hdd_num; /* index to global disk table */
+    int8_t type;    /* drive type ID */
 
     uint16_t cur_cyl; /* last known position of heads */
 
-    uint8_t spt, /* active drive parameters */
-        hpc;
+    uint8_t  spt; /* active drive parameters */
+    uint8_t  hpc;
     uint16_t tracks;
 
-    uint8_t cfg_spt, /* configured drive parameters */
-        cfg_hpc;
+    uint8_t  cfg_spt; /* configured drive parameters */
+    uint8_t  cfg_hpc;
     uint16_t cfg_tracks;
 } drive_t;
 
-typedef struct {
+typedef struct hdc_t {
     const char *name; /* controller name */
 
     uint16_t base; /* controller base I/O address */
@@ -252,17 +252,17 @@ typedef struct {
     pc_timer_t timer;
 
     /* Data transfer. */
-    int16_t buf_idx, /* buffer index and pointer */
-        buf_len;
+    int16_t  buf_idx; /* buffer index and pointer */
+    int16_t  buf_len;
     uint8_t *buf_ptr;
 
     /* Current operation parameters. */
-    dcb_t    dcb;   /* device control block */
-    uint16_t track; /* requested track# */
-    uint8_t  head,  /* requested head# */
-        sector,     /* requested sector# */
-        comp;       /* operation completion byte */
-    int count;      /* requested sector count */
+    dcb_t    dcb;    /* device control block */
+    uint16_t track;  /* requested track# */
+    uint8_t  head;   /* requested head# */
+    uint8_t  sector; /* requested sector# */
+    uint8_t  comp;   /* operation completion byte */
+    int count;       /* requested sector count */
 
     drive_t drives[XTA_NUM]; /* the attached drive(s) */
 
@@ -436,6 +436,9 @@ do_fmt:
 
             /* This saves us a LOT of code. */
             goto do_fmt;
+
+        default:
+            break;
     }
 
     /* De-activate the status icon. */
@@ -497,6 +500,10 @@ hdc_callback(void *priv)
 
                 case STATE_SDONE:
                     set_intr(dev);
+                    break;
+
+                default:
+                    break;
             }
             break;
 
@@ -606,6 +613,9 @@ do_send:
                     /* This saves us a LOT of code. */
                     dev->state = STATE_SEND;
                     goto do_send;
+
+                default:
+                    break;
             }
             break;
 
@@ -710,6 +720,9 @@ do_recv:
                     /* This saves us a LOT of code. */
                     dev->state = STATE_RECV;
                     goto do_recv;
+
+                default:
+                    break;
             }
             break;
 
@@ -758,6 +771,9 @@ do_recv:
                     dev->status &= ~STAT_REQ;
                     set_intr(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -802,6 +818,9 @@ do_recv:
                                dev->data, dev->buf_len);
                     set_intr(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -814,6 +833,9 @@ do_recv:
 
                 case STATE_RDONE:
                     set_intr(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -834,6 +856,9 @@ do_recv:
                 case STATE_RDONE:
                     set_intr(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -846,6 +871,9 @@ do_recv:
 
                 case STATE_RDONE:
                     set_intr(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -899,6 +927,9 @@ hdc_read(uint16_t port, void *priv)
 
         case 2:         /* "read option jumpers" */
             ret = 0xff; /* all switches off */
+            break;
+
+        default:
             break;
     }
 
@@ -958,8 +989,13 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
             break;
 
         case 3: /* DMA/IRQ intr register */
-            // xta_log("%s: WriteMASK(%02X)\n", dev->name, val);
+#if 0
+            xta_log("%s: WriteMASK(%02X)\n", dev->name, val);
+#endif
             dev->intr = val;
+            break;
+
+        default:
             break;
     }
 }
@@ -998,12 +1034,16 @@ xta_init(const device_t *info)
             dev->irq  = 5;
             dev->dma  = 3;
             break;
+
+        default:
+            break;
     }
 
     xta_log("%s: initializing (I/O=%04X, IRQ=%d, DMA=%d",
             dev->name, dev->base, dev->irq, dev->dma);
     if (dev->rom_addr != 0x000000)
         xta_log(", BIOS=%06X", dev->rom_addr);
+
     xta_log(")\n");
 
     /* Load any disks for this device class. */
