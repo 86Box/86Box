@@ -543,6 +543,7 @@ extern int machine_at_ms4134_init(const machine_t *);
 extern int machine_at_tg486gp_init(const machine_t *);
 extern int machine_at_tg486g_init(const machine_t *);
 extern int machine_at_ecsal486_init(const machine_t *);
+extern int machine_at_ap4100aa_init(const machine_t *);
 
 /* m_at_commodore.c */
 extern int machine_at_cmdpc_init(const machine_t *);

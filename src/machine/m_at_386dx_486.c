@@ -1991,3 +1991,25 @@ machine_at_ecsal486_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_at_ap4100aa_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ap4100aa/M27C512DIP28.BIN",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    device_add(&ami_1994_nvr_device);
+    device_add(&ali1429g_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&ide_vlb_device);
+    device_add(&um8669f_device); // needs um8663
+
+    return ret;
+}
