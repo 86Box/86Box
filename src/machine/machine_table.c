@@ -4790,7 +4790,7 @@ const machine_t machines[] = {
     /* Has AMI Megakey P KBC firmware */
     {
         .name = "[ALi M1429] ECS Panda 386V",
-        .internal_name = "ECS_386V",
+        .internal_name = "ecs386v",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_ALI_M1429,
         .init = machine_at_ecs386v_init,
@@ -6244,6 +6244,45 @@ const machine_t machines[] = {
         .ram = {
             .min = 1024,
             .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* This has an AMIKey-2, which is an updated version of type 'H'. */
+    {
+        .name = "[ALi M1429G] ECS AL486",
+        .internal_name = "ecsal486",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_ALI_M1429G,
+        .init = machine_at_ecsal486_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_VLB,
+        .flags = MACHINE_APM,
+        .ram = {
+            .min = 1024,
+            .max = 98304,
             .step = 1024
         },
         .nvrmask = 127,
