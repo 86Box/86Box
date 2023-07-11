@@ -1103,7 +1103,7 @@ machine_at_ninja_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    pci_init(PCI_CONFIG_TYPE_1 | PCI_NO_IRQ_STEERING);
+    pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 1, 2);
     pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 1, 2, 1);
@@ -1130,7 +1130,7 @@ machine_at_bat4ip3e_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    pci_init(PCI_CONFIG_TYPE_1 | PCI_NO_IRQ_STEERING);
+    pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_IDE,   0xfe, 0xff, 0, 0);
     pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 1, 2);
@@ -1159,7 +1159,7 @@ machine_at_486pi_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    pci_init(PCI_CONFIG_TYPE_1 | PCI_NO_IRQ_STEERING);
+    pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x12, PCI_CARD_NORMAL,      1, 2, 1, 2);
     pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 1, 2, 1);
@@ -1185,7 +1185,7 @@ machine_at_sb486p_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    pci_init(PCI_CONFIG_TYPE_1 | PCI_NO_IRQ_STEERING);
+    pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x14, PCI_CARD_NORMAL,      1, 2, 1, 2);
     pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 1, 2, 1);
@@ -1367,7 +1367,7 @@ machine_at_486ap4_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    pci_init(PCI_CONFIG_TYPE_1 | PCI_NO_IRQ_STEERING);
+    pci_init(PCI_CONFIG_TYPE_1);
     /* Excluded: 5, 6, 7, 8 */
     pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 09 = Slot 1 */
