@@ -91,13 +91,30 @@ enum {
 
 typedef union {
     uint32_t addr;
-    uint8_t  addr_regs[4];
+    uint8_t addr_regs[4];
 } bar_t;
+
+
+#define PCI_IO_ON   0x01
+#define PCI_IO_DEV0 0x02
+
 
 extern int pci_burst_time;
 extern int agp_burst_time;
 extern int pci_nonburst_time;
 extern int agp_nonburst_time;
+extern int pci_take_over_io;
+
+extern uint32_t pci_base;
+extern uint32_t pci_size;
+
+
+extern void     pci_type2_write(uint16_t port, uint8_t val, void *priv);
+extern void     pci_type2_writew(uint16_t port, uint16_t val, void *priv);
+extern void     pci_type2_writel(uint16_t port, uint32_t val, void *priv);
+extern uint8_t  pci_type2_read(uint16_t port, void *priv);
+extern uint16_t pci_type2_readw(uint16_t port, void *priv);
+extern uint32_t pci_type2_readl(uint16_t port, void *priv);
 
 extern void pci_set_irq_routing(int pci_int, int irq);
 extern void pci_set_irq_level(int pci_int, int level);
