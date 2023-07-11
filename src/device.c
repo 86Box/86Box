@@ -88,46 +88,46 @@ device_init(void)
 }
 
 void
-device_set_context(device_context_t *c, const device_t *d, int inst)
+device_set_context(device_context_t *c, const device_t *dev, int inst)
 {
     void *sec;
     void *single_sec;
 
     memset(c, 0, sizeof(device_context_t));
-    c->dev      = d;
+    c->dev      = dev;
     c->instance = inst;
     if (inst) {
-        sprintf(c->name, "%s #%i", d->name, inst);
+        sprintf(c->name, "%s #%i", dev->name, inst);
 
         /* If this is the first instance and a numbered section is not present, but a non-numbered
            section of the same name is, rename the non-numbered section to numbered. */
         if (inst == 1) {
             sec        = config_find_section(c->name);
-            single_sec = config_find_section((char *) d->name);
+            single_sec = config_find_section((char *) dev->name);
             if ((sec == NULL) && (single_sec != NULL))
                 config_rename_section(single_sec, c->name);
         }
     } else
-        sprintf(c->name, "%s", d->name);
+        sprintf(c->name, "%s", dev->name);
 }
 
 static void
-device_context_common(const device_t *d, int inst)
+device_context_common(const device_t *dev, int inst)
 {
     memcpy(&device_prev, &device_current, sizeof(device_context_t));
-    device_set_context(&device_current, d, inst);
+    device_set_context(&device_current, dev, inst);
 }
 
 void
-device_context(const device_t *d)
+device_context(const device_t *dev)
 {
-    device_context_common(d, 0);
+    device_context_common(dev, 0);
 }
 
 void
-device_context_inst(const device_t *d, int inst)
+device_context_inst(const device_t *dev, int inst)
 {
-    device_context_common(d, inst);
+    device_context_common(dev, inst);
 }
 
 void
@@ -137,13 +137,13 @@ device_context_restore(void)
 }
 
 static void *
-device_add_common(const device_t *d, const device_t *cd, void *p, void *params, int inst)
+device_add_common(const device_t *dev, const device_t *cd, void *p, void *params, int inst)
 {
     void *priv = NULL;
     int   c;
 
     for (c = 0; c < 256; c++) {
-        if (!inst && (devices[c] == (device_t *) d)) {
+        if (!inst && (devices[c] == (device_t *) dev)) {
             device_log("DEVICE: device already exists!\n");
             return (NULL);
         }
@@ -157,17 +157,17 @@ device_add_common(const device_t *d, const device_t *cd, void *p, void *params, 
 
     /* Do this so that a chained device_add will not identify the same ID
        its master device is already trying to assign. */
-    devices[c] = (device_t *) d;
+    devices[c] = (device_t *) dev;
 
     if (p == NULL) {
         memcpy(&device_prev, &device_current, sizeof(device_context_t));
         device_set_context(&device_current, cd, inst);
 
-        if (d->init != NULL) {
-            priv = (d->flags & DEVICE_EXTPARAMS) ? d->init_ext(d, params) : d->init(d);
+        if (dev->init != NULL) {
+            priv = (dev->flags & DEVICE_EXTPARAMS) ? dev->init_ext(dev, params) : dev->init(dev);
             if (priv == NULL) {
-                if (d->name)
-                    device_log("DEVICE: device '%s' init failed\n", d->name);
+                if (dev->name)
+                    device_log("DEVICE: device '%s' init failed\n", dev->name);
                 else
                     device_log("DEVICE: device init failed\n");
 
@@ -178,8 +178,8 @@ device_add_common(const device_t *d, const device_t *cd, void *p, void *params, 
             }
         }
 
-        if (d->name)
-            device_log("DEVICE: device '%s' init successful\n", d->name);
+        if (dev->name)
+            device_log("DEVICE: device '%s' init successful\n", dev->name);
         else
             device_log("DEVICE: device init successful\n");
 
@@ -192,114 +192,114 @@ device_add_common(const device_t *d, const device_t *cd, void *p, void *params, 
 }
 
 char *
-device_get_internal_name(const device_t *d)
+device_get_internal_name(const device_t *dev)
 {
-    if (d == NULL)
+    if (dev == NULL)
         return "";
 
-    return (char *) d->internal_name;
+    return (char *) dev->internal_name;
 }
 
 void *
-device_add(const device_t *d)
+device_add(const device_t *dev)
 {
-    return device_add_common(d, d, NULL, NULL, 0);
+    return device_add_common(dev, dev, NULL, NULL, 0);
 }
 
 void *
-device_add_parameters(const device_t *d, void *params)
+device_add_parameters(const device_t *dev, void *params)
 {
-    return device_add_common(d, d, NULL, params, 0);
+    return device_add_common(dev, dev, NULL, params, 0);
 }
 
 /* For devices that do not have an init function (internal video etc.) */
 void
-device_add_ex(const device_t *d, void *priv)
+device_add_ex(const device_t *dev, void *priv)
 {
-    device_add_common(d, d, priv, NULL, 0);
+    device_add_common(dev, dev, priv, NULL, 0);
 }
 
 void
-device_add_ex_parameters(const device_t *d, void *priv, void *params)
+device_add_ex_parameters(const device_t *dev, void *priv, void *params)
 {
-    device_add_common(d, d, priv, params, 0);
+    device_add_common(dev, dev, priv, params, 0);
 }
 
 void *
-device_add_inst(const device_t *d, int inst)
+device_add_inst(const device_t *dev, int inst)
 {
-    return device_add_common(d, d, NULL, NULL, inst);
+    return device_add_common(dev, dev, NULL, NULL, inst);
 }
 
 void *
-device_add_inst_parameters(const device_t *d, int inst, void *params)
+device_add_inst_parameters(const device_t *dev, int inst, void *params)
 {
-    return device_add_common(d, d, NULL, params, inst);
+    return device_add_common(dev, dev, NULL, params, inst);
 }
 
 /* For devices that do not have an init function (internal video etc.) */
 void
-device_add_inst_ex(const device_t *d, void *priv, int inst)
+device_add_inst_ex(const device_t *dev, void *priv, int inst)
 {
-    device_add_common(d, d, priv, NULL, inst);
+    device_add_common(dev, dev, priv, NULL, inst);
 }
 
 void
-device_add_inst_ex_parameters(const device_t *d, void *priv, int inst, void *params)
+device_add_inst_ex_parameters(const device_t *dev, void *priv, int inst, void *params)
 {
-    device_add_common(d, d, priv, params, inst);
+    device_add_common(dev, dev, priv, params, inst);
 }
 
 /* These eight are to add a device with another device's context - will be
    used to add machines' internal devices. */
 void *
-device_cadd(const device_t *d, const device_t *cd)
+device_cadd(const device_t *dev, const device_t *cd)
 {
-    return device_add_common(d, cd, NULL, NULL, 0);
+    return device_add_common(dev, cd, NULL, NULL, 0);
 }
 
 void *
-device_cadd_parameters(const device_t *d, const device_t *cd, void *params)
+device_cadd_parameters(const device_t *dev, const device_t *cd, void *params)
 {
-    return device_add_common(d, cd, NULL, params, 0);
+    return device_add_common(dev, cd, NULL, params, 0);
 }
 
 /* For devices that do not have an init function (internal video etc.) */
 void
-device_cadd_ex(const device_t *d, const device_t *cd, void *priv)
+device_cadd_ex(const device_t *dev, const device_t *cd, void *priv)
 {
-    device_add_common(d, cd, priv, NULL, 0);
+    device_add_common(dev, cd, priv, NULL, 0);
 }
 
 void
-device_cadd_ex_parameters(const device_t *d, const device_t *cd, void *priv, void *params)
+device_cadd_ex_parameters(const device_t *dev, const device_t *cd, void *priv, void *params)
 {
-    device_add_common(d, cd, priv, params, 0);
+    device_add_common(dev, cd, priv, params, 0);
 }
 
 void *
-device_cadd_inst(const device_t *d, const device_t *cd, int inst)
+device_cadd_inst(const device_t *dev, const device_t *cd, int inst)
 {
-    return device_add_common(d, cd, NULL, NULL, inst);
+    return device_add_common(dev, cd, NULL, NULL, inst);
 }
 
 void *
-device_cadd_inst_parameters(const device_t *d, const device_t *cd, int inst, void *params)
+device_cadd_inst_parameters(const device_t *dev, const device_t *cd, int inst, void *params)
 {
-    return device_add_common(d, cd, NULL, params, inst);
+    return device_add_common(dev, cd, NULL, params, inst);
 }
 
 /* For devices that do not have an init function (internal video etc.) */
 void
-device_cadd_inst_ex(const device_t *d, const device_t *cd, void *priv, int inst)
+device_cadd_inst_ex(const device_t *dev, const device_t *cd, void *priv, int inst)
 {
-    device_add_common(d, cd, priv, NULL, inst);
+    device_add_common(dev, cd, priv, NULL, inst);
 }
 
 void
-device_cadd_inst_ex_parameters(const device_t *d, const device_t *cd, void *priv, int inst, void *params)
+device_cadd_inst_ex_parameters(const device_t *dev, const device_t *cd, void *priv, int inst, void *params)
 {
-    device_add_common(d, cd, priv, params, inst);
+    device_add_common(dev, cd, priv, params, inst);
 }
 
 void
@@ -328,11 +328,11 @@ device_reset_all(uint32_t match_flags)
 }
 
 void *
-device_get_priv(const device_t *d)
+device_get_priv(const device_t *dev)
 {
     for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
-            if (devices[c] == d)
+            if (devices[c] == dev)
                 return (device_priv[c]);
         }
     }
@@ -341,15 +341,15 @@ device_get_priv(const device_t *d)
 }
 
 int
-device_available(const device_t *d)
+device_available(const device_t *dev)
 {
     device_config_t      *config = NULL;
     device_config_bios_t *bios   = NULL;
     int                   roms_present = 0;
     int                   i = 0;
 
-    if (d != NULL) {
-        config = (device_config_t *) d->config;
+    if (dev != NULL) {
+        config = (device_config_t *) dev->config;
         if (config != NULL) {
             while (config->type != -1) {
                 if (config->type == CONFIG_BIOS) {
@@ -372,8 +372,8 @@ device_available(const device_t *d)
         }
 
         /* No CONFIG_BIOS field present, use the classic available(). */
-        if (d->available != NULL)
-            return (d->available());
+        if (dev->available != NULL)
+            return (dev->available());
         else
             return 1;
     }
@@ -383,13 +383,13 @@ device_available(const device_t *d)
 }
 
 const char *
-device_get_bios_file(const device_t *d, const char *internal_name, int file_no)
+device_get_bios_file(const device_t *dev, const char *internal_name, int file_no)
 {
     device_config_t      *config = NULL;
     device_config_bios_t *bios   = NULL;
 
-    if (d != NULL) {
-        config = (device_config_t *) d->config;
+    if (dev != NULL) {
+        config = (device_config_t *) dev->config;
         if (config != NULL) {
             while (config->type != -1) {
                 if (config->type == CONFIG_BIOS) {
@@ -416,18 +416,18 @@ device_get_bios_file(const device_t *d, const char *internal_name, int file_no)
 }
 
 int
-device_has_config(const device_t *d)
+device_has_config(const device_t *dev)
 {
     int              c = 0;
     device_config_t *config;
 
-    if (d == NULL)
+    if (dev == NULL)
         return 0;
 
-    if (d->config == NULL)
+    if (dev->config == NULL)
         return 0;
 
-    config = (device_config_t *) d->config;
+    config = (device_config_t *) dev->config;
 
     while (config->type != -1) {
         if (config->type != CONFIG_MAC)
@@ -439,11 +439,11 @@ device_has_config(const device_t *d)
 }
 
 int
-device_poll(const device_t *d, int x, int y, int z, int b)
+device_poll(const device_t *dev, int x, int y, int z, int b)
 {
     for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
-            if (devices[c] == d) {
+            if (devices[c] == dev) {
                 if (devices[c]->poll)
                     return (devices[c]->poll(x, y, z, b, 0, 0, device_priv[c]));
             }
@@ -454,11 +454,11 @@ device_poll(const device_t *d, int x, int y, int z, int b)
 }
 
 void
-device_register_pci_slot(const device_t *d, int device, int type, int inta, int intb, int intc, int intd)
+device_register_pci_slot(const device_t *dev, int device, int type, int inta, int intb, int intc, int intd)
 {
     for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
-            if (devices[c] == d) {
+            if (devices[c] == dev) {
                 if (devices[c]->register_pci_slot)
                     devices[c]->register_pci_slot(device, type, inta, intb, intc, intd, device_priv[c]);
                 return;
@@ -470,38 +470,38 @@ device_register_pci_slot(const device_t *d, int device, int type, int inta, int 
 }
 
 void
-device_get_name(const device_t *d, int bus, char *name)
+device_get_name(const device_t *dev, int bus, char *name)
 {
     char *sbus = NULL;
     char *fbus;
     char *tname;
     char  pbus[8] = { 0 };
 
-    if (d == NULL)
+    if (dev == NULL)
         return;
 
     name[0] = 0x00;
 
     if (bus) {
-        if (d->flags & DEVICE_ISA)
-            sbus = (d->flags & DEVICE_AT) ? "ISA16" : "ISA";
-        else if (d->flags & DEVICE_CBUS)
+        if (dev->flags & DEVICE_ISA)
+            sbus = (dev->flags & DEVICE_AT) ? "ISA16" : "ISA";
+        else if (dev->flags & DEVICE_CBUS)
             sbus = "C-BUS";
-        else if (d->flags & DEVICE_MCA)
+        else if (dev->flags & DEVICE_MCA)
             sbus = "MCA";
-        else if (d->flags & DEVICE_EISA)
+        else if (dev->flags & DEVICE_EISA)
             sbus = "EISA";
-        else if (d->flags & DEVICE_VLB)
+        else if (dev->flags & DEVICE_VLB)
             sbus = "VLB";
-        else if (d->flags & DEVICE_PCI)
+        else if (dev->flags & DEVICE_PCI)
             sbus = "PCI";
-        else if (d->flags & DEVICE_AGP)
+        else if (dev->flags & DEVICE_AGP)
             sbus = "AGP";
-        else if (d->flags & DEVICE_AC97)
+        else if (dev->flags & DEVICE_AC97)
             sbus = "AMR";
-        else if (d->flags & DEVICE_COM)
+        else if (dev->flags & DEVICE_COM)
             sbus = "COM";
-        else if (d->flags & DEVICE_LPT)
+        else if (dev->flags & DEVICE_LPT)
             sbus = "LPT";
 
         if (sbus != NULL) {
@@ -515,7 +515,7 @@ device_get_name(const device_t *d, int bus, char *name)
                 sbus = "ISA";
             else if (!strcmp(sbus, "COM") || !strcmp(sbus, "LPT")) {
                 sbus = NULL;
-                strcat(name, d->name);
+                strcat(name, dev->name);
                 return;
             }
 
@@ -525,17 +525,17 @@ device_get_name(const device_t *d, int bus, char *name)
             strcat(pbus, ")");
 
             /* Allocate the temporary device name string and set it to all zeroes. */
-            tname = (char *) malloc(strlen(d->name) + 1);
-            memset(tname, 0x00, strlen(d->name) + 1);
+            tname = (char *) malloc(strlen(dev->name) + 1);
+            memset(tname, 0x00, strlen(dev->name) + 1);
 
             /* First strip the bus string with parentheses. */
-            fbus = strstr(d->name, pbus);
-            if (fbus == d->name)
-                strcat(tname, d->name + strlen(pbus) + 1);
+            fbus = strstr(dev->name, pbus);
+            if (fbus == dev->name)
+                strcat(tname, dev->name + strlen(pbus) + 1);
             else if (fbus == NULL)
-                strcat(tname, d->name);
+                strcat(tname, dev->name);
             else {
-                strncat(tname, d->name, fbus - d->name - 1);
+                strncat(tname, dev->name, fbus - dev->name - 1);
                 strcat(tname, fbus + strlen(pbus));
             }
 
@@ -556,9 +556,9 @@ device_get_name(const device_t *d, int bus, char *name)
             free(tname);
             tname = NULL;
         } else
-            strcat(name, d->name);
+            strcat(name, dev->name);
     } else
-        strcat(name, d->name);
+        strcat(name, dev->name);
 }
 
 void
@@ -771,7 +771,7 @@ device_is_valid(const device_t *device, int m)
     if ((device->flags & DEVICE_AGP) && !machine_has_bus(m, MACHINE_BUS_AGP))
         return 0;
 
-    if ((device->flags & DEVICE_PS2) && !machine_has_bus(m, MACHINE_BUS_PS2))
+    if ((device->flags & DEVICE_PS2) && !machine_has_bus(m, MACHINE_BUS_PS2_PORTS))
         return 0;
 
     if ((device->flags & DEVICE_AC97) && !machine_has_bus(m, MACHINE_BUS_AC97))

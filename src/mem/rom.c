@@ -384,7 +384,7 @@ rom_reset(uint32_t addr, int sz)
 }
 
 uint8_t
-bios_read(uint32_t addr, void *priv)
+bios_read(uint32_t addr, UNUSED(void *priv))
 {
     uint8_t ret = 0xff;
 
@@ -397,7 +397,7 @@ bios_read(uint32_t addr, void *priv)
 }
 
 uint16_t
-bios_readw(uint32_t addr, void *priv)
+bios_readw(uint32_t addr, UNUSED(void *priv))
 {
     uint16_t ret = 0xffff;
 
@@ -410,7 +410,7 @@ bios_readw(uint32_t addr, void *priv)
 }
 
 uint32_t
-bios_readl(uint32_t addr, void *priv)
+bios_readl(uint32_t addr, UNUSED(void *priv))
 {
     uint32_t ret = 0xffffffff;
 
@@ -442,7 +442,7 @@ bios_add(void)
         mem_mapping_add(&bios_mapping, 0xe0000, 0x20000,
                         bios_read, bios_readw, bios_readl,
                         NULL, NULL, NULL,
-                        &rom[0x20000], MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, 0);
+                        &rom[biosmask + 1 - 0x20000], MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, 0);
 
         mem_set_mem_state_both(0x0e0000, 0x20000,
                                MEM_READ_ROMCS | MEM_WRITE_ROMCS);
@@ -524,7 +524,7 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
 }
 
 int
-bios_load_linear_combined(const char *fn1, const char *fn2, int sz, int off)
+bios_load_linear_combined(const char *fn1, const char *fn2, int sz, UNUSED(int off))
 {
     uint8_t ret = 0;
 

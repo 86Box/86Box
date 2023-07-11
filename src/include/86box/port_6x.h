@@ -20,8 +20,7 @@
 #define EMU_PORT_6X_H
 
 #ifdef _TIMER_H_
-typedef struct
-{
+typedef struct port_6x_t {
     uint8_t refresh;
     uint8_t flags;
 

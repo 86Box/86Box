@@ -159,12 +159,12 @@ timer_init(void)
 }
 
 void
-timer_add(pc_timer_t *timer, void (*callback)(void *p), void *p, int start_timer)
+timer_add(pc_timer_t *timer, void (*callback)(void *p), void *priv, int start_timer)
 {
     memset(timer, 0, sizeof(pc_timer_t));
 
     timer->callback = callback;
-    timer->p        = p;
+    timer->p        = priv;
     timer->flags    = 0;
     timer->prev = timer->next = NULL;
     if (start_timer)

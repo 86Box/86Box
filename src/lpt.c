@@ -124,6 +124,9 @@ lpt_write(uint16_t port, uint8_t val, void *priv)
             dev->ctrl       = val;
             dev->enable_irq = val & 0x10;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -153,6 +156,9 @@ lpt_read(uint16_t port, void *priv)
                 ret = (dev->dt->read_ctrl(dev->priv) & 0xef) | dev->enable_irq;
             else
                 ret = 0xe0 | dev->ctrl | dev->enable_irq;
+            break;
+
+        default:
             break;
     }
 

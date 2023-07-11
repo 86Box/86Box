@@ -41,6 +41,7 @@
 #include <86box/video.h>
 #include <86box/machine.h>
 #include <86box/isamem.h>
+#include <86box/pci.h>
 
 int bios_only = 0;
 int machine;
@@ -103,6 +104,8 @@ machine_init_ex(int m)
 
         /* Reset the fast off stuff. */
         cpu_fast_off_reset();
+
+        pci_take_over_io = 0x00000000;
     }
 
     /* All good, boot the machine! */

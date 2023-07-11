@@ -86,12 +86,12 @@ enum {
 #define BIOS_INTERLEAVED_INVERT          8
 #define BIOS_HIGH_BIT_INVERT             16
 
-typedef struct {
+typedef struct device_config_selection_t {
     const char *description;
     int         value;
 } device_config_selection_t;
 
-typedef struct {
+typedef struct device_config_bios_t {
     const char  *name;
     const char  *internal_name;
     int          bios_type;
@@ -103,13 +103,13 @@ typedef struct {
     const char  *files[9];
 } device_config_bios_t;
 
-typedef struct {
+typedef struct device_config_spinner_t {
     int16_t min;
     int16_t max;
     int16_t step;
 } device_config_spinner_t;
 
-typedef struct {
+typedef struct device_config_t {
     const char                     *name;
     const char                     *description;
     int                             type;
@@ -144,7 +144,7 @@ typedef struct _device_ {
     const device_config_t *config;
 } device_t;
 
-typedef struct {
+typedef struct device_context_t {
     const device_t *dev;
     char            name[2048];
     int             instance;

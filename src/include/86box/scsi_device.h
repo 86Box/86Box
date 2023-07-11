@@ -338,7 +338,7 @@
 #define MODE_SELECT_PHASE_PAGE_HEADER 3
 #define MODE_SELECT_PHASE_PAGE        4
 
-typedef struct {
+typedef struct mode_sense_pages_t {
     uint8_t pages[0x40][0x40];
 } mode_sense_pages_t;
 
@@ -384,7 +384,7 @@ typedef struct scsi_common_s {
     double callback;
 } scsi_common_t;
 
-typedef struct {
+typedef struct scsi_device_t {
     int32_t buffer_length;
 
     uint8_t  status;
