@@ -166,13 +166,12 @@ static void
 i420ex_drb_recalc(i420ex_t *dev)
 {
     int i;
-    uint32_t boundary, shift;
+    uint32_t boundary;
 
     for (i = 4; i >= 0; i--)
         row_disable(i);
 
     for (i = 0; i <= 4; i++) {
-	shift = (i & 1) << 2;
 	boundary = ((uint32_t) dev->regs[0x60 + i]) & 0xff;
 	row_set_boundary(i, boundary);
     }

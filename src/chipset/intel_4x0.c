@@ -1536,11 +1536,11 @@ i4x0_reset(void *priv)
     for (uint8_t i = 0; i < 6; i++)
         i4x0_write(0, 0x5a + i, 0x00, priv);
 
-    for (i = 0; i <= dev->max_drb; i++)
+    for (uint8_t i = 0; i <= dev->max_drb; i++)
         dev->regs[0x60 + i] = dev->drb_default;
 
     if (dev->type >= INTEL_430NX) {
-        for (i = 0; i < 4; i++)
+        for (uint8_t i = 0; i < 4; i++)
             dev->regs[0x68 + i] = 0x00;
     }
 

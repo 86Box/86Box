@@ -40,7 +40,7 @@
 #include <86box/spd.h>
 #ifndef USE_DRB_HACK
 #include <86box/row.h>
-#endi
+#endif
 
 typedef struct sis_85c496_t {
     uint8_t    cur_reg;
@@ -196,13 +196,12 @@ static void
 sis_85c496_drb_recalc(sis_85c496_t *dev)
 {
     int i;
-    uint32_t boundary, shift;
+    uint32_t boundary;
 
     for (i = 7; i >= 0; i--)
         row_disable(i);
 
     for (i = 0; i <= 7; i++) {
-        shift = (i & 1) << 2;
         boundary = ((uint32_t) dev->pci_conf[0x48 + i]);
         row_set_boundary(i, boundary);
     }
