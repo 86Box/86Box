@@ -1003,6 +1003,11 @@ else
 	ln -s "$relroot/usr/lib/libvulkan.so.1" "archive_tmp/usr/lib/libvulkan.so"
 	ln -s "$relroot/usr/lib/$libdir/libvulkan.so.1" "archive_tmp/usr/lib/$libdir/libvulkan.so"
 
+	# The FluidSynth packaged by Debian bullseye is ABI incompatible with
+	# the newer version we compile, despite sharing a major version. Since we
+	# don't run into the one breaking ABI change they made, just symlink it.
+	ln -s "$(readlink "archive_tmp/usr/lib/libfluidsynth.so.3")" "archive_tmp/usr/lib/libfluidsynth.so.2"
+
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"
 	[ ! -e "archive_tmp/usr/lib/discord_game_sdk.so" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
