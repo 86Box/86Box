@@ -127,3 +127,9 @@ static std::array<uint32_t, 127> cocoa_keycodes = { /* key names in parentheses 
     0x150, /* DownArrow */
     0x148, /* UpArrow */
 };
+
+// https://developer.apple.com/documentation/appkit/nseventmodifierflags/
+qint32 NSEventModifierFlagCommand = 1 << 20;
+
+qint32 nvk_Delete = 0x75;
+qint32 nvk_Insert = 0x72;
