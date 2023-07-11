@@ -810,8 +810,8 @@ then
 	"$sevenzip" e -y -o"archive_tmp" "$discord_zip" "lib/$arch_discord/discord_game_sdk.dll"
 	[ ! -e "archive_tmp/discord_game_sdk.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
-	# Archive other DLLs from local directory.
-	cp -p "/home/$project/dll$arch/"* archive_tmp/
+	# Archive XAudio2 DLL if required.
+	grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt || cp -p "/home/$project/dll$arch/xaudio2"* archive_tmp/
 
 	# Archive executable, while also stripping it if requested.
 	if [ $strip -ne 0 ]
