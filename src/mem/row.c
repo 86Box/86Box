@@ -113,7 +113,6 @@ void
 row_allocate(uint8_t row_id, uint8_t set)
 {
     uint32_t c, offset;
-    int diff;
 
     /* Do nothing if size is either zero or invalid. */
     if ((rows[row_id].host_size == 0x00000000) || (rows[row_id].host_size == 0xffffffff))
@@ -186,9 +185,6 @@ row_disable(uint8_t row_id)
 void
 row_set_boundary(uint8_t row_id, uint32_t boundary)
 {
-    uint32_t base, size;
-    int i;
-
     if (row_id >= rows_num)
         return;
 
@@ -244,8 +240,7 @@ row_init(const device_t *info)
     uint8_t phys_drbs[16];
     int i, max = info->local & 0xff;
     int c;
-    uint32_t size, shift;
-    uint32_t drb, old_drb;
+    uint32_t shift, drb;
     uint32_t boundary, mask;
     row_t *new_rows = NULL;
 
