@@ -35,7 +35,7 @@
 #define ROM_ADDR     (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
 
 #define DRIVE_SELECT (int) (real_drive(dev->fdc_controller, i))
-typedef struct {
+typedef struct b215_t {
     fdc_t *fdc_controller;
     rom_t  rom;
 } b215_t;
@@ -58,7 +58,7 @@ b215_read(UNUSED(uint16_t addr), void *priv)
 */
     int drive_spec[2];
 
-    for (int i = 0; i <= 1; i++) {
+    for (uint8_t i = 0; i <= 1; i++) {
         if (fdd_is_525(DRIVE_SELECT)) {
             if (!fdd_is_dd(DRIVE_SELECT))
                 drive_spec[i] = 1;

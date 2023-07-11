@@ -104,6 +104,7 @@ jobs:
             libpng:p
             openal:p
             rtmidi:p
+            libslirp:p
             libvncserver:p
             ${{ matrix.ui.packages }}
 
@@ -329,6 +330,7 @@ jobs:
           librtmidi-dev
           libopenal-dev
           libvncserver-dev
+          libslirp-dev
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository

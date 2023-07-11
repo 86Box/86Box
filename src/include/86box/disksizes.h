@@ -22,7 +22,7 @@
 extern "C" {
 #endif
 
-typedef struct {
+typedef struct disk_size_t {
     int hole;
     int sides;
     int data_rate;

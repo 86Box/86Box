@@ -77,7 +77,7 @@ cga_out(uint16_t addr, uint8_t val, void *p)
             cga->cgamode = val;
 
             if (old ^ val) {
-                if ((old ^ val) & 0x05)
+                if ((old ^ val) & 0x07)
                     update_cga16_color(val);
 
                 cga_recalctimings(cga);
@@ -352,10 +352,7 @@ cga_poll(void *p)
             x = (cga->crtc[1] << 4) + 16;
 
         if (cga->composite) {
-            if (cga->cgamode & 0x10)
-                border = 0x00;
-            else
-                border = cga->cgacol & 0x0f;
+            border = ((cga->cgamode & 0x12) == 0x12) ? 0 : (cga->cgacol & 15);
 
             Composite_Process(cga->cgamode, border, x >> 2, buffer32->line[cga->displine << 1]);
             Composite_Process(cga->cgamode, border, x >> 2, buffer32->line[(cga->displine << 1) + 1]);
@@ -536,6 +533,7 @@ cga_standalone_init(const device_t *info)
     cga->rgb_type = device_get_config_int("rgb_type");
     cga_palette   = (cga->rgb_type << 1);
     cgapal_rebuild();
+    update_cga16_color(cga->cgamode);
 
     return cga;
 }

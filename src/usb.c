@@ -31,6 +31,7 @@
 #include <86box/timer.h>
 #include <86box/usb.h>
 #include <86box/dma.h>
+#include <86box/plat_unused.h>
 
 #ifdef ENABLE_USB_LOG
 int usb_do_log = ENABLE_USB_LOG;
@@ -51,8 +52,7 @@ usb_log(const char *fmt, ...)
 #endif
 
 /* OHCI registers */
-enum
-{
+enum {
     OHCI_HcRevision         = 0x00 /* 0x00 */,
     OHCI_HcControl          = 0x01 /* 0x04 */,
     OHCI_HcCommandStatus    = 0x02 /* 0x08 */,
@@ -79,8 +79,7 @@ enum
     OHCI_HcRhPortStatus3    = 0x17 /* 0x5c */
 };
 
-enum
-{
+enum {
     OHCI_aHcRevision         = 0x00,
     OHCI_aHcControl          = 0x04,
     OHCI_aHcCommandStatus    = 0x08,
@@ -108,8 +107,7 @@ enum
 };
 
 /* OHCI HcInterruptEnable/Disable bits */
-enum
-{
+enum {
     OHCI_HcInterruptEnable_SO = 1 << 0,
     OHCI_HcInterruptEnable_WDH = 1 << 1,
     OHCI_HcInterruptEnable_SF = 1 << 2,
@@ -120,8 +118,7 @@ enum
 };
 
 /* OHCI HcControl bits */
-enum
-{
+enum {
     OHCI_HcControl_ControlBulkServiceRatio = 1 << 0,
     OHCI_HcControl_PeriodicListEnable = 1 << 1,
     OHCI_HcControl_IsochronousEnable = 1 << 2,
@@ -147,9 +144,9 @@ usb_interrupt_ohci(usb_t *dev, uint32_t level)
 }
 
 static uint8_t
-uhci_reg_read(uint16_t addr, void *p)
+uhci_reg_read(uint16_t addr, void *priv)
 {
-    usb_t   *dev = (usb_t *) p;
+    usb_t   *dev = (usb_t *) priv;
     uint8_t  ret;
     uint8_t *regs = dev->uhci_io;
 
@@ -161,9 +158,9 @@ uhci_reg_read(uint16_t addr, void *p)
 }
 
 static void
-uhci_reg_write(uint16_t addr, uint8_t val, void *p)
+uhci_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
-    usb_t   *dev  = (usb_t *) p;
+    usb_t   *dev  = (usb_t *) priv;
     uint8_t *regs = dev->uhci_io;
 
     addr &= 0x0000001f;
@@ -185,13 +182,16 @@ uhci_reg_write(uint16_t addr, uint8_t val, void *p)
         case 0x0c:
             regs[0x0c] = (val & 0x7f);
             break;
+
+        default:
+            break;
     }
 }
 
 static void
-uhci_reg_writew(uint16_t addr, uint16_t val, void *p)
+uhci_reg_writew(uint16_t addr, uint16_t val, void *priv)
 {
-    usb_t    *dev  = (usb_t *) p;
+    usb_t    *dev  = (usb_t *) priv;
     uint16_t *regs = (uint16_t *) dev->uhci_io;
 
     addr &= 0x0000001f;
@@ -212,8 +212,8 @@ uhci_reg_writew(uint16_t addr, uint16_t val, void *p)
             regs[addr >> 1] = ((regs[addr >> 1] & 0xedbb) | (val & 0x1244)) & ~(val & 0x080a);
             break;
         default:
-            uhci_reg_write(addr, val & 0xff, p);
-            uhci_reg_write(addr + 1, (val >> 8) & 0xff, p);
+            uhci_reg_write(addr, val & 0xff, priv);
+            uhci_reg_write(addr + 1, (val >> 8) & 0xff, priv);
             break;
     }
 }
@@ -260,9 +260,9 @@ typedef struct
 #define ENDPOINT_DESC_LIMIT 32
 
 static uint8_t
-ohci_mmio_read(uint32_t addr, void *p)
+ohci_mmio_read(uint32_t addr, void *priv)
 {
-    usb_t  *dev = (usb_t *) p;
+    usb_t  *dev = (usb_t *) priv;
     uint8_t ret = 0x00;
 #ifdef ENABLE_USB_LOG
     uint32_t old_addr = addr;
@@ -301,15 +301,15 @@ ohci_mmio_read(uint32_t addr, void *p)
 }
 
 static uint16_t
-ohci_mmio_readw(uint32_t addr, void *p)
+ohci_mmio_readw(uint32_t addr, void *priv)
 {
-    return ohci_mmio_read(addr, p) | (ohci_mmio_read(addr + 1, p) << 8);
+    return ohci_mmio_read(addr, priv) | (ohci_mmio_read(addr + 1, priv) << 8);
 }
 
 static uint32_t
-ohci_mmio_readl(uint32_t addr, void *p)
+ohci_mmio_readl(uint32_t addr, void *priv)
 {
-    return ohci_mmio_readw(addr, p) | (ohci_mmio_readw(addr + 2, p) << 16);
+    return ohci_mmio_readw(addr, priv) | (ohci_mmio_readw(addr + 2, priv) << 16);
 }
 
 static void
@@ -367,7 +367,7 @@ static int ohci_copy_td_input(usb_t* dev, usb_td_t *td,
 }
 #endif
 
-static int ohci_copy_td_output(usb_t* dev, usb_td_t *td,
+static int ohci_copy_td_output(UNUSED(usb_t* dev), usb_td_t *td,
                         uint8_t *buf, int len)
 {
     uint32_t ptr;
@@ -504,6 +504,9 @@ ohci_service_transfer_desc(usb_t* dev, usb_ed_t* endpoint_desc)
             switch (device_result) {
                 case USB_ERROR_NAK:
                     return 1;
+
+                default:
+                    break;
             }
             dev->ohci_interrupt_counter = 0;
         }
@@ -676,9 +679,9 @@ ohci_soft_reset(usb_t* dev)
 }
 
 static void
-ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
+ohci_mmio_write(uint32_t addr, uint8_t val, void *priv)
 {
-    usb_t  *dev = (usb_t *) p;
+    usb_t  *dev = (usb_t *) priv;
     uint8_t old;
 
 #ifdef ENABLE_USB_LOG
@@ -888,8 +891,10 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
 
             if (!(dev->ohci_mmio[addr >> 2].b[addr & 3] & 0x04) && (old & 0x04))
                 dev->ohci_mmio[(addr + 2) >> 2].b[(addr + 2) & 3] |= 0x04;
-            /* if (!(dev->ohci_mmio[addr >> 2].b[addr & 3] & 0x02))
-                    dev->ohci_mmio[(addr + 2) >> 2].b[(addr + 2) & 3] |= 0x02; */
+#if 0
+            if (!(dev->ohci_mmio[addr >> 2].b[addr & 3] & 0x02))
+                dev->ohci_mmio[(addr + 2) >> 2].b[(addr + 2) & 3] |= 0x02;
+#endif
             return;
         case OHCI_aHcRhPortStatus1 + 1:
             if ((val & 0x02) && ((dev->ohci_mmio[OHCI_HcRhDescriptorA].b[1] & 0x03) == 0x00) && (dev->ohci_mmio[OHCI_HcRhDescriptorB].b[2] & 0x02)) {
@@ -924,23 +929,26 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
         case OHCI_aHcPeriodCurrentED:
             dev->ohci_mmio[addr >> 2].b[addr & 3] = (val & 0xf0);
             return;
+
+        default:
+            break;
     }
 
     dev->ohci_mmio[addr >> 2].b[addr & 3] = val;
 }
 
 static void
-ohci_mmio_writew(uint32_t addr, uint16_t val, void *p)
+ohci_mmio_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    ohci_mmio_write(addr, val & 0xff, p);
-    ohci_mmio_write(addr + 1, val >> 8, p);
+    ohci_mmio_write(addr, val & 0xff, priv);
+    ohci_mmio_write(addr + 1, val >> 8, priv);
 }
 
 static void
-ohci_mmio_writel(uint32_t addr, uint32_t val, void *p)
+ohci_mmio_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    ohci_mmio_writew(addr, val & 0xffff, p);
-    ohci_mmio_writew(addr + 2, val >> 16, p);
+    ohci_mmio_writew(addr, val & 0xffff, priv);
+    ohci_mmio_writew(addr + 2, val >> 16, priv);
 }
 
 void
@@ -964,7 +972,7 @@ usb_attach_device(usb_t *dev, usb_device_t* device, uint8_t bus_type)
     switch (bus_type) {
         case USB_BUS_OHCI:
             {
-                for (int i = 0; i < 2; i++) {
+                for (uint8_t i = 0; i < 2; i++) {
                     if (!dev->ohci_devices[i]) {
                         uint32_t old = dev->ohci_mmio[OHCI_HcRhPortStatus1 + (4 * i)].l;
                         dev->ohci_devices[i] = device;
@@ -981,8 +989,11 @@ usb_attach_device(usb_t *dev, usb_device_t* device, uint8_t bus_type)
                 }
             }
             break;
+
+        default:
+            break;
     }
-    return 255;
+    return 0xff;
 }
 
 void
@@ -1010,6 +1021,9 @@ usb_detach_device(usb_t *dev, uint8_t port, uint8_t bus_type)
                 }
 
             }
+            break;
+
+        default:
             break;
     }
     return;
@@ -1046,7 +1060,7 @@ usb_close(void *priv)
 }
 
 static void *
-usb_init_ext(const device_t *info, void *params)
+usb_init_ext(UNUSED(const device_t *info), void *params)
 {
     usb_t *dev;
 

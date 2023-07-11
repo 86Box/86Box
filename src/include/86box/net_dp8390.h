@@ -36,7 +36,7 @@
 #define DP8390_FLAG_CHECK_CR   0x02
 #define DP8390_FLAG_CLEAR_IRQ  0x04
 
-typedef struct {
+typedef struct dp8390_t {
     /* Page 0 */
 
     /* Command Register - 00h read/write */

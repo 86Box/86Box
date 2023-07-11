@@ -32,6 +32,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/sio.h>
+#include <86box/plat_unused.h>
 
 #ifdef ENABLE_PRIME3C_LOG
 int prime3c_do_log = ENABLE_PRIME3C_LOG;
@@ -75,9 +76,11 @@ prime3c_log(const char *fmt, ...)
 /* IDE functionality(Note on Init) */
 #define HAS_IDE_FUNCTIONALITY dev->ide_function
 
-typedef struct
-{
-    uint8_t index, regs[256], cfg_lock, ide_function;
+typedef struct prime3c_t {
+    uint8_t index;
+    uint8_t regs[256];
+    uint8_t cfg_lock;
+    uint8_t ide_function;
 
     fdc_t    *fdc_controller;
     serial_t *uart[2];
@@ -189,14 +192,20 @@ prime3c_write(uint16_t addr, uint8_t val, void *priv)
                     case 0xd8:
                         dev->regs[dev->index] = val;
                         break;
+
+                    default:
+                        break;
                 }
             }
+            break;
+
+        default:
             break;
     }
 }
 
 static uint8_t
-prime3c_read(uint16_t addr, void *priv)
+prime3c_read(UNUSED(uint16_t addr), void *priv)
 {
     prime3c_t *dev = (prime3c_t *) priv;
 

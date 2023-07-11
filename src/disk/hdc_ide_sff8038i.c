@@ -462,29 +462,27 @@ sff_bus_master_reset(sff8038i_t *dev, uint16_t old_base)
 }
 
 static void
-sff_reset(void *p)
+sff_reset(void *priv)
 {
-    int i = 0;
-
 #ifdef ENABLE_SFF_LOG
     sff_log("SFF8038i: Reset\n");
 #endif
 
-    for (i = 0; i < CDROM_NUM; i++) {
+    for (uint8_t i = 0; i < CDROM_NUM; i++) {
         if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && (cdrom[i].ide_channel < 4) && cdrom[i].priv)
             scsi_cdrom_reset((scsi_common_t *) cdrom[i].priv);
     }
-    for (i = 0; i < ZIP_NUM; i++) {
+    for (uint8_t i = 0; i < ZIP_NUM; i++) {
         if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && (zip_drives[i].ide_channel < 4) && zip_drives[i].priv)
             zip_reset((scsi_common_t *) zip_drives[i].priv);
     }
-    for (i = 0; i < MO_NUM; i++) {
+    for (uint8_t i = 0; i < MO_NUM; i++) {
         if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && (mo_drives[i].ide_channel < 4) && mo_drives[i].priv)
             mo_reset((scsi_common_t *) mo_drives[i].priv);
     }
 
-    sff_bus_master_set_irq(0x00, p);
-    sff_bus_master_set_irq(0x01, p);
+    sff_bus_master_set_irq(0x00, priv);
+    sff_bus_master_set_irq(0x01, priv);
 }
 
 void
@@ -543,9 +541,9 @@ sff_set_irq_pin(sff8038i_t *dev, int irq_pin)
 }
 
 static void
-sff_close(void *p)
+sff_close(void *priv)
 {
-    sff8038i_t *dev = (sff8038i_t *) p;
+    sff8038i_t *dev = (sff8038i_t *) priv;
 
     free(dev);
 
@@ -554,9 +552,8 @@ sff_close(void *p)
         next_id = 0;
 }
 
-static void
-    *
-    sff_init(UNUSED(const device_t *info))
+static void *
+sff_init(UNUSED(const device_t *info))
 {
     sff8038i_t *dev = (sff8038i_t *) malloc(sizeof(sff8038i_t));
     memset(dev, 0, sizeof(sff8038i_t));

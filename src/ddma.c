@@ -34,6 +34,7 @@
 #include <86box/pit.h>
 #include <86box/dma.h>
 #include <86box/ddma.h>
+#include <86box/plat_unused.h>
 
 #ifdef ENABLE_DDMA_LOG
 int ddma_do_log = ENABLE_DDMA_LOG;
@@ -54,9 +55,9 @@ ddma_log(const char *fmt, ...)
 #endif
 
 static uint8_t
-ddma_reg_read(uint16_t addr, void *p)
+ddma_reg_read(uint16_t addr, void *priv)
 {
-    ddma_channel_t *dev  = (ddma_channel_t *) p;
+    ddma_channel_t *dev  = (ddma_channel_t *) priv;
     uint8_t         ret  = 0xff;
     int             ch   = dev->channel;
     int             dmab = (ch >= 4) ? 0xc0 : 0x00;
@@ -80,15 +81,18 @@ ddma_reg_read(uint16_t addr, void *p)
         case 0x09:
             ret = inb(dmab + 0x08);
             break;
+
+        default:
+            break;
     }
 
     return ret;
 }
 
 static void
-ddma_reg_write(uint16_t addr, uint8_t val, void *p)
+ddma_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
-    ddma_channel_t *dev          = (ddma_channel_t *) p;
+    ddma_channel_t *dev          = (ddma_channel_t *) priv;
     int             ch           = dev->channel;
     int             page_regs[4] = { 7, 3, 1, 2 };
     int             dmab = (ch >= 4) ? 0xc0 : 0x00;
@@ -138,6 +142,9 @@ ddma_reg_write(uint16_t addr, uint8_t val, void *p)
         case 0x0f:
             outb(dmab + 0x0a, (val << 2) | (ch & 3));
             break;
+
+        default:
+            break;
     }
 }
 
@@ -163,7 +170,7 @@ ddma_close(void *priv)
 }
 
 static void *
-ddma_init(const device_t *info)
+ddma_init(UNUSED(const device_t *info))
 {
     ddma_t *dev;
 

@@ -37,6 +37,7 @@
 #include <86box/apm.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
+#include <86box/plat_unused.h>
 
 enum {
     STATE_NONE = 0,
@@ -140,7 +141,7 @@ pic_elcr_write(uint16_t port, uint8_t val, void *priv)
 }
 
 uint8_t
-pic_elcr_read(uint16_t port, void *priv)
+pic_elcr_read(UNUSED(uint16_t port), void *priv)
 {
     pic_t *dev = (pic_t *) priv;
 
@@ -191,8 +192,8 @@ find_best_interrupt(pic_t *dev)
 {
     uint8_t b;
     uint8_t intr;
-    int     j;
-    int     ret = -1;
+    uint8_t j;
+    int8_t  ret = -1;
 
     for (uint8_t i = 0; i < 8; i++) {
         j = (i + dev->priority) & 7;
@@ -334,7 +335,7 @@ pic_acknowledge(pic_t *dev)
 static uint8_t
 pic_non_specific_find(pic_t *dev)
 {
-    int     j;
+    uint8_t j;
     uint8_t b;
     uint8_t irq = 0xff;
 
@@ -398,7 +399,7 @@ pic_command(pic_t *dev)
 }
 
 uint8_t
-pic_latch_read(uint16_t addr, void *priv)
+pic_latch_read(UNUSED(uint16_t addr), UNUSED(void *priv))
 {
     uint8_t ret = 0xff;
 
@@ -495,6 +496,9 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
                 dev->imr = val;
                 update_pending();
                 break;
+
+            default:
+                break;
         }
     } else {
         if (val & 0x10) {
@@ -531,14 +535,12 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 void
 pic_set_pci(void)
 {
-    int i;
-
-    for (i = 0x0024; i < 0x0040; i += 4) {
+    for (uint8_t i = 0x0024; i < 0x0040; i += 4) {
         io_sethandler(i, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
         io_sethandler(i + 0x0080, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
     }
 
-    for (i = 0x1120; i < 0x1140; i += 4) {
+    for (uint16_t i = 0x1120; i < 0x1140; i += 4) {
         io_sethandler(i, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
         io_sethandler(i + 0x0080, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
     }
@@ -584,7 +586,7 @@ pic_reset_hard(void)
     /* The situation is as follows: There is a giant mess when it comes to these latches on real hardware,
        to the point that there's even boards with board-level latched that get used in place of the latches
        on the chipset, therefore, I'm just doing this here for the sake of simplicity. */
-    if (machine_has_bus(machine, MACHINE_BUS_PS2)) {
+    if (machine_has_bus(machine, MACHINE_BUS_PS2_LATCH)) {
         pic_kbd_latch(0x01);
         pic_mouse_latch(0x01);
     } else {
@@ -628,7 +630,7 @@ picint_common(uint16_t num, int level, int set)
     /* Make sure to ignore all slave IRQ's, and in case of AT+,
        translate IRQ 2 to IRQ 9. */
     for (uint8_t i = 0; i < 8; i++) {
-        b     = (1 << i);
+        b     = (uint8_t) (1 << i);
         raise = num & b;
 
         if (pic.icw3 & b) {
@@ -779,7 +781,7 @@ pic_irq_ack_read(pic_t *dev, int phase)
 uint8_t
 pic_irq_ack(void)
 {
-    int ret;
+    uint8_t ret;
 
     /* Needed for Xi8088. */
     if ((pic.ack_bytes == 0) && pic.int_pending && pic_slave_on(&pic, pic.interrupt)) {

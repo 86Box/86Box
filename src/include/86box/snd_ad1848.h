@@ -30,7 +30,7 @@ enum {
     AD1848_TYPE_CS4236  = 4
 };
 
-typedef struct {
+typedef struct ad1848_t {
     uint8_t type;
     uint8_t index;
     uint8_t xindex;

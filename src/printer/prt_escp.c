@@ -181,7 +181,7 @@ static dllimp_t ft_imports[] = {
 #define PIXX       ((unsigned) floor(dev->curr_x * dev->dpi + 0.5))
 #define PIXY       ((unsigned) floor(dev->curr_y * dev->dpi + 0.5))
 
-typedef struct {
+typedef struct psurface_t {
     int8_t dirty; /* has the page been printed on? */
     char   pad;
 
@@ -192,7 +192,7 @@ typedef struct {
     uint8_t *pixels; /* grayscale pixel data */
 } psurface_t;
 
-typedef struct {
+typedef struct escp_t {
     const char *name;
 
     void *lpt;
@@ -204,12 +204,12 @@ typedef struct {
     uint8_t color;
 
     /* page data (TODO: make configurable) */
-    double page_width, /* all in inches */
-        page_height,
-        left_margin,
-        top_margin,
-        right_margin,
-        bottom_margin;
+    double   page_width; /* all in inches */
+    double   page_height;
+    double   left_margin;
+    double   top_margin;
+    double   right_margin;
+    double   bottom_margin;
     uint16_t dpi;
     double   cpi; /* defined chars per inch */
     double   lpi; /* defined lines per inch */
@@ -255,7 +255,8 @@ typedef struct {
     char        fontpath[1024];
     char        pagepath[1024];
     psurface_t *page;
-    double      curr_x, curr_y; /* print head position (inch) */
+    double      curr_x; /* print head position (x, inch) */
+    double      curr_y; /* print head position (y, inch) */
     uint16_t    current_font;
     FT_Face     fontface;
     int8_t      lq_typeface;

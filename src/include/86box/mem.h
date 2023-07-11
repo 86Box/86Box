@@ -158,20 +158,21 @@
 #define mem_set_access_smram_bus(smm, base, size, is_smram) \
     mem_set_access((smm ? ACCESS_BUS_SMM : ACCESS_BUS), 1, base, size, is_smram)
 
-typedef struct {
+typedef struct state_t {
     uint16_t x : 5;
     uint16_t w : 5;
     uint16_t r : 5;
     uint16_t pad : 1;
 } state_t;
 
-typedef union {
+typedef union mem_state_t {
     uint16_t vals[4];
     state_t  states[4];
 } mem_state_t;
 
 typedef struct _mem_mapping_ {
-    struct _mem_mapping_ *prev, *next;
+    struct _mem_mapping_ *prev;
+    struct _mem_mapping_ *next;
 
     int enable;
 
