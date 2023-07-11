@@ -6814,6 +6814,45 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* absolutely no KBC info */
+    {
+        .name = "[i420EX] ICS SB486P",
+        .internal_name = "sb486p",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_INTEL_420EX,
+        .init = machine_at_sb486p_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PCI,
+        .flags = MACHINE_SUPER_IO | MACHINE_IDE | MACHINE_APM,
+        .ram = {
+            .min = 1024,
+            .max = 131072,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* I'm going to assume this as an AMIKey-2 like the other two 486SP3's. */
     {
         .name = "[i420TX] ASUS PCI/I-486SP3",

@@ -1173,6 +1173,31 @@ machine_at_486pi_init(const machine_t *model)
 }
 
 int
+machine_at_sb486p_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/sb486p/amiboot.rom",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1 | PCI_NO_IRQ_STEERING);
+    pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      1, 2, 1, 2);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 1, 2, 1);
+
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&i82091aa_device);
+    device_add(&i420ex_device);
+
+    return ret;
+}
+
+int
 machine_at_486sp3_init(const machine_t *model)
 {
     int ret;
