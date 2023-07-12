@@ -216,7 +216,7 @@ fluidsynth_init(const device_t *info)
 
         double reverb_room_size = device_get_config_int("reverb_room_size") / 100.0;
         double reverb_damping   = device_get_config_int("reverb_damping") / 100.0;
-        int    reverb_width     = device_get_config_int("reverb_width");
+        double reverb_width     = device_get_config_int("reverb_width") / 10.0;
         double reverb_level     = device_get_config_int("reverb_level") / 100.0;
 
 #    ifndef USE_OLD_FLUIDSYNTH_API
@@ -342,7 +342,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "chorus",
         .description = "Chorus",
         .type = CONFIG_BINARY,
-        .default_int = 0
+        .default_int = 1
     },
     {
         .name = "chorus_voices",
@@ -364,7 +364,7 @@ static const device_config_t fluidsynth_config[] = {
             .min = 0,
             .max = 100
         },
-        .default_int = 100
+        .default_int = 20
     },
     {
         .name = "chorus_speed",
@@ -372,7 +372,7 @@ static const device_config_t fluidsynth_config[] = {
         .type = CONFIG_SPINNER,
         .spinner =
         {
-            .min = 30,
+            .min = 10,
             .max = 500
         },
         .default_int = 30
@@ -384,7 +384,7 @@ static const device_config_t fluidsynth_config[] = {
         .spinner =
         {
             .min = 0,
-            .max = 210
+            .max = 2560
         },
         .default_int = 80
     },
@@ -409,7 +409,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "reverb",
         .description = "Reverb",
         .type = CONFIG_BINARY,
-        .default_int = 0
+        .default_int = 1
     },
     {
         .name = "reverb_room_size",
@@ -418,7 +418,7 @@ static const device_config_t fluidsynth_config[] = {
         .spinner =
         {
             .min = 0,
-            .max = 120
+            .max = 100
         },
         .default_int = 20
     },
@@ -440,9 +440,9 @@ static const device_config_t fluidsynth_config[] = {
         .spinner =
         {
             .min = 0,
-            .max = 100
+            .max = 1000
         },
-        .default_int = 1
+        .default_int = 5
     },
     {
         .name = "reverb_level",
