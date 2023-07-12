@@ -15,17 +15,8 @@
 #    include <86box/config.h>
 #    include <86box/device.h>
 #    include <86box/midi.h>
-#    include <86box/plat.h>
-#    include <86box/plat_dynld.h>
 #    include <86box/thread.h>
 #    include <86box/sound.h>
-#    include <86box/ui.h>
-
-#    define FLUID_CHORUS_DEFAULT_N     3
-#    define FLUID_CHORUS_DEFAULT_LEVEL 2.0f
-#    define FLUID_CHORUS_DEFAULT_SPEED 0.3f
-#    define FLUID_CHORUS_DEFAULT_DEPTH 8.0f
-#    define FLUID_CHORUS_DEFAULT_TYPE  FLUID_CHORUS_MOD_SINE
 
 #    define RENDER_RATE                100
 #    define BUFFER_SEGMENTS            10
@@ -34,10 +25,10 @@ extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
 
 typedef struct fluidsynth {
-    void *settings;
-    void *synth;
-    int   samplerate;
-    int   sound_font;
+    fluid_settings_t *settings;
+    fluid_synth_t    *synth;
+    int               samplerate;
+    int               sound_font;
 
     thread_t *thread_h;
     event_t  *event, *start_event;
