@@ -485,6 +485,7 @@ extern int machine_at_403tg_init(const machine_t *);
 extern int machine_at_403tg_d_init(const machine_t *);
 extern int machine_at_403tg_d_mr_init(const machine_t *);
 extern int machine_at_pc330_6573_init(const machine_t *);
+extern int machine_at_m45xx_init(const machine_t *);
 extern int machine_at_mvi486_init(const machine_t *);
 
 extern int machine_at_sis401_init(const machine_t *);
