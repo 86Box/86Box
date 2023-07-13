@@ -525,6 +525,7 @@ extern int machine_at_win486pci_init(const machine_t *);
 extern int machine_at_ms4145_init(const machine_t *);
 extern int machine_at_sbc490_init(const machine_t *);
 extern int machine_at_tf486_init(const machine_t *);
+extern int machine_at_arb1476_init(const machine_t *);
 
 extern int machine_at_pci400cb_init(const machine_t *);
 extern int machine_at_g486ip_init(const machine_t *);
