@@ -539,6 +539,7 @@ extern int machine_at_ecs486_init(const machine_t *);
 extern int machine_at_hot433_init(const machine_t *);
 extern int machine_at_atc1415_init(const machine_t *);
 extern int machine_at_actionpc2600_init(const machine_t *);
+extern int machine_at_actiontower8400_init(const machine_t *);
 extern int machine_at_m919_init(const machine_t *);
 extern int machine_at_spc7700plw_init(const machine_t *);
 extern int machine_at_ms4134_init(const machine_t *);

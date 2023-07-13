@@ -7483,6 +7483,46 @@ const machine_t machines[] = {
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
        in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
     {
+        .name = "[UMC 8881] Epson ActionTower 8400",
+        .internal_name = "actiontower8400",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_UMC_UM8881,
+        .init = machine_at_actiontower8400_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_SUPER_IO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 262144,
+            .step = 1024
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
+       in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
+    {
         .name = "[UMC 8881] PC Chips M919",
         .internal_name = "m919",
         .type = MACHINE_TYPE_486_S3,

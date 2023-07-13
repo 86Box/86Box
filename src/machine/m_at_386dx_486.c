@@ -1875,6 +1875,37 @@ machine_at_actionpc2600_init(const machine_t *model)
 }
 
 int
+machine_at_actiontower8400_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/actiontower8400/V31C.ROM",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    if (gfxcard[0] == VID_INTERNAL)
+        pci_register_slot(0x15, PCI_CARD_VIDEO,   0, 0, 0, 0);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      2, 3, 4, 1);
+
+    device_add(&umc_hb4_device);
+    device_add(&umc_8886af_device);
+    device_add(&fdc37c665_device);
+    device_add(&intel_flash_bxt_device); // The ActionPC 2600 has this so I'm gonna assume this does too.
+    device_add(&keyboard_ps2_ami_pci_device);
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&gd5430_pci_device); // VBIOS not included in BIOS ROM
+
+    return ret;
+}
+
+int
 machine_at_m919_init(const machine_t *model)
 {
     int ret;
