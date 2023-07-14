@@ -5,7 +5,10 @@
 
 #define MMX_GETSRC()                               \
     if (cpu_mod == 3) {                            \
-        src = cpu_state.MM[cpu_rm];                \
+        if (fpu_softfloat) \
+            src = *(MMX_REG *)&fpu_state.st_space[cpu_rm].fraction; \
+        else \
+            src = cpu_state.MM[cpu_rm];                \
         CLOCK_CYCLES(1);                           \
     } else {                                       \
         SEG_CHECK_READ(cpu_state.ea_seg);          \
