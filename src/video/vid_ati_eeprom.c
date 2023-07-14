@@ -46,6 +46,26 @@ ati_eeprom_load(ati_eeprom_t *eeprom, char *fn, int type)
 }
 
 void
+ati_eeprom_load_mach8(ati_eeprom_t *eeprom, char *fn)
+{
+    FILE *f;
+    int   size;
+    eeprom->type = 0;
+    strncpy(eeprom->fn, fn, sizeof(eeprom->fn) - 1);
+    f    = nvr_fopen(eeprom->fn, "rb");
+    size = 128;
+    if (!f) { /*The ATI Graphics Ultra bios expects an immediate write to nvram if none is present at boot time otherwise
+            it would hang the machine.*/
+        memset(eeprom->data, 0, size);
+        f = nvr_fopen(eeprom->fn, "wb");
+        fwrite(eeprom->data, 1, size, f);
+    }
+    if (fread(eeprom->data, 1, size, f) != size)
+        memset(eeprom->data, 0, size);
+    fclose(f);
+}
+
+void
 ati_eeprom_save(ati_eeprom_t *eeprom)
 {
     FILE *f = nvr_fopen(eeprom->fn, "wb");
