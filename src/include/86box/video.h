@@ -60,8 +60,10 @@ enum {
 #define VIDEO_FLAG_TYPE_CGA     0
 #define VIDEO_FLAG_TYPE_MDA     1
 #define VIDEO_FLAG_TYPE_SPECIAL 2
-#define VIDEO_FLAG_TYPE_NONE    3
-#define VIDEO_FLAG_TYPE_MASK    3
+#define VIDEO_FLAG_TYPE_8514    3
+#define VIDEO_FLAG_TYPE_XGA     4
+#define VIDEO_FLAG_TYPE_NONE    5
+#define VIDEO_FLAG_TYPE_MASK    7
 
 typedef struct video_timings_t {
     int type;
@@ -206,6 +208,7 @@ extern double cpuclock;
 extern int    emu_fps;
 extern int    frames;
 extern int    readflash;
+extern int    ibm8514_has_vga;
 
 /* Function handler pointers. */
 extern void (*video_recalctimings)(void);
@@ -232,6 +235,8 @@ extern int   video_card_get_flags(int card);
 extern int   video_is_mda(void);
 extern int   video_is_cga(void);
 extern int   video_is_ega_vga(void);
+extern int   video_is_8514(void);
+extern int   video_is_xga(void);
 extern void  video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
 extern int   video_get_type_monitor(int monitor_index);
 
@@ -290,8 +295,12 @@ extern uint32_t video_color_transform(uint32_t color);
 /* IBM XGA */
 extern void xga_device_add(void);
 
-/* IBM 8514/A and generic clones*/
+/* IBM 8514/A and clones*/
 extern void ibm8514_device_add(void);
+extern const device_t mach8_isa_device;
+extern const device_t mach32_isa_device;
+extern const device_t mach32_vlb_device;
+extern const device_t mach32_pci_device;
 
 /* ATi Mach64 */
 extern const device_t mach64gx_isa_device;
