@@ -172,7 +172,7 @@ typedef struct mach64_t {
     uint32_t write_mask;
     uint32_t chain_mask;
 
-    uint32_t linear_base, old_linear_base;
+    uint32_t linear_base;
     uint32_t io_base;
 
     struct
@@ -185,6 +185,7 @@ typedef struct mach64_t {
         int      src_x_start, src_y_start;
         int      xinc, yinc;
         int      x_count, y_count;
+        int      xx_count;
         int      src_x_count, src_y_count;
         int      src_width1, src_height1;
         int      src_width2, src_height2;
@@ -487,35 +488,35 @@ mach64_recalctimings(svga_t *svga)
             case BPP_4:
                 if (mach64->type != MACH64_GX)
                     svga->render = svga_render_4bpp_highres;
-                svga->hdisp *= 8;
+                svga->hdisp <<= 3;
                 break;
             case BPP_8:
                 if (mach64->type != MACH64_GX)
                     svga->render = svga_render_8bpp_highres;
-                svga->hdisp *= 8;
-                svga->rowoffset /= 2;
+                svga->hdisp <<= 3;
+                svga->rowoffset >>= 1;
                 break;
             case BPP_15:
                 if (mach64->type != MACH64_GX)
                     svga->render = svga_render_15bpp_highres;
-                svga->hdisp *= 8;
+                svga->hdisp <<= 3;
                 break;
             case BPP_16:
                 if (mach64->type != MACH64_GX)
                     svga->render = svga_render_16bpp_highres;
-                svga->hdisp *= 8;
+                svga->hdisp <<= 3;
                 break;
             case BPP_24:
                 if (mach64->type != MACH64_GX)
                     svga->render = svga_render_24bpp_highres;
-                svga->hdisp *= 8;
+                svga->hdisp <<= 3;
                 svga->rowoffset = (svga->rowoffset * 3) / 2;
                 break;
             case BPP_32:
                 if (mach64->type != MACH64_GX)
                     svga->render = svga_render_32bpp_highres;
-                svga->hdisp *= 8;
-                svga->rowoffset *= 2;
+                svga->hdisp <<= 3;
+                svga->rowoffset <<= 1;
                 break;
         }
 
@@ -530,7 +531,7 @@ mach64_updatemapping(mach64_t *mach64)
 {
     svga_t *svga = &mach64->svga;
 
-    if (!(mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM)) {
+    if (mach64->pci && !(mach64->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM)) {
         mach64_log("Update mapping - PCI disabled\n");
         mem_mapping_disable(&svga->mapping);
         mem_mapping_disable(&mach64->linear_mapping);
@@ -543,47 +544,60 @@ mach64_updatemapping(mach64_t *mach64)
     mem_mapping_disable(&mach64->mmio_mapping);
     switch (svga->gdcreg[6] & 0xc) {
         case 0x0: /*128k at A0000*/
-            mem_mapping_set_handler(&mach64->svga.mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
-            mem_mapping_set_p(&mach64->svga.mapping, mach64);
+            mem_mapping_set_handler(&svga->mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
+            mem_mapping_set_p(&svga->mapping, mach64);
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
             mem_mapping_enable(&mach64->mmio_mapping);
             svga->banked_mask = 0xffff;
             break;
         case 0x4: /*64k at A0000*/
-            mem_mapping_set_handler(&mach64->svga.mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
-            mem_mapping_set_p(&mach64->svga.mapping, mach64);
+            mem_mapping_set_handler(&svga->mapping, mach64_read, mach64_readw, mach64_readl, mach64_write, mach64_writew, mach64_writel);
+            mem_mapping_set_p(&svga->mapping, mach64);
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x10000);
             svga->banked_mask = 0xffff;
             break;
         case 0x8: /*32k at B0000*/
-            mem_mapping_set_handler(&mach64->svga.mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);
-            mem_mapping_set_p(&mach64->svga.mapping, svga);
+            mem_mapping_set_handler(&svga->mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);
+            mem_mapping_set_p(&svga->mapping, svga);
             mem_mapping_set_addr(&svga->mapping, 0xb0000, 0x08000);
             svga->banked_mask = 0x7fff;
             break;
         case 0xC: /*32k at B8000*/
-            mem_mapping_set_handler(&mach64->svga.mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);
-            mem_mapping_set_p(&mach64->svga.mapping, svga);
+            mem_mapping_set_handler(&svga->mapping, svga_read, svga_readw, svga_readl, svga_write, svga_writew, svga_writel);
+            mem_mapping_set_p(&svga->mapping, svga);
             mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
             svga->banked_mask = 0x7fff;
             break;
     }
+
+    mach64_log("Mach64 linear aperture = %08x.\n", mach64->linear_base);
     if (mach64->linear_base) {
         if (mach64->type == MACH64_GX) {
             if ((mach64->config_cntl & 3) == 2) {
                 /*8 MB aperture*/
                 mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - 0x4000);
                 mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 0x4000), 0x4000);
-            } else {
+            } else if ((mach64->config_cntl & 3) == 1) {
                 /*4 MB aperture*/
                 mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (4 << 20) - 0x4000);
                 mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((4 << 20) - 0x4000), 0x4000);
+            } else {
+                /*Disable aperture on reserved values*/
+                mem_mapping_disable(&mach64->linear_mapping);
+                mem_mapping_disable(&mach64->mmio_linear_mapping);
             }
         } else {
-            /*2*8 MB aperture*/
-            mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - 0x4000);
-            mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 0x4000), 0x4000);
-            mem_mapping_set_addr(&mach64->mmio_linear_mapping_2, mach64->linear_base + ((16 << 20) - 0x4000), 0x4000);
+            if ((mach64->config_cntl & 3) == 2) {
+                /*2*8 MB aperture*/
+                mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - 0x4000);
+                mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 0x4000), 0x4000);
+                mem_mapping_set_addr(&mach64->mmio_linear_mapping_2, mach64->linear_base + ((16 << 20) - 0x4000), 0x4000);
+            } else {
+                /*Disable aperture on reserved values*/
+                mem_mapping_disable(&mach64->linear_mapping);
+                mem_mapping_disable(&mach64->mmio_linear_mapping);
+                mem_mapping_disable(&mach64->mmio_linear_mapping_2);
+            }
         }
     } else {
         mem_mapping_disable(&mach64->linear_mapping);
@@ -621,7 +635,7 @@ mach64_wait_fifo_idle(mach64_t *mach64)
 }
 
 #define READ8(addr, var)                \
-    switch ((addr) &3) {                \
+    switch ((addr) & 3) {               \
         case 0:                         \
             ret = (var) &0xff;          \
             break;                      \
@@ -637,7 +651,7 @@ mach64_wait_fifo_idle(mach64_t *mach64)
     }
 
 #define WRITE8(addr, var, val)                        \
-    switch ((addr) &3) {                              \
+    switch ((addr) & 3) {                             \
         case 0:                                       \
             var = (var & 0xffffff00) | (val);         \
             break;                                    \
@@ -1181,8 +1195,13 @@ mach64_start_fill(mach64_t *mach64)
 {
     mach64->accel.dst_x       = 0;
     mach64->accel.dst_y       = 0;
+
     mach64->accel.dst_x_start = (mach64->dst_y_x >> 16) & 0xfff;
-    mach64->accel.dst_y_start = mach64->dst_y_x & 0xfff;
+    if (((mach64->dst_y_x >> 16) & 0x1000))
+        mach64->accel.dst_x_start |= ~0xfff;
+    mach64->accel.dst_y_start = mach64->dst_y_x & 0x3fff;
+    if (mach64->dst_y_x & 0x4000)
+        mach64->accel.dst_y_start |= ~0x3fff;
 
     mach64->accel.dst_width  = (mach64->dst_height_width >> 16) & 0x1fff;
     mach64->accel.dst_height = mach64->dst_height_width & 0x1fff;
@@ -1193,11 +1212,18 @@ mach64_start_fill(mach64_t *mach64)
     }
 
     mach64->accel.x_count = mach64->accel.dst_width;
+    mach64->accel.xx_count = 0;
 
     mach64->accel.src_x       = 0;
     mach64->accel.src_y       = 0;
+
     mach64->accel.src_x_start = (mach64->src_y_x >> 16) & 0xfff;
-    mach64->accel.src_y_start = mach64->src_y_x & 0xfff;
+    if (((mach64->src_y_x >> 16) & 0x1000))
+        mach64->accel.src_x_start |= ~0xfff;
+    mach64->accel.src_y_start = mach64->src_y_x & 0x3fff;
+    if (mach64->src_y_x & 0x4000)
+        mach64->accel.src_y_start |= ~0x3fff;
+
     if (mach64->src_cntl & SRC_LINEAR_EN)
         mach64->accel.src_x_count = 0x7ffffff; /*Essentially infinite*/
     else
@@ -1219,11 +1245,11 @@ mach64_start_fill(mach64_t *mach64)
                mach64->src_height1_width1,
                mach64->src_height2_width2);
 
-    mach64->accel.src_pitch  = (mach64->src_off_pitch >> 22) * 8;
-    mach64->accel.src_offset = (mach64->src_off_pitch & 0xfffff) * 8;
+    mach64->accel.src_pitch  = (mach64->src_off_pitch >> 22) << 3;
+    mach64->accel.src_offset = (mach64->src_off_pitch & 0xfffff) << 3;
 
-    mach64->accel.dst_pitch  = (mach64->dst_off_pitch >> 22) * 8;
-    mach64->accel.dst_offset = (mach64->dst_off_pitch & 0xfffff) * 8;
+    mach64->accel.dst_pitch  = (mach64->dst_off_pitch >> 22) << 3;
+    mach64->accel.dst_offset = (mach64->dst_off_pitch & 0xfffff) << 3;
 
     mach64->accel.mix_fg = (mach64->dp_mix >> 16) & 0x1f;
     mach64->accel.mix_bg = mach64->dp_mix & 0x1f;
@@ -1308,16 +1334,24 @@ void
 mach64_start_line(mach64_t *mach64)
 {
     mach64->accel.dst_x = (mach64->dst_y_x >> 16) & 0xfff;
-    mach64->accel.dst_y = mach64->dst_y_x & 0xfff;
+    if (((mach64->dst_y_x >> 16) & 0x1000))
+        mach64->accel.dst_x |= ~0xfff;
+    mach64->accel.dst_y = mach64->dst_y_x & 0x3fff;
+    if (mach64->dst_y_x & 0x4000)
+        mach64->accel.dst_y |= ~0x3fff;
 
     mach64->accel.src_x = (mach64->src_y_x >> 16) & 0xfff;
-    mach64->accel.src_y = mach64->src_y_x & 0xfff;
+    if (((mach64->src_y_x >> 16) & 0x1000))
+        mach64->accel.src_x |= ~0xfff;
+    mach64->accel.src_y = mach64->src_y_x & 0x3fff;
+    if (mach64->src_y_x & 0x4000)
+        mach64->accel.src_y |= ~0x3fff;
 
-    mach64->accel.src_pitch  = (mach64->src_off_pitch >> 22) * 8;
-    mach64->accel.src_offset = (mach64->src_off_pitch & 0xfffff) * 8;
+    mach64->accel.src_pitch  = (mach64->src_off_pitch >> 22) << 3;
+    mach64->accel.src_offset = (mach64->src_off_pitch & 0xfffff) << 3;
 
-    mach64->accel.dst_pitch  = (mach64->dst_off_pitch >> 22) * 8;
-    mach64->accel.dst_offset = (mach64->dst_off_pitch & 0xfffff) * 8;
+    mach64->accel.dst_pitch  = (mach64->dst_off_pitch >> 22) << 3;
+    mach64->accel.dst_offset = (mach64->dst_off_pitch & 0xfffff) << 3;
 
     mach64->accel.mix_fg = (mach64->dp_mix >> 16) & 0x1f;
     mach64->accel.mix_bg = mach64->dp_mix & 0x1f;
@@ -1343,9 +1377,6 @@ mach64_start_line(mach64_t *mach64)
         mach64->accel.dst_offset <<= 3;
     else
         mach64->accel.dst_offset >>= mach64->accel.dst_size;
-
-    /*        mach64->accel.src_pitch *= mach64_inc[mach64->accel.src_pix_width];
-            mach64->accel.dst_pitch *= mach64_inc[mach64->accel.dst_pix_width];*/
 
     mach64->accel.source_host = ((mach64->dp_src & 7) == SRC_HOST) || (((mach64->dp_src >> 8) & 7) == SRC_HOST);
 
@@ -1446,6 +1477,7 @@ mach64_start_line(mach64_t *mach64)
             break;                                               \
         case 0x17:                                               \
             dest_dat = (dest_dat + src_dat) >> 1;                \
+            break;                                               \
     }
 
 #define WRITE(addr, width)                                                                  \
@@ -1483,23 +1515,30 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
         mach64_log("mach64_blit : return as not busy\n");
         return;
     }
+
     switch (mach64->accel.op) {
         case OP_RECT:
             while (count) {
+                uint8_t write_mask = 0;
                 uint32_t src_dat  = 0;
                 uint32_t dest_dat;
                 uint32_t host_dat = 0;
                 uint32_t old_dest_dat;
                 int      mix   = 0;
-                int      dst_x = (mach64->accel.dst_x + mach64->accel.dst_x_start) & 0xfff;
-                int      dst_y = (mach64->accel.dst_y + mach64->accel.dst_y_start) & 0xfff;
+                int      dst_x;
+                int      dst_y;
                 int      src_x;
-                int      src_y = (mach64->accel.src_y + mach64->accel.src_y_start) & 0xfff;
+                int      src_y;
+
+                dst_x = (mach64->accel.dst_x + mach64->accel.dst_x_start) & 0xfff;
+                dst_y = (mach64->accel.dst_y + mach64->accel.dst_y_start) & 0x3fff;
 
                 if (mach64->src_cntl & SRC_LINEAR_EN)
                     src_x = mach64->accel.src_x;
                 else
                     src_x = (mach64->accel.src_x + mach64->accel.src_x_start) & 0xfff;
+
+                src_y = (mach64->accel.src_y + mach64->accel.src_y_start) & 0x3fff;
 
                 if (mach64->accel.source_host) {
                     host_dat = cpu_dat;
@@ -1525,7 +1564,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                             mix = cpu_dat & 1;
                             cpu_dat >>= 1;
                         } else {
-                            mix = cpu_dat >> 31;
+                            mix = cpu_dat >> 0x1f;
                             cpu_dat <<= 1;
                         }
                         break;
@@ -1544,7 +1583,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                         break;
                 }
 
-                if (dst_x >= mach64->accel.sc_left && dst_x <= mach64->accel.sc_right && dst_y >= mach64->accel.sc_top && dst_y <= mach64->accel.sc_bottom) {
+                if ((dst_x) >= mach64->accel.sc_left && (dst_x) <= mach64->accel.sc_right && (dst_y) >= mach64->accel.sc_top && (dst_y) <= mach64->accel.sc_bottom) {
                     switch (mix ? mach64->accel.source_fg : mach64->accel.source_bg) {
                         case SRC_HOST:
                             src_dat = host_dat;
@@ -1553,24 +1592,42 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                             READ(mach64->accel.src_offset + (src_y * mach64->accel.src_pitch) + src_x, src_dat, mach64->accel.src_size);
                             break;
                         case SRC_FG:
-                            if ((mach64->dst_cntl & (DST_LAST_PEL | DST_X_DIR | DST_Y_DIR | DST_24_ROT_EN)) == (DST_LAST_PEL | DST_X_DIR | DST_Y_DIR | DST_24_ROT_EN)) {
-                                if ((mach64->accel.x_count % 3) == 2)
-                                    src_dat = mach64->accel.dp_frgd_clr & 0xff;
-                                else if ((mach64->accel.x_count % 3) == 1)
-                                    src_dat = (mach64->accel.dp_frgd_clr >> 8) & 0xff;
-                                else if ((mach64->accel.x_count % 3) == 0)
-                                    src_dat = (mach64->accel.dp_frgd_clr >> 16) & 0xff;
+                            if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24) {
+                                if (mach64->accel.xinc == -1) {
+                                    if ((mach64->accel.xx_count % 3) == 2)
+                                        src_dat = mach64->accel.dp_frgd_clr & 0xff;
+                                    else if ((mach64->accel.xx_count % 3) == 1)
+                                        src_dat = (mach64->accel.dp_frgd_clr >> 8) & 0xff;
+                                    else
+                                        src_dat = (mach64->accel.dp_frgd_clr >> 16) & 0xff;
+                                } else {
+                                    if ((mach64->accel.xx_count % 3) == 2)
+                                        src_dat = (mach64->accel.dp_frgd_clr >> 16) & 0xff;
+                                    else if ((mach64->accel.xx_count % 3) == 1)
+                                        src_dat = (mach64->accel.dp_frgd_clr >> 8) & 0xff;
+                                    else
+                                        src_dat = mach64->accel.dp_frgd_clr & 0xff;
+                                }
                             } else
                                 src_dat = mach64->accel.dp_frgd_clr;
                             break;
                         case SRC_BG:
-                            if ((mach64->dst_cntl & (DST_LAST_PEL | DST_X_DIR | DST_Y_DIR | DST_24_ROT_EN)) == (DST_LAST_PEL | DST_X_DIR | DST_Y_DIR | DST_24_ROT_EN)) {
-                                if ((mach64->accel.x_count % 3) == 2)
-                                    src_dat = mach64->accel.dp_bkgd_clr & 0xff;
-                                else if ((mach64->accel.x_count % 3) == 1)
-                                    src_dat = (mach64->accel.dp_bkgd_clr >> 8) & 0xff;
-                                else if ((mach64->accel.x_count % 3) == 0)
-                                    src_dat = (mach64->accel.dp_bkgd_clr >> 16) & 0xff;
+                            if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24) {
+                                if (mach64->accel.xinc == -1) {
+                                    if ((mach64->accel.xx_count % 3) == 2)
+                                        src_dat = mach64->accel.dp_bkgd_clr & 0xff;
+                                    else if ((mach64->accel.xx_count % 3) == 1)
+                                        src_dat = (mach64->accel.dp_bkgd_clr >> 8) & 0xff;
+                                    else
+                                        src_dat = (mach64->accel.dp_bkgd_clr >> 16) & 0xff;
+                                } else {
+                                    if ((mach64->accel.xx_count % 3) == 2)
+                                        src_dat = (mach64->accel.dp_bkgd_clr >> 16) & 0xff;
+                                    else if ((mach64->accel.xx_count % 3) == 1)
+                                        src_dat = (mach64->accel.dp_bkgd_clr >> 8) & 0xff;
+                                    else
+                                        src_dat = mach64->accel.dp_bkgd_clr & 0xff;
+                                }
                             } else
                                 src_dat = mach64->accel.dp_bkgd_clr;
                             break;
@@ -1595,7 +1652,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                     }
 
                     if (!(mach64->dst_cntl & DST_POLYGON_EN) || mach64->accel.poly_draw) {
-                        READ(mach64->accel.dst_offset + (dst_y * mach64->accel.dst_pitch) + dst_x, dest_dat, mach64->accel.dst_size);
+                        READ(mach64->accel.dst_offset + ((dst_y) * mach64->accel.dst_pitch) + (dst_x), dest_dat, mach64->accel.dst_size);
 
                         switch (mach64->accel.clr_cmp_fn) {
                             case 1: /*TRUE*/
@@ -1612,19 +1669,30 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                         if (!cmp_clr) {
                             old_dest_dat = dest_dat;
                             MIX
-                                dest_dat
-                                = (dest_dat & mach64->accel.write_mask) | (old_dest_dat & ~mach64->accel.write_mask);
+
+                            if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24) {
+                                if (mach64->accel.xinc == -1) {
+                                    if ((mach64->accel.xx_count % 3) == 2)
+                                        write_mask = mach64->accel.write_mask & 0xff;
+                                    else if ((mach64->accel.xx_count % 3) == 1)
+                                        write_mask = (mach64->accel.write_mask >> 8) & 0xff;
+                                    else
+                                        write_mask = (mach64->accel.write_mask >> 16) & 0xff;
+                                } else {
+                                    if ((mach64->accel.xx_count % 3) == 2)
+                                        write_mask = (mach64->accel.write_mask >> 16) & 0xff;
+                                    else if ((mach64->accel.xx_count % 3) == 1)
+                                        write_mask = (mach64->accel.write_mask >> 8) & 0xff;
+                                    else
+                                        write_mask = mach64->accel.write_mask & 0xff;
+                                }
+                                dest_dat = (dest_dat & write_mask) | (old_dest_dat & ~write_mask);
+                            } else {
+                                dest_dat = (dest_dat & mach64->accel.write_mask) | (old_dest_dat & ~mach64->accel.write_mask);
+                            }
                         }
 
-                        WRITE(mach64->accel.dst_offset + (dst_y * mach64->accel.dst_pitch) + dst_x, mach64->accel.dst_size);
-                    }
-                }
-
-                if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24) {
-                    if ((mach64->dst_cntl & (DST_LAST_PEL | DST_X_DIR | DST_Y_DIR | DST_24_ROT_EN)) != (DST_LAST_PEL | DST_X_DIR | DST_Y_DIR | DST_24_ROT_EN)) {
-                        mach64->accel.dp_frgd_clr = ((mach64->accel.dp_frgd_clr >> 8) & 0xffff) | (mach64->accel.dp_frgd_clr << 16);
-                        mach64->accel.dp_bkgd_clr = ((mach64->accel.dp_bkgd_clr >> 8) & 0xffff) | (mach64->accel.dp_bkgd_clr << 16);
-                        mach64->accel.write_mask  = ((mach64->accel.write_mask >> 8) & 0xffff) | (mach64->accel.write_mask << 16);
+                        WRITE(mach64->accel.dst_offset + ((dst_y) * mach64->accel.dst_pitch) + (dst_x), mach64->accel.dst_size);
                     }
                 }
 
@@ -1636,14 +1704,18 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                         mach64->accel.src_x = 0;
                         if ((mach64->src_cntl & (SRC_PATT_ROT_EN | SRC_PATT_EN)) == (SRC_PATT_ROT_EN | SRC_PATT_EN)) {
                             mach64->accel.src_x_start = (mach64->src_y_x_start >> 16) & 0xfff;
+                            if ((mach64->src_y_x_start >> 16) & 0x1000)
+                                mach64->accel.src_x_start |= ~0xfff;
                             mach64->accel.src_x_count = mach64->accel.src_width2;
                         } else
                             mach64->accel.src_x_count = mach64->accel.src_width1;
                     }
                 }
 
+                mach64->accel.xx_count++;
                 mach64->accel.x_count--;
                 if (mach64->accel.x_count <= 0) {
+                    mach64->accel.xx_count = 0;
                     mach64->accel.x_count = mach64->accel.dst_width;
                     mach64->accel.dst_x   = 0;
                     mach64->accel.dst_y += mach64->accel.yinc;
@@ -1657,7 +1729,9 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                         if (mach64->accel.src_y_count <= 0) {
                             mach64->accel.src_y = 0;
                             if ((mach64->src_cntl & (SRC_PATT_ROT_EN | SRC_PATT_EN)) == (SRC_PATT_ROT_EN | SRC_PATT_EN)) {
-                                mach64->accel.src_y_start = mach64->src_y_x_start & 0xfff;
+                                mach64->accel.src_y_start = mach64->src_y_x_start & 0x3fff;
+                                if (mach64->src_y_x_start & 0x4000)
+                                    mach64->accel.src_y_start |= ~0x3fff;
                                 mach64->accel.src_y_count = mach64->accel.src_height2;
                             } else
                                 mach64->accel.src_y_count = mach64->accel.src_height1;
@@ -1702,7 +1776,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
 
                     if (mach64->accel.source_host) {
                         host_dat = cpu_dat;
-                        switch (mach64->accel.src_size) {
+                        switch (mach64->accel.host_size) {
                             case 0:
                                 cpu_dat >>= 8;
                                 count -= 8;
@@ -1783,9 +1857,8 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                         if (!cmp_clr)
                             MIX
 
-                                if (!(mach64->dst_cntl & DST_Y_MAJOR))
-                            {
-                                if (x == 0)
+                            if (!(mach64->dst_cntl & DST_Y_MAJOR)) {
+                                if (!x)
                                     dest_dat &= ~1;
                             }
                         else {
@@ -1831,7 +1904,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
 
                     if (mach64->accel.source_host) {
                         host_dat = cpu_dat;
-                        switch (mach64->accel.src_size) {
+                        switch (mach64->accel.host_size) {
                             case 0:
                                 cpu_dat >>= 8;
                                 count -= 8;
@@ -1909,7 +1982,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                         if (!cmp_clr)
                             MIX
 
-                                WRITE(mach64->accel.dst_offset + (mach64->accel.dst_y * mach64->accel.dst_pitch) + mach64->accel.dst_x, mach64->accel.dst_size);
+                        WRITE(mach64->accel.dst_offset + (mach64->accel.dst_y * mach64->accel.dst_pitch) + mach64->accel.dst_x, mach64->accel.dst_size);
                     }
 
                     mach64->accel.x_count--;
@@ -2347,6 +2420,7 @@ mach64_ext_readb(uint32_t addr, void *p)
                     mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | ((mach64->linear_base >> 22) << 4);
                 else
                     mach64->config_cntl = (mach64->config_cntl & ~0x3ff0) | ((mach64->linear_base >> 24) << 4);
+
                 READ8(addr, mach64->config_cntl);
                 break;
             case 0xe0:
@@ -2667,11 +2741,15 @@ mach64_ext_readb(uint32_t addr, void *p)
 
             case 0x310:
             case 0x311:
-                if (!FIFO_EMPTY)
-                    wake_fifo_thread(mach64);
-                ret = 0;
-                if (FIFO_FULL)
-                    ret = 0xff;
+                if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24) {
+                    ret = 0;
+                } else {
+                    if (!FIFO_EMPTY)
+                        wake_fifo_thread(mach64);
+                    ret = 0;
+                    if (FIFO_FULL)
+                        ret = 0xff;
+                }
                 break;
 
             case 0x320:
@@ -2697,7 +2775,10 @@ mach64_ext_readb(uint32_t addr, void *p)
                 break;
 
             case 0x338:
-                ret = FIFO_EMPTY ? 0 : 1;
+                if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24)
+                    ret = 0;
+                else
+                    ret = FIFO_EMPTY ? 0 : 1;
                 break;
 
             default:
@@ -2876,7 +2957,10 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
 
         mach64_log("nmach64_ext_writeb: addr=%04x val=%02x\n", addr, val);
     } else if (addr & 0x300) {
-        mach64_queue(mach64, addr & 0x3ff, val, FIFO_WRITE_BYTE);
+        if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24)
+            mach64_accel_write_fifo(mach64, addr & 0x3ff, val);
+        else
+            mach64_queue(mach64, addr & 0x3ff, val, FIFO_WRITE_BYTE);
     } else
         switch (addr & 0x3ff) {
             case 0x00:
@@ -3099,7 +3183,10 @@ mach64_ext_writew(uint32_t addr, uint16_t val, void *p)
         mach64_ext_writeb(addr, val, p);
         mach64_ext_writeb(addr + 1, val >> 8, p);
     } else if (addr & 0x300) {
-        mach64_queue(mach64, addr & 0x3fe, val, FIFO_WRITE_WORD);
+        if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24)
+            mach64_accel_write_fifo_w(mach64, addr & 0x3fe, val);
+        else
+            mach64_queue(mach64, addr & 0x3fe, val, FIFO_WRITE_WORD);
     } else
         switch (addr & 0x3fe) {
             default:
@@ -3120,7 +3207,10 @@ mach64_ext_writel(uint32_t addr, uint32_t val, void *p)
         mach64_ext_writew(addr, val, p);
         mach64_ext_writew(addr + 2, val >> 16, p);
     } else if (addr & 0x300) {
-        mach64_queue(mach64, addr & 0x3fc, val, FIFO_WRITE_DWORD);
+        if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24)
+            mach64_accel_write_fifo_l(mach64, addr & 0x3fc, val);
+        else
+            mach64_queue(mach64, addr & 0x3fc, val, FIFO_WRITE_DWORD);
     } else
         switch (addr & 0x3fc) {
             default:
@@ -4210,9 +4300,8 @@ mach64_common_init(const device_t *info)
 
     mach64_io_set(mach64);
 
-    if (info->flags & DEVICE_PCI) {
+    if (info->flags & DEVICE_PCI)
         mach64->card = pci_add_card(PCI_ADD_VIDEO, mach64_pci_read, mach64_pci_write, mach64);
-    }
 
     mach64->pci_regs[PCI_REG_COMMAND] = 3;
     mach64->pci_regs[0x30]            = 0x00;
@@ -4252,7 +4341,7 @@ mach64gx_init(const device_t *info)
     mach64->type           = MACH64_GX;
     mach64->pci            = !!(info->flags & DEVICE_PCI);
     mach64->pci_id         = (int) 'X' | ((int) 'G' << 8);
-    mach64->config_chip_id = 0x020000d7;
+    mach64->config_chip_id = 0x000000d7;
     mach64->dac_cntl       = 5 << 16;             /*ATI 68860 RAMDAC*/
     mach64->config_stat0   = (5 << 9) | (3 << 3); /*ATI-68860, 256Kx16 DRAM*/
     if (info->flags & DEVICE_PCI)
@@ -4282,10 +4371,7 @@ mach64vt2_init(const device_t *info)
     mach64_t *mach64 = mach64_common_init(info);
     svga_t   *svga   = &mach64->svga;
 
-    if (info->flags & DEVICE_PCI)
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
-    else
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_vlb);
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_mach64_pci);
 
     mach64->type                 = MACH64_VT2;
     mach64->pci                  = 1;
@@ -4299,8 +4385,7 @@ mach64vt2_init(const device_t *info)
 
     rom_init(&mach64->bios_rom, BIOS_ROMVT2_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
-    if (info->flags & DEVICE_PCI)
-        mem_mapping_disable(&mach64->bios_rom.mapping);
+    mem_mapping_disable(&mach64->bios_rom.mapping);
 
     svga->vblank_start = mach64_vblank_start;
 
