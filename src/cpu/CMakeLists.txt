@@ -35,3 +35,6 @@ endif()
 
 add_subdirectory(softfloat)
 target_link_libraries(86Box softfloat)
+
+add_subdirectory(808x)
+target_link_libraries(86Box 808x)
