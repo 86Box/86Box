@@ -1,7 +1,7 @@
 static int
 opPADDB_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -39,7 +39,7 @@ opPADDB_a16(uint32_t fetchdat)
 static int
 opPADDB_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -78,7 +78,7 @@ opPADDB_a32(uint32_t fetchdat)
 static int
 opPADDW_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -107,7 +107,7 @@ opPADDW_a16(uint32_t fetchdat)
 static int
 opPADDW_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -137,7 +137,7 @@ opPADDW_a32(uint32_t fetchdat)
 static int
 opPADDD_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -163,7 +163,7 @@ opPADDD_a16(uint32_t fetchdat)
 static int
 opPADDD_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -190,7 +190,7 @@ opPADDD_a32(uint32_t fetchdat)
 static int
 opPADDSB_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -231,7 +231,7 @@ opPADDSB_a16(uint32_t fetchdat)
 static int
 opPADDSB_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -273,7 +273,7 @@ opPADDSB_a32(uint32_t fetchdat)
 static int
 opPADDUSB_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -314,7 +314,7 @@ opPADDUSB_a16(uint32_t fetchdat)
 static int
 opPADDUSB_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -356,7 +356,7 @@ opPADDUSB_a32(uint32_t fetchdat)
 static int
 opPADDSW_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -389,7 +389,7 @@ opPADDSW_a16(uint32_t fetchdat)
 static int
 opPADDSW_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -423,7 +423,7 @@ opPADDSW_a32(uint32_t fetchdat)
 static int
 opPADDUSW_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -456,7 +456,7 @@ opPADDUSW_a16(uint32_t fetchdat)
 static int
 opPADDUSW_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -490,7 +490,7 @@ opPADDUSW_a32(uint32_t fetchdat)
 static int
 opPMADDWD_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -533,7 +533,7 @@ opPMADDWD_a16(uint32_t fetchdat)
 static int
 opPMADDWD_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -578,7 +578,7 @@ static int
 opPMULLW_a16(uint32_t fetchdat)
 {
     uint32_t p1, p2, p3, p4;
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -628,7 +628,7 @@ static int
 opPMULLW_a32(uint32_t fetchdat)
 {
     uint32_t p1, p2, p3, p4;
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -679,7 +679,7 @@ static int
 opPMULHW_a16(uint32_t fetchdat)
 {
     int32_t p1, p2, p3, p4;
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -729,7 +729,7 @@ static int
 opPMULHW_a32(uint32_t fetchdat)
 {
     int32_t p1, p2, p3, p4;
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -779,7 +779,7 @@ opPMULHW_a32(uint32_t fetchdat)
 static int
 opPSUBB_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -818,7 +818,7 @@ opPSUBB_a16(uint32_t fetchdat)
 static int
 opPSUBB_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -858,7 +858,7 @@ opPSUBB_a32(uint32_t fetchdat)
 static int
 opPSUBW_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -889,7 +889,7 @@ opPSUBW_a16(uint32_t fetchdat)
 static int
 opPSUBW_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -921,7 +921,7 @@ opPSUBW_a32(uint32_t fetchdat)
 static int
 opPSUBD_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -948,7 +948,7 @@ opPSUBD_a16(uint32_t fetchdat)
 static int
 opPSUBD_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -976,7 +976,7 @@ opPSUBD_a32(uint32_t fetchdat)
 static int
 opPSUBSB_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -1015,7 +1015,7 @@ opPSUBSB_a16(uint32_t fetchdat)
 static int
 opPSUBSB_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -1055,7 +1055,7 @@ opPSUBSB_a32(uint32_t fetchdat)
 static int
 opPSUBUSB_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst, result;
+    MMX_REG src, dst = { 0 }, result;
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -1095,7 +1095,7 @@ opPSUBUSB_a16(uint32_t fetchdat)
 static int
 opPSUBUSB_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst, result;
+    MMX_REG src, dst = { 0 }, result;
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -1136,7 +1136,7 @@ opPSUBUSB_a32(uint32_t fetchdat)
 static int
 opPSUBSW_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -1167,7 +1167,7 @@ opPSUBSW_a16(uint32_t fetchdat)
 static int
 opPSUBSW_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -1199,7 +1199,7 @@ opPSUBSW_a32(uint32_t fetchdat)
 static int
 opPSUBUSW_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst, result;
+    MMX_REG src, dst = { 0 }, result;
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -1231,7 +1231,7 @@ opPSUBUSW_a16(uint32_t fetchdat)
 static int
 opPSUBUSW_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst, result;
+    MMX_REG src, dst = { 0 }, result;
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);

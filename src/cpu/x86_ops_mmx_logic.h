@@ -1,7 +1,7 @@
 static int
 opPAND_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -26,7 +26,7 @@ opPAND_a16(uint32_t fetchdat)
 static int
 opPAND_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -52,7 +52,7 @@ opPAND_a32(uint32_t fetchdat)
 static int
 opPANDN_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -77,7 +77,7 @@ opPANDN_a16(uint32_t fetchdat)
 static int
 opPANDN_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -103,7 +103,7 @@ opPANDN_a32(uint32_t fetchdat)
 static int
 opPOR_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -128,7 +128,7 @@ opPOR_a16(uint32_t fetchdat)
 static int
 opPOR_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
@@ -154,7 +154,7 @@ opPOR_a32(uint32_t fetchdat)
 static int
 opPXOR_a16(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
@@ -179,7 +179,7 @@ opPXOR_a16(uint32_t fetchdat)
 static int
 opPXOR_a32(uint32_t fetchdat)
 {
-    MMX_REG src, dst;
+    MMX_REG src, dst = { 0 };
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
