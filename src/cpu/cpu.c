@@ -1646,6 +1646,7 @@ cpu_set(void)
         cpu_exec = exec386;
     else
         cpu_exec = execx86;
+    mmx_init();
     gdbstub_cpu_init();
 }
 

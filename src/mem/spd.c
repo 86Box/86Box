@@ -401,7 +401,7 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
     }
 }
 
-/* Needed for 430LX. */
+/* Needed for 430NX. */
 void
 spd_write_drbs_with_ext(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit)
 {
@@ -447,8 +447,9 @@ spd_write_drbs_with_ext(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t
             row_val += size / drb_unit; /* this will intentionally overflow on 440GX with 2 GB */
         regs[drb] = row_val & 0xff;
         drb       = reg_min + 8 + (row >> 1);
-        shift     = (row & 0x01) << 3;
-        regs[drb] = (((row_val & 0xfff) >> 8) << shift);
+        shift = (row & 0x01) << 2;
+        /* Limit to 1 GB space, per the 430NX datasheet. */
+        regs[drb] = (regs[drb] & ~(0xf << shift)) | (((row_val >> 8) & 3) << shift);
         spd_log("SPD: DRB[%d] = %d MB (%02Xh raw)\n", row, size, regs[drb]);
     }
 }

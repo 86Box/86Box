@@ -976,7 +976,9 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                 break;
             case 0xc6:
             case 0xc7:
-                if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "TOSHIBA_CD-ROM_DRIVEXM_3433"))) {
+                if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "TOSHIBA_CD-ROM_DRIVEXM_3433") ||
+                    !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "TOSHIBA_CD-ROM_XM-3301TA_0272") ||
+                    !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "TOSHIBA_CD-ROM_XM-5701TA_3136")) {
                     bytes_per_second = 176.0 * 1024.0;
                     bytes_per_second *= (double) dev->drv->cur_speed;
                 }
@@ -1000,7 +1002,15 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                 break;
             case 0xc3:
                 if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-541_1.0i") ||
-                    !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-76S_1.00")) {
+                    !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-76S_1.00") ||
+                    !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "PIONEER_CD-ROM_DRM-604X_2403")) {
+                    bytes_per_second = 176.0 * 1024.0;
+                    bytes_per_second *= (double) dev->drv->cur_speed;
+                }
+                break;
+            case 0xde:
+                if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE74_1.00") ||
+                    !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE464_1.05")) {
                     bytes_per_second = 176.0 * 1024.0;
                     bytes_per_second *= (double) dev->drv->cur_speed;
                 }

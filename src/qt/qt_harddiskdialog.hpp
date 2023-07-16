@@ -52,6 +52,11 @@ private:
 
     bool disallowSizeModifications = false;
 
+    QStringList filters;
+    // "Dynamic-size VHD" is number 4 in the `filters` list and the
+    // comboBoxFormat model
+    const uint8_t DEFAULT_DISK_FORMAT = 4;
+
     bool checkAndAdjustCylinders();
     bool checkAndAdjustHeads();
     bool checkAndAdjustSectors();

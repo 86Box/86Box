@@ -31,6 +31,12 @@ FileField::FileField(QWidget *parent)
         fileName_ = ui->label->text();
         emit fileSelected(ui->label->text(), true);
     });
+
+    connect(ui->label, &QLineEdit::textChanged, this, [this]() {
+        fileName_ = ui->label->text();
+        emit fileTextEntered(ui->label->text(), true);
+    });
+
     this->setFixedWidth(this->sizeHint().width() + ui->pushButton->sizeHint().width());
 }
 
