@@ -13,7 +13,7 @@ opPAND_a16(uint32_t fetchdat)
 
     dst->q &= src.q;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -32,7 +32,7 @@ opPAND_a32(uint32_t fetchdat)
 
     dst->q &= src.q;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -52,7 +52,7 @@ opPANDN_a16(uint32_t fetchdat)
 
     dst->q = ~dst->q & src.q;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -71,7 +71,7 @@ opPANDN_a32(uint32_t fetchdat)
 
     dst->q = ~dst->q & src.q;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -91,7 +91,7 @@ opPOR_a16(uint32_t fetchdat)
 
     dst->q |= src.q;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -110,7 +110,7 @@ opPOR_a32(uint32_t fetchdat)
 
     dst->q |= src.q;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -130,7 +130,7 @@ opPXOR_a16(uint32_t fetchdat)
 
     dst->q ^= src.q;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -149,7 +149,7 @@ opPXOR_a32(uint32_t fetchdat)
 
     dst->q ^= src.q;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }

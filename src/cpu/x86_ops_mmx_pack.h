@@ -24,7 +24,7 @@ opPUNPCKLDQ_a16(uint32_t fetchdat)
         CLOCK_CYCLES(2);
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -54,7 +54,7 @@ opPUNPCKLDQ_a32(uint32_t fetchdat)
         CLOCK_CYCLES(2);
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -75,7 +75,7 @@ opPUNPCKHDQ_a16(uint32_t fetchdat)
     dst->l[0] = dst->l[1];
     dst->l[1] = src.l[1];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -95,7 +95,7 @@ opPUNPCKHDQ_a32(uint32_t fetchdat)
     dst->l[0] = dst->l[1];
     dst->l[1] = src.l[1];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -122,7 +122,7 @@ opPUNPCKLBW_a16(uint32_t fetchdat)
     dst->b[1] = src.b[0];
     dst->b[0] = dst->b[0];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -148,7 +148,7 @@ opPUNPCKLBW_a32(uint32_t fetchdat)
     dst->b[1] = src.b[0];
     dst->b[0] = dst->b[0];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -175,7 +175,7 @@ opPUNPCKHBW_a16(uint32_t fetchdat)
     dst->b[6] = dst->b[7];
     dst->b[7] = src.b[7];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -201,7 +201,7 @@ opPUNPCKHBW_a32(uint32_t fetchdat)
     dst->b[6] = dst->b[7];
     dst->b[7] = src.b[7];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -224,7 +224,7 @@ opPUNPCKLWD_a16(uint32_t fetchdat)
     dst->w[1] = src.w[0];
     dst->w[0] = dst->w[0];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -246,7 +246,7 @@ opPUNPCKLWD_a32(uint32_t fetchdat)
     dst->w[1] = src.w[0];
     dst->w[0] = dst->w[0];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -269,7 +269,7 @@ opPUNPCKHWD_a16(uint32_t fetchdat)
     dst->w[2] = dst->w[3];
     dst->w[3] = src.w[3];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -291,7 +291,7 @@ opPUNPCKHWD_a32(uint32_t fetchdat)
     dst->w[2] = dst->w[3];
     dst->w[3] = src.w[3];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -318,7 +318,7 @@ opPACKSSWB_a16(uint32_t fetchdat)
     dst->sb[6] = SSATB(src.sw[2]);
     dst->sb[7] = SSATB(src.sw[3]);
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -344,7 +344,7 @@ opPACKSSWB_a32(uint32_t fetchdat)
     dst->sb[6] = SSATB(src.sw[2]);
     dst->sb[7] = SSATB(src.sw[3]);
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -371,7 +371,7 @@ opPACKUSWB_a16(uint32_t fetchdat)
     dst->b[6] = USATB(src.sw[2]);
     dst->b[7] = USATB(src.sw[3]);
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -397,7 +397,7 @@ opPACKUSWB_a32(uint32_t fetchdat)
     dst->b[6] = USATB(src.sw[2]);
     dst->b[7] = USATB(src.sw[3]);
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -422,7 +422,7 @@ opPACKSSDW_a16(uint32_t fetchdat)
     dst->sw[2] = SSATW(src.sl[0]);
     dst->sw[3] = SSATW(src.sl[1]);
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -446,7 +446,7 @@ opPACKSSDW_a32(uint32_t fetchdat)
     dst->sw[2] = SSATW(src.sl[0]);
     dst->sw[3] = SSATW(src.sl[1]);
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }

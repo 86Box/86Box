@@ -20,7 +20,7 @@ opPCMPEQB_a16(uint32_t fetchdat)
     dst->b[6] = (dst->b[6] == src.b[6]) ? 0xff : 0;
     dst->b[7] = (dst->b[7] == src.b[7]) ? 0xff : 0;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -46,7 +46,7 @@ opPCMPEQB_a32(uint32_t fetchdat)
     dst->b[6] = (dst->b[6] == src.b[6]) ? 0xff : 0;
     dst->b[7] = (dst->b[7] == src.b[7]) ? 0xff : 0;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -73,7 +73,7 @@ opPCMPGTB_a16(uint32_t fetchdat)
     dst->b[6] = (dst->sb[6] > src.sb[6]) ? 0xff : 0;
     dst->b[7] = (dst->sb[7] > src.sb[7]) ? 0xff : 0;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -99,7 +99,7 @@ opPCMPGTB_a32(uint32_t fetchdat)
     dst->b[6] = (dst->sb[6] > src.sb[6]) ? 0xff : 0;
     dst->b[7] = (dst->sb[7] > src.sb[7]) ? 0xff : 0;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -122,7 +122,7 @@ opPCMPEQW_a16(uint32_t fetchdat)
     dst->w[2] = (dst->w[2] == src.w[2]) ? 0xffff : 0;
     dst->w[3] = (dst->w[3] == src.w[3]) ? 0xffff : 0;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -144,7 +144,7 @@ opPCMPEQW_a32(uint32_t fetchdat)
     dst->w[2] = (dst->w[2] == src.w[2]) ? 0xffff : 0;
     dst->w[3] = (dst->w[3] == src.w[3]) ? 0xffff : 0;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -167,7 +167,7 @@ opPCMPGTW_a16(uint32_t fetchdat)
     dst->w[2] = (dst->sw[2] > src.sw[2]) ? 0xffff : 0;
     dst->w[3] = (dst->sw[3] > src.sw[3]) ? 0xffff : 0;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -189,7 +189,7 @@ opPCMPGTW_a32(uint32_t fetchdat)
     dst->w[2] = (dst->sw[2] > src.sw[2]) ? 0xffff : 0;
     dst->w[3] = (dst->sw[3] > src.sw[3]) ? 0xffff : 0;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -210,7 +210,7 @@ opPCMPEQD_a16(uint32_t fetchdat)
     dst->l[0] = (dst->l[0] == src.l[0]) ? 0xffffffff : 0;
     dst->l[1] = (dst->l[1] == src.l[1]) ? 0xffffffff : 0;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -230,7 +230,7 @@ opPCMPEQD_a32(uint32_t fetchdat)
     dst->l[0] = (dst->l[0] == src.l[0]) ? 0xffffffff : 0;
     dst->l[1] = (dst->l[1] == src.l[1]) ? 0xffffffff : 0;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -251,7 +251,7 @@ opPCMPGTD_a16(uint32_t fetchdat)
     dst->l[0] = (dst->sl[0] > src.sl[0]) ? 0xffffffff : 0;
     dst->l[1] = (dst->sl[1] > src.sl[1]) ? 0xffffffff : 0;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -271,7 +271,7 @@ opPCMPGTD_a32(uint32_t fetchdat)
     dst->l[0] = (dst->sl[0] > src.sl[0]) ? 0xffffffff : 0;
     dst->l[1] = (dst->sl[1] > src.sl[1]) ? 0xffffffff : 0;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }

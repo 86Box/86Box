@@ -57,7 +57,7 @@ opPSxxW_imm(uint32_t fetchdat)
             return 0;
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(reg);
 
     CLOCK_CYCLES(1);
     return 0;
@@ -86,7 +86,7 @@ opPSLLW_a16(uint32_t fetchdat)
         dst->w[3] <<= shift;
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -113,7 +113,7 @@ opPSLLW_a32(uint32_t fetchdat)
         dst->w[3] <<= shift;
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -141,7 +141,7 @@ opPSRLW_a16(uint32_t fetchdat)
         dst->w[3] >>= shift;
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -168,7 +168,7 @@ opPSRLW_a32(uint32_t fetchdat)
         dst->w[3] >>= shift;
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -195,7 +195,7 @@ opPSRAW_a16(uint32_t fetchdat)
     dst->sw[2] >>= shift;
     dst->sw[3] >>= shift;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -221,7 +221,7 @@ opPSRAW_a32(uint32_t fetchdat)
     dst->sw[2] >>= shift;
     dst->sw[3] >>= shift;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -268,7 +268,7 @@ opPSxxD_imm(uint32_t fetchdat)
             return 0;
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(reg);
 
     CLOCK_CYCLES(1);
     return 0;
@@ -295,7 +295,7 @@ opPSLLD_a16(uint32_t fetchdat)
         dst->l[1] <<= shift;
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -320,7 +320,7 @@ opPSLLD_a32(uint32_t fetchdat)
         dst->l[1] <<= shift;
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -346,7 +346,7 @@ opPSRLD_a16(uint32_t fetchdat)
         dst->l[1] >>= shift;
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -371,7 +371,7 @@ opPSRLD_a32(uint32_t fetchdat)
         dst->l[1] >>= shift;
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -396,7 +396,7 @@ opPSRAD_a16(uint32_t fetchdat)
     dst->sl[0] >>= shift;
     dst->sl[1] >>= shift;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -420,7 +420,7 @@ opPSRAD_a32(uint32_t fetchdat)
     dst->sl[0] >>= shift;
     dst->sl[1] >>= shift;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -464,7 +464,7 @@ opPSxxQ_imm(uint32_t fetchdat)
             return 0;
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(reg);
 
     CLOCK_CYCLES(1);
     return 0;
@@ -489,7 +489,7 @@ opPSLLQ_a16(uint32_t fetchdat)
     else
         dst->q <<= shift;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -512,7 +512,7 @@ opPSLLQ_a32(uint32_t fetchdat)
     else
         dst->q <<= shift;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -536,7 +536,7 @@ opPSRLQ_a16(uint32_t fetchdat)
     else
         dst->q >>= shift;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -559,7 +559,7 @@ opPSRLQ_a32(uint32_t fetchdat)
     else
         dst->q >>= shift;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }

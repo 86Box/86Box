@@ -24,7 +24,7 @@ opMOVD_l_mm_a16(uint32_t fetchdat)
         CLOCK_CYCLES(2);
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -54,7 +54,7 @@ opMOVD_l_mm_a32(uint32_t fetchdat)
         CLOCK_CYCLES(2);
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -198,7 +198,7 @@ opMOVQ_q_mm_a16(uint32_t fetchdat)
         CLOCK_CYCLES(2);
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -228,7 +228,7 @@ opMOVQ_q_mm_a32(uint32_t fetchdat)
         CLOCK_CYCLES(2);
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -250,7 +250,7 @@ opMOVQ_mm_q_a16(uint32_t fetchdat)
         dst->q = src.q;
         CLOCK_CYCLES(1);
 
-        MMX_SETEXP();
+        MMX_SETEXP(cpu_rm);
     } else {
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 7);
@@ -280,7 +280,7 @@ opMOVQ_mm_q_a32(uint32_t fetchdat)
         dst->q = src.q;
         CLOCK_CYCLES(1);
 
-        MMX_SETEXP();
+        MMX_SETEXP(cpu_rm);
     } else {
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 7);

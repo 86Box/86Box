@@ -6,9 +6,9 @@
 #define MMX_GETREGP(r) fpu_softfloat ? ((MMX_REG *) &fpu_state.st_space[r].fraction) : &(cpu_state.MM[r])
 #define MMX_GETREG(r) fpu_softfloat ? (*(MMX_REG *) &fpu_state.st_space[r].fraction) : cpu_state.MM[r]
 
-#define MMX_SETEXP()   \
+#define MMX_SETEXP(r)  \
     if (fpu_softfloat) \
-        fpu_state.st_space[cpu_reg].exp = 0xffff
+        fpu_state.st_space[r].exp = 0xffff
 
 #define MMX_GETSRC()                               \
     if (cpu_mod == 3) {                            \

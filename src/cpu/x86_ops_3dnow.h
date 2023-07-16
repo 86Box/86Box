@@ -49,7 +49,7 @@ opPAVGUSB(uint32_t fetchdat)
     dst->b[6] = (dst->b[6] + src.b[6] + 1) >> 1;
     dst->b[7] = (dst->b[7] + src.b[7] + 1) >> 1;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -64,7 +64,7 @@ opPF2ID(uint32_t fetchdat)
     dst->sl[0] = (int32_t) src.f[0];
     dst->sl[1] = (int32_t) src.f[1];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -79,7 +79,7 @@ opPF2IW(uint32_t fetchdat)
     dst->sw[0] = (int32_t) src.f[0];
     dst->sw[1] = (int32_t) src.f[1];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -96,7 +96,7 @@ opPFACC(uint32_t fetchdat)
     dst->f[1] = src.f[0] + src.f[1];
     dst->f[0] = tempf;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -113,7 +113,7 @@ opPFNACC(uint32_t fetchdat)
     dst->f[1] = src.f[0] - src.f[1];
     dst->f[0] = tempf;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -130,7 +130,7 @@ opPFPNACC(uint32_t fetchdat)
     dst->f[1] = src.f[0] + src.f[1];
     dst->f[0] = tempf;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -149,7 +149,7 @@ opPSWAPD(uint32_t fetchdat)
     dst->f[1] = tempf;
     dst->f[0] = tempf2;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -164,7 +164,7 @@ opPFADD(uint32_t fetchdat)
     dst->f[0] += src.f[0];
     dst->f[1] += src.f[1];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -179,7 +179,7 @@ opPFCMPEQ(uint32_t fetchdat)
     dst->l[0] = (dst->f[0] == src.f[0]) ? 0xffffffff : 0;
     dst->l[1] = (dst->f[1] == src.f[1]) ? 0xffffffff : 0;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -194,7 +194,7 @@ opPFCMPGE(uint32_t fetchdat)
     dst->l[0] = (dst->f[0] >= src.f[0]) ? 0xffffffff : 0;
     dst->l[1] = (dst->f[1] >= src.f[1]) ? 0xffffffff : 0;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -209,7 +209,7 @@ opPFCMPGT(uint32_t fetchdat)
     dst->l[0] = (dst->f[0] > src.f[0]) ? 0xffffffff : 0;
     dst->l[1] = (dst->f[1] > src.f[1]) ? 0xffffffff : 0;
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -226,7 +226,7 @@ opPFMAX(uint32_t fetchdat)
     if (src.f[1] > dst->f[1])
         dst->f[1] = src.f[1];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -243,7 +243,7 @@ opPFMIN(uint32_t fetchdat)
     if (src.f[1] < dst->f[1])
         dst->f[1] = src.f[1];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -258,7 +258,7 @@ opPFMUL(uint32_t fetchdat)
     dst->f[0] *= src.f[0];
     dst->f[1] *= src.f[1];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -286,7 +286,7 @@ opPFRCP(uint32_t fetchdat)
     dst->f[0] = 1.0 / src.f;
     dst->f[1] = dst->f[0];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -302,7 +302,7 @@ opPFRCPIT1(uint32_t fetchdat)
     dst->f[0] = src.f[0];
     dst->f[1] = src.f[1];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -317,7 +317,7 @@ opPFRCPIT2(uint32_t fetchdat)
     dst->f[0] = src.f[0];
     dst->f[1] = src.f[1];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -345,7 +345,7 @@ opPFRSQRT(uint32_t fetchdat)
     dst->f[0] = 1.0 / sqrt(src.f);
     dst->f[1] = dst->f[0];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -371,7 +371,7 @@ opPFSUB(uint32_t fetchdat)
     dst->f[0] -= src.f[0];
     dst->f[1] -= src.f[1];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -386,7 +386,7 @@ opPFSUBR(uint32_t fetchdat)
     dst->f[0] = src.f[0] - dst->f[0];
     dst->f[1] = src.f[1] - dst->f[1];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -401,7 +401,7 @@ opPI2FD(uint32_t fetchdat)
     dst->f[0] = (float) src.sl[0];
     dst->f[1] = (float) src.sl[1];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -416,7 +416,7 @@ opPI2FW(uint32_t fetchdat)
     dst->f[0] = (float) src.sw[0];
     dst->f[1] = (float) src.sw[1];
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
@@ -447,7 +447,7 @@ opPMULHRW(uint32_t fetchdat)
         CLOCK_CYCLES(2);
     }
 
-    MMX_SETEXP();
+    MMX_SETEXP(cpu_reg);
 
     return 0;
 }
