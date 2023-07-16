@@ -7,14 +7,9 @@ opMOVD_l_mm_a16(uint32_t fetchdat)
 
     fetch_ea_16(fetchdat);
 
-    op = fpu_softfloat ? ((MMX_REG *) &fpu_state.st_space[cpu_reg].fraction) : &(cpu_state.MM[cpu_reg]);
+    op = MMX_GETREGP(cpu_reg);
 
     if (cpu_mod == 3) {
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
-
         op->l[0] = cpu_state.regs[cpu_rm].l;
         op->l[1] = 0;
         CLOCK_CYCLES(1);
@@ -24,18 +19,12 @@ opMOVD_l_mm_a16(uint32_t fetchdat)
         if (cpu_state.abrt)
             return 1;
 
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
-
         op->l[0] = dst;
         op->l[1] = 0;
         CLOCK_CYCLES(2);
     }
 
-    if (fpu_softfloat)
-            fpu_state.st_space[cpu_reg].exp = 0xffff;
+    MMX_SETEXP();
 
     return 0;
 }
@@ -48,14 +37,9 @@ opMOVD_l_mm_a32(uint32_t fetchdat)
 
     fetch_ea_32(fetchdat);
 
-    op = fpu_softfloat ? ((MMX_REG *) &fpu_state.st_space[cpu_reg].fraction) : &(cpu_state.MM[cpu_reg]);
+    op = MMX_GETREGP(cpu_reg);
 
     if (cpu_mod == 3) {
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
-
         op->l[0] = cpu_state.regs[cpu_rm].l;
         op->l[1] = 0;
         CLOCK_CYCLES(1);
@@ -65,18 +49,12 @@ opMOVD_l_mm_a32(uint32_t fetchdat)
         if (cpu_state.abrt)
             return 1;
 
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
-
         op->l[0] = dst;
         op->l[1] = 0;
         CLOCK_CYCLES(2);
     }
 
-    if (fpu_softfloat)
-            fpu_state.st_space[cpu_reg].exp = 0xffff;
+    MMX_SETEXP();
 
     return 0;
 }
@@ -89,14 +67,9 @@ opMOVD_mm_l_a16(uint32_t fetchdat)
 
     fetch_ea_16(fetchdat);
 
-    op = fpu_softfloat ? ((MMX_REG *) &fpu_state.st_space[cpu_reg].fraction) : &(cpu_state.MM[cpu_reg]);
+    op = MMX_GETREGP(cpu_reg);
 
     if (cpu_mod == 3) {
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
-
         cpu_state.regs[cpu_rm].l = op->l[0];
         CLOCK_CYCLES(1);
     } else {
@@ -105,11 +78,6 @@ opMOVD_mm_l_a16(uint32_t fetchdat)
         writememl(easeg, cpu_state.eaaddr, op->l[0]);
         if (cpu_state.abrt)
             return 1;
-
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
 
         CLOCK_CYCLES(2);
     }
@@ -124,14 +92,9 @@ opMOVD_mm_l_a32(uint32_t fetchdat)
 
     fetch_ea_32(fetchdat);
 
-    op = fpu_softfloat ? ((MMX_REG *) &fpu_state.st_space[cpu_reg].fraction) : &(cpu_state.MM[cpu_reg]);
+    op = MMX_GETREGP(cpu_reg);
 
     if (cpu_mod == 3) {
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
-
         cpu_state.regs[cpu_rm].l = op->l[0];
         CLOCK_CYCLES(1);
     } else {
@@ -140,11 +103,6 @@ opMOVD_mm_l_a32(uint32_t fetchdat)
         writememl(easeg, cpu_state.eaaddr, op->l[0]);
         if (cpu_state.abrt)
             return 1;
-
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
 
         CLOCK_CYCLES(2);
     }
@@ -166,14 +124,9 @@ opMOVD_mm_l_a16_cx(uint32_t fetchdat)
 
     fetch_ea_16(fetchdat);
 
-    op = fpu_softfloat ? ((MMX_REG *) &fpu_state.st_space[cpu_reg].fraction) : &(cpu_state.MM[cpu_reg]);
+    op = MMX_GETREGP(cpu_reg);
 
     if (cpu_mod == 3) {
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
-
         cpu_state.regs[cpu_rm].l = op->l[0];
         CLOCK_CYCLES(1);
     } else {
@@ -182,11 +135,6 @@ opMOVD_mm_l_a16_cx(uint32_t fetchdat)
         writememl(easeg, cpu_state.eaaddr, op->l[0]);
         if (cpu_state.abrt)
             return 1;
-
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
 
         CLOCK_CYCLES(2);
     }
@@ -205,14 +153,9 @@ opMOVD_mm_l_a32_cx(uint32_t fetchdat)
 
     fetch_ea_32(fetchdat);
 
-    op = fpu_softfloat ? ((MMX_REG *) &fpu_state.st_space[cpu_reg].fraction) : &(cpu_state.MM[cpu_reg]);
+    op = MMX_GETREGP(cpu_reg);
 
     if (cpu_mod == 3) {
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
-
         cpu_state.regs[cpu_rm].l = op->l[0];
         CLOCK_CYCLES(1);
     } else {
@@ -221,11 +164,6 @@ opMOVD_mm_l_a32_cx(uint32_t fetchdat)
         writememl(easeg, cpu_state.eaaddr, op->l[0]);
         if (cpu_state.abrt)
             return 1;
-
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
 
         CLOCK_CYCLES(2);
     }
@@ -244,15 +182,10 @@ opMOVQ_q_mm_a16(uint32_t fetchdat)
 
     fetch_ea_16(fetchdat);
 
-    src = fpu_softfloat ? (*(MMX_REG *) &fpu_state.st_space[cpu_rm].fraction) : cpu_state.MM[cpu_rm];
-    op = fpu_softfloat ? ((MMX_REG *) &fpu_state.st_space[cpu_reg].fraction) : &(cpu_state.MM[cpu_reg]);
+    src = MMX_GETREG(cpu_rm);
+    op = MMX_GETREGP(cpu_reg);
 
     if (cpu_mod == 3) {
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
-
         op->q = src.q;
         CLOCK_CYCLES(1);
     } else {
@@ -261,17 +194,11 @@ opMOVQ_q_mm_a16(uint32_t fetchdat)
         if (cpu_state.abrt)
             return 1;
 
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
-
         op->q = dst;
         CLOCK_CYCLES(2);
     }
 
-    if (fpu_softfloat)
-        fpu_state.st_space[cpu_reg].exp = 0xffff;
+    MMX_SETEXP();
 
     return 0;
 }
@@ -285,15 +212,10 @@ opMOVQ_q_mm_a32(uint32_t fetchdat)
 
     fetch_ea_32(fetchdat);
 
-    src = fpu_softfloat ? (*(MMX_REG *) &fpu_state.st_space[cpu_rm].fraction) : cpu_state.MM[cpu_rm];
-    op = fpu_softfloat ? ((MMX_REG *) &fpu_state.st_space[cpu_reg].fraction) : &(cpu_state.MM[cpu_reg]);
+    src = MMX_GETREG(cpu_rm);
+    op = MMX_GETREGP(cpu_reg);
 
     if (cpu_mod == 3) {
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
-
         op->q = src.q;
         CLOCK_CYCLES(1);
     } else {
@@ -302,17 +224,11 @@ opMOVQ_q_mm_a32(uint32_t fetchdat)
         if (cpu_state.abrt)
             return 1;
 
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
-
         op->q = dst;
         CLOCK_CYCLES(2);
     }
 
-    if (fpu_softfloat)
-        fpu_state.st_space[cpu_reg].exp = 0xffff;
+    MMX_SETEXP();
 
     return 0;
 }
@@ -327,31 +243,20 @@ opMOVQ_mm_q_a16(uint32_t fetchdat)
 
     fetch_ea_16(fetchdat);
 
-    src = fpu_softfloat ? (*(MMX_REG *) &fpu_state.st_space[cpu_reg].fraction) : cpu_state.MM[cpu_reg];
-    dst = fpu_softfloat ? ((MMX_REG *) &fpu_state.st_space[cpu_rm].fraction) : &(cpu_state.MM[cpu_rm]);
+    src = MMX_GETREG(cpu_reg);
+    dst = MMX_GETREGP(cpu_rm);
 
     if (cpu_mod == 3) {
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
-
         dst->q = src.q;
         CLOCK_CYCLES(1);
 
-        if (fpu_softfloat)
-            fpu_state.st_space[cpu_rm].exp = 0xffff;
+        MMX_SETEXP();
     } else {
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 7);
         writememq(easeg, cpu_state.eaaddr, src.q);
         if (cpu_state.abrt)
             return 1;
-
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
 
         CLOCK_CYCLES(2);
     }
@@ -368,31 +273,20 @@ opMOVQ_mm_q_a32(uint32_t fetchdat)
 
     fetch_ea_32(fetchdat);
 
-    src = fpu_softfloat ? (*(MMX_REG *) &fpu_state.st_space[cpu_reg].fraction) : cpu_state.MM[cpu_reg];
-    dst = fpu_softfloat ? ((MMX_REG *) &fpu_state.st_space[cpu_rm].fraction) : &(cpu_state.MM[cpu_rm]);
+    src = MMX_GETREG(cpu_reg);
+    dst = MMX_GETREGP(cpu_rm);
 
     if (cpu_mod == 3) {
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
-
         dst->q = src.q;
         CLOCK_CYCLES(1);
 
-        if (fpu_softfloat)
-            fpu_state.st_space[cpu_rm].exp = 0xffff;
+        MMX_SETEXP();
     } else {
         SEG_CHECK_WRITE(cpu_state.ea_seg);
         CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 7);
         writememq(easeg, cpu_state.eaaddr, src.q);
         if (cpu_state.abrt)
             return 1;
-
-        if (fpu_softfloat) {
-            fpu_state.tag = 0;
-            fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
-        }
 
         CLOCK_CYCLES(2);
     }

@@ -10,9 +10,14 @@ static __inline void
 x87_set_mmx(void)
 {
     uint64_t *p;
-    cpu_state.TOP   = 0;
-    p               = (uint64_t *) cpu_state.tag;
-    *p              = 0x0101010101010101ull;
+    if (fpu_softfloat) {
+        fpu_state.tag = 0;
+        fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
+    } else {
+        cpu_state.TOP   = 0;
+        p               = (uint64_t *) cpu_state.tag;
+        *p              = 0x0101010101010101ull;
+    }
     cpu_state.ismmx = 1;
 }
 
@@ -20,8 +25,13 @@ static __inline void
 x87_emms(void)
 {
     uint64_t *p;
-    p               = (uint64_t *) cpu_state.tag;
-    *p              = 0;
+    if (fpu_softfloat) {
+        fpu_state.tag = 0xffff;
+        fpu_state.tos = 0; /* reset FPU Top-Of-Stack */
+    } else {
+        p               = (uint64_t *) cpu_state.tag;
+        *p              = 0;
+    }
     cpu_state.ismmx = 0;
 }
 
