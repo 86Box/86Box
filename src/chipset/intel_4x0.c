@@ -1537,7 +1537,12 @@ i4x0_reset(void *priv)
         i4x0_write(0, 0x5a + i, 0x00, priv);
 
     for (uint8_t i = 0; i <= dev->max_drb; i++)
-        i4x0_write(0, 0x60 + i, dev->drb_default, priv);
+        dev->regs[0x60 + i] = dev->drb_default;
+
+    if (dev->type >= INTEL_430NX) {
+        for (uint8_t i = 0; i < 4; i++)
+            dev->regs[0x68 + i] = 0x00;
+    }
 
     if (dev->type >= INTEL_430FX) {
         dev->regs[0x72] &= 0xef; /* Forcibly unlock the SMRAM register. */
@@ -1621,7 +1626,7 @@ i4x0_init(const device_t *info)
             regs[0x59] = 0x0f;
             regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = 0x02;
             dev->max_drb                                      = 3;
-            dev->drb_unit                                     = 4;
+            dev->drb_unit                                     = 1;
             dev->drb_default                                  = 0x02;
             break;
         case INTEL_430LX:

@@ -20,7 +20,7 @@
 
 typedef struct adgold_t {
     int adgold_irq_status;
-    int irq, dma, hdma;
+    int irq, dma;
 
     uint8_t adgold_eeprom[0x1a];
 
@@ -547,6 +547,7 @@ adgold_read(uint16_t addr, void *p)
             temp = adgold->adgold_mma_status;
             adgold->adgold_mma_status &= ~0xf3; /*JUKEGOLD expects timer status flags to auto-clear*/
             adgold_update_irq_status(adgold);
+            picintc(1 << adgold->irq);
             break;
         case 5:
             if (adgold->adgold_mma_addr >= 0xf)
@@ -652,7 +653,8 @@ adgold_timer_poll(void *p)
 {
     adgold_t *adgold = (adgold_t *) p;
 
-    timer_advance_u64(&adgold->adgold_mma_timer_count, (uint64_t) ((double) TIMER_USEC * 1.88964));
+	/*A small timer period will result in hangs.*/
+    timer_on_auto(&adgold->adgold_mma_timer_count, 4.88964);
 
     if (adgold->adgold_midi_ctrl & 0x3f) {
         if ((adgold->adgold_midi_ctrl & 0x3f) != 0x3f) {
@@ -925,7 +927,7 @@ adgold_init(const device_t *info)
     adgold->adgold_eeprom[0x10] = 0xff;
     adgold->adgold_eeprom[0x11] = 0x20;
     adgold->adgold_eeprom[0x12] = 0x00;
-    adgold->adgold_eeprom[0x13] = 0xa0;
+    adgold->adgold_eeprom[0x13] = 0x00;
     adgold->adgold_eeprom[0x14] = 0x00;
     adgold->adgold_eeprom[0x15] = 0x388 / 8; /*Present at 388-38f*/
     adgold->adgold_eeprom[0x16] = 0x00;
@@ -957,6 +959,7 @@ adgold_init(const device_t *info)
             break;
     }
     adgold->adgold_eeprom[0x13] |= (adgold->dma << 3);
+    adgold->adgold_eeprom[0x14] |= (adgold->dma << 4);
     memcpy(adgold->adgold_38x_regs, adgold->adgold_eeprom, 0x19);
     adgold->vol_l      = attenuation[adgold->adgold_eeprom[0x04] & 0x3f];
     adgold->vol_r      = attenuation[adgold->adgold_eeprom[0x05] & 0x3f];

@@ -36,6 +36,7 @@
 #include <86box/vid_ega.h>
 #include <86box/vid_colorplus.h>
 #include <86box/vid_mda.h>
+#include <86box/vid_xga_device.h>
 
 typedef struct {
     const device_t *device;
@@ -79,6 +80,8 @@ video_cards[] = {
     { &vid_none_device                               },
     { &vid_internal_device                           },
     { &atiega_device                                 },
+    { &mach8_isa_device,        VIDEO_FLAG_TYPE_8514 },
+    { &mach32_isa_device, 		VIDEO_FLAG_TYPE_8514 },
     { &mach64gx_isa_device                           },
     { &ati28800k_device                              },
     { &ati18800_vga88_device                         },
@@ -112,6 +115,7 @@ video_cards[] = {
     { &hercules_device,          VIDEO_FLAG_TYPE_MDA },
     { &herculesplus_device,      VIDEO_FLAG_TYPE_MDA },
     { &incolor_device                                },
+    { &inmos_isa_device,         VIDEO_FLAG_TYPE_XGA },
     { &im1024_device                                 },
     { &iskra_ega_device                              },
     { &et4000_kasan_isa_device                       },
@@ -154,6 +158,7 @@ video_cards[] = {
     { &gd5428_mca_device                             },
     { &et4000_mca_device                             },
     { &radius_svga_multiview_mca_device              },
+    { &mach32_pci_device, 		VIDEO_FLAG_TYPE_8514 },
     { &mach64gx_pci_device                           },
     { &mach64vt2_device                              },
     { &et4000w32p_videomagic_revb_pci_device         },
@@ -211,6 +216,7 @@ video_cards[] = {
     { &voodoo_3_1000_device                          },
     { &voodoo_3_2000_device                          },
     { &voodoo_3_3000_device                          },
+    { &mach32_vlb_device, 		VIDEO_FLAG_TYPE_8514 },
     { &mach64gx_vlb_device                           },
     { &et4000w32i_vlb_device                         },
     { &et4000w32p_videomagic_revb_vlb_device         },
@@ -430,4 +436,16 @@ int
 video_is_ega_vga(void)
 {
     return (video_get_type() == VIDEO_FLAG_TYPE_SPECIAL);
+}
+
+int
+video_is_8514(void)
+{
+    return (video_get_type() == VIDEO_FLAG_TYPE_8514);
+}
+
+int
+video_is_xga(void)
+{
+    return (video_get_type() == VIDEO_FLAG_TYPE_XGA);
 }

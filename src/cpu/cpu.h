@@ -850,4 +850,9 @@ extern void cpu_fast_off_reset(void);
 extern void smi_raise(void);
 extern void nmi_raise(void);
 
+extern MMX_REG *MMP[8];
+extern uint16_t *MMEP[8];
+
+extern void mmx_init(void);
+
 #endif /*EMU_CPU_H*/

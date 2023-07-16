@@ -379,9 +379,9 @@ esp_get_cmd(esp_t *dev, uint32_t maxlen)
             dma_set_drq(dev->DmaChannel, 0);
         } else {
             esp_pci_dma_memory_rw(dev, buf, dmalen, WRITE_TO_DEVICE);
-            dmalen = MIN(fifo8_num_free(&dev->cmdfifo), dmalen);
-            fifo8_push_all(&dev->cmdfifo, buf, dmalen);
         }
+        dmalen = MIN(fifo8_num_free(&dev->cmdfifo), dmalen);
+        fifo8_push_all(&dev->cmdfifo, buf, dmalen);
     } else {
         dmalen = MIN(fifo8_num_used(&dev->fifo), maxlen);
         esp_log("ESP Get command, dmalen = %i\n", dmalen);
@@ -545,6 +545,8 @@ esp_hard_reset(esp_t *dev)
     dev->do_cmd          = 0;
     dev->rregs[ESP_CFG1] = dev->mca ? dev->HostID : 7;
     esp_log("ESP Reset\n");
+    for (uint8_t i = 0; i < 16; i++)
+        scsi_device_reset(&scsi_devices[dev->bus][i]);
     timer_stop(&dev->timer);
 }
 
@@ -569,7 +571,6 @@ esp_do_nodma(esp_t *dev, scsi_device_t *sd)
             esp_do_cmd(dev);
         } else {
             dev->cmdfifo_cdb_offset = fifo8_num_used(&dev->cmdfifo);
-            ;
             esp_log("CDB offset = %i used\n", dev->cmdfifo_cdb_offset);
 
             dev->rregs[ESP_RSTAT] = STAT_TC | STAT_CD;
@@ -665,7 +666,7 @@ esp_do_dma(esp_t *dev, scsi_device_t *sd)
 
     count = tdbc = esp_get_tc(dev);
 
-    if (dev->mca) { /*See the comment in the esp_do_busid_cmd() function.*/
+    if (dev->mca) {
         if (sd->buffer_length < 0) {
             if (dev->dma_enabled)
                 goto done;
@@ -713,7 +714,7 @@ esp_do_dma(esp_t *dev, scsi_device_t *sd)
         return;
     }
 
-    esp_log("ESP SCSI dmaleft = %d, async_len = %i, buffer length = %d\n", esp_get_tc(dev), sd->buffer_length);
+    esp_log("ESP SCSI dmaleft = %d, buffer length = %d\n", esp_get_tc(dev), sd->buffer_length);
 
     /* Make sure count is never bigger than buffer_length. */
     if (count > dev->xfer_counter)
@@ -1082,6 +1083,9 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
                         esp_pci_soft_reset(dev);
                     break;
                 case CMD_BUSRESET:
+                    for (uint8_t i = 0; i < 16; i++)
+                        scsi_device_reset(&scsi_devices[dev->bus][i]);
+
                     if (!(dev->wregs[ESP_CFG1] & CFG1_RESREPT)) {
                         dev->rregs[ESP_RINTR] |= INTR_RST;
                         esp_log("ESP Bus Reset with IRQ\n");

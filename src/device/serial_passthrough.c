@@ -119,6 +119,8 @@ static void
 serial_passthrough_speed_changed(void *priv)
 {
     serial_passthrough_t *dev = (serial_passthrough_t *) priv;
+    if (!dev)
+        return;
 
     timer_stop(&dev->host_to_serial_timer);
     /* FIXME: do something to dev->baudrate */
@@ -132,9 +134,11 @@ static void
 serial_passthrough_dev_close(void *priv)
 {
     serial_passthrough_t *dev = (serial_passthrough_t *) priv;
+    if (!dev)
+        return;
 
     /* Detach passthrough device from COM port */
-    if (dev && dev->serial && dev->serial->sd)
+    if (dev->serial && dev->serial->sd)
         memset(dev->serial->sd, 0, sizeof(serial_device_t));
 
     plat_serpt_close(dev);
@@ -184,6 +188,10 @@ serial_passthrough_dev_init(const device_t *info)
     /* Attach passthrough device to a COM port */
     dev->serial = serial_attach_ex(dev->port, serial_passthrough_rcr_cb,
                                    serial_passthrough_write, serial_passthrough_transmit_period, serial_passthrough_lcr_callback, dev);
+    if (!dev->serial) {
+        free(dev);
+        return NULL;
+    }
 
     strncpy(dev->host_serial_path, device_get_config_string("host_serial_path"), 1023);
 #ifdef _WIN32

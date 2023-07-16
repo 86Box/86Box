@@ -82,7 +82,8 @@
 #define KBC_VEN_NCR        0x24
 #define KBC_VEN_ALI        0x28
 #define KBC_VEN_SIEMENS    0x2c
-#define KBC_VEN_MASK       0x3c
+#define KBC_VEN_COMPAQ     0x30
+#define KBC_VEN_MASK       0x7c
 
 #define FLAG_CLOCK         0x01
 #define FLAG_CACHE         0x02
@@ -981,6 +982,8 @@ write64_generic(void *priv, uint8_t val)
             } else if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_GREEN))
                 /* (B0 or F0) | (0x08 or 0x0c) */
                 kbc_delay_to_ob(dev, ((dev->p1 | fixed_bits) & 0xf0) | (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0x08 : 0x0c), 0, 0x00);
+            else if (kbc_ven == KBC_VEN_COMPAQ)
+                kbc_delay_to_ob(dev, dev->p1 | (hasfpu ? 0x00 : 0x04), 0, 0x00);
             else
                 /* (B0 or F0) | (0x04 or 0x44) */
                 kbc_delay_to_ob(dev, dev->p1 | fixed_bits, 0, 0x00);
@@ -1968,6 +1971,7 @@ kbc_at_init(const device_t *info)
         case KBC_VEN_GENERIC:
         case KBC_VEN_NCR:
         case KBC_VEN_IBM_PS1:
+        case KBC_VEN_COMPAQ:
             dev->write64_ven = write64_generic;
             break;
 
@@ -2132,6 +2136,20 @@ const device_t keyboard_at_ncr_device = {
     .internal_name = "keyboard_at_ncr",
     .flags         = DEVICE_KBC,
     .local         = KBC_TYPE_ISA | KBC_VEN_NCR,
+    .init          = kbc_at_init,
+    .close         = kbc_at_close,
+    .reset         = kbc_at_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t keyboard_at_compaq_device = {
+    .name          = "PC/AT Keyboard (Compaq)",
+    .internal_name = "keyboard_at_compaq",
+    .flags         = DEVICE_KBC,
+    .local         = KBC_TYPE_ISA | KBC_VEN_COMPAQ,
     .init          = kbc_at_init,
     .close         = kbc_at_close,
     .reset         = kbc_at_reset,
