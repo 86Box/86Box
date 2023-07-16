@@ -13,11 +13,13 @@
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2019-2020 GH Cao.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #include <stdatomic.h>
 #define UNICODE
@@ -55,18 +57,20 @@
 #define TIMER_1SEC 1 /* ID of the one-second timer */
 
 /* Platform Public data, specific. */
-HWND hwndMain   = NULL, /* application main window */
-    hwndRender  = NULL, /* machine render window */
-    hwndRender2 = NULL; /* machine second screen render window */
+HWND  hwndMain    = NULL; /* application main window */
+HWND  hwndRender  = NULL; /* machine render window */
+HWND  hwndRender2 = NULL; /* machine second screen render window */
 HMENU menuMain;         /* application main menu */
 RECT  oldclip;          /* mouse rect */
 int   sbar_height = 23; /* statusbar height */
 int   tbar_height = 23; /* toolbar height */
 int   minimized   = 0;
-int   infocus = 1, button_down = 0;
+int   infocus       = 1;
+int   button_down   = 0;
 int   rctrl_is_lalt = 0;
 int   user_resize   = 0;
-int   fixed_size_x = 0, fixed_size_y = 0;
+int   fixed_size_x  = 0;
+int   fixed_size_y  = 0;
 int   kbd_req_capture = 0;
 int   hide_status_bar = 0;
 int   hide_tool_bar   = 0;
@@ -77,9 +81,10 @@ extern WCHAR wopenfilestring[512];
 
 /* Local data. */
 static int manager_wm      = 0;
-static int save_window_pos = 0, pause_state = 0;
-static int padded_frame = 0;
-static int vis          = -1;
+static int save_window_pos = 0;
+static int pause_state     = 0;
+static int padded_frame    = 0;
+static int vis             = -1;
 
 /* Per Monitor DPI Aware v2 APIs, Windows 10 v1703+ */
 void *user32_handle = NULL;
@@ -268,33 +273,33 @@ ResetAllMenus(void)
 #ifdef USE_VNC
     CheckMenuItem(menuMain, IDM_VID_VNC, MF_UNCHECKED);
 #endif
-    CheckMenuItem(menuMain, IDM_VID_FS_FULL + 0, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_FS_FULL + 1, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_FS_FULL + 2, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_FS_FULL + 3, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_FS_FULL + 4, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_FS_FULL, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_FS_43, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_FS_KEEPRATIO, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_FS_INT, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SPECIFY_DIM, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_REMEMBER, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 0, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 1, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 2, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 3, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 4, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 5, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 6, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 7, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 8, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_SCALE_1X + 9, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_1X, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_2X, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_3X, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_4X, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_5X, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_6X, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_7X, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_8X, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_9X, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SCALE_10X, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_HIDPI, MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_VID_CGACON, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_GRAYCT_601 + 0, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_GRAYCT_601 + 1, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_GRAYCT_601 + 2, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_GRAY_RGB + 0, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_GRAY_RGB + 1, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_GRAY_RGB + 2, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_GRAY_RGB + 3, MF_UNCHECKED);
-    CheckMenuItem(menuMain, IDM_VID_GRAY_RGB + 4, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_GRAYCT_601, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_GRAYCT_709, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_GRAYCT_AVE, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_GRAY_RGB, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_GRAY_MONO, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_GRAY_AMBER, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_GRAY_GREEN, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_GRAY_WHITE, MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_ACTION_RCTRL_IS_LALT, rctrl_is_lalt ? MF_CHECKED : MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_ACTION_KBD_REQ_CAPTURE, kbd_req_capture ? MF_CHECKED : MF_UNCHECKED);
@@ -347,6 +352,12 @@ ResetAllMenus(void)
         EnableMenuItem(menuMain, IDM_VID_SCALE_2X, MF_GRAYED);
         EnableMenuItem(menuMain, IDM_VID_SCALE_3X, MF_GRAYED);
         EnableMenuItem(menuMain, IDM_VID_SCALE_4X, MF_GRAYED);
+        EnableMenuItem(menuMain, IDM_VID_SCALE_5X, MF_GRAYED);
+        EnableMenuItem(menuMain, IDM_VID_SCALE_6X, MF_GRAYED);
+        EnableMenuItem(menuMain, IDM_VID_SCALE_7X, MF_GRAYED);
+        EnableMenuItem(menuMain, IDM_VID_SCALE_8X, MF_GRAYED);
+        EnableMenuItem(menuMain, IDM_VID_SCALE_9X, MF_GRAYED);
+        EnableMenuItem(menuMain, IDM_VID_SCALE_10X, MF_GRAYED);
     }
 }
 
@@ -463,12 +474,14 @@ input_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
 
         default:
-            return (1);
-            /* return(CallWindowProc((WNDPROC)input_orig_proc,
-                                  hwnd, message, wParam, lParam)); */
+            return 1;
+#if 0
+            return(CallWindowProc((WNDPROC)input_orig_proc,
+                                  hwnd, message, wParam, lParam));
+#endif
     }
 
-    return (0);
+    return 0;
 }
 
 static LRESULT CALLBACK
@@ -476,12 +489,14 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HMENU hmenu;
 
-    int  i;
-    RECT rect, *rect_p;
+    int   i;
+    RECT  rect;
+    RECT *rect_p;
 
     WINDOWPOS *pos;
 
-    int temp_x, temp_y;
+    int temp_x;
+    int temp_y;
 
     if (input_proc(hwnd, message, wParam, lParam) == 0)
         return (0);
@@ -654,6 +669,12 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                     EnableMenuItem(hmenu, IDM_VID_SCALE_2X, vid_resize ? MF_GRAYED : MF_ENABLED);
                     EnableMenuItem(hmenu, IDM_VID_SCALE_3X, vid_resize ? MF_GRAYED : MF_ENABLED);
                     EnableMenuItem(hmenu, IDM_VID_SCALE_4X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_5X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_6X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_7X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_8X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_9X, vid_resize ? MF_GRAYED : MF_ENABLED);
+                    EnableMenuItem(hmenu, IDM_VID_SCALE_10X, vid_resize ? MF_GRAYED : MF_ENABLED);
 
                     scrnsz_x = unscaled_size_x;
                     scrnsz_y = unscaled_size_y;
@@ -750,6 +771,12 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 case IDM_VID_SCALE_2X:
                 case IDM_VID_SCALE_3X:
                 case IDM_VID_SCALE_4X:
+                case IDM_VID_SCALE_5X:
+                case IDM_VID_SCALE_6X:
+                case IDM_VID_SCALE_7X:
+                case IDM_VID_SCALE_8X:
+                case IDM_VID_SCALE_9X:
+                case IDM_VID_SCALE_10X:
                     CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_UNCHECKED);
                     scale = LOWORD(wParam) - IDM_VID_SCALE_1X;
                     CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_CHECKED);
@@ -1136,14 +1163,14 @@ SubWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             return (DefWindowProc(hwnd, message, wParam, lParam));
     }
 
-    return (0);
+    return 0;
 }
 
 static LRESULT CALLBACK
 SDLMainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     if (input_proc(hwnd, message, wParam, lParam) == 0)
-        return (0);
+        return 0;
 
     return (DefWindowProc(hwnd, message, wParam, lParam));
 }
@@ -1183,6 +1210,8 @@ ui_init(int nCmdShow)
         {IDCANCEL, MAKEINTRESOURCE(IDS_2120)}
     };
     uint32_t helper_lang;
+    static int fs_on_signal  = 0;
+    static int fs_off_signal = 0;
 
     /* Load DPI related Windows 10 APIs */
     user32_handle = dynld_module("user32.dll", user32_imports);
@@ -1461,9 +1490,20 @@ ui_init(int nCmdShow)
             plat_mouse_capture(0);
         }
 
-        if (video_fullscreen && keyboard_isfsexit()) {
+        if (!fs_off_signal && video_fullscreen && keyboard_isfsexit()) {
             /* Signal "exit fullscreen mode". */
+            fs_off_signal = 1;
+        } else if (fs_off_signal && video_fullscreen && keyboard_isfsexit_down()) {
             plat_setfullscreen(0);
+            fs_off_signal = 0;
+        }
+
+        if (!fs_on_signal && !video_fullscreen && keyboard_isfsenter()) {
+            /* Signal "enter fullscreen mode". */
+            fs_on_signal = 1;
+        } else if (fs_on_signal && !video_fullscreen && keyboard_isfsenter_down()) {
+            plat_setfullscreen(1);
+            fs_on_signal = 0;
         }
 
 #ifdef DISCORD
@@ -1538,7 +1578,7 @@ plat_pause(int p)
 
     /* Update the actual menu. */
     CheckMenuItem(menuMain, IDM_ACTION_PAUSE,
-                  (dopause) ? MF_CHECKED : MF_UNCHECKED);
+                  dopause ? MF_CHECKED : MF_UNCHECKED);
 
 #ifdef DISCORD
     /* Update Discord status */
@@ -1602,14 +1642,17 @@ plat_mouse_capture(int on)
 void
 ui_init_monitor(int monitor_index)
 {
+    // Nothing done here yet
 }
 
 void
 ui_deinit_monitor(int monitor_index)
 {
+    // Nothing done here yet
 }
 
 void
 ui_hard_reset_completed(void)
 {
+    // Nothing done here yet
 }

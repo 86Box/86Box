@@ -134,9 +134,12 @@ static const int32_t codec_attn[] = {
     // clang-format on
 };
 
-ac97_codec_t **ac97_codec = NULL, **ac97_modem_codec = NULL;
-int            ac97_codec_count = 0, ac97_modem_codec_count = 0,
-    ac97_codec_id = 0, ac97_modem_codec_id = 0;
+ac97_codec_t **ac97_codec             = NULL;
+ac97_codec_t **ac97_modem_codec       = NULL;
+int            ac97_codec_count       = 0;
+int            ac97_modem_codec_count = 0;
+int            ac97_codec_id          = 0;
+int            ac97_modem_codec_id    = 0;
 
 uint16_t
 ac97_codec_readw(ac97_codec_t *dev, uint8_t reg)
@@ -160,7 +163,8 @@ ac97_codec_writew(ac97_codec_t *dev, uint8_t reg, uint16_t val)
     ac97_codec_log("AC97 Codec %d: writew(%02X, %04X)\n", dev->codec_id, reg, val);
 
     reg &= 0x7e;
-    uint16_t i = 0, prev = dev->regs[reg >> 1];
+    uint16_t i = 0;
+    uint16_t prev = dev->regs[reg >> 1];
     int      j;
 
     switch (reg) {
@@ -441,6 +445,9 @@ rate:              /* Writable only if VRA/VRM is set. */
         case 0x7c: /* Vendor ID1 */
         case 0x7e: /* Vendor ID2 */
             return;
+
+        default:
+            break;
     }
 
     dev->regs[reg >> 1] = val;
@@ -450,7 +457,7 @@ void
 ac97_codec_reset(void *priv)
 {
     ac97_codec_t *dev = (ac97_codec_t *) priv;
-    uint16_t      i, j;
+    uint16_t      i;
 
     ac97_codec_log("AC97 Codec %d: reset()\n", dev->codec_id);
 
@@ -498,7 +505,7 @@ ac97_codec_reset(void *priv)
 
     /* Set vendor-specific registers. */
     if (dev->vendor_regs) {
-        for (j = 0; dev->vendor_regs[j].index; j++) {
+        for (uint16_t j = 0; dev->vendor_regs[j].index; j++) {
             i = (dev->vendor_regs[j].index >> 8) & 0x000f;
             if (i > 0)
                 dev->vendor_reg_pages[(i << 3) | (dev->vendor_regs[j].index >> 1)] = dev->vendor_regs[j].value;
@@ -523,7 +530,8 @@ ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
         *r = 0;
     } else { /* per-channel mute */
         /* Determine attenuation value. */
-        uint8_t l_val = val >> 8, r_val = val;
+        uint8_t l_val = val >> 8;
+        uint8_t r_val = val;
         if (reg <= 0x06) { /* 6-bit level */
             *l = codec_attn[0x3f - (l_val & 0x3f)];
             *r = codec_attn[0x3f - (r_val & 0x3f)];
@@ -582,6 +590,7 @@ ac97_codec_init(const device_t *info)
     /* Associate this codec to the current controller. */
     if (!ac97_codec || (ac97_codec_count <= 0)) {
         pclog("AC97 Codec %d: No controller to associate codec\n", ac97_codec_id);
+        free(dev);
         return NULL;
     }
     *ac97_codec = dev;
@@ -594,9 +603,9 @@ ac97_codec_init(const device_t *info)
     /* Allocate vendor-specific register pages if required. */
     if (dev->vendor_regs) {
         /* Get the highest vendor-specific register page number. */
-        int i, j;
+        int i;
         dev->vendor_reg_page_max = 0;
-        for (j = 0; dev->vendor_regs[j].index; j++) {
+        for (uint16_t j = 0; dev->vendor_regs[j].index; j++) {
             i = (dev->vendor_regs[j].index >> 8) & 0x000f;
             if (i > dev->vendor_reg_page_max)
                 dev->vendor_reg_page_max = i;

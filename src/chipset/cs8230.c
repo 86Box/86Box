@@ -25,12 +25,12 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/chipset.h>
 
-typedef struct
-{
+typedef struct cs8230_t {
     int     idx;
     uint8_t regs[256];
 } cs8230_t;
@@ -51,6 +51,8 @@ shadow_control(uint32_t addr, uint32_t size, int state)
         case 0x11:
             mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
             break;
+        default:
+            break;
     }
 
     flushmmucache_nopc();
@@ -59,9 +61,7 @@ shadow_control(uint32_t addr, uint32_t size, int state)
 static void
 rethink_shadow_mappings(cs8230_t *cs8230)
 {
-    int c;
-
-    for (c = 0; c < 32; c++) {
+    for (uint8_t c = 0; c < 32; c++) {
         /* Addresses 40000-bffff in 16k blocks */
         if (cs8230->regs[0xa + (c >> 3)] & (1 << (c & 7)))
             mem_set_mem_state(0x40000 + (c << 14), 0x4000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL); /* I/O channel */
@@ -69,7 +69,7 @@ rethink_shadow_mappings(cs8230_t *cs8230)
             mem_set_mem_state(0x40000 + (c << 14), 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL); /* System board */
     }
 
-    for (c = 0; c < 16; c++) {
+    for (uint8_t c = 0; c < 16; c++) {
         /* Addresses c0000-fffff in 16k blocks. System board ROM can be mapped here */
         if (cs8230->regs[0xe + (c >> 3)] & (1 << (c & 7)))
             mem_set_mem_state(0xc0000 + (c << 14), 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY); /* I/O channel */
@@ -79,9 +79,9 @@ rethink_shadow_mappings(cs8230_t *cs8230)
 }
 
 static uint8_t
-cs8230_read(uint16_t port, void *p)
+cs8230_read(uint16_t port, void *priv)
 {
-    cs8230_t *cs8230 = (cs8230_t *) p;
+    cs8230_t *cs8230 = (cs8230_t *) priv;
     uint8_t   ret    = 0xff;
 
     if (port & 1) {
@@ -112,6 +112,9 @@ cs8230_read(uint16_t port, void *p)
             case 0x2a:
                 ret = cs8230->regs[cs8230->idx];
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -119,9 +122,9 @@ cs8230_read(uint16_t port, void *p)
 }
 
 static void
-cs8230_write(uint16_t port, uint8_t val, void *p)
+cs8230_write(uint16_t port, uint8_t val, void *priv)
 {
-    cs8230_t *cs8230 = (cs8230_t *) p;
+    cs8230_t *cs8230 = (cs8230_t *) priv;
 
     if (!(port & 1))
         cs8230->idx = val;
@@ -137,6 +140,8 @@ cs8230_write(uint16_t port, uint8_t val, void *p)
             case 0x0f: /* Address maps */
                 rethink_shadow_mappings(cs8230);
                 break;
+            default:
+                break;
         }
     }
 }
@@ -149,9 +154,8 @@ cs8230_close(void *priv)
     free(cs8230);
 }
 
-static void
-    *
-    cs8230_init(const device_t *info)
+static void *
+cs8230_init(UNUSED(const device_t *info))
 {
     cs8230_t *cs8230 = (cs8230_t *) malloc(sizeof(cs8230_t));
     memset(cs8230, 0, sizeof(cs8230_t));

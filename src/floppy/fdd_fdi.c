@@ -104,7 +104,7 @@ disk_flags(int drive)
      */
     temp_disk_flags |= 0x800;
 
-    return (temp_disk_flags);
+    return temp_disk_flags;
 }
 
 static uint16_t
@@ -143,34 +143,34 @@ side_flags(int drive)
      */
     temp_side_flags |= 0x08;
 
-    return (temp_side_flags);
+    return temp_side_flags;
 }
 
 static int
 fdi_density(void)
 {
     if (!fdc_is_mfm(fdi_fdc))
-        return (0);
+        return 0;
 
     switch (fdc_get_bit_rate(fdi_fdc)) {
         case 0:
-            return (2);
+            return 2;
 
         case 1:
-            return (1);
+            return 1;
 
         case 2:
-            return (1);
+            return 1;
 
         case 3:
         case 5:
-            return (3);
+            return 3;
 
         default:
             break;
     }
 
-    return (1);
+    return 1;
 }
 
 static int32_t
@@ -207,14 +207,15 @@ extra_bit_cells(int drive, int side)
             raw_size = is_300_rpm ? 100000 : 83333;
     }
 
-    return ((dev->tracklen[side][density] - raw_size));
+    return (dev->tracklen[side][density] - raw_size);
 }
 
 static void
 read_revolution(int drive)
 {
     fdi_t *dev = fdi[drive];
-    int    c, den, side;
+    int    c;
+    int    den;
     int    track = dev->track;
 
     if (track > dev->lasttrack) {
@@ -227,7 +228,7 @@ read_revolution(int drive)
     }
 
     for (den = 0; den < 4; den++) {
-        for (side = 0; side < dev->sides; side++) {
+        for (int side = 0; side < dev->sides; side++) {
             c = fdi2raw_loadtrack(dev->h,
                                   (uint16_t *) dev->track_data[side][den],
                                   (uint16_t *) dev->track_timing[side][den],

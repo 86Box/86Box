@@ -1,7 +1,8 @@
 static uint32_t
 ropMOVQ_q_mm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-    int host_reg1, host_reg2 = 0;
+    int host_reg1;
+    int host_reg2 = 0;
 
     MMX_ENTER();
 
@@ -29,7 +30,8 @@ ropMOVQ_mm_q(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, 
     MMX_ENTER();
 
     if ((fetchdat & 0xc0) == 0xc0) {
-        int host_reg1, host_reg2;
+        int host_reg1;
+        int host_reg2;
 
         LOAD_MMX_Q(fetchdat & 7, &host_reg1, &host_reg2);
         STORE_MMX_Q((fetchdat >> 3) & 7, host_reg1, host_reg2);

@@ -13,122 +13,122 @@ LANGUAGE LANG_RUSSIAN, SUBLANG_DEFAULT
 // Menu
 //
 
-MainMenu MENU DISCARDABLE 
+MainMenu MENU DISCARDABLE
 BEGIN
     POPUP "&Действие"
     BEGIN
-        MENUITEM "&Клавиатура требует захвата",    IDM_ACTION_KBD_REQ_CAPTURE
-        MENUITEM "&Правый CTRL - это левый ALT",    IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM "&Клавиатура требует захвата", IDM_ACTION_KBD_REQ_CAPTURE
+        MENUITEM "&Правый CTRL - это левый ALT", IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
-        MENUITEM "&Холодная перезагрузка...",                 IDM_ACTION_HRESET
-        MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
+        MENUITEM "&Холодная перезагрузка...", IDM_ACTION_HRESET
+        MENUITEM "&Ctrl+Alt+Del\tCtrl+F12", IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
-    MENUITEM "Ctrl+Alt+&Esc",        IDM_ACTION_CTRL_ALT_ESC
+    MENUITEM "Ctrl+Alt+&Esc", IDM_ACTION_CTRL_ALT_ESC
         MENUITEM SEPARATOR
-        MENUITEM "&Пауза",                      IDM_ACTION_PAUSE
+        MENUITEM "&Пауза", IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
-        MENUITEM "&Выход...",                       IDM_ACTION_EXIT
+        MENUITEM "&Выход...", IDM_ACTION_EXIT
     END
     POPUP "&Вид"
     BEGIN
-        MENUITEM "&Скрыть строку состояния",        IDM_VID_HIDE_STATUS_BAR
-        MENUITEM "С&крыть панель инструментов",        IDM_VID_HIDE_TOOLBAR
+        MENUITEM "&Скрыть строку состояния", IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "С&крыть панель инструментов", IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
-        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
-        MENUITEM "&Изменяемый размер окна",          IDM_VID_RESIZE
-        MENUITEM "&Запомнить размер и положение",  IDM_VID_REMEMBER
+        MENUITEM "&Show non-primary monitors", IDM_VID_MONITORS
+        MENUITEM "&Изменяемый размер окна", IDM_VID_RESIZE
+        MENUITEM "&Запомнить размер и положение", IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "&Рендеринг"
         BEGIN
-            MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
-            MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
-            MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-            MENUITEM "Open&GL (3.0)",      IDM_VID_OPENGL_CORE
+            MENUITEM "&SDL (Software)", IDM_VID_SDL_SW
+            MENUITEM "SDL (&Hardware)", IDM_VID_SDL_HW
+            MENUITEM "SDL (&OpenGL)", IDM_VID_SDL_OPENGL
+            MENUITEM "Open&GL (3.0)", IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
-            MENUITEM "&VNC",                    IDM_VID_VNC
+            MENUITEM "&VNC", IDM_VID_VNC
 #endif
         END
         MENUITEM SEPARATOR
-        MENUITEM "&Указать размеры...",          IDM_VID_SPECIFY_DIM
-        MENUITEM "У&становить соотношение сторон 4:3",    IDM_VID_FORCE43
+        MENUITEM "&Указать размеры...", IDM_VID_SPECIFY_DIM
+        MENUITEM "У&становить соотношение сторон 4:3", IDM_VID_FORCE43
         POPUP "&Масштаб окна"
         BEGIN
-            MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
-            MENUITEM "&1x",                     IDM_VID_SCALE_2X
-            MENUITEM "1.&5x",                   IDM_VID_SCALE_3X
-            MENUITEM "&2x",                     IDM_VID_SCALE_4X
-            MENUITEM "&3x",                     IDM_VID_SCALE_5X
-            MENUITEM "&4x",                     IDM_VID_SCALE_6X
-            MENUITEM "&5x",                     IDM_VID_SCALE_7X
-            MENUITEM "&6x",                     IDM_VID_SCALE_8X
-            MENUITEM "&7x",                     IDM_VID_SCALE_9X
-            MENUITEM "&8x",                     IDM_VID_SCALE_10X
+            MENUITEM "&0.5x", IDM_VID_SCALE_1X
+            MENUITEM "&1x", IDM_VID_SCALE_2X
+            MENUITEM "1.&5x", IDM_VID_SCALE_3X
+            MENUITEM "&2x", IDM_VID_SCALE_4X
+            MENUITEM "&3x", IDM_VID_SCALE_5X
+            MENUITEM "&4x", IDM_VID_SCALE_6X
+            MENUITEM "&5x", IDM_VID_SCALE_7X
+            MENUITEM "&6x", IDM_VID_SCALE_8X
+            MENUITEM "&7x", IDM_VID_SCALE_9X
+            MENUITEM "&8x", IDM_VID_SCALE_10X
         END
         POPUP "Метод фильтрации"
         BEGIN
-            MENUITEM "&Ближайший",                 IDM_VID_FILTER_NEAREST
-            MENUITEM "&Линейный",                  IDM_VID_FILTER_LINEAR
+            MENUITEM "&Ближайший", IDM_VID_FILTER_NEAREST
+            MENUITEM "&Линейный", IDM_VID_FILTER_LINEAR
         END
-        MENUITEM "Масштабирование Hi&DPI",              IDM_VID_HIDPI
+        MENUITEM "Масштабирование Hi&DPI", IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Полноэкранный режим\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
+        MENUITEM "&Полноэкранный режим\tCtrl+Alt+PgUp", IDM_VID_FULLSCREEN
         POPUP "&Растягивание в полноэкранном режиме"
         BEGIN
-            MENUITEM "&На весь экран",        IDM_VID_FS_FULL
-            MENUITEM "&4:3",                        IDM_VID_FS_43
+            MENUITEM "&На весь экран", IDM_VID_FS_FULL
+            MENUITEM "&4:3", IDM_VID_FS_43
             MENUITEM "&Квадратные пиксели (сохранить соотношение)", IDM_VID_FS_KEEPRATIO
-            MENUITEM "&Целочисленное масштабирование",              IDM_VID_FS_INT
+            MENUITEM "&Целочисленное масштабирование", IDM_VID_FS_INT
         END
         POPUP "Настройки E&GA/(S)VGA"
         BEGIN
-            MENUITEM "&Инвертировать цвета VGA",   IDM_VID_INVERT
+            MENUITEM "&Инвертировать цвета VGA", IDM_VID_INVERT
             POPUP "&Тип экрана VGA"
             BEGIN
-                MENUITEM "RGB &цветной",          IDM_VID_GRAY_RGB
-                MENUITEM "&RGB монохромный",      IDM_VID_GRAY_MONO
-                MENUITEM "&Янтарный оттенок",      IDM_VID_GRAY_AMBER
-                MENUITEM "&Зелёный оттенок",      IDM_VID_GRAY_GREEN
-                MENUITEM "&Белый оттенок",      IDM_VID_GRAY_WHITE
+                MENUITEM "RGB &цветной", IDM_VID_GRAY_RGB
+                MENUITEM "&RGB монохромный", IDM_VID_GRAY_MONO
+                MENUITEM "&Янтарный оттенок", IDM_VID_GRAY_AMBER
+                MENUITEM "&Зелёный оттенок", IDM_VID_GRAY_GREEN
+                MENUITEM "&Белый оттенок", IDM_VID_GRAY_WHITE
             END
             POPUP "Тип монохромного &конвертирования"
             BEGIN
-                MENUITEM "BT&601 (NTSC/PAL)",   IDM_VID_GRAYCT_601
-                MENUITEM "BT&709 (HDTV)",       IDM_VID_GRAYCT_709
-                MENUITEM "&Усреднённый",            IDM_VID_GRAYCT_AVE
+                MENUITEM "BT&601 (NTSC/PAL)", IDM_VID_GRAYCT_601
+                MENUITEM "BT&709 (HDTV)", IDM_VID_GRAYCT_709
+                MENUITEM "&Усреднённый", IDM_VID_GRAYCT_AVE
             END
         END
         MENUITEM SEPARATOR
-        MENUITEM "Вылеты развёртки CGA/PCjr/Tandy/E&GA/(S)VGA",     IDM_VID_OVERSCAN
+        MENUITEM "Вылеты развёртки CGA/PCjr/Tandy/E&GA/(S)VGA", IDM_VID_OVERSCAN
         MENUITEM "Изменить контрастность &монохромного дисплея", IDM_VID_CGACON
     END
-    MENUITEM "&Носители",                IDM_MEDIA
+    MENUITEM "&Носители", IDM_MEDIA
     POPUP "&Инструменты"
     BEGIN
-        MENUITEM "&Настройки машины...",                IDM_CONFIG
-        MENUITEM "&Обновление значков строки состояния",    IDM_UPDATE_ICONS
+        MENUITEM "&Настройки машины...", IDM_CONFIG
+        MENUITEM "&Обновление значков строки состояния", IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Сделать с&криншот\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM "Сделать с&криншот\tCtrl+F11", IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
-        MENUITEM "&Параметры...",        IDM_PREFERENCES
+        MENUITEM "&Параметры...", IDM_PREFERENCES
 #ifdef DISCORD
         MENUITEM "Включить интеграцию &Discord", IDM_DISCORD
 #endif
         MENUITEM SEPARATOR
-        MENUITEM "&Усиление звука...",              IDM_SND_GAIN
+        MENUITEM "&Усиление звука...", IDM_SND_GAIN
 #ifdef MTR_ENABLED
         MENUITEM SEPARATOR
-        MENUITEM "Начать трассировку\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
-        MENUITEM "Завершить трассировку\tCtrl+T",           IDM_ACTION_END_TRACE
+        MENUITEM "Начать трассировку\tCtrl+T", IDM_ACTION_BEGIN_TRACE
+        MENUITEM "Завершить трассировку\tCtrl+T", IDM_ACTION_END_TRACE
 #endif
     END
     POPUP "&Помощь"
     BEGIN
-        MENUITEM "&Документация...",           IDM_DOCS
-        MENUITEM "&О программе 86Box...",             IDM_ABOUT
+        MENUITEM "&Документация...", IDM_DOCS
+        MENUITEM "&О программе 86Box...", IDM_ABOUT
     END
 END
 
-StatusBarMenu MENU DISCARDABLE 
+StatusBarMenu MENU DISCARDABLE
 BEGIN
     MENUITEM SEPARATOR
 END
@@ -137,17 +137,17 @@ CassetteSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Новый образ...",                IDM_CASSETTE_IMAGE_NEW
+        MENUITEM "&Новый образ...", IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Выбрать образ...",                IDM_CASSETTE_IMAGE_EXISTING
-        MENUITEM "Выбрать образ (&Защита от записи)...",    IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM "&Выбрать образ...", IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "Выбрать образ (&Защита от записи)...", IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "&Запись",                    IDM_CASSETTE_RECORD
-        MENUITEM "&Воспроизведение",                    IDM_CASSETTE_PLAY
-        MENUITEM "&Перемотка на начало",            IDM_CASSETTE_REWIND
-        MENUITEM "&Перемотка в конец",            IDM_CASSETTE_FAST_FORWARD
+        MENUITEM "&Запись", IDM_CASSETTE_RECORD
+        MENUITEM "&Воспроизведение", IDM_CASSETTE_PLAY
+        MENUITEM "&Перемотка на начало", IDM_CASSETTE_REWIND
+        MENUITEM "&Перемотка в конец", IDM_CASSETTE_FAST_FORWARD
         MENUITEM SEPARATOR
-        MENUITEM "И&звлечь",                    IDM_CASSETTE_EJECT
+        MENUITEM "И&звлечь", IDM_CASSETTE_EJECT
     END
 END
 
@@ -155,9 +155,9 @@ CartridgeSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Образ...",                    IDM_CARTRIDGE_IMAGE
+        MENUITEM "&Образ...", IDM_CARTRIDGE_IMAGE
         MENUITEM SEPARATOR
-        MENUITEM "И&звлечь",                    IDM_CARTRIDGE_EJECT
+        MENUITEM "И&звлечь", IDM_CARTRIDGE_EJECT
     END
 END
 
@@ -165,14 +165,14 @@ FloppySubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Новый образ...",                IDM_FLOPPY_IMAGE_NEW
+        MENUITEM "&Новый образ...", IDM_FLOPPY_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Выбрать образ...",                IDM_FLOPPY_IMAGE_EXISTING
-        MENUITEM "Выбрать образ (&Защита от записи)...",    IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM "&Выбрать образ...", IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "Выбрать образ (&Защита от записи)...", IDM_FLOPPY_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "Э&кспорт в 86F...",                IDM_FLOPPY_EXPORT_TO_86F
+        MENUITEM "Э&кспорт в 86F...", IDM_FLOPPY_EXPORT_TO_86F
         MENUITEM SEPARATOR
-        MENUITEM "И&звлечь",                    IDM_FLOPPY_EJECT
+        MENUITEM "И&звлечь", IDM_FLOPPY_EJECT
     END
 END
 
@@ -180,13 +180,13 @@ CdromSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "О&тключить звук",                    IDM_CDROM_MUTE
+        MENUITEM "О&тключить звук", IDM_CDROM_MUTE
         MENUITEM SEPARATOR
-        MENUITEM "П&устой",                    IDM_CDROM_EMPTY
-        MENUITEM "&Снова загрузить предыдущий образ",            IDM_CDROM_RELOAD
+        MENUITEM "П&устой", IDM_CDROM_EMPTY
+        MENUITEM "&Снова загрузить предыдущий образ", IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Образ...",                    IDM_CDROM_IMAGE
-        MENUITEM "&Папка...",                    IDM_CDROM_DIR
+        MENUITEM "&Образ...", IDM_CDROM_IMAGE
+        MENUITEM "&Папка...", IDM_CDROM_DIR
     END
 END
 
@@ -194,13 +194,13 @@ ZIPSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Новый образ...",                IDM_ZIP_IMAGE_NEW
+        MENUITEM "&Новый образ...", IDM_ZIP_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Выбрать образ...",                IDM_ZIP_IMAGE_EXISTING
-        MENUITEM "Выбрать образ (&Защита от записи)...",    IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM "&Выбрать образ...", IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "Выбрать образ (&Защита от записи)...", IDM_ZIP_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "И&звлечь",                    IDM_ZIP_EJECT
-        MENUITEM "&Снова загрузить предыдущий образ",            IDM_ZIP_RELOAD
+        MENUITEM "И&звлечь", IDM_ZIP_EJECT
+        MENUITEM "&Снова загрузить предыдущий образ", IDM_ZIP_RELOAD
     END
 END
 
@@ -208,13 +208,13 @@ MOSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Новый образ...",                IDM_MO_IMAGE_NEW
+        MENUITEM "&Новый образ...", IDM_MO_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Выбрать образ...",                IDM_MO_IMAGE_EXISTING
-        MENUITEM "Выбрать образ (&Защита от записи)...",    IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM "&Выбрать образ...", IDM_MO_IMAGE_EXISTING
+        MENUITEM "Выбрать образ (&Защита от записи)...", IDM_MO_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "И&звлечь",                    IDM_MO_EJECT
-        MENUITEM "&Снова загрузить предыдущий образ",            IDM_MO_RELOAD
+        MENUITEM "И&звлечь", IDM_MO_EJECT
+        MENUITEM "&Снова загрузить предыдущий образ", IDM_MO_RELOAD
     END
 END
 
@@ -240,150 +240,150 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES        "Параметры"
-#define STR_SND_GAIN        "Усиление звука"
-#define STR_NEW_FLOPPY        "Новый образ"
+#define STR_PREFERENCES   "Параметры"
+#define STR_SND_GAIN      "Усиление звука"
+#define STR_NEW_FLOPPY    "Новый образ"
 #define STR_CONFIG        "Настройки"
-#define STR_SPECIFY_DIM        "Указать размеры главного окна"
+#define STR_SPECIFY_DIM   "Указать размеры главного окна"
 
 #define STR_OK            "OK"
 #define STR_CANCEL        "Отмена"
 #define STR_GLOBAL        "Сохранить эти параметры как &глобальные по умолчанию"
-#define STR_DEFAULT        "&По умолчанию"
-#define STR_LANGUAGE        "Язык:"
-#define STR_ICONSET        "Набор иконок:"
+#define STR_DEFAULT       "&По умолчанию"
+#define STR_LANGUAGE      "Язык:"
+#define STR_ICONSET       "Набор иконок:"
 
-#define STR_GAIN        "Усиление"
+#define STR_GAIN          "Усиление"
 
-#define STR_FILE_NAME        "Имя файла:"
-#define STR_DISK_SIZE        "Размер диска:"
-#define STR_RPM_MODE        "RPM режим:"
-#define STR_PROGRESS        "Прогресс:"
+#define STR_FILE_NAME     "Имя файла:"
+#define STR_DISK_SIZE     "Размер диска:"
+#define STR_RPM_MODE      "RPM режим:"
+#define STR_PROGRESS      "Прогресс:"
 
-#define STR_WIDTH        "Ширина:"
+#define STR_WIDTH         "Ширина:"
 #define STR_HEIGHT        "Высота:"
-#define STR_LOCK_TO_SIZE    "Зафиксировать размер"
+#define STR_LOCK_TO_SIZE  "Зафиксировать размер"
 
-#define STR_MACHINE_TYPE    "Тип машины:"
-#define STR_MACHINE        "Системная плата:"
-#define STR_CONFIGURE        "Настройка"
-#define STR_CPU_TYPE        "Тип ЦП:"
-#define STR_CPU_SPEED        "Скорость:"
-#define STR_FPU            "FPU:"
-#define STR_WAIT_STATES        "Циклы ожидания:"
+#define STR_MACHINE_TYPE  "Тип машины:"
+#define STR_MACHINE       "Системная плата:"
+#define STR_CONFIGURE     "Настройка"
+#define STR_CPU_TYPE      "Тип ЦП:"
+#define STR_CPU_SPEED     "Скорость:"
+#define STR_FPU           "FPU:"
+#define STR_WAIT_STATES   "Циклы ожидания:"
 #define STR_MB            "МБ"
 #define STR_MEMORY        "Память:"
-#define STR_TIME_SYNC        "Синхронизация времени"
-#define STR_DISABLED        "Отключить"
-#define STR_ENABLED_LOCAL    "Включить (местное)"
-#define STR_ENABLED_UTC        "Включить (UTC)"
-#define STR_DYNAREC        "Динамический рекомпилятор"
+#define STR_TIME_SYNC     "Синхронизация времени"
+#define STR_DISABLED      "Отключить"
+#define STR_ENABLED_LOCAL "Включить (местное)"
+#define STR_ENABLED_UTC   "Включить (UTC)"
+#define STR_DYNAREC       "Динамический рекомпилятор"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
-#define STR_VIDEO        "Видеокарта:"
-#define STR_VIDEO_2        "Видеокарта 2:"
+#define STR_VIDEO         "Видеокарта:"
+#define STR_VIDEO_2       "Видеокарта 2:"
 #define STR_VOODOO        "Ускоритель Voodoo"
-#define STR_IBM8514        "Ускоритель IBM 8514/a"
-#define STR_XGA            "Ускоритель XGA"
+#define STR_IBM8514       "Ускоритель IBM 8514/a"
+#define STR_XGA           "Ускоритель XGA"
 
-#define STR_MOUSE        "Мышь:"
-#define STR_JOYSTICK        "Джойстик:"
-#define STR_JOY1        "Джойстик 1..."
-#define STR_JOY2        "Джойстик 2..."
-#define STR_JOY3        "Джойстик 3..."
-#define STR_JOY4        "Джойстик 4..."
+#define STR_MOUSE         "Мышь:"
+#define STR_JOYSTICK      "Джойстик:"
+#define STR_JOY1          "Джойстик 1..."
+#define STR_JOY2          "Джойстик 2..."
+#define STR_JOY3          "Джойстик 3..."
+#define STR_JOY4          "Джойстик 4..."
 
 #define STR_SOUND1        "Звуковая карта 1:"
 #define STR_SOUND2        "Звуковая карта 2:"
 #define STR_SOUND3        "Звуковая карта 3:"
 #define STR_SOUND4        "Звуковая карта 4:"
-#define STR_MIDI_OUT        "MIDI Out устр-во:"
-#define STR_MIDI_IN        "MIDI In устр-во:"
+#define STR_MIDI_OUT      "MIDI Out устр-во:"
+#define STR_MIDI_IN       "MIDI In устр-во:"
 #define STR_MPU401        "Отдельный MPU-401"
-#define STR_FLOAT        "FLOAT32 звук"
-#define STR_FM_DRIVER        "Драйвер FM-синтезатора"
-#define STR_FM_DRV_NUKED    "Nuked (более точный)"
-#define STR_FM_DRV_YMFM        "YMFM (быстрей)"
+#define STR_FLOAT         "FLOAT32 звук"
+#define STR_FM_DRIVER     "Драйвер FM-синтезатора"
+#define STR_FM_DRV_NUKED  "Nuked (более точный)"
+#define STR_FM_DRV_YMFM   "YMFM (быстрей)"
 
-#define STR_NET_TYPE    "Тип сети:"
-#define STR_PCAP        "Устройство PCap:"
-#define STR_NET            "Сетевая карта:"
-#define STR_NET1        "Network card 1:"
-#define STR_NET2        "Network card 2:"
-#define STR_NET3        "Network card 3:"
-#define STR_NET4        "Network card 4:"
+#define STR_NET_TYPE      "Тип сети:"
+#define STR_PCAP          "Устройство PCap:"
+#define STR_NET           "Сетевая карта:"
+#define STR_NET1          "Network card 1:"
+#define STR_NET2          "Network card 2:"
+#define STR_NET3          "Network card 3:"
+#define STR_NET4          "Network card 4:"
 
-#define STR_COM1        "Устройство COM1:"
-#define STR_COM2        "Устройство COM2:"
-#define STR_COM3        "Устройство COM3:"
-#define STR_COM4        "Устройство COM4:"
-#define STR_LPT1        "Устройство LPT1:"
-#define STR_LPT2        "Устройство LPT2:"
-#define STR_LPT3        "Устройство LPT3:"
-#define STR_LPT4        "Устройство LPT4:"
-#define STR_SERIAL1        "Последов. порт COM1"
-#define STR_SERIAL2        "Последов. порт COM2"
-#define STR_SERIAL3        "Последов. порт COM3"
-#define STR_SERIAL4        "Последов. порт COM4"
-#define STR_PARALLEL1        "Параллельный порт LPT1"
-#define STR_PARALLEL2        "Параллельный порт LPT2"
-#define STR_PARALLEL3        "Параллельный порт LPT3"
-#define STR_PARALLEL4        "Параллельный порт LPT4"
-#define STR_SERIAL_PASS1    "Serial port passthrough 1"
-#define STR_SERIAL_PASS2    "Serial port passthrough 2"
-#define STR_SERIAL_PASS3    "Serial port passthrough 3"
-#define STR_SERIAL_PASS4    "Serial port passthrough 4"
+#define STR_COM1          "Устройство COM1:"
+#define STR_COM2          "Устройство COM2:"
+#define STR_COM3          "Устройство COM3:"
+#define STR_COM4          "Устройство COM4:"
+#define STR_LPT1          "Устройство LPT1:"
+#define STR_LPT2          "Устройство LPT2:"
+#define STR_LPT3          "Устройство LPT3:"
+#define STR_LPT4          "Устройство LPT4:"
+#define STR_SERIAL1       "Последов. порт COM1"
+#define STR_SERIAL2       "Последов. порт COM2"
+#define STR_SERIAL3       "Последов. порт COM3"
+#define STR_SERIAL4       "Последов. порт COM4"
+#define STR_PARALLEL1     "Параллельный порт LPT1"
+#define STR_PARALLEL2     "Параллельный порт LPT2"
+#define STR_PARALLEL3     "Параллельный порт LPT3"
+#define STR_PARALLEL4     "Параллельный порт LPT4"
+#define STR_SERIAL_PASS1  "Serial port passthrough 1"
+#define STR_SERIAL_PASS2  "Serial port passthrough 2"
+#define STR_SERIAL_PASS3  "Serial port passthrough 3"
+#define STR_SERIAL_PASS4  "Serial port passthrough 4"
 
-#define STR_HDC            "Контроллер HD:"
-#define STR_FDC            "Контроллер FD:"
-#define STR_IDE_TER        "Третичный IDE контроллер"
-#define STR_IDE_QUA        "Четвертичный IDE контроллер"
-#define STR_SCSI        "SCSI"
+#define STR_HDC           "Контроллер HD:"
+#define STR_FDC           "Контроллер FD:"
+#define STR_IDE_TER       "Третичный IDE контроллер"
+#define STR_IDE_QUA       "Четвертичный IDE контроллер"
+#define STR_SCSI          "SCSI"
 #define STR_SCSI_1        "Контроллер 1:"
 #define STR_SCSI_2        "Контроллер 2:"
 #define STR_SCSI_3        "Контроллер 3:"
 #define STR_SCSI_4        "Контроллер 4:"
-#define STR_CASSETTE        "Кассета"
+#define STR_CASSETTE      "Кассета"
 
-#define STR_HDD            "Жёсткие диски:"
-#define STR_NEW            "&Создать..."
-#define STR_EXISTING        "&Выбрать..."
+#define STR_HDD           "Жёсткие диски:"
+#define STR_NEW           "&Создать..."
+#define STR_EXISTING      "&Выбрать..."
 #define STR_REMOVE        "&Убрать"
-#define STR_BUS            "Шина:"
-#define STR_CHANNEL        "Канал:"
+#define STR_BUS           "Шина:"
+#define STR_CHANNEL       "Канал:"
 #define STR_ID            "ID:"
-#define STR_SPEED        "Speed:"
+#define STR_SPEED         "Speed:"
 
-#define STR_SPECIFY        "&Указать..."
-#define STR_SECTORS        "Сектора:"
-#define STR_HEADS        "Головки:"
-#define STR_CYLS        "Цилиндры:"
-#define STR_SIZE_MB        "Размер (МБ):"
-#define STR_TYPE        "Тип:"
-#define STR_IMG_FORMAT        "Тип образа:"
-#define STR_BLOCK_SIZE        "Размер блока:"
+#define STR_SPECIFY       "&Указать..."
+#define STR_SECTORS       "Сектора:"
+#define STR_HEADS         "Головки:"
+#define STR_CYLS          "Цилиндры:"
+#define STR_SIZE_MB       "Размер (МБ):"
+#define STR_TYPE          "Тип:"
+#define STR_IMG_FORMAT    "Тип образа:"
+#define STR_BLOCK_SIZE    "Размер блока:"
 
-#define STR_FLOPPY_DRIVES    "Гибкие диски:"
-#define STR_TURBO        "Турбо тайминги"
-#define STR_CHECKBPB        "Проверять BPB"
-#define STR_CDROM_DRIVES    "Дисководы CD-ROM:"
-#define STR_CD_SPEED        "Скорость:"
-#define STR_EARLY        "Предыдущий дисковод"
+#define STR_FLOPPY_DRIVES "Гибкие диски:"
+#define STR_TURBO         "Турбо тайминги"
+#define STR_CHECKBPB      "Проверять BPB"
+#define STR_CDROM_DRIVES  "Дисководы CD-ROM:"
+#define STR_CD_SPEED      "Скорость:"
 
-#define STR_MO_DRIVES        "Магнитооптические дисководы:"
-#define STR_ZIP_DRIVES        "ZIP дисководы:"
-#define STR_250            "ZIP 250"
+#define STR_MO_DRIVES     "Магнитооптические дисководы:"
+#define STR_ZIP_DRIVES    "ZIP дисководы:"
+#define STR_250           "ZIP 250"
 
 #define STR_ISARTC        "ISA RTC:"
 #define STR_ISAMEM        "Карта расширения памяти (ISA)"
-#define STR_ISAMEM_1        "Карта 1:"
-#define STR_ISAMEM_2        "Карта 2:"
-#define STR_ISAMEM_3        "Карта 3:"
-#define STR_ISAMEM_4        "Карта 4:"
+#define STR_ISAMEM_1      "Карта 1:"
+#define STR_ISAMEM_2      "Карта 2:"
+#define STR_ISAMEM_3      "Карта 3:"
+#define STR_ISAMEM_4      "Карта 4:"
 #define STR_BUGGER        "Устройство ISABugger"
-#define STR_POSTCARD        "Карта POST"
+#define STR_POSTCARD      "Карта POST"
 
-#define FONT_SIZE        9
-#define FONT_NAME        "Segoe UI"
+#define FONT_SIZE         9
+#define FONT_NAME         "Segoe UI"
 
 #include "dialogs.rc"
 
@@ -392,9 +392,9 @@ END
 // String Table
 //
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
-    2048    "86Box"
+    2048        "86Box"
     IDS_2049    "Ошибка"
     IDS_2050    "Неустранимая ошибка"
     IDS_2051    " - ПАУЗА"
@@ -412,7 +412,7 @@ BEGIN
     IDS_2063    "Системная плата ""%hs"" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/machines. Переключение на доступную системную плату."
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2064    "Видеокарта ""%hs"" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/video. Переключение на доступную видеокарту."
     IDS_2065    "Компьютер"
@@ -432,7 +432,7 @@ BEGIN
     IDS_2079    "Нажмите F8+F12 или среднюю кнопку мыши чтобы освободить курсор"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2080    "Невозможно инициализировать FluidSynth"
     IDS_2081    "Шина"
@@ -537,14 +537,16 @@ BEGIN
     IDS_2159    "Холодная перезагрузка"
     IDS_2160    "Сигнал завершения ACPI"
     IDS_2161    "Настройки машины"
-    IDS_2162    "Предыдущий дисковод"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
     IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+    IDS_2167    "Failed to initialize network driver"
+    IDS_2168    "The network configuration will be switched to the null driver"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_4096    "Жёсткий диск (%s)"
     IDS_4097    "%01i:%01i"
@@ -643,7 +645,7 @@ BEGIN
 
     IDS_7168    "(Системный)"
 END
-#define IDS_LANG_ENUS    IDS_7168
+#define IDS_LANG_ENUS IDS_7168
 
 // Russian resources
 /////////////////////////////////////////////////////////////////////////////

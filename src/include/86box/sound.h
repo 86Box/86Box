@@ -24,13 +24,13 @@
 
 extern int sound_gain;
 
-#define FREQ_44100 44100
-#define FREQ_48000 48000
-#define FREQ_49716 49716
-#define FREQ_88200 88200
-#define FREQ_96000 96000
+#define FREQ_44100  44100
+#define FREQ_48000  48000
+#define FREQ_49716  49716
+#define FREQ_88200  88200
+#define FREQ_96000  96000
 
-#define SOUND_FREQ FREQ_48000
+#define SOUND_FREQ  FREQ_48000
 #define SOUNDBUFLEN (SOUND_FREQ / 50)
 
 #define CD_FREQ     FREQ_44100
@@ -42,9 +42,9 @@ enum {
 };
 
 extern int ppispeakon;
-extern int gated,
-    speakval,
-    speakon;
+extern int gated;
+extern int speakval;
+extern int speakon;
 
 extern int sound_pos_global;
 extern int sound_card_current[SOUND_CARD_MAX];
@@ -62,7 +62,7 @@ extern const device_t *sound_card_getdevice(int card);
 #endif
 extern int   sound_card_has_config(int card);
 extern char *sound_card_get_internal_name(int card);
-extern int   sound_card_get_from_internal_name(char *s);
+extern int   sound_card_get_from_internal_name(const char *s);
 extern void  sound_card_init(void);
 extern void  sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r);
 

@@ -81,7 +81,7 @@
 #define PAGE_CPI 10.0 /* standard 10 cpi */
 #define PAGE_LPI 6.0  /* standard 6 lpi */
 
-typedef struct {
+typedef struct psurface_t {
     int8_t dirty; /* has the page been printed on? */
     char   pad;
 
@@ -91,7 +91,7 @@ typedef struct {
     char *chars; /* character data */
 } psurface_t;
 
-typedef struct {
+typedef struct prnt_t {
     const char *name;
 
     void *lpt;
@@ -104,23 +104,23 @@ typedef struct {
     pc_timer_t timeout_timer;
 
     /* page data (TODO: make configurable) */
-    double page_width, /* all in inches */
-        page_height,
-        left_margin,
-        top_margin,
-        right_margin,
-        bot_margin;
+    double page_width; /* all in inches */
+    double page_height;
+    double left_margin;
+    double top_margin;
+    double right_margin;
+    double bot_margin;
 
     /* internal page data */
     psurface_t *page;
-    uint8_t     max_chars,
-        max_lines;
-    uint8_t curr_x, /* print head position (chars) */
-        curr_y;
+    uint8_t     max_chars;
+    uint8_t     max_lines;
+    uint8_t     curr_x; /* print head position (x, chars) */
+    uint8_t     curr_y; /* print head position (y, chars) */
 
     /* font data */
-    double cpi, /* defined chars per inch */
-        lpi;    /* defined lines per inch */
+    double cpi; /* defined chars per inch */
+    double lpi; /* defined lines per inch */
 
     /* handshake data */
     uint8_t data;
@@ -138,7 +138,6 @@ static void
 dump_page(prnt_t *dev)
 {
     char     path[1024];
-    uint16_t x, y;
     uint8_t  ch;
     FILE    *fp;
 
@@ -162,8 +161,8 @@ dump_page(prnt_t *dev)
     if (ftell(fp) != 0)
         fputc('\014', fp);
 
-    for (y = 0; y < dev->curr_y; y++) {
-        for (x = 0; x < dev->page->w; x++) {
+    for (uint16_t y = 0; y < dev->curr_y; y++) {
+        for (uint16_t x = 0; x < dev->page->w; x++) {
             ch = dev->page->chars[(y * dev->page->w) + x];
             if (ch == 0x00) {
                 /* End of line marker. */
@@ -329,7 +328,7 @@ process_char(prnt_t *dev, uint8_t ch)
     }
 
     /* Just a printable character. */
-    return (0);
+    return 0;
 }
 
 static void
@@ -416,7 +415,7 @@ read_status(void *priv)
     if (!dev->ack)
         ret |= 0x40;
 
-    return (ret);
+    return ret;
 }
 
 static void *
@@ -443,7 +442,7 @@ prnt_init(void *lpt)
     timer_add(&dev->pulse_timer, pulse_timer, dev, 0);
     timer_add(&dev->timeout_timer, timeout_timer, dev, 0);
 
-    return (dev);
+    return dev;
 }
 
 static void

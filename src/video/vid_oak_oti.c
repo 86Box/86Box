@@ -83,7 +83,8 @@ oti_out(uint16_t addr, uint8_t val, void *p)
     oti_t  *oti  = (oti_t *) p;
     svga_t *svga = &oti->svga;
     uint8_t old;
-    uint8_t idx, enable;
+    uint8_t idx;
+    uint8_t enable;
 
     if (!oti->chip_id && !(oti->enable_register & 1) && (addr != 0x3C3))
         return;
@@ -311,7 +312,8 @@ oti_in(uint16_t addr, void *p)
 {
     oti_t  *oti  = (oti_t *) p;
     svga_t *svga = &oti->svga;
-    uint8_t idx, temp;
+    uint8_t idx;
+    uint8_t temp;
 
     if (!oti->chip_id && !(oti->enable_register & 1) && (addr != 0x3C3))
         return 0xff;
@@ -453,7 +455,7 @@ oti_in(uint16_t addr, void *p)
     }
 
 //    if (addr == 0x3DF) pclog("OAK: Read reg value %d (0x%X), idx = 0x%X\n", temp, temp, idx);
-    return (temp);
+    return temp;
 }
 
 static void
@@ -569,7 +571,7 @@ oti_recalctimings(svga_t *svga)
     oti_t *oti     = (oti_t *) svga->p;
     int    clk_sel = ((svga->miscout >> 2) & 3) | ((oti->regs[0x0d] & 0x20) >> 3) | (oti->chip_id == OTI_087 ? (oti->regs[0x6] & 0x8) : 0);
 
-    svga->clock = (cpuclock * (double) (1ull << 32)) / (oti->chip_id == OTI_087 ? oti_getclock_087(clk_sel) : oti_getclock(clk_sel));
+    svga->clock = (cpuclock * (double) (1ULL << 32)) / (oti->chip_id == OTI_087 ? oti_getclock_087(clk_sel) : oti_getclock(clk_sel));
 
     if (oti->chip_id > 0) {
         if (oti->regs[0x14] & 0x08)
@@ -784,7 +786,7 @@ oti_init(const device_t *info)
         mem_mapping_add(&oti->linear_mapping, 0, 0, svga_readb_linear, svga_readw_linear, NULL, oti_write_linear, oti_writew_linear, NULL, NULL, MEM_MAPPING_EXTERNAL, oti);
     }
 
-    return (oti);
+    return oti;
 }
 
 static void

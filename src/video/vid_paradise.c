@@ -289,7 +289,7 @@ paradise_remap(paradise_t *paradise)
         paradise->write_bank[1] = paradise->write_bank[3] = (svga->gdcreg[9] << 12) + ((svga->gdcreg[6] & 0x08) ? 0 : 0x8000);
     }
 
-    if ((((svga->gdcreg[0x0b] & 0xc0) == 0xc0) && !svga->chain4 && (svga->crtc[0x14] & 0x40) && ((svga->gdcreg[6] >> 2) & 3) == 1))
+    if (((svga->gdcreg[0x0b] & 0xc0) == 0xc0) && !svga->chain4 && (svga->crtc[0x14] & 0x40) && ((svga->gdcreg[6] >> 2) & 3) == 1)
         paradise->check = 1;
 
     if (paradise->bank_mask == 0x7f) {
@@ -349,7 +349,8 @@ paradise_write(uint32_t addr, uint8_t val, void *p)
 {
     paradise_t *paradise = (paradise_t *) p;
     svga_t     *svga     = &paradise->svga;
-    uint32_t    prev_addr, prev_addr2;
+    uint32_t    prev_addr;
+    uint32_t    prev_addr2;
 
     addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
 
@@ -397,7 +398,8 @@ paradise_writew(uint32_t addr, uint16_t val, void *p)
 {
     paradise_t *paradise = (paradise_t *) p;
     svga_t     *svga     = &paradise->svga;
-    uint32_t    prev_addr, prev_addr2;
+    uint32_t    prev_addr;
+    uint32_t    prev_addr2;
 
     addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
 
@@ -446,7 +448,8 @@ paradise_read(uint32_t addr, void *p)
 {
     paradise_t *paradise = (paradise_t *) p;
     svga_t     *svga     = &paradise->svga;
-    uint32_t    prev_addr, prev_addr2;
+    uint32_t    prev_addr;
+    uint32_t    prev_addr2;
 
     addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
 
@@ -494,7 +497,8 @@ paradise_readw(uint32_t addr, void *p)
 {
     paradise_t *paradise = (paradise_t *) p;
     svga_t     *svga     = &paradise->svga;
-    uint32_t    prev_addr, prev_addr2;
+    uint32_t    prev_addr;
+    uint32_t    prev_addr2;
 
     addr = (addr & 0x7fff) + paradise->read_bank[(addr >> 15) & 3];
 

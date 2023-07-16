@@ -28,6 +28,7 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
@@ -49,9 +50,9 @@ opti291_log(const char *fmt, ...)
 #    define opti291_log(fmt, ...)
 #endif
 
-typedef struct
-{
-    uint8_t    index, regs[256];
+typedef struct opti291_t {
+    uint8_t    index;
+    uint8_t    regs[256];
     port_92_t *port_92;
 } opti291_t;
 
@@ -107,7 +108,13 @@ opti291_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x2c:
                     dev->regs[dev->index] = val;
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -129,7 +136,7 @@ opti291_close(void *priv)
 }
 
 static void *
-opti291_init(const device_t *info)
+opti291_init(UNUSED(const device_t *info))
 {
     opti291_t *dev = (opti291_t *) malloc(sizeof(opti291_t));
     memset(dev, 0, sizeof(opti291_t));

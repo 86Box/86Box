@@ -28,6 +28,7 @@
 #include <86box/device.h>
 #include <86box/mem.h>
 #include <86box/chipset.h>
+#include <86box/plat_unused.h>
 
 /* Shadow capabilities */
 #define DISABLED_SHADOW (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
@@ -56,12 +57,10 @@
 #define DEFINE_RC1_REMAP_SIZE ((dev->regs[0x24] & 0x02) ? 128 : 256)
 #define DEFINE_RC2_REMAP_SIZE ((dev->regs[0x26] & 0x02) ? 128 : 256)
 
-typedef struct
-{
+typedef struct intel_82335_t {
+    uint16_t regs[256];
 
-    uint16_t regs[256],
-
-        cfg_locked;
+    uint16_t cfg_locked;
 
 } intel_82335_t;
 
@@ -86,8 +85,11 @@ intel_82335_log(const char *fmt, ...)
 static void
 intel_82335_write(uint16_t addr, uint16_t val, void *priv)
 {
-    intel_82335_t *dev     = (intel_82335_t *) priv;
-    uint32_t       romsize = 0, base = 0, i = 0, rc1_remap = 0, rc2_remap = 0;
+    intel_82335_t *dev       = (intel_82335_t *) priv;
+    uint32_t       romsize   = 0;
+    uint32_t       base      = 0;
+    uint32_t       rc1_remap = 0;
+    uint32_t       rc2_remap = 0;
 
     dev->regs[addr] = val;
 
@@ -106,7 +108,9 @@ intel_82335_write(uint16_t addr, uint16_t val, void *priv)
                     shadowbios_write = !!(dev->regs[0x22] & 0x01);
 
                     /* Base System 512/640KB set */
-                    // mem_set_mem_state_both(0x80000, 0x20000, (dev->regs[0x22] & 0x08) ? ENABLE_TOP_128KB : DISABLE_TOP_128KB);
+#if 0
+                    mem_set_mem_state_both(0x80000, 0x20000, (dev->regs[0x22] & 0x08) ? ENABLE_TOP_128KB : DISABLE_TOP_128KB);
+#endif
 
                     /* Video RAM shadow*/
                     mem_set_mem_state_both(0xa0000, 0x20000, (dev->regs[0x22] & (0x04 << 8)) ? DETERMINE_VIDEO_RAM_WRITE_ACCESS : DISABLED_SHADOW);
@@ -128,14 +132,17 @@ intel_82335_write(uint16_t addr, uint16_t val, void *priv)
 
             case 0x2e: /* Extended Granularity (Enabled if Bit 0 in Register 2Ch is set) */
                 if (EXTENDED_GRANULARITY_ENABLED) {
-                    for (i = 0; i < 8; i++) {
+                    for (uint8_t i = 0; i < 8; i++) {
                         base             = 0xc0000 + (i << 15);
                         shadowbios       = (dev->regs[0x2e] & (1 << (i + 8))) && (base == romsize);
                         shadowbios_write = (dev->regs[0x2e] & (1 << i)) && (base == romsize);
                         mem_set_mem_state_both(base, 0x8000, GRANULARITY_RECALC);
                     }
-                    break;
                 }
+                break;
+
+            default:
+                break;
         }
     }
 
@@ -162,7 +169,7 @@ intel_82335_close(void *priv)
 }
 
 static void *
-intel_82335_init(const device_t *info)
+intel_82335_init(UNUSED(const device_t *info))
 {
     intel_82335_t *dev = (intel_82335_t *) malloc(sizeof(intel_82335_t));
     memset(dev, 0, sizeof(intel_82335_t));

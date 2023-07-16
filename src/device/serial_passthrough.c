@@ -29,6 +29,7 @@
 #include <86box/serial.h>
 #include <86box/serial_passthrough.h>
 #include <86box/plat_serial_passthrough.h>
+#include <86box/plat_unused.h>
 
 #define ENABLE_SERIAL_PASSTHROUGH_LOG 1
 #ifdef ENABLE_SERIAL_PASSTHROUGH_LOG
@@ -52,9 +53,7 @@ serial_passthrough_log(const char *fmt, ...)
 void
 serial_passthrough_init(void)
 {
-    int c;
-
-    for (c = 0; c < SERIAL_MAX; c++) {
+    for (uint8_t c = 0; c < SERIAL_MAX; c++) {
         if (serial_passthrough_enabled[c]) {
             /* Instance n for COM n */
             device_add_inst(&serial_passthrough_device, c + 1);
@@ -63,7 +62,7 @@ serial_passthrough_init(void)
 }
 
 static void
-serial_passthrough_write(serial_t *s, void *priv, uint8_t val)
+serial_passthrough_write(UNUSED(serial_t *s), void *priv, uint8_t val)
 {
     plat_serpt_write(priv, val);
 }
@@ -88,44 +87,58 @@ host_to_serial_cb(void *priv)
         }
     }
     if (plat_serpt_read(dev, &byte)) {
-        // printf("got byte %02X\n", byte);
+#if 0
+        printf("got byte %02X\n", byte);
+#endif
         serial_write_fifo(dev->serial, byte);
-        // serial_set_dsr(dev->serial, 1);
+#if 0
+        serial_set_dsr(dev->serial, 1);
+#endif
     }
 no_write_to_machine:
-    // serial_device_timeout(dev->serial);
+#if 0
+    serial_device_timeout(dev->serial);
+#endif
     timer_on_auto(&dev->host_to_serial_timer, (1000000.0 / dev->baudrate) * (double) dev->bits);
 }
 
 static void
-serial_passthrough_rcr_cb(struct serial_s *serial, void *priv)
+serial_passthrough_rcr_cb(UNUSED(struct serial_s *serial), void *priv)
 {
     serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
     timer_stop(&dev->host_to_serial_timer);
     /* FIXME: do something to dev->baudrate */
     timer_on_auto(&dev->host_to_serial_timer, (1000000.0 / dev->baudrate) * (double) dev->bits);
-    // serial_clear_fifo(dev->serial);
+#if 0
+    serial_clear_fifo(dev->serial);
+#endif
 }
 
 static void
 serial_passthrough_speed_changed(void *priv)
 {
     serial_passthrough_t *dev = (serial_passthrough_t *) priv;
+    if (!dev)
+        return;
 
     timer_stop(&dev->host_to_serial_timer);
     /* FIXME: do something to dev->baudrate */
     timer_on_auto(&dev->host_to_serial_timer, (1000000.0 / dev->baudrate) * (double) dev->bits);
-    // serial_clear_fifo(dev->serial);
+#if 0
+    serial_clear_fifo(dev->serial);
+#endif
 }
 
 static void
 serial_passthrough_dev_close(void *priv)
 {
     serial_passthrough_t *dev = (serial_passthrough_t *) priv;
+    if (!dev)
+        return;
 
     /* Detach passthrough device from COM port */
-    if (dev && dev->serial && dev->serial->sd)
+    if (dev->serial && dev->serial->sd)
         memset(dev->serial->sd, 0, sizeof(serial_device_t));
 
     plat_serpt_close(dev);
@@ -133,28 +146,28 @@ serial_passthrough_dev_close(void *priv)
 }
 
 void
-serial_passthrough_transmit_period(serial_t *serial, void *p, double transmit_period)
+serial_passthrough_transmit_period(UNUSED(serial_t *serial), void *priv, double transmit_period)
 {
-    serial_passthrough_t *dev = (serial_passthrough_t *) p;
+    serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
     if (dev->mode != SERPT_MODE_HOSTSER)
         return;
-    dev->baudrate = 1000000.0 / (transmit_period);
+    dev->baudrate = 1000000.0 / transmit_period;
 
-    serial_passthrough_speed_changed(p);
+    serial_passthrough_speed_changed(priv);
     plat_serpt_set_params(dev);
 }
 
 void
-serial_passthrough_lcr_callback(serial_t *serial, void *p, uint8_t lcr)
+serial_passthrough_lcr_callback(serial_t *serial, void *priv, uint8_t lcr)
 {
-    serial_passthrough_t *dev = (serial_passthrough_t *) p;
+    serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
     if (dev->mode != SERPT_MODE_HOSTSER)
         return;
     dev->bits      = serial->bits;
     dev->data_bits = ((lcr & 0x03) + 5);
-    serial_passthrough_speed_changed(p);
+    serial_passthrough_speed_changed(priv);
     plat_serpt_set_params(dev);
 }
 
@@ -175,6 +188,10 @@ serial_passthrough_dev_init(const device_t *info)
     /* Attach passthrough device to a COM port */
     dev->serial = serial_attach_ex(dev->port, serial_passthrough_rcr_cb,
                                    serial_passthrough_write, serial_passthrough_transmit_period, serial_passthrough_lcr_callback, dev);
+    if (!dev->serial) {
+        free(dev);
+        return NULL;
+    }
 
     strncpy(dev->host_serial_path, device_get_config_string("host_serial_path"), 1023);
 #ifdef _WIN32
@@ -352,12 +369,12 @@ static const device_config_t serial_passthrough_config[] = {
 // clang-format on
 
 const device_t serial_passthrough_device = {
-    .name  = "Serial Passthrough Device",
-    .flags = 0,
-    .local = 0,
-    .init  = serial_passthrough_dev_init,
-    .close = serial_passthrough_dev_close,
-    .reset = NULL,
+    .name          = "Serial Passthrough Device",
+    .flags         = 0,
+    .local         = 0,
+    .init          = serial_passthrough_dev_init,
+    .close         = serial_passthrough_dev_close,
+    .reset         = NULL,
     { .poll = NULL },
     .speed_changed = serial_passthrough_speed_changed,
     .force_redraw  = NULL,

@@ -13,122 +13,122 @@ LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
 // Menu
 //
 
-MainMenu MENU DISCARDABLE 
+MainMenu MENU DISCARDABLE
 BEGIN
     POPUP "操作(&A)"
     BEGIN
-        MENUITEM "键盘需要捕捉(&K)",    IDM_ACTION_KBD_REQ_CAPTURE
-        MENUITEM "将右 CTRL 键映射为左 ALT 键(&R)",    IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM "键盘需要捕捉(&K)", IDM_ACTION_KBD_REQ_CAPTURE
+        MENUITEM "将右 CTRL 键映射为左 ALT 键(&R)", IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
-        MENUITEM "硬重置(&H)...",                 IDM_ACTION_HRESET
-        MENUITEM "Ctrl+Alt+Del(&C)\tCtrl+F12",     IDM_ACTION_RESET_CAD
+        MENUITEM "硬重置(&H)...", IDM_ACTION_HRESET
+        MENUITEM "Ctrl+Alt+Del(&C)\tCtrl+F12", IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
-    MENUITEM "Ctrl+Alt+Esc(&E)",        IDM_ACTION_CTRL_ALT_ESC
+        MENUITEM "Ctrl+Alt+Esc(&E)", IDM_ACTION_CTRL_ALT_ESC
         MENUITEM SEPARATOR
-        MENUITEM "暂停(&P)",                      IDM_ACTION_PAUSE
+        MENUITEM "暂停(&P)", IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
-        MENUITEM "退出(&X)...",                       IDM_ACTION_EXIT
+        MENUITEM "退出(&X)...", IDM_ACTION_EXIT
     END
     POPUP "查看(&V)"
     BEGIN
-        MENUITEM "隐藏状态栏(&H)",        IDM_VID_HIDE_STATUS_BAR
-        MENUITEM "隐藏工具栏(&T)",        IDM_VID_HIDE_TOOLBAR
+        MENUITEM "隐藏状态栏(&H)", IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "隐藏工具栏(&T)", IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
-        MENUITEM "Show non-primary monitors(&S)",  IDM_VID_MONITORS
-        MENUITEM "窗口大小可调(&R)",          IDM_VID_RESIZE
-        MENUITEM "记住窗口大小和位置(&E)",  IDM_VID_REMEMBER
+        MENUITEM "Show non-primary monitors(&S)", IDM_VID_MONITORS
+        MENUITEM "窗口大小可调(&R)", IDM_VID_RESIZE
+        MENUITEM "记住窗口大小和位置(&E)", IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "渲染器(&N)"
         BEGIN
-            MENUITEM "SDL (软件)(&S)",         IDM_VID_SDL_SW
-            MENUITEM "SDL (硬件)(&H)",         IDM_VID_SDL_HW
-            MENUITEM "SDL (OpenGL)(&O)",           IDM_VID_SDL_OPENGL
-            MENUITEM "OpenGL (3.0 核心)(&G)",      IDM_VID_OPENGL_CORE
+            MENUITEM "SDL (软件)(&S)", IDM_VID_SDL_SW
+            MENUITEM "SDL (硬件)(&H)", IDM_VID_SDL_HW
+            MENUITEM "SDL (OpenGL)(&O)", IDM_VID_SDL_OPENGL
+            MENUITEM "OpenGL (3.0 核心)(&G)", IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
-            MENUITEM "VNC(&V)",                    IDM_VID_VNC
+            MENUITEM "VNC(&V)", IDM_VID_VNC
 #endif
         END
         MENUITEM SEPARATOR
-        MENUITEM "指定窗口大小...",          IDM_VID_SPECIFY_DIM
-        MENUITEM "强制 4:3 显示比例(&O)",    IDM_VID_FORCE43
+        MENUITEM "指定窗口大小...", IDM_VID_SPECIFY_DIM
+        MENUITEM "强制 4:3 显示比例(&O)", IDM_VID_FORCE43
         POPUP "窗口缩放系数(&W)"
         BEGIN
-            MENUITEM "0.5x(&0)",                   IDM_VID_SCALE_1X
-            MENUITEM "1x(&1)",                     IDM_VID_SCALE_2X
-            MENUITEM "1.5x(&5)",                   IDM_VID_SCALE_3X
-            MENUITEM "2x(&2)",                     IDM_VID_SCALE_4X
-            MENUITEM "&3x",                        IDM_VID_SCALE_5X
-            MENUITEM "&4x",                        IDM_VID_SCALE_6X
-            MENUITEM "&5x",                        IDM_VID_SCALE_7X
-            MENUITEM "&6x",                        IDM_VID_SCALE_8X
-            MENUITEM "&7x",                        IDM_VID_SCALE_9X
-            MENUITEM "&8x",                        IDM_VID_SCALE_10X
+            MENUITEM "0.5x(&0)", IDM_VID_SCALE_1X
+            MENUITEM "1x(&1)", IDM_VID_SCALE_2X
+            MENUITEM "1.5x(&5)", IDM_VID_SCALE_3X
+            MENUITEM "2x(&2)", IDM_VID_SCALE_4X
+            MENUITEM "&3x", IDM_VID_SCALE_5X
+            MENUITEM "&4x", IDM_VID_SCALE_6X
+            MENUITEM "&5x", IDM_VID_SCALE_7X
+            MENUITEM "&6x", IDM_VID_SCALE_8X
+            MENUITEM "&7x", IDM_VID_SCALE_9X
+            MENUITEM "&8x", IDM_VID_SCALE_10X
         END
         POPUP "过滤方式"
         BEGIN
-            MENUITEM "邻近(&N)",                 IDM_VID_FILTER_NEAREST
-            MENUITEM "线性(&L)",                  IDM_VID_FILTER_LINEAR
+            MENUITEM "邻近(&N)", IDM_VID_FILTER_NEAREST
+            MENUITEM "线性(&L)", IDM_VID_FILTER_LINEAR
         END
-        MENUITEM "HiDPI 缩放(&D)",              IDM_VID_HIDPI
+        MENUITEM "HiDPI 缩放(&D)", IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "全屏(&F)\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
+        MENUITEM "全屏(&F)\tCtrl+Alt+PgUp", IDM_VID_FULLSCREEN
         POPUP "全屏拉伸模式(&S)"
         BEGIN
-            MENUITEM "全屏拉伸(&F)",        IDM_VID_FS_FULL
-            MENUITEM "4:3(&4)",                        IDM_VID_FS_43
+            MENUITEM "全屏拉伸(&F)", IDM_VID_FS_FULL
+            MENUITEM "4:3(&4)", IDM_VID_FS_43
             MENUITEM "保持比例(&S)", IDM_VID_FS_KEEPRATIO
-            MENUITEM "整数比例(&I)",              IDM_VID_FS_INT
+            MENUITEM "整数比例(&I)", IDM_VID_FS_INT
         END
         POPUP "EGA/(S)VGA 设置(&G)"
         BEGIN
-            MENUITEM "VGA 显示器反色显示(&I)",   IDM_VID_INVERT
+            MENUITEM "VGA 显示器反色显示(&I)", IDM_VID_INVERT
             POPUP "VGA 屏幕类型(&T)"
             BEGIN
-                MENUITEM "RGB 彩色(&C)",          IDM_VID_GRAY_RGB
-                MENUITEM "RGB 灰度(&R)",      IDM_VID_GRAY_MONO
-                MENUITEM "琥珀色单色显示器(&A)",      IDM_VID_GRAY_AMBER
-                MENUITEM "绿色单色显示器(&G)",      IDM_VID_GRAY_GREEN
-                MENUITEM "白色单色显示器(&W)",      IDM_VID_GRAY_WHITE
+                MENUITEM "RGB 彩色(&C)", IDM_VID_GRAY_RGB
+                MENUITEM "RGB 灰度(&R)", IDM_VID_GRAY_MONO
+                MENUITEM "琥珀色单色显示器(&A)", IDM_VID_GRAY_AMBER
+                MENUITEM "绿色单色显示器(&G)", IDM_VID_GRAY_GREEN
+                MENUITEM "白色单色显示器(&W)", IDM_VID_GRAY_WHITE
             END
             POPUP "灰度转换类型(&C)"
             BEGIN
-                MENUITEM "BT601 (NTSC/PAL)(&6)",   IDM_VID_GRAYCT_601
-                MENUITEM "BT709 (HDTV)(&7)",       IDM_VID_GRAYCT_709
-                MENUITEM "平均(&A)",            IDM_VID_GRAYCT_AVE
+                MENUITEM "BT601 (NTSC/PAL)(&6)", IDM_VID_GRAYCT_601
+                MENUITEM "BT709 (HDTV)(&7)", IDM_VID_GRAYCT_709
+                MENUITEM "平均(&A)", IDM_VID_GRAYCT_AVE
             END
         END
         MENUITEM SEPARATOR
-        MENUITEM "CGA/PCjr/Tandy/EGA/(S)VGA 过扫描(&G)",     IDM_VID_OVERSCAN
+        MENUITEM "CGA/PCjr/Tandy/EGA/(S)VGA 过扫描(&G)", IDM_VID_OVERSCAN
         MENUITEM "更改单色显示对比度(&M)", IDM_VID_CGACON
     END
-    MENUITEM "介质(&M)",                IDM_MEDIA
+    MENUITEM "介质(&M)", IDM_MEDIA
     POPUP "工具(&T)"
     BEGIN
-        MENUITEM "设置(&S)...",                IDM_CONFIG
-        MENUITEM "更新状态栏图标(&U)",    IDM_UPDATE_ICONS
+        MENUITEM "设置(&S)...", IDM_CONFIG
+        MENUITEM "更新状态栏图标(&U)", IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "截图(&C)\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM "截图(&C)\tCtrl+F11", IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
-        MENUITEM "首选项(&P)...",    IDM_PREFERENCES
+        MENUITEM "首选项(&P)...", IDM_PREFERENCES
 #ifdef DISCORD
         MENUITEM "启用 Discord 集成(&D)", IDM_DISCORD
 #endif
         MENUITEM SEPARATOR
-        MENUITEM "音量增益(&G)...",              IDM_SND_GAIN
+        MENUITEM "音量增益(&G)...", IDM_SND_GAIN
 #ifdef MTR_ENABLED
         MENUITEM SEPARATOR
-        MENUITEM "开始追踪\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
-        MENUITEM "结束追踪\tCtrl+T",           IDM_ACTION_END_TRACE
+        MENUITEM "开始追踪\tCtrl+T", IDM_ACTION_BEGIN_TRACE
+        MENUITEM "结束追踪\tCtrl+T", IDM_ACTION_END_TRACE
 #endif
     END
     POPUP "帮助(&H)"
     BEGIN
-        MENUITEM "文档(&D)...",           IDM_DOCS
-        MENUITEM "关于 86Box(&A)...",             IDM_ABOUT
+        MENUITEM "文档(&D)...", IDM_DOCS
+        MENUITEM "关于 86Box(&A)...", IDM_ABOUT
     END
 END
 
-StatusBarMenu MENU DISCARDABLE 
+StatusBarMenu MENU DISCARDABLE
 BEGIN
     MENUITEM SEPARATOR
 END
@@ -137,17 +137,17 @@ CassetteSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新建镜像(&N)...",                IDM_CASSETTE_IMAGE_NEW
+        MENUITEM "新建镜像(&N)...", IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "打开已存在的镜像(&E)...",                IDM_CASSETTE_IMAGE_EXISTING
-        MENUITEM "打开已存在的镜像并写保护(&W)...",    IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM "打开已存在的镜像(&E)...", IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "打开已存在的镜像并写保护(&W)...", IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "录制(&R)",                    IDM_CASSETTE_RECORD
-        MENUITEM "播放(&P)",                    IDM_CASSETTE_PLAY
-        MENUITEM "倒带至起点(&R)",            IDM_CASSETTE_REWIND
-        MENUITEM "快进至终点(&F)",            IDM_CASSETTE_FAST_FORWARD
+        MENUITEM "录制(&R)", IDM_CASSETTE_RECORD
+        MENUITEM "播放(&P)", IDM_CASSETTE_PLAY
+        MENUITEM "倒带至起点(&R)", IDM_CASSETTE_REWIND
+        MENUITEM "快进至终点(&F)", IDM_CASSETTE_FAST_FORWARD
         MENUITEM SEPARATOR
-        MENUITEM "弹出(&J)",                    IDM_CASSETTE_EJECT
+        MENUITEM "弹出(&J)", IDM_CASSETTE_EJECT
     END
 END
 
@@ -155,9 +155,9 @@ CartridgeSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "镜像(&I)...",                    IDM_CARTRIDGE_IMAGE
+        MENUITEM "镜像(&I)...", IDM_CARTRIDGE_IMAGE
         MENUITEM SEPARATOR
-        MENUITEM "弹出(&J)",                    IDM_CARTRIDGE_EJECT
+        MENUITEM "弹出(&J)", IDM_CARTRIDGE_EJECT
     END
 END
 
@@ -165,14 +165,14 @@ FloppySubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新建镜像(&N)...",                IDM_FLOPPY_IMAGE_NEW
+        MENUITEM "新建镜像(&N)...", IDM_FLOPPY_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "打开已存在的镜像(&E)...",                IDM_FLOPPY_IMAGE_EXISTING
-        MENUITEM "打开已存在的镜像并写保护(&W)...",    IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM "打开已存在的镜像(&E)...", IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "打开已存在的镜像并写保护(&W)...", IDM_FLOPPY_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "导出为 86F 格式(&x)...",                IDM_FLOPPY_EXPORT_TO_86F
+        MENUITEM "导出为 86F 格式(&x)...", IDM_FLOPPY_EXPORT_TO_86F
         MENUITEM SEPARATOR
-        MENUITEM "弹出(&J)",                    IDM_FLOPPY_EJECT
+        MENUITEM "弹出(&J)", IDM_FLOPPY_EJECT
     END
 END
 
@@ -180,13 +180,13 @@ CdromSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "静音(&M)",                    IDM_CDROM_MUTE
+        MENUITEM "静音(&M)", IDM_CDROM_MUTE
         MENUITEM SEPARATOR
-        MENUITEM "空置驱动器(&M)",                    IDM_CDROM_EMPTY
-        MENUITEM "载入上一个镜像(&R)",            IDM_CDROM_RELOAD
+        MENUITEM "空置驱动器(&M)", IDM_CDROM_EMPTY
+        MENUITEM "载入上一个镜像(&R)", IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "镜像(&I)...",                    IDM_CDROM_IMAGE
-        MENUITEM "文件夹(&F)...",                    IDM_CDROM_DIR
+        MENUITEM "镜像(&I)...", IDM_CDROM_IMAGE
+        MENUITEM "文件夹(&F)...", IDM_CDROM_DIR
     END
 END
 
@@ -194,13 +194,13 @@ ZIPSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新建镜像(&N)...",                IDM_ZIP_IMAGE_NEW
+        MENUITEM "新建镜像(&N)...", IDM_ZIP_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "打开已存在的镜像(&E)...",                IDM_ZIP_IMAGE_EXISTING
-        MENUITEM "打开已存在的镜像并写保护(&W)...",    IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM "打开已存在的镜像(&E)...", IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "打开已存在的镜像并写保护(&W)...", IDM_ZIP_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "弹出(&J)",                    IDM_ZIP_EJECT
-        MENUITEM "载入上一个镜像(&R)",            IDM_ZIP_RELOAD
+        MENUITEM "弹出(&J)", IDM_ZIP_EJECT
+        MENUITEM "载入上一个镜像(&R)", IDM_ZIP_RELOAD
     END
 END
 
@@ -208,13 +208,13 @@ MOSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新建镜像(&N)...",                IDM_MO_IMAGE_NEW
+        MENUITEM "新建镜像(&N)...", IDM_MO_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "打开已存在的镜像(&E)...",                IDM_MO_IMAGE_EXISTING
-        MENUITEM "打开已存在的镜像并写保护(&W)...",    IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM "打开已存在的镜像(&E)...", IDM_MO_IMAGE_EXISTING
+        MENUITEM "打开已存在的镜像并写保护(&W)...", IDM_MO_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "弹出(&J)",                    IDM_MO_EJECT
-        MENUITEM "载入上一个镜像(&R)",            IDM_MO_RELOAD
+        MENUITEM "弹出(&J)", IDM_MO_EJECT
+        MENUITEM "载入上一个镜像(&R)", IDM_MO_RELOAD
     END
 END
 
@@ -240,147 +240,147 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES        "首选项"
-#define STR_SND_GAIN        "音量增益"
-#define STR_NEW_FLOPPY        "新建镜像"
+#define STR_PREFERENCES   "首选项"
+#define STR_SND_GAIN      "音量增益"
+#define STR_NEW_FLOPPY    "新建镜像"
 #define STR_CONFIG        "设置"
-#define STR_SPECIFY_DIM        "指定主窗口大小"
+#define STR_SPECIFY_DIM   "指定主窗口大小"
 
 #define STR_OK            "确定"
 #define STR_CANCEL        "取消"
 #define STR_GLOBAL        "将以上设置存储为全局默认值(&G)"
-#define STR_DEFAULT        "默认(&D)"
-#define STR_LANGUAGE        "语言:"
-#define STR_ICONSET        "图标集:"
+#define STR_DEFAULT       "默认(&D)"
+#define STR_LANGUAGE      "语言:"
+#define STR_ICONSET       "图标集:"
 
-#define STR_GAIN        "增益"
+#define STR_GAIN          "增益"
 
-#define STR_FILE_NAME        "文件名:"
-#define STR_DISK_SIZE        "磁盘大小:"
-#define STR_RPM_MODE        "转速 (RPM) 模式:"
-#define STR_PROGRESS        "进度:"
+#define STR_FILE_NAME     "文件名:"
+#define STR_DISK_SIZE     "磁盘大小:"
+#define STR_RPM_MODE      "转速 (RPM) 模式:"
+#define STR_PROGRESS      "进度:"
 
-#define STR_WIDTH        "宽度:"
+#define STR_WIDTH         "宽度:"
 #define STR_HEIGHT        "高度:"
-#define STR_LOCK_TO_SIZE    "锁定此大小"
+#define STR_LOCK_TO_SIZE  "锁定此大小"
 
-#define STR_MACHINE_TYPE    "机器类型:"
-#define STR_MACHINE        "机型:"
-#define STR_CONFIGURE        "配置"
-#define STR_CPU_TYPE        "CPU 类型:"
-#define STR_CPU_SPEED        "速度:"
-#define STR_FPU            "浮点处理器 (FPU):"
-#define STR_WAIT_STATES        "等待状态 (WS):"
+#define STR_MACHINE_TYPE  "机器类型:"
+#define STR_MACHINE       "机型:"
+#define STR_CONFIGURE     "配置"
+#define STR_CPU_TYPE      "CPU 类型:"
+#define STR_CPU_SPEED     "速度:"
+#define STR_FPU           "浮点处理器 (FPU):"
+#define STR_WAIT_STATES   "等待状态 (WS):"
 #define STR_MB            "MB"
 #define STR_MEMORY        "内存:"
-#define STR_TIME_SYNC        "时间同步"
-#define STR_DISABLED        "禁用"
-#define STR_ENABLED_LOCAL    "启用 (本地时间)"
-#define STR_ENABLED_UTC        "启用 (UTC)"
-#define STR_DYNAREC        "动态重编译器"
+#define STR_TIME_SYNC     "时间同步"
+#define STR_DISABLED      "禁用"
+#define STR_ENABLED_LOCAL "启用 (本地时间)"
+#define STR_ENABLED_UTC   "启用 (UTC)"
+#define STR_DYNAREC       "动态重编译器"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
-#define STR_VIDEO        "显卡:"
-#define STR_VIDEO_2        "显卡 2:"
+#define STR_VIDEO         "显卡:"
+#define STR_VIDEO_2       "显卡 2:"
 #define STR_VOODOO        "Voodoo Graphics"
-#define STR_IBM8514        "IBM 8514/a Graphics"
-#define STR_XGA            "XGA Graphics"
+#define STR_IBM8514       "IBM 8514/a Graphics"
+#define STR_XGA           "XGA Graphics"
 
-#define STR_MOUSE        "鼠标:"
-#define STR_JOYSTICK        "操纵杆:"
-#define STR_JOY1        "操纵杆 1..."
-#define STR_JOY2        "操纵杆 2..."
-#define STR_JOY3        "操纵杆 3..."
-#define STR_JOY4        "操纵杆 4..."
+#define STR_MOUSE         "鼠标:"
+#define STR_JOYSTICK      "操纵杆:"
+#define STR_JOY1          "操纵杆 1..."
+#define STR_JOY2          "操纵杆 2..."
+#define STR_JOY3          "操纵杆 3..."
+#define STR_JOY4          "操纵杆 4..."
 
 #define STR_SOUND1        "声卡 1:"
 #define STR_SOUND2        "声卡 2:"
 #define STR_SOUND3        "声卡 3:"
 #define STR_SOUND4        "声卡 4:"
-#define STR_MIDI_OUT        "MIDI 输出设备:"
-#define STR_MIDI_IN        "MIDI 输入设备:"
+#define STR_MIDI_OUT      "MIDI 输出设备:"
+#define STR_MIDI_IN       "MIDI 输入设备:"
 #define STR_MPU401        "独立 MPU-401"
-#define STR_FLOAT        "使用单精度浮点 (FLOAT32)"
-#define STR_FM_DRIVER        "调频合成器驱动器"
-#define STR_FM_DRV_NUKED    "Nuked (更准确)"
-#define STR_FM_DRV_YMFM        "YMFM (更快)"
+#define STR_FLOAT         "使用单精度浮点 (FLOAT32)"
+#define STR_FM_DRIVER     "调频合成器驱动器"
+#define STR_FM_DRV_NUKED  "Nuked (更准确)"
+#define STR_FM_DRV_YMFM   "YMFM (更快)"
 
-#define STR_NET_TYPE    "网络类型:"
-#define STR_PCAP        "PCap 设备:"
-#define STR_NET            "网络适配器:"
-#define STR_NET1        "Network card 1:"
-#define STR_NET2        "Network card 2:"
-#define STR_NET3        "Network card 3:"
-#define STR_NET4        "Network card 4:"
+#define STR_NET_TYPE      "网络类型:"
+#define STR_PCAP          "PCap 设备:"
+#define STR_NET           "网络适配器:"
+#define STR_NET1          "Network card 1:"
+#define STR_NET2          "Network card 2:"
+#define STR_NET3          "Network card 3:"
+#define STR_NET4          "Network card 4:"
 
-#define STR_COM1        "COM1 设备:"
-#define STR_COM2        "COM2 设备:"
-#define STR_COM3        "COM3 设备:"
-#define STR_COM4        "COM4 设备:"
-#define STR_LPT1        "LPT1 设备:"
-#define STR_LPT2        "LPT2 设备:"
-#define STR_LPT3        "LPT3 设备:"
-#define STR_LPT4        "LPT4 设备:"
-#define STR_SERIAL1        "串口 1"
-#define STR_SERIAL2        "串口 2"
-#define STR_SERIAL3        "串口 3"
-#define STR_SERIAL4        "串口 4"
-#define STR_PARALLEL1        "并口 1"
-#define STR_PARALLEL2        "并口 2"
-#define STR_PARALLEL3        "并口 3"
-#define STR_PARALLEL4        "并口 4"
-#define STR_SERIAL_PASS1    "Serial port passthrough 1"
-#define STR_SERIAL_PASS2    "Serial port passthrough 2"
-#define STR_SERIAL_PASS3    "Serial port passthrough 3"
-#define STR_SERIAL_PASS4    "Serial port passthrough 4"
+#define STR_COM1          "COM1 设备:"
+#define STR_COM2          "COM2 设备:"
+#define STR_COM3          "COM3 设备:"
+#define STR_COM4          "COM4 设备:"
+#define STR_LPT1          "LPT1 设备:"
+#define STR_LPT2          "LPT2 设备:"
+#define STR_LPT3          "LPT3 设备:"
+#define STR_LPT4          "LPT4 设备:"
+#define STR_SERIAL1       "串口 1"
+#define STR_SERIAL2       "串口 2"
+#define STR_SERIAL3       "串口 3"
+#define STR_SERIAL4       "串口 4"
+#define STR_PARALLEL1     "并口 1"
+#define STR_PARALLEL2     "并口 2"
+#define STR_PARALLEL3     "并口 3"
+#define STR_PARALLEL4     "并口 4"
+#define STR_SERIAL_PASS1  "Serial port passthrough 1"
+#define STR_SERIAL_PASS2  "Serial port passthrough 2"
+#define STR_SERIAL_PASS3  "Serial port passthrough 3"
+#define STR_SERIAL_PASS4  "Serial port passthrough 4"
 
-#define STR_HDC            "硬盘控制器:"
-#define STR_FDC            "软盘控制器:"
-#define STR_IDE_TER        "第三 IDE 控制器"
-#define STR_IDE_QUA        "第四 IDE 控制器"
-#define STR_SCSI        "SCSI"
+#define STR_HDC           "硬盘控制器:"
+#define STR_FDC           "软盘控制器:"
+#define STR_IDE_TER       "第三 IDE 控制器"
+#define STR_IDE_QUA       "第四 IDE 控制器"
+#define STR_SCSI          "SCSI"
 #define STR_SCSI_1        "控制器 1:"
 #define STR_SCSI_2        "控制器 2:"
 #define STR_SCSI_3        "控制器 3:"
 #define STR_SCSI_4        "控制器 4:"
-#define STR_CASSETTE        "磁带"
+#define STR_CASSETTE      "磁带"
 
-#define STR_HDD            "硬盘:"
-#define STR_NEW            "新建(&N)..."
-#define STR_EXISTING        "已有镜像(&E)..."
+#define STR_HDD           "硬盘:"
+#define STR_NEW           "新建(&N)..."
+#define STR_EXISTING      "已有镜像(&E)..."
 #define STR_REMOVE        "移除(&R)"
-#define STR_BUS            "总线:"
-#define STR_CHANNEL        "通道:"
+#define STR_BUS           "总线:"
+#define STR_CHANNEL       "通道:"
 #define STR_ID            "ID:"
-#define STR_SPEED        "Speed:"
+#define STR_SPEED         "Speed:"
 
-#define STR_SPECIFY        "指定(&S)..."
-#define STR_SECTORS        "扇区(S):"
-#define STR_HEADS        "磁头(H):"
-#define STR_CYLS        "柱面(C):"
-#define STR_SIZE_MB        "大小 (MB):"
-#define STR_TYPE        "类型:"
-#define STR_IMG_FORMAT        "镜像格式:"
-#define STR_BLOCK_SIZE        "块大小:"
+#define STR_SPECIFY       "指定(&S)..."
+#define STR_SECTORS       "扇区(S):"
+#define STR_HEADS         "磁头(H):"
+#define STR_CYLS          "柱面(C):"
+#define STR_SIZE_MB       "大小 (MB):"
+#define STR_TYPE          "类型:"
+#define STR_IMG_FORMAT    "镜像格式:"
+#define STR_BLOCK_SIZE    "块大小:"
 
-#define STR_FLOPPY_DRIVES    "软盘驱动器:"
-#define STR_TURBO        "加速时序"
-#define STR_CHECKBPB        "检查 BPB"
-#define STR_CDROM_DRIVES    "光盘驱动器:"
-#define STR_CD_SPEED        "速度:"
-#define STR_EARLY        "早先的驱动器"
+#define STR_FLOPPY_DRIVES "软盘驱动器:"
+#define STR_TURBO         "加速时序"
+#define STR_CHECKBPB      "检查 BPB"
+#define STR_CDROM_DRIVES  "光盘驱动器:"
+#define STR_CD_SPEED      "速度:"
 
-#define STR_MO_DRIVES        "磁光盘驱动器:"
-#define STR_ZIP_DRIVES        "ZIP 驱动器:"
-#define STR_250            "ZIP 250"
+#define STR_MO_DRIVES     "磁光盘驱动器:"
+#define STR_ZIP_DRIVES    "ZIP 驱动器:"
+#define STR_250           "ZIP 250"
 
 #define STR_ISARTC        "ISA 实时时钟:"
 #define STR_ISAMEM        "ISA 内存扩充"
-#define STR_ISAMEM_1        "扩展卡 1:"
-#define STR_ISAMEM_2        "扩展卡 2:"
-#define STR_ISAMEM_3        "扩展卡 3:"
-#define STR_ISAMEM_4        "扩展卡 4:"
+#define STR_ISAMEM_1      "扩展卡 1:"
+#define STR_ISAMEM_2      "扩展卡 2:"
+#define STR_ISAMEM_3      "扩展卡 3:"
+#define STR_ISAMEM_4      "扩展卡 4:"
 #define STR_BUGGER        "ISABugger 设备"
-#define STR_POSTCARD        "自检 (POST) 卡"
+#define STR_POSTCARD      "自检 (POST) 卡"
 
 #define FONT_SIZE        9
 #define FONT_NAME        "Microsoft YaHei"
@@ -392,9 +392,9 @@ END
 // String Table
 //
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
-    2048    "86Box"
+    2048        "86Box"
     IDS_2049    "错误"
     IDS_2050    "致命错误"
     IDS_2051    " - 已暂停"
@@ -412,7 +412,7 @@ BEGIN
     IDS_2063    "由于 roms/machines 文件夹中缺少合适的 ROM，机型 ""%hs"" 不可用。将切换到其他可用机型。"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2064    "由于 roms/video 文件夹中缺少合适的 ROM，显卡 ""%hs"" 不可用。将切换到其他可用显卡。"
     IDS_2065    "机型"
@@ -432,7 +432,7 @@ BEGIN
     IDS_2079    "按下 F8+F12 或鼠标中键释放鼠标"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2080    "无法初始化 FluidSynth"
     IDS_2081    "总线"
@@ -537,14 +537,16 @@ BEGIN
     IDS_2159    "硬重置"
     IDS_2160    "ACPI 关机"
     IDS_2161    "设置"
-    IDS_2162    "早先的驱动器"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
     IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+    IDS_2167    "Failed to initialize network driver"
+    IDS_2168    "The network configuration will be switched to the null driver"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_4096    "硬盘 (%s)"
     IDS_4097    "%01i:%01i"
@@ -643,7 +645,7 @@ BEGIN
 
     IDS_7168    "(系统默认)"
 END
-#define IDS_LANG_ENUS    IDS_7168
+#define IDS_LANG_ENUS IDS_7168
 
 // Simplified Chinese resources
 /////////////////////////////////////////////////////////////////////////////

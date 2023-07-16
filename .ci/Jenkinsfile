@@ -78,8 +78,7 @@ def dynarecSlugs = [
 ]
 
 def presets = [
-	'Regular',
-	'Debug'
+	'Regular'
 ]
 
 def presetSlugs = [
@@ -284,13 +283,19 @@ pipeline {
 															def archName = archNames[archSlug]
 															if (os == 'macOS')
 																archName = archNamesMac[archSlug]
-															dir("${dynarecNames[dynarec]}/$os - $archName") {
-																ret = runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} $buildFlags")
+															dir(dynarecNames[dynarec]) {
+																dir("$os - $archName") {
+																	ret = runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} $buildFlags")
+																	if (presets.size() == 1)
+																		writeFile file: '.forcedir', text: ''
+																}
+																if ((osArchs.size() == 1) && (thisOsArchs.size() == 1))
+																	writeFile file: '.forcedir', text: ''
 															}
 
 															if (ret == 0) {
 																/* Archive resulting artifacts. */
-																archiveArtifacts artifacts: "**/**/$packageName*"
+																archiveArtifacts artifacts: "**/$packageName*, **/.forcedir", defaultExcludes: false
 															} else {
 																/* Fail this stage. */
 																failStage()

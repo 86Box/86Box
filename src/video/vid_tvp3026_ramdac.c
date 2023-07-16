@@ -452,11 +452,20 @@ tvp3026_recalctimings(void *p, svga_t *svga)
 void
 tvp3026_hwcursor_draw(svga_t *svga, int displine)
 {
-    int               x, xx, comb, b0, b1;
+    int               comb;
+    int               b0;
+    int               b1;
     uint16_t          dat[2];
     int               offset = svga->dac_hwcursor_latch.x + svga->dac_hwcursor_latch.xoff;
-    int               pitch, bppl, mode, x_pos, y_pos;
-    uint32_t          clr1, clr2, clr3, *p;
+    int               pitch;
+    int               bppl;
+    int               mode;
+    int               x_pos;
+    int               y_pos;
+    uint32_t          clr1;
+    uint32_t          clr2;
+    uint32_t          clr3;
+    uint32_t         *p;
     uint8_t          *cd;
     tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) svga->ramdac;
 
@@ -478,18 +487,18 @@ tvp3026_hwcursor_draw(svga_t *svga, int displine)
 
     cd = (uint8_t *) ramdac->cursor64_data;
 
-    for (x = 0; x < svga->dac_hwcursor_latch.cur_xsize; x += 16) {
+    for (int x = 0; x < svga->dac_hwcursor_latch.cur_xsize; x += 16) {
         dat[0] = (cd[svga->dac_hwcursor_latch.addr] << 8) | cd[svga->dac_hwcursor_latch.addr + 1];
         dat[1] = (cd[svga->dac_hwcursor_latch.addr + bppl] << 8) | cd[svga->dac_hwcursor_latch.addr + bppl + 1];
 
-        for (xx = 0; xx < 16; xx++) {
+        for (uint8_t xx = 0; xx < 16; xx++) {
             b0   = (dat[0] >> (15 - xx)) & 1;
             b1   = (dat[1] >> (15 - xx)) & 1;
             comb = (b0 | (b1 << 1));
 
             y_pos = displine;
             x_pos = offset + svga->x_add;
-            p     = buffer32->line[y_pos];
+            p     = svga->monitor->target_buffer->line[y_pos];
 
             if (offset >= svga->dac_hwcursor_latch.x) {
                 switch (mode) {
@@ -544,8 +553,11 @@ float
 tvp3026_getclock(int clock, void *p)
 {
     tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) p;
-    int               n, m, pl;
-    float             f_vco, f_pll;
+    int               n;
+    int               m;
+    int               pl;
+    float             f_vco;
+    float             f_pll;
 
     if (clock == 0)
         return 25175000.0;

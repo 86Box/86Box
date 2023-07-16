@@ -28,6 +28,8 @@ It is also recommended to use a manager application with 86Box for easier handli
 * [86Box Manager](https://github.com/86Box/86BoxManager) by [Overdoze](https://github.com/daviunic) (Windows only)
 * [86Box Manager Lite](https://github.com/insanemal/86box_manager_py) by [Insanemal](https://github.com/insanemal)
 * [WinBox for 86Box](https://github.com/86Box/WinBox-for-86Box) by Laci bá' (Windows only)
+* [Linbox-qt5](https://github.com/Dungeonseeker/linbox-qt5) by Dungeonseeker (Linux focused, should work on Windows though untested)
+* [MacBox for 86Box](https://github.com/Moonif/MacBox) by [Moonif](https://github.com/Moonif) (MacOS only)
 
 It is also possible to use 86Box on its own with the `--vmpath`/`-P` command line option.
 
@@ -43,21 +45,15 @@ We operate an IRC channel and a Discord server for discussing 86Box, its develop
 
 [![Visit our Discord server](https://discordapp.com/api/guilds/262614059009048590/embed.png)](https://discord.gg/QXK9XTv)
 
+Contributions
+---------
+We welcome all contributions to the project, as long as the [contribution guidelines](CONTRIBUTING.md) are followed.
+
 Licensing
 ---------
 86Box is released under the [GNU General Public License, version 2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html) or later. For more information, see the `COPYING` file in the root of the repository.
 
 The emulator can also optionally make use of [munt](https://github.com/munt/munt), [FluidSynth](https://www.fluidsynth.org/), [Ghostscript](https://www.ghostscript.com/) and [Discord Game SDK](https://discord.com/developers/docs/game-sdk/sdk-starter-guide), which are distributed under their respective licenses.
-
-Contribution requirements
--------------------------
- Formal codification of the project's emulated hardware contribution requirements, which all have to be met to accept an addition:
-* A ROM must be available;
-* Documentation must be available or it must be feasible to reverse engineer with a reasonable amount of time and effort;
-* It must be feasible to implement with a reasonable amount of time and effort;
-* It has to fall inside the project's scope.
-
-Where unsure or for more details about the project's emulated hardware contribution requirements, contact a Contributor or higher.
 
 Donations
 ---------

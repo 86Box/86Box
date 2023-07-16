@@ -32,12 +32,12 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
-typedef struct
-{
-    uint8_t idx, forced_green,
-        is_pci,
-        regs[256],
-        scratch[2];
+typedef struct opti895_t {
+    uint8_t idx;
+    uint8_t forced_green;
+    uint8_t is_pci;
+    uint8_t regs[256];
+    uint8_t scratch[2];
 
     smram_t *smram;
 } opti895_t;
@@ -64,7 +64,7 @@ static void
 opti895_recalc(opti895_t *dev)
 {
     uint32_t base;
-    uint32_t i, shflags = 0;
+    uint32_t shflags = 0;
 
     shadowbios       = 0;
     shadowbios_write = 0;
@@ -84,7 +84,7 @@ opti895_recalc(opti895_t *dev)
     else
         mem_set_mem_state_both(0xf0000, 0x10000, shflags);
 
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         base = 0xd0000 + (i << 14);
 
         if (dev->regs[0x23] & (1 << i)) {
@@ -108,7 +108,7 @@ opti895_recalc(opti895_t *dev)
             mem_set_mem_state_both(base, 0x4000, shflags);
     }
 
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         base = 0xc0000 + (i << 14);
 
         if (dev->regs[0x26] & (1 << i)) {
@@ -184,6 +184,9 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
                             break;
                         }
                         break;
+
+                    default:
+                        break;
                 }
             }
             break;
@@ -191,6 +194,9 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
         case 0xe1:
         case 0xe2:
             dev->scratch[addr - 0xe1] = val;
+            break;
+
+        default:
             break;
     }
 }
@@ -216,6 +222,9 @@ opti895_read(uint16_t addr, void *priv)
         case 0xe1:
         case 0xe2:
             ret = dev->scratch[addr - 0xe1];
+            break;
+
+        default:
             break;
     }
 

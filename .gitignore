@@ -34,6 +34,8 @@ Makefile
 *.tar.*
 *.AppImage
 /appimage-builder-cache
+/appimage-build
+/AppImageBuilder-generated.yml
 
 # Visual Studio Code
 /.vs
@@ -54,3 +56,6 @@ CMakeLists.txt.user
 /debian/debhelper-build-stamp
 /debian/files
 /obj-*-linux-gnu
+
+# MacOS Finder stuff
+.DS_Store

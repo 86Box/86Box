@@ -251,7 +251,7 @@ asic_read(nic_t *dev, uint32_t off, unsigned int len)
             break;
     }
 
-    return (retval);
+    return retval;
 }
 
 static void
@@ -316,7 +316,7 @@ page3_read(nic_t *dev, uint32_t off, unsigned int len)
                 return (dev->_9346cr);
 
             case 0x3:          /* CONFIG0 */
-                return (0x00); /* Cable not BNC */
+                return 0x00; /* Cable not BNC */
 
             case 0x5: /* CONFIG2 */
                 return (dev->config2 & 0xe0);
@@ -329,12 +329,12 @@ page3_read(nic_t *dev, uint32_t off, unsigned int len)
 
             case 0xe: /* 8029ASID0 */
                 if (dev->board == NE2K_RTL8029AS)
-                    return (0x29);
+                    return 0x29;
                 break;
 
             case 0xf: /* 8029ASID1 */
                 if (dev->board == NE2K_RTL8029AS)
-                    return (0x80);
+                    return 0x80;
                 break;
 
             default:
@@ -342,7 +342,7 @@ page3_read(nic_t *dev, uint32_t off, unsigned int len)
         }
 
     nelog(3, "%s: Page3 read register 0x%02x attempted\n", dev->name, off);
-    return (0x00);
+    return 0x00;
 }
 
 static void
@@ -409,7 +409,7 @@ nic_read(nic_t *dev, uint32_t addr, unsigned len)
                 break;
         }
 
-    return (retval);
+    return retval;
 }
 
 static uint8_t
@@ -711,7 +711,7 @@ nic_pci_read(int func, int addr, void *priv)
 
     nelog(2, "%s: PCI_Read(%d, %04x) = %02x\n", dev->name, func, addr, ret);
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -1095,7 +1095,7 @@ nic_init(const device_t *info)
     nelog(1, "%s: %s attached IO=0x%X IRQ=%d\n", dev->name,
           dev->is_pci ? "PCI" : "ISA", dev->base_address, dev->base_irq);
 
-    return (dev);
+    return dev;
 }
 
 static void

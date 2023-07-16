@@ -31,7 +31,8 @@
 
 static uint16_t postcard_port;
 static uint8_t  postcard_written;
-static uint8_t  postcard_code, postcard_prev_code;
+static uint8_t  postcard_code;
+static uint8_t  postcard_prev_code;
 #define UISTR_LEN 13
 static char postcard_str[UISTR_LEN]; /* UI output string */
 
@@ -85,7 +86,7 @@ postcard_reset(void)
 }
 
 static void
-postcard_write(uint16_t port, uint8_t val, void *priv)
+postcard_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
 {
     if (postcard_written && (val == postcard_code))
         return;
@@ -99,7 +100,7 @@ postcard_write(uint16_t port, uint8_t val, void *priv)
 }
 
 static void *
-postcard_init(const device_t *info)
+postcard_init(UNUSED(const device_t *info))
 {
     postcard_reset();
 

@@ -580,7 +580,7 @@ loadcs(uint16_t seg)
             do_seg_load(&cpu_state.seg_cs, segdat);
             use32 = (segdat[3] & 0x40) ? 0x300 : 0;
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_cr3();
+                flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
 #endif
@@ -609,7 +609,7 @@ loadcs(uint16_t seg)
         cpu_state.seg_cs.access     = (cpu_state.eflags & VM_FLAG) ? 0xe2 : 0x82;
         cpu_state.seg_cs.ar_high    = 0x10;
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_cr3();
+            flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
 #endif
@@ -673,7 +673,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
 
             do_seg_load(&cpu_state.seg_cs, segdat);
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_cr3();
+                flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
 #endif
@@ -751,7 +751,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                             CS = seg2;
                             do_seg_load(&cpu_state.seg_cs, segdat);
                             if ((CPL == 3) && (oldcpl != 3))
-                                flushmmucache_cr3();
+                                flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
                             oldcpl = CPL;
 #endif
@@ -794,7 +794,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
         cpu_state.seg_cs.access     = (cpu_state.eflags & VM_FLAG) ? 0xe2 : 0x82;
         cpu_state.seg_cs.ar_high    = 0x10;
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_cr3();
+            flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
 #endif
@@ -957,7 +957,7 @@ loadcscall(uint16_t seg)
             CS = seg;
             do_seg_load(&cpu_state.seg_cs, segdat);
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_cr3();
+                flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
 #endif
@@ -1100,7 +1100,7 @@ loadcscall(uint16_t seg)
                                 CS = seg2;
                                 do_seg_load(&cpu_state.seg_cs, segdat);
                                 if ((CPL == 3) && (oldcpl != 3))
-                                    flushmmucache_cr3();
+                                    flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
                                 oldcpl = CPL;
 #endif
@@ -1182,7 +1182,7 @@ loadcscall(uint16_t seg)
                             CS = seg2;
                             do_seg_load(&cpu_state.seg_cs, segdat);
                             if ((CPL == 3) && (oldcpl != 3))
-                                flushmmucache_cr3();
+                                flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
                             oldcpl = CPL;
 #endif
@@ -1227,7 +1227,7 @@ loadcscall(uint16_t seg)
         cpu_state.seg_cs.access     = (cpu_state.eflags & VM_FLAG) ? 0xe2 : 0x82;
         cpu_state.seg_cs.ar_high    = 0x10;
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_cr3();
+            flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
 #endif
@@ -1332,7 +1332,7 @@ pmoderetf(int is32, uint16_t off)
         do_seg_load(&cpu_state.seg_cs, segdat);
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~(3 << 5)) | ((CS & 3) << 5);
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_cr3();
+            flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
 #endif
@@ -1445,7 +1445,7 @@ pmoderetf(int is32, uint16_t off)
         CS           = seg;
         do_seg_load(&cpu_state.seg_cs, segdat);
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_cr3();
+            flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
 #endif
@@ -1697,7 +1697,7 @@ pmodeint(int num, int soft)
             CS                      = (seg & 0xfffc) | new_cpl;
             cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (new_cpl << 5);
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_cr3();
+                flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
 #endif
@@ -1863,7 +1863,7 @@ pmodeiret(int is32)
             cpu_state.seg_cs.access     = 0xe2;
             cpu_state.seg_cs.ar_high    = 0x10;
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_cr3();
+                flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
 #endif
@@ -1948,7 +1948,7 @@ pmodeiret(int is32)
         do_seg_load(&cpu_state.seg_cs, segdat);
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | ((CS & 0x0003) << 5);
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_cr3();
+            flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
 #endif
@@ -2037,7 +2037,7 @@ pmodeiret(int is32)
         do_seg_load(&cpu_state.seg_cs, segdat);
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | ((CS & 3) << 5);
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_cr3();
+            flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
 #endif
@@ -2233,7 +2233,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
             CS = new_cs;
             do_seg_load(&cpu_state.seg_cs, segdat2);
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_cr3();
+                flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
             oldcpl = CPL;
 #endif
@@ -2401,7 +2401,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
         CS = new_cs;
         do_seg_load(&cpu_state.seg_cs, segdat2);
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_cr3();
+            flushmmucache_nopc();
 #ifdef USE_NEW_DYNAREC
         oldcpl = CPL;
 #endif

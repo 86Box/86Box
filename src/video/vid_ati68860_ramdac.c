@@ -201,12 +201,11 @@ void
 ati68860_set_ramdac_type(void *p, int type)
 {
     ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) p;
-    int                c;
 
     if (ramdac->ramdac_type != type) {
         ramdac->ramdac_type = type;
 
-        for (c = 0; c < 2; c++) {
+        for (uint8_t c = 0; c < 2; c++) {
             if (ramdac->ramdac_type == RAMDAC_8BIT)
                 ramdac->pallook[c] = makecol32(ramdac->pal[c].r, ramdac->pal[c].g,
                                                ramdac->pal[c].b);
@@ -248,13 +247,13 @@ void
 ati68860_hwcursor_draw(svga_t *svga, int displine)
 {
     ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) svga->ramdac;
-    int                x, offset;
+    int                offset;
     uint8_t            dat;
     uint32_t           col0 = ramdac->pallook[0];
     uint32_t           col1 = ramdac->pallook[1];
 
     offset = svga->dac_hwcursor_latch.xoff;
-    for (x = 0; x < 64 - svga->dac_hwcursor_latch.xoff; x += 4) {
+    for (uint32_t x = 0; x < 64 - svga->dac_hwcursor_latch.xoff; x += 4) {
         dat = svga->vram[svga->dac_hwcursor_latch.addr + (offset >> 2)];
         if (!(dat & 2))
             buffer32->line[displine][svga->dac_hwcursor_latch.x + x + svga->x_add] = (dat & 1) ? col1 : col0;

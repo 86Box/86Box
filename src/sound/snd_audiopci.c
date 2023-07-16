@@ -290,9 +290,7 @@ es1371_write_fifo(es1371_t *dev, uint8_t val)
 static void
 es1371_reset_fifo(es1371_t *dev)
 {
-    int i;
-
-    for (i = 0; i < 8; i++)
+    for (uint8_t i = 0; i < 8; i++)
         dev->uart_fifo[i] = 0x00000000;
 
     dev->read_fifo_pos = dev->write_fifo_pos = 0;
@@ -304,7 +302,6 @@ static void
 es1371_reset(void *p)
 {
     es1371_t *dev = (es1371_t *) p;
-    int       i;
 
     nmi = 0;
 
@@ -392,7 +389,7 @@ es1371_reset(void *p)
 
     /* UART FIFO Register, Address 30H, 34H, 38H, 3CH, Memory Page 1110b, 1111b
        Addressable as longword only */
-    for (i = 0; i < 8; i++)
+    for (uint8_t i = 0; i < 8; i++)
         dev->uart_fifo[i] = 0xffff0000;
 
     /* Reset the UART TX. */
@@ -1760,7 +1757,8 @@ low_fir_es1371(int dac_nr, int i, float NewSample)
     static float x[2][2][128]; // input samples
     static int   x_pos[2] = { 0, 0 };
     float        out      = 0.0;
-    int          read_pos, n_coef;
+    int          read_pos;
+    int          n_coef;
     int          pos = x_pos[dac_nr];
 
     x[dac_nr][i][pos] = NewSample;
@@ -1788,8 +1786,8 @@ low_fir_es1371(int dac_nr, int i, float NewSample)
 static void
 es1371_next_sample_filtered(es1371_t *dev, int dac_nr, int out_idx)
 {
-    int out_l, out_r;
-    int c;
+    int out_l;
+    int out_r;
 
     if ((dev->dac[dac_nr].buffer_pos - dev->dac[dac_nr].buffer_pos_end) >= 0)
         es1371_fetch(dev, dac_nr);
@@ -1800,7 +1798,7 @@ es1371_next_sample_filtered(es1371_t *dev, int dac_nr, int out_idx)
     dev->dac[dac_nr].filtered_l[out_idx] = (int) low_fir_es1371(dac_nr, 0, (float) out_l);
     dev->dac[dac_nr].filtered_r[out_idx] = (int) low_fir_es1371(dac_nr, 1, (float) out_r);
 
-    for (c = 1; c < 16; c++) {
+    for (uint8_t c = 1; c < 16; c++) {
         dev->dac[dac_nr].filtered_l[out_idx + c] = (int) low_fir_es1371(dac_nr, 0, 0);
         dev->dac[dac_nr].filtered_r[out_idx + c] = (int) low_fir_es1371(dac_nr, 1, 0);
     }
@@ -1811,7 +1809,8 @@ es1371_next_sample_filtered(es1371_t *dev, int dac_nr, int out_idx)
 static void
 es1371_update(es1371_t *dev)
 {
-    int32_t l, r;
+    int32_t l;
+    int32_t r;
 
     l = (dev->dac[0].out_l * dev->dac[0].vol_l) >> 12;
     l += ((dev->dac[1].out_l * dev->dac[1].vol_l) >> 12);
@@ -1843,7 +1842,12 @@ static void
 es1371_poll(void *p)
 {
     es1371_t *dev = (es1371_t *) p;
-    int       frac, idx, samp1_l, samp1_r, samp2_l, samp2_r;
+    int       frac;
+    int       idx;
+    int       samp1_l;
+    int       samp1_r;
+    int       samp2_l;
+    int       samp2_r;
 
     timer_advance_u64(&dev->dac[1].timer, dev->dac[1].latch);
 
@@ -1906,11 +1910,10 @@ static void
 es1371_get_buffer(int32_t *buffer, int len, void *p)
 {
     es1371_t *dev = (es1371_t *) p;
-    int       c;
 
     es1371_update(dev);
 
-    for (c = 0; c < len * 2; c++)
+    for (int c = 0; c < len * 2; c++)
         buffer[c] += (dev->buffer[c] / 2);
 
     dev->pos = 0;
@@ -1969,9 +1972,8 @@ static void
 es1371_input_msg(void *p, uint8_t *msg, uint32_t len)
 {
     es1371_t *dev = (es1371_t *) p;
-    uint8_t   i;
 
-    for (i = 0; i < len; i++)
+    for (uint32_t i = 0; i < len; i++)
         es1371_write_fifo(dev, msg[i]);
 }
 

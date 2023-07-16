@@ -24,8 +24,8 @@
 # - For Windows (MSYS MinGW) builds:
 #   - Packaging requires 7-Zip on Program Files
 #   - Packaging the Ghostscript DLL requires 32-bit and/or 64-bit Ghostscript on Program Files
-#   - Packaging the FluidSynth DLL requires it to be at /home/86Box/dll32/libfluidsynth.dll
-#     and/or /home/86Box/dll64/libfluidsynth64.dll (for 32-bit and 64-bit builds respectively)
+#   - Packaging the XAudio2 DLL for FAudio requires it to be at /home/86Box/dll32/xaudio2*.dll
+#     and/or /home/86Box/dll64/xaudio2*.dll (for 32-bit and 64-bit builds respectively)
 # - For Linux builds:
 #   - Only Debian and derivatives are supported
 #   - dpkg and apt-get are called through sudo to manage dependencies; make sure those
@@ -156,7 +156,18 @@ do
 
 		-p)
 			shift
-			dep_report=1
+
+			# Check for lddtree and install it if required.
+			which lddtree > /dev/null || DEBIAN_FRONTEND=noninteractive sudo apt-get -y install pax-utils
+
+			# Default to main binary.
+			binary="$1"
+			[ -z "$binary" ] && binary="archive_tmp/usr/local/bin/$project"
+
+			# Run lddtree with AppImage lib directories included in the search path.
+			LD_LIBRARY_PATH=$(find "$(pwd)/archive_tmp" -type d -name lib -o -name lib64 | while read dir; do find "$dir" -type d; done | tr '\n' ':') \
+				lddtree "$binary"
+			exit $?
 			;;
 
 		-s)
@@ -198,6 +209,7 @@ if [ -z "$package_name" -a -z "$tarball_name" ] || [ -n "$package_name" -a -z "$
 then
 	echo '[!] Usage: build.sh -b {package_name} {architecture} [-t] [cmake_flags...]'
 	echo '           build.sh -s {source_tarball_name}'
+	echo 'Dep. tree: build.sh -p [archive_tmp/path/to/binary]'
 	exit 100
 fi
 
@@ -247,6 +259,7 @@ case $arch in
 esac
 [ ! -e "cmake/$toolchain.cmake" ] && toolchain=flags-gcc
 toolchain_file="cmake/$toolchain.cmake"
+toolchain_file_libs=
 
 # Perform platform-specific setup.
 strip_binary=strip
@@ -275,7 +288,6 @@ then
 	echo [-] Using MSYSTEM [$MSYSTEM]
 
 	# Install dependencies only if we're in a new build and/or architecture.
-	freetype_dll="$cache_dir/freetype.$MSYSTEM.dll"
 	if check_buildtag "$MSYSTEM"
 	then
 		# Update databases and keyring only if we're in a new build.
@@ -317,8 +329,8 @@ then
 			done
 		fi
 
-		# Generate a new freetype DLL for this architecture.
-		rm -f "$freetype_dll"
+		# Clean pacman cache when running under Jenkins to save disk space.
+		[ "$CI" = "true" ] && rm -rf /var/cache/pacman/pkg
 
 		# Save build tag to skip this later. Doing it here (once everything is
 		# in place) is important to avoid potential issues with retried builds.
@@ -345,10 +357,6 @@ then
 			# Run build for the architecture.
 			args=
 			[ $strip -ne 0 ] && args="-t $args"
-			case $arch_universal in # workaround: force new dynarec on for ARM
-				arm*) cmake_flags_extra="-D NEW_DYNAREC=ON";;
-				*)    cmake_flags_extra=;;
-			esac
 			zsh -lc 'exec "'"$0"'" -n -b "universal slice" "'"$arch_universal"'" '"$args""$cmake_flags"' '"$cmake_flags_extra"
 			status=$?
 
@@ -561,16 +569,15 @@ else
 
 	# Establish general dependencies.
 	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream"
-	[ $dep_report -ne 0 ] && pkgs="$pkgs pax-utils"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
 	else
 		# Add foreign architecture if required.
-		if ! dpkg --print-foreign-architectures | grep -qE '^'"$arch_deb"'$'
+		if ! dpkg --print-foreign-architectures | grep -Fqx "$arch_deb"
 		then
 			sudo dpkg --add-architecture "$arch_deb"
-			
+
 			# Force an apt-get update.
 			save_buildtag aptupdate "arch_$arch_deb"
 		fi
@@ -584,7 +591,7 @@ else
 	# ...and the ones we do want listed. Non-dev packages fill missing spots on the list.
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libglib2.0-dev libslirp-dev libfaudio-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev
+	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libfaudio-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
 		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/qtdeclarative/qt/" | wc -c)
@@ -605,10 +612,7 @@ else
 		*)	libdir="$arch_triplet";;
 	esac
 
-	# Create CMake cross toolchain file. The file is saved on a fixed location for
-	# the library builds we do later, since running CMake again on a library we've
-	# already built before will *not* update its toolchain file path; therefore, we
-	# cannot point them to our working directory, which may change across builds.
+	# Create CMake cross toolchain file.
 	toolchain_file_new="$cache_dir/toolchain.$arch_deb.cmake"
 	cat << EOF > "$toolchain_file_new"
 set(CMAKE_SYSTEM_NAME Linux)
@@ -629,12 +633,20 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 
 set(ENV{PKG_CONFIG_PATH} "")
-set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/$libdir/pkgconfig:/usr/share/$libdir/pkgconfig")
+set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/$libdir/pkgconfig:/usr/share/$libdir/pkgconfig:/usr/share/pkgconfig")
 
 include("$(realpath "$toolchain_file")")
 EOF
 	toolchain_file="$toolchain_file_new"
 	strip_binary="$arch_triplet-strip"
+
+	# Create a separate toolchain file for library compilation without including
+	# our own toolchain files, letting libraries set their own C(XX)FLAGS instead.
+	# The file is saved on a fixed location, since running CMake again on a library
+	# we've already built before will *not* update its toolchain file path; therefore,
+	# we cannot point them to our working directory, which may change across builds.
+	toolchain_file_libs="$cache_dir/toolchain.$arch_deb.libs.cmake"
+	grep -Ev "^include\(" "$toolchain_file" > "$toolchain_file_libs"
 
 	# Install dependencies only if we're in a new build and/or architecture.
 	if check_buildtag "$arch_deb"
@@ -674,8 +686,8 @@ rm -rf build
 case $arch in
 	32 | x86)	cmake_flags_extra="$cmake_flags_extra -D ARCH=i386";;
 	64 | x86_64*)	cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
-	ARM32 | arm32)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm";;
-	ARM64 | arm64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64";;
+	ARM32 | arm32)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm -D NEW_DYNAREC=ON";;
+	ARM64 | arm64)	cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64 -D NEW_DYNAREC=ON";;
 	*)		cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
 esac
 
@@ -780,10 +792,6 @@ then
 	sevenzip="$pf/7-Zip/7z.exe"
 	[ "$arch" = "32" -a -d "/c/Program Files (x86)" ] && pf="/c/Program Files (x86)"
 
-	# Archive freetype from cache or generate it from local MSYS installation.
-	[ ! -e "$freetype_dll" ] && .ci/static2dll.sh -p freetype2 /$MSYSTEM/lib/libfreetype.a "$freetype_dll"
-	cp -p "$freetype_dll" archive_tmp/freetype.dll
-
 	# Archive Ghostscript DLL from local official distribution installation.
 	for gs in "$pf"/gs/gs*.*.*
 	do
@@ -794,8 +802,8 @@ then
 	"$sevenzip" e -y -o"archive_tmp" "$discord_zip" "lib/$arch_discord/discord_game_sdk.dll"
 	[ ! -e "archive_tmp/discord_game_sdk.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
-	# Archive other DLLs from local directory.
-	cp -p "/home/$project/dll$arch/"* archive_tmp/
+	# Archive XAudio2 DLL if required.
+	grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt || cp -p "/home/$project/dll$arch/xaudio2"* archive_tmp/
 
 	# Archive executable, while also stripping it if requested.
 	if [ $strip -ne 0 ]
@@ -877,13 +885,13 @@ else
 
 	if grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt
 	then
-		# Build openal-soft 1.22.2 manually to fix audio issues. This is a temporary
+		# Build openal-soft 1.23.1 manually to fix audio issues. This is a temporary
 		# workaround until a newer version of openal-soft trickles down to Debian repos.
-		prefix="$cache_dir/openal-soft-1.22.2"
+		prefix="$cache_dir/openal-soft-1.23.1"
 		if [ ! -d "$prefix" ]
 		then
 			rm -rf "$cache_dir/openal-soft-"* # remove old versions
-			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.22.2.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+			wget -qO - https://github.com/kcat/openal-soft/archive/refs/tags/1.23.1.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 		fi
 
 		# Patches to build with the old PipeWire version in Debian.
@@ -891,7 +899,7 @@ else
 		sed -i -e 's/PW_KEY_CONFIG_NAME/"config.name"/g' "$prefix/alc/backends/pipewire.cpp"
 
 		prefix_build="$prefix/build-$arch_deb"
-		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 		cmake --build "$prefix_build" -j$(nproc) || exit 99
 		cmake --install "$prefix_build" || exit 99
 
@@ -907,7 +915,7 @@ else
 			wget -qO - https://github.com/FNA-XNA/FAudio/archive/refs/tags/22.03.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 		fi
 		prefix_build="$prefix/build-$arch_deb"
-		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+		cmake -G Ninja -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 		cmake --build "$prefix_build" -j$(nproc) || exit 99
 		cmake --install "$prefix_build" || exit 99
 
@@ -928,7 +936,7 @@ else
 		wget -qO - https://github.com/thestk/rtmidi/archive/refs/tags/4.0.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
 	prefix_build="$prefix/build-$arch_deb"
-	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
+	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
 
@@ -940,15 +948,12 @@ else
 		rm -rf "$cache_dir/fluidsynth-"* # remove old versions
 		wget -qO - https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.3.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
 	fi
-	cp cmake/flags-gcc.cmake cmake/flags-gcc.cmake.old
-	sed -i -e 's/ -Werror=.*\([" ]\)/\1/g' cmake/flags-gcc.cmake # temporary hack for -Werror=old-style-definition non-compliance on FluidSynth and SDL2
 	prefix_build="$prefix/build-$arch_deb"
 	cmake -G Ninja -D enable-dbus=OFF -D enable-jack=OFF -D enable-oss=OFF -D enable-sdl2=OFF -D enable-pulseaudio=OFF -D enable-pipewire=OFF -D enable-alsa=OFF \
-		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
+		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
-	cp -p "$cwd_root/archive_tmp/usr/bin/fluidsynth" fluidsynth
 
 	# Build SDL2 for joystick and FAudio support, with most components
 	# disabled to remove the dependencies on PulseAudio and libdrm.
@@ -976,11 +981,24 @@ else
 		-D SDL_ATOMIC=OFF -D SDL_EVENTS=ON -D SDL_HAPTIC=OFF -D SDL_POWER=OFF -D SDL_THREADS=ON -D SDL_TIMERS=ON -D SDL_FILE=OFF \
 		-D SDL_LOADSO=ON -D SDL_CPUINFO=ON -D SDL_FILESYSTEM=$sdl_ui -D SDL_DLOPEN=OFF -D SDL_SENSOR=OFF -D SDL_LOCALE=OFF \
 		\
-		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
+		-D "CMAKE_TOOLCHAIN_FILE=$toolchain_file_libs" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" \
 		-S "$prefix" -B "$prefix_build" || exit 99
 	cmake --build "$prefix_build" -j$(nproc) || exit 99
 	cmake --install "$prefix_build" || exit 99
-	mv cmake/flags-gcc.cmake.old cmake/flags-gcc.cmake
+
+	# We rely on the host to provide Vulkan libs to sidestep any potential
+	# dependency issues. While Qt expects libvulkan.so, at least Debian only
+	# ships libvulkan.so.1 without a symlink, so make our own as a workaround.
+	# The relative paths prevent appimage-builder from flattening the links.
+	mkdir -p "archive_tmp/usr/lib/$libdir"
+	relroot="../../../../../../../../../../../../../../../../../../../../../../../../../../../../.."
+	ln -s "$relroot/usr/lib/libvulkan.so.1" "archive_tmp/usr/lib/libvulkan.so"
+	ln -s "$relroot/usr/lib/$libdir/libvulkan.so.1" "archive_tmp/usr/lib/$libdir/libvulkan.so"
+
+	# The FluidSynth packaged by Debian bullseye is ABI incompatible with
+	# the newer version we compile, despite sharing a major version. Since we
+	# don't run into the one breaking ABI change they made, just symlink it.
+	ln -s "$(readlink "archive_tmp/usr/lib/libfluidsynth.so.3")" "archive_tmp/usr/lib/libfluidsynth.so.2"
 
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"
@@ -1014,7 +1032,7 @@ else
 		mkdir -p "$icon_dir"
 		cp -rp "$icon_size" "$icon_dir/apps"
 	done
-	project_icon=$(ls "$icon_base/"[0-9]*x[0-9]*/* | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+$)')
+	project_icon=$(find "$icon_base/"[0-9]*x[0-9]*/* -type f -name '*.png' -o -name '*.svg' | head -1 | grep -oP '/\K([^/]+)(?=\.[^\.]+$)')
 
 	# Archive executable, while also stripping it if requested.
 	mkdir -p archive_tmp/usr/local/bin
@@ -1139,20 +1157,11 @@ EOF
 			--recipe AppImageBuilder-generated.yml --appdir "$(grep -oP '^\s+path: \K(.+)' AppImageBuilder-generated.yml)"
 		status=$?
 		[ $status -eq 0 ] && break
+		[ $status -eq 127 ] && rm -rf /tmp/appimage_extracted_*
 	done
 
 	# Remove appimage-builder binary on failure, just in case it's corrupted.
 	[ $status -ne 0 ] && rm -f "$appimage_builder_binary"
-
-	# Generate library dependency report if requested.
-	if [ $dep_report -ne 0 ]
-	then
-		echo '[-] Library dependency report:'
-
-		# Run lddtree with AppImage lib directories included in the search path.
-		LD_LIBRARY_PATH=$(find "$(pwd)/archive_tmp" -type d -name lib -o -name lib64 | while read dir; do find "$dir" -type d; done | tr '\n' ':') \
-			lddtree "archive_tmp/usr/local/bin/$project" 2>&1 | tee depreport.txt
-	fi
 fi
 
 # Check if the archival succeeded.

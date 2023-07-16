@@ -30,6 +30,8 @@
 #include <86box/mem.h>
 #include <86box/smram.h>
 #include <86box/pci.h>
+#include <86box/pic.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
@@ -117,10 +119,11 @@
         Bit 0: HADS# Delay After LB. Cycle (1: Enabled / 0: Disable)
 */
 
-typedef struct
-{
-    uint8_t idx, access_data,
-        regs[256], pci_conf[256];
+typedef struct ims8848_t {
+    uint8_t idx;
+    uint8_t access_data;
+    uint8_t regs[256];
+    uint8_t pci_conf[256];
 
     smram_t *smram;
 } ims8848_t;
@@ -147,7 +150,7 @@ ims8848_log(const char *fmt, ...)
 static void
 ims8848_recalc(ims8848_t *dev)
 {
-    int      i, state_on;
+    int      state_on;
     uint32_t base;
     ims8848_log("SHADOW: 00 = %02X, 08 = %02X, 1B = %02X, 1C = %02X\n",
                 dev->regs[0x00], dev->regs[0x08], dev->regs[0x1b], dev->regs[0x1c]);
@@ -155,7 +158,7 @@ ims8848_recalc(ims8848_t *dev)
     state_on = MEM_READ_INTERNAL;
     state_on |= (dev->regs[0x08] & 0x04) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
 
-    for (i = 0; i < 2; i++) {
+    for (uint8_t i = 0; i < 2; i++) {
         base = 0xe0000 + (i << 16);
         if (dev->regs[0x00] & (1 << (i + 2)))
             mem_set_mem_state_both(base, 0x10000, state_on);
@@ -163,7 +166,7 @@ ims8848_recalc(ims8848_t *dev)
             mem_set_mem_state_both(base, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
     }
 
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         base = 0xc0000 + (i << 14);
         if (dev->regs[0x1c] & (1 << i))
             mem_set_mem_state_both(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
@@ -242,10 +245,16 @@ ims8848_write(uint16_t addr, uint8_t val, void *priv)
                         /* Base Memory */
                         ims8848_base_memory(dev);
                         break;
+
+                    default:
+                        break;
                 }
                 dev->access_data = 0;
             }
             break;
+
+            default:
+                break;
     }
 }
 
@@ -273,6 +282,8 @@ ims8848_read(uint16_t addr, void *priv)
                 dev->access_data = 0;
             }
             ims8848_log("[R] [%i] REG %02X = %02X\n", old_ad, dev->idx, ret);
+            break;
+        default:
             break;
     }
 
@@ -306,6 +317,9 @@ ims8849_pci_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x52 ... 0x55:
                 dev->pci_conf[addr] = val;
+                break;
+
+            default:
                 break;
         }
 }
@@ -362,7 +376,7 @@ ims8848_close(void *priv)
 }
 
 static void *
-ims8848_init(const device_t *info)
+ims8848_init(UNUSED(const device_t *info))
 {
     ims8848_t *dev = (ims8848_t *) malloc(sizeof(ims8848_t));
     memset(dev, 0, sizeof(ims8848_t));

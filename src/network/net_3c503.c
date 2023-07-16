@@ -239,7 +239,7 @@ threec503_nic_lo_read(uint16_t addr, void *priv)
             break;
     }
 
-    return (retval);
+    return retval;
 }
 
 static void
@@ -611,7 +611,7 @@ threec503_nic_init(const device_t *info)
     /* Attach ourselves to the network module. */
     dev->dp8390->card = network_attach(dev->dp8390, dev->dp8390->physaddr, dp8390_rx, NULL);
 
-    return (dev);
+    return dev;
 }
 
 static void

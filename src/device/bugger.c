@@ -74,14 +74,16 @@
 #define CTRL_RESET 0xff /* this resets the board */
 #define BUG_DATA   1
 
-static uint8_t bug_ctrl, /* control register */
-    bug_data,            /* data register */
-    bug_ledr, bug_ledg,  /* RED and GREEN LEDs */
-    bug_seg1, bug_seg2,  /* LEFT and RIGHT 7SEG displays */
-    bug_spcfg;           /* serial port configuration */
+static uint8_t bug_ctrl;  /* control register */
+static uint8_t bug_data;  /* data register */
+static uint8_t bug_ledr;  /* RED LEDs */
+static uint8_t bug_ledg;  /* GREEN LEDs */
+static uint8_t bug_seg1;
+static uint8_t bug_seg2;  /* LEFT and RIGHT 7SEG displays */
+static uint8_t bug_spcfg; /* serial port configuration */
 #define FIFO_LEN 256
-static uint8_t bug_buff[FIFO_LEN], /* serial port data buffer */
-    *bug_bptr;
+static uint8_t  bug_buff[FIFO_LEN]; /* serial port data buffer */
+static uint8_t *bug_bptr;
 #define UISTR_LEN 24
 static char bug_str[UISTR_LEN]; /* UI output string */
 
@@ -264,7 +266,7 @@ bug_reset(void)
 
 /* Handle a WRITE operation to one of our registers. */
 static void
-bug_write(uint16_t port, uint8_t val, void *priv)
+bug_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 {
     switch (port - BUGGER_ADDR) {
         case BUG_CTRL: /* control register */
@@ -282,12 +284,14 @@ bug_write(uint16_t port, uint8_t val, void *priv)
                 bug_wdata(val);
             }
             break;
+        default:
+            break;
     }
 }
 
 /* Handle a READ operation from one of our registers. */
 static uint8_t
-bug_read(uint16_t port, void *priv)
+bug_read(uint16_t port, UNUSED(void *priv))
 {
     uint8_t ret = 0xff;
 
@@ -312,12 +316,12 @@ bug_read(uint16_t port, void *priv)
                 break;
         }
 
-    return (ret);
+    return ret;
 }
 
 /* Initialize the ISA BusBugger emulator. */
 static void *
-bug_init(const device_t *info)
+bug_init(UNUSED(const device_t *info))
 {
     bugger_log("%s, I/O=%04x\n", info->name, BUGGER_ADDR);
 

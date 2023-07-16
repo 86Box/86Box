@@ -204,5 +204,5 @@ ui_window_title(wchar_t *s)
             s = wTitle;
     }
 
-    return (s);
+    return s;
 }

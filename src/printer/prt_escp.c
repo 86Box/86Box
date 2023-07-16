@@ -65,7 +65,6 @@
 #include <86box/pit.h>
 #include <86box/path.h>
 #include <86box/plat.h>
-#include <86box/plat_dynld.h>
 #include <86box/ui.h>
 #include <86box/lpt.h>
 #include <86box/video.h>
@@ -85,45 +84,8 @@
 #define PAGE_CPI     10.0 /* standard 10 cpi */
 #define PAGE_LPI     6.0  /* standard 6 lpi */
 
-#ifdef _WIN32
-#    define PATH_FREETYPE_DLL "freetype.dll"
-#elif defined __APPLE__
-#    define PATH_FREETYPE_DLL "libfreetype.6.dylib"
-#else
-#    define PATH_FREETYPE_DLL "libfreetype.so.6"
-#endif
-
 /* FreeType library handles - global so they can be shared. */
-FT_Library ft_lib    = NULL;
-void      *ft_handle = NULL;
-
-static int (*ft_Init_FreeType)(FT_Library *alibrary);
-static int (*ft_Done_Face)(FT_Face face);
-static int (*ft_New_Face)(FT_Library library, const char *filepathname,
-                          FT_Long face_index, FT_Face *aface);
-static int (*ft_Set_Char_Size)(FT_Face face, FT_F26Dot6 char_width,
-                               FT_F26Dot6 char_height,
-                               FT_UInt    horz_resolution,
-                               FT_UInt    vert_resolution);
-static int (*ft_Set_Transform)(FT_Face face, FT_Matrix *matrix,
-                               FT_Vector *delta);
-static int (*ft_Get_Char_Index)(FT_Face face, FT_ULong charcode);
-static int (*ft_Load_Glyph)(FT_Face face, FT_UInt glyph_index,
-                            FT_Int32 load_flags);
-static int (*ft_Render_Glyph)(FT_GlyphSlot   slot,
-                              FT_Render_Mode render_mode);
-
-static dllimp_t ft_imports[] = {
-    {"FT_Init_FreeType",   &ft_Init_FreeType },
-    { "FT_New_Face",       &ft_New_Face      },
-    { "FT_Done_Face",      &ft_Done_Face     },
-    { "FT_Set_Char_Size",  &ft_Set_Char_Size },
-    { "FT_Set_Transform",  &ft_Set_Transform },
-    { "FT_Get_Char_Index", &ft_Get_Char_Index},
-    { "FT_Load_Glyph",     &ft_Load_Glyph    },
-    { "FT_Render_Glyph",   &ft_Render_Glyph  },
-    { NULL,                NULL              }
-};
+FT_Library ft_lib = NULL;
 
 /* The fonts. */
 #define FONT_DEFAULT   0
@@ -181,7 +143,7 @@ static dllimp_t ft_imports[] = {
 #define PIXX       ((unsigned) floor(dev->curr_x * dev->dpi + 0.5))
 #define PIXY       ((unsigned) floor(dev->curr_y * dev->dpi + 0.5))
 
-typedef struct {
+typedef struct psurface_t {
     int8_t dirty; /* has the page been printed on? */
     char   pad;
 
@@ -192,7 +154,7 @@ typedef struct {
     uint8_t *pixels; /* grayscale pixel data */
 } psurface_t;
 
-typedef struct {
+typedef struct escp_t {
     const char *name;
 
     void *lpt;
@@ -204,12 +166,12 @@ typedef struct {
     uint8_t color;
 
     /* page data (TODO: make configurable) */
-    double page_width, /* all in inches */
-        page_height,
-        left_margin,
-        top_margin,
-        right_margin,
-        bottom_margin;
+    double   page_width; /* all in inches */
+    double   page_height;
+    double   left_margin;
+    double   top_margin;
+    double   right_margin;
+    double   bottom_margin;
     uint16_t dpi;
     double   cpi; /* defined chars per inch */
     double   lpi; /* defined lines per inch */
@@ -255,7 +217,8 @@ typedef struct {
     char        fontpath[1024];
     char        pagepath[1024];
     psurface_t *page;
-    double      curr_x, curr_y; /* print head position (inch) */
+    double      curr_x; /* print head position (x, inch) */
+    double      curr_y; /* print head position (y, inch) */
     uint16_t    current_font;
     FT_Face     fontface;
     int8_t      lq_typeface;
@@ -442,7 +405,6 @@ static void
 fill_palette(uint8_t redmax, uint8_t greenmax, uint8_t bluemax, uint8_t colorID, escp_t *dev)
 {
     uint8_t colormask;
-    int     i;
 
     double red   = (double) redmax / (double) 30.9;
     double green = (double) greenmax / (double) 30.9;
@@ -450,7 +412,7 @@ fill_palette(uint8_t redmax, uint8_t greenmax, uint8_t bluemax, uint8_t colorID,
 
     colormask = colorID <<= 5;
 
-    for (i = 0; i < 32; i++) {
+    for (uint8_t i = 0; i < 32; i++) {
         dev->palcol[i + colormask].r = 255 - (uint8_t) floor(red * (double) i);
         dev->palcol[i + colormask].g = 255 - (uint8_t) floor(green * (double) i);
         dev->palcol[i + colormask].b = 255 - (uint8_t) floor(blue * (double) i);
@@ -460,8 +422,6 @@ fill_palette(uint8_t redmax, uint8_t greenmax, uint8_t bluemax, uint8_t colorID,
 static void
 reset_printer(escp_t *dev)
 {
-    int i;
-
     /* TODO: these should be configurable. */
     dev->color  = COLOR_BLACK;
     dev->curr_x = dev->curr_y = 0.0;
@@ -501,7 +461,7 @@ reset_printer(escp_t *dev)
 
     new_page(dev, 0, 1);
 
-    for (i = 0; i < 32; i++)
+    for (uint8_t i = 0; i < 32; i++)
         dev->horizontal_tabs[i] = i * 8.0 * (1.0 / dev->cpi);
     dev->num_horizontal_tabs = 32;
     dev->num_vertical_tabs   = -1;
@@ -546,7 +506,7 @@ update_font(escp_t *dev)
 
     /* Release current font if we have one. */
     if (dev->fontface)
-        ft_Done_Face(dev->fontface);
+        FT_Done_Face(dev->fontface);
 
     if (dev->print_quality == QUALITY_DRAFT)
         fn = FONT_FILE_DOTMATRIX;
@@ -582,7 +542,7 @@ update_font(escp_t *dev)
     escp_log("Temp file=%s\n", path);
 
     /* Load the new font. */
-    if (ft_New_Face(ft_lib, path, 0, &dev->fontface)) {
+    if (FT_New_Face(ft_lib, path, 0, &dev->fontface)) {
         escp_log("ESC/P: unable to load font '%s'\n", path);
         dev->fontface = NULL;
     }
@@ -628,7 +588,7 @@ update_font(escp_t *dev)
         dev->actual_cpi /= 2.0 / 3.0;
     }
 
-    ft_Set_Char_Size(dev->fontface,
+    FT_Set_Char_Size(dev->fontface,
                      (uint16_t) (hpoints * 64), (uint16_t) (vpoints * 64),
                      dev->dpi, dev->dpi);
 
@@ -638,7 +598,7 @@ update_font(escp_t *dev)
         matrix.xy = (FT_Fixed) (0.20 * 0x10000L);
         matrix.yx = 0;
         matrix.yy = 0x10000L;
-        ft_Set_Transform(dev->fontface, &matrix, 0);
+        FT_Set_Transform(dev->fontface, &matrix, 0);
     }
 }
 
@@ -646,11 +606,13 @@ update_font(escp_t *dev)
 static int
 process_char(escp_t *dev, uint8_t ch)
 {
-    double   new_x, new_y;
+    double   new_x;
+    double   new_y;
     double   move_to;
     double   unit_size;
     double   reverse;
-    double   new_top, new_bottom;
+    double   new_top;
+    double   new_bottom;
     uint16_t rel_move;
     int16_t  i;
 
@@ -788,7 +750,6 @@ process_char(escp_t *dev, uint8_t ch)
             case 0x2e:
                 fatal("ESC/P: Print Raster Graphics (2E) command is not implemented.\nTerminating the emulator to avoid endless PNG generation.\n");
                 exit(-1);
-                return 1;
 
             default:
                 escp_log("ESC/P: Unknown command ESC %c (0x%02x). Unable to skip parameters.\n",
@@ -1562,19 +1523,19 @@ process_char(escp_t *dev, uint8_t ch)
             return 1;
 
         default:
+            /* This is a printable character -> print it. */
             return 0;
     }
-
-    /* This is a printable character -> print it. */
-    return 0;
 }
 
 static void
 handle_char(escp_t *dev, uint8_t ch)
 {
     FT_UInt  char_index;
-    uint16_t pen_x, pen_y;
-    uint16_t line_start, line_y;
+    uint16_t pen_x;
+    uint16_t pen_y;
+    uint16_t line_start;
+    uint16_t line_y;
     double   x_advance;
 
     if (dev->page == NULL)
@@ -1612,9 +1573,9 @@ handle_char(escp_t *dev, uint8_t ch)
 
     /* ok, so we need to print the character now */
     if (ft_lib) {
-        char_index = ft_Get_Char_Index(dev->fontface, dev->curr_cpmap[ch]);
-        ft_Load_Glyph(dev->fontface, char_index, FT_LOAD_DEFAULT);
-        ft_Render_Glyph(dev->fontface->glyph, FT_RENDER_MODE_NORMAL);
+        char_index = FT_Get_Char_Index(dev->fontface, dev->curr_cpmap[ch]);
+        FT_Load_Glyph(dev->fontface, char_index, FT_LOAD_DEFAULT);
+        FT_Render_Glyph(dev->fontface->glyph, FT_RENDER_MODE_NORMAL);
     }
 
     pen_x = PIXX + dev->fontface->glyph->bitmap_left;
@@ -1689,15 +1650,15 @@ static void
 blit_glyph(escp_t *dev, unsigned destx, unsigned desty, int8_t add)
 {
     FT_Bitmap *bitmap = &dev->fontface->glyph->bitmap;
-    unsigned   x, y;
-    uint8_t    src, *dst;
+    uint8_t    src;
+    uint8_t   *dst;
 
     /* check if freetype is available */
     if (ft_lib == NULL)
         return;
 
-    for (y = 0; y < bitmap->rows; y++) {
-        for (x = 0; x < bitmap->width; x++) {
+    for (unsigned int y = 0; y < bitmap->rows; y++) {
+        for (unsigned int x = 0; x < bitmap->width; x++) {
             src = *(bitmap->buffer + x + y * bitmap->pitch);
             /* ignore background, and respect page size */
             if (src > 0 && (destx + x < (unsigned) dev->page->w) && (desty + y < (unsigned) dev->page->h)) {
@@ -1724,9 +1685,8 @@ draw_hline(escp_t *dev, unsigned from_x, unsigned to_x, unsigned y, int8_t broke
 {
     unsigned breakmod = dev->dpi / 15;
     unsigned gapstart = (breakmod * 4) / 5;
-    unsigned x;
 
-    for (x = from_x; x <= to_x; x++) {
+    for (unsigned int x = from_x; x <= to_x; x++) {
         /* Skip parts if broken line or going over the border. */
         if ((!broken || (x % breakmod <= gapstart)) && (x < dev->page->w)) {
             if (y > 0 && (y - 1) < dev->page->h)
@@ -1856,7 +1816,6 @@ print_bit_graph(escp_t *dev, uint8_t ch)
 {
     uint8_t  pixel_w; /* width of the "pixel" */
     uint8_t  pixel_h; /* height of the "pixel" */
-    unsigned i, j, xx, yy;
     double   old_y;
 
     dev->bg_column[dev->bg_bytes_read++] = ch;
@@ -1877,14 +1836,14 @@ print_bit_graph(escp_t *dev, uint8_t ch)
         pixel_h = dev->dpi / dev->bg_v_density > 0 ? dev->dpi / dev->bg_v_density : 1;
     }
 
-    for (i = 0; i < dev->bg_bytes_per_column; i++) {
+    for (uint8_t i = 0; i < dev->bg_bytes_per_column; i++) {
         /* for each byte */
-        for (j = 128; j != 0; j >>= 1) {
+        for (uint8_t j = 128; j != 0; j >>= 1) {
             /* for each bit */
             if (dev->bg_column[i] & j) {
                 /* draw a "pixel" */
-                for (xx = 0; xx < pixel_w; xx++) {
-                    for (yy = 0; yy < pixel_h; yy++) {
+                for (uint8_t xx = 0; xx < pixel_w; xx++) {
+                    for (uint8_t yy = 0; yy < pixel_h; yy++) {
                         if (((PIXX + xx) < (unsigned) dev->page->w) && ((PIXY + yy) < (unsigned) dev->page->h))
                             *((uint8_t *) dev->page->pixels + (PIXX + xx) + (PIXY + yy) * dev->page->pitch) |= (dev->color | 0x1f);
                     }
@@ -1983,30 +1942,18 @@ read_status(void *priv)
     if (!dev->ack)
         ret |= 0x40;
 
-    return (ret);
+    return ret;
 }
 
 static void *
 escp_init(void *lpt)
 {
-    const char *fn = PATH_FREETYPE_DLL;
-    escp_t     *dev;
-    int         i;
-
-    /* Dynamically load FreeType. */
-    if (ft_handle == NULL) {
-        ft_handle = dynld_module(fn, ft_imports);
-        if (ft_handle == NULL) {
-            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2111, (wchar_t *) IDS_2132);
-            return (NULL);
-        }
-    }
+    escp_t *dev;
 
     /* Initialize FreeType. */
     if (ft_lib == NULL) {
-        if (ft_Init_FreeType(&ft_lib)) {
+        if (FT_Init_FreeType(&ft_lib)) {
             ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2111, (wchar_t *) IDS_2132);
-            dynld_close(ft_lib);
             ft_lib = NULL;
             return (NULL);
         }
@@ -2047,7 +1994,7 @@ escp_init(void *lpt)
     memset(dev->page->pixels, 0x00, (size_t) dev->page->pitch * dev->page->h);
 
     /* Initialize parameters. */
-    for (i = 0; i < 32; i++) {
+    for (uint8_t i = 0; i < 32; i++) {
         dev->palcol[i].r = 255;
         dev->palcol[i].g = 255;
         dev->palcol[i].b = 255;
@@ -2082,7 +2029,7 @@ escp_init(void *lpt)
     timer_add(&dev->pulse_timer, pulse_timer, dev, 0);
     timer_add(&dev->timeout_timer, timeout_timer, dev, 0);
 
-    return (dev);
+    return dev;
 }
 
 static void

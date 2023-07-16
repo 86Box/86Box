@@ -26,8 +26,9 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/sio.h>
+#include <86box/plat_unused.h>
 
-typedef struct {
+typedef struct sio_detect_t {
     uint8_t regs[2];
 } sio_detect_t;
 
@@ -62,7 +63,7 @@ sio_detect_close(void *priv)
 }
 
 static void *
-sio_detect_init(const device_t *info)
+sio_detect_init(UNUSED(const device_t *info))
 {
     sio_detect_t *dev = (sio_detect_t *) malloc(sizeof(sio_detect_t));
     memset(dev, 0, sizeof(sio_detect_t));

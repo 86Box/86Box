@@ -35,7 +35,8 @@
 #define ZIP_FIRST        CDROM_FIRST + CDROM_NUM
 #define MO_FIRST         ZIP_FIRST + ZIP_NUM
 
-static HMENU media_menu, stbar_menu;
+static HMENU media_menu;
+static HMENU stbar_menu;
 static HMENU menus[1 + 2 + FDD_NUM + CDROM_NUM + ZIP_NUM + MO_NUM];
 
 static char index_map[255];
@@ -75,7 +76,8 @@ media_menu_load_resource(wchar_t *lpName)
 static void
 media_menu_set_name_cassette(void)
 {
-    wchar_t      name[512], fn[512];
+    wchar_t      name[512];
+    wchar_t      fn[512];
     MENUITEMINFO mii = { 0 };
 
     if (strlen(cassette_fname) == 0)
@@ -95,7 +97,8 @@ media_menu_set_name_cassette(void)
 static void
 media_menu_set_name_cartridge(int drive)
 {
-    wchar_t      name[512], fn[512];
+    wchar_t      name[512];
+    wchar_t      fn[512];
     MENUITEMINFO mii = { 0 };
 
     if (strlen(cart_fns[drive]) == 0) {
@@ -117,7 +120,9 @@ media_menu_set_name_cartridge(int drive)
 static void
 media_menu_set_name_floppy(int drive)
 {
-    wchar_t      name[512], temp[512], fn[512];
+    wchar_t      name[512];
+    wchar_t      temp[512];
+    wchar_t      fn[512];
     MENUITEMINFO mii = { 0 };
 
     mbstoc16s(temp, fdd_getname(fdd_get_type(drive)),
@@ -141,7 +146,9 @@ media_menu_set_name_floppy(int drive)
 static void
 media_menu_set_name_cdrom(int drive)
 {
-    wchar_t      name[512], *temp, fn[512];
+    wchar_t      name[512];
+    wchar_t     *temp;
+    wchar_t      fn[512];
     MENUITEMINFO mii = { 0 };
 
     int bus = cdrom[drive].bus_type;
@@ -171,7 +178,9 @@ media_menu_set_name_cdrom(int drive)
 static void
 media_menu_set_name_zip(int drive)
 {
-    wchar_t      name[512], *temp, fn[512];
+    wchar_t      name[512];
+    wchar_t     *temp;
+    wchar_t      fn[512];
     MENUITEMINFO mii = { 0 };
 
     int bus = zip_drives[drive].bus_type;
@@ -200,7 +209,9 @@ media_menu_set_name_zip(int drive)
 static void
 media_menu_set_name_mo(int drive)
 {
-    wchar_t      name[512], *temp, fn[512];
+    wchar_t      name[512];
+    wchar_t     *temp;
+    wchar_t      fn[512];
     MENUITEMINFO mii = { 0 };
 
     int bus = mo_drives[drive].bus_type;
@@ -529,7 +540,9 @@ media_menu_init(void)
 int
 media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    int id = 0, ret = 0, wp = 0;
+    int id  = 0;
+    int ret = 0;
+    int wp  = 0;
 
     id = LOWORD(wParam) & 0x00ff;
 

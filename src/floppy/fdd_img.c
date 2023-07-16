@@ -42,7 +42,7 @@
 
 typedef struct {
     FILE    *f;
-    uint8_t  track_data[2][50000];
+    uint8_t  track_data[2][688128];
     int      sectors, tracks, sides;
     uint8_t  sector_size;
     int      xdf_type; /* 0 = not XDF, 1-5 = one of the five XDF types */
@@ -71,10 +71,10 @@ static fdc_t    *img_fdc;
 
 static double    bit_rate_300;
 static char     *ext;
-static uint8_t   first_byte,
-                 second_byte,
-                 third_byte,
-                 fourth_byte;
+static uint8_t   first_byte;
+static uint8_t   second_byte;
+static uint8_t   third_byte;
+static uint8_t   fourth_byte;
 static uint8_t   fdf_suppress_final_byte = 0; /* This is hard-coded to 0 -
                                                * if you really need to read
                                                * those NT 3.1 Beta floppy
@@ -339,43 +339,41 @@ sector_size_code(int sector_size)
 {
     switch (sector_size) {
         case 128:
-            return (0);
+            return 0;
 
         case 256:
-            return (1);
+            return 1;
 
         default:
         case 512:
-            return (2);
+            return 2;
 
         case 1024:
-            return (3);
+            return 3;
 
         case 2048:
-            return (4);
+            return 4;
 
         case 4096:
-            return (5);
+            return 5;
 
         case 8192:
-            return (6);
+            return 6;
 
         case 16384:
-            return (7);
+            return 7;
     }
 }
 
 static int
 bps_is_valid(uint16_t bps)
 {
-    int i;
-
-    for (i = 0; i <= 8; i++) {
+    for (uint8_t i = 0; i <= 8; i++) {
         if (bps == (128 << i))
-            return (1);
+            return 1;
     }
 
-    return (0);
+    return 0;
 }
 
 static int
@@ -385,13 +383,13 @@ first_byte_is_valid(uint8_t first_byte)
         case 0x60:
         case 0xE9:
         case 0xEB:
-            return (1);
+            return 1;
 
         default:
             break;
     }
 
-    return (0);
+    return 0;
 }
 
 #define xdf_img_sector  xdf_img_layout[current_xdft][!is_t0][sector]
@@ -410,7 +408,7 @@ interleave(int sector, int skew, int track_spt)
     if (skewed_i & 1)
         adjusted_r += (adjust + add);
 
-    return (adjusted_r);
+    return adjusted_r;
 }
 
 static void
@@ -418,7 +416,7 @@ write_back(int drive)
 {
     img_t *dev   = img[drive];
     int    ssize = 128 << ((int) dev->sector_size);
-    int    side, size;
+    int    size;
 
     if (dev->f == NULL)
         return;
@@ -428,7 +426,7 @@ write_back(int drive)
 
     if (fseek(dev->f, dev->base + (dev->track * dev->sectors * ssize * dev->sides), SEEK_SET) == -1)
         pclog("IMG write_back(): Error seeking to the beginning of the file\n");
-    for (side = 0; side < dev->sides; side++) {
+    for (int side = 0; side < dev->sides; side++) {
         size = dev->sectors * ssize;
         if (fwrite(dev->track_data[side], 1, size, dev->f) != size)
             fatal("IMG write_back(): Error writing data\n");
@@ -452,7 +450,7 @@ side_flags(int drive)
 }
 
 static void
-set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
+set_sector(int drive, UNUSED(int side), UNUSED(uint8_t c), uint8_t h, uint8_t r, UNUSED(uint8_t n))
 {
     img_t *dev = img[drive];
 
@@ -461,7 +459,7 @@ set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 }
 
 static uint8_t
-poll_read_data(int drive, int side, uint16_t pos)
+poll_read_data(int drive, UNUSED(int side), uint16_t pos)
 {
     img_t *dev = img[drive];
 
@@ -469,7 +467,7 @@ poll_read_data(int drive, int side, uint16_t pos)
 }
 
 static void
-poll_write_data(int drive, int side, uint16_t pos, uint8_t data)
+poll_write_data(int drive, UNUSED(int side), uint16_t pos, uint8_t data)
 {
     img_t *dev = img[drive];
 
@@ -485,7 +483,7 @@ format_conditions(int drive)
     temp = temp && (fdc_get_format_n(img_fdc) == dev->sector_size);
     temp = temp && (dev->xdf_type == 0);
 
-    return (temp);
+    return temp;
 }
 
 static void
@@ -496,7 +494,16 @@ img_seek(int drive, int track)
     int      current_xdft = dev->xdf_type - 1;
     int      read_bytes   = 0;
     uint8_t  id[4]        = { 0, 0, 0, 0 };
-    int      is_t0, sector, current_pos, img_pos, sr, sside, total, array_sector, buf_side, buf_pos;
+    int      is_t0;
+    int      sector;
+    int      current_pos;
+    int      img_pos;
+    int      sr;
+    int      sside;
+    int      total;
+    int      array_sector;
+    int      buf_side;
+    int      buf_pos;
     int      ssize   = 128 << ((int) dev->sector_size);
     uint32_t cur_pos = 0;
 
@@ -647,7 +654,10 @@ img_load(int drive, char *fn)
     uint8_t  bpb_mid; /* Media type ID. */
     uint8_t  bpb_sectors;
     uint8_t  bpb_sides;
-    uint8_t  cqm, ddi, fdf, fdi;
+    uint8_t  cqm;
+    uint8_t  ddi;
+    uint8_t  fdf;
+    uint8_t  fdi;
     uint16_t comment_len = 0;
     int16_t  block_len   = 0;
     uint32_t cur_pos     = 0;
@@ -661,7 +671,6 @@ img_load(int drive, char *fn)
     int      temp_rate;
     int      guess = 0;
     int      size;
-    int      i;
 
     ext = path_get_extension(fn);
 
@@ -1022,9 +1031,6 @@ jump_if_fdf:
         } else if (size <= (320 * 1024)) {
             dev->sectors = 8;
             dev->tracks  = 40;
-        } else if (size <= (320 * 1024)) {
-            dev->sectors = 8;
-            dev->tracks  = 40;
         } else if (size <= (360 * 1024)) { /*DD 360K*/
             dev->sectors = 9;
             dev->tracks  = 40;
@@ -1152,7 +1158,7 @@ jump_if_fdf:
         temp_rate = 0xFF;
     }
 
-    for (i = 0; i < 6; i++) {
+    for (uint8_t i = 0; i < 6; i++) {
         if ((dev->sectors <= maximum_sectors[dev->sector_size][i]) || (dev->sectors == xdf_sectors[dev->sector_size][i])) {
             bit_rate_300    = bit_rates_300[i];
             temp_rate       = rates[i];

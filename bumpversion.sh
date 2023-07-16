@@ -36,7 +36,7 @@ if [ -z "${romversion}" ]; then
 	# Get the latest ROM release from the GitHub API.
 	romversion=$(curl --silent "https://api.github.com/repos/86Box/roms/releases/latest" |
 		grep '"tag_name":' |
-		sed -E 's/.*"([^"]+)".*/\1/')
+		sed -E 's/.*"v([^"]+)".*/\1/')
 fi
 
 # Switch to the repository root directory.

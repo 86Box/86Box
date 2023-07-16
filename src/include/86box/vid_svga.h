@@ -31,8 +31,9 @@
 #    define FLAG_NOSKEW       16
 #    define FLAG_ADDR_BY16    32
 #    define FLAG_RAMDAC_SHIFT 64
-#    define FLAG_128K_MASK    128
-
+#    define FLAG_ATI      	  128
+#    define FLAG_S3_911_16BIT 256
+#    define FLAG_512K_MASK    512
 struct monitor_t;
 
 typedef struct {
@@ -180,10 +181,18 @@ typedef struct svga_t {
     monitor_t* monitor;
 } svga_t;
 
-extern int vga_on, ibm8514_on;
+extern int vga_on;
+extern int ibm8514_on;
 
 extern void ibm8514_poll(ibm8514_t *dev, svga_t *svga);
 extern void ibm8514_recalctimings(svga_t *svga);
+extern uint8_t ibm8514_ramdac_in(uint16_t port, void *p);
+extern void ibm8514_ramdac_out(uint16_t port, uint8_t val, void *p);
+extern int ibm8514_cpu_src(svga_t *svga);
+extern int ibm8514_cpu_dest(svga_t *svga);
+extern void ibm8514_accel_out_pixtrans(svga_t *svga, uint16_t port, uint16_t val, int len);
+extern void ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, uint8_t ssv, int len);
+extern void ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, int len);
 
 extern void xga_poll(xga_t *xga, svga_t *svga);
 extern void xga_recalctimings(svga_t *svga);
