@@ -13,4 +13,4 @@
 #          Copyright 2020-2021 David Hrdlička.
 #
 
-add_library(808x.c OBJECT queue.c)
+add_library(808x OBJECT queue.c)
