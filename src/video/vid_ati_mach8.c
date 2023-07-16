@@ -373,12 +373,12 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
     svga_t *svga = &mach->svga;
     int compare_mode;
     int poly_src = 0;
-	uint16_t rd_mask = dev->accel.rd_mask;
-	uint16_t wrt_mask = dev->accel.wrt_mask;
-	uint16_t dest_cmp_clr = dev->accel.color_cmp;
+    unt16_t rd_mask = dev->accel.rd_mask;
+    uint16_t wrt_mask = dev->accel.wrt_mask;
+    uint16_t dest_cmp_clr = dev->accel.color_cmp;
     int frgd_sel, bkgd_sel, mono_src;
     int compare = 0;
-    uint16_t src_dat = 0, dest_dat;
+    uint16_t src_dat = 0, dest_dat = 0;
     uint16_t old_dest_dat;
     uint16_t *vram_w = (uint16_t *) svga->vram;
     uint16_t mix = 0;
