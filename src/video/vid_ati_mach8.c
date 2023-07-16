@@ -1864,9 +1864,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 if (mach->accel.dest_y_end >= 0x600)
                     mach->accel.dy_end |= ~0x5ff;
 
-                if (mach->accel.dy_end > mach->accel.dy_end) {
+                if (mach->accel.dy_end > mach->accel.dy_start) {
                     mach->accel.stepy = 1;
-                } else if (mach->accel.dy_end < mach->accel.dy_end) {
+                } else if (mach->accel.dy_end < mach->accel.dy_start) {
                     mach->accel.stepy = -1;
                 } else {
                     mach->accel.stepy = 0;
