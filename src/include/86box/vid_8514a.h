@@ -24,6 +24,8 @@ typedef struct ibm8514_t {
 
     int force_old_addr;
     int type;
+    int local;
+    int bpp;
 
     uint32_t vram_size;
     uint32_t vram_mask;
@@ -32,6 +34,7 @@ typedef struct ibm8514_t {
     uint8_t   dac_mask, dac_status;
     uint32_t *map8;
     int       dac_addr, dac_pos, dac_r, dac_g;
+    int       internal_pitch;
 
     struct {
         uint16_t subsys_cntl;
@@ -58,7 +61,7 @@ typedef struct ibm8514_t {
         uint8_t  pix_trans[2];
         int      poly_draw;
         int      ssv_state;
-        int      x1, x2, y1, y2;
+        int16_t  x1, x2, x3, y1, y2;
         int      sys_cnt, sys_cnt2;
         int      temp_cnt;
         int16_t  cx, cy, oldcy;
@@ -80,6 +83,7 @@ typedef struct ibm8514_t {
 
         uint16_t scratch;
         int      fill_state, xdir, ydir;
+        uint32_t ge_offset;
     } accel;
 
     uint16_t test;
@@ -90,7 +94,7 @@ typedef struct ibm8514_t {
         dispon, hdisp_on, linecountff,
         vc, linepos, oddeven, cursoron, blink, scrollcache,
         firstline, lastline, firstline_draw, lastline_draw,
-        displine, fullchange, x_add, y_add;
+        displine, fullchange;
     uint32_t ma, maback;
 
     uint8_t *vram, *changedvram, linedbl;
@@ -103,11 +107,13 @@ typedef struct ibm8514_t {
     int     disp_cntl, interlace;
     uint8_t subsys_cntl, subsys_stat;
 
-    volatile int force_busy, force_busy2;
+    atomic_int force_busy, force_busy2;
 
     int      blitter_busy;
     uint64_t blitter_time;
     uint64_t status_time;
     int pitch;
+    int ext_pitch;
+    int ext_crt_pitch;
 } ibm8514_t;
 #endif /*VIDEO_8514A_H*/

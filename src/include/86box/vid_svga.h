@@ -31,8 +31,9 @@
 #    define FLAG_NOSKEW       16
 #    define FLAG_ADDR_BY16    32
 #    define FLAG_RAMDAC_SHIFT 64
-#    define FLAG_128K_MASK    128
-
+#    define FLAG_ATI      	  128
+#    define FLAG_S3_911_16BIT 256
+#    define FLAG_512K_MASK    512
 struct monitor_t;
 
 typedef struct {

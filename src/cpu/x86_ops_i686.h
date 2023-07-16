@@ -44,6 +44,132 @@ opSYSEXIT(uint32_t fetchdat)
 }
 
 static int
+sf_fx_save_stor_common(uint32_t fetchdat, int bits)
+{
+    uint8_t   fxinst     = 0;
+    uint32_t  tag_byte;
+    unsigned  index;
+    floatx80  reg;
+
+    if (CPUID < 0x650)
+        return ILLEGAL(fetchdat);
+
+    FP_ENTER();
+
+    if (bits == 32) {
+        fetch_ea_32(fetchdat);
+    } else {
+        fetch_ea_16(fetchdat);
+    }
+
+    if (cpu_state.eaaddr & 0xf) {
+        x386_dynarec_log("Effective address %08X not on 16-byte boundary\n", cpu_state.eaaddr);
+        x86gpf(NULL, 0);
+        return cpu_state.abrt;
+    }
+
+    fxinst = (rmdat >> 3) & 7;
+
+    if ((fxinst > 1) || (cpu_mod == 3)) {
+        x86illegal();
+        return cpu_state.abrt;
+    }
+
+    FP_ENTER();
+
+    if (fxinst == 1) {
+        /* FXRSTOR */
+        fpu_state.cwd = readmemw(easeg, cpu_state.eaaddr);
+        fpu_state.swd = readmemw(easeg, cpu_state.eaaddr + 2);
+        fpu_state.tos = (fpu_state.swd >> 11) & 7;
+
+        /* always set bit 6 as '1 */
+        fpu_state.cwd = (fpu_state.cwd & ~FPU_CW_Reserved_Bits) | 0x0040;
+
+        /* Restore x87 FPU Opcode */
+        /* The lower 11 bits contain the FPU opcode, upper 5 bits are reserved */
+        fpu_state.foo = readmemw(easeg, cpu_state.eaaddr + 6) & 0x7FF;
+
+        fpu_state.fip = readmeml(easeg, cpu_state.eaaddr + 8);
+        fpu_state.fcs = readmemw(easeg, cpu_state.eaaddr + 12);
+
+        tag_byte = readmemb(easeg, cpu_state.eaaddr + 4);
+
+        fpu_state.fdp = readmeml(easeg, cpu_state.eaaddr + 16);
+        fpu_state.fds = readmemw(easeg, cpu_state.eaaddr + 20);
+
+        /* load i387 register file */
+        for (index = 0; index < 8; index++) {
+            reg.fraction = readmemq(easeg, cpu_state.eaaddr + (index * 16) + 32);
+            reg.exp      = readmemw(easeg, cpu_state.eaaddr + (index * 16) + 40);
+
+            // update tag only if it is not empty
+            FPU_save_regi_tag(reg, IS_TAG_EMPTY(index) ? X87_TAG_EMPTY : FPU_tagof(reg), index);
+        }
+
+        fpu_state.tag = unpack_FPU_TW(tag_byte);
+
+        /* check for unmasked exceptions */
+        if (fpu_state.swd & ~fpu_state.cwd & FPU_CW_Exceptions_Mask) {
+            /* set the B and ES bits in the status-word */
+            fpu_state.swd |= (FPU_SW_Summary | FPU_SW_Backward);
+        } else {
+            /* clear the B and ES bits in the status-word */
+            fpu_state.swd &= ~(FPU_SW_Summary | FPU_SW_Backward);
+        }
+
+        CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
+    } else {
+        /* FXSAVE */
+        writememw(easeg, cpu_state.eaaddr, i387_get_control_word());
+        writememw(easeg, cpu_state.eaaddr + 2, i387_get_status_word());
+        writememw(easeg, cpu_state.eaaddr + 4, pack_FPU_TW(fpu_state.tag));
+
+        /* x87 FPU Opcode (16 bits) */
+        /* The lower 11 bits contain the FPU opcode, upper 5 bits are reserved */
+        writememw(easeg, cpu_state.eaaddr + 6, fpu_state.foo);
+
+      /*
+       * x87 FPU IP Offset (32/64 bits)
+       * The contents of this field differ depending on the current
+       * addressing mode (16/32/64 bit) when the FXSAVE instruction was executed:
+       *   + 64-bit mode - 64-bit IP offset
+       *   + 32-bit mode - 32-bit IP offset
+       *   + 16-bit mode - low 16 bits are IP offset; high 16 bits are reserved.
+       * x87 CS FPU IP Selector
+       *   + 16 bit, in 16/32 bit mode only
+       */
+        writememl(easeg, cpu_state.eaaddr + 8, fpu_state.fip);
+        writememl(easeg, cpu_state.eaaddr + 12, fpu_state.fcs);
+
+      /*
+       * x87 FPU Instruction Operand (Data) Pointer Offset (32/64 bits)
+       * The contents of this field differ depending on the current
+       * addressing mode (16/32 bit) when the FXSAVE instruction was executed:
+       *   + 64-bit mode - 64-bit offset
+       *   + 32-bit mode - 32-bit offset
+       *   + 16-bit mode - low 16 bits are offset; high 16 bits are reserved.
+       * x87 DS FPU Instruction Operand (Data) Pointer Selector
+       *   + 16 bit, in 16/32 bit mode only
+       */
+        writememl(easeg, cpu_state.eaaddr + 16, fpu_state.fdp);
+        writememl(easeg, cpu_state.eaaddr + 20, fpu_state.fds);
+
+       /* store i387 register file */
+        for (index = 0; index < 8; index++) {
+            const floatx80 fp = FPU_read_regi(index);
+
+            writememq(easeg, cpu_state.eaaddr + (index * 16) + 32, fp.fraction);
+            writememw(easeg, cpu_state.eaaddr + (index * 16) + 40, fp.exp);
+        }
+
+        CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
+    }
+
+    return cpu_state.abrt;
+}
+
+static int
 fx_save_stor_common(uint32_t fetchdat, int bits)
 {
     uint8_t   fxinst     = 0;
@@ -253,12 +379,18 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 static int
 opFXSAVESTOR_a16(uint32_t fetchdat)
 {
+    if (fpu_softfloat) 
+        return sf_fx_save_stor_common(fetchdat, 16);
+
     return fx_save_stor_common(fetchdat, 16);
 }
 
 static int
 opFXSAVESTOR_a32(uint32_t fetchdat)
 {
+    if (fpu_softfloat)
+        return sf_fx_save_stor_common(fetchdat, 32);
+
     return fx_save_stor_common(fetchdat, 32);
 }
 

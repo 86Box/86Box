@@ -1092,6 +1092,11 @@ MainWindow::processMacKeyboardInput(bool down, const QKeyEvent *event)
             if (mac_iso_swap)
                 nvk = (nvk == 0x0a) ? 0x32 : 0x0a;
         }
+        // Special case for command + forward delete to send insert.
+        if ((event->nativeModifiers() & NSEventModifierFlagCommand) &&
+            ((event->nativeVirtualKey() == nvk_Delete) || event->key() == Qt::Key_Delete)) {
+            nvk = nvk_Insert; // Qt::Key_Help according to event->key()
+        }
 
         processKeyboardInput(down, nvk);
     }
@@ -1294,7 +1299,7 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
         fs_on_signal = false;
     }
 
-    if (!send_keyboard_input)
+    if (!send_keyboard_input || event->isAutoRepeat())
         return;
 
 #ifdef Q_OS_MACOS

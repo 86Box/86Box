@@ -3372,7 +3372,7 @@ s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri)
     state.base_w = s3d_tri->tws;
 
     tex_base = s3d_tri->tex_base;
-    for (uint8_t c = 9; c >= 0; c--) {
+    for (int c = 9; c >= 0; c--) {
         state.texture[c] = (uint16_t *) &virge->svga.vram[tex_base];
         if (c <= state.max_d)
             tex_base += ((1 << (c * 2)) * tex_size[(s3d_tri->cmd_set >> 5) & 7]) / 2;

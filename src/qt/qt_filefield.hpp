@@ -19,12 +19,14 @@ public:
 
     void    setFilter(const QString &filter) { filter_ = filter; }
     QString selectedFilter() const { return selectedFilter_; }
+    void    setselectedFilter(const QString &selectedFilter) { selectedFilter_ = selectedFilter; }
 
     void setCreateFile(bool createFile) { createFile_ = createFile; }
     bool createFile() { return createFile_; }
 
 signals:
     void fileSelected(const QString &fileName, bool precheck = false);
+    void fileTextEntered(const QString &fileName, bool precheck = false);
 
 private slots:
     void on_pushButton_clicked();
