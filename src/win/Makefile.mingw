@@ -242,7 +242,7 @@ PROG := 86Box
 #              Nothing should need changing from here on..              #
 #########################################################################
 VPATH := $(EXPATH) . $(CODEGEN) minitrace cpu cpu/softfloat \
-         cdrom chipset device disk disk/minivhd floppy \
+         cpu/808x cdrom chipset device disk disk/minivhd floppy \
          game machine mem printer \
          sio sound \
          sound/munt sound/munt/c_interface sound/munt/sha1 \
@@ -547,11 +547,13 @@ MAINOBJ := 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma.
 
 MEMOBJ := catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o row.o smram.o spd.o sst_flash.o
 
+CPU808XOBJ := queue.o
+
 CPUOBJ := $(DYNARECOBJ) \
           $(CGTOBJ) \
           cpu.o cpu_table.o fpu.o x86.o \
           8080.o 808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o \
-          x86seg.o x87.o x87_timings.o \
+          x86_ops_mmx.o x86seg.o x87.o x87_timings.o \
 	  f2xm1.o fpatan.o fprem.o fsincos.o fyl2x.o softfloat_poly.o softfloat.o softfloat16.o \
 	  softfloat-muladd.o softfloat-round-pack.o softfloat-specialize.o softfloatx80.o
 
@@ -773,7 +775,7 @@ ifeq ($(RTMIDI), y)
  SNDOBJ += midi_rtmidi.o
 endif
 
-OBJ := $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
+OBJ := $(MAINOBJ) $(CPU808XOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
        $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) $(MINIVHDOBJ) \
        $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) $(VOODOOOBJ) \
        $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) $(DEVBROBJ) $(MINITRACEOBJ) $(THREADOBJ)

@@ -2822,7 +2822,7 @@ xga_pos_in(uint16_t addr, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
     xga_t   *xga  = &svga->xga;
-    uint8_t ret;
+    uint8_t ret = 0xff;
 
     if (xga_has_vga) {
         switch (addr) {

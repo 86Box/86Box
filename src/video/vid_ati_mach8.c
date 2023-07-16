@@ -373,12 +373,12 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
     svga_t *svga = &mach->svga;
     int compare_mode;
     int poly_src = 0;
-	uint16_t rd_mask = dev->accel.rd_mask;
-	uint16_t wrt_mask = dev->accel.wrt_mask;
-	uint16_t dest_cmp_clr = dev->accel.color_cmp;
+    uint16_t rd_mask = dev->accel.rd_mask;
+    uint16_t wrt_mask = dev->accel.wrt_mask;
+    uint16_t dest_cmp_clr = dev->accel.color_cmp;
     int frgd_sel, bkgd_sel, mono_src;
     int compare = 0;
-    uint16_t src_dat = 0, dest_dat;
+    uint16_t src_dat = 0, dest_dat = 0;
     uint16_t old_dest_dat;
     uint16_t *vram_w = (uint16_t *) svga->vram;
     uint16_t mix = 0;
@@ -1864,9 +1864,9 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 if (mach->accel.dest_y_end >= 0x600)
                     mach->accel.dy_end |= ~0x5ff;
 
-                if (mach->accel.dy_end > mach->accel.dy_end) {
+                if (mach->accel.dy_end > mach->accel.dy_start) {
                     mach->accel.stepy = 1;
-                } else if (mach->accel.dy_end < mach->accel.dy_end) {
+                } else if (mach->accel.dy_end < mach->accel.dy_start) {
                     mach->accel.stepy = -1;
                 } else {
                     mach->accel.stepy = 0;
@@ -5178,7 +5178,6 @@ static uint8_t
 mach32_pci_read(int func, int addr, void *p)
 {
     mach_t *mach = (mach_t *) p;
-    svga_t   *svga   = &mach->svga;
     uint8_t   ret    = 0x00;
 
     switch (addr) {
@@ -5252,7 +5251,6 @@ static void
 mach32_pci_write(int func, int addr, uint8_t val, void *p)
 {
     mach_t *mach = (mach_t *) p;
-    svga_t   *svga   = &mach->svga;
 
     switch (addr) {
         case PCI_REG_COMMAND:
