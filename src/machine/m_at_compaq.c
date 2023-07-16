@@ -262,7 +262,6 @@ compaq_plasma_poll(void *p)
     uint8_t  sc;
     uint16_t ma  = (self->cga.crtc[13] | (self->cga.crtc[12] << 8)) & 0x7fff;
     uint16_t ca  = (self->cga.crtc[15] | (self->cga.crtc[14] << 8)) & 0x7fff;
-    uint16_t dat;
     uint16_t addr;
     int      drawcursor;
     int      x, c;
