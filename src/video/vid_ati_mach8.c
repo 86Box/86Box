@@ -5178,7 +5178,6 @@ static uint8_t
 mach32_pci_read(int func, int addr, void *p)
 {
     mach_t *mach = (mach_t *) p;
-    svga_t   *svga   = &mach->svga;
     uint8_t   ret    = 0x00;
 
     switch (addr) {
@@ -5252,7 +5251,6 @@ static void
 mach32_pci_write(int func, int addr, uint8_t val, void *p)
 {
     mach_t *mach = (mach_t *) p;
-    svga_t   *svga   = &mach->svga;
 
     switch (addr) {
         case PCI_REG_COMMAND:
