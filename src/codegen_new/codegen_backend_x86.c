@@ -263,7 +263,6 @@ void
 codegen_backend_init(void)
 {
     codeblock_t *block;
-    int          c;
 
     codeblock      = malloc(BLOCK_SIZE * sizeof(codeblock_t));
     codeblock_hash = malloc(HASH_SIZE * sizeof(codeblock_t *));
@@ -271,7 +270,7 @@ codegen_backend_init(void)
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
     memset(codeblock_hash, 0, HASH_SIZE * sizeof(codeblock_t *));
 
-    for (c = 0; c < BLOCK_SIZE; c++)
+    for (uint32_t c = 0; c < BLOCK_SIZE; c++)
         codeblock[c].pc = BLOCK_PC_INVALID;
 
     block_current         = 0;

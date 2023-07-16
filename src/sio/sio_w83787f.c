@@ -74,13 +74,16 @@ w83787_log(const char *fmt, ...)
 
 #define HAS_IDE_FUNCTIONALITY dev->ide_function
 
-typedef struct {
-    uint8_t  tries, regs[42];
+typedef struct w83787f_t {
+    uint8_t  tries;
+    uint8_t  regs[42];
     uint16_t reg_init;
-    int      locked, rw_locked,
-        cur_reg,
-        key, ide_function,
-        ide_start;
+    int      locked;
+    int      rw_locked;
+    int      cur_reg;
+    int      key;
+    int      ide_function;
+    int      ide_start;
     fdc_t    *fdc;
     serial_t *uart[2];
     void     *gameport;
@@ -123,8 +126,10 @@ w83787f_serial_handler(w83787f_t *dev, int uart)
     int      urs0 = !!(dev->regs[1] & (1 << uart));
     int      urs1 = !!(dev->regs[1] & (4 << uart));
     int      urs2 = !!(dev->regs[3] & (8 >> uart));
-    int      urs, irq = COM1_IRQ;
-    uint16_t addr = COM1_ADDR, enable = 1;
+    int      urs;
+    int      irq = COM1_IRQ;
+    uint16_t addr = COM1_ADDR;
+    uint16_t enable = 1;
 
     urs = (urs1 << 1) | urs0;
 
@@ -165,7 +170,8 @@ w83787f_lpt_handler(w83787f_t *dev)
 {
     int      ptras = (dev->regs[1] >> 4) & 0x03;
     int      irq   = LPT1_IRQ;
-    uint16_t addr = LPT1_ADDR, enable = 1;
+    uint16_t addr = LPT1_ADDR;
+    uint16_t enable = 1;
 
     switch (ptras) {
         case 0x00:
@@ -338,6 +344,9 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
         case 0xC:
             if (valxor & 0x20)
                 w83787f_remap(dev);
+            break;
+
+        default:
             break;
     }
 }

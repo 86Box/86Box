@@ -13,122 +13,122 @@ LANGUAGE LANG_KOREAN, SUBLANG_DEFAULT
 // Menu
 //
 
-MainMenu MENU DISCARDABLE 
+MainMenu MENU DISCARDABLE
 BEGIN
     POPUP "동작(&A)"
     BEGIN
-        MENUITEM "키보드는 캡쳐가 필요함(&K)",    IDM_ACTION_KBD_REQ_CAPTURE
-        MENUITEM "우측CTRL로 좌측ALT 입력(&R)",    IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM "키보드는 캡쳐가 필요함(&K)", IDM_ACTION_KBD_REQ_CAPTURE
+        MENUITEM "우측 CTRL로 좌측 ALT 입력(&R)", IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
-        MENUITEM "재시작(&H)...",                 IDM_ACTION_HRESET
-        MENUITEM "Ctrl+Alt+Del(&C)\tCtrl+F12",     IDM_ACTION_RESET_CAD
+        MENUITEM "재시작(&H)...", IDM_ACTION_HRESET
+        MENUITEM "Ctrl+Alt+Del(&C)\tCtrl+F12", IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
-    MENUITEM "Ctrl+Alt+Esc(&E)",        IDM_ACTION_CTRL_ALT_ESC
+    MENUITEM "Ctrl+Alt+Esc(&E)", IDM_ACTION_CTRL_ALT_ESC
         MENUITEM SEPARATOR
-        MENUITEM "일시정지(&P)",                      IDM_ACTION_PAUSE
+        MENUITEM "일시정지(&P)", IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
-        MENUITEM "끝내기(&X)...",                       IDM_ACTION_EXIT
+        MENUITEM "끝내기(&X)...", IDM_ACTION_EXIT
     END
     POPUP "표시(&V)"
     BEGIN
-        MENUITEM "상태 바 숨기기(&H)",        IDM_VID_HIDE_STATUS_BAR
-        MENUITEM "Hide &toolbar",        IDM_VID_HIDE_TOOLBAR
+        MENUITEM "상태 바 숨기기(&H)", IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "툴바 숨기기", IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
-        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
-        MENUITEM "창 크기 조절 가능하게 하기(&R)",          IDM_VID_RESIZE
-        MENUITEM "창 크기와 위치를 기억하기(&E)",  IDM_VID_REMEMBER
+        MENUITEM "기본 모니터가 아닌 모니터 표시", IDM_VID_MONITORS
+        MENUITEM "창 크기 조절 가능하게 하기(&R)", IDM_VID_RESIZE
+        MENUITEM "창 크기와 위치를 기억하기(&E)", IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "렌더러(&N)"
         BEGIN
-            MENUITEM "SDL (소프트웨어)(&S)",         IDM_VID_SDL_SW
-            MENUITEM "SDL (하드웨어)(&H)",         IDM_VID_SDL_HW
-            MENUITEM "SDL (OpenGL)(&O)",           IDM_VID_SDL_OPENGL
-            MENUITEM "OpenGL (3.0 코어)(&G)",      IDM_VID_OPENGL_CORE
+            MENUITEM "SDL (소프트웨어)(&S)", IDM_VID_SDL_SW
+            MENUITEM "SDL (하드웨어)(&H)", IDM_VID_SDL_HW
+            MENUITEM "SDL (OpenGL)(&O)", IDM_VID_SDL_OPENGL
+            MENUITEM "OpenGL (3.0 코어)(&G)", IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
-            MENUITEM "VNC(&V)",                    IDM_VID_VNC
+            MENUITEM "VNC(&V)", IDM_VID_VNC
 #endif
         END
         MENUITEM SEPARATOR
-        MENUITEM "창 크기 지정하기...",          IDM_VID_SPECIFY_DIM
-        MENUITEM "화면 비율을 4:3으로 맞추기(&O)",    IDM_VID_FORCE43
+        MENUITEM "창 크기 지정하기...", IDM_VID_SPECIFY_DIM
+        MENUITEM "화면 비율을 4:3으로 맞추기(&O)", IDM_VID_FORCE43
         POPUP "창 표시 배율(&W)"
         BEGIN
-            MENUITEM "0.5배(&0)",                   IDM_VID_SCALE_1X
-            MENUITEM "1배(&1)",                     IDM_VID_SCALE_2X
-            MENUITEM "1.5배(&5)",                   IDM_VID_SCALE_3X
-            MENUITEM "2배(&2)",                     IDM_VID_SCALE_4X
-            MENUITEM "&3배",                        IDM_VID_SCALE_5X
-            MENUITEM "&4배",                        IDM_VID_SCALE_6X
-            MENUITEM "&5배",                        IDM_VID_SCALE_7X
-            MENUITEM "&6배",                        IDM_VID_SCALE_8X
-            MENUITEM "&7배",                        IDM_VID_SCALE_9X
-            MENUITEM "&8배",                        IDM_VID_SCALE_10X
+            MENUITEM "0.5배(&0)", IDM_VID_SCALE_1X
+            MENUITEM "1배(&1)", IDM_VID_SCALE_2X
+            MENUITEM "1.5배(&5)", IDM_VID_SCALE_3X
+            MENUITEM "2배(&2)", IDM_VID_SCALE_4X
+            MENUITEM "&3배", IDM_VID_SCALE_5X
+            MENUITEM "&4배", IDM_VID_SCALE_6X
+            MENUITEM "&5배", IDM_VID_SCALE_7X
+            MENUITEM "&6배", IDM_VID_SCALE_8X
+            MENUITEM "&7배", IDM_VID_SCALE_9X
+            MENUITEM "&8배", IDM_VID_SCALE_10X
         END
         POPUP "필터 형식"
         BEGIN
-            MENUITEM "최근방 이웃 보간법(&N)",                 IDM_VID_FILTER_NEAREST
-            MENUITEM "선형 보간법(&L)",                  IDM_VID_FILTER_LINEAR
+            MENUITEM "최근방 이웃 보간법(&N)", IDM_VID_FILTER_NEAREST
+            MENUITEM "선형 보간법(&L)", IDM_VID_FILTER_LINEAR
         END
-        MENUITEM "HiDPI 스케일링(&D)",              IDM_VID_HIDPI
+        MENUITEM "HiDPI 스케일링(&D)", IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "전체 화면(&F)\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
+        MENUITEM "전체 화면(&F)\tCtrl+Alt+PgUp", IDM_VID_FULLSCREEN
         POPUP "전체 화면 비율(&S)"
         BEGIN
-            MENUITEM "전체 화면으로 확대(&F)",        IDM_VID_FS_FULL
-            MENUITEM "4:3(&4)",                        IDM_VID_FS_43
+            MENUITEM "전체 화면으로 확대(&F)", IDM_VID_FS_FULL
+            MENUITEM "4:3(&4)", IDM_VID_FS_43
             MENUITEM "정사각형 픽셀 (비율 유지)(&S)", IDM_VID_FS_KEEPRATIO
-            MENUITEM "정수배 확대(&I)",              IDM_VID_FS_INT
+            MENUITEM "정수배 확대(&I)", IDM_VID_FS_INT
         END
         POPUP "E&GA/(S)VGA 설정"
         BEGIN
-            MENUITEM "색상 반전된 VGA 모니터(&I)",   IDM_VID_INVERT
+            MENUITEM "색상 반전된 VGA 모니터(&I)", IDM_VID_INVERT
             POPUP "VGA 화면 종류(&T)"
             BEGIN
-                MENUITEM "RGB 천연색(&C)",         IDM_VID_GRAY_RGB
-                MENUITEM "RGB 회색조(&R)",   IDM_VID_GRAY_MONO
-                MENUITEM "주황색 모니터(&A)",       IDM_VID_GRAY_AMBER
-                MENUITEM "녹색 모니터(&G)",       IDM_VID_GRAY_GREEN
-                MENUITEM "흰색 모니터(&W)",       IDM_VID_GRAY_WHITE
+                MENUITEM "RGB 천연색(&C)", IDM_VID_GRAY_RGB
+                MENUITEM "RGB 회색조(&R)", IDM_VID_GRAY_MONO
+                MENUITEM "주황색 모니터(&A)", IDM_VID_GRAY_AMBER
+                MENUITEM "녹색 모니터(&G)", IDM_VID_GRAY_GREEN
+                MENUITEM "흰색 모니터(&W)", IDM_VID_GRAY_WHITE
             END
             POPUP "회색조 표현방식(&C)"
             BEGIN
-                MENUITEM "BT601 (NTSC/PAL)(&6)",   IDM_VID_GRAYCT_601
-                MENUITEM "BT709 (HDTV)(&7)",       IDM_VID_GRAYCT_709
-                MENUITEM "평균값(&A)",            IDM_VID_GRAYCT_AVE
+                MENUITEM "BT601 (NTSC/PAL)(&6)", IDM_VID_GRAYCT_601
+                MENUITEM "BT709 (HDTV)(&7)", IDM_VID_GRAYCT_709
+                MENUITEM "평균값(&A)", IDM_VID_GRAYCT_AVE
             END
         END
         MENUITEM SEPARATOR
-        MENUITEM "CGA/PCjr/Tandy/EGA/(S)VGA 오버스캔(&G)",     IDM_VID_OVERSCAN
+        MENUITEM "CGA/PCjr/Tandy/EGA/(S)VGA 오버스캔(&G)", IDM_VID_OVERSCAN
         MENUITEM "흑백 표시를 위한 밝기 조정(&M)", IDM_VID_CGACON
     END
-    MENUITEM "미디어(&M)",                IDM_MEDIA
+    MENUITEM "미디어(&M)", IDM_MEDIA
     POPUP "도구(&T)"
     BEGIN
-        MENUITEM "설정(&S)...",                IDM_CONFIG
-        MENUITEM "상태 바 아이콘 갱신하기(&U)",    IDM_UPDATE_ICONS
+        MENUITEM "설정(&S)...", IDM_CONFIG
+        MENUITEM "상태 바 아이콘 갱신하기(&U)", IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "스크린샷 찍기(&C)\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM "스크린샷 찍기(&C)\tCtrl+F11", IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
-        MENUITEM "환경설정(&P)...",    IDM_PREFERENCES
+        MENUITEM "환경설정(&P)...", IDM_PREFERENCES
 #ifdef DISCORD
         MENUITEM "디스코드 연동 활성화하기(&D)", IDM_DISCORD
 #endif
         MENUITEM SEPARATOR
-        MENUITEM "음량 증폭(&G)...",              IDM_SND_GAIN
+        MENUITEM "음량 증폭(&G)...", IDM_SND_GAIN
 #ifdef MTR_ENABLED
         MENUITEM SEPARATOR
-        MENUITEM "추적 시작하기\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
-        MENUITEM "추적 끝내기\tCtrl+T",           IDM_ACTION_END_TRACE
+        MENUITEM "추적 시작하기\tCtrl+T", IDM_ACTION_BEGIN_TRACE
+        MENUITEM "추적 끝내기\tCtrl+T", IDM_ACTION_END_TRACE
 #endif
     END
     POPUP "도움말(&H)"
     BEGIN
-        MENUITEM "문서(&D)...",           IDM_DOCS
-        MENUITEM "86Box에 대해(&A)...",        IDM_ABOUT
+        MENUITEM "문서(&D)...", IDM_DOCS
+        MENUITEM "86Box에 대해(&A)...", IDM_ABOUT
     END
 END
 
-StatusBarMenu MENU DISCARDABLE 
+StatusBarMenu MENU DISCARDABLE
 BEGIN
     MENUITEM SEPARATOR
 END
@@ -137,17 +137,17 @@ CassetteSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "새 이미지(&N)...",                IDM_CASSETTE_IMAGE_NEW
+        MENUITEM "새 이미지(&N)...", IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "이미지 불러오기(&E)...",                IDM_CASSETTE_IMAGE_EXISTING
-        MENUITEM "이미지 불러오기 (쓰기방지)(&W)...",        IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM "이미지 불러오기(&E)...", IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "이미지 불러오기 (쓰기방지)(&W)...", IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "녹음하기(&R)",                    IDM_CASSETTE_RECORD
-        MENUITEM "재생하기(&P)",                    IDM_CASSETTE_PLAY
-        MENUITEM "맨앞으로 되감기(&R)",                IDM_CASSETTE_REWIND
-        MENUITEM "맨끝으로 빨리감기(&F)",                IDM_CASSETTE_FAST_FORWARD
+        MENUITEM "녹음하기(&R)", IDM_CASSETTE_RECORD
+        MENUITEM "재생하기(&P)", IDM_CASSETTE_PLAY
+        MENUITEM "맨앞으로 되감기(&R)", IDM_CASSETTE_REWIND
+        MENUITEM "맨끝으로 빨리감기(&F)", IDM_CASSETTE_FAST_FORWARD
         MENUITEM SEPARATOR
-        MENUITEM "꺼내기(&J)",                    IDM_CASSETTE_EJECT
+        MENUITEM "꺼내기(&J)", IDM_CASSETTE_EJECT
     END
 END
 
@@ -155,9 +155,9 @@ CartridgeSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "이미지(&I)...",                IDM_CARTRIDGE_IMAGE
+        MENUITEM "이미지(&I)...", IDM_CARTRIDGE_IMAGE
         MENUITEM SEPARATOR
-        MENUITEM "꺼내기(&J)",                    IDM_CARTRIDGE_EJECT
+        MENUITEM "꺼내기(&J)", IDM_CARTRIDGE_EJECT
     END
 END
 
@@ -165,14 +165,14 @@ FloppySubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "새 이미지(&N)...",                IDM_FLOPPY_IMAGE_NEW
+        MENUITEM "새 이미지(&N)...", IDM_FLOPPY_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "이미지 불러오기(&E)...",                IDM_FLOPPY_IMAGE_EXISTING
-        MENUITEM "이미지 불러오기 (쓰기방지)(&W)...",        IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM "이미지 불러오기(&E)...", IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "이미지 불러오기 (쓰기방지)(&W)...", IDM_FLOPPY_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "86F로 보내기(&X)...",            IDM_FLOPPY_EXPORT_TO_86F
+        MENUITEM "86F로 보내기(&X)...", IDM_FLOPPY_EXPORT_TO_86F
         MENUITEM SEPARATOR
-        MENUITEM "꺼내기(&J)",                    IDM_FLOPPY_EJECT
+        MENUITEM "꺼내기(&J)", IDM_FLOPPY_EJECT
     END
 END
 
@@ -180,13 +180,13 @@ CdromSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "음소거(&M)",                    IDM_CDROM_MUTE
+        MENUITEM "음소거(&M)", IDM_CDROM_MUTE
         MENUITEM SEPARATOR
-        MENUITEM "비었음(&M)",                    IDM_CDROM_EMPTY
-        MENUITEM "이전 이미지 다시 불러오기(&R)",            IDM_CDROM_RELOAD
+        MENUITEM "비었음(&M)", IDM_CDROM_EMPTY
+        MENUITEM "이전 이미지 다시 불러오기(&R)", IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "이미지(&I)...",                    IDM_CDROM_IMAGE
-        MENUITEM "폴더(&F)...",                    IDM_CDROM_DIR
+        MENUITEM "이미지(&I)...", IDM_CDROM_IMAGE
+        MENUITEM "폴더(&F)...", IDM_CDROM_DIR
     END
 END
 
@@ -194,13 +194,13 @@ ZIPSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "새 이미지(&N)...",                IDM_ZIP_IMAGE_NEW
+        MENUITEM "새 이미지(&N)...", IDM_ZIP_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "이미지 불러오기(&E)...",                IDM_ZIP_IMAGE_EXISTING
-        MENUITEM "이미지 불러오기 (쓰기방지)(&W)...",        IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM "이미지 불러오기(&E)...", IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "이미지 불러오기 (쓰기방지)(&W)...", IDM_ZIP_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "꺼내기(&J)",                    IDM_ZIP_EJECT
-        MENUITEM "이전 이미지 다시 불러오기(&R)",            IDM_ZIP_RELOAD
+        MENUITEM "꺼내기(&J)", IDM_ZIP_EJECT
+        MENUITEM "이전 이미지 다시 불러오기(&R)", IDM_ZIP_RELOAD
     END
 END
 
@@ -208,13 +208,13 @@ MOSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "새 이미지(&N)...",                IDM_MO_IMAGE_NEW
+        MENUITEM "새 이미지(&N)...", IDM_MO_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "이미지 불러오기(&E)...",                IDM_MO_IMAGE_EXISTING
-        MENUITEM "이미지 불러오기 (쓰기방지)(&W)...",        IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM "이미지 불러오기(&E)...", IDM_MO_IMAGE_EXISTING
+        MENUITEM "이미지 불러오기 (쓰기방지)(&W)...", IDM_MO_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "꺼내기(&J)",                    IDM_MO_EJECT
-        MENUITEM "이전 이미지 다시 불러오기(&R)",            IDM_MO_RELOAD
+        MENUITEM "꺼내기(&J)", IDM_MO_EJECT
+        MENUITEM "이전 이미지 다시 불러오기(&R)", IDM_MO_RELOAD
     END
 END
 
@@ -240,150 +240,150 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES        "환경설정"
-#define STR_SND_GAIN        "음량 증폭"
-#define STR_NEW_FLOPPY        "새 이미지"
+#define STR_PREFERENCES   "환경설정"
+#define STR_SND_GAIN      "음량 증폭"
+#define STR_NEW_FLOPPY    "새 이미지"
 #define STR_CONFIG        "설정"
-#define STR_SPECIFY_DIM        "창 크기 지정"
+#define STR_SPECIFY_DIM   "창 크기 지정"
 
 #define STR_OK            "확인"
 #define STR_CANCEL        "취소"
 #define STR_GLOBAL        "이 설정들을 전역 기본값으로 저장하기(&G)"
-#define STR_DEFAULT        "기본값(&D)"
-#define STR_LANGUAGE        "언어:"
-#define STR_ICONSET        "아이콘셋:"
+#define STR_DEFAULT       "기본값(&D)"
+#define STR_LANGUAGE      "언어:"
+#define STR_ICONSET       "아이콘셋:"
 
-#define STR_GAIN        "증가값"
+#define STR_GAIN          "증가값"
 
-#define STR_FILE_NAME        "파일명:"
-#define STR_DISK_SIZE        "디스크 용량:"
-#define STR_RPM_MODE        "RPM 모드:"
-#define STR_PROGRESS        "진행:"
+#define STR_FILE_NAME     "파일명:"
+#define STR_DISK_SIZE     "디스크 용량:"
+#define STR_RPM_MODE      "RPM 모드:"
+#define STR_PROGRESS      "진행:"
 
-#define STR_WIDTH        "가로:"
+#define STR_WIDTH         "가로:"
 #define STR_HEIGHT        "세로:"
-#define STR_LOCK_TO_SIZE    "크기 고정"
+#define STR_LOCK_TO_SIZE  "크기 고정"
 
-#define STR_MACHINE_TYPE    "머신 종류:"
-#define STR_MACHINE        "기종:"
-#define STR_CONFIGURE        "설정"
-#define STR_CPU_TYPE        "CPU 종류:"
-#define STR_CPU_SPEED        "속도:"
-#define STR_FPU            "FPU:"
-#define STR_WAIT_STATES        "대기 상태:"
+#define STR_MACHINE_TYPE  "머신 종류:"
+#define STR_MACHINE       "기종:"
+#define STR_CONFIGURE     "설정"
+#define STR_CPU_TYPE      "CPU 종류:"
+#define STR_CPU_SPEED     "속도:"
+#define STR_FPU           "FPU:"
+#define STR_WAIT_STATES   "대기 상태:"
 #define STR_MB            "MB"
 #define STR_MEMORY        "메모리:"
-#define STR_TIME_SYNC        "시간 동기화"
-#define STR_DISABLED        "사용하지 않음"
-#define STR_ENABLED_LOCAL    "사용 (현지 시간)"
-#define STR_ENABLED_UTC        "사용 (UTC)"
-#define STR_DYNAREC        "동적 재컴파일"
+#define STR_TIME_SYNC     "시간 동기화"
+#define STR_DISABLED      "사용하지 않음"
+#define STR_ENABLED_LOCAL "사용 (현지 시간)"
+#define STR_ENABLED_UTC   "사용 (UTC)"
+#define STR_DYNAREC       "동적 재컴파일"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
-#define STR_VIDEO        "비디오 카드:"
-#define STR_VIDEO_2        "비디오 카드 2:"
+#define STR_VIDEO         "비디오 카드:"
+#define STR_VIDEO_2       "비디오 카드 2:"
 #define STR_VOODOO        "Voodoo 그래픽"
-#define STR_IBM8514        "IBM 8514/a 그래픽"
-#define STR_XGA            "XGA 그래픽"
+#define STR_IBM8514       "IBM 8514/a 그래픽"
+#define STR_XGA           "XGA 그래픽"
 
-#define STR_MOUSE        "마우스:"
-#define STR_JOYSTICK        "조이스틱:"
-#define STR_JOY1        "조이스틱 1..."
-#define STR_JOY2        "조이스틱 2..."
-#define STR_JOY3        "조이스틱 3..."
-#define STR_JOY4        "조이스틱 4..."
+#define STR_MOUSE         "마우스:"
+#define STR_JOYSTICK      "조이스틱:"
+#define STR_JOY1          "조이스틱 1..."
+#define STR_JOY2          "조이스틱 2..."
+#define STR_JOY3          "조이스틱 3..."
+#define STR_JOY4          "조이스틱 4..."
 
 #define STR_SOUND1        "사운드 카드 1:"
 #define STR_SOUND2        "사운드 카드 2:"
 #define STR_SOUND3        "사운드 카드 3:"
 #define STR_SOUND4        "사운드 카드 4:"
-#define STR_MIDI_OUT        "MIDI 출력 장치:"
-#define STR_MIDI_IN        "MIDI 입력 장치:"
+#define STR_MIDI_OUT      "MIDI 출력 장치:"
+#define STR_MIDI_IN       "MIDI 입력 장치:"
 #define STR_MPU401        "MPU-401 단독 사용"
-#define STR_FLOAT        "FLOAT32 사운드 사용"
-#define STR_FM_DRIVER        "FM 신디사이저 드라이버"
-#define STR_FM_DRV_NUKED    "Nuked (더 정확한)"
-#define STR_FM_DRV_YMFM        "YMFM (더 빠르게)"
+#define STR_FLOAT         "FLOAT32 사운드 사용"
+#define STR_FM_DRIVER     "FM 신디사이저 드라이버"
+#define STR_FM_DRV_NUKED  "Nuked (더 정확한)"
+#define STR_FM_DRV_YMFM   "YMFM (더 빠르게)"
 
-#define STR_NET_TYPE    "네트워크 종류:"
-#define STR_PCAP        "PCap 장치:"
-#define STR_NET            "네트워크 어댑터:"
-#define STR_NET1        "Network card 1:"
-#define STR_NET2        "Network card 2:"
-#define STR_NET3        "Network card 3:"
-#define STR_NET4        "Network card 4:"
+#define STR_NET_TYPE      "네트워크 종류:"
+#define STR_PCAP          "PCap 장치:"
+#define STR_NET           "네트워크 어댑터:"
+#define STR_NET1          "네트워크 카드 1:"
+#define STR_NET2          "네트워크 카드 2:"
+#define STR_NET3          "네트워크 카드 3:"
+#define STR_NET4          "네트워크 카드 4:"
 
-#define STR_COM1        "COM1 장치:"
-#define STR_COM2        "COM2 장치:"
-#define STR_COM3        "COM3 장치:"
-#define STR_COM4        "COM4 장치:"
-#define STR_LPT1        "LPT1 장치:"
-#define STR_LPT2        "LPT2 장치:"
-#define STR_LPT3        "LPT3 장치:"
-#define STR_LPT4        "LPT4 장치:"
-#define STR_SERIAL1        "직렬 포트 1"
-#define STR_SERIAL2        "직렬 포트 2"
-#define STR_SERIAL3        "직렬 포트 3"
-#define STR_SERIAL4        "직렬 포트 4"
-#define STR_PARALLEL1        "병렬 포트 1"
-#define STR_PARALLEL2        "병렬 포트 2"
-#define STR_PARALLEL3        "병렬 포트 3"
-#define STR_PARALLEL4        "병렬 포트 4"
-#define STR_SERIAL_PASS1    "Serial port passthrough 1"
-#define STR_SERIAL_PASS2    "Serial port passthrough 2"
-#define STR_SERIAL_PASS3    "Serial port passthrough 3"
-#define STR_SERIAL_PASS4    "Serial port passthrough 4"
+#define STR_COM1          "COM1 장치:"
+#define STR_COM2          "COM2 장치:"
+#define STR_COM3          "COM3 장치:"
+#define STR_COM4          "COM4 장치:"
+#define STR_LPT1          "LPT1 장치:"
+#define STR_LPT2          "LPT2 장치:"
+#define STR_LPT3          "LPT3 장치:"
+#define STR_LPT4          "LPT4 장치:"
+#define STR_SERIAL1       "직렬 포트 1"
+#define STR_SERIAL2       "직렬 포트 2"
+#define STR_SERIAL3       "직렬 포트 3"
+#define STR_SERIAL4       "직렬 포트 4"
+#define STR_PARALLEL1     "병렬 포트 1"
+#define STR_PARALLEL2     "병렬 포트 2"
+#define STR_PARALLEL3     "병렬 포트 3"
+#define STR_PARALLEL4     "병렬 포트 4"
+#define STR_SERIAL_PASS1  "직렬 포트 패스쓰루 1"
+#define STR_SERIAL_PASS2  "직렬 포트 패스쓰루 2"
+#define STR_SERIAL_PASS3  "직렬 포트 패스쓰루 3"
+#define STR_SERIAL_PASS4  "직렬 포트 패스쓰루 4"
 
-#define STR_HDC            "HD 컨트롤러:"
-#define STR_FDC            "FD 컨트롤러:"
-#define STR_IDE_TER        "제3의 IDE 컨트롤러"
-#define STR_IDE_QUA        "제4의 IDE 컨트롤러"
-#define STR_SCSI        "SCSI"
+#define STR_HDC           "HD 컨트롤러:"
+#define STR_FDC           "FD 컨트롤러:"
+#define STR_IDE_TER       "제3의 IDE 컨트롤러"
+#define STR_IDE_QUA       "제4의 IDE 컨트롤러"
+#define STR_SCSI          "SCSI"
 #define STR_SCSI_1        "컨트롤러 1:"
 #define STR_SCSI_2        "컨트롤러 2:"
 #define STR_SCSI_3        "컨트롤러 3:"
 #define STR_SCSI_4        "컨트롤러 4:"
-#define STR_CASSETTE        "카세트 테이프"
+#define STR_CASSETTE      "카세트 테이프"
 
-#define STR_HDD            "하드 디스크:"
-#define STR_NEW            "새로 만들기(&N)..."
-#define STR_EXISTING        "불러오기(&E)..."
+#define STR_HDD           "하드 디스크:"
+#define STR_NEW           "새로 만들기(&N)..."
+#define STR_EXISTING      "불러오기(&E)..."
 #define STR_REMOVE        "목록에서 제거(&R)"
-#define STR_BUS            "버스:"
-#define STR_CHANNEL        "채널:"
+#define STR_BUS           "버스:"
+#define STR_CHANNEL       "채널:"
 #define STR_ID            "ID:"
-#define STR_SPEED        "Speed:"
+#define STR_SPEED         "Speed:"
 
-#define STR_SPECIFY        "열기(&S)..."
-#define STR_SECTORS        "섹터:"
-#define STR_HEADS        "헤드:"
-#define STR_CYLS        "실린더:"
-#define STR_SIZE_MB        "용량(MB):"
-#define STR_TYPE        "형식:"
-#define STR_IMG_FORMAT        "이미지 포맷:"
-#define STR_BLOCK_SIZE        "블록 크기:"
+#define STR_SPECIFY       "열기(&S)..."
+#define STR_SECTORS       "섹터:"
+#define STR_HEADS         "헤드:"
+#define STR_CYLS          "실린더:"
+#define STR_SIZE_MB       "용량(MB):"
+#define STR_TYPE          "형식:"
+#define STR_IMG_FORMAT    "이미지 포맷:"
+#define STR_BLOCK_SIZE    "블록 크기:"
 
-#define STR_FLOPPY_DRIVES    "플로피 드라이브:"
-#define STR_TURBO        "고속 동작"
-#define STR_CHECKBPB        "BPB 확인"
-#define STR_CDROM_DRIVES    "CD-ROM 드라이브:"
-#define STR_CD_SPEED        "속도:"
-#define STR_EARLY        "이전 드라이브"
+#define STR_FLOPPY_DRIVES "플로피 드라이브:"
+#define STR_TURBO         "고속 동작"
+#define STR_CHECKBPB      "BPB 확인"
+#define STR_CDROM_DRIVES  "CD-ROM 드라이브:"
+#define STR_CD_SPEED      "속도:"
 
-#define STR_MO_DRIVES        "광자기 드라이브:"
-#define STR_ZIP_DRIVES        "ZIP 드라이브:"
-#define STR_250            "ZIP 250"
+#define STR_MO_DRIVES     "광자기 드라이브:"
+#define STR_ZIP_DRIVES    "ZIP 드라이브:"
+#define STR_250           "ZIP 250"
 
 #define STR_ISARTC        "ISA RTC 카드:"
 #define STR_ISAMEM        "ISA 메모리 확장 카드"
-#define STR_ISAMEM_1        "카드 1:"
-#define STR_ISAMEM_2        "카드 2:"
-#define STR_ISAMEM_3        "카드 3:"
-#define STR_ISAMEM_4        "카드 4:"
+#define STR_ISAMEM_1      "카드 1:"
+#define STR_ISAMEM_2      "카드 2:"
+#define STR_ISAMEM_3      "카드 3:"
+#define STR_ISAMEM_4      "카드 4:"
 #define STR_BUGGER        "ISABugger 장치"
-#define STR_POSTCARD        "POST 카드"
+#define STR_POSTCARD      "POST 카드"
 
-#define FONT_SIZE        9
-#define FONT_NAME        "Malgun Gothic"
+#define FONT_SIZE         9
+#define FONT_NAME         "Malgun Gothic"
 
 #include "dialogs.rc"
 
@@ -392,12 +392,12 @@ END
 // String Table
 //
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
-    2048    "86Box"
+    2048        "86Box"
     IDS_2049    "오류"
     IDS_2050    "치명적인 오류"
-    IDS_2051    " - PAUSED"
+    IDS_2051    " - 일시중지"
     IDS_2052    "Ctrl+Alt+PgDn 키를 누르면 창 모드로 전환합니다."
     IDS_2053    "속도"
     IDS_2054    "ZIP %03i %i (%s): %ls"
@@ -412,7 +412,7 @@ BEGIN
     IDS_2063    "roms/machines 디렉토리에 필요한 롬파일이 없어 기종 ""%hs""을(를) 사용할 수 없습니다. 사용 가능한 기종으로 변경합니다."
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2064    "roms/video 디렉토리에 필요한 롬파일이 없어 비디오 카드 ""%hs""을(를) 사용할 수 없습니다. 사용 가능한 기종으로 변경합니다."
     IDS_2065    "기종"
@@ -432,7 +432,7 @@ BEGIN
     IDS_2079    "F12+F8키 또는 가운데 버튼을 클릭하면 마우스를 해제합니다"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2080    "FluidSynth를 초기화할 수 없습니다"
     IDS_2081    "버스"
@@ -537,14 +537,16 @@ BEGIN
     IDS_2159    "재시작"
     IDS_2160    "ACPI 종료"
     IDS_2161    "설정"
-    IDS_2162    "이전 드라이브"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
-    IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+    IDS_2166    "두번째 비디오카드 ""%hs""는 roms/video 디렉토리에서 ROM이 누락되어 사용할 수 없습니다. 두번째 비디오 카드를 비활성화 합니다."
+    IDS_2167    "Failed to initialize network driver"
+    IDS_2168    "The network configuration will be switched to the null driver"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_4096    "하드 디스크 (%s)"
     IDS_4097    "%01i:%01i"
@@ -643,7 +645,7 @@ BEGIN
 
     IDS_7168    "(시스템 기본값)"
 END
-#define IDS_LANG_ENUS    IDS_7168
+#define IDS_LANG_ENUS IDS_7168
 
 // Korean resources
 /////////////////////////////////////////////////////////////////////////////

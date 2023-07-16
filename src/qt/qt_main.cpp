@@ -86,8 +86,10 @@ void qt_set_sequence_auto_mnemonic(bool b);
 void
 main_thread_fn()
 {
-    uint64_t old_time, new_time;
-    int      drawits, frames;
+    uint64_t old_time;
+    uint64_t new_time;
+    int      drawits;
+    int      frames;
 
     QThread::currentThread()->setPriority(QThread::HighestPriority);
     framecountx = 0;
@@ -138,7 +140,11 @@ main_thread_fn()
     }
 
     is_quit = 1;
-    QTimer::singleShot(0, QApplication::instance(), []() { QApplication::instance()->quit(); });
+    if (gfxcard[1]) {
+        ui_deinit_monitor(1);
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+    QTimer::singleShot(0, QApplication::instance(), []() { QApplication::processEvents(); QApplication::instance()->quit(); });
 }
 
 static std::thread *main_thread;

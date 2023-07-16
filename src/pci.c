@@ -34,9 +34,12 @@
 #include <86box/dma.h>
 #include <86box/pci.h>
 #include <86box/keyboard.h>
+#include <86box/plat_unused.h>
 
-typedef struct {
-    uint8_t bus, id, type;
+typedef struct pci_card_t {
+    uint8_t bus;
+    uint8_t id;
+    uint8_t type;
     uint8_t irq_routing[4];
 
     void *priv;
@@ -44,30 +47,40 @@ typedef struct {
     uint8_t (*read)(int func, int addr, void *priv);
 } pci_card_t;
 
-typedef struct {
+typedef struct pci_mirq_t {
     uint8_t enabled;
     uint8_t irq_line;
 } pci_mirq_t;
 
-int pci_burst_time, agp_burst_time,
-    pci_nonburst_time, agp_nonburst_time;
+int pci_burst_time;
+int agp_burst_time;
+int pci_nonburst_time;
+int agp_nonburst_time;
+int pci_take_over_io;
+
+uint32_t pci_base = 0xc000;
+uint32_t pci_size = 0x1000;
 
 static pci_card_t pci_cards[32];
-static uint8_t    pci_pmc = 0, last_pci_card = 0, last_normal_pci_card = 0, last_pci_bus = 1;
-static uint8_t    pci_card_to_slot_mapping[256][32], pci_bus_number_to_index_mapping[256];
-static uint8_t    pci_irqs[16], pci_irq_level[16];
+static uint8_t    pci_pmc = 0;
+static uint8_t    last_pci_card = 0;
+static uint8_t    last_normal_pci_card = 0;
+static uint8_t    last_pci_bus = 1;
+static uint8_t    pci_card_to_slot_mapping[256][32];
+static uint8_t    pci_bus_number_to_index_mapping[256];
+static uint8_t    pci_irqs[16];
+static uint8_t    pci_irq_level[16];
 static uint64_t   pci_irq_hold[16];
 static pci_mirq_t pci_mirqs[8];
-static int        pci_type,
-                  pci_switch,
-                  pci_index,
-                  pci_func,
-                  pci_card,
-                  pci_bus,
-                  pci_enable,
-                  pci_key;
+static int        pci_type;
+static int        pci_switch;
+static int        pci_index;
+static int        pci_func;
+static int        pci_card;
+static int        pci_bus;
+static int        pci_enable;
+static int        pci_key;
 static int        trc_reg = 0;
-static uint32_t   pci_base = 0xc000, pci_size = 0x1000;
 
 static void pci_reset_regs(void);
 
@@ -92,14 +105,12 @@ pci_log(const char *fmt, ...)
 static void
 pci_clear_slot(int card)
 {
-    int i;
-
     pci_card_to_slot_mapping[pci_cards[card].bus][pci_cards[card].id] = 0xff;
 
     pci_cards[card].id   = 0xff;
     pci_cards[card].type = 0xff;
 
-    for (i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 4; i++)
         pci_cards[card].irq_routing[i] = 0;
 
     pci_cards[card].read  = NULL;
@@ -110,14 +121,14 @@ pci_clear_slot(int card)
 void
 pci_relocate_slot(int type, int new_slot)
 {
-    int     i, card = -1;
+    int     card = -1;
     int     old_slot;
     uint8_t mapping;
 
     if ((new_slot < 0) || (new_slot > 31))
         return;
 
-    for (i = 0; i < 32; i++) {
+    for (uint8_t i = 0; i < 32; i++) {
         if ((pci_cards[i].bus == 0) && (pci_cards[i].type == type)) {
             card = i;
             break;
@@ -135,7 +146,7 @@ pci_relocate_slot(int type, int new_slot)
 }
 
 static void
-pci_cf8_write(uint16_t port, uint32_t val, void *priv)
+pci_cf8_write(UNUSED(uint16_t port), uint32_t val, UNUSED(void *priv))
 {
     pci_log("cf8 write: %08X\n", val);
     pci_index  = val & 0xff;
@@ -146,13 +157,13 @@ pci_cf8_write(uint16_t port, uint32_t val, void *priv)
 }
 
 static uint32_t
-pci_cf8_read(uint16_t port, void *priv)
+pci_cf8_read(UNUSED(uint16_t port), UNUSED(void *priv))
 {
     return pci_index | (pci_func << 8) | (pci_card << 11) | (pci_bus << 16) | (pci_enable << 31);
 }
 
 static void
-pci_write(uint16_t port, uint8_t val, void *priv)
+pci_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 {
     uint8_t slot = 0;
 
@@ -185,11 +196,14 @@ pci_write(uint16_t port, uint8_t val, void *priv)
 #endif
 
             break;
+
+        default:
+            break;
     }
 }
 
 static void
-pci_writew(uint16_t port, uint16_t val, void *priv)
+pci_writew(uint16_t port, uint16_t val, UNUSED(void *priv))
 {
     uint8_t slot = 0;
 
@@ -223,11 +237,14 @@ pci_writew(uint16_t port, uint16_t val, void *priv)
 #endif
 
             break;
+
+        default:
+            break;
     }
 }
 
 static void
-pci_writel(uint16_t port, uint32_t val, void *priv)
+pci_writel(uint16_t port, uint32_t val, UNUSED(void *priv))
 {
     uint8_t slot = 0;
 
@@ -263,11 +280,14 @@ pci_writel(uint16_t port, uint32_t val, void *priv)
 #endif
 
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-pci_read(uint16_t port, void *priv)
+pci_read(uint16_t port, UNUSED(void *priv))
 {
     uint8_t slot = 0;
     uint8_t ret  = 0xff;
@@ -296,6 +316,10 @@ pci_read(uint16_t port, void *priv)
             else
                 pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
 #endif
+            break;
+
+        default:
+            break;
     }
 
     pci_log("Reading %02X, from PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", ret, pci_bus, pci_card, slot, pci_func, pci_index | (port & 3));
@@ -304,7 +328,7 @@ pci_read(uint16_t port, void *priv)
 }
 
 static uint16_t
-pci_readw(uint16_t port, void *priv)
+pci_readw(uint16_t port, UNUSED(void *priv))
 {
     uint8_t  slot = 0;
     uint16_t ret  = 0xffff;
@@ -335,6 +359,10 @@ pci_readw(uint16_t port, void *priv)
             else
                 pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
 #endif
+            break;
+
+        default:
+            break;
     }
 
     pci_log("Reading %04X, from PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", ret, pci_bus, pci_card, slot, pci_func, pci_index | (port & 3));
@@ -343,7 +371,7 @@ pci_readw(uint16_t port, void *priv)
 }
 
 static uint32_t
-pci_readl(uint16_t port, void *priv)
+pci_readl(uint16_t port, UNUSED(void *priv))
 {
     uint8_t  slot = 0;
     uint32_t ret  = 0xffffffff;
@@ -376,6 +404,10 @@ pci_readl(uint16_t port, void *priv)
             else
                 pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
 #endif
+            break;
+
+        default:
+            break;
     }
 
     pci_log("Reading %08X, from PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", ret, pci_bus, pci_card, slot, pci_func, pci_index | (port & 3));
@@ -383,19 +415,17 @@ pci_readl(uint16_t port, void *priv)
     return ret;
 }
 
-static void    pci_type2_write(uint16_t port, uint8_t val, void *priv);
-static uint8_t pci_type2_read(uint16_t port, void *priv);
-
 void
 pci_set_pmc(uint8_t pmc)
 {
     pci_log("pci_set_pmc(%02X)\n", pmc);
-    // pci_reset_regs();
+#if 0
+    pci_reset_regs();
+#endif
 
     if (!pci_pmc && (pmc & 0x01)) {
-        io_removehandler(pci_base, pci_size,
-                         pci_type2_read, NULL, NULL,
-                         pci_type2_write, NULL, NULL, NULL);
+        pci_log("PMC: Dellocating ports %04X-%04X...\n", pci_base, pci_base + pci_size - 1);
+        pci_take_over_io &= ~PCI_IO_ON;
 
         io_removehandler(0x0cf8, 1,
                          pci_type2_read, NULL, NULL, pci_type2_write, NULL, NULL, NULL);
@@ -408,13 +438,11 @@ pci_set_pmc(uint8_t pmc)
         io_sethandler(0x0cfc, 4,
                       pci_read, pci_readw, pci_readl, pci_write, pci_writew, pci_writel, NULL);
     } else if (pci_pmc && !(pmc & 0x01)) {
-        io_removehandler(pci_base, pci_size,
-                         pci_type2_read, NULL, NULL,
-                         pci_type2_write, NULL, NULL, NULL);
+        pci_log("PMC: Redellocating ports %04X-%04X...\n", pci_base, pci_base + pci_size - 1);
+        pci_take_over_io &= ~PCI_IO_ON;
         if (pci_key) {
-            io_sethandler(pci_base, pci_size,
-                          pci_type2_read, NULL, NULL,
-                          pci_type2_write, NULL, NULL, NULL);
+            pci_log("PMC: Allocating ports %04X-%04X...\n", pci_base, pci_base + pci_size - 1);
+            pci_take_over_io |= PCI_IO_ON;
         }
 
         io_removehandler(0x0cf8, 1,
@@ -433,71 +461,99 @@ pci_set_pmc(uint8_t pmc)
 }
 
 static void
-pci_type2_write(uint16_t port, uint8_t val, void *priv)
+pci_type2_write_reg(uint16_t port, uint8_t val)
 {
     uint8_t slot = 0;
 
-    if (port == 0xcf8) {
-        pci_func = (val >> 1) & 7;
+    pci_card  = (port >> 8) & 0xf;
+    pci_index = port & 0xff;
 
-        if (!pci_key && (val & 0xf0)) {
-            io_removehandler(pci_base, pci_size,
-                             pci_type2_read, NULL, NULL,
-                             pci_type2_write, NULL, NULL, NULL);
-            io_sethandler(pci_base, pci_size,
-                          pci_type2_read, NULL, NULL,
-                          pci_type2_write, NULL, NULL, NULL);
-        } else if (pci_key && !(val & 0xf0))
-            io_removehandler(pci_base, pci_size,
-                             pci_type2_read, NULL, NULL,
-                             pci_type2_write, NULL, NULL, NULL);
-
-        pci_key = val & 0xf0;
-    } else if (port == 0xcfa) {
-        pci_bus = val;
-
-        pci_log("Allocating ports %04X-%04X...\n", pci_base, pci_base + pci_size - 1);
-
-        /* Evidently, writing here, we should also enable the
-           configuration space. */
-        io_removehandler(pci_base, pci_size,
-                         pci_type2_read, NULL, NULL,
-                         pci_type2_write, NULL, NULL, NULL);
-        io_sethandler(pci_base, pci_size,
-                      pci_type2_read, NULL, NULL,
-                      pci_type2_write, NULL, NULL, NULL);
-
-        /* Mark as enabled. */
-        pci_key |= 0x100;
-    } else if (port == 0xcfb) {
-        pci_log("Write %02X to port 0CFB\n", val);
-        pci_set_pmc(val);
-    } else {
-        pci_card  = (port >> 8) & 0xf;
-        pci_index = port & 0xff;
-
-        slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
-        if (slot != 0xff) {
-            if (pci_cards[slot].write)
-                pci_cards[slot].write(pci_func, pci_index | (port & 3), val, pci_cards[slot].priv);
-#ifdef ENABLE_PCI_LOG
-            else
-                pci_log("Writing to empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
-#endif
-        }
+    slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
+    if (slot != 0xff) {
+        if (pci_cards[slot].write)
+            pci_cards[slot].write(pci_func, pci_index | (port & 3), val, pci_cards[slot].priv);
 #ifdef ENABLE_PCI_LOG
         else
-            pci_log("Writing to unassigned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+            pci_log("Writing to empty PCI card on slot %02X:%02X (pci_cards[%i]) (%02X:%02X)...\n", pci_bus, pci_card, slot, pci_func, pci_index);
 #endif
+    }
+#ifdef ENABLE_PCI_LOG
+    else
+        pci_log("Writing to unassigned PCI card on slot %02X:%02X (pci_cards[%i]) (%02X:%02X)...\n", pci_bus, pci_card, slot, pci_func, pci_index);
+#endif
+}
+
+void
+pci_type2_write(uint16_t port, uint8_t val, UNUSED(void *priv))
+{
+    switch (port) {
+        case 0xcf8:
+            pci_func = (val >> 1) & 7;
+
+            if (val & 0xf0) {
+                pci_log("CF8: Allocating ports %04X-%04X...\n", pci_base, pci_base + pci_size - 1);
+                pci_take_over_io |= PCI_IO_ON;
+            } else {
+                pci_log("CF8: Dellocating ports %04X-%04X...\n", pci_base, pci_base + pci_size - 1);
+                pci_take_over_io &= ~PCI_IO_ON;
+            }
+
+            pci_key = val & 0xf0;
+            break;
+        case 0xcfa:
+            pci_bus = val;
+
+            pci_log("CFA: Allocating ports %04X-%04X...\n", pci_base, pci_base + pci_size - 1);
+
+            /* Evidently, writing here, we should also enable the
+               configuration space. */
+            pci_take_over_io |= PCI_IO_ON;
+
+            /* Mark as enabled. */
+            pci_key |= 0x100;
+            break;
+        case 0xcfb:
+            pci_log("Write %02X to port 0CFB\n", val);
+            pci_set_pmc(val);
+            break;
+
+        case 0xc000 ... 0xc0ff:
+            if (pci_take_over_io == 0x00000000)
+                break;
+
+            pci_type2_write_reg(port, val);
+            break;
+
+        case 0xc100 ... 0xcfff:
+            if (!(pci_take_over_io & PCI_IO_ON))
+                break;
+
+            pci_type2_write_reg(port, val);
+            break;
+
+        default:
+            break;
     }
 }
 
-static void
+void
+pci_type2_writew(uint16_t port, uint16_t val, void *priv)
+{
+    pci_type2_write(port, val & 0xff, priv);
+    pci_type2_write(port + 1, val >> 8, priv);
+}
+
+void
 pci_type2_writel(uint16_t port, uint32_t val, void *priv)
 {
-    int i;
+    pci_type2_writew(port, val & 0xffff, priv);
+    pci_type2_writew(port + 2, val >> 16, priv);
+}
 
-    for (i = 0; i < 4; i++) {
+static void
+pci_type2_cfb_writel(uint16_t port, uint32_t val, void *priv)
+{
+    for (uint8_t i = 0; i < 4; i++) {
         /* Make sure to have the DWORD write not pass through to PMC if mechanism 1 is in use,
            as otherwise, the PCI enable bits clobber it. */
         if (!pci_pmc || ((port + i) != 0x0cfb))
@@ -506,37 +562,84 @@ pci_type2_writel(uint16_t port, uint32_t val, void *priv)
 }
 
 static uint8_t
-pci_type2_read(uint16_t port, void *priv)
+pci_type2_read_reg(uint16_t port)
 {
     uint8_t slot = 0;
     uint8_t ret  = 0xff;
 
-    if (port == 0xcf8)
-        ret = pci_key | (pci_func << 1);
-    else if (port == 0xcfa)
-        ret = pci_bus;
-    else if (port == 0xcfb)
-        ret = pci_pmc;
-    else {
-        pci_card  = (port >> 8) & 0xf;
-        pci_index = port & 0xff;
+    pci_card  = (port >> 8) & 0xf;
+    pci_index = port & 0xff;
 
-        slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
-        if (slot != 0xff) {
-            if (pci_cards[slot].read)
-                ret = pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
-#ifdef ENABLE_PCI_LOG
-            else
-                pci_log("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
-#endif
-        }
+    slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
+    if (slot != 0xff) {
+        if (pci_cards[slot].read)
+            ret = pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
 #ifdef ENABLE_PCI_LOG
         else
-            pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+            pci_log("Reading from empty PCI card on slot %02X:%02X (pci_cards[%i]) (%02X:%02X)...\n", pci_bus, pci_card, slot, pci_func, pci_index);
+#endif
+    }
+#ifdef ENABLE_PCI_LOG
+    else
+        pci_log("Reading from unasisgned PCI card on slot %02X:%02X (pci_cards[%i]) (%02X:%02X)...\n", pci_bus, pci_card, slot, pci_func, pci_index);
 #endif
 
-        pci_log("Reading %02X at PCI register %02X at bus %02X, card %02X, function %02X\n", ret, pci_index, pci_bus, pci_card, pci_func);
+    pci_log("Reading %02X at PCI register %02X at bus %02X, card %02X, function %02X\n", ret, pci_index, pci_bus, pci_card, pci_func);
+
+    return ret;
+}
+
+uint8_t
+pci_type2_read(uint16_t port, UNUSED(void *priv))
+{
+    uint8_t ret  = 0xff;
+
+    switch (port) {
+        case 0xcf8:
+            ret = pci_key | (pci_func << 1);
+            break;
+        case 0xcfa:
+            ret = pci_bus;
+            break;
+       case 0xcfb:
+            ret = pci_pmc;
+            break;
+
+        case 0xc000 ... 0xc0ff:
+            if (pci_take_over_io == 0x00000000)
+                break;
+
+            ret = pci_type2_read_reg(port);
+            break;
+
+        case 0xc100 ... 0xcfff:
+            if (!(pci_take_over_io & PCI_IO_ON))
+                break;
+
+            ret = pci_type2_read_reg(port);
+            break;
+
+        default:
+            break;
     }
+
+    return ret;
+}
+
+uint16_t
+pci_type2_readw(uint16_t port, void *priv)
+{
+    uint16_t ret = pci_type2_read(port, priv);
+    ret |= ((uint16_t) pci_type2_read(port + 1, priv)) << 8;
+
+    return ret;
+}
+
+uint32_t
+pci_type2_readl(uint16_t port, void *priv)
+{
+    uint32_t ret = pci_type2_readw(port, priv);
+    ret |= ((uint32_t) pci_type2_readw(port + 2, priv)) << 16;
 
     return ret;
 }
@@ -822,9 +925,7 @@ pci_reset_regs(void)
 {
     pci_index = pci_card = pci_func = pci_bus = pci_key = 0;
 
-    io_removehandler(pci_base, pci_size,
-                     pci_type2_read, NULL, NULL,
-                     pci_type2_write, NULL, NULL, NULL);
+    pci_take_over_io &= ~PCI_IO_ON;
 }
 
 void
@@ -837,11 +938,9 @@ pci_pic_reset(void)
 static void
 pci_reset_hard(void)
 {
-    int i;
-
     pci_reset_regs();
 
-    for (i = 0; i < 16; i++) {
+    for (uint8_t i = 0; i < 16; i++) {
         if (pci_irq_hold[i]) {
             pci_irq_hold[i] = 0;
 
@@ -879,8 +978,7 @@ pci_reset(void)
 static void
 pci_slots_clear(void)
 {
-    uint8_t i, j;
-
+    uint8_t i;
     last_pci_card = last_normal_pci_card = 0;
     last_pci_bus                         = 1;
 
@@ -889,7 +987,7 @@ pci_slots_clear(void)
 
     i = 0;
     do {
-        for (j = 0; j < 32; j++)
+        for (uint8_t j = 0; j < 32; j++)
             pci_card_to_slot_mapping[i][j] = 0xff;
         pci_bus_number_to_index_mapping[i] = 0xff;
     } while (i++ < 0xff);
@@ -898,19 +996,19 @@ pci_slots_clear(void)
 }
 
 uint32_t
-trc_readl(uint16_t port, void *priv)
+trc_readl(UNUSED(uint16_t port), UNUSED(void *priv))
 {
     return 0xffffffff;
 }
 
 uint16_t
-trc_readw(uint16_t port, void *priv)
+trc_readw(UNUSED(uint16_t port), UNUSED(void *priv))
 {
     return 0xffff;
 }
 
 uint8_t
-trc_read(uint16_t port, void *priv)
+trc_read(UNUSED(uint16_t port), UNUSED(void *priv))
 {
     return trc_reg & 0xfb;
 }
@@ -922,12 +1020,11 @@ trc_reset(uint8_t val)
         dma_reset();
         dma_set_at(1);
 
-        device_reset_all();
+        device_reset_all(DEVICE_ALL);
 
         cpu_alt_reset = 0;
 
         pci_reset();
-        keyboard_at_reset();
 
         mem_a20_alt = 0;
         mem_a20_recalc();
@@ -939,17 +1036,19 @@ trc_reset(uint8_t val)
 }
 
 void
-trc_writel(uint16_t port, uint32_t val, void *priv)
+trc_writel(UNUSED(uint16_t port), UNUSED(uint32_t val), UNUSED(void *priv))
 {
+    //
 }
 
 void
-trc_writew(uint16_t port, uint16_t val, void *priv)
+trc_writew(UNUSED(uint16_t port), UNUSED(uint16_t val), UNUSED(void *priv))
 {
+    //
 }
 
 void
-trc_write(uint16_t port, uint8_t val, void *priv)
+trc_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
 {
     pci_log("TRC Write: %02X\n", val);
 
@@ -993,7 +1092,7 @@ pci_init(int type)
         pci_pmc = 0x00;
 
         io_sethandler(0x0cfb, 1,
-                      pci_type2_read, NULL, NULL, pci_type2_write, NULL, pci_type2_writel, NULL);
+                      pci_type2_read, NULL, NULL, pci_type2_write, NULL, pci_type2_cfb_writel, NULL);
     }
 
     if (type & PCI_NO_IRQ_STEERING) {
@@ -1003,6 +1102,8 @@ pci_init(int type)
         pic_elcr_io_handler(1);
         pic_elcr_set_enabled(1);
     }
+
+    pci_take_over_io = 0x00000000;
 
     if ((type & PCI_CONFIG_TYPE_MASK) == PCI_CONFIG_TYPE_1) {
         pci_log("PCI: Configuration mechanism #1\n");
@@ -1024,9 +1125,7 @@ pci_init(int type)
             pci_base = 0xc100;
             pci_size = 0x0f00;
 
-            io_sethandler(0xc000, 0x0100,
-                          pci_type2_read, NULL, NULL,
-                          pci_type2_write, NULL, NULL, NULL);
+            pci_take_over_io |= PCI_IO_DEV0;
         }
     }
 
@@ -1096,9 +1195,9 @@ uint8_t
 pci_find_slot(uint8_t add_type, uint8_t ignore_slot)
 {
     pci_card_t *dev;
-    uint8_t     i, ret = 0xff;
+    uint8_t     ret = 0xff;
 
-    for (i = 0; i < last_pci_card; i++) {
+    for (uint8_t i = 0; i < last_pci_card; i++) {
         dev = &pci_cards[i];
 
         if (!dev->read && !dev->write && ((ignore_slot == 0xff) || (i != ignore_slot))) {
@@ -1123,7 +1222,8 @@ uint8_t
 pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv)
 {
     pci_card_t *dev;
-    uint8_t     i, j;
+    uint8_t     i;
+    uint8_t     j;
 
     if (add_type < PCI_ADD_AGP)
         pci_log("pci_add_card(): Adding PCI CARD at specific slot %02X [SPECIFIC]\n", add_type);

@@ -15,6 +15,7 @@
  *
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2017-2018 Fred N. van Kempen.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP

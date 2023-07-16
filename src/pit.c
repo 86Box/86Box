@@ -41,23 +41,32 @@
 #include <86box/sound.h>
 #include <86box/snd_speaker.h>
 #include <86box/video.h>
+#include <86box/plat_unused.h>
 
 pit_intf_t pit_devs[2];
 
-double cpuclock, PITCONSTD,
-    SYSCLK,
-    isa_timing,
-    bus_timing, pci_timing, agp_timing,
-    PCICLK, AGPCLK;
+double cpuclock;
+double PITCONSTD;
+double SYSCLK;
+double isa_timing;
+double bus_timing;
+double pci_timing;
+double agp_timing;
+double PCICLK;
+double AGPCLK;
 
-uint64_t PITCONST, ISACONST,
-    CGACONST,
-    MDACONST, HERCCONST,
-    VGACONST1, VGACONST2,
-    RTCCONST, ACPICONST;
+uint64_t PITCONST;
+uint64_t ISACONST;
+uint64_t CGACONST;
+uint64_t MDACONST;
+uint64_t HERCCONST;
+uint64_t VGACONST1;
+uint64_t VGACONST2;
+uint64_t RTCCONST;
+uint64_t ACPICONST;
 
-int refresh_at_enable = 1,
-    io_delay          = 5;
+int refresh_at_enable = 1;
+int io_delay          = 5;
 
 int64_t firsttime = 1;
 
@@ -131,6 +140,9 @@ ctr_load_count(ctr_t *ctr)
     pit_log("ctr->count = %i\n", l);
     ctr->null_count = 0;
     ctr->newcount   = !!(l & 1);
+
+    /* Undocumented feature - writing MSB after reload after writing LSB causes an instant reload. */
+    ctr->incomplete = !!(ctr->wm & 0x80);
 }
 
 static void
@@ -138,16 +150,13 @@ ctr_tick(ctr_t *ctr)
 {
     uint8_t state = ctr->state;
 
-    if (state == 1) {
+    if ((state & 0x03) == 0x01) {
         /* This is true for all modes */
         ctr_load_count(ctr);
-        ctr->state = 2;
-        if ((ctr->m & 0x07) == 0x01)
+        ctr->state++;
+        if (((ctr->m & 0x07) == 0x01) && (ctr->state == 2))
             ctr_set_out(ctr, 0);
-        return;
-    }
-
-    switch (ctr->m & 0x07) {
+    } else  switch (ctr->m & 0x07) {
         case 0:
             /* Interrupt on terminal count */
             switch (state) {
@@ -163,16 +172,14 @@ ctr_tick(ctr_t *ctr)
                 case 3:
                     ctr_decrease_count(ctr);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 1:
             /* Hardware retriggerable one-shot */
             switch (state) {
-                case 1:
-                    ctr_load_count(ctr);
-                    ctr->state = 2;
-                    ctr_set_out(ctr, 0);
-                    break;
                 case 2:
                     if (ctr->count >= 1) {
                         ctr_decrease_count(ctr);
@@ -183,7 +190,11 @@ ctr_tick(ctr_t *ctr)
                     }
                     break;
                 case 3:
+                case 6:
                     ctr_decrease_count(ctr);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -206,6 +217,9 @@ ctr_tick(ctr_t *ctr)
                             ctr_set_out(ctr, 0);
                         }
                     }
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -250,6 +264,9 @@ ctr_tick(ctr_t *ctr)
                             ctr->newcount = 0;
                     }
                     break;
+
+                default:
+                    break;
             }
             break;
         case 4:
@@ -259,6 +276,7 @@ ctr_tick(ctr_t *ctr)
             if ((ctr->gate != 0) || (ctr->m != 4)) {
                 switch (state) {
                     case 0:
+                    case 6:
                         ctr_decrease_count(ctr);
                         break;
                     case 2:
@@ -273,6 +291,9 @@ ctr_tick(ctr_t *ctr)
                     case 3:
                         ctr->state = 0;
                         ctr_set_out(ctr, 1);
+                        break;
+
+                    default:
                         break;
                 }
             }
@@ -302,9 +323,12 @@ static void
 ctr_set_state_1(ctr_t *ctr)
 {
     uint8_t mode = (ctr->m & 0x03);
+    int do_reload = !!ctr->incomplete || (mode == 0) || (ctr->state == 0);
 
-    if ((mode == 0) || ((mode > 1) && (ctr->state == 0)))
-        ctr->state = 1;
+    ctr->incomplete = 0;
+
+    if (do_reload)
+        ctr->state = 1 + ((mode == 1) << 2);
 }
 
 static void
@@ -360,6 +384,9 @@ ctr_latch_count(ctr_t *ctr)
             /* Latch all 16 bits. */
             ctr->rl      = count;
             ctr->latched = 2;
+            break;
+
+        default:
             break;
     }
 
@@ -431,6 +458,9 @@ pit_ctr_set_gate(void *data, int counter_id, int gate)
                     ctr_set_out(ctr, 1);
             }
             break;
+
+        default:
+            break;
     }
 }
 
@@ -479,14 +509,13 @@ pit_ctr_set_using_timer(void *data, int counter_id, int using_timer)
 }
 
 static void
-pit_timer_over(void *p)
+pit_timer_over(void *priv)
 {
-    pit_t *dev = (pit_t *) p;
-    int    i;
+    pit_t *dev = (pit_t *) priv;
 
     dev->clock ^= 1;
 
-    for (i = 0; i < 3; i++)
+    for (uint8_t i = 0; i < 3; i++)
         pit_ctr_set_clock_common(&dev->counters[i], dev->clock);
 
     timer_advance_u64(&dev->callback_timer, PITCONST >> 1ULL);
@@ -595,17 +624,26 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
                     else
                         ctr->wm |= 0x80;
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 }
+
+extern uint8_t *ram;
 
 static uint8_t
 pit_read(uint16_t addr, void *priv)
 {
     pit_t  *dev = (pit_t *) priv;
     uint8_t ret = 0xff;
-    int     count, t = (addr & 3);
+    int     count;
+    int     t = (addr & 3);
     ctr_t  *ctr;
 
     switch (addr & 3) {
@@ -665,7 +703,13 @@ pit_read(uint16_t addr, void *priv)
                         else
                             ctr->rm |= 0x80;
                         break;
+
+                    default:
+                        break;
                 }
+            break;
+
+        default:
             break;
     }
 
@@ -704,7 +748,7 @@ pit_refresh_timer_at(int new_out, int old_out)
 }
 
 void
-pit_speaker_timer(int new_out, int old_out)
+pit_speaker_timer(int new_out, UNUSED(int old_out))
 {
     int l;
 
@@ -724,7 +768,7 @@ pit_speaker_timer(int new_out, int old_out)
 }
 
 void
-pit_nmi_timer_ps2(int new_out, int old_out)
+pit_nmi_timer_ps2(int new_out, UNUSED(int old_out))
 {
     nmi = new_out;
 
@@ -752,13 +796,11 @@ ctr_reset(ctr_t *ctr)
 void
 pit_reset(pit_t *dev)
 {
-    int i;
-
     memset(dev, 0, sizeof(pit_t));
 
     dev->clock = 0;
 
-    for (i = 0; i < 3; i++)
+    for (uint8_t i = 0; i < 3; i++)
         ctr_reset(&dev->counters[i]);
 
     /* Disable speaker gate. */
@@ -880,14 +922,13 @@ const device_t i8254_ps2_device = {
 pit_t *
 pit_common_init(int type, void (*out0)(int new_out, int old_out), void (*out1)(int new_out, int old_out))
 {
-    int   i;
     void *pit;
 
     pit_intf_t *pit_intf = &pit_devs[0];
 
     switch (type) {
-        case PIT_8253:
         default:
+        case PIT_8253:
             pit       = device_add(&i8253_device);
             *pit_intf = pit_classic_intf;
             break;
@@ -907,7 +948,7 @@ pit_common_init(int type, void (*out0)(int new_out, int old_out), void (*out1)(i
 
     pit_intf->data = pit;
 
-    for (i = 0; i < 3; i++) {
+    for (uint8_t i = 0; i < 3; i++) {
         pit_intf->set_gate(pit_intf->data, i, 1);
         pit_intf->set_using_timer(pit_intf->data, i, 1);
     }
@@ -930,8 +971,8 @@ pit_ps2_init(int type)
     pit_intf_t *ps2_pit = &pit_devs[1];
 
     switch (type) {
-        case PIT_8254:
         default:
+        case PIT_8254:
             pit      = device_add(&i8254_ps2_device);
             *ps2_pit = pit_classic_intf;
             break;
@@ -972,12 +1013,12 @@ pit_set_clock(int clock)
             cpuclock = (double) clock;
 
         PITCONSTD    = (cpuclock / 1193182.0);
-        PITCONST     = (uint64_t) (PITCONSTD * (double) (1ull << 32));
-        CGACONST     = (uint64_t) ((cpuclock / (19687503.0 / 11.0)) * (double) (1ull << 32));
-        ISACONST     = (uint64_t) ((cpuclock / (double) cpu_isa_speed) * (double) (1ull << 32));
+        PITCONST     = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
+        CGACONST     = (uint64_t) ((cpuclock / (19687503.0 / 11.0)) * (double) (1ULL << 32));
+        ISACONST     = (uint64_t) ((cpuclock / (double) cpu_isa_speed) * (double) (1ULL << 32));
         xt_cpu_multi = 1ULL;
     } else {
-        cpuclock     = 14318184.0;
+        cpuclock     = (157500000.0 / 11.0);
         PITCONSTD    = 12.0;
         PITCONST     = (12ULL << 32ULL);
         CGACONST     = (8ULL << 32ULL);
@@ -1022,8 +1063,8 @@ pit_set_clock(int clock)
             CGACONST  = (16ULL << 32LL);
         } else if (cpuclock != 14318184.0) {
             PITCONSTD = (cpuclock / 1193182.0);
-            PITCONST  = (uint64_t) (PITCONSTD * (double) (1ull << 32));
-            CGACONST  = (uint64_t) (((cpuclock / (19687503.0 / 11.0)) * (double) (1ull << 32)));
+            PITCONST  = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
+            CGACONST  = (uint64_t) ((cpuclock / (19687503.0 / 11.0)) * (double) (1ULL << 32));
         }
 
         ISACONST = (1ULL << 32ULL);
@@ -1033,13 +1074,13 @@ pit_set_clock(int clock)
     /* Delay for empty I/O ports. */
     io_delay = (int) round(((double) cpu_s->rspeed) / 3000000.0);
 
-    MDACONST  = (uint64_t) (cpuclock / 2032125.0 * (double) (1ull << 32));
+    MDACONST  = (uint64_t) (cpuclock / 2032125.0 * (double) (1ULL << 32));
     HERCCONST = MDACONST;
-    VGACONST1 = (uint64_t) (cpuclock / 25175000.0 * (double) (1ull << 32));
-    VGACONST2 = (uint64_t) (cpuclock / 28322000.0 * (double) (1ull << 32));
-    RTCCONST  = (uint64_t) (cpuclock / 32768.0 * (double) (1ull << 32));
+    VGACONST1 = (uint64_t) (cpuclock / 25175000.0 * (double) (1ULL << 32));
+    VGACONST2 = (uint64_t) (cpuclock / 28322000.0 * (double) (1ULL << 32));
+    RTCCONST  = (uint64_t) (cpuclock / 32768.0 * (double) (1ULL << 32));
 
-    TIMER_USEC = (uint64_t) ((cpuclock / 1000000.0) * (double) (1ull << 32));
+    TIMER_USEC = (uint64_t) ((cpuclock / 1000000.0) * (double) (1ULL << 32));
 
     isa_timing = (cpuclock / (double) cpu_isa_speed);
     if (cpu_64bitbus)

@@ -589,7 +589,6 @@ static void
 BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, uint8_t DataReply)
 {
     ESCMD   *ESCSICmd = (ESCMD *) CmdBuf;
-    uint32_t i;
     uint8_t  temp_cdb[12];
     int      target_cdb_len = 12;
 #ifdef ENABLE_BUSLOGIC_LOG
@@ -631,7 +630,7 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
     buslogic_log("SCSI target command being executed on: SCSI ID %i, SCSI LUN %i, Target %i\n", ESCSICmd->TargetId, ESCSICmd->LogicalUnit, target_id);
 
     buslogic_log("SCSI Cdb[0]=0x%02X\n", ESCSICmd->CDB[0]);
-    for (i = 1; i < ESCSICmd->CDBLength; i++) {
+    for (uint8_t i = 1; i < ESCSICmd->CDBLength; i++) {
         buslogic_log("SCSI Cdb[%i]=%i\n", i, ESCSICmd->CDB[i]);
     }
 
@@ -1152,7 +1151,9 @@ BuslogicPCIRead(int func, int addr, void *p)
         case 0x13:
             return buslogic_pci_bar[0].addr_regs[3];
         case 0x14:
-            // return (buslogic_pci_bar[1].addr_regs[0] & 0xe0); /*Memory space*/
+#if 0
+            return (buslogic_pci_bar[1].addr_regs[0] & 0xe0); /*Memory space*/
+#endif
             return 0x00;
         case 0x15:
             return buslogic_pci_bar[1].addr_regs[1] & 0xc0;
@@ -1189,7 +1190,7 @@ BuslogicPCIRead(int func, int addr, void *p)
             return PCI_INTA;
     }
 
-    return (0);
+    return 0;
 }
 
 static void
@@ -1753,7 +1754,7 @@ buslogic_init(const device_t *info)
         BuslogicInitializeAutoSCSIRam(dev);
     }
 
-    return (dev);
+    return dev;
 }
 
 // clang-format off

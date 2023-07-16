@@ -18,122 +18,122 @@ LANGUAGE LANG_HUNGARIAN, SUBLANG_DEFAULT
 // Menu
 //
 
-MainMenu MENU DISCARDABLE 
+MainMenu MENU DISCARDABLE
 BEGIN
     POPUP "&Művelet"
     BEGIN
-        MENUITEM "A &billentyűzet elfogást igényel",    IDM_ACTION_KBD_REQ_CAPTURE
-        MENUITEM "A &jobb oldali CTRL a bal ALT",    IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM "A &billentyűzet elfogást igényel", IDM_ACTION_KBD_REQ_CAPTURE
+        MENUITEM "A &jobb oldali CTRL a bal ALT", IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
-        MENUITEM "Hardveres &újraindítás...",                 IDM_ACTION_HRESET
-        MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
+        MENUITEM "Hardveres &újraindítás...", IDM_ACTION_HRESET
+        MENUITEM "&Ctrl+Alt+Del\tCtrl+F12", IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
-    MENUITEM "Ctrl+Alt+&Esc",        IDM_ACTION_CTRL_ALT_ESC
+    MENUITEM "Ctrl+Alt+&Esc", IDM_ACTION_CTRL_ALT_ESC
         MENUITEM SEPARATOR
-        MENUITEM "&Szüneteltetés",                      IDM_ACTION_PAUSE
+        MENUITEM "&Szüneteltetés", IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
-        MENUITEM "&Kilépés...",                       IDM_ACTION_EXIT
+        MENUITEM "&Kilépés...", IDM_ACTION_EXIT
     END
     POPUP "&Nézet"
     BEGIN
-        MENUITEM "Állapotsor &elrejtése",        IDM_VID_HIDE_STATUS_BAR
-        MENUITEM "Hide &toolbar",        IDM_VID_HIDE_TOOLBAR
+        MENUITEM "Állapotsor &elrejtése", IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar", IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
-        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
-        MENUITEM "&Átméretezhető ablak",          IDM_VID_RESIZE
-        MENUITEM "Méret és pozíció &megjegyzése",  IDM_VID_REMEMBER
+        MENUITEM "&Show non-primary monitors", IDM_VID_MONITORS
+        MENUITEM "&Átméretezhető ablak", IDM_VID_RESIZE
+        MENUITEM "Méret és pozíció &megjegyzése", IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "&Megjelenítő"
         BEGIN
-            MENUITEM "&SDL (Szoftveres)",         IDM_VID_SDL_SW
-            MENUITEM "SDL (&Hardveres)",         IDM_VID_SDL_HW
-            MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-            MENUITEM "Open&GL (3.0 Core)",      IDM_VID_OPENGL_CORE
+            MENUITEM "&SDL (Szoftveres)", IDM_VID_SDL_SW
+            MENUITEM "SDL (&Hardveres)", IDM_VID_SDL_HW
+            MENUITEM "SDL (&OpenGL)", IDM_VID_SDL_OPENGL
+            MENUITEM "Open&GL (3.0 Core)", IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
-            MENUITEM "&VNC",                    IDM_VID_VNC
+            MENUITEM "&VNC", IDM_VID_VNC
 #endif
         END
         MENUITEM SEPARATOR
-        MENUITEM "Méretek kézi megadása...",          IDM_VID_SPECIFY_DIM
-        MENUITEM "&Rögzített 4:3 képarány",    IDM_VID_FORCE43
+        MENUITEM "Méretek kézi megadása...", IDM_VID_SPECIFY_DIM
+        MENUITEM "&Rögzített 4:3 képarány", IDM_VID_FORCE43
         POPUP "&Ablak méretezési tényező"
         BEGIN
-            MENUITEM "&0,5x",                   IDM_VID_SCALE_1X
-            MENUITEM "&1x",                     IDM_VID_SCALE_2X
-            MENUITEM "1,&5x",                   IDM_VID_SCALE_3X
-            MENUITEM "&2x",                     IDM_VID_SCALE_4X
-            MENUITEM "&3x",                     IDM_VID_SCALE_5X
-            MENUITEM "&4x",                     IDM_VID_SCALE_6X
-            MENUITEM "&5x",                     IDM_VID_SCALE_7X
-            MENUITEM "&6x",                     IDM_VID_SCALE_8X
-            MENUITEM "&7x",                     IDM_VID_SCALE_9X
-            MENUITEM "&8x",                     IDM_VID_SCALE_10X
+            MENUITEM "&0,5x", IDM_VID_SCALE_1X
+            MENUITEM "&1x", IDM_VID_SCALE_2X
+            MENUITEM "1,&5x", IDM_VID_SCALE_3X
+            MENUITEM "&2x", IDM_VID_SCALE_4X
+            MENUITEM "&3x", IDM_VID_SCALE_5X
+            MENUITEM "&4x", IDM_VID_SCALE_6X
+            MENUITEM "&5x", IDM_VID_SCALE_7X
+            MENUITEM "&6x", IDM_VID_SCALE_8X
+            MENUITEM "&7x", IDM_VID_SCALE_9X
+            MENUITEM "&8x", IDM_VID_SCALE_10X
         END
         POPUP "Szűrési mód"
         BEGIN
-            MENUITEM "&Szomszédos",                 IDM_VID_FILTER_NEAREST
-            MENUITEM "&Lineáris",                  IDM_VID_FILTER_LINEAR
+            MENUITEM "&Szomszédos", IDM_VID_FILTER_NEAREST
+            MENUITEM "&Lineáris", IDM_VID_FILTER_LINEAR
         END
-        MENUITEM "Hi&DPI méretezés",              IDM_VID_HIDPI
+        MENUITEM "Hi&DPI méretezés", IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Teljes képernyő\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
+        MENUITEM "&Teljes képernyő\tCtrl+Alt+PgUp", IDM_VID_FULLSCREEN
         POPUP "Teljes képernyős &méretezés"
         BEGIN
-            MENUITEM "&Nyújtás a teljes képernyőre",        IDM_VID_FS_FULL
-            MENUITEM "&4:3",                        IDM_VID_FS_43
+            MENUITEM "&Nyújtás a teljes képernyőre", IDM_VID_FS_FULL
+            MENUITEM "&4:3", IDM_VID_FS_43
             MENUITEM "&Négyzetes képpontok (aránytartás)", IDM_VID_FS_KEEPRATIO
-            MENUITEM "&Egész tényezős nagyítás",              IDM_VID_FS_INT
+            MENUITEM "&Egész tényezős nagyítás", IDM_VID_FS_INT
         END
         POPUP "E&GA/(S)VGA beállítások"
         BEGIN
-            MENUITEM "&Invertált VGA kijelző",   IDM_VID_INVERT
+            MENUITEM "&Invertált VGA kijelző", IDM_VID_INVERT
             POPUP "VGA képernyő &típusa"
             BEGIN
-                MENUITEM "RGB &színes",          IDM_VID_GRAY_RGB
-                MENUITEM "&RGB szürkeárnyalatos",      IDM_VID_GRAY_MONO
-                MENUITEM "&Gyömbér kijelző",      IDM_VID_GRAY_AMBER
-                MENUITEM "&Zöld kijelző",      IDM_VID_GRAY_GREEN
-                MENUITEM "&Fehér kijelző",      IDM_VID_GRAY_WHITE
+                MENUITEM "RGB &színes", IDM_VID_GRAY_RGB
+                MENUITEM "&RGB szürkeárnyalatos", IDM_VID_GRAY_MONO
+                MENUITEM "&Gyömbér kijelző", IDM_VID_GRAY_AMBER
+                MENUITEM "&Zöld kijelző", IDM_VID_GRAY_GREEN
+                MENUITEM "&Fehér kijelző", IDM_VID_GRAY_WHITE
             END
             POPUP "Szürkéskála &konzerziós eljárás"
             BEGIN
-                MENUITEM "BT&601 (NTSC/PAL)",   IDM_VID_GRAYCT_601
-                MENUITEM "BT&709 (HDTV)",       IDM_VID_GRAYCT_709
-                MENUITEM "&Átlag szerint",            IDM_VID_GRAYCT_AVE
+                MENUITEM "BT&601 (NTSC/PAL)", IDM_VID_GRAYCT_601
+                MENUITEM "BT&709 (HDTV)", IDM_VID_GRAYCT_709
+                MENUITEM "&Átlag szerint", IDM_VID_GRAYCT_AVE
             END
         END
         MENUITEM SEPARATOR
-        MENUITEM "CGA/PCjr/Tandy/E&GA/(S)VGA túlpásztázás",     IDM_VID_OVERSCAN
+        MENUITEM "CGA/PCjr/Tandy/E&GA/(S)VGA túlpásztázás", IDM_VID_OVERSCAN
         MENUITEM "Kontraszt illesztése &monokróm kijelzőhöz", IDM_VID_CGACON
     END
-    MENUITEM "&Média",                IDM_MEDIA
+    MENUITEM "&Média", IDM_MEDIA
     POPUP "&Eszközök"
     BEGIN
-        MENUITEM "&Konfigurálás...",                IDM_CONFIG
-        MENUITEM "Állapotsori ikonok &frissítése",    IDM_UPDATE_ICONS
+        MENUITEM "&Konfigurálás...", IDM_CONFIG
+        MENUITEM "Állapotsori ikonok &frissítése", IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "&Képernyőkép készítése\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM "&Képernyőkép készítése\tCtrl+F11", IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
-        MENUITEM "&Beállítások...",    IDM_PREFERENCES
+        MENUITEM "&Beállítások...", IDM_PREFERENCES
 #ifdef DISCORD
         MENUITEM "&Discord integráció engedélyezése", IDM_DISCORD
 #endif
         MENUITEM SEPARATOR
-        MENUITEM "&Hangerőszabályzó...",              IDM_SND_GAIN
+        MENUITEM "&Hangerőszabályzó...", IDM_SND_GAIN
 #ifdef MTR_ENABLED
         MENUITEM SEPARATOR
-        MENUITEM "Nyomkövetés megkezdése\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
-        MENUITEM "Nyomkövetés befejezése\tCtrl+T",           IDM_ACTION_END_TRACE
+        MENUITEM "Nyomkövetés megkezdése\tCtrl+T", IDM_ACTION_BEGIN_TRACE
+        MENUITEM "Nyomkövetés befejezése\tCtrl+T", IDM_ACTION_END_TRACE
 #endif
     END
     POPUP "&Súgó"
     BEGIN
-        MENUITEM "&Dokumentáció...",           IDM_DOCS
-        MENUITEM "A 86Box &névjegye...",             IDM_ABOUT
+        MENUITEM "&Dokumentáció...", IDM_DOCS
+        MENUITEM "A 86Box &névjegye...", IDM_ABOUT
     END
 END
 
-StatusBarMenu MENU DISCARDABLE 
+StatusBarMenu MENU DISCARDABLE
 BEGIN
     MENUITEM SEPARATOR
 END
@@ -142,17 +142,17 @@ CassetteSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Új képfájl létrehozása...",                IDM_CASSETTE_IMAGE_NEW
+        MENUITEM "&Új képfájl létrehozása...", IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "Meglévő képfájl &megnyitása...",                IDM_CASSETTE_IMAGE_EXISTING
-        MENUITEM "Meglévő képfájl megnyitása (&írásvédett)...",    IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM "Meglévő képfájl &megnyitása...", IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "Meglévő képfájl megnyitása (&írásvédett)...", IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "&Felvétel",                    IDM_CASSETTE_RECORD
-        MENUITEM "&Lejátszás",                    IDM_CASSETTE_PLAY
-        MENUITEM "&Visszatekerés az elejére",            IDM_CASSETTE_REWIND
-        MENUITEM "&Előretekerés a végére",            IDM_CASSETTE_FAST_FORWARD
+        MENUITEM "&Felvétel", IDM_CASSETTE_RECORD
+        MENUITEM "&Lejátszás", IDM_CASSETTE_PLAY
+        MENUITEM "&Visszatekerés az elejére", IDM_CASSETTE_REWIND
+        MENUITEM "&Előretekerés a végére", IDM_CASSETTE_FAST_FORWARD
         MENUITEM SEPARATOR
-        MENUITEM "&Kiadás",                    IDM_CASSETTE_EJECT
+        MENUITEM "&Kiadás", IDM_CASSETTE_EJECT
     END
 END
 
@@ -160,9 +160,9 @@ CartridgeSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "Kép&fájl...",                    IDM_CARTRIDGE_IMAGE
+        MENUITEM "Kép&fájl...", IDM_CARTRIDGE_IMAGE
         MENUITEM SEPARATOR
-        MENUITEM "&Kiadás",                    IDM_CARTRIDGE_EJECT
+        MENUITEM "&Kiadás", IDM_CARTRIDGE_EJECT
     END
 END
 
@@ -170,14 +170,14 @@ FloppySubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Új képfájl létrehozása...",                IDM_FLOPPY_IMAGE_NEW
+        MENUITEM "&Új képfájl létrehozása...", IDM_FLOPPY_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "Meglévő képfájl &megnyitása...",                IDM_FLOPPY_IMAGE_EXISTING
-        MENUITEM "Meglévő képfájl megnyitása (&írásvédett)...",    IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM "Meglévő képfájl &megnyitása...", IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "Meglévő képfájl megnyitása (&írásvédett)...", IDM_FLOPPY_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "E&xportálás 86F formátumba...",                IDM_FLOPPY_EXPORT_TO_86F
+        MENUITEM "E&xportálás 86F formátumba...", IDM_FLOPPY_EXPORT_TO_86F
         MENUITEM SEPARATOR
-        MENUITEM "&Kiadás",                    IDM_FLOPPY_EJECT
+        MENUITEM "&Kiadás", IDM_FLOPPY_EJECT
     END
 END
 
@@ -185,13 +185,13 @@ CdromSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Némítás",                    IDM_CDROM_MUTE
+        MENUITEM "&Némítás", IDM_CDROM_MUTE
         MENUITEM SEPARATOR
-        MENUITEM "&Kiadás",                    IDM_CDROM_EMPTY
-        MENUITEM "Előző képfájl &újratöltése",            IDM_CDROM_RELOAD
+        MENUITEM "&Kiadás", IDM_CDROM_EMPTY
+        MENUITEM "Előző képfájl &újratöltése", IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Meglévő képfájl &megnyitása...",                    IDM_CDROM_IMAGE
-        MENUITEM "&Mappa...",                    IDM_CDROM_DIR
+        MENUITEM "&Meglévő képfájl &megnyitása...", IDM_CDROM_IMAGE
+        MENUITEM "&Mappa...", IDM_CDROM_DIR
     END
 END
 
@@ -199,13 +199,13 @@ ZIPSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Új képfájl létrehozása...",                IDM_ZIP_IMAGE_NEW
+        MENUITEM "&Új képfájl létrehozása...", IDM_ZIP_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Meglévő képfájl &megnyitása...",                IDM_ZIP_IMAGE_EXISTING
-        MENUITEM "Meglévő képfájl megnyitása (&írásvédett)...",    IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM "&Meglévő képfájl &megnyitása...", IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "Meglévő képfájl megnyitása (&írásvédett)...", IDM_ZIP_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "Kiadás",                    IDM_ZIP_EJECT
-        MENUITEM "Előző képfájl &újratöltése",            IDM_ZIP_RELOAD
+        MENUITEM "Kiadás", IDM_ZIP_EJECT
+        MENUITEM "Előző képfájl &újratöltése", IDM_ZIP_RELOAD
     END
 END
 
@@ -213,13 +213,13 @@ MOSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Új képfájl létrehozása...",                IDM_MO_IMAGE_NEW
+        MENUITEM "&Új képfájl létrehozása...", IDM_MO_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Meglévő képfájl &megnyitása...",                IDM_MO_IMAGE_EXISTING
-        MENUITEM "Meglévő képfájl megnyitása (&írásvédett)...",    IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM "&Meglévő képfájl &megnyitása...", IDM_MO_IMAGE_EXISTING
+        MENUITEM "Meglévő képfájl megnyitása (&írásvédett)...", IDM_MO_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "Kiadás",                    IDM_MO_EJECT
-        MENUITEM "Előző képfájl &újratöltése",            IDM_MO_RELOAD
+        MENUITEM "Kiadás", IDM_MO_EJECT
+        MENUITEM "Előző képfájl &újratöltése", IDM_MO_RELOAD
     END
 END
 
@@ -245,150 +245,150 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES        "Beállítások"
-#define STR_SND_GAIN        "Hangerőszabályzó"
-#define STR_NEW_FLOPPY        "Új képfájl létrehozása"
+#define STR_PREFERENCES   "Beállítások"
+#define STR_SND_GAIN      "Hangerőszabályzó"
+#define STR_NEW_FLOPPY    "Új képfájl létrehozása"
 #define STR_CONFIG        "Konfigurálás"
-#define STR_SPECIFY_DIM        "Főablak méreteinek megadása"
+#define STR_SPECIFY_DIM   "Főablak méreteinek megadása"
 
 #define STR_OK            "OK"
 #define STR_CANCEL        "Mégse"
 #define STR_GLOBAL        "Beállítások mentése &globális alapértékként"
-#define STR_DEFAULT        "&Alapértelmezett"
-#define STR_LANGUAGE        "Nyelv:"
-#define STR_ICONSET        "Ikonkészlet:"
+#define STR_DEFAULT       "&Alapértelmezett"
+#define STR_LANGUAGE      "Nyelv:"
+#define STR_ICONSET       "Ikonkészlet:"
 
-#define STR_GAIN        "Hangerő"
+#define STR_GAIN          "Hangerő"
 
-#define STR_FILE_NAME        "Fájlnév:"
-#define STR_DISK_SIZE        "Méret:"
-#define STR_RPM_MODE        "RPM-mód:"
-#define STR_PROGRESS        "Folyamat:"
+#define STR_FILE_NAME     "Fájlnév:"
+#define STR_DISK_SIZE     "Méret:"
+#define STR_RPM_MODE      "RPM-mód:"
+#define STR_PROGRESS      "Folyamat:"
 
-#define STR_WIDTH        "Szélesség:"
+#define STR_WIDTH         "Szélesség:"
 #define STR_HEIGHT        "Magasság:"
-#define STR_LOCK_TO_SIZE    "Rögzítés a megadott méretre"
+#define STR_LOCK_TO_SIZE  "Rögzítés a megadott méretre"
 
-#define STR_MACHINE_TYPE    "Géptípus:"
-#define STR_MACHINE        "Számítógép:"
-#define STR_CONFIGURE        "Beállítások..."
-#define STR_CPU_TYPE        "Processzor:"
-#define STR_CPU_SPEED        "Seb.:"
-#define STR_FPU            "FPU-egység:"
-#define STR_WAIT_STATES        "Várak. ciklusok:"
+#define STR_MACHINE_TYPE  "Géptípus:"
+#define STR_MACHINE       "Számítógép:"
+#define STR_CONFIGURE     "Beállítások..."
+#define STR_CPU_TYPE      "Processzor:"
+#define STR_CPU_SPEED     "Seb.:"
+#define STR_FPU           "FPU-egység:"
+#define STR_WAIT_STATES   "Várak. ciklusok:"
 #define STR_MB            "MB"
 #define STR_MEMORY        "Memória:"
-#define STR_TIME_SYNC        "Idő szinkronizáció"
-#define STR_DISABLED        "Letiltva"
-#define STR_ENABLED_LOCAL    "Engedélyezve (helyi idő)"
-#define STR_ENABLED_UTC        "Engedélyezve (UTC)"
-#define STR_DYNAREC        "Dinamikus újrafordítás"
+#define STR_TIME_SYNC     "Idő szinkronizáció"
+#define STR_DISABLED      "Letiltva"
+#define STR_ENABLED_LOCAL "Engedélyezve (helyi idő)"
+#define STR_ENABLED_UTC   "Engedélyezve (UTC)"
+#define STR_DYNAREC       "Dinamikus újrafordítás"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
-#define STR_VIDEO        "Videokártya:"
-#define STR_VIDEO_2        "Videokártya 2:"
+#define STR_VIDEO         "Videokártya:"
+#define STR_VIDEO_2       "Videokártya 2:"
 #define STR_VOODOO        "Voodoo-gyorsítókártya"
-#define STR_IBM8514        "IBM 8514/a-gyorsítókártya"
-#define STR_XGA            "XGA-gyorsítókártya"
+#define STR_IBM8514       "IBM 8514/a-gyorsítókártya"
+#define STR_XGA           "XGA-gyorsítókártya"
 
-#define STR_MOUSE        "Egér:"
-#define STR_JOYSTICK        "Játékvezérlő:"
-#define STR_JOY1        "Játékvez. 1..."
-#define STR_JOY2        "Játékvez. 2..."
-#define STR_JOY3        "Játékvez. 3..."
-#define STR_JOY4        "Játékvez. 4..."
+#define STR_MOUSE         "Egér:"
+#define STR_JOYSTICK      "Játékvezérlő:"
+#define STR_JOY1          "Játékvez. 1..."
+#define STR_JOY2          "Játékvez. 2..."
+#define STR_JOY3          "Játékvez. 3..."
+#define STR_JOY4          "Játékvez. 4..."
 
 #define STR_SOUND1        "Hangkártya 1:"
 #define STR_SOUND2        "Hangkártya 2:"
 #define STR_SOUND3        "Hangkártya 3:"
 #define STR_SOUND4        "Hangkártya 4:"
-#define STR_MIDI_OUT        "MIDI-kimenet:"
-#define STR_MIDI_IN        "MIDI-bemenet:"
+#define STR_MIDI_OUT      "MIDI-kimenet:"
+#define STR_MIDI_IN       "MIDI-bemenet:"
 #define STR_MPU401        "Különálló MPU-401"
-#define STR_FLOAT        "FLOAT32 használata"
-#define STR_FM_DRIVER        "FM szintetizátor meghajtó"
-#define STR_FM_DRV_NUKED    "Nuked (pontosabb)"
-#define STR_FM_DRV_YMFM        "YMFM (gyorsabb)"
+#define STR_FLOAT         "FLOAT32 használata"
+#define STR_FM_DRIVER     "FM szintetizátor meghajtó"
+#define STR_FM_DRV_NUKED  "Nuked (pontosabb)"
+#define STR_FM_DRV_YMFM   "YMFM (gyorsabb)"
 
-#define STR_NET_TYPE    "Hálózati típusa:"
-#define STR_PCAP        "PCap eszköz:"
-#define STR_NET            "Hálózati kártya:"
-#define STR_NET1        "Network card 1:"
-#define STR_NET2        "Network card 2:"
-#define STR_NET3        "Network card 3:"
-#define STR_NET4        "Network card 4:"
+#define STR_NET_TYPE      "Hálózati típusa:"
+#define STR_PCAP          "PCap eszköz:"
+#define STR_NET           "Hálózati kártya:"
+#define STR_NET1          "Network card 1:"
+#define STR_NET2          "Network card 2:"
+#define STR_NET3          "Network card 3:"
+#define STR_NET4          "Network card 4:"
 
-#define STR_COM1        "COM1 eszköz:"
-#define STR_COM2        "COM2 eszköz:"
-#define STR_COM3        "COM3 eszköz:"
-#define STR_COM4        "COM4 eszköz:"
-#define STR_LPT1        "LPT1 eszköz:"
-#define STR_LPT2        "LPT2 eszköz:"
-#define STR_LPT3        "LPT3 eszköz:"
-#define STR_LPT4        "LPT4 eszköz:"
-#define STR_SERIAL1        "Soros port 1"
-#define STR_SERIAL2        "Soros port 2"
-#define STR_SERIAL3        "Soros port 3"
-#define STR_SERIAL4        "Soros port 4"
-#define STR_PARALLEL1        "Párhuzamos port 1"
-#define STR_PARALLEL2        "Párhuzamos port 2"
-#define STR_PARALLEL3        "Párhuzamos port 3"
-#define STR_PARALLEL4        "Párhuzamos port 4"
-#define STR_SERIAL_PASS1    "Serial port passthrough 1"
-#define STR_SERIAL_PASS2    "Serial port passthrough 2"
-#define STR_SERIAL_PASS3    "Serial port passthrough 3"
-#define STR_SERIAL_PASS4    "Serial port passthrough 4"
+#define STR_COM1          "COM1 eszköz:"
+#define STR_COM2          "COM2 eszköz:"
+#define STR_COM3          "COM3 eszköz:"
+#define STR_COM4          "COM4 eszköz:"
+#define STR_LPT1          "LPT1 eszköz:"
+#define STR_LPT2          "LPT2 eszköz:"
+#define STR_LPT3          "LPT3 eszköz:"
+#define STR_LPT4          "LPT4 eszköz:"
+#define STR_SERIAL1       "Soros port 1"
+#define STR_SERIAL2       "Soros port 2"
+#define STR_SERIAL3       "Soros port 3"
+#define STR_SERIAL4       "Soros port 4"
+#define STR_PARALLEL1     "Párhuzamos port 1"
+#define STR_PARALLEL2     "Párhuzamos port 2"
+#define STR_PARALLEL3     "Párhuzamos port 3"
+#define STR_PARALLEL4     "Párhuzamos port 4"
+#define STR_SERIAL_PASS1  "Serial port passthrough 1"
+#define STR_SERIAL_PASS2  "Serial port passthrough 2"
+#define STR_SERIAL_PASS3  "Serial port passthrough 3"
+#define STR_SERIAL_PASS4  "Serial port passthrough 4"
 
-#define STR_HDC            "Merevl.-vezérlő:"
-#define STR_FDC            "Floppy-vezérlő:"
-#define STR_IDE_TER        "Harmadlagos IDE-vezérlő"
-#define STR_IDE_QUA        "Negyedleges IDE-vezérlő"
-#define STR_SCSI        "SCSI"
+#define STR_HDC           "Merevl.-vezérlő:"
+#define STR_FDC           "Floppy-vezérlő:"
+#define STR_IDE_TER       "Harmadlagos IDE-vezérlő"
+#define STR_IDE_QUA       "Negyedleges IDE-vezérlő"
+#define STR_SCSI          "SCSI"
 #define STR_SCSI_1        "Gazdaadapt. 1:"
 #define STR_SCSI_2        "Gazdaadapt. 2:"
 #define STR_SCSI_3        "Gazdaadapt. 3:"
 #define STR_SCSI_4        "Gazdaadapt. 4:"
-#define STR_CASSETTE        "Magnókazetta"
+#define STR_CASSETTE      "Magnókazetta"
 
-#define STR_HDD            "Merevlemezek:"
-#define STR_NEW            "&Új..."
-#define STR_EXISTING        "&Megnyitás..."
+#define STR_HDD           "Merevlemezek:"
+#define STR_NEW           "&Új..."
+#define STR_EXISTING      "&Megnyitás..."
 #define STR_REMOVE        "&Eltávolítás"
-#define STR_BUS            "Busz:"
-#define STR_CHANNEL        "Csatorna:"
+#define STR_BUS           "Busz:"
+#define STR_CHANNEL       "Csatorna:"
 #define STR_ID            "ID:"
-#define STR_SPEED        "Speed:"
+#define STR_SPEED         "Speed:"
 
-#define STR_SPECIFY        "&Kiválasztás..."
-#define STR_SECTORS        "Szektor:"
-#define STR_HEADS        "Fej:"
-#define STR_CYLS        "Cilinder:"
-#define STR_SIZE_MB        "Méret (MB):"
-#define STR_TYPE        "Típus:"
-#define STR_IMG_FORMAT        "Formátum:"
-#define STR_BLOCK_SIZE        "Blokkméret:"
+#define STR_SPECIFY       "&Kiválasztás..."
+#define STR_SECTORS       "Szektor:"
+#define STR_HEADS         "Fej:"
+#define STR_CYLS          "Cilinder:"
+#define STR_SIZE_MB       "Méret (MB):"
+#define STR_TYPE          "Típus:"
+#define STR_IMG_FORMAT    "Formátum:"
+#define STR_BLOCK_SIZE    "Blokkméret:"
 
-#define STR_FLOPPY_DRIVES    "Floppy-meghajtók:"
-#define STR_TURBO        "Turbó időzítés"
-#define STR_CHECKBPB        "BPB ellenőrzés"
-#define STR_CDROM_DRIVES    "CD-ROM meghajtók:"
-#define STR_CD_SPEED        "Seb.:"
-#define STR_EARLY        "Korábbi meghajtó"
+#define STR_FLOPPY_DRIVES "Floppy-meghajtók:"
+#define STR_TURBO         "Turbó időzítés"
+#define STR_CHECKBPB      "BPB ellenőrzés"
+#define STR_CDROM_DRIVES  "CD-ROM meghajtók:"
+#define STR_CD_SPEED      "Seb.:"
 
-#define STR_MO_DRIVES        "MO-meghajtók:"
-#define STR_ZIP_DRIVES        "ZIP-meghajtók:"
-#define STR_250            "ZIP 250"
+#define STR_MO_DRIVES     "MO-meghajtók:"
+#define STR_ZIP_DRIVES    "ZIP-meghajtók:"
+#define STR_250           "ZIP 250"
 
 #define STR_ISARTC        "ISA RTC (óra):"
 #define STR_ISAMEM        "ISA memóriabővítők"
-#define STR_ISAMEM_1        "Kártya 1:"
-#define STR_ISAMEM_2        "Kártya 2:"
-#define STR_ISAMEM_3        "Kártya 3:"
-#define STR_ISAMEM_4        "Kártya 4:"
+#define STR_ISAMEM_1      "Kártya 1:"
+#define STR_ISAMEM_2      "Kártya 2:"
+#define STR_ISAMEM_3      "Kártya 3:"
+#define STR_ISAMEM_4      "Kártya 4:"
 #define STR_BUGGER        "ISABugger eszköz"
-#define STR_POSTCARD        "POST kártya"
+#define STR_POSTCARD      "POST kártya"
 
-#define FONT_SIZE        9
-#define FONT_NAME        "Segoe UI"
+#define FONT_SIZE         9
+#define FONT_NAME         "Segoe UI"
 
 #include "dialogs.rc"
 
@@ -397,9 +397,9 @@ END
 // String Table
 //
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
-    2048    "86Box"
+    2048        "86Box"
     IDS_2049    "Hiba"
     IDS_2050    "Végzetes hiba"
     IDS_2051    " - PAUSED"
@@ -417,7 +417,7 @@ BEGIN
     IDS_2063    "A számítógép ""%hs"" nem elérhető a ""roms/machines"" mappából hiányzó ROM-képek miatt. Ehelyett egy másik gép kerül futtatásra."
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2064    "A videokártya ""%hs"" nem elérhető a ""roms/video"" mappából hiányzó ROM-képek miatt. Ehelyett egy másik kártya kerül futtatásra."
     IDS_2065    "Számítógép"
@@ -437,7 +437,7 @@ BEGIN
     IDS_2079    "Nyomja meg az F8+F12-t vagy a középső gombot az egér elengédéséhez"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2080    "Nem sikerült a FluidSynth inicializálása"
     IDS_2081    "Busz"
@@ -541,14 +541,16 @@ BEGIN
     IDS_2159    "Hard reset"
     IDS_2160    "ACPI shutdown"
     IDS_2161    "Settings"
-    IDS_2162    "Korábbi meghajtó"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
     IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+    IDS_2167    "Failed to initialize network driver"
+    IDS_2168    "The network configuration will be switched to the null driver"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_4096    "Merevlemez (%s)"
     IDS_4097    "%01i:%01i"
@@ -647,7 +649,7 @@ BEGIN
 
     IDS_7168    "(A rendszer nyelve)"
 END
-#define IDS_LANG_ENUS    IDS_7168
+#define IDS_LANG_ENUS IDS_7168
 
 // Hungarian resources
 /////////////////////////////////////////////////////////////////////////////

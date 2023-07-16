@@ -572,7 +572,8 @@ MediaMenu::cdromUpdateMenu(int i)
     auto  childs = menu->children();
 
     auto *muteMenu = dynamic_cast<QAction *>(childs[cdromMutePos]);
-    muteMenu->setChecked(cdrom[i].sound_on == 0);
+    muteMenu->setIcon(QApplication::style()->standardIcon((cdrom[i].sound_on == 0) ? QStyle::SP_MediaVolume : QStyle::SP_MediaVolumeMuted));
+    muteMenu->setText((cdrom[i].sound_on == 0) ? tr("&Unmute") : tr("&Mute"));
 
     auto *imageMenu = dynamic_cast<QAction *>(childs[cdromImagePos]);
     imageMenu->setEnabled(!name.isEmpty());
@@ -848,13 +849,16 @@ MediaMenu::nicUpdateMenu(int i)
     if (!netMenus.contains(i))
         return;
 
-    QString netType = tr("None");
+    QString netType = tr("Null Driver");
     switch (net_cards_conf[i].net_type) {
         case NET_TYPE_SLIRP:
             netType = "SLiRP";
             break;
         case NET_TYPE_PCAP:
             netType = "PCAP";
+            break;
+        case NET_TYPE_VDE:
+            netType = "VDE";
             break;
     }
 

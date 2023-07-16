@@ -17,114 +17,114 @@ MainMenu MENU DISCARDABLE
 BEGIN
     POPUP "&Toiminto"
     BEGIN
-        MENUITEM "&Vaadi näppäimistön kaappaus",                        IDM_ACTION_KBD_REQ_CAPTURE
-        MENUITEM "&Oikea CTRL on vasen ALT",                            IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM "&Vaadi näppäimistön kaappaus", IDM_ACTION_KBD_REQ_CAPTURE
+        MENUITEM "&Oikea CTRL on vasen ALT", IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
-        MENUITEM "&Uudelleenkäynnistys (kylmä)...",                     IDM_ACTION_HRESET
-        MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",                             IDM_ACTION_RESET_CAD
+        MENUITEM "&Uudelleenkäynnistys (kylmä)...", IDM_ACTION_HRESET
+        MENUITEM "&Ctrl+Alt+Del\tCtrl+F12", IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
-    MENUITEM "Ctrl+Alt+&Esc",                                           IDM_ACTION_CTRL_ALT_ESC
+    MENUITEM "Ctrl+Alt+&Esc", IDM_ACTION_CTRL_ALT_ESC
         MENUITEM SEPARATOR
-        MENUITEM "&Tauko",                                              IDM_ACTION_PAUSE
+        MENUITEM "&Tauko", IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
-        MENUITEM "&Poistu...",                                          IDM_ACTION_EXIT
+        MENUITEM "&Poistu...", IDM_ACTION_EXIT
     END
     POPUP "&Näytä"
     BEGIN
-        MENUITEM "&Piilota tilapalkki",                                 IDM_VID_HIDE_STATUS_BAR
-        MENUITEM "Piilota &työkalupalkki",                              IDM_VID_HIDE_TOOLBAR
+        MENUITEM "&Piilota tilapalkki", IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Piilota &työkalupalkki", IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
-        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
-        MENUITEM "&Salli koon muuttaminen",                             IDM_VID_RESIZE
-        MENUITEM "&Muista koko ja sijainti",                            IDM_VID_REMEMBER
+        MENUITEM "&Show non-primary monitors", IDM_VID_MONITORS
+        MENUITEM "&Salli koon muuttaminen", IDM_VID_RESIZE
+        MENUITEM "&Muista koko ja sijainti", IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "&Renderöijä"
         BEGIN
-            MENUITEM "&SDL (ohjelmistopohjainen)",                      IDM_VID_SDL_SW
-            MENUITEM "SDL (&laitteistokiihdytetty)",                    IDM_VID_SDL_HW
-            MENUITEM "SDL (&OpenGL)",                                   IDM_VID_SDL_OPENGL
-            MENUITEM "Open&GL (3.0 Core)",                              IDM_VID_OPENGL_CORE
+            MENUITEM "&SDL (ohjelmistopohjainen)", IDM_VID_SDL_SW
+            MENUITEM "SDL (&laitteistokiihdytetty)", IDM_VID_SDL_HW
+            MENUITEM "SDL (&OpenGL)", IDM_VID_SDL_OPENGL
+            MENUITEM "Open&GL (3.0 Core)", IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
-            MENUITEM "&VNC",                                            IDM_VID_VNC
+            MENUITEM "&VNC", IDM_VID_VNC
 #endif
         END
         MENUITEM SEPARATOR
-        MENUITEM "&Määritä koko...",                                    IDM_VID_SPECIFY_DIM
-        MENUITEM "Pakota 4:3-näyttösuhde",                              IDM_VID_FORCE43
+        MENUITEM "&Määritä koko...", IDM_VID_SPECIFY_DIM
+        MENUITEM "Pakota 4:3-näyttösuhde", IDM_VID_FORCE43
         POPUP "&Ikkunan kokokerroin"
         BEGIN
-            MENUITEM "&0.5x",                                           IDM_VID_SCALE_1X
-            MENUITEM "&1x",                                             IDM_VID_SCALE_2X
-            MENUITEM "1.&5x",                                           IDM_VID_SCALE_3X
-            MENUITEM "&2x",                                             IDM_VID_SCALE_4X
-            MENUITEM "&3x",                                             IDM_VID_SCALE_5X
-            MENUITEM "&4x",                                             IDM_VID_SCALE_6X
-            MENUITEM "&5x",                                             IDM_VID_SCALE_7X
-            MENUITEM "&6x",                                             IDM_VID_SCALE_8X
-            MENUITEM "&7x",                                             IDM_VID_SCALE_9X
-            MENUITEM "&8x",                                             IDM_VID_SCALE_10X
+            MENUITEM "&0.5x", IDM_VID_SCALE_1X
+            MENUITEM "&1x", IDM_VID_SCALE_2X
+            MENUITEM "1.&5x", IDM_VID_SCALE_3X
+            MENUITEM "&2x", IDM_VID_SCALE_4X
+            MENUITEM "&3x", IDM_VID_SCALE_5X
+            MENUITEM "&4x", IDM_VID_SCALE_6X
+            MENUITEM "&5x", IDM_VID_SCALE_7X
+            MENUITEM "&6x", IDM_VID_SCALE_8X
+            MENUITEM "&7x", IDM_VID_SCALE_9X
+            MENUITEM "&8x", IDM_VID_SCALE_10X
         END
         POPUP "&Suodatusmetodi"
         BEGIN
-            MENUITEM "&Lähin naapuri",                                  IDM_VID_FILTER_NEAREST
-            MENUITEM "Li&neaarinen interpolaatio",                      IDM_VID_FILTER_LINEAR
+            MENUITEM "&Lähin naapuri", IDM_VID_FILTER_NEAREST
+            MENUITEM "Li&neaarinen interpolaatio", IDM_VID_FILTER_LINEAR
         END
-        MENUITEM "&Suuri DPI-skaalaus",                                 IDM_VID_HIDPI
+        MENUITEM "&Suuri DPI-skaalaus", IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Koko näytön tila\tCtrl+Alt+PgUp",                  IDM_VID_FULLSCREEN
+        MENUITEM "&Koko näytön tila\tCtrl+Alt+PgUp", IDM_VID_FULLSCREEN
         POPUP "Koko näytön &skaalaustila"
         BEGIN
-            MENUITEM "&Venytä koko näyttöön",                           IDM_VID_FS_FULL
-            MENUITEM "&4:3",                                            IDM_VID_FS_43
-            MENUITEM "&Tasasivuiset kuvapisteet (säilytä kuvasuhde)",   IDM_VID_FS_KEEPRATIO
-            MENUITEM "&Kokonaislukuskaalaus",                           IDM_VID_FS_INT
+            MENUITEM "&Venytä koko näyttöön", IDM_VID_FS_FULL
+            MENUITEM "&4:3", IDM_VID_FS_43
+            MENUITEM "&Tasasivuiset kuvapisteet (säilytä kuvasuhde)", IDM_VID_FS_KEEPRATIO
+            MENUITEM "&Kokonaislukuskaalaus", IDM_VID_FS_INT
         END
         POPUP "&EGA/(S)VGA-asetukset"
         BEGIN
-            MENUITEM "&VGA-näyttö käänteisillä väreillä",               IDM_VID_INVERT
+            MENUITEM "&VGA-näyttö käänteisillä väreillä", IDM_VID_INVERT
             POPUP "VGA-näytön &tyyppi"
             BEGIN
-                MENUITEM "RGB, &värit",                                 IDM_VID_GRAY_RGB
-                MENUITEM "&RGB, harmaasävy",                            IDM_VID_GRAY_MONO
-                MENUITEM "&Meripihkanvärinen",                          IDM_VID_GRAY_AMBER
-                MENUITEM "V&ihreä",                                     IDM_VID_GRAY_GREEN
-                MENUITEM "V&alkoinen",                                  IDM_VID_GRAY_WHITE
+                MENUITEM "RGB, &värit", IDM_VID_GRAY_RGB
+                MENUITEM "&RGB, harmaasävy", IDM_VID_GRAY_MONO
+                MENUITEM "&Meripihkanvärinen", IDM_VID_GRAY_AMBER
+                MENUITEM "V&ihreä", IDM_VID_GRAY_GREEN
+                MENUITEM "V&alkoinen", IDM_VID_GRAY_WHITE
             END
             POPUP "&Harmaasävymuunnoksen tyyppi"
             BEGIN
-                MENUITEM "BT&601 (NTSC/PAL)",                           IDM_VID_GRAYCT_601
-                MENUITEM "BT&709 (HDTV)",                               IDM_VID_GRAYCT_709
-                MENUITEM "&Keskiarvo",                                  IDM_VID_GRAYCT_AVE
+                MENUITEM "BT&601 (NTSC/PAL)", IDM_VID_GRAYCT_601
+                MENUITEM "BT&709 (HDTV)", IDM_VID_GRAYCT_709
+                MENUITEM "&Keskiarvo", IDM_VID_GRAYCT_AVE
             END
         END
         MENUITEM SEPARATOR
-        MENUITEM "CGA/PCjr/Tandy/E&GA/(S)VGA &yliskannaus",             IDM_VID_OVERSCAN
-        MENUITEM "&Muuta harmaavärinäytön kontrastia",                  IDM_VID_CGACON
+        MENUITEM "CGA/PCjr/Tandy/E&GA/(S)VGA &yliskannaus", IDM_VID_OVERSCAN
+        MENUITEM "&Muuta harmaavärinäytön kontrastia", IDM_VID_CGACON
     END
-    MENUITEM "&Media",                                                  IDM_MEDIA
+    MENUITEM "&Media", IDM_MEDIA
     POPUP "Työ&kalut"
     BEGIN
-        MENUITEM "&Kokoonpano...",                                      IDM_CONFIG
-        MENUITEM "&Päivitä tilapalkin kuvakkeita",                      IDM_UPDATE_ICONS
+        MENUITEM "&Kokoonpano...", IDM_CONFIG
+        MENUITEM "&Päivitä tilapalkin kuvakkeita", IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Ota &kuvakaappaus\tCtrl+F11",                         IDM_ACTION_SCREENSHOT
+        MENUITEM "Ota &kuvakaappaus\tCtrl+F11", IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
-        MENUITEM "&Sovellusasetukset...",                               IDM_PREFERENCES
+        MENUITEM "&Sovellusasetukset...", IDM_PREFERENCES
 #ifdef DISCORD
-        MENUITEM "Käytä &Discord-integraatiota",                        IDM_DISCORD
+        MENUITEM "Käytä &Discord-integraatiota", IDM_DISCORD
 #endif
         MENUITEM SEPARATOR
-        MENUITEM "&Äänitasot...",                                       IDM_SND_GAIN
+        MENUITEM "&Äänitasot...", IDM_SND_GAIN
 #ifdef MTR_ENABLED
         MENUITEM SEPARATOR
-        MENUITEM "Aloita jäljitys\tCtrl+T",                             IDM_ACTION_BEGIN_TRACE
-        MENUITEM "Lopeta jäljitys\tCtrl+T",                             IDM_ACTION_END_TRACE
+        MENUITEM "Aloita jäljitys\tCtrl+T", IDM_ACTION_BEGIN_TRACE
+        MENUITEM "Lopeta jäljitys\tCtrl+T", IDM_ACTION_END_TRACE
 #endif
     END
     POPUP "&Ohje"
     BEGIN
-        MENUITEM "&Ohjekirja...",                                       IDM_DOCS
-        MENUITEM "&Tietoja 86Boxista...",                               IDM_ABOUT
+        MENUITEM "&Ohjekirja...", IDM_DOCS
+        MENUITEM "&Tietoja 86Boxista...", IDM_ABOUT
     END
 END
 
@@ -137,17 +137,17 @@ CassetteSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Uusi kasettikuva...",                                IDM_CASSETTE_IMAGE_NEW
+        MENUITEM "&Uusi kasettikuva...", IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Olemassaoleva kasettikuva...",                       IDM_CASSETTE_IMAGE_EXISTING
-        MENUITEM "Olemassaoleva kasettikuva (&kirjoitussuojattu)...",   IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM "&Olemassaoleva kasettikuva...", IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "Olemassaoleva kasettikuva (&kirjoitussuojattu)...", IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "&Nauhoita",                                           IDM_CASSETTE_RECORD
-        MENUITEM "&Toista",                                             IDM_CASSETTE_PLAY
-        MENUITEM "Kelaa &alkuun",                                       IDM_CASSETTE_REWIND
-        MENUITEM "Kelaa &loppuun",                                      IDM_CASSETTE_FAST_FORWARD
+        MENUITEM "&Nauhoita", IDM_CASSETTE_RECORD
+        MENUITEM "&Toista", IDM_CASSETTE_PLAY
+        MENUITEM "Kelaa &alkuun", IDM_CASSETTE_REWIND
+        MENUITEM "Kelaa &loppuun", IDM_CASSETTE_FAST_FORWARD
         MENUITEM SEPARATOR
-        MENUITEM "&Poista kasettipesästä",                              IDM_CASSETTE_EJECT
+        MENUITEM "&Poista kasettipesästä", IDM_CASSETTE_EJECT
     END
 END
 
@@ -155,9 +155,9 @@ CartridgeSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&ROM-moduulikuva...",                                 IDM_CARTRIDGE_IMAGE
+        MENUITEM "&ROM-moduulikuva...", IDM_CARTRIDGE_IMAGE
         MENUITEM SEPARATOR
-        MENUITEM "&Irrota",                                             IDM_CARTRIDGE_EJECT
+        MENUITEM "&Irrota", IDM_CARTRIDGE_EJECT
     END
 END
 
@@ -165,14 +165,14 @@ FloppySubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Uusi levykekuva...",                                 IDM_FLOPPY_IMAGE_NEW
+        MENUITEM "&Uusi levykekuva...", IDM_FLOPPY_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Olemassaoleva levykekuva...",                        IDM_FLOPPY_IMAGE_EXISTING
-        MENUITEM "Olemassaoleva levykekuva (&kirjoitussuojattu)...",    IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM "&Olemassaoleva levykekuva...", IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "Olemassaoleva levykekuva (&kirjoitussuojattu)...", IDM_FLOPPY_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "&Vie 86F-tiedostoon...",                              IDM_FLOPPY_EXPORT_TO_86F
+        MENUITEM "&Vie 86F-tiedostoon...", IDM_FLOPPY_EXPORT_TO_86F
         MENUITEM SEPARATOR
-        MENUITEM "&Poista asemasta",                                    IDM_FLOPPY_EJECT
+        MENUITEM "&Poista asemasta", IDM_FLOPPY_EJECT
     END
 END
 
@@ -180,13 +180,13 @@ CdromSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Mykistä",                                            IDM_CDROM_MUTE
+        MENUITEM "&Mykistä", IDM_CDROM_MUTE
         MENUITEM SEPARATOR
-        MENUITEM "&Tyhjä",                                              IDM_CDROM_EMPTY
-        MENUITEM "&Lataa edellinen levykuva uudelleen",                 IDM_CDROM_RELOAD
+        MENUITEM "&Tyhjä", IDM_CDROM_EMPTY
+        MENUITEM "&Lataa edellinen levykuva uudelleen", IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "L&evykuva...",                                           IDM_CDROM_IMAGE
-        MENUITEM "&Kansio...",                        IDM_CDROM_DIR
+        MENUITEM "L&evykuva...", IDM_CDROM_IMAGE
+        MENUITEM "&Kansio...", IDM_CDROM_DIR
     END
 END
 
@@ -194,13 +194,13 @@ ZIPSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Uusi levykuva...",                                   IDM_ZIP_IMAGE_NEW
+        MENUITEM "&Uusi levykuva...", IDM_ZIP_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Olemassaoleva levykuva...",                          IDM_ZIP_IMAGE_EXISTING
-        MENUITEM "Olemassaoleva levykuva (&kirjoitussuojattu)...",      IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM "&Olemassaoleva levykuva...", IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "Olemassaoleva levykuva (&kirjoitussuojattu)...", IDM_ZIP_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "&Poista asemasta",                                    IDM_ZIP_EJECT
-        MENUITEM "&Lataa edellinen levykuva uudelleen",                 IDM_ZIP_RELOAD
+        MENUITEM "&Poista asemasta", IDM_ZIP_EJECT
+        MENUITEM "&Lataa edellinen levykuva uudelleen", IDM_ZIP_RELOAD
     END
 END
 
@@ -208,13 +208,13 @@ MOSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Uusi levykuva...",                                   IDM_MO_IMAGE_NEW
+        MENUITEM "&Uusi levykuva...", IDM_MO_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Olemassaoleva levykuva...",                          IDM_MO_IMAGE_EXISTING
-        MENUITEM "Olemassaoleva levykuva (&kirjoitussuojattu)...",      IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM "&Olemassaoleva levykuva...", IDM_MO_IMAGE_EXISTING
+        MENUITEM "Olemassaoleva levykuva (&kirjoitussuojattu)...", IDM_MO_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "&Poista asemasta",                                    IDM_MO_EJECT
-        MENUITEM "&Lataa edellinen levykuva uudelleen",                 IDM_MO_RELOAD
+        MENUITEM "&Poista asemasta", IDM_MO_EJECT
+        MENUITEM "&Lataa edellinen levykuva uudelleen", IDM_MO_RELOAD
     END
 END
 
@@ -222,16 +222,16 @@ VidGLSubMenu MENU DISCARDABLE
 BEGIN
     POPUP "&Kuvataajuustavoite"
     BEGIN
-        MENUITEM "&Synkronisoi videoon",        IDM_VID_GL_FPS_BLITTER
-        MENUITEM "&25 ruutua/s",                IDM_VID_GL_FPS_25
-        MENUITEM "&30 ruutua/s",                IDM_VID_GL_FPS_30
-        MENUITEM "&50 ruutua/s",                IDM_VID_GL_FPS_50
-        MENUITEM "&60 ruutua/s",                IDM_VID_GL_FPS_60
-        MENUITEM "&75 ruutua/s",                IDM_VID_GL_FPS_75
+        MENUITEM "&Synkronisoi videoon", IDM_VID_GL_FPS_BLITTER
+        MENUITEM "&25 ruutua/s", IDM_VID_GL_FPS_25
+        MENUITEM "&30 ruutua/s", IDM_VID_GL_FPS_30
+        MENUITEM "&50 ruutua/s", IDM_VID_GL_FPS_50
+        MENUITEM "&60 ruutua/s", IDM_VID_GL_FPS_60
+        MENUITEM "&75 ruutua/s", IDM_VID_GL_FPS_75
     END
-    MENUITEM "&VSync",                          IDM_VID_GL_VSYNC
-    MENUITEM "Valitse varjostin&ohjelma...",    IDM_VID_GL_SHADER
-    MENUITEM "&Poista varjostinohjelma",        IDM_VID_GL_NOSHADER
+    MENUITEM "&VSync", IDM_VID_GL_VSYNC
+    MENUITEM "Valitse varjostin&ohjelma...", IDM_VID_GL_SHADER
+    MENUITEM "&Poista varjostinohjelma", IDM_VID_GL_NOSHADER
 END
 
 
@@ -240,150 +240,150 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES     "Sovellusasetukset"
-#define STR_SND_GAIN        "Äänen taso"
-#define STR_NEW_FLOPPY      "Uusi levykuva"
-#define STR_CONFIG          "Kokoonpano"
-#define STR_SPECIFY_DIM     "Määritä pääikkunan koko"
+#define STR_PREFERENCES   "Sovellusasetukset"
+#define STR_SND_GAIN      "Äänen taso"
+#define STR_NEW_FLOPPY    "Uusi levykuva"
+#define STR_CONFIG        "Kokoonpano"
+#define STR_SPECIFY_DIM   "Määritä pääikkunan koko"
 
-#define STR_OK              "OK"
-#define STR_CANCEL          "Peruuta"
-#define STR_GLOBAL          "Tallenna nämä asetukset &globaaleiksi oletuksiksi"
-#define STR_DEFAULT         "&Oletus"
-#define STR_LANGUAGE        "Kieli:"
-#define STR_ICONSET         "Kuvakkeet:"
+#define STR_OK            "OK"
+#define STR_CANCEL        "Peruuta"
+#define STR_GLOBAL        "Tallenna nämä asetukset &globaaleiksi oletuksiksi"
+#define STR_DEFAULT       "&Oletus"
+#define STR_LANGUAGE      "Kieli:"
+#define STR_ICONSET       "Kuvakkeet:"
 
-#define STR_GAIN            "Taso"
+#define STR_GAIN          "Taso"
 
-#define STR_FILE_NAME       "Tiedostonimi:"
-#define STR_DISK_SIZE       "Levyn koko:"
-#define STR_RPM_MODE        "Kierroslukutila:"
-#define STR_PROGRESS        "Edistyminen:"
+#define STR_FILE_NAME     "Tiedostonimi:"
+#define STR_DISK_SIZE     "Levyn koko:"
+#define STR_RPM_MODE      "Kierroslukutila:"
+#define STR_PROGRESS      "Edistyminen:"
 
-#define STR_WIDTH           "Leveys:"
-#define STR_HEIGHT          "Korkeus:"
-#define STR_LOCK_TO_SIZE    "Lukitse tähän kokoon"
+#define STR_WIDTH         "Leveys:"
+#define STR_HEIGHT        "Korkeus:"
+#define STR_LOCK_TO_SIZE  "Lukitse tähän kokoon"
 
-#define STR_MACHINE_TYPE    "Tietokoneen tyyppi:"
-#define STR_MACHINE         "Tietokone:"
-#define STR_CONFIGURE       "Määritys"
-#define STR_CPU_TYPE        "Suorittimen tyyppi:"
-#define STR_CPU_SPEED       "Nopeus:"
-#define STR_FPU             "Apusuoritin:"
-#define STR_WAIT_STATES     "Odotustilat:"
-#define STR_MB              "Mt"
-#define STR_MEMORY          "Muisti:"
-#define STR_TIME_SYNC       "Kellon synkronointi"
-#define STR_DISABLED        "Ei käytössä"
-#define STR_ENABLED_LOCAL   "Käytössä (paikallinen)"
-#define STR_ENABLED_UTC     "Käytössä (UTC)"
-#define STR_DYNAREC         "Dynaaminen uudelleenkääntäjä"
+#define STR_MACHINE_TYPE  "Tietokoneen tyyppi:"
+#define STR_MACHINE       "Tietokone:"
+#define STR_CONFIGURE     "Määritys"
+#define STR_CPU_TYPE      "Suorittimen tyyppi:"
+#define STR_CPU_SPEED     "Nopeus:"
+#define STR_FPU           "Apusuoritin:"
+#define STR_WAIT_STATES   "Odotustilat:"
+#define STR_MB            "Mt"
+#define STR_MEMORY        "Muisti:"
+#define STR_TIME_SYNC     "Kellon synkronointi"
+#define STR_DISABLED      "Ei käytössä"
+#define STR_ENABLED_LOCAL "Käytössä (paikallinen)"
+#define STR_ENABLED_UTC   "Käytössä (UTC)"
+#define STR_DYNAREC       "Dynaaminen uudelleenkääntäjä"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
-#define STR_VIDEO           "Näytönohjain:"
-#define STR_VIDEO_2         "Näytönohjain 2:"
-#define STR_VOODOO          "Voodoo-grafiikkasuoritin"
-#define STR_IBM8514        "IBM 8514/a-grafiikkasuoritin"
-#define STR_XGA             "XGA-grafiikkasuoritin"
+#define STR_VIDEO         "Näytönohjain:"
+#define STR_VIDEO_2       "Näytönohjain 2:"
+#define STR_VOODOO        "Voodoo-grafiikkasuoritin"
+#define STR_IBM8514       "IBM 8514/a-grafiikkasuoritin"
+#define STR_XGA           "XGA-grafiikkasuoritin"
 
-#define STR_MOUSE           "Hiiri:"
-#define STR_JOYSTICK        "Peliohjain:"
-#define STR_JOY1            "Peliohjain 1..."
-#define STR_JOY2            "Peliohjain 2..."
-#define STR_JOY3            "Peliohjain 3..."
-#define STR_JOY4            "Peliohjain 4..."
+#define STR_MOUSE         "Hiiri:"
+#define STR_JOYSTICK      "Peliohjain:"
+#define STR_JOY1          "Peliohjain 1..."
+#define STR_JOY2          "Peliohjain 2..."
+#define STR_JOY3          "Peliohjain 3..."
+#define STR_JOY4          "Peliohjain 4..."
 
-#define STR_SOUND1           "Äänikortti 1:"
-#define STR_SOUND2           "Äänikortti 2:"
-#define STR_SOUND3           "Äänikortti 3:"
-#define STR_SOUND4           "Äänikortti 4:"
-#define STR_MIDI_OUT        "MIDI-ulostulo:"
-#define STR_MIDI_IN         "MIDI-sisääntulo:"
-#define STR_MPU401          "Erillinen MPU-401"
-#define STR_FLOAT           "Käytä FLOAT32-ääntä"
-#define STR_FM_DRIVER       "FM-syntetisaattoriohjain"
-#define STR_FM_DRV_NUKED    "Nuked (tarkempi)"
-#define STR_FM_DRV_YMFM     "YMFM (nopeampi)"
+#define STR_SOUND1        "Äänikortti 1:"
+#define STR_SOUND2        "Äänikortti 2:"
+#define STR_SOUND3        "Äänikortti 3:"
+#define STR_SOUND4        "Äänikortti 4:"
+#define STR_MIDI_OUT      "MIDI-ulostulo:"
+#define STR_MIDI_IN       "MIDI-sisääntulo:"
+#define STR_MPU401        "Erillinen MPU-401"
+#define STR_FLOAT         "Käytä FLOAT32-ääntä"
+#define STR_FM_DRIVER     "FM-syntetisaattoriohjain"
+#define STR_FM_DRV_NUKED  "Nuked (tarkempi)"
+#define STR_FM_DRV_YMFM   "YMFM (nopeampi)"
 
-#define STR_NET_TYPE        "Verkon tyyppi:"
-#define STR_PCAP            "PCap-laite:"
-#define STR_NET             "Verkkokortti:"
-#define STR_NET1            "Network card 1:"
-#define STR_NET2            "Network card 2:"
-#define STR_NET3            "Network card 3:"
-#define STR_NET4            "Network card 4:"
+#define STR_NET_TYPE      "Verkon tyyppi:"
+#define STR_PCAP          "PCap-laite:"
+#define STR_NET           "Verkkokortti:"
+#define STR_NET1          "Network card 1:"
+#define STR_NET2          "Network card 2:"
+#define STR_NET3          "Network card 3:"
+#define STR_NET4          "Network card 4:"
 
-#define STR_COM1            "COM1-laite:"
-#define STR_COM2            "COM2-laite:"
-#define STR_COM3            "COM3-laite:"
-#define STR_COM4            "COM4-laite:"
-#define STR_LPT1            "LPT1-laite:"
-#define STR_LPT2            "LPT2-laite:"
-#define STR_LPT3            "LPT3-laite:"
-#define STR_LPT4            "LPT4-laite:"
-#define STR_SERIAL1         "Sarjaportti 1"
-#define STR_SERIAL2         "Sarjaportti 2"
-#define STR_SERIAL3         "Sarjaportti 3"
-#define STR_SERIAL4         "Sarjaportti 4"
-#define STR_PARALLEL1       "Rinnakkaisportti 1"
-#define STR_PARALLEL2       "Rinnakkaisportti 2"
-#define STR_PARALLEL3       "Rinnakkaisportti 3"
-#define STR_PARALLEL4       "Rinnakkaisportti 4"
-#define STR_SERIAL_PASS1    "Serial port passthrough 1"
-#define STR_SERIAL_PASS2    "Serial port passthrough 2"
-#define STR_SERIAL_PASS3    "Serial port passthrough 3"
-#define STR_SERIAL_PASS4    "Serial port passthrough 4"
+#define STR_COM1          "COM1-laite:"
+#define STR_COM2          "COM2-laite:"
+#define STR_COM3          "COM3-laite:"
+#define STR_COM4          "COM4-laite:"
+#define STR_LPT1          "LPT1-laite:"
+#define STR_LPT2          "LPT2-laite:"
+#define STR_LPT3          "LPT3-laite:"
+#define STR_LPT4          "LPT4-laite:"
+#define STR_SERIAL1       "Sarjaportti 1"
+#define STR_SERIAL2       "Sarjaportti 2"
+#define STR_SERIAL3       "Sarjaportti 3"
+#define STR_SERIAL4       "Sarjaportti 4"
+#define STR_PARALLEL1     "Rinnakkaisportti 1"
+#define STR_PARALLEL2     "Rinnakkaisportti 2"
+#define STR_PARALLEL3     "Rinnakkaisportti 3"
+#define STR_PARALLEL4     "Rinnakkaisportti 4"
+#define STR_SERIAL_PASS1  "Serial port passthrough 1"
+#define STR_SERIAL_PASS2  "Serial port passthrough 2"
+#define STR_SERIAL_PASS3  "Serial port passthrough 3"
+#define STR_SERIAL_PASS4  "Serial port passthrough 4"
 
-#define STR_HDC             "Kiintolevyohjain:"
-#define STR_FDC             "Levykeohjain:"
-#define STR_IDE_TER         "Kolmas IDE-ohjain"
-#define STR_IDE_QUA         "Neljäs IDE-ohjain"
-#define STR_SCSI            "SCSI"
-#define STR_SCSI_1          "Ohjain 1:"
-#define STR_SCSI_2          "Ohjain 2:"
-#define STR_SCSI_3          "Ohjain 3:"
-#define STR_SCSI_4          "Ohjain 4:"
-#define STR_CASSETTE        "Kasettiasema"
+#define STR_HDC           "Kiintolevyohjain:"
+#define STR_FDC           "Levykeohjain:"
+#define STR_IDE_TER       "Kolmas IDE-ohjain"
+#define STR_IDE_QUA       "Neljäs IDE-ohjain"
+#define STR_SCSI          "SCSI"
+#define STR_SCSI_1        "Ohjain 1:"
+#define STR_SCSI_2        "Ohjain 2:"
+#define STR_SCSI_3        "Ohjain 3:"
+#define STR_SCSI_4        "Ohjain 4:"
+#define STR_CASSETTE      "Kasettiasema"
 
-#define STR_HDD             "Kiintolevyt:"
-#define STR_NEW             "&Uusi..."
-#define STR_EXISTING        "&Olemassaoleva..."
-#define STR_REMOVE          "&Poista"
-#define STR_BUS             "Väylä:"
-#define STR_CHANNEL         "Kanava:"
-#define STR_ID              "ID:"
-#define STR_SPEED        "Speed:"
+#define STR_HDD           "Kiintolevyt:"
+#define STR_NEW           "&Uusi..."
+#define STR_EXISTING      "&Olemassaoleva..."
+#define STR_REMOVE        "&Poista"
+#define STR_BUS           "Väylä:"
+#define STR_CHANNEL       "Kanava:"
+#define STR_ID            "ID:"
+#define STR_SPEED         "Speed:"
 
-#define STR_SPECIFY         "&Määritä..."
-#define STR_SECTORS         "Sektorit:"
-#define STR_HEADS           "Lukupäät:"
-#define STR_CYLS            "Sylinterit:"
-#define STR_SIZE_MB         "Koko (Mt):"
-#define STR_TYPE            "Tyyppi:"
-#define STR_IMG_FORMAT      "Tiedostomuoto:"
-#define STR_BLOCK_SIZE      "Lohkon koko:"
+#define STR_SPECIFY       "&Määritä..."
+#define STR_SECTORS       "Sektorit:"
+#define STR_HEADS         "Lukupäät:"
+#define STR_CYLS          "Sylinterit:"
+#define STR_SIZE_MB       "Koko (Mt):"
+#define STR_TYPE          "Tyyppi:"
+#define STR_IMG_FORMAT    "Tiedostomuoto:"
+#define STR_BLOCK_SIZE    "Lohkon koko:"
 
-#define STR_FLOPPY_DRIVES   "Levykeasemat:"
-#define STR_TURBO           "Turbo-ajoitukset"
-#define STR_CHECKBPB        "Tarkista BPB"
-#define STR_CDROM_DRIVES    "CD-ROM-asemat:"
-#define STR_CD_SPEED        "Nopeus:"
-#define STR_EARLY           "Aiemmat asemat"
+#define STR_FLOPPY_DRIVES "Levykeasemat:"
+#define STR_TURBO         "Turbo-ajoitukset"
+#define STR_CHECKBPB      "Tarkista BPB"
+#define STR_CDROM_DRIVES  "CD-ROM-asemat:"
+#define STR_CD_SPEED      "Nopeus:"
 
-#define STR_MO_DRIVES       "Magneettisoptiset asemat (MO):"
-#define STR_ZIP_DRIVES      "ZIP-asemat:"
-#define STR_250             "ZIP 250"
+#define STR_MO_DRIVES     "Magneettisoptiset asemat (MO):"
+#define STR_ZIP_DRIVES    "ZIP-asemat:"
+#define STR_250           "ZIP 250"
 
-#define STR_ISARTC          "ISA-RTC (kello):"
-#define STR_ISAMEM          "ISA-muistilaajennus"
-#define STR_ISAMEM_1        "Kortti 1:"
-#define STR_ISAMEM_2        "Kortti 2:"
-#define STR_ISAMEM_3        "Kortti 3:"
-#define STR_ISAMEM_4        "Kortti 4:"
-#define STR_BUGGER          "ISABugger-laite"
-#define STR_POSTCARD        "POST-kortti"
+#define STR_ISARTC        "ISA-RTC (kello):"
+#define STR_ISAMEM        "ISA-muistilaajennus"
+#define STR_ISAMEM_1      "Kortti 1:"
+#define STR_ISAMEM_2      "Kortti 2:"
+#define STR_ISAMEM_3      "Kortti 3:"
+#define STR_ISAMEM_4      "Kortti 4:"
+#define STR_BUGGER        "ISABugger-laite"
+#define STR_POSTCARD      "POST-kortti"
 
-#define FONT_SIZE        9
-#define FONT_NAME        "Segoe UI"
+#define FONT_SIZE         9
+#define FONT_NAME         "Segoe UI"
 
 #include "dialogs.rc"
 
@@ -394,7 +394,7 @@ END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    2048    "86Box"
+    2048        "86Box"
     IDS_2049    "Virhe"
     IDS_2050    "Vakava virhe"
     IDS_2051    " - TAUKO"
@@ -537,11 +537,13 @@ BEGIN
     IDS_2159    "Kylmä uudelleenkäynnistys"
     IDS_2160    "ACPI-sammutus"
     IDS_2161    "Asetukset"
-    IDS_2162    "Aiemmat asemat"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
     IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+    IDS_2167    "Failed to initialize network driver"
+    IDS_2168    "The network configuration will be switched to the null driver"
 END
 
 STRINGTABLE DISCARDABLE
@@ -643,7 +645,7 @@ BEGIN
 
     IDS_7168    "(Järjestelmän oletus)"
 END
-#define IDS_LANG_ENUS    IDS_7168
+#define IDS_LANG_ENUS IDS_7168
 
 // English (U.S.) resources
 /////////////////////////////////////////////////////////////////////////////

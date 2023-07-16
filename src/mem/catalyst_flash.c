@@ -55,19 +55,22 @@ enum {
 };
 
 typedef struct flash_t {
-    uint8_t command, pad,
-        pad0, pad1,
-        *array;
+    uint8_t command;
+    uint8_t pad;
+    uint8_t pad0;
+    uint8_t pad1;
+    uint8_t *array;
 
-    mem_mapping_t mapping, mapping_h[2];
+    mem_mapping_t mapping;
+    mem_mapping_t mapping_h[2];
 } flash_t;
 
 static char flash_path[1024];
 
 static uint8_t
-flash_read(uint32_t addr, void *p)
+flash_read(uint32_t addr, void *priv)
 {
-    flash_t *dev = (flash_t *) p;
+    flash_t *dev = (flash_t *) priv;
     uint8_t  ret = 0xff;
 
     addr &= biosmask;
@@ -85,6 +88,9 @@ flash_read(uint32_t addr, void *p)
                 ret = 0x31; /* CATALYST */
             else if (addr == 0x00001)
                 ret = 0xB4; /* 28F010 */
+            break;
+
+        default:
             break;
     }
 
@@ -141,13 +147,15 @@ flash_write(uint32_t addr, uint8_t val, void *p)
 }
 
 static void
-flash_writew(uint32_t addr, uint16_t val, void *p)
+flash_writew(UNUSED(uint32_t addr), UNUSED(uint16_t val), UNUSED(void *priv))
 {
+    //
 }
 
 static void
-flash_writel(uint32_t addr, uint32_t val, void *p)
+flash_writel(UNUSED(uint32_t addr), UNUSED(uint32_t val), UNUSED(void *priv))
 {
+    //
 }
 
 static void
@@ -179,7 +187,7 @@ catalyst_flash_reset(void *priv)
 }
 
 static void *
-catalyst_flash_init(const device_t *info)
+catalyst_flash_init(UNUSED(const device_t *info))
 {
     FILE    *f;
     flash_t *dev;

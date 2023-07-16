@@ -20,7 +20,7 @@
 
 typedef struct adgold_t {
     int adgold_irq_status;
-    int irq, dma, hdma;
+    int irq, dma;
 
     uint8_t adgold_eeprom[0x1a];
 
@@ -345,7 +345,7 @@ adgold_write(uint16_t addr, uint8_t val, void *p)
                         adgold_update_irq_status(adgold);
                         dma_set_drq(adgold->dma, 0);
                     }
-                    if ((val & 0x01)) /*Start playback*/
+                    if (val & 0x01) /*Start playback*/
                     {
                         if (!(adgold->adgold_mma_regs[0][0x9] & 1))
                             adgold->adgold_mma.voice_count[0] = adgold->adgold_mma.voice_latch[0];
@@ -468,7 +468,7 @@ adgold_write(uint16_t addr, uint8_t val, void *p)
                         adgold_update_irq_status(adgold);
                         dma_set_drq(adgold->dma, 0);
                     }
-                    if ((val & 0x01)) /*Start playback*/
+                    if (val & 0x01) /*Start playback*/
                     {
                         if (!(adgold->adgold_mma_regs[1][0x9] & 1))
                             adgold->adgold_mma.voice_count[1] = adgold->adgold_mma.voice_latch[1];
@@ -547,6 +547,7 @@ adgold_read(uint16_t addr, void *p)
             temp = adgold->adgold_mma_status;
             adgold->adgold_mma_status &= ~0xf3; /*JUKEGOLD expects timer status flags to auto-clear*/
             adgold_update_irq_status(adgold);
+            picintc(1 << adgold->irq);
             break;
         case 5:
             if (adgold->adgold_mma_addr >= 0xf)
@@ -652,7 +653,8 @@ adgold_timer_poll(void *p)
 {
     adgold_t *adgold = (adgold_t *) p;
 
-    timer_advance_u64(&adgold->adgold_mma_timer_count, (uint64_t) ((double) TIMER_USEC * 1.88964));
+	/*A small timer period will result in hangs.*/
+    timer_on_auto(&adgold->adgold_mma_timer_count, 4.88964);
 
     if (adgold->adgold_midi_ctrl & 0x3f) {
         if ((adgold->adgold_midi_ctrl & 0x3f) != 0x3f) {
@@ -782,7 +784,9 @@ adgold_get_buffer(int32_t *buffer, int len, void *p)
     }
 
     for (c = 0; c < len * 2; c += 2) {
-        int32_t temp, lowpass, highpass;
+        int32_t temp;
+        int32_t lowpass;
+        int32_t highpass;
 
         /*Output is deliberately halved to avoid clipping*/
         temp     = ((int32_t) adgold_buffer[c] * adgold->vol_l) >> 17;
@@ -842,7 +846,6 @@ static void
 adgold_input_msg(void *p, uint8_t *msg, uint32_t len)
 {
     adgold_t *adgold = (adgold_t *) p;
-    uint8_t   i;
 
     if (adgold->sysex)
         return;
@@ -850,7 +853,7 @@ adgold_input_msg(void *p, uint8_t *msg, uint32_t len)
     if (adgold->uart_in) {
         adgold->adgold_mma_status |= 0x04;
 
-        for (i = 0; i < len; i++) {
+        for (uint32_t i = 0; i < len; i++) {
             adgold->midi_queue[adgold->midi_w++] = msg[i];
             adgold->midi_w &= 0x0f;
         }
@@ -863,14 +866,13 @@ static int
 adgold_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 {
     adgold_t *adgold = (adgold_t *) p;
-    uint32_t  i;
 
     if (abort) {
         adgold->sysex = 0;
         return 0;
     }
     adgold->sysex = 1;
-    for (i = 0; i < len; i++) {
+    for (uint32_t i = 0; i < len; i++) {
         if (adgold->midi_r == adgold->midi_w)
             return (len - i);
         adgold->midi_queue[adgold->midi_w++] = buffer[i];
@@ -925,7 +927,7 @@ adgold_init(const device_t *info)
     adgold->adgold_eeprom[0x10] = 0xff;
     adgold->adgold_eeprom[0x11] = 0x20;
     adgold->adgold_eeprom[0x12] = 0x00;
-    adgold->adgold_eeprom[0x13] = 0xa0;
+    adgold->adgold_eeprom[0x13] = 0x00;
     adgold->adgold_eeprom[0x14] = 0x00;
     adgold->adgold_eeprom[0x15] = 0x388 / 8; /*Present at 388-38f*/
     adgold->adgold_eeprom[0x16] = 0x00;
@@ -957,6 +959,7 @@ adgold_init(const device_t *info)
             break;
     }
     adgold->adgold_eeprom[0x13] |= (adgold->dma << 3);
+    adgold->adgold_eeprom[0x14] |= (adgold->dma << 4);
     memcpy(adgold->adgold_38x_regs, adgold->adgold_eeprom, 0x19);
     adgold->vol_l      = attenuation[adgold->adgold_eeprom[0x04] & 0x3f];
     adgold->vol_r      = attenuation[adgold->adgold_eeprom[0x05] & 0x3f];

@@ -48,16 +48,16 @@ typedef struct sb_ct1335_mixer_t {
 
 /* SB PRO */
 typedef struct sb_ct1345_mixer_t {
-    double master_l,
-        master_r;
-    double voice_l,
-        voice_r;
-    double fm_l,
-        fm_r;
-    double cd_l,
-        cd_r;
-    double line_l,
-        line_r;
+    double master_l;
+    double master_r;
+    double voice_l;
+    double voice_r;
+    double fm_l;
+    double fm_r;
+    double cd_l;
+    double cd_r;
+    double line_l;
+    double line_r;
     double mic;
     /*see sb_ct1745_mixer for values for input selector*/
     int32_t input_selector;
@@ -76,23 +76,23 @@ typedef struct sb_ct1345_mixer_t {
 
 /* SB16 and AWE32 */
 typedef struct sb_ct1745_mixer_t {
-    double master_l,
-        master_r;
-    double voice_l,
-        voice_r;
-    double fm_l,
-        fm_r;
-    double cd_l,
-        cd_r;
-    double line_l,
-        line_r;
+    double master_l;
+    double master_r;
+    double voice_l;
+    double voice_r;
+    double fm_l;
+    double fm_r;
+    double cd_l;
+    double cd_r;
+    double line_l;
+    double line_r;
     double mic;
     double speaker;
 
-    int bass_l,
-        bass_r;
-    int treble_l,
-        treble_r;
+    int bass_l;
+    int bass_r;
+    int treble_l;
+    int treble_r;
 
     int output_selector;
 #define OUTPUT_MIC    1
@@ -125,12 +125,12 @@ typedef struct sb_ct1745_mixer_t {
 } sb_ct1745_mixer_t;
 
 typedef struct sb_t {
-    uint8_t cms_enabled,
-        opl_enabled,
-        mixer_enabled;
+    uint8_t  cms_enabled;
+    uint8_t  opl_enabled;
+    uint8_t  mixer_enabled;
     cms_t    cms;
-    fm_drv_t opl,
-        opl2;
+    fm_drv_t opl;
+    fm_drv_t opl2;
     sb_dsp_t dsp;
     union {
         sb_ct1335_mixer_t mixer_sb2;
@@ -143,8 +143,8 @@ typedef struct sb_t {
 
     int pos;
 
-    uint8_t pos_regs[8],
-        pnp_rom[512];
+    uint8_t pos_regs[8];
+    uint8_t pnp_rom[512];
 
     uint16_t opl_pnp_addr;
 

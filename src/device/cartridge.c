@@ -29,8 +29,7 @@
 #include <86box/machine.h>
 #include <86box/cartridge.h>
 
-typedef struct
-{
+typedef struct cart_t {
     uint8_t *buf;
     uint32_t base;
 } cart_t;
@@ -68,7 +67,7 @@ cart_read(uint32_t addr, void *priv)
 }
 
 static void
-cart_load_error(int drive, char *fn)
+cart_load_error(int drive, UNUSED(char *fn))
 {
     cartridge_log("Cartridge: could not load '%s'\n", fn);
     memset(cart_fns[drive], 0, sizeof(cart_fns[drive]));
@@ -175,15 +174,13 @@ cart_close(int drive)
 void
 cart_reset(void)
 {
-    int i;
-
     cart_image_close(1);
     cart_image_close(0);
 
     if (!machine_has_cartridge(machine))
         return;
 
-    for (i = 0; i < 2; i++) {
+    for (uint8_t i = 0; i < 2; i++) {
         mem_mapping_add(&cart_mappings[i], 0x000d0000, 0x00002000,
                         cart_read, NULL, NULL,
                         NULL, NULL, NULL,

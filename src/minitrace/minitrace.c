@@ -252,7 +252,6 @@ void mtr_init(const char *json_file) {
 }
 
 void mtr_shutdown(void) {
-    int i;
 #ifndef MTR_ENABLED
     return;
 #endif
@@ -266,7 +265,7 @@ void mtr_shutdown(void) {
     f = 0;
     free(event_buffer);
     event_buffer = 0;
-    for (i = 0; i < STRING_POOL_SIZE; i++) {
+    for (uint8_t i = 0; i < STRING_POOL_SIZE; i++) {
         if (str_pool[i]) {
             free(str_pool[i]);
             str_pool[i] = 0;
@@ -275,8 +274,7 @@ void mtr_shutdown(void) {
 }
 
 const char *mtr_pool_string(const char *str) {
-    int i;
-    for (i = 0; i < STRING_POOL_SIZE; i++) {
+    for (uint8_t i = 0; i < STRING_POOL_SIZE; i++) {
         if (!str_pool[i]) {
             str_pool[i] = (char*)malloc(strlen(str) + 1);
             strcpy(str_pool[i], str);

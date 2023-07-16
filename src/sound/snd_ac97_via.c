@@ -178,6 +178,7 @@ ac97_via_update_codec(ac97_via_t *dev)
     /* Update volumes according to codec registers. */
     ac97_codec_getattn(codec, 0x02, &dev->master_vol_l, &dev->master_vol_r);
     ac97_codec_getattn(codec, 0x18, &dev->sgd[0].vol_l, &dev->sgd[0].vol_r);
+    ac97_codec_getattn(codec, 0x18, &dev->sgd[2].vol_l, &dev->sgd[2].vol_r); /* VIAFMTSR sets Master, CD and PCM volumes to 0 dB */
     ac97_codec_getattn(codec, 0x12, &dev->cd_vol_l, &dev->cd_vol_r);
 
     /* Update sample rate according to codec registers and the variable sample rate flag. */
@@ -283,7 +284,8 @@ void
 ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 {
     ac97_via_t   *dev   = (ac97_via_t *) priv;
-    uint8_t       modem = (addr & 0xff00) == dev->modem_sgd_base, i;
+    uint8_t       modem = (addr & 0xff00) == dev->modem_sgd_base;
+    uint8_t       i;
     ac97_codec_t *codec;
     addr &= 0xff;
 
@@ -315,13 +317,11 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
                         dev->sgd_regs[addr & 0xf0] |= 0x08;
                     } else {
                         /* Start SGD immediately. */
-                        dev->sgd_regs[addr & 0xf0] |= 0x80;
-                        dev->sgd_regs[addr & 0xf0] &= ~0x44;
+                        dev->sgd_regs[addr & 0xf0] = (dev->sgd_regs[addr & 0xf0] & ~0x47) | 0x80;
 
                         /* Start at the specified entry pointer. */
-                        dev->sgd[addr >> 4].sample_ptr = 0;
                         dev->sgd[addr >> 4].entry_ptr  = *((uint32_t *) &dev->sgd_regs[(addr & 0xf0) | 0x4]) & 0xfffffffe;
-                        dev->sgd[addr >> 4].restart    = 1;
+                        dev->sgd[addr >> 4].restart    = 2;
 
                         /* Start the actual SGD process. */
                         ac97_via_sgd_process(&dev->sgd[addr >> 4]);
@@ -497,8 +497,8 @@ ac97_via_remap_modem_codec(void *priv, uint16_t new_io_base, uint8_t enable)
 static void
 ac97_via_update_stereo(ac97_via_t *dev, ac97_via_sgd_t *sgd)
 {
-    int32_t l = (((sgd->out_l * sgd->vol_l) >> 15) * dev->master_vol_l) >> 15,
-            r = (((sgd->out_r * sgd->vol_r) >> 15) * dev->master_vol_r) >> 15;
+    int32_t l = (((sgd->out_l * sgd->vol_l) >> 15) * dev->master_vol_l) >> 15;
+    int32_t r = (((sgd->out_r * sgd->vol_r) >> 15) * dev->master_vol_r) >> 15;
 
     if (l < -32768)
         l = -32768;
@@ -530,14 +530,13 @@ ac97_via_sgd_process(void *priv)
     timer_on_auto(&sgd->dma_timer, 10.0);
 
     /* Process SGD if it's active, and the FIFO has room or is disabled. */
-    if ((sgd_status == 0x80) && (sgd->always_run || ((sgd->fifo_end - sgd->fifo_pos) <= (sizeof(sgd->fifo) - 4)))) {
+    if (((sgd_status & 0xc7) == 0x80) && (sgd->always_run || ((sgd->fifo_end - sgd->fifo_pos) <= (sizeof(sgd->fifo) - 4)))) {
         /* Move on to the next block if no entry is present. */
         if (sgd->restart) {
+            /* (Re)load entry pointer if required. */
+            if (sgd->restart & 2)
+                sgd->entry_ptr = *((uint32_t *) &dev->sgd_regs[sgd->id | 0x4]) & 0xfffffffe; /* TODO: probe real hardware - does "even addr" actually mean dword aligned? */
             sgd->restart = 0;
-
-            /* Start at first entry if no pointer is present. */
-            if (!sgd->entry_ptr)
-                sgd->entry_ptr = *((uint32_t *) &dev->sgd_regs[sgd->id | 0x4]) & 0xfffffffe;
 
             /* Read entry. */
             sgd->sample_ptr = mem_readl_phys(sgd->entry_ptr);
@@ -573,6 +572,9 @@ ac97_via_sgd_process(void *priv)
         if (sgd->sample_count <= 0) {
             ac97_via_log("AC97 VIA: Ending SGD %d block", sgd->id >> 4);
 
+            /* Move on to the next block on the next run, unless overridden below. */
+            sgd->restart = 1;
+
             if (sgd->entry_flags & 0x20) {
                 ac97_via_log(" with STOP");
 
@@ -583,8 +585,8 @@ ac97_via_sgd_process(void *priv)
             if (sgd->entry_flags & 0x40) {
                 ac97_via_log(" with FLAG");
 
-                /* Raise FLAG and STOP. */
-                dev->sgd_regs[sgd->id] |= 0x05;
+                /* Raise FLAG to pause SGD. */
+                dev->sgd_regs[sgd->id] |= 0x01;
 
 #ifdef ENABLE_AC97_VIA_LOG
                 if (dev->sgd_regs[sgd->id | 0x2] & 0x01)
@@ -610,8 +612,8 @@ ac97_via_sgd_process(void *priv)
                     /* Un-queue trigger. */
                     dev->sgd_regs[sgd->id] &= ~0x08;
 
-                    /* Go back to the starting block. */
-                    sgd->entry_ptr = 0; /* ugly, but Windows XP plays too fast if the pointer is reloaded now */
+                    /* Go back to the starting block on the next run. */
+                    sgd->restart = 2;
                 } else {
                     ac97_via_log(" finish");
 
@@ -623,9 +625,6 @@ ac97_via_sgd_process(void *priv)
 
             /* Fire any requested status interrupts. */
             ac97_via_update_irqs(dev);
-
-            /* Move on to a new block on the next run. */
-            sgd->restart = 1;
         }
     }
 }
@@ -730,7 +729,8 @@ static void
 ac97_via_filter_cd_audio(int channel, double *buffer, void *priv)
 {
     ac97_via_t *dev = (ac97_via_t *) priv;
-    double      c, volume = channel ? dev->cd_vol_r : dev->cd_vol_l;
+    double      c;
+    double      volume = channel ? dev->cd_vol_r : dev->cd_vol_l;
 
     c       = ((*buffer) * volume) / 65536.0;
     *buffer = c;
@@ -749,7 +749,7 @@ ac97_via_speed_changed(void *priv)
         freq = (double) SOUND_FREQ;
 
     dev->sgd[0].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq));
-    dev->sgd[2].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 24000.0));
+    dev->sgd[2].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 24000.0)); /* FM operates at a fixed 24 KHz */
 }
 
 static void *
@@ -774,10 +774,6 @@ ac97_via_init(const device_t *info)
         /* Disable the FIFO on SGDs we don't care about. */
         if ((i != 0) && (i != 2))
             dev->sgd[i].always_run = 1;
-
-        /* No volume control on FM SGD that I know of. */
-        if (i == 2)
-            dev->sgd[i].vol_l = dev->sgd[i].vol_r = 32767;
 
         timer_add(&dev->sgd[i].dma_timer, ac97_via_sgd_process, &dev->sgd[i], 0);
     }

@@ -154,7 +154,9 @@ serial_receive_timer(void *priv)
 {
     serial_t *dev = (serial_t *) priv;
 
-    // serial_log("serial_receive_timer()\n");
+#if 0
+    serial_log("serial_receive_timer()\n");
+#endif
 
     timer_on_auto(&dev->receive_timer, /* dev->bits * */ dev->transmit_period);
 
@@ -174,7 +176,9 @@ serial_receive_timer(void *priv)
             } else {
                 /* We can input data into the FIFO. */
                 dev->rcvr_fifo[dev->rcvr_fifo_end] = (uint8_t) (dev->out_new & 0xff);
-                // dev->rcvr_fifo_end = (dev->rcvr_fifo_end + 1) & 0x0f;
+#if 0
+                dev->rcvr_fifo_end = (dev->rcvr_fifo_end + 1) & 0x0f;
+#endif
                 /* Do not wrap around, makes sure it still triggers the interrupt
                    at 16 bytes. */
                 dev->rcvr_fifo_end++;
@@ -266,13 +270,11 @@ serial_transmit(serial_t *dev, uint8_t val)
 static void
 serial_move_to_txsr(serial_t *dev)
 {
-    int i = 0;
-
     if (dev->fifo_enabled) {
         dev->txsr = dev->xmit_fifo[0];
         if (dev->xmit_fifo_pos > 0) {
             /* Move the entire fifo forward by one byte. */
-            for (i = 1; i < 16; i++)
+            for (uint8_t i = 1; i < 16; i++)
                 dev->xmit_fifo[i - 1] = dev->xmit_fifo[i];
             /* Decrease FIFO position. */
             dev->xmit_fifo_pos--;
@@ -476,7 +478,8 @@ void
 serial_write(uint16_t addr, uint8_t val, void *p)
 {
     serial_t *dev = (serial_t *) p;
-    uint8_t   new_msr, old;
+    uint8_t   new_msr;
+    uint8_t   old;
 
     // serial_log("UART: Write %02X to port %02X\n", val, addr);
     serial_log("UART: [%04X:%08X] Write %02X to port %02X\n", CS, cpu_state.pc, val, addr);
@@ -558,6 +561,8 @@ serial_write(uint16_t addr, uint8_t val, void *p)
                     case 3:
                         dev->rcvr_fifo_len = 14;
                         break;
+                    default:
+                        break;
                 }
                 dev->out_new = 0xffff;
                 serial_log("FIFO now %sabled, receive FIFO length = %i\n", dev->fifo_enabled ? "en" : "dis", dev->rcvr_fifo_len);
@@ -625,8 +630,10 @@ serial_write(uint16_t addr, uint8_t val, void *p)
             serial_update_ints(dev);
             break;
         case 6:
-            // dev->msr = (val & 0xf0) | (dev->msr & 0x0f);
-            // dev->msr = val;
+#if 0
+            dev->msr = (val & 0xf0) | (dev->msr & 0x0f);
+            dev->msr = val;
+#endif
             /* The actual condition bits of the MSR are read-only, but the delta bits are
                undocumentedly writable, and the PCjr BIOS uses them to raise MSR interrupts. */
             dev->msr = (dev->msr & 0xf0) | (val & 0x0f);
@@ -637,6 +644,8 @@ serial_write(uint16_t addr, uint8_t val, void *p)
         case 7:
             if (dev->type >= SERIAL_16450)
                 dev->scratch = val;
+            break;
+        default:
             break;
     }
 }
@@ -736,6 +745,8 @@ serial_read(uint16_t addr, void *p)
             break;
         case 7:
             ret = dev->scratch;
+            break;
+        default:
             break;
     }
 
@@ -915,7 +926,7 @@ serial_set_next_inst(int ni)
 void
 serial_standalone_init(void)
 {
-    for (; next_inst < SERIAL_MAX;)
+    while (next_inst < SERIAL_MAX)
         device_add_inst(&ns8250_device, next_inst + 1);
 };
 

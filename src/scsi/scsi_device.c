@@ -162,11 +162,10 @@ scsi_device_identify(scsi_device_t *dev, uint8_t lun)
 void
 scsi_device_close_all(void)
 {
-    int            i, j;
     scsi_device_t *dev;
 
-    for (i = 0; i < SCSI_BUS_MAX; i++) {
-        for (j = 0; j < SCSI_ID_MAX; j++) {
+    for (uint8_t i = 0; i < SCSI_BUS_MAX; i++) {
+        for (uint8_t j = 0; j < SCSI_ID_MAX; j++) {
             dev = &(scsi_devices[i][j]);
             if (dev->command_stop && dev->sc)
                 dev->command_stop(dev->sc);
@@ -177,11 +176,10 @@ scsi_device_close_all(void)
 void
 scsi_device_init(void)
 {
-    int            i, j;
     scsi_device_t *dev;
 
-    for (i = 0; i < SCSI_BUS_MAX; i++) {
-        for (j = 0; j < SCSI_ID_MAX; j++) {
+    for (uint8_t i = 0; i < SCSI_BUS_MAX; i++) {
+        for (uint8_t j = 0; j < SCSI_ID_MAX; j++) {
             dev = &(scsi_devices[i][j]);
 
             memset(dev, 0, sizeof(scsi_device_t));

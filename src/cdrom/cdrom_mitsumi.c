@@ -116,7 +116,9 @@ typedef struct {
 /* The addresses sent from the guest are absolute, ie. a LBA of 0 corresponds to a MSF of 00:00:00. Otherwise, the counter displayed by the guest is wrong:
    there is a seeming 2 seconds in which audio plays but counter does not move, while a data track before audio jumps to 2 seconds before the actual start
    of the audio while audio still plays. With an absolute conversion, the counter is fine. */
+#ifdef MSFtoLBA
 #undef MSFtoLBA
+#endif
 #define MSFtoLBA(m, s, f) ((((m * 60) + s) * 75) + f)
 
 #define CD_BCD(x)         (((x) % 10) | (((x) / 10) << 4))
@@ -242,9 +244,11 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
                 ret |= FLAG_NOSTAT;
             pclog("Read port 1: ret = %02x\n", ret | FLAG_UNK);
             return ret | FLAG_UNK;
+        default:
+            break;
     }
 
-    return (0xff);
+    return 0xff;
 }
 
 static void
@@ -283,6 +287,8 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                     case 0x10:
                                         dev->enable_irq = val;
                                         break;
+                                    default:
+                                        break;
                                 }
                                 dev->cmdbuf[1]    = 0;
                                 dev->cmdbuf_count = 2;
@@ -296,6 +302,8 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                 dev->conf = val;
                                 if (dev->conf == 1)
                                     dev->cmdrd_count++;
+                                break;
+                            default:
                                 break;
                         }
                         break;
@@ -320,7 +328,11 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                             case 3:
                                 dev->readmsf |= CD_DCB(val) << ((dev->cmdrd_count - 3) << 3);
                                 break;
+                            default:
+                                break;
                         }
+                        break;
+                    default:
                         break;
                 }
                 if (!dev->cmdrd_count)
@@ -406,11 +418,13 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
         case 1:
             mitsumi_cdrom_reset(dev);
             break;
+        default:
+            break;
     }
 }
 
 static void *
-mitsumi_cdrom_init(const device_t *info)
+mitsumi_cdrom_init(UNUSED(const device_t *info))
 {
     mcd_t *dev;
 

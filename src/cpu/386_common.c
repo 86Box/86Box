@@ -780,8 +780,8 @@ smram_restore_state_p6(uint32_t *saved_state)
     cpu_state.seg_gs.ar_high = (saved_state[SMRAM_FIELD_P6_GS_SELECTOR_AR] >> 24) & 0xff;
     smm_seg_load(&cpu_state.seg_gs);
 
-    mem_a20_alt = 0;
-    keyboard_at_set_a20_key(!saved_state[SMRAM_FIELD_P6_A20M]);
+    mem_a20_alt = 0x00;
+    mem_a20_key = saved_state[SMRAM_FIELD_P6_A20M] ? 0x00 : 0x02;
     mem_a20_recalc();
 
     if (SMM_REVISION_ID & SMM_SMBASE_RELOCATION)
@@ -1053,13 +1053,13 @@ enter_smm(int in_hlt)
 
     memset(saved_state, 0x00, SMM_SAVE_STATE_MAP_SIZE * sizeof(uint32_t));
 
-    if (is_cxsmm) /* Cx6x86 */
+    if (is_cxsmm)                    /* Cx6x86 */
         smram_save_state_cyrix(saved_state, in_hlt);
     else if (is_pentium || is_am486) /* Am486 / 5x86 / Intel P5 (Pentium) */
         smram_save_state_p5(saved_state, in_hlt);
-    else if (is_k5 || is_k6) /* AMD K5 and K6 */
+    else if (is_k5 || is_k6)         /* AMD K5 and K6 */
         smram_save_state_amd_k(saved_state, in_hlt);
-    else if (is_p6) /* Intel P6 (Pentium Pro, Pentium II, Celeron) */
+    else if (is_p6)                  /* Intel P6 (Pentium Pro, Pentium II, Celeron) */
         smram_save_state_p6(saved_state, in_hlt);
 
     cr0 &= ~0x8000000d;
@@ -1224,13 +1224,13 @@ leave_smm(void)
     }
 
     x386_common_log("New SMBASE: %08X (%08X)\n", saved_state[SMRAM_FIELD_P5_SMBASE_OFFSET], saved_state[66]);
-    if (is_cxsmm) /* Cx6x86 */
+    if (is_cxsmm)                    /* Cx6x86 */
         smram_restore_state_cyrix(saved_state);
     else if (is_pentium || is_am486) /* Am486 / 5x86 / Intel P5 (Pentium) */
         smram_restore_state_p5(saved_state);
-    else if (is_k5 || is_k6) /* AMD K5 and K6 */
+    else if (is_k5 || is_k6)         /* AMD K5 and K6 */
         smram_restore_state_amd_k(saved_state);
-    else if (is_p6) /* Intel P6 (Pentium Pro, Pentium II, Celeron) */
+    else if (is_p6)                  /* Intel P6 (Pentium Pro, Pentium II, Celeron) */
         smram_restore_state_p6(saved_state);
 
     in_smm = 0;
@@ -1427,25 +1427,29 @@ x86illegal(void)
 }
 
 int
-checkio(uint32_t port)
+checkio(uint32_t port, int mask)
 {
-    uint16_t t;
-    uint8_t  d;
+    uint32_t t;
 
     cpl_override = 1;
     t            = readmemw(tr.base, 0x66);
-    cpl_override = 0;
 
-    if (cpu_state.abrt)
+    if (UNLIKELY(cpu_state.abrt)) {
+        cpl_override = 0;
         return 0;
+    }
 
-    if ((t + (port >> 3UL)) > tr.limit)
-        return 1;
-
-    cpl_override = 1;
-    d            = readmembl(tr.base + t + (port >> 3));
+    t += (port >> 3UL);
+    mask <<= (port & 7);
+    if (UNLIKELY(mask & 0xff00)) {
+        if (LIKELY(t < tr.limit))
+            mask &= readmemwl(tr.base + t);
+    } else {
+        if (LIKELY(t <= tr.limit))
+            mask &= readmembl(tr.base + t);
+    }
     cpl_override = 0;
-    return d & (1 << (port & 7));
+    return mask;
 }
 
 #ifdef OLD_DIVEXCP
@@ -1679,7 +1683,7 @@ sysexit(uint32_t fetchdat)
 
     cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS /* | CPU_STATUS_V86*/);
     cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_PMODE);
-    flushmmucache_cr3();
+    flushmmucache_nopc();
     set_use32(1);
     set_stack32(1);
 
@@ -1800,7 +1804,7 @@ sysret(uint32_t fetchdat)
 
     cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS /* | CPU_STATUS_V86*/);
     cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_PMODE);
-    flushmmucache_cr3();
+    flushmmucache_nopc();
     set_use32(1);
     set_stack32(1);
 

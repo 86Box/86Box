@@ -114,8 +114,10 @@ typedef struct _viso_entry_ {
 } viso_entry_t;
 
 typedef struct {
-    uint64_t vol_size_offsets[2], pt_meta_offsets[2];
-    int      format, use_version_suffix : 1;
+    uint64_t vol_size_offsets[2];
+    uint64_t pt_meta_offsets[2];
+    int      format;
+    uint8_t  use_version_suffix : 1;
     size_t   metadata_sectors, all_sectors, entry_map_size, sector_size, file_fifo_pos;
     uint8_t *metadata;
 
@@ -218,7 +220,7 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
     return p - dest;
 }
 
-#define VISO_WRITE_STR_FUNC(func, dst_type, src_type, converter)                    \
+#define VISO_WRITE_STR_FUNC(func, dst_type, src_type, converter, bounds_chk)        \
     static void                                                                     \
     func(dst_type *dest, const src_type *src, ssize_t buf_size, int charset)        \
     {                                                                               \
@@ -284,7 +286,7 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
                                                                                     \
                 default:                                                            \
                     /* Not valid for D or A, but valid for filenames. */            \
-                    if ((charset < VISO_CHARSET_FN) || (c > 0xffff))                \
+                    if ((charset < VISO_CHARSET_FN) || (bounds_chk))                \
                         c = '_';                                                    \
                     break;                                                          \
             }                                                                       \
@@ -293,15 +295,16 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
             *dest++ = converter(c);                                                 \
         }                                                                           \
     }
-VISO_WRITE_STR_FUNC(viso_write_string, uint8_t, char, )
-VISO_WRITE_STR_FUNC(viso_write_wstring, uint16_t, wchar_t, cpu_to_be16)
+VISO_WRITE_STR_FUNC(viso_write_string, uint8_t, char, , 0)
+VISO_WRITE_STR_FUNC(viso_write_wstring, uint16_t, wchar_t, cpu_to_be16, c > 0xffff)
 
 static int
 viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries)
 {
     /* Get name and extension length. */
     const char *ext_pos = strrchr(entry->basename, '.');
-    int         name_len, ext_len;
+    int         name_len;
+    int         ext_len;
     if (ext_pos) {
         name_len = ext_pos - entry->basename;
         ext_len  = strlen(ext_pos);
@@ -472,7 +475,9 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
 static int
 viso_fill_dir_record(uint8_t *data, viso_entry_t *entry, viso_t *viso, int type)
 {
-    uint8_t *p = data, *q, *r;
+    uint8_t *p = data;
+    uint8_t *q;
+    uint8_t *r;
 
     *p++ = 0;                             /* size (filled in later) */
     *p++ = 0;                             /* extended attribute length */
@@ -626,10 +631,17 @@ pad_susp:
             if (!(*q & 1)) /* padding for even file ID lengths */
                 *p++ = 0;
             break;
+
+        default:
+            break;
     }
 
     if ((p - data) > 255)
-        fatal("VISO: Directory record overflow (%d) on entry %08X\n", p - data, entry);
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+        fatal("VISO: Directory record overflow (%d) on entry %016" PRIX64 "\n", (uint32_t) (uintptr_t) (p - data), (uint64_t) (uintptr_t) entry);
+#else
+        fatal("VISO: Directory record overflow (%d) on entry %08X\n", (uint32_t) (uintptr_t) (p - data), (uint32_t) (uintptr_t) entry);
+#endif
 
     data[0] = p - data; /* length */
     return data[0];
@@ -650,9 +662,9 @@ viso_read(void *p, uint8_t *buffer, uint64_t seek, size_t count)
     /* Handle reads in a sector by sector basis. */
     while (count > 0) {
         /* Determine the current sector, offset and remainder. */
-        uint32_t sector        = seek / viso->sector_size,
-                 sector_offset = seek % viso->sector_size,
-                 sector_remain = MIN(count, viso->sector_size - sector_offset);
+        uint32_t sector        = seek / viso->sector_size;
+        uint32_t sector_offset = seek % viso->sector_size;
+        uint32_t sector_remain = MIN(count, viso->sector_size - sector_offset);
 
         /* Handle sector. */
         if (sector < viso->metadata_sectors) {
@@ -736,7 +748,8 @@ viso_close(void *p)
     remove(nvr_path(viso->tf.fn));
 #endif
 
-    viso_entry_t *entry = viso->root_dir, *next_entry;
+    viso_entry_t *entry = viso->root_dir;
+    viso_entry_t *next_entry;
     while (entry) {
         if (entry->file)
             fclose(entry->file);
@@ -760,7 +773,8 @@ viso_init(const char *dirname, int *error)
 
     /* Initialize our data structure. */
     viso_t  *viso = (viso_t *) calloc(1, sizeof(viso_t));
-    uint8_t *data = NULL, *p;
+    uint8_t *data = NULL;
+    uint8_t *p;
     *error        = 1;
     if (viso == NULL)
         goto end;
@@ -785,9 +799,15 @@ viso_init(const char *dirname, int *error)
 
     /* Set up directory traversal. */
     cdrom_image_viso_log("VISO: Traversing directories:\n");
-    viso_entry_t  *entry, *last_entry, *dir, *last_dir, *eltorito_dir = NULL, *eltorito_entry = NULL;
+    viso_entry_t  *entry;
+    viso_entry_t  *last_entry;
+    viso_entry_t  *dir;
+    viso_entry_t  *last_dir;
+    viso_entry_t  *eltorito_dir = NULL;
+    viso_entry_t  *eltorito_entry = NULL;
     struct dirent *readdir_entry;
-    int            len, eltorito_others_present = 0;
+    int            len;
+    int            eltorito_others_present = 0;
     size_t         dir_path_len;
     uint64_t       eltorito_offset = 0;
     uint8_t        eltorito_type   = 0;
@@ -1445,8 +1465,8 @@ next_entry:
     /* Go through files, assigning sectors to them. */
     cdrom_image_viso_log("VISO: Assigning sectors to files:\n");
     size_t        base_factor  = viso->sector_size / orig_sector_size;
-    viso_entry_t *prev_entry   = viso->root_dir,
-                 **entry_map_p = viso->entry_map;
+    viso_entry_t *prev_entry   = viso->root_dir;
+    viso_entry_t **entry_map_p = viso->entry_map;
     entry                      = prev_entry->next;
     while (entry) {
         /* Skip this entry if it corresponds to a directory. */
@@ -1512,7 +1532,8 @@ next_entry:
     if (!viso->metadata)
         goto end;
     fseeko64(viso->tf.file, 0, SEEK_SET);
-    uint64_t metadata_size = viso->metadata_sectors * viso->sector_size, metadata_remain = metadata_size;
+    uint64_t metadata_size = viso->metadata_sectors * viso->sector_size;
+    uint64_t metadata_remain = metadata_size;
     while (metadata_remain > 0)
         metadata_remain -= fread(viso->metadata + (metadata_size - metadata_remain), 1, MIN(metadata_remain, viso->sector_size), viso->tf.file);
 

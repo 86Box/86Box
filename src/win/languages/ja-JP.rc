@@ -13,122 +13,122 @@ LANGUAGE LANG_JAPANESE, SUBLANG_DEFAULT
 // Menu
 //
 
-MainMenu MENU DISCARDABLE 
+MainMenu MENU DISCARDABLE
 BEGIN
     POPUP "動作(&A)"
     BEGIN
-        MENUITEM "キーボードはキャプチャが必要(&K)",    IDM_ACTION_KBD_REQ_CAPTURE
-        MENUITEM "右CTRLを左ALTへ(&R)",    IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM "キーボードはキャプチャが必要(&K)", IDM_ACTION_KBD_REQ_CAPTURE
+        MENUITEM "右CTRLを左ALTへ(&R)", IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
-        MENUITEM "ハードリセット(&H)...",                 IDM_ACTION_HRESET
-        MENUITEM "Ctrl+Alt+Del(&C)\tCtrl+F12",     IDM_ACTION_RESET_CAD
+        MENUITEM "ハードリセット(&H)...", IDM_ACTION_HRESET
+        MENUITEM "Ctrl+Alt+Del(&C)\tCtrl+F12", IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
-    MENUITEM "Ctrl+Alt+Esc(&E)",        IDM_ACTION_CTRL_ALT_ESC
+    MENUITEM "Ctrl+Alt+Esc(&E)", IDM_ACTION_CTRL_ALT_ESC
         MENUITEM SEPARATOR
-        MENUITEM "一時停止(&P)",                      IDM_ACTION_PAUSE
+        MENUITEM "一時停止(&P)", IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
-        MENUITEM "終了(&X)...",                       IDM_ACTION_EXIT
+        MENUITEM "終了(&X)...", IDM_ACTION_EXIT
     END
     POPUP "表示(&V)"
     BEGIN
-        MENUITEM "ステータスバーを隠す(&H)",        IDM_VID_HIDE_STATUS_BAR
-        MENUITEM "ツールバーを隠す(&T)",        IDM_VID_HIDE_TOOLBAR
+        MENUITEM "ステータスバーを隠す(&H)", IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "ツールバーを隠す(&T)", IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
-        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
-        MENUITEM "ウィンドウのサイズをリサイズ可能(&R)",          IDM_VID_RESIZE
-        MENUITEM "ウィンドウのサイズと位置を記憶(&E)",  IDM_VID_REMEMBER
+        MENUITEM "&Show non-primary monitors", IDM_VID_MONITORS
+        MENUITEM "ウィンドウのサイズをリサイズ可能(&R)", IDM_VID_RESIZE
+        MENUITEM "ウィンドウのサイズと位置を記憶(&E)", IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "レンダラー(&N)"
         BEGIN
-            MENUITEM "SDL (ソフトウェア)(&S)",         IDM_VID_SDL_SW
-            MENUITEM "SDL (ハードウェア)(&H)",         IDM_VID_SDL_HW
-            MENUITEM "SDL (OpenGL)(&O)",           IDM_VID_SDL_OPENGL
-            MENUITEM "OpenGL (3.0コア)(&G)",      IDM_VID_OPENGL_CORE
+            MENUITEM "SDL (ソフトウェア)(&S)", IDM_VID_SDL_SW
+            MENUITEM "SDL (ハードウェア)(&H)", IDM_VID_SDL_HW
+            MENUITEM "SDL (OpenGL)(&O)", IDM_VID_SDL_OPENGL
+            MENUITEM "OpenGL (3.0コア)(&G)", IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
-            MENUITEM "VNC(&V)",                    IDM_VID_VNC
+            MENUITEM "VNC(&V)", IDM_VID_VNC
 #endif
         END
         MENUITEM SEPARATOR
-        MENUITEM "ウィンドウのサイズを指定...",          IDM_VID_SPECIFY_DIM
-        MENUITEM "4:3アスペクト比を固定(&O)",    IDM_VID_FORCE43
+        MENUITEM "ウィンドウのサイズを指定...", IDM_VID_SPECIFY_DIM
+        MENUITEM "4:3アスペクト比を固定(&O)", IDM_VID_FORCE43
         POPUP "ウィンドウの表示倍率(&W)"
         BEGIN
-            MENUITEM "0.5x(&0)",                   IDM_VID_SCALE_1X
-            MENUITEM "1x(&1)",                     IDM_VID_SCALE_2X
-            MENUITEM "1.5x(&5)",                   IDM_VID_SCALE_3X
-            MENUITEM "2x(&2)",                     IDM_VID_SCALE_4X
-            MENUITEM "&3x",                        IDM_VID_SCALE_5X
-            MENUITEM "&4x",                        IDM_VID_SCALE_6X
-            MENUITEM "&5x",                        IDM_VID_SCALE_7X
-            MENUITEM "&6x",                        IDM_VID_SCALE_8X
-            MENUITEM "&7x",                        IDM_VID_SCALE_9X
-            MENUITEM "&8x",                        IDM_VID_SCALE_10X
+            MENUITEM "0.5x(&0)", IDM_VID_SCALE_1X
+            MENUITEM "1x(&1)", IDM_VID_SCALE_2X
+            MENUITEM "1.5x(&5)", IDM_VID_SCALE_3X
+            MENUITEM "2x(&2)", IDM_VID_SCALE_4X
+            MENUITEM "&3x", IDM_VID_SCALE_5X
+            MENUITEM "&4x", IDM_VID_SCALE_6X
+            MENUITEM "&5x", IDM_VID_SCALE_7X
+            MENUITEM "&6x", IDM_VID_SCALE_8X
+            MENUITEM "&7x", IDM_VID_SCALE_9X
+            MENUITEM "&8x", IDM_VID_SCALE_10X
         END
         POPUP "フィルター方式"
         BEGIN
-            MENUITEM "最近傍補間(&N)",                 IDM_VID_FILTER_NEAREST
-            MENUITEM "線形補間(&L)",                  IDM_VID_FILTER_LINEAR
+            MENUITEM "最近傍補間(&N)", IDM_VID_FILTER_NEAREST
+            MENUITEM "線形補間(&L)", IDM_VID_FILTER_LINEAR
         END
-        MENUITEM "HiDPIスケーリング(&D)",              IDM_VID_HIDPI
+        MENUITEM "HiDPIスケーリング(&D)", IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "フルスクリーン(&F)\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
+        MENUITEM "フルスクリーン(&F)\tCtrl+Alt+PgUp", IDM_VID_FULLSCREEN
         POPUP "フルスクリーンのスケール(&S)"
         BEGIN
-            MENUITEM "フルスクリーンに拡大(&F)",        IDM_VID_FS_FULL
-            MENUITEM "4:3(&4)",                        IDM_VID_FS_43
+            MENUITEM "フルスクリーンに拡大(&F)", IDM_VID_FS_FULL
+            MENUITEM "4:3(&4)", IDM_VID_FS_43
             MENUITEM "正方形ピクセル(アスペクト比を維持)(&S)", IDM_VID_FS_KEEPRATIO
-            MENUITEM "整数倍(&I)",              IDM_VID_FS_INT
+            MENUITEM "整数倍(&I)", IDM_VID_FS_INT
         END
         POPUP "E&GA/(S)VGAの設定"
         BEGIN
-            MENUITEM "色を反転(&I)",   IDM_VID_INVERT
+            MENUITEM "色を反転(&I)", IDM_VID_INVERT
             POPUP "画面タイプ(&T)"
             BEGIN
-                MENUITEM "RGB(カラー)(&C)",         IDM_VID_GRAY_RGB
-                MENUITEM "RGB(グレースケール)(&R)",   IDM_VID_GRAY_MONO
-                MENUITEM "モニター(琥珀色)(&A)",       IDM_VID_GRAY_AMBER
-                MENUITEM "モニター(緑色)(&G)",       IDM_VID_GRAY_GREEN
-                MENUITEM "モニター(白色)(&W)",       IDM_VID_GRAY_WHITE
+                MENUITEM "RGB(カラー)(&C)", IDM_VID_GRAY_RGB
+                MENUITEM "RGB(グレースケール)(&R)", IDM_VID_GRAY_MONO
+                MENUITEM "モニター(琥珀色)(&A)", IDM_VID_GRAY_AMBER
+                MENUITEM "モニター(緑色)(&G)", IDM_VID_GRAY_GREEN
+                MENUITEM "モニター(白色)(&W)", IDM_VID_GRAY_WHITE
             END
             POPUP "グレースケール変換タイプ(&C)"
             BEGIN
-                MENUITEM "BT601 (NTSC/PAL)(&6)",   IDM_VID_GRAYCT_601
-                MENUITEM "BT709 (HDTV)(&7)",       IDM_VID_GRAYCT_709
-                MENUITEM "平均(&A)",            IDM_VID_GRAYCT_AVE
+                MENUITEM "BT601 (NTSC/PAL)(&6)", IDM_VID_GRAYCT_601
+                MENUITEM "BT709 (HDTV)(&7)", IDM_VID_GRAYCT_709
+                MENUITEM "平均(&A)", IDM_VID_GRAYCT_AVE
             END
         END
         MENUITEM SEPARATOR
-        MENUITEM "CGA/PCjr/Tandy/EGA/(S)VGAオーバースキャン(&G)",     IDM_VID_OVERSCAN
+        MENUITEM "CGA/PCjr/Tandy/EGA/(S)VGAオーバースキャン(&G)", IDM_VID_OVERSCAN
         MENUITEM "単色モニター用コントラストを変更(&M)", IDM_VID_CGACON
     END
-    MENUITEM "メディア(&M)",                IDM_MEDIA
+    MENUITEM "メディア(&M)", IDM_MEDIA
     POPUP "ツール(&T)"
     BEGIN
-        MENUITEM "設定(&S)...",                IDM_CONFIG
-        MENUITEM "ステータスバーのアイコンを更新(&U)",    IDM_UPDATE_ICONS
+        MENUITEM "設定(&S)...", IDM_CONFIG
+        MENUITEM "ステータスバーのアイコンを更新(&U)", IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "スクリーンショットを撮る(&C)\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM "スクリーンショットを撮る(&C)\tCtrl+F11", IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
-        MENUITEM "環境設定(&P)...",    IDM_PREFERENCES
+        MENUITEM "環境設定(&P)...", IDM_PREFERENCES
 #ifdef DISCORD
         MENUITEM "Discordとの連携機能(&D)", IDM_DISCORD
 #endif
         MENUITEM SEPARATOR
-        MENUITEM "音量を調節(&G)...",              IDM_SND_GAIN
+        MENUITEM "音量を調節(&G)...", IDM_SND_GAIN
 #ifdef MTR_ENABLED
         MENUITEM SEPARATOR
-        MENUITEM "トレース開始\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
-        MENUITEM "トレース終了\tCtrl+T",           IDM_ACTION_END_TRACE
+        MENUITEM "トレース開始\tCtrl+T", IDM_ACTION_BEGIN_TRACE
+        MENUITEM "トレース終了\tCtrl+T", IDM_ACTION_END_TRACE
 #endif
     END
     POPUP "ヘルプ(&H)"
     BEGIN
-        MENUITEM "ドキュメント(&D)...",           IDM_DOCS
-        MENUITEM "86Boxのバージョン情報(&A)...",        IDM_ABOUT
+        MENUITEM "ドキュメント(&D)...", IDM_DOCS
+        MENUITEM "86Boxのバージョン情報(&A)...", IDM_ABOUT
     END
 END
 
-StatusBarMenu MENU DISCARDABLE 
+StatusBarMenu MENU DISCARDABLE
 BEGIN
     MENUITEM SEPARATOR
 END
@@ -137,17 +137,17 @@ CassetteSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新規イメージ(&N)...",                IDM_CASSETTE_IMAGE_NEW
+        MENUITEM "新規イメージ(&N)...", IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "既存のイメージを開く(&E)...",                IDM_CASSETTE_IMAGE_EXISTING
-        MENUITEM "既存のイメージを開く(書き込み保護)(&W)...",        IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM "既存のイメージを開く(&E)...", IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "既存のイメージを開く(書き込み保護)(&W)...", IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "録音(&R)",                    IDM_CASSETTE_RECORD
-        MENUITEM "再生(&P)",                    IDM_CASSETTE_PLAY
-        MENUITEM "冒頭に巻き戻す(&R)",                IDM_CASSETTE_REWIND
-        MENUITEM "最後まで早送り(&F)",                IDM_CASSETTE_FAST_FORWARD
+        MENUITEM "録音(&R)", IDM_CASSETTE_RECORD
+        MENUITEM "再生(&P)", IDM_CASSETTE_PLAY
+        MENUITEM "冒頭に巻き戻す(&R)", IDM_CASSETTE_REWIND
+        MENUITEM "最後まで早送り(&F)", IDM_CASSETTE_FAST_FORWARD
         MENUITEM SEPARATOR
-        MENUITEM "取り出す(&J)",                    IDM_CASSETTE_EJECT
+        MENUITEM "取り出す(&J)", IDM_CASSETTE_EJECT
     END
 END
 
@@ -155,9 +155,9 @@ CartridgeSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "イメージ(&I)...",                IDM_CARTRIDGE_IMAGE
+        MENUITEM "イメージ(&I)...", IDM_CARTRIDGE_IMAGE
         MENUITEM SEPARATOR
-        MENUITEM "取り出す(&J)",                    IDM_CARTRIDGE_EJECT
+        MENUITEM "取り出す(&J)", IDM_CARTRIDGE_EJECT
     END
 END
 
@@ -165,14 +165,14 @@ FloppySubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新規イメージ(&N)...",                IDM_FLOPPY_IMAGE_NEW
+        MENUITEM "新規イメージ(&N)...", IDM_FLOPPY_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "既存のイメージを開く(&E)...",                IDM_FLOPPY_IMAGE_EXISTING
-        MENUITEM "既存のイメージを開く(書き込み保護)(&W)...",        IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM "既存のイメージを開く(&E)...", IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "既存のイメージを開く(書き込み保護)(&W)...", IDM_FLOPPY_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "86Fイメージにエクスポート(&X)...",            IDM_FLOPPY_EXPORT_TO_86F
+        MENUITEM "86Fイメージにエクスポート(&X)...", IDM_FLOPPY_EXPORT_TO_86F
         MENUITEM SEPARATOR
-        MENUITEM "取り出す(&J)",                    IDM_FLOPPY_EJECT
+        MENUITEM "取り出す(&J)", IDM_FLOPPY_EJECT
     END
 END
 
@@ -180,13 +180,13 @@ CdromSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "ミュート(&M)",                    IDM_CDROM_MUTE
+        MENUITEM "ミュート(&M)", IDM_CDROM_MUTE
         MENUITEM SEPARATOR
-        MENUITEM "空(&M)",                    IDM_CDROM_EMPTY
-        MENUITEM "前のイメージを再読み込み(&R)",            IDM_CDROM_RELOAD
+        MENUITEM "空(&M)", IDM_CDROM_EMPTY
+        MENUITEM "前のイメージを再読み込み(&R)", IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "イメージ(&I)...",                    IDM_CDROM_IMAGE
-        MENUITEM "フォルダ(&F)...",                    IDM_CDROM_DIR
+        MENUITEM "イメージ(&I)...", IDM_CDROM_IMAGE
+        MENUITEM "フォルダ(&F)...", IDM_CDROM_DIR
     END
 END
 
@@ -194,13 +194,13 @@ ZIPSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新規イメージ(&N)...",                IDM_ZIP_IMAGE_NEW
+        MENUITEM "新規イメージ(&N)...", IDM_ZIP_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "既存のイメージを開く(&E)...",                IDM_ZIP_IMAGE_EXISTING
-        MENUITEM "既存のイメージを開く(書き込み保護)(&W)...",        IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM "既存のイメージを開く(&E)...", IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "既存のイメージを開く(書き込み保護)(&W)...", IDM_ZIP_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "取り出す(&J)",                    IDM_ZIP_EJECT
-        MENUITEM "前のイメージを再読み込み(&R)",            IDM_ZIP_RELOAD
+        MENUITEM "取り出す(&J)", IDM_ZIP_EJECT
+        MENUITEM "前のイメージを再読み込み(&R)", IDM_ZIP_RELOAD
     END
 END
 
@@ -208,13 +208,13 @@ MOSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新規イメージ(&N)...",                IDM_MO_IMAGE_NEW
+        MENUITEM "新規イメージ(&N)...", IDM_MO_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "既存のイメージを開く(&E)...",                IDM_MO_IMAGE_EXISTING
-        MENUITEM "既存のイメージを開く(書き込み保護)(&W)...",        IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM "既存のイメージを開く(&E)...", IDM_MO_IMAGE_EXISTING
+        MENUITEM "既存のイメージを開く(書き込み保護)(&W)...", IDM_MO_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "取り出す(&J)",                    IDM_MO_EJECT
-        MENUITEM "前のイメージを再読み込み(&R)",            IDM_MO_RELOAD
+        MENUITEM "取り出す(&J)", IDM_MO_EJECT
+        MENUITEM "前のイメージを再読み込み(&R)", IDM_MO_RELOAD
     END
 END
 
@@ -240,150 +240,150 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES        "環境設定"
-#define STR_SND_GAIN        "音量ゲイン"
-#define STR_NEW_FLOPPY        "新規のイメージ"
+#define STR_PREFERENCES   "環境設定"
+#define STR_SND_GAIN      "音量ゲイン"
+#define STR_NEW_FLOPPY    "新規のイメージ"
 #define STR_CONFIG        "設定"
-#define STR_SPECIFY_DIM        "メインウィンドウのサイズ指定"
+#define STR_SPECIFY_DIM   "メインウィンドウのサイズ指定"
 
 #define STR_OK            "OK"
 #define STR_CANCEL        "キャンセル"
 #define STR_GLOBAL        "これらの設定をグローバル既定値として保存する(&G)"
-#define STR_DEFAULT        "既定値(&D)"
-#define STR_LANGUAGE        "言語:"
-#define STR_ICONSET        "アイコンセット:"
+#define STR_DEFAULT       "既定値(&D)"
+#define STR_LANGUAGE      "言語:"
+#define STR_ICONSET       "アイコンセット:"
 
-#define STR_GAIN        "ゲイン値"
+#define STR_GAIN          "ゲイン値"
 
-#define STR_FILE_NAME        "ファイル名:"
-#define STR_DISK_SIZE        "ディスクサイズ:"
-#define STR_RPM_MODE        "回転数モード:"
-#define STR_PROGRESS        "進行状況:"
+#define STR_FILE_NAME     "ファイル名:"
+#define STR_DISK_SIZE     "ディスクサイズ:"
+#define STR_RPM_MODE      "回転数モード:"
+#define STR_PROGRESS      "進行状況:"
 
-#define STR_WIDTH        "幅:"
+#define STR_WIDTH         "幅:"
 #define STR_HEIGHT        "高さ:"
-#define STR_LOCK_TO_SIZE    "このサイズをロックする"
+#define STR_LOCK_TO_SIZE  "このサイズをロックする"
 
-#define STR_MACHINE_TYPE    "マシンタイプ:"
-#define STR_MACHINE        "マシン:"
-#define STR_CONFIGURE        "設定"
-#define STR_CPU_TYPE        "CPUタイプ:"
-#define STR_CPU_SPEED        "速度:"
-#define STR_FPU            "FPU:"
-#define STR_WAIT_STATES        "待機状態:"
+#define STR_MACHINE_TYPE  "マシンタイプ:"
+#define STR_MACHINE       "マシン:"
+#define STR_CONFIGURE     "設定"
+#define STR_CPU_TYPE      "CPUタイプ:"
+#define STR_CPU_SPEED     "速度:"
+#define STR_FPU           "FPU:"
+#define STR_WAIT_STATES   "待機状態:"
 #define STR_MB            "MB"
 #define STR_MEMORY        "メモリ:"
-#define STR_TIME_SYNC        "時刻同期機能"
-#define STR_DISABLED        "無効にする"
-#define STR_ENABLED_LOCAL    "有効にする (現地時間)"
-#define STR_ENABLED_UTC        "有効にする (UTC)"
-#define STR_DYNAREC        "動的リコンパイラ"
+#define STR_TIME_SYNC     "時刻同期機能"
+#define STR_DISABLED      "無効にする"
+#define STR_ENABLED_LOCAL "有効にする (現地時間)"
+#define STR_ENABLED_UTC   "有効にする (UTC)"
+#define STR_DYNAREC       "動的リコンパイラ"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
-#define STR_VIDEO        "ビデオカード:"
-#define STR_VIDEO_2        "ビデオカード 2:"
+#define STR_VIDEO         "ビデオカード:"
+#define STR_VIDEO_2       "ビデオカード 2:"
 #define STR_VOODOO        "Voodooグラフィック"
-#define STR_IBM8514        "IBM 8514/aグラフィック"
-#define STR_XGA            "XGAグラフィック"
+#define STR_IBM8514       "IBM 8514/aグラフィック"
+#define STR_XGA           "XGAグラフィック"
 
-#define STR_MOUSE        "マウス:"
-#define STR_JOYSTICK        "ジョイスティック:"
-#define STR_JOY1        "ジョイスティック1..."
-#define STR_JOY2        "ジョイスティック2..."
-#define STR_JOY3        "ジョイスティック3..."
-#define STR_JOY4        "ジョイスティック4..."
+#define STR_MOUSE         "マウス:"
+#define STR_JOYSTICK      "ジョイスティック:"
+#define STR_JOY1          "ジョイスティック1..."
+#define STR_JOY2          "ジョイスティック2..."
+#define STR_JOY3          "ジョイスティック3..."
+#define STR_JOY4          "ジョイスティック4..."
 
 #define STR_SOUND1        "サウンドカード 1:"
 #define STR_SOUND2        "サウンドカード 2:"
 #define STR_SOUND3        "サウンドカード 3:"
 #define STR_SOUND4        "サウンドカード 4:"
-#define STR_MIDI_OUT        "MIDI出力デバイス:"
-#define STR_MIDI_IN        "MIDI入力デバイス:"
+#define STR_MIDI_OUT      "MIDI出力デバイス:"
+#define STR_MIDI_IN       "MIDI入力デバイス:"
 #define STR_MPU401        "独立型MPU-401"
-#define STR_FLOAT        "FLOAT32サウンドを使用する"
-#define STR_FM_DRIVER        "FMシンセドライバー"
-#define STR_FM_DRV_NUKED    "Nuked (高精度化)"
-#define STR_FM_DRV_YMFM        "YMFM (より速く)"
+#define STR_FLOAT         "FLOAT32サウンドを使用する"
+#define STR_FM_DRIVER     "FMシンセドライバー"
+#define STR_FM_DRV_NUKED  "Nuked (高精度化)"
+#define STR_FM_DRV_YMFM   "YMFM (より速く)"
 
-#define STR_NET_TYPE    "ネットワークタイプ:"
-#define STR_PCAP        "PCapデバイス:"
-#define STR_NET            "ネットワークアダプター:"
-#define STR_NET1        "Network card 1:"
-#define STR_NET2        "Network card 2:"
-#define STR_NET3        "Network card 3:"
-#define STR_NET4        "Network card 4:"
+#define STR_NET_TYPE      "ネットワークタイプ:"
+#define STR_PCAP          "PCapデバイス:"
+#define STR_NET           "ネットワークアダプター:"
+#define STR_NET1          "Network card 1:"
+#define STR_NET2          "Network card 2:"
+#define STR_NET3          "Network card 3:"
+#define STR_NET4          "Network card 4:"
 
-#define STR_COM1        "COM1デバイス:"
-#define STR_COM2        "COM2デバイス:"
-#define STR_COM3        "COM3デバイス:"
-#define STR_COM4        "COM4デバイス:"
-#define STR_LPT1        "LPT1デバイス:"
-#define STR_LPT2        "LPT2デバイス:"
-#define STR_LPT3        "LPT3デバイス:"
-#define STR_LPT4        "LPT4デバイス:"
-#define STR_SERIAL1        "シリアルポート1"
-#define STR_SERIAL2        "シリアルポート2"
-#define STR_SERIAL3        "シリアルポート3"
-#define STR_SERIAL4        "シリアルポート4"
-#define STR_PARALLEL1        "パラレルポート1"
-#define STR_PARALLEL2        "パラレルポート2"
-#define STR_PARALLEL3        "パラレルポート3"
-#define STR_PARALLEL4        "パラレルポート4"
-#define STR_SERIAL_PASS1    "Serial port passthrough 1"
-#define STR_SERIAL_PASS2    "Serial port passthrough 2"
-#define STR_SERIAL_PASS3    "Serial port passthrough 3"
-#define STR_SERIAL_PASS4    "Serial port passthrough 4"
+#define STR_COM1          "COM1デバイス:"
+#define STR_COM2          "COM2デバイス:"
+#define STR_COM3          "COM3デバイス:"
+#define STR_COM4          "COM4デバイス:"
+#define STR_LPT1          "LPT1デバイス:"
+#define STR_LPT2          "LPT2デバイス:"
+#define STR_LPT3          "LPT3デバイス:"
+#define STR_LPT4          "LPT4デバイス:"
+#define STR_SERIAL1       "シリアルポート1"
+#define STR_SERIAL2       "シリアルポート2"
+#define STR_SERIAL3       "シリアルポート3"
+#define STR_SERIAL4       "シリアルポート4"
+#define STR_PARALLEL1     "パラレルポート1"
+#define STR_PARALLEL2     "パラレルポート2"
+#define STR_PARALLEL3     "パラレルポート3"
+#define STR_PARALLEL4     "パラレルポート4"
+#define STR_SERIAL_PASS1  "Serial port passthrough 1"
+#define STR_SERIAL_PASS2  "Serial port passthrough 2"
+#define STR_SERIAL_PASS3  "Serial port passthrough 3"
+#define STR_SERIAL_PASS4  "Serial port passthrough 4"
 
-#define STR_HDC            "HDコントローラー:"
-#define STR_FDC            "FDコントローラー:"
-#define STR_IDE_TER        "第三のIDEコントローラー"
-#define STR_IDE_QUA        "第四のIDEコントローラー"
-#define STR_SCSI        "SCSI"
+#define STR_HDC           "HDコントローラー:"
+#define STR_FDC           "FDコントローラー:"
+#define STR_IDE_TER       "第三のIDEコントローラー"
+#define STR_IDE_QUA       "第四のIDEコントローラー"
+#define STR_SCSI          "SCSI"
 #define STR_SCSI_1        "コントローラー1:"
 #define STR_SCSI_2        "コントローラー2:"
 #define STR_SCSI_3        "コントローラー3:"
 #define STR_SCSI_4        "コントローラー4:"
-#define STR_CASSETTE        "カセット"
+#define STR_CASSETTE      "カセット"
 
-#define STR_HDD            "ハードディスク:"
-#define STR_NEW            "新規(&N)..."
-#define STR_EXISTING        "既定(&E)..."
+#define STR_HDD           "ハードディスク:"
+#define STR_NEW           "新規(&N)..."
+#define STR_EXISTING      "既定(&E)..."
 #define STR_REMOVE        "除去(&R)"
-#define STR_BUS            "バス:"
-#define STR_CHANNEL        "チャンネル:"
+#define STR_BUS           "バス:"
+#define STR_CHANNEL       "チャンネル:"
 #define STR_ID            "ID:"
-#define STR_SPEED        "Speed:"
+#define STR_SPEED         "Speed:"
 
-#define STR_SPECIFY        "参照(&S)..."
-#define STR_SECTORS        "セクター:"
-#define STR_HEADS        "ヘッド:"
-#define STR_CYLS        "シリンダー:"
-#define STR_SIZE_MB        "サイズ(MB):"
-#define STR_TYPE        "タイプ:"
-#define STR_IMG_FORMAT        "イメージ形式:"
-#define STR_BLOCK_SIZE        "ブロックサイズ:"
+#define STR_SPECIFY       "参照(&S)..."
+#define STR_SECTORS       "セクター:"
+#define STR_HEADS         "ヘッド:"
+#define STR_CYLS          "シリンダー:"
+#define STR_SIZE_MB       "サイズ(MB):"
+#define STR_TYPE          "タイプ:"
+#define STR_IMG_FORMAT    "イメージ形式:"
+#define STR_BLOCK_SIZE    "ブロックサイズ:"
 
-#define STR_FLOPPY_DRIVES    "フロッピードライブ:"
-#define STR_TURBO        "高速タイミング"
-#define STR_CHECKBPB        "BPBをチェック"
-#define STR_CDROM_DRIVES    "CD-ROMドライブ:"
-#define STR_CD_SPEED        "速度:"
-#define STR_EARLY        "アーリードライブ"
+#define STR_FLOPPY_DRIVES "フロッピードライブ:"
+#define STR_TURBO         "高速タイミング"
+#define STR_CHECKBPB      "BPBをチェック"
+#define STR_CDROM_DRIVES  "CD-ROMドライブ:"
+#define STR_CD_SPEED      "速度:"
 
-#define STR_MO_DRIVES        "光磁気ドライブ:"
-#define STR_ZIP_DRIVES        "ZIPドライブ:"
-#define STR_250            "ZIP 250"
+#define STR_MO_DRIVES     "光磁気ドライブ:"
+#define STR_ZIP_DRIVES    "ZIPドライブ:"
+#define STR_250           "ZIP 250"
 
 #define STR_ISARTC        "ISA RTCカード:"
 #define STR_ISAMEM        "ISAメモリー拡張カード"
-#define STR_ISAMEM_1        "カード1:"
-#define STR_ISAMEM_2        "カード2:"
-#define STR_ISAMEM_3        "カード3:"
-#define STR_ISAMEM_4        "カード4:"
+#define STR_ISAMEM_1      "カード1:"
+#define STR_ISAMEM_2      "カード2:"
+#define STR_ISAMEM_3      "カード3:"
+#define STR_ISAMEM_4      "カード4:"
 #define STR_BUGGER        "ISABuggerデバイス"
-#define STR_POSTCARD        "POSTカード"
+#define STR_POSTCARD      "POSTカード"
 
-#define FONT_SIZE        9
-#define FONT_NAME        "Meiryo UI"
+#define FONT_SIZE         9
+#define FONT_NAME         "Meiryo UI"
 
 #include "dialogs.rc"
 
@@ -392,9 +392,9 @@ END
 // String Table
 //
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
-    2048    "86Box"
+    2048        "86Box"
     IDS_2049    "エラー"
     IDS_2050    "致命的なエラー"
     IDS_2051    " - 一時停止"
@@ -412,7 +412,7 @@ BEGIN
     IDS_2063    "roms/machinesディレクトリにROMがないため、マシン「%hs」は使用できません。使用可能なマシンに切り替えます。"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2064    "roms/videoディレクトリにROMがないため、ビデオカード「%hs」は使用できません。使用可能なビデオカードに切り替えます。"
     IDS_2065    "マシン"
@@ -432,7 +432,7 @@ BEGIN
     IDS_2079    "F8+F12キーまたは中ボタンでマウスを解放します"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2080    "FluidSynthが初期化できません"
     IDS_2081    "バス"
@@ -537,14 +537,16 @@ BEGIN
     IDS_2159    "ハードリセット"
     IDS_2160    "ACPIシャットダウン"
     IDS_2161    "設定"
-    IDS_2162    "アーリードライブ"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
     IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+    IDS_2167    "Failed to initialize network driver"
+    IDS_2168    "The network configuration will be switched to the null driver"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_4096    "ハードディスク (%s)"
     IDS_4097    "%01i:%01i"
@@ -643,7 +645,7 @@ BEGIN
 
     IDS_7168    "(システム既定値)"
 END
-#define IDS_LANG_ENUS    IDS_7168
+#define IDS_LANG_ENUS IDS_7168
 
 // Japanese resources
 /////////////////////////////////////////////////////////////////////////////

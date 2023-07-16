@@ -10,15 +10,14 @@
 #define LPT_MDA_IRQ  7
 #define LPT4_ADDR    0x0268
 #define LPT4_IRQ     5
-/*
+#if 0
 #define LPT5_ADDR 0x027c
 #define LPT5_IRQ  7
 #define LPT6_ADDR 0x026c
 #define LPT6_IRQ  5
-*/
+#endif
 
-typedef struct
-{
+typedef struct lpt_device_t {
     const char *name;
     const char *internal_name;
 
@@ -53,7 +52,7 @@ extern void lpt1_remove_ams(void);
 #define lpt4_irq(a)   lpt_port_irq(3, a)
 #define lpt4_remove() lpt_port_remove(3)
 
-/*
+#if 0
 #define lpt5_init(a)	lpt_port_init(4, a)
 #define lpt5_irq(a)	lpt_port_irq(4, a)
 #define lpt5_remove()	lpt_port_remove(4)
@@ -61,16 +60,20 @@ extern void lpt1_remove_ams(void);
 #define lpt6_init(a)	lpt_port_init(5, a)
 #define lpt6_irq(a)	lpt_port_irq(5, a)
 #define lpt6_remove()	lpt_port_remove(5)
-*/
+#endif
 
 void lpt_devices_init(void);
 void lpt_devices_close(void);
 
 typedef struct {
-    uint8_t enabled, irq,
-        dat, ctrl;
-    uint16_t      addr, pad0;
-    int           device, enable_irq;
+    uint8_t       enabled;
+    uint8_t       irq;
+    uint8_t       dat;
+    uint8_t       ctrl;
+    uint16_t      addr;
+    uint16_t      pad0;
+    int           device;
+    int           enable_irq;
     lpt_device_t *dt;
     void         *priv;
 } lpt_port_t;

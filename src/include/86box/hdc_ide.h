@@ -43,23 +43,37 @@ enum {
 
 #ifdef SCSI_DEVICE_H
 typedef struct ide_s {
-    uint8_t selected,
-        atastat, error,
-        command, fdisk;
-    int type, board,
-        irqstat, service,
-        blocksize, blockcount,
-        hdd_num, channel,
-        pos, sector_pos,
-        lba,
-        reset, mdma_mode,
-        do_initial_read;
-    uint32_t secount, sector,
-        cylinder, head,
-        drive, cylprecomp,
-        cfg_spt, cfg_hpc,
-        lba_addr, tracks,
-        spt, hpc;
+    uint8_t  selected;
+    uint8_t  atastat;
+    uint8_t  error;
+    uint8_t  command;
+    uint8_t  fdisk;
+    int      type;
+    int      board;
+    int      irqstat;
+    int      service;
+    int      blocksize;
+    int      blockcount;
+    int      hdd_num;
+    int      channel;
+    int      pos;
+    int      sector_pos;
+    int      lba;
+    int      reset;
+    int      mdma_mode;
+    int      do_initial_read;
+    uint32_t secount;
+    uint32_t sector;
+    uint32_t cylinder;
+    uint32_t head;
+    uint32_t drive;
+    uint32_t cylprecomp;
+    uint32_t cfg_spt;
+    uint32_t cfg_hpc;
+    uint32_t lba_addr;
+    uint32_t tracks;
+    uint32_t spt;
+    uint32_t hpc;
 
     uint16_t *buffer;
     uint8_t  *sector_buffer;
@@ -96,10 +110,10 @@ extern ide_t *ide_drives[IDE_NUM];
 
    This will eventually be hookable. */
 enum {
-    TYPE_PIO = 0,
-    TYPE_SDMA,
-    TYPE_MDMA,
-    TYPE_UDMA
+    TYPE_PIO  = 0,
+    TYPE_SDMA = 1,
+    TYPE_MDMA = 2,
+    TYPE_UDMA = 3
 };
 
 /* Return:
@@ -108,12 +122,13 @@ enum {
 
    This will eventually be hookable. */
 enum {
-    TIMINGS_DMA = 0,
-    TIMINGS_PIO,
-    TIMINGS_PIO_FC
+    TIMINGS_DMA    = 0,
+    TIMINGS_PIO    = 1,
+    TIMINGS_PIO_FC = 2
 };
 
-extern int ide_ter_enabled, ide_qua_enabled;
+extern int ide_ter_enabled;
+extern int ide_qua_enabled;
 
 #ifdef SCSI_DEVICE_H
 extern ide_t *ide_get_drive(int ch);

@@ -15,8 +15,10 @@ void
 cms_update(cms_t *cms)
 {
     for (; cms->pos < sound_pos_global; cms->pos++) {
-        int     c, d;
-        int16_t out_l = 0, out_r = 0;
+        int     c;
+        int     d;
+        int16_t out_l = 0;
+        int16_t out_r = 0;
 
         for (c = 0; c < 4; c++) {
             switch (cms->noisetype[c >> 1][c & 1]) {
@@ -65,7 +67,7 @@ cms_update(cms_t *cms)
                 }
             }
         }
-        cms->buffer[(cms->pos << 1)]     = out_l;
+        cms->buffer[cms->pos << 1]       = out_l;
         cms->buffer[(cms->pos << 1) + 1] = out_r;
     }
 }
@@ -75,11 +77,9 @@ cms_get_buffer(int32_t *buffer, int len, void *p)
 {
     cms_t *cms = (cms_t *) p;
 
-    int c;
-
     cms_update(cms);
 
-    for (c = 0; c < len * 2; c++)
+    for (int c = 0; c < len * 2; c++)
         buffer[c] += cms->buffer[c];
 
     cms->pos = 0;

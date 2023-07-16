@@ -29,6 +29,7 @@
 #include <86box/mem.h>
 #include <86box/pit.h>
 #include <86box/port_92.h>
+#include <86box/plat_unused.h>
 
 #define PORT_92_INV   1
 #define PORT_92_WORD  2
@@ -69,11 +70,18 @@ port_92_readw(uint16_t port, void *priv)
     return ret;
 }
 
+/*
+   This does the exact same thing as keyboard controller reset.
+   TODO: ALi M1543(c) behavior.
+ */
 static void
-port_92_pulse(void *priv)
+port_92_pulse(UNUSED(void *priv))
 {
-    resetx86();
+    softresetx86(); /* Pulse reset! */
     cpu_set_edx();
+    flushmmucache();
+
+    cpu_alt_reset = 1;
 }
 
 static void
@@ -167,6 +175,15 @@ port_92_remove(void *priv)
 }
 
 static void
+port_92_reset(UNUSED(void *priv))
+{
+    cpu_alt_reset = 0;
+
+    mem_a20_alt = 0x00;
+    mem_a20_recalc();
+}
+
+static void
 port_92_close(void *priv)
 {
     port_92_t *dev = (port_92_t *) priv;
@@ -252,7 +269,7 @@ const device_t port_92_pci_device = {
     .local         = PORT_92_PCI,
     .init          = port_92_init,
     .close         = port_92_close,
-    .reset         = NULL,
+    .reset         = port_92_reset,
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,

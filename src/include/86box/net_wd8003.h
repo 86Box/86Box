@@ -45,13 +45,13 @@
 #define NET_WD8003_H
 
 enum {
-    WD_NONE = 0,
-    WD8003E,   /* WD8003E   :  8-bit ISA, no  interface chip */
-    WD8003EB,  /* WD8003EB  :  8-bit ISA, 5x3 interface chip */
-    WD8013EBT, /* WD8013EBT : 16-bit ISA, no  interface chip */
-    WD8003ETA, /* WD8003ET/A: 16-bit MCA, no  interface chip */
-    WD8003EA,  /* WD8003E/A : 16-bit MCA, 5x3 interface chip */
-    WD8013EPA
+    WD_NONE   = 0,
+    WD8003E   = 1, /* WD8003E   :  8-bit ISA, no  interface chip */
+    WD8003EB  = 2, /* WD8003EB  :  8-bit ISA, 5x3 interface chip */
+    WD8013EBT = 3, /* WD8013EBT : 16-bit ISA, no  interface chip */
+    WD8003ETA = 4, /* WD8003ET/A: 16-bit MCA, no  interface chip */
+    WD8003EA  = 5, /* WD8003E/A : 16-bit MCA, 5x3 interface chip */
+    WD8013EPA = 6
 };
 
 extern const device_t wd8003e_device;

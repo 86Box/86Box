@@ -66,7 +66,7 @@ extern int   fdd_get_from_internal_name(char *s);
 
 extern int fdd_current_track(int drive);
 
-typedef struct {
+typedef struct DRIVE {
     int id;
 
     void (*seek)(int drive, int track);
@@ -121,7 +121,8 @@ extern int disable_write;
 
 extern int defaultwriteprot;
 
-extern int writeprot[FDD_NUM], fwriteprot[FDD_NUM];
+extern int writeprot[FDD_NUM];
+extern int fwriteprot[FDD_NUM];
 extern int fdd_changed[FDD_NUM];
 extern int drive_empty[FDD_NUM];
 

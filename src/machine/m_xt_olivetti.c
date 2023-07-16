@@ -141,8 +141,8 @@ typedef struct {
 } m19_vid_t;
 
 static uint8_t key_queue[16];
-static int     key_queue_start = 0,
-           key_queue_end       = 0;
+static int     key_queue_start = 0;
+static int     key_queue_end   = 0;
 
 video_timings_t timing_m19_vid = { VIDEO_ISA, 8, 16, 32, 8, 16, 32 };
 
@@ -346,7 +346,7 @@ mm58274_time_set(uint8_t *regs, struct tm *tm)
         regs[MM58274_HOUR10] = (tm->tm_hour / 10);
     } else {
         regs[MM58274_HOUR1]  = ((tm->tm_hour % 12) % 10);
-        regs[MM58274_HOUR10] = (((tm->tm_hour % 12) / 10));
+        regs[MM58274_HOUR10] = ((tm->tm_hour % 12) / 10);
         if (tm->tm_hour >= 12)
             regs[MM58274_SETTINGS] |= 0x04;
         else
@@ -419,7 +419,7 @@ mm58274_write(uint16_t addr, uint8_t val, void *priv)
     val &= 0x0f;
 
     /* Update non-read-only changed values if not synchronizing time to host */
-    if ((addr != MM58274_TENTHS))
+    if (addr != MM58274_TENTHS)
         if ((nvr->regs[addr] != val) && !(time_sync & TIME_SYNC_ENABLED))
             nvr_dosave = 1;
 
@@ -680,7 +680,7 @@ m24_kbd_read(uint16_t port, void *priv)
             xt_olivetti_log("\nBad M24 keyboard read %04X\n", port);
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -733,7 +733,7 @@ ms_poll(int x, int y, int z, int b, void *priv)
     m24_kbd->y += y;
 
     if (((key_queue_end - key_queue_start) & 0xf) > 14)
-        return (0xff);
+        return 0xff;
 
     if ((b & 1) && !(m24_kbd->b & 1))
         m24_kbd_adddata(m24_kbd->scan[0]);
@@ -742,7 +742,7 @@ ms_poll(int x, int y, int z, int b, void *priv)
     m24_kbd->b = (m24_kbd->b & ~1) | (b & 1);
 
     if (((key_queue_end - key_queue_start) & 0xf) > 14)
-        return (0xff);
+        return 0xff;
 
     if ((b & 2) && !(m24_kbd->b & 2))
         m24_kbd_adddata(m24_kbd->scan[2]);
@@ -751,7 +751,7 @@ ms_poll(int x, int y, int z, int b, void *priv)
     m24_kbd->b = (m24_kbd->b & ~2) | (b & 2);
 
     if (((key_queue_end - key_queue_start) & 0xf) > 14)
-        return (0xff);
+        return 0xff;
 
     if ((b & 4) && !(m24_kbd->b & 4))
         m24_kbd_adddata(m24_kbd->scan[1]);
@@ -761,10 +761,10 @@ ms_poll(int x, int y, int z, int b, void *priv)
 
     if (m24_kbd->mouse_mode) {
         if (((key_queue_end - key_queue_start) & 0xf) > 12)
-            return (0xff);
+            return 0xff;
 
         if (!m24_kbd->x && !m24_kbd->y)
-            return (0xff);
+            return 0xff;
 
         m24_kbd->y = -m24_kbd->y;
 
@@ -790,31 +790,31 @@ ms_poll(int x, int y, int z, int b, void *priv)
     } else {
         while (m24_kbd->x < -4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                return (0xff);
+                return 0xff;
             m24_kbd->x += 4;
             m24_kbd_adddata(m24_kbd->scan[3]);
         }
         while (m24_kbd->x > 4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                return (0xff);
+                return 0xff;
             m24_kbd->x -= 4;
             m24_kbd_adddata(m24_kbd->scan[4]);
         }
         while (m24_kbd->y < -4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                return (0xff);
+                return 0xff;
             m24_kbd->y += 4;
             m24_kbd_adddata(m24_kbd->scan[5]);
         }
         while (m24_kbd->y > 4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
-                return (0xff);
+                return 0xff;
             m24_kbd->y -= 4;
             m24_kbd_adddata(m24_kbd->scan[6]);
         }
     }
 
-    return (0);
+    return 0;
 }
 
 /* Remapping as follows:
@@ -1604,8 +1604,8 @@ const device_t m19_vid_device = {
 static uint8_t
 m24_read(uint16_t port, void *priv)
 {
-    uint8_t ret = 0x00;
-    int     i, fdd_count = 0;
+    uint8_t ret       = 0x00;
+    int     fdd_count = 0;
 
     switch (port) {
         case 0x62:
@@ -1674,7 +1674,7 @@ m24_read(uint16_t port, void *priv)
          * on on   EGA/VGA (works only for BIOS ROM 1.43)
          */
         case 0x67:
-            for (i = 0; i < FDD_NUM; i++) {
+            for (uint8_t i = 0; i < FDD_NUM; i++) {
                 if (fdd_get_flags(i))
                     fdd_count++;
             }
@@ -1708,14 +1708,14 @@ m24_read(uint16_t port, void *priv)
             break;
     }
 
-    return (ret);
+    return ret;
 }
 
 static uint8_t
 m240_read(uint16_t port, void *priv)
 {
     uint8_t ret = 0x00;
-    int     i, fdd_count = 0;
+    int     fdd_count = 0;
 
     switch (port) {
         case 0x62:
@@ -1723,7 +1723,7 @@ m240_read(uint16_t port, void *priv)
             ret = 0x00;
             if (ppi.pb & 0x8) {
                 /* Switches 4, 5 - floppy drives (number) */
-                for (i = 0; i < FDD_NUM; i++) {
+                for (uint8_t i = 0; i < FDD_NUM; i++) {
                     if (fdd_get_flags(i))
                         fdd_count++;
                 }
@@ -1763,7 +1763,7 @@ m240_read(uint16_t port, void *priv)
             break;
     }
 
-    return (ret);
+    return ret;
 }
 
 /*
@@ -1802,7 +1802,7 @@ machine_xt_m24_init(const machine_t *model)
     /* Allocate an NVR for this machine. */
     nvr = (nvr_t *) malloc(sizeof(nvr_t));
     if (nvr == NULL)
-        return (0);
+        return 0;
     memset(nvr, 0x00, sizeof(nvr_t));
 
     mm58174_init(nvr, model->nvrmask + 1);
@@ -1876,7 +1876,7 @@ machine_xt_m240_init(const machine_t *model)
     /* Allocate an NVR for this machine. */
     nvr = (nvr_t *) malloc(sizeof(nvr_t));
     if (nvr == NULL)
-        return (0);
+        return 0;
     memset(nvr, 0x00, sizeof(nvr_t));
 
     mm58274_init(nvr, model->nvrmask + 1);

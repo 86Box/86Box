@@ -13,122 +13,122 @@ LANGUAGE LANG_SPANISH, SUBLANG_SPANISH
 // Menu
 //
 
-MainMenu MENU DISCARDABLE 
+MainMenu MENU DISCARDABLE
 BEGIN
     POPUP "&Acción"
     BEGIN
-        MENUITEM "&Teclado requiere captura",    IDM_ACTION_KBD_REQ_CAPTURE
-        MENUITEM "CTRL &derecho es ALT izquierdo",    IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM "&Teclado requiere captura", IDM_ACTION_KBD_REQ_CAPTURE
+        MENUITEM "CTRL &derecho es ALT izquierdo", IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
-        MENUITEM "&Hard Reset...",                 IDM_ACTION_HRESET
-        MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
+        MENUITEM "&Hard Reset...", IDM_ACTION_HRESET
+        MENUITEM "&Ctrl+Alt+Del\tCtrl+F12", IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
-    MENUITEM "Ctrl+Alt+&Esc",        IDM_ACTION_CTRL_ALT_ESC
+    MENUITEM "Ctrl+Alt+&Esc", IDM_ACTION_CTRL_ALT_ESC
         MENUITEM SEPARATOR
-        MENUITEM "&Pausa",                      IDM_ACTION_PAUSE
+        MENUITEM "&Pausa", IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
-        MENUITEM "&Salir...",                       IDM_ACTION_EXIT
+        MENUITEM "&Salir...", IDM_ACTION_EXIT
     END
     POPUP "&Vista"
     BEGIN
-        MENUITEM "&Ocultar barra de estado",        IDM_VID_HIDE_STATUS_BAR
-        MENUITEM "Hide &toolbar",        IDM_VID_HIDE_TOOLBAR
+        MENUITEM "&Ocultar barra de estado", IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar", IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
-        MENUITEM "&Show non-primary monitors",  IDM_VID_MONITORS
-        MENUITEM "&Ventana redimensionable",          IDM_VID_RESIZE
-        MENUITEM "&Recordar tamaño y posición",  IDM_VID_REMEMBER
+        MENUITEM "&Show non-primary monitors", IDM_VID_MONITORS
+        MENUITEM "&Ventana redimensionable", IDM_VID_RESIZE
+        MENUITEM "&Recordar tamaño y posición", IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "Re&nderizador"
         BEGIN
-            MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
-            MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
-            MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-            MENUITEM "Open&GL (3.0 Core)",      IDM_VID_OPENGL_CORE
+            MENUITEM "&SDL (Software)", IDM_VID_SDL_SW
+            MENUITEM "SDL (&Hardware)", IDM_VID_SDL_HW
+            MENUITEM "SDL (&OpenGL)", IDM_VID_SDL_OPENGL
+            MENUITEM "Open&GL (3.0 Core)", IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
-            MENUITEM "&VNC",                    IDM_VID_VNC
+            MENUITEM "&VNC", IDM_VID_VNC
 #endif
         END
         MENUITEM SEPARATOR
-        MENUITEM "E&specificar dimensiones...",          IDM_VID_SPECIFY_DIM
-        MENUITEM "F&orzar ratio 4:3",    IDM_VID_FORCE43
+        MENUITEM "E&specificar dimensiones...", IDM_VID_SPECIFY_DIM
+        MENUITEM "F&orzar ratio 4:3", IDM_VID_FORCE43
         POPUP "&Factor de escalado de ventana"
         BEGIN
-            MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
-            MENUITEM "&1x",                     IDM_VID_SCALE_2X
-            MENUITEM "1.&5x",                   IDM_VID_SCALE_3X
-            MENUITEM "&2x",                     IDM_VID_SCALE_4X
-            MENUITEM "&3x",                     IDM_VID_SCALE_5X
-            MENUITEM "&4x",                     IDM_VID_SCALE_6X
-            MENUITEM "&5x",                     IDM_VID_SCALE_7X
-            MENUITEM "&6x",                     IDM_VID_SCALE_8X
-            MENUITEM "&7x",                     IDM_VID_SCALE_9X
-            MENUITEM "&8x",                     IDM_VID_SCALE_10X
+            MENUITEM "&0.5x", IDM_VID_SCALE_1X
+            MENUITEM "&1x", IDM_VID_SCALE_2X
+            MENUITEM "1.&5x", IDM_VID_SCALE_3X
+            MENUITEM "&2x", IDM_VID_SCALE_4X
+            MENUITEM "&3x", IDM_VID_SCALE_5X
+            MENUITEM "&4x", IDM_VID_SCALE_6X
+            MENUITEM "&5x", IDM_VID_SCALE_7X
+            MENUITEM "&6x", IDM_VID_SCALE_8X
+            MENUITEM "&7x", IDM_VID_SCALE_9X
+            MENUITEM "&8x", IDM_VID_SCALE_10X
         END
         POPUP "&Método de filtrado"
         BEGIN
-            MENUITEM "&Más cercano",                 IDM_VID_FILTER_NEAREST
-            MENUITEM "&Lineal",                  IDM_VID_FILTER_LINEAR
+            MENUITEM "&Más cercano", IDM_VID_FILTER_NEAREST
+            MENUITEM "&Lineal", IDM_VID_FILTER_LINEAR
         END
-        MENUITEM "&Escalado alta densidad",              IDM_VID_HIDPI
+        MENUITEM "&Escalado alta densidad", IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Pantalla completa\tCtrl+Alt+PgUp",    IDM_VID_FULLSCREEN
+        MENUITEM "&Pantalla completa\tCtrl+Alt+PgUp", IDM_VID_FULLSCREEN
         POPUP "Escalado pantalla completa"
         BEGIN
-            MENUITEM "&Estirar",        IDM_VID_FS_FULL
-            MENUITEM "&4:3",                        IDM_VID_FS_43
+            MENUITEM "&Estirar", IDM_VID_FS_FULL
+            MENUITEM "&4:3", IDM_VID_FS_43
             MENUITEM "&Píxeles cuadrados (Mant. aspecto)", IDM_VID_FS_KEEPRATIO
-            MENUITEM "&Escalado valor entero",              IDM_VID_FS_INT
+            MENUITEM "&Escalado valor entero", IDM_VID_FS_INT
         END
         POPUP "&Ajustes EGA/(S)VGA"
         BEGIN
-            MENUITEM "&Monitor VGA invertido",   IDM_VID_INVERT
+            MENUITEM "&Monitor VGA invertido", IDM_VID_INVERT
             POPUP "&Tipo de pantalla VGA"
             BEGIN
-                MENUITEM "RGB &Color",          IDM_VID_GRAY_RGB
-                MENUITEM "RGB &Grises",      IDM_VID_GRAY_MONO
-                MENUITEM "Monitor &Ámbar",      IDM_VID_GRAY_AMBER
-                MENUITEM "Monitor &Verde",      IDM_VID_GRAY_GREEN
-                MENUITEM "Monitor &Blanco",      IDM_VID_GRAY_WHITE
+                MENUITEM "RGB &Color", IDM_VID_GRAY_RGB
+                MENUITEM "RGB &Grises", IDM_VID_GRAY_MONO
+                MENUITEM "Monitor &Ámbar", IDM_VID_GRAY_AMBER
+                MENUITEM "Monitor &Verde", IDM_VID_GRAY_GREEN
+                MENUITEM "Monitor &Blanco", IDM_VID_GRAY_WHITE
             END
             POPUP "&Conversión a grises"
             BEGIN
-                MENUITEM "BT&601 (NTSC/PAL)",   IDM_VID_GRAYCT_601
-                MENUITEM "BT&709 (HDTV)",       IDM_VID_GRAYCT_709
-                MENUITEM "&Media",            IDM_VID_GRAYCT_AVE
+                MENUITEM "BT&601 (NTSC/PAL)", IDM_VID_GRAYCT_601
+                MENUITEM "BT&709 (HDTV)", IDM_VID_GRAYCT_709
+                MENUITEM "&Media", IDM_VID_GRAYCT_AVE
             END
         END
         MENUITEM SEPARATOR
-        MENUITEM "&Overscan CGA/PCjr/Tandy/EGA/(S)VGA",     IDM_VID_OVERSCAN
+        MENUITEM "&Overscan CGA/PCjr/Tandy/EGA/(S)VGA", IDM_VID_OVERSCAN
         MENUITEM "Cambiar contraste para pantalla &monocroma", IDM_VID_CGACON
     END
-    MENUITEM "&Medios",                IDM_MEDIA
+    MENUITEM "&Medios", IDM_MEDIA
     POPUP "&Herramientas"
     BEGIN
-        MENUITEM "&Ajustes...",                IDM_CONFIG
-        MENUITEM "&Actualizar iconos en barra de estado",    IDM_UPDATE_ICONS
+        MENUITEM "&Ajustes...", IDM_CONFIG
+        MENUITEM "&Actualizar iconos en barra de estado", IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Tomar c&aptura\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM "Tomar c&aptura\tCtrl+F11", IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
-        MENUITEM "&Preferencias...",        IDM_PREFERENCES
+        MENUITEM "&Preferencias...", IDM_PREFERENCES
 #ifdef DISCORD
         MENUITEM "Habilitar integración con &Discord", IDM_DISCORD
 #endif
         MENUITEM SEPARATOR
-        MENUITEM "&Ganancia de sonido...",              IDM_SND_GAIN
+        MENUITEM "&Ganancia de sonido...", IDM_SND_GAIN
 #ifdef MTR_ENABLED
         MENUITEM SEPARATOR
-        MENUITEM "Comenzar traza\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
-        MENUITEM "Terminar traza\tCtrl+T",           IDM_ACTION_END_TRACE
+        MENUITEM "Comenzar traza\tCtrl+T", IDM_ACTION_BEGIN_TRACE
+        MENUITEM "Terminar traza\tCtrl+T", IDM_ACTION_END_TRACE
 #endif
     END
     POPUP "&Ayuda"
     BEGIN
-        MENUITEM "&Documentación...",           IDM_DOCS
-        MENUITEM "&Acerca de 86Box...",             IDM_ABOUT
+        MENUITEM "&Documentación...", IDM_DOCS
+        MENUITEM "&Acerca de 86Box...", IDM_ABOUT
     END
 END
 
-StatusBarMenu MENU DISCARDABLE 
+StatusBarMenu MENU DISCARDABLE
 BEGIN
     MENUITEM SEPARATOR
 END
@@ -137,17 +137,17 @@ CassetteSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Nueva imagen...",                IDM_CASSETTE_IMAGE_NEW
+        MENUITEM "&Nueva imagen...", IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "Imagen &Existente...",                IDM_CASSETTE_IMAGE_EXISTING
-        MENUITEM "Imagen Existente (&Sólo-lectura)...",    IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM "Imagen &Existente...", IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "Imagen Existente (&Sólo-lectura)...", IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "&Grabar",                    IDM_CASSETTE_RECORD
-        MENUITEM "&Reproducir",                    IDM_CASSETTE_PLAY
-        MENUITEM "&Rebobinar al inicio",            IDM_CASSETTE_REWIND
-        MENUITEM "&Avance rápido al final",            IDM_CASSETTE_FAST_FORWARD
+        MENUITEM "&Grabar", IDM_CASSETTE_RECORD
+        MENUITEM "&Reproducir", IDM_CASSETTE_PLAY
+        MENUITEM "&Rebobinar al inicio", IDM_CASSETTE_REWIND
+        MENUITEM "&Avance rápido al final", IDM_CASSETTE_FAST_FORWARD
         MENUITEM SEPARATOR
-        MENUITEM "E&xtraer",                    IDM_CASSETTE_EJECT
+        MENUITEM "E&xtraer", IDM_CASSETTE_EJECT
     END
 END
 
@@ -155,9 +155,9 @@ CartridgeSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Imagen...",                    IDM_CARTRIDGE_IMAGE
+        MENUITEM "&Imagen...", IDM_CARTRIDGE_IMAGE
         MENUITEM SEPARATOR
-        MENUITEM "E&xtraer",                    IDM_CARTRIDGE_EJECT
+        MENUITEM "E&xtraer", IDM_CARTRIDGE_EJECT
     END
 END
 
@@ -165,14 +165,14 @@ FloppySubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Nueva imagen...",                IDM_FLOPPY_IMAGE_NEW
+        MENUITEM "&Nueva imagen...", IDM_FLOPPY_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "Imagen &existente...",                IDM_FLOPPY_IMAGE_EXISTING
-        MENUITEM "Imagen existente (&sólo-lectura)...",    IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM "Imagen &existente...", IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "Imagen existente (&sólo-lectura)...", IDM_FLOPPY_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "E&xportar a 86F...",                IDM_FLOPPY_EXPORT_TO_86F
+        MENUITEM "E&xportar a 86F...", IDM_FLOPPY_EXPORT_TO_86F
         MENUITEM SEPARATOR
-        MENUITEM "E&xtraer",                    IDM_FLOPPY_EJECT
+        MENUITEM "E&xtraer", IDM_FLOPPY_EJECT
     END
 END
 
@@ -180,13 +180,13 @@ CdromSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Silenciar",                    IDM_CDROM_MUTE
+        MENUITEM "&Silenciar", IDM_CDROM_MUTE
         MENUITEM SEPARATOR
-        MENUITEM "E&xtraer disco",                    IDM_CDROM_EMPTY
-        MENUITEM "&Recargar imagen previa",            IDM_CDROM_RELOAD
+        MENUITEM "E&xtraer disco", IDM_CDROM_EMPTY
+        MENUITEM "&Recargar imagen previa", IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Imagen...",                    IDM_CDROM_IMAGE
-        MENUITEM "&Carpeta...",                    IDM_CDROM_DIR
+        MENUITEM "&Imagen...", IDM_CDROM_IMAGE
+        MENUITEM "&Carpeta...", IDM_CDROM_DIR
     END
 END
 
@@ -194,13 +194,13 @@ ZIPSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Nueva imagen...",                IDM_ZIP_IMAGE_NEW
+        MENUITEM "&Nueva imagen...", IDM_ZIP_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "Imagen &existente...",                IDM_ZIP_IMAGE_EXISTING
-        MENUITEM "Imagen existente (&sólo-lectura)...",    IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM "Imagen &existente...", IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "Imagen existente (&sólo-lectura)...", IDM_ZIP_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "E&xtraer",                    IDM_ZIP_EJECT
-        MENUITEM "&Recargar imagen previa",            IDM_ZIP_RELOAD
+        MENUITEM "E&xtraer", IDM_ZIP_EJECT
+        MENUITEM "&Recargar imagen previa", IDM_ZIP_RELOAD
     END
 END
 
@@ -208,13 +208,13 @@ MOSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Nueva imagen...",                IDM_MO_IMAGE_NEW
+        MENUITEM "&Nueva imagen...", IDM_MO_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "Imagen &existente...",                IDM_MO_IMAGE_EXISTING
-        MENUITEM "Imagen existente (&sólo-lectura)...",    IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM "Imagen &existente...", IDM_MO_IMAGE_EXISTING
+        MENUITEM "Imagen existente (&sólo-lectura)...", IDM_MO_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "E&xtraer",                    IDM_MO_EJECT
-        MENUITEM "&Recargar imagen previa",            IDM_MO_RELOAD
+        MENUITEM "E&xtraer", IDM_MO_EJECT
+        MENUITEM "&Recargar imagen previa", IDM_MO_RELOAD
     END
 END
 
@@ -240,150 +240,150 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES        "Preferencias"
-#define STR_SND_GAIN        "Ganancia de Sonido"
-#define STR_NEW_FLOPPY        "Nueva Imagen"
+#define STR_PREFERENCES   "Preferencias"
+#define STR_SND_GAIN      "Ganancia de Sonido"
+#define STR_NEW_FLOPPY    "Nueva Imagen"
 #define STR_CONFIG        "Ajustes"
-#define STR_SPECIFY_DIM        "Especificar Dimensiones de la Ventana Principal"
+#define STR_SPECIFY_DIM   "Especificar Dimensiones de la Ventana Principal"
 
 #define STR_OK            "Aceptar"
 #define STR_CANCEL        "Cancelar"
 #define STR_GLOBAL        "Salvar estos ajustes como por &defecto globalmente"
-#define STR_DEFAULT        "&Por defecto"
-#define STR_LANGUAGE        "Idioma:"
-#define STR_ICONSET        "Juego de iconos:"
+#define STR_DEFAULT       "&Por defecto"
+#define STR_LANGUAGE      "Idioma:"
+#define STR_ICONSET       "Juego de iconos:"
 
-#define STR_GAIN        "Ganancia"
+#define STR_GAIN          "Ganancia"
 
-#define STR_FILE_NAME        "Nombre de archivo:"
-#define STR_DISK_SIZE        "Tamaño de disco:"
-#define STR_RPM_MODE        "Modo RPM:"
-#define STR_PROGRESS        "Progreso:"
+#define STR_FILE_NAME     "Nombre de archivo:"
+#define STR_DISK_SIZE     "Tamaño de disco:"
+#define STR_RPM_MODE      "Modo RPM:"
+#define STR_PROGRESS      "Progreso:"
 
-#define STR_WIDTH        "Ancho:"
+#define STR_WIDTH         "Ancho:"
 #define STR_HEIGHT        "Alto:"
-#define STR_LOCK_TO_SIZE    "Bloquear a este tamaño"
+#define STR_LOCK_TO_SIZE  "Bloquear a este tamaño"
 
-#define STR_MACHINE_TYPE    "Tipo de máquina:"
-#define STR_MACHINE        "Máquina:"
-#define STR_CONFIGURE        "Configurar"
-#define STR_CPU_TYPE        "Tipo de CPU:"
-#define STR_CPU_SPEED        "Velocidad:"
-#define STR_FPU            "FPU:"
-#define STR_WAIT_STATES        "Estados en espera:"
+#define STR_MACHINE_TYPE  "Tipo de máquina:"
+#define STR_MACHINE       "Máquina:"
+#define STR_CONFIGURE     "Configurar"
+#define STR_CPU_TYPE      "Tipo de CPU:"
+#define STR_CPU_SPEED     "Velocidad:"
+#define STR_FPU           "FPU:"
+#define STR_WAIT_STATES   "Estados en espera:"
 #define STR_MB            "MB"
 #define STR_MEMORY        "Memoria:"
-#define STR_TIME_SYNC        "Sincronización horaria"
-#define STR_DISABLED        "Deshabilitado"
-#define STR_ENABLED_LOCAL    "Habilitado (hora local)"
-#define STR_ENABLED_UTC        "Habilitado (UTC)"
-#define STR_DYNAREC        "Recompilador Dinámico"
+#define STR_TIME_SYNC     "Sincronización horaria"
+#define STR_DISABLED      "Deshabilitado"
+#define STR_ENABLED_LOCAL "Habilitado (hora local)"
+#define STR_ENABLED_UTC   "Habilitado (UTC)"
+#define STR_DYNAREC       "Recompilador Dinámico"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
-#define STR_VIDEO        "Vídeo:"
-#define STR_VIDEO_2        "Vídeo 2:"
+#define STR_VIDEO         "Vídeo:"
+#define STR_VIDEO_2       "Vídeo 2:"
 #define STR_VOODOO        "Voodoo Graphics"
-#define STR_IBM8514        "IBM 8514/a Graphics"
-#define STR_XGA            "XGA Graphics"
+#define STR_IBM8514       "IBM 8514/a Graphics"
+#define STR_XGA           "XGA Graphics"
 
-#define STR_MOUSE        "Ratón:"
-#define STR_JOYSTICK        "Mando:"
-#define STR_JOY1        "Mando 1..."
-#define STR_JOY2        "Mando 2..."
-#define STR_JOY3        "Mando 3..."
-#define STR_JOY4        "Mando 4..."
+#define STR_MOUSE         "Ratón:"
+#define STR_JOYSTICK      "Mando:"
+#define STR_JOY1          "Mando 1..."
+#define STR_JOY2          "Mando 2..."
+#define STR_JOY3          "Mando 3..."
+#define STR_JOY4          "Mando 4..."
 
 #define STR_SOUND1        "Tarjeta de sonido 1:"
 #define STR_SOUND2        "Tarjeta de sonido 2:"
 #define STR_SOUND3        "Tarjeta de sonido 3:"
 #define STR_SOUND4        "Tarjeta de sonido 4:"
-#define STR_MIDI_OUT        "Dispositivo MIDI de salida:"
-#define STR_MIDI_IN        "Dispositivo MIDI de entrada:"
+#define STR_MIDI_OUT      "Dispositivo MIDI de salida:"
+#define STR_MIDI_IN       "Dispositivo MIDI de entrada:"
 #define STR_MPU401        "MPU-401 independiente"
-#define STR_FLOAT        "Usar sonido FLOAT32"
-#define STR_FM_DRIVER        "Controlador de sintet. FM"
-#define STR_FM_DRV_NUKED    "Nuked (más preciso)"
-#define STR_FM_DRV_YMFM        "YMFM (más rápido)"
+#define STR_FLOAT         "Usar sonido FLOAT32"
+#define STR_FM_DRIVER     "Controlador de sintet. FM"
+#define STR_FM_DRV_NUKED  "Nuked (más preciso)"
+#define STR_FM_DRV_YMFM   "YMFM (más rápido)"
 
-#define STR_NET_TYPE    "Tipo de red:"
-#define STR_PCAP        "Dispositivo PCap:"
-#define STR_NET            "Adaptador de red:"
-#define STR_NET1        "Network card 1:"
-#define STR_NET2        "Network card 2:"
-#define STR_NET3        "Network card 3:"
-#define STR_NET4        "Network card 4:"
+#define STR_NET_TYPE      "Tipo de red:"
+#define STR_PCAP          "Dispositivo PCap:"
+#define STR_NET           "Adaptador de red:"
+#define STR_NET1          "Network card 1:"
+#define STR_NET2          "Network card 2:"
+#define STR_NET3          "Network card 3:"
+#define STR_NET4          "Network card 4:"
 
-#define STR_COM1        "Dispositivo COM1:"
-#define STR_COM2        "Dispositivo COM2:"
-#define STR_COM3        "Dispositivo COM3:"
-#define STR_COM4        "Dispositivo COM4:"
-#define STR_LPT1        "Dispositivo LPT1:"
-#define STR_LPT2        "Dispositivo LPT2:"
-#define STR_LPT3        "Dispositivo LPT3:"
-#define STR_LPT4        "Dispositivo LPT4:"
-#define STR_SERIAL1        "Puerto serie 1"
-#define STR_SERIAL2        "Puerto serie 2"
-#define STR_SERIAL3        "Puerto serie 3"
-#define STR_SERIAL4        "Puerto serie 4"
-#define STR_PARALLEL1        "Puerto paralelo 1"
-#define STR_PARALLEL2        "Puerto paralelo 2"
-#define STR_PARALLEL3        "Puerto paralelo 3"
-#define STR_PARALLEL4        "Puerto paralelo 4"
-#define STR_SERIAL_PASS1    "Serial port passthrough 1"
-#define STR_SERIAL_PASS2    "Serial port passthrough 2"
-#define STR_SERIAL_PASS3    "Serial port passthrough 3"
-#define STR_SERIAL_PASS4    "Serial port passthrough 4"
+#define STR_COM1          "Dispositivo COM1:"
+#define STR_COM2          "Dispositivo COM2:"
+#define STR_COM3          "Dispositivo COM3:"
+#define STR_COM4          "Dispositivo COM4:"
+#define STR_LPT1          "Dispositivo LPT1:"
+#define STR_LPT2          "Dispositivo LPT2:"
+#define STR_LPT3          "Dispositivo LPT3:"
+#define STR_LPT4          "Dispositivo LPT4:"
+#define STR_SERIAL1       "Puerto serie 1"
+#define STR_SERIAL2       "Puerto serie 2"
+#define STR_SERIAL3       "Puerto serie 3"
+#define STR_SERIAL4       "Puerto serie 4"
+#define STR_PARALLEL1     "Puerto paralelo 1"
+#define STR_PARALLEL2     "Puerto paralelo 2"
+#define STR_PARALLEL3     "Puerto paralelo 3"
+#define STR_PARALLEL4     "Puerto paralelo 4"
+#define STR_SERIAL_PASS1  "Serial port passthrough 1"
+#define STR_SERIAL_PASS2  "Serial port passthrough 2"
+#define STR_SERIAL_PASS3  "Serial port passthrough 3"
+#define STR_SERIAL_PASS4  "Serial port passthrough 4"
 
-#define STR_HDC            "Controladora HD:"
-#define STR_FDC            "Controladora FD:"
-#define STR_IDE_TER        "Tercera controladora IDE"
-#define STR_IDE_QUA        "Cuarta controladora IDE"
-#define STR_SCSI        "SCSI"
+#define STR_HDC           "Controladora HD:"
+#define STR_FDC           "Controladora FD:"
+#define STR_IDE_TER       "Tercera controladora IDE"
+#define STR_IDE_QUA       "Cuarta controladora IDE"
+#define STR_SCSI          "SCSI"
 #define STR_SCSI_1        "Controladora 1:"
 #define STR_SCSI_2        "Controladora 2:"
 #define STR_SCSI_3        "Controladora 3:"
 #define STR_SCSI_4        "Controladora 4:"
-#define STR_CASSETTE        "Cassette"
+#define STR_CASSETTE      "Cassette"
 
-#define STR_HDD            "Discos duros:"
-#define STR_NEW            "&Nuevo..."
-#define STR_EXISTING        "&Existente..."
+#define STR_HDD           "Discos duros:"
+#define STR_NEW           "&Nuevo..."
+#define STR_EXISTING      "&Existente..."
 #define STR_REMOVE        "E&liminar"
-#define STR_BUS            "Bus:"
-#define STR_CHANNEL        "Canal:"
+#define STR_BUS           "Bus:"
+#define STR_CHANNEL       "Canal:"
 #define STR_ID            "ID:"
-#define STR_SPEED        "Speed:"
+#define STR_SPEED         "Speed:"
 
-#define STR_SPECIFY        "E&specificar..."
-#define STR_SECTORS        "Sectores:"
-#define STR_HEADS        "Cabezas:"
-#define STR_CYLS        "Cilindros:"
-#define STR_SIZE_MB        "Tamaño (MB):"
-#define STR_TYPE        "Tipo:"
-#define STR_IMG_FORMAT        "Formato de imagen:"
-#define STR_BLOCK_SIZE        "Tamaño de bloque:"
+#define STR_SPECIFY       "E&specificar..."
+#define STR_SECTORS       "Sectores:"
+#define STR_HEADS         "Cabezas:"
+#define STR_CYLS          "Cilindros:"
+#define STR_SIZE_MB       "Tamaño (MB):"
+#define STR_TYPE          "Tipo:"
+#define STR_IMG_FORMAT    "Formato de imagen:"
+#define STR_BLOCK_SIZE    "Tamaño de bloque:"
 
-#define STR_FLOPPY_DRIVES    "Unidades de disquete:"
-#define STR_TURBO        "Temporizaciones Turbo"
-#define STR_CHECKBPB        "Chequear BPB"
-#define STR_CDROM_DRIVES    "Unidades de CD-ROM:"
-#define STR_CD_SPEED        "Velocidad:"
-#define STR_EARLY        "Unidad anterior"
+#define STR_FLOPPY_DRIVES "Unidades de disquete:"
+#define STR_TURBO         "Temporizaciones Turbo"
+#define STR_CHECKBPB      "Chequear BPB"
+#define STR_CDROM_DRIVES  "Unidades de CD-ROM:"
+#define STR_CD_SPEED      "Velocidad:"
 
-#define STR_MO_DRIVES        "Unidades MO:"
-#define STR_ZIP_DRIVES        "Unidades ZIP:"
-#define STR_250            "ZIP 250"
+#define STR_MO_DRIVES     "Unidades MO:"
+#define STR_ZIP_DRIVES    "Unidades ZIP:"
+#define STR_250           "ZIP 250"
 
 #define STR_ISARTC        "ISA RTC:"
 #define STR_ISAMEM        "Expansión de Memoria ISA"
-#define STR_ISAMEM_1        "Tarjeta 1:"
-#define STR_ISAMEM_2        "Tarjeta 2:"
-#define STR_ISAMEM_3        "Tarjeta 3:"
-#define STR_ISAMEM_4        "Tarjeta 4:"
+#define STR_ISAMEM_1      "Tarjeta 1:"
+#define STR_ISAMEM_2      "Tarjeta 2:"
+#define STR_ISAMEM_3      "Tarjeta 3:"
+#define STR_ISAMEM_4      "Tarjeta 4:"
 #define STR_BUGGER        "Dispositivo ISABugger"
-#define STR_POSTCARD        "Tarjeta POST"
+#define STR_POSTCARD      "Tarjeta POST"
 
-#define FONT_SIZE        9
-#define FONT_NAME        "Segoe UI"
+#define FONT_SIZE         9
+#define FONT_NAME         "Segoe UI"
 
 #include "dialogs.rc"
 
@@ -392,9 +392,9 @@ END
 // String Table
 //
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
-    2048    "86Box"
+    2048        "86Box"
     IDS_2049    "Error"
     IDS_2050    "Error fatal"
     IDS_2051    " - PAUSED"
@@ -412,7 +412,7 @@ BEGIN
     IDS_2063    "La máquina ""%hs"" no está disponible debido a ROMs faltantes en el directorio roms/machines. Cambiando a una máquina disponible."
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2064    "La tarjeta de vídeo ""%hs"" no está disponible debido a ROMs faltantes en el directorio roms/machines. Cambiando a una tarjeta de vídeo disponible."
     IDS_2065    "Máquina"
@@ -432,7 +432,7 @@ BEGIN
     IDS_2079    "Pulsa F8+F12 o el botón central para liberar el ratón"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_2080    "Incapaz de inicializar FluidSynth"
     IDS_2081    "Bus"
@@ -537,14 +537,16 @@ BEGIN
     IDS_2159    "Hard reset"
     IDS_2160    "ACPI shutdown"
     IDS_2161    "Settings"
-    IDS_2162    "Unidad anterior"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
     IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+    IDS_2167    "Failed to initialize network driver"
+    IDS_2168    "The network configuration will be switched to the null driver"
 END
 
-STRINGTABLE DISCARDABLE 
+STRINGTABLE DISCARDABLE
 BEGIN
     IDS_4096    "Disco duro (%s)"
     IDS_4097    "%01i:%01i"
@@ -643,7 +645,7 @@ BEGIN
 
     IDS_7168    "(Por defecto del sistema)"
 END
-#define IDS_LANG_ESES    IDS_7168
+#define IDS_LANG_ESES IDS_7168
 
 // Spanish (Spain) resources
 /////////////////////////////////////////////////////////////////////////////

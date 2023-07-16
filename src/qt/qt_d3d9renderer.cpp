@@ -24,12 +24,17 @@ D3D9Renderer::D3D9Renderer(QWidget *parent, int monitor_index)
 
     windowHandle = (HWND) winId();
     surfaceInUse = true;
+    finalized = true;
 
     RendererCommon::parentWidget = parent;
 
     this->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     this->m_monitor_index = monitor_index;
     this->setAcceptDrops(true);
+
+    d3d9surface = nullptr;
+    d3d9dev = nullptr;
+    d3d9 = nullptr;
 }
 
 D3D9Renderer::~D3D9Renderer()
@@ -56,7 +61,7 @@ D3D9Renderer::finalize()
     if (d3d9) {
         d3d9->Release();
         d3d9 = nullptr;
-    };
+    }
 }
 
 void
@@ -68,6 +73,7 @@ D3D9Renderer::hideEvent(QHideEvent *event)
 void
 D3D9Renderer::showEvent(QShowEvent *event)
 {
+    if (d3d9) finalize();
     params = {};
 
     if (FAILED(Direct3DCreate9Ex(D3D_SDK_VERSION, &d3d9))) {
@@ -81,7 +87,7 @@ D3D9Renderer::showEvent(QShowEvent *event)
     params.BackBufferCount            = 1;
     params.FullScreen_RefreshRateInHz = D3DPRESENT_RATE_DEFAULT;
     params.PresentationInterval       = D3DPRESENT_INTERVAL_IMMEDIATE;
-    params.hDeviceWindow              = windowHandle;
+    params.hDeviceWindow              = (HWND) winId();
 
     HRESULT result = d3d9->CreateDeviceEx(D3DADAPTER_DEFAULT, D3DDEVTYPE_HAL, windowHandle, D3DCREATE_MULTITHREADED | D3DCREATE_HARDWARE_VERTEXPROCESSING, &params, nullptr, &d3d9dev);
     if (FAILED(result))
@@ -108,7 +114,8 @@ void
 D3D9Renderer::paintEvent(QPaintEvent *event)
 {
     IDirect3DSurface9 *backbuffer = nullptr;
-    RECT               srcRect, dstRect;
+    RECT               srcRect;
+    RECT               dstRect;
     HRESULT            result = d3d9dev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &backbuffer);
 
     if (FAILED(result)) {
@@ -119,10 +126,10 @@ D3D9Renderer::paintEvent(QPaintEvent *event)
     srcRect.bottom = source.bottom();
     srcRect.left   = source.left();
     srcRect.right  = source.right();
-    dstRect.top    = destination.top();
-    dstRect.bottom = destination.bottom();
-    dstRect.left   = destination.left();
-    dstRect.right  = destination.right();
+    dstRect.top    = destination.top() * devicePixelRatioF();
+    dstRect.bottom = destination.bottom() * devicePixelRatioF();
+    dstRect.left   = destination.left() * devicePixelRatioF();
+    dstRect.right  = destination.right() * devicePixelRatioF();
     d3d9dev->BeginScene();
     d3d9dev->Clear(0, nullptr, D3DCLEAR_TARGET, 0xFF000000, 0, 0);
     while (surfaceInUse) { }

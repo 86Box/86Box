@@ -90,7 +90,7 @@
 
 #define ISARTC_DEBUG  0
 
-typedef struct {
+typedef struct rtcdev_t {
     const char *name;  /* board name */
     uint8_t     board; /* board type */
 
@@ -103,18 +103,18 @@ typedef struct {
     uint32_t base_addr; /* configured I/O address */
 
     /* Fields for the specific driver. */
-    void (*f_wr)(uint16_t, uint8_t, void *);
+    void    (*f_wr)(uint16_t, uint8_t, void *);
     uint8_t (*f_rd)(uint16_t, void *);
-    int8_t year; /* register for YEAR value */
-    char   pad[3];
+    int8_t    year; /* register for YEAR value */
+    char      pad[3];
 
     nvr_t nvr; /* RTC/NVR */
 } rtcdev_t;
 
 /************************************************************************
- *                                    *
- *            Driver for the NatSemi MM58167 chip.        *
- *                                    *
+ *                                                                      *
+ *            Driver for the NatSemi MM58167 chip.                      *
+ *                                                                      *
  ************************************************************************/
 #define MM67_REGS 32
 
@@ -193,7 +193,9 @@ mm67_tick(nvr_t *nvr)
 {
     rtcdev_t *dev  = (rtcdev_t *) nvr->data;
     uint8_t  *regs = nvr->regs;
-    int       mon, year, f = 0;
+    int       mon;
+    int       year;
+    int       f = 0;
 
     /* Update and set interrupt if needed. */
     regs[MM67_SEC] = RTC_BCDINC(nvr->regs[MM67_SEC], 1);
@@ -236,7 +238,10 @@ mm67_tick(nvr_t *nvr)
                 regs[MM67_DOM] = RTC_BCDINC(regs[MM67_DOM], 1);
                 mon            = RTC_DCB(regs[MM67_MON]);
                 if (dev->year != -1) {
-                    year = RTC_DCB(regs[dev->year]);
+                    if (dev->flags & FLAG_YEARBCD)
+                        year = RTC_DCB(regs[dev->year]);
+                    else
+                        year = regs[dev->year];
                     if (dev->flags & FLAG_YEAR80)
                         year += 80;
                 } else
@@ -369,10 +374,8 @@ mm67_start(nvr_t *nvr)
 static void
 mm67_reset(nvr_t *nvr)
 {
-    int i;
-
     /* Initialize the RTC to a known state. */
-    for (i = MM67_MSEC; i <= MM67_MON; i++)
+    for (uint8_t i = MM67_MSEC; i <= MM67_MON; i++)
         nvr->regs[i] = RTC_BCD(0);
     nvr->regs[MM67_DOW] = RTC_BCD(1);
     nvr->regs[MM67_DOM] = RTC_BCD(1);
@@ -398,6 +401,14 @@ mm67_read(uint16_t port, void *priv)
                 picintc(1 << dev->irq);
             break;
 
+        case MM67_AL_MSEC:
+            ret                = dev->nvr.regs[reg] & 0xf0;
+            break;
+
+        case MM67_AL_DOW:
+            ret                = dev->nvr.regs[reg] & 0x0f;
+            break;
+
         default:
             ret = dev->nvr.regs[reg];
             break;
@@ -407,7 +418,7 @@ mm67_read(uint16_t port, void *priv)
     isartc_log("ISARTC: read(%04x) = %02x\n", port - dev->base_addr, ret);
 #endif
 
-    return (ret);
+    return ret;
 }
 
 /* Handle a WRITE operation to one of our registers. */
@@ -416,7 +427,6 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 {
     rtcdev_t *dev = (rtcdev_t *) priv;
     int       reg = port - dev->base_addr;
-    int       i;
 
 #if ISARTC_DEBUG
     isartc_log("ISARTC: write(%04x, %02x)\n", port - dev->base_addr, val);
@@ -441,7 +451,7 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 
         case MM67_RSTRAM:
             if (val == 0xff) {
-                for (i = MM67_AL_MSEC; i <= MM67_AL_MON; i++)
+                for (uint8_t i = MM67_AL_MSEC; i <= MM67_AL_MON; i++)
                     dev->nvr.regs[i] = RTC_BCD(0);
                 dev->nvr.regs[MM67_DOW] = RTC_BCD(1);
                 dev->nvr.regs[MM67_DOM] = RTC_BCD(1);
@@ -474,6 +484,14 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
             isartc_log("RTC: write test=%02x\n", val);
             break;
 
+        case MM67_AL_MSEC:
+            dev->nvr.regs[reg] = val & 0xf0;
+            break;
+
+        case MM67_AL_DOW:
+            dev->nvr.regs[reg] = val & 0x0f;
+            break;
+
         default:
             dev->nvr.regs[reg] = val;
             break;
@@ -481,9 +499,9 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 }
 
 /************************************************************************
- *                                    *
- *            Generic code for all supported chips.        *
- *                                    *
+ *                                                                      *
+ *            Generic code for all supported chips.                     *
+ *                                                                      *
  ************************************************************************/
 
 /* Initialize the device for use. */
@@ -787,12 +805,12 @@ isartc_get_from_internal_name(char *s)
 
     while (boards[c].dev != NULL) {
         if (!strcmp(boards[c].dev->internal_name, s))
-            return (c);
+            return c;
         c++;
     }
 
     /* Not found. */
-    return (0);
+    return 0;
 }
 
 const device_t *

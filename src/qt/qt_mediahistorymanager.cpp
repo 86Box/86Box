@@ -66,8 +66,8 @@ MediaHistoryManager::getHistoryListForDeviceIndex(int index, ui::MediaType type)
         if ((index >= 0) && (index < master_list[type].size())) {
             return master_list[type][index];
         } else {
-            qWarning("Media device index %i for device type %s was requested but index %i is out of range (valid range: >= 0 && < %i)",
-                     index, mediaTypeToString(type).toUtf8().constData(), index, master_list[type].size());
+            qWarning("Media device index %i for device type %s was requested but index %i is out of range (valid range: >= 0 && < %lli)",
+                     index, mediaTypeToString(type).toUtf8().constData(), index, static_cast<long long>(master_list[type].size()));
         }
     }
     // Failure gets an empty list
@@ -88,8 +88,8 @@ MediaHistoryManager::getImageForSlot(int index, int slot, ui::MediaType type)
     if ((slot >= 0) && (slot < device_history.size())) {
         image_name = device_history[slot];
     } else {
-        qWarning("Media history slot %i, index %i for device type %s was requested but slot %i is out of range (valid range: >= 0 && < %i, device_history.size() is %i)",
-                 slot, index, mediaTypeToString(type).toUtf8().constData(), slot, maxDevicesSupported(type), device_history.size());
+        qWarning("Media history slot %i, index %i for device type %s was requested but slot %i is out of range (valid range: >= 0 && < %i, device_history.size() is %lli)",
+                 slot, index, mediaTypeToString(type).toUtf8().constData(), slot, maxDevicesSupported(type), static_cast<long long>(device_history.size()));
     }
     return image_name;
 }
@@ -241,7 +241,7 @@ MediaHistoryManager::addImageToHistory(int index, ui::MediaType type, const QStr
     }
 
     // Pop any extras
-    if ((device_history.size() > MAX_PREV_IMAGES)) {
+    if (device_history.size() > MAX_PREV_IMAGES) {
         device_history.pop_back();
     }
 
