@@ -24,7 +24,7 @@
 
 #include <stdio.h>
 
-typedef struct {
+typedef struct pc_cassette_t {
     char save;
     char pcm;
 

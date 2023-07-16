@@ -157,23 +157,22 @@
     mem_set_access((smm ? ACCESS_CPU_SMM : ACCESS_CPU), 1, base, size, is_smram)
 #define mem_set_access_smram_bus(smm, base, size, is_smram) \
     mem_set_access((smm ? ACCESS_BUS_SMM : ACCESS_BUS), 1, base, size, is_smram)
-#define flushmmucache_cr3 \
-    flushmmucache_nopc
 
-typedef struct {
-    uint16_t x : 5,
-        w      : 5,
-        r      : 5,
-        pad    : 1;
+typedef struct state_t {
+    uint16_t x : 5;
+    uint16_t w : 5;
+    uint16_t r : 5;
+    uint16_t pad : 1;
 } state_t;
 
-typedef union {
+typedef union mem_state_t {
     uint16_t vals[4];
     state_t  states[4];
 } mem_state_t;
 
 typedef struct _mem_mapping_ {
-    struct _mem_mapping_ *prev, *next;
+    struct _mem_mapping_ *prev;
+    struct _mem_mapping_ *next;
 
     int enable;
 
@@ -228,7 +227,7 @@ typedef struct page_t {
 } page_t;
 
 extern uint32_t purgable_page_list_head;
-static inline int
+__attribute__((always_inline)) static inline int
 page_in_evict_list(page_t *p)
 {
     return (p->evict_prev != EVICT_NOT_IN_LIST);
@@ -257,7 +256,8 @@ extern uint8_t *ram, *ram2;
 extern uint32_t rammask;
 
 extern uint8_t *rom;
-extern uint32_t biosmask, biosaddr;
+extern uint32_t biosmask;
+extern uint32_t biosaddr;
 
 extern int        readlookup[256];
 extern uintptr_t *readlookup2;
@@ -285,7 +285,8 @@ extern uint32_t mem_logical_addr;
 extern page_t  *pages;
 extern page_t **page_lookup;
 
-extern uint32_t get_phys_virt, get_phys_phys;
+extern uint32_t get_phys_virt;
+extern uint32_t get_phys_phys;
 
 extern int shadowbios;
 extern int shadowbios_write;
@@ -415,7 +416,6 @@ extern void mem_reset_page_blocks(void);
 
 extern void flushmmucache(void);
 extern void flushmmucache_nopc(void);
-extern void mmu_invalidate(uint32_t addr);
 
 extern void mem_a20_init(void);
 extern void mem_a20_recalc(void);

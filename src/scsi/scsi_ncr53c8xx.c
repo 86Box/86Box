@@ -451,13 +451,11 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
 static void
 ncr53c8xx_read(ncr53c8xx_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 {
-    uint32_t i = 0;
-
     ncr53c8xx_log("ncr53c8xx_read(): %08X-%08X, length %i\n", addr, (addr + len - 1), len);
 
     if (dev->dmode & NCR_DMODE_SIOM) {
         ncr53c8xx_log("NCR 810: Reading from I/O address %04X\n", (uint16_t) addr);
-        for (i = 0; i < len; i++)
+        for (uint32_t i = 0; i < len; i++)
             buf[i] = inb((uint16_t) (addr + i));
     } else {
         ncr53c8xx_log("NCR 810: Reading from memory address %08X\n", addr);
@@ -468,13 +466,11 @@ ncr53c8xx_read(ncr53c8xx_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 static void
 ncr53c8xx_write(ncr53c8xx_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 {
-    uint32_t i = 0;
-
     ncr53c8xx_log("ncr53c8xx_write(): %08X-%08X, length %i\n", addr, (addr + len - 1), len);
 
     if (dev->dmode & NCR_DMODE_DIOM) {
         ncr53c8xx_log("NCR 810: Writing to I/O address %04X\n", (uint16_t) addr);
-        for (i = 0; i < len; i++)
+        for (uint32_t i = 0; i < len; i++)
             outb((uint16_t) (addr + i), buf[i]);
     } else {
         ncr53c8xx_log("NCR 810: Writing to memory address %08X\n", addr);
@@ -637,12 +633,13 @@ ncr53c8xx_command_complete(void *priv, uint32_t status)
 static void
 ncr53c8xx_do_dma(ncr53c8xx_t *dev, int out, uint8_t id)
 {
-    uint32_t addr, tdbc;
+    uint32_t addr;
+    uint32_t tdbc;
     int      count;
 
     scsi_device_t *sd = &scsi_devices[dev->bus][id];
 
-    if ((!scsi_device_present(sd))) {
+    if (!scsi_device_present(sd)) {
         ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: Device not present when attempting to do DMA\n", id, dev->current_lun, dev->last_command);
         return;
     }
@@ -878,7 +875,8 @@ static void
 ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
 {
     uint8_t        msg;
-    int            len, arg;
+    int            len;
+    int            arg;
     scsi_device_t *sd;
 
     sd = &scsi_devices[dev->bus][id];
@@ -1000,10 +998,26 @@ ncr53c8xx_memcpy(ncr53c8xx_t *dev, uint32_t dest, uint32_t src, int count)
 static void
 ncr53c8xx_process_script(ncr53c8xx_t *dev)
 {
-    uint32_t insn, addr, id, buf[2], dest;
-    int opcode, insn_processed = 0, reg, operator, cond, jmp, n, i, c;
-    int32_t offset;
-    uint8_t op0, op1, data8, mask, data[7];
+    uint32_t insn;
+    uint32_t addr;
+    uint32_t id;
+    uint32_t buf[2];
+    uint32_t dest;
+    int      opcode;
+    int      insn_processed = 0;
+    int      reg;
+    int      operator;
+    int      cond;
+    int      jmp;
+    int      n;
+    int      i;
+    int      c;
+    int32_t  offset;
+    uint8_t  op0;
+    uint8_t  op1;
+    uint8_t  data8;
+    uint8_t  mask;
+    uint8_t  data[7];
 
     dev->sstop = 0;
 again:
@@ -2329,7 +2343,7 @@ ncr53c8xx_pci_read(int func, int addr, void *p)
             return 0x40;
     }
 
-    return (0);
+    return 0;
 }
 
 static void
@@ -2570,7 +2584,7 @@ ncr53c8xx_init(const device_t *info)
 
     timer_add(&dev->timer, ncr53c8xx_callback, dev, 0);
 
-    return (dev);
+    return dev;
 }
 
 static void

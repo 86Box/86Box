@@ -515,13 +515,8 @@ load_machine(void)
 
     cpu_use_dynarec = !!ini_section_get_int(cat, "cpu_use_dynarec", 0);
     fpu_softfloat = !!ini_section_get_int(cat, "fpu_softfloat", 0);
-    /*The IBM PS/2 model 70 type 4 BIOS does heavy tests to the FPU in 80-bit precision mode, requiring softfloat 
-      otherwise it would always throw error 12903 on POST, so always disable dynarec and enable softfloat for this
-      machine only.*/
-    if (!strcmp(machines[machine].internal_name, "ibmps2_m70_type4")) {
-        cpu_use_dynarec = 0;
+    if (machine_has_flags(machine, MACHINE_SOFTFLOAT_ONLY))
         fpu_softfloat = 1;
-    }
 
     p = ini_section_get_string(cat, "time_sync", NULL);
     if (p != NULL) {
@@ -866,6 +861,8 @@ load_network(void)
                         ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2096, (wchar_t *) IDS_2130);
                     }
                     strcpy(net_cards_conf[c].host_dev_name, "none");
+                } else {
+                    strncpy(net_cards_conf[c].host_dev_name, p, sizeof(net_cards_conf[c].host_dev_name) - 1);
                 }
             } else {
                 strncpy(net_cards_conf[c].host_dev_name, p, sizeof(net_cards_conf[c].host_dev_name) - 1);
@@ -896,11 +893,11 @@ load_ports(void)
         sprintf(temp, "serial%d_enabled", c + 1);
         com_ports[c].enabled = !!ini_section_get_int(cat, temp, (c >= 2) ? 0 : 1);
 
-        /*
+#if 0
                 sprintf(temp, "serial%d_device", c + 1);
                 p = (char *) ini_section_get_string(cat, temp, "none");
                 com_ports[c].device = com_device_get_from_internal_name(p);
-        */
+#endif
 
         sprintf(temp, "serial%d_passthrough_enabled", c + 1);
         serial_passthrough_enabled[c] = !!ini_section_get_int(cat, temp, 0);
@@ -1006,9 +1003,11 @@ load_storage_controllers(void)
     ide_ter_enabled = !!ini_section_get_int(cat, "ide_ter", 0);
     ide_qua_enabled = !!ini_section_get_int(cat, "ide_qua", 0);
 
-    /* TODO: Re-enable by default after we actually have a proper machine flag for this. */
-    cassette_enable = !!ini_section_get_int(cat, "cassette_enabled", 0);
-    p               = ini_section_get_string(cat, "cassette_file", "");
+    if (machine_has_bus(machine, MACHINE_BUS_CASSETTE))
+        cassette_enable = !!ini_section_get_int(cat, "cassette_enabled", 0);
+    else
+        cassette_enable = 0;
+    p = ini_section_get_string(cat, "cassette_file", "");
     if (strlen(p) > 511)
         fatal("load_storage_controllers(): strlen(p) > 511\n");
     else
@@ -1076,8 +1075,8 @@ load_hard_disks(void)
 
         hdd[c].bus = hdd_string_to_bus(s, 0);
         switch (hdd[c].bus) {
-            case HDD_BUS_DISABLED:
             default:
+            case HDD_BUS_DISABLED:
                 max_spt = max_hpc = max_tracks = 0;
                 break;
 
@@ -1196,7 +1195,6 @@ load_hard_disks(void)
         ini_section_delete_var(cat, temp);
 
         memset(hdd[c].fn, 0x00, sizeof(hdd[c].fn));
-        memset(hdd[c].prev_fn, 0x00, sizeof(hdd[c].prev_fn));
         sprintf(temp, "hdd_%02i_fn", c + 1);
         p = ini_section_get_string(cat, temp, "");
 
@@ -1228,6 +1226,13 @@ load_hard_disks(void)
             path_append_filename(hdd[c].fn, usr_path, p);
         }
         path_normalize(hdd[c].fn);
+
+        sprintf(temp, "hdd_%02i_vhd_blocksize", c + 1);
+        hdd[c].vhd_blocksize = ini_section_get_int(cat, temp, 0);
+
+        sprintf(temp, "hdd_%02i_vhd_parent", c + 1);
+        p = ini_section_get_string(cat, temp, "");
+        strncpy(hdd[c].vhd_parent, p, sizeof(hdd[c].vhd_parent) - 1);
 
         /* If disk is empty or invalid, mark it for deletion. */
         if (!hdd_is_valid(c)) {
@@ -1301,8 +1306,10 @@ load_floppy_drives(void)
         else
             strncpy(floppyfns[c], p, 511);
 
-        /* if (*wp != L'\0')
-            config_log("Floppy%d: %ls\n", c, floppyfns[c]); */
+#if 0
+        if (*wp != L'\0')
+            config_log("Floppy%d: %ls\n", c, floppyfns[c]);
+#endif
         sprintf(temp, "fdd_%02i_writeprot", c + 1);
         ui_writeprot[c] = !!ini_section_get_int(cat, temp, 0);
         ini_section_delete_var(cat, temp);
@@ -1367,8 +1374,10 @@ load_floppy_and_cdrom_drives(void)
         else
             strncpy(floppyfns[c], p, 511);
 
-        /* if (*wp != L'\0')
-            config_log("Floppy%d: %ls\n", c, floppyfns[c]); */
+#if 0
+        if (*wp != L'\0')
+            config_log("Floppy%d: %ls\n", c, floppyfns[c]);
+#endif
         sprintf(temp, "fdd_%02i_writeprot", c + 1);
         ui_writeprot[c] = !!ini_section_get_int(cat, temp, 0);
         sprintf(temp, "fdd_%02i_turbo", c + 1);
@@ -1963,8 +1972,7 @@ config_load(void)
         for (i = 0; i < ISAMEM_MAX; i++)
             isamem_type[i] = 0;
 
-        /* TODO: Re-enable by default when we have a proper machine flag for this. */
-        cassette_enable = 0;
+        cassette_enable = 1;
         memset(cassette_fname, 0x00, sizeof(cassette_fname));
         memcpy(cassette_mode, "load", strlen("load") + 1);
         cassette_pos          = 0;
@@ -2524,6 +2532,9 @@ save_network(void)
             case NET_TYPE_VDE:
                 ini_section_set_string(cat, temp, "vde");
                 break;
+
+            default:
+                break;
         }
 
         sprintf(temp, "net_%02i_host_device", c + 1);
@@ -2533,7 +2544,9 @@ save_network(void)
             else
                 ini_section_set_string(cat, temp, net_cards_conf[c].host_dev_name);
         } else {
-            /* ini_section_set_string(cat, temp, "none"); */
+#if 0
+            ini_section_set_string(cat, temp, "none");
+#endif
             ini_section_delete_var(cat, temp);
         }
 
@@ -2564,7 +2577,7 @@ save_ports(void)
         else
             ini_section_set_int(cat, temp, com_ports[c].enabled);
 
-        /*
+#if 0
                         sprintf(temp, "serial%d_type", c + 1);
                         if (!com_ports[c].enabled))
                             ini_section_delete_var(cat, temp);
@@ -2577,7 +2590,7 @@ save_ports(void)
                         else
                             ini_section_set_string(cat, temp,
                               (char *) com_device_get_internal_name(com_ports[c].device));
-                */
+#endif
 
         sprintf(temp, "serial%d_passthrough_enabled", c + 1);
         if (serial_passthrough_enabled[c]) {
@@ -2803,6 +2816,19 @@ save_hard_disks(void)
                 ini_section_set_string(cat, temp, &hdd[c].fn[strlen(usr_path)]);
             else
                 ini_section_set_string(cat, temp, hdd[c].fn);
+        } else
+            ini_section_delete_var(cat, temp);
+
+        sprintf(temp, "hdd_%02i_vhd_blocksize", c + 1);
+        if (hdd_is_valid(c) && (hdd[c].vhd_blocksize > 0))
+            ini_section_set_int(cat, temp, hdd[c].vhd_blocksize);
+        else
+            ini_section_delete_var(cat, temp);
+
+        sprintf(temp, "hdd_%02i_vhd_parent", c + 1);
+        if (hdd_is_valid(c) && hdd[c].vhd_parent[0]) {
+            path_normalize(hdd[c].vhd_parent);
+            ini_section_set_string(cat, temp, hdd[c].vhd_parent);
         } else
             ini_section_delete_var(cat, temp);
 

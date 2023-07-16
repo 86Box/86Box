@@ -17,6 +17,7 @@
  *          Copyright 2008-2017 Sarah Walker.
  *          Copyright 2016-2017 Miran Grca.
  *          Copyright 2019 GH Cao.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #include <windows.h>
 #include <windowsx.h>
@@ -28,8 +29,9 @@
 #include <86box/win.h>
 
 int    mouse_capture;
-double mouse_sensitivity = 1.0;                  /* Unused. */
-double mouse_x_error = 0.0, mouse_y_error = 0.0; /* Unused. */
+double mouse_sensitivity = 1.0; /* Unused. */
+double mouse_x_error     = 0.0; /* Unused. */
+double mouse_y_error     = 0.0; /* Unused. */
 
 typedef struct {
     int buttons;
@@ -63,7 +65,8 @@ void
 win_mouse_handle(PRAWINPUT raw)
 {
     RAWMOUSE   state = raw->data.mouse;
-    static int x, y;
+    static int x;
+    static int y;
 
     /* read mouse buttons and wheel */
     if (state.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)

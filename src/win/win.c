@@ -18,6 +18,7 @@
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
  *          Copyright 2021 Laci bá'
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #define UNICODE
 #define NTDDI_VERSION 0x06010000
@@ -625,7 +626,7 @@ plat_tempfile(char *bufp, char *prefix, char *suffix)
     else
         strcpy(bufp, "");
 
-    GetSystemTime(&SystemTime);
+    GetLocalTime(&SystemTime);
     sprintf(&bufp[strlen(bufp)], "%d%02d%02d-%02d%02d%02d-%03d%s",
             SystemTime.wYear, SystemTime.wMonth, SystemTime.wDay,
             SystemTime.wHour, SystemTime.wMinute, SystemTime.wSecond,

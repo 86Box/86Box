@@ -51,7 +51,8 @@ typedef struct {
     FILE       *f;
     char       *buffer;
     uint32_t    start_offs;
-    int         track_count, sides;
+    int         track_count;
+    int         sides;
     int         track;
     uint16_t    disk_flags;
     int         track_width;
@@ -129,16 +130,21 @@ get_raw_tsize(int side_flags, int slower_rpm)
             break;
     }
 
-    return (size);
+    return size;
 }
 
 static int
 track_is_xdf(int drive, int side, int track)
 {
     imd_t   *dev = imd[drive];
-    int      i, effective_sectors, xdf_sectors;
-    int      high_sectors, low_sectors;
-    int      max_high_id, expected_high_count, expected_low_count;
+    int      i;
+    int      effective_sectors;
+    int      xdf_sectors;
+    int      high_sectors;
+    int      low_sectors;
+    int      max_high_id;
+    int      expected_high_count;
+    int      expected_low_count;
     uint8_t *r_map;
     uint8_t *n_map;
 
@@ -148,16 +154,16 @@ track_is_xdf(int drive, int side, int track)
         dev->xdf_ordered_pos[i][side] = 0;
 
     if (dev->tracks[track][side].params[2] & 0xC0)
-        return (0);
+        return 0;
 
     if ((dev->tracks[track][side].params[3] != 16) && (dev->tracks[track][side].params[3] != 19))
-        return (0);
+        return 0;
 
     r_map = (uint8_t *) (dev->buffer + dev->tracks[track][side].r_map_offs);
 
     if (!track) {
         if (dev->tracks[track][side].params[4] != 2)
-            return (0);
+            return 0;
 
         if (!side) {
             max_high_id         = (dev->tracks[track][side].params[3] == 19) ? 0x8B : 0x88;
@@ -183,10 +189,10 @@ track_is_xdf(int drive, int side, int track)
                 return ((dev->tracks[track][side].params[3] == 19) ? 2 : 1);
             }
         }
-        return (0);
+        return 0;
     } else {
         if (dev->tracks[track][side].params[4] != 0xFF)
-            return (0);
+            return 0;
 
         n_map = (uint8_t *) (dev->buffer + dev->tracks[track][side].n_map_offs);
 
@@ -203,31 +209,29 @@ track_is_xdf(int drive, int side, int track)
 
         if ((effective_sectors == 3) && (xdf_sectors == 3)) {
             dev->current_side_flags[side] = 0x28;
-            return (1); /* 5.25" 2HD XDF */
+            return 1; /* 5.25" 2HD XDF */
         }
 
         if ((effective_sectors == 4) && (xdf_sectors == 4)) {
             dev->current_side_flags[side] = 0x08;
-            return (2); /* 3.5" 2HD XDF */
+            return 2; /* 3.5" 2HD XDF */
         }
 
-        return (0);
+        return 0;
     }
-
-    return (0);
 }
 
 static int
 track_is_interleave(int drive, int side, int track)
 {
     imd_t *dev = imd[drive];
-    int    i, effective_sectors;
+    int    effective_sectors;
     char  *r_map;
     int    track_spt;
 
     effective_sectors = 0;
 
-    for (i = 0; i < 256; i++)
+    for (uint16_t i = 0; i < 256; i++)
         dev->interleave_ordered_pos[i][side] = 0;
 
     track_spt = dev->tracks[track][side].params[3];
@@ -235,15 +239,15 @@ track_is_interleave(int drive, int side, int track)
     r_map = dev->buffer + dev->tracks[track][side].r_map_offs;
 
     if (dev->tracks[track][side].params[2] & 0xC0)
-        return (0);
+        return 0;
 
     if (track_spt != 21)
-        return (0);
+        return 0;
 
     if (dev->tracks[track][side].params[4] != 2)
-        return (0);
+        return 0;
 
-    for (i = 0; i < track_spt; i++) {
+    for (int i = 0; i < track_spt; i++) {
         if ((r_map[i] >= 1) && (r_map[i] <= track_spt)) {
             effective_sectors++;
             dev->interleave_ordered_pos[(int) r_map[i]][side] = i;
@@ -251,9 +255,9 @@ track_is_interleave(int drive, int side, int track)
     }
 
     if (effective_sectors == track_spt)
-        return (1);
+        return 1;
 
-    return (0);
+    return 0;
 }
 
 static void
@@ -282,8 +286,11 @@ imd_seek(int drive, int track)
     uint8_t  id[4]            = { 0, 0, 0, 0 };
     uint8_t  type;
     imd_t   *dev = imd[drive];
-    int      sector, current_pos;
-    int      side, c = 0, h, n;
+    int      sector;
+    int      current_pos;
+    int      c = 0;
+    int      h;
+    int      n;
     int      ssize           = 512;
     int      track_rate      = 0;
     int      track_gap2      = 22;
@@ -329,7 +336,7 @@ imd_seek(int drive, int track)
     if (track > dev->track_count)
         return;
 
-    for (side = 0; side < dev->sides; side++) {
+    for (int side = 0; side < dev->sides; side++) {
         if (!dev->tracks[track][side].is_present)
             continue;
 
@@ -460,7 +467,7 @@ side_flags(int drive)
     side   = fdd_get_head(drive);
     sflags = dev->current_side_flags[side];
 
-    return (sflags);
+    return sflags;
 }
 
 static void
@@ -468,8 +475,13 @@ set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 {
     imd_t  *dev   = imd[drive];
     int     track = dev->track;
-    int     i, sc, sh, sn;
-    char   *c_map = NULL, *h_map = NULL, *r_map = NULL, *n_map = NULL;
+    int     sc;
+    int     sh;
+    int     sn;
+    char   *c_map = NULL;
+    char   *h_map = NULL;
+    char   *r_map = NULL;
+    char   *n_map = NULL;
     uint8_t id[4] = { 0, 0, 0, 0 };
     sc            = dev->tracks[track][side].params[1];
     sh            = dev->tracks[track][side].params[2];
@@ -487,7 +499,7 @@ set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
     if (c != dev->track)
         return;
 
-    for (i = 0; i < dev->tracks[track][side].params[3]; i++) {
+    for (uint8_t i = 0; i < dev->tracks[track][side].params[3]; i++) {
         id[0] = (sh & 0x80) ? c_map[i] : sc;
         id[1] = (sh & 0x40) ? h_map[i] : (sh & 1);
         id[2] = r_map[i];
@@ -502,17 +514,17 @@ static void
 imd_writeback(int drive)
 {
     imd_t   *dev = imd[drive];
-    int      side;
     int      track = dev->track;
-    int      i     = 0;
     char    *n_map = 0;
-    uint8_t  h, n, spt;
+    uint8_t  h;
+    uint8_t  n;
+    uint8_t spt;
     uint32_t ssize;
 
     if (writeprot[drive])
         return;
 
-    for (side = 0; side < dev->sides; side++) {
+    for (int side = 0; side < dev->sides; side++) {
         if (dev->tracks[track][side].is_present) {
             fseek(dev->f, dev->tracks[track][side].file_offs, SEEK_SET);
             h   = dev->tracks[track][side].params[2];
@@ -530,7 +542,7 @@ imd_writeback(int drive)
                 n_map = dev->buffer + dev->tracks[track][side].n_map_offs;
                 fwrite(n_map, 1, spt, dev->f);
             }
-            for (i = 0; i < spt; i++) {
+            for (uint8_t i = 0; i < spt; i++) {
                 ssize = (n == 0xFF) ? n_map[i] : n;
                 ssize = 128 << ssize;
                 fwrite(dev->buffer + dev->tracks[track][side].sector_data_offs[i], 1, ssize, dev->f);
@@ -546,7 +558,7 @@ poll_read_data(int drive, int side, uint16_t pos)
     int    type = dev->current_data[side][0];
 
     if ((type == 0) || (type > 8))
-        return (0xf6); /* Should never happen. */
+        return 0xf6; /* Should never happen. */
 
     if (type & 1)
         return (dev->current_data[side][pos + 1]);
@@ -574,13 +586,14 @@ format_conditions(int drive)
 {
     imd_t *dev   = imd[drive];
     int    track = dev->track;
-    int    side, temp;
+    int    side;
+    int    temp;
 
     side = fdd_get_head(drive);
     temp = (fdc_get_format_sectors(imd_fdc) == dev->tracks[track][side].params[3]);
     temp = temp && (fdc_get_format_n(imd_fdc) == dev->tracks[track][side].params[4]);
 
-    return (temp);
+    return temp;
 }
 
 void
@@ -613,7 +626,8 @@ imd_load(int drive, char *fn)
     uint32_t minimum_gap4 = 0;
     uint8_t  converted_rate;
     uint8_t  type;
-    int      size_diff, gap_sum;
+    int      size_diff;
+    int      gap_sum;
 
     d86f_unregister(drive);
 
@@ -708,7 +722,7 @@ imd_load(int drive, char *fn)
 
         dev->tracks[track][side].side_flags = (buffer2[0] % 3);
         if (!dev->tracks[track][side].side_flags)
-            dev->disk_flags |= (0x02);
+            dev->disk_flags |= 0x02;
         dev->tracks[track][side].side_flags |= (!(buffer2[0] - dev->tracks[track][side].side_flags) ? 0 : 8);
         mfm         = dev->tracks[track][side].side_flags & 8;
         track_total = mfm ? 146 : 73;
@@ -882,7 +896,9 @@ imd_load(int drive, char *fn)
     if (dev->sides == 2)
         dev->disk_flags |= 8;
 
-    /* imd_log("%i tracks, %i sides\n", dev->track_count, dev->sides); */
+#if 0
+    imd_log("%i tracks, %i sides\n", dev->track_count, dev->sides);
+#endif
 
     /* Attach this format to the D86F engine. */
     d86f_handler[drive].disk_flags        = disk_flags;

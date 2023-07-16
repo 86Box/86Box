@@ -8,104 +8,33 @@
 #    ifdef __unix__
 #        include <unistd.h>
 #    endif
+#    define FLUIDSYNTH_NOT_A_DLL
+#    include <fluidsynth.h>
 
 #    include <86box/86box.h>
 #    include <86box/config.h>
 #    include <86box/device.h>
 #    include <86box/midi.h>
-#    include <86box/plat.h>
-#    include <86box/plat_dynld.h>
 #    include <86box/thread.h>
 #    include <86box/sound.h>
-#    include <86box/ui.h>
-
-#    define FLUID_CHORUS_DEFAULT_N     3
-#    define FLUID_CHORUS_DEFAULT_LEVEL 2.0f
-#    define FLUID_CHORUS_DEFAULT_SPEED 0.3f
-#    define FLUID_CHORUS_DEFAULT_DEPTH 8.0f
-#    define FLUID_CHORUS_DEFAULT_TYPE  FLUID_CHORUS_MOD_SINE
 
 #    define RENDER_RATE                100
 #    define BUFFER_SEGMENTS            10
 
-enum fluid_chorus_mod {
-    FLUID_CHORUS_MOD_SINE     = 0,
-    FLUID_CHORUS_MOD_TRIANGLE = 1
-};
-
-enum fluid_interp {
-    FLUID_INTERP_NONE     = 0,
-    FLUID_INTERP_LINEAR   = 1,
-    FLUID_INTERP_DEFAULT  = 4,
-    FLUID_INTERP_4THORDER = 4,
-    FLUID_INTERP_7THORDER = 7,
-    FLUID_INTERP_HIGHEST  = 7
-};
+/* Check the FluidSynth version to determine wheteher to use the older reverb/chorus
+   control functions that were deprecated in 2.2.0, or their newer replacements */
+#    if (FLUIDSYNTH_VERSION_MAJOR < 2) || ((FLUIDSYNTH_VERSION_MAJOR == 2) && (FLUIDSYNTH_VERSION_MINOR < 2))
+#        define USE_OLD_FLUIDSYNTH_API
+#    endif
 
 extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
 
-static void *fluidsynth_handle; /* handle to FluidSynth DLL */
-
-/* Pointers to the real functions. */
-// clang-format off
-static void *(*f_new_fluid_settings)(void);
-static void  (*f_delete_fluid_settings)(void *settings);
-static int   (*f_fluid_settings_setnum)(void *settings, const char *name, double val);
-static int   (*f_fluid_settings_getnum)(void *settings, const char *name, double *val);
-static void *(*f_new_fluid_synth)(void *settings);
-static int   (*f_delete_fluid_synth)(void *synth);
-static int   (*f_fluid_synth_noteon)(void *synth, int chan, int key, int vel);
-static int   (*f_fluid_synth_noteoff)(void *synth, int chan, int key);
-static int   (*f_fluid_synth_cc)(void *synth, int chan, int ctrl, int val);
-static int   (*f_fluid_synth_channel_pressure)(void *synth, int chan, int val);
-static int   (*f_fluid_synth_sysex)(void *synth, const char *data, int len, char *response, int *response_len, int *handled, int dryrun);
-static int   (*f_fluid_synth_pitch_bend)(void *synth, int chan, int val);
-static int   (*f_fluid_synth_program_change)(void *synth, int chan, int program);
-static int   (*f_fluid_synth_sfload)(void *synth, const char *filename, int reset_presets);
-static int   (*f_fluid_synth_set_interp_method)(void *synth, int chan, int interp_method);
-static void  (*f_fluid_synth_set_reverb)(void *synth, double roomsize, double damping, double width, double level);
-static void  (*f_fluid_synth_set_reverb_on)(void *synth, int on);
-static void  (*f_fluid_synth_set_chorus)(void *synth, int nr, double level, double speed, double depth_ms, int type);
-static void  (*f_fluid_synth_set_chorus_on)(void *synth, int on);
-static int   (*f_fluid_synth_write_s16)(void *synth, int len, void *lout, int loff, int lincr, void *rout, int roff, int rincr);
-static int   (*f_fluid_synth_write_float)(void *synth, int len, void *lout, int loff, int lincr, void *rout, int roff, int rincr);
-static char *(*f_fluid_version_str)(void);
-// clang-format on
-
-static dllimp_t fluidsynth_imports[] = {
-  // clang-format off
-  { "new_fluid_settings",            &f_new_fluid_settings            },
-  { "delete_fluid_settings",         &f_delete_fluid_settings         },
-  { "fluid_settings_setnum",         &f_fluid_settings_setnum         },
-  { "fluid_settings_getnum",         &f_fluid_settings_getnum         },
-  { "new_fluid_synth",               &f_new_fluid_synth               },
-  { "delete_fluid_synth",            &f_delete_fluid_synth            },
-  { "fluid_synth_noteon",            &f_fluid_synth_noteon            },
-  { "fluid_synth_noteoff",           &f_fluid_synth_noteoff           },
-  { "fluid_synth_cc",                &f_fluid_synth_cc                },
-  { "fluid_synth_channel_pressure",  &f_fluid_synth_channel_pressure  },
-  { "fluid_synth_sysex",             &f_fluid_synth_sysex             },
-  { "fluid_synth_pitch_bend",        &f_fluid_synth_pitch_bend        },
-  { "fluid_synth_program_change",    &f_fluid_synth_program_change    },
-  { "fluid_synth_sfload",            &f_fluid_synth_sfload            },
-  { "fluid_synth_set_interp_method", &f_fluid_synth_set_interp_method },
-  { "fluid_synth_set_reverb",        &f_fluid_synth_set_reverb        },
-  { "fluid_synth_set_reverb_on",     &f_fluid_synth_set_reverb_on     },
-  { "fluid_synth_set_chorus",        &f_fluid_synth_set_chorus        },
-  { "fluid_synth_set_chorus_on",     &f_fluid_synth_set_chorus_on     },
-  { "fluid_synth_write_s16",         &f_fluid_synth_write_s16         },
-  { "fluid_synth_write_float",       &f_fluid_synth_write_float       },
-  { "fluid_version_str",             &f_fluid_version_str             },
-  { NULL,                            NULL                             },
-  // clang-format on
-};
-
 typedef struct fluidsynth {
-    void *settings;
-    void *synth;
-    int   samplerate;
-    int   sound_font;
+    fluid_settings_t *settings;
+    fluid_synth_t    *synth;
+    int               samplerate;
+    int               sound_font;
 
     thread_t *thread_h;
     event_t  *event, *start_event;
@@ -153,7 +82,7 @@ fluidsynth_thread(void *param)
             float *buf = (float *) ((uint8_t *) data->buffer + buf_pos);
             memset(buf, 0, buf_size);
             if (data->synth)
-                f_fluid_synth_write_float(data->synth, buf_size / (2 * sizeof(float)), buf, 0, 2, buf, 1, 2);
+                fluid_synth_write_float(data->synth, buf_size / (2 * sizeof(float)), buf, 0, 2, buf, 1, 2);
             buf_pos += buf_size;
             if (buf_pos >= data->buf_size) {
                 givealbuffer_midi(data->buffer, data->buf_size / sizeof(float));
@@ -163,7 +92,7 @@ fluidsynth_thread(void *param)
             int16_t *buf = (int16_t *) ((uint8_t *) data->buffer_int16 + buf_pos);
             memset(buf, 0, buf_size);
             if (data->synth)
-                f_fluid_synth_write_s16(data->synth, buf_size / (2 * sizeof(int16_t)), buf, 0, 2, buf, 1, 2);
+                fluid_synth_write_s16(data->synth, buf_size / (2 * sizeof(int16_t)), buf, 0, 2, buf, 1, 2);
             buf_pos += buf_size;
             if (buf_pos >= data->buf_size) {
                 givealbuffer_midi(data->buffer_int16, data->buf_size / sizeof(int16_t));
@@ -187,24 +116,24 @@ fluidsynth_msg(uint8_t *msg)
 
     switch (cmd) {
         case 0x80: /* Note Off */
-            f_fluid_synth_noteoff(data->synth, chan, param1);
+            fluid_synth_noteoff(data->synth, chan, param1);
             break;
         case 0x90: /* Note On */
-            f_fluid_synth_noteon(data->synth, chan, param1, param2);
+            fluid_synth_noteon(data->synth, chan, param1, param2);
             break;
         case 0xA0: /* Aftertouch */
             break;
         case 0xB0: /* Control Change */
-            f_fluid_synth_cc(data->synth, chan, param1, param2);
+            fluid_synth_cc(data->synth, chan, param1, param2);
             break;
         case 0xC0: /* Program Change */
-            f_fluid_synth_program_change(data->synth, chan, param1);
+            fluid_synth_program_change(data->synth, chan, param1);
             break;
         case 0xD0: /* Channel Pressure */
-            f_fluid_synth_channel_pressure(data->synth, chan, param1);
+            fluid_synth_channel_pressure(data->synth, chan, param1);
             break;
         case 0xE0: /* Pitch Bend */
-            f_fluid_synth_pitch_bend(data->synth, chan, (param2 << 7) | param1);
+            fluid_synth_pitch_bend(data->synth, chan, (param2 << 7) | param1);
             break;
         case 0xF0: /* SysEx */
             break;
@@ -218,7 +147,7 @@ fluidsynth_sysex(uint8_t *data, unsigned int len)
 {
     fluidsynth_t *d = &fsdev;
 
-    f_fluid_synth_sysex(d->synth, (const char *) data, len, 0, 0, 0, 0);
+    fluid_synth_sysex(d->synth, (const char *) data, len, 0, 0, 0, 0);
 }
 
 void *
@@ -229,31 +158,12 @@ fluidsynth_init(const device_t *info)
 
     memset(data, 0, sizeof(fluidsynth_t));
 
-    /* Try loading the DLL. */
-#    ifdef _WIN32
-#        if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-    fluidsynth_handle = dynld_module("libfluidsynth.dll", fluidsynth_imports);
-#        else
-    fluidsynth_handle = dynld_module("libfluidsynth64.dll", fluidsynth_imports);
-#        endif
-#    elif defined __APPLE__
-    fluidsynth_handle = dynld_module("libfluidsynth.dylib", fluidsynth_imports);
-#    else
-    fluidsynth_handle = dynld_module("libfluidsynth.so.3", fluidsynth_imports);
-    if (fluidsynth_handle == NULL)
-        fluidsynth_handle = dynld_module("libfluidsynth.so.2", fluidsynth_imports);
-#    endif
-    if (fluidsynth_handle == NULL) {
-        ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2080, (wchar_t *) IDS_2134);
-        return NULL;
-    }
+    data->settings = new_fluid_settings();
 
-    data->settings = f_new_fluid_settings();
+    fluid_settings_setnum(data->settings, "synth.sample-rate", 44100);
+    fluid_settings_setnum(data->settings, "synth.gain", device_get_config_int("output_gain") / 100.0f);
 
-    f_fluid_settings_setnum(data->settings, "synth.sample-rate", 44100);
-    f_fluid_settings_setnum(data->settings, "synth.gain", device_get_config_int("output_gain") / 100.0f);
-
-    data->synth = f_new_fluid_synth(data->settings);
+    data->synth = new_fluid_synth(data->settings);
 
     const char *sound_font = (char *) device_get_config_string("sound_font");
 #    ifdef __unix__
@@ -261,10 +171,14 @@ fluidsynth_init(const device_t *info)
         sound_font = (access("/usr/share/sounds/sf2/FluidR3_GM.sf2", F_OK) == 0 ? "/usr/share/sounds/sf2/FluidR3_GM.sf2" :
                       (access("/usr/share/soundfonts/default.sf2", F_OK) == 0 ? "/usr/share/soundfonts/default.sf2" : ""));
 #    endif
-    data->sound_font = f_fluid_synth_sfload(data->synth, sound_font, 1);
+    data->sound_font = fluid_synth_sfload(data->synth, sound_font, 1);
 
     if (device_get_config_int("chorus")) {
-        f_fluid_synth_set_chorus_on(data->synth, 1);
+#    ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_chorus_on(data->synth, -1, 1);
+#    else
+        fluid_synth_set_chorus_on(data->synth, 1);
+#    endif
 
         int    chorus_voices = device_get_config_int("chorus_voices");
         double chorus_level  = device_get_config_int("chorus_level") / 100.0;
@@ -277,21 +191,48 @@ fluidsynth_init(const device_t *info)
         else
             chorus_waveform = FLUID_CHORUS_MOD_TRIANGLE;
 
-        f_fluid_synth_set_chorus(data->synth, chorus_voices, chorus_level, chorus_speed, chorus_depth, chorus_waveform);
+#    ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_set_chorus_group_nr(data->synth, -1, chorus_voices);
+        fluid_synth_set_chorus_group_level(data->synth, -1, chorus_level);
+        fluid_synth_set_chorus_group_speed(data->synth, -1, chorus_speed);
+        fluid_synth_set_chorus_group_depth(data->synth, -1, chorus_depth);
+        fluid_synth_set_chorus_group_type(data->synth, -1, chorus_waveform);
+#    else
+        fluid_synth_set_chorus(data->synth, chorus_voices, chorus_level, chorus_speed, chorus_depth, chorus_waveform);
+#    endif
     } else
-        f_fluid_synth_set_chorus_on(data->synth, 0);
+#    ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_chorus_on(data->synth, -1, 0);
+#    else
+        fluid_synth_set_chorus_on(data->synth, 0);
+#    endif
 
     if (device_get_config_int("reverb")) {
-        f_fluid_synth_set_reverb_on(data->synth, 1);
+#    ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_reverb_on(data->synth, -1, 1);
+#    else
+        fluid_synth_set_reverb_on(data->synth, 1);
+#    endif
 
         double reverb_room_size = device_get_config_int("reverb_room_size") / 100.0;
         double reverb_damping   = device_get_config_int("reverb_damping") / 100.0;
-        int    reverb_width     = device_get_config_int("reverb_width");
+        double reverb_width     = device_get_config_int("reverb_width") / 10.0;
         double reverb_level     = device_get_config_int("reverb_level") / 100.0;
 
-        f_fluid_synth_set_reverb(data->synth, reverb_room_size, reverb_damping, reverb_width, reverb_level);
+#    ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_set_reverb_group_roomsize(data->synth, -1, reverb_room_size);
+        fluid_synth_set_reverb_group_damp(data->synth, -1, reverb_damping);
+        fluid_synth_set_reverb_group_width(data->synth, -1, reverb_width);
+        fluid_synth_set_reverb_group_level(data->synth, -1, reverb_level);
+#    else
+        fluid_synth_set_reverb(data->synth, reverb_room_size, reverb_damping, reverb_width, reverb_level);
+#    endif
     } else
-        f_fluid_synth_set_reverb_on(data->synth, 0);
+#    ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_reverb_on(data->synth, -1, 0);
+#    else
+        fluid_synth_set_reverb_on(data->synth, 0);
+#    endif
 
     int interpolation    = device_get_config_int("interpolation");
     int fs_interpolation = FLUID_INTERP_4THORDER;
@@ -305,10 +246,10 @@ fluidsynth_init(const device_t *info)
     else if (interpolation == 3)
         fs_interpolation = FLUID_INTERP_7THORDER;
 
-    f_fluid_synth_set_interp_method(data->synth, -1, fs_interpolation);
+    fluid_synth_set_interp_method(data->synth, -1, fs_interpolation);
 
     double samplerate;
-    f_fluid_settings_getnum(data->settings, "synth.sample-rate", &samplerate);
+    fluid_settings_getnum(data->settings, "synth.sample-rate", &samplerate);
     data->samplerate = (int) samplerate;
     if (sound_is_float) {
         data->buf_size     = (data->samplerate / RENDER_RATE) * 2 * sizeof(float) * BUFFER_SEGMENTS;
@@ -357,12 +298,12 @@ fluidsynth_close(void *p)
     thread_wait(data->thread_h);
 
     if (data->synth) {
-        f_delete_fluid_synth(data->synth);
+        delete_fluid_synth(data->synth);
         data->synth = NULL;
     }
 
     if (data->settings) {
-        f_delete_fluid_settings(data->settings);
+        delete_fluid_settings(data->settings);
         data->settings = NULL;
     }
 
@@ -374,12 +315,6 @@ fluidsynth_close(void *p)
     if (data->buffer_int16) {
         free(data->buffer_int16);
         data->buffer_int16 = NULL;
-    }
-
-    /* Unload the DLL if possible. */
-    if (fluidsynth_handle != NULL) {
-        dynld_close(fluidsynth_handle);
-        fluidsynth_handle = NULL;
     }
 }
 
@@ -407,7 +342,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "chorus",
         .description = "Chorus",
         .type = CONFIG_BINARY,
-        .default_int = 0
+        .default_int = 1
     },
     {
         .name = "chorus_voices",
@@ -429,7 +364,7 @@ static const device_config_t fluidsynth_config[] = {
             .min = 0,
             .max = 100
         },
-        .default_int = 100
+        .default_int = 20
     },
     {
         .name = "chorus_speed",
@@ -437,7 +372,7 @@ static const device_config_t fluidsynth_config[] = {
         .type = CONFIG_SPINNER,
         .spinner =
         {
-            .min = 30,
+            .min = 10,
             .max = 500
         },
         .default_int = 30
@@ -449,7 +384,7 @@ static const device_config_t fluidsynth_config[] = {
         .spinner =
         {
             .min = 0,
-            .max = 210
+            .max = 2560
         },
         .default_int = 80
     },
@@ -474,7 +409,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "reverb",
         .description = "Reverb",
         .type = CONFIG_BINARY,
-        .default_int = 0
+        .default_int = 1
     },
     {
         .name = "reverb_room_size",
@@ -483,7 +418,7 @@ static const device_config_t fluidsynth_config[] = {
         .spinner =
         {
             .min = 0,
-            .max = 120
+            .max = 100
         },
         .default_int = 20
     },
@@ -505,9 +440,9 @@ static const device_config_t fluidsynth_config[] = {
         .spinner =
         {
             .min = 0,
-            .max = 100
+            .max = 1000
         },
-        .default_int = 1
+        .default_int = 5
     },
     {
         .name = "reverb_level",

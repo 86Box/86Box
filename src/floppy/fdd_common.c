@@ -359,7 +359,7 @@ fdd_get_gap3_size(int rate, int size, int sector)
 uint8_t
 fdd_sector_size_code(int size)
 {
-    int ret = 2;
+    uint8_t ret = 2;
 
     switch (size) {
         case 128:
@@ -398,7 +398,7 @@ fdd_sector_size_code(int size)
             break;
     }
 
-    return (ret);
+    return ret;
 }
 
 int
@@ -410,15 +410,13 @@ fdd_sector_code_size(uint8_t code)
 int
 fdd_bps_valid(uint16_t bps)
 {
-    int i;
-
-    for (i = 0; i <= 8; i++) {
+    for (uint8_t i = 0; i <= 8; i++) {
         if (bps == (128 << i)) {
             return 1;
         }
     }
 
-    return (0);
+    return 0;
 }
 
 int
@@ -435,5 +433,5 @@ fdd_interleave(int sector, int skew, int spt)
         adjusted_r += (adjust + add);
     }
 
-    return (adjusted_r);
+    return adjusted_r;
 }

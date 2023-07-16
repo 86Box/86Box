@@ -41,6 +41,7 @@
 #include <86box/sound.h>
 #include <86box/snd_speaker.h>
 #include <86box/video.h>
+#include <86box/plat_unused.h>
 
 pit_intf_t pit_devs[2];
 
@@ -139,6 +140,9 @@ ctr_load_count(ctr_t *ctr)
     pit_log("ctr->count = %i\n", l);
     ctr->null_count = 0;
     ctr->newcount   = !!(l & 1);
+
+    /* Undocumented feature - writing MSB after reload after writing LSB causes an instant reload. */
+    ctr->incomplete = !!(ctr->wm & 0x80);
 }
 
 static void
@@ -146,16 +150,13 @@ ctr_tick(ctr_t *ctr)
 {
     uint8_t state = ctr->state;
 
-    if (state == 1) {
+    if ((state & 0x03) == 0x01) {
         /* This is true for all modes */
         ctr_load_count(ctr);
-        ctr->state = 2;
-        if ((ctr->m & 0x07) == 0x01)
+        ctr->state++;
+        if (((ctr->m & 0x07) == 0x01) && (ctr->state == 2))
             ctr_set_out(ctr, 0);
-        return;
-    }
-
-    switch (ctr->m & 0x07) {
+    } else  switch (ctr->m & 0x07) {
         case 0:
             /* Interrupt on terminal count */
             switch (state) {
@@ -171,16 +172,14 @@ ctr_tick(ctr_t *ctr)
                 case 3:
                     ctr_decrease_count(ctr);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 1:
             /* Hardware retriggerable one-shot */
             switch (state) {
-                case 1:
-                    ctr_load_count(ctr);
-                    ctr->state = 2;
-                    ctr_set_out(ctr, 0);
-                    break;
                 case 2:
                     if (ctr->count >= 1) {
                         ctr_decrease_count(ctr);
@@ -191,7 +190,11 @@ ctr_tick(ctr_t *ctr)
                     }
                     break;
                 case 3:
+                case 6:
                     ctr_decrease_count(ctr);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -214,6 +217,9 @@ ctr_tick(ctr_t *ctr)
                             ctr_set_out(ctr, 0);
                         }
                     }
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -258,6 +264,9 @@ ctr_tick(ctr_t *ctr)
                             ctr->newcount = 0;
                     }
                     break;
+
+                default:
+                    break;
             }
             break;
         case 4:
@@ -267,6 +276,7 @@ ctr_tick(ctr_t *ctr)
             if ((ctr->gate != 0) || (ctr->m != 4)) {
                 switch (state) {
                     case 0:
+                    case 6:
                         ctr_decrease_count(ctr);
                         break;
                     case 2:
@@ -281,6 +291,9 @@ ctr_tick(ctr_t *ctr)
                     case 3:
                         ctr->state = 0;
                         ctr_set_out(ctr, 1);
+                        break;
+
+                    default:
                         break;
                 }
             }
@@ -310,9 +323,12 @@ static void
 ctr_set_state_1(ctr_t *ctr)
 {
     uint8_t mode = (ctr->m & 0x03);
+    int do_reload = !!ctr->incomplete || (mode == 0) || (ctr->state == 0);
 
-    if ((mode == 0) || ((mode > 1) && (ctr->state == 0)))
-        ctr->state = 1;
+    ctr->incomplete = 0;
+
+    if (do_reload)
+        ctr->state = 1 + ((mode == 1) << 2);
 }
 
 static void
@@ -368,6 +384,9 @@ ctr_latch_count(ctr_t *ctr)
             /* Latch all 16 bits. */
             ctr->rl      = count;
             ctr->latched = 2;
+            break;
+
+        default:
             break;
     }
 
@@ -439,6 +458,9 @@ pit_ctr_set_gate(void *data, int counter_id, int gate)
                     ctr_set_out(ctr, 1);
             }
             break;
+
+        default:
+            break;
     }
 }
 
@@ -487,9 +509,9 @@ pit_ctr_set_using_timer(void *data, int counter_id, int using_timer)
 }
 
 static void
-pit_timer_over(void *p)
+pit_timer_over(void *priv)
 {
-    pit_t *dev = (pit_t *) p;
+    pit_t *dev = (pit_t *) priv;
 
     dev->clock ^= 1;
 
@@ -602,10 +624,18 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
                     else
                         ctr->wm |= 0x80;
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 }
+
+extern uint8_t *ram;
 
 static uint8_t
 pit_read(uint16_t addr, void *priv)
@@ -673,7 +703,13 @@ pit_read(uint16_t addr, void *priv)
                         else
                             ctr->rm |= 0x80;
                         break;
+
+                    default:
+                        break;
                 }
+            break;
+
+        default:
             break;
     }
 
@@ -712,7 +748,7 @@ pit_refresh_timer_at(int new_out, int old_out)
 }
 
 void
-pit_speaker_timer(int new_out, int old_out)
+pit_speaker_timer(int new_out, UNUSED(int old_out))
 {
     int l;
 
@@ -732,7 +768,7 @@ pit_speaker_timer(int new_out, int old_out)
 }
 
 void
-pit_nmi_timer_ps2(int new_out, int old_out)
+pit_nmi_timer_ps2(int new_out, UNUSED(int old_out))
 {
     nmi = new_out;
 
@@ -891,8 +927,8 @@ pit_common_init(int type, void (*out0)(int new_out, int old_out), void (*out1)(i
     pit_intf_t *pit_intf = &pit_devs[0];
 
     switch (type) {
-        case PIT_8253:
         default:
+        case PIT_8253:
             pit       = device_add(&i8253_device);
             *pit_intf = pit_classic_intf;
             break;
@@ -935,8 +971,8 @@ pit_ps2_init(int type)
     pit_intf_t *ps2_pit = &pit_devs[1];
 
     switch (type) {
-        case PIT_8254:
         default:
+        case PIT_8254:
             pit      = device_add(&i8254_ps2_device);
             *ps2_pit = pit_classic_intf;
             break;
@@ -982,7 +1018,7 @@ pit_set_clock(int clock)
         ISACONST     = (uint64_t) ((cpuclock / (double) cpu_isa_speed) * (double) (1ULL << 32));
         xt_cpu_multi = 1ULL;
     } else {
-        cpuclock     = 14318184.0;
+        cpuclock     = (157500000.0 / 11.0);
         PITCONSTD    = 12.0;
         PITCONST     = (12ULL << 32ULL);
         CGACONST     = (8ULL << 32ULL);

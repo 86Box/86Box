@@ -87,7 +87,7 @@ static int
 get_devlist(capdev_t *list)
 {
     char       errbuf[PCAP_ERRBUF_SIZE];
-    pcap_if_t *devlist, *dev;
+    pcap_if_t *devlist;
     int        i = 0;
 
     /* Retrieve the device list from the local machine */
@@ -96,7 +96,7 @@ get_devlist(capdev_t *list)
         return (-1);
     }
 
-    for (dev = devlist; dev != NULL; dev = dev->next) {
+    for (pcap_if_t *dev = devlist; dev != NULL; dev = dev->next) {
         strcpy(list->device, dev->name);
         if (dev->description)
             strcpy(list->description, dev->description);
@@ -109,7 +109,7 @@ get_devlist(capdev_t *list)
     /* Release the memory. */
     f_pcap_freealldevs(devlist);
 
-    return (i);
+    return i;
 }
 
 /* Simple HEXDUMP routine for raw data. */
@@ -127,7 +127,7 @@ hex_dump(unsigned char *bufp, int len)
             printf("%04lx  %02x", addr, c);
         else
             printf(" %02x", c);
-        asci[(addr & 15)] = (uint8_t) isprint(c) ? c : '.';
+        asci[addr & 15] = (uint8_t) isprint(c) ? c : '.';
         if ((++addr % 16) == 0) {
             asci[16] = '\0';
             printf("  | %s |\n", asci);
@@ -137,7 +137,7 @@ hex_dump(unsigned char *bufp, int len)
     if (addr % 16) {
         while (addr % 16) {
             printf("   ");
-            asci[(addr & 15)] = ' ';
+            asci[addr & 15] = ' ';
             addr++;
         }
         asci[16] = '\0';
@@ -166,7 +166,7 @@ eth_prhdr(unsigned char *ptr)
     type = (ptr[12] << 8) | ptr[13];
     printf(" type %04x\n", type);
 
-    return (14);
+    return 14;
 }
 
 /* Capture packets from the network, and print them. */
@@ -189,7 +189,7 @@ start_cap(char *dev)
                             temp);
     if (pcap == NULL) {
         fprintf(stderr, "Pcap: open_live(%s): %s\n", dev, temp);
-        return (2);
+        return 2;
     }
 
     printf("Listening on '%s'..\n", dev);
@@ -217,19 +217,17 @@ start_cap(char *dev)
     /* All done, close up. */
     f_pcap_close(pcap);
 
-    return (0);
+    return 0;
 }
 
 /* Show a list of available network interfaces. */
 static void
 show_devs(capdev_t *list, int num)
 {
-    int i;
-
     if (num > 0) {
         printf("Available network interfaces:\n\n");
 
-        for (i = 0; i < num; i++) {
+        for (int i = 0; i < num; i++) {
             printf(" %d - %s\n", i + 1, list->device);
             if (list->description[0] != '\0')
                 printf("     (%s)\n", list->description);
@@ -247,7 +245,8 @@ int
 main(int argc, char **argv)
 {
     capdev_t interfaces[32];
-    int      numdev, i;
+    int      numdev;
+    int      i;
 
     /* Try loading the DLL. */
 #ifdef _WIN32
@@ -263,7 +262,7 @@ main(int argc, char **argv)
 #else
         fprintf(stderr, "Unable to load libpcap.so !\n");
 #endif
-        return (1);
+        return 1;
     }
 
     /* Get the list. */
@@ -275,7 +274,7 @@ main(int argc, char **argv)
 
         dynld_close(pcap_handle);
 
-        return (numdev);
+        return numdev;
     }
 
     /* Assume argument to be the interface number to listen on. */
@@ -285,7 +284,7 @@ main(int argc, char **argv)
 
         dynld_close(pcap_handle);
 
-        return (1);
+        return 1;
     }
 
     /* Looks good, go and listen.. */
@@ -293,5 +292,5 @@ main(int argc, char **argv)
 
     dynld_close(pcap_handle);
 
-    return (i);
+    return i;
 }

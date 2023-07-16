@@ -109,6 +109,9 @@ endif()
 
 find_package(Freetype REQUIRED)
 include_directories(${FREETYPE_INCLUDE_DIRS})
+if(FREETYPE_INCLUDE_DIR_ft2build)
+    include_directories(${FREETYPE_INCLUDE_DIR_ft2build})
+endif()
 if(APPLE)
     # Freetype is dynamically loaded by the emulator, however, we link it
     # on macOS so it gets copied to the bundle by the installation process

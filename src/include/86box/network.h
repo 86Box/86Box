@@ -64,6 +64,9 @@
 #define NET_PERIOD_10M     0.8
 #define NET_PERIOD_100M    0.08
 
+/* Error buffers for network driver init */
+#define NET_DRV_ERRBUF_SIZE 384
+
 enum {
     NET_LINK_DOWN      = (1 << 1),
     NET_LINK_TEMP_DOWN = (1 << 2),
@@ -77,20 +80,20 @@ enum {
 
 /* Supported network cards. */
 enum {
-    NONE = 0,
-    NE1000,
-    NE2000,
-    RTL8019AS,
-    RTL8029AS
+    NONE      = 0,
+    NE1000    = 1,
+    NE2000    = 2,
+    RTL8019AS = 3,
+    RTL8029AS = 4
 };
 
 enum {
-    NET_QUEUE_RX,
-    NET_QUEUE_TX_VM,
-    NET_QUEUE_TX_HOST
+    NET_QUEUE_RX      = 0,
+    NET_QUEUE_TX_VM   = 1,
+    NET_QUEUE_TX_HOST = 2
 };
 
-typedef struct {
+typedef struct netcard_conf_t {
     uint16_t device_num;
     int      net_type;
     char     host_dev_name[128];
@@ -108,7 +111,7 @@ typedef struct netpkt {
     int      len;
 } netpkt_t;
 
-typedef struct {
+typedef struct netqueue_t {
     netpkt_t packets[NET_QUEUE_LEN];
     int      head;
     int      tail;
@@ -118,7 +121,7 @@ typedef struct _netcard_t netcard_t;
 
 typedef struct netdrv_t {
     void (*notify_in)(void *priv);
-    void *(*init)(const netcard_t *card, const uint8_t *mac_addr, void *priv);
+    void *(*init)(const netcard_t *card, const uint8_t *mac_addr, void *priv, char *netdrv_errbuf);
     void (*close)(void *priv);
     void *priv;
 } netdrv_t;
@@ -165,11 +168,11 @@ extern "C" {
 #endif
 
 /* Global variables. */
-extern int      nic_do_log; /* config */
+extern int              nic_do_log;     // config
 extern network_devmap_t network_devmap;
-extern int      network_ndev;           // Number of pcap devices
+extern int              network_ndev;   // Number of pcap devices
 extern network_devmap_t network_devmap; // Bitmap of available network types
-extern netdev_t network_devs[NET_HOST_INTF_MAX];
+extern netdev_t         network_devs[NET_HOST_INTF_MAX];
 
 
 /* Function prototypes. */

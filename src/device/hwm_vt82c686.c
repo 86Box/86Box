@@ -25,6 +25,7 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/hwm.h>
+#include <86box/plat_unused.h>
 
 #define CLAMP(a, min, max) (((a) < (min)) ? (min) : (((a) > (max)) ? (max) : (a)))
 /* Formulas and factors derived from Linux's via686a.c driver. */
@@ -32,7 +33,7 @@
 #define VT82C686_TEMP_TO_REG(t)       (-1.160370e-10 * (t * t * t * t * t * t) + 3.193693e-08 * (t * t * t * t * t) - 1.464447e-06 * (t * t * t * t) - 2.525453e-04 * (t * t * t) + 1.424593e-02 * (t * t) + 2.148941e+00 * t + 7.275808e+01)
 #define VT82C686_VOLTAGE_TO_REG(v, f) CLAMP((((v) * (2.628 / (f))) - 120.5) / 25, 0, 255)
 
-typedef struct {
+typedef struct vt82c686_t {
     hwm_values_t *values;
 
     uint8_t  enable;
@@ -113,6 +114,9 @@ vt82c686_write(uint16_t port, uint8_t val, void *priv)
         case 0x48:
             val &= 0x7f;
             break;
+
+        default:
+            break;
     }
 
     dev->regs[reg] = val;
@@ -142,6 +146,9 @@ vt82c686_hwm_write(uint8_t addr, uint8_t val, void *priv)
 
         case 0x74:
             dev->enable = val & 0x01;
+            break;
+
+        default:
             break;
     }
 
@@ -174,7 +181,7 @@ vt82c686_close(void *priv)
 }
 
 static void *
-vt82c686_init(const device_t *info)
+vt82c686_init(UNUSED(const device_t *info))
 {
     vt82c686_t *dev = (vt82c686_t *) malloc(sizeof(vt82c686_t));
     memset(dev, 0, sizeof(vt82c686_t));

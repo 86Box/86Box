@@ -15,6 +15,7 @@
  *
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2018 Miran Grca.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -47,18 +48,26 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND h;
 
-    int val_int, id, c, d;
-    int p, q;
+    int val_int;
+    int id;
+    int c;
+    int d;
+    int p;
+    int q;
 #ifdef USE_RTMIDI
     int num;
 #endif
-    int                              changed, cid;
+    int                              changed;
+    int                              cid;
     const device_config_t           *config;
     const device_config_selection_t *selection;
     const device_config_bios_t      *bios;
-    char                             s[512], file_filter[512];
-    char                            *str, *val_str;
-    wchar_t                          ws[512], *wstr;
+    char                             s[512];
+    char                             file_filter[512];
+    char                            *str;
+    char                            *val_str;
+    wchar_t                          ws[512];
+    wchar_t                         *wstr;
     LPTSTR                           lptsTemp;
 
     config = config_device.dev->config;

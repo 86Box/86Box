@@ -174,12 +174,12 @@ hdc_has_config(int hdc)
     const device_t *dev = hdc_get_device(hdc);
 
     if (dev == NULL)
-        return (0);
+        return 0;
 
     if (!device_has_config(dev))
-        return (0);
+        return 0;
 
-    return (1);
+    return 1;
 }
 
 int

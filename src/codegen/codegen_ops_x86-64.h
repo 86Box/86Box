@@ -536,7 +536,8 @@ FETCH_EA_16(x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, uint32_t *op_pc)
         addlong((fetchdat >> 8) & 0xffff);
         (*op_pc) += 2;
     } else {
-        int base_reg = 0, index_reg = 0;
+        int base_reg = 0;
+        int index_reg = 0;
 
         switch (rm) {
             case 0:
@@ -639,8 +640,9 @@ FETCH_EA_32(x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, uint32_t *op_pc,
     uint32_t new_eaaddr;
 
     if (rm == 4) {
-        uint8_t sib      = fetchdat >> 8;
-        int     base_reg = -1, index_reg = -1;
+        uint8_t sib       = fetchdat >> 8;
+        int     base_reg  = -1;
+        int     index_reg = -1;
 
         (*op_pc)++;
 

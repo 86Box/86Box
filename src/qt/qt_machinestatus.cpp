@@ -355,15 +355,14 @@ static int
 hdd_count(int bus)
 {
     int c = 0;
-    int i;
 
-    for (i = 0; i < HDD_NUM; i++) {
+    for (uint8_t i = 0; i < HDD_NUM; i++) {
         if (hdd[i].bus == bus) {
             c++;
         }
     }
 
-    return (c);
+    return c;
 }
 
 void

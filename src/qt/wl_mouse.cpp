@@ -34,7 +34,8 @@ static zwp_relative_pointer_v1         *rel_pointer            = nullptr;
 static zwp_pointer_constraints_v1      *conf_pointer_interface = nullptr;
 static zwp_locked_pointer_v1           *conf_pointer           = nullptr;
 
-static int  rel_mouse_x = 0, rel_mouse_y = 0;
+static int  rel_mouse_x = 0;
+static int  rel_mouse_y = 0;
 static bool wl_init_ok = false;
 
 void

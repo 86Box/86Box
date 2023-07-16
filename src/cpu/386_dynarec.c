@@ -348,7 +348,7 @@ exec386_dynarec_int(void)
         cpu_state.ea_seg = &cpu_state.seg_ds;
         cpu_state.ssegs  = 0;
 
-        fetchdat = fastreadl(cs + cpu_state.pc);
+        fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
         if (in_smm)
             x386_dynarec_log("[%04X:%08X] fetchdat = %08X\n", CS, cpu_state.pc, fetchdat);
@@ -431,7 +431,7 @@ exec386_dynarec_dyn(void)
             uint64_t mask = (uint64_t) 1 << ((phys_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
 #    ifdef USE_NEW_DYNAREC
             int      byte_offset = (phys_addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
-            uint64_t byte_mask   = 1ull << (PAGE_BYTE_MASK_MASK & 0x3f);
+            uint64_t byte_mask   = 1ULL << (PAGE_BYTE_MASK_MASK & 0x3f);
 
             if ((page->code_present_mask & mask) || (page->byte_code_present_mask[byte_offset] & byte_mask))
 #    else
@@ -572,7 +572,7 @@ exec386_dynarec_dyn(void)
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
-            fetchdat = fastreadl(cs + cpu_state.pc);
+            fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
             if (in_smm)
                 x386_dynarec_log("[%04X:%08X] fetchdat = %08X\n", CS, cpu_state.pc, fetchdat);
@@ -668,7 +668,7 @@ exec386_dynarec_dyn(void)
             cpu_state.ssegs  = 0;
 
             codegen_endpc = (cs + cpu_state.pc) + 8;
-            fetchdat      = fastreadl(cs + cpu_state.pc);
+            fetchdat      = fastreadl_fetch(cs + cpu_state.pc);
 
 #    ifdef ENABLE_386_DYNAREC_LOG
             if (in_smm)

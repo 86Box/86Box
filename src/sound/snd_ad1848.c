@@ -48,9 +48,9 @@ ad1848_setirq(ad1848_t *ad1848, int irq)
 }
 
 void
-ad1848_setdma(ad1848_t *ad1848, int dma)
+ad1848_setdma(ad1848_t *ad1848, int newdma)
 {
-    ad1848->dma = dma;
+    ad1848->dma = newdma;
 }
 
 void
@@ -209,7 +209,8 @@ void
 ad1848_write(uint16_t addr, uint8_t val, void *priv)
 {
     ad1848_t *ad1848 = (ad1848_t *) priv;
-    uint8_t   temp = 0, updatefreq = 0;
+    uint8_t   temp = 0;
+    uint8_t   updatefreq = 0;
 
     switch (addr & 3) {
         case 0: /* Index */

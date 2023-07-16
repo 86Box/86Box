@@ -193,7 +193,7 @@ extern uint16_t get_last_addr(void);
 
 /* This is for external subtraction of cycles;
    should be in cpu.c but I put it here to avoid
-   having to include cpu.c everywhere. */
+   having to include cpu.h everywhere. */
 extern void sub_cycles(int c);
 extern void resub_cycles(int old_cycles);
 

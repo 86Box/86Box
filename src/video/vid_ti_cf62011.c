@@ -195,7 +195,7 @@ vid_in(uint16_t addr, void *priv)
             break;
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -252,7 +252,7 @@ vid_init(const device_t *info)
     ti->svga.bpp     = 8;
     ti->svga.miscout = 1;
 
-    return (ti);
+    return ti;
 }
 
 const device_t ibm_ps1_2121_device = {

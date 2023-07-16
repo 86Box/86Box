@@ -75,7 +75,7 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
         uint64_t size    = ((uint64_t) hdd_table[i][0]) * hdd_table[i][1] * hdd_table[i][2];
         uint32_t size_mb = size >> 11LL;
         // QString text = QString("%1 MiB (CHS: %2, %3, %4)").arg(size_mb).arg(hdd_table[i][0]).arg(hdd_table[i][1]).arg(hdd_table[i][2]);
-        QString text = QString::asprintf(tr("%u MB (CHS: %i, %i, %i)").toUtf8().constData(), (size_mb), (hdd_table[i][0]), (hdd_table[i][1]), (hdd_table[i][2]));
+        QString text = QString::asprintf(tr("%u MB (CHS: %i, %i, %i)").toUtf8().constData(), size_mb, (hdd_table[i][0]), (hdd_table[i][1]), (hdd_table[i][2]));
         Models::AddEntry(model, text, i);
     }
     Models::AddEntry(model, tr("Custom..."), 127);
@@ -83,6 +83,13 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
 
     ui->lineEditSize->setValidator(new QIntValidator());
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
+
+    filters = QStringList({ tr("Raw image") % util::DlgFilter({ "img" }, true),
+                          tr("HDI image") % util::DlgFilter({ "hdi" }, true),
+                          tr("HDX image") % util::DlgFilter({ "hdx" }, true),
+                          tr("Fixed-size VHD") % util::DlgFilter({ "vhd" }, true),
+                          tr("Dynamic-size VHD") % util::DlgFilter({ "vhd" }, true),
+                          tr("Differencing VHD") % util::DlgFilter({ "vhd" }, true) });
 
     if (existing) {
         ui->fileField->setFilter(tr("Hard disk images") % util::DlgFilter({ "hd?", "im?", "vhd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
@@ -99,24 +106,26 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
 
         connect(ui->fileField, &FileField::fileSelected, this, &HarddiskDialog::onExistingFileSelected);
     } else {
-        QStringList filters({ tr("Raw image") % util::DlgFilter({ "img" }, true),
-                              tr("HDI image") % util::DlgFilter({ "hdi" }, true),
-                              tr("HDX image") % util::DlgFilter({ "hdx" }, true),
-                              tr("Fixed-size VHD") % util::DlgFilter({ "vhd" }, true),
-                              tr("Dynamic-size VHD") % util::DlgFilter({ "vhd" }, true),
-                              tr("Differencing VHD") % util::DlgFilter({ "vhd" }, true) });
-
         ui->fileField->setFilter(filters.join(";;"));
 
         setWindowTitle(tr("Add New Hard Disk"));
         ui->fileField->setCreateFile(true);
 
-        connect(ui->fileField, &FileField::fileSelected, this, [this, filters] {
+        // Enable the OK button as long as the filename length is non-zero
+        connect(ui->fileField, &FileField::fileTextEntered, this, [this] {
+            ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled((this->fileName().length() > 0));
+        });
+
+        connect(ui->fileField, &FileField::fileSelected, this, [this] {
             int filter = filters.indexOf(ui->fileField->selectedFilter());
             if (filter > -1)
                 ui->comboBoxFormat->setCurrentIndex(filter);
             ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(true);
         });
+        // Set the default format to Dynamic-size VHD. Do it last after everything is set up
+        // so the currentIndexChanged signal can do what is needed
+        ui->comboBoxFormat->setCurrentIndex(DEFAULT_DISK_FORMAT);
+        ui->fileField->setselectedFilter(filters.value(DEFAULT_DISK_FORMAT));
     }
 }
 
@@ -179,6 +188,7 @@ HarddiskDialog::on_comboBoxFormat_currentIndexChanged(int index)
         ui->comboBoxBlockSize->show();
         ui->labelBlockSize->show();
     }
+    ui->fileField->setselectedFilter(filters.value(index));
 }
 
 /* If the disk geometry requested in the 86Box GUI is not compatible with the internal VHD geometry,
@@ -312,7 +322,7 @@ HarddiskDialog::onCreateNewFile()
     ui->progressBar->setEnabled(true);
     setResult(QDialog::Rejected);
     quint64 size = ui->lineEditSize->text().toULongLong() << 20U;
-    if (size > 0x1FFFFFFE00ll) {
+    if (size > 0x1FFFFFFE00LL) {
         QMessageBox::critical(this, tr("Disk image too large"), tr("Disk images cannot be larger than 127 GB."));
         return;
     }
@@ -357,7 +367,7 @@ HarddiskDialog::onCreateNewFile()
     if (img_format == IMG_FMT_HDI) { /* HDI file */
         QDataStream stream(&file);
         stream.setByteOrder(QDataStream::LittleEndian);
-        if (size >= 0x100000000ll) {
+        if (size >= 0x100000000LL) {
             QMessageBox::critical(this, tr("Disk image too large"), tr("HDI disk images cannot be larger than 4 GB."));
             return;
         }

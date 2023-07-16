@@ -60,7 +60,7 @@ D3D9Renderer::finalize()
     if (d3d9) {
         d3d9->Release();
         d3d9 = nullptr;
-    };
+    }
 }
 
 void
@@ -113,7 +113,8 @@ void
 D3D9Renderer::paintEvent(QPaintEvent *event)
 {
     IDirect3DSurface9 *backbuffer = nullptr;
-    RECT               srcRect, dstRect;
+    RECT               srcRect;
+    RECT               dstRect;
     HRESULT            result = d3d9dev->GetBackBuffer(0, 0, D3DBACKBUFFER_TYPE_MONO, &backbuffer);
 
     if (FAILED(result)) {

@@ -61,10 +61,12 @@ struct disk_size_t {
 
 static const disk_size_t disk_sizes[14] = {
 // clang-format off
-//  { 1,  1, 2, 1, 1,  77, 26, 0, 0,    4, 2, 6,  68 }, /* 250k 8" */
-//  { 1,  2, 2, 1, 1,  77, 26, 0, 0,    4, 2, 6,  68 }, /* 500k 8" */
-//  { 1,  1, 2, 1, 1,  77,  8, 3, 0,    1, 2, 2, 192 }, /* 616k 8" */
-//  { 1,  2, 0, 1, 1,  77,  8, 3, 0,    1, 2, 2, 192 }, /* 1232k 8" */
+#if 0
+    { 1,  1, 2, 1, 1,  77, 26, 0, 0,    4, 2, 6,  68 }, /* 250k 8" */
+    { 1,  2, 2, 1, 1,  77, 26, 0, 0,    4, 2, 6,  68 }, /* 500k 8" */
+    { 1,  1, 2, 1, 1,  77,  8, 3, 0,    1, 2, 2, 192 }, /* 616k 8" */
+    { 1,  2, 0, 1, 1,  77,  8, 3, 0,    1, 2, 2, 192 }, /* 1232k 8" */
+#endif
     { 0,  1, 2, 1, 0,  40,  8, 2, 0xfe, 2, 2, 1,  64 }, /* 160k */
     { 0,  1, 2, 1, 0,  40,  9, 2, 0xfc, 2, 2, 1,  64 }, /* 180k */
     { 0,  2, 2, 1, 0,  40,  8, 2, 0xff, 2, 2, 1, 112 }, /* 320k */
@@ -79,8 +81,10 @@ static const disk_size_t disk_sizes[14] = {
     { 2,  2, 3, 1, 0,  80, 36, 2, 0xf0, 2, 2, 9, 240 }, /* 2.88M */
     { 0, 64, 0, 0, 0,  96, 32, 2,    0, 0, 0, 0,   0 }, /* ZIP 100 */
     { 0, 64, 0, 0, 0, 239, 32, 2,    0, 0, 0, 0,   0 }, /* ZIP 250 */
-//  { 0,  8, 0, 0, 0, 963, 32, 2,    0, 0, 0, 0,   0 }, /* LS-120 */
-//  { 0, 32, 0, 0, 0, 262, 56, 2,    0, 0, 0, 0,   0 }  /* LS-240 */
+#if 0
+    { 0,  8, 0, 0, 0, 963, 32, 2,    0, 0, 0, 0,   0 }, /* LS-120 */
+    { 0, 32, 0, 0, 0, 262, 56, 2,    0, 0, 0, 0,   0 }  /* LS-240 */
+#endif
 // clang-format on
 };
 
@@ -264,7 +268,8 @@ NewFloppyDialog::create86f(const QString &filename, const disk_size_t &disk_size
     uint32_t index_hole_pos = 0;
     uint32_t tarray[512];
     uint32_t array_size;
-    uint32_t track_base, track_size;
+    uint32_t track_base;
+    uint32_t track_size;
     int      i;
     uint32_t shift = 0;
 
@@ -644,11 +649,13 @@ bool
 NewFloppyDialog::createMoSectorImage(const QString &filename, int8_t disk_size, FileType type, QProgressDialog &pbar)
 {
     const mo_type_t *dp            = &mo_types[disk_size];
-    uint32_t         total_size    = 0, total_size2;
+    uint32_t         total_size    = 0;
+    uint32_t         total_size2;
     uint32_t         total_sectors = 0;
     uint32_t         sector_bytes  = 0;
     uint16_t         base          = 0x1000;
-    uint32_t         pbar_max      = 0, blocks_num;
+    uint32_t         pbar_max      = 0;
+    uint32_t         blocks_num;
 
     QFile file(filename);
     if (!file.open(QIODevice::WriteOnly)) {

@@ -32,12 +32,12 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
+#include <86box/plat_unused.h>
 
 #define BIOS_ADDR       (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
 #define ROM_MONSTER_FDC "roms/floppy/monster-fdc/floppy_bios.bin"
 
-typedef struct
-{
+typedef struct monster_fdc_t {
     rom_t  bios_rom;
     fdc_t *fdc_pri;
     fdc_t *fdc_sec;
@@ -52,7 +52,7 @@ monster_fdc_close(void *priv)
 }
 
 static void *
-monster_fdc_init(const device_t *info)
+monster_fdc_init(UNUSED(const device_t *info))
 {
     monster_fdc_t *dev;
 
