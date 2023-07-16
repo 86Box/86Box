@@ -3,12 +3,11 @@
 #define USATB(val) (((val) < 0) ? 0 : (((val) > 255) ? 255 : (val)))
 #define USATW(val) (((val) < 0) ? 0 : (((val) > 65535) ? 65535 : (val)))
 
-#define MMX_GETREGP(r) fpu_softfloat ? ((MMX_REG *) &fpu_state.st_space[r].fraction) : &(cpu_state.MM[r])
-#define MMX_GETREG(r) fpu_softfloat ? (*(MMX_REG *) &fpu_state.st_space[r].fraction) : cpu_state.MM[r]
+#define MMX_GETREGP(r) MMP[r]
+#define MMX_GETREG(r) *(MMP[r])
 
 #define MMX_SETEXP(r)  \
-    if (fpu_softfloat) \
-        fpu_state.st_space[r].exp = 0xffff
+    *(MMEP[r]) = 0xffff
 
 #define MMX_GETSRC()                               \
     if (cpu_mod == 3) {                            \
