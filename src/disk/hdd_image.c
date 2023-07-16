@@ -18,6 +18,7 @@
  */
 #define _GNU_SOURCE
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -32,19 +33,19 @@
 #include <86box/random.h>
 #include <86box/hdd.h>
 #include "minivhd/minivhd.h"
-#include "minivhd/minivhd_internal.h"
+#include "minivhd/internal.h"
 
 #define HDD_IMAGE_RAW 0
 #define HDD_IMAGE_HDI 1
 #define HDD_IMAGE_HDX 2
 #define HDD_IMAGE_VHD 3
 
-typedef struct
-{
+typedef struct hdd_image_t {
     FILE     *file; /* Used for HDD_IMAGE_RAW, HDD_IMAGE_HDI, and HDD_IMAGE_HDX. */
     MVHDMeta *vhd;  /* Used for HDD_IMAGE_VHD. */
     uint32_t  base;
-    uint32_t  pos, last_sector;
+    uint32_t  pos;
+    uint32_t  last_sector;
     uint8_t   type; /* HDD_IMAGE_RAW, HDD_IMAGE_HDI, HDD_IMAGE_HDX, or HDD_IMAGE_VHD */
     uint8_t   loaded;
 } hdd_image_t;
@@ -106,7 +107,7 @@ image_is_hdx(const char *s, int check_signature)
             if (fread(&signature, 1, 8, f) != 8)
                 fatal("image_is_hdx(): Error reading signature\n");
             fclose(f);
-            if (signature == 0xD778A82044445459ll)
+            if (signature == 0xD778A82044445459LL)
                 return 1;
             else
                 return 0;
@@ -142,7 +143,11 @@ hdd_image_calc_chs(uint32_t *c, uint32_t *h, uint32_t *s, uint32_t size)
     /* Calculate the geometry from size (in MB), using the algorithm provided in
     "Virtual Hard Disk Image Format Specification, Appendix: CHS Calculation" */
     uint64_t ts = ((uint64_t) size) << 11LL;
-    uint32_t spt, heads, cyl, cth;
+    uint32_t spt;
+    uint32_t heads;
+    uint32_t cyl;
+    uint32_t cth;
+
     if (ts > 65535 * 16 * 255)
         ts = 65535 * 16 * 255;
 
@@ -179,7 +184,7 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
     uint64_t target_size = (full_size + hdd_images[id].base) - ftello64(hdd_images[id].file);
 
     uint32_t size;
-    uint32_t t, i;
+    uint32_t t;
 
     t    = (uint32_t) (target_size >> 20);     /* Amount of 1 MB blocks. */
     size = (uint32_t) (target_size & 0xfffff); /* 1 MB mask. */
@@ -194,7 +199,7 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
 
     /* First, write all the 1 MB blocks. */
     if (t > 0) {
-        for (i = 0; i < t; i++) {
+        for (uint32_t i = 0; i < t; i++) {
             fseek(hdd_images[id].file, 0, SEEK_END);
             fwrite(empty_sector_1mb, 1, 1048576, hdd_images[id].file);
             pclog("#");
@@ -223,9 +228,7 @@ prepare_new_hard_disk(uint8_t id, uint64_t full_size)
 void
 hdd_image_init(void)
 {
-    int i;
-
-    for (i = 0; i < HDD_NUM; i++)
+    for (uint8_t i = 0; i < HDD_NUM; i++)
         memset(&hdd_images[i], 0, sizeof(hdd_image_t));
 }
 
@@ -234,10 +237,12 @@ hdd_image_load(int id)
 {
     uint32_t sector_size = 512;
     uint32_t zero        = 0;
-    uint64_t signature   = 0xD778A82044445459ll;
+    uint64_t signature   = 0xD778A82044445459LL;
     uint64_t full_size   = 0;
-    uint64_t spt = 0, hpc = 0, tracks = 0;
-    int      c, ret;
+    uint64_t spt         = 0;
+    uint64_t hpc         = 0;
+    uint64_t tracks      = 0;
+    int      ret;
     uint64_t s         = 0;
     char    *fn        = hdd[id].fn;
     int      is_hdx[2] = { 0, 0 };
@@ -305,7 +310,7 @@ hdd_image_load(int id)
                     fwrite(&(hdd[id].spt), 1, 4, hdd_images[id].file);
                     fwrite(&(hdd[id].hpc), 1, 4, hdd_images[id].file);
                     fwrite(&(hdd[id].tracks), 1, 4, hdd_images[id].file);
-                    for (c = 0; c < 0x3f8; c++)
+                    for (uint16_t c = 0; c < 0x3f8; c++)
                         fwrite(&zero, 1, 4, hdd_images[id].file);
                     hdd_images[id].type = HDD_IMAGE_HDI;
                 } else if (is_hdx[0]) {
@@ -329,11 +334,35 @@ hdd_image_load(int id)
                     full_size                  = ((uint64_t) hdd[id].spt) * ((uint64_t) hdd[id].hpc) * ((uint64_t) hdd[id].tracks) << 9LL;
                     hdd_images[id].last_sector = (full_size >> 9LL) - 1;
 
-                    hdd_images[id].vhd = mvhd_create_fixed(fn, geometry, &vhd_error, NULL);
-                    if (hdd_images[id].vhd == NULL)
-                        fatal("hdd_image_load(): VHD: Could not create VHD : %s\n", mvhd_strerr(vhd_error));
+                    if (hdd[id].vhd_blocksize || hdd[id].vhd_parent[0]) {
+                        MVHDCreationOptions options;
+retry_vhd:
+                        options.block_size_in_sectors = hdd[id].vhd_blocksize;
+                        options.path                  = fn;
+                        options.size_in_bytes         = 0;
+                        options.geometry              = geometry;
+                        if (hdd[id].vhd_parent[0]) {
+                            options.type        = MVHD_TYPE_DIFF;
+                            options.parent_path = hdd[id].vhd_parent;
+                        } else {
+                            options.type        = MVHD_TYPE_DYNAMIC;
+                            options.parent_path = NULL;
+                        }
 
+                        hdd_images[id].vhd = mvhd_create_ex(options, &vhd_error);
+                    } else {
+                        hdd_images[id].vhd = mvhd_create_fixed(fn, geometry, &vhd_error, NULL);
+                    }
+                    if (hdd_images[id].vhd == NULL) {
+                        /* Don't lock out if the parent of a differential VHD doesn't exist. */
+                        if (hdd[id].vhd_parent[0]) {
+                            hdd[id].vhd_parent[0] = '\0';
+                            goto retry_vhd;
+                        }
+                        fatal("hdd_image_load(): VHD: Could not create VHD : %s\n", mvhd_strerr(vhd_error));
+                    }
                     hdd_images[id].type = HDD_IMAGE_VHD;
+
                     return 1;
                 } else {
                     hdd_images[id].type = HDD_IMAGE_RAW;
@@ -424,9 +453,12 @@ hdd_image_load(int id)
                 fatal("hdd_image_load(): VHD: Parent/child timestamp mismatch for VHD file '%s'\n", fn);
             }
 
-            hdd[id].tracks      = hdd_images[id].vhd->footer.geom.cyl;
-            hdd[id].hpc         = hdd_images[id].vhd->footer.geom.heads;
-            hdd[id].spt         = hdd_images[id].vhd->footer.geom.spt;
+            hdd[id].tracks        = hdd_images[id].vhd->footer.geom.cyl;
+            hdd[id].hpc           = hdd_images[id].vhd->footer.geom.heads;
+            hdd[id].spt           = hdd_images[id].vhd->footer.geom.spt;
+            hdd[id].vhd_blocksize = (hdd_images[id].vhd->footer.disk_type == MVHD_TYPE_FIXED) ? 0 : (hdd_images[id].vhd->sparse.block_sz / MVHD_SECTOR_SIZE);
+            if (hdd_images[id].vhd->parent && hdd_images[id].vhd->parent->filename[0])
+                strncpy(hdd[id].vhd_parent, hdd_images[id].vhd->parent->filename, sizeof(hdd[id].vhd_parent) - 1);
             full_size           = ((uint64_t) hdd[id].spt) * ((uint64_t) hdd[id].hpc) * ((uint64_t) hdd[id].tracks) << 9LL;
             hdd_images[id].type = HDD_IMAGE_VHD;
             /* If we're here, this means there is a valid VHD footer in the
@@ -559,8 +591,6 @@ hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
         int non_transferred_sectors = mvhd_format_sectors(hdd_images[id].vhd, sector, count);
         hdd_images[id].pos          = sector + count - non_transferred_sectors - 1;
     } else {
-        uint32_t i = 0;
-
         memset(empty_sector, 0, 512);
 
         if (fseeko64(hdd_images[id].file, ((uint64_t) (sector) << 9LL) + hdd_images[id].base, SEEK_SET) == -1) {
@@ -568,7 +598,7 @@ hdd_image_zero(uint8_t id, uint32_t sector, uint32_t count)
             return;
         }
 
-        for (i = 0; i < count; i++) {
+        for (uint32_t i = 0; i < count; i++) {
             if (feof(hdd_images[id].file))
                 break;
 
@@ -607,7 +637,7 @@ hdd_image_get_type(uint8_t id)
 }
 
 void
-hdd_image_unload(uint8_t id, int fn_preserve)
+hdd_image_unload(uint8_t id, UNUSED(int fn_preserve))
 {
     if (strlen(hdd[id].fn) == 0)
         return;
@@ -625,9 +655,6 @@ hdd_image_unload(uint8_t id, int fn_preserve)
 
     hdd_images[id].last_sector = -1;
 
-    memset(hdd[id].prev_fn, 0, sizeof(hdd[id].prev_fn));
-    if (fn_preserve)
-        strcpy(hdd[id].prev_fn, hdd[id].fn);
     memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
 }
 

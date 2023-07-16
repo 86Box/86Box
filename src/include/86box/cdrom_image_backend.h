@@ -56,10 +56,17 @@ typedef struct {
 } track_file_t;
 
 typedef struct {
-    int number, track_number, attr, sector_size,
-        mode2, form, pre, pad;
-    uint64_t start, length,
-        skip;
+    int           number;
+    int           track_number;
+    int           attr;
+    int           sector_size;
+    int           mode2;
+    int           form;
+    int           pre;
+    int           pad;
+    uint64_t      start;
+    uint64_t      length;
+    uint64_t      skip;
     track_file_t *file;
 } track_t;
 

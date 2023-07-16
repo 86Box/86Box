@@ -132,7 +132,8 @@ timer_process(void)
 void
 timer_close(void)
 {
-    pc_timer_t *t = timer_head, *r;
+    pc_timer_t *t = timer_head;
+    pc_timer_t *r;
 
     /* Set all timers' prev and next to NULL so it is assured that
        timers that are not in malloc'd structs don't keep pointing
@@ -158,12 +159,12 @@ timer_init(void)
 }
 
 void
-timer_add(pc_timer_t *timer, void (*callback)(void *p), void *p, int start_timer)
+timer_add(pc_timer_t *timer, void (*callback)(void *p), void *priv, int start_timer)
 {
     memset(timer, 0, sizeof(pc_timer_t));
 
     timer->callback = callback;
-    timer->p        = p;
+    timer->p        = priv;
     timer->flags    = 0;
     timer->prev = timer->next = NULL;
     if (start_timer)

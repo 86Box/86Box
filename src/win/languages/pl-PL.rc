@@ -278,6 +278,7 @@ END
 #define STR_ENABLED_LOCAL "Włączona (czas lokalny)"
 #define STR_ENABLED_UTC   "Włączona (UTC)"
 #define STR_DYNAREC       "Dynamiczny rekompilator"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
 #define STR_VIDEO         "Wideo:"
 #define STR_VIDEO_2       "Wideo 2:"
@@ -367,7 +368,6 @@ END
 #define STR_CHECKBPB      "Sprawdzaj BPB"
 #define STR_CDROM_DRIVES  "Napędy CD-ROM:"
 #define STR_CD_SPEED      "Szybkość:"
-#define STR_EARLY         "Wcześniejszy napęd"
 
 #define STR_MO_DRIVES     "Napędy MO:"
 #define STR_ZIP_DRIVES    "Napędy ZIP:"
@@ -537,11 +537,13 @@ BEGIN
     IDS_2159    "Twardy reset"
     IDS_2160    "Wyłączenie ACPI"
     IDS_2161    "Ustawienia"
-    IDS_2162    "Wcześniejszy napęd"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
     IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+    IDS_2167    "Failed to initialize network driver"
+    IDS_2168    "The network configuration will be switched to the null driver"
 END
 
 STRINGTABLE DISCARDABLE

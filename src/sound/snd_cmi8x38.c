@@ -181,8 +181,8 @@ cmi8x38_sb_dma_post(cmi8x38_t *dev, uint16_t *addr, uint16_t *count, int channel
     /* Check TDMA position update interrupt if enabled. */
     if (dev->io_regs[0x0e] & 0x04) {
         /* Nothing uses this; I assume it goes by the SB DSP sample counter (forwards instead of backwards). */
-        int origlength = (channel & 4) ? dev->sb->dsp.sb_16_origlength : dev->sb->dsp.sb_8_origlength,
-            length     = (channel & 4) ? dev->sb->dsp.sb_16_length : dev->sb->dsp.sb_8_length;
+        int origlength = (channel & 4) ? dev->sb->dsp.sb_16_origlength : dev->sb->dsp.sb_8_origlength;
+        int length     = (channel & 4) ? dev->sb->dsp.sb_16_length : dev->sb->dsp.sb_8_length;
         if ((origlength != length) && (((origlength - length) & dev->tdma_irq_mask) == 0)) { /* skip initial sample */
             /* Fire the interrupt. */
             dev->io_regs[0x11] |= (channel & 4) ? 0x40 : 0x80;
@@ -225,8 +225,8 @@ cmi8x38_sb_dma_readb(void *priv)
         return DMA_NODATA;
 
     /* Get 16-bit address and count registers. */
-    uint16_t *addr  = (uint16_t *) &dev->io_regs[0x1c],
-             *count = (uint16_t *) &dev->io_regs[0x1e];
+    uint16_t *addr  = (uint16_t *) &dev->io_regs[0x1c];
+    uint16_t *count = (uint16_t *) &dev->io_regs[0x1e];
 
     /* Read data. */
     int ret = mem_readb_phys((dma[channel].ab & 0xffff0000) | *addr);
@@ -248,8 +248,8 @@ cmi8x38_sb_dma_readw(void *priv)
         return DMA_NODATA;
 
     /* Get 16-bit address and count registers. */
-    uint16_t *addr  = (uint16_t *) &dev->io_regs[0x1c],
-             *count = (uint16_t *) &dev->io_regs[0x1e];
+    uint16_t *addr  = (uint16_t *) &dev->io_regs[0x1c];
+    uint16_t *count = (uint16_t *) &dev->io_regs[0x1e];
 
     /* Read data. */
     int ret = mem_readw_phys((dma[channel].ab & 0xfffe0000) | ((*addr) << 1));
@@ -271,8 +271,8 @@ cmi8x38_sb_dma_writeb(void *priv, uint8_t val)
         return 1;
 
     /* Get 16-bit address and count registers. */
-    uint16_t *addr  = (uint16_t *) &dev->io_regs[0x1c],
-             *count = (uint16_t *) &dev->io_regs[0x1e];
+    uint16_t *addr  = (uint16_t *) &dev->io_regs[0x1c];
+    uint16_t *count = (uint16_t *) &dev->io_regs[0x1e];
 
     /* Write data. */
     mem_writeb_phys((dma[channel].ab & 0xffff0000) | *addr, val);
@@ -294,8 +294,8 @@ cmi8x38_sb_dma_writew(void *priv, uint16_t val)
         return 1;
 
     /* Get 16-bit address and count registers. */
-    uint16_t *addr  = (uint16_t *) &dev->io_regs[0x1c],
-             *count = (uint16_t *) &dev->io_regs[0x1e];
+    uint16_t *addr  = (uint16_t *) &dev->io_regs[0x1c];
+    uint16_t *count = (uint16_t *) &dev->io_regs[0x1e];
 
     /* Write data. */
     mem_writew_phys((dma[channel].ab & 0xfffe0000) | ((*addr) << 1), val);
@@ -333,8 +333,8 @@ cmi8x38_dma_write(uint16_t addr, uint8_t val, void *priv)
     }
 
     /* Write base address and count. */
-    uint16_t *daddr = (uint16_t *) &dev->io_regs[0x1c],
-             *count = (uint16_t *) &dev->io_regs[0x1e];
+    uint16_t *daddr = (uint16_t *) &dev->io_regs[0x1c];
+    uint16_t *count = (uint16_t *) &dev->io_regs[0x1e];
     *daddr = dev->tdma_base_addr = dma[channel].ab >> !!(channel & 4);
     *count = dev->tdma_base_count = dma[channel].cb;
     cmi8x38_log("CMI8x38: Starting TDMA on DMA %d with addr %08X count %04X\n",
@@ -556,7 +556,8 @@ cmi8x38_remap_traps(cmi8x38_t *dev)
 static void
 cmi8x38_start_playback(cmi8x38_t *dev)
 {
-    uint8_t i, val = dev->io_regs[0x00];
+    uint8_t i;
+    uint8_t val = dev->io_regs[0x00];
 
     i = !(val & 0x01);
     if (!dev->dma[0].playback_enabled && i)
@@ -990,8 +991,8 @@ static void
 cmi8x38_update(cmi8x38_t *dev, cmi8x38_dma_t *dma)
 {
     sb_ct1745_mixer_t *mixer = &dev->sb->mixer_sb16;
-    int32_t            l     = (dma->out_fl * mixer->voice_l) * mixer->master_l,
-            r                = (dma->out_fr * mixer->voice_r) * mixer->master_r;
+    int32_t            l     = (dma->out_fl * mixer->voice_l) * mixer->master_l;
+    int32_t            r     = (dma->out_fr * mixer->voice_r) * mixer->master_r;
 
     for (; dma->pos < sound_pos_global; dma->pos++) {
         dma->buffer[dma->pos * 2]     = l;
@@ -1083,7 +1084,10 @@ cmi8x38_poll(void *priv)
 {
     cmi8x38_dma_t *dma = (cmi8x38_dma_t *) priv;
     cmi8x38_t     *dev = dma->dev;
-    int16_t       *out_l, *out_r, *out_ol, *out_or; /* o = opposite */
+    int16_t       *out_l;
+    int16_t       *out_r;
+    int16_t       *out_ol;
+    int16_t       *out_or; /* o = opposite */
 
     /* Schedule next run if playback is enabled. */
     if (dma->playback_enabled)
@@ -1245,8 +1249,10 @@ cmi8x38_speed_changed(void *priv)
 {
     cmi8x38_t *dev = (cmi8x38_t *) priv;
     double     freq;
-    uint8_t    dsr = dev->io_regs[0x09], freqreg = dev->io_regs[0x05] >> 2,
-            chfmt45 = dev->io_regs[0x0b], chfmt6 = dev->io_regs[0x15];
+    uint8_t    dsr = dev->io_regs[0x09];
+    uint8_t    freqreg = dev->io_regs[0x05] >> 2;
+    uint8_t    chfmt45 = dev->io_regs[0x0b];
+    uint8_t    chfmt6 = dev->io_regs[0x15];
 
 #ifdef ENABLE_CMI8X38_LOG
     char buf[256];

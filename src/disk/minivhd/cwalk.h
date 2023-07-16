@@ -1,10 +1,40 @@
-#pragma once
-
+/*
+ * libCWALK	path library for C/C++
+ *
+ * Version:	@(#)cwalk.h	1.0.3	2021/03/22
+ *
+ * Authors:	Sherman Perry, <shermperry@gmail.com>
+ *		Leonard Iklé, <https://github.com/likle>
+ *
+ *		Copyright 2019-2021 Sherman Perry.
+ *		Copyright 2020 Leonard Iklé.
+ *
+ *		MIT License
+ *
+ *		Permission is hereby granted, free of  charge, to any person
+ *		obtaining a copy of this software  and associated documenta-
+ *		tion files (the "Software"), to deal in the Software without
+ *		restriction, including without limitation the rights to use,
+ *		copy, modify, merge, publish, distribute, sublicense, and/or
+ *		sell copies of  the Software, and  to permit persons to whom
+ *		the Software is furnished to do so, subject to the following
+ *		conditions:
+ *
+ *		The above  copyright notice and this permission notice shall
+ *		be included in  all copies or  substantial  portions of  the
+ *		Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING  BUT NOT LIMITED TO THE  WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A  PARTICULAR PURPOSE AND NONINFRINGEMENT. IN  NO EVENT  SHALL
+ * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER  IN AN ACTION OF  CONTRACT, TORT OR  OTHERWISE, ARISING
+ * FROM, OUT OF  O R IN  CONNECTION WITH THE  SOFTWARE OR  THE USE  OR  OTHER
+ * DEALINGS IN THE SOFTWARE.
+ */
 #ifndef CWK_LIBRARY_H
-#define CWK_LIBRARY_H
+# define CWK_LIBRARY_H
 
-#include <stdbool.h>
-#include <stddef.h>
 
 /**
  * A segment represents a single component of a path. For instance, on linux a
@@ -44,6 +74,11 @@ enum cwk_path_style
   CWK_STYLE_WINDOWS,
   CWK_STYLE_UNIX
 };
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * @brief Generates an absolute path based on a base.
@@ -454,4 +489,9 @@ void cwk_path_set_style(enum cwk_path_style style);
  */
 enum cwk_path_style cwk_path_get_style(void);
 
+#ifdef __cplusplus
+}
 #endif
+
+
+#endif	/*CWK_LIBRARY_H*/

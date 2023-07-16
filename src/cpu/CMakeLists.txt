@@ -14,7 +14,7 @@
 #
 
 add_library(cpu OBJECT cpu.c cpu_table.c fpu.c x86.c 808x.c 386.c 386_common.c
-    386_dynarec.c x86seg.c x87.c x87_timings.c 8080.c)
+    386_dynarec.c x86_ops_mmx.c x86seg.c x87.c x87_timings.c 8080.c)
 
 if(AMD_K5)
     target_compile_definitions(cpu PRIVATE USE_AMD_K5)
@@ -32,3 +32,9 @@ if(DYNAREC)
         codegen_timing_pentium.c codegen_timing_p6.c
         codegen_timing_winchip.c codegen_timing_winchip2.c)
 endif()
+
+add_subdirectory(softfloat)
+target_link_libraries(86Box softfloat)
+
+add_subdirectory(808x)
+target_link_libraries(86Box 808x)

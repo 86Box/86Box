@@ -240,7 +240,8 @@ public:
 private:
     ChipType                       m_chip;
     uint32_t                       m_clock;
-    double                         m_clock_us, m_subtract[2];
+    double                         m_clock_us;
+    double                         m_subtract[2];
     typename ChipType::output_data m_output;
     pc_timer_t                     m_timers[2];
     int32_t                        m_duration_in_clocks[2]; // Needed for clock switches.
@@ -323,7 +324,7 @@ ymfm_drv_close(void *priv)
     YMFMChipBase *drv = (YMFMChipBase *) priv;
 
     if (drv != NULL)
-        delete (drv);
+        delete drv;
 }
 
 static uint8_t

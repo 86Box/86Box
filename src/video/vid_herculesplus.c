@@ -103,7 +103,8 @@ static void
 recalc_timings(herculesplus_t *dev)
 {
     double disptime;
-    double _dispontime, _dispofftime;
+    double _dispontime;
+    double _dispofftime;
 
     disptime     = dev->crtc[0] + 1;
     _dispontime  = dev->crtc[1];
@@ -214,9 +215,13 @@ herculesplus_read(uint32_t addr, void *priv)
 static void
 draw_char_rom(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 {
-    unsigned       ull, val, ifg, ibg;
+    unsigned       ull;
+    unsigned       val;
+    unsigned       ifg;
+    unsigned       ibg;
     const uint8_t *fnt;
-    int            i, elg, blk;
+    int            elg;
+    int            blk;
     int            cw = HERCULESPLUS_CW;
 
     blk = 0;
@@ -259,7 +264,7 @@ draw_char_rom(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
             val |= (val >> 1) & 1;
     }
 
-    for (i = 0; i < cw; i++) {
+    for (int i = 0; i < cw; i++) {
         buffer32->line[dev->displine][x * cw + i] = (val & 0x100) ? ifg : ibg;
         val                                       = val << 1;
     }
@@ -268,9 +273,13 @@ draw_char_rom(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 static void
 draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 {
-    unsigned       ull, val, ibg, cfg;
+    unsigned       ull;
+    unsigned       val;
+    unsigned       ibg;
+    unsigned       cfg;
     const uint8_t *fnt;
-    int            i, elg, blk;
+    int            elg;
+    int            blk;
     int            cw    = HERCULESPLUS_CW;
     int            blink = dev->ctrl & HERCULESPLUS_CTRL_BLINK;
 
@@ -310,7 +319,7 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
             val |= (val >> 1) & 1;
     }
 
-    for (i = 0; i < cw; i++) {
+    for (int i = 0; i < cw; i++) {
         /* Generate pixel colour */
         cfg = 0;
 
@@ -318,7 +327,7 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
         if ((attr & 0x77) == 0)
             cfg = ibg; /* 'blank' attribute */
 
-        buffer32->line[dev->displine][x * cw + i] = dev->cols[attr][blink][cfg];
+        buffer32->line[dev->displine][x * cw + i] = dev->cols[attr][!!blink][cfg];
         val                                       = val << 1;
     }
 }
@@ -326,9 +335,18 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 static void
 draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 {
-    int                  i, elg, blk, ul, ol, bld;
-    unsigned             ull, oll, ulc = 0, olc = 0;
-    unsigned             val, ibg, cfg;
+    int                  elg;
+    int                  blk;
+    int                  ul;
+    int                  ol;
+    int                  bld;
+    unsigned             ull;
+    unsigned             oll;
+    unsigned             ulc = 0;
+    unsigned             olc = 0;
+    unsigned             val;
+    unsigned             ibg;
+    unsigned             cfg;
     const unsigned char *fnt;
     int                  cw    = HERCULESPLUS_CW;
     int                  blink = dev->ctrl & HERCULESPLUS_CTRL_BLINK;
@@ -395,7 +413,7 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
             val |= (val >> 1);
     }
 
-    for (i = 0; i < cw; i++) {
+    for (int i = 0; i < cw; i++) {
         /* Generate pixel colour */
         cfg = val & 0x100;
         if (dev->sc == oll)
@@ -405,7 +423,7 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
         else
             cfg |= ibg;
 
-        buffer32->line[dev->displine][(x * cw) + i] = dev->cols[attr][blink][cfg];
+        buffer32->line[dev->displine][(x * cw) + i] = dev->cols[attr][!!blink][cfg];
         val                                         = val << 1;
     }
 }
@@ -414,11 +432,11 @@ static void
 text_line(herculesplus_t *dev, uint16_t ca)
 {
     int      drawcursor;
-    int      x, c;
-    uint8_t  chr, attr;
+    uint8_t  chr;
+    uint8_t  attr;
     uint32_t col;
 
-    for (x = 0; x < dev->crtc[1]; x++) {
+    for (uint8_t x = 0; x < dev->crtc[1]; x++) {
         if (dev->ctrl & 8) {
             chr  = dev->vram[(dev->ma << 1) & 0xfff];
             attr = dev->vram[((dev->ma << 1) + 1) & 0xfff];
@@ -447,7 +465,7 @@ text_line(herculesplus_t *dev, uint16_t ca)
             int cw = HERCULESPLUS_CW;
 
             col = dev->cols[attr][0][1];
-            for (c = 0; c < cw; c++)
+            for (int c = 0; c < cw; c++)
                 buffer32->line[dev->displine][x * cw + c] = col;
         }
     }
@@ -457,7 +475,8 @@ static void
 graphics_line(herculesplus_t *dev)
 {
     uint16_t ca;
-    int      x, c, plane = 0;
+    int      c;
+    int      plane = 0;
     uint16_t val;
 
     /* Graphics mode. */
@@ -465,7 +484,7 @@ graphics_line(herculesplus_t *dev)
     if ((dev->ctrl & HERCULESPLUS_CTRL_PAGE1) && (dev->ctrl2 & HERCULESPLUS_CTRL2_PAGE1))
         ca += 0x8000;
 
-    for (x = 0; x < dev->crtc[1]; x++) {
+    for (uint8_t x = 0; x < dev->crtc[1]; x++) {
         if (dev->ctrl & 8)
             val = (dev->vram[((dev->ma << 1) & 0x1fff) + ca + 0x10000 * plane] << 8)
                 | dev->vram[((dev->ma << 1) & 0x1fff) + ca + 0x10000 * plane + 1];
@@ -489,7 +508,9 @@ herculesplus_poll(void *priv)
 {
     herculesplus_t *dev = (herculesplus_t *) priv;
     uint16_t        ca  = (dev->crtc[15] | (dev->crtc[14] << 8)) & 0x3fff;
-    int             x, oldvc, oldsc;
+    int             x;
+    int             oldvc;
+    int             oldsc;
 
     VIDEO_MONITOR_PROLOGUE();
     if (!dev->linepos) {
@@ -612,7 +633,7 @@ herculesplus_poll(void *priv)
             dev->ma = dev->maback;
         }
 
-        if ((dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1))))
+        if (dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1)))
             dev->con = 1;
     }
 
@@ -623,7 +644,6 @@ static void *
 herculesplus_init(const device_t *info)
 {
     herculesplus_t *dev;
-    int             c;
 
     dev = (herculesplus_t *) malloc(sizeof(herculesplus_t));
     memset(dev, 0, sizeof(herculesplus_t));
@@ -641,7 +661,7 @@ herculesplus_init(const device_t *info)
     io_sethandler(0x03b0, 16,
                   herculesplus_in, NULL, NULL, herculesplus_out, NULL, NULL, dev);
 
-    for (c = 0; c < 256; c++) {
+    for (uint16_t c = 0; c < 256; c++) {
         dev->cols[c][0][0] = dev->cols[c][1][0] = dev->cols[c][1][1] = 16;
         if (c & 8)
             dev->cols[c][0][1] = 15 + 16;

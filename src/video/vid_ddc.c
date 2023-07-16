@@ -24,7 +24,7 @@
 #include <86box/86box.h>
 #include <86box/i2c.h>
 
-#define PIXEL_MM(px) ((uint16_t) (((px) *25.4) / 96))
+#define PIXEL_MM(px) (((px) * 25.4) / 96.0)
 #define STANDARD_TIMING(slot, width, aspect_ratio, refresh)                             \
     do {                                                                                \
         edid->slot.horiz_pixels              = ((width) >> 3) - 31;                     \
@@ -44,9 +44,9 @@
         edid->slot.h_sync_pulse_lsb              = (hsp) &0xff;                                                                                   \
         edid->slot.v_front_porch_sync_pulse_lsb  = (((vfp) &0x0f) << 4) | ((vsp) &0x0f);                                                          \
         edid->slot.hv_front_porch_sync_pulse_msb = (((hfp) >> 2) & 0xc0) | (((hsp) >> 4) & 0x30) | (((vfp) >> 2) & 0x0c) | (((vsp) >> 4) & 0x03); \
-        edid->slot.h_size_lsb                    = horiz_mm & 0xff;                                                                               \
-        edid->slot.v_size_lsb                    = vert_mm & 0xff;                                                                                \
-        edid->slot.hv_size_msb                   = ((horiz_mm >> 4) & 0xf0) | ((vert_mm >> 8) & 0x0f);                                            \
+        edid->slot.h_size_lsb                    = (uint8_t) horiz_mm;                                                                            \
+        edid->slot.v_size_lsb                    = (uint8_t) vert_mm;                                                                             \
+        edid->slot.hv_size_msb                   = ((((uint16_t) horiz_mm) >> 4) & 0xf0) | ((((uint16_t) vert_mm) >> 8) & 0x0f);                  \
     } while (0)
 
 enum {
@@ -133,7 +133,8 @@ ddc_init(void *i2c)
     memset(edid, 0, sizeof(edid_t));
 
     uint8_t *edid_bytes = (uint8_t *) edid;
-    uint16_t horiz_mm = PIXEL_MM(1366), vert_mm = PIXEL_MM(768);
+    double horiz_mm     = PIXEL_MM(800);
+    double vert_mm      = PIXEL_MM(600);
 
     memset(&edid->magic[1], 0xff, sizeof(edid->magic) - 2);
 
@@ -142,11 +143,11 @@ ddc_init(void *i2c)
     edid->mfg_week     = 48;
     edid->mfg_year     = 2020 - 1990;
     edid->edid_version = 0x01;
-    edid->edid_rev     = 0x03; /* EDID 1.3 */
+    edid->edid_rev     = 0x04; /* EDID 1.4, required for Xorg on Linux to use the preferred mode timing */
 
     edid->input_params = 0x0e; /* analog input; separate sync; composite sync; sync on green */
-    edid->horiz_size   = horiz_mm / 10;
-    edid->vert_size    = vert_mm / 10;
+    edid->horiz_size   = round(horiz_mm / 10.0);
+    edid->vert_size    = round(vert_mm / 10.0);
     edid->features     = 0xeb; /* DPMS standby/suspend/active-off; RGB color; first timing is preferred; GTF/CVT */
 
     edid->red_green_lsb  = 0x81;

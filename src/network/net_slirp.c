@@ -384,7 +384,7 @@ static int slirp_card_num = 2;
 
 /* Initialize SLiRP for use. */
 void *
-net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
+net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char *netdrv_errbuf)
 {
     slirp_log("SLiRP: initializing...\n");
     net_slirp_t *slirp = calloc(1, sizeof(net_slirp_t));
@@ -410,12 +410,16 @@ net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
     slirp->slirp = slirp_init(0, 1, net, mask, host, 0, ipv6_dummy, 0, ipv6_dummy, NULL, NULL, NULL, NULL, dhcp, dns, ipv6_dummy, NULL, NULL, &slirp_cb, slirp);
     if (!slirp->slirp) {
         slirp_log("SLiRP: initialization failed\n");
+        snprintf(netdrv_errbuf, NET_DRV_ERRBUF_SIZE, "SLiRP initialization failed");
         free(slirp);
         return NULL;
     }
 
     /* Set up port forwarding. */
-    int  udp, external, internal, i = 0;
+    int  udp;
+    int  i = 0;
+    int  external;
+    int  internal;
     char category[32];
     snprintf(category, sizeof(category), "SLiRP Port Forwarding #%d", card->card_num + 1);
     char key[20];

@@ -278,6 +278,7 @@ END
 #define STR_ENABLED_LOCAL "Uključeno (lokalno vrijeme)"
 #define STR_ENABLED_UTC   "Uključeno (UTC)"
 #define STR_DYNAREC       "Dinamički rekompilator"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
 #define STR_VIDEO         "Video:"
 #define STR_VIDEO_2       "Video 2:"
@@ -367,7 +368,6 @@ END
 #define STR_CHECKBPB      "Provjeraj BPB"
 #define STR_CDROM_DRIVES  "CD-ROM pogoni:"
 #define STR_CD_SPEED      "Brzina:"
-#define STR_EARLY         "Raniji pogon"
 
 #define STR_MO_DRIVES     "MO pogoni:"
 #define STR_ZIP_DRIVES    "ZIP pogoni:"
@@ -537,11 +537,13 @@ BEGIN
     IDS_2159    "Ponovno pokretanje"
     IDS_2160    "ACPI bazirano gašenje"
     IDS_2161    "Postavke"
-    IDS_2162    "Raniji pogon"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
     IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+    IDS_2167    "Failed to initialize network driver"
+    IDS_2168    "The network configuration will be switched to the null driver"
 END
 
 STRINGTABLE DISCARDABLE

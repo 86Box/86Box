@@ -34,6 +34,7 @@
 #include <86box/pit.h>
 #include <86box/dma.h>
 #include <86box/ddma.h>
+#include <86box/plat_unused.h>
 
 #ifdef ENABLE_DDMA_LOG
 int ddma_do_log = ENABLE_DDMA_LOG;
@@ -54,9 +55,9 @@ ddma_log(const char *fmt, ...)
 #endif
 
 static uint8_t
-ddma_reg_read(uint16_t addr, void *p)
+ddma_reg_read(uint16_t addr, void *priv)
 {
-    ddma_channel_t *dev  = (ddma_channel_t *) p;
+    ddma_channel_t *dev  = (ddma_channel_t *) priv;
     uint8_t         ret  = 0xff;
     int             ch   = dev->channel;
     int             dmab = (ch >= 4) ? 0xc0 : 0x00;
@@ -80,18 +81,21 @@ ddma_reg_read(uint16_t addr, void *p)
         case 0x09:
             ret = inb(dmab + 0x08);
             break;
+
+        default:
+            break;
     }
 
     return ret;
 }
 
 static void
-ddma_reg_write(uint16_t addr, uint8_t val, void *p)
+ddma_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
-    ddma_channel_t *dev          = (ddma_channel_t *) p;
+    ddma_channel_t *dev          = (ddma_channel_t *) priv;
     int             ch           = dev->channel;
     int             page_regs[4] = { 7, 3, 1, 2 };
-    int             i, dmab = (ch >= 4) ? 0xc0 : 0x00;
+    int             dmab = (ch >= 4) ? 0xc0 : 0x00;
 
     switch (addr & 0x0f) {
         case 0x00:
@@ -132,11 +136,14 @@ ddma_reg_write(uint16_t addr, uint8_t val, void *p)
             outb(dmab + 0x0d, val);
             break;
         case 0x0e:
-            for (i = 0; i < 4; i++)
+            for (uint8_t i = 0; i < 4; i++)
                 outb(dmab + 0x0a, i);
             break;
         case 0x0f:
             outb(dmab + 0x0a, (val << 2) | (ch & 3));
+            break;
+
+        default:
             break;
     }
 }
@@ -163,17 +170,16 @@ ddma_close(void *priv)
 }
 
 static void *
-ddma_init(const device_t *info)
+ddma_init(UNUSED(const device_t *info))
 {
     ddma_t *dev;
-    int     i;
 
     dev = (ddma_t *) malloc(sizeof(ddma_t));
     if (dev == NULL)
         return (NULL);
     memset(dev, 0x00, sizeof(ddma_t));
 
-    for (i = 0; i < 8; i++)
+    for (uint8_t i = 0; i < 8; i++)
         dev->channels[i].channel = i;
 
     return dev;

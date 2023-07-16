@@ -52,9 +52,9 @@ apm_set_do_smi(apm_t *dev, uint8_t do_smi)
 }
 
 static void
-apm_out(uint16_t port, uint8_t val, void *p)
+apm_out(uint16_t port, uint8_t val, void *priv)
 {
-    apm_t *dev = (apm_t *) p;
+    apm_t *dev = (apm_t *) priv;
 
     apm_log("[%04X:%08X] APM write: %04X = %02X (BX = %04X, CX = %04X)\n", CS, cpu_state.pc, port, val, BX, CX);
 
@@ -69,9 +69,9 @@ apm_out(uint16_t port, uint8_t val, void *p)
 }
 
 static uint8_t
-apm_in(uint16_t port, void *p)
+apm_in(uint16_t port, void *priv)
 {
-    apm_t  *dev = (apm_t *) p;
+    apm_t  *dev = (apm_t *) priv;
     uint8_t ret = 0xff;
 
     port &= 0x0001;
@@ -87,17 +87,17 @@ apm_in(uint16_t port, void *p)
 }
 
 static void
-apm_reset(void *p)
+apm_reset(void *priv)
 {
-    apm_t *dev = (apm_t *) p;
+    apm_t *dev = (apm_t *) priv;
 
     dev->cmd = dev->stat = 0x00;
 }
 
 static void
-apm_close(void *p)
+apm_close(void *priv)
 {
-    apm_t *dev = (apm_t *) p;
+    apm_t *dev = (apm_t *) priv;
 
     free(dev);
 }

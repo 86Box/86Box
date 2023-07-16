@@ -31,10 +31,17 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/sio.h>
+#include <86box/plat_unused.h>
 
-typedef struct {
-    uint8_t cur_reg, last_val, regs[25],
-        fdc_dma, fdc_irq, uart_irq[2], lpt_dma, lpt_irq;
+typedef struct vt82c686_t {
+    uint8_t   cur_reg;
+    uint8_t   last_val;
+    uint8_t   regs[25];
+    uint8_t   fdc_dma;
+    uint8_t   fdc_irq;
+    uint8_t   uart_irq[2];
+    uint8_t   lpt_dma;
+    uint8_t   lpt_irq;
     fdc_t    *fdc;
     serial_t *uart[2];
 } vt82c686_t;
@@ -68,7 +75,8 @@ vt82c686_fdc_handler(vt82c686_t *dev)
 static void
 vt82c686_lpt_handler(vt82c686_t *dev)
 {
-    uint16_t io_mask, io_base = dev->regs[0x06] << 2;
+    uint16_t io_mask;
+    uint16_t io_base = dev->regs[0x06] << 2;
     int      io_len = get_lpt_length(dev);
     io_base &= (0xff8 | io_len);
     io_mask = 0x3fc; /* non-EPP */
@@ -188,6 +196,9 @@ vt82c686_write(uint16_t port, uint8_t val, void *priv)
             dev->regs[reg] &= 0xf7;
             vt82c686_fdc_handler(dev);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -241,6 +252,9 @@ vt82c686_sio_write(uint8_t addr, uint8_t val, void *priv)
             if (val & 0x02)
                 io_sethandler(FDC_PRIMARY_ADDR, 2, vt82c686_read, NULL, NULL, vt82c686_write, NULL, NULL, dev);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -271,7 +285,7 @@ vt82c686_close(void *priv)
 }
 
 static void *
-vt82c686_init(const device_t *info)
+vt82c686_init(UNUSED(const device_t *info))
 {
     vt82c686_t *dev = (vt82c686_t *) malloc(sizeof(vt82c686_t));
     memset(dev, 0, sizeof(vt82c686_t));

@@ -37,6 +37,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/lpt.h>
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/serial.h>
 #include <86box/chipset.h>
@@ -63,17 +64,33 @@ wd76c10_log(const char *fmt, ...)
 #    define wd76c10_log(fmt, ...)
 #endif
 
-typedef struct
-{
-    uint16_t lock_reg, oscillator_40mhz, cache_flush, ems_page_reg,
-        ems_page_reg_pointer, port_shadow, pmc_interrupt,
-        high_mem_protect_boundry, delay_line, diagnostic,
-        nmi_status, pmc_input, pmc_timer,
-        pmc_output, ems_control_low_address_boundry, shadow_ram,
-        split_addr, bank32staddr, bank10staddr,
-        non_page_mode_dram_timing, mem_control,
-        refresh_control, disk_chip_select, prog_chip_sel_addr,
-        bus_timing_power_down_ctl, clk_control;
+typedef struct wd76c10_t {
+    uint16_t lock_reg;
+    uint16_t oscillator_40mhz;
+    uint16_t cache_flush;
+    uint16_t ems_page_reg;
+    uint16_t ems_page_reg_pointer;
+    uint16_t port_shadow;
+    uint16_t pmc_interrupt;
+    uint16_t high_mem_protect_boundry;
+    uint16_t delay_line;
+    uint16_t diagnostic;
+    uint16_t nmi_status;
+    uint16_t pmc_input;
+    uint16_t pmc_timer;
+    uint16_t pmc_output;
+    uint16_t ems_control_low_address_boundry;
+    uint16_t shadow_ram;
+    uint16_t split_addr;
+    uint16_t bank32staddr;
+    uint16_t bank10staddr;
+    uint16_t non_page_mode_dram_timing;
+    uint16_t mem_control;
+    uint16_t refresh_control;
+    uint16_t disk_chip_select;
+    uint16_t prog_chip_sel_addr;
+    uint16_t bus_timing_power_down_ctl;
+    uint16_t clk_control;
 
     int lock;
 
@@ -100,6 +117,8 @@ wd76c10_refresh_control(wd76c10_t *dev)
         case 4:
             serial_setup(dev->uart[1], 0x2e8, 3);
             break;
+        default:
+            break;
     }
 
     serial_remove(dev->uart[0]);
@@ -117,6 +136,8 @@ wd76c10_refresh_control(wd76c10_t *dev)
         case 4:
             serial_setup(dev->uart[0], 0x2e8, 4);
             break;
+        default:
+            break;
     }
 
     lpt1_remove();
@@ -133,6 +154,9 @@ wd76c10_refresh_control(wd76c10_t *dev)
         case 3:
             lpt1_init(0x278);
             lpt1_irq(7);
+            break;
+
+        default:
             break;
     }
 }
@@ -152,6 +176,8 @@ wd76c10_split_addr(wd76c10_t *dev)
         case 3:
             if (((dev->shadow_ram >> 8) & 3) == 3)
                 mem_remap_top(384);
+            break;
+        default:
             break;
     }
 }
@@ -187,6 +213,8 @@ wd76c10_shadow_recalc(wd76c10_t *dev)
         case 3:
             mem_set_mem_state_both(0x20000, 0x80000, MEM_READ_DISABLED | MEM_WRITE_DISABLED);
             break;
+        default:
+            break;
     }
 
     switch ((dev->shadow_ram >> 8) & 3) {
@@ -202,6 +230,8 @@ wd76c10_shadow_recalc(wd76c10_t *dev)
             break;
         case 3:
             mem_set_mem_state_both(0x20000, 0x80000, MEM_READ_DISABLED | (!!(dev->shadow_ram & 0x1000) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL));
+            break;
+        default:
             break;
     }
 }
@@ -309,6 +339,9 @@ wd76c10_write(uint16_t addr, uint16_t val, void *priv)
                 dev->cache_flush = val;
                 flushmmucache();
                 break;
+
+            default:
+                break;
         }
         wd76c10_log("WD76C10: dev->regs[%04x] = %04x\n", addr, val);
     }
@@ -325,6 +358,9 @@ wd76c10_write(uint16_t addr, uint16_t val, void *priv)
         case 0xf073:
             dev->lock_reg = val & 0x00ff;
             LOCK          = !(val & 0x00da);
+            break;
+
+        default:
             break;
     }
 }
@@ -424,7 +460,7 @@ wd76c10_close(void *priv)
 }
 
 static void *
-wd76c10_init(const device_t *info)
+wd76c10_init(UNUSED(const device_t *info))
 {
     wd76c10_t *dev = (wd76c10_t *) malloc(sizeof(wd76c10_t));
     memset(dev, 0, sizeof(wd76c10_t));

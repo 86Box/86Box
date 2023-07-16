@@ -60,9 +60,14 @@ voodoo_setup_log(const char *fmt, ...)
 void
 voodoo_triangle_setup(voodoo_t *voodoo)
 {
-    float  dxAB, dxBC, dyAB, dyBC;
+    float  dxAB;
+    float  dxBC;
+    float  dyAB;
+    float  dyBC;
     float  area;
-    int    va = 0, vb = 1, vc = 2;
+    int    va = 0;
+    int    vb = 1;
+    int    vc = 2;
     vert_t verts[3];
 
     verts[0] = voodoo->verts[0];

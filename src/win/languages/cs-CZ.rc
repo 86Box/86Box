@@ -278,6 +278,7 @@ END
 #define STR_ENABLED_LOCAL "Zapnuta (místní čas)"
 #define STR_ENABLED_UTC   "Zapnuta (UTC)"
 #define STR_DYNAREC       "Dynamický překladač"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
 #define STR_VIDEO         "Grafika:"
 #define STR_VIDEO_2       "Grafika 2:"
@@ -367,7 +368,6 @@ END
 #define STR_CHECKBPB      "Kontrola BPB"
 #define STR_CDROM_DRIVES  "Mechaniky CD-ROM:"
 #define STR_CD_SPEED      "Rychlost:"
-#define STR_EARLY         "Časná mechanika"
 
 #define STR_MO_DRIVES     "Magnetooptické mechaniky:"
 #define STR_ZIP_DRIVES    "Mechaniky ZIP:"
@@ -537,11 +537,13 @@ BEGIN
     IDS_2159    "Resetovat"
     IDS_2160    "Vypnout skrze rozhraní ACPI"
     IDS_2161    "Nastavení"
-    IDS_2162    "Časná mechanika"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
     IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+    IDS_2167    "Failed to initialize network driver"
+    IDS_2168    "The network configuration will be switched to the null driver"
 END
 
 STRINGTABLE DISCARDABLE

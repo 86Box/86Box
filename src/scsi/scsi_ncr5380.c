@@ -217,14 +217,12 @@ ncr_irq(ncr5380_t *ncr_dev, ncr_t *ncr, int set_irq)
 static int
 get_dev_id(uint8_t data)
 {
-    int c;
-
-    for (c = 0; c < SCSI_ID_MAX; c++) {
+    for (uint8_t c = 0; c < SCSI_ID_MAX; c++) {
         if (data & (1 << c))
-            return (c);
+            return c;
     }
 
-    return (-1);
+    return -1;
 }
 
 static int
@@ -718,7 +716,8 @@ ncr_read(uint16_t port, void *priv)
     ncr5380_t *ncr_dev = (ncr5380_t *) priv;
     ncr_t     *ncr     = &ncr_dev->ncr;
     uint8_t    ret     = 0xff;
-    int        bus, bus_state;
+    int        bus;
+    int        bus_state;
 
     switch (port & 7) {
         case 0: /* Current SCSI data */
@@ -909,7 +908,7 @@ memio_read(uint32_t addr, void *priv)
         ncr_log("memio_read(%08x)=%02x\n", addr, ret);
 #endif
 
-    return (ret);
+    return ret;
 }
 
 /* Memory-mapped I/O WRITE handler. */
@@ -1082,7 +1081,7 @@ t130b_out(uint16_t port, uint8_t val, void *priv)
 static void
 ncr_dma_send(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
 {
-    int     bus, c = 0;
+    int     bus;
     uint8_t data;
 
     if (scsi_device_get_callback(dev) > 0.0)
@@ -1090,7 +1089,7 @@ ncr_dma_send(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
     else
         ncr_timer_on(ncr_dev, ncr, 0);
 
-    for (c = 0; c < 10; c++) {
+    for (uint8_t c = 0; c < 10; c++) {
         ncr_bus_read(ncr_dev);
         if (ncr->cur_bus & BUS_REQ)
             break;
@@ -1161,7 +1160,7 @@ ncr_dma_send(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
 static void
 ncr_dma_initiator_receive(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
 {
-    int     bus, c = 0;
+    int     bus;
     uint8_t temp;
 
     if (scsi_device_get_callback(dev) > 0.0) {
@@ -1170,7 +1169,7 @@ ncr_dma_initiator_receive(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
         ncr_timer_on(ncr_dev, ncr, 0);
     }
 
-    for (c = 0; c < 10; c++) {
+    for (uint8_t c = 0; c < 10; c++) {
         ncr_bus_read(ncr_dev);
         if (ncr->cur_bus & BUS_REQ)
             break;
@@ -1376,7 +1375,7 @@ t128_read(uint32_t addr, void *priv)
         }
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -1600,7 +1599,7 @@ ncr_init(const device_t *info)
     }
     timer_add(&ncr_dev->timer, ncr_callback, ncr_dev, 0);
 
-    return (ncr_dev);
+    return ncr_dev;
 }
 
 static void

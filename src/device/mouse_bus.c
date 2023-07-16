@@ -80,6 +80,7 @@
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/mouse.h>
+#include <86box/plat_unused.h>
 #include <86box/random.h>
 
 #define IRQ_MASK ((1 << 5) >> dev->irq)
@@ -132,16 +133,26 @@ static const uint8_t periods[4] = { 30, 50, 100, 200 };
 
 /* Our mouse device. */
 typedef struct mouse {
-    uint8_t current_b, control_val,
-        config_val, sig_val,
-        command_val, pad;
+    uint8_t current_b;
+    uint8_t control_val;
+    uint8_t config_val;
+    uint8_t sig_val;
+    uint8_t command_val;
+    uint8_t pad;
 
-    int8_t current_x, current_y;
+    int8_t current_x;
+    int8_t current_y;
 
-    int base, irq, bn, flags,
-        mouse_delayed_dx, mouse_delayed_dy,
-        mouse_buttons, mouse_buttons_last,
-        toggle_counter, timer_enabled;
+    int base;
+    int irq;
+    int bn;
+    int flags;
+    int mouse_delayed_dx;
+    int mouse_delayed_dy;
+    int mouse_buttons;
+    int mouse_buttons_last;
+    int toggle_counter;
+    int timer_enabled;
 
     double     period;
     pc_timer_t timer; /* mouse event timer */
@@ -216,6 +227,9 @@ lt_read(uint16_t port, void *priv)
             else
                 return 0xff;
             break;
+
+        default:
+            break;
     }
 
     bm_log("DEBUG: read from address 0x%04x, value = 0x%02x\n", port, value);
@@ -249,6 +263,7 @@ ms_read(uint16_t port, void *priv)
                 case INP_CTRL_COMMAND:
                     value = dev->control_val;
                     break;
+
                 default:
                     bm_log("ERROR: Reading data port in unsupported mode 0x%02x\n", dev->control_val);
             }
@@ -262,6 +277,9 @@ ms_read(uint16_t port, void *priv)
             break;
         case INP_PORT_CONFIG:
             bm_log("ERROR: Unsupported read from port 0x%04x\n", port);
+            break;
+
+        default:
             break;
     }
 
@@ -355,6 +373,9 @@ lt_write(uint16_t port, uint8_t val, void *priv)
                     dev->control_val &= ~bit; /* Reset */
             }
             break;
+
+        default:
+            break;
     }
 }
 
@@ -380,6 +401,7 @@ ms_write(uint16_t port, uint8_t val, void *priv)
                 case INP_CTRL_READ_Y:
                     dev->command_val = val & 0x07;
                     break;
+
                 default:
                     bm_log("ERROR: Unsupported command written to port 0x%04x (value = 0x%02x)\n", port, val);
             }
@@ -429,6 +451,7 @@ ms_write(uint16_t port, uint8_t val, void *priv)
                             dev->control_val &= INP_PERIOD_MASK;
                             dev->control_val |= (val & ~INP_PERIOD_MASK);
                             return;
+
                         default:
                             bm_log("ERROR: Unsupported period written to port 0x%04x (value = 0x%02x)\n", port, val);
                     }
@@ -436,6 +459,7 @@ ms_write(uint16_t port, uint8_t val, void *priv)
                     dev->control_val = val;
 
                     break;
+
                 default:
                     bm_log("ERROR: Unsupported write to port 0x%04x (value = 0x%02x)\n", port, val);
             }
@@ -444,22 +468,25 @@ ms_write(uint16_t port, uint8_t val, void *priv)
         case INP_PORT_CONFIG:
             bm_log("ERROR: Unsupported write to port 0x%04x (value = 0x%02x)\n", port, val);
             break;
+
+        default:
+            break;
     }
 }
 
 /* The emulator calls us with an update on the host mouse device. */
 static int
-bm_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
+bm_poll(int x, int y, UNUSED(int z), int b, UNUSED(double abs_x), UNUSED(double abs_y), void *priv)
 {
     mouse_t *dev = (mouse_t *) priv;
     int xor ;
 
     if (!(dev->flags & FLAG_ENABLED))
-        return (1); /* Mouse is disabled, do nothing. */
+        return 1; /* Mouse is disabled, do nothing. */
 
     if (!x && !y && !((b ^ dev->mouse_buttons_last) & 0x07)) {
         dev->mouse_buttons_last = b;
-        return (1); /* State has not changed, do nothing. */
+        return 1; /* State has not changed, do nothing. */
     }
 
     /* Converts button states from MRL to LMR. */
@@ -512,7 +539,7 @@ bm_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
             bm_log("DEBUG: Data Interrupt Fired...\n");
         }
     }
-    return (0);
+    return 0;
 }
 
 /* The timer calls us on every tick if the mouse is in timer mode
@@ -520,7 +547,8 @@ bm_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
 static void
 bm_update_data(mouse_t *dev)
 {
-    int delta_x, delta_y;
+    int delta_x;
+    int delta_y;
     int xor ;
 
     /* If the counters are not frozen, update them. */

@@ -74,7 +74,6 @@ typedef struct
 void
 ibm_rgb528_render_4bpp(svga_t *svga)
 {
-    int                  x;
     uint32_t            *p;
     ibm_rgb528_pixel32_t dat_out;
     uint8_t              dat;
@@ -98,7 +97,7 @@ ibm_rgb528_render_4bpp(svga_t *svga)
             svga->firstline_draw = svga->displine;
         svga->lastline_draw = svga->displine;
 
-        for (x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
+        for (int x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
             if (vram_size == 3) {
                 if (!(x & 31)) {
                     dat64  = *(uint64_t *) (&svga->vram[svga->ma]);
@@ -155,7 +154,6 @@ ibm_rgb528_render_4bpp(svga_t *svga)
 void
 ibm_rgb528_render_8bpp(svga_t *svga)
 {
-    int                  x;
     uint32_t            *p;
     ibm_rgb528_pixel32_t dat_out;
     uint8_t              dat;
@@ -177,7 +175,7 @@ ibm_rgb528_render_8bpp(svga_t *svga)
             svga->firstline_draw = svga->displine;
         svga->lastline_draw = svga->displine;
 
-        for (x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
+        for (int x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
             if (vram_size == 3) {
                 if (!(x & 15)) {
                     dat64  = *(uint64_t *) (&svga->vram[svga->ma]);
@@ -225,7 +223,6 @@ ibm_rgb528_render_8bpp(svga_t *svga)
 void
 ibm_rgb528_render_15_16bpp(svga_t *svga)
 {
-    int                   x;
     uint32_t             *p;
     ibm_rgb528_pixel16_t *dat_ex;
     ibm_rgb528_pixel32_t  dat_out;
@@ -242,7 +239,8 @@ ibm_rgb528_render_15_16bpp(svga_t *svga)
     uint8_t               b6bit_lin = ramdac->indexed_data[0x07] & 0x80;
     uint8_t               swaprb    = ramdac->indexed_data[0x72] & 0x80;
     uint8_t               swap_word = ramdac->indexed_data[0x72] & 0x10;
-    uint8_t               vram_size = ramdac->indexed_data[0x70] & 0x01, temp;
+    uint8_t               vram_size = ramdac->indexed_data[0x70] & 0x01;
+    uint8_t               temp;
 
     if ((svga->displine + svga->y_add) < 0)
         return;
@@ -257,7 +255,7 @@ ibm_rgb528_render_15_16bpp(svga_t *svga)
             svga->firstline_draw = svga->displine;
         svga->lastline_draw = svga->displine;
 
-        for (x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
+        for (int x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
             if (vram_size == 2) {
                 if (!(x & 7)) {
                     dat64  = *(uint64_t *) (&svga->vram[svga->ma]);
@@ -350,7 +348,6 @@ ibm_rgb528_render_15_16bpp(svga_t *svga)
 void
 ibm_rgb528_render_24bpp(svga_t *svga)
 {
-    int                   x;
     uint32_t             *p;
     ibm_rgb528_pixel32_t *dat_ex;
     uint32_t              dat;
@@ -361,7 +358,8 @@ ibm_rgb528_render_24bpp(svga_t *svga)
     uint8_t               swaprb    = ramdac->indexed_data[0x72] & 0x80;
     uint8_t               swap_word = ramdac->indexed_data[0x72] & 0x10;
     uint8_t               vram_size = ramdac->indexed_data[0x70] & 0x01;
-    uint8_t               b6bit_lin = ramdac->indexed_data[0x07] & 0x80, temp;
+    uint8_t               b6bit_lin = ramdac->indexed_data[0x07] & 0x80;
+    uint8_t               temp;
 
     if ((svga->displine + svga->y_add) < 0)
         return;
@@ -373,7 +371,7 @@ ibm_rgb528_render_24bpp(svga_t *svga)
             svga->firstline_draw = svga->displine;
         svga->lastline_draw = svga->displine;
 
-        for (x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
+        for (int x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
             dat_ex = (ibm_rgb528_pixel32_t *) &dat;
             if (vram_size == 3) {
                 if ((x & 15) == 0) {
@@ -392,7 +390,7 @@ ibm_rgb528_render_24bpp(svga_t *svga)
                         dat64[5] = (dat64[5] << 32ULL) | (dat64[5] >> 32ULL);
                     }
                 }
-                dat_ex = (ibm_rgb528_pixel32_t *) &(dat8[((x & 15) * 3)]);
+                dat_ex = (ibm_rgb528_pixel32_t *) &(dat8[(x & 15) * 3]);
             } else if (vram_size == 1) {
                 if ((x & 7) == 0) {
                     dat64[0] = *(uint64_t *) (&svga->vram[svga->ma & svga->vram_display_mask]);
@@ -404,7 +402,7 @@ ibm_rgb528_render_24bpp(svga_t *svga)
                         dat64[2] = (dat64[2] << 32ULL) | (dat64[2] >> 32ULL);
                     }
                 }
-                dat_ex = (ibm_rgb528_pixel32_t *) &(dat8[((x & 7) * 3)]);
+                dat_ex = (ibm_rgb528_pixel32_t *) &(dat8[(x & 7) * 3]);
             } else
                 dat = 0x00000000;
             if (swaprb) {
@@ -439,7 +437,6 @@ ibm_rgb528_render_24bpp(svga_t *svga)
 void
 ibm_rgb528_render_32bpp(svga_t *svga)
 {
-    int                   x;
     uint32_t             *p;
     ibm_rgb528_pixel32_t *dat_ex;
     uint32_t              dat       = 0x00000000;
@@ -451,7 +448,8 @@ ibm_rgb528_render_32bpp(svga_t *svga)
     uint8_t               swaprb    = ramdac->indexed_data[0x72] & 0x80;
     uint8_t               swap_word = ramdac->indexed_data[0x72] & 0x10;
     uint8_t               vram_size = ramdac->indexed_data[0x70] & 0x01;
-    uint8_t               b6bit_lin = ramdac->indexed_data[0x07] & 0x80, temp;
+    uint8_t               b6bit_lin = ramdac->indexed_data[0x07] & 0x80;
+    uint8_t               temp;
 
     if ((svga->displine + svga->y_add) < 0)
         return;
@@ -463,7 +461,7 @@ ibm_rgb528_render_32bpp(svga_t *svga)
             svga->firstline_draw = svga->displine;
         svga->lastline_draw = svga->displine;
 
-        for (x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
+        for (int x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
             if (vram_size == 3) {
                 if (!(x & 3)) {
                     dat64  = *(uint64_t *) (&svga->vram[svga->ma]);
@@ -489,7 +487,7 @@ ibm_rgb528_render_32bpp(svga_t *svga)
                 dat_ex->r = dat_ex->b;
                 dat_ex->b = temp;
             }
-            if ((b32_dcol < 0x03) && (by32_pol))
+            if ((b32_dcol < 0x03) && by32_pol)
                 dat ^= 0x01000000;
             if ((b32_dcol == 0x00) || ((b32_dcol == 0x01) && !(dat & 0x01000000))) {
                 dat_ex->a = 0x00;
@@ -825,8 +823,12 @@ ibm_rgb528_recalctimings(void *p, svga_t *svga)
 void
 ibm_rgb528_hwcursor_draw(svga_t *svga, int displine)
 {
-    uint8_t              dat, four_pixels = 0x00;
-    int                  x, pitch, x_pos, y_pos, offset = svga->dac_hwcursor_latch.x - svga->dac_hwcursor_latch.xoff;
+    uint8_t              dat;
+    uint8_t              four_pixels = 0x00;
+    int                  pitch;
+    int                  x_pos;
+    int                  y_pos;
+    int                  offset = svga->dac_hwcursor_latch.x - svga->dac_hwcursor_latch.xoff;
     uint32_t            *p;
     ibm_rgb528_ramdac_t *ramdac      = (ibm_rgb528_ramdac_t *) svga->ramdac;
     uint8_t              pix_ordr    = ramdac->indexed_data[0x30] & 0x20;
@@ -844,7 +846,7 @@ ibm_rgb528_hwcursor_draw(svga_t *svga, int displine)
     x_pos = offset + svga->x_add;
     p     = buffer32->line[y_pos];
 
-    for (x = 0; x < svga->dac_hwcursor_latch.cur_xsize; x++) {
+    for (int x = 0; x < svga->dac_hwcursor_latch.cur_xsize; x++) {
         if (!(x & 3))
             four_pixels = ramdac->indexed_data[svga->dac_hwcursor_latch.addr];
 

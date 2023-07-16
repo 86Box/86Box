@@ -19,13 +19,16 @@
 #define EMU_SMRAM_H
 
 typedef struct _smram_ {
-    struct _smram_ *prev, *next;
+    struct _smram_ *prev;
+    struct _smram_ *next;
 
     mem_mapping_t mapping;
 
-    uint32_t host_base, ram_base,
-        size,
-        old_host_base, old_size;
+    uint32_t host_base;
+    uint32_t ram_base;
+    uint32_t size;
+    uint32_t old_host_base;
+    uint32_t old_size;
 } smram_t;
 
 /* Make a backup copy of host_base and size of all the SMRAM structs, needed so that if

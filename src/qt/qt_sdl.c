@@ -78,10 +78,14 @@
 static SDL_Window   *sdl_win    = NULL;
 static SDL_Renderer *sdl_render = NULL;
 static SDL_Texture  *sdl_tex    = NULL;
-static int           sdl_w, sdl_h;
-static int           sdl_fs, sdl_flags = -1;
-static int           cur_w, cur_h;
-static int           cur_ww = 0, cur_wh = 0;
+static int           sdl_w;
+static int           sdl_h;
+static int           sdl_fs;
+static int           sdl_flags = -1;
+static int           cur_w;
+static int           cur_h;
+static int           cur_ww = 0;
+static int           cur_wh = 0;
 static volatile int  sdl_enabled = 0;
 static SDL_mutex    *sdl_mutex   = NULL;
 
@@ -236,7 +240,16 @@ sdl_integer_scale(double *d, double *g)
 static void
 sdl_stretch(int *w, int *h, int *x, int *y)
 {
-    double hw, gw, hh, gh, dx, dy, dw, dh, gsr, hsr;
+    double hw;
+    double gw;
+    double hh;
+    double gh;
+    double dx;
+    double dy;
+    double dw;
+    double dh;
+    double gsr;
+    double hsr;
 
     hw  = (double) sdl_w;
     hh  = (double) sdl_h;
@@ -298,7 +311,8 @@ sdl_blit(int x, int y, int w, int h)
 {
     SDL_Rect r_src;
     void    *pixeldata;
-    int      ret, pitch;
+    int      ret;
+    int      pitch;
 
     if (!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
         video_blit_complete();
@@ -385,10 +399,9 @@ sdl_close(void)
 static void
 sdl_select_best_hw_driver(void)
 {
-    int              i;
     SDL_RendererInfo renderInfo;
 
-    for (i = 0; i < SDL_GetNumRenderDrivers(); ++i) {
+    for (int i = 0; i < SDL_GetNumRenderDrivers(); ++i) {
         SDL_GetRenderDriverInfo(i, &renderInfo);
         if (renderInfo.flags & SDL_RENDERER_ACCELERATED) {
             SDL_SetHint(SDL_HINT_RENDER_DRIVER, renderInfo.name);
@@ -408,7 +421,7 @@ sdl_init_texture(void)
     }
 
     sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
-                                SDL_TEXTUREACCESS_STREAMING, (2048), (2048));
+                                SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
 
     if (sdl_render == NULL) {
         sdl_log("SDL: unable to SDL_CreateRenderer (%s)\n", SDL_GetError());
@@ -520,13 +533,14 @@ sdl_initho(void *win)
 int
 sdl_pause(void)
 {
-    return (0);
+    return 0;
 }
 
 void
 sdl_resize(int w, int h)
 {
-    int ww = 0, wh = 0;
+    int ww = 0;
+    int wh = 0;
 
     if (video_fullscreen & 2)
         return;

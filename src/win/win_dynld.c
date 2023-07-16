@@ -13,6 +13,7 @@
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *          Copyright 2017-2018 Fred N. van Kempen
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -47,7 +48,6 @@ void *
 dynld_module(const char *name, dllimp_t *table)
 {
     HMODULE   h;
-    dllimp_t *imp;
     void     *func;
 
     /* See if we can load the desired module. */
@@ -57,7 +57,7 @@ dynld_module(const char *name, dllimp_t *table)
     }
 
     /* Now load the desired function pointers. */
-    for (imp = table; imp->name != NULL; imp++) {
+    for (dllimp_t *imp = table; imp->name != NULL; imp++) {
         func = GetProcAddress(h, imp->name);
         if (func == NULL) {
             dynld_log("DynLd(\"%s\"): function '%s' not found! (%08X)\n",

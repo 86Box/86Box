@@ -106,6 +106,7 @@
 
 #include <86box/mem.h>
 #include <86box/pci.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/smram.h>
 
@@ -142,9 +143,10 @@ hb4_log(const char *fmt, ...)
 #endif
 
 typedef struct hb4_t {
-    uint8_t shadow,
-        shadow_read, shadow_write,
-        pci_conf[256]; /* PCI Registers */
+    uint8_t  shadow;
+    uint8_t  shadow_read;
+    uint8_t  shadow_write;
+    uint8_t  pci_conf[256]; /* PCI Registers */
     int      mem_state[9];
     smram_t *smram[3]; /* SMRAM Handlers */
 } hb4_t;
@@ -191,10 +193,10 @@ hb4_shadow_bios_low(hb4_t *dev)
 int
 hb4_shadow_main(hb4_t *dev)
 {
-    int i, state;
+    int state;
     int n = 0;
 
-    for (i = 0; i < 6; i++) {
+    for (uint8_t i = 0; i < 6; i++) {
         state = shadow_read[dev->shadow && ((dev->pci_conf[0x54] >> (i + 2)) & 0x01)] | shadow_write[(dev->pci_conf[0x55] >> 6) & 0x01];
 
         if (state != dev->mem_state[i + 1]) {
@@ -261,7 +263,7 @@ hb4_smram(hb4_t *dev)
 }
 
 static void
-hb4_write(int func, int addr, uint8_t val, void *priv)
+hb4_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     hb4_t *dev = (hb4_t *) priv;
 
@@ -321,6 +323,9 @@ hb4_write(int func, int addr, uint8_t val, void *priv)
 
         case 0x61:
             dev->pci_conf[addr] = val;
+            break;
+
+        default:
             break;
     }
 }
@@ -383,7 +388,7 @@ hb4_close(void *priv)
 }
 
 static void *
-hb4_init(const device_t *info)
+hb4_init(UNUSED(const device_t *info))
 {
     hb4_t *dev = (hb4_t *) malloc(sizeof(hb4_t));
     memset(dev, 0, sizeof(hb4_t));

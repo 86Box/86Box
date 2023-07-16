@@ -678,7 +678,7 @@ tgui_recalctimings(svga_t *svga)
 
     if (tgui->type >= TGUI_9440) {
         if (svga->miscout & 8)
-            svga->clock = (cpuclock * (double) (1ull << 32)) / (((tgui->clock_n + 8) * 14318180.0) / ((tgui->clock_m + 2) * (1 << tgui->clock_k)));
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / (((tgui->clock_n + 8) * 14318180.0) / ((tgui->clock_m + 2) * (1 << tgui->clock_k)));
 
         if (svga->gdcreg[0xf] & 0x08)
             svga->clock *= 2;
@@ -687,46 +687,46 @@ tgui_recalctimings(svga_t *svga)
     } else {
         switch (((svga->miscout >> 2) & 3) | ((tgui->newctrl2 << 2) & 4) | ((tgui->newctrl2 >> 3) & 8)) {
             case 0x02:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 44900000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
                 break;
             case 0x03:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 36000000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 36000000.0;
                 break;
             case 0x04:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 57272000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 57272000.0;
                 break;
             case 0x05:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 65000000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 65000000.0;
                 break;
             case 0x06:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 50350000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 50350000.0;
                 break;
             case 0x07:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 40000000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 40000000.0;
                 break;
             case 0x08:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 88000000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 88000000.0;
                 break;
             case 0x09:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 98000000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 98000000.0;
                 break;
             case 0x0a:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 118800000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 118800000.0;
                 break;
             case 0x0b:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 108000000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 108000000.0;
                 break;
             case 0x0c:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 72000000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 72000000.0;
                 break;
             case 0x0d:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 77000000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 77000000.0;
                 break;
             case 0x0e:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 80000000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 80000000.0;
                 break;
             case 0x0f:
-                svga->clock = (cpuclock * (double) (1ull << 32)) / 75000000.0;
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 75000000.0;
                 break;
         }
         if (svga->gdcreg[0xf] & 0x08) {
@@ -894,7 +894,6 @@ static void
 tgui_hwcursor_draw(svga_t *svga, int displine)
 {
     uint32_t dat[2];
-    int      xx;
     int      offset = svga->hwcursor_latch.x + svga->hwcursor_latch.xoff;
     int      pitch  = (svga->hwcursor_latch.cur_xsize == 64) ? 16 : 8;
 
@@ -903,7 +902,7 @@ tgui_hwcursor_draw(svga_t *svga, int displine)
 
     dat[0] = (svga->vram[svga->hwcursor_latch.addr] << 24) | (svga->vram[svga->hwcursor_latch.addr + 1] << 16) | (svga->vram[svga->hwcursor_latch.addr + 2] << 8) | svga->vram[svga->hwcursor_latch.addr + 3];
     dat[1] = (svga->vram[svga->hwcursor_latch.addr + 4] << 24) | (svga->vram[svga->hwcursor_latch.addr + 5] << 16) | (svga->vram[svga->hwcursor_latch.addr + 6] << 8) | svga->vram[svga->hwcursor_latch.addr + 7];
-    for (xx = 0; xx < 32; xx++) {
+    for (uint8_t xx = 0; xx < 32; xx++) {
         if (svga->crtc[0x50] & 0x40) {
             if (offset >= svga->hwcursor_latch.x) {
                 if (dat[0] & 0x80000000)
@@ -1069,7 +1068,6 @@ tgui_ext_linear_read(uint32_t addr, void *p)
 {
     svga_t *svga = (svga_t *) p;
     tgui_t *tgui = (tgui_t *) svga->p;
-    int     c;
 
     cycles -= video_timing_read_b;
 
@@ -1080,7 +1078,7 @@ tgui_ext_linear_read(uint32_t addr, void *p)
     addr &= ~0xf;
     addr = dword_remap(svga, addr);
 
-    for (c = 0; c < 16; c++) {
+    for (uint8_t c = 0; c < 16; c++) {
         tgui->copy_latch[c] = svga->vram[addr + c];
         addr += ((c & 3) == 3) ? 13 : 1;
     }
@@ -1341,10 +1339,14 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 {
     svga_t   *svga = &tgui->svga;
     uint32_t *pattern_data;
-    int       x, y;
-    int       c, d;
+    int       x;
+    int       y;
+    int       c;
+    int       d;
     uint32_t  out;
-    uint32_t  src_dat    = 0, dst_dat, pat_dat;
+    uint32_t  src_dat    = 0;
+    uint32_t  dst_dat;
+    uint32_t  pat_dat;
     int       xdir       = (tgui->accel.flags & 0x200) ? -1 : 1;
     int       ydir       = (tgui->accel.flags & 0x100) ? -1 : 1;
     uint32_t  trans_col  = (tgui->accel.flags & TGUI_TRANSREV) ? tgui->accel.fg_col : tgui->accel.bg_col;
@@ -3563,7 +3565,7 @@ tgui_close(void *p)
     if (tgui->type >= TGUI_9440) {
         ddc_close(tgui->ddc);
         i2c_gpio_close(tgui->i2c);
-    };
+    }
 
     free(tgui);
 }

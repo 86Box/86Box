@@ -48,7 +48,9 @@ extern "C" {
 #include <86box/machine.h>
 #include <86box/vid_ega.h>
 #include <86box/version.h>
-//#include <86box/acpi.h> /* Requires timer.h include, which conflicts with Qt headers */
+#if 0
+#include <86box/acpi.h> /* Requires timer.h include, which conflicts with Qt headers */
+#endif
 extern atomic_int acpi_pwrbut_pressed;
 extern int acpi_enabled;
 
@@ -96,8 +98,17 @@ extern int qt_nvr_save(void);
 #include "qt_util.hpp"
 
 #if defined __unix__ && !defined __HAIKU__
-#    ifdef WAYLAND
-#        include "wl_mouse.hpp"
+#    ifndef Q_OS_MACOS
+#        include "evdev_keyboard.hpp"
+#    endif
+#    ifdef XKBCOMMON
+#        include "xkbcommon_keyboard.hpp"
+#        ifdef XKBCOMMON_X11
+#            include "xkbcommon_x11_keyboard.hpp"
+#        endif
+#        ifdef WAYLAND
+#            include "xkbcommon_wl_keyboard.hpp"
+#        endif
 #    endif
 #    include <X11/Xlib.h>
 #    include <X11/keysym.h>
@@ -106,6 +117,7 @@ extern int qt_nvr_save(void);
 #endif
 
 #ifdef Q_OS_MACOS
+#    include "cocoa_keyboard.hpp"
 // The namespace is required to avoid clashing typedefs; we only use this
 // header for its #defines anyway.
 namespace IOKit {
@@ -116,6 +128,7 @@ namespace IOKit {
 #ifdef __HAIKU__
 #    include <os/AppKit.h>
 #    include <os/InterfaceKit.h>
+#    include "be_keyboard.hpp"
 
 extern MainWindow *main_window;
 
@@ -402,19 +415,19 @@ MainWindow::MainWindow(QWidget *parent)
                 newVidApi = RendererStack::Renderer::Software;
                 break;
             case 1:
-                newVidApi = (RendererStack::Renderer::OpenGL);
+                newVidApi = RendererStack::Renderer::OpenGL;
                 break;
             case 2:
-                newVidApi = (RendererStack::Renderer::OpenGLES);
+                newVidApi = RendererStack::Renderer::OpenGLES;
                 break;
             case 3:
-                newVidApi = (RendererStack::Renderer::OpenGL3);
+                newVidApi = RendererStack::Renderer::OpenGL3;
                 break;
             case 4:
-                newVidApi = (RendererStack::Renderer::Vulkan);
+                newVidApi = RendererStack::Renderer::Vulkan;
                 break;
             case 5:
-                newVidApi = (RendererStack::Renderer::Direct3D9);
+                newVidApi = RendererStack::Renderer::Direct3D9;
                 break;
 #ifdef USE_VNC
             case 6:
@@ -569,7 +582,6 @@ MainWindow::MainWindow(QWidget *parent)
     }
 
 #ifdef Q_OS_MACOS
-    ui->actionFullscreen->setShortcutVisibleInContextMenu(true);
     ui->actionCtrl_Alt_Del->setShortcutVisibleInContextMenu(true);
     ui->actionTake_screenshot->setShortcutVisibleInContextMenu(true);
 #endif
@@ -648,6 +660,20 @@ MainWindow::MainWindow(QWidget *parent)
     } else {
         ui->actionCursor_Puck->setChecked(true);
     }
+
+#ifdef XKBCOMMON
+#    ifdef XKBCOMMON_X11
+    if (QApplication::platformName().contains("xcb"))
+        xkbcommon_x11_init();
+    else
+#    endif
+#    ifdef WAYLAND
+    if (QApplication::platformName().contains("wayland"))
+        xkbcommon_wl_init();
+    else
+#    endif
+    {}
+#endif
 }
 
 void
@@ -882,652 +908,78 @@ MainWindow::on_actionSettings_triggered()
     plat_pause(currentPause);
 }
 
-#if defined(__unix__) && !defined(__HAIKU__)
-std::array<uint32_t, 256> x11_to_xt_base {
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0x01,
-    0x02,
-    0x03,
-    0x04,
-    0x05,
-    0x06,
-    0x07,
-    0x08,
-    0x09,
-    0x0A,
-    0x0B,
-    0x0C,
-    0x0D,
-    0x0E,
-    0x0F,
-    0x10,
-    0x11,
-    0x12,
-    0x13,
-    0x14,
-    0x15,
-    0x16,
-    0x17,
-    0x18,
-    0x19,
-    0x1A,
-    0x1B,
-    0x1C,
-    0x1D,
-    0x1E,
-    0x1F,
-    0x20,
-    0x21,
-    0x22,
-    0x23,
-    0x24,
-    0x25,
-    0x26,
-    0x27,
-    0x28,
-    0x29,
-    0x2A,
-    0x2B,
-    0x2C,
-    0x2D,
-    0x2E,
-    0x2F,
-    0x30,
-    0x31,
-    0x32,
-    0x33,
-    0x34,
-    0x35,
-    0x36,
-    0x37,
-    0x38,
-    0x39,
-    0x3A,
-    0x3B,
-    0x3C,
-    0x3D,
-    0x3E,
-    0x3F,
-    0x40,
-    0x41,
-    0x42,
-    0x43,
-    0x44,
-    0x45,
-    0x46,
-    0x47,
-    0x48,
-    0x49,
-    0x4A,
-    0x4B,
-    0x4C,
-    0x4D,
-    0x4E,
-    0x4F,
-    0x50,
-    0x51,
-    0x52,
-    0x53,
-    0x54,
-    0x55,
-    0x56,
-    0x57,
-    0x58,
-    0x147,
-    0x148,
-    0x149,
-    0,
-    0x14B,
-    0,
-    0x14D,
-    0x14F,
-    0x150,
-    0x151,
-    0x152,
-    0x153,
-    0x11C,
-    0x11D,
-    0, // Pause/Break key.
-    0x137,
-    0x135,
-    0x138,
-    0, // Ditto as above comment.
-    0x15B,
-    0x15C,
-    0x15D,
-};
-
-std::array<uint32_t, 256> x11_to_xt_2 {
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0x01,
-    0x02,
-    0x03,
-    0x04,
-    0x05,
-    0x06,
-    0x07,
-    0x08,
-    0x09,
-    0x0A,
-    0x0B,
-    0x0C,
-    0x0D,
-    0x0E,
-    0x0F,
-    0x10,
-    0x11,
-    0x12,
-    0x13,
-    0x14,
-    0x15,
-    0x16,
-    0x17,
-    0x18,
-    0x19,
-    0x1A,
-    0x1B,
-    0x1C,
-    0x1D,
-    0x1E,
-    0x1F,
-    0x20,
-    0x21,
-    0x22,
-    0x23,
-    0x24,
-    0x25,
-    0x26,
-    0x27,
-    0x28,
-    0x29,
-    0x2A,
-    0x2B,
-    0x2C,
-    0x2D,
-    0x2E,
-    0x2F,
-    0x30,
-    0x31,
-    0x32,
-    0x33,
-    0x34,
-    0x35,
-    0x36,
-    0x37,
-    0x38,
-    0x39,
-    0x3A,
-    0x3B,
-    0x3C,
-    0x3D,
-    0x3E,
-    0x3F,
-    0x40,
-    0x41,
-    0x42,
-    0x43,
-    0x44,
-    0x45,
-    0x46,
-    0x47,
-    0x48,
-    0x49,
-    0x4A,
-    0x4B,
-    0x4C,
-    0x4D,
-    0x4E,
-    0x4F,
-    0x50,
-    0x51,
-    0x52,
-    0x53,
-    0x138,
-    0x55,
-    0x56,
-    0x57,
-    0x58,
-    0x56,
-    0x70,
-    0x7B,
-    0x7D,
-    0x2B,
-    0x7E,
-    0,
-    0x11C,
-    0x11D,
-    0x135,
-    0x137,
-    0x138,
-    0,
-    0x147,
-    0x148,
-    0x149,
-    0x14B,
-    0x14D,
-    0x14F,
-    0x150,
-    0x151,
-    0x152,
-    0x153,
-    0,
-    0, /* Mute */
-    0, /* Volume Down */
-    0, /* Volume Up */
-    0, /* Power Off */
-    0,
-    0,
-    0,
-    0,
-    0,
-    0x70,
-    0x7B,
-    0x73,
-    0x15B,
-    0x15C,
-    0x15D
-};
-
-std::array<uint32_t, 256> x11_to_xt_vnc {
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0x1D,
-    0x11D,
-    0x2A,
-    0x36,
-    0,
-    0,
-    0x38,
-    0x138,
-    0x39,
-    0x0B,
-    0x02,
-    0x03,
-    0x04,
-    0x05,
-    0x06,
-    0x07,
-    0x08,
-    0x09,
-    0x0A,
-    0x0C,
-    0x0D,
-    0x1A,
-    0x1B,
-    0x27,
-    0x28,
-    0x29,
-    0x33,
-    0x34,
-    0x35,
-    0x2B,
-    0x1E,
-    0x30,
-    0x2E,
-    0x20,
-    0x12,
-    0x21,
-    0x22,
-    0x23,
-    0x17,
-    0x24,
-    0x25,
-    0x26,
-    0x32,
-    0x31,
-    0x18,
-    0x19,
-    0x10,
-    0x13,
-    0x1F,
-    0x14,
-    0x16,
-    0x2F,
-    0x11,
-    0x2D,
-    0x15,
-    0x2C,
-    0x0E,
-    0x1C,
-    0x0F,
-    0x01,
-    0x153,
-    0x147,
-    0x14F,
-    0x149,
-    0x151,
-    0x148,
-    0x150,
-    0x14B,
-    0x14D,
-};
-#endif
-
-#ifdef Q_OS_MACOS
-std::array<uint32_t, 256> darwin_to_xt {
-    0x1E,
-    0x1F,
-    0x20,
-    0x21,
-    0x23,
-    0x22,
-    0x2C,
-    0x2D,
-    0x2E,
-    0x2F,
-    0x2B,
-    0x30,
-    0x10,
-    0x11,
-    0x12,
-    0x13,
-    0x15,
-    0x14,
-    0x02,
-    0x03,
-    0x04,
-    0x05,
-    0x07,
-    0x06,
-    0x0D,
-    0x0A,
-    0x08,
-    0x0C,
-    0x09,
-    0x0B,
-    0x1B,
-    0x18,
-    0x16,
-    0x1A,
-    0x17,
-    0x19,
-    0x1C,
-    0x26,
-    0x24,
-    0x28,
-    0x25,
-    0x27,
-    0x2B,
-    0x33,
-    0x35,
-    0x31,
-    0x32,
-    0x34,
-    0x0F,
-    0x39,
-    0x29,
-    0x0E,
-    0x11C,
-    0x01,
-    0x15C,
-    0x15B,
-    0x2A,
-    0x3A,
-    0x38,
-    0x1D,
-    0x36,
-    0x138,
-    0x11D,
-    0x15C,
-    0,
-    0x53,
-    0,
-    0x37,
-    0,
-    0x4E,
-    0,
-    0x45,
-    0x130,
-    0x12E,
-    0x120,
-    0x135,
-    0x11C,
-    0,
-    0x4A,
-    0,
-    0,
-    0,
-    0x52,
-    0x4F,
-    0x50,
-    0x51,
-    0x4B,
-    0x4C,
-    0x4D,
-    0x47,
-    0,
-    0x48,
-    0x49,
-    0,
-    0,
-    0,
-    0x3F,
-    0x40,
-    0x41,
-    0x3D,
-    0x42,
-    0x43,
-    0,
-    0x57,
-    0,
-    0x137,
-    0,
-    0x46,
-    0,
-    0x44,
-    0x15D,
-    0x58,
-    0,
-    0, // Pause/Break key.
-    0x152,
-    0x147,
-    0x149,
-    0x153,
-    0x3E,
-    0x14F,
-    0x3C,
-    0x151,
-    0x3B,
-    0x14B,
-    0x14D,
-    0x150,
-    0x148,
-    0,
-};
-#endif
-
-#if defined(__unix__) && !defined(__HAIKU__)
-static std::unordered_map<uint32_t, uint16_t> evdev_to_xt = {
-    {96,   0x11C},
-    { 97,  0x11D},
-    { 98,  0x135},
-    { 99,  0x71 },
-    { 100, 0x138},
-    { 101, 0x1C },
-    { 102, 0x147},
-    { 103, 0x148},
-    { 104, 0x149},
-    { 105, 0x14B},
-    { 106, 0x14D},
-    { 107, 0x14F},
-    { 108, 0x150},
-    { 109, 0x151},
-    { 110, 0x152},
-    { 111, 0x153}
-};
-#endif
-
-#ifdef __HAIKU__
-static std::unordered_map<uint8_t, uint16_t> be_to_xt = {
-    {0x01,       0x01 },
-    { B_F1_KEY,  0x3B },
-    { B_F2_KEY,  0x3C },
-    { B_F3_KEY,  0x3D },
-    { B_F4_KEY,  0x3E },
-    { B_F5_KEY,  0x3F },
-    { B_F6_KEY,  0x40 },
-    { B_F7_KEY,  0x41 },
-    { B_F8_KEY,  0x42 },
-    { B_F9_KEY,  0x43 },
-    { B_F10_KEY, 0x44 },
-    { B_F11_KEY, 0x57 },
-    { B_F12_KEY, 0x58 },
-    { 0x11,      0x29 },
-    { 0x12,      0x02 },
-    { 0x13,      0x03 },
-    { 0x14,      0x04 },
-    { 0x15,      0x05 },
-    { 0x16,      0x06 },
-    { 0x17,      0x07 },
-    { 0x18,      0x08 },
-    { 0x19,      0x09 },
-    { 0x1A,      0x0A },
-    { 0x1B,      0x0B },
-    { 0x1C,      0x0C },
-    { 0x1D,      0x0D },
-    { 0x1E,      0x0E },
-    { 0x1F,      0x152},
-    { 0x20,      0x147},
-    { 0x21,      0x149},
-    { 0x22,      0x45 },
-    { 0x23,      0x135},
-    { 0x24,      0x37 },
-    { 0x25,      0x4A },
-    { 0x26,      0x0F },
-    { 0x27,      0x10 },
-    { 0x28,      0x11 },
-    { 0x29,      0x12 },
-    { 0x2A,      0x13 },
-    { 0x2B,      0x14 },
-    { 0x2C,      0x15 },
-    { 0x2D,      0x16 },
-    { 0x2E,      0x17 },
-    { 0x2F,      0x18 },
-    { 0x30,      0x19 },
-    { 0x31,      0x1A },
-    { 0x32,      0x1B },
-    { 0x33,      0x2B },
-    { 0x34,      0x153},
-    { 0x35,      0x14F},
-    { 0x36,      0x151},
-    { 0x37,      0x47 },
-    { 0x38,      0x48 },
-    { 0x39,      0x49 },
-    { 0x3A,      0x4E },
-    { 0x3B,      0x3A },
-    { 0x3C,      0x1E },
-    { 0x3D,      0x1F },
-    { 0x3E,      0x20 },
-    { 0x3F,      0x21 },
-    { 0x40,      0x22 },
-    { 0x41,      0x23 },
-    { 0x42,      0x24 },
-    { 0x43,      0x25 },
-    { 0x44,      0x26 },
-    { 0x45,      0x27 },
-    { 0x46,      0x28 },
-    { 0x47,      0x1C },
-    { 0x48,      0x4B },
-    { 0x49,      0x4C },
-    { 0x4A,      0x4D },
-    { 0x4B,      0x2A },
-    { 0x4C,      0x2C },
-    { 0x4D,      0x2D },
-    { 0x4E,      0x2E },
-    { 0x4F,      0x2F },
-    { 0x50,      0x30 },
-    { 0x51,      0x31 },
-    { 0x52,      0x32 },
-    { 0x53,      0x33 },
-    { 0x54,      0x34 },
-    { 0x55,      0x35 },
-    { 0x56,      0x36 },
-    { 0x57,      0x148},
-    { 0x58,      0x51 },
-    { 0x59,      0x50 },
-    { 0x5A,      0x4F },
-    { 0x5B,      0x11C},
-    { 0x5C,      0x1D },
-    { 0x5D,      0x38 },
-    { 0x5E,      0x39 },
-    { 0x5F,      0x138},
-    { 0x60,      0x11D},
-    { 0x61,      0x14B},
-    { 0x62,      0x150},
-    { 0x63,      0x14D},
-    { 0x64,      0x52 },
-    { 0x65,      0x53 },
-
-    { 0x0e,      0x137},
-    { 0x0f,      0x46 },
-    { 0x66,      0x15B},
-    { 0x67,      0x15C},
-    { 0x68,      0x15D},
-    { 0x69,      0x56 }
-};
-#endif
-
-#if defined(__unix__) && !defined(__HAIKU__)
-static std::array<uint32_t, 256> &selected_keycode = x11_to_xt_base;
-#endif
-
-uint16_t
-x11_keycode_to_keysym(uint32_t keycode)
+void
+MainWindow::processKeyboardInput(bool down, uint32_t keycode)
 {
-    uint16_t finalkeycode = 0;
-#if defined(Q_OS_WINDOWS)
-    finalkeycode = (keycode & 0xFFFF);
+#if defined(Q_OS_WINDOWS) /* non-raw input */
+    keycode &= 0xffff;
 #elif defined(Q_OS_MACOS)
-    finalkeycode = darwin_to_xt[keycode];
+    keycode = (keycode < 127) ? cocoa_keycodes[keycode] : 0;
 #elif defined(__HAIKU__)
-    finalkeycode = be_to_xt[keycode];
+    keycode = be_keycodes[keycode];
 #else
-    static Display *x11display = nullptr;
-    if (QApplication::platformName().contains("wayland")) {
-        selected_keycode = x11_to_xt_2;
-    } else if (QApplication::platformName().contains("eglfs")) {
-        keycode -= 8;
-        if (keycode <= 88)
-            finalkeycode = keycode;
-        else
-            finalkeycode = evdev_to_xt[keycode];
-    } else if (!x11display) {
-        x11display = XOpenDisplay(nullptr);
-        if (XKeysymToKeycode(x11display, XK_Home) == 110) {
-            selected_keycode = x11_to_xt_2;
-        } else if (XKeysymToKeycode(x11display, XK_Home) == 69) {
-            selected_keycode = x11_to_xt_vnc;
-        }
-    }
-    if (!QApplication::platformName().contains("eglfs"))
-        finalkeycode = selected_keycode[keycode];
+#    ifdef XKBCOMMON
+    if (xkbcommon_keymap)
+        keycode = xkbcommon_translate(keycode);
+    else
+#    endif
+#    ifdef EVDEV_KEYBOARD_HPP
+        keycode = evdev_translate(keycode - 8);
+#    else
+        keycode = 0;
+#    endif
 #endif
-    if (rctrl_is_lalt && finalkeycode == 0x11D) {
-        finalkeycode = 0x38;
+
+    /* Apply special cases. */
+    switch (keycode) {
+        case 0x54: /* Alt + Print Screen (special case, i.e. evdev SELECTIVE_SCREENSHOT) */
+            /* Send Alt as well. */
+            if (down) {
+                keyboard_input(down, 0x38);
+            } else {
+                keyboard_input(down, keycode);
+                keycode = 0x38;
+            }
+            break;
+
+        case 0x80 ... 0xff: /* regular break codes */
+        case 0x10b: /* Microsoft scroll up normal */
+        case 0x180 ... 0x1ff: /* E0 break codes (including Microsoft scroll down normal) */
+            /* This key uses a break code as make. Send it manually, only on press. */
+            if (down) {
+                if (keycode & 0x100)
+                    keyboard_send(0xe0);
+                keyboard_send(keycode & 0xff);
+            }
+            return;
+
+        case 0x11d: /* Right Ctrl */
+            if (rctrl_is_lalt)
+                keycode = 0x38; /* map to Left Alt */
+            break;
+
+        case 0x137: /* Print Screen */
+            if (keyboard_recv(0x38) || keyboard_recv(0x138)) { /* Alt+ */
+                keycode = 0x54;
+            } else if (down) {
+                keyboard_input(down, 0x12a);
+            } else {
+                keyboard_input(down, keycode);
+                keycode = 0x12a;
+            }
+            break;
+
+        case 0x145: /* Pause */
+            if (keyboard_recv(0x1d) || keyboard_recv(0x11d)) { /* Ctrl+ */
+                keycode = 0x146;
+            } else {
+                keyboard_input(down, 0xe11d);
+                keycode &= 0x00ff;
+            }
+            break;
     }
-    return finalkeycode;
+
+    keyboard_input(down, keycode);
 }
 
 #ifdef Q_OS_MACOS
@@ -1545,6 +997,7 @@ static std::unordered_map<uint32_t, uint16_t> mac_modifiers_to_xt = {
     { NX_DEVICE_ALPHASHIFT_STATELESS_MASK, 0x3A },
     { NX_DEVICERCTLKEYMASK,                0x11D},
 };
+static bool mac_iso_swap = false;
 
 void
 MainWindow::processMacKeyboardInput(bool down, const QKeyEvent *event)
@@ -1585,11 +1038,67 @@ MainWindow::processMacKeyboardInput(bool down, const QKeyEvent *event)
         // It's possible that other lock keys get delivered in this way, but
         // standard Apple keyboards don't have them, so this is untested.
         if (event->key() == Qt::Key_CapsLock) {
-            keyboard_input(1, 0x3A);
-            keyboard_input(0, 0x3A);
+            keyboard_input(1, 0x3a);
+            keyboard_input(0, 0x3a);
         }
     } else {
-        keyboard_input(down, x11_keycode_to_keysym(event->nativeVirtualKey()));
+        /* Apple ISO keyboards are notorious for swapping ISO_Section and ANSI_Grave
+           on *some* layouts and/or models. While macOS can sort this mess out at
+           keymap level, it still provides applications with unfiltered, ambiguous
+           keycodes, so we have to disambiguate them by making some bold assumptions
+           about the user's keyboard layout based on the OS-provided key mappings. */
+        auto nvk = event->nativeVirtualKey();
+        if ((nvk == 0x0a) || (nvk == 0x32)) {
+            /* Flaws:
+               - Layouts with `~ on ISO_Section are partially detected due to a conflict with ANSI
+               - Czech and Slovak are not detected as they have <> ANSI_Grave and \| ISO_Section (differing from PC actually)
+               - Italian is partially detected due to \| conflicting with Brazilian
+               - Romanian third level ANSI_Grave is unknown
+               - Russian clusters <>, plusminus and paragraph into a four-level ANSI_Grave, with the aforementioned `~ on ISO_Section */
+            auto key = event->key();
+            if ((nvk == 0x32) && ( /* system reports ANSI_Grave for ISO_Section keys: */
+                    (key == Qt::Key_Less) || (key == Qt::Key_Greater) || /* Croatian, French, German, Icelandic, Italian, Norwegian, Portuguese, Spanish, Spanish Latin America, Turkish Q */
+                    (key == Qt::Key_Ugrave) || /* French Canadian */
+                    (key == Qt::Key_Icircumflex) || /* Romanian */
+                    (key == Qt::Key_Iacute) || /* Hungarian */
+                    (key == Qt::Key_BracketLeft) || (key == Qt::Key_BracketRight) || /* Russian upper two levels */
+                    (key == Qt::Key_W) /* Turkish F */
+                ))
+                mac_iso_swap = true;
+            else if ((nvk == 0x0a) && ( /* system reports ISO_Section for ANSI_Grave keys: */
+                    (key == Qt::Key_paragraph) || (key == Qt::Key_plusminus) || /* Arabic, British, Bulgarian, Danish shifted, Dutch, Greek, Hebrew, Hungarian shifted, International English, Norwegian shifted, Portuguese, Russian lower two levels, Swiss unshifted, Swedish unshifted, Turkish F */
+                    (key == Qt::Key_At) || (key == Qt::Key_NumberSign) || /* Belgian, French */
+                    (key == Qt::Key_Apostrophe) || /* Brazilian unshifted */
+                    (key == Qt::Key_QuoteDbl) || /* Brazilian shifted, Turkish Q unshifted */
+                    (key == Qt::Key_QuoteLeft) || /* Croatian (right quote unknown) */
+                    (key == Qt::Key_Dollar) || /* Danish unshifted */
+                    (key == Qt::Key_AsciiCircum) || (key == 0x1ffffff) || /* German unshifted (0x1ffffff according to one tester), Polish unshifted */
+                    (key == Qt::Key_degree) || /* German shifted, Icelandic unshifted, Spanish Latin America shifted, Swiss shifted, Swedish shifted */
+                    (key == Qt::Key_0) || /* Hungarian unshifted */
+                    (key == Qt::Key_diaeresis) || /* Icelandic shifted */
+                    (key == Qt::Key_acute) || /* Norwegian unshifted */
+                    (key == Qt::Key_Asterisk) || /* Polish shifted */
+                    (key == Qt::Key_masculine) || (key == Qt::Key_ordfeminine) || /* Spanish (masculine unconfirmed) */
+                    (key == Qt::Key_Eacute) || /* Turkish Q shifted */
+                    (key == Qt::Key_Slash) /* French Canadian unshifted, Ukrainian shifted */
+                ))
+                mac_iso_swap = true;
+#if 0
+            if (down) {
+                QMessageBox questionbox(QMessageBox::Icon::Information, QString("Mac key swap test"), QString("nativeVirtualKey 0x%1\nnativeScanCode 0x%2\nkey 0x%3\nmac_iso_swap %4").arg(nvk, 0, 16).arg(event->nativeScanCode(), 0, 16).arg(key, 0, 16).arg(mac_iso_swap ? "yes" : "no"), QMessageBox::Ok, this);
+                questionbox.exec();
+            }
+#endif
+            if (mac_iso_swap)
+                nvk = (nvk == 0x0a) ? 0x32 : 0x0a;
+        }
+        // Special case for command + forward delete to send insert.
+        if ((event->nativeModifiers() & NSEventModifierFlagCommand) &&
+            ((event->nativeVirtualKey() == nvk_Delete) || event->key() == Qt::Key_Delete)) {
+            nvk = nvk_Insert; // Qt::Key_Help according to event->key()
+        }
+
+        processKeyboardInput(down, nvk);
     }
 }
 #endif
@@ -1733,33 +1242,21 @@ void
 MainWindow::keyPressEvent(QKeyEvent *event)
 {
     if (send_keyboard_input && !(kbd_req_capture && !mouse_capture)) {
-        // Windows keys in Qt have one-to-one mapping.
-        if (event->key() == Qt::Key_Pause && !keyboard_recv(0x38) && !keyboard_recv(0x138)) {
-            if ((keyboard_recv(0x1D) || keyboard_recv(0x11D))) {
-                keyboard_input(1, 0x46);
-            } else {
-                keyboard_input(0, 0xE1);
-                keyboard_input(0, 0x1D);
-                keyboard_input(0, 0x45);
-                keyboard_input(0, 0xE1);
-                keyboard_input(1, 0x1D);
-                keyboard_input(1, 0x45);
-            }
-        } else
 #ifdef Q_OS_MACOS
-            processMacKeyboardInput(true, event);
+        processMacKeyboardInput(true, event);
 #else
-            keyboard_input(1, x11_keycode_to_keysym(event->nativeScanCode()));
+        processKeyboardInput(true, event->nativeScanCode());
 #endif
     }
 
-    if ((video_fullscreen > 0) && keyboard_isfsexit()) {
-        ui->actionFullscreen->trigger();
-    }
+    if (!fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit())
+        fs_off_signal = true;
 
-    if (keyboard_ismsexit()) {
+    if (!fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter())
+        fs_on_signal = true;
+
+    if (keyboard_ismsexit())
         plat_mouse_capture(0);
-    }
 
     if ((video_fullscreen > 0) && (keyboard_recv(0x1D) || keyboard_recv(0x11D))) {
         if (keyboard_recv(0x57))
@@ -1791,13 +1288,24 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
             plat_pause(dopause ^ 1);
         }
     }
-    if (!send_keyboard_input)
+
+    if (fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit()) {
+        ui->actionFullscreen->trigger();
+        fs_off_signal = false;
+    }
+
+    if (fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter()) {
+        ui->actionFullscreen->trigger();
+        fs_on_signal = false;
+    }
+
+    if (!send_keyboard_input || event->isAutoRepeat())
         return;
 
 #ifdef Q_OS_MACOS
     processMacKeyboardInput(false, event);
 #else
-    keyboard_input(0, x11_keycode_to_keysym(event->nativeScanCode()));
+    processKeyboardInput(false, event->nativeScanCode());
 #endif
 }
 

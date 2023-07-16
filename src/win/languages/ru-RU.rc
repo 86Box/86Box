@@ -278,6 +278,7 @@ END
 #define STR_ENABLED_LOCAL "Включить (местное)"
 #define STR_ENABLED_UTC   "Включить (UTC)"
 #define STR_DYNAREC       "Динамический рекомпилятор"
+#define STR_SOFTFLOAT     "Softfloat FPU"
 
 #define STR_VIDEO         "Видеокарта:"
 #define STR_VIDEO_2       "Видеокарта 2:"
@@ -367,7 +368,6 @@ END
 #define STR_CHECKBPB      "Проверять BPB"
 #define STR_CDROM_DRIVES  "Дисководы CD-ROM:"
 #define STR_CD_SPEED      "Скорость:"
-#define STR_EARLY         "Предыдущий дисковод"
 
 #define STR_MO_DRIVES     "Магнитооптические дисководы:"
 #define STR_ZIP_DRIVES    "ZIP дисководы:"
@@ -537,11 +537,13 @@ BEGIN
     IDS_2159    "Холодная перезагрузка"
     IDS_2160    "Сигнал завершения ACPI"
     IDS_2161    "Настройки машины"
-    IDS_2162    "Предыдущий дисковод"
+    IDS_2162    "Type"
     IDS_2163    "No Dynarec"
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
     IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
+    IDS_2167    "Failed to initialize network driver"
+    IDS_2168    "The network configuration will be switched to the null driver"
 END
 
 STRINGTABLE DISCARDABLE

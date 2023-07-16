@@ -12,11 +12,11 @@
 #
 #          Copyright 2020-2021 David Hrdlička.
 #
+set(net_sources)
+list(APPEND net_sources network.c net_pcap.c net_slirp.c net_dp8390.c net_3c501.c
+    net_3c503.c net_ne2000.c net_pcnet.c net_wd8003.c net_plip.c net_event.c net_null.c)
 
-add_library(net OBJECT network.c net_pcap.c net_slirp.c net_dp8390.c net_3c501.c
-    net_3c503.c net_ne2000.c net_pcnet.c net_wd8003.c net_plip.c net_event.c)
-
-option(SLIRP_EXTERNAL "Link against the system-provided libslirp library" OFF)
+option(SLIRP_EXTERNAL "Link against the system-provided libslirp library" ON)
 mark_as_advanced(SLIRP_EXTERNAL)
 
 if(SLIRP_EXTERNAL)
@@ -39,3 +39,18 @@ endif()
 if(WIN32)
     target_link_libraries(86Box ws2_32)
 endif()
+
+if (UNIX)
+    find_path(HAS_VDE "libvdeplug.h" PATHS ${VDE_INCLUDE_DIR} "/usr/include /usr/local/include" "/opt/homebrew/include" )
+    if(HAS_VDE)
+        find_library(VDE_LIB vdeplug)
+        if (NOT VDE_LIB)
+            message(WARNING "Could not find VDE. The library will not be bundled and any related features will be disabled.")
+        else()
+            add_compile_definitions(HAS_VDE)
+            list(APPEND net_sources net_vde.c)
+        endif()
+    endif()
+endif()
+
+add_library(net OBJECT ${net_sources})

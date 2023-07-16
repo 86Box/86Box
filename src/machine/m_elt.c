@@ -143,9 +143,8 @@ elt_vid_in(uint16_t addr, void *p)
 static void
 load_font_rom(uint32_t font_data)
 {
-    int c, d;
-    for (c = 0; c < 256; c++)
-        for (d = 0; d < 8; d++)
+    for (uint16_t c = 0; c < 256; c++)
+        for (uint8_t d = 0; d < 8; d++)
             fontdat[c][d] = mem_readb_phys(font_data++);
 }
 
