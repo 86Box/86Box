@@ -1857,11 +1857,10 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                         if (!cmp_clr)
                             MIX
 
-                            if (!(mach64->dst_cntl & DST_Y_MAJOR)) {
-                                if (!x)
-                                    dest_dat &= ~1;
-                            }
-                        else {
+                        if (!(mach64->dst_cntl & DST_Y_MAJOR)) {
+                            if (!x)
+                                dest_dat &= ~1;
+                        } else {
                             if (x == (mach64->accel.x_count - 1))
                                 dest_dat &= ~1;
                         }
