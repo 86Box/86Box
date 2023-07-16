@@ -544,9 +544,8 @@ extern int machine_at_cmdpc_init(const machine_t *);
 extern int machine_at_portableii_init(const machine_t *);
 extern int machine_at_portableiii_init(const machine_t *);
 extern int machine_at_portableiii386_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_DESKPRO386)
 extern int machine_at_deskpro386_init(const machine_t *);
-#endif
+extern int machine_at_deskpro386_01_1988_init(const machine_t *);
 
 /* m_at_socket4.c */
 extern void machine_at_premiere_common_init(const machine_t *, int);

@@ -108,6 +108,7 @@ jobs:
             openal:p
             rtmidi:p
             libslirp:p
+            fluidsynth:p
             libvncserver:p
             ${{ matrix.ui.packages }}
 
@@ -193,6 +194,7 @@ jobs:
           librtmidi-dev
           libopenal-dev
           libslirp-dev
+          libfluidsynth-dev
           libvncserver-dev
           ${{ matrix.ui.packages }}
 
@@ -268,6 +270,7 @@ jobs:
           libpng
           rtmidi
           openal-soft
+          fluidsynth
           libvncserver
           ${{ matrix.ui.packages }}
 

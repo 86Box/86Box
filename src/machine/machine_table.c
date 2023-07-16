@@ -2587,8 +2587,8 @@ const machine_t machines[] = {
         .cpu = {
             .package = CPU_PKG_286,
             .block = CPU_BLOCK_NONE,
-            .min_bus = 6000000,
-            .max_bus = 8000000,
+            .min_bus = 0,
+            .max_bus = 0,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -2904,8 +2904,8 @@ const machine_t machines[] = {
         .cpu = {
             .package = CPU_PKG_286,
             .block = CPU_BLOCK_NONE,
-            .min_bus = 6000000,
-            .max_bus = 8000000,
+            .min_bus = 0,
+            .max_bus = 0,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -2943,8 +2943,8 @@ const machine_t machines[] = {
         .cpu = {
             .package = CPU_PKG_286,
             .block = CPU_BLOCK_NONE,
-            .min_bus = 6000000,
-            .max_bus = 8000000,
+            .min_bus = 0,
+            .max_bus = 0,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -4670,9 +4670,8 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     /* Uses Compaq KBC firmware. */
-#if defined(DEV_BRANCH) && defined(USE_DESKPRO386)
     {
-        .name = "[ISA] Compaq Deskpro 386",
+        .name = "[ISA] Compaq Deskpro 386 (September 1986)",
         .internal_name = "deskpro386",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_DISCRETE,
@@ -4692,13 +4691,13 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_IDE | MACHINE_APM,
+        .flags = MACHINE_IDE,
         .ram = {
-            .min = 1024,
-            .max = 14336,
-            .step = 1024
+            .min = 640,
+            .max = 16384,
+            .step = 128
         },
-        .nvrmask = 127,
+        .nvrmask = 63,
         .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
@@ -4709,7 +4708,44 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif /* defined(DEV_BRANCH) && defined(USE_DESKPRO386) */
+    {
+        .name = "[ISA] Compaq Deskpro 386 (January 1988)",
+        .internal_name = "deskpro386_01_1988",
+        .type = MACHINE_TYPE_386DX,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_deskpro386_01_1988_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386DX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 640,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 63,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     {
         .name = "[ISA] Compaq Portable III (386)",
         .internal_name = "portableiii386",
@@ -4731,7 +4767,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 14336,

@@ -15,29 +15,26 @@
 #    include <86box/config.h>
 #    include <86box/device.h>
 #    include <86box/midi.h>
-#    include <86box/plat.h>
-#    include <86box/plat_dynld.h>
 #    include <86box/thread.h>
 #    include <86box/sound.h>
-#    include <86box/ui.h>
-
-#    define FLUID_CHORUS_DEFAULT_N     3
-#    define FLUID_CHORUS_DEFAULT_LEVEL 2.0f
-#    define FLUID_CHORUS_DEFAULT_SPEED 0.3f
-#    define FLUID_CHORUS_DEFAULT_DEPTH 8.0f
-#    define FLUID_CHORUS_DEFAULT_TYPE  FLUID_CHORUS_MOD_SINE
 
 #    define RENDER_RATE                100
 #    define BUFFER_SEGMENTS            10
+
+/* Check the FluidSynth version to determine wheteher to use the older reverb/chorus
+   control functions that were deprecated in 2.2.0, or their newer replacements */
+#    if (FLUIDSYNTH_VERSION_MAJOR < 2) || ((FLUIDSYNTH_VERSION_MAJOR == 2) && (FLUIDSYNTH_VERSION_MINOR < 2))
+#        define USE_OLD_FLUIDSYNTH_API
+#    endif
 
 extern void givealbuffer_midi(void *buf, uint32_t size);
 extern void al_set_midi(int freq, int buf_size);
 
 typedef struct fluidsynth {
-    void *settings;
-    void *synth;
-    int   samplerate;
-    int   sound_font;
+    fluid_settings_t *settings;
+    fluid_synth_t    *synth;
+    int               samplerate;
+    int               sound_font;
 
     thread_t *thread_h;
     event_t  *event, *start_event;
@@ -177,7 +174,11 @@ fluidsynth_init(const device_t *info)
     data->sound_font = fluid_synth_sfload(data->synth, sound_font, 1);
 
     if (device_get_config_int("chorus")) {
+#    ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_chorus_on(data->synth, -1, 1);
+#    else
         fluid_synth_set_chorus_on(data->synth, 1);
+#    endif
 
         int    chorus_voices = device_get_config_int("chorus_voices");
         double chorus_level  = device_get_config_int("chorus_level") / 100.0;
@@ -190,21 +191,48 @@ fluidsynth_init(const device_t *info)
         else
             chorus_waveform = FLUID_CHORUS_MOD_TRIANGLE;
 
+#    ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_set_chorus_group_nr(data->synth, -1, chorus_voices);
+        fluid_synth_set_chorus_group_level(data->synth, -1, chorus_level);
+        fluid_synth_set_chorus_group_speed(data->synth, -1, chorus_speed);
+        fluid_synth_set_chorus_group_depth(data->synth, -1, chorus_depth);
+        fluid_synth_set_chorus_group_type(data->synth, -1, chorus_waveform);
+#    else
         fluid_synth_set_chorus(data->synth, chorus_voices, chorus_level, chorus_speed, chorus_depth, chorus_waveform);
+#    endif
     } else
+#    ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_chorus_on(data->synth, -1, 0);
+#    else
         fluid_synth_set_chorus_on(data->synth, 0);
+#    endif
 
     if (device_get_config_int("reverb")) {
+#    ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_reverb_on(data->synth, -1, 1);
+#    else
         fluid_synth_set_reverb_on(data->synth, 1);
+#    endif
 
         double reverb_room_size = device_get_config_int("reverb_room_size") / 100.0;
         double reverb_damping   = device_get_config_int("reverb_damping") / 100.0;
-        int    reverb_width     = device_get_config_int("reverb_width");
+        double reverb_width     = device_get_config_int("reverb_width") / 10.0;
         double reverb_level     = device_get_config_int("reverb_level") / 100.0;
 
+#    ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_set_reverb_group_roomsize(data->synth, -1, reverb_room_size);
+        fluid_synth_set_reverb_group_damp(data->synth, -1, reverb_damping);
+        fluid_synth_set_reverb_group_width(data->synth, -1, reverb_width);
+        fluid_synth_set_reverb_group_level(data->synth, -1, reverb_level);
+#    else
         fluid_synth_set_reverb(data->synth, reverb_room_size, reverb_damping, reverb_width, reverb_level);
+#    endif
     } else
+#    ifndef USE_OLD_FLUIDSYNTH_API
+        fluid_synth_reverb_on(data->synth, -1, 0);
+#    else
         fluid_synth_set_reverb_on(data->synth, 0);
+#    endif
 
     int interpolation    = device_get_config_int("interpolation");
     int fs_interpolation = FLUID_INTERP_4THORDER;
@@ -314,7 +342,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "chorus",
         .description = "Chorus",
         .type = CONFIG_BINARY,
-        .default_int = 0
+        .default_int = 1
     },
     {
         .name = "chorus_voices",
@@ -336,7 +364,7 @@ static const device_config_t fluidsynth_config[] = {
             .min = 0,
             .max = 100
         },
-        .default_int = 100
+        .default_int = 20
     },
     {
         .name = "chorus_speed",
@@ -344,7 +372,7 @@ static const device_config_t fluidsynth_config[] = {
         .type = CONFIG_SPINNER,
         .spinner =
         {
-            .min = 30,
+            .min = 10,
             .max = 500
         },
         .default_int = 30
@@ -356,7 +384,7 @@ static const device_config_t fluidsynth_config[] = {
         .spinner =
         {
             .min = 0,
-            .max = 210
+            .max = 2560
         },
         .default_int = 80
     },
@@ -381,7 +409,7 @@ static const device_config_t fluidsynth_config[] = {
         .name = "reverb",
         .description = "Reverb",
         .type = CONFIG_BINARY,
-        .default_int = 0
+        .default_int = 1
     },
     {
         .name = "reverb_room_size",
@@ -390,7 +418,7 @@ static const device_config_t fluidsynth_config[] = {
         .spinner =
         {
             .min = 0,
-            .max = 120
+            .max = 100
         },
         .default_int = 20
     },
@@ -412,9 +440,9 @@ static const device_config_t fluidsynth_config[] = {
         .spinner =
         {
             .min = 0,
-            .max = 100
+            .max = 1000
         },
-        .default_int = 1
+        .default_int = 5
     },
     {
         .name = "reverb_level",

@@ -70,6 +70,38 @@ static int       in_rep = 0, repeating = 0, rep_c_flag = 0;
 static int       oldc, clear_lock = 0;
 static int       refresh = 0, cycdiff;
 
+static int access_code = 0;
+static int hlda = 0;
+static int not_ready = 0;
+static int bus_request_type = 0;
+static int pic_data = -1;
+static int last_was_code = 0;
+static uint16_t mem_data = 0;
+static uint32_t mem_seg = 0;
+static uint16_t mem_addr = 0;
+static int schedule_fetch = 1;
+static int pasv = 0;
+
+#define BUS_OUT     1
+#define BUS_HIGH    2
+#define BUS_WIDE    4
+#define BUS_CODE    8
+#define BUS_IO      16
+#define BUS_MEM     32
+#define BUS_PIC     64
+#define BUS_ACCESS_TYPE (BUS_CODE | BUS_IO | BUS_MEM | BUS_PIC)
+
+#define BUS_CYCLE                   (biu_cycles & 3)
+#define BUS_CYCLE_T1                biu_cycles = 0
+#define BUS_CYCLE_NEXT biu_cycles = (biu_cycles + 1) & 3
+
+enum {
+    BUS_T1 = 0,
+    BUS_T2,
+    BUS_T3,
+    BUS_T4
+};
+
 /* Various things needed for 8087. */
 #define OP_TABLE(name) ops_##name
 
@@ -170,23 +202,11 @@ static void
 clock_end(void)
 {
     int diff = cycdiff - cycles;
-#if 0
-    uint64_t i;
-#endif
 
     /* On 808x systems, clock speed is usually crystal frequency divided by an integer. */
     tsc += ((uint64_t) diff * ((uint64_t) xt_cpu_multi >> 32ULL)); /* Shift xt_cpu_multi by 32 bits to the right and then multiply. */
-#if 0
-    tsc--;
-    for (i = 0; i < ((uint64_t) xt_cpu_multi >> 32ULL); i++) {
-        tsc++;
-        if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
-            timer_process();
-    }
-#else
     if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
         timer_process();
-#endif
 }
 
 static void
@@ -205,86 +225,271 @@ cycles_forward(int c)
         process_timers();
 }
 
-static int access_code = 0;
-
-/* TODO: Proper BIU implementation with six states: T1-T4, Ti (idle), and TW (wait).
-         Type: 0 = idle, 1 = wait, 2 = bus. */
 static void
-cycles_biu(int bus, int init)
+bus_outb(uint16_t port, uint8_t val)
 {
-    /* T1, T2 = Nothing, T3 = Schedule, T4 = Start */
-    // int schedule_fetch = prefetching && (pfq_pos < pfq_size) && (biu_cycles > 1);
-    int schedule_fetch = prefetching && (pfq_pos < pfq_size) && (biu_cycles > 2);
-    int left;
-    int idle = !bus && !schedule_fetch;
-    int d;
+    int old_cycles = cycles;
 
-    // pclog("cycles_biu(%i, %i): %i, %i, %i, %i\n", bus, init, prefetching, pfq_pos, pfq_size, biu_cycles);
-    if (bus) {
-        /* CPU wants non-code bus access. */
-        if (init) {
-            if (schedule_fetch) {
-                if ((biu_cycles & 3) == 2) {
-                    /* If a fetch has been scheduled but not started, abort it and insert two idle cycles. */
-                    for (d = 0; d < 2; d++)
-                        cycles_forward(1);
-                    access_code = 0;
-                } else {
-                    /* If a fetch has been started, finish it. */
-                    left = 4 - (biu_cycles & 3);
-                    for (d = 0; d < left; d++) {
-                        cycles_forward(1);
+    cycles--;
+    outb(port, val);
+    resub_cycles(old_cycles);
+}
 
-                        if (pfq_pos < pfq_size) {
-                            if (biu_cycles == 3) {
-                                // pclog("%04X:%04X %02X %i pfq_add()\n", CS, cpu_state.pc, opcode, bus);
-                                pfq_add();
-                            }
-                            biu_cycles = (biu_cycles + 1) & 3;
-                        }
-                    }
-                }
-            }
-        }
+static void
+bus_outw(uint16_t port, uint16_t val)
+{
+    int old_cycles = cycles;
 
-        biu_cycles = (biu_cycles + 1) & 3;
+    cycles--;
+    outw(port, val);
+    resub_cycles(old_cycles);
+}
+
+static uint8_t
+bus_inb(uint16_t port)
+{
+    int old_cycles = cycles;
+    uint8_t ret;
+
+    cycles--;
+    ret = inb(port);
+    resub_cycles(old_cycles);
+
+    return ret;
+}
+
+static uint16_t
+bus_inw(uint16_t port)
+{
+    int old_cycles = cycles;
+    uint16_t ret;
+
+    cycles--;
+    ret = inw(port);
+    resub_cycles(old_cycles);
+
+    return ret;
+}
+
+static void
+bus_do_io(int io_type)
+{
+    last_was_code = 0;
+
+    x808x_log("(%02X) bus_do_io(%02X): %04X\n", opcode, io_type, cpu_state.eaaddr);
+
+    if (io_type & BUS_OUT) {
+        if (io_type & BUS_WIDE)
+            bus_outw((uint16_t) cpu_state.eaaddr, AX);
+        else if (io_type & BUS_HIGH)
+            bus_outb(((uint16_t) cpu_state.eaaddr + 1) & 0xffff, AH);
+        else
+            bus_outb((uint16_t) cpu_state.eaaddr, AL);
     } else {
-        /* CPU wants idle or code bus access. */
-        if (schedule_fetch) {
-            if (biu_cycles == 0)
-                access_code = 1;
-
-            if (biu_cycles == 3) {
-                // pclog("%04X:%04X %02X %i pfq_add()\n", CS, cpu_state.pc, opcode, bus);
-                pfq_add();
-            }
-        }
-        biu_cycles = (biu_cycles + 1) & 3;
+        if (io_type & BUS_WIDE)
+            AX = bus_inw((uint16_t) cpu_state.eaaddr);
+        else if (io_type & BUS_HIGH)
+            AH = bus_inb(((uint16_t) cpu_state.eaaddr + 1) & 0xffff);
+        else
+            AL = bus_inb((uint16_t) cpu_state.eaaddr);
     }
 
-    if ((refresh > 0) && (idle || (biu_cycles >= 2))) {
+    process_timers();
+}
+
+static void
+bus_writeb(uint32_t seg, uint32_t addr, uint8_t val)
+{
+    write_mem_b(seg + addr, val);
+}
+
+static void
+bus_writew(uint32_t seg, uint32_t addr, uint16_t val)
+{
+    write_mem_w(seg + addr, val);
+}
+
+static uint8_t
+bus_readb(uint32_t seg, uint32_t addr)
+{
+    uint8_t ret = read_mem_b(seg + addr);
+
+    return ret;
+}
+
+static uint16_t
+bus_readw(uint32_t seg, uint32_t addr)
+{
+    uint16_t ret = read_mem_w(seg + addr);
+
+    return ret;
+}
+
+static void
+bus_do_mem(int io_type)
+{
+    last_was_code = 0;
+
+    if (io_type & BUS_OUT) {
+        if (io_type & BUS_WIDE)
+            bus_writew(mem_seg, (uint32_t) mem_addr, mem_data);
+        else if (io_type & BUS_HIGH) {
+            if (is186 && !is_nec)
+                bus_writeb(mem_seg, ((uint32_t) mem_addr) + 1, mem_data >> 8);
+            else
+                bus_writeb(mem_seg, (uint32_t) ((mem_addr + 1) & 0xffff), mem_data >> 8);
+        } else
+            bus_writeb(mem_seg, (uint32_t) mem_addr, mem_data & 0xff);
+    } else {
+        if (io_type & BUS_WIDE)
+            mem_data = bus_readw(mem_seg, (uint32_t) mem_addr);
+        else if (io_type & BUS_HIGH) {
+            if (is186 && !is_nec)
+                mem_data = (mem_data & 0x00ff) | (((uint16_t) bus_readb(mem_seg, ((uint32_t) mem_addr) + 1)) << 8);
+            else
+                mem_data = (mem_data & 0x00ff) | (((uint16_t) bus_readb(mem_seg, (uint32_t) ((mem_addr + 1) & 0xffff))) << 8);
+        } else
+            mem_data = (mem_data & 0xff00) | ((uint16_t) bus_readb(mem_seg, (uint32_t) mem_addr));
+    }
+}
+
+static void
+run_bus_cycle(int io_type)
+{
+    int do_bus_access = (io_type != 0) && (!(io_type & BUS_CODE) || schedule_fetch);
+
+    x808x_log("[%04X:%04X] %02X bus access %02X (%i)\n", CS, cpu_state.pc, opcode, io_type, do_bus_access);
+
+    if (do_bus_access) {
+        if (not_ready > 0) {
+            x808x_log("[%04X:%04X] %02X TW x%i\n", CS, cpu_state.pc, opcode, not_ready);
+            cycles_forward(not_ready);
+            not_ready = 0;
+        }
+
+        switch(BUS_CYCLE) {
+            case BUS_T1:
+                access_code = !!(io_type & BUS_CODE);
+                break;
+            case BUS_T3:
+                switch (io_type & BUS_ACCESS_TYPE) {
+                    case BUS_CODE:
+                        pfq_add();
+                        last_was_code = 1;
+                        break;
+                    case BUS_IO:
+                        bus_do_io(io_type);
+                        break;
+                    case BUS_MEM:
+                        bus_do_mem(io_type);
+                        break;
+                    case BUS_PIC:
+                        pic_data = pic_irq_ack();
+                        last_was_code = 0;
+                        break;
+                    default:
+                        break;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+}
+
+static void
+run_dma_cycle(int idle)
+{
+    if (not_ready > 0) {
+        /* Subtract one not ready cycle. */
+        not_ready--;
+    } else if (hlda > 0) {
+        hlda--;
+        /* DMAWAIT is two cycles in, the actual wait states
+           are inserted with one cycle of delay. */
+        if (hlda == 0) {
+            /* Deassert READY. */
+            not_ready = 6;
+        }
+    } else if ((refresh > 0) && (in_lock == 0) && (idle || (BUS_CYCLE >= BUS_T3))) {
         /* Refresh pending and it's either non-bus cycle or T3-T4,
-           insert the 6 wait states. */
-        cycles_forward(6);
+           raise HLDA. */
+        hlda = 2;
         /* Decrease the refresh count. */
         refresh--;
     }
 }
 
-static int last_was_code = 0;
+static void
+cycles_idle(int c)
+{
+    int d;
 
+    for (d = 0; d < c; d++) {
+        x808x_log("[%04X:%04X] %02X TI\n", CS, cpu_state.pc, opcode);
+
+        cycles_forward(1);
+        run_dma_cycle(1);
+    }
+}
+
+static void
+cycles_biu(int bus, int init)
+{
+    /* T1, T2 = Nothing, T3 = Start and schedule, T4 = Nothing */
+    pasv = (bus || ((BUS_CYCLE == BUS_T1) && schedule_fetch)) ? 0 : 1;
+
+    x808x_log("cycles_biu(%i, %i): %i, %i, %i, %i\n", bus, init, prefetching, pfq_pos, pfq_size, BUS_CYCLE);
+    if (bus) {
+        /* CPU wants non-code bus access. */
+        if (init) {
+            if (schedule_fetch) {
+                switch (BUS_CYCLE) {
+                    case BUS_T1:
+                    case BUS_T2:
+                        BUS_CYCLE_T1;                  /* Simply abort the prefetch before actual scheduling, no penalty. */
+                        break;
+                    case BUS_T3:
+                    case BUS_T4:
+                        cycles_idle(5 - BUS_CYCLE);    /* Leftover BIU cycles + 2 idle cycles. */
+                        BUS_CYCLE_T1;                  /* Abort the prefetch. */
+                        break;
+                }
+
+                schedule_fetch = 0;
+                access_code = 0;
+            }
+        }
+
+        run_bus_cycle(bus_request_type);
+    } else {
+        /* CPU wants idle or code bus access. */
+        if (schedule_fetch)
+            run_bus_cycle(BUS_CODE);
+    }
+
+    if (BUS_CYCLE == BUS_T3)
+        schedule_fetch = prefetching && (pfq_pos < pfq_size);
+
+    run_dma_cycle(pasv);
+
+    BUS_CYCLE_NEXT;
+}
+
+#ifdef REENIGNE_MODELING
 static void
 bus_init(void)
 {
     /* Replacement for the old access() stuff. */
-    if ((biu_cycles == 3) && last_was_code && (opcode != 0x8f) && (opcode != 0xc7) && (opcode != 0xcc) && (opcode != 0xcd) && (opcode != 0xce) && ((opcode & 0xf0) != 0xa0))
-        cycles_forward(1);
+    if ((BUS_CYCLE == BUS_T4) && last_was_code && (opcode != 0x8f) && (opcode != 0xc7) && (opcode != 0xcc) && (opcode != 0xcd) && (opcode != 0xce) && ((opcode & 0xf0) != 0xa0))
+        cycles_idle(1);
 
-    cycles_forward(2);
+    cycles_idle(2);
 
-    if (biu_cycles == 1)
-        cycles_forward(1);
+    while ((BUS_CYCLE == BUS_T2) || (BUS_CYCLE == BUS_T3))
+        cycles_idle(1);
 }
+#endif
 
 /* Bus:
    0    CPU cycles without bus access.
@@ -292,14 +497,20 @@ bus_init(void)
    2    CPU cycle Tw (wait state).
    3    CPU cycle Ti (idle).
  */
-/* This is used for cycle forwards that are not wait states. */
 static void
 wait(int c, int bus)
 {
     int d;
 
+    if (c < 0)
+        pclog("Negative cycles: %i!\n", c);
+
+    x808x_log("[%04X:%04X] %02X %i cycles (%i)\n", CS, cpu_state.pc, opcode, c, bus);
+
     for (d = 0; d < c; d++) {
+        x808x_log("[%04X:%04X] %02X cycle %i BIU\n", CS, cpu_state.pc, opcode, d);
         cycles_biu(bus, !d);
+        x808x_log("[%04X:%04X] %02X cycle %i EU\n", CS, cpu_state.pc, opcode, d);
         cycles_forward(1);
     }
 }
@@ -308,20 +519,29 @@ wait(int c, int bus)
 void
 sub_cycles(int c)
 {
-    if (c > 0)
-        cycles_forward(c);
+    if (is286)
+        cycles -= c;
+    else {
+        if (c > 0)
+            cycles_idle(c);
+    }
 }
 
 void
 resub_cycles(int old_cycles)
 {
-    int cyc_diff = 0;
+    int i, cyc_diff = 0;
 
     if (old_cycles > cycles) {
         cyc_diff = old_cycles - cycles;
-        cycles   = old_cycles;
-        sub_cycles(cyc_diff);
+
+        for (i = 0; i < cyc_diff; i++) {
+            if (not_ready > 0)
+                not_ready--;
+        }
     }
+
+    process_timers();
 }
 
 #undef readmemb
@@ -332,61 +552,63 @@ resub_cycles(int old_cycles)
 static void
 cpu_io(int bits, int out, uint16_t port)
 {
-    int old_cycles = cycles;
-
+#ifdef REENIGNE_MODELING
     bus_init();
+#endif
 
     if (out) {
-        wait(4, 1);
         if (bits == 16) {
             if (is8086 && !(port & 1)) {
-                old_cycles = cycles;
-                outw(port, AX);
-            } else {
+                bus_request_type = BUS_IO | BUS_OUT | BUS_WIDE;
                 wait(4, 1);
-                old_cycles = cycles;
-                outb(port++, AL);
-                outb(port, AH);
+            } else {
+                bus_request_type = BUS_IO | BUS_OUT;
+                wait(4, 1);
+                schedule_fetch = 0;
+                bus_request_type = BUS_IO | BUS_OUT | BUS_HIGH;
+                wait(4, 1);
             }
         } else {
-            old_cycles = cycles;
-            outb(port, AL);
+            bus_request_type = BUS_IO | BUS_OUT;
+            wait(4, 1);
         }
     } else {
-        wait(4, 1);
         if (bits == 16) {
             if (is8086 && !(port & 1)) {
-                old_cycles = cycles;
-                AX         = inw(port);
-            } else {
+                bus_request_type = BUS_IO | BUS_WIDE;
                 wait(4, 1);
-                old_cycles = cycles;
-                AL         = inb(port++);
-                AH         = inb(port);
+            } else {
+                bus_request_type = BUS_IO;
+                wait(4, 1);
+                schedule_fetch = 0;
+                bus_request_type = BUS_IO | BUS_HIGH;
+                wait(4, 1);
             }
         } else {
-            old_cycles = cycles;
-            AL         = inb(port);
+            bus_request_type = BUS_IO;
+            wait(4, 1);
         }
     }
 
-    resub_cycles(old_cycles);
-
-    last_was_code = 0;
+    bus_request_type = 0;
 }
 
 /* Reads a byte from the memory and advances the BIU. */
 static uint8_t
-readmemb(uint32_t a)
+readmemb(uint32_t s, uint16_t a)
 {
     uint8_t ret;
 
+#ifdef REENIGNE_MODELING
     bus_init();
+#endif
 
+    mem_seg = s;
+    mem_addr = a;
+    bus_request_type = BUS_MEM;
     wait(4, 1);
-    ret = read_mem_b(a);
-
-    last_was_code = 0;
+    ret = mem_data & 0xff;
+    bus_request_type = 0;
 
     return ret;
 }
@@ -411,18 +633,24 @@ readmemw(uint32_t s, uint16_t a)
 {
     uint16_t ret;
 
+#ifdef REENIGNE_MODELING
     bus_init();
+#endif
 
-    wait(4, 1);
-    if (is8086 && !(a & 1))
-        ret = read_mem_w(s + a);
-    else {
+    mem_seg = s;
+    mem_addr = a;
+    if (is8086 && !(a & 1)) {
+        bus_request_type = BUS_MEM | BUS_WIDE;
         wait(4, 1);
-        ret = read_mem_b(s + a);
-        ret |= read_mem_b(s + ((is186 && !is_nec) ? (a + 1) : (a + 1) & 0xffff)) << 8;
+    } else {
+        bus_request_type = BUS_MEM | BUS_HIGH;
+        wait(4, 1);
+        schedule_fetch = 0;
+        bus_request_type = BUS_MEM;
+        wait(4, 1);
     }
-
-    last_was_code = 0;
+    ret = mem_data;
+    bus_request_type = 0;
 
     return ret;
 }
@@ -445,7 +673,7 @@ readmem(uint32_t s)
     if (opcode & 1)
         return readmemw(s, cpu_state.eaaddr);
     else
-        return (uint16_t) readmemb(s + cpu_state.eaaddr);
+        return (uint16_t) readmemb(s, cpu_state.eaaddr);
 }
 
 static uint32_t
@@ -478,15 +706,19 @@ writememb(uint32_t s, uint32_t a, uint8_t v)
 {
     uint32_t addr = s + a;
 
+#ifdef REENIGNE_MODELING
     bus_init();
+#endif
 
+    mem_seg = s;
+    mem_addr = a;
+    mem_data = v;
+    bus_request_type = BUS_MEM | BUS_OUT;
     wait(4, 1);
-    write_mem_b(addr, v);
+    bus_request_type = 0;
 
     if ((addr >= 0xf0000) && (addr <= 0xfffff))
         last_addr = addr & 0xffff;
-
-    last_was_code = 0;
 }
 
 /* Writes a word to the memory and advances the BIU. */
@@ -495,22 +727,27 @@ writememw(uint32_t s, uint32_t a, uint16_t v)
 {
     uint32_t addr = s + a;
 
+#ifdef REENIGNE_MODELING
     bus_init();
+#endif
 
-    wait(4, 1);
-    if (is8086 && !(a & 1))
-        write_mem_w(addr, v);
-    else {
-        write_mem_b(addr, v & 0xff);
+    mem_seg = s;
+    mem_addr = a;
+    mem_data = v;
+    if (is8086 && !(a & 1)) {
+        bus_request_type = BUS_MEM | BUS_OUT | BUS_WIDE;
         wait(4, 1);
-        addr = s + ((is186 && !is_nec) ? (a + 1) : ((a + 1) & 0xffff));
-        write_mem_b(addr, v >> 8);
+    } else {
+        bus_request_type = BUS_MEM | BUS_OUT | BUS_HIGH;
+        wait(4, 1);
+        schedule_fetch = 0;
+        bus_request_type = BUS_MEM | BUS_OUT;
+        wait(4, 1);
     }
+    bus_request_type = 0;
 
     if ((addr >= 0xf0000) && (addr <= 0xfffff))
         last_addr = addr & 0xffff;
-
-    last_was_code = 0;
 }
 
 static void
@@ -649,18 +886,16 @@ pfq_clear(void)
 {
     pfq_pos     = 0;
     prefetching = 0;
+    schedule_fetch = 0;
 
-    biu_cycles  = 0;
+    BUS_CYCLE_T1;
 }
 
 static void
 pfq_suspend(void)
 {
    pfq_clear();
-   wait(2, 0);
-   if (biu_cycles != 3)
-       wait(1, 0);
-   wait(1, 0);
+   cycles_idle(3);
 }
 
 static void
@@ -680,7 +915,7 @@ load_seg(uint16_t seg, x86seg *s)
 void
 reset_808x(int hard)
 {
-    biu_cycles = 0;
+    BUS_CYCLE_T1;
     in_rep     = 0;
     in_lock    = 0;
     completed  = 1;
@@ -710,12 +945,24 @@ reset_808x(int hard)
     rammask = 0xfffff;
 
     prefetching = 1;
-    cpu_alu_op  = 0;
 
-    biu_cycles  = 0;
+    schedule_fetch = 1;
+    pasv           = 0;
+
+    cpu_alu_op  = 0;
 
     use_custom_nmi_vector = 0x00;
     custom_nmi_vector     = 0x00000000;
+
+    access_code           = 0;
+    hlda                  = 0;
+    not_ready             = 0;
+    bus_request_type      = 0;
+    pic_data              = -1;
+    last_was_code         = 0;
+    mem_data              = 0;
+    mem_seg               = 0;
+    mem_addr              = 0;
 }
 
 static void
@@ -723,6 +970,7 @@ set_ip(uint16_t new_ip)
 {
     pfq_ip = cpu_state.pc = new_ip;
     prefetching           = 1;
+    schedule_fetch = prefetching && (pfq_pos < pfq_size);
 }
 
 /* Memory refresh read - called by reads and writes on DMA channel 0. */
@@ -816,7 +1064,7 @@ geteab(void)
     if (cpu_mod == 3)
         return (getr8(cpu_rm));
 
-    return readmemb(easeg + cpu_state.eaaddr);
+    return readmemb(easeg, cpu_state.eaaddr);
 }
 
 /* Reads a word from the effective address. */
@@ -860,7 +1108,7 @@ read_ea(int memory_only, int bits)
         if (bits == 16)
             cpu_data = readmemw(easeg, cpu_state.eaaddr);
         else
-            cpu_data = readmemb(easeg + cpu_state.eaaddr);
+            cpu_data = readmemb(easeg, cpu_state.eaaddr);
         return;
     }
     if (!memory_only) {
@@ -878,7 +1126,7 @@ read_ea2(int bits)
     if (bits == 16)
         cpu_data = readmemw(easeg, cpu_state.eaaddr);
     else
-        cpu_data = readmemb(easeg + cpu_state.eaaddr);
+        cpu_data = readmemb(easeg, cpu_state.eaaddr);
 }
 
 /* Writes a byte to the effective address. */
@@ -953,11 +1201,6 @@ pop(void)
     return readmemw(ss, cpu_state.eaaddr);
 }
 
-static void
-access(int num, int bits)
-{
-}
-
 /* Calls an interrupt. */
 static void
 interrupt(uint16_t addr)
@@ -972,25 +1215,21 @@ interrupt(uint16_t addr)
     new_ip = readmemw(0, cpu_state.eaaddr);
     wait(1, 0);
     cpu_state.eaaddr = (cpu_state.eaaddr + 2) & 0xffff;
-    access(6, 16);
     new_cs      = readmemw(0, cpu_state.eaaddr);
     prefetching = 0;
     pfq_clear();
     ovr_seg = NULL;
     wait(2, 0);
-    access(25, 16);
     tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
     push(&tempf);
     cpu_state.flags &= ~(I_FLAG | T_FLAG);
     wait(5, 0);
-    access(25, 16);
     push(&old_cs);
     old_ip = cpu_state.pc;
     load_cs(new_cs);
     pfq_suspend();
     set_ip(new_ip);
     wait(2, 0);
-    access(25, 16);
     push(&old_ip);
 }
 
@@ -1013,26 +1252,22 @@ custom_nmi(void)
     new_ip = custom_nmi_vector & 0xffff;
     wait(1, 0);
     cpu_state.eaaddr = (cpu_state.eaaddr + 2) & 0xffff;
-    access(6, 16);
     (void) readmemw(0, cpu_state.eaaddr);
     new_cs      = custom_nmi_vector >> 16;
     prefetching = 0;
     pfq_clear();
     ovr_seg = NULL;
     wait(2, 0);
-    access(25, 16);
     tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
     push(&tempf);
     cpu_state.flags &= ~(I_FLAG | T_FLAG);
     wait(5, 0);
-    access(25, 16);
     push(&old_cs);
     old_ip = cpu_state.pc;
     load_cs(new_cs);
     pfq_suspend();
     set_ip(new_ip);
     wait(2, 0);
-    access(25, 16);
     push(&old_ip);
 }
 
@@ -1049,8 +1284,13 @@ irq_pending(void)
 static int
 bus_pic_ack(void)
 {
+    int old_in_lock = in_lock;
+
+    in_lock = 1;
+    bus_request_type = BUS_PIC;
     wait(4, 1);
-    return pic_irq_ack();
+    in_lock = old_in_lock;
+    return pic_data;
 }
 
 static void
@@ -1060,6 +1300,7 @@ check_interrupts(void)
 
     if (irq_pending()) {
         if ((cpu_state.flags & T_FLAG) && !noint) {
+            wait(2, 0);
             interrupt(1);
             return;
         }
@@ -1088,7 +1329,7 @@ check_interrupts(void)
             wait(1, 0);
             in_lock    = 0;
             clear_lock = 0;
-            if (biu_cycles != 2)
+            if (BUS_CYCLE != BUS_T3)
                 wait(1, 0);
             wait(5, 0);
             /* Here is where temp should be filled, but we cheat. */
@@ -1144,7 +1385,6 @@ rep_action(int bits)
     wait(2, 0);
     t = CX;
     if (irq_pending() && (repeating != 0)) {
-        access(71, bits);
         pfq_clear();
         if (is_nec && (ovr_seg != NULL))
             set_ip(cpu_state.pc - 3);
@@ -1171,11 +1411,8 @@ jump(uint16_t delta)
 {
     uint16_t old_ip;
     wait(1, 0);
-    pfq_clear();
-    wait(2, 0);
-    if (biu_cycles == 3)
-        wait(1, 0);
-    wait(2, 0);
+    pfq_suspend();
+    cycles_idle(1);
     old_ip = cpu_state.pc;
     set_ip((cpu_state.pc + delta) & 0xffff);
     return old_ip;
@@ -1197,8 +1434,6 @@ jump_near(void)
 static void
 jcc(uint8_t opcode, int cond)
 {
-    /* int8_t offset; */
-
     wait(1, 0);
     cpu_data = pfq_fetchb();
     wait(1, 0);
@@ -1601,7 +1836,7 @@ lods(int bits)
     if (bits == 16)
         cpu_data = readmemw((ovr_seg ? *ovr_seg : ds), cpu_state.eaaddr);
     else
-        cpu_data = readmemb((ovr_seg ? *ovr_seg : ds) + cpu_state.eaaddr);
+        cpu_data = readmemb((ovr_seg ? *ovr_seg : ds), cpu_state.eaaddr);
     SI = string_increment(bits);
 }
 
@@ -1747,7 +1982,7 @@ execx86(int cycs)
         }
 
         completed = 1;
-        // pclog("[%04X:%04X] Opcode: %02X\n", CS, cpu_state.pc, opcode);
+        x808x_log("[%04X:%04X] Opcode: %02X\n", CS, cpu_state.pc, opcode);
         if (is186) {
             switch (opcode) {
                 case 0x60: /*PUSHA/PUSH R*/
@@ -1887,7 +2122,7 @@ execx86(int cycs)
                         SI += (cpu_state.flags & D_FLAG) ? -2 : 2;
                     } else {
                         wait(4, 0);
-                        outb(DX, readmemb(dest_seg + SI));
+                        outb(DX, readmemb(dest_seg, SI));
                         SI += (cpu_state.flags & D_FLAG) ? -1 : 1;
                     }
                     if (in_rep == 0)
@@ -1925,7 +2160,6 @@ execx86(int cycs)
                     do_mod_rm();
                     if (cpu_mod == 3)
                         wait(1, 0);
-                    access(53, bits);
                     cpu_data = get_ea();
                     cpu_src  = pfq_fetchb();
 
@@ -2004,7 +2238,6 @@ execx86(int cycs)
                             wait(4, 0);
                         --cpu_src;
                     }
-                    access(17, bits);
                     set_ea(cpu_data);
                     handled = 1;
                     break;
@@ -2023,7 +2256,6 @@ execx86(int cycs)
                 case 0x16:
                 case 0x1E: /* PUSH seg */
                     wait(3, 0);
-                    access(29, 16);
                     push(&(_opseg[(opcode >> 3) & 0x03]->seg));
                     break;
                 case 0x07:
@@ -2297,7 +2529,7 @@ execx86(int cycs)
                                 AX = 0;
                                 for (i = 0; i < bit_length; i++) {
                                     byteaddr = (ds) + SI;
-                                    AX |= (!!(readmemb(byteaddr) & (1 << bit_offset))) << i;
+                                    AX |= (!!(readmemb((ds), SI) & (1 << bit_offset))) << i;
                                     bit_offset++;
                                     if (bit_offset == 8) {
                                         SI++;
@@ -2375,7 +2607,6 @@ execx86(int cycs)
                     /* alu rm, r / r, rm */
                     bits = 8 << (opcode & 1);
                     do_mod_rm();
-                    // access(46, bits);
                     tempw      = get_ea();
                     cpu_alu_op = (opcode >> 3) & 7;
                     if ((opcode & 2) == 0) {
@@ -2394,7 +2625,6 @@ execx86(int cycs)
                         if ((opcode & 2) == 0) {
                             if (cpu_mod == 3)
                                 wait(2, 0);
-                            access(25, bits);
                             set_ea(cpu_data);
                         } else
                             set_reg(cpu_reg, cpu_data);
@@ -2623,7 +2853,6 @@ execx86(int cycs)
                     /* alu rm, imm */
                     bits = 8 << (opcode & 1);
                     do_mod_rm();
-                    access(47, bits);
                     cpu_data = get_ea();
                     cpu_dest = cpu_data;
                     if (cpu_mod != 3)
@@ -2643,7 +2872,6 @@ execx86(int cycs)
                     if (cpu_alu_op != 7) {
                         if (cpu_mod != 3)
                             wait(1, 0);
-                        access(16, bits);
                         set_ea(cpu_data);
                     } else {
                         if (cpu_mod != 3)
@@ -2656,7 +2884,6 @@ execx86(int cycs)
                     /* TEST rm, reg */
                     bits = 8 << (opcode & 1);
                     do_mod_rm();
-                    access(48, bits);
                     cpu_data = get_ea();
                     test(bits, cpu_data, get_reg(cpu_reg));
                     if (cpu_mod != 3)
@@ -2668,14 +2895,12 @@ execx86(int cycs)
                     /* XCHG rm, reg */
                     bits = 8 << (opcode & 1);
                     do_mod_rm();
-                    access(49, bits);
                     cpu_data = get_ea();
                     cpu_src  = get_reg(cpu_reg);
                     set_reg(cpu_reg, cpu_data);
                     wait(3, 0);
                     if (cpu_mod != 3)
                         wait(3, 0);
-                    access(16, bits);
                     set_ea(cpu_src);
                     break;
 
@@ -2687,7 +2912,6 @@ execx86(int cycs)
                     wait(1, 0);
                     if (cpu_mod != 3)
                         wait(3, 0);
-                    access(16, bits);
                     set_ea(get_reg(cpu_reg));
                     break;
                 case 0x8A:
@@ -2706,7 +2930,6 @@ execx86(int cycs)
                     wait(1, 0);
                     if (cpu_mod != 3)
                         wait(2, 0);
-                    access(16, 16);
                     seteaw(_opseg[(rmdat & 0x18) >> 3]->seg);
                     break;
 
@@ -2739,13 +2962,11 @@ execx86(int cycs)
                     cpu_src = cpu_state.eaaddr;
                     if (cpu_mod != 3)
                         wait(1, 0);
-                    access(20, 16);
                     wait(1, 0);
                     if (cpu_mod != 3)
                         wait(2, 0);
                     cpu_data         = pop();
                     cpu_state.eaaddr = cpu_src;
-                    access(16, 16);
                     seteaw(cpu_data);
                     break;
 
@@ -2785,14 +3006,12 @@ execx86(int cycs)
                     new_cs = pfq_fetchw();
                     wait(1, 0);
                     pfq_suspend();
-                    access(25, 16);
                     push(&(CS));
                     wait(4, 0);
                     cpu_state.oldpc = cpu_state.pc;
                     load_cs(new_cs);
                     set_ip(new_ip);
                     wait(1, 0);
-                    access(25, 16);
                     push((uint16_t *) &(cpu_state.oldpc));
                     break;
                 case 0x9B: /*WAIT*/
@@ -2815,7 +3034,6 @@ execx86(int cycs)
                     break;
                 case 0x9C: /*PUSHF*/
                     wait(4, 0);
-                    access(16, 16);
                     if (is_nec)
                         tempw = (cpu_state.flags & 0x8fd7) | 0x7000;
                     else
@@ -2823,7 +3041,6 @@ execx86(int cycs)
                     push(&tempw);
                     break;
                 case 0x9D: /*POPF*/
-                    access(25, 16);
                     wait(1, 0);
                     if (is_nec)
                         cpu_state.flags = pop() | 0x8002;
@@ -2846,7 +3063,6 @@ execx86(int cycs)
                     bits = 8 << (opcode & 1);
                     wait(2, 0);
                     cpu_state.eaaddr = pfq_fetchw();
-                    access(6, bits);
                     set_accum(bits, readmem((ovr_seg ? *ovr_seg : ds)));
                     break;
                 case 0xA2:
@@ -2855,7 +3071,6 @@ execx86(int cycs)
                     bits = 8 << (opcode & 1);
                     wait(2, 0);
                     cpu_state.eaaddr = pfq_fetchw();
-                    access(46, bits);
                     writemem((ovr_seg ? *ovr_seg : ds), get_accum(bits));
                     wait(2, 0);
                     break;
@@ -2867,7 +3082,7 @@ execx86(int cycs)
                     bits = 8 << (opcode & 1);
                     if (rep_setup())
                         break;
-                    if (in_rep != 0 && (biu_cycles == 3))
+                    if (in_rep != 0 && (BUS_CYCLE == BUS_T4))
                         wait(1, 0);
                     lods(bits);
                     if ((opcode & 8) == 0) {
@@ -2950,7 +3165,7 @@ execx86(int cycs)
                     if (rep_setup())
                         break;
                     cpu_data = AX;
-                    if (in_rep == 0 && (biu_cycles == 3))
+                    if (in_rep == 0 && (BUS_CYCLE == BUS_T4))
                         wait(1, 0);
                     stos(bits);
                     wait(3, 0);
@@ -3014,7 +3229,6 @@ execx86(int cycs)
                     if ((opcode & 9) == 9)
                         wait(2, 0);
                     pfq_clear();
-                    access(25, bits);
                     new_ip = pop();
                     wait(1, 0);
                     if ((opcode & 8) == 0) {
@@ -3023,7 +3237,6 @@ execx86(int cycs)
                             wait(1, 0);
                     } else {
                         wait(2, 0);
-                        access(6, bits);
                         new_cs = pop();
                     }
                     if (!(opcode & 1))
@@ -3041,7 +3254,6 @@ execx86(int cycs)
                     cpu_state.regs[cpu_reg].w = cpu_data;
                     if (cpu_mod != 3)
                         wait(2, 0);
-                    access(6, bits);
                     read_ea2(bits);
                     load_seg(cpu_data, (opcode & 0x01) ? &cpu_state.seg_ds : &cpu_state.seg_es);
                     break;
@@ -3065,7 +3277,7 @@ execx86(int cycs)
                     wait(1, 0);
                     temp = pfq_fetchb();
                     wait(1, 0);
-                    if (biu_cycles != 3)
+                    if (BUS_CYCLE != BUS_T4)
                         wait(1, 0);
                     wait(1, 0);
 
@@ -3082,13 +3294,10 @@ execx86(int cycs)
                 case 0xCF: /*IRET*/
                     wait(3, 0);
                     pfq_clear();
-                    access(6, 8);
                     new_ip = pop();
-                    access(6, 8);
                     new_cs = pop();
                     load_cs(new_cs);
                     set_ip(new_ip);
-                    access(6, 8);
                     if (is_nec)
                         cpu_state.flags = pop() | 0x8002;
                     else
@@ -3188,7 +3397,6 @@ execx86(int cycs)
                             wait(4, 0);
                         --cpu_src;
                     }
-                    access(16, bits);
                     set_ea(cpu_data);
                     break;
 
@@ -3223,8 +3431,7 @@ execx86(int cycs)
                 case 0xD7: /*XLATB*/
                     cpu_state.eaaddr = (BX + AL) & 0xffff;
                     wait(4, 0);
-                    access(3, 8);
-                    AL = readmemb((ovr_seg ? *ovr_seg : ds) + cpu_state.eaaddr);
+                    AL = readmemb((ovr_seg ? *ovr_seg : ds), cpu_state.eaaddr);
                     break;
 
                 case 0xD8:
@@ -3337,7 +3544,6 @@ execx86(int cycs)
                     wait(1, 0);
                     cpu_data = pfq_fetchb();
                     cpu_state.eaaddr = cpu_data;
-                    access(46, bits);
                     wait(1, 0);
                     cpu_io(bits, 0, cpu_state.eaaddr);
                     break;
@@ -3348,7 +3554,6 @@ execx86(int cycs)
                     cpu_data = pfq_fetchb();
                     cpu_state.eaaddr = cpu_data;
                     cpu_data = (bits == 16) ? AX : AL;
-                    access(46, bits);
                     wait(2, 0);
                     cpu_io(bits, 1, cpu_state.eaaddr);
                     break;
@@ -3357,7 +3562,6 @@ execx86(int cycs)
                     bits = 8 << (opcode & 1);
                     cpu_data = DX;
                     cpu_state.eaaddr = cpu_data;
-                    access(3, bits);
                     wait(1, 0);
                     cpu_io(bits, 0, cpu_state.eaaddr);
                     break;
@@ -3368,7 +3572,6 @@ execx86(int cycs)
                     cpu_data = DX;
                     cpu_state.eaaddr = cpu_data;
                     cpu_data = (bits == 16) ? AX : AL;
-                    access(3, bits);
                     cpu_io(bits, 1, cpu_state.eaaddr);
                     wait(1, 0);
                     break;
@@ -3377,7 +3580,6 @@ execx86(int cycs)
                     wait(1, 0);
                     cpu_state.oldpc = jump_near();
                     wait(2, 0);
-                    access(25, 16);
                     push((uint16_t *) &(cpu_state.oldpc));
                     break;
                 case 0xE9: /*JMP rel 16*/
@@ -3418,7 +3620,7 @@ execx86(int cycs)
 
                 case 0xF4: /*HLT*/
                     if (!repeating) {
-                        if ((biu_cycles == 3) || !last_was_code)
+                        if ((BUS_CYCLE == BUS_T4) || !last_was_code)
                             cpu_data = 1;
                         else
                             cpu_data = 2;
@@ -3469,7 +3671,6 @@ execx86(int cycs)
                             }
                             if (cpu_mod != 3)
                                 wait(2, 0);
-                            access(16, bits);
                             set_ea(cpu_data);
                             break;
                         case 0x20: /* MUL */
@@ -3529,7 +3730,6 @@ execx86(int cycs)
                     /* misc */
                     bits = 8 << (opcode & 1);
                     do_mod_rm();
-                    access(56, bits);
                     read_ea(((rmdat & 0x38) == 0x18) || ((rmdat & 0x38) == 0x28), bits);
                     switch (rmdat & 0x38) {
                         case 0x00: /* INC rm */
@@ -3546,7 +3746,6 @@ execx86(int cycs)
                             do_af();
                             set_pzs(bits);
                             wait(2, 0);
-                            access(16, bits);
                             set_ea(cpu_data);
                             break;
                         case 0x10: /* CALL rm */
@@ -3557,34 +3756,30 @@ execx86(int cycs)
                             cpu_state.oldpc = cpu_state.pc;
                             set_ip(cpu_data);
                             wait(2, 0);
-                            access(25, bits);
                             push((uint16_t *) &(cpu_state.oldpc));
                             break;
                         case 0x18: /* CALL rmd */
                             new_ip = cpu_data;
                             wait(3, 0);
-                            access(6, bits);
                             read_ea2(bits);
                             if (!(opcode & 1))
                                 cpu_data |= 0xff00;
                             new_cs = cpu_data;
                             wait(1, 0);
                             pfq_clear();
-                            access(25, bits);
                             push(&(CS));
                             wait(4, 0);
                             cpu_state.oldpc = cpu_state.pc;
                             load_cs(new_cs);
                             set_ip(new_ip);
                             wait(1, 0);
-                            access(25, bits);
                             push((uint16_t *) &(cpu_state.oldpc));
                             break;
                         case 0x20: /* JMP rm */
                             cpu_data_opff_rm();
                             wait(2, 0);
                             pfq_clear();
-                            if (biu_cycles != 3)
+                            if (BUS_CYCLE != BUS_T4)
                                 wait(1, 0);
                             set_ip(cpu_data);
                             break;
@@ -3593,7 +3788,6 @@ execx86(int cycs)
                             wait(3, 0);
                             pfq_clear();
                             wait(1, 0);
-                            access(25, bits);
                             read_ea2(bits);
                             if (!(opcode & 1))
                                 cpu_data |= 0xff00;
@@ -3606,7 +3800,6 @@ execx86(int cycs)
                             if (cpu_mod != 3)
                                 wait(1, 0);
                             wait(4, 0);
-                            access(38, bits);
                             push((uint16_t *) &(cpu_data));
                             break;
                     }

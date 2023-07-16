@@ -36,7 +36,7 @@ SettingsDisplay::SettingsDisplay(QWidget *parent)
 {
     ui->setupUi(this);
 
-    videoCard[0]   = gfxcard[0];
+    videoCard[0] = gfxcard[0];
     videoCard[1] = gfxcard[1];
     onCurrentMachineChanged(machine);
 }
@@ -102,6 +102,11 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
         ui->comboBoxVideoSecondary->setEnabled(true);
         ui->pushButtonConfigureSecondary->setEnabled(true);
     }
+	if (video_card_get_flags(gfxcard[0]) != VIDEO_FLAG_TYPE_8514)
+		ibm8514_has_vga = 0;
+	if (video_card_get_flags(gfxcard[0]) != VIDEO_FLAG_TYPE_XGA)
+		xga_has_vga = 0;
+
     ui->comboBoxVideo->setCurrentIndex(selectedRow);
     if (gfxcard[1] == 0)
         ui->pushButtonConfigureSecondary->setEnabled(false);
@@ -123,10 +128,12 @@ SettingsDisplay::on_pushButtonConfigureVoodoo_clicked()
 void
 SettingsDisplay::on_pushButtonConfigureXga_clicked()
 {
-    if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0) {
-        DeviceConfig::ConfigureDevice(&xga_device, 0, qobject_cast<Settings *>(Settings::settings));
-    } else {
-        DeviceConfig::ConfigureDevice(&xga_isa_device, 0, qobject_cast<Settings *>(Settings::settings));
+    if (!xga_has_vga) {
+        if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0) {
+            DeviceConfig::ConfigureDevice(&xga_device, 0, qobject_cast<Settings *>(Settings::settings));
+        } else {
+            DeviceConfig::ConfigureDevice(&xga_isa_device, 0, qobject_cast<Settings *>(Settings::settings));
+        }
     }
 }
 
@@ -139,7 +146,6 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     auto curVideoCard_2 = videoCard[1];
     videoCard[0] = ui->comboBoxVideo->currentData().toInt();
     ui->pushButtonConfigure->setEnabled(video_card_has_config(videoCard[0]) > 0);
-
     bool machineHasPci = machine_has_bus(machineId, MACHINE_BUS_PCI) > 0;
     ui->checkBoxVoodoo->setEnabled(machineHasPci);
     if (machineHasPci) {
@@ -149,16 +155,16 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
 
     bool hasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA16) > 0;
     bool has_MCA  = machine_has_bus(machineId, MACHINE_BUS_MCA) > 0;
-    ui->checkBox8514->setEnabled(hasIsa16 || has_MCA);
+    ui->checkBox8514->setEnabled((hasIsa16 || has_MCA) && !ibm8514_has_vga);
     if (hasIsa16 || has_MCA) {
         ui->checkBox8514->setChecked(ibm8514_enabled);
     }
 
-    ui->checkBoxXga->setEnabled(hasIsa16 || has_MCA);
+    ui->checkBoxXga->setEnabled((hasIsa16 || has_MCA) && !xga_has_vga);
     if (hasIsa16 || has_MCA)
         ui->checkBoxXga->setChecked(xga_enabled);
 
-    ui->pushButtonConfigureXga->setEnabled((hasIsa16 || has_MCA) && ui->checkBoxXga->isChecked());
+    ui->pushButtonConfigureXga->setEnabled((hasIsa16 || has_MCA) && ui->checkBoxXga->isChecked() && !xga_has_vga);
 
     int c = 2;
 
@@ -187,7 +193,7 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
         c++;
     }
 
-    if (videoCard[1] == 0 || (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0)) {
+    if ((videoCard[1] == 0) || (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0)) {
         ui->comboBoxVideoSecondary->setCurrentIndex(0);
         ui->pushButtonConfigureSecondary->setEnabled(false);
     }
@@ -202,7 +208,7 @@ SettingsDisplay::on_checkBoxVoodoo_stateChanged(int state)
 void
 SettingsDisplay::on_checkBoxXga_stateChanged(int state)
 {
-    ui->pushButtonConfigureXga->setEnabled(state == Qt::Checked);
+    ui->pushButtonConfigureXga->setEnabled((state == Qt::Checked) && !xga_has_vga);
 }
 
 void

@@ -326,13 +326,6 @@ pb_write(int func, int addr, uint8_t val, void *priv)
                 dev->pb_pci_conf[addr] = val & /*0x1a*/ 0x1f;
                 break;
 
-            case 0xb4:
-                dev->pb_pci_conf[addr] = val & 0xe0;
-                break;
-            case 0xb5:
-                dev->pb_pci_conf[addr] = val & 0x1f;
-                break;
-
             case 0xb8:
             case 0xb9:
                 dev->pb_pci_conf[addr] = val;
@@ -689,7 +682,7 @@ i450kx_reset(void *priv)
     dev->pb_pci_conf[0xb0] = 0x00;
     dev->pb_pci_conf[0xb1] = 0x00;
 #endif
-    dev->pb_pci_conf[0xb4] = 0x00;
+    dev->pb_pci_conf[0xb4] = 0xff;
     dev->pb_pci_conf[0xb5] = 0x00;
     dev->pb_pci_conf[0xb8] = 0x05;
     dev->pb_pci_conf[0xb9] = 0x00;

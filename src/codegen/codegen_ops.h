@@ -7,6 +7,7 @@ typedef uint32_t (*RecompOpFn)(uint8_t opcode, uint32_t fetchdat, uint32_t op_32
 
 extern RecompOpFn recomp_opcodes[512];
 extern RecompOpFn recomp_opcodes_0f[512];
+extern RecompOpFn recomp_opcodes_0f_no_mmx[512];
 extern RecompOpFn recomp_opcodes_d8[512];
 extern RecompOpFn recomp_opcodes_d9[512];
 extern RecompOpFn recomp_opcodes_da[512];
