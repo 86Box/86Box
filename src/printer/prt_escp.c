@@ -65,7 +65,6 @@
 #include <86box/pit.h>
 #include <86box/path.h>
 #include <86box/plat.h>
-#include <86box/plat_dynld.h>
 #include <86box/ui.h>
 #include <86box/lpt.h>
 #include <86box/video.h>
@@ -85,45 +84,8 @@
 #define PAGE_CPI     10.0 /* standard 10 cpi */
 #define PAGE_LPI     6.0  /* standard 6 lpi */
 
-#ifdef _WIN32
-#    define PATH_FREETYPE_DLL "freetype.dll"
-#elif defined __APPLE__
-#    define PATH_FREETYPE_DLL "libfreetype.6.dylib"
-#else
-#    define PATH_FREETYPE_DLL "libfreetype.so.6"
-#endif
-
 /* FreeType library handles - global so they can be shared. */
-FT_Library ft_lib    = NULL;
-void      *ft_handle = NULL;
-
-static int (*ft_Init_FreeType)(FT_Library *alibrary);
-static int (*ft_Done_Face)(FT_Face face);
-static int (*ft_New_Face)(FT_Library library, const char *filepathname,
-                          FT_Long face_index, FT_Face *aface);
-static int (*ft_Set_Char_Size)(FT_Face face, FT_F26Dot6 char_width,
-                               FT_F26Dot6 char_height,
-                               FT_UInt    horz_resolution,
-                               FT_UInt    vert_resolution);
-static int (*ft_Set_Transform)(FT_Face face, FT_Matrix *matrix,
-                               FT_Vector *delta);
-static int (*ft_Get_Char_Index)(FT_Face face, FT_ULong charcode);
-static int (*ft_Load_Glyph)(FT_Face face, FT_UInt glyph_index,
-                            FT_Int32 load_flags);
-static int (*ft_Render_Glyph)(FT_GlyphSlot   slot,
-                              FT_Render_Mode render_mode);
-
-static dllimp_t ft_imports[] = {
-    {"FT_Init_FreeType",   &ft_Init_FreeType },
-    { "FT_New_Face",       &ft_New_Face      },
-    { "FT_Done_Face",      &ft_Done_Face     },
-    { "FT_Set_Char_Size",  &ft_Set_Char_Size },
-    { "FT_Set_Transform",  &ft_Set_Transform },
-    { "FT_Get_Char_Index", &ft_Get_Char_Index},
-    { "FT_Load_Glyph",     &ft_Load_Glyph    },
-    { "FT_Render_Glyph",   &ft_Render_Glyph  },
-    { NULL,                NULL              }
-};
+FT_Library ft_lib = NULL;
 
 /* The fonts. */
 #define FONT_DEFAULT   0
@@ -544,7 +506,7 @@ update_font(escp_t *dev)
 
     /* Release current font if we have one. */
     if (dev->fontface)
-        ft_Done_Face(dev->fontface);
+        FT_Done_Face(dev->fontface);
 
     if (dev->print_quality == QUALITY_DRAFT)
         fn = FONT_FILE_DOTMATRIX;
@@ -580,7 +542,7 @@ update_font(escp_t *dev)
     escp_log("Temp file=%s\n", path);
 
     /* Load the new font. */
-    if (ft_New_Face(ft_lib, path, 0, &dev->fontface)) {
+    if (FT_New_Face(ft_lib, path, 0, &dev->fontface)) {
         escp_log("ESC/P: unable to load font '%s'\n", path);
         dev->fontface = NULL;
     }
@@ -626,7 +588,7 @@ update_font(escp_t *dev)
         dev->actual_cpi /= 2.0 / 3.0;
     }
 
-    ft_Set_Char_Size(dev->fontface,
+    FT_Set_Char_Size(dev->fontface,
                      (uint16_t) (hpoints * 64), (uint16_t) (vpoints * 64),
                      dev->dpi, dev->dpi);
 
@@ -636,7 +598,7 @@ update_font(escp_t *dev)
         matrix.xy = (FT_Fixed) (0.20 * 0x10000L);
         matrix.yx = 0;
         matrix.yy = 0x10000L;
-        ft_Set_Transform(dev->fontface, &matrix, 0);
+        FT_Set_Transform(dev->fontface, &matrix, 0);
     }
 }
 
@@ -1611,9 +1573,9 @@ handle_char(escp_t *dev, uint8_t ch)
 
     /* ok, so we need to print the character now */
     if (ft_lib) {
-        char_index = ft_Get_Char_Index(dev->fontface, dev->curr_cpmap[ch]);
-        ft_Load_Glyph(dev->fontface, char_index, FT_LOAD_DEFAULT);
-        ft_Render_Glyph(dev->fontface->glyph, FT_RENDER_MODE_NORMAL);
+        char_index = FT_Get_Char_Index(dev->fontface, dev->curr_cpmap[ch]);
+        FT_Load_Glyph(dev->fontface, char_index, FT_LOAD_DEFAULT);
+        FT_Render_Glyph(dev->fontface->glyph, FT_RENDER_MODE_NORMAL);
     }
 
     pen_x = PIXX + dev->fontface->glyph->bitmap_left;
@@ -1986,23 +1948,12 @@ read_status(void *priv)
 static void *
 escp_init(void *lpt)
 {
-    const char *fn = PATH_FREETYPE_DLL;
-    escp_t     *dev;
-
-    /* Dynamically load FreeType. */
-    if (ft_handle == NULL) {
-        ft_handle = dynld_module(fn, ft_imports);
-        if (ft_handle == NULL) {
-            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2111, (wchar_t *) IDS_2132);
-            return (NULL);
-        }
-    }
+    escp_t *dev;
 
     /* Initialize FreeType. */
     if (ft_lib == NULL) {
-        if (ft_Init_FreeType(&ft_lib)) {
+        if (FT_Init_FreeType(&ft_lib)) {
             ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2111, (wchar_t *) IDS_2132);
-            dynld_close(ft_lib);
             ft_lib = NULL;
             return (NULL);
         }
