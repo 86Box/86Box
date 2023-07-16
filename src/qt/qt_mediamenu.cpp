@@ -849,13 +849,16 @@ MediaMenu::nicUpdateMenu(int i)
     if (!netMenus.contains(i))
         return;
 
-    QString netType = tr("None");
+    QString netType = tr("Null Driver");
     switch (net_cards_conf[i].net_type) {
         case NET_TYPE_SLIRP:
             netType = "SLiRP";
             break;
         case NET_TYPE_PCAP:
             netType = "PCAP";
+            break;
+        case NET_TYPE_VDE:
+            netType = "VDE";
             break;
     }
 

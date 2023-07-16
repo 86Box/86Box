@@ -23,6 +23,7 @@
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
+#include <86box/plat_unused.h>
 
 enum {
     MODE_STREAM,
@@ -30,13 +31,15 @@ enum {
     MODE_ECHO
 };
 
-#define FLAG_EXPLORER 0x200 /* Has 5 buttons */
-#define FLAG_5BTN    0x100 /* using Intellimouse Optical mode */
-#define FLAG_INTELLI 0x80  /* device is IntelliMouse */
-#define FLAG_INTMODE 0x40  /* using Intellimouse mode */
-#define FLAG_SCALED  0x20  /* enable delta scaling */
-#define FLAG_ENABLED 0x10  /* dev is enabled for use */
-#define FLAG_CTRLDAT 0x08  /* ctrl or data mode */
+#define FLAG_EXPLORER 0x200  /* Has 5 buttons */
+#define FLAG_5BTN     0x100  /* using Intellimouse Optical mode */
+#define FLAG_INTELLI   0x80  /* device is IntelliMouse */
+#define FLAG_INTMODE   0x40  /* using Intellimouse mode */
+#define FLAG_SCALED    0x20  /* enable delta scaling */
+#define FLAG_ENABLED   0x10  /* dev is enabled for use */
+#define FLAG_CTRLDAT   0x08  /* ctrl or data mode */
+
+#define FIFO_SIZE      16
 
 int mouse_scan = 0;
 
@@ -73,7 +76,7 @@ ps2_report_coordinates(atkbc_dev_t *dev, int main)
     int temp_z;
 
     if (dev->x > 255) {
-        dev->x = 255;
+        dev->x = 255;        
         buff[0] |= 0x40;
     }
     if (dev->x < -256) {
@@ -97,14 +100,7 @@ ps2_report_coordinates(atkbc_dev_t *dev, int main)
         buff[0] |= 0x10;
     if (dev->y < 0)
         buff[0] |= 0x20;
-    if (mouse_buttons & 0x01)
-        buff[0] |= 0x01;
-    if (mouse_buttons & 0x02)
-        buff[0] |= 0x02;
-    if (dev->flags & FLAG_INTELLI) {
-        if (mouse_buttons & 0x04)
-            buff[0] |= 0x04;
-    }
+    buff[0] |= (dev->b & ((dev->flags & FLAG_INTELLI) ? 0x07 : 0x03));
     buff[1] = (dev->x & 0xff);
     buff[2] = (dev->y & 0xff);
 
@@ -113,7 +109,7 @@ ps2_report_coordinates(atkbc_dev_t *dev, int main)
     kbc_at_dev_queue_add(dev, buff[2], main);
     if (dev->flags & FLAG_INTMODE) {
         temp_z = dev->z & 0x0f;
-        if ((dev->flags & FLAG_5BTN)) {
+        if (dev->flags & FLAG_5BTN) {
             if (mouse_buttons & 8)
                 temp_z |= 0x10;
             if (mouse_buttons & 16)
@@ -155,7 +151,8 @@ static void
 ps2_write(void *priv)
 {
     atkbc_dev_t *dev = (atkbc_dev_t *) priv;
-    uint8_t  temp, val;
+    uint8_t  temp;
+    uint8_t  val;
     static uint8_t last_data[6] = { 0x00 };
 
     if (dev->port == NULL)
@@ -314,23 +311,30 @@ ps2_write(void *priv)
 }
 
 static int
-ps2_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
+ps2_poll(int x, int y, int z, int b, UNUSED(double abs_x), UNUSED(double abs_y), void *priv)
 {
     atkbc_dev_t *dev = (atkbc_dev_t *) priv;
+    int packet_size = (dev->flags & FLAG_INTMODE) ? 4 : 3;
 
     if (!mouse_scan || (!x && !y && !z && (b == dev->b)))
-        return (0xff);
+        return 0xff;
 
-    dev->x += x;
-    dev->y -= y;
-    dev->z -= z;
-    if ((dev->mode == MODE_STREAM) && (kbc_at_dev_queue_pos(dev, 1) < 13)) {
+    if ((dev->mode == MODE_STREAM) && (kbc_at_dev_queue_pos(dev, 1) < (FIFO_SIZE - packet_size))) {
+        dev->x = x;
+        dev->y = -y;
+        dev->z = -z;
         dev->b = b;
-
-        ps2_report_coordinates(dev, 1);
+    } else {
+        dev->x += x;
+        dev->y -= y;
+        dev->z -= z;
+        dev->b = b;
     }
 
-    return (0);
+    if ((dev->mode == MODE_STREAM) && (kbc_at_dev_queue_pos(dev, 1) < (FIFO_SIZE - packet_size)))
+        ps2_report_coordinates(dev, 1);
+
+    return 0;
 }
 
 /*
@@ -367,11 +371,13 @@ mouse_ps2_init(const device_t *info)
 
     dev->scan        = &mouse_scan;
 
+    dev->fifo_mask   = FIFO_SIZE - 1;
+
     if (dev->port != NULL)
         kbc_at_dev_reset(dev, 0);
 
     /* Return our private data to the I/O layer. */
-    return (dev);
+    return dev;
 }
 
 static void

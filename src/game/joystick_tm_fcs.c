@@ -44,6 +44,7 @@
 #include <86box/timer.h>
 #include <86box/gameport.h>
 #include <86box/joystick_standard.h>
+#include <86box/plat_unused.h>
 
 static void *
 tm_fcs_init(void)
@@ -52,12 +53,13 @@ tm_fcs_init(void)
 }
 
 static void
-tm_fcs_close(void *p)
+tm_fcs_close(UNUSED(void *priv))
 {
+    //
 }
 
 static uint8_t
-tm_fcs_read(void *p)
+tm_fcs_read(UNUSED(void *priv))
 {
     uint8_t ret = 0xf0;
 
@@ -76,12 +78,13 @@ tm_fcs_read(void *p)
 }
 
 static void
-tm_fcs_write(void *p)
+tm_fcs_write(UNUSED(void *priv))
 {
+    //
 }
 
 static int
-tm_fcs_read_axis(void *p, int axis)
+tm_fcs_read_axis(UNUSED(void *priv), int axis)
 {
     if (!JOYSTICK_PRESENT(0))
         return AXIS_NOT_PRESENT;
@@ -111,8 +114,9 @@ tm_fcs_read_axis(void *p, int axis)
 }
 
 static void
-tm_fcs_a0_over(void *p)
+tm_fcs_a0_over(UNUSED(void *priv))
 {
+    //
 }
 
 const joystick_if_t joystick_tm_fcs = {

@@ -44,8 +44,7 @@
 #include <86box/io.h>
 #include <86box/video.h>
 
-typedef struct
-{
+typedef struct gc100_t {
     uint8_t reg[0x10];
 } gc100_t;
 
@@ -70,9 +69,9 @@ gc100_log(const char *fmt, ...)
 static uint8_t
 get_fdd_switch_settings(void)
 {
-    int i, fdd_count = 0;
+    uint8_t fdd_count = 0;
 
-    for (i = 0; i < FDD_NUM; i++) {
+    for (uint8_t i = 0; i < FDD_NUM; i++) {
         if (fdd_get_flags(i))
             fdd_count++;
     }
@@ -135,6 +134,9 @@ gc100_write(uint16_t port, uint8_t val, void *priv)
             /* addr 0x6 */
 
             /* addr 0x7 */
+
+        default:
+            break;
     }
 
     gc100_log("GC100: Write %02x at %02x\n", val, port);
@@ -187,6 +189,9 @@ gc100_read(uint16_t port, void *priv)
             /* addr 0x6 */
 
             /* addr 0x7 */
+
+        default:
+            break;
     }
 
     return ret;

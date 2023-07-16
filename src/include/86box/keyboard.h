@@ -24,21 +24,24 @@
 
 enum {
     DEV_KBD = 0,
-    DEV_AUX
+    DEV_AUX = 1
 };
 
 enum {
-    DEV_STATE_MAIN_1 = 0,
-    DEV_STATE_MAIN_OUT,
-    DEV_STATE_MAIN_2,
-    DEV_STATE_MAIN_CMD,
-    DEV_STATE_MAIN_WANT_IN,
-    DEV_STATE_MAIN_IN
+    DEV_STATE_MAIN_1                = 0,
+    DEV_STATE_MAIN_OUT              = 1,
+    DEV_STATE_MAIN_2                = 2,
+    DEV_STATE_MAIN_CMD              = 3,
+    DEV_STATE_MAIN_WANT_IN          = 4,
+    DEV_STATE_MAIN_IN               = 5,
+    DEV_STATE_EXECUTE_BAT           = 6,
+    DEV_STATE_MAIN_WANT_EXECUTE_BAT = 7
 };
 
 /* Used by the AT / PS/2 keyboard controller, common device, keyboard, and mouse. */
-typedef struct {
-    uint8_t wantcmd, dat;
+typedef struct kbc_at_port_t {
+    uint8_t wantcmd;
+    uint8_t dat;
 
     int16_t out_new;
 
@@ -48,12 +51,19 @@ typedef struct {
 } kbc_at_port_t;
 
 /* Used by the AT / PS/2 common device, keyboard, and mouse. */
-typedef struct {
+typedef struct atkbc_dev_t {
     const char *name; /* name of this device */
 
-    uint8_t type, command, last_scan_code, state,
-            resolution, rate, cmd_queue_start, cmd_queue_end,
-            queue_start, queue_end;
+    uint8_t type;
+    uint8_t command;
+    uint8_t last_scan_code;
+    uint8_t state;
+    uint8_t resolution;
+    uint8_t rate;
+    uint8_t cmd_queue_start;
+    uint8_t cmd_queue_end;
+    uint8_t queue_start;
+    uint8_t queue_end;
 
     uint16_t flags;
 
@@ -61,10 +71,14 @@ typedef struct {
        output multiple bytes. */
     uint8_t cmd_queue[16];
 
-    uint8_t queue[16];
+    uint8_t queue[64];
 
-    int     mode,
-            x, y, z, b;
+    int     fifo_mask;
+    int     mode;
+    int     x;
+    int     y;
+    int     z;
+    int     b;
 
     int     *scan;
 
@@ -74,7 +88,7 @@ typedef struct {
     kbc_at_port_t *port;
 } atkbc_dev_t;
 
-typedef struct {
+typedef struct scancode {
     const uint8_t mk[4];
     const uint8_t brk[4];
 } scancode;
@@ -190,8 +204,10 @@ extern const scancode scancode_xt[512];
 extern uint8_t keyboard_set3_flags[512];
 extern uint8_t keyboard_set3_all_repeat;
 extern uint8_t keyboard_set3_all_break;
-extern int     mouse_queue_start, mouse_queue_end;
-extern int     mouse_cmd_queue_start, mouse_cmd_queue_end;
+extern int     mouse_queue_start;
+extern int     mouse_queue_end;
+extern int     mouse_cmd_queue_start;
+extern int     mouse_cmd_queue_end;
 extern int     mouse_scan;
 
 extern kbc_at_port_t     *kbc_at_ports[2];
@@ -212,11 +228,13 @@ extern const device_t keyboard_xt_olivetti_device;
 extern const device_t keyboard_xt_zenith_device;
 extern const device_t keyboard_xtclone_device;
 extern const device_t keyboard_at_device;
+extern const device_t keyboard_at_siemens_device;
 extern const device_t keyboard_at_ami_device;
 extern const device_t keyboard_at_tg_ami_device;
 extern const device_t keyboard_at_toshiba_device;
 extern const device_t keyboard_at_olivetti_device;
 extern const device_t keyboard_at_ncr_device;
+extern const device_t keyboard_at_compaq_device;
 extern const device_t keyboard_ps2_device;
 extern const device_t keyboard_ps2_ps1_device;
 extern const device_t keyboard_ps2_ps1_pci_device;

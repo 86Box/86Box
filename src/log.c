@@ -35,10 +35,11 @@
 #include <86box/log.h>
 
 #ifndef RELEASE_BUILD
-typedef struct
-{
-    char buff[1024], *dev_name;
-    int  seen, suppr_seen;
+typedef struct log_t {
+    char  buff[1024];
+    char *dev_name;
+    int   seen;
+    int   suppr_seen;
 } log_t;
 
 extern FILE *stdlog; /* file to log output to */
@@ -81,7 +82,8 @@ void
 log_out(void *priv, const char *fmt, va_list ap)
 {
     log_t *log = (log_t *) priv;
-    char   temp[1024], fmt2[1024];
+    char   temp[1024];
+    char   fmt2[1024];
 
     if (log == NULL)
         return;
@@ -119,7 +121,8 @@ void
 log_fatal(void *priv, const char *fmt, ...)
 {
     log_t  *log = (log_t *) priv;
-    char    temp[1024], fmt2[1024];
+    char    temp[1024];
+    char    fmt2[1024];
     va_list ap;
 
     if (log == NULL)

@@ -236,25 +236,33 @@ void net_vde_in_available(void *priv) {
 }
 
 //+
+// Copy error message to the error buffer
+// and log if enabled.
+//-
+void net_vde_error(char *errbuf, const char *message) {
+    strncpy(errbuf, message, NET_DRV_ERRBUF_SIZE);
+    vde_log("VDE: %s\n", message);
+}
+
+//+
 // Initialize VDE for use
 // At this point the vdeplug library is already loaded
 // card: network card we are attaching
 // mac_addr: MAC address we are using
 // priv: Name of the VDE contol socket directory
 //-
-void *net_vde_init(const netcard_t *card, const uint8_t *mac_addr, void *priv) {
+void *net_vde_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char *netdrv_errbuf) {
     struct vde_open_args vde_args;
-    int i;
 
     char *socket_name = (char *) priv;
 
     if (libvde_handle == NULL) {
-        vde_log("VDE: net_vde_init without library handle!\n");
+        net_vde_error(netdrv_errbuf, "net_vde_init without library handle");
         return NULL;
     }
 
     if ((socket_name[0] == '\0') || !strcmp(socket_name, "none")) {
-        vde_log("VDE: No socket name configured!\n");
+        net_vde_error(netdrv_errbuf, "No socket name configured");
         return NULL;
     }
 
@@ -271,23 +279,15 @@ void *net_vde_init(const netcard_t *card, const uint8_t *mac_addr, void *priv) {
     // We are calling vde_open_real(), not the vde_open() macro...
     if ((vde->vdeconn = f_vde_open(socket_name, VDE_DESCRIPTION, 
                                         LIBVDEPLUG_INTERFACE_VERSION, &vde_args)) == NULL) {
-        vde_log("VDE: Unable to open socket %s (%s)!\n", socket_name, strerror(errno));
+        char buf[NET_DRV_ERRBUF_SIZE];
+        snprintf(buf, NET_DRV_ERRBUF_SIZE, "Unable to open socket %s (%s)", socket_name, strerror(errno));
+        net_vde_error(netdrv_errbuf, buf);
         free(vde);
-        //+
-        // There is a bug upstream that causes an uncontrolled crash if the network is not
-        // properly initialized. 
-        // To avoid that crash, we tell the user we cannot continue and exit the program.
-        // TODO: Once there is a solution for the mentioned crash, this should be removed
-        // and/or replaced by proper error handling code.
-        //-
-        fatal("Could not open the specified VDE socket (%s). Please fix your networking configuration.", socket_name);
-        // It makes no sense to issue this warning since the program will crash anyway...
-        // ui_msgbox_header(MBX_WARNING, (wchar_t *) IDS_2167, (wchar_t *) IDS_2168);
         return NULL;
     }
     vde_log("VDE: Socket opened (%s).\n", socket_name);
 
-    for(i=0; i < VDE_PKT_BATCH; i++) {
+    for(uint8_t i = 0; i < VDE_PKT_BATCH; i++) {
         vde->pktv[i].data = calloc(1, NET_MAX_FRAME);
     }
     vde->pkt.data = calloc(1,NET_MAX_FRAME);

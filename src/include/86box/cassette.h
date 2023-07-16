@@ -24,7 +24,7 @@
 
 #include <stdio.h>
 
-typedef struct {
+typedef struct pc_cassette_t {
     char save;
     char pcm;
 
@@ -157,9 +157,11 @@ extern pc_cassette_t *cassette;
 
 extern char          cassette_fname[512];
 extern char          cassette_mode[512];
-extern unsigned long cassette_pos, cassette_srate;
+extern unsigned long cassette_pos;
+extern unsigned long cassette_srate;
 extern int           cassette_enable;
-extern int           cassette_append, cassette_pcm;
+extern int           cassette_append;
+extern int           cassette_pcm;
 extern int           cassette_ui_writeprot;
 
 extern const device_t cassette_device;

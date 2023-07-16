@@ -51,7 +51,8 @@ fifo8_push(Fifo8 *fifo, uint8_t data)
 void
 fifo8_push_all(Fifo8 *fifo, const uint8_t *data, uint32_t num)
 {
-    uint32_t start, avail;
+    uint32_t start;
+    uint32_t avail;
 
     assert(fifo->num + num <= fifo->capacity);
 

@@ -44,17 +44,17 @@ const int DataBusChannel         = Qt::UserRole + 1;
 const int DataBusPrevious        = Qt::UserRole + 2;
 const int DataBusChannelPrevious = Qt::UserRole + 3;
 
-/*
+#if 0
 static void
 normalize_hd_list()
 {
     hard_disk_t ihdd[HDD_NUM];
-    int i, j;
+    int j;
 
     j = 0;
     memset(ihdd, 0x00, HDD_NUM * sizeof(hard_disk_t));
 
-    for (i = 0; i < HDD_NUM; i++) {
+    for (uint8_t i = 0; i < HDD_NUM; i++) {
         if (temp_hdd[i].bus != HDD_BUS_DISABLED) {
             memcpy(&(ihdd[j]), &(temp_hdd[i]), sizeof(hard_disk_t));
             j++;
@@ -63,7 +63,7 @@ normalize_hd_list()
 
     memcpy(temp_hdd, ihdd, HDD_NUM * sizeof(hard_disk_t));
 }
-*/
+#endif
 
 static QString
 busChannelName(const QModelIndex &idx)

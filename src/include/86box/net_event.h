@@ -1,7 +1,7 @@
 #ifndef EMU_NET_EVENT_H
 #define EMU_NET_EVENT_H
 
-typedef struct {
+typedef struct net_evt_t {
 #ifdef _WIN32
     HANDLE handle;
 #else

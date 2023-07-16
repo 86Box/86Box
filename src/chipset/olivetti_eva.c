@@ -32,9 +32,9 @@
 #include <86box/chipset.h>
 #include <86box/video.h>
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
-typedef struct
-{
+typedef struct olivetti_eva_t {
     uint8_t reg_065;
     uint8_t reg_067;
     uint8_t reg_069;
@@ -77,20 +77,24 @@ olivetti_eva_write(uint16_t addr, uint8_t val, void *priv)
              * Unfortunately, if triggered, the BIOS remapping function fails causing
              * a fatal error. Therefore, this code section is currently commented.
              */
-            // if (val & 1){
-            //     /*
-            //      * Set the register to 7 or above for the BIOS to trigger the
-            //      * memory remapping function if shadowing is active.
-            //      */
-            //     dev->reg_069 = 0x7;
-            // }
-            // if (val & 8) {
-            //     /*
-            //      * Activate shadowing for region e0000-fffff
-            //      */
-            //     mem_remap_top(256);
-            //     mem_set_mem_state_both(0xa0000, 0x60000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-            // }
+#if 0
+            if (val & 1) {
+                /*
+                 * Set the register to 7 or above for the BIOS to trigger the
+                 * memory remapping function if shadowing is active.
+                 */
+                 dev->reg_069 = 0x7;
+            }
+            if (val & 8) {
+                /*
+                 * Activate shadowing for region e0000-fffff
+                 */
+                 mem_remap_top(256);
+                 mem_set_mem_state_both(0xa0000, 0x60000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+            }
+#endif
+            break;
+        default:
             break;
     }
 }
@@ -111,6 +115,8 @@ olivetti_eva_read(uint16_t addr, void *priv)
         case 0x069:
             ret = dev->reg_069;
             break;
+        default:
+            break;
     }
     olivetti_eva_log("Olivetti EVA Gate Array: Read %02x at %02x\n", ret, addr);
     return ret;
@@ -125,7 +131,7 @@ olivetti_eva_close(void *priv)
 }
 
 static void *
-olivetti_eva_init(const device_t *info)
+olivetti_eva_init(UNUSED(const device_t *info))
 {
     olivetti_eva_t *dev = (olivetti_eva_t *) malloc(sizeof(olivetti_eva_t));
     memset(dev, 0, sizeof(olivetti_eva_t));

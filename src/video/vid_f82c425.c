@@ -179,9 +179,7 @@ f82c425_smartmap_add(int a, int b, int sat)
 static void
 f82c425_smartmap(f82c425_t *f82c425)
 {
-    int i;
-
-    for (i = 0; i < 256; i++) {
+    for (uint16_t i = 0; i < 256; i++) {
         uint8_t bg = f82c425_rgbi(i >> 4);
         uint8_t fg = f82c425_rgbi(i & 0xf);
 
@@ -223,9 +221,7 @@ f82c425_smartmap(f82c425_t *f82c425)
 static void
 f82c425_colormap(f82c425_t *f82c425)
 {
-    int i;
-
-    for (i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 4; i++)
         colormap[i] = f82c425_makecol(5 * i, 0, f82c425->function & 0x80);
 }
 
@@ -330,7 +326,8 @@ static void
 f82c425_recalctimings(f82c425_t *f82c425)
 {
     double disptime;
-    double _dispontime, _dispofftime;
+    double _dispontime;
+    double _dispofftime;
 
     if (f82c425->function & 0x08) {
         cga_recalctimings(&f82c425->cga);
@@ -349,8 +346,9 @@ static void
 f82c425_text_row(f82c425_t *f82c425)
 {
     uint32_t colors[2];
-    int      x, c;
-    uint8_t  chr, attr;
+    int      c;
+    uint8_t  chr;
+    uint8_t  attr;
     int      drawcursor;
     int      cursorline;
     int      blink;
@@ -371,7 +369,7 @@ f82c425_text_row(f82c425_t *f82c425)
         cursorline = ((f82c425->cga.crtc[0x0a] & 0x0F) <= sc) && ((f82c425->cga.crtc[0x0b] & 0x0F) >= sc);
     }
 
-    for (x = 0; x < columns; x++) {
+    for (int x = 0; x < columns; x++) {
         chr        = f82c425->vram[(addr + 2 * x) & 0x3FFF];
         attr       = f82c425->vram[(addr + 2 * x + 1) & 0x3FFF];
         drawcursor = ((ma == ca) && cursorline && (f82c425->cga.cgamode & 0x8) && (f82c425->cga.cgablink & 0x10));
@@ -409,7 +407,6 @@ f82c425_text_row(f82c425_t *f82c425)
 static void
 f82c425_cgaline6(f82c425_t *f82c425)
 {
-    int      x, c;
     uint8_t  dat;
     uint16_t addr;
 
@@ -417,11 +414,11 @@ f82c425_cgaline6(f82c425_t *f82c425)
 
     addr = ((f82c425->displine) & 1) * 0x2000 + (f82c425->displine >> 1) * 80 + ((ma & ~1) << 1);
 
-    for (x = 0; x < 80; x++) {
+    for (uint8_t x  = 0; x < 80; x++) {
         dat = f82c425->vram[addr & 0x3FFF];
         addr++;
 
-        for (c = 0; c < 8; c++) {
+        for (uint8_t c = 0; c < 8; c++) {
             ((uint32_t *) buffer32->line[f82c425->displine])[x * 8 + c] = colormap[dat & 0x80 ? 3 : 0];
 
             dat = dat << 1;
@@ -433,18 +430,18 @@ f82c425_cgaline6(f82c425_t *f82c425)
 static void
 f82c425_cgaline4(f82c425_t *f82c425)
 {
-    int      x, c;
-    uint8_t  dat, pattern;
+    uint8_t  dat;
+    uint8_t  pattern;
     uint16_t addr;
 
     uint16_t ma = (f82c425->cga.crtc[0x0d] | (f82c425->cga.crtc[0x0c] << 8)) & 0x3fff;
     addr        = ((f82c425->displine) & 1) * 0x2000 + (f82c425->displine >> 1) * 80 + ((ma & ~1) << 1);
 
-    for (x = 0; x < 80; x++) {
+    for (uint8_t x = 0; x < 80; x++) {
         dat = f82c425->vram[addr & 0x3FFF];
         addr++;
 
-        for (c = 0; c < 4; c++) {
+        for (uint8_t c = 0; c < 4; c++) {
             pattern = (dat & 0xC0) >> 6;
             if (!(f82c425->cga.cgamode & 0x08))
                 pattern = 0;

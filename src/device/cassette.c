@@ -45,9 +45,11 @@ pc_cassette_t *cassette;
 
 char          cassette_fname[512];
 char          cassette_mode[512];
-unsigned long cassette_pos, cassette_srate;
+unsigned long cassette_pos;
+unsigned long cassette_srate;
 int           cassette_enable;
-int           cassette_append, cassette_pcm;
+int           cassette_append;
+int           cassette_pcm;
 int           cassette_ui_writeprot;
 
 static int cassette_cycles = -1;
@@ -138,7 +140,7 @@ pc_cas_new(void)
 
     pc_cas_init(cas);
 
-    return (cas);
+    return cas;
 }
 
 void
@@ -172,7 +174,7 @@ pc_cas_set_fname(pc_cassette_t *cas, const char *fname)
 
     if (fname == NULL) {
         ui_sb_update_icon_state(SB_CASSETTE, 1);
-        return (0);
+        return 0;
     }
 
     cas->fp = plat_fopen(fname, "r+b");
@@ -182,7 +184,7 @@ pc_cas_set_fname(pc_cassette_t *cas, const char *fname)
 
     if (cas->fp == NULL) {
         ui_sb_update_icon_state(SB_CASSETTE, 1);
-        return (1);
+        return 1;
     }
 
     cas->close = 1;
@@ -215,14 +217,12 @@ pc_cas_set_fname(pc_cassette_t *cas, const char *fname)
             pc_cas_set_pcm(cas, 0);
     }
 
-    return (0);
+    return 0;
 }
 
 static void
 pc_cas_reset(pc_cassette_t *cas)
 {
-    unsigned i;
-
     cas->clk_pcm = 0;
 
     cas->clk_out = cas->clk;
@@ -237,7 +237,7 @@ pc_cas_reset(pc_cassette_t *cas)
     cas->cas_inp_buf = 0;
     cas->cas_inp_bit = 0;
 
-    for (i = 0; i < 3; i++) {
+    for (uint8_t i = 0; i < 3; i++) {
         cas->pcm_inp_fir[i] = 0;
     }
 }
@@ -344,18 +344,18 @@ int
 pc_cas_set_position(pc_cassette_t *cas, unsigned long pos)
 {
     if (cas->fp == NULL) {
-        return (1);
+        return 1;
     }
 
     if (fseek(cas->fp, pos, SEEK_SET) != 0) {
-        return (1);
+        return 1;
     }
 
     cas->position = pos;
 
     pc_cas_reset(cas);
 
-    return (0);
+    return 0;
 }
 
 static void
@@ -394,17 +394,18 @@ pc_cas_read_bit(pc_cassette_t *cas)
 static int
 pc_cas_read_smp(pc_cassette_t *cas)
 {
-    int smp, *fir;
+    int  smp;
+    int *fir;
 
     if (feof(cas->fp)) {
-        return (0);
+        return 0;
     }
 
     smp = fgetc(cas->fp);
 
     if (smp == EOF) {
         cassette_log("cassette EOF at %lu\n", cas->position);
-        return (0);
+        return 0;
     }
 
     cas->position += 1;
@@ -417,7 +418,7 @@ pc_cas_read_smp(pc_cassette_t *cas)
 
     smp = (fir[0] + 2 * fir[1] + fir[2]) / 4;
 
-    return (smp);
+    return smp;
 }
 
 static void
@@ -461,8 +462,6 @@ pc_cas_write_smp(pc_cassette_t *cas, int val)
 void
 pc_cas_set_motor(pc_cassette_t *cas, unsigned char val)
 {
-    unsigned i;
-
     val = (val != 0);
 
     if (val == cas->motor) {
@@ -470,7 +469,7 @@ pc_cas_set_motor(pc_cassette_t *cas, unsigned char val)
     }
 
     if ((val == 0) && cas->save && cas->pcm) {
-        for (i = 0; i < (cas->srate / 16); i++) {
+        for (unsigned long i = 0; i < (cas->srate / 16); i++) {
             pc_cas_write_smp(cas, 0);
         }
     }
@@ -545,7 +544,7 @@ pc_cas_set_out(pc_cassette_t *cas, unsigned char val)
 }
 
 void
-pc_cas_print_state(const pc_cassette_t *cas)
+pc_cas_print_state(UNUSED(const pc_cassette_t *cas))
 {
     cassette_log("%s %s %lu %s %lu\n", (cas->fname != NULL) ? cas->fname : "<none>", cas->pcm ? "pcm" : "cas", cas->srate, cas->save ? "save" : "load", cas->position);
 }
@@ -553,8 +552,8 @@ pc_cas_print_state(const pc_cassette_t *cas)
 static void
 pc_cas_clock_pcm(pc_cassette_t *cas, unsigned long cnt)
 {
-    unsigned long i, n;
-    int           v = 0;
+    uint64_t n;
+    int      v = 0;
 
     n = cas->srate * cnt + cas->clk_pcm;
 
@@ -567,11 +566,11 @@ pc_cas_clock_pcm(pc_cassette_t *cas, unsigned long cnt)
     }
 
     if (cas->save) {
-        for (i = 0; i < n; i++) {
+        for (uint64_t i = 0; i < n; i++) {
             pc_cas_write_smp(cas, cas->pcm_out_val);
         }
     } else {
-        for (i = 0; i < n; i++) {
+        for (uint64_t i = 0; i < n; i++) {
             v = pc_cas_read_smp(cas);
         }
 
@@ -642,7 +641,7 @@ pc_cas_advance(pc_cassette_t *cas)
 }
 
 static void
-cassette_close(void *p)
+cassette_close(UNUSED(void *priv))
 {
     if (cassette != NULL) {
         free(cassette);
@@ -664,7 +663,7 @@ cassette_callback(void *p)
 }
 
 static void *
-cassette_init(const device_t *info)
+cassette_init(UNUSED(const device_t *info))
 {
     cassette = NULL;
 

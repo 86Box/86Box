@@ -68,14 +68,18 @@
 #define KBD_TYPE_PRAVETZ  10
 #define KBD_TYPE_XTCLONE  11
 
-typedef struct {
+typedef struct xtkbd_t {
     int want_irq;
     int blocked;
     int tandy;
 
-    uint8_t pa, pb, pd, clock;
+    uint8_t pa;
+    uint8_t pb;
+    uint8_t pd;
+    uint8_t clock;
     uint8_t key_waiting;
-    uint8_t type, pravetz_flags;
+    uint8_t type;
+    uint8_t pravetz_flags;
 
     pc_timer_t send_delay_timer;
 } xtkbd_t;
@@ -343,10 +347,11 @@ const scancode scancode_xt[512] = {
 };
 
 static uint8_t key_queue[16];
-static int     key_queue_start = 0,
-           key_queue_end       = 0;
-static int is_tandy = 0, is_t1x00 = 0,
-           is_amstrad = 0;
+static int     key_queue_start = 0;
+static int     key_queue_end   = 0;
+static int     is_tandy = 0;
+static int     is_t1x00 = 0;
+static int     is_amstrad = 0;
 
 #ifdef ENABLE_KEYBOARD_XT_LOG
 int keyboard_xt_do_log = ENABLE_KEYBOARD_XT_LOG;
@@ -370,9 +375,9 @@ static uint8_t
 get_fdd_switch_settings(void)
 {
 
-    int i, fdd_count = 0;
+    uint8_t fdd_count = 0;
 
-    for (i = 0; i < FDD_NUM; i++) {
+    for (uint8_t i = 0; i < FDD_NUM; i++) {
         if (fdd_get_flags(i))
             fdd_count++;
     }
@@ -453,6 +458,9 @@ kbd_adddata(uint16_t val)
                 case 0x54: /* SysRQ => toggle window */
                     t1000_syskey(0x00, 0x00, 0x08);
                     break;
+
+                default:
+                    break;
             }
         } else
             t1000_syskey(0x04, 0x00, 0x00); /* Reset 'Fn' indicator */
@@ -467,7 +475,8 @@ kbd_adddata(uint16_t val)
 void
 kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
 {
-    uint8_t num_lock = 0, shift_states = 0;
+    uint8_t num_lock = 0;
+    uint8_t shift_states = 0;
 
     if (!adddata)
         return;
@@ -515,7 +524,9 @@ static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     xtkbd_t *kbd = (xtkbd_t *) priv;
-    uint8_t  bit, set, new_clock;
+    uint8_t  bit;
+    uint8_t  set;
+    uint8_t  new_clock;
 
     switch (port) {
         case 0x61: /* Keyboard Control Register (aka Port B) */
@@ -573,6 +584,9 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
                 set                = (port & 0x01) << bit;
                 kbd->pravetz_flags = (kbd->pravetz_flags & ~(1 << bit)) | set;
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -682,9 +696,12 @@ kbd_read(uint16_t port, void *priv)
                 ret = kbd->pravetz_flags;
             kbd_log("XTkbd: Port %02X in : %02X\n", port, ret);
             break;
+
+        default:
+            break;
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -700,7 +717,7 @@ kbd_reset(void *priv)
 
     keyboard_scan = 1;
 
-    key_queue_start = 0,
+    key_queue_start = 0;
     key_queue_end   = 0;
 }
 
@@ -873,7 +890,7 @@ kbd_init(const device_t *info)
 
     is_amstrad = 0;
 
-    return (kbd);
+    return kbd;
 }
 
 static void

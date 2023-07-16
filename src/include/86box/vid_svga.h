@@ -31,8 +31,9 @@
 #    define FLAG_NOSKEW       16
 #    define FLAG_ADDR_BY16    32
 #    define FLAG_RAMDAC_SHIFT 64
-#    define FLAG_128K_MASK    128
-
+#    define FLAG_ATI      	  128
+#    define FLAG_S3_911_16BIT 256
+#    define FLAG_512K_MASK    512
 struct monitor_t;
 
 typedef struct {
@@ -180,7 +181,8 @@ typedef struct svga_t {
     monitor_t* monitor;
 } svga_t;
 
-extern int vga_on, ibm8514_on;
+extern int vga_on;
+extern int ibm8514_on;
 
 extern void ibm8514_poll(ibm8514_t *dev, svga_t *svga);
 extern void ibm8514_recalctimings(svga_t *svga);

@@ -542,6 +542,8 @@ BEGIN
     IDS_2164    "Old Dynarec"
     IDS_2165    "New Dynarec"
     IDS_2166    "두번째 비디오카드 ""%hs""는 roms/video 디렉토리에서 ROM이 누락되어 사용할 수 없습니다. 두번째 비디오 카드를 비활성화 합니다."
+    IDS_2167    "Failed to initialize network driver"
+    IDS_2168    "The network configuration will be switched to the null driver"
 END
 
 STRINGTABLE DISCARDABLE

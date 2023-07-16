@@ -40,9 +40,11 @@
 static rfbScreenInfoPtr rfb = NULL;
 static int              clients;
 static int              updatingSize;
-static int              allowedX,
-    allowedY;
-static int ptr_x, ptr_y, ptr_but;
+static int              allowedX;
+static int              allowedY;
+static int              ptr_x;
+static int              ptr_y;
+static int              ptr_but;
 
 typedef struct {
     int buttons;
@@ -91,7 +93,9 @@ vnc_mouse_poll(void)
         ms.dx = 0;
         ms.dy = 0;
 
-        // pclog("dx=%d, dy=%d, dwheel=%d\n", mouse_x, mouse_y, mouse_z);
+#if 0
+        pclog("dx=%d, dy=%d, dwheel=%d\n", mouse_x, mouse_y, mouse_z);
+#endif
     }
 
     if (b != ms.buttons) {
@@ -130,7 +134,7 @@ vnc_ptrevent(int but, int x, int y, rfbClientPtr cl)
 }
 
 static void
-vnc_clientgone(rfbClientPtr cl)
+vnc_clientgone(UNUSED(rfbClientPtr cl))
 {
     vnc_log("VNC: client disconnected: %s\n", cl->host);
 
@@ -141,7 +145,9 @@ vnc_clientgone(rfbClientPtr cl)
         vnc_log("VNC: no clients, pausing..\n");
 
         /* Disable the mouse. */
-        // plat_mouse_capture(0);
+#if 0
+        plat_mouse_capture(0);
+#endif
         mouse_set_poll_ex(NULL);
 
         plat_pause(1);
@@ -167,14 +173,16 @@ vnc_newclient(rfbClientPtr cl)
         vnc_log("VNC: unpausing..\n");
 
         /* Enable the mouse. */
-        // plat_mouse_capture(1);
+#if 0
+        plat_mouse_capture(1);
+#endif
         mouse_set_poll_ex(vnc_mouse_poll);
 
         plat_pause(0);
     }
 
     /* For now, we always accept clients. */
-    return (RFB_CLIENT_ACCEPT);
+    return RFB_CLIENT_ACCEPT;
 }
 
 static void
@@ -194,14 +202,12 @@ vnc_display(rfbClientPtr cl)
 static void
 vnc_blit(int x, int y, int w, int h, int monitor_index)
 {
-    int row;
-
     if (monitor_index || (x < 0) || (y < 0) || (w < VNC_MIN_X) || (h < VNC_MIN_Y) || (w > VNC_MAX_X) || (h > VNC_MAX_Y) || (buffer32 == NULL)) {
         video_blit_complete_monitor(monitor_index);
         return;
     }
 
-    for (row = 0; row < h; ++row)
+    for (int row = 0; row < h; ++row)
         video_copy(&(((uint8_t *) rfb->frameBuffer)[row * 2048 * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
 
     if (screenshots)
@@ -267,7 +273,7 @@ vnc_init(UNUSED(void *arg))
 
     vnc_log("VNC: init complete.\n");
 
-    return (1);
+    return 1;
 }
 
 void
@@ -325,7 +331,7 @@ vnc_pause(void)
 }
 
 void
-vnc_take_screenshot(wchar_t *fn)
+vnc_take_screenshot(UNUSED(wchar_t *fn))
 {
     vnc_log("VNC: take_screenshot\n");
 }

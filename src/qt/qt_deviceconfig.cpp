@@ -66,7 +66,8 @@ DeviceConfig::~DeviceConfig()
 static QStringList
 EnumerateSerialDevices()
 {
-    QStringList serialDevices, ttyEntries;
+    QStringList serialDevices;
+    QStringList ttyEntries;
     QByteArray  devstr(1024, 0);
 #ifdef Q_OS_LINUX
     QDir class_dir("/sys/class/tty/");
@@ -108,7 +109,8 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
 {
     DeviceConfig dc(settings);
     dc.setWindowTitle(QString("%1 Device Configuration").arg(device->name));
-    int c, d, p, q;
+    int p;
+    int q;
 
     device_context_t device_context;
     device_set_context(&device_context, device, instance);
@@ -213,17 +215,16 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     char *selected;
                     selected = config_get_string(device_context.name, const_cast<char *>(config->name), const_cast<char *>(config->default_string));
 
-                    c = q = 0;
+                    q = 0;
                     for (auto *bios = config->bios; (bios != nullptr) && (bios->name != nullptr) && (strlen(bios->name) > 0); ++bios) {
                         p = 0;
-                        for (d = 0; d < bios->files_no; d++)
+                        for (int d = 0; d < bios->files_no; d++)
                             p += !!rom_present(const_cast<char *>(bios->files[d]));
                         if (p == bios->files_no) {
                             int row = Models::AddEntry(model, bios->name, q);
                             if (!strcmp(selected, bios->internal_name)) {
                                 currentIndex = row;
                             }
-                            c++;
                         }
                         q++;
                     }

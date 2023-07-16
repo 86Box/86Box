@@ -469,9 +469,9 @@ cs423x_slam_enable(cs423x_t *dev, uint8_t enable)
 static void
 cs423x_ctxswitch_write(uint16_t addr, uint8_t val, void *priv)
 {
-    cs423x_t *dev      = (cs423x_t *) priv;
-    uint8_t   ctx      = (dev->regs[7] & 0x80),
-            enable_opl = (dev->ad1848.xregs[4] & 0x10) && !(dev->indirect_regs[2] & 0x85);
+    cs423x_t *dev        = (cs423x_t *) priv;
+    uint8_t   ctx        = (dev->regs[7] & 0x80);
+    uint8_t   enable_opl = (dev->ad1848.xregs[4] & 0x10) && !(dev->indirect_regs[2] & 0x85);
 
     /* Check if a context switch (WSS=1 <-> SBPro=0) occurred through the address being written. */
     if ((dev->regs[7] & 0x80) ? ((addr & 0xfff0) == dev->sb_base) : ((addr & 0xfffc) == dev->wss_base)) {
@@ -504,7 +504,7 @@ static void
 cs423x_get_buffer(int32_t *buffer, int len, void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
-    int       c, opl_wss = dev->opl_wss;
+    int       opl_wss = dev->opl_wss;
     int32_t  *opl_buf = NULL;
 
     /* Output audio from the WSS codec, and also the OPL if we're in charge of it. */
@@ -514,7 +514,7 @@ cs423x_get_buffer(int32_t *buffer, int len, void *priv)
 
     /* Don't output anything if the analog section is powered down. */
     if (!(dev->indirect_regs[2] & 0xa4)) {
-        for (c = 0; c < len * 2; c += 2) {
+        for (int c = 0; c < len * 2; c += 2) {
             if (opl_wss) {
                 buffer[c] += (opl_buf[c] * dev->ad1848.fm_vol_l) >> 16;
                 buffer[c + 1] += (opl_buf[c + 1] * dev->ad1848.fm_vol_r) >> 16;

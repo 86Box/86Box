@@ -25,6 +25,7 @@
 #include <86box/device.h>
 #include <86box/i2c.h>
 #include <86box/hwm.h>
+#include <86box/plat_unused.h>
 
 #define LM75_TEMP_TO_REG(t) ((t) << 8)
 
@@ -47,7 +48,7 @@ lm75_log(const char *fmt, ...)
 #endif
 
 static uint8_t
-lm75_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv)
+lm75_i2c_start(UNUSED(void *bus), UNUSED(uint8_t addr), UNUSED(uint8_t read), void *priv)
 {
     lm75_t *dev = (lm75_t *) priv;
 
@@ -74,7 +75,7 @@ lm75_read(lm75_t *dev, uint8_t reg)
 }
 
 static uint8_t
-lm75_i2c_read(void *bus, uint8_t addr, void *priv)
+lm75_i2c_read(UNUSED(void *bus), UNUSED(uint8_t addr), void *priv)
 {
     lm75_t *dev = (lm75_t *) priv;
     uint8_t ret = 0;
@@ -103,6 +104,8 @@ lm75_i2c_read(void *bus, uint8_t addr, void *priv)
             case 0x3: /* Tos */
                 ret = lm75_read(dev, (dev->i2c_state == 1) ? 0x5 : 0x6);
                 break;
+            default:
+                break;
         }
     }
 
@@ -128,7 +131,7 @@ lm75_write(lm75_t *dev, uint8_t reg, uint8_t val)
 }
 
 static uint8_t
-lm75_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv)
+lm75_i2c_write(UNUSED(void *bus), UNUSED(uint8_t addr), uint8_t data, void *priv)
 {
     lm75_t *dev = (lm75_t *) priv;
 
@@ -163,6 +166,9 @@ lm75_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 
             case 0x3: /* Tos */
                 lm75_write(dev, (dev->i2c_state == 1) ? 0x5 : 0x6, data);
+                break;
+
+            default:
                 break;
         }
     }

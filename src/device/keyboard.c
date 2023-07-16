@@ -90,14 +90,18 @@ key_process(uint16_t scan, int down)
     scancode *codes = scan_table;
     int       c;
 
+    if (!codes)
+        return;
+
     if (!keyboard_scan || (keyboard_send == NULL))
         return;
 
     oldkey[scan] = down;
-    if (down && codes[scan].mk[0] == 0)
+
+    if (down && (codes[scan].mk[0] == 0))
         return;
 
-    if (!down && codes[scan].brk[0] == 0)
+    if (!down && (codes[scan].brk[0] == 0))
         return;
 
     /* TODO: The keyboard controller needs to report the AT flag to us here. */
@@ -163,6 +167,9 @@ keyboard_input(int down, uint16_t scan)
                 case 0x138: /* Right Alt */
                     shift |= 0x40;
                     break;
+
+                default:
+                    break;
             }
         } else {
             switch (scan & 0x1ff) {
@@ -193,13 +200,18 @@ keyboard_input(int down, uint16_t scan)
                 case 0x046:
                     scroll_lock ^= 1;
                     break;
+
+                default:
+                    break;
             }
         }
     }
 
     /* NOTE: Shouldn't this be some sort of bit shift? An array of 8 unsigned 64-bit integers
              should be enough. */
-    /* recv_key[scan >> 6] |= ((uint64_t) down << ((uint64_t) scan & 0x3fLL)); */
+#if 0
+    recv_key[scan >> 6] |= ((uint64_t) down << ((uint64_t) scan & 0x3fLL));
+#endif
 
     /* pclog("Received scan code: %03X (%s)\n", scan & 0x1ff, down ? "down" : "up"); */
     recv_key[scan & 0x1ff] = down;

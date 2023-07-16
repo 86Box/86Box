@@ -48,7 +48,9 @@ extern "C" {
 #include <86box/machine.h>
 #include <86box/vid_ega.h>
 #include <86box/version.h>
-//#include <86box/acpi.h> /* Requires timer.h include, which conflicts with Qt headers */
+#if 0
+#include <86box/acpi.h> /* Requires timer.h include, which conflicts with Qt headers */
+#endif
 extern atomic_int acpi_pwrbut_pressed;
 extern int acpi_enabled;
 
@@ -413,19 +415,19 @@ MainWindow::MainWindow(QWidget *parent)
                 newVidApi = RendererStack::Renderer::Software;
                 break;
             case 1:
-                newVidApi = (RendererStack::Renderer::OpenGL);
+                newVidApi = RendererStack::Renderer::OpenGL;
                 break;
             case 2:
-                newVidApi = (RendererStack::Renderer::OpenGLES);
+                newVidApi = RendererStack::Renderer::OpenGLES;
                 break;
             case 3:
-                newVidApi = (RendererStack::Renderer::OpenGL3);
+                newVidApi = RendererStack::Renderer::OpenGL3;
                 break;
             case 4:
-                newVidApi = (RendererStack::Renderer::Vulkan);
+                newVidApi = RendererStack::Renderer::Vulkan;
                 break;
             case 5:
-                newVidApi = (RendererStack::Renderer::Direct3D9);
+                newVidApi = RendererStack::Renderer::Direct3D9;
                 break;
 #ifdef USE_VNC
             case 6:
@@ -940,11 +942,13 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
             }
             break;
 
+        case 0x80 ... 0xff: /* regular break codes */
         case 0x10b: /* Microsoft scroll up normal */
-        case 0x18b: /* Microsoft scroll down normal */
-            /* This abuses make/break codes. Send them manually, only on press. */
+        case 0x180 ... 0x1ff: /* E0 break codes (including Microsoft scroll down normal) */
+            /* This key uses a break code as make. Send it manually, only on press. */
             if (down) {
-                keyboard_send(0xe0);
+                if (keycode & 0x100)
+                    keyboard_send(0xe0);
                 keyboard_send(keycode & 0xff);
             }
             return;
@@ -1087,6 +1091,11 @@ MainWindow::processMacKeyboardInput(bool down, const QKeyEvent *event)
 #endif
             if (mac_iso_swap)
                 nvk = (nvk == 0x0a) ? 0x32 : 0x0a;
+        }
+        // Special case for command + forward delete to send insert.
+        if ((event->nativeModifiers() & NSEventModifierFlagCommand) &&
+            ((event->nativeVirtualKey() == nvk_Delete) || event->key() == Qt::Key_Delete)) {
+            nvk = nvk_Insert; // Qt::Key_Help according to event->key()
         }
 
         processKeyboardInput(down, nvk);
@@ -1280,17 +1289,17 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
         }
     }
 
-    if (fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit_down()) {
+    if (fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit()) {
         ui->actionFullscreen->trigger();
         fs_off_signal = false;
     }
 
-    if (fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter_down()) {
+    if (fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter()) {
         ui->actionFullscreen->trigger();
         fs_on_signal = false;
     }
 
-    if (!send_keyboard_input)
+    if (!send_keyboard_input || event->isAutoRepeat())
         return;
 
 #ifdef Q_OS_MACOS

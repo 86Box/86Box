@@ -29,6 +29,7 @@
 #include <86box/mem.h>
 #include <86box/pit.h>
 #include <86box/port_92.h>
+#include <86box/plat_unused.h>
 
 #define PORT_92_INV   1
 #define PORT_92_WORD  2
@@ -74,7 +75,7 @@ port_92_readw(uint16_t port, void *priv)
    TODO: ALi M1543(c) behavior.
  */
 static void
-port_92_pulse(void *priv)
+port_92_pulse(UNUSED(void *priv))
 {
     softresetx86(); /* Pulse reset! */
     cpu_set_edx();
@@ -174,7 +175,7 @@ port_92_remove(void *priv)
 }
 
 static void
-port_92_reset(void *priv)
+port_92_reset(UNUSED(void *priv))
 {
     cpu_alt_reset = 0;
 

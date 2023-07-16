@@ -178,7 +178,9 @@ voodoo_fls(uint16_t val)
 {
     int num = 0;
 
-    // voodoo_render_log("fls(%04x) = ", val);
+#if 0
+    voodoo_render_log("fls(%04x) = ", val);
+#endif
     if (!(val & 0xff00)) {
         num += 8;
         val <<= 8;
@@ -195,7 +197,9 @@ voodoo_fls(uint16_t val)
         num += 1;
         val <<= 1;
     }
-    // voodoo_render_log("%i %04x\n", num, val);
+#if 0
+    voodoo_render_log("%i %04x\n", num, val);
+#endif
     return num;
 }
 
@@ -241,13 +245,12 @@ tex_read(voodoo_state_t *state, voodoo_texture_state_t *texture_state, int tmu)
 #define HIGH4(x) ((x & 0xf0) | ((x & 0xf0) >> 4))
 
 static inline void
-tex_read_4(voodoo_state_t *state, voodoo_texture_state_t *texture_state, int s, int t, int *d, int tmu, int x)
+tex_read_4(voodoo_state_t *state, voodoo_texture_state_t *texture_state, int s, int t, int *d, int tmu, UNUSED(int x))
 {
     rgba_u dat[4];
 
     if (((s | (s + 1)) & ~texture_state->w_mask) || ((t | (t + 1)) & ~texture_state->h_mask)) {
-        int c;
-        for (c = 0; c < 4; c++) {
+        for (uint8_t c = 0; c < 4; c++) {
             int _s = s + (c & 1);
             int _t = t + ((c & 2) >> 1);
 
@@ -289,7 +292,8 @@ voodoo_get_texture(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *st
 {
     voodoo_texture_state_t texture_state;
     int                    d[4];
-    int                    s, t;
+    int                    s;
+    int                    t;
     int                    tex_lod = state->tex_lod[tmu][state->lod];
 
     texture_state.w_mask    = state->tex_w_mask[tmu][state->lod];
@@ -306,7 +310,8 @@ voodoo_get_texture(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *st
     }
 
     if (voodoo->bilinear_enabled && params->textureMode[tmu] & 6) {
-        int _ds, dt;
+        int _ds;
+        int dt;
 
         state->tex_s -= 1 << (3 + tex_lod);
         state->tex_t -= 1 << (3 + tex_lod);
@@ -319,36 +324,44 @@ voodoo_get_texture(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *st
 
         s >>= 4;
         t >>= 4;
-        // if (x == 80)
-        // if (voodoo_output)
-        //         voodoo_render_log("s=%08x t=%08x _ds=%02x _dt=%02x\n", s, t, _ds, dt);
+#if 0
+        if (x == 80)
+        if (voodoo_output)
+            voodoo_render_log("s=%08x t=%08x _ds=%02x _dt=%02x\n", s, t, _ds, dt);
+#endif
         d[0] = (16 - _ds) * (16 - dt);
         d[1] = _ds * (16 - dt);
         d[2] = (16 - _ds) * dt;
         d[3] = _ds * dt;
 
-        //                texture_state.s = s;
-        //                texture_state.t = t;
+#if 0
+        texture_state.s = s;
+        texture_state.t = t;
+#endif
         tex_read_4(state, &texture_state, s, t, d, tmu, x);
 
-        /*                state->tex_r = (tex_samples[0].rgba.r * d[0] + tex_samples[1].rgba.r * d[1] + tex_samples[2].rgba.r * d[2] + tex_samples[3].rgba.r * d[3]) >> 8;
-                        state->tex_g = (tex_samples[0].rgba.g * d[0] + tex_samples[1].rgba.g * d[1] + tex_samples[2].rgba.g * d[2] + tex_samples[3].rgba.g * d[3]) >> 8;
-                        state->tex_b = (tex_samples[0].rgba.b * d[0] + tex_samples[1].rgba.b * d[1] + tex_samples[2].rgba.b * d[2] + tex_samples[3].rgba.b * d[3]) >> 8;
-                        state->tex_a = (tex_samples[0].rgba.a * d[0] + tex_samples[1].rgba.a * d[1] + tex_samples[2].rgba.a * d[2] + tex_samples[3].rgba.a * d[3]) >> 8;*/
-        /*                state->tex_r = tex_samples[0].r;
-                        state->tex_g = tex_samples[0].g;
-                        state->tex_b = tex_samples[0].b;
-                        state->tex_a = tex_samples[0].a;*/
+#if 0
+        state->tex_r = (tex_samples[0].rgba.r * d[0] + tex_samples[1].rgba.r * d[1] + tex_samples[2].rgba.r * d[2] + tex_samples[3].rgba.r * d[3]) >> 8;
+        state->tex_g = (tex_samples[0].rgba.g * d[0] + tex_samples[1].rgba.g * d[1] + tex_samples[2].rgba.g * d[2] + tex_samples[3].rgba.g * d[3]) >> 8;
+        state->tex_b = (tex_samples[0].rgba.b * d[0] + tex_samples[1].rgba.b * d[1] + tex_samples[2].rgba.b * d[2] + tex_samples[3].rgba.b * d[3]) >> 8;
+        state->tex_a = (tex_samples[0].rgba.a * d[0] + tex_samples[1].rgba.a * d[1] + tex_samples[2].rgba.a * d[2] + tex_samples[3].rgba.a * d[3]) >> 8;*/
+#endif
+#if 0
+        state->tex_r = tex_samples[0].r;
+        state->tex_g = tex_samples[0].g;
+        state->tex_b = tex_samples[0].b;
+        state->tex_a = tex_samples[0].a;
+#endif
     } else {
-        //        rgba_t tex_samples;
-        //        voodoo_texture_state_t texture_state;
-        //                int s = state->tex_s >> (18+state->lod);
-        //                int t = state->tex_t >> (18+state->lod);
-        //        int s, t;
+#if 0
+        rgba_t tex_samples;
+        voodoo_texture_state_t texture_state;
+        int s = state->tex_s >> (18+state->lod);
+        int t = state->tex_t >> (18+state->lod);
 
-        //                state->tex_s -= 1 << (17+state->lod);
-        //                state->tex_t -= 1 << (17+state->lod);
-
+        state->tex_s -= 1 << (17+state->lod);
+        state->tex_t -= 1 << (17+state->lod);
+#endif
         s = state->tex_s >> (4 + tex_lod);
         t = state->tex_t >> (4 + tex_lod);
 
@@ -356,10 +369,12 @@ voodoo_get_texture(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *st
         texture_state.t = t;
         tex_read(state, &texture_state, tmu);
 
-        /*                state->tex_r = tex_samples[0].rgba.r;
-                        state->tex_g = tex_samples[0].rgba.g;
-                        state->tex_b = tex_samples[0].rgba.b;
-                        state->tex_a = tex_samples[0].rgba.a;*/
+#if 0
+        state->tex_r = tex_samples[0].rgba.r;
+        state->tex_g = tex_samples[0].rgba.g;
+        state->tex_b = tex_samples[0].rgba.b;
+        state->tex_a = tex_samples[0].rgba.a;
+#endif
     }
 }
 
@@ -407,10 +422,20 @@ voodoo_tmu_fetch(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
 static inline void
 voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *state, int x)
 {
-    int r, g, b, a;
-    int c_reverse, a_reverse;
-    //        int c_reverse1, a_reverse1;
-    int factor_r = 0, factor_g = 0, factor_b = 0, factor_a = 0;
+    int r;
+    int g;
+    int b;
+    int a;
+    int c_reverse;
+    int a_reverse;
+#if 0
+    int c_reverse1;
+    int a_reverse1;
+#endif
+    int factor_r = 0;
+    int factor_g = 0;
+    int factor_b = 0;
+    int factor_a = 0;
 
     voodoo_tmu_fetch(voodoo, params, state, 1, x);
 
@@ -421,8 +446,10 @@ voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_sta
         c_reverse = !tc_reverse_blend;
         a_reverse = !tca_reverse_blend;
     }
-    /*        c_reverse1 = c_reverse;
-            a_reverse1 = a_reverse;*/
+#if 0
+    c_reverse1 = c_reverse;
+    a_reverse1 = a_reverse;
+#endif
     if (tc_sub_clocal_1) {
         switch (tc_mselect_1) {
             case TC_MSELECT_ZERO:
@@ -628,32 +655,33 @@ int voodoo_recomp = 0;
 static void
 voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *state, int ystart, int yend, int odd_even)
 {
-    /*        int rgb_sel                 = params->fbzColorPath & 3;
-            int a_sel                   = (params->fbzColorPath >> 2) & 3;
-            int cc_localselect          = params->fbzColorPath & (1 << 4);
-            int cca_localselect         = (params->fbzColorPath >> 5) & 3;
-            int cc_localselect_override = params->fbzColorPath & (1 << 7);
-            int cc_zero_other           = params->fbzColorPath & (1 << 8);
-            int cc_sub_clocal           = params->fbzColorPath & (1 << 9);
-            int cc_mselect              = (params->fbzColorPath >> 10) & 7;
-            int cc_reverse_blend        = params->fbzColorPath & (1 << 13);
-            int cc_add                  = (params->fbzColorPath >> 14) & 3;
-            int cc_add_alocal           = params->fbzColorPath & (1 << 15);
-            int cc_invert_output        = params->fbzColorPath & (1 << 16);
-            int cca_zero_other          = params->fbzColorPath & (1 << 17);
-            int cca_sub_clocal          = params->fbzColorPath & (1 << 18);
-            int cca_mselect             = (params->fbzColorPath >> 19) & 7;
-            int cca_reverse_blend       = params->fbzColorPath & (1 << 22);
-            int cca_add                 = (params->fbzColorPath >> 23) & 3;
-            int cca_invert_output       = params->fbzColorPath & (1 << 25);
-            int src_afunc = (params->alphaMode >> 8) & 0xf;
-            int dest_afunc = (params->alphaMode >> 12) & 0xf;
-            int alpha_func = (params->alphaMode >> 1) & 7;
-            int a_ref = params->alphaMode >> 24;
-            int depth_op = (params->fbzMode >> 5) & 7;
-            int dither = params->fbzMode & FBZ_DITHER;*/
+#if 0
+    int rgb_sel                 = params->fbzColorPath & 3;
+    int a_sel                   = (params->fbzColorPath >> 2) & 3;
+    int cc_localselect          = params->fbzColorPath & (1 << 4);
+    int cca_localselect         = (params->fbzColorPath >> 5) & 3;
+    int cc_localselect_override = params->fbzColorPath & (1 << 7);
+    int cc_zero_other           = params->fbzColorPath & (1 << 8);
+    int cc_sub_clocal           = params->fbzColorPath & (1 << 9);
+    int cc_mselect              = (params->fbzColorPath >> 10) & 7;
+    int cc_reverse_blend        = params->fbzColorPath & (1 << 13);
+    int cc_add                  = (params->fbzColorPath >> 14) & 3;
+    int cc_add_alocal           = params->fbzColorPath & (1 << 15);
+    int cc_invert_output        = params->fbzColorPath & (1 << 16);
+    int cca_zero_other          = params->fbzColorPath & (1 << 17);
+    int cca_sub_clocal          = params->fbzColorPath & (1 << 18);
+    int cca_mselect             = (params->fbzColorPath >> 19) & 7;
+    int cca_reverse_blend       = params->fbzColorPath & (1 << 22);
+    int cca_add                 = (params->fbzColorPath >> 23) & 3;
+    int cca_invert_output       = params->fbzColorPath & (1 << 25);
+    int src_afunc               = (params->alphaMode >> 8) & 0xf;
+    int dest_afunc              = (params->alphaMode >> 12) & 0xf;
+    int alpha_func              = (params->alphaMode >> 1) & 7;
+    int a_ref                   = params->alphaMode >> 24;
+    int depth_op                = (params->fbzMode >> 5) & 7;
+    int dither                  = params->fbzMode & FBZ_DITHER;*/
+#endif
     int texels;
-    int c;
 #ifndef NO_CODEGEN
     uint8_t (*voodoo_draw)(voodoo_state_t * state, voodoo_params_t * params, int x, int real_y);
 #endif
@@ -672,7 +700,7 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
     //        int last_x;
     //        voodoo_render_log("voodoo_triangle : bottom-half %X %X %X %X %X %i  %i %i %i\n", xstart, xend, dx1, dx2, dx2 * 36, xdir,  y, yend, ydir);
 
-    for (c = 0; c <= LOD_MAX; c++) {
+    for (uint8_t c = 0; c <= LOD_MAX; c++) {
         state->tex[0][c] = &voodoo->texture_cache[0][params->tex_entry[0]].data[texture_offset[c]];
         state->tex[1][c] = &voodoo->texture_cache[1][params->tex_entry[1]].data[texture_offset[c]];
     }
@@ -713,7 +741,9 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
         yend = params->clipHighY;
 
     state->y = ystart;
-    //        yend--;
+#if 0
+    yend--;
+#endif
 
     if (SLI_ENABLED) {
         int test_y;
@@ -750,14 +780,18 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
 #endif
 
     voodoo_render_log("dxAB=%08x dxBC=%08x dxAC=%08x\n", state->dxAB, state->dxBC, state->dxAC);
-    //        voodoo_render_log("Start %i %i\n", ystart, voodoo->fbzMode & (1 << 17));
+#if 0
+    voodoo_render_log("Start %i %i\n", ystart, voodoo->fbzMode & (1 << 17));
+#endif
 
     for (; state->y < yend; state->y += y_diff) {
-        int       x, x2;
+        int       x;
+        int       x2;
         int       real_y = (state->y << 4) + 8;
         int       start_x;
         int       dx;
-        uint16_t *fb_mem, *aux_mem;
+        uint16_t *fb_mem;
+        uint16_t *aux_mem;
 
         state->ir     = state->base_r;
         state->ig     = state->base_g;
@@ -904,17 +938,35 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                 voodoo->fbiPixelsIn++;
 
                 voodoo_render_log("  X=%03i T=%08x\n", x, state->tmu0_t);
-                //                        if (voodoo->fbzMode & FBZ_RGB_WMASK)
+#if 0
+                if (voodoo->fbzMode & FBZ_RGB_WMASK)
+#endif
                 {
                     int      update   = 1;
-                    uint8_t  cother_r = 0, cother_g = 0, cother_b = 0, aother;
-                    uint8_t  clocal_r, clocal_g, clocal_b, alocal;
-                    int      src_r = 0, src_g = 0, src_b = 0, src_a = 0;
-                    int      msel_r, msel_g, msel_b, msel_a;
-                    uint8_t  dest_r, dest_g, dest_b, dest_a;
+                    uint8_t  cother_r = 0;
+                    uint8_t  cother_g = 0;
+                    uint8_t  cother_b = 0;
+                    uint8_t  aother;
+                    uint8_t  clocal_r;
+                    uint8_t  clocal_g;
+                    uint8_t  clocal_b;
+                    uint8_t  alocal;
+                    int      src_r = 0;
+                    int      src_g = 0;
+                    int      src_b = 0;
+                    int      src_a = 0;
+                    int      msel_r;
+                    int      msel_g;
+                    int      msel_b;
+                    int      msel_a;
+                    uint8_t  dest_r;
+                    uint8_t  dest_g;
+                    uint8_t  dest_b;
+                    uint8_t  dest_a;
                     uint16_t dat;
                     int      sel;
-                    int32_t  new_depth, w_depth;
+                    int32_t  new_depth;
+                    int32_t  w_depth;
 
                     if (state->w & 0xffff00000000)
                         w_depth = 0;
@@ -922,13 +974,15 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                         w_depth = 0xf001;
                     else {
                         int exp  = voodoo_fls((uint16_t) ((uint32_t) state->w >> 16));
-                        int mant = ((~(uint32_t) state->w >> (19 - exp))) & 0xfff;
+                        int mant = (~(uint32_t) state->w >> (19 - exp)) & 0xfff;
                         w_depth  = (exp << 12) + mant + 1;
                         if (w_depth > 0xffff)
                             w_depth = 0xffff;
                     }
 
-                    //                                w_depth = CLAMP16(w_depth);
+#if 0
+                    w_depth = CLAMP16(w_depth);
+#endif
 
                     if (params->fbzMode & FBZ_W_BUFFER)
                         new_depth = w_depth;
@@ -1328,9 +1382,11 @@ voodoo_triangle(voodoo_t *voodoo, voodoo_params_t *params, int odd_even)
     voodoo_state_t state;
     int            vertexAy_adjusted;
     int            vertexCy_adjusted;
-    int            dx, dy;
+    int            dx;
+    int            dy;
 
-    uint64_t tempdx, tempdy;
+    uint64_t tempdx;
+    uint64_t tempdy;
     uint64_t tempLOD;
     int      LOD;
     int      lodbias;

@@ -242,13 +242,13 @@ PROG := 86Box
 #              Nothing should need changing from here on..              #
 #########################################################################
 VPATH := $(EXPATH) . $(CODEGEN) minitrace cpu cpu/softfloat \
-         cdrom chipset device disk disk/minivhd floppy \
+         cpu/808x cdrom chipset device disk disk/minivhd floppy \
          game machine mem printer \
          sio sound \
          sound/munt sound/munt/c_interface sound/munt/sha1 \
          sound/munt/srchelper sound/munt/srchelper/srctools/src \
          sound/resid-fp sound/ymfm \
-         scsi video network network/slirp win
+         scsi video network win
 
 WINDRES := windres
 STRIP   := strip
@@ -545,13 +545,15 @@ MAINOBJ := 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma.
            usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o ini.o \
            $(VNCOBJ)
 
-MEMOBJ := catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o
+MEMOBJ := catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o row.o smram.o spd.o sst_flash.o
+
+CPU808XOBJ := queue.o
 
 CPUOBJ := $(DYNARECOBJ) \
           $(CGTOBJ) \
           cpu.o cpu_table.o fpu.o x86.o \
           8080.o 808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o \
-          x86seg.o x87.o x87_timings.o \
+          x86_ops_mmx.o x86seg.o x87.o x87_timings.o \
 	  f2xm1.o fpatan.o fprem.o fsincos.o fyl2x.o softfloat_poly.o softfloat.o softfloat16.o \
 	  softfloat-muladd.o softfloat-round-pack.o softfloat-specialize.o softfloatx80.o
 
@@ -654,22 +656,14 @@ SCSIOBJ := scsi.o scsi_device.o \
            scsi_ncr5380.o scsi_ncr53c8xx.o \
            scsi_pcscsi.o scsi_spock.o
 
-SLIRPOBJ := net_slirp.o tinyglib.o \
-          arp_table.o bootp.o cksum.o dhcpv6.o dnssearch.o if.o \
-          ip_icmp.o ip_input.o ip_output.o \
-          ip6_icmp.o ip6_input.o ip6_output.o \
-          mbuf.o misc.o sbuf.o slirp.o socket.o \
-          tcp_input.o tcp_output.o tcp_subr.o tcp_timer.o \
-          udp.o udp6.o \
-          util.o version.o \
-
 NETOBJ := network.o \
           net_pcap.o \
-          ${SLIRPOBJ} \
+          net_slirp.o \
           net_dp8390.o net_3c501.o \
           net_3c503.o net_ne2000.o \
           net_pcnet.o net_wd8003.o \
-          net_plip.o net_event.o
+          net_plip.o net_event.o \
+          net_null.o
 
 PRINTOBJ := png.o prt_cpmap.o \
             prt_escp.o prt_text.o prt_ps.o
@@ -719,6 +713,7 @@ VIDOBJ := agpgart.o video.o \
           vid_vga.o \
           vid_ati_eeprom.o \
           vid_ati18800.o vid_ati28800.o \
+	  vid_ati_mach8.o \
           vid_ati_mach64.o vid_ati68860_ramdac.o \
           vid_bt48x_ramdac.o \
           vid_av9194.o vid_icd2061.o vid_ics2494.o vid_ics2595.o \
@@ -780,7 +775,7 @@ ifeq ($(RTMIDI), y)
  SNDOBJ += midi_rtmidi.o
 endif
 
-OBJ := $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
+OBJ := $(MAINOBJ) $(CPU808XOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
        $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) $(MINIVHDOBJ) \
        $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) $(VOODOOOBJ) \
        $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) $(DEVBROBJ) $(MINITRACEOBJ) $(THREADOBJ)
@@ -794,13 +789,24 @@ else
  MWIN := -mwindows
 endif
 
+LIBS := -lfreetype -lfluidsynth -lslirp -lbz2 -lharfbuzz -lgraphite2 -lbrotlidec \
+        -lbrotlicommon -lusp10 -lrpcrt4 -lgomp -lsndfile -lflac -lmp3lame -lmpg123 \
+        -lopus -lvorbis -lvorbisenc -logg -ldsound -lshlwapi -lksuser -lreadline \
+        -ltermcap -lportaudio -lgmodule-2.0 -lglib-2.0 -lintl -liconv
+
 ifeq ($(OPENAL), y)
- LIBS := $(MWIN) -lopenal -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+ LIBS += $(MWIN) -lopenal -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 \
+         -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion \
+         -luuid -lws2_32
 else
  ifeq ($(FAUDIO), y)
-  LIBS := $(MWIN) -lfaudio -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+  LIBS += $(MWIN) -lfaudio -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 \
+          -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion \
+          -luuid -lws2_32
  else
-  LIBS := $(MWIN) -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+  LIBS += $(MWIN) -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 \
+          -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid \
+          -lws2_32
  endif
 endif
 

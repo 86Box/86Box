@@ -26,6 +26,7 @@
 #include <86box/timer.h>
 #include <86box/serial.h>
 #include <86box/mouse.h>
+#include <86box/plat_unused.h>
 
 #define SERMOUSE_PORT 0 /* attach to Serial0 */
 
@@ -47,27 +48,40 @@ enum {
     REPORT_PHASE_TRANSMIT
 };
 
-typedef struct {
-    const char *name; /* name of this device */
-    int8_t      type, /* type of this device */
-        port;
-    uint8_t flags, but, /* device flags */
-        want_data,
-        status, format,
-        prompt, on_change,
-        id_len, id[255],
-        data_len, data[5];
-    int abs_x, abs_y,
-        rel_x, rel_y,
-        rel_z,
-        oldb, lastb;
+typedef struct mouse_t {
+    const char *name;  /* name of this device */
+    int8_t      type;  /* type of this device */
+    int8_t      port;
+    uint8_t     flags; /* device flags */
+    uint8_t     but; 
+    uint8_t     want_data;
+    uint8_t     status;
+    uint8_t     format;
+    uint8_t     prompt;
+    uint8_t     on_change;
+    uint8_t     id_len;
+    uint8_t     id[255];
+    uint8_t     data_len;
+    uint8_t     data[5];
+    int         abs_x;
+    int         abs_y;
+    int         rel_x;
+    int         rel_y;
+    int         rel_z;
+    int         oldb;
+    int         lastb;
 
-    int command_pos, command_phase,
-        report_pos, report_phase,
-        command_enabled, report_enabled;
-    double     transmit_period, report_period,
-               auto_period;
-    pc_timer_t command_timer, report_timer;
+    int        command_pos;
+    int        command_phase;
+    int        report_pos;
+    int        report_phase;
+    int        command_enabled;
+    int        report_enabled;
+    double     transmit_period;
+    double     report_period;
+    double     auto_period;
+    pc_timer_t command_timer;
+    pc_timer_t report_timer;
 
     serial_t *serial;
 } mouse_t;
@@ -138,8 +152,8 @@ sermouse_transmit_period(mouse_t *dev, int bps, int rps)
         case 5: /* MM Series format: 8 data, odd parity, 1 stop, 1 start */
             word_len = 11;
             break;
-        default:
         case 7: /* Microsoft-compatible format: 7 data, no parity, 1 stop, 1 start */
+        default:
             word_len = 9;
             break;
     }
@@ -158,7 +172,7 @@ sermouse_transmit_period(mouse_t *dev, int bps, int rps)
 
 /* Callback from serial driver: RTS was toggled. */
 static void
-sermouse_callback(struct serial_s *serial, void *priv)
+sermouse_callback(UNUSED(struct serial_s *serial), void *priv)
 {
     mouse_t *dev = (mouse_t *) priv;
 
@@ -214,13 +228,14 @@ sermouse_data_mmseries(mouse_t *dev, int x, int y, int b)
     dev->data[0] = 0x80;
     if (x >= 0)
         dev->data[0] |= 0x10;
-    if (y >= 0)
+    /* It appears we have inverted Y polarity. */
+    if (y < 0)
         dev->data[0] |= 0x08;
     dev->data[0] |= (b & 0x01) ? 0x04 : 0x00; /* left button */
     dev->data[0] |= (b & 0x04) ? 0x02 : 0x00; /* middle button */
     dev->data[0] |= (b & 0x02) ? 0x01 : 0x00; /* right button */
-    dev->data[1] = abs(x);
-    dev->data[2] = abs(y);
+    dev->data[1] = abs(x) & 0x7f;
+    dev->data[2] = abs(y) & 0x7f;
 
     return 3;
 }
@@ -284,7 +299,7 @@ static uint8_t
 sermouse_data_hex(mouse_t *dev, int x, int y, int b)
 {
     char    ret[6] = { 0, 0, 0, 0, 0, 0 };
-    uint8_t i, but = 0x00;
+    uint8_t but = 0x00;
 
     but |= (b & 0x01) ? 0x04 : 0x00; /* left button */
     but |= (b & 0x04) ? 0x02 : 0x00; /* middle button */
@@ -292,7 +307,7 @@ sermouse_data_hex(mouse_t *dev, int x, int y, int b)
 
     sprintf(ret, "%02X%02X%01X", (int8_t) y, (int8_t) x, but & 0x0f);
 
-    for (i = 0; i < 5; i++)
+    for (uint8_t i = 0; i < 5; i++)
         dev->data[i] = ret[4 - i];
 
     return 5;
@@ -330,6 +345,9 @@ sermouse_report(int x, int y, int z, int b, mouse_t *dev)
             break;
         case 7:
             len = sermouse_data_ms(dev, x, y, z, b);
+            break;
+
+        default:
             break;
     }
 
@@ -371,7 +389,8 @@ sermouse_last_button_status(mouse_t *dev)
 static void
 sermouse_update_delta(mouse_t *dev, int *local, int *global)
 {
-    int min, max;
+    int min;
+    int max;
 
     if (dev->format == 3) {
         min = -2048;
@@ -397,7 +416,9 @@ static uint8_t
 sermouse_update_data(mouse_t *dev)
 {
     uint8_t ret = 0;
-    int     delta_x, delta_y, delta_z;
+    int     delta_x;
+    int     delta_y;
+    int     delta_z;
 
     /* Update the deltas and the delays. */
     sermouse_update_delta(dev, &delta_x, &dev->rel_x);
@@ -523,13 +544,13 @@ sermouse_command_timer(void *priv)
 }
 
 static int
-sermouse_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv)
+sermouse_poll(int x, int y, int z, int b, UNUSED(double abs_x), UNUSED(double abs_y), void *priv)
 {
     mouse_t *dev = (mouse_t *) priv;
 
     if (!x && !y && !z && (b == dev->oldb)) {
         dev->oldb = b;
-        return (1);
+        return 1;
     }
 
     dev->oldb = b;
@@ -568,7 +589,7 @@ sermouse_poll(int x, int y, int z, int b, double abs_x, double abs_y, void *priv
     dev->rel_y += y;
     dev->rel_z += z;
 
-    return (0);
+    return 0;
 }
 
 static void
@@ -609,7 +630,7 @@ ltsermouse_switch_baud_rate(mouse_t *dev, int phase)
 }
 
 static void
-ltsermouse_write(struct serial_s *serial, void *priv, uint8_t data)
+ltsermouse_write(UNUSED(struct serial_s *serial), void *priv, uint8_t data)
 {
     mouse_t *dev = (mouse_t *) priv;
 
@@ -639,6 +660,8 @@ ltsermouse_write(struct serial_s *serial, void *priv, uint8_t data)
                         break;
                 }
                 ltsermouse_switch_baud_rate(dev, PHASE_BAUD_RATE);
+                break;
+            default:
                 break;
         }
     else
@@ -724,11 +747,14 @@ ltsermouse_write(struct serial_s *serial, void *priv, uint8_t data)
             case 0x6B:
                 ltsermouse_command_phase(dev, PHASE_BUTTONS);
                 break;
+
+            default:
+                break;
         }
 }
 
 static void
-ltsermouse_transmit_period(serial_t *serial, void *priv, double transmit_period)
+ltsermouse_transmit_period(UNUSED(serial_t *serial), void *priv, double transmit_period)
 {
     mouse_t *dev = (mouse_t *) priv;
 
@@ -792,8 +818,8 @@ sermouse_init(const device_t *info)
         dev->id_len    = 1;
         dev->id[0]     = 'M';
         switch (dev->but) {
-            case 2:
             default:
+            case 2:
                 dev->type = info->local ? MOUSE_TYPE_LOGITECH : MOUSE_TYPE_MICROSOFT;
                 break;
             case 3:
@@ -842,7 +868,7 @@ sermouse_init(const device_t *info)
     mouse_set_buttons((dev->flags & FLAG_3BTN) ? 3 : 2);
 
     /* Return our private data to the I/O layer. */
-    return (dev);
+    return dev;
 }
 
 static const device_config_t mssermouse_config[] = {

@@ -181,8 +181,9 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
 {
     sb_t              *sb    = (sb_t *) p;
     sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
-    int                c;
-    double             out_mono = 0.0, out_l = 0.0, out_r = 0.0;
+    double             out_mono = 0.0;
+    double             out_l = 0.0;
+    double             out_r = 0.0;
     int32_t           *opl_buf = NULL;
 
     if (sb->opl_enabled)
@@ -193,7 +194,7 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
     if (sb->cms_enabled)
         cms_update(&sb->cms);
 
-    for (c = 0; c < len * 2; c += 2) {
+    for (int c = 0; c < len * 2; c += 2) {
         out_mono = 0.0;
         out_l    = 0.0;
         out_r    = 0.0;
@@ -264,9 +265,10 @@ sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
 {
     sb_t              *sb    = (sb_t *) p;
     sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
-    int                c;
-    double             out_l = 0.0, out_r = 0.0;
-    int32_t           *opl_buf = NULL, *opl2_buf = NULL;
+    double             out_l = 0.0;
+    double             out_r = 0.0;
+    int32_t           *opl_buf = NULL;
+    int32_t           *opl2_buf = NULL;
 
     if (sb->opl_enabled) {
         if (sb->dsp.sb_type == SBPRO) {
@@ -278,7 +280,7 @@ sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
 
     sb_dsp_update(&sb->dsp);
 
-    for (c = 0; c < len * 2; c += 2) {
+    for (int c = 0; c < len * 2; c += 2) {
         out_l = 0.0, out_r = 0.0;
 
         if (sb->opl_enabled) {
@@ -345,10 +347,13 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
 {
     sb_t              *sb    = (sb_t *) p;
     sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
-    int                c, dsp_rec_pos = sb->dsp.record_pos_write;
-    int                c_emu8k, c_record;
-    int32_t            in_l, in_r;
-    double             out_l = 0.0, out_r = 0.0;
+    int                dsp_rec_pos = sb->dsp.record_pos_write;
+    int                c_emu8k;
+    int                c_record;
+    int32_t            in_l;
+    int32_t            in_r;
+    double             out_l = 0.0;
+    double             out_r = 0.0;
     double             bass_treble;
     int32_t           *opl_buf = NULL;
 
@@ -360,8 +365,9 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
 
     sb_dsp_update(&sb->dsp);
 
-    for (c = 0; c < len * 2; c += 2) {
-        out_l = 0.0, out_r = 0.0;
+    for (int c = 0; c < len * 2; c += 2) {
+        out_l = 0.0;
+        out_r = 0.0;
 
         if (sb->dsp.sb_type > SB16)
             c_emu8k = ((((c / 2) * FREQ_44100) / SOUND_FREQ) * 2);
@@ -402,7 +408,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
             if (mixer->bass_l > 8)
                 out_l += (low_iir(0, 0, out_l) * bass_treble);
             else if (mixer->bass_l < 8)
-                out_l = ((out_l) *bass_treble + low_cut_iir(0, 0, out_l) * (1.0 - bass_treble));
+                out_l = (out_l *bass_treble + low_cut_iir(0, 0, out_l) * (1.0 - bass_treble));
         }
 
         if (mixer->bass_r != 8) {
@@ -411,7 +417,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
             if (mixer->bass_r > 8)
                 out_r += (low_iir(0, 1, out_r) * bass_treble);
             else if (mixer->bass_r < 8)
-                out_r = ((out_r) *bass_treble + low_cut_iir(0, 1, out_r) * (1.0 - bass_treble));
+                out_r = (out_r *bass_treble + low_cut_iir(0, 1, out_r) * (1.0 - bass_treble));
         }
 
         if (mixer->treble_l != 8) {
@@ -420,7 +426,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
             if (mixer->treble_l > 8)
                 out_l += (high_iir(0, 0, out_l) * bass_treble);
             else if (mixer->treble_l < 8)
-                out_l = ((out_l) *bass_treble + high_cut_iir(0, 0, out_l) * (1.0 - bass_treble));
+                out_l = (out_l *bass_treble + high_cut_iir(0, 0, out_l) * (1.0 - bass_treble));
         }
 
         if (mixer->treble_r != 8) {
@@ -429,7 +435,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
             if (mixer->treble_r > 8)
                 out_r += (high_iir(0, 1, out_r) * bass_treble);
             else if (mixer->treble_r < 8)
-                out_r = ((out_l) *bass_treble + high_cut_iir(0, 1, out_r) * (1.0 - bass_treble));
+                out_r = (out_l *bass_treble + high_cut_iir(0, 1, out_r) * (1.0 - bass_treble));
         }
 
         if (sb->dsp.sb_enable_i) {
@@ -662,7 +668,7 @@ sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p)
         if (mixer->index == 0xe)
             sb_dsp_set_stereo(&sb->dsp, val & 2);
 
-        switch ((mixer->regs[0xc] & 6)) {
+        switch (mixer->regs[0xc] & 6) {
             case 2:
                 mixer->input_selector = INPUT_CD_L | INPUT_CD_R;
                 break;
@@ -895,7 +901,8 @@ sb_ct1745_mixer_read(uint16_t addr, void *p)
 {
     sb_t              *sb    = (sb_t *) p;
     sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
-    uint8_t            temp, ret = 0xff;
+    uint8_t            temp;
+    uint8_t            ret = 0xff;
 
     if (!(addr & 1))
         ret = mixer->index;
@@ -1218,8 +1225,10 @@ sb_16_reply_mca_read(int port, void *p)
 static void
 sb_16_reply_mca_write(int port, uint8_t val, void *p)
 {
-    uint16_t addr, mpu401_addr;
-    int      low_dma, high_dma;
+    uint16_t addr;
+    uint16_t mpu401_addr;
+    int      low_dma;
+    int      high_dma;
     sb_t    *sb = (sb_t *) p;
 
     if (port < 0x102)

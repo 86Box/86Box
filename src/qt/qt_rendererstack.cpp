@@ -58,10 +58,13 @@ double mouse_x_error = 0.0, mouse_y_error = 0.0;
 }
 
 struct mouseinputdata {
-    atomic_int          deltax, deltay, deltaz;
+    atomic_int          deltax;
+    atomic_int          deltay;
+    atomic_int          deltaz;
     atomic_int          mousebuttons;
     atomic_bool         mouse_tablet_in_proximity;
-    std::atomic<double> x_abs, y_abs;
+    std::atomic<double> x_abs;
+    std::atomic<double> y_abs;
 };
 static mouseinputdata mousedata;
 
@@ -324,7 +327,7 @@ RendererStack::switchRenderer(Renderer renderer)
                 createRenderer(renderer);
                 disconnect(this, &RendererStack::blit, this, &RendererStack::blitDummy);
                 blitDummied = false;
-                QTimer::singleShot(1000, this, [this]() { blitDummied = false; });
+                QTimer::singleShot(1000, this, []() { blitDummied = false; });
             });
 
             rendererWindow->hasBlitFunc() ? current.reset() : current.release()->deleteLater();
@@ -435,7 +438,7 @@ RendererStack::createRenderer(Renderer renderer)
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                     current.reset(nullptr);
                     break;
-                };
+                }
                 rendererWindow = hw;
                 connect(this, &RendererStack::blitToRenderer, hw, &VulkanWindowRenderer::onBlit, Qt::QueuedConnection);
                 connect(hw, &VulkanWindowRenderer::rendererInitialized, [=]() {

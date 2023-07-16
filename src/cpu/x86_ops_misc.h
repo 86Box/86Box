@@ -996,7 +996,7 @@ opLOADALL386(uint32_t fetchdat)
     loadall_load_segment(la_addr + 0xc0, &cpu_state.seg_es);
 
     if (CPL == 3 && oldcpl != 3)
-        flushmmucache_cr3();
+        flushmmucache_nopc();
     oldcpl = CPL;
 
     CLOCK_CYCLES(350);

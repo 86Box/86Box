@@ -41,6 +41,7 @@
 #include <86box/ddma.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
@@ -109,22 +110,28 @@ enum {
 typedef struct {
     struct _pipc_ *dev;
     void          *trap;
-    uint32_t      *sts_reg, *en_reg, mask;
+    uint32_t      *sts_reg;
+    uint32_t      *en_reg;
+    uint32_t       mask;
 } pipc_io_trap_t;
 
 typedef struct _pipc_ {
     uint32_t local;
-    uint8_t  max_func, max_pcs;
+    uint8_t  max_func;
+    uint8_t  max_pcs;
 
-    uint8_t pci_isa_regs[256],
-        ide_regs[256],
-        usb_regs[2][256],
-        power_regs[256],
-        ac97_regs[2][256], fmnmi_regs[4], fmnmi_status;
+    uint8_t pci_isa_regs[256];
+    uint8_t ide_regs[256];
+    uint8_t usb_regs[2][256];
+    uint8_t power_regs[256];
+    uint8_t ac97_regs[2][256];
+    uint8_t fmnmi_regs[4];
+    uint8_t fmnmi_status;
 
     sff8038i_t    *bm[2];
     nvr_t         *nvr;
-    int            nvr_enabled, slot;
+    int            nvr_enabled;
+    int            slot;
     ddma_t        *ddma;
     smbus_piix4_t *smbus;
     usb_t         *usb[2];
@@ -132,9 +139,14 @@ typedef struct _pipc_ {
     acpi_t        *acpi;
     pipc_io_trap_t io_traps[TRAP_MAX];
 
-    void    *gameport, *ac97, *sio, *hwm;
+    void    *gameport;
+    void    *ac97;
+    void    *sio;
+    void    *hwm;
     sb_t    *sb;
-    uint16_t midigame_base, sb_base, fmnmi_base;
+    uint16_t midigame_base;
+    uint16_t sb_base;
+    uint16_t fmnmi_base;
 } pipc_t;
 
 #ifdef ENABLE_PIPC_LOG
@@ -162,7 +174,7 @@ static uint8_t pipc_read(int func, int addr, void *priv);
 static void    pipc_write(int func, int addr, uint8_t val, void *priv);
 
 static void
-pipc_io_trap_pact(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+pipc_io_trap_pact(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t write), UNUSED(uint8_t val), void *priv)
 {
     pipc_io_trap_t *trap = (pipc_io_trap_t *) priv;
 
@@ -175,7 +187,7 @@ pipc_io_trap_pact(int size, uint16_t addr, uint8_t write, uint8_t val, void *pri
 }
 
 static void
-pipc_io_trap_glb(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+pipc_io_trap_glb(UNUSED(int size), UNUSED(uint16_t addr), uint8_t write, UNUSED(uint8_t val), void *priv)
 {
     pipc_io_trap_t *trap = (pipc_io_trap_t *) priv;
 
@@ -332,6 +344,8 @@ pipc_reset_hard(void *priv)
             case VIA_PIPC_8231:
                 dev->usb_regs[i][0x08] = 0x1e;
                 break;
+            default:
+                break;
         }
 
         dev->usb_regs[i][0x0a] = 0x03;
@@ -391,6 +405,9 @@ pipc_reset_hard(void *priv)
 
             case VIA_PIPC_686B:
                 dev->power_regs[0x08] = 0x40;
+                break;
+
+            default:
                 break;
         }
         if (dev->local == VIA_PIPC_686B)
@@ -453,6 +470,9 @@ pipc_reset_hard(void *priv)
                 case VIA_PIPC_8231:
                     dev->ac97_regs[i][0x08] = (i == 0) ? 0x40 : 0x20;
                     break;
+
+                default:
+                    break;
             }
 
             if (i == 0) {
@@ -510,7 +530,8 @@ pipc_reset_hard(void *priv)
 static void
 pipc_ide_handlers(pipc_t *dev)
 {
-    uint16_t main, side;
+    uint16_t main;
+    uint16_t side;
 
     ide_pri_disable();
     ide_sec_disable();
@@ -573,10 +594,14 @@ pipc_bus_master_handlers(pipc_t *dev)
 static void
 pipc_pcs_update(pipc_t *dev)
 {
-    uint8_t  i, io_base_reg, io_mask_reg, io_mask_shift, enable;
-    uint16_t io_base, io_mask;
+    uint8_t  io_base_reg;
+    uint8_t  io_mask_reg;
+    uint8_t  io_mask_shift;
+    uint8_t  enable;
+    uint16_t io_base;
+    uint16_t io_mask;
 
-    for (i = 0; i <= dev->max_pcs; i++) {
+    for (uint8_t i = 0; i <= dev->max_pcs; i++) {
         if (i & 2) {
             io_base_reg = 0x8c;
             io_mask_reg = 0x8a;
@@ -650,7 +675,6 @@ static void
 pipc_trap_update_596(void *priv)
 {
     pipc_t *dev = (pipc_t *) priv;
-    int     i;
 
     /* TRAP_DRQ (00000001) and TRAP_PIRQ (00000002) not implemented. */
 
@@ -681,7 +705,7 @@ pipc_trap_update_596(void *priv)
        by the Positive Decoding Control registers. I couldn't probe this behavior on hardware.
        It's better to be safe and cover all of them than to assume Intel-like behavior (one range). */
 
-    for (i = 0; i < 3; i++) {
+    for (uint8_t i = 0; i < 3; i++) {
         pipc_trap_update_paden(dev, TRAP_AUD_MIDI_0 + i,
                                0x00000400, (dev->local <= VIA_PIPC_596B) || (dev->power_regs[0x40] & 0x01),
                                0x300 + (0x10 * i), 4);
@@ -1158,7 +1182,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
             case 0x71:
             case 0x72:
             case 0x73:
-                dev->pci_isa_regs[(addr - 0x44)] = val;
+                dev->pci_isa_regs[addr - 0x44] = val;
                 break;
 
             case 0x74:
@@ -1428,7 +1452,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
             case 0x61:
             case 0x62:
             case 0x63:
-                dev->power_regs[(addr - 0x58)] = val;
+                dev->power_regs[addr - 0x58] = val;
                 break;
 
             case 0x70:
@@ -1563,36 +1587,36 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static void
-pipc_reset(void *p)
+pipc_reset(void *priv)
 {
-    pipc_t *dev     = (pipc_t *) p;
+    pipc_t *dev     = (pipc_t *) priv;
     uint8_t pm_func = dev->usb[1] ? 4 : 3;
 
-    pipc_write(pm_func, 0x41, 0x00, p);
-    pipc_write(pm_func, 0x48, 0x01, p);
-    pipc_write(pm_func, 0x49, 0x00, p);
+    pipc_write(pm_func, 0x41, 0x00, priv);
+    pipc_write(pm_func, 0x48, 0x01, priv);
+    pipc_write(pm_func, 0x49, 0x00, priv);
 
-    pipc_write(1, 0x04, 0x80, p);
-    pipc_write(1, 0x09, 0x85, p);
-    pipc_write(1, 0x10, 0xf1, p);
-    pipc_write(1, 0x11, 0x01, p);
-    pipc_write(1, 0x14, 0xf5, p);
-    pipc_write(1, 0x15, 0x03, p);
-    pipc_write(1, 0x18, 0x71, p);
-    pipc_write(1, 0x19, 0x01, p);
-    pipc_write(1, 0x1c, 0x75, p);
-    pipc_write(1, 0x1d, 0x03, p);
-    pipc_write(1, 0x20, 0x01, p);
-    pipc_write(1, 0x21, 0xcc, p);
+    pipc_write(1, 0x04, 0x80, priv);
+    pipc_write(1, 0x09, 0x85, priv);
+    pipc_write(1, 0x10, 0xf1, priv);
+    pipc_write(1, 0x11, 0x01, priv);
+    pipc_write(1, 0x14, 0xf5, priv);
+    pipc_write(1, 0x15, 0x03, priv);
+    pipc_write(1, 0x18, 0x71, priv);
+    pipc_write(1, 0x19, 0x01, priv);
+    pipc_write(1, 0x1c, 0x75, priv);
+    pipc_write(1, 0x1d, 0x03, priv);
+    pipc_write(1, 0x20, 0x01, priv);
+    pipc_write(1, 0x21, 0xcc, priv);
     if (dev->local <= VIA_PIPC_586B)
-        pipc_write(1, 0x40, 0x04, p);
+        pipc_write(1, 0x40, 0x04, priv);
     else
-        pipc_write(1, 0x40, 0x00, p);
+        pipc_write(1, 0x40, 0x00, priv);
 
     if (dev->local < VIA_PIPC_586B)
-        pipc_write(0, 0x44, 0x00, p);
+        pipc_write(0, 0x44, 0x00, priv);
 
-    pipc_write(0, 0x77, 0x00, p);
+    pipc_write(0, 0x77, 0x00, priv);
 }
 
 static void *
@@ -1678,13 +1702,13 @@ pipc_init(const device_t *info)
 }
 
 static void
-pipc_close(void *p)
+pipc_close(void *priv)
 {
-    pipc_t *dev = (pipc_t *) p;
+    pipc_t *dev = (pipc_t *) priv;
 
     pipc_log("PIPC: close()\n");
 
-    for (int i = 0; i < TRAP_MAX; i++)
+    for (uint8_t i = 0; i < TRAP_MAX; i++)
         io_trap_remove(dev->io_traps[i].trap);
 
     free(dev);

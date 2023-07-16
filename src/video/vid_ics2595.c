@@ -45,7 +45,8 @@ void
 ics2595_write(void *p, int strobe, int dat)
 {
     ics2595_t *ics2595 = (ics2595_t *) p;
-    int        d, n;
+    int        d;
+    int        n;
     int        l;
 
     if (strobe) {

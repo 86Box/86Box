@@ -186,7 +186,8 @@ static void
 recalc_timings(incolor_t *dev)
 {
     double disptime;
-    double _dispontime, _dispofftime;
+    double _dispontime;
+    double _dispofftime;
 
     disptime     = dev->crtc[0] + 1;
     _dispontime  = dev->crtc[1];
@@ -299,10 +300,8 @@ incolor_write(uint32_t addr, uint8_t val, void *priv)
     unsigned char fg    = dev->crtc[INCOLOR_CRTC_RWCOL] & 0x0F;
     unsigned char bg    = (dev->crtc[INCOLOR_CRTC_RWCOL] >> 4) & 0x0F;
     unsigned char w     = 0;
-    unsigned char vmask; /* Mask of bit within byte */
     unsigned char pmask; /* Mask of plane within colour value */
     unsigned char latch;
-    int           plane;
 
     addr &= 0xffff;
 
@@ -319,13 +318,13 @@ incolor_write(uint32_t addr, uint8_t val, void *priv)
      * 3: 1 => source latch,  0 => ~source latch
      */
     pmask = 1;
-    for (plane = 0; plane < 4; pmask <<= 1, wmask >>= 1, addr += 0x10000, plane++) {
+    for (uint8_t plane = 0; plane < 4; pmask <<= 1, wmask >>= 1, addr += 0x10000, plane++) {
         if (wmask & 0x10) /* Ignore writes to selected plane */
         {
             continue;
         }
         latch = dev->latch[plane];
-        for (vmask = 0x80; vmask != 0; vmask >>= 1) {
+        for (unsigned char vmask = 0x80 /* Mask of bit within byte */; vmask != 0; vmask >>= 1) {
             switch (wmode) {
                 case 0x00:
                     if (val & vmask)
@@ -375,7 +374,7 @@ incolor_read(uint32_t addr, void *priv)
     unsigned char dc; /* "don't care" register */
     unsigned char bg; /* background colour */
     unsigned char fg;
-    unsigned char mask, pmask;
+    unsigned char pmask;
 
     addr &= 0xffff;
 
@@ -393,7 +392,7 @@ incolor_read(uint32_t addr, void *priv)
     }
 
     /* For each pixel, work out if its colour matches the background */
-    for (mask = 0x80; mask != 0; mask >>= 1) {
+    for (unsigned char mask = 0x80; mask != 0; mask >>= 1) {
         fg = 0;
         dc = dev->crtc[INCOLOR_CRTC_RWCTRL] & 0x0F;
         bg = (dev->crtc[INCOLOR_CRTC_RWCOL] >> 4) & 0x0F;
@@ -417,13 +416,15 @@ incolor_read(uint32_t addr, void *priv)
 static void
 draw_char_rom(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
 {
-    int                  i;
-    int                  elg, blk;
+    int                  elg;
+    int                  blk;
     unsigned             ull;
     unsigned             val;
-    unsigned             ifg, ibg;
+    unsigned             ifg;
+    unsigned             ibg;
     const unsigned char *fnt;
-    uint32_t             fg, bg;
+    uint32_t             fg;
+    uint32_t             bg;
     int                  cw = INCOLOR_CW;
 
     blk = 0;
@@ -488,7 +489,7 @@ draw_char_rom(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
             val |= (val >> 1) & 1;
         }
     }
-    for (i = 0; i < cw; i++) {
+    for (int i = 0; i < cw; i++) {
         buffer32->line[dev->displine][x * cw + i] = (val & 0x100) ? fg : bg;
         val                                       = val << 1;
     }
@@ -497,11 +498,14 @@ draw_char_rom(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
 static void
 draw_char_ram4(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
 {
-    int                  i;
-    int                  elg, blk;
+    int                  elg;
+    int                  blk;
     unsigned             ull;
     unsigned             val[4];
-    unsigned             ifg, ibg, cfg, pmask, plane;
+    unsigned             ifg;
+    unsigned             ibg;
+    unsigned             cfg;
+    unsigned             pmask;
     const unsigned char *fnt;
     uint32_t             fg;
     int                  cw      = INCOLOR_CW;
@@ -569,11 +573,11 @@ draw_char_ram4(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
             val[3] |= (val[3] >> 1) & 1;
         }
     }
-    for (i = 0; i < cw; i++) {
+    for (int i = 0; i < cw; i++) {
         /* Generate pixel colour */
         cfg   = 0;
         pmask = 1;
-        for (plane = 0; plane < 4; plane++, pmask = pmask << 1) {
+        for (uint8_t plane = 0; plane < 4; plane++, pmask = pmask << 1) {
             if (val[plane] & 0x100)
                 cfg |= (ifg & pmask);
             else
@@ -599,11 +603,20 @@ draw_char_ram4(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
 static void
 draw_char_ram48(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
 {
-    int                  i;
-    int                  elg, blk, ul, ol, bld;
-    unsigned             ull, oll, ulc = 0, olc = 0;
+    int                  elg;
+    int                  blk;
+    int                  ul;
+    int                  ol;
+    int                  bld;
+    unsigned             ull;
+    unsigned             oll;
+    unsigned             ulc = 0;
+    unsigned             olc = 0;
     unsigned             val[4];
-    unsigned             ifg = 0, ibg, cfg, pmask, plane;
+    unsigned             ifg = 0;
+    unsigned             ibg;
+    unsigned             cfg;
+    unsigned             pmask;
     const unsigned char *fnt;
     uint32_t             fg;
     int                  cw      = INCOLOR_CW;
@@ -692,7 +705,7 @@ draw_char_ram48(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
             val[3] |= (val[3] >> 1);
         }
     }
-    for (i = 0; i < cw; i++) {
+    for (int i = 0; i < cw; i++) {
         /* Generate pixel colour */
         cfg   = 0;
         pmask = 1;
@@ -701,7 +714,7 @@ draw_char_ram48(incolor_t *dev, int x, uint8_t chr, uint8_t attr)
         } else if (dev->sc == ull) {
             cfg = ulc ^ ibg; /* Underline */
         } else {
-            for (plane = 0; plane < 4; plane++, pmask = pmask << 1) {
+            for (uint8_t plane = 0; plane < 4; plane++, pmask = pmask << 1) {
                 if (val[plane] & 0x100) {
                     if (altattr)
                         cfg |= ((~ibg) & pmask);
@@ -729,11 +742,11 @@ static void
 text_line(incolor_t *dev, uint16_t ca)
 {
     int      drawcursor;
-    int      x, c;
-    uint8_t  chr, attr;
+    uint8_t  chr;
+    uint8_t  attr;
     uint32_t col;
 
-    for (x = 0; x < dev->crtc[1]; x++) {
+    for (uint8_t x = 0; x < dev->crtc[1]; x++) {
         if (dev->ctrl & 8) {
             chr  = dev->vram[(dev->ma << 1) & 0xfff];
             attr = dev->vram[((dev->ma << 1) + 1) & 0xfff];
@@ -774,7 +787,7 @@ text_line(incolor_t *dev, uint16_t ca)
             } else {
                 col = dev->rgb[defpal[ink]];
             }
-            for (c = 0; c < cw; c++) {
+            for (int c = 0; c < cw; c++) {
                 buffer32->line[dev->displine][x * cw + c] = col;
             }
         }
@@ -786,7 +799,8 @@ graphics_line(incolor_t *dev)
 {
     uint8_t  mask;
     uint16_t ca;
-    int      x, c, plane, col;
+    int      plane;
+    int      col;
     uint8_t  ink;
     uint16_t val[4];
 
@@ -795,7 +809,7 @@ graphics_line(incolor_t *dev)
     if ((dev->ctrl & INCOLOR_CTRL_PAGE1) && (dev->ctrl2 & INCOLOR_CTRL2_PAGE1))
         ca += 0x8000;
 
-    for (x = 0; x < dev->crtc[1]; x++) {
+    for (uint8_t x = 0; x < dev->crtc[1]; x++) {
         mask = dev->crtc[INCOLOR_CRTC_MASK]; /* Planes to display */
         for (plane = 0; plane < 4; plane++, mask = mask >> 1) {
             if (dev->ctrl & 8) {
@@ -808,7 +822,7 @@ graphics_line(incolor_t *dev)
         }
         dev->ma++;
 
-        for (c = 0; c < 16; c++) {
+        for (uint8_t c = 0; c < 16; c++) {
             ink = 0;
             for (plane = 0; plane < 4; plane++) {
                 ink = ink >> 1;
@@ -952,7 +966,7 @@ incolor_poll(void *priv)
             dev->ma = dev->maback;
         }
 
-        if ((dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1))))
+        if (dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1)))
             dev->con = 1;
     }
 }

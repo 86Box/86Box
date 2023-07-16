@@ -63,13 +63,13 @@ mcast_index(const void *dst)
 {
 #define POLYNOMIAL 0x04c11db6
     uint32_t crc = 0xffffffffL;
-    int      carry, i, j;
+    int      carry;
     uint8_t  b;
     uint8_t *ep = (uint8_t *) dst;
 
-    for (i = 6; --i >= 0;) {
+    for (int8_t i = 6; --i >= 0;) {
         b = *ep++;
-        for (j = 8; --j >= 0;) {
+        for (int8_t j = 8; --j >= 0;) {
             carry = ((crc & 0x80000000L) ? 1 : 0) ^ (b & 0x01);
             crc <<= 1;
             b >>= 1;
@@ -93,7 +93,6 @@ mcast_index(const void *dst)
 uint32_t
 dp8390_chipmem_read(dp8390_t *dev, uint32_t addr, unsigned int len)
 {
-    int      i;
     uint32_t retval = 0;
 
 #ifdef ENABLE_DP8390_LOG
@@ -104,7 +103,7 @@ dp8390_chipmem_read(dp8390_t *dev, uint32_t addr, unsigned int len)
     dp8390_log("DP8390: Chipmem Read Address=%04x\n", addr);
 
     /* ROM'd MAC address */
-    for (i = 0; i < len; i++) {
+    for (unsigned int i = 0; i < len; i++) {
         if ((addr >= dev->mem_start) && (addr < dev->mem_end))
             retval |= (uint32_t) (dev->mem[addr - dev->mem_start]) << (i << 3);
         else if (addr < dev->macaddr_size)
@@ -116,14 +115,12 @@ dp8390_chipmem_read(dp8390_t *dev, uint32_t addr, unsigned int len)
         addr++;
     }
 
-    return (retval);
+    return retval;
 }
 
 void
 dp8390_chipmem_write(dp8390_t *dev, uint32_t addr, uint32_t val, unsigned len)
 {
-    int i;
-
 #ifdef ENABLE_DP8390_LOG
     if ((len > 1) && (addr & (len - 1)))
         dp8390_log("DP8390: unaligned chipmem word write\n");
@@ -131,7 +128,7 @@ dp8390_chipmem_write(dp8390_t *dev, uint32_t addr, uint32_t val, unsigned len)
 
     dp8390_log("DP8390: Chipmem Write Address=%04x\n", addr);
 
-    for (i = 0; i < len; i++) {
+    for (unsigned int i = 0; i < len; i++) {
         if ((addr < dev->mem_start) || (addr >= dev->mem_end)) {
             dp8390_log("DP8390: out-of-bounds chipmem write, %04X\n", addr);
             return;
@@ -152,7 +149,7 @@ dp8390_read_cr(dp8390_t *dev)
     retval = (((dev->CR.pgsel & 0x03) << 6) | ((dev->CR.rdma_cmd & 0x07) << 3) | (dev->CR.tx_packet << 2) | (dev->CR.start << 1) | (dev->CR.stop));
     dp8390_log("DP8390: read CR returns 0x%02x\n", retval);
 
-    return (retval);
+    return retval;
 }
 
 void
@@ -198,7 +195,7 @@ dp8390_write_cr(dp8390_t *dev, uint32_t val)
     /* Check for start-tx */
     if ((val & 0x04) && dev->TCR.loop_cntl) {
         if (dev->TCR.loop_cntl) {
-            dp8390_rx_common(dev, &dev->mem[(dev->tx_page_start * 256) - dev->mem_start],
+            dp8390_rx_common(dev, &dev->mem[((dev->tx_page_start * 256) - dev->mem_start) & dev->mem_wrap],
                              dev->tx_bytes);
         }
     } else if (val & 0x04) {
@@ -220,7 +217,7 @@ dp8390_write_cr(dp8390_t *dev, uint32_t val)
 
         /* TODO: report TX error to the driver ? */
         if (!(dev->card->link_state & NET_LINK_DOWN))
-            network_tx(dev->card, &dev->mem[(dev->tx_page_start * 256) - dev->mem_start], dev->tx_bytes);
+            network_tx(dev->card, &dev->mem[((dev->tx_page_start * 256) - dev->mem_start) & dev->mem_wrap], dev->tx_bytes);
 
             /* some more debug */
 #ifdef ENABLE_DP8390_LOG
@@ -270,8 +267,10 @@ dp8390_rx_common(void *priv, uint8_t *buf, int io_len)
     static uint8_t bcast_addr[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
     uint8_t        pkthdr[4];
     uint8_t       *startptr;
-    int            pages, avail;
-    int            idx, nextpage;
+    int            pages;
+    int            avail;
+    int            idx;
+    int            nextpage;
     int            endbytes;
 
     if (io_len != 60)
@@ -391,7 +390,7 @@ dp8390_rx_common(void *priv, uint8_t *buf, int io_len)
     } else {
         endbytes = (dev->page_stop - dev->curr_page) * 256;
         memcpy(startptr + sizeof(pkthdr), buf, endbytes - sizeof(pkthdr));
-        startptr = &dev->mem[(dev->page_start * 256) - dev->mem_start];
+        startptr = &dev->mem[((dev->tx_page_start * 256) - dev->mem_start) & dev->mem_wrap];
         memcpy(startptr, buf + endbytes - sizeof(pkthdr), io_len - endbytes + 8);
     }
     dev->curr_page = nextpage;
@@ -427,7 +426,7 @@ dp8390_page0_read(dp8390_t *dev, uint32_t off, unsigned int len)
         /* encountered with win98 hardware probe */
         dp8390_log("DP8390: bad length! Page0 read from register 0x%02x, len=%u\n",
                    off, len);
-        return (retval);
+        return retval;
     }
 
     switch (off) {
@@ -503,7 +502,7 @@ dp8390_page0_read(dp8390_t *dev, uint32_t off, unsigned int len)
     dp8390_log("DP8390: Page0 read from register 0x%02x, value=0x%02x\n", off,
                retval);
 
-    return (retval);
+    return retval;
 }
 
 void
@@ -730,7 +729,7 @@ dp8390_page1_read(dp8390_t *dev, uint32_t off, unsigned int len)
         default:
             dp8390_log("DP8390: Page1 read register 0x%02x out of range\n",
                        off);
-            return (0);
+            return 0;
     }
 }
 
@@ -812,7 +811,7 @@ dp8390_page2_read(dp8390_t *dev, uint32_t off, unsigned int len)
         case 0x0b:
             dp8390_log("DP8390: reserved Page2 read - register 0x%02x\n",
                        off);
-            return (0xff);
+            return 0xff;
 
         case 0x0c: /* RCR */
             return ((dev->RCR.monitor << 5) | (dev->RCR.promisc << 4) | (dev->RCR.multicast << 3) | (dev->RCR.broadcast << 2) | (dev->RCR.runts_ok << 1) | (dev->RCR.errors_ok));
@@ -832,7 +831,7 @@ dp8390_page2_read(dp8390_t *dev, uint32_t off, unsigned int len)
             break;
     }
 
-    return (0);
+    return 0;
 }
 
 void
@@ -918,6 +917,7 @@ dp8390_mem_alloc(dp8390_t *dev, uint32_t start, uint32_t size)
     dev->mem_start = start;
     dev->mem_end   = start + size;
     dev->mem_size  = size;
+    dev->mem_wrap  = size - 1;
     dp8390_log("DP8390: Mapped %i bytes of memory at address %04X in the address space\n", size, start);
 }
 
@@ -931,7 +931,8 @@ dp8390_set_id(dp8390_t *dev, uint8_t id0, uint8_t id1)
 void
 dp8390_reset(dp8390_t *dev)
 {
-    int i, max, shift = 0;
+    int max;
+    int shift = 0;
 
     if (dev->flags & DP8390_FLAG_EVEN_MAC)
         shift = 1;
@@ -939,7 +940,7 @@ dp8390_reset(dp8390_t *dev)
     max = 16 << shift;
 
     /* Initialize the MAC address area by doubling the physical address */
-    for (i = 0; i < max; i++) {
+    for (int i = 0; i < max; i++) {
         if (i < (6 << shift))
             dev->macaddr[i] = dev->physaddr[i >> shift];
         else /* Signature */

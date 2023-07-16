@@ -34,10 +34,12 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/sio.h>
+#include <86box/plat_unused.h>
 
-typedef struct {
-    uint8_t tries,
-        regs[29], gpio[2];
+typedef struct pc87306_t {
+    uint8_t   tries;
+    uint8_t   regs[29];
+    uint8_t   gpio[2];
     int       cur_reg;
     fdc_t    *fdc;
     serial_t *uart[2];
@@ -85,7 +87,8 @@ static void
 lpt1_handler(pc87306_t *dev)
 {
     int      temp;
-    uint16_t lptba, lpt_port = LPT1_ADDR;
+    uint16_t lptba;
+    uint16_t lpt_port = LPT1_ADDR;
     uint8_t  lpt_irq = LPT2_IRQ;
 
     temp  = dev->regs[0x01] & 3;
@@ -111,6 +114,9 @@ lpt1_handler(pc87306_t *dev)
             lpt_port = 0x000;
             lpt_irq  = 0xff;
             break;
+
+        default:
+            break;
     }
 
     if (dev->regs[0x1b] & 0x10)
@@ -126,8 +132,10 @@ static void
 serial_handler(pc87306_t *dev, int uart)
 {
     int     temp;
-    uint8_t fer_irq, pnp1_irq;
-    uint8_t fer_shift, pnp_shift;
+    uint8_t fer_irq;
+    uint8_t pnp1_irq;
+    uint8_t fer_shift;
+    uint8_t pnp_shift;
     uint8_t irq;
 
     temp = (dev->regs[1] >> (2 << uart)) & 3;
@@ -162,6 +170,9 @@ serial_handler(pc87306_t *dev, int uart)
                 case 3:
                     serial_setup(dev->uart[uart], 0x220, irq);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 3:
@@ -178,7 +189,13 @@ serial_handler(pc87306_t *dev, int uart)
                 case 3:
                     serial_setup(dev->uart[uart], 0x228, irq);
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -187,7 +204,8 @@ static void
 pc87306_write(uint16_t port, uint8_t val, void *priv)
 {
     pc87306_t *dev = (pc87306_t *) priv;
-    uint8_t    index, valxor;
+    uint8_t    index;
+    uint8_t    valxor;
 
     index = (port & 1) ? 0 : 1;
 
@@ -320,6 +338,9 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
                     serial_handler(dev, 1);
             }
             break;
+
+        default:
+            break;
     }
 }
 
@@ -327,7 +348,8 @@ uint8_t
 pc87306_read(uint16_t port, void *priv)
 {
     pc87306_t *dev = (pc87306_t *) priv;
-    uint8_t    ret = 0xff, index;
+    uint8_t    ret = 0xff;
+    uint8_t    index;
 
     index = (port & 1) ? 0 : 1;
 
@@ -387,7 +409,7 @@ pc87306_close(void *priv)
 }
 
 static void *
-pc87306_init(const device_t *info)
+pc87306_init(UNUSED(const device_t *info))
 {
     pc87306_t *dev = (pc87306_t *) malloc(sizeof(pc87306_t));
     memset(dev, 0, sizeof(pc87306_t));

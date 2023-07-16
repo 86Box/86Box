@@ -81,9 +81,9 @@ extern "C" {
 #endif
 
 /* Global variables residing in the platform module. */
-extern int dopause,          /* system is paused */
-    mouse_capture;           /* mouse is captured in app */
-extern volatile int is_quit; /* system exit requested */
+extern int          dopause;       /* system is paused */
+extern int          mouse_capture; /* mouse is captured in app */
+extern volatile int is_quit;       /* system exit requested */
 
 #ifdef MTR_ENABLED
 extern int tracing_on;
@@ -95,7 +95,9 @@ extern char     emu_version[200]; /* version ID string */
 extern int      rctrl_is_lalt;
 extern int      update_icons;
 
-extern int kbd_req_capture, hide_status_bar, hide_tool_bar;
+extern int kbd_req_capture;
+extern int hide_status_bar;
+extern int hide_tool_bar;
 
 /* System-related functions. */
 extern char    *fix_exe_path(char *str);

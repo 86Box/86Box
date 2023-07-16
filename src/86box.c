@@ -208,16 +208,20 @@ char  exe_path[2048]; /* path (dir) of executable */
 char  usr_path[1024]; /* path (dir) of user data */
 char  cfg_path[1024]; /* full path of config file */
 FILE *stdlog = NULL;  /* file to log output to */
-// int   scrnsz_x = SCREEN_RES_X; /* current screen size, X */
-// int   scrnsz_y = SCREEN_RES_Y; /* current screen size, Y */
+#if 0
+int   scrnsz_x = SCREEN_RES_X; /* current screen size, X */
+int   scrnsz_y = SCREEN_RES_Y; /* current screen size, Y */
+#endif
 int config_changed; /* config has changed */
 int title_update;
 int framecountx        = 0;
 int hard_reset_pending = 0;
 
-// int unscaled_size_x = SCREEN_RES_X; /* current unscaled size X */
-// int unscaled_size_y = SCREEN_RES_Y; /* current unscaled size Y */
-// int efscrnsz_y = SCREEN_RES_Y;
+#if 0
+int unscaled_size_x = SCREEN_RES_X; /* current unscaled size X */
+int unscaled_size_y = SCREEN_RES_Y; /* current unscaled size Y */
+int efscrnsz_y = SCREEN_RES_Y;
+#endif
 
 static wchar_t mouse_msg[3][200];
 
@@ -404,19 +408,24 @@ pc_log(const char *fmt, ...)
 int
 pc_init(int argc, char *argv[])
 {
-    char      *ppath = NULL, *rpath = NULL;
-    char      *cfg = NULL, *p;
-    char       temp[2048], *fn[FDD_NUM] = { NULL };
-    char       drive = 0, *temp2 = NULL;
+    char      *ppath = NULL;
+    char      *rpath = NULL;
+    char      *cfg = NULL;
+    char      *p;
+    char       temp[2048];
+    char      *fn[FDD_NUM] = { NULL };
+    char       drive = 0;
+    char      *temp2 = NULL;
     struct tm *info;
     time_t     now;
-    int        c, lvmp = 0;
-    int        i;
+    int        c;
+    int        lvmp = 0;
 #ifdef ENABLE_NG
     int ng = 0;
 #endif
 #ifdef _WIN32
-    uint32_t *uid, *shwnd;
+    uint32_t *uid;
+    uint32_t *shwnd;
 #endif
     uint32_t lang_init = 0;
 
@@ -433,7 +442,7 @@ pc_init(int argc, char *argv[])
     }
     if (!strncmp(exe_path, "/private/var/folders/", 21)) {
         ui_msgbox_header(MBX_FATAL, L"App Translocation", EMU_NAME_W L" cannot determine the emulated machine's location due to a macOS security feature. Please move the " EMU_NAME_W L" app to another folder (not /Applications), or make a copy of it and open that copy instead.");
-        return (0);
+        return 0;
     }
 #elif !defined(_WIN32)
     /* Grab the actual path if we are an AppImage. */
@@ -461,7 +470,7 @@ pc_init(int argc, char *argv[])
 
         if (!strcasecmp(argv[c], "--help") || !strcasecmp(argv[c], "-?")) {
 usage:
-            for (i = 0; i < FDD_NUM; i++) {
+            for (uint8_t i = 0; i < FDD_NUM; i++) {
                 if (fn[i] != NULL) {
                     free(fn[i]);
                     fn[i] = NULL;
@@ -493,7 +502,7 @@ usage:
             printf("-V or --vmname name  - overrides the name of the running VM\n");
             printf("-Z or --lastvmpath   - the last parameter is VM path rather than config\n");
             printf("\nA config file can be specified. If none is, the default file will be used.\n");
-            return (0);
+            return 0;
         } else if (!strcasecmp(argv[c], "--lastvmpath") || !strcasecmp(argv[c], "-Z")) {
             lvmp = 1;
         } else if (!strcasecmp(argv[c], "--dumpcfg") || !strcasecmp(argv[c], "-O")) {
@@ -585,7 +594,7 @@ usage:
             /* some (undocumented) test function here.. */
 
             /* .. and then exit. */
-            return (0);
+            return 0;
 #ifdef USE_INSTRUMENT
         } else if (!strcasecmp(argv[c], "--instrument")) {
             if ((c + 1) == argc)
@@ -770,7 +779,7 @@ usage:
     /* Load the configuration file. */
     config_load();
 
-    for (i = 0; i < FDD_NUM; i++) {
+    for (uint8_t i = 0; i < FDD_NUM; i++) {
         if (fn[i] != NULL) {
             if (strlen(fn[i]) <= 511)
                 strncpy(floppyfns[i], fn[i], 511);
@@ -786,7 +795,7 @@ usage:
     gdbstub_init();
 
     /* All good! */
-    return (1);
+    return 1;
 }
 
 void
@@ -812,7 +821,8 @@ pc_full_speed(void)
 int
 pc_init_modules(void)
 {
-    int     c, m;
+    int     c;
+    int     m;
     wchar_t temp[512];
     char    tempc[512];
 
@@ -846,7 +856,7 @@ pc_init_modules(void)
     }
     if (c == 0) {
         /* No usable ROMs found, aborting. */
-        return (0);
+        return 0;
     }
     pc_log("A total of %d ROM sets have been loaded.\n", c);
 
@@ -867,7 +877,6 @@ pc_init_modules(void)
         if (machine == -1) {
             fatal("No available machines\n");
             exit(-1);
-            return (0);
         }
     }
 
@@ -890,7 +899,6 @@ pc_init_modules(void)
         if (gfxcard[0] == -1) {
             fatal("No available video cards\n");
             exit(-1);
-            return (0);
         }
     }
 
@@ -933,7 +941,7 @@ pc_init_modules(void)
 
     machine_status_init();
 
-    return (1);
+    return 1;
 }
 
 void
@@ -1136,7 +1144,10 @@ pc_reset_hard_init(void)
 void
 update_mouse_msg(void)
 {
-    wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
+    wchar_t wcpufamily[2048];
+    wchar_t wcpu[2048];
+    wchar_t wmachine[2048];
+    wchar_t *wcp;
 
     mbstowcs(wmachine, machine_getname(), strlen(machine_getname()) + 1);
 
@@ -1176,8 +1187,6 @@ pc_reset_hard(void)
 void
 pc_close(thread_t *ptr)
 {
-    int i;
-
     /* Wait a while so things can shut down. */
     plat_delay_ms(200);
 
@@ -1205,7 +1214,7 @@ pc_close(thread_t *ptr)
 
     lpt_devices_close();
 
-    for (i = 0; i < FDD_NUM; i++)
+    for (uint8_t i = 0; i < FDD_NUM; i++)
         fdd_close(i);
 
 #ifdef ENABLE_808X_LOG
@@ -1266,7 +1275,9 @@ pc_run(void)
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     // if (gdbstub_step == GDBSTUB_EXEC)
 #endif
-        // mouse_process();
+#if 0
+        mouse_process();
+#endif
     joystick_process();
     endblit();
 
@@ -1305,7 +1316,10 @@ set_screen_size_monitor(int x, int y, int monitor_index)
 {
     int    temp_overscan_x = monitors[monitor_index].mon_overscan_x;
     int    temp_overscan_y = monitors[monitor_index].mon_overscan_y;
-    double dx, dy, dtx, dty;
+    double dx;
+    double dy;
+    double dtx;
+    double dty;
 
     /* Make sure we keep usable values. */
 #if 0
@@ -1404,6 +1418,9 @@ set_screen_size_monitor(int x, int y, int monitor_index)
             monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x << 3);
             monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y << 3);
             break;
+
+        default:
+            break;
     }
 
     plat_resize_request(monitors[monitor_index].mon_scrnsz_x, monitors[monitor_index].mon_scrnsz_y, monitor_index);
@@ -1424,14 +1441,14 @@ reset_screen_size_monitor(int monitor_index)
 void
 reset_screen_size(void)
 {
-    for (int i = 0; i < MONITORS_NUM; i++)
+    for (uint8_t i = 0; i < MONITORS_NUM; i++)
         set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_efscrnsz_y);
 }
 
 void
 set_screen_size_natural(void)
 {
-    for (int i = 0; i < MONITORS_NUM; i++)
+    for (uint8_t i = 0; i < MONITORS_NUM; i++)
         set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_unscaled_size_y);
 }
 

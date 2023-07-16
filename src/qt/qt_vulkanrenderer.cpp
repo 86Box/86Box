@@ -657,7 +657,7 @@ VulkanRenderer2::initResources()
     }
 
     // Shaders
-    /*
+#if 0
     #version 440
 
     layout(location = 0) in vec4 position;
@@ -676,9 +676,9 @@ VulkanRenderer2::initResources()
         v_texcoord = texcoord;
         gl_Position = ubuf.mvp * position;
     }
-    */
+#endif
     VkShaderModule vertShaderModule = createShader(QStringLiteral(":/texture_vert.spv"));
-    /*
+#if 0
     #version 440
 
     layout(location = 0) in vec2 v_texcoord;
@@ -691,7 +691,7 @@ VulkanRenderer2::initResources()
     {
         fragColor = texture(tex, v_texcoord);
     }
-    */
+#endif
     VkShaderModule fragShaderModule = createShader(QStringLiteral(":/texture_frag.spv"));
 
     // Graphics pipeline
@@ -938,7 +938,9 @@ VulkanRenderer2::startNextFrame()
     if (err != VK_SUCCESS)
         qFatal("Failed to map memory: %d", err);
     QMatrix4x4 m = m_proj;
-    // m.rotate(m_rotation, 0, 0, 1);
+#if 0
+    m.rotate(m_rotation, 0, 0, 1);
+#endif
     memcpy(p, m.constData(), 16 * sizeof(float));
     m_devFuncs->vkUnmapMemory(dev, m_bufMem);
     p = nullptr;
