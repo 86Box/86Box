@@ -193,7 +193,9 @@ smbus_ali7101_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x4:          /* block R/W */
                     timer_bytes++; /* count the SMBus length byte now */
 
+#ifndef __APPLE__
                     [[fallthrough]];
+#endif
 
                 default:                   /* unknown */
                     dev->next_stat = 0x20; /* raise DEV_ERR */

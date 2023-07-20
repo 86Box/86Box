@@ -1474,7 +1474,9 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
             case 0xd2:
                 if (dev->local == VIA_PIPC_686B)
                     smbus_piix4_setclock(dev->smbus, (val & 0x04) ? 65536 : 16384);
+#ifndef __APPLE__
                 [[fallthrough]];
+#endif
 
             case 0x90:
             case 0x91:

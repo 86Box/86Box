@@ -652,7 +652,9 @@ cdi_cue_get_buffer(char *str, char **line, int up)
                     done = 1;
                     break;
                 }
+#ifndef __APPLE__
                 [[fallthrough]];
+#endif
 
             default:
                 if (up && islower((int) *s))

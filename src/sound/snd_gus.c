@@ -626,7 +626,9 @@ writegus(uint16_t addr, uint8_t val, void *priv)
                 else if (gus->irq != -1)
                     picint(1 << gus->irq);
             }
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
         case 0x20d:
             gus->sb_2xc = val;
             break;

@@ -108,7 +108,9 @@ ali1621_smram_recalc(uint8_t val, ali1621_t *dev)
             switch (val & 0x30) {
                 case 0x10: /* Open. */
                     access_normal = ACCESS_SMRAM_RX;
+#ifndef __APPLE__
                     [[fallthrough]];
+#endif
                 case 0x30: /* Protect. */
                     access_smm |= ACCESS_SMRAM_R;
                     break;
@@ -121,7 +123,9 @@ ali1621_smram_recalc(uint8_t val, ali1621_t *dev)
             switch (val & 0x30) {
                 case 0x10: /* Open. */
                     access_normal |= ACCESS_SMRAM_W;
+#ifndef __APPLE__
                     [[fallthrough]];
+#endif
                 case 0x30: /* Protect. */
                     access_smm |= ACCESS_SMRAM_W;
                     break;

@@ -320,7 +320,9 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                         svga->adv_flags &= ~FLAG_RAMDAC_SHIFT;
                         if (val & 0x04)
                             svga->adv_flags |= FLAG_RAMDAC_SHIFT;
+#ifndef __APPLE__
                         [[fallthrough]];
+#endif
                     /*Bank registers*/
                     case 0xe8:
                     case 0xe9:

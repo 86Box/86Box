@@ -466,7 +466,9 @@ cmi8x38_sb_mixer_write(uint16_t addr, uint8_t val, void *priv)
             case 0xf8 ... 0xff:
                 if (dev->type == CMEDIA_CMI8338)
                     mixer->regs[mixer->index] = val;
+#ifndef __APPLE__
                 [[fallthrough]];
+#endif
 
             case 0xf1 ... 0xf7:
                 return;

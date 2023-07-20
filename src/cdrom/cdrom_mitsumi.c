@@ -324,7 +324,9 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                 break;
                             case 5:
                                 dev->readmsf = 0;
+#ifndef __APPLE__
                                 [[fallthrough]];
+#endif
                             case 4:
                             case 3:
                                 dev->readmsf |= CD_DCB(val) << ((dev->cmdrd_count - 3) << 3);

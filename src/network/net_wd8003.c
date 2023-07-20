@@ -734,7 +734,9 @@ wd_init(const device_t *info)
         /* Ethernet, MCA, 5x3 interface chip, RAM 16k */
         case WD8003EA:
             dev->board_chip = WE_ID_SOFT_CONFIG;
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
         /* Ethernet, MCA, no interface chip, RAM 16k */
         case WD8003ETA:
             dev->board_chip |= WE_TYPE_WD8013EBT | WE_ID_BUS_MCA;

@@ -463,7 +463,9 @@ kbc_at_poll_at(atkbc_t *dev)
         case STATE_KBC_AMI_OUT:
             if (dev->status & STAT_OFULL)
                 break;
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
         case STATE_MAIN_IBF:
         default:
 at_main_ibf:
@@ -586,7 +588,9 @@ kbc_at_poll_ps2(atkbc_t *dev)
         case STATE_KBC_AMI_OUT:
             if (dev->status & STAT_OFULL)
                 break;
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
         case STATE_MAIN_IBF:
         default:
 ps2_main_ibf:

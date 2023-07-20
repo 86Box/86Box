@@ -655,7 +655,9 @@ mo_update_request_length(mo_t *dev, int len, int block_len)
                     break;
                 }
             }
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
         default:
             dev->packet_len = len;
             break;
@@ -1342,7 +1344,9 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
                 mo_invalid_field(dev);
                 return;
             }
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
         case GPCMD_SCSI_RESERVE:
         case GPCMD_SCSI_RELEASE:
         case GPCMD_TEST_UNIT_READY:

@@ -4305,7 +4305,9 @@ s3_virge_init(const device_t *info)
 
         case S3_VIRGE_GX:
             virge->virge_rev = 0x01;
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
 
         default:
             virge->svga.decode_mask  = (4 << 20) - 1;

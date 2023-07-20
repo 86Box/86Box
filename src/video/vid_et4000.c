@@ -432,7 +432,9 @@ et4000_kasan_out(uint16_t addr, uint8_t val, void *priv)
                 case 5:
                     et4000->kasan_cfg_regs[5]              = val;
                     et4000->svga.ksc5601_english_font_type = 0x100 | val;
+#ifndef __APPLE__
                     [[fallthrough]];
+#endif
                 case 6:
                 case 7:
                     et4000->svga.ksc5601_udc_area_msb[et4000->kasan_cfg_index - 0xF6] = val;

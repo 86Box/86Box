@@ -596,7 +596,9 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x75: /* 4-bit ADPCM output with reference */
             dsp->sbref  = dsp->dma_readb(dsp->dma_priv);
             dsp->sbstep = 0;
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
         case 0x74: /* 4-bit ADPCM output */
             sb_start_dma(dsp, 1, 0, ADPCM_4, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
             dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);

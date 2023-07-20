@@ -1029,7 +1029,9 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
     switch (saddr) {
         case ESP_TCHI:
             dev->tchi_written = 1;
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
         case ESP_TCLO:
         case ESP_TCMID:
             esp_log("Transfer count regs %02x = %i\n", saddr, val);

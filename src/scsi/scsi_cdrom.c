@@ -883,7 +883,9 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
                     break;
                 }
             }
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
 
         default:
             dev->packet_len = len;
@@ -959,7 +961,9 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                 scsi_cdrom_log("CD-ROM %i: Seek period: %" PRIu64 " us\n",
                                dev->id, (uint64_t) period);
                 dev->callback += period;
+#ifndef __APPLE__
                 [[fallthrough]];
+#endif
             case 0x25:
             case 0x42:
             case 0x43:
@@ -1936,7 +1940,9 @@ begin:
             /* IMPORTANT: Convert the command to new read CD
                           for pass through purposes. */
             dev->current_cdb[0] = GPCMD_READ_CD;
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
 
         case GPCMD_READ_6:
         case GPCMD_READ_10:

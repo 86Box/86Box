@@ -509,7 +509,9 @@ hdc_callback(void *priv)
 
         case CMD_READ_VERIFY:
             no_data = 1;
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
 
         case CMD_READ_SECTORS:
             if (!drive->present) {
@@ -534,7 +536,9 @@ hdc_callback(void *priv)
                     dev->buf_len = 512;
 
                     dev->state = STATE_SEND;
+#ifndef __APPLE__
                     [[fallthrough]];
+#endif
 
                 case STATE_SEND:
                     /* Activate the status icon. */
@@ -642,7 +646,9 @@ do_send:
                     dev->buf_len = 512;
 
                     dev->state = STATE_RECV;
+#ifndef __APPLE__
                     [[fallthrough]];
+#endif
 
                 case STATE_RECV:
                     /* Activate the status icon. */

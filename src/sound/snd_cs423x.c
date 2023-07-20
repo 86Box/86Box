@@ -299,7 +299,9 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
                     switch (val) {
                         case 0x55: /* Disable PnP Key */
                             dev->pnp_enable = 0;
+#ifndef __APPLE__
                             [[fallthrough]];
+#endif
 
                         case 0x5a: /* Update Hardware Configuration Data */
                             cs423x_pnp_enable(dev, 0, 1);

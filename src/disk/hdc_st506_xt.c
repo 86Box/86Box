@@ -623,7 +623,9 @@ st506_callback(void *priv)
                 st506_complete(dev);
                 break;
             }
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
 
         case CMD_FORMAT_TRACK:
         case CMD_FORMAT_BAD_TRACK:
@@ -1606,7 +1608,9 @@ st506_init(const device_t *info)
 
         case ST506_XT_TYPE_ST11R: /* Seagate ST-11R (RLL) */
             dev->spt = RLL_SECTORS;
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
 
         case ST506_XT_TYPE_ST11M: /* Seagate ST-11M (MFM) */
             dev->nr_err   = ERR_NOT_AVAILABLE;

@@ -123,7 +123,9 @@ elt_vid_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3d1:
             if (cga->crtcreg >= 32)
                 return;
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
 
         default:
             cga->crtcreg &= 31;

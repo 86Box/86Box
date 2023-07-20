@@ -210,7 +210,9 @@ pci_dummy_pci_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x10:       /* PCI_BAR */
                 val &= 0xe0; /* 0xe0 acc to RTL DS */
+#ifndef __APPLE__
                 [[fallthrough]];
+#endif
 
             case 0x11: /* PCI_BAR */
                 /* Remove old I/O. */

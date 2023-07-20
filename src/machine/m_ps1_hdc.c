@@ -699,7 +699,9 @@ do_fmt:
 
             /* Done with this track. */
             dev->state = STATE_FDONE;
+#ifndef __APPLE__
             [[fallthrough]];
+#endif
         case STATE_FDONE:
             /* One more track done. */
             if (++start_cyl == end_cyl) {

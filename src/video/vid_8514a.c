@@ -536,7 +536,9 @@ ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
         case 0x92e8:
             if (len != 1)
                 dev->test = val;
+#ifndef __APPLE__
                 [[fallthrough]];
+#endif
         case 0xd2e8:
             if (len == 1)
                 dev->accel.err_term = (dev->accel.err_term & 0x3f00) | val;
