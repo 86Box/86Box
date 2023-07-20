@@ -297,23 +297,30 @@
 #define FLAG_P6RP4_HACK    0x10
 #define FLAG_PIIX4         0x20
 
-typedef struct {
+typedef struct local_t {
     int8_t stat;
 
-    uint8_t cent, def,
-        flags, read_addr,
-        wp_0d, wp_32,
-        pad, pad0;
+    uint8_t cent;
+    uint8_t def;
+    uint8_t flags;
+    uint8_t read_addr;
+    uint8_t wp_0d;
+    uint8_t wp_32;
+    uint8_t pad;
+    uint8_t pad0;
 
-    uint8_t addr[8], wp[2],
-        bank[8], *lock;
+    uint8_t  addr[8];
+    uint8_t  wp[2];
+    uint8_t  bank[8];
+    uint8_t *lock;
 
-    int16_t count, state;
+    int16_t count;
+    int16_t state;
 
-    uint64_t ecount,
-        rtc_time;
-    pc_timer_t update_timer,
-        rtc_timer;
+    uint64_t   ecount;
+    uint64_t   rtc_time;
+    pc_timer_t update_timer;
+    pc_timer_t rtc_timer;
 } local_t;
 
 static uint8_t nvr_at_inited = 0;
@@ -650,8 +657,10 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
         return;
 
     if (addr & 1) {
-        // if (local->bank[addr_id] == 0xff)
-        // return;
+#if 0
+        if (local->bank[addr_id] == 0xff)
+            return;
+#endif
         nvr_reg_write(local->addr[addr_id], val, priv);
     } else {
         local->addr[addr_id] = (val & (nvr->size - 1));
@@ -1064,6 +1073,9 @@ nvr_at_init(const device_t *info)
         case 8: /* Epson Equity LT */
             nvr->irq    = -1;
             local->cent = RTC_CENTURY_ELT;
+            break;
+
+        default:
             break;
     }
 

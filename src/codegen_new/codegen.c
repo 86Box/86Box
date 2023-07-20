@@ -399,7 +399,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
                 last_prefix = 0x0f;
 #endif
                 op_table        = x86_dynarec_opcodes_0f;
-                recomp_op_table = recomp_opcodes_0f;
+                recomp_op_table = fpu_softfloat ? recomp_opcodes_0f_no_mmx : recomp_opcodes_0f;
                 over            = 1;
                 break;
 
@@ -634,11 +634,11 @@ generate_call:
         }
 
         opcode_3dnow = fastreadb(cs + opcode_pc);
-        if (recomp_opcodes_3DNOW[opcode_3dnow]) {
+        if (!fpu_softfloat && recomp_opcodes_3DNOW[opcode_3dnow]) {
             next_pc = opcode_pc + 1;
 
             op_table           = (OpFn *) x86_dynarec_opcodes_3DNOW;
-            recomp_op_table    = recomp_opcodes_3DNOW;
+            recomp_op_table    = fpu_softfloat ? NULL : recomp_opcodes_3DNOW;
             opcode             = opcode_3dnow;
             recomp_opcode_mask = 0xff;
             opcode_mask        = 0xff;

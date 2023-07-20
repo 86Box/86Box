@@ -1,20 +1,20 @@
 #ifndef EMU_MACHINE_STATUS_H
 #define EMU_MACHINE_STATUS_H
 
-typedef struct {
+typedef struct dev_status_empty_active_t {
     atomic_bool_t empty;
     atomic_bool_t active;
 } dev_status_empty_active_t;
 
-typedef struct {
+typedef struct dev_status_active_t {
     atomic_bool_t active;
 } dev_status_active_t;
 
-typedef struct {
+typedef struct dev_status_empty_t {
     atomic_bool_t empty;
 } dev_status_empty_t;
 
-typedef struct {
+typedef struct machine_status_t {
     dev_status_empty_active_t fdd[FDD_NUM];
     dev_status_empty_active_t cdrom[CDROM_NUM];
     dev_status_empty_active_t zip[ZIP_NUM];

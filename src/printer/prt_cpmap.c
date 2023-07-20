@@ -572,7 +572,7 @@ static const struct {
 void
 select_codepage(uint16_t code, uint16_t *curmap)
 {
-    int             i = 0;
+    uint16_t        i = 0;
     const uint16_t *map_to_use;
 
     map_to_use = maps[0].map;

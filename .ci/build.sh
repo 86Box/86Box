@@ -24,8 +24,8 @@
 # - For Windows (MSYS MinGW) builds:
 #   - Packaging requires 7-Zip on Program Files
 #   - Packaging the Ghostscript DLL requires 32-bit and/or 64-bit Ghostscript on Program Files
-#   - Packaging the FluidSynth DLL requires it to be at /home/86Box/dll32/libfluidsynth.dll
-#     and/or /home/86Box/dll64/libfluidsynth64.dll (for 32-bit and 64-bit builds respectively)
+#   - Packaging the XAudio2 DLL for FAudio requires it to be at /home/86Box/dll32/xaudio2*.dll
+#     and/or /home/86Box/dll64/xaudio2*.dll (for 32-bit and 64-bit builds respectively)
 # - For Linux builds:
 #   - Only Debian and derivatives are supported
 #   - dpkg and apt-get are called through sudo to manage dependencies; make sure those
@@ -288,7 +288,6 @@ then
 	echo [-] Using MSYSTEM [$MSYSTEM]
 
 	# Install dependencies only if we're in a new build and/or architecture.
-	freetype_dll="$cache_dir/freetype.$MSYSTEM.dll"
 	if check_buildtag "$MSYSTEM"
 	then
 		# Update databases and keyring only if we're in a new build.
@@ -332,9 +331,6 @@ then
 
 		# Clean pacman cache when running under Jenkins to save disk space.
 		[ "$CI" = "true" ] && rm -rf /var/cache/pacman/pkg
-
-		# Generate a new freetype DLL for this architecture.
-		rm -f "$freetype_dll"
 
 		# Save build tag to skip this later. Doing it here (once everything is
 		# in place) is important to avoid potential issues with retried builds.
@@ -595,7 +591,7 @@ else
 	# ...and the ones we do want listed. Non-dev packages fill missing spots on the list.
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libfaudio-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev
+	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype6-dev libx11-dev libsdl2-dev libpng-dev librtmidi-dev qtdeclarative5-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libfaudio-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
 		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/qtdeclarative/qt/" | wc -c)
@@ -796,10 +792,6 @@ then
 	sevenzip="$pf/7-Zip/7z.exe"
 	[ "$arch" = "32" -a -d "/c/Program Files (x86)" ] && pf="/c/Program Files (x86)"
 
-	# Archive freetype from cache or generate it from local MSYS installation.
-	[ ! -e "$freetype_dll" ] && .ci/static2dll.sh -p freetype2 /$MSYSTEM/lib/libfreetype.a "$freetype_dll"
-	cp -p "$freetype_dll" archive_tmp/freetype.dll
-
 	# Archive Ghostscript DLL from local official distribution installation.
 	for gs in "$pf"/gs/gs*.*.*
 	do
@@ -810,8 +802,8 @@ then
 	"$sevenzip" e -y -o"archive_tmp" "$discord_zip" "lib/$arch_discord/discord_game_sdk.dll"
 	[ ! -e "archive_tmp/discord_game_sdk.dll" ] && echo [!] No Discord Game SDK for architecture [$arch_discord]
 
-	# Archive other DLLs from local directory.
-	cp -p "/home/$project/dll$arch/"* archive_tmp/
+	# Archive XAudio2 DLL if required.
+	grep -q "OPENAL:BOOL=ON" build/CMakeCache.txt || cp -p "/home/$project/dll$arch/xaudio2"* archive_tmp/
 
 	# Archive executable, while also stripping it if requested.
 	if [ $strip -ne 0 ]
@@ -1002,6 +994,11 @@ else
 	relroot="../../../../../../../../../../../../../../../../../../../../../../../../../../../../.."
 	ln -s "$relroot/usr/lib/libvulkan.so.1" "archive_tmp/usr/lib/libvulkan.so"
 	ln -s "$relroot/usr/lib/$libdir/libvulkan.so.1" "archive_tmp/usr/lib/$libdir/libvulkan.so"
+
+	# The FluidSynth packaged by Debian bullseye is ABI incompatible with
+	# the newer version we compile, despite sharing a major version. Since we
+	# don't run into the one breaking ABI change they made, just symlink it.
+	ln -s "$(readlink "archive_tmp/usr/lib/libfluidsynth.so.3")" "archive_tmp/usr/lib/libfluidsynth.so.2"
 
 	# Archive Discord Game SDK library.
 	7z e -y -o"archive_tmp/usr/lib" "$discord_zip" "lib/$arch_discord/discord_game_sdk.so"

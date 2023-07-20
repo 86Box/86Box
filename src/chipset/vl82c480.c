@@ -121,10 +121,13 @@ vl82c480_write(uint16_t addr, uint8_t val, void *priv)
             }
             break;
 
+/* TODO: This is actually Fast A20 disable. */
+#if 0
         case 0xee:
             if (mem_a20_alt)
                 outb(0x92, inb(0x92) & ~2);
             break;
+#endif
 
         default:
             break;
@@ -146,10 +149,13 @@ vl82c480_read(uint16_t addr, void *priv)
             ret = dev->regs[dev->idx];
             break;
 
+/* TODO: This is actually Fast A20 enable. */
+#if 0
         case 0xee:
             if (!mem_a20_alt)
                 outb(0x92, inb(0x92) | 2);
             break;
+#endif
 
         case 0xef:
             softresetx86();

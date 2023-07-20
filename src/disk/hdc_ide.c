@@ -110,7 +110,7 @@
 
 #define IDE_TIME                       10.0
 
-typedef struct {
+typedef struct ide_board_t {
     int        bit32;
     int        cur_dev;
     int        irq;
@@ -123,7 +123,7 @@ typedef struct {
     ide_t     *ide[2];
 } ide_board_t;
 
-typedef struct {
+typedef struct ide_bm_t {
     int (*dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv);
     void (*set_irq)(int channel, void *priv);
     void *priv;
@@ -244,6 +244,9 @@ ide_get_xfer_time(ide_t *ide, int size)
                 case 0x10:
                     period = (50.0 / 3.0);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 0x100: /* Single Word DMA */
@@ -257,6 +260,9 @@ ide_get_xfer_time(ide_t *ide, int size)
                 case 0x04:
                     period = (25.0 / 3.0);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 0x200: /* Multiword DMA */
@@ -269,6 +275,9 @@ ide_get_xfer_time(ide_t *ide, int size)
                     break;
                 case 0x04:
                     period = (50.0 / 3.0);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -292,7 +301,13 @@ ide_get_xfer_time(ide_t *ide, int size)
                 case 0x20:
                     period = 100.0;
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 
@@ -2576,6 +2591,9 @@ ide_callback(void *priv)
 
         case 0xFF:
             goto abort_cmd;
+
+        default:
+            break;
     }
 
 abort_cmd:
@@ -3042,6 +3060,9 @@ ide_init(const device_t *info)
 
             if (info->local & 1)
                 ide_board_init(1, 15, 0x170, 0x376, info->local);
+            break;
+
+        default:
             break;
     }
 

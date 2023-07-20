@@ -16,7 +16,7 @@
 #ifndef SCSI_DISK_H
 #define SCSI_DISK_H
 
-typedef struct {
+typedef struct scsi_disk_t {
     mode_sense_pages_t ms_pages_saved;
 
     hard_disk_t *drv;

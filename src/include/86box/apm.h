@@ -21,8 +21,7 @@
 extern "C" {
 #endif
 
-typedef struct
-{
+typedef struct apm_t {
     uint8_t cmd;
     uint8_t stat;
     uint8_t do_smi;

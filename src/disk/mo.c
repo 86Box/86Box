@@ -498,6 +498,9 @@ mo_atapi_phase_to_scsi(mo_t *dev)
                 return 1;
             case 3:
                 return 7;
+
+            default:
+                break;
         }
     } else {
         if ((dev->phase & 3) == 3)
@@ -568,6 +571,9 @@ mo_mode_sense_read(mo_t *dev, uint8_t page_control, uint8_t page, uint8_t pos)
                 return mo_mode_sense_pages_default_scsi.pages[page][pos];
             else
                 return mo_mode_sense_pages_default.pages[page][pos];
+            break;
+
+        default:
             break;
     }
 
@@ -1419,6 +1425,9 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
                     dev->sector_pos = (((uint32_t) cdb[2]) << 24) | (((uint32_t) cdb[3]) << 16) | (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
                     mo_log("MO %i: Length: %i, LBA: %i\n", dev->id, dev->sector_len, dev->sector_pos);
                     break;
+
+                default:
+                    break;
             }
 
             if (!dev->sector_len) {
@@ -1511,6 +1520,9 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
                 case GPCMD_WRITE_AND_VERIFY_12:
                     dev->sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
                     dev->sector_pos = (((uint32_t) cdb[2]) << 24) | (((uint32_t) cdb[3]) << 16) | (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
+                    break;
+
+                default:
                     break;
             }
 
@@ -1637,6 +1649,9 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
                 case 3: /* Load the disk (close tray). */
                     mo_reload(dev->id);
                     break;
+
+                default:
+                    break;
             }
 
             mo_command_complete(dev);
@@ -1744,6 +1759,9 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
                 case GPCMD_SEEK_10:
                     pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
                     break;
+
+                default:
+                    break;
             }
             mo_seek(dev, pos);
             mo_command_complete(dev);
@@ -1782,6 +1800,9 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
                 case GPCMD_ERASE_12:
                     dev->sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
                     break;
+
+                default:
+                    break;
             }
 
             /*Erase all remaining sectors*/
@@ -1803,6 +1824,9 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
                     break;
                 case GPCMD_ERASE_12:
                     dev->sector_pos = (((uint32_t) cdb[2]) << 24) | (((uint32_t) cdb[3]) << 16) | (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
+                    break;
+
+                default:
                     break;
             }
 
@@ -1957,6 +1981,9 @@ mo_phase_data_out(scsi_common_t *sc)
                 mo_invalid_field_pl(dev);
                 return 0;
             }
+            break;
+
+        default:
             break;
     }
 

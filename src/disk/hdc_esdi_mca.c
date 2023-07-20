@@ -96,7 +96,8 @@
 #define CMD_ADAPTER     0
 
 typedef struct esdi_drive_t {
-    int spt, hpc;
+    int spt;
+    int hpc;
     int tracks;
     int sectors;
     int present;
@@ -139,7 +140,7 @@ typedef struct esdi_t {
 
     uint32_t rba;
 
-    struct {
+    struct cmds {
         int req_in_progress;
     } cmds[3];
 

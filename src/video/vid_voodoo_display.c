@@ -141,10 +141,11 @@ voodoo_calc_clutData(voodoo_t *voodoo)
         int r = (c >> 8) & 0xf8;
         int g = (c >> 3) & 0xfc;
         int b = (c << 3) & 0xf8;
-        //                r |= (r >> 5);
-        //                g |= (g >> 6);
-        //                b |= (b >> 5);
-
+#if 0
+        r |= (r >> 5);
+        g |= (g >> 6);
+        b |= (b >> 5);
+#endif
         voodoo->video_16to32[c] = (voodoo->clutData256[r].r << 16) | (voodoo->clutData256[g].g << 8) | voodoo->clutData256[b].b;
     }
 }
@@ -442,7 +443,7 @@ voodoo_filterline_v1(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
 }
 
 static void
-voodoo_filterline_v2(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, int line)
+voodoo_filterline_v2(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, UNUSED(int line))
 {
     int x;
 
@@ -506,9 +507,9 @@ voodoo_filterline_v2(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
 }
 
 void
-voodoo_callback(void *p)
+voodoo_callback(void *priv)
 {
-    voodoo_t  *voodoo  = (voodoo_t *) p;
+    voodoo_t  *voodoo  = (voodoo_t *) priv;
     monitor_t *monitor = &monitors[voodoo->monitor_index];
 
     if (voodoo->fbiInit0 & FBIINIT0_VGA_PASS) {
@@ -576,7 +577,9 @@ voodoo_callback(void *p)
     }
 skip_draw:
     if (voodoo->line == voodoo->v_disp) {
-        //                voodoodisp_log("retrace %i %i %08x %i\n", voodoo->retrace_count, voodoo->swap_interval, voodoo->swap_offset, voodoo->swap_pending);
+#if 0
+        voodoodisp_log("retrace %i %i %08x %i\n", voodoo->retrace_count, voodoo->swap_interval, voodoo->swap_offset, voodoo->swap_pending);
+#endif
         voodoo->retrace_count++;
         if (SLI_ENABLED && (voodoo->fbiInit2 & FBIINIT2_SWAP_ALGORITHM_MASK) == FBIINIT2_SWAP_ALGORITHM_SLI_SYNC) {
             if (voodoo == voodoo->set->voodoos[0]) {

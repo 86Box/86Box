@@ -34,7 +34,7 @@
 
 #define GAMEPORT_SIO        0x1000000
 
-typedef struct {
+typedef struct plat_joystick_t {
     char name[260];
 
     int a[8];
@@ -68,7 +68,7 @@ typedef struct {
     int nr_sliders;
 } plat_joystick_t;
 
-typedef struct {
+typedef struct joystick_t {
     int axis[8];
     int button[32];
     int pov[4];
@@ -79,7 +79,7 @@ typedef struct {
     int pov_mapping[4][2];
 } joystick_t;
 
-typedef struct {
+typedef struct joystick_if_t {
     const char *name;
     const char *internal_name;
 

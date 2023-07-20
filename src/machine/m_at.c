@@ -246,7 +246,14 @@ machine_at_siemens_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_ibm_common_init(model);
+    machine_at_common_init_ex(model, 1);
+
+    device_add(&keyboard_at_siemens_device);
+
+    mem_remap_top(384);
+
+    if (fdc_type == FDC_INTERNAL)
+        device_add(&fdc_at_device);
 
     return ret;
 }

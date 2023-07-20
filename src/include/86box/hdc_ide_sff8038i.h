@@ -20,8 +20,7 @@
 #ifndef EMU_HDC_IDE_SFF8038I_H
 #define EMU_HDC_IDE_SFF8038I_H
 
-typedef struct
-{
+typedef struct sff8038i_t {
     uint8_t  command;
     uint8_t  status;
     uint8_t  ptr0;

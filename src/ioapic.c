@@ -27,8 +27,9 @@
 #include <86box/machine.h>
 #include <86box/mem.h>
 #include <86box/chipset.h>
+#include <86box/plat_unused.h>
 
-typedef struct {
+typedef struct ioapic_t {
     uint8_t dummy;
 } ioapic_t;
 
@@ -51,7 +52,7 @@ ioapic_log(const char *fmt, ...)
 #endif
 
 static void
-ioapic_write(uint16_t port, uint8_t val, void *priv)
+ioapic_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
 {
     uint32_t pcmp;
 
@@ -83,8 +84,9 @@ ioapic_write(uint16_t port, uint8_t val, void *priv)
 }
 
 static void
-ioapic_reset(ioapic_t *dev)
+ioapic_reset(UNUSED(ioapic_t *dev))
 {
+    //
 }
 
 static void
@@ -99,7 +101,7 @@ ioapic_close(void *priv)
 }
 
 static void *
-ioapic_init(const device_t *info)
+ioapic_init(UNUSED(const device_t *info))
 {
     ioapic_t *dev = (ioapic_t *) malloc(sizeof(ioapic_t));
     memset(dev, 0, sizeof(ioapic_t));

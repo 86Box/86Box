@@ -35,10 +35,11 @@
 #include <86box/log.h>
 
 #ifndef RELEASE_BUILD
-typedef struct
-{
-    char buff[1024], *dev_name;
-    int  seen, suppr_seen;
+typedef struct log_t {
+    char  buff[1024];
+    char *dev_name;
+    int   seen;
+    int   suppr_seen;
 } log_t;
 
 extern FILE *stdlog; /* file to log output to */

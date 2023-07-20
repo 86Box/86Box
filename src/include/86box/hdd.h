@@ -87,7 +87,7 @@ enum {
 #define HDD_MAX_ZONES     16
 #define HDD_MAX_CACHE_SEG 16
 
-typedef struct {
+typedef struct hdd_preset_t {
     const char *name;
     const char *internal_name;
     uint32_t    zones;
@@ -101,7 +101,7 @@ typedef struct {
     double      track_seek_ms;
 } hdd_preset_t;
 
-typedef struct {
+typedef struct hdd_cache_seg_t {
     uint32_t id;
     uint32_t lba_addr;
     uint32_t ra_addr;
@@ -110,7 +110,7 @@ typedef struct {
     uint8_t  valid;
 } hdd_cache_seg_t;
 
-typedef struct {
+typedef struct hdd_cache_t {
     // Read cache
     hdd_cache_seg_t segments[HDD_MAX_CACHE_SEG];
     uint32_t        num_segments;
@@ -126,7 +126,7 @@ typedef struct {
     uint64_t write_start_time;
 } hdd_cache_t;
 
-typedef struct {
+typedef struct hdd_zone_t {
     uint32_t cylinders;
     uint32_t sectors_per_track;
     double   sector_time_usec;
@@ -136,7 +136,7 @@ typedef struct {
 } hdd_zone_t;
 
 /* Define the virtual Hard Disk. */
-typedef struct {
+typedef struct hard_disk_t {
     uint8_t id;
     union {
         uint8_t channel; /* Needed for Settings to reduce the number of if's */
