@@ -312,6 +312,10 @@ machine_at_awo671r_init(const machine_t *model)
     device_add_inst(&w83977ef_device, 2);
     device_add(&keyboard_ps2_pci_device);
     device_add(&sst_flash_39sf020_device);
+    if (gfxcard[0] == VID_INTERNAL) {
+        extern const device_t chips_69000_onboard_device;
+        device_add(&chips_69000_onboard_device);
+    }
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;
