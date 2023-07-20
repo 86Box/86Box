@@ -621,11 +621,11 @@ es1371_inb(uint16_t port, void *p)
             audiopci_log("[R] STATUS  8-15 = %02X\n", ret);
             break;
         case 0x06:
-            ret = (dev->int_status >> 16) & 0x0f;
+            ret = (dev->int_status >> 16) & 0xff;
             audiopci_log("[R] STATUS 16-23 = %02X\n", ret);
             break;
         case 0x07:
-            ret = ((dev->int_status >> 24) & 0x03) | 0xfc;
+            ret = (dev->int_status >> 24) & 0xff;
             audiopci_log("[R] STATUS 24-31 = %02X\n", ret);
             break;
 
