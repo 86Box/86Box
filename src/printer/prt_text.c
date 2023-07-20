@@ -409,8 +409,8 @@ write_ctrl(uint8_t val, void *priv)
 static uint8_t
 read_status(void *priv)
 {
-    prnt_t *dev = (prnt_t *) priv;
-    uint8_t ret = 0x1f;
+    const prnt_t *dev = (prnt_t *) priv;
+    uint8_t       ret = 0x1f;
 
     ret |= 0x80;
 

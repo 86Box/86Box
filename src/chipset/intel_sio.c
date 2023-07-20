@@ -324,8 +324,8 @@ sio_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 sio_read(int func, int addr, void *priv)
 {
-    sio_t  *dev = (sio_t *) priv;
-    uint8_t ret;
+    const sio_t  *dev = (sio_t *) priv;
+    uint8_t       ret;
 
     ret = 0xff;
 
@@ -452,7 +452,7 @@ sio_fast_off_count(void *priv)
 static void
 sio_reset(void *priv)
 {
-    sio_t *dev = (sio_t *) priv;
+    const sio_t *dev = (sio_t *) priv;
 
     /* Disable the PIC mouse latch. */
     sio_write(0, 0x4d, 0x40, priv);

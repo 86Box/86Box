@@ -328,9 +328,9 @@ get_bus_host(ncr_t *ncr)
 static void
 ncr_bus_read(ncr5380_t *ncr_dev)
 {
-    ncr_t         *ncr = &ncr_dev->ncr;
-    scsi_device_t *dev;
-    int            phase;
+    ncr_t               *ncr = &ncr_dev->ncr;
+    const scsi_device_t *dev;
+    int                  phase;
 
     /*Wait processes to handle bus requests*/
     if (ncr->clear_req) {
@@ -592,10 +592,10 @@ ncr_bus_update(void *priv, int bus)
 static void
 ncr_write(uint16_t port, uint8_t val, void *priv)
 {
-    ncr5380_t     *ncr_dev  = (ncr5380_t *) priv;
-    ncr_t         *ncr      = &ncr_dev->ncr;
-    scsi_device_t *dev      = &scsi_devices[ncr_dev->bus][ncr->target_id];
-    int            bus_host = 0;
+    ncr5380_t           *ncr_dev  = (ncr5380_t *) priv;
+    ncr_t               *ncr      = &ncr_dev->ncr;
+    const scsi_device_t *dev      = &scsi_devices[ncr_dev->bus][ncr->target_id];
+    int                  bus_host = 0;
 
     ncr_log("NCR5380 write(%04x,%02x)\n", port & 7, val);
 
@@ -849,10 +849,10 @@ ncr_read(uint16_t port, void *priv)
 static uint8_t
 memio_read(uint32_t addr, void *priv)
 {
-    ncr5380_t     *ncr_dev = (ncr5380_t *) priv;
-    ncr_t         *ncr     = &ncr_dev->ncr;
-    scsi_device_t *dev     = &scsi_devices[ncr_dev->bus][ncr->target_id];
-    uint8_t        ret     = 0xff;
+    ncr5380_t           *ncr_dev = (ncr5380_t *) priv;
+    ncr_t               *ncr     = &ncr_dev->ncr;
+    const scsi_device_t *dev     = &scsi_devices[ncr_dev->bus][ncr->target_id];
+    uint8_t              ret     = 0xff;
 
     addr &= 0x3fff;
 
@@ -940,9 +940,9 @@ memio_read(uint32_t addr, void *priv)
 static void
 memio_write(uint32_t addr, uint8_t val, void *priv)
 {
-    ncr5380_t     *ncr_dev = (ncr5380_t *) priv;
-    ncr_t         *ncr     = &ncr_dev->ncr;
-    scsi_device_t *dev     = &scsi_devices[ncr_dev->bus][ncr->target_id];
+    ncr5380_t           *ncr_dev = (ncr5380_t *) priv;
+    ncr_t               *ncr     = &ncr_dev->ncr;
+    const scsi_device_t *dev     = &scsi_devices[ncr_dev->bus][ncr->target_id];
 
     addr &= 0x3fff;
 
@@ -1016,8 +1016,8 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 t130b_read(uint32_t addr, void *priv)
 {
-    ncr5380_t *ncr_dev = (ncr5380_t *) priv;
-    uint8_t    ret     = 0xff;
+    const ncr5380_t *ncr_dev = (ncr5380_t *) priv;
+    uint8_t          ret     = 0xff;
 
     addr &= 0x3fff;
     if (addr < 0x1800)
@@ -1381,7 +1381,7 @@ static uint8_t
 t128_read(uint32_t addr, void *priv)
 {
     ncr5380_t     *ncr_dev = (ncr5380_t *) priv;
-    ncr_t         *ncr     = &ncr_dev->ncr;
+    const ncr_t   *ncr     = &ncr_dev->ncr;
     scsi_device_t *dev     = &scsi_devices[ncr_dev->bus][ncr->target_id];
     uint8_t        ret     = 0xff;
 
@@ -1421,9 +1421,9 @@ t128_read(uint32_t addr, void *priv)
 static void
 t128_write(uint32_t addr, uint8_t val, void *priv)
 {
-    ncr5380_t     *ncr_dev = (ncr5380_t *) priv;
-    ncr_t         *ncr     = &ncr_dev->ncr;
-    scsi_device_t *dev     = &scsi_devices[ncr_dev->bus][ncr->target_id];
+    ncr5380_t           *ncr_dev = (ncr5380_t *) priv;
+    const ncr_t         *ncr     = &ncr_dev->ncr;
+    const scsi_device_t *dev     = &scsi_devices[ncr_dev->bus][ncr->target_id];
 
     addr &= 0x3fff;
     if (addr >= 0x1800 && addr < 0x1880)
@@ -1457,7 +1457,7 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 rt1000b_mc_read(int port, void *priv)
 {
-    ncr5380_t *ncr_dev = (ncr5380_t *) priv;
+    const ncr5380_t *ncr_dev = (ncr5380_t *) priv;
 
     return (ncr_dev->pos_regs[port & 7]);
 }
@@ -1510,7 +1510,7 @@ rt1000b_mc_write(int port, uint8_t val, void *priv)
 static uint8_t
 rt1000b_mc_feedb(void *priv)
 {
-    ncr5380_t *ncr_dev = (ncr5380_t *) priv;
+    const ncr5380_t *ncr_dev = (ncr5380_t *) priv;
 
     return ncr_dev->pos_regs[2] & 1;
 }
@@ -1518,9 +1518,9 @@ rt1000b_mc_feedb(void *priv)
 static void *
 ncr_init(const device_t *info)
 {
-    char      *fn = NULL;
-    char       temp[128];
-    ncr5380_t *ncr_dev;
+    const char *fn = NULL;
+    char        temp[128];
+    ncr5380_t  *ncr_dev;
 
     ncr_dev = malloc(sizeof(ncr5380_t));
     memset(ncr_dev, 0x00, sizeof(ncr5380_t));

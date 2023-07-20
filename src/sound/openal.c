@@ -119,8 +119,8 @@ inital(void)
     int16_t *cd_buf_int16   = NULL;
     int16_t *midi_buf_int16 = NULL;
 
-    char *mdn;
-    int   init_midi = 0;
+    const char *mdn;
+    int         init_midi = 0;
 
     if (initialized)
         return;

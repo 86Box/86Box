@@ -105,8 +105,8 @@ mfm_log(const char *fmt, ...)
 static int
 get_track_index(int drive, int side, int track)
 {
-    mfm_t *dev = mfm[drive];
-    int    ret = -1;
+    const mfm_t *dev = mfm[drive];
+    int          ret = -1;
 
     for (int i = 0; i < dev->total_tracks; i++) {
         if ((dev->tracks[i].track_no == track) && (dev->tracks[i].side_no == side)) {
@@ -121,8 +121,8 @@ get_track_index(int drive, int side, int track)
 static int
 get_adv_track_index(int drive, int side, int track)
 {
-    mfm_t *dev = mfm[drive];
-    int    ret = -1;
+    const mfm_t *dev = mfm[drive];
+    int          ret = -1;
 
     for (int i = 0; i < dev->total_tracks; i++) {
         if ((dev->adv_tracks[i].track_no == track) && (dev->adv_tracks[i].side_no == side)) {
@@ -137,9 +137,9 @@ get_adv_track_index(int drive, int side, int track)
 static void
 get_adv_track_bitrate(int drive, int side, int track, int *br, int *rpm)
 {
-    mfm_t *dev = mfm[drive];
-    int    track_index;
-    double dbr;
+    const mfm_t *dev = mfm[drive];
+    int          track_index;
+    double       dbr;
 
     track_index = get_adv_track_index(drive, side, track);
 
@@ -197,7 +197,7 @@ set_disk_flags(int drive)
 static uint16_t
 disk_flags(int drive)
 {
-    mfm_t *dev = mfm[drive];
+    const mfm_t *dev = mfm[drive];
 
     return dev->disk_flags;
 }
@@ -257,8 +257,8 @@ set_side_flags(int drive, int side)
 static uint16_t
 side_flags(int drive)
 {
-    mfm_t *dev = mfm[drive];
-    int    side;
+    const mfm_t *dev = mfm[drive];
+    int          side;
 
     side = fdd_get_head(drive);
 
@@ -268,11 +268,11 @@ side_flags(int drive)
 static uint32_t
 get_raw_size(int drive, int side)
 {
-    mfm_t *dev = mfm[drive];
-    int    track_index;
-    int    is_300_rpm;
-    int    br = 250;
-    int    rpm = 300;
+    const mfm_t *dev = mfm[drive];
+    int          track_index;
+    int          is_300_rpm;
+    int          br = 250;
+    int          rpm = 300;
 
     if (dev->hdr.if_type & 0x80) {
         track_index = get_adv_track_index(drive, side, dev->cur_track);

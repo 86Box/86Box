@@ -87,8 +87,8 @@ fake_shift_needed(uint16_t scan)
 void
 key_process(uint16_t scan, int down)
 {
-    scancode *codes = scan_table;
-    int       c;
+    const scancode *codes = scan_table;
+    int             c;
 
     if (!codes)
         return;
@@ -222,7 +222,7 @@ keyboard_input(int down, uint16_t scan)
 static uint8_t
 keyboard_do_break(uint16_t scan)
 {
-    scancode *codes = scan_table;
+    const scancode *codes = scan_table;
 
     /* TODO: The keyboard controller needs to report the AT flag to us here. */
     if (is286 && ((keyboard_mode & 3) == 3)) {
@@ -266,7 +266,7 @@ keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl)
 void
 keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl)
 {
-    scancode *codes = scan_table;
+    const scancode *codes = scan_table;
 
     int i;
 

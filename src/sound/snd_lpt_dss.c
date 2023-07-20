@@ -71,7 +71,7 @@ dss_write_ctrl(UNUSED(uint8_t val), UNUSED(void *priv))
 static uint8_t
 dss_read_status(void *priv)
 {
-    dss_t *dss = (dss_t *) priv;
+    const dss_t *dss = (dss_t *) priv;
 
     return dss->status | 0x0f;
 }

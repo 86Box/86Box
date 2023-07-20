@@ -336,8 +336,8 @@ opti822_pci_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 opti822_pci_read(int func, int addr, void *priv)
 {
-    opti822_t *dev = (opti822_t *) priv;
-    uint8_t    ret;
+    const opti822_t *dev = (opti822_t *) priv;
+    uint8_t          ret;
 
     ret = 0xff;
 

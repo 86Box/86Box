@@ -2055,7 +2055,7 @@ mo_do_identify(ide_t *ide, int ide_has_dma)
 {
     char model[40];
 
-    mo_t *mo = (mo_t *) ide->sc;
+    const mo_t *mo = (mo_t *) ide->sc;
 
     memset(model, 0, 40);
 

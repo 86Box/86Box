@@ -895,7 +895,7 @@ ali5229_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 ali5229_read(int func, int addr, void *priv)
 {
-    ali1543_t *dev = (ali1543_t *) priv;
+    const ali1543_t *dev = (ali1543_t *) priv;
     uint8_t    ret = 0xff;
 
     if (dev->ide_dev_enable && (func == 0)) {
@@ -983,7 +983,7 @@ ali5237_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 ali5237_read(int func, int addr, void *priv)
 {
-    ali1543_t *dev = (ali1543_t *) priv;
+    const ali1543_t *dev = (ali1543_t *) priv;
     uint8_t    ret = 0xff;
 
     if (dev->usb_dev_enable && (func == 0))
@@ -1474,7 +1474,7 @@ ali7101_read(int func, int addr, void *priv)
 static void
 ali5237_usb_update_interrupt(usb_t* usb, void *priv)
 {
-    ali1543_t *dev = (ali1543_t *) priv;
+    const ali1543_t *dev = (ali1543_t *) priv;
 
     if (usb->irq_level)
         pci_set_mirq(4, !!(dev->pci_conf[0x74] & 0x10));

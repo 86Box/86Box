@@ -442,7 +442,7 @@ mm58274_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 mm58274_read(uint16_t addr, void *priv)
 {
-    nvr_t *nvr = (nvr_t *) priv;
+    const nvr_t *nvr = (nvr_t *) priv;
 
     addr &= 0x0f;
 

@@ -71,8 +71,8 @@ apm_out(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 apm_in(uint16_t port, void *priv)
 {
-    apm_t  *dev = (apm_t *) priv;
-    uint8_t ret = 0xff;
+    const apm_t  *dev = (apm_t *) priv;
+    uint8_t       ret = 0xff;
 
     port &= 0x0001;
 

@@ -1602,7 +1602,7 @@ update_legacy(es1371_t *dev, uint32_t old_legacy_ctrl)
 static uint8_t
 es1371_pci_read(int func, int addr, void *priv)
 {
-    es1371_t *dev = (es1371_t *) priv;
+    const es1371_t *dev = (es1371_t *) priv;
 
     if (func > 0)
         return 0xff;
@@ -2012,10 +2012,10 @@ es1371_get_buffer(int32_t *buffer, int len, void *priv)
 static void
 es1371_filter_cd_audio(int channel, double *buffer, void *priv)
 {
-    es1371_t *dev = (es1371_t *) priv;
-    double    c;
-    int       cd     = channel ? dev->cd_vol_r : dev->cd_vol_l;
-    int       master = channel ? dev->master_vol_r : dev->master_vol_l;
+    const es1371_t *dev = (es1371_t *) priv;
+    double          c;
+    int             cd     = channel ? dev->cd_vol_r : dev->cd_vol_l;
+    int             master = channel ? dev->master_vol_r : dev->master_vol_l;
 
     c       = ((((*buffer) * cd) / 65536.0) * master) / 65536.0;
     *buffer = c;

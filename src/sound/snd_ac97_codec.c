@@ -522,8 +522,8 @@ ac97_codec_reset(void *priv)
 void
 ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
 {
-    ac97_codec_t *dev = (ac97_codec_t *) priv;
-    uint16_t      val = dev->regs[reg >> 1];
+    const ac97_codec_t *dev = (ac97_codec_t *) priv;
+    uint16_t            val = dev->regs[reg >> 1];
 
     /* Apply full mute and powerdowns. */
     int full_mute = (reg < 0x36);
@@ -561,7 +561,7 @@ ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
 uint32_t
 ac97_codec_getrate(void *priv, uint8_t reg)
 {
-    ac97_codec_t *dev = (ac97_codec_t *) priv;
+    const ac97_codec_t *dev = (ac97_codec_t *) priv;
 
     /* Get configured sample rate, which is always 48000 if VRA/VRM is not set. */
     uint32_t ret = dev->regs[reg >> 1];

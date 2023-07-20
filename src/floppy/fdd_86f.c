@@ -355,7 +355,7 @@ d86f_reverse_bytes(int drive)
 uint16_t
 d86f_disk_flags(int drive)
 {
-    d86f_t *dev = d86f[drive];
+    const d86f_t *dev = d86f[drive];
 
     return dev->disk_flags;
 }
@@ -363,7 +363,7 @@ d86f_disk_flags(int drive)
 uint32_t
 d86f_index_hole_pos(int drive, int side)
 {
-    d86f_t *dev = d86f[drive];
+    const d86f_t *dev = d86f[drive];
 
     return dev->index_hole_pos[side];
 }
@@ -413,7 +413,7 @@ null_format_conditions(UNUSED(int drive))
 int32_t
 d86f_extra_bit_cells(int drive, int side)
 {
-    d86f_t *dev = d86f[drive];
+    const d86f_t *dev = d86f[drive];
 
     return dev->extra_bit_cells[side];
 }
@@ -441,8 +441,8 @@ common_read_revolution(UNUSED(int drive))
 uint16_t
 d86f_side_flags(int drive)
 {
-    d86f_t *dev = d86f[drive];
-    int     side;
+    const d86f_t *dev = d86f[drive];
+    int           side;
 
     side = fdd_get_head(drive);
 
@@ -811,9 +811,9 @@ d86f_is_mfm(int drive)
 uint32_t
 d86f_get_data_len(int drive)
 {
-    d86f_t  *dev = d86f[drive];
-    uint32_t i;
-    uint32_t ret = 128;
+    const d86f_t  *dev = d86f[drive];
+    uint32_t       i;
+    uint32_t       ret = 128;
 
     if (dev->req_sector.id.n)
         ret = (uint32_t) 128 << dev->req_sector.id.n;
@@ -1243,8 +1243,8 @@ d86f_calccrc(d86f_t *dev, uint8_t byte)
 int
 d86f_word_is_aligned(int drive, int side, uint32_t base_pos)
 {
-    d86f_t  *dev                = d86f[drive];
-    uint32_t adjusted_track_pos = dev->track_pos;
+    const d86f_t  *dev                = d86f[drive];
+    uint32_t       adjusted_track_pos = dev->track_pos;
 
     if (base_pos == 0xFFFFFFFF)
         return 0;
@@ -1841,7 +1841,7 @@ d86f_write_direct_common(int drive, int side, uint16_t byte, uint8_t type, uint3
 void
 d86f_write_direct(int drive, int side, uint16_t byte, uint8_t type)
 {
-    d86f_t *dev = d86f[drive];
+    const d86f_t *dev = d86f[drive];
 
     d86f_write_direct_common(drive, side, byte, type, dev->track_pos >> 4);
 }
@@ -2108,9 +2108,9 @@ d86f_initialize_last_sector_id(int drive, int c, int h, int r, int n)
 static uint8_t
 d86f_sector_flags(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 {
-    d86f_t   *dev = d86f[drive];
-    sector_t *s;
-    sector_t *t;
+    const d86f_t   *dev = d86f[drive];
+    sector_t       *s;
+    sector_t       *t;
 
     if (dev->last_side_sector[side]) {
         s = dev->last_side_sector[side];
@@ -2259,9 +2259,9 @@ d86f_turbo_format(int drive, int side, int nop)
 int
 d86f_sector_is_present(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 {
-    d86f_t   *dev = d86f[drive];
-    sector_t *s;
-    sector_t *t;
+    const d86f_t   *dev = d86f[drive];
+    sector_t       *s;
+    sector_t       *t;
 
     if (dev->last_side_sector[side]) {
         s = dev->last_side_sector[side];
@@ -2806,22 +2806,22 @@ d86f_construct_encoded_buffer(int drive, int side)
 
     /* *_fuzm are fuzzy bit masks, *_holm are hole masks, dst_neim are masks is mask for bits that are neither fuzzy nor holes in both,
        and src1_d and src2_d are filtered source data. */
-    uint16_t  src1_fuzm;
-    uint16_t src2_fuzm;
-    uint16_t dst_fuzm;
-    uint16_t src1_holm;
-    uint16_t src2_holm;
-    uint16_t dst_holm;
-    uint16_t dst_neim;
-    uint16_t src1_d;
-    uint16_t src2_d;
-    uint32_t  len;
-    uint16_t *dst    = dev->track_encoded_data[side];
-    uint16_t *dst_s  = dev->track_surface_data[side];
-    uint16_t *src1   = dev->thin_track_encoded_data[0][side];
-    uint16_t *src1_s = dev->thin_track_surface_data[0][side];
-    uint16_t *src2   = dev->thin_track_encoded_data[1][side];
-    uint16_t *src2_s = dev->thin_track_surface_data[1][side];
+    uint16_t        src1_fuzm;
+    uint16_t        src2_fuzm;
+    uint16_t        dst_fuzm;
+    uint16_t        src1_holm;
+    uint16_t        src2_holm;
+    uint16_t        dst_holm;
+    uint16_t        dst_neim;
+    uint16_t        src1_d;
+    uint16_t        src2_d;
+    uint32_t        len;
+    uint16_t       *dst    = dev->track_encoded_data[side];
+    uint16_t       *dst_s  = dev->track_surface_data[side];
+    const uint16_t *src1   = dev->thin_track_encoded_data[0][side];
+    const uint16_t *src1_s = dev->thin_track_surface_data[0][side];
+    const uint16_t *src2   = dev->thin_track_encoded_data[1][side];
+    const uint16_t *src2_s = dev->thin_track_surface_data[1][side];
     len              = d86f_get_array_size(drive, side, 1);
 
     for (uint32_t i = 0; i < len; i++) {
@@ -2858,17 +2858,17 @@ d86f_construct_encoded_buffer(int drive, int side)
 void
 d86f_decompose_encoded_buffer(int drive, int side)
 {
-    d86f_t   *dev = d86f[drive];
-    uint16_t  temp;
-    uint16_t  temp2;
-    uint32_t  len;
-    uint16_t *dst    = dev->track_encoded_data[side];
-    uint16_t *src1   = dev->thin_track_encoded_data[0][side];
-    uint16_t *src1_s = dev->thin_track_surface_data[0][side];
-    uint16_t *src2   = dev->thin_track_encoded_data[1][side];
-    uint16_t *src2_s = dev->thin_track_surface_data[1][side];
-    dst              = d86f_handler[drive].encoded_data(drive, side);
-    len              = d86f_get_array_size(drive, side, 1);
+    d86f_t         *dev = d86f[drive];
+    uint16_t        temp;
+    uint16_t        temp2;
+    uint32_t        len;
+    const uint16_t *dst    = dev->track_encoded_data[side];
+    uint16_t       *src1   = dev->thin_track_encoded_data[0][side];
+    uint16_t       *src1_s = dev->thin_track_surface_data[0][side];
+    uint16_t       *src2   = dev->thin_track_encoded_data[1][side];
+    uint16_t       *src2_s = dev->thin_track_surface_data[1][side];
+    dst                    = d86f_handler[drive].encoded_data(drive, side);
+    len                    = d86f_get_array_size(drive, side, 1);
 
     for (uint32_t i = 0; i < len; i++) {
         if (d86f_has_surface_desc(drive)) {

@@ -162,7 +162,7 @@ mem_log(const char *fmt, ...)
 int
 mem_addr_is_ram(uint32_t addr)
 {
-    mem_mapping_t *mapping = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    const mem_mapping_t *mapping = read_mapping[addr >> MEM_GRANULARITY_BITS];
 
     return (mapping == &ram_low_mapping) || (mapping == &ram_high_mapping) || (mapping == &ram_mid_mapping) ||
            (mapping == &ram_mid_mapping2) || (mapping == &ram_remapped_mapping);
@@ -242,7 +242,7 @@ flushmmucache_nopc(void)
 void
 mem_flush_write_page(uint32_t addr, uint32_t virt)
 {
-    page_t *page_target = &pages[addr >> 12];
+    const page_t *page_target = &pages[addr >> 12];
 #if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
     uint32_t a;
 #endif
@@ -1643,9 +1643,9 @@ mem_readb_phys(uint32_t addr)
 uint16_t
 mem_readw_phys(uint32_t addr)
 {
-    mem_mapping_t *map = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
-    uint16_t       ret;
-    uint16_t      *p;
+    mem_mapping_t  *map = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
+    uint16_t        ret;
+    const uint16_t *p;
 
     mem_logical_addr = 0xffffffff;
 
@@ -1665,9 +1665,9 @@ mem_readw_phys(uint32_t addr)
 uint32_t
 mem_readl_phys(uint32_t addr)
 {
-    mem_mapping_t *map = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
-    uint32_t       ret;
-    uint32_t      *p;
+    mem_mapping_t  *map = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
+    uint32_t        ret;
+    const uint32_t *p;
 
     mem_logical_addr = 0xffffffff;
 
@@ -1759,9 +1759,9 @@ mem_writel_phys(uint32_t addr, uint32_t val)
 void
 mem_write_phys(void *src, uint32_t addr, int transfer_size)
 {
-    uint8_t  *pb;
-    uint16_t *pw;
-    uint32_t *pl;
+    const uint8_t  *pb;
+    const uint16_t *pw;
+    const uint32_t *pl;
 
     if (transfer_size == 4) {
         pl = (uint32_t *) src;

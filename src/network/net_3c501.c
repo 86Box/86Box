@@ -373,8 +373,8 @@ elnkR3HardReset(threec501_t *dev)
 static __inline int
 padr_match(threec501_t *dev, const uint8_t *buf)
 {
-    struct ether_header *hdr = (struct ether_header *) buf;
-    int                  result;
+    const struct ether_header *hdr = (struct ether_header *) buf;
+    int                        result;
 
     /* Checks own + broadcast as well as own + multicast. */
     result = (dev->RcvCmd.adr_match >= EL_ADRM_BCAST) && !memcmp(hdr->ether_dhost, dev->aStationAddr, 6);
@@ -388,9 +388,9 @@ padr_match(threec501_t *dev, const uint8_t *buf)
 static __inline int
 padr_bcast(threec501_t *dev, const uint8_t *buf)
 {
-    static uint8_t       aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-    struct ether_header *hdr       = (struct ether_header *) buf;
-    int                  result    = (dev->RcvCmd.adr_match == EL_ADRM_BCAST) && !memcmp(hdr->ether_dhost, aBCAST, 6);
+    static uint8_t             aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+    const struct ether_header *hdr       = (struct ether_header *) buf;
+    int                        result    = (dev->RcvCmd.adr_match == EL_ADRM_BCAST) && !memcmp(hdr->ether_dhost, aBCAST, 6);
 
     return result;
 }

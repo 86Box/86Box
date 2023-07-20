@@ -750,8 +750,8 @@ pipc_codec_handlers(pipc_t *dev, uint8_t modem)
 static uint8_t
 pipc_fmnmi_read(uint16_t addr, void *priv)
 {
-    pipc_t *dev = (pipc_t *) priv;
-    uint8_t ret = dev->fmnmi_regs[addr & 0x03];
+    const pipc_t *dev = (pipc_t *) priv;
+    uint8_t       ret = dev->fmnmi_regs[addr & 0x03];
 
     pipc_log("PIPC: fmnmi_read(%02X) = %02X\n", addr & 0x03, ret);
 
@@ -786,7 +786,7 @@ pipc_fmnmi_handlers(pipc_t *dev, uint8_t modem)
 static uint8_t
 pipc_fm_read(uint16_t addr, void *priv)
 {
-    pipc_t *dev = (pipc_t *) priv;
+    const pipc_t *dev = (pipc_t *) priv;
 #ifdef VIA_PIPC_FM_EMULATION
     uint8_t ret = ((addr & 0x03) == 0x00) ? dev->fmnmi_status : 0x00;
 #else

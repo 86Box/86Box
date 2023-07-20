@@ -487,8 +487,8 @@ gdbstub_num_decode(char *p, int *dest, int mode)
 static int
 gdbstub_client_read_word(gdbstub_client_t *client, int *dest)
 {
-    char *p = &client->packet[client->packet_pos];
-    char *q = p;
+    const char *p = &client->packet[client->packet_pos];
+    const char *q = p;
     while (((*p >= '0') && (*p <= '9')) || ((*p >= 'A') && (*p <= 'F')) || ((*p >= 'a') && (*p <= 'f')))
         *dest = ((*dest) << 4) | gdbstub_hex_decode(*p++);
     return p - q;

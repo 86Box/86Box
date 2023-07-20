@@ -747,9 +747,9 @@ static const uint32_t crctab[256] =
 static __inline int
 padr_match(nic_t *dev, const uint8_t *buf, UNUSED(int size))
 {
-    struct ether_header *hdr = (struct ether_header *) buf;
-    int                  result;
-    uint8_t              padr[6];
+    const struct ether_header *hdr = (struct ether_header *) buf;
+    int                        result;
+    uint8_t                    padr[6];
 
     padr[0] = dev->aCSR[12] & 0xff;
     padr[1] = dev->aCSR[12] >> 8;
@@ -772,9 +772,9 @@ padr_match(nic_t *dev, const uint8_t *buf, UNUSED(int size))
 static __inline int
 padr_bcast(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 {
-    static uint8_t       aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-    struct ether_header *hdr       = (struct ether_header *) buf;
-    int                  result    = !CSR_DRCVBC(dev) && !memcmp(hdr->ether_dhost, aBCAST, 6);
+    static uint8_t             aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+    const struct ether_header *hdr       = (struct ether_header *) buf;
+    int                        result    = !CSR_DRCVBC(dev) && !memcmp(hdr->ether_dhost, aBCAST, 6);
 
     pcnet_log(3, "%s: padr_bcast result=%d\n", dev->name, result);
 
@@ -784,7 +784,7 @@ padr_bcast(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 static int
 ladr_match(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 {
-    struct ether_header *hdr = (struct ether_header *) buf;
+    const struct ether_header *hdr = (struct ether_header *) buf;
 
     if ((hdr->ether_dhost[0] & 0x01) && ((uint64_t *) &dev->aCSR[8])[0] != 0LL) {
         int     index;
@@ -1271,14 +1271,14 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
             ++;
             pcnet_log(2, "%s: pcnetReceiveNoSync: packet missed\n", dev->name);
         } else {
-            RTNETETHERHDR *pEth   = (RTNETETHERHDR *) buf;
-            int            fStrip = 0;
-            size_t         len_802_3;
-            uint8_t       *src  = &dev->abRecvBuf[8];
-            uint32_t       crda = CSR_CRDA(dev);
-            uint32_t       next_crda;
-            RMD            rmd;
-            RMD            next_rmd;
+            const RTNETETHERHDR *pEth   = (RTNETETHERHDR *) buf;
+            int                  fStrip = 0;
+            size_t               len_802_3;
+            uint8_t             *src  = &dev->abRecvBuf[8];
+            uint32_t             crda = CSR_CRDA(dev);
+            uint32_t             next_crda;
+            RMD                  rmd;
+            RMD                  next_rmd;
 
             /*
              * Ethernet framing considers these two octets to be
@@ -1305,8 +1305,8 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                     while (size < 60)
                         src[size++] = 0;
 
-                uint32_t fcs = UINT32_MAX;
-                uint8_t *p   = src;
+                uint32_t       fcs = UINT32_MAX;
+                const uint8_t *p   = src;
 
                 while (p != &src[size])
                     CRC(fcs, *p++);
@@ -1316,7 +1316,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                 size += 4;
             }
 
-            cbPacket = (int) size;
+            cbPacket = size;
 
             pcnetRmdLoad(dev, &rmd, PHYSADDR(dev, crda), 0);
             /* if (!CSR_LAPPEN(dev)) */
@@ -2648,7 +2648,7 @@ pcnet_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static uint8_t
 pcnet_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    nic_t *dev = (nic_t *) priv;
+    const nic_t *dev = (nic_t *) priv;
 
     pcnet_log(4, "%s: Read to register %02X\n", dev->name, addr & 0xff);
 
@@ -2760,7 +2760,7 @@ pcnet_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 static uint8_t
 pcnet_pnp_read_vendor_reg(uint8_t ld, uint8_t reg, void *priv)
 {
-    nic_t *dev = (nic_t *) priv;
+    const nic_t *dev = (nic_t *) priv;
 
     if (!ld && (reg == 0xf0))
         return dev->aPROM[50];

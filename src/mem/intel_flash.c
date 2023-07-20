@@ -81,8 +81,8 @@ static char flash_path[1024];
 static uint8_t
 flash_read(uint32_t addr, void *priv)
 {
-    flash_t *dev = (flash_t *) priv;
-    uint8_t  ret = 0xff;
+    const flash_t *dev = (flash_t *) priv;
+    uint8_t        ret = 0xff;
 
     if (dev->flags & FLAG_INV_A16)
         addr ^= 0x10000;
@@ -112,9 +112,9 @@ flash_read(uint32_t addr, void *priv)
 static uint16_t
 flash_readw(uint32_t addr, void *priv)
 {
-    flash_t  *dev = (flash_t *) priv;
-    uint16_t *q;
-    uint16_t  ret = 0xffff;
+    flash_t        *dev = (flash_t *) priv;
+    const uint16_t *q;
+    uint16_t        ret = 0xffff;
 
     if (dev->flags & FLAG_INV_A16)
         addr ^= 0x10000;
@@ -150,8 +150,8 @@ flash_readw(uint32_t addr, void *priv)
 static uint32_t
 flash_readl(uint32_t addr, void *priv)
 {
-    flash_t  *dev = (flash_t *) priv;
-    uint32_t *q;
+    flash_t        *dev = (flash_t *) priv;
+    const uint32_t *q;
 
     if (dev->flags & FLAG_INV_A16)
         addr ^= 0x10000;

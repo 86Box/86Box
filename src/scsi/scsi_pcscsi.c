@@ -1951,7 +1951,7 @@ ncr53c90_outw(uint16_t port, uint16_t val, void *priv)
 static uint8_t
 ncr53c90_mca_read(int port, void *priv)
 {
-    esp_t *dev = (esp_t *) priv;
+    const esp_t *dev = (esp_t *) priv;
 
     return (dev->pos_regs[port & 7]);
 }
@@ -2014,7 +2014,7 @@ ncr53c90_mca_write(int port, uint8_t val, void *priv)
 static uint8_t
 ncr53c90_mca_feedb(void *priv)
 {
-    esp_t *dev = (esp_t *) priv;
+    const esp_t *dev = (esp_t *) priv;
 
     return (dev->pos_regs[2] & 0x01);
 }

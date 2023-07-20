@@ -143,7 +143,7 @@ pic_elcr_write(uint16_t port, uint8_t val, void *priv)
 uint8_t
 pic_elcr_read(UNUSED(uint16_t port), void *priv)
 {
-    pic_t *dev = (pic_t *) priv;
+    const pic_t *dev = (pic_t *) priv;
 
     pic_log("ELCR%i: READ %02X\n", port & 1, dev->elcr);
 

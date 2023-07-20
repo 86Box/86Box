@@ -147,7 +147,7 @@ static const int we_int_table[4] = { 2, 3, 4, 7 };
 static void
 wd_interrupt(void *priv, int set)
 {
-    wd_t *dev = (wd_t *) priv;
+    const wd_t *dev = (wd_t *) priv;
 
     if (!(dev->irr & WE_IRR_ENABLE_IRQ))
         return;
@@ -180,7 +180,7 @@ wd_soft_reset(void *priv)
 static uint8_t
 wd_ram_read(uint32_t addr, void *priv)
 {
-    wd_t *dev = (wd_t *) priv;
+    const wd_t *dev = (wd_t *) priv;
 
     wdlog("WD80x3: RAM Read: addr=%06x, val=%02x\n", addr & (dev->ram_size - 1), dev->dp8390->mem[addr & (dev->ram_size - 1)]);
     return dev->dp8390->mem[addr & (dev->ram_size - 1)];
@@ -520,7 +520,7 @@ wd_io_remove(wd_t *dev, uint16_t addr)
 static uint8_t
 wd_mca_read(int port, void *priv)
 {
-    wd_t *dev = (wd_t *) priv;
+    const wd_t *dev = (wd_t *) priv;
 
     return (dev->pos_regs[port & 7]);
 }

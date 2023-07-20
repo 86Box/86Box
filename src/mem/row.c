@@ -44,8 +44,8 @@ static row_t    *rows;
 static uint8_t
 row_read(uint32_t addr, void *priv)
 {
-    row_t *dev = (row_t *) priv;
-    uint32_t new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
+    const row_t *dev = (row_t *) priv;
+    uint32_t     new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
 
     addreadlookup(mem_logical_addr, new_addr);
 
@@ -80,8 +80,8 @@ row_readl(uint32_t addr, void *priv)
 static void
 row_write(uint32_t addr, uint8_t val, void *priv)
 {
-    row_t *dev = (row_t *) priv;
-    uint32_t new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
+    const row_t *dev = (row_t *) priv;
+    uint32_t     new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
 
     addwritelookup(mem_logical_addr, new_addr);
     mem_write_ramb_page(new_addr, val, &pages[addr >> 12]);
@@ -91,8 +91,8 @@ row_write(uint32_t addr, uint8_t val, void *priv)
 static void
 row_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    row_t *dev = (row_t *) priv;
-    uint32_t new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
+    const row_t *dev = (row_t *) priv;
+    uint32_t     new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
 
     addwritelookup(mem_logical_addr, new_addr);
     mem_write_ramw_page(new_addr, val, &pages[addr >> 12]);
@@ -102,8 +102,8 @@ row_writew(uint32_t addr, uint16_t val, void *priv)
 static void
 row_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    row_t *dev = (row_t *) priv;
-    uint32_t new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
+    const row_t *dev = (row_t *) priv;
+    uint32_t     new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
 
     addwritelookup(mem_logical_addr, new_addr);
     mem_write_raml_page(new_addr, val, &pages[addr >> 12]);

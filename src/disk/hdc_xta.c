@@ -1104,8 +1104,8 @@ xta_init(const device_t *info)
 static void
 xta_close(void *priv)
 {
-    hdc_t   *dev = (hdc_t *) priv;
-    drive_t *drive;
+    hdc_t         *dev = (hdc_t *) priv;
+    const drive_t *drive;
 
     /* Remove the I/O handler. */
     io_removehandler(dev->base, 4,

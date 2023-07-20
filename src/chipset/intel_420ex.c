@@ -118,7 +118,7 @@ i420ex_smram_handler_phase0(void)
 static void
 i420ex_smram_handler_phase1(i420ex_t *dev)
 {
-    uint8_t *regs = (uint8_t *) dev->regs;
+    const uint8_t *regs = (uint8_t *) dev->regs;
 
     uint32_t host_base = 0x000a0000;
     uint32_t ram_base  = 0x000a0000;
@@ -397,8 +397,8 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 i420ex_read(int func, int addr, void *priv)
 {
-    i420ex_t *dev = (i420ex_t *) priv;
-    uint8_t   ret;
+    const i420ex_t *dev = (i420ex_t *) priv;
+    uint8_t         ret;
 
     ret = 0xff;
 

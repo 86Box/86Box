@@ -467,7 +467,7 @@ json_seek(int drive, int track)
 static uint16_t
 disk_flags(int drive)
 {
-    json_t *dev = images[drive];
+    const json_t *dev = images[drive];
 
     return (dev->disk_flags);
 }
@@ -475,7 +475,7 @@ disk_flags(int drive)
 static uint16_t
 track_flags(int drive)
 {
-    json_t *dev = images[drive];
+    const json_t *dev = images[drive];
 
     return (dev->track_flags);
 }
@@ -505,8 +505,8 @@ set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 static uint8_t
 poll_read_data(int drive, int side, uint16_t pos)
 {
-    json_t *dev = images[drive];
-    uint8_t sec = dev->sector[side];
+    const json_t *dev = images[drive];
+    uint8_t       sec = dev->sector[side];
 
     return (dev->sects[dev->track][side][sec].data[pos]);
 }
@@ -520,10 +520,10 @@ json_init(void)
 void
 json_load(int drive, char *fn)
 {
-    double    bit_rate;
-    int       temp_rate;
-    sector_t *sec;
-    json_t   *dev;
+    double          bit_rate;
+    int             temp_rate;
+    const sector_t *sec;
+    json_t         *dev;
 
     /* Just in case- remove ourselves from 86F. */
     d86f_unregister(drive);

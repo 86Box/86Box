@@ -595,37 +595,37 @@ get_raw_tsize(int side_flags, int slower_rpm)
 static int
 td0_initialize(int drive)
 {
-    td0_t   *dev = td0[drive];
-    uint8_t  header[12];
-    int      fm;
-    int      head;
-    int      track;
-    int      track_count = 0;
-    int      head_count  = 0;
-    int      track_spt;
-    int      track_spt_adjusted;
-    int      offset    = 0;
-    int      density   = 0;
-    int      temp_rate = 0;
-    uint32_t file_size;
-    uint16_t len;
-    uint16_t rep;
-    td0dsk_t disk_decode;
-    uint8_t *hs;
-    uint16_t size;
-    uint8_t *dbuf         = dev->processed_buf;
-    uint32_t total_size   = 0;
-    uint32_t id_field     = 0;
-    uint32_t pre_sector   = 0;
-    int32_t  track_size   = 0;
-    int32_t  raw_tsize    = 0;
-    uint32_t minimum_gap3 = 0;
-    uint32_t minimum_gap4 = 0;
-    int      i;
-    int      j;
-    int      k;
-    int      size_diff;
-    int      gap_sum;
+    td0_t         *dev = td0[drive];
+    uint8_t        header[12];
+    int            fm;
+    int            head;
+    int            track;
+    int            track_count = 0;
+    int            head_count  = 0;
+    int            track_spt;
+    int            track_spt_adjusted;
+    int            offset    = 0;
+    int            density   = 0;
+    int            temp_rate = 0;
+    uint32_t       file_size;
+    uint16_t       len;
+    uint16_t       rep;
+    td0dsk_t       disk_decode;
+    const uint8_t *hs;
+    uint16_t       size;
+    uint8_t       *dbuf         = dev->processed_buf;
+    uint32_t       total_size   = 0;
+    uint32_t       id_field     = 0;
+    uint32_t       pre_sector   = 0;
+    int32_t        track_size   = 0;
+    int32_t        raw_tsize    = 0;
+    uint32_t       minimum_gap3 = 0;
+    uint32_t       minimum_gap4 = 0;
+    int            i;
+    int            j;
+    int            k;
+    int            size_diff;
+    int            gap_sum;
 
     if (dev->fp == NULL) {
         td0_log("TD0: Attempted to initialize without loading a file first\n");
@@ -889,7 +889,7 @@ td0_initialize(int drive)
 static uint16_t
 disk_flags(int drive)
 {
-    td0_t *dev = td0[drive];
+    const td0_t *dev = td0[drive];
 
     return (dev->disk_flags);
 }
@@ -897,9 +897,9 @@ disk_flags(int drive)
 static uint16_t
 side_flags(int drive)
 {
-    td0_t   *dev    = td0[drive];
-    int      side   = 0;
-    uint16_t sflags = 0;
+    const td0_t   *dev    = td0[drive];
+    int            side   = 0;
+    uint16_t       sflags = 0;
 
     side   = fdd_get_head(drive);
     sflags = dev->current_side_flags[side];
@@ -926,7 +926,7 @@ set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 static uint8_t
 poll_read_data(int drive, int side, uint16_t pos)
 {
-    td0_t *dev = td0[drive];
+    const td0_t *dev = td0[drive];
 
     return (dev->sects[dev->track][side][dev->current_sector_index[side]].data[pos]);
 }

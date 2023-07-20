@@ -621,9 +621,9 @@ ad1848_poll(void *priv)
 void
 ad1848_filter_cd_audio(int channel, double *buffer, void *priv)
 {
-    ad1848_t *ad1848 = (ad1848_t *) priv;
-    double    c;
-    double    volume = channel ? ad1848->cd_vol_r : ad1848->cd_vol_l;
+    const ad1848_t *ad1848 = (ad1848_t *) priv;
+    double          c;
+    double          volume = channel ? ad1848->cd_vol_r : ad1848->cd_vol_l;
 
     c       = ((*buffer) * volume) / 65536.0;
     *buffer = c;
@@ -632,7 +632,7 @@ ad1848_filter_cd_audio(int channel, double *buffer, void *priv)
 void
 ad1848_filter_aux2(void *priv, double *out_l, double *out_r)
 {
-    ad1848_t *ad1848 = (ad1848_t *) priv;
+    const ad1848_t *ad1848 = (ad1848_t *) priv;
 
     if (ad1848->regs[4] & 0x80) {
         *out_l = 0.0;

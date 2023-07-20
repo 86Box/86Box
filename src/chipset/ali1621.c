@@ -583,8 +583,8 @@ ali1621_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static uint8_t
 ali1621_read(UNUSED(int func), int addr, void *priv)
 {
-    ali1621_t *dev = (ali1621_t *) priv;
-    uint8_t    ret = 0xff;
+    const ali1621_t *dev = (ali1621_t *) priv;
+    uint8_t          ret = 0xff;
 
     ret = dev->pci_conf[addr];
 

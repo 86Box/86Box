@@ -580,7 +580,7 @@ scsi_cdrom_atapi_phase_to_scsi(scsi_cdrom_t *dev)
 static uint32_t
 scsi_cdrom_get_channel(void *priv, int channel)
 {
-    scsi_cdrom_t *dev = (scsi_cdrom_t *) priv;
+    const scsi_cdrom_t *dev = (scsi_cdrom_t *) priv;
     if (!dev)
         return channel + 1;
 
@@ -594,7 +594,7 @@ scsi_cdrom_get_channel(void *priv, int channel)
 static uint32_t
 scsi_cdrom_get_volume(void *priv, int channel)
 {
-    scsi_cdrom_t *dev = (scsi_cdrom_t *) priv;
+    const scsi_cdrom_t *dev = (scsi_cdrom_t *) priv;
     if (!dev)
         return 255;
 
@@ -3532,7 +3532,7 @@ scsi_cdrom_get_timings(int ide_has_dma, int type)
 static void
 scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
 {
-    scsi_cdrom_t *dev;
+    const scsi_cdrom_t *dev;
     char          device_identify[9] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
 
     dev = (scsi_cdrom_t *) ide->sc;

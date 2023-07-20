@@ -241,7 +241,7 @@ vid_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 vid_read(uint32_t addr, void *priv)
 {
-    pcjr_t *pcjr = (pcjr_t *) priv;
+    const pcjr_t *pcjr = (pcjr_t *) priv;
 
     if (pcjr->memctrl == -1)
         return 0xff;

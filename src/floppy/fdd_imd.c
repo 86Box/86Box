@@ -136,17 +136,16 @@ get_raw_tsize(int side_flags, int slower_rpm)
 static int
 track_is_xdf(int drive, int side, int track)
 {
-    imd_t   *dev = imd[drive];
-    int      i;
-    int      effective_sectors;
-    int      xdf_sectors;
-    int      high_sectors;
-    int      low_sectors;
-    int      max_high_id;
-    int      expected_high_count;
-    int      expected_low_count;
-    uint8_t *r_map;
-    uint8_t *n_map;
+    imd_t         *dev = imd[drive];
+    int            effective_sectors;
+    int            xdf_sectors;
+    int            high_sectors;
+    int            low_sectors;
+    int            max_high_id;
+    int            expected_high_count;
+    int            expected_low_count;
+    const uint8_t *r_map;
+    const uint8_t *n_map;
 
     effective_sectors = xdf_sectors = high_sectors = low_sectors = 0;
 
@@ -224,10 +223,10 @@ track_is_xdf(int drive, int side, int track)
 static int
 track_is_interleave(int drive, int side, int track)
 {
-    imd_t *dev = imd[drive];
-    int    effective_sectors;
-    char  *r_map;
-    int    track_spt;
+    imd_t       *dev = imd[drive];
+    int          effective_sectors;
+    const char  *r_map;
+    int          track_spt;
 
     effective_sectors = 0;
 
@@ -263,9 +262,9 @@ track_is_interleave(int drive, int side, int track)
 static void
 sector_to_buffer(int drive, int track, int side, uint8_t *buffer, int sector, int len)
 {
-    imd_t  *dev  = imd[drive];
-    int     type = dev->buffer[dev->tracks[track][side].sector_data_offs[sector]];
-    uint8_t fill_char;
+    const imd_t  *dev  = imd[drive];
+    int           type = dev->buffer[dev->tracks[track][side].sector_data_offs[sector]];
+    uint8_t       fill_char;
 
     if (type == 0)
         memset(buffer, 0x00, len);
@@ -282,33 +281,33 @@ sector_to_buffer(int drive, int track, int side, uint8_t *buffer, int sector, in
 static void
 imd_seek(int drive, int track)
 {
-    uint32_t track_buf_pos[2] = { 0, 0 };
-    uint8_t  id[4]            = { 0, 0, 0, 0 };
-    uint8_t  type;
-    imd_t   *dev = imd[drive];
-    int      sector;
-    int      current_pos;
-    int      c = 0;
-    int      h;
-    int      n;
-    int      ssize           = 512;
-    int      track_rate      = 0;
-    int      track_gap2      = 22;
-    int      track_gap3      = 12;
-    int      xdf_type        = 0;
-    int      interleave_type = 0;
-    int      is_trackx       = 0;
-    int      xdf_spt         = 0;
-    int      xdf_sector      = 0;
-    int      ordered_pos     = 0;
-    int      real_sector     = 0;
-    int      actual_sector   = 0;
-    char    *c_map           = NULL;
-    char    *h_map           = NULL;
-    char    *r_map;
-    char    *n_map = NULL;
-    uint8_t *data;
-    int      flags = 0x00;
+    uint32_t    track_buf_pos[2] = { 0, 0 };
+    uint8_t     id[4]            = { 0, 0, 0, 0 };
+    uint8_t     type;
+    imd_t      *dev = imd[drive];
+    int         sector;
+    int         current_pos;
+    int         c = 0;
+    int         h;
+    int         n;
+    int         ssize           = 512;
+    int         track_rate      = 0;
+    int         track_gap2      = 22;
+    int         track_gap3      = 12;
+    int         xdf_type        = 0;
+    int         interleave_type = 0;
+    int         is_trackx       = 0;
+    int         xdf_spt         = 0;
+    int         xdf_sector      = 0;
+    int         ordered_pos     = 0;
+    int         real_sector     = 0;
+    int         actual_sector   = 0;
+    const char *c_map           = NULL;
+    const char *h_map           = NULL;
+    const char *r_map;
+    const char *n_map = NULL;
+    uint8_t    *data;
+    int         flags = 0x00;
 
     if (dev->fp == NULL)
         return;
@@ -452,7 +451,7 @@ imd_seek(int drive, int track)
 static uint16_t
 disk_flags(int drive)
 {
-    imd_t *dev = imd[drive];
+    const imd_t *dev = imd[drive];
 
     return (dev->disk_flags);
 }
@@ -460,9 +459,9 @@ disk_flags(int drive)
 static uint16_t
 side_flags(int drive)
 {
-    imd_t   *dev    = imd[drive];
-    int      side   = 0;
-    uint16_t sflags = 0;
+    const imd_t   *dev    = imd[drive];
+    int            side   = 0;
+    uint16_t       sflags = 0;
 
     side   = fdd_get_head(drive);
     sflags = dev->current_side_flags[side];
@@ -473,19 +472,19 @@ side_flags(int drive)
 static void
 set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 {
-    imd_t  *dev   = imd[drive];
-    int     track = dev->track;
-    int     sc;
-    int     sh;
-    int     sn;
-    char   *c_map = NULL;
-    char   *h_map = NULL;
-    char   *r_map = NULL;
-    char   *n_map = NULL;
-    uint8_t id[4] = { 0, 0, 0, 0 };
-    sc            = dev->tracks[track][side].params[1];
-    sh            = dev->tracks[track][side].params[2];
-    sn            = dev->tracks[track][side].params[4];
+    imd_t      *dev   = imd[drive];
+    int         track = dev->track;
+    int         sc;
+    int         sh;
+    int         sn;
+    const char *c_map = NULL;
+    const char *h_map = NULL;
+    const char *r_map = NULL;
+    const char *n_map = NULL;
+    uint8_t     id[4] = { 0, 0, 0, 0 };
+    sc                = dev->tracks[track][side].params[1];
+    sh                = dev->tracks[track][side].params[2];
+    sn                = dev->tracks[track][side].params[4];
 
     if (sh & 0x80)
         c_map = dev->buffer + dev->tracks[track][side].c_map_offs;
@@ -513,13 +512,13 @@ set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 static void
 imd_writeback(int drive)
 {
-    imd_t   *dev = imd[drive];
-    int      track = dev->track;
-    char    *n_map = 0;
-    uint8_t  h;
-    uint8_t  n;
-    uint8_t spt;
-    uint32_t ssize;
+    imd_t      *dev = imd[drive];
+    int         track = dev->track;
+    const char *n_map = 0;
+    uint8_t     h;
+    uint8_t     n;
+    uint8_t     spt;
+    uint32_t    ssize;
 
     if (writeprot[drive])
         return;
@@ -554,8 +553,8 @@ imd_writeback(int drive)
 static uint8_t
 poll_read_data(int drive, int side, uint16_t pos)
 {
-    imd_t *dev  = imd[drive];
-    int    type = dev->current_data[side][0];
+    const imd_t *dev  = imd[drive];
+    int          type = dev->current_data[side][0];
 
     if ((type == 0) || (type > 8))
         return 0xf6; /* Should never happen. */
@@ -569,8 +568,8 @@ poll_read_data(int drive, int side, uint16_t pos)
 static void
 poll_write_data(int drive, int side, uint16_t pos, uint8_t data)
 {
-    imd_t *dev  = imd[drive];
-    int    type = dev->current_data[side][0];
+    const imd_t *dev  = imd[drive];
+    int          type = dev->current_data[side][0];
 
     if (writeprot[drive])
         return;
@@ -584,10 +583,10 @@ poll_write_data(int drive, int side, uint16_t pos, uint8_t data)
 static int
 format_conditions(int drive)
 {
-    imd_t *dev   = imd[drive];
-    int    track = dev->track;
-    int    side;
-    int    temp;
+    const imd_t *dev   = imd[drive];
+    int          track = dev->track;
+    int          side;
+    int          temp;
 
     side = fdd_get_head(drive);
     temp = (fdc_get_format_sectors(imd_fdc) == dev->tracks[track][side].params[3]);
@@ -605,29 +604,28 @@ imd_init(void)
 void
 imd_load(int drive, char *fn)
 {
-    uint32_t magic = 0;
-    uint32_t fsize = 0;
-    char    *buffer;
-    char    *buffer2;
-    imd_t   *dev;
-    int      i            = 0;
-    int      track_spt    = 0;
-    int      sector_size  = 0;
-    int      track        = 0;
-    int      side         = 0;
-    int      extra        = 0;
-    uint32_t last_offset  = 0;
-    uint32_t data_size    = 512;
-    uint32_t mfm          = 0;
-    uint32_t pre_sector   = 0;
-    uint32_t track_total  = 0;
-    uint32_t raw_tsize    = 0;
-    uint32_t minimum_gap3 = 0;
-    uint32_t minimum_gap4 = 0;
-    uint8_t  converted_rate;
-    uint8_t  type;
-    int      size_diff;
-    int      gap_sum;
+    uint32_t    magic = 0;
+    uint32_t    fsize = 0;
+    const char *buffer;
+    const char *buffer2;
+    imd_t      *dev;
+    int         track_spt    = 0;
+    int         sector_size  = 0;
+    int         track        = 0;
+    int         side         = 0;
+    int         extra        = 0;
+    uint32_t    last_offset  = 0;
+    uint32_t    data_size    = 512;
+    uint32_t    mfm          = 0;
+    uint32_t    pre_sector   = 0;
+    uint32_t    track_total  = 0;
+    uint32_t    raw_tsize    = 0;
+    uint32_t    minimum_gap3 = 0;
+    uint32_t    minimum_gap4 = 0;
+    uint8_t     converted_rate;
+    uint8_t     type;
+    int         size_diff;
+    int         gap_sum;
 
     d86f_unregister(drive);
 

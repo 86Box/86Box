@@ -298,7 +298,7 @@ dma_sg_writel(uint16_t port, uint32_t val, void *priv)
 static uint8_t
 dma_sg_read(uint16_t port, void *priv)
 {
-    dma_t *dev = (dma_t *) priv;
+    const dma_t *dev = (dma_t *) priv;
 
     uint8_t ret = 0xff;
 
@@ -346,7 +346,7 @@ dma_sg_read(uint16_t port, void *priv)
 static uint16_t
 dma_sg_readw(uint16_t port, void *priv)
 {
-    dma_t *dev = (dma_t *) priv;
+    const dma_t *dev = (dma_t *) priv;
 
     uint16_t ret = 0xffff;
 
@@ -380,7 +380,7 @@ dma_sg_readw(uint16_t port, void *priv)
 static uint32_t
 dma_sg_readl(uint16_t port, void *priv)
 {
-    dma_t *dev = (dma_t *) priv;
+    const dma_t *dev = (dma_t *) priv;
 
     uint32_t ret = 0xffffffff;
 
@@ -594,7 +594,7 @@ dma_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 static uint8_t
 dma_ps2_read(uint16_t addr, UNUSED(void *priv))
 {
-    dma_t  *dma_c = &dma[dma_ps2.xfr_channel];
+    const dma_t  *dma_c = &dma[dma_ps2.xfr_channel];
     uint8_t temp  = 0xff;
 
     switch (addr) {

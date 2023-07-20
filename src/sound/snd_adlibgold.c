@@ -766,7 +766,7 @@ adgold_get_buffer(int32_t *buffer, int len, void *priv)
 
     int c;
 
-    int32_t *opl_buf = adgold->opl.update(adgold->opl.priv);
+    const int32_t *opl_buf = adgold->opl.update(adgold->opl.priv);
     adgold_update(adgold);
 
     for (c = 0; c < len * 2; c += 2) {
@@ -878,10 +878,10 @@ adgold_get_buffer(int32_t *buffer, int len, void *priv)
 static void
 adgold_filter_cd_audio(int channel, double *buffer, void *priv)
 {
-    adgold_t *adgold = (adgold_t *) priv;
-    double    c;
-    int       aux = channel ? adgold->aux_vol_r : adgold->aux_vol_l;
-    int       vol = channel ? adgold->vol_r : adgold->vol_l;
+    const adgold_t *adgold = (adgold_t *) priv;
+    double          c;
+    int             aux = channel ? adgold->aux_vol_r : adgold->aux_vol_l;
+    int             vol = channel ? adgold->vol_r : adgold->vol_l;
 
     c       = ((((*buffer) * aux) / 4096.0) * vol) / 4096.0;
     *buffer = c;

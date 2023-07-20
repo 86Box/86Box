@@ -138,7 +138,7 @@ rom_getfile(char *fn, char *s, int size)
 }
 
 int
-rom_present(char *fn)
+rom_present(const char *fn)
 {
     FILE *fp;
 
@@ -154,7 +154,7 @@ rom_present(char *fn)
 uint8_t
 rom_read(uint32_t addr, void *priv)
 {
-    rom_t *rom = (rom_t *) priv;
+    const rom_t *rom = (rom_t *) priv;
 
 #ifdef ROM_TRACE
     if (rom->mapping.base == ROM_TRACE)

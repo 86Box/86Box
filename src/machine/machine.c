@@ -143,8 +143,8 @@ machine_init(void)
 int
 machine_available(int m)
 {
-    int       ret;
-    device_t *dev = (device_t *) machine_get_device(m);
+    int             ret;
+    const device_t *dev = machine_get_device(m);
 
     bios_only = 1;
 

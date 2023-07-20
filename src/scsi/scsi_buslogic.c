@@ -409,8 +409,8 @@ BuslogicAutoSCSIRamSetDefaults(x54x_t *dev, uint8_t safe)
 static void
 BuslogicInitializeAutoSCSIRam(x54x_t *dev)
 {
-    buslogic_data_t *bl   = (buslogic_data_t *) dev->ven_data;
-    HALocalRAM      *HALR = &bl->LocalRAM;
+    buslogic_data_t  *bl   = (buslogic_data_t *) dev->ven_data;
+    const HALocalRAM *HALR = &bl->LocalRAM;
 
     FILE *fp;
 
@@ -467,10 +467,10 @@ buslogic_cmd_phase1(void *priv)
 static uint8_t
 buslogic_get_host_id(void *priv)
 {
-    x54x_t          *dev = (x54x_t *) priv;
-    buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
+    x54x_t                *dev = (x54x_t *) priv;
+    const buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
-    HALocalRAM *HALR = &bl->LocalRAM;
+    const HALocalRAM *HALR = &bl->LocalRAM;
 
     if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) || (bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) || (bl->chip == CHIP_BUSLOGIC_ISA_542BH_1993_05_23) || (bl->chip == CHIP_BUSLOGIC_VLB_445S_1993_11_16))
         return dev->HostID;
@@ -481,12 +481,12 @@ buslogic_get_host_id(void *priv)
 static uint8_t
 buslogic_get_irq(void *priv)
 {
-    x54x_t          *dev = (x54x_t *) priv;
-    buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
+    x54x_t                *dev = (x54x_t *) priv;
+    const buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
     uint8_t bl_irq[7] = { 0, 9, 10, 11, 12, 14, 15 };
 
-    HALocalRAM *HALR = &bl->LocalRAM;
+    const HALocalRAM *HALR = &bl->LocalRAM;
 
     if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) || (bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) || (bl->chip == CHIP_BUSLOGIC_ISA_542BH_1993_05_23) || (bl->chip == CHIP_BUSLOGIC_VLB_445S_1993_11_16) || (bl->chip == CHIP_BUSLOGIC_PCI_958D_1995_12_30))
         return dev->Irq;
@@ -497,12 +497,12 @@ buslogic_get_irq(void *priv)
 static uint8_t
 buslogic_get_dma(void *priv)
 {
-    x54x_t          *dev = (x54x_t *) priv;
-    buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
+    x54x_t                *dev = (x54x_t *) priv;
+    const buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
     uint8_t bl_dma[4] = { 0, 5, 6, 7 };
 
-    HALocalRAM *HALR = &bl->LocalRAM;
+    const HALocalRAM *HALR = &bl->LocalRAM;
 
     if (bl->chip == CHIP_BUSLOGIC_PCI_958D_1995_12_30)
         return (dev->Base ? 7 : 0);
@@ -515,8 +515,8 @@ buslogic_get_dma(void *priv)
 static uint8_t
 buslogic_param_len(void *priv)
 {
-    x54x_t          *dev = (x54x_t *) priv;
-    buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
+    x54x_t                *dev = (x54x_t *) priv;
+    const buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
     switch (dev->Command) {
         case 0x21:
@@ -673,13 +673,13 @@ buslogic_cmds(void *priv)
     x54x_t          *dev = (x54x_t *) priv;
     buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
-    HALocalRAM *HALR = &bl->LocalRAM;
+    const HALocalRAM *HALR = &bl->LocalRAM;
 
     FILE                                 *f;
     uint16_t                              TargetsPresentMask = 0;
     uint32_t                              Offset;
     int                                   i = 0;
-    MailboxInitExtended_t                *MailboxInitE;
+    const MailboxInitExtended_t          *MailboxInitE;
     ReplyInquireExtendedSetupInformation *ReplyIESI;
     BuslogicPCIInformation_t             *ReplyPI;
     int                                   cCharsToTransfer;
@@ -1022,8 +1022,8 @@ buslogic_setup_data(void *priv)
     x54x_t                       *dev = (x54x_t *) priv;
     ReplyInquireSetupInformation *ReplyISI;
     buslogic_setup_t             *bl_setup;
-    buslogic_data_t              *bl   = (buslogic_data_t *) dev->ven_data;
-    HALocalRAM                   *HALR = &bl->LocalRAM;
+    const buslogic_data_t        *bl   = (buslogic_data_t *) dev->ven_data;
+    const HALocalRAM             *HALR = &bl->LocalRAM;
 
     ReplyISI = (ReplyInquireSetupInformation *) dev->DataBuf;
     bl_setup = (buslogic_setup_t *) ReplyISI->VendorSpecificData;
@@ -1062,8 +1062,8 @@ buslogic_setup_data(void *priv)
 static uint8_t
 buslogic_is_aggressive_mode(void *priv)
 {
-    x54x_t          *dev = (x54x_t *) priv;
-    buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
+    x54x_t                *dev = (x54x_t *) priv;
+    const buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
     buslogic_log("Buslogic: Aggressive mode = %d\n", bl->fAggressiveRoundRobinMode);
 
@@ -1073,8 +1073,8 @@ buslogic_is_aggressive_mode(void *priv)
 static uint8_t
 buslogic_interrupt_type(void *priv)
 {
-    x54x_t          *dev = (x54x_t *) priv;
-    buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
+    x54x_t                *dev = (x54x_t *) priv;
+    const buslogic_data_t *bl  = (buslogic_data_t *) dev->ven_data;
 
     if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) || (bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) || (bl->chip == CHIP_BUSLOGIC_ISA_542BH_1993_05_23) || (bl->chip == CHIP_BUSLOGIC_VLB_445S_1993_11_16) || (bl->chip == CHIP_BUSLOGIC_MCA_640A_1993_05_23))
         return 0;
@@ -1118,7 +1118,7 @@ BuslogicBIOSUpdate(buslogic_data_t *bl)
 static uint8_t
 BuslogicPCIRead(UNUSED(int func), int addr, void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
+    const x54x_t *dev = (x54x_t *) priv;
 #ifdef ENABLE_BUSLOGIC_LOG
     buslogic_data_t *bl = (buslogic_data_t *) dev->ven_data;
 #endif
@@ -1334,7 +1334,7 @@ BuslogicInitializeLocalRAM(buslogic_data_t *bl)
 static uint8_t
 buslogic_mca_read(int port, void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
+    const x54x_t *dev = (x54x_t *) priv;
 
     return (dev->pos_regs[port & 7]);
 }
@@ -1511,7 +1511,7 @@ buslogic_mca_write(int port, uint8_t val, void *priv)
 static uint8_t
 buslogic_mca_feedb(void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
+    const x54x_t *dev = (x54x_t *) priv;
 
     return (dev->pos_regs[2] & 0x01);
 }

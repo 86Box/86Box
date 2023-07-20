@@ -70,8 +70,8 @@ static char flash_path[1024];
 static uint8_t
 flash_read(uint32_t addr, void *priv)
 {
-    flash_t *dev = (flash_t *) priv;
-    uint8_t  ret = 0xff;
+    const flash_t *dev = (flash_t *) priv;
+    uint8_t        ret = 0xff;
 
     addr &= biosmask;
 
@@ -100,8 +100,8 @@ flash_read(uint32_t addr, void *priv)
 static uint16_t
 flash_readw(uint32_t addr, void *priv)
 {
-    flash_t  *dev = (flash_t *) priv;
-    uint16_t *q;
+    flash_t        *dev = (flash_t *) priv;
+    const uint16_t *q;
 
     addr &= biosmask;
 
@@ -113,8 +113,8 @@ flash_readw(uint32_t addr, void *priv)
 static uint32_t
 flash_readl(uint32_t addr, void *priv)
 {
-    flash_t  *dev = (flash_t *) priv;
-    uint32_t *q;
+    flash_t        *dev = (flash_t *) priv;
+    const uint32_t *q;
 
     addr &= biosmask;
 

@@ -436,7 +436,7 @@ write_back(int drive)
 static uint16_t
 disk_flags(int drive)
 {
-    img_t *dev = img[drive];
+    const img_t *dev = img[drive];
 
     return (dev->disk_flags);
 }
@@ -444,7 +444,7 @@ disk_flags(int drive)
 static uint16_t
 side_flags(int drive)
 {
-    img_t *dev = img[drive];
+    const img_t *dev = img[drive];
 
     return (dev->track_flags);
 }
@@ -461,7 +461,7 @@ set_sector(int drive, UNUSED(int side), UNUSED(uint8_t c), uint8_t h, uint8_t r,
 static uint8_t
 poll_read_data(int drive, UNUSED(int side), uint16_t pos)
 {
-    img_t *dev = img[drive];
+    const img_t *dev = img[drive];
 
     return (dev->track_data[dev->current_sector_pos_side][dev->current_sector_pos + pos]);
 }
@@ -477,8 +477,8 @@ poll_write_data(int drive, UNUSED(int side), uint16_t pos, uint8_t data)
 static int
 format_conditions(int drive)
 {
-    img_t *dev  = img[drive];
-    int    temp = (fdc_get_format_sectors(img_fdc) == dev->sectors);
+    const img_t *dev  = img[drive];
+    int          temp = (fdc_get_format_sectors(img_fdc) == dev->sectors);
 
     temp = temp && (fdc_get_format_n(img_fdc) == dev->sector_size);
     temp = temp && (dev->xdf_type == 0);

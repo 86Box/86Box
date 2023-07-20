@@ -173,13 +173,13 @@ esdi_get_xfer_time(UNUSED(esdi_t *esdi), int size)
 static int
 get_sector(esdi_t *esdi, off64_t *addr)
 {
-    drive_t *drive   = &esdi->drives[esdi->drive_sel];
-    int      heads   = drive->cfg_hpc;
-    int      sectors = drive->cfg_spt;
-    int      c;
-    int      h;
-    int      s;
-    int      sector;
+    const drive_t *drive   = &esdi->drives[esdi->drive_sel];
+    int            heads   = drive->cfg_hpc;
+    int            sectors = drive->cfg_spt;
+    int            c;
+    int            h;
+    int            s;
+    int            sector;
 
     if (esdi->head > heads) {
         esdi_at_log("esdi_get_sector: past end of configured heads\n");
@@ -882,8 +882,8 @@ wd1007vse1_init(UNUSED(const device_t *info))
 static void
 wd1007vse1_close(void *priv)
 {
-    esdi_t  *esdi = (esdi_t *) priv;
-    drive_t *drive;
+    esdi_t        *esdi = (esdi_t *) priv;
+    const drive_t *drive;
 
     for (uint8_t d = 0; d < 2; d++) {
         drive = &esdi->drives[d];

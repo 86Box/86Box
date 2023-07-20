@@ -217,7 +217,8 @@ t3100e_write(uint32_t addr, uint8_t val, void *priv)
 uint8_t
 t3100e_read(uint32_t addr, void *priv)
 {
-    t3100e_t *t3100e = (t3100e_t *) priv;
+    const t3100e_t *t3100e = (t3100e_t *) priv;
+
     cycles -= 4;
 
     return t3100e->vram[addr & 0x7fff];

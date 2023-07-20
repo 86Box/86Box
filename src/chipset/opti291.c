@@ -122,7 +122,7 @@ opti291_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 opti291_read(uint16_t addr, void *priv)
 {
-    opti291_t *dev = (opti291_t *) priv;
+    const opti291_t *dev = (opti291_t *) priv;
 
     return (addr == 0x24) ? dev->regs[dev->index] : 0xff;
 }

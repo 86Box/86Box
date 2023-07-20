@@ -1062,7 +1062,7 @@ do_recv:
 static void
 hdc_send_ssb(hdc_t *dev)
 {
-    drive_t *drive;
+    const drive_t *drive;
 
     /* We only support one drive, really, but ohwell. */
     drive = &dev->drives[0];
@@ -1322,8 +1322,8 @@ ps1_hdc_init(UNUSED(const device_t *info))
 static void
 ps1_hdc_close(void *priv)
 {
-    hdc_t   *dev = (hdc_t *) priv;
-    drive_t *drive;
+    hdc_t         *dev = (hdc_t *) priv;
+    const drive_t *drive;
 
     /* Remove the I/O handler. */
     io_removehandler(dev->base, 5,

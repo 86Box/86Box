@@ -149,7 +149,7 @@ nelog(int lvl, const char *fmt, ...)
 static void
 nic_interrupt(void *priv, int set)
 {
-    nic_t *dev = (nic_t *) priv;
+    const nic_t *dev = (nic_t *) priv;
 
     if (dev->is_pci) {
         if (set)
@@ -527,7 +527,7 @@ nic_pnp_read_vendor_reg(uint8_t ld, uint8_t reg, void *priv)
     if (ld != 0)
         return 0x00;
 
-    nic_t *dev = (nic_t *) priv;
+    const nic_t *dev = (nic_t *) priv;
 
     switch (reg) {
         case 0xF0:
@@ -634,8 +634,8 @@ nic_update_bios(nic_t *dev)
 static uint8_t
 nic_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    nic_t  *dev = (nic_t *) priv;
-    uint8_t ret = 0x00;
+    const nic_t  *dev = (nic_t *) priv;
+    uint8_t       ret = 0x00;
 
     switch (addr) {
         case 0x00: /* PCI_VID_LO */
@@ -842,7 +842,7 @@ nic_rom_init(nic_t *dev, char *s)
 static uint8_t
 nic_mca_read(int port, void *priv)
 {
-    nic_t *dev = (nic_t *) priv;
+    const nic_t *dev = (nic_t *) priv;
 
     return (dev->pos_regs[port & 7]);
 }
@@ -907,7 +907,7 @@ nic_mca_write(int port, uint8_t val, void *priv)
 static uint8_t
 nic_mca_feedb(void *priv)
 {
-    nic_t *dev = (nic_t *) priv;
+    const nic_t *dev = (nic_t *) priv;
 
     return (dev->pos_regs[2] & 0x01);
 }

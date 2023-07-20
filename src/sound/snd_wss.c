@@ -62,7 +62,7 @@ typedef struct wss_t {
 uint8_t
 wss_read(UNUSED(uint16_t addr), void *priv)
 {
-    wss_t *wss = (wss_t *) priv;
+    const wss_t *wss = (wss_t *) priv;
     return 4 | (wss->config & 0x40);
 }
 
@@ -80,7 +80,7 @@ static void
 wss_get_buffer(int32_t *buffer, int len, void *priv)
 {
     wss_t *wss = (wss_t *) priv;
-    int32_t *opl_buf = NULL;
+    const int32_t *opl_buf = NULL;
 
     if (wss->opl_enabled)
         opl_buf = wss->opl.update(wss->opl.priv);
@@ -137,7 +137,7 @@ wss_init(UNUSED(const device_t *info))
 static uint8_t
 ncr_audio_mca_read(int port, void *priv)
 {
-    wss_t *wss = (wss_t *) priv;
+    const wss_t *wss = (wss_t *) priv;
     return wss->pos_regs[port & 7];
 }
 
@@ -192,7 +192,7 @@ ncr_audio_mca_write(int port, uint8_t val, void *priv)
 static uint8_t
 ncr_audio_mca_feedb(void *priv)
 {
-    wss_t *wss = (wss_t *) priv;
+    const wss_t *wss = (wss_t *) priv;
     return (wss->pos_regs[2] & 1);
 }
 

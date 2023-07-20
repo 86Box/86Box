@@ -288,8 +288,8 @@ tc8521_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 tc8521_read(uint16_t addr, void *priv)
 {
-    nvr_t  *nvr = (nvr_t *) priv;
-    uint8_t page;
+    const nvr_t  *nvr = (nvr_t *) priv;
+    uint8_t       page;
 
     /* Get to the correct register page. */
     addr &= 0x0f;
@@ -360,7 +360,7 @@ ems_execaddr(t1000_t *sys, UNUSED(int pg), uint16_t val)
 static uint8_t
 ems_in(uint16_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
+    const t1000_t *sys = (t1000_t *) priv;
 
 #if 0
     t1000_log("ems_in(%04x)=%02x\n", addr, sys->ems_reg[(addr >> 14) & 3]);
@@ -467,7 +467,7 @@ addr_to_page(uint32_t addr)
 static uint8_t
 ems_read_ram(uint32_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
+    const t1000_t *sys = (t1000_t *) priv;
     int      pg  = addr_to_page(addr);
 
     if (pg < 0)
@@ -480,8 +480,8 @@ ems_read_ram(uint32_t addr, void *priv)
 static uint16_t
 ems_read_ramw(uint32_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    int      pg  = addr_to_page(addr);
+    const t1000_t *sys = (t1000_t *) priv;
+    int            pg  = addr_to_page(addr);
 
     if (pg < 0)
         return 0xff;
@@ -501,8 +501,8 @@ ems_read_ramw(uint32_t addr, void *priv)
 static uint32_t
 ems_read_raml(uint32_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    int      pg  = addr_to_page(addr);
+    const t1000_t *sys = (t1000_t *) priv;
+    int            pg  = addr_to_page(addr);
 
     if (pg < 0)
         return 0xff;
@@ -515,8 +515,8 @@ ems_read_raml(uint32_t addr, void *priv)
 static void
 ems_write_ram(uint32_t addr, uint8_t val, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    int      pg  = addr_to_page(addr);
+    const t1000_t *sys = (t1000_t *) priv;
+    int            pg  = addr_to_page(addr);
 
     if (pg < 0)
         return;
@@ -531,8 +531,8 @@ ems_write_ram(uint32_t addr, uint8_t val, void *priv)
 static void
 ems_write_ramw(uint32_t addr, uint16_t val, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    int      pg  = addr_to_page(addr);
+    const t1000_t *sys = (t1000_t *) priv;
+    int            pg  = addr_to_page(addr);
 
     if (pg < 0)
         return;
@@ -555,8 +555,8 @@ ems_write_ramw(uint32_t addr, uint16_t val, void *priv)
 static void
 ems_write_raml(uint32_t addr, uint32_t val, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    int      pg  = addr_to_page(addr);
+    const t1000_t *sys = (t1000_t *) priv;
+    int            pg  = addr_to_page(addr);
 
     if (pg < 0)
         return;
@@ -571,8 +571,8 @@ ems_write_raml(uint32_t addr, uint32_t val, void *priv)
 static uint8_t
 read_ctl(uint16_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    uint8_t  ret = 0xff;
+    const t1000_t *sys = (t1000_t *) priv;
+    uint8_t        ret = 0xff;
 
     switch (addr & 0x0f) {
         case 1:
@@ -754,7 +754,7 @@ t1000_write_nvram(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 read_t1200_nvram(uint32_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
+    const t1000_t *sys = (t1000_t *) priv;
 
     return sys->t1200_nvram[addr & 0x7FF];
 }
@@ -774,7 +774,7 @@ write_t1200_nvram(uint32_t addr, uint8_t value, void *priv)
 static uint8_t
 t1000_read_rom_ctl(UNUSED(uint16_t addr), void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
+    const t1000_t *sys = (t1000_t *) priv;
 
     return (sys->rom_ctl);
 }
@@ -800,7 +800,7 @@ t1000_write_rom_ctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
 static uint8_t
 t1000_read_rom(uint32_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
+    const t1000_t *sys = (t1000_t *) priv;
 
     if (!sys->romdrive)
         return 0xff;

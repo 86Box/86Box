@@ -91,8 +91,8 @@ sysstat_out(UNUSED(uint16_t port), uint8_t val, void *priv)
 static uint8_t
 sysstat_in(UNUSED(uint16_t port), void *priv)
 {
-    cga_t  *cga = priv;
-    uint8_t ret = 0x0a; /* No idea what these bits are */
+    const cga_t  *cga = priv;
+    uint8_t       ret = 0x0a; /* No idea what these bits are */
 
     /* External CRT. We don't emulate the LCD/CRT switching, let's just
      * frivolously use this bit to indicate we're using the LCD if the

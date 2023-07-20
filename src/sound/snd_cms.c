@@ -158,7 +158,7 @@ cms_write(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 cms_read(uint16_t addr, void *priv)
 {
-    cms_t *cms = (cms_t *) priv;
+    const cms_t *cms = (cms_t *) priv;
 
     switch (addr & 0xf) {
         case 0x1:

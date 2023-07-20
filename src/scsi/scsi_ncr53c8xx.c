@@ -2166,7 +2166,7 @@ ncr53c8xx_ram_writel(uint32_t addr, uint32_t val, void *priv)
 static uint8_t
 ncr53c8xx_ram_readb(uint32_t addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
+    const ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     return dev->ram[addr & 0x0fff];
 }

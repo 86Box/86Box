@@ -174,7 +174,7 @@ recalc_sb16_filter(int c, int playback_freq)
 static void
 sb_irq_update_pic(void *priv, int set)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    const sb_dsp_t *dsp = (sb_dsp_t *) priv;
     if (set)
         picint(1 << dsp->sb_irqnum);
     else
@@ -250,7 +250,7 @@ sb_dsp_irq_update(void *priv, int set)
 static int
 sb_dsp_irq_pending(void *priv)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    const sb_dsp_t *dsp = (sb_dsp_t *) priv;
 
     return dsp->sb_irq401;
 }
@@ -409,28 +409,32 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 int
 sb_8_read_dma(void *priv)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    const sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
     return dma_channel_read(dsp->sb_8_dmanum);
 }
 
 int
 sb_8_write_dma(void *priv, uint8_t val)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    const sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
     return dma_channel_write(dsp->sb_8_dmanum, val) == DMA_NODATA;
 }
 
 int
 sb_16_read_dma(void *priv)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    const sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
     return dma_channel_read(dsp->sb_16_dmanum);
 }
 
 int
 sb_16_write_dma(void *priv, uint16_t val)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    const sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
     return dma_channel_write(dsp->sb_16_dmanum, val) == DMA_NODATA;
 }
 

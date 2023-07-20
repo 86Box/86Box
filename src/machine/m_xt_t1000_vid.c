@@ -208,7 +208,7 @@ t1000_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 t1000_read(uint32_t addr, void *priv)
 {
-    t1000_t *t1000 = (t1000_t *) priv;
+    const t1000_t *t1000 = (t1000_t *) priv;
 
     cycles -= 4;
 

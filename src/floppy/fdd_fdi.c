@@ -176,10 +176,10 @@ fdi_density(void)
 static int32_t
 extra_bit_cells(int drive, int side)
 {
-    fdi_t *dev        = fdi[drive];
-    int    density    = 0;
-    int    raw_size   = 0;
-    int    is_300_rpm = 0;
+    const fdi_t *dev        = fdi[drive];
+    int          density    = 0;
+    int          raw_size   = 0;
+    int          is_300_rpm = 0;
 
     density = fdi_density();
 
@@ -249,8 +249,8 @@ read_revolution(int drive)
 static uint32_t
 index_hole_pos(int drive, int side)
 {
-    fdi_t *dev = fdi[drive];
-    int    density;
+    const fdi_t *dev = fdi[drive];
+    int          density;
 
     density = fdi_density();
 
@@ -260,8 +260,8 @@ index_hole_pos(int drive, int side)
 static uint32_t
 get_raw_size(int drive, int side)
 {
-    fdi_t *dev = fdi[drive];
-    int    density;
+    const fdi_t *dev = fdi[drive];
+    int          density;
 
     density = fdi_density();
 

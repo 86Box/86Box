@@ -494,11 +494,11 @@ init_codepage(escp_t *dev, uint16_t num)
 static void
 update_font(escp_t *dev)
 {
-    char      path[1024];
-    char     *fn;
-    FT_Matrix matrix;
-    double    hpoints = 10.5;
-    double    vpoints = 10.5;
+    char        path[1024];
+    const char *fn;
+    FT_Matrix   matrix;
+    double      hpoints = 10.5;
+    double      vpoints = 10.5;
 
     /* We need the FreeType library. */
     if (ft_lib == NULL)
@@ -1651,9 +1651,9 @@ handle_char(escp_t *dev, uint8_t ch)
 static void
 blit_glyph(escp_t *dev, unsigned destx, unsigned desty, int8_t add)
 {
-    FT_Bitmap *bitmap = &dev->fontface->glyph->bitmap;
-    uint8_t    src;
-    uint8_t   *dst;
+    const FT_Bitmap *bitmap = &dev->fontface->glyph->bitmap;
+    uint8_t          src;
+    uint8_t         *dst;
 
     /* check if freetype is available */
     if (ft_lib == NULL)
@@ -1920,7 +1920,7 @@ write_ctrl(uint8_t val, void *priv)
 static uint8_t
 read_data(void *priv)
 {
-    escp_t *dev = (escp_t *) priv;
+    const escp_t *dev = (escp_t *) priv;
 
     return dev->data;
 }
@@ -1928,7 +1928,7 @@ read_data(void *priv)
 static uint8_t
 read_ctrl(void *priv)
 {
-    escp_t *dev = (escp_t *) priv;
+    const escp_t *dev = (escp_t *) priv;
 
     return 0xe0 | (dev->autofeed ? 0x02 : 0x00) | (dev->ctrl & 0xfd);
 }
@@ -1936,7 +1936,7 @@ read_ctrl(void *priv)
 static uint8_t
 read_status(void *priv)
 {
-    escp_t *dev = (escp_t *) priv;
+    const escp_t *dev = (escp_t *) priv;
     uint8_t ret = 0x1f;
 
     ret |= 0x80;

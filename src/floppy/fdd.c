@@ -451,10 +451,10 @@ fdd_get_densel(int drive)
 void
 fdd_load(int drive, char *fn)
 {
-    int   c = 0;
-    int   size;
-    char *p;
-    FILE *f;
+    int         c = 0;
+    int         size;
+    const char *p;
+    FILE *      f;
 
     fdd_log("FDD: loading drive %d with '%s'\n", drive, fn);
 
@@ -548,8 +548,8 @@ fdd_set_motor_enable(int drive, int motor_enable)
 static void
 fdd_poll(void *priv)
 {
-    int    drive;
-    DRIVE *drv = (DRIVE *) priv;
+    int          drive;
+    const DRIVE *drv = (DRIVE *) priv;
 
     drive = drv->id;
 

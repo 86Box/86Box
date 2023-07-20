@@ -1400,7 +1400,7 @@ write64_quadtel(void *priv, uint8_t val)
 static uint8_t
 write60_toshiba(void *priv, uint8_t val)
 {
-    atkbc_t *dev = (atkbc_t *) priv;
+    const atkbc_t *dev = (atkbc_t *) priv;
 
     switch (dev->command) {
         case 0xb6: /* T3100e - set color/mono switch */

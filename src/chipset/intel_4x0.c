@@ -118,10 +118,10 @@ static void
 i4x0_smram_handler_phase1(i4x0_t *dev)
 {
 
-    uint8_t *regs    = (uint8_t *) dev->regs;
-    uint32_t tom     = (mem_size << 10);
-    uint8_t *reg     = (dev->type >= INTEL_430LX) ? &(regs[0x72]) : &(regs[0x57]);
-    uint8_t *ext_reg = (dev->type >= INTEL_440BX) ? &(regs[0x73]) : &(regs[0x71]);
+    const uint8_t *regs    = (uint8_t *) dev->regs;
+    uint32_t       tom     = (mem_size << 10);
+    const uint8_t *reg     = (dev->type >= INTEL_430LX) ? &(regs[0x72]) : &(regs[0x57]);
+    const uint8_t *ext_reg = (dev->type >= INTEL_440BX) ? &(regs[0x73]) : &(regs[0x71]);
 
     uint32_t s;
     uint32_t base[2] = { 0x000a0000, 0x00000000 };
@@ -228,7 +228,7 @@ i4x0_mask_bar(uint8_t *regs, void *agpgart)
 static uint8_t
 pm2_cntrl_read(UNUSED(uint16_t addr), void *priv)
 {
-    i4x0_t *dev = (i4x0_t *) priv;
+    const i4x0_t *dev = (i4x0_t *) priv;
 
     return dev->pm2_cntrl & 0x01;
 }
@@ -1509,9 +1509,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 i4x0_read(int func, int addr, void *priv)
 {
-    i4x0_t  *dev  = (i4x0_t *) priv;
-    uint8_t  ret  = 0xff;
-    uint8_t *regs = (uint8_t *) dev->regs;
+    i4x0_t        *dev  = (i4x0_t *) priv;
+    uint8_t        ret  = 0xff;
+    const uint8_t *regs = (uint8_t *) dev->regs;
 
     if (func == 0) {
         ret = regs[addr];

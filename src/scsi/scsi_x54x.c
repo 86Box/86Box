@@ -589,8 +589,8 @@ x54x_mbi_setup(x54x_t *dev, uint32_t CCBPointer, CCBU *CmdBlock,
 static void
 x54x_ccb(x54x_t *dev)
 {
-    Req_t  *req      = &dev->Req;
-    uint8_t bytes[4] = { 0, 0, 0, 0 };
+    const Req_t *req      = &dev->Req;
+    uint8_t      bytes[4] = { 0, 0, 0, 0 };
 
     /* Rewrite the CCB up to the CDB. */
     x54x_log("CCB completion code and statuses rewritten (pointer %08X)\n", req->CCBPointer);
@@ -1025,7 +1025,7 @@ x54x_mbo_free(x54x_t *dev)
 static void
 x54x_notify(x54x_t *dev)
 {
-    Req_t         *req = &dev->Req;
+    const Req_t   *req = &dev->Req;
     scsi_device_t *sd;
 
     sd = &scsi_devices[dev->bus][req->TargetID];

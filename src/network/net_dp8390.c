@@ -63,10 +63,10 @@ static int
 mcast_index(const void *dst)
 {
 #define POLYNOMIAL 0x04c11db6
-    uint32_t crc = 0xffffffffL;
-    int      carry;
-    uint8_t  b;
-    uint8_t *ep = (uint8_t *) dst;
+    uint32_t       crc = 0xffffffffL;
+    int            carry;
+    uint8_t        b;
+    const uint8_t *ep = (uint8_t *) dst;
 
     for (int8_t i = 6; --i >= 0;) {
         b = *ep++;
@@ -409,7 +409,7 @@ dp8390_rx_common(void *priv, uint8_t *buf, int io_len)
 int
 dp8390_rx(void *priv, uint8_t *buf, int io_len)
 {
-    dp8390_t *dev = (dp8390_t *) priv;
+    const dp8390_t *dev = (dp8390_t *) priv;
 
     if ((dev->DCR.loop == 0) || (dev->TCR.loop_cntl != 0))
         return 0;

@@ -152,12 +152,12 @@ static const struct {
 static uint8_t
 ram_mirrored_256k_in_4mi_read(uint32_t addr, void *priv)
 {
-    ram_struct_t *rs   = (ram_struct_t *) priv;
-    scamp_t      *dev  = rs->parent;
-    int           bank = rs->bank;
-    int           byte;
-    int           row;
-    int           column;
+    const ram_struct_t *rs   = (ram_struct_t *) priv;
+    const scamp_t      *dev  = rs->parent;
+    int                 bank = rs->bank;
+    int                 byte;
+    int                 row;
+    int                 column;
 
     addr -= dev->ram_virt_base[bank];
     byte = addr & 1;
@@ -183,12 +183,12 @@ ram_mirrored_256k_in_4mi_read(uint32_t addr, void *priv)
 static void
 ram_mirrored_256k_in_4mi_write(uint32_t addr, uint8_t val, void *priv)
 {
-    ram_struct_t *rs   = (ram_struct_t *) priv;
-    scamp_t      *dev  = rs->parent;
-    int           bank = rs->bank;
-    int           byte;
-    int           row;
-    int           column;
+    const ram_struct_t *rs   = (ram_struct_t *) priv;
+    const scamp_t      *dev  = rs->parent;
+    int                 bank = rs->bank;
+    int                 byte;
+    int                 row;
+    int                 column;
 
     addr -= dev->ram_virt_base[bank];
     byte = addr & 1;
@@ -216,12 +216,12 @@ ram_mirrored_256k_in_4mi_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 ram_mirrored_interleaved_read(uint32_t addr, void *priv)
 {
-    ram_struct_t *rs   = (ram_struct_t *) priv;
-    scamp_t      *dev  = rs->parent;
-    int           bank = rs->bank;
-    int           byte;
-    int           row;
-    int           column;
+    const ram_struct_t *rs   = (ram_struct_t *) priv;
+    const scamp_t      *dev  = rs->parent;
+    int                 bank = rs->bank;
+    int                 byte;
+    int                 row;
+    int                 column;
 
     addr -= dev->ram_virt_base[bank];
     byte = addr & 1;
@@ -247,12 +247,12 @@ ram_mirrored_interleaved_read(uint32_t addr, void *priv)
 static void
 ram_mirrored_interleaved_write(uint32_t addr, uint8_t val, void *priv)
 {
-    ram_struct_t *rs   = (ram_struct_t *) priv;
-    scamp_t      *dev  = rs->parent;
-    int           bank = rs->bank;
-    int           byte;
-    int           row;
-    int           column;
+    const ram_struct_t *rs   = (ram_struct_t *) priv;
+    const scamp_t      *dev  = rs->parent;
+    int                 bank = rs->bank;
+    int                 byte;
+    int                 row;
+    int                 column;
 
     addr -= dev->ram_virt_base[bank];
     byte = addr & 1;
@@ -278,12 +278,12 @@ ram_mirrored_interleaved_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 ram_mirrored_read(uint32_t addr, void *priv)
 {
-    ram_struct_t *rs   = (ram_struct_t *) priv;
-    scamp_t      *dev  = rs->parent;
-    int           bank = rs->bank;
-    int           byte;
-    int           row;
-    int           column;
+    const ram_struct_t *rs   = (ram_struct_t *) priv;
+    const scamp_t      *dev  = rs->parent;
+    int                 bank = rs->bank;
+    int                 byte;
+    int                 row;
+    int                 column;
 
     addr -= dev->ram_virt_base[bank];
     byte   = addr & 1;
@@ -297,12 +297,12 @@ ram_mirrored_read(uint32_t addr, void *priv)
 static void
 ram_mirrored_write(uint32_t addr, uint8_t val, void *priv)
 {
-    ram_struct_t *rs   = (ram_struct_t *) priv;
-    scamp_t      *dev  = rs->parent;
-    int           bank = rs->bank;
-    int           byte;
-    int           row;
-    int           column;
+    const ram_struct_t *rs   = (ram_struct_t *) priv;
+    const scamp_t      *dev  = rs->parent;
+    int                 bank = rs->bank;
+    int                 byte;
+    int                 row;
+    int                 column;
 
     addr -= dev->ram_virt_base[bank];
     byte   = addr & 1;
@@ -574,9 +574,9 @@ recalc_sltptr(scamp_t *dev)
 static uint8_t
 scamp_ems_read(uint32_t addr, void *priv)
 {
-    ems_struct_t *ems     = (ems_struct_t *) priv;
-    scamp_t      *dev     = ems->parent;
-    int           segment = ems->segment;
+    const ems_struct_t *ems     = (ems_struct_t *) priv;
+    const scamp_t      *dev     = ems->parent;
+    int                 segment = ems->segment;
 
     addr = (addr & 0x3fff) | dev->mappings[segment];
     return ram[addr];
@@ -585,9 +585,9 @@ scamp_ems_read(uint32_t addr, void *priv)
 static void
 scamp_ems_write(uint32_t addr, uint8_t val, void *priv)
 {
-    ems_struct_t *ems     = (ems_struct_t *) priv;
-    scamp_t      *dev     = ems->parent;
-    int           segment = ems->segment;
+    const ems_struct_t *ems     = (ems_struct_t *) priv;
+    const scamp_t      *dev     = ems->parent;
+    int                 segment = ems->segment;
 
     addr      = (addr & 0x3fff) | dev->mappings[segment];
     ram[addr] = val;

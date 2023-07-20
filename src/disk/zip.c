@@ -2288,7 +2288,7 @@ zip_250_identify(ide_t *ide, int ide_has_dma)
 static void
 zip_identify(ide_t *ide, int ide_has_dma)
 {
-    zip_t *zip;
+    const zip_t *zip;
 
     zip = (zip_t *) ide->sc;
 

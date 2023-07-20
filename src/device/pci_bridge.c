@@ -363,8 +363,8 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 pci_bridge_read(int func, int addr, void *priv)
 {
-    pci_bridge_t *dev = (pci_bridge_t *) priv;
-    uint8_t       ret;
+    const pci_bridge_t *dev = (pci_bridge_t *) priv;
+    uint8_t             ret;
 
     if (func > 0)
         ret = 0xff;

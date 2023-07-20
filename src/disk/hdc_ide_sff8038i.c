@@ -222,7 +222,7 @@ sff_bus_master_writel(uint16_t port, uint32_t val, void *priv)
 uint8_t
 sff_bus_master_read(uint16_t port, void *priv)
 {
-    sff8038i_t *dev = (sff8038i_t *) priv;
+    const sff8038i_t *dev = (sff8038i_t *) priv;
 
     uint8_t ret = 0xff;
 
@@ -261,7 +261,7 @@ sff_bus_master_read(uint16_t port, void *priv)
 static uint16_t
 sff_bus_master_readw(uint16_t port, void *priv)
 {
-    sff8038i_t *dev = (sff8038i_t *) priv;
+    const sff8038i_t *dev = (sff8038i_t *) priv;
 
     uint16_t ret = 0xffff;
 
@@ -290,7 +290,7 @@ sff_bus_master_readw(uint16_t port, void *priv)
 static uint32_t
 sff_bus_master_readl(uint16_t port, void *priv)
 {
-    sff8038i_t *dev = (sff8038i_t *) priv;
+    const sff8038i_t *dev = (sff8038i_t *) priv;
 
     uint32_t ret = 0xffffffff;
 

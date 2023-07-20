@@ -1772,7 +1772,7 @@ mpu401_device_add(void)
 static uint8_t
 mpu401_mca_read(int port, void *priv)
 {
-    mpu_t *mpu = (mpu_t *) priv;
+    const mpu_t *mpu = (mpu_t *) priv;
 
     return mpu->pos_regs[port & 7];
 }

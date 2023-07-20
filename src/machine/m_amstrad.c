@@ -277,8 +277,8 @@ vid_out_1512(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 vid_in_1512(uint16_t addr, void *priv)
 {
-    amsvid_t *vid = (amsvid_t *) priv;
-    uint8_t   ret = 0xff;
+    const amsvid_t *vid = (amsvid_t *) priv;
+    uint8_t         ret = 0xff;
 
     if ((addr >= 0x3d0) && (addr <= 0x3d7))
         addr = (addr & 0xff9) | 0x004;
@@ -327,7 +327,7 @@ vid_write_1512(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 vid_read_1512(uint32_t addr, void *priv)
 {
-    amsvid_t *vid = (amsvid_t *) priv;
+    const amsvid_t *vid = (amsvid_t *) priv;
 
     cycles -= 12;
     addr &= 0x3fff;
@@ -1010,7 +1010,7 @@ static unsigned char mapping2[256] = {
 static void
 set_lcd_cols(uint8_t mode_reg)
 {
-    unsigned char *mapping = (mode_reg & 0x80) ? mapping2 : mapping1;
+    const unsigned char *mapping = (mode_reg & 0x80) ? mapping2 : mapping1;
 
     for (uint16_t c = 0; c < 256; c++) {
         switch (mapping[c]) {

@@ -368,7 +368,7 @@ plip_write_ctrl(uint8_t val, void *priv)
 static uint8_t
 plip_read_status(void *priv)
 {
-    plip_t *dev = (plip_t *) priv;
+    const plip_t *dev = (plip_t *) priv;
 
     plip_log(3, "PLIP: read_status() = %02X\n", dev->status);
 

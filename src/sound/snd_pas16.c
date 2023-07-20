@@ -728,7 +728,7 @@ pas16_get_buffer(int32_t *buffer, int len, void *priv)
 {
     pas16_t *pas16 = (pas16_t *) priv;
 
-    int32_t *opl_buf = pas16->opl.update(pas16->opl.priv);
+    const int32_t *opl_buf = pas16->opl.update(pas16->opl.priv);
     sb_dsp_update(&pas16->dsp);
     pas16_update(pas16);
     for (int c = 0; c < len * 2; c++) {

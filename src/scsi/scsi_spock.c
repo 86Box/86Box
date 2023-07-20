@@ -353,7 +353,7 @@ spock_writew(uint16_t port, uint16_t val, void *priv)
 static uint8_t
 spock_read(uint16_t port, void *priv)
 {
-    spock_t *scsi = (spock_t *) priv;
+    const spock_t *scsi = (spock_t *) priv;
     uint8_t  temp = 0xff;
 
     switch (port & 7) {
@@ -396,8 +396,8 @@ spock_read(uint16_t port, void *priv)
 static uint16_t
 spock_readw(uint16_t port, void *priv)
 {
-    spock_t *scsi = (spock_t *) priv;
-    uint16_t temp = 0xffff;
+    const spock_t *scsi = (spock_t *) priv;
+    uint16_t       temp = 0xffff;
 
     switch (port & 7) {
         case 0: /*Command Interface Register*/
@@ -1086,7 +1086,7 @@ spock_mca_write(int port, uint8_t val, void *priv)
 static uint8_t
 spock_mca_read(int port, void *priv)
 {
-    spock_t *scsi = (spock_t *) priv;
+    const spock_t *scsi = (spock_t *) priv;
 
     return scsi->pos_regs[port & 7];
 }
@@ -1094,7 +1094,7 @@ spock_mca_read(int port, void *priv)
 static uint8_t
 spock_mca_feedb(void *priv)
 {
-    spock_t *scsi = (spock_t *) priv;
+    const spock_t *scsi = (spock_t *) priv;
 
     return (scsi->pos_regs[2] & 0x01);
 }

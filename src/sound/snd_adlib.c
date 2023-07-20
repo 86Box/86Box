@@ -44,7 +44,7 @@ adlib_get_buffer(int32_t *buffer, int len, void *priv)
 {
     adlib_t *adlib = (adlib_t *) priv;
 
-    int32_t *opl_buf = adlib->opl.update(adlib->opl.priv);
+    const int32_t *opl_buf = adlib->opl.update(adlib->opl.priv);
 
     for (int c = 0; c < len * 2; c++)
         buffer[c] += opl_buf[c];
@@ -55,7 +55,7 @@ adlib_get_buffer(int32_t *buffer, int len, void *priv)
 uint8_t
 adlib_mca_read(int port, void *priv)
 {
-    adlib_t *adlib = (adlib_t *) priv;
+    const adlib_t *adlib = (adlib_t *) priv;
 
     adlib_log("adlib_mca_read: port=%04x\n", port);
 
@@ -95,7 +95,7 @@ adlib_mca_write(int port, uint8_t val, void *priv)
 uint8_t
 adlib_mca_feedb(void *priv)
 {
-    adlib_t *adlib = (adlib_t *) priv;
+    const adlib_t *adlib = (adlib_t *) priv;
 
     return (adlib->pos_regs[2] & 1);
 }

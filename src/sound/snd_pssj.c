@@ -88,7 +88,7 @@ pssj_write(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 pssj_read(uint16_t port, void *priv)
 {
-    pssj_t *pssj = (pssj_t *) priv;
+    const pssj_t *pssj = (pssj_t *) priv;
 
     switch (port & 3) {
         case 0:

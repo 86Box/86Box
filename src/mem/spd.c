@@ -85,8 +85,8 @@ spd_init(UNUSED(const device_t *info))
 int
 comp_ui16_rev(const void *elem1, const void *elem2)
 {
-    uint16_t a = *((uint16_t *) elem1);
-    uint16_t b = *((uint16_t *) elem2);
+    const uint16_t a = *((const uint16_t *) elem1);
+    const uint16_t b = *((const uint16_t *) elem2);
     return ((a > b) ? -1 : ((a < b) ? 1 : 0));
 }
 

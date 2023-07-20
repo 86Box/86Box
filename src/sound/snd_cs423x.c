@@ -545,9 +545,9 @@ cs423x_ctxswitch_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
 static void
 cs423x_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    cs423x_t *dev = (cs423x_t *) priv;
-    int       opl_wss = dev->opl_wss;
-    int32_t  *opl_buf = NULL;
+    cs423x_t       *dev = (cs423x_t *) priv;
+    int             opl_wss = dev->opl_wss;
+    const int32_t  *opl_buf = NULL;
 
     /* Output audio from the WSS codec, and also the OPL if we're in charge of it. */
     ad1848_update(&dev->ad1848);

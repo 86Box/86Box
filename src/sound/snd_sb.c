@@ -180,12 +180,12 @@ sb_log(const char *fmt, ...)
 static void
 sb_get_buffer_sb2(int32_t *buffer, int len, void *priv)
 {
-    sb_t              *sb    = (sb_t *) priv;
-    sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
-    double             out_mono = 0.0;
-    double             out_l = 0.0;
-    double             out_r = 0.0;
-    int32_t           *opl_buf = NULL;
+    sb_t                    *sb    = (sb_t *) priv;
+    const sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
+    double                   out_mono = 0.0;
+    double                   out_l = 0.0;
+    double                   out_r = 0.0;
+    const int32_t           *opl_buf = NULL;
 
     if (sb->opl_enabled)
         opl_buf = sb->opl.update(sb->opl.priv);
@@ -248,9 +248,9 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *priv)
 static void
 sb2_filter_cd_audio(UNUSED(int channel), double *buffer, void *priv)
 {
-    sb_t              *sb    = (sb_t *) priv;
-    sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
-    double             c;
+    const sb_t              *sb    = (sb_t *) priv;
+    const sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
+    double                   c;
 
     if (sb->mixer_enabled) {
         c       = ((sb_iir(1, 0, *buffer) / 1.3) * mixer->cd) / 3.0;
@@ -264,12 +264,12 @@ sb2_filter_cd_audio(UNUSED(int channel), double *buffer, void *priv)
 void
 sb_get_buffer_sbpro(int32_t *buffer, int len, void *priv)
 {
-    sb_t              *sb    = (sb_t *) priv;
-    sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
-    double             out_l = 0.0;
-    double             out_r = 0.0;
-    int32_t           *opl_buf = NULL;
-    int32_t           *opl2_buf = NULL;
+    sb_t                    *sb    = (sb_t *) priv;
+    const sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
+    double                   out_l = 0.0;
+    double                   out_r = 0.0;
+    const int32_t           *opl_buf = NULL;
+    const int32_t           *opl2_buf = NULL;
 
     if (sb->opl_enabled) {
         if (sb->dsp.sb_type == SBPRO) {
@@ -331,11 +331,11 @@ sb_get_buffer_sbpro(int32_t *buffer, int len, void *priv)
 void
 sbpro_filter_cd_audio(int channel, double *buffer, void *priv)
 {
-    sb_t              *sb    = (sb_t *) priv;
-    sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
-    double             c;
-    double             cd     = channel ? mixer->cd_r : mixer->cd_l;
-    double             master = channel ? mixer->master_r : mixer->master_l;
+    const sb_t              *sb    = (sb_t *) priv;
+    const sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
+    double                   c;
+    double                   cd     = channel ? mixer->cd_r : mixer->cd_l;
+    double                   master = channel ? mixer->master_r : mixer->master_l;
 
     if (mixer->output_filter)
         c = (sb_iir(1, channel, *buffer) * cd) / 3.9;
@@ -347,17 +347,17 @@ sbpro_filter_cd_audio(int channel, double *buffer, void *priv)
 static void
 sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
 {
-    sb_t              *sb    = (sb_t *) priv;
-    sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
-    int                dsp_rec_pos = sb->dsp.record_pos_write;
-    int                c_emu8k = 0;
-    int                c_record;
-    int32_t            in_l;
-    int32_t            in_r;
-    double             out_l = 0.0;
-    double             out_r = 0.0;
-    double             bass_treble;
-    int32_t           *opl_buf = NULL;
+    sb_t                    *sb    = (sb_t *) priv;
+    const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
+    int                      dsp_rec_pos = sb->dsp.record_pos_write;
+    int                      c_emu8k = 0;
+    int                      c_record;
+    int32_t                  in_l;
+    int32_t                  in_r;
+    double                   out_l = 0.0;
+    double                   out_r = 0.0;
+    double                   bass_treble;
+    const int32_t           *opl_buf = NULL;
 
     if (sb->opl_enabled)
         opl_buf = sb->opl.update(sb->opl.priv);
@@ -481,15 +481,15 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
 void
 sb16_awe32_filter_cd_audio(int channel, double *buffer, void *priv)
 {
-    sb_t              *sb    = (sb_t *) priv;
-    sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
-    double             c;
-    double             cd     = channel ? mixer->cd_r : mixer->cd_l /* / 3.0 */;
-    double             master = channel ? mixer->master_r : mixer->master_l;
-    int32_t            bass   = channel ? mixer->bass_r : mixer->bass_l;
-    int32_t            treble = channel ? mixer->treble_r : mixer->treble_l;
-    double             bass_treble;
-    double             output_gain = (channel ? mixer->output_gain_R : mixer->output_gain_L);
+    const sb_t              *sb    = (sb_t *) priv;
+    const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
+    double                   c;
+    double                   cd     = channel ? mixer->cd_r : mixer->cd_l /* / 3.0 */;
+    double                   master = channel ? mixer->master_r : mixer->master_l;
+    int32_t                  bass   = channel ? mixer->bass_r : mixer->bass_l;
+    int32_t                  treble = channel ? mixer->treble_r : mixer->treble_l;
+    double                   bass_treble;
+    double                   output_gain = (channel ? mixer->output_gain_R : mixer->output_gain_L);
 
     if (mixer->output_filter)
         c = (low_fir_sb16(1, channel, *buffer) * cd) / 3.0;
@@ -562,8 +562,8 @@ sb_ct1335_mixer_write(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 sb_ct1335_mixer_read(uint16_t addr, void *priv)
 {
-    sb_t              *sb    = (sb_t *) priv;
-    sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
+    const sb_t              *sb    = (sb_t *) priv;
+    const sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
 
     if (!(addr & 1))
         return mixer->index;
@@ -689,8 +689,8 @@ sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 sb_ct1345_mixer_read(uint16_t addr, void *priv)
 {
-    sb_t              *sb    = (sb_t *) priv;
-    sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
+    const sb_t              *sb    = (sb_t *) priv;
+    const sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
 
     if (!(addr & 1))
         return mixer->index;
@@ -904,10 +904,10 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 sb_ct1745_mixer_read(uint16_t addr, void *priv)
 {
-    sb_t              *sb    = (sb_t *) priv;
-    sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
-    uint8_t            temp;
-    uint8_t            ret = 0xff;
+    const sb_t              *sb    = (sb_t *) priv;
+    const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
+    uint8_t                  temp;
+    uint8_t                  ret = 0xff;
 
     if (!(addr & 1))
         ret = mixer->index;
@@ -1094,7 +1094,7 @@ sb_ct1745_mixer_reset(sb_t *sb)
 uint8_t
 sb_mcv_read(int port, void *priv)
 {
-    sb_t *sb = (sb_t *) priv;
+    const sb_t *sb = (sb_t *) priv;
 
     sb_log("sb_mcv_read: port=%04x\n", port);
 
@@ -1149,7 +1149,7 @@ sb_mcv_write(int port, uint8_t val, void *priv)
 uint8_t
 sb_mcv_feedb(void *priv)
 {
-    sb_t *sb = (sb_t *) priv;
+    const sb_t *sb = (sb_t *) priv;
 
     return (sb->pos_regs[2] & 1);
 }
@@ -1157,8 +1157,8 @@ sb_mcv_feedb(void *priv)
 static uint8_t
 sb_pro_mcv_read(int port, void *priv)
 {
-    sb_t   *sb  = (sb_t *) priv;
-    uint8_t ret = sb->pos_regs[port & 7];
+    const sb_t   *sb  = (sb_t *) priv;
+    uint8_t       ret = sb->pos_regs[port & 7];
 
     sb_log("sb_pro_mcv_read: port=%04x ret=%02x\n", port, ret);
 
@@ -1228,8 +1228,8 @@ sb_pro_mcv_write(int port, uint8_t val, void *priv)
 static uint8_t
 sb_16_reply_mca_read(int port, void *priv)
 {
-    sb_t   *sb  = (sb_t *) priv;
-    uint8_t ret = sb->pos_regs[port & 7];
+    const sb_t   *sb  = (sb_t *) priv;
+    uint8_t       ret = sb->pos_regs[port & 7];
 
     sb_log("sb_16_reply_mca_read: port=%04x ret=%02x\n", port, ret);
 
@@ -2202,7 +2202,7 @@ sb_awe32_pnp_init(const device_t *info)
     if ((info->local != 2) && (info->local != 3) && (info->local != 4))
         device_add(&ide_ter_pnp_device);
 
-    char *pnp_rom_file = NULL;
+    const char *pnp_rom_file = NULL;
     switch (info->local) {
         case 0:
             pnp_rom_file = "roms/sound/CT3600 PnP.BIN";

@@ -588,9 +588,9 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 vid_in(uint16_t addr, void *priv)
 {
-    tandy_t  *dev = (tandy_t *) priv;
-    t1kvid_t *vid = dev->vid;
-    uint8_t   ret = 0xff;
+    const tandy_t  *dev = (tandy_t *) priv;
+    const t1kvid_t *vid = dev->vid;
+    uint8_t         ret = 0xff;
 
     if ((addr >= 0x3d0) && (addr <= 0x3d7))
         addr = (addr & 0xff9) | 0x004;
@@ -639,8 +639,8 @@ vid_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 vid_read(uint32_t addr, void *priv)
 {
-    tandy_t  *dev = (tandy_t *) priv;
-    t1kvid_t *vid = dev->vid;
+    const tandy_t  *dev = (tandy_t *) priv;
+    const t1kvid_t *vid = dev->vid;
 
     if (vid->memctrl == -1)
         return 0xff;
@@ -1350,8 +1350,8 @@ tandy_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 tandy_read(uint16_t addr, void *priv)
 {
-    tandy_t *dev = (tandy_t *) priv;
-    uint8_t  ret = 0xff;
+    const tandy_t *dev = (tandy_t *) priv;
+    uint8_t        ret = 0xff;
 
     switch (addr) {
         case 0x00a0:
@@ -1376,7 +1376,7 @@ tandy_read(uint16_t addr, void *priv)
 static void
 write_ram(uint32_t addr, uint8_t val, void *priv)
 {
-    tandy_t *dev = (tandy_t *) priv;
+    const tandy_t *dev = (tandy_t *) priv;
 
     ram[dev->base + (addr & 0x1ffff)] = val;
 }
@@ -1384,7 +1384,7 @@ write_ram(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 read_ram(uint32_t addr, void *priv)
 {
-    tandy_t *dev = (tandy_t *) priv;
+    const tandy_t *dev = (tandy_t *) priv;
 
     return (ram[dev->base + (addr & 0x1ffff)]);
 }
@@ -1392,8 +1392,8 @@ read_ram(uint32_t addr, void *priv)
 static uint8_t
 read_rom(uint32_t addr, void *priv)
 {
-    tandy_t *dev   = (tandy_t *) priv;
-    uint32_t addr2 = (addr & 0xffff) + dev->rom_offset;
+    const tandy_t *dev   = (tandy_t *) priv;
+    uint32_t       addr2 = (addr & 0xffff) + dev->rom_offset;
 
     return (dev->rom[addr2]);
 }

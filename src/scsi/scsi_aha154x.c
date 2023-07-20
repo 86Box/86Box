@@ -123,8 +123,8 @@ aha_mem_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 aha_mem_read(uint32_t addr, void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
-    rom_t  *rom = &dev->bios;
+    const x54x_t *dev = (x54x_t *) priv;
+    const rom_t  *rom = &dev->bios;
 
     addr &= 0x3fff;
 
@@ -228,7 +228,7 @@ aha154x_mmap(x54x_t *dev, uint8_t cmd)
 static uint8_t
 aha_get_host_id(void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
+    const x54x_t *dev = (x54x_t *) priv;
 
     return dev->nvr[0] & 0x07;
 }
@@ -236,7 +236,7 @@ aha_get_host_id(void *priv)
 static uint8_t
 aha_get_irq(void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
+    const x54x_t *dev = (x54x_t *) priv;
 
     return (dev->nvr[1] & 0x07) + 9;
 }
@@ -244,7 +244,7 @@ aha_get_irq(void *priv)
 static uint8_t
 aha_get_dma(void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
+    const x54x_t *dev = (x54x_t *) priv;
 
     return (dev->nvr[1] >> 4) & 0x07;
 }
@@ -252,7 +252,7 @@ aha_get_dma(void *priv)
 static uint8_t
 aha_cmd_is_fast(void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
+    const x54x_t *dev = (x54x_t *) priv;
 
     if (dev->Command == CMD_BIOS_SCSI)
         return 1;
@@ -276,7 +276,7 @@ aha_fast_cmds(void *priv, uint8_t cmd)
 static uint8_t
 aha_param_len(void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
+    const x54x_t *dev = (x54x_t *) priv;
 
     switch (dev->Command) {
         case CMD_BIOS_MBINIT:
@@ -312,8 +312,8 @@ aha_param_len(void *priv)
 static uint8_t
 aha_cmds(void *priv)
 {
-    x54x_t        *dev = (x54x_t *) priv;
-    MailboxInit_t *mbi;
+    x54x_t              *dev = (x54x_t *) priv;
+    const MailboxInit_t *mbi;
 
     if (!dev->CmdParamLeft) {
         aha_log("Running Operation Code 0x%02X\n", dev->Command);
@@ -502,7 +502,7 @@ aha_callback(void *priv)
 static uint8_t
 aha_mca_read(int port, void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
+    const x54x_t *dev = (x54x_t *) priv;
 
     return (dev->pos_regs[port & 7]);
 }
@@ -614,7 +614,7 @@ aha_mca_write(int port, uint8_t val, void *priv)
 static uint8_t
 aha_mca_feedb(void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
+    const x54x_t *dev = (x54x_t *) priv;
 
     return (dev->pos_regs[2] & 0x01);
 }

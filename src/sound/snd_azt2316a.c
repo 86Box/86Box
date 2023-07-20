@@ -200,8 +200,8 @@ typedef struct azt2316a_t {
 static uint8_t
 azt2316a_wss_read(uint16_t addr, void *priv)
 {
-    azt2316a_t *azt2316a = (azt2316a_t *) priv;
-    uint8_t     temp;
+    const azt2316a_t *azt2316a = (azt2316a_t *) priv;
+    uint8_t           temp;
 
     /* TODO: when windows is initializing, writing 0x48, 0x58 and 0x60 to
        0x530 makes reading from 0x533 return 0x44, but writing 0x50
@@ -681,8 +681,8 @@ azt2316a_create_config_word(void *priv)
 static uint8_t
 azt2316a_config_read(uint16_t addr, void *priv)
 {
-    azt2316a_t *azt2316a = (azt2316a_t *) priv;
-    uint8_t     temp     = 0;
+    const azt2316a_t *azt2316a = (azt2316a_t *) priv;
+    uint8_t           temp     = 0;
 
     /* Some WSS config here + config change enable bit
        (setting bit 7 and writing back) */

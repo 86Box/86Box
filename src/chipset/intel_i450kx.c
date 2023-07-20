@@ -90,9 +90,9 @@ i450kx_map(i450kx_t *dev, int bus, uint32_t addr, uint32_t size, int state)
 static void
 i450kx_smram_recalc(i450kx_t *dev, int bus)
 {
-    uint8_t *regs = bus ? dev->pb_pci_conf : dev->mc_pci_conf;
-    uint32_t addr;
-    uint32_t size;
+    const uint8_t *regs = bus ? dev->pb_pci_conf : dev->mc_pci_conf;
+    uint32_t       addr;
+    uint32_t       size;
 
     smram_disable(dev->smram[bus]);
 
@@ -112,7 +112,7 @@ i450kx_smram_recalc(i450kx_t *dev, int bus)
 static void
 i450kx_vid_buf_recalc(i450kx_t *dev, int bus)
 {
-    uint8_t *regs = bus ? dev->pb_pci_conf : dev->mc_pci_conf;
+    const uint8_t *regs = bus ? dev->pb_pci_conf : dev->mc_pci_conf;
 
 #if 0
     // int state = (regs[0x58] & 0x02) ? (MEM_READ_EXTANY | MEM_WRITE_EXTANY) : (MEM_READ_DISABLED | MEM_WRITE_DISABLED);
@@ -374,7 +374,7 @@ pb_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 pb_read(int func, int addr, void *priv)
 {
-    i450kx_t *dev = (i450kx_t *) priv;
+    const i450kx_t *dev = (i450kx_t *) priv;
     uint8_t   ret = 0xff;
 
     if (func == 0)
@@ -601,7 +601,7 @@ mc_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 mc_read(int func, int addr, void *priv)
 {
-    i450kx_t *dev = (i450kx_t *) priv;
+    const i450kx_t *dev = (i450kx_t *) priv;
     uint8_t   ret = 0xff;
 
     if (func == 0)

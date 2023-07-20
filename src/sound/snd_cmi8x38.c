@@ -169,7 +169,8 @@ cmi8x38_mpu_irq_update(void *priv, int set)
 static int
 cmi8x38_mpu_irq_pending(void *priv)
 {
-    cmi8x38_t *dev = (cmi8x38_t *) priv;
+    const cmi8x38_t *dev = (cmi8x38_t *) priv;
+
     return dev->io_regs[0x12] & 0x01;
 }
 
@@ -421,9 +422,9 @@ cmi8338_io_trap(UNUSED(int size), uint16_t addr, uint8_t write, uint8_t val, voi
 static uint8_t
 cmi8x38_sb_mixer_read(uint16_t addr, void *priv)
 {
-    cmi8x38_t         *dev   = (cmi8x38_t *) priv;
-    sb_ct1745_mixer_t *mixer = &dev->sb->mixer_sb16;
-    uint8_t            ret   = sb_ct1745_mixer_read(addr, dev->sb);
+    cmi8x38_t               *dev   = (cmi8x38_t *) priv;
+    const sb_ct1745_mixer_t *mixer = &dev->sb->mixer_sb16;
+    uint8_t                  ret   = sb_ct1745_mixer_read(addr, dev->sb);
 
     if (addr & 1) {
         if ((mixer->index == 0x0e) || (mixer->index >= 0xf0))
@@ -956,8 +957,8 @@ cmi8x38_remap(cmi8x38_t *dev)
 static uint8_t
 cmi8x38_pci_read(int func, int addr, void *priv)
 {
-    cmi8x38_t *dev = (cmi8x38_t *) priv;
-    uint8_t    ret = 0xff;
+    const cmi8x38_t *dev = (cmi8x38_t *) priv;
+    uint8_t          ret = 0xff;
 
     if (!func) {
         ret = dev->pci_regs[addr];
@@ -1026,9 +1027,9 @@ cmi8x38_pci_write(int func, int addr, uint8_t val, void *priv)
 static void
 cmi8x38_update(cmi8x38_t *dev, cmi8x38_dma_t *dma)
 {
-    sb_ct1745_mixer_t *mixer = &dev->sb->mixer_sb16;
-    int32_t            l     = (dma->out_fl * mixer->voice_l) * mixer->master_l;
-    int32_t            r     = (dma->out_fr * mixer->voice_r) * mixer->master_r;
+    const sb_ct1745_mixer_t *mixer = &dev->sb->mixer_sb16;
+    int32_t                  l     = (dma->out_fl * mixer->voice_l) * mixer->master_l;
+    int32_t                  r     = (dma->out_fr * mixer->voice_r) * mixer->master_r;
 
     for (; dma->pos < sound_pos_global; dma->pos++) {
         dma->buffer[dma->pos * 2]     = l;

@@ -1920,9 +1920,9 @@ fdi2_decode(FDI *fdi, uint32_t totalavg, uint32_t *avgp, uint32_t *minp, uint32_
 static void
 fdi2_celltiming(FDI *fdi, uint32_t totalavg, int bitoffset, uint16_t *out)
 {
-    uint16_t *pt2;
-    uint16_t *pt;
-    double    avg_bit_len;
+    const uint16_t *pt2;
+    uint16_t       *pt;
+    double          avg_bit_len;
 
     avg_bit_len = (double) totalavg / (double) bitoffset;
     pt2         = fdi->track_dst_buffer_timing;
@@ -1940,27 +1940,27 @@ fdi2_celltiming(FDI *fdi, uint32_t totalavg, int bitoffset, uint16_t *out)
 static int
 decode_lowlevel_track(FDI *fdi, int track, struct fdi_cache *cache)
 {
-    uint8_t  *p1;
-    uint32_t *p2;
-    uint32_t *avgp;
-    uint32_t *minp = 0;
-    uint32_t *maxp = 0;
-    uint8_t  *idxp = 0;
-    uint32_t  maxidx;
-    uint32_t  totalavg;
-    uint32_t  weakbits;
-    int       j;
-    int       k;
-    int       len;
-    int       pulses;
-    int       indexoffset;
-    int       avg_free;
-    int       min_free = 0;
-    int       max_free = 0;
-    int       idx_free;
-    int       idx_off1 = 0;
-    int       idx_off2 = 0;
-    int       idx_off3 = 0;
+    uint8_t        *p1;
+    const uint32_t *p2;
+    uint32_t       *avgp;
+    uint32_t       *minp = 0;
+    uint32_t       *maxp = 0;
+    uint8_t        *idxp = 0;
+    uint32_t        maxidx;
+    uint32_t        totalavg;
+    uint32_t        weakbits;
+    int             j;
+    int             k;
+    int             len;
+    int             pulses;
+    int             indexoffset;
+    int             avg_free;
+    int             min_free = 0;
+    int             max_free = 0;
+    int             idx_free;
+    int             idx_off1 = 0;
+    int             idx_off2 = 0;
+    int             idx_off3 = 0;
 
     p1     = fdi->track_src;
     pulses = get_u32(p1);
@@ -2259,7 +2259,7 @@ fdi2raw_loadrevolution_2(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int 
     *tracklength = len;
 
     for (int i = 0; i < (len + 15) / (2 * 8); i++) {
-        uint8_t *data = fdi->track_dst_buffer + i * 2;
+        const uint8_t *data = fdi->track_dst_buffer + i * 2;
         *mfmbuf++     = 256 * *data + *(data + 1);
     }
     fdi2_celltiming(fdi, cache->totalavg, len, tracktiming);
@@ -2278,7 +2278,7 @@ fdi2raw_loadrevolution(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int tr
 int
 fdi2raw_loadtrack(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int track, int *tracklength, int *indexoffsetp, int *multirev, int mfm)
 {
-    uint8_t          *p;
+    const uint8_t    *p;
     int               outlen;
     struct fdi_cache *cache = &fdi->cache[track];
 
@@ -2352,8 +2352,8 @@ fdi2raw_loadtrack(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int track, 
             return fdi2raw_loadrevolution_2(fdi, mfmbuf, tracktiming, track, tracklength, indexoffsetp, multirev, mfm);
         *tracklength = fdi->out;
         for (int i = 0; i < ((*tracklength) + 15) / (2 * 8); i++) {
-            uint8_t *data = fdi->track_dst_buffer + i * 2;
-            *mfmbuf++     = 256 * *data + *(data + 1);
+            const uint8_t *data = fdi->track_dst_buffer + i * 2;
+            *mfmbuf++           = 256 * *data + *(data + 1);
         }
     }
     return outlen;

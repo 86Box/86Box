@@ -228,7 +228,7 @@ load_monitor(int monitor_index)
     ini_section_t cat;
     char          name[512];
     char          temp[512];
-    char         *p = NULL;
+    const char   *p = NULL;
 
     sprintf(name, "Monitor #%i", monitor_index + 1);
     sprintf(temp, "%i, %i, %i, %i", cx, cy, cw, ch);
@@ -256,7 +256,7 @@ load_machine(void)
 {
     ini_section_t cat = ini_find_section(config, "Machine");
     char         *p;
-    char         *migrate_from = NULL;
+    const char   *migrate_from = NULL;
     int           c;
     int           i;
     int           j;
@@ -1557,7 +1557,7 @@ load_other_removable_devices(void)
     ini_section_t cat = ini_find_section(config, "Other removable devices");
     char          temp[512];
     char          tmp2[512];
-    char         *p;
+    const char   *p;
     char          s[512];
     unsigned int  board = 0;
     unsigned int  dev = 0;
@@ -2017,7 +2017,7 @@ save_general(void)
     char          temp[512];
     char          buffer[512] = { 0 };
 
-    char *va_name;
+    const char *va_name = NULL;
 
     ini_section_set_int(cat, "vid_resize", vid_resize);
     if (vid_resize == 0)
@@ -2216,7 +2216,7 @@ static void
 save_machine(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "Machine");
-    char         *p;
+    const char   *p;
     int           c;
     int           i = 0;
     int           legacy_mfg;
@@ -2247,7 +2247,7 @@ save_machine(void)
     }
     if (cpu_legacy_table[c].machine) {
         /* Look for a corresponding CPU entry. */
-        cpu_legacy_table_t *legacy_table_entry;
+        const cpu_legacy_table_t *legacy_table_entry;
         for (legacy_mfg = 0; legacy_mfg < 4; legacy_mfg++) {
             if (!cpu_legacy_table[c].tables[legacy_mfg])
                 continue;

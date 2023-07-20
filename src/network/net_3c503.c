@@ -155,7 +155,7 @@ threec503_ram_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 threec503_ram_read(uint32_t addr, void *priv)
 {
-    threec503_t *dev = (threec503_t *) priv;
+    const threec503_t *dev = (threec503_t *) priv;
 
     if ((addr & 0x3fff) >= 0x2000)
         return 0xff;

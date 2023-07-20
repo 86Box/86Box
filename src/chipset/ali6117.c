@@ -390,7 +390,7 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 ali6117_reg_read(uint16_t addr, void *priv)
 {
-    ali6117_t *dev = (ali6117_t *) priv;
+    const ali6117_t *dev = (ali6117_t *) priv;
     uint8_t    ret;
 
     if (addr == 0x22)
