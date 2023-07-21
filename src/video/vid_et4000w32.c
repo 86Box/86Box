@@ -2084,7 +2084,7 @@ et4000w32_blit(int count, int cpu_input, uint32_t src_dat, uint32_t mix_dat, et4
     uint8_t source;
     uint8_t dest;
     uint8_t rop;
-    uint8_t out;
+    uint8_t out = 0;
     int     mixmap;
 
     if (!(et4000->acl.status & ACL_XYST) && !et4000->acl.mmu_start) {
