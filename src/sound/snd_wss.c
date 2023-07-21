@@ -79,7 +79,7 @@ static void
 wss_get_buffer(int32_t *buffer, int len, void *priv)
 {
     wss_t *wss = (wss_t *) priv;
-    int32_t *opl_buf
+    int32_t *opl_buf;
 
     if (wss->opl_enabled)
         opl_buf = wss->opl.update(wss->opl.priv);
