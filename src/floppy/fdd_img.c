@@ -668,8 +668,8 @@ img_load(int drive, char *fn)
     uint16_t track_bytes = 0;
     uint8_t *literal;
     img_t   *dev;
-    int      temp_rate;
-    int      guess = 0;
+    int      temp_rate = 0;
+    int      guess     = 0;
     int      size;
 
     ext = path_get_extension(fn);

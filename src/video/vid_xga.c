@@ -504,7 +504,7 @@ xga_ext_inb(uint16_t addr, void *p)
 {
     svga_t *svga = (svga_t *) p;
     xga_t  *xga  = &svga->xga;
-    uint8_t ret;
+    uint8_t ret  = 0xff;
     uint8_t index;
 
     switch (addr & 0x0f) {
