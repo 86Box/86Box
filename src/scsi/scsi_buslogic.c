@@ -1513,14 +1513,14 @@ buslogic_init(const device_t *info)
 {
     x54x_t          *dev;
     char            *bios_rom_name;
-    uint16_t         bios_rom_size;
-    uint16_t         bios_rom_mask;
+    uint16_t         bios_rom_size = 0;
+    uint16_t         bios_rom_mask = 0;
     uint8_t          has_autoscsi_rom;
-    char            *autoscsi_rom_name;
-    uint16_t         autoscsi_rom_size;
+    char            *autoscsi_rom_name = NULL;
+    uint16_t         autoscsi_rom_size = 0;
     uint8_t          has_scam_rom;
-    char            *scam_rom_name;
-    uint16_t         scam_rom_size;
+    char            *scam_rom_name = NULL;
+    uint16_t         scam_rom_size = 0;
     FILE            *f;
     buslogic_data_t *bl;
     uint32_t         bios_rom_addr;

@@ -2076,10 +2076,6 @@ static const device_config_t es1371_config[] = {
                 .value = AC97_CODEC_CS4297A
             },
             {
-                .description = "SigmaTel STAC9708",
-                .value = AC97_CODEC_STAC9708
-            },
-            {
                 .description = "SigmaTel STAC9721",
                 .value = AC97_CODEC_STAC9721
             }

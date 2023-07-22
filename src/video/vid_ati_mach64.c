@@ -3223,7 +3223,7 @@ uint8_t
 mach64_ext_inb(uint16_t port, void *p)
 {
     mach64_t *mach64 = (mach64_t *) p;
-    uint8_t   ret;
+    uint8_t   ret = 0xff;
 
     switch (port) {
         case 0x02ec:

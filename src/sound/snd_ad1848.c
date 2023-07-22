@@ -65,8 +65,8 @@ ad1848_updatevolmask(ad1848_t *ad1848)
 static void
 ad1848_updatefreq(ad1848_t *ad1848)
 {
-    double  freq;
-    uint8_t set = 0;
+    double  freq = 0.0;
+    uint8_t set  = 0;
 
     if (ad1848->type >= AD1848_TYPE_CS4235) {
         if (ad1848->xregs[11] & 0x20) {
