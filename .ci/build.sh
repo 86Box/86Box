@@ -670,9 +670,6 @@ EOF
 	else
 		echo [-] Not installing dependencies again
 	fi
-
-	# Link against the system libslirp instead of compiling ours.
-	cmake_flags_extra="$cmake_flags_extra -D SLIRP_EXTERNAL=ON"
 fi
 
 # Point CMake to the toolchain file.
