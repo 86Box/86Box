@@ -1249,11 +1249,7 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 #endif
     }
 
-    if (!fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit())
-        fs_off_signal = true;
-
-    if (!fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter())
-        fs_on_signal = true;
+    checkFullscreenHotkey(true);
 
     if (keyboard_ismsexit())
         plat_mouse_capture(0);
@@ -1289,15 +1285,7 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
         }
     }
 
-    if (fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit()) {
-        ui->actionFullscreen->trigger();
-        fs_off_signal = false;
-    }
-
-    if (fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter()) {
-        ui->actionFullscreen->trigger();
-        fs_on_signal = false;
-    }
+    checkFullscreenHotkey(false);
 
     if (!send_keyboard_input || event->isAutoRepeat())
         return;
@@ -1307,6 +1295,28 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
 #else
     processKeyboardInput(false, event->nativeScanCode());
 #endif
+}
+
+void
+MainWindow::checkFullscreenHotkey(bool down)
+{
+    if (down) {
+        if (!fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit())
+            fs_off_signal = true;
+
+        if (!fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter())
+            fs_on_signal = true;
+    } else {
+        if (fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit()) {
+            ui->actionFullscreen->trigger();
+            fs_off_signal = false;
+        }
+
+        if (fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter()) {
+            ui->actionFullscreen->trigger();
+            fs_on_signal = false;
+        }
+    }
 }
 
 QSize

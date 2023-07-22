@@ -237,6 +237,8 @@ WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
                     break;
             }
 
+            window->checkFullscreenHotkey(!(rawKB.Flags & RI_KEY_BREAK));
+
             /* Translate right CTRL to left ALT if the user has so
            chosen. */
             if ((scancode == 0x11d) && rctrl_is_lalt)

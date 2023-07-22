@@ -434,7 +434,6 @@ END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_2080    "FluidSynthin alustus epäonnistui"
     IDS_2081    "Väylä"
     IDS_2082    "Tiedosto"
     IDS_2083    "C"
@@ -465,7 +464,6 @@ BEGIN
     IDS_2108    "%u Mt (CHS: %i, %i, %i)"
     IDS_2109    "Levyke %i (%s): %ls"
     IDS_2110    "Kaikki levykuvat (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Kehittyneet sektorilevykuvat (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Perussektorilevykuvat (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux-levykuvat (*.FDI)\0*.FDI\0Pintalevykuvat (*.86F;*.MFM)\0*.86F;*.MFM\0Kaikki tiedostot (*.*)\0*.*\0"
-    IDS_2111    "FreeType:n alustus epäonnistui"
     IDS_2112    "SDL:n alustus epäonnistui. Tarvitaan SDL2.dll"
     IDS_2113    "Haluatko varmasti käynnistää emuloidun tietokoneen uudelleen?"
     IDS_2114    "Haluatko varmasti sulkea 86Boxin?"
@@ -493,23 +491,11 @@ BEGIN
     IDS_2130    "Varmista, että " LIB_NAME_PCAP " on asennettu ja että verkkoyhteytesi on " LIB_NAME_PCAP "-yhteensopiva."
     IDS_2131    "Virheelliset määritykset"
 #ifdef _WIN32
-#define LIB_NAME_FREETYPE "freetype.dll"
-#else
-#define LIB_NAME_FREETYPE "libfreetype"
-#endif
-    IDS_2132    LIB_NAME_FREETYPE " vaaditaan ESC/P-tulostimen emuloimiseksi."
-#ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
     IDS_2133    LIB_NAME_GS " vaaditaan PostScript-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiksi.\n\nKaikki geneeriselle PostScript-tulostimelle lähetetyt asiakirjat tallennetaan PostScript (.ps) -tiedostoina."
-#ifdef _WIN32
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
-#else
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
-#endif
-    IDS_2134    LIB_NAME_FLUIDSYNTH " vaaditaan FluidSynth MIDI-ulostuloa varten."
     IDS_2135    "Siirrytään koko näytön tilaan"
     IDS_2136    "Älä näytä tätä viestiä uudelleen"
     IDS_2137    "Älä poistu"
