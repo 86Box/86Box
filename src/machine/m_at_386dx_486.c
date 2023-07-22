@@ -2108,6 +2108,29 @@ machine_at_tg486g_init(const machine_t *model)
 }
 
 int
+machine_at_dvent4xx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/dvent4xx/Venturis466_BIOS.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&sis_85c471_device);
+    device_add(&ide_cmd640_vlb_pri_device);
+    device_add(&fdc37c665_ide_device);
+    device_add(&keyboard_ps2_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&s3_phoenix_trio32_onboard_vlb_device);
+
+    return ret;
+}
+
+int
 machine_at_ecsal486_init(const machine_t *model)
 {
     int ret;

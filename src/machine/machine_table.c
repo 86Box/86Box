@@ -6293,6 +6293,45 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Unknown revision phoenix 1993 multikey */
+    {
+        .name = "[SiS 471] DEC Venturis 4xx",
+        .internal_name = "dvent4xx",
+        .type = MACHINE_TYPE_486_S3,
+        .chipset = MACHINE_CHIPSET_SIS_471,
+        .init = machine_at_dvent4xx_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET3,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SUPER_IO | MACHINE_APM | MACHINE_VIDEO,
+        .ram = {
+            .min = 1024,
+            .max = 65536,
+            .step = 1024
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = &s3_phoenix_trio32_onboard_vlb_device,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
         .name = "[ALi M1429G] ECS AL486",

@@ -77,6 +77,7 @@ enum {
     S3_PARADISE_BAHAMAS64,
     S3_DIAMOND_STEALTH64_964,
     S3_PHOENIX_TRIO32,
+    S3_PHOENIX_TRIO32_ONBOARD,
     S3_PHOENIX_TRIO64,
     S3_PHOENIX_TRIO64_ONBOARD,
     S3_PHOENIX_VISION864,
@@ -7866,6 +7867,14 @@ s3_init(const device_t *info)
             else
                 video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_vlb);
             break;
+        case S3_PHOENIX_TRIO32_ONBOARD:
+            bios_fn = NULL;
+            chip    = S3_TRIO32;
+            if (info->flags & DEVICE_PCI)
+                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_pci);
+            else
+                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio32_vlb);
+            break;
         case S3_DIAMOND_STEALTH_SE:
             bios_fn = ROM_DIAMOND_STEALTH_SE;
             chip    = S3_TRIO32;
@@ -8298,6 +8307,7 @@ s3_init(const device_t *info)
             break;
 
         case S3_PHOENIX_TRIO32:
+        case S3_PHOENIX_TRIO32_ONBOARD:
         case S3_DIAMOND_STEALTH_SE:
             svga->decode_mask = (4 << 20) - 1;
             s3->id            = 0xe1; /*Trio32*/
@@ -9057,6 +9067,20 @@ const device_t s3_9fx_pci_device = {
     .config        = s3_9fx_config
 };
 
+const device_t s3_phoenix_trio32_onboard_vlb_device = {
+    .name          = "S3 Trio32 VLB On-Board (Phoenix)",
+    .internal_name = "px_trio32_onboard_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = S3_PHOENIX_TRIO32_ONBOARD,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    { .available = NULL },
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_phoenix_trio32_config
+};
+
 const device_t s3_phoenix_trio32_vlb_device = {
     .name          = "S3 Trio32 VLB (Phoenix)",
     .internal_name = "px_trio32_vlb",
@@ -9066,6 +9090,20 @@ const device_t s3_phoenix_trio32_vlb_device = {
     .close         = s3_close,
     .reset         = s3_reset,
     { .available = s3_phoenix_trio32_available },
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_phoenix_trio32_config
+};
+
+const device_t s3_phoenix_trio32_onboard_pci_device = {
+    .name          = "S3 Trio32 PCI On-Board (Phoenix)",
+    .internal_name = "px_trio32_onboard_pci",
+    .flags         = DEVICE_PCI,
+    .local         = S3_PHOENIX_TRIO32_ONBOARD,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    { .available = NULL },
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
     .config        = s3_phoenix_trio32_config
