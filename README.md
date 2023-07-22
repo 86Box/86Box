@@ -7,7 +7,7 @@
 Features
 --------
 * Easy to use interface inspired by mainstream hypervisor software
-* Low level emulation of 8086-based processors up to the Pentium with focus on accuracy
+* Low level emulation of 8086-based processors up to the Mendocino-era Celeron with focus on accuracy
 * Great range of customizability of virtual machines
 * Many available systems, such as the very first IBM PC 5150 from 1981, or the more obscure IBM PS/2 line of systems based on the Micro Channel Architecture
 * Lots of supported peripherals including video adapters, sound cards, network adapters, hard disk controllers, and SCSI adapters
@@ -16,11 +16,11 @@ Features
 
 Minimum system requirements and recommendations
 -----------------------------------------------
-* Intel Core 2 or AMD Athlon 64 processor
-* Windows version: Windows 7 Service Pack 1, Windows 8.1 or Windows 10
+* Intel Core 2 or AMD Athlon 64 processor or newer
+* Windows version: Windows 7 Service Pack 1 or later
 * Linux version: Ubuntu 16.04, Debian 9.0 or other distributions from 2016 onwards
-* macOS version: macOS High Sierra 10.13
-* 4 GB of RAM
+* macOS version: macOS High Sierra 10.13 or newer
+* 4 GB of RAM or higher
 
 Performance may vary depending on both host and guest configuration. Most emulation logic is executed in a single thread; therefore, systems with better IPC (instructions per clock) generally should be able to emulate higher clock speeds.
 
