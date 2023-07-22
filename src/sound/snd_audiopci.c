@@ -311,7 +311,13 @@ es1371_reset(void *p)
 
     /* Interrupt/Chip Select Control Register, Address 00H
        Addressable as longword only */
-    dev->int_status = 0x7ffffec0;
+    /* Bit 13 is supposed to be always 1 on ES1371, and one of the GPIO interrupt
+       flags on ES1373. The 5.12.01 WDM driver only initializes its GPIO interrupt
+       handler on chip revisions which support this feature (1371 >= 0x04 and 5880
+       all), but calls it anyway during interrupt servicing regardless of revision,
+       crashing on ES1371 as soon as an interrupt arrives while that bit is set.
+       Pending hardware research because actual early ES1371 cards are rare. */
+    dev->int_status = 0x7fffdec0;
 
     /* UART Status Register, Address 09H
        Addressable as byte only */
@@ -621,11 +627,11 @@ es1371_inb(uint16_t port, void *p)
             audiopci_log("[R] STATUS  8-15 = %02X\n", ret);
             break;
         case 0x06:
-            ret = (dev->int_status >> 16) & 0x0f;
+            ret = (dev->int_status >> 16) & 0xff;
             audiopci_log("[R] STATUS 16-23 = %02X\n", ret);
             break;
         case 0x07:
-            ret = ((dev->int_status >> 24) & 0x03) | 0xfc;
+            ret = (dev->int_status >> 24) & 0xff;
             audiopci_log("[R] STATUS 24-31 = %02X\n", ret);
             break;
 
@@ -1551,7 +1557,7 @@ es1371_pci_read(int func, int addr, void *p)
             return 0x00;
 
         case 0x08:
-            return 0x08; /* Revision ID - 0x02 (datasheet, VMware) has issues with the 2001 Creative WDM driver */
+            return 0x02; /* Revision ID - 0x02 is supposed to be early Ensoniq-branded ES1371 but unconfirmed */
         case 0x09:
             return 0x00; /* Multimedia audio device */
         case 0x0a:
@@ -2068,10 +2074,6 @@ static const device_config_t es1371_config[] = {
             {
                 .description = "Crystal CS4297A",
                 .value = AC97_CODEC_CS4297A
-            },
-            {
-                .description = "SigmaTel STAC9708",
-                .value = AC97_CODEC_STAC9708
             },
             {
                 .description = "SigmaTel STAC9721",

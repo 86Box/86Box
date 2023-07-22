@@ -288,7 +288,6 @@ then
 	echo [-] Using MSYSTEM [$MSYSTEM]
 
 	# Install dependencies only if we're in a new build and/or architecture.
-	freetype_dll="$cache_dir/freetype.$MSYSTEM.dll"
 	if check_buildtag "$MSYSTEM"
 	then
 		# Update databases and keyring only if we're in a new build.
@@ -332,9 +331,6 @@ then
 
 		# Clean pacman cache when running under Jenkins to save disk space.
 		[ "$CI" = "true" ] && rm -rf /var/cache/pacman/pkg
-
-		# Generate a new freetype DLL for this architecture.
-		rm -f "$freetype_dll"
 
 		# Save build tag to skip this later. Doing it here (once everything is
 		# in place) is important to avoid potential issues with retried builds.
@@ -795,10 +791,6 @@ then
 	pf="/c/Program Files"
 	sevenzip="$pf/7-Zip/7z.exe"
 	[ "$arch" = "32" -a -d "/c/Program Files (x86)" ] && pf="/c/Program Files (x86)"
-
-	# Archive freetype from cache or generate it from local MSYS installation.
-	[ ! -e "$freetype_dll" ] && .ci/static2dll.sh -p freetype2 /$MSYSTEM/lib/libfreetype.a "$freetype_dll"
-	cp -p "$freetype_dll" archive_tmp/freetype.dll
 
 	# Archive Ghostscript DLL from local official distribution installation.
 	for gs in "$pf"/gs/gs*.*.*

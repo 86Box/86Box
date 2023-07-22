@@ -17,6 +17,11 @@
 
 #ifndef VIDEO_XGA_DEVICE_H
 #define VIDEO_XGA_DEVICE_H
+extern int xga_has_vga;
+
+#ifdef EMU_DEVICE_H
 extern const device_t xga_device;
 extern const device_t xga_isa_device;
+extern const device_t inmos_isa_device;
+#endif
 #endif /*VIDEO_XGA_DEVICE_H*/

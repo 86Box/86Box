@@ -234,6 +234,7 @@ extern const device_t keyboard_at_tg_ami_device;
 extern const device_t keyboard_at_toshiba_device;
 extern const device_t keyboard_at_olivetti_device;
 extern const device_t keyboard_at_ncr_device;
+extern const device_t keyboard_at_compaq_device;
 extern const device_t keyboard_ps2_device;
 extern const device_t keyboard_ps2_ps1_device;
 extern const device_t keyboard_ps2_ps1_pci_device;

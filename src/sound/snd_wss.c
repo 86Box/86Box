@@ -79,15 +79,20 @@ static void
 wss_get_buffer(int32_t *buffer, int len, void *priv)
 {
     wss_t *wss = (wss_t *) priv;
+    int32_t *opl_buf = NULL;
 
-    int32_t *opl_buf = wss->opl.update(wss->opl.priv);
+    if (wss->opl_enabled)
+        opl_buf = wss->opl.update(wss->opl.priv);
+
     ad1848_update(&wss->ad1848);
     for (int c = 0; c < len * 2; c++) {
-        buffer[c] += opl_buf[c];
+        if (opl_buf)
+            buffer[c] += opl_buf[c];
         buffer[c] += wss->ad1848.buffer[c] / 2;
     }
 
-    wss->opl.reset_buffer(wss->opl.priv);
+    if (wss->opl_enabled)
+        wss->opl.reset_buffer(wss->opl.priv);
     wss->ad1848.pos = 0;
 }
 

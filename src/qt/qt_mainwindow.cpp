@@ -1299,7 +1299,7 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
         fs_on_signal = false;
     }
 
-    if (!send_keyboard_input)
+    if (!send_keyboard_input || event->isAutoRepeat())
         return;
 
 #ifdef Q_OS_MACOS
