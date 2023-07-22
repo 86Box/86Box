@@ -673,7 +673,7 @@ static void
     timer_add(&dev->rmsmiblk_timer, sis_85c496_rmsmiblk_count, dev, 0);
 
 #ifndef USE_DRB_HACK
-    row_device.local = 7 | (1 << 8) | (0x02 << 16) | (7 << 24);
+    row_device.local = 7 | (1 << 8) | (0x02 << 16) | (8 << 24);
     device_add((const device_t *) &row_device);
 #endif
 
