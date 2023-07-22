@@ -242,10 +242,11 @@
         </widget>
        </item>
        <item row="3" column="1" colspan="2">
-        <widget class="QLineEdit" name="socketVDENIC2"/>
+        <widget class="QLineEdit" name="socketVDENIC2">
          <property name="maxLength">
           <number>127</number>
          </property>
+        </widget>
        </item>
        <item row="4" column="1">
         <spacer name="verticalSpacer_2">
@@ -360,10 +361,11 @@
         </widget>
        </item>
        <item row="3" column="1" colspan="2">
-        <widget class="QLineEdit" name="socketVDENIC3"/>
+        <widget class="QLineEdit" name="socketVDENIC3">
          <property name="maxLength">
           <number>127</number>
          </property>
+        </widget>
        </item>
        <item row="4" column="1">
         <spacer name="verticalSpacer_3">
@@ -471,10 +473,11 @@
         </widget>
        </item>
        <item row="3" column="1" colspan="2">
-        <widget class="QLineEdit" name="socketVDENIC4"/>
+        <widget class="QLineEdit" name="socketVDENIC4">
          <property name="maxLength">
           <number>127</number>
          </property>
+        </widget>
        </item>
        <item row="3" column="0">
         <widget class="QLabel" name="label_6">
