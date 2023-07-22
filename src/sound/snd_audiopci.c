@@ -2060,7 +2060,7 @@ static const device_config_t es1371_config[] = {
   // clang-format off
     {
         .name = "codec",
-        .description = "CODEC",
+        .description = "Codec",
         .type = CONFIG_SELECTION,
         .selection = {
             {
@@ -2068,19 +2068,12 @@ static const device_config_t es1371_config[] = {
                 .value = AC97_CODEC_AK4540
             },
             {
-                .description = "Crystal CS4297",
-                .value = AC97_CODEC_CS4297
+                .description = "TriTech TR28023 / Creative CT1297",
+                .value = AC97_CODEC_TR28023
             },
-            {
-                .description = "Crystal CS4297A",
-                .value = AC97_CODEC_CS4297A
-            },
-            {
-                .description = "SigmaTel STAC9721",
-                .value = AC97_CODEC_STAC9721
-            }
+            { .description = "" }
         },
-        .default_int = AC97_CODEC_CS4297A
+        .default_int = AC97_CODEC_TR28023
     },
     {
         .name = "receive_input",
