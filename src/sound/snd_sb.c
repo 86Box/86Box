@@ -348,7 +348,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
     sb_t              *sb    = (sb_t *) p;
     sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
     int                dsp_rec_pos = sb->dsp.record_pos_write;
-    int                c_emu8k;
+    int                c_emu8k = 0;
     int                c_record;
     int32_t            in_l;
     int32_t            in_r;
