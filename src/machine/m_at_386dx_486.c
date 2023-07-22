@@ -1036,6 +1036,33 @@ machine_at_4dps_init(const machine_t *model)
 }
 
 int
+machine_at_ms4144_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ms4144/ms-4144-1.4.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    machine_at_sis_85c496_common_init(model);
+    device_add(&sis_85c496_ls486e_device);
+    pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
+
+    device_add(&w83787f_device);
+    device_add(&keyboard_at_ami_device);
+
+    device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+
+int
 machine_at_486sp3c_init(const machine_t *model)
 {
     int ret;
