@@ -636,3 +636,17 @@ const device_t ide_cmd640_pci_single_channel_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+const device_t ide_cmd640_pci_single_channel_sec_device = {
+    .name          = "CMD PCI-0640B PCI",
+    .internal_name = "ide_cmd640_pci_single_channel_sec",
+    .flags         = DEVICE_PCI,
+    .local         = 0x4000a,
+    .init          = cmd640_init,
+    .close         = cmd640_close,
+    .reset         = cmd640_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
