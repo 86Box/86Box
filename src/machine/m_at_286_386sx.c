@@ -807,10 +807,6 @@ machine_at_pc8_init(const machine_t *model)
     return ret;
 }
 
-/*
- * Current bugs:
- * - ctrl-alt-del produces an 8042 error
- */
 int
 machine_at_3302_init(const machine_t *model)
 {
