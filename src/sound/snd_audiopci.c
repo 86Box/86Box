@@ -2070,7 +2070,8 @@ static const device_config_t es1371_config[] = {
             {
                 .description = "TriTech TR28023 / Creative CT1297",
                 .value = AC97_CODEC_TR28023
-            }
+            },
+            { .description = "" }
         },
         .default_int = AC97_CODEC_TR28023
     },
