@@ -484,6 +484,7 @@ extern int machine_at_d824_init(const machine_t *);
 extern int machine_at_403tg_init(const machine_t *);
 extern int machine_at_403tg_d_init(const machine_t *);
 extern int machine_at_403tg_d_mr_init(const machine_t *);
+extern int machine_at_pb450_init(const machine_t *);
 extern int machine_at_pc330_6573_init(const machine_t *);
 extern int machine_at_m45xx_init(const machine_t *);
 extern int machine_at_mvi486_init(const machine_t *);
@@ -506,6 +507,7 @@ extern int machine_at_greenb_init(const machine_t *);
 extern int machine_at_r418_init(const machine_t *);
 extern int machine_at_ls486e_init(const machine_t *);
 extern int machine_at_4dps_init(const machine_t *);
+extern int machine_at_ms4144_init(const machine_t *);
 extern int machine_at_4saw2_init(const machine_t *);
 extern int machine_at_m4li_init(const machine_t *);
 extern int machine_at_alfredo_init(const machine_t *);
@@ -537,7 +539,7 @@ extern int machine_at_pcm9340_init(const machine_t *);
 extern int machine_at_pcm5330_init(const machine_t *);
 
 extern int machine_at_ecs486_init(const machine_t *);
-extern int machine_at_hot433_init(const machine_t *);
+extern int machine_at_hot433a_init(const machine_t *);
 extern int machine_at_atc1415_init(const machine_t *);
 extern int machine_at_actionpc2600_init(const machine_t *);
 extern int machine_at_actiontower8400_init(const machine_t *);
@@ -548,6 +550,7 @@ extern int machine_at_tg486gp_init(const machine_t *);
 extern int machine_at_tg486g_init(const machine_t *);
 extern int machine_at_ecsal486_init(const machine_t *);
 extern int machine_at_ap4100aa_init(const machine_t *);
+extern int machine_at_atc1762_init(const machine_t *);
 
 /* m_at_commodore.c */
 extern int machine_at_cmdpc_init(const machine_t *);

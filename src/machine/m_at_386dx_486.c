@@ -1807,7 +1807,7 @@ machine_at_ecs486_init(const machine_t *model)
 }
 
 int
-machine_at_hot433_init(const machine_t *model)
+machine_at_hot433a_init(const machine_t *model)
 {
     int ret;
 
@@ -2120,6 +2120,28 @@ machine_at_ap4100aa_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&ide_vlb_device);
     device_add(&um8669f_device); // needs um8663
+
+    return ret;
+}
+
+int
+machine_at_atc1762_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/atc1762/atc1762.bin",
+                           0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&ali1429g_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+
+    if (fdc_type == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
 
     return ret;
 }
