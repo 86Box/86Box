@@ -3514,7 +3514,7 @@ bitblt:
                         }
                     } else {
                         if ((svga->bpp == 24) && dev->local && (dev->accel.cmd == 0xc2b5)) {
-                            int64_t x, cx, dx;
+                            int64_t cx, dx;
 
                             cx = (int64_t)dev->accel.cx;
                             dx = (int64_t)dev->accel.dx;
