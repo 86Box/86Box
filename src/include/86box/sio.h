@@ -25,6 +25,8 @@ extern const device_t f82c606_device;
 extern const device_t fdc37c651_device;
 extern const device_t fdc37c651_ide_device;
 extern const device_t fdc37c661_device;
+extern const device_t fdc37c661_ide_device;
+extern const device_t fdc37c661_ide_sec_device;
 extern const device_t fdc37c663_device;
 extern const device_t fdc37c663_ide_device;
 extern const device_t fdc37c665_device;

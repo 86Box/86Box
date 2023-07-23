@@ -642,6 +642,39 @@ machine_at_403tg_d_mr_init(const machine_t *model)
 }
 
 int
+machine_at_pb450_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pb450/OPTI802.BIN",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      5, 4, 3, 2);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      9, 8, 7, 6);
+
+    device_add(&opti895_device);
+    device_add(&opti822_device);
+    device_add(&keyboard_ps2_intel_ami_pci_device);
+    device_add(&fdc37c661_ide_device);
+    device_add(&ide_opti611_vlb_sec_device);
+    device_add(&ide_vlb_2ch_device);
+    device_add(&intel_flash_bxt_device);
+    device_add(&phoenix_486_jumper_pci_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&gd5428_vlb_onboard_device);
+
+    return ret;
+}
+
+int
 machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU other than the iDX4 and the Intel OverDrive, hangs without a PS/2 mouse */
 {
     int ret;

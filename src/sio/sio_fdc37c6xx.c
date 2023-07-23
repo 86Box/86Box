@@ -146,6 +146,7 @@ ide_handler(fdc37c6xx_t *dev)
         ide_sec_disable();
         ide_set_base(1, (dev->regs[0x05] & 0x02) ? 0x170 : 0x1f0);
         ide_set_side(1, (dev->regs[0x05] & 0x02) ? 0x376 : 0x3f6);
+        pclog("\n0x%X | 0x%X\n", dev->regs[0x00], dev->regs[0x05]);
         if (dev->regs[0x00] & 0x01)
             ide_sec_enable();
     } else if (dev->has_ide == 1) {
@@ -387,6 +388,20 @@ const device_t fdc37c661_ide_device = {
     .internal_name = "fdc37c661_ide",
     .flags         = 0,
     .local         = 0x161,
+    .init          = fdc37c6xx_init,
+    .close         = fdc37c6xx_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc37c661_ide_sec_device = {
+    .name          = "SMC FDC37C661 Super I/O (With Secondary IDE)",
+    .internal_name = "fdc37c661_ide",
+    .flags         = 0,
+    .local         = 0x261,
     .init          = fdc37c6xx_init,
     .close         = fdc37c6xx_close,
     .reset         = NULL,

@@ -4752,6 +4752,20 @@ const device_t gd5428_onboard_device = {
     .config        = gd5428_onboard_config
 };
 
+const device_t gd5428_vlb_onboard_device = {
+    .name          = "Cirrus Logic GD5428 (VLB) (On-Board)",
+    .internal_name = "cl_gd5428_vlb_onboard",
+    .flags         = DEVICE_VLB,
+    .local         = CIRRUS_ID_CLGD5428,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    { .available = NULL },
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .config        = gd5428_onboard_config
+};
+
 const device_t gd5429_isa_device = {
     .name          = "Cirrus Logic GD5429 (ISA)",
     .internal_name = "cl_gd5429_isa",
