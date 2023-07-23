@@ -74,7 +74,8 @@ extern const device_t ide_cmd646_device;                        /* CMD PCI-646 *
 extern const device_t ide_cmd646_legacy_only_device;            /* CMD PCI-646 (Legacy Mode Only) */
 extern const device_t ide_cmd646_single_channel_device;         /* CMD PCI-646 (Only primary channel) */
 
-extern const device_t ide_opti611_vlb_device; /* OPTi 82c611/611A VLB */
+extern const device_t ide_opti611_vlb_device;     /* OPTi 82c611/611A VLB */
+extern const device_t ide_opti611_vlb_sec_device; /* OPTi 82c611/611A VLB (Secondary channel) */
 
 extern const device_t ide_ter_device;
 extern const device_t ide_ter_pnp_device;
