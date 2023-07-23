@@ -1953,7 +1953,7 @@ escp_init(void *lpt)
     /* Initialize FreeType. */
     if (ft_lib == NULL) {
         if (FT_Init_FreeType(&ft_lib)) {
-            ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2111, (wchar_t *) IDS_2132);
+            pclog("ESC/P: FT_Init_FreeType failed\n");
             ft_lib = NULL;
             return (NULL);
         }

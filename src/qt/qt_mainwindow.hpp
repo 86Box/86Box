@@ -32,6 +32,7 @@ public:
     void  blitToWidget(int x, int y, int w, int h, int monitor_index);
     QSize getRenderWidgetSize();
     void  setSendKeyboardInput(bool enabled);
+    void  checkFullscreenHotkey(bool down);
 
     std::array<std::unique_ptr<RendererStack>, 8> renderers;
 signals:

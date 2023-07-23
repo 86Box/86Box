@@ -373,17 +373,41 @@ cmd640_reset(void *priv)
 {
     cmd640_t *dev = (cmd640_t *) priv;
     int       i   = 0;
+    int       min_channel;
+    int       max_channel;
+
+    switch (dev->channels) {
+        default:
+        case 0x00:
+            min_channel = max_channel = 0;
+            break;
+        case 0x01:
+            min_channel = 0;
+            max_channel = 1;
+            break;
+        case 0x02:
+            min_channel = 2;
+            max_channel = 3;
+            break;
+        case 0x03:
+            min_channel = 0;
+            max_channel = 3;
+            break;
+    }
 
     for (i = 0; i < CDROM_NUM; i++) {
-        if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && (cdrom[i].ide_channel < 4) && cdrom[i].priv)
+        if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && (cdrom[i].ide_channel >= min_channel) &&
+            (cdrom[i].ide_channel <= max_channel) && cdrom[i].priv)
             scsi_cdrom_reset((scsi_common_t *) cdrom[i].priv);
     }
     for (i = 0; i < ZIP_NUM; i++) {
-        if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && (zip_drives[i].ide_channel < 4) && zip_drives[i].priv)
+        if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && (zip_drives[i].ide_channel >= min_channel) &&
+            (zip_drives[i].ide_channel <= max_channel) && zip_drives[i].priv)
             zip_reset((scsi_common_t *) zip_drives[i].priv);
     }
     for (i = 0; i < MO_NUM; i++) {
-        if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && (mo_drives[i].ide_channel < 4) && mo_drives[i].priv)
+        if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && (mo_drives[i].ide_channel >= min_channel) &&
+            (mo_drives[i].ide_channel <= max_channel) && mo_drives[i].priv)
             mo_reset((scsi_common_t *) mo_drives[i].priv);
     }
 
@@ -628,6 +652,20 @@ const device_t ide_cmd640_pci_single_channel_device = {
     .internal_name = "ide_cmd640_pci_single_channel",
     .flags         = DEVICE_PCI,
     .local         = 0x2000a,
+    .init          = cmd640_init,
+    .close         = cmd640_close,
+    .reset         = cmd640_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ide_cmd640_pci_single_channel_sec_device = {
+    .name          = "CMD PCI-0640B PCI",
+    .internal_name = "ide_cmd640_pci_single_channel_sec",
+    .flags         = DEVICE_PCI,
+    .local         = 0x4000a,
     .init          = cmd640_init,
     .close         = cmd640_close,
     .reset         = cmd640_reset,

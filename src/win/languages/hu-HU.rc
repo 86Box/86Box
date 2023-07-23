@@ -439,7 +439,6 @@ END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_2080    "Nem sikerült a FluidSynth inicializálása"
     IDS_2081    "Busz"
     IDS_2082    "Fájl"
     IDS_2083    "C"
@@ -470,7 +469,6 @@ BEGIN
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "Floppy %i (%s): %ls"
     IDS_2110    "Minden képfájl (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Továbbfejlesztett szektor képek (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Alapvető szektor képek  (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux képekfájlok (*.FDI)\0*.FDI\0Felületi képfájlok (*.86F;*.MFM)\0*.86F;*.MFM\0Minden fájl (*.*)\0*.*\0"
-    IDS_2111    "A FreeType inicializálása nem lehetséges"
     IDS_2112    "Az SDL inicializálása nem lehetséges, az SDL2.dll fájl szükséges"
     IDS_2113    "Biztosan szeretné újraindítani az emulált gépet?"
     IDS_2114    "Biztos benne, hogy ki szeretne lépni a 86Box-ból?"
@@ -497,23 +495,11 @@ BEGIN
     IDS_2130    "Győződjön meg hogy a(z) " LIB_NAME_PCAP " telepítve van és jelenleg a " LIB_NAME_PCAP "-kompatibilis kapcsolatot használja."
     IDS_2131    "Érvénytelen konfiguráció"
 #ifdef _WIN32
-#define LIB_NAME_FREETYPE "freetype.dll"
-#else
-#define LIB_NAME_FREETYPE "libfreetype"
-#endif
-    IDS_2132    LIB_NAME_FREETYPE " szükséges az ESC/P nyomtató emulációhoz."
-#ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
     IDS_2133    LIB_NAME_GS " szükséges a PostScript fájlok PDF formátumba való automatikus konvertálásához.\n\nAz általános PostScript nyomtatóra küldött dokumentumok PostScript (.ps) fájlként kerülnek mentésre."
-#ifdef _WIN32
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
-#else
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
-#endif
-    IDS_2134    LIB_NAME_FLUIDSYNTH " szükséges a FluidSynth MIDI kimenethez."
     IDS_2135    "Teljes képernyős módra váltás"
     IDS_2136    "Ne jelenítse meg újra ezt az üzenetet "
     IDS_2137    "Ne lépjen ki"
