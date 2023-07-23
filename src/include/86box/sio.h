@@ -32,6 +32,7 @@ extern const device_t fdc37c663_ide_device;
 extern const device_t fdc37c665_device;
 extern const device_t fdc37c665_ide_device;
 extern const device_t fdc37c665_ide_pri_device;
+extern const device_t fdc37c665_ide_sec_device;
 extern const device_t fdc37c666_device;
 extern const device_t fdc37c67x_device;
 extern const device_t fdc37c669_device;

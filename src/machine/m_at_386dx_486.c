@@ -1230,9 +1230,10 @@ machine_at_bat4ip3e_init(const machine_t *model)
 
     device_add(&phoenix_486_jumper_pci_device);
     device_add(&keyboard_ps2_pci_device);
-    device_add(&fdc37c665_device);
+    device_add(&ide_cmd640_pci_single_channel_device);
+    device_add(&fdc37c665_ide_sec_device);
     device_add(&i420ex_device);
-    device_add(&ide_cmd640_pci_device);
+    
 
     return ret;
 }
