@@ -8073,6 +8073,46 @@ const machine_t machines[] = {
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
+        .name = "[STPC Consumer-II] Lanner Electronics IAC-H488",
+        .internal_name = "iach488",
+        .type = MACHINE_TYPE_486_MISC,
+        .chipset = MACHINE_CHIPSET_STPC_CONSUMER_II,
+        .init = machine_at_iach488_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_STPC,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 66666667,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 2.0,
+            .max_multi = 2.0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM,
+        .ram = {
+            .min = 32768,
+            .max = 131072,
+            .step = 32768
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware. */
+    {
         .name = "[STPC Elite] Advantech PCM-9340",
         .internal_name = "pcm9340",
         .type = MACHINE_TYPE_486_MISC,

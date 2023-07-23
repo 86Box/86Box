@@ -536,6 +536,7 @@ extern int machine_at_g486ip_init(const machine_t *);
 extern int machine_at_itoxstar_init(const machine_t *);
 extern int machine_at_arb1423c_init(const machine_t *);
 extern int machine_at_arb1479_init(const machine_t *);
+extern int machine_at_iach488_init(const machine_t *);
 extern int machine_at_pcm9340_init(const machine_t *);
 extern int machine_at_pcm5330_init(const machine_t *);
 

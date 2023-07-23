@@ -1781,6 +1781,30 @@ machine_at_arb1479_init(const machine_t *model)
 }
 
 int
+machine_at_iach488_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/iach488/FH48800B.980",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x0B, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&w83977f_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&stpc_consumer2_device);
+    device_add(&sst_flash_29ee020_device);
+
+    return ret;
+}
+
+int
 machine_at_pcm9340_init(const machine_t *model)
 {
     int ret;
