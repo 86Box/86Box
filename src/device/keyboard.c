@@ -320,7 +320,7 @@ keyboard_isfsenter(void)
 }
 
 int
-keyboard_isfsenter_down(void)
+keyboard_isfsenter_up(void)
 {
     return (!recv_key[0x01d] && !recv_key[0x11d] && !recv_key[0x038] && !recv_key[0x138] && !recv_key[0x049] && !recv_key[0x149]);
 }
@@ -333,7 +333,7 @@ keyboard_isfsexit(void)
 }
 
 int
-keyboard_isfsexit_down(void)
+keyboard_isfsexit_up(void)
 {
     return (!recv_key[0x01d] && !recv_key[0x11d] && !recv_key[0x038] && !recv_key[0x138] && !recv_key[0x051] && !recv_key[0x151]);
 }
