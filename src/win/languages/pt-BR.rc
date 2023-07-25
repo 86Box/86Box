@@ -26,7 +26,7 @@ BEGIN
         MENUITEM "&Reinicialização completa...", IDM_ACTION_HRESET
         MENUITEM "&Ctrl+Alt+Del\tCtrl+F12", IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
-    MENUITEM "Ctrl+Alt+&Esc", IDM_ACTION_CTRL_ALT_ESC
+        MENUITEM "Ctrl+Alt+&Esc", IDM_ACTION_CTRL_ALT_ESC
         MENUITEM SEPARATOR
         MENUITEM "&Pausar", IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
@@ -311,10 +311,10 @@ END
 #define STR_NET_TYPE      "Tipo de rede:"
 #define STR_PCAP          "Dispositivo PCap:"
 #define STR_NET           "Adaptador de rede:"
-#define STR_NET1          "Network card 1:"
-#define STR_NET2          "Network card 2:"
-#define STR_NET3          "Network card 3:"
-#define STR_NET4          "Network card 4:"
+#define STR_NET1          "Placa de rede 1:"
+#define STR_NET2          "Placa de rede 2:"
+#define STR_NET3          "Placa de rede 3:"
+#define STR_NET4          "Placa de rede 4:"
 
 #define STR_COM1          "Dispositivo COM1:"
 #define STR_COM2          "Dispositivo COM2:"
@@ -332,10 +332,10 @@ END
 #define STR_PARALLEL2     "Porta paralela 2"
 #define STR_PARALLEL3     "Porta paralela 3"
 #define STR_PARALLEL4     "Porta paralela 4"
-#define STR_SERIAL_PASS1  "Serial port passthrough 1"
-#define STR_SERIAL_PASS2  "Serial port passthrough 2"
-#define STR_SERIAL_PASS3  "Serial port passthrough 3"
-#define STR_SERIAL_PASS4  "Serial port passthrough 4"
+#define STR_SERIAL_PASS1  "Encaminhamento de porta serial 1"
+#define STR_SERIAL_PASS2  "Encaminhamento de porta serial 2"
+#define STR_SERIAL_PASS3  "Encaminhamento de porta serial 3"
+#define STR_SERIAL_PASS4  "Encaminhamento de porta serial 4"
 
 #define STR_HDC           "Controlador HD:"
 #define STR_FDC           "Controlador FD:"
@@ -526,13 +526,13 @@ BEGIN
     IDS_2159    "Reinicialização completa"
     IDS_2160    "Desligamento por ACPI"
     IDS_2161    "Configurações"
-    IDS_2162    "Type"
-    IDS_2163    "No Dynarec"
-    IDS_2164    "Old Dynarec"
-    IDS_2165    "New Dynarec"
-    IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-    IDS_2167    "Failed to initialize network driver"
-    IDS_2168    "The network configuration will be switched to the null driver"
+    IDS_2162    "Tipo"
+    IDS_2163    "Sem recompilador dinâmico"
+    IDS_2164    "Recompilador dinâmico antigo"
+    IDS_2165    "Novo recompilador dinâmico"
+    IDS_2166    "A placa de vídeo #2 ""%hs"" não está disponível devido à ausência de ROMs no diretório roms/video. Desabilitando a segunda placa de vídeo."
+    IDS_2167    "Falha ao inicializar o driver de rede"
+    IDS_2168    "A configuração de rede será alterada para o driver nulo"
 END
 
 STRINGTABLE DISCARDABLE
