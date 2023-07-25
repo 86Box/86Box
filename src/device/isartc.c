@@ -608,9 +608,6 @@ isartc_close(void *priv)
     io_removehandler(dev->base_addr, dev->base_addrsz,
                      dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
 
-    if (dev->nvr.fn != NULL)
-        free(dev->nvr.fn);
-
     free(dev);
 }
 
