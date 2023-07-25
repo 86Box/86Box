@@ -414,7 +414,7 @@ hndl_clbeg(pgc_t *dev)
 }
 
 static void
-hndl_clend(pgc_t *dev)
+hndl_clend(UNUSED(pgc_t *dev))
 {
     /* Should not happen outside a CLBEG. */
 }
@@ -1035,7 +1035,7 @@ hndl_poly(pgc_t *dev)
 
 /* Parse but don't execute a POLY command (for adding to a command list) */
 static int
-parse_poly(pgc_t *dev, pgc_cl_t *cl, int c)
+parse_poly(pgc_t *dev, pgc_cl_t *cl, UNUSED(int c))
 {
     uint8_t count;
 
@@ -1898,7 +1898,6 @@ pgc_param_coord(pgc_t *dev, int32_t *value)
                     pgc_error(dev, PGC_ERROR_MISSING);
                     return err_digit(dev);
                 }
-                break;
 
             /* Scientific notation. */
             case 'd':

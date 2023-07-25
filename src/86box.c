@@ -408,18 +408,18 @@ pc_log(const char *fmt, ...)
 int
 pc_init(int argc, char *argv[])
 {
-    char      *ppath = NULL;
-    char      *rpath = NULL;
-    char      *cfg = NULL;
-    char      *p;
-    char       temp[2048];
-    char      *fn[FDD_NUM] = { NULL };
-    char       drive = 0;
-    char      *temp2 = NULL;
-    struct tm *info;
-    time_t     now;
-    int        c;
-    int        lvmp = 0;
+    char            *ppath = NULL;
+    char            *rpath = NULL;
+    char            *cfg = NULL;
+    char            *p;
+    char             temp[2048];
+    char            *fn[FDD_NUM] = { NULL };
+    char             drive = 0;
+    char            *temp2 = NULL;
+    const struct tm *info;
+    time_t           now;
+    int              c;
+    int              lvmp = 0;
 #ifdef ENABLE_NG
     int ng = 0;
 #endif
@@ -1144,9 +1144,9 @@ pc_reset_hard_init(void)
 void
 update_mouse_msg(void)
 {
-    wchar_t wcpufamily[2048];
-    wchar_t wcpu[2048];
-    wchar_t wmachine[2048];
+    wchar_t  wcpufamily[2048];
+    wchar_t  wcpu[2048];
+    wchar_t  wmachine[2048];
     wchar_t *wcp;
 
     mbstowcs(wmachine, machine_getname(), strlen(machine_getname()) + 1);
@@ -1185,7 +1185,7 @@ pc_reset_hard(void)
 }
 
 void
-pc_close(thread_t *ptr)
+pc_close(UNUSED(thread_t *ptr))
 {
     /* Wait a while so things can shut down. */
     plat_delay_ms(200);

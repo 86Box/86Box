@@ -42,15 +42,15 @@
 static video_timings_t timing_xga_isa = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
 static video_timings_t timing_xga_mca = { .type = VIDEO_MCA, .write_b = 4, .write_w = 5, .write_l = 10, .read_b = 5, .read_w = 5, .read_l = 10 };
 
-static void    xga_ext_outb(uint16_t addr, uint8_t val, void *p);
-static uint8_t xga_ext_inb(uint16_t addr, void *p);
+static void    xga_ext_outb(uint16_t addr, uint8_t val, void *priv);
+static uint8_t xga_ext_inb(uint16_t addr, void *priv);
 
 int xga_has_vga = 0;
 
 void
-svga_xga_out(uint16_t addr, uint8_t val, void *p)
+svga_xga_out(uint16_t addr, uint8_t val, void *priv)
 {
-    svga_t *svga = (svga_t *)p;
+    svga_t *svga = (svga_t *) priv;
     uint8_t old;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
@@ -86,9 +86,9 @@ svga_xga_out(uint16_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-svga_xga_in(uint16_t addr, void *p)
+svga_xga_in(uint16_t addr, void *priv)
 {
-    svga_t *svga = (svga_t *)p;
+    svga_t *svga = (svga_t *) priv;
     uint8_t temp;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
@@ -451,9 +451,9 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
 }
 
 static void
-xga_ext_outb(uint16_t addr, uint8_t val, void *p)
+xga_ext_outb(uint16_t addr, uint8_t val, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
     //pclog("[%04X:%08X]: EXT OUTB = %02x, val = %02x\n", CS, cpu_state.pc, addr, val);
@@ -500,9 +500,9 @@ xga_ext_outb(uint16_t addr, uint8_t val, void *p)
 }
 
 static uint8_t
-xga_ext_inb(uint16_t addr, void *p)
+xga_ext_inb(uint16_t addr, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
     uint8_t ret  = 0xff;
     uint8_t index;
@@ -2014,9 +2014,9 @@ exec_command:
 }
 
 static void
-xga_memio_writeb(uint32_t addr, uint8_t val, void *p)
+xga_memio_writeb(uint32_t addr, uint8_t val, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
     xga_mem_write(addr, val, xga, svga, 1);
@@ -2024,9 +2024,9 @@ xga_memio_writeb(uint32_t addr, uint8_t val, void *p)
 }
 
 static void
-xga_memio_writew(uint32_t addr, uint16_t val, void *p)
+xga_memio_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
     xga_mem_write(addr, val, xga, svga, 2);
@@ -2034,9 +2034,9 @@ xga_memio_writew(uint32_t addr, uint16_t val, void *p)
 }
 
 static void
-xga_memio_writel(uint32_t addr, uint32_t val, void *p)
+xga_memio_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
     xga_mem_write(addr, val, xga, svga, 4);
@@ -2125,9 +2125,9 @@ xga_mem_read(uint32_t addr, xga_t *xga, svga_t *svga)
 }
 
 static uint8_t
-xga_memio_readb(uint32_t addr, void *p)
+xga_memio_readb(uint32_t addr, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
     uint8_t temp;
 
@@ -2138,9 +2138,9 @@ xga_memio_readb(uint32_t addr, void *p)
 }
 
 static uint16_t
-xga_memio_readw(uint32_t addr, void *p)
+xga_memio_readw(uint32_t addr, void *priv)
 {
-    svga_t  *svga = (svga_t *) p;
+    svga_t  *svga = (svga_t *) priv;
     xga_t   *xga  = &svga->xga;
     uint16_t temp;
 
@@ -2152,9 +2152,9 @@ xga_memio_readw(uint32_t addr, void *p)
 }
 
 static uint32_t
-xga_memio_readl(uint32_t addr, void *p)
+xga_memio_readl(uint32_t addr, void *priv)
 {
-    svga_t  *svga = (svga_t *) p;
+    svga_t  *svga = (svga_t *) priv;
     xga_t   *xga  = &svga->xga;
     uint32_t temp;
 
@@ -2326,9 +2326,9 @@ xga_render_16bpp(xga_t *xga, svga_t *svga)
 }
 
 static void
-xga_write(uint32_t addr, uint8_t val, void *p)
+xga_write(uint32_t addr, uint8_t val, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
     if (!xga->on) {
@@ -2349,34 +2349,34 @@ xga_write(uint32_t addr, uint8_t val, void *p)
 }
 
 static void
-xga_writeb(uint32_t addr, uint8_t val, void *p)
+xga_writeb(uint32_t addr, uint8_t val, void *priv)
 {
     // pclog("[%04X:%08X]: WriteB\n", CS, cpu_state.pc);
-    xga_write(addr, val, p);
+    xga_write(addr, val, priv);
 }
 
 static void
-xga_writew(uint32_t addr, uint16_t val, void *p)
+xga_writew(uint32_t addr, uint16_t val, void *priv)
 {
     // pclog("[%04X:%08X]: WriteW\n", CS, cpu_state.pc);
-    xga_write(addr, val, p);
-    xga_write(addr + 1, val >> 8, p);
+    xga_write(addr, val, priv);
+    xga_write(addr + 1, val >> 8, priv);
 }
 
 static void
-xga_writel(uint32_t addr, uint32_t val, void *p)
+xga_writel(uint32_t addr, uint32_t val, void *priv)
 {
     // pclog("[%04X:%08X]: WriteL\n", CS, cpu_state.pc);
-    xga_write(addr, val, p);
-    xga_write(addr + 1, val >> 8, p);
-    xga_write(addr + 2, val >> 16, p);
-    xga_write(addr + 3, val >> 24, p);
+    xga_write(addr, val, priv);
+    xga_write(addr + 1, val >> 8, priv);
+    xga_write(addr + 2, val >> 16, priv);
+    xga_write(addr + 3, val >> 24, priv);
 }
 
 static void
-xga_write_linear(uint32_t addr, uint8_t val, void *p)
+xga_write_linear(uint32_t addr, uint8_t val, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
     if (!xga->on) {
@@ -2396,9 +2396,9 @@ xga_write_linear(uint32_t addr, uint8_t val, void *p)
 }
 
 static void
-xga_writew_linear(uint32_t addr, uint16_t val, void *p)
+xga_writew_linear(uint32_t addr, uint16_t val, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
     if (!xga->on) {
@@ -2408,33 +2408,33 @@ xga_writew_linear(uint32_t addr, uint16_t val, void *p)
 
     if (xga->linear_endian_reverse) {
         if (xga->accel.px_map_format[xga->accel.dst_map] == 0x0c) {
-            xga_write_linear(addr, val, p);
-            xga_write_linear(addr + 1, val >> 8, p);
+            xga_write_linear(addr, val, priv);
+            xga_write_linear(addr + 1, val >> 8, priv);
         } else if (xga->accel.px_map_format[xga->accel.dst_map] == 4) {
-            xga_write_linear(addr + 1, val, p);
-            xga_write_linear(addr, val >> 8, p);
+            xga_write_linear(addr + 1, val, priv);
+            xga_write_linear(addr, val >> 8, priv);
         } else {
-            xga_write_linear(addr, val, p);
-            xga_write_linear(addr + 1, val >> 8, p);
+            xga_write_linear(addr, val, priv);
+            xga_write_linear(addr + 1, val >> 8, priv);
         }
     } else {
         if (xga->accel.px_map_format[xga->accel.dst_map] == 0x0c) {
-            xga_write_linear(addr + 1, val, p);
-            xga_write_linear(addr, val >> 8, p);
+            xga_write_linear(addr + 1, val, priv);
+            xga_write_linear(addr, val >> 8, priv);
         } else if (xga->accel.px_map_format[xga->accel.dst_map] == 4) {
-            xga_write_linear(addr, val, p);
-            xga_write_linear(addr + 1, val >> 8, p);
+            xga_write_linear(addr, val, priv);
+            xga_write_linear(addr + 1, val >> 8, priv);
         } else {
-            xga_write_linear(addr, val, p);
-            xga_write_linear(addr + 1, val >> 8, p);
+            xga_write_linear(addr, val, priv);
+            xga_write_linear(addr + 1, val >> 8, priv);
         }
     }
 }
 
 static void
-xga_writel_linear(uint32_t addr, uint32_t val, void *p)
+xga_writel_linear(uint32_t addr, uint32_t val, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
     if (!xga->on) {
@@ -2442,16 +2442,16 @@ xga_writel_linear(uint32_t addr, uint32_t val, void *p)
         return;
     }
 
-    xga_write_linear(addr, val, p);
-    xga_write_linear(addr + 1, val >> 8, p);
-    xga_write_linear(addr + 2, val >> 16, p);
-    xga_write_linear(addr + 3, val >> 24, p);
+    xga_write_linear(addr, val, priv);
+    xga_write_linear(addr + 1, val >> 8, priv);
+    xga_write_linear(addr + 2, val >> 16, priv);
+    xga_write_linear(addr + 3, val >> 24, priv);
 }
 
 static uint8_t
-xga_read(uint32_t addr, void *p)
+xga_read(uint32_t addr, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
     if (!xga->on)
@@ -2469,43 +2469,43 @@ xga_read(uint32_t addr, void *p)
 }
 
 static uint8_t
-xga_readb(uint32_t addr, void *p)
+xga_readb(uint32_t addr, void *priv)
 {
     uint8_t ret;
 
-    ret = xga_read(addr, p);
+    ret = xga_read(addr, priv);
 
     return ret;
 }
 
 static uint16_t
-xga_readw(uint32_t addr, void *p)
+xga_readw(uint32_t addr, void *priv)
 {
     uint16_t ret;
 
-    ret = xga_read(addr, p);
-    ret |= (xga_read(addr + 1, p) << 8);
+    ret = xga_read(addr, priv);
+    ret |= (xga_read(addr + 1, priv) << 8);
 
     return ret;
 }
 
 static uint32_t
-xga_readl(uint32_t addr, void *p)
+xga_readl(uint32_t addr, void *priv)
 {
     uint32_t ret;
 
-    ret = xga_read(addr, p);
-    ret |= (xga_read(addr + 1, p) << 8);
-    ret |= (xga_read(addr + 2, p) << 16);
-    ret |= (xga_read(addr + 3, p) << 24);
+    ret = xga_read(addr, priv);
+    ret |= (xga_read(addr + 1, priv) << 8);
+    ret |= (xga_read(addr + 2, priv) << 16);
+    ret |= (xga_read(addr + 3, priv) << 24);
 
     return ret;
 }
 
 static uint8_t
-xga_read_linear(uint32_t addr, void *p)
+xga_read_linear(uint32_t addr, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
     if (!xga->on)
@@ -2522,9 +2522,9 @@ xga_read_linear(uint32_t addr, void *p)
 }
 
 static uint16_t
-xga_readw_linear(uint32_t addr, void *p)
+xga_readw_linear(uint32_t addr, void *priv)
 {
-    svga_t  *svga = (svga_t *) p;
+    svga_t  *svga = (svga_t *) priv;
     xga_t   *xga  = &svga->xga;
     uint16_t ret;
 
@@ -2533,32 +2533,32 @@ xga_readw_linear(uint32_t addr, void *p)
 
     if (xga->linear_endian_reverse) {
         if (xga->accel.px_map_format[xga->accel.src_map] == 0x0c) {
-            ret = xga_read_linear(addr, p) | (xga_read_linear(addr + 1, p) << 8);
+            ret = xga_read_linear(addr, priv) | (xga_read_linear(addr + 1, priv) << 8);
         } else if (xga->accel.px_map_format[xga->accel.src_map] == 4) {
-            ret = xga_read_linear(addr + 1, p) | (xga_read_linear(addr, p) << 8);
+            ret = xga_read_linear(addr + 1, priv) | (xga_read_linear(addr, priv) << 8);
         } else
-            ret = xga_read_linear(addr, p) | (xga_read_linear(addr + 1, p) << 8);
+            ret = xga_read_linear(addr, priv) | (xga_read_linear(addr + 1, priv) << 8);
     } else {
         if (xga->accel.px_map_format[xga->accel.src_map] == 0x0c) {
-            ret = xga_read_linear(addr + 1, p) | (xga_read_linear(addr, p) << 8);
+            ret = xga_read_linear(addr + 1, priv) | (xga_read_linear(addr, priv) << 8);
         } else if (xga->accel.px_map_format[xga->accel.src_map] == 4) {
-            ret = xga_read_linear(addr, p) | (xga_read_linear(addr + 1, p) << 8);
+            ret = xga_read_linear(addr, priv) | (xga_read_linear(addr + 1, priv) << 8);
         } else
-            ret = xga_read_linear(addr, p) | (xga_read_linear(addr + 1, p) << 8);
+            ret = xga_read_linear(addr, priv) | (xga_read_linear(addr + 1, priv) << 8);
     }
     return ret;
 }
 
 static uint32_t
-xga_readl_linear(uint32_t addr, void *p)
+xga_readl_linear(uint32_t addr, void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
     if (!xga->on)
         return svga_readl_linear(addr, svga);
 
-    return xga_read_linear(addr, p) | (xga_read_linear(addr + 1, p) << 8) | (xga_read_linear(addr + 2, p) << 16) | (xga_read_linear(addr + 3, p) << 24);
+    return xga_read_linear(addr, priv) | (xga_read_linear(addr + 1, priv) << 8) | (xga_read_linear(addr + 2, priv) << 16) | (xga_read_linear(addr + 3, priv) << 24);
 }
 
 static void
@@ -2793,9 +2793,9 @@ xga_mca_feedb(void *priv)
 }
 
 static void
-xga_mca_reset(void *p)
+xga_mca_reset(void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
     xga->on = 0;
@@ -2804,9 +2804,9 @@ xga_mca_reset(void *p)
 }
 
 static void
-xga_reset(void *p)
+xga_reset(void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
     mem_mapping_disable(&xga->bios_rom.mapping);
@@ -3090,9 +3090,9 @@ static void
 }
 
 static void
-xga_close(void *p)
+xga_close(void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
     if (svga) {
@@ -3114,17 +3114,17 @@ inmos_xga_available(void)
 }
 
 static void
-xga_speed_changed(void *p)
+xga_speed_changed(void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
 
     svga_recalctimings(svga);
 }
 
 static void
-xga_force_redraw(void *p)
+xga_force_redraw(void *priv)
 {
-    svga_t *svga = (svga_t *) p;
+    svga_t *svga = (svga_t *) priv;
 
     svga->fullchange = svga->monitor->mon_changeframecount;
 }

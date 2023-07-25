@@ -29,6 +29,7 @@ extern "C" {
 #include <86box/snd_opl.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/plat_unused.h>
 
 // Disable c99-designator to avoid the warnings in *_ymfm_device
 #ifdef __clang__
@@ -50,7 +51,7 @@ enum {
 
 class YMFMChipBase {
 public:
-    YMFMChipBase(uint32_t clock, fm_type type, uint32_t samplerate)
+    YMFMChipBase(uint32_t clock, fm_type type, UNUSED(uint32_t samplerate))
         : m_buf_pos(0)
         , m_flags(0)
         , m_type(type)
@@ -295,8 +296,8 @@ ymfm_drv_init(const device_t *info)
     YMFMChipBase *fm;
 
     switch (info->local) {
-        case FM_YM3812:
         default:
+        case FM_YM3812:
             fm = (YMFMChipBase *) new YMFMChip<ymfm::ym3812>(3579545, FM_YM3812, OPL_FREQ);
             break;
 

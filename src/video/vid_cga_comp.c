@@ -244,7 +244,7 @@ Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks /*, bool doublewi
     if ((cgamode & 4) != 0) {
         /* Decode */
         i    = temp + 5;
-        srgb = (Bit32u *) TempLine;
+        srgb = TempLine;
         for (x2 = 0; x2 < blocks * 4; ++x2) {
             int c = (i[0] + i[0]) << 3;
             int d = (i[-1] + i[1]) << 3;
@@ -268,7 +268,7 @@ Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks /*, bool doublewi
         i     = temp + 5;
         i[-1] = (i[-1] << 3) - ap[-1];
         i[0]  = (i[0] << 3) - ap[0];
-        srgb  = (Bit32u *) TempLine;
+        srgb  = TempLine;
         for (x2 = 0; x2 < blocks; ++x2) {
             int y;
             int a;

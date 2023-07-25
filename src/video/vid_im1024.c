@@ -635,7 +635,7 @@ hndl_poly(pgc_t *pgc)
 }
 
 static int
-parse_poly(pgc_t *pgc, pgc_cl_t *cl, int c)
+parse_poly(pgc_t *pgc, pgc_cl_t *cl, UNUSED(int c))
 {
     uint8_t count;
 
@@ -1031,7 +1031,7 @@ static const pgc_cmd_t im1024_commands[] = {
 };
 
 static void *
-im1024_init(const device_t *info)
+im1024_init(UNUSED(const device_t *info))
 {
     im1024_t *dev;
 

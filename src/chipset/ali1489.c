@@ -408,8 +408,8 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 ali1489_read(uint16_t addr, void *priv)
 {
-    uint8_t    ret = 0xff;
-    ali1489_t *dev = (ali1489_t *) priv;
+    uint8_t          ret = 0xff;
+    const ali1489_t *dev = (ali1489_t *) priv;
 
     switch (addr) {
         case 0x23:
@@ -456,8 +456,8 @@ ali1489_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static uint8_t
 ali1489_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    ali1489_t *dev = (ali1489_t *) priv;
-    uint8_t    ret = 0xff;
+    const ali1489_t *dev = (ali1489_t *) priv;
+    uint8_t          ret = 0xff;
 
     ret = dev->pci_conf[addr];
     ali1489_log("M1489-PCI: dev->pci_conf[%02x] (%02x)\n", addr, ret);
@@ -560,8 +560,8 @@ ali1489_ide_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 ali1489_ide_read(uint16_t addr, void *priv)
 {
-    ali1489_t *dev = (ali1489_t *) priv;
-    uint8_t    ret = 0xff;
+    const ali1489_t *dev = (ali1489_t *) priv;
+    uint8_t          ret = 0xff;
 
     switch (addr) {
         case 0xf4:

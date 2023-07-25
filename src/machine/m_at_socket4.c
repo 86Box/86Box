@@ -81,7 +81,9 @@ machine_at_award_common_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    // device_add(&keyboard_ps2_pci_device);
+#if 0
+    device_add(&keyboard_ps2_pci_device);
+#endif
     device_add(&keyboard_ps2_ami_pci_device);
 }
 

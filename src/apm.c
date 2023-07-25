@@ -71,8 +71,8 @@ apm_out(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 apm_in(uint16_t port, void *priv)
 {
-    apm_t  *dev = (apm_t *) priv;
-    uint8_t ret = 0xff;
+    const apm_t  *dev = (apm_t *) priv;
+    uint8_t       ret = 0xff;
 
     port &= 0x0001;
 
@@ -102,9 +102,8 @@ apm_close(void *priv)
     free(dev);
 }
 
-static void
-    *
-    apm_init(const device_t *info)
+static void *
+apm_init(const device_t *info)
 {
     apm_t *dev = (apm_t *) malloc(sizeof(apm_t));
     memset(dev, 0, sizeof(apm_t));

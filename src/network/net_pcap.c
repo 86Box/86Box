@@ -247,7 +247,7 @@ net_pcap_in(void *pcap, uint8_t *bufp, int len)
     if (pcap == NULL)
         return;
 
-    f_pcap_sendpacket((void *) pcap, bufp, len);
+    f_pcap_sendpacket(pcap, bufp, len);
 }
 
 void
@@ -268,7 +268,7 @@ net_pcap_thread(void *priv)
     HANDLE events[NET_EVENT_MAX];
     events[NET_EVENT_STOP] = net_event_get_handle(&pcap->stop_event);
     events[NET_EVENT_TX]   = net_event_get_handle(&pcap->tx_event);
-    events[NET_EVENT_RX]   = f_pcap_getevent((void *) pcap->pcap);
+    events[NET_EVENT_RX]   = f_pcap_getevent(pcap->pcap);
 
     bool run = true;
 
@@ -295,6 +295,9 @@ net_pcap_thread(void *priv)
 
             case NET_EVENT_RX:
                 f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (u_char *) pcap);
+                break;
+
+            default:
                 break;
         }
     }
@@ -467,22 +470,22 @@ net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char *
         return NULL;
     }
 
-    if (f_pcap_setnonblock((void *) pcap->pcap, 1, errbuf) != 0)
+    if (f_pcap_setnonblock(pcap->pcap, 1, errbuf) != 0)
         pcap_log("PCAP: failed nonblock %s\n", errbuf);
 
-    if (f_pcap_set_immediate_mode((void *) pcap->pcap, 1) != 0)
+    if (f_pcap_set_immediate_mode(pcap->pcap, 1) != 0)
         pcap_log("PCAP: error setting immediate mode\n");
 
-    if (f_pcap_set_promisc((void *) pcap->pcap, 1) != 0)
+    if (f_pcap_set_promisc(pcap->pcap, 1) != 0)
         pcap_log("PCAP: error enabling promiscuous mode\n");
 
-    if (f_pcap_set_snaplen((void *) pcap->pcap, NET_MAX_FRAME) != 0)
+    if (f_pcap_set_snaplen(pcap->pcap, NET_MAX_FRAME) != 0)
         pcap_log("PCAP: error setting snaplen\n");
 
-    if (f_pcap_activate((void *) pcap->pcap) != 0) {
+    if (f_pcap_activate(pcap->pcap) != 0) {
         snprintf(errbuf_prep, NET_DRV_ERRBUF_SIZE, "%s", (char *)f_pcap_geterr(pcap->pcap));
         net_pcap_error(netdrv_errbuf, errbuf_prep);
-        f_pcap_close((void *) pcap->pcap);
+        f_pcap_close(pcap->pcap);
         free(pcap);
         return NULL;
     }
@@ -494,18 +497,18 @@ net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char *
             "( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5],
             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-    if (f_pcap_compile((void *) pcap->pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
-        if (f_pcap_setfilter((void *) pcap->pcap, &fp) != 0) {
+    if (f_pcap_compile(pcap->pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
+        if (f_pcap_setfilter(pcap->pcap, &fp) != 0) {
             snprintf(errbuf_prep, NET_DRV_ERRBUF_SIZE, "Error installing filter (%s)\n", filter_exp);
             net_pcap_error(netdrv_errbuf, errbuf_prep);
-            f_pcap_close((void *) pcap->pcap);
+            f_pcap_close(pcap->pcap);
             free(pcap);
             return NULL;
         }
     } else {
-        snprintf(errbuf_prep, NET_DRV_ERRBUF_SIZE, "Could not compile filter (%s) : %s!\n", filter_exp, (char *)f_pcap_geterr((void *) pcap->pcap));
+        snprintf(errbuf_prep, NET_DRV_ERRBUF_SIZE, "Could not compile filter (%s) : %s!\n", filter_exp, (char *)f_pcap_geterr(pcap->pcap));
         net_pcap_error(netdrv_errbuf, errbuf_prep);
-        f_pcap_close((void *) pcap->pcap);
+        f_pcap_close(pcap->pcap);
         free(pcap);
         return NULL;
     }
@@ -554,7 +557,7 @@ net_pcap_close(void *priv)
     f_pcap_sendqueue_destroy((void *) pcap->pcap_queue);
 #endif
     /* OK, now shut down Pcap itself. */
-    f_pcap_close((void *) pcap->pcap);
+    f_pcap_close(pcap->pcap);
 
     net_event_close(&pcap->tx_event);
     net_event_close(&pcap->stop_event);

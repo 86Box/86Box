@@ -315,7 +315,7 @@ banshee_update_irqs(banshee_t *banshee)
 static void
 banshee_vblank_start(svga_t *svga)
 {
-    banshee_t *banshee = (banshee_t *) svga->p;
+    banshee_t *banshee = (banshee_t *) svga->priv;
     if (banshee->vblank_irq >= 0) {
         banshee->vblank_irq = 1;
         banshee_update_irqs(banshee);
@@ -460,7 +460,7 @@ banshee_updatemapping(banshee_t *banshee)
 static void
 banshee_render_16bpp_tiled(svga_t *svga)
 {
-    banshee_t *banshee = (banshee_t *) svga->p;
+    banshee_t *banshee = (banshee_t *) svga->priv;
     uint32_t  *p = &((uint32_t *) svga->monitor->target_buffer->line[svga->displine + svga->y_add])[svga->x_add];
     uint32_t   addr;
     int        drawn = 0;
@@ -500,7 +500,7 @@ banshee_render_16bpp_tiled(svga_t *svga)
 static void
 banshee_recalctimings(svga_t *svga)
 {
-    banshee_t *banshee = (banshee_t *) svga->p;
+    banshee_t *banshee = (banshee_t *) svga->priv;
     voodoo_t  *voodoo  = banshee->voodoo;
 
     /*7 R/W Horizontal Retrace End bit 5. -
@@ -1981,7 +1981,7 @@ banshee_write_linear_l(uint32_t addr, uint32_t val, void *priv)
 void
 banshee_hwcursor_draw(svga_t *svga, int displine)
 {
-    banshee_t *banshee = (banshee_t *) svga->p;
+    banshee_t *banshee = (banshee_t *) svga->priv;
     int        x;
     int        x_off;
     int        xx;
@@ -2329,7 +2329,7 @@ voodoo_generate_vb_filters(voodoo_t *voodoo, int fcr, int fcg)
 static void
 banshee_overlay_draw(svga_t *svga, int displine)
 {
-    banshee_t   *banshee = (banshee_t *) svga->p;
+    banshee_t   *banshee = (banshee_t *) svga->priv;
     voodoo_t    *voodoo  = banshee->voodoo;
     uint32_t    *p;
     int          x;
@@ -2581,7 +2581,7 @@ banshee_set_overlay_addr(void *priv, UNUSED(uint32_t addr))
 static void
 banshee_vsync_callback(svga_t *svga)
 {
-    banshee_t *banshee = (banshee_t *) svga->p;
+    banshee_t *banshee = (banshee_t *) svga->priv;
     voodoo_t  *voodoo  = banshee->voodoo;
 
     voodoo->retrace_count++;

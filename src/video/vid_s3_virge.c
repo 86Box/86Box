@@ -39,6 +39,7 @@
 #include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
+#include <86box/plat_unused.h>
 
 static int dither[4][4] = {
     {0,  4, 1, 5},
@@ -307,12 +308,12 @@ static void s3_virge_updatemapping(virge_t *virge);
 
 static void s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat);
 
-static uint8_t  s3_virge_mmio_read(uint32_t addr, void *p);
-static uint16_t s3_virge_mmio_read_w(uint32_t addr, void *p);
-static uint32_t s3_virge_mmio_read_l(uint32_t addr, void *p);
-static void     s3_virge_mmio_write(uint32_t addr, uint8_t val, void *p);
-static void     s3_virge_mmio_write_w(uint32_t addr, uint16_t val, void *p);
-static void     s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *p);
+static uint8_t  s3_virge_mmio_read(uint32_t addr, void *priv);
+static uint16_t s3_virge_mmio_read_w(uint32_t addr, void *rivp);
+static uint32_t s3_virge_mmio_read_l(uint32_t addr, void *priv);
+static void     s3_virge_mmio_write(uint32_t addr, uint8_t val, void *priv);
+static void     s3_virge_mmio_write_w(uint32_t addr, uint16_t val, void *priv);
+static void     s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv);
 
 enum {
     CMD_SET_AE = 1,
@@ -387,9 +388,9 @@ s3_virge_log(const char *fmt, ...)
 #endif
 
 static void
-s3_virge_tri_timer(void *p)
+s3_virge_tri_timer(void *priv)
 {
-    virge_t *virge = (virge_t *) p;
+    virge_t *virge = (virge_t *) priv;
 
     thread_set_event(virge->wake_render_thread); /*Wake up FIFO thread if moving from idle*/
 }
@@ -447,9 +448,9 @@ render_thread(void *param)
 }
 
 static void
-s3_virge_out(uint16_t addr, uint8_t val, void *p)
+s3_virge_out(uint16_t addr, uint8_t val, void *priv)
 {
-    virge_t *virge = (virge_t *) p;
+    virge_t *virge = (virge_t *) priv;
     svga_t  *svga  = &virge->svga;
     uint8_t  old;
     uint32_t cursoraddr;
@@ -653,9 +654,9 @@ s3_virge_out(uint16_t addr, uint8_t val, void *p)
 }
 
 static uint8_t
-s3_virge_in(uint16_t addr, void *p)
+s3_virge_in(uint16_t addr, void *priv)
 {
-    virge_t *virge = (virge_t *) p;
+    virge_t *virge = (virge_t *) priv;
     svga_t  *svga  = &virge->svga;
     uint8_t  ret;
 
@@ -760,7 +761,7 @@ s3_virge_in(uint16_t addr, void *p)
 static void
 s3_virge_recalctimings(svga_t *svga)
 {
-    virge_t *virge = (virge_t *) svga->p;
+    virge_t *virge = (virge_t *) svga->priv;
 
     svga->hdisp = svga->hdisp_old;
 
@@ -988,7 +989,7 @@ s3_virge_updatemapping(virge_t *virge)
 static void
 s3_virge_vblank_start(svga_t *svga)
 {
-    virge_t *virge = (virge_t *) svga->p;
+    virge_t *virge = (virge_t *) svga->priv;
 
     virge->subsys_stat |= INT_VSY;
     s3_virge_update_irqs(virge);
@@ -1471,9 +1472,9 @@ s3_virge_mmio_fifo_write_l(uint32_t addr, uint32_t val, virge_t *virge)
 }
 
 static uint8_t
-s3_virge_mmio_read(uint32_t addr, void *p)
+s3_virge_mmio_read(uint32_t addr, void *priv)
 {
-    virge_t *virge = (virge_t *) p;
+    virge_t *virge = (virge_t *) priv;
     uint8_t  ret   = 0xff;
 
     s3_virge_log("[%04X:%08X]: MMIO ReadB addr = %04x\n", CS, cpu_state.pc, addr & 0xffff);
@@ -1555,9 +1556,9 @@ s3_virge_mmio_read(uint32_t addr, void *p)
     return 0xff;
 }
 static uint16_t
-s3_virge_mmio_read_w(uint32_t addr, void *p)
+s3_virge_mmio_read_w(uint32_t addr, void *priv)
 {
-    virge_t *virge = (virge_t *) p;
+    virge_t *virge = (virge_t *) priv;
     uint16_t ret   = 0xffff;
 
     s3_virge_log("[%04X:%08X]: MMIO ReadW addr = %04x\n", CS, cpu_state.pc, addr & 0xfffe);
@@ -1584,9 +1585,9 @@ s3_virge_mmio_read_w(uint32_t addr, void *p)
 }
 
 static uint32_t
-s3_virge_mmio_read_l(uint32_t addr, void *p)
+s3_virge_mmio_read_l(uint32_t addr, void *priv)
 {
-    virge_t *virge = (virge_t *) p;
+    virge_t *virge = (virge_t *) priv;
     uint32_t ret   = 0xffffffff;
 
     s3_virge_log("[%04X:%08X]: MMIO ReadL addr = %04x\n", CS, cpu_state.pc, addr & 0xfffc);
@@ -1745,9 +1746,9 @@ s3_virge_mmio_read_l(uint32_t addr, void *p)
 }
 
 static void
-s3_virge_mmio_write(uint32_t addr, uint8_t val, void *p)
+s3_virge_mmio_write(uint32_t addr, uint8_t val, void *priv)
 {
-    virge_t *virge = (virge_t *) p;
+    virge_t *virge = (virge_t *) priv;
     s3_virge_log("MMIO WriteB addr = %04x, val = %02x\n", addr & 0xffff, val);
     if (((addr & 0xffff) >= 0x8590) || ((addr & 0xffff) < 0x8000)) {
         if ((addr & 0xffff) == 0xff20) {
@@ -1812,9 +1813,9 @@ s3_virge_mmio_write(uint32_t addr, uint8_t val, void *p)
 }
 
 static void
-s3_virge_mmio_write_w(uint32_t addr, uint16_t val, void *p)
+s3_virge_mmio_write_w(uint32_t addr, uint16_t val, void *priv)
 {
-    virge_t *virge = (virge_t *) p;
+    virge_t *virge = (virge_t *) priv;
     s3_virge_log("[%04X:%08X]: MMIO WriteW addr = %04x, val = %04x\n", CS, cpu_state.pc, addr & 0xfffe, val);
     if (((addr & 0xfffe) >= 0x8590) || ((addr & 0xfffe) < 0x8000))
         if ((addr & 0xfffe) == 0xff20)
@@ -1830,9 +1831,9 @@ s3_virge_mmio_write_w(uint32_t addr, uint16_t val, void *p)
 }
 
 static void
-s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *p)
+s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
 {
-    virge_t *virge = (virge_t *) p;
+    virge_t *virge = (virge_t *) priv;
     svga_t  *svga  = &virge->svga;
 
     s3_virge_log("[%04X:%08X]: MMIO WriteL addr = %04x, val = %04x\n", CS, cpu_state.pc, addr & 0xfffc, val);
@@ -3486,7 +3487,7 @@ s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri)
 static void
 s3_virge_hwcursor_draw(svga_t *svga, int displine)
 {
-    virge_t *virge = (virge_t *) svga->p;
+    virge_t *virge = (virge_t *) svga->priv;
     uint16_t dat[2];
     int      xx;
     int      offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
@@ -3771,7 +3772,7 @@ s3_virge_hwcursor_draw(svga_t *svga, int displine)
 static void
 s3_virge_overlay_draw(svga_t *svga, int displine)
 {
-    virge_t  *virge  = (virge_t *) svga->p;
+    virge_t  *virge  = (virge_t *) svga->priv;
     int       offset = (virge->streams.sec_x - virge->streams.pri_x) + 1;
     int       h_acc  = virge->streams.dda_horiz_accumulator;
     int       r[8];
@@ -3813,9 +3814,9 @@ s3_virge_overlay_draw(svga_t *svga, int displine)
 }
 
 static uint8_t
-s3_virge_pci_read(int func, int addr, void *p)
+s3_virge_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    virge_t *virge = (virge_t *) p;
+    virge_t *virge = (virge_t *) priv;
     svga_t  *svga  = &virge->svga;
     uint8_t  ret   = 0;
 
@@ -3975,9 +3976,9 @@ s3_virge_pci_read(int func, int addr, void *p)
 }
 
 static void
-s3_virge_pci_write(int func, int addr, uint8_t val, void *p)
+s3_virge_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
-    virge_t *virge = (virge_t *) p;
+    virge_t *virge = (virge_t *) priv;
     svga_t  *svga  = &virge->svga;
     switch (addr) {
         case 0x00:
@@ -4304,7 +4305,10 @@ s3_virge_init(const device_t *info)
 
         case S3_VIRGE_GX:
             virge->virge_rev = 0x01;
-            /*FALLTHROUGH*/
+#ifndef __APPLE__
+            [[fallthrough]];
+#endif
+
         default:
             virge->svga.decode_mask  = (4 << 20) - 1;
             virge->virge_id_high     = 0x8a;
@@ -4382,9 +4386,9 @@ s3_virge_init(const device_t *info)
 }
 
 static void
-s3_virge_close(void *p)
+s3_virge_close(void *priv)
 {
-    virge_t *virge = (virge_t *) p;
+    virge_t *virge = (virge_t *) priv;
 
     virge->render_thread_run = 0;
     thread_set_event(virge->wake_render_thread);
@@ -4462,17 +4466,17 @@ s3_trio3d2x_available(void)
 }
 
 static void
-s3_virge_speed_changed(void *p)
+s3_virge_speed_changed(void *priv)
 {
-    virge_t *virge = (virge_t *) p;
+    virge_t *virge = (virge_t *) priv;
 
     svga_recalctimings(&virge->svga);
 }
 
 static void
-s3_virge_force_redraw(void *p)
+s3_virge_force_redraw(void *priv)
 {
-    virge_t *virge = (virge_t *) p;
+    virge_t *virge = (virge_t *) priv;
 
     virge->svga.fullchange = changeframecount;
 }

@@ -62,8 +62,9 @@
 #include <86box/net_dp8390.h>
 #include <86box/net_3c503.h>
 #include <86box/bswap.h>
+#include <86box/plat_unused.h>
 
-typedef struct {
+typedef struct threec503_t {
     dp8390_t     *dp8390;
     mem_mapping_t ram_mapping;
     uint32_t      base_address;
@@ -129,6 +130,9 @@ threec503_interrupt(void *priv, int set)
         case 5:
             dev->regs.idcfr = 0x80;
             break;
+
+        default:
+            break;
     }
 
     if (set)
@@ -151,7 +155,7 @@ threec503_ram_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 threec503_ram_read(uint32_t addr, void *priv)
 {
-    threec503_t *dev = (threec503_t *) priv;
+    const threec503_t *dev = (threec503_t *) priv;
 
     if ((addr & 0x3fff) >= 0x2000)
         return 0xff;
@@ -173,6 +177,9 @@ threec503_set_drq(threec503_t *dev)
 
         case 3:
             dev->regs.idcfr = 4;
+            break;
+
+        default:
             break;
     }
 }
@@ -223,6 +230,9 @@ threec503_nic_lo_read(uint16_t addr, void *priv)
                     case 0x03:
                         retval = 0xff;
                         break;
+
+                    default:
+                        break;
                 }
             break;
 
@@ -236,6 +246,9 @@ threec503_nic_lo_read(uint16_t addr, void *priv)
 
         case 0x03:
             retval = 0xff;
+            break;
+
+        default:
             break;
     }
 
@@ -272,12 +285,18 @@ threec503_nic_lo_write(uint16_t addr, uint8_t val, void *priv)
 
                     case 0x03:
                         break;
+
+                    default:
+                        break;
                 }
             break;
 
         case 0x01:
         case 0x02:
         case 0x03:
+            break;
+
+        default:
             break;
     }
 
@@ -338,7 +357,6 @@ threec503_nic_hi_read(uint16_t addr, void *priv)
             }
 
             return dev->regs.bcfr;
-            break;
 
         case 0x04:
             switch (dev->bios_addr) {
@@ -357,10 +375,12 @@ threec503_nic_hi_read(uint16_t addr, void *priv)
                 case 0xc8000:
                     dev->regs.pcfr = 0x10;
                     break;
+
+                default:
+                    break;
             }
 
             return dev->regs.pcfr;
-            break;
 
         case 0x05:
             return dev->regs.gacfr;
@@ -397,6 +417,9 @@ threec503_nic_hi_read(uint16_t addr, void *priv)
             threec503_set_drq(dev);
 
             return dp8390_chipmem_read(dev->dp8390, dev->regs.da++, 1);
+
+        default:
+            break;
     }
 
     return 0;
@@ -527,6 +550,9 @@ threec503_nic_hi_write(uint16_t addr, uint8_t val, void *priv)
 
             dp8390_chipmem_write(dev->dp8390, dev->regs.da++, val, 1);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -543,7 +569,7 @@ threec503_nic_ioset(threec503_t *dev, uint16_t addr)
 }
 
 static void *
-threec503_nic_init(const device_t *info)
+threec503_nic_init(UNUSED(const device_t *info))
 {
     uint32_t     mac;
     threec503_t *dev;
@@ -605,7 +631,9 @@ threec503_nic_init(const device_t *info)
                     threec503_ram_read, NULL, NULL,
                     threec503_ram_write, NULL, NULL,
                     NULL, MEM_MAPPING_EXTERNAL, dev);
-    // mem_mapping_disable(&dev->ram_mapping);
+#if 0
+    mem_mapping_disable(&dev->ram_mapping);
+#endif
     dev->regs.gacfr = 0x09; /* Start with RAM mapping enabled. */
 
     /* Attach ourselves to the network module. */

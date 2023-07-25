@@ -916,7 +916,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                             fdc_bad_command(fdc);
                             break;
                         }
-                        /*FALLTHROUGH*/
+#ifndef __APPLE__
+                        [[fallthrough]];
+#endif
                     case 0x07: /*Recalibrate*/
                         fdc->pnum = 0;
                         fdc->ptot = 1;
@@ -959,7 +961,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                             fdc_bad_command(fdc);
                             break;
                         }
-                        /*FALLTHROUGH*/
+#ifndef __APPLE__
+                        [[fallthrough]];
+#endif
                     case 0x10: /*Get version*/
                     case 0x14: /*Unlock*/
                     case 0x94: /*Lock*/
@@ -1081,7 +1085,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         case 0x16: /* Verify */
                             if (fdc->params[0] & 0x80)
                                 fdc->sc = fdc->params[7];
-                            /*FALLTHROUGH*/
+#ifndef __APPLE__
+                            [[fallthrough]];
+#endif
                         case 0x06: /* Read data */
                         case 0x0c: /* Read deleted data */
                             fdc_io_command_phase1(fdc, 0);

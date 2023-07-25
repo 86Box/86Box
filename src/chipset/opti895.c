@@ -204,8 +204,8 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 opti895_read(uint16_t addr, void *priv)
 {
-    uint8_t    ret = 0xff;
-    opti895_t *dev = (opti895_t *) priv;
+    uint8_t          ret = 0xff;
+    const opti895_t *dev = (opti895_t *) priv;
 
     switch (addr) {
         case 0x23:

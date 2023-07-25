@@ -585,6 +585,6 @@ select_codepage(uint16_t code, uint16_t *curmap)
         i++;
     }
 
-    for (i = 0; i < 256; i++)
-        curmap[i] = map_to_use[i];
+    for (uint16_t j = 0; j < 256; j++)
+        curmap[j] = map_to_use[j];
 }

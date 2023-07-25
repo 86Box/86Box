@@ -228,7 +228,7 @@ load_monitor(int monitor_index)
     ini_section_t cat;
     char          name[512];
     char          temp[512];
-    char         *p = NULL;
+    const char   *p = NULL;
 
     sprintf(name, "Monitor #%i", monitor_index + 1);
     sprintf(temp, "%i, %i, %i, %i", cx, cy, cw, ch);
@@ -256,7 +256,7 @@ load_machine(void)
 {
     ini_section_t cat = ini_find_section(config, "Machine");
     char         *p;
-    char         *migrate_from = NULL;
+    const char   *migrate_from = NULL;
     int           c;
     int           i;
     int           j;
@@ -448,7 +448,7 @@ load_machine(void)
                 cpu_f = cpu_get_family(legacy_table_entry->family);
                 if (cpu_f) {
                     /* Save the new values. */
-                    ini_section_set_string(cat, "cpu_family", (char *) legacy_table_entry->family);
+                    ini_section_set_string(cat, "cpu_family", legacy_table_entry->family);
                     ini_section_set_int(cat, "cpu_speed", legacy_table_entry->rspeed);
                     ini_section_set_double(cat, "cpu_multi", legacy_table_entry->multi);
                 }
@@ -500,7 +500,7 @@ load_machine(void)
 
     cpu_waitstates = ini_section_get_int(cat, "cpu_waitstates", 0);
 
-    p        = (char *) ini_section_get_string(cat, "fpu_type", "none");
+    p        = ini_section_get_string(cat, "fpu_type", "none");
     fpu_type = fpu_get_type(cpu_f, cpu, p);
 
     mem_size = ini_section_get_int(cat, "mem_size", 64);
@@ -911,7 +911,7 @@ load_ports(void)
         lpt_ports[c].enabled = !!ini_section_get_int(cat, temp, (c == 0) ? 1 : 0);
 
         sprintf(temp, "lpt%d_device", c + 1);
-        p                   = (char *) ini_section_get_string(cat, temp, "none");
+        p                   = ini_section_get_string(cat, temp, "none");
         lpt_ports[c].device = lpt_device_get_from_internal_name(p);
     }
 
@@ -1557,7 +1557,7 @@ load_other_removable_devices(void)
     ini_section_t cat = ini_find_section(config, "Other removable devices");
     char          temp[512];
     char          tmp2[512];
-    char         *p;
+    const char   *p;
     char          s[512];
     unsigned int  board = 0;
     unsigned int  dev = 0;
@@ -2017,7 +2017,7 @@ save_general(void)
     char          temp[512];
     char          buffer[512] = { 0 };
 
-    char *va_name;
+    const char *va_name = NULL;
 
     ini_section_set_int(cat, "vid_resize", vid_resize);
     if (vid_resize == 0)
@@ -2216,7 +2216,7 @@ static void
 save_machine(void)
 {
     ini_section_t cat = ini_find_or_create_section(config, "Machine");
-    char         *p;
+    const char   *p;
     int           c;
     int           i = 0;
     int           legacy_mfg;
@@ -2226,7 +2226,7 @@ save_machine(void)
     p = machine_get_internal_name();
     ini_section_set_string(cat, "machine", p);
 
-    ini_section_set_string(cat, "cpu_family", (char *) cpu_f->internal_name);
+    ini_section_set_string(cat, "cpu_family", cpu_f->internal_name);
     ini_section_set_int(cat, "cpu_speed", cpu_f->cpus[cpu].rspeed);
     ini_section_set_double(cat, "cpu_multi", cpu_f->cpus[cpu].multi);
     if (cpu_override)
@@ -2247,14 +2247,14 @@ save_machine(void)
     }
     if (cpu_legacy_table[c].machine) {
         /* Look for a corresponding CPU entry. */
-        cpu_legacy_table_t *legacy_table_entry;
+        const cpu_legacy_table_t *legacy_table_entry;
         for (legacy_mfg = 0; legacy_mfg < 4; legacy_mfg++) {
             if (!cpu_legacy_table[c].tables[legacy_mfg])
                 continue;
 
             i = 0;
             while (cpu_legacy_table[c].tables[legacy_mfg][i].family) {
-                legacy_table_entry = (cpu_legacy_table_t *) &cpu_legacy_table[c].tables[legacy_mfg][i];
+                legacy_table_entry = &cpu_legacy_table[c].tables[legacy_mfg][i];
 
                 /* Match the family name, speed and multiplier. */
                 if (!strcmp(cpu_f->internal_name, legacy_table_entry->family)) {
@@ -2294,7 +2294,7 @@ save_machine(void)
     if (fpu_type == 0)
         ini_section_delete_var(cat, "fpu_type");
     else
-        ini_section_set_string(cat, "fpu_type", (char *) fpu_get_internal_name(cpu_f, cpu, fpu_type));
+        ini_section_set_string(cat, "fpu_type", fpu_get_internal_name(cpu_f, cpu, fpu_type));
 
     // Write the mem_size explicitly to the setttings in order to help managers to display it without having the actual machine table
     ini_section_delete_var(cat, "mem_size");
@@ -2613,7 +2613,7 @@ save_ports(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp,
-                                   (char *) lpt_device_get_internal_name(lpt_ports[c].device));
+                                   lpt_device_get_internal_name(lpt_ports[c].device));
     }
 
     ini_delete_section_if_empty(config, cat);
@@ -2738,7 +2738,7 @@ save_other_peripherals(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp,
-                                   (char *) isamem_get_internal_name(isamem_type[c]));
+                                   isamem_get_internal_name(isamem_type[c]));
     }
 
     if (isartc_type == 0)
@@ -2836,7 +2836,7 @@ save_hard_disks(void)
         if (!hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_IDE && hdd[c].bus != HDD_BUS_ESDI))
             ini_section_delete_var(cat, temp);
         else
-            ini_section_set_string(cat, temp, (char *) hdd_preset_get_internal_name(hdd[c].speed_preset));
+            ini_section_set_string(cat, temp, hdd_preset_get_internal_name(hdd[c].speed_preset));
     }
 
     ini_delete_section_if_empty(config, cat);

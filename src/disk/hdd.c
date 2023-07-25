@@ -160,7 +160,7 @@ hdd_seek_get_time(hard_disk_t *hdd, uint32_t dst_addr, uint8_t operation, uint8_
     if (!hdd->speed_preset)
         return HDD_OVERHEAD_TIME;
 
-    hdd_zone_t *zone = NULL;
+    const hdd_zone_t *zone = NULL;
     if (hdd->num_zones <= 0) {
         fatal("hdd_seek_get_time(): hdd->num_zones < 0)\n");
         return 0.0;
@@ -486,7 +486,7 @@ hdd_preset_apply(int hdd_id)
     if (hd->speed_preset >= hdd_preset_get_num())
         hd->speed_preset = 0;
 
-    hdd_preset_t *preset = &hdd_speed_presets[hd->speed_preset];
+    const hdd_preset_t *preset = &hdd_speed_presets[hd->speed_preset];
 
     hd->cache.num_segments = preset->rcache_num_seg;
     hd->cache.segment_size = preset->rcache_seg_size;

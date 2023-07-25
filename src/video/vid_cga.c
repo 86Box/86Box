@@ -33,6 +33,7 @@
 #include <86box/video.h>
 #include <86box/vid_cga.h>
 #include <86box/vid_cga_comp.h>
+#include <86box/plat_unused.h>
 
 #define CGA_RGB       0
 #define CGA_COMPOSITE 1
@@ -50,9 +51,9 @@ static video_timings_t timing_cga = { .type = VIDEO_ISA, .write_b = 8, .write_w 
 void cga_recalctimings(cga_t *cga);
 
 void
-cga_out(uint16_t addr, uint8_t val, void *p)
+cga_out(uint16_t addr, uint8_t val, void *priv)
 {
-    cga_t  *cga = (cga_t *) p;
+    cga_t  *cga = (cga_t *) priv;
     uint8_t old;
 
     if ((addr >= 0x3d0) && (addr <= 0x3d7))
@@ -89,13 +90,16 @@ cga_out(uint16_t addr, uint8_t val, void *p)
             if (old ^ val)
                 cga_recalctimings(cga);
             return;
+
+        default:
+            break;
     }
 }
 
 uint8_t
-cga_in(uint16_t addr, void *p)
+cga_in(uint16_t addr, void *priv)
 {
-    cga_t *cga = (cga_t *) p;
+    cga_t *cga = (cga_t *) priv;
 
     uint8_t ret = 0xff;
 
@@ -112,29 +116,32 @@ cga_in(uint16_t addr, void *p)
         case 0x3DA:
             ret = cga->cgastat;
             break;
+
+        default:
+            break;
     }
 
     return ret;
 }
 
 void
-cga_pravetz_out(uint16_t addr, uint8_t val, void *p)
+cga_pravetz_out(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
-    cga_t *cga = (cga_t *) p;
+    cga_t *cga = (cga_t *) priv;
 
     cga->fontbase = (((unsigned int) val) << 8);
 }
 
 uint8_t
-cga_pravetz_in(uint16_t addr, void *p)
+cga_pravetz_in(UNUSED(uint16_t addr), void *priv)
 {
-    cga_t *cga = (cga_t *) p;
+    cga_t *cga = (cga_t *) priv;
 
     return (cga->fontbase >> 8);
 }
 
 void
-cga_waitstates(void *p)
+cga_waitstates(UNUSED(void *priv))
 {
     int ws_array[16] = { 3, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8 };
     int ws;
@@ -144,9 +151,9 @@ cga_waitstates(void *p)
 }
 
 void
-cga_write(uint32_t addr, uint8_t val, void *p)
+cga_write(uint32_t addr, uint8_t val, void *priv)
 {
-    cga_t *cga = (cga_t *) p;
+    cga_t *cga = (cga_t *) priv;
 
     cga->vram[addr & 0x3fff] = val;
     if (cga->snow_enabled) {
@@ -158,9 +165,9 @@ cga_write(uint32_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-cga_read(uint32_t addr, void *p)
+cga_read(uint32_t addr, void *priv)
 {
-    cga_t *cga = (cga_t *) p;
+    cga_t *cga = (cga_t *) priv;
 
     cga_waitstates(cga);
     if (cga->snow_enabled) {
@@ -193,9 +200,9 @@ cga_recalctimings(cga_t *cga)
 }
 
 void
-cga_poll(void *p)
+cga_poll(void *priv)
 {
-    cga_t   *cga = (cga_t *) p;
+    cga_t   *cga = (cga_t *) priv;
     uint16_t ca  = (cga->crtc[15] | (cga->crtc[14] << 8)) & 0x3fff;
     int      drawcursor;
     int      x;
@@ -508,7 +515,7 @@ cga_init(cga_t *cga)
 }
 
 void *
-cga_standalone_init(const device_t *info)
+cga_standalone_init(UNUSED(const device_t *info))
 {
     int    display_type;
     cga_t *cga = malloc(sizeof(cga_t));
@@ -554,18 +561,18 @@ cga_pravetz_init(const device_t *info)
 }
 
 void
-cga_close(void *p)
+cga_close(void *priv)
 {
-    cga_t *cga = (cga_t *) p;
+    cga_t *cga = (cga_t *) priv;
 
     free(cga->vram);
     free(cga);
 }
 
 void
-cga_speed_changed(void *p)
+cga_speed_changed(void *priv)
 {
-    cga_t *cga = (cga_t *) p;
+    cga_t *cga = (cga_t *) priv;
 
     cga_recalctimings(cga);
 }

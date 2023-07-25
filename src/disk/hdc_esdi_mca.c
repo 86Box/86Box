@@ -352,10 +352,10 @@ complete_command_status(esdi_t *dev)
 static void
 esdi_callback(void *priv)
 {
-    esdi_t  *dev = (esdi_t *) priv;
-    drive_t *drive;
-    int      val;
-    double   cmd_time = 0.0;
+    esdi_t        *dev = (esdi_t *) priv;
+    const drive_t *drive;
+    int            val;
+    double         cmd_time = 0.0;
 
     esdi_mca_set_callback(dev, 0);
 
@@ -1059,7 +1059,7 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
 static uint8_t
 esdi_mca_read(int port, void *priv)
 {
-    esdi_t *dev = (esdi_t *) priv;
+    const esdi_t *dev = (esdi_t *) priv;
 
     esdi_mca_log("ESDI: mcard(%04x)\n", port);
 
@@ -1132,7 +1132,7 @@ esdi_mca_write(int port, uint8_t val, void *priv)
 static uint8_t
 esdi_mca_feedb(void *priv)
 {
-    esdi_t *dev = (esdi_t *) priv;
+    const esdi_t *dev = (esdi_t *) priv;
 
     return (dev->pos_regs[2] & 1);
 }
@@ -1210,8 +1210,8 @@ esdi_init(UNUSED(const device_t *info))
 static void
 esdi_close(void *priv)
 {
-    esdi_t  *dev = (esdi_t *) priv;
-    drive_t *drive;
+    esdi_t        *dev = (esdi_t *) priv;
+    const drive_t *drive;
 
     dev->drives[0].present = dev->drives[1].present = 0;
 

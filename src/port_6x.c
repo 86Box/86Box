@@ -48,7 +48,7 @@
 static void
 port_6x_write(uint16_t port, uint8_t val, void *priv)
 {
-    port_6x_t *dev = (port_6x_t *) priv;
+    const port_6x_t *dev = (port_6x_t *) priv;
 
     port &= 3;
 
@@ -89,8 +89,8 @@ port_61_read_simple(UNUSED(uint16_t port), UNUSED(void *priv))
 static uint8_t
 port_61_read(UNUSED(uint16_t port), void *priv)
 {
-    port_6x_t *dev = (port_6x_t *) priv;
-    uint8_t    ret = 0xff;
+    const port_6x_t *dev = (port_6x_t *) priv;
+    uint8_t          ret = 0xff;
 
     if (dev->flags & PORT_6X_EXT_REF) {
         ret = ppi.pb & 0x0f;

@@ -48,6 +48,7 @@
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/hwm.h>
 #include <86box/machine.h>
+#include <86box/plat_unused.h>
 
 int
 machine_at_acc386_init(const machine_t *model)
@@ -812,7 +813,7 @@ machine_at_greenb_init(const machine_t *model)
 }
 
 static void
-machine_at_sis_85c496_common_init(const machine_t *model)
+machine_at_sis_85c496_common_init(UNUSED(const machine_t *model))
 {
     device_add(&ide_pci_2ch_device);
 
@@ -1281,7 +1282,9 @@ machine_at_abpb4_init(const machine_t *model)
     device_add(&ali1489_device);
     device_add(&w83787f_device);
     device_add(&keyboard_at_device);
-    // device_add(&intel_flash_bxt_device);
+#if 0
+    device_add(&intel_flash_bxt_device);
+#endif
     device_add(&sst_flash_29ee010_device);
 
     return ret;
@@ -1788,7 +1791,7 @@ machine_at_tg486gp_init(const machine_t *model)
 int
 machine_at_tg486g_init(const machine_t *model)
 {
-    int ret, i;
+    int ret;
 
     ret = bios_load_linear("roms/machines/tg486g/tg486g.bin",
                            0x000c0000, 262144, 0);
@@ -1803,7 +1806,7 @@ machine_at_tg486g_init(const machine_t *model)
     device_add(&keyboard_ps2_tg_ami_pci_device);
 
     if (gfxcard[0] != VID_INTERNAL) {
-        for (i = 0; i < 32768; i++)
+        for (uint16_t i = 0; i < 32768; i++)
             rom[i] = mem_readb_phys(0x000c0000 + i);
     }
     mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);

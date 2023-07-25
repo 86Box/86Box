@@ -70,8 +70,8 @@ static char flash_path[1024];
 static uint8_t
 flash_read(uint32_t addr, void *priv)
 {
-    flash_t *dev = (flash_t *) priv;
-    uint8_t  ret = 0xff;
+    const flash_t *dev = (flash_t *) priv;
+    uint8_t        ret = 0xff;
 
     addr &= biosmask;
 
@@ -98,10 +98,10 @@ flash_read(uint32_t addr, void *priv)
 }
 
 static uint16_t
-flash_readw(uint32_t addr, void *p)
+flash_readw(uint32_t addr, void *priv)
 {
-    flash_t  *dev = (flash_t *) p;
-    uint16_t *q;
+    flash_t        *dev = (flash_t *) priv;
+    const uint16_t *q;
 
     addr &= biosmask;
 
@@ -111,10 +111,10 @@ flash_readw(uint32_t addr, void *p)
 }
 
 static uint32_t
-flash_readl(uint32_t addr, void *p)
+flash_readl(uint32_t addr, void *priv)
 {
-    flash_t  *dev = (flash_t *) p;
-    uint32_t *q;
+    flash_t        *dev = (flash_t *) priv;
+    const uint32_t *q;
 
     addr &= biosmask;
 
@@ -124,9 +124,9 @@ flash_readl(uint32_t addr, void *p)
 }
 
 static void
-flash_write(uint32_t addr, uint8_t val, void *p)
+flash_write(uint32_t addr, uint8_t val, void *priv)
 {
-    flash_t *dev = (flash_t *) p;
+    flash_t *dev = (flash_t *) priv;
 
     addr &= biosmask;
 
@@ -189,7 +189,7 @@ catalyst_flash_reset(void *priv)
 static void *
 catalyst_flash_init(UNUSED(const device_t *info))
 {
-    FILE    *f;
+    FILE    *fp;
     flash_t *dev;
 
     dev = malloc(sizeof(flash_t));
@@ -207,24 +207,24 @@ catalyst_flash_init(UNUSED(const device_t *info))
 
     dev->command = CMD_RESET;
 
-    f = nvr_fopen(flash_path, "rb");
-    if (f) {
-        (void) !fread(dev->array, 0x20000, 1, f);
-        fclose(f);
+    fp = nvr_fopen(flash_path, "rb");
+    if (fp) {
+        (void) !fread(dev->array, 0x20000, 1, fp);
+        fclose(fp);
     }
 
     return dev;
 }
 
 static void
-catalyst_flash_close(void *p)
+catalyst_flash_close(void *priv)
 {
-    FILE    *f;
-    flash_t *dev = (flash_t *) p;
+    FILE    *fp;
+    flash_t *dev = (flash_t *) priv;
 
-    f = nvr_fopen(flash_path, "wb");
-    fwrite(dev->array, 0x20000, 1, f);
-    fclose(f);
+    fp = nvr_fopen(flash_path, "wb");
+    fwrite(dev->array, 0x20000, 1, fp);
+    fclose(fp);
 
     free(dev->array);
     dev->array = NULL;
