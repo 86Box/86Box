@@ -52,6 +52,7 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
 #define ET4000_TYPE_ISA      1 /* ISA ET4000AX */
@@ -432,7 +433,7 @@ et4000_kasan_out(uint16_t addr, uint8_t val, void *priv)
                 case 5:
                     et4000->kasan_cfg_regs[5]              = val;
                     et4000->svga.ksc5601_english_font_type = 0x100 | val;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
                     [[fallthrough]];
 #endif
                 case 6:

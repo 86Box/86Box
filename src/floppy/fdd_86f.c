@@ -1951,7 +1951,7 @@ d86f_format_track(int drive, int side, int do_write)
                 if (dev->datac == 3)
                     fdc_stop_id_request(d86f_fdc);
             }
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
 
@@ -2296,7 +2296,7 @@ d86f_turbo_poll(int drive, int side)
         case STATE_0D_SPIN_TO_INDEX:
             dev->sector_count = 0;
             dev->datac        = 5;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
 
@@ -2343,7 +2343,7 @@ d86f_turbo_poll(int drive, int side)
             dev->last_sector.id.r = dev->req_sector.id.r;
             dev->last_sector.id.n = dev->req_sector.id.n;
             d86f_handler[drive].set_sector(drive, side, dev->last_sector.id.c, dev->last_sector.id.h, dev->last_sector.id.r, dev->last_sector.id.n);
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
 

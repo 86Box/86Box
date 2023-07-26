@@ -1029,7 +1029,7 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
     switch (saddr) {
         case ESP_TCHI:
             dev->tchi_written = 1;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
         case ESP_TCLO:

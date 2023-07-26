@@ -664,7 +664,7 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
     switch (addr) {
         case 0x3c8:
             mystique->xreg_idx = val;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
         case 0x3c6:

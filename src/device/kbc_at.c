@@ -29,6 +29,7 @@
 #include <86box/io.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include <86box/ppi.h>
 #include <86box/mem.h>
@@ -463,7 +464,7 @@ kbc_at_poll_at(atkbc_t *dev)
         case STATE_KBC_AMI_OUT:
             if (dev->status & STAT_OFULL)
                 break;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
         case STATE_MAIN_IBF:
@@ -588,7 +589,7 @@ kbc_at_poll_ps2(atkbc_t *dev)
         case STATE_KBC_AMI_OUT:
             if (dev->status & STAT_OFULL)
                 break;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
         case STATE_MAIN_IBF:

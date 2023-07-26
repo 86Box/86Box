@@ -26,6 +26,7 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/vid_ati_eeprom.h>
+#include <86box/plat_fallthrough.h>
 
 void
 ati_eeprom_load(ati_eeprom_t *eeprom, char *fn, int type)
@@ -93,7 +94,7 @@ ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                     if (!dat)
                         break;
                     eeprom->state = EEPROM_OPCODE;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
                 [[fallthrough]];
 #endif
                 case EEPROM_OPCODE:

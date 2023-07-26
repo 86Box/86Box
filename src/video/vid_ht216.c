@@ -35,6 +35,7 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
 typedef struct ht216_t {
@@ -320,7 +321,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                         svga->adv_flags &= ~FLAG_RAMDAC_SHIFT;
                         if (val & 0x04)
                             svga->adv_flags |= FLAG_RAMDAC_SHIFT;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
                         [[fallthrough]];
 #endif
                     /*Bank registers*/

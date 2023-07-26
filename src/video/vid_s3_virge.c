@@ -39,7 +39,6 @@
 #include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
-#include <86box/plat_unused.h>
 
 static int dither[4][4] = {
     {0,  4, 1, 5},
@@ -4305,7 +4304,7 @@ s3_virge_init(const device_t *info)
 
         case S3_VIRGE_GX:
             virge->virge_rev = 0x01;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
 

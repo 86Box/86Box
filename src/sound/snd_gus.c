@@ -17,6 +17,7 @@
 #include <86box/sound.h>
 #include <86box/timer.h>
 #include <86box/snd_ad1848.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
 enum {
@@ -626,7 +627,7 @@ writegus(uint16_t addr, uint8_t val, void *priv)
                 else if (gus->irq != -1)
                     picint(1 << gus->irq);
             }
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
         case 0x20d:

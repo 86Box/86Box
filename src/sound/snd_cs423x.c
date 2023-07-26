@@ -36,6 +36,7 @@
 #include <86box/snd_ad1848.h>
 #include <86box/snd_opl.h>
 #include <86box/snd_sb.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
 #define CRYSTAL_NOEEPROM 0x100
@@ -299,7 +300,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
                     switch (val) {
                         case 0x55: /* Disable PnP Key */
                             dev->pnp_enable = 0;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
                             [[fallthrough]];
 #endif
 

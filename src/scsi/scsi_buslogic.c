@@ -1232,7 +1232,7 @@ BuslogicPCIWrite(UNUSED(int func), int addr, uint8_t val, void *priv)
         case 0x10:
             val &= 0xe0;
             val |= 1;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
 
@@ -1258,7 +1258,7 @@ BuslogicPCIWrite(UNUSED(int func), int addr, uint8_t val, void *priv)
 
         case 0x14:
             val &= 0xe0;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
 
