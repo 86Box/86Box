@@ -10,7 +10,7 @@
  *
  *
  *
- * Authors: Miran Grca, <jasmine@iwanek.co.uk>
+ * Authors: Jasmine Iwanek, <jasmine@iwanek.co.uk>
  *
  *          Copyright 2023 Jasmine Iwanek
  */
