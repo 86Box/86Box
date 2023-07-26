@@ -217,7 +217,7 @@ jobs:
 
       - name: Setup NuGet Credentials
         run: >
-          & (C:/vcpkg/vcpkg fetch nuget | tail -n 2)
+          & (C:/vcpkg/vcpkg --vcpkg-root "${{ env.VCPKG_ROOT }}" fetch nuget | tail -n 2)
           sources add
           -source "https://nuget.pkg.github.com/86Box/index.json"
           -storepasswordincleartext
