@@ -110,7 +110,7 @@ static mt32emu_context context         = NULL;
 static int             roms_present[2] = { -1, -1 };
 
 mt32emu_return_code
-mt32_check(const char *func, mt32emu_return_code ret, mt32emu_return_code expected)
+mt32_check(UNUSED(const char *func), mt32emu_return_code ret, mt32emu_return_code expected)
 {
     if (ret != expected) {
         return 0;
@@ -165,13 +165,13 @@ static int16_t *buffer_int16 = NULL;
 static int      midi_pos     = 0;
 
 static mt32emu_report_handler_version
-get_mt32_report_handler_version(mt32emu_report_handler_i i)
+get_mt32_report_handler_version(UNUSED(mt32emu_report_handler_i i))
 {
     return MT32EMU_REPORT_HANDLER_VERSION_0;
 }
 
 static void
-display_mt32_message(void *instance_data, const char *message)
+display_mt32_message(UNUSED(void *instance_data), const char *message)
 {
     int   sz     = 0;
     char *ui_msg = NULL;
@@ -209,7 +209,7 @@ mt32_poll(void)
 }
 
 static void
-mt32_thread(void *param)
+mt32_thread(UNUSED(void *param))
 {
     int      buf_pos = 0;
     int      bsize   = buf_size / BUFFER_SEGMENTS;
@@ -321,33 +321,33 @@ mt32emu_init(char *control_rom, char *pcm_rom)
 }
 
 void *
-mt32_old_init(const device_t *info)
+mt32_old_init(UNUSED(const device_t *info))
 {
     return mt32emu_init(MT32_OLD_CTRL_ROM, MT32_OLD_PCM_ROM);
 }
 
 void *
-mt32_new_init(const device_t *info)
+mt32_new_init(UNUSED(const device_t *info))
 {
     return mt32emu_init(MT32_NEW_CTRL_ROM, MT32_NEW_PCM_ROM);
 }
 
 void *
-cm32l_init(const device_t *info)
+cm32l_init(UNUSED(const device_t *info))
 {
     return mt32emu_init(CM32L_CTRL_ROM, CM32L_PCM_ROM);
 }
 
 void *
-cm32ln_init(const device_t *info)
+cm32ln_init(UNUSED(const device_t *info))
 {
     return mt32emu_init(CM32LN_CTRL_ROM, CM32LN_PCM_ROM);
 }
 
 void
-mt32_close(void *p)
+mt32_close(void *priv)
 {
-    if (!p)
+    if (!priv)
         return;
 
     mt32_on = 0;

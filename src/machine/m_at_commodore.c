@@ -52,11 +52,12 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/machine.h>
+#include <86box/plat_unused.h>
 
 static serial_t *cmd_uart;
 
 static void
-cbm_io_write(uint16_t port, uint8_t val, void *p)
+cbm_io_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
 {
     lpt1_remove();
     lpt2_remove();
@@ -71,6 +72,9 @@ cbm_io_write(uint16_t port, uint8_t val, void *p)
         case 3:
             lpt1_init(LPT2_ADDR);
             break;
+
+        default:
+            break;
     }
 
     switch (val & 0xc) {
@@ -79,6 +83,9 @@ cbm_io_write(uint16_t port, uint8_t val, void *p)
             break;
         case 0x8:
             serial_setup(cmd_uart, COM1_ADDR, COM1_IRQ);
+            break;
+
+        default:
             break;
     }
 }

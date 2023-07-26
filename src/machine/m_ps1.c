@@ -153,6 +153,9 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
                         case 2:
                             lpt1_init(LPT2_ADDR);
                             break;
+
+                        default:
+                            break;
                     }
                 }
                 ps->ps1_102 = val;
@@ -173,6 +176,9 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
 
         case 0x0190:
             ps->ps1_190 = val;
+            break;
+
+        default:
             break;
     }
 }

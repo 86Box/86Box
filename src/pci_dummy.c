@@ -126,8 +126,8 @@ pci_dummy_io_set(pci_dummy_t *dev)
 static uint8_t
 pci_dummy_pci_read(int func, int addr, void *priv)
 {
-    pci_dummy_t *dev = (pci_dummy_t *) priv;
-    uint8_t      ret = 0xff;
+    const pci_dummy_t *dev = (pci_dummy_t *) priv;
+    uint8_t            ret = 0xff;
 
     if (func == 0x00)
         switch (addr) {
@@ -210,7 +210,9 @@ pci_dummy_pci_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x10:       /* PCI_BAR */
                 val &= 0xe0; /* 0xe0 acc to RTL DS */
-                             /*FALLTHROUGH*/
+#ifndef __APPLE__
+                [[fallthrough]];
+#endif
 
             case 0x11: /* PCI_BAR */
                 /* Remove old I/O. */

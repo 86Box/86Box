@@ -37,6 +37,7 @@
 #include <86box/timer.h>
 #include <86box/network.h>
 #include <86box/net_event.h>
+#include <86box/plat_unused.h>
 
 enum {
     NET_EVENT_STOP = 0,
@@ -53,7 +54,7 @@ enum {
 
 #define NULL_PKT_BATCH NET_QUEUE_LEN
 
-typedef struct {
+typedef struct net_null_t {
     uint8_t    mac_addr[6];
     netcard_t *card;
     thread_t  *poll_tid;
@@ -158,7 +159,7 @@ net_null_thread(void *priv)
 #endif
 
 void *
-net_null_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char *netdrv_errbuf)
+net_null_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv), UNUSED(char *netdrv_errbuf))
 {
     net_null_log("Null Network: Init\n");
 

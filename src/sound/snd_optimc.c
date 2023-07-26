@@ -38,6 +38,7 @@
 #include <86box/snd_sb.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/plat_unused.h>
 
 static int optimc_wss_dma[4] = { 0, 0, 1, 3 };
 static int optimc_wss_irq[8] = { 5, 7, 9, 10, 11, 12, 14, 15 };
@@ -48,14 +49,21 @@ enum optimc_local_flags {
 };
 
 typedef struct optimc_t {
-    uint8_t type, fm_type;
+    uint8_t type;
+    uint8_t fm_type;
 
-    uint8_t wss_config, reg_enabled;
+    uint8_t wss_config;
+    uint8_t reg_enabled;
 
-    uint16_t cur_addr, cur_wss_addr, cur_mpu401_addr;
+    uint16_t cur_addr;
+    uint16_t cur_wss_addr;
+    uint16_t cur_mpu401_addr;
 
-    int   cur_irq, cur_dma;
-    int   cur_wss_enabled, cur_wss_irq, cur_wss_dma;
+    int   cur_irq;
+    int   cur_dma;
+    int   cur_wss_enabled;
+    int   cur_wss_irq;
+    int   cur_wss_dma;
     int   cur_mpu401_irq;
     int   cur_mpu401_enabled;
     void *gameport;
@@ -82,9 +90,9 @@ optimc_filter_opl(void *priv, double *out_l, double *out_r)
 }
 
 static uint8_t
-optimc_wss_read(uint16_t addr, void *priv)
+optimc_wss_read(UNUSED(uint16_t addr), void *priv)
 {
-    optimc_t *optimc = (optimc_t *) priv;
+    const optimc_t *optimc = (optimc_t *) priv;
 
     if (!(optimc->regs[4] & 0x10) && optimc->cur_mode == 0)
         return 0xFF;
@@ -93,7 +101,7 @@ optimc_wss_read(uint16_t addr, void *priv)
 }
 
 static void
-optimc_wss_write(uint16_t addr, uint8_t val, void *priv)
+optimc_wss_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     optimc_t *optimc = (optimc_t *) priv;
 
@@ -105,9 +113,9 @@ optimc_wss_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static void
-optimc_get_buffer(int32_t *buffer, int len, void *p)
+optimc_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    optimc_t *optimc = (optimc_t *) p;
+    optimc_t *optimc = (optimc_t *) priv;
 
     if (optimc->regs[3] & 0x4)
         return;
@@ -141,9 +149,9 @@ optimc_add_opl(optimc_t *optimc)
 }
 
 static void
-optimc_reg_write(uint16_t addr, uint8_t val, void *p)
+optimc_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
-    optimc_t      *optimc           = (optimc_t *) p;
+    optimc_t      *optimc           = (optimc_t *) priv;
     uint16_t       idx              = addr - 0xF8D;
     uint8_t        old              = optimc->regs[idx];
     static uint8_t reg_enable_phase = 0;
@@ -175,6 +183,9 @@ optimc_reg_write(uint16_t addr, uint8_t val, void *p)
                             break;
                         case 3: /* WSBase = 0x604 */
                             optimc->cur_wss_addr = 0x604;
+                            break;
+
+                        default:
                             break;
                     }
                     io_sethandler(optimc->cur_wss_addr, 0x0004, optimc_wss_read, NULL, NULL, optimc_wss_write, NULL, NULL, optimc);
@@ -247,6 +258,9 @@ optimc_reg_write(uint16_t addr, uint8_t val, void *p)
                         case 3:
                             optimc->cur_mpu401_irq = 7;
                             break;
+
+                        default:
+                            break;
                     }
                     switch ((val >> 5) & 0x3) {
                         case 0:
@@ -261,10 +275,16 @@ optimc_reg_write(uint16_t addr, uint8_t val, void *p)
                         case 3:
                             optimc->cur_mpu401_addr = 0x300;
                             break;
+
+                        default:
+                            break;
                     }
                     mpu401_change_addr(optimc->mpu, optimc->cur_mpu401_addr);
                     mpu401_setirq(optimc->mpu, optimc->cur_mpu401_irq);
                 }
+                break;
+
+            default:
                 break;
         }
     }
@@ -291,6 +311,9 @@ optimc_reg_write(uint16_t addr, uint8_t val, void *p)
                         reg_enable_phase = 1;
                     }
                     break;
+
+                default:
+                    break;
             }
         } else
             reg_enable_phase = 1;
@@ -299,9 +322,9 @@ optimc_reg_write(uint16_t addr, uint8_t val, void *p)
 }
 
 static uint8_t
-optimc_reg_read(uint16_t addr, void *p)
+optimc_reg_read(uint16_t addr, void *priv)
 {
-    optimc_t *optimc = (optimc_t *) p;
+    optimc_t *optimc = (optimc_t *) priv;
     uint8_t   temp   = 0xFF;
 
     if (optimc->reg_enabled) {
@@ -315,6 +338,9 @@ optimc_reg_read(uint16_t addr, void *p)
                 break;
             case 2: /* MC3 */
                 temp = (optimc->regs[2] & ~0x3) | 0x2;
+                break;
+
+            default:
                 break;
         }
         optimc->reg_enabled = 0;
@@ -398,19 +424,19 @@ optimc_init(const device_t *info)
 }
 
 static void
-optimc_close(void *p)
+optimc_close(void *priv)
 {
-    optimc_t *optimc = (optimc_t *) p;
+    optimc_t *optimc = (optimc_t *) priv;
 
     sb_close(optimc->sb);
     free(optimc->mpu);
-    free(p);
+    free(priv);
 }
 
 static void
-optimc_speed_changed(void *p)
+optimc_speed_changed(void *priv)
 {
-    optimc_t *optimc = (optimc_t *) p;
+    optimc_t *optimc = (optimc_t *) priv;
 
     ad1848_speed_changed(&optimc->ad1848);
     sb_speed_changed(optimc->sb);

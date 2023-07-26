@@ -66,7 +66,7 @@ typedef struct opti283_t {
 static uint8_t
 opti283_read_remapped_ram(uint32_t addr, void *priv)
 {
-    mem_remapping_t *dev = (mem_remapping_t *) priv;
+    const mem_remapping_t *dev = (mem_remapping_t *) priv;
 
     return mem_read_ram((addr - dev->virt) + dev->phys, priv);
 }
@@ -74,7 +74,7 @@ opti283_read_remapped_ram(uint32_t addr, void *priv)
 static uint16_t
 opti283_read_remapped_ramw(uint32_t addr, void *priv)
 {
-    mem_remapping_t *dev = (mem_remapping_t *) priv;
+    const mem_remapping_t *dev = (mem_remapping_t *) priv;
 
     return mem_read_ramw((addr - dev->virt) + dev->phys, priv);
 }
@@ -82,7 +82,7 @@ opti283_read_remapped_ramw(uint32_t addr, void *priv)
 static uint32_t
 opti283_read_remapped_raml(uint32_t addr, void *priv)
 {
-    mem_remapping_t *dev = (mem_remapping_t *) priv;
+    const mem_remapping_t *dev = (mem_remapping_t *) priv;
 
     return mem_read_raml((addr - dev->virt) + dev->phys, priv);
 }
@@ -90,7 +90,7 @@ opti283_read_remapped_raml(uint32_t addr, void *priv)
 static void
 opti283_write_remapped_ram(uint32_t addr, uint8_t val, void *priv)
 {
-    mem_remapping_t *dev = (mem_remapping_t *) priv;
+    const mem_remapping_t *dev = (mem_remapping_t *) priv;
 
     mem_write_ram((addr - dev->virt) + dev->phys, val, priv);
 }
@@ -98,7 +98,7 @@ opti283_write_remapped_ram(uint32_t addr, uint8_t val, void *priv)
 static void
 opti283_write_remapped_ramw(uint32_t addr, uint16_t val, void *priv)
 {
-    mem_remapping_t *dev = (mem_remapping_t *) priv;
+    const mem_remapping_t *dev = (mem_remapping_t *) priv;
 
     mem_write_ramw((addr - dev->virt) + dev->phys, val, priv);
 }
@@ -106,7 +106,7 @@ opti283_write_remapped_ramw(uint32_t addr, uint16_t val, void *priv)
 static void
 opti283_write_remapped_raml(uint32_t addr, uint32_t val, void *priv)
 {
-    mem_remapping_t *dev = (mem_remapping_t *) priv;
+    const mem_remapping_t *dev = (mem_remapping_t *) priv;
 
     mem_write_raml((addr - dev->virt) + dev->phys, val, priv);
 }
@@ -228,7 +228,9 @@ opti283_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x14:
                     reset_on_hlt = !!(val & 0x40);
-                    /* FALLTHROUGH */
+#ifndef __APPLE__
+                    [[fallthrough]];
+#endif
                 case 0x11:
                 case 0x12:
                 case 0x13:
@@ -249,8 +251,8 @@ opti283_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 opti283_read(uint16_t addr, void *priv)
 {
-    opti283_t *dev = (opti283_t *) priv;
-    uint8_t    ret = 0xff;
+    const opti283_t *dev = (opti283_t *) priv;
+    uint8_t          ret = 0xff;
 
     if (addr == 0x24)
         ret = dev->regs[dev->index];

@@ -47,28 +47,29 @@ ega_display_line(ega_t *ega)
 void
 ega_render_blank(ega_t *ega)
 {
-    int xx;
-
     if ((ega->displine + ega->y_add) < 0)
         return;
 
     for (int x = 0; x < (ega->hdisp + ega->scrollcache); x++) {
         switch (ega->seqregs[1] & 9) {
             case 0:
-                for (xx = 0; xx < 9; xx++)
+                for (uint8_t xx = 0; xx < 9; xx++)
                     buffer32->line[ega->displine + ega->y_add][ega->x_add + (x * 9) + xx] = 0;
                 break;
             case 1:
-                for (xx = 0; xx < 8; xx++)
+                for (uint8_t xx = 0; xx < 8; xx++)
                     buffer32->line[ega->displine + ega->y_add][ega->x_add + (x * 8) + xx] = 0;
                 break;
             case 8:
-                for (xx = 0; xx < 18; xx++)
+                for (uint8_t xx = 0; xx < 18; xx++)
                     buffer32->line[ega->displine + ega->y_add][ega->x_add + (x * 18) + xx] = 0;
                 break;
             case 9:
-                for (xx = 0; xx < 16; xx++)
+                for (uint8_t xx = 0; xx < 16; xx++)
                     buffer32->line[ega->displine + ega->y_add][ega->x_add + (x * 16) + xx] = 0;
+                break;
+
+            default:
                 break;
         }
     }

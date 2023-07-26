@@ -377,24 +377,24 @@ typedef struct s3_t {
 
 static void s3_updatemapping(s3_t *s3);
 
-static void     s3_accel_write(uint32_t addr, uint8_t val, void *p);
-static void     s3_accel_write_w(uint32_t addr, uint16_t val, void *p);
-static void     s3_accel_write_l(uint32_t addr, uint32_t val, void *p);
-static uint8_t  s3_accel_read(uint32_t addr, void *p);
-static uint16_t s3_accel_read_w(uint32_t addr, void *p);
-static uint32_t s3_accel_read_l(uint32_t addr, void *p);
+static void     s3_accel_write(uint32_t addr, uint8_t val, void *priv);
+static void     s3_accel_write_w(uint32_t addr, uint16_t val, void *priv);
+static void     s3_accel_write_l(uint32_t addr, uint32_t val, void *priv);
+static uint8_t  s3_accel_read(uint32_t addr, void *priv);
+static uint16_t s3_accel_read_w(uint32_t addr, void *priv);
+static uint32_t s3_accel_read_l(uint32_t addr, void *priv);
 
-static void    s3_out(uint16_t addr, uint8_t val, void *p);
-static uint8_t s3_in(uint16_t addr, void *p);
+static void    s3_out(uint16_t addr, uint8_t val, void *priv);
+static uint8_t s3_in(uint16_t addr, void *priv);
 
-static void     s3_accel_out(uint16_t port, uint8_t val, void *p);
-static void     s3_accel_out_w(uint16_t port, uint16_t val, void *p);
-static void     s3_accel_out_l(uint16_t port, uint32_t val, void *p);
-static uint8_t  s3_accel_in(uint16_t port, void *p);
-static uint16_t s3_accel_in_w(uint16_t port, void *p);
-static uint32_t s3_accel_in_l(uint16_t port, void *p);
-static uint8_t  s3_pci_read(int func, int addr, void *p);
-static void     s3_pci_write(int func, int addr, uint8_t val, void *p);
+static void     s3_accel_out(uint16_t port, uint8_t val, void *priv);
+static void     s3_accel_out_w(uint16_t port, uint16_t val, void *priv);
+static void     s3_accel_out_l(uint16_t port, uint32_t val, void *priv);
+static uint8_t  s3_accel_in(uint16_t port, void *priv);
+static uint16_t s3_accel_in_w(uint16_t port, void *priv);
+static uint32_t s3_accel_in_l(uint16_t port, void *priv);
+static uint8_t  s3_pci_read(int func, int addr, void *priv);
+static void     s3_pci_write(int func, int addr, uint8_t val, void *priv);
 
 /*Remap address for chain-4/doubleword style layout.
   These will stay for convenience.*/
@@ -1981,7 +1981,7 @@ s3_accel_write_fifo_l(s3_t *s3, uint32_t addr, uint32_t val)
 static void
 s3_vblank_start(svga_t *svga)
 {
-    s3_t *s3 = (s3_t *) svga->p;
+    s3_t *s3 = (s3_t *) svga->priv;
 
     s3->subsys_stat |= INT_VSY;
     s3_update_irqs(s3);
@@ -2004,7 +2004,7 @@ s3_hwcursor_convert_addr(svga_t *svga)
 static void
 s3_hwcursor_draw(svga_t *svga, int displine)
 {
-    s3_t    *s3 = (s3_t *) svga->p;
+    s3_t    *s3 = (s3_t *) svga->priv;
     int      shift = 1;
     int      width = 16;
     uint16_t dat[2];
@@ -2333,7 +2333,7 @@ s3_hwcursor_draw(svga_t *svga, int displine)
 static void
 s3_trio64v_overlay_draw(svga_t *svga, int displine)
 {
-    s3_t     *s3     = (s3_t *) svga->p;
+    s3_t     *s3     = (s3_t *) svga->priv;
     int       offset = (s3->streams.sec_x - s3->streams.pri_x) + 1;
     int       h_acc  = s3->streams.dda_horiz_accumulator;
     int       r[8];
@@ -2563,9 +2563,9 @@ s3_io_set(s3_t *s3)
 }
 
 static void
-s3_out(uint16_t addr, uint8_t val, void *p)
+s3_out(uint16_t addr, uint8_t val, void *priv)
 {
-    s3_t   *s3   = (s3_t *) p;
+    s3_t   *s3   = (s3_t *) priv;
     svga_t *svga = &s3->svga;
     uint8_t old;
     uint8_t mask;
@@ -2910,9 +2910,9 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 }
 
 static uint8_t
-s3_in(uint16_t addr, void *p)
+s3_in(uint16_t addr, void *priv)
 {
-    s3_t   *s3   = (s3_t *) p;
+    s3_t   *s3   = (s3_t *) priv;
     svga_t *svga = &s3->svga;
     int     rs2;
     int     rs3;
@@ -3019,7 +3019,6 @@ s3_in(uint16_t addr, void *p)
                         }
                     } else
                         return svga->crtc[0x6b];
-                    break;
                 case 0x6c:
                     if (s3->chip != S3_TRIO64V2) {
                         if (svga->crtc[0x53] & 0x08) {
@@ -3028,7 +3027,6 @@ s3_in(uint16_t addr, void *p)
                             return (svga->crtc[0x5a] & 0x80);
                     } else
                         return svga->crtc[0x6c];
-                    break;
             }
             return svga->crtc[svga->crtcreg];
     }
@@ -3038,7 +3036,7 @@ s3_in(uint16_t addr, void *p)
 static void
 s3_recalctimings(svga_t *svga)
 {
-    s3_t *s3      = (s3_t *) svga->p;
+    s3_t *s3      = (s3_t *) svga->priv;
     int   clk_sel = (svga->miscout >> 2) & 3;
 
     if (!svga->scrblank && svga->attr_palette_enable) {
@@ -3349,7 +3347,7 @@ s3_recalctimings(svga_t *svga)
 static void
 s3_trio64v_recalctimings(svga_t *svga)
 {
-    s3_t *s3      = (s3_t *) svga->p;
+    s3_t *s3      = (s3_t *) svga->priv;
     int   clk_sel = (svga->miscout >> 2) & 3;
 
     if (!svga->scrblank && svga->attr_palette_enable) {
@@ -3583,9 +3581,9 @@ s3_updatemapping(s3_t *s3)
 }
 
 static float
-s3_trio64_getclock(int clock, void *p)
+s3_trio64_getclock(int clock, void *priv)
 {
-    s3_t   *s3   = (s3_t *) p;
+    s3_t   *s3   = (s3_t *) priv;
     svga_t *svga = &s3->svga;
     float   t;
     int     m;
@@ -3603,9 +3601,9 @@ s3_trio64_getclock(int clock, void *p)
 }
 
 static void
-s3_accel_out(uint16_t port, uint8_t val, void *p)
+s3_accel_out(uint16_t port, uint8_t val, void *priv)
 {
-    s3_t   *s3   = (s3_t *) p;
+    s3_t   *s3   = (s3_t *) priv;
     svga_t *svga = &s3->svga;
 
     if (port >= 0x8000) {
@@ -3651,9 +3649,9 @@ s3_accel_out(uint16_t port, uint8_t val, void *p)
 }
 
 static void
-s3_accel_out_w(uint16_t port, uint16_t val, void *p)
+s3_accel_out_w(uint16_t port, uint16_t val, void *priv)
 {
-    s3_t *s3 = (s3_t *) p;
+    s3_t *s3 = (s3_t *) priv;
 
     if (!s3->enable_8514)
         return;
@@ -3665,9 +3663,9 @@ s3_accel_out_w(uint16_t port, uint16_t val, void *p)
 }
 
 static void
-s3_accel_out_l(uint16_t port, uint32_t val, void *p)
+s3_accel_out_l(uint16_t port, uint32_t val, void *priv)
 {
-    s3_t *s3 = (s3_t *) p;
+    s3_t *s3 = (s3_t *) priv;
 
     if (!s3->enable_8514)
         return;
@@ -3679,9 +3677,9 @@ s3_accel_out_l(uint16_t port, uint32_t val, void *p)
 }
 
 static uint8_t
-s3_accel_in(uint16_t port, void *p)
+s3_accel_in(uint16_t port, void *priv)
 {
-    s3_t   *s3   = (s3_t *) p;
+    s3_t   *s3   = (s3_t *) priv;
     svga_t *svga = &s3->svga;
     int     temp;
 
@@ -4263,9 +4261,9 @@ s3_accel_in(uint16_t port, void *p)
 }
 
 static uint16_t
-s3_accel_in_w(uint16_t port, void *p)
+s3_accel_in_w(uint16_t port, void *priv)
 {
-    s3_t     *s3     = (s3_t *) p;
+    s3_t     *s3     = (s3_t *) priv;
     svga_t   *svga   = &s3->svga;
     uint16_t  temp   = 0x0000;
     uint16_t *vram_w = (uint16_t *) svga->vram;
@@ -4319,9 +4317,9 @@ s3_accel_in_w(uint16_t port, void *p)
 }
 
 static uint32_t
-s3_accel_in_l(uint16_t port, void *p)
+s3_accel_in_l(UNUSED(uint16_t port), void *priv)
 {
-    s3_t     *s3     = (s3_t *) p;
+    s3_t     *s3     = (s3_t *) priv;
     svga_t   *svga   = &s3->svga;
     uint32_t  temp   = 0x00000000;
     uint16_t *vram_w = (uint16_t *) svga->vram;
@@ -4372,9 +4370,9 @@ s3_accel_in_l(uint16_t port, void *p)
 }
 
 static void
-s3_accel_write(uint32_t addr, uint8_t val, void *p)
+s3_accel_write(uint32_t addr, uint8_t val, void *priv)
 {
-    s3_t   *s3   = (s3_t *) p;
+    s3_t   *s3   = (s3_t *) priv;
     svga_t *svga = &s3->svga;
 
     if (!s3->enable_8514)
@@ -4390,9 +4388,9 @@ s3_accel_write(uint32_t addr, uint8_t val, void *p)
 }
 
 static void
-s3_accel_write_w(uint32_t addr, uint16_t val, void *p)
+s3_accel_write_w(uint32_t addr, uint16_t val, void *priv)
 {
-    s3_t   *s3   = (s3_t *) p;
+    s3_t   *s3   = (s3_t *) priv;
     svga_t *svga = &s3->svga;
 
     if (!s3->enable_8514)
@@ -4408,9 +4406,9 @@ s3_accel_write_w(uint32_t addr, uint16_t val, void *p)
 }
 
 static void
-s3_accel_write_l(uint32_t addr, uint32_t val, void *p)
+s3_accel_write_l(uint32_t addr, uint32_t val, void *priv)
 {
-    s3_t   *s3   = (s3_t *) p;
+    s3_t   *s3   = (s3_t *) priv;
     svga_t *svga = &s3->svga;
 
     if (!s3->enable_8514)
@@ -4426,9 +4424,9 @@ s3_accel_write_l(uint32_t addr, uint32_t val, void *p)
 }
 
 static uint8_t
-s3_accel_read(uint32_t addr, void *p)
+s3_accel_read(uint32_t addr, void *priv)
 {
-    s3_t   *s3   = (s3_t *) p;
+    s3_t   *s3   = (s3_t *) priv;
     svga_t *svga = &s3->svga;
     uint8_t temp = 0x00;
 
@@ -4493,12 +4491,12 @@ s3_accel_read(uint32_t addr, void *p)
             case 0x8505:
                 return s3->subsys_cntl;
             default:
-                return s3_accel_in(addr & 0xffff, p);
+                return s3_accel_in(addr & 0xffff, priv);
         }
         return 0xff;
     } else {
         if (addr & 0x8000) {
-            temp = s3_accel_in(addr & 0xffff, p);
+            temp = s3_accel_in(addr & 0xffff, priv);
         } else if (s3_cpu_dest(s3)) {
             READ_PIXTRANS_BYTE_MM
 
@@ -4529,9 +4527,9 @@ s3_accel_read(uint32_t addr, void *p)
 }
 
 static uint16_t
-s3_accel_read_w(uint32_t addr, void *p)
+s3_accel_read_w(uint32_t addr, void *priv)
 {
-    s3_t     *s3     = (s3_t *) p;
+    s3_t     *s3     = (s3_t *) priv;
     svga_t   *svga   = &s3->svga;
     uint16_t  temp   = 0x0000;
     uint16_t *vram_w = (uint16_t *) svga->vram;
@@ -4547,7 +4545,7 @@ s3_accel_read_w(uint32_t addr, void *p)
                 return s3->accel.short_stroke;
 
             default:
-                return s3_accel_read(addr, p) | s3_accel_read(addr + 1, p) << 8;
+                return s3_accel_read(addr, priv) | s3_accel_read(addr + 1, priv) << 8;
         }
         return 0xffff;
     } else {
@@ -4557,8 +4555,8 @@ s3_accel_read_w(uint32_t addr, void *p)
                     s3_wait_fifo_idle(s3);
                 temp = s3->accel.short_stroke;
             } else {
-                temp = s3_accel_read((addr & 0xfffe), p);
-                temp |= s3_accel_read((addr & 0xfffe) + 1, p) << 8;
+                temp = s3_accel_read((addr & 0xfffe), priv);
+                temp |= s3_accel_read((addr & 0xfffe) + 1, priv) << 8;
             }
         } else if (s3_cpu_dest(s3)) {
             READ_PIXTRANS_WORD
@@ -4590,9 +4588,9 @@ s3_accel_read_w(uint32_t addr, void *p)
 }
 
 static uint32_t
-s3_accel_read_l(uint32_t addr, void *p)
+s3_accel_read_l(uint32_t addr, void *priv)
 {
-    s3_t     *s3     = (s3_t *) p;
+    s3_t     *s3     = (s3_t *) priv;
     svga_t   *svga   = &s3->svga;
     uint32_t  temp   = 0x00000000;
     uint16_t *vram_w = (uint16_t *) svga->vram;
@@ -4722,15 +4720,15 @@ s3_accel_read_l(uint32_t addr, void *p)
                 break;
 
             default:
-                temp = s3_accel_read_w(addr, p) | (s3_accel_read_w(addr + 2, p) << 16);
+                temp = s3_accel_read_w(addr, priv) | (s3_accel_read_w(addr + 2, priv) << 16);
                 break;
         }
     } else {
         if (addr & 0x8000) {
-            temp = s3_accel_read((addr & 0xfffc), p);
-            temp |= s3_accel_read((addr & 0xfffc) + 1, p) << 8;
-            temp |= s3_accel_read((addr & 0xfffc) + 2, p) << 16;
-            temp |= s3_accel_read((addr & 0xfffc) + 3, p) << 24;
+            temp = s3_accel_read((addr & 0xfffc), priv);
+            temp |= s3_accel_read((addr & 0xfffc) + 1, priv) << 8;
+            temp |= s3_accel_read((addr & 0xfffc) + 2, priv) << 16;
+            temp |= s3_accel_read((addr & 0xfffc) + 3, priv) << 24;
         } else if (s3_cpu_dest(s3)) {
             READ_PIXTRANS_LONG
 
@@ -7320,9 +7318,9 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 }
 
 static uint8_t
-s3_pci_read(int func, int addr, void *p)
+s3_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    s3_t   *s3   = (s3_t *) p;
+    s3_t   *s3   = (s3_t *) priv;
     svga_t *svga = &s3->svga;
 
     switch (addr) {
@@ -7341,7 +7339,6 @@ s3_pci_read(int func, int addr, void *p)
                 return s3->pci_regs[PCI_REG_COMMAND] | 0x80; /*Respond to IO and memory accesses*/
             else
                 return s3->pci_regs[PCI_REG_COMMAND]; /*Respond to IO and memory accesses*/
-            break;
 
         case 0x07:
             return (s3->chip == S3_TRIO64V2) ? (s3->pci_regs[0x07] & 0x36) : (1 << 1); /*Medium DEVSEL timing*/
@@ -7356,17 +7353,14 @@ s3_pci_read(int func, int addr, void *p)
                 return 0x00; /*Supports VGA interface*/
             else
                 return 0x01;
-            break;
         case 0x0b:
             if (s3->chip >= S3_TRIO32 || s3->chip == S3_VISION968 || s3->chip == S3_VISION868)
                 return 0x03;
             else
                 return 0x00;
-            break;
 
         case 0x0d:
             return (s3->chip == S3_TRIO64V2) ? (s3->pci_regs[0x0d] & 0xf8) : 0x00;
-            break;
 
         case 0x10:
             return 0x00; /*Linear frame buffer address*/
@@ -7377,7 +7371,6 @@ s3_pci_read(int func, int addr, void *p)
                 return 0x00;
             else
                 return (svga->crtc[0x5a] & 0x80);
-            break;
 
         case 0x13:
             if (svga->crtc[0x53] & 0x08) {
@@ -7385,7 +7378,6 @@ s3_pci_read(int func, int addr, void *p)
             } else {
                 return svga->crtc[0x59];
             }
-            break;
 
         case 0x30:
             return s3->has_bios ? (s3->pci_regs[0x30] & 0x01) : 0x00; /*BIOS ROM address*/
@@ -7406,15 +7398,14 @@ s3_pci_read(int func, int addr, void *p)
             break;
         case 0x3f:
             return (s3->chip == S3_TRIO64V2) ? 0xff : 0x00;
-            break;
     }
     return 0;
 }
 
 static void
-s3_pci_write(int func, int addr, uint8_t val, void *p)
+s3_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
-    s3_t   *s3   = (s3_t *) p;
+    s3_t   *s3   = (s3_t *) priv;
     svga_t *svga = &s3->svga;
 
     switch (addr) {
@@ -8575,9 +8566,9 @@ s3_trio64v2_dx_available(void)
 }
 
 static void
-s3_close(void *p)
+s3_close(void *priv)
 {
-    s3_t *s3 = (s3_t *) p;
+    s3_t *s3 = (s3_t *) priv;
 
     s3->fifo_thread_run = 0;
     thread_set_event(s3->wake_fifo_thread);
@@ -8594,17 +8585,17 @@ s3_close(void *p)
 }
 
 static void
-s3_speed_changed(void *p)
+s3_speed_changed(void *priv)
 {
-    s3_t *s3 = (s3_t *) p;
+    s3_t *s3 = (s3_t *) priv;
 
     svga_recalctimings(&s3->svga);
 }
 
 static void
-s3_force_redraw(void *p)
+s3_force_redraw(void *priv)
 {
-    s3_t *s3 = (s3_t *) p;
+    s3_t *s3 = (s3_t *) priv;
 
     s3->svga.fullchange = s3->svga.monitor->mon_changeframecount;
 }

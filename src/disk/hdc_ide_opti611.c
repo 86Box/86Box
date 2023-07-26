@@ -93,8 +93,8 @@ opti611_cfg_writel(uint16_t addr, uint32_t val, void *priv)
 static uint8_t
 opti611_cfg_read(uint16_t addr, void *priv)
 {
-    uint8_t    ret = 0xff;
-    opti611_t *dev = (opti611_t *) priv;
+    uint8_t          ret = 0xff;
+    const opti611_t *dev = (opti611_t *) priv;
 
     addr &= 0x0007;
 

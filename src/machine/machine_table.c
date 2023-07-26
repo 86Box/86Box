@@ -34,6 +34,7 @@
 #include <86box/keyboard.h>
 #include <86box/sound.h>
 #include <86box/video.h>
+#include <86box/plat_unused.h>
 
 // Temporarily here till we move everything out into the right files
 extern const device_t pcjr_device;
@@ -13616,7 +13617,7 @@ machine_get_p1(void)
 }
 
 void
-machine_load_p1(int m)
+machine_load_p1(UNUSED(int m))
 {
     machine_p1 = machines[machine].kbc_p1;
 }
@@ -13628,7 +13629,7 @@ machine_get_gpio(void)
 }
 
 void
-machine_load_gpio(int m)
+machine_load_gpio(UNUSED(int m))
 {
     machine_gpio = machines[machine].gpio;
 }

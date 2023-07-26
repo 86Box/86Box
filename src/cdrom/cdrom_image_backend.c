@@ -202,7 +202,7 @@ track_file_close(track_t *trk)
 static void
 cdi_clear_tracks(cd_img_t *cdi)
 {
-    track_file_t *last = NULL;
+    const track_file_t *last = NULL;
     track_t      *cur  = NULL;
 
     if ((cdi->tracks == NULL) || (cdi->tracks_num == 0))
@@ -273,7 +273,7 @@ cdi_get_audio_tracks_lba(cd_img_t *cdi, int *st_track, int *end, uint32_t *lead_
 int
 cdi_get_audio_track_pre(cd_img_t *cdi, int track)
 {
-    track_t *trk = &cdi->tracks[track - 1];
+    const track_t *trk = &cdi->tracks[track - 1];
 
     if ((track < 1) || (track > cdi->tracks_num))
         return 0;
@@ -285,7 +285,7 @@ cdi_get_audio_track_pre(cd_img_t *cdi, int track)
 int
 cdi_get_audio_track_info(cd_img_t *cdi, UNUSED(int end), int track, int *track_num, TMSF *start, uint8_t *attr)
 {
-    track_t *trk = &cdi->tracks[track - 1];
+    const track_t *trk = &cdi->tracks[track - 1];
     int      pos = trk->start + 150;
 
     if ((track < 1) || (track > cdi->tracks_num))
@@ -304,7 +304,7 @@ cdi_get_audio_track_info(cd_img_t *cdi, UNUSED(int end), int track, int *track_n
 int
 cdi_get_audio_track_info_lba(cd_img_t *cdi, UNUSED(int end), int track, int *track_num, uint32_t *start, uint8_t *attr)
 {
-    track_t *trk = &cdi->tracks[track - 1];
+    const track_t *trk = &cdi->tracks[track - 1];
 
     if ((track < 1) || (track > cdi->tracks_num))
         return 0;
@@ -320,8 +320,8 @@ cdi_get_audio_track_info_lba(cd_img_t *cdi, UNUSED(int end), int track, int *tra
 int
 cdi_get_track(cd_img_t *cdi, uint32_t sector)
 {
-    track_t *cur;
-    track_t *next;
+    const track_t *cur;
+    const track_t *next;
 
     /* There must be at least two tracks - data and lead out. */
     if (cdi->tracks_num < 2)
@@ -343,8 +343,8 @@ cdi_get_track(cd_img_t *cdi, uint32_t sector)
 int
 cdi_get_audio_sub(cd_img_t *cdi, uint32_t sector, uint8_t *attr, uint8_t *track, uint8_t *index, TMSF *rel_pos, TMSF *abs_pos)
 {
-    int      cur_track = cdi_get_track(cdi, sector);
-    track_t *trk;
+    int            cur_track = cdi_get_track(cdi, sector);
+    const track_t *trk;
 
     if (cur_track < 1)
         return 0;
@@ -483,8 +483,8 @@ cdi_read_sector_sub(cd_img_t *cdi, uint8_t *buffer, uint32_t sector)
 int
 cdi_get_sector_size(cd_img_t *cdi, uint32_t sector)
 {
-    int      track = cdi_get_track(cdi, sector) - 1;
-    track_t *trk;
+    int            track = cdi_get_track(cdi, sector) - 1;
+    const track_t *trk;
 
     if (track < 0)
         return 0;
@@ -496,8 +496,8 @@ cdi_get_sector_size(cd_img_t *cdi, uint32_t sector)
 int
 cdi_is_mode2(cd_img_t *cdi, uint32_t sector)
 {
-    int      track = cdi_get_track(cdi, sector) - 1;
-    track_t *trk;
+    int            track = cdi_get_track(cdi, sector) - 1;
+    const track_t *trk;
 
     if (track < 0)
         return 0;
@@ -510,8 +510,8 @@ cdi_is_mode2(cd_img_t *cdi, uint32_t sector)
 int
 cdi_get_mode2_form(cd_img_t *cdi, uint32_t sector)
 {
-    int      track = cdi_get_track(cdi, sector) - 1;
-    track_t *trk;
+    int            track = cdi_get_track(cdi, sector) - 1;
+    const track_t *trk;
 
     if (track < 0)
         return 0;
@@ -652,7 +652,9 @@ cdi_cue_get_buffer(char *str, char **line, int up)
                     done = 1;
                     break;
                 }
-                /*FALLTHROUGH*/
+#ifndef __APPLE__
+                [[fallthrough]];
+#endif
 
             default:
                 if (up && islower((int) *s))
@@ -787,7 +789,7 @@ cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, u
         *total_pregap += cur_pregap;
         cur->start += *total_pregap;
     } else {
-        temp         = prev->file->get_length(prev->file) - ((uint64_t) prev->skip);
+        temp         = prev->file->get_length(prev->file) - (prev->skip);
         prev->length = temp / ((uint64_t) prev->sector_size);
         if ((temp % prev->sector_size) != 0)
             prev->length++;
