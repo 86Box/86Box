@@ -38,6 +38,7 @@
 #include <86box/snd_speaker.h>
 #include <86box/video.h>
 #include <86box/keyboard.h>
+#include <86box/plat_fallthrough.h>
 
 #ifdef ENABLE_KBC_AT_DEV_LOG
 int kbc_at_dev_do_log = ENABLE_KBC_AT_DEV_LOG;
@@ -135,7 +136,7 @@ kbc_at_dev_poll(void *priv)
                 dev->port->wantcmd    = 0;
                 break;
             }
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
         case DEV_STATE_MAIN_WANT_IN:

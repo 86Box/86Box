@@ -34,6 +34,7 @@
 #include <86box/gameport.h>
 #include <86box/nmi.h>
 #include <86box/ui.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
 enum {
@@ -467,7 +468,7 @@ cmi8x38_sb_mixer_write(uint16_t addr, uint8_t val, void *priv)
             case 0xf8 ... 0xff:
                 if (dev->type == CMEDIA_CMI8338)
                     mixer->regs[mixer->index] = val;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
                 [[fallthrough]];
 #endif
 

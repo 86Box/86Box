@@ -748,7 +748,7 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
         case 0x11e:
         case 0x11f:
             WRITE8(addr, mach64->dst_height_width, val);
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
         [[fallthrough]];
 #endif
         case 0x113:
@@ -973,7 +973,7 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
         case 0x2a4:
         case 0x2a5:
             addr += 2;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
         [[fallthrough]];
 #endif
         case 0x2aa:
@@ -990,7 +990,7 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
         case 0x2b0:
         case 0x2b1:
             addr += 2;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
         [[fallthrough]];
 #endif
         case 0x2b6:

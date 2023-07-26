@@ -64,6 +64,7 @@
 #include <86box/net_dp8390.h>
 #include <86box/net_wd8003.h>
 #include <86box/bswap.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
 #include "cpu.h"
@@ -734,7 +735,7 @@ wd_init(const device_t *info)
         /* Ethernet, MCA, 5x3 interface chip, RAM 16k */
         case WD8003EA:
             dev->board_chip = WE_ID_SOFT_CONFIG;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
         /* Ethernet, MCA, no interface chip, RAM 16k */

@@ -36,6 +36,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
 extern uint64_t motoron[FDD_NUM];
@@ -916,7 +917,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                             fdc_bad_command(fdc);
                             break;
                         }
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
                         [[fallthrough]];
 #endif
                     case 0x07: /*Recalibrate*/
@@ -961,7 +962,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                             fdc_bad_command(fdc);
                             break;
                         }
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
                         [[fallthrough]];
 #endif
                     case 0x10: /*Get version*/
@@ -1085,7 +1086,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         case 0x16: /* Verify */
                             if (fdc->params[0] & 0x80)
                                 fdc->sc = fdc->params[7];
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
                             [[fallthrough]];
 #endif
                         case 0x06: /* Read data */

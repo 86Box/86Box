@@ -41,6 +41,7 @@
 #include <86box/ddma.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/hdc.h>
@@ -1474,7 +1475,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
             case 0xd2:
                 if (dev->local == VIA_PIPC_686B)
                     smbus_piix4_setclock(dev->smbus, (val & 0x04) ? 65536 : 16384);
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
                 [[fallthrough]];
 #endif
 
