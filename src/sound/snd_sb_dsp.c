@@ -25,6 +25,7 @@
 #include <86box/sound.h>
 #include <86box/timer.h>
 #include <86box/snd_sb.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
 #define ADPCM_4  1
@@ -600,7 +601,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x75: /* 4-bit ADPCM output with reference */
             dsp->sbref  = dsp->dma_readb(dsp->dma_priv);
             dsp->sbstep = 0;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
         case 0x74: /* 4-bit ADPCM output */

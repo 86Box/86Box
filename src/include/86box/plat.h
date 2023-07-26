@@ -55,6 +55,10 @@ extern int strnicmp(const char *s1, const char *s2, size_t n);
 #    define off64_t  off_t
 #endif
 
+#if !defined (__APPLE__) || !defined(__clang__)
+#    define FALLTHROUGH_ANNOTATION
+#endif
+
 #ifdef _MSC_VER
 #    define UNUSED(arg) arg
 #else

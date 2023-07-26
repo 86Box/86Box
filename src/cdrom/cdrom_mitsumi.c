@@ -324,7 +324,7 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                 break;
                             case 5:
                                 dev->readmsf = 0;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
                                 [[fallthrough]];
 #endif
                             case 4:

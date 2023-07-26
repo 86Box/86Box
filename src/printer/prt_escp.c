@@ -1462,7 +1462,7 @@ process_char(escp_t *dev, uint8_t ch)
             dev->curr_x = dev->left_margin;
             if (!dev->autofeed)
                 return 1;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
 

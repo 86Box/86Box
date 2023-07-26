@@ -9,6 +9,7 @@
 #include <86box/io.h>
 #include <86box/pci.h>
 #include <86box/pci_dummy.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
 typedef struct pci_dummy_t {
@@ -210,7 +211,7 @@ pci_dummy_pci_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x10:       /* PCI_BAR */
                 val &= 0xe0; /* 0xe0 acc to RTL DS */
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
                 [[fallthrough]];
 #endif
 
