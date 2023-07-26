@@ -1709,18 +1709,20 @@ void
 MainWindow::on_actionRemember_size_and_position_triggered()
 {
     window_remember ^= 1;
-    window_w = ui->stackedWidget->width();
-    window_h = ui->stackedWidget->height();
-    if (!QApplication::platformName().contains("wayland")) {
-        window_x = geometry().x();
-        window_y = geometry().y();
-    }
-    for (int i = 1; i < MONITORS_NUM; i++) {
-        if (window_remember && renderers[i]) {
-            monitor_settings[i].mon_window_w = renderers[i]->geometry().width();
-            monitor_settings[i].mon_window_h = renderers[i]->geometry().height();
-            monitor_settings[i].mon_window_x = renderers[i]->geometry().x();
-            monitor_settings[i].mon_window_y = renderers[i]->geometry().y();
+    if (!video_fullscreen) {
+        window_w = ui->stackedWidget->width();
+        window_h = ui->stackedWidget->height();
+        if (!QApplication::platformName().contains("wayland")) {
+            window_x = geometry().x();
+            window_y = geometry().y();
+        }
+        for (int i = 1; i < MONITORS_NUM; i++) {
+            if (window_remember && renderers[i]) {
+                monitor_settings[i].mon_window_w = renderers[i]->geometry().width();
+                monitor_settings[i].mon_window_h = renderers[i]->geometry().height();
+                monitor_settings[i].mon_window_x = renderers[i]->geometry().x();
+                monitor_settings[i].mon_window_y = renderers[i]->geometry().y();
+            }
         }
     }
     ui->actionRemember_size_and_position->setChecked(window_remember);
