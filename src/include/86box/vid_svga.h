@@ -36,18 +36,11 @@
 #    define FLAG_512K_MASK    512
 struct monitor_t;
 
-typedef struct hwcursor_t {
-    int      ena;
-    int      x;
-    int      y;
-    int      xoff;
-    int      yoff;
-    int      cur_xsize;
-    int      cur_ysize;
-    int      v_acc;
-    int      h_acc;
-    uint32_t addr;
-    uint32_t pitch;
+typedef struct {
+    int ena,
+        x, y, xoff, yoff, cur_xsize, cur_ysize,
+        v_acc, h_acc;
+    uint32_t addr, pitch;
 } hwcursor_t;
 
 typedef union {
@@ -62,78 +55,25 @@ typedef struct svga_t {
     xga_t         xga;
     mem_mapping_t mapping;
 
-    uint8_t fast;
-    uint8_t chain4;
-    uint8_t chain2_write;
-    uint8_t chain2_read;
-    uint8_t ext_overscan;
-    uint8_t bus_size;
-    uint8_t lowres;
-    uint8_t interlace;
-    uint8_t linedbl;
-    uint8_t rowcount;
-    uint8_t set_reset_disabled;
-    uint8_t bpp;
-    uint8_t ramdac_type;
-    uint8_t fb_only;
-    uint8_t readmode;
-    uint8_t writemode;
-    uint8_t readplane;
-    uint8_t hwcursor_oddeven;
-    uint8_t dac_hwcursor_oddeven;
-    uint8_t overlay_oddeven;
-    uint8_t fcr;
-    uint8_t hblank_overscan;
+    uint8_t fast, chain4, chain2_write, chain2_read,
+        ext_overscan, bus_size,
+        lowres, interlace, linedbl, rowcount,
+        set_reset_disabled, bpp, ramdac_type, fb_only,
+        readmode, writemode, readplane,
+        hwcursor_oddeven, dac_hwcursor_oddeven, overlay_oddeven,
+        fcr, hblank_overscan;
 
-    int dac_addr;
-    int dac_pos;
-    int dac_r;
-    int dac_g;
-    int vtotal;
-    int dispend;
-    int vsyncstart;
-    int split;
-    int vblankstart;
-    int hdisp;
-    int hdisp_old;
-    int htotal;
-    int hdisp_time;
-    int rowoffset;
-    int dispon;
-    int hdisp_on;
-    int vc;
-    int sc;
-    int linepos;
-    int vslines;
-    int linecountff;
-    int oddeven;
-    int con;
-    int cursoron;
-    int blink;
-    int scrollcache;
-    int char_width;
-    int firstline;
-    int lastline;
-    int firstline_draw;
-    int lastline_draw;
-    int displine;
-    int fullchange;
-    int x_add;
-    int y_add;
-    int pan;
-    int vram_display_mask;
-    int vidclock;
-    int dots_per_clock;
-    int hblank_ext;
-    int hwcursor_on;
-    int dac_hwcursor_on;
-    int overlay_on;
-    int set_override;
-    int hblankstart;
-    int hblankend;
-    int hblank_sub;
-    int hblank_end_val;
-    int hblank_end_len;
+    int dac_addr, dac_pos, dac_r, dac_g, dac_b,
+        vtotal, dispend, vsyncstart, split, vblankstart,
+        hdisp, hdisp_old, htotal, hdisp_time, rowoffset,
+        dispon, hdisp_on,
+        vc, sc, linepos, vslines, linecountff, oddeven,
+        con, cursoron, blink, scrollcache, char_width,
+        firstline, lastline, firstline_draw, lastline_draw,
+        displine, fullchange, x_add, y_add, pan,
+        vram_display_mask, vidclock, dots_per_clock, hblank_ext,
+        hwcursor_on, dac_hwcursor_on, overlay_on, set_override,
+        hblankstart, hblankend, hblank_sub, hblank_end_val, hblank_end_len;
 
     /*The three variables below allow us to implement memory maps like that seen on a 1MB Trio64 :
       0MB-1MB - VRAM
@@ -144,43 +84,32 @@ typedef struct svga_t {
       For the example memory map, decode_mask would be 4MB-1 (4MB address space), vram_max would be 2MB
       (present video memory only responds to first 2MB), vram_mask would be 1MB-1 (video memory wraps at 1MB)
     */
-    uint32_t decode_mask;
-    uint32_t vram_max;
-    uint32_t vram_mask;
-    uint32_t charseta;
-    uint32_t charsetb;
-    uint32_t adv_flags;
-    uint32_t ma_latch;
-    uint32_t ca_adj;
-    uint32_t ma;
-    uint32_t maback;
-    uint32_t write_bank;
-    uint32_t read_bank;
-    uint32_t extra_banks[2];
-    uint32_t banked_mask;
-    uint32_t ca;
-    uint32_t overscan_color;
-    uint32_t *map8;
-    uint32_t pallook[512];
+    uint32_t decode_mask, vram_max,
+        vram_mask,
+        charseta, charsetb,
+        adv_flags, ma_latch,
+        ca_adj, ma, maback,
+        write_bank, read_bank,
+        extra_banks[2],
+        banked_mask,
+        ca, overscan_color,
+        *map8, pallook[512];
 
     PALETTE vgapal;
 
-    uint64_t dispontime;
-    uint64_t dispofftime;
+    uint64_t dispontime, dispofftime;
     latch_t  latch;
 
     pc_timer_t timer;
 
     double clock;
 
-    hwcursor_t hwcursor;
-    hwcursor_t hwcursor_latch;
-    hwcursor_t dac_hwcursor;
-    hwcursor_t dac_hwcursor_latch;
-    hwcursor_t overlay;
-    hwcursor_t overlay_latch;
+    hwcursor_t hwcursor, hwcursor_latch,
+        dac_hwcursor, dac_hwcursor_latch,
+        overlay, overlay_latch;
 
     void (*render)(struct svga_t *svga);
+    void (*render8514)(struct svga_t *svga);
     void (*recalctimings_ex)(struct svga_t *svga);
 
     void (*video_out)(uint16_t addr, uint8_t val, void *p);
@@ -209,35 +138,20 @@ typedef struct svga_t {
     /*If set then another device is driving the monitor output and the SVGA
       card should not attempt to display anything */
     int   override;
-    void *priv;
+    void *p;
 
-    uint8_t crtc[256];
-    uint8_t gdcreg[256];
-    uint8_t attrregs[32];
-    uint8_t seqregs[256];
-    uint8_t egapal[16];
-    uint8_t *vram;
-    uint8_t *changedvram;
+    uint8_t crtc[256], gdcreg[256], attrregs[32], seqregs[256],
+        egapal[16],
+        *vram, *changedvram;
 
-    uint8_t crtcreg;
-    uint8_t gdcaddr;
-    uint8_t attrff;
-    uint8_t attr_palette_enable;
-    uint8_t attraddr;
-    uint8_t seqaddr;
-    uint8_t miscout;
-    uint8_t cgastat;
-    uint8_t scrblank;
-    uint8_t plane_mask;
-    uint8_t writemask;
-    uint8_t colourcompare;
-    uint8_t colournocare;
-    uint8_t dac_mask;
-    uint8_t dac_status;
-    uint8_t dpms;
-    uint8_t dpms_ui;
-    uint8_t ksc5601_sbyte_mask;
-    uint8_t ksc5601_udc_area_msb[2];
+    uint8_t crtcreg, gdcaddr,
+        attrff, attr_palette_enable, attraddr, seqaddr,
+        miscout, cgastat, scrblank,
+        plane_mask, writemask,
+        colourcompare, colournocare,
+        dac_mask, dac_status,
+        dpms, dpms_ui,
+        ksc5601_sbyte_mask, ksc5601_udc_area_msb[2];
 
     int      ksc5601_swap_mode;
     uint16_t ksc5601_english_font_type;
@@ -259,8 +173,7 @@ typedef struct svga_t {
     int remap_required;
     uint32_t (*remap_func)(struct svga_t *svga, uint32_t in_addr);
 
-    void *ramdac;
-    void *clock_gen;
+    void *ramdac, *clock_gen;
 
     /* Monitor Index */
     uint8_t monitor_index;
@@ -269,6 +182,7 @@ typedef struct svga_t {
     monitor_t* monitor;
 } svga_t;
 
+extern svga_t *mb_vga;
 extern int vga_on;
 extern int ibm8514_on;
 
@@ -341,6 +255,9 @@ extern void    ati68860_ramdac_set_render(void *p, svga_t *svga);
 extern void    ati68860_ramdac_set_pallook(void *p, int i, uint32_t col);
 extern void    ati68860_hwcursor_draw(svga_t *svga, int displine);
 
+extern void    ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t *svga);
+extern uint8_t ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga);
+
 extern void    att49x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga);
 extern uint8_t att49x_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga);
 
@@ -396,6 +313,7 @@ extern float   tvp3026_getclock(int clock, void *p);
 
 #    ifdef EMU_DEVICE_H
 extern const device_t ati68860_ramdac_device;
+extern const device_t ati68875_ramdac_device;
 extern const device_t att490_ramdac_device;
 extern const device_t att491_ramdac_device;
 extern const device_t att492_ramdac_device;
@@ -409,6 +327,9 @@ extern const device_t bt485a_ramdac_device;
 extern const device_t gendac_ramdac_device;
 extern const device_t ibm_rgb528_ramdac_device;
 extern const device_t ics2494an_305_device;
+extern const device_t ati18810_device;
+extern const device_t ati18811_0_device;
+extern const device_t ati18811_1_device;
 extern const device_t ics2595_device;
 extern const device_t icd2061_device;
 extern const device_t ics9161_device;

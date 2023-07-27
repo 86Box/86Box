@@ -108,9 +108,10 @@ svga_set_override(svga_t *svga, int val)
 }
 
 void
-svga_out(uint16_t addr, uint8_t val, void *priv)
+svga_out(uint16_t addr, uint8_t val, void *p)
 {
-    svga_t *svga = (svga_t *) priv;
+    svga_t *svga = (svga_t *) p;
+    xga_t *xga = &svga->xga;
     uint8_t o;
     uint8_t index;
 
@@ -161,16 +162,16 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3c2:
             svga->miscout  = val;
             svga->vidclock = val & 4;
-            io_removehandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->priv);
+            io_removehandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->p);
             if (!(val & 1))
-                io_sethandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->priv);
+                io_sethandler(0x03a0, 0x0020, svga->video_in, NULL, NULL, svga->video_out, NULL, NULL, svga->p);
             svga_recalctimings(svga);
             break;
         case 0x3c3:
-            if (xga_enabled) {
-                svga->xga.on = (val & 0x01) ? 0 : 1;
-                vga_on = !svga->xga.on;
-            }
+            if (xga_enabled)
+                xga->on = (val & 1) ? 0 : 1;
+
+            vga_on = val & 1;
             break;
         case 0x3c4:
             svga->seqaddr = val;
@@ -235,9 +236,10 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                     break;
                 case 2:
                     index                 = svga->dac_addr & 255;
+                    svga->dac_b = val;
                     svga->vgapal[index].r = svga->dac_r;
                     svga->vgapal[index].g = svga->dac_g;
-                    svga->vgapal[index].b = val;
+                    svga->vgapal[index].b = svga->dac_b;
                     if (svga->ramdac_type == RAMDAC_8BIT)
                         svga->pallook[index] = makecol32(svga->vgapal[index].r, svga->vgapal[index].g, svga->vgapal[index].b);
                     else
@@ -299,9 +301,9 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
 }
 
 uint8_t
-svga_in(uint16_t addr, void *priv)
+svga_in(uint16_t addr, void *p)
 {
-    svga_t *svga = (svga_t *) priv;
+    svga_t *svga = (svga_t *) p;
     uint8_t index;
     uint8_t ret = 0xff;
 
@@ -317,6 +319,9 @@ svga_in(uint16_t addr, void *priv)
                 ret = 0;
             else
                 ret = 0x10;
+            break;
+        case 0x3c3:
+            ret = vga_on;
             break;
         case 0x3c4:
             ret = svga->seqaddr;
@@ -428,6 +433,7 @@ svga_set_ramdac_type(svga_t *svga, int type)
 void
 svga_recalctimings(svga_t *svga)
 {
+    ibm8514_t *dev = &svga->dev8514;
     double crtcconst;
     double _dispontime;
     double _dispofftime;
@@ -591,7 +597,7 @@ svga_recalctimings(svga_t *svga)
         }
     } else {
         if (ibm8514_enabled) {
-            if (svga->dev8514.local) {
+            if (dev->local) {
                 if (svga->recalctimings_ex) {
                     svga->recalctimings_ex(svga);
                 }
@@ -610,9 +616,9 @@ svga_recalctimings(svga_t *svga)
 
     crtcconst = svga->clock * svga->char_width;
 
-    if (ibm8514_on && !svga->dev8514.local) {
-        disptime    = svga->dev8514.h_total;
-        _dispontime = svga->dev8514.h_disp;
+    if (ibm8514_on && (dev->local < 2)) {
+        disptime    = dev->h_total;
+        _dispontime = dev->h_disp;
     } else {
         disptime    = svga->htotal;
         _dispontime = svga->hdisp_time;
@@ -693,9 +699,9 @@ svga_do_render(svga_t *svga)
 }
 
 void
-svga_poll(void *priv)
+svga_poll(void *p)
 {
-    svga_t  *svga = (svga_t *) priv;
+    svga_t  *svga = (svga_t *) p;
     ibm8514_t *dev = &svga->dev8514;
     uint32_t x;
     uint32_t blink_delay;
@@ -703,13 +709,10 @@ svga_poll(void *priv)
     int      wy;
     int      ret;
     int      old_ma;
-    int      linecountff = 0;
 
-    if (!vga_on && ibm8514_enabled && ibm8514_on) {
-        if (!dev->local) {
-            ibm8514_poll(dev, svga);
-            return;
-        }
+    if (!vga_on && ibm8514_enabled && ibm8514_on && (dev->local < 2)) {
+        ibm8514_poll(dev, svga);
+        return;
     } else if (!vga_on && xga_enabled && svga->xga.on) {
         xga_poll(&svga->xga, svga);
         return;
@@ -789,7 +792,7 @@ svga_poll(void *priv)
         svga->displine++;
         if (svga->interlace)
             svga->displine++;
-        if ((svga->cgastat & 8) && ((svga->displine & 15) == (svga->crtc[0x11] & 15)) && svga->vslines)
+        if ((svga->cgastat & 8) && ((svga->displine & 0x0f) == (svga->crtc[0x11] & 0x0f)) && svga->vslines)
             svga->cgastat &= ~8;
         svga->vslines++;
         if (svga->displine > 1500)
@@ -802,16 +805,10 @@ svga_poll(void *priv)
         svga->hdisp_on = 0;
 
         svga->linepos = 0;
-        if ((svga->sc == (svga->crtc[11] & 31)) || (svga->sc == svga->rowcount))
+        if ((svga->sc == (svga->crtc[0x0b] & 31)) || (svga->sc == svga->rowcount))
             svga->con = 0;
         if (svga->dispon) {
-        	/*Real IBM 8514/A or compatibility mode doesn't have linedbl, so skip those.*/
-            if (dev->local && ibm8514_on) {
-                svga->linedbl = 0;
-                svga->linecountff = 0;
-                linecountff = 1;
-            }
-            if (svga->linedbl && !svga->linecountff && !linecountff) {
+            if (svga->linedbl && !svga->linecountff) {
             	svga->linecountff = 1;
                 svga->ma          = svga->maback;
             } else if (svga->sc == svga->rowcount) {
@@ -821,7 +818,6 @@ svga_poll(void *priv)
                 svga->maback += (svga->rowoffset << 3);
                 if (svga->interlace)
                     svga->maback += (svga->rowoffset << 3);
-
                 svga->maback &= svga->vram_display_mask;
                 svga->ma = svga->maback;
             } else {
@@ -919,17 +915,18 @@ svga_poll(void *priv)
             svga->monitor->mon_changeframecount = svga->interlace ? 3 : 2;
             svga->vslines    = 0;
 
-            if ((dev->local && vga_on) || !dev->local) {
+            if (vga_on) {
                 if (svga->interlace && svga->oddeven)
                     svga->ma = svga->maback = svga->ma_latch + (svga->rowoffset << 1) + ((svga->crtc[5] & 0x60) >> 5);
                 else
                     svga->ma = svga->maback = svga->ma_latch + ((svga->crtc[5] & 0x60) >> 5);
-            } else if (dev->local && ibm8514_on) {
+            } else {
                 if (svga->interlace && svga->oddeven)
                     svga->ma = svga->maback = svga->ma_latch + (svga->rowoffset << 1);
                 else
                     svga->ma = svga->maback = svga->ma_latch;
             }
+
             svga->ca = ((svga->crtc[0xe] << 8) | svga->crtc[0xf]) + ((svga->crtc[0xb] & 0x60) >> 5) + svga->ca_adj;
             svga->ma     = (svga->ma << 2);
             svga->maback = (svga->maback << 2);
@@ -944,7 +941,7 @@ svga_poll(void *priv)
             svga->dispon   = 1;
             svga->displine = (svga->interlace && svga->oddeven) ? 1 : 0;
 
-            if (!ibm8514_on) {
+            if (vga_on) {
                 svga->scrollcache = (svga->attrregs[0x13] & 0x0f);
                 if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
                     if (svga->seqregs[1] & 1)
@@ -982,16 +979,16 @@ svga_poll(void *priv)
 }
 
 int
-svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
+svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
           void (*recalctimings_ex)(struct svga_t *svga),
-          uint8_t (*video_in)(uint16_t addr, void *priv),
-          void (*video_out)(uint16_t addr, uint8_t val, void *priv),
+          uint8_t (*video_in)(uint16_t addr, void *p),
+          void (*video_out)(uint16_t addr, uint8_t val, void *p),
           void (*hwcursor_draw)(struct svga_t *svga, int displine),
           void (*overlay_draw)(struct svga_t *svga, int displine))
 {
     int e;
 
-    svga->priv = priv;
+    svga->p = p;
     svga->monitor_index = monitor_index_global;
     svga->monitor = &monitors[svga->monitor_index];
 
@@ -1119,10 +1116,9 @@ svga_decode_addr(svga_t *svga, uint32_t addr, int write)
 }
 
 static __inline void
-svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
+svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
 {
-    svga_t *svga = (svga_t *) priv;
-
+    svga_t *svga = (svga_t *) p;
     int     writemask2 = svga->writemask;
     int     reset_wm = 0;
     latch_t vall;
@@ -1197,13 +1193,12 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
     addr &= svga->decode_mask;
 
     if (svga->translate_address)
-        addr = svga->translate_address(addr, priv);
+        addr = svga->translate_address(addr, p);
 
     if (addr >= svga->vram_max)
         return;
 
     addr &= svga->vram_mask;
-
     svga->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
 
     count = 4;
@@ -1332,9 +1327,9 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
 }
 
 static __inline uint8_t
-svga_read_common(uint32_t addr, uint8_t linear, void *priv)
+svga_read_common(uint32_t addr, uint8_t linear, void *p)
 {
-    svga_t  *svga       = (svga_t *) priv;
+    svga_t  *svga       = (svga_t *) p;
     uint32_t latch_addr = 0;
     int      readplane  = svga->readplane;
     uint8_t  count;
@@ -1386,7 +1381,7 @@ svga_read_common(uint32_t addr, uint8_t linear, void *priv)
     else if ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) {
         addr &= svga->decode_mask;
         if (svga->translate_address)
-            addr = svga->translate_address(addr, priv);
+            addr = svga->translate_address(addr, p);
         if (addr >= svga->vram_max)
             return 0xff;
         latch_addr = (addr & svga->vram_mask) & ~3;
@@ -1399,9 +1394,9 @@ svga_read_common(uint32_t addr, uint8_t linear, void *priv)
     } else if (svga->chain2_read) {
         readplane = (readplane & 2) | (addr & 1);
         addr &= ~1;
-        if (linear && ibm8514_on && (svga->adv_flags & FLAG_ATI))
+        if (linear && ibm8514_on && (svga->adv_flags & FLAG_ATI)) {
             addr &= svga->vram_mask;
-       	else
+       	} else
             addr <<= 2;
     } else {
         if (linear && ibm8514_on && (svga->adv_flags & FLAG_ATI)) {
@@ -1418,8 +1413,8 @@ svga_read_common(uint32_t addr, uint8_t linear, void *priv)
     addr &= svga->decode_mask;
 
     if (svga->translate_address) {
-        latch_addr = svga->translate_address(latch_addr, priv);
-        addr       = svga->translate_address(addr, priv);
+        latch_addr = svga->translate_address(latch_addr, p);
+        addr       = svga->translate_address(addr, p);
     }
 
     /* standard VGA latched access */
@@ -1428,7 +1423,6 @@ svga_read_common(uint32_t addr, uint8_t linear, void *priv)
             svga->latch.b[i] = 0xff;
     } else {
         latch_addr &= svga->vram_mask;
-
         for (uint8_t i = 0; i < count; i++)
             svga->latch.b[i] = svga->vram[latch_addr | i];
     }
@@ -1452,34 +1446,35 @@ svga_read_common(uint32_t addr, uint8_t linear, void *priv)
         }
 
         ret = temp;
-    } else
+    } else {
         ret = svga->vram[addr | readplane];
+    }
 
     return ret;
 }
 
 void
-svga_write(uint32_t addr, uint8_t val, void *priv)
+svga_write(uint32_t addr, uint8_t val, void *p)
 {
-    svga_write_common(addr, val, 0, priv);
+    svga_write_common(addr, val, 0, p);
 }
 
 void
-svga_write_linear(uint32_t addr, uint8_t val, void *priv)
+svga_write_linear(uint32_t addr, uint8_t val, void *p)
 {
-    svga_write_common(addr, val, 1, priv);
+    svga_write_common(addr, val, 1, p);
 }
 
 uint8_t
-svga_read(uint32_t addr, void *priv)
+svga_read(uint32_t addr, void *p)
 {
-    return svga_read_common(addr, 0, priv);
+    return svga_read_common(addr, 0, p);
 }
 
 uint8_t
-svga_read_linear(uint32_t addr, void *priv)
+svga_read_linear(uint32_t addr, void *p)
 {
-    return svga_read_common(addr, 1, priv);
+    return svga_read_common(addr, 1, p);
 }
 
 void
@@ -1570,12 +1565,12 @@ svga_doblit(int wx, int wy, svga_t *svga)
 }
 
 void
-svga_writeb_linear(uint32_t addr, uint8_t val, void *priv)
+svga_writeb_linear(uint32_t addr, uint8_t val, void *p)
 {
-    svga_t *svga = (svga_t *) priv;
+    svga_t *svga = (svga_t *) p;
 
     if (!svga->fast) {
-        svga_write_linear(addr, val, priv);
+        svga_write_linear(addr, val, p);
         return;
     }
 
@@ -1588,13 +1583,13 @@ svga_writeb_linear(uint32_t addr, uint8_t val, void *priv)
 }
 
 void
-svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *priv)
+svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *p)
 {
-    svga_t *svga = (svga_t *) priv;
+    svga_t *svga = (svga_t *) p;
 
     if (!svga->fast) {
-        svga_write_common(addr, val, linear, priv);
-        svga_write_common(addr + 1, val >> 8, linear, priv);
+        svga_write_common(addr, val, linear, p);
+        svga_write_common(addr + 1, val >> 8, linear, p);
         return;
     }
 
@@ -1609,12 +1604,12 @@ svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *priv)
 
     addr &= svga->decode_mask;
     if (svga->translate_address) {
-        uint32_t addr2 = svga->translate_address(addr, priv);
+        uint32_t addr2 = svga->translate_address(addr, p);
         if (addr2 < svga->vram_max) {
             svga->vram[addr2 & svga->vram_mask] = val & 0xff;
             svga->changedvram[addr2 >> 12]      = svga->monitor->mon_changeframecount;
         }
-        addr2 = svga->translate_address(addr + 1, priv);
+        addr2 = svga->translate_address(addr + 1, p);
         if (addr2 < svga->vram_max) {
             svga->vram[addr2 & svga->vram_mask] = (val >> 8) & 0xff;
             svga->changedvram[addr2 >> 12]      = svga->monitor->mon_changeframecount;
@@ -1623,6 +1618,7 @@ svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *priv)
     }
     if (addr >= svga->vram_max)
         return;
+
     addr &= svga->vram_mask;
 
     svga->changedvram[addr >> 12]   = svga->monitor->mon_changeframecount;
@@ -1630,27 +1626,27 @@ svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *priv)
 }
 
 void
-svga_writew(uint32_t addr, uint16_t val, void *priv)
+svga_writew(uint32_t addr, uint16_t val, void *p)
 {
-    svga_writew_common(addr, val, 0, priv);
+    svga_writew_common(addr, val, 0, p);
 }
 
 void
-svga_writew_linear(uint32_t addr, uint16_t val, void *priv)
+svga_writew_linear(uint32_t addr, uint16_t val, void *p)
 {
-    svga_writew_common(addr, val, 1, priv);
+    svga_writew_common(addr, val, 1, p);
 }
 
 void
-svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *priv)
+svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *p)
 {
-    svga_t *svga = (svga_t *) priv;
+    svga_t *svga = (svga_t *) p;
 
     if (!svga->fast) {
-        svga_write_common(addr, val, linear, priv);
-        svga_write_common(addr + 1, val >> 8, linear, priv);
-        svga_write_common(addr + 2, val >> 16, linear, priv);
-        svga_write_common(addr + 3, val >> 24, linear, priv);
+        svga_write_common(addr, val, linear, p);
+        svga_write_common(addr + 1, val >> 8, linear, p);
+        svga_write_common(addr + 2, val >> 16, linear, p);
+        svga_write_common(addr + 3, val >> 24, linear, p);
         return;
     }
 
@@ -1665,22 +1661,22 @@ svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *priv)
 
     addr &= svga->decode_mask;
     if (svga->translate_address) {
-        uint32_t addr2 = svga->translate_address(addr, priv);
+        uint32_t addr2 = svga->translate_address(addr, p);
         if (addr2 < svga->vram_max) {
             svga->vram[addr2 & svga->vram_mask] = val & 0xff;
             svga->changedvram[addr2 >> 12]      = svga->monitor->mon_changeframecount;
         }
-        addr2 = svga->translate_address(addr + 1, priv);
+        addr2 = svga->translate_address(addr + 1, p);
         if (addr2 < svga->vram_max) {
             svga->vram[addr2 & svga->vram_mask] = (val >> 8) & 0xff;
             svga->changedvram[addr2 >> 12]      = svga->monitor->mon_changeframecount;
         }
-        addr2 = svga->translate_address(addr + 2, priv);
+        addr2 = svga->translate_address(addr + 2, p);
         if (addr2 < svga->vram_max) {
             svga->vram[addr2 & svga->vram_mask] = (val >> 16) & 0xff;
             svga->changedvram[addr2 >> 12]      = svga->monitor->mon_changeframecount;
         }
-        addr2 = svga->translate_address(addr + 3, priv);
+        addr2 = svga->translate_address(addr + 3, p);
         if (addr2 < svga->vram_max) {
             svga->vram[addr2 & svga->vram_mask] = (val >> 24) & 0xff;
             svga->changedvram[addr2 >> 12]      = svga->monitor->mon_changeframecount;
@@ -1689,6 +1685,7 @@ svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *priv)
     }
     if (addr >= svga->vram_max)
         return;
+
     addr &= svga->vram_mask;
 
     svga->changedvram[addr >> 12]   = svga->monitor->mon_changeframecount;
@@ -1696,24 +1693,24 @@ svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *priv)
 }
 
 void
-svga_writel(uint32_t addr, uint32_t val, void *priv)
+svga_writel(uint32_t addr, uint32_t val, void *p)
 {
-    svga_writel_common(addr, val, 0, priv);
+    svga_writel_common(addr, val, 0, p);
 }
 
 void
-svga_writel_linear(uint32_t addr, uint32_t val, void *priv)
+svga_writel_linear(uint32_t addr, uint32_t val, void *p)
 {
-    svga_writel_common(addr, val, 1, priv);
+    svga_writel_common(addr, val, 1, p);
 }
 
 uint8_t
-svga_readb_linear(uint32_t addr, void *priv)
+svga_readb_linear(uint32_t addr, void *p)
 {
-    svga_t *svga = (svga_t *) priv;
+    svga_t *svga = (svga_t *) p;
 
     if (!svga->fast)
-        return svga_read_linear(addr, priv);
+        return svga_read_linear(addr, p);
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
@@ -1723,12 +1720,12 @@ svga_readb_linear(uint32_t addr, void *priv)
 }
 
 uint16_t
-svga_readw_common(uint32_t addr, uint8_t linear, void *priv)
+svga_readw_common(uint32_t addr, uint8_t linear, void *p)
 {
-    svga_t *svga = (svga_t *) priv;
+    svga_t *svga = (svga_t *) p;
 
     if (!svga->fast)
-        return svga_read_common(addr, linear, priv) | (svga_read_common(addr + 1, linear, priv) << 8);
+        return svga_read_common(addr, linear, p) | (svga_read_common(addr + 1, linear, p) << 8);
 
     cycles -= svga->monitor->mon_video_timing_read_w;
 
@@ -1743,10 +1740,10 @@ svga_readw_common(uint32_t addr, uint8_t linear, void *priv)
     if (svga->translate_address) {
         uint8_t  val1 = 0xff;
         uint8_t  val2 = 0xff;
-        uint32_t addr2 = svga->translate_address(addr, priv);
+        uint32_t addr2 = svga->translate_address(addr, p);
         if (addr2 < svga->vram_max)
             val1 = svga->vram[addr2 & svga->vram_mask];
-        addr2 = svga->translate_address(addr + 1, priv);
+        addr2 = svga->translate_address(addr + 1, p);
         if (addr2 < svga->vram_max)
             val2 = svga->vram[addr2 & svga->vram_mask];
         return (val2 << 8) | val1;
@@ -1758,25 +1755,24 @@ svga_readw_common(uint32_t addr, uint8_t linear, void *priv)
 }
 
 uint16_t
-svga_readw(uint32_t addr, void *priv)
+svga_readw(uint32_t addr, void *p)
 {
-    return svga_readw_common(addr, 0, priv);
+    return svga_readw_common(addr, 0, p);
 }
 
 uint16_t
-svga_readw_linear(uint32_t addr, void *priv)
+svga_readw_linear(uint32_t addr, void *p)
 {
-    return svga_readw_common(addr, 1, priv);
+    return svga_readw_common(addr, 1, p);
 }
 
 uint32_t
-svga_readl_common(uint32_t addr, uint8_t linear, void *priv)
+svga_readl_common(uint32_t addr, uint8_t linear, void *p)
 {
-    svga_t *svga = (svga_t *) priv;
+    svga_t *svga = (svga_t *) p;
 
-    if (!svga->fast) {
-        return svga_read_common(addr, linear, priv) | (svga_read_common(addr + 1, linear, priv) << 8) | (svga_read_common(addr + 2, linear, priv) << 16) | (svga_read_common(addr + 3, linear, priv) << 24);
-    }
+    if (!svga->fast)
+        return svga_read_common(addr, linear, p) | (svga_read_common(addr + 1, linear, p) << 8) | (svga_read_common(addr + 2, linear, p) << 16) | (svga_read_common(addr + 3, linear, p) << 24);
 
     cycles -= svga->monitor->mon_video_timing_read_l;
 
@@ -1793,16 +1789,16 @@ svga_readl_common(uint32_t addr, uint8_t linear, void *priv)
         uint8_t  val2 = 0xff;
         uint8_t  val3 = 0xff;
         uint8_t  val4 = 0xff;
-        uint32_t addr2 = svga->translate_address(addr, priv);
+        uint32_t addr2 = svga->translate_address(addr, p);
         if (addr2 < svga->vram_max)
             val1 = svga->vram[addr2 & svga->vram_mask];
-        addr2 = svga->translate_address(addr + 1, priv);
+        addr2 = svga->translate_address(addr + 1, p);
         if (addr2 < svga->vram_max)
             val2 = svga->vram[addr2 & svga->vram_mask];
-        addr2 = svga->translate_address(addr + 2, priv);
+        addr2 = svga->translate_address(addr + 2, p);
         if (addr2 < svga->vram_max)
             val3 = svga->vram[addr2 & svga->vram_mask];
-        addr2 = svga->translate_address(addr + 3, priv);
+        addr2 = svga->translate_address(addr + 3, p);
         if (addr2 < svga->vram_max)
             val4 = svga->vram[addr2 & svga->vram_mask];
         return (val4 << 24) | (val3 << 16) | (val2 << 8) | val1;
@@ -1814,13 +1810,13 @@ svga_readl_common(uint32_t addr, uint8_t linear, void *priv)
 }
 
 uint32_t
-svga_readl(uint32_t addr, void *priv)
+svga_readl(uint32_t addr, void *p)
 {
-    return svga_readl_common(addr, 0, priv);
+    return svga_readl_common(addr, 0, p);
 }
 
 uint32_t
-svga_readl_linear(uint32_t addr, void *priv)
+svga_readl_linear(uint32_t addr, void *p)
 {
-    return svga_readl_common(addr, 1, priv);
+    return svga_readl_common(addr, 1, p);
 }

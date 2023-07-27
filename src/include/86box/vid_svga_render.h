@@ -20,16 +20,12 @@
 #ifndef VIDEO_SVGA_RENDER_H
 #define VIDEO_SVGA_RENDER_H
 
-extern int firstline_draw;
-extern int lastline_draw;
+extern int firstline_draw, lastline_draw;
 extern int displine;
 extern int sc;
 
-extern uint32_t ma;
-extern uint32_t ca;
-extern int      con;
-extern int      cursoron;
-extern int      cgablink;
+extern uint32_t ma, ca;
+extern int      con, cursoron, cgablink;
 
 extern int scrollcache;
 
@@ -66,12 +62,22 @@ void svga_render_16bpp_lowres(svga_t *svga);
 void svga_render_16bpp_highres(svga_t *svga);
 void svga_render_24bpp_lowres(svga_t *svga);
 void svga_render_24bpp_highres(svga_t *svga);
+void svga_render_BGR_highres(svga_t *svga);
 void svga_render_32bpp_lowres(svga_t *svga);
 void svga_render_32bpp_highres(svga_t *svga);
 void svga_render_ABGR8888_lowres(svga_t *svga);
 void svga_render_ABGR8888_highres(svga_t *svga);
 void svga_render_RGBA8888_lowres(svga_t *svga);
 void svga_render_RGBA8888_highres(svga_t *svga);
+
+void ibm8514_render_8bpp(svga_t *svga);
+void ibm8514_render_15bpp(svga_t *svga);
+void ibm8514_render_16bpp(svga_t *svga);
+void ibm8514_render_24bpp(svga_t *svga);
+void ibm8514_render_BGR(svga_t *svga);
+void ibm8514_render_32bpp(svga_t *svga);
+void ibm8514_render_ABGR8888(svga_t *svga);
+void ibm8514_render_RGBA8888(svga_t *svga);
 
 extern void (*svga_render)(svga_t *svga);
 
