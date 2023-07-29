@@ -1,0 +1,1 @@
+extern const device_t dec_tulip_device;
