@@ -25,6 +25,7 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/snd_ac97.h>
+#include <86box/plat_fallthrough.h>
 
 static const struct {
     const device_t *device;
@@ -417,7 +418,7 @@ rate:              /* Writable only if VRA/VRM is set. */
                 /* Get actual previous value. */
                 prev = dev->vendor_reg_pages[(i << 3) | ((reg & 0x0e) >> 1)];
             }
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
 

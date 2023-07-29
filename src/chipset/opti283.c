@@ -29,6 +29,7 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/mem.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include <86box/chipset.h>
 
@@ -228,7 +229,7 @@ opti283_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x14:
                     reset_on_hlt = !!(val & 0x40);
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
                     [[fallthrough]];
 #endif
                 case 0x11:

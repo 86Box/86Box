@@ -699,7 +699,7 @@ do_fmt:
 
             /* Done with this track. */
             dev->state = STATE_FDONE;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
         case STATE_FDONE:

@@ -623,7 +623,7 @@ st506_callback(void *priv)
                 st506_complete(dev);
                 break;
             }
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
 
@@ -1608,7 +1608,7 @@ st506_init(const device_t *info)
 
         case ST506_XT_TYPE_ST11R: /* Seagate ST-11R (RLL) */
             dev->spt = RLL_SECTORS;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
 

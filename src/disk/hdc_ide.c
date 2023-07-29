@@ -1655,7 +1655,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                        disabled, the Read Multiple operation is rejected with an Aborted Com-
                        mand error. */
                     ide->blockcount = 0;
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
                     [[fallthrough]];
 #endif
 
@@ -1706,7 +1706,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                     /* Turn on the activity indicator *here* so that it gets turned on
                        less times. */
                     ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
                     [[fallthrough]];
 #endif
 

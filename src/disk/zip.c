@@ -821,7 +821,7 @@ zip_update_request_length(zip_t *dev, int len, int block_len)
                     break;
                 }
             }
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
 
@@ -1411,7 +1411,7 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                 zip_invalid_field(dev);
                 return;
             }
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
         case GPCMD_SCSI_RESERVE:
@@ -1576,7 +1576,7 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                 zip_command_complete(dev);
                 break;
             }
-#ifndef __APPLE__
+#ifdef FALLTHROUGH_ANNOTATION
             [[fallthrough]];
 #endif
         case GPCMD_WRITE_6:
