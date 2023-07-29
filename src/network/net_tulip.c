@@ -646,7 +646,7 @@ static const uint16_t tulip_mdi_default[] = {
     0x0000,
     /* MDI Registers 16 - 31 */
     0x0003,
-    0x0000,
+    0x0600,
     0x0001,
     0x0000,
     0x0000,
