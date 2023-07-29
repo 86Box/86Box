@@ -1438,7 +1438,7 @@ nic_close(void *priv)
 }
 
 const device_t dec_tulip_device = {
-    .name          = "Compu-Shack FASTLine-II UTP 10/100",
+    .name          = "Compu-Shack FASTLine-II UTP 10/100 (DECchip 21143 \"Tulip\")",
     .internal_name = "dec_21143_tulip",
     .flags         = DEVICE_PCI,
     .local         = 0,
