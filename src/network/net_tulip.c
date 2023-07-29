@@ -747,10 +747,8 @@ static uint32_t tulip_read(uint32_t addr, void *opaque)
         break;
 
     default:
-        if (addr & 7) {
-        } else {
+        if (!(addr & 7))
             data = s->csr[addr >> 3];
-        }
         break;
     }
     return data;
