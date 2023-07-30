@@ -91,7 +91,8 @@ typedef struct mach64_t {
     uint8_t regs[256];
     int     index;
 
-    int type, pci;
+    int type;
+    int pci;
 
     uint8_t pci_regs[256];
     uint8_t int_line;
@@ -503,7 +504,7 @@ mach64_in(uint16_t addr, void *priv)
 void
 mach64_recalctimings(svga_t *svga)
 {
-    mach64_t *mach64 = (mach64_t *) svga->priv;
+    const mach64_t *mach64 = (mach64_t *) svga->priv;
 
     if (((mach64->crtc_gen_cntl >> 24) & 3) == 3) {
         svga->vtotal     = (mach64->crtc_v_total_disp & 2047) + 1;
@@ -678,7 +679,7 @@ mach64_wait_fifo_idle(mach64_t *mach64)
 }
 
 #define READ8(addr, var)                \
-    switch ((addr) & 3) {               \
+    switch ((addr) &3) {                \
         case 0:                         \
             ret = (var) &0xff;          \
             break;                      \
@@ -694,7 +695,7 @@ mach64_wait_fifo_idle(mach64_t *mach64)
     }
 
 #define WRITE8(addr, var, val)                        \
-    switch ((addr) & 3) {                             \
+    switch ((addr) &3) {                              \
         case 0:                                       \
             var = (var & 0xffffff00) | (val);         \
             break;                                    \
@@ -749,7 +750,7 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
         case 0x11f:
             WRITE8(addr, mach64->dst_height_width, val);
 #ifdef FALLTHROUGH_ANNOTATION
-        [[fallthrough]];
+            [[fallthrough]];
 #endif
         case 0x113:
             if (((addr & 0x3ff) == 0x11b || (addr & 0x3ff) == 0x11f || (addr & 0x3ff) == 0x113) && !(val & 0x80)) {
@@ -974,7 +975,7 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
         case 0x2a5:
             addr += 2;
 #ifdef FALLTHROUGH_ANNOTATION
-        [[fallthrough]];
+            [[fallthrough]];
 #endif
         case 0x2aa:
         case 0x2ab:
@@ -991,7 +992,7 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
         case 0x2b1:
             addr += 2;
 #ifdef FALLTHROUGH_ANNOTATION
-        [[fallthrough]];
+            [[fallthrough]];
 #endif
         case 0x2b6:
         case 0x2b7:
@@ -1245,8 +1246,8 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 void
 mach64_start_fill(mach64_t *mach64)
 {
-    mach64->accel.dst_x       = 0;
-    mach64->accel.dst_y       = 0;
+    mach64->accel.dst_x = 0;
+    mach64->accel.dst_y = 0;
 
     mach64->accel.dst_x_start = (mach64->dst_y_x >> 16) & 0xfff;
     if ((mach64->dst_y_x >> 16) & 0x1000)
@@ -1263,11 +1264,11 @@ mach64_start_fill(mach64_t *mach64)
             mach64->accel.dst_width = (mach64->accel.dst_width & ~7) + 8;
     }
 
-    mach64->accel.x_count = mach64->accel.dst_width;
+    mach64->accel.x_count  = mach64->accel.dst_width;
     mach64->accel.xx_count = 0;
 
-    mach64->accel.src_x       = 0;
-    mach64->accel.src_y       = 0;
+    mach64->accel.src_x = 0;
+    mach64->accel.src_y = 0;
 
     mach64->accel.src_x_start = (mach64->src_y_x >> 16) & 0xfff;
     if ((mach64->src_y_x >> 16) & 0x1000)
@@ -1571,12 +1572,12 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
     switch (mach64->accel.op) {
         case OP_RECT:
             while (count) {
-                uint8_t write_mask = 0;
-                uint32_t src_dat  = 0;
+                uint8_t  write_mask = 0;
+                uint32_t src_dat    = 0;
                 uint32_t dest_dat;
                 uint32_t host_dat = 0;
                 uint32_t old_dest_dat;
-                int      mix   = 0;
+                int      mix = 0;
                 int      dst_x;
                 int      dst_y;
                 int      src_x;
@@ -1710,7 +1711,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                     }
 
                     if (!(mach64->dst_cntl & DST_POLYGON_EN) || mach64->accel.poly_draw) {
-                        READ(mach64->accel.dst_offset + ((dst_y) * mach64->accel.dst_pitch) + (dst_x), dest_dat, mach64->accel.dst_size);
+                        READ(mach64->accel.dst_offset + ((dst_y) *mach64->accel.dst_pitch) + (dst_x), dest_dat, mach64->accel.dst_size);
 
                         switch (mach64->accel.clr_cmp_fn) {
                             case 1: /*TRUE*/
@@ -1777,8 +1778,8 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                 mach64->accel.x_count--;
                 if (mach64->accel.x_count <= 0) {
                     mach64->accel.xx_count = 0;
-                    mach64->accel.x_count = mach64->accel.dst_width;
-                    mach64->accel.dst_x   = 0;
+                    mach64->accel.x_count  = mach64->accel.dst_width;
+                    mach64->accel.dst_x    = 0;
                     mach64->accel.dst_y += mach64->accel.yinc;
                     mach64->accel.src_x_start = (mach64->src_y_x >> 16) & 0xfff;
                     mach64->accel.src_x_count = mach64->accel.src_width1;
@@ -1830,7 +1831,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
             if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24) {
                 int x = 0;
                 while (count) {
-                    uint32_t src_dat  = 0;
+                    uint32_t src_dat = 0;
                     uint32_t dest_dat;
                     uint32_t host_dat = 0;
                     int      mix      = 0;
@@ -1965,7 +1966,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                 }
             } else {
                 while (count) {
-                    uint32_t src_dat    = 0;
+                    uint32_t src_dat = 0;
                     uint32_t dest_dat;
                     uint32_t host_dat   = 0;
                     int      mix        = 0;
@@ -2879,8 +2880,9 @@ mach64_ext_readb(uint32_t addr, void *priv)
 uint16_t
 mach64_ext_readw(uint32_t addr, void *priv)
 {
-    mach64_t *mach64 = (mach64_t *) priv;
+    const mach64_t *mach64 = (mach64_t *) priv;
     uint16_t  ret;
+
     if (!(addr & 0x400)) {
         mach64_log("nmach64_ext_readw: addr=%04x\n", addr);
         ret = 0xffff;
@@ -2907,8 +2909,9 @@ mach64_ext_readw(uint32_t addr, void *priv)
 uint32_t
 mach64_ext_readl(uint32_t addr, void *priv)
 {
-    mach64_t *mach64 = (mach64_t *) priv;
-    uint32_t  ret;
+    const mach64_t *mach64 = (mach64_t *) priv;
+    uint32_t        ret;
+
     if (!(addr & 0x400)) {
         mach64_log("nmach64_ext_readl: addr=%04x\n", addr);
         ret = 0xffffffff;
@@ -3317,7 +3320,7 @@ uint8_t
 mach64_ext_inb(uint16_t port, void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
-    uint8_t   ret = 0xff;
+    uint8_t   ret    = 0xff;
 
     switch (port) {
         case 0x02ec:
@@ -4036,9 +4039,9 @@ mach64_overlay_draw(svga_t *svga, int displine)
         }
     } else {
         for (x = 0; x < mach64->svga.overlay_latch.cur_xsize; x++) {
-            int h      = h_acc >> 12;
-            int gr_cmp = 0;
-            int vid_cmp = 0;
+            int h         = h_acc >> 12;
+            int gr_cmp    = 0;
+            int vid_cmp   = 0;
             int use_video = 0;
 
             switch (video_key_fn) {
@@ -4216,7 +4219,7 @@ mach64_io_set(mach64_t *mach64)
 uint8_t
 mach64_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    mach64_t *mach64 = (mach64_t *) priv;
+    const mach64_t *mach64 = (mach64_t *) priv;
 
     switch (addr) {
         case 0x00:
@@ -4448,7 +4451,7 @@ mach64gx_init(const device_t *info)
 
     mach64->type           = MACH64_GX;
     mach64->pci            = !!(info->flags & DEVICE_PCI);
-    mach64->pci_id         = (int) 'X' | ((int) 'G' << 8);
+    mach64->pci_id         = 'X' | ('G' << 8);
     mach64->config_chip_id = 0x000000d7;
     mach64->dac_cntl       = 5 << 16;             /*ATI 68860 RAMDAC*/
     mach64->config_stat0   = (5 << 9) | (3 << 3); /*ATI-68860, 256Kx16 DRAM*/
