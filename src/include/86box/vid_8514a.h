@@ -31,9 +31,13 @@ typedef struct ibm8514_t {
     uint32_t vram_mask;
 
     PALETTE   vgapal;
-    uint8_t   dac_mask, dac_status;
+    uint8_t   dac_mask;
+    uint8_t   dac_status;
     uint32_t *map8;
-    int       dac_addr, dac_pos, dac_r, dac_g;
+    int       dac_addr;
+    int       dac_pos;
+    int       dac_r;
+    int       dac_g;
     int       internal_pitch;
 
     struct {
@@ -143,7 +147,7 @@ typedef struct ibm8514_t {
 
     uint8_t *vram;
     uint8_t *changedvram;
-    uint8_t linedbl;
+    uint8_t  linedbl;
 
     uint8_t data_available;
     uint8_t data_available2;
