@@ -602,6 +602,9 @@ svga_recalctimings(svga_t *svga)
             xga_recalctimings(svga);
     }
 
+    if (svga->hdisp >= 2048)
+        svga->monitor->mon_overscan_x = 0;
+
     svga->y_add = (svga->monitor->mon_overscan_y >> 1) - (svga->crtc[8] & 0x1f);
     svga->x_add = (svga->monitor->mon_overscan_x >> 1);
 
@@ -792,7 +795,7 @@ svga_poll(void *priv)
         if ((svga->cgastat & 8) && ((svga->displine & 15) == (svga->crtc[0x11] & 15)) && svga->vslines)
             svga->cgastat &= ~8;
         svga->vslines++;
-        if (svga->displine > 1500)
+        if (svga->displine > 2000)
             svga->displine = 0;
     } else {
         timer_advance_u64(&svga->timer, svga->dispontime);
