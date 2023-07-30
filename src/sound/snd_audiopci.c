@@ -307,21 +307,15 @@ es1371_reset(void *p)
 
     /* Interrupt/Chip Select Control Register, Address 00H
        Addressable as byte, word, longword */
-    dev->int_ctrl = 0xfc0f0000;
+    dev->int_ctrl = 0xfcff0000;
 
     /* Interrupt/Chip Select Control Register, Address 00H
        Addressable as longword only */
-    /* Bit 13 is supposed to be always 1 on ES1371, and one of the GPIO interrupt
-       flags on ES1373. The 5.12.01 WDM driver only initializes its GPIO interrupt
-       handler on chip revisions which support this feature (1371 >= 0x04 and 5880
-       all), but calls it anyway during interrupt servicing regardless of revision,
-       crashing on ES1371 as soon as an interrupt arrives while that bit is set.
-       Pending hardware research because actual early ES1371 cards are rare. */
-    dev->int_status = 0x7fffdec0;
+    dev->int_status = 0x7ffffec0;
 
     /* UART Status Register, Address 09H
        Addressable as byte only */
-    dev->uart_status = 0x00;
+    dev->uart_status = 0xff;
 
     /* UART Control Register, Address 09H
        Addressable as byte only */
@@ -329,15 +323,15 @@ es1371_reset(void *p)
 
     /* UART Reserved Register, Address 0AH
        Addressable as byte only */
-    dev->uart_res = 0x00;
+    dev->uart_res = 0xff;
 
     /* Memory Page Register, Address 0CH
        Addressable as byte, word, longword */
-    dev->mem_page = 0x00;
+    dev->mem_page = 0xf0; /* FIXME: hardware reads 0xfffffff0 */
 
     /* Sample Rate Converter Interface Register, Address 10H
        Addressable as longword only */
-    dev->sr_cir = 0x00000000;
+    dev->sr_cir = 0x00470000;
 
     /* CODEC Write Register, Address 14H
        Addressable as longword only */
@@ -345,7 +339,7 @@ es1371_reset(void *p)
 
     /* Legacy Control/Status Register, Address 18H
        Addressable as byte, word, longword */
-    dev->legacy_ctrl = 0x0000f800;
+    dev->legacy_ctrl = 0x0000f801;
 
     /* Serial Interface Control Register, Address 20H
        Addressable as byte, word, longword */
@@ -353,17 +347,17 @@ es1371_reset(void *p)
 
     /* DAC1 Channel Sample Count Register, Address 24H
        Addressable as word, longword */
-    dev->dac[0].samp_ct      = 0x00000000;
+    dev->dac[0].samp_ct      = 0x00010000;
     dev->dac[0].curr_samp_ct = 0x00000000;
 
     /* DAC2 Channel Sample Count Register, Address 28H
        Addressable as word, longword */
-    dev->dac[1].samp_ct      = 0x00000000;
+    dev->dac[1].samp_ct      = 0x00010000;
     dev->dac[1].curr_samp_ct = 0x00000000;
 
     /* ADC Channel Sample Count Register, Address 2CH
        Addressable as word, longword */
-    dev->adc.samp_ct      = 0x00000000;
+    dev->adc.samp_ct      = 0x00010000;
     dev->adc.curr_samp_ct = 0x00000000;
 
     /* DAC1 Frame Register 1, Address 30H, Memory Page 1100b
@@ -1557,7 +1551,7 @@ es1371_pci_read(int func, int addr, void *p)
             return 0x00;
 
         case 0x08:
-            return 0x02; /* Revision ID - 0x02 is supposed to be early Ensoniq-branded ES1371 but unconfirmed */
+            return 0x02; /* Revision ID - 0x02 is actual Ensoniq-branded ES1371 */
         case 0x09:
             return 0x00; /* Multimedia audio device */
         case 0x0a:
