@@ -65,6 +65,9 @@ svga_render_blank(svga_t *svga)
         case 9:
             char_width = 16;
             break;
+
+        default:
+            break;
     }
 
     uint32_t *line_ptr   = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
@@ -1305,7 +1308,7 @@ svga_render_15bpp_mix_lowres(svga_t *svga)
         svga->lastline_draw = svga->displine;
 
         for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += 4) {
-            dat         = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1)) & svga->vram_display_mask]);
+            dat       = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1)) & svga->vram_display_mask]);
             p[x << 1] = p[(x << 1) + 1] = (dat & 0x00008000) ? svga->pallook[dat & 0xff] : video_15to32[dat & 0xffff];
 
             dat >>= 16;
@@ -1386,7 +1389,7 @@ svga_render_16bpp_lowres(svga_t *svga)
             svga->lastline_draw = svga->displine;
 
             for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += 4) {
-                dat         = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1)) & svga->vram_display_mask]);
+                dat       = *(uint32_t *) (&svga->vram[(svga->ma + (x << 1)) & svga->vram_display_mask]);
                 p[x << 1] = p[(x << 1) + 1] = video_16to32[dat & 0xffff];
                 p[(x << 1) + 2] = p[(x << 1) + 3] = video_16to32[dat >> 16];
 
