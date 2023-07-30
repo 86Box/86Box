@@ -83,11 +83,11 @@ typedef struct ibm8514_t {
         int16_t  dy;
         int16_t  err;
         uint32_t src;
-        uint16_t dest;
+        uint32_t dest;
         uint32_t newsrc_blt;
-        uint16_t newdest_blt;
+        uint32_t newdest_blt;
         uint32_t newdest_in;
-        uint16_t newdest_out;
+        uint32_t newdest_out;
         uint8_t *writemono;
         uint8_t *nibbleset;
         int      x_count;

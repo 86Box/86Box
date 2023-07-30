@@ -1142,8 +1142,8 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         break;
                 }
 
-                if ((dev->accel.dx) >= clip_l && (dev->accel.dx) <= clip_r &&
-                    (dev->accel.dy) >= clip_t && (dev->accel.dy) <= clip_b) {
+                if (((dev->accel.dx) >= clip_l) && ((dev->accel.dx) <= clip_r) &&
+                    ((dev->accel.dy) >= clip_t) && ((dev->accel.dy) <= clip_b)) {
                     if (mach->accel.dp_config & 0x02) {
                         READ(dev->accel.src + (dev->accel.cx), poly_src, dev->local);
                         poly_src = ((poly_src & rd_mask) == rd_mask);
@@ -2073,8 +2073,8 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         break;
                 }
 
-                if ((dev->accel.dx) >= clip_l && (dev->accel.dx) <= clip_r &&
-                    (dev->accel.dy) >= clip_t && (dev->accel.dy) <= clip_b) {
+                if (((dev->accel.dx) >= clip_l) && ((dev->accel.dx) <= clip_r) &&
+                    ((dev->accel.dy) >= clip_t) && ((dev->accel.dy) <= clip_b)) {
                     switch (mix ? frgd_sel : bkgd_sel) {
                         case 0:
                             src_dat = dev->accel.bkgd_color;

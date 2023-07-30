@@ -1402,7 +1402,8 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                 }
             } else {
                 while (count-- && (dev->accel.ssv_len >= 0)) {
-                    if (dev->accel.cx >= dev->accel.clip_left && dev->accel.cx <= clip_r && dev->accel.cy >= dev->accel.clip_top && dev->accel.cy <= clip_b) {
+                    if ((dev->accel.cx >= dev->accel.clip_left) && (dev->accel.cx <= clip_r) &&
+                        (dev->accel.cy >= dev->accel.clip_top) && (dev->accel.cy <= clip_b)) {
                         switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
                             case 0:
                                 src_dat = bkgd_color;
@@ -3629,7 +3630,8 @@ bitblt:
                             dx = (int64_t)dev->accel.dx;
 
                             while (1) {
-                                if (dx >= (((int64_t)dev->accel.clip_left) * 3) && dx <= (((uint64_t)clip_r) * 3) && dev->accel.dy >= (dev->accel.clip_top << 1) && dev->accel.dy <= (clip_b << 1)) {
+                                if ((dx >= (((int64_t)dev->accel.clip_left) * 3)) && (dx <= (((uint64_t)clip_r) * 3)) &&
+                                    (dev->accel.dy >= (dev->accel.clip_top << 1)) && (dev->accel.dy <= (clip_b << 1))) {
                                     READ(dev->accel.src + (dev->accel.ge_offset << 2) + cx, src_dat);
                                     READ(dev->accel.dest + (dev->accel.ge_offset << 2) + dx, dest_dat);
 
@@ -3649,7 +3651,8 @@ bitblt:
                         }
 
                         while (count-- && dev->accel.sy >= 0) {
-                            if (dev->accel.dx >= dev->accel.clip_left && dev->accel.dx <= clip_r && dev->accel.dy >= dev->accel.clip_top && dev->accel.dy <= clip_b) {
+                            if ((dev->accel.dx >= dev->accel.clip_left) && (dev->accel.dx <= clip_r) &&
+                                (dev->accel.dy >= dev->accel.clip_top) && (dev->accel.dy <= clip_b)) {
                                 if (pixcntl == 3) {
                                     if (!(dev->accel.cmd & 0x10) && ((frgd_mix != 3) || (bkgd_mix != 3))) {
                                         READ(dev->accel.src + dev->accel.cx, mix_dat);
