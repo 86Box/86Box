@@ -216,16 +216,16 @@ static int cgacols[256][2][2];
 static int mdacols[256][2][2];
 
 void    wy700_recalctimings(wy700_t *wy700);
-void    wy700_write(uint32_t addr, uint8_t val, void *p);
-uint8_t wy700_read(uint32_t addr, void *p);
+void    wy700_write(uint32_t addr, uint8_t val, void *priv);
+uint8_t wy700_read(uint32_t addr, void *priv);
 void    wy700_checkchanges(wy700_t *wy700);
 
 static video_timings_t timing_wy700 = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
 void
-wy700_out(uint16_t addr, uint8_t val, void *p)
+wy700_out(uint16_t addr, uint8_t val, void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) p;
+    wy700_t *wy700 = (wy700_t *) priv;
     switch (addr) {
         /* These three registers are only mapped in the 3Dx range,
          * not the 3Bx range. */
@@ -287,9 +287,9 @@ wy700_out(uint16_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-wy700_in(uint16_t addr, void *p)
+wy700_in(uint16_t addr, void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) p;
+    wy700_t *wy700 = (wy700_t *) priv;
     switch (addr) {
         case 0x3b0:
         case 0x3b2:
@@ -456,9 +456,9 @@ wy700_checkchanges(wy700_t *wy700)
 }
 
 void
-wy700_write(uint32_t addr, uint8_t val, void *p)
+wy700_write(uint32_t addr, uint8_t val, void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) p;
+    wy700_t *wy700 = (wy700_t *) priv;
 
     if (wy700->wy700_mode & 0x80) /* High-res mode. */
     {
@@ -475,9 +475,9 @@ wy700_write(uint32_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-wy700_read(uint32_t addr, void *p)
+wy700_read(uint32_t addr, void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) p;
+    wy700_t *wy700 = (wy700_t *) priv;
     if (wy700->wy700_mode & 0x80) /* High-res mode. */
     {
         addr &= 0xFFFF;
@@ -745,9 +745,9 @@ wy700_hiresline(wy700_t *wy700)
 }
 
 void
-wy700_poll(void *p)
+wy700_poll(void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) p;
+    wy700_t *wy700 = (wy700_t *) priv;
     int      mode;
 
     if (!wy700->linepos) {
@@ -959,18 +959,18 @@ wy700_init(const device_t *info)
 }
 
 void
-wy700_close(void *p)
+wy700_close(void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) p;
+    wy700_t *wy700 = (wy700_t *) priv;
 
     free(wy700->vram);
     free(wy700);
 }
 
 void
-wy700_speed_changed(void *p)
+wy700_speed_changed(void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) p;
+    wy700_t *wy700 = (wy700_t *) priv;
 
     wy700_recalctimings(wy700);
 }

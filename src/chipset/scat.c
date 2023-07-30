@@ -1204,9 +1204,9 @@ scat_out(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 scat_in(uint16_t port, void *priv)
 {
-    scat_t *dev = (scat_t *) priv;
-    uint8_t ret = 0xff;
-    uint8_t indx;
+    const scat_t *dev = (scat_t *) priv;
+    uint8_t       ret = 0xff;
+    uint8_t       indx;
 
     switch (port) {
         case 0x23:

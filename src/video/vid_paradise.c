@@ -75,9 +75,9 @@ static video_timings_t timing_paradise_wd90c  = { .type = VIDEO_ISA, .write_b = 
 void paradise_remap(paradise_t *paradise);
 
 uint8_t
-paradise_in(uint16_t addr, void *p)
+paradise_in(uint16_t addr, void *priv)
 {
-    paradise_t *paradise = (paradise_t *) p;
+    paradise_t *paradise = (paradise_t *) priv;
     svga_t     *svga     = &paradise->svga;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
@@ -135,9 +135,9 @@ paradise_in(uint16_t addr, void *p)
 }
 
 void
-paradise_out(uint16_t addr, uint8_t val, void *p)
+paradise_out(uint16_t addr, uint8_t val, void *priv)
 {
-    paradise_t *paradise = (paradise_t *) p;
+    paradise_t *paradise = (paradise_t *) priv;
     svga_t     *svga     = &paradise->svga;
     uint8_t     old;
 
@@ -301,7 +301,7 @@ paradise_remap(paradise_t *paradise)
 void
 paradise_recalctimings(svga_t *svga)
 {
-    paradise_t *paradise = (paradise_t *) svga->p;
+    paradise_t *paradise = (paradise_t *) svga->priv;
 
     svga->lowres = !(svga->gdcreg[0x0e] & 0x01);
 
@@ -345,9 +345,9 @@ paradise_recalctimings(svga_t *svga)
 }
 
 static void
-paradise_write(uint32_t addr, uint8_t val, void *p)
+paradise_write(uint32_t addr, uint8_t val, void *priv)
 {
-    paradise_t *paradise = (paradise_t *) p;
+    paradise_t *paradise = (paradise_t *) priv;
     svga_t     *svga     = &paradise->svga;
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
@@ -394,9 +394,9 @@ paradise_write(uint32_t addr, uint8_t val, void *p)
     svga_write_linear(addr, val, svga);
 }
 static void
-paradise_writew(uint32_t addr, uint16_t val, void *p)
+paradise_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    paradise_t *paradise = (paradise_t *) p;
+    paradise_t *paradise = (paradise_t *) priv;
     svga_t     *svga     = &paradise->svga;
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
@@ -444,9 +444,9 @@ paradise_writew(uint32_t addr, uint16_t val, void *p)
 }
 
 static uint8_t
-paradise_read(uint32_t addr, void *p)
+paradise_read(uint32_t addr, void *priv)
 {
-    paradise_t *paradise = (paradise_t *) p;
+    paradise_t *paradise = (paradise_t *) priv;
     svga_t     *svga     = &paradise->svga;
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
@@ -493,9 +493,9 @@ paradise_read(uint32_t addr, void *p)
     return svga_read_linear(addr, svga);
 }
 static uint16_t
-paradise_readw(uint32_t addr, void *p)
+paradise_readw(uint32_t addr, void *priv)
 {
-    paradise_t *paradise = (paradise_t *) p;
+    paradise_t *paradise = (paradise_t *) priv;
     svga_t     *svga     = &paradise->svga;
     uint32_t    prev_addr;
     uint32_t    prev_addr2;
@@ -728,9 +728,9 @@ paradise_wd90c30_standalone_available(void)
 }
 
 void
-paradise_close(void *p)
+paradise_close(void *priv)
 {
-    paradise_t *paradise = (paradise_t *) p;
+    paradise_t *paradise = (paradise_t *) priv;
 
     svga_close(&paradise->svga);
 
@@ -738,17 +738,17 @@ paradise_close(void *p)
 }
 
 void
-paradise_speed_changed(void *p)
+paradise_speed_changed(void *priv)
 {
-    paradise_t *paradise = (paradise_t *) p;
+    paradise_t *paradise = (paradise_t *) priv;
 
     svga_recalctimings(&paradise->svga);
 }
 
 void
-paradise_force_redraw(void *p)
+paradise_force_redraw(void *priv)
 {
-    paradise_t *paradise = (paradise_t *) p;
+    paradise_t *paradise = (paradise_t *) priv;
 
     paradise->svga.fullchange = changeframecount;
 }

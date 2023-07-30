@@ -25,6 +25,7 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/snd_ac97.h>
+#include <86box/plat_fallthrough.h>
 
 static const struct {
     const device_t *device;
@@ -417,8 +418,9 @@ rate:              /* Writable only if VRA/VRM is set. */
                 /* Get actual previous value. */
                 prev = dev->vendor_reg_pages[(i << 3) | ((reg & 0x0e) >> 1)];
             }
-
-            /* fall-through */
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
 
         case 0x5a ... 0x5e: /* Vendor Reserved */
         case 0x70 ... 0x7a:
@@ -521,8 +523,8 @@ ac97_codec_reset(void *priv)
 void
 ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
 {
-    ac97_codec_t *dev = (ac97_codec_t *) priv;
-    uint16_t      val = dev->regs[reg >> 1];
+    const ac97_codec_t *dev = (ac97_codec_t *) priv;
+    uint16_t            val = dev->regs[reg >> 1];
 
     /* Apply full mute and powerdowns. */
     int full_mute = (reg < 0x36);
@@ -560,7 +562,7 @@ ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
 uint32_t
 ac97_codec_getrate(void *priv, uint8_t reg)
 {
-    ac97_codec_t *dev = (ac97_codec_t *) priv;
+    const ac97_codec_t *dev = (ac97_codec_t *) priv;
 
     /* Get configured sample rate, which is always 48000 if VRA/VRM is not set. */
     uint32_t ret = dev->regs[reg >> 1];

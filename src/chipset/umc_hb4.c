@@ -333,8 +333,8 @@ hb4_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static uint8_t
 hb4_read(int func, int addr, void *priv)
 {
-    hb4_t  *dev = (hb4_t *) priv;
-    uint8_t ret = 0xff;
+    const hb4_t  *dev = (hb4_t *) priv;
+    uint8_t       ret = 0xff;
 
     if (func == 0)
         ret = dev->pci_conf[addr];

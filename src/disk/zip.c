@@ -821,7 +821,10 @@ zip_update_request_length(zip_t *dev, int len, int block_len)
                     break;
                 }
             }
-            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
+
         default:
             dev->packet_len = len;
             break;
@@ -1408,7 +1411,9 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                 zip_invalid_field(dev);
                 return;
             }
-            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
         case GPCMD_SCSI_RESERVE:
         case GPCMD_SCSI_RELEASE:
         case GPCMD_TEST_UNIT_READY:
@@ -1571,6 +1576,9 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                 zip_command_complete(dev);
                 break;
             }
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
         case GPCMD_WRITE_6:
         case GPCMD_WRITE_10:
         case GPCMD_WRITE_AND_VERIFY_10:
@@ -2280,7 +2288,7 @@ zip_250_identify(ide_t *ide, int ide_has_dma)
 static void
 zip_identify(ide_t *ide, int ide_has_dma)
 {
-    zip_t *zip;
+    const zip_t *zip;
 
     zip = (zip_t *) ide->sc;
 

@@ -550,9 +550,9 @@ tvp3026_hwcursor_draw(svga_t *svga, int displine)
 }
 
 float
-tvp3026_getclock(int clock, void *p)
+tvp3026_getclock(int clock, void *priv)
 {
-    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) p;
+    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) priv;
     int               n;
     int               m;
     int               pl;

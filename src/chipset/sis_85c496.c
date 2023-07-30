@@ -115,8 +115,8 @@ sis_85c497_isa_write(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 sis_85c497_isa_read(uint16_t port, void *priv)
 {
-    sis_85c496_t *dev = (sis_85c496_t *) priv;
-    uint8_t       ret = 0xff;
+    const sis_85c496_t *dev = (sis_85c496_t *) priv;
+    uint8_t             ret = 0xff;
 
     if (port == 0x23)
         ret = dev->regs[dev->cur_reg];
@@ -505,8 +505,8 @@ sis_85c49x_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static uint8_t
 sis_85c49x_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    sis_85c496_t *dev = (sis_85c496_t *) priv;
-    uint8_t       ret = dev->pci_conf[addr];
+    const sis_85c496_t *dev = (sis_85c496_t *) priv;
+    uint8_t             ret = dev->pci_conf[addr];
 
     switch (addr) {
         case 0xa0:

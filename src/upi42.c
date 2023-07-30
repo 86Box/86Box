@@ -972,7 +972,7 @@ upi42_dbb_write(UNUSED(uint16_t port), uint8_t val, void *priv)
 uint8_t
 upi42_sts_read(UNUSED(uint16_t port), void *priv)
 {
-    upi42_t *upi42 = (upi42_t *) priv;
+    const upi42_t *upi42 = (upi42_t *) priv;
 
     uint8_t ret = upi42->sts;
     upi42_log("UPI42: sts_read(%04X) = %02X\n", port, ret);

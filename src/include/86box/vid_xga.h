@@ -70,6 +70,7 @@ typedef struct xga_t {
     uint8_t  pal_b, pal_b_prefetch;
     uint8_t  sprite_data[1024];
     uint8_t  scrollcache;
+    uint8_t  border_color;
     uint8_t  direct_color;
     uint8_t  dma_channel;
     uint8_t  instance_isa, instance_num, ext_mem_addr;
@@ -167,6 +168,6 @@ typedef struct xga_t {
         uint32_t px_map_base[4];
     } accel;
 
-    volatile int force_busy;
+    int big_endian_linear;
 } xga_t;
 #endif /*VIDEO_XGA_H*/

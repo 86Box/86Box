@@ -61,7 +61,7 @@ cartridge_log(const char *fmt, ...)
 static uint8_t
 cart_read(uint32_t addr, void *priv)
 {
-    cart_t *dev = (cart_t *) priv;
+    const cart_t *dev = (cart_t *) priv;
 
     return dev->buf[addr - dev->base];
 }

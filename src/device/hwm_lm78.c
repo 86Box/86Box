@@ -421,8 +421,8 @@ lm78_i2c_read(UNUSED(void *bus), UNUSED(uint8_t addr), void *priv)
 uint8_t
 lm78_as99127f_read(void *priv, uint8_t reg)
 {
-    lm78_t *dev = (lm78_t *) priv;
-    uint8_t ret = dev->as99127f.regs[1][reg & 0x7f];
+    const lm78_t *dev = (lm78_t *) priv;
+    uint8_t       ret = dev->as99127f.regs[1][reg & 0x7f];
 
     lm78_log("LM78: read(%02X, AS99127F) = %02X\n", reg, ret);
 

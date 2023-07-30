@@ -109,7 +109,7 @@ ct_82c100_ems_out(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 ct_82c100_ems_in(uint16_t port, void *priv)
 {
-    ct_82c100_t *dev = (ct_82c100_t *) priv;
+    const ct_82c100_t *dev = (ct_82c100_t *) priv;
     uint8_t      ret = 0xff;
 
     ret = dev->ems_page_regs[port >> 14];
@@ -278,15 +278,15 @@ ct_82c100_in(uint16_t port, void *priv)
 static uint8_t
 mem_read_emsb(uint32_t addr, void *priv)
 {
-    ems_page_t *page = (ems_page_t *) priv;
-    uint8_t     ret  = 0xff;
+    const ems_page_t *page = (ems_page_t *) priv;
+    uint8_t           ret  = 0xff;
 #ifdef ENABLE_CT_82C100_LOG
     uint32_t old_addr = addr;
 #endif
 
     addr = addr - page->virt + page->phys;
 
-    if (addr < ((uint32_t) mem_size << 10))
+    if (addr < (mem_size << 10))
         ret = ram[addr];
 
     ct_82c100_log("mem_read_emsb(%08X = %08X): %02X\n", old_addr, addr, ret);
@@ -297,7 +297,7 @@ mem_read_emsb(uint32_t addr, void *priv)
 static uint16_t
 mem_read_emsw(uint32_t addr, void *priv)
 {
-    ems_page_t *page = (ems_page_t *) priv;
+    const ems_page_t *page = (ems_page_t *) priv;
     uint16_t    ret  = 0xffff;
 #ifdef ENABLE_CT_82C100_LOG
     uint32_t old_addr = addr;
@@ -305,7 +305,7 @@ mem_read_emsw(uint32_t addr, void *priv)
 
     addr = addr - page->virt + page->phys;
 
-    if (addr < ((uint32_t) mem_size << 10))
+    if (addr < (mem_size << 10))
         ret = *(uint16_t *) &ram[addr];
 
     ct_82c100_log("mem_read_emsw(%08X = %08X): %04X\n", old_addr, addr, ret);
@@ -316,14 +316,14 @@ mem_read_emsw(uint32_t addr, void *priv)
 static void
 mem_write_emsb(uint32_t addr, uint8_t val, void *priv)
 {
-    ems_page_t *page = (ems_page_t *) priv;
+    const ems_page_t *page = (ems_page_t *) priv;
 #ifdef ENABLE_CT_82C100_LOG
     uint32_t old_addr = addr;
 #endif
 
     addr = addr - page->virt + page->phys;
 
-    if (addr < ((uint32_t) mem_size << 10))
+    if (addr < (mem_size << 10))
         ram[addr] = val;
 
     ct_82c100_log("mem_write_emsb(%08X = %08X, %02X)\n", old_addr, addr, val);
@@ -332,14 +332,14 @@ mem_write_emsb(uint32_t addr, uint8_t val, void *priv)
 static void
 mem_write_emsw(uint32_t addr, uint16_t val, void *priv)
 {
-    ems_page_t *page = (ems_page_t *) priv;
+    const ems_page_t *page = (ems_page_t *) priv;
 #ifdef ENABLE_CT_82C100_LOG
     uint32_t old_addr = addr;
 #endif
 
     addr = addr - page->virt + page->phys;
 
-    if (addr < ((uint32_t) mem_size << 10))
+    if (addr < (mem_size << 10))
         *(uint16_t *) &ram[addr] = val;
 
     ct_82c100_log("mem_write_emsw(%08X = %08X, %04X)\n", old_addr, addr, val);
