@@ -3165,7 +3165,7 @@ static void rtl8139_timer(void *opaque)
 
     s->TCTR++;
 
-    if (s->TCTR >= s->TimerInt && s->TimerInt != 0){
+    if (s->TCTR == s->TimerInt && s->TimerInt != 0){
         s->IntrStatus |= PCSTimeout;
         rtl8139_update_irq(s);
     }
