@@ -48,8 +48,6 @@ struct nmc93cxx_eeprom_t {
 
 typedef struct nmc93cxx_eeprom_t nmc93cxx_eeprom_t;
 
-#define logout pclog
-
 static const char *opstring[] = {
   "extended", "write", "read", "erase"
 };
@@ -114,12 +112,8 @@ void nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *eeprom, int eecs, int eesk, int ee
     uint16_t address = eeprom->address;
     uint8_t command = eeprom->command;
 
-    logout("CS=%u SK=%u DI=%u DO=%u, tick = %u\n",
-           eecs, eesk, eedi, eedo, tick);
-
     if (!eeprom->eecs && eecs) {
         /* Start chip select cycle. */
-        logout("Cycle start, waiting for 1st start bit (0)\n");
         tick = 0;
         command = 0x0;
         address = 0x0;
@@ -154,20 +148,15 @@ void nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *eeprom, int eecs, int eesk, int ee
         if (tick == 0) {
             /* Wait for 1st start bit. */
             if (eedi == 0) {
-                logout("Got correct 1st start bit, waiting for 2nd start bit (1)\n");
                 tick++;
             } else {
-                logout("wrong 1st start bit (is 1, should be 0)\n");
                 tick = 2;
                 //~ assert(!"wrong start bit");
             }
         } else if (tick == 1) {
             /* Wait for 2nd start bit. */
             if (eedi != 0) {
-                logout("Got correct 2nd start bit, getting command + address\n");
                 tick++;
-            } else {
-                logout("1st start bit is longer than needed\n");
             }
         } else if (tick < 2 + 2) {
             /* Got 2 start bits, transfer 2 opcode bits. */
@@ -181,8 +170,6 @@ void nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *eeprom, int eecs, int eesk, int ee
             tick++;
             address = ((address << 1) | eedi);
             if (tick == 2 + 2 + eeprom->addrbits) {
-                logout("%s command, address = 0x%02x (value 0x%04x)\n",
-                       opstring[command], address, eeprom->contents[address]);
                 if (command == 2) {
                     eedo = 0;
                 }
@@ -191,17 +178,13 @@ void nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *eeprom, int eecs, int eesk, int ee
                     /* Command code in upper 2 bits of address. */
                     switch (address >> (eeprom->addrbits - 2)) {
                     case 0:
-                        logout("write disable command\n");
                         eeprom->writable = 0;
                         break;
                     case 1:
-                        logout("write all command\n");
                         break;
                     case 2:
-                        logout("erase all command\n");
                         break;
                     case 3:
-                        logout("write enable command\n");
                         eeprom->writable = 1;
                         break;
                     }
@@ -219,8 +202,6 @@ void nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *eeprom, int eecs, int eesk, int ee
             }
             eeprom->data <<= 1;
             eeprom->data += eedi;
-        } else {
-            logout("additional unneeded tick, not processed\n");
         }
     }
     /* Save status of EEPROM. */
