@@ -38,7 +38,7 @@
 #include <86box/vid_mda.h>
 #include <86box/vid_xga_device.h>
 
-typedef struct {
+typedef struct video_card_t {
     const device_t *device;
     int             flags;
 } VIDEO_CARD;
