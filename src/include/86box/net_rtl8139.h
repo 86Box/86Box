@@ -1,1 +1,1 @@
-extern const device_t rtl8139c_device;
+extern const device_t rtl8139c_plus_device;

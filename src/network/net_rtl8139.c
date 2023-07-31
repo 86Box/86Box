@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Emulation of Realtek RTL8139C NIC.
+ *          Emulation of Realtek RTL8139C+ NIC.
  *
  *
  * Authors: Cacodemon345
@@ -3322,9 +3322,9 @@ nic_close(void *priv)
     free(priv);
 }
 
-const device_t rtl8139c_device = {
-    .name          = "Realtek RTL8139C",
-    .internal_name = "rtl8139c",
+const device_t rtl8139c_plus_device = {
+    .name          = "Realtek RTL8139C+",
+    .internal_name = "rtl8139c+",
     .flags         = DEVICE_PCI,
     .local         = 0,
     .init          = nic_init,
