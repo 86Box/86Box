@@ -74,6 +74,7 @@
 #include <86box/net_plip.h>
 #include <86box/net_wd8003.h>
 #include <86box/net_tulip.h>
+#include <86box/net_rtl8139.h>
 
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
@@ -118,6 +119,7 @@ static const device_t *net_cards[] = {
     &rtl8029as_device,
     &pcnet_am79c960_vlb_device,
     &dec_tulip_device,
+    &rtl8139c_plus_device,
     NULL
 };
 
