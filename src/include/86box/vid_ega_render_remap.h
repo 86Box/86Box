@@ -85,7 +85,7 @@ ega_recalc_remap_func(ega_t *ega)
         func_nr = VAR_DWORD_MODE;
     else if (ega->crtc[0x17] & 0x40)
         func_nr = VAR_BYTE_MODE;
-    else if ((ega->crtc[0x17] & 0x20) && ega->vram_limit > 64*1024)
+    else if ((ega->crtc[0x17] & 0x20) && ega->vram_limit > 64 * 1024)
         func_nr = VAR_WORD_MODE_MA15;
     else
         func_nr = VAR_WORD_MODE_MA13;
