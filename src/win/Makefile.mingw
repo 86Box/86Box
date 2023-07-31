@@ -686,7 +686,10 @@ NETOBJ := network.o \
           net_3c503.o net_ne2000.o \
           net_pcnet.o net_wd8003.o \
           net_plip.o net_event.o \
-          net_null.o
+          net_null.o \
+          net_eeprom_nmc93cxx.c \
+          net_tulip.c \
+          net_rtl8139.c
 
 PRINTOBJ := png.o prt_cpmap.o \
             prt_escp.o prt_text.o prt_ps.o
