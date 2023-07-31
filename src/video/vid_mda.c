@@ -75,7 +75,7 @@ mda_out(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 mda_in(uint16_t addr, void *priv)
 {
-    mda_t *mda = (mda_t *) priv;
+    const mda_t *mda = (mda_t *) priv;
 
     switch (addr) {
         case 0x3b0:
@@ -107,7 +107,7 @@ mda_write(uint32_t addr, uint8_t val, void *priv)
 uint8_t
 mda_read(uint32_t addr, void *priv)
 {
-    mda_t *mda = (mda_t *) priv;
+    const mda_t *mda = (mda_t *) priv;
 
     return mda->vram[addr & 0xfff];
 }
