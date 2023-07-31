@@ -365,17 +365,17 @@ es1371_reset(void *priv)
 
     /* DAC1 Channel Sample Count Register, Address 24H
        Addressable as word, longword */
-    dev->dac[0].samp_ct      = 0x00010000;
+    dev->dac[0].samp_ct      = 0x00000000; /* FIXME: hardware reads 0x00010000 */
     dev->dac[0].curr_samp_ct = 0x00000000;
 
     /* DAC2 Channel Sample Count Register, Address 28H
        Addressable as word, longword */
-    dev->dac[1].samp_ct      = 0x00010000;
+    dev->dac[1].samp_ct      = 0x00000000; /* FIXME: hardware reads 0x00010000 */
     dev->dac[1].curr_samp_ct = 0x00000000;
 
     /* ADC Channel Sample Count Register, Address 2CH
        Addressable as word, longword */
-    dev->adc.samp_ct      = 0x00010000;
+    dev->adc.samp_ct      = 0x00000000; /* FIXME: hardware reads 0x00010000 */
     dev->adc.curr_samp_ct = 0x00000000;
 
     /* DAC1 Frame Register 1, Address 30H, Memory Page 1100b
