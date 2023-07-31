@@ -28,8 +28,7 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 
-typedef struct
-{
+typedef struct att498_ramdac_t {
     int     type;
     int     state;
     int     loop;
@@ -37,9 +36,9 @@ typedef struct
 } att498_ramdac_t;
 
 static void
-att498_ramdac_control(uint8_t val, void *p, svga_t *svga)
+att498_ramdac_control(uint8_t val, void *priv, svga_t *svga)
 {
-    att498_ramdac_t *ramdac = (att498_ramdac_t *) p;
+    att498_ramdac_t *ramdac = (att498_ramdac_t *) priv;
     ramdac->ctrl            = val;
 
     if (val == 0xff)
@@ -73,9 +72,9 @@ att498_ramdac_control(uint8_t val, void *p, svga_t *svga)
 }
 
 void
-att498_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
+att498_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga)
 {
-    att498_ramdac_t *ramdac = (att498_ramdac_t *) p;
+    att498_ramdac_t *ramdac = (att498_ramdac_t *) priv;
     uint8_t          rs     = (addr & 0x03);
     rs |= ((!!rs2) << 2);
 
@@ -109,9 +108,9 @@ att498_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
 }
 
 uint8_t
-att498_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
+att498_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
 {
-    att498_ramdac_t *ramdac = (att498_ramdac_t *) p;
+    att498_ramdac_t *ramdac = (att498_ramdac_t *) priv;
     uint8_t          temp   = 0xff;
     uint8_t          rs     = (addr & 0x03);
     rs |= ((!!rs2) << 2);
