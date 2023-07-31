@@ -3272,7 +3272,7 @@ nic_init(const device_t *info)
     s->dev = pci_add_card(PCI_ADD_NETWORK, rtl8139_pci_read, rtl8139_pci_write, s);
     s->inst = device_get_instance();
     
-    snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_rtl8139c_%d.nvr", s->inst);
+    snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_rtl8139c_plus_%d.nvr", s->inst);
 
     f = nvr_fopen(eeprom_filename, "rb");
     if (f)
@@ -3311,7 +3311,7 @@ nic_close(void *priv)
     RTL8139State *s = (RTL8139State*)priv;
     FILE* f = NULL;
     char eeprom_filename[1024] = { 0 };
-    snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_rtl8139c_%d.nvr", s->inst);
+    snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_rtl8139c_plus_%d.nvr", s->inst);
     f = nvr_fopen(eeprom_filename, "wb");
     if (f)
     {
