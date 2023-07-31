@@ -171,7 +171,7 @@ ati18800_in(uint16_t addr, void *priv)
 static void
 ati18800_recalctimings(svga_t *svga)
 {
-    ati18800_t *ati18800 = (ati18800_t *) svga->priv;
+    const ati18800_t *ati18800 = (ati18800_t *) svga->priv;
 
     if (svga->crtc[0x17] & 4) {
         svga->vtotal <<= 1;
