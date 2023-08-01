@@ -434,7 +434,6 @@ END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_2080    "Não foi possível inicializar o FluidSynth"
     IDS_2081    "Barramento"
     IDS_2082    "Ficheiro"
     IDS_2083    "C"
@@ -465,7 +464,6 @@ BEGIN
     IDS_2108    "%u MB (CCS: %i, %i, %i)"
     IDS_2109    "Disquete %i (%s): %ls"
     IDS_2110    "Todas as imagens (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Imagens avançadas de sector (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Imagens básicas de sector (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Imagens de fluxo (*.FDI)\0*.FDI\0Imagens de superfície (*.86F;*.MFM)\0*.86F;*.MFM\0Todos os ficheiros (*.*)\0*.*\0"
-    IDS_2111    "Não foi possível inicializar o FreeType"
     IDS_2112    "Não foi possível inicializar o SDL. O ficheiro SDL2.dll é necessário!"
     IDS_2113    "Tem a certeza de que quer um reinício completo da máquina emulada?"
     IDS_2114    "Tem a certeza de que quer sair do 86Box?"
@@ -493,23 +491,11 @@ BEGIN
     IDS_2130    "Certifique-se de que a biblioteca " LIB_NAME_PCAP " está instalada e de que está a utilizar uma ligação de rede compatível com a biblioteca " LIB_NAME_PCAP "."
     IDS_2131    "Configuração inválida"
 #ifdef _WIN32
-#define LIB_NAME_FREETYPE "freetype.dll"
-#else
-#define LIB_NAME_FREETYPE "libfreetype"
-#endif
-    IDS_2132    LIB_NAME_FREETYPE " é requerida para a emulação de impressora ESC/P."
-#ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
     IDS_2133    LIB_NAME_GS " é requerido para a conversão automática de ficheiros PostScript para ficheiros PDF.\n\nQualquer documento enviado para a impressora PostScript genérica será gravado como um ficheiro PostScript (.ps)."
-#ifdef _WIN32
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
-#else
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
-#endif
-    IDS_2134    LIB_NAME_FLUIDSYNTH " é necessário para a saída MIDI FluidSynth MIDI."
     IDS_2135    "A entrar no modo de ecrã cheio"
     IDS_2136    "Não mostrar mais esta mensagem"
     IDS_2137    "Não sair"

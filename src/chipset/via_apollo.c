@@ -671,8 +671,8 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 via_apollo_read(int func, int addr, void *priv)
 {
-    via_apollo_t *dev = (via_apollo_t *) priv;
-    uint8_t       ret = 0xff;
+    const via_apollo_t *dev = (via_apollo_t *) priv;
+    uint8_t             ret = 0xff;
 
     switch (func) {
         case 0:

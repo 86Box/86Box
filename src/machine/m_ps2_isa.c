@@ -72,6 +72,9 @@ ps2_write(uint16_t port, uint8_t val, void *priv)
                         case 2:
                             lpt1_init(LPT2_ADDR);
                             break;
+
+                        default:
+                            break;
                     }
                 }
                 ps2->ps2_102 = val;
@@ -92,6 +95,9 @@ ps2_write(uint16_t port, uint8_t val, void *priv)
 
         case 0x0190:
             ps2->ps2_190 = val;
+            break;
+
+        default:
             break;
     }
 }
@@ -130,6 +136,9 @@ ps2_read(uint16_t port, void *priv)
 
         case 0x0190:
             temp = ps2->ps2_190;
+            break;
+
+        default:
             break;
     }
 

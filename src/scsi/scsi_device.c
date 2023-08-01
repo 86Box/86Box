@@ -25,6 +25,7 @@
 #include <86box/hdd.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
+#include <86box/plat_unused.h>
 
 scsi_device_t scsi_devices[SCSI_BUS_MAX][SCSI_ID_MAX];
 
@@ -97,7 +98,7 @@ scsi_device_valid(scsi_device_t *dev)
 }
 
 int
-scsi_device_cdb_length(scsi_device_t *dev)
+scsi_device_cdb_length(UNUSED(scsi_device_t *dev))
 {
     /* Right now, it's 12 for all devices. */
     return 12;

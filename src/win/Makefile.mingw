@@ -269,8 +269,8 @@ else
 endif
 
 ifeq ($(CLANG), y)
- CPP := ${TOOL_PREFIX}clang++
- CC  := ${TOOL_PREFIX}clang
+ CPP := clang++
+ CC  := clang
 else
  CPP := ${TOOL_PREFIX}g++
  CC  := ${TOOL_PREFIX}gcc
@@ -304,16 +304,37 @@ ifeq ($(DEBUG), y)
  ifndef COPTIM
   COPTIM := -Og
  endif
+ ifndef CXXOPTIM
+  ifeq ($(CLANG), y)
+   CXXOPTIM := -Os
+  else
+   CXXOPTIM := -Og
+  endif
+ endif
 else
  DFLAGS += -g0
  ifeq ($(OPTIM), y)
   AOPTIM := -mtune=native
   ifndef COPTIM
-   COPTIM := -O3 -ffp-contract=fast -flto
+   CXXOPTIM := -O3 -ffp-contract=fast -flto
+  endif
+  ifndef CXXOPTIM
+   ifeq ($(CLANG), y)
+    CXXOPTIM := -Os -ffp-contract=fast -flto
+   else
+    CXXOPTIM := -O3 -ffp-contract=fast -flto
+   endif
   endif
  else
   ifndef COPTIM
    COPTIM := -O3
+  endif
+  ifndef CXXOPTIM
+   ifeq ($(CLANG), y)
+    CXXOPTIM := -Os
+   else
+    CXXOPTIM := -O3
+   endif
   endif
  endif
 endif
@@ -531,7 +552,9 @@ CFLAGS := $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
 # Add freetyp2 references through pkgconfig
 CFLAGS := $(CFLAGS)  `pkg-config --cflags freetype2`
 
-CXXFLAGS := $(CFLAGS)
+CXXFLAGS := $(OPTS) $(DFLAGS) $(CXXOPTIM) $(AOPTIM) \
+            $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
+            -fno-strict-aliasing
 
 CFLAGS += -Werror=implicit-int -Werror=implicit-function-declaration \
           -Werror=int-conversion -Werror=strict-prototypes -Werror=old-style-definition
@@ -818,13 +841,21 @@ else
 endif
 
 ifeq ($(RTMIDI), y)
- LIBS +=  -lrtmidi -lwinmm
+ ifeq ($(CLANG), y)
+  LIBS +=  -lrtmidi.dll -lwinmm
+ else
+  LIBS +=  -lrtmidi -lwinmm
+ endif
 endif
 
 ifeq ($(VNC), y)
  LIBS += $(VNCLIB) -lws2_32
 endif
-LIBS += -lpng -lz -lwsock32 -liphlpapi -lpsapi -lhid -lsetupapi -luxtheme -static -lstdc++
+ifeq ($(CLANG), y)
+ LIBS += -lpng -lz -lwsock32 -liphlpapi -lpsapi -lhid -lsetupapi -luxtheme -static -lstdc++.dll
+else
+ LIBS += -lpng -lz -lwsock32 -liphlpapi -lpsapi -lhid -lsetupapi -luxtheme -static -lstdc++
+endif
 ifneq ($(X64), y)
  ifneq ($(ARM64), y)
   LIBS += -Wl,--large-address-aware

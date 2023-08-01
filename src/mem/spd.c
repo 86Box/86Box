@@ -31,8 +31,8 @@
 
 #define SPD_ROLLUP(x) ((x) >= 16 ? ((x) -15) : (x))
 
-int    spd_present = 0;
-spd_t *spd_modules[SPD_MAX_SLOTS];
+uint8_t spd_present = 0;
+spd_t  *spd_modules[SPD_MAX_SLOTS];
 
 static const device_t spd_device;
 
@@ -85,8 +85,8 @@ spd_init(UNUSED(const device_t *info))
 int
 comp_ui16_rev(const void *elem1, const void *elem2)
 {
-    uint16_t a = *((uint16_t *) elem1);
-    uint16_t b = *((uint16_t *) elem2);
+    const uint16_t a = *((const uint16_t *) elem1);
+    const uint16_t b = *((const uint16_t *) elem2);
     return ((a > b) ? -1 : ((a < b) ? 1 : 0));
 }
 
@@ -548,8 +548,8 @@ spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max)
             regs[drb + 3] |= 0x06;
 
         switch (size) {
-            case 4:
             default:
+            case 4:
                 regs[drb + 2] = 0x00;
                 break;
             case 8:

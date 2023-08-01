@@ -6,18 +6,20 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Voodoo Banshee and 3 specific emulation.
+ *          Define the various platform support functions.
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ * Authors: Jasmine Iwanek, <jasmine@iwanek.co.uk>
  *
- *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2023 Jasmine Iwanek
  */
 
-#ifndef VIDEO_VOODOO_BANSHEE_H
-#define VIDEO_VOODOO_BANSHEE_H
+#ifndef EMU_PLAT_FALLTHROUGH_H
+#define EMU_PLAT_FALLTHROUGH_H
 
-void banshee_set_overlay_addr(void *priv, uint32_t addr);
+#if !defined (__APPLE__) && !defined(__clang__)
+#    define FALLTHROUGH_ANNOTATION
+#endif
 
-#endif /*VIDEO_VOODOO_BANSHEE_H*/
+#endif /*EMU_PLAT_FALLTHROUGH_H*/

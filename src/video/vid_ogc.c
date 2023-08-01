@@ -39,6 +39,7 @@
 #include <86box/vid_cga.h>
 #include <86box/vid_ogc.h>
 #include <86box/vid_cga_comp.h>
+#include <86box/plat_unused.h>
 
 /*
  * Current bugs:
@@ -140,7 +141,7 @@ ogc_in(uint16_t addr, void *priv)
 }
 
 void
-ogc_waitstates(void *p)
+ogc_waitstates(UNUSED(void *priv))
 {
     int ws_array[16] = { 3, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8 };
     int ws;
@@ -572,7 +573,7 @@ ogc_mdaattr_rebuild(void)
  * - Optional EGC expansion board (which handles 640x400x16) not implemented
  */
 void *
-ogc_init(const device_t *info)
+ogc_init(UNUSED(const device_t *info))
 {
     // int display_type;
     ogc_t *ogc = (ogc_t *) malloc(sizeof(ogc_t));

@@ -196,7 +196,6 @@ png_write_rgb(char *fn, uint8_t *pix, int16_t w, int16_t h, uint16_t pitch, PALE
     png_bytep  *rows;
     png_color   palette[256];
     FILE       *fp;
-    int         i;
 
     /* Create the image file. */
     fp = plat_fopen(fn, "wb");
@@ -248,7 +247,7 @@ error:
      PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
      PNG_FILTER_TYPE_DEFAULT);
 
-    for (i = 0; i < 256; i++) {
+    for (uint16_t i = 0; i < 256; i++) {
         palette[i].red   = palcol[i].r;
         palette[i].green = palcol[i].g;
         palette[i].blue  = palcol[i].b;
@@ -259,7 +258,7 @@ error:
 
     /* Create a buffer for scanlines of pixels. */
     rows = (png_bytep *) malloc(sizeof(png_bytep) * h);
-    for (i = 0; i < h; i++) {
+    for (int16_t i = 0; i < h; i++) {
         /* Create a buffer for this scanline. */
         rows[i] = (pix + (i * pitch));
     }

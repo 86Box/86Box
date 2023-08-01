@@ -597,13 +597,13 @@ ide_hd_identify(ide_t *ide)
 static void
 ide_identify(ide_t *ide)
 {
-    int    d;
-    int    i;
-    int    max_pio;
-    int    max_sdma;
-    int    max_mdma;
-    int    max_udma;
-    ide_t *ide_other = ide_drives[ide->channel ^ 1];
+    int          d;
+    int          i;
+    int          max_pio;
+    int          max_sdma;
+    int          max_mdma;
+    int          max_udma;
+    const ide_t *ide_other = ide_drives[ide->channel ^ 1];
 
     ide_log("IDE IDENTIFY or IDENTIFY PACKET DEVICE on board %i (channel %i)\n", ide->board, ide->channel);
 
@@ -1114,8 +1114,8 @@ ide_atapi_packet_read(ide_t *ide, int length)
 {
     scsi_common_t *dev = ide->sc;
 
-    uint16_t *bufferw;
-    uint32_t *bufferl;
+    const uint16_t *bufferw;
+    const uint32_t *bufferl;
 
     uint32_t temp = 0;
 
@@ -1311,7 +1311,7 @@ ide_writew(uint16_t addr, uint16_t val, void *priv)
 static void
 ide_writel(uint16_t addr, uint32_t val, void *priv)
 {
-    ide_board_t *dev = (ide_board_t *) priv;
+    const ide_board_t *dev = (ide_board_t *) priv;
 
     ide_t *ide;
     int    ch;
@@ -1655,7 +1655,9 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                        disabled, the Read Multiple operation is rejected with an Aborted Com-
                        mand error. */
                     ide->blockcount = 0;
-                    /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+                    [[fallthrough]];
+#endif
 
                 case WIN_READ:
                 case WIN_READ_NORETRY:
@@ -1704,7 +1706,9 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                     /* Turn on the activity indicator *here* so that it gets turned on
                        less times. */
                     ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
-                    /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+                    [[fallthrough]];
+#endif
 
                 case WIN_WRITE:
                 case WIN_WRITE_NORETRY:
@@ -1843,6 +1847,9 @@ ide_bad_command:
                     return;
             }
             return;
+
+        default:
+            break;
     }
 }
 
@@ -1864,9 +1871,9 @@ ide_read_data(ide_t *ide, int length)
         }
     }
 
-    uint8_t  *idebufferb = (uint8_t *) ide->buffer;
-    uint16_t *idebufferw = ide->buffer;
-    uint32_t *idebufferl = (uint32_t *) ide->buffer;
+    const uint8_t  *idebufferb = (uint8_t *) ide->buffer;
+    const uint16_t *idebufferw = ide->buffer;
+    const uint32_t *idebufferl = (uint32_t *) ide->buffer;
 
     if (ide->command == WIN_PACKETCMD) {
         ide->pos = 0;
@@ -1946,7 +1953,7 @@ ide_status(ide_t *ide, ide_t *ide_other, int ch)
 uint8_t
 ide_readb(uint16_t addr, void *priv)
 {
-    ide_board_t *dev = (ide_board_t *) priv;
+    const ide_board_t *dev = (ide_board_t *) priv;
 
     int    ch;
     int    absent = 0;
@@ -2062,6 +2069,9 @@ ide_readb(uint16_t addr, void *priv)
             ide_irq_lower(ide);
             temp = ide_status(ide, ide_drives[ch ^ 1], ch);
             break;
+
+        default:
+            break;
     }
 
     ide_log("ide_readb(%04X, %08X) = %02X\n", addr, priv, temp);
@@ -2073,7 +2083,7 @@ ide_read_alt_status(UNUSED(uint16_t addr), void *priv)
 {
     uint8_t temp = 0xff;
 
-    ide_board_t *dev = (ide_board_t *) priv;
+    const ide_board_t *dev = (ide_board_t *) priv;
 
     ide_t *ide;
     int    ch;
@@ -2094,7 +2104,7 @@ ide_readw(uint16_t addr, void *priv)
 {
     uint16_t temp = 0xffff;
 
-    ide_board_t *dev = (ide_board_t *) priv;
+    const ide_board_t *dev = (ide_board_t *) priv;
 
     ide_t *ide;
     int    ch;
@@ -2124,7 +2134,7 @@ ide_readl(uint16_t addr, void *priv)
     uint16_t temp2;
     uint32_t temp = 0xffffffff;
 
-    ide_board_t *dev = (ide_board_t *) priv;
+    const ide_board_t *dev = (ide_board_t *) priv;
 
     ide_t *ide;
     int    ch;
@@ -2620,11 +2630,11 @@ id_not_found:
 uint8_t
 ide_read_ali_75(void)
 {
-    ide_t  *ide0;
-    ide_t *ide1;
-    int     ch0;
-    int     ch1;
-    uint8_t ret = 0x00;
+    const ide_t *ide0;
+    const ide_t *ide1;
+    int          ch0;
+    int          ch1;
+    uint8_t      ret = 0x00;
 
     ch0  = ide_boards[0]->cur_dev;
     ch1  = ide_boards[1]->cur_dev;
@@ -2646,11 +2656,11 @@ ide_read_ali_75(void)
 uint8_t
 ide_read_ali_76(void)
 {
-    ide_t  *ide0;
-    ide_t  *ide1;
-    int     ch0;
-    int     ch1;
-    uint8_t ret = 0x00;
+    const ide_t  *ide0;
+    const ide_t  *ide1;
+    int           ch0;
+    int           ch1;
+    uint8_t       ret = 0x00;
 
     ch0  = ide_boards[0]->cur_dev;
     ch1  = ide_boards[1]->cur_dev;

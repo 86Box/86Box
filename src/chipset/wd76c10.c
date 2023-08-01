@@ -368,7 +368,8 @@ wd76c10_write(uint16_t addr, uint16_t val, void *priv)
 static uint16_t
 wd76c10_read(uint16_t addr, void *priv)
 {
-    wd76c10_t *dev = (wd76c10_t *) priv;
+    const wd76c10_t *dev = (wd76c10_t *) priv;
+
     wd76c10_log("WD76C10: R dev->regs[%04x]\n", addr);
     switch (addr) {
         case 0x1072:

@@ -58,7 +58,7 @@ enum {
     NET_EVENT_MAX
 };
 
-typedef struct {
+typedef struct net_slirp_t {
     Slirp     *slirp;
     uint8_t    mac_addr[6];
     netcard_t *card; /* netcard attached to us */
@@ -68,9 +68,10 @@ typedef struct {
     netpkt_t   pkt;
     netpkt_t   pkt_tx_v[SLIRP_PKT_BATCH];
 #ifdef _WIN32
-    HANDLE sock_event;
+    HANDLE     sock_event;
 #else
-    uint32_t       pfd_len, pfd_size;
+    uint32_t       pfd_len;
+    uint32_t       pfd_size;
     struct pollfd *pfd;
 #endif
 } net_slirp_t;
@@ -94,19 +95,19 @@ slirp_log(const char *fmt, ...)
 #endif
 
 static void
-net_slirp_guest_error(const char *msg, void *opaque)
+net_slirp_guest_error(UNUSED(const char *msg), UNUSED(void *opaque))
 {
     slirp_log("SLiRP: guest_error(): %s\n", msg);
 }
 
 static int64_t
-net_slirp_clock_get_ns(void *opaque)
+net_slirp_clock_get_ns(UNUSED(void *opaque))
 {
     return (int64_t) ((double) tsc / cpuclock * 1000000000.0);
 }
 
 static void *
-net_slirp_timer_new(SlirpTimerCb cb, void *cb_opaque, void *opaque)
+net_slirp_timer_new(SlirpTimerCb cb, void *cb_opaque, UNUSED(void *opaque))
 {
     pc_timer_t *timer = malloc(sizeof(pc_timer_t));
     timer_add(timer, cb, cb_opaque, 0);
@@ -114,14 +115,14 @@ net_slirp_timer_new(SlirpTimerCb cb, void *cb_opaque, void *opaque)
 }
 
 static void
-net_slirp_timer_free(void *timer, void *opaque)
+net_slirp_timer_free(void *timer, UNUSED(void *opaque))
 {
     timer_stop(timer);
     free(timer);
 }
 
 static void
-net_slirp_timer_mod(void *timer, int64_t expire_timer, void *opaque)
+net_slirp_timer_mod(void *timer, int64_t expire_timer, UNUSED(void *opaque))
 {
     timer_on_auto(timer, expire_timer * 1000);
 }
@@ -384,7 +385,7 @@ static int slirp_card_num = 2;
 
 /* Initialize SLiRP for use. */
 void *
-net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char *netdrv_errbuf)
+net_slirp_init(const netcard_t *card, const uint8_t *mac_addr, UNUSED(void *priv), char *netdrv_errbuf)
 {
     slirp_log("SLiRP: initializing...\n");
     net_slirp_t *slirp = calloc(1, sizeof(net_slirp_t));
@@ -493,15 +494,3 @@ const netdrv_t net_slirp_drv = {
     &net_slirp_init,
     &net_slirp_close
 };
-
-/* Stubs to stand in for the parts of libslirp we skip compiling. */
-void ncsi_input(void *slirp, const uint8_t *pkt, int pkt_len) {}
-void ip6_init(void *slirp) {}
-void in6_compute_ethaddr(struct in6_addr ip, uint8_t *eth) {}
-bool in6_equal(const void *a, const void *b) { return 0; }
-const struct in6_addr in6addr_any = { { { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 } } };
-const struct in6_addr in6addr_loopback = { { { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1 } } };
-void ndp_table_add(Slirp *slirp, struct in6_addr ip_addr,
-                   uint8_t ethaddr[6]) {} /* IPv6 */
-bool ndp_table_search(void *slirp, struct in6_addr ip_addr, uint8_t *out_ethaddr) { return 0; }
-void tftp_input(void *srcsas, void *m) {}

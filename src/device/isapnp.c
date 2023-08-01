@@ -259,7 +259,8 @@ isapnp_reset_ld_regs(isapnp_device_t *ld)
 static uint8_t
 isapnp_read_rangecheck(UNUSED(uint16_t addr), void *priv)
 {
-    isapnp_device_t *dev = (isapnp_device_t *) priv;
+    const isapnp_device_t *dev = (isapnp_device_t *) priv;
+
     return (dev->regs[0x31] & 0x01) ? 0x55 : 0xaa;
 }
 

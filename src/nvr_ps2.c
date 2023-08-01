@@ -61,8 +61,8 @@ typedef struct ps2_nvr_t {
 static uint8_t
 ps2_nvr_read(uint16_t port, void *priv)
 {
-    ps2_nvr_t *nvr = (ps2_nvr_t *) priv;
-    uint8_t    ret = 0xff;
+    const ps2_nvr_t *nvr = (ps2_nvr_t *) priv;
+    uint8_t          ret = 0xff;
 
     switch (port) {
         case 0x74:

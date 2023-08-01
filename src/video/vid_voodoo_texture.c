@@ -585,12 +585,12 @@ flush_texture_cache(voodoo_t *voodoo, uint32_t dirty_addr, int tmu)
 }
 
 void
-voodoo_tex_writel(uint32_t addr, uint32_t val, void *p)
+voodoo_tex_writel(uint32_t addr, uint32_t val, void *priv)
 {
     int       lod;
     int       s;
     int       t;
-    voodoo_t *voodoo = (voodoo_t *) p;
+    voodoo_t *voodoo = (voodoo_t *) priv;
     int       tmu;
 
     if (addr & 0x400000)

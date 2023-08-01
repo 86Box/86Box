@@ -434,7 +434,6 @@ END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_2080    "Nie można zainicjować FluidSynth"
     IDS_2081    "Magistrala"
     IDS_2082    "Plik"
     IDS_2083    "C"
@@ -465,7 +464,6 @@ BEGIN
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "Dyskietka %i (%s): %ls"
     IDS_2110    "Wszystkie obrazy (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Zaawansowane obrazy sektorów (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Podstawowe obrazy sektorów (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0Obrazy powierzchniowe (*.86F;*.MFM)\0*.86F;*.MFM\0All files (*.*)\0*.*\0"
-    IDS_2111    "Nie można zainicjować FreeType"
     IDS_2112    "Nie można zainicjować SDL, wymagany SDL2.dll"
     IDS_2113    "Jesteś pewien że chcesz wykonać twardy reset emulowanej maszyny?"
     IDS_2114    "Jesteś pewien że chcesz zakończyć 86Box?"
@@ -493,23 +491,11 @@ BEGIN
     IDS_2130    "Sprawdź, czy " LIB_NAME_PCAP " jest zainstalowany i czy posiadasz połączenie sieciowe kompatybilne z " LIB_NAME_PCAP "."
     IDS_2131    "Nieprawidłowa konfiguracja"
 #ifdef _WIN32
-#define LIB_NAME_FREETYPE "freetype.dll"
-#else
-#define LIB_NAME_FREETYPE "libfreetype"
-#endif
-    IDS_2132    LIB_NAME_FREETYPE " jest wymagany do emulacji drukarki ESC-P."
-#ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
     IDS_2133    LIB_NAME_GS " jest wymagany do automatycznej konwersji plików PostScript do PDF.\n\nDokumenty wysłane do ogólnej drukarki PostScript zostaną zapisane jako pliki PostScript (.ps)."
-#ifdef _WIN32
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
-#else
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
-#endif
-    IDS_2134    LIB_NAME_FLUIDSYNTH " jest wymagany dla wyjścia FluidSynth MIDI."
     IDS_2135    "Przechodzenie do trybu pełnoekranowego"
     IDS_2136    "Nie pokazuj więcej tego komunikatu"
     IDS_2137    "Nie kończ"
