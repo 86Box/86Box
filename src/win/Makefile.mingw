@@ -736,9 +736,9 @@ VIDOBJ := agpgart.o video.o \
           vid_vga.o \
           vid_ati_eeprom.o \
           vid_ati18800.o vid_ati28800.o \
-	  vid_ati_mach8.o \
+          vid_ati_mach8.o \
           vid_ati_mach64.o vid_ati68860_ramdac.o \
-	  vid_ati68875_ramdac.o \
+          vid_ati68875_ramdac.o \
           vid_bt48x_ramdac.o \
           vid_av9194.o vid_icd2061.o vid_ics2494.o vid_ics2595.o \
           vid_cl54xx.o \
