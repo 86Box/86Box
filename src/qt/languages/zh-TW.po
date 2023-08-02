@@ -182,7 +182,7 @@ msgid "Take s&creenshot\tCtrl+F11"
 msgstr "擷圖(&C)\tCtrl+F11"
 
 msgid "&Preferences..."
-msgstr "首選項(&P)..."
+msgstr "偏好設定(&P)..."
 
 msgid "Enable &Discord integration"
 msgstr "啟用 Discord 整合(&D)"
@@ -278,7 +278,7 @@ msgid "&Remove shader"
 msgstr "移除著色器(&R)"
 
 msgid "Preferences"
-msgstr "首選項"
+msgstr "偏好設定"
 
 msgid "Sound Gain"
 msgstr "音量增益"
@@ -407,16 +407,16 @@ msgid "Joystick 4..."
 msgstr "搖桿 4..."
 
 msgid "Sound card 1:"
-msgstr "音訊卡 1:"
+msgstr "音效卡 1:"
 
 msgid "Sound card 2:"
-msgstr "音訊卡 2:"
+msgstr "音效卡 2:"
 
 msgid "Sound card 3:"
-msgstr "音訊卡 3:"
+msgstr "音效卡 3:"
 
 msgid "Sound card 4:"
-msgstr "音訊卡 4:"
+msgstr "音效卡 4:"
 
 msgid "MIDI Out Device:"
 msgstr "MIDI 輸出裝置:"
@@ -557,7 +557,7 @@ msgid "Heads:"
 msgstr "磁頭(H):"
 
 msgid "Cylinders:"
-msgstr "柱面(C):"
+msgstr "磁柱(C):"
 
 msgid "Size (MB):"
 msgstr "大小 (MB):"
