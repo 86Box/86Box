@@ -296,6 +296,7 @@ struct tulip_descriptor {
 
 struct TULIPState {
     uint8_t            dev;
+    const device_t*    device_info;
     uint16_t           subsys_id, subsys_ven_id;
     mem_mapping_t      memory;
     netcard_t         *nic;
@@ -1322,6 +1323,137 @@ static const uint8_t eeprom_default[128] = {
     0x00,
 };
 
+static const uint8_t eeprom_default_24110[128] = {
+    0x46,
+    0x26,
+    0x00,
+    0x01,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x56,
+    0x08,
+    0x04,
+    0x01,
+    0x00, /* TODO: Change the MAC Address to the correct one. */
+    0x80,
+    0x48,
+    0xc3,
+    0x3e,
+    0xa7,
+    0x00,
+    0x1e,
+    0x00,
+    0x00,
+    0x00,
+    0x08,
+    0xff,
+    0x01,
+    0x8d,
+    0x01,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x78,
+    0xe0,
+    0x01,
+    0x00,
+    0x50,
+    0x00,
+    0x18,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0xe8,
+    0x6b,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x80,
+    0x48,
+    0xb3,
+    0x0e,
+    0xa7,
+    0x40,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+};
+
 static void
 tulip_fill_eeprom(TULIPState *s)
 {
@@ -1345,7 +1477,7 @@ tulip_pci_read(int func, int addr, void *p)
         case 0x01:
             return 0x10;
         case 0x02:
-            return 0x19;
+            return s->device_info->local ? 0x09 : 0x19;
         case 0x03:
             return 0x00;
         case 0x07:
@@ -1428,7 +1560,9 @@ nic_init(const device_t *info)
 
     if (!s)
         return NULL;
-    memcpy(eeprom_default_local, eeprom_default, sizeof(eeprom_default));
+    
+    s->device_info = info;
+    memcpy(eeprom_default_local, s->device_info->local ? eeprom_default_24110 : eeprom_default, sizeof(eeprom_default));
     tulip_idblock_crc((uint16_t *) eeprom_default_local);
     (((uint16_t *) eeprom_default_local))[63] = (tulip_srom_crc((uint8_t *) eeprom_default_local, 126));
 
@@ -1459,6 +1593,20 @@ const device_t dec_tulip_device = {
     .internal_name = "dec_21143_tulip",
     .flags         = DEVICE_PCI,
     .local         = 0,
+    .init          = nic_init,
+    .close         = nic_close,
+    .reset         = tulip_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t dec_tulip_21140_device = {
+    .name          = "Kingston KNE100TX (DECchip 21140 \"Tulip FasterNet\")",
+    .internal_name = "dec_21140_tulip",
+    .flags         = DEVICE_PCI,
+    .local         = 1,
     .init          = nic_init,
     .close         = nic_close,
     .reset         = tulip_reset,
