@@ -1579,6 +1579,7 @@ nic_init(const device_t *info)
     memcpy(s->mii_regs, tulip_mdi_default, sizeof(tulip_mdi_default));
     s->nic = network_attach(s, (uint8_t *) &nmc93cxx_eeprom_data(s->eeprom)[10], tulip_receive, NULL);
     s->dev = pci_add_card(PCI_ADD_NETWORK, tulip_pci_read, tulip_pci_write, s);
+    mem_mapping_add(&s->memory, 0, 0, NULL, NULL, tulip_read, NULL, NULL, tulip_write, NULL, MEM_MAPPING_EXTERNAL, s);
     tulip_reset(s);
     return s;
 }
