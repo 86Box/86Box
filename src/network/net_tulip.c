@@ -1067,6 +1067,7 @@ tulip_write(uint32_t addr, uint32_t data, void *opaque)
                 tulip_xmit_list_update(s);
             } else {
                 tulip_update_ts(s, CSR5_TS_STOPPED);
+                s->csr[5] |= CSR5_TPS;
             }
             break;
 
