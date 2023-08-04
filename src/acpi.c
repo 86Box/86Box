@@ -1723,6 +1723,7 @@ acpi_init(const device_t *info)
             dev->suspend_types[2] = SUS_SUSPEND | SUS_NVR | SUS_RESET_CPU | SUS_RESET_PCI;
             dev->suspend_types[3] = SUS_SUSPEND;
             dev->suspend_types[5] = SUS_POWER_OFF; /* undocumented, used for S4/S5 by ASUS P5A ACPI table */
+            dev->suspend_types[7] = SUS_POWER_OFF; /* undocumented, used for S5 by Gigabyte GA-5AX ACPI table */
             break;
 
         case VEN_VIA:

@@ -357,10 +357,10 @@ ati28800_in(uint16_t addr, void *priv)
 static uint8_t
 ati28800k_in(uint16_t addr, void *priv)
 {
-    ati28800_t *ati28800 = (ati28800_t *) priv;
-    svga_t     *svga     = &ati28800->svga;
-    uint16_t    oldaddr  = addr;
-    uint8_t     temp     = 0xFF;
+    ati28800_t   *ati28800 = (ati28800_t *) priv;
+    const svga_t *svga     = &ati28800->svga;
+    uint16_t      oldaddr  = addr;
+    uint8_t       temp     = 0xFF;
 
     if (addr != 0x3da)
         ati28800_log("ati28800k_in : %04X ", addr);
@@ -400,7 +400,7 @@ ati28800k_in(uint16_t addr, void *priv)
 static void
 ati28800_recalctimings(svga_t *svga)
 {
-    ati28800_t *ati28800 = (ati28800_t *) svga->priv;
+    const ati28800_t *ati28800 = (ati28800_t *) svga->priv;
 
     if (ati28800->regs[0xa3] & 0x10)
         svga->ma_latch |= 0x10000;
@@ -532,7 +532,7 @@ ati28800_recalctimings(svga_t *svga)
 static void
 ati28800k_recalctimings(svga_t *svga)
 {
-    ati28800_t *ati28800 = (ati28800_t *) svga->priv;
+    const ati28800_t *ati28800 = (ati28800_t *) svga->priv;
 
     ati28800_recalctimings(svga);
 
