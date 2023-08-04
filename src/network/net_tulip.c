@@ -660,7 +660,7 @@ static const uint16_t tulip_mdi_default[] = {
     0x0000,
     0x0000,
     0x0000,
-    0x0000,
+    0x3800,
     0x0000,
     /* MDI Registers 16 - 31 */
     0x0003,
@@ -683,6 +683,7 @@ static const uint16_t tulip_mdi_default[] = {
 
 /* Readonly mask for MDI (PHY) registers */
 static const uint16_t tulip_mdi_mask[] = {
+    /* MDI Registers 0 - 6, 7 */
     0x0000,
     0xffff,
     0xffff,
@@ -691,6 +692,7 @@ static const uint16_t tulip_mdi_mask[] = {
     0xffff,
     0xffff,
     0x0000,
+    /* MDI Registers 8 - 15 */
     0x0000,
     0x0000,
     0x0000,
@@ -699,6 +701,7 @@ static const uint16_t tulip_mdi_mask[] = {
     0x0000,
     0x0000,
     0x0000,
+    /* MDI Registers 16 - 31 */
     0x0fff,
     0x0000,
     0xffff,
@@ -717,12 +720,15 @@ static const uint16_t tulip_mdi_mask[] = {
     0x0000,
 };
 
+extern uint16_t l80225_mii_readw(uint16_t* regs, uint16_t addr);
+extern void l80225_mii_writew(uint16_t* regs, uint16_t addr, uint16_t val);
+
 static uint16_t
 tulip_mii_read(TULIPState *s, int phy, int reg)
 {
     uint16_t ret = 0;
     if (phy == 1) {
-        ret = s->mii_regs[reg];
+        ret = l80225_mii_readw(s->mii_regs, reg);
     }
     return ret;
 }
@@ -734,8 +740,7 @@ tulip_mii_write(TULIPState *s, int phy, int reg, uint16_t data)
         return;
     }
 
-    s->mii_regs[reg] &= ~tulip_mdi_mask[reg];
-    s->mii_regs[reg] |= (data & tulip_mdi_mask[reg]);
+    return l80225_mii_writew(s->mii_regs, reg, data);
 }
 
 static void
