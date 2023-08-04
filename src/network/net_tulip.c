@@ -8,7 +8,7 @@
  *
  *          Emulation of DECchip "Tulip" 21143 NIC.
  *
- * Authors: Sven Schnelle,
+ * Authors: Sven Schnelle, <svens@stackframe.org>
  *          Cacodemon345,
  *
  *          Copyright 2019-2023 Sven Schnelle.
