@@ -8,13 +8,20 @@
  *
  *          Emulation of Realtek RTL8139C+ NIC.
  *
+ * Authors: Igor Kovalenko,
+ *          Mark Malakanov,
+ *          Jurgen Lock,
+ *          Frediano Ziglio,
+ *          Benjamin Poirier.
+ *          Cacodemon345,
  *
- * Authors: Cacodemon345
- *
- *          Copyright 2023 Cacodemon345
+ *          Copyright 2006-2023 Igor Kovalenko.
+ *          Copyright 2006-2023 Mark Malakanov.
+ *          Copyright 2006-2023 Jurgen Lock.
+ *          Copyright 2010-2023 Frediano Ziglio.
+ *          Copyright 2011-2023 Benjamin Poirier.
+ *          Copyright 2023 Cacodemon345.
  */
-
-/* Ported over from QEMU */
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
