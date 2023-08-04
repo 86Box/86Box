@@ -444,7 +444,9 @@ struct RTL8139State {
     uint16_t NWayExpansion;
 
     uint16_t CpCmd;
+
     uint8_t  TxThresh;
+    uint8_t  pci_latency;
 
     netcard_t *nic;
 
@@ -3191,32 +3193,34 @@ rtl8139_pci_read(int func, int addr, void *p)
             return 0x02;
         case 0x06:
             return 0x80;
-        case 0x5:
+        case 0x05:
             return s->pci_conf[addr & 0xFF] & 1;
-        case 0x8:
+        case 0x08:
             return 0x20;
-        case 0x9:
+        case 0x09:
             return 0x0;
-        case 0xA:
+        case 0x0a:
             return 0x0;
-        case 0xB:
+        case 0x0b:
             return 0x2;
+        case 0x0d:
+            return s->pci_latency;
         case 0x10:
             return 1;
         case 0x14:
             return 0;
-        case 0x2C:
+        case 0x2c:
             return 0xEC;
-        case 0x2D:
+        case 0x2d:
             return 0x10;
-        case 0x2E:
+        case 0x2e:
             return 0x39;
-        case 0x2F:
+        case 0x2f:
             return 0x81;
-        case 0x3D:
-            return PCI_INTA;
         case 0x34:
-            return 0xDC;
+            return 0xdc;
+        case 0x3d:
+            return PCI_INTA;
     }
 }
 
@@ -3226,7 +3230,7 @@ rtl8139_pci_write(int func, int addr, uint8_t val, void *p)
     RTL8139State *s = (RTL8139State *) p;
 
     switch (addr) {
-        case 0x4:
+        case 0x04:
             mem_mapping_disable(&s->bar_mem);
             io_removehandler((s->pci_conf[0x11] << 8), 256, rtl8139_io_readb_ioport, rtl8139_io_readw_ioport, rtl8139_io_readl_ioport, rtl8139_io_writeb_ioport, rtl8139_io_writew_ioport, rtl8139_io_writel_ioport, p);
             s->pci_conf[addr & 0xFF] = val;
@@ -3235,11 +3239,14 @@ rtl8139_pci_write(int func, int addr, uint8_t val, void *p)
             if ((val & PCI_COMMAND_MEM) && s->bar_mem.size)
                 mem_mapping_enable(&s->bar_mem);
             break;
-        case 0x5:
+        case 0x05:
             s->pci_conf[addr & 0xFF] = val & 1;
             break;
-        case 0xc:
+        case 0x0c:
             s->pci_conf[addr & 0xFF] = val;
+            break;
+        case 0x0d:
+            s->pci_latency = val;
             break;
         case 0x10:
         case 0x11:
@@ -3256,7 +3263,7 @@ rtl8139_pci_write(int func, int addr, uint8_t val, void *p)
             if (s->pci_conf[0x4] & PCI_COMMAND_MEM)
                 mem_mapping_set_addr(&s->bar_mem, (s->pci_conf[0x15] << 8) | (s->pci_conf[0x16] << 16) | (s->pci_conf[0x17] << 24), 256);
             break;
-        case 0x3C:
+        case 0x3c:
             s->pci_conf[addr & 0xFF] = val;
             break;
     }
