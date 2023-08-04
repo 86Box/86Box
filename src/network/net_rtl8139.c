@@ -33,6 +33,7 @@
 #include <86box/network.h>
 #include <86box/bswap.h>
 #include <86box/nvr.h>
+#include <86box/cpu.h>
 #include <86box/net_rtl8139.h>
 
 #define PCI_PERIOD 30    /* 30 ns period = 33.333333 Mhz frequency */
@@ -3157,7 +3158,7 @@ static void rtl8139_timer(void *opaque)
 {
     RTL8139State *s = opaque;
 
-    timer_on_auto(&s->timer, 1. / 33.);
+    timer_on_auto(&s->timer, 1000000.0 / ((double) cpu_pci_speed));
 
     if (!s->clock_enabled)
     {
@@ -3303,7 +3304,7 @@ nic_init(const device_t *info)
 
     s->nic = network_attach(s, (uint8_t*)&s->eeprom.contents[7], rtl8139_do_receive, rtl8139_set_link_status);
     timer_add(&s->timer, rtl8139_timer, s, 0);
-    timer_on_auto(&s->timer, 1. / 33.);
+    timer_on_auto(&s->timer, 1000000.0 / cpu_pci_speed);
 
     s->cplus_txbuffer = NULL;
     s->cplus_txbuffer_len = 0;
