@@ -8,13 +8,12 @@
  *
  *          Emulation of DECchip "Tulip" 21143 NIC.
  *
+ * Authors: Sven Schnelle,
+ *          Cacodemon345,
  *
- * Authors: Cacodemon345
- *
- *          Copyright 2023 Cacodemon345
+ *          Copyright 2019-2023 Sven Schnelle.
+ *          Copyright 2023 Cacodemon345.
  */
-
-/* Ported over from QEMU */
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdbool.h>
