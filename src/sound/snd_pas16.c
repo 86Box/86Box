@@ -20,6 +20,7 @@
 #include <86box/snd_opl.h>
 #include <86box/snd_sb.h>
 #include <86box/snd_sb_dsp.h>
+#include <86box/plat_unused.h>
 
 /*      Original PAS uses
                 2 x OPL2
@@ -97,39 +98,51 @@
 typedef struct pas16_t {
     uint16_t base;
 
-    int irq, dma;
+    int irq;
+    int dma;
 
     uint8_t audiofilt;
 
     uint8_t audio_mixer;
 
-    uint8_t compat, compat_base;
+    uint8_t compat;
+    uint8_t compat_base;
 
     uint8_t enhancedscsi;
 
-    uint8_t io_conf_1, io_conf_2, io_conf_3, io_conf_4;
+    uint8_t io_conf_1;
+    uint8_t io_conf_2;
+    uint8_t io_conf_3;
+    uint8_t io_conf_4;
 
-    uint8_t irq_stat, irq_ena;
+    uint8_t irq_stat;
+    uint8_t irq_ena;
 
     uint8_t  pcm_ctrl;
     uint16_t pcm_dat;
 
-    uint16_t pcm_dat_l, pcm_dat_r;
+    uint16_t pcm_dat_l;
+    uint16_t pcm_dat_r;
 
     uint8_t sb_irqdma;
 
     int stereo_lr;
 
-    uint8_t sys_conf_1, sys_conf_2, sys_conf_3, sys_conf_4;
+    uint8_t sys_conf_1;
+    uint8_t sys_conf_2;
+    uint8_t sys_conf_3;
+    uint8_t sys_conf_4;
 
-    struct
-    {
+    struct {
         uint32_t   l[3];
         int64_t    c[3];
         pc_timer_t timer[3];
         uint8_t    m[3];
-        uint8_t    ctrl, ctrls[2];
-        int        wp, rm[3], wm[3];
+        uint8_t    ctrl;
+        uint8_t    ctrls[2];
+        int        wp;
+        int        rm[3];
+        int        wm[3];
         uint16_t   rl[3];
         int        thit[3];
         int        delay[3];
@@ -192,9 +205,9 @@ pas16_log(const char *fmt, ...)
 #endif
 
 static uint8_t
-pas16_in(uint16_t port, void *p)
+pas16_in(uint16_t port, void *priv)
 {
-    pas16_t *pas16 = (pas16_t *) p;
+    pas16_t *pas16 = (pas16_t *) priv;
     uint8_t  temp  = 0xff;
     switch ((port - pas16->base) + 0x388) {
         case 0x388:
@@ -286,15 +299,18 @@ pas16_in(uint16_t port, void *p)
         case 0xff8b:                   /*Master mode read*/
             temp = 0x20 | 0x10 | 0x01; /*AT bus, XT/AT timing*/
             break;
+
+        default:
+            break;
     }
     pas16_log("pas16_in : port %04X return %02X  %04X:%04X\n", port, temp, CS, cpu_state.pc);
     return temp;
 }
 
 static void
-pas16_out(uint16_t port, uint8_t val, void *p)
+pas16_out(uint16_t port, uint8_t val, void *priv)
 {
-    pas16_t *pas16 = (pas16_t *) p;
+    pas16_t *pas16 = (pas16_t *) priv;
     pas16_log("pas16_out : port %04X val %02X  %04X:%04X\n", port, val, CS, cpu_state.pc);
     switch ((port - pas16->base) + 0x388) {
         case 0x388:
@@ -409,9 +425,9 @@ pas16_out(uint16_t port, uint8_t val, void *p)
 }
 
 static void
-pas16_pit_out(uint16_t port, uint8_t val, void *p)
+pas16_pit_out(uint16_t port, uint8_t val, void *priv)
 {
-    pas16_t *pas16 = (pas16_t *) p;
+    pas16_t *pas16 = (pas16_t *) priv;
     int      t;
     switch (port & 3) {
         case 3: /*CTRL*/
@@ -496,6 +512,9 @@ pas16_pit_out(uint16_t port, uint8_t val, void *p)
                     pas16->pit.l[t] |= val;
                     pas16->pit.wm[t] = 0;
                     break;
+
+                default:
+                    break;
             }
             if (!pas16->pit.l[t]) {
                 pas16->pit.l[t] |= 0x10000;
@@ -504,13 +523,16 @@ pas16_pit_out(uint16_t port, uint8_t val, void *p)
                     timer_set_delay_u64(&pas16->pit.timer[t], pas16->pit.c[t] * PITCONST);
             }
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-pas16_pit_in(uint16_t port, void *p)
+pas16_pit_in(uint16_t port, void *priv)
 {
-    pas16_t *pas16 = (pas16_t *) p;
+    pas16_t *pas16 = (pas16_t *) priv;
     uint8_t  temp  = 0xff;
     int      t     = port & 3;
     switch (port & 3) {
@@ -550,10 +572,16 @@ pas16_pit_in(uint16_t port, void *p)
                     else
                         pas16->pit.rm[t] = 0;
                     break;
+
+                default:
+                    break;
             }
             break;
         case 3: /*Control*/
             temp = pas16->pit.ctrl;
+            break;
+
+        default:
             break;
     }
     return temp;
@@ -566,9 +594,9 @@ pas16_readdma(pas16_t *pas16)
 }
 
 static void
-pas16_pcm_poll(void *p)
+pas16_pcm_poll(void *priv)
 {
-    pas16_t *pas16 = (pas16_t *) p;
+    pas16_t *pas16 = (pas16_t *) priv;
 
     pas16_update(pas16);
     if (pas16->pit.m[0] & 2) {
@@ -633,9 +661,9 @@ pas16_pcm_poll(void *p)
 }
 
 static void
-pas16_out_base(uint16_t port, uint8_t val, void *p)
+pas16_out_base(UNUSED(uint16_t port), uint8_t val, void *priv)
 {
-    pas16_t *pas16 = (pas16_t *) p;
+    pas16_t *pas16 = (pas16_t *) priv;
 
     io_removehandler((pas16->base - 0x388) + 0x0388, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
     io_removehandler((pas16->base - 0x388) + 0x0788, 0x0004, pas16_in, NULL, NULL, pas16_out, NULL, NULL, pas16);
@@ -696,11 +724,11 @@ pas16_update(pas16_t *pas16)
 }
 
 void
-pas16_get_buffer(int32_t *buffer, int len, void *p)
+pas16_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    pas16_t *pas16 = (pas16_t *) p;
+    pas16_t *pas16 = (pas16_t *) priv;
 
-    int32_t *opl_buf = pas16->opl.update(pas16->opl.priv);
+    const int32_t *opl_buf = pas16->opl.update(pas16->opl.priv);
     sb_dsp_update(&pas16->dsp);
     pas16_update(pas16);
     for (int c = 0; c < len * 2; c++) {
@@ -715,7 +743,7 @@ pas16_get_buffer(int32_t *buffer, int len, void *p)
 }
 
 static void *
-pas16_init(const device_t *info)
+pas16_init(UNUSED(const device_t *info))
 {
     pas16_t *pas16 = malloc(sizeof(pas16_t));
     memset(pas16, 0, sizeof(pas16_t));
@@ -733,9 +761,9 @@ pas16_init(const device_t *info)
 }
 
 static void
-pas16_close(void *p)
+pas16_close(void *priv)
 {
-    pas16_t *pas16 = (pas16_t *) p;
+    pas16_t *pas16 = (pas16_t *) priv;
 
     free(pas16);
 }

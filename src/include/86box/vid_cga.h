@@ -28,21 +28,31 @@ typedef struct cga_t {
 
     uint8_t cgastat;
 
-    uint8_t cgamode, cgacol;
+    uint8_t cgamode;
+    uint8_t cgacol;
 
     int      fontbase;
-    int      linepos, displine;
-    int      sc, vc;
+    int      linepos;
+    int      displine;
+    int      sc;
+    int      vc;
     int      cgadispon;
-    int      con, coff, cursoron, cgablink;
-    int      vsynctime, vadj;
-    uint16_t ma, maback;
+    int      con;
+    int      coff;
+    int      cursoron;
+    int      cgablink;
+    int      vsynctime;
+    int      vadj;
+    uint16_t ma;
+    uint16_t maback;
     int      oddeven;
 
-    uint64_t   dispontime, dispofftime;
+    uint64_t   dispontime;
+    uint64_t   dispofftime;
     pc_timer_t timer;
 
-    int firstline, lastline;
+    int firstline;
+    int lastline;
 
     int drawcursor;
 
@@ -59,12 +69,12 @@ typedef struct cga_t {
 } cga_t;
 
 void    cga_init(cga_t *cga);
-void    cga_out(uint16_t addr, uint8_t val, void *p);
-uint8_t cga_in(uint16_t addr, void *p);
-void    cga_write(uint32_t addr, uint8_t val, void *p);
-uint8_t cga_read(uint32_t addr, void *p);
+void    cga_out(uint16_t addr, uint8_t val, void *priv);
+uint8_t cga_in(uint16_t addr, void *priv);
+void    cga_write(uint32_t addr, uint8_t val, void *priv);
+uint8_t cga_read(uint32_t addr, void *priv);
 void    cga_recalctimings(cga_t *cga);
-void    cga_poll(void *p);
+void    cga_poll(void *priv);
 
 #ifdef EMU_DEVICE_H
 extern const device_config_t cga_config[];

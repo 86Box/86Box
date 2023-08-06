@@ -51,8 +51,10 @@ opSETALC(uint32_t fetchdat)
 static int
 opF6_a16(uint32_t fetchdat)
 {
-    int      tempws, tempws2 = 0;
-    uint16_t tempw, src16;
+    int      tempws  = 0;
+    int      tempws2 = 0;
+    uint16_t tempw   = 0;
+    uint16_t src16;
     uint8_t  src, dst;
     int8_t   temps;
 
@@ -167,8 +169,10 @@ opF6_a16(uint32_t fetchdat)
 static int
 opF6_a32(uint32_t fetchdat)
 {
-    int      tempws, tempws2 = 0;
-    uint16_t tempw, src16;
+    int      tempws  = 0;
+    int      tempws2 = 0;
+    uint16_t tempw   = 0;
+    uint16_t src16;
     uint8_t  src, dst;
     int8_t   temps;
 
@@ -282,10 +286,13 @@ opF6_a32(uint32_t fetchdat)
 static int
 opF7_w_a16(uint32_t fetchdat)
 {
-    uint32_t templ, templ2   = 0;
-    int      tempws, tempws2 = 0;
+    uint32_t templ;
+    uint32_t templ2  = 0;
+    int      tempws;
+    int      tempws2 = 0;
     int16_t  temps16;
-    uint16_t src, dst;
+    uint16_t src;
+    uint16_t dst;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -392,8 +399,10 @@ opF7_w_a16(uint32_t fetchdat)
 static int
 opF7_w_a32(uint32_t fetchdat)
 {
-    uint32_t templ, templ2   = 0;
-    int      tempws, tempws2 = 1;
+    uint32_t templ;
+    uint32_t templ2  = 0;
+    int      tempws;
+    int      tempws2 = 1;
     int16_t  temps16;
     uint16_t src, dst;
 

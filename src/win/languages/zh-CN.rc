@@ -434,7 +434,6 @@ END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_2080    "无法初始化 FluidSynth"
     IDS_2081    "总线"
     IDS_2082    "文件"
     IDS_2083    "C"
@@ -465,7 +464,6 @@ BEGIN
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "软盘 %i (%s): %ls"
     IDS_2110    "所有镜像 (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0高级扇区镜像 (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0基本扇区镜像 (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux 镜像 (*.FDI)\0*.FDI\0表面镜像 (*.86F;*.MFM)\0*.86F;*.MFM\0所有文件 (*.*)\0*.*\0"
-    IDS_2111    "无法初始化 FreeType"
     IDS_2112    "无法初始化 SDL，需要 SDL2.dll"
     IDS_2113    "确定要硬重置模拟器吗？"
     IDS_2114    "确定要退出 86Box 吗？"
@@ -493,23 +491,11 @@ BEGIN
     IDS_2130    "请确认 " LIB_NAME_PCAP " 已安装且使用兼容 " LIB_NAME_PCAP " 的网络连接。"
     IDS_2131    "无效配置"
 #ifdef _WIN32
-#define LIB_NAME_FREETYPE "freetype.dll"
-#else
-#define LIB_NAME_FREETYPE "libfreetype"
-#endif
-    IDS_2132    "ESC/P 打印机模拟需要" LIB_NAME_FREETYPE 
-#ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
     IDS_2133    LIB_NAME_GS " 是将 PostScript 文件转换为 PDF 所需要的库。\n\n使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
-#ifdef _WIN32
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
-#else
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
-#endif
-    IDS_2134    "FluidSynth MIDI 输出需要" LIB_NAME_FLUIDSYNTH 
     IDS_2135    "正在进入全屏模式"
     IDS_2136    "不要再显示此消息"
     IDS_2137    "不退出"

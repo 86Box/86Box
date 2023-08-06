@@ -332,7 +332,7 @@ static uint8_t nvr_at_inited = 0;
 static void
 time_get(nvr_t *nvr, struct tm *tm)
 {
-    local_t *local = (local_t *) nvr->data;
+    const local_t *local = (local_t *) nvr->data;
     int8_t   temp;
 
     if (nvr->regs[RTC_REGB] & REGB_DM) {
@@ -370,7 +370,7 @@ time_get(nvr_t *nvr, struct tm *tm)
 static void
 time_set(nvr_t *nvr, struct tm *tm)
 {
-    local_t *local = (local_t *) nvr->data;
+    const local_t *local = (local_t *) nvr->data;
     int      year  = (tm->tm_year + 1900);
 
     if (nvr->regs[RTC_REGB] & REGB_DM) {
@@ -429,7 +429,7 @@ check_alarm(nvr_t *nvr, int8_t addr)
 static int8_t
 check_alarm_via(nvr_t *nvr, int8_t addr, int8_t addr_2)
 {
-    local_t *local = (local_t *) nvr->data;
+    const local_t *local = (local_t *) nvr->data;
 
     if (local->cent == RTC_CENTURY_VIA) {
         return ((nvr->regs[addr_2] == nvr->regs[addr]) || ((nvr->regs[addr_2] & AL_DONTCARE) == AL_DONTCARE));
@@ -521,8 +521,8 @@ timer_load_count(nvr_t *nvr)
 static void
 timer_intr(void *priv)
 {
-    nvr_t   *nvr   = (nvr_t *) priv;
-    local_t *local = (local_t *) nvr->data;
+    nvr_t         *nvr   = (nvr_t *) priv;
+    const local_t *local = (local_t *) nvr->data;
 
     if (local->state == 1) {
         timer_load_count(nvr);
@@ -683,12 +683,12 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 nvr_read(uint16_t addr, void *priv)
 {
-    nvr_t   *nvr   = (nvr_t *) priv;
-    local_t *local = (local_t *) nvr->data;
-    uint8_t  ret;
-    uint8_t  addr_id = (addr & 0x0e) >> 1;
-    uint16_t i;
-    uint16_t checksum = 0x0000;
+    nvr_t         *nvr   = (nvr_t *) priv;
+    const local_t *local = (local_t *) nvr->data;
+    uint8_t        ret;
+    uint8_t        addr_id = (addr & 0x0e) >> 1;
+    uint16_t       i;
+    uint16_t       checksum = 0x0000;
 
     cycles -= ISA_CYCLES(8);
 
@@ -835,9 +835,11 @@ nvr_sec_read(uint16_t addr, void *priv)
 static void
 nvr_reset(nvr_t *nvr)
 {
-    local_t *local = (local_t *) nvr->data;
+    const local_t *local = (local_t *) nvr->data;
 
-    /* memset(nvr->regs, local->def, RTC_REGS); */
+#if 0
+    memset(nvr->regs, local->def, RTC_REGS);
+#endif
     memset(nvr->regs, local->def, nvr->size);
     nvr->regs[RTC_DOM]   = 1;
     nvr->regs[RTC_MONTH] = 1;
@@ -852,8 +854,8 @@ nvr_reset(nvr_t *nvr)
 static void
 nvr_start(nvr_t *nvr)
 {
-    int      fdd;
-    local_t *local = (local_t *) nvr->data;
+    int            fdd;
+    const local_t *local = (local_t *) nvr->data;
 
     struct tm tm;
     int       default_found = 0;

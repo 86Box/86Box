@@ -32,8 +32,12 @@ enum {
 typedef struct ati_eeprom_t {
     uint16_t data[256];
 
-    int      oldclk, oldena;
-    int      opcode, state, count, out;
+    int      oldclk;
+    int      oldena;
+    int      opcode;
+    int      state;
+    int      count;
+    int      out;
     int      wp;
     uint32_t dat;
     int      type;

@@ -102,6 +102,9 @@ att498_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
         case 0x06:
             att498_ramdac_control(val, ramdac, svga);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -146,6 +149,9 @@ att498_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
         case 0x06:
             temp          = ramdac->ctrl;
             ramdac->state = 0;
+            break;
+
+        default:
             break;
     }
 

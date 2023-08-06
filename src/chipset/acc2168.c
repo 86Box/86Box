@@ -168,7 +168,7 @@ acc2168_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 acc2168_read(uint16_t addr, void *priv)
 {
-    acc2168_t *dev = (acc2168_t *) priv;
+    const acc2168_t *dev = (acc2168_t *) priv;
 
     return (addr == 0xf3) ? dev->regs[dev->reg_idx] : dev->reg_idx;
 }

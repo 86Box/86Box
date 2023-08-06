@@ -91,8 +91,9 @@ pitf_ctr_set_load_func(void *data, int counter_id, void (*func)(uint8_t new_m, i
 static uint16_t
 pitf_ctr_get_count(void *data, int counter_id)
 {
-    pitf_t *pit = (pitf_t *) data;
-    ctrf_t *ctr = &pit->counters[counter_id];
+    const pitf_t *pit = (pitf_t *) data;
+    const ctrf_t *ctr = &pit->counters[counter_id];
+
     return (uint16_t) ctr->l;
 }
 

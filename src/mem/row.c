@@ -30,11 +30,12 @@
 #include <86box/mem.h>
 #include <86box/spd.h>
 #include <86box/row.h>
-
+#include <86box/plat_unused.h>
 
 /*  0   1   2   3   4   5   6   7   */
-static uint8_t  rows_num, rows_default,
-                rows_bits;
+static uint8_t  rows_num;
+static uint8_t  rows_default;
+static uint8_t  rows_bits;
 static uint32_t row_unit;
 static uint8_t  drb_defaults[16];
 static row_t    *rows;
@@ -43,8 +44,8 @@ static row_t    *rows;
 static uint8_t
 row_read(uint32_t addr, void *priv)
 {
-    row_t *dev = (row_t *) priv;
-    uint32_t new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
+    const row_t *dev = (row_t *) priv;
+    uint32_t     new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
 
     addreadlookup(mem_logical_addr, new_addr);
 
@@ -79,8 +80,8 @@ row_readl(uint32_t addr, void *priv)
 static void
 row_write(uint32_t addr, uint8_t val, void *priv)
 {
-    row_t *dev = (row_t *) priv;
-    uint32_t new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
+    const row_t *dev = (row_t *) priv;
+    uint32_t     new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
 
     addwritelookup(mem_logical_addr, new_addr);
     mem_write_ramb_page(new_addr, val, &pages[addr >> 12]);
@@ -90,8 +91,8 @@ row_write(uint32_t addr, uint8_t val, void *priv)
 static void
 row_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    row_t *dev = (row_t *) priv;
-    uint32_t new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
+    const row_t *dev = (row_t *) priv;
+    uint32_t     new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
 
     addwritelookup(mem_logical_addr, new_addr);
     mem_write_ramw_page(new_addr, val, &pages[addr >> 12]);
@@ -101,8 +102,8 @@ row_writew(uint32_t addr, uint16_t val, void *priv)
 static void
 row_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    row_t *dev = (row_t *) priv;
-    uint32_t new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
+    const row_t *dev = (row_t *) priv;
+    uint32_t     new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
 
     addwritelookup(mem_logical_addr, new_addr);
     mem_write_raml_page(new_addr, val, &pages[addr >> 12]);
@@ -112,7 +113,7 @@ row_writel(uint32_t addr, uint32_t val, void *priv)
 void
 row_allocate(uint8_t row_id, uint8_t set)
 {
-    uint32_t c, offset;
+    uint32_t offset;
 
     /* Do nothing if size is either zero or invalid. */
     if ((rows[row_id].host_size == 0x00000000) || (rows[row_id].host_size == 0xffffffff))
@@ -121,7 +122,7 @@ row_allocate(uint8_t row_id, uint8_t set)
     if (rows[row_id].ram_size == 0x00000000)
         return;
 
-    for (c = (rows[row_id].host_base >> 12); c < ((rows[row_id].host_base + rows[row_id].host_size) >> 12); c++) {
+    for (uint32_t c = (rows[row_id].host_base >> 12); c < ((rows[row_id].host_base + rows[row_id].host_size) >> 12); c++) {
         offset = c - (rows[row_id].host_base >> 12);
 
         pages[c].mem = set ? (rows[row_id].buf + rows[row_id].ram_base + ((offset << 12) & rows[row_id].ram_mask)) : page_ff;
@@ -129,22 +130,22 @@ row_allocate(uint8_t row_id, uint8_t set)
         pages[c].write_w = set ? mem_write_ramw_page : NULL;
         pages[c].write_l = set ? mem_write_raml_page : NULL;
 #ifdef USE_NEW_DYNAREC
-	pages[c].evict_prev = EVICT_NOT_IN_LIST;
-	pages[c].byte_dirty_mask = &byte_dirty_mask[offset * 64];
-	pages[c].byte_code_present_mask = &byte_code_present_mask[offset * 64];
+        pages[c].evict_prev = EVICT_NOT_IN_LIST;
+        pages[c].byte_dirty_mask = &byte_dirty_mask[offset * 64];
+        pages[c].byte_code_present_mask = &byte_code_present_mask[offset * 64];
 #endif
     }
 
     if (rows[row_id].host_base >= 0x00100000) {
-	mem_set_mem_state_both(rows[row_id].host_base, rows[row_id].host_base + rows[row_id].host_size,
+        mem_set_mem_state_both(rows[row_id].host_base, rows[row_id].host_base + rows[row_id].host_size,
                                set ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL));
     } else {
         if (0x000a0000 > rows[row_id].host_base) {
-	    mem_set_mem_state_both(rows[row_id].host_base, 0x000a0000 - rows[row_id].host_base,
+            mem_set_mem_state_both(rows[row_id].host_base, 0x000a0000 - rows[row_id].host_base,
                                    set ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL));
         }
         if ((rows[row_id].host_base + rows[row_id].host_size) > 0x00100000) {
-	    mem_set_mem_state_both(0x00100000, (rows[row_id].host_base + rows[row_id].host_size) - 0x00100000,
+            mem_set_mem_state_both(0x00100000, (rows[row_id].host_base + rows[row_id].host_size) - 0x00100000,
                                    set ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL));
         }
     }
@@ -208,15 +209,15 @@ row_set_boundary(uint8_t row_id, uint32_t boundary)
 
 
 void
-row_reset(void *priv)
+row_reset(UNUSED(void *priv))
 {
-    int i;
-    uint32_t boundary, shift;
+    uint32_t boundary;
+    uint32_t shift;
 
-    for (i = (rows_num - 1); i >= 0; i--)
+    for (int8_t i = (rows_num - 1); i >= 0; i--)
         row_disable(i);
 
-    for (i = 0; i < rows_num; i++) {
+    for (uint8_t i = 0; i < rows_num; i++) {
         shift = (i & 1) << 2;
         boundary = ((uint32_t) drb_defaults[i]) + (((((uint32_t) drb_defaults[(i >> 1) + 8]) >> shift) & 0xf) << 8);
         row_set_boundary(i, boundary);
@@ -225,7 +226,7 @@ row_reset(void *priv)
 
 
 void
-row_close(void *priv)
+row_close(UNUSED(void *priv))
 {
     free(rows);
     rows = NULL;
@@ -235,14 +236,18 @@ row_close(void *priv)
 void *
 row_init(const device_t *info)
 {
-    uint32_t cur_drb = 0, cur_drbe = 0;
-    uint32_t last_drb = 0, last_drbe = 0;
-    uint8_t phys_drbs[16];
-    int i, max = info->local & 0xff;
-    int c;
-    uint32_t shift, drb;
-    uint32_t boundary, mask;
-    row_t *new_rows = NULL;
+    uint32_t cur_drb = 0;
+    uint32_t cur_drbe = 0;
+    uint32_t last_drb = 0;
+    uint32_t last_drbe = 0;
+    uint8_t  phys_drbs[16];
+    int      i;
+    int      max = info->local & 0xff;
+    uint32_t shift;
+    uint32_t drb;
+    uint32_t boundary;
+    uint32_t mask;
+    row_t   *new_rows = NULL;
 
     rows_bits = ((info->local >> 24) & 0xff);
     mask = (1 << rows_bits) - 1;
@@ -268,7 +273,7 @@ row_init(const device_t *info)
         mem_mapping_disable(&ram_2gb_mapping);
 #endif
 
-    for (c = 0; c < pages_sz; c++) {
+    for (uint32_t c = 0; c < pages_sz; c++) {
         pages[c].mem = page_ff;
         pages[c].write_b = NULL;
         pages[c].write_w = NULL;

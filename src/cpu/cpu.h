@@ -133,13 +133,13 @@ enum {
 #    define LOOKUP_INV -1
 #endif
 
-typedef struct {
+typedef struct fpu_t {
     const char *name;
     const char *internal_name;
     const int   type;
 } FPU;
 
-typedef struct {
+typedef struct cpu_t {
     const char *name;
     uint64_t    cpu_type;
     const FPU  *fpus;

@@ -40,8 +40,8 @@
 static uint8_t
 port_92_readb(uint16_t port, void *priv)
 {
-    uint8_t    ret = 0x00;
-    port_92_t *dev = (port_92_t *) priv;
+    uint8_t          ret = 0x00;
+    const port_92_t *dev = (port_92_t *) priv;
 
     if (port == 0x92) {
         /* Return bit 1 directly from mem_a20_alt, so the
@@ -61,8 +61,8 @@ port_92_readb(uint16_t port, void *priv)
 static uint16_t
 port_92_readw(uint16_t port, void *priv)
 {
-    uint16_t   ret = 0xffff;
-    port_92_t *dev = (port_92_t *) priv;
+    uint16_t         ret = 0xffff;
+    const port_92_t *dev = (port_92_t *) priv;
 
     if (!(dev->flags & PORT_92_PCI))
         ret = port_92_readb(port, priv);
@@ -113,7 +113,7 @@ port_92_writeb(uint16_t port, uint8_t val, void *priv)
 static void
 port_92_writew(uint16_t port, uint16_t val, void *priv)
 {
-    port_92_t *dev = (port_92_t *) priv;
+    const port_92_t *dev = (port_92_t *) priv;
 
     if (!(dev->flags & PORT_92_PCI))
         port_92_writeb(port, val & 0xff, priv);

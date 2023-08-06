@@ -280,8 +280,8 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 ali1429_read(uint16_t addr, void *priv)
 {
-    ali1429_t *dev = (ali1429_t *) priv;
-    uint8_t    ret = 0xff;
+    const ali1429_t *dev = (ali1429_t *) priv;
+    uint8_t          ret = 0xff;
 
     if ((addr == 0x23) && (dev->index >= 0x10) && (dev->index <= 0x4a))
         ret = dev->regs[dev->index];

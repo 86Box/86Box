@@ -171,14 +171,16 @@ i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda)
 uint8_t
 i2c_gpio_get_scl(void *dev_handle)
 {
-    i2c_gpio_t *dev = (i2c_gpio_t *) dev_handle;
+    const i2c_gpio_t *dev = (i2c_gpio_t *) dev_handle;
+
     return dev->prev_scl;
 }
 
 uint8_t
 i2c_gpio_get_sda(void *dev_handle)
 {
-    i2c_gpio_t *dev = (i2c_gpio_t *) dev_handle;
+    const i2c_gpio_t *dev = (i2c_gpio_t *) dev_handle;
+
     i2c_gpio_log(3, "I2C GPIO %s: read myscl=%d mysda=%d slavesda=%d\n", dev->bus_name, dev->prev_scl, dev->prev_sda, dev->slave_sda);
     return dev->prev_sda && dev->slave_sda;
 }

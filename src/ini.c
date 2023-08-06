@@ -544,9 +544,9 @@ ini_section_delete_var(ini_section_t self, const char *name)
 int
 ini_section_get_int(ini_section_t self, const char *name, int def)
 {
-    section_t *section = (section_t *) self;
-    entry_t   *entry;
-    int        value;
+    section_t     *section = (section_t *) self;
+    const entry_t *entry;
+    int            value;
 
     if (section == NULL)
         return def;
@@ -563,9 +563,9 @@ ini_section_get_int(ini_section_t self, const char *name, int def)
 double
 ini_section_get_double(ini_section_t self, const char *name, double def)
 {
-    section_t *section = (section_t *) self;
-    entry_t   *entry;
-    double     value;
+    section_t     *section = (section_t *) self;
+    const entry_t *entry;
+    double         value;
 
     if (section == NULL)
         return def;
@@ -582,9 +582,9 @@ ini_section_get_double(ini_section_t self, const char *name, double def)
 int
 ini_section_get_hex16(ini_section_t self, const char *name, int def)
 {
-    section_t   *section = (section_t *) self;
-    entry_t     *entry;
-    unsigned int value;
+    section_t     *section = (section_t *) self;
+    const entry_t *entry;
+    unsigned int   value;
 
     if (section == NULL)
         return def;
@@ -601,9 +601,9 @@ ini_section_get_hex16(ini_section_t self, const char *name, int def)
 int
 ini_section_get_hex20(ini_section_t self, const char *name, int def)
 {
-    section_t   *section = (section_t *) self;
-    entry_t     *entry;
-    unsigned int value;
+    section_t     *section = (section_t *) self;
+    const entry_t *entry;
+    unsigned int   value;
 
     if (section == NULL)
         return def;
@@ -620,11 +620,11 @@ ini_section_get_hex20(ini_section_t self, const char *name, int def)
 int
 ini_section_get_mac(ini_section_t self, const char *name, int def)
 {
-    section_t   *section = (section_t *) self;
-    entry_t     *entry;
-    unsigned int val0 = 0;
-    unsigned int val1 = 0;
-    unsigned int val2 = 0;
+    section_t     *section = (section_t *) self;
+    const entry_t *entry;
+    unsigned int   val0 = 0;
+    unsigned int   val1 = 0;
+    unsigned int   val2 = 0;
 
     if (section == NULL)
         return def;

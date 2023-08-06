@@ -142,7 +142,7 @@ i82091aa_write(uint16_t port, uint8_t val, void *priv)
 {
     i82091aa_t *dev = (i82091aa_t *) priv;
     uint8_t     index;
-    uint8_t     valxor;
+    uint8_t     valxor = 0;
     uint8_t     uart = (dev->cur_reg >> 4) - 0x03;
     uint8_t    *reg  = &(dev->regs[dev->cur_reg]);
 

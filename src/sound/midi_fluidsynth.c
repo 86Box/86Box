@@ -17,6 +17,7 @@
 #    include <86box/midi.h>
 #    include <86box/thread.h>
 #    include <86box/sound.h>
+#    include <86box/plat_unused.h>
 
 #    define RENDER_RATE                100
 #    define BUFFER_SEGMENTS            10
@@ -151,7 +152,7 @@ fluidsynth_sysex(uint8_t *data, unsigned int len)
 }
 
 void *
-fluidsynth_init(const device_t *info)
+fluidsynth_init(UNUSED(const device_t *info))
 {
     fluidsynth_t  *data = &fsdev;
     midi_device_t *dev;
@@ -165,7 +166,7 @@ fluidsynth_init(const device_t *info)
 
     data->synth = new_fluid_synth(data->settings);
 
-    const char *sound_font = (char *) device_get_config_string("sound_font");
+    const char *sound_font = device_get_config_string("sound_font");
 #    ifdef __unix__
     if (!sound_font || sound_font[0] == 0)
         sound_font = (access("/usr/share/sounds/sf2/FluidR3_GM.sf2", F_OK) == 0 ? "/usr/share/sounds/sf2/FluidR3_GM.sf2" :
@@ -286,9 +287,9 @@ fluidsynth_init(const device_t *info)
 }
 
 void
-fluidsynth_close(void *p)
+fluidsynth_close(void *priv)
 {
-    if (!p)
+    if (!priv)
         return;
 
     fluidsynth_t *data = &fsdev;

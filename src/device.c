@@ -90,8 +90,8 @@ device_init(void)
 void
 device_set_context(device_context_t *c, const device_t *dev, int inst)
 {
-    void *sec;
-    void *single_sec;
+    const void *sec;
+    void       *single_sec;
 
     memset(c, 0, sizeof(device_context_t));
     c->dev      = dev;
@@ -143,7 +143,7 @@ device_add_common(const device_t *dev, const device_t *cd, void *p, void *params
     int   c;
 
     for (c = 0; c < 256; c++) {
-        if (!inst && (devices[c] == (device_t *) dev)) {
+        if (!inst && (devices[c] == dev)) {
             device_log("DEVICE: device already exists!\n");
             return (NULL);
         }
@@ -343,23 +343,23 @@ device_get_priv(const device_t *dev)
 int
 device_available(const device_t *dev)
 {
-    device_config_t      *config = NULL;
-    device_config_bios_t *bios   = NULL;
-    int                   roms_present = 0;
-    int                   i = 0;
+    const device_config_t      *config = NULL;
+    const device_config_bios_t *bios   = NULL;
+    int                         roms_present = 0;
+    int                         i = 0;
 
     if (dev != NULL) {
-        config = (device_config_t *) dev->config;
+        config = dev->config;
         if (config != NULL) {
             while (config->type != -1) {
                 if (config->type == CONFIG_BIOS) {
-                    bios = (device_config_bios_t *) config->bios;
+                    bios = (const device_config_bios_t *) config->bios;
 
                     /* Go through the ROM's in the device configuration. */
                     while (bios->files_no != 0) {
                         i = 0;
                         for (int bf = 0; bf < bios->files_no; bf++)
-                            i += !!rom_present((char *) bios->files[bf]);
+                            i += !!rom_present(bios->files[bf]);
                         if (i == bios->files_no)
                             roms_present++;
                         bios++;
@@ -385,15 +385,15 @@ device_available(const device_t *dev)
 const char *
 device_get_bios_file(const device_t *dev, const char *internal_name, int file_no)
 {
-    device_config_t      *config = NULL;
-    device_config_bios_t *bios   = NULL;
+    const device_config_t      *config = NULL;
+    const device_config_bios_t *bios   = NULL;
 
     if (dev != NULL) {
-        config = (device_config_t *) dev->config;
+        config = dev->config;
         if (config != NULL) {
             while (config->type != -1) {
                 if (config->type == CONFIG_BIOS) {
-                    bios = (device_config_bios_t *) config->bios;
+                    bios = config->bios;
 
                     /* Go through the ROM's in the device configuration. */
                     while (bios->files_no != 0) {
@@ -418,8 +418,8 @@ device_get_bios_file(const device_t *dev, const char *internal_name, int file_no
 int
 device_has_config(const device_t *dev)
 {
-    int              c = 0;
-    device_config_t *config;
+    int                    c = 0;
+    const device_config_t *config;
 
     if (dev == NULL)
         return 0;
@@ -427,7 +427,7 @@ device_has_config(const device_t *dev)
     if (dev->config == NULL)
         return 0;
 
-    config = (device_config_t *) dev->config;
+    config = dev->config;
 
     while (config->type != -1) {
         if (config->type != CONFIG_MAC)
@@ -472,10 +472,10 @@ device_register_pci_slot(const device_t *dev, int device, int type, int inta, in
 void
 device_get_name(const device_t *dev, int bus, char *name)
 {
-    char *sbus = NULL;
-    char *fbus;
-    char *tname;
-    char  pbus[8] = { 0 };
+    const char *sbus = NULL;
+    const char *fbus;
+    char       *tname;
+    char        pbus[8] = { 0 };
 
     if (dev == NULL)
         return;

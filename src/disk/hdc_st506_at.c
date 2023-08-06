@@ -171,7 +171,7 @@ irq_update(mfm_t *mfm)
 static int
 get_sector(mfm_t *mfm, off64_t *addr)
 {
-    drive_t *drive = &mfm->drives[mfm->drvsel];
+    const drive_t *drive = &mfm->drives[mfm->drvsel];
 
     /* FIXME: See if this is even needed - if the code is present, IBM AT
               diagnostics v2.07 will error with: ERROR 152 - SYSTEM BOARD. */
@@ -734,7 +734,7 @@ mfm_close(void *priv)
     mfm_t *mfm = (mfm_t *) priv;
 
     for (uint8_t d = 0; d < 2; d++) {
-        drive_t *drive = &mfm->drives[d];
+        const drive_t *drive = &mfm->drives[d];
 
         hdd_image_close(drive->hdd_num);
     }

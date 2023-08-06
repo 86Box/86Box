@@ -243,9 +243,9 @@ sdac_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
 }
 
 float
-sdac_getclock(int clock, void *p)
+sdac_getclock(int clock, void *priv)
 {
-    sdac_ramdac_t *ramdac = (sdac_ramdac_t *) p;
+    sdac_ramdac_t *ramdac = (sdac_ramdac_t *) priv;
     float          t;
     int            m;
     int            n1;

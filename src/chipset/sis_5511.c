@@ -348,7 +348,8 @@ sis_5511_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static uint8_t
 sis_5511_read(UNUSED(int func), int addr, void *priv)
 {
-    sis_5511_t *dev = (sis_5511_t *) priv;
+    const sis_5511_t *dev = (sis_5511_t *) priv;
+
     sis_5511_log("SiS 5511: dev->pci_conf[%02x] (%02x) POST %02x\n", addr, dev->pci_conf[addr], inb(0x80));
     return dev->pci_conf[addr];
 }
@@ -554,7 +555,7 @@ sis_5513_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 sis_5513_read(int func, int addr, void *priv)
 {
-    sis_5511_t *dev = (sis_5511_t *) priv;
+    const sis_5511_t *dev = (sis_5511_t *) priv;
 
     sis_5511_log("SiS 5513: dev->pci_conf[%02x][%02x] = %02x POST %02x\n", func, addr, dev->pci_conf_sb[func][addr], inb(0x80));
     if ((func >= 0) && (func <= 1))
@@ -624,7 +625,7 @@ sis_5513_isa_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 sis_5513_isa_read(uint16_t addr, void *priv)
 {
-    sis_5511_t *dev = (sis_5511_t *) priv;
+    const sis_5511_t *dev = (sis_5511_t *) priv;
 
     if (addr == 0x23) {
         sis_5511_log("SiS 5513-ISA: dev->regs[%02x] (%02x) POST: %02x\n", dev->index + 0x50, dev->regs[dev->index], inb(0x80));
