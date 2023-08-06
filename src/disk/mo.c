@@ -655,7 +655,9 @@ mo_update_request_length(mo_t *dev, int len, int block_len)
                     break;
                 }
             }
-            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
         default:
             dev->packet_len = len;
             break;
@@ -1342,7 +1344,9 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
                 mo_invalid_field(dev);
                 return;
             }
-            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
         case GPCMD_SCSI_RESERVE:
         case GPCMD_SCSI_RELEASE:
         case GPCMD_TEST_UNIT_READY:
@@ -2051,7 +2055,7 @@ mo_do_identify(ide_t *ide, int ide_has_dma)
 {
     char model[40];
 
-    mo_t *mo = (mo_t *) ide->sc;
+    const mo_t *mo = (mo_t *) ide->sc;
 
     memset(model, 0, 40);
 

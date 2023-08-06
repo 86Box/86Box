@@ -46,6 +46,7 @@
 #include <86box/machine.h>
 #include <86box/io.h>
 #include <86box/vid_cga.h>
+#include <86box/plat_unused.h>
 
 typedef struct {
     mem_mapping_t scratchpad_mapping;
@@ -53,21 +54,21 @@ typedef struct {
 } zenith_t;
 
 static uint8_t
-zenith_scratchpad_read(uint32_t addr, void *p)
+zenith_scratchpad_read(uint32_t addr, void *priv)
 {
-    zenith_t *dev = (zenith_t *) p;
+    zenith_t *dev = (zenith_t *) priv;
     return dev->scratchpad_ram[addr & 0x3fff];
 }
 
 static void
-zenith_scratchpad_write(uint32_t addr, uint8_t val, void *p)
+zenith_scratchpad_write(uint32_t addr, uint8_t val, void *priv)
 {
-    zenith_t *dev                      = (zenith_t *) p;
+    zenith_t *dev                      = (zenith_t *) priv;
     dev->scratchpad_ram[addr & 0x3fff] = val;
 }
 
 static void *
-zenith_scratchpad_init(const device_t *info)
+zenith_scratchpad_init(UNUSED(const device_t *info))
 {
     zenith_t *dev;
 
@@ -85,9 +86,9 @@ zenith_scratchpad_init(const device_t *info)
 }
 
 static void
-zenith_scratchpad_close(void *p)
+zenith_scratchpad_close(void *priv)
 {
-    zenith_t *dev = (zenith_t *) p;
+    zenith_t *dev = (zenith_t *) priv;
 
     free(dev->scratchpad_ram);
     free(dev);

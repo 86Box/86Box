@@ -57,7 +57,7 @@ AppDir:
     - libqt5gui5 # if QT:BOOL=ON
     - libqt5widgets5 # if QT:BOOL=ON
     - libsixel1 # if CLI:BOOL=ON
-    - libslirp0 # if SLIRP_EXTERNAL:BOOL=ON
+    - libslirp0
     - libsndio7.0 # if OPENAL:BOOL=ON
     - libvdeplug-dev # -dev also pulls in libvdeplug2. -dev is required to get the proper .so symlink to the library
     - libx11-6 # if QT:BOOL=ON

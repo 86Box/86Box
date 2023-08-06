@@ -48,13 +48,16 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
+#include <86box/plat_unused.h>
 
 typedef struct ati68860_ramdac_t {
     uint8_t regs[16];
     void (*render)(struct svga_t *svga);
 
-    int      dac_addr, dac_pos;
-    int      dac_r, dac_g;
+    int      dac_addr;
+    int      dac_pos;
+    int      dac_r;
+    int      dac_g;
     PALETTE  pal;
     uint32_t pallook[2];
 
@@ -113,6 +116,9 @@ ati68860_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
                             ramdac->dac_pos  = 0;
                             ramdac->dac_addr = (ramdac->dac_addr + 1) & 255;
                             break;
+
+                        default:
+                            break;
                     }
                     break;
                 case 0xb:
@@ -152,6 +158,9 @@ ati68860_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
                     break;
                 case 0xc:
                     svga_set_ramdac_type(svga, (val & 1) ? RAMDAC_6BIT : RAMDAC_8BIT);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -217,7 +226,7 @@ ati68860_set_ramdac_type(void *p, int type)
 }
 
 static void *
-ati68860_ramdac_init(const device_t *info)
+ati68860_ramdac_init(UNUSED(const device_t *info))
 {
     ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) malloc(sizeof(ati68860_ramdac_t));
     memset(ramdac, 0, sizeof(ati68860_ramdac_t));

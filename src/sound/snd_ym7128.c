@@ -5,12 +5,13 @@
 
 #include <86box/86box.h>
 #include <86box/snd_ym7128.h>
+#include <86box/plat_unused.h>
 
 static int attenuation[32];
 static int tap_position[32];
 
 void
-ym7128_init(ym7128_t *ym7128)
+ym7128_init(UNUSED(ym7128_t *ym7128))
 {
     int    c;
     double out = 65536.0;
@@ -97,6 +98,9 @@ ym7128_write(ym7128_t *ym7128, uint8_t val)
                 case 0x1e:
                     ym7128->t[ym7128->reg_sel - 0x16] = tap_position[ym7128->dat & 0x1f];
                     break;
+
+                default:
+                    break;
             }
             ym7128->regs[ym7128->reg_sel] = ym7128->dat;
         }
@@ -137,8 +141,8 @@ ym7128_apply(ym7128_t *ym7128, int16_t *buffer, int len)
         samp_l = (samp_l * ym7128->vl * 2) >> 16;
         samp_r = (samp_r * ym7128->vr * 2) >> 16;
 
-        buffer[c] += ((int32_t) samp_l + (int32_t) ym7128->prev_l) / 2;
-        buffer[c + 1] += ((int32_t) samp_r + (int32_t) ym7128->prev_r) / 2;
+        buffer[c] += (samp_l + (int32_t) ym7128->prev_l) / 2;
+        buffer[c + 1] += (samp_r + (int32_t) ym7128->prev_r) / 2;
         buffer[c + 2] += samp_l;
         buffer[c + 3] += samp_r;
 

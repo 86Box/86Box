@@ -168,7 +168,7 @@ lpt_read(uint16_t port, void *priv)
 void
 lpt_irq(void *priv, int raise)
 {
-    lpt_port_t *dev = (lpt_port_t *) priv;
+    const lpt_port_t *dev = (lpt_port_t *) priv;
 
     if (dev->enable_irq && (dev->irq != 0xff)) {
         if (raise)

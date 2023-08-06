@@ -13,15 +13,18 @@
 #include <86box/sound.h>
 #include <86box/snd_sn76489.h>
 #include <86box/timer.h>
+#include <86box/plat_unused.h>
 
-typedef struct {
+typedef struct ps1snd_t {
     sn76489_t  sn76489;
-    uint8_t    status, ctrl;
+    uint8_t    status;
+    uint8_t    ctrl;
     uint64_t   timer_latch;
     pc_timer_t timer_count;
     int        timer_enable;
     uint8_t    fifo[2048];
-    int        fifo_read_idx, fifo_write_idx;
+    int        fifo_read_idx;
+    int        fifo_write_idx;
     int        fifo_threshold;
     uint8_t    dac_val;
     int16_t    buffer[SOUNDBUFLEN];
@@ -73,6 +76,10 @@ ps1snd_read(uint16_t port, void *priv)
         case 6:
         case 7:
             ret = 0;
+            break;
+
+        default:
+            break;
     }
 
     return ret;
@@ -108,6 +115,9 @@ ps1snd_write(uint16_t port, uint8_t val, void *priv)
 
         case 4: /* almost empty */
             ps1snd->fifo_threshold = val * 4;
+            break;
+
+        default:
             break;
     }
 }
@@ -154,7 +164,7 @@ ps1snd_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 static void *
-ps1snd_init(const device_t *info)
+ps1snd_init(UNUSED(const device_t *info))
 {
     ps1snd_t *ps1snd = malloc(sizeof(ps1snd_t));
     memset(ps1snd, 0x00, sizeof(ps1snd_t));

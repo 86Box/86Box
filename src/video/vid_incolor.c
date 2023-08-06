@@ -30,6 +30,7 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/video.h>
+#include <86box/plat_unused.h>
 
 /* extended CRTC registers */
 #define INCOLOR_CRTC_XMODE   20 /* xMode register */
@@ -972,7 +973,7 @@ incolor_poll(void *priv)
 }
 
 static void *
-incolor_init(const device_t *info)
+incolor_init(UNUSED(const device_t *info))
 {
     incolor_t *dev;
     int        c;

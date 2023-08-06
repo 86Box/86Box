@@ -396,8 +396,8 @@ ctr_latch_count(ctr_t *ctr)
 uint16_t
 pit_ctr_get_count(void *data, int counter_id)
 {
-    pit_t *pit = (pit_t *) data;
-    ctr_t *ctr = &pit->counters[counter_id];
+    const pit_t *pit = (pit_t *) data;
+    const ctr_t *ctr = &pit->counters[counter_id];
 
     return (uint16_t) ctr->l;
 }

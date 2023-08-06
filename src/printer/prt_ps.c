@@ -58,8 +58,7 @@
 
 #define POSTSCRIPT_BUFFER_LENGTH 65536
 
-typedef struct
-{
+typedef struct ps_t {
     const char *name;
 
     void *lpt;
@@ -321,8 +320,8 @@ ps_write_ctrl(uint8_t val, void *priv)
 static uint8_t
 ps_read_status(void *priv)
 {
-    ps_t   *dev = (ps_t *) priv;
-    uint8_t ret = 0x9f;
+    const ps_t   *dev = (ps_t *) priv;
+    uint8_t       ret = 0x9f;
 
     if (!dev->ack)
         ret |= 0x40;

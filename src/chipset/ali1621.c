@@ -28,6 +28,7 @@
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include <86box/smram.h>
 #include <86box/spd.h>
@@ -108,7 +109,9 @@ ali1621_smram_recalc(uint8_t val, ali1621_t *dev)
             switch (val & 0x30) {
                 case 0x10: /* Open. */
                     access_normal = ACCESS_SMRAM_RX;
-                    /* FALLTHROUGH */
+#ifdef FALLTHROUGH_ANNOTATION
+                    [[fallthrough]];
+#endif
                 case 0x30: /* Protect. */
                     access_smm |= ACCESS_SMRAM_R;
                     break;
@@ -121,7 +124,9 @@ ali1621_smram_recalc(uint8_t val, ali1621_t *dev)
             switch (val & 0x30) {
                 case 0x10: /* Open. */
                     access_normal |= ACCESS_SMRAM_W;
-                    /* FALLTHROUGH */
+#ifdef FALLTHROUGH_ANNOTATION
+                    [[fallthrough]];
+#endif
                 case 0x30: /* Protect. */
                     access_smm |= ACCESS_SMRAM_W;
                     break;
@@ -579,8 +584,8 @@ ali1621_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static uint8_t
 ali1621_read(UNUSED(int func), int addr, void *priv)
 {
-    ali1621_t *dev = (ali1621_t *) priv;
-    uint8_t    ret = 0xff;
+    const ali1621_t *dev = (ali1621_t *) priv;
+    uint8_t          ret = 0xff;
 
     ret = dev->pci_conf[addr];
 

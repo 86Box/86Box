@@ -45,8 +45,8 @@ ibm_5161_out(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 ibm_5161_in(uint16_t port, void *priv)
 {
-    ibm_5161_t *dev = (ibm_5161_t *) priv;
-    uint8_t     ret = 0xff;
+    const ibm_5161_t *dev = (ibm_5161_t *) priv;
+    uint8_t           ret = 0xff;
 
     ret = dev->regs[port & 0x0007];
 

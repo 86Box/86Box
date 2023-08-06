@@ -202,7 +202,7 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
                     case 0x56:
                         dev->pci_conf_sb[func][addr] = val;
 
-                        switch (val & 2) {
+                        switch (val & 3) {
                             case 0:
                                 cpu_set_isa_pci_div(3);
                                 break;
@@ -289,8 +289,8 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 umc_8886_read(int func, int addr, void *priv)
 {
-    umc_8886_t *dev = (umc_8886_t *) priv;
-    uint8_t     ret = 0xff;
+    const umc_8886_t *dev = (umc_8886_t *) priv;
+    uint8_t           ret = 0xff;
 
     if (func <= dev->max_func)
         ret = dev->pci_conf_sb[func][addr];

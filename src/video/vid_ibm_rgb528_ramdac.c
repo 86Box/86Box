@@ -25,6 +25,7 @@
 #include <86box/timer.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
+#include <86box/plat_unused.h>
 
 typedef union {
     uint8_t pixel;
@@ -913,7 +914,7 @@ ibm_rgb528_hwcursor_draw(svga_t *svga, int displine)
 }
 
 void *
-ibm_rgb528_ramdac_init(const device_t *info)
+ibm_rgb528_ramdac_init(UNUSED(const device_t *info))
 {
     ibm_rgb528_ramdac_t *ramdac = (ibm_rgb528_ramdac_t *) malloc(sizeof(ibm_rgb528_ramdac_t));
     memset(ramdac, 0, sizeof(ibm_rgb528_ramdac_t));

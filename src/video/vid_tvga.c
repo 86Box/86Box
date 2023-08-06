@@ -74,9 +74,9 @@ static uint8_t crtc_mask[0x40] = {
 
 static void tvga_recalcbanking(tvga_t *tvga);
 void
-tvga_out(uint16_t addr, uint8_t val, void *p)
+tvga_out(uint16_t addr, uint8_t val, void *priv)
 {
-    tvga_t *tvga = (tvga_t *) p;
+    tvga_t *tvga = (tvga_t *) priv;
     svga_t *svga = &tvga->svga;
 
     uint8_t old;
@@ -199,9 +199,9 @@ tvga_out(uint16_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-tvga_in(uint16_t addr, void *p)
+tvga_in(uint16_t addr, void *priv)
 {
-    tvga_t *tvga = (tvga_t *) p;
+    tvga_t *tvga = (tvga_t *) priv;
     svga_t *svga = &tvga->svga;
 
     if (((addr & 0xFFF0) == 0x3D0 || (addr & 0xFFF0) == 0x3B0) && !(svga->miscout & 1))
@@ -261,7 +261,7 @@ tvga_recalcbanking(tvga_t *tvga)
 void
 tvga_recalctimings(svga_t *svga)
 {
-    tvga_t *tvga = (tvga_t *) svga->p;
+    tvga_t *tvga = (tvga_t *) svga->priv;
     int     clksel;
     int     high_res_256 = 0;
 
@@ -458,9 +458,9 @@ tvga9000b_nec_sv9000_available(void)
 }
 
 void
-tvga_close(void *p)
+tvga_close(void *priv)
 {
-    tvga_t *tvga = (tvga_t *) p;
+    tvga_t *tvga = (tvga_t *) priv;
 
     svga_close(&tvga->svga);
 
@@ -468,17 +468,17 @@ tvga_close(void *p)
 }
 
 void
-tvga_speed_changed(void *p)
+tvga_speed_changed(void *priv)
 {
-    tvga_t *tvga = (tvga_t *) p;
+    tvga_t *tvga = (tvga_t *) priv;
 
     svga_recalctimings(&tvga->svga);
 }
 
 void
-tvga_force_redraw(void *p)
+tvga_force_redraw(void *priv)
 {
-    tvga_t *tvga = (tvga_t *) p;
+    tvga_t *tvga = (tvga_t *) priv;
 
     tvga->svga.fullchange = changeframecount;
 }

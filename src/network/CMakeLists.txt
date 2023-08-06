@@ -16,20 +16,12 @@ set(net_sources)
 list(APPEND net_sources network.c net_pcap.c net_slirp.c net_dp8390.c net_3c501.c
     net_3c503.c net_ne2000.c net_pcnet.c net_wd8003.c net_plip.c net_event.c net_null.c)
 
-option(SLIRP_EXTERNAL "Link against the system-provided libslirp library" ON)
-mark_as_advanced(SLIRP_EXTERNAL)
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SLIRP REQUIRED IMPORTED_TARGET slirp)
+target_link_libraries(86Box PkgConfig::SLIRP)
 
-if(SLIRP_EXTERNAL)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(SLIRP REQUIRED IMPORTED_TARGET slirp)
-    target_link_libraries(86Box PkgConfig::SLIRP)
-
-    if(WIN32)
-        target_link_libraries(PkgConfig::SLIRP INTERFACE wsock32 ws2_32 iphlpapi iconv)
-    endif()
-else()
-    add_subdirectory(slirp)
-    target_link_libraries(86Box slirp)
+if(WIN32)
+    target_link_libraries(PkgConfig::SLIRP INTERFACE wsock32 ws2_32 iphlpapi iconv)
 endif()
 
 if (HAIKU)
