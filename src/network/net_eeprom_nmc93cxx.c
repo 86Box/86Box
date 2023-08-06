@@ -16,7 +16,6 @@
 
 /* Ported over from QEMU */
 
-
 #include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -28,6 +27,7 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/net_eeprom_nmc93cxx.h>
+#include <86box/plat_unused.h>
 
 struct nmc93cxx_eeprom_t {
     uint8_t  tick;
@@ -71,12 +71,12 @@ static const char *opstring[] = {
 };
 
 static void *
-nmc93cxx_eeprom_init_params(const device_t *info, void* params)
+nmc93cxx_eeprom_init_params(UNUSED(const device_t *info), void* params)
 {
     uint16_t nwords = 64;
     uint8_t addrbits = 6;
     uint8_t filldefault = 1;
-    nmc93cxx_eeprom_params_t* params_details = (nmc93cxx_eeprom_params_t*)params;
+    nmc93cxx_eeprom_params_t *params_details = (nmc93cxx_eeprom_params_t*) params;
     nmc93cxx_eeprom_t* eeprom = NULL;
     if (!params)
         return NULL;
@@ -175,7 +175,9 @@ void nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *eeprom, int eecs, int eesk, int ee
             } else {
                 nmc93cxx_eeprom_log(1, "wrong 1st start bit (is 1, should be 0)\n");
                 tick = 2;
-                //~ assert(!"wrong start bit");
+#if 0
+                ~ assert(!"wrong start bit");
+#endif
             }
         } else if (tick == 1) {
             /* Wait for 2nd start bit. */
@@ -206,20 +208,23 @@ void nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *eeprom, int eecs, int eesk, int ee
                 if (command == 0) {
                     /* Command code in upper 2 bits of address. */
                     switch (address >> (eeprom->addrbits - 2)) {
-                    case 0:
-                        nmc93cxx_eeprom_log(1, "write disable command\n");
-                        eeprom->writable = 0;
-                        break;
-                    case 1:
-                        nmc93cxx_eeprom_log(1, "write all command\n");
-                        break;
-                    case 2:
-                        nmc93cxx_eeprom_log(1, "erase all command\n");
-                        break;
-                    case 3:
-                        nmc93cxx_eeprom_log(1, "write enable command\n");
-                        eeprom->writable = 1;
-                        break;
+                        case 0:
+                            nmc93cxx_eeprom_log(1, "write disable command\n");
+                            eeprom->writable = 0;
+                            break;
+                        case 1:
+                            nmc93cxx_eeprom_log(1, "write all command\n");
+                            break;
+                        case 2:
+                            nmc93cxx_eeprom_log(1, "erase all command\n");
+                            break;
+                        case 3:
+                            nmc93cxx_eeprom_log(1, "write enable command\n");
+                            eeprom->writable = 1;
+                            break;
+
+                        default:
+                            break;
                     }
                 } else {
                     /* Read, write or erase word. */
@@ -259,12 +264,11 @@ static void
 nmc93cxx_eeprom_close(void *priv)
 {
     nmc93cxx_eeprom_t* eeprom = (nmc93cxx_eeprom_t*)priv;
-    FILE* file = nvr_fopen(eeprom->filename, "wb");
-    if (file)
-    {
-        fwrite(eeprom->contents, 2, eeprom->size, file);
+    FILE* fp = nvr_fopen(eeprom->filename, "wb");
+    if (fp) {
+        fwrite(eeprom->contents, 2, eeprom->size, fp);
+        fclose(fp);
     }
-    fclose(file);
     free(priv);
 }
 
