@@ -594,8 +594,8 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 kbd_read(uint16_t port, void *priv)
 {
-    xtkbd_t *kbd = (xtkbd_t *) priv;
-    uint8_t  ret = 0xff;
+    const xtkbd_t *kbd = (xtkbd_t *) priv;
+    uint8_t        ret = 0xff;
 
     switch (port) {
         case 0x60: /* Keyboard Data Register  (aka Port A) */

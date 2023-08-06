@@ -7,6 +7,7 @@
 #endif
 
 #include <86box/net_event.h>
+#include <86box/plat_unused.h>
 
 #ifndef _WIN32
 static void
@@ -40,7 +41,7 @@ net_event_set(net_evt_t *event)
 }
 
 void
-net_event_clear(net_evt_t *event)
+net_event_clear(UNUSED(net_evt_t *event))
 {
 #ifdef _WIN32
     /* Do nothing on WIN32 since we use an auto-reset event */

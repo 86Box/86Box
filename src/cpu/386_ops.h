@@ -223,10 +223,11 @@ extern void x386_dynarec_log(const char *fmt, ...);
 static int
 opVPCEXT(uint32_t fetchdat)
 {
-    uint8_t    b1, b2;
+    uint8_t    b1;
+    uint8_t    b2;
     uint16_t   cent;
     time_t     now;
-    struct tm *tm;
+    struct tm *tm = NULL;
 
     if (!is_vpc) /* only emulate this on Virtual PC machines */
         return ILLEGAL(fetchdat);

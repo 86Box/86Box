@@ -192,9 +192,9 @@ static video_timings_t timing_sigma = { .type = VIDEO_ISA, .write_b = 8, .write_
 static void sigma_recalctimings(sigma_t *cga);
 
 static void
-sigma_out(uint16_t addr, uint8_t val, void *p)
+sigma_out(uint16_t addr, uint8_t val, void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
+    sigma_t *sigma = (sigma_t *) priv;
     uint8_t  old;
 
     if (addr >= 0x3D0 && addr < 0x3E0) {
@@ -260,10 +260,10 @@ sigma_out(uint16_t addr, uint8_t val, void *p)
 }
 
 static uint8_t
-sigma_in(uint16_t addr, void *p)
+sigma_in(uint16_t addr, void *priv)
 {
     uint8_t  result = 0xFF;
-    sigma_t *sigma  = (sigma_t *) p;
+    sigma_t *sigma  = (sigma_t *) priv;
 
     switch (addr) {
         case 0x2D0:
@@ -332,27 +332,27 @@ sigma_in(uint16_t addr, void *p)
 }
 
 static void
-sigma_write(uint32_t addr, uint8_t val, void *p)
+sigma_write(uint32_t addr, uint8_t val, void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
+    sigma_t *sigma = (sigma_t *) priv;
 
     sigma->vram[sigma->plane * 0x8000 + (addr & 0x7fff)] = val;
     cycles -= 4;
 }
 
 static uint8_t
-sigma_read(uint32_t addr, void *p)
+sigma_read(uint32_t addr, void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
+    sigma_t *sigma = (sigma_t *) priv;
 
     cycles -= 4;
     return sigma->vram[sigma->plane * 0x8000 + (addr & 0x7fff)];
 }
 
 static void
-sigma_bwrite(uint32_t addr, uint8_t val, void *p)
+sigma_bwrite(uint32_t addr, uint8_t val, void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
+    sigma_t *sigma = (sigma_t *) priv;
 
     addr &= 0x3FFF;
     if ((addr < 0x1800) || sigma->rom_paged || (addr >= 0x2000))
@@ -362,9 +362,9 @@ sigma_bwrite(uint32_t addr, uint8_t val, void *p)
 }
 
 static uint8_t
-sigma_bread(uint32_t addr, void *p)
+sigma_bread(uint32_t addr, void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
+    sigma_t *sigma = (sigma_t *) priv;
     uint8_t  result;
 
     addr &= 0x3FFF;
@@ -589,9 +589,9 @@ sigma_gfx4col(sigma_t *sigma)
 }
 
 static void
-sigma_poll(void *p)
+sigma_poll(void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
+    sigma_t *sigma = (sigma_t *) priv;
     int      x;
     int      c;
     int      oldvc;
@@ -833,18 +833,18 @@ sigma_available(void)
 }
 
 static void
-sigma_close(void *p)
+sigma_close(void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
+    sigma_t *sigma = (sigma_t *) priv;
 
     free(sigma->vram);
     free(sigma);
 }
 
 void
-sigma_speed_changed(void *p)
+sigma_speed_changed(void *priv)
 {
-    sigma_t *sigma = (sigma_t *) p;
+    sigma_t *sigma = (sigma_t *) priv;
 
     sigma_recalctimings(sigma);
 }

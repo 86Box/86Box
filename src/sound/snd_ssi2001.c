@@ -12,6 +12,7 @@
 #include <86box/io.h>
 #include <86box/snd_resid.h>
 #include <86box/sound.h>
+#include <86box/plat_unused.h>
 
 typedef struct ssi2001_t {
     void   *psid;
@@ -31,9 +32,9 @@ ssi2001_update(ssi2001_t *ssi2001)
 }
 
 static void
-ssi2001_get_buffer(int32_t *buffer, int len, void *p)
+ssi2001_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    ssi2001_t *ssi2001 = (ssi2001_t *) p;
+    ssi2001_t *ssi2001 = (ssi2001_t *) priv;
 
     ssi2001_update(ssi2001);
 
@@ -44,26 +45,26 @@ ssi2001_get_buffer(int32_t *buffer, int len, void *p)
 }
 
 static uint8_t
-ssi2001_read(uint16_t addr, void *p)
+ssi2001_read(uint16_t addr, void *priv)
 {
-    ssi2001_t *ssi2001 = (ssi2001_t *) p;
+    ssi2001_t *ssi2001 = (ssi2001_t *) priv;
 
     ssi2001_update(ssi2001);
 
-    return sid_read(addr, p);
+    return sid_read(addr, priv);
 }
 
 static void
-ssi2001_write(uint16_t addr, uint8_t val, void *p)
+ssi2001_write(uint16_t addr, uint8_t val, void *priv)
 {
-    ssi2001_t *ssi2001 = (ssi2001_t *) p;
+    ssi2001_t *ssi2001 = (ssi2001_t *) priv;
 
     ssi2001_update(ssi2001);
-    sid_write(addr, val, p);
+    sid_write(addr, val, priv);
 }
 
 void *
-ssi2001_init(const device_t *info)
+ssi2001_init(UNUSED(const device_t *info))
 {
     ssi2001_t *ssi2001 = malloc(sizeof(ssi2001_t));
     memset(ssi2001, 0, sizeof(ssi2001_t));
@@ -80,9 +81,9 @@ ssi2001_init(const device_t *info)
 }
 
 void
-ssi2001_close(void *p)
+ssi2001_close(void *priv)
 {
-    ssi2001_t *ssi2001 = (ssi2001_t *) p;
+    ssi2001_t *ssi2001 = (ssi2001_t *) priv;
 
     sid_close(ssi2001->psid);
 

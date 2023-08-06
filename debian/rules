@@ -25,7 +25,7 @@ endif
 	dh $@ --buildsystem cmake+ninja
 
 override_dh_auto_configure:
-	dh_auto_configure --buildsystem cmake+ninja -- --preset regular --toolchain $(TOOLCHAIN) -DNEW_DYNAREC=$(NDR) -DSLIRP_EXTERNAL=on
+	dh_auto_configure --buildsystem cmake+ninja -- --preset regular --toolchain $(TOOLCHAIN) -DNEW_DYNAREC=$(NDR)
 
 override_dh_auto_test:
 

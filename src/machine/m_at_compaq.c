@@ -41,6 +41,7 @@
 #include <86box/video.h>
 #include <86box/vid_cga.h>
 #include <86box/vid_cga_comp.h>
+#include <86box/plat_unused.h>
 
 
 static video_timings_t timing_compaq_plasma = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
@@ -127,7 +128,7 @@ compaq_plasma_recalctimings(compaq_plasma_t *self)
 }
 
 static void
-compaq_plasma_waitstates(void *p)
+compaq_plasma_waitstates(UNUSED(void *priv))
 {
     int ws_array[16] = { 3, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8 };
     int ws;
@@ -205,6 +206,9 @@ compaq_plasma_out(uint16_t addr, uint8_t val, void *priv)
             else
                 mem_mapping_enable(&self->cga.mapping);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -249,22 +253,25 @@ compaq_plasma_in(uint16_t addr, void *priv)
         case 0x23c6:
             ret = 0;
             break;
+
+        default:
+            break;
     }
 
     return ret;
 }
 
 static void
-compaq_plasma_poll(void *p)
+compaq_plasma_poll(void *priv)
 {
-    compaq_plasma_t *self = (compaq_plasma_t *) p;
-    uint8_t  chr, attr;
+    compaq_plasma_t *self = (compaq_plasma_t *) priv;
+    uint8_t  chr;
+    uint8_t  attr;
     uint8_t  sc;
     uint16_t ma  = (self->cga.crtc[13] | (self->cga.crtc[12] << 8)) & 0x7fff;
     uint16_t ca  = (self->cga.crtc[15] | (self->cga.crtc[14] << 8)) & 0x7fff;
     uint16_t addr;
     int      drawcursor;
-    int      x, c;
     int      cursorline;
     int      blink     = 0;
     int      underline = 0;
@@ -272,8 +279,10 @@ compaq_plasma_poll(void *p)
     uint32_t fg = (self->cga.cgacol & 0x0f) ? amber : black;
     uint32_t bg = black;
     uint32_t cols[2];
-    uint8_t  dat2, pattern;
-    uint32_t ink0 = 0, ink1 = 0;
+    uint8_t  dat2;
+    uint8_t  pattern;
+    uint32_t ink0 = 0;
+    uint32_t ink1 = 0;
 
     /* Switch between internal plasma and external CRT display. */
     if ((cpq_st_display_internal != -1) && (cpq_st_display_internal != self->internal_monitor)) {
@@ -304,25 +313,25 @@ compaq_plasma_poll(void *p)
                     } else {
                         addr = ((self->cga.displine >> 1) & 1) * 0x2000 + (self->cga.displine >> 2) * 80 + ((ma & ~1) << 1);
                     }
-                    for (x = 0; x < 80; x++) {
-                        dat2 = self->cga.vram[(addr & 0x7FFF)];
+                    for (uint8_t x = 0; x < 80; x++) {
+                        dat2 = self->cga.vram[addr & 0x7FFF];
                         addr++;
 
-                        for (c = 0; c < 8; c++) {
+                        for (uint8_t c = 0; c < 8; c++) {
                             ink = (dat2 & 0x80) ? fg : bg;
                             if (!(self->cga.cgamode & 8))
                                 ink = black;
-                            ((uint32_t *) buffer32->line[self->cga.displine])[x * 8 + c] = ink;
+                            (buffer32->line[self->cga.displine])[x * 8 + c] = ink;
                             dat2 <<= 1;
                         }
                     }
                 } else {
                     addr = ((self->cga.displine >> 1) & 1) * 0x2000 + (self->cga.displine >> 2) * 80 + ((ma & ~1) << 1);
-                    for (x = 0; x < 80; x++) {
-                        dat2 = self->cga.vram[(addr & 0x7fff)];
+                    for (uint8_t x = 0; x < 80; x++) {
+                        dat2 = self->cga.vram[addr & 0x7fff];
                         addr++;
 
-                        for (c = 0; c < 4; c++) {
+                        for (uint8_t c = 0; c < 4; c++) {
                             pattern = (dat2 & 0xC0) >> 6;
                             if (!(self->cga.cgamode & 8))
                                 pattern = 0;
@@ -352,6 +361,9 @@ compaq_plasma_poll(void *p)
                                 case 3:
                                     ink0 = ink1 = amber;
                                     break;
+
+                                default:
+                                    break;
                             }
                             buffer32->line[self->cga.displine][x * 8 + 2 * c]     = ink0;
                             buffer32->line[self->cga.displine][x * 8 + 2 * c + 1] = ink1;
@@ -371,7 +383,7 @@ compaq_plasma_poll(void *p)
                     cursorline = ((self->cga.crtc[0x0a] & 0x0f) * 2 <= sc) && ((self->cga.crtc[0x0b] & 0x0F) * 2 >= sc);
 
                 /* for each text column */
-                for (x = 0; x < 80; x++) {
+                for (uint8_t x = 0; x < 80; x++) {
                     /* video output enabled */
                     if (self->cga.cgamode & 8) {
                         chr        = self->cga.vram[(addr + 2 * x) & 0x7fff];
@@ -405,13 +417,13 @@ compaq_plasma_poll(void *p)
                     /* character underline active and 7th row of pixels in character height being drawn */
                     if (underline && (sc == 7)) {
                         /* for each pixel in character width */
-                        for (c = 0; c < 8; c++)
+                        for (uint8_t c = 0; c < 8; c++)
                             buffer32->line[self->cga.displine][(x << 3) + c] = mdaattr[attr][blink][1];
                     } else if (drawcursor) {
-                        for (c = 0; c < 8; c++)
+                        for (uint8_t c = 0; c < 8; c++)
                             buffer32->line[self->cga.displine][(x << 3) + c] = cols[(fontdatm[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
                     } else {
-                        for (c = 0; c < 8; c++)
+                        for (uint8_t c = 0; c < 8; c++)
                             buffer32->line[self->cga.displine][(x << 3) + c] = cols[(fontdatm[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0];
                     }
 
@@ -427,7 +439,7 @@ compaq_plasma_poll(void *p)
                 else
                     cursorline = ((self->cga.crtc[0x0a] & 0x0f) * 2 <= sc) && ((self->cga.crtc[0x0b] & 0x0F) * 2 >= sc);
 
-                for (x = 0; x < 40; x++) {
+                for (uint8_t x = 0; x < 40; x++) {
                     if (self->cga.cgamode & 8) {
                         chr        = self->cga.vram[(addr + 2 * x) & 0x7fff];
                         attr       = self->cga.vram[(addr + 2 * x + 1) & 0x7fff];
@@ -460,14 +472,14 @@ compaq_plasma_poll(void *p)
                     /* character underline active and 7th row of pixels in character height being drawn */
                     if (underline && (sc == 7)) {
                         /* for each pixel in character width */
-                        for (c = 0; c < 8; c++)
+                        for (uint8_t c = 0; c < 8; c++)
                             buffer32->line[self->cga.displine][(x << 4) + (c * 2)] = buffer32->line[self->cga.displine][(x << 4) + (c * 2) + 1] = mdaattr[attr][blink][1];
                     } else if (drawcursor) {
-                        for (c = 0; c < 8; c++) {
+                        for (uint8_t c = 0; c < 8; c++) {
                             buffer32->line[self->cga.displine][(x << 4) + c * 2] = buffer32->line[self->cga.displine][(x << 4) + c * 2 + 1] = cols[(fontdatm[chr][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
                         }
                     } else {
-                        for (c = 0; c < 8; c++) {
+                        for (uint8_t c = 0; c < 8; c++) {
                             buffer32->line[self->cga.displine][(x << 4) + c * 2] = buffer32->line[self->cga.displine][(x << 4) + c * 2 + 1] = cols[(fontdatm[chr][sc] & (1 << (c ^ 7))) ? 1 : 0];
                         }
                     }
@@ -530,9 +542,7 @@ compaq_plasma_poll(void *p)
 static void
 compaq_plasma_mdaattr_rebuild(void)
 {
-    int c;
-
-    for (c = 0; c < 256; c++) {
+    for (uint16_t c = 0; c < 256; c++) {
         mdaattr[c][0][0] = mdaattr[c][1][0] = mdaattr[c][1][1] = 16;
         if (c & 8)
             mdaattr[c][0][1] = 15 + 16;
@@ -636,7 +646,7 @@ compaq_plasma_recalcattrs(compaq_plasma_t *self)
 }
 
 static void *
-compaq_plasma_init(const device_t *info)
+compaq_plasma_init(UNUSED(const device_t *info))
 {
     compaq_plasma_t *self = malloc(sizeof(compaq_plasma_t));
     memset(self, 0, sizeof(compaq_plasma_t));
@@ -674,18 +684,18 @@ compaq_plasma_init(const device_t *info)
 }
 
 static void
-compaq_plasma_close(void *p)
+compaq_plasma_close(void *priv)
 {
-    compaq_plasma_t *self = (compaq_plasma_t *) p;
+    compaq_plasma_t *self = (compaq_plasma_t *) priv;
 
     free(self->cga.vram);
     free(self);
 }
 
 static void
-compaq_plasma_speed_changed(void *p)
+compaq_plasma_speed_changed(void *priv)
 {
-    compaq_plasma_t *self = (compaq_plasma_t *) p;
+    compaq_plasma_t *self = (compaq_plasma_t *) priv;
 
     compaq_plasma_recalctimings(self);
 }
@@ -727,7 +737,7 @@ const device_t compaq_plasma_device = {
 };
 
 static uint8_t
-read_ram(uint32_t addr, void *priv)
+read_ram(uint32_t addr, UNUSED(void *priv))
 {
     addr = (addr & 0x7ffff) + 0x80000;
     addreadlookup(mem_logical_addr, addr);
@@ -736,7 +746,7 @@ read_ram(uint32_t addr, void *priv)
 }
 
 static uint16_t
-read_ramw(uint32_t addr, void *priv)
+read_ramw(uint32_t addr, UNUSED(void *priv))
 {
     addr = (addr & 0x7ffff) + 0x80000;
     addreadlookup(mem_logical_addr, addr);
@@ -745,7 +755,7 @@ read_ramw(uint32_t addr, void *priv)
 }
 
 static uint32_t
-read_raml(uint32_t addr, void *priv)
+read_raml(uint32_t addr, UNUSED(void *priv))
 {
     addr = (addr & 0x7ffff) + 0x80000;
     addreadlookup(mem_logical_addr, addr);
@@ -754,7 +764,7 @@ read_raml(uint32_t addr, void *priv)
 }
 
 static void
-write_ram(uint32_t addr, uint8_t val, void *priv)
+write_ram(uint32_t addr, uint8_t val, UNUSED(void *priv))
 {
     addr = (addr & 0x7ffff) + 0x80000;
     addwritelookup(mem_logical_addr, addr);
@@ -763,7 +773,7 @@ write_ram(uint32_t addr, uint8_t val, void *priv)
 }
 
 static void
-write_ramw(uint32_t addr, uint16_t val, void *priv)
+write_ramw(uint32_t addr, uint16_t val, UNUSED(void *priv))
 {
     addr = (addr & 0x7ffff) + 0x80000;
     addwritelookup(mem_logical_addr, addr);
@@ -772,7 +782,7 @@ write_ramw(uint32_t addr, uint16_t val, void *priv)
 }
 
 static void
-write_raml(uint32_t addr, uint32_t val, void *priv)
+write_raml(uint32_t addr, uint32_t val, UNUSED(void *priv))
 {
     addr = (addr & 0x7ffff) + 0x80000;
     addwritelookup(mem_logical_addr, addr);
@@ -829,6 +839,9 @@ machine_at_compaq_init(const machine_t *model, int type)
                 device_add(&ide_isa_device);
             machine_at_common_init(model);
             device_add(&keyboard_at_compaq_device);
+            break;
+
+        default:
             break;
     }
 }

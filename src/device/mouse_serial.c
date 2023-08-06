@@ -26,6 +26,7 @@
 #include <86box/timer.h>
 #include <86box/serial.h>
 #include <86box/mouse.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
 #define SERMOUSE_PORT 0 /* attach to Serial0 */
@@ -507,7 +508,9 @@ sermouse_command_timer(void *priv)
             break;
         case PHASE_ACK:
             serial_write_fifo(dev->serial, 0x06);
-            /* FALLTHROUGH */
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
         case PHASE_BAUD_RATE:
             sermouse_command_phase_idle(dev);
             sermouse_timer_on(dev, dev->report_period, 1);
@@ -645,7 +648,9 @@ ltsermouse_write(UNUSED(struct serial_s *serial), void *priv, uint8_t data)
                 switch (data) {
                     default:
                         mouse_serial_log("Serial mouse: Invalid period %02X, using 1200 bps\n", data);
-                        /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+                        [[fallthrough]];
+#endif
                     case 0x6E:
                         dev->transmit_period = sermouse_transmit_period(dev, 1200, -1);
                         break;

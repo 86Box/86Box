@@ -176,7 +176,7 @@ start_cap(char *dev)
     char                 temp[PCAP_ERRBUF_SIZE];
     struct pcap_pkthdr  *hdr;
     const unsigned char *pkt;
-    struct tm           *ltime;
+    const struct tm     *ltime;
     time_t               now;
     pcap_t              *pcap;
     int                  rc;

@@ -84,7 +84,7 @@ fifo8_pop(Fifo8 *fifo)
 const uint8_t *
 fifo8_pop_buf(Fifo8 *fifo, uint32_t max, uint32_t *num)
 {
-    uint8_t *ret;
+    const uint8_t *ret;
 
     assert(max > 0 && max <= fifo->num);
     *num = MIN(fifo->capacity - fifo->head, max);

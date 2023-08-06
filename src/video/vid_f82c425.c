@@ -63,6 +63,7 @@
 #include "cpu.h"
 #include <86box/video.h>
 #include <86box/vid_cga.h>
+#include <86box/plat_unused.h>
 
 #define F82C425_XSIZE 640
 #define F82C425_YSIZE 200
@@ -226,9 +227,9 @@ f82c425_colormap(f82c425_t *f82c425)
 }
 
 static void
-f82c425_out(uint16_t addr, uint8_t val, void *p)
+f82c425_out(uint16_t addr, uint8_t val, void *priv)
 {
-    f82c425_t *f82c425 = (f82c425_t *) p;
+    f82c425_t *f82c425 = (f82c425_t *) priv;
 
     if (addr == 0x3d4)
         f82c425->crtcreg = val;
@@ -271,9 +272,9 @@ f82c425_out(uint16_t addr, uint8_t val, void *p)
 }
 
 static uint8_t
-f82c425_in(uint16_t addr, void *p)
+f82c425_in(uint16_t addr, void *priv)
 {
-    f82c425_t *f82c425 = (f82c425_t *) p;
+    f82c425_t *f82c425 = (f82c425_t *) priv;
 
     if ((f82c425->function & 0x01) == 0)
         return 0xff;
@@ -305,18 +306,18 @@ f82c425_in(uint16_t addr, void *p)
 }
 
 static void
-f82c425_write(uint32_t addr, uint8_t val, void *p)
+f82c425_write(uint32_t addr, uint8_t val, void *priv)
 {
-    f82c425_t *f82c425 = (f82c425_t *) p;
+    f82c425_t *f82c425 = (f82c425_t *) priv;
 
     f82c425->vram[addr & 0x3fff] = val;
     cycles -= 4;
 }
 
 static uint8_t
-f82c425_read(uint32_t addr, void *p)
+f82c425_read(uint32_t addr, void *priv)
 {
-    f82c425_t *f82c425 = (f82c425_t *) p;
+    f82c425_t *f82c425 = (f82c425_t *) priv;
     cycles -= 4;
 
     return f82c425->vram[addr & 0x3fff];
@@ -454,9 +455,9 @@ f82c425_cgaline4(f82c425_t *f82c425)
 }
 
 static void
-f82c425_poll(void *p)
+f82c425_poll(void *priv)
 {
-    f82c425_t *f82c425 = (f82c425_t *) p;
+    f82c425_t *f82c425 = (f82c425_t *) priv;
 
     if (f82c425->video_options != st_video_options || !!(f82c425->function & 1) != st_enabled) {
         f82c425->video_options = st_video_options;
@@ -560,9 +561,10 @@ f82c425_poll(void *p)
 }
 
 static void *
-f82c425_init(const device_t *info)
+f82c425_init(UNUSED(const device_t *info))
 {
     f82c425_t *f82c425 = malloc(sizeof(f82c425_t));
+
     memset(f82c425, 0, sizeof(f82c425_t));
     cga_init(&f82c425->cga);
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_f82c425);
@@ -595,18 +597,18 @@ f82c425_init(const device_t *info)
 }
 
 static void
-f82c425_close(void *p)
+f82c425_close(void *priv)
 {
-    f82c425_t *f82c425 = (f82c425_t *) p;
+    f82c425_t *f82c425 = (f82c425_t *) priv;
 
     free(f82c425->vram);
     free(f82c425);
 }
 
 static void
-f82c425_speed_changed(void *p)
+f82c425_speed_changed(void *priv)
 {
-    f82c425_t *f82c425 = (f82c425_t *) p;
+    f82c425_t *f82c425 = (f82c425_t *) priv;
 
     f82c425_recalctimings(f82c425);
 }

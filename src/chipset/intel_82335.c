@@ -153,7 +153,7 @@ intel_82335_write(uint16_t addr, uint16_t val, void *priv)
 static uint16_t
 intel_82335_read(uint16_t addr, void *priv)
 {
-    intel_82335_t *dev = (intel_82335_t *) priv;
+    const intel_82335_t *dev = (intel_82335_t *) priv;
 
     intel_82335_log("Register %02x: Read %04x\n", addr, dev->regs[addr]);
 
