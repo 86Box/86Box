@@ -1650,7 +1650,7 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-	{
+    {
         .name = "[8088] Zenith Data Systems Z-150",
         .internal_name = "z150",
         .type = MACHINE_TYPE_8088,
