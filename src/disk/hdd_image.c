@@ -450,7 +450,7 @@ retry_vhd:
                 else
                     fatal("hdd_image_load(): VHD: Error opening VHD file '%s': %s\n", fn, mvhd_strerr(vhd_error));
             } else if (vhd_error == MVHD_ERR_TIMESTAMP) {
-                fatal("hdd_image_load(): VHD: Parent/child timestamp mismatch for VHD file '%s'\n", fn);
+                pclog("hdd_image_load(): VHD: Parent/child timestamp mismatch for VHD file '%s'\n", fn);
             }
 
             hdd[id].tracks        = hdd_images[id].vhd->footer.geom.cyl;
