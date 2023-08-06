@@ -40,7 +40,7 @@
 #include <86box/network.h>
 #include <86box/bswap.h>
 #include <86box/nvr.h>
-#include <86box/cpu.h>
+#include "cpu.h"
 #include <86box/net_rtl8139.h>
 
 #define PCI_PERIOD 30    /* 30 ns period = 33.333333 Mhz frequency */
