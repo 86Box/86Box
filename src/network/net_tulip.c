@@ -989,7 +989,7 @@ tulip_xmit_list_update(TULIPState *s)
 
 static void
 tulip_csr9_write(TULIPState *s, UNUSED(uint32_t old_val),
-                 uint32_t new_val)
+                 uint32_t    new_val)
 {
     if (new_val & CSR9_SR) {
         nmc93cxx_eeprom_write(s->eeprom,
@@ -1002,7 +1002,7 @@ tulip_csr9_write(TULIPState *s, UNUSED(uint32_t old_val),
 static void
 tulip_reset(void *priv)
 {
-    TULIPState *s               = (TULIPState *) priv;
+    TULIPState     *s           = (TULIPState *) priv;
     const uint16_t *eeprom_data = nmc93cxx_eeprom_data(s->eeprom);
     s->csr[0]                   = 0xfe000000;
     s->csr[1]                   = 0xffffffff;
@@ -1526,10 +1526,16 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
     switch (addr) {
         case 0x4:
             mem_mapping_disable(&s->memory);
-            io_removehandler((s->pci_conf[0x10] & 0x80) | (s->pci_conf[0x11] << 8), 128, NULL, NULL, tulip_read_io, NULL, NULL, tulip_write_io, priv);
+            io_removehandler((s->pci_conf[0x10] & 0x80) | (s->pci_conf[0x11] << 8), 128,
+                            NULL, NULL, tulip_read_io,
+                            NULL, NULL, tulip_write_io,
+                            priv);
             s->pci_conf[addr & 0xFF] = val;
             if (val & PCI_COMMAND_IO)
-                io_sethandler((s->pci_conf[0x10] & 0x80) | (s->pci_conf[0x11] << 8), 128, NULL, NULL, tulip_read_io, NULL, NULL, tulip_write_io, priv);
+                io_sethandler((s->pci_conf[0x10] & 0x80) | (s->pci_conf[0x11] << 8), 128,
+                              NULL, NULL, tulip_read_io,
+                              NULL, NULL, tulip_write_io,
+                              priv);
             if ((val & PCI_COMMAND_MEM) && s->memory.size)
                 mem_mapping_enable(&s->memory);
             break;
@@ -1538,10 +1544,16 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             break;
         case 0x10:
         case 0x11:
-            io_removehandler((s->pci_conf[0x10] & 0x80) | (s->pci_conf[0x11] << 8), 128, NULL, NULL, tulip_read_io, NULL, NULL, tulip_write_io, priv);
+            io_removehandler((s->pci_conf[0x10] & 0x80) | (s->pci_conf[0x11] << 8), 128,
+                             NULL, NULL, tulip_read_io,
+                             NULL, NULL, tulip_write_io,
+                             priv);
             s->pci_conf[addr & 0xFF] = val;
             if (s->pci_conf[0x4] & PCI_COMMAND_IO)
-                io_sethandler((s->pci_conf[0x10] & 0x80) | (s->pci_conf[0x11] << 8), 128, NULL, NULL, tulip_read_io, NULL, NULL, tulip_write_io, priv);
+                io_sethandler((s->pci_conf[0x10] & 0x80) | (s->pci_conf[0x11] << 8), 128,
+                              NULL, NULL, tulip_read_io,
+                              NULL, NULL, tulip_write_io,
+                              priv);
             break;
         case 0x14:
         case 0x15:
