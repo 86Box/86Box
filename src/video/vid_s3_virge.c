@@ -279,6 +279,7 @@ typedef struct virge_t {
     uint32_t     dma_ptr;
     uint64_t     blitter_time;
     volatile int fifo_slot;
+    int          fifo_slots_num;
 
     pc_timer_t tri_timer;
 
@@ -1031,6 +1032,8 @@ s3_virge_mmio_fifo_write_l(uint32_t addr, uint32_t val, virge_t *virge)
         else
             s3_virge_bitblt(virge, 32, val);
     } else {
+        if (virge->fifo_slot >= virge->fifo_slots_num)
+            return;
         virge->fifo_slot++;
         switch (addr & 0xfffc) {
             case 0x8590:
@@ -1480,15 +1483,24 @@ s3_virge_mmio_read(uint32_t addr, void *priv)
 
     switch (addr & 0xffff) {
         case 0x8505:
-            ret = 0;
-            if (virge->s3d_busy || virge->fifo_slot) {
-                ret = 0x10;
-            } else {
-                ret = 0x30;
-            }
+            ret = 0xc0;
+            if (!virge->s3d_busy && !virge->fifo_slot)
+                ret |= 0x20;
             if (virge->fifo_slot)
                 virge->fifo_slot--;
+            ret |= (virge->fifo_slots_num - virge->fifo_slot);
             return ret;
+
+        case 0x850c:
+            ret = virge->advfunc_cntl & 0x3f;
+            if (virge->fifo_slot)
+                virge->fifo_slot--;
+            ret |= (virge->fifo_slots_num - virge->fifo_slot) << 6;
+            ret &= 0xff;
+            break;
+        case 0x850d:
+            ret = (virge->fifo_slots_num - virge->fifo_slot) >> 2;
+            break;
 
         case 0x83b0:
         case 0x83b1:
@@ -1564,14 +1576,24 @@ s3_virge_mmio_read_w(uint32_t addr, void *priv)
 
     switch (addr & 0xfffe) {
         case 0x8504:
+            ret = 0xc000;
+            if (!virge->s3d_busy && !virge->fifo_slot)
+                ret |= 0x2000;
             if (!virge->fifo_slot)
                 virge->subsys_stat |= INT_FIFO_EMP;
             ret |= virge->subsys_stat;
             if (virge->fifo_slot)
                 virge->fifo_slot--;
-            ret |= 0x30; /*A bit of a workaround at the moment.*/
+            ret |= (virge->fifo_slots_num - virge->fifo_slot) << 8;
             s3_virge_update_irqs(virge);
             return ret;
+
+        case 0x850c:
+            ret = virge->advfunc_cntl & 0x3f;
+            if (virge->fifo_slot)
+                virge->fifo_slot--;
+            ret |= (virge->fifo_slots_num - virge->fifo_slot) << 6;
+            break;
 
         case 0x859c:
             return virge->cmd_dma;
@@ -1660,10 +1682,9 @@ s3_virge_mmio_read_l(uint32_t addr, void *priv)
             break;
 
         case 0x8504:
-            if (virge->s3d_busy || virge->fifo_slot) {
-                ret = (0x10 << 8);
-            } else {
-                ret = (0x10 << 8) | (1 << 13);
+            ret = 0x0000c000;
+            if (!virge->s3d_busy && !virge->fifo_slot) {
+                ret |= 0x00002000;
                 if (!virge->s3d_busy)
                     virge->subsys_stat |= INT_3DF_EMP;
                 if (!virge->fifo_slot)
@@ -1672,7 +1693,15 @@ s3_virge_mmio_read_l(uint32_t addr, void *priv)
             ret |= virge->subsys_stat;
             if (virge->fifo_slot)
                 virge->fifo_slot--;
+            ret |= (virge->fifo_slots_num - virge->fifo_slot) << 8;
             s3_virge_update_irqs(virge);
+            break;
+
+        case 0x850c:
+            ret = virge->advfunc_cntl & 0x3f;
+            if (virge->fifo_slot)
+                virge->fifo_slot--;
+            ret |= (virge->fifo_slots_num - virge->fifo_slot) << 6;
             break;
 
         case 0x8590:
@@ -3498,25 +3527,40 @@ s3_virge_hwcursor_draw(svga_t *svga, int displine)
         svga->hwcursor_latch.addr += 16;
 
     switch (svga->bpp) {
+        default:
+            if (virge->chip != S3_VIRGEGX2) {
+                fg = svga->pallook[virge->hwc_fg_col & 0xff];
+                bg = svga->pallook[virge->hwc_bg_col & 0xff];
+                break;
+            }
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
+
         case 15:
-            fg = video_15to32[virge->hwc_fg_col & 0xffff];
-            bg = video_15to32[virge->hwc_bg_col & 0xffff];
-            break;
+            if (virge->chip != S3_VIRGEGX2) {
+                fg = video_15to32[virge->hwc_fg_col & 0xffff];
+                bg = video_15to32[virge->hwc_bg_col & 0xffff];
+                break;
+            }
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
 
         case 16:
-            fg = video_16to32[virge->hwc_fg_col & 0xffff];
-            bg = video_16to32[virge->hwc_bg_col & 0xffff];
-            break;
+            if (virge->chip != S3_VIRGEGX2) {
+                fg = video_16to32[virge->hwc_fg_col & 0xffff];
+                bg = video_16to32[virge->hwc_bg_col & 0xffff];
+                break;
+            }
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
 
         case 24:
         case 32:
             fg = virge->hwc_fg_col;
             bg = virge->hwc_bg_col;
-            break;
-
-        default:
-            fg = svga->pallook[virge->hwc_fg_col & 0xff];
-            bg = svga->pallook[virge->hwc_bg_col & 0xff];
             break;
     }
 
@@ -3527,6 +3571,9 @@ s3_virge_hwcursor_draw(svga_t *svga, int displine)
             /*X11*/
             for (xx = 0; xx < 16; xx++) {
                 if (offset >= 0) {
+                    if (virge->chip == S3_VIRGEGX2)
+                        dat[0] ^= 0x8000;
+
                     if (dat[0] & 0x8000)
                         buffer32->line[displine][offset + svga->x_add] = (dat[1] & 0x8000) ? fg : bg;
                 }
@@ -4086,24 +4133,29 @@ s3_virge_reset(void *priv)
     switch (virge->local) {
         case S3_VIRGE_325:
         case S3_DIAMOND_STEALTH3D_2000:
+            virge->fifo_slots_num = 8;
             virge->svga.crtc[0x59] = 0x70;
             break;
         case S3_DIAMOND_STEALTH3D_3000:
         case S3_STB_VELOCITY_3D:
+            virge->fifo_slots_num = 8;
             virge->svga.crtc[0x59] = 0x70;
             break;
         case S3_VIRGE_GX2:
         case S3_DIAMOND_STEALTH3D_4000:
+            virge->fifo_slots_num = 16;
             virge->svga.crtc[0x6c] = 1;
             virge->svga.crtc[0x59] = 0x70;
             break;
 
         case S3_TRIO_3D2X:
+            virge->fifo_slots_num = 16;
             virge->svga.crtc[0x6c] = 1;
             virge->svga.crtc[0x59] = 0x70;
             break;
 
         default:
+            virge->fifo_slots_num = 8;
             virge->svga.crtc[0x6c] = 1;
             virge->svga.crtc[0x59] = 0x70;
             break;
@@ -4262,6 +4314,7 @@ s3_virge_init(const device_t *info)
     switch (info->local) {
         case S3_VIRGE_325:
         case S3_DIAMOND_STEALTH3D_2000:
+            virge->fifo_slots_num = 8;
             virge->svga.decode_mask = (4 << 20) - 1;
             virge->virge_id_high    = 0x56;
             virge->virge_id_low     = 0x31;
@@ -4271,6 +4324,7 @@ s3_virge_init(const device_t *info)
             break;
         case S3_DIAMOND_STEALTH3D_3000:
         case S3_STB_VELOCITY_3D:
+            virge->fifo_slots_num = 8;
             virge->svga.decode_mask = (8 << 20) - 1;
             virge->virge_id_high    = 0x88;
             virge->virge_id_low     = 0x3d;
@@ -4280,6 +4334,7 @@ s3_virge_init(const device_t *info)
             break;
         case S3_VIRGE_GX2:
         case S3_DIAMOND_STEALTH3D_4000:
+            virge->fifo_slots_num = 16;
             virge->svga.decode_mask  = (4 << 20) - 1;
             virge->virge_id_high     = 0x8a;
             virge->virge_id_low      = 0x10;
@@ -4291,6 +4346,7 @@ s3_virge_init(const device_t *info)
             break;
 
         case S3_TRIO_3D2X:
+            virge->fifo_slots_num = 16;
             virge->svga.decode_mask  = (8 << 20) - 1;
             virge->virge_id_high     = 0x8a;
             virge->virge_id_low      = 0x13;
@@ -4309,6 +4365,7 @@ s3_virge_init(const device_t *info)
 #endif
 
         default:
+            virge->fifo_slots_num = 8;
             virge->svga.decode_mask  = (4 << 20) - 1;
             virge->virge_id_high     = 0x8a;
             virge->virge_id_low      = 0x01;

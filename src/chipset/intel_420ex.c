@@ -167,7 +167,7 @@ i420ex_drb_recalc(i420ex_t *dev)
 {
     uint32_t boundary;
 
-    for (uint8_t i = 4; i >= 0; i--)
+    for (int8_t i = 4; i >= 0; i--)
         row_disable(i);
 
     for (uint8_t i = 0; i <= 4; i++) {

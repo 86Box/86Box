@@ -621,27 +621,16 @@ mach64_updatemapping(mach64_t *mach64)
                 /*8 MB aperture*/
                 mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - 0x4000);
                 mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 0x4000), 0x4000);
-            } else if ((mach64->config_cntl & 3) == 1) {
+            } else {
                 /*4 MB aperture*/
                 mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (4 << 20) - 0x4000);
                 mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((4 << 20) - 0x4000), 0x4000);
-            } else {
-                /*Disable aperture on reserved values*/
-                mem_mapping_disable(&mach64->linear_mapping);
-                mem_mapping_disable(&mach64->mmio_linear_mapping);
             }
         } else {
-            if ((mach64->config_cntl & 3) == 2) {
-                /*2*8 MB aperture*/
-                mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - 0x4000);
-                mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 0x4000), 0x4000);
-                mem_mapping_set_addr(&mach64->mmio_linear_mapping_2, mach64->linear_base + ((16 << 20) - 0x4000), 0x4000);
-            } else {
-                /*Disable aperture on reserved values*/
-                mem_mapping_disable(&mach64->linear_mapping);
-                mem_mapping_disable(&mach64->mmio_linear_mapping);
-                mem_mapping_disable(&mach64->mmio_linear_mapping_2);
-            }
+            /*2*8 MB aperture*/
+            mem_mapping_set_addr(&mach64->linear_mapping, mach64->linear_base, (8 << 20) - 0x4000);
+            mem_mapping_set_addr(&mach64->mmio_linear_mapping, mach64->linear_base + ((8 << 20) - 0x4000), 0x4000);
+            mem_mapping_set_addr(&mach64->mmio_linear_mapping_2, mach64->linear_base + ((16 << 20) - 0x4000), 0x4000);
         }
     } else {
         mem_mapping_disable(&mach64->linear_mapping);
