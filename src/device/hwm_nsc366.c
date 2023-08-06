@@ -115,7 +115,7 @@ nsc366_fscm_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 nsc366_fscm_read(uint16_t addr, void *priv)
 {
-    nsc366_hwm_t *dev = (nsc366_hwm_t *) priv;
+    const nsc366_hwm_t *dev = (nsc366_hwm_t *) priv;
 
     addr &= 0x000f;
 
@@ -207,7 +207,7 @@ nsc366_vlm_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 nsc366_vlm_read(uint16_t addr, void *priv)
 {
-    nsc366_hwm_t *dev = (nsc366_hwm_t *) priv;
+    const nsc366_hwm_t *dev = (nsc366_hwm_t *) priv;
 
     addr &= 0x000f;
 
@@ -297,7 +297,7 @@ nsc366_tms_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 nsc366_tms_read(uint16_t addr, void *priv)
 {
-    nsc366_hwm_t *dev = (nsc366_hwm_t *) priv;
+    const nsc366_hwm_t *dev = (nsc366_hwm_t *) priv;
 
     addr &= 0x000f;
 

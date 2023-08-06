@@ -318,7 +318,7 @@ intel_815ep_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 intel_815ep_read(int func, int addr, void *priv)
 {
-    intel_815ep_t *dev = (intel_815ep_t *) priv;
+    const intel_815ep_t *dev = (intel_815ep_t *) priv;
 
     intel_815ep_log("Intel 815EP MCH: dev->regs[%02x] (%02x)\n", addr, dev->pci_conf[addr]);
 

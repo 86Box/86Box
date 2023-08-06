@@ -109,7 +109,7 @@ intel_ich2_gpio_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 intel_ich2_gpio_read(uint16_t addr, void *priv)
 {
-    intel_ich2_gpio_t *dev = (intel_ich2_gpio_t *) priv;
+    const intel_ich2_gpio_t *dev = (intel_ich2_gpio_t *) priv;
 
     addr -= dev->gpio_addr;
 

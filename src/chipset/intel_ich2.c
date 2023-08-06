@@ -165,8 +165,8 @@ intel_ich2_nvr_handler(intel_ich2_t *dev)
 static void
 intel_ich2_trap_update(void *priv)
 {
-    intel_ich2_t *dev       = (intel_ich2_t *) priv;
-    uint16_t      temp_addr = 0;
+    const intel_ich2_t *dev       = (intel_ich2_t *) priv;
+    uint16_t            temp_addr = 0;
 
     /* Hard Drives */
     intel_ich2_device_trap_setup(0x48, 0x01, 0x1f0, 8, dev->trap_device[0]); // HDD's don't have a decode bit
@@ -760,7 +760,7 @@ intel_ich2_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 intel_ich2_read(int func, int addr, void *priv)
 {
-    intel_ich2_t *dev = (intel_ich2_t *) priv;
+    const intel_ich2_t *dev = (intel_ich2_t *) priv;
 
     if (func == 0) {
         intel_ich2_log("Intel ICH2 LPC: dev->regs[%02x] (%02x)\n", addr, dev->pci_conf[func][addr]);

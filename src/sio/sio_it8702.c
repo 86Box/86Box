@@ -262,7 +262,7 @@ it8702_write(uint16_t addr, uint8_t val, void *priv)
                 it8702_ldn(dev);
                 break;
 
-            case 0xf0 ... 0xf0:
+            case 0xf0:
                 if (dev->ldn < 11)
                     dev->d_spec[dev->index & 0x0f][dev->ldn] = val;
 
@@ -278,7 +278,7 @@ it8702_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 it8702_read(uint16_t addr, void *priv)
 {
-    it8702_t *dev = (it8702_t *) priv;
+    const it8702_t *dev = (it8702_t *) priv;
 
     if (addr == 0x2e) {
         return dev->index;

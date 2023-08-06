@@ -257,7 +257,7 @@ w83627hf_hwm_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 w83627hf_hwm_read(uint16_t addr, void *priv)
 {
-    w83627hf_t *dev = (w83627hf_t *) priv;
+    const w83627hf_t *dev = (w83627hf_t *) priv;
 
     switch (addr) {
         case 0x295:
@@ -304,6 +304,7 @@ w83627hf_hwm_read(uint16_t addr, void *priv)
                         default:
                             break;
                     }
+                    break;
 
                 case 0x4f:
                     if (dev->hwm_regs[0x4e] & 0x80)
@@ -318,6 +319,7 @@ w83627hf_hwm_read(uint16_t addr, void *priv)
                 default:
                     return 0xff;
             }
+            return 0xff;
 
         default:
             return 0xff;
@@ -909,11 +911,11 @@ w83627hf_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 w83627hf_read(UNUSED(uint16_t addr), void *priv)
 {
-    w83627hf_t *dev = (w83627hf_t *) priv;
+    const w83627hf_t *dev = (w83627hf_t *) priv;
 
-    if ((dev->index >= 0x00) && (dev->index <= 0x2f))
+    if (dev->index <= 0x2f)
         return dev->regs[dev->index];
-    else if ((dev->index >= 0x30) && (dev->index <= 0xff) && (dev->regs[7] >= 0) && (dev->regs[7] <= 0x0b))
+    else if ((dev->index >= 0x30) && (dev->index <= 0xff) && (dev->regs[7] <= 0x0b))
         return dev->dev_regs[dev->regs[7]][dev->index];
     else
         return 0xff;

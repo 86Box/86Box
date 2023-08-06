@@ -326,7 +326,7 @@ nsc366_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 nsc366_read(uint16_t addr, void *priv)
 {
-    nsc366_t *dev = (nsc366_t *) priv;
+    const nsc366_t *dev = (nsc366_t *) priv;
 
     if (addr & 1) {
         switch (dev->index) {

@@ -143,7 +143,8 @@ intel_ac97_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 intel_ac97_read(uint16_t addr, void *priv)
 {
-    intel_ac97_t *dev = (intel_ac97_t *) priv;
+    const intel_ac97_t *dev = (intel_ac97_t *) priv;
+
     addr -= dev->ac97_base;
 
     if (addr < 0x40) {
