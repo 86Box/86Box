@@ -288,12 +288,12 @@ inb(uint16_t port)
     int     found  = 0;
     int     qfound = 0;
 
-    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        ret = pci_read(port, NULL);
+    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        ret = pci_type2_read(port, NULL);
         found = 1;
         qfound = 1;
-    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
-        ret = pci_read(port, NULL);
+    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
+        ret = pci_type2_read(port, NULL);
         found = 1;
         qfound = 1;
     } else {
@@ -318,12 +318,8 @@ inb(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found) {
-        if (is286)
-            cycles -= io_delay;
-        else
-            sub_cycles(io_delay);
-    }
+    if (!found)
+        cycles -= io_delay;
 
     /* TriGem 486-BIOS MHz output. */
 #if 0
@@ -331,16 +327,7 @@ inb(uint16_t port)
         ret = 0xfe;
 #endif
 
-    /* if (port == 0x23)
-        ret = 0x00; */
-
-    if (port == 0x7f)
-        ret = 0x00;
-
-    // if ((port != 0x42) && (port != 0x61) && (port != 0x3b4) && (port != 0x3ba) && (port != 0x3da)) {
-    if (((port >= 0xcf8) && (port <= 0xcff)) || ((port >= 0xc000) && (port <= 0xcfff))) {
-        io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
-    }
+    io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
     return ret;
 }
@@ -353,12 +340,12 @@ outb(uint16_t port, uint8_t val)
     int   found  = 0;
     int   qfound = 0;
 
-    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        pci_write(port, val, NULL);
+    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        pci_type2_write(port, val, NULL);
         found = 1;
         qfound = 1;
-    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
-        pci_write(port, val, NULL);
+    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
+        pci_type2_write(port, val, NULL);
         found = 1;
         qfound = 1;
     } else {
@@ -375,21 +362,14 @@ outb(uint16_t port, uint8_t val)
     }
 
     if (!found) {
-        if (is286)
-            cycles -= io_delay;
-        else
-            sub_cycles(io_delay);
-
+        cycles -= io_delay;
 #ifdef USE_DYNAREC
         if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
             update_tsc();
 #endif
     }
 
-    // if ((port != 0x43) && (port != 0xea)) {
-    if (((port >= 0xcf8) && (port <= 0xcff)) || ((port >= 0xc000) && (port <= 0xcfff))) {
-        io_log("[%04X:%08X] (%i, %i, %04i) outb(%04X, %02X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
-    }
+    io_log("[%04X:%08X] (%i, %i, %04i) outb(%04X, %02X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
 
     return;
 }
@@ -404,12 +384,12 @@ inw(uint16_t port)
     int      qfound = 0;
     uint8_t  ret8[2];
 
-    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        ret = pci_readw(port, NULL);
+    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        ret = pci_type2_readw(port, NULL);
         found = 2;
         qfound = 1;
-    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
-        ret = pci_readw(port, NULL);
+    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
+        ret = pci_type2_readw(port, NULL);
         found = 2;
         qfound = 1;
     } else {
@@ -450,16 +430,10 @@ inw(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found) {
-        if (is286)
-            cycles -= io_delay;
-        else
-            sub_cycles(io_delay);
-    }
+    if (!found)
+        cycles -= io_delay;
 
-    if (((port >= 0xcf8) && (port <= 0xcff)) || ((port >= 0xc000) && (port <= 0xcfff))) {
-        io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
-    }
+    io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
     return ret;
 }
@@ -472,12 +446,12 @@ outw(uint16_t port, uint16_t val)
     int   found  = 0;
     int   qfound = 0;
 
-    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        pci_writew(port, val, NULL);
+    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        pci_type2_writew(port, val, NULL);
         found = 2;
         qfound = 1;
-    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
-        pci_writew(port, val, NULL);
+    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
+        pci_type2_writew(port, val, NULL);
         found = 2;
         qfound = 1;
     } else {
@@ -507,21 +481,14 @@ outw(uint16_t port, uint16_t val)
     }
 
     if (!found) {
-        if (is286)
-            cycles -= io_delay;
-        else
-            sub_cycles(io_delay);
-
+        cycles -= io_delay;
 #ifdef USE_DYNAREC
         if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
             update_tsc();
 #endif
     }
 
-    // if (port != 0xea) {
-    if (((port >= 0xcf8) && (port <= 0xcff)) || ((port >= 0xc000) && (port <= 0xcfff))) {
-        io_log("[%04X:%08X] (%i, %i, %04i) outw(%04X, %04X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
-    }
+    io_log("[%04X:%08X] (%i, %i, %04i) outw(%04X, %04X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
 
     return;
 }
@@ -537,12 +504,12 @@ inl(uint16_t port)
     int      found  = 0;
     int      qfound = 0;
 
-    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        ret = pci_readl(port, NULL);
+    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        ret = pci_type2_readl(port, NULL);
         found = 4;
         qfound = 1;
-    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
-        ret = pci_readl(port, NULL);
+    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
+        ret = pci_type2_readl(port, NULL);
         found = 4;
         qfound = 1;
     } else {
@@ -613,9 +580,7 @@ inl(uint16_t port)
     if (!found)
         cycles -= io_delay;
 
-    if (((port >= 0xcf8) && (port <= 0xcff)) || ((port >= 0xc000) && (port <= 0xcfff))) {
-        io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
-    }
+    io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
     return ret;
 }
@@ -629,12 +594,12 @@ outl(uint16_t port, uint32_t val)
     int   qfound = 0;
     int   i      = 0;
 
-    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        pci_writel(port, val, NULL);
+    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        pci_type2_writel(port, val, NULL);
         found = 4;
         qfound = 1;
-    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
-        pci_writel(port, val, NULL);
+    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
+        pci_type2_writel(port, val, NULL);
         found = 4;
         qfound = 1;
     } else {
@@ -686,9 +651,7 @@ outl(uint16_t port, uint32_t val)
 #endif
     }
 
-    if (((port >= 0xcf8) && (port <= 0xcff)) || ((port >= 0xc000) && (port <= 0xcfff))) {
-        io_log("[%04X:%08X] (%i, %i, %04i) outl(%04X, %08X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
-    }
+    io_log("[%04X:%08X] (%i, %i, %04i) outl(%04X, %08X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
 
     return;
 }
