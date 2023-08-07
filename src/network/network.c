@@ -481,6 +481,12 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
             card->host_drv.priv = card->host_drv.init(card, mac, net_cards_conf[net_card_current].host_dev_name, net_drv_error);
             break;
 #endif
+#ifdef HAS_TAP
+        case NET_TYPE_TAP:
+            card->host_drv      = net_tap_drv;
+            card->host_drv.priv = card->host_drv.init(card, mac, net_cards_conf[net_card_current].host_dev_name, net_drv_error);
+            break;
+#endif
         default:
             card->host_drv.priv = NULL;
             break;
