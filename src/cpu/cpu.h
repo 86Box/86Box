@@ -280,8 +280,6 @@ typedef struct {
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t mcg_ctl; /* 0x0000017b - Machine Check Architecture */
-
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t ecx186; /* 0x00000186, 0x00000187 */
     uint64_t ecx187; /* 0x00000186, 0x00000187 */
 
