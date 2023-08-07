@@ -81,8 +81,8 @@ static char flash_path[1024];
 static uint8_t
 flash_read(uint32_t addr, void *priv)
 {
-    flash_t *dev = (flash_t *) priv;
-    uint8_t  ret = 0xff;
+    const flash_t *dev = (flash_t *) priv;
+    uint8_t        ret = 0xff;
 
     if (dev->flags & FLAG_INV_A16)
         addr ^= 0x10000;
@@ -112,9 +112,9 @@ flash_read(uint32_t addr, void *priv)
 static uint16_t
 flash_readw(uint32_t addr, void *priv)
 {
-    flash_t  *dev = (flash_t *) priv;
-    uint16_t *q;
-    uint16_t  ret = 0xffff;
+    flash_t        *dev = (flash_t *) priv;
+    const uint16_t *q;
+    uint16_t        ret = 0xffff;
 
     if (dev->flags & FLAG_INV_A16)
         addr ^= 0x10000;
@@ -150,8 +150,8 @@ flash_readw(uint32_t addr, void *priv)
 static uint32_t
 flash_readl(uint32_t addr, void *priv)
 {
-    flash_t  *dev = (flash_t *) priv;
-    uint32_t *q;
+    flash_t        *dev = (flash_t *) priv;
+    const uint32_t *q;
 
     if (dev->flags & FLAG_INV_A16)
         addr ^= 0x10000;
@@ -221,10 +221,9 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
 }
 
 static void
-flash_writew(uint32_t addr, uint16_t val, void *p)
+flash_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    flash_t *dev = (flash_t *) p;
-    int      i;
+    flash_t *dev = (flash_t *) priv;
     uint32_t bb_mask = biosmask & 0xffffe000;
     if (biosmask == 0x7ffff)
         bb_mask &= 0xffff8000;
@@ -239,7 +238,7 @@ flash_writew(uint32_t addr, uint16_t val, void *p)
         switch (dev->command) {
             case CMD_ERASE_SETUP:
                 if (val == CMD_ERASE_CONFIRM) {
-                    for (i = 0; i < 6; i++) {
+                    for (uint8_t i = 0; i < 6; i++) {
                         if ((i == dev->program_addr) && (addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
                             memset(&(dev->array[dev->block_start[i]]), 0xff, dev->block_len[i]);
                     }
@@ -264,7 +263,7 @@ flash_writew(uint32_t addr, uint16_t val, void *p)
                         dev->status = 0;
                         break;
                     case CMD_ERASE_SETUP:
-                        for (i = 0; i < 7; i++) {
+                        for (uint8_t i = 0; i < 7; i++) {
                             if ((addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
                                 dev->program_addr = i;
                         }
@@ -292,7 +291,7 @@ flash_writel(UNUSED(uint32_t addr), UNUSED(uint32_t val), UNUSED(void *priv))
 static void
 intel_flash_add_mappings(flash_t *dev)
 {
-    int      max = 2;
+    uint8_t  max = 2;
     uint32_t base;
     uint32_t fbase;
     uint32_t sub = 0x20000;
@@ -305,7 +304,7 @@ intel_flash_add_mappings(flash_t *dev)
         max = 4;
     }
 
-    for (int i = 0; i < max; i++) {
+    for (uint8_t i = 0; i < max; i++) {
         if (biosmask == 0x7ffff)
             base = 0x80000 + (i << 16);
         else if (biosmask == 0x3ffff)
@@ -348,7 +347,7 @@ intel_flash_reset(void *priv)
 static void *
 intel_flash_init(const device_t *info)
 {
-    FILE    *f;
+    FILE    *fp;
     flash_t *dev;
     uint8_t  type = info->local & 0xff;
 
@@ -513,19 +512,19 @@ intel_flash_init(const device_t *info)
     dev->command = CMD_READ_ARRAY;
     dev->status  = 0;
 
-    f = nvr_fopen(flash_path, "rb");
-    if (f) {
-        (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, f);
+    fp = nvr_fopen(flash_path, "rb");
+    if (fp) {
+        (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, fp);
         if (dev->block_len[BLOCK_MAIN2])
-            (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, f);
+            (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, fp);
         if (dev->block_len[BLOCK_MAIN3])
-            (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, f);
+            (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, fp);
         if (dev->block_len[BLOCK_MAIN4])
-            (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, f);
+            (void) !fread(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, fp);
 
-        (void) !fread(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, f);
-        (void) !fread(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, f);
-        fclose(f);
+        (void) !fread(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, fp);
+        (void) !fread(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, fp);
+        fclose(fp);
     }
 
     return dev;
@@ -534,21 +533,21 @@ intel_flash_init(const device_t *info)
 static void
 intel_flash_close(void *priv)
 {
-    FILE    *f;
+    FILE    *fp;
     flash_t *dev = (flash_t *) priv;
 
-    f = nvr_fopen(flash_path, "wb");
-    fwrite(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, f);
+    fp = nvr_fopen(flash_path, "wb");
+    fwrite(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, fp);
     if (dev->block_len[BLOCK_MAIN2])
-        fwrite(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, f);
+        fwrite(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, fp);
     if (dev->block_len[BLOCK_MAIN3])
-        fwrite(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, f);
+        fwrite(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, fp);
     if (dev->block_len[BLOCK_MAIN4])
-        fwrite(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, f);
+        fwrite(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, fp);
 
-    fwrite(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, f);
-    fwrite(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, f);
-    fclose(f);
+    fwrite(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, fp);
+    fwrite(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, fp);
+    fclose(fp);
 
     free(dev->array);
     dev->array = NULL;

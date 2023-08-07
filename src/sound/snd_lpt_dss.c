@@ -11,15 +11,17 @@
 #include <86box/machine.h>
 #include <86box/sound.h>
 #include <86box/timer.h>
+#include <86box/plat_unused.h>
 
 typedef struct dss_t {
     void *lpt;
 
     uint8_t fifo[16];
-    int     read_idx, write_idx;
+    int     read_idx;
+    int     write_idx;
 
-    uint8_t dac_val,
-        status;
+    uint8_t dac_val;
+    uint8_t status;
 
     pc_timer_t timer;
 
@@ -49,9 +51,9 @@ dss_update_status(dss_t *dss)
 }
 
 static void
-dss_write_data(uint8_t val, void *p)
+dss_write_data(uint8_t val, void *priv)
 {
-    dss_t *dss = (dss_t *) p;
+    dss_t *dss = (dss_t *) priv;
 
     if ((dss->write_idx - dss->read_idx) < 16) {
         dss->fifo[dss->write_idx & 15] = val;
@@ -61,22 +63,23 @@ dss_write_data(uint8_t val, void *p)
 }
 
 static void
-dss_write_ctrl(uint8_t val, void *p)
+dss_write_ctrl(UNUSED(uint8_t val), UNUSED(void *priv))
 {
+    //
 }
 
 static uint8_t
-dss_read_status(void *p)
+dss_read_status(void *priv)
 {
-    dss_t *dss = (dss_t *) p;
+    const dss_t *dss = (dss_t *) priv;
 
     return dss->status | 0x0f;
 }
 
 static void
-dss_get_buffer(int32_t *buffer, int len, void *p)
+dss_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    dss_t  *dss = (dss_t *) p;
+    dss_t  *dss = (dss_t *) priv;
     int16_t val;
     float   fval;
 
@@ -84,7 +87,7 @@ dss_get_buffer(int32_t *buffer, int len, void *p)
 
     for (int c = 0; c < len * 2; c += 2) {
         fval = dss_iir((float) dss->buffer[c >> 1]);
-        val  = (float) fval;
+        val  = fval;
 
         buffer[c] += val;
         buffer[c + 1] += val;
@@ -94,9 +97,9 @@ dss_get_buffer(int32_t *buffer, int len, void *p)
 }
 
 static void
-dss_callback(void *p)
+dss_callback(void *priv)
 {
-    dss_t *dss = (dss_t *) p;
+    dss_t *dss = (dss_t *) priv;
 
     dss_update(dss);
 
@@ -123,9 +126,9 @@ dss_init(void *lpt)
     return dss;
 }
 static void
-dss_close(void *p)
+dss_close(void *priv)
 {
-    dss_t *dss = (dss_t *) p;
+    dss_t *dss = (dss_t *) priv;
 
     free(dss);
 }

@@ -32,7 +32,7 @@
 #include <86box/fdc.h>
 
 #pragma pack(push, 1)
-typedef struct {
+typedef struct mfm_header_t {
     uint8_t hdr_name[7];
 
     uint16_t tracks_no;
@@ -45,14 +45,14 @@ typedef struct {
     uint32_t track_list_offset;
 } mfm_header_t;
 
-typedef struct {
+typedef struct mfm_track_t {
     uint16_t track_no;
     uint8_t  side_no;
     uint32_t track_size;
     uint32_t track_offset;
 } mfm_track_t;
 
-typedef struct {
+typedef struct mfm_adv_track_t {
     uint16_t track_no;
     uint8_t  side_no;
     uint16_t rpm;
@@ -62,8 +62,8 @@ typedef struct {
 } mfm_adv_track_t;
 #pragma pack(pop)
 
-typedef struct {
-    FILE *f;
+typedef struct mfm_t {
+    FILE *fp;
 
     mfm_header_t     hdr;
     mfm_track_t     *tracks;
@@ -105,8 +105,8 @@ mfm_log(const char *fmt, ...)
 static int
 get_track_index(int drive, int side, int track)
 {
-    mfm_t *dev = mfm[drive];
-    int    ret = -1;
+    const mfm_t *dev = mfm[drive];
+    int          ret = -1;
 
     for (int i = 0; i < dev->total_tracks; i++) {
         if ((dev->tracks[i].track_no == track) && (dev->tracks[i].side_no == side)) {
@@ -121,8 +121,8 @@ get_track_index(int drive, int side, int track)
 static int
 get_adv_track_index(int drive, int side, int track)
 {
-    mfm_t *dev = mfm[drive];
-    int    ret = -1;
+    const mfm_t *dev = mfm[drive];
+    int          ret = -1;
 
     for (int i = 0; i < dev->total_tracks; i++) {
         if ((dev->adv_tracks[i].track_no == track) && (dev->adv_tracks[i].side_no == side)) {
@@ -137,9 +137,9 @@ get_adv_track_index(int drive, int side, int track)
 static void
 get_adv_track_bitrate(int drive, int side, int track, int *br, int *rpm)
 {
-    mfm_t *dev = mfm[drive];
-    int    track_index;
-    double dbr;
+    const mfm_t *dev = mfm[drive];
+    int          track_index;
+    double       dbr;
 
     track_index = get_adv_track_index(drive, side, track);
 
@@ -197,7 +197,7 @@ set_disk_flags(int drive)
 static uint16_t
 disk_flags(int drive)
 {
-    mfm_t *dev = mfm[drive];
+    const mfm_t *dev = mfm[drive];
 
     return dev->disk_flags;
 }
@@ -257,8 +257,8 @@ set_side_flags(int drive, int side)
 static uint16_t
 side_flags(int drive)
 {
-    mfm_t *dev = mfm[drive];
-    int    side;
+    const mfm_t *dev = mfm[drive];
+    int          side;
 
     side = fdd_get_head(drive);
 
@@ -268,11 +268,11 @@ side_flags(int drive)
 static uint32_t
 get_raw_size(int drive, int side)
 {
-    mfm_t *dev = mfm[drive];
-    int    track_index;
-    int    is_300_rpm;
-    int    br = 250;
-    int    rpm = 300;
+    const mfm_t *dev = mfm[drive];
+    int          track_index;
+    int          is_300_rpm;
+    int          br = 250;
+    int          rpm = 300;
 
     if (dev->hdr.if_type & 0x80) {
         track_index = get_adv_track_index(drive, side, dev->cur_track);
@@ -345,12 +345,12 @@ mfm_read_side(int drive, int side)
         memset(dev->track_data[side], 0x00, track_bytes);
     else {
         if (dev->hdr.if_type & 0x80)
-            ret = fseek(dev->f, dev->adv_tracks[track_index].track_offset, SEEK_SET);
+            ret = fseek(dev->fp, dev->adv_tracks[track_index].track_offset, SEEK_SET);
         else
-            ret = fseek(dev->f, dev->tracks[track_index].track_offset, SEEK_SET);
+            ret = fseek(dev->fp, dev->tracks[track_index].track_offset, SEEK_SET);
         if (ret == -1)
             fatal("mfm_read_side(): Error seeking to the beginning of the file\n");
-        if (fread(dev->track_data[side], 1, track_bytes, dev->f) != track_bytes)
+        if (fread(dev->track_data[side], 1, track_bytes, dev->fp) != track_bytes)
             fatal("mfm_read_side(): Error reading track bytes\n");
     }
 
@@ -373,7 +373,7 @@ mfm_seek(int drive, int track)
     dev->cur_track = track;
     d86f_set_cur_track(drive, track);
 
-    if (dev->f == NULL)
+    if (dev->fp == NULL)
         return;
 
     if (track < 0)
@@ -399,8 +399,8 @@ mfm_load(int drive, char *fn)
     dev = (mfm_t *) malloc(sizeof(mfm_t));
     memset(dev, 0x00, sizeof(mfm_t));
 
-    dev->f = plat_fopen(fn, "rb");
-    if (dev->f == NULL) {
+    dev->fp = plat_fopen(fn, "rb");
+    if (dev->fp == NULL) {
         free(dev);
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         return;
@@ -410,7 +410,7 @@ mfm_load(int drive, char *fn)
 
     /* Read the header. */
     size = sizeof(mfm_header_t);
-    if (fread(&dev->hdr, 1, size, dev->f) != size)
+    if (fread(&dev->hdr, 1, size, dev->fp) != size)
         fatal("mfm_load(): Error reading header\n");
 
     /* Calculate tracks * sides, allocate the tracks array, and read it. */
@@ -418,12 +418,12 @@ mfm_load(int drive, char *fn)
     if (dev->hdr.if_type & 0x80) {
         dev->adv_tracks = (mfm_adv_track_t *) malloc(dev->total_tracks * sizeof(mfm_adv_track_t));
         size            = dev->total_tracks * sizeof(mfm_adv_track_t);
-        if (fread(dev->adv_tracks, 1, size, dev->f) != size)
+        if (fread(dev->adv_tracks, 1, size, dev->fp) != size)
             fatal("mfm_load(): Error reading advanced tracks\n");
     } else {
         dev->tracks = (mfm_track_t *) malloc(dev->total_tracks * sizeof(mfm_track_t));
         size        = dev->total_tracks * sizeof(mfm_track_t);
-        if (fread(dev->tracks, 1, size, dev->f) != size)
+        if (fread(dev->tracks, 1, size, dev->fp) != size)
             fatal("mfm_load(): Error reading tracks\n");
     }
 
@@ -504,8 +504,8 @@ mfm_close(int drive)
     if (dev->adv_tracks)
         free(dev->adv_tracks);
 
-    if (dev->f)
-        fclose(dev->f);
+    if (dev->fp)
+        fclose(dev->fp);
 
     /* Release the memory. */
     free(dev);

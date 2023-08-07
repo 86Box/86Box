@@ -341,7 +341,8 @@ memory_pci_bridge_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static uint8_t
 memory_pci_bridge_read(UNUSED(int func), int addr, void *priv)
 {
-    sis_5571_t *dev = (sis_5571_t *) priv;
+    const sis_5571_t *dev = (sis_5571_t *) priv;
+
     sis_5571_log("SiS5571: dev->pci_conf[%02x] (%02x)\n", addr, dev->pci_conf[addr]);
     return dev->pci_conf[addr];
 }
@@ -639,6 +640,7 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
                     break;
             }
             sis_5571_log("SiS5571-USB: dev->pci_conf[%02x] = %02x\n", addr, val);
+            break;
 
         default:
             break;
@@ -648,7 +650,7 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 pci_isa_bridge_read(int func, int addr, void *priv)
 {
-    sis_5571_t *dev = (sis_5571_t *) priv;
+    const sis_5571_t *dev = (sis_5571_t *) priv;
 
     switch (func) {
         case 0:
@@ -669,7 +671,7 @@ pci_isa_bridge_read(int func, int addr, void *priv)
 static void
 sis_5571_usb_update_interrupt(usb_t* usb, void* priv)
 {
-    sis_5571_t *dev = (sis_5571_t *) priv;
+    const sis_5571_t *dev = (sis_5571_t *) priv;
 
     if (dev->pci_conf_sb[0][0x68] & 0x80) {
         /* TODO: Is the normal PCI interrupt inhibited when USB IRQ remapping is enabled? */

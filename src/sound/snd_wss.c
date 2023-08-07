@@ -33,6 +33,7 @@
 #include <86box/timer.h>
 #include <86box/snd_ad1848.h>
 #include <86box/snd_opl.h>
+#include <86box/plat_unused.h>
 
 /* 530, 11, 3 - 530=23
  * 530, 11, 1 - 530=22
@@ -59,14 +60,14 @@ typedef struct wss_t {
 } wss_t;
 
 uint8_t
-wss_read(uint16_t addr, void *priv)
+wss_read(UNUSED(uint16_t addr), void *priv)
 {
-    wss_t *wss = (wss_t *) priv;
+    const wss_t *wss = (wss_t *) priv;
     return 4 | (wss->config & 0x40);
 }
 
 void
-wss_write(uint16_t addr, uint8_t val, void *priv)
+wss_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     wss_t *wss = (wss_t *) priv;
 
@@ -79,20 +80,25 @@ static void
 wss_get_buffer(int32_t *buffer, int len, void *priv)
 {
     wss_t *wss = (wss_t *) priv;
+    const int32_t *opl_buf = NULL;
 
-    int32_t *opl_buf = wss->opl.update(wss->opl.priv);
+    if (wss->opl_enabled)
+        opl_buf = wss->opl.update(wss->opl.priv);
+
     ad1848_update(&wss->ad1848);
     for (int c = 0; c < len * 2; c++) {
-        buffer[c] += opl_buf[c];
+        if (opl_buf)
+            buffer[c] += opl_buf[c];
         buffer[c] += wss->ad1848.buffer[c] / 2;
     }
 
-    wss->opl.reset_buffer(wss->opl.priv);
+    if (wss->opl_enabled)
+        wss->opl.reset_buffer(wss->opl.priv);
     wss->ad1848.pos = 0;
 }
 
 void *
-wss_init(const device_t *info)
+wss_init(UNUSED(const device_t *info))
 {
     wss_t *wss = malloc(sizeof(wss_t));
     memset(wss, 0, sizeof(wss_t));
@@ -131,7 +137,7 @@ wss_init(const device_t *info)
 static uint8_t
 ncr_audio_mca_read(int port, void *priv)
 {
-    wss_t *wss = (wss_t *) priv;
+    const wss_t *wss = (wss_t *) priv;
     return wss->pos_regs[port & 7];
 }
 
@@ -186,12 +192,12 @@ ncr_audio_mca_write(int port, uint8_t val, void *priv)
 static uint8_t
 ncr_audio_mca_feedb(void *priv)
 {
-    wss_t *wss = (wss_t *) priv;
+    const wss_t *wss = (wss_t *) priv;
     return (wss->pos_regs[2] & 1);
 }
 
 void *
-ncr_audio_init(const device_t *info)
+ncr_audio_init(UNUSED(const device_t *info))
 {
     wss_t *wss = malloc(sizeof(wss_t));
     memset(wss, 0, sizeof(wss_t));

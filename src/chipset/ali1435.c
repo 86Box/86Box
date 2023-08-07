@@ -166,8 +166,8 @@ ali1435_pci_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 ali1435_pci_read(int func, int addr, void *priv)
 {
-    ali1435_t *dev = (ali1435_t *) priv;
-    uint8_t    ret;
+    const ali1435_t *dev = (ali1435_t *) priv;
+    uint8_t          ret;
 
     ret = 0xff;
 
@@ -233,8 +233,8 @@ ali1435_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 ali1435_read(uint16_t addr, void *priv)
 {
-    ali1435_t *dev = (ali1435_t *) priv;
-    uint8_t    ret = 0xff;
+    const ali1435_t *dev = (ali1435_t *) priv;
+    uint8_t          ret = 0xff;
 
     if ((addr == 0x23) && (dev->index < 0x10))
         ret = dev->regs[dev->index];

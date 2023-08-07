@@ -57,10 +57,10 @@ ddma_log(const char *fmt, ...)
 static uint8_t
 ddma_reg_read(uint16_t addr, void *priv)
 {
-    ddma_channel_t *dev  = (ddma_channel_t *) priv;
-    uint8_t         ret  = 0xff;
-    int             ch   = dev->channel;
-    int             dmab = (ch >= 4) ? 0xc0 : 0x00;
+    const ddma_channel_t *dev  = (ddma_channel_t *) priv;
+    uint8_t               ret  = 0xff;
+    int                   ch   = dev->channel;
+    uint8_t               dmab = (ch >= 4) ? 0xc0 : 0x00;
 
     switch (addr & 0x0f) {
         case 0x00:
@@ -92,10 +92,10 @@ ddma_reg_read(uint16_t addr, void *priv)
 static void
 ddma_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
-    ddma_channel_t *dev          = (ddma_channel_t *) priv;
-    int             ch           = dev->channel;
-    int             page_regs[4] = { 7, 3, 1, 2 };
-    int             dmab = (ch >= 4) ? 0xc0 : 0x00;
+    const ddma_channel_t *dev          = (ddma_channel_t *) priv;
+    int                   ch           = dev->channel;
+    uint8_t               page_regs[4] = { 7, 3, 1, 2 };
+    uint8_t               dmab = (ch >= 4) ? 0xc0 : 0x00;
 
     switch (addr & 0x0f) {
         case 0x00:

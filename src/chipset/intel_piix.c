@@ -290,7 +290,7 @@ piix_trap_io(UNUSED(int size), UNUSED(uint16_t addr), UNUSED(uint8_t write), UNU
 static void
 piix_trap_io_ide(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
 {
-    piix_io_trap_t *trap = (piix_io_trap_t *) priv;
+    const piix_io_trap_t *trap = (piix_io_trap_t *) priv;
 
     /* IDE traps are per drive, not per channel. */
     if (ide_drives[trap->dev_id]->selected)
@@ -328,10 +328,10 @@ piix_trap_update_devctl(piix_t *dev, uint8_t trap_id, uint8_t dev_id,
 static void
 piix_trap_update(void *priv)
 {
-    piix_t  *dev     = (piix_t *) priv;
-    uint8_t  trap_id = 0;
-    uint8_t *fregs   = dev->regs[3];
-    uint16_t temp;
+    piix_t        *dev     = (piix_t *) priv;
+    uint8_t        trap_id = 0;
+    const uint8_t *fregs   = dev->regs[3];
+    uint16_t       temp;
 
     piix_trap_update_devctl(dev, trap_id++, 0, 0x00000002, 1, 0x1f0, 8);
     piix_trap_update_devctl(dev, trap_id++, 0, 0x00000002, 1, 0x3f6, 1);
@@ -1167,9 +1167,9 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 piix_read(int func, int addr, void *priv)
 {
-    piix_t  *dev = (piix_t *) priv;
-    uint8_t  ret = 0xff;
-    uint8_t *fregs;
+    piix_t        *dev = (piix_t *) priv;
+    uint8_t        ret = 0xff;
+    const uint8_t *fregs;
 
     if ((dev->type == 3) && (func == 2) && (dev->max_func == 1) && (addr >= 0x40))
         ret = 0x00;
@@ -1203,8 +1203,8 @@ board_write(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 board_read(uint16_t port, void *priv)
 {
-    piix_t *dev = (piix_t *) priv;
-    uint8_t ret = 0x64;
+    const piix_t *dev = (piix_t *) priv;
+    uint8_t       ret = 0x64;
 
     if (port == 0x0078)
         ret = dev->board_config[0];
@@ -1447,7 +1447,7 @@ piix_fast_off_count(void *priv)
 static void
 piix_usb_update_interrupt(usb_t* usb, void *priv)
 {
-    piix_t *dev = (piix_t *) priv;
+    const piix_t *dev = (piix_t *) priv;
 
     if (usb->irq_level)
         pci_set_irq(dev->pci_slot, PCI_INTD);
@@ -1458,7 +1458,7 @@ piix_usb_update_interrupt(usb_t* usb, void *priv)
 static void
 piix_reset(void *priv)
 {
-    piix_t *dev = (piix_t *) priv;
+    const piix_t *dev = (piix_t *) priv;
 
     if (dev->type > 3) {
         piix_write(3, 0x04, 0x00, priv);

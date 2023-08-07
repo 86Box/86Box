@@ -10,17 +10,16 @@
 #include <86box/io.h>
 #include <86box/snd_cms.h>
 #include <86box/sound.h>
+#include <86box/plat_unused.h>
 
 void
 cms_update(cms_t *cms)
 {
     for (; cms->pos < sound_pos_global; cms->pos++) {
-        int     c;
-        int     d;
         int16_t out_l = 0;
         int16_t out_r = 0;
 
-        for (c = 0; c < 4; c++) {
+        for (uint8_t c = 0; c < 4; c++) {
             switch (cms->noisetype[c >> 1][c & 1]) {
                 case 0:
                     cms->noisefreq[c >> 1][c & 1] = MASTER_CLOCK / 256;
@@ -34,11 +33,14 @@ cms_update(cms_t *cms)
                 case 3:
                     cms->noisefreq[c >> 1][c & 1] = cms->freq[c >> 1][(c & 1) * 3];
                     break;
+
+                default:
+                    break;
             }
         }
-        for (c = 0; c < 2; c++) {
+        for (uint8_t c = 0; c < 2; c++) {
             if (cms->regs[c][0x1C] & 1) {
-                for (d = 0; d < 6; d++) {
+                for (uint8_t d = 0; d < 6; d++) {
                     if (cms->regs[c][0x14] & (1 << d)) {
                         if (cms->stat[c][d])
                             out_l += (cms->vol[c][d][0] * 90);
@@ -56,7 +58,7 @@ cms_update(cms_t *cms)
                             out_r += (cms->vol[c][d][0] * 90);
                     }
                 }
-                for (d = 0; d < 2; d++) {
+                for (uint8_t d = 0; d < 2; d++) {
                     cms->noisecount[c][d] += cms->noisefreq[c][d];
                     while (cms->noisecount[c][d] >= 24000) {
                         cms->noisecount[c][d] -= 24000;
@@ -73,9 +75,9 @@ cms_update(cms_t *cms)
 }
 
 void
-cms_get_buffer(int32_t *buffer, int len, void *p)
+cms_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    cms_t *cms = (cms_t *) p;
+    cms_t *cms = (cms_t *) priv;
 
     cms_update(cms);
 
@@ -86,9 +88,9 @@ cms_get_buffer(int32_t *buffer, int len, void *p)
 }
 
 void
-cms_write(uint16_t addr, uint8_t val, void *p)
+cms_write(uint16_t addr, uint8_t val, void *priv)
 {
-    cms_t *cms = (cms_t *) p;
+    cms_t *cms = (cms_t *) priv;
     int    voice;
     int    chip = (addr & 2) >> 1;
 
@@ -138,19 +140,25 @@ cms_write(uint16_t addr, uint8_t val, void *p)
                     cms->noisetype[chip][0] = val & 3;
                     cms->noisetype[chip][1] = (val >> 4) & 3;
                     break;
+
+                default:
+                    break;
             }
             break;
         case 0x6:
         case 0x7:
             cms->latched_data = val;
             break;
+
+        default:
+            break;
     }
 }
 
 uint8_t
-cms_read(uint16_t addr, void *p)
+cms_read(uint16_t addr, void *priv)
 {
-    cms_t *cms = (cms_t *) p;
+    const cms_t *cms = (cms_t *) priv;
 
     switch (addr & 0xf) {
         case 0x1:
@@ -162,12 +170,15 @@ cms_read(uint16_t addr, void *p)
         case 0xa:
         case 0xb:
             return cms->latched_data;
+
+        default:
+            break;
     }
     return 0xff;
 }
 
 void *
-cms_init(const device_t *info)
+cms_init(UNUSED(const device_t *info))
 {
     cms_t *cms = malloc(sizeof(cms_t));
     memset(cms, 0, sizeof(cms_t));
@@ -179,9 +190,9 @@ cms_init(const device_t *info)
 }
 
 void
-cms_close(void *p)
+cms_close(void *priv)
 {
-    cms_t *cms = (cms_t *) p;
+    cms_t *cms = (cms_t *) priv;
 
     free(cms);
 }

@@ -151,9 +151,9 @@ usb_interrupt_ohci(usb_t *dev, uint32_t level)
 static uint8_t
 uhci_reg_read(uint16_t addr, void *priv)
 {
-    usb_t   *dev = (usb_t *) priv;
-    uint8_t  ret;
-    uint8_t *regs = dev->uhci_io;
+    const usb_t   *dev = (usb_t *) priv;
+    uint8_t        ret;
+    const uint8_t *regs = dev->uhci_io;
 
     addr &= 0x0000001f;
 
@@ -282,8 +282,8 @@ ohci_get_remaining_frame_time(usb_t* usb)
 static uint8_t
 ohci_mmio_read(uint32_t addr, void *priv)
 {
-    usb_t  *dev = (usb_t *) priv;
-    uint8_t ret = 0x00;
+    const usb_t  *dev = (usb_t *) priv;
+    uint8_t       ret = 0x00;
 #ifdef ENABLE_USB_LOG
     uint32_t old_addr = addr;
 #endif

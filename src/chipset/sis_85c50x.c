@@ -228,8 +228,8 @@ sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 sis_85c50x_read(int func, int addr, void *priv)
 {
-    sis_85c50x_t *dev = (sis_85c50x_t *) priv;
-    uint8_t       ret = 0xff;
+    const sis_85c50x_t *dev = (sis_85c50x_t *) priv;
+    uint8_t             ret = 0xff;
 
     if (func == 0x00)
         ret = dev->pci_conf[addr];
@@ -283,8 +283,8 @@ sis_85c50x_sb_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 sis_85c50x_sb_read(int func, int addr, void *priv)
 {
-    sis_85c50x_t *dev = (sis_85c50x_t *) priv;
-    uint8_t       ret = 0xff;
+    const sis_85c50x_t *dev = (sis_85c50x_t *) priv;
+    uint8_t             ret = 0xff;
 
     if (func == 0x00)
         ret = dev->pci_conf_sb[addr];
@@ -338,8 +338,8 @@ sis_85c50x_isa_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 sis_85c50x_isa_read(uint16_t addr, void *priv)
 {
-    sis_85c50x_t *dev = (sis_85c50x_t *) priv;
-    uint8_t       ret = 0xff;
+    const sis_85c50x_t *dev = (sis_85c50x_t *) priv;
+    uint8_t             ret = 0xff;
 
     switch (addr) {
         case 0x22:
