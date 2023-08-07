@@ -434,7 +434,6 @@ END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_2080    "Неможливо ініціалізувати FluidSynth"
     IDS_2081    "Шина"
     IDS_2082    "Файл"
     IDS_2083    "C"
@@ -465,7 +464,6 @@ BEGIN
     IDS_2108    "%u МБ (CHS: %i, %i, %i)"
     IDS_2109    "Дисковод %i (%s): %ls"
     IDS_2110    "Усі образи (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Розширені образи секторів (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Основні образи секторів (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Образи Flux (*.FDI)\0*.FDI\0Образи Surface (*.86F;*.MFM)\0*.86F;*.MFM\0Усі файли (*.*)\0*.*\0"
-    IDS_2111    "Неможливо ініціалізувати FreeType"
     IDS_2112    "Неможливо ініціалізувати SDL, потрібно SDL2.dll"
     IDS_2113    "Ви впевнені, що хочете виконати холодне перезавантаження емульованої машини?"
     IDS_2114    "Ви впевнені, що хочете вийти з 86Box?"
@@ -493,23 +491,11 @@ BEGIN
     IDS_2130    "Переконайтесь, що " LIB_NAME_PCAP " встановлений і ваше мережеве з'єднання, сумісне з " LIB_NAME_PCAP "."
     IDS_2131    "Неприпустима конфігурація"
 #ifdef _WIN32
-#define LIB_NAME_FREETYPE "freetype.dll"
-#else
-#define LIB_NAME_FREETYPE "libfreetype"
-#endif
-    IDS_2132    "Для емуляції принтера ESC/P потрібно " LIB_NAME_FREETYPE "."
-#ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
     IDS_2133    LIB_NAME_GS " потрібно для автоматичного перетворення файлів PostScript в PDF.\n\nсі документи, відправлені на загальний принтер PostScript, будуть збережені у вигляді файлів PostScript (.ps)."
-#ifdef _WIN32
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
-#else
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
-#endif
-    IDS_2134    "Для FluidSynth MIDI-висновку потрібно " LIB_NAME_FLUIDSYNTH "."
     IDS_2135    "Вхід у повноекранний режим"
     IDS_2136    "Більше не показувати це повідомлення"
     IDS_2137    "Не виходити"

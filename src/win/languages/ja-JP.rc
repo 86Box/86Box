@@ -434,7 +434,6 @@ END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_2080    "FluidSynthが初期化できません"
     IDS_2081    "バス"
     IDS_2082    "ファイル"
     IDS_2083    "C"
@@ -465,7 +464,6 @@ BEGIN
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "フロッピー %i (%s): %ls"
     IDS_2110    "すべてのイメージ (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0アドバンスドセクターイメージ (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0基本セクターイメージ (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0フラックスイメージ (*.FDI)\0*.FDI\0表面イメージ (*.86F;*.MFM)\0*.86F;*.MFM\0すべてのファイル (*.*)\0*.*\0"
-    IDS_2111    "FreeTypeが初期化できません"
     IDS_2112    "SDLが初期化できません。SDL2.dllが必要です"
     IDS_2113    "使用中のマシンをハードリセットしますか？"
     IDS_2114    "86Boxを終了しますか？"
@@ -493,23 +491,11 @@ BEGIN
     IDS_2130    LIB_NAME_PCAP "がインストールされてるか、" LIB_NAME_PCAP "に対応したネットワークに接続されてるか確認してください。"
     IDS_2131    "不正な設定です"
 #ifdef _WIN32
-#define LIB_NAME_FREETYPE "freetype.dll"
-#else
-#define LIB_NAME_FREETYPE "libfreetype"
-#endif
-    IDS_2132    "ESC/Pプリンタのエミュレーションには" LIB_NAME_FREETYPE "が必要です。"
-#ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
     IDS_2133    "PostScriptファイルをPDFに自動変換するには" LIB_NAME_GS "が必要です。\n\n汎用PostScriptプリンターに送信されたドキュメントは、PostScript(.ps)ファイルとして保存されます。"
-#ifdef _WIN32
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
-#else
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
-#endif
-    IDS_2134    "FluidSynthのMIDI出力には" LIB_NAME_FLUIDSYNTH "が必要です。"
     IDS_2135    "フルスクリーンに切り替えています"
     IDS_2136    "今後、このメッセージを表示しない"
     IDS_2137    "終了しない"

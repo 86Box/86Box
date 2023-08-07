@@ -48,8 +48,8 @@ static void vt82c686_reset(vt82c686_t *dev, uint8_t initialization);
 static uint8_t
 vt82c686_read(uint16_t addr, void *priv)
 {
-    vt82c686_t *dev = (vt82c686_t *) priv;
-    uint8_t     ret;
+    const vt82c686_t *dev = (vt82c686_t *) priv;
+    uint8_t           ret;
 
     addr -= dev->io_base;
 

@@ -178,8 +178,8 @@ opti391_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 opti391_read(uint16_t addr, void *priv)
 {
-    opti391_t *dev = (opti391_t *) priv;
-    uint8_t    ret = 0xff;
+    const opti391_t *dev = (opti391_t *) priv;
+    uint8_t          ret = 0xff;
 
     if (addr == 0x24)
         ret = dev->regs[dev->index];

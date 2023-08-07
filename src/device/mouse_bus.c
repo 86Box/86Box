@@ -226,7 +226,6 @@ lt_read(uint16_t port, void *priv)
                 return (dev->control_val | 0x0F) & ~IRQ_MASK;
             else
                 return 0xff;
-            break;
 
         default:
             break;

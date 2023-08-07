@@ -415,7 +415,7 @@ video_get_video_from_internal_name(char *s)
     int c = 0;
 
     while (video_cards[c].device != NULL) {
-        if (!strcmp((char *) video_cards[c].device->internal_name, s))
+        if (!strcmp(video_cards[c].device->internal_name, s))
             return c;
         c++;
     }

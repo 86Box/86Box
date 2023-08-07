@@ -62,9 +62,9 @@ typedef struct ati18800_t {
 static video_timings_t timing_ati18800 = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
 static void
-ati18800_out(uint16_t addr, uint8_t val, void *p)
+ati18800_out(uint16_t addr, uint8_t val, void *priv)
 {
-    ati18800_t *ati18800 = (ati18800_t *) p;
+    ati18800_t *ati18800 = (ati18800_t *) priv;
     svga_t     *svga     = &ati18800->svga;
     uint8_t     old;
 
@@ -93,6 +93,9 @@ ati18800_out(uint16_t addr, uint8_t val, void *p)
                 case 0xb3:
                     ati_eeprom_write(&ati18800->eeprom, val & 8, val & 2, val & 1);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -118,14 +121,17 @@ ati18800_out(uint16_t addr, uint8_t val, void *p)
                 }
             }
             break;
+
+        default:
+            break;
     }
     svga_out(addr, val, svga);
 }
 
 static uint8_t
-ati18800_in(uint16_t addr, void *p)
+ati18800_in(uint16_t addr, void *priv)
 {
-    ati18800_t *ati18800 = (ati18800_t *) p;
+    ati18800_t *ati18800 = (ati18800_t *) priv;
     svga_t     *svga     = &ati18800->svga;
     uint8_t     temp     = 0xff;
 
@@ -165,7 +171,7 @@ ati18800_in(uint16_t addr, void *p)
 static void
 ati18800_recalctimings(svga_t *svga)
 {
-    ati18800_t *ati18800 = (ati18800_t *) svga->p;
+    const ati18800_t *ati18800 = (ati18800_t *) svga->priv;
 
     if (svga->crtc[0x17] & 4) {
         svga->vtotal <<= 1;
@@ -193,11 +199,9 @@ ati18800_init(const device_t *info)
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati18800);
 
     switch (info->local) {
-#if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
-        case ATI18800_WONDER:
-#endif
         default:
 #if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
+        case ATI18800_WONDER:
             rom_init(&ati18800->bios_rom, BIOS_ROM_PATH_WONDER, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
             break;
 #endif
@@ -254,9 +258,9 @@ ati18800_available(void)
 }
 
 static void
-ati18800_close(void *p)
+ati18800_close(void *priv)
 {
-    ati18800_t *ati18800 = (ati18800_t *) p;
+    ati18800_t *ati18800 = (ati18800_t *) priv;
 
     svga_close(&ati18800->svga);
 
@@ -264,17 +268,17 @@ ati18800_close(void *p)
 }
 
 static void
-ati18800_speed_changed(void *p)
+ati18800_speed_changed(void *priv)
 {
-    ati18800_t *ati18800 = (ati18800_t *) p;
+    ati18800_t *ati18800 = (ati18800_t *) priv;
 
     svga_recalctimings(&ati18800->svga);
 }
 
 static void
-ati18800_force_redraw(void *p)
+ati18800_force_redraw(void *priv)
 {
-    ati18800_t *ati18800 = (ati18800_t *) p;
+    ati18800_t *ati18800 = (ati18800_t *) priv;
 
     ati18800->svga.fullchange = changeframecount;
 }

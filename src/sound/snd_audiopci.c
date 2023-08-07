@@ -38,6 +38,7 @@
 #include <86box/snd_ac97.h>
 #include <86box/sound.h>
 #include <86box/timer.h>
+#include <86box/plat_unused.h>
 
 #define N            16
 
@@ -45,8 +46,9 @@
 
 static float low_fir_es1371_coef[ES1371_NCoef];
 
-typedef struct {
-    uint8_t pci_command, pci_serr;
+typedef struct es1371_t {
+    uint8_t pci_command;
+    uint8_t pci_serr;
 
     uint32_t base_addr;
 
@@ -54,9 +56,10 @@ typedef struct {
 
     uint16_t pmcsr;
 
-    uint32_t int_ctrl, int_status,
-        legacy_ctrl;
-    void *gameport;
+    uint32_t int_ctrl;
+    uint32_t int_status;
+    uint32_t legacy_ctrl;
+    void    *gameport;
 
     int mem_page;
 
@@ -65,17 +68,22 @@ typedef struct {
     uint32_t sr_cir;
     uint16_t sr_ram[128];
 
-    uint8_t uart_data, uart_ctrl,
-        uart_status, uart_res;
+    uint8_t  uart_data;
+    uint8_t  uart_ctrl;
+    uint8_t  uart_status;
+    uint8_t  uart_res;
     uint32_t uart_fifo[8];
-    uint8_t  read_fifo_pos, write_fifo_pos;
+    uint8_t  read_fifo_pos;
+    uint8_t  write_fifo_pos;
 
     ac97_codec_t *codec;
     uint32_t      codec_ctrl;
 
     struct {
-        uint32_t addr, addr_latch;
-        uint16_t count, size;
+        uint32_t addr;
+        uint32_t addr_latch;
+        uint16_t count;
+        uint16_t size;
 
         uint16_t samp_ct;
         int      curr_samp_ct;
@@ -83,24 +91,34 @@ typedef struct {
         pc_timer_t timer;
         uint64_t   latch;
 
-        uint32_t vf, ac;
+        uint32_t vf;
+        uint32_t ac;
 
-        int16_t buffer_l[64], buffer_r[64];
-        int     buffer_pos, buffer_pos_end;
+        int16_t buffer_l[64];
+        int16_t buffer_r[64];
+        int     buffer_pos;
+        int     buffer_pos_end;
 
-        int filtered_l[32], filtered_r[32];
+        int filtered_l[32];
+        int filtered_r[32];
         int f_pos;
 
-        int16_t out_l, out_r;
+        int16_t out_l;
+        int16_t out_r;
 
-        int32_t vol_l, vol_r;
+        int32_t vol_l;
+        int32_t vol_r;
     } dac[2], adc;
 
-    int64_t dac_latch, dac_time;
+    int64_t dac_latch;
+    int64_t dac_time;
 
-    int master_vol_l, master_vol_r,
-        pcm_vol_l, pcm_vol_r,
-        cd_vol_l, cd_vol_r;
+    int master_vol_l;
+    int master_vol_r;
+    int pcm_vol_l;
+    int pcm_vol_r;
+    int cd_vol_l;
+    int cd_vol_r;
 
     int card;
 
@@ -299,15 +317,15 @@ es1371_reset_fifo(es1371_t *dev)
 }
 
 static void
-es1371_reset(void *p)
+es1371_reset(void *priv)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
 
     nmi = 0;
 
     /* Interrupt/Chip Select Control Register, Address 00H
        Addressable as byte, word, longword */
-    dev->int_ctrl = 0xfc0f0000;
+    dev->int_ctrl = 0xfcff0000;
 
     /* Interrupt/Chip Select Control Register, Address 00H
        Addressable as longword only */
@@ -315,7 +333,7 @@ es1371_reset(void *p)
 
     /* UART Status Register, Address 09H
        Addressable as byte only */
-    dev->uart_status = 0x00;
+    dev->uart_status = 0xff;
 
     /* UART Control Register, Address 09H
        Addressable as byte only */
@@ -323,15 +341,15 @@ es1371_reset(void *p)
 
     /* UART Reserved Register, Address 0AH
        Addressable as byte only */
-    dev->uart_res = 0x00;
+    dev->uart_res = 0xff;
 
     /* Memory Page Register, Address 0CH
        Addressable as byte, word, longword */
-    dev->mem_page = 0x00;
+    dev->mem_page = 0xf0; /* FIXME: hardware reads 0xfffffff0 */
 
     /* Sample Rate Converter Interface Register, Address 10H
        Addressable as longword only */
-    dev->sr_cir = 0x00000000;
+    dev->sr_cir = 0x00470000;
 
     /* CODEC Write Register, Address 14H
        Addressable as longword only */
@@ -339,7 +357,7 @@ es1371_reset(void *p)
 
     /* Legacy Control/Status Register, Address 18H
        Addressable as byte, word, longword */
-    dev->legacy_ctrl = 0x0000f800;
+    dev->legacy_ctrl = 0x0000f801;
 
     /* Serial Interface Control Register, Address 20H
        Addressable as byte, word, longword */
@@ -347,17 +365,17 @@ es1371_reset(void *p)
 
     /* DAC1 Channel Sample Count Register, Address 24H
        Addressable as word, longword */
-    dev->dac[0].samp_ct      = 0x00000000;
+    dev->dac[0].samp_ct      = 0x00000000; /* FIXME: hardware reads 0x00010000 */
     dev->dac[0].curr_samp_ct = 0x00000000;
 
     /* DAC2 Channel Sample Count Register, Address 28H
        Addressable as word, longword */
-    dev->dac[1].samp_ct      = 0x00000000;
+    dev->dac[1].samp_ct      = 0x00000000; /* FIXME: hardware reads 0x00010000 */
     dev->dac[1].curr_samp_ct = 0x00000000;
 
     /* ADC Channel Sample Count Register, Address 2CH
        Addressable as word, longword */
-    dev->adc.samp_ct      = 0x00000000;
+    dev->adc.samp_ct      = 0x00000000; /* FIXME: hardware reads 0x00010000 */
     dev->adc.curr_samp_ct = 0x00000000;
 
     /* DAC1 Frame Register 1, Address 30H, Memory Page 1100b
@@ -429,6 +447,9 @@ es1371_read_frame_reg(es1371_t *dev, int frame, int page)
                                  dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)]);
                     ret = dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)];
                     break;
+
+                default:
+                    break;
             }
             break;
         case 0x34:
@@ -452,6 +473,9 @@ es1371_read_frame_reg(es1371_t *dev, int frame, int page)
                                  dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)]);
                     ret = dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)];
                     break;
+
+                default:
+                    break;
             }
             break;
         case 0x38:
@@ -469,6 +493,9 @@ es1371_read_frame_reg(es1371_t *dev, int frame, int page)
                                  ((page & 0x01) << 2) + ((frame >> 2) & 0x03),
                                  dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)]);
                     ret = dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)];
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -488,7 +515,13 @@ es1371_read_frame_reg(es1371_t *dev, int frame, int page)
                                  dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)]);
                     ret = dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)];
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 
@@ -519,6 +552,9 @@ es1371_write_frame_reg(es1371_t *dev, int frame, int page, uint32_t val)
                                  ((page & 0x01) << 2) + ((frame >> 2) & 0x03), val);
                     dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)] = val;
                     break;
+
+                default:
+                    break;
             }
             break;
         case 0x34:
@@ -543,6 +579,9 @@ es1371_write_frame_reg(es1371_t *dev, int frame, int page, uint32_t val)
                                  ((page & 0x01) << 2) + ((frame >> 2) & 0x03), val);
                     dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)] = val;
                     break;
+
+                default:
+                    break;
             }
             break;
         case 0x38:
@@ -559,6 +598,9 @@ es1371_write_frame_reg(es1371_t *dev, int frame, int page, uint32_t val)
                     audiopci_log("[38:%02X] dev->uart_fifo[%02X] = %08X\n", page,
                                  ((page & 0x01) << 2) + ((frame >> 2) & 0x03), val);
                     dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)] = val;
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -578,7 +620,13 @@ es1371_write_frame_reg(es1371_t *dev, int frame, int page, uint32_t val)
                                  ((page & 0x01) << 2) + ((frame >> 2) & 0x03), val);
                     dev->uart_fifo[((page & 0x01) << 2) + ((frame >> 2) & 0x03)] = val;
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 
@@ -588,9 +636,9 @@ es1371_write_frame_reg(es1371_t *dev, int frame, int page, uint32_t val)
 }
 
 static uint8_t
-es1371_inb(uint16_t port, void *p)
+es1371_inb(uint16_t port, void *priv)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
     uint8_t   ret = 0xff;
 
     switch (port & 0x3f) {
@@ -621,11 +669,11 @@ es1371_inb(uint16_t port, void *p)
             audiopci_log("[R] STATUS  8-15 = %02X\n", ret);
             break;
         case 0x06:
-            ret = (dev->int_status >> 16) & 0x0f;
+            ret = (dev->int_status >> 16) & 0xff;
             audiopci_log("[R] STATUS 16-23 = %02X\n", ret);
             break;
         case 0x07:
-            ret = ((dev->int_status >> 24) & 0x03) | 0xfc;
+            ret = (dev->int_status >> 24) & 0xff;
             audiopci_log("[R] STATUS 24-31 = %02X\n", ret);
             break;
 
@@ -699,9 +747,9 @@ es1371_inb(uint16_t port, void *p)
 }
 
 static uint16_t
-es1371_inw(uint16_t port, void *p)
+es1371_inw(uint16_t port, void *priv)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
     uint16_t  ret = 0xffff;
 
     switch (port & 0x3e) {
@@ -780,6 +828,9 @@ es1371_inw(uint16_t port, void *p)
         case 0x3e:
             ret = es1371_read_frame_reg(dev, port & 0x3c, dev->mem_page) >> 16;
             break;
+
+        default:
+            break;
     }
 
     audiopci_log("es1371_inw: port=%04x ret=%04x\n", port, ret);
@@ -788,9 +839,9 @@ es1371_inw(uint16_t port, void *p)
 }
 
 static uint32_t
-es1371_inl(uint16_t port, void *p)
+es1371_inl(uint16_t port, void *priv)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
     uint32_t  ret = 0xffffffff;
 
     switch (port & 0x3c) {
@@ -862,6 +913,9 @@ es1371_inl(uint16_t port, void *p)
         case 0x3c:
             ret = es1371_read_frame_reg(dev, port & 0x3c, dev->mem_page);
             break;
+
+        default:
+            break;
     }
 
     audiopci_log("es1371_inl: port=%04x ret=%08x\n", port, ret);
@@ -869,9 +923,9 @@ es1371_inl(uint16_t port, void *p)
 }
 
 static void
-es1371_outb(uint16_t port, uint8_t val, void *p)
+es1371_outb(uint16_t port, uint8_t val, void *priv)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
     uint32_t  old_legacy_ctrl;
 
     audiopci_log("es1371_outb: port=%04x val=%02x\n", port, val);
@@ -989,9 +1043,9 @@ es1371_outb(uint16_t port, uint8_t val, void *p)
 }
 
 static void
-es1371_outw(uint16_t port, uint16_t val, void *p)
+es1371_outw(uint16_t port, uint16_t val, void *priv)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
     uint32_t  old_legacy_ctrl;
 
     switch (port & 0x3f) {
@@ -1068,13 +1122,16 @@ es1371_outw(uint16_t port, uint16_t val, void *p)
         case 0x2c:
             dev->adc.samp_ct = val;
             break;
+
+        default:
+            break;
     }
 }
 
 static void
-es1371_outl(uint16_t port, uint32_t val, void *p)
+es1371_outl(uint16_t port, uint32_t val, void *priv)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
     uint32_t  old_legacy_ctrl;
 
     audiopci_log("es1371_outl: port=%04x val=%08x\n", port, val);
@@ -1154,6 +1211,9 @@ es1371_outl(uint16_t port, uint32_t val, void *p)
                     case 0x7f:
                         dev->dac[1].vol_r = (int32_t) (int16_t) (val & 0xffff);
                         break;
+
+                    default:
+                        break;
                 }
             }
             break;
@@ -1219,6 +1279,9 @@ es1371_outl(uint16_t port, uint32_t val, void *p)
         case 0x3c:
             es1371_write_frame_reg(dev, port & 0x3c, dev->mem_page, val);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -1237,106 +1300,106 @@ capture_event(es1371_t *dev, int type, int rw, uint16_t port)
 }
 
 static void
-capture_write_sscape(uint16_t port, uint8_t val, void *p)
+capture_write_sscape(uint16_t port, UNUSED(uint8_t val), void *priv)
 {
-    capture_event(p, LEGACY_EVENT_SSCAPE, 1, port);
+    capture_event(priv, LEGACY_EVENT_SSCAPE, 1, port);
 }
 
 static void
-capture_write_codec(uint16_t port, uint8_t val, void *p)
+capture_write_codec(uint16_t port, UNUSED(uint8_t val), void *priv)
 {
-    capture_event(p, LEGACY_EVENT_CODEC, 1, port);
+    capture_event(priv, LEGACY_EVENT_CODEC, 1, port);
 }
 
 static void
-capture_write_sb(uint16_t port, uint8_t val, void *p)
+capture_write_sb(uint16_t port, UNUSED(uint8_t val), void *priv)
 {
-    capture_event(p, LEGACY_EVENT_SB, 1, port);
+    capture_event(priv, LEGACY_EVENT_SB, 1, port);
 }
 
 static void
-capture_write_adlib(uint16_t port, uint8_t val, void *p)
+capture_write_adlib(uint16_t port, UNUSED(uint8_t val), void *priv)
 {
-    capture_event(p, LEGACY_EVENT_ADLIB, 1, port);
+    capture_event(priv, LEGACY_EVENT_ADLIB, 1, port);
 }
 
 static void
-capture_write_master_pic(uint16_t port, uint8_t val, void *p)
+capture_write_master_pic(uint16_t port, UNUSED(uint8_t val), void *priv)
 {
-    capture_event(p, LEGACY_EVENT_MASTER_PIC, 1, port);
+    capture_event(priv, LEGACY_EVENT_MASTER_PIC, 1, port);
 }
 
 static void
-capture_write_master_dma(uint16_t port, uint8_t val, void *p)
+capture_write_master_dma(uint16_t port, UNUSED(uint8_t val), void *priv)
 {
-    capture_event(p, LEGACY_EVENT_MASTER_DMA, 1, port);
+    capture_event(priv, LEGACY_EVENT_MASTER_DMA, 1, port);
 }
 
 static void
-capture_write_slave_pic(uint16_t port, uint8_t val, void *p)
+capture_write_slave_pic(uint16_t port, UNUSED(uint8_t val), void *priv)
 {
-    capture_event(p, LEGACY_EVENT_SLAVE_PIC, 1, port);
+    capture_event(priv, LEGACY_EVENT_SLAVE_PIC, 1, port);
 }
 
 static void
-capture_write_slave_dma(uint16_t port, uint8_t val, void *p)
+capture_write_slave_dma(uint16_t port, UNUSED(uint8_t val), void *priv)
 {
-    capture_event(p, LEGACY_EVENT_SLAVE_DMA, 1, port);
+    capture_event(priv, LEGACY_EVENT_SLAVE_DMA, 1, port);
 }
 
 static uint8_t
-capture_read_sscape(uint16_t port, void *p)
+capture_read_sscape(uint16_t port, void *priv)
 {
-    capture_event(p, LEGACY_EVENT_SSCAPE, 0, port);
+    capture_event(priv, LEGACY_EVENT_SSCAPE, 0, port);
     return 0xff;
 }
 
 static uint8_t
-capture_read_codec(uint16_t port, void *p)
+capture_read_codec(uint16_t port, void *priv)
 {
-    capture_event(p, LEGACY_EVENT_CODEC, 0, port);
+    capture_event(priv, LEGACY_EVENT_CODEC, 0, port);
     return 0xff;
 }
 
 static uint8_t
-capture_read_sb(uint16_t port, void *p)
+capture_read_sb(uint16_t port, void *priv)
 {
-    capture_event(p, LEGACY_EVENT_SB, 0, port);
+    capture_event(priv, LEGACY_EVENT_SB, 0, port);
     return 0xff;
 }
 
 static uint8_t
-capture_read_adlib(uint16_t port, void *p)
+capture_read_adlib(uint16_t port, void *priv)
 {
-    capture_event(p, LEGACY_EVENT_ADLIB, 0, port);
+    capture_event(priv, LEGACY_EVENT_ADLIB, 0, port);
     return 0xff;
 }
 
 static uint8_t
-capture_read_master_pic(uint16_t port, void *p)
+capture_read_master_pic(uint16_t port, void *priv)
 {
-    capture_event(p, LEGACY_EVENT_MASTER_PIC, 0, port);
+    capture_event(priv, LEGACY_EVENT_MASTER_PIC, 0, port);
     return 0xff;
 }
 
 static uint8_t
-capture_read_master_dma(uint16_t port, void *p)
+capture_read_master_dma(uint16_t port, void *priv)
 {
-    capture_event(p, LEGACY_EVENT_MASTER_DMA, 0, port);
+    capture_event(priv, LEGACY_EVENT_MASTER_DMA, 0, port);
     return 0xff;
 }
 
 static uint8_t
-capture_read_slave_pic(uint16_t port, void *p)
+capture_read_slave_pic(uint16_t port, void *priv)
 {
-    capture_event(p, LEGACY_EVENT_SLAVE_PIC, 0, port);
+    capture_event(priv, LEGACY_EVENT_SLAVE_PIC, 0, port);
     return 0xff;
 }
 
 static uint8_t
-capture_read_slave_dma(uint16_t port, void *p)
+capture_read_slave_dma(uint16_t port, void *priv)
 {
-    capture_event(p, LEGACY_EVENT_SLAVE_DMA, 0, port);
+    capture_event(priv, LEGACY_EVENT_SLAVE_DMA, 0, port);
     return 0xff;
 }
 
@@ -1365,6 +1428,9 @@ update_legacy(es1371_t *dev, uint32_t old_legacy_ctrl)
                                  capture_read_sscape, NULL, NULL,
                                  capture_write_sscape, NULL, NULL, dev);
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -1384,6 +1450,9 @@ update_legacy(es1371_t *dev, uint32_t old_legacy_ctrl)
                 io_removehandler(0x0f40, 0x0008,
                                  capture_read_codec, NULL, NULL,
                                  capture_write_codec, NULL, NULL, dev);
+                break;
+
+            default:
                 break;
         }
     }
@@ -1452,6 +1521,9 @@ update_legacy(es1371_t *dev, uint32_t old_legacy_ctrl)
                               capture_read_sscape, NULL, NULL,
                               capture_write_sscape, NULL, NULL, dev);
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -1471,6 +1543,9 @@ update_legacy(es1371_t *dev, uint32_t old_legacy_ctrl)
                 io_sethandler(0x0f40, 0x0008,
                               capture_read_codec, NULL, NULL,
                               capture_write_codec, NULL, NULL, dev);
+                break;
+
+            default:
                 break;
         }
     }
@@ -1519,9 +1594,9 @@ update_legacy(es1371_t *dev, uint32_t old_legacy_ctrl)
 }
 
 static uint8_t
-es1371_pci_read(int func, int addr, void *p)
+es1371_pci_read(int func, int addr, void *priv)
 {
-    es1371_t *dev = (es1371_t *) p;
+    const es1371_t *dev = (es1371_t *) priv;
 
     if (func > 0)
         return 0xff;
@@ -1551,7 +1626,7 @@ es1371_pci_read(int func, int addr, void *p)
             return 0x00;
 
         case 0x08:
-            return 0x08; /* Revision ID - 0x02 (datasheet, VMware) has issues with the 2001 Creative WDM driver */
+            return 0x02; /* Revision ID - 0x02 is actual Ensoniq-branded ES1371 */
         case 0x09:
             return 0x00; /* Multimedia audio device */
         case 0x0a:
@@ -1603,6 +1678,9 @@ es1371_pci_read(int func, int addr, void *p)
             return dev->pmcsr & 0xff;
         case 0xe1:
             return dev->pmcsr >> 8;
+
+        default:
+            break;
     }
 
     return 0x00;
@@ -1619,9 +1697,9 @@ es1371_io_set(es1371_t *dev, int set)
 }
 
 static void
-es1371_pci_write(int func, int addr, uint8_t val, void *p)
+es1371_pci_write(int func, int addr, uint8_t val, void *priv)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
 
     if (func)
         return;
@@ -1662,6 +1740,9 @@ es1371_pci_write(int func, int addr, uint8_t val, void *p)
             break;
         case 0xe1:
             dev->pmcsr = (dev->pmcsr & 0x00ff) | ((val & 0x01) << 8);
+            break;
+
+        default:
             break;
     }
 }
@@ -1747,6 +1828,9 @@ es1371_fetch(es1371_t *dev, int dac_nr)
                     break;
                 }
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -1839,9 +1923,9 @@ es1371_update(es1371_t *dev)
 }
 
 static void
-es1371_poll(void *p)
+es1371_poll(void *priv)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
     int       frac;
     int       idx;
     int       samp1_l;
@@ -1907,9 +1991,9 @@ es1371_poll(void *p)
 }
 
 static void
-es1371_get_buffer(int32_t *buffer, int len, void *p)
+es1371_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
 
     es1371_update(dev);
 
@@ -1920,12 +2004,12 @@ es1371_get_buffer(int32_t *buffer, int len, void *p)
 }
 
 static void
-es1371_filter_cd_audio(int channel, double *buffer, void *p)
+es1371_filter_cd_audio(int channel, double *buffer, void *priv)
 {
-    es1371_t *dev = (es1371_t *) p;
-    double    c;
-    int       cd     = channel ? dev->cd_vol_r : dev->cd_vol_l;
-    int       master = channel ? dev->master_vol_r : dev->master_vol_l;
+    const es1371_t *dev = (es1371_t *) priv;
+    double          c;
+    int             cd     = channel ? dev->cd_vol_r : dev->cd_vol_l;
+    int             master = channel ? dev->master_vol_r : dev->master_vol_l;
 
     c       = ((((*buffer) * cd) / 65536.0) * master) / 65536.0;
     *buffer = c;
@@ -2035,17 +2119,17 @@ es1371_init(const device_t *info)
 }
 
 static void
-es1371_close(void *p)
+es1371_close(void *priv)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
 
     free(dev);
 }
 
 static void
-es1371_speed_changed(void *p)
+es1371_speed_changed(void *priv)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
 
     dev->dac[1].latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) SOUND_FREQ));
 }
@@ -2054,7 +2138,7 @@ static const device_config_t es1371_config[] = {
   // clang-format off
     {
         .name = "codec",
-        .description = "CODEC",
+        .description = "Codec",
         .type = CONFIG_SELECTION,
         .selection = {
             {
@@ -2062,23 +2146,12 @@ static const device_config_t es1371_config[] = {
                 .value = AC97_CODEC_AK4540
             },
             {
-                .description = "Crystal CS4297",
-                .value = AC97_CODEC_CS4297
+                .description = "TriTech TR28023 / Creative CT1297",
+                .value = AC97_CODEC_TR28023
             },
-            {
-                .description = "Crystal CS4297A",
-                .value = AC97_CODEC_CS4297A
-            },
-            {
-                .description = "SigmaTel STAC9708",
-                .value = AC97_CODEC_STAC9708
-            },
-            {
-                .description = "SigmaTel STAC9721",
-                .value = AC97_CODEC_STAC9721
-            }
+            { .description = "" }
         },
-        .default_int = AC97_CODEC_CS4297A
+        .default_int = AC97_CODEC_TR28023
     },
     {
         .name = "receive_input",

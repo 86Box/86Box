@@ -20,7 +20,7 @@
 
 #include <86box/rom.h>
 
-typedef struct {
+typedef struct xga_hwcursor_t {
     int      ena;
     int      x;
     int      y;
@@ -36,12 +36,15 @@ typedef struct xga_t {
     mem_mapping_t  linear_mapping;
     mem_mapping_t  video_mapping;
     rom_t          bios_rom;
-    rom_t		   vga_bios_rom;
-    xga_hwcursor_t hwcursor, hwcursor_latch;
+    rom_t          vga_bios_rom;
+    xga_hwcursor_t hwcursor;
+    xga_hwcursor_t hwcursor_latch;
     PALETTE        extpal;
 
-    uint8_t test, atest[2], testpixel;
-    ;
+    uint8_t test;
+    uint8_t atest[2];
+    uint8_t testpixel;
+
     uint8_t  pos_regs[8];
     uint8_t  disp_addr;
     uint8_t  cfg_reg;
@@ -54,33 +57,44 @@ typedef struct xga_t {
     uint8_t  regs_idx;
     uint8_t  hwc_hotspot_x;
     uint8_t  hwc_hotspot_y;
-    uint8_t  disp_cntl_1, disp_cntl_2;
-    uint8_t  clk_sel_1, clk_sel_2;
+    uint8_t  disp_cntl_1;
+    uint8_t  disp_cntl_2;
+    uint8_t  clk_sel_1;
+    uint8_t  clk_sel_2;
     uint8_t  hwc_control;
     uint8_t  bus_arb;
     uint8_t  isa_pos_enable;
     uint8_t  hwcursor_oddeven;
     uint8_t  cfg_reg_instance;
     uint8_t  rowcount;
-    uint8_t  pal_idx, pal_idx_prefetch;
+    uint8_t  pal_idx;
+    uint8_t  pal_idx_prefetch;
     uint8_t  pal_seq;
     uint8_t  pal_mask;
-    uint8_t  pal_r, pal_r_prefetch;
-    uint8_t  pal_g, pal_g_prefetch;
-    uint8_t  pal_b, pal_b_prefetch;
+    uint8_t  pal_r;
+    uint8_t  pal_r_prefetch;
+    uint8_t  pal_g;
+    uint8_t  pal_g_prefetch;
+    uint8_t  pal_b;
+    uint8_t  pal_b_prefetch;
     uint8_t  sprite_data[1024];
     uint8_t  scrollcache;
+    uint8_t  border_color;
     uint8_t  direct_color;
     uint8_t  dma_channel;
-    uint8_t  instance_isa, instance_num, ext_mem_addr;
-    uint8_t *vram, *changedvram;
+    uint8_t  instance_isa;
+    uint8_t  instance_num;
+    uint8_t  ext_mem_addr;
+    uint8_t *vram;
+    uint8_t *changedvram;
 
     int16_t hwc_pos_x;
     int16_t hwc_pos_y;
 
     uint16_t pos_idx;
     uint16_t htotal;
-    uint16_t sprite_idx, sprite_idx_prefetch;
+    uint16_t sprite_idx;
+    uint16_t sprite_idx_prefetch;
     uint16_t hdisp;
     uint16_t vtotal;
     uint16_t vdispend;
@@ -88,41 +102,74 @@ typedef struct xga_t {
     uint16_t vsyncstart;
     uint16_t linecmp;
     uint16_t pix_map_width;
-    uint16_t sprite_pal_addr_idx, old_pal_addr_idx;
+    uint16_t sprite_pal_addr_idx;
+    uint16_t old_pal_addr_idx;
     uint16_t sprite_pal_addr_idx_prefetch;
 
-    int v_total, dispend, v_syncstart, split, v_blankstart,
-        h_disp, h_disp_old, h_total, h_disp_time, rowoffset,
-        dispon, h_disp_on, vc, sc, linepos, oddeven, firstline, lastline,
-        firstline_draw, lastline_draw, displine, fullchange, interlace,
-        char_width, hwcursor_on;
-    int pal_pos, pal_pos_prefetch;
+    int v_total;
+    int dispend;
+    int v_syncstart;
+    int split;
+    int v_blankstart;
+    int h_disp;
+    int h_disp_old;
+    int h_total;
+    int h_disp_time;
+    int rowoffset;
+    int dispon;
+    int h_disp_on;
+    int vc;
+    int sc;
+    int linepos;
+    int oddeven;
+    int firstline;
+    int lastline;
+    int firstline_draw;
+    int lastline_draw;
+    int displine;
+    int fullchange;
+    int interlace;
+    int char_width;
+    int hwcursor_on;
+    int pal_pos;
+    int pal_pos_prefetch;
     int on;
-    int op_mode_reset, linear_endian_reverse;
-    int sprite_pos, sprite_pos_prefetch, cursor_data_on;
-    int pal_test, a5_test;
-    int type, bus;
+    int op_mode_reset;
+    int linear_endian_reverse;
+    int sprite_pos;
+    int sprite_pos_prefetch;
+    int cursor_data_on;
+    int pal_test;
+    int a5_test;
+    int type;
+    int bus;
 
-    uint32_t linear_base, linear_size, banked_mask;
+    uint32_t linear_base;
+    uint32_t linear_size;
+    uint32_t banked_mask;
     uint32_t base_addr_1mb;
-    uint32_t hwc_color0, hwc_color1;
+    uint32_t hwc_color0;
+    uint32_t hwc_color1;
     uint32_t disp_start_addr;
     uint32_t ma_latch;
     uint32_t vram_size;
     uint32_t vram_mask;
     uint32_t rom_addr;
-    uint32_t ma, maback;
+    uint32_t ma;
+    uint32_t maback;
     uint32_t extpallook[256];
-    uint32_t read_bank, write_bank;
+    uint32_t read_bank;
+    uint32_t write_bank;
     uint32_t px_map_base;
 
-    uint64_t dispontime, dispofftime;
+    uint64_t dispontime;
+    uint64_t dispofftime;
 
-    struct
-    {
+    struct {
         uint8_t control;
         uint8_t px_map_idx;
-        uint8_t frgd_mix, bkgd_mix;
+        uint8_t frgd_mix;
+        uint8_t bkgd_mix;
         uint8_t cc_cond;
         uint8_t octant;
         uint8_t draw_mode;
@@ -133,15 +180,19 @@ typedef struct xga_t {
         uint8_t short_stroke_vector4;
 
         int16_t bres_err_term;
-        int16_t bres_k1, bres_k2;
+        int16_t bres_k1;
+        int16_t bres_k2;
 
         uint16_t blt_width;
         uint16_t blt_height;
         uint16_t mask_map_origin_x_off;
         uint16_t mask_map_origin_y_off;
-        uint16_t src_map_x, src_map_y;
-        uint16_t dst_map_x, dst_map_y;
-        uint16_t pat_map_x, pat_map_y;
+        uint16_t src_map_x;
+        uint16_t src_map_y;
+        uint16_t dst_map_x;
+        uint16_t dst_map_y;
+        uint16_t pat_map_x;
+        uint16_t pat_map_y;
 
         int ssv_state;
         int pat_src;
@@ -149,7 +200,14 @@ typedef struct xga_t {
         int dst_map;
         int bkgd_src;
         int fore_src;
-        int x, y, sx, sy, dx, dy, px, py;
+        int x;
+        int y;
+        int sx;
+        int sy;
+        int dx;
+        int dy;
+        int px;
+        int py;
         int pattern;
         int command_len;
 
@@ -157,7 +215,8 @@ typedef struct xga_t {
         uint32_t color_cmp;
         uint32_t carry_chain;
         uint32_t plane_mask;
-        uint32_t frgd_color, bkgd_color;
+        uint32_t frgd_color;
+        uint32_t bkgd_color;
         uint32_t command;
         uint32_t dir_cmd;
 
@@ -167,6 +226,6 @@ typedef struct xga_t {
         uint32_t px_map_base[4];
     } accel;
 
-    volatile int force_busy;
+    int big_endian_linear;
 } xga_t;
 #endif /*VIDEO_XGA_H*/

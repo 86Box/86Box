@@ -288,9 +288,9 @@ ems_writew(uint32_t addr, uint16_t val, void *priv)
 static uint8_t
 ems_read(uint16_t port, void *priv)
 {
-    memdev_t *dev = (memdev_t *) priv;
-    uint8_t   ret = 0xff;
-    int       vpage;
+    const memdev_t *dev = (memdev_t *) priv;
+    uint8_t         ret = 0xff;
+    int             vpage;
 
     /* Get the viewport page number. */
     vpage = (port / EMS_PGSIZE);

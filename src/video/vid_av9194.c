@@ -27,9 +27,10 @@
 #include <86box/timer.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
+#include <86box/plat_unused.h>
 
 float
-av9194_getclock(int clock, void *p)
+av9194_getclock(int clock, UNUSED(void *priv))
 {
     float ret = 0.0;
 
@@ -79,13 +80,16 @@ av9194_getclock(int clock, void *p)
         case 0xf:
             ret = 94500000.0;
             break;
+
+        default:
+            break;
     }
 
     return ret;
 }
 
 static void *
-av9194_init(const device_t *info)
+av9194_init(UNUSED(const device_t *info))
 {
     /* Return something non-NULL. */
     return (void *) &av9194_device;

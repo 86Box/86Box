@@ -10,6 +10,7 @@
 #include <86box/io.h>
 #include <86box/sound.h>
 #include <86box/snd_sn76489.h>
+#include <86box/plat_unused.h>
 
 int sn76489_mute;
 
@@ -33,7 +34,7 @@ sn76489_update(sn76489_t *sn76489)
                 result += (int16_t) (volslog[sn76489->vol[c]] * 127);
 
             sn76489->count[c] -= (256 * sn76489->psgconst);
-            while ((int) sn76489->count[c] < 0) {
+            while (sn76489->count[c] < 0) {
                 sn76489->count[c] += sn76489->latch[c];
                 sn76489->stat[c] = -sn76489->stat[c];
             }
@@ -41,7 +42,7 @@ sn76489_update(sn76489_t *sn76489)
         result += (((sn76489->shift & 1) ^ 1) * 127 * volslog[sn76489->vol[0]] * 2);
 
         sn76489->count[0] -= (512 * sn76489->psgconst);
-        while ((int) sn76489->count[0] < 0 && sn76489->latch[0]) {
+        while (sn76489->count[0] < 0 && sn76489->latch[0]) {
             sn76489->count[0] += (sn76489->latch[0] * 4);
             if (!(sn76489->noise & 4)) {
                 if (sn76489->shift & 1)
@@ -59,9 +60,9 @@ sn76489_update(sn76489_t *sn76489)
 }
 
 void
-sn76489_get_buffer(int32_t *buffer, int len, void *p)
+sn76489_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    sn76489_t *sn76489 = (sn76489_t *) p;
+    sn76489_t *sn76489 = (sn76489_t *) priv;
 
     sn76489_update(sn76489);
 
@@ -74,9 +75,9 @@ sn76489_get_buffer(int32_t *buffer, int len, void *p)
 }
 
 void
-sn76489_write(uint16_t addr, uint8_t data, void *p)
+sn76489_write(UNUSED(uint16_t addr), uint8_t data, void *priv)
 {
-    sn76489_t *sn76489 = (sn76489_t *) p;
+    sn76489_t *sn76489 = (sn76489_t *) priv;
     int        freq;
 
     sn76489_update(sn76489);
@@ -140,6 +141,9 @@ sn76489_write(uint16_t addr, uint8_t data, void *p)
                 data &= 0xf;
                 sn76489->vol[0] = 0xf - data;
                 break;
+
+            default:
+                break;
         }
     } else {
         if ((sn76489->firstdat & 0x70) == 0x60 && (sn76489->type == SN76496)) {
@@ -197,7 +201,7 @@ sn76489_init(sn76489_t *sn76489, uint16_t base, uint16_t size, int type, int fre
 }
 
 void *
-sn76489_device_init(const device_t *info)
+sn76489_device_init(UNUSED(const device_t *info))
 {
     sn76489_t *sn76489 = malloc(sizeof(sn76489_t));
     memset(sn76489, 0, sizeof(sn76489_t));
@@ -208,7 +212,7 @@ sn76489_device_init(const device_t *info)
 }
 
 void *
-ncr8496_device_init(const device_t *info)
+ncr8496_device_init(UNUSED(const device_t *info))
 {
     sn76489_t *sn76489 = malloc(sizeof(sn76489_t));
     memset(sn76489, 0, sizeof(sn76489_t));
@@ -219,7 +223,7 @@ ncr8496_device_init(const device_t *info)
 }
 
 void *
-tndy_device_init(const device_t *info)
+tndy_device_init(UNUSED(const device_t *info))
 {
     sn76489_t *sn76489 = malloc(sizeof(sn76489_t));
     memset(sn76489, 0, sizeof(sn76489_t));
@@ -232,9 +236,9 @@ tndy_device_init(const device_t *info)
 }
 
 void
-sn76489_device_close(void *p)
+sn76489_device_close(void *priv)
 {
-    sn76489_t *sn76489 = (sn76489_t *) p;
+    sn76489_t *sn76489 = (sn76489_t *) priv;
 
     free(sn76489);
 }

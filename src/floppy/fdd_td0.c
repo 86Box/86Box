@@ -60,7 +60,7 @@
 /* update when cumulative frequency */
 /* reaches to this value */
 
-typedef struct {
+typedef struct tdlzhuf_t {
     uint16_t r;
     uint16_t bufcnt;      /* string buffer */
     uint16_t bufndx;      /* string buffer */
@@ -72,7 +72,7 @@ typedef struct {
     uint8_t inbuf[BUFSZ]; /* input buffer */
 } tdlzhuf;
 
-typedef struct {
+typedef struct td0dsk_t {
     FILE *fdd_file;
     off_t fdd_file_offset;
 
@@ -93,7 +93,7 @@ typedef struct {
     uint8_t  getlen;
 } td0dsk_t;
 
-typedef struct {
+typedef struct td0_sector_t {
     uint8_t  track;
     uint8_t  head;
     uint8_t  sector;
@@ -103,8 +103,8 @@ typedef struct {
     uint8_t *data;
 } td0_sector_t;
 
-typedef struct {
-    FILE *f;
+typedef struct td0_t {
+    FILE *fp;
 
     int          tracks;
     int          track_width;
@@ -227,9 +227,9 @@ fdd_image_read(int drive, char *buffer, uint32_t offset, uint32_t len)
 {
     td0_t *dev = td0[drive];
 
-    if (fseek(dev->f, offset, SEEK_SET) == -1)
+    if (fseek(dev->fp, offset, SEEK_SET) == -1)
         fatal("fdd_image_read(): Error seeking to the beginning of the file\n");
-    if (fread(buffer, 1, len, dev->f) != len)
+    if (fread(buffer, 1, len, dev->fp) != len)
         fatal("fdd_image_read(): Error reading data\n");
 }
 
@@ -595,45 +595,45 @@ get_raw_tsize(int side_flags, int slower_rpm)
 static int
 td0_initialize(int drive)
 {
-    td0_t   *dev = td0[drive];
-    uint8_t  header[12];
-    int      fm;
-    int      head;
-    int      track;
-    int      track_count = 0;
-    int      head_count  = 0;
-    int      track_spt;
-    int      track_spt_adjusted;
-    int      offset    = 0;
-    int      density   = 0;
-    int      temp_rate = 0;
-    uint32_t file_size;
-    uint16_t len;
-    uint16_t rep;
-    td0dsk_t disk_decode;
-    uint8_t *hs;
-    uint16_t size;
-    uint8_t *dbuf         = dev->processed_buf;
-    uint32_t total_size   = 0;
-    uint32_t id_field     = 0;
-    uint32_t pre_sector   = 0;
-    int32_t  track_size   = 0;
-    int32_t  raw_tsize    = 0;
-    uint32_t minimum_gap3 = 0;
-    uint32_t minimum_gap4 = 0;
-    int      i;
-    int      j;
-    int      k;
-    int      size_diff;
-    int      gap_sum;
+    td0_t         *dev = td0[drive];
+    uint8_t        header[12];
+    int            fm;
+    int            head;
+    int            track;
+    int            track_count = 0;
+    int            head_count  = 0;
+    int            track_spt;
+    int            track_spt_adjusted;
+    int            offset    = 0;
+    int            density   = 0;
+    int            temp_rate = 0;
+    uint32_t       file_size;
+    uint16_t       len;
+    uint16_t       rep;
+    td0dsk_t       disk_decode;
+    const uint8_t *hs;
+    uint16_t       size;
+    uint8_t       *dbuf         = dev->processed_buf;
+    uint32_t       total_size   = 0;
+    uint32_t       id_field     = 0;
+    uint32_t       pre_sector   = 0;
+    int32_t        track_size   = 0;
+    int32_t        raw_tsize    = 0;
+    uint32_t       minimum_gap3 = 0;
+    uint32_t       minimum_gap4 = 0;
+    int            i;
+    int            j;
+    int            k;
+    int            size_diff;
+    int            gap_sum;
 
-    if (dev->f == NULL) {
+    if (dev->fp == NULL) {
         td0_log("TD0: Attempted to initialize without loading a file first\n");
         return 0;
     }
 
-    fseek(dev->f, 0, SEEK_END);
-    file_size = ftell(dev->f);
+    fseek(dev->fp, 0, SEEK_END);
+    file_size = ftell(dev->fp);
 
     if (file_size < 12) {
         td0_log("TD0: File is too small to even contain the header\n");
@@ -645,21 +645,21 @@ td0_initialize(int drive)
         return 0;
     }
 
-    fseek(dev->f, 0, SEEK_SET);
-    (void) !fread(header, 1, 12, dev->f);
+    fseek(dev->fp, 0, SEEK_SET);
+    (void) !fread(header, 1, 12, dev->fp);
     head_count = header[9];
 
     if (header[0] == 't') {
         td0_log("TD0: File is compressed\n");
-        disk_decode.fdd_file = dev->f;
+        disk_decode.fdd_file = dev->fp;
         state_init_Decode(&disk_decode);
         disk_decode.fdd_file_offset = 12;
         state_Decode(&disk_decode, dev->imagebuf, TD0_MAX_BUFSZ);
     } else {
         td0_log("TD0: File is uncompressed\n");
-        if (fseek(dev->f, 12, SEEK_SET) == -1)
+        if (fseek(dev->fp, 12, SEEK_SET) == -1)
             fatal("td0_initialize(): Error seeking to offet 12\n");
-        if (fread(dev->imagebuf, 1, file_size - 12, dev->f) != (file_size - 12))
+        if (fread(dev->imagebuf, 1, file_size - 12, dev->fp) != (file_size - 12))
             fatal("td0_initialize(): Error reading image buffer\n");
     }
 
@@ -709,6 +709,9 @@ td0_initialize(int drive)
         case 6: /* 3.5" 2.88M: 300 rpm */
             dev->default_track_flags = (density == 1) ? 0x00 : ((density == 2) ? 0x03 : 0x02);
             dev->max_sector_size     = (density == 1) ? 6 : ((density == 2) ? 7 : 5); /* 16384, 8192, or 4096 bytes. */
+            break;
+
+        default:
             break;
     }
 
@@ -886,7 +889,7 @@ td0_initialize(int drive)
 static uint16_t
 disk_flags(int drive)
 {
-    td0_t *dev = td0[drive];
+    const td0_t *dev = td0[drive];
 
     return (dev->disk_flags);
 }
@@ -894,9 +897,9 @@ disk_flags(int drive)
 static uint16_t
 side_flags(int drive)
 {
-    td0_t   *dev    = td0[drive];
-    int      side   = 0;
-    uint16_t sflags = 0;
+    const td0_t   *dev    = td0[drive];
+    int            side   = 0;
+    uint16_t       sflags = 0;
 
     side   = fdd_get_head(drive);
     sflags = dev->current_side_flags[side];
@@ -923,7 +926,7 @@ set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 static uint8_t
 poll_read_data(int drive, int side, uint16_t pos)
 {
-    td0_t *dev = td0[drive];
+    const td0_t *dev = td0[drive];
 
     return (dev->sects[dev->track][side][dev->current_sector_index[side]].data[pos]);
 }
@@ -1064,7 +1067,7 @@ td0_seek(int drive, int track)
     int     fm;
     int     sector_adjusted;
 
-    if (dev->f == NULL)
+    if (dev->fp == NULL)
         return;
 
     if (!dev->track_width && fdd_doublestep_40(drive))
@@ -1182,8 +1185,8 @@ td0_abort(int drive)
         free(dev->imagebuf);
     if (dev->processed_buf)
         free(dev->processed_buf);
-    if (dev->f)
-        fclose(dev->f);
+    if (dev->fp)
+        fclose(dev->fp);
     memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
     free(dev);
     td0[drive] = NULL;
@@ -1203,8 +1206,8 @@ td0_load(int drive, char *fn)
     memset(dev, 0x00, sizeof(td0_t));
     td0[drive] = dev;
 
-    dev->f = plat_fopen(fn, "rb");
-    if (dev->f == NULL) {
+    dev->fp = plat_fopen(fn, "rb");
+    if (dev->fp == NULL) {
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         return;
     }
@@ -1285,8 +1288,8 @@ td0_close(int drive)
             memset(dev->sects[i][j], 0, sizeof(td0_sector_t));
     }
 
-    if (dev->f != NULL)
-        fclose(dev->f);
+    if (dev->fp != NULL)
+        fclose(dev->fp);
 
     /* Release resources. */
     free(dev);

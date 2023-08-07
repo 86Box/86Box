@@ -148,7 +148,7 @@ cs4031_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 cs4031_read(uint16_t addr, void *priv)
 {
-    cs4031_t *dev = (cs4031_t *) priv;
+    const cs4031_t *dev = (cs4031_t *) priv;
 
     return (addr == 0x23) ? dev->regs[dev->index] : 0xff;
 }

@@ -137,8 +137,8 @@ vl82c480_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 vl82c480_read(uint16_t addr, void *priv)
 {
-    vl82c480_t *dev = (vl82c480_t *) priv;
-    uint8_t     ret = 0xff;
+    const vl82c480_t *dev = (vl82c480_t *) priv;
+    uint8_t           ret = 0xff;
 
     switch (addr) {
         case 0xec:

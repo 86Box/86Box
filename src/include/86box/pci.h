@@ -69,7 +69,7 @@ enum {
     PCI_CARD_SOUND           = 0x13,
     PCI_CARD_IDE             = 0x14,
     PCI_CARD_NETWORK         = 0x15,
-    PCI_CARD_BRIDGE          = 0x16,
+    PCI_CARD_BRIDGE          = 0x16
 };
 
 enum {
