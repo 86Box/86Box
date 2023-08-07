@@ -1061,11 +1061,6 @@ pc_reset_hard_init(void)
      * that will be a call to device_reset_all() later !
      */
 
-    /*
-     * Reset the mouse, this will attach it to any port needed.
-     */
-    mouse_reset();
-
     if (joystick_type)
         gameport_update_joystick_type();
 
@@ -1080,6 +1075,11 @@ pc_reset_hard_init(void)
     /* Reset and reconfigure the serial ports. */
     serial_standalone_init();
     serial_passthrough_init();
+
+    /*
+     * Reset the mouse, this will attach it to any port needed.
+     */
+    mouse_reset();
 
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
