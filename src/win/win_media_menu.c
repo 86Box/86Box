@@ -544,6 +544,10 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     int ret = 0;
     int wp  = 0;
 
+#ifdef __clang__
+    BROWSEINFO bi;
+#endif
+
     id = LOWORD(wParam) & 0x00ff;
 
     switch (LOWORD(wParam) & 0xff00) {
@@ -651,10 +655,15 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
 
         case IDM_CDROM_DIR:
+#ifndef __clang__
             BROWSEINFO bi = {
                 .hwndOwner = hwnd,
                 .ulFlags   = BIF_EDITBOX
             };
+#else
+            bi.hwndOwner = hwnd;
+            bi.ulFlags   = BIF_EDITBOX;
+#endif
             OleInitialize(NULL);
             int old_dopause = dopause;
             plat_pause(1);

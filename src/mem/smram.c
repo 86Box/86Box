@@ -56,8 +56,8 @@ smram_log(const char *fmt, ...)
 static uint8_t
 smram_read(uint32_t addr, void *priv)
 {
-    smram_t *dev      = (smram_t *) priv;
-    uint32_t new_addr = addr - dev->host_base + dev->ram_base;
+    const smram_t *dev      = (smram_t *) priv;
+    uint32_t       new_addr = addr - dev->host_base + dev->ram_base;
 
     if (new_addr >= (1 << 30))
         return mem_read_ram_2gb(new_addr, priv);

@@ -78,7 +78,8 @@ phoenix_486_jumper_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 static uint8_t
 phoenix_486_jumper_read(UNUSED(uint16_t addr), void *priv)
 {
-    phoenix_486_jumper_t *dev = (phoenix_486_jumper_t *) priv;
+    const phoenix_486_jumper_t *dev = (phoenix_486_jumper_t *) priv;
+
     phoenix_486_jumper_log("Phoenix 486 Jumper: Read %02x\n", dev->jumper);
     return dev->jumper;
 }

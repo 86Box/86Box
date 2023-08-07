@@ -639,24 +639,29 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     int depth_jump_pos  = 0;
     int depth_jump_pos2 = 0;
     int loop_jump_pos   = 0;
-    //        xmm_01_w = (__m128i)0x0001000100010001ull;
-    //        xmm_ff_w = (__m128i)0x00ff00ff00ff00ffull;
-    //        xmm_ff_b = (__m128i)0x00000000ffffffffull;
+#if 0
+    xmm_01_w = (__m128i)0x0001000100010001ull;
+    xmm_ff_w = (__m128i)0x00ff00ff00ff00ffull;
+    xmm_ff_b = (__m128i)0x00000000ffffffffull;
+#endif
     xmm_01_w  = _mm_set_epi32(0, 0, 0x00010001, 0x00010001);
     xmm_ff_w  = _mm_set_epi32(0, 0, 0x00ff00ff, 0x00ff00ff);
     xmm_ff_b  = _mm_set_epi32(0, 0, 0, 0x00ffffff);
     minus_254 = _mm_set_epi32(0, 0, 0xff02ff02, 0xff02ff02);
-    //        *(uint64_t *)&const_1_48 = 0x45b0000000000000ull;
-    //        block_pos = 0;
-    //        voodoo_get_depth = &code_block[block_pos];
+#if 0
+    *(uint64_t *)&const_1_48 = 0x45b0000000000000ull;
+    block_pos = 0;
+    voodoo_get_depth = &code_block[block_pos];
+#endif
     /*W at (%esp+4)
       Z at (%esp+12)
       new_depth at (%esp+16)*/
-    //        if ((params->fbzMode & FBZ_DEPTH_ENABLE) && (depth_op == DEPTHOP_NEVER))
-    //        {
-    //                addbyte(0xC3); /*RET*/
-    //                return;
-    //        }
+#if 0
+    if ((params->fbzMode & FBZ_DEPTH_ENABLE) && (depth_op == DEPTHOP_NEVER)) {
+            addbyte(0xC3); /*RET*/
+            return;
+    }
+#endif
     addbyte(0x55); /*PUSH EBP*/
     addbyte(0x57); /*PUSH EDI*/
     addbyte(0x56); /*PUSH ESI*/
@@ -871,16 +876,19 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             fatal("Bad depth_op\n");
     } else if ((params->fbzMode & FBZ_DEPTH_ENABLE) && (depthop == DEPTHOP_NEVER)) {
         addbyte(0xC3); /*RET*/
-                       //                addbyte(0x30); /*XOR EAX, EAX*/
-                       //                addbyte(0xc0);
+#if 0
+        addbyte(0x30); /*XOR EAX, EAX*/
+        addbyte(0xc0);
+#endif
     }
-    //        else
-    //        {
-    //                addbyte(0xb0); /*MOV AL, 1*/
-    //                addbyte(1);
-    //        }
+#if 0
+    else {
+            addbyte(0xb0); /*MOV AL, 1*/
+            addbyte(1);
+    }
 
-    //        voodoo_combine = &code_block[block_pos];
+    voodoo_combine = &code_block[block_pos];
+#endif
     /*XMM0 = colour*/
     /*XMM2 = 0 (for unpacking*/
 
@@ -2076,12 +2084,13 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         addbyte(0x05);
         addlong((uint32_t) &xmm_ff_b);
     }
-    // #if 0
-    //         addbyte(0x66); /*MOVD state->out[EDI], XMM0*/
-    //         addbyte(0x0f);
-    //         addbyte(0x7e);
-    //         addbyte(0x87);
-    //         addlong(offsetof(voodoo_state_t, out));
+#if 0
+    addbyte(0x66); /*MOVD state->out[EDI], XMM0*/
+    addbyte(0x0f);
+    addbyte(0x7e);
+    addbyte(0x87);
+    addlong(offsetof(voodoo_state_t, out));
+#endif
     if (params->fogMode & FOG_ENABLE) {
         if (params->fogMode & FOG_CONSTANT) {
             addbyte(0x66); /*MOVD XMM3, params->fogColor[ESI]*/
@@ -2093,11 +2102,18 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             addbyte(0x0f);
             addbyte(0xdc);
             addbyte(0xc3);
-            /*                        src_r += params->fogColor.r;
-                                    src_g += params->fogColor.g;
-                                    src_b += params->fogColor.b;                    */
+#if 0
+            src_r += params->fogColor.r;
+            src_g += params->fogColor.g;
+            src_b += params->fogColor.b;                    */
+#endif
         } else {
-            /*int fog_r, fog_g, fog_b, fog_a;                 */
+#if 0
+            int fog_r;
+            int fog_g;
+            int fog_b;
+            int fog_a;
+#endif
 
             addbyte(0x66); /*PUNPCKLBW XMM0, XMM2*/
             addbyte(0x0f);
@@ -2168,10 +2184,12 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                     addbyte(0x01); /*ADD EAX, EBX*/
                     addbyte(0xd8);
 
-                    /*                                int fog_idx = (w_depth >> 10) & 0x3f;
+#if 0
+                    int fog_idx = (w_depth >> 10) & 0x3f;
 
-                                                    fog_a = params->fogTable[fog_idx].fog;
-                                                    fog_a += (params->fogTable[fog_idx].dfog * ((w_depth >> 2) & 0xff)) >> 10;*/
+                    fog_a = params->fogTable[fog_idx].fog;
+                    fog_a += (params->fogTable[fog_idx].dfog * ((w_depth >> 2) & 0xff)) >> 10;
+#endif
                     break;
 
                 case FOG_Z:
@@ -2183,7 +2201,9 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                     addbyte(12);
                     addbyte(0x25); /*AND EAX, 0xff*/
                     addlong(0xff);
-                    //                                fog_a = (z >> 20) & 0xff;
+#if 0
+                    fog_a = (z >> 20) & 0xff;
+#endif
                     break;
 
                 case FOG_ALPHA:
@@ -2205,7 +2225,9 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                     addbyte(0x0f); /*CMOVAE EAX, EBX*/
                     addbyte(0x43);
                     addbyte(0xc3);
-                    //                                fog_a = CLAMP(ia >> 12);
+#if 0
+                    fog_a = CLAMP(ia >> 12);
+#endif
                     break;
 
                 case FOG_W:
@@ -2226,13 +2248,16 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                     addbyte(0x0f); /*CMOVAE EAX, EBX*/
                     addbyte(0x43);
                     addbyte(0xc3);
-                    //                                fog_a = CLAMP(w >> 32);
+#if 0
+                    fog_a = CLAMP(w >> 32);
+#endif
                     break;
             }
             addbyte(0x01); /*ADD EAX, EAX*/
             addbyte(0xc0);
-            //                        fog_a++;
-
+#if 0
+            fog_a++;
+#endif
             addbyte(0x66); /*PMULLW XMM3, alookup+4[EAX*8]*/
             addbyte(0x0f);
             addbyte(0xd5);
@@ -2244,9 +2269,11 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             addbyte(0x71);
             addbyte(0xe3);
             addbyte(7);
-            /*                        fog_r = (fog_r * fog_a) >> 8;
-                                    fog_g = (fog_g * fog_a) >> 8;
-                                    fog_b = (fog_b * fog_a) >> 8;*/
+#if 0
+            fog_r = (fog_r * fog_a) >> 8;
+            fog_g = (fog_g * fog_a) >> 8;
+            fog_b = (fog_b * fog_a) >> 8;
+#endif
 
             if (params->fogMode & FOG_MULT) {
                 addbyte(0xf3); /*MOV XMM0, XMM3*/
@@ -2258,9 +2285,11 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
                 addbyte(0x0f);
                 addbyte(0xfd);
                 addbyte(0xc3);
-                /*                                src_r += fog_r;
-                                                src_g += fog_g;
-                                                src_b += fog_b;*/
+#if 0
+                src_r += fog_r;
+                src_g += fog_g;
+                src_b += fog_b;
+#endif
             }
             addbyte(0x66); /*PACKUSWB XMM0, XMM0*/
             addbyte(0x0f);
@@ -2268,9 +2297,11 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             addbyte(0xc0);
         }
 
-        /*                src_r = CLAMP(src_r);
-                        src_g = CLAMP(src_g);
-                        src_b = CLAMP(src_b);*/
+#if 0
+        src_r = CLAMP(src_r);
+        src_g = CLAMP(src_g);
+        src_b = CLAMP(src_b);
+#endif
     }
 
     if ((params->alphaMode & 1) && (alpha_func != AFUNC_NEVER) && (alpha_func != AFUNC_ALWAYS)) {
@@ -2696,12 +2727,13 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         addbyte(0x67);
         addbyte(0xc0);
     }
-    // #endif
 
-    //        addbyte(0x8b); /*MOV EDX, x (ESP+12)*/
-    //        addbyte(0x54);
-    //        addbyte(0x24);
-    //        addbyte(12);
+#if 0
+    addbyte(0x8b); /*MOV EDX, x (ESP+12)*/
+    addbyte(0x54);
+    addbyte(0x24);
+    addbyte(12);
+#endif
 
     addbyte(0x8b); /*MOV EDX, state->x[EDI]*/
     addbyte(0x97);
@@ -2716,9 +2748,11 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
     addbyte(0xc0);
 
     if (params->fbzMode & FBZ_RGB_WMASK) {
-        //                addbyte(0x89); /*MOV state->rgb_out[EDI], EAX*/
-        //                addbyte(0x87);
-        //                addlong(offsetof(voodoo_state_t, rgb_out));
+#if 0
+        addbyte(0x89); /*MOV state->rgb_out[EDI], EAX*/
+        addbyte(0x87);
+        addlong(offsetof(voodoo_state_t, rgb_out));
+#endif
 
         if (dither) {
             addbyte(0x8b); /*MOV ESI, real_y (ESP+16)*/
@@ -3118,7 +3152,9 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
     }
     voodoo_recomp++;
     data = &codegen_data[odd_even + next_block_to_write[odd_even] * 4];
-    //        code_block = data->code_block;
+#if 0
+    code_block = data->code_block;
+#endif
 
     voodoo_generate(data->code_block, voodoo, params, state, depth_op);
 
@@ -3142,11 +3178,9 @@ voodoo_get_block(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *stat
 void
 voodoo_codegen_init(voodoo_t *voodoo)
 {
-    int c;
-
     voodoo->codegen_data = plat_mmap(sizeof(voodoo_x86_data_t) * BLOCK_NUM * 4, 1);
 
-    for (c = 0; c < 256; c++) {
+    for (uint16_t c = 0; c < 256; c++) {
         int d[4];
         int _ds = c & 0xf;
         int dt  = c >> 4;

@@ -163,7 +163,7 @@ cdrom_interface_get_from_internal_name(char *s)
     int c = 0;
 
     while (controllers[c].device != NULL) {
-        if (!strcmp((char *) controllers[c].device->internal_name, s))
+        if (!strcmp(controllers[c].device->internal_name, s))
             return c;
         c++;
     }

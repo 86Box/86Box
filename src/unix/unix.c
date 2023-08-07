@@ -247,8 +247,6 @@ plat_get_string(int i)
             return L"Press CTRL-END to release mouse";
         case IDS_2079:
             return L"Press CTRL-END or middle button to release mouse";
-        case IDS_2080:
-            return L"Failed to initialize FluidSynth";
         case IDS_2131:
             return L"Invalid configuration";
         case IDS_4099:
@@ -259,16 +257,10 @@ plat_get_string(int i)
             return L"No PCap devices found";
         case IDS_2096:
             return L"Invalid PCap device";
-        case IDS_2111:
-            return L"Unable to initialize FreeType";
         case IDS_2112:
             return L"Unable to initialize SDL, libsdl2 is required";
-        case IDS_2132:
-            return L"libfreetype is required for ESC/P printer emulation.";
         case IDS_2133:
             return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
-        case IDS_2134:
-            return L"libfluidsynth is required for FluidSynth MIDI output.";
         case IDS_2130:
             return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
         case IDS_2115:

@@ -145,9 +145,9 @@ gc100_write(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 gc100_read(uint16_t port, void *priv)
 {
-    gc100_t *dev  = (gc100_t *) priv;
-    uint8_t  ret  = 0xff;
-    uint16_t addr = port & 0xf;
+    const gc100_t *dev  = (gc100_t *) priv;
+    uint8_t        ret  = 0xff;
+    uint16_t       addr = port & 0xf;
 
     ret = dev->reg[addr];
 

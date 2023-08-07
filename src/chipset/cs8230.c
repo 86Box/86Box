@@ -81,8 +81,8 @@ rethink_shadow_mappings(cs8230_t *cs8230)
 static uint8_t
 cs8230_read(uint16_t port, void *priv)
 {
-    cs8230_t *cs8230 = (cs8230_t *) priv;
-    uint8_t   ret    = 0xff;
+    const cs8230_t *cs8230 = (cs8230_t *) priv;
+    uint8_t         ret    = 0xff;
 
     if (port & 1) {
         switch (cs8230->idx) {

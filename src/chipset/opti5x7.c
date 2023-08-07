@@ -156,7 +156,7 @@ opti5x7_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 opti5x7_read(uint16_t addr, void *priv)
 {
-    opti5x7_t *dev = (opti5x7_t *) priv;
+    const opti5x7_t *dev = (opti5x7_t *) priv;
 
     return (addr == 0x24) ? dev->regs[dev->idx] : 0xff;
 }
