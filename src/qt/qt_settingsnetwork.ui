@@ -144,7 +144,21 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="1">
+       <item row="4" column="0">
+        <widget class="QLabel" name="labelBridgeTAPNIC1">
+         <property name="text">
+          <string>TAP Bridge Device</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1" colspan="2">
+        <widget class="QLineEdit" name="bridgeTAPNIC1">
+         <property name="maxLength">
+          <number>127</number>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
         <spacer name="verticalSpacer">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -259,6 +273,13 @@
          </property>
         </widget>
        </item>
+       <item row="4" column="1" colspan="2">
+        <widget class="QLineEdit" name="bridgeTAPNIC2">
+         <property name="maxLength">
+          <number>127</number>
+         </property>
+        </widget>
+       </item>
        <item row="3" column="1" colspan="2">
         <widget class="QLineEdit" name="socketVDENIC2">
          <property name="maxLength">
@@ -266,7 +287,14 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="1">
+       <item row="4" column="0">
+        <widget class="QLabel" name="labelBridgeTAPNIC2">
+         <property name="text">
+          <string>TAP Bridge Device</string>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
         <spacer name="verticalSpacer_2">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -394,7 +422,21 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="1">
+       <item row="4" column="0">
+        <widget class="QLabel" name="labelBridgeTAPNIC3">
+         <property name="text">
+          <string>TAP Bridge Device</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1" colspan="2">
+        <widget class="QLineEdit" name="bridgeTAPNIC3">
+         <property name="maxLength">
+          <number>127</number>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
         <spacer name="verticalSpacer_3">
          <property name="orientation">
           <enum>Qt::Vertical</enum>
@@ -508,13 +550,6 @@
          </property>
         </widget>
        </item>
-       <item row="3" column="1" colspan="2">
-        <widget class="QLineEdit" name="socketVDENIC4">
-         <property name="maxLength">
-          <number>127</number>
-         </property>
-        </widget>
-       </item>
        <item row="3" column="0">
         <widget class="QLabel" name="label_6">
          <property name="text">
@@ -522,7 +557,28 @@
          </property>
         </widget>
        </item>
-       <item row="4" column="1">
+       <item row="3" column="1" colspan="2">
+        <widget class="QLineEdit" name="socketVDENIC4">
+         <property name="maxLength">
+          <number>127</number>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="0">
+        <widget class="QLabel" name="labelBridgeTAPNIC4">
+         <property name="text">
+          <string>TAP Bridge Device</string>
+         </property>
+        </widget>
+       </item>
+       <item row="4" column="1" colspan="2">
+        <widget class="QLineEdit" name="bridgeTAPNIC4">
+         <property name="maxLength">
+          <number>127</number>
+         </property>
+        </widget>
+       </item>
+       <item row="5" column="1">
         <spacer name="verticalSpacer_4">
          <property name="orientation">
           <enum>Qt::Vertical</enum>

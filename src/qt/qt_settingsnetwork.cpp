@@ -38,12 +38,13 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
         auto *intf_cbox     = findChild<QComboBox *>(QString("comboBoxIntf%1").arg(i + 1));
         auto *conf_btn      = findChild<QPushButton *>(QString("pushButtonConf%1").arg(i + 1));
         auto *socket_line   = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i + 1));
-
+        auto *bridge_line   = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i + 1));
         int  netType         = net_type_cbox->currentData().toInt();
         bool adaptersEnabled =  netType == NET_TYPE_NONE
                             ||  netType == NET_TYPE_SLIRP
                             ||  netType == NET_TYPE_VDE
-                            || (netType == NET_TYPE_PCAP && intf_cbox->currentData().toInt() > 0);
+                            || (netType == NET_TYPE_PCAP && intf_cbox->currentData().toInt() > 0)
+                            ||  netType == NET_TYPE_TAP;
 
         intf_cbox->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_PCAP);
         nic_cbox->setEnabled(adaptersEnabled);
@@ -54,6 +55,7 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
         else
             conf_btn->setEnabled(adaptersEnabled && network_card_has_config(nic_cbox->currentData().toInt()));
         socket_line->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_VDE);
+        bridge_line->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_TAP);
     }
 }
 
@@ -86,6 +88,7 @@ SettingsNetwork::save()
     for (int i = 0; i < NET_CARD_MAX; ++i) {
         auto *cbox                   = findChild<QComboBox *>(QString("comboBoxNIC%1").arg(i + 1));
         auto *socket_line            = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i + 1));
+        auto *bridge_line            = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i + 1));
         net_cards_conf[i].device_num = cbox->currentData().toInt();
         cbox                         = findChild<QComboBox *>(QString("comboBoxNet%1").arg(i + 1));
         net_cards_conf[i].net_type   = cbox->currentData().toInt();
@@ -95,6 +98,8 @@ SettingsNetwork::save()
             strncpy(net_cards_conf[i].host_dev_name, network_devs[cbox->currentData().toInt()].device, sizeof(net_cards_conf[i].host_dev_name) - 1);
         } else if (net_cards_conf[i].net_type == NET_TYPE_VDE) {
             strncpy(net_cards_conf[i].host_dev_name, socket_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
+        } else if (net_cards_conf[i].net_type == NET_TYPE_TAP) {
+            strncpy(net_cards_conf[i].host_dev_name, bridge_line->text().toUtf8().constData(), sizeof(net_cards_conf[i].host_dev_name));
         }
     }
 }
@@ -152,7 +157,7 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
         if (network_devmap.has_vde) {
             Models::AddEntry(model, "VDE", NET_TYPE_VDE);
         }
-        
+        Models::AddEntry(model, "TAP", NET_TYPE_TAP);
         model->removeRows(0, removeRows);
         cbox->setCurrentIndex(net_cards_conf[i].net_type);
 
@@ -171,11 +176,16 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
             }
             model->removeRows(0, removeRows);
             cbox->setCurrentIndex(selectedRow);
-        }  
+        }
         if (net_cards_conf[i].net_type == NET_TYPE_VDE) {
             QString currentVdeSocket = net_cards_conf[i].host_dev_name;
             auto editline = findChild<QLineEdit *>(QString("socketVDENIC%1").arg(i+1));
             editline->setText(currentVdeSocket);
+        }
+        else if (net_cards_conf[i].net_type == NET_TYPE_TAP) {
+            QString currentTapDevice = net_cards_conf[i].host_dev_name;
+            auto editline = findChild<QLineEdit *>(QString("bridgeTAPNIC%1").arg(i+1));
+            editline->setText(currentTapDevice);
         }
     }
 }
