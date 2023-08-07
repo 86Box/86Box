@@ -59,6 +59,8 @@ struct mouseinputdata {
 
     std::atomic<double> x_abs;
     std::atomic<double> y_abs;
+
+    char                *mouse_type;
 };
 static mouseinputdata mousedata;
 
@@ -71,8 +73,8 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
 
     m_monitor_index = monitor_index;
 #if defined __unix__ && !defined __HAIKU__
-    char *mouse_type = getenv("EMU86BOX_MOUSE"), auto_mouse_type[16];
-    if (!mouse_type || (mouse_type[0] == '\0') || !stricmp(mouse_type, "auto")) {
+    mousedata.mouse_type = getenv("EMU86BOX_MOUSE"), auto_mouse_type[16];
+    if (!mousedata.mouse_type || (mouse_type[0] == '\0') || !stricmp(mousedata.mouse_type, "auto")) {
         if (QApplication::platformName().contains("wayland"))
             strcpy(auto_mouse_type, "wayland");
         else if (QApplication::platformName() == "eglfs")
@@ -81,7 +83,7 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
             strcpy(auto_mouse_type, "xinput2");
         else
             auto_mouse_type[0] = '\0';
-        mouse_type = auto_mouse_type;
+        mousedata.mouse_type = auto_mouse_type;
     }
 
 #    ifdef WAYLAND
@@ -221,7 +223,7 @@ RendererStack::mouseMoveEvent(QMouseEvent *event)
     }
 
 #if defined __unix__ && !defined __HAIKU__
-    if (!stricmp(mouse_type, "wayland"))
+    if (!stricmp(mousedata.mouse_type, "wayland"))
         mouse_scale(event->pos().x() - oldPos.x(), event->pos().y() - oldPos.y());
 #endif
 
