@@ -798,23 +798,6 @@ serial_setup(serial_t *dev, uint16_t addr, uint8_t irq)
 }
 
 serial_t *
-serial_attach(int port,
-              void (*rcr_callback)(struct serial_s *serial, void *p),
-              void (*dev_write)(struct serial_s *serial, void *p, uint8_t data),
-              void *priv)
-{
-    serial_device_t *sd = &serial_devices[port];
-
-    sd->rcr_callback             = rcr_callback;
-    sd->dev_write                = dev_write;
-    sd->transmit_period_callback = NULL;
-    sd->lcr_callback             = NULL;
-    sd->priv                     = priv;
-
-    return sd->serial;
-}
-
-serial_t *
 serial_attach_ex(int port,
                  void (*rcr_callback)(struct serial_s *serial, void *p),
                  void (*dev_write)(struct serial_s *serial, void *p, uint8_t data),

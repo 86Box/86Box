@@ -82,9 +82,9 @@ public:
             rendererWindow->onResize(width, height);
     }
 
-    void (*mouse_poll_func)()                   = nullptr;
     void (*mouse_capture_func)(QWindow *window) = nullptr;
     void (*mouse_uncapture_func)()              = nullptr;
+
     void (*mouse_exit_func)()                   = nullptr;
 
 signals:

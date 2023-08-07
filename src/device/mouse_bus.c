@@ -68,6 +68,7 @@
  */
 #include <inttypes.h>
 #include <stdarg.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -80,6 +81,7 @@
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/mouse.h>
+#include <86box/plat.h>
 #include <86box/plat_unused.h>
 #include <86box/random.h>
 
@@ -147,8 +149,6 @@ typedef struct mouse {
     int irq;
     int bn;
     int flags;
-    int mouse_delayed_dx;
-    int mouse_delayed_dy;
     int mouse_buttons;
     int mouse_buttons_last;
     int toggle_counter;
@@ -480,10 +480,13 @@ bm_poll(int x, int y, UNUSED(int z), int b, UNUSED(double abs_x), UNUSED(double 
     mouse_t *dev = (mouse_t *) priv;
     int xor ;
 
+    if (!mouse_capture && !video_fullscreen)
+        return 1;
+
     if (!(dev->flags & FLAG_ENABLED))
         return 1; /* Mouse is disabled, do nothing. */
 
-    if (!x && !y && !((b ^ dev->mouse_buttons_last) & 0x07)) {
+    if (!mouse_x && !mouse_y && !((b ^ dev->mouse_buttons_last) & 0x07)) {
         dev->mouse_buttons_last = b;
         return 1; /* State has not changed, do nothing. */
     }
@@ -498,7 +501,7 @@ bm_poll(int x, int y, UNUSED(int z), int b, UNUSED(double abs_x), UNUSED(double 
            so update bits 6-3 here. */
 
         /* If the mouse has moved, set bit 6. */
-        if (x || y)
+        if (mouse_x || mouse_y)
             dev->mouse_buttons |= 0x40;
 
         /* Set bits 3-5 according to button state changes. */
@@ -508,26 +511,30 @@ bm_poll(int x, int y, UNUSED(int z), int b, UNUSED(double abs_x), UNUSED(double 
 
     dev->mouse_buttons_last = b;
 
-    /* Clamp x and y to between -128 and 127 (int8_t range). */
-    if (x > 127)
-        x = 127;
-    if (x < -128)
-        x = -128;
-
-    if (y > 127)
-        y = 127;
-    if (y < -128)
-        y = -128;
-
-    if (dev->timer_enabled) {
-        /* Update delayed coordinates. */
-        dev->mouse_delayed_dx += x;
-        dev->mouse_delayed_dy += y;
-    } else {
+    if (!dev->timer_enabled) {
         /* If the counters are not frozen, update them. */
         if (!(dev->flags & FLAG_HOLD)) {
-            dev->current_x = (int8_t) x;
-            dev->current_y = (int8_t) y;
+            if (mouse_x > 127) {
+                dev->current_x = 127;
+                mouse_x -= 127;
+            } else if (mouse_x < 1-128) {
+                dev->current_x = -128;
+                mouse_x += 128;
+            } else {
+                dev->current_x = mouse_x;
+                mouse_x = 0;
+            }
+
+            if (mouse_y > 127) {
+                dev->current_y = 127;
+                mouse_y -= 127;
+            } else if (mouse_y < 1-128) {
+                dev->current_y = -128;
+                mouse_y += 128;
+            } else {
+                dev->current_y = mouse_y;
+                mouse_y = 0;
+            }
 
             dev->current_b = dev->mouse_buttons;
         }
@@ -538,6 +545,7 @@ bm_poll(int x, int y, UNUSED(int z), int b, UNUSED(double abs_x), UNUSED(double 
             bm_log("DEBUG: Data Interrupt Fired...\n");
         }
     }
+
     return 0;
 }
 
@@ -548,31 +556,31 @@ bm_update_data(mouse_t *dev)
 {
     int delta_x;
     int delta_y;
-    int xor ;
+    int xor;
 
     /* If the counters are not frozen, update them. */
-    if (!(dev->flags & FLAG_HOLD)) {
+    if ((mouse_capture || video_fullscreen) && !(dev->flags & FLAG_HOLD)) {
         /* Update the deltas and the delays. */
-        if (dev->mouse_delayed_dx > 127) {
+        if (mouse_x > 127) {
             delta_x = 127;
-            dev->mouse_delayed_dx -= 127;
-        } else if (dev->mouse_delayed_dx < -128) {
+            mouse_x -= 127;
+        } else if (mouse_x < -128) {
             delta_x = -128;
-            dev->mouse_delayed_dx += 128;
+            mouse_x += 128;
         } else {
-            delta_x               = dev->mouse_delayed_dx;
-            dev->mouse_delayed_dx = 0;
+            delta_x = mouse_x;
+            mouse_x = 0;
         }
 
-        if (dev->mouse_delayed_dy > 127) {
+        if (mouse_y > 127) {
             delta_y = 127;
-            dev->mouse_delayed_dy -= 127;
-        } else if (dev->mouse_delayed_dy < -128) {
+            mouse_y -= 127;
+        } else if (mouse_y < -128) {
             delta_y = -128;
-            dev->mouse_delayed_dy += 128;
+            mouse_y += 128;
         } else {
-            delta_y               = dev->mouse_delayed_dy;
-            dev->mouse_delayed_dy = 0;
+            delta_y = mouse_y;
+            mouse_y = 0;
         }
 
         dev->current_x = (int8_t) delta_x;
@@ -659,8 +667,6 @@ bm_init(const device_t *info)
     }
     mouse_set_buttons(dev->bn);
 
-    dev->mouse_delayed_dx   = 0;
-    dev->mouse_delayed_dy   = 0;
     dev->mouse_buttons      = 0;
     dev->mouse_buttons_last = 0;
     dev->sig_val            = 0; /* the signature port value */
@@ -706,6 +712,8 @@ bm_init(const device_t *info)
         bm_log("MS Inport BusMouse initialized\n");
     else
         bm_log("Standard MS/Logitech BusMouse initialized\n");
+
+    mouse_set_sample_rate(0.0);
 
     return dev;
 }

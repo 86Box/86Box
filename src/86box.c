@@ -1279,10 +1279,12 @@ pc_run(void)
     startblit();
     cpu_exec(cpu_s->rspeed / 100);
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
-    // if (gdbstub_step == GDBSTUB_EXEC)
+    if (gdbstub_step == GDBSTUB_EXEC) {
 #endif
-#if 0
-        mouse_process();
+        if (!mouse_timed)
+            mouse_process();
+#ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
+    }
 #endif
     joystick_process();
     endblit();

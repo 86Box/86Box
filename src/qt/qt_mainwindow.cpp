@@ -253,8 +253,6 @@ MainWindow::MainWindow(QWidget *parent)
 
     emit updateMenuResizeOptions();
 
-    connect(this, &MainWindow::pollMouse, ui->stackedWidget, &RendererStack::mousePoll, Qt::DirectConnection);
-
     connect(this, &MainWindow::setMouseCapture, this, [this](bool state) {
         mouse_capture = state ? 1 : 0;
         qt_mouse_capture(mouse_capture);
@@ -764,7 +762,6 @@ MainWindow::initRendererMonitorSlot(int monitor_index)
             secondaryRenderer->switchRenderer((RendererStack::Renderer) vid_api);
             secondaryRenderer->setMouseTracking(true);
         }
-        connect(this, &MainWindow::pollMouse, secondaryRenderer.get(), &RendererStack::mousePoll, Qt::DirectConnection);
     }
 }
 
@@ -890,6 +887,9 @@ MainWindow::on_actionSettings_triggered()
     Settings settings(this);
     settings.setModal(true);
     settings.setWindowModality(Qt::WindowModal);
+    settings.setWindowFlag(Qt::CustomizeWindowHint, true);
+    settings.setWindowFlag(Qt::WindowTitleHint, true);
+    settings.setWindowFlag(Qt::WindowSystemMenuHint, false);
     settings.exec();
 
     switch (settings.result()) {

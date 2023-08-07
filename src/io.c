@@ -318,8 +318,12 @@ inb(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found)
-        cycles -= io_delay;
+    if (!found) {
+        if (is286)
+            cycles -= io_delay;
+        else
+            sub_cycles(io_delay);
+    }
 
     /* TriGem 486-BIOS MHz output. */
 #if 0
@@ -327,7 +331,16 @@ inb(uint16_t port)
         ret = 0xfe;
 #endif
 
-    io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
+    /* if (port == 0x23)
+        ret = 0x00; */
+
+    if (port == 0x7f)
+        ret = 0x00;
+
+    // if ((port != 0x42) && (port != 0x61) && (port != 0x3b4) && (port != 0x3ba) && (port != 0x3da)) {
+    if (((port >= 0xcf8) && (port <= 0xcff)) || ((port >= 0xc000) && (port <= 0xcfff))) {
+        io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
+    }
 
     return ret;
 }
@@ -362,14 +375,21 @@ outb(uint16_t port, uint8_t val)
     }
 
     if (!found) {
-        cycles -= io_delay;
+        if (is286)
+            cycles -= io_delay;
+        else
+            sub_cycles(io_delay);
+
 #ifdef USE_DYNAREC
         if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
             update_tsc();
 #endif
     }
 
-    io_log("[%04X:%08X] (%i, %i, %04i) outb(%04X, %02X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
+    // if ((port != 0x43) && (port != 0xea)) {
+    if (((port >= 0xcf8) && (port <= 0xcff)) || ((port >= 0xc000) && (port <= 0xcfff))) {
+        io_log("[%04X:%08X] (%i, %i, %04i) outb(%04X, %02X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
+    }
 
     return;
 }
@@ -430,10 +450,16 @@ inw(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found)
-        cycles -= io_delay;
+    if (!found) {
+        if (is286)
+            cycles -= io_delay;
+        else
+            sub_cycles(io_delay);
+    }
 
-    io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
+    if (((port >= 0xcf8) && (port <= 0xcff)) || ((port >= 0xc000) && (port <= 0xcfff))) {
+        io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
+    }
 
     return ret;
 }
@@ -481,14 +507,21 @@ outw(uint16_t port, uint16_t val)
     }
 
     if (!found) {
-        cycles -= io_delay;
+        if (is286)
+            cycles -= io_delay;
+        else
+            sub_cycles(io_delay);
+
 #ifdef USE_DYNAREC
         if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
             update_tsc();
 #endif
     }
 
-    io_log("[%04X:%08X] (%i, %i, %04i) outw(%04X, %04X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
+    // if (port != 0xea) {
+    if (((port >= 0xcf8) && (port <= 0xcff)) || ((port >= 0xc000) && (port <= 0xcfff))) {
+        io_log("[%04X:%08X] (%i, %i, %04i) outw(%04X, %04X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
+    }
 
     return;
 }
@@ -580,7 +613,9 @@ inl(uint16_t port)
     if (!found)
         cycles -= io_delay;
 
-    io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
+    if (((port >= 0xcf8) && (port <= 0xcff)) || ((port >= 0xc000) && (port <= 0xcfff))) {
+        io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
+    }
 
     return ret;
 }
@@ -651,7 +686,9 @@ outl(uint16_t port, uint32_t val)
 #endif
     }
 
-    io_log("[%04X:%08X] (%i, %i, %04i) outl(%04X, %08X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
+    if (((port >= 0xcf8) && (port <= 0xcff)) || ((port >= 0xc000) && (port <= 0xcfff))) {
+        io_log("[%04X:%08X] (%i, %i, %04i) outl(%04X, %08X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
+    }
 
     return;
 }

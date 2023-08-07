@@ -37,21 +37,6 @@ static std::vector<std::pair<int, libevdev *>> evdev_mice;
 static std::atomic<bool>                       stopped = false;
 static QThread                                *evdev_thread;
 
-static std::atomic<int> evdev_mouse_rel_x = 0, evdev_mouse_rel_y = 0;
-
-void
-evdev_mouse_poll()
-{
-    if (!evdev_mice.size() || !mouse_capture) {
-        evdev_mouse_rel_x = 0;
-        evdev_mouse_rel_y = 0;
-        return;
-    }
-    mouse_x           = evdev_mouse_rel_x;
-    mouse_y           = evdev_mouse_rel_y;
-    evdev_mouse_rel_x = evdev_mouse_rel_y = 0;
-}
-
 void
 evdev_thread_func()
 {
@@ -67,11 +52,11 @@ evdev_thread_func()
             struct input_event ev;
             if (pfds[i].revents & POLLIN) {
                 while (libevdev_next_event(evdev_mice[i].second, LIBEVDEV_READ_FLAG_NORMAL, &ev) == 0) {
-                    if (ev.type == EV_REL && mouse_capture) {
+                    if (evdev_mice.size() && (ev.type == EV_REL) && mouse_capture) {
                         if (ev.code == REL_X)
-                            evdev_mouse_rel_x += ev.value;
+                            mouse_scale_x(ev.value);
                         if (ev.code == REL_Y)
-                            evdev_mouse_rel_y += ev.value;
+                            mouse_scale_y(ev.value);
                     }
                 }
             }
