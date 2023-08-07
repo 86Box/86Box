@@ -883,6 +883,9 @@ write64_generic(void *priv, uint8_t val)
             }
             break;
 
+        /* TODO: Make this command do nothing on the Regional HT6542,
+                 or else, Efflixi's Award OPTi 495 BIOS gets a stuck key
+                 in Norton Commander 3.0. */
         case 0xaf: /* read keyboard version */
             kbc_at_log("ATkbc: read keyboard version\n");
             kbc_delay_to_ob(dev, kbc_award_revision, 0, 0x00);
