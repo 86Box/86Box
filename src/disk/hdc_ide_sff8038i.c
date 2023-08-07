@@ -417,9 +417,9 @@ sff_bus_master_set_irq(int channel, void *priv)
         case 5:
             /* MIRQ 0 or 1. */
             if (irq)
-                pci_set_mirq(dev->irq_mode[channel] & 1, 0, &dev->irq_state);
+                pci_set_mirq((dev->irq_mode[channel] & 1), 0, &dev->irq_state);
             else
-                pci_clear_mirq(dev->irq_mode[channel] & 1, 0, &dev->irq_state);
+                pci_clear_mirq((dev->irq_mode[channel] & 1), 0, &dev->irq_state);
             break;
         case 3:
             /* Native PCI IRQ mode with specified interrupt line. */
@@ -431,9 +431,9 @@ sff_bus_master_set_irq(int channel, void *priv)
         case 4:
             /* ALi Aladdin Native PCI INTAJ mode. */
             if (irq)
-                pci_set_mirq(channel + 2, dev->irq_level[channel], &dev->irq_state);
+                pci_set_mirq((channel + 2), dev->irq_level[channel], &dev->irq_state);
             else
-                pci_clear_mirq(channel + 2, dev->irq_level[channel], &dev->irq_state);
+                pci_clear_mirq((channel + 2), dev->irq_level[channel], &dev->irq_state);
             break;
     }
 }
