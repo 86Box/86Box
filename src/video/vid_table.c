@@ -343,16 +343,6 @@ video_reset(int card)
     monitor_index_global = 0;
     loadfont("roms/video/mda/mda.rom", 0);
 
-    /* Do not initialize internal cards here. */
-    if (!(card == VID_NONE) && !(card == VID_INTERNAL) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
-        vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].device->name);
-
-        video_prepare();
-
-        /* Initialize the video card. */
-        device_add(video_cards[card].device);
-    }
-
     if (!(card == VID_NONE)
         && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)
         && gfxcard[1] != 0
@@ -361,6 +351,16 @@ video_reset(int card)
         monitor_index_global = 1;
         device_add(video_cards[gfxcard[1]].device);
         monitor_index_global = 0;
+    }
+
+    /* Do not initialize internal cards here. */
+    if (!(card == VID_NONE) && !(card == VID_INTERNAL) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
+        vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].device->name);
+
+        video_prepare();
+
+        /* Initialize the video card. */
+        device_add(video_cards[card].device);
     }
 
     /* Enable the Voodoo if configured. */
