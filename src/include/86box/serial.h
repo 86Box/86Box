@@ -113,16 +113,16 @@ typedef struct serial_port_s {
 
 extern serial_port_t com_ports[SERIAL_MAX];
 
-extern serial_t *serial_attach(int port,
-                               void (*rcr_callback)(struct serial_s *serial, void *p),
-                               void (*dev_write)(struct serial_s *serial, void *p, uint8_t data),
-                               void *priv);
 extern serial_t *serial_attach_ex(int port,
                                   void (*rcr_callback)(struct serial_s *serial, void *p),
                                   void (*dev_write)(struct serial_s *serial, void *p, uint8_t data),
                                   void (*transmit_period_callback)(struct serial_s *serial, void *p, double transmit_period),
                                   void (*lcr_callback)(struct serial_s *serial, void *p, uint8_t data_bits),
                                   void *priv);
+
+#define serial_attach(port, rcr_callback, dev_write, priv) \
+        serial_attach_ex(port, rcr_callback, dev_write, NULL, NULL, priv);
+
 extern void      serial_remove(serial_t *dev);
 extern void      serial_set_type(serial_t *dev, int type);
 extern void      serial_setup(serial_t *dev, uint16_t addr, uint8_t irq);
