@@ -509,7 +509,9 @@ hdc_callback(void *priv)
 
         case CMD_READ_VERIFY:
             no_data = 1;
-            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
 
         case CMD_READ_SECTORS:
             if (!drive->present) {
@@ -534,7 +536,9 @@ hdc_callback(void *priv)
                     dev->buf_len = 512;
 
                     dev->state = STATE_SEND;
-                    /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+                    [[fallthrough]];
+#endif
 
                 case STATE_SEND:
                     /* Activate the status icon. */
@@ -642,7 +646,9 @@ do_send:
                     dev->buf_len = 512;
 
                     dev->state = STATE_RECV;
-                    /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+                    [[fallthrough]];
+#endif
 
                 case STATE_RECV:
                     /* Activate the status icon. */
@@ -1098,8 +1104,8 @@ xta_init(const device_t *info)
 static void
 xta_close(void *priv)
 {
-    hdc_t   *dev = (hdc_t *) priv;
-    drive_t *drive;
+    hdc_t         *dev = (hdc_t *) priv;
+    const drive_t *drive;
 
     /* Remove the I/O handler. */
     io_removehandler(dev->base, 4,

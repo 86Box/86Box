@@ -205,9 +205,9 @@ i2c_handler(int set, void *bus_handle, uint8_t base, int size,
 uint8_t
 i2c_start(void *bus_handle, uint8_t addr, uint8_t read)
 {
-    uint8_t    ret = 0;
-    i2c_bus_t *bus = (i2c_bus_t *) bus_handle;
-    i2c_t     *p;
+    uint8_t          ret = 0;
+    const i2c_bus_t *bus = (i2c_bus_t *) bus_handle;
+    i2c_t           *p;
 
     if (!bus)
         return ret;
@@ -230,9 +230,9 @@ i2c_start(void *bus_handle, uint8_t addr, uint8_t read)
 uint8_t
 i2c_read(void *bus_handle, uint8_t addr)
 {
-    uint8_t    ret = 0;
-    i2c_bus_t *bus = (i2c_bus_t *) bus_handle;
-    i2c_t     *p;
+    uint8_t          ret = 0;
+    const i2c_bus_t *bus = (i2c_bus_t *) bus_handle;
+    i2c_t           *p;
 
     if (!bus)
         return ret;
@@ -256,9 +256,9 @@ i2c_read(void *bus_handle, uint8_t addr)
 uint8_t
 i2c_write(void *bus_handle, uint8_t addr, uint8_t data)
 {
-    uint8_t    ret = 0;
-    i2c_t     *p;
-    i2c_bus_t *bus = (i2c_bus_t *) bus_handle;
+    uint8_t          ret = 0;
+    i2c_t           *p;
+    const i2c_bus_t *bus = (i2c_bus_t *) bus_handle;
 
     if (!bus)
         return ret;
@@ -281,8 +281,8 @@ i2c_write(void *bus_handle, uint8_t addr, uint8_t data)
 void
 i2c_stop(void *bus_handle, uint8_t addr)
 {
-    i2c_bus_t *bus = (i2c_bus_t *) bus_handle;
-    i2c_t     *p;
+    const i2c_bus_t *bus = (i2c_bus_t *) bus_handle;
+    i2c_t           *p;
 
     if (!bus)
         return;

@@ -38,6 +38,7 @@
 #include <86box/vid_cga.h>
 #include <86box/vid_nga.h>
 #include <86box/vid_cga_comp.h>
+#include <86box/plat_unused.h>
 
 #define CGA_RGB       0
 #define CGA_COMPOSITE 1
@@ -86,7 +87,7 @@ nga_in(uint16_t addr, void *priv)
 }
 
 void
-nga_waitstates(void *p)
+nga_waitstates(UNUSED(void *priv))
 {
     int ws_array[16] = { 3, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8 };
     int ws;
@@ -553,7 +554,7 @@ nga_speed_changed(void *priv)
 }
 
 void *
-nga_init(const device_t *info)
+nga_init(UNUSED(const device_t *info))
 {
     int     mem;
     uint8_t charset;

@@ -83,9 +83,9 @@ compaq_cga_recalctimings(compaq_cga_t *self)
 }
 
 void
-compaq_cga_poll(void *p)
+compaq_cga_poll(void *priv)
 {
-    compaq_cga_t *self = (compaq_cga_t *) p;
+    compaq_cga_t *self = (compaq_cga_t *) priv;
     uint16_t      ca   = (self->cga.crtc[15] | (self->cga.crtc[14] << 8)) & 0x3fff;
     int           drawcursor;
     int           x;
@@ -452,18 +452,18 @@ compaq_cga_init(const device_t *info)
 }
 
 void
-compaq_cga_close(void *p)
+compaq_cga_close(void *priv)
 {
-    compaq_cga_t *self = (compaq_cga_t *) p;
+    compaq_cga_t *self = (compaq_cga_t *) priv;
 
     free(self->cga.vram);
     free(self);
 }
 
 void
-compaq_cga_speed_changed(void *p)
+compaq_cga_speed_changed(void *priv)
 {
-    compaq_cga_t *self = (compaq_cga_t *) p;
+    compaq_cga_t *self = (compaq_cga_t *) priv;
 
     if (self->cga.crtc[9] == 13) /* Character height */
         compaq_cga_recalctimings(self);

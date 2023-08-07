@@ -264,8 +264,8 @@ sst_page_write(void *priv)
 static uint8_t
 sst_read_id(uint32_t addr, void *priv)
 {
-    sst_t  *dev = (sst_t *) priv;
-    uint8_t ret = 0x00;
+    const sst_t  *dev = (sst_t *) priv;
+    uint8_t       ret = 0x00;
 
     if ((addr & 0xffff) == 0)
         ret = dev->manufacturer;
@@ -378,8 +378,8 @@ sst_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 sst_read(uint32_t addr, void *priv)
 {
-    sst_t  *dev = (sst_t *) priv;
-    uint8_t ret = 0xff;
+    const sst_t  *dev = (sst_t *) priv;
+    uint8_t       ret = 0xff;
 
     addr &= 0x000fffff;
 

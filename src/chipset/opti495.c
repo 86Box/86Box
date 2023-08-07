@@ -157,8 +157,8 @@ opti495_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 opti495_read(uint16_t addr, void *priv)
 {
-    uint8_t    ret = 0xff;
-    opti495_t *dev = (opti495_t *) priv;
+    uint8_t          ret = 0xff;
+    const opti495_t *dev = (opti495_t *) priv;
 
     switch (addr) {
         case 0x22:
