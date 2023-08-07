@@ -626,7 +626,7 @@ plat_tempfile(char *bufp, char *prefix, char *suffix)
     else
         strcpy(bufp, "");
 
-    GetSystemTime(&SystemTime);
+    GetLocalTime(&SystemTime);
     sprintf(&bufp[strlen(bufp)], "%d%02d%02d-%02d%02d%02d-%03d%s",
             SystemTime.wYear, SystemTime.wMonth, SystemTime.wDay,
             SystemTime.wHour, SystemTime.wMinute, SystemTime.wSecond,

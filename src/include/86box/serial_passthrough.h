@@ -43,7 +43,8 @@ typedef struct serial_passthrough_s {
     pc_timer_t                   serial_to_host_timer;
     serial_t                    *serial;
     double                       baudrate;
-    uint8_t                      bits, data_bits;
+    uint8_t                      bits;
+    uint8_t                      data_bits;
     uint8_t                      port;
     uint8_t                      data;
     char                         slave_pt[32]; /* used for pseudo term name of slave side */

@@ -623,21 +623,21 @@ static int keysyms_ff[] = {
 
 #ifdef ENABLE_VNC_KEYMAP_LOG
 int vnc_keymap_do_log = ENABLE_VNC_KEYMAP_LOG;
-#endif
 
 static void
-vnc_keymap_log(const char *format, ...)
+vnc_keymap_log(const char *fmt, ...)
 {
-#ifdef ENABLE_VNC_KEYMAP_LOG
     va_list ap;
 
     if (vnc_keymap_do_log) {
-        va_start(ap, format);
-        pclog_ex(format, ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
         va_end(ap);
     }
-#endif
 }
+#else
+#    define vnc_keymap_log(fmt, ...)
+#endif
 
 void
 vnc_kbinput(int down, int k)
@@ -665,8 +665,8 @@ vnc_kbinput(int down, int k)
 
     /* Send this scancode sequence to the PC keyboard. */
     switch (scan >> 8) {
-        case 0x00:
         default:
+        case 0x00:
             if (scan & 0xff)
                 keyboard_input(down, scan & 0xff);
             break;

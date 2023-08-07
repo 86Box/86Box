@@ -21,10 +21,10 @@
 extern "C" {
 #endif
 
-typedef struct
-{
-    uint8_t cmd,
-        stat, do_smi;
+typedef struct apm_t {
+    uint8_t cmd;
+    uint8_t stat;
+    uint8_t do_smi;
 } apm_t;
 
 /* Global variables. */

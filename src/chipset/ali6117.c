@@ -33,12 +33,14 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/chipset.h>
+#include <86box/plat_fallthrough.h>
 
 typedef struct ali6117_t {
     uint32_t local;
 
     /* Main registers (port 22h/23h) */
-    uint8_t unlocked, mode;
+    uint8_t unlocked;
+    uint8_t mode;
     uint8_t reg_offset;
     uint8_t regs[256];
 } ali6117_t;
@@ -232,7 +234,9 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x12:
                     val &= 0xf7;
-                    /* FALL-THROUGH */
+#ifdef FALLTHROUGH_ANNOTATION
+                    [[fallthrough]];
+#endif
 
                 case 0x14:
                 case 0x15:
@@ -276,6 +280,9 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 
                         case 0x7:
                             cpu_set_isa_speed(cpu_busspeed / 6);
+                            break;
+
+                        default:
                             break;
                     }
                     break;
@@ -372,6 +379,9 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x71:
                     val &= 0x1f;
                     break;
+
+                default:
+                    break;
             }
 
         dev->regs[dev->reg_offset] = val;
@@ -381,7 +391,7 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 ali6117_reg_read(uint16_t addr, void *priv)
 {
-    ali6117_t *dev = (ali6117_t *) priv;
+    const ali6117_t *dev = (ali6117_t *) priv;
     uint8_t    ret;
 
     if (addr == 0x22)

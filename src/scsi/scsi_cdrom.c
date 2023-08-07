@@ -42,8 +42,7 @@
 #include <86box/version.h>
 
 #pragma pack(push, 1)
-typedef struct
-{
+typedef struct gesn_cdb_t {
     uint8_t opcode;
     uint8_t polled;
     uint8_t reserved2[2];
@@ -53,8 +52,7 @@ typedef struct
     uint8_t  control;
 } gesn_cdb_t;
 
-typedef struct
-{
+typedef struct gesn_event_header_t {
     uint16_t len;
     uint8_t  notification_class;
     uint8_t  supported_events;
@@ -565,6 +563,9 @@ scsi_cdrom_atapi_phase_to_scsi(scsi_cdrom_t *dev)
                 return 1;
             case 3:
                 return 7;
+
+            default:
+                break;
         }
     } else {
         if ((dev->phase & 3) == 3)
@@ -577,9 +578,9 @@ scsi_cdrom_atapi_phase_to_scsi(scsi_cdrom_t *dev)
 }
 
 static uint32_t
-scsi_cdrom_get_channel(void *p, int channel)
+scsi_cdrom_get_channel(void *priv, int channel)
 {
-    scsi_cdrom_t *dev = (scsi_cdrom_t *) p;
+    const scsi_cdrom_t *dev = (scsi_cdrom_t *) priv;
     if (!dev)
         return channel + 1;
 
@@ -591,9 +592,9 @@ scsi_cdrom_get_channel(void *p, int channel)
 }
 
 static uint32_t
-scsi_cdrom_get_volume(void *p, int channel)
+scsi_cdrom_get_volume(void *priv, int channel)
 {
-    scsi_cdrom_t *dev = (scsi_cdrom_t *) p;
+    const scsi_cdrom_t *dev = (scsi_cdrom_t *) priv;
     if (!dev)
         return 255;
 
@@ -682,7 +683,7 @@ scsi_cdrom_drive_status_load(scsi_cdrom_t *dev)
 }
 
 static uint8_t
-scsi_cdrom_drive_status_read(scsi_cdrom_t *dev, uint8_t page_control, uint8_t page, uint8_t pos)
+scsi_cdrom_drive_status_read(scsi_cdrom_t *dev, UNUSED(uint8_t page_control), uint8_t page, uint8_t pos)
 {
     return dev->ms_drive_status_pages_saved.pages[page][pos];
 }
@@ -735,12 +736,12 @@ scsi_cdrom_mode_sense_read(scsi_cdrom_t *dev, uint8_t page_control, uint8_t page
             case 0:
             case 3:
                 return dev->ms_pages_saved_sony.pages[page][pos];
-                break;
             case 1:
                 return scsi_cdrom_mode_sense_pages_changeable_sony.pages[page][pos];
-                break;
             case 2:
                 return scsi_cdrom_mode_sense_pages_default_sony_scsi.pages[page][pos];
+
+            default:
                 break;
         }
     } else {
@@ -748,16 +749,17 @@ scsi_cdrom_mode_sense_read(scsi_cdrom_t *dev, uint8_t page_control, uint8_t page
             case 0:
             case 3:
                 return dev->ms_pages_saved.pages[page][pos];
-                break;
             case 1:
                 return scsi_cdrom_mode_sense_pages_changeable.pages[page][pos];
-                break;
             case 2:
                 if (dev->drv->bus_type == CDROM_BUS_SCSI)
                     return scsi_cdrom_mode_sense_pages_default_scsi.pages[page][pos];
                 else
                     return scsi_cdrom_mode_sense_pages_default.pages[page][pos];
+
+            default:
                 break;
+
         }
     }
 
@@ -881,7 +883,9 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
                     break;
                 }
             }
-            /* FALLTHROUGH */
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
 
         default:
             dev->packet_len = len;
@@ -957,7 +961,9 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                 scsi_cdrom_log("CD-ROM %i: Seek period: %" PRIu64 " us\n",
                                dev->id, (uint64_t) period);
                 dev->callback += period;
-                /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+                [[fallthrough]];
+#endif
             case 0x25:
             case 0x42:
             case 0x43:
@@ -976,7 +982,9 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                 break;
             case 0xc6:
             case 0xc7:
-                if ((!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "TOSHIBA_CD-ROM_DRIVEXM_3433"))) {
+                if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "TOSHIBA_CD-ROM_DRIVEXM_3433") ||
+                    !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "TOSHIBA_CD-ROM_XM-3301TA_0272") ||
+                    !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "TOSHIBA_CD-ROM_XM-5701TA_3136")) {
                     bytes_per_second = 176.0 * 1024.0;
                     bytes_per_second *= (double) dev->drv->cur_speed;
                 }
@@ -1000,7 +1008,15 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                 break;
             case 0xc3:
                 if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-541_1.0i") ||
-                    !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-76S_1.00")) {
+                    !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-76S_1.00") ||
+                    !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "PIONEER_CD-ROM_DRM-604X_2403")) {
+                    bytes_per_second = 176.0 * 1024.0;
+                    bytes_per_second *= (double) dev->drv->cur_speed;
+                }
+                break;
+            case 0xde:
+                if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE74_1.00") ||
+                    !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE464_1.05")) {
                     bytes_per_second = 176.0 * 1024.0;
                     bytes_per_second *= (double) dev->drv->cur_speed;
                 }
@@ -1106,7 +1122,7 @@ scsi_cdrom_data_command_finish(scsi_cdrom_t *dev, int len, int block_len, int al
 }
 
 static void
-scsi_cdrom_sense_clear(scsi_cdrom_t *dev, int command)
+scsi_cdrom_sense_clear(scsi_cdrom_t *dev, UNUSED(int command))
 {
     scsi_cdrom_sense_key = scsi_cdrom_asc = scsi_cdrom_ascq = 0;
 }
@@ -1485,9 +1501,9 @@ scsi_cdrom_read_dvd_structure(scsi_cdrom_t *dev, int format, const uint8_t *pack
 }
 
 static void
-scsi_cdrom_insert(void *p)
+scsi_cdrom_insert(void *priv)
 {
-    scsi_cdrom_t *dev = (scsi_cdrom_t *) p;
+    scsi_cdrom_t *dev = (scsi_cdrom_t *) priv;
 
     if (!dev)
         return;
@@ -1924,7 +1940,9 @@ begin:
             /* IMPORTANT: Convert the command to new read CD
                           for pass through purposes. */
             dev->current_cdb[0] = GPCMD_READ_CD;
-            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
 
         case GPCMD_READ_6:
         case GPCMD_READ_10:
@@ -2001,6 +2019,9 @@ begin:
                         scsi_cdrom_invalid_field(dev);
                         return;
                     }
+                    break;
+
+                default:
                     break;
             }
 
@@ -2539,6 +2560,9 @@ begin:
                     pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
                     len = (cdb[6] << 24) | (cdb[7] << 16) | (cdb[8] << 8) | cdb[9];
                     break;
+
+                default:
+                    break;
             }
 
             if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
@@ -2756,6 +2780,9 @@ begin:
                     break;
                 case 3: /* Load the disc (close tray). */
                     cdrom_reload(dev->id);
+                    break;
+
+                default:
                     break;
             }
 
@@ -3095,6 +3122,9 @@ atapi_out:
                 case GPCMD_SEEK_10:
                     pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
                     break;
+
+                default:
+                    break;
             }
             dev->drv->seek_diff = ABS((int) (pos - dev->drv->seek_pos));
             if (cdb[0] == GPCMD_SEEK_10) {
@@ -3429,6 +3459,9 @@ scsi_cdrom_phase_data_out(scsi_common_t *sc)
                 }
             }
             break;
+
+        default:
+            break;
     }
 
     scsi_cdrom_command_stop((scsi_common_t *) dev);
@@ -3436,9 +3469,9 @@ scsi_cdrom_phase_data_out(scsi_common_t *sc)
 }
 
 static void
-scsi_cdrom_close(void *p)
+scsi_cdrom_close(void *priv)
 {
-    scsi_cdrom_t *dev = (scsi_cdrom_t *) p;
+    scsi_cdrom_t *dev = (scsi_cdrom_t *) priv;
 
     if (dev)
         free(dev);
@@ -3499,7 +3532,7 @@ scsi_cdrom_get_timings(int ide_has_dma, int type)
 static void
 scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
 {
-    scsi_cdrom_t *dev;
+    const scsi_cdrom_t *dev;
     char          device_identify[9] = { '8', '6', 'B', '_', 'C', 'D', '0', '0', 0 };
 
     dev = (scsi_cdrom_t *) ide->sc;

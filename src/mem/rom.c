@@ -138,13 +138,13 @@ rom_getfile(char *fn, char *s, int size)
 }
 
 int
-rom_present(char *fn)
+rom_present(const char *fn)
 {
-    FILE *f;
+    FILE *fp;
 
-    f = rom_fopen(fn, "rb");
-    if (f != NULL) {
-        (void) fclose(f);
+    fp = rom_fopen(fn, "rb");
+    if (fp != NULL) {
+        (void) fclose(fp);
         return 1;
     }
 
@@ -154,7 +154,7 @@ rom_present(char *fn)
 uint8_t
 rom_read(uint32_t addr, void *priv)
 {
-    rom_t *rom = (rom_t *) priv;
+    const rom_t *rom = (rom_t *) priv;
 
 #ifdef ROM_TRACE
     if (rom->mapping.base == ROM_TRACE)
@@ -205,10 +205,9 @@ rom_readl(uint32_t addr, void *priv)
 int
 rom_load_linear_oddeven(const char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
-    FILE *f = rom_fopen(fn, "rb");
-    int   i;
+    FILE *fp = rom_fopen(fn, "rb");
 
-    if (f == NULL) {
+    if (fp == NULL) {
         rom_log("ROM: image '%s' not found\n", fn);
         return 0;
     }
@@ -220,19 +219,19 @@ rom_load_linear_oddeven(const char *fn, uint32_t addr, int sz, int off, uint8_t 
         addr &= 0x03ffff;
 
     if (ptr != NULL) {
-        if (fseek(f, off, SEEK_SET) == -1)
+        if (fseek(fp, off, SEEK_SET) == -1)
             fatal("rom_load_linear(): Error seeking to the beginning of the file\n");
-        for (i = 0; i < (sz >> 1); i++) {
-            if (fread(ptr + (addr + (i << 1)), 1, 1, f) != 1)
+        for (int i = 0; i < (sz >> 1); i++) {
+            if (fread(ptr + (addr + (i << 1)), 1, 1, fp) != 1)
                 fatal("rom_load_linear(): Error reading even data\n");
         }
-        for (i = 0; i < (sz >> 1); i++) {
-            if (fread(ptr + (addr + (i << 1) + 1), 1, 1, f) != 1)
+        for (int i = 0; i < (sz >> 1); i++) {
+            if (fread(ptr + (addr + (i << 1) + 1), 1, 1, fp) != 1)
                 fatal("rom_load_linear(): Error reading od data\n");
         }
     }
 
-    (void) fclose(f);
+    (void) fclose(fp);
 
     return 1;
 }
@@ -241,9 +240,9 @@ rom_load_linear_oddeven(const char *fn, uint32_t addr, int sz, int off, uint8_t 
 int
 rom_load_linear(const char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
-    FILE *f = rom_fopen(fn, "rb");
+    FILE *fp = rom_fopen(fn, "rb");
 
-    if (f == NULL) {
+    if (fp == NULL) {
         rom_log("ROM: image '%s' not found\n", fn);
         return 0;
     }
@@ -255,13 +254,13 @@ rom_load_linear(const char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
         addr &= 0x03ffff;
 
     if (ptr != NULL) {
-        if (fseek(f, off, SEEK_SET) == -1)
+        if (fseek(fp, off, SEEK_SET) == -1)
             fatal("rom_load_linear(): Error seeking to the beginning of the file\n");
-        if (fread(ptr + addr, 1, sz, f) > sz)
+        if (fread(ptr + addr, 1, sz, fp) > sz)
             fatal("rom_load_linear(): Error reading data\n");
     }
 
-    (void) fclose(f);
+    (void) fclose(fp);
 
     return 1;
 }
@@ -270,9 +269,9 @@ rom_load_linear(const char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 int
 rom_load_linear_inverted(const char *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
-    FILE *f = rom_fopen(fn, "rb");
+    FILE *fp = rom_fopen(fn, "rb");
 
-    if (f == NULL) {
+    if (fp == NULL) {
         rom_log("ROM: image '%s' not found\n", fn);
         return 0;
     }
@@ -284,22 +283,22 @@ rom_load_linear_inverted(const char *fn, uint32_t addr, int sz, int off, uint8_t
         addr &= 0x03ffff;
     }
 
-    (void) fseek(f, 0, SEEK_END);
-    if (ftell(f) < sz) {
-        (void) fclose(f);
+    (void) fseek(fp, 0, SEEK_END);
+    if (ftell(fp) < sz) {
+        (void) fclose(fp);
         return 0;
     }
 
     if (ptr != NULL) {
-        if (fseek(f, off, SEEK_SET) == -1)
+        if (fseek(fp, off, SEEK_SET) == -1)
             fatal("rom_load_linear_inverted(): Error seeking to the beginning of the file\n");
-        if (fread(ptr + addr + 0x10000, 1, sz >> 1, f) > (sz >> 1))
+        if (fread(ptr + addr + 0x10000, 1, sz >> 1, fp) > (sz >> 1))
             fatal("rom_load_linear_inverted(): Error reading the upper half of the data\n");
-        if (fread(ptr + addr, sz >> 1, 1, f) > (sz >> 1))
+        if (fread(ptr + addr, sz >> 1, 1, fp) > (sz >> 1))
             fatal("rom_load_linear_inverted(): Error reading the lower half of the data\n");
     }
 
-    (void) fclose(f);
+    (void) fclose(fp);
 
     return 1;
 }
@@ -308,18 +307,18 @@ rom_load_linear_inverted(const char *fn, uint32_t addr, int sz, int off, uint8_t
 int
 rom_load_interleaved(const char *fnl, const char *fnh, uint32_t addr, int sz, int off, uint8_t *ptr)
 {
-    FILE *fl = rom_fopen(fnl, "rb");
-    FILE *fh = rom_fopen(fnh, "rb");
+    FILE *fpl = rom_fopen(fnl, "rb");
+    FILE *fph = rom_fopen(fnh, "rb");
 
-    if (fl == NULL || fh == NULL) {
-        if (fl == NULL)
+    if (fpl == NULL || fph == NULL) {
+        if (fpl == NULL)
             rom_log("ROM: image '%s' not found\n", fnl);
         else
-            (void) fclose(fl);
-        if (fh == NULL)
+            (void) fclose(fpl);
+        if (fph == NULL)
             rom_log("ROM: image '%s' not found\n", fnh);
         else
-            (void) fclose(fh);
+            (void) fclose(fph);
 
         return 0;
     }
@@ -332,16 +331,16 @@ rom_load_interleaved(const char *fnl, const char *fnh, uint32_t addr, int sz, in
     }
 
     if (ptr != NULL) {
-        (void) fseek(fl, off, SEEK_SET);
-        (void) fseek(fh, off, SEEK_SET);
+        (void) fseek(fpl, off, SEEK_SET);
+        (void) fseek(fph, off, SEEK_SET);
         for (int c = 0; c < sz; c += 2) {
-            ptr[addr + c]     = fgetc(fl) & 0xff;
-            ptr[addr + c + 1] = fgetc(fh) & 0xff;
+            ptr[addr + c]     = fgetc(fpl) & 0xff;
+            ptr[addr + c + 1] = fgetc(fph) & 0xff;
         }
     }
 
-    (void) fclose(fh);
-    (void) fclose(fl);
+    (void) fclose(fph);
+    (void) fclose(fpl);
 
     return 1;
 }
@@ -384,7 +383,7 @@ rom_reset(uint32_t addr, int sz)
 }
 
 uint8_t
-bios_read(uint32_t addr, void *priv)
+bios_read(uint32_t addr, UNUSED(void *priv))
 {
     uint8_t ret = 0xff;
 
@@ -397,7 +396,7 @@ bios_read(uint32_t addr, void *priv)
 }
 
 uint16_t
-bios_readw(uint32_t addr, void *priv)
+bios_readw(uint32_t addr, UNUSED(void *priv))
 {
     uint16_t ret = 0xffff;
 
@@ -410,7 +409,7 @@ bios_readw(uint32_t addr, void *priv)
 }
 
 uint32_t
-bios_readl(uint32_t addr, void *priv)
+bios_readl(uint32_t addr, UNUSED(void *priv))
 {
     uint32_t ret = 0xffffffff;
 
@@ -442,7 +441,7 @@ bios_add(void)
         mem_mapping_add(&bios_mapping, 0xe0000, 0x20000,
                         bios_read, bios_readw, bios_readl,
                         NULL, NULL, NULL,
-                        &rom[0x20000], MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, 0);
+                        &rom[biosmask + 1 - 0x20000], MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS, 0);
 
         mem_set_mem_state_both(0x0e0000, 0x20000,
                                MEM_READ_ROMCS | MEM_WRITE_ROMCS);
@@ -524,7 +523,7 @@ bios_load(const char *fn1, const char *fn2, uint32_t addr, int sz, int off, int 
 }
 
 int
-bios_load_linear_combined(const char *fn1, const char *fn2, int sz, int off)
+bios_load_linear_combined(const char *fn1, const char *fn2, int sz, UNUSED(int off))
 {
     uint8_t ret = 0;
 

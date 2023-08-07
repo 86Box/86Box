@@ -37,13 +37,15 @@
 #include <86box/zip.h>
 #include <86box/mo.h>
 
-typedef struct
-{
-    uint8_t vlb_idx, single_channel,
-        in_cfg, regs[256];
-    uint32_t local;
-    int      slot, irq_mode[2],
-        irq_pin;
+typedef struct cmd646_t {
+    uint8_t     vlb_idx;
+    uint8_t     single_channel;
+    uint8_t     in_cfg;
+    uint8_t     regs[256];
+    uint32_t    local;
+    int         slot;
+    int         irq_mode[2];
+    int         irq_pin;
     sff8038i_t *bm[2];
 } cmd646_t;
 
@@ -88,7 +90,7 @@ cmd646_set_irq(int channel, void *priv)
 static int
 cmd646_bus_master_dma(int channel, uint8_t *data, int transfer_length, int out, void *priv)
 {
-    cmd646_t *dev = (cmd646_t *) priv;
+    const cmd646_t *dev = (cmd646_t *) priv;
 
     return sff_bus_master_dma(channel, data, transfer_length, out, dev->bm[channel & 0x01]);
 }
@@ -261,6 +263,9 @@ cmd646_pci_write(int func, int addr, uint8_t val, void *priv)
                 break;
             case 0x78 ... 0x7f:
                 sff_bus_master_write(addr & 0x0f, val, dev->bm[1]);
+                break;
+
+            default:
                 break;
         }
 }

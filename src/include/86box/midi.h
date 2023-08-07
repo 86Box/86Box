@@ -40,20 +40,29 @@ typedef struct midi_in_handler_t {
     int      cnt;
     uint32_t len;
 
-    void (*msg)(void *p, uint8_t *msg, uint32_t len);
-    int (*sysex)(void *p, uint8_t *buffer, uint32_t len, int abort);
-    struct midi_in_handler_t *p;
-    struct midi_in_handler_t *prev, *next;
+    void (*msg)(void *priv, uint8_t *msg, uint32_t len);
+    int (*sysex)(void *priv, uint8_t *buffer, uint32_t len, int abort);
+    struct midi_in_handler_t *priv;
+    struct midi_in_handler_t *prev;
+    struct midi_in_handler_t *next;
 } midi_in_handler_t;
 
 typedef struct midi_t {
-    uint8_t midi_rt_buf[8], midi_cmd_buf[8],
-        midi_status, midi_sysex_data[SYSEX_SIZE];
-    int midi_cmd_pos, midi_cmd_len, midi_cmd_r,
-        midi_realtime, thruchan, midi_clockout;
-    unsigned int midi_sysex_start, midi_sysex_delay,
-        midi_pos;
-    midi_device_t *m_out_device, *m_in_device;
+    uint8_t        midi_rt_buf[8];
+    uint8_t        midi_cmd_buf[8];
+    uint8_t        midi_status;
+    uint8_t        midi_sysex_data[SYSEX_SIZE];
+    int            midi_cmd_pos;
+    int            midi_cmd_len;
+    int            midi_cmd_r;
+    int            midi_realtime;
+    int            thruchan;
+    int            midi_clockout;
+    unsigned int   midi_sysex_start;
+    unsigned int   midi_sysex_delay;
+    unsigned int   midi_pos;
+    midi_device_t *m_out_device;
+    midi_device_t *m_in_device;
 } midi_t;
 
 extern midi_t *midi_out;
@@ -69,7 +78,7 @@ extern void midi_raw_out_byte(uint8_t val);
 extern void midi_clear_buffer(void);
 extern void midi_poll(void);
 
-extern void midi_in_handler(int set, void (*msg)(void *p, uint8_t *msg, uint32_t len), int (*sysex)(void *p, uint8_t *buffer, uint32_t len, int abort), void *p);
+extern void midi_in_handler(int set, void (*msg)(void *p, uint8_t *msg, uint32_t len), int (*sysex)(void *p, uint8_t *buffer, uint32_t len, int abort), void *priv);
 extern void midi_in_handlers_clear(void);
 extern void midi_in_msg(uint8_t *msg, uint32_t len);
 extern void midi_in_sysex(uint8_t *buffer, uint32_t len);

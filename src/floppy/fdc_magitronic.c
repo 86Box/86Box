@@ -29,19 +29,19 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
+#include <86box/plat_unused.h>
 
 #define ROM_B215     "roms/floppy/magitronic/Magitronic B215 - BIOS ROM.bin"
 #define ROM_ADDR     (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
 
 #define DRIVE_SELECT (int) (real_drive(dev->fdc_controller, i))
-typedef struct
-{
+typedef struct b215_t {
     fdc_t *fdc_controller;
     rom_t  rom;
 } b215_t;
 
 static uint8_t
-b215_read(uint16_t addr, void *priv)
+b215_read(UNUSED(uint16_t addr), void *priv)
 {
     b215_t *dev = (b215_t *) priv;
 
@@ -58,7 +58,7 @@ b215_read(uint16_t addr, void *priv)
 */
     int drive_spec[2];
 
-    for (int i = 0; i <= 1; i++) {
+    for (uint8_t i = 0; i <= 1; i++) {
         if (fdd_is_525(DRIVE_SELECT)) {
             if (!fdd_is_dd(DRIVE_SELECT))
                 drive_spec[i] = 1;
@@ -88,7 +88,7 @@ b215_close(void *priv)
 }
 
 static void *
-b215_init(const device_t *info)
+b215_init(UNUSED(const device_t *info))
 {
     b215_t *dev = (b215_t *) malloc(sizeof(b215_t));
     memset(dev, 0, sizeof(b215_t));

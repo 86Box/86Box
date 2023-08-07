@@ -31,6 +31,7 @@
 #include <86box/io.h>
 #include <86box/pic.h>
 #include <86box/dma.h>
+#include <86box/plat_unused.h>
 
 dma_t   dma[8];
 uint8_t dma_e;
@@ -50,9 +51,9 @@ static uint16_t dma_sg_base;
 static uint16_t dma16_buffer[65536];
 static uint32_t dma_mask;
 
-static struct {
-    int xfr_command,
-        xfr_channel;
+static struct dma_ps2_t {
+    int xfr_command;
+    int xfr_channel;
     int byte_ptr;
 
     int is_ps2;
@@ -117,7 +118,7 @@ dma_sg_next_addr(dma_t *dev)
     dev->eot = dev->count >> 31;
     dev->count &= 0xfffe;
     dev->cb = (uint16_t) dev->count;
-    dev->cc = (int) dev->count;
+    dev->cc = dev->count;
     if (!dev->count)
         dev->count = 65536;
     if (ts == 2)
@@ -132,9 +133,7 @@ dma_sg_next_addr(dma_t *dev)
 static void
 dma_block_transfer(int channel)
 {
-    int bit16;
-
-    bit16 = (channel >= 4);
+    int bit16 = (channel >= 4);
 
     if (dma_advanced)
         bit16 = !!(dma_transfer_size(&(dma[channel])) == 2);
@@ -228,6 +227,9 @@ dma_sg_write(uint16_t port, uint8_t val, void *priv)
             dev->ptr = (dev->ptr & 0x00fffffc) | (val << 24);
             dev->ptr %= (mem_size * 1024);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -258,6 +260,9 @@ dma_sg_writew(uint16_t port, uint16_t val, void *priv)
             dev->ptr = (dev->ptr & 0x0000fffc) | (val << 16);
             dev->ptr %= (mem_size * 1024);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -284,13 +289,16 @@ dma_sg_writel(uint16_t port, uint32_t val, void *priv)
             dev->ptr %= (mem_size * 1024);
             dev->ptr0 = val & 0xff;
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
 dma_sg_read(uint16_t port, void *priv)
 {
-    dma_t *dev = (dma_t *) priv;
+    const dma_t *dev = (dma_t *) priv;
 
     uint8_t ret = 0xff;
 
@@ -325,6 +333,9 @@ dma_sg_read(uint16_t port, void *priv)
         case 0x23:
             ret = dev->ptr >> 24;
             break;
+
+        default:
+            break;
     }
 
     dma_log("DMA S/G BYTE  read : %04X       %02X\n", port, ret);
@@ -335,7 +346,7 @@ dma_sg_read(uint16_t port, void *priv)
 static uint16_t
 dma_sg_readw(uint16_t port, void *priv)
 {
-    dma_t *dev = (dma_t *) priv;
+    const dma_t *dev = (dma_t *) priv;
 
     uint16_t ret = 0xffff;
 
@@ -356,6 +367,9 @@ dma_sg_readw(uint16_t port, void *priv)
         case 0x22:
             ret = dev->ptr >> 16;
             break;
+
+        default:
+            break;
     }
 
     dma_log("DMA S/G WORD  read : %04X     %04X\n", port, ret);
@@ -366,7 +380,7 @@ dma_sg_readw(uint16_t port, void *priv)
 static uint32_t
 dma_sg_readl(uint16_t port, void *priv)
 {
-    dma_t *dev = (dma_t *) priv;
+    const dma_t *dev = (dma_t *) priv;
 
     uint32_t ret = 0xffffffff;
 
@@ -384,6 +398,9 @@ dma_sg_readl(uint16_t port, void *priv)
         case 0x20:
             ret = dev->ptr0 | (dev->ptr & 0xffffff00);
             break;
+
+        default:
+            break;
     }
 
     dma_log("DMA S/G DWORD read : %04X %08X\n", port, ret);
@@ -392,7 +409,7 @@ dma_sg_readl(uint16_t port, void *priv)
 }
 
 static void
-dma_ext_mode_write(uint16_t addr, uint8_t val, void *priv)
+dma_ext_mode_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
     int channel = (val & 0x03);
 
@@ -416,11 +433,14 @@ dma_ext_mode_write(uint16_t addr, uint8_t val, void *priv)
         case 0x03:
             dma[channel].transfer_mode = 0x0102;
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-dma_sg_int_status_read(uint16_t addr, void *priv)
+dma_sg_int_status_read(UNUSED(uint16_t addr), UNUSED(void *priv))
 {
     uint8_t ret = 0x00;
 
@@ -433,7 +453,7 @@ dma_sg_int_status_read(uint16_t addr, void *priv)
 }
 
 static uint8_t
-dma_read(uint16_t addr, void *priv)
+dma_read(uint16_t addr, UNUSED(void *priv))
 {
     int     channel = (addr >> 1) & 3;
     uint8_t temp;
@@ -468,13 +488,16 @@ dma_read(uint16_t addr, void *priv)
 
         case 0xd: /*Temporary register*/
             return 0;
+
+        default:
+            break;
     }
 
     return (dmaregs[0][addr & 0xf]);
 }
 
 static void
-dma_write(uint16_t addr, uint8_t val, void *priv)
+dma_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
     int channel = (addr >> 1) & 3;
 
@@ -562,13 +585,16 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
         case 0xf: /*Mask write*/
             dma_m = (dma_m & 0xf0) | (val & 0xf);
             return;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-dma_ps2_read(uint16_t addr, void *priv)
+dma_ps2_read(uint16_t addr, UNUSED(void *priv))
 {
-    dma_t  *dma_c = &dma[dma_ps2.xfr_channel];
+    const dma_t  *dma_c = &dma[dma_ps2.xfr_channel];
     uint8_t temp  = 0xff;
 
     switch (addr) {
@@ -588,6 +614,9 @@ dma_ps2_read(uint16_t addr, void *priv)
                         case 2:
                             temp             = (dma_c->ac >> 16) & 0xff;
                             dma_ps2.byte_ptr = 0;
+                            break;
+
+                        default:
                             break;
                     }
                     break;
@@ -626,12 +655,15 @@ dma_ps2_read(uint16_t addr, void *priv)
                     fatal("Bad XFR Read command %i channel %i\n", dma_ps2.xfr_command, dma_ps2.xfr_channel);
             }
             break;
+
+        default:
+            break;
     }
     return temp;
 }
 
 static void
-dma_ps2_write(uint16_t addr, uint8_t val, void *priv)
+dma_ps2_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
     dma_t  *dma_c = &dma[dma_ps2.xfr_channel];
     uint8_t mode;
@@ -653,6 +685,9 @@ dma_ps2_write(uint16_t addr, uint8_t val, void *priv)
                 case 0xb:
                     if (!(dma_m & (1 << dma_ps2.xfr_channel)))
                         dma_ps2_run(dma_ps2.xfr_channel);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -682,6 +717,9 @@ dma_ps2_write(uint16_t addr, uint8_t val, void *priv)
                         case 2:
                             dma_c->ac        = (dma_c->ac & 0x00ffff) | (val << 16);
                             dma_ps2.byte_ptr = 0;
+                            break;
+
+                        default:
                             break;
                     }
                     dma_c->ab = dma_c->ac;
@@ -719,11 +757,14 @@ dma_ps2_write(uint16_t addr, uint8_t val, void *priv)
                     fatal("Bad XFR command %i channel %i val %02x\n", dma_ps2.xfr_command, dma_ps2.xfr_channel, val);
             }
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-dma16_read(uint16_t addr, void *priv)
+dma16_read(uint16_t addr, UNUSED(void *priv))
 {
     int     channel = ((addr >> 2) & 3) + 4;
     uint8_t temp;
@@ -760,13 +801,16 @@ dma16_read(uint16_t addr, void *priv)
             temp |= dma_stat >> 4;
             dma_stat &= ~0xf0;
             return temp;
+
+        default:
+            break;
     }
 
     return (dmaregs[1][addr & 0xf]);
 }
 
 static void
-dma16_write(uint16_t addr, uint8_t val, void *priv)
+dma16_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
     int channel = ((addr >> 2) & 3) + 4;
     addr >>= 1;
@@ -855,6 +899,9 @@ dma16_write(uint16_t addr, uint8_t val, void *priv)
         case 0xf: /*Mask write*/
             dma_m = (dma_m & 0x0f) | ((val & 0xf) << 4);
             return;
+
+        default:
+            break;
     }
 }
 
@@ -864,7 +911,7 @@ dma16_write(uint16_t addr, uint8_t val, void *priv)
     }
 
 static void
-dma_page_write(uint16_t addr, uint8_t val, void *priv)
+dma_page_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
     uint8_t convert[8] = CHANNELS;
 
@@ -897,7 +944,7 @@ dma_page_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-dma_page_read(uint16_t addr, void *priv)
+dma_page_read(uint16_t addr, UNUSED(void *priv))
 {
     uint8_t convert[8] = CHANNELS;
     uint8_t ret        = 0xff;
@@ -917,7 +964,7 @@ dma_page_read(uint16_t addr, void *priv)
 }
 
 static void
-dma_high_page_write(uint16_t addr, uint8_t val, void *priv)
+dma_high_page_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
     uint8_t convert[8] = CHANNELS;
 
@@ -937,7 +984,7 @@ dma_high_page_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-dma_high_page_read(uint16_t addr, void *priv)
+dma_high_page_read(uint16_t addr, UNUSED(void *priv))
 {
     uint8_t convert[8] = CHANNELS;
     uint8_t ret        = 0xff;
@@ -1231,7 +1278,7 @@ dma_sg(uint8_t *data, int transfer_length, int out, void *priv)
 uint8_t
 _dma_read(uint32_t addr, dma_t *dma_c)
 {
-    uint8_t temp;
+    uint8_t temp = 0;
 
     if (dma_advanced) {
         if (dma_c->sg_status & 1)
@@ -1247,7 +1294,7 @@ _dma_read(uint32_t addr, dma_t *dma_c)
 static uint16_t
 _dma_readw(uint32_t addr, dma_t *dma_c)
 {
-    uint16_t temp;
+    uint16_t temp = 0;
 
     if (dma_advanced) {
         if (dma_c->sg_status & 1)

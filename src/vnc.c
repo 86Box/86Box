@@ -93,7 +93,9 @@ vnc_mouse_poll(void)
         ms.dx = 0;
         ms.dy = 0;
 
-        // pclog("dx=%d, dy=%d, dwheel=%d\n", mouse_x, mouse_y, mouse_z);
+#if 0
+        pclog("dx=%d, dy=%d, dwheel=%d\n", mouse_x, mouse_y, mouse_z);
+#endif
     }
 
     if (b != ms.buttons) {
@@ -132,7 +134,7 @@ vnc_ptrevent(int but, int x, int y, rfbClientPtr cl)
 }
 
 static void
-vnc_clientgone(rfbClientPtr cl)
+vnc_clientgone(UNUSED(rfbClientPtr cl))
 {
     vnc_log("VNC: client disconnected: %s\n", cl->host);
 
@@ -143,7 +145,9 @@ vnc_clientgone(rfbClientPtr cl)
         vnc_log("VNC: no clients, pausing..\n");
 
         /* Disable the mouse. */
-        // plat_mouse_capture(0);
+#if 0
+        plat_mouse_capture(0);
+#endif
         mouse_set_poll_ex(NULL);
 
         plat_pause(1);
@@ -169,7 +173,9 @@ vnc_newclient(rfbClientPtr cl)
         vnc_log("VNC: unpausing..\n");
 
         /* Enable the mouse. */
-        // plat_mouse_capture(1);
+#if 0
+        plat_mouse_capture(1);
+#endif
         mouse_set_poll_ex(vnc_mouse_poll);
 
         plat_pause(0);
@@ -325,7 +331,7 @@ vnc_pause(void)
 }
 
 void
-vnc_take_screenshot(wchar_t *fn)
+vnc_take_screenshot(UNUSED(wchar_t *fn))
 {
     vnc_log("VNC: take_screenshot\n");
 }

@@ -11,14 +11,14 @@
 #define TIMER_ENABLED 1
 
 #pragma pack(push, 1)
-typedef struct
+typedef struct ts_struct_t
 {
     uint32_t frac;
     uint32_t integer;
 } ts_struct_t;
 #pragma pack(pop)
 
-typedef union {
+typedef union ts_t {
     uint64_t    ts64;
     ts_struct_t ts32;
 } ts_t;
@@ -42,14 +42,16 @@ typedef struct pc_timer_t {
 #else
     ts_t ts;
 #endif
-    int    flags, pad; /* The flags are defined above. */
-    double period;     /* This is used for large period timers to count
-                          the microseconds and split the period. */
+    int    flags;  /* The flags are defined above. */
+    int    pad;
+    double period; /* This is used for large period timers to count
+                      the microseconds and split the period. */
 
-    void (*callback)(void *p);
-    void *p;
+    void (*callback)(void *priv);
+    void *priv;
 
-    struct pc_timer_t *prev, *next;
+    struct pc_timer_t *prev;
+    struct pc_timer_t *next;
 } pc_timer_t;
 
 #ifdef __cplusplus
@@ -74,7 +76,7 @@ extern void timer_init(void);
 
 /*Add new timer. If start_timer is set, timer will be enabled with a zero
   timestamp - this is useful for permanently enabled timers*/
-extern void timer_add(pc_timer_t *timer, void (*callback)(void *p), void *p, int start_timer);
+extern void timer_add(pc_timer_t *timer, void (*callback)(void *priv), void *priv, int start_timer);
 
 /*1us in 32:32 format*/
 extern uint64_t TIMER_USEC;
@@ -160,16 +162,16 @@ timer_get_remaining_u64(pc_timer_t *timer)
 
 /*Set timer callback function*/
 static __inline void
-timer_set_callback(pc_timer_t *timer, void (*callback)(void *p))
+timer_set_callback(pc_timer_t *timer, void (*callback)(void *priv))
 {
     timer->callback = callback;
 }
 
 /*Set timer private data*/
 static __inline void
-timer_set_p(pc_timer_t *timer, void *p)
+timer_set_p(pc_timer_t *timer, void *priv)
 {
-    timer->p = p;
+    timer->priv = priv;
 }
 
 /* The API for big timer periods starts here. */
@@ -207,7 +209,7 @@ timer_process_inline(void)
         if (timer->flags & TIMER_SPLIT)
             timer_advance_ex(timer, 0);   /* We're splitting a > 1 s period into multiple <= 1 s periods. */
         else if (timer->callback != NULL) /* Make sure it's no NULL, so that we can have a NULL callback when no operation is needed. */
-            timer->callback(timer->p);
+            timer->callback(timer->priv);
     }
 
     timer_target = timer_head->ts.ts32.integer;

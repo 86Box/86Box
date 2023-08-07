@@ -20,11 +20,26 @@
 #define EMU_PIC_H
 
 typedef struct pic {
-    uint8_t icw1, icw2, icw3, icw4,
-        imr, isr, irr, ocw2,
-        ocw3, int_pending, is_master, elcr,
-        state, ack_bytes, priority, special_mask_mode,
-        auto_eoi_rotate, interrupt, lines, data_bus;
+    uint8_t     icw1;
+    uint8_t     icw2;
+    uint8_t     icw3;
+    uint8_t     icw4;
+    uint8_t     imr;
+    uint8_t     isr;
+    uint8_t     irr;
+    uint8_t     ocw2;
+    uint8_t     ocw3;
+    uint8_t     int_pending;
+    uint8_t     is_master;
+    uint8_t     elcr;
+    uint8_t     state;
+    uint8_t     ack_bytes;
+    uint8_t     priority;
+    uint8_t     special_mask_mode;
+    uint8_t     auto_eoi_rotate;
+    uint8_t     interrupt;
+    uint8_t     lines;
+    uint8_t     data_bus;
     uint32_t    at;
     struct pic *slaves[8];
 } pic_t;

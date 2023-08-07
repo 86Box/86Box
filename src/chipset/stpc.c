@@ -30,6 +30,7 @@
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/device.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/usb.h>
 #include <86box/hdc_ide.h>
@@ -165,8 +166,8 @@ stpc_host_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 stpc_host_read(uint16_t addr, void *priv)
 {
-    stpc_t *dev = (stpc_t *) priv;
-    uint8_t ret;
+    const stpc_t *dev = (stpc_t *) priv;
+    uint8_t       ret;
 
     if (addr == dev->host_base)
         ret = dev->host_offset;
@@ -195,8 +196,8 @@ stpc_localbus_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 stpc_localbus_read(uint16_t addr, void *priv)
 {
-    stpc_t *dev = (stpc_t *) priv;
-    uint8_t ret;
+    const stpc_t *dev = (stpc_t *) priv;
+    uint8_t       ret;
 
     if (addr == dev->localbus_base)
         ret = dev->localbus_offset;
@@ -248,6 +249,9 @@ stpc_nb_write(int func, int addr, uint8_t val, void *priv)
         case 0x52:
             val &= 0x70;
             break;
+
+        default:
+            break;
     }
 
     dev->pci_conf[0][addr] = val;
@@ -256,8 +260,8 @@ stpc_nb_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 stpc_nb_read(int func, int addr, void *priv)
 {
-    stpc_t *dev = (stpc_t *) priv;
-    uint8_t ret;
+    const stpc_t *dev = (stpc_t *) priv;
+    uint8_t       ret;
 
     if (func > 0)
         ret = 0xff;
@@ -432,14 +436,17 @@ stpc_ide_write(int func, int addr, uint8_t val, void *priv)
                 sff_bus_master_set_irq(0x00, dev->bm[1]);
             }
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
 stpc_ide_read(int func, int addr, void *priv)
 {
-    stpc_t *dev = (stpc_t *) priv;
-    uint8_t ret;
+    const stpc_t *dev = (stpc_t *) priv;
+    uint8_t       ret;
 
     if (func > 0)
         ret = 0xff;
@@ -489,6 +496,9 @@ stpc_isab_write(int func, int addr, uint8_t val, void *priv)
         case 0x05:
             val &= 0x01;
             break;
+
+        default:
+            break;
     }
 
     dev->pci_conf[1][addr] = val;
@@ -497,8 +507,8 @@ stpc_isab_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 stpc_isab_read(int func, int addr, void *priv)
 {
-    stpc_t *dev = (stpc_t *) priv;
-    uint8_t ret;
+    const stpc_t *dev = (stpc_t *) priv;
+    uint8_t       ret;
 
     if ((func == 1) && (dev->local != STPC_ATLAS))
         ret = stpc_ide_read(0, addr, priv);
@@ -551,6 +561,8 @@ stpc_usb_write(int func, int addr, uint8_t val, void *priv)
             dev->pci_conf[3][addr] = val;
             ohci_update_mem_mapping(dev->usb, dev->pci_conf[3][0x11], dev->pci_conf[3][0x12], dev->pci_conf[3][0x13], 1);
             break;
+        default:
+            break;
     }
 
     dev->pci_conf[3][addr] = val;
@@ -559,8 +571,8 @@ stpc_usb_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 stpc_usb_read(int func, int addr, void *priv)
 {
-    stpc_t *dev = (stpc_t *) priv;
-    uint8_t ret;
+    const stpc_t *dev = (stpc_t *) priv;
+    uint8_t       ret;
 
     if (func > 0)
         ret = 0xff;
@@ -602,7 +614,8 @@ stpc_remap_localbus(stpc_t *dev, uint16_t localbus_base)
 static uint8_t
 stpc_serial_handlers(uint8_t val)
 {
-    stpc_serial_t *dev = device_get_priv(&stpc_serial_device);
+    const stpc_serial_t *dev = device_get_priv(&stpc_serial_device);
+
     if (!dev) {
         stpc_log("STPC: Not remapping UARTs, disabled by strap (raw %02X)\n", val);
         return 0;
@@ -720,6 +733,9 @@ stpc_reg_write(uint16_t addr, uint8_t val, void *priv)
                 val &= 0xf1;
                 stpc_serial_handlers(val);
                 break;
+
+            default:
+                break;
         }
 
         dev->regs[dev->reg_offset] = val;
@@ -729,8 +745,8 @@ stpc_reg_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 stpc_reg_read(uint16_t addr, void *priv)
 {
-    stpc_t *dev = (stpc_t *) priv;
-    uint8_t ret;
+    const stpc_t *dev = (stpc_t *) priv;
+    uint8_t       ret;
 
     if (addr == 0x22)
         ret = dev->reg_offset;
@@ -880,7 +896,7 @@ stpc_setup(stpc_t *dev)
 static void
 stpc_usb_update_interrupt(usb_t* usb, void* priv)
 {
-    stpc_t *dev = (stpc_t *) priv;
+    const stpc_t *dev = (stpc_t *) priv;
 
     if (usb->irq_level)
         pci_set_irq(dev->usb_slot, PCI_INTA);
@@ -957,7 +973,7 @@ stpc_serial_close(void *priv)
 }
 
 static void *
-stpc_serial_init(const device_t *info)
+stpc_serial_init(UNUSED(const device_t *info))
 {
     stpc_log("STPC: serial_init()\n");
 
@@ -989,6 +1005,8 @@ stpc_lpt_handlers(stpc_lpt_t *dev, uint8_t val)
 
         case 0x3:
             lpt2_remove();
+            break;
+        default:
             break;
     }
 
@@ -1068,7 +1086,7 @@ stpc_lpt_close(void *priv)
 }
 
 static void *
-stpc_lpt_init(const device_t *info)
+stpc_lpt_init(UNUSED(const device_t *info))
 {
     stpc_log("STPC: lpt_init()\n");
 

@@ -224,9 +224,9 @@ nvr_path(char *str)
 int
 nvr_load(void)
 {
-    char   *path;
-    FILE   *fp;
-    uint8_t regs[NVR_MAXSIZE] = { 0 };
+    const char *path;
+    FILE       *fp;
+    uint8_t     regs[NVR_MAXSIZE] = { 0 };
 
     /* Make sure we have been initialized. */
     if (saved_nvr == NULL)

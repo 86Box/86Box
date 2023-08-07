@@ -35,6 +35,7 @@ extern "C" {
 #include <86box/midi_rtmidi.h>
 #include <86box/ini.h>
 #include <86box/config.h>
+#include <86box/plat_unused.h>
 
 // Disable c99-designator to avoid the warnings in rtmidi_*_device
 #ifdef __clang__
@@ -50,7 +51,7 @@ static int        midi_out_id = 0, midi_in_id = 0;
 static const int  midi_lengths[8] = { 3, 3, 3, 3, 2, 2, 3, 1 };
 
 int
-rtmidi_write(uint8_t val)
+rtmidi_write(UNUSED(uint8_t val))
 {
     return 0;
 }
@@ -70,7 +71,7 @@ rtmidi_play_sysex(uint8_t *sysex, unsigned int len)
 }
 
 void *
-rtmidi_output_init(const device_t *info)
+rtmidi_output_init(UNUSED(const device_t *info))
 {
     midi_device_t *dev = (midi_device_t *) malloc(sizeof(midi_device_t));
     memset(dev, 0, sizeof(midi_device_t));
@@ -110,7 +111,7 @@ rtmidi_output_init(const device_t *info)
 }
 
 void
-rtmidi_output_close(void *p)
+rtmidi_output_close(UNUSED(void *priv))
 {
     if (!midiout)
         return;
@@ -144,7 +145,7 @@ rtmidi_out_get_dev_name(int num, char *s)
 }
 
 void
-rtmidi_input_callback(double timeStamp, std::vector<unsigned char> *message, void *userData)
+rtmidi_input_callback(UNUSED(double timeStamp), std::vector<unsigned char> *message, UNUSED(void *userData))
 {
     if (message->front() == 0xF0)
         midi_in_sysex(message->data(), message->size());
@@ -153,7 +154,7 @@ rtmidi_input_callback(double timeStamp, std::vector<unsigned char> *message, voi
 }
 
 void *
-rtmidi_input_init(const device_t *info)
+rtmidi_input_init(UNUSED(const device_t *info))
 {
     midi_device_t *dev = (midi_device_t *) malloc(sizeof(midi_device_t));
     memset(dev, 0, sizeof(midi_device_t));
@@ -198,7 +199,7 @@ rtmidi_input_init(const device_t *info)
 }
 
 void
-rtmidi_input_close(void *p)
+rtmidi_input_close(UNUSED(void *priv))
 {
     midiin->cancelCallback();
     midiin->closePort();

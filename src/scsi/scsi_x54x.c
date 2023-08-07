@@ -238,6 +238,9 @@ completion_code(uint8_t *sense)
         case ASC_MEDIUM_NOT_PRESENT:
             ret = 0xaa;
             break;
+
+        default:
+            break;
     }
 
     return ret;
@@ -483,6 +486,9 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 
             default:
                 x54x_log("BIOS: Unimplemented command: %02X\n", cmd->command);
+#ifdef FALLTHROUGH_ANNOTATION
+                [[fallthrough]];
+#endif
             case 0x05: /* Format Track, invalid since SCSI has no tracks */
             case 0x0a: /* ???? */
             case 0x0b: /* ???? */
@@ -583,8 +589,8 @@ x54x_mbi_setup(x54x_t *dev, uint32_t CCBPointer, CCBU *CmdBlock,
 static void
 x54x_ccb(x54x_t *dev)
 {
-    Req_t  *req      = &dev->Req;
-    uint8_t bytes[4] = { 0, 0, 0, 0 };
+    const Req_t *req      = &dev->Req;
+    uint8_t      bytes[4] = { 0, 0, 0, 0 };
 
     /* Rewrite the CCB up to the CDB. */
     x54x_log("CCB completion code and statuses rewritten (pointer %08X)\n", req->CCBPointer);
@@ -605,14 +611,16 @@ static void
 x54x_mbi(x54x_t *dev)
 {
     Req_t *req = &dev->Req;
-    //  uint32_t CCBPointer = req->CCBPointer;
-    addr24   CCBPointer;
-    CCBU    *CmdBlock              = &(req->CmdBlock);
-    uint8_t  HostStatus            = req->HostStatus;
-    uint8_t  TargetStatus          = req->TargetStatus;
-    uint32_t MailboxCompletionCode = req->MailboxCompletionCode;
-    uint32_t Incoming;
-    uint8_t  bytes[4] = { 0, 0, 0, 0 };
+#if 0
+    uint32_t CCBPointer = req->CCBPointer;
+#endif
+    addr24_t  CCBPointer;
+    CCBU     *CmdBlock              = &(req->CmdBlock);
+    uint8_t   HostStatus            = req->HostStatus;
+    uint8_t   TargetStatus          = req->TargetStatus;
+    uint32_t  MailboxCompletionCode = req->MailboxCompletionCode;
+    uint32_t  Incoming;
+    uint8_t   bytes[4] = { 0, 0, 0, 0 };
 
     Incoming = dev->MailboxInAddr + (dev->MailboxInPosCur * ((dev->flags & X54X_MBX_24BIT) ? sizeof(Mailbox_t) : sizeof(Mailbox32_t)));
 
@@ -734,7 +742,7 @@ static void
 x54x_set_residue(x54x_t *dev, Req_t *req, int32_t TransferLength)
 {
     uint32_t Residue = 0;
-    addr24   Residue24;
+    addr24_t Residue24;
     int32_t  BufLen   = scsi_devices[dev->bus][req->TargetID].buffer_length;
     uint8_t  bytes[4] = { 0, 0, 0, 0 };
 
@@ -1017,7 +1025,7 @@ x54x_mbo_free(x54x_t *dev)
 static void
 x54x_notify(x54x_t *dev)
 {
-    Req_t         *req = &dev->Req;
+    const Req_t   *req = &dev->Req;
     scsi_device_t *sd;
 
     sd = &scsi_devices[dev->bus][req->TargetID];
@@ -1035,7 +1043,7 @@ x54x_notify(x54x_t *dev)
 }
 
 static void
-x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
+x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, UNUSED(Mailbox32_t *Mailbox32))
 {
     Req_t         *req = &dev->Req;
     uint8_t        id;
@@ -1161,9 +1169,11 @@ x54x_mbo_process(x54x_t *dev)
     } else if (!dev->MailboxIsBIOS && (mb32.u.out.ActionCode == MBO_ABORT)) {
         x54x_log("Abort Mailbox Command\n");
         x54x_req_abort(dev, mb32.CCBPointer);
-    } /* else {
+#if 0
+    } else {
         x54x_log("Invalid action code: %02X\n", mb32.u.out.ActionCode);
-    } */
+#endif
+    }
 
     if ((mb32.u.out.ActionCode == MBO_START) || (!dev->MailboxIsBIOS && (mb32.u.out.ActionCode == MBO_ABORT))) {
         /* We got the mailbox, decrease the number of pending requests. */
@@ -1282,7 +1292,9 @@ x54x_cmd_callback(void *priv)
 
     period = (1000000.0 / dev->ha_bps) * ((double) dev->temp_period);
     timer_on(&dev->timer, dev->media_period + period + 10.0, 0);
-    // x54x_log("Temporary period: %lf us (%" PRIi64 " periods)\n", dev->timer.period, dev->temp_period);
+#if 0
+    x54x_log("Temporary period: %lf us (%" PRIi64 " periods)\n", dev->timer.period, dev->temp_period);
+#endif
 }
 
 static uint8_t
@@ -1292,8 +1304,8 @@ x54x_in(uint16_t port, void *priv)
     uint8_t ret;
 
     switch (port & 3) {
-        case 0:
         default:
+        case 0:
             ret = dev->Status;
             break;
 
@@ -1329,8 +1341,8 @@ x54x_in(uint16_t port, void *priv)
                 ret = dev->Geometry;
             else {
                 switch (dev->Geometry) {
-                    case 0:
                     default:
+                    case 0:
                         ret = 'A';
                         break;
                     case 1:
@@ -1459,7 +1471,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
     int                           suppress = 0;
     uint32_t                      FIFOBuf;
     uint8_t                       reset;
-    addr24                        Address;
+    addr24_t                      Address;
     uint8_t                       host_id = dev->HostID;
     uint8_t                       irq     = 0;
 

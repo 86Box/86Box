@@ -23,6 +23,7 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/plat_unused.h>
 
 typedef struct ics2595_t {
     int oldfs3, oldfs2;
@@ -70,6 +71,9 @@ ics2595_write(void *p, int strobe, int dat)
                         ics2595->state     = ICS2595_IDLE;
                     }
                     break;
+
+                default:
+                    break;
             }
         }
 
@@ -81,7 +85,7 @@ ics2595_write(void *p, int strobe, int dat)
 }
 
 static void *
-ics2595_init(const device_t *info)
+ics2595_init(UNUSED(const device_t *info))
 {
     ics2595_t *ics2595 = (ics2595_t *) malloc(sizeof(ics2595_t));
     memset(ics2595, 0, sizeof(ics2595_t));
@@ -99,9 +103,9 @@ ics2595_close(void *priv)
 }
 
 double
-ics2595_getclock(void *p)
+ics2595_getclock(void *priv)
 {
-    ics2595_t *ics2595 = (ics2595_t *) p;
+    ics2595_t *ics2595 = (ics2595_t *) priv;
 
     return ics2595->output_clock;
 }

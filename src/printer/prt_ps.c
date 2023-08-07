@@ -51,13 +51,14 @@
 #elif defined __APPLE__
 #    define PATH_GHOSTSCRIPT_DLL "libgs.dylib"
 #else
-#    define PATH_GHOSTSCRIPT_DLL "libgs.so.9"
+#    define PATH_GHOSTSCRIPT_DLL      "libgs.so.9"
+#    define PATH_GHOSTSCRIPT_DLL_ALT1 "libgs.so.10"
+#    define PATH_GHOSTSCRIPT_DLL_ALT2 "libgs.so"
 #endif
 
 #define POSTSCRIPT_BUFFER_LENGTH 65536
 
-typedef struct
-{
+typedef struct ps_t {
     const char *name;
 
     void *lpt;
@@ -236,9 +237,9 @@ timeout_timer(void *priv)
 }
 
 static void
-ps_write_data(uint8_t val, void *p)
+ps_write_data(uint8_t val, void *priv)
 {
-    ps_t *dev = (ps_t *) p;
+    ps_t *dev = (ps_t *) priv;
 
     if (dev == NULL)
         return;
@@ -285,9 +286,9 @@ process_data(ps_t *dev)
 }
 
 static void
-ps_write_ctrl(uint8_t val, void *p)
+ps_write_ctrl(uint8_t val, void *priv)
 {
-    ps_t *dev = (ps_t *) p;
+    ps_t *dev = (ps_t *) priv;
 
     if (dev == NULL)
         return;
@@ -317,10 +318,10 @@ ps_write_ctrl(uint8_t val, void *p)
 }
 
 static uint8_t
-ps_read_status(void *p)
+ps_read_status(void *priv)
 {
-    ps_t   *dev = (ps_t *) p;
-    uint8_t ret = 0x9f;
+    const ps_t   *dev = (ps_t *) priv;
+    uint8_t       ret = 0x9f;
 
     if (!dev->ack)
         ret |= 0x40;
@@ -341,12 +342,21 @@ ps_init(void *lpt)
 
     /* Try loading the DLL. */
     ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
-    if (ghostscript_handle == NULL)
+#ifdef PATH_GHOSTSCRIPT_DLL_ALT1
+    if (ghostscript_handle == NULL) {
+        ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL_ALT1, ghostscript_imports);
+#    ifdef PATH_GHOSTSCRIPT_DLL_ALT2
+        if (ghostscript_handle == NULL)
+            ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL_ALT2, ghostscript_imports);
+#    endif
+    }
+#endif
+    if (ghostscript_handle == NULL) {
         ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2115, (wchar_t *) IDS_2133);
-    else {
-        if (gsapi_revision(&rev, sizeof(rev)) == 0)
+    } else {
+        if (gsapi_revision(&rev, sizeof(rev)) == 0) {
             pclog("Loaded %s, rev %ld (%ld)\n", rev.product, rev.revision, rev.revisiondate);
-        else {
+        } else {
             dynld_close(ghostscript_handle);
             ghostscript_handle = NULL;
         }
@@ -368,9 +378,9 @@ ps_init(void *lpt)
 }
 
 static void
-ps_close(void *p)
+ps_close(void *priv)
 {
-    ps_t *dev = (ps_t *) p;
+    ps_t *dev = (ps_t *) priv;
 
     if (dev == NULL)
         return;

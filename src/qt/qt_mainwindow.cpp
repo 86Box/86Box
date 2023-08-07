@@ -70,6 +70,7 @@ extern int qt_nvr_save(void);
 #include <QTimer>
 #include <QThread>
 #include <QKeyEvent>
+#include <QShortcut>
 #include <QMessageBox>
 #include <QFocusEvent>
 #include <QApplication>
@@ -628,6 +629,8 @@ MainWindow::MainWindow(QWidget *parent)
 #endif
 
     setContextMenuPolicy(Qt::PreventContextMenu);
+    /* Remove default Shift+F10 handler, which unfocuses keyboard input even with no context menu. */
+    connect(new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F10), this), &QShortcut::activated, this, [this](){});
 
     connect(this, &MainWindow::initRendererMonitor, this, &MainWindow::initRendererMonitorSlot);
     connect(this, &MainWindow::initRendererMonitorForNonQtThread, this, &MainWindow::initRendererMonitorSlot, Qt::BlockingQueuedConnection);
@@ -942,11 +945,13 @@ MainWindow::processKeyboardInput(bool down, uint32_t keycode)
             }
             break;
 
+        case 0x80 ... 0xff: /* regular break codes */
         case 0x10b: /* Microsoft scroll up normal */
-        case 0x18b: /* Microsoft scroll down normal */
-            /* This abuses make/break codes. Send them manually, only on press. */
+        case 0x180 ... 0x1ff: /* E0 break codes (including Microsoft scroll down normal) */
+            /* This key uses a break code as make. Send it manually, only on press. */
             if (down) {
-                keyboard_send(0xe0);
+                if (keycode & 0x100)
+                    keyboard_send(0xe0);
                 keyboard_send(keycode & 0xff);
             }
             return;
@@ -1089,6 +1094,11 @@ MainWindow::processMacKeyboardInput(bool down, const QKeyEvent *event)
 #endif
             if (mac_iso_swap)
                 nvk = (nvk == 0x0a) ? 0x32 : 0x0a;
+        }
+        // Special case for command + forward delete to send insert.
+        if ((event->nativeModifiers() & NSEventModifierFlagCommand) &&
+            ((event->nativeVirtualKey() == nvk_Delete) || event->key() == Qt::Key_Delete)) {
+            nvk = nvk_Insert; // Qt::Key_Help according to event->key()
         }
 
         processKeyboardInput(down, nvk);
@@ -1242,11 +1252,7 @@ MainWindow::keyPressEvent(QKeyEvent *event)
 #endif
     }
 
-    if (!fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit())
-        fs_off_signal = true;
-
-    if (!fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter())
-        fs_on_signal = true;
+    checkFullscreenHotkey();
 
     if (keyboard_ismsexit())
         plat_mouse_capture(0);
@@ -1282,24 +1288,35 @@ MainWindow::keyReleaseEvent(QKeyEvent *event)
         }
     }
 
-    if (fs_off_signal && (video_fullscreen > 0) && keyboard_isfsexit_down()) {
-        ui->actionFullscreen->trigger();
-        fs_off_signal = false;
-    }
-
-    if (fs_on_signal && (video_fullscreen == 0) && keyboard_isfsenter_down()) {
-        ui->actionFullscreen->trigger();
-        fs_on_signal = false;
-    }
-
-    if (!send_keyboard_input)
-        return;
-
+    if (send_keyboard_input && !event->isAutoRepeat()) {
 #ifdef Q_OS_MACOS
-    processMacKeyboardInput(false, event);
+        processMacKeyboardInput(false, event);
 #else
-    processKeyboardInput(false, event->nativeScanCode());
+        processKeyboardInput(false, event->nativeScanCode());
 #endif
+    }
+
+    checkFullscreenHotkey();
+}
+
+void
+MainWindow::checkFullscreenHotkey()
+{
+    if (!fs_off_signal && video_fullscreen && keyboard_isfsexit()) {
+        /* Signal "exit fullscreen mode". */
+        fs_off_signal = 1;
+    } else if (fs_off_signal && video_fullscreen && keyboard_isfsexit_up()) {
+        ui->actionFullscreen->trigger();
+        fs_off_signal = 0;
+    }
+
+    if (!fs_on_signal && !video_fullscreen && keyboard_isfsenter()) {
+        /* Signal "enter fullscreen mode". */
+        fs_on_signal = 1;
+    } else if (fs_on_signal && !video_fullscreen && keyboard_isfsenter_up()) {
+        ui->actionFullscreen->trigger();
+        fs_on_signal = 0;
+    }
 }
 
 QSize
@@ -1692,18 +1709,20 @@ void
 MainWindow::on_actionRemember_size_and_position_triggered()
 {
     window_remember ^= 1;
-    window_w = ui->stackedWidget->width();
-    window_h = ui->stackedWidget->height();
-    if (!QApplication::platformName().contains("wayland")) {
-        window_x = geometry().x();
-        window_y = geometry().y();
-    }
-    for (int i = 1; i < MONITORS_NUM; i++) {
-        if (window_remember && renderers[i]) {
-            monitor_settings[i].mon_window_w = renderers[i]->geometry().width();
-            monitor_settings[i].mon_window_h = renderers[i]->geometry().height();
-            monitor_settings[i].mon_window_x = renderers[i]->geometry().x();
-            monitor_settings[i].mon_window_y = renderers[i]->geometry().y();
+    if (!video_fullscreen) {
+        window_w = ui->stackedWidget->width();
+        window_h = ui->stackedWidget->height();
+        if (!QApplication::platformName().contains("wayland")) {
+            window_x = geometry().x();
+            window_y = geometry().y();
+        }
+        for (int i = 1; i < MONITORS_NUM; i++) {
+            if (window_remember && renderers[i]) {
+                monitor_settings[i].mon_window_w = renderers[i]->geometry().width();
+                monitor_settings[i].mon_window_h = renderers[i]->geometry().height();
+                monitor_settings[i].mon_window_x = renderers[i]->geometry().x();
+                monitor_settings[i].mon_window_y = renderers[i]->geometry().y();
+            }
         }
     }
     ui->actionRemember_size_and_position->setChecked(window_remember);

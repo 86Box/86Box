@@ -29,6 +29,7 @@
 #include <86box/timer.h>
 #include "cpu.h"
 #include <86box/m_amstrad.h>
+#include <86box/pci.h>
 
 #define NPORTS 65536 /* PC/AT supports 64K ports */
 
@@ -47,10 +48,11 @@ typedef struct _io_ {
 } io_t;
 
 typedef struct {
-    uint8_t  enable;
-    uint16_t base, size;
-    void (*func)(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv),
-        *priv;
+    uint8_t   enable;
+    uint16_t  base;
+    uint16_t  size;
+    void    (*func)(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv);
+    void     *priv;
 } io_trap_t;
 
 int   initialized = 0;
@@ -286,15 +288,25 @@ inb(uint16_t port)
     int     found  = 0;
     int     qfound = 0;
 
-    p = io[port];
-    while (p) {
-        q = p->next;
-        if (p->inb) {
-            ret &= p->inb(port, p->priv);
-            found |= 1;
-            qfound++;
+    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        ret = pci_type2_read(port, NULL);
+        found = 1;
+        qfound = 1;
+    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
+        ret = pci_type2_read(port, NULL);
+        found = 1;
+        qfound = 1;
+    } else {
+        p = io[port];
+        while (p) {
+            q = p->next;
+            if (p->inb) {
+                ret &= p->inb(port, p->priv);
+                found |= 1;
+                qfound++;
+            }
+            p = q;
         }
-        p = q;
     }
 
     if (amstrad_latch & 0x80000000) {
@@ -310,8 +322,10 @@ inb(uint16_t port)
         cycles -= io_delay;
 
     /* TriGem 486-BIOS MHz output. */
-    /* if (port == 0x1ed)
-        ret = 0xfe; */
+#if 0
+    if (port == 0x1ed)
+        ret = 0xfe;
+#endif
 
     io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
@@ -326,15 +340,25 @@ outb(uint16_t port, uint8_t val)
     int   found  = 0;
     int   qfound = 0;
 
-    p = io[port];
-    while (p) {
-        q = p->next;
-        if (p->outb) {
-            p->outb(port, val, p->priv);
-            found |= 1;
-            qfound++;
+    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        pci_type2_write(port, val, NULL);
+        found = 1;
+        qfound = 1;
+    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
+        pci_type2_write(port, val, NULL);
+        found = 1;
+        qfound = 1;
+    } else {
+        p = io[port];
+        while (p) {
+            q = p->next;
+            if (p->outb) {
+                p->outb(port, val, p->priv);
+                found |= 1;
+                qfound++;
+            }
+            p = q;
         }
-        p = q;
     }
 
     if (!found) {
@@ -360,32 +384,42 @@ inw(uint16_t port)
     int      qfound = 0;
     uint8_t  ret8[2];
 
-    p = io[port];
-    while (p) {
-        q = p->next;
-        if (p->inw) {
-            ret &= p->inw(port, p->priv);
-            found |= 2;
-            qfound++;
-        }
-        p = q;
-    }
-
-    ret8[0] = ret & 0xff;
-    ret8[1] = (ret >> 8) & 0xff;
-    for (uint8_t i = 0; i < 2; i++) {
-        p = io[(port + i) & 0xffff];
+    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        ret = pci_type2_readw(port, NULL);
+        found = 2;
+        qfound = 1;
+    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
+        ret = pci_type2_readw(port, NULL);
+        found = 2;
+        qfound = 1;
+    } else {
+        p = io[port];
         while (p) {
             q = p->next;
-            if (p->inb && !p->inw) {
-                ret8[i] &= p->inb(port + i, p->priv);
-                found |= 1;
+            if (p->inw) {
+                ret &= p->inw(port, p->priv);
+                found |= 2;
                 qfound++;
             }
             p = q;
         }
+
+        ret8[0] = ret & 0xff;
+        ret8[1] = (ret >> 8) & 0xff;
+        for (uint8_t i = 0; i < 2; i++) {
+            p = io[(port + i) & 0xffff];
+            while (p) {
+                q = p->next;
+                if (p->inb && !p->inw) {
+                    ret8[i] &= p->inb(port + i, p->priv);
+                    found |= 1;
+                    qfound++;
+                }
+                p = q;
+            }
+        }
+        ret = (ret8[1] << 8) | ret8[0];
     }
-    ret = (ret8[1] << 8) | ret8[0];
 
     if (amstrad_latch & 0x80000000) {
         if (port & 0x80)
@@ -412,27 +446,37 @@ outw(uint16_t port, uint16_t val)
     int   found  = 0;
     int   qfound = 0;
 
-    p = io[port];
-    while (p) {
-        q = p->next;
-        if (p->outw) {
-            p->outw(port, val, p->priv);
-            found |= 2;
-            qfound++;
-        }
-        p = q;
-    }
-
-    for (uint8_t i = 0; i < 2; i++) {
-        p = io[(port + i) & 0xffff];
+    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        pci_type2_writew(port, val, NULL);
+        found = 2;
+        qfound = 1;
+    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
+        pci_type2_writew(port, val, NULL);
+        found = 2;
+        qfound = 1;
+    } else {
+        p = io[port];
         while (p) {
             q = p->next;
-            if (p->outb && !p->outw) {
-                p->outb(port + i, val >> (i << 3), p->priv);
-                found |= 1;
+            if (p->outw) {
+                p->outw(port, val, p->priv);
+                found |= 2;
                 qfound++;
             }
             p = q;
+        }
+
+        for (uint8_t i = 0; i < 2; i++) {
+            p = io[(port + i) & 0xffff];
+            while (p) {
+                q = p->next;
+                if (p->outb && !p->outw) {
+                    p->outb(port + i, val >> (i << 3), p->priv);
+                    found |= 1;
+                    qfound++;
+                }
+                p = q;
+            }
         }
     }
 
@@ -460,59 +504,69 @@ inl(uint16_t port)
     int      found  = 0;
     int      qfound = 0;
 
-    p = io[port];
-    while (p) {
-        q = p->next;
-        if (p->inl) {
-            ret &= p->inl(port, p->priv);
-            found |= 4;
-            qfound++;
-        }
-        p = q;
-    }
-
-    ret16[0] = ret & 0xffff;
-    ret16[1] = (ret >> 16) & 0xffff;
-    p        = io[port & 0xffff];
-    while (p) {
-        q = p->next;
-        if (p->inw && !p->inl) {
-            ret16[0] &= p->inw(port, p->priv);
-            found |= 2;
-            qfound++;
-        }
-        p = q;
-    }
-
-    p = io[(port + 2) & 0xffff];
-    while (p) {
-        q = p->next;
-        if (p->inw && !p->inl) {
-            ret16[1] &= p->inw(port + 2, p->priv);
-            found |= 2;
-            qfound++;
-        }
-        p = q;
-    }
-    ret = (ret16[1] << 16) | ret16[0];
-
-    ret8[0] = ret & 0xff;
-    ret8[1] = (ret >> 8) & 0xff;
-    ret8[2] = (ret >> 16) & 0xff;
-    ret8[3] = (ret >> 24) & 0xff;
-    for (uint8_t i = 0; i < 4; i++) {
-        p = io[(port + i) & 0xffff];
+    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        ret = pci_type2_readl(port, NULL);
+        found = 4;
+        qfound = 1;
+    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
+        ret = pci_type2_readl(port, NULL);
+        found = 4;
+        qfound = 1;
+    } else {
+        p = io[port];
         while (p) {
             q = p->next;
-            if (p->inb && !p->inw && !p->inl) {
-                ret8[i] &= p->inb(port + i, p->priv);
-                found |= 1;
+            if (p->inl) {
+                ret &= p->inl(port, p->priv);
+                found |= 4;
                 qfound++;
             }
             p = q;
         }
+
+        ret16[0] = ret & 0xffff;
+        ret16[1] = (ret >> 16) & 0xffff;
+        p        = io[port & 0xffff];
+        while (p) {
+            q = p->next;
+            if (p->inw && !p->inl) {
+                ret16[0] &= p->inw(port, p->priv);
+                found |= 2;
+                qfound++;
+            }
+            p = q;
+        }
+
+        p = io[(port + 2) & 0xffff];
+        while (p) {
+            q = p->next;
+            if (p->inw && !p->inl) {
+                ret16[1] &= p->inw(port + 2, p->priv);
+                found |= 2;
+                qfound++;
+            }
+            p = q;
+        }
+        ret = (ret16[1] << 16) | ret16[0];
+
+        ret8[0] = ret & 0xff;
+        ret8[1] = (ret >> 8) & 0xff;
+        ret8[2] = (ret >> 16) & 0xff;
+        ret8[3] = (ret >> 24) & 0xff;
+        for (uint8_t i = 0; i < 4; i++) {
+            p = io[(port + i) & 0xffff];
+            while (p) {
+                q = p->next;
+                if (p->inb && !p->inw && !p->inl) {
+                    ret8[i] &= p->inb(port + i, p->priv);
+                    found |= 1;
+                    qfound++;
+                }
+                p = q;
+            }
+        }
+        ret = (ret8[3] << 24) | (ret8[2] << 16) | (ret8[1] << 8) | ret8[0];
     }
-    ret = (ret8[3] << 24) | (ret8[2] << 16) | (ret8[1] << 8) | ret8[0];
 
     if (amstrad_latch & 0x80000000) {
         if (port & 0x80)
@@ -540,42 +594,52 @@ outl(uint16_t port, uint32_t val)
     int   qfound = 0;
     int   i      = 0;
 
-    p = io[port];
-    if (p) {
-        while (p) {
-            q = p->next;
-            if (p->outl) {
-                p->outl(port, val, p->priv);
-                found |= 4;
-                qfound++;
+    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        pci_type2_writel(port, val, NULL);
+        found = 4;
+        qfound = 1;
+    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
+        pci_type2_writel(port, val, NULL);
+        found = 4;
+        qfound = 1;
+    } else {
+        p = io[port];
+        if (p) {
+            while (p) {
+                q = p->next;
+                if (p->outl) {
+                    p->outl(port, val, p->priv);
+                    found |= 4;
+                    qfound++;
+                }
+                p = q;
             }
-            p = q;
         }
-    }
 
-    for (i = 0; i < 4; i += 2) {
-        p = io[(port + i) & 0xffff];
-        while (p) {
-            q = p->next;
-            if (p->outw && !p->outl) {
-                p->outw(port + i, val >> (i << 3), p->priv);
-                found |= 2;
-                qfound++;
+        for (i = 0; i < 4; i += 2) {
+            p = io[(port + i) & 0xffff];
+            while (p) {
+                q = p->next;
+                if (p->outw && !p->outl) {
+                    p->outw(port + i, val >> (i << 3), p->priv);
+                    found |= 2;
+                    qfound++;
+                }
+                p = q;
             }
-            p = q;
         }
-    }
 
-    for (i = 0; i < 4; i++) {
-        p = io[(port + i) & 0xffff];
-        while (p) {
-            q = p->next;
-            if (p->outb && !p->outw && !p->outl) {
-                p->outb(port + i, val >> (i << 3), p->priv);
-                found |= 1;
-                qfound++;
+        for (i = 0; i < 4; i++) {
+            p = io[(port + i) & 0xffff];
+            while (p) {
+                q = p->next;
+                if (p->outb && !p->outw && !p->outl) {
+                    p->outb(port + i, val >> (i << 3), p->priv);
+                    found |= 1;
+                    qfound++;
+                }
+                p = q;
             }
-            p = q;
         }
     }
 

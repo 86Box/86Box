@@ -23,13 +23,18 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/i2c.h>
+#include <86box/plat_unused.h>
 
-typedef struct {
+typedef struct i2c_eeprom_t {
     void   *i2c;
-    uint8_t addr, *data, writable;
+    uint8_t addr;
+    uint8_t *data;
+    uint8_t writable;
 
-    uint32_t addr_mask, addr_register;
-    uint8_t  addr_len, addr_pos;
+    uint32_t addr_mask;
+    uint32_t addr_register;
+    uint8_t  addr_len;
+    uint8_t  addr_pos;
 } i2c_eeprom_t;
 
 #ifdef ENABLE_I2C_EEPROM_LOG
@@ -51,7 +56,7 @@ i2c_eeprom_log(const char *fmt, ...)
 #endif
 
 static uint8_t
-i2c_eeprom_start(void *bus, uint8_t addr, uint8_t read, void *priv)
+i2c_eeprom_start(UNUSED(void *bus), uint8_t addr, uint8_t read, void *priv)
 {
     i2c_eeprom_t *dev = (i2c_eeprom_t *) priv;
 
@@ -66,7 +71,7 @@ i2c_eeprom_start(void *bus, uint8_t addr, uint8_t read, void *priv)
 }
 
 static uint8_t
-i2c_eeprom_read(void *bus, uint8_t addr, void *priv)
+i2c_eeprom_read(UNUSED(void *bus), UNUSED(uint8_t addr), void *priv)
 {
     i2c_eeprom_t *dev = (i2c_eeprom_t *) priv;
     uint8_t       ret = dev->data[dev->addr_register];
@@ -79,7 +84,7 @@ i2c_eeprom_read(void *bus, uint8_t addr, void *priv)
 }
 
 static uint8_t
-i2c_eeprom_write(void *bus, uint8_t addr, uint8_t data, void *priv)
+i2c_eeprom_write(UNUSED(void *bus), uint8_t addr, uint8_t data, void *priv)
 {
     i2c_eeprom_t *dev = (i2c_eeprom_t *) priv;
 
@@ -104,7 +109,7 @@ i2c_eeprom_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 }
 
 static void
-i2c_eeprom_stop(void *bus, uint8_t addr, void *priv)
+i2c_eeprom_stop(UNUSED(void *bus), UNUSED(uint8_t addr), void *priv)
 {
     i2c_eeprom_t *dev = (i2c_eeprom_t *) priv;
 

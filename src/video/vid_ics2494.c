@@ -49,12 +49,12 @@ ics2494_log(const char *fmt, ...)
 #endif
 
 float
-ics2494_getclock(int clock, void *p)
+ics2494_getclock(int clock, void *priv)
 {
-    ics2494_t *ics2494 = (ics2494_t *) p;
+    ics2494_t *ics2494 = (ics2494_t *) priv;
 
-    if (clock > 16)
-        clock = 16;
+    if (clock > 15)
+        clock = 15;
 
     return ics2494->freq[clock];
 }
