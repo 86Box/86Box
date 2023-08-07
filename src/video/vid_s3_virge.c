@@ -172,7 +172,9 @@ typedef struct virge_t {
     uint32_t linear_base, linear_size;
 
     uint8_t pci_regs[256];
-    int     card;
+
+    uint8_t pci_slot;
+    uint8_t irq_state;
 
     int pci;
     int chip;
@@ -278,7 +280,6 @@ typedef struct virge_t {
     uint32_t     cmd_dma_base;
     uint32_t     dma_ptr;
     uint64_t     blitter_time;
-    volatile int fifo_slot;
     int          fifo_slots_num;
 
     pc_timer_t tri_timer;
@@ -419,9 +420,9 @@ static void
 s3_virge_update_irqs(virge_t *virge)
 {
     if ((virge->svga.crtc[0x32] & 0x10) && (virge->subsys_stat & (virge->subsys_cntl & INT_MASK)))
-        pci_set_irq(virge->card, PCI_INTA);
+        pci_set_irq(virge->pci_slot, PCI_INTA, &virge->irq_state);
     else
-        pci_clear_irq(virge->card, PCI_INTA);
+        pci_clear_irq(virge->pci_slot, PCI_INTA, &virge->irq_state);
 }
 
 static void
@@ -998,9 +999,9 @@ s3_virge_vblank_start(svga_t *svga)
 static void
 s3_virge_mmio_fifo_write(uint32_t addr, uint8_t val, virge_t *virge)
 {
-    if ((addr & 0xffff) < 0x8000) {
+    if ((addr & 0xffff) < 0x8000)
         s3_virge_bitblt(virge, 8, val);
-    } else {
+    else {
         switch (addr & 0xffff) {
             case 0x859c:
                 virge->cmd_dma = val;
@@ -1032,9 +1033,6 @@ s3_virge_mmio_fifo_write_l(uint32_t addr, uint32_t val, virge_t *virge)
         else
             s3_virge_bitblt(virge, 32, val);
     } else {
-        if (virge->fifo_slot >= virge->fifo_slots_num)
-            return;
-        virge->fifo_slot++;
         switch (addr & 0xfffc) {
             case 0x8590:
                 virge->cmd_dma_base = val;
@@ -1482,24 +1480,24 @@ s3_virge_mmio_read(uint32_t addr, void *priv)
     s3_virge_log("[%04X:%08X]: MMIO ReadB addr = %04x\n", CS, cpu_state.pc, addr & 0xffff);
 
     switch (addr & 0xffff) {
+        case 0x8504:
+            virge->subsys_stat |= (INT_3DF_EMP | INT_FIFO_EMP);
+            ret = virge->subsys_stat;
+            s3_virge_update_irqs(virge);
+            return ret;
         case 0x8505:
-            ret = 0xc0;
-            if (!virge->s3d_busy && !virge->fifo_slot)
+            ret = 0xd0;
+            if (!virge->s3d_busy)
                 ret |= 0x20;
-            if (virge->fifo_slot)
-                virge->fifo_slot--;
-            ret |= (virge->fifo_slots_num - virge->fifo_slot);
             return ret;
 
         case 0x850c:
             ret = virge->advfunc_cntl & 0x3f;
-            if (virge->fifo_slot)
-                virge->fifo_slot--;
-            ret |= (virge->fifo_slots_num - virge->fifo_slot) << 6;
+            ret |= virge->fifo_slots_num << 6;
             ret &= 0xff;
             break;
         case 0x850d:
-            ret = (virge->fifo_slots_num - virge->fifo_slot) >> 2;
+            ret = virge->fifo_slots_num >> 2;
             break;
 
         case 0x83b0:
@@ -1576,23 +1574,17 @@ s3_virge_mmio_read_w(uint32_t addr, void *priv)
 
     switch (addr & 0xfffe) {
         case 0x8504:
-            ret = 0xc000;
-            if (!virge->s3d_busy && !virge->fifo_slot)
+            ret = 0xd000;
+            if (!virge->s3d_busy)
                 ret |= 0x2000;
-            if (!virge->fifo_slot)
-                virge->subsys_stat |= INT_FIFO_EMP;
+            virge->subsys_stat |= (INT_3DF_EMP | INT_FIFO_EMP);
             ret |= virge->subsys_stat;
-            if (virge->fifo_slot)
-                virge->fifo_slot--;
-            ret |= (virge->fifo_slots_num - virge->fifo_slot) << 8;
             s3_virge_update_irqs(virge);
             return ret;
 
         case 0x850c:
             ret = virge->advfunc_cntl & 0x3f;
-            if (virge->fifo_slot)
-                virge->fifo_slot--;
-            ret |= (virge->fifo_slots_num - virge->fifo_slot) << 6;
+            ret |= virge->fifo_slots_num << 6;
             break;
 
         case 0x859c:
@@ -1682,26 +1674,17 @@ s3_virge_mmio_read_l(uint32_t addr, void *priv)
             break;
 
         case 0x8504:
-            ret = 0x0000c000;
-            if (!virge->s3d_busy && !virge->fifo_slot) {
+            ret = 0x0000d000;
+            if (!virge->s3d_busy)
                 ret |= 0x00002000;
-                if (!virge->s3d_busy)
-                    virge->subsys_stat |= INT_3DF_EMP;
-                if (!virge->fifo_slot)
-                    virge->subsys_stat |= INT_FIFO_EMP;
-            }
+            virge->subsys_stat |= (INT_3DF_EMP | INT_FIFO_EMP);
             ret |= virge->subsys_stat;
-            if (virge->fifo_slot)
-                virge->fifo_slot--;
-            ret |= (virge->fifo_slots_num - virge->fifo_slot) << 8;
             s3_virge_update_irqs(virge);
             break;
 
         case 0x850c:
             ret = virge->advfunc_cntl & 0x3f;
-            if (virge->fifo_slot)
-                virge->fifo_slot--;
-            ret |= (virge->fifo_slots_num - virge->fifo_slot) << 6;
+            ret |= virge->fifo_slots_num << 6;
             break;
 
         case 0x8590:
@@ -4421,7 +4404,10 @@ s3_virge_init(const device_t *info)
     virge->svga.crtc[0x37] = 1 | (7 << 5);
     virge->svga.crtc[0x53] = 8;
 
-    virge->card = pci_add_card(virge->is_agp ? PCI_ADD_AGP : PCI_ADD_VIDEO, s3_virge_pci_read, s3_virge_pci_write, virge);
+    if (bios_fn == NULL)
+        pci_add_card(virge->is_agp ? PCI_ADD_AGP : PCI_ADD_VIDEO, s3_virge_pci_read, s3_virge_pci_write, virge, &virge->pci_slot);
+    else
+        pci_add_card(virge->is_agp ? PCI_ADD_AGP : PCI_ADD_NORMAL, s3_virge_pci_read, s3_virge_pci_write, virge, &virge->pci_slot);
 
     virge->i2c = i2c_gpio_init("ddc_s3_virge");
     virge->ddc = ddc_init(i2c_gpio_get_bus(virge->i2c));

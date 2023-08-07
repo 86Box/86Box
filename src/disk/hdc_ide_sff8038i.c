@@ -409,31 +409,31 @@ sff_bus_master_set_irq(int channel, void *priv)
         case 1:
             /* Native PCI IRQ mode with interrupt pin. */
             if (irq)
-                pci_set_irq(dev->slot, dev->irq_pin);
+                pci_set_irq(dev->slot, dev->irq_pin, &dev->irq_state);
             else
-                pci_clear_irq(dev->slot, dev->irq_pin);
+                pci_clear_irq(dev->slot, dev->irq_pin, &dev->irq_state);
             break;
         case 2:
         case 5:
             /* MIRQ 0 or 1. */
             if (irq)
-                pci_set_mirq(dev->irq_mode[channel] & 1, 0);
+                pci_set_mirq(dev->irq_mode[channel] & 1, 0, &dev->irq_state);
             else
-                pci_clear_mirq(dev->irq_mode[channel] & 1, 0);
+                pci_clear_mirq(dev->irq_mode[channel] & 1, 0, &dev->irq_state);
             break;
         case 3:
             /* Native PCI IRQ mode with specified interrupt line. */
             if (irq)
-                picintlevel(1 << dev->irq_line);
+                picintlevel(1 << dev->irq_line, &dev->irq_state);
             else
-                picintc(1 << dev->irq_line);
+                picintclevel(1 << dev->irq_line, &dev->irq_state);
             break;
         case 4:
             /* ALi Aladdin Native PCI INTAJ mode. */
             if (irq)
-                pci_set_mirq(channel + 2, dev->irq_level[channel]);
+                pci_set_mirq(channel + 2, dev->irq_level[channel], &dev->irq_state);
             else
-                pci_clear_mirq(channel + 2, dev->irq_level[channel]);
+                pci_clear_mirq(channel + 2, dev->irq_level[channel], &dev->irq_state);
             break;
     }
 }
@@ -456,6 +456,7 @@ sff_bus_master_reset(sff8038i_t *dev, uint16_t old_base)
     dev->addr               = 0x00000000;
     dev->ptr0               = 0x00;
     dev->count = dev->eot = 0x00000000;
+    dev->irq_state = 0;
 
     ide_pri_disable();
     ide_sec_disable();
@@ -570,6 +571,7 @@ sff_init(UNUSED(const device_t *info))
     dev->irq_pin      = PCI_INTA;
     dev->irq_line     = 14;
     dev->irq_level[0] = dev->irq_level[1] = 0;
+    dev->irq_state    = 0;
 
     next_id++;
 

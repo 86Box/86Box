@@ -66,7 +66,7 @@ typedef struct _piix_ {
     uint8_t        max_func;
     uint8_t        pci_slot;
     uint8_t        no_mirq0;
-    uint8_t        pad;
+    uint8_t        usb_irq_state;
     uint8_t        regs[4][256];
     uint8_t        readout_regs[256];
     uint8_t        board_config[2];
@@ -1446,12 +1446,12 @@ piix_fast_off_count(void *priv)
 static void
 piix_usb_update_interrupt(usb_t* usb, void *priv)
 {
-    const piix_t *dev = (piix_t *) priv;
+    piix_t *dev = (piix_t *) priv;
 
     if (usb->irq_level)
-        pci_set_irq(dev->pci_slot, PCI_INTD);
+        pci_set_irq(dev->pci_slot, PCI_INTD, &dev->usb_irq_state);
     else
-        pci_clear_irq(dev->pci_slot, PCI_INTD);
+        pci_clear_irq(dev->pci_slot, PCI_INTD, &dev->usb_irq_state);
 }
 
 static void
@@ -1574,7 +1574,7 @@ piix_init(const device_t *info)
     dev->no_mirq0   = (info->local >> 12) & 0x0f;
     dev->func0_id   = info->local >> 16;
 
-    dev->pci_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, piix_read, piix_write, dev);
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, piix_read, piix_write, dev, &dev->pci_slot);
     piix_log("PIIX%i: Added to slot: %02X\n", dev->type, dev->pci_slot);
     piix_log("PIIX%i: Added to slot: %02X\n", dev->type, dev->pci_slot);
 

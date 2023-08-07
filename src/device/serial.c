@@ -48,6 +48,8 @@ enum {
     SERIAL_INT_TIMEOUT  = 16
 };
 
+void    serial_update_ints(serial_t *dev);
+
 static int             next_inst = 0;
 static serial_device_t serial_devices[SERIAL_MAX];
 
@@ -84,6 +86,8 @@ serial_reset_port(serial_t *dev)
     dev->out_new                            = 0xffff;
     memset(dev->xmit_fifo, 0, 16);
     memset(dev->rcvr_fifo, 0, 16);
+    serial_update_ints(dev);
+    dev->irq_state = 0;
 }
 
 void
@@ -133,11 +137,15 @@ serial_update_ints(serial_t *dev)
 
     if (stat && (dev->irq != 0xff) && ((dev->mctrl & 8) || (dev->type == SERIAL_8250_PCJR))) {
         if (dev->type >= SERIAL_16450)
-            picintlevel(1 << dev->irq);
-        else
+            picintlevel(1 << dev->irq, &dev->irq_state);
+         else
             picint(1 << dev->irq);
-    } else
-        picintc(1 << dev->irq);
+    } else {
+        if (dev->type >= SERIAL_16450)
+            picintclevel(1 << dev->irq, &dev->irq_state);
+         else
+            picintc(1 << dev->irq);
+    }
 }
 
 static void

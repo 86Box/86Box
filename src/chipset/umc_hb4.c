@@ -146,6 +146,8 @@ typedef struct hb4_t {
     uint8_t  shadow;
     uint8_t  shadow_read;
     uint8_t  shadow_write;
+    uint8_t  pci_slot;
+
     uint8_t  pci_conf[256]; /* PCI Registers */
     int      mem_state[9];
     smram_t *smram[3]; /* SMRAM Handlers */
@@ -393,7 +395,7 @@ hb4_init(UNUSED(const device_t *info))
     hb4_t *dev = (hb4_t *) malloc(sizeof(hb4_t));
     memset(dev, 0, sizeof(hb4_t));
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, hb4_read, hb4_write, dev); /* Device 10: UMC 8881x */
+    pci_add_card(PCI_ADD_NORTHBRIDGE, hb4_read, hb4_write, dev, &dev->pci_slot); /* Device 10: UMC 8881x */
 
     /* Port 92 */
     device_add(&port_92_pci_device);

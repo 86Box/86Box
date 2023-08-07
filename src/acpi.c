@@ -124,29 +124,29 @@ acpi_update_irq(acpi_t *dev)
 
     if (sci_level) {
         if (dev->irq_mode == 1)
-            pci_set_irq(dev->slot, dev->irq_pin);
+            pci_set_irq(dev->slot, dev->irq_pin, &dev->irq_state);
         else if (dev->irq_mode == 2)
-            pci_set_mirq(5, dev->mirq_is_level);
+            pci_set_mirq(5, dev->mirq_is_level, &dev->irq_state);
         else
-            pci_set_mirq(0xf0 | dev->irq_line, 1);
+            pci_set_mirq(PCI_DIRQ_BASE | dev->irq_line, 1, &dev->irq_state);
     } else {
         if (dev->irq_mode == 1)
-            pci_clear_irq(dev->slot, dev->irq_pin);
+            pci_clear_irq(dev->slot, dev->irq_pin, &dev->irq_state);
         else if (dev->irq_mode == 2)
-            pci_clear_mirq(5, dev->mirq_is_level);
+            pci_clear_mirq(5, dev->mirq_is_level, &dev->irq_state);
         else
-            pci_clear_mirq(0xf0 | dev->irq_line, 1);
+            pci_clear_mirq(PCI_DIRQ_BASE | dev->irq_line, 1, &dev->irq_state);
     }
 
     acpi_timer_update(dev, (dev->regs.pmen & TMROF_EN) && !(dev->regs.pmsts & TMROF_STS));
 }
 
-void
-acpi_raise_smi(void *priv, int do_smi)
+static void
+acpi_do_raise_smi(void *priv, int do_smi, int is_apm)
 {
     acpi_t *dev = (acpi_t *) priv;
 
-    if (dev->regs.glbctl & 0x01) {
+    if (is_apm || (dev->regs.glbctl & 0x01)) {
         if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
             if (!dev->regs.smi_lock || !dev->regs.smi_active) {
                 if (do_smi)
@@ -166,6 +166,12 @@ acpi_raise_smi(void *priv, int do_smi)
                 smi_raise();
         }
     }
+}
+
+void
+acpi_raise_smi(void *priv, int do_smi)
+{
+    acpi_do_raise_smi(priv, do_smi, 0);
 }
 
 static uint32_t
@@ -1582,7 +1588,7 @@ acpi_apm_out(uint16_t port, uint8_t val, void *priv)
             dev->apm->cmd = val;
             if (dev->vendor == VEN_INTEL)
                 dev->regs.glbsts |= 0x20;
-            acpi_raise_smi(dev, dev->apm->do_smi);
+            acpi_do_raise_smi(dev, dev->apm->do_smi, 1);
         } else
             dev->apm->stat = val;
     }
@@ -1657,6 +1663,9 @@ acpi_reset(void *priv)
     dev->regs.pmsts |= 0x8000;
 
     acpi_rtc_status = 0;
+
+    acpi_update_irq(dev);
+    dev->irq_state = 0;
 }
 
 static void

@@ -103,7 +103,10 @@ typedef struct tgui_t {
     svga_t svga;
     int    pci;
 
-    int type, card;
+    uint8_t pci_slot;
+    uint8_t irq_state;
+
+    int type;
 
     uint8_t int_line;
     uint8_t pci_regs[256];
@@ -220,9 +223,9 @@ tgui_update_irqs(tgui_t *tgui)
         return;
 
     if (!(tgui->oldctrl1 & 0x40)) {
-        pci_set_irq(tgui->card, PCI_INTA);
+        pci_set_irq(tgui->pci_slot, PCI_INTA, &tgui->irq_state);
     } else {
-        pci_clear_irq(tgui->card, PCI_INTA);
+        pci_clear_irq(tgui->pci_slot, PCI_INTA, &tgui->irq_state);
     }
 }
 
@@ -3516,9 +3519,9 @@ tgui_init(const device_t *info)
 
     if (tgui->pci && (tgui->type >= TGUI_9440)) {
         if (tgui->has_bios)
-            tgui->card = pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
+            pci_add_card(PCI_ADD_NORMAL, tgui_pci_read, tgui_pci_write, tgui, &tgui->pci_slot);
         else
-            tgui->card = pci_add_card(PCI_ADD_VIDEO | PCI_ADD_STRICT, tgui_pci_read, tgui_pci_write, tgui);
+            pci_add_card(PCI_ADD_VIDEO | PCI_ADD_STRICT, tgui_pci_read, tgui_pci_write, tgui, &tgui->pci_slot);
     }
 
     tgui->pci_regs[PCI_REG_COMMAND] = 7;

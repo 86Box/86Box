@@ -108,7 +108,7 @@ machine_init_ex(int m)
         /* Reset the fast off stuff. */
         cpu_fast_off_reset();
 
-        pci_take_over_io = 0x00000000;
+        pci_flags = 0x00000000;
     }
 
     /* All good, boot the machine! */

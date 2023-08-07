@@ -288,12 +288,12 @@ inb(uint16_t port)
     int     found  = 0;
     int     qfound = 0;
 
-    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        ret = pci_type2_read(port, NULL);
+    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        ret = pci_read(port, NULL);
         found = 1;
         qfound = 1;
-    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
-        ret = pci_type2_read(port, NULL);
+    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
+        ret = pci_read(port, NULL);
         found = 1;
         qfound = 1;
     } else {
@@ -340,12 +340,12 @@ outb(uint16_t port, uint8_t val)
     int   found  = 0;
     int   qfound = 0;
 
-    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        pci_type2_write(port, val, NULL);
+    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        pci_write(port, val, NULL);
         found = 1;
         qfound = 1;
-    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
-        pci_type2_write(port, val, NULL);
+    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
+        pci_write(port, val, NULL);
         found = 1;
         qfound = 1;
     } else {
@@ -384,12 +384,12 @@ inw(uint16_t port)
     int      qfound = 0;
     uint8_t  ret8[2];
 
-    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        ret = pci_type2_readw(port, NULL);
+    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        ret = pci_readw(port, NULL);
         found = 2;
         qfound = 1;
-    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
-        ret = pci_type2_readw(port, NULL);
+    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
+        ret = pci_readw(port, NULL);
         found = 2;
         qfound = 1;
     } else {
@@ -446,12 +446,12 @@ outw(uint16_t port, uint16_t val)
     int   found  = 0;
     int   qfound = 0;
 
-    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        pci_type2_writew(port, val, NULL);
+    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        pci_writew(port, val, NULL);
         found = 2;
         qfound = 1;
-    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
-        pci_type2_writew(port, val, NULL);
+    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
+        pci_writew(port, val, NULL);
         found = 2;
         qfound = 1;
     } else {
@@ -504,12 +504,12 @@ inl(uint16_t port)
     int      found  = 0;
     int      qfound = 0;
 
-    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        ret = pci_type2_readl(port, NULL);
+    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        ret = pci_readl(port, NULL);
         found = 4;
         qfound = 1;
-    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
-        ret = pci_type2_readl(port, NULL);
+    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
+        ret = pci_readl(port, NULL);
         found = 4;
         qfound = 1;
     } else {
@@ -594,12 +594,12 @@ outl(uint16_t port, uint32_t val)
     int   qfound = 0;
     int   i      = 0;
 
-    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        pci_type2_writel(port, val, NULL);
+    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        pci_writel(port, val, NULL);
         found = 4;
         qfound = 1;
-    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
-        pci_type2_writel(port, val, NULL);
+    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
+        pci_writel(port, val, NULL);
         found = 4;
         qfound = 1;
     } else {

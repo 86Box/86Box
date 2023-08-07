@@ -26,11 +26,11 @@ typedef struct sff8038i_t {
     uint8_t  ptr0;
     uint8_t  enabled;
     uint8_t  dma_mode;
+    uint8_t  irq_state;
     uint8_t  pad;
     uint8_t  pad0;
-    uint8_t  pad1;
     uint16_t base;
-    uint16_t pad2;
+    uint16_t pad1;
     uint32_t ptr;
     uint32_t ptr_cur;
     uint32_t addr;
