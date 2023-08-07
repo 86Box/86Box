@@ -1828,6 +1828,28 @@ gd54xx_recalctimings(svga_t *svga)
     }
 
     svga->vram_display_mask = (svga->crtc[0x1b] & 2) ? gd54xx->vram_mask : 0x3ffff;
+
+    pclog("svga->crtc[0x1a] = %02X\n", svga->crtc[0x1a]);
+    pclog("svga->crtc[0x1b] = %02X\n", svga->crtc[0x1b]);
+    pclog("svga->crtc[0x1c] = %02X\n", svga->crtc[0x1c]);
+
+    if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5430)
+	svga->htotal += ((svga->crtc[0x1c] >> 3) & 0x07);
+
+    if (svga->crtc[0x1b] & ((svga->crtc[0x27] >= CIRRUS_ID_CLGD5424) ? 0xa0 : 0x20)) {
+	/* Special blanking mode: the blank start and end become components of the window generator,
+				  and the actual blanking comes from the display enable signal. */
+	/* Start blanking at the first character clock after the last active one. */
+	svga->hblankstart = svga->crtc[1] + 1;
+	svga->hblank_end_val = (svga->htotal + 6) & 0x3f;
+	/* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
+	if (!svga->scrblank && svga->attr_palette_enable)
+		svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
+	/* No overscan in this mode. */
+	svga->hblank_overscan = 0;
+	/* Also make sure vertical blanking starts on display end. */
+	svga->vblankstart = svga->dispend;
+    }
 }
 
 static void

@@ -457,6 +457,7 @@ et4000w32p_recalctimings(svga_t *svga)
         }
     }
 
+#if 0
     if (svga->adv_flags & FLAG_NOSKEW) {
         /* On the Cardex ET4000/W32p-based cards, adjust text mode clocks by 1. */
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /* Text mode */
@@ -480,6 +481,7 @@ et4000w32p_recalctimings(svga_t *svga)
             }
         }
     }
+#endif
 
     if (et4000->type == ET4000W32) {
         if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
@@ -2561,6 +2563,9 @@ et4000w32p_pci_read(UNUSED(int func), int addr, void *priv)
 {
     et4000w32p_t *et4000 = (et4000w32p_t *) priv;
 
+    if (func > 0)
+        return 0xff;
+
     addr &= 0xff;
 
     switch (addr) {
@@ -2617,6 +2622,9 @@ et4000w32p_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     et4000w32p_t *et4000 = (et4000w32p_t *) priv;
     svga_t       *svga   = &et4000->svga;
+
+    if (func > 0)
+        return;
 
     addr &= 0xff;
 
