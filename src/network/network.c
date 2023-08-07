@@ -120,6 +120,7 @@ static const device_t *net_cards[] = {
     &pcnet_am79c960_vlb_device,
     &dec_tulip_device,
     &rtl8139c_plus_device,
+    &dec_tulip_21140_device,
     NULL
 };
 
