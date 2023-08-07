@@ -409,8 +409,10 @@ static void RTL8139TallyCounters_clear(RTL8139TallyCounters* counters);
 
 struct RTL8139State {
     /*< private >*/
-    uint8_t dev;
+    uint8_t pci_slot;
     uint8_t inst;
+    uint8_t irq_state;
+    uint8_t pad;
     /*< public >*/
 
     uint8_t phys[8]; /* mac address */
@@ -683,7 +685,7 @@ static void prom9346_set_wire(RTL8139State *s, int eecs, int eesk, int eedi)
 
 static void rtl8139_update_irq(RTL8139State *s)
 {
-    uint8_t d = s->dev;
+    uint8_t d = s->pci_slot;
     int isr;
     isr = (s->IntrStatus & s->IntrMask) & 0xffff;
 
@@ -691,9 +693,9 @@ static void rtl8139_update_irq(RTL8139State *s)
         s->IntrMask);
 
     if (isr != 0)
-        pci_set_irq(d, PCI_INTA);
+        pci_set_irq(d, PCI_INTA, &s->irq_state);
     else
-        pci_clear_irq(d, PCI_INTA);
+        pci_clear_irq(d, PCI_INTA, &s->irq_state);
 }
 
 static int rtl8139_RxWrap(RTL8139State *s)
@@ -3284,7 +3286,7 @@ nic_init(const device_t *info)
     FILE* f = NULL;
     char eeprom_filename[1024] = { 0 };
     mem_mapping_add(&s->bar_mem, 0, 0, rtl8139_io_readb, rtl8139_io_readw, rtl8139_io_readl, rtl8139_io_writeb, rtl8139_io_writew, rtl8139_io_writel, NULL, MEM_MAPPING_EXTERNAL, s);
-    s->dev = pci_add_card(PCI_ADD_NETWORK, rtl8139_pci_read, rtl8139_pci_write, s);
+    pci_add_card(PCI_ADD_NETWORK, rtl8139_pci_read, rtl8139_pci_write, s, &s->pci_slot);
     s->inst = device_get_instance();
     
     snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_rtl8139c_plus_%d.nvr", s->inst);

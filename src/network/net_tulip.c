@@ -294,7 +294,8 @@ struct tulip_descriptor {
 };
 
 struct TULIPState {
-    uint8_t            dev;
+    uint8_t            pci_slot;
+    uint8_t            irq_state;
     const device_t*    device_info;
     uint16_t           subsys_id, subsys_ven_id;
     mem_mapping_t      memory;
@@ -376,9 +377,9 @@ tulip_update_int(TULIPState *s)
 
     assert = s->csr[5] & s->csr[7] & (CSR5_AIS | CSR5_NIS);
     if (!assert)
-        pci_clear_irq(s->dev, PCI_INTA);
+        pci_clear_irq(s->pci_slot, PCI_INTA, &s->irq_state);
     else
-        pci_set_irq(s->dev, PCI_INTA);
+        pci_set_irq(s->pci_slot, PCI_INTA, &s->irq_state);
 }
 
 static bool
@@ -1582,7 +1583,7 @@ nic_init(const device_t *info)
     }
     memcpy(s->mii_regs, tulip_mdi_default, sizeof(tulip_mdi_default));
     s->nic = network_attach(s, (uint8_t *) &nmc93cxx_eeprom_data(s->eeprom)[10], tulip_receive, NULL);
-    s->dev = pci_add_card(PCI_ADD_NETWORK, tulip_pci_read, tulip_pci_write, s);
+    pci_add_card(PCI_ADD_NETWORK, tulip_pci_read, tulip_pci_write, s, &s->pci_slot);
     mem_mapping_add(&s->memory, 0, 0, NULL, NULL, tulip_read, NULL, NULL, tulip_write, NULL, MEM_MAPPING_EXTERNAL, s);
     tulip_reset(s);
     return s;
