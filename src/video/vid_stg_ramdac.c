@@ -90,7 +90,8 @@ void
 stg_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
 {
     stg_ramdac_t *ramdac = (stg_ramdac_t *) p;
-    int           didwrite, old;
+    int           didwrite;
+    int           old;
 
     switch (addr) {
         case 0x3c6:
@@ -198,11 +199,13 @@ stg_ramdac_in(uint16_t addr, void *p, svga_t *svga)
 }
 
 float
-stg_getclock(int clock, void *p)
+stg_getclock(int clock, void *priv)
 {
-    stg_ramdac_t *ramdac = (stg_ramdac_t *) p;
+    stg_ramdac_t *ramdac = (stg_ramdac_t *) priv;
     float         t;
-    int           m, n, n2;
+    int           m;
+    int           n;
+    int           n2;
     uint16_t     *c;
 
     if (clock == 0)

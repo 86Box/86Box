@@ -297,23 +297,30 @@
 #define FLAG_P6RP4_HACK    0x10
 #define FLAG_PIIX4         0x20
 
-typedef struct {
+typedef struct local_t {
     int8_t stat;
 
-    uint8_t cent, def,
-        flags, read_addr,
-        wp_0d, wp_32,
-        pad, pad0;
+    uint8_t cent;
+    uint8_t def;
+    uint8_t flags;
+    uint8_t read_addr;
+    uint8_t wp_0d;
+    uint8_t wp_32;
+    uint8_t pad;
+    uint8_t pad0;
 
-    uint8_t addr[8], wp[2],
-        bank[8], *lock;
+    uint8_t  addr[8];
+    uint8_t  wp[2];
+    uint8_t  bank[8];
+    uint8_t *lock;
 
-    int16_t count, state;
+    int16_t count;
+    int16_t state;
 
-    uint64_t ecount,
-        rtc_time;
-    pc_timer_t update_timer,
-        rtc_timer;
+    uint64_t   ecount;
+    uint64_t   rtc_time;
+    pc_timer_t update_timer;
+    pc_timer_t rtc_timer;
 } local_t;
 
 static uint8_t nvr_at_inited = 0;
@@ -322,7 +329,7 @@ static uint8_t nvr_at_inited = 0;
 static void
 time_get(nvr_t *nvr, struct tm *tm)
 {
-    local_t *local = (local_t *) nvr->data;
+    const local_t *local = (local_t *) nvr->data;
     int8_t   temp;
 
     if (nvr->regs[RTC_REGB] & REGB_DM) {
@@ -360,7 +367,7 @@ time_get(nvr_t *nvr, struct tm *tm)
 static void
 time_set(nvr_t *nvr, struct tm *tm)
 {
-    local_t *local = (local_t *) nvr->data;
+    const local_t *local = (local_t *) nvr->data;
     int      year  = (tm->tm_year + 1900);
 
     if (nvr->regs[RTC_REGB] & REGB_DM) {
@@ -419,7 +426,7 @@ check_alarm(nvr_t *nvr, int8_t addr)
 static int8_t
 check_alarm_via(nvr_t *nvr, int8_t addr, int8_t addr_2)
 {
-    local_t *local = (local_t *) nvr->data;
+    const local_t *local = (local_t *) nvr->data;
 
     if (local->cent == RTC_CENTURY_VIA) {
         return ((nvr->regs[addr_2] == nvr->regs[addr]) || ((nvr->regs[addr_2] & AL_DONTCARE) == AL_DONTCARE));
@@ -511,8 +518,8 @@ timer_load_count(nvr_t *nvr)
 static void
 timer_intr(void *priv)
 {
-    nvr_t   *nvr   = (nvr_t *) priv;
-    local_t *local = (local_t *) nvr->data;
+    nvr_t         *nvr   = (nvr_t *) priv;
+    const local_t *local = (local_t *) nvr->data;
 
     if (local->state == 1) {
         timer_load_count(nvr);
@@ -576,7 +583,8 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
     local_t  *local = (local_t *) nvr->data;
     struct tm tm;
     uint8_t   old;
-    uint8_t   irq = 0, old_irq = 0;
+    uint8_t   irq = 0;
+    uint8_t   old_irq = 0;
 
     old = nvr->regs[reg];
     switch (reg) {
@@ -649,8 +657,10 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
         return;
 
     if (addr & 1) {
-        // if (local->bank[addr_id] == 0xff)
-        // return;
+#if 0
+        if (local->bank[addr_id] == 0xff)
+            return;
+#endif
         nvr_reg_write(local->addr[addr_id], val, priv);
     } else {
         local->addr[addr_id] = (val & (nvr->size - 1));
@@ -670,11 +680,12 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 nvr_read(uint16_t addr, void *priv)
 {
-    nvr_t   *nvr   = (nvr_t *) priv;
-    local_t *local = (local_t *) nvr->data;
-    uint8_t  ret;
-    uint8_t  addr_id = (addr & 0x0e) >> 1;
-    uint16_t i, checksum = 0x0000;
+    nvr_t         *nvr   = (nvr_t *) priv;
+    const local_t *local = (local_t *) nvr->data;
+    uint8_t        ret;
+    uint8_t        addr_id = (addr & 0x0e) >> 1;
+    uint16_t       i;
+    uint16_t       checksum = 0x0000;
 
     cycles -= ISA_CYCLES(8);
 
@@ -800,7 +811,7 @@ nvr_read(uint16_t addr, void *priv)
             ret = (ret & 0x7f) | (nmi_mask ? 0x00 : 0x80);
     }
 
-    return (ret);
+    return ret;
 }
 
 /* Secondary NVR write - used by SMC. */
@@ -821,9 +832,11 @@ nvr_sec_read(uint16_t addr, void *priv)
 static void
 nvr_reset(nvr_t *nvr)
 {
-    local_t *local = (local_t *) nvr->data;
+    const local_t *local = (local_t *) nvr->data;
 
-    /* memset(nvr->regs, local->def, RTC_REGS); */
+#if 0
+    memset(nvr->regs, local->def, RTC_REGS);
+#endif
     memset(nvr->regs, local->def, nvr->size);
     nvr->regs[RTC_DOM]   = 1;
     nvr->regs[RTC_MONTH] = 1;
@@ -838,13 +851,12 @@ nvr_reset(nvr_t *nvr)
 static void
 nvr_start(nvr_t *nvr)
 {
-    int      i;
-    local_t *local = (local_t *) nvr->data;
+    const local_t *local = (local_t *) nvr->data;
 
     struct tm tm;
     int       default_found = 0;
 
-    for (i = 0; i < nvr->size; i++) {
+    for (uint16_t i = 0; i < nvr->size; i++) {
         if (nvr->regs[i] == local->def)
             default_found++;
     }
@@ -955,9 +967,8 @@ void
 nvr_lock_set(int base, int size, int lock, nvr_t *nvr)
 {
     local_t *local = (local_t *) nvr->data;
-    int      i;
 
-    for (i = 0; i < size; i++)
+    for (int i = 0; i < size; i++)
         local->lock[base + i] = lock;
 }
 
@@ -1065,6 +1076,9 @@ nvr_at_init(const device_t *info)
             nvr->irq    = -1;
             local->cent = RTC_CENTURY_ELT;
             break;
+
+        default:
+            break;
     }
 
     local->read_addr = 1;
@@ -1104,7 +1118,7 @@ nvr_at_init(const device_t *info)
         nvr_at_inited = 1;
     }
 
-    return (nvr);
+    return nvr;
 }
 
 static void

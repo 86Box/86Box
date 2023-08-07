@@ -41,6 +41,8 @@
 #include <86box/video.h>
 #include <86box/machine.h>
 #include <86box/isamem.h>
+#include <86box/pci.h>
+#include <86box/plat_unused.h>
 
 int bios_only = 0;
 int machine;
@@ -77,8 +79,10 @@ machine_init_ex(int m)
         gameport_instance_id     = 0;
 
         /* Set up the architecture flags. */
-        // AT = IS_AT(machine);
-        // PCI = IS_ARCH(machine, MACHINE_BUS_PCI);
+#if 0
+        AT = IS_AT(machine);
+        PCI = IS_ARCH(machine, MACHINE_BUS_PCI);
+#endif
 
         cpu_set();
         pc_speed_changed();
@@ -103,6 +107,8 @@ machine_init_ex(int m)
 
         /* Reset the fast off stuff. */
         cpu_fast_off_reset();
+
+        pci_take_over_io = 0x00000000;
     }
 
     /* All good, boot the machine! */
@@ -137,15 +143,15 @@ machine_init(void)
 int
 machine_available(int m)
 {
-    int       ret;
-    device_t *d = (device_t *) machine_get_device(m);
+    int             ret;
+    const device_t *dev = machine_get_device(m);
 
     bios_only = 1;
 
-    ret = device_available(d);
+    ret = device_available(dev);
     /* Do not check via machine_init_ex() if the device is not NULL and
        it has a CONFIG_BIOS field. */
-    if ((d == NULL) || (ret != -1))
+    if ((dev == NULL) || (ret != -1))
         ret = machine_init_ex(m);
 
     bios_only = 0;
@@ -164,7 +170,7 @@ pit_irq0_timer(int new_out, int old_out)
 }
 
 void
-machine_common_init(const machine_t *model)
+machine_common_init(UNUSED(const machine_t *model))
 {
     /* System devices first. */
     pic_init();

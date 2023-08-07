@@ -21,6 +21,9 @@
 #    define _DEFAULT_SOURCE 1
 #    define _BSD_SOURCE     1
 #endif
+#if defined(__FreeBSD__) || defined(__OpenBSD__) || defined(__NetBSD__) || defined(__DragonFly__)
+#    define __BSD_VISIBLE   1
+#endif
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -87,20 +90,22 @@ plat_serpt_close(void *p)
 static void
 plat_serpt_write_vcon(serial_passthrough_t *dev, uint8_t data)
 {
-    /* fd_set wrfds;
-     * int res;
-     */
+#if 0
+    fd_set wrfds;
+    int    res;
+#endif
 
     /* We cannot use select here, this would block the hypervisor! */
-    /* FD_ZERO(&wrfds);
-       FD_SET(ctx->master_fd, &wrfds);
+#if 0
+    FD_ZERO(&wrfds);
+    FD_SET(ctx->master_fd, &wrfds);
 
-       res = select(ctx->master_fd + 1, NULL, &wrfds, NULL, NULL);
+    res = select(ctx->master_fd + 1, NULL, &wrfds, NULL, NULL);
 
-       if (res <= 0) {
-            return;
-       }
-    */
+    if (res <= 0) {
+        return;
+    }
+#endif
 
     /* just write it out */
     if (dev->mode == SERPT_MODE_HOSTSER) {
@@ -163,7 +168,7 @@ plat_serpt_set_params(void *p)
         term_attr.c_cflag &= CSTOPB;
         if (dev->serial->lcr & 0x04)
             term_attr.c_cflag |= CSTOPB;
-#ifdef __APPLE__
+#if !defined(__linux__)
         term_attr.c_cflag &= PARENB | PARODD;
 #else
         term_attr.c_cflag &= PARENB | PARODD | CMSPAR;
@@ -172,7 +177,7 @@ plat_serpt_set_params(void *p)
             term_attr.c_cflag |= PARENB;
             if (!(dev->serial->lcr & 0x10))
                 term_attr.c_cflag |= PARODD;
-#ifndef __APPLE__
+#if defined(__linux__)
             if ((dev->serial->lcr & 0x20))
                 term_attr.c_cflag |= CMSPAR;
 #endif

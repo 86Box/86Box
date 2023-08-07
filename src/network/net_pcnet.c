@@ -47,6 +47,7 @@
 #include <86box/network.h>
 #include <86box/net_pcnet.h>
 #include <86box/bswap.h>
+#include <86box/plat_unused.h>
 
 /* PCI info. */
 #define PCI_VENDID  0x1022 /* AMD */
@@ -446,7 +447,8 @@ pcnetIsLinkUp(nic_t *dev)
 static __inline int
 pcnetTmdLoad(nic_t *dev, TMD *tmd, uint32_t addr, int fRetIfNotOwn)
 {
-    uint8_t  ownbyte, bytes[4] = { 0, 0, 0, 0 };
+    uint8_t  ownbyte;
+    uint8_t  bytes[4] = { 0, 0, 0, 0 };
     uint16_t xda[4];
     uint32_t xda32[4];
 
@@ -539,7 +541,8 @@ pcnetTmdStorePassHost(nic_t *dev, TMD *tmd, uint32_t addr)
 static __inline int
 pcnetRmdLoad(nic_t *dev, RMD *rmd, uint32_t addr, int fRetIfNotOwn)
 {
-    uint8_t  ownbyte, bytes[4] = { 0, 0, 0, 0 };
+    uint8_t  ownbyte;
+    uint8_t  bytes[4] = { 0, 0, 0, 0 };
     uint16_t rda[4];
     uint32_t rda32[4];
 
@@ -654,10 +657,10 @@ lnc_mchash(const uint8_t *ether_addr)
 {
 #define LNC_POLYNOMIAL 0xEDB88320UL
     uint32_t crc = 0xFFFFFFFF;
-    int      idx, bit;
+    int      bit;
     uint8_t  data;
 
-    for (idx = 0; idx < ETHER_ADDR_LEN; idx++) {
+    for (uint8_t idx = 0; idx < ETHER_ADDR_LEN; idx++) {
         for (data = *ether_addr++, bit = 0; bit < MULTICAST_FILTER_LEN; bit++) {
             crc = (crc >> 1) ^ (((crc ^ data) & 1) ? LNC_POLYNOMIAL : 0);
             data >>= 1;
@@ -742,11 +745,12 @@ static const uint32_t crctab[256] =
 };
 
 static __inline int
-padr_match(nic_t *dev, const uint8_t *buf, int size)
+padr_match(nic_t *dev, const uint8_t *buf, UNUSED(int size))
 {
-    struct ether_header *hdr = (struct ether_header *) buf;
-    int                  result;
-    uint8_t              padr[6];
+    const struct ether_header *hdr = (struct ether_header *) buf;
+    int                        result;
+    uint8_t                    padr[6];
+
     padr[0] = dev->aCSR[12] & 0xff;
     padr[1] = dev->aCSR[12] >> 8;
     padr[2] = dev->aCSR[13] & 0xff;
@@ -766,19 +770,22 @@ padr_match(nic_t *dev, const uint8_t *buf, int size)
 }
 
 static __inline int
-padr_bcast(nic_t *dev, const uint8_t *buf, size_t size)
+padr_bcast(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 {
-    static uint8_t       aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-    struct ether_header *hdr       = (struct ether_header *) buf;
-    int                  result    = !CSR_DRCVBC(dev) && !memcmp(hdr->ether_dhost, aBCAST, 6);
+    static uint8_t             aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+    const struct ether_header *hdr       = (struct ether_header *) buf;
+    int                        result    = !CSR_DRCVBC(dev) && !memcmp(hdr->ether_dhost, aBCAST, 6);
+
     pcnet_log(3, "%s: padr_bcast result=%d\n", dev->name, result);
+
     return result;
 }
 
 static int
-ladr_match(nic_t *dev, const uint8_t *buf, size_t size)
+ladr_match(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 {
-    struct ether_header *hdr = (struct ether_header *) buf;
+    const struct ether_header *hdr = (struct ether_header *) buf;
+
     if ((hdr->ether_dhost[0] & 0x01) && ((uint64_t *) &dev->aCSR[8])[0] != 0LL) {
         int     index;
         uint8_t ladr[8];
@@ -859,6 +866,9 @@ pcnetSoftReset(nic_t *dev)
             dev->aCSR[88] = 0x3003;
             dev->aCSR[89] = 0x0262;
             break;
+
+        default:
+            break;
     }
 
     dev->aCSR[94]  = 0x0000;
@@ -915,7 +925,6 @@ pcnetUpdateIrq(nic_t *dev)
 static void
 pcnetInit(nic_t *dev)
 {
-    int i;
     pcnet_log(3, "%s: pcnetInit: init_addr=%#010x\n", dev->name, PHYSADDR(dev, CSR_IADR(dev)));
 
     /** @todo Documentation says that RCVRL and XMTRL are stored as two's complement!
@@ -956,7 +965,7 @@ pcnetInit(nic_t *dev)
 #undef PCNET_INIT
 
     size_t cbRxBuffers = 0;
-    for (i = CSR_RCVRL(dev); i >= 1; i--) {
+    for (int i = CSR_RCVRL(dev); i >= 1; i--) {
         RMD      rmd;
         uint32_t rdaddr = PHYSADDR(dev, pcnetRdraAddr(dev, i));
 
@@ -1200,11 +1209,14 @@ pcnetCalcPacketLen(nic_t *dev, int cb)
 static int
 pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
 {
-    nic_t   *dev     = (nic_t *) priv;
-    int      is_padr = 0, is_bcast = 0, is_ladr = 0;
+    nic_t   *dev      = (nic_t *) priv;
+    int      is_padr  = 0;
+    int      is_bcast = 0;
+    int      is_ladr  = 0;
     uint32_t iRxDesc;
     int      cbPacket;
     uint8_t  buf1[60];
+    RMD      rmd      = { 0 };
 
     if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev) || !size)
         return 0;
@@ -1251,7 +1263,6 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
             iRxDesc               = CSR_RCVRL(dev);
 
             while (iRxDesc-- > 0) {
-                RMD rmd;
                 pcnetRmdLoad(dev, &rmd, PHYSADDR(dev, GCPhys), 0);
                 GCPhys += cb;
             }
@@ -1260,13 +1271,14 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
             ++;
             pcnet_log(2, "%s: pcnetReceiveNoSync: packet missed\n", dev->name);
         } else {
-            RTNETETHERHDR *pEth   = (RTNETETHERHDR *) buf;
-            int            fStrip = 0;
-            size_t         len_802_3;
-            uint8_t       *src  = &dev->abRecvBuf[8];
-            uint32_t       crda = CSR_CRDA(dev);
-            uint32_t       next_crda;
-            RMD            rmd, next_rmd;
+            const RTNETETHERHDR *pEth   = (RTNETETHERHDR *) buf;
+            int                  fStrip = 0;
+            size_t               len_802_3;
+            uint8_t             *src  = &dev->abRecvBuf[8];
+            uint32_t             crda = CSR_CRDA(dev);
+            uint32_t             next_crda;
+            RMD                  rmd;
+            RMD                  next_rmd;
 
             /*
              * Ethernet framing considers these two octets to be
@@ -1293,8 +1305,8 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                     while (size < 60)
                         src[size++] = 0;
 
-                uint32_t fcs = UINT32_MAX;
-                uint8_t *p   = src;
+                uint32_t       fcs = UINT32_MAX;
+                const uint8_t *p   = src;
 
                 while (p != &src[size])
                     CRC(fcs, *p++);
@@ -1304,7 +1316,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                 size += 4;
             }
 
-            cbPacket = (int) size;
+            cbPacket = size;
 
             pcnetRmdLoad(dev, &rmd, PHYSADDR(dev, crda), 0);
             /* if (!CSR_LAPPEN(dev)) */
@@ -1473,8 +1485,8 @@ pcnetAsyncTransmit(nic_t *dev)
             break;
 
         /* Don't continue sending packets when the link is down. */
-        if ((!pcnetIsLinkUp(dev)
-             && dev->cLinkDownReported > PCNET_MAX_LINKDOWN_REPORTED))
+        if (!pcnetIsLinkUp(dev)
+             && dev->cLinkDownReported > PCNET_MAX_LINKDOWN_REPORTED)
             break;
 
         pcnet_log(3, "%s: TMDLOAD %#010x\n", dev->name, PHYSADDR(dev, CSR_CXDA(dev)));
@@ -1488,7 +1500,7 @@ pcnetAsyncTransmit(nic_t *dev)
             const int cb = 4096 - tmd.tmd1.bcnt;
             pcnet_log(3, "%s: pcnetAsyncTransmit: stp&enp: cb=%d xmtrc=%#x\n", dev->name, cb, CSR_XMTRC(dev));
 
-            if ((pcnetIsLinkUp(dev) || fLoopback)) {
+            if (pcnetIsLinkUp(dev) || fLoopback) {
 
                 /* From the manual: ``A zero length buffer is acceptable as
                  * long as it is not the last buffer in a chain (STP = 0 and
@@ -1676,9 +1688,9 @@ pcnetPollRxTx(nic_t *dev)
 }
 
 static void
-pcnetPollTimer(void *p)
+pcnetPollTimer(void *priv)
 {
-    nic_t *dev = (nic_t *) p;
+    nic_t *dev = (nic_t *) priv;
 
     timer_advance_u64(&dev->timer, 2000 * TIMER_USEC);
 
@@ -2024,7 +2036,10 @@ static uint16_t
 pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
 {
     uint16_t val;
-    int      autoneg, duplex, fast, isolate;
+    int      autoneg;
+    int      duplex;
+    int      fast;
+    int      isolate;
 
     /* If the DANAS (BCR32.7) bit is set, the MAC does not do any
      * auto-negotiation and the PHY must be set up explicitly. DANAS
@@ -2216,6 +2231,9 @@ pcnet_word_write(nic_t *dev, uint32_t addr, uint16_t val)
             case 0x06:
                 pcnet_bcr_writew(dev, dev->u32RAP, val);
                 break;
+
+            default:
+                break;
         }
     }
 }
@@ -2231,6 +2249,9 @@ pcnet_byte_read(nic_t *dev, uint32_t addr)
                 pcnetSoftReset(dev);
                 val = 0;
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -2238,7 +2259,7 @@ pcnet_byte_read(nic_t *dev, uint32_t addr)
 
     pcnet_log(3, "%s: pcnet_word_read: addr = %04x, val = %04x, DWIO not set = %04x\n", dev->name, addr & 0x0f, val, !BCR_DWIO(dev));
 
-    return (val);
+    return val;
 }
 
 static uint16_t
@@ -2268,6 +2289,9 @@ pcnet_word_read(nic_t *dev, uint32_t addr)
             case 0x06:
                 val = pcnet_bcr_readw(dev, dev->u32RAP);
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -2276,7 +2300,7 @@ pcnet_word_read(nic_t *dev, uint32_t addr)
 skip_update_irq:
     pcnet_log(3, "%s: pcnet_word_read: addr = %04x, val = %04x, DWIO not set = %04x\n", dev->name, addr & 0x0f, val, !BCR_DWIO(dev));
 
-    return (val);
+    return val;
 }
 
 static void
@@ -2295,12 +2319,15 @@ pcnet_dword_write(nic_t *dev, uint32_t addr, uint32_t val)
             case 0x0c:
                 pcnet_bcr_writew(dev, dev->u32RAP, val & 0xffff);
                 break;
+
+            default:
+                break;
         }
     } else if ((addr & 0x0f) == 0) {
         /* switch device to dword i/o mode */
         pcnet_bcr_writew(dev, BCR_BSBC, pcnet_bcr_readw(dev, BCR_BSBC) | 0x0080);
         pcnet_log(3, "%s: device switched into dword i/o mode\n", dev->name);
-    };
+    }
 }
 
 static uint32_t
@@ -2327,6 +2354,9 @@ pcnet_dword_read(nic_t *dev, uint32_t addr)
             case 0x0c:
                 val = pcnet_bcr_readw(dev, dev->u32RAP);
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -2334,7 +2364,7 @@ pcnet_dword_read(nic_t *dev, uint32_t addr)
 
 skip_update_irq:
     pcnet_log(3, "%s: Read Long mode, addr = %08x, val = %08x\n", dev->name, addr, val);
-    return (val);
+    return val;
 }
 
 static void
@@ -2424,7 +2454,7 @@ pcnet_read(nic_t *dev, uint32_t addr, int len)
     }
 
     pcnet_log(3, "%s: value in read - %08x\n", dev->name, retval);
-    return (retval);
+    return retval;
 }
 
 static uint8_t
@@ -2533,9 +2563,9 @@ pcnet_ioset(nic_t *dev, uint16_t addr, int len)
 }
 
 static void
-pcnet_pci_write(int func, int addr, uint8_t val, void *p)
+pcnet_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
-    nic_t  *dev = (nic_t *) p;
+    nic_t  *dev = (nic_t *) priv;
     uint8_t valxor;
 
     pcnet_log(4, "%s: Write value %02X to register %02X\n", dev->name, val, addr & 0xff);
@@ -2609,13 +2639,16 @@ pcnet_pci_write(int func, int addr, uint8_t val, void *p)
             dev->base_irq        = val;
             pcnet_pci_regs[addr] = val;
             return;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-pcnet_pci_read(int func, int addr, void *p)
+pcnet_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    nic_t *dev = (nic_t *) p;
+    const nic_t *dev = (nic_t *) priv;
 
     pcnet_log(4, "%s: Read to register %02X\n", dev->name, addr & 0xff);
 
@@ -2680,9 +2713,12 @@ pcnet_pci_read(int func, int addr, void *p)
             return 0x06;
         case 0x3F:
             return 0xff;
+
+        default:
+            break;
     }
 
-    return (0);
+    return 0;
 }
 
 static void
@@ -2724,7 +2760,7 @@ pcnet_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 static uint8_t
 pcnet_pnp_read_vendor_reg(uint8_t ld, uint8_t reg, void *priv)
 {
-    nic_t *dev = (nic_t *) priv;
+    const nic_t *dev = (nic_t *) priv;
 
     if (!ld && (reg == 0xf0))
         return dev->aPROM[50];
@@ -3005,7 +3041,7 @@ pcnet_init(const device_t *info)
 
     timer_add(&dev->timer_restore, pcnetTimerRestore, dev, 0);
 
-    return (dev);
+    return dev;
 }
 
 static void

@@ -70,7 +70,7 @@
 #define CMD_SET_PARAMETERS  0x91
 #define CMD_READ_PARAMETERS 0xec
 
-typedef struct {
+typedef struct drive_t {
     int cfg_spt;
     int cfg_hpc;
     int current_cylinder;
@@ -81,10 +81,14 @@ typedef struct {
     int hdd_num;
 } drive_t;
 
-typedef struct {
+typedef struct esdi_t {
     uint8_t status;
     uint8_t error;
-    int     secount, sector, cylinder, head, cylprecomp;
+    int     secount;
+    int     sector;
+    int     cylinder;
+    int     head;
+    int     cylprecomp;
     uint8_t command;
     uint8_t fdisk;
     int     pos;
@@ -132,13 +136,13 @@ irq_raise(esdi_t *esdi)
 }
 
 static __inline void
-irq_lower(esdi_t *esdi)
+irq_lower(UNUSED(esdi_t *esdi))
 {
     picintc(1 << 14);
 }
 
 static __inline void
-irq_update(esdi_t *esdi)
+irq_update(UNUSED(esdi_t *esdi))
 {
     if (esdi->irqstat && !((pic2.irr | pic2.isr) & 0x40) && !(esdi->fdisk & 2))
         picint(1 << 14);
@@ -159,7 +163,7 @@ esdi_set_callback(esdi_t *esdi, double callback)
 }
 
 double
-esdi_get_xfer_time(esdi_t *esdi, int size)
+esdi_get_xfer_time(UNUSED(esdi_t *esdi), int size)
 {
     /* 390.625 us per sector at 10 Mbit/s = 1280 kB/s. */
     return (3125.0 / 8.0) * (double) size;
@@ -169,19 +173,22 @@ esdi_get_xfer_time(esdi_t *esdi, int size)
 static int
 get_sector(esdi_t *esdi, off64_t *addr)
 {
-    drive_t *drive   = &esdi->drives[esdi->drive_sel];
-    int      heads   = drive->cfg_hpc;
-    int      sectors = drive->cfg_spt;
-    int      c, h, s, sector;
+    const drive_t *drive   = &esdi->drives[esdi->drive_sel];
+    int            heads   = drive->cfg_hpc;
+    int            sectors = drive->cfg_spt;
+    int            c;
+    int            h;
+    int            s;
+    int            sector;
 
     if (esdi->head > heads) {
         esdi_at_log("esdi_get_sector: past end of configured heads\n");
-        return (1);
+        return 1;
     }
 
     if (esdi->sector >= sectors + 1) {
         esdi_at_log("esdi_get_sector: past end of configured sectors\n");
-        return (1);
+        return 1;
     }
 
     sector = esdi->sector ? esdi->sector : 1;
@@ -203,7 +210,7 @@ get_sector(esdi_t *esdi, off64_t *addr)
         *addr = ((((off64_t) c * drive->real_hpc) + h) * drive->real_spt) + s;
     }
 
-    return (0);
+    return 0;
 }
 
 /* Move to the next sector using CHS addressing. */
@@ -253,7 +260,8 @@ static void
 esdi_write(uint16_t port, uint8_t val, void *priv)
 {
     esdi_t *esdi = (esdi_t *) priv;
-    double  seek_time, xfer_time;
+    double  seek_time;
+    double  xfer_time;
     off64_t addr;
 
     esdi_at_log("WD1007 write(%04x, %02x)\n", port, val);
@@ -330,7 +338,9 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                             esdi->command &= ~0x03;
                             if (val & 0x02)
                                 fatal("Read with ECC\n");
-                            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+                            [[fallthrough]];
+#endif
 
                         case 0xa0:
                             esdi->status = STAT_BUSY;
@@ -389,7 +399,9 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 
                         default:
                             esdi_at_log("WD1007: bad command %02X\n", val);
-                            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+                            [[fallthrough]];
+#endif
                         case 0xe8: /*???*/
                             esdi->status = STAT_BUSY;
                             esdi_set_callback(esdi, 200 * HDC_TIME);
@@ -412,6 +424,9 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
             }
             esdi->fdisk = val;
             irq_update(esdi);
+            break;
+
+        default:
             break;
     }
 }
@@ -452,7 +467,7 @@ esdi_readw(uint16_t port, void *priv)
         }
     }
 
-    return (temp);
+    return temp;
 }
 
 static uint8_t
@@ -494,11 +509,14 @@ esdi_read(uint16_t port, void *priv)
             irq_lower(esdi);
             temp = esdi->status;
             break;
+
+        default:
+            break;
     }
 
     esdi_at_log("WD1007 read(%04x) = %02x\n", port, temp);
 
-    return (temp);
+    return temp;
 }
 
 static void
@@ -787,7 +805,7 @@ esdi_callback(void *priv)
 }
 
 static void
-loadhd(esdi_t *esdi, int hdd_num, int d, const char *fn)
+loadhd(esdi_t *esdi, int hdd_num, int d, UNUSED(const char *fn))
 {
     drive_t *drive = &esdi->drives[hdd_num];
 
@@ -807,9 +825,9 @@ loadhd(esdi_t *esdi, int hdd_num, int d, const char *fn)
 }
 
 static void
-esdi_rom_write(uint32_t addr, uint8_t val, void *p)
+esdi_rom_write(uint32_t addr, uint8_t val, void *priv)
 {
-    rom_t *rom = (rom_t *) p;
+    rom_t *rom = (rom_t *) priv;
 
     addr &= rom->mask;
 
@@ -818,15 +836,15 @@ esdi_rom_write(uint32_t addr, uint8_t val, void *p)
 }
 
 static void *
-wd1007vse1_init(const device_t *info)
+wd1007vse1_init(UNUSED(const device_t *info))
 {
-    int c, d;
+    int c;
 
     esdi_t *esdi = malloc(sizeof(esdi_t));
     memset(esdi, 0x00, sizeof(esdi_t));
 
     c = 0;
-    for (d = 0; d < HDD_NUM; d++) {
+    for (uint8_t d = 0; d < HDD_NUM; d++) {
         if ((hdd[d].bus == HDD_BUS_ESDI) && (hdd[d].esdi_channel < ESDI_NUM)) {
             loadhd(esdi, hdd[d].esdi_channel, d, hdd[d].fn);
 
@@ -858,17 +876,16 @@ wd1007vse1_init(const device_t *info)
 
     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
 
-    return (esdi);
+    return esdi;
 }
 
 static void
 wd1007vse1_close(void *priv)
 {
-    esdi_t  *esdi = (esdi_t *) priv;
-    drive_t *drive;
-    int      d;
+    esdi_t        *esdi = (esdi_t *) priv;
+    const drive_t *drive;
 
-    for (d = 0; d < 2; d++) {
+    for (uint8_t d = 0; d < 2; d++) {
         drive = &esdi->drives[d];
 
         hdd_image_close(drive->hdd_num);

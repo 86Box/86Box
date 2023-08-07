@@ -247,7 +247,7 @@ net_pcap_in(void *pcap, uint8_t *bufp, int len)
     if (pcap == NULL)
         return;
 
-    f_pcap_sendpacket((void *) pcap, bufp, len);
+    f_pcap_sendpacket(pcap, bufp, len);
 }
 
 void
@@ -268,7 +268,7 @@ net_pcap_thread(void *priv)
     HANDLE events[NET_EVENT_MAX];
     events[NET_EVENT_STOP] = net_event_get_handle(&pcap->stop_event);
     events[NET_EVENT_TX]   = net_event_get_handle(&pcap->tx_event);
-    events[NET_EVENT_RX]   = f_pcap_getevent((void *) pcap->pcap);
+    events[NET_EVENT_RX]   = f_pcap_getevent(pcap->pcap);
 
     bool run = true;
 
@@ -295,6 +295,9 @@ net_pcap_thread(void *priv)
 
             case NET_EVENT_RX:
                 f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (u_char *) pcap);
+                break;
+
+            default:
                 break;
         }
     }
@@ -357,7 +360,7 @@ int
 net_pcap_prepare(netdev_t *list)
 {
     char       errbuf[PCAP_ERRBUF_SIZE];
-    pcap_if_t *devlist, *dev;
+    pcap_if_t *devlist;
     int        i = 0;
 
     /* Try loading the DLL. */
@@ -379,7 +382,7 @@ net_pcap_prepare(netdev_t *list)
         return (-1);
     }
 
-    for (dev = devlist; dev != NULL; dev = dev->next) {
+    for (pcap_if_t *dev = devlist; dev != NULL; dev = dev->next) {
         if (i >= (NET_HOST_INTF_MAX - 1))
             break;
 
@@ -405,7 +408,16 @@ net_pcap_prepare(netdev_t *list)
     /* Release the memory. */
     f_pcap_freealldevs(devlist);
 
-    return (i);
+    return i;
+}
+
+/*
+ * Copy error message to the error buffer
+ * and log if enabled.
+ */
+void net_pcap_error(char *errbuf, const char *message) {
+    strncpy(errbuf, message, NET_DRV_ERRBUF_SIZE);
+    pcap_log("PCAP: %s\n", message);
 }
 
 /*
@@ -416,18 +428,19 @@ net_pcap_prepare(netdev_t *list)
  * tries to attach to the network module.
  */
 void *
-net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
+net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv, char *netdrv_errbuf)
 {
     char               errbuf[PCAP_ERRBUF_SIZE];
     char              *str;
     char               filter_exp[255];
     struct bpf_program fp;
+    char errbuf_prep[NET_DRV_ERRBUF_SIZE];
 
     char *intf_name = (char *) priv;
 
     /* Did we already load the library? */
     if (libpcap_handle == NULL) {
-        pcap_log("PCAP: net_pcap_init without handle.\n");
+        net_pcap_error(netdrv_errbuf, "net_pcap_init without handle");
         return NULL;
     }
 
@@ -440,7 +453,7 @@ net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
 
     /* Get the value of our capture interface. */
     if ((intf_name[0] == '\0') || !strcmp(intf_name, "none")) {
-        pcap_log("PCAP: no interface configured!\n");
+        net_pcap_error(netdrv_errbuf, "No interface configured");
         return NULL;
     }
 
@@ -451,26 +464,28 @@ net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
     memcpy(pcap->mac_addr, mac_addr, sizeof(pcap->mac_addr));
 
     if ((pcap->pcap = f_pcap_create(intf_name, errbuf)) == NULL) {
-        pcap_log(" Unable to open device: %s!\n", intf_name);
+        snprintf(errbuf_prep, NET_DRV_ERRBUF_SIZE, " Unable to open device: %s!\n", intf_name);
+        net_pcap_error(netdrv_errbuf, errbuf_prep);
         free(pcap);
         return NULL;
     }
 
-    if (f_pcap_setnonblock((void *) pcap->pcap, 1, errbuf) != 0)
+    if (f_pcap_setnonblock(pcap->pcap, 1, errbuf) != 0)
         pcap_log("PCAP: failed nonblock %s\n", errbuf);
 
-    if (f_pcap_set_immediate_mode((void *) pcap->pcap, 1) != 0)
+    if (f_pcap_set_immediate_mode(pcap->pcap, 1) != 0)
         pcap_log("PCAP: error setting immediate mode\n");
 
-    if (f_pcap_set_promisc((void *) pcap->pcap, 1) != 0)
+    if (f_pcap_set_promisc(pcap->pcap, 1) != 0)
         pcap_log("PCAP: error enabling promiscuous mode\n");
 
-    if (f_pcap_set_snaplen((void *) pcap->pcap, NET_MAX_FRAME) != 0)
+    if (f_pcap_set_snaplen(pcap->pcap, NET_MAX_FRAME) != 0)
         pcap_log("PCAP: error setting snaplen\n");
 
-    if (f_pcap_activate((void *) pcap->pcap) != 0) {
-        pcap_log("PCAP: failed pcap_activate");
-        f_pcap_close((void *) pcap->pcap);
+    if (f_pcap_activate(pcap->pcap) != 0) {
+        snprintf(errbuf_prep, NET_DRV_ERRBUF_SIZE, "%s", (char *)f_pcap_geterr(pcap->pcap));
+        net_pcap_error(netdrv_errbuf, errbuf_prep);
+        f_pcap_close(pcap->pcap);
         free(pcap);
         return NULL;
     }
@@ -482,16 +497,18 @@ net_pcap_init(const netcard_t *card, const uint8_t *mac_addr, void *priv)
             "( ((ether dst ff:ff:ff:ff:ff:ff) or (ether dst %02x:%02x:%02x:%02x:%02x:%02x)) and not (ether src %02x:%02x:%02x:%02x:%02x:%02x) )",
             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5],
             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-    if (f_pcap_compile((void *) pcap->pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
-        if (f_pcap_setfilter((void *) pcap->pcap, &fp) != 0) {
-            pcap_log("PCAP: error installing filter (%s) !\n", filter_exp);
-            f_pcap_close((void *) pcap->pcap);
+    if (f_pcap_compile(pcap->pcap, &fp, filter_exp, 0, 0xffffffff) != -1) {
+        if (f_pcap_setfilter(pcap->pcap, &fp) != 0) {
+            snprintf(errbuf_prep, NET_DRV_ERRBUF_SIZE, "Error installing filter (%s)\n", filter_exp);
+            net_pcap_error(netdrv_errbuf, errbuf_prep);
+            f_pcap_close(pcap->pcap);
             free(pcap);
             return NULL;
         }
     } else {
-        pcap_log("PCAP: could not compile filter (%s) : %s!\n", filter_exp, f_pcap_geterr((void *) pcap->pcap));
-        f_pcap_close((void *) pcap->pcap);
+        snprintf(errbuf_prep, NET_DRV_ERRBUF_SIZE, "Could not compile filter (%s) : %s!\n", filter_exp, (char *)f_pcap_geterr(pcap->pcap));
+        net_pcap_error(netdrv_errbuf, errbuf_prep);
+        f_pcap_close(pcap->pcap);
         free(pcap);
         return NULL;
     }
@@ -540,7 +557,7 @@ net_pcap_close(void *priv)
     f_pcap_sendqueue_destroy((void *) pcap->pcap_queue);
 #endif
     /* OK, now shut down Pcap itself. */
-    f_pcap_close((void *) pcap->pcap);
+    f_pcap_close(pcap->pcap);
 
     net_event_close(&pcap->tx_event);
     net_event_close(&pcap->stop_event);

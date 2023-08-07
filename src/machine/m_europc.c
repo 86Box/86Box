@@ -104,6 +104,7 @@
 #include <86box/hdc.h>
 #include <86box/video.h>
 #include <86box/machine.h>
+#include <86box/plat_unused.h>
 
 #define EUROPC_DEBUG 0 /* current debugging level */
 
@@ -125,7 +126,7 @@
 #define MRTC_CHECK_HI 0x0e /* Checksum, high byte */
 #define MRTC_CTRLSTAT 0x0f /* RTC control/status, binary */
 
-typedef struct {
+typedef struct europc_t {
     uint16_t jim; /* JIM base address */
 
     uint8_t regs[16]; /* JIM internal regs (8) */
@@ -173,7 +174,8 @@ static void
 europc_rtc_tick(nvr_t *nvr)
 {
     uint8_t *regs;
-    int      mon, yr;
+    int      mon;
+    int      yr;
 
     /* Only if RTC is running.. */
     regs = nvr->regs;
@@ -266,14 +268,13 @@ static uint8_t
 rtc_checksum(uint8_t *ptr)
 {
     uint8_t sum;
-    int     i;
 
     /* Calculate all bytes with XOR. */
     sum = 0x00;
-    for (i = MRTC_CONF_A; i <= MRTC_CONF_E; i++)
+    for (uint8_t i = MRTC_CONF_A; i <= MRTC_CONF_E; i++)
         sum += ptr[i];
 
-    return (sum);
+    return sum;
 }
 
 /* Reset the machine's NVR to a sane state. */
@@ -372,13 +373,17 @@ jim_set(europc_t *sys, uint8_t reg, uint8_t val)
             switch (val) {
                 case 0x1f: /* 0001 1111 */
                 case 0x0b: /* 0000 1011 */
-                    // europc_jim.mode=AGA_MONO;
+#if 0
+                    europc_jim.mode=AGA_MONO;
+#endif
                     europc_log("EuroPC: AGA Monochrome mode!\n");
                     break;
 
                 case 0x18: /* 0001 1000 */
                 case 0x1a: /* 0001 1010 */
-                    // europc_jim.mode=AGA_COLOR;
+#if 0
+                    europc_jim.mode=AGA_COLOR;
+#endif
                     break;
 
                 case 0x0e: /* 0000 1100 */
@@ -392,7 +397,9 @@ jim_set(europc_t *sys, uint8_t reg, uint8_t val)
                     break;
 
                 default:
-                    // europc_jim.mode=AGA_OFF;
+#if 0
+                    europc_jim.mode=AGA_OFF;
+#endif
                     break;
             }
             break;
@@ -400,15 +407,21 @@ jim_set(europc_t *sys, uint8_t reg, uint8_t val)
         case 4: /* CPU Speed control */
             switch (val & 0xc0) {
                 case 0x00: /* 4.77 MHz */
-                           // cpu_set_clockscale(0, 1.0/2);
+#if 0
+                    cpu_set_clockscale(0, 1.0/2);
+#endif
                     break;
 
                 case 0x40: /* 7.16 MHz */
-                           // cpu_set_clockscale(0, 3.0/4);
+#if 0
+                    cpu_set_clockscale(0, 3.0/4);
+#endif
                     break;
 
                 default: /* 9.54 MHz */
-                         // cpu_set_clockscale(0, 1);break;
+#if 0
+                    cpu_set_clockscale(0, 1);break;
+#endif
                     break;
             }
             break;
@@ -465,6 +478,9 @@ jim_write(uint16_t addr, uint8_t val, void *priv)
                     sys->nvr_stat                = 0;
                     nvr_dosave++;
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -511,6 +527,9 @@ jim_read(uint16_t addr, void *priv)
                     r             = (sys->nvr.regs[sys->nvr_addr] & 0x0f);
                     sys->nvr_stat = 0;
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -523,12 +542,12 @@ jim_read(uint16_t addr, void *priv)
     europc_log("EuroPC: jim_rd(%04x): %02x\n", addr, r);
 #endif
 
-    return (r);
+    return r;
 }
 
 /* Initialize the mainboard 'device' of the machine. */
 static void *
-europc_boot(const device_t *info)
+europc_boot(UNUSED(const device_t *info))
 {
     europc_t *sys = &europc;
     uint8_t   b;
@@ -573,6 +592,9 @@ europc_boot(const device_t *info)
         case 640:
             b |= 0x00;
             break;
+
+        default:
+            break;
     }
     sys->nvr.regs[MRTC_CONF_C] = b;
 
@@ -589,6 +611,9 @@ europc_boot(const device_t *info)
 
         case 2: /* 8088, 9.56 MHz */
             b |= 0x80;
+            break;
+
+        default:
             break;
     }
     sys->nvr.regs[MRTC_CONF_D] = b;
@@ -638,11 +663,11 @@ europc_boot(const device_t *info)
     if (hdc_current == 1)
         (void) device_add(&xta_hd20_device);
 
-    return (sys);
+    return sys;
 }
 
 static void
-europc_close(void *priv)
+europc_close(UNUSED(void *priv))
 {
     nvr_t *nvr = &europc.nvr;
 

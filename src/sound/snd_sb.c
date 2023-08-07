@@ -41,6 +41,7 @@
 #include <86box/sound.h>
 #include <86box/timer.h>
 #include <86box/snd_sb.h>
+#include <86box/plat_unused.h>
 
 /* 0 to 7 -> -14dB to 0dB i 2dB steps. 8 to 15 -> 0 to +14dB in 2dB steps.
    Note that for positive dB values, this is not amplitude, it is amplitude - 1. */
@@ -177,13 +178,14 @@ sb_log(const char *fmt, ...)
 
 /* SB 1, 1.5, MCV, and 2 do not have a mixer, so signal is hardwired. */
 static void
-sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
+sb_get_buffer_sb2(int32_t *buffer, int len, void *priv)
 {
-    sb_t              *sb    = (sb_t *) p;
-    sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
-    int                c;
-    double             out_mono = 0.0, out_l = 0.0, out_r = 0.0;
-    int32_t           *opl_buf = NULL;
+    sb_t                    *sb    = (sb_t *) priv;
+    const sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
+    double                   out_mono = 0.0;
+    double                   out_l = 0.0;
+    double                   out_r = 0.0;
+    const int32_t           *opl_buf = NULL;
 
     if (sb->opl_enabled)
         opl_buf = sb->opl.update(sb->opl.priv);
@@ -193,7 +195,7 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
     if (sb->cms_enabled)
         cms_update(&sb->cms);
 
-    for (c = 0; c < len * 2; c += 2) {
+    for (int c = 0; c < len * 2; c += 2) {
         out_mono = 0.0;
         out_l    = 0.0;
         out_r    = 0.0;
@@ -244,29 +246,30 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
 }
 
 static void
-sb2_filter_cd_audio(int channel, double *buffer, void *p)
+sb2_filter_cd_audio(UNUSED(int channel), double *buffer, void *priv)
 {
-    sb_t              *sb    = (sb_t *) p;
-    sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
-    double             c;
+    const sb_t              *sb    = (sb_t *) priv;
+    const sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
+    double                   c;
 
     if (sb->mixer_enabled) {
         c       = ((sb_iir(1, 0, *buffer) / 1.3) * mixer->cd) / 3.0;
         *buffer = c * mixer->master;
     } else {
-        c       = (((sb_iir(1, 0, ((double) *buffer)) / 1.3) * 65536) / 3.0) / 65536.0;
+        c       = (((sb_iir(1, 0, (*buffer)) / 1.3) * 65536) / 3.0) / 65536.0;
         *buffer = c;
     }
 }
 
 void
-sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
+sb_get_buffer_sbpro(int32_t *buffer, int len, void *priv)
 {
-    sb_t              *sb    = (sb_t *) p;
-    sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
-    int                c;
-    double             out_l = 0.0, out_r = 0.0;
-    int32_t           *opl_buf = NULL, *opl2_buf = NULL;
+    sb_t                    *sb    = (sb_t *) priv;
+    const sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
+    double                   out_l = 0.0;
+    double                   out_r = 0.0;
+    const int32_t           *opl_buf = NULL;
+    const int32_t           *opl2_buf = NULL;
 
     if (sb->opl_enabled) {
         if (sb->dsp.sb_type == SBPRO) {
@@ -278,8 +281,9 @@ sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
 
     sb_dsp_update(&sb->dsp);
 
-    for (c = 0; c < len * 2; c += 2) {
-        out_l = 0.0, out_r = 0.0;
+    for (int c = 0; c < len * 2; c += 2) {
+        out_l = 0.0;
+        out_r = 0.0;
 
         if (sb->opl_enabled) {
             if (sb->dsp.sb_type == SBPRO) {
@@ -325,13 +329,13 @@ sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
 }
 
 void
-sbpro_filter_cd_audio(int channel, double *buffer, void *p)
+sbpro_filter_cd_audio(int channel, double *buffer, void *priv)
 {
-    sb_t              *sb    = (sb_t *) p;
-    sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
-    double             c;
-    double             cd     = channel ? mixer->cd_r : mixer->cd_l;
-    double             master = channel ? mixer->master_r : mixer->master_l;
+    const sb_t              *sb    = (sb_t *) priv;
+    const sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
+    double                   c;
+    double                   cd     = channel ? mixer->cd_r : mixer->cd_l;
+    double                   master = channel ? mixer->master_r : mixer->master_l;
 
     if (mixer->output_filter)
         c = (sb_iir(1, channel, *buffer) * cd) / 3.9;
@@ -341,16 +345,19 @@ sbpro_filter_cd_audio(int channel, double *buffer, void *p)
 }
 
 static void
-sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
+sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
 {
-    sb_t              *sb    = (sb_t *) p;
-    sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
-    int                c, dsp_rec_pos = sb->dsp.record_pos_write;
-    int                c_emu8k, c_record;
-    int32_t            in_l, in_r;
-    double             out_l = 0.0, out_r = 0.0;
-    double             bass_treble;
-    int32_t           *opl_buf = NULL;
+    sb_t                    *sb    = (sb_t *) priv;
+    const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
+    int                      dsp_rec_pos = sb->dsp.record_pos_write;
+    int                      c_emu8k = 0;
+    int                      c_record;
+    int32_t                  in_l;
+    int32_t                  in_r;
+    double                   out_l = 0.0;
+    double                   out_r = 0.0;
+    double                   bass_treble;
+    const int32_t           *opl_buf = NULL;
 
     if (sb->opl_enabled)
         opl_buf = sb->opl.update(sb->opl.priv);
@@ -360,8 +367,9 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
 
     sb_dsp_update(&sb->dsp);
 
-    for (c = 0; c < len * 2; c += 2) {
-        out_l = 0.0, out_r = 0.0;
+    for (int c = 0; c < len * 2; c += 2) {
+        out_l = 0.0;
+        out_r = 0.0;
 
         if (sb->dsp.sb_type > SB16)
             c_emu8k = ((((c / 2) * FREQ_44100) / SOUND_FREQ) * 2);
@@ -402,7 +410,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
             if (mixer->bass_l > 8)
                 out_l += (low_iir(0, 0, out_l) * bass_treble);
             else if (mixer->bass_l < 8)
-                out_l = ((out_l) *bass_treble + low_cut_iir(0, 0, out_l) * (1.0 - bass_treble));
+                out_l = (out_l *bass_treble + low_cut_iir(0, 0, out_l) * (1.0 - bass_treble));
         }
 
         if (mixer->bass_r != 8) {
@@ -411,7 +419,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
             if (mixer->bass_r > 8)
                 out_r += (low_iir(0, 1, out_r) * bass_treble);
             else if (mixer->bass_r < 8)
-                out_r = ((out_r) *bass_treble + low_cut_iir(0, 1, out_r) * (1.0 - bass_treble));
+                out_r = (out_r *bass_treble + low_cut_iir(0, 1, out_r) * (1.0 - bass_treble));
         }
 
         if (mixer->treble_l != 8) {
@@ -420,7 +428,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
             if (mixer->treble_l > 8)
                 out_l += (high_iir(0, 0, out_l) * bass_treble);
             else if (mixer->treble_l < 8)
-                out_l = ((out_l) *bass_treble + high_cut_iir(0, 0, out_l) * (1.0 - bass_treble));
+                out_l = (out_l *bass_treble + high_cut_iir(0, 0, out_l) * (1.0 - bass_treble));
         }
 
         if (mixer->treble_r != 8) {
@@ -429,7 +437,7 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
             if (mixer->treble_r > 8)
                 out_r += (high_iir(0, 1, out_r) * bass_treble);
             else if (mixer->treble_r < 8)
-                out_r = ((out_l) *bass_treble + high_cut_iir(0, 1, out_r) * (1.0 - bass_treble));
+                out_r = (out_l *bass_treble + high_cut_iir(0, 1, out_r) * (1.0 - bass_treble));
         }
 
         if (sb->dsp.sb_enable_i) {
@@ -471,17 +479,17 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *p)
 }
 
 void
-sb16_awe32_filter_cd_audio(int channel, double *buffer, void *p)
+sb16_awe32_filter_cd_audio(int channel, double *buffer, void *priv)
 {
-    sb_t              *sb    = (sb_t *) p;
-    sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
-    double             c;
-    double             cd     = channel ? mixer->cd_r : mixer->cd_l /* / 3.0 */;
-    double             master = channel ? mixer->master_r : mixer->master_l;
-    int32_t            bass   = channel ? mixer->bass_r : mixer->bass_l;
-    int32_t            treble = channel ? mixer->treble_r : mixer->treble_l;
-    double             bass_treble;
-    double             output_gain = (channel ? mixer->output_gain_R : mixer->output_gain_L);
+    const sb_t              *sb    = (sb_t *) priv;
+    const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
+    double                   c;
+    double                   cd     = channel ? mixer->cd_r : mixer->cd_l /* / 3.0 */;
+    double                   master = channel ? mixer->master_r : mixer->master_l;
+    int32_t                  bass   = channel ? mixer->bass_r : mixer->bass_l;
+    int32_t                  treble = channel ? mixer->treble_r : mixer->treble_l;
+    double                   bass_treble;
+    double                   output_gain = (channel ? mixer->output_gain_R : mixer->output_gain_L);
 
     if (mixer->output_filter)
         c = (low_fir_sb16(1, channel, *buffer) * cd) / 3.0;
@@ -513,9 +521,9 @@ sb16_awe32_filter_cd_audio(int channel, double *buffer, void *p)
 }
 
 void
-sb_ct1335_mixer_write(uint16_t addr, uint8_t val, void *p)
+sb_ct1335_mixer_write(uint16_t addr, uint8_t val, void *priv)
 {
-    sb_t              *sb    = (sb_t *) p;
+    sb_t              *sb    = (sb_t *) priv;
     sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
 
     if (!(addr & 1)) {
@@ -552,10 +560,10 @@ sb_ct1335_mixer_write(uint16_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-sb_ct1335_mixer_read(uint16_t addr, void *p)
+sb_ct1335_mixer_read(uint16_t addr, void *priv)
 {
-    sb_t              *sb    = (sb_t *) p;
-    sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
+    const sb_t              *sb    = (sb_t *) priv;
+    const sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
 
     if (!(addr & 1))
         return mixer->index;
@@ -583,9 +591,9 @@ sb_ct1335_mixer_reset(sb_t *sb)
 }
 
 void
-sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p)
+sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *priv)
 {
-    sb_t              *sb    = (sb_t *) p;
+    sb_t              *sb    = (sb_t *) priv;
     sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
 
     if (!(addr & 1)) {
@@ -662,7 +670,7 @@ sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p)
         if (mixer->index == 0xe)
             sb_dsp_set_stereo(&sb->dsp, val & 2);
 
-        switch ((mixer->regs[0xc] & 6)) {
+        switch (mixer->regs[0xc] & 6) {
             case 2:
                 mixer->input_selector = INPUT_CD_L | INPUT_CD_R;
                 break;
@@ -679,10 +687,10 @@ sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-sb_ct1345_mixer_read(uint16_t addr, void *p)
+sb_ct1345_mixer_read(uint16_t addr, void *priv)
 {
-    sb_t              *sb    = (sb_t *) p;
-    sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
+    const sb_t              *sb    = (sb_t *) priv;
+    const sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
 
     if (!(addr & 1))
         return mixer->index;
@@ -721,9 +729,9 @@ sb_ct1345_mixer_reset(sb_t *sb)
 }
 
 void
-sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
+sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
 {
-    sb_t              *sb    = (sb_t *) p;
+    sb_t              *sb    = (sb_t *) priv;
     sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
 
     if (!(addr & 1))
@@ -855,6 +863,9 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
                         mpu401_change_addr(sb->mpu, 0);
                 }
                 break;
+
+            default:
+                break;
         }
 
         mixer->output_selector      = mixer->regs[0x3c];
@@ -891,11 +902,12 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-sb_ct1745_mixer_read(uint16_t addr, void *p)
+sb_ct1745_mixer_read(uint16_t addr, void *priv)
 {
-    sb_t              *sb    = (sb_t *) p;
-    sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
-    uint8_t            temp, ret = 0xff;
+    const sb_t              *sb    = (sb_t *) priv;
+    const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
+    uint8_t                  temp;
+    uint8_t                  ret = 0xff;
 
     if (!(addr & 1))
         ret = mixer->index;
@@ -967,6 +979,9 @@ sb_ct1745_mixer_read(uint16_t addr, void *p)
                     case 10:
                         ret = 8;
                         break;
+
+                    default:
+                        break;
                 }
                 break;
 
@@ -989,6 +1004,9 @@ sb_ct1745_mixer_read(uint16_t addr, void *p)
                     case 3:
                         ret |= 8;
                         break;
+
+                    default:
+                        break;
                 }
                 switch (sb->dsp.sb_16_dmanum) {
                     case 5:
@@ -999,6 +1017,9 @@ sb_ct1745_mixer_read(uint16_t addr, void *p)
                         break;
                     case 7:
                         ret |= 0x80;
+                        break;
+
+                    default:
                         break;
                 }
                 break;
@@ -1071,9 +1092,9 @@ sb_ct1745_mixer_reset(sb_t *sb)
 }
 
 uint8_t
-sb_mcv_read(int port, void *p)
+sb_mcv_read(int port, void *priv)
 {
-    sb_t *sb = (sb_t *) p;
+    const sb_t *sb = (sb_t *) priv;
 
     sb_log("sb_mcv_read: port=%04x\n", port);
 
@@ -1081,10 +1102,10 @@ sb_mcv_read(int port, void *p)
 }
 
 void
-sb_mcv_write(int port, uint8_t val, void *p)
+sb_mcv_write(int port, uint8_t val, void *priv)
 {
     uint16_t addr;
-    sb_t    *sb = (sb_t *) p;
+    sb_t    *sb = (sb_t *) priv;
 
     if (port < 0x102)
         return;
@@ -1126,18 +1147,18 @@ sb_mcv_write(int port, uint8_t val, void *p)
 }
 
 uint8_t
-sb_mcv_feedb(void *p)
+sb_mcv_feedb(void *priv)
 {
-    sb_t *sb = (sb_t *) p;
+    const sb_t *sb = (sb_t *) priv;
 
     return (sb->pos_regs[2] & 1);
 }
 
 static uint8_t
-sb_pro_mcv_read(int port, void *p)
+sb_pro_mcv_read(int port, void *priv)
 {
-    sb_t   *sb  = (sb_t *) p;
-    uint8_t ret = sb->pos_regs[port & 7];
+    const sb_t   *sb  = (sb_t *) priv;
+    uint8_t       ret = sb->pos_regs[port & 7];
 
     sb_log("sb_pro_mcv_read: port=%04x ret=%02x\n", port, ret);
 
@@ -1145,10 +1166,10 @@ sb_pro_mcv_read(int port, void *p)
 }
 
 static void
-sb_pro_mcv_write(int port, uint8_t val, void *p)
+sb_pro_mcv_write(int port, uint8_t val, void *priv)
 {
     uint16_t addr;
-    sb_t    *sb = (sb_t *) p;
+    sb_t    *sb = (sb_t *) priv;
 
     if (port < 0x102)
         return;
@@ -1205,10 +1226,10 @@ sb_pro_mcv_write(int port, uint8_t val, void *p)
 }
 
 static uint8_t
-sb_16_reply_mca_read(int port, void *p)
+sb_16_reply_mca_read(int port, void *priv)
 {
-    sb_t   *sb  = (sb_t *) p;
-    uint8_t ret = sb->pos_regs[port & 7];
+    const sb_t   *sb  = (sb_t *) priv;
+    uint8_t       ret = sb->pos_regs[port & 7];
 
     sb_log("sb_16_reply_mca_read: port=%04x ret=%02x\n", port, ret);
 
@@ -1216,11 +1237,13 @@ sb_16_reply_mca_read(int port, void *p)
 }
 
 static void
-sb_16_reply_mca_write(int port, uint8_t val, void *p)
+sb_16_reply_mca_write(int port, uint8_t val, void *priv)
 {
-    uint16_t addr, mpu401_addr;
-    int      low_dma, high_dma;
-    sb_t    *sb = (sb_t *) p;
+    uint16_t addr;
+    uint16_t mpu401_addr;
+    int      low_dma;
+    int      high_dma;
+    sb_t    *sb = (sb_t *) priv;
 
     if (port < 0x102)
         return;
@@ -1338,6 +1361,9 @@ sb_16_reply_mca_write(int port, uint8_t val, void *p)
         case 0x60:
             sb_dsp_setirq(&sb->dsp, 10);
             break;
+
+        default:
+            break;
     }
 
     low_dma  = sb->pos_regs[3] & 3;
@@ -1449,6 +1475,9 @@ sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 
         case 4: /* StereoEnhance (32) */
             break;
+
+        default:
+            break;
     }
 }
 
@@ -1467,6 +1496,9 @@ sb_awe32_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pr
         case 3: /* WaveTable */
             sb_16_pnp_config_changed(ld ^ 1, config, sb);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -1484,11 +1516,14 @@ sb_awe64_gold_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, voi
         case 1: /* Game */
             sb_16_pnp_config_changed(3, config, sb);
             break;
+
+        default:
+            break;
     }
 }
 
 void *
-sb_1_init(const device_t *info)
+sb_1_init(UNUSED(const device_t *info))
 {
     /* SB1/2 port mappings, 210h to 260h in 10h steps
        2x0 to 2x3 -> CMS chip
@@ -1536,7 +1571,7 @@ sb_1_init(const device_t *info)
 }
 
 void *
-sb_15_init(const device_t *info)
+sb_15_init(UNUSED(const device_t *info))
 {
     /* SB1/2 port mappings, 210h to 260h in 10h steps
        2x0 to 2x3 -> CMS chip
@@ -1586,7 +1621,7 @@ sb_15_init(const device_t *info)
 }
 
 void *
-sb_mcv_init(const device_t *info)
+sb_mcv_init(UNUSED(const device_t *info))
 {
     /* SB1/2 port mappings, 210h to 260h in 10h steps
        2x6, 2xA, 2xC, 2xE -> DSP chip
@@ -1619,7 +1654,7 @@ sb_mcv_init(const device_t *info)
 }
 
 void *
-sb_2_init(const device_t *info)
+sb_2_init(UNUSED(const device_t *info))
 {
     /* SB2 port mappings, 220h or 240h.
        2x0 to 2x3 -> CMS chip
@@ -1715,7 +1750,7 @@ sb_pro_v1_opl_write(uint16_t port, uint8_t val, void *priv)
 }
 
 static void *
-sb_pro_v1_init(const device_t *info)
+sb_pro_v1_init(UNUSED(const device_t *info))
 {
     /* SB Pro port mappings, 220h or 240h.
        2x0 to 2x3 -> FM chip, Left and Right (9*2 voices)
@@ -1775,7 +1810,7 @@ sb_pro_v1_init(const device_t *info)
 }
 
 static void *
-sb_pro_v2_init(const device_t *info)
+sb_pro_v2_init(UNUSED(const device_t *info))
 {
     /* SB Pro 2 port mappings, 220h or 240h.
        2x0 to 2x3 -> FM chip (18 voices)
@@ -1827,7 +1862,7 @@ sb_pro_v2_init(const device_t *info)
 }
 
 static void *
-sb_pro_mcv_init(const device_t *info)
+sb_pro_mcv_init(UNUSED(const device_t *info))
 {
     /* SB Pro MCV port mappings, 220h or 240h.
        2x0 to 2x3 -> FM chip, Left and Right (18 voices)
@@ -1859,7 +1894,7 @@ sb_pro_mcv_init(const device_t *info)
 }
 
 static void *
-sb_pro_compat_init(const device_t *info)
+sb_pro_compat_init(UNUSED(const device_t *info))
 {
     sb_t *sb = malloc(sizeof(sb_t));
     memset(sb, 0, sizeof(sb_t));
@@ -1881,7 +1916,7 @@ sb_pro_compat_init(const device_t *info)
 }
 
 static void *
-sb_16_init(const device_t *info)
+sb_16_init(UNUSED(const device_t *info))
 {
     sb_t    *sb       = malloc(sizeof(sb_t));
     uint16_t addr     = device_get_config_hex16("base");
@@ -1937,7 +1972,7 @@ sb_16_init(const device_t *info)
 }
 
 static void *
-sb_16_reply_mca_init(const device_t *info)
+sb_16_reply_mca_init(UNUSED(const device_t *info))
 {
     sb_t *sb = malloc(sizeof(sb_t));
     memset(sb, 0x00, sizeof(sb_t));
@@ -1972,7 +2007,7 @@ sb_16_reply_mca_init(const device_t *info)
 }
 
 static void *
-sb_16_pnp_init(const device_t *info)
+sb_16_pnp_init(UNUSED(const device_t *info))
 {
     sb_t *sb = malloc(sizeof(sb_t));
     memset(sb, 0x00, sizeof(sb_t));
@@ -2074,7 +2109,7 @@ sb_awe64_gold_available(void)
 }
 
 static void *
-sb_awe32_init(const device_t *info)
+sb_awe32_init(UNUSED(const device_t *info))
 {
     sb_t    *sb          = malloc(sizeof(sb_t));
     uint16_t addr        = device_get_config_hex16("base");
@@ -2167,7 +2202,7 @@ sb_awe32_pnp_init(const device_t *info)
     if ((info->local != 2) && (info->local != 3) && (info->local != 4))
         device_add(&ide_ter_pnp_device);
 
-    char *pnp_rom_file = NULL;
+    const char *pnp_rom_file = NULL;
     switch (info->local) {
         case 0:
             pnp_rom_file = "roms/sound/CT3600 PnP.BIN";
@@ -2184,6 +2219,9 @@ sb_awe32_pnp_init(const device_t *info)
 
         case 4:
             pnp_rom_file = "roms/sound/CT4540 PnP.BIN";
+            break;
+
+        default:
             break;
     }
 
@@ -2211,6 +2249,9 @@ sb_awe32_pnp_init(const device_t *info)
         case 4:
             isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_gold_pnp_config_changed, NULL, NULL, NULL, sb);
             break;
+
+        default:
+            break;
     }
 
     sb_dsp_setaddr(&sb->dsp, 0);
@@ -2229,18 +2270,18 @@ sb_awe32_pnp_init(const device_t *info)
 }
 
 void
-sb_close(void *p)
+sb_close(void *priv)
 {
-    sb_t *sb = (sb_t *) p;
+    sb_t *sb = (sb_t *) priv;
     sb_dsp_close(&sb->dsp);
 
     free(sb);
 }
 
 static void
-sb_awe32_close(void *p)
+sb_awe32_close(void *priv)
 {
-    sb_t *sb = (sb_t *) p;
+    sb_t *sb = (sb_t *) priv;
 
     emu8k_close(&sb->emu8k);
 
@@ -2248,9 +2289,9 @@ sb_awe32_close(void *p)
 }
 
 void
-sb_speed_changed(void *p)
+sb_speed_changed(void *priv)
 {
-    sb_t *sb = (sb_t *) p;
+    sb_t *sb = (sb_t *) priv;
 
     sb_dsp_speed_changed(&sb->dsp);
 }

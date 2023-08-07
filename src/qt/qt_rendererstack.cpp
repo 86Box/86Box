@@ -58,10 +58,13 @@ double mouse_x_error = 0.0, mouse_y_error = 0.0;
 }
 
 struct mouseinputdata {
-    atomic_int          deltax, deltay, deltaz;
+    atomic_int          deltax;
+    atomic_int          deltay;
+    atomic_int          deltaz;
     atomic_int          mousebuttons;
     atomic_bool         mouse_tablet_in_proximity;
-    std::atomic<double> x_abs, y_abs;
+    std::atomic<double> x_abs;
+    std::atomic<double> y_abs;
 };
 static mouseinputdata mousedata;
 
@@ -127,7 +130,7 @@ qt_mouse_capture(int on)
 {
     if (!on) {
         mouse_capture = 0;
-        QApplication::setOverrideCursor(Qt::ArrowCursor);
+        if (QApplication::overrideCursor()) QApplication::restoreOverrideCursor();
 #ifdef __APPLE__
         CGAssociateMouseAndMouseCursorPosition(true);
 #endif
@@ -144,6 +147,20 @@ qt_mouse_capture(int on)
 void
 RendererStack::mousePoll()
 {
+    if (m_monitor_index >= 1) {
+        if (mouse_mode >= 1) {
+            mouse_x_abs               = mousedata.x_abs;
+            mouse_y_abs               = mousedata.y_abs;
+            if (!mouse_tablet_in_proximity) {
+                mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
+            }
+            if (mousedata.mouse_tablet_in_proximity) {
+                mouse_buttons = mousedata.mousebuttons;
+            }
+        }
+        return;
+    }
+
 #ifdef Q_OS_WINDOWS
     if (mouse_mode == 0) {
         mouse_x_abs               = mousedata.x_abs;
@@ -151,6 +168,7 @@ RendererStack::mousePoll()
         return;
     }
 #endif
+
 #ifndef __APPLE__
     mouse_x                   = mousedata.deltax;
     mouse_y                   = mousedata.deltay;
@@ -180,7 +198,7 @@ int ignoreNextMouseEvent = 1;
 void
 RendererStack::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture && (isMouseDown & 1) && (mouse_get_buttons() != 0) && mouse_mode == 0) {
+    if (this->geometry().contains(event->pos()) && (event->button() == Qt::LeftButton) && !mouse_capture && (isMouseDown & 1) && (kbd_req_capture || (mouse_get_buttons() != 0)) && (mouse_mode == 0)) {
         plat_mouse_capture(1);
         this->setCursor(Qt::BlankCursor);
         if (!ignoreNextMouseEvent)
@@ -270,8 +288,9 @@ void
 RendererStack::leaveEvent(QEvent *event)
 {
     mousedata.mouse_tablet_in_proximity = 0;
-    if (mouse_mode == 1)
-        QApplication::setOverrideCursor(Qt::ArrowCursor);
+
+    if (mouse_mode == 1 && QApplication::overrideCursor())
+        QApplication::restoreOverrideCursor();
     if (QApplication::platformName().contains("wayland")) {
         event->accept();
         return;
@@ -308,7 +327,7 @@ RendererStack::switchRenderer(Renderer renderer)
                 createRenderer(renderer);
                 disconnect(this, &RendererStack::blit, this, &RendererStack::blitDummy);
                 blitDummied = false;
-                QTimer::singleShot(1000, this, [this]() { blitDummied = false; });
+                QTimer::singleShot(1000, this, []() { blitDummied = false; });
             });
 
             rendererWindow->hasBlitFunc() ? current.reset() : current.release()->deleteLater();
@@ -419,7 +438,7 @@ RendererStack::createRenderer(Renderer renderer)
                     QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
                     current.reset(nullptr);
                     break;
-                };
+                }
                 rendererWindow = hw;
                 connect(this, &RendererStack::blitToRenderer, hw, &VulkanWindowRenderer::onBlit, Qt::QueuedConnection);
                 connect(hw, &VulkanWindowRenderer::rendererInitialized, [=]() {

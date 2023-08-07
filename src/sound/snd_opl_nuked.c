@@ -125,9 +125,9 @@ typedef struct chan {
     uint8_t      con;
     uint8_t      alg;
     uint8_t      ksv;
-    uint16_t     cha,
-        chb;
-    uint8_t ch_num;
+    uint16_t     cha;
+    uint16_t     chb;
+    uint8_t      ch_num;
 } chan_t;
 
 typedef struct wrbuf {
@@ -177,12 +177,14 @@ typedef struct chip {
 
 typedef struct {
     nuked_t opl;
-    int8_t  flags, pad;
+    int8_t  flags;
+    int8_t  pad;
 
     uint16_t port;
-    uint8_t  status, timer_ctrl;
-    uint16_t timer_count[2],
-        timer_cur_count[2];
+    uint8_t  status;
+    uint8_t  timer_ctrl;
+    uint16_t timer_count[2];
+    uint16_t timer_cur_count[2];
 
     pc_timer_t timers[2];
 
@@ -514,7 +516,8 @@ env_calc(slot_t *slot)
     uint8_t  rate_lo;
     uint8_t  reg_rate = 0;
     uint8_t  ks;
-    uint8_t  eg_shift, shift;
+    uint8_t  eg_shift;
+    uint8_t  shift;
     uint16_t eg_rout;
     int16_t  eg_inc;
     uint8_t  eg_off;
@@ -541,6 +544,9 @@ env_calc(slot_t *slot)
 
             case envelope_gen_num_release:
                 reg_rate = slot->reg_rr;
+                break;
+
+            default:
                 break;
         }
 
@@ -618,6 +624,9 @@ env_calc(slot_t *slot)
             if (!eg_off && !reset && shift > 0)
                 eg_inc = 1 << (shift - 1);
             break;
+
+        default:
+            break;
     }
     slot->eg_rout = (eg_rout + eg_inc) & 0x1ff;
 
@@ -646,7 +655,8 @@ phase_generate(slot_t *slot)
 {
     uint16_t f_num;
     uint32_t basefreq;
-    uint8_t  rm_xor, n_bit;
+    uint8_t  rm_xor;
+    uint8_t  n_bit;
     uint32_t noise;
     uint16_t phase;
     int8_t   range;
@@ -808,6 +818,9 @@ channel_setup_alg(chan_t *ch)
                 ch->slots[0]->mod = &ch->slots[0]->fbmod;
                 ch->slots[1]->mod = &ch->dev->zeromod;
                 break;
+
+            default:
+                break;
         }
         return;
     }
@@ -865,6 +878,9 @@ channel_setup_alg(chan_t *ch)
                 ch->out[2]              = &ch->slots[1]->out;
                 ch->out[3]              = &ch->dev->zeromod;
                 break;
+
+            default:
+                break;
         }
     } else
         switch (ch->alg & 0x01) {
@@ -885,13 +901,18 @@ channel_setup_alg(chan_t *ch)
                 ch->out[2]        = &ch->dev->zeromod;
                 ch->out[3]        = &ch->dev->zeromod;
                 break;
+
+            default:
+                break;
         }
 }
 
 static void
 channel_update_rhythm(nuked_t *dev, uint8_t data)
 {
-    chan_t *ch6, *ch7, *ch8;
+    chan_t *ch6;
+    chan_t *ch7;
+    chan_t *ch8;
     uint8_t chnum;
 
     dev->rhy = data & 0x3f;
@@ -1076,9 +1097,8 @@ static void
 channel_set_4op(nuked_t *dev, uint8_t data)
 {
     uint8_t chnum;
-    uint8_t bit;
 
-    for (bit = 0; bit < 6; bit++) {
+    for (uint8_t bit = 0; bit < 6; bit++) {
         chnum = bit;
 
         if (bit >= 3)
@@ -1097,14 +1117,14 @@ channel_set_4op(nuked_t *dev, uint8_t data)
 uint16_t
 nuked_write_addr(void *priv, uint16_t port, uint8_t val)
 {
-    nuked_t *dev = (nuked_t *) priv;
+    const nuked_t *dev = (nuked_t *) priv;
     uint16_t addr;
 
     addr = val;
     if ((port & 0x0002) && ((addr == 0x0005) || dev->newm))
         addr |= 0x0100;
 
-    return (addr);
+    return addr;
 }
 
 void
@@ -1125,11 +1145,17 @@ nuked_write_reg(void *priv, uint16_t reg, uint8_t val)
                     case 0x05:
                         dev->newm = val & 0x01;
                         break;
+
+                    default:
+                        break;
                 }
             else
                 switch (regm & 0x0f) {
                     case 0x08:
                         dev->nts = (val >> 6) & 0x01;
+                        break;
+
+                    default:
                         break;
                 }
             break;
@@ -1188,6 +1214,9 @@ nuked_write_reg(void *priv, uint16_t reg, uint8_t val)
             if (ad_slot[regm & 0x1f] >= 0)
                 slot_write_e0(&dev->slot[18 * high + ad_slot[regm & 0x1f]], val);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -1195,7 +1224,8 @@ void
 nuked_write_reg_buffered(void *priv, uint16_t reg, uint8_t val)
 {
     nuked_t *dev = (nuked_t *) priv;
-    uint64_t time1, time2;
+    uint64_t time1;
+    uint64_t time2;
 
     if (dev->wrbuf[dev->wrbuf_last].reg & 0x0200) {
         nuked_write_reg(dev, dev->wrbuf[dev->wrbuf_last].reg & 0x01ff,
@@ -1222,8 +1252,10 @@ void
 nuked_generate(void *priv, int32_t *bufp)
 {
     nuked_t *dev = (nuked_t *) priv;
-    int16_t  accm, shift = 0;
-    uint8_t  i, j;
+    int16_t  accm;
+    int16_t  shift = 0;
+    uint8_t  i;
+    uint8_t  j;
 
     bufp[1] = dev->mixbuff[1];
 
@@ -1352,9 +1384,7 @@ nuked_generate_resampled(nuked_t *dev, int32_t *bufp)
 void
 nuked_generate_stream(nuked_t *dev, int32_t *sndptr, uint32_t num)
 {
-    uint32_t i;
-
-    for (i = 0; i < num; i++) {
+    for (uint32_t i = 0; i < num; i++) {
         nuked_generate_resampled(dev, sndptr);
         sndptr += 2;
     }
@@ -1571,6 +1601,9 @@ nuked_drv_write(uint16_t port, uint8_t val, void *priv)
                     nuked_timer_control(dev, 1, val & CTRL_TMR2_START);
                     nuked_log("Status mask now %02X (val = %02X)\n", (val & ~CTRL_TMR_MASK) & CTRL_TMR_MASK, val);
                 }
+                break;
+
+            default:
                 break;
         }
     } else {

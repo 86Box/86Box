@@ -47,7 +47,7 @@ typedef struct {
 } SOUND_CARD;
 
 typedef struct {
-    void (*get_buffer)(int32_t *buffer, int len, void *p);
+    void (*get_buffer)(int32_t *buffer, int len, void *priv);
     void *priv;
 } sound_handler_t;
 
@@ -70,12 +70,13 @@ static uint64_t   sound_poll_latch;
 static int16_t      cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
 static float        cd_out_buffer[CD_BUFLEN * 2];
 static int16_t      cd_out_buffer_int16[CD_BUFLEN * 2];
-static unsigned int cd_vol_l, cd_vol_r;
+static unsigned int cd_vol_l;
+static unsigned int cd_vol_r;
 static int          cd_buf_update    = CD_BUFLEN / SOUNDBUFLEN;
 static volatile int cdaudioon        = 0;
 static int          cd_thread_enable = 0;
 
-static void (*filter_cd_audio)(int channel, double *buffer, void *p) = NULL;
+static void (*filter_cd_audio)(int channel, double *buffer, void *priv) = NULL;
 static void *filter_cd_audio_p                                       = NULL;
 
 static const device_t sound_none_device = {
@@ -202,12 +203,12 @@ sound_card_get_internal_name(int card)
 }
 
 int
-sound_card_get_from_internal_name(char *s)
+sound_card_get_from_internal_name(const char *s)
 {
     int c = 0;
 
     while (sound_cards[c].device != NULL) {
-        if (!strcmp((char *) sound_cards[c].device->internal_name, s))
+        if (!strcmp(sound_cards[c].device->internal_name, s))
             return c;
         c++;
     }
@@ -245,11 +246,14 @@ sound_cd_clean_buffers(void)
 }
 
 static void
-sound_cd_thread(void *param)
+sound_cd_thread(UNUSED(void *param))
 {
     uint32_t lba;
-    int      c, r, i, pre, channel_select[2];
-    double   audio_vol_l, audio_vol_r;
+    int      r;
+    int      pre;
+    int      channel_select[2];
+    double   audio_vol_l;
+    double   audio_vol_r;
     double   cd_buffer_temp[2] = { 0.0, 0.0 };
 
     thread_set_event(sound_cd_start_event);
@@ -263,7 +267,7 @@ sound_cd_thread(void *param)
 
         sound_cd_clean_buffers();
 
-        for (i = 0; i < CDROM_NUM; i++) {
+        for (uint8_t i = 0; i < CDROM_NUM; i++) {
             if ((cdrom[i].bus_type == CDROM_BUS_DISABLED) || (cdrom[i].cd_status == CD_STATUS_EMPTY))
                 continue;
             lba = cdrom[i].seek_pos;
@@ -303,7 +307,7 @@ sound_cd_thread(void *param)
                 channel_select[1] = 2;
             }
 
-            for (c = 0; c < CD_BUFLEN * 2; c += 2) {
+            for (uint16_t c = 0; c < CD_BUFLEN * 2; c += 2) {
                 /*Apply ATAPI channel select*/
                 cd_buffer_temp[0] = cd_buffer_temp[1] = 0.0;
 
@@ -388,7 +392,6 @@ sound_realloc_buffers(void)
 void
 sound_init(void)
 {
-    int i                      = 0;
     int available_cdrom_drives = 0;
 
     outbuffer_ex       = NULL;
@@ -398,7 +401,7 @@ sound_init(void)
     outbuffer = calloc(SOUNDBUFLEN * 2, sizeof(int32_t));
     memset(outbuffer, 0x00, SOUNDBUFLEN * 2 * sizeof(int32_t));
 
-    for (i = 0; i < CDROM_NUM; i++) {
+    for (uint8_t i = 0; i < CDROM_NUM; i++) {
         if (cdrom[i].bus_type != CDROM_BUS_DISABLED)
             available_cdrom_drives++;
     }
@@ -422,24 +425,24 @@ sound_init(void)
 }
 
 void
-sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *p), void *p)
+sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *priv), void *priv)
 {
     sound_handlers[sound_handlers_num].get_buffer = get_buffer;
-    sound_handlers[sound_handlers_num].priv       = p;
+    sound_handlers[sound_handlers_num].priv       = priv;
     sound_handlers_num++;
 }
 
 void
-sound_set_cd_audio_filter(void (*filter)(int channel, double *buffer, void *p), void *p)
+sound_set_cd_audio_filter(void (*filter)(int channel, double *buffer, void *priv), void *priv)
 {
     if ((filter_cd_audio == NULL) || (filter == NULL)) {
         filter_cd_audio   = filter;
-        filter_cd_audio_p = p;
+        filter_cd_audio_p = priv;
     }
 }
 
 void
-sound_poll(void *priv)
+sound_poll(UNUSED(void *priv))
 {
     timer_advance_u64(&sound_poll_timer, sound_poll_latch);
 
@@ -456,7 +459,7 @@ sound_poll(void *priv)
 
         for (c = 0; c < SOUNDBUFLEN * 2; c++) {
             if (sound_is_float)
-                outbuffer_ex[c] = ((float) outbuffer[c]) / 32768.0;
+                outbuffer_ex[c] = ((float) outbuffer[c]) / (float) 32768.0;
             else {
                 if (outbuffer[c] > 32767)
                     outbuffer[c] = 32767;
@@ -551,10 +554,9 @@ sound_cd_thread_end(void)
 void
 sound_cd_thread_reset(void)
 {
-    int i                      = 0;
     int available_cdrom_drives = 0;
 
-    for (i = 0; i < CDROM_NUM; i++) {
+    for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom_stop(&(cdrom[i]));
 
         if (cdrom[i].bus_type != CDROM_BUS_DISABLED)

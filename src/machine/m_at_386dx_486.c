@@ -48,6 +48,7 @@
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/hwm.h>
 #include <86box/machine.h>
+#include <86box/plat_unused.h>
 
 int
 machine_at_acc386_init(const machine_t *model)
@@ -220,7 +221,7 @@ machine_at_spc6000a_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&keyboard_at_samsung_device);
+    device_add(&keyboard_at_ami_device);
 
     return ret;
 }
@@ -404,7 +405,7 @@ machine_at_acerv10_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&sis_85c461_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&keyboard_ps2_acer_pci_device);
     device_add(&ide_isa_2ch_device);
 
     if (fdc_type == FDC_INTERNAL)
@@ -812,7 +813,7 @@ machine_at_greenb_init(const machine_t *model)
 }
 
 static void
-machine_at_sis_85c496_common_init(const machine_t *model)
+machine_at_sis_85c496_common_init(UNUSED(const machine_t *model))
 {
     device_add(&ide_pci_2ch_device);
 
@@ -1281,7 +1282,9 @@ machine_at_abpb4_init(const machine_t *model)
     device_add(&ali1489_device);
     device_add(&w83787f_device);
     device_add(&keyboard_at_device);
-    // device_add(&intel_flash_bxt_device);
+#if 0
+    device_add(&intel_flash_bxt_device);
+#endif
     device_add(&sst_flash_29ee010_device);
 
     return ret;
@@ -1593,10 +1596,8 @@ machine_at_hot433_init(const machine_t *model)
     device_add(&umc_hb4_device);
     device_add(&umc_8886af_device);
     device_add(&um8669f_device);
-    // device_add(&intel_flash_bxt_device);
-    device_add(&sst_flash_29ee010_device);
-    // device_add(&keyboard_at_ami_device);
-    device_add(&keyboard_ps2_ami_device);
+    device_add(&winbond_flash_w29c010_device);
+    device_add(&keyboard_at_ami_device);
 
     return ret;
 }
@@ -1657,7 +1658,7 @@ machine_at_actionpc2600_init(const machine_t *model)
     device_add(&umc_8886af_device);
     device_add(&um8669f_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&keyboard_at_ami_device);
+    device_add(&keyboard_ps2_tg_ami_device);
 
     return ret;
 }
@@ -1782,7 +1783,7 @@ machine_at_tg486gp_init(const machine_t *model)
     device_add(&ali1435_device);
     device_add(&sst_flash_29ee010_device);
 
-    device_add(&keyboard_ps2_ami_device);
+    device_add(&keyboard_ps2_tg_ami_device);
 
     return ret;
 }
@@ -1797,16 +1798,19 @@ machine_at_tg486g_init(const machine_t *model)
 
     if (bios_only || !ret)
         return ret;
-    else {
-        mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
-        mem_mapping_set_exec(&bios_mapping, rom);
-    }
 
     machine_at_common_init(model);
     device_add(&sis_85c471_device);
     device_add(&ide_isa_device);
     device_add(&fdc37c651_ide_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
+    device_add(&keyboard_ps2_tg_ami_pci_device);
+
+    if (gfxcard[0] != VID_INTERNAL) {
+        for (uint16_t i = 0; i < 32768; i++)
+            rom[i] = mem_readb_phys(0x000c0000 + i);
+    }
+    mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);
+    mem_mapping_set_exec(&bios_mapping, rom);
 
     return ret;
 }

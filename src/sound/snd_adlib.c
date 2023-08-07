@@ -13,6 +13,7 @@
 #include <86box/sound.h>
 #include <86box/timer.h>
 #include <86box/snd_opl.h>
+#include <86box/plat_unused.h>
 
 #ifdef ENABLE_ADLIB_LOG
 int adlib_do_log = ENABLE_ADLIB_LOG;
@@ -39,23 +40,22 @@ typedef struct adlib_t {
 } adlib_t;
 
 static void
-adlib_get_buffer(int32_t *buffer, int len, void *p)
+adlib_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    adlib_t *adlib = (adlib_t *) p;
-    int      c;
+    adlib_t *adlib = (adlib_t *) priv;
 
-    int32_t *opl_buf = adlib->opl.update(adlib->opl.priv);
+    const int32_t *opl_buf = adlib->opl.update(adlib->opl.priv);
 
-    for (c = 0; c < len * 2; c++)
-        buffer[c] += (int32_t) opl_buf[c];
+    for (int c = 0; c < len * 2; c++)
+        buffer[c] += opl_buf[c];
 
     adlib->opl.reset_buffer(adlib->opl.priv);
 }
 
 uint8_t
-adlib_mca_read(int port, void *p)
+adlib_mca_read(int port, void *priv)
 {
-    adlib_t *adlib = (adlib_t *) p;
+    const adlib_t *adlib = (adlib_t *) priv;
 
     adlib_log("adlib_mca_read: port=%04x\n", port);
 
@@ -63,9 +63,9 @@ adlib_mca_read(int port, void *p)
 }
 
 void
-adlib_mca_write(int port, uint8_t val, void *p)
+adlib_mca_write(int port, uint8_t val, void *priv)
 {
-    adlib_t *adlib = (adlib_t *) p;
+    adlib_t *adlib = (adlib_t *) priv;
 
     if (port < 0x102)
         return;
@@ -85,20 +85,23 @@ adlib_mca_write(int port, uint8_t val, void *p)
                               adlib->opl.write, NULL, NULL,
                               adlib->opl.priv);
             break;
+
+        default:
+            break;
     }
     adlib->pos_regs[port & 7] = val;
 }
 
 uint8_t
-adlib_mca_feedb(void *p)
+adlib_mca_feedb(void *priv)
 {
-    adlib_t *adlib = (adlib_t *) p;
+    const adlib_t *adlib = (adlib_t *) priv;
 
     return (adlib->pos_regs[2] & 1);
 }
 
 void *
-adlib_init(const device_t *info)
+adlib_init(UNUSED(const device_t *info))
 {
     adlib_t *adlib = malloc(sizeof(adlib_t));
     memset(adlib, 0, sizeof(adlib_t));
@@ -134,9 +137,9 @@ adlib_mca_init(const device_t *info)
 }
 
 void
-adlib_close(void *p)
+adlib_close(void *priv)
 {
-    adlib_t *adlib = (adlib_t *) p;
+    adlib_t *adlib = (adlib_t *) priv;
     free(adlib);
 }
 

@@ -27,13 +27,13 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
-typedef struct
-{
-    uint8_t index,
-        regs[256];
+typedef struct cs4031_t {
+    uint8_t    index;
+    uint8_t    regs[256];
     port_92_t *port_92;
 } cs4031_t;
 
@@ -134,15 +134,21 @@ cs4031_write(uint16_t addr, uint8_t val, void *priv)
                     dev->regs[dev->index] = val & 0xb3;
                     port_92_set_features(dev->port_92, val & 0x10, val & 0x20);
                     break;
+
+                default:
+                    break;
             }
             break;
+
+            default:
+                break;
     }
 }
 
 static uint8_t
 cs4031_read(uint16_t addr, void *priv)
 {
-    cs4031_t *dev = (cs4031_t *) priv;
+    const cs4031_t *dev = (cs4031_t *) priv;
 
     return (addr == 0x23) ? dev->regs[dev->index] : 0xff;
 }
@@ -156,7 +162,7 @@ cs4031_close(void *priv)
 }
 
 static void *
-cs4031_init(const device_t *info)
+cs4031_init(UNUSED(const device_t *info))
 {
     cs4031_t *dev = (cs4031_t *) malloc(sizeof(cs4031_t));
     memset(dev, 0, sizeof(cs4031_t));

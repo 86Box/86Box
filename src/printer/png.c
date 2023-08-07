@@ -92,13 +92,13 @@ png_log(const char *fmt, ...)
 #endif
 
 static void
-error_handler(png_structp arg, const char *str)
+error_handler(UNUSED(png_structp arg), UNUSED(const char *str))
 {
     png_log("PNG: stream 0x%08lx error '%s'\n", arg, str);
 }
 
 static void
-warning_handler(png_structp arg, const char *str)
+warning_handler(UNUSED(png_structp arg), UNUSED(const char *str))
 {
     png_log("PNG: stream 0x%08lx warning '%s'\n", arg, str);
 }
@@ -110,7 +110,6 @@ png_write_gray(char *fn, int inv, uint8_t *pix, int16_t w, int16_t h)
     png_structp png  = NULL;
     png_infop   info = NULL;
     png_bytep   row;
-    int16_t     x, y;
     FILE       *fp;
 
     /* Create the image file. */
@@ -127,7 +126,7 @@ error:
         (&png, &info);
         if (fp != NULL)
             (void) fclose(fp);
-        return (0);
+        return 0;
     }
 
     /* Initialize PNG stuff. */
@@ -159,8 +158,8 @@ error:
     row = (png_bytep) malloc(PNGFUNC(get_rowbytes)(png, info));
 
     /* Process all scanlines in the image. */
-    for (y = 0; y < h; y++) {
-        for (x = 0; x < w; x++) {
+    for (int16_t y = 0; y < h; y++) {
+        for (int16_t x = 0; x < w; x++) {
             /* Copy the pixel data. */
             if (inv)
                 row[x] = 255 - pix[(y * w) + x];
@@ -185,7 +184,7 @@ error:
     /* Clean up. */
     (void) fclose(fp);
 
-    return (1);
+    return 1;
 }
 
 /* Write the given BITMAP-format image as an 8-bit RGBA PNG image file. */
@@ -197,7 +196,6 @@ png_write_rgb(char *fn, uint8_t *pix, int16_t w, int16_t h, uint16_t pitch, PALE
     png_bytep  *rows;
     png_color   palette[256];
     FILE       *fp;
-    int         i;
 
     /* Create the image file. */
     fp = plat_fopen(fn, "wb");
@@ -249,7 +247,7 @@ error:
      PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
      PNG_FILTER_TYPE_DEFAULT);
 
-    for (i = 0; i < 256; i++) {
+    for (uint16_t i = 0; i < 256; i++) {
         palette[i].red   = palcol[i].r;
         palette[i].green = palcol[i].g;
         palette[i].blue  = palcol[i].b;
@@ -260,7 +258,7 @@ error:
 
     /* Create a buffer for scanlines of pixels. */
     rows = (png_bytep *) malloc(sizeof(png_bytep) * h);
-    for (i = 0; i < h; i++) {
+    for (int16_t i = 0; i < h; i++) {
         /* Create a buffer for this scanline. */
         rows[i] = (pix + (i * pitch));
     }

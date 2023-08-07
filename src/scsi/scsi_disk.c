@@ -182,9 +182,9 @@ scsi_disk_mode_sense_read(scsi_disk_t *dev, uint8_t page_control, uint8_t page, 
             case 2:
             case 3:
                 switch (pos) {
+                    default:
                     case 0:
                     case 1:
-                    default:
                         return scsi_disk_mode_sense_pages_default.pages[page][pos];
                     case 2:
                     case 6:
@@ -201,6 +201,8 @@ scsi_disk_mode_sense_read(scsi_disk_t *dev, uint8_t page_control, uint8_t page, 
                     case 5:
                         return dev->drv->hpc & 0xff;
                 }
+
+            default:
                 break;
         }
     else if (page == GPMODE_FORMAT_DEVICE_PAGE)
@@ -210,9 +212,9 @@ scsi_disk_mode_sense_read(scsi_disk_t *dev, uint8_t page_control, uint8_t page, 
             case 2:
             case 3:
                 switch (pos) {
+                    default:
                     case 0:
                     case 1:
-                    default:
                         return scsi_disk_mode_sense_pages_default.pages[page][pos];
                     /* Actual sectors + the 1 "alternate sector" we report. */
                     case 10:
@@ -220,6 +222,8 @@ scsi_disk_mode_sense_read(scsi_disk_t *dev, uint8_t page_control, uint8_t page, 
                     case 11:
                         return (dev->drv->spt + 1) & 0xff;
                 }
+
+            default:
                 break;
         }
     else
@@ -229,6 +233,9 @@ scsi_disk_mode_sense_read(scsi_disk_t *dev, uint8_t page_control, uint8_t page, 
                 return dev->ms_pages_saved.pages[page][pos];
             case 2:
                 return scsi_disk_mode_sense_pages_default.pages[page][pos];
+
+            default:
+                break;
         }
 
     return 0;
@@ -237,10 +244,9 @@ scsi_disk_mode_sense_read(scsi_disk_t *dev, uint8_t page_control, uint8_t page, 
 uint32_t
 scsi_disk_mode_sense(scsi_disk_t *dev, uint8_t *buf, uint32_t pos, uint8_t page, uint8_t block_descriptor_len)
 {
-    uint8_t msplen, page_control = (page >> 6) & 3;
-
-    int i = 0, j = 0;
-    int size = 0;
+    uint8_t msplen;
+    uint8_t page_control = (page >> 6) & 3;
+    int     size = 0;
 
     page &= 0x3f;
 
@@ -257,14 +263,14 @@ scsi_disk_mode_sense(scsi_disk_t *dev, uint8_t *buf, uint32_t pos, uint8_t page,
         buf[pos++] = 0;
     }
 
-    for (i = 0; i < 0x40; i++) {
+    for (uint8_t i = 0; i < 0x40; i++) {
         if ((page == GPMODE_ALL_PAGES) || (page == i)) {
             if (scsi_disk_mode_sense_page_flags & (1LL << (uint64_t) page)) {
                 buf[pos++] = scsi_disk_mode_sense_read(dev, page_control, i, 0);
                 msplen     = scsi_disk_mode_sense_read(dev, page_control, i, 1);
                 buf[pos++] = msplen;
                 scsi_disk_log("SCSI HDD %i: MODE SENSE: Page [%02X] length %i\n", dev->id, i, msplen);
-                for (j = 0; j < msplen; j++)
+                for (uint8_t j = 0; j < msplen; j++)
                     buf[pos++] = scsi_disk_mode_sense_read(dev, page_control, i, 2 + j);
             }
         }
@@ -307,7 +313,7 @@ scsi_disk_command_write_dma(scsi_disk_t *dev)
 }
 
 static void
-scsi_disk_data_command_finish(scsi_disk_t *dev, int len, int block_len, int alloc_len, int direction)
+scsi_disk_data_command_finish(scsi_disk_t *dev, int len, UNUSED(int block_len), int alloc_len, int direction)
 {
     scsi_disk_log("SCSI HD %i: Finishing command (%02X): %i, %i, %i, %i, %i\n", dev->id,
                   dev->current_cdb[0], len, block_len, alloc_len, direction, dev->request_length);
@@ -326,7 +332,7 @@ scsi_disk_data_command_finish(scsi_disk_t *dev, int len, int block_len, int allo
 }
 
 static void
-scsi_disk_sense_clear(scsi_disk_t *dev, int command)
+scsi_disk_sense_clear(scsi_disk_t *dev, UNUSED(int command))
 {
     scsi_disk_sense_key = scsi_disk_asc = scsi_disk_ascq = 0;
 }
@@ -501,7 +507,7 @@ scsi_disk_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer, uint8_t all
 }
 
 static void
-scsi_disk_set_buf_len(scsi_disk_t *dev, int32_t *BufLen, int32_t *src_len)
+scsi_disk_set_buf_len(UNUSED(scsi_disk_t *dev), int32_t *BufLen, int32_t *src_len)
 {
     if (*BufLen == -1)
         *BufLen = *src_len;
@@ -535,10 +541,13 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
 {
     scsi_disk_t *dev = (scsi_disk_t *) sc;
     int32_t     *BufLen;
-    int32_t      len, max_len, alloc_length;
+    int32_t      len;
+    int32_t      max_len;
+    int32_t      alloc_length;
     int          pos = 0;
     int          idx = 0;
-    unsigned     size_idx, preamble_len;
+    unsigned     size_idx;
+    unsigned     preamble_len;
     uint32_t     last_sector            = 0;
     char         device_identify[9]     = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
     char         device_identify_ex[15] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', ' ', 'v', '1', '.', '0', '0', 0 };
@@ -588,7 +597,9 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
                 scsi_disk_invalid_field(dev);
                 return;
             }
-            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
         case GPCMD_SCSI_RESERVE:
         case GPCMD_SCSI_RELEASE:
         case GPCMD_TEST_UNIT_READY:
@@ -658,6 +669,9 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
                 case GPCMD_READ_12:
                     dev->sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
                     dev->sector_pos = (((uint32_t) cdb[2]) << 24) | (((uint32_t) cdb[3]) << 16) | (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
+                    break;
+
+                default:
                     break;
             }
 
@@ -734,6 +748,9 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
                 case GPCMD_WRITE_AND_VERIFY_12:
                     dev->sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
                     dev->sector_pos = (((uint32_t) cdb[2]) << 24) | (((uint32_t) cdb[3]) << 16) | (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
+                    break;
+
+                default:
                     break;
             }
 
@@ -999,6 +1016,9 @@ atapi_out:
                 case GPCMD_SEEK_10:
                     pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
                     break;
+
+                default:
+                    break;
             }
             scsi_disk_seek(dev, pos);
 
@@ -1044,17 +1064,26 @@ scsi_disk_command_stop(scsi_common_t *sc)
 static uint8_t
 scsi_disk_phase_data_out(scsi_common_t *sc)
 {
-    scsi_disk_t *dev      = (scsi_disk_t *) sc;
-    uint8_t      scsi_bus = (dev->drv->scsi_id >> 4) & 0x0f;
-    uint8_t      scsi_id  = dev->drv->scsi_id & 0x0f;
-    int          i;
-    int32_t     *BufLen      = &scsi_devices[scsi_bus][scsi_id].buffer_length;
-    uint32_t     last_sector = hdd_image_get_last_sector(dev->id);
-    uint32_t     c, h, s, last_to_write = 0;
-    uint16_t     block_desc_len, pos;
-    uint16_t     param_list_len;
-    uint8_t      hdr_len, val, old_val, ch, error = 0;
-    uint8_t      page, page_len;
+    scsi_disk_t   *dev      = (scsi_disk_t *) sc;
+    uint8_t        scsi_bus = (dev->drv->scsi_id >> 4) & 0x0f;
+    uint8_t        scsi_id  = dev->drv->scsi_id & 0x0f;
+    int            i;
+    const int32_t *BufLen      = &scsi_devices[scsi_bus][scsi_id].buffer_length;
+    uint32_t       last_sector = hdd_image_get_last_sector(dev->id);
+    uint32_t       c;
+    uint32_t       h;
+    uint32_t       s;
+    uint32_t       last_to_write = 0;
+    uint16_t       block_desc_len;
+    uint16_t       pos;
+    uint16_t       param_list_len;
+    uint8_t        hdr_len;
+    uint8_t        val;
+    uint8_t        old_val;
+    uint8_t        ch;
+    uint8_t        error = 0;
+    uint8_t        page;
+    uint8_t        page_len;
 
     if (!*BufLen) {
         scsi_disk_set_phase(dev, SCSI_PHASE_STATUS);
@@ -1185,12 +1214,12 @@ scsi_disk_phase_data_out(scsi_common_t *sc)
 void
 scsi_disk_hard_reset(void)
 {
-    int            c;
     scsi_disk_t   *dev;
     scsi_device_t *sd;
-    uint8_t        scsi_bus, scsi_id;
+    uint8_t        scsi_bus;
+    uint8_t        scsi_id;
 
-    for (c = 0; c < HDD_NUM; c++) {
+    for (uint8_t c = 0; c < HDD_NUM; c++) {
         if (hdd[c].bus == HDD_BUS_SCSI) {
             scsi_disk_log("SCSI disk hard_reset drive=%d\n", c);
 
@@ -1247,10 +1276,10 @@ void
 scsi_disk_close(void)
 {
     scsi_disk_t *dev;
-    int          c;
-    uint8_t      scsi_bus, scsi_id;
+    uint8_t      scsi_bus;
+    uint8_t      scsi_id;
 
-    for (c = 0; c < HDD_NUM; c++) {
+    for (uint8_t c = 0; c < HDD_NUM; c++) {
         if (hdd[c].bus == HDD_BUS_SCSI) {
             scsi_bus = (hdd[c].scsi_id >> 4) & 0x0f;
             scsi_id  = hdd[c].scsi_id & 0x0f;

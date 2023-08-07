@@ -29,6 +29,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/plat_unused.h>
 
 typedef struct icd2061_t {
     float freq[3];
@@ -61,8 +62,16 @@ icd2061_write(void *p, int val)
 {
     icd2061_t *icd2061 = (icd2061_t *) p;
 
-    int nd, oc, nc;
-    int a, qa, q, pa, p_, m, ps;
+    int nd;
+    int oc;
+    int nc;
+    int a;
+    int qa;
+    int q;
+    int pa;
+    int p_;
+    int m;
+    int ps;
 
     nd = (val & 2) >> 1;     /* Old data. */
     oc = icd2061->state & 1; /* Old clock. */
@@ -127,9 +136,9 @@ icd2061_write(void *p, int val)
 }
 
 float
-icd2061_getclock(int clock, void *p)
+icd2061_getclock(int clock, void *priv)
 {
-    icd2061_t *icd2061 = (icd2061_t *) p;
+    icd2061_t *icd2061 = (icd2061_t *) priv;
 
     if (clock > 2)
         clock = 2;
@@ -138,7 +147,7 @@ icd2061_getclock(int clock, void *p)
 }
 
 static void *
-icd2061_init(const device_t *info)
+icd2061_init(UNUSED(const device_t *info))
 {
     icd2061_t *icd2061 = (icd2061_t *) malloc(sizeof(icd2061_t));
     memset(icd2061, 0, sizeof(icd2061_t));

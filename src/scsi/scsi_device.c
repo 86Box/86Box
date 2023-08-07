@@ -25,6 +25,7 @@
 #include <86box/hdd.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
+#include <86box/plat_unused.h>
 
 scsi_device_t scsi_devices[SCSI_BUS_MAX][SCSI_ID_MAX];
 
@@ -97,7 +98,7 @@ scsi_device_valid(scsi_device_t *dev)
 }
 
 int
-scsi_device_cdb_length(scsi_device_t *dev)
+scsi_device_cdb_length(UNUSED(scsi_device_t *dev))
 {
     /* Right now, it's 12 for all devices. */
     return 12;
@@ -162,11 +163,10 @@ scsi_device_identify(scsi_device_t *dev, uint8_t lun)
 void
 scsi_device_close_all(void)
 {
-    int            i, j;
     scsi_device_t *dev;
 
-    for (i = 0; i < SCSI_BUS_MAX; i++) {
-        for (j = 0; j < SCSI_ID_MAX; j++) {
+    for (uint8_t i = 0; i < SCSI_BUS_MAX; i++) {
+        for (uint8_t j = 0; j < SCSI_ID_MAX; j++) {
             dev = &(scsi_devices[i][j]);
             if (dev->command_stop && dev->sc)
                 dev->command_stop(dev->sc);
@@ -177,11 +177,10 @@ scsi_device_close_all(void)
 void
 scsi_device_init(void)
 {
-    int            i, j;
     scsi_device_t *dev;
 
-    for (i = 0; i < SCSI_BUS_MAX; i++) {
-        for (j = 0; j < SCSI_ID_MAX; j++) {
+    for (uint8_t i = 0; i < SCSI_BUS_MAX; i++) {
+        for (uint8_t j = 0; j < SCSI_ID_MAX; j++) {
             dev = &(scsi_devices[i][j]);
 
             memset(dev, 0, sizeof(scsi_device_t));

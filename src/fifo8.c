@@ -51,7 +51,8 @@ fifo8_push(Fifo8 *fifo, uint8_t data)
 void
 fifo8_push_all(Fifo8 *fifo, const uint8_t *data, uint32_t num)
 {
-    uint32_t start, avail;
+    uint32_t start;
+    uint32_t avail;
 
     assert(fifo->num + num <= fifo->capacity);
 
@@ -83,7 +84,7 @@ fifo8_pop(Fifo8 *fifo)
 const uint8_t *
 fifo8_pop_buf(Fifo8 *fifo, uint32_t max, uint32_t *num)
 {
-    uint8_t *ret;
+    const uint8_t *ret;
 
     assert(max > 0 && max <= fifo->num);
     *num = MIN(fifo->capacity - fifo->head, max);

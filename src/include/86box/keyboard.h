@@ -22,7 +22,73 @@
 #ifndef EMU_KEYBOARD_H
 #define EMU_KEYBOARD_H
 
-typedef struct {
+enum {
+    DEV_KBD = 0,
+    DEV_AUX = 1
+};
+
+enum {
+    DEV_STATE_MAIN_1                = 0,
+    DEV_STATE_MAIN_OUT              = 1,
+    DEV_STATE_MAIN_2                = 2,
+    DEV_STATE_MAIN_CMD              = 3,
+    DEV_STATE_MAIN_WANT_IN          = 4,
+    DEV_STATE_MAIN_IN               = 5,
+    DEV_STATE_EXECUTE_BAT           = 6,
+    DEV_STATE_MAIN_WANT_EXECUTE_BAT = 7
+};
+
+/* Used by the AT / PS/2 keyboard controller, common device, keyboard, and mouse. */
+typedef struct kbc_at_port_t {
+    uint8_t wantcmd;
+    uint8_t dat;
+
+    int16_t out_new;
+
+    void *priv;
+
+    void  (*poll)(void *priv);
+} kbc_at_port_t;
+
+/* Used by the AT / PS/2 common device, keyboard, and mouse. */
+typedef struct atkbc_dev_t {
+    const char *name; /* name of this device */
+
+    uint8_t type;
+    uint8_t command;
+    uint8_t last_scan_code;
+    uint8_t state;
+    uint8_t resolution;
+    uint8_t rate;
+    uint8_t cmd_queue_start;
+    uint8_t cmd_queue_end;
+    uint8_t queue_start;
+    uint8_t queue_end;
+
+    uint16_t flags;
+
+    /* Internal FIFO, not present on real devices, needed for commands that
+       output multiple bytes. */
+    uint8_t cmd_queue[16];
+
+    uint8_t queue[64];
+
+    int     fifo_mask;
+    int     mode;
+    int     x;
+    int     y;
+    int     z;
+    int     b;
+
+    int     *scan;
+
+    void    (*process_cmd)(void *priv);
+    void    (*execute_bat)(void *priv);
+
+    kbc_at_port_t *port;
+} atkbc_dev_t;
+
+typedef struct scancode {
     const uint8_t mk[4];
     const uint8_t brk[4];
 } scancode;
@@ -138,8 +204,13 @@ extern const scancode scancode_xt[512];
 extern uint8_t keyboard_set3_flags[512];
 extern uint8_t keyboard_set3_all_repeat;
 extern uint8_t keyboard_set3_all_break;
-extern int     mouse_queue_start, mouse_queue_end;
+extern int     mouse_queue_start;
+extern int     mouse_queue_end;
+extern int     mouse_cmd_queue_start;
+extern int     mouse_cmd_queue_end;
 extern int     mouse_scan;
+
+extern kbc_at_port_t     *kbc_at_ports[2];
 
 #ifdef EMU_DEVICE_H
 extern const device_t keyboard_pc_device;
@@ -157,18 +228,21 @@ extern const device_t keyboard_xt_olivetti_device;
 extern const device_t keyboard_xt_zenith_device;
 extern const device_t keyboard_xtclone_device;
 extern const device_t keyboard_at_device;
+extern const device_t keyboard_at_siemens_device;
 extern const device_t keyboard_at_ami_device;
-extern const device_t keyboard_at_samsung_device;
+extern const device_t keyboard_at_tg_ami_device;
 extern const device_t keyboard_at_toshiba_device;
 extern const device_t keyboard_at_olivetti_device;
 extern const device_t keyboard_at_ncr_device;
+extern const device_t keyboard_at_compaq_device;
 extern const device_t keyboard_ps2_device;
 extern const device_t keyboard_ps2_ps1_device;
 extern const device_t keyboard_ps2_ps1_pci_device;
 extern const device_t keyboard_ps2_xi8088_device;
 extern const device_t keyboard_ps2_ami_device;
+extern const device_t keyboard_ps2_tg_ami_device;
+extern const device_t keyboard_ps2_tg_ami_green_device;
 extern const device_t keyboard_ps2_olivetti_device;
-extern const device_t keyboard_ps2_mca_device;
 extern const device_t keyboard_ps2_mca_2_device;
 extern const device_t keyboard_ps2_quadtel_device;
 extern const device_t keyboard_ps2_pci_device;
@@ -176,6 +250,9 @@ extern const device_t keyboard_ps2_ami_pci_device;
 extern const device_t keyboard_ps2_intel_ami_pci_device;
 extern const device_t keyboard_ps2_acer_pci_device;
 extern const device_t keyboard_ps2_ali_pci_device;
+extern const device_t keyboard_ps2_tg_ami_pci_device;
+
+extern const device_t keyboard_at_generic_device;
 #endif /*EMU_DEVICE_H*/
 
 extern void     keyboard_init(void);
@@ -190,22 +267,17 @@ extern uint8_t  keyboard_get_shift(void);
 extern void     keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl);
 extern void     keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl);
 extern int      keyboard_recv(uint16_t key);
+extern int      keyboard_isfsenter(void);
+extern int      keyboard_isfsenter_up(void);
 extern int      keyboard_isfsexit(void);
+extern int      keyboard_isfsexit_up(void);
 extern int      keyboard_ismsexit(void);
 extern void     keyboard_set_is_amstrad(int ams);
 
-extern void    keyboard_at_adddata_mouse(uint8_t val);
-extern void    keyboard_at_adddata_mouse_direct(uint8_t val);
-extern void    keyboard_at_adddata_mouse_cmd(uint8_t val);
-extern void    keyboard_at_mouse_reset(void);
-extern uint8_t keyboard_at_mouse_pos(void);
-extern int     keyboard_at_fixed_channel(void);
-extern void    keyboard_at_set_mouse(void (*mouse_write)(uint8_t val, void *), void *);
-extern void    keyboard_at_set_a20_key(int state);
-extern void    keyboard_at_set_mode(int ps2);
-extern uint8_t keyboard_at_get_mouse_scan(void);
-extern void    keyboard_at_set_mouse_scan(uint8_t val);
-extern void    keyboard_at_reset(void);
+extern uint8_t      kbc_at_dev_queue_pos(atkbc_dev_t *dev, uint8_t main);
+extern void         kbc_at_dev_queue_add(atkbc_dev_t *dev, uint8_t val, uint8_t main);
+extern void         kbc_at_dev_reset(atkbc_dev_t *dev, int do_fa);
+extern atkbc_dev_t *kbc_at_dev_init(uint8_t inst);
 
 #ifdef __cplusplus
 }

@@ -91,11 +91,11 @@ int          fullchange           = 0;
 int          video_grayscale      = 0;
 int          video_graytype       = 0;
 int          monitor_index_global = 0;
-uint32_t    *video_6to8           = NULL,
-         *video_8togs             = NULL,
-         *video_8to32             = NULL,
-         *video_15to32            = NULL,
-         *video_16to32            = NULL;
+uint32_t    *video_6to8           = NULL;
+uint32_t    *video_8togs          = NULL;
+uint32_t    *video_8to32          = NULL;
+uint32_t    *video_15to32         = NULL;
+uint32_t    *video_16to32         = NULL;
 monitor_t          monitors[MONITORS_NUM];
 monitor_settings_t monitor_settings[MONITORS_NUM];
 atomic_bool        doresize_monitors[MONITORS_NUM];
@@ -308,7 +308,6 @@ static png_infop   info_ptr[MONITORS_NUM];
 static void
 video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int start_y, int row_len, int monitor_index)
 {
-    int          i, x, y;
     png_bytep   *b_rgb         = NULL;
     FILE        *fp            = NULL;
     uint32_t     temp          = 0x00000000;
@@ -350,9 +349,9 @@ video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int st
         return;
     }
 
-    for (y = 0; y < blit_data_ptr->h; ++y) {
+    for (int y = 0; y < blit_data_ptr->h; ++y) {
         b_rgb[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr[monitor_index], info_ptr[monitor_index]));
-        for (x = 0; x < blit_data_ptr->w; ++x) {
+        for (int x = 0; x < blit_data_ptr->w; ++x) {
             if (buf == NULL)
                 memset(&(b_rgb[y][x * 3]), 0x00, 3);
             else {
@@ -371,7 +370,7 @@ video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int st
     png_write_end(png_ptr[monitor_index], NULL);
 
     /* cleanup heap allocation */
-    for (i = 0; i < blit_data_ptr->h; i++)
+    for (int i = 0; i < blit_data_ptr->h; i++)
         if (b_rgb[i])
             free(b_rgb[i]);
 
@@ -385,7 +384,8 @@ video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int st
 void
 video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, int row_len, int monitor_index)
 {
-    char path[1024], fn[256];
+    char path[1024];
+    char fn[256];
 
     memset(fn, 0, sizeof(fn));
     memset(path, 0, sizeof(path));
@@ -423,14 +423,13 @@ void *
 video_transform_copy(void *__restrict _Dst, const void *__restrict _Src, size_t _Size)
 #endif
 {
-    int       i;
     uint32_t *dest_ex = (uint32_t *) _Dst;
     uint32_t *src_ex  = (uint32_t *) _Src;
 
     _Size /= sizeof(uint32_t);
 
     if ((dest_ex != NULL) && (src_ex != NULL)) {
-        for (i = 0; i < _Size; i++) {
+        for (size_t i = 0; i < _Size; i++) {
             *dest_ex = video_color_transform(*src_ex);
             dest_ex++;
             src_ex++;
@@ -483,10 +482,9 @@ video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index)
 uint8_t
 pixels8(uint32_t *pixels)
 {
-    int     i;
     uint8_t temp = 0;
 
-    for (i = 0; i < 8; i++)
+    for (uint8_t i = 0; i < 8; i++)
         temp |= (!!*(pixels + i) << (i ^ 7));
 
     return temp;
@@ -511,9 +509,10 @@ pixel_to_color(uint8_t *pixels32, uint8_t pos)
 void
 video_blend_monitor(int x, int y, int monitor_index)
 {
-    int                 xx;
-    uint32_t            pixels32_1, pixels32_2;
-    unsigned int        val1, val2;
+    uint32_t            pixels32_1;
+    uint32_t            pixels32_2;
+    unsigned int        val1;
+    unsigned int        val2;
     static unsigned int carry = 0;
 
     if (!herc_blend)
@@ -527,7 +526,7 @@ video_blend_monitor(int x, int y, int monitor_index)
     carry      = (val1 & 1) << 7;
     pixels32_1 = cga_2_table[val1 >> 4] + cga_2_table[val2 >> 4];
     pixels32_2 = cga_2_table[val1 & 0xf] + cga_2_table[val2 & 0xf];
-    for (xx = 0; xx < 4; xx++) {
+    for (uint8_t xx = 0; xx < 4; xx++) {
         monitors[monitor_index].target_buffer->line[y][x + xx]       = pixel_to_color((uint8_t *) &pixels32_1, xx);
         monitors[monitor_index].target_buffer->line[y][x + (xx | 4)] = pixel_to_color((uint8_t *) &pixels32_2, xx);
     }
@@ -536,9 +535,7 @@ video_blend_monitor(int x, int y, int monitor_index)
 void
 video_process_8_monitor(int x, int y, int monitor_index)
 {
-    int xx;
-
-    for (xx = 0; xx < x; xx++) {
+    for (int xx = 0; xx < x; xx++) {
         if (monitors[monitor_index].target_buffer->line[y][xx] <= 0xff)
             monitors[monitor_index].target_buffer->line[y][xx] = monitors[monitor_index].mon_pal_lookup[monitors[monitor_index].target_buffer->line[y][xx]];
         else
@@ -630,9 +627,8 @@ video_update_timing(void)
     int                   *vid_timing_write_b  = NULL;
     int                   *vid_timing_write_l  = NULL;
     int                   *vid_timing_write_w  = NULL;
-    int                    i                   = 0;
 
-    for (i = 0; i < MONITORS_NUM; i++) {
+    for (uint8_t i = 0; i < MONITORS_NUM; i++) {
         monitor_vid_timings = monitors[i].mon_vid_timings;
         if (!monitor_vid_timings)
             continue;
@@ -683,7 +679,8 @@ video_update_timing(void)
 int
 calc_6to8(int c)
 {
-    int    ic, i8;
+    int    ic;
+    int    i8;
     double d8;
 
     ic = c;
@@ -700,8 +697,12 @@ calc_6to8(int c)
 int
 calc_8to32(int c)
 {
-    int    b, g, r;
-    double db, dg, dr;
+    int    b;
+    int    g;
+    int    r;
+    double db;
+    double dg;
+    double dr;
 
     b  = (c & 3);
     g  = ((c >> 2) & 7);
@@ -719,8 +720,12 @@ calc_8to32(int c)
 int
 calc_15to32(int c)
 {
-    int    b, g, r;
-    double db, dg, dr;
+    int    b;
+    int    g;
+    int    r;
+    double db;
+    double dg;
+    double dr;
 
     b  = (c & 31);
     g  = ((c >> 5) & 31);
@@ -738,8 +743,12 @@ calc_15to32(int c)
 int
 calc_16to32(int c)
 {
-    int    b, g, r;
-    double db, dg, dr;
+    int    b;
+    int    g;
+    int    r;
+    double db;
+    double dg;
+    double dr;
 
     b  = (c & 31);
     g  = ((c >> 5) & 63);
@@ -757,12 +766,10 @@ calc_16to32(int c)
 void
 hline(bitmap_t *b, int x1, int y, int x2, uint32_t col)
 {
-    int x;
-
     if (y < 0 || y >= b->h)
         return;
 
-    for (x = x1; x < x2; x++)
+    for (int x = x1; x < x2; x++)
         b->line[y][x] = col;
 }
 
@@ -800,15 +807,14 @@ bitmap_t *
 create_bitmap(int x, int y)
 {
     bitmap_t *b = malloc(sizeof(bitmap_t) + (y * sizeof(uint32_t *)));
-    int       c;
 
     b->dat = malloc((size_t) x * y * 4);
-    for (c = 0; c < y; c++)
+    for (int c = 0; c < y; c++)
         b->line[c] = &(b->dat[c * x]);
     b->w = x;
     b->h = y;
 
-    return (b);
+    return b;
 }
 
 void
@@ -871,7 +877,8 @@ video_monitor_close(int monitor_index)
 void
 video_init(void)
 {
-    int     c, d;
+    int     c;
+    int     d;
     uint8_t total[2] = { 0, 1 };
 
     for (c = 0; c < 16; c++) {
@@ -966,7 +973,8 @@ video_force_resize_set_monitor(uint8_t res, int monitor_index)
 void
 loadfont_common(FILE *f, int format)
 {
-    int c, d;
+    int c;
+    int d;
 
     switch (format) {
         case 0: /* MDA */

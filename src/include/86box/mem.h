@@ -157,23 +157,22 @@
     mem_set_access((smm ? ACCESS_CPU_SMM : ACCESS_CPU), 1, base, size, is_smram)
 #define mem_set_access_smram_bus(smm, base, size, is_smram) \
     mem_set_access((smm ? ACCESS_BUS_SMM : ACCESS_BUS), 1, base, size, is_smram)
-#define flushmmucache_cr3 \
-    flushmmucache_nopc
 
-typedef struct {
-    uint16_t x : 5,
-        w      : 5,
-        r      : 5,
-        pad    : 1;
+typedef struct state_t {
+    uint16_t x : 5;
+    uint16_t w : 5;
+    uint16_t r : 5;
+    uint16_t pad : 1;
 } state_t;
 
-typedef union {
+typedef union mem_state_t {
     uint16_t vals[4];
     state_t  states[4];
 } mem_state_t;
 
 typedef struct _mem_mapping_ {
-    struct _mem_mapping_ *prev, *next;
+    struct _mem_mapping_ *prev;
+    struct _mem_mapping_ *next;
 
     int enable;
 
@@ -195,7 +194,7 @@ typedef struct _mem_mapping_ {
 
     /* There is never a needed to pass a pointer to the mapping itself, it is much preferable to
        prepare a structure with the requires data (usually, the base address and mask) instead. */
-    void *p; /* backpointer to device */
+    void *priv; /* backpointer to device */
 } mem_mapping_t;
 
 #ifdef USE_NEW_DYNAREC
@@ -208,9 +207,9 @@ extern uint64_t *byte_code_present_mask;
 
 #    define EVICT_NOT_IN_LIST          ((uint32_t) -1)
 typedef struct page_t {
-    void (*write_b)(uint32_t addr, uint8_t val, struct page_t *p);
-    void (*write_w)(uint32_t addr, uint16_t val, struct page_t *p);
-    void (*write_l)(uint32_t addr, uint32_t val, struct page_t *p);
+    void (*write_b)(uint32_t addr, uint8_t val, struct page_t *page);
+    void (*write_w)(uint32_t addr, uint16_t val, struct page_t *page);
+    void (*write_l)(uint32_t addr, uint32_t val, struct page_t *page);
 
     uint8_t *mem;
 
@@ -219,45 +218,50 @@ typedef struct page_t {
     /*Head of codeblock tree associated with this page*/
     uint16_t head;
 
-    uint64_t code_present_mask, dirty_mask;
+    uint64_t code_present_mask;
+    uint64_t dirty_mask;
 
-    uint32_t evict_prev, evict_next;
+    uint32_t evict_prev;
+    uint32_t evict_next;
 
     uint64_t *byte_dirty_mask;
     uint64_t *byte_code_present_mask;
 } page_t;
 
 extern uint32_t purgable_page_list_head;
-static inline int
-page_in_evict_list(page_t *p)
+__attribute__((always_inline)) static inline int
+page_in_evict_list(page_t *page)
 {
-    return (p->evict_prev != EVICT_NOT_IN_LIST);
+    return (page->evict_prev != EVICT_NOT_IN_LIST);
 }
-void page_remove_from_evict_list(page_t *p);
-void page_add_to_evict_list(page_t *p);
+void page_remove_from_evict_list(page_t *page);
+void page_add_to_evict_list(page_t *page);
 #else
 typedef struct _page_ {
-    void (*write_b)(uint32_t addr, uint8_t val, struct _page_ *p);
-    void (*write_w)(uint32_t addr, uint16_t val, struct _page_ *p);
-    void (*write_l)(uint32_t addr, uint32_t val, struct _page_ *p);
+    void (*write_b)(uint32_t addr, uint8_t val, struct _page_ *page);
+    void (*write_w)(uint32_t addr, uint16_t val, struct _page_ *page);
+    void (*write_l)(uint32_t addr, uint32_t val, struct _page_ *page);
 
     uint8_t *mem;
 
-    uint64_t code_present_mask[4],
-        dirty_mask[4];
+    uint64_t code_present_mask[4];
+    uint64_t dirty_mask[4];
 
-    struct codeblock_t *block[4], *block_2[4];
+    struct codeblock_t *block[4];
+    struct codeblock_t *block_2[4];
 
     /*Head of codeblock tree associated with this page*/
     struct codeblock_t *head;
 } page_t;
 #endif
 
-extern uint8_t *ram, *ram2;
+extern uint8_t *ram;
+extern uint8_t *ram2;
 extern uint32_t rammask;
 
 extern uint8_t *rom;
-extern uint32_t biosmask, biosaddr;
+extern uint32_t biosmask;
+extern uint32_t biosaddr;
 
 extern int        readlookup[256];
 extern uintptr_t *readlookup2;
@@ -270,27 +274,28 @@ extern int        writelnext;
 extern uint32_t   ram_mapped_addr[64];
 extern uint8_t    page_ff[4096];
 
-extern mem_mapping_t ram_low_mapping,
+extern mem_mapping_t ram_low_mapping;
 #if 1
-    ram_mid_mapping,
+extern mem_mapping_t ram_mid_mapping;
 #endif
-    ram_remapped_mapping,
-    ram_high_mapping,
-    ram_2gb_mapping,
-    bios_mapping,
-    bios_high_mapping;
+extern mem_mapping_t ram_remapped_mapping;
+extern mem_mapping_t ram_high_mapping;
+extern mem_mapping_t ram_2gb_mapping;
+extern mem_mapping_t bios_mapping;
+extern mem_mapping_t bios_high_mapping;
 
 extern uint32_t mem_logical_addr;
 
-extern page_t *pages,
-    **page_lookup;
+extern page_t  *pages;
+extern page_t **page_lookup;
 
-extern uint32_t get_phys_virt, get_phys_phys;
+extern uint32_t get_phys_virt;
+extern uint32_t get_phys_phys;
 
-extern int shadowbios,
-    shadowbios_write;
-extern int readlnum,
-    writelnum;
+extern int shadowbios;
+extern int shadowbios_write;
+extern int readlnum;
+extern int writelnum;
 
 extern int memspeed[11];
 
@@ -299,9 +304,9 @@ extern uint8_t high_page; /* if a high (> 4 gb) page was detected */
 
 extern uint32_t pages_sz; /* #pages in table */
 
-extern int mem_a20_state,
-    mem_a20_alt,
-    mem_a20_key;
+extern int mem_a20_state;
+extern int mem_a20_alt;
+extern int mem_a20_key;
 
 extern uint8_t  read_mem_b(uint32_t addr);
 extern uint16_t read_mem_w(uint32_t addr);
@@ -335,37 +340,37 @@ extern void     addwritelookup(uint32_t virt, uint32_t phys);
 extern void mem_mapping_set(mem_mapping_t *,
                             uint32_t base,
                             uint32_t size,
-                            uint8_t (*read_b)(uint32_t addr, void *p),
-                            uint16_t (*read_w)(uint32_t addr, void *p),
-                            uint32_t (*read_l)(uint32_t addr, void *p),
-                            void (*write_b)(uint32_t addr, uint8_t val, void *p),
-                            void (*write_w)(uint32_t addr, uint16_t val, void *p),
-                            void (*write_l)(uint32_t addr, uint32_t val, void *p),
+                            uint8_t (*read_b)(uint32_t addr, void *priv),
+                            uint16_t (*read_w)(uint32_t addr, void *priv),
+                            uint32_t (*read_l)(uint32_t addr, void *priv),
+                            void (*write_b)(uint32_t addr, uint8_t val, void *priv),
+                            void (*write_w)(uint32_t addr, uint16_t val, void *priv),
+                            void (*write_l)(uint32_t addr, uint32_t val, void *priv),
                             uint8_t *exec,
                             uint32_t flags,
-                            void    *p);
+                            void    *priv);
 extern void mem_mapping_add(mem_mapping_t *,
                             uint32_t base,
                             uint32_t size,
-                            uint8_t (*read_b)(uint32_t addr, void *p),
-                            uint16_t (*read_w)(uint32_t addr, void *p),
-                            uint32_t (*read_l)(uint32_t addr, void *p),
-                            void (*write_b)(uint32_t addr, uint8_t val, void *p),
-                            void (*write_w)(uint32_t addr, uint16_t val, void *p),
-                            void (*write_l)(uint32_t addr, uint32_t val, void *p),
+                            uint8_t (*read_b)(uint32_t addr, void *priv),
+                            uint16_t (*read_w)(uint32_t addr, void *priv),
+                            uint32_t (*read_l)(uint32_t addr, void *priv),
+                            void (*write_b)(uint32_t addr, uint8_t val, void *priv),
+                            void (*write_w)(uint32_t addr, uint16_t val, void *priv),
+                            void (*write_l)(uint32_t addr, uint32_t val, void *priv),
                             uint8_t *exec,
                             uint32_t flags,
-                            void    *p);
+                            void    *priv);
 
 extern void mem_mapping_set_handler(mem_mapping_t *,
-                                    uint8_t (*read_b)(uint32_t addr, void *p),
-                                    uint16_t (*read_w)(uint32_t addr, void *p),
-                                    uint32_t (*read_l)(uint32_t addr, void *p),
-                                    void (*write_b)(uint32_t addr, uint8_t val, void *p),
-                                    void (*write_w)(uint32_t addr, uint16_t val, void *p),
-                                    void (*write_l)(uint32_t addr, uint32_t val, void *p));
+                                    uint8_t (*read_b)(uint32_t addr, void *priv),
+                                    uint16_t (*read_w)(uint32_t addr, void *priv),
+                                    uint32_t (*read_l)(uint32_t addr, void *priv),
+                                    void (*write_b)(uint32_t addr, uint8_t val, void *priv),
+                                    void (*write_w)(uint32_t addr, uint16_t val, void *priv),
+                                    void (*write_l)(uint32_t addr, uint32_t val, void *priv));
 
-extern void mem_mapping_set_p(mem_mapping_t *, void *p);
+extern void mem_mapping_set_p(mem_mapping_t *, void *priv);
 
 extern void mem_mapping_set_addr(mem_mapping_t *,
                                  uint32_t base, uint32_t size);
@@ -406,16 +411,15 @@ extern uint64_t mmutranslate_noabrt(uint32_t addr, int rw);
 
 extern void mem_invalidate_range(uint32_t start_addr, uint32_t end_addr);
 
-extern void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *p);
-extern void mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *p);
-extern void mem_write_raml_page(uint32_t addr, uint32_t val, page_t *p);
+extern void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page);
+extern void mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page);
+extern void mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page);
 extern void mem_flush_write_page(uint32_t addr, uint32_t virt);
 
 extern void mem_reset_page_blocks(void);
 
 extern void flushmmucache(void);
 extern void flushmmucache_nopc(void);
-extern void mmu_invalidate(uint32_t addr);
 
 extern void mem_a20_init(void);
 extern void mem_a20_recalc(void);

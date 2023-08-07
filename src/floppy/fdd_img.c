@@ -40,9 +40,9 @@
 #include <86box/fdd_img.h>
 #include <86box/fdc.h>
 
-typedef struct {
-    FILE    *f;
-    uint8_t  track_data[2][50000];
+typedef struct img_t {
+    FILE    *fp;
+    uint8_t  track_data[2][688128];
     int      sectors, tracks, sides;
     uint8_t  sector_size;
     int      xdf_type; /* 0 = not XDF, 1-5 = one of the five XDF types */
@@ -71,10 +71,10 @@ static fdc_t    *img_fdc;
 
 static double    bit_rate_300;
 static char     *ext;
-static uint8_t   first_byte,
-                 second_byte,
-                 third_byte,
-                 fourth_byte;
+static uint8_t   first_byte;
+static uint8_t   second_byte;
+static uint8_t   third_byte;
+static uint8_t   fourth_byte;
 static uint8_t   fdf_suppress_final_byte = 0; /* This is hard-coded to 0 -
                                                * if you really need to read
                                                * those NT 3.1 Beta floppy
@@ -339,43 +339,41 @@ sector_size_code(int sector_size)
 {
     switch (sector_size) {
         case 128:
-            return (0);
+            return 0;
 
         case 256:
-            return (1);
+            return 1;
 
         default:
         case 512:
-            return (2);
+            return 2;
 
         case 1024:
-            return (3);
+            return 3;
 
         case 2048:
-            return (4);
+            return 4;
 
         case 4096:
-            return (5);
+            return 5;
 
         case 8192:
-            return (6);
+            return 6;
 
         case 16384:
-            return (7);
+            return 7;
     }
 }
 
 static int
 bps_is_valid(uint16_t bps)
 {
-    int i;
-
-    for (i = 0; i <= 8; i++) {
+    for (uint8_t i = 0; i <= 8; i++) {
         if (bps == (128 << i))
-            return (1);
+            return 1;
     }
 
-    return (0);
+    return 0;
 }
 
 static int
@@ -385,13 +383,13 @@ first_byte_is_valid(uint8_t first_byte)
         case 0x60:
         case 0xE9:
         case 0xEB:
-            return (1);
+            return 1;
 
         default:
             break;
     }
 
-    return (0);
+    return 0;
 }
 
 #define xdf_img_sector  xdf_img_layout[current_xdft][!is_t0][sector]
@@ -410,7 +408,7 @@ interleave(int sector, int skew, int track_spt)
     if (skewed_i & 1)
         adjusted_r += (adjust + add);
 
-    return (adjusted_r);
+    return adjusted_r;
 }
 
 static void
@@ -418,19 +416,19 @@ write_back(int drive)
 {
     img_t *dev   = img[drive];
     int    ssize = 128 << ((int) dev->sector_size);
-    int    side, size;
+    int    size;
 
-    if (dev->f == NULL)
+    if (dev->fp == NULL)
         return;
 
     if (dev->disk_at_once)
         return;
 
-    if (fseek(dev->f, dev->base + (dev->track * dev->sectors * ssize * dev->sides), SEEK_SET) == -1)
+    if (fseek(dev->fp, dev->base + (dev->track * dev->sectors * ssize * dev->sides), SEEK_SET) == -1)
         pclog("IMG write_back(): Error seeking to the beginning of the file\n");
-    for (side = 0; side < dev->sides; side++) {
+    for (int side = 0; side < dev->sides; side++) {
         size = dev->sectors * ssize;
-        if (fwrite(dev->track_data[side], 1, size, dev->f) != size)
+        if (fwrite(dev->track_data[side], 1, size, dev->fp) != size)
             fatal("IMG write_back(): Error writing data\n");
     }
 }
@@ -438,7 +436,7 @@ write_back(int drive)
 static uint16_t
 disk_flags(int drive)
 {
-    img_t *dev = img[drive];
+    const img_t *dev = img[drive];
 
     return (dev->disk_flags);
 }
@@ -446,13 +444,13 @@ disk_flags(int drive)
 static uint16_t
 side_flags(int drive)
 {
-    img_t *dev = img[drive];
+    const img_t *dev = img[drive];
 
     return (dev->track_flags);
 }
 
 static void
-set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
+set_sector(int drive, UNUSED(int side), UNUSED(uint8_t c), uint8_t h, uint8_t r, UNUSED(uint8_t n))
 {
     img_t *dev = img[drive];
 
@@ -461,15 +459,15 @@ set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 }
 
 static uint8_t
-poll_read_data(int drive, int side, uint16_t pos)
+poll_read_data(int drive, UNUSED(int side), uint16_t pos)
 {
-    img_t *dev = img[drive];
+    const img_t *dev = img[drive];
 
     return (dev->track_data[dev->current_sector_pos_side][dev->current_sector_pos + pos]);
 }
 
 static void
-poll_write_data(int drive, int side, uint16_t pos, uint8_t data)
+poll_write_data(int drive, UNUSED(int side), uint16_t pos, uint8_t data)
 {
     img_t *dev = img[drive];
 
@@ -479,13 +477,13 @@ poll_write_data(int drive, int side, uint16_t pos, uint8_t data)
 static int
 format_conditions(int drive)
 {
-    img_t *dev  = img[drive];
-    int    temp = (fdc_get_format_sectors(img_fdc) == dev->sectors);
+    const img_t *dev  = img[drive];
+    int          temp = (fdc_get_format_sectors(img_fdc) == dev->sectors);
 
     temp = temp && (fdc_get_format_n(img_fdc) == dev->sector_size);
     temp = temp && (dev->xdf_type == 0);
 
-    return (temp);
+    return temp;
 }
 
 static void
@@ -496,11 +494,20 @@ img_seek(int drive, int track)
     int      current_xdft = dev->xdf_type - 1;
     int      read_bytes   = 0;
     uint8_t  id[4]        = { 0, 0, 0, 0 };
-    int      is_t0, sector, current_pos, img_pos, sr, sside, total, array_sector, buf_side, buf_pos;
+    int      is_t0;
+    int      sector;
+    int      current_pos;
+    int      img_pos;
+    int      sr;
+    int      sside;
+    int      total;
+    int      array_sector;
+    int      buf_side;
+    int      buf_pos;
     int      ssize   = 128 << ((int) dev->sector_size);
     uint32_t cur_pos = 0;
 
-    if (dev->f == NULL)
+    if (dev->fp == NULL)
         return;
 
     if (!dev->track_width && fdd_doublestep_40(drive))
@@ -512,7 +519,7 @@ img_seek(int drive, int track)
     is_t0 = (track == 0) ? 1 : 0;
 
     if (!dev->disk_at_once) {
-        if (fseek(dev->f, dev->base + (track * dev->sectors * ssize * dev->sides), SEEK_SET) == -1)
+        if (fseek(dev->fp, dev->base + (track * dev->sectors * ssize * dev->sides), SEEK_SET) == -1)
             fatal("img_seek(): Error seeking\n");
     }
 
@@ -521,7 +528,7 @@ img_seek(int drive, int track)
             cur_pos = (track * dev->sectors * ssize * dev->sides) + (side * dev->sectors * ssize);
             memcpy(dev->track_data[side], dev->disk_data + cur_pos, (size_t) dev->sectors * ssize);
         } else {
-            read_bytes = fread(dev->track_data[side], 1, (size_t) dev->sectors * ssize, dev->f);
+            read_bytes = fread(dev->track_data[side], 1, (size_t) dev->sectors * ssize, dev->fp);
             if (read_bytes < (dev->sectors * ssize))
                 memset(dev->track_data[side] + read_bytes, 0xf6, (dev->sectors * ssize) - read_bytes);
         }
@@ -647,7 +654,10 @@ img_load(int drive, char *fn)
     uint8_t  bpb_mid; /* Media type ID. */
     uint8_t  bpb_sectors;
     uint8_t  bpb_sides;
-    uint8_t  cqm, ddi, fdf, fdi;
+    uint8_t  cqm;
+    uint8_t  ddi;
+    uint8_t  fdf;
+    uint8_t  fdi;
     uint16_t comment_len = 0;
     int16_t  block_len   = 0;
     uint32_t cur_pos     = 0;
@@ -658,10 +668,9 @@ img_load(int drive, char *fn)
     uint16_t track_bytes = 0;
     uint8_t *literal;
     img_t   *dev;
-    int      temp_rate;
-    int      guess = 0;
+    int      temp_rate = 0;
+    int      guess     = 0;
     int      size;
-    int      i;
 
     ext = path_get_extension(fn);
 
@@ -673,10 +682,10 @@ img_load(int drive, char *fn)
     dev = (img_t *) malloc(sizeof(img_t));
     memset(dev, 0x00, sizeof(img_t));
 
-    dev->f = plat_fopen(fn, "rb+");
-    if (dev->f == NULL) {
-        dev->f = plat_fopen(fn, "rb");
-        if (dev->f == NULL) {
+    dev->fp = plat_fopen(fn, "rb+");
+    if (dev->fp == NULL) {
+        dev->fp = plat_fopen(fn, "rb");
+        if (dev->fp == NULL) {
             free(dev);
             memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
             return;
@@ -701,23 +710,23 @@ img_load(int drive, char *fn)
     if (!strcasecmp(ext, "FDI")) {
         /* This is a Japanese FDI image, so let's read the header */
         img_log("img_load(): File is a Japanese FDI image...\n");
-        fseek(dev->f, 0x10, SEEK_SET);
-        (void) !fread(&bpb_bps, 1, 2, dev->f);
-        fseek(dev->f, 0x0C, SEEK_SET);
-        (void) !fread(&size, 1, 4, dev->f);
+        fseek(dev->fp, 0x10, SEEK_SET);
+        (void) !fread(&bpb_bps, 1, 2, dev->fp);
+        fseek(dev->fp, 0x0C, SEEK_SET);
+        (void) !fread(&size, 1, 4, dev->fp);
         bpb_total = size / bpb_bps;
-        fseek(dev->f, 0x08, SEEK_SET);
-        (void) !fread(&(dev->base), 1, 4, dev->f);
-        fseek(dev->f, dev->base + 0x15, SEEK_SET);
-        bpb_mid = fgetc(dev->f);
+        fseek(dev->fp, 0x08, SEEK_SET);
+        (void) !fread(&(dev->base), 1, 4, dev->fp);
+        fseek(dev->fp, dev->base + 0x15, SEEK_SET);
+        bpb_mid = fgetc(dev->fp);
         if (bpb_mid < 0xF0)
             bpb_mid = 0xF0;
-        fseek(dev->f, 0x14, SEEK_SET);
-        bpb_sectors = fgetc(dev->f);
-        fseek(dev->f, 0x18, SEEK_SET);
-        bpb_sides = fgetc(dev->f);
-        fseek(dev->f, dev->base, SEEK_SET);
-        first_byte = fgetc(dev->f);
+        fseek(dev->fp, 0x14, SEEK_SET);
+        bpb_sectors = fgetc(dev->fp);
+        fseek(dev->fp, 0x18, SEEK_SET);
+        bpb_sides = fgetc(dev->fp);
+        fseek(dev->fp, dev->base, SEEK_SET);
+        first_byte = fgetc(dev->fp);
 
         fdi               = 1;
         cqm               = 0;
@@ -725,53 +734,53 @@ img_load(int drive, char *fn)
         fdf               = 0;
     } else {
         /* Read the first four bytes. */
-        fseek(dev->f, 0x00, SEEK_SET);
-        first_byte = fgetc(dev->f);
-        fseek(dev->f, 0x01, SEEK_SET);
-        second_byte = fgetc(dev->f);
-        fseek(dev->f, 0x02, SEEK_SET);
-        third_byte = fgetc(dev->f);
-        fseek(dev->f, 0x03, SEEK_SET);
-        fourth_byte = fgetc(dev->f);
+        fseek(dev->fp, 0x00, SEEK_SET);
+        first_byte = fgetc(dev->fp);
+        fseek(dev->fp, 0x01, SEEK_SET);
+        second_byte = fgetc(dev->fp);
+        fseek(dev->fp, 0x02, SEEK_SET);
+        third_byte = fgetc(dev->fp);
+        fseek(dev->fp, 0x03, SEEK_SET);
+        fourth_byte = fgetc(dev->fp);
 
         if ((first_byte == 0x1A) && (second_byte == 'F') && (third_byte == 'D') && (fourth_byte == 'F')) {
             /* This is a FDF image. */
             img_log("img_load(): File is a FDF image...\n");
             fwriteprot[drive] = writeprot[drive] = 1;
-            fclose(dev->f);
-            dev->f = plat_fopen(fn, "rb");
+            fclose(dev->fp);
+            dev->fp = plat_fopen(fn, "rb");
 
             fdf               = 1;
             cqm               = 0;
             dev->disk_at_once = 1;
 
-            fseek(dev->f, 0x50, SEEK_SET);
-            (void) !fread(&dev->tracks, 1, 4, dev->f);
+            fseek(dev->fp, 0x50, SEEK_SET);
+            (void) !fread(&dev->tracks, 1, 4, dev->fp);
 
             /* Decode the entire file - pass 1, no write to buffer, determine length. */
-            fseek(dev->f, 0x80, SEEK_SET);
+            fseek(dev->fp, 0x80, SEEK_SET);
             size        = 0;
             track_bytes = 0;
             bpos        = dev->disk_data;
-            while (!feof(dev->f)) {
+            while (!feof(dev->fp)) {
                 if (!track_bytes) {
                     /* Skip first 3 bytes - their meaning is unknown to us but could be a checksum. */
-                    first_byte = fgetc(dev->f);
-                    (void) !fread(&track_bytes, 1, 2, dev->f);
+                    first_byte = fgetc(dev->fp);
+                    (void) !fread(&track_bytes, 1, 2, dev->fp);
                     img_log("Block header: %02X %04X ", first_byte, track_bytes);
                     /* Read the length of encoded data block. */
-                    (void) !fread(&track_bytes, 1, 2, dev->f);
+                    (void) !fread(&track_bytes, 1, 2, dev->fp);
                     img_log("%04X\n", track_bytes);
                 }
 
-                if (feof(dev->f))
+                if (feof(dev->fp))
                     break;
 
                 if (first_byte == 0xFF)
                     break;
 
                 if (first_byte) {
-                    run = fgetc(dev->f);
+                    run = fgetc(dev->fp);
 
                     /* I *HAVE* to read something because fseek tries to be smart and never hits EOF, causing an infinite loop. */
                     track_bytes--;
@@ -779,12 +788,12 @@ img_load(int drive, char *fn)
                     if (run & 0x80) {
                         /* Repeat. */
                         track_bytes--;
-                        rep_byte = fgetc(dev->f);
+                        rep_byte = fgetc(dev->fp);
                     } else {
                         /* Literal. */
                         track_bytes -= (run & 0x7f);
                         literal = (uint8_t *) malloc(run & 0x7f);
-                        (void) !fread(literal, 1, (run & 0x7f), dev->f);
+                        (void) !fread(literal, 1, (run & 0x7f), dev->fp);
                         free(literal);
                     }
                     size += (run & 0x7f);
@@ -794,12 +803,12 @@ img_load(int drive, char *fn)
                     /* Literal block. */
                     size += (track_bytes - fdf_suppress_final_byte);
                     literal = (uint8_t *) malloc(track_bytes);
-                    (void) !fread(literal, 1, track_bytes, dev->f);
+                    (void) !fread(literal, 1, track_bytes, dev->fp);
                     free(literal);
                     track_bytes = 0;
                 }
 
-                if (feof(dev->f))
+                if (feof(dev->fp))
                     break;
             }
 
@@ -807,28 +816,28 @@ img_load(int drive, char *fn)
             dev->disk_data = (uint8_t *) malloc(size);
 
             /* Decode the entire file - pass 2, write to buffer. */
-            fseek(dev->f, 0x80, SEEK_SET);
+            fseek(dev->fp, 0x80, SEEK_SET);
             track_bytes = 0;
             bpos        = dev->disk_data;
-            while (!feof(dev->f)) {
+            while (!feof(dev->fp)) {
                 if (!track_bytes) {
                     /* Skip first 3 bytes - their meaning is unknown to us but could be a checksum. */
-                    first_byte = fgetc(dev->f);
-                    (void) !fread(&track_bytes, 1, 2, dev->f);
+                    first_byte = fgetc(dev->fp);
+                    (void) !fread(&track_bytes, 1, 2, dev->fp);
                     img_log("Block header: %02X %04X ", first_byte, track_bytes);
                     /* Read the length of encoded data block. */
-                    (void) !fread(&track_bytes, 1, 2, dev->f);
+                    (void) !fread(&track_bytes, 1, 2, dev->fp);
                     img_log("%04X\n", track_bytes);
                 }
 
-                if (feof(dev->f))
+                if (feof(dev->fp))
                     break;
 
                 if (first_byte == 0xFF)
                     break;
 
                 if (first_byte) {
-                    run      = fgetc(dev->f);
+                    run      = fgetc(dev->fp);
                     real_run = (run & 0x7f);
 
                     /* I *HAVE* to read something because fseek tries to be smart and never hits EOF, causing an infinite loop. */
@@ -839,14 +848,14 @@ img_load(int drive, char *fn)
                         track_bytes--;
                         if (!track_bytes)
                             real_run -= fdf_suppress_final_byte;
-                        rep_byte = fgetc(dev->f);
+                        rep_byte = fgetc(dev->fp);
                         if (real_run)
                             memset(bpos, rep_byte, real_run);
                     } else {
                         /* Literal. */
                         track_bytes -= real_run;
                         literal = (uint8_t *) malloc(real_run);
-                        (void) !fread(literal, 1, real_run, dev->f);
+                        (void) !fread(literal, 1, real_run, dev->fp);
                         if (!track_bytes)
                             real_run -= fdf_suppress_final_byte;
                         if (run & 0x7f)
@@ -857,14 +866,14 @@ img_load(int drive, char *fn)
                 } else {
                     /* Literal block. */
                     literal = (uint8_t *) malloc(track_bytes);
-                    (void) !fread(literal, 1, track_bytes, dev->f);
+                    (void) !fread(literal, 1, track_bytes, dev->fp);
                     memcpy(bpos, literal, track_bytes - fdf_suppress_final_byte);
                     free(literal);
                     bpos += (track_bytes - fdf_suppress_final_byte);
                     track_bytes = 0;
                 }
 
-                if (feof(dev->f))
+                if (feof(dev->fp))
                     break;
             }
 
@@ -883,48 +892,48 @@ img_load(int drive, char *fn)
         if (((first_byte == 'C') && (second_byte == 'Q')) || ((first_byte == 'c') && (second_byte == 'q'))) {
             img_log("img_load(): File is a CopyQM image...\n");
             fwriteprot[drive] = writeprot[drive] = 1;
-            fclose(dev->f);
-            dev->f = plat_fopen(fn, "rb");
+            fclose(dev->fp);
+            dev->fp = plat_fopen(fn, "rb");
 
-            fseek(dev->f, 0x03, SEEK_SET);
-            (void) !fread(&bpb_bps, 1, 2, dev->f);
+            fseek(dev->fp, 0x03, SEEK_SET);
+            (void) !fread(&bpb_bps, 1, 2, dev->fp);
 #if 0
-            fseek(dev->f, 0x0B, SEEK_SET);
-            (void) !fread(&bpb_total, 1, 2, dev->f);
+            fseek(dev->fp, 0x0B, SEEK_SET);
+            (void) !fread(&bpb_total, 1, 2, dev->fp);
 #endif
-            fseek(dev->f, 0x10, SEEK_SET);
-            bpb_sectors = fgetc(dev->f);
-            fseek(dev->f, 0x12, SEEK_SET);
-            bpb_sides = fgetc(dev->f);
-            fseek(dev->f, 0x5B, SEEK_SET);
-            dev->tracks = fgetc(dev->f);
+            fseek(dev->fp, 0x10, SEEK_SET);
+            bpb_sectors = fgetc(dev->fp);
+            fseek(dev->fp, 0x12, SEEK_SET);
+            bpb_sides = fgetc(dev->fp);
+            fseek(dev->fp, 0x5B, SEEK_SET);
+            dev->tracks = fgetc(dev->fp);
 
             bpb_total = ((uint16_t) bpb_sectors) * ((uint16_t) bpb_sides) * dev->tracks;
 
-            fseek(dev->f, 0x74, SEEK_SET);
-            dev->interleave = fgetc(dev->f);
-            fseek(dev->f, 0x76, SEEK_SET);
-            dev->skew = fgetc(dev->f);
+            fseek(dev->fp, 0x74, SEEK_SET);
+            dev->interleave = fgetc(dev->fp);
+            fseek(dev->fp, 0x76, SEEK_SET);
+            dev->skew = fgetc(dev->fp);
 
             dev->disk_data = (uint8_t *) malloc(((uint32_t) bpb_total) * ((uint32_t) bpb_bps));
             memset(dev->disk_data, 0xf6, ((uint32_t) bpb_total) * ((uint32_t) bpb_bps));
 
-            fseek(dev->f, 0x6F, SEEK_SET);
-            (void) !fread(&comment_len, 1, 2, dev->f);
+            fseek(dev->fp, 0x6F, SEEK_SET);
+            (void) !fread(&comment_len, 1, 2, dev->fp);
 
-            fseek(dev->f, -1, SEEK_END);
-            size = ftell(dev->f) + 1;
+            fseek(dev->fp, -1, SEEK_END);
+            size = ftell(dev->fp) + 1;
 
-            fseek(dev->f, 133 + comment_len, SEEK_SET);
+            fseek(dev->fp, 133 + comment_len, SEEK_SET);
 
             cur_pos = 0;
 
-            while (!feof(dev->f)) {
-                (void) !fread(&block_len, 1, 2, dev->f);
+            while (!feof(dev->fp)) {
+                (void) !fread(&block_len, 1, 2, dev->fp);
 
-                if (!feof(dev->f)) {
+                if (!feof(dev->fp)) {
                     if (block_len < 0) {
-                        rep_byte  = fgetc(dev->f);
+                        rep_byte  = fgetc(dev->fp);
                         block_len = -block_len;
                         if ((cur_pos + block_len) > ((uint32_t) bpb_total) * ((uint32_t) bpb_bps)) {
                             block_len = ((uint32_t) bpb_total) * ((uint32_t) bpb_bps) - cur_pos;
@@ -937,10 +946,10 @@ img_load(int drive, char *fn)
                     } else if (block_len > 0) {
                         if ((cur_pos + block_len) > ((uint32_t) bpb_total) * ((uint32_t) bpb_bps)) {
                             block_len = ((uint32_t) bpb_total) * ((uint32_t) bpb_bps) - cur_pos;
-                            (void) !fread(dev->disk_data + cur_pos, 1, block_len, dev->f);
+                            (void) !fread(dev->disk_data + cur_pos, 1, block_len, dev->fp);
                             break;
                         } else {
-                            (void) !fread(dev->disk_data + cur_pos, 1, block_len, dev->f);
+                            (void) !fread(dev->disk_data + cur_pos, 1, block_len, dev->fp);
                             cur_pos += block_len;
                         }
                     }
@@ -960,22 +969,22 @@ img_load(int drive, char *fn)
                 fwriteprot[drive] = writeprot[drive] = 1;
             } else
                 img_log("img_load(): File is a raw image...\n");
-            fseek(dev->f, dev->base + 0x0B, SEEK_SET);
-            (void) !fread(&bpb_bps, 1, 2, dev->f);
-            fseek(dev->f, dev->base + 0x13, SEEK_SET);
-            (void) !fread(&bpb_total, 1, 2, dev->f);
-            fseek(dev->f, dev->base + 0x15, SEEK_SET);
-            bpb_mid = fgetc(dev->f);
-            fseek(dev->f, dev->base + 0x18, SEEK_SET);
-            bpb_sectors = fgetc(dev->f);
-            fseek(dev->f, dev->base + 0x1A, SEEK_SET);
-            bpb_sides = fgetc(dev->f);
+            fseek(dev->fp, dev->base + 0x0B, SEEK_SET);
+            (void) !fread(&bpb_bps, 1, 2, dev->fp);
+            fseek(dev->fp, dev->base + 0x13, SEEK_SET);
+            (void) !fread(&bpb_total, 1, 2, dev->fp);
+            fseek(dev->fp, dev->base + 0x15, SEEK_SET);
+            bpb_mid = fgetc(dev->fp);
+            fseek(dev->fp, dev->base + 0x18, SEEK_SET);
+            bpb_sectors = fgetc(dev->fp);
+            fseek(dev->fp, dev->base + 0x1A, SEEK_SET);
+            bpb_sides = fgetc(dev->fp);
 
             cqm = 0;
         }
 
-        fseek(dev->f, -1, SEEK_END);
-        size = ftell(dev->f) + 1;
+        fseek(dev->fp, -1, SEEK_END);
+        size = ftell(dev->fp) + 1;
         if (ddi)
             size -= 0x2400;
 
@@ -1019,9 +1028,6 @@ jump_if_fdf:
             dev->sectors = 9;
             dev->tracks  = 70;
             dev->sides   = 1;
-        } else if (size <= (320 * 1024)) {
-            dev->sectors = 8;
-            dev->tracks  = 40;
         } else if (size <= (320 * 1024)) {
             dev->sectors = 8;
             dev->tracks  = 40;
@@ -1119,7 +1125,7 @@ jump_if_fdf:
             dev->tracks  = 86;
         } else {
             img_log("Image is bigger than can fit on an ED floppy, ejecting...\n");
-            fclose(dev->f);
+            fclose(dev->fp);
             free(dev);
             memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
             return;
@@ -1132,9 +1138,9 @@ jump_if_fdf:
         /* The BPB readings appear to be valid, so let's set the values. */
         if (fdi) {
             /* The image is a Japanese FDI, therefore we read the number of tracks from the header. */
-            if (fseek(dev->f, 0x1C, SEEK_SET) == -1)
+            if (fseek(dev->fp, 0x1C, SEEK_SET) == -1)
                 fatal("Japanese FDI: Failed when seeking to 0x1C\n");
-            (void) !fread(&(dev->tracks), 1, 4, dev->f);
+            (void) !fread(&(dev->tracks), 1, 4, dev->fp);
         } else {
             if (!cqm && !fdf) {
                 /* Number of tracks = number of total sectors divided by sides times sectors per track. */
@@ -1152,7 +1158,7 @@ jump_if_fdf:
         temp_rate = 0xFF;
     }
 
-    for (i = 0; i < 6; i++) {
+    for (uint8_t i = 0; i < 6; i++) {
         if ((dev->sectors <= maximum_sectors[dev->sector_size][i]) || (dev->sectors == xdf_sectors[dev->sector_size][i])) {
             bit_rate_300    = bit_rates_300[i];
             temp_rate       = rates[i];
@@ -1176,7 +1182,7 @@ jump_if_fdf:
 
     if (temp_rate == 0xFF) {
         img_log("Image is bigger than can fit on an ED floppy, ejecting...\n");
-        fclose(dev->f);
+        fclose(dev->fp);
         free(dev);
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         return;
@@ -1193,7 +1199,7 @@ jump_if_fdf:
     }
     if (!dev->gap3_size) {
         img_log("ERROR: Floppy image of unknown format was inserted into drive %c:!\n", drive + 0x41);
-        fclose(dev->f);
+        fclose(dev->fp);
         free(dev);
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         return;
@@ -1253,9 +1259,9 @@ img_close(int drive)
 
     d86f_unregister(drive);
 
-    if (dev->f != NULL) {
-        fclose(dev->f);
-        dev->f = NULL;
+    if (dev->fp != NULL) {
+        fclose(dev->fp);
+        dev->fp = NULL;
     }
 
     if (dev->disk_data != NULL)

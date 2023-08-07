@@ -29,6 +29,7 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
+#include <86box/plat_unused.h>
 
 #define BIOS_037C_PATH        "roms/video/oti/bios.bin"
 #define BIOS_067_AMA932J_PATH "roms/machines/ama932j/OTI067.BIN"
@@ -64,12 +65,13 @@ typedef struct {
 static video_timings_t timing_oti = { .type = VIDEO_ISA, .write_b = 6, .write_w = 8, .write_l = 16, .read_b = 6, .read_w = 8, .read_l = 16 };
 
 static void
-oti_out(uint16_t addr, uint8_t val, void *p)
+oti_out(uint16_t addr, uint8_t val, void *priv)
 {
-    oti_t  *oti  = (oti_t *) p;
+    oti_t  *oti  = (oti_t *) priv;
     svga_t *svga = &oti->svga;
     uint8_t old;
-    uint8_t idx, enable;
+    uint8_t idx;
+    uint8_t enable;
 
     if (!oti->chip_id && !(oti->enable_register & 1) && (addr != 0x3C3))
         return;
@@ -84,7 +86,6 @@ oti_out(uint16_t addr, uint8_t val, void *p)
                 return;
             } else
                 break;
-            break;
 
         case 0x3c6:
         case 0x3c7:
@@ -198,11 +199,12 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 }
 
 static uint8_t
-oti_in(uint16_t addr, void *p)
+oti_in(uint16_t addr, void *priv)
 {
-    oti_t  *oti  = (oti_t *) p;
+    oti_t  *oti  = (oti_t *) priv;
     svga_t *svga = &oti->svga;
-    uint8_t idx, temp;
+    uint8_t idx;
+    uint8_t temp;
 
     if (!oti->chip_id && !(oti->enable_register & 1) && (addr != 0x3C3))
         return 0xff;
@@ -313,13 +315,13 @@ oti_in(uint16_t addr, void *p)
             break;
     }
 
-    return (temp);
+    return temp;
 }
 
 static void
-oti_pos_out(uint16_t addr, uint8_t val, void *p)
+oti_pos_out(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
-    oti_t *oti = (oti_t *) p;
+    oti_t *oti = (oti_t *) priv;
 
     if ((val ^ oti->pos) & 8) {
         if (val & 8)
@@ -334,9 +336,9 @@ oti_pos_out(uint16_t addr, uint8_t val, void *p)
 }
 
 static uint8_t
-oti_pos_in(uint16_t addr, void *p)
+oti_pos_in(UNUSED(uint16_t addr), void *priv)
 {
-    oti_t *oti = (oti_t *) p;
+    oti_t *oti = (oti_t *) priv;
 
     return (oti->pos);
 }
@@ -371,10 +373,10 @@ oti_getclock(int clock)
 static void
 oti_recalctimings(svga_t *svga)
 {
-    oti_t *oti     = (oti_t *) svga->p;
+    oti_t *oti     = (oti_t *) svga->priv;
     int    clk_sel = ((svga->miscout >> 2) & 3) | ((oti->regs[0x0d] & 0x20) >> 3);
 
-    svga->clock = (cpuclock * (double) (1ull << 32)) / oti_getclock(clk_sel);
+    svga->clock = (cpuclock * (double) (1ULL << 32)) / oti_getclock(clk_sel);
 
     if (oti->chip_id > 0) {
         if (oti->regs[0x14] & 0x08)
@@ -473,13 +475,13 @@ oti_init(const device_t *info)
     oti->svga.miscout       = 1;
     oti->svga.packed_chain4 = 1;
 
-    return (oti);
+    return oti;
 }
 
 static void
-oti_close(void *p)
+oti_close(void *priv)
 {
-    oti_t *oti = (oti_t *) p;
+    oti_t *oti = (oti_t *) priv;
 
     svga_close(&oti->svga);
 
@@ -487,17 +489,17 @@ oti_close(void *p)
 }
 
 static void
-oti_speed_changed(void *p)
+oti_speed_changed(void *priv)
 {
-    oti_t *oti = (oti_t *) p;
+    oti_t *oti = (oti_t *) priv;
 
     svga_recalctimings(&oti->svga);
 }
 
 static void
-oti_force_redraw(void *p)
+oti_force_redraw(void *priv)
 {
-    oti_t *oti = (oti_t *) p;
+    oti_t *oti = (oti_t *) priv;
 
     oti->svga.fullchange = changeframecount;
 }

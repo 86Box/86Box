@@ -209,6 +209,9 @@ endif
 ifndef MINITRACE
  MINITRACE := n
 endif
+ifndef AVX
+ AVX := n
+endif
 ifeq ($(DYNAREC), y)
  ifeq ($(ARM), y)
   ifeq ($(NEW_DYNAREC), n)
@@ -238,14 +241,14 @@ PROG := 86Box
 #########################################################################
 #              Nothing should need changing from here on..              #
 #########################################################################
-VPATH := $(EXPATH) . $(CODEGEN) minitrace cpu \
-         cdrom chipset device disk disk/minivhd floppy \
+VPATH := $(EXPATH) . $(CODEGEN) minitrace cpu cpu/softfloat \
+         cpu/808x cdrom chipset device disk disk/minivhd floppy \
          game machine mem printer \
          sio sound \
          sound/munt sound/munt/c_interface sound/munt/sha1 \
          sound/munt/srchelper sound/munt/srchelper/srctools/src \
          sound/resid-fp sound/ymfm \
-         scsi video network network/slirp win
+         scsi video network win
 
 WINDRES := windres
 STRIP   := strip
@@ -266,8 +269,8 @@ else
 endif
 
 ifeq ($(CLANG), y)
- CPP := ${TOOL_PREFIX}clang++
- CC  := ${TOOL_PREFIX}clang
+ CPP := clang++
+ CC  := clang
 else
  CPP := ${TOOL_PREFIX}g++
  CC  := ${TOOL_PREFIX}gcc
@@ -301,20 +304,45 @@ ifeq ($(DEBUG), y)
  ifndef COPTIM
   COPTIM := -Og
  endif
+ ifndef CXXOPTIM
+  ifeq ($(CLANG), y)
+   CXXOPTIM := -Os
+  else
+   CXXOPTIM := -Og
+  endif
+ endif
 else
  DFLAGS += -g0
  ifeq ($(OPTIM), y)
   AOPTIM := -mtune=native
   ifndef COPTIM
-   COPTIM := -O3 -ffp-contract=fast -flto
+   CXXOPTIM := -O3 -ffp-contract=fast -flto
+  endif
+  ifndef CXXOPTIM
+   ifeq ($(CLANG), y)
+    CXXOPTIM := -Os -ffp-contract=fast -flto
+   else
+    CXXOPTIM := -O3 -ffp-contract=fast -flto
+   endif
   endif
  else
   ifndef COPTIM
    COPTIM := -O3
   endif
+  ifndef CXXOPTIM
+   ifeq ($(CLANG), y)
+    CXXOPTIM := -Os
+   else
+    CXXOPTIM := -O3
+   endif
+  endif
  endif
 endif
-AFLAGS := -msse2 -mfpmath=sse
+ifeq ($(AVX), y)
+ AFLAGS := -msse2 -msse3 -mssse3 -msse4 -msse4a -mavx -mavx2 -mfpmath=sse
+else
+ AFLAGS := -msse2 -mfpmath=sse
+endif
 ifeq ($(ARM), y)
  DFLAGS := -march=armv7-a
  AOPTIM :=
@@ -524,7 +552,9 @@ CFLAGS := $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
 # Add freetyp2 references through pkgconfig
 CFLAGS := $(CFLAGS)  `pkg-config --cflags freetype2`
 
-CXXFLAGS := $(CFLAGS)
+CXXFLAGS := $(OPTS) $(DFLAGS) $(CXXOPTIM) $(AOPTIM) \
+            $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
+            -fno-strict-aliasing
 
 CFLAGS += -Werror=implicit-int -Werror=implicit-function-declaration \
           -Werror=int-conversion -Werror=strict-prototypes -Werror=old-style-definition
@@ -538,13 +568,17 @@ MAINOBJ := 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma.
            usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o ini.o \
            $(VNCOBJ)
 
-MEMOBJ := catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o
+MEMOBJ := catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o row.o smram.o spd.o sst_flash.o
+
+CPU808XOBJ := queue.o
 
 CPUOBJ := $(DYNARECOBJ) \
           $(CGTOBJ) \
           cpu.o cpu_table.o fpu.o x86.o \
           8080.o 808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o \
-          x86seg.o x87.o x87_timings.o
+          x86_ops_mmx.o x86seg.o x87.o x87_timings.o \
+	  f2xm1.o fpatan.o fprem.o fsincos.o fyl2x.o softfloat_poly.o softfloat.o softfloat16.o \
+	  softfloat-muladd.o softfloat-round-pack.o softfloat-specialize.o softfloatx80.o
 
 CHIPSETOBJ := 82c100.o acc2168.o \
               contaq_82c59x.o \
@@ -581,11 +615,8 @@ MCHOBJ := machine.o machine_table.o \
           m_at_socket8.o m_at_slot1.o m_at_slot2.o m_at_socket370.o \
           m_at_misc.o
 
-ifeq ($(NEW_KBC), y)
- KBCOBJ := kbc_at.o kbd_at.o
-else
- KBCOBJ := keyboard_at.o
-endif
+KBCOBJ := kbc_at.o kbc_at_dev.o \
+          keyboard_at.o
 
 DEVOBJ := bugger.o cartridge.o cassette.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c686.o \
           ibm_5161.o isamem.o isartc.o lpt.o pci_bridge.o postcard.o serial.o \
@@ -631,9 +662,8 @@ HDDOBJ := hdd.o \
           hdc_ide_cmd640.o hdc_ide_cmd646.o \
           hdc_ide_sff8038i.o
 
-MINIVHDOBJ  := cwalk.o libxml2_encoding.o minivhd_convert.o \
-               minivhd_create.o minivhd_io.o minivhd_manage.o \
-               minivhd_struct_rw.o minivhd_util.o
+MINIVHDOBJ  := cwalk.o xml2_encoding.o convert.o \
+               create.o minivhd_io.o manage.o struct_rw.o minivhd_util.o
 
 CDROMOBJ := cdrom.o \
             cdrom_image_backend.o cdrom_image_viso.o cdrom_image.o cdrom_mitsumi.o
@@ -649,22 +679,14 @@ SCSIOBJ := scsi.o scsi_device.o \
            scsi_ncr5380.o scsi_ncr53c8xx.o \
            scsi_pcscsi.o scsi_spock.o
 
-SLIRPOBJ := net_slirp.o tinyglib.o \
-          arp_table.o bootp.o cksum.o dhcpv6.o dnssearch.o if.o \
-          ip_icmp.o ip_input.o ip_output.o \
-          ip6_icmp.o ip6_input.o ip6_output.o \
-          mbuf.o misc.o sbuf.o slirp.o socket.o \
-          tcp_input.o tcp_output.o tcp_subr.o tcp_timer.o \
-          udp.o udp6.o \
-          util.o version.o \
-
 NETOBJ := network.o \
           net_pcap.o \
-          ${SLIRPOBJ} \
+          net_slirp.o \
           net_dp8390.o net_3c501.o \
           net_3c503.o net_ne2000.o \
           net_pcnet.o net_wd8003.o \
-          net_plip.o net_event.o
+          net_plip.o net_event.o \
+          net_null.o
 
 PRINTOBJ := png.o prt_cpmap.o \
             prt_escp.o prt_text.o prt_ps.o
@@ -714,6 +736,7 @@ VIDOBJ := agpgart.o video.o \
           vid_vga.o \
           vid_ati_eeprom.o \
           vid_ati18800.o vid_ati28800.o \
+	  vid_ati_mach8.o \
           vid_ati_mach64.o vid_ati68860_ramdac.o \
           vid_bt48x_ramdac.o \
           vid_av9194.o vid_icd2061.o vid_ics2494.o vid_ics2595.o \
@@ -775,7 +798,7 @@ ifeq ($(RTMIDI), y)
  SNDOBJ += midi_rtmidi.o
 endif
 
-OBJ := $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
+OBJ := $(MAINOBJ) $(CPU808XOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
        $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) $(MINIVHDOBJ) \
        $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) $(VOODOOOBJ) \
        $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) $(DEVBROBJ) $(MINITRACEOBJ) $(THREADOBJ)
@@ -789,24 +812,43 @@ else
  MWIN := -mwindows
 endif
 
+LIBS := -lfreetype -lfluidsynth -lslirp -lbz2 -lharfbuzz -lgraphite2 -lbrotlidec \
+        -lbrotlicommon -lusp10 -lrpcrt4 -lgomp -lsndfile -lflac -lmp3lame -lmpg123 \
+        -lopus -lvorbis -lvorbisenc -logg -ldsound -lshlwapi -lksuser -lreadline \
+        -ltermcap -lportaudio -lgmodule-2.0 -lglib-2.0 -lintl -liconv
+
 ifeq ($(OPENAL), y)
- LIBS := $(MWIN) -lopenal -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+ LIBS += $(MWIN) -lopenal -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 \
+         -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion \
+         -luuid -lws2_32
 else
  ifeq ($(FAUDIO), y)
-  LIBS := $(MWIN) -lfaudio -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+  LIBS += $(MWIN) -lfaudio -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 \
+          -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion \
+          -luuid -lws2_32
  else
-  LIBS := $(MWIN) -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid -lws2_32
+  LIBS += $(MWIN) -lcomctl32 -lSDL2 -limagehlp -ldinput8 -ldxguid -ldxerr8 -luser32 \
+          -lgdi32 -lwinmm -limm32 -lole32 -loleaut32 -lshell32 -lversion -luuid \
+          -lws2_32
  endif
 endif
 
 ifeq ($(RTMIDI), y)
- LIBS +=  -lrtmidi -lwinmm
+ ifeq ($(CLANG), y)
+  LIBS +=  -lrtmidi.dll -lwinmm
+ else
+  LIBS +=  -lrtmidi -lwinmm
+ endif
 endif
 
 ifeq ($(VNC), y)
  LIBS += $(VNCLIB) -lws2_32
 endif
-LIBS += -lpng -lz -lwsock32 -liphlpapi -lpsapi -lhid -lsetupapi -luxtheme -static -lstdc++
+ifeq ($(CLANG), y)
+ LIBS += -lpng -lz -lwsock32 -liphlpapi -lpsapi -lhid -lsetupapi -luxtheme -static -lstdc++.dll
+else
+ LIBS += -lpng -lz -lwsock32 -liphlpapi -lpsapi -lhid -lsetupapi -luxtheme -static -lstdc++
+endif
 ifneq ($(X64), y)
  ifneq ($(ARM64), y)
   LIBS += -Wl,--large-address-aware
@@ -871,7 +913,7 @@ all: $(PROG).exe
 
 86Box.res: 86Box.rc
 	@echo Processing $<
-	@$(WINDRES) $(RFLAGS) $(EXTRAS) -i $< -o 86Box.res
+	@$(WINDRES) -v $(RFLAGS) $(EXTRAS) -i $< -o 86Box.res
 
 $(PROG).exe: $(OBJ) 86Box.res
 	@echo Linking $(PROG).exe ..

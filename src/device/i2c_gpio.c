@@ -24,11 +24,18 @@
 #include <86box/86box.h>
 #include <86box/i2c.h>
 
-typedef struct {
+typedef struct i2c_gpio_t {
     char   *bus_name;
     void   *i2c;
-    uint8_t prev_scl, prev_sda, slave_sda, started,
-        slave_addr_received, slave_addr, slave_read, pos, byte;
+    uint8_t prev_scl;
+    uint8_t prev_sda;
+    uint8_t slave_sda;
+    uint8_t started;
+    uint8_t slave_addr_received;
+    uint8_t slave_addr;
+    uint8_t slave_read;
+    uint8_t pos;
+    uint8_t byte;
 } i2c_gpio_t;
 
 #ifdef ENABLE_I2C_GPIO_LOG
@@ -136,6 +143,9 @@ i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda)
                     dev->slave_sda = !i2c_write(dev->i2c, dev->slave_addr, dev->byte);
                     i2c_gpio_log(2, "I2C GPIO %s: Write %02X %sACK\n", dev->bus_name, dev->byte, dev->slave_sda ? "N" : "");
                     break;
+                
+                default:
+                    break;
             }
         } else if (dev->pos == 9) {
             switch (dev->slave_read) {
@@ -161,14 +171,16 @@ i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda)
 uint8_t
 i2c_gpio_get_scl(void *dev_handle)
 {
-    i2c_gpio_t *dev = (i2c_gpio_t *) dev_handle;
+    const i2c_gpio_t *dev = (i2c_gpio_t *) dev_handle;
+
     return dev->prev_scl;
 }
 
 uint8_t
 i2c_gpio_get_sda(void *dev_handle)
 {
-    i2c_gpio_t *dev = (i2c_gpio_t *) dev_handle;
+    const i2c_gpio_t *dev = (i2c_gpio_t *) dev_handle;
+
     i2c_gpio_log(3, "I2C GPIO %s: read myscl=%d mysda=%d slavesda=%d\n", dev->bus_name, dev->prev_scl, dev->prev_sda, dev->slave_sda);
     return dev->prev_sda && dev->slave_sda;
 }

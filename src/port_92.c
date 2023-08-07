@@ -29,6 +29,7 @@
 #include <86box/mem.h>
 #include <86box/pit.h>
 #include <86box/port_92.h>
+#include <86box/plat_unused.h>
 
 #define PORT_92_INV   1
 #define PORT_92_WORD  2
@@ -39,8 +40,8 @@
 static uint8_t
 port_92_readb(uint16_t port, void *priv)
 {
-    uint8_t    ret = 0x00;
-    port_92_t *dev = (port_92_t *) priv;
+    uint8_t          ret = 0x00;
+    const port_92_t *dev = (port_92_t *) priv;
 
     if (port == 0x92) {
         /* Return bit 1 directly from mem_a20_alt, so the
@@ -60,8 +61,8 @@ port_92_readb(uint16_t port, void *priv)
 static uint16_t
 port_92_readw(uint16_t port, void *priv)
 {
-    uint16_t   ret = 0xffff;
-    port_92_t *dev = (port_92_t *) priv;
+    uint16_t         ret = 0xffff;
+    const port_92_t *dev = (port_92_t *) priv;
 
     if (!(dev->flags & PORT_92_PCI))
         ret = port_92_readb(port, priv);
@@ -69,11 +70,18 @@ port_92_readw(uint16_t port, void *priv)
     return ret;
 }
 
+/*
+   This does the exact same thing as keyboard controller reset.
+   TODO: ALi M1543(c) behavior.
+ */
 static void
-port_92_pulse(void *priv)
+port_92_pulse(UNUSED(void *priv))
 {
-    resetx86();
+    softresetx86(); /* Pulse reset! */
     cpu_set_edx();
+    flushmmucache();
+
+    cpu_alt_reset = 1;
 }
 
 static void
@@ -105,7 +113,7 @@ port_92_writeb(uint16_t port, uint8_t val, void *priv)
 static void
 port_92_writew(uint16_t port, uint16_t val, void *priv)
 {
-    port_92_t *dev = (port_92_t *) priv;
+    const port_92_t *dev = (port_92_t *) priv;
 
     if (!(dev->flags & PORT_92_PCI))
         port_92_writeb(port, val & 0xff, priv);
@@ -164,6 +172,15 @@ port_92_remove(void *priv)
     else
         io_removehandler(0x0092, 1,
                          port_92_readb, NULL, NULL, port_92_writeb, NULL, NULL, dev);
+}
+
+static void
+port_92_reset(UNUSED(void *priv))
+{
+    cpu_alt_reset = 0;
+
+    mem_a20_alt = 0x00;
+    mem_a20_recalc();
 }
 
 static void
@@ -252,7 +269,7 @@ const device_t port_92_pci_device = {
     .local         = PORT_92_PCI,
     .init          = port_92_init,
     .close         = port_92_close,
-    .reset         = NULL,
+    .reset         = port_92_reset,
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,

@@ -228,10 +228,9 @@ static void
 spock_rethink_irqs(spock_t *scsi)
 {
     int irq_pending = 0;
-    int c;
 
     if (!scsi->irq_status) {
-        for (c = 0; c < SCSI_ID_MAX; c++) {
+        for (uint8_t c = 0; c < SCSI_ID_MAX; c++) {
             if (scsi->irq_requests[c] != IRQ_TYPE_NONE) {
                 /* Found IRQ */
                 scsi->irq_status = c | (scsi->irq_requests[c] << 4);
@@ -287,9 +286,9 @@ spock_add_to_period(spock_t *scsi, int TransferLength)
 }
 
 static void
-spock_write(uint16_t port, uint8_t val, void *p)
+spock_write(uint16_t port, uint8_t val, void *priv)
 {
-    spock_t *scsi = (spock_t *) p;
+    spock_t *scsi = (spock_t *) priv;
 
     spock_log("spock_write: port=%04x val=%02x %04x:%04x\n", port, val, CS, cpu_state.pc);
 
@@ -321,13 +320,16 @@ spock_write(uint16_t port, uint8_t val, void *p)
             scsi->basic_ctrl = val;
             spock_rethink_irqs(scsi);
             break;
+
+        default:
+            break;
     }
 }
 
 static void
-spock_writew(uint16_t port, uint16_t val, void *p)
+spock_writew(uint16_t port, uint16_t val, void *priv)
 {
-    spock_t *scsi = (spock_t *) p;
+    spock_t *scsi = (spock_t *) priv;
 
     switch (port & 7) {
         case 0: /*Command Interface Register*/
@@ -340,15 +342,18 @@ spock_writew(uint16_t port, uint16_t val, void *p)
             scsi->cir_pending[3] = val >> 8;
             scsi->cir_status |= 2;
             break;
+
+        default:
+            break;
     }
 
     spock_log("spock_writew: port=%04x val=%04x\n", port, val);
 }
 
 static uint8_t
-spock_read(uint16_t port, void *p)
+spock_read(uint16_t port, void *priv)
 {
-    spock_t *scsi = (spock_t *) p;
+    const spock_t *scsi = (spock_t *) priv;
     uint8_t  temp = 0xff;
 
     switch (port & 7) {
@@ -379,6 +384,9 @@ spock_read(uint16_t port, void *p)
                 temp |= STATUS_CMD_FULL;
             }
             break;
+
+        default:
+            break;
     }
 
     spock_log("spock_read: port=%04x val=%02x %04x(%05x):%04x.\n", port, temp, CS, cs, cpu_state.pc);
@@ -386,10 +394,10 @@ spock_read(uint16_t port, void *p)
 }
 
 static uint16_t
-spock_readw(uint16_t port, void *p)
+spock_readw(uint16_t port, void *priv)
 {
-    spock_t *scsi = (spock_t *) p;
-    uint16_t temp = 0xffff;
+    const spock_t *scsi = (spock_t *) priv;
+    uint16_t       temp = 0xffff;
 
     switch (port & 7) {
         case 0: /*Command Interface Register*/
@@ -397,6 +405,9 @@ spock_readw(uint16_t port, void *p)
             break;
         case 2: /*Command Interface Register*/
             temp = scsi->cir_pending[2] | (scsi->cir_pending[3] << 8);
+            break;
+
+        default:
             break;
     }
 
@@ -414,21 +425,21 @@ spock_rd_sge(spock_t *scsi, uint32_t Address, SGE *SG)
 static int
 spock_get_len(spock_t *scsi, scb_t *scb)
 {
-    uint32_t DataToTransfer = 0, i = 0;
+    uint32_t DataToTransfer = 0;
 
     spock_log("Data Buffer write: length %d, pointer 0x%04X\n",
               scsi->data_len, scsi->data_ptr);
 
     if (!scsi->data_len)
-        return (0);
+        return 0;
 
     if (scb->enable & ENABLE_PT) {
-        for (i = 0; i < scsi->data_len; i += 8) {
+        for (uint32_t i = 0; i < scsi->data_len; i += 8) {
             spock_rd_sge(scsi, scsi->data_ptr + i, &scb->sge);
 
             DataToTransfer += scb->sge.sys_buf_byte_count;
         }
-        return (DataToTransfer);
+        return DataToTransfer;
     } else {
         return (scsi->data_len);
     }
@@ -437,8 +448,11 @@ spock_get_len(spock_t *scsi, scb_t *scb)
 static void
 spock_process_imm_cmd(spock_t *scsi)
 {
-    int i, j = 0;
-    int adapter_id, phys_id, lun_id;
+    int i;
+    int j = 0;
+    int adapter_id;
+    int phys_id;
+    int lun_id;
 
     scsi->assign = 0;
 
@@ -516,7 +530,8 @@ spock_process_imm_cmd(spock_t *scsi)
 static void
 spock_execute_cmd(spock_t *scsi, scb_t *scb)
 {
-    int c, j = 0;
+    int c;
+    int j = 0;
     int old_scb_state;
 
     if (scsi->in_reset) {
@@ -794,6 +809,9 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
                         scsi->scsi_state = SCSI_STATE_SELECT;
                         scsi->scb_state  = 2;
                         return;
+
+                    default:
+                        break;
                 }
                 break;
 
@@ -840,6 +858,9 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
                     spock_log("Complete SCB ID = %d.\n", scsi->attention & 0x0f);
                 }
                 break;
+
+            default:
+                break;
         }
     } while (scsi->scb_state != old_scb_state);
 }
@@ -847,7 +868,6 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
 static void
 spock_process_scsi(spock_t *scsi, scb_t *scb)
 {
-    int            c;
     double         p;
     scsi_device_t *sd;
 
@@ -910,7 +930,7 @@ spock_process_scsi(spock_t *scsi, scb_t *scb)
                     uint32_t Address;
 
                     if (scb->sge.sys_buf_byte_count > 0) {
-                        for (c = 0; c < scsi->data_len; c += 8) {
+                        for (uint32_t c = 0; c < scsi->data_len; c += 8) {
                             spock_rd_sge(scsi, scsi->data_ptr + c, &scb->sge);
 
                             Address = scb->sge.sys_buf_addr;
@@ -998,6 +1018,9 @@ spock_callback(void *priv)
                         case CMD_RESET:
                             spock_process_imm_cmd(scsi);
                             break;
+
+                        default:
+                            break;
                     }
                     break;
 
@@ -1021,6 +1044,9 @@ spock_callback(void *priv)
                 case 0x0e: /*EOI*/
                     scsi->irq_status = 0;
                     spock_clear_irq(scsi, scsi->attention & 0x0f);
+                    break;
+
+                default:
                     break;
             }
         }
@@ -1060,7 +1086,7 @@ spock_mca_write(int port, uint8_t val, void *priv)
 static uint8_t
 spock_mca_read(int port, void *priv)
 {
-    spock_t *scsi = (spock_t *) priv;
+    const spock_t *scsi = (spock_t *) priv;
 
     return scsi->pos_regs[port & 7];
 }
@@ -1068,7 +1094,7 @@ spock_mca_read(int port, void *priv)
 static uint8_t
 spock_mca_feedb(void *priv)
 {
-    spock_t *scsi = (spock_t *) priv;
+    const spock_t *scsi = (spock_t *) priv;
 
     return (scsi->pos_regs[2] & 0x01);
 }
@@ -1077,7 +1103,6 @@ static void
 spock_mca_reset(void *priv)
 {
     spock_t *scsi = (spock_t *) priv;
-    int      i;
 
     scsi->in_reset       = 2;
     scsi->cmd_timer      = SPOCK_TIME * 50;
@@ -1089,16 +1114,15 @@ spock_mca_reset(void *priv)
     scsi->basic_ctrl     = 0;
 
     /* Reset all devices on controller reset. */
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         scsi_device_reset(&scsi_devices[scsi->bus][i]);
         scsi->present[i] = 0;
     }
 }
 
 static void *
-spock_init(const device_t *info)
+spock_init(UNUSED(const device_t *info))
 {
-    int      c;
     spock_t *scsi = malloc(sizeof(spock_t));
     memset(scsi, 0x00, sizeof(spock_t));
 
@@ -1117,6 +1141,9 @@ spock_init(const device_t *info)
             rom_init_interleaved(&scsi->bios_rom, SPOCK_U68_1990_ROM, SPOCK_U69_1990_ROM,
                                  0xc8000, 0x8000, 0x7fff, 0x4000, MEM_MAPPING_EXTERNAL);
             break;
+
+        default:
+            break;
     }
     mem_mapping_disable(&scsi->bios_rom.mapping);
 
@@ -1128,7 +1155,7 @@ spock_init(const device_t *info)
     scsi->cmd_timer = SPOCK_TIME * 50;
     scsi->status    = STATUS_BUSY;
 
-    for (c = 0; c < (SCSI_ID_MAX - 1); c++) {
+    for (uint8_t c = 0; c < (SCSI_ID_MAX - 1); c++) {
         scsi->dev_id[c].phys_id = -1;
     }
 
@@ -1142,9 +1169,9 @@ spock_init(const device_t *info)
 }
 
 static void
-spock_close(void *p)
+spock_close(void *priv)
 {
-    spock_t *scsi = (spock_t *) p;
+    spock_t *scsi = (spock_t *) priv;
 
     if (scsi) {
         free(scsi);

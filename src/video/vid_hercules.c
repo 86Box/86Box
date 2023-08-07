@@ -32,6 +32,7 @@
 #include <86box/device.h>
 #include <86box/video.h>
 #include <86box/vid_hercules.h>
+#include <86box/plat_unused.h>
 
 static video_timings_t timing_hercules = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
@@ -39,7 +40,8 @@ static void
 recalc_timings(hercules_t *dev)
 {
     double disptime;
-    double _dispontime, _dispofftime;
+    double _dispontime;
+    double _dispofftime;
 
     disptime     = dev->crtc[0] + 1;
     _dispontime  = dev->crtc[1];
@@ -187,11 +189,11 @@ hercules_in(uint16_t addr, void *priv)
             break;
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
-hercules_waitstates(void *p)
+hercules_waitstates(UNUSED(void *priv))
 {
     int ws_array[16] = { 3, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8 };
     int ws;
@@ -236,7 +238,6 @@ hercules_read(uint32_t addr, void *priv)
 static void
 hercules_render_overscan_left(hercules_t *dev)
 {
-    int      i;
     uint32_t width;
 
     if (dev->ctrl & 0x02)
@@ -250,14 +251,13 @@ hercules_render_overscan_left(hercules_t *dev)
     if (width == 0)
         return;
 
-    for (i = 0; i < 8; i++)
+    for (uint8_t i = 0; i < 8; i++)
         buffer32->line[dev->displine + 14][i] = 0x00000000;
 }
 
 static void
 hercules_render_overscan_right(hercules_t *dev)
 {
-    int      i;
     uint32_t width;
 
     if (dev->ctrl & 0x02)
@@ -271,7 +271,7 @@ hercules_render_overscan_right(hercules_t *dev)
     if (width == 0)
         return;
 
-    for (i = 0; i < 8; i++)
+    for (uint8_t i = 0; i < 8; i++)
         buffer32->line[dev->displine + 14][8 + width + i] = 0x00000000;
 }
 
@@ -279,11 +279,19 @@ static void
 hercules_poll(void *priv)
 {
     hercules_t *dev = (hercules_t *) priv;
-    uint8_t     chr, attr;
-    uint16_t    ca, dat;
+    uint8_t     chr;
+    uint8_t     attr;
+    uint16_t    ca;
+    uint16_t    dat;
     uint16_t    pa;
-    int         oldsc, blink;
-    int         x, xx, y, yy, c, oldvc;
+    int         oldsc;
+    int         blink;
+    int         x;
+    int         xx;
+    int         y;
+    int         yy;
+    int         c;
+    int         oldvc;
     int         drawcursor;
     uint32_t   *p;
 
@@ -486,7 +494,9 @@ hercules_poll(void *priv)
                     else
                         video_blit_memtoscreen(8, dev->firstline + 14, xsize, ysize);
                     frames++;
-                    // if ((dev->ctrl & 2) && (dev->ctrl2 & 1)) {
+#if 0
+                    if ((dev->ctrl & 2) && (dev->ctrl2 & 1)) {
+#endif
                     if (dev->ctrl & 0x02) {
                         video_res_x = dev->crtc[1] * 16;
                         video_res_y = dev->crtc[6] * 4;
@@ -507,7 +517,7 @@ hercules_poll(void *priv)
             dev->ma = dev->maback;
         }
 
-        if ((dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1))))
+        if (dev->sc == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->sc == ((dev->crtc[10] & 31) >> 1)))
             dev->con = 1;
         if (dev->dispon && !(dev->ctrl & 0x02)) {
             for (x = 0; x < (dev->crtc[1] << 1); x++) {
@@ -520,10 +530,9 @@ hercules_poll(void *priv)
 }
 
 static void *
-hercules_init(const device_t *info)
+hercules_init(UNUSED(const device_t *info))
 {
     hercules_t *dev;
-    int         c;
 
     dev = (hercules_t *) malloc(sizeof(hercules_t));
     memset(dev, 0x00, sizeof(hercules_t));
@@ -543,7 +552,7 @@ hercules_init(const device_t *info)
     io_sethandler(0x03b0, 16,
                   hercules_in, NULL, NULL, hercules_out, NULL, NULL, dev);
 
-    for (c = 0; c < 256; c++) {
+    for (uint16_t c = 0; c < 256; c++) {
         dev->cols[c][0][0] = dev->cols[c][1][0] = dev->cols[c][1][1] = 16;
 
         if (c & 0x08)
@@ -578,7 +587,7 @@ hercules_init(const device_t *info)
     /* Force the LPT3 port to be enabled. */
     lpt3_init(0x3BC);
 
-    return (dev);
+    return dev;
 }
 
 static void

@@ -724,9 +724,6 @@ msgstr "按下 F8+F12 释放鼠标"
 msgid "Press F8+F12 or middle button to release mouse"
 msgstr "按下 F8+F12 或鼠标中键释放鼠标"
 
-msgid "Unable to initialize FluidSynth"
-msgstr "无法初始化 FluidSynth"
-
 msgid "Bus"
 msgstr "总线"
 
@@ -811,9 +808,6 @@ msgstr "高级扇区镜像"
 msgid "Flux images"
 msgstr "Flux 镜像"
 
-msgid "Unable to initialize FreeType"
-msgstr "无法初始化 FreeType"
-
 msgid "Unable to initialize SDL, SDL2.dll is required"
 msgstr "无法初始化 SDL，需要 SDL2.dll"
 
@@ -877,15 +871,6 @@ msgstr "请确认 libpcap 已安装且使用兼容 libpcap 的网络连接。"
 msgid "Invalid configuration"
 msgstr "无效配置"
 
-msgid "freetype.dll"
-msgstr "freetype.dll"
-
-msgid "libfreetype"
-msgstr "libfreetype"
-
-msgid " is required for ESC/P printer emulation."
-msgstr "ESC/P 打印机模拟需要"
-
 msgid "gsdll32.dll"
 msgstr "gsdll32.dll"
 
@@ -894,15 +879,6 @@ msgstr "libgs"
 
 msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr " 是将 PostScript 文件转换为 PDF 所需要的库。\n\n使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
-
-msgid "libfluidsynth.dll"
-msgstr "libfluidsynth.dll"
-
-msgid "libfluidsynth"
-msgstr "libfluidsynth"
-
-msgid " is required for FluidSynth MIDI output."
-msgstr "FluidSynth MIDI 输出需要"
 
 msgid "Entering fullscreen mode"
 msgstr "正在进入全屏模式"
@@ -1218,4 +1194,10 @@ msgstr "低于标准转速的 2%"
 
 msgid "(System Default)"
 msgstr "(系统默认)"
+
+msgid "Failed to initialize network driver"
+msgstr "Failed to initialize network driver"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "The network configuration will be switched to the null driver"
 

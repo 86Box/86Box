@@ -37,6 +37,7 @@
 #include <86box/apm.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
+#include <86box/plat_unused.h>
 
 enum {
     STATE_NONE = 0,
@@ -45,16 +46,23 @@ enum {
     STATE_ICW4
 };
 
-pic_t pic, pic2;
+pic_t pic;
+pic_t pic2;
 
 static pc_timer_t pic_timer;
 
-static int shadow = 0, elcr_enabled = 0,
-           tmr_inited = 0, latched = 0,
-           pic_pci = 0;
+static int shadow = 0;
+static int elcr_enabled = 0;
+static int tmr_inited = 0;
+static int latched = 0;
+static int pic_pci = 0;
+static int kbd_latch = 0;
+static int mouse_latch = 0;
 
-static uint16_t smi_irq_mask   = 0x0000,
-                smi_irq_status = 0x0000;
+static uint16_t smi_irq_mask   = 0x0000;
+static uint16_t smi_irq_status = 0x0000;
+
+static uint16_t latched_irqs   = 0x0000;
 
 static void (*update_pending)(void);
 
@@ -133,9 +141,9 @@ pic_elcr_write(uint16_t port, uint8_t val, void *priv)
 }
 
 uint8_t
-pic_elcr_read(uint16_t port, void *priv)
+pic_elcr_read(UNUSED(uint16_t port), void *priv)
 {
-    pic_t *dev = (pic_t *) priv;
+    const pic_t *dev = (pic_t *) priv;
 
     pic_log("ELCR%i: READ %02X\n", port & 1, dev->elcr);
 
@@ -184,10 +192,10 @@ find_best_interrupt(pic_t *dev)
 {
     uint8_t b;
     uint8_t intr;
-    int     i, j;
-    int     ret = -1;
+    uint8_t j;
+    int8_t  ret = -1;
 
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         j = (i + dev->priority) & 7;
         b = 1 << j;
 
@@ -201,7 +209,7 @@ find_best_interrupt(pic_t *dev)
 
     intr = dev->interrupt = (ret == -1) ? 0x17 : ret;
 
-    if (dev->at && (ret != 1)) {
+    if (dev->at && (ret != -1)) {
         if (dev == &pic2)
             intr += 8;
 
@@ -284,6 +292,12 @@ pic_set_shadow(int sh)
     shadow = sh;
 }
 
+int
+pic_get_pci_flag(void)
+{
+    return pic_pci;
+}
+
 void
 pic_set_pci_flag(int pci)
 {
@@ -321,10 +335,11 @@ pic_acknowledge(pic_t *dev)
 static uint8_t
 pic_non_specific_find(pic_t *dev)
 {
-    int     i, j;
-    uint8_t b, irq = 0xff;
+    uint8_t j;
+    uint8_t b;
+    uint8_t irq = 0xff;
 
-    for (i = 0; i < 8; i++) {
+    for (uint8_t i = 0; i < 8; i++) {
         j = (i + dev->priority) & 7;
         b = (1 << j);
 
@@ -381,6 +396,23 @@ pic_command(pic_t *dev)
         pic_action(dev, irq, dev->ocw2 & 0x20, dev->ocw2 & 0x80);
     } else /* SL and EOI clear */
         dev->auto_eoi_rotate = !!(dev->ocw2 & 0x80);
+}
+
+uint8_t
+pic_latch_read(UNUSED(uint16_t addr), UNUSED(void *priv))
+{
+    uint8_t ret = 0xff;
+
+    pic_log("pic_latch_read(%i, %i): %02X%02X\n", kbd_latch, mouse_latch, pic2.lines & 0x10, pic.lines & 0x02);
+
+    if (kbd_latch && (latched_irqs & 0x0002))
+        picintc(0x0002);
+
+    if (mouse_latch && (latched_irqs & 0x1000))
+        picintc(0x1000);
+
+    /* Return FF - we just lower IRQ 1 and IRQ 12. */
+    return ret;
 }
 
 uint8_t
@@ -464,6 +496,9 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
                 dev->imr = val;
                 update_pending();
                 break;
+
+            default:
+                break;
         }
     } else {
         if (val & 0x10) {
@@ -500,23 +535,70 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 void
 pic_set_pci(void)
 {
-    int i;
-
-    for (i = 0x0024; i < 0x0040; i += 4) {
+    for (uint8_t i = 0x0024; i < 0x0040; i += 4) {
         io_sethandler(i, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
         io_sethandler(i + 0x0080, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
     }
 
-    for (i = 0x1120; i < 0x1140; i += 4) {
+    for (uint16_t i = 0x1120; i < 0x1140; i += 4) {
         io_sethandler(i, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
         io_sethandler(i + 0x0080, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
     }
 }
 
 void
-pic_init(void)
+pic_kbd_latch(int enable)
+{
+    pic_log("PIC keyboard latch now %sabled\n", enable ? "en" : "dis");
+
+    if (!!(enable | mouse_latch) != !!(kbd_latch | mouse_latch))
+        io_handler(!!(enable | mouse_latch), 0x0060, 0x0001, pic_latch_read, NULL, NULL, NULL, NULL, NULL, NULL);
+
+    kbd_latch = !!enable;
+
+    if (!enable)
+        picintc(0x0002);
+}
+
+void
+pic_mouse_latch(int enable)
+{
+    pic_log("PIC mouse latch now %sabled\n", enable ? "en" : "dis");
+
+    if (!!(kbd_latch | enable) != !!(kbd_latch | mouse_latch))
+        io_handler(!!(kbd_latch | enable), 0x0060, 0x0001, pic_latch_read, NULL, NULL, NULL, NULL, NULL, NULL);
+
+    mouse_latch = !!enable;
+
+    if (!enable)
+        picintc(0x1000);
+}
+
+static void
+pic_reset_hard(void)
 {
     pic_reset();
+
+    /* Explicitly reset the latches. */
+    kbd_latch = mouse_latch = 0;
+    latched_irqs = 0x0000;
+
+    /* The situation is as follows: There is a giant mess when it comes to these latches on real hardware,
+       to the point that there's even boards with board-level latched that get used in place of the latches
+       on the chipset, therefore, I'm just doing this here for the sake of simplicity. */
+    if (machine_has_bus(machine, MACHINE_BUS_PS2_LATCH)) {
+        pic_kbd_latch(0x01);
+        pic_mouse_latch(0x01);
+    } else {
+        pic_kbd_latch(0x00);
+        pic_mouse_latch(0x00);
+    }
+}
+
+void
+pic_init(void)
+{
+    pic_reset_hard();
 
     shadow = 0;
     io_sethandler(0x0020, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
@@ -525,7 +607,7 @@ pic_init(void)
 void
 pic_init_pcjr(void)
 {
-    pic_reset();
+    pic_reset_hard();
 
     shadow = 0;
     io_sethandler(0x0020, 0x0008, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
@@ -541,13 +623,14 @@ pic2_init(void)
 void
 picint_common(uint16_t num, int level, int set)
 {
-    int     i, raise;
-    uint8_t b, slaves = 0;
+    int     raise;
+    uint8_t b;
+    uint8_t slaves = 0;
 
     /* Make sure to ignore all slave IRQ's, and in case of AT+,
        translate IRQ 2 to IRQ 9. */
-    for (i = 0; i < 8; i++) {
-        b     = (1 << i);
+    for (uint8_t i = 0; i < 8; i++) {
+        b     = (uint8_t) (1 << i);
         raise = num & b;
 
         if (pic.icw3 & b) {
@@ -582,12 +665,20 @@ picint_common(uint16_t num, int level, int set)
             if (level)
                 pic2.lines |= (num >> 8);
 
+            /* Latch IRQ 12 if the mouse latch is enabled. */
+            if ((num & 0x1000) && mouse_latch)
+                latched_irqs |= 0x1000;
+
             pic2.irr |= (num >> 8);
         }
 
         if (num & 0x00ff) {
             if (level)
                 pic.lines |= (num & 0x00ff);
+
+            /* Latch IRQ 1 if the keyboard latch is enabled. */
+            if (kbd_latch && (num & 0x0002))
+                latched_irqs |= 0x0002;
 
             pic.irr |= (num & 0x00ff);
         }
@@ -596,11 +687,21 @@ picint_common(uint16_t num, int level, int set)
 
         if (num & 0xff00) {
             pic2.lines &= ~(num >> 8);
+
+            /* Unlatch IRQ 12 if the mouse latch is enabled. */
+            if ((num & 0x1000) && mouse_latch)
+                latched_irqs &= 0xefff;
+
             pic2.irr &= ~(num >> 8);
         }
 
         if (num & 0x00ff) {
             pic.lines &= ~(num & 0x00ff);
+
+            /* Unlatch IRQ 1 if the keyboard latch is enabled. */
+            if (kbd_latch && (num & 0x0002))
+                latched_irqs &= 0xfffd;
+
             pic.irr &= ~(num & 0x00ff);
         }
     }
@@ -680,7 +781,7 @@ pic_irq_ack_read(pic_t *dev, int phase)
 uint8_t
 pic_irq_ack(void)
 {
-    int ret;
+    uint8_t ret;
 
     /* Needed for Xi8088. */
     if ((pic.ack_bytes == 0) && pic.int_pending && pic_slave_on(&pic, pic.interrupt)) {
@@ -688,7 +789,6 @@ pic_irq_ack(void)
             /* If we are on AT, IRQ 2 is pending, and we cannot find a pending IRQ on PIC 2, fatal out. */
             fatal("IRQ %i pending on AT without a pending IRQ on PIC %i (normal)\n", pic.interrupt, pic.interrupt);
             exit(-1);
-            return -1;
         }
 
         pic.interrupt |= 0x40; /* Mark slave pending. */
@@ -711,7 +811,7 @@ pic_irq_ack(void)
 int
 picinterrupt(void)
 {
-    int i, ret = -1;
+    int ret = -1;
 
     if (pic.int_pending) {
         if (pic_slave_on(&pic, pic.interrupt)) {
@@ -719,7 +819,6 @@ picinterrupt(void)
                 /* If we are on AT, IRQ 2 is pending, and we cannot find a pending IRQ on PIC 2, fatal out. */
                 fatal("IRQ %i pending on AT without a pending IRQ on PIC %i (normal)\n", pic.interrupt, pic.interrupt);
                 exit(-1);
-                return -1;
             }
 
             pic.interrupt |= 0x40; /* Mark slave pending. */
@@ -729,7 +828,7 @@ picinterrupt(void)
             pit_devs[1].set_gate(pit_devs[1].data, 0, 0);
 
         /* Two ACK's - do them in a loop to avoid potential compiler misoptimizations. */
-        for (i = 0; i < 2; i++) {
+        for (uint8_t i = 0; i < 2; i++) {
             ret           = pic_irq_ack_read(&pic, pic.ack_bytes);
             pic.ack_bytes = (pic.ack_bytes + 1) % (pic_i86_mode(&pic) ? 2 : 3);
 

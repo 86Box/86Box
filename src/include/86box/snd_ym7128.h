@@ -2,19 +2,26 @@
 #define SOUND_YM7128_H
 
 typedef struct ym7128_t {
-    int     a0, sci;
+    int     a0;
+    int     sci;
     uint8_t dat;
 
     int     reg_sel;
     uint8_t regs[32];
 
-    int gl[8], gr[8];
-    int vm, vc, vl, vr;
-    int c0, c1;
+    int gl[8];
+    int gr[8];
+    int vm;
+    int vc;
+    int vl;
+    int vr;
+    int c0;
+    int c1;
     int t[9];
 
     int16_t filter_dat;
-    int16_t prev_l, prev_r;
+    int16_t prev_l;
+    int16_t prev_r;
 
     int16_t delay_buffer[2400];
     int     delay_pos;

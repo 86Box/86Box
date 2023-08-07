@@ -75,7 +75,12 @@ double mode_hue;
 double min_v;
 double max_v;
 
-double video_ri, video_rq, video_gi, video_gq, video_bi, video_bq;
+double video_ri;
+double video_rq;
+double video_gi;
+double video_gq;
+double video_bi;
+double video_bq;
 int    video_sharpness;
 int    tandy_mode_control = 0;
 
@@ -84,11 +89,18 @@ static bool new_cga = 0;
 void
 update_cga16_color(uint8_t cgamode)
 {
-    int    x;
-    double c, i, v;
-    double q, a, s, r;
-    double iq_adjust_i, iq_adjust_q;
-    double i0, i3, mode_saturation;
+    double c;
+    double i;
+    double v;
+    double q;
+    double a;
+    double s;
+    double r;
+    double iq_adjust_i;
+    double iq_adjust_q;
+    double i0;
+    double i3;
+    double mode_saturation;
 
     static const double ri = 0.9563;
     static const double rq = 0.6210;
@@ -117,7 +129,7 @@ update_cga16_color(uint8_t cgamode)
     mode_brightness += (new_cga ? brightness - 10 : brightness) * 5; /* new CGA: -10 */
     mode_saturation = (new_cga ? 4.35 : 2.9) * saturation / 100;     /* new CGA: 150% */
 
-    for (x = 0; x < 1024; ++x) {
+    for (uint16_t x = 0; x < 1024; ++x) {
         int phase = x & 3;
         int right = (x >> 2) & 15;
         int left  = (x >> 6) & 15;
@@ -160,7 +172,7 @@ update_cga16_color(uint8_t cgamode)
     video_sharpness = (int) (sharpness * 256 / 100);
 }
 
-static Bit8u
+static uint8_t
 byte_clamp(int v)
 {
     v >>= 13;
@@ -174,20 +186,20 @@ static int temp[SCALER_MAXWIDTH + 10] = { 0 };
 static int atemp[SCALER_MAXWIDTH + 2] = { 0 };
 static int btemp[SCALER_MAXWIDTH + 2] = { 0 };
 
-Bit32u *
-Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks /*, bool doublewidth*/, Bit32u *TempLine)
+uint32_t *
+Composite_Process(uint8_t cgamode, uint8_t border, uint32_t blocks /*, bool doublewidth*/, uint32_t *TempLine)
 {
-    int    x;
-    Bit32u x2;
+    uint32_t x2;
 
     int w = blocks * 4;
 
-    int    *o;
-    Bit32u *rgbi;
-    int    *b;
-    int    *i;
-    Bit32u *srgb;
-    int    *ap, *bp;
+    int            *o;
+    const uint32_t *rgbi;
+    const int      *b;
+    int            *i;
+    uint32_t       *srgb;
+    int            *ap;
+    int            *bp;
 
 #define COMPOSITE_CONVERT(I, Q)                                                  \
     do {                                                                         \
@@ -217,21 +229,21 @@ Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks /*, bool doublewi
     o    = temp;
     rgbi = TempLine;
     b    = &CGA_Composite_Table[border * 68];
-    for (x = 0; x < 4; ++x)
+    for (uint8_t x = 0; x < 4; ++x)
         OUT(b[(x + 3) & 3]);
     OUT(CGA_Composite_Table[(border << 6) | ((*rgbi & 0x0f) << 2) | 3]);
-    for (x = 0; x < w - 1; ++x) {
+    for (int x = 0; x < w - 1; ++x) {
         OUT(CGA_Composite_Table[((rgbi[0] & 0x0f) << 6) | ((rgbi[1] & 0x0f) << 2) | (x & 3)]);
         ++rgbi;
     }
     OUT(CGA_Composite_Table[((*rgbi & 0x0f) << 6) | (border << 2) | 3]);
-    for (x = 0; x < 5; ++x)
+    for (uint8_t x = 0; x < 5; ++x)
         OUT(b[x & 3]);
 
     if ((cgamode & 4) != 0) {
         /* Decode */
         i    = temp + 5;
-        srgb = (Bit32u *) TempLine;
+        srgb = TempLine;
         for (x2 = 0; x2 < blocks * 4; ++x2) {
             int c = (i[0] + i[0]) << 3;
             int d = (i[-1] + i[1]) << 3;
@@ -245,7 +257,7 @@ Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks /*, bool doublewi
         i  = temp + 4;
         ap = atemp + 1;
         bp = btemp + 1;
-        for (x = -1; x < w + 1; ++x) {
+        for (int x = -1; x < w + 1; ++x) {
             ap[x] = i[-4] - ((i[-2] - i[0] + i[2]) << 1) + i[4];
             bp[x] = (i[-3] - i[-1] + i[1] - i[3]) << 1;
             ++i;
@@ -255,9 +267,16 @@ Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks /*, bool doublewi
         i     = temp + 5;
         i[-1] = (i[-1] << 3) - ap[-1];
         i[0]  = (i[0] << 3) - ap[0];
-        srgb  = (Bit32u *) TempLine;
+        srgb  = TempLine;
         for (x2 = 0; x2 < blocks; ++x2) {
-            int y, a, b, c, d, rr, gg, bb;
+            int y;
+            int a;
+            int b;
+            int c;
+            int d;
+            int rr;
+            int gg;
+            int bb;
             COMPOSITE_CONVERT(a, b);
             COMPOSITE_CONVERT(-b, a);
             COMPOSITE_CONVERT(-a, -b);

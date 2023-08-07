@@ -35,9 +35,10 @@
 #include <86box/fdc.h>
 #include <86box/sio.h>
 
-typedef struct {
-    uint8_t cur_reg, has_ide,
-        regs[81];
+typedef struct i82091aa_t {
+    uint8_t   cur_reg;
+    uint8_t   has_ide;
+    uint8_t   regs[81];
     uint16_t  base_address;
     fdc_t    *fdc;
     serial_t *uart[2];
@@ -70,6 +71,9 @@ lpt1_handler(i82091aa_t *dev)
             break;
         case 3:
             lpt_port = 0x000;
+            break;
+
+        default:
             break;
     }
 
@@ -112,6 +116,9 @@ serial_handler(i82091aa_t *dev, int uart)
         case 0x07:
             uart_port = COM3_ADDR;
             break;
+
+        default:
+            break;
     }
 
     if (dev->regs[reg] & 0x01)
@@ -134,7 +141,8 @@ static void
 i82091aa_write(uint16_t port, uint8_t val, void *priv)
 {
     i82091aa_t *dev = (i82091aa_t *) priv;
-    uint8_t     index, valxor;
+    uint8_t     index;
+    uint8_t     valxor = 0;
     uint8_t     uart = (dev->cur_reg >> 4) - 0x03;
     uint8_t    *reg  = &(dev->regs[dev->cur_reg]);
 
@@ -192,6 +200,9 @@ i82091aa_write(uint16_t port, uint8_t val, void *priv)
             if (dev->has_ide && (valxor & 0x03))
                 ide_handler(dev);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -199,7 +210,8 @@ uint8_t
 i82091aa_read(uint16_t port, void *priv)
 {
     i82091aa_t *dev = (i82091aa_t *) priv;
-    uint8_t     ret = 0xff, index;
+    uint8_t     ret = 0xff;
+    uint8_t     index;
 
     index = (port & 1) ? 0 : 1;
 

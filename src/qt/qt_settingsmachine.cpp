@@ -90,6 +90,11 @@ SettingsMachine::SettingsMachine(QWidget *parent)
 
     ui->comboBoxMachineType->setCurrentIndex(-1);
     ui->comboBoxMachineType->setCurrentIndex(selectedMachineType);
+
+#ifndef USE_DYNAREC
+    ui->checkBoxDynamicRecompiler->setEnabled(false);
+    ui->checkBoxDynamicRecompiler->setVisible(false);
+#endif
 }
 
 SettingsMachine::~SettingsMachine()
@@ -105,6 +110,8 @@ SettingsMachine::save()
     cpu             = ui->comboBoxSpeed->currentData().toInt();
     fpu_type        = ui->comboBoxFPU->currentData().toInt();
     cpu_use_dynarec = ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0;
+    fpu_softfloat   = ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0;
+
     int64_t temp_mem_size;
     if (machine_get_ram_granularity(machine) < 1024) {
         temp_mem_size = ui->spinBoxRAM->value();
@@ -194,7 +201,7 @@ SettingsMachine::on_comboBoxMachine_currentIndexChanged(int index)
     ui->comboBoxCPU->setCurrentIndex(selectedCpuFamilyRow);
 
     int divisor;
-    if ((machine_get_ram_granularity(machineId) < 1024)) {
+    if (machine_get_ram_granularity(machineId) < 1024) {
         divisor = 1;
         ui->spinBoxRAM->setSuffix(QCoreApplication::translate("", "KB").prepend(' '));
     } else {
@@ -280,6 +287,7 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
 #endif
 
     // win_settings_machine_recalc_fpu
+    int   machineId  = ui->comboBoxMachine->currentData().toInt();
     auto *modelFpu   = ui->comboBoxFPU->model();
     int   removeRows = modelFpu->rowCount();
 
@@ -297,6 +305,10 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
     ui->comboBoxFPU->setEnabled(modelFpu->rowCount() > 1);
     ui->comboBoxFPU->setCurrentIndex(-1);
     ui->comboBoxFPU->setCurrentIndex(selectedFpuRow);
+
+    ui->checkBoxFPUSoftfloat->setChecked(machine_has_flags(machineId, MACHINE_SOFTFLOAT_ONLY) ? true : fpu_softfloat);
+    ui->checkBoxFPUSoftfloat->setEnabled(machine_has_flags(machineId, MACHINE_SOFTFLOAT_ONLY) ? false : true);
+
 }
 
 void

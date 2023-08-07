@@ -30,38 +30,59 @@
 #include <86box/snd_ac97.h>
 #include <86box/sound.h>
 #include <86box/timer.h>
+#include <86box/plat_unused.h>
 
-typedef struct {
-    uint8_t            id, always_run;
+typedef struct ac97_via_sgd_t {
+    uint8_t            id;
+    uint8_t            always_run;
     struct _ac97_via_ *dev;
 
-    uint32_t entry_ptr, sample_ptr, fifo_pos, fifo_end;
+    uint32_t entry_ptr;
+    uint32_t sample_ptr;
+    uint32_t fifo_pos;
+    uint32_t fifo_end;
     int32_t  sample_count;
-    uint8_t  entry_flags, fifo[32], restart;
+    uint8_t  entry_flags;
+    uint8_t  fifo[32];
+    uint8_t  restart;
 
-    int16_t  out_l, out_r;
-    int      vol_l, vol_r, pos;
+    int16_t  out_l;
+    int16_t  out_r;
+    int      vol_l;
+    int      vol_r;
+    int      pos;
     int32_t  buffer[SOUNDBUFLEN * 2];
     uint64_t timer_latch;
 
-    pc_timer_t dma_timer, poll_timer;
+    pc_timer_t dma_timer;
+    pc_timer_t poll_timer;
 } ac97_via_sgd_t;
 
 typedef struct _ac97_via_ {
-    uint16_t audio_sgd_base, audio_codec_base, modem_sgd_base, modem_codec_base;
-    uint8_t  sgd_regs[256], pcm_enabled : 1, fm_enabled : 1, vsr_enabled : 1;
+    uint16_t audio_sgd_base;
+    uint16_t audio_codec_base;
+    uint16_t modem_sgd_base;
+    uint16_t modem_codec_base;
+    uint8_t  sgd_regs[256];
+    uint8_t  pcm_enabled : 1;
+    uint8_t  fm_enabled : 1;
+    uint8_t  vsr_enabled : 1;
     struct {
         union {
             uint8_t regs_codec[2][128];
             uint8_t regs_linear[256];
         };
     } codec_shadow[2];
-    int slot, irq_pin;
+    int slot;
+    int irq_pin;
 
     ac97_codec_t  *codec[2][2];
     ac97_via_sgd_t sgd[6];
 
-    int master_vol_l, master_vol_r, cd_vol_l, cd_vol_r;
+    int master_vol_l;
+    int master_vol_r;
+    int cd_vol_l;
+    int cd_vol_r;
 } ac97_via_t;
 
 #ifdef ENABLE_AC97_VIA_LOG
@@ -101,8 +122,8 @@ ac97_via_set_slot(void *priv, int slot, int irq_pin)
 uint8_t
 ac97_via_read_status(void *priv, uint8_t modem)
 {
-    ac97_via_t *dev = (ac97_via_t *) priv;
-    uint8_t     ret = 0x00;
+    const ac97_via_t *dev = (ac97_via_t *) priv;
+    uint8_t           ret = 0x00;
 
     /* Flag each codec as ready if present. */
     for (uint8_t i = 0; i <= 1; i++) {
@@ -178,6 +199,7 @@ ac97_via_update_codec(ac97_via_t *dev)
     /* Update volumes according to codec registers. */
     ac97_codec_getattn(codec, 0x02, &dev->master_vol_l, &dev->master_vol_r);
     ac97_codec_getattn(codec, 0x18, &dev->sgd[0].vol_l, &dev->sgd[0].vol_r);
+    ac97_codec_getattn(codec, 0x18, &dev->sgd[2].vol_l, &dev->sgd[2].vol_r); /* VIAFMTSR sets Master, CD and PCM volumes to 0 dB */
     ac97_codec_getattn(codec, 0x12, &dev->cd_vol_l, &dev->cd_vol_r);
 
     /* Update sample rate according to codec registers and the variable sample rate flag. */
@@ -187,7 +209,7 @@ ac97_via_update_codec(ac97_via_t *dev)
 uint8_t
 ac97_via_sgd_read(uint16_t addr, void *priv)
 {
-    ac97_via_t *dev = (ac97_via_t *) priv;
+    const ac97_via_t *dev = (ac97_via_t *) priv;
 #ifdef ENABLE_AC97_VIA_LOG
     uint8_t modem = (addr & 0xff00) == dev->modem_sgd_base;
 #endif
@@ -283,7 +305,8 @@ void
 ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 {
     ac97_via_t   *dev   = (ac97_via_t *) priv;
-    uint8_t       modem = (addr & 0xff00) == dev->modem_sgd_base, i;
+    uint8_t       modem = (addr & 0xff00) == dev->modem_sgd_base;
+    uint8_t       i;
     ac97_codec_t *codec;
     addr &= 0xff;
 
@@ -315,13 +338,11 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
                         dev->sgd_regs[addr & 0xf0] |= 0x08;
                     } else {
                         /* Start SGD immediately. */
-                        dev->sgd_regs[addr & 0xf0] |= 0x80;
-                        dev->sgd_regs[addr & 0xf0] &= ~0x44;
+                        dev->sgd_regs[addr & 0xf0] = (dev->sgd_regs[addr & 0xf0] & ~0x47) | 0x80;
 
                         /* Start at the specified entry pointer. */
-                        dev->sgd[addr >> 4].sample_ptr = 0;
                         dev->sgd[addr >> 4].entry_ptr  = *((uint32_t *) &dev->sgd_regs[(addr & 0xf0) | 0x4]) & 0xfffffffe;
-                        dev->sgd[addr >> 4].restart    = 1;
+                        dev->sgd[addr >> 4].restart    = 2;
 
                         /* Start the actual SGD process. */
                         ac97_via_sgd_process(&dev->sgd[addr >> 4]);
@@ -350,6 +371,9 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
             case 0x8 ... 0xf:
                 /* Read-only registers. */
                 return;
+
+            default:
+                break;
         }
     } else {
         /* Process regular registers. */
@@ -404,6 +428,9 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
                 val = dev->sgd_regs[addr] | (val & 0xc0);
 #endif
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -441,10 +468,11 @@ ac97_via_remap_modem_sgd(void *priv, uint16_t new_io_base, uint8_t enable)
 uint8_t
 ac97_via_codec_read(uint16_t addr, void *priv)
 {
-    ac97_via_t *dev   = (ac97_via_t *) priv;
-    uint8_t     modem = (addr & 0xff00) == dev->modem_codec_base;
+    const ac97_via_t *dev   = (ac97_via_t *) priv;
+    uint8_t           modem = (addr & 0xff00) == dev->modem_codec_base;
+    uint8_t           ret = 0xff;
+
     addr &= 0xff;
-    uint8_t ret = 0xff;
 
     ret = dev->codec_shadow[modem].regs_linear[addr];
 
@@ -497,8 +525,8 @@ ac97_via_remap_modem_codec(void *priv, uint16_t new_io_base, uint8_t enable)
 static void
 ac97_via_update_stereo(ac97_via_t *dev, ac97_via_sgd_t *sgd)
 {
-    int32_t l = (((sgd->out_l * sgd->vol_l) >> 15) * dev->master_vol_l) >> 15,
-            r = (((sgd->out_r * sgd->vol_r) >> 15) * dev->master_vol_r) >> 15;
+    int32_t l = (((sgd->out_l * sgd->vol_l) >> 15) * dev->master_vol_l) >> 15;
+    int32_t r = (((sgd->out_r * sgd->vol_r) >> 15) * dev->master_vol_r) >> 15;
 
     if (l < -32768)
         l = -32768;
@@ -530,14 +558,13 @@ ac97_via_sgd_process(void *priv)
     timer_on_auto(&sgd->dma_timer, 10.0);
 
     /* Process SGD if it's active, and the FIFO has room or is disabled. */
-    if ((sgd_status == 0x80) && (sgd->always_run || ((sgd->fifo_end - sgd->fifo_pos) <= (sizeof(sgd->fifo) - 4)))) {
+    if (((sgd_status & 0xc7) == 0x80) && (sgd->always_run || ((sgd->fifo_end - sgd->fifo_pos) <= (sizeof(sgd->fifo) - 4)))) {
         /* Move on to the next block if no entry is present. */
         if (sgd->restart) {
+            /* (Re)load entry pointer if required. */
+            if (sgd->restart & 2)
+                sgd->entry_ptr = *((uint32_t *) &dev->sgd_regs[sgd->id | 0x4]) & 0xfffffffe; /* TODO: probe real hardware - does "even addr" actually mean dword aligned? */
             sgd->restart = 0;
-
-            /* Start at first entry if no pointer is present. */
-            if (!sgd->entry_ptr)
-                sgd->entry_ptr = *((uint32_t *) &dev->sgd_regs[sgd->id | 0x4]) & 0xfffffffe;
 
             /* Read entry. */
             sgd->sample_ptr = mem_readl_phys(sgd->entry_ptr);
@@ -573,6 +600,9 @@ ac97_via_sgd_process(void *priv)
         if (sgd->sample_count <= 0) {
             ac97_via_log("AC97 VIA: Ending SGD %d block", sgd->id >> 4);
 
+            /* Move on to the next block on the next run, unless overridden below. */
+            sgd->restart = 1;
+
             if (sgd->entry_flags & 0x20) {
                 ac97_via_log(" with STOP");
 
@@ -583,8 +613,8 @@ ac97_via_sgd_process(void *priv)
             if (sgd->entry_flags & 0x40) {
                 ac97_via_log(" with FLAG");
 
-                /* Raise FLAG and STOP. */
-                dev->sgd_regs[sgd->id] |= 0x05;
+                /* Raise FLAG to pause SGD. */
+                dev->sgd_regs[sgd->id] |= 0x01;
 
 #ifdef ENABLE_AC97_VIA_LOG
                 if (dev->sgd_regs[sgd->id | 0x2] & 0x01)
@@ -610,8 +640,8 @@ ac97_via_sgd_process(void *priv)
                     /* Un-queue trigger. */
                     dev->sgd_regs[sgd->id] &= ~0x08;
 
-                    /* Go back to the starting block. */
-                    sgd->entry_ptr = 0; /* ugly, but Windows XP plays too fast if the pointer is reloaded now */
+                    /* Go back to the starting block on the next run. */
+                    sgd->restart = 2;
                 } else {
                     ac97_via_log(" finish");
 
@@ -623,9 +653,6 @@ ac97_via_sgd_process(void *priv)
 
             /* Fire any requested status interrupts. */
             ac97_via_update_irqs(dev);
-
-            /* Move on to a new block on the next run. */
-            sgd->restart = 1;
         }
     }
 }
@@ -676,6 +703,9 @@ ac97_via_poll_stereo(void *priv)
                 sgd->fifo_pos += 2;
                 return;
             }
+            break;
+
+        default:
             break;
     }
 
@@ -729,8 +759,9 @@ ac97_via_get_buffer(int32_t *buffer, int len, void *priv)
 static void
 ac97_via_filter_cd_audio(int channel, double *buffer, void *priv)
 {
-    ac97_via_t *dev = (ac97_via_t *) priv;
-    double      c, volume = channel ? dev->cd_vol_r : dev->cd_vol_l;
+    const ac97_via_t *dev = (ac97_via_t *) priv;
+    double            c;
+    double            volume = channel ? dev->cd_vol_r : dev->cd_vol_l;
 
     c       = ((*buffer) * volume) / 65536.0;
     *buffer = c;
@@ -749,11 +780,11 @@ ac97_via_speed_changed(void *priv)
         freq = (double) SOUND_FREQ;
 
     dev->sgd[0].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq));
-    dev->sgd[2].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 24000.0));
+    dev->sgd[2].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 24000.0)); /* FM operates at a fixed 24 KHz */
 }
 
 static void *
-ac97_via_init(const device_t *info)
+ac97_via_init(UNUSED(const device_t *info))
 {
     ac97_via_t *dev = malloc(sizeof(ac97_via_t));
     memset(dev, 0, sizeof(ac97_via_t));
@@ -774,10 +805,6 @@ ac97_via_init(const device_t *info)
         /* Disable the FIFO on SGDs we don't care about. */
         if ((i != 0) && (i != 2))
             dev->sgd[i].always_run = 1;
-
-        /* No volume control on FM SGD that I know of. */
-        if (i == 2)
-            dev->sgd[i].vol_l = dev->sgd[i].vol_r = 32767;
 
         timer_add(&dev->sgd[i].dma_timer, ac97_via_sgd_process, &dev->sgd[i], 0);
     }

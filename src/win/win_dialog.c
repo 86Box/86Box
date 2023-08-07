@@ -15,6 +15,7 @@
  *
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2017-2019 Fred N. van Kempen.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #define UNICODE
 #include <windows.h>
@@ -56,12 +57,13 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
 {
     WCHAR             temp[512];
     TASKDIALOGCONFIG  tdconfig = { 0 };
-    TASKDIALOG_BUTTON tdbuttons[3],
-        tdb_yes    = { IDYES, STRING_OR_RESOURCE(btn1) },
-        tdb_no     = { IDNO, STRING_OR_RESOURCE(btn2) },
-        tdb_cancel = { IDCANCEL, STRING_OR_RESOURCE(btn3) },
-        tdb_exit   = { IDCLOSE, MAKEINTRESOURCE(IDS_2120) };
-    int ret = 0, checked = 0;
+    TASKDIALOG_BUTTON tdbuttons[3];
+    TASKDIALOG_BUTTON tdb_yes    = { IDYES, STRING_OR_RESOURCE(btn1) };
+    TASKDIALOG_BUTTON tdb_no     = { IDNO, STRING_OR_RESOURCE(btn2) };
+    TASKDIALOG_BUTTON tdb_cancel = { IDCANCEL, STRING_OR_RESOURCE(btn3) };
+    TASKDIALOG_BUTTON tdb_exit   = { IDCLOSE, MAKEINTRESOURCE(IDS_2120) };
+    int ret = 0;
+    int checked = 0;
 
     /* Configure the default OK button. */
     tdconfig.cButtons = 0;
@@ -150,7 +152,7 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
     if (checked)
         ret += 10;
 
-    return (ret);
+    return ret;
 }
 
 int
@@ -201,16 +203,17 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, WCHAR *title, int save)
         c16stombs(openfilestring, wopenfilestring, sizeof(openfilestring));
         filterindex = ofn.nFilterIndex;
 
-        return (0);
+        return 0;
     }
 
-    return (1);
+    return 1;
 }
 
 int
 file_dlg(HWND hwnd, WCHAR *f, char *fn, char *title, int save)
 {
-    WCHAR ufn[512], title_buf[512];
+    WCHAR ufn[512];
+    WCHAR title_buf[512];
 
     if (fn)
         mbstoc16s(ufn, fn, strlen(fn) + 1);
@@ -223,7 +226,9 @@ file_dlg(HWND hwnd, WCHAR *f, char *fn, char *title, int save)
 int
 file_dlg_mb(HWND hwnd, char *f, char *fn, char *title, int save)
 {
-    WCHAR uf[512], ufn[512], title_buf[512];
+    WCHAR uf[512];
+    WCHAR ufn[512];
+    WCHAR title_buf[512];
 
     mbstoc16s(uf, f, strlen(f) + 1);
     mbstoc16s(ufn, fn, strlen(fn) + 1);

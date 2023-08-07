@@ -36,8 +36,8 @@
 #include <86box/fdc.h>
 #include <fdi2raw.h>
 
-typedef struct {
-    FILE *f;
+typedef struct fdi_t {
+    FILE *fp;
     FDI  *h;
 
     int lasttrack;
@@ -104,7 +104,7 @@ disk_flags(int drive)
      */
     temp_disk_flags |= 0x800;
 
-    return (temp_disk_flags);
+    return temp_disk_flags;
 }
 
 static uint16_t
@@ -143,43 +143,43 @@ side_flags(int drive)
      */
     temp_side_flags |= 0x08;
 
-    return (temp_side_flags);
+    return temp_side_flags;
 }
 
 static int
 fdi_density(void)
 {
     if (!fdc_is_mfm(fdi_fdc))
-        return (0);
+        return 0;
 
     switch (fdc_get_bit_rate(fdi_fdc)) {
         case 0:
-            return (2);
+            return 2;
 
         case 1:
-            return (1);
+            return 1;
 
         case 2:
-            return (1);
+            return 1;
 
         case 3:
         case 5:
-            return (3);
+            return 3;
 
         default:
             break;
     }
 
-    return (1);
+    return 1;
 }
 
 static int32_t
 extra_bit_cells(int drive, int side)
 {
-    fdi_t *dev        = fdi[drive];
-    int    density    = 0;
-    int    raw_size   = 0;
-    int    is_300_rpm = 0;
+    const fdi_t *dev        = fdi[drive];
+    int          density    = 0;
+    int          raw_size   = 0;
+    int          is_300_rpm = 0;
 
     density = fdi_density();
 
@@ -207,14 +207,15 @@ extra_bit_cells(int drive, int side)
             raw_size = is_300_rpm ? 100000 : 83333;
     }
 
-    return ((dev->tracklen[side][density] - raw_size));
+    return (dev->tracklen[side][density] - raw_size);
 }
 
 static void
 read_revolution(int drive)
 {
     fdi_t *dev = fdi[drive];
-    int    c, den, side;
+    int    c;
+    int    den;
     int    track = dev->track;
 
     if (track > dev->lasttrack) {
@@ -227,7 +228,7 @@ read_revolution(int drive)
     }
 
     for (den = 0; den < 4; den++) {
-        for (side = 0; side < dev->sides; side++) {
+        for (int side = 0; side < dev->sides; side++) {
             c = fdi2raw_loadtrack(dev->h,
                                   (uint16_t *) dev->track_data[side][den],
                                   (uint16_t *) dev->track_timing[side][den],
@@ -248,8 +249,8 @@ read_revolution(int drive)
 static uint32_t
 index_hole_pos(int drive, int side)
 {
-    fdi_t *dev = fdi[drive];
-    int    density;
+    const fdi_t *dev = fdi[drive];
+    int          density;
 
     density = fdi_density();
 
@@ -259,8 +260,8 @@ index_hole_pos(int drive, int side)
 static uint32_t
 get_raw_size(int drive, int side)
 {
-    fdi_t *dev = fdi[drive];
-    int    density;
+    const fdi_t *dev = fdi[drive];
+    int          density;
 
     density = fdi_density();
 
@@ -290,7 +291,7 @@ fdi_seek(int drive, int track)
 
     d86f_set_cur_track(drive, track);
 
-    if (dev->f == NULL)
+    if (dev->fp == NULL)
         return;
 
     if (track < 0)
@@ -326,16 +327,16 @@ fdi_load(int drive, char *fn)
 
     d86f_unregister(drive);
 
-    dev->f = plat_fopen(fn, "rb");
-    if (fread(header, 1, 25, dev->f) != 25)
+    dev->fp = plat_fopen(fn, "rb");
+    if (fread(header, 1, 25, dev->fp) != 25)
         fatal("fdi_load(): Error reading header\n");
-    if (fseek(dev->f, 0, SEEK_SET) == -1)
+    if (fseek(dev->fp, 0, SEEK_SET) == -1)
         fatal("fdi_load(): Error seeking to the beginning of the file\n");
     header[25] = 0;
     if (strcmp(header, "Formatted Disk Image file") != 0) {
         /* This is a Japanese FDI file. */
         fdi_log("fdi_load(): Japanese FDI file detected, redirecting to IMG loader\n");
-        fclose(dev->f);
+        fclose(dev->fp);
         free(dev);
         img_load(drive, fn);
         return;
@@ -344,7 +345,7 @@ fdi_load(int drive, char *fn)
     /* Set up the drive unit. */
     fdi[drive] = dev;
 
-    dev->h         = fdi2raw_header(dev->f);
+    dev->h         = fdi2raw_header(dev->fp);
     dev->lasttrack = fdi2raw_get_last_track(dev->h);
     dev->sides     = fdi2raw_get_last_head(dev->h) + 1;
 
@@ -385,8 +386,8 @@ fdi_close(int drive)
     if (dev->h)
         fdi2raw_header_free(dev->h);
 
-    if (dev->f)
-        fclose(dev->f);
+    if (dev->fp)
+        fclose(dev->fp);
 
     /* Release the memory. */
     free(dev);

@@ -50,11 +50,13 @@
 #include <86box/rom.h>
 #include <86box/video.h>
 #include <86box/vid_cga.h>
+#include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
 
 static void
-elt_vid_off_poll(void *p)
+elt_vid_off_poll(void *priv)
 {
-    cga_t  *cga   = p;
+    cga_t  *cga   = priv;
     uint8_t hdisp = cga->crtc[1];
 
     /* Don't display anything.
@@ -65,9 +67,9 @@ elt_vid_off_poll(void *p)
 }
 
 static void
-sysstat_out(uint16_t port, uint8_t val, void *p)
+sysstat_out(UNUSED(uint16_t port), uint8_t val, void *priv)
 {
-    cga_t *cga = p;
+    cga_t *cga = priv;
 
     switch (val) {
         case 0:
@@ -88,10 +90,10 @@ sysstat_out(uint16_t port, uint8_t val, void *p)
 }
 
 static uint8_t
-sysstat_in(uint16_t port, void *p)
+sysstat_in(UNUSED(uint16_t port), void *priv)
 {
-    cga_t  *cga = p;
-    uint8_t ret = 0x0a; /* No idea what these bits are */
+    const cga_t  *cga = priv;
+    uint8_t       ret = 0x0a; /* No idea what these bits are */
 
     /* External CRT. We don't emulate the LCD/CRT switching, let's just
      * frivolously use this bit to indicate we're using the LCD if the
@@ -103,9 +105,9 @@ sysstat_in(uint16_t port, void *p)
 }
 
 static void
-elt_vid_out(uint16_t addr, uint8_t val, void *p)
+elt_vid_out(uint16_t addr, uint8_t val, void *priv)
 {
-    cga_t *cga = p;
+    cga_t *cga = priv;
 
     /* The Equity LT chipset's CRTC contains more registers than the
      * regular CGA. The BIOS writes one of them, register 36 (0x24).
@@ -122,30 +124,32 @@ elt_vid_out(uint16_t addr, uint8_t val, void *p)
         case 0x3d1:
             if (cga->crtcreg >= 32)
                 return;
-            /* FALLTHROUGH */
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
+
         default:
             cga->crtcreg &= 31;
-            cga_out(addr, val, p);
+            cga_out(addr, val, priv);
     }
 }
 
 static uint8_t
-elt_vid_in(uint16_t addr, void *p)
+elt_vid_in(uint16_t addr, void *priv)
 {
-    cga_t *cga = p;
+    cga_t *cga = priv;
 
     /* Just make sure we don't ever let regular CGA code run with crtcreg
      * pointing out of crtcregs[] bounds. */
     cga->crtcreg &= 31;
-    return cga_in(addr, p);
+    return cga_in(addr, priv);
 }
 
 static void
 load_font_rom(uint32_t font_data)
 {
-    int c, d;
-    for (c = 0; c < 256; c++)
-        for (d = 0; d < 8; d++)
+    for (uint16_t c = 0; c < 256; c++)
+        for (uint8_t d = 0; d < 8; d++)
             fontdat[c][d] = mem_readb_phys(font_data++);
 }
 

@@ -49,7 +49,9 @@ cassette_mount(char *fn, uint8_t wp)
     if (fn != NULL)
         memcpy(cassette_fname, fn, MIN(511, strlen(fn)));
     ui_sb_update_icon_state(SB_CASSETTE, (fn == NULL) ? 1 : 0);
-    // media_menu_update_cassette();
+#if 0
+    media_menu_update_cassette();
+#endif
     ui_sb_update_tip(SB_CASSETTE);
     config_save();
 }
@@ -60,7 +62,9 @@ cassette_eject(void)
     pc_cas_set_fname(cassette, NULL);
     memset(cassette_fname, 0x00, sizeof(cassette_fname));
     ui_sb_update_icon_state(SB_CASSETTE, 1);
-    // media_menu_update_cassette();
+#if 0
+    media_menu_update_cassette();
+#endif
     ui_sb_update_tip(SB_CASSETTE);
     config_save();
 }
@@ -71,7 +75,9 @@ cartridge_mount(uint8_t id, char *fn, uint8_t wp)
     cart_close(id);
     cart_load(id, fn);
     ui_sb_update_icon_state(SB_CARTRIDGE | id, strlen(cart_fns[id]) ? 0 : 1);
-    // media_menu_update_cartridge(id);
+#if 0
+    media_menu_update_cartridge(id);
+#endif
     ui_sb_update_tip(SB_CARTRIDGE | id);
     config_save();
 }
@@ -81,7 +87,9 @@ cartridge_eject(uint8_t id)
 {
     cart_close(id);
     ui_sb_update_icon_state(SB_CARTRIDGE | id, 1);
-    // media_menu_update_cartridge(id);
+#if 0
+    media_menu_update_cartridge(id);
+#endif
     ui_sb_update_tip(SB_CARTRIDGE | id);
     config_save();
 }
@@ -93,7 +101,9 @@ floppy_mount(uint8_t id, char *fn, uint8_t wp)
     ui_writeprot[id] = wp;
     fdd_load(id, fn);
     ui_sb_update_icon_state(SB_FLOPPY | id, strlen(floppyfns[id]) ? 0 : 1);
-    // media_menu_update_floppy(id);
+#if 0
+    media_menu_update_floppy(id);
+#endif
     ui_sb_update_tip(SB_FLOPPY | id);
     config_save();
 }
@@ -103,7 +113,9 @@ floppy_eject(uint8_t id)
 {
     fdd_close(id);
     ui_sb_update_icon_state(SB_FLOPPY | id, 1);
-    // media_menu_update_floppy(id);
+#if 0
+    media_menu_update_floppy(id);
+#endif
     ui_sb_update_tip(SB_FLOPPY | id);
     config_save();
 }
@@ -119,7 +131,9 @@ plat_cdrom_ui_update(uint8_t id, uint8_t reload)
         ui_sb_update_icon_state(SB_CDROM | id, 0);
     }
 
-    // media_menu_update_cdrom(id);
+#if 0
+    media_menu_update_cdrom(id);
+#endif
     ui_sb_update_tip(SB_CDROM | id);
 }
 
@@ -142,7 +156,9 @@ cdrom_mount(uint8_t id, char *fn)
     } else {
         ui_sb_update_icon_state(SB_CDROM | id, 1);
     }
-    // media_menu_update_cdrom(id);
+#if 0
+    media_menu_update_cdrom(id);
+#endif
     ui_sb_update_tip(SB_CDROM | id);
     config_save();
 }
@@ -159,7 +175,9 @@ mo_eject(uint8_t id)
     }
 
     ui_sb_update_icon_state(SB_MO | id, 1);
-    // media_menu_update_mo(id);
+#if 0
+    media_menu_update_mo(id);
+#endif
     ui_sb_update_tip(SB_MO | id);
     config_save();
 }
@@ -175,7 +193,9 @@ mo_mount(uint8_t id, char *fn, uint8_t wp)
     mo_insert(dev);
 
     ui_sb_update_icon_state(SB_MO | id, strlen(mo_drives[id].image_path) ? 0 : 1);
-    // media_menu_update_mo(id);
+#if 0
+    media_menu_update_mo(id);
+#endif
     ui_sb_update_tip(SB_MO | id);
 
     config_save();
@@ -193,7 +213,9 @@ mo_reload(uint8_t id)
         ui_sb_update_icon_state(SB_MO | id, 0);
     }
 
-    // media_menu_update_mo(id);
+#if 0
+    media_menu_update_mo(id);
+#endif
     ui_sb_update_tip(SB_MO | id);
 
     config_save();
@@ -211,7 +233,9 @@ zip_eject(uint8_t id)
     }
 
     ui_sb_update_icon_state(SB_ZIP | id, 1);
-    // media_menu_update_zip(id);
+#if 0
+    media_menu_update_zip(id);
+#endif
     ui_sb_update_tip(SB_ZIP | id);
     config_save();
 }
@@ -227,7 +251,9 @@ zip_mount(uint8_t id, char *fn, uint8_t wp)
     zip_insert(dev);
 
     ui_sb_update_icon_state(SB_ZIP | id, strlen(zip_drives[id].image_path) ? 0 : 1);
-    // media_menu_update_zip(id);
+#if 0
+    media_menu_update_zip(id);
+#endif
     ui_sb_update_tip(SB_ZIP | id);
 
     config_save();
@@ -245,7 +271,9 @@ zip_reload(uint8_t id)
         ui_sb_update_icon_state(SB_ZIP | id, 0);
     }
 
-    // media_menu_update_zip(id);
+#if 0
+    media_menu_update_zip(id);
+#endif
     ui_sb_update_tip(SB_ZIP | id);
 
     config_save();

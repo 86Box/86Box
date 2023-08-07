@@ -43,6 +43,7 @@
 #include <86box/video.h>
 #include <86box/vid_cga_comp.h>
 #include <86box/machine.h>
+#include <86box/plat_unused.h>
 
 enum {
     TANDY_RGB = 0,
@@ -62,7 +63,7 @@ enum {
     EEPROM_WRITE
 };
 
-typedef struct {
+typedef struct t1kvid_t {
     mem_mapping_t mapping;
     mem_mapping_t vram_mapping;
 
@@ -72,36 +73,41 @@ typedef struct {
     int     array_index;
     uint8_t array[256];
     int     memctrl;
-    uint8_t mode, col;
+    uint8_t mode;
+    uint8_t col;
     uint8_t stat;
 
-    uint8_t *vram, *b8000;
+    uint8_t *vram;
+    uint8_t *b8000;
     uint32_t b8000_mask;
     uint32_t b8000_limit;
     uint8_t  planar_ctrl;
 
-    int linepos,
-        displine;
-    int sc, vc;
-    int dispon;
-    int con, coff,
-        cursoron,
-        blink;
+    int      linepos;
+    int      displine;
+    int      sc;
+    int      vc;
+    int      dispon;
+    int      con;
+    int      coff;
+    int      cursoron;
+    int      blink;
     int      fullchange;
     int      vsynctime;
     int      vadj;
-    uint16_t ma, maback;
+    uint16_t ma;
+    uint16_t maback;
 
-    uint64_t dispontime,
-        dispofftime;
+    uint64_t   dispontime;
+    uint64_t   dispofftime;
     pc_timer_t timer;
-    int        firstline,
-        lastline;
+    int        firstline;
+    int        lastline;
 
     int composite;
 } t1kvid_t;
 
-typedef struct {
+typedef struct t1keep_t {
     char *path;
 
     int      state;
@@ -112,7 +118,7 @@ typedef struct {
     uint16_t store[64];
 } t1keep_t;
 
-typedef struct {
+typedef struct tandy_t {
     mem_mapping_t ram_mapping;
     mem_mapping_t rom_mapping; /* SL2 */
 
@@ -448,7 +454,9 @@ recalc_timings(tandy_t *dev)
 {
     t1kvid_t *vid = dev->vid;
 
-    double _dispontime, _dispofftime, disptime;
+    double _dispontime;
+    double _dispofftime;
+    double disptime;
 
     if (vid->mode & 1) {
         disptime    = vid->crtc[0] + 1;
@@ -571,15 +579,18 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
             vid->planar_ctrl = val;
             recalc_mapping(dev);
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
 vid_in(uint16_t addr, void *priv)
 {
-    tandy_t  *dev = (tandy_t *) priv;
-    t1kvid_t *vid = dev->vid;
-    uint8_t   ret = 0xff;
+    const tandy_t  *dev = (tandy_t *) priv;
+    const t1kvid_t *vid = dev->vid;
+    uint8_t         ret = 0xff;
 
     if ((addr >= 0x3d0) && (addr <= 0x3d7))
         addr = (addr & 0xff9) | 0x004;
@@ -596,9 +607,12 @@ vid_in(uint16_t addr, void *priv)
         case 0x03da:
             ret = vid->stat;
             break;
+
+        default:
+            break;
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -625,11 +639,11 @@ vid_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 vid_read(uint32_t addr, void *priv)
 {
-    tandy_t  *dev = (tandy_t *) priv;
-    t1kvid_t *vid = dev->vid;
+    const tandy_t  *dev = (tandy_t *) priv;
+    const t1kvid_t *vid = dev->vid;
 
     if (vid->memctrl == -1)
-        return (0xff);
+        return 0xff;
 
     if (dev->is_sl2) {
         if (vid->array[5] & 1)
@@ -637,7 +651,7 @@ vid_read(uint32_t addr, void *priv)
         if ((addr & 0x7fff) < vid->b8000_limit)
             return (vid->b8000[addr & 0x7fff]);
         else
-            return (0xff);
+            return 0xff;
     } else {
         return (vid->b8000[addr & vid->b8000_mask]);
     }
@@ -650,9 +664,13 @@ vid_poll(void *priv)
     t1kvid_t *vid = dev->vid;
     uint16_t  ca  = (vid->crtc[15] | (vid->crtc[14] << 8)) & 0x3fff;
     int       drawcursor;
-    int       x, c, xs_temp, ys_temp;
+    int       x;
+    int       c;
+    int       xs_temp;
+    int       ys_temp;
     int       oldvc;
-    uint8_t   chr, attr;
+    uint8_t   chr;
+    uint8_t   attr;
     uint16_t  dat;
     int       cols[4];
     int       col;
@@ -674,25 +692,25 @@ vid_poll(void *priv)
             cols[0]       = (vid->array[2] & 0xf) + 16;
             for (c = 0; c < 8; c++) {
                 if (vid->array[3] & 4) {
-                    buffer32->line[(vid->displine << 1)][c] = buffer32->line[(vid->displine << 1) + 1][c] = cols[0];
+                    buffer32->line[vid->displine << 1][c] = buffer32->line[(vid->displine << 1) + 1][c] = cols[0];
                     if (vid->mode & 1) {
-                        buffer32->line[(vid->displine << 1)][c + (vid->crtc[1] << 3) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 3) + 8] = cols[0];
+                        buffer32->line[vid->displine << 1][c + (vid->crtc[1] << 3) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 3) + 8] = cols[0];
                     } else {
-                        buffer32->line[(vid->displine << 1)][c + (vid->crtc[1] << 4) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 4) + 8] = cols[0];
+                        buffer32->line[vid->displine << 1][c + (vid->crtc[1] << 4) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 4) + 8] = cols[0];
                     }
                 } else if ((vid->mode & 0x12) == 0x12) {
-                    buffer32->line[(vid->displine << 1)][c] = buffer32->line[(vid->displine << 1) + 1][c] = 0;
+                    buffer32->line[vid->displine << 1][c] = buffer32->line[(vid->displine << 1) + 1][c] = 0;
                     if (vid->mode & 1) {
-                        buffer32->line[(vid->displine << 1)][c + (vid->crtc[1] << 3) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 3) + 8] = 0;
+                        buffer32->line[vid->displine << 1][c + (vid->crtc[1] << 3) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 3) + 8] = 0;
                     } else {
-                        buffer32->line[(vid->displine << 1)][c + (vid->crtc[1] << 4) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 4) + 8] = 0;
+                        buffer32->line[vid->displine << 1][c + (vid->crtc[1] << 4) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 4) + 8] = 0;
                     }
                 } else {
-                    buffer32->line[(vid->displine << 1)][c] = buffer32->line[(vid->displine << 1) + 1][c] = (vid->col & 15) + 16;
+                    buffer32->line[vid->displine << 1][c] = buffer32->line[(vid->displine << 1) + 1][c] = (vid->col & 15) + 16;
                     if (vid->mode & 1) {
-                        buffer32->line[(vid->displine << 1)][c + (vid->crtc[1] << 3) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 3) + 8] = (vid->col & 15) + 16;
+                        buffer32->line[vid->displine << 1][c + (vid->crtc[1] << 3) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 3) + 8] = (vid->col & 15) + 16;
                     } else {
-                        buffer32->line[(vid->displine << 1)][c + (vid->crtc[1] << 4) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 4) + 8] = (vid->col & 15) + 16;
+                        buffer32->line[vid->displine << 1][c + (vid->crtc[1] << 4) + 8] = buffer32->line[(vid->displine << 1) + 1][c + (vid->crtc[1] << 4) + 8] = (vid->col & 15) + 16;
                     }
                 }
             }
@@ -700,19 +718,19 @@ vid_poll(void *priv)
                 for (x = 0; x < vid->crtc[1] * 2; x++) {
                     dat = (vid->vram[(vid->ma << 1) & 0xffff] << 8) | vid->vram[((vid->ma << 1) + 1) & 0xffff];
                     vid->ma++;
-                    buffer32->line[(vid->displine << 1)][(x << 2) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 2) + 8] = vid->array[((dat >> 12) & 0xf) + 16] + 16;
-                    buffer32->line[(vid->displine << 1)][(x << 2) + 9] = buffer32->line[(vid->displine << 1) + 1][(x << 2) + 9] = vid->array[((dat >> 8) & 0xf) + 16] + 16;
-                    buffer32->line[(vid->displine << 1)][(x << 2) + 10] = buffer32->line[(vid->displine << 1) + 1][(x << 2) + 10] = vid->array[((dat >> 4) & 0xf) + 16] + 16;
-                    buffer32->line[(vid->displine << 1)][(x << 2) + 11] = buffer32->line[(vid->displine << 1) + 1][(x << 2) + 11] = vid->array[(dat & 0xf) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 2) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 2) + 8] = vid->array[((dat >> 12) & 0xf) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 2) + 9] = buffer32->line[(vid->displine << 1) + 1][(x << 2) + 9] = vid->array[((dat >> 8) & 0xf) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 2) + 10] = buffer32->line[(vid->displine << 1) + 1][(x << 2) + 10] = vid->array[((dat >> 4) & 0xf) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 2) + 11] = buffer32->line[(vid->displine << 1) + 1][(x << 2) + 11] = vid->array[(dat & 0xf) + 16] + 16;
                 }
             } else if ((vid->array[3] & 0x10) && (vid->mode & 1)) { /*320x200x16*/
                 for (x = 0; x < vid->crtc[1]; x++) {
                     dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000)] << 8) | vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000) + 1];
                     vid->ma++;
-                    buffer32->line[(vid->displine << 1)][(x << 3) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 8] = buffer32->line[(vid->displine << 1)][(x << 3) + 9] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 9] = vid->array[((dat >> 12) & vid->array[1]) + 16] + 16;
-                    buffer32->line[(vid->displine << 1)][(x << 3) + 10] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 10] = buffer32->line[(vid->displine << 1)][(x << 3) + 11] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 11] = vid->array[((dat >> 8) & vid->array[1]) + 16] + 16;
-                    buffer32->line[(vid->displine << 1)][(x << 3) + 12] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 12] = buffer32->line[(vid->displine << 1)][(x << 3) + 13] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 13] = vid->array[((dat >> 4) & vid->array[1]) + 16] + 16;
-                    buffer32->line[(vid->displine << 1)][(x << 3) + 14] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 14] = buffer32->line[(vid->displine << 1)][(x << 3) + 15] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 15] = vid->array[(dat & vid->array[1]) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 3) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 8] = buffer32->line[vid->displine << 1][(x << 3) + 9] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 9] = vid->array[((dat >> 12) & vid->array[1]) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 3) + 10] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 10] = buffer32->line[vid->displine << 1][(x << 3) + 11] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 11] = vid->array[((dat >> 8) & vid->array[1]) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 3) + 12] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 12] = buffer32->line[vid->displine << 1][(x << 3) + 13] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 13] = vid->array[((dat >> 4) & vid->array[1]) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 3) + 14] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 14] = buffer32->line[vid->displine << 1][(x << 3) + 15] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 15] = vid->array[(dat & vid->array[1]) + 16] + 16;
                 }
             } else if (vid->array[3] & 0x10) { /*160x200x16*/
                 for (x = 0; x < vid->crtc[1]; x++) {
@@ -722,10 +740,10 @@ vid_poll(void *priv)
                         dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000)] << 8) | vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 3) * 0x2000) + 1];
                     }
                     vid->ma++;
-                    buffer32->line[(vid->displine << 1)][(x << 4) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 8] = buffer32->line[(vid->displine << 1)][(x << 4) + 9] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 9] = buffer32->line[(vid->displine << 1)][(x << 4) + 10] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 10] = buffer32->line[(vid->displine << 1)][(x << 4) + 11] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 11] = vid->array[((dat >> 12) & vid->array[1]) + 16] + 16;
-                    buffer32->line[(vid->displine << 1)][(x << 4) + 12] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 12] = buffer32->line[(vid->displine << 1)][(x << 4) + 13] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 13] = buffer32->line[(vid->displine << 1)][(x << 4) + 14] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 14] = buffer32->line[(vid->displine << 1)][(x << 4) + 15] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 15] = vid->array[((dat >> 8) & vid->array[1]) + 16] + 16;
-                    buffer32->line[(vid->displine << 1)][(x << 4) + 16] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 16] = buffer32->line[(vid->displine << 1)][(x << 4) + 17] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 17] = buffer32->line[(vid->displine << 1)][(x << 4) + 18] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 18] = buffer32->line[(vid->displine << 1)][(x << 4) + 19] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 19] = vid->array[((dat >> 4) & vid->array[1]) + 16] + 16;
-                    buffer32->line[(vid->displine << 1)][(x << 4) + 20] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 20] = buffer32->line[(vid->displine << 1)][(x << 4) + 21] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 21] = buffer32->line[(vid->displine << 1)][(x << 4) + 22] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 22] = buffer32->line[(vid->displine << 1)][(x << 4) + 23] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 23] = vid->array[(dat & vid->array[1]) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 4) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 8] = buffer32->line[vid->displine << 1][(x << 4) + 9] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 9] = buffer32->line[vid->displine << 1][(x << 4) + 10] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 10] = buffer32->line[vid->displine << 1][(x << 4) + 11] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 11] = vid->array[((dat >> 12) & vid->array[1]) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 4) + 12] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 12] = buffer32->line[vid->displine << 1][(x << 4) + 13] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 13] = buffer32->line[vid->displine << 1][(x << 4) + 14] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 14] = buffer32->line[vid->displine << 1][(x << 4) + 15] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 15] = vid->array[((dat >> 8) & vid->array[1]) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 4) + 16] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 16] = buffer32->line[vid->displine << 1][(x << 4) + 17] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 17] = buffer32->line[vid->displine << 1][(x << 4) + 18] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 18] = buffer32->line[vid->displine << 1][(x << 4) + 19] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 19] = vid->array[((dat >> 4) & vid->array[1]) + 16] + 16;
+                    buffer32->line[vid->displine << 1][(x << 4) + 20] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 20] = buffer32->line[vid->displine << 1][(x << 4) + 21] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 21] = buffer32->line[vid->displine << 1][(x << 4) + 22] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 22] = buffer32->line[vid->displine << 1][(x << 4) + 23] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + 23] = vid->array[(dat & vid->array[1]) + 16] + 16;
                 }
             } else if (vid->array[3] & 0x08) { /*640x200x4 - this implementation is a complete guess!*/
                 for (x = 0; x < vid->crtc[1]; x++) {
@@ -734,7 +752,7 @@ vid_poll(void *priv)
                     for (c = 0; c < 8; c++) {
                         chr = (dat >> 6) & 2;
                         chr |= ((dat >> 15) & 1);
-                        buffer32->line[(vid->displine << 1)][(x << 3) + 8 + c] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 8 + c] = vid->array[(chr & vid->array[1]) + 16] + 16;
+                        buffer32->line[vid->displine << 1][(x << 3) + 8 + c] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + 8 + c] = vid->array[(chr & vid->array[1]) + 16] + 16;
                         dat <<= 1;
                     }
                 }
@@ -754,20 +772,20 @@ vid_poll(void *priv)
                     }
                     if (vid->sc & 8) {
                         for (c = 0; c < 8; c++) {
-                            buffer32->line[(vid->displine << 1)][(x << 3) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] = cols[0];
+                            buffer32->line[vid->displine << 1][(x << 3) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] = cols[0];
                         }
                     } else {
                         for (c = 0; c < 8; c++) {
                             if (vid->sc == 8) {
-                                buffer32->line[(vid->displine << 1)][(x << 3) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] = cols[(fontdat[chr][7] & (1 << (c ^ 7))) ? 1 : 0];
+                                buffer32->line[vid->displine << 1][(x << 3) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] = cols[(fontdat[chr][7] & (1 << (c ^ 7))) ? 1 : 0];
                             } else {
-                                buffer32->line[(vid->displine << 1)][(x << 3) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] = cols[(fontdat[chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+                                buffer32->line[vid->displine << 1][(x << 3) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] = cols[(fontdat[chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
                             }
                         }
                     }
                     if (drawcursor) {
                         for (c = 0; c < 8; c++) {
-                            buffer32->line[(vid->displine << 1)][(x << 3) + c + 8] ^= 15;
+                            buffer32->line[vid->displine << 1][(x << 3) + c + 8] ^= 15;
                             buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] ^= 15;
                         }
                     }
@@ -790,19 +808,19 @@ vid_poll(void *priv)
                     vid->ma++;
                     if (vid->sc & 8) {
                         for (c = 0; c < 8; c++)
-                            buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] = buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 1 + 8] = cols[0];
+                            buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 8] = buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 1 + 8] = cols[0];
                     } else {
                         for (c = 0; c < 8; c++) {
                             if (vid->sc == 8) {
-                                buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdat[chr][7] & (1 << (c ^ 7))) ? 1 : 0];
+                                buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdat[chr][7] & (1 << (c ^ 7))) ? 1 : 0];
                             } else {
-                                buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdat[chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+                                buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] = cols[(fontdat[chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
                             }
                         }
                     }
                     if (drawcursor) {
                         for (c = 0; c < 16; c++) {
-                            buffer32->line[(vid->displine << 1)][(x << 4) + c + 8] ^= 15;
+                            buffer32->line[vid->displine << 1][(x << 4) + c + 8] ^= 15;
                             buffer32->line[(vid->displine << 1) + 1][(x << 4) + c + 8] ^= 15;
                         }
                     }
@@ -831,7 +849,7 @@ vid_poll(void *priv)
                     dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 1) * 0x2000)] << 8) | vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 1) * 0x2000) + 1];
                     vid->ma++;
                     for (c = 0; c < 8; c++) {
-                        buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] = cols[dat >> 14];
+                        buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = buffer32->line[vid->displine << 1][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] = cols[dat >> 14];
                         dat <<= 2;
                     }
                 }
@@ -842,7 +860,7 @@ vid_poll(void *priv)
                     dat = (vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 1) * 0x2000)] << 8) | vid->vram[((vid->ma << 1) & 0x1fff) + ((vid->sc & 1) * 0x2000) + 1];
                     vid->ma++;
                     for (c = 0; c < 16; c++) {
-                        buffer32->line[(vid->displine << 1)][(x << 4) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + c + 8] = cols[dat >> 15];
+                        buffer32->line[vid->displine << 1][(x << 4) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + c + 8] = cols[dat >> 15];
                         dat <<= 1;
                     }
                 }
@@ -873,7 +891,7 @@ vid_poll(void *priv)
         else
             x = (vid->crtc[1] << 4) + 16;
         if (!dev->is_sl2 && vid->composite) {
-            Composite_Process(vid->mode, 0, x >> 2, buffer32->line[(vid->displine << 1)]);
+            Composite_Process(vid->mode, 0, x >> 2, buffer32->line[vid->displine << 1]);
             Composite_Process(vid->mode, 0, x >> 2, buffer32->line[(vid->displine << 1) + 1]);
         } else {
             video_process_8(x, vid->displine << 1);
@@ -961,7 +979,7 @@ vid_poll(void *priv)
                         if (!enable_overscan)
                             xs_temp -= 16;
 
-                        if (((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
+                        if ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get()) {
                             xsize = xs_temp;
                             ysize = ys_temp;
                             set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
@@ -1015,7 +1033,7 @@ vid_poll(void *priv)
             vid->sc &= 31;
             vid->ma = vid->maback;
         }
-        if ((vid->sc == (vid->crtc[10] & 31) || ((vid->crtc[8] & 3) == 3 && vid->sc == ((vid->crtc[10] & 31) >> 1))))
+        if (vid->sc == (vid->crtc[10] & 31) || ((vid->crtc[8] & 3) == 3 && vid->sc == ((vid->crtc[10] & 31) >> 1)))
             vid->con = 1;
     }
 }
@@ -1133,7 +1151,7 @@ const device_t vid_device_sl = {
 };
 
 static void
-eep_write(uint16_t addr, uint8_t val, void *priv)
+eep_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     t1keep_t *eep = (t1keep_t *) priv;
 
@@ -1159,6 +1177,9 @@ eep_write(uint16_t addr, uint8_t val, void *priv)
                         if ((val & 3) == 3)
                             eep->state = EEPROM_GET_OPERATION;
                         eep->count = 0;
+                        break;
+
+                    default:
                         break;
                 }
                 break;
@@ -1205,6 +1226,9 @@ eep_write(uint16_t addr, uint8_t val, void *priv)
                     eep->store[eep->addr] = eep->data;
                 }
                 break;
+
+            default:
+                break;
         }
 
     eep->clk = val & 4;
@@ -1227,6 +1251,9 @@ eep_init(const device_t *info)
         case TYPE_TANDY1000SL2:
             eep->path = "tandy1000sl2.bin";
             break;
+
+        default:
+            break;
     }
 
     f = nvr_fopen(eep->path, "rb");
@@ -1239,7 +1266,7 @@ eep_init(const device_t *info)
 
     io_sethandler(0x037c, 1, NULL, NULL, NULL, eep_write, NULL, NULL, eep);
 
-    return (eep);
+    return eep;
 }
 
 static void
@@ -1313,14 +1340,18 @@ tandy_write(uint16_t addr, uint8_t val, void *priv)
             dev->rom_offset = ((val ^ 4) & 7) * 0x10000;
             mem_mapping_set_exec(&dev->rom_mapping,
                                  &dev->rom[dev->rom_offset]);
+            break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
 tandy_read(uint16_t addr, void *priv)
 {
-    tandy_t *dev = (tandy_t *) priv;
-    uint8_t  ret = 0xff;
+    const tandy_t *dev = (tandy_t *) priv;
+    uint8_t        ret = 0xff;
 
     switch (addr) {
         case 0x00a0:
@@ -1334,15 +1365,18 @@ tandy_read(uint16_t addr, void *priv)
         case 0xffea:
             ret = (dev->rom_bank ^ 0x10);
             break;
+
+        default:
+            break;
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
 write_ram(uint32_t addr, uint8_t val, void *priv)
 {
-    tandy_t *dev = (tandy_t *) priv;
+    const tandy_t *dev = (tandy_t *) priv;
 
     ram[dev->base + (addr & 0x1ffff)] = val;
 }
@@ -1350,7 +1384,7 @@ write_ram(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 read_ram(uint32_t addr, void *priv)
 {
-    tandy_t *dev = (tandy_t *) priv;
+    const tandy_t *dev = (tandy_t *) priv;
 
     return (ram[dev->base + (addr & 0x1ffff)]);
 }
@@ -1358,8 +1392,8 @@ read_ram(uint32_t addr, void *priv)
 static uint8_t
 read_rom(uint32_t addr, void *priv)
 {
-    tandy_t *dev   = (tandy_t *) priv;
-    uint32_t addr2 = (addr & 0xffff) + dev->rom_offset;
+    const tandy_t *dev   = (tandy_t *) priv;
+    uint32_t       addr2 = (addr & 0xffff) + dev->rom_offset;
 
     return (dev->rom[addr2]);
 }
@@ -1469,6 +1503,9 @@ machine_tandy1k_init(const machine_t *model, int type)
             device_add(&pssj_device);
             device_add(&eep_1000sl2_device);
             break;
+
+        default:
+            break;
     }
 
     standalone_gameport_type = &gameport_device;
@@ -1479,7 +1516,7 @@ machine_tandy1k_init(const machine_t *model, int type)
 int
 tandy1k_eeprom_read(void)
 {
-    return (eep_data_out);
+    return eep_data_out;
 }
 
 int

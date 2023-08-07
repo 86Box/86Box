@@ -35,6 +35,7 @@
 #include <86box/timer.h>
 #include <86box/network.h>
 #include <86box/net_plip.h>
+#include <86box/plat_unused.h>
 
 enum {
     PLIP_START          = 0x00,
@@ -57,20 +58,28 @@ enum {
     PLIP_END = 0x40
 };
 
-typedef struct
-{
+typedef struct plip_t {
     uint8_t mac[6];
 
     void      *lpt;
     pc_timer_t rx_timer;
     pc_timer_t timeout_timer;
-    uint8_t    status, ctrl;
+    uint8_t    status;
+    uint8_t    ctrl;
 
-    uint8_t  state, ack, tx_checksum, tx_checksum_calc, *tx_pkt;
-    uint16_t tx_len, tx_ptr;
+    uint8_t   state;
+    uint8_t   ack;
+    uint8_t   tx_checksum;
+    uint8_t   tx_checksum_calc;
+    uint8_t  *tx_pkt;
+    uint16_t  tx_len;
+    uint16_t  tx_ptr;
 
-    uint8_t   *rx_pkt, rx_checksum, rx_return_state;
-    uint16_t   rx_len, rx_ptr;
+    uint8_t   *rx_pkt;
+    uint8_t    rx_checksum;
+    uint8_t    rx_return_state;
+    uint16_t   rx_len;
+    uint16_t   rx_ptr;
     netcard_t *card;
 } plip_t;
 
@@ -334,6 +343,9 @@ plip_write_data(uint8_t val, void *priv)
             /* Disengage timeout timer. */
             timer_disable(&dev->timeout_timer);
             return;
+
+        default:
+            break;
     }
 
     /* Engage timeout timer unless otherwise specified. */
@@ -356,7 +368,7 @@ plip_write_ctrl(uint8_t val, void *priv)
 static uint8_t
 plip_read_status(void *priv)
 {
-    plip_t *dev = (plip_t *) priv;
+    const plip_t *dev = (plip_t *) priv;
 
     plip_log(3, "PLIP: read_status() = %02X\n", dev->status);
 
@@ -454,7 +466,7 @@ plip_lpt_init(void *lpt)
 }
 
 static void *
-plip_net_init(const device_t *info)
+plip_net_init(UNUSED(const device_t *info))
 {
     plip_log(1, "PLIP: net_init()");
 

@@ -25,6 +25,8 @@
 #include <86box/sound.h>
 #include <86box/timer.h>
 #include <86box/snd_sb.h>
+#include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
 
 #define ADPCM_4  1
 #define ADPCM_26 2
@@ -33,8 +35,8 @@
 /*The recording safety margin is intended for uneven "len" calls to the get_buffer mixer calls on sound_sb*/
 #define SB_DSP_REC_SAFEFTY_MARGIN 4096
 
-void pollsb(void *p);
-void sb_poll_i(void *p);
+void pollsb(void *priv);
+void sb_poll_i(void *priv);
 
 static int sbe2dat[4][9] = {
     {0x01,   -0x02, -0x04, 0x08,  -0x10, 0x20,  0x40,  -0x80, -106},
@@ -144,7 +146,8 @@ recalc_sb16_filter(int c, int playback_freq)
 {
     /* Cutoff frequency = playback / 2 */
     int    n;
-    double w, h;
+    double w;
+    double h;
     double fC = ((double) playback_freq) / (double) FREQ_96000;
     double gain;
 
@@ -172,7 +175,7 @@ recalc_sb16_filter(int c, int playback_freq)
 static void
 sb_irq_update_pic(void *priv, int set)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    const sb_dsp_t *dsp = (sb_dsp_t *) priv;
     if (set)
         picint(1 << dsp->sb_irqnum);
     else
@@ -204,8 +207,8 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
     int masked = 0;
 
     switch (bit) {
-        case 0:
         default:
+        case 0:
             dsp->sb_irq8 = set;
             masked       = dsp->sb_irqm8;
             break;
@@ -248,7 +251,7 @@ sb_dsp_irq_update(void *priv, int set)
 static int
 sb_dsp_irq_pending(void *priv)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    const sb_dsp_t *dsp = (sb_dsp_t *) priv;
 
     return dsp->sb_irq401;
 }
@@ -299,8 +302,6 @@ sb_dsp_reset(sb_dsp_t *dsp)
 void
 sb_doreset(sb_dsp_t *dsp)
 {
-    int c;
-
     sb_dsp_reset(dsp);
 
     if (IS_AZTECH(dsp)) {
@@ -315,7 +316,7 @@ sb_doreset(sb_dsp_t *dsp)
 
     dsp->sb_asp_mode      = 0;
     dsp->sb_asp_ram_index = 0;
-    for (c = 0; c < 256; c++)
+    for (uint16_t c = 0; c < 256; c++)
         dsp->sb_asp_regs[c] = 0;
 
     dsp->sb_asp_regs[5] = 0x01;
@@ -409,28 +410,32 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 int
 sb_8_read_dma(void *priv)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    const sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
     return dma_channel_read(dsp->sb_8_dmanum);
 }
 
 int
 sb_8_write_dma(void *priv, uint8_t val)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    const sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
     return dma_channel_write(dsp->sb_8_dmanum, val) == DMA_NODATA;
 }
 
 int
 sb_16_read_dma(void *priv)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    const sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
     return dma_channel_read(dsp->sb_16_dmanum);
 }
 
 int
 sb_16_write_dma(void *priv, uint16_t val)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    const sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
     return dma_channel_write(dsp->sb_16_dmanum, val) == DMA_NODATA;
 }
 
@@ -455,7 +460,8 @@ sb_dsp_setdma16(sb_dsp_t *dsp, int dma)
 void
 sb_exec_command(sb_dsp_t *dsp)
 {
-    int temp, c;
+    int temp;
+    int c;
 
     sb_dsp_log("sb_exec_command : SB command %02X\n", dsp->sb_command);
 
@@ -595,7 +601,9 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x75: /* 4-bit ADPCM output with reference */
             dsp->sbref  = dsp->dma_readb(dsp->dma_priv);
             dsp->sbstep = 0;
-            /* Fall through */
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
         case 0x74: /* 4-bit ADPCM output */
             sb_start_dma(dsp, 1, 0, ADPCM_4, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
             dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
@@ -917,6 +925,9 @@ sb_exec_command(sb_dsp_t *dsp)
              *  0FCh           DSP Auxiliary Status                                SB16
              *  0FDh           DSP Command Status                                  SB16
              */
+
+        default:
+            break;
     }
 
     /* Update 8051 ram with the last DSP command.
@@ -1046,6 +1057,9 @@ sb_read(uint16_t a, void *priv)
             sb_dsp_log("SB 16-bit ACK read 0xFF\n");
             ret = 0xff;
             break;
+
+        default:
+            break;
     }
 
     return ret;
@@ -1055,7 +1069,6 @@ void
 sb_dsp_input_msg(void *p, uint8_t *msg, uint32_t len)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) p;
-    uint8_t   i   = 0;
 
     sb_dsp_log("MIDI in sysex = %d, uart irq = %d, msg = %d\n", dsp->midi_in_sysex, dsp->uart_irq, len);
 
@@ -1068,11 +1081,11 @@ sb_dsp_input_msg(void *p, uint8_t *msg, uint32_t len)
         return;
 
     if (dsp->uart_irq) {
-        for (i = 0; i < len; i++)
+        for (uint32_t i = 0; i < len; i++)
             sb_add_data(dsp, msg[i]);
         sb_irq(dsp, 1);
     } else if (dsp->midi_in_poll) {
-        for (i = 0; i < len; i++)
+        for (uint32_t i = 0; i < len; i++)
             sb_add_data(dsp, msg[i]);
     }
 }
@@ -1081,7 +1094,6 @@ int
 sb_dsp_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) p;
-    uint32_t  i;
 
     if (!dsp->uart_irq && !dsp->midi_in_poll && (dsp->mpu != NULL))
         return MPU401_InputSysex(dsp->mpu, buffer, len, abort);
@@ -1093,7 +1105,7 @@ sb_dsp_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 
     dsp->midi_in_sysex = 1;
 
-    for (i = 0; i < len; i++) {
+    for (uint32_t i = 0; i < len; i++) {
         if (dsp->sb_read_rp == dsp->sb_read_wp) {
             sb_dsp_log("Length sysex SB = %d\n", len - i);
             return (len - i);
@@ -1194,10 +1206,11 @@ sb_dsp_dma_attach(sb_dsp_t *dsp,
 }
 
 void
-pollsb(void *p)
+pollsb(void *priv)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) p;
-    int       tempi, ref;
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    int       tempi;
+    int       ref;
     int       data[2];
 
     timer_advance_u64(&dsp->output_timer, dsp->sblatcho);
@@ -1379,6 +1392,9 @@ pollsb(void *p)
                 } else
                     dsp->sbdatl = dsp->sbdatr = dsp->sbdat;
                 break;
+
+            default:
+                break;
         }
 
         if (dsp->sb_8_length < 0) {
@@ -1427,6 +1443,9 @@ pollsb(void *p)
                 dsp->sbdatr = data[1];
                 dsp->sb_16_length -= 2;
                 break;
+
+            default:
+                break;
         }
 
         if (dsp->sb_16_length < 0) {
@@ -1452,9 +1471,9 @@ pollsb(void *p)
 }
 
 void
-sb_poll_i(void *p)
+sb_poll_i(void *priv)
 {
-    sb_dsp_t *dsp       = (sb_dsp_t *) p;
+    sb_dsp_t *dsp       = (sb_dsp_t *) priv;
     int       processed = 0;
 
     timer_advance_u64(&dsp->input_timer, dsp->sblatchi);
@@ -1486,6 +1505,9 @@ sb_poll_i(void *p)
                 dsp->sb_8_length -= 2;
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
+                break;
+
+            default:
                 break;
         }
 
@@ -1532,6 +1554,9 @@ sb_poll_i(void *p)
                 dsp->record_pos_read += 2;
                 dsp->record_pos_read &= 0xFFFF;
                 break;
+
+            default:
+                break;
         }
 
         if (dsp->sb_16_length < 0) {
@@ -1566,6 +1591,7 @@ sb_dsp_update(sb_dsp_t *dsp)
 }
 
 void
-sb_dsp_close(sb_dsp_t *dsp)
+sb_dsp_close(UNUSED(sb_dsp_t *dsp))
 {
+    //
 }

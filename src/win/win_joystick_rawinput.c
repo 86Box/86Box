@@ -17,6 +17,7 @@
  *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2020 GH Cao.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #include <windows.h>
 #include <windowsx.h>
@@ -98,6 +99,8 @@ joystick_add_button(raw_joystick_t *rawjoy, plat_joystick_t *joy, USAGE usage)
 void
 joystick_add_axis(raw_joystick_t *rawjoy, plat_joystick_t *joy, PHIDP_VALUE_CAPS prop)
 {
+    LONG               center;
+
     if (joy->nr_axes >= 8)
         return;
 
@@ -141,7 +144,10 @@ joystick_add_axis(raw_joystick_t *rawjoy, plat_joystick_t *joy, PHIDP_VALUE_CAPS
     }
     rawjoy->axis[joy->nr_axes].min = prop->LogicalMin;
 
-    joy->nr_axes++;
+    center = (rawjoy->axis[joy->nr_axes].max - rawjoy->axis[joy->nr_axes].min + 1) / 2;
+
+    if (center != 0x00)
+        joy->nr_axes++;
 }
 
 void
@@ -443,12 +449,12 @@ joystick_get_axis(int joystick_nr, int mapping)
 void
 joystick_process(void)
 {
-    int c, d;
+    int d;
 
     if (joystick_type == 7)
         return;
 
-    for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++) {
+    for (int c = 0; c < joystick_get_max_joysticks(joystick_type); c++) {
         if (joystick_state[c].plat_joystick_nr) {
             int joystick_nr = joystick_state[c].plat_joystick_nr - 1;
 
@@ -458,8 +464,10 @@ joystick_process(void)
                 joystick_state[c].button[d] = plat_joystick_state[joystick_nr].b[joystick_state[c].button_mapping[d]];
 
             for (d = 0; d < joystick_get_pov_count(joystick_type); d++) {
-                int    x, y;
-                double angle, magnitude;
+                int    x;
+                int    y;
+                double angle;
+                double magnitude;
 
                 x = joystick_get_axis(joystick_nr, joystick_state[c].pov_mapping[d][0]);
                 y = joystick_get_axis(joystick_nr, joystick_state[c].pov_mapping[d][1]);

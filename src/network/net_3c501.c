@@ -58,6 +58,7 @@
 #include <86box/network.h>
 #include <86box/net_3c501.h>
 #include <86box/bswap.h>
+#include <86box/plat_unused.h>
 
 /* Maximum number of times we report a link down to the guest (failure to send frame) */
 #define ELNK_MAX_LINKDOWN_REPORTED 3
@@ -192,7 +193,7 @@ typedef struct ELNK_INTR_STAT {
     uint8_t unused    : 5;
 } EL_INTR_STAT;
 
-typedef struct {
+typedef struct threec501_t {
     uint32_t base_address;
     int      base_irq;
     uint32_t bios_addr;
@@ -372,8 +373,8 @@ elnkR3HardReset(threec501_t *dev)
 static __inline int
 padr_match(threec501_t *dev, const uint8_t *buf)
 {
-    struct ether_header *hdr = (struct ether_header *) buf;
-    int                  result;
+    const struct ether_header *hdr = (struct ether_header *) buf;
+    int                        result;
 
     /* Checks own + broadcast as well as own + multicast. */
     result = (dev->RcvCmd.adr_match >= EL_ADRM_BCAST) && !memcmp(hdr->ether_dhost, dev->aStationAddr, 6);
@@ -387,9 +388,10 @@ padr_match(threec501_t *dev, const uint8_t *buf)
 static __inline int
 padr_bcast(threec501_t *dev, const uint8_t *buf)
 {
-    static uint8_t       aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-    struct ether_header *hdr       = (struct ether_header *) buf;
-    int                  result    = (dev->RcvCmd.adr_match == EL_ADRM_BCAST) && !memcmp(hdr->ether_dhost, aBCAST, 6);
+    static uint8_t             aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+    const struct ether_header *hdr       = (struct ether_header *) buf;
+    int                        result    = (dev->RcvCmd.adr_match == EL_ADRM_BCAST) && !memcmp(hdr->ether_dhost, aBCAST, 6);
+
     return result;
 }
 
@@ -401,6 +403,7 @@ padr_mcast(threec501_t *dev, const uint8_t *buf)
 {
     struct ether_header *hdr    = (struct ether_header *) buf;
     int                  result = (dev->RcvCmd.adr_match == EL_ADRM_MCAST) && ETHER_IS_MULTICAST(hdr->ether_dhost);
+
     return result;
 }
 
@@ -473,7 +476,9 @@ static int
 elnkReceiveLocked(void *priv, uint8_t *src, int size)
 {
     threec501_t *dev     = (threec501_t *) priv;
-    int          is_padr = 0, is_bcast = 0, is_mcast = 0;
+    int          is_padr = 0;
+    int          is_bcast = 0;
+    int          is_mcast = 0;
     bool         fLoopback = dev->RcvCmd.adr_match == EL_BCTL_LOOPBACK;
 
     union {
@@ -644,7 +649,7 @@ elnkAsyncTransmit(threec501_t *dev)
         return;
     }
 
-    if (((dev->AuxCmd.buf_ctl != EL_BCTL_XMT_RCV) && (dev->AuxCmd.buf_ctl != EL_BCTL_LOOPBACK))) {
+    if ((dev->AuxCmd.buf_ctl != EL_BCTL_XMT_RCV) && (dev->AuxCmd.buf_ctl != EL_BCTL_LOOPBACK)) {
 #ifdef ENABLE_3COM501_LOG
         threec501_log("3Com501: Nope, not in xmit-then-receive or loopback state\n");
 #endif
@@ -656,8 +661,8 @@ elnkAsyncTransmit(threec501_t *dev)
      */
     do {
         /* Don't send anything when the link is down. */
-        if ((!elnkIsLinkUp(dev)
-             && dev->cLinkDownReported > ELNK_MAX_LINKDOWN_REPORTED))
+        if (!elnkIsLinkUp(dev)
+             && dev->cLinkDownReported > ELNK_MAX_LINKDOWN_REPORTED)
             break;
 
         bool const fLoopback = dev->AuxCmd.buf_ctl == EL_BCTL_LOOPBACK;
@@ -690,7 +695,6 @@ elnkAsyncTransmit(threec501_t *dev)
 #ifdef ENABLE_3COM501_LOG
                 threec501_log("3Com501: illegal giant frame (%u bytes) -> signalling error\n", cb);
 #endif
-                ;
             }
         } else {
             /* Signal a transmit error pretending there was a collision. */
@@ -919,13 +923,16 @@ threec501_read(uint16_t addr, void *priv)
             retval         = dev->abPacketBuf[ELNK_GP(dev)];
             dev->uGPBufPtr = (dev->uGPBufPtr + 1) & ELNK_GP_MASK;
             break;
+
+        default:
+            break;
     }
 
     elnkUpdateIrq(dev);
 #ifdef ENABLE_3COM501_LOG
     threec501_log("3Com501: read addr %x, value %x\n", addr & 0x0f, retval);
 #endif
-    return (retval);
+    return retval;
 }
 
 static uint8_t
@@ -1005,6 +1012,9 @@ threec501_write(uint16_t addr, uint8_t value, void *priv)
             dev->abPacketBuf[ELNK_GP(dev)] = value;
             dev->uGPBufPtr                 = (dev->uGPBufPtr + 1) & ELNK_GP_MASK;
             break;
+
+        default:
+            break;
     }
 
 #ifdef ENABLE_3COM501_LOG
@@ -1066,7 +1076,7 @@ elnkR3TimerRestore(void *priv)
 }
 
 static void *
-threec501_nic_init(const device_t *info)
+threec501_nic_init(UNUSED(const device_t *info))
 {
     uint32_t     mac;
     threec501_t *dev;
@@ -1130,7 +1140,7 @@ threec501_nic_init(const device_t *info)
 
     timer_add(&dev->timer_restore, elnkR3TimerRestore, dev, 0);
 
-    return (dev);
+    return dev;
 }
 
 static void

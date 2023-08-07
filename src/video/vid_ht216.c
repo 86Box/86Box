@@ -35,6 +35,8 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
+#include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
 
 typedef struct ht216_t {
     svga_t svga;
@@ -92,8 +94,8 @@ typedef struct ht216_t {
 
 void ht216_remap(ht216_t *ht216);
 
-void    ht216_out(uint16_t addr, uint8_t val, void *p);
-uint8_t ht216_in(uint16_t addr, void *p);
+void    ht216_out(uint16_t addr, uint8_t val, void *priv);
+uint8_t ht216_in(uint16_t addr, void *priv);
 
 #define BIOS_G2_GC205_PATH              "roms/video/video7/BIOS.BIN"
 #define BIOS_VIDEO7_VGA_1024I_PATH      "roms/video/video7/Video Seven VGA 1024i - BIOS - v2.19 - 435-0062-05 - U17 - 27C256.BIN"
@@ -164,9 +166,9 @@ ht216_recalc_bank_regs(ht216_t *ht216, int mode)
 }
 
 void
-ht216_out(uint16_t addr, uint8_t val, void *p)
+ht216_out(uint16_t addr, uint8_t val, void *priv)
 {
-    ht216_t *ht216 = (ht216_t *) p;
+    ht216_t *ht216 = (ht216_t *) priv;
     svga_t  *svga  = &ht216->svga;
     uint8_t  old;
 
@@ -319,7 +321,9 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
                         svga->adv_flags &= ~FLAG_RAMDAC_SHIFT;
                         if (val & 0x04)
                             svga->adv_flags |= FLAG_RAMDAC_SHIFT;
-                        /* FALLTHROUGH */
+#ifdef FALLTHROUGH_ANNOTATION
+                        [[fallthrough]];
+#endif
                     /*Bank registers*/
                     case 0xe8:
                     case 0xe9:
@@ -463,9 +467,9 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-ht216_in(uint16_t addr, void *p)
+ht216_in(uint16_t addr, void *priv)
 {
-    ht216_t *ht216 = (ht216_t *) p;
+    ht216_t *ht216 = (ht216_t *) priv;
     svga_t  *svga  = &ht216->svga;
     uint8_t  ret   = 0xff;
 
@@ -606,7 +610,7 @@ ht216_remap(ht216_t *ht216)
 void
 ht216_recalctimings(svga_t *svga)
 {
-    ht216_t *ht216        = (ht216_t *) svga->p;
+    ht216_t *ht216        = (ht216_t *) svga->priv;
     int      high_res_256 = 0;
 
     switch ((((((svga->miscout >> 2) & 3) || ((ht216->ht_regs[0xa4] >> 2) & 3)) | ((ht216->ht_regs[0xa4] >> 2) & 4)) || ((ht216->ht_regs[0xf8] >> 5) & 0x0f)) | ((ht216->ht_regs[0xf8] << 1) & 8)) {
@@ -614,16 +618,16 @@ ht216_recalctimings(svga_t *svga)
         case 1:
             break;
         case 4:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 50350000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 50350000.0;
             break;
         case 5:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 65000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 65000000.0;
             break;
         case 7:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 40000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 40000000.0;
             break;
         default:
-            svga->clock = (cpuclock * (double) (1ull << 32)) / 36000000.0;
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / 36000000.0;
             break;
     }
 
@@ -702,8 +706,8 @@ ht216_recalctimings(svga_t *svga)
 static void
 ht216_hwcursor_draw(svga_t *svga, int displine)
 {
-    ht216_t *ht216 = (ht216_t *) svga->p;
-    int      x, shift = (ht216->adjust_cursor ? 2 : 1);
+    ht216_t *ht216 = (ht216_t *) svga->priv;
+    int      shift = (ht216->adjust_cursor ? 2 : 1);
     uint32_t dat[2];
     int      offset = svga->hwcursor_latch.x + svga->hwcursor_latch.xoff;
     int      width  = (ht216->adjust_cursor ? 16 : 32);
@@ -717,7 +721,7 @@ ht216_hwcursor_draw(svga_t *svga, int displine)
     dat[0] = (svga->vram[svga->hwcursor_latch.addr] << 24) | (svga->vram[svga->hwcursor_latch.addr + 1] << 16) | (svga->vram[svga->hwcursor_latch.addr + 2] << 8) | svga->vram[svga->hwcursor_latch.addr + 3];
     dat[1] = (svga->vram[svga->hwcursor_latch.addr + 128] << 24) | (svga->vram[svga->hwcursor_latch.addr + 128 + 1] << 16) | (svga->vram[svga->hwcursor_latch.addr + 128 + 2] << 8) | svga->vram[svga->hwcursor_latch.addr + 128 + 3];
 
-    for (x = 0; x < width; x++) {
+    for (int x = 0; x < width; x++) {
         if (!(dat[0] & 0x80000000))
             ((uint32_t *) buffer32->line[displine])[svga->x_add + offset + x] = 0;
         if (dat[1] & 0x80000000)
@@ -796,10 +800,13 @@ static void
 ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_unexpanded)
 {
     svga_t *svga       = &ht216->svga;
-    int     writemask2 = svga->writemask, reset_wm = 0;
+    int     writemask2 = svga->writemask;
+    int     reset_wm   = 0;
     latch_t vall;
-    uint8_t i, wm = svga->writemask;
-    uint8_t count = 4, fg_data[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    uint8_t i;
+    uint8_t wm = svga->writemask;
+    uint8_t count = 4;
+    uint8_t fg_data[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
 
     if (ht216->ht_regs[0xcd] & HT_REG_CD_P8PCEXP)
         writemask2 = svga->seqregs[2];
@@ -984,8 +991,10 @@ ht216_dm_extalu_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t bi
             01 = Bit mask (3CF:8)
             1x = (3C4:F5)*/
     svga_t  *svga    = &ht216->svga;
-    uint8_t  input_a = 0, input_b = 0;
-    uint8_t  fg, bg;
+    uint8_t  input_a = 0;
+    uint8_t  input_b = 0;
+    uint8_t  fg;
+    uint8_t  bg;
     uint8_t  output;
     uint32_t remapped_addr = dword_remap(svga, addr);
 
@@ -1024,7 +1033,8 @@ ht216_dm_masked_write(ht216_t *ht216, uint32_t addr, uint8_t val, uint8_t bit_ma
 {
     svga_t *svga       = &ht216->svga;
     int     writemask2 = svga->writemask;
-    uint8_t count      = 4, i;
+    uint8_t count      = 4;
+    uint8_t i;
     uint8_t full_mask  = 0x0f;
 
     if (ht216->ht_regs[0xcd] & HT_REG_CD_P8PCEXP)
@@ -1098,7 +1108,8 @@ ht216_write_common(ht216_t *ht216, uint32_t addr, uint8_t val)
     */
     svga_t *svga = &ht216->svga;
     int     i;
-    uint8_t bit_mask = 0, rop_select = 0;
+    uint8_t bit_mask   = 0;
+    uint8_t rop_select = 0;
 
     cycles -= video_timing_write_b;
 
@@ -1157,9 +1168,9 @@ ht216_write_common(ht216_t *ht216, uint32_t addr, uint8_t val)
 }
 
 static void
-ht216_write(uint32_t addr, uint8_t val, void *p)
+ht216_write(uint32_t addr, uint8_t val, void *priv)
 {
-    ht216_t *ht216     = (ht216_t *) p;
+    ht216_t *ht216     = (ht216_t *) priv;
     svga_t  *svga      = &ht216->svga;
     uint32_t prev_addr = addr;
 
@@ -1178,9 +1189,9 @@ ht216_write(uint32_t addr, uint8_t val, void *p)
 }
 
 static void
-ht216_writew(uint32_t addr, uint16_t val, void *p)
+ht216_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    ht216_t *ht216     = (ht216_t *) p;
+    ht216_t *ht216     = (ht216_t *) priv;
     svga_t  *svga      = &ht216->svga;
     uint32_t prev_addr = addr;
 
@@ -1201,9 +1212,9 @@ ht216_writew(uint32_t addr, uint16_t val, void *p)
 }
 
 static void
-ht216_writel(uint32_t addr, uint32_t val, void *p)
+ht216_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    ht216_t *ht216     = (ht216_t *) p;
+    ht216_t *ht216     = (ht216_t *) priv;
     svga_t  *svga      = &ht216->svga;
     uint32_t prev_addr = addr;
 
@@ -1226,9 +1237,9 @@ ht216_writel(uint32_t addr, uint32_t val, void *p)
 }
 
 static void
-ht216_write_linear(uint32_t addr, uint8_t val, void *p)
+ht216_write_linear(uint32_t addr, uint8_t val, void *priv)
 {
-    ht216_t *ht216 = (ht216_t *) p;
+    ht216_t *ht216 = (ht216_t *) priv;
     svga_t  *svga  = &ht216->svga;
 
     addr -= ht216->linear_base;
@@ -1243,9 +1254,9 @@ ht216_write_linear(uint32_t addr, uint8_t val, void *p)
 }
 
 static void
-ht216_writew_linear(uint32_t addr, uint16_t val, void *p)
+ht216_writew_linear(uint32_t addr, uint16_t val, void *priv)
 {
-    ht216_t *ht216 = (ht216_t *) p;
+    ht216_t *ht216 = (ht216_t *) priv;
     svga_t  *svga  = &ht216->svga;
 
     addr -= ht216->linear_base;
@@ -1262,9 +1273,9 @@ ht216_writew_linear(uint32_t addr, uint16_t val, void *p)
 }
 
 static void
-ht216_writel_linear(uint32_t addr, uint32_t val, void *p)
+ht216_writel_linear(uint32_t addr, uint32_t val, void *priv)
 {
-    ht216_t *ht216 = (ht216_t *) p;
+    ht216_t *ht216 = (ht216_t *) priv;
     svga_t  *svga  = &ht216->svga;
 
     addr -= ht216->linear_base;
@@ -1287,11 +1298,12 @@ ht216_read_common(ht216_t *ht216, uint32_t addr)
 {
     svga_t  *svga       = &ht216->svga;
     uint32_t latch_addr = 0;
-    int      offset, readplane = svga->readplane;
-    uint8_t or, i;
-    uint8_t count = 2;
-    uint8_t plane, pixel;
-    uint8_t temp, ret;
+    int      offset;
+    int      readplane = svga->readplane;
+    uint8_t  or;
+    uint8_t  count = 2;
+    uint8_t  temp;
+    uint8_t  ret;
 
     if (ht216->ht_regs[0xc8] & HT_REG_C8_MOVSB)
         addr <<= 3;
@@ -1309,7 +1321,7 @@ ht216_read_common(ht216_t *ht216, uint32_t addr)
         latch_addr = (addr & svga->vram_mask) & ~7;
         if (ht216->ht_regs[0xcd] & HT_REG_CD_ASTODE)
             latch_addr += (svga->gdcreg[3] & 7);
-        for (i = 0; i < 8; i++)
+        for (uint8_t i = 0; i < 8; i++)
             ht216->bg_latch[i] = svga->vram[dword_remap(svga, latch_addr + i)];
         return svga->vram[dword_remap(svga, addr) & svga->vram_mask];
     } else if (svga->chain4) {
@@ -1332,22 +1344,22 @@ ht216_read_common(ht216_t *ht216, uint32_t addr)
     latch_addr = addr & ~7;
     if (ht216->ht_regs[0xcd] & HT_REG_CD_ASTODE) {
         offset = addr & 7;
-        for (i = 0; i < 8; i++)
+        for (uint8_t i = 0; i < 8; i++)
             ht216->bg_latch[i] = svga->vram[latch_addr | ((offset + i) & 7)];
     } else {
-        for (i = 0; i < 8; i++)
+        for (uint8_t i = 0; i < 8; i++)
             ht216->bg_latch[i] = svga->vram[latch_addr | i];
     }
 
     or = addr & 4;
-    for (i = 0; i < 4; i++)
+    for (uint8_t i = 0; i < 4; i++)
         svga->latch.b[i] = ht216->bg_latch[i | or ];
 
     if (svga->readmode) {
         temp = 0xff;
 
-        for (pixel = 0; pixel < 8; pixel++) {
-            for (plane = 0; plane < (1 << count); plane++) {
+        for (uint8_t pixel = 0; pixel < 8; pixel++) {
+            for (uint8_t plane = 0; plane < (uint8_t)(1 << count); plane++) {
                 if (svga->colournocare & (1 << plane)) {
                     /* If we care about a plane, and the pixel has a mismatch on it, clear its bit. */
                     if (((svga->latch.b[plane] >> pixel) & 1) != ((svga->colourcompare >> plane) & 1))
@@ -1364,9 +1376,9 @@ ht216_read_common(ht216_t *ht216, uint32_t addr)
 }
 
 static uint8_t
-ht216_read(uint32_t addr, void *p)
+ht216_read(uint32_t addr, void *priv)
 {
-    ht216_t *ht216     = (ht216_t *) p;
+    ht216_t *ht216     = (ht216_t *) priv;
     svga_t  *svga      = &ht216->svga;
     uint32_t prev_addr = addr;
 
@@ -1382,9 +1394,9 @@ ht216_read(uint32_t addr, void *p)
 }
 
 static uint8_t
-ht216_read_linear(uint32_t addr, void *p)
+ht216_read_linear(uint32_t addr, void *priv)
 {
-    ht216_t *ht216 = (ht216_t *) p;
+    ht216_t *ht216 = (ht216_t *) priv;
     svga_t  *svga  = &ht216->svga;
 
     addr -= ht216->linear_base;
@@ -1419,7 +1431,7 @@ radius_mca_write(int port, uint8_t val, void *priv)
 }
 
 static uint8_t
-radius_mca_feedb(void *priv)
+radius_mca_feedb(UNUSED(void *priv))
 {
     return 1;
 }
@@ -1603,9 +1615,9 @@ radius_svga_multiview_available(void)
 }
 
 void
-ht216_close(void *p)
+ht216_close(void *priv)
 {
-    ht216_t *ht216 = (ht216_t *) p;
+    ht216_t *ht216 = (ht216_t *) priv;
 
     svga_close(&ht216->svga);
 
@@ -1613,17 +1625,17 @@ ht216_close(void *p)
 }
 
 void
-ht216_speed_changed(void *p)
+ht216_speed_changed(void *priv)
 {
-    ht216_t *ht216 = (ht216_t *) p;
+    ht216_t *ht216 = (ht216_t *) priv;
 
     svga_recalctimings(&ht216->svga);
 }
 
 void
-ht216_force_redraw(void *p)
+ht216_force_redraw(void *priv)
 {
-    ht216_t *ht216 = (ht216_t *) p;
+    ht216_t *ht216 = (ht216_t *) priv;
 
     ht216->svga.fullchange = changeframecount;
 }

@@ -74,36 +74,36 @@
 #define CMD_DIAGNOSE       0x90
 #define CMD_SET_PARAMETERS 0x91
 
-typedef struct {
-    int8_t present, /* drive is present */
-        hdd_num,    /* drive number in system */
-        steprate,   /* current servo step rate */
-        spt,        /* physical #sectors per track */
-        hpc,        /* physical #heads per cylinder */
-        pad;
-    int16_t tracks; /* physical #tracks per cylinder */
+typedef struct drive_t {
+    int8_t  present;  /* drive is present */
+    int8_t  hdd_num;  /* drive number in system */
+    int8_t  steprate; /* current servo step rate */
+    int8_t  spt;      /* physical #sectors per track */
+    int8_t  hpc;      /* physical #heads per cylinder */
+    int8_t  pad;
+    int16_t tracks;   /* physical #tracks per cylinder */
 
-    int8_t cfg_spt, /* configured #sectors per track */
-        cfg_hpc;    /* configured #heads per track */
+    int8_t cfg_spt;   /* configured #sectors per track */
+    int8_t cfg_hpc;   /* configured #heads per track */
 
-    int16_t curcyl; /* current track number */
+    int16_t curcyl;   /* current track number */
 } drive_t;
 
-typedef struct {
-    uint8_t precomp, /* 1: precomp/error register */
-        error,
-        secount, /* 2: sector count register */
-        sector,  /* 3: sector number */
-        head,    /* 6: head number + drive select */
-        command, /* 7: command/status */
-        status,
-        fdisk;         /* 8: control register */
+typedef struct mfm_t {
+    uint8_t  precomp;  /* 1: precomp/error register */
+    uint8_t  error;
+    uint8_t  secount;  /* 2: sector count register */
+    uint8_t  sector;   /* 3: sector number */
+    uint8_t  head;     /* 6: head number + drive select */
+    uint8_t  command;  /* 7: command/status */
+    uint8_t  status;
+    uint8_t  fdisk;    /* 8: control register */
     uint16_t cylinder; /* 4/5: cylinder LOW and HIGH */
 
-    int8_t reset, /* controller in reset */
-        irqstat,  /* current IRQ status */
-        drvsel,   /* current selected drive */
-        pad;
+    int8_t reset;      /* controller in reset */
+    int8_t irqstat;    /* current IRQ status */
+    int8_t drvsel;     /* current selected drive */
+    int8_t pad;
 
     int        pos;            /* offset within data buffer */
     pc_timer_t callback_timer; /* callback delay timer */
@@ -144,7 +144,7 @@ irq_raise(mfm_t *mfm)
 }
 
 static inline void
-irq_lower(mfm_t *mfm)
+irq_lower(UNUSED(mfm_t *mfm))
 {
     picintc(1 << 14);
 }
@@ -171,41 +171,41 @@ irq_update(mfm_t *mfm)
 static int
 get_sector(mfm_t *mfm, off64_t *addr)
 {
-    drive_t *drive = &mfm->drives[mfm->drvsel];
+    const drive_t *drive = &mfm->drives[mfm->drvsel];
 
     /* FIXME: See if this is even needed - if the code is present, IBM AT
               diagnostics v2.07 will error with: ERROR 152 - SYSTEM BOARD. */
     if (drive->curcyl != mfm->cylinder) {
         st506_at_log("WD1003(%d) sector: wrong cylinder\n");
-        return (1);
+        return 1;
     }
 
     if (mfm->head > drive->cfg_hpc) {
         st506_at_log("WD1003(%d) get_sector: past end of configured heads\n",
                      mfm->drvsel);
-        return (1);
+        return 1;
     }
 
     if (mfm->sector >= drive->cfg_spt + 1) {
         st506_at_log("WD1003(%d) get_sector: past end of configured sectors\n",
                      mfm->drvsel);
-        return (1);
+        return 1;
     }
 
     /* We should check this in the SET_DRIVE_PARAMETERS command!  --FvK */
     if (mfm->head > drive->hpc) {
         st506_at_log("WD1003(%d) get_sector: past end of heads\n", mfm->drvsel);
-        return (1);
+        return 1;
     }
 
     if (mfm->sector >= drive->spt + 1) {
         st506_at_log("WD1003(%d) get_sector: past end of sectors\n", mfm->drvsel);
-        return (1);
+        return 1;
     }
 
     *addr = ((((off64_t) mfm->cylinder * drive->cfg_hpc) + mfm->head) * drive->cfg_spt) + (mfm->sector - 1);
 
-    return (0);
+    return 0;
 }
 
 /* Move to the next sector using CHS addressing. */
@@ -435,6 +435,9 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
             mfm->fdisk = val;
             irq_update(mfm);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -468,7 +471,7 @@ mfm_readw(uint16_t port, void *priv)
         }
     }
 
-    return (ret);
+    return ret;
 }
 
 static uint8_t
@@ -517,7 +520,7 @@ mfm_read(uint16_t port, void *priv)
 
     st506_at_log("WD1003 read(%04x) = %02x\n", port, ret);
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -668,7 +671,7 @@ do_callback(void *priv)
 }
 
 static void
-loadhd(mfm_t *mfm, int c, int d, const char *fn)
+loadhd(mfm_t *mfm, int c, int d, UNUSED(const char *fn))
 {
     drive_t *drive = &mfm->drives[c];
 
@@ -686,17 +689,17 @@ loadhd(mfm_t *mfm, int c, int d, const char *fn)
 }
 
 static void *
-mfm_init(const device_t *info)
+mfm_init(UNUSED(const device_t *info))
 {
     mfm_t *mfm;
-    int    c, d;
+    int    c;
 
     st506_at_log("WD1003: ISA MFM/RLL Fixed Disk Adapter initializing ...\n");
     mfm = malloc(sizeof(mfm_t));
     memset(mfm, 0x00, sizeof(mfm_t));
 
     c = 0;
-    for (d = 0; d < HDD_NUM; d++) {
+    for (uint8_t d = 0; d < HDD_NUM; d++) {
         if ((hdd[d].bus == HDD_BUS_MFM) && (hdd[d].mfm_channel < MFM_NUM)) {
             loadhd(mfm, hdd[d].mfm_channel, d, hdd[d].fn);
 
@@ -722,17 +725,16 @@ mfm_init(const device_t *info)
 
     ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
 
-    return (mfm);
+    return mfm;
 }
 
 static void
 mfm_close(void *priv)
 {
     mfm_t *mfm = (mfm_t *) priv;
-    int    d;
 
-    for (d = 0; d < 2; d++) {
-        drive_t *drive = &mfm->drives[d];
+    for (uint8_t d = 0; d < 2; d++) {
+        const drive_t *drive = &mfm->drives[d];
 
         hdd_image_close(drive->hdd_num);
     }

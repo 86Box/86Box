@@ -24,6 +24,7 @@
 #include <86box/device.h>
 #include <86box/mem.h>
 #include <86box/agpgart.h>
+#include <86box/plat_unused.h>
 
 #ifdef ENABLE_AGPGART_LOG
 int agpgart_do_log = ENABLE_AGPGART_LOG;
@@ -129,7 +130,7 @@ agpgart_aperture_writel(uint32_t addr, uint32_t val, void *priv)
 }
 
 static void *
-agpgart_init(const device_t *info)
+agpgart_init(UNUSED(const device_t *info))
 {
     agpgart_t *dev = malloc(sizeof(agpgart_t));
     memset(dev, 0, sizeof(agpgart_t));

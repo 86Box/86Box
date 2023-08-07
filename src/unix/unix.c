@@ -36,6 +36,7 @@
 #include <86box/unix_sdl.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
+#include <86box/version.h>
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/gdbstub.h>
@@ -63,7 +64,8 @@ SDL_mutex      *blitmtx;
 SDL_threadID    eventthread;
 static int      exit_event         = 0;
 static int      fullscreen_pending = 0;
-uint32_t        lang_id = 0x0409, lang_sys = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
+uint32_t        lang_id  = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
+uint32_t        lang_sys = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
 char            icon_set[256] = "";                  /* name of the iconset to be used */
 
 static const uint16_t sdl_to_xt[0x200] = {
@@ -175,7 +177,10 @@ static const uint16_t sdl_to_xt[0x200] = {
 };
 
 typedef struct sdl_blit_params {
-    int x, y, w, h;
+    int x;
+    int y;
+    int w;
+    int h;
 } sdl_blit_params;
 
 sdl_blit_params params  = { 0, 0, 0, 0 };
@@ -242,8 +247,6 @@ plat_get_string(int i)
             return L"Press CTRL-END to release mouse";
         case IDS_2079:
             return L"Press CTRL-END or middle button to release mouse";
-        case IDS_2080:
-            return L"Failed to initialize FluidSynth";
         case IDS_2131:
             return L"Invalid configuration";
         case IDS_4099:
@@ -254,16 +257,10 @@ plat_get_string(int i)
             return L"No PCap devices found";
         case IDS_2096:
             return L"Invalid PCap device";
-        case IDS_2111:
-            return L"Unable to initialize FreeType";
         case IDS_2112:
             return L"Unable to initialize SDL, libsdl2 is required";
-        case IDS_2132:
-            return L"libfreetype is required for ESC/P printer emulation.";
         case IDS_2133:
             return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
-        case IDS_2134:
-            return L"libfluidsynth is required for FluidSynth MIDI output.";
         case IDS_2130:
             return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
         case IDS_2115:
@@ -307,7 +304,7 @@ path_normalize(char *path)
 void
 path_slash(char *path)
 {
-    if ((path[strlen(path) - 1] != '/')) {
+    if (path[strlen(path) - 1] != '/') {
         strcat(path, "/");
     }
     path_normalize(path);
@@ -347,7 +344,7 @@ path_get_filename(char *s)
         c--;
     }
 
-    return (s);
+    return s;
 }
 
 char *
@@ -356,7 +353,7 @@ path_get_extension(char *s)
     int c = strlen(s) - 1;
 
     if (c <= 0)
-        return (s);
+        return s;
 
     while (c && s[c] != '.')
         c--;
@@ -417,7 +414,8 @@ plat_timer_read(void)
 static uint64_t
 plat_get_ticks_common(void)
 {
-    uint64_t EndingTime, ElapsedMicroseconds;
+    uint64_t EndingTime;
+    uint64_t ElapsedMicroseconds;
     if (first_use) {
         Frequency    = SDL_GetPerformanceFrequency();
         StartingTime = SDL_GetPerformanceCounter();
@@ -519,8 +517,10 @@ strnicmp(const char *s1, const char *s2, size_t n)
 void
 main_thread(void *param)
 {
-    uint32_t old_time, new_time;
-    int      drawits, frames;
+    uint32_t old_time;
+    uint32_t new_time;
+    int      drawits;
+    int      frames;
 
     SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
     framecountx = 0;
@@ -693,7 +693,9 @@ ui_sb_bugui(char *str)
 extern void sdl_blit(int x, int y, int w, int h);
 
 typedef struct mouseinputdata {
-    int deltax, deltay, deltaz;
+    int deltax;
+    int deltay;
+    int deltaz;
     int mousebuttons;
 } mouseinputdata;
 SDL_mutex            *mousemutex;
@@ -710,7 +712,8 @@ mouse_poll(void)
     SDL_UnlockMutex(mousemutex);
 }
 
-int real_sdl_w, real_sdl_h;
+int real_sdl_w;
+int real_sdl_h;
 void
 ui_sb_set_ready(int ready)
 {
@@ -721,7 +724,8 @@ char *xargv[512];
 char *
 local_strsep(char **str, const char *sep)
 {
-    char *s = *str, *end;
+    char *s = *str;
+    char *end;
     if (!s)
         return NULL;
     end = s + strcspn(s, sep);
@@ -814,7 +818,7 @@ void
 plat_get_global_config_dir(char *strptr)
 {
 #ifdef __APPLE__
-    char *prefPath = SDL_GetPrefPath(NULL, "net.86Box.86Box")
+    char *prefPath = SDL_GetPrefPath(NULL, "net.86Box.86Box");
 #else
     char *prefPath = SDL_GetPrefPath(NULL, "86Box");
 #endif
@@ -828,8 +832,7 @@ process_media_commands_3(uint8_t *id, char *fn, uint8_t *wp, int cmdargc)
     bool err = false;
     *id      = atoi(xargv[1]);
     if (xargv[2][0] == '\'' || xargv[2][0] == '"') {
-        int curarg = 2;
-        for (curarg = 2; curarg < cmdargc; curarg++) {
+        for (int curarg = 2; curarg < cmdargc; curarg++) {
             if (strlen(fn) + strlen(xargv[curarg]) >= PATH_MAX) {
                 err = true;
                 fprintf(stderr, "Path name too long.\n");
@@ -925,9 +928,43 @@ monitor_thread(void *param)
                         "hardreset - hard reset the emulated system.\n"
                         "pause - pause the the emulated system.\n"
                         "fullscreen - toggle fullscreen.\n"
+                        "version - print version and license information.\n"
                         "exit - exit 86Box.\n");
                 } else if (strncasecmp(xargv[0], "exit", 4) == 0) {
                     exit_event = 1;
+                } else if (strncasecmp(xargv[0], "version", 7) == 0) {
+#    ifndef EMU_GIT_HASH
+#        define EMU_GIT_HASH "0000000"
+#    endif
+
+#    if defined(__arm__) || defined(__TARGET_ARCH_ARM)
+#        define ARCH_STR "arm"
+#    elif defined(__aarch64__) || defined(_M_ARM64)
+#        define ARCH_STR "arm64"
+#    elif defined(__i386) || defined(__i386__) || defined(_M_IX86)
+#        define ARCH_STR "i386"
+#    elif defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined(_M_X64)
+#        define ARCH_STR "x86_64"
+#    else
+#        define ARCH_STR "unknown arch"
+#    endif
+
+#    ifdef USE_DYNAREC
+#        ifdef USE_NEW_DYNAREC
+#            define DYNAREC_STR "new dynarec"
+#        else
+#            define DYNAREC_STR "old dynarec"
+#        endif
+#    else
+#        define DYNAREC_STR "no dynarec"
+#    endif
+
+                    printf(
+                        "%s v%s [%s] [%s, %s]\n\n"
+                        "An emulator of old computers\n"
+                        "Authors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\n"
+                        "Released under the GNU General Public License version 2 or later. See LICENSE for more information.\n",
+                        EMU_NAME, EMU_VERSION_FULL, EMU_GIT_HASH, ARCH_STR, DYNAREC_STR);
                 } else if (strncasecmp(xargv[0], "fullscreen", 10) == 0) {
                     video_fullscreen   = video_fullscreen ? 0 : 1;
                     fullscreen_pending = 1;
@@ -989,7 +1026,8 @@ monitor_thread(void *param)
                 } else if (strncasecmp(xargv[0], "zipeject", 8) == 0 && cmdargc >= 2) {
                     zip_eject(atoi(xargv[1]));
                 } else if (strncasecmp(xargv[0], "fddload", 7) == 0 && cmdargc >= 4) {
-                    uint8_t id, wp;
+                    uint8_t id;
+                    uint8_t wp;
                     bool    err = false;
                     char    fn[PATH_MAX];
                     memset(fn, 0, sizeof(fn));
@@ -1008,7 +1046,8 @@ monitor_thread(void *param)
                         floppy_mount(id, fn, wp);
                     }
                 } else if (strncasecmp(xargv[0], "moload", 7) == 0 && cmdargc >= 4) {
-                    uint8_t id, wp;
+                    uint8_t id;
+                    uint8_t wp;
                     bool    err = false;
                     char    fn[PATH_MAX];
                     memset(fn, 0, sizeof(fn));
@@ -1027,7 +1066,8 @@ monitor_thread(void *param)
                         mo_mount(id, fn, wp);
                     }
                 } else if (strncasecmp(xargv[0], "cartload", 7) == 0 && cmdargc >= 4) {
-                    uint8_t id, wp;
+                    uint8_t id;
+                    uint8_t wp;
                     bool    err = false;
                     char    fn[PATH_MAX];
                     memset(fn, 0, sizeof(fn));
@@ -1046,7 +1086,8 @@ monitor_thread(void *param)
                         cartridge_mount(id, fn, wp);
                     }
                 } else if (strncasecmp(xargv[0], "zipload", 7) == 0 && cmdargc >= 4) {
-                    uint8_t id, wp;
+                    uint8_t id;
+                    uint8_t wp;
                     bool    err = false;
                     char    fn[PATH_MAX];
                     memset(fn, 0, sizeof(fn));

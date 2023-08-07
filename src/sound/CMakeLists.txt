@@ -85,6 +85,13 @@ if(RTMIDI)
 endif()
 
 if(FLUIDSYNTH)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(FLUIDSYNTH REQUIRED IMPORTED_TARGET fluidsynth)
+    target_link_libraries(86Box PkgConfig::FLUIDSYNTH)
+    if(STATIC_BUILD)
+        target_link_libraries(86Box -static ${FLUIDSYNTH_STATIC_LIBRARIES} -fopenmp)
+    endif()
+
     target_compile_definitions(snd PRIVATE USE_FLUIDSYNTH)
     target_sources(snd PRIVATE midi_fluidsynth.c)
 endif()

@@ -18,20 +18,20 @@
 #define SOUND_OPL_H
 
 enum fm_type {
-    FM_YM3812 = 0,
-    FM_YMF262,
-    FM_YMF289B,
-    FM_YMF278B,
-    FM_MAX
+    FM_YM3812  = 0, /* OPL2 */
+    FM_YMF262  = 1, /* OPL3 */
+    FM_YMF289B = 2, /* OPL3-L */
+    FM_YMF278B = 3, /* OPL 4 */
+    FM_MAX     = 4
 };
 
 enum fm_driver {
     FM_DRV_NUKED = 0,
-    FM_DRV_YMFM,
-    FM_DRV_MAX
+    FM_DRV_YMFM  = 1,
+    FM_DRV_MAX   = 2
 };
 
-typedef struct {
+typedef struct fm_drv_t {
     uint8_t (*read)(uint16_t port, void *priv);
     void (*write)(uint16_t port, uint8_t val, void *priv);
     int32_t *(*update)(void *priv);

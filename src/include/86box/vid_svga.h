@@ -31,15 +31,23 @@
 #    define FLAG_NOSKEW       16
 #    define FLAG_ADDR_BY16    32
 #    define FLAG_RAMDAC_SHIFT 64
-#    define FLAG_128K_MASK    128
-
+#    define FLAG_ATI          128
+#    define FLAG_S3_911_16BIT 256
+#    define FLAG_512K_MASK    512
 struct monitor_t;
 
-typedef struct {
-    int ena,
-        x, y, xoff, yoff, cur_xsize, cur_ysize,
-        v_acc, h_acc;
-    uint32_t addr, pitch;
+typedef struct hwcursor_t {
+    int      ena;
+    int      x;
+    int      y;
+    int      xoff;
+    int      yoff;
+    int      cur_xsize;
+    int      cur_ysize;
+    int      v_acc;
+    int      h_acc;
+    uint32_t addr;
+    uint32_t pitch;
 } hwcursor_t;
 
 typedef union {
@@ -54,25 +62,78 @@ typedef struct svga_t {
     xga_t         xga;
     mem_mapping_t mapping;
 
-    uint8_t fast, chain4, chain2_write, chain2_read,
-        ext_overscan, bus_size,
-        lowres, interlace, linedbl, rowcount,
-        set_reset_disabled, bpp, ramdac_type, fb_only,
-        readmode, writemode, readplane,
-        hwcursor_oddeven, dac_hwcursor_oddeven, overlay_oddeven,
-        fcr, hblank_overscan;
+    uint8_t fast;
+    uint8_t chain4;
+    uint8_t chain2_write;
+    uint8_t chain2_read;
+    uint8_t ext_overscan;
+    uint8_t bus_size;
+    uint8_t lowres;
+    uint8_t interlace;
+    uint8_t linedbl;
+    uint8_t rowcount;
+    uint8_t set_reset_disabled;
+    uint8_t bpp;
+    uint8_t ramdac_type;
+    uint8_t fb_only;
+    uint8_t readmode;
+    uint8_t writemode;
+    uint8_t readplane;
+    uint8_t hwcursor_oddeven;
+    uint8_t dac_hwcursor_oddeven;
+    uint8_t overlay_oddeven;
+    uint8_t fcr;
+    uint8_t hblank_overscan;
 
-    int dac_addr, dac_pos, dac_r, dac_g,
-        vtotal, dispend, vsyncstart, split, vblankstart,
-        hdisp, hdisp_old, htotal, hdisp_time, rowoffset,
-        dispon, hdisp_on,
-        vc, sc, linepos, vslines, linecountff, oddeven,
-        con, cursoron, blink, scrollcache, char_width,
-        firstline, lastline, firstline_draw, lastline_draw,
-        displine, fullchange, x_add, y_add, pan,
-        vram_display_mask, vidclock, dots_per_clock, hblank_ext,
-        hwcursor_on, dac_hwcursor_on, overlay_on, set_override,
-        hblankstart, hblankend, hblank_sub, hblank_end_val, hblank_end_len;
+    int dac_addr;
+    int dac_pos;
+    int dac_r;
+    int dac_g;
+    int vtotal;
+    int dispend;
+    int vsyncstart;
+    int split;
+    int vblankstart;
+    int hdisp;
+    int hdisp_old;
+    int htotal;
+    int hdisp_time;
+    int rowoffset;
+    int dispon;
+    int hdisp_on;
+    int vc;
+    int sc;
+    int linepos;
+    int vslines;
+    int linecountff;
+    int oddeven;
+    int con;
+    int cursoron;
+    int blink;
+    int scrollcache;
+    int char_width;
+    int firstline;
+    int lastline;
+    int firstline_draw;
+    int lastline_draw;
+    int displine;
+    int fullchange;
+    int x_add;
+    int y_add;
+    int pan;
+    int vram_display_mask;
+    int vidclock;
+    int dots_per_clock;
+    int hblank_ext;
+    int hwcursor_on;
+    int dac_hwcursor_on;
+    int overlay_on;
+    int set_override;
+    int hblankstart;
+    int hblankend;
+    int hblank_sub;
+    int hblank_end_val;
+    int hblank_end_len;
 
     /*The three variables below allow us to implement memory maps like that seen on a 1MB Trio64 :
       0MB-1MB - VRAM
@@ -83,35 +144,47 @@ typedef struct svga_t {
       For the example memory map, decode_mask would be 4MB-1 (4MB address space), vram_max would be 2MB
       (present video memory only responds to first 2MB), vram_mask would be 1MB-1 (video memory wraps at 1MB)
     */
-    uint32_t decode_mask, vram_max,
-        vram_mask,
-        charseta, charsetb,
-        adv_flags, ma_latch,
-        ca_adj, ma, maback,
-        write_bank, read_bank,
-        extra_banks[2],
-        banked_mask,
-        ca, overscan_color,
-        *map8, pallook[512];
+    uint32_t  decode_mask;
+    uint32_t  vram_max;
+    uint32_t  vram_mask;
+    uint32_t  charseta;
+    uint32_t  charsetb;
+    uint32_t  adv_flags;
+    uint32_t  ma_latch;
+    uint32_t  ca_adj;
+    uint32_t  ma;
+    uint32_t  maback;
+    uint32_t  write_bank;
+    uint32_t  read_bank;
+    uint32_t  extra_banks[2];
+    uint32_t  banked_mask;
+    uint32_t  ca;
+    uint32_t  overscan_color;
+    uint32_t *map8;
+    uint32_t  pallook[512];
 
     PALETTE vgapal;
 
-    uint64_t dispontime, dispofftime;
+    uint64_t dispontime;
+    uint64_t dispofftime;
     latch_t  latch;
 
     pc_timer_t timer;
 
     double clock;
 
-    hwcursor_t hwcursor, hwcursor_latch,
-        dac_hwcursor, dac_hwcursor_latch,
-        overlay, overlay_latch;
+    hwcursor_t hwcursor;
+    hwcursor_t hwcursor_latch;
+    hwcursor_t dac_hwcursor;
+    hwcursor_t dac_hwcursor_latch;
+    hwcursor_t overlay;
+    hwcursor_t overlay_latch;
 
     void (*render)(struct svga_t *svga);
     void (*recalctimings_ex)(struct svga_t *svga);
 
-    void (*video_out)(uint16_t addr, uint8_t val, void *p);
-    uint8_t (*video_in)(uint16_t addr, void *p);
+    void (*video_out)(uint16_t addr, uint8_t val, void *priv);
+    uint8_t (*video_in)(uint16_t addr, void *priv);
 
     void (*hwcursor_draw)(struct svga_t *svga, int displine);
 
@@ -122,7 +195,7 @@ typedef struct svga_t {
     void (*vblank_start)(struct svga_t *svga);
 
     void (*ven_write)(struct svga_t *svga, uint8_t val, uint32_t addr);
-    float (*getclock)(int clock, void *p);
+    float (*getclock)(int clock, void *priv);
 
     /* Called when VC=R18 and friends. If this returns zero then MA resetting
        is skipped. Matrox Mystique in Power mode reuses this counter for
@@ -132,24 +205,39 @@ typedef struct svga_t {
     /*Called at the start of vertical sync*/
     void (*vsync_callback)(struct svga_t *svga);
 
-    uint32_t (*translate_address)(uint32_t addr, void *p);
+    uint32_t (*translate_address)(uint32_t addr, void *priv);
     /*If set then another device is driving the monitor output and the SVGA
       card should not attempt to display anything */
     int   override;
-    void *p;
+    void *priv;
 
-    uint8_t crtc[256], gdcreg[256], attrregs[32], seqregs[256],
-        egapal[16],
-        *vram, *changedvram;
+    uint8_t  crtc[256];
+    uint8_t  gdcreg[256];
+    uint8_t  attrregs[32];
+    uint8_t  seqregs[256];
+    uint8_t  egapal[16];
+    uint8_t *vram;
+    uint8_t *changedvram;
 
-    uint8_t crtcreg, gdcaddr,
-        attrff, attr_palette_enable, attraddr, seqaddr,
-        miscout, cgastat, scrblank,
-        plane_mask, writemask,
-        colourcompare, colournocare,
-        dac_mask, dac_status,
-        dpms, dpms_ui,
-        ksc5601_sbyte_mask, ksc5601_udc_area_msb[2];
+    uint8_t crtcreg;
+    uint8_t gdcaddr;
+    uint8_t attrff;
+    uint8_t attr_palette_enable;
+    uint8_t attraddr;
+    uint8_t seqaddr;
+    uint8_t miscout;
+    uint8_t cgastat;
+    uint8_t scrblank;
+    uint8_t plane_mask;
+    uint8_t writemask;
+    uint8_t colourcompare;
+    uint8_t colournocare;
+    uint8_t dac_mask;
+    uint8_t dac_status;
+    uint8_t dpms;
+    uint8_t dpms_ui;
+    uint8_t ksc5601_sbyte_mask;
+    uint8_t ksc5601_udc_area_msb[2];
 
     int      ksc5601_swap_mode;
     uint16_t ksc5601_english_font_type;
@@ -171,53 +259,62 @@ typedef struct svga_t {
     int remap_required;
     uint32_t (*remap_func)(struct svga_t *svga, uint32_t in_addr);
 
-    void *ramdac, *clock_gen;
+    void *ramdac;
+    void *clock_gen;
 
     /* Monitor Index */
     uint8_t monitor_index;
 
     /* Pointer to monitor */
-    monitor_t* monitor;
+    monitor_t *monitor;
 } svga_t;
 
-extern int vga_on, ibm8514_on;
+extern int vga_on;
+extern int ibm8514_on;
 
-extern void ibm8514_poll(ibm8514_t *dev, svga_t *svga);
-extern void ibm8514_recalctimings(svga_t *svga);
+extern void    ibm8514_poll(ibm8514_t *dev, svga_t *svga);
+extern void    ibm8514_recalctimings(svga_t *svga);
+extern uint8_t ibm8514_ramdac_in(uint16_t port, void *priv);
+extern void    ibm8514_ramdac_out(uint16_t port, uint8_t val, void *priv);
+extern int     ibm8514_cpu_src(svga_t *svga);
+extern int     ibm8514_cpu_dest(svga_t *svga);
+extern void    ibm8514_accel_out_pixtrans(svga_t *svga, uint16_t port, uint16_t val, int len);
+extern void    ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, uint8_t ssv, int len);
+extern void    ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, int len);
 
 extern void xga_poll(xga_t *xga, svga_t *svga);
 extern void xga_recalctimings(svga_t *svga);
 
-extern int  svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
+extern int  svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
                       void (*recalctimings_ex)(struct svga_t *svga),
-                      uint8_t (*video_in)(uint16_t addr, void *p),
-                      void (*video_out)(uint16_t addr, uint8_t val, void *p),
+                      uint8_t (*video_in)(uint16_t addr, void *priv),
+                      void (*video_out)(uint16_t addr, uint8_t val, void *priv),
                       void (*hwcursor_draw)(struct svga_t *svga, int displine),
                       void (*overlay_draw)(struct svga_t *svga, int displine));
 extern void svga_recalctimings(svga_t *svga);
 extern void svga_close(svga_t *svga);
 
-uint8_t  svga_read(uint32_t addr, void *p);
-uint16_t svga_readw(uint32_t addr, void *p);
-uint32_t svga_readl(uint32_t addr, void *p);
-void     svga_write(uint32_t addr, uint8_t val, void *p);
-void     svga_writew(uint32_t addr, uint16_t val, void *p);
-void     svga_writel(uint32_t addr, uint32_t val, void *p);
-uint8_t  svga_read_linear(uint32_t addr, void *p);
-uint8_t  svga_readb_linear(uint32_t addr, void *p);
-uint16_t svga_readw_linear(uint32_t addr, void *p);
-uint32_t svga_readl_linear(uint32_t addr, void *p);
-void     svga_write_linear(uint32_t addr, uint8_t val, void *p);
-void     svga_writeb_linear(uint32_t addr, uint8_t val, void *p);
-void     svga_writew_linear(uint32_t addr, uint16_t val, void *p);
-void     svga_writel_linear(uint32_t addr, uint32_t val, void *p);
+uint8_t  svga_read(uint32_t addr, void *priv);
+uint16_t svga_readw(uint32_t addr, void *priv);
+uint32_t svga_readl(uint32_t addr, void *priv);
+void     svga_write(uint32_t addr, uint8_t val, void *priv);
+void     svga_writew(uint32_t addr, uint16_t val, void *priv);
+void     svga_writel(uint32_t addr, uint32_t val, void *priv);
+uint8_t  svga_read_linear(uint32_t addr, void *priv);
+uint8_t  svga_readb_linear(uint32_t addr, void *priv);
+uint16_t svga_readw_linear(uint32_t addr, void *priv);
+uint32_t svga_readl_linear(uint32_t addr, void *priv);
+void     svga_write_linear(uint32_t addr, uint8_t val, void *priv);
+void     svga_writeb_linear(uint32_t addr, uint8_t val, void *priv);
+void     svga_writew_linear(uint32_t addr, uint16_t val, void *priv);
+void     svga_writel_linear(uint32_t addr, uint32_t val, void *priv);
 
-void svga_add_status_info(char *s, int max_len, void *p);
+void svga_add_status_info(char *s, int max_len, void *priv);
 
 extern uint8_t svga_rotate[8][256];
 
-void    svga_out(uint16_t addr, uint8_t val, void *p);
-uint8_t svga_in(uint16_t addr, void *p);
+void    svga_out(uint16_t addr, uint8_t val, void *priv);
+uint8_t svga_in(uint16_t addr, void *priv);
 
 svga_t *svga_get_pri(void);
 void    svga_set_override(svga_t *svga, int val);
@@ -237,65 +334,65 @@ enum {
 
 /* We need a way to add a device with a pointer to a parent device so it can attach itself to it, and
    possibly also a second ATi 68860 RAM DAC type that auto-sets SVGA render on RAM DAC render change. */
-extern void    ati68860_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga);
-extern uint8_t ati68860_ramdac_in(uint16_t addr, void *p, svga_t *svga);
-extern void    ati68860_set_ramdac_type(void *p, int type);
-extern void    ati68860_ramdac_set_render(void *p, svga_t *svga);
-extern void    ati68860_ramdac_set_pallook(void *p, int i, uint32_t col);
+extern void    ati68860_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t ati68860_ramdac_in(uint16_t addr, void *priv, svga_t *svga);
+extern void    ati68860_set_ramdac_type(void *priv, int type);
+extern void    ati68860_ramdac_set_render(void *priv, svga_t *svga);
+extern void    ati68860_ramdac_set_pallook(void *priv, int i, uint32_t col);
 extern void    ati68860_hwcursor_draw(svga_t *svga, int displine);
 
-extern void    att49x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga);
-extern uint8_t att49x_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga);
+extern void    att49x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t att49x_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
 
-extern void    att498_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga);
-extern uint8_t att498_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga);
-extern float   av9194_getclock(int clock, void *p);
+extern void    att498_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t att498_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
+extern float   av9194_getclock(int clock, void *priv);
 
-extern void    bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t *svga);
-extern uint8_t bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga);
-extern void    bt48x_recalctimings(void *p, svga_t *svga);
+extern void    bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga);
+extern void    bt48x_recalctimings(void *priv, svga_t *svga);
 extern void    bt48x_hwcursor_draw(svga_t *svga, int displine);
 
-extern void    ibm_rgb528_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga);
-extern uint8_t ibm_rgb528_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga);
-extern void    ibm_rgb528_recalctimings(void *p, svga_t *svga);
+extern void    ibm_rgb528_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t ibm_rgb528_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
+extern void    ibm_rgb528_recalctimings(void *priv, svga_t *svga);
 extern void    ibm_rgb528_hwcursor_draw(svga_t *svga, int displine);
 
-extern void  icd2061_write(void *p, int val);
-extern float icd2061_getclock(int clock, void *p);
+extern void  icd2061_write(void *priv, int val);
+extern float icd2061_getclock(int clock, void *priv);
 
 /* The code is the same, the #define's are so that the correct name can be used. */
 #    define ics9161_write    icd2061_write
 #    define ics9161_getclock icd2061_getclock
 
-extern float ics2494_getclock(int clock, void *p);
+extern float ics2494_getclock(int clock, void *priv);
 
-extern void   ics2595_write(void *p, int strobe, int dat);
-extern double ics2595_getclock(void *p);
-extern void   ics2595_setclock(void *p, double clock);
+extern void   ics2595_write(void *priv, int strobe, int dat);
+extern double ics2595_getclock(void *priv);
+extern void   ics2595_setclock(void *priv, double clock);
 
-extern void    sc1148x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga);
-extern uint8_t sc1148x_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga);
+extern void    sc1148x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t sc1148x_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
 
-extern void    sc1502x_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga);
-extern uint8_t sc1502x_ramdac_in(uint16_t addr, void *p, svga_t *svga);
+extern void    sc1502x_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t sc1502x_ramdac_in(uint16_t addr, void *priv, svga_t *svga);
 
-extern void    sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga);
-extern uint8_t sdac_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga);
-extern float   sdac_getclock(int clock, void *p);
+extern void    sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t sdac_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
+extern float   sdac_getclock(int clock, void *priv);
 
-extern void    stg_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga);
-extern uint8_t stg_ramdac_in(uint16_t addr, void *p, svga_t *svga);
-extern float   stg_getclock(int clock, void *p);
+extern void    stg_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t stg_ramdac_in(uint16_t addr, void *priv, svga_t *svga);
+extern float   stg_getclock(int clock, void *priv);
 
-extern void    tkd8001_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga);
-extern uint8_t tkd8001_ramdac_in(uint16_t addr, void *p, svga_t *svga);
+extern void    tkd8001_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t tkd8001_ramdac_in(uint16_t addr, void *priv, svga_t *svga);
 
-extern void    tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t *svga);
-extern uint8_t tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga);
-extern void    tvp3026_recalctimings(void *p, svga_t *svga);
+extern void    tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga);
+extern void    tvp3026_recalctimings(void *priv, svga_t *svga);
 extern void    tvp3026_hwcursor_draw(svga_t *svga, int displine);
-extern float   tvp3026_getclock(int clock, void *p);
+extern float   tvp3026_getclock(int clock, void *priv);
 
 #    ifdef EMU_DEVICE_H
 extern const device_t ati68860_ramdac_device;

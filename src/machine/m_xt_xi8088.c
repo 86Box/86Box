@@ -24,6 +24,7 @@
 #include <86box/video.h>
 #include <86box/machine.h>
 #include "cpu.h"
+#include <86box/plat_unused.h>
 
 #include <86box/m_xt_xi8088.h>
 
@@ -67,7 +68,7 @@ xi8088_bios_128kb(void)
 }
 
 static void *
-xi8088_init(const device_t *info)
+xi8088_init(UNUSED(const device_t *info))
 {
     xi8088.turbo         = 1;
     xi8088.turbo_setting = device_get_config_int("turbo_setting");

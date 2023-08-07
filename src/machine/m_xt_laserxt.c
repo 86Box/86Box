@@ -19,6 +19,7 @@
 #include <86box/fdc_ext.h>
 #include <86box/gameport.h>
 #include <86box/keyboard.h>
+#include <86box/plat_unused.h>
 
 static int           laserxt_emspage[4];
 static int           laserxt_emscontrol[4];
@@ -37,10 +38,10 @@ get_laserxt_ems_addr(uint32_t addr)
 }
 
 static void
-laserxt_write(uint16_t port, uint8_t val, void *priv)
+laserxt_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 {
-    int      i;
-    uint32_t paddr, vaddr;
+    uint32_t paddr;
+    uint32_t vaddr;
     switch (port) {
         case 0x0208:
         case 0x4208:
@@ -63,7 +64,7 @@ laserxt_write(uint16_t port, uint8_t val, void *priv)
         case 0xC209:
             laserxt_emscontrol[port >> 14] = val;
             laserxt_ems_baseaddr_index     = 0;
-            for (i = 0; i < 4; i++) {
+            for (uint8_t i = 0; i < 4; i++) {
                 laserxt_ems_baseaddr_index |= (laserxt_emscontrol[i] & 0x80) >> (7 - i);
             }
 
@@ -73,11 +74,14 @@ laserxt_write(uint16_t port, uint8_t val, void *priv)
             mem_mapping_set_addr(&laserxt_ems_mapping[3], 0xCC000 + (((laserxt_ems_baseaddr_index + 1) & 0x0C) << 14), 0x4000);
             flushmmucache();
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-laserxt_read(uint16_t port, void *priv)
+laserxt_read(uint16_t port, UNUSED(void *priv))
 {
     switch (port) {
         case 0x0208:
@@ -90,13 +94,15 @@ laserxt_read(uint16_t port, void *priv)
         case 0x8209:
         case 0xC209:
             return laserxt_emscontrol[port >> 14];
+
+        default:
             break;
     }
     return 0xff;
 }
 
 static void
-mem_write_laserxtems(uint32_t addr, uint8_t val, void *priv)
+mem_write_laserxtems(uint32_t addr, uint8_t val, UNUSED(void *priv))
 {
     addr = get_laserxt_ems_addr(addr);
     if (addr < (mem_size << 10))
@@ -104,7 +110,7 @@ mem_write_laserxtems(uint32_t addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-mem_read_laserxtems(uint32_t addr, void *priv)
+mem_read_laserxtems(uint32_t addr, UNUSED(void *priv))
 {
     uint8_t val = 0xFF;
     addr        = get_laserxt_ems_addr(addr);
@@ -116,8 +122,6 @@ mem_read_laserxtems(uint32_t addr, void *priv)
 static void
 laserxt_init(int is_lxt3)
 {
-    int i;
-
     if (mem_size > 640) {
         io_sethandler(0x0208, 0x0002, laserxt_read, NULL, NULL, laserxt_write, NULL, NULL, NULL);
         io_sethandler(0x4208, 0x0002, laserxt_read, NULL, NULL, laserxt_write, NULL, NULL, NULL);
@@ -126,7 +130,7 @@ laserxt_init(int is_lxt3)
         mem_mapping_set_addr(&ram_low_mapping, 0, !is_lxt3 ? 0x70000 + (((mem_size + 64) & 255) << 10) : 0x30000 + (((mem_size + 320) & 511) << 10));
     }
 
-    for (i = 0; i < 4; i++) {
+    for (uint8_t i = 0; i < 4; i++) {
         laserxt_emspage[i]    = 0x7F;
         laserxt_emscontrol[i] = (i == 3) ? 0x00 : 0x80;
         mem_mapping_add(&laserxt_ems_mapping[i], 0xE0000 + (i << 14), 0x4000, mem_read_laserxtems, NULL, NULL, mem_write_laserxtems, NULL, NULL, ram + 0xA0000 + (i << 14), 0, NULL);

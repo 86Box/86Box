@@ -26,7 +26,7 @@
 
 #define MPU401_VERSION      0x15
 #define MPU401_REVISION     0x01
-#define MPU401_QUEUE        64
+#define MPU401_QUEUE        1024
 #define MPU401_INPUT_QUEUE  1024
 #define MPU401_TIMECONSTANT (60000000 / 1000.0f)
 #define MPU401_RESETBUSY    27.0f
@@ -71,80 +71,119 @@ typedef enum RecState {
 
 typedef struct mpu_t {
     uint16_t addr;
-    int      uart_mode, intelligent,
-        irq, midi_thru,
-        queue_pos, queue_used;
-    uint8_t rx_data, is_mca,
-        status,
-        queue[MPU401_QUEUE], pos_regs[8];
+    int      uart_mode;
+    int      intelligent;
+    int      irq;
+    int      midi_thru;
+    int      queue_pos;
+    int      queue_used;
+    uint8_t  rx_data;
+    uint8_t  is_mca;
+    uint8_t  status;
+    uint8_t  queue[MPU401_QUEUE];
+    uint8_t  pos_regs[8];
     MpuMode  mode;
     uint8_t  rec_queue[MPU401_INPUT_QUEUE];
-    int      rec_queue_pos, rec_queue_used;
+    int      rec_queue_pos;
+    int      rec_queue_used;
     uint32_t ch_toref[16];
     struct track {
-        int     counter;
-        uint8_t value[3], sys_val,
-            vlength, length;
+        int         counter;
+        uint8_t     value[3];
+        uint8_t     sys_val;
+        uint8_t     vlength;
+        uint8_t     length;
         MpuDataType type;
     } playbuf[8], condbuf;
     struct {
-        int conductor, cond_req,
-            cond_set, block_ack,
-            playing, reset,
-            wsd, wsm, wsd_start,
-            run_irq, irq_pending,
-            track_req,
-            send_now, eoi_scheduled,
-            data_onoff, clock_to_host,
-            sync_in, sysex_in_finished,
-            rec_copy;
+        int      conductor;
+        int      cond_req;
+        int      cond_set;
+        int      block_ack;
+        int      playing;
+        int      reset;
+        int      wsd;
+        int      wsm;
+        int      wsd_start;
+        int      run_irq;
+        int      irq_pending;
+        int      track_req;
+        int      send_now;
+        int      eoi_scheduled;
+        int      data_onoff;
+        int      clock_to_host;
+        int      sync_in;
+        int      sysex_in_finished;
+        int      rec_copy;
         RecState rec;
-        uint8_t  tmask, cmask,
-            amask,
-            last_rtcmd;
-        uint16_t midi_mask, req_mask;
-        uint32_t command_byte, cmd_pending,
-            track, old_track;
+        uint8_t  tmask;
+        uint8_t  cmask;
+        uint8_t  amask;
+        uint8_t  last_rtcmd;
+        uint16_t midi_mask;
+        uint16_t req_mask;
+        uint32_t command_byte;
+        uint32_t cmd_pending;
+        uint32_t track;
+        uint32_t old_track;
     } state;
     struct {
-        uint8_t timebase, old_timebase,
-            tempo, old_tempo,
-            tempo_rel, old_tempo_rel,
-            tempo_grad, cth_rate[4],
-            cth_mode, midimetro,
-            metromeas;
-        uint32_t cth_counter, cth_old,
-            rec_counter;
-        int32_t measure_counter, meas_old,
-            freq;
-        int   ticks_in, active;
-        float freq_mod;
+        uint8_t  timebase;
+        uint8_t  old_timebase;
+        uint8_t  tempo;
+        uint8_t  old_tempo;
+        uint8_t  tempo_rel;
+        uint8_t  old_tempo_rel;
+        uint8_t  tempo_grad;
+        uint8_t  cth_rate[4];
+        uint8_t  cth_mode;
+        uint8_t  midimetro;
+        uint8_t  metromeas;
+        uint32_t cth_counter;
+        uint32_t cth_old;
+        uint32_t rec_counter;
+        int32_t  measure_counter;
+        int32_t  meas_old;
+        int32_t  freq;
+        int      ticks_in;
+        int      active;
+        float    freq_mod;
     } clock;
     struct {
-        int all_thru, midi_thru,
-            sysex_thru, commonmsgs_thru,
-            modemsgs_in, commonmsgs_in,
-            bender_in, sysex_in,
-            allnotesoff_out, rt_affection,
-            rt_out, rt_in,
-            timing_in_stop, data_in_stop,
-            rec_measure_end;
+        int      all_thru;
+        int      midi_thru;
+        int      sysex_thru;
+        int      commonmsgs_thru;
+        int      modemsgs_in;
+        int      commonmsgs_in;
+        int      bender_in;
+        int      sysex_in;
+        int      allnotesoff_out;
+        int      rt_affection;
+        int      rt_out;
+        int      rt_in;
+        int      timing_in_stop;
+        int      data_in_stop;
+        int      rec_measure_end;
         uint8_t  prchg_buf[16];
         uint16_t prchg_mask;
     } filter;
     struct {
         int      on;
-        uint8_t  chan, trmask;
+        uint8_t  chan;
+        uint8_t  trmask;
         uint32_t key[4];
     } chanref[5], inputref[16];
-    pc_timer_t mpu401_event_callback, mpu401_eoi_callback,
-        mpu401_reset_callback;
+    pc_timer_t mpu401_event_callback;
+    pc_timer_t mpu401_eoi_callback;
+    pc_timer_t mpu401_reset_callback;
     void (*ext_irq_update)(void *priv, int set);
     int (*ext_irq_pending)(void *priv);
     void *priv;
 } mpu_t;
 
-extern int mpu401_standalone_enable, mpu401_already_loaded;
+extern int mpu401_standalone_enable;
+extern int mpu401_already_loaded;
 
 extern const device_t mpu401_device;
 extern const device_t mpu401_mca_device;

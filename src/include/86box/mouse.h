@@ -35,6 +35,7 @@
 #define MOUSE_TYPE_LT3BUTTON 10 /* Logitech 3-button Serial Mouse */
 #define MOUSE_TYPE_PS2       11 /* PS/2 series Bus Mouse */
 #define MOUSE_TYPE_WACOM     12 /* WACOM tablet */
+#define MOUSE_TYPE_WACOMARTP 13 /* WACOM tablet (ArtPad) */
 
 #define MOUSE_TYPE_ONBOARD   0x80 /* Mouse is an on-board version of one of the above. */
 
@@ -42,13 +43,16 @@
 extern "C" {
 #endif
 
-extern int mouse_type;
-extern int mouse_x, mouse_y, mouse_z;
-extern int mouse_mode; /* 1 = Absolute, 0 = Relative */
-extern int mouse_tablet_in_proximity;
-extern double mouse_x_abs, mouse_y_abs;
-extern int mouse_buttons;
-extern int tablet_tool_type;
+extern int    mouse_type;
+extern int    mouse_x;
+extern int    mouse_y;
+extern int    mouse_z;
+extern int    mouse_mode; /* 1 = Absolute, 0 = Relative */
+extern int    mouse_tablet_in_proximity;
+extern double mouse_x_abs;
+extern double mouse_y_abs;
+extern int    mouse_buttons;
+extern int    tablet_tool_type;
 
 #ifdef EMU_DEVICE_H
 extern const device_t *mouse_get_device(int mouse);
@@ -65,6 +69,7 @@ extern const device_t mouse_msserial_device;
 extern const device_t mouse_ltserial_device;
 extern const device_t mouse_ps2_device;
 extern const device_t mouse_wacom_device;
+extern const device_t mouse_wacom_artpad_device;
 #endif
 
 extern void mouse_init(void);
@@ -77,6 +82,8 @@ extern void mouse_set_poll(int (*f)(int, int, int, int, void *), void *);
 extern void mouse_poll(void);
 
 extern void mouse_bus_set_irq(void *priv, int irq);
+
+extern void mouse_set_sample_rate(double new_rate);
 
 extern char *mouse_get_name(int mouse);
 extern char *mouse_get_internal_name(int mouse);

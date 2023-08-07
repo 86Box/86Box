@@ -216,16 +216,16 @@ static int cgacols[256][2][2];
 static int mdacols[256][2][2];
 
 void    wy700_recalctimings(wy700_t *wy700);
-void    wy700_write(uint32_t addr, uint8_t val, void *p);
-uint8_t wy700_read(uint32_t addr, void *p);
+void    wy700_write(uint32_t addr, uint8_t val, void *priv);
+uint8_t wy700_read(uint32_t addr, void *priv);
 void    wy700_checkchanges(wy700_t *wy700);
 
 static video_timings_t timing_wy700 = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
 void
-wy700_out(uint16_t addr, uint8_t val, void *p)
+wy700_out(uint16_t addr, uint8_t val, void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) p;
+    wy700_t *wy700 = (wy700_t *) priv;
     switch (addr) {
         /* These three registers are only mapped in the 3Dx range,
          * not the 3Bx range. */
@@ -287,9 +287,9 @@ wy700_out(uint16_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-wy700_in(uint16_t addr, void *p)
+wy700_in(uint16_t addr, void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) p;
+    wy700_t *wy700 = (wy700_t *) priv;
     switch (addr) {
         case 0x3b0:
         case 0x3b2:
@@ -327,7 +327,8 @@ wy700_in(uint16_t addr, void *p)
 void
 wy700_checkchanges(wy700_t *wy700)
 {
-    uint8_t curstart, curend;
+    uint8_t curstart;
+    uint8_t curend;
 
     if (wy700->last_03D8 == wy700->cga_ctrl && wy700->last_03DD == (wy700->wy700_base & 0xFF) && wy700->last_03DF == wy700->wy700_control && wy700->last_crtc_0E == wy700->cga_crtc[0x0E]) {
         return; /* Nothing changed */
@@ -455,9 +456,9 @@ wy700_checkchanges(wy700_t *wy700)
 }
 
 void
-wy700_write(uint32_t addr, uint8_t val, void *p)
+wy700_write(uint32_t addr, uint8_t val, void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) p;
+    wy700_t *wy700 = (wy700_t *) priv;
 
     if (wy700->wy700_mode & 0x80) /* High-res mode. */
     {
@@ -474,9 +475,9 @@ wy700_write(uint32_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-wy700_read(uint32_t addr, void *p)
+wy700_read(uint32_t addr, void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) p;
+    wy700_t *wy700 = (wy700_t *) priv;
     if (wy700->wy700_mode & 0x80) /* High-res mode. */
     {
         addr &= 0xFFFF;
@@ -495,7 +496,8 @@ void
 wy700_recalctimings(wy700_t *wy700)
 {
     double disptime;
-    double _dispontime, _dispofftime;
+    double _dispontime;
+    double _dispofftime;
 
     disptime     = wy700->real_crtc[0] + 1;
     _dispontime  = wy700->real_crtc[1];
@@ -510,14 +512,16 @@ wy700_recalctimings(wy700_t *wy700)
 void
 wy700_textline(wy700_t *wy700)
 {
-    int      x;
     int      w  = (wy700->wy700_mode == 0) ? 40 : 80;
     int      cw = (wy700->wy700_mode == 0) ? 32 : 16;
-    uint8_t  chr, attr;
+    uint8_t  chr;
+    uint8_t  attr;
     uint8_t  bitmap[2];
     uint8_t *fontbase = &fontdatw[0][0];
-    int      blink, c;
-    int      drawcursor, cursorline;
+    int      blink;
+    int      c;
+    int      drawcursor;
+    int      cursorline;
     int      mda = 0;
     uint16_t addr;
     uint8_t  sc;
@@ -544,7 +548,7 @@ wy700_textline(wy700_t *wy700)
         cursorline = ((wy700->real_crtc[10] & 0x1F) <= sc) && ((wy700->real_crtc[11] & 0x1F) >= sc);
     }
 
-    for (x = 0; x < w; x++) {
+    for (int x = 0; x < w; x++) {
         chr        = wy700->vram[(addr + 2 * x) & 0x3FFF];
         attr       = wy700->vram[(addr + 2 * x + 1) & 0x3FFF];
         drawcursor = ((ma == ca) && cursorline && wy700->enabled && (wy700->cga_ctrl & 8) && (wy700->blink & 16));
@@ -588,7 +592,7 @@ wy700_textline(wy700_t *wy700)
 void
 wy700_cgaline(wy700_t *wy700)
 {
-    int      x, c;
+    int      c;
     uint32_t dat;
     uint8_t  ink = 0;
     uint16_t addr;
@@ -598,7 +602,7 @@ wy700_cgaline(wy700_t *wy700)
 
     /* The fixed mode setting here programs the real CRTC with a screen
      * width to 20, so draw in 20 fixed chunks of 4 bytes each */
-    for (x = 0; x < 20; x++) {
+    for (uint8_t x = 0; x < 20; x++) {
         dat = ((wy700->vram[addr & 0x3FFF] << 24) | (wy700->vram[(addr + 1) & 0x3FFF] << 16) | (wy700->vram[(addr + 2) & 0x3FFF] << 8) | (wy700->vram[(addr + 3) & 0x3FFF]));
         addr += 4;
 
@@ -639,14 +643,14 @@ wy700_cgaline(wy700_t *wy700)
 void
 wy700_medresline(wy700_t *wy700)
 {
-    int      x, c;
+    int      c;
     uint32_t dat;
     uint8_t  ink = 0;
     uint32_t addr;
 
     addr = (wy700->displine >> 1) * 80 + 4 * wy700->wy700_base;
 
-    for (x = 0; x < 20; x++) {
+    for (uint8_t x = 0; x < 20; x++) {
         dat = ((wy700->vram[addr & 0x1FFFF] << 24) | (wy700->vram[(addr + 1) & 0x1FFFF] << 16) | (wy700->vram[(addr + 2) & 0x1FFFF] << 8) | (wy700->vram[(addr + 3) & 0x1FFFF]));
         addr += 4;
 
@@ -689,7 +693,7 @@ wy700_medresline(wy700_t *wy700)
 void
 wy700_hiresline(wy700_t *wy700)
 {
-    int      x, c;
+    int      c;
     uint32_t dat;
     uint8_t  ink = 0;
     uint32_t addr;
@@ -701,7 +705,7 @@ wy700_hiresline(wy700_t *wy700)
         if (wy700->displine & 1)
             addr += 0x10000;
     }
-    for (x = 0; x < 40; x++) {
+    for (uint8_t x = 0; x < 40; x++) {
         dat = ((wy700->vram[addr & 0x1FFFF] << 24) | (wy700->vram[(addr + 1) & 0x1FFFF] << 16) | (wy700->vram[(addr + 2) & 0x1FFFF] << 8) | (wy700->vram[(addr + 3) & 0x1FFFF]));
         addr += 4;
 
@@ -741,9 +745,9 @@ wy700_hiresline(wy700_t *wy700)
 }
 
 void
-wy700_poll(void *p)
+wy700_poll(void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) p;
+    wy700_t *wy700 = (wy700_t *) priv;
     int      mode;
 
     if (!wy700->linepos) {
@@ -955,18 +959,18 @@ wy700_init(const device_t *info)
 }
 
 void
-wy700_close(void *p)
+wy700_close(void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) p;
+    wy700_t *wy700 = (wy700_t *) priv;
 
     free(wy700->vram);
     free(wy700);
 }
 
 void
-wy700_speed_changed(void *p)
+wy700_speed_changed(void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) p;
+    wy700_t *wy700 = (wy700_t *) priv;
 
     wy700_recalctimings(wy700);
 }

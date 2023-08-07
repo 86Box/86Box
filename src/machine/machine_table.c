@@ -34,6 +34,7 @@
 #include <86box/keyboard.h>
 #include <86box/sound.h>
 #include <86box/video.h>
+#include <86box/plat_unused.h>
 
 // Temporarily here till we move everything out into the right files
 extern const device_t pcjr_device;
@@ -222,7 +223,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PC,
+        .bus_flags = MACHINE_PC5150,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 16,
@@ -260,7 +261,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PC,
+        .bus_flags = MACHINE_PC5150,
         .flags = MACHINE_FLAGS_NONE,
         .ram = {
             .min = 64,
@@ -303,7 +304,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 128,
             .max = 640,
-            .step = 128
+            .step = 64
         },
         .nvrmask = 0,
         .kbc_device = NULL, /* TODO: No specific kbd_device yet */
@@ -887,6 +888,44 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
+        .name = "[8088] Micoms XL-7 Turbo",
+        .internal_name = "mxl7t",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_micoms_xl7turbo_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc_device = &keyboard_xt_device,
+        .kbc_p1 = 0xff00,
+        .gpio = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    {
         .name = "[8088] Multitech PC-500",
         .internal_name = "pc500",
         .type = MACHINE_TYPE_8088,
@@ -953,44 +992,6 @@ const machine_t machines[] = {
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_pc_device,
-        .kbc_p1 = 0xff00,
-        .gpio = 0xffffffff,
-        .device = NULL,
-        .fdc_device = NULL,
-        .sio_device = NULL,
-        .vid_device = NULL,
-        .snd_device = NULL,
-        .net_device = NULL
-    },
-    {
-        .name = "[8088] Micoms XL-7 Turbo",
-        .internal_name = "mxl7t",
-        .type = MACHINE_TYPE_8088,
-        .chipset = MACHINE_CHIPSET_DISCRETE,
-        .init = machine_xt_micoms_xl7turbo_init,
-        .pad = 0,
-        .pad0 = 0,
-        .pad1 = MACHINE_AVAILABLE,
-        .pad2 = 0,
-        .cpu = {
-            .package = CPU_PKG_8088,
-            .block = CPU_BLOCK_NONE,
-            .min_bus = 0,
-            .max_bus = 0,
-            .min_voltage = 0,
-            .max_voltage = 0,
-            .min_multi = 0,
-            .max_multi = 0
-        },
-        .bus_flags = MACHINE_PC,
-        .flags = MACHINE_FLAGS_NONE,
-        .ram = {
-            .min = 64,
-            .max = 640,
-            .step = 64
-        },
-        .nvrmask = 0,
-        .kbc_device = &keyboard_xt_device,
         .kbc_p1 = 0xff00,
         .gpio = 0xffffffff,
         .device = NULL,
@@ -2587,8 +2588,8 @@ const machine_t machines[] = {
         .cpu = {
             .package = CPU_PKG_286,
             .block = CPU_BLOCK_NONE,
-            .min_bus = 6000000,
-            .max_bus = 8000000,
+            .min_bus = 0,
+            .max_bus = 0,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -2904,8 +2905,8 @@ const machine_t machines[] = {
         .cpu = {
             .package = CPU_PKG_286,
             .block = CPU_BLOCK_NONE,
-            .min_bus = 6000000,
-            .max_bus = 8000000,
+            .min_bus = 0,
+            .max_bus = 0,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -2943,8 +2944,8 @@ const machine_t machines[] = {
         .cpu = {
             .package = CPU_PKG_286,
             .block = CPU_BLOCK_NONE,
-            .min_bus = 6000000,
-            .max_bus = 8000000,
+            .min_bus = 0,
+            .max_bus = 0,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -3774,7 +3775,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PS2,
+        .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
@@ -3813,7 +3814,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PS2,
+        .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
@@ -3894,7 +3895,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PS2,
+        .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
             .min = 1024,
@@ -4670,9 +4671,8 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     /* Uses Compaq KBC firmware. */
-#if defined(DEV_BRANCH) && defined(USE_DESKPRO386)
     {
-        .name = "[ISA] Compaq Deskpro 386",
+        .name = "[ISA] Compaq Deskpro 386 (September 1986)",
         .internal_name = "deskpro386",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_DISCRETE,
@@ -4692,13 +4692,13 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_IDE | MACHINE_APM,
+        .flags = MACHINE_IDE,
         .ram = {
-            .min = 1024,
-            .max = 14336,
-            .step = 1024
+            .min = 640,
+            .max = 16384,
+            .step = 128
         },
-        .nvrmask = 127,
+        .nvrmask = 63,
         .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
@@ -4709,7 +4709,44 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-#endif /* defined(DEV_BRANCH) && defined(USE_DESKPRO386) */
+    {
+        .name = "[ISA] Compaq Deskpro 386 (January 1988)",
+        .internal_name = "deskpro386_01_1988",
+        .type = MACHINE_TYPE_386DX,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_at_deskpro386_01_1988_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_386DX,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_IDE,
+        .ram = {
+            .min = 640,
+            .max = 16384,
+            .step = 128
+        },
+        .nvrmask = 63,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     {
         .name = "[ISA] Compaq Portable III (386)",
         .internal_name = "portableiii386",
@@ -4731,7 +4768,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
+        .flags = MACHINE_IDE | MACHINE_VIDEO,
         .ram = {
             .min = 1024,
             .max = 14336,
@@ -5470,7 +5507,45 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-
+    /* Has IBM PS/2 Type 1 KBC firmware. */
+    {
+        .name = "[MCA] IBM PS/2 model 70 (type 4)",
+        .internal_name = "ibmps2_m70_type4",
+        .type = MACHINE_TYPE_486,
+        .chipset = MACHINE_CHIPSET_PROPRIETARY,
+        .init = machine_ps2_model_70_type4_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PS2_MCA,
+        .flags = MACHINE_VIDEO | MACHINE_SOFTFLOAT_ONLY,
+        .ram = {
+            .min = 2048,
+            .max = 65536,
+            .step = 2048
+        },
+        .nvrmask = 63,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* 486 machines - Socket 2 */
     /* 486 machines with just the ISA slot */
     /* Uses some variant of Phoenix MultiKey/42 as the BIOS sends keyboard controller
@@ -6761,7 +6836,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PCI,
+        .bus_flags = MACHINE_BUS_PS2_LATCH | MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
@@ -6839,7 +6914,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PCI,
+        .bus_flags = MACHINE_BUS_PS2_LATCH | MACHINE_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
@@ -7036,7 +7111,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PCI,
+        .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
@@ -12517,7 +12592,7 @@ const machine_t machines[] = {
             .min_voltage = 1300,
             .max_voltage = 3500,
             .min_multi = 1.5,
-            .max_multi = 8.0 /* limits assumed */ 
+            .max_multi = 8.0 /* limits assumed */
         },
         .bus_flags = MACHINE_PS2_AGP,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
@@ -12879,7 +12954,7 @@ machine_get_p1(void)
 }
 
 void
-machine_load_p1(int m)
+machine_load_p1(UNUSED(int m))
 {
     machine_p1 = machines[machine].kbc_p1;
 }
@@ -12891,7 +12966,7 @@ machine_get_gpio(void)
 }
 
 void
-machine_load_gpio(int m)
+machine_load_gpio(UNUSED(int m))
 {
     machine_gpio = machines[machine].gpio;
 }
@@ -13054,11 +13129,11 @@ machine_get_machine_from_internal_name(char *s)
 
     while (machines[c].init != NULL) {
         if (!strcmp(machines[c].internal_name, (const char *) s))
-            return (c);
+            return c;
         c++;
     }
 
-    return (0);
+    return 0;
 }
 
 int

@@ -123,7 +123,7 @@ timer_process(void)
         if (timer->flags & TIMER_SPLIT)
             timer_advance_ex(timer, 0);   /* We're splitting a > 1 s period into multiple <= 1 s periods. */
         else if (timer->callback != NULL) /* Make sure it's no NULL, so that we can have a NULL callback when no operation is needed. */
-            timer->callback(timer->p);
+            timer->callback(timer->priv);
     }
 
     timer_target = timer_head->ts.ts32.integer;
@@ -132,7 +132,8 @@ timer_process(void)
 void
 timer_close(void)
 {
-    pc_timer_t *t = timer_head, *r;
+    pc_timer_t *t = timer_head;
+    pc_timer_t *r;
 
     /* Set all timers' prev and next to NULL so it is assured that
        timers that are not in malloc'd structs don't keep pointing
@@ -158,12 +159,12 @@ timer_init(void)
 }
 
 void
-timer_add(pc_timer_t *timer, void (*callback)(void *p), void *p, int start_timer)
+timer_add(pc_timer_t *timer, void (*callback)(void *priv), void *priv, int start_timer)
 {
     memset(timer, 0, sizeof(pc_timer_t));
 
     timer->callback = callback;
-    timer->p        = p;
+    timer->priv     = priv;
     timer->flags    = 0;
     timer->prev = timer->next = NULL;
     if (start_timer)

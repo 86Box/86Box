@@ -135,7 +135,7 @@ enum TC8521_ADDR {
     TC8521_LEAPYEAR = 0x1B
 };
 
-typedef struct {
+typedef struct t1000_t {
     /* ROM drive */
     uint8_t      *romdrive;
     uint8_t       rom_ctl;
@@ -237,7 +237,7 @@ tc8521_time_get(uint8_t *regs, struct tm *tm)
 
 /* This is called every second through the NVR/RTC hook. */
 static void
-tc8521_tick(nvr_t *nvr)
+tc8521_tick(UNUSED(nvr_t *nvr))
 {
     t1000_log("TC8521: ping\n");
 }
@@ -288,8 +288,8 @@ tc8521_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 tc8521_read(uint16_t addr, void *priv)
 {
-    nvr_t  *nvr = (nvr_t *) priv;
-    uint8_t page;
+    const nvr_t  *nvr = (nvr_t *) priv;
+    uint8_t       page;
 
     /* Get to the correct register page. */
     addr &= 0x0f;
@@ -336,12 +336,12 @@ tc8521_init(nvr_t *nvr, int size)
 
 /* Given an EMS page ID, return its physical address in RAM. */
 static uint32_t
-ems_execaddr(t1000_t *sys, int pg, uint16_t val)
+ems_execaddr(t1000_t *sys, UNUSED(int pg), uint16_t val)
 {
     if (!(val & 0x80))
-        return (0); /* Bit 7 reset => not mapped */
+        return 0; /* Bit 7 reset => not mapped */
     if (!sys->ems_pages)
-        return (0); /* No EMS available: all used by
+        return 0; /* No EMS available: all used by
                      * HardRAM or conventional RAM */
     val &= 0x7f;
 
@@ -354,13 +354,13 @@ ems_execaddr(t1000_t *sys, int pg, uint16_t val)
         return ((512 * 1024) + (sys->ems_base * 0x10000) + (0x4000 * val));
     }
 
-    return (0);
+    return 0;
 }
 
 static uint8_t
 ems_in(uint16_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
+    const t1000_t *sys = (t1000_t *) priv;
 
 #if 0
     t1000_log("ems_in(%04x)=%02x\n", addr, sys->ems_reg[(addr >> 14) & 3]);
@@ -392,8 +392,6 @@ ems_out(uint16_t addr, uint8_t val, void *priv)
 static void
 ems_set_hardram(t1000_t *sys, uint8_t val)
 {
-    int n;
-
     val &= 0x1f; /* Mask off pageframe address */
     if (val && mem_size > 512)
         sys->ems_base = val;
@@ -408,7 +406,7 @@ ems_set_hardram(t1000_t *sys, uint8_t val)
         sys->ems_pages = 0;
 
     /* Recalculate EMS mappings */
-    for (n = 0; n < 4; n++)
+    for (uint8_t n = 0; n < 4; n++)
         ems_out(n << 14, sys->ems_reg[n], sys);
 }
 
@@ -469,11 +467,11 @@ addr_to_page(uint32_t addr)
 static uint8_t
 ems_read_ram(uint32_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
+    const t1000_t *sys = (t1000_t *) priv;
     int      pg  = addr_to_page(addr);
 
     if (pg < 0)
-        return (0xff);
+        return 0xff;
     addr = sys->page_exec[pg] + (addr & 0x3fff);
 
     return (ram[addr]);
@@ -482,11 +480,11 @@ ems_read_ram(uint32_t addr, void *priv)
 static uint16_t
 ems_read_ramw(uint32_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    int      pg  = addr_to_page(addr);
+    const t1000_t *sys = (t1000_t *) priv;
+    int            pg  = addr_to_page(addr);
 
     if (pg < 0)
-        return (0xff);
+        return 0xff;
 
 #if 0
     t1000_log("ems_read_ramw addr=%05x ", addr);
@@ -503,11 +501,11 @@ ems_read_ramw(uint32_t addr, void *priv)
 static uint32_t
 ems_read_raml(uint32_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    int      pg  = addr_to_page(addr);
+    const t1000_t *sys = (t1000_t *) priv;
+    int            pg  = addr_to_page(addr);
 
     if (pg < 0)
-        return (0xff);
+        return 0xff;
     addr = sys->page_exec[pg] + (addr & 0x3fff);
 
     return (*(uint32_t *) &ram[addr]);
@@ -517,8 +515,8 @@ ems_read_raml(uint32_t addr, void *priv)
 static void
 ems_write_ram(uint32_t addr, uint8_t val, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    int      pg  = addr_to_page(addr);
+    const t1000_t *sys = (t1000_t *) priv;
+    int            pg  = addr_to_page(addr);
 
     if (pg < 0)
         return;
@@ -533,8 +531,8 @@ ems_write_ram(uint32_t addr, uint8_t val, void *priv)
 static void
 ems_write_ramw(uint32_t addr, uint16_t val, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    int      pg  = addr_to_page(addr);
+    const t1000_t *sys = (t1000_t *) priv;
+    int            pg  = addr_to_page(addr);
 
     if (pg < 0)
         return;
@@ -557,8 +555,8 @@ ems_write_ramw(uint32_t addr, uint16_t val, void *priv)
 static void
 ems_write_raml(uint32_t addr, uint32_t val, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    int      pg  = addr_to_page(addr);
+    const t1000_t *sys = (t1000_t *) priv;
+    int            pg  = addr_to_page(addr);
 
     if (pg < 0)
         return;
@@ -573,8 +571,8 @@ ems_write_raml(uint32_t addr, uint32_t val, void *priv)
 static uint8_t
 read_ctl(uint16_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
-    uint8_t  ret = 0xff;
+    const t1000_t *sys = (t1000_t *) priv;
+    uint8_t        ret = 0xff;
 
     switch (addr & 0x0f) {
         case 1:
@@ -597,6 +595,9 @@ read_ctl(uint16_t addr, void *priv)
                 case 0x52:
                     ret = (sys->is_640k ? 0x80 : 0);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -604,7 +605,7 @@ read_ctl(uint16_t addr, void *priv)
             ret = (sys->sys_ctl[addr & 0x0f]);
     }
 
-    return (ret);
+    return ret;
 }
 
 static void
@@ -658,7 +659,13 @@ write_ctl(uint16_t addr, uint8_t val, void *priv)
                 case 0x52:
                     ems_set_640k(sys, val);
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -691,9 +698,12 @@ t1000_read_nvram(uint16_t addr, void *priv)
             tmp |= 0x2e;                          /* Bits 5, 3, 2, 1 always 1 */
             tmp |= (sys->nvr_active & 0x40) >> 6; /* Ready state */
             break;
+
+        default:
+            break;
     }
 
-    return (tmp);
+    return tmp;
 }
 
 static void
@@ -735,13 +745,16 @@ t1000_write_nvram(uint16_t addr, uint8_t val, void *priv)
             if (val == 0x80)
                 sys->nvr_addr = -1;
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
 read_t1200_nvram(uint32_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
+    const t1000_t *sys = (t1000_t *) priv;
 
     return sys->t1200_nvram[addr & 0x7FF];
 }
@@ -759,15 +772,15 @@ write_t1200_nvram(uint32_t addr, uint8_t value, void *priv)
 
 /* Port 0xC8 controls the ROM drive */
 static uint8_t
-t1000_read_rom_ctl(uint16_t addr, void *priv)
+t1000_read_rom_ctl(UNUSED(uint16_t addr), void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
+    const t1000_t *sys = (t1000_t *) priv;
 
     return (sys->rom_ctl);
 }
 
 static void
-t1000_write_rom_ctl(uint16_t addr, uint8_t val, void *priv)
+t1000_write_rom_ctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
     t1000_t *sys = (t1000_t *) priv;
 
@@ -787,10 +800,10 @@ t1000_write_rom_ctl(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 t1000_read_rom(uint32_t addr, void *priv)
 {
-    t1000_t *sys = (t1000_t *) priv;
+    const t1000_t *sys = (t1000_t *) priv;
 
     if (!sys->romdrive)
-        return (0xff);
+        return 0xff;
 
     return (sys->romdrive[sys->rom_offset + (addr & 0xffff)]);
 }
@@ -801,7 +814,7 @@ t1000_read_romw(uint32_t addr, void *priv)
     t1000_t *sys = (t1000_t *) priv;
 
     if (!sys->romdrive)
-        return (0xffff);
+        return 0xffff;
 
     return (*(uint16_t *) (&sys->romdrive[sys->rom_offset + (addr & 0xffff)]));
 }
@@ -812,7 +825,7 @@ t1000_read_roml(uint32_t addr, void *priv)
     t1000_t *sys = (t1000_t *) priv;
 
     if (!sys->romdrive)
-        return (0xffffffff);
+        return 0xffffffff;
 
     return (*(uint32_t *) (&sys->romdrive[sys->rom_offset + (addr & 0xffff)]));
 }
@@ -821,8 +834,6 @@ int
 machine_xt_t1000_init(const machine_t *model)
 {
     FILE *f;
-    int   pg;
-
     int ret;
 
     ret = bios_load_linear("roms/machines/t1000/t1000.rom",
@@ -861,7 +872,7 @@ machine_xt_t1000_init(const machine_t *model)
     mem_mapping_disable(&t1000.rom_mapping);
 
     /* Map the EMS page frame */
-    for (pg = 0; pg < 4; pg++) {
+    for (uint8_t pg = 0; pg < 4; pg++) {
         mem_mapping_add(&t1000.mapping[pg], 0xd0000 + (0x4000 * pg), 16384,
                         ems_read_ram, ems_read_ramw, ems_read_raml,
                         ems_write_ram, ems_write_ramw, ems_write_raml,
@@ -906,8 +917,6 @@ machine_xt_t1000_init(const machine_t *model)
 int
 machine_xt_t1200_init(const machine_t *model)
 {
-    int pg;
-
     int ret;
 
     ret = bios_load_linear("roms/machines/t1200/t1200_019e.ic15.bin",
@@ -924,7 +933,7 @@ machine_xt_t1200_init(const machine_t *model)
     loadfont("roms/machines/t1000/t1000font.bin", 2);
 
     /* Map the EMS page frame */
-    for (pg = 0; pg < 4; pg++) {
+    for (uint8_t pg = 0; pg < 4; pg++) {
         mem_mapping_add(&t1000.mapping[pg],
                         0xd0000 + (0x4000 * pg), 16384,
                         ems_read_ram, ems_read_ramw, ems_read_raml,

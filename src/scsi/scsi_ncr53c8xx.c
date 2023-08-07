@@ -204,7 +204,7 @@ typedef enum {
     SCSI_STATE_WRITE_MESSAGE
 } scsi_state_t;
 
-typedef struct {
+typedef struct ncr53c8xx_t {
     char         *nvr_path;
     uint8_t       pci_slot;
     uint8_t       chip, wide;
@@ -291,9 +291,16 @@ typedef struct {
     uint32_t dbc;
     uint32_t dsp;
     uint32_t dsps;
-    uint32_t scratcha, scratchb, scratchc, scratchd;
-    uint32_t scratche, scratchf, scratchg, scratchh;
-    uint32_t scratchi, scratchj;
+    uint32_t scratcha;
+    uint32_t scratchb;
+    uint32_t scratchc;
+    uint32_t scratchd;
+    uint32_t scratche;
+    uint32_t scratchf;
+    uint32_t scratchg;
+    uint32_t scratchh;
+    uint32_t scratchi;
+    uint32_t scratchj;
     int      last_level;
     void    *hba_private;
     uint32_t buffer_pos;
@@ -451,13 +458,11 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
 static void
 ncr53c8xx_read(ncr53c8xx_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 {
-    uint32_t i = 0;
-
     ncr53c8xx_log("ncr53c8xx_read(): %08X-%08X, length %i\n", addr, (addr + len - 1), len);
 
     if (dev->dmode & NCR_DMODE_SIOM) {
         ncr53c8xx_log("NCR 810: Reading from I/O address %04X\n", (uint16_t) addr);
-        for (i = 0; i < len; i++)
+        for (uint32_t i = 0; i < len; i++)
             buf[i] = inb((uint16_t) (addr + i));
     } else {
         ncr53c8xx_log("NCR 810: Reading from memory address %08X\n", addr);
@@ -468,13 +473,11 @@ ncr53c8xx_read(ncr53c8xx_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 static void
 ncr53c8xx_write(ncr53c8xx_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 {
-    uint32_t i = 0;
-
     ncr53c8xx_log("ncr53c8xx_write(): %08X-%08X, length %i\n", addr, (addr + len - 1), len);
 
     if (dev->dmode & NCR_DMODE_DIOM) {
         ncr53c8xx_log("NCR 810: Writing to I/O address %04X\n", (uint16_t) addr);
-        for (i = 0; i < len; i++)
+        for (uint32_t i = 0; i < len; i++)
             outb((uint16_t) (addr + i), buf[i]);
     } else {
         ncr53c8xx_log("NCR 810: Writing to memory address %08X\n", addr);
@@ -483,7 +486,7 @@ ncr53c8xx_write(ncr53c8xx_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 }
 
 static __inline uint32_t
-read_dword(ncr53c8xx_t *dev, uint32_t addr)
+read_dword(UNUSED(ncr53c8xx_t *dev), uint32_t addr)
 {
     uint32_t buf;
     ncr53c8xx_log("Reading the next DWORD from memory (%08X)...\n", addr);
@@ -582,7 +585,7 @@ ncr53c8xx_set_phase(ncr53c8xx_t *dev, int phase)
 }
 
 static void
-ncr53c8xx_bad_phase(ncr53c8xx_t *dev, int out, int new_phase)
+ncr53c8xx_bad_phase(ncr53c8xx_t *dev, UNUSED(int out), int new_phase)
 {
     /* Trigger a phase mismatch.  */
     ncr53c8xx_log("Phase mismatch interrupt\n");
@@ -607,7 +610,7 @@ ncr53c8xx_disconnect(ncr53c8xx_t *dev)
 }
 
 static void
-ncr53c8xx_bad_selection(ncr53c8xx_t *dev, uint32_t id)
+ncr53c8xx_bad_selection(ncr53c8xx_t *dev, UNUSED(uint32_t id))
 {
     ncr53c8xx_log("Selected absent target %d\n", id);
     ncr53c8xx_script_scsi_interrupt(dev, 0, NCR_SIST1_STO);
@@ -637,12 +640,13 @@ ncr53c8xx_command_complete(void *priv, uint32_t status)
 static void
 ncr53c8xx_do_dma(ncr53c8xx_t *dev, int out, uint8_t id)
 {
-    uint32_t addr, tdbc;
+    uint32_t addr;
+    uint32_t tdbc;
     int      count;
 
     scsi_device_t *sd = &scsi_devices[dev->bus][id];
 
-    if ((!scsi_device_present(sd))) {
+    if (!scsi_device_present(sd)) {
         ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: Device not present when attempting to do DMA\n", id, dev->current_lun, dev->last_command);
         return;
     }
@@ -866,7 +870,7 @@ ncr53c8xx_skip_msgbytes(ncr53c8xx_t *dev, unsigned int n)
 }
 
 static void
-ncr53c8xx_bad_message(ncr53c8xx_t *dev, uint8_t msg)
+ncr53c8xx_bad_message(ncr53c8xx_t *dev, UNUSED(uint8_t msg))
 {
     ncr53c8xx_log("Unimplemented message 0x%02x\n", msg);
     ncr53c8xx_set_phase(dev, PHASE_MI);
@@ -878,7 +882,8 @@ static void
 ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
 {
     uint8_t        msg;
-    int            len, arg;
+    int            len;
+    int            arg;
     scsi_device_t *sd;
 
     sd = &scsi_devices[dev->bus][id];
@@ -1000,10 +1005,26 @@ ncr53c8xx_memcpy(ncr53c8xx_t *dev, uint32_t dest, uint32_t src, int count)
 static void
 ncr53c8xx_process_script(ncr53c8xx_t *dev)
 {
-    uint32_t insn, addr, id, buf[2], dest;
-    int opcode, insn_processed = 0, reg, operator, cond, jmp, n, i, c;
-    int32_t offset;
-    uint8_t op0, op1, data8, mask, data[7];
+    uint32_t insn;
+    uint32_t addr;
+    uint32_t id;
+    uint32_t buf[2];
+    uint32_t dest;
+    int      opcode;
+    int      insn_processed = 0;
+    int      reg;
+    int      operator;
+    int      cond;
+    int      jmp;
+    int      n;
+    int      i;
+    int      c;
+    int32_t  offset;
+    uint8_t  op0;
+    uint8_t  op1;
+    uint8_t  data8;
+    uint8_t  mask;
+    uint8_t  data[7];
 
     dev->sstop = 0;
 again:
@@ -1177,6 +1198,9 @@ again:
                         if (insn & (1 << 10))
                             dev->carry = 0;
                         break;
+
+                    default:
+                        break;
                 }
             } else {
                 reg    = ((insn >> 16) & 0x7f) | (insn & 0x80);
@@ -1201,6 +1225,9 @@ again:
                             op1 = dev->sfbr;
                         else
                             op1 = data8;
+                        break;
+
+                    default:
                         break;
                 }
 
@@ -1238,6 +1265,9 @@ again:
                         else
                             dev->carry = op0 < op1;
                         break;
+
+                    default:
+                        break;
                 }
 
                 switch (opcode) {
@@ -1247,6 +1277,9 @@ again:
                         break;
                     case 6: /* To SFBR */
                         dev->sfbr = op0;
+                        break;
+
+                    default:
                         break;
                 }
             }
@@ -1389,9 +1422,9 @@ ncr53c8xx_execute_script(ncr53c8xx_t *dev)
 }
 
 static void
-ncr53c8xx_callback(void *p)
+ncr53c8xx_callback(void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     if (!dev->sstop) {
         if (dev->waiting)
@@ -1545,7 +1578,9 @@ ncr53c8xx_reg_writeb(ncr53c8xx_t *dev, uint32_t offset, uint8_t val)
                 ncr53c8xx_log("Woken by SIGP\n");
                 dev->waiting = 0;
                 dev->dsp     = dev->dnad;
-                /* ncr53c8xx_execute_script(dev); */
+#if 0
+                ncr53c8xx_execute_script(dev);
+#endif
             }
             if ((val & NCR_ISTAT_SRST) && !(tmp & NCR_ISTAT_SRST)) {
                 ncr53c8xx_soft_reset(dev);
@@ -1964,6 +1999,9 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
             CASE_GET_REG32_COND(scratchh, 0x74)
             CASE_GET_REG32_COND(scratchi, 0x78)
             CASE_GET_REG32_COND(scratchj, 0x7c)
+
+        default:
+            break;
     }
     ncr53c8xx_log("readb 0x%x\n", offset);
     return 0;
@@ -1973,16 +2011,17 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
 }
 
 static uint8_t
-ncr53c8xx_io_readb(uint16_t addr, void *p)
+ncr53c8xx_io_readb(uint16_t addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
+
     return ncr53c8xx_reg_readb(dev, addr & 0xff);
 }
 
 static uint16_t
-ncr53c8xx_io_readw(uint16_t addr, void *p)
+ncr53c8xx_io_readw(uint16_t addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
     uint16_t     val;
 
     addr &= 0xff;
@@ -1992,9 +2031,9 @@ ncr53c8xx_io_readw(uint16_t addr, void *p)
 }
 
 static uint32_t
-ncr53c8xx_io_readl(uint16_t addr, void *p)
+ncr53c8xx_io_readl(uint16_t addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
     uint32_t     val;
 
     addr &= 0xff;
@@ -2006,25 +2045,28 @@ ncr53c8xx_io_readl(uint16_t addr, void *p)
 }
 
 static void
-ncr53c8xx_io_writeb(uint16_t addr, uint8_t val, void *p)
+ncr53c8xx_io_writeb(uint16_t addr, uint8_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
+
     ncr53c8xx_reg_writeb(dev, addr & 0xff, val);
 }
 
 static void
-ncr53c8xx_io_writew(uint16_t addr, uint16_t val, void *p)
+ncr53c8xx_io_writew(uint16_t addr, uint16_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
+
     addr &= 0xff;
     ncr53c8xx_reg_writeb(dev, addr, val & 0xff);
     ncr53c8xx_reg_writeb(dev, addr + 1, (val >> 8) & 0xff);
 }
 
 static void
-ncr53c8xx_io_writel(uint16_t addr, uint32_t val, void *p)
+ncr53c8xx_io_writel(uint16_t addr, uint32_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
+
     addr &= 0xff;
     ncr53c8xx_reg_writeb(dev, addr, val & 0xff);
     ncr53c8xx_reg_writeb(dev, addr + 1, (val >> 8) & 0xff);
@@ -2033,17 +2075,17 @@ ncr53c8xx_io_writel(uint16_t addr, uint32_t val, void *p)
 }
 
 static void
-ncr53c8xx_mmio_writeb(uint32_t addr, uint8_t val, void *p)
+ncr53c8xx_mmio_writeb(uint32_t addr, uint8_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     ncr53c8xx_reg_writeb(dev, addr & 0xff, val);
 }
 
 static void
-ncr53c8xx_mmio_writew(uint32_t addr, uint16_t val, void *p)
+ncr53c8xx_mmio_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     addr &= 0xff;
     ncr53c8xx_reg_writeb(dev, addr, val & 0xff);
@@ -2051,9 +2093,9 @@ ncr53c8xx_mmio_writew(uint32_t addr, uint16_t val, void *p)
 }
 
 static void
-ncr53c8xx_mmio_writel(uint32_t addr, uint32_t val, void *p)
+ncr53c8xx_mmio_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     addr &= 0xff;
     ncr53c8xx_reg_writeb(dev, addr, val & 0xff);
@@ -2063,17 +2105,17 @@ ncr53c8xx_mmio_writel(uint32_t addr, uint32_t val, void *p)
 }
 
 static uint8_t
-ncr53c8xx_mmio_readb(uint32_t addr, void *p)
+ncr53c8xx_mmio_readb(uint32_t addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     return ncr53c8xx_reg_readb(dev, addr & 0xff);
 }
 
 static uint16_t
-ncr53c8xx_mmio_readw(uint32_t addr, void *p)
+ncr53c8xx_mmio_readw(uint32_t addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
     uint16_t     val;
 
     addr &= 0xff;
@@ -2083,9 +2125,9 @@ ncr53c8xx_mmio_readw(uint32_t addr, void *p)
 }
 
 static uint32_t
-ncr53c8xx_mmio_readl(uint32_t addr, void *p)
+ncr53c8xx_mmio_readl(uint32_t addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
     uint32_t     val;
 
     addr &= 0xff;
@@ -2098,57 +2140,57 @@ ncr53c8xx_mmio_readl(uint32_t addr, void *p)
 }
 
 static void
-ncr53c8xx_ram_writeb(uint32_t addr, uint8_t val, void *p)
+ncr53c8xx_ram_writeb(uint32_t addr, uint8_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     dev->ram[addr & 0x0fff] = val;
 }
 
 static void
-ncr53c8xx_ram_writew(uint32_t addr, uint16_t val, void *p)
+ncr53c8xx_ram_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    ncr53c8xx_ram_writeb(addr, val & 0xff, p);
-    ncr53c8xx_ram_writeb(addr + 1, (val >> 8) & 0xff, p);
+    ncr53c8xx_ram_writeb(addr, val & 0xff, priv);
+    ncr53c8xx_ram_writeb(addr + 1, (val >> 8) & 0xff, priv);
 }
 
 static void
-ncr53c8xx_ram_writel(uint32_t addr, uint32_t val, void *p)
+ncr53c8xx_ram_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    ncr53c8xx_ram_writeb(addr, val & 0xff, p);
-    ncr53c8xx_ram_writeb(addr + 1, (val >> 8) & 0xff, p);
-    ncr53c8xx_ram_writeb(addr + 2, (val >> 16) & 0xff, p);
-    ncr53c8xx_ram_writeb(addr + 3, (val >> 24) & 0xff, p);
+    ncr53c8xx_ram_writeb(addr, val & 0xff, priv);
+    ncr53c8xx_ram_writeb(addr + 1, (val >> 8) & 0xff, priv);
+    ncr53c8xx_ram_writeb(addr + 2, (val >> 16) & 0xff, priv);
+    ncr53c8xx_ram_writeb(addr + 3, (val >> 24) & 0xff, priv);
 }
 
 static uint8_t
-ncr53c8xx_ram_readb(uint32_t addr, void *p)
+ncr53c8xx_ram_readb(uint32_t addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    const ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     return dev->ram[addr & 0x0fff];
 }
 
 static uint16_t
-ncr53c8xx_ram_readw(uint32_t addr, void *p)
+ncr53c8xx_ram_readw(uint32_t addr, void *priv)
 {
     uint16_t val;
 
-    val = ncr53c8xx_ram_readb(addr, p);
-    val |= ncr53c8xx_ram_readb(addr + 1, p) << 8;
+    val = ncr53c8xx_ram_readb(addr, priv);
+    val |= ncr53c8xx_ram_readb(addr + 1, priv) << 8;
 
     return val;
 }
 
 static uint32_t
-ncr53c8xx_ram_readl(uint32_t addr, void *p)
+ncr53c8xx_ram_readl(uint32_t addr, void *priv)
 {
     uint32_t val;
 
-    val = ncr53c8xx_ram_readb(addr, p);
-    val |= ncr53c8xx_ram_readb(addr + 1, p) << 8;
-    val |= ncr53c8xx_ram_readb(addr + 2, p) << 16;
-    val |= ncr53c8xx_ram_readb(addr + 3, p) << 24;
+    val = ncr53c8xx_ram_readb(addr, priv);
+    val |= ncr53c8xx_ram_readb(addr + 1, priv) << 8;
+    val |= ncr53c8xx_ram_readb(addr + 2, priv) << 16;
+    val |= ncr53c8xx_ram_readb(addr + 3, priv) << 24;
 
     return val;
 }
@@ -2232,9 +2274,9 @@ uint8_t ncr53c8xx_pci_regs[256];
 bar_t   ncr53c8xx_pci_bar[4];
 
 static uint8_t
-ncr53c8xx_pci_read(int func, int addr, void *p)
+ncr53c8xx_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
 
     ncr53c8xx_log("NCR53c8xx: Reading register %02X\n", addr & 0xff);
 
@@ -2327,15 +2369,18 @@ ncr53c8xx_pci_read(int func, int addr, void *p)
             return 0x11;
         case 0x3F:
             return 0x40;
+
+        default:
+            break;
     }
 
-    return (0);
+    return 0;
 }
 
 static void
-ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
+ncr53c8xx_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
-    ncr53c8xx_t *dev = (ncr53c8xx_t *) p;
+    ncr53c8xx_t *dev = (ncr53c8xx_t *) priv;
     uint8_t      valxor;
 
     ncr53c8xx_log("NCR53c8xx: Write value %02X to register %02X\n", val, addr & 0xff);
@@ -2465,6 +2510,9 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
             ncr53c8xx_pci_regs[addr] = val;
             dev->irq                 = val;
             return;
+
+        default:
+            break;
     }
 }
 
@@ -2570,7 +2618,7 @@ ncr53c8xx_init(const device_t *info)
 
     timer_add(&dev->timer, ncr53c8xx_callback, dev, 0);
 
-    return (dev);
+    return dev;
 }
 
 static void

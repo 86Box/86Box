@@ -56,13 +56,16 @@
 #define PRTIQS     (dev->regs[0x27] & 0x0f)
 #define ECPIRQ     ((dev->regs[0x27] >> 5) & 0x07)
 
-typedef struct {
-    uint8_t  tries, regs[42];
-    uint16_t reg_init;
-    int      locked, rw_locked,
-        cur_reg,
-        base_address, key,
-        key_times;
+typedef struct w83877f_t {
+    uint8_t   tries;
+    uint8_t   regs[42];
+    uint16_t  reg_init;
+    int       locked;
+    int       rw_locked;
+    int       cur_reg;
+    int       base_address;
+    int       key;
+    int       key_times;
     fdc_t    *fdc;
     serial_t *uart[2];
 } w83877f_t;
@@ -139,6 +142,9 @@ make_port(w83877f_t *dev, uint8_t reg)
             p &= 0xFF8;
             if ((p < 0x100) || (p > 0x3F8))
                 p = COM2_ADDR;
+            break;
+
+        default:
             break;
     }
 
@@ -357,6 +363,9 @@ w83877f_write(uint16_t port, uint8_t val, void *priv)
                     dev->regs[0x28] |= 0x40;
                 w83877f_serial_handler(dev, 0);
             }
+            break;
+
+        default:
             break;
     }
 }

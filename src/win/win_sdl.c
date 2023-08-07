@@ -10,7 +10,7 @@
  *
  * NOTE:    Given all the problems reported with FULLSCREEN use of SDL,
  *          we will not use that, but, instead, use a new window which
- *          coverrs the entire desktop.
+ *          covers the entire desktop.
  *
  *
  *
@@ -81,10 +81,16 @@ static SDL_Window   *sdl_win         = NULL;
 static SDL_Renderer *sdl_render      = NULL;
 static SDL_Texture  *sdl_tex         = NULL;
 static HWND          sdl_parent_hwnd = NULL;
-static int           sdl_w, sdl_h;
-static int           sdl_fs, sdl_flags = -1;
-static int           cur_w, cur_h;
-static int           cur_wx = 0, cur_wy = 0, cur_ww = 0, cur_wh = 0;
+static int           sdl_w;
+static int           sdl_h;
+static int           sdl_fs;
+static int           sdl_flags = -1;
+static int           cur_w;
+static int           cur_h;
+static int           cur_wx      = 0;
+static int           cur_wy      = 0;
+static int           cur_ww      = 0;
+static int           cur_wh      = 0;
 static volatile int  sdl_enabled = 0;
 static SDL_mutex    *sdl_mutex   = NULL;
 
@@ -164,7 +170,16 @@ sdl_integer_scale(double *d, double *g)
 static void
 sdl_stretch(int *w, int *h, int *x, int *y)
 {
-    double hw, gw, hh, gh, dx, dy, dw, dh, gsr, hsr;
+    double hw;
+    double gw;
+    double hh;
+    double gh;
+    double dx;
+    double dy;
+    double dw;
+    double dh;
+    double gsr;
+    double hsr;
 
     hw  = (double) sdl_w;
     hh  = (double) sdl_h;
@@ -265,8 +280,8 @@ sdl_blit_ex(int x, int y, int w, int h, int monitor_index)
 {
     SDL_Rect r_src;
     void    *pixeldata;
-    int      pitch, ret;
-    int      row;
+    int      pitch;
+    int      ret;
 
     if (!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
         video_blit_complete();
@@ -277,7 +292,7 @@ sdl_blit_ex(int x, int y, int w, int h, int monitor_index)
 
     SDL_LockTexture(sdl_tex, 0, &pixeldata, &pitch);
 
-    for (row = 0; row < h; ++row)
+    for (int row = 0; row < h; ++row)
         video_copy(&(((uint8_t *) pixeldata)[row * 2048 * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
 
     if (monitors[0].mon_screenshots)
@@ -363,10 +378,9 @@ static int old_capture = 0;
 static void
 sdl_select_best_hw_driver(void)
 {
-    int              i;
     SDL_RendererInfo renderInfo;
 
-    for (i = 0; i < SDL_GetNumRenderDrivers(); ++i) {
+    for (int i = 0; i < SDL_GetNumRenderDrivers(); ++i) {
         SDL_GetRenderDriverInfo(i, &renderInfo);
         if (renderInfo.flags & SDL_RENDERER_ACCELERATED) {
             SDL_SetHint(SDL_HINT_RENDER_DRIVER, renderInfo.name);
@@ -401,7 +415,10 @@ sdl_reinit_texture(void)
 void
 sdl_set_fs(int fs)
 {
-    int  w = 0, h = 0, x = 0, y = 0;
+    int  w = 0;
+    int  h = 0;
+    int  x = 0;
+    int  y = 0;
     RECT rect;
 
     SDL_LockMutex(sdl_mutex);
@@ -468,7 +485,7 @@ sdl_init_common(int flags)
     /* Initialize the SDL system. */
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         sdl_log("SDL: initialization failed (%s)\n", SDL_GetError());
-        return (0);
+        return 0;
     }
 
     if (flags & RENDERER_HARDWARE) {
@@ -507,7 +524,7 @@ sdl_init_common(int flags)
     sdl_enabled = 1;
     sdl_mutex   = SDL_CreateMutex();
 
-    return (1);
+    return 1;
 }
 
 int
@@ -531,13 +548,16 @@ sdl_initho(HWND h)
 int
 sdl_pause(void)
 {
-    return (0);
+    return 0;
 }
 
 void
 sdl_resize(int x, int y)
 {
-    int ww = 0, wh = 0, wx = 0, wy = 0;
+    int ww = 0;
+    int wh = 0;
+    int wx = 0;
+    int wy = 0;
 
     if (video_fullscreen & 2)
         return;

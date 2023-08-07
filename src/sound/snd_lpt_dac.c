@@ -11,11 +11,13 @@
 #include <86box/machine.h>
 #include <86box/sound.h>
 #include <86box/timer.h>
+#include <86box/plat_unused.h>
 
 typedef struct lpt_dac_t {
     void *lpt;
 
-    uint8_t dac_val_l, dac_val_r;
+    uint8_t dac_val_l;
+    uint8_t dac_val_r;
 
     int is_stereo;
     int channel;
@@ -34,9 +36,9 @@ dac_update(lpt_dac_t *lpt_dac)
 }
 
 static void
-dac_write_data(uint8_t val, void *p)
+dac_write_data(uint8_t val, void *priv)
 {
-    lpt_dac_t *lpt_dac = (lpt_dac_t *) p;
+    lpt_dac_t *lpt_dac = (lpt_dac_t *) priv;
 
     if (lpt_dac->is_stereo) {
         if (lpt_dac->channel)
@@ -49,29 +51,28 @@ dac_write_data(uint8_t val, void *p)
 }
 
 static void
-dac_write_ctrl(uint8_t val, void *p)
+dac_write_ctrl(uint8_t val, void *priv)
 {
-    lpt_dac_t *lpt_dac = (lpt_dac_t *) p;
+    lpt_dac_t *lpt_dac = (lpt_dac_t *) priv;
 
     if (lpt_dac->is_stereo)
         lpt_dac->channel = val & 0x01;
 }
 
 static uint8_t
-dac_read_status(void *p)
+dac_read_status(UNUSED(void *priv))
 {
     return 0x0f;
 }
 
 static void
-dac_get_buffer(int32_t *buffer, int len, void *p)
+dac_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    lpt_dac_t *lpt_dac = (lpt_dac_t *) p;
-    int        c;
+    lpt_dac_t *lpt_dac = (lpt_dac_t *) priv;
 
     dac_update(lpt_dac);
 
-    for (c = 0; c < len; c++) {
+    for (int c = 0; c < len; c++) {
         buffer[c * 2] += dac_iir(0, lpt_dac->buffer[0][c]);
         buffer[c * 2 + 1] += dac_iir(1, lpt_dac->buffer[1][c]);
     }
@@ -101,9 +102,9 @@ dac_stereo_init(void *lpt)
     return lpt_dac;
 }
 static void
-dac_close(void *p)
+dac_close(void *priv)
 {
-    lpt_dac_t *lpt_dac = (lpt_dac_t *) p;
+    lpt_dac_t *lpt_dac = (lpt_dac_t *) priv;
 
     free(lpt_dac);
 }

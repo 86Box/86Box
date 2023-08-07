@@ -28,6 +28,7 @@
 #include <86box/timer.h>
 #include <86box/i2c.h>
 #include <86box/smbus.h>
+#include <86box/plat_fallthrough.h>
 
 #ifdef ENABLE_SMBUS_ALI7101_LOG
 int smbus_ali7101_do_log = ENABLE_SMBUS_ALI7101_LOG;
@@ -79,6 +80,9 @@ smbus_ali7101_read(uint16_t addr, void *priv)
         case 0x07:
             ret = dev->cmd;
             break;
+
+        default:
+            break;
     }
 
     smbus_ali7101_log("SMBus ALI7101: read(%02X) = %02x\n", addr, ret);
@@ -90,7 +94,10 @@ static void
 smbus_ali7101_write(uint16_t addr, uint8_t val, void *priv)
 {
     smbus_ali7101_t *dev = (smbus_ali7101_t *) priv;
-    uint8_t          smbus_addr, cmd, read, prev_stat;
+    uint8_t          smbus_addr;
+    uint8_t          cmd;
+    uint8_t          read;
+    uint8_t          prev_stat;
     uint16_t         timer_bytes = 0;
 
     smbus_ali7101_log("SMBus ALI7101: write(%02X, %02X)\n", addr, val);
@@ -187,7 +194,9 @@ smbus_ali7101_write(uint16_t addr, uint8_t val, void *priv)
                 case 0x4:          /* block R/W */
                     timer_bytes++; /* count the SMBus length byte now */
 
-                    /* fall-through */
+#ifdef FALLTHROUGH_ANNOTATION
+                    [[fallthrough]];
+#endif
 
                 default:                   /* unknown */
                     dev->next_stat = 0x20; /* raise DEV_ERR */
@@ -219,6 +228,9 @@ smbus_ali7101_write(uint16_t addr, uint8_t val, void *priv)
 
         case 0x07:
             dev->cmd = val;
+            break;
+
+        default:
             break;
     }
 

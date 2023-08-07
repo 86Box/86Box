@@ -66,6 +66,7 @@
 #include <86box/video.h>
 #include <86box/vid_cga.h>
 #include <86box/m_at_t3100e.h>
+#include <86box/plat_unused.h>
 
 #define T3100E_XSIZE 640
 #define T3100E_YSIZE 400
@@ -74,7 +75,8 @@
 #define VID_CLOCK (double) (651 * 416 * 60)
 
 /* Mapping of attributes to colours */
-static uint32_t amber, black;
+static uint32_t amber;
+static uint32_t black;
 static uint8_t  boldcols[256]; /* Which attributes use the bold font */
 static uint32_t blinkcols[256][2];
 static uint32_t normcols[256][2];
@@ -133,14 +135,14 @@ typedef struct t3100e_t {
 static video_timings_t timing_t3100e = { VIDEO_ISA, 8, 16, 32, 8, 16, 32 };
 
 void    t3100e_recalctimings(t3100e_t *t3100e);
-void    t3100e_write(uint32_t addr, uint8_t val, void *p);
-uint8_t t3100e_read(uint32_t addr, void *p);
+void    t3100e_write(uint32_t addr, uint8_t val, void *priv);
+uint8_t t3100e_read(uint32_t addr, void *priv);
 void    t3100e_recalcattrs(t3100e_t *t3100e);
 
 void
-t3100e_out(uint16_t addr, uint8_t val, void *p)
+t3100e_out(uint16_t addr, uint8_t val, void *priv)
 {
-    t3100e_t *t3100e = (t3100e_t *) p;
+    t3100e_t *t3100e = (t3100e_t *) priv;
     switch (addr) {
         /* Emulated CRTC, register select */
         case 0x3d0:
@@ -167,21 +169,20 @@ t3100e_out(uint16_t addr, uint8_t val, void *p)
             t3100e_recalctimings(t3100e);
             return;
 
-        /* CGA control register */
-        case 0x3D8:
+        case 0x3D8: /* CGA control register */
+        case 0x3D9: /* CGA colour register */
             cga_out(addr, val, &t3100e->cga);
             return;
-        /* CGA colour register */
-        case 0x3D9:
-            cga_out(addr, val, &t3100e->cga);
-            return;
+
+        default:
+            break;
     }
 }
 
 uint8_t
-t3100e_in(uint16_t addr, void *p)
+t3100e_in(uint16_t addr, void *priv)
 {
-    t3100e_t *t3100e = (t3100e_t *) p;
+    t3100e_t *t3100e = (t3100e_t *) priv;
     uint8_t   val;
 
     switch (addr) {
@@ -195,24 +196,29 @@ t3100e_in(uint16_t addr, void *p)
                     val |= 0x30; /* Plasma / CRT */
                 return val;
             }
+            break;
+
+        default:
+            break;
     }
 
     return cga_in(addr, &t3100e->cga);
 }
 
 void
-t3100e_write(uint32_t addr, uint8_t val, void *p)
+t3100e_write(uint32_t addr, uint8_t val, void *priv)
 {
-    t3100e_t *t3100e = (t3100e_t *) p;
+    t3100e_t *t3100e = (t3100e_t *) priv;
 
     t3100e->vram[addr & 0x7fff] = val;
     cycles -= 4;
 }
 
 uint8_t
-t3100e_read(uint32_t addr, void *p)
+t3100e_read(uint32_t addr, void *priv)
 {
-    t3100e_t *t3100e = (t3100e_t *) p;
+    const t3100e_t *t3100e = (t3100e_t *) priv;
+
     cycles -= 4;
 
     return t3100e->vram[addr & 0x7fff];
@@ -222,7 +228,8 @@ void
 t3100e_recalctimings(t3100e_t *t3100e)
 {
     double disptime;
-    double _dispontime, _dispofftime;
+    double _dispontime;
+    double _dispofftime;
 
     if (!t3100e->internal) {
         cga_recalctimings(&t3100e->cga);
@@ -231,8 +238,8 @@ t3100e_recalctimings(t3100e_t *t3100e)
     disptime            = 651;
     _dispontime         = 640;
     _dispofftime        = disptime - _dispontime;
-    t3100e->dispontime  = (uint64_t) (_dispontime * (cpuclock / VID_CLOCK) * (double) (1ull << 32));
-    t3100e->dispofftime = (uint64_t) (_dispofftime * (cpuclock / VID_CLOCK) * (double) (1ull << 32));
+    t3100e->dispontime  = (uint64_t) (_dispontime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
+    t3100e->dispofftime = (uint64_t) (_dispofftime * (cpuclock / VID_CLOCK) * (double) (1ULL << 32));
 }
 
 /* Draw a row of text in 80-column mode */
@@ -240,8 +247,8 @@ void
 t3100e_text_row80(t3100e_t *t3100e)
 {
     uint32_t cols[2];
-    int      x, c;
-    uint8_t  chr, attr;
+    uint8_t  chr;
+    uint8_t  attr;
     int      drawcursor;
     int      cursorline;
     int      bold;
@@ -260,7 +267,7 @@ t3100e_text_row80(t3100e_t *t3100e)
     } else {
         cursorline = ((t3100e->cga.crtc[10] & 0x0F) * 2 <= sc) && ((t3100e->cga.crtc[11] & 0x0F) * 2 >= sc);
     }
-    for (x = 0; x < 80; x++) {
+    for (uint8_t x = 0; x < 80; x++) {
         chr        = t3100e->vram[(addr + 2 * x) & 0x7FFF];
         attr       = t3100e->vram[(addr + 2 * x + 1) & 0x7FFF];
         drawcursor = ((ma == ca) && cursorline && (t3100e->cga.cgamode & 8) && (t3100e->cga.cgablink & 16));
@@ -284,12 +291,12 @@ t3100e_text_row80(t3100e_t *t3100e)
             cols[0] = normcols[attr][0];
         }
         if (drawcursor) {
-            for (c = 0; c < 8; c++) {
-                ((uint32_t *) buffer32->line[t3100e->displine])[(x << 3) + c] = cols[(fontdatm[bold][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
+            for (uint8_t c = 0; c < 8; c++) {
+                (buffer32->line[t3100e->displine])[(x << 3) + c] = cols[(fontdatm[bold][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
             }
         } else {
-            for (c = 0; c < 8; c++)
-                ((uint32_t *) buffer32->line[t3100e->displine])[(x << 3) + c] = cols[(fontdatm[bold][sc] & (1 << (c ^ 7))) ? 1 : 0];
+            for (uint8_t c = 0; c < 8; c++)
+                (buffer32->line[t3100e->displine])[(x << 3) + c] = cols[(fontdatm[bold][sc] & (1 << (c ^ 7))) ? 1 : 0];
         }
         ++ma;
     }
@@ -300,8 +307,9 @@ void
 t3100e_text_row40(t3100e_t *t3100e)
 {
     uint32_t cols[2];
-    int      x, c;
-    uint8_t  chr, attr;
+    int      c;
+    uint8_t  chr;
+    uint8_t  attr;
     int      drawcursor;
     int      cursorline;
     int      bold;
@@ -320,7 +328,7 @@ t3100e_text_row40(t3100e_t *t3100e)
     } else {
         cursorline = ((t3100e->cga.crtc[10] & 0x0F) * 2 <= sc) && ((t3100e->cga.crtc[11] & 0x0F) * 2 >= sc);
     }
-    for (x = 0; x < 40; x++) {
+    for (uint8_t x = 0; x < 40; x++) {
         chr        = t3100e->vram[(addr + 2 * x) & 0x7FFF];
         attr       = t3100e->vram[(addr + 2 * x + 1) & 0x7FFF];
         drawcursor = ((ma == ca) && cursorline && (t3100e->cga.cgamode & 8) && (t3100e->cga.cgablink & 16));
@@ -345,11 +353,11 @@ t3100e_text_row40(t3100e_t *t3100e)
         }
         if (drawcursor) {
             for (c = 0; c < 8; c++) {
-                ((uint32_t *) buffer32->line[t3100e->displine])[(x << 4) + c * 2] = ((uint32_t *) buffer32->line[t3100e->displine])[(x << 4) + c * 2 + 1] = cols[(fontdatm[bold][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
+                (buffer32->line[t3100e->displine])[(x << 4) + c * 2] = (buffer32->line[t3100e->displine])[(x << 4) + c * 2 + 1] = cols[(fontdatm[bold][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
             }
         } else {
             for (c = 0; c < 8; c++) {
-                ((uint32_t *) buffer32->line[t3100e->displine])[(x << 4) + c * 2] = ((uint32_t *) buffer32->line[t3100e->displine])[(x << 4) + c * 2 + 1] = cols[(fontdatm[bold][sc] & (1 << (c ^ 7))) ? 1 : 0];
+                (buffer32->line[t3100e->displine])[(x << 4) + c * 2] = (buffer32->line[t3100e->displine])[(x << 4) + c * 2 + 1] = cols[(fontdatm[bold][sc] & (1 << (c ^ 7))) ? 1 : 0];
             }
         }
         ++ma;
@@ -360,7 +368,6 @@ t3100e_text_row40(t3100e_t *t3100e)
 void
 t3100e_cgaline6(t3100e_t *t3100e)
 {
-    int      x, c;
     uint8_t  dat;
     uint32_t ink = 0;
     uint16_t addr;
@@ -375,16 +382,16 @@ t3100e_cgaline6(t3100e_t *t3100e)
     } else {
         addr = ((t3100e->displine >> 1) & 1) * 0x2000 + (t3100e->displine >> 2) * 80 + ((ma & ~1) << 1);
     }
-    for (x = 0; x < 80; x++) {
+    for (uint8_t x = 0; x < 80; x++) {
         dat = t3100e->vram[addr & 0x7FFF];
         addr++;
 
-        for (c = 0; c < 8; c++) {
+        for (uint8_t c = 0; c < 8; c++) {
             ink = (dat & 0x80) ? fg : bg;
             if (!(t3100e->cga.cgamode & 8))
                 ink = black;
-            ((uint32_t *) buffer32->line[t3100e->displine])[x * 8 + c] = ink;
-            dat                                                        = dat << 1;
+            (buffer32->line[t3100e->displine])[x * 8 + c] = ink;
+            dat                                           = dat << 1;
         }
     }
 }
@@ -394,9 +401,10 @@ t3100e_cgaline6(t3100e_t *t3100e)
 void
 t3100e_cgaline4(t3100e_t *t3100e)
 {
-    int      x, c;
-    uint8_t  dat, pattern;
-    uint32_t ink0 = 0, ink1 = 0;
+    uint8_t  dat;
+    uint8_t  pattern;
+    uint32_t ink0 = 0;
+    uint32_t ink1 = 0;
     uint16_t addr;
 
     uint16_t ma = (t3100e->cga.crtc[13] | (t3100e->cga.crtc[12] << 8)) & 0x7fff;
@@ -407,11 +415,11 @@ t3100e_cgaline4(t3100e_t *t3100e)
     {
         addr = ((t3100e->displine >> 1) & 1) * 0x2000 + (t3100e->displine >> 2) * 80 + ((ma & ~1) << 1);
     }
-    for (x = 0; x < 80; x++) {
+    for (uint8_t x = 0; x < 80; x++) {
         dat = t3100e->vram[addr & 0x7FFF];
         addr++;
 
-        for (c = 0; c < 4; c++) {
+        for (uint8_t c = 0; c < 4; c++) {
             pattern = (dat & 0xC0) >> 6;
             if (!(t3100e->cga.cgamode & 8))
                 pattern = 0;
@@ -441,18 +449,21 @@ t3100e_cgaline4(t3100e_t *t3100e)
                 case 3:
                     ink0 = ink1 = amber;
                     break;
+
+                default:
+                    break;
             }
-            ((uint32_t *) buffer32->line[t3100e->displine])[x * 8 + 2 * c]     = ink0;
-            ((uint32_t *) buffer32->line[t3100e->displine])[x * 8 + 2 * c + 1] = ink1;
-            dat                                                                = dat << 2;
+            (buffer32->line[t3100e->displine])[x * 8 + 2 * c]     = ink0;
+            (buffer32->line[t3100e->displine])[x * 8 + 2 * c + 1] = ink1;
+            dat                                                   = dat << 2;
         }
     }
 }
 
 void
-t3100e_poll(void *p)
+t3100e_poll(void *priv)
 {
-    t3100e_t *t3100e = (t3100e_t *) p;
+    t3100e_t *t3100e = (t3100e_t *) priv;
 
     if (t3100e->video_options != st_video_options) {
         t3100e->video_options = st_video_options;
@@ -642,7 +653,7 @@ t3100e_recalcattrs(t3100e_t *t3100e)
 }
 
 void *
-t3100e_init(const device_t *info)
+t3100e_init(UNUSED(const device_t *info))
 {
     t3100e_t *t3100e = malloc(sizeof(t3100e_t));
     memset(t3100e, 0, sizeof(t3100e_t));
@@ -676,18 +687,18 @@ t3100e_init(const device_t *info)
 }
 
 void
-t3100e_close(void *p)
+t3100e_close(void *priv)
 {
-    t3100e_t *t3100e = (t3100e_t *) p;
+    t3100e_t *t3100e = (t3100e_t *) priv;
 
     free(t3100e->vram);
     free(t3100e);
 }
 
 void
-t3100e_speed_changed(void *p)
+t3100e_speed_changed(void *priv)
 {
-    t3100e_t *t3100e = (t3100e_t *) p;
+    t3100e_t *t3100e = (t3100e_t *) priv;
 
     t3100e_recalctimings(t3100e);
 }

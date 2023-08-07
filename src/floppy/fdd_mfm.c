@@ -32,7 +32,7 @@
 #include <86box/fdc.h>
 
 #pragma pack(push, 1)
-typedef struct {
+typedef struct mfm_header_t {
     uint8_t hdr_name[7];
 
     uint16_t tracks_no;
@@ -45,14 +45,14 @@ typedef struct {
     uint32_t track_list_offset;
 } mfm_header_t;
 
-typedef struct {
+typedef struct mfm_track_t {
     uint16_t track_no;
     uint8_t  side_no;
     uint32_t track_size;
     uint32_t track_offset;
 } mfm_track_t;
 
-typedef struct {
+typedef struct mfm_adv_track_t {
     uint16_t track_no;
     uint8_t  side_no;
     uint16_t rpm;
@@ -62,18 +62,21 @@ typedef struct {
 } mfm_adv_track_t;
 #pragma pack(pop)
 
-typedef struct {
-    FILE *f;
+typedef struct mfm_t {
+    FILE *fp;
 
     mfm_header_t     hdr;
     mfm_track_t     *tracks;
     mfm_adv_track_t *adv_tracks;
 
-    uint16_t disk_flags, pad;
+    uint16_t disk_flags;
+    uint16_t pad;
     uint16_t side_flags[2];
 
-    int br_rounded, rpm_rounded,
-        total_tracks, cur_track;
+    int br_rounded;
+    int rpm_rounded;
+    int total_tracks;
+    int cur_track;
 
     uint8_t track_data[2][256 * 1024];
 } mfm_t;
@@ -102,10 +105,10 @@ mfm_log(const char *fmt, ...)
 static int
 get_track_index(int drive, int side, int track)
 {
-    mfm_t *dev = mfm[drive];
-    int    i, ret = -1;
+    const mfm_t *dev = mfm[drive];
+    int          ret = -1;
 
-    for (i = 0; i < dev->total_tracks; i++) {
+    for (int i = 0; i < dev->total_tracks; i++) {
         if ((dev->tracks[i].track_no == track) && (dev->tracks[i].side_no == side)) {
             ret = i;
             break;
@@ -118,10 +121,10 @@ get_track_index(int drive, int side, int track)
 static int
 get_adv_track_index(int drive, int side, int track)
 {
-    mfm_t *dev = mfm[drive];
-    int    i, ret = -1;
+    const mfm_t *dev = mfm[drive];
+    int          ret = -1;
 
-    for (i = 0; i < dev->total_tracks; i++) {
+    for (int i = 0; i < dev->total_tracks; i++) {
         if ((dev->adv_tracks[i].track_no == track) && (dev->adv_tracks[i].side_no == side)) {
             ret = i;
             break;
@@ -134,9 +137,9 @@ get_adv_track_index(int drive, int side, int track)
 static void
 get_adv_track_bitrate(int drive, int side, int track, int *br, int *rpm)
 {
-    mfm_t *dev = mfm[drive];
-    int    track_index;
-    double dbr;
+    const mfm_t *dev = mfm[drive];
+    int          track_index;
+    double       dbr;
 
     track_index = get_adv_track_index(drive, side, track);
 
@@ -154,7 +157,8 @@ get_adv_track_bitrate(int drive, int side, int track, int *br, int *rpm)
 static void
 set_disk_flags(int drive)
 {
-    int      br = 250, rpm = 300;
+    int      br = 250;
+    int      rpm = 300;
     mfm_t   *dev             = mfm[drive];
     uint16_t temp_disk_flags = 0x1080; /* We ALWAYS claim to have extra bit cells, even if the actual amount is 0;
                                           Bit 12 = 1, bits 6, 5 = 0 - extra bit cells field specifies the entire
@@ -169,14 +173,14 @@ set_disk_flags(int drive)
     }
 
     switch (br) {
-        case 500:
-            temp_disk_flags |= 2;
+        default:
+        case 250:
+        case 300:
+            temp_disk_flags |= 0;
             break;
 
-        case 300:
-        case 250:
-        default:
-            temp_disk_flags |= 0;
+        case 500:
+            temp_disk_flags |= 2;
             break;
 
         case 1000:
@@ -193,7 +197,7 @@ set_disk_flags(int drive)
 static uint16_t
 disk_flags(int drive)
 {
-    mfm_t *dev = mfm[drive];
+    const mfm_t *dev = mfm[drive];
 
     return dev->disk_flags;
 }
@@ -203,7 +207,8 @@ set_side_flags(int drive, int side)
 {
     mfm_t   *dev             = mfm[drive];
     uint16_t temp_side_flags = 0;
-    int      br = 250, rpm = 300;
+    int      br = 250;
+    int      rpm = 300;
 
     if (dev->hdr.if_type & 0x80)
         get_adv_track_bitrate(drive, side, dev->cur_track, &br, &rpm);
@@ -252,8 +257,8 @@ set_side_flags(int drive, int side)
 static uint16_t
 side_flags(int drive)
 {
-    mfm_t *dev = mfm[drive];
-    int    side;
+    const mfm_t *dev = mfm[drive];
+    int          side;
 
     side = fdd_get_head(drive);
 
@@ -263,9 +268,11 @@ side_flags(int drive)
 static uint32_t
 get_raw_size(int drive, int side)
 {
-    mfm_t *dev = mfm[drive];
-    int    track_index, is_300_rpm;
-    int    br = 250, rpm = 300;
+    const mfm_t *dev = mfm[drive];
+    int          track_index;
+    int          is_300_rpm;
+    int          br = 250;
+    int          rpm = 300;
 
     if (dev->hdr.if_type & 0x80) {
         track_index = get_adv_track_index(drive, side, dev->cur_track);
@@ -281,8 +288,8 @@ get_raw_size(int drive, int side)
     if (track_index == -1) {
         mfm_log("MFM: Unable to find track (%i, %i)\n", dev->cur_track, side);
         switch (br) {
-            case 250:
             default:
+            case 250:
                 return is_300_rpm ? 100000 : 83333;
             case 300:
                 return is_300_rpm ? 120000 : 100000;
@@ -319,8 +326,10 @@ void
 mfm_read_side(int drive, int side)
 {
     mfm_t *dev = mfm[drive];
-    int    track_index, track_size;
-    int    track_bytes, ret;
+    int    track_index;
+    int    track_size;
+    int    track_bytes;
+    int    ret;
 
     if (dev->hdr.if_type & 0x80)
         track_index = get_adv_track_index(drive, side, dev->cur_track);
@@ -336,12 +345,12 @@ mfm_read_side(int drive, int side)
         memset(dev->track_data[side], 0x00, track_bytes);
     else {
         if (dev->hdr.if_type & 0x80)
-            ret = fseek(dev->f, dev->adv_tracks[track_index].track_offset, SEEK_SET);
+            ret = fseek(dev->fp, dev->adv_tracks[track_index].track_offset, SEEK_SET);
         else
-            ret = fseek(dev->f, dev->tracks[track_index].track_offset, SEEK_SET);
+            ret = fseek(dev->fp, dev->tracks[track_index].track_offset, SEEK_SET);
         if (ret == -1)
             fatal("mfm_read_side(): Error seeking to the beginning of the file\n");
-        if (fread(dev->track_data[side], 1, track_bytes, dev->f) != track_bytes)
+        if (fread(dev->track_data[side], 1, track_bytes, dev->fp) != track_bytes)
             fatal("mfm_read_side(): Error reading track bytes\n");
     }
 
@@ -364,7 +373,7 @@ mfm_seek(int drive, int track)
     dev->cur_track = track;
     d86f_set_cur_track(drive, track);
 
-    if (dev->f == NULL)
+    if (dev->fp == NULL)
         return;
 
     if (track < 0)
@@ -382,7 +391,7 @@ mfm_load(int drive, char *fn)
 {
     mfm_t *dev;
     double dbr;
-    int    i, size;
+    int    size;
 
     writeprot[drive] = fwriteprot[drive] = 1;
 
@@ -390,8 +399,8 @@ mfm_load(int drive, char *fn)
     dev = (mfm_t *) malloc(sizeof(mfm_t));
     memset(dev, 0x00, sizeof(mfm_t));
 
-    dev->f = plat_fopen(fn, "rb");
-    if (dev->f == NULL) {
+    dev->fp = plat_fopen(fn, "rb");
+    if (dev->fp == NULL) {
         free(dev);
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         return;
@@ -401,7 +410,7 @@ mfm_load(int drive, char *fn)
 
     /* Read the header. */
     size = sizeof(mfm_header_t);
-    if (fread(&dev->hdr, 1, size, dev->f) != size)
+    if (fread(&dev->hdr, 1, size, dev->fp) != size)
         fatal("mfm_load(): Error reading header\n");
 
     /* Calculate tracks * sides, allocate the tracks array, and read it. */
@@ -409,12 +418,12 @@ mfm_load(int drive, char *fn)
     if (dev->hdr.if_type & 0x80) {
         dev->adv_tracks = (mfm_adv_track_t *) malloc(dev->total_tracks * sizeof(mfm_adv_track_t));
         size            = dev->total_tracks * sizeof(mfm_adv_track_t);
-        if (fread(dev->adv_tracks, 1, size, dev->f) != size)
+        if (fread(dev->adv_tracks, 1, size, dev->fp) != size)
             fatal("mfm_load(): Error reading advanced tracks\n");
     } else {
         dev->tracks = (mfm_track_t *) malloc(dev->total_tracks * sizeof(mfm_track_t));
         size        = dev->total_tracks * sizeof(mfm_track_t);
-        if (fread(dev->tracks, 1, size, dev->f) != size)
+        if (fread(dev->tracks, 1, size, dev->fp) != size)
             fatal("mfm_load(): Error reading tracks\n");
     }
 
@@ -427,7 +436,7 @@ mfm_load(int drive, char *fn)
         dev->hdr.tracks_no >>= 1;
         dev->hdr.sides_no <<= 1;
 
-        for (i = 0; i < dev->total_tracks; i++) {
+        for (int i = 0; i < dev->total_tracks; i++) {
             if (dev->hdr.if_type & 0x80) {
                 dev->adv_tracks[i].side_no <<= 1;
                 dev->adv_tracks[i].side_no |= (dev->adv_tracks[i].track_no & 1);
@@ -495,8 +504,8 @@ mfm_close(int drive)
     if (dev->adv_tracks)
         free(dev->adv_tracks);
 
-    if (dev->f)
-        fclose(dev->f);
+    if (dev->fp)
+        fclose(dev->fp);
 
     /* Release the memory. */
     free(dev);

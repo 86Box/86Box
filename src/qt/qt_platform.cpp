@@ -48,7 +48,9 @@
 #    include <sys/mman.h>
 #endif
 
-// static QByteArray buf;
+#if 0
+static QByteArray buf;
+#endif
 extern QElapsedTimer elapsed_timer;
 extern MainWindow   *main_window;
 QElapsedTimer        elapsed_timer;
@@ -145,7 +147,9 @@ void
 do_stop(void)
 {
     cpu_thread_run = 0;
-    // main_window->close();
+#if 0
+    main_window->close();
+#endif
 }
 
 void
@@ -249,7 +253,7 @@ path_get_filename(char *s)
         c--;
     }
 
-    return (s);
+    return s;
 #else
     auto idx               = QByteArray::fromRawData(s, strlen(s)).lastIndexOf(QDir::separator().toLatin1());
     if (idx >= 0) {
@@ -312,7 +316,7 @@ plat_tempfile(char *bufp, char *prefix, char *suffix)
         name.append(QString("%1-").arg(prefix));
     }
 
-    name.append(QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzzz"));
+    name.append(QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzz"));
     if (suffix)
         name.append(suffix);
     strcpy(bufp, name.toUtf8().data());
@@ -353,7 +357,8 @@ void
 plat_pause(int p)
 {
     static wchar_t oldtitle[512];
-    wchar_t        title[1024], paused_msg[512];
+    wchar_t        title[1024];
+    wchar_t        paused_msg[512];
 
     if (p == dopause) {
 #ifdef Q_OS_WINDOWS
@@ -565,14 +570,10 @@ c16stombs(char dst[], const uint16_t src[], int len)
 #endif
 
 #ifdef _WIN32
-#    define LIB_NAME_FLUIDSYNTH  "libfluidsynth.dll"
 #    define LIB_NAME_GS          "gsdll32.dll"
-#    define LIB_NAME_FREETYPE    "freetype.dll"
 #    define MOUSE_CAPTURE_KEYSEQ "F8+F12"
 #else
-#    define LIB_NAME_FLUIDSYNTH  "libfluidsynth"
 #    define LIB_NAME_GS          "libgs"
-#    define LIB_NAME_FREETYPE    "libfreetype"
 #    define MOUSE_CAPTURE_KEYSEQ "CTRL-END"
 #endif
 
@@ -585,13 +586,11 @@ ProgSettings::reloadStrings()
     translatedstrings[IDS_2077] = QCoreApplication::translate("", "Click to capture mouse").toStdWString();
     translatedstrings[IDS_2078] = QCoreApplication::translate("", "Press F8+F12 to release mouse").replace("F8+F12", MOUSE_CAPTURE_KEYSEQ).replace("CTRL-END", QLocale::system().name() == "de_DE" ? "Strg+Ende" : "CTRL-END").toStdWString();
     translatedstrings[IDS_2079] = QCoreApplication::translate("", "Press F8+F12 or middle button to release mouse").replace("F8+F12", MOUSE_CAPTURE_KEYSEQ).replace("CTRL-END", QLocale::system().name() == "de_DE" ? "Strg+Ende" : "CTRL-END").toStdWString();
-    translatedstrings[IDS_2080] = QCoreApplication::translate("", "Failed to initialize FluidSynth").toStdWString();
     translatedstrings[IDS_2131] = QCoreApplication::translate("", "Invalid configuration").toStdWString();
     translatedstrings[IDS_4099] = QCoreApplication::translate("", "MFM/RLL or ESDI CD-ROM drives never existed").toStdWString();
     translatedstrings[IDS_2094] = QCoreApplication::translate("", "Failed to set up PCap").toStdWString();
     translatedstrings[IDS_2095] = QCoreApplication::translate("", "No PCap devices found").toStdWString();
     translatedstrings[IDS_2096] = QCoreApplication::translate("", "Invalid PCap device").toStdWString();
-    translatedstrings[IDS_2111] = QCoreApplication::translate("", "Unable to initialize FreeType").toStdWString();
     translatedstrings[IDS_2112] = QCoreApplication::translate("", "Unable to initialize SDL, libsdl2 is required").toStdWString();
     translatedstrings[IDS_2130] = QCoreApplication::translate("", "Make sure libpcap is installed and that you are on a libpcap-compatible network connection.").toStdWString();
     translatedstrings[IDS_2115] = QCoreApplication::translate("", "Unable to initialize Ghostscript").toStdWString();
@@ -602,25 +601,15 @@ ProgSettings::reloadStrings()
     translatedstrings[IDS_2143] = QCoreApplication::translate("", "Monitor in sleep mode").toStdWString();
     translatedstrings[IDS_2121] = QCoreApplication::translate("", "No ROMs found").toStdWString();
     translatedstrings[IDS_2056] = QCoreApplication::translate("", "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory.").toStdWString();
+    translatedstrings[IDS_2167] = QCoreApplication::translate("", "Failed to initialize network driver").toStdWString();
+    translatedstrings[IDS_2168] = QCoreApplication::translate("", "The network configuration will be switched to the null driver").toStdWString();
 
-    auto flsynthstr = QCoreApplication::translate("", " is required for FluidSynth MIDI output.");
-    if (flsynthstr.contains("libfluidsynth")) {
-        flsynthstr.replace("libfluidsynth", LIB_NAME_FLUIDSYNTH);
+    auto gsstr             = QCoreApplication::translate("", " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.");
+    if (gsstr.contains("libgs")) {
+        gsstr.replace("libgs", LIB_NAME_GS);
     } else
-        flsynthstr.prepend(LIB_NAME_FLUIDSYNTH);
-    translatedstrings[IDS_2134] = flsynthstr.toStdWString();
-    auto gssynthstr             = QCoreApplication::translate("", " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.");
-    if (gssynthstr.contains("libgs")) {
-        gssynthstr.replace("libgs", LIB_NAME_GS);
-    } else
-        gssynthstr.prepend(LIB_NAME_GS);
-    translatedstrings[IDS_2133] = gssynthstr.toStdWString();
-    auto ftsynthstr             = QCoreApplication::translate("", " is required for ESC/P printer emulation.");
-    if (ftsynthstr.contains("libfreetype")) {
-        ftsynthstr.replace("libfreetype", LIB_NAME_FREETYPE);
-    } else
-        ftsynthstr.prepend(LIB_NAME_FREETYPE);
-    translatedstrings[IDS_2132] = ftsynthstr.toStdWString();
+        gsstr.prepend(LIB_NAME_GS);
+    translatedstrings[IDS_2133] = gsstr.toStdWString();
 }
 
 wchar_t *

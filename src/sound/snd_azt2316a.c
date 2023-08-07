@@ -150,6 +150,7 @@
 #include <86box/snd_ad1848.h>
 #include <86box/snd_azt2316a.h>
 #include <86box/snd_sb.h>
+#include <86box/plat_unused.h>
 
 /*530, 11, 3 - 530=23*/
 /*530, 11, 1 - 530=22*/
@@ -164,7 +165,9 @@
 
 static int azt2316a_wss_dma[4] = { 0, 0, 1, 3 };
 static int azt2316a_wss_irq[8] = { 5, 7, 9, 10, 11, 12, 14, 15 }; /* W95 only uses 7-10, others may be wrong */
-// static uint16_t azt2316a_wss_addr[4] = {0x530, 0x604, 0xe80, 0xf40};
+#if 0
+static uint16_t azt2316a_wss_addr[4] = {0x530, 0x604, 0xe80, 0xf40};
+#endif
 
 typedef struct azt2316a_t {
     int type;
@@ -172,10 +175,14 @@ typedef struct azt2316a_t {
 
     uint8_t wss_config;
 
-    uint16_t cur_addr, cur_wss_addr, cur_mpu401_addr;
+    uint16_t cur_addr;
+    uint16_t cur_wss_addr;
+    uint16_t cur_mpu401_addr;
 
     int cur_irq, cur_dma;
-    int cur_wss_enabled, cur_wss_irq, cur_wss_dma;
+    int cur_wss_enabled;
+    int cur_wss_irq;
+    int cur_wss_dma;
     int cur_mpu401_irq;
     int cur_mpu401_enabled;
 
@@ -191,10 +198,10 @@ typedef struct azt2316a_t {
 } azt2316a_t;
 
 static uint8_t
-azt2316a_wss_read(uint16_t addr, void *p)
+azt2316a_wss_read(uint16_t addr, void *priv)
 {
-    azt2316a_t *azt2316a = (azt2316a_t *) p;
-    uint8_t     temp;
+    const azt2316a_t *azt2316a = (azt2316a_t *) priv;
+    uint8_t           temp;
 
     /* TODO: when windows is initializing, writing 0x48, 0x58 and 0x60 to
        0x530 makes reading from 0x533 return 0x44, but writing 0x50
@@ -208,9 +215,9 @@ azt2316a_wss_read(uint16_t addr, void *p)
 }
 
 static void
-azt2316a_wss_write(uint16_t addr, uint8_t val, void *p)
+azt2316a_wss_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
-    azt2316a_t *azt2316a  = (azt2316a_t *) p;
+    azt2316a_t *azt2316a  = (azt2316a_t *) priv;
     int         interrupt = 0;
 
     if (azt2316a->wss_interrupt_after_config) {
@@ -231,9 +238,9 @@ azt2316a_wss_write(uint16_t addr, uint8_t val, void *p)
 
 /* generate a config word based on current settings */
 static void
-azt1605_create_config_word(void *p)
+azt1605_create_config_word(void *priv)
 {
-    azt2316a_t *azt2316a = (azt2316a_t *) p;
+    azt2316a_t *azt2316a = (azt2316a_t *) priv;
     uint32_t    temp     = 0;
 
     /* not implemented / hardcoded */
@@ -244,20 +251,24 @@ azt1605_create_config_word(void *p)
 
     switch (azt2316a->cur_addr) {
         case 0x220:
-            /* do nothing
-            temp += 0 << 0; */
+            // do nothing
+#if 0
+            temp += 0 << 0;
+#endif
             break;
         case 0x240:
             temp += 1 << 0;
             break;
-            /*
-                    case 0x260: // TODO: INVALID?
-                        temp += 2 << 0;
-                        break;
-                    case 0x280: // TODO: INVALID?
-                        temp += 3 << 0;
-                        break;
-            */
+#if 0
+        case 0x260: // TODO: INVALID?
+            temp += 2 << 0;
+            break;
+        case 0x280: // TODO: INVALID?
+            temp += 3 << 0;
+            break;
+#endif
+        default:
+            break;
     }
 
     switch (azt2316a->cur_irq) {
@@ -273,12 +284,17 @@ azt1605_create_config_word(void *p)
         case 7:
             temp += 1 << 11;
             break;
+
+        default:
+            break;
     }
 
     switch (azt2316a->cur_wss_addr) {
         case 0x530:
-            /* do nothing
-            temp += 0 << 16; */
+            // do nothing
+#if 0
+            temp += 0 << 16;
+#endif
             break;
         case 0x604:
             temp += 1 << 16;
@@ -288,6 +304,9 @@ azt1605_create_config_word(void *p)
             break;
         case 0xF40:
             temp += 3 << 16;
+            break;
+
+        default:
             break;
     }
 
@@ -299,11 +318,16 @@ azt1605_create_config_word(void *p)
 
     switch (azt2316a->cur_mpu401_addr) {
         case 0x300:
-            /* do nothing
-            temp += 0 << 2; */
+            // do nothing
+#if 0
+            temp += 0 << 2;
+#endif
             break;
         case 0x330:
             temp += 1 << 2;
+            break;
+
+        default:
             break;
     }
 
@@ -336,6 +360,9 @@ azt1605_create_config_word(void *p)
         case 7: // unused
             temp += 7 << 5;
             break;
+
+        default:
+            break;
     }
 
     switch (cd_dma8) {
@@ -352,6 +379,9 @@ azt1605_create_config_word(void *p)
         case 3:
             temp += 3 << 22;
             break;
+
+        default:
+            break;
     }
 
     switch (azt2316a->cur_mpu401_irq) {
@@ -366,6 +396,9 @@ azt1605_create_config_word(void *p)
             break;
         case 7:
             temp += 1 << 15;
+            break;
+
+        default:
             break;
     }
 
@@ -382,15 +415,18 @@ azt1605_create_config_word(void *p)
         case 15:
             temp += 1 << 21;
             break;
+
+        default:
+            break;
     }
 
     azt2316a->config_word = temp;
 }
 
 static void
-azt2316a_create_config_word(void *p)
+azt2316a_create_config_word(void *priv)
 {
-    azt2316a_t *azt2316a = (azt2316a_t *) p;
+    azt2316a_t *azt2316a = (azt2316a_t *) priv;
     uint32_t    temp     = 0;
 
     /* not implemented / hardcoded */
@@ -402,26 +438,30 @@ azt2316a_create_config_word(void *p)
     uint8_t  cd_irq      = 15;
 
     if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
-        azt1605_create_config_word(p);
+        azt1605_create_config_word(priv);
         return;
     }
 
     switch (azt2316a->cur_addr) {
         case 0x220:
-            /* do nothing
-            temp += 0 << 0; */
+            // do nothing
+#if 0
+            temp += 0 << 0;
+#endif
             break;
         case 0x240:
             temp += 1 << 0;
             break;
-            /*
-                    case 0x260: // TODO: INVALID?
-                        temp += 2 << 0;
-                        break;
-                    case 0x280: // TODO: INVALID?
-                        temp += 3 << 0;
-                        break;
-            */
+#if 0
+        case 0x260: // TODO: INVALID?
+            temp += 2 << 0;
+            break;
+        case 0x280: // TODO: INVALID?
+            temp += 3 << 0;
+            break;
+#endif
+        default:
+            break;
     }
 
     switch (azt2316a->cur_irq) {
@@ -437,16 +477,19 @@ azt2316a_create_config_word(void *p)
         case 10:
             temp += 1 << 5;
             break;
+
+        default:
+            break;
     }
 
     switch (azt2316a->cur_dma) {
-            /*
-                    // TODO: INVALID?
-                    case 0xFF: // -1
-                        // do nothing
-                        //temp += 0 << 6;
-                        break;
-            */
+#if 0
+        // TODO: INVALID?
+        case 0xFF: // -1
+            // do nothing
+            //temp += 0 << 6;
+            break;
+#endif
         case 0:
             temp += 1 << 6;
             break;
@@ -456,12 +499,17 @@ azt2316a_create_config_word(void *p)
         case 3:
             temp += 3 << 6;
             break;
+
+        default:
+            break;
     }
 
     switch (azt2316a->cur_wss_addr) {
         case 0x530:
             // do nothing
-            // temp += 0 << 8;
+#if 0
+            temp += 0 << 8;
+#endif
             break;
         case 0x604:
             temp += 1 << 8;
@@ -472,6 +520,9 @@ azt2316a_create_config_word(void *p)
         case 0xF40:
             temp += 3 << 8;
             break;
+
+        default:
+            break;
     }
     if (azt2316a->cur_wss_enabled)
         temp += 1 << 10;
@@ -480,10 +531,15 @@ azt2316a_create_config_word(void *p)
     switch (azt2316a->cur_mpu401_addr) {
         case 0x300:
             // do nothing
-            // temp += 0 << 12;
+#if 0
+            temp += 0 << 12;
+#endif
             break;
         case 0x330:
             temp += 1 << 12;
+            break;
+
+        default:
             break;
     }
 
@@ -493,7 +549,9 @@ azt2316a_create_config_word(void *p)
     switch (cd_addr) {
         case 0x310:
             // do nothing
-            // temp += 0 << 14;
+#if 0
+            temp += 0 << 14;
+#endif
             break;
         case 0x320:
             temp += 1 << 14;
@@ -504,11 +562,16 @@ azt2316a_create_config_word(void *p)
         case 0x350:
             temp += 3 << 14;
             break;
+
+        default:
+            break;
     }
     switch (cd_type) {
-        case 0: /* disabled
-            do nothing
+        case 0: /* disabled */
+            // do nothing
+#if 0
             temp += 0 << 16; */
+#endif
             break;
         case 1: /* panasonic */
             temp += 1 << 16;
@@ -531,6 +594,9 @@ azt2316a_create_config_word(void *p)
         case 7: /* unused */
             temp += 7 << 16;
             break;
+
+        default:
+            break;
     }
 
     switch (cd_dma8) {
@@ -541,13 +607,16 @@ azt2316a_create_config_word(void *p)
         case 0:
             temp += 1 << 20;
             break;
-            /*
-                    case 1: // TODO: INVALID?
-                        temp += 2 << 20;
-                        break;
-            */
+#if 0
+        case 1: // TODO: INVALID?
+            temp += 2 << 20;
+            break;
+#endif
         case 3:
             temp += 3 << 20;
+            break;
+
+        default:
             break;
     }
 
@@ -565,6 +634,9 @@ azt2316a_create_config_word(void *p)
         case 7:
             temp += 3 << 22;
             break;
+
+        default:
+            break;
     }
 
     switch (azt2316a->cur_mpu401_irq) {
@@ -579,6 +651,9 @@ azt2316a_create_config_word(void *p)
             break;
         case 10:
             temp += 1 << 27;
+            break;
+
+        default:
             break;
     }
 
@@ -595,16 +670,19 @@ azt2316a_create_config_word(void *p)
         case 15:
             temp += 1 << 31;
             break;
+
+        default:
+            break;
     }
 
     azt2316a->config_word = temp;
 }
 
 static uint8_t
-azt2316a_config_read(uint16_t addr, void *p)
+azt2316a_config_read(uint16_t addr, void *priv)
 {
-    azt2316a_t *azt2316a = (azt2316a_t *) p;
-    uint8_t     temp     = 0;
+    const azt2316a_t *azt2316a = (azt2316a_t *) priv;
+    uint8_t           temp     = 0;
 
     /* Some WSS config here + config change enable bit
        (setting bit 7 and writing back) */
@@ -635,6 +713,9 @@ azt2316a_config_read(uint16_t addr, void *p)
             case 3:
                 temp = (azt2316a->config_word >> 24);
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -642,9 +723,9 @@ azt2316a_config_read(uint16_t addr, void *p)
 }
 
 static void
-azt1605_config_write(uint16_t addr, uint8_t val, void *p)
+azt1605_config_write(uint16_t addr, uint8_t val, void *priv)
 {
-    azt2316a_t *azt2316a = (azt2316a_t *) p;
+    azt2316a_t *azt2316a = (azt2316a_t *) priv;
     uint8_t     temp;
 
     if (addr == (azt2316a->cur_addr + 0x404)) {
@@ -665,12 +746,12 @@ azt1605_config_write(uint16_t addr, uint8_t val, void *p)
                     azt2316a->cur_addr = 0x220;
                 else if (temp == 1)
                     azt2316a->cur_addr = 0x240;
-                /*
-                                else if (temp == 2)
-                                    azt2316a->cur_addr = 0x260; // TODO: INVALID
-                                else if (temp == 3)
-                                    azt2316a->cur_addr = 0x280; // TODO: INVALID
-                */
+#if 0
+                else if (temp == 2)
+                    azt2316a->cur_addr = 0x260; // TODO: INVALID
+                else if (temp == 3)
+                    azt2316a->cur_addr = 0x280; // TODO: INVALID
+#endif
                 if (val & 0x4)
                     azt2316a->cur_mpu401_addr = 0x330;
                 else
@@ -731,6 +812,9 @@ azt1605_config_write(uint16_t addr, uint8_t val, void *p)
                 break;
             case 3:
                 break;
+
+            default:
+                break;
         }
         /* update sbprov2 configs */
         sb_dsp_setaddr(&azt2316a->sb->dsp, azt2316a->cur_addr);
@@ -743,9 +827,9 @@ azt1605_config_write(uint16_t addr, uint8_t val, void *p)
 }
 
 static void
-azt2316a_config_write(uint16_t addr, uint8_t val, void *p)
+azt2316a_config_write(uint16_t addr, uint8_t val, void *priv)
 {
-    azt2316a_t *azt2316a = (azt2316a_t *) p;
+    azt2316a_t *azt2316a = (azt2316a_t *) priv;
     uint8_t     temp;
 
     if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
@@ -839,6 +923,9 @@ azt2316a_config_write(uint16_t addr, uint8_t val, void *p)
                     azt2316a->cur_mpu401_irq = 10;
                 /* else undefined? */
                 break;
+
+            default:
+                break;
         }
         /* update sbprov2 configs */
         sb_dsp_setaddr(&azt2316a->sb->dsp, azt2316a->cur_addr);
@@ -852,9 +939,9 @@ azt2316a_config_write(uint16_t addr, uint8_t val, void *p)
 
 /* How it behaves when one or another is activated may affect games auto-detecting (and will also use more of the limited system resources!) */
 void
-azt2316a_enable_wss(uint8_t enable, void *p)
+azt2316a_enable_wss(uint8_t enable, void *priv)
 {
-    azt2316a_t *azt2316a = (azt2316a_t *) p;
+    azt2316a_t *azt2316a = (azt2316a_t *) priv;
 
     if (enable)
         azt2316a->cur_mode = 1;
@@ -863,14 +950,13 @@ azt2316a_enable_wss(uint8_t enable, void *p)
 }
 
 static void
-azt2316a_get_buffer(int32_t *buffer, int len, void *p)
+azt2316a_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    azt2316a_t *azt2316a = (azt2316a_t *) p;
-    int         c;
+    azt2316a_t *azt2316a = (azt2316a_t *) priv;
 
     /* wss part */
     ad1848_update(&azt2316a->ad1848);
-    for (c = 0; c < len * 2; c++)
+    for (int c = 0; c < len * 2; c++)
         buffer[c] += (azt2316a->ad1848.buffer[c] / 2);
 
     azt2316a->ad1848.pos = 0;
@@ -1183,13 +1269,12 @@ azt_init(const device_t *info)
 }
 
 static void
-azt_close(void *p)
+azt_close(void *priv)
 {
-    azt2316a_t *azt2316a = (azt2316a_t *) p;
+    azt2316a_t *azt2316a = (azt2316a_t *) priv;
     char       *fn       = NULL;
     FILE       *f;
     uint8_t     checksum = 0x7f;
-    int         i;
 
     if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
         fn = "azt1605.nvr";
@@ -1200,7 +1285,7 @@ azt_close(void *p)
     /* always save to eeprom (recover from bad values) */
     f = nvr_fopen(fn, "wb");
     if (f) {
-        for (i = 0; i < AZTECH_EEPROM_SIZE; i++)
+        for (uint8_t i = 0; i < AZTECH_EEPROM_SIZE; i++)
             checksum += azt2316a->sb->dsp.azt_eeprom[i];
         fwrite(azt2316a->sb->dsp.azt_eeprom, AZTECH_EEPROM_SIZE, 1, f);
 
@@ -1219,9 +1304,9 @@ azt_close(void *p)
 }
 
 static void
-azt_speed_changed(void *p)
+azt_speed_changed(void *priv)
 {
-    azt2316a_t *azt2316a = (azt2316a_t *) p;
+    azt2316a_t *azt2316a = (azt2316a_t *) priv;
 
     ad1848_speed_changed(&azt2316a->ad1848);
     sb_speed_changed(azt2316a->sb);

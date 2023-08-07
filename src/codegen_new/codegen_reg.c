@@ -30,7 +30,8 @@ typedef struct host_reg_set_t {
     int             nr_regs;
 } host_reg_set_t;
 
-static host_reg_set_t host_reg_set, host_fp_reg_set;
+static host_reg_set_t host_reg_set;
+static host_reg_set_t host_fp_reg_set;
 
 enum {
     REG_BYTE,
@@ -182,9 +183,7 @@ struct
 void
 codegen_reg_mark_as_required(void)
 {
-    int reg;
-
-    for (reg = 0; reg < IREG_COUNT; reg++) {
+    for (uint8_t reg = 0; reg < IREG_COUNT; reg++) {
         int last_version = reg_last_version[reg];
 
         if (last_version > 0 && ireg_data[reg].is_volatile == REG_PERMANENT)
@@ -533,9 +532,8 @@ alloc_reg(ir_reg_t ir_reg)
 {
     host_reg_set_t *reg_set = get_reg_set(ir_reg);
     int             nr_regs = (reg_set == &host_reg_set) ? CODEGEN_HOST_REGS : CODEGEN_HOST_FP_REGS;
-    int             c;
 
-    for (c = 0; c < nr_regs; c++) {
+    for (int c = 0; c < nr_regs; c++) {
         if (IREG_GET_REG(reg_set->regs[c].reg) == IREG_GET_REG(ir_reg.reg)) {
 #ifndef RELEASE_BUILD
             if (reg_set->regs[c].version != ir_reg.version)
@@ -552,9 +550,8 @@ alloc_dest_reg(ir_reg_t ir_reg, int dest_reference)
 {
     host_reg_set_t *reg_set = get_reg_set(ir_reg);
     int             nr_regs = (reg_set == &host_reg_set) ? CODEGEN_HOST_REGS : CODEGEN_HOST_FP_REGS;
-    int             c;
 
-    for (c = 0; c < nr_regs; c++) {
+    for (int c = 0; c < nr_regs; c++) {
         if (IREG_GET_REG(reg_set->regs[c].reg) == IREG_GET_REG(ir_reg.reg)) {
             if (reg_set->regs[c].version == ir_reg.version) {
                 reg_set->locked |= (1 << c);
@@ -737,10 +734,9 @@ int
 codegen_reg_is_loaded(ir_reg_t ir_reg)
 {
     host_reg_set_t *reg_set = get_reg_set(ir_reg);
-    int             c;
 
     /*Search for previous version in host register*/
-    for (c = 0; c < reg_set->nr_regs; c++) {
+    for (int c = 0; c < reg_set->nr_regs; c++) {
         if (!ir_reg_is_invalid(reg_set->regs[c]) && IREG_GET_REG(reg_set->regs[c].reg) == IREG_GET_REG(ir_reg.reg)) {
             if (reg_set->regs[c].version <= ir_reg.version - 1) {
 #    ifndef RELEASE_BUILD

@@ -38,6 +38,7 @@
 #include <86box/vid_cga.h>
 #include <86box/vid_nga.h>
 #include <86box/vid_cga_comp.h>
+#include <86box/plat_unused.h>
 
 #define CGA_RGB       0
 #define CGA_COMPOSITE 1
@@ -50,9 +51,11 @@ static video_timings_t timing_nga = { .type = VIDEO_ISA, .write_b = 8, .write_w 
 void
 nga_recalctimings(nga_t *nga)
 {
-    double _dispontime, _dispofftime, disptime;
+    double _dispontime;
+    double _dispofftime;
+    double disptime;
 
-    if ((nga->cga.cgamode & 1)) {
+    if (nga->cga.cgamode & 1) {
         disptime    = nga->cga.crtc[0] + 1;
         _dispontime = nga->cga.crtc[1];
     } else {
@@ -84,7 +87,7 @@ nga_in(uint16_t addr, void *priv)
 }
 
 void
-nga_waitstates(void *p)
+nga_waitstates(UNUSED(void *priv))
 {
     int ws_array[16] = { 3, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8 };
     int ws;
@@ -136,7 +139,7 @@ nga_read(uint32_t addr, void *priv)
         nga->cga.charbuffer[offset | 1] = nga->cga.vram[addr & 0x7fff];
     }
 
-    return (ret);
+    return ret;
 }
 
 void
@@ -146,10 +149,15 @@ nga_poll(void *priv)
     /* set cursor position in memory */
     uint16_t ca = (nga->cga.crtc[15] | (nga->cga.crtc[14] << 8)) & 0x3fff;
     int      drawcursor;
-    int      x, c, xs_temp, ys_temp;
+    int      x;
+    int      c;
+    int      xs_temp;
+    int      ys_temp;
     int      oldvc;
-    uint8_t  chr, attr;
-    uint16_t dat, dat2;
+    uint8_t  chr;
+    uint8_t  attr;
+    uint16_t dat;
+    uint16_t dat2;
     int      cols[4];
     int      col;
     int      oldsc;
@@ -338,7 +346,7 @@ nga_poll(void *priv)
                 /* nga specific */
                 cols[0] = ((nga->cga.cgamode & 0x12) == 0x12) ? 0 : (nga->cga.cgacol & 15) + 16;
                 /* 80-col */
-                if ((nga->cga.cgamode & 1)) {
+                if (nga->cga.cgamode & 1) {
                     hline(buffer32, 0, (nga->cga.displine << 1), ((nga->cga.crtc[1] << 3) + 16) << 2, cols[0]);
                     hline(buffer32, 0, (nga->cga.displine << 1) + 1, ((nga->cga.crtc[1] << 3) + 16) << 2, cols[0]);
                 } else {
@@ -347,7 +355,7 @@ nga_poll(void *priv)
                 }
             }
 
-            if ((nga->cga.cgamode & 1))
+            if (nga->cga.cgamode & 1)
                 /* set screen width */
                 x = (nga->cga.crtc[1] << 3) + 16;
             else
@@ -444,7 +452,7 @@ nga_poll(void *priv)
                         nga->cga.vsynctime = 16;
                         /* vsync pos */
                         if (nga->cga.crtc[7]) {
-                            if ((nga->cga.cgamode & 1))
+                            if (nga->cga.cgamode & 1)
                                 /* set screen width */
                                 x = (nga->cga.crtc[1] << 3) + 16;
                             else
@@ -515,7 +523,7 @@ nga_poll(void *priv)
                     nga->cga.cgastat &= ~1;
 
                 /* enable cursor if its scanline was reached */
-                if ((nga->cga.sc == (nga->cga.crtc[10] & 31) || ((nga->cga.crtc[8] & 3) == 3 && nga->cga.sc == ((nga->cga.crtc[10] & 31) >> 1))))
+                if (nga->cga.sc == (nga->cga.crtc[10] & 31) || ((nga->cga.crtc[8] & 3) == 3 && nga->cga.sc == ((nga->cga.crtc[10] & 31) >> 1)))
                     nga->cga.con = 1;
             }
             /* 80-columns */
@@ -546,7 +554,7 @@ nga_speed_changed(void *priv)
 }
 
 void *
-nga_init(const device_t *info)
+nga_init(UNUSED(const device_t *info))
 {
     int     mem;
     uint8_t charset;

@@ -39,6 +39,7 @@
 #include <86box/vid_cga.h>
 #include <86box/vid_ogc.h>
 #include <86box/vid_cga_comp.h>
+#include <86box/plat_unused.h>
 
 /*
  * Current bugs:
@@ -59,7 +60,9 @@ static uint8_t mdaattr[256][2][2];
 void
 ogc_recalctimings(ogc_t *ogc)
 {
-    double _dispontime, _dispofftime, disptime;
+    double _dispontime;
+    double _dispofftime;
+    double disptime;
 
     if (ogc->cga.cgamode & 1) {
         disptime    = ogc->cga.crtc[0] + 1;
@@ -134,11 +137,11 @@ ogc_in(uint16_t addr, void *priv)
             }
     }
 
-    return (ret);
+    return ret;
 }
 
 void
-ogc_waitstates(void *p)
+ogc_waitstates(UNUSED(void *priv))
 {
     int ws_array[16] = { 3, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8, 4, 5, 6, 7, 8 };
     int ws;
@@ -188,10 +191,15 @@ ogc_poll(void *priv)
     ogc_t   *ogc = (ogc_t *) priv;
     uint16_t ca  = (ogc->cga.crtc[15] | (ogc->cga.crtc[14] << 8)) & 0x3fff;
     int      drawcursor;
-    int      x, c, xs_temp, ys_temp;
+    int      x;
+    int      c;
+    int      xs_temp;
+    int      ys_temp;
     int      oldvc;
-    uint8_t  chr, attr;
-    uint16_t dat, dat2;
+    uint8_t  chr;
+    uint8_t  attr;
+    uint16_t dat;
+    uint16_t dat2;
     int      cols[4];
     int      oldsc;
     int      blink     = 0;
@@ -537,9 +545,7 @@ ogc_speed_changed(void *priv)
 void
 ogc_mdaattr_rebuild(void)
 {
-    int c;
-
-    for (c = 0; c < 256; c++) {
+    for (uint16_t c = 0; c < 256; c++) {
         mdaattr[c][0][0] = mdaattr[c][1][0] = mdaattr[c][1][1] = 16;
         if (c & 8)
             mdaattr[c][0][1] = 15 + 16;
@@ -567,7 +573,7 @@ ogc_mdaattr_rebuild(void)
  * - Optional EGC expansion board (which handles 640x400x16) not implemented
  */
 void *
-ogc_init(const device_t *info)
+ogc_init(UNUSED(const device_t *info))
 {
     // int display_type;
     ogc_t *ogc = (ogc_t *) malloc(sizeof(ogc_t));
