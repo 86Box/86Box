@@ -344,8 +344,6 @@ WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
     static int y, delta_y;
     static int b, delta_z;
 
-    pclog("WindowsRawInputFilter::mouse_handle()\n");
-
     b = mouse_get_buttons_ex();
 
     /* read mouse buttons and wheel */

@@ -178,7 +178,6 @@ mouse_timer_poll(UNUSED(void *priv))
 void
 mouse_scale(int x, int y)
 {
-    pclog("mouse_scale()\n");
     double scaled_x = (((double) x) * mouse_sensitivity) + mouse_x_error;
     double scaled_y = (((double) y) * mouse_sensitivity) + mouse_y_error;
 
