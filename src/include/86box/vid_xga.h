@@ -36,7 +36,7 @@ typedef struct xga_t {
     mem_mapping_t  linear_mapping;
     mem_mapping_t  video_mapping;
     rom_t          bios_rom;
-    rom_t		   vga_bios_rom;
+    rom_t          vga_bios_rom;
     xga_hwcursor_t hwcursor;
     xga_hwcursor_t hwcursor_latch;
     PALETTE        extpal;
@@ -79,6 +79,7 @@ typedef struct xga_t {
     uint8_t  pal_b_prefetch;
     uint8_t  sprite_data[1024];
     uint8_t  scrollcache;
+    uint8_t  border_color;
     uint8_t  direct_color;
     uint8_t  dma_channel;
     uint8_t  instance_isa;
@@ -225,6 +226,6 @@ typedef struct xga_t {
         uint32_t px_map_base[4];
     } accel;
 
-    volatile int force_busy;
+    int big_endian_linear;
 } xga_t;
 #endif /*VIDEO_XGA_H*/

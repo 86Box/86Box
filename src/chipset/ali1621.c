@@ -36,6 +36,11 @@
 #include <86box/chipset.h>
 
 typedef struct ali1621_t {
+    uint8_t pci_slot;
+    uint8_t pad;
+    uint8_t pad0;
+    uint8_t pad1;
+
     uint8_t pci_conf[256];
 
     smram_t *smram[2];
@@ -671,7 +676,7 @@ ali1621_init(UNUSED(const device_t *info))
     ali1621_t *dev = (ali1621_t *) malloc(sizeof(ali1621_t));
     memset(dev, 0, sizeof(ali1621_t));
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, ali1621_read, ali1621_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, ali1621_read, ali1621_write, dev, &dev->pci_slot);
 
     dev->smram[0] = smram_add();
     dev->smram[1] = smram_add();

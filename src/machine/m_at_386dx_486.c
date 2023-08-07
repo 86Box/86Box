@@ -1528,11 +1528,11 @@ machine_at_pcm5330_init(const machine_t *model)
     machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x0B, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0C, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0D, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0E, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_SOUTHBRIDGE_IDE, 0, 0, 0, 0);
+    pci_register_slot(0x0E, PCI_CARD_SOUTHBRIDGE_USB, 1, 2, 3, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,          1, 2, 3, 4);
     device_add(&stpc_serial_device);
     device_add(&w83977f_370_device);
     device_add(&keyboard_ps2_ami_pci_device);
@@ -1739,7 +1739,7 @@ machine_at_ms4134_init(const machine_t *model)
 
     device_add(&fdc37c665_ide_pri_device);
 
-    pci_init(PCI_CAN_SWITCH_TYPE | PCI_ALWAYS_EXPOSE_DEV0);
+    pci_init(FLAG_MECHANISM_1 | FLAG_MECHANISM_2 | PCI_ALWAYS_EXPOSE_DEV0);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
 
     pci_register_slot(0x0B, PCI_CARD_SCSI, 4, 1, 2, 3);
@@ -1773,7 +1773,7 @@ machine_at_tg486gp_init(const machine_t *model)
 
     device_add(&fdc37c665_ide_pri_device);
 
-    pci_init(PCI_CAN_SWITCH_TYPE | PCI_ALWAYS_EXPOSE_DEV0);
+    pci_init(FLAG_MECHANISM_1 | FLAG_MECHANISM_2 | PCI_ALWAYS_EXPOSE_DEV0);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
 
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 1, 2, 3, 4);

@@ -217,7 +217,10 @@ typedef struct gd54xx_t {
 
     uint8_t fc; /* Feature Connector */
 
-    int card, id;
+    int id;
+
+    uint8_t pci_slot;
+    uint8_t irq_state;
 
     uint8_t pos_regs[8];
 
@@ -484,9 +487,9 @@ gd54xx_update_irqs(gd54xx_t *gd54xx)
         return;
 
     if ((gd54xx->vblank_irq > 0) && gd54xx_vga_vsync_enabled(gd54xx))
-        pci_set_irq(gd54xx->card, PCI_INTA);
+        pci_set_irq(gd54xx->pci_slot, PCI_INTA, &gd54xx->irq_state);
     else
-        pci_clear_irq(gd54xx->card, PCI_INTA);
+        pci_clear_irq(gd54xx->pci_slot, PCI_INTA, &gd54xx->irq_state);
 }
 
 static void
@@ -4056,7 +4059,10 @@ static void
     io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
 
     if (gd54xx->pci && id >= CIRRUS_ID_CLGD5430) {
-        pci_add_card(PCI_ADD_VIDEO, cl_pci_read, cl_pci_write, gd54xx);
+        if (romfn == NULL)
+            pci_add_card(PCI_ADD_VIDEO, cl_pci_read, cl_pci_write, gd54xx, &gd54xx->pci_slot);
+        else
+            pci_add_card(PCI_ADD_NORMAL, cl_pci_read, cl_pci_write, gd54xx, &gd54xx->pci_slot);
         mem_mapping_disable(&gd54xx->bios_rom.mapping);
     }
 

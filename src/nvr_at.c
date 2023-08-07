@@ -306,7 +306,7 @@ typedef struct local_t {
     uint8_t read_addr;
     uint8_t wp_0d;
     uint8_t wp_32;
-    uint8_t pad;
+    uint8_t irq_state;
     uint8_t pad0;
 
     uint8_t  addr[8];
@@ -434,6 +434,21 @@ check_alarm_via(nvr_t *nvr, int8_t addr, int8_t addr_2)
         return 1;
 }
 
+static void
+timer_update_irq(nvr_t *nvr)
+{
+    local_t *local = (local_t *) nvr->data;
+    uint8_t irq = (nvr->regs[RTC_REGB] & nvr->regs[RTC_REGC]) & (REGB_UIE | REGB_AIE | REGB_PIE);
+
+    if (irq) {
+        nvr->regs[RTC_REGC] |= REGC_IRQF;
+        picintlevel(1 << nvr->irq, &local->irq_state);
+    } else {
+        nvr->regs[RTC_REGC] &= ~REGC_IRQF;
+        picintclevel(1 << nvr->irq, &local->irq_state);
+    }
+}
+
 /* Update the NVR registers from the internal clock. */
 static void
 timer_update(void *priv)
@@ -442,45 +457,38 @@ timer_update(void *priv)
     local_t  *local = (local_t *) nvr->data;
     struct tm tm;
 
-    local->ecount = 0LL;
+    if (local->ecount == (244ULL * TIMER_USEC)) {
+        rtc_tick();
 
-    if (!(nvr->regs[RTC_REGB] & REGB_SET)) {
         /* Get the current time from the internal clock. */
         nvr_time_get(&tm);
 
         /* Update registers with current time. */
         time_set(nvr, &tm);
 
-        /* Clear update status. */
-        local->stat = 0x00;
-
         /* Check for any alarms we need to handle. */
-        if (check_alarm(nvr, RTC_SECONDS) && check_alarm(nvr, RTC_MINUTES) && check_alarm(nvr, RTC_HOURS) && check_alarm_via(nvr, RTC_DOM, RTC_ALDAY) && check_alarm_via(nvr, RTC_MONTH, RTC_ALMONTH) /* &&
-                                                                                                                                                              check_alarm_via(nvr, RTC_DOM, RTC_ALDAY_SIS) &&
-                                                                                                                                                              check_alarm_via(nvr, RTC_MONTH, RTC_ALMONT_SIS)*/
-        ) {
+        if (check_alarm(nvr, RTC_SECONDS) && check_alarm(nvr, RTC_MINUTES) && check_alarm(nvr, RTC_HOURS) &&
+            check_alarm_via(nvr, RTC_DOM, RTC_ALDAY) && check_alarm_via(nvr, RTC_MONTH, RTC_ALMONTH) /* &&
+            check_alarm_via(nvr, RTC_DOM, RTC_ALDAY_SIS) && check_alarm_via(nvr, RTC_MONTH, RTC_ALMONT_SIS) */) {
             nvr->regs[RTC_REGC] |= REGC_AF;
-            if (nvr->regs[RTC_REGB] & REGB_AIE) {
-                /* Generate an interrupt. */
-                if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF))) {
-                    picintlevel(1 << nvr->irq);
-                    nvr->regs[RTC_REGC] |= REGC_IRQF;
-                }
-            }
+            timer_update_irq(nvr);
         }
 
+        /* Schedule the end of the update. */
+        local->ecount = 1984ULL * TIMER_USEC;
+        timer_set_delay_u64(&local->update_timer, local->ecount);
+    } else {
         /*
          * The flag and interrupt should be issued
          * on update ended, not started.
          */
         nvr->regs[RTC_REGC] |= REGC_UF;
-        if (nvr->regs[RTC_REGB] & REGB_UIE) {
-            /* Generate an interrupt. */
-            if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF))) {
-                picintlevel(1 << nvr->irq);
-                nvr->regs[RTC_REGC] |= REGC_IRQF;
-            }
-        }
+        timer_update_irq(nvr);
+
+        /* Clear update status. */
+        local->stat = 0x00;
+
+        local->ecount = 0LL;
     }
 }
 
@@ -525,13 +533,7 @@ timer_intr(void *priv)
         timer_load_count(nvr);
 
         nvr->regs[RTC_REGC] |= REGC_PF;
-        if (nvr->regs[RTC_REGB] & REGB_PIE) {
-            /* Generate an interrupt. */
-            if ((nvr->irq != -1) && (!(nvr->regs[RTC_REGC] & REGC_IRQF))) {
-                picintlevel(1 << nvr->irq);
-                nvr->regs[RTC_REGC] |= REGC_IRQF;
-            }
-        }
+        timer_update_irq(nvr);
     }
 }
 
@@ -541,15 +543,14 @@ timer_tick(nvr_t *nvr)
 {
     local_t *local = (local_t *) nvr->data;
 
-    /* Only update it there is no SET in progress. */
-    if (!(nvr->regs[RTC_REGB] & REGB_SET)) {
+    /* Only update it there is no SET in progress.
+       Also avoid updating it is DV2-DV0 are not set to 0, 1, 0. */
+    if (((nvr->regs[RTC_REGA] & 0x70) == 0x20) && !(nvr->regs[RTC_REGB] & REGB_SET)) {
         /* Set the UIP bit, announcing the update. */
         local->stat = REGA_UIP;
 
-        rtc_tick();
-
         /* Schedule the actual update. */
-        local->ecount = (244ULL + 1984ULL) * TIMER_USEC;
+        local->ecount = 244ULL * TIMER_USEC;
         timer_set_delay_u64(&local->update_timer, local->ecount);
     }
 }
@@ -583,32 +584,29 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
     local_t  *local = (local_t *) nvr->data;
     struct tm tm;
     uint8_t   old;
-    uint8_t   irq = 0;
-    uint8_t   old_irq = 0;
 
     old = nvr->regs[reg];
     switch (reg) {
+        case RTC_SECONDS: /* bit 7 of seconds is read-only */
+            nvr_reg_common_write(reg, val & 0x7f, nvr, local);
+            break;
+
         case RTC_REGA:
-            nvr->regs[RTC_REGA] = val;
-            timer_load_count(nvr);
+            if ((val & nvr->regs[RTC_REGA]) & ~REGA_UIP) {
+                nvr->regs[RTC_REGA] = (nvr->regs[RTC_REGA] & REGA_UIP) | (val & ~REGA_UIP);
+                timer_load_count(nvr);
+            }
             break;
 
         case RTC_REGB:
-            old_irq             = (nvr->regs[RTC_REGB] & nvr->regs[RTC_REGC]) & 0x70;
-            nvr->regs[RTC_REGB] = val;
             if (((old ^ val) & REGB_SET) && (val & REGB_SET)) {
                 /* According to the datasheet... */
-                nvr->regs[RTC_REGA] &= ~REGA_UIP;
-                nvr->regs[RTC_REGB] &= ~REGB_UIE;
+                val &= ~REGB_UIE;
+                local->stat &= ~REGA_UIP;
             }
-            irq = (nvr->regs[RTC_REGB] & nvr->regs[RTC_REGC]) & 0x70;
-            if (old_irq && !irq) {
-                picintc(1 << nvr->irq);
-                nvr->regs[RTC_REGC] &= ~REGC_IRQF;
-            } else if (!old_irq && irq) {
-                picintlevel(1 << nvr->irq);
-                nvr->regs[RTC_REGC] |= REGC_IRQF;
-            }
+
+            nvr->regs[RTC_REGB] = val;
+            timer_update_irq(nvr);
             break;
 
         case RTC_REGC: /* R/O */
@@ -698,9 +696,9 @@ nvr_read(uint16_t addr, void *priv)
                 break;
 
             case RTC_REGC:
-                ret = nvr->regs[RTC_REGC];
-                picintc(1 << nvr->irq);
-                nvr->regs[RTC_REGC] = 0x00;
+                ret = nvr->regs[RTC_REGC] & (REGC_IRQF | REGC_PF | REGC_AF | REGC_UF);
+                nvr->regs[RTC_REGC] &= ~(REGC_IRQF | REGC_PF | REGC_AF | REGC_UF);
+                timer_update_irq(nvr);
                 break;
 
             case RTC_REGD:

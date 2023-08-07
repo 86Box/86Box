@@ -74,13 +74,13 @@ typedef struct serial_s {
     uint8_t out;
     uint8_t msr_set;
     uint8_t pad;
+    uint8_t irq_state;
     uint8_t pad0;
-    uint8_t pad1;
 
     uint16_t dlab;
     uint16_t base_address;
     uint16_t out_new;
-    uint16_t pad2;
+    uint16_t pad1;
 
     uint8_t rcvr_fifo_pos;
     uint8_t xmit_fifo_pos;
