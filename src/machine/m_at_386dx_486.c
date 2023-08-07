@@ -633,6 +633,7 @@ machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU oth
         return ret;
 
     machine_at_common_init(model);
+    device_add(&ide_vlb_2ch_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -642,8 +643,8 @@ machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU oth
 
     device_add(&opti802g_pci_device);
     device_add(&opti822_device);
-    device_add(&keyboard_ps2_device);
-    device_add(&fdc37c665_device);
+    device_add(&keyboard_ps2_ami_device);
+    device_add(&fdc37c665_ide_device);
     device_add(&ide_opti611_vlb_device);
     device_add(&intel_flash_bxt_device);
 
