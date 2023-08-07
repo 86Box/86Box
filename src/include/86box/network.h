@@ -93,7 +93,7 @@ enum {
     NET_QUEUE_TX_HOST = 2
 };
 
-typedef struct {
+typedef struct netcard_conf_t {
     uint16_t device_num;
     int      net_type;
     char     host_dev_name[128];
@@ -111,7 +111,7 @@ typedef struct netpkt {
     int      len;
 } netpkt_t;
 
-typedef struct {
+typedef struct netqueue_t {
     netpkt_t packets[NET_QUEUE_LEN];
     int      head;
     int      tail;

@@ -37,15 +37,20 @@
 #include <86box/zip.h>
 #include <86box/mo.h>
 
-typedef struct {
+typedef struct cmd646_t {
     uint8_t     vlb_idx;
     uint8_t     single_channel;
     uint8_t     in_cfg;
+    uint8_t     pci_slot;
+
     uint8_t     regs[256];
+
     uint32_t    local;
-    int         slot;
-    int         irq_mode[2];
+
     int         irq_pin;
+
+    int         irq_mode[2];
+
     sff8038i_t *bm[2];
 } cmd646_t;
 
@@ -90,7 +95,7 @@ cmd646_set_irq(int channel, void *priv)
 static int
 cmd646_bus_master_dma(int channel, uint8_t *data, int transfer_length, int out, void *priv)
 {
-    cmd646_t *dev = (cmd646_t *) priv;
+    const cmd646_t *dev = (cmd646_t *) priv;
 
     return sff_bus_master_dma(channel, data, transfer_length, out, dev->bm[channel & 0x01]);
 }
@@ -101,6 +106,9 @@ cmd646_ide_handlers(cmd646_t *dev)
     uint16_t main;
     uint16_t side;
     int      irq_mode[2] = { 0, 0 };
+
+    sff_set_slot(dev->bm[0], dev->pci_slot);
+    sff_set_slot(dev->bm[1], dev->pci_slot);
 
     ide_pri_disable();
 
@@ -382,7 +390,10 @@ cmd646_init(const device_t *info)
 
     device_add(&ide_pci_2ch_device);
 
-    dev->slot = pci_add_card(PCI_ADD_IDE, cmd646_pci_read, cmd646_pci_write, dev);
+    if (info->local & 0x80000)
+        pci_add_card(PCI_ADD_NORMAL, cmd646_pci_read, cmd646_pci_write, dev, &dev->pci_slot);
+    else
+        pci_add_card(PCI_ADD_IDE, cmd646_pci_read, cmd646_pci_write, dev, &dev->pci_slot);
 
     dev->single_channel = !!(info->local & 0x20000);
 

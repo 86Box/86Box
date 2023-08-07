@@ -408,18 +408,18 @@ pc_log(const char *fmt, ...)
 int
 pc_init(int argc, char *argv[])
 {
-    char      *ppath = NULL;
-    char      *rpath = NULL;
-    char      *cfg = NULL;
-    char      *p;
-    char       temp[2048];
-    char      *fn[FDD_NUM] = { NULL };
-    char       drive = 0;
-    char      *temp2 = NULL;
-    struct tm *info;
-    time_t     now;
-    int        c;
-    int        lvmp = 0;
+    char            *ppath = NULL;
+    char            *rpath = NULL;
+    char            *cfg = NULL;
+    char            *p;
+    char             temp[2048];
+    char            *fn[FDD_NUM] = { NULL };
+    char             drive = 0;
+    char            *temp2 = NULL;
+    const struct tm *info;
+    time_t           now;
+    int              c;
+    int              lvmp = 0;
 #ifdef ENABLE_NG
     int ng = 0;
 #endif
@@ -1048,19 +1048,9 @@ pc_reset_hard_init(void)
     /* Initialize the actual machine and its basic modules. */
     machine_init();
 
-    /* Reset and reconfigure the serial ports. */
-    serial_standalone_init();
-    serial_passthrough_init();
-
-    /* Reset and reconfigure the Sound Card layer. */
-    sound_card_reset();
-
-    /* Reset any ISA RTC cards. */
-    isartc_reset();
-
-    fdc_card_init();
-
-    fdd_reset();
+    /* Reset some basic devices. */
+    speaker_init();
+    shadowbios = 0;
 
     /*
      * Once the machine has been initialized, all that remains
@@ -1071,10 +1061,20 @@ pc_reset_hard_init(void)
      * that will be a call to device_reset_all() later !
      */
 
-    /* Reset some basic devices. */
-    speaker_init();
+    if (joystick_type)
+        gameport_update_joystick_type();
+
+    /* Reset and reconfigure the Sound Card layer. */
+    sound_card_reset();
+
+    /* Reset and reconfigure the Network Card layer. */
+    network_reset();
+
     lpt_devices_init();
-    shadowbios = 0;
+
+    /* Reset and reconfigure the serial ports. */
+    serial_standalone_init();
+    serial_passthrough_init();
 
     /*
      * Reset the mouse, this will attach it to any port needed.
@@ -1084,25 +1084,26 @@ pc_reset_hard_init(void)
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
 
+    fdc_card_init();
+
+    fdd_reset();
+
     /* Reset the CD-ROM Controller module. */
     cdrom_interface_reset();
 
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 
-    cdrom_hard_reset();
+    scsi_disk_hard_reset();
 
-    zip_hard_reset();
+    cdrom_hard_reset();
 
     mo_hard_reset();
 
-    scsi_disk_hard_reset();
+    zip_hard_reset();
 
-    /* Reset and reconfigure the Network Card layer. */
-    network_reset();
-
-    if (joystick_type)
-        gameport_update_joystick_type();
+    /* Reset any ISA RTC cards. */
+    isartc_reset();
 
     ui_sb_update_panes();
 
@@ -1118,6 +1119,11 @@ pc_reset_hard_init(void)
         device_add(&bugger_device);
     if (postcard_enabled)
         device_add(&postcard_device);
+
+    if (IS_ARCH(machine, MACHINE_BUS_PCI)) {
+        pci_register_cards();
+        device_reset_all(DEVICE_PCI);
+    }
 
     /* Reset the CPU module. */
     resetx86();
@@ -1144,9 +1150,9 @@ pc_reset_hard_init(void)
 void
 update_mouse_msg(void)
 {
-    wchar_t wcpufamily[2048];
-    wchar_t wcpu[2048];
-    wchar_t wmachine[2048];
+    wchar_t  wcpufamily[2048];
+    wchar_t  wcpu[2048];
+    wchar_t  wmachine[2048];
     wchar_t *wcp;
 
     mbstowcs(wmachine, machine_getname(), strlen(machine_getname()) + 1);
@@ -1185,7 +1191,7 @@ pc_reset_hard(void)
 }
 
 void
-pc_close(thread_t *ptr)
+pc_close(UNUSED(thread_t *ptr))
 {
     /* Wait a while so things can shut down. */
     plat_delay_ms(200);
@@ -1275,7 +1281,9 @@ pc_run(void)
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     // if (gdbstub_step == GDBSTUB_EXEC)
 #endif
-        // mouse_process();
+#if 0
+        mouse_process();
+#endif
     joystick_process();
     endblit();
 
@@ -1415,6 +1423,9 @@ set_screen_size_monitor(int x, int y, int monitor_index)
         case 9: /* 800% */
             monitors[monitor_index].mon_scrnsz_x = (monitors[monitor_index].mon_unscaled_size_x << 3);
             monitors[monitor_index].mon_scrnsz_y = (monitors[monitor_index].mon_unscaled_size_y << 3);
+            break;
+
+        default:
             break;
     }
 

@@ -47,6 +47,7 @@
 #include <86box/chipset.h>
 
 typedef struct ali1543_t {
+    uint8_t mirq_states[8];
     uint8_t pci_conf[256];
     uint8_t pmu_conf[256];
     uint8_t usb_conf[256];
@@ -895,7 +896,7 @@ ali5229_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 ali5229_read(int func, int addr, void *priv)
 {
-    ali1543_t *dev = (ali1543_t *) priv;
+    const ali1543_t *dev = (ali1543_t *) priv;
     uint8_t    ret = 0xff;
 
     if (dev->ide_dev_enable && (func == 0)) {
@@ -983,7 +984,7 @@ ali5237_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 ali5237_read(int func, int addr, void *priv)
 {
-    ali1543_t *dev = (ali1543_t *) priv;
+    const ali1543_t *dev = (ali1543_t *) priv;
     uint8_t    ret = 0xff;
 
     if (dev->usb_dev_enable && (func == 0))
@@ -1477,9 +1478,9 @@ ali5237_usb_update_interrupt(usb_t* usb, void *priv)
     ali1543_t *dev = (ali1543_t *) priv;
 
     if (usb->irq_level)
-        pci_set_mirq(4, !!(dev->pci_conf[0x74] & 0x10));
+        pci_set_mirq(4, !!(dev->pci_conf[0x74] & 0x10), &dev->mirq_states[4]);
     else
-        pci_clear_mirq(4, !!(dev->pci_conf[0x74] & 0x10));
+        pci_clear_mirq(4, !!(dev->pci_conf[0x74] & 0x10), &dev->mirq_states[4]);
 }
 
 static void
@@ -1595,16 +1596,16 @@ ali1543_init(const device_t *info)
     memset(dev, 0, sizeof(ali1543_t));
 
     /* Device 02: M1533 Southbridge */
-    dev->pci_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, ali1533_read, ali1533_write, dev);
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, ali1533_read, ali1533_write, dev, &dev->pci_slot);
 
     /* Device 0B: M5229 IDE Controller*/
-    dev->ide_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE_IDE, ali5229_read, ali5229_write, dev);
+    pci_add_card(PCI_ADD_SOUTHBRIDGE_IDE, ali5229_read, ali5229_write, dev, &dev->ide_slot);
 
     /* Device 0C: M7101 Power Managment Controller */
-    dev->pmu_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE_PMU, ali7101_read, ali7101_write, dev);
+    pci_add_card(PCI_ADD_SOUTHBRIDGE_PMU, ali7101_read, ali7101_write, dev, &dev->pmu_slot);
 
     /* Device 0F: M5237 USB */
-    dev->usb_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE_USB, ali5237_read, ali5237_write, dev);
+    pci_add_card(PCI_ADD_SOUTHBRIDGE_USB, ali5237_read, ali5237_write, dev, &dev->usb_slot);
 
     /* ACPI */
     dev->acpi = device_add(&acpi_ali_device);

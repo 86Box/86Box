@@ -18,7 +18,7 @@
 #ifndef PLAT_DYNLD_H
 #define PLAT_DYNLD_H
 
-typedef struct {
+typedef struct dllimp_t {
     const char *name;
     void       *func;
 } dllimp_t;

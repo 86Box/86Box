@@ -87,8 +87,8 @@ fake_shift_needed(uint16_t scan)
 void
 key_process(uint16_t scan, int down)
 {
-    scancode *codes = scan_table;
-    int       c;
+    const scancode *codes = scan_table;
+    int             c;
 
     if (!codes)
         return;
@@ -167,6 +167,12 @@ keyboard_input(int down, uint16_t scan)
                 case 0x138: /* Right Alt */
                     shift |= 0x40;
                     break;
+                case 0x15b: /* Left Windows */
+                    shift |= 0x08;
+                    break;
+                case 0x15c: /* Right Windows */
+                    shift |= 0x80;
+                    break;
 
                 default:
                     break;
@@ -190,6 +196,12 @@ keyboard_input(int down, uint16_t scan)
                     break;
                 case 0x138: /* Right Alt */
                     shift &= ~0x40;
+                    break;
+                case 0x15b: /* Left Windows */
+                    shift &= ~0x08;
+                    break;
+                case 0x15c: /* Right Windows */
+                    shift &= ~0x80;
                     break;
                 case 0x03a: /* Caps Lock */
                     caps_lock ^= 1;
@@ -222,7 +234,7 @@ keyboard_input(int down, uint16_t scan)
 static uint8_t
 keyboard_do_break(uint16_t scan)
 {
-    scancode *codes = scan_table;
+    const scancode *codes = scan_table;
 
     /* TODO: The keyboard controller needs to report the AT flag to us here. */
     if (is286 && ((keyboard_mode & 3) == 3)) {
@@ -266,7 +278,7 @@ keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl)
 void
 keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl)
 {
-    scancode *codes = scan_table;
+    const scancode *codes = scan_table;
 
     int i;
 
@@ -320,7 +332,7 @@ keyboard_isfsenter(void)
 }
 
 int
-keyboard_isfsenter_down(void)
+keyboard_isfsenter_up(void)
 {
     return (!recv_key[0x01d] && !recv_key[0x11d] && !recv_key[0x038] && !recv_key[0x138] && !recv_key[0x049] && !recv_key[0x149]);
 }
@@ -333,7 +345,7 @@ keyboard_isfsexit(void)
 }
 
 int
-keyboard_isfsexit_down(void)
+keyboard_isfsexit_up(void)
 {
     return (!recv_key[0x01d] && !recv_key[0x11d] && !recv_key[0x038] && !recv_key[0x138] && !recv_key[0x051] && !recv_key[0x151]);
 }

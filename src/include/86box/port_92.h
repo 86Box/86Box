@@ -20,8 +20,7 @@
 #define EMU_PORT_92_H
 
 #ifdef _TIMER_H_
-typedef struct
-{
+typedef struct port_92_t {
     uint8_t reg;
     uint8_t flags;
 

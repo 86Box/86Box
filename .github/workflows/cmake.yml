@@ -104,6 +104,8 @@ jobs:
             libpng:p
             openal:p
             rtmidi:p
+            libslirp:p
+            fluidsynth:p
             libvncserver:p
             ${{ matrix.ui.packages }}
 
@@ -113,7 +115,7 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Install sonar-scanner and build-wrapper
-        uses: SonarSource/sonarcloud-github-c-cpp@v1
+        uses: SonarSource/sonarcloud-github-c-cpp@v2
 
       - name: Configure CMake
         run: >-
@@ -232,7 +234,7 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Install sonar-scanner and build-wrapper
-        uses: SonarSource/sonarcloud-github-c-cpp@v1
+        uses: SonarSource/sonarcloud-github-c-cpp@v2
 
       - name: Configure CMake
         run: >
@@ -261,7 +263,7 @@ jobs:
           build-wrapper-win-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
 
       - name: Run sonar-scanner
-#        if: 0
+        if: 0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -328,6 +330,8 @@ jobs:
           libc6-dev
           librtmidi-dev
           libopenal-dev
+          libslirp-dev
+          libfluidsynth-dev
           libvncserver-dev
           ${{ matrix.ui.packages }}
 
@@ -337,7 +341,7 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Install sonar-scanner and build-wrapper
-        uses: SonarSource/sonarcloud-github-c-cpp@v1
+        uses: SonarSource/sonarcloud-github-c-cpp@v2
 
       - name: Configure CMake
         run: >-
@@ -413,6 +417,7 @@ jobs:
           libpng
           rtmidi
           openal-soft
+          fluidsynth
           libvncserver
           ${{ matrix.ui.packages }}
 
@@ -422,7 +427,7 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
       - name: Install sonar-scanner and build-wrapper
-        uses: SonarSource/sonarcloud-github-c-cpp@v1
+        uses: SonarSource/sonarcloud-github-c-cpp@v2
 
       - name: Configure CMake
         run: >-
@@ -440,7 +445,7 @@ jobs:
           build-wrapper-macosx-x86 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
 
       - name: Run sonar-scanner
-#        if: 0
+        if: 0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

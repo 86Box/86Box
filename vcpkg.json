@@ -8,7 +8,8 @@
         "freetype",
         "libpng",
         "sdl2",
-        "rtmidi"
+        "rtmidi",
+        "libslirp"
     ],
     "features": {
         "qt-ui": {
@@ -44,12 +45,6 @@
             "description": "Roland MT-32 emulation",
             "dependencies": [
                 "libmt32emu"
-            ]
-        },
-        "slirp": {
-            "description": "Slirp network support",
-            "dependencies": [
-                "libslirp"
             ]
         },
         "openal": {

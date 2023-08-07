@@ -35,9 +35,9 @@ static video_timings_t timing_ps1_svga_isa = { .type = VIDEO_ISA, .write_b = 6, 
 static video_timings_t timing_ps1_svga_mca = { .type = VIDEO_MCA, .write_b = 6, .write_w = 8, .write_l = 16, .read_b = 6, .read_w = 8, .read_l = 16 };
 
 void
-vga_out(uint16_t addr, uint8_t val, void *p)
+vga_out(uint16_t addr, uint8_t val, void *priv)
 {
-    vga_t  *vga  = (vga_t *) p;
+    vga_t  *vga  = (vga_t *) priv;
     svga_t *svga = &vga->svga;
     uint8_t old;
 
@@ -69,14 +69,17 @@ vga_out(uint16_t addr, uint8_t val, void *p)
                 }
             }
             break;
+
+        default:
+            break;
     }
     svga_out(addr, val, svga);
 }
 
 uint8_t
-vga_in(uint16_t addr, void *p)
+vga_in(uint16_t addr, void *priv)
 {
-    vga_t  *vga  = (vga_t *) p;
+    vga_t  *vga  = (vga_t *) priv;
     svga_t *svga = &vga->svga;
     uint8_t temp;
 
@@ -157,9 +160,9 @@ vga_available(void)
 }
 
 void
-vga_close(void *p)
+vga_close(void *priv)
 {
-    vga_t *vga = (vga_t *) p;
+    vga_t *vga = (vga_t *) priv;
 
     svga_close(&vga->svga);
 
@@ -167,17 +170,17 @@ vga_close(void *p)
 }
 
 void
-vga_speed_changed(void *p)
+vga_speed_changed(void *priv)
 {
-    vga_t *vga = (vga_t *) p;
+    vga_t *vga = (vga_t *) priv;
 
     svga_recalctimings(&vga->svga);
 }
 
 void
-vga_force_redraw(void *p)
+vga_force_redraw(void *priv)
 {
-    vga_t *vga = (vga_t *) p;
+    vga_t *vga = (vga_t *) priv;
 
     vga->svga.fullchange = changeframecount;
 }

@@ -213,7 +213,7 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
     ali1489_t    *dev = (ali1489_t *) priv;
     uint8_t       old;
     uint8_t       irq;
-    const uint8_t irq_array[16] = { 0, 3, 4, 7, 0, 0, 0, 0, 9, 10, 5, 6, 11, 12, 14, 15 };
+    const uint8_t irq_array[16] = { 0, 9, 3, 10, 4, 5, 7, 6, 0, 11, 0, 12, 0, 14, 0, 15 };
 
     switch (addr) {
         case 0x22:
@@ -408,8 +408,8 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 ali1489_read(uint16_t addr, void *priv)
 {
-    uint8_t    ret = 0xff;
-    ali1489_t *dev = (ali1489_t *) priv;
+    uint8_t          ret = 0xff;
+    const ali1489_t *dev = (ali1489_t *) priv;
 
     switch (addr) {
         case 0x23:
@@ -456,8 +456,8 @@ ali1489_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static uint8_t
 ali1489_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    ali1489_t *dev = (ali1489_t *) priv;
-    uint8_t    ret = 0xff;
+    const ali1489_t *dev = (ali1489_t *) priv;
+    uint8_t          ret = 0xff;
 
     ret = dev->pci_conf[addr];
     ali1489_log("M1489-PCI: dev->pci_conf[%02x] (%02x)\n", addr, ret);
@@ -560,8 +560,8 @@ ali1489_ide_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 ali1489_ide_read(uint16_t addr, void *priv)
 {
-    ali1489_t *dev = (ali1489_t *) priv;
-    uint8_t    ret = 0xff;
+    const ali1489_t *dev = (ali1489_t *) priv;
+    uint8_t          ret = 0xff;
 
     switch (addr) {
         case 0xf4:
@@ -622,7 +622,7 @@ ali1489_init(UNUSED(const device_t *info))
     io_sethandler(0x0fc, 0x0001, ali1489_ide_read, NULL, NULL, ali1489_ide_write, NULL, NULL, dev);
 
     /* Dummy M1489 PCI device */
-    dev->pci_slot = pci_add_card(PCI_ADD_NORTHBRIDGE, ali1489_pci_read, ali1489_pci_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, ali1489_pci_read, ali1489_pci_write, dev, &dev->pci_slot);
 
     device_add(&ide_pci_2ch_device);
 

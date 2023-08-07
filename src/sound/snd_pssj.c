@@ -12,6 +12,7 @@
 #include <86box/sound.h>
 #include <86box/snd_sn76489.h>
 #include <86box/timer.h>
+#include <86box/plat_unused.h>
 
 typedef struct pssj_t {
     sn76489_t sn76489;
@@ -41,9 +42,9 @@ pssj_update_irq(pssj_t *pssj)
 }
 
 static void
-pssj_write(uint16_t port, uint8_t val, void *p)
+pssj_write(uint16_t port, uint8_t val, void *priv)
 {
-    pssj_t *pssj = (pssj_t *) p;
+    pssj_t *pssj = (pssj_t *) priv;
 
     switch (port & 3) {
         case 0:
@@ -67,6 +68,9 @@ pssj_write(uint16_t port, uint8_t val, void *p)
                 case 3: /*Direct DAC*/
                     pssj->dac_val = val;
                     break;
+
+                default:
+                    break;
             }
             break;
         case 2:
@@ -76,12 +80,15 @@ pssj_write(uint16_t port, uint8_t val, void *p)
             pssj->freq      = (pssj->freq & 0x0ff) | ((val & 0xf) << 8);
             pssj->amplitude = val >> 4;
             break;
+
+        default:
+            break;
     }
 }
 static uint8_t
-pssj_read(uint16_t port, void *p)
+pssj_read(uint16_t port, void *priv)
 {
-    pssj_t *pssj = (pssj_t *) p;
+    const pssj_t *pssj = (pssj_t *) priv;
 
     switch (port & 3) {
         case 0:
@@ -96,6 +103,9 @@ pssj_read(uint16_t port, void *p)
                     return 0x80;
                 case 3: /*Direct DAC*/
                     return pssj->dac_val;
+
+                default:
+                    break;
             }
             break;
         case 2:
@@ -117,9 +127,9 @@ pssj_update(pssj_t *pssj)
 }
 
 static void
-pssj_callback(void *p)
+pssj_callback(void *priv)
 {
-    pssj_t *pssj = (pssj_t *) p;
+    pssj_t *pssj = (pssj_t *) priv;
     int     data;
 
     pssj_update(pssj);
@@ -157,6 +167,9 @@ pssj_callback(void *p)
             case 0xc0:
                 pssj->dac_val = 0x80;
                 break;
+
+            default:
+                break;
         }
         pssj->wave_pos = (pssj->wave_pos + 1) & 31;
     }
@@ -165,9 +178,9 @@ pssj_callback(void *p)
 }
 
 static void
-pssj_get_buffer(int32_t *buffer, int len, void *p)
+pssj_get_buffer(int32_t *buffer, int len, void *priv)
 {
-    pssj_t *pssj = (pssj_t *) p;
+    pssj_t *pssj = (pssj_t *) priv;
 
     pssj_update(pssj);
 
@@ -178,7 +191,7 @@ pssj_get_buffer(int32_t *buffer, int len, void *p)
 }
 
 void *
-pssj_init(const device_t *info)
+pssj_init(UNUSED(const device_t *info))
 {
     pssj_t *pssj = malloc(sizeof(pssj_t));
     memset(pssj, 0, sizeof(pssj_t));
@@ -193,7 +206,7 @@ pssj_init(const device_t *info)
 }
 
 void *
-pssj_1e0_init(const device_t *info)
+pssj_1e0_init(UNUSED(const device_t *info))
 {
     pssj_t *pssj = malloc(sizeof(pssj_t));
     memset(pssj, 0, sizeof(pssj_t));
@@ -208,7 +221,7 @@ pssj_1e0_init(const device_t *info)
 }
 
 void *
-pssj_isa_init(const device_t *info)
+pssj_isa_init(UNUSED(const device_t *info))
 {
     pssj_t *pssj = malloc(sizeof(pssj_t));
     memset(pssj, 0, sizeof(pssj_t));
@@ -225,9 +238,9 @@ pssj_isa_init(const device_t *info)
 }
 
 void
-pssj_close(void *p)
+pssj_close(void *priv)
 {
-    pssj_t *pssj = (pssj_t *) p;
+    pssj_t *pssj = (pssj_t *) priv;
 
     free(pssj);
 }

@@ -66,13 +66,15 @@ sis_5511_log(const char *fmt, ...)
 #endif
 
 typedef struct sis_5511_t {
-    uint8_t pci_conf[256];
-    uint8_t pci_conf_sb[2][256];
     uint8_t index;
+    uint8_t nb_slot;
+    uint8_t sb_slot;
+    uint8_t pad;
+
     uint8_t regs[16];
 
-    int nb_pci_slot;
-    int sb_pci_slot;
+    uint8_t pci_conf[256];
+    uint8_t pci_conf_sb[2][256];
 
     sff8038i_t *ide_drive[2];
     smram_t    *smram;
@@ -348,7 +350,8 @@ sis_5511_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static uint8_t
 sis_5511_read(UNUSED(int func), int addr, void *priv)
 {
-    sis_5511_t *dev = (sis_5511_t *) priv;
+    const sis_5511_t *dev = (sis_5511_t *) priv;
+
     sis_5511_log("SiS 5511: dev->pci_conf[%02x] (%02x) POST %02x\n", addr, dev->pci_conf[addr], inb(0x80));
     return dev->pci_conf[addr];
 }
@@ -554,7 +557,7 @@ sis_5513_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 sis_5513_read(int func, int addr, void *priv)
 {
-    sis_5511_t *dev = (sis_5511_t *) priv;
+    const sis_5511_t *dev = (sis_5511_t *) priv;
 
     sis_5511_log("SiS 5513: dev->pci_conf[%02x][%02x] = %02x POST %02x\n", func, addr, dev->pci_conf_sb[func][addr], inb(0x80));
     if ((func >= 0) && (func <= 1))
@@ -624,7 +627,7 @@ sis_5513_isa_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 sis_5513_isa_read(uint16_t addr, void *priv)
 {
-    sis_5511_t *dev = (sis_5511_t *) priv;
+    const sis_5511_t *dev = (sis_5511_t *) priv;
 
     if (addr == 0x23) {
         sis_5511_log("SiS 5513-ISA: dev->regs[%02x] (%02x) POST: %02x\n", dev->index + 0x50, dev->regs[dev->index], inb(0x80));
@@ -712,8 +715,8 @@ sis_5511_reset(void *priv)
     dev->pci_conf_sb[1][0x0a] = 1;
     dev->pci_conf_sb[1][0x0b] = 1;
     dev->pci_conf_sb[1][0x0e] = 0x80;
-    sff_set_slot(dev->ide_drive[0], dev->sb_pci_slot);
-    sff_set_slot(dev->ide_drive[1], dev->sb_pci_slot);
+    sff_set_slot(dev->ide_drive[0], dev->sb_slot);
+    sff_set_slot(dev->ide_drive[1], dev->sb_slot);
     sff_bus_master_reset(dev->ide_drive[0], BUS_MASTER_BASE);
     sff_bus_master_reset(dev->ide_drive[1], BUS_MASTER_BASE + 8);
 }
@@ -733,8 +736,8 @@ sis_5511_init(UNUSED(const device_t *info))
     sis_5511_t *dev = (sis_5511_t *) malloc(sizeof(sis_5511_t));
     memset(dev, 0, sizeof(sis_5511_t));
 
-    dev->nb_pci_slot = pci_add_card(PCI_ADD_NORTHBRIDGE, sis_5511_read, sis_5511_write, dev);          /* Device 0: SiS 5511 */
-    dev->sb_pci_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, sis_5513_read, sis_5513_write, dev);          /* Device 1: SiS 5513 */
+    pci_add_card(PCI_ADD_NORTHBRIDGE, sis_5511_read, sis_5511_write, dev, &dev->nb_slot);              /* Device 0: SiS 5511 */
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, sis_5513_read, sis_5513_write, dev, &dev->sb_slot);              /* Device 1: SiS 5513 */
     io_sethandler(0x0022, 0x0002, sis_5513_isa_read, NULL, NULL, sis_5513_isa_write, NULL, NULL, dev); /* Ports 22h-23h: SiS 5513 ISA */
 
     /* MIRQ */

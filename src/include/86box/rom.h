@@ -32,7 +32,7 @@
 #define bios_load_interleavedr(a, b, c, d, e)     bios_load(a, b, c, d, e, FLAG_INT | FLAG_REP)
 #define bios_load_aux_interleaved(a, b, c, d, e)  bios_load(a, b, c, d, e, FLAG_INT | FLAG_AUX)
 
-typedef struct {
+typedef struct rom_t {
     uint8_t      *rom;
     int           sz;
     uint32_t      mask;
@@ -54,7 +54,7 @@ extern uint32_t rom_readl(uint32_t addr, void *p);
 
 extern FILE *rom_fopen(const char *fn, char *mode);
 extern int   rom_getfile(char *fn, char *s, int size);
-extern int   rom_present(char *fn);
+extern int   rom_present(const char *fn);
 
 extern int rom_load_linear_oddeven(const char *fn, uint32_t addr, int sz,
                                    int off, uint8_t *ptr);

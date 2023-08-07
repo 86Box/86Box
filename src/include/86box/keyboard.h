@@ -39,7 +39,7 @@ enum {
 };
 
 /* Used by the AT / PS/2 keyboard controller, common device, keyboard, and mouse. */
-typedef struct {
+typedef struct kbc_at_port_t {
     uint8_t wantcmd;
     uint8_t dat;
 
@@ -51,7 +51,7 @@ typedef struct {
 } kbc_at_port_t;
 
 /* Used by the AT / PS/2 common device, keyboard, and mouse. */
-typedef struct {
+typedef struct atkbc_dev_t {
     const char *name; /* name of this device */
 
     uint8_t type;
@@ -88,7 +88,7 @@ typedef struct {
     kbc_at_port_t *port;
 } atkbc_dev_t;
 
-typedef struct {
+typedef struct scancode {
     const uint8_t mk[4];
     const uint8_t brk[4];
 } scancode;
@@ -228,11 +228,13 @@ extern const device_t keyboard_xt_olivetti_device;
 extern const device_t keyboard_xt_zenith_device;
 extern const device_t keyboard_xtclone_device;
 extern const device_t keyboard_at_device;
+extern const device_t keyboard_at_siemens_device;
 extern const device_t keyboard_at_ami_device;
 extern const device_t keyboard_at_tg_ami_device;
 extern const device_t keyboard_at_toshiba_device;
 extern const device_t keyboard_at_olivetti_device;
 extern const device_t keyboard_at_ncr_device;
+extern const device_t keyboard_at_compaq_device;
 extern const device_t keyboard_ps2_device;
 extern const device_t keyboard_ps2_ps1_device;
 extern const device_t keyboard_ps2_ps1_pci_device;
@@ -266,9 +268,9 @@ extern void     keyboard_get_states(uint8_t *cl, uint8_t *nl, uint8_t *sl);
 extern void     keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl);
 extern int      keyboard_recv(uint16_t key);
 extern int      keyboard_isfsenter(void);
-extern int      keyboard_isfsenter_down(void);
+extern int      keyboard_isfsenter_up(void);
 extern int      keyboard_isfsexit(void);
-extern int      keyboard_isfsexit_down(void);
+extern int      keyboard_isfsexit_up(void);
 extern int      keyboard_ismsexit(void);
 extern void     keyboard_set_is_amstrad(int ams);
 

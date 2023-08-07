@@ -69,7 +69,7 @@ page_t  *pages;       /* RAM page table */
 page_t **page_lookup; /* pagetable lookup */
 uint32_t pages_sz;    /* #pages in table */
 
-uint8_t *ram;
+uint8_t *ram;  /* the virtual RAM */
 uint8_t *ram2; /* the virtual RAM */
 uint8_t  page_ff[4096];
 uint32_t rammask;
@@ -162,7 +162,7 @@ mem_log(const char *fmt, ...)
 int
 mem_addr_is_ram(uint32_t addr)
 {
-    mem_mapping_t *mapping = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    const mem_mapping_t *mapping = read_mapping[addr >> MEM_GRANULARITY_BITS];
 
     return (mapping == &ram_low_mapping) || (mapping == &ram_high_mapping) || (mapping == &ram_mid_mapping) ||
            (mapping == &ram_mid_mapping2) || (mapping == &ram_remapped_mapping);
@@ -242,7 +242,7 @@ flushmmucache_nopc(void)
 void
 mem_flush_write_page(uint32_t addr, uint32_t virt)
 {
-    page_t *page_target = &pages[addr >> 12];
+    const page_t *page_target = &pages[addr >> 12];
 #if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
     uint32_t a;
 #endif
@@ -522,7 +522,7 @@ mmutranslate_noabrt_pae(uint32_t addr, int rw)
 
     addr4 = (temp & ~0xfffULL) + ((addr >> 9) & 0xff8);
     temp  = rammap64(addr4) & 0x000000ffffffffffULL;
-    ;
+
     temp3 = temp & temp4;
 
     if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(temp3 & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
@@ -705,7 +705,7 @@ read_mem_b(uint32_t addr)
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map && map->read_b)
-        ret = map->read_b(addr, map->p);
+        ret = map->read_b(addr, map->priv);
 
     resub_cycles(old_cycles);
 
@@ -728,9 +728,9 @@ read_mem_w(uint32_t addr)
         map = read_mapping[addr >> MEM_GRANULARITY_BITS];
 
         if (map && map->read_w)
-            ret = map->read_w(addr, map->p);
+            ret = map->read_w(addr, map->priv);
         else if (map && map->read_b)
-            ret = map->read_b(addr, map->p) | (map->read_b(addr + 1, map->p) << 8);
+            ret = map->read_b(addr, map->priv) | (map->read_b(addr + 1, map->priv) << 8);
     }
 
     resub_cycles(old_cycles);
@@ -749,7 +749,7 @@ write_mem_b(uint32_t addr, uint8_t val)
 
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map && map->write_b)
-        map->write_b(addr, val, map->p);
+        map->write_b(addr, val, map->priv);
 
     resub_cycles(old_cycles);
 }
@@ -770,10 +770,10 @@ write_mem_w(uint32_t addr, uint16_t val)
         map = write_mapping[addr >> MEM_GRANULARITY_BITS];
         if (map) {
             if (map->write_w)
-                map->write_w(addr, val, map->p);
+                map->write_w(addr, val, map->priv);
             else if (map->write_b) {
-                map->write_b(addr, val, map->p);
-                map->write_b(addr + 1, val >> 8, map->p);
+                map->write_b(addr, val, map->priv);
+                map->write_b(addr + 1, val >> 8, map->priv);
             }
         }
     }
@@ -805,7 +805,7 @@ readmembl(uint32_t addr)
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map && map->read_b)
-        return map->read_b(addr, map->p);
+        return map->read_b(addr, map->priv);
 
     return 0xff;
 }
@@ -839,7 +839,7 @@ writemembl(uint32_t addr, uint8_t val)
 
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map && map->write_b)
-        map->write_b(addr, val, map->p);
+        map->write_b(addr, val, map->priv);
 }
 
 /* Read a byte from memory without MMU translation - result of previous MMU translation passed as value. */
@@ -862,7 +862,7 @@ readmembl_no_mmut(uint32_t addr, uint32_t a64)
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map && map->read_b)
-        return map->read_b(addr, map->p);
+        return map->read_b(addr, map->priv);
 
     return 0xff;
 }
@@ -892,7 +892,7 @@ writemembl_no_mmut(uint32_t addr, uint32_t a64, uint8_t val)
 
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map && map->write_b)
-        map->write_b(addr, val, map->p);
+        map->write_b(addr, val, map->priv);
 }
 
 uint16_t
@@ -944,10 +944,10 @@ readmemwl(uint32_t addr)
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->read_w)
-        return map->read_w(addr, map->p);
+        return map->read_w(addr, map->priv);
 
     if (map && map->read_b) {
-        return map->read_b(addr, map->p) | ((uint16_t) (map->read_b(addr + 1, map->p)) << 8);
+        return map->read_b(addr, map->priv) | ((uint16_t) (map->read_b(addr + 1, map->priv)) << 8);
     }
 
     return 0xffff;
@@ -1016,13 +1016,13 @@ writememwl(uint32_t addr, uint16_t val)
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->write_w) {
-        map->write_w(addr, val, map->p);
+        map->write_w(addr, val, map->priv);
         return;
     }
 
     if (map && map->write_b) {
-        map->write_b(addr, val, map->p);
-        map->write_b(addr + 1, val >> 8, map->p);
+        map->write_b(addr, val, map->priv);
+        map->write_b(addr + 1, val >> 8, map->priv);
         return;
     }
 }
@@ -1064,10 +1064,10 @@ readmemwl_no_mmut(uint32_t addr, uint32_t *a64)
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->read_w)
-        return map->read_w(addr, map->p);
+        return map->read_w(addr, map->priv);
 
     if (map && map->read_b) {
-        return map->read_b(addr, map->p) | ((uint16_t) (map->read_b(addr + 1, map->p)) << 8);
+        return map->read_b(addr, map->priv) | ((uint16_t) (map->read_b(addr + 1, map->priv)) << 8);
     }
 
     return 0xffff;
@@ -1119,13 +1119,13 @@ writememwl_no_mmut(uint32_t addr, uint32_t *a64, uint16_t val)
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->write_w) {
-        map->write_w(addr, val, map->p);
+        map->write_w(addr, val, map->priv);
         return;
     }
 
     if (map && map->write_b) {
-        map->write_b(addr, val, map->p);
-        map->write_b(addr + 1, val >> 8, map->p);
+        map->write_b(addr, val, map->priv);
+        map->write_b(addr + 1, val >> 8, map->priv);
         return;
     }
 }
@@ -1193,13 +1193,13 @@ readmemll(uint32_t addr)
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->read_l)
-        return map->read_l(addr, map->p);
+        return map->read_l(addr, map->priv);
 
     if (map && map->read_w)
-        return map->read_w(addr, map->p) | ((uint32_t) (map->read_w(addr + 2, map->p)) << 16);
+        return map->read_w(addr, map->priv) | ((uint32_t) (map->read_w(addr + 2, map->priv)) << 16);
 
     if (map && map->read_b)
-        return map->read_b(addr, map->p) | ((uint32_t) (map->read_b(addr + 1, map->p)) << 8) | ((uint32_t) (map->read_b(addr + 2, map->p)) << 16) | ((uint32_t) (map->read_b(addr + 3, map->p)) << 24);
+        return map->read_b(addr, map->priv) | ((uint32_t) (map->read_b(addr + 1, map->priv)) << 8) | ((uint32_t) (map->read_b(addr + 2, map->priv)) << 16) | ((uint32_t) (map->read_b(addr + 3, map->priv)) << 24);
 
     return 0xffffffff;
 }
@@ -1280,19 +1280,19 @@ writememll(uint32_t addr, uint32_t val)
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->write_l) {
-        map->write_l(addr, val, map->p);
+        map->write_l(addr, val, map->priv);
         return;
     }
     if (map && map->write_w) {
-        map->write_w(addr, val, map->p);
-        map->write_w(addr + 2, val >> 16, map->p);
+        map->write_w(addr, val, map->priv);
+        map->write_w(addr + 2, val >> 16, map->priv);
         return;
     }
     if (map && map->write_b) {
-        map->write_b(addr, val, map->p);
-        map->write_b(addr + 1, val >> 8, map->p);
-        map->write_b(addr + 2, val >> 16, map->p);
-        map->write_b(addr + 3, val >> 24, map->p);
+        map->write_b(addr, val, map->priv);
+        map->write_b(addr + 1, val >> 8, map->priv);
+        map->write_b(addr + 2, val >> 16, map->priv);
+        map->write_b(addr + 3, val >> 24, map->priv);
         return;
     }
 }
@@ -1334,13 +1334,13 @@ readmemll_no_mmut(uint32_t addr, uint32_t *a64)
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->read_l)
-        return map->read_l(addr, map->p);
+        return map->read_l(addr, map->priv);
 
     if (map && map->read_w)
-        return map->read_w(addr, map->p) | ((uint32_t) (map->read_w(addr + 2, map->p)) << 16);
+        return map->read_w(addr, map->priv) | ((uint32_t) (map->read_w(addr + 2, map->priv)) << 16);
 
     if (map && map->read_b)
-        return map->read_b(addr, map->p) | ((uint32_t) (map->read_b(addr + 1, map->p)) << 8) | ((uint32_t) (map->read_b(addr + 2, map->p)) << 16) | ((uint32_t) (map->read_b(addr + 3, map->p)) << 24);
+        return map->read_b(addr, map->priv) | ((uint32_t) (map->read_b(addr + 1, map->priv)) << 8) | ((uint32_t) (map->read_b(addr + 2, map->priv)) << 16) | ((uint32_t) (map->read_b(addr + 3, map->priv)) << 24);
 
     return 0xffffffff;
 }
@@ -1391,19 +1391,19 @@ writememll_no_mmut(uint32_t addr, uint32_t *a64, uint32_t val)
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->write_l) {
-        map->write_l(addr, val, map->p);
+        map->write_l(addr, val, map->priv);
         return;
     }
     if (map && map->write_w) {
-        map->write_w(addr, val, map->p);
-        map->write_w(addr + 2, val >> 16, map->p);
+        map->write_w(addr, val, map->priv);
+        map->write_w(addr + 2, val >> 16, map->priv);
         return;
     }
     if (map && map->write_b) {
-        map->write_b(addr, val, map->p);
-        map->write_b(addr + 1, val >> 8, map->p);
-        map->write_b(addr + 2, val >> 16, map->p);
-        map->write_b(addr + 3, val >> 24, map->p);
+        map->write_b(addr, val, map->priv);
+        map->write_b(addr + 1, val >> 8, map->priv);
+        map->write_b(addr + 2, val >> 16, map->priv);
+        map->write_b(addr + 3, val >> 24, map->priv);
         return;
     }
 }
@@ -1469,7 +1469,7 @@ readmemql(uint32_t addr)
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map && map->read_l)
-        return map->read_l(addr, map->p) | ((uint64_t) map->read_l(addr + 4, map->p) << 32);
+        return map->read_l(addr, map->priv) | ((uint64_t) map->read_l(addr + 4, map->priv) << 32);
 
     return readmemll(addr) | ((uint64_t) readmemll(addr + 4) << 32);
 }
@@ -1548,26 +1548,26 @@ writememql(uint32_t addr, uint64_t val)
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->write_l) {
-        map->write_l(addr, val, map->p);
-        map->write_l(addr + 4, val >> 32, map->p);
+        map->write_l(addr, val, map->priv);
+        map->write_l(addr + 4, val >> 32, map->priv);
         return;
     }
     if (map && map->write_w) {
-        map->write_w(addr, val, map->p);
-        map->write_w(addr + 2, val >> 16, map->p);
-        map->write_w(addr + 4, val >> 32, map->p);
-        map->write_w(addr + 6, val >> 48, map->p);
+        map->write_w(addr, val, map->priv);
+        map->write_w(addr + 2, val >> 16, map->priv);
+        map->write_w(addr + 4, val >> 32, map->priv);
+        map->write_w(addr + 6, val >> 48, map->priv);
         return;
     }
     if (map && map->write_b) {
-        map->write_b(addr, val, map->p);
-        map->write_b(addr + 1, val >> 8, map->p);
-        map->write_b(addr + 2, val >> 16, map->p);
-        map->write_b(addr + 3, val >> 24, map->p);
-        map->write_b(addr + 4, val >> 32, map->p);
-        map->write_b(addr + 5, val >> 40, map->p);
-        map->write_b(addr + 6, val >> 48, map->p);
-        map->write_b(addr + 7, val >> 56, map->p);
+        map->write_b(addr, val, map->priv);
+        map->write_b(addr + 1, val >> 8, map->priv);
+        map->write_b(addr + 2, val >> 16, map->priv);
+        map->write_b(addr + 3, val >> 24, map->priv);
+        map->write_b(addr + 4, val >> 32, map->priv);
+        map->write_b(addr + 5, val >> 40, map->priv);
+        map->write_b(addr + 6, val >> 48, map->priv);
+        map->write_b(addr + 7, val >> 56, map->priv);
         return;
     }
 }
@@ -1634,7 +1634,7 @@ mem_readb_phys(uint32_t addr)
         if (map->exec)
             ret = map->exec[(addr - map->base) & map->mask];
         else if (map->read_b)
-            ret = map->read_b(addr, map->p);
+            ret = map->read_b(addr, map->priv);
     }
 
     return ret;
@@ -1643,9 +1643,9 @@ mem_readb_phys(uint32_t addr)
 uint16_t
 mem_readw_phys(uint32_t addr)
 {
-    mem_mapping_t *map = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
-    uint16_t       ret;
-    uint16_t      *p;
+    mem_mapping_t  *map = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
+    uint16_t        ret;
+    const uint16_t *p;
 
     mem_logical_addr = 0xffffffff;
 
@@ -1653,7 +1653,7 @@ mem_readw_phys(uint32_t addr)
         p   = (uint16_t *) &(map->exec[(addr - map->base) & map->mask]);
         ret = *p;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->read_w))
-        ret = map->read_w(addr, map->p);
+        ret = map->read_w(addr, map->priv);
     else {
         ret = mem_readb_phys(addr + 1) << 8;
         ret |= mem_readb_phys(addr);
@@ -1665,9 +1665,9 @@ mem_readw_phys(uint32_t addr)
 uint32_t
 mem_readl_phys(uint32_t addr)
 {
-    mem_mapping_t *map = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
-    uint32_t       ret;
-    uint32_t      *p;
+    mem_mapping_t  *map = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
+    uint32_t        ret;
+    const uint32_t *p;
 
     mem_logical_addr = 0xffffffff;
 
@@ -1675,7 +1675,7 @@ mem_readl_phys(uint32_t addr)
         p   = (uint32_t *) &(map->exec[(addr - map->base) & map->mask]);
         ret = *p;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->read_l))
-        ret = map->read_l(addr, map->p);
+        ret = map->read_l(addr, map->priv);
     else {
         ret = mem_readw_phys(addr + 2) << 16;
         ret |= mem_readw_phys(addr);
@@ -1714,7 +1714,7 @@ mem_writeb_phys(uint32_t addr, uint8_t val)
         if (map->exec)
             map->exec[(addr - map->base) & map->mask] = val;
         else if (map->write_b)
-            map->write_b(addr, val, map->p);
+            map->write_b(addr, val, map->priv);
     }
 }
 
@@ -1730,7 +1730,7 @@ mem_writew_phys(uint32_t addr, uint16_t val)
         p  = (uint16_t *) &(map->exec[(addr - map->base) & map->mask]);
         *p = val;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->write_w))
-        map->write_w(addr, val, map->p);
+        map->write_w(addr, val, map->priv);
     else {
         mem_writeb_phys(addr, val & 0xff);
         mem_writeb_phys(addr + 1, (val >> 8) & 0xff);
@@ -1749,7 +1749,7 @@ mem_writel_phys(uint32_t addr, uint32_t val)
         p  = (uint32_t *) &(map->exec[(addr - map->base) & map->mask]);
         *p = val;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->write_l))
-        map->write_l(addr, val, map->p);
+        map->write_l(addr, val, map->priv);
     else {
         mem_writew_phys(addr, val & 0xffff);
         mem_writew_phys(addr + 2, (val >> 16) & 0xffff);
@@ -1759,9 +1759,9 @@ mem_writel_phys(uint32_t addr, uint32_t val)
 void
 mem_write_phys(void *src, uint32_t addr, int transfer_size)
 {
-    uint8_t  *pb;
-    uint16_t *pw;
-    uint32_t *pl;
+    const uint8_t  *pb;
+    const uint16_t *pw;
+    const uint32_t *pl;
 
     if (transfer_size == 4) {
         pl = (uint32_t *) src;
@@ -1776,7 +1776,7 @@ mem_write_phys(void *src, uint32_t addr, int transfer_size)
 }
 
 uint8_t
-mem_read_ram(uint32_t addr, void *priv)
+mem_read_ram(uint32_t addr, UNUSED(void *priv))
 {
 #ifdef ENABLE_MEM_LOG
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
@@ -1790,7 +1790,7 @@ mem_read_ram(uint32_t addr, void *priv)
 }
 
 uint16_t
-mem_read_ramw(uint32_t addr, void *priv)
+mem_read_ramw(uint32_t addr, UNUSED(void *priv))
 {
 #ifdef ENABLE_MEM_LOG
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
@@ -1804,7 +1804,7 @@ mem_read_ramw(uint32_t addr, void *priv)
 }
 
 uint32_t
-mem_read_raml(uint32_t addr, void *priv)
+mem_read_raml(uint32_t addr, UNUSED(void *priv))
 {
 #ifdef ENABLE_MEM_LOG
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
@@ -1818,7 +1818,7 @@ mem_read_raml(uint32_t addr, void *priv)
 }
 
 uint8_t
-mem_read_ram_2gb(uint32_t addr, void *priv)
+mem_read_ram_2gb(uint32_t addr, UNUSED(void *priv))
 {
 #ifdef ENABLE_MEM_LOG
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
@@ -1831,7 +1831,7 @@ mem_read_ram_2gb(uint32_t addr, void *priv)
 }
 
 uint16_t
-mem_read_ram_2gbw(uint32_t addr, void *priv)
+mem_read_ram_2gbw(uint32_t addr, UNUSED(void *priv))
 {
 #ifdef ENABLE_MEM_LOG
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
@@ -1844,7 +1844,7 @@ mem_read_ram_2gbw(uint32_t addr, void *priv)
 }
 
 uint32_t
-mem_read_ram_2gbl(uint32_t addr, void *priv)
+mem_read_ram_2gbl(uint32_t addr, UNUSED(void *priv))
 {
 #ifdef ENABLE_MEM_LOG
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
@@ -1858,71 +1858,71 @@ mem_read_ram_2gbl(uint32_t addr, void *priv)
 
 #ifdef USE_NEW_DYNAREC
 static inline int
-page_index(page_t *p)
+page_index(page_t *page)
 {
-    return ((uintptr_t) p - (uintptr_t) pages) / sizeof(page_t);
+    return ((uintptr_t) page - (uintptr_t) pages) / sizeof(page_t);
 }
 
 void
-page_add_to_evict_list(page_t *p)
+page_add_to_evict_list(page_t *page)
 {
-    pages[purgable_page_list_head].evict_prev = page_index(p);
-    p->evict_next                             = purgable_page_list_head;
-    p->evict_prev                             = 0;
+    pages[purgable_page_list_head].evict_prev = page_index(page);
+    page->evict_next                          = purgable_page_list_head;
+    page->evict_prev                          = 0;
     purgable_page_list_head                   = pages[purgable_page_list_head].evict_prev;
     purgeable_page_count++;
 }
 
 void
-page_remove_from_evict_list(page_t *p)
+page_remove_from_evict_list(page_t *page)
 {
-    if (!page_in_evict_list(p))
+    if (!page_in_evict_list(page))
         fatal("page_remove_from_evict_list: not in evict list!\n");
-    if (p->evict_prev)
-        pages[p->evict_prev].evict_next = p->evict_next;
+    if (page->evict_prev)
+        pages[page->evict_prev].evict_next = page->evict_next;
     else
-        purgable_page_list_head = p->evict_next;
-    if (p->evict_next)
-        pages[p->evict_next].evict_prev = p->evict_prev;
-    p->evict_prev = EVICT_NOT_IN_LIST;
+        purgable_page_list_head = page->evict_next;
+    if (page->evict_next)
+        pages[page->evict_next].evict_prev = page->evict_prev;
+    page->evict_prev = EVICT_NOT_IN_LIST;
     purgeable_page_count--;
 }
 
 void
-mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *p)
+mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page)
 {
-    if (p == NULL)
+    if (page == NULL)
         return;
 
 #    ifdef USE_DYNAREC
-    if ((p->mem == NULL) || (p->mem == page_ff) || (val != p->mem[addr & 0xfff]) || codegen_in_recompile) {
+    if ((page->mem == NULL) || (page->mem == page_ff) || (val != page->mem[addr & 0xfff]) || codegen_in_recompile) {
 #    else
-    if ((p->mem == NULL) || (p->mem == page_ff) || (val != p->mem[addr & 0xfff])) {
+    if ((page->mem == NULL) || (page->mem == page_ff) || (val != page->mem[addr & 0xfff])) {
 #    endif
         uint64_t mask        = (uint64_t) 1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
         int      byte_offset = (addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
         uint64_t byte_mask   = (uint64_t) 1 << (addr & PAGE_BYTE_MASK_MASK);
 
-        p->mem[addr & 0xfff] = val;
-        p->dirty_mask |= mask;
-        if ((p->code_present_mask & mask) && !page_in_evict_list(p))
-            page_add_to_evict_list(p);
-        p->byte_dirty_mask[byte_offset] |= byte_mask;
-        if ((p->byte_code_present_mask[byte_offset] & byte_mask) && !page_in_evict_list(p))
-            page_add_to_evict_list(p);
+        page->mem[addr & 0xfff] = val;
+        page->dirty_mask |= mask;
+        if ((page->code_present_mask & mask) && !page_in_evict_list(page))
+            page_add_to_evict_list(page);
+        page->byte_dirty_mask[byte_offset] |= byte_mask;
+        if ((page->byte_code_present_mask[byte_offset] & byte_mask) && !page_in_evict_list(page))
+            page_add_to_evict_list(page);
     }
 }
 
 void
-mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *p)
+mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page)
 {
-    if (p == NULL)
+    if (page == NULL)
         return;
 
 #    ifdef USE_DYNAREC
-    if ((p->mem == NULL) || (p->mem == page_ff) || (val != *(uint16_t *) &p->mem[addr & 0xfff]) || codegen_in_recompile) {
+    if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint16_t *) &page->mem[addr & 0xfff]) || codegen_in_recompile) {
 #    else
-    if ((p->mem == NULL) || (p->mem == page_ff) || (val != *(uint16_t *) &p->mem[addr & 0xfff])) {
+    if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint16_t *) &page->mem[addr & 0xfff])) {
 #    endif
         uint64_t mask        = (uint64_t) 1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
         int      byte_offset = (addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
@@ -1930,34 +1930,34 @@ mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *p)
 
         if ((addr & 0xf) == 0xf)
             mask |= (mask << 1);
-        *(uint16_t *) &p->mem[addr & 0xfff] = val;
-        p->dirty_mask |= mask;
-        if ((p->code_present_mask & mask) && !page_in_evict_list(p))
-            page_add_to_evict_list(p);
+        *(uint16_t *) &page->mem[addr & 0xfff] = val;
+        page->dirty_mask |= mask;
+        if ((page->code_present_mask & mask) && !page_in_evict_list(page))
+            page_add_to_evict_list(page);
         if ((addr & PAGE_BYTE_MASK_MASK) == PAGE_BYTE_MASK_MASK) {
-            p->byte_dirty_mask[byte_offset + 1] |= 1;
-            if ((p->byte_code_present_mask[byte_offset + 1] & 1) && !page_in_evict_list(p))
-                page_add_to_evict_list(p);
+            page->byte_dirty_mask[byte_offset + 1] |= 1;
+            if ((page->byte_code_present_mask[byte_offset + 1] & 1) && !page_in_evict_list(page))
+                page_add_to_evict_list(page);
         } else
             byte_mask |= (byte_mask << 1);
 
-        p->byte_dirty_mask[byte_offset] |= byte_mask;
+        page->byte_dirty_mask[byte_offset] |= byte_mask;
 
-        if ((p->byte_code_present_mask[byte_offset] & byte_mask) && !page_in_evict_list(p))
-            page_add_to_evict_list(p);
+        if ((page->byte_code_present_mask[byte_offset] & byte_mask) && !page_in_evict_list(page))
+            page_add_to_evict_list(page);
     }
 }
 
 void
-mem_write_raml_page(uint32_t addr, uint32_t val, page_t *p)
+mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page)
 {
-    if (p == NULL)
+    if (page == NULL)
         return;
 
 #    ifdef USE_DYNAREC
-    if ((p->mem == NULL) || (p->mem == page_ff) || (val != *(uint32_t *) &p->mem[addr & 0xfff]) || codegen_in_recompile) {
+    if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint32_t *) &page->mem[addr & 0xfff]) || codegen_in_recompile) {
 #    else
-    if ((p->mem == NULL) || (p->mem == page_ff) || (val != *(uint32_t *) &p->mem[addr & 0xfff])) {
+    if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint32_t *) &page->mem[addr & 0xfff])) {
 #    endif
         uint64_t mask        = (uint64_t) 1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
         int      byte_offset = (addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
@@ -1965,79 +1965,79 @@ mem_write_raml_page(uint32_t addr, uint32_t val, page_t *p)
 
         if ((addr & 0xf) >= 0xd)
             mask |= (mask << 1);
-        *(uint32_t *) &p->mem[addr & 0xfff] = val;
-        p->dirty_mask |= mask;
-        p->byte_dirty_mask[byte_offset] |= byte_mask;
-        if (!page_in_evict_list(p) && ((p->code_present_mask & mask) || (p->byte_code_present_mask[byte_offset] & byte_mask)))
-            page_add_to_evict_list(p);
+        *(uint32_t *) &page->mem[addr & 0xfff] = val;
+        page->dirty_mask |= mask;
+        page->byte_dirty_mask[byte_offset] |= byte_mask;
+        if (!page_in_evict_list(page) && ((page->code_present_mask & mask) || (page->byte_code_present_mask[byte_offset] & byte_mask)))
+            page_add_to_evict_list(page);
         if ((addr & PAGE_BYTE_MASK_MASK) > (PAGE_BYTE_MASK_MASK - 3)) {
             uint32_t byte_mask_2 = 0xf >> (4 - (addr & 3));
 
-            p->byte_dirty_mask[byte_offset + 1] |= byte_mask_2;
-            if ((p->byte_code_present_mask[byte_offset + 1] & byte_mask_2) && !page_in_evict_list(p))
-                page_add_to_evict_list(p);
+            page->byte_dirty_mask[byte_offset + 1] |= byte_mask_2;
+            if ((page->byte_code_present_mask[byte_offset + 1] & byte_mask_2) && !page_in_evict_list(page))
+                page_add_to_evict_list(page);
         }
     }
 }
 #else
 void
-mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *p)
+mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page)
 {
-    if (p == NULL)
+    if (page == NULL)
         return;
 
 #    ifdef USE_DYNAREC
-    if ((p->mem == NULL) || (p->mem == page_ff) || (val != p->mem[addr & 0xfff]) || codegen_in_recompile) {
+    if ((page->mem == NULL) || (page->mem == page_ff) || (val != page->mem[addr & 0xfff]) || codegen_in_recompile) {
 #    else
-    if ((p->mem == NULL) || (p->mem == page_ff) || (val != p->mem[addr & 0xfff])) {
+    if ((page->mem == NULL) || (page->mem == page_ff) || (val != page->mem[addr & 0xfff])) {
 #    endif
         uint64_t mask = (uint64_t) 1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
-        p->dirty_mask[(addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
-        p->mem[addr & 0xfff] = val;
+        page->dirty_mask[(addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
+        page->mem[addr & 0xfff] = val;
     }
 }
 
 void
-mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *p)
+mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page)
 {
-    if (p == NULL)
+    if (page == NULL)
         return;
 
 #    ifdef USE_DYNAREC
-    if ((p->mem == NULL) || (p->mem == page_ff) || (val != *(uint16_t *) &p->mem[addr & 0xfff]) || codegen_in_recompile) {
+    if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint16_t *) &page->mem[addr & 0xfff]) || codegen_in_recompile) {
 #    else
-    if ((p->mem == NULL) || (p->mem == page_ff) || (val != *(uint16_t *) &p->mem[addr & 0xfff])) {
+    if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint16_t *) &page->mem[addr & 0xfff])) {
 #    endif
         uint64_t mask = (uint64_t) 1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
         if ((addr & 0xf) == 0xf)
             mask |= (mask << 1);
-        p->dirty_mask[(addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
-        *(uint16_t *) &p->mem[addr & 0xfff] = val;
+        page->dirty_mask[(addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
+        *(uint16_t *) &page->mem[addr & 0xfff] = val;
     }
 }
 
 void
-mem_write_raml_page(uint32_t addr, uint32_t val, page_t *p)
+mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page)
 {
-    if (p == NULL)
+    if (page == NULL)
         return;
 
 #    ifdef USE_DYNAREC
-    if ((p->mem == NULL) || (p->mem == page_ff) || (val != *(uint32_t *) &p->mem[addr & 0xfff]) || codegen_in_recompile) {
+    if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint32_t *) &page->mem[addr & 0xfff]) || codegen_in_recompile) {
 #    else
-    if ((p->mem == NULL) || (p->mem == page_ff) || (val != *(uint32_t *) &p->mem[addr & 0xfff])) {
+    if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint32_t *) &page->mem[addr & 0xfff])) {
 #    endif
         uint64_t mask = (uint64_t) 1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
         if ((addr & 0xf) >= 0xd)
             mask |= (mask << 1);
-        p->dirty_mask[(addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
-        *(uint32_t *) &p->mem[addr & 0xfff] = val;
+        page->dirty_mask[(addr >> PAGE_MASK_INDEX_SHIFT) & PAGE_MASK_INDEX_MASK] |= mask;
+        *(uint32_t *) &page->mem[addr & 0xfff] = val;
     }
 }
 #endif
 
 void
-mem_write_ram(uint32_t addr, uint8_t val, void *priv)
+mem_write_ram(uint32_t addr, uint8_t val, UNUSED(void *priv))
 {
 #ifdef ENABLE_MEM_LOG
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
@@ -2051,7 +2051,7 @@ mem_write_ram(uint32_t addr, uint8_t val, void *priv)
 }
 
 void
-mem_write_ramw(uint32_t addr, uint16_t val, void *priv)
+mem_write_ramw(uint32_t addr, uint16_t val, UNUSED(void *priv))
 {
 #ifdef ENABLE_MEM_LOG
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
@@ -2065,7 +2065,7 @@ mem_write_ramw(uint32_t addr, uint16_t val, void *priv)
 }
 
 void
-mem_write_raml(uint32_t addr, uint32_t val, void *priv)
+mem_write_raml(uint32_t addr, uint32_t val, UNUSED(void *priv))
 {
 #ifdef ENABLE_MEM_LOG
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
@@ -2079,7 +2079,7 @@ mem_write_raml(uint32_t addr, uint32_t val, void *priv)
 }
 
 static uint8_t
-mem_read_remapped(uint32_t addr, void *priv)
+mem_read_remapped(uint32_t addr, UNUSED(void *priv))
 {
     addr = 0xA0000 + (addr - remap_start_addr);
     if (is286)
@@ -2088,7 +2088,7 @@ mem_read_remapped(uint32_t addr, void *priv)
 }
 
 static uint16_t
-mem_read_remappedw(uint32_t addr, void *priv)
+mem_read_remappedw(uint32_t addr, UNUSED(void *priv))
 {
     addr = 0xA0000 + (addr - remap_start_addr);
     if (is286)
@@ -2097,7 +2097,7 @@ mem_read_remappedw(uint32_t addr, void *priv)
 }
 
 static uint32_t
-mem_read_remappedl(uint32_t addr, void *priv)
+mem_read_remappedl(uint32_t addr, UNUSED(void *priv))
 {
     addr = 0xA0000 + (addr - remap_start_addr);
     if (is286)
@@ -2106,7 +2106,7 @@ mem_read_remappedl(uint32_t addr, void *priv)
 }
 
 static uint8_t
-mem_read_remapped2(uint32_t addr, void *priv)
+mem_read_remapped2(uint32_t addr, UNUSED(void *priv))
 {
     addr = 0xD0000 + (addr - remap_start_addr2);
     if (is286)
@@ -2115,7 +2115,7 @@ mem_read_remapped2(uint32_t addr, void *priv)
 }
 
 static uint16_t
-mem_read_remappedw2(uint32_t addr, void *priv)
+mem_read_remappedw2(uint32_t addr, UNUSED(void *priv))
 {
     addr = 0xD0000 + (addr - remap_start_addr2);
     if (is286)
@@ -2124,7 +2124,7 @@ mem_read_remappedw2(uint32_t addr, void *priv)
 }
 
 static uint32_t
-mem_read_remappedl2(uint32_t addr, void *priv)
+mem_read_remappedl2(uint32_t addr, UNUSED(void *priv))
 {
     addr = 0xD0000 + (addr - remap_start_addr2);
     if (is286)
@@ -2133,7 +2133,7 @@ mem_read_remappedl2(uint32_t addr, void *priv)
 }
 
 static void
-mem_write_remapped(uint32_t addr, uint8_t val, void *priv)
+mem_write_remapped(uint32_t addr, uint8_t val, UNUSED(void *priv))
 {
     uint32_t oldaddr = addr;
     addr             = 0xA0000 + (addr - remap_start_addr);
@@ -2145,7 +2145,7 @@ mem_write_remapped(uint32_t addr, uint8_t val, void *priv)
 }
 
 static void
-mem_write_remappedw(uint32_t addr, uint16_t val, void *priv)
+mem_write_remappedw(uint32_t addr, uint16_t val, UNUSED(void *priv))
 {
     uint32_t oldaddr = addr;
     addr             = 0xA0000 + (addr - remap_start_addr);
@@ -2157,7 +2157,7 @@ mem_write_remappedw(uint32_t addr, uint16_t val, void *priv)
 }
 
 static void
-mem_write_remappedl(uint32_t addr, uint32_t val, void *priv)
+mem_write_remappedl(uint32_t addr, uint32_t val, UNUSED(void *priv))
 {
     uint32_t oldaddr = addr;
     addr             = 0xA0000 + (addr - remap_start_addr);
@@ -2169,7 +2169,7 @@ mem_write_remappedl(uint32_t addr, uint32_t val, void *priv)
 }
 
 static void
-mem_write_remapped2(uint32_t addr, uint8_t val, void *priv)
+mem_write_remapped2(uint32_t addr, uint8_t val, UNUSED(void *priv))
 {
     uint32_t oldaddr = addr;
     addr             = 0xD0000 + (addr - remap_start_addr2);
@@ -2181,7 +2181,7 @@ mem_write_remapped2(uint32_t addr, uint8_t val, void *priv)
 }
 
 static void
-mem_write_remappedw2(uint32_t addr, uint16_t val, void *priv)
+mem_write_remappedw2(uint32_t addr, uint16_t val, UNUSED(void *priv))
 {
     uint32_t oldaddr = addr;
     addr             = 0xD0000 + (addr - remap_start_addr2);
@@ -2193,7 +2193,7 @@ mem_write_remappedw2(uint32_t addr, uint16_t val, void *priv)
 }
 
 static void
-mem_write_remappedl2(uint32_t addr, uint32_t val, void *priv)
+mem_write_remappedl2(uint32_t addr, uint32_t val, UNUSED(void *priv))
 {
     uint32_t oldaddr = addr;
     addr             = 0xD0000 + (addr - remap_start_addr2);
@@ -2208,7 +2208,7 @@ void
 mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
 {
 #ifdef USE_NEW_DYNAREC
-    page_t *p;
+    page_t *page;
 
     start_addr &= ~PAGE_MASK_MASK;
     end_addr = (end_addr + PAGE_MASK_MASK) & ~PAGE_MASK_MASK;
@@ -2217,15 +2217,15 @@ mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
         if ((start_addr >> 12) >= pages_sz)
             continue;
 
-        p = &pages[start_addr >> 12];
-        if (p) {
-            p->dirty_mask = 0xffffffffffffffffULL;
+        page = &pages[start_addr >> 12];
+        if (page) {
+            page->dirty_mask = 0xffffffffffffffffULL;
 
-            if ((p->mem != page_ff) && p->byte_dirty_mask)
-                memset(p->byte_dirty_mask, 0xff, 64 * sizeof(uint64_t));
+            if ((page->mem != page_ff) && page->byte_dirty_mask)
+                memset(page->byte_dirty_mask, 0xff, 64 * sizeof(uint64_t));
 
-            if (!page_in_evict_list(p))
-                page_add_to_evict_list(p);
+            if (!page_in_evict_list(page))
+                page_add_to_evict_list(page);
         }
     }
 #else
@@ -2384,15 +2384,15 @@ void
 mem_mapping_set(mem_mapping_t *map,
                 uint32_t       base,
                 uint32_t       size,
-                uint8_t (*read_b)(uint32_t addr, void *p),
-                uint16_t (*read_w)(uint32_t addr, void *p),
-                uint32_t (*read_l)(uint32_t addr, void *p),
-                void (*write_b)(uint32_t addr, uint8_t val, void *p),
-                void (*write_w)(uint32_t addr, uint16_t val, void *p),
-                void (*write_l)(uint32_t addr, uint32_t val, void *p),
+                uint8_t (*read_b)(uint32_t addr, void *priv),
+                uint16_t (*read_w)(uint32_t addr, void *priv),
+                uint32_t (*read_l)(uint32_t addr, void *priv),
+                void (*write_b)(uint32_t addr, uint8_t val, void *priv),
+                void (*write_w)(uint32_t addr, uint16_t val, void *priv),
+                void (*write_l)(uint32_t addr, uint32_t val, void *priv),
                 uint8_t *exec,
                 uint32_t fl,
-                void    *p)
+                void    *priv)
 {
     if (size != 0x00000000)
         map->enable = 1;
@@ -2409,7 +2409,7 @@ mem_mapping_set(mem_mapping_t *map,
     map->write_l = write_l;
     map->exec    = exec;
     map->flags   = fl;
-    map->p       = p;
+    map->priv    = priv;
     map->next    = NULL;
     mem_log("mem_mapping_add(): Linked list structure: %08X -> %08X -> %08X\n", map->prev, map, map->next);
 
@@ -2422,15 +2422,15 @@ void
 mem_mapping_add(mem_mapping_t *map,
                 uint32_t       base,
                 uint32_t       size,
-                uint8_t (*read_b)(uint32_t addr, void *p),
-                uint16_t (*read_w)(uint32_t addr, void *p),
-                uint32_t (*read_l)(uint32_t addr, void *p),
-                void (*write_b)(uint32_t addr, uint8_t val, void *p),
-                void (*write_w)(uint32_t addr, uint16_t val, void *p),
-                void (*write_l)(uint32_t addr, uint32_t val, void *p),
+                uint8_t (*read_b)(uint32_t addr, void *priv),
+                uint16_t (*read_w)(uint32_t addr, void *priv),
+                uint32_t (*read_l)(uint32_t addr, void *priv),
+                void (*write_b)(uint32_t addr, uint8_t val, void *priv),
+                void (*write_w)(uint32_t addr, uint16_t val, void *priv),
+                void (*write_l)(uint32_t addr, uint32_t val, void *priv),
                 uint8_t *exec,
                 uint32_t fl,
-                void    *p)
+                void    *priv)
 {
     /* Do a sanity check */
     if ((base_mapping == NULL) && (last_mapping != NULL)) {
@@ -2461,7 +2461,7 @@ mem_mapping_add(mem_mapping_t *map,
     last_mapping = map;
 
     mem_mapping_set(map, base, size, read_b, read_w, read_l,
-                    write_b, write_w, write_l, exec, fl, p);
+                    write_b, write_w, write_l, exec, fl, priv);
 }
 
 void
@@ -2472,12 +2472,12 @@ mem_mapping_do_recalc(mem_mapping_t *map)
 
 void
 mem_mapping_set_handler(mem_mapping_t *map,
-                        uint8_t (*read_b)(uint32_t addr, void *p),
-                        uint16_t (*read_w)(uint32_t addr, void *p),
-                        uint32_t (*read_l)(uint32_t addr, void *p),
-                        void (*write_b)(uint32_t addr, uint8_t val, void *p),
-                        void (*write_w)(uint32_t addr, uint16_t val, void *p),
-                        void (*write_l)(uint32_t addr, uint32_t val, void *p))
+                        uint8_t (*read_b)(uint32_t addr, void *priv),
+                        uint16_t (*read_w)(uint32_t addr, void *priv),
+                        uint32_t (*read_l)(uint32_t addr, void *priv),
+                        void (*write_b)(uint32_t addr, uint8_t val, void *priv),
+                        void (*write_w)(uint32_t addr, uint16_t val, void *priv),
+                        void (*write_l)(uint32_t addr, uint32_t val, void *priv))
 {
     map->read_b  = read_b;
     map->read_w  = read_w;
@@ -2521,9 +2521,9 @@ mem_mapping_set_mask(mem_mapping_t *map, uint32_t mask)
 }
 
 void
-mem_mapping_set_p(mem_mapping_t *map, void *p)
+mem_mapping_set_p(mem_mapping_t *map, void *priv)
 {
-    map->p = p;
+    map->priv = priv;
 }
 
 void
@@ -2598,7 +2598,9 @@ mem_a20_init(void)
         if (is6117)
             rammask |= 0x03000000;
         flushmmucache();
-        // mem_a20_state = mem_a20_key | mem_a20_alt;
+#if 0
+        mem_a20_state = mem_a20_key | mem_a20_alt;
+#endif
     } else {
         rammask = 0xfffff;
         flushmmucache();

@@ -271,6 +271,8 @@ typedef struct voodoo_t {
 
     int pci_enable;
 
+    uint8_t  pci_slot;
+
     uint8_t  dac_data[8];
     int      dac_reg;
     int      dac_reg_ff;
@@ -596,7 +598,9 @@ typedef struct voodoo_t {
         uint32_t vidOverlayDudxOffsetSrcWidth;
         uint32_t vidOverlayDvdy;
         uint32_t vidOverlayDvdyOffset;
-        // uint32_t vidDesktopOverlayStride;
+#if 0
+        uint32_t vidDesktopOverlayStride;
+#endif
 
         int start_x;
         int start_y;

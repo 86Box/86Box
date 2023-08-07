@@ -36,8 +36,8 @@
 #include <86box/fdc.h>
 #include <fdi2raw.h>
 
-typedef struct {
-    FILE *f;
+typedef struct fdi_t {
+    FILE *fp;
     FDI  *h;
 
     int lasttrack;
@@ -176,10 +176,10 @@ fdi_density(void)
 static int32_t
 extra_bit_cells(int drive, int side)
 {
-    fdi_t *dev        = fdi[drive];
-    int    density    = 0;
-    int    raw_size   = 0;
-    int    is_300_rpm = 0;
+    const fdi_t *dev        = fdi[drive];
+    int          density    = 0;
+    int          raw_size   = 0;
+    int          is_300_rpm = 0;
 
     density = fdi_density();
 
@@ -249,8 +249,8 @@ read_revolution(int drive)
 static uint32_t
 index_hole_pos(int drive, int side)
 {
-    fdi_t *dev = fdi[drive];
-    int    density;
+    const fdi_t *dev = fdi[drive];
+    int          density;
 
     density = fdi_density();
 
@@ -260,8 +260,8 @@ index_hole_pos(int drive, int side)
 static uint32_t
 get_raw_size(int drive, int side)
 {
-    fdi_t *dev = fdi[drive];
-    int    density;
+    const fdi_t *dev = fdi[drive];
+    int          density;
 
     density = fdi_density();
 
@@ -291,7 +291,7 @@ fdi_seek(int drive, int track)
 
     d86f_set_cur_track(drive, track);
 
-    if (dev->f == NULL)
+    if (dev->fp == NULL)
         return;
 
     if (track < 0)
@@ -327,16 +327,16 @@ fdi_load(int drive, char *fn)
 
     d86f_unregister(drive);
 
-    dev->f = plat_fopen(fn, "rb");
-    if (fread(header, 1, 25, dev->f) != 25)
+    dev->fp = plat_fopen(fn, "rb");
+    if (fread(header, 1, 25, dev->fp) != 25)
         fatal("fdi_load(): Error reading header\n");
-    if (fseek(dev->f, 0, SEEK_SET) == -1)
+    if (fseek(dev->fp, 0, SEEK_SET) == -1)
         fatal("fdi_load(): Error seeking to the beginning of the file\n");
     header[25] = 0;
     if (strcmp(header, "Formatted Disk Image file") != 0) {
         /* This is a Japanese FDI file. */
         fdi_log("fdi_load(): Japanese FDI file detected, redirecting to IMG loader\n");
-        fclose(dev->f);
+        fclose(dev->fp);
         free(dev);
         img_load(drive, fn);
         return;
@@ -345,7 +345,7 @@ fdi_load(int drive, char *fn)
     /* Set up the drive unit. */
     fdi[drive] = dev;
 
-    dev->h         = fdi2raw_header(dev->f);
+    dev->h         = fdi2raw_header(dev->fp);
     dev->lasttrack = fdi2raw_get_last_track(dev->h);
     dev->sides     = fdi2raw_get_last_head(dev->h) + 1;
 
@@ -386,8 +386,8 @@ fdi_close(int drive)
     if (dev->h)
         fdi2raw_header_free(dev->h);
 
-    if (dev->f)
-        fclose(dev->f);
+    if (dev->fp)
+        fclose(dev->fp);
 
     /* Release the memory. */
     free(dev);

@@ -435,7 +435,6 @@ END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_2080    "Impossibile inizializzare FluidSynth"
     IDS_2081    "Bus"
     IDS_2082    "File"
     IDS_2083    "C"
@@ -466,7 +465,6 @@ BEGIN
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "Floppy %i (%s): %ls"
     IDS_2110    "Tutte le immagini (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Immagini da settori avanzati (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Imagini da settori basilari (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Immagini flusso (*.FDI)\0*.FDI\0Immagini da superficie (*.86F;*.MFM)\0*.86F;*.MFM\0Tutti i file (*.*)\0*.*\0"
-    IDS_2111    "Impossibile inizializzare FreeType"
     IDS_2112    "Impossibile inizializzare SDL, SDL2.dll è necessario"
     IDS_2113    "Sei sicuro di voler riavviare la macchina emulata?"
     IDS_2114    "Sei sicuro di voler uscire da 86Box?"
@@ -494,23 +492,11 @@ BEGIN
     IDS_2130    "Controlla se " LIB_NAME_PCAP " è installato e che tu sia connesso ad una connessione " LIB_NAME_PCAP " compatibile."
     IDS_2131    "Configurazione invalida"
 #ifdef _WIN32
-#define LIB_NAME_FREETYPE "freetype.dll"
-#else
-#define LIB_NAME_FREETYPE "libfreetype"
-#endif
-    IDS_2132    LIB_NAME_FREETYPE " è richesto per l'emuazione di stampanti ESC/P."
-#ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
     IDS_2133    LIB_NAME_GS " è richiesto per la conversione automatica di file PostScript a file PDF.\n\nQualsiasi documento mandato alla stampante generica PostScript sarà salvato come file PostScript. (.ps)"
-#ifdef _WIN32
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
-#else
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
-#endif
-    IDS_2134    LIB_NAME_FLUIDSYNTH " è richiesto per l'output FluidSynth MIDI."
     IDS_2135    "Entrando nella modalità schermo intero"
     IDS_2136    "Non mostrare più questo messaggio"
     IDS_2137    "Non uscire"

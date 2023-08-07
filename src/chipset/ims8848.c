@@ -122,6 +122,9 @@
 typedef struct ims8848_t {
     uint8_t idx;
     uint8_t access_data;
+    uint8_t pci_slot;
+    uint8_t pad;
+
     uint8_t regs[256];
     uint8_t pci_conf[256];
 
@@ -327,8 +330,8 @@ ims8849_pci_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 ims8849_pci_read(int func, int addr, void *priv)
 {
-    ims8848_t *dev = (ims8848_t *) priv;
-    uint8_t    ret = 0xff;
+    const ims8848_t *dev = (ims8848_t *) priv;
+    uint8_t          ret = 0xff;
 
     if (func == 0)
         ret = dev->pci_conf[addr];
@@ -392,7 +395,7 @@ ims8848_init(UNUSED(const device_t *info))
                 PCI Device 0: IMS 8849 Dummy for compatibility reasons
     */
     io_sethandler(0x0022, 0x0003, ims8848_read, NULL, NULL, ims8848_write, NULL, NULL, dev);
-    pci_add_card(PCI_ADD_NORTHBRIDGE, ims8849_pci_read, ims8849_pci_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, ims8849_pci_read, ims8849_pci_write, dev, &dev->pci_slot);
 
     dev->smram = smram_add();
     smram_set_separate_smram(1);

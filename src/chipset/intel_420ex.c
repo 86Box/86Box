@@ -41,6 +41,9 @@
 #include <86box/machine.h>
 #include <86box/chipset.h>
 #include <86box/spd.h>
+#ifndef USE_DRB_HACK
+#include <86box/row.h>
+#endif
 
 #define MEM_STATE_SHADOW_R 0x01
 #define MEM_STATE_SHADOW_W 0x02
@@ -49,6 +52,9 @@
 typedef struct i420ex_t {
     uint8_t has_ide;
     uint8_t smram_locked;
+    uint8_t pci_slot;
+    uint8_t pad;
+
     uint8_t regs[256];
 
     uint16_t timer_base;
@@ -115,7 +121,7 @@ i420ex_smram_handler_phase0(void)
 static void
 i420ex_smram_handler_phase1(i420ex_t *dev)
 {
-    uint8_t *regs = (uint8_t *) dev->regs;
+    const uint8_t *regs = (uint8_t *) dev->regs;
 
     uint32_t host_base = 0x000a0000;
     uint32_t ram_base  = 0x000a0000;
@@ -157,6 +163,25 @@ i420ex_smram_handler_phase1(i420ex_t *dev)
     smram_enable(dev->smram, host_base, ram_base, size,
                  (regs[0x70] & 0x70) == 0x40, !(regs[0x70] & 0x20));
 }
+
+#ifndef USE_DRB_HACK
+static void
+i420ex_drb_recalc(i420ex_t *dev)
+{
+    uint32_t boundary;
+
+    for (int8_t i = 4; i >= 0; i--)
+        row_disable(i);
+
+    for (uint8_t i = 0; i <= 4; i++) {
+        boundary = ((uint32_t) dev->regs[0x60 + i]) & 0xff;
+        row_set_boundary(i, boundary);
+    }
+
+    flushmmucache();
+}
+#endif
+
 
 static void
 i420ex_write(int func, int addr, uint8_t val, void *priv)
@@ -289,7 +314,12 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
         case 0x62:
         case 0x63:
         case 0x64:
+#ifdef USE_DRB_HACK
             spd_write_drbs(dev->regs, 0x60, 0x64, 1);
+#else
+            dev->regs[addr] = val;
+            i420ex_drb_recalc(dev);
+#endif
             break;
         case 0x66:
         case 0x67:
@@ -370,8 +400,8 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 i420ex_read(int func, int addr, void *priv)
 {
-    i420ex_t *dev = (i420ex_t *) priv;
-    uint8_t   ret;
+    const i420ex_t *dev = (i420ex_t *) priv;
+    uint8_t         ret;
 
     ret = 0xff;
 
@@ -452,7 +482,7 @@ i420ex_reset(void *priv)
         i420ex_write(0, 0x59 + i, 0x00, priv);
 
     for (uint8_t i = 0; i <= 4; i++)
-        i420ex_write(0, 0x60 + i, 0x01, priv);
+        dev->regs[0x60 + i] = 0x01;
 
     dev->regs[0x70] &= 0xef; /* Forcibly unlock the SMRAM register. */
     dev->smram_locked = 0;
@@ -507,7 +537,7 @@ i420ex_init(const device_t *info)
 
     dev->smram = smram_add();
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, i420ex_read, i420ex_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, i420ex_read, i420ex_write, dev, &dev->pci_slot);
 
     dev->has_ide = info->local;
 
@@ -529,6 +559,11 @@ i420ex_init(const device_t *info)
     dma_alias_set();
 
     device_add(&ide_pci_2ch_device);
+
+#ifndef USE_DRB_HACK
+    row_device.local = 4 | (1 << 8) | (0x01 << 16) | (8 << 24);
+    device_add((const device_t *) &row_device);
+#endif
 
     i420ex_reset_hard(dev);
 

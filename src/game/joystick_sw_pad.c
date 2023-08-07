@@ -67,8 +67,7 @@
 #include <86box/joystick_sw_pad.h>
 #include <86box/plat_unused.h>
 
-typedef struct
-{
+typedef struct sw_data {
     pc_timer_t poll_timer;
     int        poll_left;
     int        poll_clock;

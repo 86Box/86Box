@@ -75,11 +75,13 @@ sis_5571_log(const char *fmt, ...)
 #endif
 
 typedef struct sis_5571_t {
+    uint8_t nb_slot;
+    uint8_t sb_slot;
+    uint8_t pad;
+    uint8_t usb_irq_state;
+
     uint8_t pci_conf[256];
     uint8_t pci_conf_sb[3][256];
-
-    int nb_pci_slot;
-    int sb_pci_slot;
 
     port_92_t  *port_92;
     sff8038i_t *ide_drive[2];
@@ -340,7 +342,8 @@ memory_pci_bridge_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static uint8_t
 memory_pci_bridge_read(UNUSED(int func), int addr, void *priv)
 {
-    sis_5571_t *dev = (sis_5571_t *) priv;
+    const sis_5571_t *dev = (sis_5571_t *) priv;
+
     sis_5571_log("SiS5571: dev->pci_conf[%02x] (%02x)\n", addr, dev->pci_conf[addr]);
     return dev->pci_conf[addr];
 }
@@ -638,6 +641,7 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
                     break;
             }
             sis_5571_log("SiS5571-USB: dev->pci_conf[%02x] = %02x\n", addr, val);
+            break;
 
         default:
             break;
@@ -647,7 +651,7 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 pci_isa_bridge_read(int func, int addr, void *priv)
 {
-    sis_5571_t *dev = (sis_5571_t *) priv;
+    const sis_5571_t *dev = (sis_5571_t *) priv;
 
     switch (func) {
         case 0:
@@ -689,9 +693,9 @@ sis_5571_usb_update_interrupt(usb_t* usb, void* priv)
         }
     } else {
         if (usb->irq_level)
-            pci_set_irq(dev->sb_pci_slot, PCI_INTA);
+            pci_set_irq(dev->sb_slot, PCI_INTA, &dev->usb_irq_state);
         else
-            pci_clear_irq(dev->sb_pci_slot, PCI_INTA);
+            pci_clear_irq(dev->sb_slot, PCI_INTA, &dev->usb_irq_state);
     }
 }
 
@@ -737,8 +741,8 @@ sis_5571_reset(void *priv)
     dev->pci_conf_sb[1][0x0b] = 0x01;
     dev->pci_conf_sb[1][0x0e] = 0x80;
     dev->pci_conf_sb[1][0x4a] = 0x06;
-    sff_set_slot(dev->ide_drive[0], dev->sb_pci_slot);
-    sff_set_slot(dev->ide_drive[1], dev->sb_pci_slot);
+    sff_set_slot(dev->ide_drive[0], dev->sb_slot);
+    sff_set_slot(dev->ide_drive[1], dev->sb_slot);
     sff_bus_master_reset(dev->ide_drive[0], BUS_MASTER_BASE);
     sff_bus_master_reset(dev->ide_drive[1], BUS_MASTER_BASE + 8);
 
@@ -771,8 +775,8 @@ sis_5571_init(UNUSED(const device_t *info))
     sis_5571_t *dev = (sis_5571_t *) malloc(sizeof(sis_5571_t));
     memset(dev, 0x00, sizeof(sis_5571_t));
 
-    dev->nb_pci_slot = pci_add_card(PCI_ADD_NORTHBRIDGE, memory_pci_bridge_read, memory_pci_bridge_write, dev);
-    dev->sb_pci_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, pci_isa_bridge_read, pci_isa_bridge_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, memory_pci_bridge_read, memory_pci_bridge_write, dev, &dev->nb_slot);
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, pci_isa_bridge_read, pci_isa_bridge_write, dev, &dev->sb_slot);
 
     /* MIRQ */
     pci_enable_mirq(0);

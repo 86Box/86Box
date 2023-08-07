@@ -37,13 +37,14 @@
 
 #define AB_RST 0x80
 
-typedef struct {
-    uint8_t chip_id, is_apm,
-        tries,
-        regs[48],
-        ld_regs[13][256];
-    int locked,
-        cur_reg;
+typedef struct ali5123_t {
+    uint8_t   chip_id;
+    uint8_t   is_apm;
+    uint8_t   tries;
+    uint8_t   regs[48];
+    uint8_t   ld_regs[13][256];
+    int       locked;
+    int       cur_reg;
     fdc_t    *fdc;
     serial_t *uart[3];
 } ali5123_t;
@@ -124,6 +125,9 @@ ali5123_serial_handler(ali5123_t *dev, int uart)
         case 0x01:
         case 0x05:
             serial_set_clock_src(dev->uart[uart], 2000000.0);
+            break;
+
+        default:
             break;
     }
 }
@@ -256,6 +260,10 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                         case 0x07:
                             if (dev->cur_reg == 0xf0)
                                 val &= 0xbf;
+                            break;
+
+                        default:
+                            break;
                     }
                 dev->ld_regs[cur_ld][dev->cur_reg] = val;
             }
@@ -287,6 +295,9 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                     ali5123_serial_handler(dev, 1);
                     ali5123_serial_handler(dev, 2);
                 }
+                break;
+
+            default:
                 break;
         }
 
@@ -332,6 +343,9 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                     if (valxor & 0x08)
                         fdc_update_drvrate(dev->fdc, 3, (val & 0x08) >> 3);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 3:
@@ -345,6 +359,9 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                         dev->regs[0x22] &= ~0x08;
                     if (valxor)
                         ali5123_lpt_handler(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -361,6 +378,9 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                     if (valxor)
                         ali5123_serial_handler(dev, 0);
                     break;
+
+                default:
+                    break;
             }
             break;
         case 5:
@@ -375,6 +395,9 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                         dev->regs[0x22] &= ~((dev->regs[0x2d] & 0x20) ? 0x40 : 0x20);
                     if (valxor)
                         ali5123_serial_handler(dev, (dev->regs[0x2d] & 0x20) ? 2 : 1);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -391,7 +414,13 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
                     if (valxor)
                         ali5123_serial_handler(dev, (dev->regs[0x2d] & 0x20) ? 1 : 2);
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 }

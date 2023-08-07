@@ -48,6 +48,8 @@ enum {
     SERIAL_INT_TIMEOUT  = 16
 };
 
+void    serial_update_ints(serial_t *dev);
+
 static int             next_inst = 0;
 static serial_device_t serial_devices[SERIAL_MAX];
 
@@ -84,6 +86,8 @@ serial_reset_port(serial_t *dev)
     dev->out_new                            = 0xffff;
     memset(dev->xmit_fifo, 0, 16);
     memset(dev->rcvr_fifo, 0, 16);
+    serial_update_ints(dev);
+    dev->irq_state = 0;
 }
 
 void
@@ -100,6 +104,13 @@ serial_transmit_period(serial_t *dev)
     dev->transmit_period = (16000000.0 * ddlab) / dev->clock_src;
     if (dev->sd && dev->sd->transmit_period_callback)
         dev->sd->transmit_period_callback(dev, dev->sd->priv, dev->transmit_period);
+}
+
+void
+serial_do_irq(serial_t *dev, int set)
+{
+    if (dev->irq != 0xff)
+        picint_common(1 << dev->irq, !!(dev->type >= SERIAL_16450), set, &dev->irq_state);
 }
 
 void
@@ -131,13 +142,7 @@ serial_update_ints(serial_t *dev)
         dev->iir = 0;
     }
 
-    if (stat && (dev->irq != 0xff) && ((dev->mctrl & 8) || (dev->type == SERIAL_8250_PCJR))) {
-        if (dev->type >= SERIAL_16450)
-            picintlevel(1 << dev->irq);
-        else
-            picint(1 << dev->irq);
-    } else
-        picintc(1 << dev->irq);
+    serial_do_irq(dev, stat && ((dev->mctrl & 8) || (dev->type == SERIAL_8250_PCJR)));
 }
 
 static void
@@ -595,7 +600,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
                     dev->sd->rcr_callback(dev, dev->sd->priv);
             }
             if (!(val & 8) && (dev->mctrl & 8))
-                picintc(1 << dev->irq);
+                serial_do_irq(dev, 0);
             if ((val ^ dev->mctrl) & 0x10)
                 serial_reset_fifo(dev);
             dev->mctrl = val;

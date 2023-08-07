@@ -45,6 +45,11 @@
 #define STPC_CLIENT    0x100e55cc
 
 typedef struct stpc_t {
+    uint8_t nb_slot;
+    uint8_t sb_slot;
+    uint8_t ide_slot;
+    uint8_t usb_slot;
+
     uint32_t local;
 
     /* Main registers (port 22h/23h) */
@@ -54,19 +59,19 @@ typedef struct stpc_t {
     /* Host bus interface */
     uint16_t host_base;
     uint8_t  host_offset;
+    uint8_t  usb_irq_state;
     uint8_t  host_regs[256];
 
     /* Local bus */
     uint16_t localbus_base;
     uint8_t  localbus_offset;
+    uint8_t  pad0;
     uint8_t  localbus_regs[256];
 
     /* PCI devices */
     uint8_t     pci_conf[4][256];
     smram_t    *smram;
     usb_t      *usb;
-    int         ide_slot;
-    int         usb_slot;
     sff8038i_t *bm[2];
 
     /* Miscellaneous */
@@ -166,8 +171,8 @@ stpc_host_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 stpc_host_read(uint16_t addr, void *priv)
 {
-    stpc_t *dev = (stpc_t *) priv;
-    uint8_t ret;
+    const stpc_t *dev = (stpc_t *) priv;
+    uint8_t       ret;
 
     if (addr == dev->host_base)
         ret = dev->host_offset;
@@ -196,8 +201,8 @@ stpc_localbus_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 stpc_localbus_read(uint16_t addr, void *priv)
 {
-    stpc_t *dev = (stpc_t *) priv;
-    uint8_t ret;
+    const stpc_t *dev = (stpc_t *) priv;
+    uint8_t       ret;
 
     if (addr == dev->localbus_base)
         ret = dev->localbus_offset;
@@ -260,8 +265,8 @@ stpc_nb_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 stpc_nb_read(int func, int addr, void *priv)
 {
-    stpc_t *dev = (stpc_t *) priv;
-    uint8_t ret;
+    const stpc_t *dev = (stpc_t *) priv;
+    uint8_t       ret;
 
     if (func > 0)
         ret = 0xff;
@@ -445,8 +450,8 @@ stpc_ide_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 stpc_ide_read(int func, int addr, void *priv)
 {
-    stpc_t *dev = (stpc_t *) priv;
-    uint8_t ret;
+    const stpc_t *dev = (stpc_t *) priv;
+    uint8_t       ret;
 
     if (func > 0)
         ret = 0xff;
@@ -507,8 +512,8 @@ stpc_isab_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 stpc_isab_read(int func, int addr, void *priv)
 {
-    stpc_t *dev = (stpc_t *) priv;
-    uint8_t ret;
+    const stpc_t *dev = (stpc_t *) priv;
+    uint8_t       ret;
 
     if ((func == 1) && (dev->local != STPC_ATLAS))
         ret = stpc_ide_read(0, addr, priv);
@@ -571,8 +576,8 @@ stpc_usb_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 stpc_usb_read(int func, int addr, void *priv)
 {
-    stpc_t *dev = (stpc_t *) priv;
-    uint8_t ret;
+    const stpc_t *dev = (stpc_t *) priv;
+    uint8_t       ret;
 
     if (func > 0)
         ret = 0xff;
@@ -614,7 +619,8 @@ stpc_remap_localbus(stpc_t *dev, uint16_t localbus_base)
 static uint8_t
 stpc_serial_handlers(uint8_t val)
 {
-    stpc_serial_t *dev = device_get_priv(&stpc_serial_device);
+    const stpc_serial_t *dev = device_get_priv(&stpc_serial_device);
+
     if (!dev) {
         stpc_log("STPC: Not remapping UARTs, disabled by strap (raw %02X)\n", val);
         return 0;
@@ -744,8 +750,8 @@ stpc_reg_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 stpc_reg_read(uint16_t addr, void *priv)
 {
-    stpc_t *dev = (stpc_t *) priv;
-    uint8_t ret;
+    const stpc_t *dev = (stpc_t *) priv;
+    uint8_t       ret;
 
     if (addr == 0x22)
         ret = dev->reg_offset;
@@ -898,9 +904,9 @@ stpc_usb_update_interrupt(usb_t* usb, void* priv)
     stpc_t *dev = (stpc_t *) priv;
 
     if (usb->irq_level)
-        pci_set_irq(dev->usb_slot, PCI_INTA);
+        pci_set_irq(dev->usb_slot, PCI_INTA, &dev->usb_irq_state);
     else
-        pci_clear_irq(dev->usb_slot, PCI_INTA);
+        pci_clear_irq(dev->usb_slot, PCI_INTA, &dev->usb_irq_state);
 }
 
 static void
@@ -925,16 +931,16 @@ stpc_init(const device_t *info)
 
     dev->local = info->local;
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, stpc_nb_read, stpc_nb_write, dev);
-    dev->ide_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_isab_read, stpc_isab_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, stpc_nb_read, stpc_nb_write, dev, &dev->nb_slot);
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_isab_read, stpc_isab_write, dev, &dev->sb_slot);
     if (dev->local == STPC_ATLAS) {
         dev->usb_params.smi_handle       = NULL;
         dev->usb_params.update_interrupt = stpc_usb_update_interrupt;
         dev->usb_params.parent_priv      = dev;
 
-        dev->ide_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_ide_read, stpc_ide_write, dev);
+        pci_add_card(PCI_ADD_SOUTHBRIDGE_IDE, stpc_ide_read, stpc_ide_write, dev, &dev->ide_slot);
         dev->usb      = device_add_parameters(&usb_device, &dev->usb_params);
-        dev->usb_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_usb_read, stpc_usb_write, dev);
+        pci_add_card(PCI_ADD_SOUTHBRIDGE_USB, stpc_usb_read, stpc_usb_write, dev, &dev->usb_slot);
     }
 
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);

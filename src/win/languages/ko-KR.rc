@@ -434,7 +434,6 @@ END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_2080    "FluidSynth를 초기화할 수 없습니다"
     IDS_2081    "버스"
     IDS_2082    "파일"
     IDS_2083    "C"
@@ -465,7 +464,6 @@ BEGIN
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "플로피 %i (%s): %ls"
     IDS_2110    "모든 이미지 (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0어드밴스드 섹터 이미지 (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0기본 섹터 이미지 (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0플럭스 이미지 (*.FDI)\0*.FDI\0표면 이미지 (*.86F;*.MFM)\0*.86F;*.MFM\0모든 파일 (*.*)\0*.*\0"
-    IDS_2111    "FreeType을 초기화할 수 없습니다"
     IDS_2112    "SDL을 초기화할 수 없습니다. SDL2.dll이 필요합니다"
     IDS_2113    "실행중인 머신을 재시작하시겠습니까?"
     IDS_2114    "86Box를 끝내시겠습니까?"
@@ -493,23 +491,11 @@ BEGIN
     IDS_2130    LIB_NAME_PCAP "이 설치되었는지 " LIB_NAME_PCAP "에 대응하는 네트워크에 접속되어 있는지 확인해 주세요."
     IDS_2131    "올바르지 않은 설정입니다"
 #ifdef _WIN32
-#define LIB_NAME_FREETYPE "freetype.dll"
-#else
-#define LIB_NAME_FREETYPE "libfreetype"
-#endif
-    IDS_2132    "ESC/P 프린터 에뮬레이션에 " LIB_NAME_FREETYPE "이(가) 필요합니다."
-#ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
     IDS_2133    LIB_NAME_GS "은(는) PostScript 파일을 PDF로 자동변환하는 데에 필요합니다.\n\n표준 PostScript 프린터로 보내신 임의의 문서는 PostScript (.ps) 파일로 저장됩니다."
-#ifdef _WIN32
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
-#else
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
-#endif
-    IDS_2134    "FluidSynth의 MIDI 출력에 " LIB_NAME_FLUIDSYNTH "이(가) 필요합니다."
     IDS_2135    "전체 화면으로 전환"
     IDS_2136    "이 메시지 그만 보기"
     IDS_2137    "끝내지 않기"

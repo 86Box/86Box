@@ -52,7 +52,7 @@
 #define ROM_PATH_PS2AT  "roms/hdd/xtide/ide_at_1_1_5.bin"
 #define ROM_PATH_AT_386 "roms/hdd/xtide/ide_386.bin"
 
-typedef struct {
+typedef struct xtide_t {
     void   *ide_board;
     uint8_t data_high;
     rom_t   bios_rom;
@@ -85,6 +85,9 @@ xtide_write(uint16_t port, uint8_t val, void *priv)
         case 0xe:
             ide_write_devctl(0x0, val, xtide->ide_board);
             return;
+
+        default:
+            break;
     }
 }
 

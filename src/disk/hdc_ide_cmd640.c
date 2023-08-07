@@ -37,14 +37,17 @@
 #include <86box/zip.h>
 #include <86box/mo.h>
 
-typedef struct {
+typedef struct cmd640_t {
     uint8_t  vlb_idx;
     uint8_t  id;
     uint8_t  in_cfg;
-    uint8_t  single_channel;
-    uint8_t  pci, regs[256];
+    uint8_t  channels;
+    uint8_t  pci;
+    uint8_t  irq_state;
+    uint8_t  pci_slot;
+    uint8_t  pad0;
+    uint8_t  regs[256];
     uint32_t local;
-    int      slot;
     int      irq_mode[2];
     int      irq_pin;
     int      irq_line;
@@ -89,14 +92,18 @@ cmd640_set_irq(int channel, void *priv)
     }
 
     channel &= 0x01;
+
+    if (!(dev->channels & (1 << channel)))
+        return;
+
     if (irq) {
         if (dev->irq_mode[channel] == 1)
-            pci_set_irq(dev->slot, dev->irq_pin);
+            pci_set_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
         else
             picint(1 << (14 + channel));
     } else {
         if (dev->irq_mode[channel] == 1)
-            pci_clear_irq(dev->slot, dev->irq_pin);
+            pci_clear_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
         else
             picintc(1 << (14 + channel));
     }
@@ -108,40 +115,41 @@ cmd640_ide_handlers(cmd640_t *dev)
     uint16_t main;
     uint16_t side;
 
-    ide_pri_disable();
+    if (dev->channels & 0x01) {
+        ide_pri_disable();
 
-    if ((dev->regs[0x09] & 0x01) && (dev->regs[0x50] & 0x40)) {
-        main = (dev->regs[0x11] << 8) | (dev->regs[0x10] & 0xf8);
-        side = ((dev->regs[0x15] << 8) | (dev->regs[0x14] & 0xfc)) + 2;
-    } else {
-        main = 0x1f0;
-        side = 0x3f6;
+        if ((dev->regs[0x09] & 0x01) && (dev->regs[0x50] & 0x40)) {
+            main = (dev->regs[0x11] << 8) | (dev->regs[0x10] & 0xf8);
+            side = ((dev->regs[0x15] << 8) | (dev->regs[0x14] & 0xfc)) + 2;
+        } else {
+            main = 0x1f0;
+            side = 0x3f6;
+        }
+
+        ide_set_base(0, main);
+        ide_set_side(0, side);
+
+        if (dev->regs[0x04] & 0x01)
+            ide_pri_enable();
     }
 
-    ide_set_base(0, main);
-    ide_set_side(0, side);
+    if (dev->channels & 0x02) {
+        ide_sec_disable();
 
-    if (dev->regs[0x04] & 0x01)
-        ide_pri_enable();
+        if ((dev->regs[0x09] & 0x04) && (dev->regs[0x50] & 0x40)) {
+            main = (dev->regs[0x19] << 8) | (dev->regs[0x18] & 0xf8);
+            side = ((dev->regs[0x1d] << 8) | (dev->regs[0x1c] & 0xfc)) + 2;
+        } else {
+            main = 0x170;
+            side = 0x376;
+        }
 
-    if (dev->single_channel)
-        return;
+        ide_set_base(1, main);
+        ide_set_side(1, side);
 
-    ide_sec_disable();
-
-    if ((dev->regs[0x09] & 0x04) && (dev->regs[0x50] & 0x40)) {
-        main = (dev->regs[0x19] << 8) | (dev->regs[0x18] & 0xf8);
-        side = ((dev->regs[0x1d] << 8) | (dev->regs[0x1c] & 0xfc)) + 2;
-    } else {
-        main = 0x170;
-        side = 0x376;
+        if ((dev->regs[0x04] & 0x01) && (dev->regs[0x51] & 0x08))
+            ide_sec_enable();
     }
-
-    ide_set_base(1, main);
-    ide_set_side(1, side);
-
-    if ((dev->regs[0x04] & 0x01) && (dev->regs[0x51] & 0x08))
-        ide_sec_enable();
 }
 
 static void
@@ -368,22 +376,49 @@ cmd640_reset(void *priv)
 {
     cmd640_t *dev = (cmd640_t *) priv;
     int       i   = 0;
+    int       min_channel;
+    int       max_channel;
+
+    switch (dev->channels) {
+        default:
+        case 0x00:
+            min_channel = max_channel = 0;
+            break;
+        case 0x01:
+            min_channel = 0;
+            max_channel = 1;
+            break;
+        case 0x02:
+            min_channel = 2;
+            max_channel = 3;
+            break;
+        case 0x03:
+            min_channel = 0;
+            max_channel = 3;
+            break;
+    }
 
     for (i = 0; i < CDROM_NUM; i++) {
-        if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && (cdrom[i].ide_channel < 4) && cdrom[i].priv)
+        if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && (cdrom[i].ide_channel >= min_channel) &&
+            (cdrom[i].ide_channel <= max_channel) && cdrom[i].priv)
             scsi_cdrom_reset((scsi_common_t *) cdrom[i].priv);
     }
     for (i = 0; i < ZIP_NUM; i++) {
-        if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && (zip_drives[i].ide_channel < 4) && zip_drives[i].priv)
+        if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && (zip_drives[i].ide_channel >= min_channel) &&
+            (zip_drives[i].ide_channel <= max_channel) && zip_drives[i].priv)
             zip_reset((scsi_common_t *) zip_drives[i].priv);
     }
     for (i = 0; i < MO_NUM; i++) {
-        if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && (mo_drives[i].ide_channel < 4) && mo_drives[i].priv)
+        if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && (mo_drives[i].ide_channel >= min_channel) &&
+            (mo_drives[i].ide_channel <= max_channel) && mo_drives[i].priv)
             mo_reset((scsi_common_t *) mo_drives[i].priv);
     }
 
-    cmd640_set_irq(0x00, priv);
-    cmd640_set_irq(0x01, priv);
+    if (dev->channels & 0x01)
+        cmd640_set_irq(0x00, priv);
+
+    if (dev->channels & 0x02)
+        cmd640_set_irq(0x01, priv);
 
     memset(dev->regs, 0x00, sizeof(dev->regs));
 
@@ -429,6 +464,8 @@ cmd640_reset(void *priv)
         dev->irq_pin                        = PCI_INTA;
         dev->irq_line                       = 14;
     } else {
+        dev->regs[0x04] = 0x01;       /* To make sure the two channels get enabled. */
+
         if ((dev->local & 0xffff) == 0x0078)
             dev->regs[0x50] |= 0x20; /* 0 = 178h, 17Ch; 1 = 078h, 07Ch */
 
@@ -461,18 +498,29 @@ cmd640_init(const device_t *info)
     dev->pci   = !!(info->flags & DEVICE_PCI);
     dev->local = info->local;
 
+    dev->channels = ((info->local & 0x60000) >> 17) & 0x03;
+
     if (info->flags & DEVICE_PCI) {
         device_add(&ide_pci_2ch_device);
 
-        dev->slot = pci_add_card(PCI_ADD_IDE, cmd640_pci_read, cmd640_pci_write, dev);
+        if (info->local & 0x80000)
+            pci_add_card(PCI_ADD_NORMAL, cmd640_pci_read, cmd640_pci_write, dev, &dev->pci_slot);
+        else
+            pci_add_card(PCI_ADD_IDE, cmd640_pci_read, cmd640_pci_write, dev, &dev->pci_slot);
 
-        ide_set_bus_master(0, NULL, cmd640_set_irq, dev);
-        ide_set_bus_master(1, NULL, cmd640_set_irq, dev);
+        if (dev->channels & 0x01)
+            ide_set_bus_master(0, NULL, cmd640_set_irq, dev);
+
+        if (dev->channels & 0x02)
+            ide_set_bus_master(1, NULL, cmd640_set_irq, dev);
 
         /* The CMD PCI-0640B IDE controller has no DMA capability,
            so set our devices IDE devices to force ATA-3 (no DMA). */
-        ide_board_set_force_ata3(0, 1);
-        ide_board_set_force_ata3(1, 1);
+        if (dev->channels & 0x01)
+            ide_board_set_force_ata3(0, 1);
+
+        if (dev->channels & 0x02)
+            ide_board_set_force_ata3(1, 1);
 
 #if 0
         ide_pri_disable();
@@ -486,8 +534,6 @@ cmd640_init(const device_t *info)
                       dev);
     }
 
-    dev->single_channel = !!(info->local & 0x20000);
-
     next_id++;
 
     cmd640_reset(dev);
@@ -499,7 +545,7 @@ const device_t ide_cmd640_vlb_device = {
     .name          = "CMD PCI-0640B VLB",
     .internal_name = "ide_cmd640_vlb",
     .flags         = DEVICE_VLB,
-    .local         = 0x0078,
+    .local         = 0x60078,
     .init          = cmd640_init,
     .close         = cmd640_close,
     .reset         = cmd640_reset,
@@ -513,7 +559,63 @@ const device_t ide_cmd640_vlb_178_device = {
     .name          = "CMD PCI-0640B VLB (Port 178h)",
     .internal_name = "ide_cmd640_vlb_178",
     .flags         = DEVICE_VLB,
-    .local         = 0x0178,
+    .local         = 0x60178,
+    .init          = cmd640_init,
+    .close         = cmd640_close,
+    .reset         = cmd640_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ide_cmd640_vlb_pri_device = {
+    .name          = "CMD PCI-0640B VLB",
+    .internal_name = "ide_cmd640_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = 0x20078,
+    .init          = cmd640_init,
+    .close         = cmd640_close,
+    .reset         = cmd640_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ide_cmd640_vlb_pri_178_device = {
+    .name          = "CMD PCI-0640B VLB (Port 178h)",
+    .internal_name = "ide_cmd640_vlb_178",
+    .flags         = DEVICE_VLB,
+    .local         = 0x20178,
+    .init          = cmd640_init,
+    .close         = cmd640_close,
+    .reset         = cmd640_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ide_cmd640_vlb_sec_device = {
+    .name          = "CMD PCI-0640B VLB",
+    .internal_name = "ide_cmd640_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = 0x40078,
+    .init          = cmd640_init,
+    .close         = cmd640_close,
+    .reset         = cmd640_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ide_cmd640_vlb_sec_178_device = {
+    .name          = "CMD PCI-0640B VLB (Port 178h)",
+    .internal_name = "ide_cmd640_vlb_178",
+    .flags         = DEVICE_VLB,
+    .local         = 0x40178,
     .init          = cmd640_init,
     .close         = cmd640_close,
     .reset         = cmd640_reset,
@@ -527,7 +629,7 @@ const device_t ide_cmd640_pci_device = {
     .name          = "CMD PCI-0640B PCI",
     .internal_name = "ide_cmd640_pci",
     .flags         = DEVICE_PCI,
-    .local         = 0x0a,
+    .local         = 0x6000a,
     .init          = cmd640_init,
     .close         = cmd640_close,
     .reset         = cmd640_reset,
@@ -541,7 +643,7 @@ const device_t ide_cmd640_pci_legacy_only_device = {
     .name          = "CMD PCI-0640B PCI (Legacy Mode Only)",
     .internal_name = "ide_cmd640_pci_legacy_only",
     .flags         = DEVICE_PCI,
-    .local         = 0x00,
+    .local         = 0x60000,
     .init          = cmd640_init,
     .close         = cmd640_close,
     .reset         = cmd640_reset,
@@ -556,6 +658,20 @@ const device_t ide_cmd640_pci_single_channel_device = {
     .internal_name = "ide_cmd640_pci_single_channel",
     .flags         = DEVICE_PCI,
     .local         = 0x2000a,
+    .init          = cmd640_init,
+    .close         = cmd640_close,
+    .reset         = cmd640_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ide_cmd640_pci_single_channel_sec_device = {
+    .name          = "CMD PCI-0640B PCI",
+    .internal_name = "ide_cmd640_pci_single_channel_sec",
+    .flags         = DEVICE_PCI,
+    .local         = 0x4000a,
     .init          = cmd640_init,
     .close         = cmd640_close,
     .reset         = cmd640_reset,

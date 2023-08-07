@@ -70,7 +70,7 @@
 #define CMD_SET_PARAMETERS  0x91
 #define CMD_READ_PARAMETERS 0xec
 
-typedef struct {
+typedef struct drive_t {
     int cfg_spt;
     int cfg_hpc;
     int current_cylinder;
@@ -81,7 +81,7 @@ typedef struct {
     int hdd_num;
 } drive_t;
 
-typedef struct {
+typedef struct esdi_t {
     uint8_t status;
     uint8_t error;
     int     secount;
@@ -173,13 +173,13 @@ esdi_get_xfer_time(UNUSED(esdi_t *esdi), int size)
 static int
 get_sector(esdi_t *esdi, off64_t *addr)
 {
-    drive_t *drive   = &esdi->drives[esdi->drive_sel];
-    int      heads   = drive->cfg_hpc;
-    int      sectors = drive->cfg_spt;
-    int      c;
-    int      h;
-    int      s;
-    int      sector;
+    const drive_t *drive   = &esdi->drives[esdi->drive_sel];
+    int            heads   = drive->cfg_hpc;
+    int            sectors = drive->cfg_spt;
+    int            c;
+    int            h;
+    int            s;
+    int            sector;
 
     if (esdi->head > heads) {
         esdi_at_log("esdi_get_sector: past end of configured heads\n");
@@ -338,7 +338,9 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
                             esdi->command &= ~0x03;
                             if (val & 0x02)
                                 fatal("Read with ECC\n");
-                            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+                            [[fallthrough]];
+#endif
 
                         case 0xa0:
                             esdi->status = STAT_BUSY;
@@ -397,7 +399,9 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 
                         default:
                             esdi_at_log("WD1007: bad command %02X\n", val);
-                            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+                            [[fallthrough]];
+#endif
                         case 0xe8: /*???*/
                             esdi->status = STAT_BUSY;
                             esdi_set_callback(esdi, 200 * HDC_TIME);
@@ -821,9 +825,9 @@ loadhd(esdi_t *esdi, int hdd_num, int d, UNUSED(const char *fn))
 }
 
 static void
-esdi_rom_write(uint32_t addr, uint8_t val, void *p)
+esdi_rom_write(uint32_t addr, uint8_t val, void *priv)
 {
-    rom_t *rom = (rom_t *) p;
+    rom_t *rom = (rom_t *) priv;
 
     addr &= rom->mask;
 
@@ -878,8 +882,8 @@ wd1007vse1_init(UNUSED(const device_t *info))
 static void
 wd1007vse1_close(void *priv)
 {
-    esdi_t  *esdi = (esdi_t *) priv;
-    drive_t *drive;
+    esdi_t        *esdi = (esdi_t *) priv;
+    const drive_t *drive;
 
     for (uint8_t d = 0; d < 2; d++) {
         drive = &esdi->drives[d];

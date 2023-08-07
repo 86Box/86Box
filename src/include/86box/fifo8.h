@@ -1,7 +1,7 @@
 #ifndef EMU_FIFO8_H
 #define EMU_FIFO8_H
 
-typedef struct {
+typedef struct Fifo8 {
     /* All fields are private */
     uint8_t *data;
     uint32_t capacity;

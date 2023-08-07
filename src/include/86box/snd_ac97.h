@@ -17,7 +17,7 @@
 #ifndef SOUND_AC97_H
 #define SOUND_AC97_H
 
-#define AC97_VENDOR_ID(f, s, t, dev) ((((f) &0xff) << 24) | (((s) &0xff) << 16) | (((t) &0xff) << 8) | ((dev) &0xff))
+#define AC97_VENDOR_ID(a, b, c, i) ((((a) &0xff) << 24) | (((b) &0xff) << 16) | (((c) &0xff) << 8) | ((i) &0xff))
 
 /* Misc support bits (misc_flags). Most of these are not part of any
    registers, but control enabling/disabling of registers and bits. */
@@ -91,33 +91,27 @@
 #define AC97_PRK        (1 << 13)
 #define AC97_PRL        (1 << 14)
 
-/* New codecs should be added to the end of this enum to avoid breaking configs. */
-enum {
-    AC97_CODEC_AD1881   = 0,
-    AC97_CODEC_ALC100   = 1,
-    AC97_CODEC_CS4297   = 2,
-    AC97_CODEC_CS4297A  = 3,
-    AC97_CODEC_WM9701A  = 4,
-    AC97_CODEC_STAC9708 = 5,
-    AC97_CODEC_STAC9721 = 6,
-    AC97_CODEC_AK4540   = 7
-};
+/* Codec IDs. */
+#define AC97_CODEC_AD1881   AC97_VENDOR_ID('A', 'D', 'S', 0x40)
+#define AC97_CODEC_AK4540   AC97_VENDOR_ID('A', 'D', 'S', 0x40)
+#define AC97_CODEC_ALC100   AC97_VENDOR_ID('A', 'L', 'C', 0x20)
+#define AC97_CODEC_CS4297   AC97_VENDOR_ID('C', 'R', 'Y', 0x03)
+#define AC97_CODEC_CS4297A  AC97_VENDOR_ID('C', 'R', 'Y', 0x11)
+#define AC97_CODEC_STAC9708 AC97_VENDOR_ID(0x83, 0x84, 0x76, 0x08)
+#define AC97_CODEC_STAC9721 AC97_VENDOR_ID(0x83, 0x84, 0x76, 0x09)
+#define AC97_CODEC_TR28023  AC97_VENDOR_ID('T', 'R', 'A', 0x03)
+#define AC97_CODEC_WM9701A  AC97_VENDOR_ID('W', 'M', 'L', 0x00)
 
-typedef struct {
-    const uint16_t index;
-    const uint16_t value;
-    const uint16_t write_mask;
+typedef struct ac97_vendor_reg_t {
+    uint8_t  page; /* for paged registers [60:6F], 0 otherwise */
+    uint8_t  index;
+    uint16_t value;
+    uint16_t write_mask;
 } ac97_vendor_reg_t;
 
-typedef struct {
-    uint32_t vendor_id;
-    uint32_t min_rate;
-    uint32_t max_rate;
-    uint32_t misc_flags;
-    uint16_t reset_flags;
-    uint16_t extid_flags;
-    uint16_t powerdown_mask;
-    uint16_t regs[64];
+typedef struct ac97_codec_t {
+    int                      model;
+    uint16_t                 regs[64];
     uint8_t                  codec_id;
     uint8_t                  vendor_reg_page_max;
     const ac97_vendor_reg_t *vendor_regs;
@@ -129,7 +123,7 @@ extern void            ac97_codec_writew(ac97_codec_t *dev, uint8_t reg, uint16_
 extern void            ac97_codec_reset(void *priv);
 extern void            ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r);
 extern uint32_t        ac97_codec_getrate(void *priv, uint8_t reg);
-extern const device_t *ac97_codec_get(int model);
+extern const device_t *ac97_codec_get(uint32_t id);
 
 extern void    ac97_via_set_slot(void *priv, int slot, int irq_pin);
 extern uint8_t ac97_via_read_status(void *priv, uint8_t modem);
@@ -152,8 +146,10 @@ extern const device_t ak4540_device;
 extern const device_t alc100_device;
 extern const device_t cs4297_device;
 extern const device_t cs4297a_device;
+#    define ct1297_device tr28023_device
 extern const device_t stac9708_device;
 extern const device_t stac9721_device;
+extern const device_t tr28023_device;
 extern const device_t wm9701a_device;
 
 extern const device_t ac97_via_device;

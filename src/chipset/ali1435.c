@@ -46,11 +46,12 @@
 typedef struct ali_1435_t {
     uint8_t index;
     uint8_t cfg_locked;
+    uint8_t pci_slot;
+    uint8_t pad;
     uint8_t regs[16];
     uint8_t pci_regs[256];
 } ali1435_t;
 
-#define ENABLE_ALI1435_LOG 1
 #ifdef ENABLE_ALI1435_LOG
 int ali1435_do_log = ENABLE_ALI1435_LOG;
 
@@ -166,8 +167,8 @@ ali1435_pci_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 ali1435_pci_read(int func, int addr, void *priv)
 {
-    ali1435_t *dev = (ali1435_t *) priv;
-    uint8_t    ret;
+    const ali1435_t *dev = (ali1435_t *) priv;
+    uint8_t          ret;
 
     ret = 0xff;
 
@@ -190,24 +191,20 @@ ali1435_write(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x23:
-#if 0
-#ifdef ENABLE_ALI1435_LOG
-            if (dev->index != 0x03)
-                ali1435_log("M1435: dev->regs[%02x] = %02x\n", dev->index, val);
-#endif
-#endif
             if (dev->index == 0x03)
                 dev->cfg_locked = (val != 0x69);
+#ifdef ENABLE_ALI1435_LOG
+            else
+                ali1435_log("M1435: dev->regs[%02x] = %02x\n", dev->index, val);
+#endif
 
             if (!dev->cfg_locked) {
-                pclog("M1435: dev->regs[%02x] = %02x\n", dev->index, val);
-
                 switch (dev->index) {
                     /* PCI Mechanism select? */
                     case 0x00:
                         dev->regs[dev->index] = val;
-                        pclog("PMC = %i\n", val != 0xc8);
-                        pci_set_pmc(val != 0xc8);
+                        ali1435_log("PMC = %i\n", val != 0xc8);
+                        pci_key_write(((val & 0xc8) == 0xc8) ? 0xf0 : 0x00);
                         break;
 
                     /* ???? */
@@ -233,8 +230,8 @@ ali1435_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 ali1435_read(uint16_t addr, void *priv)
 {
-    ali1435_t *dev = (ali1435_t *) priv;
-    uint8_t    ret = 0xff;
+    const ali1435_t *dev = (ali1435_t *) priv;
+    uint8_t          ret = 0xff;
 
     if ((addr == 0x23) && (dev->index < 0x10))
         ret = dev->regs[dev->index];
@@ -252,8 +249,6 @@ ali1435_reset(void *priv)
     memset(dev->regs, 0, 16);
 
     dev->regs[0x00] = 0xff;
-
-    pci_set_pmc(0);
 
     dev->cfg_locked = 1;
 
@@ -298,16 +293,9 @@ ali1435_init(UNUSED(const device_t *info))
     */
     io_sethandler(0x0022, 0x0002, ali1435_read, NULL, NULL, ali1435_write, NULL, NULL, dev);
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, ali1435_pci_read, ali1435_pci_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, ali1435_pci_read, ali1435_pci_write, dev, &dev->pci_slot);
 
     ali1435_reset(dev);
-
-#if 0
-    pci_set_irq_level(PCI_INTA, 0);
-    pci_set_irq_level(PCI_INTB, 0);
-    pci_set_irq_level(PCI_INTC, 0);
-    pci_set_irq_level(PCI_INTD, 0);
-#endif
 
     return dev;
 }

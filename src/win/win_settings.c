@@ -714,7 +714,8 @@ win_settings_machine_recalc_fpu(HWND hdlg)
         c++;
     }
 
-    settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, temp_fpu_softfloat);
+    settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? TRUE : temp_fpu_softfloat));
+    settings_enable_window(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? FALSE : TRUE));
 
     settings_enable_window(hdlg, IDC_COMBO_FPU, c > 1);
 
@@ -2002,9 +2003,10 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
             settings_enable_window(hdlg, IDC_BUTTON_IDE_TER, is_at && temp_ide_ter);
             settings_enable_window(hdlg, IDC_CHECK_IDE_QUA, is_at);
             settings_enable_window(hdlg, IDC_BUTTON_IDE_QUA, is_at && temp_ide_qua);
+            settings_enable_window(hdlg, IDC_CHECK_CASSETTE, machine_has_bus(temp_machine, MACHINE_BUS_CASSETTE));
             settings_set_check(hdlg, IDC_CHECK_IDE_TER, temp_ide_ter);
             settings_set_check(hdlg, IDC_CHECK_IDE_QUA, temp_ide_qua);
-            settings_set_check(hdlg, IDC_CHECK_CASSETTE, temp_cassette);
+            settings_set_check(hdlg, IDC_CHECK_CASSETTE, (temp_cassette && machine_has_bus(temp_machine, MACHINE_BUS_CASSETTE)));
 
             free(stransi);
             free(lptsTemp);
@@ -5415,7 +5417,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
             }
 
             settings_enable_window(hdlg, IDC_CHECK_BUGGER, machine_has_bus(temp_machine, MACHINE_BUS_ISA));
-            settings_set_check(hdlg, IDC_CHECK_BUGGER, temp_bugger);
+            settings_set_check(hdlg, IDC_CHECK_BUGGER, (temp_bugger && machine_has_bus(temp_machine, MACHINE_BUS_ISA)));
             settings_set_check(hdlg, IDC_CHECK_POSTCARD, temp_postcard);
 
             free(stransi);

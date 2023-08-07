@@ -1493,7 +1493,7 @@ ui_init(int nCmdShow)
         if (!fs_off_signal && video_fullscreen && keyboard_isfsexit()) {
             /* Signal "exit fullscreen mode". */
             fs_off_signal = 1;
-        } else if (fs_off_signal && video_fullscreen && keyboard_isfsexit_down()) {
+        } else if (fs_off_signal && video_fullscreen && keyboard_isfsexit_up()) {
             plat_setfullscreen(0);
             fs_off_signal = 0;
         }
@@ -1501,7 +1501,7 @@ ui_init(int nCmdShow)
         if (!fs_on_signal && !video_fullscreen && keyboard_isfsenter()) {
             /* Signal "enter fullscreen mode". */
             fs_on_signal = 1;
-        } else if (fs_on_signal && !video_fullscreen && keyboard_isfsenter_down()) {
+        } else if (fs_on_signal && !video_fullscreen && keyboard_isfsenter_up()) {
             plat_setfullscreen(1);
             fs_on_signal = 0;
         }

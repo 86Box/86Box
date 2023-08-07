@@ -57,6 +57,9 @@ typedef struct i4x0_t {
     uint8_t    max_drb;
     uint8_t    drb_unit;
     uint8_t    drb_default;
+    uint8_t    pci_slot;
+    uint8_t    pad;
+    uint8_t    pad0;
     uint8_t    regs[256];
     uint8_t    regs_locked[256];
     uint8_t    mem_state[256];
@@ -118,10 +121,10 @@ static void
 i4x0_smram_handler_phase1(i4x0_t *dev)
 {
 
-    uint8_t *regs    = (uint8_t *) dev->regs;
-    uint32_t tom     = (mem_size << 10);
-    uint8_t *reg     = (dev->type >= INTEL_430LX) ? &(regs[0x72]) : &(regs[0x57]);
-    uint8_t *ext_reg = (dev->type >= INTEL_440BX) ? &(regs[0x73]) : &(regs[0x71]);
+    const uint8_t *regs    = (uint8_t *) dev->regs;
+    uint32_t       tom     = (mem_size << 10);
+    const uint8_t *reg     = (dev->type >= INTEL_430LX) ? &(regs[0x72]) : &(regs[0x57]);
+    const uint8_t *ext_reg = (dev->type >= INTEL_440BX) ? &(regs[0x73]) : &(regs[0x71]);
 
     uint32_t s;
     uint32_t base[2] = { 0x000a0000, 0x00000000 };
@@ -228,7 +231,7 @@ i4x0_mask_bar(uint8_t *regs, void *agpgart)
 static uint8_t
 pm2_cntrl_read(UNUSED(uint16_t addr), void *priv)
 {
-    i4x0_t *dev = (i4x0_t *) priv;
+    const i4x0_t *dev = (i4x0_t *) priv;
 
     return dev->pm2_cntrl & 0x01;
 }
@@ -1068,6 +1071,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440ZX:
                     case INTEL_440GX:
                         regs[addr] = val;
+                        break;
+
                     default:
                         break;
                 }
@@ -1077,6 +1082,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                     case INTEL_440BX:
                     case INTEL_440ZX:
                         regs[0x77] = val & 0x03;
+                        break;
+
                     default:
                         break;
                 }
@@ -1237,12 +1244,12 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                 switch (dev->type) {
                     case INTEL_440FX:
                         regs[0x93] = (val & 0x0f);
-                        trc_write(0x0093, val & 0x06, NULL);
+                        pci_write(0x0cf9, val & 0x06, NULL);
                         break;
                     case INTEL_440LX:
                     case INTEL_440EX:
                         regs[0x93] = (val & 0x0e);
-                        trc_write(0x0093, val & 0x06, NULL);
+                        pci_write(0x0cf9, val & 0x06, NULL);
                         break;
                     default:
                         break;
@@ -1505,16 +1512,16 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 i4x0_read(int func, int addr, void *priv)
 {
-    i4x0_t  *dev  = (i4x0_t *) priv;
-    uint8_t  ret  = 0xff;
-    uint8_t *regs = (uint8_t *) dev->regs;
+    i4x0_t        *dev  = (i4x0_t *) priv;
+    uint8_t        ret  = 0xff;
+    const uint8_t *regs = (uint8_t *) dev->regs;
 
     if (func == 0) {
         ret = regs[addr];
         /* Special behavior for 440FX register 0x93 which is basically TRC in PCI space
            with the addition of bits 3 and 0. */
         if ((func == 0) && (addr == 0x93) && ((dev->type == INTEL_440FX) || (dev->type == INTEL_440LX) || (dev->type == INTEL_440EX)))
-            ret = (ret & 0xf9) | (trc_read(0x0093, NULL) & 0x06);
+            ret = (ret & 0xf9) | (pci_read(0x0cf9, NULL) & 0x06);
     }
 
     return ret;
@@ -1537,7 +1544,12 @@ i4x0_reset(void *priv)
         i4x0_write(0, 0x5a + i, 0x00, priv);
 
     for (uint8_t i = 0; i <= dev->max_drb; i++)
-        i4x0_write(0, 0x60 + i, dev->drb_default, priv);
+        dev->regs[0x60 + i] = dev->drb_default;
+
+    if (dev->type >= INTEL_430NX) {
+        for (uint8_t i = 0; i < 4; i++)
+            dev->regs[0x68 + i] = 0x00;
+    }
 
     if (dev->type >= INTEL_430FX) {
         dev->regs[0x72] &= 0xef; /* Forcibly unlock the SMRAM register. */
@@ -1621,7 +1633,7 @@ i4x0_init(const device_t *info)
             regs[0x59] = 0x0f;
             regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = 0x02;
             dev->max_drb                                      = 3;
-            dev->drb_unit                                     = 4;
+            dev->drb_unit                                     = 1;
             dev->drb_default                                  = 0x02;
             break;
         case INTEL_430LX:
@@ -1901,7 +1913,7 @@ i4x0_init(const device_t *info)
                    (dev->type >= INTEL_440BX) ? 0x38 : 0x00, dev);
     }
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, i4x0_read, i4x0_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, i4x0_read, i4x0_write, dev, &dev->pci_slot);
 
     if ((dev->type >= INTEL_440BX) && !(regs[0x7a] & 0x02)) {
         device_add((dev->type == INTEL_440GX) ? &i440gx_agp_device : &i440bx_agp_device);

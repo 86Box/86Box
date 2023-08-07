@@ -48,6 +48,7 @@
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/hwm.h>
 #include <86box/machine.h>
+#include <86box/plat_unused.h>
 
 int
 machine_at_acc386_init(const machine_t *model)
@@ -632,6 +633,7 @@ machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU oth
         return ret;
 
     machine_at_common_init(model);
+    device_add(&ide_vlb_2ch_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -641,8 +643,8 @@ machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU oth
 
     device_add(&opti802g_pci_device);
     device_add(&opti822_device);
-    device_add(&keyboard_ps2_device);
-    device_add(&fdc37c665_device);
+    device_add(&keyboard_ps2_ami_device);
+    device_add(&fdc37c665_ide_device);
     device_add(&ide_opti611_vlb_device);
     device_add(&intel_flash_bxt_device);
 
@@ -812,7 +814,7 @@ machine_at_greenb_init(const machine_t *model)
 }
 
 static void
-machine_at_sis_85c496_common_init(const machine_t *model)
+machine_at_sis_85c496_common_init(UNUSED(const machine_t *model))
 {
     device_add(&ide_pci_2ch_device);
 
@@ -1281,7 +1283,9 @@ machine_at_abpb4_init(const machine_t *model)
     device_add(&ali1489_device);
     device_add(&w83787f_device);
     device_add(&keyboard_at_device);
-    // device_add(&intel_flash_bxt_device);
+#if 0
+    device_add(&intel_flash_bxt_device);
+#endif
     device_add(&sst_flash_29ee010_device);
 
     return ret;
@@ -1524,11 +1528,11 @@ machine_at_pcm5330_init(const machine_t *model)
     machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x0B, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0C, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0D, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0E, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x13, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_SOUTHBRIDGE_IDE, 0, 0, 0, 0);
+    pci_register_slot(0x0E, PCI_CARD_SOUTHBRIDGE_USB, 1, 2, 3, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,          1, 2, 3, 4);
     device_add(&stpc_serial_device);
     device_add(&w83977f_370_device);
     device_add(&keyboard_ps2_ami_pci_device);
@@ -1735,7 +1739,7 @@ machine_at_ms4134_init(const machine_t *model)
 
     device_add(&fdc37c665_ide_pri_device);
 
-    pci_init(PCI_CAN_SWITCH_TYPE | PCI_ALWAYS_EXPOSE_DEV0);
+    pci_init(FLAG_MECHANISM_1 | FLAG_MECHANISM_2 | PCI_ALWAYS_EXPOSE_DEV0);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
 
     pci_register_slot(0x0B, PCI_CARD_SCSI, 4, 1, 2, 3);
@@ -1769,7 +1773,7 @@ machine_at_tg486gp_init(const machine_t *model)
 
     device_add(&fdc37c665_ide_pri_device);
 
-    pci_init(PCI_CAN_SWITCH_TYPE | PCI_ALWAYS_EXPOSE_DEV0);
+    pci_init(FLAG_MECHANISM_1 | FLAG_MECHANISM_2 | PCI_ALWAYS_EXPOSE_DEV0);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
 
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 1, 2, 3, 4);
@@ -1788,7 +1792,7 @@ machine_at_tg486gp_init(const machine_t *model)
 int
 machine_at_tg486g_init(const machine_t *model)
 {
-    int ret, i;
+    int ret;
 
     ret = bios_load_linear("roms/machines/tg486g/tg486g.bin",
                            0x000c0000, 262144, 0);
@@ -1803,7 +1807,7 @@ machine_at_tg486g_init(const machine_t *model)
     device_add(&keyboard_ps2_tg_ami_pci_device);
 
     if (gfxcard[0] != VID_INTERNAL) {
-        for (i = 0; i < 32768; i++)
+        for (uint16_t i = 0; i < 32768; i++)
             rom[i] = mem_readb_phys(0x000c0000 + i);
     }
     mem_mapping_set_addr(&bios_mapping, 0x0c0000, 0x40000);

@@ -74,7 +74,7 @@
 #define CMD_DIAGNOSE       0x90
 #define CMD_SET_PARAMETERS 0x91
 
-typedef struct {
+typedef struct drive_t {
     int8_t  present;  /* drive is present */
     int8_t  hdd_num;  /* drive number in system */
     int8_t  steprate; /* current servo step rate */
@@ -89,7 +89,7 @@ typedef struct {
     int16_t curcyl;   /* current track number */
 } drive_t;
 
-typedef struct {
+typedef struct mfm_t {
     uint8_t  precomp;  /* 1: precomp/error register */
     uint8_t  error;
     uint8_t  secount;  /* 2: sector count register */
@@ -171,7 +171,7 @@ irq_update(mfm_t *mfm)
 static int
 get_sector(mfm_t *mfm, off64_t *addr)
 {
-    drive_t *drive = &mfm->drives[mfm->drvsel];
+    const drive_t *drive = &mfm->drives[mfm->drvsel];
 
     /* FIXME: See if this is even needed - if the code is present, IBM AT
               diagnostics v2.07 will error with: ERROR 152 - SYSTEM BOARD. */
@@ -434,6 +434,9 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
             }
             mfm->fdisk = val;
             irq_update(mfm);
+            break;
+
+        default:
             break;
     }
 }
@@ -731,7 +734,7 @@ mfm_close(void *priv)
     mfm_t *mfm = (mfm_t *) priv;
 
     for (uint8_t d = 0; d < 2; d++) {
-        drive_t *drive = &mfm->drives[d];
+        const drive_t *drive = &mfm->drives[d];
 
         hdd_image_close(drive->hdd_num);
     }

@@ -182,7 +182,7 @@ enum {
 
 /* The device control block (6 bytes) */
 #pragma pack(push, 1)
-typedef struct {
+typedef struct dcb_t {
     uint8_t cmd; /* [7:5] class, [4:0] opcode    */
 
     uint8_t head   : 5; /* [4:0] head number        */
@@ -202,7 +202,7 @@ typedef struct {
 
 /* The (configured) Drive Parameters. */
 #pragma pack(push, 1)
-typedef struct {
+typedef struct dprm_t {
     uint8_t cyl_high; /* (MSB) number of cylinders */
     uint8_t cyl_low;  /* (LSB) number of cylinders */
     uint8_t heads;    /* number of heads per cylinder */
@@ -215,7 +215,7 @@ typedef struct {
 #pragma pack(pop)
 
 /* Define an attached drive. */
-typedef struct {
+typedef struct drive_t {
     int8_t id;   /* drive ID on bus */
     int8_t present; /* drive is present */
     int8_t hdd_num; /* index to global disk table */
@@ -232,7 +232,7 @@ typedef struct {
     uint16_t cfg_tracks;
 } drive_t;
 
-typedef struct {
+typedef struct hdc_t {
     const char *name; /* controller name */
 
     uint16_t base; /* controller base I/O address */
@@ -436,6 +436,9 @@ do_fmt:
 
             /* This saves us a LOT of code. */
             goto do_fmt;
+
+        default:
+            break;
     }
 
     /* De-activate the status icon. */
@@ -497,12 +500,18 @@ hdc_callback(void *priv)
 
                 case STATE_SDONE:
                     set_intr(dev);
+                    break;
+
+                default:
+                    break;
             }
             break;
 
         case CMD_READ_VERIFY:
             no_data = 1;
-            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
 
         case CMD_READ_SECTORS:
             if (!drive->present) {
@@ -527,7 +536,9 @@ hdc_callback(void *priv)
                     dev->buf_len = 512;
 
                     dev->state = STATE_SEND;
-                    /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+                    [[fallthrough]];
+#endif
 
                 case STATE_SEND:
                     /* Activate the status icon. */
@@ -606,6 +617,9 @@ do_send:
                     /* This saves us a LOT of code. */
                     dev->state = STATE_SEND;
                     goto do_send;
+
+                default:
+                    break;
             }
             break;
 
@@ -632,7 +646,9 @@ do_send:
                     dev->buf_len = 512;
 
                     dev->state = STATE_RECV;
-                    /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+                    [[fallthrough]];
+#endif
 
                 case STATE_RECV:
                     /* Activate the status icon. */
@@ -710,6 +726,9 @@ do_recv:
                     /* This saves us a LOT of code. */
                     dev->state = STATE_RECV;
                     goto do_recv;
+
+                default:
+                    break;
             }
             break;
 
@@ -758,6 +777,9 @@ do_recv:
                     dev->status &= ~STAT_REQ;
                     set_intr(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -802,6 +824,9 @@ do_recv:
                                dev->data, dev->buf_len);
                     set_intr(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -814,6 +839,9 @@ do_recv:
 
                 case STATE_RDONE:
                     set_intr(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -834,6 +862,9 @@ do_recv:
                 case STATE_RDONE:
                     set_intr(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -846,6 +877,9 @@ do_recv:
 
                 case STATE_RDONE:
                     set_intr(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -899,6 +933,9 @@ hdc_read(uint16_t port, void *priv)
 
         case 2:         /* "read option jumpers" */
             ret = 0xff; /* all switches off */
+            break;
+
+        default:
             break;
     }
 
@@ -963,6 +1000,9 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
 #endif
             dev->intr = val;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -1000,12 +1040,16 @@ xta_init(const device_t *info)
             dev->irq  = 5;
             dev->dma  = 3;
             break;
+
+        default:
+            break;
     }
 
     xta_log("%s: initializing (I/O=%04X, IRQ=%d, DMA=%d",
             dev->name, dev->base, dev->irq, dev->dma);
     if (dev->rom_addr != 0x000000)
         xta_log(", BIOS=%06X", dev->rom_addr);
+
     xta_log(")\n");
 
     /* Load any disks for this device class. */
@@ -1060,8 +1104,8 @@ xta_init(const device_t *info)
 static void
 xta_close(void *priv)
 {
-    hdc_t   *dev = (hdc_t *) priv;
-    drive_t *drive;
+    hdc_t         *dev = (hdc_t *) priv;
+    const drive_t *drive;
 
     /* Remove the I/O handler. */
     io_removehandler(dev->base, 4,

@@ -32,6 +32,10 @@
 
 typedef struct vt82c505_t {
     uint8_t index;
+    uint8_t pci_slot;
+    uint8_t pad;
+    uint8_t pad0;
+
     uint8_t pci_conf[256];
 } vt82c505_t;
 
@@ -126,8 +130,8 @@ vt82c505_write(int func, int addr, uint8_t val, void *priv)
 static uint8_t
 vt82c505_read(int func, int addr, void *priv)
 {
-    vt82c505_t *dev = (vt82c505_t *) priv;
-    uint8_t     ret = 0xff;
+    const vt82c505_t *dev = (vt82c505_t *) priv;
+    uint8_t           ret = 0xff;
 
     if (func != 0)
         return ret;
@@ -151,8 +155,8 @@ vt82c505_out(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 vt82c505_in(uint16_t addr, void *priv)
 {
-    vt82c505_t *dev = (vt82c505_t *) priv;
-    uint8_t     ret = 0xff;
+    const vt82c505_t *dev = (vt82c505_t *) priv;
+    uint8_t           ret = 0xff;
 
     if ((addr == 0xa9) && (dev->index >= 0x80) && (dev->index <= 0x9f))
         ret = vt82c505_read(0, dev->index, priv);
@@ -203,7 +207,7 @@ vt82c505_init(UNUSED(const device_t *info))
     vt82c505_t *dev = (vt82c505_t *) malloc(sizeof(vt82c505_t));
     memset(dev, 0, sizeof(vt82c505_t));
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, vt82c505_read, vt82c505_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, vt82c505_read, vt82c505_write, dev, &dev->pci_slot);
 
     dev->pci_conf[0x00] = 0x06;
     dev->pci_conf[0x01] = 0x11;

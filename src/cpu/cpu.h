@@ -133,13 +133,13 @@ enum {
 #    define LOOKUP_INV -1
 #endif
 
-typedef struct {
+typedef struct fpu_t {
     const char *name;
     const char *internal_name;
     const int   type;
 } FPU;
 
-typedef struct {
+typedef struct cpu_t {
     const char *name;
     uint64_t    cpu_type;
     const FPU  *fpus;
@@ -280,10 +280,11 @@ typedef struct {
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t mcg_ctl; /* 0x0000017b - Machine Check Architecture */
-
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t ecx186; /* 0x00000186, 0x00000187 */
     uint64_t ecx187; /* 0x00000186, 0x00000187 */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t debug_ctl; /* 0x000001d9 - Debug Registers Control */
     uint64_t ecx1e0; /* 0x000001e0 */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's that are also
@@ -849,5 +850,10 @@ extern void cpu_fast_off_reset(void);
 
 extern void smi_raise(void);
 extern void nmi_raise(void);
+
+extern MMX_REG *MMP[8];
+extern uint16_t *MMEP[8];
+
+extern void mmx_init(void);
 
 #endif /*EMU_CPU_H*/

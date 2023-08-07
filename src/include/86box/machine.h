@@ -26,18 +26,22 @@
 #define MACHINE_BUS_NONE 0x00000000 /* sys has no bus */
 /* Feature flags for BUS'es. */
 #define MACHINE_BUS_ISA       0x00000001 /* sys has ISA bus */
-#define MACHINE_BUS_CARTRIDGE 0x00000002 /* sys has two cartridge bays */
-#define MACHINE_BUS_ISA16     0x00000004 /* sys has ISA16 bus - PC/AT architecture */
-#define MACHINE_BUS_CBUS      0x00000008 /* sys has C-BUS bus */
-#define MACHINE_BUS_PS2       0x00000010 /* system has PS/2 keyboard and mouse ports */
-#define MACHINE_BUS_EISA      0x00000020 /* sys has EISA bus */
-#define MACHINE_BUS_VLB       0x00000040 /* sys has VL bus */
-#define MACHINE_BUS_MCA       0x00000080 /* sys has MCA bus */
-#define MACHINE_BUS_PCI       0x00000100 /* sys has PCI bus */
-#define MACHINE_BUS_PCMCIA    0x00000200 /* sys has PCMCIA bus */
-#define MACHINE_BUS_AGP       0x00000400 /* sys has AGP bus */
-#define MACHINE_BUS_AC97      0x00000800 /* sys has AC97 bus (ACR/AMR/CNR slot) */
+#define MACHINE_BUS_CASSETTE  0x00000002 /* sys has cassette port */
+#define MACHINE_BUS_CARTRIDGE 0x00000004 /* sys has two cartridge bays */
+#define MACHINE_BUS_ISA16     0x00000008 /* sys has ISA16 bus - PC/AT architecture */
+#define MACHINE_BUS_CBUS      0x00000010 /* sys has C-BUS bus */
+#define MACHINE_BUS_PS2_LATCH 0x00000020 /* system has PS/2 keyboard controller IRQ latch */
+#define MACHINE_BUS_PS2_PORTS 0x00000040 /* system has PS/2 keyboard and mouse ports */
+#define MACHINE_BUS_PS2       (MACHINE_BUS_PS2_LATCH | MACHINE_BUS_PS2_PORTS)
+#define MACHINE_BUS_EISA      0x00000080 /* sys has EISA bus */
+#define MACHINE_BUS_VLB       0x00000100 /* sys has VL bus */
+#define MACHINE_BUS_MCA       0x00000200 /* sys has MCA bus */
+#define MACHINE_BUS_PCI       0x00000400 /* sys has PCI bus */
+#define MACHINE_BUS_PCMCIA    0x00000800 /* sys has PCMCIA bus */
+#define MACHINE_BUS_AGP       0x00001000 /* sys has AGP bus */
+#define MACHINE_BUS_AC97      0x00002000 /* sys has AC97 bus (ACR/AMR/CNR slot) */
 /* Aliases. */
+#define MACHINE_CASSETTE  (MACHINE_BUS_CASSETTE)  /* sys has cassette port */
 #define MACHINE_CARTRIDGE (MACHINE_BUS_CARTRIDGE) /* sys has two cartridge bays */
 /* Combined flags. */
 #define MACHINE_PC        (MACHINE_BUS_ISA)                     /* sys is PC/XT-compatible (ISA) */
@@ -57,16 +61,17 @@
 #define MACHINE_AGP       (MACHINE_BUS_AGP | MACHINE_PCI)       /* sys is AT-compatible with AGP  */
 #define MACHINE_AGP98     (MACHINE_BUS_AGP | MACHINE_PCI98)     /* sys is NEC PC-98x1 series with AGP (did that even exist?) */
 
-#define MACHINE_PCJR      (MACHINE_PC | MACHINE_CARTRIDGE)     /* sys is PCjr */
-#define MACHINE_PS2       (MACHINE_AT | MACHINE_BUS_PS2)       /* sys is PS/2 */
-#define MACHINE_PS2_MCA   (MACHINE_MCA | MACHINE_BUS_PS2)      /* sys is MCA PS/2 */
-#define MACHINE_PS2_VLB   (MACHINE_VLB | MACHINE_BUS_PS2)      /* sys is VLB PS/2 */
-#define MACHINE_PS2_PCI   (MACHINE_PCI | MACHINE_BUS_PS2)      /* sys is PCI PS/2 */
-#define MACHINE_PS2_PCIV  (MACHINE_PCIV | MACHINE_BUS_PS2)     /* sys is VLB/PCI PS/2 */
-#define MACHINE_PS2_AGP   (MACHINE_AGP | MACHINE_BUS_PS2)      /* sys is AGP PS/2 */
-#define MACHINE_PS2_A97   (MACHINE_PS2_AGP | MACHINE_BUS_AC97) /* sys is AGP/AC97 PS/2 */
-#define MACHINE_PS2_NOISA (MACHINE_PS2_AGP & ~MACHINE_AT)      /* sys is AGP PS/2 without ISA */
-#define MACHINE_PS2_NOI97 (MACHINE_PS2_A97 & ~MACHINE_AT)      /* sys is AGP/AC97 PS/2 without ISA */
+#define MACHINE_PC5150    (MACHINE_PC | MACHINE_CASSETTE)                     /* sys is IBM PC 5150 */
+#define MACHINE_PCJR      (MACHINE_PC | MACHINE_CASSETTE | MACHINE_CARTRIDGE) /* sys is PCjr */
+#define MACHINE_PS2       (MACHINE_AT | MACHINE_BUS_PS2)                      /* sys is PS/2 */
+#define MACHINE_PS2_MCA   (MACHINE_MCA | MACHINE_BUS_PS2)                     /* sys is MCA PS/2 */
+#define MACHINE_PS2_VLB   (MACHINE_VLB | MACHINE_BUS_PS2)                     /* sys is VLB PS/2 */
+#define MACHINE_PS2_PCI   (MACHINE_PCI | MACHINE_BUS_PS2)                     /* sys is PCI PS/2 */
+#define MACHINE_PS2_PCIV  (MACHINE_PCIV | MACHINE_BUS_PS2)                    /* sys is VLB/PCI PS/2 */
+#define MACHINE_PS2_AGP   (MACHINE_AGP | MACHINE_BUS_PS2)                     /* sys is AGP PS/2 */
+#define MACHINE_PS2_A97   (MACHINE_PS2_AGP | MACHINE_BUS_AC97)                /* sys is AGP/AC97 PS/2 */
+#define MACHINE_PS2_NOISA (MACHINE_PS2_AGP & ~MACHINE_AT)                     /* sys is AGP PS/2 without ISA */
+#define MACHINE_PS2_NOI97 (MACHINE_PS2_A97 & ~MACHINE_AT)                     /* sys is AGP/AC97 PS/2 without ISA */
 /* Feature flags for miscellaneous internal devices. */
 #define MACHINE_FLAGS_NONE 0x00000000 /* sys has no int devices */
 #define MACHINE_VIDEO      0x00000001 /* sys has int video */
@@ -95,19 +100,20 @@
 #define MACHINE_AV            (MACHINE_VIDEO | MACHINE_SOUND)    /* sys has video and sound */
 #define MACHINE_AG            (MACHINE_SOUND | MACHINE_GAMEPORT) /* sys has sound and game port */
 /* Feature flags for internal storage controllers. */
-#define MACHINE_HDC      0x03FE0000 /* sys has int HDC */
-#define MACHINE_MFM      0x00020000 /* sys has int MFM/RLL */
-#define MACHINE_XTA      0x00040000 /* sys has int XTA */
-#define MACHINE_ESDI     0x00080000 /* sys has int ESDI */
-#define MACHINE_IDE_PRI  0x00100000 /* sys has int pri IDE/ATAPI */
-#define MACHINE_IDE_SEC  0x00200000 /* sys has int sec IDE/ATAPI */
-#define MACHINE_IDE_TER  0x00400000 /* sys has int ter IDE/ATAPI */
-#define MACHINE_IDE_QUA  0x00800000 /* sys has int qua IDE/ATAPI */
-#define MACHINE_SCSI_PRI 0x01000000 /* sys has int pri SCSI */
-#define MACHINE_SCSI_SEC 0x02000000 /* sys has int sec SCSI */
-#define MACHINE_USB_PRI  0x04000000 /* sys has int pri USB */
-#define MACHINE_USB_SEC  0x08000000 /* sys has int sec USB */
-#define MACHINE_COREBOOT 0x10000000 /* sys has coreboot BIOS */
+#define MACHINE_HDC            0x03FE0000 /* sys has int HDC */
+#define MACHINE_MFM            0x00020000 /* sys has int MFM/RLL */
+#define MACHINE_XTA            0x00040000 /* sys has int XTA */
+#define MACHINE_ESDI           0x00080000 /* sys has int ESDI */
+#define MACHINE_IDE_PRI        0x00100000 /* sys has int pri IDE/ATAPI */
+#define MACHINE_IDE_SEC        0x00200000 /* sys has int sec IDE/ATAPI */
+#define MACHINE_IDE_TER        0x00400000 /* sys has int ter IDE/ATAPI */
+#define MACHINE_IDE_QUA        0x00800000 /* sys has int qua IDE/ATAPI */
+#define MACHINE_SCSI_PRI       0x01000000 /* sys has int pri SCSI */
+#define MACHINE_SCSI_SEC       0x02000000 /* sys has int sec SCSI */
+#define MACHINE_USB_PRI        0x04000000 /* sys has int pri USB */
+#define MACHINE_USB_SEC        0x08000000 /* sys has int sec USB */
+#define MACHINE_COREBOOT       0x10000000 /* sys has coreboot BIOS */
+#define MACHINE_SOFTFLOAT_ONLY 0x20000000 /* sys requires softfloat FPU */
 /* Combined flags. */
 #define MACHINE_IDE        (MACHINE_IDE_PRI)                   /* sys has int single IDE/ATAPI - mark as pri IDE/ATAPI */
 #define MACHINE_IDE_DUAL   (MACHINE_IDE_PRI | MACHINE_IDE_SEC) /* sys has int dual IDE/ATAPI - mark as both pri and sec IDE/ATAPI */
@@ -538,9 +544,8 @@ extern int machine_at_cmdpc_init(const machine_t *);
 extern int machine_at_portableii_init(const machine_t *);
 extern int machine_at_portableiii_init(const machine_t *);
 extern int machine_at_portableiii386_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_DESKPRO386)
 extern int machine_at_deskpro386_init(const machine_t *);
-#endif
+extern int machine_at_deskpro386_01_1988_init(const machine_t *);
 
 /* m_at_socket4.c */
 extern void machine_at_premiere_common_init(const machine_t *, int);

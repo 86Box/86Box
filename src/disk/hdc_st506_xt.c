@@ -229,7 +229,7 @@ enum {
     STATE_DONE
 };
 
-typedef struct {
+typedef struct drive_t {
     int8_t  present;
     uint8_t hdd_num;
 
@@ -247,7 +247,7 @@ typedef struct {
     uint16_t cfg_cyl;
 } drive_t;
 
-typedef struct {
+typedef struct hdc_t {
     uint8_t type; /* controller type */
 
     uint8_t spt; /* sectors-per-track for controller */
@@ -290,7 +290,7 @@ typedef struct {
 } hdc_t;
 
 /* Supported drives table for the Xebec controller. */
-typedef struct {
+typedef struct hd_type_t {
     uint16_t tracks;
     uint8_t  hpc;
     uint8_t  spt;
@@ -508,6 +508,9 @@ st506_callback(void *priv)
                 case STATE_DONE:
                     st506_complete(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -533,6 +536,9 @@ st506_callback(void *priv)
 
                 case STATE_SENT_DATA:
                     st506_complete(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -570,6 +576,9 @@ st506_callback(void *priv)
                     ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
                     st506_complete(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -602,6 +611,9 @@ st506_callback(void *priv)
 
                     timer_advance_u64(&dev->timer, ST506_TIME);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -611,6 +623,10 @@ st506_callback(void *priv)
                 st506_complete(dev);
                 break;
             }
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
+
         case CMD_FORMAT_TRACK:
         case CMD_FORMAT_BAD_TRACK:
             switch (dev->state) {
@@ -644,6 +660,9 @@ st506_callback(void *priv)
                 case STATE_SENT_DATA:
                     ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
                     st506_complete(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -736,6 +755,9 @@ st506_callback(void *priv)
                         dma_set_drq(dev->dma, 1);
                     }
                     dev->state = STATE_SEND_DATA;
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -832,6 +854,9 @@ st506_callback(void *priv)
                     }
                     dev->state = STATE_RECEIVE_DATA;
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -887,6 +912,9 @@ st506_callback(void *priv)
                     }
                     st506_complete(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -905,6 +933,9 @@ st506_callback(void *priv)
 
                 case STATE_SENT_DATA:
                     st506_complete(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -945,6 +976,9 @@ st506_callback(void *priv)
 
                 case STATE_SENT_DATA:
                     st506_complete(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -987,6 +1021,9 @@ st506_callback(void *priv)
                 case STATE_RECEIVED_DATA:
                     st506_complete(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -1007,6 +1044,9 @@ st506_callback(void *priv)
 
                     case STATE_SENT_DATA:
                         st506_complete(dev);
+                        break;
+
+                    default:
                         break;
                 }
             else {
@@ -1120,6 +1160,9 @@ st506_callback(void *priv)
                 case STATE_SENT_DATA:
                     st506_complete(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -1138,6 +1181,9 @@ st506_callback(void *priv)
                 case STATE_RECEIVED_DATA:
                     /* FIXME: ignore the results. */
                     st506_complete(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -1160,6 +1206,9 @@ st506_callback(void *priv)
 
                 case STATE_SENT_DATA:
                     st506_complete(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -1205,6 +1254,9 @@ st506_read(uint16_t port, void *priv)
                         timer_set_delay_u64(&dev->timer, ST506_TIME);
                     }
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -1216,6 +1268,9 @@ st506_read(uint16_t port, void *priv)
 
         case 2: /* read option jumpers */
             ret = dev->switches;
+            break;
+
+        default:
             break;
     }
     st506_xt_log("ST506: read(%04x) = %02x\n", port, ret);
@@ -1257,6 +1312,9 @@ st506_write(uint16_t port, uint8_t val, void *priv)
                         timer_set_delay_u64(&dev->timer, ST506_TIME);
                     }
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -1281,6 +1339,9 @@ st506_write(uint16_t port, uint8_t val, void *priv)
                 dev->status &= ~STAT_IRQ;
                 picintc(1 << dev->irq);
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -1320,10 +1381,10 @@ mem_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 mem_read(uint32_t addr, void *priv)
 {
-    hdc_t   *dev = (hdc_t *) priv;
-    uint32_t ptr;
-    uint32_t mask = 0;
-    uint8_t  ret = 0xff;
+    const hdc_t *dev = (hdc_t *) priv;
+    uint32_t     ptr;
+    uint32_t     mask = 0;
+    uint8_t      ret = 0xff;
 
     /* Ignore accesses to anything below the configured address,
        needed because of the emulator's 4k mapping granularity. */
@@ -1472,8 +1533,8 @@ loadhd(hdc_t *dev, int c, int d, UNUSED(const char *fn))
 static void
 set_switches(hdc_t *dev, hd_type_t *hdt, int num)
 {
-    drive_t *drive;
-    int      e;
+    const drive_t *drive;
+    int            e;
 
     dev->switches = 0x00;
 
@@ -1547,7 +1608,9 @@ st506_init(const device_t *info)
 
         case ST506_XT_TYPE_ST11R: /* Seagate ST-11R (RLL) */
             dev->spt = RLL_SECTORS;
-            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
 
         case ST506_XT_TYPE_ST11M: /* Seagate ST-11M (MFM) */
             dev->nr_err   = ERR_NOT_AVAILABLE;
@@ -1560,6 +1623,9 @@ st506_init(const device_t *info)
 
                 case 19: /* v2.0 */
                     fn = ST11_BIOS_FILE_NEW;
+                    break;
+
+                default:
                     break;
             }
             dev->base      = device_get_config_hex16("base");
@@ -1665,6 +1731,9 @@ st506_init(const device_t *info)
             dev->base     = 0x01f0;
             dev->switches = 0x0c;
             break;
+
+        default:
+            break;
     }
 
     /* Load the ROM BIOS. */
@@ -1715,8 +1784,8 @@ st506_init(const device_t *info)
 static void
 st506_close(void *priv)
 {
-    hdc_t   *dev = (hdc_t *) priv;
-    drive_t *drive;
+    hdc_t         *dev = (hdc_t *) priv;
+    const drive_t *drive;
 
     for (uint8_t d = 0; d < MFM_NUM; d++) {
         drive = &dev->drives[d];

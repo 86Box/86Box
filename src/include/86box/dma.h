@@ -43,7 +43,7 @@
 #define DMA_OVER   0x10000
 #define DMA_VERIFY 0x20000
 
-typedef struct {
+typedef struct dma_t {
     uint8_t  m;
     uint8_t  mode;
     uint8_t  page;
