@@ -35,6 +35,8 @@
 
 #include <QMenuBar>
 
+#include <atomic>
+
 #include <windows.h>
 
 #include <86box/keyboard.h>
@@ -338,85 +340,73 @@ void
 WindowsRawInputFilter::mouse_handle(PRAWINPUT raw)
 {
     RAWMOUSE   state = raw->data.mouse;
-    static int x;
-    static int y;
+    static int x, delta_x;
+    static int y, delta_y;
+    static int b, delta_z;
+
+    pclog("WindowsRawInputFilter::mouse_handle()\n");
+
+    b = mouse_get_buttons_ex();
 
     /* read mouse buttons and wheel */
     if (state.usButtonFlags & RI_MOUSE_LEFT_BUTTON_DOWN)
-        buttons |= 1;
+        b |= 1;
     else if (state.usButtonFlags & RI_MOUSE_LEFT_BUTTON_UP)
-        buttons &= ~1;
+        b &= ~1;
 
     if (state.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_DOWN)
-        buttons |= 4;
+        b |= 4;
     else if (state.usButtonFlags & RI_MOUSE_MIDDLE_BUTTON_UP)
-        buttons &= ~4;
+        b &= ~4;
 
     if (state.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_DOWN)
-        buttons |= 2;
+        b |= 2;
     else if (state.usButtonFlags & RI_MOUSE_RIGHT_BUTTON_UP)
-        buttons &= ~2;
+        b &= ~2;
 
     if (state.usButtonFlags & RI_MOUSE_BUTTON_4_DOWN)
-        buttons |= 8;
+        b |= 8;
     else if (state.usButtonFlags & RI_MOUSE_BUTTON_4_UP)
-        buttons &= ~8;
+        b &= ~8;
 
     if (state.usButtonFlags & RI_MOUSE_BUTTON_5_DOWN)
-        buttons |= 16;
+        b |= 16;
     else if (state.usButtonFlags & RI_MOUSE_BUTTON_5_UP)
-        buttons &= ~16;
-    
+        b &= ~16;
+
+    mouse_set_buttons_ex(b);
+
     if (state.usButtonFlags & RI_MOUSE_WHEEL) {
-        dwheel += (SHORT) state.usButtonData / 120;
-    }
+        delta_z = (SHORT) state.usButtonData / 120;
+        mouse_set_z(delta_z);
+    } else
+        delta_z = 0;
 
     if (state.usFlags & MOUSE_MOVE_ABSOLUTE) {
         /* absolute mouse, i.e. RDP or VNC
          * seems to work fine for RDP on Windows 10
          * Not sure about other environments.
          */
-        dx += (state.lLastX - x) / 25;
-        dy += (state.lLastY - y) / 25;
+        delta_x = (state.lLastX - x) / 25;
+        delta_y = (state.lLastY - y) / 25;
         x = state.lLastX;
         y = state.lLastY;
     } else {
         /* relative mouse, i.e. regular mouse */
-        dx += state.lLastX;
-        dy += state.lLastY;
+        delta_x = state.lLastX;
+        delta_y = state.lLastY;
     }
-    HWND wnd = (HWND) window->winId();
+
+    mouse_scale(delta_x, delta_y);
+
+    HWND wnd = (HWND)window->winId();
 
     RECT rect;
 
     GetWindowRect(wnd, &rect);
 
     int left = rect.left + (rect.right - rect.left) / 2;
-    int top  = rect.top + (rect.bottom - rect.top) / 2;
+    int top = rect.top + (rect.bottom - rect.top) / 2;
 
     SetCursorPos(left, top);
-}
-
-void
-WindowsRawInputFilter::mousePoll()
-{
-    if (mouse_mode >= 1) return;
-    if (mouse_capture || video_fullscreen) {
-        static int b = 0;
-
-        if (dx != 0 || dy != 0 || dwheel != 0) {
-            mouse_x += dx;
-            mouse_y += dy;
-            mouse_z = dwheel;
-
-            dx     = 0;
-            dy     = 0;
-            dwheel = 0;
-        }
-
-        if (b != buttons) {
-            mouse_buttons = buttons;
-            b             = buttons;
-        }
-    }
 }
