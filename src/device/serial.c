@@ -107,6 +107,13 @@ serial_transmit_period(serial_t *dev)
 }
 
 void
+serial_do_irq(serial_t *dev, int set)
+{
+    if (dev->irq != 0xff)
+        picint_common(1 << dev->irq, !!(dev->type >= SERIAL_16450), set, &dev->irq_state);
+}
+
+void
 serial_update_ints(serial_t *dev)
 {
     int stat = 0;
@@ -135,17 +142,7 @@ serial_update_ints(serial_t *dev)
         dev->iir = 0;
     }
 
-    if (stat && (dev->irq != 0xff) && ((dev->mctrl & 8) || (dev->type == SERIAL_8250_PCJR))) {
-        if (dev->type >= SERIAL_16450)
-            picintlevel(1 << dev->irq, &dev->irq_state);
-         else
-            picint(1 << dev->irq);
-    } else {
-        if (dev->type >= SERIAL_16450)
-            picintclevel(1 << dev->irq, &dev->irq_state);
-         else
-            picintc(1 << dev->irq);
-    }
+    serial_do_irq(dev, stat && ((dev->mctrl & 8) || (dev->type == SERIAL_8250_PCJR)));
 }
 
 static void
@@ -603,7 +600,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
                     dev->sd->rcr_callback(dev, dev->sd->priv);
             }
             if (!(val & 8) && (dev->mctrl & 8))
-                picintc(1 << dev->irq);
+                serial_do_irq(dev, 0);
             if ((val ^ dev->mctrl) & 0x10)
                 serial_reset_fifo(dev);
             dev->mctrl = val;
