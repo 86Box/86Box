@@ -941,7 +941,7 @@ sermouse_init(const device_t *info)
     dev->rev  = device_get_config_int("revision");
 
     if (info->local == 0)
-        dev->rts_toggle  = 0;
+        dev->rts_toggle  = 1;
     else
         dev->rts_toggle  = device_get_config_int("rts_toggle");
 
