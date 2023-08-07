@@ -172,7 +172,7 @@ update_cga16_color(uint8_t cgamode)
     video_sharpness = (int) (sharpness * 256 / 100);
 }
 
-static Bit8u
+static uint8_t
 byte_clamp(int v)
 {
     v >>= 13;
@@ -186,21 +186,20 @@ static int temp[SCALER_MAXWIDTH + 10] = { 0 };
 static int atemp[SCALER_MAXWIDTH + 2] = { 0 };
 static int btemp[SCALER_MAXWIDTH + 2] = { 0 };
 
-Bit32u *
-Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks /*, bool doublewidth*/, Bit32u *TempLine)
+uint32_t *
+Composite_Process(uint8_t cgamode, uint8_t border, uint32_t blocks /*, bool doublewidth*/, uint32_t *TempLine)
 {
-    int    x;
-    Bit32u x2;
+    uint32_t x2;
 
     int w = blocks * 4;
 
-    int    *o;
-    Bit32u *rgbi;
-    int    *b;
-    int    *i;
-    Bit32u *srgb;
-    int    *ap;
-    int    *bp;
+    int            *o;
+    const uint32_t *rgbi;
+    const int      *b;
+    int            *i;
+    uint32_t       *srgb;
+    int            *ap;
+    int            *bp;
 
 #define COMPOSITE_CONVERT(I, Q)                                                  \
     do {                                                                         \
@@ -230,15 +229,15 @@ Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks /*, bool doublewi
     o    = temp;
     rgbi = TempLine;
     b    = &CGA_Composite_Table[border * 68];
-    for (x = 0; x < 4; ++x)
+    for (uint8_t x = 0; x < 4; ++x)
         OUT(b[(x + 3) & 3]);
     OUT(CGA_Composite_Table[(border << 6) | ((*rgbi & 0x0f) << 2) | 3]);
-    for (x = 0; x < w - 1; ++x) {
+    for (int x = 0; x < w - 1; ++x) {
         OUT(CGA_Composite_Table[((rgbi[0] & 0x0f) << 6) | ((rgbi[1] & 0x0f) << 2) | (x & 3)]);
         ++rgbi;
     }
     OUT(CGA_Composite_Table[((*rgbi & 0x0f) << 6) | (border << 2) | 3]);
-    for (x = 0; x < 5; ++x)
+    for (uint8_t x = 0; x < 5; ++x)
         OUT(b[x & 3]);
 
     if ((cgamode & 4) != 0) {
@@ -258,7 +257,7 @@ Composite_Process(uint8_t cgamode, Bit8u border, Bit32u blocks /*, bool doublewi
         i  = temp + 4;
         ap = atemp + 1;
         bp = btemp + 1;
-        for (x = -1; x < w + 1; ++x) {
+        for (int x = -1; x < w + 1; ++x) {
             ap[x] = i[-4] - ((i[-2] - i[0] + i[2]) << 1) + i[4];
             bp[x] = (i[-3] - i[-1] + i[1] - i[3]) << 1;
             ++i;

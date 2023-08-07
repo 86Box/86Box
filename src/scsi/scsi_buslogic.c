@@ -1748,7 +1748,7 @@ buslogic_init(const device_t *info)
     }
 
     if (bl->chip == CHIP_BUSLOGIC_PCI_958D_1995_12_30) {
-        dev->pci_slot = pci_add_card(PCI_ADD_NORMAL, BuslogicPCIRead, BuslogicPCIWrite, dev);
+        pci_add_card(PCI_ADD_NORMAL, BuslogicPCIRead, BuslogicPCIWrite, dev, &dev->pci_slot);
 
         buslogic_pci_bar[0].addr_regs[0] = 1;
         buslogic_pci_bar[1].addr_regs[0] = 0;

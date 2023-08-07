@@ -117,9 +117,10 @@ typedef struct {
 } pipc_io_trap_t;
 
 typedef struct _pipc_ {
-    uint32_t local;
     uint8_t  max_func;
     uint8_t  max_pcs;
+    uint8_t  pci_slot;
+    uint8_t  pad;
 
     uint8_t pci_isa_regs[256];
     uint8_t ide_regs[256];
@@ -129,10 +130,11 @@ typedef struct _pipc_ {
     uint8_t fmnmi_regs[4];
     uint8_t fmnmi_status;
 
+    uint32_t local;
+
     sff8038i_t    *bm[2];
     nvr_t         *nvr;
     int            nvr_enabled;
-    int            slot;
     ddma_t        *ddma;
     smbus_piix4_t *smbus;
     usb_t         *usb[2];
@@ -1094,7 +1096,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x47:
                 if (val & 0x01)
-                    trc_write(0x0047, (val & 0x80) ? 0x06 : 0x04, NULL);
+                    pci_write(0x0cf9, (val & 0x80) ? 0x06 : 0x04, NULL);
                 pic_set_shadow(!!(val & 0x10));
                 pic_elcr_io_handler(!!(val & 0x20));
                 dev->pci_isa_regs[0x47] = val & 0xfe;
@@ -1620,6 +1622,14 @@ pipc_reset(void *priv)
         pipc_write(0, 0x44, 0x00, priv);
 
     pipc_write(0, 0x77, 0x00, priv);
+
+    sff_set_slot(dev->bm[0], dev->pci_slot);
+    sff_set_slot(dev->bm[1], dev->pci_slot);
+
+    if (dev->local >= VIA_PIPC_686A)
+        ac97_via_set_slot(dev->ac97, dev->pci_slot, PCI_INTC);
+    if (dev->acpi)
+        acpi_set_slot(dev->acpi, dev->pci_slot);
 }
 
 static void *
@@ -1631,16 +1641,14 @@ pipc_init(const device_t *info)
     pipc_log("PIPC: init()\n");
 
     dev->local = info->local;
-    dev->slot  = pci_add_card(PCI_ADD_SOUTHBRIDGE, pipc_read, pipc_write, dev);
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, pipc_read, pipc_write, dev, &dev->pci_slot);
 
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
-    sff_set_slot(dev->bm[0], dev->slot);
     sff_set_irq_mode(dev->bm[0], 0, 0);
     sff_set_irq_mode(dev->bm[0], 1, 0);
     sff_set_irq_pin(dev->bm[0], PCI_INTA);
 
     dev->bm[1] = device_add_inst(&sff8038i_device, 2);
-    sff_set_slot(dev->bm[1], dev->slot);
     sff_set_irq_mode(dev->bm[1], 0, 0);
     sff_set_irq_mode(dev->bm[1], 1, 0);
     sff_set_irq_pin(dev->bm[1], PCI_INTA);
@@ -1665,7 +1673,6 @@ pipc_init(const device_t *info)
         dev->usb[1] = device_add_inst(&usb_device, 2);
 
         dev->ac97 = device_add(&ac97_via_device);
-        ac97_via_set_slot(dev->ac97, dev->slot, PCI_INTC);
 
         dev->sb = device_add_inst(&sb_pro_compat_device, 2);
         sound_add_handler(pipc_sb_get_buffer, dev);
@@ -1695,7 +1702,6 @@ pipc_init(const device_t *info)
         dev->ddma = device_add(&ddma_device);
 
     if (dev->acpi) {
-        acpi_set_slot(dev->acpi, dev->slot);
         acpi_set_nvr(dev->acpi, dev->nvr);
 
         acpi_init_gporeg(dev->acpi, 0xff, 0xbf, 0xff, 0x7f);

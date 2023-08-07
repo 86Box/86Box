@@ -216,7 +216,8 @@ typedef struct {
     uint32_t      base_address;
     int           base_irq;
     int           dma_channel;
-    int           card; /* PCI card slot */
+    uint8_t       pci_slot; /* PCI card slot */
+    uint8_t       irq_state;
     int           xmit_pos;
     /** Register Address Pointer */
     uint32_t u32RAP;
@@ -413,9 +414,9 @@ pcnet_do_irq(nic_t *dev, int issue)
 {
     if (dev->is_pci) {
         if (issue)
-            pci_set_irq(dev->card, PCI_INTA);
+            pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
         else
-            pci_clear_irq(dev->card, PCI_INTA);
+            pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
     } else {
         if (issue)
             picint(1 << dev->base_irq);
@@ -2995,8 +2996,7 @@ pcnet_init(const device_t *info)
         pcnet_pci_regs[0x04]          = 3;
 
         /* Add device to the PCI bus, keep its slot number. */
-        dev->card = pci_add_card(PCI_ADD_NORMAL,
-                                 pcnet_pci_read, pcnet_pci_write, dev);
+        pci_add_card(PCI_ADD_NORMAL, pcnet_pci_read, pcnet_pci_write, dev, &dev->pci_slot);
     } else if (dev->board == DEV_AM79C961) {
         dev->dma_channel = -1;
 

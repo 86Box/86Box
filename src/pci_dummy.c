@@ -19,15 +19,21 @@ typedef struct pci_dummy_t {
 
     uint8_t card;
     uint8_t interrupt_on;
+
+    uint8_t irq_level;
 } pci_dummy_t;
 
 static void
 pci_dummy_interrupt(int set, pci_dummy_t *dev)
 {
-    if (set)
-        pci_set_irq(dev->card, PCI_INTA);
-    else
-        pci_clear_irq(dev->card, PCI_INTA);
+    if (set != dev->irq_level) {
+        if (set)
+            pci_set_irq(dev->card, PCI_INTA);
+        else
+            pci_clear_irq(dev->card, PCI_INTA);
+    }
+
+    dev->irq_level = set;
 }
 
 static uint8_t

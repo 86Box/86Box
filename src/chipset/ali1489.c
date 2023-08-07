@@ -622,7 +622,7 @@ ali1489_init(UNUSED(const device_t *info))
     io_sethandler(0x0fc, 0x0001, ali1489_ide_read, NULL, NULL, ali1489_ide_write, NULL, NULL, dev);
 
     /* Dummy M1489 PCI device */
-    dev->pci_slot = pci_add_card(PCI_ADD_NORTHBRIDGE, ali1489_pci_read, ali1489_pci_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, ali1489_pci_read, ali1489_pci_write, dev, &dev->pci_slot);
 
     device_add(&ide_pci_2ch_device);
 

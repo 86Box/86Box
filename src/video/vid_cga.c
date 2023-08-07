@@ -99,7 +99,7 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 cga_in(uint16_t addr, void *priv)
 {
-    cga_t *cga = (cga_t *) priv;
+    const cga_t *cga = (cga_t *) priv;
 
     uint8_t ret = 0xff;
 
@@ -135,7 +135,7 @@ cga_pravetz_out(UNUSED(uint16_t addr), uint8_t val, void *priv)
 uint8_t
 cga_pravetz_in(UNUSED(uint16_t addr), void *priv)
 {
-    cga_t *cga = (cga_t *) priv;
+    const cga_t *cga = (cga_t *) priv;
 
     return (cga->fontbase >> 8);
 }
