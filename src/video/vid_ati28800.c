@@ -108,9 +108,9 @@ ati28800_log(const char *fmt, ...)
 static void ati28800_recalctimings(svga_t *svga);
 
 static void
-ati28800_out(uint16_t addr, uint8_t val, void *p)
+ati28800_out(uint16_t addr, uint8_t val, void *priv)
 {
-    ati28800_t *ati28800 = (ati28800_t *) p;
+    ati28800_t *ati28800 = (ati28800_t *) priv;
     svga_t     *svga     = &ati28800->svga;
     uint8_t     old;
 
@@ -169,6 +169,9 @@ ati28800_out(uint16_t addr, uint8_t val, void *p)
                     if ((old ^ val) & 2)
                         svga_recalctimings(svga);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -205,14 +208,17 @@ ati28800_out(uint16_t addr, uint8_t val, void *p)
                 }
             }
             break;
+
+        default:
+            break;
     }
     svga_out(addr, val, svga);
 }
 
 static void
-ati28800k_out(uint16_t addr, uint8_t val, void *p)
+ati28800k_out(uint16_t addr, uint8_t val, void *priv)
 {
-    ati28800_t *ati28800 = (ati28800_t *) p;
+    ati28800_t *ati28800 = (ati28800_t *) priv;
     svga_t     *svga     = &ati28800->svga;
     uint16_t    oldaddr  = addr;
 
@@ -225,7 +231,7 @@ ati28800k_out(uint16_t addr, uint8_t val, void *p)
                 ati28800->ksc5601_mode_enabled = val & 0x20;
                 svga_recalctimings(svga);
             }
-            ati28800_out(oldaddr, val, p);
+            ati28800_out(oldaddr, val, priv);
             break;
         case 0x3DD:
             ati28800->port_03dd_val = val;
@@ -259,20 +265,23 @@ ati28800k_out(uint16_t addr, uint8_t val, void *p)
                         if (val & 2)
                             ati28800->in_get_korean_font_kind_set = 1;
                         break;
+
+                    default:
+                        break;
                 }
                 break;
             }
             break;
         default:
-            ati28800_out(oldaddr, val, p);
+            ati28800_out(oldaddr, val, priv);
             break;
     }
 }
 
 static uint8_t
-ati28800_in(uint16_t addr, void *p)
+ati28800_in(uint16_t addr, void *priv)
 {
-    ati28800_t *ati28800 = (ati28800_t *) p;
+    ati28800_t *ati28800 = (ati28800_t *) priv;
     svga_t     *svga     = &ati28800->svga;
     uint8_t     temp;
 
@@ -346,12 +355,12 @@ ati28800_in(uint16_t addr, void *p)
 }
 
 static uint8_t
-ati28800k_in(uint16_t addr, void *p)
+ati28800k_in(uint16_t addr, void *priv)
 {
-    ati28800_t *ati28800 = (ati28800_t *) p;
-    svga_t     *svga     = &ati28800->svga;
-    uint16_t    oldaddr  = addr;
-    uint8_t     temp     = 0xFF;
+    ati28800_t   *ati28800 = (ati28800_t *) priv;
+    const svga_t *svga     = &ati28800->svga;
+    uint16_t      oldaddr  = addr;
+    uint8_t       temp     = 0xFF;
 
     if (addr != 0x3da)
         ati28800_log("ati28800k_in : %04X ", addr);
@@ -380,7 +389,7 @@ ati28800k_in(uint16_t addr, void *p)
             }
             break;
         default:
-            temp = ati28800_in(oldaddr, p);
+            temp = ati28800_in(oldaddr, priv);
             break;
     }
     if (addr != 0x3da)
@@ -391,7 +400,7 @@ ati28800k_in(uint16_t addr, void *p)
 static void
 ati28800_recalctimings(svga_t *svga)
 {
-    ati28800_t *ati28800 = (ati28800_t *) svga->p;
+    const ati28800_t *ati28800 = (ati28800_t *) svga->priv;
 
     if (ati28800->regs[0xa3] & 0x10)
         svga->ma_latch |= 0x10000;
@@ -507,7 +516,13 @@ ati28800_recalctimings(svga_t *svga)
                                 svga->ma_latch <<= 1;
                             }
                             break;
+
+                        default:
+                            break;
                     }
+                    break;
+
+                default:
                     break;
             }
         }
@@ -517,7 +532,7 @@ ati28800_recalctimings(svga_t *svga)
 static void
 ati28800k_recalctimings(svga_t *svga)
 {
-    ati28800_t *ati28800 = (ati28800_t *) svga->p;
+    const ati28800_t *ati28800 = (ati28800_t *) svga->priv;
 
     ati28800_recalctimings(svga);
 
@@ -550,8 +565,8 @@ ati28800k_init(const device_t *info)
     ati28800->ksc5601_mode_enabled        = 0;
 
     switch (ati28800->type_korean) {
-        case 0:
         default:
+        case 0:
             rom_init(&ati28800->bios_rom, BIOS_ATIKOR_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
             loadfont(FONT_ATIKOR_PATH, 6);
             break;
@@ -705,9 +720,9 @@ ati28800_close(void *priv)
 }
 
 static void
-ati28800_speed_changed(void *p)
+ati28800_speed_changed(void *priv)
 {
-    ati28800_t *ati28800 = (ati28800_t *) p;
+    ati28800_t *ati28800 = (ati28800_t *) priv;
 
     svga_recalctimings(&ati28800->svga);
 }

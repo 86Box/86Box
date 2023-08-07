@@ -20,12 +20,16 @@
 #ifndef VIDEO_SVGA_RENDER_H
 #define VIDEO_SVGA_RENDER_H
 
-extern int firstline_draw, lastline_draw;
+extern int firstline_draw;
+extern int lastline_draw;
 extern int displine;
 extern int sc;
 
-extern uint32_t ma, ca;
-extern int      con, cursoron, cgablink;
+extern uint32_t ma;
+extern uint32_t ca;
+extern int      con;
+extern int      cursoron;
+extern int      cgablink;
 
 extern int scrollcache;
 

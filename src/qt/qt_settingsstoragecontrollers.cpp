@@ -40,8 +40,6 @@ SettingsStorageControllers::SettingsStorageControllers(QWidget *parent)
 {
     ui->setupUi(this);
 
-    ui->checkBoxCassette->setChecked(cassette_enable > 0);
-
     onCurrentMachineChanged(machine);
 }
 
@@ -58,12 +56,12 @@ SettingsStorageControllers::save()
         auto *cbox           = findChild<QComboBox *>(QString("comboBoxSCSI%1").arg(i + 1));
         scsi_card_current[i] = cbox->currentData().toInt();
     }
-    hdc_current     		= ui->comboBoxHD->currentData().toInt();
-    fdc_type        		= ui->comboBoxFD->currentData().toInt();
-	cdrom_interface_current = ui->comboBoxCDInterface->currentData().toInt();
-    ide_ter_enabled 		= ui->checkBoxTertiaryIDE->isChecked() ? 1 : 0;
-    ide_qua_enabled 		= ui->checkBoxQuaternaryIDE->isChecked() ? 1 : 0;
-    cassette_enable 		= ui->checkBoxCassette->isChecked() ? 1 : 0;
+    hdc_current             = ui->comboBoxHD->currentData().toInt();
+    fdc_type                = ui->comboBoxFD->currentData().toInt();
+    cdrom_interface_current = ui->comboBoxCDInterface->currentData().toInt();
+    ide_ter_enabled         = ui->checkBoxTertiaryIDE->isChecked() ? 1 : 0;
+    ide_qua_enabled         = ui->checkBoxQuaternaryIDE->isChecked() ? 1 : 0;
+    cassette_enable         = ui->checkBoxCassette->isChecked() ? 1 : 0;
 }
 
 void
@@ -134,9 +132,9 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     ui->comboBoxFD->setCurrentIndex(selectedRow);
 
     /*CD interface controller config*/
-    model 		= ui->comboBoxCDInterface->model();
-    removeRows 	= model->rowCount();
-    c 			= 0;
+    model      = ui->comboBoxCDInterface->model();
+    removeRows = model->rowCount();
+    c          = 0;
     selectedRow = 0;
     while (true) {
         /* Skip "internal" if machine doesn't have it. */
@@ -198,6 +196,14 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     ui->checkBoxQuaternaryIDE->setEnabled(is_at > 0);
     ui->checkBoxTertiaryIDE->setChecked(ui->checkBoxTertiaryIDE->isEnabled() && ide_ter_enabled);
     ui->checkBoxQuaternaryIDE->setChecked(ui->checkBoxQuaternaryIDE->isEnabled() && ide_qua_enabled);
+
+    if (machine_has_bus(machineId, MACHINE_BUS_CASSETTE)) {
+        ui->checkBoxCassette->setChecked(cassette_enable > 0);
+        ui->checkBoxCassette->setEnabled(true);
+    } else {
+        ui->checkBoxCassette->setChecked(false);
+        ui->checkBoxCassette->setEnabled(false);
+    }
 }
 
 void

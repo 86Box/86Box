@@ -114,8 +114,10 @@ typedef struct _viso_entry_ {
 } viso_entry_t;
 
 typedef struct {
-    uint64_t vol_size_offsets[2], pt_meta_offsets[2];
-    int      format, use_version_suffix : 1;
+    uint64_t vol_size_offsets[2];
+    uint64_t pt_meta_offsets[2];
+    int      format;
+    uint8_t  use_version_suffix : 1;
     size_t   metadata_sectors, all_sectors, entry_map_size, sector_size, file_fifo_pos;
     uint8_t *metadata;
 
@@ -368,7 +370,7 @@ viso_fill_fn_rr(uint8_t *data, const viso_entry_t *entry, size_t max_len)
 
         /* Relocate extension if the original name exceeds the maximum length. */
         if (!S_ISDIR(entry->stats.st_mode)) { /* do this on files only */
-            char *ext = strrchr(entry->basename, '.');
+            const char *ext = strrchr(entry->basename, '.');
             if (ext > entry->basename) {
                 len = strlen(ext);
                 if (len >= max_len)
@@ -399,7 +401,7 @@ viso_fill_fn_joliet(uint8_t *data, const viso_entry_t *entry, size_t max_len) /*
 
         /* Relocate extension if the original name exceeds the maximum length. */
         if (!S_ISDIR(entry->stats.st_mode)) { /* do this on files only */
-            wchar_t *ext = wcsrchr(utf8dec, L'.');
+            const wchar_t *ext = wcsrchr(utf8dec, L'.');
             if (ext > utf8dec) {
                 len = wcslen(ext);
                 if (len > max_len)
@@ -629,6 +631,9 @@ pad_susp:
             if (!(*q & 1)) /* padding for even file ID lengths */
                 *p++ = 0;
             break;
+
+        default:
+            break;
     }
 
     if ((p - data) > 255)
@@ -720,8 +725,9 @@ viso_read(void *p, uint8_t *buffer, uint64_t seek, size_t count)
 uint64_t
 viso_get_length(void *p)
 {
-    track_file_t *tf   = (track_file_t *) p;
-    viso_t       *viso = (viso_t *) tf->priv;
+    track_file_t       *tf   = (track_file_t *) p;
+    const viso_t       *viso = (viso_t *) tf->priv;
+
     return ((uint64_t) viso->all_sectors) * viso->sector_size;
 }
 
@@ -794,18 +800,18 @@ viso_init(const char *dirname, int *error)
 
     /* Set up directory traversal. */
     cdrom_image_viso_log("VISO: Traversing directories:\n");
-    viso_entry_t  *entry;
-    viso_entry_t  *last_entry;
-    viso_entry_t  *dir;
-    viso_entry_t  *last_dir;
-    viso_entry_t  *eltorito_dir = NULL;
-    viso_entry_t  *eltorito_entry = NULL;
-    struct dirent *readdir_entry;
-    int            len;
-    int            eltorito_others_present = 0;
-    size_t         dir_path_len;
-    uint64_t       eltorito_offset = 0;
-    uint8_t        eltorito_type   = 0;
+    viso_entry_t        *entry;
+    viso_entry_t        *last_entry;
+    viso_entry_t        *dir;
+    viso_entry_t        *last_dir;
+    const viso_entry_t  *eltorito_dir = NULL;
+    const viso_entry_t  *eltorito_entry = NULL;
+    struct dirent       *readdir_entry;
+    int                  len;
+    int                  eltorito_others_present = 0;
+    size_t               dir_path_len;
+    uint64_t             eltorito_offset = 0;
+    uint8_t              eltorito_type   = 0;
 
     /* Fill root directory entry. */
     dir_path_len = strlen(dirname);

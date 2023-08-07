@@ -125,32 +125,38 @@ enum {
     FMT_POSTTRK_GAP4
 };
 
-typedef struct {
+typedef struct sliding_buffer_t {
     uint8_t  buffer[10];
     uint32_t pos;
     uint32_t len;
 } sliding_buffer_t;
 
-typedef struct {
+typedef struct find_t {
     uint32_t bits_obtained;
     uint16_t bytes_obtained;
     uint16_t sync_marks;
     uint32_t sync_pos;
 } find_t;
 
-typedef struct {
+typedef struct split_byte_t {
     unsigned nibble0 : 4;
     unsigned nibble1 : 4;
 } split_byte_t;
 
-typedef union {
+typedef union decoded_t {
     uint8_t      byte;
     split_byte_t nibbles;
 } decoded_t;
 
-typedef struct {
-    uint8_t c, h, r, n;
-    uint8_t flags, pad, pad0, pad1;
+typedef struct sector_t {
+    uint8_t c;
+    uint8_t h;
+    uint8_t r;
+    uint8_t n;
+    uint8_t flags;
+    uint8_t pad;
+    uint8_t pad0;
+    uint8_t pad1;
     void   *prev;
 } sector_t;
 
@@ -173,11 +179,18 @@ typedef struct {
  *      If bits 6, 5 are 0, and bit 7 is 1, the extra bitcell count
  *      specifies the entire bitcell count
  */
-typedef struct {
-    FILE   *f;
-    uint8_t state, fill, sector_count, format_state,
-        error_condition, id_found;
-    uint16_t  version, disk_flags, satisfying_bytes, turbo_pos;
+typedef struct d86f_t {
+    FILE     *fp;
+    uint8_t   state;
+    uint8_t   fill;
+    uint8_t   sector_count;
+    uint8_t   format_state;
+    uint8_t   error_condition;
+    uint8_t   id_found;
+    uint16_t  version;
+    uint16_t  disk_flags;
+    uint16_t  satisfying_bytes;
+    uint16_t  turbo_pos;
     uint16_t  cur_track;
     uint16_t  track_encoded_data[2][53048];
     uint16_t *track_surface_data[2];
@@ -191,9 +204,13 @@ typedef struct {
 #ifdef D86F_COMPRESS
     int is_compressed;
 #endif
-    int32_t  extra_bit_cells[2];
-    uint32_t file_size, index_count, track_pos, datac,
-        id_pos, dma_over;
+    int32_t     extra_bit_cells[2];
+    uint32_t    file_size;
+    uint32_t    index_count;
+    uint32_t    track_pos;
+    uint32_t    datac;
+    uint32_t    id_pos;
+    uint32_t    dma_over;
     uint32_t    index_hole_pos[2];
     uint32_t    track_offset[512];
     sector_id_t last_sector;
@@ -203,7 +220,8 @@ typedef struct {
     crc_t       calc_crc;
     crc_t       track_crc;
     char        original_file_name[2048];
-    uint8_t    *filebuf, *outbuf;
+    uint8_t    *filebuf;
+    uint8_t    *outbuf;
     sector_t   *last_side_sector[2];
 } d86f_t;
 
@@ -337,7 +355,7 @@ d86f_reverse_bytes(int drive)
 uint16_t
 d86f_disk_flags(int drive)
 {
-    d86f_t *dev = d86f[drive];
+    const d86f_t *dev = d86f[drive];
 
     return dev->disk_flags;
 }
@@ -345,49 +363,49 @@ d86f_disk_flags(int drive)
 uint32_t
 d86f_index_hole_pos(int drive, int side)
 {
-    d86f_t *dev = d86f[drive];
+    const d86f_t *dev = d86f[drive];
 
     return dev->index_hole_pos[side];
 }
 
 uint32_t
-null_index_hole_pos(int drive, int side)
+null_index_hole_pos(UNUSED(int drive), UNUSED(int side))
 {
     return 0;
 }
 
 uint16_t
-null_disk_flags(int drive)
+null_disk_flags(UNUSED(int drive))
 {
     return 0x09;
 }
 
 uint16_t
-null_side_flags(int drive)
+null_side_flags(UNUSED(int drive))
 {
     return 0x0A;
 }
 
 void
-null_writeback(int drive)
+null_writeback(UNUSED(int drive))
 {
     return;
 }
 
 void
-null_set_sector(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
+null_set_sector(UNUSED(int drive), UNUSED(int side), UNUSED(uint8_t c), UNUSED(uint8_t h), UNUSED(uint8_t r), UNUSED(uint8_t n))
 {
     return;
 }
 
 void
-null_write_data(int drive, int side, uint16_t pos, uint8_t data)
+null_write_data(UNUSED(int drive), UNUSED(int side), UNUSED(uint16_t pos), UNUSED(uint8_t data))
 {
     return;
 }
 
 int
-null_format_conditions(int drive)
+null_format_conditions(UNUSED(int drive))
 {
     return 0;
 }
@@ -395,13 +413,13 @@ null_format_conditions(int drive)
 int32_t
 d86f_extra_bit_cells(int drive, int side)
 {
-    d86f_t *dev = d86f[drive];
+    const d86f_t *dev = d86f[drive];
 
     return dev->extra_bit_cells[side];
 }
 
 int32_t
-null_extra_bit_cells(int drive, int side)
+null_extra_bit_cells(UNUSED(int drive), UNUSED(int side))
 {
     return 0;
 }
@@ -415,7 +433,7 @@ common_encoded_data(int drive, int side)
 }
 
 void
-common_read_revolution(int drive)
+common_read_revolution(UNUSED(int drive))
 {
     return;
 }
@@ -423,8 +441,8 @@ common_read_revolution(int drive)
 uint16_t
 d86f_side_flags(int drive)
 {
-    d86f_t *dev = d86f[drive];
-    int     side;
+    const d86f_t *dev = d86f[drive];
+    int           side;
 
     side = fdd_get_head(drive);
 
@@ -619,9 +637,9 @@ d86f_get_array_size(int drive, int side, int words)
         array_size = 0;
     else
         switch (hole) {
+            default:
             case 0:
             case 1:
-            default:
                 array_size = 12500;
                 switch (rm) {
                     case 1:
@@ -793,9 +811,9 @@ d86f_is_mfm(int drive)
 uint32_t
 d86f_get_data_len(int drive)
 {
-    d86f_t  *dev = d86f[drive];
-    uint32_t i;
-    uint32_t ret = 128;
+    const d86f_t  *dev = d86f[drive];
+    uint32_t       i;
+    uint32_t       ret = 128;
 
     if (dev->req_sector.id.n)
         ret = (uint32_t) 128 << dev->req_sector.id.n;
@@ -812,7 +830,7 @@ d86f_has_extra_bit_cells(int drive)
 }
 
 uint32_t
-d86f_header_size(int drive)
+d86f_header_size(UNUSED(int drive))
 {
     return 8;
 }
@@ -884,15 +902,14 @@ d86f_wrong_densel(int drive)
         is_3mode = 1;
 
     switch (d86f_hole(drive)) {
-        case 0:
         default:
+        case 0:
             if (fdd_is_dd(drive))
                 return 0;
             if (fdd_get_densel(drive))
                 return 1;
             else
                 return 0;
-            break;
 
         case 1:
             if (fdd_is_dd(drive))
@@ -905,7 +922,6 @@ d86f_wrong_densel(int drive)
                 else
                     return 1;
             }
-            break;
 
         case 2:
             if (fdd_is_dd(drive) || !fdd_is_ed(drive))
@@ -914,7 +930,6 @@ d86f_wrong_densel(int drive)
                 return 0;
             else
                 return 1;
-            break;
     }
 }
 
@@ -965,6 +980,9 @@ d86f_encode_byte(int drive, int sync, decoded_t b, decoded_t prev_b)
 
                 case 0xfc:
                     return result | d86f_encode_get_clock(0x01);
+
+                default:
+                    break;
             }
         } else {
             switch (b.byte) {
@@ -975,6 +993,9 @@ d86f_encode_byte(int drive, int sync, decoded_t b, decoded_t prev_b)
 
                 case 0xfc:
                     return result | d86f_encode_get_clock(0xd7);
+
+                default:
+                    break;
             }
         }
     }
@@ -1021,6 +1042,9 @@ d86f_get_bitcell_period(int drive)
 
         case 5:
             rate = 2000.0;
+            break;
+
+        default:
             break;
     }
 
@@ -1176,7 +1200,7 @@ d86f_put_bit(int drive, int side, int bit)
 }
 
 static uint8_t
-decodefm(int drive, uint16_t dat)
+decodefm(UNUSED(int drive), uint16_t dat)
 {
     uint8_t temp = 0;
 
@@ -1219,8 +1243,8 @@ d86f_calccrc(d86f_t *dev, uint8_t byte)
 int
 d86f_word_is_aligned(int drive, int side, uint32_t base_pos)
 {
-    d86f_t  *dev                = d86f[drive];
-    uint32_t adjusted_track_pos = dev->track_pos;
+    const d86f_t  *dev                = d86f[drive];
+    uint32_t       adjusted_track_pos = dev->track_pos;
 
     if (base_pos == 0xFFFFFFFF)
         return 0;
@@ -1524,6 +1548,9 @@ d86f_compare_byte(int drive, uint8_t received_byte, uint8_t disk_byte)
             if ((received_byte >= disk_byte) || (received_byte == 0xFF))
                 dev->satisfying_bytes++;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -1632,7 +1659,7 @@ d86f_write_sector_data(int drive, int side, int mfm, uint16_t am)
                     d86f_handler[drive].write_data(drive, side, dev->data_find.bytes_obtained - 1, dev->current_byte[side]);
             } else {
                 /* We're in the data field of the sector, use a CRC byte. */
-                dev->current_byte[side] = dev->calc_crc.bytes[(dev->data_find.bytes_obtained & 1)];
+                dev->current_byte[side] = dev->calc_crc.bytes[dev->data_find.bytes_obtained & 1];
             }
 
             dev->current_bit[side] = (15 - (dev->data_find.bits_obtained & 15)) >> 1;
@@ -1814,7 +1841,7 @@ d86f_write_direct_common(int drive, int side, uint16_t byte, uint8_t type, uint3
 void
 d86f_write_direct(int drive, int side, uint16_t byte, uint8_t type)
 {
-    d86f_t *dev = d86f[drive];
+    const d86f_t *dev = d86f[drive];
 
     d86f_write_direct_common(drive, side, byte, type, dev->track_pos >> 4);
 }
@@ -1832,7 +1859,7 @@ endian_swap(uint16_t word)
 }
 
 void
-d86f_format_finish(int drive, int side, int mfm, uint16_t sc, uint16_t gap_fill, int do_write)
+d86f_format_finish(int drive, int side, int mfm, UNUSED(uint16_t sc), uint16_t gap_fill, int do_write)
 {
     d86f_t *dev = d86f[drive];
 
@@ -1853,7 +1880,7 @@ d86f_format_finish(int drive, int side, int mfm, uint16_t sc, uint16_t gap_fill,
 }
 
 void
-d86f_format_turbo_finish(int drive, int side, int do_write)
+d86f_format_turbo_finish(int drive, UNUSED(int side), int do_write)
 {
     d86f_t *dev = d86f[drive];
 
@@ -1924,7 +1951,9 @@ d86f_format_track(int drive, int side, int do_write)
                 if (dev->datac == 3)
                     fdc_stop_id_request(d86f_fdc);
             }
-            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
 
         case FMT_PRETRK_SYNC:
         case FMT_SECTOR_DATA_SYNC:
@@ -2053,12 +2082,13 @@ d86f_format_track(int drive, int side, int do_write)
                     /* Sector within allotted amount, change state to SECTOR_ID_SYNC. */
                     dev->format_state = FMT_SECTOR_ID_SYNC;
                     fdc_request_next_sector_id(d86f_fdc);
-                    break;
                 } else {
                     dev->format_state = FMT_POSTTRK_GAP4;
                     dev->sector_count = 0;
-                    break;
                 }
+                break;
+
+            default:
                 break;
         }
     }
@@ -2078,9 +2108,9 @@ d86f_initialize_last_sector_id(int drive, int c, int h, int r, int n)
 static uint8_t
 d86f_sector_flags(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 {
-    d86f_t   *dev = d86f[drive];
-    sector_t *s;
-    sector_t *t;
+    const d86f_t   *dev = d86f[drive];
+    sector_t       *s;
+    sector_t       *t;
 
     if (dev->last_side_sector[side]) {
         s = dev->last_side_sector[side];
@@ -2229,9 +2259,9 @@ d86f_turbo_format(int drive, int side, int nop)
 int
 d86f_sector_is_present(int drive, int side, uint8_t c, uint8_t h, uint8_t r, uint8_t n)
 {
-    d86f_t   *dev = d86f[drive];
-    sector_t *s;
-    sector_t *t;
+    const d86f_t   *dev = d86f[drive];
+    sector_t       *s;
+    sector_t       *t;
 
     if (dev->last_side_sector[side]) {
         s = dev->last_side_sector[side];
@@ -2266,7 +2296,9 @@ d86f_turbo_poll(int drive, int side)
         case STATE_0D_SPIN_TO_INDEX:
             dev->sector_count = 0;
             dev->datac        = 5;
-            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
 
         case STATE_02_SPIN_TO_INDEX:
             dev->state++;
@@ -2311,7 +2343,9 @@ d86f_turbo_poll(int drive, int side)
             dev->last_sector.id.r = dev->req_sector.id.r;
             dev->last_sector.id.n = dev->req_sector.id.n;
             d86f_handler[drive].set_sector(drive, side, dev->last_sector.id.c, dev->last_sector.id.h, dev->last_sector.id.r, dev->last_sector.id.n);
-            /*FALLTHROUGH*/
+#ifdef FALLTHROUGH_ANNOTATION
+            [[fallthrough]];
+#endif
 
         case STATE_0A_FIND_ID:
             dev->turbo_pos = 0;
@@ -2772,22 +2806,22 @@ d86f_construct_encoded_buffer(int drive, int side)
 
     /* *_fuzm are fuzzy bit masks, *_holm are hole masks, dst_neim are masks is mask for bits that are neither fuzzy nor holes in both,
        and src1_d and src2_d are filtered source data. */
-    uint16_t  src1_fuzm;
-    uint16_t src2_fuzm;
-    uint16_t dst_fuzm;
-    uint16_t src1_holm;
-    uint16_t src2_holm;
-    uint16_t dst_holm;
-    uint16_t dst_neim;
-    uint16_t src1_d;
-    uint16_t src2_d;
-    uint32_t  len;
-    uint16_t *dst    = dev->track_encoded_data[side];
-    uint16_t *dst_s  = dev->track_surface_data[side];
-    uint16_t *src1   = dev->thin_track_encoded_data[0][side];
-    uint16_t *src1_s = dev->thin_track_surface_data[0][side];
-    uint16_t *src2   = dev->thin_track_encoded_data[1][side];
-    uint16_t *src2_s = dev->thin_track_surface_data[1][side];
+    uint16_t        src1_fuzm;
+    uint16_t        src2_fuzm;
+    uint16_t        dst_fuzm;
+    uint16_t        src1_holm;
+    uint16_t        src2_holm;
+    uint16_t        dst_holm;
+    uint16_t        dst_neim;
+    uint16_t        src1_d;
+    uint16_t        src2_d;
+    uint32_t        len;
+    uint16_t       *dst    = dev->track_encoded_data[side];
+    uint16_t       *dst_s  = dev->track_surface_data[side];
+    const uint16_t *src1   = dev->thin_track_encoded_data[0][side];
+    const uint16_t *src1_s = dev->thin_track_surface_data[0][side];
+    const uint16_t *src2   = dev->thin_track_encoded_data[1][side];
+    const uint16_t *src2_s = dev->thin_track_surface_data[1][side];
     len              = d86f_get_array_size(drive, side, 1);
 
     for (uint32_t i = 0; i < len; i++) {
@@ -2824,17 +2858,17 @@ d86f_construct_encoded_buffer(int drive, int side)
 void
 d86f_decompose_encoded_buffer(int drive, int side)
 {
-    d86f_t   *dev = d86f[drive];
-    uint16_t  temp;
-    uint16_t  temp2;
-    uint32_t  len;
-    uint16_t *dst    = dev->track_encoded_data[side];
-    uint16_t *src1   = dev->thin_track_encoded_data[0][side];
-    uint16_t *src1_s = dev->thin_track_surface_data[0][side];
-    uint16_t *src2   = dev->thin_track_encoded_data[1][side];
-    uint16_t *src2_s = dev->thin_track_surface_data[1][side];
-    dst              = d86f_handler[drive].encoded_data(drive, side);
-    len              = d86f_get_array_size(drive, side, 1);
+    d86f_t         *dev = d86f[drive];
+    uint16_t        temp;
+    uint16_t        temp2;
+    uint32_t        len;
+    const uint16_t *dst    = dev->track_encoded_data[side];
+    uint16_t       *src1   = dev->thin_track_encoded_data[0][side];
+    uint16_t       *src1_s = dev->thin_track_surface_data[0][side];
+    uint16_t       *src2   = dev->thin_track_encoded_data[1][side];
+    uint16_t       *src2_s = dev->thin_track_surface_data[1][side];
+    dst                    = d86f_handler[drive].encoded_data(drive, side);
+    len                    = d86f_get_array_size(drive, side, 1);
 
     for (uint32_t i = 0; i < len; i++) {
         if (d86f_has_surface_desc(drive)) {
@@ -2877,12 +2911,12 @@ d86f_read_track(int drive, int track, int thin_track, int side, uint16_t *da, ui
 
     if (dev->track_offset[logical_track]) {
         if (!thin_track) {
-            if (fseek(dev->f, dev->track_offset[logical_track], SEEK_SET) == -1)
+            if (fseek(dev->fp, dev->track_offset[logical_track], SEEK_SET) == -1)
                 fatal("d86f_read_track(): Error seeking to offset dev->track_offset[logical_track]\n");
-            if (fread(&(dev->side_flags[side]), 1, 2, dev->f) != 2)
+            if (fread(&(dev->side_flags[side]), 1, 2, dev->fp) != 2)
                 fatal("d86f_read_track(): Error reading side flags\n");
             if (d86f_has_extra_bit_cells(drive)) {
-                if (fread(&(dev->extra_bit_cells[side]), 1, 4, dev->f) != 4)
+                if (fread(&(dev->extra_bit_cells[side]), 1, 4, dev->fp) != 4)
                     fatal("d86f_read_track(): Error reading number of extra bit cells\n");
                 /* If RPM shift is 0% and direction is 1, do not adjust extra bit cells,
                    as that is the whole track length. */
@@ -2894,18 +2928,18 @@ d86f_read_track(int drive, int track, int thin_track, int side, uint16_t *da, ui
                 }
             } else
                 dev->extra_bit_cells[side] = 0;
-            (void) !fread(&(dev->index_hole_pos[side]), 4, 1, dev->f);
+            (void) !fread(&(dev->index_hole_pos[side]), 4, 1, dev->fp);
         } else
-            fseek(dev->f, dev->track_offset[logical_track] + d86f_track_header_size(drive), SEEK_SET);
+            fseek(dev->fp, dev->track_offset[logical_track] + d86f_track_header_size(drive), SEEK_SET);
         array_size = d86f_get_array_size(drive, side, 0);
-        (void) !fread(da, 1, array_size, dev->f);
+        (void) !fread(da, 1, array_size, dev->fp);
         if (d86f_has_surface_desc(drive))
-            (void) !fread(sa, 1, array_size, dev->f);
+            (void) !fread(sa, 1, array_size, dev->fp);
     } else {
         if (!thin_track) {
             switch ((dev->disk_flags >> 1) & 3) {
-                case 0:
                 default:
+                case 0:
                     dev->side_flags[side] = 0x0A;
                     break;
 
@@ -3097,22 +3131,22 @@ d86f_writeback(int drive)
 #endif
     header_size = d86f_header_size(drive);
 
-    if (!dev->f)
+    if (!dev->fp)
         return;
 
     /* First write the track offsets table. */
-    if (fseek(dev->f, 0, SEEK_SET) == -1)
+    if (fseek(dev->fp, 0, SEEK_SET) == -1)
         fatal("86F write_back(): Error seeking to the beginning of the file\n");
-    if (fread(header, 1, header_size, dev->f) != header_size)
+    if (fread(header, 1, header_size, dev->fp) != header_size)
         fatal("86F write_back(): Error reading header size\n");
 
-    if (fseek(dev->f, 8, SEEK_SET) == -1)
+    if (fseek(dev->fp, 8, SEEK_SET) == -1)
         fatal("86F write_back(): Error seeking\n");
     size = d86f_get_track_table_size(drive);
-    if (fwrite(dev->track_offset, 1, size, dev->f) != size)
+    if (fwrite(dev->track_offset, 1, size, dev->fp) != size)
         fatal("86F write_back(): Error writing data\n");
 
-    d86f_write_tracks(drive, &dev->f, NULL);
+    d86f_write_tracks(drive, &dev->fp, NULL);
 
 #ifdef D86F_COMPRESS
     if (dev->is_compressed) {
@@ -3124,16 +3158,16 @@ d86f_writeback(int drive)
         /* Write the header to the original file. */
         fwrite(header, 1, header_size, cf);
 
-        fseek(dev->f, 0, SEEK_END);
-        len = ftell(dev->f);
+        fseek(dev->fp, 0, SEEK_END);
+        len = ftell(dev->fp);
         len -= header_size;
 
-        fseek(dev->f, header_size, SEEK_SET);
+        fseek(dev->fp, header_size, SEEK_SET);
 
         /* Compress data from the temporary uncompressed file to the original, compressed file. */
         dev->filebuf = (uint8_t *) malloc(len);
         dev->outbuf  = (uint8_t *) malloc(len - 1);
-        fread(dev->filebuf, 1, len, dev->f);
+        fread(dev->filebuf, 1, len, dev->fp);
         ret = lzf_compress(dev->filebuf, len, dev->outbuf, len - 1);
 
         if (!ret)
@@ -3156,7 +3190,7 @@ d86f_stop(int drive)
 }
 
 int
-d86f_common_command(int drive, int sector, int track, int side, int rate, int sector_size)
+d86f_common_command(int drive, int sector, int track, int side, UNUSED(int rate), int sector_size)
 {
     d86f_t *dev = d86f[drive];
 
@@ -3240,7 +3274,7 @@ d86f_comparesector(int drive, int sector, int track, int side, int rate, int sec
 }
 
 void
-d86f_readaddress(int drive, int side, int rate)
+d86f_readaddress(int drive, UNUSED(int side), UNUSED(int rate))
 {
     d86f_t *dev = d86f[drive];
 
@@ -3290,7 +3324,7 @@ d86f_add_track(int drive, int track, int side)
 }
 
 void
-d86f_common_format(int drive, int side, int rate, uint8_t fill, int proxy)
+d86f_common_format(int drive, int side, UNUSED(int rate), uint8_t fill, int proxy)
 {
     d86f_t  *dev = d86f[drive];
     uint16_t temp;
@@ -3393,7 +3427,7 @@ d86f_export(int drive, char *fn)
     uint32_t tt[512];
     d86f_t  *dev = d86f[drive];
     d86f_t  *temp86;
-    FILE    *f;
+    FILE    *fp;
     int      tracks = 86;
     int      inc        = 1;
     uint32_t magic      = 0x46423638;
@@ -3402,19 +3436,19 @@ d86f_export(int drive, char *fn)
 
     memset(tt, 0, 512 * sizeof(uint32_t));
 
-    f = plat_fopen(fn, "wb");
-    if (!f)
+    fp = plat_fopen(fn, "wb");
+    if (!fp)
         return 0;
 
     /* Allocate a temporary drive for conversion. */
     temp86 = (d86f_t *) malloc(sizeof(d86f_t));
     memcpy(temp86, dev, sizeof(d86f_t));
 
-    fwrite(&magic, 4, 1, f);
-    fwrite(&version, 2, 1, f);
-    fwrite(&disk_flags, 2, 1, f);
+    fwrite(&magic, 4, 1, fp);
+    fwrite(&version, 2, 1, fp);
+    fwrite(&disk_flags, 2, 1, fp);
 
-    fwrite(tt, 1, ((d86f_get_sides(drive) == 2) ? 2048 : 1024), f);
+    fwrite(tt, 1, ((d86f_get_sides(drive) == 2) ? 2048 : 1024), fp);
 
     /* In the case of a thick track drive, always increment track
        by two, since two tracks are going to get output at once. */
@@ -3427,17 +3461,17 @@ d86f_export(int drive, char *fn)
         else
             fdd_do_seek(drive, i);
         dev->cur_track = i;
-        d86f_write_tracks(drive, &f, tt);
+        d86f_write_tracks(drive, &fp, tt);
     }
 
-    fclose(f);
+    fclose(fp);
 
-    f = plat_fopen(fn, "rb+");
+    fp = plat_fopen(fn, "rb+");
 
-    fseek(f, 8, SEEK_SET);
-    fwrite(tt, 1, ((d86f_get_sides(drive) == 2) ? 2048 : 1024), f);
+    fseek(fp, 8, SEEK_SET);
+    fwrite(tt, 1, ((d86f_get_sides(drive) == 2) ? 2048 : 1024), fp);
 
-    fclose(f);
+    fclose(fp);
 
     fdd_do_seek(drive, fdd_current_track(drive));
 
@@ -3464,10 +3498,10 @@ d86f_load(int drive, char *fn)
 
     writeprot[drive] = 0;
 
-    dev->f = plat_fopen(fn, "rb+");
-    if (!dev->f) {
-        dev->f = plat_fopen(fn, "rb");
-        if (!dev->f) {
+    dev->fp = plat_fopen(fn, "rb+");
+    if (!dev->fp) {
+        dev->fp = plat_fopen(fn, "rb");
+        if (!dev->fp) {
             memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
             free(dev);
             return;
@@ -3480,16 +3514,16 @@ d86f_load(int drive, char *fn)
     }
     fwriteprot[drive] = writeprot[drive];
 
-    fseek(dev->f, 0, SEEK_END);
-    len = ftell(dev->f);
-    fseek(dev->f, 0, SEEK_SET);
+    fseek(dev->fp, 0, SEEK_END);
+    len = ftell(dev->fp);
+    fseek(dev->fp, 0, SEEK_SET);
 
-    (void) !fread(&magic, 4, 1, dev->f);
+    (void) !fread(&magic, 4, 1, dev->fp);
 
     if (len < 16) {
         /* File is WAY too small, abort. */
-        fclose(dev->f);
-        dev->f = NULL;
+        fclose(dev->fp);
+        dev->fp = NULL;
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         free(dev);
         return;
@@ -3498,13 +3532,13 @@ d86f_load(int drive, char *fn)
     if ((magic != 0x46423638) && (magic != 0x66623638)) {
         /* File is not of the valid format, abort. */
         d86f_log("86F: Unrecognized magic bytes: %08X\n", magic);
-        fclose(dev->f);
+        fclose(dev->fp);
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         free(dev);
         return;
     }
 
-    if (fread(&(dev->version), 1, 2, dev->f) != 2)
+    if (fread(&(dev->version), 1, 2, dev->fp) != 2)
         fatal("d86f_load(): Error reading format version\n");
 
     if (dev->version != D86FVER) {
@@ -3516,8 +3550,8 @@ d86f_load(int drive, char *fn)
         } else {
             d86f_log("86F: Unrecognized file version: %i.%02i\n", dev->version >> 8, dev->version & 0xff);
         }
-        fclose(dev->f);
-        dev->f = NULL;
+        fclose(dev->fp);
+        dev->fp = NULL;
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         free(dev);
         return;
@@ -3525,7 +3559,7 @@ d86f_load(int drive, char *fn)
         d86f_log("86F: Recognized file version: %i.%02i\n", dev->version >> 8, dev->version & 0xff);
     }
 
-    (void) !fread(&(dev->disk_flags), 2, 1, dev->f);
+    (void) !fread(&(dev->disk_flags), 2, 1, dev->fp);
 
     if (d86f_has_surface_desc(drive)) {
         for (uint8_t i = 0; i < 2; i++)
@@ -3544,31 +3578,31 @@ d86f_load(int drive, char *fn)
     if (len < 51052) {
 #endif
         /* File too small, abort. */
-        fclose(dev->f);
-        dev->f = NULL;
+        fclose(dev->fp);
+        dev->fp = NULL;
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         free(dev);
         return;
     }
 
 #ifdef DO_CRC64
-    fseek(dev->f, 8, SEEK_SET);
-    fread(&read_crc64, 1, 8, dev->f);
+    fseek(dev->fp, 8, SEEK_SET);
+    fread(&read_crc64, 1, 8, dev->fp);
 
-    fseek(dev->f, 0, SEEK_SET);
+    fseek(dev->fp, 0, SEEK_SET);
 
     crc64 = 0xffffffffffffffff;
 
     dev->filebuf = malloc(len);
-    fread(dev->filebuf, 1, len, dev->f);
+    fread(dev->filebuf, 1, len, dev->fp);
     *(uint64_t *) &(dev->filebuf[8]) = 0xffffffffffffffff;
     crc64                            = (uint64_t) crc64speed(0, dev->filebuf, len);
     free(dev->filebuf);
 
     if (crc64 != read_crc64) {
         d86f_log("86F: CRC64 error\n");
-        fclose(dev->f);
-        dev->f = NULL;
+        fclose(dev->fp);
+        dev->fp = NULL;
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         free(dev);
         return;
@@ -3580,11 +3614,11 @@ d86f_load(int drive, char *fn)
         memcpy(temp_file_name, drive ? nvr_path("TEMP$$$1.$$$") : nvr_path("TEMP$$$0.$$$"), 256);
         memcpy(dev->original_file_name, fn, strlen(fn) + 1);
 
-        fclose(dev->f);
-        dev->f = NULL;
+        fclose(dev->fp);
+        dev->fp = NULL;
 
-        dev->f = plat_fopen(temp_file_name, "wb");
-        if (!dev->f) {
+        dev->fp = plat_fopen(temp_file_name, "wb");
+        if (!dev->fp) {
             d86f_log("86F: Unable to create temporary decompressed file\n");
             memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
             free(dev);
@@ -3593,9 +3627,9 @@ d86f_load(int drive, char *fn)
 
         tf = plat_fopen(fn, "rb");
 
-        for (i = 0; i < 8; i++) {
+        for (uint8_t i = 0; i < 8; i++) {
             fread(&temp, 1, 2, tf);
-            fwrite(&temp, 1, 2, dev->f);
+            fwrite(&temp, 1, 2, dev->fp);
         }
 
         dev->filebuf = (uint8_t *) malloc(len);
@@ -3603,14 +3637,14 @@ d86f_load(int drive, char *fn)
         fread(dev->filebuf, 1, len, tf);
         temp = lzf_decompress(dev->filebuf, len, dev->outbuf, 67108864);
         if (temp) {
-            fwrite(dev->outbuf, 1, temp, dev->f);
+            fwrite(dev->outbuf, 1, temp, dev->fp);
         }
         free(dev->outbuf);
         free(dev->filebuf);
 
         fclose(tf);
-        fclose(dev->f);
-        dev->f = NULL;
+        fclose(dev->fp);
+        dev->fp = NULL;
 
         if (!temp) {
             d86f_log("86F: Error decompressing file\n");
@@ -3620,15 +3654,15 @@ d86f_load(int drive, char *fn)
             return;
         }
 
-        dev->f = plat_fopen(temp_file_name, "rb+");
+        dev->fp = plat_fopen(temp_file_name, "rb+");
     }
 #endif
 
     if (dev->disk_flags & 0x100) {
         /* Zoned disk. */
         d86f_log("86F: Disk is zoned (Apple or Sony)\n");
-        fclose(dev->f);
-        dev->f = NULL;
+        fclose(dev->fp);
+        dev->fp = NULL;
 #ifdef D86F_COMPRESS
         if (dev->is_compressed)
             plat_remove(temp_file_name);
@@ -3641,8 +3675,8 @@ d86f_load(int drive, char *fn)
     if (dev->disk_flags & 0x600) {
         /* Zone type is not 0 but the disk is fixed-RPM. */
         d86f_log("86F: Disk is fixed-RPM but zone type is not 0\n");
-        fclose(dev->f);
-        dev->f = NULL;
+        fclose(dev->fp);
+        dev->fp = NULL;
 #ifdef D86F_COMPRESS
         if (dev->is_compressed)
             plat_remove(temp_file_name);
@@ -3658,29 +3692,29 @@ d86f_load(int drive, char *fn)
     }
 
     if (writeprot[drive]) {
-        fclose(dev->f);
-        dev->f = NULL;
+        fclose(dev->fp);
+        dev->fp = NULL;
 
 #ifdef D86F_COMPRESS
         if (dev->is_compressed)
-            dev->f = plat_fopen(temp_file_name, "rb");
+            dev->fp = plat_fopen(temp_file_name, "rb");
         else
 #endif
-            dev->f = plat_fopen(fn, "rb");
+            dev->fp = plat_fopen(fn, "rb");
     }
 
     /* OK, set the drive data, other code needs it. */
     d86f[drive] = dev;
 
-    fseek(dev->f, 8, SEEK_SET);
+    fseek(dev->fp, 8, SEEK_SET);
 
-    (void) !fread(dev->track_offset, 1, d86f_get_track_table_size(drive), dev->f);
+    (void) !fread(dev->track_offset, 1, d86f_get_track_table_size(drive), dev->fp);
 
     if (!(dev->track_offset[0])) {
         /* File has no track 0 side 0, abort. */
         d86f_log("86F: No Track 0 side 0\n");
-        fclose(dev->f);
-        dev->f = NULL;
+        fclose(dev->fp);
+        dev->fp = NULL;
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         free(dev);
         d86f[drive] = NULL;
@@ -3690,8 +3724,8 @@ d86f_load(int drive, char *fn)
     if ((d86f_get_sides(drive) == 2) && !(dev->track_offset[1])) {
         /* File is 2-sided but has no track 0 side 1, abort. */
         d86f_log("86F: No Track 0 side 1\n");
-        fclose(dev->f);
-        dev->f = NULL;
+        fclose(dev->fp);
+        dev->fp = NULL;
         memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
         free(dev);
         d86f[drive] = NULL;
@@ -3699,12 +3733,12 @@ d86f_load(int drive, char *fn)
     }
 
     /* Load track 0 flags as default. */
-    if (fseek(dev->f, dev->track_offset[0], SEEK_SET) == -1)
+    if (fseek(dev->fp, dev->track_offset[0], SEEK_SET) == -1)
         fatal("d86f_load(): Track 0: Error seeking to the beginning of the file\n");
-    if (fread(&(dev->side_flags[0]), 1, 2, dev->f) != 2)
+    if (fread(&(dev->side_flags[0]), 1, 2, dev->fp) != 2)
         fatal("d86f_load(): Track 0: Error reading side flags\n");
     if (dev->disk_flags & 0x80) {
-        if (fread(&(dev->extra_bit_cells[0]), 1, 4, dev->f) != 4)
+        if (fread(&(dev->extra_bit_cells[0]), 1, 4, dev->fp) != 4)
             fatal("d86f_load(): Track 0: Error reading the amount of extra bit cells\n");
         if ((dev->disk_flags & 0x1060) != 0x1000) {
             if (dev->extra_bit_cells[0] < -32768)
@@ -3717,12 +3751,12 @@ d86f_load(int drive, char *fn)
     }
 
     if (d86f_get_sides(drive) == 2) {
-        if (fseek(dev->f, dev->track_offset[1], SEEK_SET) == -1)
+        if (fseek(dev->fp, dev->track_offset[1], SEEK_SET) == -1)
             fatal("d86f_load(): Track 1: Error seeking to the beginning of the file\n");
-        if (fread(&(dev->side_flags[1]), 1, 2, dev->f) != 2)
+        if (fread(&(dev->side_flags[1]), 1, 2, dev->fp) != 2)
             fatal("d86f_load(): Track 1: Error reading side flags\n");
         if (dev->disk_flags & 0x80) {
-            if (fread(&(dev->extra_bit_cells[1]), 1, 4, dev->f) != 4)
+            if (fread(&(dev->extra_bit_cells[1]), 1, 4, dev->fp) != 4)
                 fatal("d86f_load(): Track 4: Error reading the amount of extra bit cells\n");
             if ((dev->disk_flags & 0x1060) != 0x1000) {
                 if (dev->extra_bit_cells[1] < -32768)
@@ -3735,8 +3769,8 @@ d86f_load(int drive, char *fn)
         }
     } else {
         switch ((dev->disk_flags >> 1) >> 3) {
-            case 0:
             default:
+            case 0:
                 dev->side_flags[1] = 0x0a;
                 break;
 
@@ -3753,10 +3787,10 @@ d86f_load(int drive, char *fn)
         dev->extra_bit_cells[1] = 0;
     }
 
-    fseek(dev->f, 0, SEEK_END);
-    dev->file_size = ftell(dev->f);
+    fseek(dev->fp, 0, SEEK_END);
+    dev->file_size = ftell(dev->fp);
 
-    fseek(dev->f, 0, SEEK_SET);
+    fseek(dev->fp, 0, SEEK_SET);
 
     d86f_register_86f(drive);
 
@@ -3819,9 +3853,9 @@ d86f_close(int drive)
         }
     }
 
-    if (dev->f) {
-        fclose(dev->f);
-        dev->f = NULL;
+    if (dev->fp) {
+        fclose(dev->fp);
+        dev->fp = NULL;
     }
 #ifdef D86F_COMPRESS
     if (dev->is_compressed)

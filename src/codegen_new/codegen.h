@@ -140,12 +140,16 @@ codeblock_tree_add(codeblock_t *new_block)
                 block = block->right ? &codeblock[block->right] : NULL;
         }
 
-        if (a < old_block_cmp)
-            old_block->left = get_block_nr(new_block);
-        else
-            old_block->right = get_block_nr(new_block);
+        if (old_block != NULL) {
+            if (a < old_block_cmp)
+                old_block->left = get_block_nr(new_block);
+            else
+                old_block->right = get_block_nr(new_block);
 
-        new_block->parent = get_block_nr(old_block);
+            new_block->parent = get_block_nr(old_block);
+        } else
+            new_block->parent = BLOCK_INVALID;
+
         new_block->left = new_block->right = BLOCK_INVALID;
     }
 }

@@ -55,20 +55,23 @@ enum {
 };
 
 typedef struct flash_t {
-    uint8_t command, pad,
-        pad0, pad1,
-        *array;
+    uint8_t command;
+    uint8_t pad;
+    uint8_t pad0;
+    uint8_t pad1;
+    uint8_t *array;
 
-    mem_mapping_t mapping, mapping_h[2];
+    mem_mapping_t mapping;
+    mem_mapping_t mapping_h[2];
 } flash_t;
 
 static char flash_path[1024];
 
 static uint8_t
-flash_read(uint32_t addr, void *p)
+flash_read(uint32_t addr, void *priv)
 {
-    flash_t *dev = (flash_t *) p;
-    uint8_t  ret = 0xff;
+    const flash_t *dev = (flash_t *) priv;
+    uint8_t        ret = 0xff;
 
     addr &= biosmask;
 
@@ -86,16 +89,19 @@ flash_read(uint32_t addr, void *p)
             else if (addr == 0x00001)
                 ret = 0xB4; /* 28F010 */
             break;
+
+        default:
+            break;
     }
 
     return ret;
 }
 
 static uint16_t
-flash_readw(uint32_t addr, void *p)
+flash_readw(uint32_t addr, void *priv)
 {
-    flash_t  *dev = (flash_t *) p;
-    uint16_t *q;
+    flash_t        *dev = (flash_t *) priv;
+    const uint16_t *q;
 
     addr &= biosmask;
 
@@ -105,10 +111,10 @@ flash_readw(uint32_t addr, void *p)
 }
 
 static uint32_t
-flash_readl(uint32_t addr, void *p)
+flash_readl(uint32_t addr, void *priv)
 {
-    flash_t  *dev = (flash_t *) p;
-    uint32_t *q;
+    flash_t        *dev = (flash_t *) priv;
+    const uint32_t *q;
 
     addr &= biosmask;
 
@@ -118,9 +124,9 @@ flash_readl(uint32_t addr, void *p)
 }
 
 static void
-flash_write(uint32_t addr, uint8_t val, void *p)
+flash_write(uint32_t addr, uint8_t val, void *priv)
 {
-    flash_t *dev = (flash_t *) p;
+    flash_t *dev = (flash_t *) priv;
 
     addr &= biosmask;
 
@@ -141,13 +147,15 @@ flash_write(uint32_t addr, uint8_t val, void *p)
 }
 
 static void
-flash_writew(uint32_t addr, uint16_t val, void *p)
+flash_writew(UNUSED(uint32_t addr), UNUSED(uint16_t val), UNUSED(void *priv))
 {
+    //
 }
 
 static void
-flash_writel(uint32_t addr, uint32_t val, void *p)
+flash_writel(UNUSED(uint32_t addr), UNUSED(uint32_t val), UNUSED(void *priv))
 {
+    //
 }
 
 static void
@@ -179,9 +187,9 @@ catalyst_flash_reset(void *priv)
 }
 
 static void *
-catalyst_flash_init(const device_t *info)
+catalyst_flash_init(UNUSED(const device_t *info))
 {
-    FILE    *f;
+    FILE    *fp;
     flash_t *dev;
 
     dev = malloc(sizeof(flash_t));
@@ -199,24 +207,24 @@ catalyst_flash_init(const device_t *info)
 
     dev->command = CMD_RESET;
 
-    f = nvr_fopen(flash_path, "rb");
-    if (f) {
-        (void) !fread(dev->array, 0x20000, 1, f);
-        fclose(f);
+    fp = nvr_fopen(flash_path, "rb");
+    if (fp) {
+        (void) !fread(dev->array, 0x20000, 1, fp);
+        fclose(fp);
     }
 
     return dev;
 }
 
 static void
-catalyst_flash_close(void *p)
+catalyst_flash_close(void *priv)
 {
-    FILE    *f;
-    flash_t *dev = (flash_t *) p;
+    FILE    *fp;
+    flash_t *dev = (flash_t *) priv;
 
-    f = nvr_fopen(flash_path, "wb");
-    fwrite(dev->array, 0x20000, 1, f);
-    fclose(f);
+    fp = nvr_fopen(flash_path, "wb");
+    fwrite(dev->array, 0x20000, 1, fp);
+    fclose(fp);
 
     free(dev->array);
     dev->array = NULL;

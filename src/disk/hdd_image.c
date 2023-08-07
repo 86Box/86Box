@@ -40,12 +40,12 @@
 #define HDD_IMAGE_HDX 2
 #define HDD_IMAGE_VHD 3
 
-typedef struct
-{
+typedef struct hdd_image_t {
     FILE     *file; /* Used for HDD_IMAGE_RAW, HDD_IMAGE_HDI, and HDD_IMAGE_HDX. */
     MVHDMeta *vhd;  /* Used for HDD_IMAGE_VHD. */
     uint32_t  base;
-    uint32_t  pos, last_sector;
+    uint32_t  pos;
+    uint32_t  last_sector;
     uint8_t   type; /* HDD_IMAGE_RAW, HDD_IMAGE_HDI, HDD_IMAGE_HDX, or HDD_IMAGE_VHD */
     uint8_t   loaded;
 } hdd_image_t;
@@ -450,7 +450,7 @@ retry_vhd:
                 else
                     fatal("hdd_image_load(): VHD: Error opening VHD file '%s': %s\n", fn, mvhd_strerr(vhd_error));
             } else if (vhd_error == MVHD_ERR_TIMESTAMP) {
-                fatal("hdd_image_load(): VHD: Parent/child timestamp mismatch for VHD file '%s'\n", fn);
+                pclog("hdd_image_load(): VHD: Parent/child timestamp mismatch for VHD file '%s'\n", fn);
             }
 
             hdd[id].tracks        = hdd_images[id].vhd->footer.geom.cyl;
@@ -637,7 +637,7 @@ hdd_image_get_type(uint8_t id)
 }
 
 void
-hdd_image_unload(uint8_t id, int fn_preserve)
+hdd_image_unload(uint8_t id, UNUSED(int fn_preserve))
 {
     if (strlen(hdd[id].fn) == 0)
         return;

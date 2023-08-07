@@ -91,8 +91,9 @@ pitf_ctr_set_load_func(void *data, int counter_id, void (*func)(uint8_t new_m, i
 static uint16_t
 pitf_ctr_get_count(void *data, int counter_id)
 {
-    pitf_t *pit = (pitf_t *) data;
-    ctrf_t *ctr = &pit->counters[counter_id];
+    const pitf_t *pit = (pitf_t *) data;
+    const ctrf_t *ctr = &pit->counters[counter_id];
+
     return (uint16_t) ctr->l;
 }
 
@@ -207,6 +208,9 @@ pitf_ctr_load(ctrf_t *ctr)
         case 5: /*Hardware triggered stobe*/
             ctr->enabled = 1;
             break;
+
+        default:
+            break;
     }
 
     if (ctr->load_func != NULL)
@@ -265,6 +269,9 @@ pitf_set_gate_no_timer(ctrf_t *ctr, int gate)
                 ctr->thit = 0;
             }
             ctr->enabled = gate;
+            break;
+
+        default:
             break;
     }
     ctr->gate    = gate;
@@ -327,7 +334,10 @@ pitf_over(ctrf_t *ctr)
                 if (ctr->using_timer)
                     timer_advance_u64(&ctr->timer, (uint64_t) (((l + 1) >> 1) * PITCONST));
             }
-            //                if (!t) pclog("pit_over: square wave mode c=%x  %lli  %f\n", pit.c[t], tsc, PITCONST);
+#if 0
+            if (!t)
+                pclog("pit_over: square wave mode c=%x  %lli  %f\n", pit.c[t], tsc, PITCONST);
+#endif
             break;
         case 4: /*Software triggered strove*/
             if (!ctr->thit) {
@@ -356,6 +366,9 @@ pitf_over(ctrf_t *ctr)
             if (ctr->using_timer)
                 timer_advance_u64(&ctr->timer, (uint64_t) (0xffff * PITCONST));
             break;
+
+        default:
+            break;
     }
     ctr->running = ctr->enabled && ctr->using_timer && !ctr->disabled;
     if (ctr->using_timer && !ctr->running)
@@ -366,8 +379,10 @@ static __inline void
 pitf_ctr_latch_count(ctrf_t *ctr)
 {
     ctr->rl = pitf_read_timer(ctr);
-    //                        pclog("Timer latch %f %04X %04X\n",pit->c[0],pit->rl[0],pit->l[0]);
-    // pit->ctrl |= 0x30;
+#if 0
+    pclog("Timer latch %f %04X %04X\n",pit->c[0],pit->rl[0],pit->l[0]);
+    pit->ctrl |= 0x30;
+#endif
     ctr->rereadlatch = 0;
     ctr->rm          = 3;
     ctr->latched     = 1;
@@ -472,7 +487,13 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
                     ctr->l |= val;
                     ctr->wm = 0;
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -530,7 +551,13 @@ pitf_read(uint16_t addr, void *priv)
                     else
                         ctr->rm = 0;
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 
@@ -540,9 +567,9 @@ pitf_read(uint16_t addr, void *priv)
 }
 
 static void
-pitf_timer_over(void *p)
+pitf_timer_over(void *priv)
 {
-    ctrf_t *ctr = (ctrf_t *) p;
+    ctrf_t *ctr = (ctrf_t *) priv;
     pitf_over(ctr);
 }
 

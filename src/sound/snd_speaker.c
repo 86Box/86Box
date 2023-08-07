@@ -26,6 +26,7 @@
 #include <86box/pit.h>
 #include <86box/snd_speaker.h>
 #include <86box/sound.h>
+#include <86box/plat_unused.h>
 
 int speaker_mute       = 0;
 int speaker_gated      = 0;
@@ -85,7 +86,7 @@ speaker_update(void)
 }
 
 void
-speaker_get_buffer(int32_t *buffer, int len, void *p)
+speaker_get_buffer(int32_t *buffer, int len, UNUSED(void *priv))
 {
     int32_t val;
 

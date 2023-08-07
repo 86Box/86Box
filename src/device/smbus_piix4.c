@@ -27,6 +27,7 @@
 #include <86box/timer.h>
 #include <86box/i2c.h>
 #include <86box/smbus.h>
+#include <86box/plat_fallthrough.h>
 
 #ifdef ENABLE_SMBUS_PIIX4_LOG
 int smbus_piix4_do_log = ENABLE_SMBUS_PIIX4_LOG;
@@ -82,6 +83,9 @@ smbus_piix4_read(uint16_t addr, void *priv)
             ret = dev->data[dev->index++];
             if (dev->index >= SMBUS_PIIX4_BLOCK_DATA_SIZE)
                 dev->index = 0;
+            break;
+
+        default:
             break;
     }
 
@@ -192,7 +196,9 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
                             timer_bytes++;
                         }
 
-                        /* fall-through */
+#ifdef FALLTHROUGH_ANNOTATION
+                        [[fallthrough]];
+#endif
 
                     case 0xc:        /* I2C process call */
                         if (!read) { /* word write (only when writing) */
@@ -211,7 +217,9 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
                     case 0x5:          /* block R/W */
                         timer_bytes++; /* count the SMBus length byte now */
 
-                        /* fall-through */
+#ifdef FALLTHROUGH_ANNOTATION
+                        [[fallthrough]];
+#endif
 
                     case 0xd: /* I2C block R/W */
                         i2c_write(i2c_smbus, smbus_addr, dev->cmd);
@@ -244,7 +252,9 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
                         i2c_write(i2c_smbus, smbus_addr, dev->cmd);
                         timer_bytes++;
 
-                        /* fall-through */
+#ifdef FALLTHROUGH_ANNOTATION
+                        [[fallthrough]];
+#endif
 
                     case 0xe:        /* I2C with 7-bit address */
                         if (!read) { /* word write (only when writing) */
@@ -308,6 +318,9 @@ unknown_protocol:
             dev->data[dev->index++] = val;
             if (dev->index >= SMBUS_PIIX4_BLOCK_DATA_SIZE)
                 dev->index = 0;
+            break;
+
+        default:
             break;
     }
 

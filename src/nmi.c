@@ -7,11 +7,12 @@
 #include <wchar.h>
 #include <86box/io.h>
 #include <86box/nmi.h>
+#include <86box/plat_unused.h>
 
 int nmi_mask;
 
 void
-nmi_write(uint16_t port, uint8_t val, void *p)
+nmi_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
 {
     nmi_mask = val & 0x80;
 }

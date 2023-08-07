@@ -71,13 +71,13 @@ uint16_t aha_ports[] = {
 static uint8_t *aha1542cp_pnp_rom = NULL;
 
 #pragma pack(push, 1)
-typedef struct {
-    uint8_t CustomerSignature[20];
-    uint8_t uAutoRetry;
-    uint8_t uBoardSwitches;
-    uint8_t uChecksum;
-    uint8_t uUnknown;
-    addr24  BIOSMailboxAddress;
+typedef struct aha_setup_t {
+    uint8_t  CustomerSignature[20];
+    uint8_t  uAutoRetry;
+    uint8_t  uBoardSwitches;
+    uint8_t  uChecksum;
+    uint8_t  uUnknown;
+    addr24_t BIOSMailboxAddress;
 } aha_setup_t;
 #pragma pack(pop)
 
@@ -123,8 +123,8 @@ aha_mem_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 aha_mem_read(uint32_t addr, void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
-    rom_t  *rom = &dev->bios;
+    const x54x_t *dev = (x54x_t *) priv;
+    const rom_t  *rom = &dev->bios;
 
     addr &= 0x3fff;
 
@@ -163,7 +163,7 @@ aha_eeprom_save(x54x_t *dev)
 }
 
 static uint8_t
-aha154x_eeprom(x54x_t *dev, uint8_t cmd, uint8_t arg, uint8_t len, uint8_t off, uint8_t *bufp)
+aha154x_eeprom(x54x_t *dev, uint8_t cmd, UNUSED(uint8_t arg), uint8_t len, uint8_t off, uint8_t *bufp)
 {
     uint8_t r = 0xff;
     int     c;
@@ -217,39 +217,42 @@ aha154x_mmap(x54x_t *dev, uint8_t cmd)
             /* Enable the mapper, so, set ROM2 active. */
             dev->bios.rom = dev->rom2;
             break;
+
+        default:
+            break;
     }
 
     return 0;
 }
 
 static uint8_t
-aha_get_host_id(void *p)
+aha_get_host_id(void *priv)
 {
-    x54x_t *dev = (x54x_t *) p;
+    const x54x_t *dev = (x54x_t *) priv;
 
     return dev->nvr[0] & 0x07;
 }
 
 static uint8_t
-aha_get_irq(void *p)
+aha_get_irq(void *priv)
 {
-    x54x_t *dev = (x54x_t *) p;
+    const x54x_t *dev = (x54x_t *) priv;
 
     return (dev->nvr[1] & 0x07) + 9;
 }
 
 static uint8_t
-aha_get_dma(void *p)
+aha_get_dma(void *priv)
 {
-    x54x_t *dev = (x54x_t *) p;
+    const x54x_t *dev = (x54x_t *) priv;
 
     return (dev->nvr[1] >> 4) & 0x07;
 }
 
 static uint8_t
-aha_cmd_is_fast(void *p)
+aha_cmd_is_fast(void *priv)
 {
-    x54x_t *dev = (x54x_t *) p;
+    const x54x_t *dev = (x54x_t *) priv;
 
     if (dev->Command == CMD_BIOS_SCSI)
         return 1;
@@ -258,9 +261,9 @@ aha_cmd_is_fast(void *p)
 }
 
 static uint8_t
-aha_fast_cmds(void *p, uint8_t cmd)
+aha_fast_cmds(void *priv, uint8_t cmd)
 {
-    x54x_t *dev = (x54x_t *) p;
+    x54x_t *dev = (x54x_t *) priv;
 
     if (cmd == CMD_BIOS_SCSI) {
         dev->BIOSMailboxReq++;
@@ -271,9 +274,9 @@ aha_fast_cmds(void *p, uint8_t cmd)
 }
 
 static uint8_t
-aha_param_len(void *p)
+aha_param_len(void *priv)
 {
-    x54x_t *dev = (x54x_t *) p;
+    const x54x_t *dev = (x54x_t *) priv;
 
     switch (dev->Command) {
         case CMD_BIOS_MBINIT:
@@ -307,10 +310,10 @@ aha_param_len(void *p)
 }
 
 static uint8_t
-aha_cmds(void *p)
+aha_cmds(void *priv)
 {
-    x54x_t        *dev = (x54x_t *) p;
-    MailboxInit_t *mbi;
+    x54x_t              *dev = (x54x_t *) priv;
+    const MailboxInit_t *mbi;
 
     if (!dev->CmdParamLeft) {
         aha_log("Running Operation Code 0x%02X\n", dev->Command);
@@ -351,7 +354,9 @@ aha_cmds(void *p)
                  * and expects a 0x04 back in the INTR
                  * register.  --FvK
                  */
-                /* dev->Interrupt = aha154x_shram(dev,val); */
+#if 0
+                dev->Interrupt = aha154x_shram(dev,val);
+#endif
                 dev->Interrupt = aha154x_shram(dev, dev->CmdBuf[0]);
                 break;
 
@@ -451,9 +456,9 @@ aha_cmds(void *p)
 }
 
 static void
-aha_setup_data(void *p)
+aha_setup_data(void *priv)
 {
-    x54x_t                       *dev = (x54x_t *) p;
+    x54x_t                       *dev = (x54x_t *) priv;
     ReplyInquireSetupInformation *ReplyISI;
     aha_setup_t                  *aha_setup;
 
@@ -486,9 +491,9 @@ aha_do_bios_mail(x54x_t *dev)
 }
 
 static void
-aha_callback(void *p)
+aha_callback(void *priv)
 {
-    x54x_t *dev = (x54x_t *) p;
+    x54x_t *dev = (x54x_t *) priv;
 
     if (dev->BIOSMailboxInit && dev->BIOSMailboxReq)
         aha_do_bios_mail(dev);
@@ -497,7 +502,7 @@ aha_callback(void *p)
 static uint8_t
 aha_mca_read(int port, void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
+    const x54x_t *dev = (x54x_t *) priv;
 
     return (dev->pos_regs[port & 7]);
 }
@@ -550,6 +555,9 @@ aha_mca_write(int port, uint8_t val, void *priv)
 
             case 0x10: /* [1]=xx01 0xxx */
                 dev->rom_addr = 0xC8000;
+                break;
+
+            default:
                 break;
         }
     else {
@@ -606,7 +614,7 @@ aha_mca_write(int port, uint8_t val, void *priv)
 static uint8_t
 aha_mca_feedb(void *priv)
 {
-    x54x_t *dev = (x54x_t *) priv;
+    const x54x_t *dev = (x54x_t *) priv;
 
     return (dev->pos_regs[2] & 0x01);
 }
@@ -696,6 +704,8 @@ aha_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 
             break;
 #endif
+        default:
+            break;
     }
 }
 
@@ -997,6 +1007,9 @@ aha_init(const device_t *info)
                 case 0x0334:
                     dev->bios_path = "roms/scsi/adaptec/aha1540b320_334.bin";
                     break;
+
+                default:
+                    break;
             }
             dev->fw_rev = "A005"; /* The 3.2 microcode says A012. */
             /* This is configurable from the configuration for the 154xB, the rest of the controllers read it from the EEPROM. */
@@ -1082,6 +1095,9 @@ aha_init(const device_t *info)
             mca_add(aha_mca_read, aha_mca_write, aha_mca_feedb, NULL, dev);
             dev->ha_bps = 5000000.0; /* normal SCSI */
             break;
+
+        default:
+            break;
     }
 
     /* Initialize ROM BIOS if needed. */
@@ -1106,7 +1122,7 @@ aha_init(const device_t *info)
         }
     }
 
-    return (dev);
+    return dev;
 }
 
 // clang-format off

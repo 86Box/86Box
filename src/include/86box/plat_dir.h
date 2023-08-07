@@ -39,7 +39,7 @@ struct dirent {
 };
 #    define d_namlen d_reclen
 
-typedef struct {
+typedef struct DIR_t {
     short flags;  /* internal flags		*/
     short offset; /* offset of entry into dir	*/
     long  handle; /* open handle to Win32 system	*/
@@ -66,12 +66,9 @@ extern void           seekdir(DIR *, long);
 extern int            closedir(DIR *);
 
 #    define rewinddir(dirp) seekdir(dirp, 0L)
-#elif defined(__FreeBSD__)
-/* FreeBSD uses dirent.h instead of sys/dir.h */
-#    include <dirent.h>
 #else
 /* On linux and macOS, use the standard functions and types */
-#    include <sys/dir.h>
+#    include <dirent.h>
 #endif
 
 #endif /*PLAT_DIR_H*/

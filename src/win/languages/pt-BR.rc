@@ -26,7 +26,7 @@ BEGIN
         MENUITEM "&Reinicialização completa...", IDM_ACTION_HRESET
         MENUITEM "&Ctrl+Alt+Del\tCtrl+F12", IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
-    MENUITEM "Ctrl+Alt+&Esc", IDM_ACTION_CTRL_ALT_ESC
+        MENUITEM "Ctrl+Alt+&Esc", IDM_ACTION_CTRL_ALT_ESC
         MENUITEM SEPARATOR
         MENUITEM "&Pausar", IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
@@ -311,10 +311,10 @@ END
 #define STR_NET_TYPE      "Tipo de rede:"
 #define STR_PCAP          "Dispositivo PCap:"
 #define STR_NET           "Adaptador de rede:"
-#define STR_NET1          "Network card 1:"
-#define STR_NET2          "Network card 2:"
-#define STR_NET3          "Network card 3:"
-#define STR_NET4          "Network card 4:"
+#define STR_NET1          "Placa de rede 1:"
+#define STR_NET2          "Placa de rede 2:"
+#define STR_NET3          "Placa de rede 3:"
+#define STR_NET4          "Placa de rede 4:"
 
 #define STR_COM1          "Dispositivo COM1:"
 #define STR_COM2          "Dispositivo COM2:"
@@ -332,10 +332,10 @@ END
 #define STR_PARALLEL2     "Porta paralela 2"
 #define STR_PARALLEL3     "Porta paralela 3"
 #define STR_PARALLEL4     "Porta paralela 4"
-#define STR_SERIAL_PASS1  "Serial port passthrough 1"
-#define STR_SERIAL_PASS2  "Serial port passthrough 2"
-#define STR_SERIAL_PASS3  "Serial port passthrough 3"
-#define STR_SERIAL_PASS4  "Serial port passthrough 4"
+#define STR_SERIAL_PASS1  "Encaminhamento de porta serial 1"
+#define STR_SERIAL_PASS2  "Encaminhamento de porta serial 2"
+#define STR_SERIAL_PASS3  "Encaminhamento de porta serial 3"
+#define STR_SERIAL_PASS4  "Encaminhamento de porta serial 4"
 
 #define STR_HDC           "Controlador HD:"
 #define STR_FDC           "Controlador FD:"
@@ -437,7 +437,6 @@ END
 
 STRINGTABLE DISCARDABLE
 BEGIN
-    IDS_2080    "Não foi possível inicializar o FluidSynth"
     IDS_2081    "Barramento"
     IDS_2082    "Arquivo"
     IDS_2083    "CI"
@@ -468,7 +467,6 @@ BEGIN
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "Disquete %i (%s): %ls"
     IDS_2110    "Todas as imagens (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Imagens de setor avançado (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Imagens de setor básico (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Imagens de fluxo (*.FDI)\0*.FDI\0Imagens de superfície (*.86F;*.MFM)\0*.86F;*.MFM\0Todos os arquivos (*.*)\0*.*\0"
-    IDS_2111    "Não foi possível inicializar o FreeType"
     IDS_2112    "Não é possível inicializar o SDL, é necessário o SDL2.dll"
     IDS_2113    "Tem certeza de que deseja reiniciar completamente a máquina emulada?"
     IDS_2114    "Tem certeza de que deseja sair do 86Box?"
@@ -496,23 +494,11 @@ BEGIN
     IDS_2130    "Certifique-se de que " LIB_NAME_PCAP " esteja instalado e que você tenha uma conexão de rede compatível com " LIB_NAME_PCAP "."
     IDS_2131    "Configuração inválida"
 #ifdef _WIN32
-#define LIB_NAME_FREETYPE "freetype.dll"
-#else
-#define LIB_NAME_FREETYPE "libfreetype"
-#endif
-    IDS_2132    LIB_NAME_FREETYPE " é necessário para emulação de impressora ESC/P."
-#ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
 #define LIB_NAME_GS "libgs"
 #endif
     IDS_2133    LIB_NAME_GS " é necessário para a conversão automática de arquivos PostScript para PDF.\n\nQualquer documento enviado para a impressora genérica PostScript será salvo como arquivos PostScript (.ps)."
-#ifdef _WIN32
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
-#else
-#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
-#endif
-    IDS_2134    LIB_NAME_FLUIDSYNTH " é necessário para a saída MIDI FluidSynth."
     IDS_2135    "Entrando no modo de tela cheia"
     IDS_2136    "Não exibir esta mensagem novamente"
     IDS_2137    "Não sair"
@@ -540,13 +526,13 @@ BEGIN
     IDS_2159    "Reinicialização completa"
     IDS_2160    "Desligamento por ACPI"
     IDS_2161    "Configurações"
-    IDS_2162    "Type"
-    IDS_2163    "No Dynarec"
-    IDS_2164    "Old Dynarec"
-    IDS_2165    "New Dynarec"
-    IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-    IDS_2167    "Failed to initialize network driver"
-    IDS_2168    "The network configuration will be switched to the null driver"
+    IDS_2162    "Tipo"
+    IDS_2163    "Sem recompilador dinâmico"
+    IDS_2164    "Recompilador dinâmico antigo"
+    IDS_2165    "Novo recompilador dinâmico"
+    IDS_2166    "A placa de vídeo #2 ""%hs"" não está disponível devido à ausência de ROMs no diretório roms/video. Desabilitando a segunda placa de vídeo."
+    IDS_2167    "Falha ao inicializar o driver de rede"
+    IDS_2168    "A configuração de rede será alterada para o driver nulo"
 END
 
 STRINGTABLE DISCARDABLE

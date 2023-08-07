@@ -28,12 +28,14 @@
 #include <86box/mem.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
+#include <86box/plat_unused.h>
 
-typedef struct
-{
-    uint8_t tries,
-        in_cfg, cfg_locked,
-        regs[19];
+typedef struct opti611_t {
+    uint8_t is_sec;
+    uint8_t tries;
+    uint8_t in_cfg;
+    uint8_t cfg_locked;
+    uint8_t regs[19];
 } opti611_t;
 
 static void opti611_ide_handler(opti611_t *dev);
@@ -68,6 +70,9 @@ opti611_cfg_write(uint16_t addr, uint8_t val, void *priv)
         case 0x0006:
             dev->regs[0x06] = val;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -88,8 +93,8 @@ opti611_cfg_writel(uint16_t addr, uint32_t val, void *priv)
 static uint8_t
 opti611_cfg_read(uint16_t addr, void *priv)
 {
-    uint8_t    ret = 0xff;
-    opti611_t *dev = (opti611_t *) priv;
+    uint8_t          ret = 0xff;
+    const opti611_t *dev = (opti611_t *) priv;
 
     addr &= 0x0007;
 
@@ -108,6 +113,9 @@ opti611_cfg_read(uint16_t addr, void *priv)
         case 0x0005:
         case 0x0006:
             ret = dev->regs[addr];
+            break;
+
+        default:
             break;
     }
 
@@ -153,7 +161,7 @@ opti611_ide_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static void
-opti611_ide_writew(uint16_t addr, uint16_t val, void *priv)
+opti611_ide_writew(uint16_t addr, UNUSED(uint16_t val), void *priv)
 {
     opti611_t *dev = (opti611_t *) priv;
 
@@ -169,7 +177,7 @@ opti611_ide_writew(uint16_t addr, uint16_t val, void *priv)
 }
 
 static void
-opti611_ide_writel(uint16_t addr, uint32_t val, void *priv)
+opti611_ide_writel(uint16_t addr, UNUSED(uint32_t val), void *priv)
 {
     opti611_t *dev = (opti611_t *) priv;
 
@@ -247,28 +255,54 @@ opti611_ide_readl(uint16_t addr, void *priv)
 static void
 opti611_ide_handler(opti611_t *dev)
 {
-    ide_pri_disable();
-    io_removehandler(0x01f0, 0x0007,
-                     opti611_ide_read, opti611_ide_readw, opti611_ide_readl,
-                     opti611_ide_write, opti611_ide_writew, opti611_ide_writel,
-                     dev);
-    io_removehandler(0x01f0, 0x0007,
-                     opti611_cfg_read, opti611_cfg_readw, opti611_cfg_readl,
-                     opti611_cfg_write, opti611_cfg_writew, opti611_cfg_writel,
-                     dev);
+    if (dev->is_sec) {
+        ide_sec_disable();
+        io_removehandler(0x0170, 0x0007,
+                         opti611_ide_read, opti611_ide_readw, opti611_ide_readl,
+                         opti611_ide_write, opti611_ide_writew, opti611_ide_writel,
+                         dev);
+        io_removehandler(0x0170, 0x0007,
+                         opti611_cfg_read, opti611_cfg_readw, opti611_cfg_readl,
+                         opti611_cfg_write, opti611_cfg_writew, opti611_cfg_writel,
+                         dev);
 
-    if (dev->in_cfg && !dev->cfg_locked) {
-        io_sethandler(0x01f0, 0x0007,
-                      opti611_cfg_read, opti611_cfg_readw, opti611_cfg_readl,
-                      opti611_cfg_write, opti611_cfg_writew, opti611_cfg_writel,
-                      dev);
+        if (dev->in_cfg && !dev->cfg_locked) {
+            io_sethandler(0x0170, 0x0007,
+                          opti611_cfg_read, opti611_cfg_readw, opti611_cfg_readl,
+                          opti611_cfg_write, opti611_cfg_writew, opti611_cfg_writel,
+                          dev);
+        } else {
+            if (dev->regs[0x03] & 0x01)
+                ide_sec_enable();
+            io_sethandler(0x0170, 0x0007,
+                          opti611_ide_read, opti611_ide_readw, opti611_ide_readl,
+                          opti611_ide_write, opti611_ide_writew, opti611_ide_writel,
+                          dev);
+        }
     } else {
-        if (dev->regs[0x03] & 0x01)
-            ide_pri_enable();
-        io_sethandler(0x01f0, 0x0007,
-                      opti611_ide_read, opti611_ide_readw, opti611_ide_readl,
-                      opti611_ide_write, opti611_ide_writew, opti611_ide_writel,
-                      dev);
+        ide_pri_disable();
+        io_removehandler(0x01f0, 0x0007,
+                         opti611_ide_read, opti611_ide_readw, opti611_ide_readl,
+                         opti611_ide_write, opti611_ide_writew, opti611_ide_writel,
+                         dev);
+        io_removehandler(0x01f0, 0x0007,
+                         opti611_cfg_read, opti611_cfg_readw, opti611_cfg_readl,
+                         opti611_cfg_write, opti611_cfg_writew, opti611_cfg_writel,
+                         dev);
+
+        if (dev->in_cfg && !dev->cfg_locked) {
+            io_sethandler(0x01f0, 0x0007,
+                          opti611_cfg_read, opti611_cfg_readw, opti611_cfg_readl,
+                          opti611_cfg_write, opti611_cfg_writew, opti611_cfg_writel,
+                          dev);
+        } else {
+            if (dev->regs[0x03] & 0x01)
+                ide_pri_enable();
+            io_sethandler(0x01f0, 0x0007,
+                          opti611_ide_read, opti611_ide_readw, opti611_ide_readl,
+                          opti611_ide_write, opti611_ide_writew, opti611_ide_writel,
+                          dev);
+        }
     }
 }
 
@@ -281,10 +315,12 @@ opti611_close(void *priv)
 }
 
 static void *
-opti611_init(const device_t *info)
+opti611_init(UNUSED(const device_t *info))
 {
     opti611_t *dev = (opti611_t *) malloc(sizeof(opti611_t));
     memset(dev, 0, sizeof(opti611_t));
+
+    dev->is_sec = info->local;
 
     dev->regs[0x12] = 0x80;
     dev->regs[0x03] = 0x01;
@@ -302,6 +338,20 @@ const device_t ide_opti611_vlb_device = {
     .internal_name = "ide_opti611_vlb",
     .flags         = DEVICE_VLB,
     .local         = 0,
+    .init          = opti611_init,
+    .close         = opti611_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ide_opti611_vlb_sec_device = {
+    .name          = "OPTi 82C611/82C611A VLB (Secondary)",
+    .internal_name = "ide_opti611_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = 1,
     .init          = opti611_init,
     .close         = opti611_close,
     .reset         = NULL,

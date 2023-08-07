@@ -90,7 +90,7 @@
 
 #define ISARTC_DEBUG  0
 
-typedef struct {
+typedef struct rtcdev_t {
     const char *name;  /* board name */
     uint8_t     board; /* board type */
 
@@ -103,18 +103,18 @@ typedef struct {
     uint32_t base_addr; /* configured I/O address */
 
     /* Fields for the specific driver. */
-    void (*f_wr)(uint16_t, uint8_t, void *);
+    void    (*f_wr)(uint16_t, uint8_t, void *);
     uint8_t (*f_rd)(uint16_t, void *);
-    int8_t year; /* register for YEAR value */
-    char   pad[3];
+    int8_t    year; /* register for YEAR value */
+    char      pad[3];
 
     nvr_t nvr; /* RTC/NVR */
 } rtcdev_t;
 
 /************************************************************************
- *                                    *
- *            Driver for the NatSemi MM58167 chip.        *
- *                                    *
+ *                                                                      *
+ *            Driver for the NatSemi MM58167 chip.                      *
+ *                                                                      *
  ************************************************************************/
 #define MM67_REGS 32
 
@@ -191,11 +191,11 @@ mm67_chkalrm(nvr_t *nvr, int8_t addr)
 static void
 mm67_tick(nvr_t *nvr)
 {
-    rtcdev_t *dev  = (rtcdev_t *) nvr->data;
-    uint8_t  *regs = nvr->regs;
-    int       mon;
-    int       year;
-    int       f = 0;
+    const rtcdev_t *dev  = (rtcdev_t *) nvr->data;
+    uint8_t        *regs = nvr->regs;
+    int             mon;
+    int             year;
+    int             f = 0;
 
     /* Update and set interrupt if needed. */
     regs[MM67_SEC] = RTC_BCDINC(nvr->regs[MM67_SEC], 1);
@@ -295,8 +295,8 @@ mm67_tick(nvr_t *nvr)
 static void
 mm67_time_get(nvr_t *nvr, struct tm *tm)
 {
-    rtcdev_t *dev  = (rtcdev_t *) nvr->data;
-    uint8_t  *regs = nvr->regs;
+    const rtcdev_t *dev  = (rtcdev_t *) nvr->data;
+    const uint8_t  *regs = nvr->regs;
 
     /* NVR is in BCD data mode. */
     tm->tm_sec  = RTC_DCB(regs[MM67_SEC]);
@@ -325,9 +325,9 @@ mm67_time_get(nvr_t *nvr, struct tm *tm)
 static void
 mm67_time_set(nvr_t *nvr, struct tm *tm)
 {
-    rtcdev_t *dev  = (rtcdev_t *) nvr->data;
-    uint8_t  *regs = nvr->regs;
-    int       year;
+    const rtcdev_t *dev  = (rtcdev_t *) nvr->data;
+    uint8_t        *regs = nvr->regs;
+    int             year;
 
     /* NVR is in BCD data mode. */
     regs[MM67_SEC]  = RTC_BCD(tm->tm_sec);
@@ -427,7 +427,6 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 {
     rtcdev_t *dev = (rtcdev_t *) priv;
     int       reg = port - dev->base_addr;
-    int       i;
 
 #if ISARTC_DEBUG
     isartc_log("ISARTC: write(%04x, %02x)\n", port - dev->base_addr, val);
@@ -452,7 +451,7 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 
         case MM67_RSTRAM:
             if (val == 0xff) {
-                for (i = MM67_AL_MSEC; i <= MM67_AL_MON; i++)
+                for (uint8_t i = MM67_AL_MSEC; i <= MM67_AL_MON; i++)
                     dev->nvr.regs[i] = RTC_BCD(0);
                 dev->nvr.regs[MM67_DOW] = RTC_BCD(1);
                 dev->nvr.regs[MM67_DOM] = RTC_BCD(1);
@@ -500,9 +499,9 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 }
 
 /************************************************************************
- *                                    *
- *            Generic code for all supported chips.        *
- *                                    *
+ *                                                                      *
+ *            Generic code for all supported chips.                     *
+ *                                                                      *
  ************************************************************************/
 
 /* Initialize the device for use. */
@@ -608,9 +607,6 @@ isartc_close(void *priv)
 
     io_removehandler(dev->base_addr, dev->base_addrsz,
                      dev->f_rd, NULL, NULL, dev->f_wr, NULL, NULL, dev);
-
-    if (dev->nvr.fn != NULL)
-        free(dev->nvr.fn);
 
     free(dev);
 }

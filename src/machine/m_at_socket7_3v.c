@@ -61,7 +61,9 @@ machine_at_thor_common_init(const machine_t *model, int mr)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&s3_phoenix_trio64vplus_onboard_pci_device);
 
-    // device_add(&keyboard_ps2_ami_pci_device);
+#if 0
+    device_add(&keyboard_ps2_ami_pci_device);
+#endif
     device_add(&keyboard_ps2_intel_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);

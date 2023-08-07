@@ -58,6 +58,7 @@ static std::unordered_map<std::string, uint16_t> xkb_keycodes = {
     {"LNFD", 0x1c}, /* linefeed => Enter */
 
     {"LCTL", 0x1d},
+    {"CTRL", 0x1d},
     {"AC01", 0x1e},
     {"AC02", 0x1f},
     {"AC03", 0x20},
@@ -71,8 +72,10 @@ static std::unordered_map<std::string, uint16_t> xkb_keycodes = {
     {"AC11", 0x28},
 
     {"TLDE", 0x29},
+    {"AE00", 0x29}, /* alias of TLDE on keycodes/xfree86 (i.e. X11 forwarding) */
     {"LFSH", 0x2a},
     {"BKSL", 0x2b},
+    {"AC12", 0x2b},
     {"AB01", 0x2c},
     {"AB02", 0x2d},
     {"AB03", 0x2e},
@@ -87,6 +90,7 @@ static std::unordered_map<std::string, uint16_t> xkb_keycodes = {
 
     {"KPMU", 0x37},
     {"LALT", 0x38},
+    {"ALT",  0x38},
     {"SPCE", 0x39},
     {"CAPS", 0x3a},
     {"FK01", 0x3b},
@@ -168,7 +172,9 @@ static std::unordered_map<std::string, uint16_t> xkb_keycodes = {
     {"DELE", 0x153},
 
     {"LWIN", 0x15b},
+    {"WIN",  0x15b},
     {"LMTA", 0x15b},
+    {"META", 0x15b},
     {"RWIN", 0x15c},
     {"RMTA", 0x15c},
     {"MENU", 0x15d},

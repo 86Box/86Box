@@ -68,9 +68,12 @@ fdc37m60x_log(const char *fmt, ...)
 #    define fdc37m60x_log(fmt, ...)
 #endif
 
-typedef struct
-{
-    uint8_t  index, regs[256], device_regs[10][256], cfg_lock, ide_function;
+typedef struct fdc37m60x_t {
+    uint8_t  index;
+    uint8_t  regs[256];
+    uint8_t  device_regs[10][256];
+    uint8_t  cfg_lock;
+    uint8_t  ide_function;
     uint16_t sio_index_port;
 
     fdc_t    *fdc;
@@ -140,6 +143,9 @@ fdc37m60x_write(uint16_t addr, uint8_t val, void *priv)
                     if (CURRENT_LOGICAL_DEVICE <= 0x81) /* Avoid Overflow */
                         dev->device_regs[CURRENT_LOGICAL_DEVICE][INDEX] = (INDEX == 0x30) ? (val & 1) : val;
                     fdc37m60x_logical_device_handler(dev);
+                    break;
+
+                default:
                     break;
             }
         }
@@ -241,6 +247,9 @@ fdc37m60x_logical_device_handler(fdc37m60x_t *dev)
 
         case 0x05:
             fdc37m60x_uart_handler(1, dev);
+            break;
+
+        default:
             break;
     }
 }

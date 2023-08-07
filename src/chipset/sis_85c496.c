@@ -32,16 +32,25 @@
 #include <86box/dma.h>
 #include <86box/nvr.h>
 #include <86box/pic.h>
+#include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/hdc_ide.h>
 #include <86box/machine.h>
 #include <86box/chipset.h>
 #include <86box/spd.h>
+#ifndef USE_DRB_HACK
+#include <86box/row.h>
+#endif
 
 typedef struct sis_85c496_t {
-    uint8_t cur_reg, rmsmiblk_count,
-        regs[127],
-        pci_conf[256];
+    uint8_t    cur_reg;
+    uint8_t    rmsmiblk_count;
+#ifndef USE_DRB_HACK
+    uint8_t    drb_default;
+    uint8_t    drb_bits;
+#endif
+    uint8_t    regs[127];
+    uint8_t    pci_conf[256];
     smram_t   *smram;
     pc_timer_t rmsmiblk_timer;
     port_92_t *port_92;
@@ -98,14 +107,16 @@ sis_85c497_isa_write(uint16_t port, uint8_t val, void *priv)
                 dev->regs[dev->cur_reg] = val & 0xfc;
                 dma_set_mask((val & 0x80) ? 0xffffffff : 0x00ffffff);
                 break;
+            default:
+                break;
         }
 }
 
 static uint8_t
 sis_85c497_isa_read(uint16_t port, void *priv)
 {
-    sis_85c496_t *dev = (sis_85c496_t *) priv;
-    uint8_t       ret = 0xff;
+    const sis_85c496_t *dev = (sis_85c496_t *) priv;
+    uint8_t             ret = 0xff;
 
     if (port == 0x23)
         ret = dev->regs[dev->cur_reg];
@@ -180,9 +191,29 @@ sis_85c496_ide_handler(sis_85c496_t *dev)
     }
 }
 
+#ifndef USE_DRB_HACK
+static void
+sis_85c496_drb_recalc(sis_85c496_t *dev)
+{
+    int i;
+    uint32_t boundary;
+
+    for (i = 7; i >= 0; i--)
+        row_disable(i);
+
+    for (i = 0; i <= 7; i++) {
+        boundary = ((uint32_t) dev->pci_conf[0x48 + i]);
+        row_set_boundary(i, boundary);
+    }
+
+    flushmmucache();
+}
+#endif
+
+
 /* 00 - 3F = PCI Configuration, 40 - 7F = 85C496, 80 - FF = 85C497 */
 static void
-sis_85c49x_pci_write(int func, int addr, uint8_t val, void *priv)
+sis_85c49x_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     sis_85c496_t *dev = (sis_85c496_t *) priv;
     uint8_t       old;
@@ -255,8 +286,12 @@ sis_85c49x_pci_write(int func, int addr, uint8_t val, void *priv)
         case 0x4d:
         case 0x4e:
         case 0x4f:
-            // dev->pci_conf[addr] = val;
+#ifdef USE_DRB_HACK
             spd_write_drbs(dev->pci_conf, 0x48, 0x4f, 1);
+#else
+            dev->pci_conf[addr] = val;
+            sis_85c496_drb_recalc(dev);
+#endif
             break;
         case 0x50:
         case 0x51: /* Exclusive Area 0 Setup */
@@ -320,6 +355,8 @@ sis_85c49x_pci_write(int func, int addr, uint8_t val, void *priv)
                         case 0x03:
                             host_base = 0x000e0000;
                             ram_base  = 0x000b0000;
+                            break;
+                        default:
                             break;
                     }
 
@@ -459,14 +496,17 @@ sis_85c49x_pci_write(int func, int addr, uint8_t val, void *priv)
             dev->pci_conf[addr] = val & 0x6e;
             nvr_bank_set(0, !!(val & 0x40), dev->nvr);
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
-sis_85c49x_pci_read(int func, int addr, void *priv)
+sis_85c49x_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    sis_85c496_t *dev = (sis_85c496_t *) priv;
-    uint8_t       ret = dev->pci_conf[addr];
+    const sis_85c496_t *dev = (sis_85c496_t *) priv;
+    uint8_t             ret = dev->pci_conf[addr];
 
     switch (addr) {
         case 0xa0:
@@ -480,6 +520,9 @@ sis_85c49x_pci_read(int func, int addr, void *priv)
             break;
         case 0x83: /*Port 70h Mirror*/
             ret = inb(0x70);
+            break;
+
+        default:
             break;
     }
 
@@ -538,7 +581,7 @@ sis_85c496_reset(void *priv)
     // sis_85c49x_pci_write(0, 0x5a, 0x06, dev);
 
     for (uint8_t i = 0; i < 8; i++)
-        sis_85c49x_pci_write(0, 0x48 + i, 0x00, dev);
+        dev->pci_conf[0x48 + i] = 0x02;
 
     sis_85c49x_pci_write(0, 0x80, 0x00, dev);
     sis_85c49x_pci_write(0, 0x81, 0x00, dev);
@@ -607,7 +650,9 @@ static void
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, sis_85c49x_pci_read, sis_85c49x_pci_write, dev);
 
-    // sis_85c497_isa_reset(dev);
+#if 0
+    sis_85c497_isa_reset(dev);
+#endif
 
     dev->port_92 = device_add(&port_92_device);
     port_92_set_period(dev->port_92, 2ULL * TIMER_USEC);
@@ -626,6 +671,11 @@ static void
     dma_high_page_init();
 
     timer_add(&dev->rmsmiblk_timer, sis_85c496_rmsmiblk_count, dev, 0);
+
+#ifndef USE_DRB_HACK
+    row_device.local = 7 | (1 << 8) | (0x02 << 16) | (8 << 24);
+    device_add((const device_t *) &row_device);
+#endif
 
     sis_85c496_reset(dev);
 

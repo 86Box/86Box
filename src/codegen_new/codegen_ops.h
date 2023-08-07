@@ -9,6 +9,7 @@ typedef uint32_t (*RecompOpFn)(codeblock_t *block, struct ir_data_t *ir, uint8_t
 
 extern RecompOpFn recomp_opcodes[512];
 extern RecompOpFn recomp_opcodes_0f[512];
+extern RecompOpFn recomp_opcodes_0f_no_mmx[512];
 extern RecompOpFn recomp_opcodes_3DNOW[256];
 extern RecompOpFn recomp_opcodes_d8[512];
 extern RecompOpFn recomp_opcodes_d9[512];

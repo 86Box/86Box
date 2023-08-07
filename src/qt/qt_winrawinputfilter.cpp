@@ -246,6 +246,8 @@ WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
            it's not an invalid scan code. */
             if (scancode != 0xFFFF)
                 keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
+
+            window->checkFullscreenHotkey();
         }
     } else {
         if (rawKB.MakeCode == 0x1D) {

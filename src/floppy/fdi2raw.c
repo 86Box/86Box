@@ -30,17 +30,15 @@
 #include <stdlib.h>
 #include <wchar.h>
 
-/* IF UAE */
-/*#include "sysconfig.h"
-#include "sysdeps.h"
-#include "zfile.h"*/
-/* ELSE */
 #define xmalloc malloc
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <fdi2raw.h>
+#include <86box/plat_unused.h>
 
+#ifdef DEBUG
 #undef DEBUG
+#endif
 #define VERBOSE
 #undef VERBOSE
 
@@ -69,7 +67,8 @@ datalog(uint8_t *src, int len)
 {
     static char buf[1000];
     static int  offset;
-    int         i = 0, offset2;
+    int         i = 0;
+    int         offset2;
 
     offset2       = offset;
     buf[offset++] = '\'';
@@ -99,24 +98,24 @@ static int fdi_allocated;
 
 #ifdef DEBUG
 static void
-fdi_free(void *p)
+fdi_free(void *priv)
 {
     int size;
-    if (!p)
+    if (!priv)
         return;
-    size = ((int *) p)[-1];
+    size = ((int *) priv)[-1];
     fdi_allocated -= size;
     write_log("%d freed (%d)\n", size, fdi_allocated);
-    free((int *) p - 1);
+    free((int *) priv - 1);
 }
 static void *
 fdi_malloc(int size)
 {
-    void *p        = xmalloc(size + sizeof(int));
-    ((int *) p)[0] = size;
+    void *priv       = xmalloc(size + sizeof(int));
+    ((int *) prv)[0] = size;
     fdi_allocated += size;
     write_log("%d allocated (%d)\n", size, fdi_allocated);
-    return (int *) p + 1;
+    return (int *) priv + 1;
 }
 #else
 #    define fdi_free   free
@@ -360,7 +359,7 @@ decode_raw_track(FDI *fdi)
 
 /* unknown track */
 static void
-zxx(FDI *fdi)
+zxx(UNUSED(FDI *fdi))
 {
     fdi2raw_log("track %d: unknown track type 0x%02.2X\n", fdi->current_track, fdi->track_type);
 }
@@ -373,7 +372,7 @@ static void zyy (FDI *fdi)
 #endif
 /* empty track */
 static void
-track_empty(FDI *fdi)
+track_empty(UNUSED(FDI *fdi))
 {
     return;
 }
@@ -647,8 +646,9 @@ s0d(FDI *fdi)
 /* ***** */
 
 /* just for testing integrity of Amiga sectors */
-
-/*static void rotateonebit (uint8_t *start, uint8_t *end, int shift)
+#if 0
+static void
+rotateonebit (uint8_t *start, uint8_t *end, int shift)
 {
         if (shift == 0)
                 return;
@@ -657,9 +657,10 @@ s0d(FDI *fdi)
                 start[0] |= start[1] >> (8 - shift);
                 start++;
         }
-}*/
+}
 
-/*static uint16_t getmfmword (uint8_t *mbuf)
+static uint16_t
+getmfmword (uint8_t *mbuf)
 {
         uint32_t v;
 
@@ -670,13 +671,15 @@ s0d(FDI *fdi)
         v |= mbuf[2];
         v >>= check_offset;
         return (uint16_t)v;
-}*/
+}
 
 #define MFMMASK 0x55555555
-/*static uint32_t getmfmlong (uint8_t * mbuf)
+static uint32_t
+getmfmlong (uint8_t * mbuf)
 {
         return ((getmfmword (mbuf) << 16) | getmfmword (mbuf + 2)) & MFMMASK;
-}*/
+}
+#endif
 
 #if 0
 static int amiga_check_track (FDI *fdi)
@@ -1237,7 +1240,7 @@ s1d(FDI *fdi)
 
 /* end marker */
 static void
-sff(FDI *fdi)
+sff(UNUSED(FDI *fdi))
 {
 }
 
@@ -1288,6 +1291,9 @@ track_atari_st(struct fdi *fdi, int max_sector)
             break;
         case 10:
             gap3 = 24;
+            break;
+
+        default:
             break;
     }
     s15(fdi);
@@ -1493,7 +1499,7 @@ fdi_decompress(int pulses, uint8_t *sizep, uint8_t *src, int *dofree)
 }
 
 static void
-dumpstream(int track, uint8_t *stream, int len)
+dumpstream(UNUSED(int track), UNUSED(uint8_t *stream), UNUSED(int len))
 {
 #if 0
     char name[100];
@@ -1713,7 +1719,9 @@ fdi2_decode(FDI *fdi, uint32_t totalavg, uint32_t *avgp, uint32_t *minp, uint32_
 
         /* calculates the current average bitrate from previous decoded data */
         uint32_t avg_size = (uint32_t) ((total << (2 + mfm)) / totaldiv); /* this is the new average size for one MFM bit */
-        /* uint32_t avg_size = (uint32_t)((((float)total)*((float)(mfm+1))*4.0) / ((float)totaldiv)); */
+#if 0
+        uint32_t avg_size = (uint32_t)((((float)total)*((float)(mfm+1))*4.0) / ((float)totaldiv));
+#endif
         /* you can try tighter ranges than 25%, or wider ranges. I would probably go for tighter... */
         if ((avg_size < (standard_MFM_8_bit_cell_size - (pulse_limitval * standard_MFM_8_bit_cell_size / 100))) || (avg_size > (standard_MFM_8_bit_cell_size + (pulse_limitval * standard_MFM_8_bit_cell_size / 100)))) {
             avg_size = standard_MFM_8_bit_cell_size;
@@ -1912,9 +1920,9 @@ fdi2_decode(FDI *fdi, uint32_t totalavg, uint32_t *avgp, uint32_t *minp, uint32_
 static void
 fdi2_celltiming(FDI *fdi, uint32_t totalavg, int bitoffset, uint16_t *out)
 {
-    uint16_t *pt2;
-    uint16_t *pt;
-    double    avg_bit_len;
+    const uint16_t *pt2;
+    uint16_t       *pt;
+    double          avg_bit_len;
 
     avg_bit_len = (double) totalavg / (double) bitoffset;
     pt2         = fdi->track_dst_buffer_timing;
@@ -1932,27 +1940,27 @@ fdi2_celltiming(FDI *fdi, uint32_t totalavg, int bitoffset, uint16_t *out)
 static int
 decode_lowlevel_track(FDI *fdi, int track, struct fdi_cache *cache)
 {
-    uint8_t  *p1;
-    uint32_t *p2;
-    uint32_t *avgp;
-    uint32_t *minp = 0;
-    uint32_t *maxp = 0;
-    uint8_t  *idxp = 0;
-    uint32_t  maxidx;
-    uint32_t  totalavg;
-    uint32_t  weakbits;
-    int       i;
-    int       j;
-    int       len;
-    int       pulses;
-    int       indexoffset;
-    int       avg_free;
-    int       min_free = 0;
-    int       max_free = 0;
-    int       idx_free;
-    int       idx_off1 = 0;
-    int       idx_off2 = 0;
-    int       idx_off3 = 0;
+    uint8_t        *p1;
+    const uint32_t *p2;
+    uint32_t       *avgp;
+    uint32_t       *minp = 0;
+    uint32_t       *maxp = 0;
+    uint8_t        *idxp = 0;
+    uint32_t        maxidx;
+    uint32_t        totalavg;
+    uint32_t        weakbits;
+    int             j;
+    int             k;
+    int             len;
+    int             pulses;
+    int             indexoffset;
+    int             avg_free;
+    int             min_free = 0;
+    int             max_free = 0;
+    int             idx_free;
+    int             idx_off1 = 0;
+    int             idx_off2 = 0;
+    int             idx_off3 = 0;
 
     p1     = fdi->track_src;
     pulses = get_u32(p1);
@@ -1971,7 +1979,7 @@ decode_lowlevel_track(FDI *fdi, int track, struct fdi_cache *cache)
         maxp = (uint32_t *) fdi_decompress(pulses, p1 + 6, p1 + len, &max_free);
         len += get_u24(p1 + 6) & 0x3fffff;
         /* Computes the real min and max values */
-        for (i = 0; i < pulses; i++) {
+        for (int i = 0; i < pulses; i++) {
             maxp[i] = avgp[i] + minp[i] - maxp[i];
             minp[i] = avgp[i] - minp[i];
         }
@@ -1997,7 +2005,7 @@ decode_lowlevel_track(FDI *fdi, int track, struct fdi_cache *cache)
     } else {
         idxp     = fdi_malloc(pulses * 2);
         idx_free = 1;
-        for (i = 0; i < pulses; i++) {
+        for (int i = 0; i < pulses; i++) {
             idxp[i * 2 + 0] = 2;
             idxp[i * 2 + 1] = 0;
         }
@@ -2008,43 +2016,43 @@ decode_lowlevel_track(FDI *fdi, int track, struct fdi_cache *cache)
     maxidx      = 0;
     indexoffset = 0;
     p1          = idxp;
-    for (i = 0; i < pulses; i++) {
+    for (int i = 0; i < pulses; i++) {
         if ((uint32_t) p1[idx_off1] + (uint32_t) p1[idx_off2] > maxidx)
             maxidx = p1[idx_off1] + p1[idx_off2];
         p1 += idx_off3;
     }
     p1 = idxp;
-    for (i = 0; (i < pulses) && (p1[idx_off2] != 0); i++) /* falling edge, replace with idx_off1 for rising edge */
+    for (k = 0; (k < pulses) && (p1[idx_off2] != 0); k++) /* falling edge, replace with idx_off1 for rising edge */
         p1 += idx_off3;
-    if (i < pulses) {
-        j = i;
+    if (k < pulses) {
+        j = k;
         do {
-            i++;
+            k++;
             p1 += idx_off3;
-            if (i >= pulses) {
-                i  = 0;
+            if (k >= pulses) {
+                k  = 0;
                 p1 = idxp;
             }
-        } while ((i != j) && (p1[idx_off2] == 0)); /* falling edge, replace with idx_off1 for rising edge */
-        if (i != j)                                /* index pulse detected */
+        } while ((k != j) && (p1[idx_off2] == 0)); /* falling edge, replace with idx_off1 for rising edge */
+        if (k != j)                                /* index pulse detected */
         {
-            while ((i != j) && (p1[idx_off1] > p1[idx_off2])) { /* falling edge, replace with "<" for rising edge */
-                i++;
+            while ((k != j) && (p1[idx_off1] > p1[idx_off2])) { /* falling edge, replace with "<" for rising edge */
+                k++;
                 p1 += idx_off3;
-                if (i >= pulses) {
-                    i  = 0;
+                if (k >= pulses) {
+                    k  = 0;
                     p1 = idxp;
                 }
             }
-            if (i != j)
-                indexoffset = i; /* index position detected */
+            if (k != j)
+                indexoffset = k; /* index position detected */
         }
     }
     p1       = idxp;
     p2       = avgp;
     totalavg = 0;
     weakbits = 0;
-    for (i = 0; i < pulses; i++) {
+    for (int i = 0; i < pulses; i++) {
         uint32_t sum = p1[idx_off1] + p1[idx_off2];
         if (sum >= maxidx) {
             totalavg += *p2;
@@ -2056,8 +2064,10 @@ decode_lowlevel_track(FDI *fdi, int track, struct fdi_cache *cache)
         idxp[i] = sum;
     }
     len = totalavg / 100000;
-    /* fdi2raw_log("totalavg=%u index=%d (%d) maxidx=%d weakbits=%d len=%d\n",
-            totalavg, indexoffset, maxidx, weakbits, len); */
+#if 0
+    fdi2raw_log("totalavg=%u index=%d (%d) maxidx=%d weakbits=%d len=%d\n",
+                totalavg, indexoffset, maxidx, weakbits, len);
+#endif
     cache->avgp        = avgp;
     cache->idxp        = idxp;
     cache->minp        = minp;
@@ -2239,15 +2249,17 @@ fdi2raw_loadrevolution_2(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int 
     fdi2_decode(fdi, cache->totalavg,
                 cache->avgp, cache->minp, cache->maxp, cache->idxp,
                 cache->maxidx, &idx, cache->pulses, mfm);
-    /* fdi2raw_log("track %d: nbits=%d avg len=%.2f weakbits=%d idx=%d\n",
-            track, bitoffset, (double)cache->totalavg / bitoffset, cache->weakbits, cache->indexoffset); */
+#if 0
+    fdi2raw_log("track %d: nbits=%d avg len=%.2f weakbits=%d idx=%d\n",
+                track, bitoffset, (double)cache->totalavg / bitoffset, cache->weakbits, cache->indexoffset);
+#endif
     len = fdi->out;
     if (cache->weakbits >= 10 && multirev)
         *multirev = 1;
     *tracklength = len;
 
     for (int i = 0; i < (len + 15) / (2 * 8); i++) {
-        uint8_t *data = fdi->track_dst_buffer + i * 2;
+        const uint8_t *data = fdi->track_dst_buffer + i * 2;
         *mfmbuf++     = 256 * *data + *(data + 1);
     }
     fdi2_celltiming(fdi, cache->totalavg, len, tracktiming);
@@ -2266,7 +2278,7 @@ fdi2raw_loadrevolution(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int tr
 int
 fdi2raw_loadtrack(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int track, int *tracklength, int *indexoffsetp, int *multirev, int mfm)
 {
-    uint8_t          *p;
+    const uint8_t    *p;
     int               outlen;
     struct fdi_cache *cache = &fdi->cache[track];
 
@@ -2298,8 +2310,10 @@ fdi2raw_loadtrack(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int track, 
     else
         fdi->bit_rate = 250;
 
-    /* fdi2raw_log("track %d: srclen: %d track_type: %02.2X, bitrate: %d\n",
-            fdi->current_track, fdi->track_src_len, fdi->track_type, fdi->bit_rate); */
+#if 0
+    fdi2raw_log("track %d: srclen: %d track_type: %02.2X, bitrate: %d\n",
+                fdi->current_track, fdi->track_src_len, fdi->track_type, fdi->bit_rate);
+#endif
 
     if ((fdi->track_type & 0xc0) == 0x80) {
 
@@ -2338,8 +2352,8 @@ fdi2raw_loadtrack(FDI *fdi, uint16_t *mfmbuf, uint16_t *tracktiming, int track, 
             return fdi2raw_loadrevolution_2(fdi, mfmbuf, tracktiming, track, tracklength, indexoffsetp, multirev, mfm);
         *tracklength = fdi->out;
         for (int i = 0; i < ((*tracklength) + 15) / (2 * 8); i++) {
-            uint8_t *data = fdi->track_dst_buffer + i * 2;
-            *mfmbuf++     = 256 * *data + *(data + 1);
+            const uint8_t *data = fdi->track_dst_buffer + i * 2;
+            *mfmbuf++           = 256 * *data + *(data + 1);
         }
     }
     return outlen;

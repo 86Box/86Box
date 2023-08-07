@@ -30,6 +30,7 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/video.h>
+#include <86box/plat_unused.h>
 
 /* extended CRTC registers */
 #define HERCULESPLUS_CRTC_XMODE 20 /* xMode register */
@@ -162,6 +163,9 @@ herculesplus_out(uint16_t port, uint8_t val, void *priv)
             else
                 mem_mapping_set_addr(&dev->mapping, 0xb0000, 0x08000);
             return;
+
+        default:
+            break;
     }
 }
 
@@ -190,6 +194,9 @@ herculesplus_in(uint16_t port, void *priv)
         case 0x3ba:
             /* 0x10: Hercules Plus card identity */
             ret = (dev->stat & 0xf) | ((dev->stat & 8) << 4) | 0x10;
+            break;
+
+        default:
             break;
     }
 
@@ -327,7 +334,7 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
         if ((attr & 0x77) == 0)
             cfg = ibg; /* 'blank' attribute */
 
-        buffer32->line[dev->displine][x * cw + i] = dev->cols[attr][blink][cfg];
+        buffer32->line[dev->displine][x * cw + i] = dev->cols[attr][!!blink][cfg];
         val                                       = val << 1;
     }
 }
@@ -423,7 +430,7 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
         else
             cfg |= ibg;
 
-        buffer32->line[dev->displine][(x * cw) + i] = dev->cols[attr][blink][cfg];
+        buffer32->line[dev->displine][(x * cw) + i] = dev->cols[attr][!!blink][cfg];
         val                                         = val << 1;
     }
 }
@@ -457,6 +464,9 @@ text_line(herculesplus_t *dev, uint16_t ca)
 
             case 5: /* 48k RAMfont */
                 draw_char_ram48(dev, x, chr, attr);
+                break;
+
+            default:
                 break;
         }
         ++dev->ma;
@@ -641,7 +651,7 @@ herculesplus_poll(void *priv)
 }
 
 static void *
-herculesplus_init(const device_t *info)
+herculesplus_init(UNUSED(const device_t *info))
 {
     herculesplus_t *dev;
 

@@ -65,9 +65,9 @@
 #include <86box/timer.h>
 #include <86box/gameport.h>
 #include <86box/joystick_sw_pad.h>
+#include <86box/plat_unused.h>
 
-typedef struct
-{
+typedef struct sw_data {
     pc_timer_t poll_timer;
     int        poll_left;
     int        poll_clock;
@@ -79,9 +79,9 @@ typedef struct
 } sw_data;
 
 static void
-sw_timer_over(void *p)
+sw_timer_over(void *priv)
 {
-    sw_data *sw = (sw_data *) p;
+    sw_data *sw = (sw_data *) priv;
 
     sw->poll_clock = !sw->poll_clock;
 
@@ -99,9 +99,9 @@ sw_timer_over(void *p)
 }
 
 static void
-sw_trigger_timer_over(void *p)
+sw_trigger_timer_over(void *priv)
 {
-    sw_data *sw = (sw_data *) p;
+    sw_data *sw = (sw_data *) priv;
 
     timer_disable(&sw->trigger_timer);
 }
@@ -132,17 +132,17 @@ sw_init(void)
 }
 
 static void
-sw_close(void *p)
+sw_close(void *priv)
 {
-    sw_data *sw = (sw_data *) p;
+    sw_data *sw = (sw_data *) priv;
 
     free(sw);
 }
 
 static uint8_t
-sw_read(void *p)
+sw_read(void *priv)
 {
-    sw_data *sw   = (sw_data *) p;
+    sw_data *sw   = (sw_data *) priv;
     uint8_t  temp = 0;
 
     if (!JOYSTICK_PRESENT(0))
@@ -166,9 +166,9 @@ sw_read(void *p)
 }
 
 static void
-sw_write(void *p)
+sw_write(void *priv)
 {
-    sw_data *sw              = (sw_data *) p;
+    sw_data *sw              = (sw_data *) priv;
     int64_t  time_since_last = timer_get_remaining_us(&sw->trigger_timer);
 
     if (!JOYSTICK_PRESENT(0))
@@ -234,7 +234,7 @@ sw_write(void *p)
 }
 
 static int
-sw_read_axis(void *p, int axis)
+sw_read_axis(UNUSED(void *priv), UNUSED(int axis))
 {
     if (!JOYSTICK_PRESENT(0))
         return AXIS_NOT_PRESENT;
@@ -243,9 +243,9 @@ sw_read_axis(void *p, int axis)
 }
 
 static void
-sw_a0_over(void *p)
+sw_a0_over(void *priv)
 {
-    sw_data *sw = (sw_data *) p;
+    sw_data *sw = (sw_data *) priv;
 
     timer_set_delay_u64(&sw->trigger_timer, TIMER_USEC * 10000);
 }

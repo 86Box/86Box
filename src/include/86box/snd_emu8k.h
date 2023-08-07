@@ -85,10 +85,14 @@ typedef struct emu8k_mem_pointers_t {
  */
 typedef struct emu8k_envelope_t {
     int     state;
-    int32_t delay_samples, hold_samples, attack_samples;
-    int32_t value_amp_hz, value_db_oct;
+    int32_t delay_samples;
+    int32_t hold_samples;
+    int32_t attack_samples;
+    int32_t value_amp_hz;
+    int32_t value_db_oct;
     int32_t sustain_value_db_oct;
-    int32_t attack_amount_amp_hz, ramp_amount_db_oct;
+    int32_t attack_amount_amp_hz;
+    int32_t ramp_amount_db_oct;
 } emu8k_envelope_t;
 
 typedef struct emu8k_chorus_eng_t {
@@ -320,10 +324,14 @@ typedef struct emu8k_voice_t {
     emu8k_envelope_t vol_envelope;
     emu8k_envelope_t mod_envelope;
 
-    int64_t              lfo1_speed, lfo2_speed;
-    emu8k_mem_internal_t lfo1_count, lfo2_count;
-    int32_t              lfo1_delay_samples, lfo2_delay_samples;
-    int                  vol_l, vol_r;
+    int64_t              lfo1_speed;
+    int64_t              lfo2_speed;
+    emu8k_mem_internal_t lfo1_count;
+    emu8k_mem_internal_t lfo2_count;
+    int32_t              lfo1_delay_samples;
+    int32_t              lfo2_delay_samples;
+    int                  vol_l;
+    int                  vol_r;
 
     int16_t fixed_modenv_filter_height;
     int16_t fixed_modenv_pitch_height;
@@ -342,28 +350,44 @@ typedef struct emu8k_voice_t {
 typedef struct emu8k_t {
     emu8k_voice_t voice[32];
 
-    uint16_t hwcf1, hwcf2, hwcf3;
-    uint32_t hwcf4, hwcf5, hwcf6, hwcf7;
+    uint16_t hwcf1;
+    uint16_t hwcf2;
+    uint16_t hwcf3;
+    uint32_t hwcf4;
+    uint32_t hwcf5;
+    uint32_t hwcf6;
+    uint32_t hwcf7;
 
-    uint16_t init1[32], init2[32], init3[32], init4[32];
+    uint16_t init1[32];
+    uint16_t init2[32];
+    uint16_t init3[32];
+    uint16_t init4[32];
 
-    uint32_t smalr, smarr, smalw, smarw;
-    uint16_t smld_buffer, smrd_buffer;
+    uint32_t smalr;
+    uint32_t smarr;
+    uint32_t smalw;
+    uint32_t smarw;
+    uint16_t smld_buffer;
+    uint16_t smrd_buffer;
 
     uint16_t wc;
 
     uint16_t id;
 
     /* The empty block is used to act as an unallocated memory returning zero. */
-    int16_t *ram, *rom, *empty;
+    int16_t *ram;
+    int16_t *rom;
+    int16_t *empty;
 
     /* RAM pointers are a way to avoid checking ram boundaries on read */
     int16_t *ram_pointers[0x100];
     uint32_t ram_end_addr;
 
-    int cur_reg, cur_voice;
+    int cur_reg;
+    int cur_voice;
 
-    int16_t out_l, out_r;
+    int16_t out_l;
+    int16_t out_r;
 
     emu8k_chorus_eng_t chorus_engine;
     int32_t            chorus_in_buffer[SOUNDBUFLEN];

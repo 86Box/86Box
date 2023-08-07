@@ -10,12 +10,13 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 #include <86box/chipset.h>
 
-typedef struct
-{
-    uint8_t cur_reg, tries,
-        regs[258];
+typedef struct rabbit_t {
+    uint8_t cur_reg;
+    uint8_t tries;
+    uint8_t regs[258];
 } rabbit_t;
 
 static void
@@ -64,6 +65,8 @@ rabbit_recalcmapping(rabbit_t *dev)
             /* 128K at 0E0000-0FFFFF */
             mem_set_mem_state(0x000e0000, 0x00020000, shflags);
             break;
+        default:
+            break;
     }
 
     flushmmucache();
@@ -89,6 +92,8 @@ rabbit_write(uint16_t addr, uint8_t val, void *priv)
             } else
                 dev->regs[dev->cur_reg] = val;
             break;
+        default:
+            break;
     }
 }
 
@@ -106,6 +111,9 @@ rabbit_read(uint16_t addr, void *priv)
             } else
                 ret = dev->regs[dev->cur_reg];
             break;
+
+        default:
+            break;
     }
 
     return ret;
@@ -120,7 +128,7 @@ rabbit_close(void *priv)
 }
 
 static void *
-rabbit_init(const device_t *info)
+rabbit_init(UNUSED(const device_t *info))
 {
     rabbit_t *dev = (rabbit_t *) malloc(sizeof(rabbit_t));
     memset(dev, 0, sizeof(rabbit_t));

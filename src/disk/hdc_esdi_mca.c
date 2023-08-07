@@ -82,6 +82,7 @@
 #include <86box/ui.h>
 #include <86box/hdc.h>
 #include <86box/hdd.h>
+#include <86box/plat_unused.h>
 
 /* These are hardwired. */
 #define ESDI_IOADDR_PRI 0x3510
@@ -95,7 +96,8 @@
 #define CMD_ADAPTER     0
 
 typedef struct esdi_drive_t {
-    int spt, hpc;
+    int spt;
+    int hpc;
     int tracks;
     int sectors;
     int present;
@@ -117,8 +119,8 @@ typedef struct esdi_t {
     uint16_t cmd_data[4];
     int      cmd_dev;
 
-    int status_pos,
-        status_len;
+    int status_pos;
+    int status_len;
 
     uint16_t status_data[256];
 
@@ -138,7 +140,7 @@ typedef struct esdi_t {
 
     uint32_t rba;
 
-    struct {
+    struct cmds {
         int req_in_progress;
     } cmds[3];
 
@@ -221,7 +223,7 @@ set_irq(esdi_t *dev)
 }
 
 static __inline void
-clear_irq(esdi_t *dev)
+clear_irq(UNUSED(esdi_t *dev))
 {
     picintc(1 << 14);
 }
@@ -241,7 +243,7 @@ esdi_mca_set_callback(esdi_t *dev, double callback)
 }
 
 static double
-esdi_mca_get_xfer_time(esdi_t *esdi, int size)
+esdi_mca_get_xfer_time(UNUSED(esdi_t *esdi), int size)
 {
     /* 390.625 us per sector at 10 Mbit/s = 1280 kB/s. */
     return (3125.0 / 8.0) * (double) size;
@@ -350,10 +352,10 @@ complete_command_status(esdi_t *dev)
 static void
 esdi_callback(void *priv)
 {
-    esdi_t  *dev = (esdi_t *) priv;
-    drive_t *drive;
-    int      val;
-    double   cmd_time = 0.0;
+    esdi_t        *dev = (esdi_t *) priv;
+    const drive_t *drive;
+    int            val;
+    double         cmd_time = 0.0;
 
     esdi_mca_set_callback(dev, 0);
 
@@ -440,6 +442,9 @@ esdi_callback(void *priv)
                     dev->irq_in_progress = 1;
                     set_irq(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -513,6 +518,9 @@ esdi_callback(void *priv)
                     dev->irq_in_progress = 1;
                     set_irq(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -546,6 +554,9 @@ esdi_callback(void *priv)
                     dev->irq_in_progress = 1;
                     set_irq(dev);
                     break;
+
+                default:
+                    break;
             }
             break;
 
@@ -576,6 +587,9 @@ esdi_callback(void *priv)
                     dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
                     dev->irq_in_progress = 1;
                     set_irq(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -695,7 +709,6 @@ esdi_callback(void *priv)
                             }
 
                             dev->data[dev->data_pos++] = val & 0xffff;
-                            ;
                         }
 
                         memcpy(dev->sector_buffer[dev->sector_pos++], dev->data, 512);
@@ -713,6 +726,9 @@ esdi_callback(void *priv)
                     dev->irq_in_progress = 1;
                     set_irq(dev);
                     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -770,6 +786,9 @@ esdi_callback(void *priv)
                     dev->irq_in_progress = 1;
                     set_irq(dev);
                     ui_sb_update_icon(SB_HDD | HDD_BUS_ESDI, 0);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -838,6 +857,9 @@ esdi_callback(void *priv)
                     dev->irq_status      = dev->cmd_dev | IRQ_CMD_COMPLETE_SUCCESS;
                     dev->irq_in_progress = 1;
                     set_irq(dev);
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -1037,7 +1059,7 @@ esdi_writew(uint16_t port, uint16_t val, void *priv)
 static uint8_t
 esdi_mca_read(int port, void *priv)
 {
-    esdi_t *dev = (esdi_t *) priv;
+    const esdi_t *dev = (esdi_t *) priv;
 
     esdi_mca_log("ESDI: mcard(%04x)\n", port);
 
@@ -1085,6 +1107,9 @@ esdi_mca_write(int port, uint8_t val, void *priv)
         case 0x10:
             dev->dma = 4;
             break;
+
+        default:
+            break;
     }
 
     if (dev->pos_regs[2] & 1) {
@@ -1107,13 +1132,13 @@ esdi_mca_write(int port, uint8_t val, void *priv)
 static uint8_t
 esdi_mca_feedb(void *priv)
 {
-    esdi_t *dev = (esdi_t *) priv;
+    const esdi_t *dev = (esdi_t *) priv;
 
     return (dev->pos_regs[2] & 1);
 }
 
 static void *
-esdi_init(const device_t *info)
+esdi_init(UNUSED(const device_t *info))
 {
     drive_t *drive;
     esdi_t  *dev;
@@ -1185,8 +1210,8 @@ esdi_init(const device_t *info)
 static void
 esdi_close(void *priv)
 {
-    esdi_t  *dev = (esdi_t *) priv;
-    drive_t *drive;
+    esdi_t        *dev = (esdi_t *) priv;
+    const drive_t *drive;
 
     dev->drives[0].present = dev->drives[1].present = 0;
 

@@ -845,7 +845,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
         switch (opcode) {
             case 0x0f:
                 op_table        = x86_dynarec_opcodes_0f;
-                recomp_op_table = recomp_opcodes_0f;
+                recomp_op_table = fpu_softfloat ? recomp_opcodes_0f_no_mmx : recomp_opcodes_0f;
                 over            = 1;
                 break;
 
