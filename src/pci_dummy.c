@@ -18,6 +18,7 @@ typedef struct pci_dummy_t {
     bar_t pci_bar[2];
 
     uint8_t pci_slot;
+    uint8_t irq_state;
     uint8_t interrupt_on;
 
     uint8_t irq_level;
