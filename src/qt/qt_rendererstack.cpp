@@ -73,7 +73,7 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
 
     m_monitor_index = monitor_index;
 #if defined __unix__ && !defined __HAIKU__
-    mousedata.mouse_type = getenv("EMU86BOX_MOUSE"), char auto_mouse_type[16];
+    mousedata.mouse_type = getenv("EMU86BOX_MOUSE"), auto_mouse_type[16];
     if (!mousedata.mouse_type || (mousedata.mouse_type[0] == '\0') || !stricmp(mousedata.mouse_type, "auto")) {
         if (QApplication::platformName().contains("wayland"))
             strcpy(auto_mouse_type, "wayland");

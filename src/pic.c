@@ -60,7 +60,6 @@ static uint16_t latched_irqs       = 0x0000;
 static int shadow = 0;
 static int elcr_enabled = 0;
 static int tmr_inited = 0;
-static int latched = 0;
 static int pic_pci = 0;
 
 static void    (*update_pending)(void);
@@ -239,10 +238,8 @@ pic_update_pending_at(void)
 }
 
 static void
-pic_callback(void *priv)
+pic_callback(UNUSED(void *priv))
 {
-    pic_t *dev = (pic_t *) priv;
-
     update_pending();
 }
 
