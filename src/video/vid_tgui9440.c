@@ -113,7 +113,7 @@ typedef struct tgui_t {
 
     struct
     {
-        int16_t  src_x, src_y;
+        int32_t  src_x, src_y;
         int16_t  src_x_clip, src_y_clip;
         int16_t  dst_x, dst_y;
         int16_t  dst_y_clip, dst_x_clip;
@@ -129,7 +129,8 @@ typedef struct tgui_t {
         int      offset;
         uint16_t ger22;
 
-        int16_t  err, top, left, bottom, right;
+        int32_t  err;
+        int16_t  top, left, bottom, right;
         int      x, y, dx, dy;
         uint32_t src, dst, src_old, dst_old;
         int      pat_x, pat_y;

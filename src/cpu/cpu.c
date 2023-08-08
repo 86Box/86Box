@@ -18,6 +18,7 @@
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2018-2021 Fred N. van Kempen.
  */
+#include <inttypes.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -1609,7 +1610,7 @@ cpu_set(void)
             break;
 
         default:
-            fatal("cpu_set : unknown CPU type %llu\n", cpu_s->cpu_type);
+            fatal("cpu_set : unknown CPU type %" PRIu64 "\n", cpu_s->cpu_type);
     }
 
     switch (fpu_type) {
