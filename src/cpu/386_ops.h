@@ -2100,6 +2100,7 @@ const OpFn OP_TABLE(pentium2d_0f)[1024] = {
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
     // clang-format on
 };
+#endif
 
 const OpFn OP_TABLE(186)[1024] = {
     // clang-format off
@@ -2192,7 +2193,6 @@ const OpFn OP_TABLE(186)[1024] = {
 /*f0*/  opLOCK,         opLOCK,         opREPNE,        opREPE,         opHLT,          opCMC,          opF6_a16,       opF7_w_a16,     opCLC,          opSTC,          opCLI,          opSTI,          opCLD,          opSTD,          opINCDEC_b_a16, opFF_w_a16,
     // clang-format on
 };
-#endif
 
 const OpFn OP_TABLE(286)[1024] = {
     // clang-format off
