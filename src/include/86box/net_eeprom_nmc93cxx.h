@@ -1,11 +1,10 @@
 struct nmc93cxx_eeprom_t;
 typedef struct nmc93cxx_eeprom_t nmc93cxx_eeprom_t;
 
-typedef struct nmc93cxx_eeprom_params_t
-{
-    uint16_t nwords;
-    char* filename;
-    uint16_t* default_content;
+typedef struct nmc93cxx_eeprom_params_t {
+    uint16_t  nwords;
+    char     *filename;
+    uint16_t *default_content;
 } nmc93cxx_eeprom_params_t;
 
 /* Read from the EEPROM. */

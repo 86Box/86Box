@@ -15,10 +15,9 @@
 #include <86box/network.h>
 
 uint16_t
-l80225_mii_readw(uint16_t* regs, uint16_t addr)
+l80225_mii_readw(uint16_t *regs, uint16_t addr)
 {
-    switch (addr)
-    {
+    switch (addr) {
         case 0x1:
             return 0x782D;
         case 0x2:
@@ -36,7 +35,7 @@ l80225_mii_readw(uint16_t* regs, uint16_t addr)
 }
 
 void
-l80225_mii_writew(uint16_t* regs, uint16_t addr, uint16_t val)
+l80225_mii_writew(uint16_t *regs, uint16_t addr, uint16_t val)
 {
     regs[addr] = val;
 }

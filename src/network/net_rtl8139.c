@@ -40,28 +40,32 @@
 #include <86box/network.h>
 #include <86box/bswap.h>
 #include <86box/nvr.h>
-#include <86box/cpu.h>
+#include "cpu.h"
 #include <86box/net_rtl8139.h>
+#include <86box/plat_unused.h>
 
-#define PCI_PERIOD 30    /* 30 ns period = 33.333333 Mhz frequency */
+#define PCI_PERIOD 30 /* 30 ns period = 33.333333 Mhz frequency */
 
 #define SET_MASKED(input, mask, curr) \
-    ( ( (input) & ~(mask) ) | ( (curr) & (mask) ) )
+    (((input) & ~(mask)) | ((curr) & (mask)))
 
 /* arg % size for size which is a power of 2 */
 #define MOD2(input, size) \
-    ( ( input ) & ( size - 1 )  )
+    ((input) & (size - 1))
 
 #define ETHER_TYPE_LEN 2
 
-#define VLAN_TCI_LEN 2
-#define VLAN_HLEN (ETHER_TYPE_LEN + VLAN_TCI_LEN)
+#define VLAN_TCI_LEN   2
+#define VLAN_HLEN      (ETHER_TYPE_LEN + VLAN_TCI_LEN)
 
-#if defined (DEBUG_RTL8139)
-#  define DPRINTF(fmt, ...) \
-    do { pclog("RTL8139: " fmt, ## __VA_ARGS__); } while (0)
+#if defined(DEBUG_RTL8139)
+#    define DPRINTF(fmt, ...)                      \
+        do {                                       \
+            pclog("RTL8139: " fmt, ##__VA_ARGS__); \
+        } while (0)
 #else
-static inline  __attribute__ ((format (printf, 1, 2))) int DPRINTF(const char *fmt, ...)
+static inline __attribute__((format(printf, 1, 2))) int
+DPRINTF(UNUSED(const char *fmt), ...)
 {
     return 0;
 }
@@ -72,63 +76,63 @@ typedef struct RTL8139State RTL8139State;
 
 /* Symbolic offsets to registers. */
 enum RTL8139_registers {
-    MAC0 = 0,        /* Ethernet hardware address. */
-    MAR0 = 8,        /* Multicast filter. */
-    TxStatus0 = 0x10,/* Transmit status (Four 32bit registers). C mode only */
-                     /* Dump Tally Conter control register(64bit). C+ mode only */
-    TxAddr0 = 0x20,  /* Tx descriptors (also four 32bit). */
-    RxBuf = 0x30,
-    ChipCmd = 0x37,
-    RxBufPtr = 0x38,
-    RxBufAddr = 0x3A,
-    IntrMask = 0x3C,
-    IntrStatus = 0x3E,
-    TxConfig = 0x40,
-    RxConfig = 0x44,
-    Timer = 0x48,        /* A general-purpose counter. */
-    RxMissed = 0x4C,    /* 24 bits valid, write clears. */
-    Cfg9346 = 0x50,
-    Config0 = 0x51,
-    Config1 = 0x52,
-    FlashReg = 0x54,
-    MediaStatus = 0x58,
-    Config3 = 0x59,
-    Config4 = 0x5A,        /* absent on RTL-8139A */
-    HltClk = 0x5B,
-    MultiIntr = 0x5C,
-    PCIRevisionID = 0x5E,
-    TxSummary = 0x60, /* TSAD register. Transmit Status of All Descriptors*/
-    BasicModeCtrl = 0x62,
+    MAC0      = 0,          /* Ethernet hardware address. */
+    MAR0      = 8,          /* Multicast filter. */
+    TxStatus0 = 0x10,       /* Transmit status (Four 32bit registers). C mode only */
+                            /* Dump Tally Conter control register(64bit). C+ mode only */
+    TxAddr0         = 0x20, /* Tx descriptors (also four 32bit). */
+    RxBuf           = 0x30,
+    ChipCmd         = 0x37,
+    RxBufPtr        = 0x38,
+    RxBufAddr       = 0x3A,
+    IntrMask        = 0x3C,
+    IntrStatus      = 0x3E,
+    TxConfig        = 0x40,
+    RxConfig        = 0x44,
+    Timer           = 0x48, /* A general-purpose counter. */
+    RxMissed        = 0x4C, /* 24 bits valid, write clears. */
+    Cfg9346         = 0x50,
+    Config0         = 0x51,
+    Config1         = 0x52,
+    FlashReg        = 0x54,
+    MediaStatus     = 0x58,
+    Config3         = 0x59,
+    Config4         = 0x5A, /* absent on RTL-8139A */
+    HltClk          = 0x5B,
+    MultiIntr       = 0x5C,
+    PCIRevisionID   = 0x5E,
+    TxSummary       = 0x60, /* TSAD register. Transmit Status of All Descriptors*/
+    BasicModeCtrl   = 0x62,
     BasicModeStatus = 0x64,
-    NWayAdvert = 0x66,
-    NWayLPAR = 0x68,
-    NWayExpansion = 0x6A,
+    NWayAdvert      = 0x66,
+    NWayLPAR        = 0x68,
+    NWayExpansion   = 0x6A,
     /* Undocumented registers, but required for proper operation. */
-    FIFOTMS = 0x70,        /* FIFO Control and test. */
-    CSCR = 0x74,        /* Chip Status and Configuration Register. */
-    PARA78 = 0x78,
-    PARA7c = 0x7c,        /* Magic transceiver parameter register. */
-    Config5 = 0xD8,        /* absent on RTL-8139A */
+    FIFOTMS = 0x70, /* FIFO Control and test. */
+    CSCR    = 0x74, /* Chip Status and Configuration Register. */
+    PARA78  = 0x78,
+    PARA7c  = 0x7c, /* Magic transceiver parameter register. */
+    Config5 = 0xD8, /* absent on RTL-8139A */
     /* C+ mode */
-    TxPoll        = 0xD9,    /* Tell chip to check Tx descriptors for work */
+    TxPoll       = 0xD9, /* Tell chip to check Tx descriptors for work */
     RxMaxSize    = 0xDA, /* Max size of an Rx packet (8169 only) */
     CpCmd        = 0xE0, /* C+ Command register (C+ mode only) */
-    IntrMitigate    = 0xE2,    /* rx/tx interrupt mitigation control */
-    RxRingAddrLO    = 0xE4, /* 64-bit start addr of Rx ring */
-    RxRingAddrHI    = 0xE8, /* 64-bit start addr of Rx ring */
-    TxThresh    = 0xEC, /* Early Tx threshold */
+    IntrMitigate = 0xE2, /* rx/tx interrupt mitigation control */
+    RxRingAddrLO = 0xE4, /* 64-bit start addr of Rx ring */
+    RxRingAddrHI = 0xE8, /* 64-bit start addr of Rx ring */
+    TxThresh     = 0xEC, /* Early Tx threshold */
 };
 
 enum ClearBitMasks {
     MultiIntrClear = 0xF000,
-    ChipCmdClear = 0xE2,
-    Config1Clear = (1<<7)|(1<<6)|(1<<3)|(1<<2)|(1<<1),
+    ChipCmdClear   = 0xE2,
+    Config1Clear   = (1 << 7) | (1 << 6) | (1 << 3) | (1 << 2) | (1 << 1),
 };
 
 enum ChipCmdBits {
-    CmdReset = 0x10,
-    CmdRxEnb = 0x08,
-    CmdTxEnb = 0x04,
+    CmdReset   = 0x10,
+    CmdRxEnb   = 0x08,
+    CmdTxEnb   = 0x04,
     RxBufEmpty = 0x01,
 };
 
@@ -142,102 +146,100 @@ enum CplusCmdBits {
 
 /* Interrupt register bits, using my own meaningful names. */
 enum IntrStatusBits {
-    PCIErr = 0x8000,
+    PCIErr     = 0x8000,
     PCSTimeout = 0x4000,
     RxFIFOOver = 0x40,
     RxUnderrun = 0x20, /* Packet Underrun / Link Change */
     RxOverflow = 0x10,
-    TxErr = 0x08,
-    TxOK = 0x04,
-    RxErr = 0x02,
-    RxOK = 0x01,
+    TxErr      = 0x08,
+    TxOK       = 0x04,
+    RxErr      = 0x02,
+    RxOK       = 0x01,
 
     RxAckBits = RxFIFOOver | RxOverflow | RxOK,
 };
 
 enum TxStatusBits {
-    TxHostOwns = 0x2000,
-    TxUnderrun = 0x4000,
-    TxStatOK = 0x8000,
+    TxHostOwns    = 0x2000,
+    TxUnderrun    = 0x4000,
+    TxStatOK      = 0x8000,
     TxOutOfWindow = 0x20000000,
-    TxAborted = 0x40000000,
+    TxAborted     = 0x40000000,
     TxCarrierLost = 0x80000000,
 };
 enum RxStatusBits {
     RxMulticast = 0x8000,
-    RxPhysical = 0x4000,
+    RxPhysical  = 0x4000,
     RxBroadcast = 0x2000,
     RxBadSymbol = 0x0020,
-    RxRunt = 0x0010,
-    RxTooLong = 0x0008,
-    RxCRCErr = 0x0004,
-    RxBadAlign = 0x0002,
-    RxStatusOK = 0x0001,
+    RxRunt      = 0x0010,
+    RxTooLong   = 0x0008,
+    RxCRCErr    = 0x0004,
+    RxBadAlign  = 0x0002,
+    RxStatusOK  = 0x0001,
 };
 
 /* Bits in RxConfig. */
 enum rx_mode_bits {
-    AcceptErr = 0x20,
-    AcceptRunt = 0x10,
+    AcceptErr       = 0x20,
+    AcceptRunt      = 0x10,
     AcceptBroadcast = 0x08,
     AcceptMulticast = 0x04,
-    AcceptMyPhys = 0x02,
-    AcceptAllPhys = 0x01,
+    AcceptMyPhys    = 0x02,
+    AcceptAllPhys   = 0x01,
 };
 
 /* Bits in TxConfig. */
 enum tx_config_bits {
 
-        /* Interframe Gap Time. Only TxIFG96 doesn't violate IEEE 802.3 */
-        TxIFGShift = 24,
-        TxIFG84 = (0 << TxIFGShift),    /* 8.4us / 840ns (10 / 100Mbps) */
-        TxIFG88 = (1 << TxIFGShift),    /* 8.8us / 880ns (10 / 100Mbps) */
-        TxIFG92 = (2 << TxIFGShift),    /* 9.2us / 920ns (10 / 100Mbps) */
-        TxIFG96 = (3 << TxIFGShift),    /* 9.6us / 960ns (10 / 100Mbps) */
+    /* Interframe Gap Time. Only TxIFG96 doesn't violate IEEE 802.3 */
+    TxIFGShift = 24,
+    TxIFG84    = (0 << TxIFGShift), /* 8.4us / 840ns (10 / 100Mbps) */
+    TxIFG88    = (1 << TxIFGShift), /* 8.8us / 880ns (10 / 100Mbps) */
+    TxIFG92    = (2 << TxIFGShift), /* 9.2us / 920ns (10 / 100Mbps) */
+    TxIFG96    = (3 << TxIFGShift), /* 9.6us / 960ns (10 / 100Mbps) */
 
-    TxLoopBack = (1 << 18) | (1 << 17), /* enable loopback test mode */
-    TxCRC = (1 << 16),    /* DISABLE appending CRC to end of Tx packets */
-    TxClearAbt = (1 << 0),    /* Clear abort (WO) */
-    TxDMAShift = 8,        /* DMA burst value (0-7) is shifted this many bits */
-    TxRetryShift = 4,    /* TXRR value (0-15) is shifted this many bits */
+    TxLoopBack   = (1 << 18) | (1 << 17), /* enable loopback test mode */
+    TxCRC        = (1 << 16),             /* DISABLE appending CRC to end of Tx packets */
+    TxClearAbt   = (1 << 0),              /* Clear abort (WO) */
+    TxDMAShift   = 8,                     /* DMA burst value (0-7) is shifted this many bits */
+    TxRetryShift = 4,                     /* TXRR value (0-15) is shifted this many bits */
 
     TxVersionMask = 0x7C800000, /* mask out version bits 30-26, 23 */
 };
 
-
 /* Transmit Status of All Descriptors (TSAD) Register */
 enum TSAD_bits {
- TSAD_TOK3 = 1<<15, // TOK bit of Descriptor 3
- TSAD_TOK2 = 1<<14, // TOK bit of Descriptor 2
- TSAD_TOK1 = 1<<13, // TOK bit of Descriptor 1
- TSAD_TOK0 = 1<<12, // TOK bit of Descriptor 0
- TSAD_TUN3 = 1<<11, // TUN bit of Descriptor 3
- TSAD_TUN2 = 1<<10, // TUN bit of Descriptor 2
- TSAD_TUN1 = 1<<9, // TUN bit of Descriptor 1
- TSAD_TUN0 = 1<<8, // TUN bit of Descriptor 0
- TSAD_TABT3 = 1<<07, // TABT bit of Descriptor 3
- TSAD_TABT2 = 1<<06, // TABT bit of Descriptor 2
- TSAD_TABT1 = 1<<05, // TABT bit of Descriptor 1
- TSAD_TABT0 = 1<<04, // TABT bit of Descriptor 0
- TSAD_OWN3 = 1<<03, // OWN bit of Descriptor 3
- TSAD_OWN2 = 1<<02, // OWN bit of Descriptor 2
- TSAD_OWN1 = 1<<01, // OWN bit of Descriptor 1
- TSAD_OWN0 = 1<<00, // OWN bit of Descriptor 0
+    TSAD_TOK3  = 1 << 15, // TOK bit of Descriptor 3
+    TSAD_TOK2  = 1 << 14, // TOK bit of Descriptor 2
+    TSAD_TOK1  = 1 << 13, // TOK bit of Descriptor 1
+    TSAD_TOK0  = 1 << 12, // TOK bit of Descriptor 0
+    TSAD_TUN3  = 1 << 11, // TUN bit of Descriptor 3
+    TSAD_TUN2  = 1 << 10, // TUN bit of Descriptor 2
+    TSAD_TUN1  = 1 << 9,  // TUN bit of Descriptor 1
+    TSAD_TUN0  = 1 << 8,  // TUN bit of Descriptor 0
+    TSAD_TABT3 = 1 << 07, // TABT bit of Descriptor 3
+    TSAD_TABT2 = 1 << 06, // TABT bit of Descriptor 2
+    TSAD_TABT1 = 1 << 05, // TABT bit of Descriptor 1
+    TSAD_TABT0 = 1 << 04, // TABT bit of Descriptor 0
+    TSAD_OWN3  = 1 << 03, // OWN bit of Descriptor 3
+    TSAD_OWN2  = 1 << 02, // OWN bit of Descriptor 2
+    TSAD_OWN1  = 1 << 01, // OWN bit of Descriptor 1
+    TSAD_OWN0  = 1 << 00, // OWN bit of Descriptor 0
 };
-
 
 /* Bits in Config1 */
 enum Config1Bits {
-    Cfg1_PM_Enable = 0x01,
-    Cfg1_VPD_Enable = 0x02,
-    Cfg1_PIO = 0x04,
-    Cfg1_MMIO = 0x08,
-    LWAKE = 0x10,        /* not on 8139, 8139A */
+    Cfg1_PM_Enable   = 0x01,
+    Cfg1_VPD_Enable  = 0x02,
+    Cfg1_PIO         = 0x04,
+    Cfg1_MMIO        = 0x08,
+    LWAKE            = 0x10, /* not on 8139, 8139A */
     Cfg1_Driver_Load = 0x20,
-    Cfg1_LED0 = 0x40,
-    Cfg1_LED1 = 0x80,
-    SLEEP = (1 << 1),    /* only on 8139, 8139A */
-    PWRDN = (1 << 0),    /* only on 8139, 8139A */
+    Cfg1_LED0        = 0x40,
+    Cfg1_LED1        = 0x80,
+    SLEEP            = (1 << 1), /* only on 8139, 8139A */
+    PWRDN            = (1 << 0), /* only on 8139, 8139A */
 };
 
 /* Bits in Config3 */
@@ -254,7 +256,7 @@ enum Config3Bits {
 
 /* Bits in Config4 */
 enum Config4Bits {
-    LWPTN = (1 << 2),    /* not on 8139, 8139A */
+    LWPTN = (1 << 2), /* not on 8139, 8139A */
 };
 
 /* Bits in Config5 */
@@ -271,14 +273,14 @@ enum Config5Bits {
 enum RxConfigBits {
     /* rx fifo threshold */
     RxCfgFIFOShift = 13,
-    RxCfgFIFONone = (7 << RxCfgFIFOShift),
+    RxCfgFIFONone  = (7 << RxCfgFIFOShift),
 
     /* Max DMA burst */
-    RxCfgDMAShift = 8,
+    RxCfgDMAShift     = 8,
     RxCfgDMAUnlimited = (7 << RxCfgDMAShift),
 
     /* rx ring buffer length */
-    RxCfgRcv8K = 0,
+    RxCfgRcv8K  = 0,
     RxCfgRcv16K = (1 << 11),
     RxCfgRcv32K = (1 << 12),
     RxCfgRcv64K = (1 << 11) | (1 << 12),
@@ -289,29 +291,29 @@ enum RxConfigBits {
 
 /* Twister tuning parameters from RealTek.
    Completely undocumented, but required to tune bad links on some boards. */
-/*
+#if 0
 enum CSCRBits {
     CSCR_LinkOKBit = 0x0400,
     CSCR_LinkChangeBit = 0x0800,
     CSCR_LinkStatusBits = 0x0f000,
     CSCR_LinkDownOffCmd = 0x003c0,
     CSCR_LinkDownCmd = 0x0f3c0,
-*/
+#endif
 enum CSCRBits {
-    CSCR_Testfun = 1<<15, /* 1 = Auto-neg speeds up internal timer, WO, def 0 */
-    CSCR_LD  = 1<<9,  /* Active low TPI link disable signal. When low, TPI still transmits link pulses and TPI stays in good link state. def 1*/
-    CSCR_HEART_BIT = 1<<8,  /* 1 = HEART BEAT enable, 0 = HEART BEAT disable. HEART BEAT function is only valid in 10Mbps mode. def 1*/
-    CSCR_JBEN = 1<<7,  /* 1 = enable jabber function. 0 = disable jabber function, def 1*/
-    CSCR_F_LINK_100 = 1<<6, /* Used to login force good link in 100Mbps for diagnostic purposes. 1 = DISABLE, 0 = ENABLE. def 1*/
-    CSCR_F_Connect  = 1<<5,  /* Assertion of this bit forces the disconnect function to be bypassed. def 0*/
-    CSCR_Con_status = 1<<3, /* This bit indicates the status of the connection. 1 = valid connected link detected; 0 = disconnected link detected. RO def 0*/
-    CSCR_Con_status_En = 1<<2, /* Assertion of this bit configures LED1 pin to indicate connection status. def 0*/
-    CSCR_PASS_SCR = 1<<0, /* Bypass Scramble, def 0*/
+    CSCR_Testfun       = 1 << 15, /* 1 = Auto-neg speeds up internal timer, WO, def 0 */
+    CSCR_LD            = 1 << 9,  /* Active low TPI link disable signal. When low, TPI still transmits link pulses and TPI stays in good link state. def 1*/
+    CSCR_HEART_BIT     = 1 << 8,  /* 1 = HEART BEAT enable, 0 = HEART BEAT disable. HEART BEAT function is only valid in 10Mbps mode. def 1*/
+    CSCR_JBEN          = 1 << 7,  /* 1 = enable jabber function. 0 = disable jabber function, def 1*/
+    CSCR_F_LINK_100    = 1 << 6,  /* Used to login force good link in 100Mbps for diagnostic purposes. 1 = DISABLE, 0 = ENABLE. def 1*/
+    CSCR_F_Connect     = 1 << 5,  /* Assertion of this bit forces the disconnect function to be bypassed. def 0*/
+    CSCR_Con_status    = 1 << 3,  /* This bit indicates the status of the connection. 1 = valid connected link detected; 0 = disconnected link detected. RO def 0*/
+    CSCR_Con_status_En = 1 << 2,  /* Assertion of this bit configures LED1 pin to indicate connection status. def 0*/
+    CSCR_PASS_SCR      = 1 << 0,  /* Bypass Scramble, def 0*/
 };
 
 enum Cfg9346Bits {
-    Cfg9346_Normal = 0x00,
-    Cfg9346_Autoload = 0x40,
+    Cfg9346_Normal      = 0x00,
+    Cfg9346_Autoload    = 0x40,
     Cfg9346_Programming = 0x80,
     Cfg9346_ConfigWrite = 0xC0,
 };
@@ -331,12 +333,12 @@ typedef enum {
 
 enum chip_flags {
     HasHltClk = (1 << 0),
-    HasLWake = (1 << 1),
+    HasLWake  = (1 << 1),
 };
 
 #define HW_REVID(b30, b29, b28, b27, b26, b23, b22) \
-    (b30<<30 | b29<<29 | b28<<28 | b27<<27 | b26<<26 | b23<<23 | b22<<22)
-#define HW_REVID_MASK    HW_REVID(1, 1, 1, 1, 1, 1, 1)
+    (b30 << 30 | b29 << 29 | b28 << 28 | b27 << 27 | b26 << 26 | b23 << 23 | b22 << 22)
+#define HW_REVID_MASK               HW_REVID(1, 1, 1, 1, 1, 1, 1)
 
 #define RTL8139_PCI_REVID_8139      0x10
 #define RTL8139_PCI_REVID_8139CPLUS 0x20
@@ -345,22 +347,20 @@ enum chip_flags {
 
 /* Size is 64 * 16bit words */
 #define EEPROM_9346_ADDR_BITS 6
-#define EEPROM_9346_SIZE  (1 << EEPROM_9346_ADDR_BITS)
+#define EEPROM_9346_SIZE      (1 << EEPROM_9346_ADDR_BITS)
 #define EEPROM_9346_ADDR_MASK (EEPROM_9346_SIZE - 1)
 
-enum Chip9346Operation
-{
-    Chip9346_op_mask = 0xc0,          /* 10 zzzzzz */
-    Chip9346_op_read = 0x80,          /* 10 AAAAAA */
-    Chip9346_op_write = 0x40,         /* 01 AAAAAA D(15)..D(0) */
-    Chip9346_op_ext_mask = 0xf0,      /* 11 zzzzzz */
-    Chip9346_op_write_enable = 0x30,  /* 00 11zzzz */
-    Chip9346_op_write_all = 0x10,     /* 00 01zzzz */
+enum Chip9346Operation {
+    Chip9346_op_mask          = 0xc0, /* 10 zzzzzz */
+    Chip9346_op_read          = 0x80, /* 10 AAAAAA */
+    Chip9346_op_write         = 0x40, /* 01 AAAAAA D(15)..D(0) */
+    Chip9346_op_ext_mask      = 0xf0, /* 11 zzzzzz */
+    Chip9346_op_write_enable  = 0x30, /* 00 11zzzz */
+    Chip9346_op_write_all     = 0x10, /* 00 01zzzz */
     Chip9346_op_write_disable = 0x00, /* 00 00zzzz */
 };
 
-enum Chip9346Mode
-{
+enum Chip9346Mode {
     Chip9346_none = 0,
     Chip9346_enter_command_mode,
     Chip9346_read_command,
@@ -369,8 +369,7 @@ enum Chip9346Mode
     Chip9346_data_write_all, /* to input register, then filling contents */
 };
 
-typedef struct EEprom9346
-{
+typedef struct EEprom9346 {
     uint16_t contents[EEPROM_9346_SIZE];
     int      mode;
     uint32_t tick;
@@ -385,27 +384,26 @@ typedef struct EEprom9346
 } EEprom9346;
 
 #pragma pack(push, 1)
-typedef struct RTL8139TallyCounters
-{
+typedef struct RTL8139TallyCounters {
     /* Tally counters */
-    uint64_t   TxOk;
-    uint64_t   RxOk;
-    uint64_t   TxERR;
-    uint32_t   RxERR;
-    uint16_t   MissPkt;
-    uint16_t   FAE;
-    uint32_t   Tx1Col;
-    uint32_t   TxMCol;
-    uint64_t   RxOkPhy;
-    uint64_t   RxOkBrd;
-    uint32_t   RxOkMul;
-    uint16_t   TxAbt;
-    uint16_t   TxUndrn;
+    uint64_t TxOk;
+    uint64_t RxOk;
+    uint64_t TxERR;
+    uint32_t RxERR;
+    uint16_t MissPkt;
+    uint16_t FAE;
+    uint32_t Tx1Col;
+    uint32_t TxMCol;
+    uint64_t RxOkPhy;
+    uint64_t RxOkBrd;
+    uint32_t RxOkMul;
+    uint16_t TxAbt;
+    uint16_t TxUndrn;
 } RTL8139TallyCounters;
 #pragma pack(pop)
 
 /* Clears all tally counters */
-static void RTL8139TallyCounters_clear(RTL8139TallyCounters* counters);
+static void RTL8139TallyCounters_clear(RTL8139TallyCounters *counters);
 
 struct RTL8139State {
     /*< private >*/
@@ -420,9 +418,9 @@ struct RTL8139State {
     uint8_t pci_conf[256];
 
     uint32_t TxStatus[4]; /* TxStatus0 in C mode*/ /* also DTCCR[0] and DTCCR[1] in C+ mode */
-    uint32_t TxAddr[4];   /* TxAddr0 */
-    uint32_t RxBuf;       /* Receive buffer */
-    uint32_t RxBufferSize;/* internal variable, receive ring buffer size in C mode */
+    uint32_t TxAddr[4];                            /* TxAddr0 */
+    uint32_t RxBuf;                                /* Receive buffer */
+    uint32_t RxBufferSize;                         /* internal variable, receive ring buffer size in C mode */
     uint32_t RxBufPtr;
     uint32_t RxBufAddr;
 
@@ -435,15 +433,15 @@ struct RTL8139State {
 
     uint16_t CSCR;
 
-    uint8_t  Cfg9346;
-    uint8_t  Config0;
-    uint8_t  Config1;
-    uint8_t  Config3;
-    uint8_t  Config4;
-    uint8_t  Config5;
+    uint8_t Cfg9346;
+    uint8_t Config0;
+    uint8_t Config1;
+    uint8_t Config3;
+    uint8_t Config4;
+    uint8_t Config5;
 
-    uint8_t  clock_enabled;
-    uint8_t  bChipCmdState;
+    uint8_t clock_enabled;
+    uint8_t bChipCmdState;
 
     uint16_t MultiIntr;
 
@@ -455,36 +453,36 @@ struct RTL8139State {
 
     uint16_t CpCmd;
 
-    uint8_t  TxThresh;
-    uint8_t  pci_latency;
+    uint8_t TxThresh;
+    uint8_t pci_latency;
 
     netcard_t *nic;
 
     /* C ring mode */
-    uint32_t   currTxDesc;
+    uint32_t currTxDesc;
 
     /* C+ mode */
-    uint32_t   cplus_enabled;
+    uint32_t cplus_enabled;
 
-    uint32_t   currCPlusRxDesc;
-    uint32_t   currCPlusTxDesc;
+    uint32_t currCPlusRxDesc;
+    uint32_t currCPlusTxDesc;
 
-    uint32_t   RxRingAddrLO;
-    uint32_t   RxRingAddrHI;
+    uint32_t RxRingAddrLO;
+    uint32_t RxRingAddrHI;
 
     EEprom9346 eeprom;
 
-    uint32_t   TCTR;
-    uint32_t   TimerInt;
-    int64_t    TCTR_base;
+    uint32_t TCTR;
+    uint32_t TimerInt;
+    int64_t  TCTR_base;
 
     /* Tally counters */
     RTL8139TallyCounters tally_counters;
 
     /* Non-persistent data */
-    uint8_t   *cplus_txbuffer;
-    int        cplus_txbuffer_len;
-    int        cplus_txbuffer_offset;
+    uint8_t *cplus_txbuffer;
+    int      cplus_txbuffer_len;
+    int      cplus_txbuffer_offset;
 
     /* PCI interrupt timer */
     pc_timer_t timer;
@@ -498,38 +496,37 @@ struct RTL8139State {
 /* Writes tally counters to memory via DMA */
 static void RTL8139TallyCounters_dma_write(RTL8139State *s, uint32_t tc_addr);
 
-static void prom9346_decode_command(EEprom9346 *eeprom, uint8_t command)
+static void
+prom9346_decode_command(EEprom9346 *eeprom, uint8_t command)
 {
     DPRINTF("eeprom command 0x%02x\n", command);
 
-    switch (command & Chip9346_op_mask)
-    {
+    switch (command & Chip9346_op_mask) {
         case Chip9346_op_read:
-        {
-            eeprom->address = command & EEPROM_9346_ADDR_MASK;
-            eeprom->output = eeprom->contents[eeprom->address];
-            eeprom->eedo = 0;
-            eeprom->tick = 0;
-            eeprom->mode = Chip9346_data_read;
-            DPRINTF("eeprom read from address 0x%02x data=0x%04x\n",
-                eeprom->address, eeprom->output);
-        }
-        break;
+            {
+                eeprom->address = command & EEPROM_9346_ADDR_MASK;
+                eeprom->output  = eeprom->contents[eeprom->address];
+                eeprom->eedo    = 0;
+                eeprom->tick    = 0;
+                eeprom->mode    = Chip9346_data_read;
+                DPRINTF("eeprom read from address 0x%02x data=0x%04x\n",
+                        eeprom->address, eeprom->output);
+            }
+            break;
 
         case Chip9346_op_write:
-        {
-            eeprom->address = command & EEPROM_9346_ADDR_MASK;
-            eeprom->input = 0;
-            eeprom->tick = 0;
-            eeprom->mode = Chip9346_none; /* Chip9346_data_write */
-            DPRINTF("eeprom begin write to address 0x%02x\n",
-                eeprom->address);
-        }
-        break;
+            {
+                eeprom->address = command & EEPROM_9346_ADDR_MASK;
+                eeprom->input   = 0;
+                eeprom->tick    = 0;
+                eeprom->mode    = Chip9346_none; /* Chip9346_data_write */
+                DPRINTF("eeprom begin write to address 0x%02x\n",
+                        eeprom->address);
+            }
+            break;
         default:
             eeprom->mode = Chip9346_none;
-            switch (command & Chip9346_op_ext_mask)
-            {
+            switch (command & Chip9346_op_ext_mask) {
                 case Chip9346_op_write_enable:
                     DPRINTF("eeprom write enabled\n");
                     break;
@@ -539,27 +536,29 @@ static void prom9346_decode_command(EEprom9346 *eeprom, uint8_t command)
                 case Chip9346_op_write_disable:
                     DPRINTF("eeprom write disabled\n");
                     break;
+
+                default:
+                    break;
             }
             break;
     }
 }
 
-static void prom9346_shift_clock(EEprom9346 *eeprom)
+static void
+prom9346_shift_clock(EEprom9346 *eeprom)
 {
-    int bit = eeprom->eedi?1:0;
+    int bit = eeprom->eedi ? 1 : 0;
 
-    ++ eeprom->tick;
+    ++eeprom->tick;
 
     DPRINTF("eeprom: tick %d eedi=%d eedo=%d\n", eeprom->tick, eeprom->eedi,
-        eeprom->eedo);
+            eeprom->eedo);
 
-    switch (eeprom->mode)
-    {
+    switch (eeprom->mode) {
         case Chip9346_enter_command_mode:
-            if (bit)
-            {
-                eeprom->mode = Chip9346_read_command;
-                eeprom->tick = 0;
+            if (bit) {
+                eeprom->mode  = Chip9346_read_command;
+                eeprom->tick  = 0;
                 eeprom->input = 0;
                 DPRINTF("eeprom: +++ synchronized, begin command read\n");
             }
@@ -567,66 +566,60 @@ static void prom9346_shift_clock(EEprom9346 *eeprom)
 
         case Chip9346_read_command:
             eeprom->input = (eeprom->input << 1) | (bit & 1);
-            if (eeprom->tick == 8)
-            {
+            if (eeprom->tick == 8) {
                 prom9346_decode_command(eeprom, eeprom->input & 0xff);
             }
             break;
 
         case Chip9346_data_read:
-            eeprom->eedo = (eeprom->output & 0x8000)?1:0;
+            eeprom->eedo = (eeprom->output & 0x8000) ? 1 : 0;
             eeprom->output <<= 1;
-            if (eeprom->tick == 16)
-            {
+            if (eeprom->tick == 16) {
 #if 1
-        // the FreeBSD drivers (rl and re) don't explicitly toggle
-        // CS between reads (or does setting Cfg9346 to 0 count too?),
-        // so we need to enter wait-for-command state here
-                eeprom->mode = Chip9346_enter_command_mode;
+                // the FreeBSD drivers (rl and re) don't explicitly toggle
+                // CS between reads (or does setting Cfg9346 to 0 count too?),
+                // so we need to enter wait-for-command state here
+                eeprom->mode  = Chip9346_enter_command_mode;
                 eeprom->input = 0;
-                eeprom->tick = 0;
+                eeprom->tick  = 0;
 
                 DPRINTF("eeprom: +++ end of read, awaiting next command\n");
 #else
-        // original behaviour
+                // original behaviour
                 ++eeprom->address;
                 eeprom->address &= EEPROM_9346_ADDR_MASK;
                 eeprom->output = eeprom->contents[eeprom->address];
-                eeprom->tick = 0;
+                eeprom->tick   = 0;
 
                 DPRINTF("eeprom: +++ read next address 0x%02x data=0x%04x\n",
-                    eeprom->address, eeprom->output);
+                        eeprom->address, eeprom->output);
 #endif
             }
             break;
 
         case Chip9346_data_write:
             eeprom->input = (eeprom->input << 1) | (bit & 1);
-            if (eeprom->tick == 16)
-            {
+            if (eeprom->tick == 16) {
                 DPRINTF("eeprom write to address 0x%02x data=0x%04x\n",
-                    eeprom->address, eeprom->input);
+                        eeprom->address, eeprom->input);
 
                 eeprom->contents[eeprom->address] = eeprom->input;
-                eeprom->mode = Chip9346_none; /* waiting for next command after CS cycle */
-                eeprom->tick = 0;
-                eeprom->input = 0;
+                eeprom->mode                      = Chip9346_none; /* waiting for next command after CS cycle */
+                eeprom->tick                      = 0;
+                eeprom->input                     = 0;
             }
             break;
 
         case Chip9346_data_write_all:
             eeprom->input = (eeprom->input << 1) | (bit & 1);
-            if (eeprom->tick == 16)
-            {
-                int i;
-                for (i = 0; i < EEPROM_9346_SIZE; i++)
-                {
+            if (eeprom->tick == 16) {
+                for (int i = 0; i < EEPROM_9346_SIZE; i++) {
                     eeprom->contents[i] = eeprom->input;
                 }
                 DPRINTF("eeprom filled with data=0x%04x\n", eeprom->input);
 
-                eeprom->mode = Chip9346_enter_command_mode;
-                eeprom->tick = 0;
+                eeprom->mode  = Chip9346_enter_command_mode;
+                eeprom->tick  = 0;
                 eeprom->input = 0;
             }
             break;
@@ -636,9 +629,10 @@ static void prom9346_shift_clock(EEprom9346 *eeprom)
     }
 }
 
-static int prom9346_get_wire(RTL8139State *s)
+static int
+prom9346_get_wire(RTL8139State *s)
 {
-    EEprom9346 *eeprom = &s->eeprom;
+    const EEprom9346 *eeprom = &s->eeprom;
     if (!eeprom->eecs)
         return 0;
 
@@ -646,51 +640,51 @@ static int prom9346_get_wire(RTL8139State *s)
 }
 
 /* FIXME: This should be merged into/replaced by eeprom93xx.c.  */
-static void prom9346_set_wire(RTL8139State *s, int eecs, int eesk, int eedi)
+static void
+prom9346_set_wire(RTL8139State *s, int eecs, int eesk, int eedi)
 {
-    EEprom9346 *eeprom = &s->eeprom;
-    uint8_t old_eecs = eeprom->eecs;
-    uint8_t old_eesk = eeprom->eesk;
+    EEprom9346 *eeprom   = &s->eeprom;
+    uint8_t     old_eecs = eeprom->eecs;
+    uint8_t     old_eesk = eeprom->eesk;
 
     eeprom->eecs = eecs;
     eeprom->eesk = eesk;
     eeprom->eedi = eedi;
 
     DPRINTF("eeprom: +++ wires CS=%d SK=%d DI=%d DO=%d\n", eeprom->eecs,
-        eeprom->eesk, eeprom->eedi, eeprom->eedo);
+            eeprom->eesk, eeprom->eedi, eeprom->eedo);
 
-    if (!old_eecs && eecs)
-    {
+    if (!old_eecs && eecs) {
         /* Synchronize start */
-        eeprom->tick = 0;
-        eeprom->input = 0;
+        eeprom->tick   = 0;
+        eeprom->input  = 0;
         eeprom->output = 0;
-        eeprom->mode = Chip9346_enter_command_mode;
+        eeprom->mode   = Chip9346_enter_command_mode;
 
         DPRINTF("=== eeprom: begin access, enter command mode\n");
     }
 
-    if (!eecs)
-    {
+    if (!eecs) {
         DPRINTF("=== eeprom: end access\n");
         return;
     }
 
-    if (!old_eesk && eesk)
-    {
+    if (!old_eesk && eesk) {
         /* SK front rules */
         prom9346_shift_clock(eeprom);
     }
 }
 
-static void rtl8139_update_irq(RTL8139State *s)
+static void
+rtl8139_update_irq(RTL8139State *s)
 {
     uint8_t d = s->pci_slot;
-    int isr;
+    int     isr;
+
     isr = (s->IntrStatus & s->IntrMask) & 0xffff;
 
     DPRINTF("Set IRQ to %d (%04x %04x)\n", isr ? 1 : 0, s->IntrStatus,
-        s->IntrMask);
+            s->IntrMask);
 
     if (isr != 0)
         pci_set_irq(d, PCI_INTA, &s->irq_state);
@@ -698,54 +692,57 @@ static void rtl8139_update_irq(RTL8139State *s)
         pci_clear_irq(d, PCI_INTA, &s->irq_state);
 }
 
-static int rtl8139_RxWrap(RTL8139State *s)
+static int
+rtl8139_RxWrap(RTL8139State *s)
 {
     /* wrapping enabled; assume 1.5k more buffer space if size < 65536 */
     return (s->RxConfig & (1 << 7));
 }
 
-static int rtl8139_receiver_enabled(RTL8139State *s)
+static int
+rtl8139_receiver_enabled(RTL8139State *s)
 {
     return s->bChipCmdState & CmdRxEnb;
 }
 
-static int rtl8139_transmitter_enabled(RTL8139State *s)
+static int
+rtl8139_transmitter_enabled(RTL8139State *s)
 {
     return s->bChipCmdState & CmdTxEnb;
 }
 
-static int rtl8139_cp_receiver_enabled(RTL8139State *s)
+static int
+rtl8139_cp_receiver_enabled(RTL8139State *s)
 {
     return s->CpCmd & CPlusRxEnb;
 }
 
-static int rtl8139_cp_transmitter_enabled(RTL8139State *s)
+static int
+rtl8139_cp_transmitter_enabled(RTL8139State *s)
 {
     return s->CpCmd & CPlusTxEnb;
 }
 
-static void rtl8139_write_buffer(RTL8139State *s, const void *buf, int size)
+static void
+rtl8139_write_buffer(RTL8139State *s, const void *buf, int size)
 {
-    if (s->RxBufAddr + size > s->RxBufferSize)
-    {
+    if (s->RxBufAddr + size > s->RxBufferSize) {
         int wrapped = MOD2(s->RxBufAddr + size, s->RxBufferSize);
 
         /* write packet data */
-        if (wrapped && !(s->RxBufferSize < 65536 && rtl8139_RxWrap(s)))
-        {
+        if (wrapped && !(s->RxBufferSize < 65536 && rtl8139_RxWrap(s))) {
             DPRINTF(">>> rx packet wrapped in buffer at %d\n", size - wrapped);
 
-            if (size > wrapped)
-            {
+            if (size > wrapped) {
                 dma_bm_write(s->RxBuf + s->RxBufAddr,
-                              buf, size-wrapped, 1);
+                             buf, size - wrapped, 1);
             }
 
             /* reset buffer pointer */
             s->RxBufAddr = 0;
 
             dma_bm_write(s->RxBuf + s->RxBufAddr,
-                          buf + (size-wrapped), wrapped, 1);
+                         buf + (size - wrapped), wrapped, 1);
 
             s->RxBufAddr = wrapped;
 
@@ -759,20 +756,22 @@ static void rtl8139_write_buffer(RTL8139State *s, const void *buf, int size)
     s->RxBufAddr += size;
 }
 
-static __inline uint32_t rtl8139_addr64(uint32_t low, uint32_t high)
+static __inline uint32_t
+rtl8139_addr64(uint32_t low, UNUSED(uint32_t high))
 {
-    (void)high;
     return low;
 }
 
 /* Workaround for buggy guest driver such as linux who allocates rx
  * rings after the receiver were enabled. */
-static bool rtl8139_cp_rx_valid(RTL8139State *s)
+static bool
+rtl8139_cp_rx_valid(RTL8139State *s)
 {
     return !(s->RxRingAddrLO == 0 && s->RxRingAddrHI == 0);
 }
 
-static bool rtl8139_can_receive(RTL8139State *s)
+static bool
+rtl8139_can_receive(RTL8139State *s)
 {
     int avail;
 
@@ -797,16 +796,17 @@ static bool rtl8139_can_receive(RTL8139State *s)
 
 /* From FreeBSD */
 /* XXX: optimize */
-static uint32_t net_crc32(const uint8_t *p, int len)
+static uint32_t
+net_crc32(const uint8_t *p, int len)
 {
     uint32_t crc;
-    int carry, i, j;
-    uint8_t b;
+    int      carry;
+    uint8_t  b;
 
     crc = 0xffffffff;
-    for (i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++) {
         b = *p++;
-        for (j = 0; j < 8; j++) {
+        for (uint8_t j = 0; j < 8; j++) {
             carry = ((crc & 0x80000000L) ? 1 : 0) ^ (b & 0x01);
             crc <<= 1;
             b >>= 1;
@@ -819,16 +819,17 @@ static uint32_t net_crc32(const uint8_t *p, int len)
     return crc;
 }
 
-uint32_t net_crc32_le(const uint8_t *p, int len)
+uint32_t
+net_crc32_le(const uint8_t *p, int len)
 {
     uint32_t crc;
-    int carry, i, j;
-    uint8_t b;
+    int      carry;
+    uint8_t  b;
 
     crc = 0xffffffff;
-    for (i = 0; i < len; i++) {
+    for (int i = 0; i < len; i++) {
         b = *p++;
-        for (j = 0; j < 8; j++) {
+        for (uint8_t j = 0; j < 8; j++) {
             carry = (crc & 0x1) ^ (b & 0x01);
             crc >>= 1;
             b >>= 1;
@@ -841,20 +842,19 @@ uint32_t net_crc32_le(const uint8_t *p, int len)
     return crc;
 }
 
-
 #define ETH_ALEN 6
-static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
+static int
+rtl8139_do_receive(void *priv, uint8_t *buf, int size_)
 {
-    RTL8139State *s = (RTL8139State*)p;
+    RTL8139State *s = (RTL8139State *) priv;
     /* size is the length of the buffer passed to the driver */
-    size_t size = size_;
+    size_t         size      = size_;
     const uint8_t *dot1q_buf = NULL;
 
     uint32_t packet_header = 0;
-    uint8_t buf1[60 + VLAN_HLEN];
+    uint8_t  buf1[60 + VLAN_HLEN];
 
-    static const uint8_t broadcast_macaddr[6] =
-        { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
+    static const uint8_t broadcast_macaddr[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
 
     DPRINTF(">>> received len=%zu\n", size);
 
@@ -862,16 +862,14 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
         return 0;
 
     /* test if board clock is stopped */
-    if (!s->clock_enabled)
-    {
+    if (!s->clock_enabled) {
         DPRINTF("stopped ==========================\n");
         return -1;
     }
 
     /* first check if receiver is enabled */
 
-    if (!rtl8139_receiver_enabled(s))
-    {
+    if (!rtl8139_receiver_enabled(s)) {
         DPRINTF("receiver disabled ================\n");
         return -1;
     }
@@ -882,10 +880,9 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
         DPRINTF(">>> packet received in promiscuous mode\n");
 
     } else {
-        if (!memcmp(buf,  broadcast_macaddr, 6)) {
+        if (!memcmp(buf, broadcast_macaddr, 6)) {
             /* broadcast address */
-            if (!(s->RxConfig & AcceptBroadcast))
-            {
+            if (!(s->RxConfig & AcceptBroadcast)) {
                 DPRINTF(">>> broadcast packet rejected\n");
 
                 /* update tally counter */
@@ -903,8 +900,7 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
 
         } else if (buf[0] & 0x01) {
             /* multicast */
-            if (!(s->RxConfig & AcceptMulticast))
-            {
+            if (!(s->RxConfig & AcceptMulticast)) {
                 DPRINTF(">>> multicast packet rejected\n");
 
                 /* update tally counter */
@@ -915,8 +911,7 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
 
             int mcast_idx = net_crc32(buf, ETH_ALEN) >> 26;
 
-            if (!(s->mult[mcast_idx >> 3] & (1 << (mcast_idx & 7))))
-            {
+            if (!(s->mult[mcast_idx >> 3] & (1 << (mcast_idx & 7)))) {
                 DPRINTF(">>> multicast address mismatch\n");
 
                 /* update tally counter */
@@ -932,15 +927,9 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
             /* update tally counter */
             ++s->tally_counters.RxOkMul;
 
-        } else if (s->phys[0] == buf[0] &&
-                   s->phys[1] == buf[1] &&
-                   s->phys[2] == buf[2] &&
-                   s->phys[3] == buf[3] &&
-                   s->phys[4] == buf[4] &&
-                   s->phys[5] == buf[5]) {
+        } else if (s->phys[0] == buf[0] && s->phys[1] == buf[1] && s->phys[2] == buf[2] && s->phys[3] == buf[3] && s->phys[4] == buf[4] && s->phys[5] == buf[5]) {
             /* match */
-            if (!(s->RxConfig & AcceptMyPhys))
-            {
+            if (!(s->RxConfig & AcceptMyPhys)) {
                 DPRINTF(">>> rejecting physical address matching packet\n");
 
                 /* update tally counter */
@@ -976,8 +965,7 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
         }
     }
 
-    if (rtl8139_cp_receiver_enabled(s))
-    {
+    if (rtl8139_cp_receiver_enabled(s)) {
         if (!rtl8139_cp_rx_valid(s)) {
             return size;
         }
@@ -987,46 +975,52 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
         /* begin C+ receiver mode */
 
 /* w0 ownership flag */
-#define CP_RX_OWN (1<<31)
+#define CP_RX_OWN (1 << 31)
 /* w0 end of ring flag */
-#define CP_RX_EOR (1<<30)
+#define CP_RX_EOR (1 << 30)
 /* w0 bits 0...12 : buffer size */
-#define CP_RX_BUFFER_SIZE_MASK ((1<<13) - 1)
+#define CP_RX_BUFFER_SIZE_MASK ((1 << 13) - 1)
 /* w1 tag available flag */
-#define CP_RX_TAVA (1<<16)
+#define CP_RX_TAVA (1 << 16)
 /* w1 bits 0...15 : VLAN tag */
-#define CP_RX_VLAN_TAG_MASK ((1<<16) - 1)
-/* w2 low  32bit of Rx buffer ptr */
-/* w3 high 32bit of Rx buffer ptr */
+#define CP_RX_VLAN_TAG_MASK ((1 << 16) - 1)
+        /* w2 low  32bit of Rx buffer ptr */
+        /* w3 high 32bit of Rx buffer ptr */
 
-        int descriptor = s->currCPlusRxDesc;
+        int      descriptor = s->currCPlusRxDesc;
         uint32_t cplus_rx_ring_desc;
 
         cplus_rx_ring_desc = rtl8139_addr64(s->RxRingAddrLO, s->RxRingAddrHI);
         cplus_rx_ring_desc += 16 * descriptor;
 
         DPRINTF("+++ C+ mode reading RX descriptor %d from host memory at "
-            "%08x %08x = ""0x%8X""\n", descriptor, s->RxRingAddrHI,
-            s->RxRingAddrLO, cplus_rx_ring_desc);
+                "%08x %08x = "
+                "0x%8X"
+                "\n",
+                descriptor, s->RxRingAddrHI,
+                s->RxRingAddrLO, cplus_rx_ring_desc);
 
-        uint32_t val, rxdw0,rxdw1,rxbufLO,rxbufHI;
+        uint32_t val;
+        uint32_t rxdw0;
+        uint32_t rxdw1;
+        uint32_t rxbufLO;
+        uint32_t rxbufHI;
 
-        dma_bm_read(cplus_rx_ring_desc, (uint8_t*)&val, 4, 4);
-        rxdw0 = (val);
-        dma_bm_read(cplus_rx_ring_desc+4, (uint8_t*)&val, 4, 4);
-        rxdw1 = (val);
-        dma_bm_read(cplus_rx_ring_desc+8, (uint8_t*)&val, 4, 4);
-        rxbufLO = (val);
-        dma_bm_read(cplus_rx_ring_desc+12, (uint8_t*)&val, 4, 4);
-        rxbufHI = (val);
+        dma_bm_read(cplus_rx_ring_desc, (uint8_t *) &val, 4, 4);
+        rxdw0 = val;
+        dma_bm_read(cplus_rx_ring_desc + 4, (uint8_t *) &val, 4, 4);
+        rxdw1 = val;
+        dma_bm_read(cplus_rx_ring_desc + 8, (uint8_t *) &val, 4, 4);
+        rxbufLO = val;
+        dma_bm_read(cplus_rx_ring_desc + 12, (uint8_t *) &val, 4, 4);
+        rxbufHI = val;
 
         DPRINTF("+++ C+ mode RX descriptor %d %08x %08x %08x %08x\n",
-            descriptor, rxdw0, rxdw1, rxbufLO, rxbufHI);
+                descriptor, rxdw0, rxdw1, rxbufLO, rxbufHI);
 
-        if (!(rxdw0 & CP_RX_OWN))
-        {
+        if (!(rxdw0 & CP_RX_OWN)) {
             DPRINTF("C+ Rx mode : descriptor %d is owned by host\n",
-                descriptor);
+                    descriptor);
 
             s->IntrStatus |= RxOverflow;
             ++s->RxMissed;
@@ -1042,8 +1036,7 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
         uint32_t rx_space = rxdw0 & CP_RX_BUFFER_SIZE_MASK;
 
         /* write VLAN info to descriptor variables. */
-        if (s->CpCmd & CPlusRxVLAN &&
-            bswap16(*((uint16_t*)&buf[ETH_ALEN * 2])) == 0x8100) {
+        if (s->CpCmd & CPlusRxVLAN && bswap16(*((uint16_t *) &buf[ETH_ALEN * 2])) == 0x8100) {
             dot1q_buf = &buf[ETH_ALEN * 2];
             size -= VLAN_HLEN;
             /* if too small buffer, use the tailroom added duing expansion */
@@ -1053,10 +1046,11 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
 
             rxdw1 &= ~CP_RX_VLAN_TAG_MASK;
             /* BE + ~le_to_cpu()~ + cpu_to_le() = BE */
-            rxdw1 |= CP_RX_TAVA | *((uint16_t*)(&dot1q_buf[ETHER_TYPE_LEN]));
+            rxdw1 |= CP_RX_TAVA | *((uint16_t *) (&dot1q_buf[ETHER_TYPE_LEN]));
 
-            DPRINTF("C+ Rx mode : extracted vlan tag with tci: ""%u\n",
-                bswap16(*((uint16_t*)&dot1q_buf[ETHER_TYPE_LEN])));
+            DPRINTF("C+ Rx mode : extracted vlan tag with tci: "
+                    "%u\n",
+                    bswap16(*((uint16_t *) &dot1q_buf[ETHER_TYPE_LEN])));
         } else {
             /* reset VLAN tag flag */
             rxdw1 &= ~CP_RX_TAVA;
@@ -1064,10 +1058,9 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
 
         /* TODO: scatter the packet over available receive ring descriptors space */
 
-        if (size+4 > rx_space)
-        {
+        if (size + 4 > rx_space) {
             DPRINTF("C+ Rx mode : descriptor %d size %d received %zu + 4\n",
-                descriptor, rx_space, size);
+                    descriptor, rx_space, size);
 
             s->IntrStatus |= RxOverflow;
             ++s->RxMissed;
@@ -1086,41 +1079,40 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
         if (dot1q_buf) {
             dma_bm_write(rx_addr, buf, 2 * ETH_ALEN, 1);
             dma_bm_write(rx_addr + 2 * ETH_ALEN,
-                          buf + 2 * ETH_ALEN + VLAN_HLEN,
-                          size - 2 * ETH_ALEN, 1);
+                         buf + 2 * ETH_ALEN + VLAN_HLEN,
+                         size - 2 * ETH_ALEN, 1);
         } else {
             dma_bm_write(rx_addr, buf, size, 1);
         }
 
-        if (s->CpCmd & CPlusRxChkSum)
-        {
+        if (s->CpCmd & CPlusRxChkSum) {
             /* do some packet checksumming */
         }
 
         /* write checksum */
         val = (net_crc32_le(buf, size_));
-        dma_bm_write(rx_addr+size, (uint8_t *)&val, 4, 4);
+        dma_bm_write(rx_addr + size, (uint8_t *) &val, 4, 4);
 
 /* first segment of received packet flag */
-#define CP_RX_STATUS_FS (1<<29)
+#define CP_RX_STATUS_FS (1 << 29)
 /* last segment of received packet flag */
-#define CP_RX_STATUS_LS (1<<28)
+#define CP_RX_STATUS_LS (1 << 28)
 /* multicast packet flag */
-#define CP_RX_STATUS_MAR (1<<26)
+#define CP_RX_STATUS_MAR (1 << 26)
 /* physical-matching packet flag */
-#define CP_RX_STATUS_PAM (1<<25)
+#define CP_RX_STATUS_PAM (1 << 25)
 /* broadcast packet flag */
-#define CP_RX_STATUS_BAR (1<<24)
+#define CP_RX_STATUS_BAR (1 << 24)
 /* runt packet flag */
-#define CP_RX_STATUS_RUNT (1<<19)
+#define CP_RX_STATUS_RUNT (1 << 19)
 /* crc error flag */
-#define CP_RX_STATUS_CRC (1<<18)
+#define CP_RX_STATUS_CRC (1 << 18)
 /* IP checksum error flag */
-#define CP_RX_STATUS_IPF (1<<15)
+#define CP_RX_STATUS_IPF (1 << 15)
 /* UDP checksum error flag */
-#define CP_RX_STATUS_UDPF (1<<14)
+#define CP_RX_STATUS_UDPF (1 << 14)
 /* TCP checksum error flag */
-#define CP_RX_STATUS_TCPF (1<<13)
+#define CP_RX_STATUS_TCPF (1 << 13)
 
         /* transfer ownership to target */
         rxdw0 &= ~CP_RX_OWN;
@@ -1141,32 +1133,27 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
 
         /* set received size */
         rxdw0 &= ~CP_RX_BUFFER_SIZE_MASK;
-        rxdw0 |= (size+4);
+        rxdw0 |= (size + 4);
 
         /* update ring data */
-        val = (rxdw0);
-        dma_bm_write(cplus_rx_ring_desc, (uint8_t *)&val, 4, 4);
-        val = (rxdw1);
-        dma_bm_write(cplus_rx_ring_desc+4, (uint8_t *)&val, 4, 4);
+        val = rxdw0;
+        dma_bm_write(cplus_rx_ring_desc, (uint8_t *) &val, 4, 4);
+        val = rxdw1;
+        dma_bm_write(cplus_rx_ring_desc + 4, (uint8_t *) &val, 4, 4);
 
         /* update tally counter */
         ++s->tally_counters.RxOk;
 
         /* seek to next Rx descriptor */
-        if (rxdw0 & CP_RX_EOR)
-        {
+        if (rxdw0 & CP_RX_EOR) {
             s->currCPlusRxDesc = 0;
-        }
-        else
-        {
+        } else {
             ++s->currCPlusRxDesc;
         }
 
         DPRINTF("done C+ Rx mode ----------------\n");
 
-    }
-    else
-    {
+    } else {
         DPRINTF("in ring Rx mode ================\n");
 
         /* begin ring receiver mode */
@@ -1176,11 +1163,10 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
 
 #define RX_ALIGN(x) (((x) + 3) & ~0x3)
 
-        if (avail != 0 && RX_ALIGN(size + 8) >= avail)
-        {
+        if (avail != 0 && RX_ALIGN(size + 8) >= avail) {
             DPRINTF("rx overflow: rx buffer length %d head 0x%04x "
-                "read 0x%04x === available 0x%04x need 0x%04zx\n",
-                s->RxBufferSize, s->RxBufAddr, s->RxBufPtr, avail, size + 8);
+                    "read 0x%04x === available 0x%04x need 0x%04zx\n",
+                    s->RxBufferSize, s->RxBufAddr, s->RxBufPtr, avail, size + 8);
 
             s->IntrStatus |= RxOverflow;
             ++s->RxMissed;
@@ -1190,18 +1176,18 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
 
         packet_header |= RxStatusOK;
 
-        packet_header |= (((size+4) << 16) & 0xffff0000);
+        packet_header |= (((size + 4) << 16) & 0xffff0000);
 
         /* write header */
-        uint32_t val = (packet_header);
+        uint32_t val = packet_header;
 
-        rtl8139_write_buffer(s, (uint8_t *)&val, 4);
+        rtl8139_write_buffer(s, (uint8_t *) &val, 4);
 
         rtl8139_write_buffer(s, buf, size);
 
         /* write checksum */
         val = (net_crc32_le(buf, size));
-        rtl8139_write_buffer(s, (uint8_t *)&val, 4);
+        rtl8139_write_buffer(s, (uint8_t *) &val, 4);
 
         /* correct buffer write pointer */
         s->RxBufAddr = MOD2(RX_ALIGN(s->RxBufAddr), s->RxBufferSize);
@@ -1209,7 +1195,7 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
         /* now we can signal we have received something */
 
         DPRINTF("received: rx buffer length %d head 0x%04x read 0x%04x\n",
-            s->RxBufferSize, s->RxBufAddr, s->RxBufPtr);
+                s->RxBufferSize, s->RxBufAddr, s->RxBufPtr);
     }
 
     s->IntrStatus |= RxOK;
@@ -1221,16 +1207,18 @@ static int rtl8139_do_receive(void* p, uint8_t *buf, int size_)
     return size_;
 }
 
-static void rtl8139_reset_rxring(RTL8139State *s, uint32_t bufferSize)
+static void
+rtl8139_reset_rxring(RTL8139State *s, uint32_t bufferSize)
 {
     s->RxBufferSize = bufferSize;
-    s->RxBufPtr  = 0;
-    s->RxBufAddr = 0;
+    s->RxBufPtr     = 0;
+    s->RxBufAddr    = 0;
 }
 
-static void rtl8139_reset_phy(RTL8139State *s)
+static void
+rtl8139_reset_phy(RTL8139State *s)
 {
-    s->BasicModeStatus  = 0x7809;
+    s->BasicModeStatus = 0x7809;
     s->BasicModeStatus |= 0x0020; /* autonegotiation completed */
     /* preserve link state */
     s->BasicModeStatus |= (net_cards_conf[s->nic->card_num].link_state & NET_LINK_DOWN) ? 0 : 0x04;
@@ -1242,25 +1230,23 @@ static void rtl8139_reset_phy(RTL8139State *s)
     s->CSCR = CSCR_F_LINK_100 | CSCR_HEART_BIT | CSCR_LD;
 }
 
-
-static void rtl8139_reset(void* p)
+static void
+rtl8139_reset(void *priv)
 {
-    int i;
-    RTL8139State *s = (RTL8139State*)p;
+    RTL8139State *s = (RTL8139State *) priv;
 
     /* reset interrupt mask */
     s->IntrStatus = 0;
-    s->IntrMask = 0;
+    s->IntrMask   = 0;
 
     rtl8139_update_irq(s);
 
     /* mark all status registers as owned by host */
-    for (i = 0; i < 4; ++i)
-    {
+    for (uint8_t i = 0; i < 4; ++i) {
         s->TxStatus[i] = TxHostOwns;
     }
 
-    s->currTxDesc = 0;
+    s->currTxDesc      = 0;
     s->currCPlusRxDesc = 0;
     s->currCPlusTxDesc = 0;
 
@@ -1282,7 +1268,7 @@ static void rtl8139_reset(void* p)
     s->clock_enabled = 1;
 #endif
 
-    s->bChipCmdState = CmdReset; /* RxBufEmpty bit is calculated on read from ChipCmd */;
+    s->bChipCmdState = CmdReset; /* RxBufEmpty bit is calculated on read from ChipCmd */
 
     /* set initial state data */
     s->Config0 = 0x0; /* No boot ROM */
@@ -1290,68 +1276,72 @@ static void rtl8139_reset(void* p)
     s->Config3 = 0x1; /* fast back-to-back compatible */
     s->Config5 = 0x0;
 
-    s->CpCmd   = 0x0; /* reset C+ mode */
+    s->CpCmd         = 0x0; /* reset C+ mode */
     s->cplus_enabled = 0;
 
-//    s->BasicModeCtrl = 0x3100; // 100Mbps, full duplex, autonegotiation
-//    s->BasicModeCtrl = 0x2100; // 100Mbps, full duplex
+#if 0
+    s->BasicModeCtrl = 0x3100; // 100Mbps, full duplex, autonegotiation
+    s->BasicModeCtrl = 0x2100; // 100Mbps, full duplex
+#endif
     s->BasicModeCtrl = 0x1000; // autonegotiation
 
     rtl8139_reset_phy(s);
 
     /* also reset timer and disable timer interrupt */
-    s->TCTR = 0;
-    s->TimerInt = 0;
+    s->TCTR      = 0;
+    s->TimerInt  = 0;
     s->TCTR_base = 0;
-    //rtl8139_set_next_tctr_time(s);
+#if 0
+    rtl8139_set_next_tctr_time(s);
+#endif
 
     /* reset tally counters */
     RTL8139TallyCounters_clear(&s->tally_counters);
 }
 
-static void RTL8139TallyCounters_clear(RTL8139TallyCounters* counters)
+static void
+RTL8139TallyCounters_clear(RTL8139TallyCounters *counters)
 {
-    counters->TxOk = 0;
-    counters->RxOk = 0;
-    counters->TxERR = 0;
-    counters->RxERR = 0;
+    counters->TxOk    = 0;
+    counters->RxOk    = 0;
+    counters->TxERR   = 0;
+    counters->RxERR   = 0;
     counters->MissPkt = 0;
-    counters->FAE = 0;
-    counters->Tx1Col = 0;
-    counters->TxMCol = 0;
+    counters->FAE     = 0;
+    counters->Tx1Col  = 0;
+    counters->TxMCol  = 0;
     counters->RxOkPhy = 0;
     counters->RxOkBrd = 0;
     counters->RxOkMul = 0;
-    counters->TxAbt = 0;
+    counters->TxAbt   = 0;
     counters->TxUndrn = 0;
 }
 
-static void RTL8139TallyCounters_dma_write(RTL8139State *s, uint32_t tc_addr)
+static void
+RTL8139TallyCounters_dma_write(RTL8139State *s, uint32_t tc_addr)
 {
     RTL8139TallyCounters *tally_counters = &s->tally_counters;
 
-    dma_bm_write(tc_addr, (uint8_t*)tally_counters, sizeof(RTL8139TallyCounters), 1);
+    dma_bm_write(tc_addr, (uint8_t *) tally_counters, sizeof(RTL8139TallyCounters), 1);
 }
 
-static void rtl8139_ChipCmd_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_ChipCmd_write(RTL8139State *s, uint32_t val)
 {
     val &= 0xff;
 
     DPRINTF("ChipCmd write val=0x%08x\n", val);
 
-    if (val & CmdReset)
-    {
+    if (val & CmdReset) {
         DPRINTF("ChipCmd reset\n");
         rtl8139_reset(s);
     }
-    if (val & CmdRxEnb)
-    {
+    if (val & CmdRxEnb) {
         DPRINTF("ChipCmd enable receiver\n");
 
         s->currCPlusRxDesc = 0;
     }
-    if (val & CmdTxEnb)
-    {
+    if (val & CmdTxEnb) {
         DPRINTF("ChipCmd enable transmitter\n");
 
         s->currCPlusTxDesc = 0;
@@ -1366,12 +1356,12 @@ static void rtl8139_ChipCmd_write(RTL8139State *s, uint32_t val)
     s->bChipCmdState = val;
 }
 
-static int rtl8139_RxBufferEmpty(RTL8139State *s)
+static int
+rtl8139_RxBufferEmpty(RTL8139State *s)
 {
     int unread = MOD2(s->RxBufferSize + s->RxBufAddr - s->RxBufPtr, s->RxBufferSize);
 
-    if (unread != 0)
-    {
+    if (unread != 0) {
         DPRINTF("receiver buffer data available 0x%04x\n", unread);
         return 0;
     }
@@ -1381,7 +1371,8 @@ static int rtl8139_RxBufferEmpty(RTL8139State *s)
     return 1;
 }
 
-static uint32_t rtl8139_ChipCmd_read(RTL8139State *s)
+static uint32_t
+rtl8139_ChipCmd_read(RTL8139State *s)
 {
     uint32_t ret = s->bChipCmdState;
 
@@ -1393,7 +1384,8 @@ static uint32_t rtl8139_ChipCmd_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_CpCmd_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_CpCmd_write(RTL8139State *s, uint32_t val)
 {
     val &= 0xffff;
 
@@ -1407,7 +1399,8 @@ static void rtl8139_CpCmd_write(RTL8139State *s, uint32_t val)
     s->CpCmd = val;
 }
 
-static uint32_t rtl8139_CpCmd_read(RTL8139State *s)
+static uint32_t
+rtl8139_CpCmd_read(RTL8139State *s)
 {
     uint32_t ret = s->CpCmd;
 
@@ -1416,12 +1409,14 @@ static uint32_t rtl8139_CpCmd_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_IntrMitigate_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_IntrMitigate_write(UNUSED(RTL8139State *s), uint32_t val)
 {
     DPRINTF("C+ IntrMitigate register write(w) val=0x%04x\n", val);
 }
 
-static uint32_t rtl8139_IntrMitigate_read(RTL8139State *s)
+static uint32_t
+rtl8139_IntrMitigate_read(UNUSED(RTL8139State *s))
 {
     uint32_t ret = 0;
 
@@ -1430,10 +1425,10 @@ static uint32_t rtl8139_IntrMitigate_read(RTL8139State *s)
     return ret;
 }
 
-static int rtl8139_config_writable(RTL8139State *s)
+static int
+rtl8139_config_writable(RTL8139State *s)
 {
-    if ((s->Cfg9346 & Chip9346_op_mask) == Cfg9346_ConfigWrite)
-    {
+    if ((s->Cfg9346 & Chip9346_op_mask) == Cfg9346_ConfigWrite) {
         return 1;
     }
 
@@ -1442,7 +1437,8 @@ static int rtl8139_config_writable(RTL8139State *s)
     return 0;
 }
 
-static void rtl8139_BasicModeCtrl_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_BasicModeCtrl_write(RTL8139State *s, uint32_t val)
 {
     val &= 0xffff;
 
@@ -1451,8 +1447,7 @@ static void rtl8139_BasicModeCtrl_write(RTL8139State *s, uint32_t val)
     /* mask unwritable bits */
     uint32_t mask = 0xccff;
 
-    if (1 || !rtl8139_config_writable(s))
-    {
+    if (1 || !rtl8139_config_writable(s)) {
         /* Speed setting and autonegotiation enable bits are read-only */
         mask |= 0x3000;
         /* Duplex mode setting is read-only */
@@ -1469,7 +1464,8 @@ static void rtl8139_BasicModeCtrl_write(RTL8139State *s, uint32_t val)
     s->BasicModeCtrl = val;
 }
 
-static uint32_t rtl8139_BasicModeCtrl_read(RTL8139State *s)
+static uint32_t
+rtl8139_BasicModeCtrl_read(RTL8139State *s)
 {
     uint32_t ret = s->BasicModeCtrl;
 
@@ -1478,7 +1474,8 @@ static uint32_t rtl8139_BasicModeCtrl_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_BasicModeStatus_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_BasicModeStatus_write(RTL8139State *s, uint32_t val)
 {
     val &= 0xffff;
 
@@ -1490,7 +1487,8 @@ static void rtl8139_BasicModeStatus_write(RTL8139State *s, uint32_t val)
     s->BasicModeStatus = val;
 }
 
-static uint32_t rtl8139_BasicModeStatus_read(RTL8139State *s)
+static uint32_t
+rtl8139_BasicModeStatus_read(RTL8139State *s)
 {
     uint32_t ret = s->BasicModeStatus;
 
@@ -1499,7 +1497,8 @@ static uint32_t rtl8139_BasicModeStatus_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_Cfg9346_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_Cfg9346_write(RTL8139State *s, uint32_t val)
 {
     val &= 0xff;
 
@@ -1508,14 +1507,14 @@ static void rtl8139_Cfg9346_write(RTL8139State *s, uint32_t val)
     /* mask unwritable bits */
     val = SET_MASKED(val, 0x31, s->Cfg9346);
 
-    uint32_t opmode = val & 0xc0;
+    uint32_t opmode     = val & 0xc0;
     uint32_t eeprom_val = val & 0xf;
 
     if (opmode == 0x80) {
         /* eeprom access */
-        int eecs = (eeprom_val & 0x08)?1:0;
-        int eesk = (eeprom_val & 0x04)?1:0;
-        int eedi = (eeprom_val & 0x02)?1:0;
+        int eecs = (eeprom_val & 0x08) ? 1 : 0;
+        int eesk = (eeprom_val & 0x04) ? 1 : 0;
+        int eedi = (eeprom_val & 0x02) ? 1 : 0;
         prom9346_set_wire(s, eecs, eesk, eedi);
     } else if (opmode == 0x40) {
         /* Reset.  */
@@ -1526,22 +1525,19 @@ static void rtl8139_Cfg9346_write(RTL8139State *s, uint32_t val)
     s->Cfg9346 = val;
 }
 
-static uint32_t rtl8139_Cfg9346_read(RTL8139State *s)
+static uint32_t
+rtl8139_Cfg9346_read(RTL8139State *s)
 {
     uint32_t ret = s->Cfg9346;
 
     uint32_t opmode = ret & 0xc0;
 
-    if (opmode == 0x80)
-    {
+    if (opmode == 0x80) {
         /* eeprom access */
         int eedo = prom9346_get_wire(s);
-        if (eedo)
-        {
-            ret |=  0x01;
-        }
-        else
-        {
+        if (eedo) {
+            ret |= 0x01;
+        } else {
             ret &= ~0x01;
         }
     }
@@ -1551,7 +1547,8 @@ static uint32_t rtl8139_Cfg9346_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_Config0_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_Config0_write(RTL8139State *s, uint32_t val)
 {
     val &= 0xff;
 
@@ -1567,7 +1564,8 @@ static void rtl8139_Config0_write(RTL8139State *s, uint32_t val)
     s->Config0 = val;
 }
 
-static uint32_t rtl8139_Config0_read(RTL8139State *s)
+static uint32_t
+rtl8139_Config0_read(RTL8139State *s)
 {
     uint32_t ret = s->Config0;
 
@@ -1576,7 +1574,8 @@ static uint32_t rtl8139_Config0_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_Config1_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_Config1_write(RTL8139State *s, uint32_t val)
 {
     val &= 0xff;
 
@@ -1592,7 +1591,8 @@ static void rtl8139_Config1_write(RTL8139State *s, uint32_t val)
     s->Config1 = val;
 }
 
-static uint32_t rtl8139_Config1_read(RTL8139State *s)
+static uint32_t
+rtl8139_Config1_read(RTL8139State *s)
 {
     uint32_t ret = s->Config1;
 
@@ -1601,7 +1601,8 @@ static uint32_t rtl8139_Config1_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_Config3_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_Config3_write(RTL8139State *s, uint32_t val)
 {
     val &= 0xff;
 
@@ -1617,7 +1618,8 @@ static void rtl8139_Config3_write(RTL8139State *s, uint32_t val)
     s->Config3 = val;
 }
 
-static uint32_t rtl8139_Config3_read(RTL8139State *s)
+static uint32_t
+rtl8139_Config3_read(RTL8139State *s)
 {
     uint32_t ret = s->Config3;
 
@@ -1626,7 +1628,8 @@ static uint32_t rtl8139_Config3_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_Config4_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_Config4_write(RTL8139State *s, uint32_t val)
 {
     val &= 0xff;
 
@@ -1642,7 +1645,8 @@ static void rtl8139_Config4_write(RTL8139State *s, uint32_t val)
     s->Config4 = val;
 }
 
-static uint32_t rtl8139_Config4_read(RTL8139State *s)
+static uint32_t
+rtl8139_Config4_read(RTL8139State *s)
 {
     uint32_t ret = s->Config4;
 
@@ -1651,7 +1655,8 @@ static uint32_t rtl8139_Config4_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_Config5_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_Config5_write(RTL8139State *s, uint32_t val)
 {
     val &= 0xff;
 
@@ -1663,7 +1668,8 @@ static void rtl8139_Config5_write(RTL8139State *s, uint32_t val)
     s->Config5 = val;
 }
 
-static uint32_t rtl8139_Config5_read(RTL8139State *s)
+static uint32_t
+rtl8139_Config5_read(RTL8139State *s)
 {
     uint32_t ret = s->Config5;
 
@@ -1672,10 +1678,10 @@ static uint32_t rtl8139_Config5_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_TxConfig_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_TxConfig_write(RTL8139State *s, uint32_t val)
 {
-    if (!rtl8139_transmitter_enabled(s))
-    {
+    if (!rtl8139_transmitter_enabled(s)) {
         DPRINTF("transmitter disabled; no TxConfig write val=0x%08x\n", val);
         return;
     }
@@ -1687,17 +1693,20 @@ static void rtl8139_TxConfig_write(RTL8139State *s, uint32_t val)
     s->TxConfig = val;
 }
 
-static void rtl8139_TxConfig_writeb(RTL8139State *s, uint32_t val)
+static void
+rtl8139_TxConfig_writeb(RTL8139State *s, uint32_t val)
 {
     DPRINTF("RTL8139C TxConfig via write(b) val=0x%02x\n", val);
 
     uint32_t tc = s->TxConfig;
+
     tc &= 0xFFFFFF00;
     tc |= (val & 0x000000FF);
     rtl8139_TxConfig_write(s, tc);
 }
 
-static uint32_t rtl8139_TxConfig_read(RTL8139State *s)
+static uint32_t
+rtl8139_TxConfig_read(RTL8139State *s)
 {
     uint32_t ret = s->TxConfig;
 
@@ -1706,7 +1715,8 @@ static uint32_t rtl8139_TxConfig_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_RxConfig_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_RxConfig_write(RTL8139State *s, uint32_t val)
 {
     DPRINTF("RxConfig write val=0x%08x\n", val);
 
@@ -1721,7 +1731,8 @@ static void rtl8139_RxConfig_write(RTL8139State *s, uint32_t val)
     DPRINTF("RxConfig write reset buffer size to %d\n", s->RxBufferSize);
 }
 
-static uint32_t rtl8139_RxConfig_read(RTL8139State *s)
+static uint32_t
+rtl8139_RxConfig_read(RTL8139State *s)
 {
     uint32_t ret = s->RxConfig;
 
@@ -1733,22 +1744,22 @@ static uint32_t rtl8139_RxConfig_read(RTL8139State *s)
 void
 rtl8139_network_rx_put(netcard_t *card, uint8_t *bufp, int len)
 {
-    (void)network_rx_put(card, bufp, len);
+    (void) network_rx_put(card, bufp, len);
 }
 
-static void rtl8139_transfer_frame(RTL8139State *s, uint8_t *buf, int size,
-    int do_interrupt, const uint8_t *dot1q_buf)
+static void
+rtl8139_transfer_frame(RTL8139State *s, uint8_t *buf, int size,
+                       UNUSED(int do_interrupt), const uint8_t *dot1q_buf)
 {
     void (*network_func)(netcard_t *, uint8_t *, int) = (TxLoopBack == (s->TxConfig & TxLoopBack)) ? rtl8139_network_rx_put : network_tx;
-    if (!size)
-    {
+    if (!size) {
         DPRINTF("+++ empty ethernet frame\n");
         return;
     }
 
     if (dot1q_buf && size >= ETH_ALEN * 2) {
         network_func(s->nic, buf, ETH_ALEN * 2);
-        network_func(s->nic, (uint8_t*)dot1q_buf, VLAN_HLEN );
+        network_func(s->nic, (uint8_t *) dot1q_buf, VLAN_HLEN);
         network_func(s->nic, buf + ETH_ALEN * 2, size - ETH_ALEN * 2);
         return;
     }
@@ -1757,29 +1768,30 @@ static void rtl8139_transfer_frame(RTL8139State *s, uint8_t *buf, int size,
     return;
 }
 
-static int rtl8139_transmit_one(RTL8139State *s, int descriptor)
+static int
+rtl8139_transmit_one(RTL8139State *s, int descriptor)
 {
-    int txsize = s->TxStatus[descriptor] & 0x1fff;
+    int     txsize = s->TxStatus[descriptor] & 0x1fff;
     uint8_t txbuffer[0x2000];
 
-    if (!rtl8139_transmitter_enabled(s))
-    {
+    if (!rtl8139_transmitter_enabled(s)) {
         DPRINTF("+++ cannot transmit from descriptor %d: transmitter "
-            "disabled\n", descriptor);
+                "disabled\n",
+                descriptor);
         return 0;
     }
 
-    if (s->TxStatus[descriptor] & TxHostOwns)
-    {
+    if (s->TxStatus[descriptor] & TxHostOwns) {
         DPRINTF("+++ cannot transmit from descriptor %d: owned by host "
-            "(%08x)\n", descriptor, s->TxStatus[descriptor]);
+                "(%08x)\n",
+                descriptor, s->TxStatus[descriptor]);
         return 0;
     }
 
     DPRINTF("+++ transmitting from descriptor %d\n", descriptor);
 
     DPRINTF("+++ transmit reading %d bytes from host memory at 0x%08x\n",
-        txsize, s->TxAddr[descriptor]);
+            txsize, s->TxAddr[descriptor]);
 
     dma_bm_read(s->TxAddr[descriptor], txbuffer, txsize, 1);
 
@@ -1790,7 +1802,7 @@ static int rtl8139_transmit_one(RTL8139State *s, int descriptor)
     rtl8139_transfer_frame(s, txbuffer, txsize, 0, NULL);
 
     DPRINTF("+++ transmitted %d bytes from descriptor %d\n", txsize,
-        descriptor);
+            descriptor);
 
     /* update interrupt */
     s->IntrStatus |= TxOK;
@@ -1802,31 +1814,31 @@ static int rtl8139_transmit_one(RTL8139State *s, int descriptor)
 #define TCP_HEADER_CLEAR_FLAGS(tcp, off) ((tcp)->th_offset_flags &= cpu_to_be16(~TCP_FLAGS_ONLY(off)))
 
 /* produces ones' complement sum of data */
-static uint16_t ones_complement_sum(uint8_t *data, size_t len)
+static uint16_t
+ones_complement_sum(uint8_t *data, size_t len)
 {
     uint32_t result = 0;
 
-    for (; len > 1; data+=2, len-=2)
-    {
-        result += *(uint16_t*)data;
+    for (; len > 1; data += 2, len -= 2) {
+        result += *(uint16_t *) data;
     }
 
     /* add the remainder byte */
-    if (len)
-    {
-        uint8_t odd[2] = {*data, 0};
-        result += *(uint16_t*)odd;
+    if (len) {
+        uint8_t odd[2] = { *data, 0 };
+        result += *(uint16_t *) odd;
     }
 
-    while (result>>16)
+    while (result >> 16)
         result = (result & 0xffff) + (result >> 16);
 
     return result;
 }
 
-static uint16_t ip_checksum(void *data, size_t len)
+static uint16_t
+ip_checksum(void *data, size_t len)
 {
-    return ~ones_complement_sum((uint8_t*)data, len);
+    return ~ones_complement_sum((uint8_t *) data, len);
 }
 
 /* TODO: Replace these with equivalents in 86Box if applicable. */
@@ -1843,15 +1855,15 @@ struct ip_header {
 };
 
 typedef struct tcp_header {
-    uint16_t th_sport;          /* source port */
-    uint16_t th_dport;          /* destination port */
-    uint32_t th_seq;            /* sequence number */
-    uint32_t th_ack;            /* acknowledgment number */
-    uint16_t th_offset_flags;   /* data offset, reserved 6 bits, */
-                                /* TCP protocol flags */
-    uint16_t th_win;            /* window */
-    uint16_t th_sum;            /* checksum */
-    uint16_t th_urp;            /* urgent pointer */
+    uint16_t th_sport;        /* source port */
+    uint16_t th_dport;        /* destination port */
+    uint32_t th_seq;          /* sequence number */
+    uint32_t th_ack;          /* acknowledgment number */
+    uint16_t th_offset_flags; /* data offset, reserved 6 bits, */
+                              /* TCP protocol flags */
+    uint16_t th_win;          /* window */
+    uint16_t th_sum;          /* checksum */
+    uint16_t th_urp;          /* urgent pointer */
 } tcp_header;
 
 typedef struct ip_pseudo_header {
@@ -1869,36 +1881,34 @@ typedef struct udp_header {
     uint16_t uh_sum;   /* udp checksum */
 } udp_header;
 
-#define ETH_HLEN 14
-#define ETH_P_IP (0x0800)
-#define IP_PROTO_TCP (6)
-#define IP_PROTO_UDP (17)
+#define ETH_HLEN            14
+#define ETH_P_IP            (0x0800)
+#define IP_PROTO_TCP        (6)
+#define IP_PROTO_UDP        (17)
 #define IP_HEADER_VERSION_4 (4)
-#define TH_PUSH 0x08
-#define TH_FIN  0x01
+#define TH_PUSH             0x08
+#define TH_FIN              0x01
 
-#define IP_HDR_GET_LEN(p)         \
-    ((*(uint8_t*)((p + __builtin_offsetof(struct ip_header, ip_ver_len))) & 0x0F) << 2)
+#define IP_HDR_GET_LEN(p) \
+    ((*(uint8_t *) ((p + __builtin_offsetof(struct ip_header, ip_ver_len))) & 0x0F) << 2)
 
-#define IP_HEADER_VERSION(ip)     \
+#define IP_HEADER_VERSION(ip) \
     (((ip)->ip_ver_len >> 4) & 0xf)
 
 #define TCP_HEADER_DATA_OFFSET(tcp) \
     (((be16_to_cpu((tcp)->th_offset_flags) >> 12) & 0xf) << 2)
 
-
-static int rtl8139_cplus_transmit_one(RTL8139State *s)
+static int
+rtl8139_cplus_transmit_one(RTL8139State *s)
 {
-    if (!rtl8139_transmitter_enabled(s))
-    {
+    if (!rtl8139_transmitter_enabled(s)) {
         DPRINTF("+++ C+ mode: transmitter disabled\n");
         return 0;
     }
 
-    if (!rtl8139_cp_transmitter_enabled(s))
-    {
+    if (!rtl8139_cp_transmitter_enabled(s)) {
         DPRINTF("+++ C+ mode: C+ transmitter disabled\n");
-        return 0 ;
+        return 0;
     }
     int descriptor = s->currCPlusTxDesc;
 
@@ -1908,122 +1918,124 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
     cplus_tx_ring_desc += 16 * descriptor;
 
     DPRINTF("+++ C+ mode reading TX descriptor %d from host memory at "
-        "%08x %08x = 0x%08X\n", descriptor, s->TxAddr[1],
-        s->TxAddr[0], cplus_tx_ring_desc);
+            "%08x %08x = 0x%08X\n",
+            descriptor, s->TxAddr[1],
+            s->TxAddr[0], cplus_tx_ring_desc);
 
-    uint32_t val, txdw0,txdw1,txbufLO,txbufHI;
+    uint32_t val;
+    uint32_t txdw0;
+    uint32_t txdw1;
+    uint32_t txbufLO;
+    uint32_t txbufHI;
 
-    dma_bm_read(cplus_tx_ring_desc,    (uint8_t *)&val, 4, 4);
+    dma_bm_read(cplus_tx_ring_desc, (uint8_t *) &val, 4, 4);
     txdw0 = le32_to_cpu(val);
-    dma_bm_read(cplus_tx_ring_desc+4,  (uint8_t *)&val, 4, 4);
+    dma_bm_read(cplus_tx_ring_desc + 4, (uint8_t *) &val, 4, 4);
     txdw1 = le32_to_cpu(val);
-    dma_bm_read(cplus_tx_ring_desc+8,  (uint8_t *)&val, 4, 4);
+    dma_bm_read(cplus_tx_ring_desc + 8, (uint8_t *) &val, 4, 4);
     txbufLO = le32_to_cpu(val);
-    dma_bm_read(cplus_tx_ring_desc+12, (uint8_t *)&val, 4, 4);
+    dma_bm_read(cplus_tx_ring_desc + 12, (uint8_t *) &val, 4, 4);
     txbufHI = le32_to_cpu(val);
 
     DPRINTF("+++ C+ mode TX descriptor %d %08x %08x %08x %08x\n", descriptor,
-        txdw0, txdw1, txbufLO, txbufHI);
+            txdw0, txdw1, txbufLO, txbufHI);
 
 /* w0 ownership flag */
-#define CP_TX_OWN (1<<31)
+#define CP_TX_OWN (1 << 31)
 /* w0 end of ring flag */
-#define CP_TX_EOR (1<<30)
+#define CP_TX_EOR (1 << 30)
 /* first segment of received packet flag */
-#define CP_TX_FS (1<<29)
+#define CP_TX_FS (1 << 29)
 /* last segment of received packet flag */
-#define CP_TX_LS (1<<28)
+#define CP_TX_LS (1 << 28)
 /* large send packet flag */
-#define CP_TX_LGSEN (1<<27)
+#define CP_TX_LGSEN (1 << 27)
 /* large send MSS mask, bits 16...26 */
 #define CP_TC_LGSEN_MSS_SHIFT 16
-#define CP_TC_LGSEN_MSS_MASK ((1 << 11) - 1)
+#define CP_TC_LGSEN_MSS_MASK  ((1 << 11) - 1)
 
 /* IP checksum offload flag */
-#define CP_TX_IPCS (1<<18)
+#define CP_TX_IPCS (1 << 18)
 /* UDP checksum offload flag */
-#define CP_TX_UDPCS (1<<17)
+#define CP_TX_UDPCS (1 << 17)
 /* TCP checksum offload flag */
-#define CP_TX_TCPCS (1<<16)
+#define CP_TX_TCPCS (1 << 16)
 
 /* w0 bits 0...15 : buffer size */
-#define CP_TX_BUFFER_SIZE (1<<16)
+#define CP_TX_BUFFER_SIZE      (1 << 16)
 #define CP_TX_BUFFER_SIZE_MASK (CP_TX_BUFFER_SIZE - 1)
 /* w1 add tag flag */
-#define CP_TX_TAGC (1<<17)
+#define CP_TX_TAGC (1 << 17)
 /* w1 bits 0...15 : VLAN tag (big endian) */
-#define CP_TX_VLAN_TAG_MASK ((1<<16) - 1)
+#define CP_TX_VLAN_TAG_MASK ((1 << 16) - 1)
 /* w2 low  32bit of Rx buffer ptr */
 /* w3 high 32bit of Rx buffer ptr */
 
 /* set after transmission */
 /* FIFO underrun flag */
-#define CP_TX_STATUS_UNF (1<<25)
+#define CP_TX_STATUS_UNF (1 << 25)
 /* transmit error summary flag, valid if set any of three below */
-#define CP_TX_STATUS_TES (1<<23)
+#define CP_TX_STATUS_TES (1 << 23)
 /* out-of-window collision flag */
-#define CP_TX_STATUS_OWC (1<<22)
+#define CP_TX_STATUS_OWC (1 << 22)
 /* link failure flag */
-#define CP_TX_STATUS_LNKF (1<<21)
+#define CP_TX_STATUS_LNKF (1 << 21)
 /* excessive collisions flag */
-#define CP_TX_STATUS_EXC (1<<20)
+#define CP_TX_STATUS_EXC (1 << 20)
 
-    if (!(txdw0 & CP_TX_OWN))
-    {
+    if (!(txdw0 & CP_TX_OWN)) {
         DPRINTF("C+ Tx mode : descriptor %d is owned by host\n", descriptor);
-        return 0 ;
+        return 0;
     }
 
     DPRINTF("+++ C+ Tx mode : transmitting from descriptor %d\n", descriptor);
 
-    if (txdw0 & CP_TX_FS)
-    {
+    if (txdw0 & CP_TX_FS) {
         DPRINTF("+++ C+ Tx mode : descriptor %d is first segment "
-            "descriptor\n", descriptor);
+                "descriptor\n",
+                descriptor);
 
         /* reset internal buffer offset */
         s->cplus_txbuffer_offset = 0;
     }
 
-    int txsize = txdw0 & CP_TX_BUFFER_SIZE_MASK;
+    int      txsize  = txdw0 & CP_TX_BUFFER_SIZE_MASK;
     uint32_t tx_addr = rtl8139_addr64(txbufLO, txbufHI);
 
     /* make sure we have enough space to assemble the packet */
-    if (!s->cplus_txbuffer)
-    {
-        s->cplus_txbuffer_len = CP_TX_BUFFER_SIZE;
-        s->cplus_txbuffer = calloc(s->cplus_txbuffer_len, 1);
+    if (!s->cplus_txbuffer) {
+        s->cplus_txbuffer_len    = CP_TX_BUFFER_SIZE;
+        s->cplus_txbuffer        = calloc(s->cplus_txbuffer_len, 1);
         s->cplus_txbuffer_offset = 0;
 
         DPRINTF("+++ C+ mode transmission buffer allocated space %d\n",
-            s->cplus_txbuffer_len);
+                s->cplus_txbuffer_len);
     }
 
-    if (s->cplus_txbuffer_offset + txsize >= s->cplus_txbuffer_len)
-    {
+    if (s->cplus_txbuffer_offset + txsize >= s->cplus_txbuffer_len) {
         /* The spec didn't tell the maximum size, stick to CP_TX_BUFFER_SIZE */
         txsize = s->cplus_txbuffer_len - s->cplus_txbuffer_offset;
         DPRINTF("+++ C+ mode transmission buffer overrun, truncated descriptor"
-                "length to %d\n", txsize);
+                "length to %d\n",
+                txsize);
     }
 
     /* append more data to the packet */
 
     DPRINTF("+++ C+ mode transmit reading %d bytes from host memory at "
-            "%08X"" to offset %d\n", txsize, tx_addr,
+            "%08X"
+            " to offset %d\n",
+            txsize, tx_addr,
             s->cplus_txbuffer_offset);
 
     dma_bm_read(tx_addr,
-                 s->cplus_txbuffer + s->cplus_txbuffer_offset, txsize, 1);
+                s->cplus_txbuffer + s->cplus_txbuffer_offset, txsize, 1);
     s->cplus_txbuffer_offset += txsize;
 
     /* seek to next Rx descriptor */
-    if (txdw0 & CP_TX_EOR)
-    {
+    if (txdw0 & CP_TX_EOR) {
         s->currCPlusTxDesc = 0;
-    }
-    else
-    {
+    } else {
         ++s->currCPlusTxDesc;
         if (s->currCPlusTxDesc >= 64)
             s->currCPlusTxDesc = 0;
@@ -2044,31 +2056,31 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
 
     /* update ring data */
     val = cpu_to_le32(tx_status);
-    dma_bm_write(cplus_tx_ring_desc, (uint8_t *)&val, 4, 4);
+    dma_bm_write(cplus_tx_ring_desc, (uint8_t *) &val, 4, 4);
 
     /* Now decide if descriptor being processed is holding the last segment of packet */
-    if (txdw0 & CP_TX_LS)
-    {
-        uint8_t dot1q_buffer_space[VLAN_HLEN];
+    if (txdw0 & CP_TX_LS) {
+        uint8_t   dot1q_buffer_space[VLAN_HLEN];
         uint16_t *dot1q_buffer;
 
         DPRINTF("+++ C+ Tx mode : descriptor %d is last segment descriptor\n",
-            descriptor);
+                descriptor);
 
         /* can transfer fully assembled packet */
 
-        uint8_t *saved_buffer  = s->cplus_txbuffer;
-        int      saved_size    = s->cplus_txbuffer_offset;
+        uint8_t *saved_buffer     = s->cplus_txbuffer;
+        int      saved_size       = s->cplus_txbuffer_offset;
         int      saved_buffer_len = s->cplus_txbuffer_len;
 
         /* create vlan tag */
         if (txdw1 & CP_TX_TAGC) {
             /* the vlan tag is in BE byte order in the descriptor
              * BE + le_to_cpu() + ~swap()~ = cpu */
-            DPRINTF("+++ C+ Tx mode : inserting vlan tag with ""tci: %u\n",
-                bswap16(txdw1 & CP_TX_VLAN_TAG_MASK));
+            DPRINTF("+++ C+ Tx mode : inserting vlan tag with "
+                    "tci: %u\n",
+                    bswap16(txdw1 & CP_TX_VLAN_TAG_MASK));
 
-            dot1q_buffer = (uint16_t *) dot1q_buffer_space;
+            dot1q_buffer    = (uint16_t *) dot1q_buffer_space;
             dot1q_buffer[0] = cpu_to_be16(0x8100);
             /* BE + le_to_cpu() + ~cpu_to_le()~ = BE */
             dot1q_buffer[1] = cpu_to_le16(txdw1 & CP_TX_VLAN_TAG_MASK);
@@ -2077,12 +2089,11 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
         }
 
         /* reset the card space to protect from recursive call */
-        s->cplus_txbuffer = NULL;
+        s->cplus_txbuffer        = NULL;
         s->cplus_txbuffer_offset = 0;
-        s->cplus_txbuffer_len = 0;
+        s->cplus_txbuffer_len    = 0;
 
-        if (txdw0 & (CP_TX_IPCS | CP_TX_UDPCS | CP_TX_TCPCS | CP_TX_LGSEN))
-        {
+        if (txdw0 & (CP_TX_IPCS | CP_TX_UDPCS | CP_TX_TCPCS | CP_TX_LGSEN)) {
             DPRINTF("+++ C+ mode offloaded task checksum\n");
 
             /* Large enough for Ethernet and IP headers? */
@@ -2091,17 +2102,16 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
             }
 
             /* ip packet header */
-            struct ip_header *ip = NULL;
-            int hlen = 0;
-            uint8_t  ip_protocol = 0;
-            uint16_t ip_data_len = 0;
+            struct ip_header *ip          = NULL;
+            int               hlen        = 0;
+            uint8_t           ip_protocol = 0;
+            uint16_t          ip_data_len = 0;
 
             uint8_t *eth_payload_data = NULL;
             size_t   eth_payload_len  = 0;
 
-            int proto = be16_to_cpu(*(uint16_t *)(saved_buffer + 12));
-            if (proto != ETH_P_IP)
-            {
+            int proto = be16_to_cpu(*(uint16_t *) (saved_buffer + 12));
+            if (proto != ETH_P_IP) {
                 goto skip_offload;
             }
 
@@ -2113,14 +2123,15 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
              * unaligned accesses.
              */
             eth_payload_data = saved_buffer + ETH_HLEN;
-            eth_payload_len  = saved_size   - ETH_HLEN;
+            eth_payload_len  = saved_size - ETH_HLEN;
 
-            ip = (struct ip_header*)eth_payload_data;
+            ip = (struct ip_header *) eth_payload_data;
 
             if (IP_HEADER_VERSION(ip) != IP_HEADER_VERSION_4) {
                 DPRINTF("+++ C+ mode packet has bad IP version %d "
-                    "expected %d\n", IP_HEADER_VERSION(ip),
-                    IP_HEADER_VERSION_4);
+                        "expected %d\n",
+                        IP_HEADER_VERSION(ip),
+                        IP_HEADER_VERSION_4);
                 goto skip_offload;
             }
 
@@ -2137,34 +2148,29 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
             }
             ip_data_len -= hlen;
 
-            if (!(txdw0 & CP_TX_LGSEN) && (txdw0 & CP_TX_IPCS))
-            {
+            if (!(txdw0 & CP_TX_LGSEN) && (txdw0 & CP_TX_IPCS)) {
                 DPRINTF("+++ C+ mode need IP checksum\n");
 
                 ip->ip_sum = 0;
                 ip->ip_sum = ip_checksum(ip, hlen);
                 DPRINTF("+++ C+ mode IP header len=%d checksum=%04x\n",
-                    hlen, ip->ip_sum);
+                        hlen, ip->ip_sum);
             }
 
-            if ((txdw0 & CP_TX_LGSEN) && ip_protocol == IP_PROTO_TCP)
-            {
+            if ((txdw0 & CP_TX_LGSEN) && ip_protocol == IP_PROTO_TCP) {
                 /* Large enough for the TCP header? */
                 if (ip_data_len < sizeof(tcp_header)) {
                     goto skip_offload;
                 }
 
-                int large_send_mss = (txdw0 >> CP_TC_LGSEN_MSS_SHIFT) &
-                                     CP_TC_LGSEN_MSS_MASK;
+                int large_send_mss = (txdw0 >> CP_TC_LGSEN_MSS_SHIFT) & CP_TC_LGSEN_MSS_MASK;
                 if (large_send_mss == 0) {
                     goto skip_offload;
                 }
 
                 DPRINTF("+++ C+ mode offloaded task TSO IP data %d "
-                    "frame data %d specified MSS=%d\n",
-                    ip_data_len, saved_size - ETH_HLEN, large_send_mss);
-
-                int tcp_send_offset = 0;
+                        "frame data %d specified MSS=%d\n",
+                        ip_data_len, saved_size - ETH_HLEN, large_send_mss);
 
                 /* maximum IP header length is 60 bytes */
                 uint8_t saved_ip_header[60];
@@ -2173,11 +2179,13 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
                 memcpy(saved_ip_header, eth_payload_data, hlen);
 
                 /* a placeholder for checksum calculation routine in tcp case */
-                uint8_t *data_to_checksum     = eth_payload_data + hlen - 12;
-                //                    size_t   data_to_checksum_len = eth_payload_len  - hlen + 12;
+                uint8_t *data_to_checksum = eth_payload_data + hlen - 12;
+#if 0
+                size_t   data_to_checksum_len = eth_payload_len  - hlen + 12;
+#endif
 
                 /* pointer to TCP header */
-                tcp_header *p_tcp_hdr = (tcp_header*)(eth_payload_data + hlen);
+                tcp_header *p_tcp_hdr = (tcp_header *) (eth_payload_data + hlen);
 
                 int tcp_hlen = TCP_HEADER_DATA_OFFSET(p_tcp_hdr);
 
@@ -2189,59 +2197,56 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
                 int tcp_data_len = ip_data_len - tcp_hlen;
 
                 DPRINTF("+++ C+ mode TSO IP data len %d TCP hlen %d TCP "
-                    "data len %d\n", ip_data_len, tcp_hlen, tcp_data_len);
+                        "data len %d\n",
+                        ip_data_len, tcp_hlen, tcp_data_len);
 
                 /* note the cycle below overwrites IP header data,
                    but restores it from saved_ip_header before sending packet */
 
                 int is_last_frame = 0;
 
-                for (tcp_send_offset = 0; tcp_send_offset < tcp_data_len; tcp_send_offset += large_send_mss)
-                {
+                for (int tcp_send_offset = 0; tcp_send_offset < tcp_data_len; tcp_send_offset += large_send_mss) {
                     uint16_t chunk_size = large_send_mss;
 
                     /* check if this is the last frame */
-                    if (tcp_send_offset + large_send_mss >= tcp_data_len)
-                    {
+                    if (tcp_send_offset + large_send_mss >= tcp_data_len) {
                         is_last_frame = 1;
-                        chunk_size = tcp_data_len - tcp_send_offset;
+                        chunk_size    = tcp_data_len - tcp_send_offset;
                     }
 
-                    //DPRINTF("+++ C+ mode TSO TCP seqno %08x\n",
-                    //        ldl_be_p(&p_tcp_hdr->th_seq));
+                    // DPRINTF("+++ C+ mode TSO TCP seqno %08x\n",
+                    //         ldl_be_p(&p_tcp_hdr->th_seq));
 
                     /* add 4 TCP pseudoheader fields */
                     /* copy IP source and destination fields */
                     memcpy(data_to_checksum, saved_ip_header + 12, 8);
 
                     DPRINTF("+++ C+ mode TSO calculating TCP checksum for "
-                        "packet with %d bytes data\n", tcp_hlen +
-                        chunk_size);
+                            "packet with %d bytes data\n",
+                            tcp_hlen + chunk_size);
 
-                    if (tcp_send_offset)
-                    {
-                        memcpy((uint8_t*)p_tcp_hdr + tcp_hlen, (uint8_t*)p_tcp_hdr + tcp_hlen + tcp_send_offset, chunk_size);
+                    if (tcp_send_offset) {
+                        memcpy((uint8_t *) p_tcp_hdr + tcp_hlen, (uint8_t *) p_tcp_hdr + tcp_hlen + tcp_send_offset, chunk_size);
                     }
 
-#define TCP_FLAGS_ONLY(flags) ((flags) & 0x3f)
+#define TCP_FLAGS_ONLY(flags)            ((flags) &0x3f)
 #define TCP_HEADER_CLEAR_FLAGS(tcp, off) ((tcp)->th_offset_flags &= cpu_to_be16(~TCP_FLAGS_ONLY(off)))
                     /* keep PUSH and FIN flags only for the last frame */
-                    if (!is_last_frame)
-                    {
+                    if (!is_last_frame) {
                         TCP_HEADER_CLEAR_FLAGS(p_tcp_hdr, TH_PUSH | TH_FIN);
                     }
 
                     /* recalculate TCP checksum */
-                    ip_pseudo_header *p_tcpip_hdr = (ip_pseudo_header *)data_to_checksum;
-                    p_tcpip_hdr->zeros      = 0;
-                    p_tcpip_hdr->ip_proto   = IP_PROTO_TCP;
-                    p_tcpip_hdr->ip_payload = cpu_to_be16(tcp_hlen + chunk_size);
+                    ip_pseudo_header *p_tcpip_hdr = (ip_pseudo_header *) data_to_checksum;
+                    p_tcpip_hdr->zeros            = 0;
+                    p_tcpip_hdr->ip_proto         = IP_PROTO_TCP;
+                    p_tcpip_hdr->ip_payload       = cpu_to_be16(tcp_hlen + chunk_size);
 
                     p_tcp_hdr->th_sum = 0;
 
                     int tcp_checksum = ip_checksum(data_to_checksum, tcp_hlen + chunk_size + 12);
                     DPRINTF("+++ C+ mode TSO TCP checksum %04x\n",
-                        tcp_checksum);
+                            tcp_checksum);
 
                     p_tcp_hdr->th_sum = tcp_checksum;
 
@@ -2252,80 +2257,83 @@ static int rtl8139_cplus_transmit_one(RTL8139State *s)
                     ip->ip_len = cpu_to_be16(hlen + tcp_hlen + chunk_size);
 
                     /* increment IP id for subsequent frames */
-                    ip->ip_id = cpu_to_be16(tcp_send_offset/large_send_mss + be16_to_cpu(ip->ip_id));
+                    ip->ip_id = cpu_to_be16(tcp_send_offset / large_send_mss + be16_to_cpu(ip->ip_id));
 
                     ip->ip_sum = 0;
                     ip->ip_sum = ip_checksum(eth_payload_data, hlen);
                     DPRINTF("+++ C+ mode TSO IP header len=%d "
-                        "checksum=%04x\n", hlen, ip->ip_sum);
+                            "checksum=%04x\n",
+                            hlen, ip->ip_sum);
 
                     int tso_send_size = ETH_HLEN + hlen + tcp_hlen + chunk_size;
                     DPRINTF("+++ C+ mode TSO transferring packet size "
-                        "%d\n", tso_send_size);
+                            "%d\n",
+                            tso_send_size);
                     rtl8139_transfer_frame(s, saved_buffer, tso_send_size,
-                        0, (uint8_t *) dot1q_buffer);
+                                           0, (uint8_t *) dot1q_buffer);
 
                     /* add transferred count to TCP sequence number */
-                    //stl_be_p(&p_tcp_hdr->th_seq,
-                    //         chunk_size + ldl_be_p(&p_tcp_hdr->th_seq));
+#if 0
+                    stl_be_p(&p_tcp_hdr->th_seq,
+                             chunk_size + ldl_be_p(&p_tcp_hdr->th_seq));
+#endif
                     p_tcp_hdr->th_seq = bswap32(chunk_size + bswap32(p_tcp_hdr->th_seq));
                 }
 
                 /* Stop sending this frame */
                 saved_size = 0;
-            }
-            else if (!(txdw0 & CP_TX_LGSEN) && (txdw0 & (CP_TX_TCPCS|CP_TX_UDPCS)))
-            {
+            } else if (!(txdw0 & CP_TX_LGSEN) && (txdw0 & (CP_TX_TCPCS | CP_TX_UDPCS))) {
                 DPRINTF("+++ C+ mode need TCP or UDP checksum\n");
 
                 /* maximum IP header length is 60 bytes */
                 uint8_t saved_ip_header[60];
                 memcpy(saved_ip_header, eth_payload_data, hlen);
 
-                uint8_t *data_to_checksum     = eth_payload_data + hlen - 12;
-                //                    size_t   data_to_checksum_len = eth_payload_len  - hlen + 12;
+                uint8_t *data_to_checksum = eth_payload_data + hlen - 12;
+#if 0
+                size_t   data_to_checksum_len = eth_payload_len  - hlen + 12;
+#endif
 
                 /* add 4 TCP pseudoheader fields */
                 /* copy IP source and destination fields */
                 memcpy(data_to_checksum, saved_ip_header + 12, 8);
 
-                if ((txdw0 & CP_TX_TCPCS) && ip_protocol == IP_PROTO_TCP)
-                {
+                if ((txdw0 & CP_TX_TCPCS) && ip_protocol == IP_PROTO_TCP) {
                     DPRINTF("+++ C+ mode calculating TCP checksum for "
-                        "packet with %d bytes data\n", ip_data_len);
+                            "packet with %d bytes data\n",
+                            ip_data_len);
 
-                    ip_pseudo_header *p_tcpip_hdr = (ip_pseudo_header *)data_to_checksum;
-                    p_tcpip_hdr->zeros      = 0;
-                    p_tcpip_hdr->ip_proto   = IP_PROTO_TCP;
-                    p_tcpip_hdr->ip_payload = cpu_to_be16(ip_data_len);
+                    ip_pseudo_header *p_tcpip_hdr = (ip_pseudo_header *) data_to_checksum;
+                    p_tcpip_hdr->zeros            = 0;
+                    p_tcpip_hdr->ip_proto         = IP_PROTO_TCP;
+                    p_tcpip_hdr->ip_payload       = cpu_to_be16(ip_data_len);
 
-                    tcp_header* p_tcp_hdr = (tcp_header *) (data_to_checksum+12);
+                    tcp_header *p_tcp_hdr = (tcp_header *) (data_to_checksum + 12);
 
                     p_tcp_hdr->th_sum = 0;
 
                     int tcp_checksum = ip_checksum(data_to_checksum, ip_data_len + 12);
                     DPRINTF("+++ C+ mode TCP checksum %04x\n",
-                        tcp_checksum);
+                            tcp_checksum);
 
                     p_tcp_hdr->th_sum = tcp_checksum;
-                }
-                else if ((txdw0 & CP_TX_UDPCS) && ip_protocol == IP_PROTO_UDP)
-                {
+                } else if ((txdw0 & CP_TX_UDPCS) && ip_protocol == IP_PROTO_UDP) {
                     DPRINTF("+++ C+ mode calculating UDP checksum for "
-                        "packet with %d bytes data\n", ip_data_len);
+                            "packet with %d bytes data\n",
+                            ip_data_len);
 
-                    ip_pseudo_header *p_udpip_hdr = (ip_pseudo_header *)data_to_checksum;
-                    p_udpip_hdr->zeros      = 0;
-                    p_udpip_hdr->ip_proto   = IP_PROTO_UDP;
-                    p_udpip_hdr->ip_payload = cpu_to_be16(ip_data_len);
+                    ip_pseudo_header *p_udpip_hdr = (ip_pseudo_header *) data_to_checksum;
+                    p_udpip_hdr->zeros            = 0;
+                    p_udpip_hdr->ip_proto         = IP_PROTO_UDP;
+                    p_udpip_hdr->ip_payload       = cpu_to_be16(ip_data_len);
 
-                    udp_header *p_udp_hdr = (udp_header *) (data_to_checksum+12);
+                    udp_header *p_udp_hdr = (udp_header *) (data_to_checksum + 12);
 
                     p_udp_hdr->uh_sum = 0;
 
                     int udp_checksum = ip_checksum(data_to_checksum, ip_data_len + 12);
                     DPRINTF("+++ C+ mode UDP checksum %04x\n",
-                        udp_checksum);
+                            udp_checksum);
 
                     p_udp_hdr->uh_sum = udp_checksum;
                 }
@@ -2342,89 +2350,79 @@ skip_offload:
         DPRINTF("+++ C+ mode transmitting %d bytes packet\n", saved_size);
 
         rtl8139_transfer_frame(s, saved_buffer, saved_size, 1,
-            (uint8_t *) dot1q_buffer);
+                               (uint8_t *) dot1q_buffer);
 
         /* restore card space if there was no recursion and reset offset */
-        if (!s->cplus_txbuffer)
-        {
+        if (!s->cplus_txbuffer) {
             s->cplus_txbuffer        = saved_buffer;
             s->cplus_txbuffer_len    = saved_buffer_len;
             s->cplus_txbuffer_offset = 0;
-        }
-        else
-        {
+        } else {
             free(saved_buffer);
         }
-    }
-    else
-    {
+    } else {
         DPRINTF("+++ C+ mode transmission continue to next descriptor\n");
     }
 
     return 1;
 }
 
-static void rtl8139_cplus_transmit(RTL8139State *s)
+static void
+rtl8139_cplus_transmit(RTL8139State *s)
 {
     int txcount = 0;
 
-    while (txcount < 64 && rtl8139_cplus_transmit_one(s))
-    {
+    while (txcount < 64 && rtl8139_cplus_transmit_one(s)) {
         ++txcount;
     }
 
     /* Mark transfer completed */
-    if (!txcount)
-    {
+    if (!txcount) {
         DPRINTF("C+ mode : transmitter queue stalled, current TxDesc = %d\n",
-            s->currCPlusTxDesc);
-    }
-    else
-    {
+                s->currCPlusTxDesc);
+    } else {
         /* update interrupt status */
         s->IntrStatus |= TxOK;
         rtl8139_update_irq(s);
     }
 }
 
-static void rtl8139_transmit(RTL8139State *s)
+static void
+rtl8139_transmit(RTL8139State *s)
 {
-    int descriptor = s->currTxDesc, txcount = 0;
+    int descriptor = s->currTxDesc;
+    int txcount    = 0;
 
     /*while*/
-    if (rtl8139_transmit_one(s, descriptor))
-    {
+    if (rtl8139_transmit_one(s, descriptor)) {
         ++s->currTxDesc;
         s->currTxDesc %= 4;
         ++txcount;
     }
 
     /* Mark transfer completed */
-    if (!txcount)
-    {
+    if (!txcount) {
         DPRINTF("transmitter queue stalled, current TxDesc = %d\n",
-            s->currTxDesc);
+                s->currTxDesc);
     }
 }
 
-
-static void rtl8139_TxStatus_write(RTL8139State *s, uint32_t txRegOffset, uint32_t val)
+static void
+rtl8139_TxStatus_write(RTL8139State *s, uint32_t txRegOffset, uint32_t val)
 {
-
-    int descriptor = txRegOffset/4;
+    int descriptor = txRegOffset / 4;
 
     /* handle C+ transmit mode register configuration */
 
-    if (s->cplus_enabled)
-    {
+    if (s->cplus_enabled) {
         DPRINTF("RTL8139C+ DTCCR write offset=0x%x val=0x%08x "
-            "descriptor=%d\n", txRegOffset, val, descriptor);
+                "descriptor=%d\n",
+                txRegOffset, val, descriptor);
 
         /* handle Dump Tally Counters command */
         s->TxStatus[descriptor] = val;
 
-        if (descriptor == 0 && (val & 0x8))
-        {
+        if (descriptor == 0 && (val & 0x8)) {
             uint32_t tc_addr = rtl8139_addr64(s->TxStatus[0] & ~0x3f, s->TxStatus[1]);
 
             /* dump tally counters to specified memory location */
@@ -2438,7 +2436,7 @@ static void rtl8139_TxStatus_write(RTL8139State *s, uint32_t txRegOffset, uint32
     }
 
     DPRINTF("TxStatus write offset=0x%x val=0x%08x descriptor=%d\n",
-        txRegOffset, val, descriptor);
+            txRegOffset, val, descriptor);
 
     /* mask only reserved bits */
     val &= ~0xff00c000; /* these bits are reset on write */
@@ -2450,69 +2448,73 @@ static void rtl8139_TxStatus_write(RTL8139State *s, uint32_t txRegOffset, uint32
     rtl8139_transmit(s);
 }
 
-static uint32_t rtl8139_TxStatus_TxAddr_read(RTL8139State *s, uint32_t regs[],
-                                             uint32_t base, uint8_t addr,
-                                             int size)
+static uint32_t
+rtl8139_TxStatus_TxAddr_read(UNUSED(RTL8139State *s), uint32_t regs[],
+                             uint32_t base, uint8_t addr,
+                             int size)
 {
-    uint32_t reg = (addr - base) / 4;
+    uint32_t reg    = (addr - base) / 4;
     uint32_t offset = addr & 0x3;
-    uint32_t ret = 0;
+    uint32_t ret    = 0;
 
     if (addr & (size - 1)) {
         DPRINTF("not implemented read for TxStatus/TxAddr "
-                "addr=0x%x size=0x%x\n", addr, size);
+                "addr=0x%x size=0x%x\n",
+                addr, size);
         return ret;
     }
 
     switch (size) {
-    case 1: /* fall through */
-    case 2: /* fall through */
-    case 4:
-        ret = (regs[reg] >> offset * 8) & (((uint64_t)1 << (size * 8)) - 1);
-        DPRINTF("TxStatus/TxAddr[%d] read addr=0x%x size=0x%x val=0x%08x\n",
-                reg, addr, size, ret);
-        break;
-    default:
-        DPRINTF("unsupported size 0x%x of TxStatus/TxAddr reading\n", size);
-        break;
+        case 1: /* fall through */
+        case 2: /* fall through */
+        case 4:
+            ret = (regs[reg] >> offset * 8) & (((uint64_t) 1 << (size * 8)) - 1);
+            DPRINTF("TxStatus/TxAddr[%d] read addr=0x%x size=0x%x val=0x%08x\n",
+                    reg, addr, size, ret);
+            break;
+
+        default:
+            DPRINTF("unsupported size 0x%x of TxStatus/TxAddr reading\n", size);
+            break;
     }
 
     return ret;
 }
 
-static uint16_t rtl8139_TSAD_read(RTL8139State *s)
+static uint16_t
+rtl8139_TSAD_read(RTL8139State *s)
 {
     uint16_t ret = 0;
 
     /* Simulate TSAD, it is read only anyway */
 
-    ret = ((s->TxStatus[3] & TxStatOK  )?TSAD_TOK3:0)
-         |((s->TxStatus[2] & TxStatOK  )?TSAD_TOK2:0)
-         |((s->TxStatus[1] & TxStatOK  )?TSAD_TOK1:0)
-         |((s->TxStatus[0] & TxStatOK  )?TSAD_TOK0:0)
+    ret = ((s->TxStatus[3] & TxStatOK) ? TSAD_TOK3 : 0)
+        | ((s->TxStatus[2] & TxStatOK) ? TSAD_TOK2 : 0)
+        | ((s->TxStatus[1] & TxStatOK) ? TSAD_TOK1 : 0)
+        | ((s->TxStatus[0] & TxStatOK) ? TSAD_TOK0 : 0)
 
-         |((s->TxStatus[3] & TxUnderrun)?TSAD_TUN3:0)
-         |((s->TxStatus[2] & TxUnderrun)?TSAD_TUN2:0)
-         |((s->TxStatus[1] & TxUnderrun)?TSAD_TUN1:0)
-         |((s->TxStatus[0] & TxUnderrun)?TSAD_TUN0:0)
+        | ((s->TxStatus[3] & TxUnderrun) ? TSAD_TUN3 : 0)
+        | ((s->TxStatus[2] & TxUnderrun) ? TSAD_TUN2 : 0)
+        | ((s->TxStatus[1] & TxUnderrun) ? TSAD_TUN1 : 0)
+        | ((s->TxStatus[0] & TxUnderrun) ? TSAD_TUN0 : 0)
 
-         |((s->TxStatus[3] & TxAborted )?TSAD_TABT3:0)
-         |((s->TxStatus[2] & TxAborted )?TSAD_TABT2:0)
-         |((s->TxStatus[1] & TxAborted )?TSAD_TABT1:0)
-         |((s->TxStatus[0] & TxAborted )?TSAD_TABT0:0)
+        | ((s->TxStatus[3] & TxAborted) ? TSAD_TABT3 : 0)
+        | ((s->TxStatus[2] & TxAborted) ? TSAD_TABT2 : 0)
+        | ((s->TxStatus[1] & TxAborted) ? TSAD_TABT1 : 0)
+        | ((s->TxStatus[0] & TxAborted) ? TSAD_TABT0 : 0)
 
-         |((s->TxStatus[3] & TxHostOwns )?TSAD_OWN3:0)
-         |((s->TxStatus[2] & TxHostOwns )?TSAD_OWN2:0)
-         |((s->TxStatus[1] & TxHostOwns )?TSAD_OWN1:0)
-         |((s->TxStatus[0] & TxHostOwns )?TSAD_OWN0:0) ;
-
+        | ((s->TxStatus[3] & TxHostOwns) ? TSAD_OWN3 : 0)
+        | ((s->TxStatus[2] & TxHostOwns) ? TSAD_OWN2 : 0)
+        | ((s->TxStatus[1] & TxHostOwns) ? TSAD_OWN1 : 0)
+        | ((s->TxStatus[0] & TxHostOwns) ? TSAD_OWN0 : 0);
 
     DPRINTF("TSAD read val=0x%04x\n", ret);
 
     return ret;
 }
 
-static uint16_t rtl8139_CSCR_read(RTL8139State *s)
+static uint16_t
+rtl8139_CSCR_read(RTL8139State *s)
 {
     uint16_t ret = s->CSCR;
 
@@ -2521,23 +2523,26 @@ static uint16_t rtl8139_CSCR_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_TxAddr_write(RTL8139State *s, uint32_t txAddrOffset, uint32_t val)
+static void
+rtl8139_TxAddr_write(RTL8139State *s, uint32_t txAddrOffset, uint32_t val)
 {
     DPRINTF("TxAddr write offset=0x%x val=0x%08x\n", txAddrOffset, val);
 
-    s->TxAddr[txAddrOffset/4] = val;
+    s->TxAddr[txAddrOffset / 4] = val;
 }
 
-static uint32_t rtl8139_TxAddr_read(RTL8139State *s, uint32_t txAddrOffset)
+static uint32_t
+rtl8139_TxAddr_read(RTL8139State *s, uint32_t txAddrOffset)
 {
-    uint32_t ret = s->TxAddr[txAddrOffset/4];
+    uint32_t ret = s->TxAddr[txAddrOffset / 4];
 
     DPRINTF("TxAddr read offset=0x%x val=0x%08x\n", txAddrOffset, ret);
 
     return ret;
 }
 
-static void rtl8139_RxBufPtr_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_RxBufPtr_write(RTL8139State *s, uint32_t val)
 {
     DPRINTF("RxBufPtr write val=0x%04x\n", val);
 
@@ -2545,10 +2550,11 @@ static void rtl8139_RxBufPtr_write(RTL8139State *s, uint32_t val)
     s->RxBufPtr = MOD2(val + 0x10, s->RxBufferSize);
 
     DPRINTF(" CAPR write: rx buffer length %d head 0x%04x read 0x%04x\n",
-        s->RxBufferSize, s->RxBufAddr, s->RxBufPtr);
+            s->RxBufferSize, s->RxBufAddr, s->RxBufPtr);
 }
 
-static uint32_t rtl8139_RxBufPtr_read(RTL8139State *s)
+static uint32_t
+rtl8139_RxBufPtr_read(RTL8139State *s)
 {
     /* this value is off by 16 */
     uint32_t ret = s->RxBufPtr - 0x10;
@@ -2558,7 +2564,8 @@ static uint32_t rtl8139_RxBufPtr_read(RTL8139State *s)
     return ret;
 }
 
-static uint32_t rtl8139_RxBufAddr_read(RTL8139State *s)
+static uint32_t
+rtl8139_RxBufAddr_read(RTL8139State *s)
 {
     /* this value is NOT off by 16 */
     uint32_t ret = s->RxBufAddr;
@@ -2568,7 +2575,8 @@ static uint32_t rtl8139_RxBufAddr_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_RxBuf_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_RxBuf_write(RTL8139State *s, uint32_t val)
 {
     DPRINTF("RxBuf write val=0x%08x\n", val);
 
@@ -2577,7 +2585,8 @@ static void rtl8139_RxBuf_write(RTL8139State *s, uint32_t val)
     /* may need to reset rxring here */
 }
 
-static uint32_t rtl8139_RxBuf_read(RTL8139State *s)
+static uint32_t
+rtl8139_RxBuf_read(RTL8139State *s)
 {
     uint32_t ret = s->RxBuf;
 
@@ -2586,7 +2595,8 @@ static uint32_t rtl8139_RxBuf_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_IntrMask_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_IntrMask_write(RTL8139State *s, uint32_t val)
 {
     DPRINTF("IntrMask write(w) val=0x%04x\n", val);
 
@@ -2596,10 +2606,10 @@ static void rtl8139_IntrMask_write(RTL8139State *s, uint32_t val)
     s->IntrMask = val;
 
     rtl8139_update_irq(s);
-
 }
 
-static uint32_t rtl8139_IntrMask_read(RTL8139State *s)
+static uint32_t
+rtl8139_IntrMask_read(RTL8139State *s)
 {
     uint32_t ret = s->IntrMask;
 
@@ -2608,7 +2618,8 @@ static uint32_t rtl8139_IntrMask_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_IntrStatus_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_IntrStatus_write(RTL8139State *s, uint32_t val)
 {
     DPRINTF("IntrStatus write(w) val=0x%04x\n", val);
 
@@ -2634,7 +2645,8 @@ static void rtl8139_IntrStatus_write(RTL8139State *s, uint32_t val)
 #endif
 }
 
-static uint32_t rtl8139_IntrStatus_read(RTL8139State *s)
+static uint32_t
+rtl8139_IntrStatus_read(RTL8139State *s)
 {
     uint32_t ret = s->IntrStatus;
 
@@ -2652,7 +2664,8 @@ static uint32_t rtl8139_IntrStatus_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_MultiIntr_write(RTL8139State *s, uint32_t val)
+static void
+rtl8139_MultiIntr_write(RTL8139State *s, uint32_t val)
 {
     DPRINTF("MultiIntr write(w) val=0x%04x\n", val);
 
@@ -2662,7 +2675,8 @@ static void rtl8139_MultiIntr_write(RTL8139State *s, uint32_t val)
     s->MultiIntr = val;
 }
 
-static uint32_t rtl8139_MultiIntr_read(RTL8139State *s)
+static uint32_t
+rtl8139_MultiIntr_read(RTL8139State *s)
 {
     uint32_t ret = s->MultiIntr;
 
@@ -2671,23 +2685,23 @@ static uint32_t rtl8139_MultiIntr_read(RTL8139State *s)
     return ret;
 }
 
-static void rtl8139_io_writeb(uint32_t addr, uint8_t val, void *opaque)
+static void
+rtl8139_io_writeb(uint32_t addr, uint8_t val, void *priv)
 {
-    RTL8139State *s = opaque;
+    RTL8139State *s = priv;
 
     addr &= 0xFF;
-    switch (addr)
-    {
-        case MAC0 ... MAC0+4:
+    switch (addr) {
+        case MAC0 ... MAC0 + 4:
             s->phys[addr - MAC0] = val;
             break;
-        case MAC0+5:
+        case MAC0 + 5:
             s->phys[addr - MAC0] = val;
             break;
-        case MAC0+6 ... MAC0+7:
+        case MAC0 + 6 ... MAC0 + 7:
             /* reserved */
             break;
-        case MAR0 ... MAR0+7:
+        case MAR0 ... MAR0 + 7:
             s->mult[addr - MAR0] = val;
             break;
         case ChipCmd:
@@ -2717,17 +2731,14 @@ static void rtl8139_io_writeb(uint32_t addr, uint8_t val, void *opaque)
         case MediaStatus:
             /* ignore */
             DPRINTF("not implemented write(b) to MediaStatus val=0x%02x\n",
-                val);
+                    val);
             break;
 
         case HltClk:
             DPRINTF("HltClk write val=0x%08x\n", val);
-            if (val == 'R')
-            {
+            if (val == 'R') {
                 s->clock_enabled = 1;
-            }
-            else if (val == 'H')
-            {
+            } else if (val == 'H') {
                 s->clock_enabled = 0;
             }
             break;
@@ -2739,14 +2750,14 @@ static void rtl8139_io_writeb(uint32_t addr, uint8_t val, void *opaque)
 
         case TxPoll:
             DPRINTF("C+ TxPoll write(b) val=0x%02x\n", val);
-            if (val & (1 << 7))
-            {
+            if (val & (1 << 7)) {
                 DPRINTF("C+ TxPoll high priority transmission (not "
-                    "implemented)\n");
+                        "implemented)\n");
+#if 0
                 //rtl8139_cplus_transmit(s);
+#endif
             }
-            if (val & (1 << 6))
-            {
+            if (val & (1 << 6)) {
                 DPRINTF("C+ TxPoll normal priority transmission\n");
                 rtl8139_cplus_transmit(s);
             }
@@ -2755,18 +2766,18 @@ static void rtl8139_io_writeb(uint32_t addr, uint8_t val, void *opaque)
 
         default:
             DPRINTF("not implemented write(b) addr=0x%x val=0x%02x\n", addr,
-                val);
+                    val);
             break;
     }
 }
 
-static void rtl8139_io_writew(uint32_t addr, uint16_t val, void *opaque)
+static void
+rtl8139_io_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    RTL8139State *s = opaque;
+    RTL8139State *s = priv;
 
     addr &= 0xFF;
-    switch (addr)
-    {
+    switch (addr) {
         case IntrMask:
             rtl8139_IntrMask_write(s, val);
             break;
@@ -2811,23 +2822,23 @@ static void rtl8139_io_writew(uint32_t addr, uint16_t val, void *opaque)
 
         default:
             DPRINTF("ioport write(w) addr=0x%x val=0x%04x via write(b)\n",
-                addr, val);
+                    addr, val);
 
-            rtl8139_io_writeb(addr, val & 0xff, opaque);
-            rtl8139_io_writeb(addr + 1, (val >> 8) & 0xff, opaque);
+            rtl8139_io_writeb(addr, val & 0xff, priv);
+            rtl8139_io_writeb(addr + 1, (val >> 8) & 0xff, priv);
             break;
     }
 }
 
 /* TODO: Implement timer. */
 
-static void rtl8139_io_writel(uint32_t addr, uint32_t val, void *opaque)
+static void
+rtl8139_io_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    RTL8139State *s = opaque;
+    RTL8139State *s = priv;
 
     addr &= 0xFF;
-    switch (addr)
-    {
+    switch (addr) {
         case RxMissed:
             DPRINTF("RxMissed clearing on write\n");
             s->RxMissed = 0;
@@ -2841,12 +2852,12 @@ static void rtl8139_io_writel(uint32_t addr, uint32_t val, void *opaque)
             rtl8139_RxConfig_write(s, val);
             break;
 
-        case TxStatus0 ... TxStatus0+4*4-1:
-            rtl8139_TxStatus_write(s, addr-TxStatus0, val);
+        case TxStatus0 ... TxStatus0 + 4 * 4 - 1:
+            rtl8139_TxStatus_write(s, addr - TxStatus0, val);
             break;
 
-        case TxAddr0 ... TxAddr0+4*4-1:
-            rtl8139_TxAddr_write(s, addr-TxAddr0, val);
+        case TxAddr0 ... TxAddr0 + 4 * 4 - 1:
+            rtl8139_TxAddr_write(s, addr - TxAddr0, val);
             break;
 
         case RxBuf:
@@ -2866,8 +2877,10 @@ static void rtl8139_io_writel(uint32_t addr, uint32_t val, void *opaque)
         case Timer:
             DPRINTF("TCTR Timer reset on write\n");
             s->TCTR = 0;
-            //s->TCTR_base = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
-            //rtl8139_set_next_tctr_time(s);
+#if 0
+            s->TCTR_base = qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL);
+            rtl8139_set_next_tctr_time(s);
+#endif
             break;
 
         case FlashReg:
@@ -2879,34 +2892,33 @@ static void rtl8139_io_writel(uint32_t addr, uint32_t val, void *opaque)
 
         default:
             DPRINTF("ioport write(l) addr=0x%x val=0x%08x via write(b)\n",
-                addr, val);
-            rtl8139_io_writeb(addr, val & 0xff, opaque);
-            rtl8139_io_writeb(addr + 1, (val >> 8) & 0xff, opaque);
-            rtl8139_io_writeb(addr + 2, (val >> 16) & 0xff, opaque);
-            rtl8139_io_writeb(addr + 3, (val >> 24) & 0xff, opaque);
+                    addr, val);
+            rtl8139_io_writeb(addr, val & 0xff, priv);
+            rtl8139_io_writeb(addr + 1, (val >> 8) & 0xff, priv);
+            rtl8139_io_writeb(addr + 2, (val >> 16) & 0xff, priv);
+            rtl8139_io_writeb(addr + 3, (val >> 24) & 0xff, priv);
             break;
     }
 }
 
-
-static uint8_t rtl8139_io_readb(uint32_t addr, void *opaque)
+static uint8_t
+rtl8139_io_readb(uint32_t addr, void *priv)
 {
-    RTL8139State *s = opaque;
-    uint8_t ret;
+    RTL8139State *s = priv;
+    uint8_t       ret;
 
     addr &= 0xFF;
-    switch (addr)
-    {
-        case MAC0 ... MAC0+5:
+    switch (addr) {
+        case MAC0 ... MAC0 + 5:
             ret = s->phys[addr - MAC0];
             break;
-        case MAC0+6 ... MAC0+7:
+        case MAC0 + 6 ... MAC0 + 7:
             ret = 0;
             break;
-        case MAR0 ... MAR0+7:
+        case MAR0 ... MAR0 + 7:
             ret = s->mult[addr - MAR0];
             break;
-        case TxStatus0 ... TxStatus0+4*4-1:
+        case TxStatus0 ... TxStatus0 + 4 * 4 - 1:
             ret = rtl8139_TxStatus_TxAddr_read(s, s->TxStatus, TxStatus0,
                                                addr, 1);
             break;
@@ -2967,15 +2979,15 @@ static uint8_t rtl8139_io_readb(uint32_t addr, void *opaque)
     return ret;
 }
 
-static uint16_t rtl8139_io_readw(uint32_t addr, void *opaque)
+static uint16_t
+rtl8139_io_readw(uint32_t addr, void *priv)
 {
-    RTL8139State *s = opaque;
-    uint16_t ret;
+    RTL8139State *s = priv;
+    uint16_t      ret;
 
     addr &= 0xFF;
-    switch (addr)
-    {
-        case TxAddr0 ... TxAddr0+4*4-1:
+    switch (addr) {
+        case TxAddr0 ... TxAddr0 + 4 * 4 - 1:
             ret = rtl8139_TxStatus_TxAddr_read(s, s->TxAddr, TxAddr0, addr, 2);
             break;
         case IntrMask:
@@ -3036,8 +3048,8 @@ static uint16_t rtl8139_io_readw(uint32_t addr, void *opaque)
         default:
             DPRINTF("ioport read(w) addr=0x%x via read(b)\n", addr);
 
-            ret  = rtl8139_io_readb(addr, opaque);
-            ret |= rtl8139_io_readb(addr + 1, opaque) << 8;
+            ret = rtl8139_io_readb(addr, priv);
+            ret |= rtl8139_io_readb(addr + 1, priv) << 8;
 
             DPRINTF("ioport read(w) addr=0x%x val=0x%04x\n", addr, ret);
             break;
@@ -3046,14 +3058,14 @@ static uint16_t rtl8139_io_readw(uint32_t addr, void *opaque)
     return ret;
 }
 
-static uint32_t rtl8139_io_readl(uint32_t addr, void *opaque)
+static uint32_t
+rtl8139_io_readl(uint32_t addr, void *priv)
 {
-    RTL8139State *s = opaque;
-    uint32_t ret;
+    RTL8139State *s = priv;
+    uint32_t      ret;
 
     addr &= 0xFF;
-    switch (addr)
-    {
+    switch (addr) {
         case RxMissed:
             ret = s->RxMissed;
 
@@ -3068,13 +3080,13 @@ static uint32_t rtl8139_io_readl(uint32_t addr, void *opaque)
             ret = rtl8139_RxConfig_read(s);
             break;
 
-        case TxStatus0 ... TxStatus0+4*4-1:
+        case TxStatus0 ... TxStatus0 + 4 * 4 - 1:
             ret = rtl8139_TxStatus_TxAddr_read(s, s->TxStatus, TxStatus0,
                                                addr, 4);
             break;
 
-        case TxAddr0 ... TxAddr0+4*4-1:
-            ret = rtl8139_TxAddr_read(s, addr-TxAddr0);
+        case TxAddr0 ... TxAddr0 + 4 * 4 - 1:
+            ret = rtl8139_TxAddr_read(s, addr - TxAddr0);
             break;
 
         case RxBuf:
@@ -3092,8 +3104,10 @@ static uint32_t rtl8139_io_readl(uint32_t addr, void *opaque)
             break;
 
         case Timer:
-            //ret = (qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) - s->TCTR_base) /
-            //      PCI_PERIOD;
+#if 0
+            ret = (qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) - s->TCTR_base) /
+                  PCI_PERIOD;
+#endif
             ret = s->TCTR;
             DPRINTF("TCTR Timer read val=0x%08x\n", ret);
             break;
@@ -3106,10 +3120,10 @@ static uint32_t rtl8139_io_readl(uint32_t addr, void *opaque)
         default:
             DPRINTF("ioport read(l) addr=0x%x via read(b)\n", addr);
 
-            ret  = rtl8139_io_readb(addr, opaque);
-            ret |= rtl8139_io_readb(addr + 1, opaque) << 8;
-            ret |= rtl8139_io_readb(addr + 2, opaque) << 16;
-            ret |= rtl8139_io_readb(addr + 3, opaque) << 24;
+            ret = rtl8139_io_readb(addr, priv);
+            ret |= rtl8139_io_readb(addr + 1, priv) << 8;
+            ret |= rtl8139_io_readb(addr + 2, priv) << 16;
+            ret |= rtl8139_io_readb(addr + 3, priv) << 24;
 
             DPRINTF("read(l) addr=0x%x val=%08x\n", addr, ret);
             break;
@@ -3118,41 +3132,48 @@ static uint32_t rtl8139_io_readl(uint32_t addr, void *opaque)
     return ret;
 }
 
-static uint32_t rtl8139_io_readl_ioport(uint16_t addr, void *opaque)
+static uint32_t
+rtl8139_io_readl_ioport(uint16_t addr, void *priv)
 {
-    return rtl8139_io_readl(addr, opaque);
+    return rtl8139_io_readl(addr, priv);
 }
 
-static uint16_t rtl8139_io_readw_ioport(uint16_t addr, void *opaque)
+static uint16_t
+rtl8139_io_readw_ioport(uint16_t addr, void *priv)
 {
-    return rtl8139_io_readw(addr, opaque);
+    return rtl8139_io_readw(addr, priv);
 }
 
-static uint8_t rtl8139_io_readb_ioport(uint16_t addr, void *opaque)
+static uint8_t
+rtl8139_io_readb_ioport(uint16_t addr, void *priv)
 {
-    return rtl8139_io_readb(addr, opaque);
+    return rtl8139_io_readb(addr, priv);
 }
 
-static void rtl8139_io_writel_ioport(uint16_t addr, uint32_t val, void *opaque)
+static void
+rtl8139_io_writel_ioport(uint16_t addr, uint32_t val, void *priv)
 {
-    return rtl8139_io_writel(addr, val, opaque);
+    return rtl8139_io_writel(addr, val, priv);
 }
 
-static void rtl8139_io_writew_ioport(uint16_t addr, uint16_t val, void *opaque)
+static void
+rtl8139_io_writew_ioport(uint16_t addr, uint16_t val, void *priv)
 {
-    return rtl8139_io_writew(addr, val, opaque);
+    return rtl8139_io_writew(addr, val, priv);
 }
 
-static void rtl8139_io_writeb_ioport(uint16_t addr, uint8_t val, void *opaque)
+static void
+rtl8139_io_writeb_ioport(uint16_t addr, uint8_t val, void *priv)
 {
-    return rtl8139_io_writeb(addr, val, opaque);
+    return rtl8139_io_writeb(addr, val, priv);
 }
 
-static int rtl8139_set_link_status(void* priv, uint32_t link_state)
+static int
+rtl8139_set_link_status(void *priv, uint32_t link_state)
 {
-    RTL8139State *s = (RTL8139State*)priv;
+    RTL8139State *s = (RTL8139State *) priv;
 
-    if ((link_state & NET_LINK_DOWN)) {
+    if (link_state & NET_LINK_DOWN) {
         s->BasicModeStatus &= ~0x04;
     } else {
         s->BasicModeStatus |= 0x04;
@@ -3163,30 +3184,30 @@ static int rtl8139_set_link_status(void* priv, uint32_t link_state)
     return 0;
 }
 
-static void rtl8139_timer(void *opaque)
+static void
+rtl8139_timer(void *priv)
 {
-    RTL8139State *s = opaque;
+    RTL8139State *s = priv;
 
     timer_on_auto(&s->timer, 1000000.0 / ((double) cpu_pci_speed));
 
-    if (!s->clock_enabled)
-    {
+    if (!s->clock_enabled) {
         DPRINTF(">>> timer: clock is not running\n");
         return;
     }
 
     s->TCTR++;
 
-    if (s->TCTR == s->TimerInt && s->TimerInt != 0){
+    if (s->TCTR == s->TimerInt && s->TimerInt != 0) {
         s->IntrStatus |= PCSTimeout;
         rtl8139_update_irq(s);
     }
 }
 
 static uint8_t
-rtl8139_pci_read(int func, int addr, void *p)
+rtl8139_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    RTL8139State *s = (RTL8139State *) p;
+    const RTL8139State *s = (RTL8139State *) priv;
 
     switch (addr) {
         default:
@@ -3235,17 +3256,23 @@ rtl8139_pci_read(int func, int addr, void *p)
 }
 
 static void
-rtl8139_pci_write(int func, int addr, uint8_t val, void *p)
+rtl8139_pci_write(int func, int addr, uint8_t val, void *priv)
 {
-    RTL8139State *s = (RTL8139State *) p;
+    RTL8139State *s = (RTL8139State *) priv;
 
     switch (addr) {
         case 0x04:
             mem_mapping_disable(&s->bar_mem);
-            io_removehandler((s->pci_conf[0x11] << 8), 256, rtl8139_io_readb_ioport, rtl8139_io_readw_ioport, rtl8139_io_readl_ioport, rtl8139_io_writeb_ioport, rtl8139_io_writew_ioport, rtl8139_io_writel_ioport, p);
+            io_removehandler((s->pci_conf[0x11] << 8), 256,
+                             rtl8139_io_readb_ioport, rtl8139_io_readw_ioport, rtl8139_io_readl_ioport,
+                             rtl8139_io_writeb_ioport, rtl8139_io_writew_ioport, rtl8139_io_writel_ioport,
+                             priv);
             s->pci_conf[addr & 0xFF] = val;
             if (val & PCI_COMMAND_IO)
-                io_sethandler((s->pci_conf[0x11] << 8), 256, rtl8139_io_readb_ioport, rtl8139_io_readw_ioport, rtl8139_io_readl_ioport, rtl8139_io_writeb_ioport, rtl8139_io_writew_ioport, rtl8139_io_writel_ioport, p);
+                io_sethandler((s->pci_conf[0x11] << 8), 256,
+                              rtl8139_io_readb_ioport, rtl8139_io_readw_ioport, rtl8139_io_readl_ioport,
+                              rtl8139_io_writeb_ioport, rtl8139_io_writew_ioport, rtl8139_io_writel_ioport,
+                              priv);
             if ((val & PCI_COMMAND_MEM) && s->bar_mem.size)
                 mem_mapping_enable(&s->bar_mem);
             break;
@@ -3260,10 +3287,16 @@ rtl8139_pci_write(int func, int addr, uint8_t val, void *p)
             break;
         case 0x10:
         case 0x11:
-            io_removehandler((s->pci_conf[0x11] << 8), 256, rtl8139_io_readb_ioport, rtl8139_io_readw_ioport, rtl8139_io_readl_ioport, rtl8139_io_writeb_ioport, rtl8139_io_writew_ioport, rtl8139_io_writel_ioport, p);
+            io_removehandler((s->pci_conf[0x11] << 8), 256,
+                             rtl8139_io_readb_ioport, rtl8139_io_readw_ioport, rtl8139_io_readl_ioport,
+                             rtl8139_io_writeb_ioport, rtl8139_io_writew_ioport, rtl8139_io_writel_ioport,
+                             priv);
             s->pci_conf[addr & 0xFF] = val;
             if (s->pci_conf[0x4] & PCI_COMMAND_IO)
-                io_sethandler((s->pci_conf[0x11] << 8), 256, rtl8139_io_readb_ioport, rtl8139_io_readw_ioport, rtl8139_io_readl_ioport, rtl8139_io_writeb_ioport, rtl8139_io_writew_ioport, rtl8139_io_writel_ioport, p);
+                io_sethandler((s->pci_conf[0x11] << 8), 256,
+                              rtl8139_io_readb_ioport, rtl8139_io_readw_ioport, rtl8139_io_readl_ioport,
+                              rtl8139_io_writeb_ioport, rtl8139_io_writew_ioport, rtl8139_io_writel_ioport,
+                              priv);
             break;
         case 0x14:
         case 0x15:
@@ -3282,21 +3315,21 @@ rtl8139_pci_write(int func, int addr, uint8_t val, void *p)
 static void *
 nic_init(const device_t *info)
 {
-    RTL8139State *s = calloc(1, sizeof(RTL8139State));
-    FILE* f = NULL;
-    char eeprom_filename[1024] = { 0 };
+    RTL8139State *s                     = calloc(1, sizeof(RTL8139State));
+    FILE         *fp                    = NULL;
+    char          eeprom_filename[1024] = { 0 };
+
     mem_mapping_add(&s->bar_mem, 0, 0, rtl8139_io_readb, rtl8139_io_readw, rtl8139_io_readl, rtl8139_io_writeb, rtl8139_io_writew, rtl8139_io_writel, NULL, MEM_MAPPING_EXTERNAL, s);
     pci_add_card(PCI_ADD_NETWORK, rtl8139_pci_read, rtl8139_pci_write, s, &s->pci_slot);
     s->inst = device_get_instance();
-    
+
     snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_rtl8139c_plus_%d.nvr", s->inst);
 
-    f = nvr_fopen(eeprom_filename, "rb");
-    if (f)
-    {
-        fread(s->eeprom.contents, 2, 64, f);
-        fclose(f);
-        f = NULL;
+    fp = nvr_fopen(eeprom_filename, "rb");
+    if (fp) {
+        fread(s->eeprom.contents, 2, 64, fp);
+        fclose(fp);
+        fp = NULL;
     } else {
         /* prepare eeprom */
         s->eeprom.contents[0] = 0x8129;
@@ -3311,12 +3344,12 @@ nic_init(const device_t *info)
         s->eeprom.contents[9] = 0x1413;
     }
 
-    s->nic = network_attach(s, (uint8_t*)&s->eeprom.contents[7], rtl8139_do_receive, rtl8139_set_link_status);
+    s->nic = network_attach(s, (uint8_t *) &s->eeprom.contents[7], rtl8139_do_receive, rtl8139_set_link_status);
     timer_add(&s->timer, rtl8139_timer, s, 0);
     timer_on_auto(&s->timer, 1000000.0 / cpu_pci_speed);
 
-    s->cplus_txbuffer = NULL;
-    s->cplus_txbuffer_len = 0;
+    s->cplus_txbuffer        = NULL;
+    s->cplus_txbuffer_len    = 0;
     s->cplus_txbuffer_offset = 0;
 
     return s;
@@ -3325,16 +3358,16 @@ nic_init(const device_t *info)
 static void
 nic_close(void *priv)
 {
-    RTL8139State *s = (RTL8139State*)priv;
-    FILE* f = NULL;
-    char eeprom_filename[1024] = { 0 };
+    const RTL8139State *s                     = (RTL8139State *) priv;
+    FILE               *fp                    = NULL;
+    char                eeprom_filename[1024] = { 0 };
+
     snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_rtl8139c_plus_%d.nvr", s->inst);
-    f = nvr_fopen(eeprom_filename, "wb");
-    if (f)
-    {
-        fwrite(s->eeprom.contents, 2, 64, f);
-        fclose(f);
-        f = NULL;
+    fp = nvr_fopen(eeprom_filename, "wb");
+    if (fp) {
+        fwrite(s->eeprom.contents, 2, 64, fp);
+        fclose(fp);
+        fp = NULL;
     }
     free(priv);
 }
