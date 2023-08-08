@@ -325,7 +325,7 @@ codegen_backend_init(void)
 
     codegen_allocator_clean_blocks(block->head_mem_block);
 
-    asm("mrs %w0, fpcr\n"
+    asm("mrs %0, fpcr\n"
         : "=r"(cpu_state.old_fp_control));
 }
 
