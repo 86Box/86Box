@@ -126,6 +126,27 @@ const OpFn *x86_opcodes_REPE;
 const OpFn *x86_opcodes_REPNE;
 const OpFn *x86_opcodes_3DNOW;
 
+const OpFn *x86_2386_opcodes;
+const OpFn *x86_2386_opcodes_0f;
+const OpFn *x86_2386_opcodes_d8_a16;
+const OpFn *x86_2386_opcodes_d8_a32;
+const OpFn *x86_2386_opcodes_d9_a16;
+const OpFn *x86_2386_opcodes_d9_a32;
+const OpFn *x86_2386_opcodes_da_a16;
+const OpFn *x86_2386_opcodes_da_a32;
+const OpFn *x86_2386_opcodes_db_a16;
+const OpFn *x86_2386_opcodes_db_a32;
+const OpFn *x86_2386_opcodes_dc_a16;
+const OpFn *x86_2386_opcodes_dc_a32;
+const OpFn *x86_2386_opcodes_dd_a16;
+const OpFn *x86_2386_opcodes_dd_a32;
+const OpFn *x86_2386_opcodes_de_a16;
+const OpFn *x86_2386_opcodes_de_a32;
+const OpFn *x86_2386_opcodes_df_a16;
+const OpFn *x86_2386_opcodes_df_a32;
+const OpFn *x86_2386_opcodes_REPE;
+const OpFn *x86_2386_opcodes_REPNE;
+
 uint16_t cpu_fast_off_count;
 uint16_t cpu_fast_off_val;
 uint16_t temp_seg_data[4] = { 0, 0, 0, 0 };
@@ -536,8 +557,11 @@ cpu_set(void)
 #else
     x86_setopcodes(ops_386, ops_386_0f);
 #endif
+    x86_setopcodes_2386(ops_2386_386, ops_2386_386_0f);
     x86_opcodes_REPE  = ops_REPE;
     x86_opcodes_REPNE = ops_REPNE;
+    x86_2386_opcodes_REPE = ops_2386_REPE;
+    x86_2386_opcodes_REPNE = ops_2386_REPNE;
     x86_opcodes_3DNOW = ops_3DNOW;
 #ifdef USE_DYNAREC
     x86_dynarec_opcodes_REPE  = dynarec_ops_REPE;
@@ -600,6 +624,23 @@ cpu_set(void)
             x86_opcodes_de_a32 = ops_sf_fpu_de_a32;
             x86_opcodes_df_a16 = ops_sf_fpu_df_a16;
             x86_opcodes_df_a32 = ops_sf_fpu_df_a32;
+
+            x86_2386_opcodes_d8_a16 = ops_2386_sf_fpu_d8_a16;
+            x86_2386_opcodes_d8_a32 = ops_2386_sf_fpu_d8_a32;
+            x86_2386_opcodes_d9_a16 = ops_2386_sf_fpu_d9_a16;
+            x86_2386_opcodes_d9_a32 = ops_2386_sf_fpu_d9_a32;
+            x86_2386_opcodes_da_a16 = ops_2386_sf_fpu_da_a16;
+            x86_2386_opcodes_da_a32 = ops_2386_sf_fpu_da_a32;
+            x86_2386_opcodes_db_a16 = ops_2386_sf_fpu_db_a16;
+            x86_2386_opcodes_db_a32 = ops_2386_sf_fpu_db_a32;
+            x86_2386_opcodes_dc_a16 = ops_2386_sf_fpu_dc_a16;
+            x86_2386_opcodes_dc_a32 = ops_2386_sf_fpu_dc_a32;
+            x86_2386_opcodes_dd_a16 = ops_2386_sf_fpu_dd_a16;
+            x86_2386_opcodes_dd_a32 = ops_2386_sf_fpu_dd_a32;
+            x86_2386_opcodes_de_a16 = ops_2386_sf_fpu_de_a16;
+            x86_2386_opcodes_de_a32 = ops_2386_sf_fpu_de_a32;
+            x86_2386_opcodes_df_a16 = ops_2386_sf_fpu_df_a16;
+            x86_2386_opcodes_df_a32 = ops_2386_sf_fpu_df_a32;
         } else {
             x86_opcodes_d8_a16 = ops_fpu_d8_a16;
             x86_opcodes_d8_a32 = ops_fpu_d8_a32;
@@ -617,6 +658,23 @@ cpu_set(void)
             x86_opcodes_de_a32 = ops_fpu_de_a32;
             x86_opcodes_df_a16 = ops_fpu_df_a16;
             x86_opcodes_df_a32 = ops_fpu_df_a32;
+
+            x86_2386_opcodes_d8_a16 = ops_2386_fpu_d8_a16;
+            x86_2386_opcodes_d8_a32 = ops_2386_fpu_d8_a32;
+            x86_2386_opcodes_d9_a16 = ops_2386_fpu_d9_a16;
+            x86_2386_opcodes_d9_a32 = ops_2386_fpu_d9_a32;
+            x86_2386_opcodes_da_a16 = ops_2386_fpu_da_a16;
+            x86_2386_opcodes_da_a32 = ops_2386_fpu_da_a32;
+            x86_2386_opcodes_db_a16 = ops_2386_fpu_db_a16;
+            x86_2386_opcodes_db_a32 = ops_2386_fpu_db_a32;
+            x86_2386_opcodes_dc_a16 = ops_2386_fpu_dc_a16;
+            x86_2386_opcodes_dc_a32 = ops_2386_fpu_dc_a32;
+            x86_2386_opcodes_dd_a16 = ops_2386_fpu_dd_a16;
+            x86_2386_opcodes_dd_a32 = ops_2386_fpu_dd_a32;
+            x86_2386_opcodes_de_a16 = ops_2386_fpu_de_a16;
+            x86_2386_opcodes_de_a32 = ops_2386_fpu_de_a32;
+            x86_2386_opcodes_df_a16 = ops_2386_fpu_df_a16;
+            x86_2386_opcodes_df_a32 = ops_2386_fpu_df_a32;
         }
     } else {
 #ifdef USE_DYNAREC
@@ -653,6 +711,23 @@ cpu_set(void)
         x86_opcodes_de_a32 = ops_nofpu_a32;
         x86_opcodes_df_a16 = ops_nofpu_a16;
         x86_opcodes_df_a32 = ops_nofpu_a32;
+
+        x86_2386_opcodes_d8_a16 = ops_2386_nofpu_a16;
+        x86_2386_opcodes_d8_a32 = ops_2386_nofpu_a32;
+        x86_2386_opcodes_d9_a16 = ops_2386_nofpu_a16;
+        x86_2386_opcodes_d9_a32 = ops_2386_nofpu_a32;
+        x86_2386_opcodes_da_a16 = ops_2386_nofpu_a16;
+        x86_2386_opcodes_da_a32 = ops_2386_nofpu_a32;
+        x86_2386_opcodes_db_a16 = ops_2386_nofpu_a16;
+        x86_2386_opcodes_db_a32 = ops_2386_nofpu_a32;
+        x86_2386_opcodes_dc_a16 = ops_2386_nofpu_a16;
+        x86_2386_opcodes_dc_a32 = ops_2386_nofpu_a32;
+        x86_2386_opcodes_dd_a16 = ops_2386_nofpu_a16;
+        x86_2386_opcodes_dd_a32 = ops_2386_nofpu_a32;
+        x86_2386_opcodes_de_a16 = ops_2386_nofpu_a16;
+        x86_2386_opcodes_de_a32 = ops_2386_nofpu_a32;
+        x86_2386_opcodes_df_a16 = ops_2386_nofpu_a16;
+        x86_2386_opcodes_df_a32 = ops_2386_nofpu_a32;
     }
 
 #ifdef USE_DYNAREC
@@ -679,6 +754,7 @@ cpu_set(void)
 #else
             x86_setopcodes(ops_186, ops_186_0f);
 #endif
+            x86_setopcodes_2386(ops_2386_286, ops_2386_286_0f);
             break;
 
         case CPU_286:
@@ -737,6 +813,21 @@ cpu_set(void)
                     x86_opcodes_de_a32 = ops_sf_fpu_287_de_a32;
                     x86_opcodes_df_a16 = ops_sf_fpu_287_df_a16;
                     x86_opcodes_df_a32 = ops_sf_fpu_287_df_a32;
+
+                    x86_2386_opcodes_d9_a16 = ops_2386_sf_fpu_287_d9_a16;
+                    x86_2386_opcodes_d9_a32 = ops_2386_sf_fpu_287_d9_a32;
+                    x86_2386_opcodes_da_a16 = ops_2386_sf_fpu_287_da_a16;
+                    x86_2386_opcodes_da_a32 = ops_2386_sf_fpu_287_da_a32;
+                    x86_2386_opcodes_db_a16 = ops_2386_sf_fpu_287_db_a16;
+                    x86_2386_opcodes_db_a32 = ops_2386_sf_fpu_287_db_a32;
+                    x86_2386_opcodes_dc_a16 = ops_2386_sf_fpu_287_dc_a16;
+                    x86_2386_opcodes_dc_a32 = ops_2386_sf_fpu_287_dc_a32;
+                    x86_2386_opcodes_dd_a16 = ops_2386_sf_fpu_287_dd_a16;
+                    x86_2386_opcodes_dd_a32 = ops_2386_sf_fpu_287_dd_a32;
+                    x86_2386_opcodes_de_a16 = ops_2386_sf_fpu_287_de_a16;
+                    x86_2386_opcodes_de_a32 = ops_2386_sf_fpu_287_de_a32;
+                    x86_2386_opcodes_df_a16 = ops_2386_sf_fpu_287_df_a16;
+                    x86_2386_opcodes_df_a32 = ops_2386_sf_fpu_287_df_a32;
                 } else {
                     x86_opcodes_d9_a16 = ops_fpu_287_d9_a16;
                     x86_opcodes_d9_a32 = ops_fpu_287_d9_a32;
@@ -752,6 +843,21 @@ cpu_set(void)
                     x86_opcodes_de_a32 = ops_fpu_287_de_a32;
                     x86_opcodes_df_a16 = ops_fpu_287_df_a16;
                     x86_opcodes_df_a32 = ops_fpu_287_df_a32;
+
+                    x86_2386_opcodes_d9_a16 = ops_2386_fpu_287_d9_a16;
+                    x86_2386_opcodes_d9_a32 = ops_2386_fpu_287_d9_a32;
+                    x86_2386_opcodes_da_a16 = ops_2386_fpu_287_da_a16;
+                    x86_2386_opcodes_da_a32 = ops_2386_fpu_287_da_a32;
+                    x86_2386_opcodes_db_a16 = ops_2386_fpu_287_db_a16;
+                    x86_2386_opcodes_db_a32 = ops_2386_fpu_287_db_a32;
+                    x86_2386_opcodes_dc_a16 = ops_2386_fpu_287_dc_a16;
+                    x86_2386_opcodes_dc_a32 = ops_2386_fpu_287_dc_a32;
+                    x86_2386_opcodes_dd_a16 = ops_2386_fpu_287_dd_a16;
+                    x86_2386_opcodes_dd_a32 = ops_2386_fpu_287_dd_a32;
+                    x86_2386_opcodes_de_a16 = ops_2386_fpu_287_de_a16;
+                    x86_2386_opcodes_de_a32 = ops_2386_fpu_287_de_a32;
+                    x86_2386_opcodes_df_a16 = ops_2386_fpu_287_df_a16;
+                    x86_2386_opcodes_df_a32 = ops_2386_fpu_287_df_a32;
                 }
             }
 
@@ -794,11 +900,13 @@ cpu_set(void)
 #else
             x86_setopcodes(ops_386, ops_ibm486_0f);
 #endif
+            x86_setopcodes_2386(ops_2386_386, ops_2386_ibm486_0f);
             cpu_features = CPU_FEATURE_MSR;
             /* FALLTHROUGH */
         case CPU_386SX:
         case CPU_386DX:
-            if (fpu_type == FPU_287) { /* In case we get Deskpro 386 emulation */
+            /* In case we get Deskpro 386 emulation */
+            if (fpu_type == FPU_287) {
 #ifdef USE_DYNAREC
                 if (fpu_softfloat) {
                     x86_dynarec_opcodes_d9_a16 = dynarec_ops_sf_fpu_287_d9_a16;
@@ -847,6 +955,21 @@ cpu_set(void)
                     x86_opcodes_de_a32 = ops_sf_fpu_287_de_a32;
                     x86_opcodes_df_a16 = ops_sf_fpu_287_df_a16;
                     x86_opcodes_df_a32 = ops_sf_fpu_287_df_a32;
+
+                    x86_2386_opcodes_d9_a16 = ops_2386_sf_fpu_287_d9_a16;
+                    x86_2386_opcodes_d9_a32 = ops_2386_sf_fpu_287_d9_a32;
+                    x86_2386_opcodes_da_a16 = ops_2386_sf_fpu_287_da_a16;
+                    x86_2386_opcodes_da_a32 = ops_2386_sf_fpu_287_da_a32;
+                    x86_2386_opcodes_db_a16 = ops_2386_sf_fpu_287_db_a16;
+                    x86_2386_opcodes_db_a32 = ops_2386_sf_fpu_287_db_a32;
+                    x86_2386_opcodes_dc_a16 = ops_2386_sf_fpu_287_dc_a16;
+                    x86_2386_opcodes_dc_a32 = ops_2386_sf_fpu_287_dc_a32;
+                    x86_2386_opcodes_dd_a16 = ops_2386_sf_fpu_287_dd_a16;
+                    x86_2386_opcodes_dd_a32 = ops_2386_sf_fpu_287_dd_a32;
+                    x86_2386_opcodes_de_a16 = ops_2386_sf_fpu_287_de_a16;
+                    x86_2386_opcodes_de_a32 = ops_2386_sf_fpu_287_de_a32;
+                    x86_2386_opcodes_df_a16 = ops_2386_sf_fpu_287_df_a16;
+                    x86_2386_opcodes_df_a32 = ops_2386_sf_fpu_287_df_a32;
                 } else {
                     x86_opcodes_d9_a16 = ops_fpu_287_d9_a16;
                     x86_opcodes_d9_a32 = ops_fpu_287_d9_a32;
@@ -862,6 +985,21 @@ cpu_set(void)
                     x86_opcodes_de_a32 = ops_fpu_287_de_a32;
                     x86_opcodes_df_a16 = ops_fpu_287_df_a16;
                     x86_opcodes_df_a32 = ops_fpu_287_df_a32;
+
+                    x86_2386_opcodes_d9_a16 = ops_2386_fpu_287_d9_a16;
+                    x86_2386_opcodes_d9_a32 = ops_2386_fpu_287_d9_a32;
+                    x86_2386_opcodes_da_a16 = ops_2386_fpu_287_da_a16;
+                    x86_2386_opcodes_da_a32 = ops_2386_fpu_287_da_a32;
+                    x86_2386_opcodes_db_a16 = ops_2386_fpu_287_db_a16;
+                    x86_2386_opcodes_db_a32 = ops_2386_fpu_287_db_a32;
+                    x86_2386_opcodes_dc_a16 = ops_2386_fpu_287_dc_a16;
+                    x86_2386_opcodes_dc_a32 = ops_2386_fpu_287_dc_a32;
+                    x86_2386_opcodes_dd_a16 = ops_2386_fpu_287_dd_a16;
+                    x86_2386_opcodes_dd_a32 = ops_2386_fpu_287_dd_a32;
+                    x86_2386_opcodes_de_a16 = ops_2386_fpu_287_de_a16;
+                    x86_2386_opcodes_de_a32 = ops_2386_fpu_287_de_a32;
+                    x86_2386_opcodes_df_a16 = ops_2386_fpu_287_df_a16;
+                    x86_2386_opcodes_df_a32 = ops_2386_fpu_287_df_a32;
                 }
             }
 
@@ -908,6 +1046,7 @@ cpu_set(void)
 #else
             x86_setopcodes(ops_386, ops_486_0f);
 #endif
+            x86_setopcodes_2386(ops_2386_386, ops_2386_486_0f);
 
             timing_rr  = 1; /* register dest - register src */
             timing_rm  = 3; /* register dest - memory src */
@@ -947,6 +1086,7 @@ cpu_set(void)
 #else
             x86_setopcodes(ops_386, ops_486_0f);
 #endif
+            x86_setopcodes_2386(ops_2386_386, ops_2386_486_0f);
 
             timing_rr  = 1; /* register dest - register src */
             timing_rm  = 3; /* register dest - memory src */
@@ -999,6 +1139,7 @@ cpu_set(void)
 #else
             x86_setopcodes(ops_386, ops_486_0f);
 #endif
+            x86_setopcodes_2386(ops_2386_386, ops_2386_486_0f);
 
             timing_rr  = 1; /* register dest - register src */
             timing_rm  = 2; /* register dest - memory src */
@@ -1642,9 +1783,13 @@ cpu_set(void)
             cpu_exec = exec386_dynarec;
         else
 #endif
-            cpu_exec = exec386;
+        /* Use exec386 for CPU_IBM486SLC because it can reach 100 MHz. */
+        if ((cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type > CPU_486DLC))
+           cpu_exec = exec386;
+        else
+            cpu_exec = exec386_2386;
     } else if (cpu_s->cpu_type >= CPU_286)
-        cpu_exec = exec386;
+        cpu_exec = exec386_2386;
     else
         cpu_exec = execx86;
     mmx_init();
@@ -3417,6 +3562,13 @@ x86_setopcodes(const OpFn *opcodes, const OpFn *opcodes_0f)
     x86_opcodes_0f = opcodes_0f;
 }
 #endif
+
+void
+x86_setopcodes_2386(const OpFn *opcodes, const OpFn *opcodes_0f)
+{
+    x86_2386_opcodes = opcodes;
+    x86_2386_opcodes_0f = opcodes_0f;
+}
 
 void
 cpu_update_waitstates(void)

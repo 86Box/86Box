@@ -115,6 +115,7 @@ opCMPXCHG_l_a32(uint32_t fetchdat)
     return 0;
 }
 
+#ifndef OPS_286_386
 static int
 opCMPXCHG8B_a16(uint32_t fetchdat)
 {
@@ -169,6 +170,7 @@ opCMPXCHG8B_a32(uint32_t fetchdat)
     cycles -= (cpu_mod == 3) ? 6 : 10;
     return 0;
 }
+#endif
 
 /* dest = eab, src = r8 */
 static int

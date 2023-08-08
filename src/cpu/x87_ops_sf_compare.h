@@ -224,6 +224,7 @@ next_ins:
     return 0;
 }
 
+#ifndef OPS_286_386
 static int
 sf_FCOMI_st0_stj(uint32_t fetchdat)
 {
@@ -285,6 +286,7 @@ next_ins:
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fcom) : (x87_concurrency.fcom * cpu_multi));
     return 0;
 }
+#endif
 
 static int
 sf_FUCOM_sti(uint32_t fetchdat)
@@ -346,6 +348,7 @@ next_ins:
     return 0;
 }
 
+#ifndef OPS_286_386
 static int
 sf_FUCOMI_st0_stj(uint32_t fetchdat)
 {
@@ -406,6 +409,7 @@ next_ins:
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fucom) : (x87_concurrency.fucom * cpu_multi));
     return 0;
 }
+#endif
 #endif
 
 static int

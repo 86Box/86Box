@@ -748,6 +748,7 @@ extern void execx86(int cycs);
 extern void enter_smm(int in_hlt);
 extern void enter_smm_check(int in_hlt);
 extern void leave_smm(void);
+extern void exec386_2386(int cycs);
 extern void exec386(int cycs);
 extern void exec386_dynarec(int cycs);
 extern int  idivl(int32_t val);
@@ -831,6 +832,8 @@ extern int hlt_reset_pending;
 
 extern cyrix_t cyrix;
 
+extern int prefetch_prefixes;
+
 extern uint8_t  use_custom_nmi_vector;
 extern uint32_t custom_nmi_vector;
 
@@ -855,5 +858,8 @@ extern MMX_REG *MMP[8];
 extern uint16_t *MMEP[8];
 
 extern void mmx_init(void);
+extern void prefetch_flush(void);
+
+extern void prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32);
 
 #endif /*EMU_CPU_H*/
