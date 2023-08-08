@@ -165,6 +165,20 @@ lpt_read(uint16_t port, void *priv)
     return ret;
 }
 
+uint8_t
+lpt_read_status(int port)
+{
+    lpt_port_t *dev = &(lpt_ports[port]);
+    uint8_t ret = 0xff;
+
+    if (dev->dt && dev->dt->read_status && dev->priv)
+        ret = dev->dt->read_status(dev->priv) | 0x07;
+    else
+        ret = 0xdf;
+
+    return ret;
+}
+
 void
 lpt_irq(void *priv, int raise)
 {

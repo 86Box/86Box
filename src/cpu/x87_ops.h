@@ -1408,6 +1408,7 @@ const OpFn OP_TABLE(sf_fpu_da_a32)[256] = {
     // clang-format on
 };
 
+#ifndef OPS_286_386
 const OpFn OP_TABLE(sf_fpu_686_da_a16)[256] = {
     // clang-format off
         sf_FADDil_a16,  sf_FADDil_a16,  sf_FADDil_a16,  sf_FADDil_a16,  sf_FADDil_a16,  sf_FADDil_a16,  sf_FADDil_a16,  sf_FADDil_a16,
@@ -1487,6 +1488,7 @@ const OpFn OP_TABLE(sf_fpu_686_da_a32)[256] = {
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
     // clang-format on
 };
+#endif
 
 const OpFn OP_TABLE(sf_fpu_287_db_a16)[256] = {
     // clang-format off
@@ -1648,6 +1650,7 @@ const OpFn OP_TABLE(sf_fpu_db_a32)[256] = {
     // clang-format on
 };
 
+#ifndef OPS_286_386
 const OpFn OP_TABLE(sf_fpu_686_db_a16)[256] = {
     // clang-format off
         sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,
@@ -1726,6 +1729,7 @@ const OpFn OP_TABLE(sf_fpu_686_db_a32)[256] = {
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
     // clang-format on
 };
+#endif
 
 const OpFn OP_TABLE(sf_fpu_287_dc_a16)[32] = {
     // clang-format off
@@ -2243,6 +2247,7 @@ const OpFn OP_TABLE(sf_fpu_df_a32)[256] = {
     // clang-format on
 };
 
+#ifndef OPS_286_386
 const OpFn OP_TABLE(sf_fpu_686_df_a16)[256] = {
     // clang-format off
         sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,
@@ -2322,6 +2327,7 @@ const OpFn OP_TABLE(sf_fpu_686_df_a32)[256] = {
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
     // clang-format on
 };
+#endif
 
 const OpFn OP_TABLE(fpu_d8_a16)[32] = {
     // clang-format off
@@ -2661,6 +2667,7 @@ const OpFn OP_TABLE(fpu_da_a32)[256] = {
     // clang-format on
 };
 
+#ifndef OPS_286_386
 const OpFn OP_TABLE(fpu_686_da_a16)[256] = {
     // clang-format off
         opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,
@@ -2740,6 +2747,7 @@ const OpFn OP_TABLE(fpu_686_da_a32)[256] = {
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
     // clang-format on
 };
+#endif
 
 const OpFn OP_TABLE(fpu_287_db_a16)[256] = {
     // clang-format off
@@ -2901,6 +2909,7 @@ const OpFn OP_TABLE(fpu_db_a32)[256] = {
     // clang-format on
 };
 
+#ifndef OPS_286_386
 const OpFn OP_TABLE(fpu_686_db_a16)[256] = {
     // clang-format off
         opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,
@@ -2979,6 +2988,7 @@ const OpFn OP_TABLE(fpu_686_db_a32)[256] = {
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
     // clang-format on
 };
+#endif
 
 const OpFn OP_TABLE(fpu_287_dc_a16)[32] = {
     // clang-format off
@@ -3496,6 +3506,7 @@ const OpFn OP_TABLE(fpu_df_a32)[256] = {
     // clang-format on
 };
 
+#ifndef OPS_286_386
 const OpFn OP_TABLE(fpu_686_df_a16)[256] = {
     // clang-format off
         opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,
@@ -3575,6 +3586,7 @@ const OpFn OP_TABLE(fpu_686_df_a32)[256] = {
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
     // clang-format on
 };
+#endif
 
 const OpFn OP_TABLE(nofpu_a16)[256] = {
     // clang-format off

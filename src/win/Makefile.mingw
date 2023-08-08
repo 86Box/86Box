@@ -568,7 +568,8 @@ MAINOBJ := 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma.
            usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o ini.o \
            $(VNCOBJ)
 
-MEMOBJ := catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o row.o smram.o spd.o sst_flash.o
+MEMOBJ := catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o mmu_2386.o rom.o row.o \
+          smram.o spd.o sst_flash.o
 
 CPU808XOBJ := queue.o
 
