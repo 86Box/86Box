@@ -451,41 +451,41 @@ getquad(void)
 }
 
 #ifdef OPS_286_386
-static __inline uint8_t geteab()
+static __inline uint8_t geteab(void)
 {
     if (cpu_mod == 3)
         return (cpu_rm & 4) ? cpu_state.regs[cpu_rm & 3].b.h : cpu_state.regs[cpu_rm&3].b.l;
     return readmemb(easeg, cpu_state.eaaddr);
 }
 
-static __inline uint16_t geteaw()
+static __inline uint16_t geteaw(void)
 {
     if (cpu_mod == 3)
         return cpu_state.regs[cpu_rm].w;
     return readmemw(easeg, cpu_state.eaaddr);
 }
 
-static __inline uint32_t geteal()
+static __inline uint32_t geteal(void)
 {
     if (cpu_mod == 3)
         return cpu_state.regs[cpu_rm].l;
     return readmeml(easeg, cpu_state.eaaddr);
 }
 
-static __inline uint64_t geteaq()
+static __inline uint64_t geteaq(void)
 {
     return readmemq(easeg, cpu_state.eaaddr);
 }
 
-static __inline uint8_t geteab_mem()
+static __inline uint8_t geteab_mem(void)
 {
     return readmemb(easeg,cpu_state.eaaddr);
 }
-static __inline uint16_t geteaw_mem()
+static __inline uint16_t geteaw_mem(void)
 {
     return readmemw(easeg,cpu_state.eaaddr);
 }
-static __inline uint32_t geteal_mem()
+static __inline uint32_t geteal_mem(void)
 {
     return readmeml(easeg,cpu_state.eaaddr);
 }

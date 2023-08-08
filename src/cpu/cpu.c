@@ -754,7 +754,7 @@ cpu_set(void)
 #else
             x86_setopcodes(ops_186, ops_186_0f);
 #endif
-            x86_setopcodes_2386(ops_2386_286, ops_2386_286_0f);
+            x86_setopcodes_2386(ops_2386_186, ops_2386_186_0f);
             break;
 
         case CPU_286:
@@ -763,6 +763,7 @@ cpu_set(void)
 #else
             x86_setopcodes(ops_286, ops_286_0f);
 #endif
+            x86_setopcodes_2386(ops_2386_286, ops_2386_286_0f);
 
             if (fpu_type == FPU_287) {
 #ifdef USE_DYNAREC
