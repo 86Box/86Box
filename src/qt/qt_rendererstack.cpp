@@ -73,8 +73,8 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
 
     m_monitor_index = monitor_index;
 #if defined __unix__ && !defined __HAIKU__
-    mousedata.mouse_type = getenv("EMU86BOX_MOUSE"), auto_mouse_type[16];
-    if (!mousedata.mouse_type || (mouse_type[0] == '\0') || !stricmp(mousedata.mouse_type, "auto")) {
+    mousedata.mouse_type = getenv("EMU86BOX_MOUSE"), char auto_mouse_type[16];
+    if (!mousedata.mouse_type || (mousedata.mouse_type[0] == '\0') || !stricmp(mousedata.mouse_type, "auto")) {
         if (QApplication::platformName().contains("wayland"))
             strcpy(auto_mouse_type, "wayland");
         else if (QApplication::platformName() == "eglfs")
@@ -87,17 +87,17 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     }
 
 #    ifdef WAYLAND
-    if (!stricmp(mouse_type, "wayland")) {
+    if (!stricmp(mousedata.mouse_type, "wayland")) {
         wl_init();
         this->mouse_capture_func   = wl_mouse_capture;
         this->mouse_uncapture_func = wl_mouse_uncapture;
     }
 #    endif
 #    ifdef EVDEV_INPUT
-    if (!stricmp(mouse_type, "evdev"))
+    if (!stricmp(mousedata.mouse_type, "evdev"))
         evdev_init();
 #    endif
-    if (!stricmp(mouse_type, "xinput2")) {
+    if (!stricmp(mousedata.mouse_type, "xinput2")) {
         extern void xinput2_init();
         extern void xinput2_exit();
         xinput2_init();
