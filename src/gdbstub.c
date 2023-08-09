@@ -1015,13 +1015,8 @@ e14:
 
                 /* Add our supported features to the end. */
                 if (client->response_pos < (sizeof(client->response) - 1))
-#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
                     client->response_pos += snprintf(&client->response[client->response_pos], sizeof(client->response) - client->response_pos,
-                                                     "PacketSize=%lX;swbreak+;hwbreak+;qXfer:features:read+", sizeof(client->packet) - 1);
-#else
-                    client->response_pos += snprintf(&client->response[client->response_pos], sizeof(client->response) - client->response_pos,
-                                                     "PacketSize=%X;swbreak+;hwbreak+;qXfer:features:read+", sizeof(client->packet) - 1);
-#endif
+                                                     "PacketSize=%X;swbreak+;hwbreak+;qXfer:features:read+", (int) (sizeof(client->packet) - 1));
                 break;
             } else if (!strcmp(client->response, "Xfer")) {
                 /* Read the transfer object. */

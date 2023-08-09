@@ -137,6 +137,7 @@ extern void     plat_vidapi_reload(void);
 extern void     plat_vid_reload_options(void);
 extern uint32_t plat_language_code(char *langcode);
 extern void     plat_language_code_r(uint32_t lcid, char *outbuf, int len);
+extern void     plat_get_cpu_string(char *outbuf, uint8_t len);
 
 /* Resource management. */
 extern void     set_language(uint32_t id);

@@ -36,6 +36,7 @@
 #include <QDateTime>
 #include <QLocalSocket>
 #include <QTimer>
+#include <QProcess>
 
 #include <QLibrary>
 #include <QElapsedTimer>
@@ -659,4 +660,70 @@ plat_init_rom_paths()
         rom_add_path(QDir(path).filePath("86Box/roms").toUtf8().constData());
 #endif
     }
+}
+
+void
+plat_get_cpu_string(char *outbuf, uint8_t len) {
+    auto cpu_string = QString("Unknown");
+    /* Write the default string now in case we have to exit early from an error */
+    qstrncpy(outbuf, cpu_string.toUtf8().constData(), len);
+
+#if defined(Q_OS_MACOS)
+    auto *process = new QProcess(nullptr);
+    QStringList arguments;
+    QString program = "/usr/sbin/sysctl";
+    arguments << "machdep.cpu.brand_string";
+    process->start(program, arguments);
+    if (!process->waitForStarted()) {
+        return;
+    }
+    if (!process->waitForFinished()) {
+        return;
+    }
+    QByteArray result = process->readAll();
+    auto command_result = QString(result).split(": ").last();
+    if(!command_result.isEmpty()) {
+        cpu_string = command_result;
+    }
+#elif defined(Q_OS_WINDOWS)
+    const LPCSTR  keyName   = "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0";
+    const LPCSTR  valueName = "ProcessorNameString";
+    unsigned char buf[32768];
+    DWORD         bufSize;
+    HKEY          hKey;
+    bufSize = 32768;
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS) {
+        if (RegQueryValueExA(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS) {
+            cpu_string = reinterpret_cast<const char*>(buf);
+        }
+        RegCloseKey(hKey);
+    }
+#elif defined(Q_OS_LINUX)
+    auto cpuinfo = QString("/proc/cpuinfo");
+    auto cpuinfo_fi = QFileInfo(cpuinfo);
+    if(!cpuinfo_fi.isReadable()) {
+        return;
+    }
+    QFile file(cpuinfo);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream textStream(&file);
+        while(true) {
+            QString line = textStream.readLine();
+            if (line.isNull()) {
+                break;
+            }
+            if(line.contains(QRegExp("model name.*:"))) {
+                auto list = line.split(": ");
+                if(!list.last().isEmpty()) {
+                    cpu_string = list.last();
+                    break;
+                }
+            }
+
+        }
+    }
+#endif
+
+    qstrncpy(outbuf, cpu_string.toUtf8().constData(), len);
+
 }
