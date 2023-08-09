@@ -498,10 +498,8 @@ pci_bridge_init(const device_t *info)
     interrupt_count = sizeof(interrupts);
     interrupt_mask  = interrupt_count - 1;
     if (dev->slot < 32) {
-        for (uint8_t i = 0; i < interrupt_count; i++) {
+        for (uint8_t i = 0; i < interrupt_count; i++)
             interrupts[i] = pci_get_int(dev->slot, PCI_INTA + i);
-            pclog("interrupts[%i] = %i\n", i, interrupts[i]);
-        }
     }
     pci_bridge_log("PCI Bridge %d: upstream bus %02X slot %02X interrupts %02X %02X %02X %02X\n", dev->bus_index, (dev->slot >> 5) & 0xff, dev->slot & 31, interrupts[0], interrupts[1], interrupts[2], interrupts[3]);
 
