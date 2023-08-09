@@ -492,7 +492,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
                 if (is286)
                     update_pending();
                 else
-                    timer_on_auto(&pic_timer, .0 * ((10000000.0 * (double) xt_cpu_multi) / (double) cpu_s->rspeed));
+                    timer_on_auto(&pic_timer, 1.0 * ((10000000.0 * (double) xt_cpu_multi) / (double) cpu_s->rspeed));
                 break;
 
             default:
