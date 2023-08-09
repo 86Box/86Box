@@ -72,6 +72,7 @@ intel_ich2_log(const char *fmt, ...)
 
 typedef struct intel_ich2_t {
     uint8_t pci_conf[7][256];
+    uint8_t pci_slot;
 
     acpi_t            *acpi;
     intel_ac97_t      *ac97;
@@ -1011,14 +1012,13 @@ intel_ich2_init(UNUSED(const device_t *info))
 {
     intel_ich2_t *dev = (intel_ich2_t *) malloc(sizeof(intel_ich2_t));
     memset(dev, 0, sizeof(intel_ich2_t));
-    int slot;
 
     /* Device */
-    slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, intel_ich2_read, intel_ich2_write, dev); /* Device 31: Intel ICH2 */
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, intel_ich2_read, intel_ich2_write, dev, &dev->pci_slot); /* Device 31: Intel ICH2 */
 
     /* ACPI Interface */
     dev->acpi = device_add(&acpi_intel_ich2_device);
-    acpi_set_slot(dev->acpi, slot);
+    acpi_set_slot(dev->acpi, dev->pci_slot);
 
     /* AC'97 Audio */
     if (sound_card_current[0] == SOUND_INTERNAL)
@@ -1048,8 +1048,8 @@ intel_ich2_init(UNUSED(const device_t *info))
     /* SFF Compatible IDE Drives */
     dev->ide_drive[0] = device_add_inst(&sff8038i_device, 1);
     dev->ide_drive[1] = device_add_inst(&sff8038i_device, 2);
-    sff_set_slot(dev->ide_drive[0], slot);
-    sff_set_slot(dev->ide_drive[1], slot);
+    sff_set_slot(dev->ide_drive[0], dev->pci_slot);
+    sff_set_slot(dev->ide_drive[1], dev->pci_slot);
 
     /* TCO */
     dev->tco = device_add(&tco_device);

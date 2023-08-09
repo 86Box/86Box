@@ -58,6 +58,7 @@ intel_815ep_log(const char *fmt, ...)
 
 typedef struct intel_815ep_t {
     uint8_t    pci_conf[256];
+    uint8_t    pci_slot;
     smram_t   *lsmm_segment;
     smram_t   *h_segment;
     smram_t   *usmm_segment;
@@ -433,7 +434,7 @@ intel_815ep_init(UNUSED(const device_t *info))
         cpu_set_pci_speed(cpu_busspeed);
 
     /* Device */
-    pci_add_card(PCI_ADD_NORTHBRIDGE, intel_815ep_read, intel_815ep_write, dev); /* Device 0: Intel 815EP MCH */
+    pci_add_card(PCI_ADD_NORTHBRIDGE, intel_815ep_read, intel_815ep_write, dev, &dev->pci_slot); /* Device 0: Intel 815EP MCH */
 
     /* AGP Bridge */
     device_add(&intel_815ep_agp_device);
