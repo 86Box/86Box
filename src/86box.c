@@ -1109,6 +1109,10 @@ pc_reset_hard_init(void)
     /* Reset any ISA RTC cards. */
     isartc_reset();
 
+    /* Initialize the Voodoo cards here inorder to minmize
+       the chances of the SCSI controller ending up on the bridge. */
+    video_voodoo_init();
+
     ui_sb_update_panes();
 
     if (config_changed) {

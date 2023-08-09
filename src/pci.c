@@ -673,6 +673,8 @@ pci_register_bus_slot(int bus, int card, int type, int inta, int intb, int intc,
     pci_card_to_slot_mapping[bus][card] = last_pci_card;
 
     pci_log("pci_register_slot(): pci_cards[%i].bus = %02X; .id = %02X\n", last_pci_card, bus, card);
+    pclog("pci_register_slot(): pci_cards[%i].bus = %02X; .id = %02X; %02X %02X %02X %02X\n",
+          last_pci_card, bus, card, inta, intb, intc, intd);
 
     if (type == PCI_CARD_NORMAL) {
         last_normal_pci_card++;
@@ -797,17 +799,18 @@ pci_register_card(int pci_card)
 }
 
 /* Add an instance of the PCI bridge. */
-uint8_t
-pci_add_bridge(uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv)
+void
+pci_add_bridge(uint8_t agp, uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv, uint8_t *slot)
 {
     pci_card_t *card;
+    uint8_t bridge_slot = agp ? pci_find_slot(PCI_ADD_AGPBRIDGE, 0xff) : last_normal_pci_card_id;
 
-    card = &pci_cards[last_normal_pci_card_id];
+    card = &pci_cards[bridge_slot];
     card->read  = read;
     card->write = write;
     card->priv  = priv;
 
-    return last_normal_pci_card_id;
+    *slot = bridge_slot;
 }
 
 /* Register the cards that have been added into slots. */

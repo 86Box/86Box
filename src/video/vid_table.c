@@ -363,11 +363,31 @@ video_reset(int card)
         device_add(video_cards[card].device);
     }
 
+    was_reset = 1;
+}
+
+void
+video_post_reset(void)
+{
+    if (gfxcard[0] != VID_NONE) {
+        if (ibm8514_enabled) {
+            ibm8514_device_add();
+        }
+        if (xga_enabled)
+            xga_device_add();
+    }
+
+    /* Reset the graphics card (or do nothing if it was already done
+       by the machine's init function). */
+    video_reset(gfxcard[0]);
+}
+
+void
+video_voodoo_init(void)
+{
     /* Enable the Voodoo if configured. */
     if (voodoo_enabled)
         device_add(&voodoo_device);
-
-    was_reset = 1;
 }
 
 int

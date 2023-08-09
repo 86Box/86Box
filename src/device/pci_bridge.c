@@ -493,16 +493,15 @@ pci_bridge_init(const device_t *info)
 
     pci_bridge_reset(dev);
 
-    if (AGP_BRIDGE(dev->local))
-        pci_add_card(PCI_ADD_AGPBRIDGE, pci_bridge_read, pci_bridge_write, dev, &dev->slot);
-    else
-        dev->slot = pci_add_bridge(pci_bridge_read, pci_bridge_write, dev);
+    pci_add_bridge(AGP_BRIDGE(dev->local), pci_bridge_read, pci_bridge_write, dev, &dev->slot);
 
     interrupt_count = sizeof(interrupts);
     interrupt_mask  = interrupt_count - 1;
     if (dev->slot < 32) {
-        for (uint8_t i = 0; i < interrupt_count; i++)
+        for (uint8_t i = 0; i < interrupt_count; i++) {
             interrupts[i] = pci_get_int(dev->slot, PCI_INTA + i);
+            pclog("interrupts[%i] = %i\n", i, interrupts[i]);
+        }
     }
     pci_bridge_log("PCI Bridge %d: upstream bus %02X slot %02X interrupts %02X %02X %02X %02X\n", dev->bus_index, (dev->slot >> 5) & 0xff, dev->slot & 31, interrupts[0], interrupts[1], interrupts[2], interrupts[3]);
 
