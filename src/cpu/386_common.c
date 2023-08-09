@@ -67,6 +67,38 @@ int soft_reset_mask = 0;
 int smi_latched = 0;
 int smm_in_hlt = 0, smi_block = 0;
 
+int prefetch_prefixes = 0;
+
+int tempc, oldcpl, optype, inttype, oddeven = 0;
+int timetolive;
+
+uint16_t oldcs;
+
+uint32_t oldds, oldss, olddslimit, oldsslimit,
+    olddslimitw, oldsslimitw;
+uint32_t oxpc;
+uint32_t rmdat32;
+uint32_t backupregs[16];
+
+x86seg _oldds;
+
+int opcode_length[256] = { 3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 3,       /* 0x0x */
+                           3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1,       /* 0x1x */
+                           3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1,       /* 0x2x */
+                           3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1,       /* 0x3x */
+                           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,       /* 0x4x */
+                           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,       /* 0x5x */
+                           1, 1, 3, 3, 1, 1, 1, 1, 3, 3, 2, 3, 1, 1, 1, 1,       /* 0x6x */
+                           2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,       /* 0x7x */
+                           3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,       /* 0x8x */
+                           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1,       /* 0x9x */
+                           3, 3, 3, 3, 1, 1, 1, 1, 2, 3, 1, 1, 1, 1, 1, 1,       /* 0xax */
+                           2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,       /* 0xbx */
+                           3, 3, 3, 1, 3, 3, 3, 3, 3, 1, 3, 1, 1, 2, 1, 1,       /* 0xcx */
+                           3, 3, 3, 3, 2, 2, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3,       /* 0xdx */
+                           2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 2, 1, 1, 1, 1,       /* 0xex */
+                           1, 1, 1, 1, 1, 1, 3, 3, 1, 1, 1, 1, 1, 1, 3, 3  };    /* 0xfx */
+
 uint32_t addr64, addr64_2;
 uint32_t addr64a[8], addr64a_2[8];
 
@@ -320,6 +352,77 @@ x386_common_log(const char *fmt, ...)
 #else
 #    define x386_common_log(fmt, ...)
 #endif
+
+/*Prefetch emulation is a fairly simplistic model:
+  - All instruction bytes must be fetched before it starts.
+  - Cycles used for non-instruction memory accesses are counted and subtracted
+    from the total cycles taken
+  - Any remaining cycles are used to refill the prefetch queue.
+
+  Note that this is only used for 286 / 386 systems. It is disabled when the
+  internal cache on 486+ CPUs is enabled.
+*/
+static int prefetch_bytes    = 0;
+
+void
+prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32)
+{
+    int mem_cycles = reads * cpu_cycles_read + reads_l * cpu_cycles_read_l + writes * cpu_cycles_write + writes_l * cpu_cycles_write_l;
+
+    if (instr_cycles < mem_cycles)
+        instr_cycles = mem_cycles;
+
+    prefetch_bytes -= prefetch_prefixes;
+    prefetch_bytes -= bytes;
+    if (modrm != -1) {
+        if (ea32) {
+            if ((modrm & 7) == 4) {
+                if ((modrm & 0x700) == 0x500)
+                    prefetch_bytes -= 5;
+                else if ((modrm & 0xc0) == 0x40)
+                    prefetch_bytes -= 2;
+                else if ((modrm & 0xc0) == 0x80)
+                    prefetch_bytes -= 5;
+            } else {
+                if ((modrm & 0xc7) == 0x05)
+                    prefetch_bytes -= 4;
+                else if ((modrm & 0xc0) == 0x40)
+                    prefetch_bytes--;
+                else if ((modrm & 0xc0) == 0x80)
+                    prefetch_bytes -= 4;
+            }
+        } else {
+            if ((modrm & 0xc7) == 0x06)
+                prefetch_bytes -= 2;
+            else if ((modrm & 0xc0) != 0xc0)
+                prefetch_bytes -= ((modrm & 0xc0) >> 6);
+        }
+    }
+
+    /* Fill up prefetch queue */
+    while (prefetch_bytes < 0) {
+        prefetch_bytes += cpu_prefetch_width;
+        cycles -= cpu_prefetch_cycles;
+    }
+
+    /* Subtract cycles used for memory access by instruction */
+    instr_cycles -= mem_cycles;
+
+    while (instr_cycles >= cpu_prefetch_cycles) {
+        prefetch_bytes += cpu_prefetch_width;
+        instr_cycles -= cpu_prefetch_cycles;
+    }
+
+    prefetch_prefixes = 0;
+    if (prefetch_bytes > 16)
+        prefetch_bytes = 16;
+}
+
+void
+prefetch_flush(void)
+{
+    prefetch_bytes = 0;
+}
 
 static __inline void
 set_stack32(int s)

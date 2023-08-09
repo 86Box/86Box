@@ -1279,6 +1279,7 @@ sf_FSTP_sti(uint32_t fetchdat)
 }
 
 #ifndef FPU_8087
+#ifndef OPS_286_386
 #    define sf_FCMOV(condition)                                                                      \
         static int sf_FCMOV##condition(uint32_t fetchdat)                                            \
         {                                                                                           \
@@ -1309,4 +1310,5 @@ sf_FCMOV(NE)
 sf_FCMOV(NBE)
 sf_FCMOV(NU)
 // clang-format on
+#endif
 #endif

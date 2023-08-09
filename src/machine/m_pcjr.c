@@ -122,12 +122,20 @@ static int     key_queue_end   = 0;
 static void
 recalc_address(pcjr_t *pcjr)
 {
+    uint8_t masked_memctrl = pcjr->memctrl;
+
+    /* According to the Technical Reference, bits 2 and 5 are
+       ignored if there is only 64k of RAM and there are only
+       4 pages. */
+    if (mem_size < 128)
+        masked_memctrl &= ~0x24;
+
     if ((pcjr->memctrl & 0xc0) == 0xc0) {
-        pcjr->vram  = &ram[(pcjr->memctrl & 0x06) << 14];
-        pcjr->b8000 = &ram[(pcjr->memctrl & 0x30) << 11];
+        pcjr->vram  = &ram[(masked_memctrl & 0x06) << 14];
+        pcjr->b8000 = &ram[(masked_memctrl & 0x30) << 11];
     } else {
-        pcjr->vram  = &ram[(pcjr->memctrl & 0x07) << 14];
-        pcjr->b8000 = &ram[(pcjr->memctrl & 0x38) << 11];
+        pcjr->vram  = &ram[(masked_memctrl & 0x07) << 14];
+        pcjr->b8000 = &ram[(masked_memctrl & 0x38) << 11];
     }
 }
 
@@ -160,11 +168,17 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
     uint8_t old;
 
     switch (addr) {
+        case 0x3d0:
+        case 0x3d2:
         case 0x3d4:
+        case 0x3d6:
             pcjr->crtcreg = val & 0x1f;
             return;
 
+        case 0x3d1:
+        case 0x3d3:
         case 0x3d5:
+        case 0x3d7:
             old                       = pcjr->crtc[pcjr->crtcreg];
             pcjr->crtc[pcjr->crtcreg] = val & crtcmask[pcjr->crtcreg];
             if (old != val) {
@@ -190,6 +204,10 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
 
         case 0x3df:
             pcjr->memctrl   = val;
+            pcjr->pa        = val; /* The PCjr BIOS expects the value written to 3DF to
+                                      then be readable from port 60, others it errors out
+                                      with only 64k RAM set (but somehow, still works with
+                                      128k or more RAM). */
             pcjr->addr_mode = val >> 6;
             recalc_address(pcjr);
             break;
@@ -206,11 +224,17 @@ vid_in(uint16_t addr, void *priv)
     uint8_t ret  = 0xff;
 
     switch (addr) {
+        case 0x3d0:
+        case 0x3d2:
         case 0x3d4:
+        case 0x3d6:
             ret = pcjr->crtcreg;
             break;
 
+        case 0x3d1:
+        case 0x3d3:
         case 0x3d5:
+        case 0x3d7:
             ret = pcjr->crtc[pcjr->crtcreg];
             break;
 
@@ -591,8 +615,6 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
         case 0x61:
             pcjr->pb = val;
 
-            timer_process();
-
             if (cassette != NULL)
                 pc_cas_set_motor(cassette, (pcjr->pb & 0x08) == 0);
 
@@ -647,7 +669,9 @@ kbd_read(uint16_t port, void *priv)
 
         case 0x62:
             ret = (pcjr->latched ? 1 : 0);
-            ret |= 0x02; /*Modem card not installed*/
+            ret |= 0x02; /* Modem card not installed */
+            if (mem_size < 128)
+                ret |= 0x08; /* 64k expansion card not installed */
             if ((pcjr->pb & 0x08) || (cassette == NULL))
                 ret |= (ppispeakon ? 0x10 : 0);
             else
@@ -810,6 +834,8 @@ machine_pcjr_init(UNUSED(const machine_t *model))
     pcjr = malloc(sizeof(pcjr_t));
     memset(pcjr, 0x00, sizeof(pcjr_t));
     pcjr->memctrl   = -1;
+    if (mem_size < 128)
+        pcjr->memctrl &= ~0x24;
     display_type    = machine_get_config_int("display_type");
     pcjr->composite = (display_type != PCJR_RGB);
 
@@ -853,7 +879,10 @@ machine_pcjr_init(UNUSED(const machine_t *model))
     device_add(&ns8250_pcjr_device);
     serial_set_next_inst(SERIAL_MAX); /* So that serial_standalone_init() won't do anything. */
 
-    /* "All the inputs are 'read' with one 'IN' from address hex 201." - PCjr Technical Reference (Nov. 83), p.2-119 */
+    /* "All the inputs are 'read' with one 'IN' from address hex 201." - PCjr Technical Reference (Nov. 83), p.2-119
+
+    Note by Miran Grca: Meanwhile, the same Technical Reference clearly says that
+                        the gameport is on ports 201-207. */
     standalone_gameport_type = &gameport_201_device;
 
     return ret;

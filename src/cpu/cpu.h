@@ -280,10 +280,11 @@ typedef struct {
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t mcg_ctl; /* 0x0000017b - Machine Check Architecture */
-
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t ecx186; /* 0x00000186, 0x00000187 */
     uint64_t ecx187; /* 0x00000186, 0x00000187 */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t debug_ctl; /* 0x000001d9 - Debug Registers Control */
     uint64_t ecx1e0; /* 0x000001e0 */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's that are also
@@ -399,8 +400,13 @@ typedef struct {
     MMX_REG MM[8];
 
 #ifdef USE_NEW_DYNAREC
+#    if defined(__APPLE__) && defined(__aarch64__)
+    uint64_t old_fp_control;
+    uint64_t new_fp_control;
+#    else
     uint32_t old_fp_control;
     uint32_t new_fp_control;
+#    endif
 #    if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
     uint16_t old_fp_control2;
     uint16_t new_fp_control2;
@@ -753,6 +759,7 @@ extern void execx86(int cycs);
 extern void enter_smm(int in_hlt);
 extern void enter_smm_check(int in_hlt);
 extern void leave_smm(void);
+extern void exec386_2386(int cycs);
 extern void exec386(int cycs);
 extern void exec386_dynarec(int cycs);
 extern int  idivl(int32_t val);
@@ -836,6 +843,8 @@ extern int hlt_reset_pending;
 
 extern cyrix_t cyrix;
 
+extern int prefetch_prefixes;
+
 extern uint8_t  use_custom_nmi_vector;
 extern uint32_t custom_nmi_vector;
 
@@ -860,5 +869,8 @@ extern MMX_REG *MMP[8];
 extern uint16_t *MMEP[8];
 
 extern void mmx_init(void);
+extern void prefetch_flush(void);
+
+extern void prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32);
 
 #endif /*EMU_CPU_H*/

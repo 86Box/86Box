@@ -20,6 +20,11 @@
 #ifndef EMU_MOUSE_H
 #define EMU_MOUSE_H
 
+#ifndef __cplusplus
+/* Yes, a big no-no, but I'm saving myself time here. */
+#include <stdatomic.h>
+#endif
+
 #define MOUSE_TYPE_NONE     0 /* no mouse configured */
 #define MOUSE_TYPE_INTERNAL 1 /* machine has internal mouse */
 #define MOUSE_TYPE_LOGIBUS  2 /* Logitech/ATI Bus Mouse */
@@ -39,20 +44,26 @@
 
 #define MOUSE_TYPE_ONBOARD   0x80 /* Mouse is an on-board version of one of the above. */
 
+
 #ifdef __cplusplus
 extern "C" {
+#else
+extern atomic_int    mouse_x;
+extern atomic_int    mouse_y;
+extern atomic_int    mouse_z;
+extern atomic_int    mouse_buttons;
 #endif
 
 extern int    mouse_type;
-extern int    mouse_x;
-extern int    mouse_y;
-extern int    mouse_z;
 extern int    mouse_mode; /* 1 = Absolute, 0 = Relative */
+extern int    mouse_timed; /* 1 = Timed, 0 = Constant */
 extern int    mouse_tablet_in_proximity;
 extern double mouse_x_abs;
 extern double mouse_y_abs;
-extern int    mouse_buttons;
 extern int    tablet_tool_type;
+extern double mouse_sensitivity;
+extern double mouse_x_error;
+extern double mouse_y_error;
 
 #ifdef EMU_DEVICE_H
 extern const device_t *mouse_get_device(int mouse);
@@ -79,11 +90,16 @@ extern void mouse_set_buttons(int buttons);
 extern void mouse_set_poll_ex(void (*poll_ex)(void));
 extern void mouse_process(void);
 extern void mouse_set_poll(int (*f)(int, int, int, int, void *), void *);
-extern void mouse_poll(void);
 
 extern void mouse_bus_set_irq(void *priv, int irq);
 
 extern void mouse_set_sample_rate(double new_rate);
+extern void mouse_scale(int x, int y);
+extern void mouse_scale_x(int x);
+extern void mouse_scale_y(int y);
+extern void mouse_set_z(int z);
+extern void mouse_set_buttons_ex(int b);
+extern int  mouse_get_buttons_ex(void);
 
 extern char *mouse_get_name(int mouse);
 extern char *mouse_get_internal_name(int mouse);

@@ -56,7 +56,7 @@ typedef struct pci_bridge_t {
 
     uint8_t regs[256];
     uint8_t bus_index;
-    int     slot;
+    uint8_t slot;
 } pci_bridge_t;
 
 #ifdef ENABLE_PCI_BRIDGE_LOG
@@ -552,7 +552,10 @@ pci_bridge_init(const device_t *info)
 
     pci_bridge_reset(dev);
 
-    dev->slot = pci_add_card(AGP_BRIDGE(dev->local) ? PCI_ADD_AGPBRIDGE : PCI_ADD_BRIDGE, pci_bridge_read, pci_bridge_write, dev);
+    if (AGP_BRIDGE(dev->local))
+        pci_add_card(PCI_ADD_AGPBRIDGE, pci_bridge_read, pci_bridge_write, dev, &dev->slot);
+    else
+        dev->slot = pci_add_bridge(pci_bridge_read, pci_bridge_write, dev);
 
     if ((info->local != PCI_BRIDGE_INTEL_ICH2) && (info->local != AGP_BRIDGE_INTEL_815EP)) { /* Let the machine configuration slot handle the absurd interrupt tables */
         interrupt_count = sizeof(interrupts);

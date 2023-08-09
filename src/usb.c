@@ -317,10 +317,14 @@ ohci_update_irq(usb_t *dev)
 {
     uint32_t level = !!(dev->ohci_mmio[OHCI_HcInterruptStatus].l & dev->ohci_mmio[OHCI_HcInterruptEnable].l);
 
+#ifdef STATE_KEEPING
     if (level != dev->irq_level) {
+#endif
         dev->irq_level = level;
         usb_interrupt_ohci(dev, level);
+#ifdef STATE_KEEPING
     }
+#endif
 }
 
 void

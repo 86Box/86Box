@@ -286,16 +286,22 @@ inb(uint16_t port)
     io_t   *p;
     io_t   *q;
     int     found  = 0;
+#ifdef ENABLE_IO_LOG
     int     qfound = 0;
+#endif
 
-    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        ret = pci_type2_read(port, NULL);
+    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        ret = pci_read(port, NULL);
         found = 1;
+#ifdef ENABLE_IO_LOG
         qfound = 1;
-    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
-        ret = pci_type2_read(port, NULL);
+#endif
+    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
+        ret = pci_read(port, NULL);
         found = 1;
+#ifdef ENABLE_IO_LOG
         qfound = 1;
+#endif
     } else {
         p = io[port];
         while (p) {
@@ -303,7 +309,9 @@ inb(uint16_t port)
             if (p->inb) {
                 ret &= p->inb(port, p->priv);
                 found |= 1;
+#ifdef ENABLE_IO_LOG
                 qfound++;
+#endif
             }
             p = q;
         }
@@ -338,16 +346,22 @@ outb(uint16_t port, uint8_t val)
     io_t *p;
     io_t *q;
     int   found  = 0;
+#ifdef ENABLE_IO_LOG
     int   qfound = 0;
+#endif
 
-    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        pci_type2_write(port, val, NULL);
+    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        pci_write(port, val, NULL);
         found = 1;
+#ifdef ENABLE_IO_LOG
         qfound = 1;
-    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
-        pci_type2_write(port, val, NULL);
+#endif
+    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
+        pci_write(port, val, NULL);
         found = 1;
+#ifdef ENABLE_IO_LOG
         qfound = 1;
+#endif
     } else {
         p = io[port];
         while (p) {
@@ -355,7 +369,9 @@ outb(uint16_t port, uint8_t val)
             if (p->outb) {
                 p->outb(port, val, p->priv);
                 found |= 1;
+#ifdef ENABLE_IO_LOG
                 qfound++;
+#endif
             }
             p = q;
         }
@@ -381,17 +397,23 @@ inw(uint16_t port)
     io_t    *q;
     uint16_t ret    = 0xffff;
     int      found  = 0;
+#ifdef ENABLE_IO_LOG
     int      qfound = 0;
+#endif
     uint8_t  ret8[2];
 
-    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        ret = pci_type2_readw(port, NULL);
+    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        ret = pci_readw(port, NULL);
         found = 2;
+#ifdef ENABLE_IO_LOG
         qfound = 1;
-    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
-        ret = pci_type2_readw(port, NULL);
+#endif
+    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
+        ret = pci_readw(port, NULL);
         found = 2;
+#ifdef ENABLE_IO_LOG
         qfound = 1;
+#endif
     } else {
         p = io[port];
         while (p) {
@@ -399,7 +421,9 @@ inw(uint16_t port)
             if (p->inw) {
                 ret &= p->inw(port, p->priv);
                 found |= 2;
+#ifdef ENABLE_IO_LOG
                 qfound++;
+#endif
             }
             p = q;
         }
@@ -413,7 +437,9 @@ inw(uint16_t port)
                 if (p->inb && !p->inw) {
                     ret8[i] &= p->inb(port + i, p->priv);
                     found |= 1;
+#ifdef ENABLE_IO_LOG
                     qfound++;
+#endif
                 }
                 p = q;
             }
@@ -444,16 +470,22 @@ outw(uint16_t port, uint16_t val)
     io_t *p;
     io_t *q;
     int   found  = 0;
+#ifdef ENABLE_IO_LOG
     int   qfound = 0;
+#endif
 
-    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        pci_type2_writew(port, val, NULL);
+    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        pci_writew(port, val, NULL);
         found = 2;
+#ifdef ENABLE_IO_LOG
         qfound = 1;
-    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
-        pci_type2_writew(port, val, NULL);
+#endif
+    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
+        pci_writew(port, val, NULL);
         found = 2;
+#ifdef ENABLE_IO_LOG
         qfound = 1;
+#endif
     } else {
         p = io[port];
         while (p) {
@@ -461,7 +493,9 @@ outw(uint16_t port, uint16_t val)
             if (p->outw) {
                 p->outw(port, val, p->priv);
                 found |= 2;
+#ifdef ENABLE_IO_LOG
                 qfound++;
+#endif
             }
             p = q;
         }
@@ -473,7 +507,9 @@ outw(uint16_t port, uint16_t val)
                 if (p->outb && !p->outw) {
                     p->outb(port + i, val >> (i << 3), p->priv);
                     found |= 1;
+#ifdef ENABLE_IO_LOG
                     qfound++;
+#endif
                 }
                 p = q;
             }
@@ -502,16 +538,22 @@ inl(uint16_t port)
     uint16_t ret16[2];
     uint8_t  ret8[4];
     int      found  = 0;
+#ifdef ENABLE_IO_LOG
     int      qfound = 0;
+#endif
 
-    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        ret = pci_type2_readl(port, NULL);
+    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        ret = pci_readl(port, NULL);
         found = 4;
+#ifdef ENABLE_IO_LOG
         qfound = 1;
-    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
-        ret = pci_type2_readl(port, NULL);
+#endif
+    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
+        ret = pci_readl(port, NULL);
         found = 4;
+#ifdef ENABLE_IO_LOG
         qfound = 1;
+#endif
     } else {
         p = io[port];
         while (p) {
@@ -519,7 +561,9 @@ inl(uint16_t port)
             if (p->inl) {
                 ret &= p->inl(port, p->priv);
                 found |= 4;
+#ifdef ENABLE_IO_LOG
                 qfound++;
+#endif
             }
             p = q;
         }
@@ -532,7 +576,9 @@ inl(uint16_t port)
             if (p->inw && !p->inl) {
                 ret16[0] &= p->inw(port, p->priv);
                 found |= 2;
+#ifdef ENABLE_IO_LOG
                 qfound++;
+#endif
             }
             p = q;
         }
@@ -543,7 +589,9 @@ inl(uint16_t port)
             if (p->inw && !p->inl) {
                 ret16[1] &= p->inw(port + 2, p->priv);
                 found |= 2;
+#ifdef ENABLE_IO_LOG
                 qfound++;
+#endif
             }
             p = q;
         }
@@ -560,7 +608,9 @@ inl(uint16_t port)
                 if (p->inb && !p->inw && !p->inl) {
                     ret8[i] &= p->inb(port + i, p->priv);
                     found |= 1;
+#ifdef ENABLE_IO_LOG
                     qfound++;
+#endif
                 }
                 p = q;
             }
@@ -591,17 +641,23 @@ outl(uint16_t port, uint32_t val)
     io_t *p;
     io_t *q;
     int   found  = 0;
+#ifdef ENABLE_IO_LOG
     int   qfound = 0;
+#endif
     int   i      = 0;
 
-    if ((pci_take_over_io & PCI_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
-        pci_type2_writel(port, val, NULL);
+    if ((pci_flags & FLAG_CONFIG_IO_ON) && (port >= pci_base) && (port < (pci_base + pci_size))) {
+        pci_writel(port, val, NULL);
         found = 4;
+#ifdef ENABLE_IO_LOG
         qfound = 1;
-    } else if ((pci_take_over_io & PCI_IO_DEV0) && (port >= 0xc000) && (port < 0xc100)) {
-        pci_type2_writel(port, val, NULL);
+#endif
+    } else if ((pci_flags & FLAG_CONFIG_DEV0_IO_ON) && (port >= 0xc000) && (port < 0xc100)) {
+        pci_writel(port, val, NULL);
         found = 4;
+#ifdef ENABLE_IO_LOG
         qfound = 1;
+#endif
     } else {
         p = io[port];
         if (p) {
@@ -610,7 +666,9 @@ outl(uint16_t port, uint32_t val)
                 if (p->outl) {
                     p->outl(port, val, p->priv);
                     found |= 4;
+#ifdef ENABLE_IO_LOG
                     qfound++;
+#endif
                 }
                 p = q;
             }
@@ -623,7 +681,9 @@ outl(uint16_t port, uint32_t val)
                 if (p->outw && !p->outl) {
                     p->outw(port + i, val >> (i << 3), p->priv);
                     found |= 2;
+#ifdef ENABLE_IO_LOG
                     qfound++;
+#endif
                 }
                 p = q;
             }
@@ -636,7 +696,9 @@ outl(uint16_t port, uint32_t val)
                 if (p->outb && !p->outw && !p->outl) {
                     p->outb(port + i, val >> (i << 3), p->priv);
                     found |= 1;
+#ifdef ENABLE_IO_LOG
                     qfound++;
+#endif
                 }
                 p = q;
             }

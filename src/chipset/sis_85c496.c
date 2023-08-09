@@ -45,9 +45,13 @@
 typedef struct sis_85c496_t {
     uint8_t    cur_reg;
     uint8_t    rmsmiblk_count;
+    uint8_t    pci_slot;
+    uint8_t    pad;
 #ifndef USE_DRB_HACK
     uint8_t    drb_default;
     uint8_t    drb_bits;
+    uint8_t    pad0;
+    uint8_t    pad1;
 #endif
     uint8_t    regs[127];
     uint8_t    pci_conf[256];
@@ -648,7 +652,7 @@ static void
     dev->pci_conf[0xd0] = 0x78; /* ROM at E0000-FFFFF, Flash enable. */
     dev->pci_conf[0xd1] = 0xff;
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, sis_85c49x_pci_read, sis_85c49x_pci_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, sis_85c49x_pci_read, sis_85c49x_pci_write, dev, &dev->pci_slot);
 
 #if 0
     sis_85c497_isa_reset(dev);

@@ -1045,6 +1045,7 @@ opFSTCW_a32(uint32_t fetchdat)
 #endif
 
 #ifndef FPU_8087
+#ifndef OPS_286_386
 #    define opFCMOV(condition)                                                                      \
         static int opFCMOV##condition(uint32_t fetchdat)                                            \
         {                                                                                           \
@@ -1072,4 +1073,5 @@ opFCMOV(NE)
 opFCMOV(NBE)
 opFCMOV(NU)
 // clang-format on
+#endif
 #endif

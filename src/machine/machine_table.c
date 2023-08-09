@@ -303,7 +303,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCJR,
         .flags = MACHINE_VIDEO_FIXED,
         .ram = {
-            .min = 128,
+            .min = 64,
             .max = 640,
             .step = 64
         },

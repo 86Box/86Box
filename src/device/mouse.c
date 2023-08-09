@@ -19,7 +19,9 @@
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2017-2018 Fred N. van Kempen.
  */
+#include <math.h>
 #include <stdarg.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -37,16 +39,21 @@ typedef struct mouse_t {
 } mouse_t;
 
 int mouse_type = 0;
-int mouse_x;
-int mouse_y;
-int mouse_z;
-int mouse_buttons;
+atomic_int mouse_x;
+atomic_int mouse_y;
+atomic_int mouse_z;
+atomic_int mouse_buttons;
 int mouse_mode;
+int mouse_timed = 1;
 int mouse_tablet_in_proximity = 0;
 int tablet_tool_type          = 1; /* 0 = Puck/Cursor, 1 = Pen */
 
 double mouse_x_abs;
 double mouse_y_abs;
+
+double mouse_sensitivity = 1.0;
+double mouse_x_error = 0.0;
+double mouse_y_error = 0.0;
 
 pc_timer_t mouse_timer; /* mouse event timer */
 
@@ -155,22 +162,80 @@ mouse_close(void)
 static void
 mouse_timer_poll(UNUSED(void *priv))
 {
-    /* Poll at 255 Hz, maximum supported by PS/2 mic. */
+    /* Poll at the specified sample rate. */
     timer_on_auto(&mouse_timer, 1000000.0 / sample_rate);
 
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
-    if (gdbstub_step == GDBSTUB_EXEC)
+    if (gdbstub_step == GDBSTUB_EXEC) {
 #endif
-        mouse_process();
+        if (mouse_timed)
+            mouse_process();
+#ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
+    }
+#endif
+}
+
+void
+mouse_scale(int x, int y)
+{
+    double scaled_x = (((double) x) * mouse_sensitivity) + mouse_x_error;
+    double scaled_y = (((double) y) * mouse_sensitivity) + mouse_y_error;
+
+    mouse_x += (int) scaled_x;
+    mouse_y += (int) scaled_y;
+
+    mouse_x_error = scaled_x - floor(scaled_x);
+    mouse_y_error = scaled_y - floor(scaled_y);
+}
+
+void
+mouse_scale_x(int x)
+{
+    double scaled_x = ((double) x) * mouse_sensitivity + mouse_x_error;
+
+    mouse_x += (int) scaled_x;
+
+    mouse_x_error = scaled_x - ((double) mouse_x);
+}
+
+void
+mouse_scale_y(int y)
+{
+    double scaled_y = ((double) y) * mouse_sensitivity + mouse_y_error;
+
+    mouse_y += (int) scaled_y;
+
+    mouse_y_error = scaled_y - ((double) mouse_y);
+}
+
+void
+mouse_set_z(int z)
+{
+    mouse_z += z;
+}
+
+void
+mouse_set_buttons_ex(int b)
+{
+    mouse_buttons = b;
+}
+
+int
+mouse_get_buttons_ex(void)
+{
+    return mouse_buttons;
 }
 
 void
 mouse_set_sample_rate(double new_rate)
 {
+    mouse_timed = (new_rate > 0.0);
+
     timer_stop(&mouse_timer);
 
     sample_rate = new_rate;
-    timer_on_auto(&mouse_timer, 1000000.0 / sample_rate);
+    if (mouse_timed)
+        timer_on_auto(&mouse_timer, 1000000.0 / sample_rate);
 }
 
 void
@@ -186,6 +251,9 @@ mouse_reset(void)
     mouse_x = mouse_y = mouse_z = 0;
     mouse_buttons               = 0x00;
     mouse_mode                  = 0;
+    mouse_timed                 = 1;
+
+    mouse_x_error = mouse_y_error = 0.0;
 
     /* If no mouse configured, we're done. */
     if (mouse_type == 0)
@@ -222,19 +290,14 @@ mouse_process(void)
     if (mouse_curr == NULL)
         return;
 
-    if (mouse_poll_ex)
+    if ((mouse_mode >= 1) && mouse_poll_ex)
         mouse_poll_ex();
-    else
-        mouse_poll();
 
     if ((mouse_dev_poll != NULL) || (mouse_curr->poll != NULL)) {
         if (mouse_curr->poll != NULL)
             mouse_curr->poll(mouse_x, mouse_y, mouse_z, mouse_buttons, mouse_x_abs, mouse_y_abs, mouse_priv);
         else
             mouse_dev_poll(mouse_x, mouse_y, mouse_z, mouse_buttons, mouse_priv);
-
-        /* Reset mouse deltas. */
-        mouse_x = mouse_y = mouse_z = 0;
     }
 }
 

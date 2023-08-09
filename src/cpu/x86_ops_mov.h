@@ -769,6 +769,7 @@ opMOV_r_l_a32(uint32_t fetchdat)
     return 0;
 }
 
+#ifndef OPS_286_386
 #define opCMOV(condition)                                                             \
     static int opCMOV##condition##_w_a16(uint32_t fetchdat)                           \
     {                                                                                 \
@@ -865,3 +866,4 @@ opCMOV(NL)
 opCMOV(LE)
 opCMOV(NLE)
 // clang-format on
+#endif

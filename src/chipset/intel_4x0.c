@@ -57,6 +57,9 @@ typedef struct i4x0_t {
     uint8_t    max_drb;
     uint8_t    drb_unit;
     uint8_t    drb_default;
+    uint8_t    pci_slot;
+    uint8_t    pad;
+    uint8_t    pad0;
     uint8_t    regs[256];
     uint8_t    regs_locked[256];
     uint8_t    mem_state[256];
@@ -1241,12 +1244,12 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
                 switch (dev->type) {
                     case INTEL_440FX:
                         regs[0x93] = (val & 0x0f);
-                        trc_write(0x0093, val & 0x06, NULL);
+                        pci_write(0x0cf9, val & 0x06, NULL);
                         break;
                     case INTEL_440LX:
                     case INTEL_440EX:
                         regs[0x93] = (val & 0x0e);
-                        trc_write(0x0093, val & 0x06, NULL);
+                        pci_write(0x0cf9, val & 0x06, NULL);
                         break;
                     default:
                         break;
@@ -1518,7 +1521,7 @@ i4x0_read(int func, int addr, void *priv)
         /* Special behavior for 440FX register 0x93 which is basically TRC in PCI space
            with the addition of bits 3 and 0. */
         if ((func == 0) && (addr == 0x93) && ((dev->type == INTEL_440FX) || (dev->type == INTEL_440LX) || (dev->type == INTEL_440EX)))
-            ret = (ret & 0xf9) | (trc_read(0x0093, NULL) & 0x06);
+            ret = (ret & 0xf9) | (pci_read(0x0cf9, NULL) & 0x06);
     }
 
     return ret;
@@ -1910,7 +1913,7 @@ i4x0_init(const device_t *info)
                    (dev->type >= INTEL_440BX) ? 0x38 : 0x00, dev);
     }
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, i4x0_read, i4x0_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, i4x0_read, i4x0_write, dev, &dev->pci_slot);
 
     if ((dev->type >= INTEL_440BX) && !(regs[0x7a] & 0x02)) {
         device_add((dev->type == INTEL_440GX) ? &i440gx_agp_device : &i440bx_agp_device);

@@ -209,7 +209,9 @@ typedef struct s3_t {
     uint32_t linear_base, linear_size;
 
     uint8_t pci_regs[256];
-    int     card;
+
+    uint8_t pci_slot;
+    uint8_t irq_state;
 
     uint32_t vram_mask;
     uint8_t  data_available;
@@ -465,9 +467,9 @@ s3_update_irqs(s3_t *s3)
         return;
 
     if (s3->subsys_cntl & s3->subsys_stat & INT_MASK) {
-        pci_set_irq(s3->card, PCI_INTA);
+        pci_set_irq(s3->pci_slot, PCI_INTA, &s3->irq_state);
     } else {
-        pci_clear_irq(s3->card, PCI_INTA);
+        pci_clear_irq(s3->pci_slot, PCI_INTA, &s3->irq_state);
     }
 }
 
@@ -8349,8 +8351,12 @@ s3_init(const device_t *info)
             return NULL;
     }
 
-    if (s3->pci)
-        s3->card = pci_add_card(PCI_ADD_VIDEO, s3_pci_read, s3_pci_write, s3);
+    if (s3->pci) {
+        if (bios_fn == NULL)
+            pci_add_card(PCI_ADD_VIDEO, s3_pci_read, s3_pci_write, s3, &s3->pci_slot);
+        else
+            pci_add_card(PCI_ADD_NORMAL, s3_pci_read, s3_pci_write, s3, &s3->pci_slot);
+    }
 
     s3->i2c = i2c_gpio_init("ddc_s3");
     s3->ddc = ddc_init(i2c_gpio_get_bus(s3->i2c));

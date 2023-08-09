@@ -94,9 +94,11 @@ typedef struct mach64_t {
     int type;
     int pci;
 
+    uint8_t pci_slot;
+    uint8_t irq_state;
+
     uint8_t pci_regs[256];
     uint8_t int_line;
-    int     card;
 
     int bank_r[2];
     int bank_w[2];
@@ -647,9 +649,9 @@ mach64_update_irqs(mach64_t *mach64)
     }
 
     if ((mach64->crtc_int_cntl & 0xaa0024) & ((mach64->crtc_int_cntl << 1) & 0xaa0024))
-        pci_set_irq(mach64->card, PCI_INTA);
+        pci_set_irq(mach64->pci_slot, PCI_INTA, &mach64->irq_state);
     else
-        pci_clear_irq(mach64->card, PCI_INTA);
+        pci_clear_irq(mach64->pci_slot, PCI_INTA, &mach64->irq_state);
 }
 
 static __inline void
@@ -4401,7 +4403,7 @@ mach64_common_init(const device_t *info)
     mach64_io_set(mach64);
 
     if (info->flags & DEVICE_PCI)
-        mach64->card = pci_add_card(PCI_ADD_VIDEO, mach64_pci_read, mach64_pci_write, mach64);
+        pci_add_card(PCI_ADD_NORMAL, mach64_pci_read, mach64_pci_write, mach64, &mach64->pci_slot);
 
     mach64->pci_regs[PCI_REG_COMMAND] = 3;
     mach64->pci_regs[0x30]            = 0x00;

@@ -142,8 +142,11 @@ typedef struct banshee_t {
     int      desktop_y;
     uint32_t desktop_stride_tiled;
 
-    int type, card, agp, has_bios;
-    int vblank_irq;
+    int type, agp;
+    int has_bios, vblank_irq;
+
+    uint8_t pci_slot;
+    uint8_t irq_state;
 
     void *i2c, *i2c_ddc, *ddc;
 } banshee_t;
@@ -306,9 +309,9 @@ static void
 banshee_update_irqs(banshee_t *banshee)
 {
     if (banshee->vblank_irq > 0 && banshee_vga_vsync_enabled(banshee)) {
-        pci_set_irq(banshee->card, PCI_INTA);
+        pci_set_irq(banshee->pci_slot, PCI_INTA, &banshee->irq_state);
     } else {
-        pci_clear_irq(banshee->card, PCI_INTA);
+        pci_clear_irq(banshee->pci_slot, PCI_INTA, &banshee->irq_state);
     }
 }
 
@@ -3146,7 +3149,10 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
         banshee->dramInit1 = 1 << 30; /*SDRAM*/
     banshee->svga.decode_mask = 0x1ffffff;
 
-    banshee->card = pci_add_card(banshee->agp ? PCI_ADD_AGP : PCI_ADD_VIDEO, banshee_pci_read, banshee_pci_write, banshee);
+    if (banshee->has_bios)
+        pci_add_card(banshee->agp ? PCI_ADD_AGP : PCI_ADD_VIDEO, banshee_pci_read, banshee_pci_write, banshee, &banshee->pci_slot);
+    else
+        pci_add_card(banshee->agp ? PCI_ADD_AGP : PCI_ADD_NORMAL, banshee_pci_read, banshee_pci_write, banshee, &banshee->pci_slot);
 
     banshee->voodoo               = voodoo_2d3d_card_init(voodoo_type);
     banshee->voodoo->p            = banshee;

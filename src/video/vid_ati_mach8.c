@@ -58,7 +58,8 @@ typedef struct mach_t {
     uint8_t regs[256];
     uint8_t pci_regs[256];
     uint8_t int_line;
-    int     card;
+    uint8_t pci_slot;
+    uint8_t irq_state;
     int     index;
 
     uint32_t memory;
@@ -5571,7 +5572,7 @@ mach8_init(const device_t *info)
         else if (mach->pci_bus) {
             ati_eeprom_load(&mach->eeprom, "mach32_pci.nvr", 1);
             mem_mapping_disable(&mach->bios_rom.mapping);
-            mach->card                      = pci_add_card(PCI_ADD_VIDEO, mach32_pci_read, mach32_pci_write, mach);
+            pci_add_card(PCI_ADD_VIDEO, mach32_pci_read, mach32_pci_write, mach, &mach->pci_slot);
             mach->pci_regs[PCI_REG_COMMAND] = 0x83;
             mach->pci_regs[0x30]            = 0x00;
             mach->pci_regs[0x32]            = 0x0c;

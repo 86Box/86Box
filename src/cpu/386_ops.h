@@ -179,7 +179,9 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #include "x86_ops_bcd.h"
 #include "x86_ops_bit.h"
 #include "x86_ops_bitscan.h"
+#ifndef OPS_286_386
 #include "x86_ops_cyrix.h"
+#endif
 #include "x86_ops_flag.h"
 #include "x86_ops_fpu.h"
 #include "x86_ops_inc_dec.h"
@@ -188,6 +190,7 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #include "x86_ops_jump.h"
 #include "x86_ops_misc.h"
 #include "x87_ops.h"
+#ifndef OPS_286_386
 #include "x86_ops_i686.h"
 #include "x86_ops_mmx.h"
 #include "x86_ops_mmx_arith.h"
@@ -196,30 +199,44 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #include "x86_ops_mmx_mov.h"
 #include "x86_ops_mmx_pack.h"
 #include "x86_ops_mmx_shift.h"
+#endif
 #include "x86_ops_mov.h"
 #include "x86_ops_mov_ctrl.h"
 #include "x86_ops_mov_seg.h"
 #include "x86_ops_movx.h"
+#ifndef OPS_286_386
 #include "x86_ops_msr.h"
+#endif
 #include "x86_ops_mul.h"
 #include "x86_ops_pmode.h"
 #include "x86_ops_prefix.h"
 #ifdef IS_DYNAREC
 #    include "x86_ops_rep_dyn.h"
 #else
+#ifdef OPS_286_386
+#    include "x86_ops_rep_2386.h"
+#else
 #    include "x86_ops_rep.h"
+#endif
 #endif
 #include "x86_ops_ret.h"
 #include "x86_ops_set.h"
 #include "x86_ops_stack.h"
+#ifdef OPS_286_386
+#include "x86_ops_string_2386.h"
+#else
 #include "x86_ops_string.h"
+#endif
 #include "x86_ops_xchg.h"
 #include "x86_ops_call.h"
 #include "x86_ops_shift.h"
+#ifndef OPS_286_386
 #include "x86_ops_amd.h"
 #include "x86_ops_3dnow.h"
+#endif
 #include <time.h>
 
+#ifndef OPS_286_386
 static int
 opVPCEXT(uint32_t fetchdat)
 {
@@ -331,7 +348,50 @@ opVPCEXT(uint32_t fetchdat)
 
     return 1;
 }
+#endif
 
+#ifdef OPS_286_386
+static int op0F_w_a16(uint32_t fetchdat)
+{
+    int opcode = fetchdat & 0xff;
+    fopcode = opcode;
+    cpu_state.pc++;
+
+    PREFETCH_PREFIX();
+
+    return x86_2386_opcodes_0f[opcode](fetchdat >> 8);
+}
+static int op0F_l_a16(uint32_t fetchdat)
+{
+    int opcode = fetchdat & 0xff;
+    fopcode = opcode;
+    cpu_state.pc++;
+
+    PREFETCH_PREFIX();
+
+    return x86_2386_opcodes_0f[opcode | 0x100](fetchdat >> 8);
+}
+static int op0F_w_a32(uint32_t fetchdat)
+{
+    int opcode = fetchdat & 0xff;
+    fopcode = opcode;
+    cpu_state.pc++;
+
+    PREFETCH_PREFIX();
+
+    return x86_2386_opcodes_0f[opcode | 0x200](fetchdat >> 8);
+}
+static int op0F_l_a32(uint32_t fetchdat)
+{
+    int opcode = fetchdat & 0xff;
+    fopcode = opcode;
+    cpu_state.pc++;
+
+    PREFETCH_PREFIX();
+
+    return x86_2386_opcodes_0f[opcode | 0x300](fetchdat >> 8);
+}
+#else
 static int
 op0F_w_a16(uint32_t fetchdat)
 {
@@ -376,6 +436,7 @@ op0F_l_a32(uint32_t fetchdat)
 
     return x86_opcodes_0f[opcode | 0x300](fetchdat >> 8);
 }
+#endif
 
 const OpFn OP_TABLE(186_0f)[1024] = {
     // clang-format off
@@ -745,6 +806,7 @@ const OpFn OP_TABLE(486_0f)[1024] = {
     // clang-format on
 };
 
+#ifndef OPS_286_386
 const OpFn OP_TABLE(c486_0f)[1024] = {
     // clang-format off
         /*16-bit data, 16-bit addr*/
@@ -928,6 +990,7 @@ const OpFn OP_TABLE(stpc_0f)[1024] = {
 /*f0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
     // clang-format on
 };
+#endif
 
 const OpFn OP_TABLE(ibm486_0f)[1024] = {
     // clang-format off
@@ -1021,6 +1084,7 @@ const OpFn OP_TABLE(ibm486_0f)[1024] = {
     // clang-format on
 };
 
+#ifndef OPS_286_386
 const OpFn OP_TABLE(winchip_0f)[1024] = {
     // clang-format off
         /*16-bit data, 16-bit addr*/
@@ -2036,6 +2100,7 @@ const OpFn OP_TABLE(pentium2d_0f)[1024] = {
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
     // clang-format on
 };
+#endif
 
 const OpFn OP_TABLE(186)[1024] = {
     // clang-format off
