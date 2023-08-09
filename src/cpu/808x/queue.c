@@ -78,7 +78,7 @@ queue_set_size(size_t size)
 {
     if (size > QUEUE_MAX)
 #if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
-        fatal("Requested prefetch queue of %" PRIi64 " bytes is too big\n", size);
+        fatal("Requested prefetch queue of %zu bytes is too big\n", size);
 #else
         fatal("Requested prefetch queue of %i bytes is too big\n", size);
 #endif

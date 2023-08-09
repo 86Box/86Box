@@ -684,7 +684,7 @@ host_arm64_CMPX_IMM(codeblock_t *block, int src_n_reg, uint64_t imm_data)
     } else if (!(imm_data & 0xfffffffffffff000ull)) {
         codegen_addlong(block, OPCODE_CMPX_IMM | Rd(REG_XZR) | Rn(src_n_reg) | IMM12(imm_data & 0xfff) | DATPROC_IMM_SHIFT(0));
     } else
-        fatal("CMPX_IMM %08x\n", imm_data);
+        fatal("CMPX_IMM %08llx\n", imm_data);
 }
 
 void

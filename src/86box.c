@@ -918,11 +918,15 @@ pc_init_modules(void)
 
 #ifdef USE_DYNAREC
 #    if defined(__APPLE__) && defined(__aarch64__)
-    pthread_jit_write_protect_np(0);
+    if (__builtin_available(macOS 11.0, *)) {
+        pthread_jit_write_protect_np(0);
+    }
 #    endif
     codegen_init();
 #    if defined(__APPLE__) && defined(__aarch64__)
-    pthread_jit_write_protect_np(1);
+    if (__builtin_available(macOS 11.0, *)) {
+        pthread_jit_write_protect_np(1);
+    }
 #    endif
 #endif
 

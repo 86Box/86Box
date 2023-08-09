@@ -484,7 +484,9 @@ exec386_dynarec_dyn(void)
         x86_was_reset = 0;
 
 #    if defined(__APPLE__) && defined(__aarch64__)
-        pthread_jit_write_protect_np(0);
+        if (__builtin_available(macOS 11.0, *)) {
+            pthread_jit_write_protect_np(0);
+        }
 #    endif
         codegen_block_start_recompile(block);
         codegen_in_recompile = 1;
@@ -568,7 +570,9 @@ exec386_dynarec_dyn(void)
 
         codegen_in_recompile = 0;
 #    if defined(__APPLE__) && defined(__aarch64__)
-        pthread_jit_write_protect_np(1);
+        if (__builtin_available(macOS 11.0, *)) {
+            pthread_jit_write_protect_np(1);
+        }
 #    endif
     } else if (!cpu_state.abrt) {
         /* Mark block but do not recompile */
