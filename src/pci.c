@@ -673,8 +673,6 @@ pci_register_bus_slot(int bus, int card, int type, int inta, int intb, int intc,
     pci_card_to_slot_mapping[bus][card] = last_pci_card;
 
     pci_log("pci_register_slot(): pci_cards[%i].bus = %02X; .id = %02X\n", last_pci_card, bus, card);
-    pclog("pci_register_slot(): pci_cards[%i].bus = %02X; .id = %02X; %02X %02X %02X %02X\n",
-          last_pci_card, bus, card, inta, intb, intc, intd);
 
     if (type == PCI_CARD_NORMAL) {
         last_normal_pci_card++;
