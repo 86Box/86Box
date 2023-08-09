@@ -953,9 +953,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *priv)
                             }
                             svga->seqregs[2] &= 0x0f;
                         }
-#ifdef FALLTHROUGH_ANNOTATION
-                        [[fallthrough]];
-#endif
+                        fallthrough;
                     case 0x09:
                     case 0x0a:
                         gd54xx_recalc_banking(gd54xx);
@@ -2325,9 +2323,7 @@ gd54xx_readw_linear(uint32_t addr, void *priv)
         case 2:
             /* 0 -> 3, 1 -> 2, 2 -> 1, 3 -> 0 */
             addr ^= 0x00000002;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case 1:
             temp = svga_readb_linear(addr + 1, svga);
             temp |= (svga_readb_linear(addr, svga) << 8);
@@ -2582,9 +2578,7 @@ gd54xx_writew_linear(uint32_t addr, uint16_t val, void *priv)
                 return;
             case 2:
                 addr ^= 0x00000002;
-#ifdef FALLTHROUGH_ANNOTATION
-                [[fallthrough]];
-#endif
+                fallthrough;
             case 1:
                 svga_write_linear(addr + 1, val & 0xff, svga);
                 svga_write_linear(addr, val >> 8, svga);

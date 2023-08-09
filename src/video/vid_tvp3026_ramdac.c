@@ -109,9 +109,7 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svg
     switch (rs) {
         case 0x00: /* Palette Write Index Register (RS value = 0000) */
             ramdac->ind_idx = val;
-#ifdef FALLTHROUGH_ANNOTATION;
-            [[fallthrough]];
-#endif
+            fallthrough;
         case 0x04: /* Ext Palette Write Index Register (RS value = 0100) */
         case 0x03:
         case 0x07: /* Ext Palette Read Index Register (RS value = 0111) */

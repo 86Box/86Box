@@ -28,8 +28,6 @@
 #include <86box/serial.h>
 #include <86box/mouse.h>
 #include <86box/plat.h>
-#include <86box/plat_fallthrough.h>
-#include <86box/plat_unused.h>
 
 #define SERMOUSE_PORT 0 /* attach to Serial0 */
 
@@ -672,9 +670,7 @@ ltsermouse_process_command(mouse_t *dev)
         case 0x41:
             /* Absolute Bit Pad One Packed Binary Format */
             dev->abs_x = dev->abs_y = 0;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case 0x42:    /* Relative Bit Pad One Packed Binary Format */
         case 0x53:    /* MM Series Data Format */
         case 0x54:    /* Three Byte Packed Binary Format */
@@ -759,9 +755,7 @@ ltsermouse_process_data(mouse_t *dev)
             switch (dev->ib) {
                 default:
                     mouse_serial_log("Serial mouse: Invalid period %02X, using 1200 bps\n", data);
-#ifdef FALLTHROUGH_ANNOTATION
-                    [[fallthrough]];
-#endif
+                    fallthrough;
                 case 0x6e:
                     dev->bps = 1200;
                     break;
@@ -870,14 +864,10 @@ ltsermouse_write(UNUSED(struct serial_s *serial), void *priv, uint8_t data)
         case STATE_TRANSMIT:
         case STATE_SKIP_REPORT:
             sermouse_set_period(dev, 0.0);
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         default:
             dev->state = STATE_COMMAND;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case STATE_DATA:
             sermouse_timer(dev);
             break;

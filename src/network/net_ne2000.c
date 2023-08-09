@@ -759,9 +759,7 @@ nic_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
         case 0x10:       /* PCI_BAR */
             val &= 0xe0; /* 0xe0 acc to RTL DS */
             val |= 0x01; /* re-enable IOIN bit */
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         case 0x11: /* PCI_BAR */
         case 0x12: /* PCI_BAR */

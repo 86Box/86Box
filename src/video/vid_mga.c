@@ -665,9 +665,7 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
     switch (addr) {
         case 0x3c8:
             mystique->xreg_idx = val;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case 0x3c6:
         case 0x3c7:
         case 0x3c9:

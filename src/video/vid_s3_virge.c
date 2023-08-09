@@ -3516,9 +3516,7 @@ s3_virge_hwcursor_draw(svga_t *svga, int displine)
                 bg = svga->pallook[virge->hwc_bg_col & 0xff];
                 break;
             }
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         case 15:
             if (virge->chip != S3_VIRGEGX2) {
@@ -3526,9 +3524,7 @@ s3_virge_hwcursor_draw(svga_t *svga, int displine)
                 bg = video_15to32[virge->hwc_bg_col & 0xffff];
                 break;
             }
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         case 16:
             if (virge->chip != S3_VIRGEGX2) {
@@ -3536,9 +3532,7 @@ s3_virge_hwcursor_draw(svga_t *svga, int displine)
                 bg = video_16to32[virge->hwc_bg_col & 0xffff];
                 break;
             }
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         case 24:
         case 32:
@@ -4343,9 +4337,7 @@ s3_virge_init(const device_t *info)
 
         case S3_VIRGE_GX:
             virge->virge_rev = 0x01;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         default:
             virge->fifo_slots_num = 8;
