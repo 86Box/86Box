@@ -282,6 +282,7 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 {
     unsigned       ull;
     unsigned       val;
+    unsigned       ifg;
     unsigned       ibg;
     unsigned       cfg;
     const uint8_t *fnt;
@@ -299,14 +300,19 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 
     /* MDA-compatible attributes */
     ibg = 0;
+    ifg = 7;
     if ((attr & 0x77) == 0x70) { /* Invert */
+        ifg = 0;
         ibg = 7;
     }
     if (attr & 8)
-        if (attr & 0x80)
-            ibg |= 8;       /* High intensity BG */
+        ifg |= 8; /* High intensity FG */
+    if (attr & 0x80)
+        ibg |= 8; /* High intensity BG */
     if ((attr & 0x77) == 0) /* Blank */
-        ull = ((attr & 0x07) == 1) ? 13 : 0xffff;
+        ifg = ibg;
+    ull = ((attr & 0x07) == 1) ? 13 : 0xffff;
+
     if (dev->crtc[HERCULESPLUS_CRTC_XMODE] & HERCULESPLUS_XMODE_90COL)
         elg = 0;
     else
@@ -329,6 +335,11 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
     for (int i = 0; i < cw; i++) {
         /* Generate pixel colour */
         cfg = 0;
+
+        if (val & 0x100)
+            cfg = ifg;
+        else
+            cfg = ibg;
 
         /* cfg = colour of foreground pixels */
         if ((attr & 0x77) == 0)
@@ -353,6 +364,7 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
     unsigned             olc = 0;
     unsigned             val;
     unsigned             ibg;
+    unsigned             ifg = 0;
     unsigned             cfg;
     const unsigned char *fnt;
     int                  cw    = HERCULESPLUS_CW;
@@ -427,6 +439,8 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
             cfg = olc ^ ibg; /* Strikethrough */
         else if (dev->sc == ull)
             cfg = ulc ^ ibg; /* Underline */
+        else if (val & 0x100)
+            cfg |= ~ibg;
         else
             cfg |= ibg;
 
