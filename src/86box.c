@@ -918,11 +918,15 @@ pc_init_modules(void)
 
 #ifdef USE_DYNAREC
 #    if defined(__APPLE__) && defined(__aarch64__)
-    pthread_jit_write_protect_np(0);
+    if (__builtin_available(macOS 11.0, *)) {
+        pthread_jit_write_protect_np(0);
+    }
 #    endif
     codegen_init();
 #    if defined(__APPLE__) && defined(__aarch64__)
-    pthread_jit_write_protect_np(1);
+    if (__builtin_available(macOS 11.0, *)) {
+        pthread_jit_write_protect_np(1);
+    }
 #    endif
 #endif
 
@@ -1104,6 +1108,10 @@ pc_reset_hard_init(void)
 
     /* Reset any ISA RTC cards. */
     isartc_reset();
+
+    /* Initialize the Voodoo cards here inorder to minmize
+       the chances of the SCSI controller ending up on the bridge. */
+    video_voodoo_init();
 
     ui_sb_update_panes();
 

@@ -26,8 +26,8 @@ typedef enum queue_delay_t
 
 #define FLAG_PRELOADED    0x8000
 
-extern void               queue_set_size(size_t size);
-extern size_t             queue_get_len(void);
+extern void               queue_set_size(uintptr_t size);
+extern uintptr_t          queue_get_len(void);
 extern int                queue_is_full(void);
 extern uint16_t           queue_get_preload(void);
 extern int                queue_has_preload(void);

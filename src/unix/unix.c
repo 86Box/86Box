@@ -1309,6 +1309,12 @@ plat_language_code(char *langcode)
     return 0;
 }
 
+void
+plat_get_cpu_string(char *outbuf, uint8_t len) {
+    char cpu_string[] = "Unknown";
+    strncpy(outbuf, cpu_string, len);
+}
+
 /* Converts back the language code to LCID */
 void
 plat_language_code_r(uint32_t lcid, char *outbuf, int len)
