@@ -699,9 +699,7 @@ do_fmt:
 
             /* Done with this track. */
             dev->state = STATE_FDONE;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case STATE_FDONE:
             /* One more track done. */
             if (++start_cyl == end_cyl) {

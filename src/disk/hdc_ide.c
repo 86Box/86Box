@@ -1655,9 +1655,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                        disabled, the Read Multiple operation is rejected with an Aborted Com-
                        mand error. */
                     ide->blockcount = 0;
-#ifdef FALLTHROUGH_ANNOTATION
-                    [[fallthrough]];
-#endif
+                    fallthrough;
 
                 case WIN_READ:
                 case WIN_READ_NORETRY:
@@ -1706,9 +1704,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                     /* Turn on the activity indicator *here* so that it gets turned on
                        less times. */
                     ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 1);
-#ifdef FALLTHROUGH_ANNOTATION
-                    [[fallthrough]];
-#endif
+                    fallthrough;
 
                 case WIN_WRITE:
                 case WIN_WRITE_NORETRY:

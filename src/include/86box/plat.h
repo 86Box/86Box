@@ -55,8 +55,13 @@ extern int strnicmp(const char *s1, const char *s2, size_t n);
 #    define off64_t  off_t
 #endif
 
-#if !defined (__APPLE__) && !defined(__clang__)
-#    define FALLTHROUGH_ANNOTATION
+#if __has_attribute(fallthrough)
+# define fallthrough __attribute__((fallthrough))
+#else
+# if __has_attribute(__fallthrough__)
+#  define fallthrough __attribute__((__fallthrough__))
+# endif
+# define fallthrough do {} while (0) /* fallthrough */
 #endif
 
 #ifdef _MSC_VER

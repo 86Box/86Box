@@ -509,9 +509,7 @@ hdc_callback(void *priv)
 
         case CMD_READ_VERIFY:
             no_data = 1;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         case CMD_READ_SECTORS:
             if (!drive->present) {
@@ -536,9 +534,7 @@ hdc_callback(void *priv)
                     dev->buf_len = 512;
 
                     dev->state = STATE_SEND;
-#ifdef FALLTHROUGH_ANNOTATION
-                    [[fallthrough]];
-#endif
+                    fallthrough;
 
                 case STATE_SEND:
                     /* Activate the status icon. */
@@ -646,9 +642,7 @@ do_send:
                     dev->buf_len = 512;
 
                     dev->state = STATE_RECV;
-#ifdef FALLTHROUGH_ANNOTATION
-                    [[fallthrough]];
-#endif
+                    fallthrough;
 
                 case STATE_RECV:
                     /* Activate the status icon. */

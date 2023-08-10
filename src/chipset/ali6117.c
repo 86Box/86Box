@@ -234,9 +234,7 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x12:
                     val &= 0xf7;
-#ifdef FALLTHROUGH_ANNOTATION
-                    [[fallthrough]];
-#endif
+                    fallthrough;
 
                 case 0x14:
                 case 0x15:
