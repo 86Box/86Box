@@ -37,6 +37,7 @@
 #include <QLocalSocket>
 #include <QTimer>
 #include <QProcess>
+#include <QRegularExpression>
 
 #include <QLibrary>
 #include <QElapsedTimer>
@@ -712,7 +713,7 @@ plat_get_cpu_string(char *outbuf, uint8_t len) {
             if (line.isNull()) {
                 break;
             }
-            if(line.contains(QRegExp("model name.*:"))) {
+            if(QRegularExpression("model name.*:").match(line).hasMatch()) {
                 auto list = line.split(": ");
                 if(!list.last().isEmpty()) {
                     cpu_string = list.last();
