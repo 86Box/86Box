@@ -17,8 +17,10 @@
 #include "386_common.h"
 #include "softfloat/softfloat-specialize.h"
 
-uint32_t x87_pc_off, x87_op_off;
-uint16_t x87_pc_seg, x87_op_seg;
+uint32_t x87_pc_off;
+uint32_t x87_op_off;
+uint16_t x87_pc_seg;
+uint16_t x87_op_seg;
 
 #ifdef ENABLE_FPU_LOG
 int fpu_do_log = ENABLE_FPU_LOG;
@@ -43,9 +45,8 @@ uint16_t
 x87_gettag(void)
 {
     uint16_t ret = 0;
-    int      c;
 
-    for (c = 0; c < 8; c++) {
+    for (uint8_t c = 0; c < 8; c++) {
         if (cpu_state.tag[c] == TAG_EMPTY)
             ret |= X87_TAG_EMPTY << (c * 2);
         else if (cpu_state.tag[c] & TAG_UINT64)
@@ -62,9 +63,7 @@ x87_gettag(void)
 void
 x87_settag(uint16_t new_tag)
 {
-    int c;
-
-    for (c = 0; c < 8; c++) {
+    for (uint8_t c = 0; c < 8; c++) {
         int tag = (new_tag >> (c * 2)) & 3;
 
         if (tag == X87_TAG_EMPTY)
@@ -152,7 +151,8 @@ FPU_handle_NaN32(floatx80 a, float32 b, floatx80 *r, struct float_status_t *stat
         return 1;
     }
 
-    int aIsNaN = floatx80_is_nan(a), bIsNaN = float32_is_nan(b);
+    int aIsNaN = floatx80_is_nan(a);
+    int bIsNaN = float32_is_nan(b);
     if (aIsNaN | bIsNaN) {
         *r = FPU_handle_NaN32_Func(a, aIsNaN, b, bIsNaN, status);
         return 1;
@@ -205,7 +205,8 @@ FPU_handle_NaN64(floatx80 a, float64 b, floatx80 *r, struct float_status_t *stat
         return 1;
     }
 
-    int aIsNaN = floatx80_is_nan(a), bIsNaN = float64_is_nan(b);
+    int aIsNaN = floatx80_is_nan(a);
+    int bIsNaN = float64_is_nan(b);
     if (aIsNaN | bIsNaN) {
         *r = FPU_handle_NaN64_Func(a, aIsNaN, b, bIsNaN, status);
         return 1;
@@ -256,13 +257,13 @@ FPU_status_word_flags_fpu_compare(int float_relation)
             return (C0 | C2 | C3);
 
         case float_relation_greater:
-            return (0);
+            return 0;
 
         case float_relation_less:
-            return (C0);
+            return C0;
 
         case float_relation_equal:
-            return (C3);
+            return C3;
     }
 
     return (-1);        // should never get here
@@ -280,11 +281,11 @@ FPU_write_eflags_fpu_compare(int float_relation)
             break;
 
         case float_relation_less:
-            cpu_state.flags |= (C_FLAG);
+            cpu_state.flags |= C_FLAG;
             break;
 
         case float_relation_equal:
-            cpu_state.flags |= (Z_FLAG);
+            cpu_state.flags |= Z_FLAG;
             break;
 
         default:

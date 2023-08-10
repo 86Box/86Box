@@ -38,6 +38,9 @@
 #include <86box/pic.h>
 #include <86box/pci.h>
 #include <86box/gdbstub.h>
+#include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
+
 #ifdef USE_DYNAREC
 #    include "codegen.h"
 #endif
@@ -903,7 +906,7 @@ cpu_set(void)
 #endif
             x86_setopcodes_2386(ops_2386_386, ops_2386_ibm486_0f);
             cpu_features = CPU_FEATURE_MSR;
-            /* FALLTHROUGH */
+            fallthrough;
         case CPU_386SX:
         case CPU_386DX:
             /* In case we get Deskpro 386 emulation */
@@ -1126,7 +1129,7 @@ cpu_set(void)
         case CPU_i486DX_SLENH:
             cpu_features = CPU_FEATURE_CR4 | CPU_FEATURE_VME;
             cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_VME;
-            /* FALLTHROUGH */
+            fallthrough;
         case CPU_RAPIDCAD:
         case CPU_i486SX:
         case CPU_i486DX:
@@ -1439,7 +1442,9 @@ cpu_set(void)
                 x86_setopcodes(ops_386, ops_pentium_0f, dynarec_ops_386, dynarec_ops_pentium_0f);
             else
                 x86_setopcodes(ops_386, ops_c6x86mx_0f, dynarec_ops_386, dynarec_ops_c6x86mx_0f);
-                // x86_setopcodes(ops_386, ops_c6x86_0f, dynarec_ops_386, dynarec_ops_c6x86_0f);
+#if 0
+                x86_setopcodes(ops_386, ops_c6x86_0f, dynarec_ops_386, dynarec_ops_c6x86_0f);
+#endif
 #    else
             if (cpu_s->cpu_type == CPU_Cx6x86MX)
                 x86_setopcodes(ops_386, ops_c6x86mx_0f);
@@ -1447,7 +1452,9 @@ cpu_set(void)
                 x86_setopcodes(ops_386, ops_pentium_0f);
             else
                 x86_setopcodes(ops_386, ops_c6x86mx_0f);
-                // x86_setopcodes(ops_386, ops_c6x86_0f);
+#if 0
+                x86_setopcodes(ops_386, ops_c6x86_0f);
+#endif
 #    endif
 
             timing_rr  = 1; /* register dest - register src */
@@ -2465,7 +2472,7 @@ cpu_ven_reset(void)
         case CPU_K6_3:
         case CPU_K6_2C:
             msr.amd_psor = (cpu_s->cpu_type >= CPU_K6_3) ? 0x008cULL : 0x018cULL;
-            /* FALLTHROUGH */
+            fallthrough;
         case CPU_K6_2:
 #if defined(DEV_BRANCH) && defined(USE_AMD_K5)
         case CPU_K5:
@@ -2479,7 +2486,6 @@ cpu_ven_reset(void)
         case CPU_PENTIUM2:
         case CPU_PENTIUM2D:
             msr.mtrr_cap = 0x00000508ULL;
-            /* FALLTHROUGH */
             break;
     }
 }
@@ -3252,7 +3258,9 @@ amd_k_invalid_wrmsr:
                     break;
                 case 0x1b:
                     cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);
-                    // msr.apic_base = EAX | ((uint64_t) EDX << 32);
+#if 0
+                    msr.apic_base = EAX | ((uint64_t) EDX << 32);
+#endif
                     break;
                 case 0x2a:
                     break;
@@ -3421,7 +3429,7 @@ i686_invalid_wrmsr:
 }
 
 static void
-cpu_write(uint16_t addr, uint8_t val, void *priv)
+cpu_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
     if (addr == 0xf0) {
         /* Writes to F0 clear FPU error and deassert the interrupt. */
@@ -3503,7 +3511,7 @@ cpu_write(uint16_t addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-cpu_read(uint16_t addr, void *priv)
+cpu_read(uint16_t addr, UNUSED(void *priv))
 {
     if (addr == 0xf007)
         return 0x7f;

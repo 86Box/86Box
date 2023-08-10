@@ -18,7 +18,8 @@ fpu_save_environment(void)
     switch ((cr0 & 1) | (cpu_state.op32 & 0x100)) {
         case 0x000: { /*16-bit real mode*/
             uint16_t tmp;
-            uint32_t fp_ip, fp_dp;
+            uint32_t fp_ip;
+            uint32_t fp_dp;
 
             fp_ip = ((uint32_t)(fpu_state.fcs << 4)) | fpu_state.fip;
             fp_dp = ((uint32_t)(fpu_state.fds << 4)) | fpu_state.fdp;
@@ -60,7 +61,9 @@ fpu_save_environment(void)
         }
         break;
         case 0x100: { /*32-bit real mode*/
-            uint32_t tmp, fp_ip, fp_dp;
+            uint32_t tmp;
+            uint32_t fp_ip;
+            uint32_t fp_dp;
 
             fp_ip = ((uint32_t)(fpu_state.fcs << 4)) | fpu_state.fip;
             fp_dp = ((uint32_t)(fpu_state.fds << 4)) | fpu_state.fdp;
@@ -114,7 +117,9 @@ fpu_load_environment(void)
     switch ((cr0 & 1) | (cpu_state.op32 & 0x100)) {
         case 0x000: { /*16-bit real mode*/
             uint16_t tmp;
-            uint32_t fp_ip, fp_dp;
+            uint32_t fp_ip;
+            uint32_t fp_dp;
+
             tmp = readmemw(easeg, cpu_state.eaaddr + 0x0c);
             fp_dp = (tmp & 0xf000) << 4;
             tmp = readmemw(easeg, cpu_state.eaaddr + 0x0a);
@@ -156,7 +161,10 @@ fpu_load_environment(void)
         }
         break;
         case 0x100: { /*32-bit real mode*/
-            uint32_t tmp, fp_ip, fp_dp;
+            uint32_t tmp;
+            uint32_t fp_ip;
+            uint32_t fp_dp;
+
             tmp = readmeml(easeg, cpu_state.eaaddr + 0x18);
             fp_dp = (tmp & 0x0ffff000) << 4;
             tmp = readmeml(easeg, cpu_state.eaaddr + 0x14);

@@ -178,11 +178,13 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
     uint8_t   ftwb       = 0;
     uint16_t  rec_ftw    = 0;
     uint16_t  fpus       = 0;
-    int       i, mmx_tags = 0;
+    int       i;
+    int       mmx_tags   = 0;
     uint16_t  exp        = 0x0000;
     uint64_t  mant       = 0x0000000000000000ULL;
     uint64_t  fraction;
-    uint8_t   jm, valid;
+    uint8_t   jm;
+    uint8_t   valid;
                                       /* Exp_all_1 Exp_all_0 Frac_all_0 J M FTW_Valid  |  Ent
                                          ----------------------------------------------+------ */
     uint8_t   ftw_table_idx;

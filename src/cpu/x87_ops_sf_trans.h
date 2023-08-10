@@ -104,7 +104,9 @@ next_ins:
 static int
 sf_FPATAN(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -132,7 +134,8 @@ static int
 sf_FXTRACT(uint32_t fetchdat)
 {
     struct float_status_t status;
-    floatx80 a, b;
+    floatx80              a;
+    floatx80              b;
 
     FP_ENTER();
     cpu_state.pc++;
@@ -175,10 +178,13 @@ next_ins:
 static int
 sf_FPREM1(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
-    uint64_t quotient = 0;
-    int flags, cc;
+    uint64_t              quotient = 0;
+    int                   flags;
+    int                   cc;
 
     FP_ENTER();
     cpu_state.pc++;
@@ -219,10 +225,13 @@ next_ins:
 static int
 sf_FPREM(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
-    uint64_t quotient = 0;
-    int flags, cc;
+    uint64_t              quotient = 0;
+    int                   flags;
+    int                   cc;
 
     FP_ENTER();
     cpu_state.pc++;
@@ -291,9 +300,11 @@ next_ins:
 static int
 sf_FSINCOS(uint32_t fetchdat)
 {
-    const floatx80 floatx80_default_nan = packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
+    const floatx80        floatx80_default_nan = packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
     struct float_status_t status;
-    floatx80 y, sin_y, cos_y;
+    floatx80              y;
+    floatx80              sin_y;
+    floatx80              cos_y;
 
     FP_ENTER();
     cpu_state.pc++;

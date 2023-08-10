@@ -95,7 +95,8 @@ cmp_FPU(il, int32_t, 32, temp, (int32_t)geteal(), int32_to_floatx80(temp), 0, _i
 static int
 sf_FCOM_sti(uint32_t fetchdat)
 {
-    floatx80 a, b;
+    floatx80              a;
+    floatx80              b;
     struct float_status_t status;
     int rc;
 
@@ -123,7 +124,8 @@ next_ins:
 static int
 sf_FCOMP_sti(uint32_t fetchdat)
 {
-    floatx80 a, b;
+    floatx80              a;
+    floatx80              b;
     struct float_status_t status;
     int rc;
 
@@ -156,7 +158,8 @@ next_ins:
 static int
 sf_FCOMPP(uint32_t fetchdat)
 {
-    floatx80 a, b;
+    floatx80              a;
+    floatx80              b;
     struct float_status_t status;
     int rc;
 
@@ -192,7 +195,8 @@ next_ins:
 static int
 sf_FUCOMPP(uint32_t fetchdat)
 {
-    floatx80 a, b;
+    floatx80              a;
+    floatx80              b;
     struct float_status_t status;
     int rc;
 
@@ -228,7 +232,8 @@ next_ins:
 static int
 sf_FCOMI_st0_stj(uint32_t fetchdat)
 {
-    floatx80 a, b;
+    floatx80              a;
+    floatx80              b;
     struct float_status_t status;
     int rc;
 
@@ -256,7 +261,8 @@ next_ins:
 static int
 sf_FCOMIP_st0_stj(uint32_t fetchdat)
 {
-    floatx80 a, b;
+    floatx80              a;
+    floatx80              b;
     struct float_status_t status;
     int rc;
 
@@ -291,7 +297,8 @@ next_ins:
 static int
 sf_FUCOM_sti(uint32_t fetchdat)
 {
-    floatx80 a, b;
+    floatx80              a;
+    floatx80              b;
     struct float_status_t status;
     int rc;
 
@@ -319,7 +326,8 @@ next_ins:
 static int
 sf_FUCOMP_sti(uint32_t fetchdat)
 {
-    floatx80 a, b;
+    floatx80              a;
+    floatx80              b;
     struct float_status_t status;
     int rc;
 
@@ -352,7 +360,8 @@ next_ins:
 static int
 sf_FUCOMI_st0_stj(uint32_t fetchdat)
 {
-    floatx80 a, b;
+    floatx80              a;
+    floatx80              b;
     struct float_status_t status;
     int rc;
 
@@ -380,7 +389,8 @@ next_ins:
 static int
 sf_FUCOMIP_st0_stj(uint32_t fetchdat)
 {
-    floatx80 a, b;
+    floatx80              a;
+    floatx80              b;
     struct float_status_t status;
     int rc;
 

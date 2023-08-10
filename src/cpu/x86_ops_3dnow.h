@@ -139,7 +139,8 @@ opPSWAPD(uint32_t fetchdat)
 {
     MMX_REG src;
     MMX_REG *dst = MMX_GETREGP(cpu_reg);
-    float   tempf, tempf2;
+    float   tempf;
+    float   tempf2;
 
     MMX_GETSRC();
 

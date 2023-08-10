@@ -2,8 +2,10 @@ static int
 sf_FXCH_sti(uint32_t fetchdat)
 {
     const floatx80 floatx80_default_nan = packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
-    floatx80 st0_reg, sti_reg;
-    int st0_tag, sti_tag;
+    floatx80 st0_reg;
+    floatx80 sti_reg;
+    int      st0_tag;
+    int      sti_tag;
 
     FP_ENTER();
     FPU_check_pending_exceptions();

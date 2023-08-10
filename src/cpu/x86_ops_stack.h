@@ -379,9 +379,13 @@ opENTER_w(uint32_t fetchdat)
 {
     uint16_t offset;
     int      count;
-    uint32_t tempEBP, tempESP, frame_ptr;
+    uint32_t tempEBP;
+    uint32_t tempESP;
+    uint32_t frame_ptr;
 #ifndef IS_DYNAREC
-    int reads = 0, writes = 1, instr_cycles = 0;
+    int reads        = 0;
+    int writes       = 1;
+    int instr_cycles = 0;
 #endif
     uint16_t tempw;
 
@@ -448,9 +452,13 @@ opENTER_l(uint32_t fetchdat)
 {
     uint16_t offset;
     int      count;
-    uint32_t tempEBP, tempESP, frame_ptr;
+    uint32_t tempEBP;
+    uint32_t tempESP;
+    uint32_t frame_ptr;
 #ifndef IS_DYNAREC
-    int reads = 0, writes = 1, instr_cycles = 0;
+    int reads        = 0;
+    int writes       = 1;
+    int instr_cycles = 0;
 #endif
     uint32_t templ;
 

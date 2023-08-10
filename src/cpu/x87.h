@@ -3,8 +3,10 @@
 #define X87_TAG_INVALID 2
 #define X87_TAG_EMPTY   3
 
-extern uint32_t x87_pc_off, x87_op_off;
-extern uint16_t x87_pc_seg, x87_op_seg;
+extern uint32_t x87_pc_off;
+extern uint32_t x87_op_off;
+extern uint16_t x87_pc_seg;
+extern uint16_t x87_op_seg;
 
 static __inline void
 x87_set_mmx(void)
@@ -16,7 +18,7 @@ x87_set_mmx(void)
     } else {
         cpu_state.TOP   = 0;
         p               = (uint64_t *) cpu_state.tag;
-        *p              = 0x0101010101010101ull;
+        *p              = 0x0101010101010101ULL;
     }
     cpu_state.ismmx = 1;
 }

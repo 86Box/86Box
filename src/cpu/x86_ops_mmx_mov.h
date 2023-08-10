@@ -115,7 +115,7 @@ opMOVD_mm_l_a32(uint32_t fetchdat)
 static int
 opMOVD_mm_l_a16_cx(uint32_t fetchdat)
 {
-    MMX_REG *op;
+    const MMX_REG *op;
 
     if (in_smm)
         return opSMINT(fetchdat);
@@ -144,7 +144,7 @@ opMOVD_mm_l_a16_cx(uint32_t fetchdat)
 static int
 opMOVD_mm_l_a32_cx(uint32_t fetchdat)
 {
-    MMX_REG *op;
+    const MMX_REG *op;
 
     if (in_smm)
         return opSMINT(fetchdat);

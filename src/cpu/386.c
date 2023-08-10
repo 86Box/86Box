@@ -230,8 +230,12 @@ fetch_ea_16_long(uint32_t rmdat)
 void
 exec386_2386(int cycs)
 {
-    int      vector, tempi, cycdiff, oldcyc;
-    int      cycle_period, ins_cycles;
+    int      vector;
+    int      tempi;
+    int      cycdiff;
+    int      oldcyc;
+    int      cycle_period;
+    int      ins_cycles;
     uint32_t addr;
 
     cycles += cycs;

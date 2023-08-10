@@ -35,6 +35,8 @@
 #include <86box/ppi.h>
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
+#include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
 
 /* Is the CPU 8088 or 8086. */
 int is8086 = 0;
@@ -46,7 +48,8 @@ uint32_t custom_nmi_vector     = 0x00000000;
 static uint8_t pfq[6];
 
 /* Variables to aid with the prefetch queue operation. */
-static int biu_cycles = 0, pfq_pos = 0;
+static int biu_cycles = 0;
+static int pfq_pos    = 0;
 
 /* The IP equivalent of the current prefetch queue position. */
 static uint16_t pfq_ip;
@@ -57,30 +60,37 @@ static x86seg   *_opseg[4];
 
 static int noint   = 0;
 static int in_lock = 0;
-static int cpu_alu_op, pfq_size;
+static int cpu_alu_op;
+static int pfq_size;
 
-static uint32_t cpu_src = 0, cpu_dest = 0;
+static uint32_t cpu_src  = 0;
+static uint32_t cpu_dest = 0;
 static uint32_t cpu_data = 0;
 
 static uint16_t last_addr = 0x0000;
 
 static uint32_t *ovr_seg     = NULL;
-static int       prefetching = 1, completed = 1;
-static int       in_rep = 0, repeating = 0, rep_c_flag = 0;
-static int       oldc, clear_lock = 0;
-static int       refresh = 0, cycdiff;
+static int       prefetching = 1;
+static int       completed   = 1;
+static int       in_rep      = 0;
+static int       repeating   = 0;
+static int       rep_c_flag  = 0;
+static int       oldc;
+static int       clear_lock  = 0;
+static int       refresh     = 0;
+static int       cycdiff;
 
-static int access_code = 0;
-static int hlda = 0;
-static int not_ready = 0;
+static int access_code      = 0;
+static int hlda             = 0;
+static int not_ready        = 0;
 static int bus_request_type = 0;
-static int pic_data = -1;
-static int last_was_code = 0;
-static uint16_t mem_data = 0;
-static uint32_t mem_seg = 0;
-static uint16_t mem_addr = 0;
-static int schedule_fetch = 1;
-static int pasv = 0;
+static int pic_data         = -1;
+static int last_was_code    = 0;
+static uint16_t mem_data    = 0;
+static uint32_t mem_seg     = 0;
+static uint16_t mem_addr    = 0;
+static int schedule_fetch   = 1;
+static int pasv             = 0;
 
 #define BUS_OUT     1
 #define BUS_HIGH    2
@@ -204,7 +214,7 @@ clock_end(void)
     int diff = cycdiff - cycles;
 
     /* On 808x systems, clock speed is usually crystal frequency divided by an integer. */
-    tsc += ((uint64_t) diff * ((uint64_t) xt_cpu_multi >> 32ULL)); /* Shift xt_cpu_multi by 32 bits to the right and then multiply. */
+    tsc += ((uint64_t) diff * (xt_cpu_multi >> 32ULL)); /* Shift xt_cpu_multi by 32 bits to the right and then multiply. */
     if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
         timer_process();
 }
@@ -423,9 +433,7 @@ run_dma_cycle(int idle)
 static void
 cycles_idle(int c)
 {
-    int d;
-
-    for (d = 0; d < c; d++) {
+    for (int d = 0; d < c; d++) {
         x808x_log("[%04X:%04X] %02X TI\n", CS, cpu_state.pc, opcode);
 
         cycles_forward(1);
@@ -500,14 +508,12 @@ bus_init(void)
 static void
 wait(int c, int bus)
 {
-    int d;
-
     if (c < 0)
         pclog("Negative cycles: %i!\n", c);
 
     x808x_log("[%04X:%04X] %02X %i cycles (%i)\n", CS, cpu_state.pc, opcode, c, bus);
 
-    for (d = 0; d < c; d++) {
+    for (int d = 0; d < c; d++) {
         x808x_log("[%04X:%04X] %02X cycle %i BIU\n", CS, cpu_state.pc, opcode, d);
         cycles_biu(bus, !d);
         x808x_log("[%04X:%04X] %02X cycle %i EU\n", CS, cpu_state.pc, opcode, d);
@@ -530,12 +536,12 @@ sub_cycles(int c)
 void
 resub_cycles(int old_cycles)
 {
-    int i, cyc_diff = 0;
+    int cyc_diff = 0;
 
     if (old_cycles > cycles) {
         cyc_diff = old_cycles - cycles;
 
-        for (i = 0; i < cyc_diff; i++) {
+        for (int i = 0; i < cyc_diff; i++) {
             if (not_ready > 0)
                 not_ready--;
         }
@@ -934,7 +940,7 @@ reset_808x(int hard)
         _opseg[2] = &cpu_state.seg_ss;
         _opseg[3] = &cpu_state.seg_ds;
 
-        pfq_size = (is8086) ? 6 : 4;
+        pfq_size = is8086 ? 6 : 4;
         pfq_clear();
     }
 
@@ -1205,8 +1211,10 @@ pop(void)
 static void
 interrupt(uint16_t addr)
 {
-    uint16_t old_cs, old_ip;
-    uint16_t new_cs, new_ip;
+    uint16_t old_cs;
+    uint16_t old_ip;
+    uint16_t new_cs;
+    uint16_t new_ip;
     uint16_t tempf;
 
     addr <<= 2;
@@ -1242,8 +1250,10 @@ interrupt_808x(uint16_t addr)
 static void
 custom_nmi(void)
 {
-    uint16_t old_cs, old_ip;
-    uint16_t new_cs, new_ip;
+    uint16_t old_cs;
+    uint16_t old_ip;
+    uint16_t new_cs;
+    uint16_t new_ip;
     uint16_t tempf;
 
     cpu_state.eaaddr = 0x0002;
@@ -1376,7 +1386,7 @@ rep_interrupt(void)
 }
 
 static int
-rep_action(int bits)
+rep_action(UNUSED(int bits))
 {
     uint16_t t;
 
@@ -1562,14 +1572,14 @@ alu_op(int bits)
         case 2:
             if (cpu_state.flags & C_FLAG)
                 cpu_src++;
-            /* Fall through. */
+            fallthrough;
         case 0:
             add(bits);
             break;
         case 3:
             if (cpu_state.flags & C_FLAG)
                 cpu_src++;
-            /* Fall through. */
+            fallthrough;
         case 5:
         case 7:
             sub(bits);
@@ -1600,10 +1610,11 @@ mul(uint16_t a, uint16_t b)
 {
     int      negate    = 0;
     int      bit_count = 8;
-    int      carry, i;
+    int      carry;
     uint16_t high_bit = 0x80;
     uint16_t size_mask;
-    uint16_t c, r;
+    uint16_t c;
+    uint16_t r;
 
     size_mask = (1 << bit_count) - 1;
 
@@ -1644,7 +1655,7 @@ mul(uint16_t a, uint16_t b)
     a &= size_mask;
     carry = (a & 1) != 0;
     a >>= 1;
-    for (i = 0; i < bit_count; ++i) {
+    for (int i = 0; i < bit_count; ++i) {
         wait(7, 0);
         if (carry) {
             cpu_src  = c;
@@ -1705,7 +1716,7 @@ set_pzs(int bits)
 }
 
 static void
-set_co_mul(int bits, int carry)
+set_co_mul(UNUSED(int bits), int carry)
 {
     set_cf(carry);
     set_of(carry);
@@ -1718,10 +1729,11 @@ set_co_mul(int bits, int carry)
 static int
 x86_div(uint16_t l, uint16_t h)
 {
-    int      b, bit_count = 8;
+    int      bit_count         = 8;
     int      negative          = 0;
     int      dividend_negative = 0;
-    int      size_mask, carry;
+    int      size_mask;
+    int      carry;
     uint16_t r;
 
     if (opcode & 1) {
@@ -1765,7 +1777,7 @@ x86_div(uint16_t l, uint16_t h)
         wait(1, 0);
     wait(2, 0);
     carry = 1;
-    for (b = 0; b < bit_count; ++b) {
+    for (int b = 0; b < bit_count; ++b) {
         r     = (l << 1) + (carry ? 1 : 0);
         carry = top_bit(l, bit_count);
         l     = r;
@@ -1948,20 +1960,46 @@ cpu_outw(uint16_t port, uint16_t val)
 void
 execx86(int cycs)
 {
-    uint8_t  temp = 0, temp2, old_af, nests;
-    uint8_t  temp_val, temp_al, bit, handled = 0;
-    uint8_t  odd, zero, nibbles_count, destcmp;
-    uint8_t  destbyte, srcbyte, nibble_result, bit_length;
+    uint8_t  temp = 0;
+    uint8_t  temp2;
+    uint8_t  old_af;
+    uint8_t  nests;
+    uint8_t  temp_val;
+    uint8_t  temp_al;
+    uint8_t  bit;
+    uint8_t  handled = 0;
+    uint8_t  odd;
+    uint8_t  zero;
+    uint8_t  nibbles_count;
+    uint8_t  destcmp;
+    uint8_t  destbyte;
+    uint8_t  srcbyte;
+    uint8_t  nibble_result;
+    uint8_t  bit_length;
     uint8_t  bit_offset;
     int8_t   nibble_result_s;
-    uint16_t addr, tempw, new_cs, new_ip;
-    uint16_t tempw_int, size, tempbp, lowbound;
-    uint16_t highbound, regval, orig_sp, wordtopush;
-    uint16_t immediate, old_flags;
-        uint16_t tmpa;
+    uint16_t addr;
+    uint16_t tempw;
+    uint16_t new_cs;
+    uint16_t new_ip;
+    uint16_t tempw_int;
+    uint16_t size;
+    uint16_t tempbp;
+    uint16_t lowbound;
+    uint16_t highbound;
+    uint16_t regval;
+    uint16_t orig_sp;
+    uint16_t wordtopush;
+    uint16_t immediate;
+    uint16_t old_flags;
+    uint16_t tmpa;
     int      bits;
-    uint32_t dest_seg, i, carry, nibble;
-    uint32_t srcseg, byteaddr;
+    uint32_t dest_seg;
+    uint32_t i;
+    uint32_t carry;
+    uint32_t nibble;
+    uint32_t srcseg;
+    uint32_t byteaddr;
 
     cycles += cycs;
 
@@ -1970,7 +2008,9 @@ execx86(int cycs)
 
         if (!repeating) {
             cpu_state.oldpc = cpu_state.pc;
-            // opcode          = pfq_fetchb();
+#if 0
+            opcode          = pfq_fetchb();
+#endif
             opcode          = pfq_fetchb_common();
             handled         = 0;
             oldc            = cpu_state.flags & C_FLAG;
@@ -2498,7 +2538,7 @@ execx86(int cycs)
                                 }
                                 for (i = 0; i < bit_length; i++) {
                                     byteaddr = (es) + DI;
-                                    writememb(es, DI, (read_mem_b(byteaddr) & ~(1 << (bit_offset))) | ((!!(AX & (1 << i))) << bit_offset));
+                                    writememb(es, DI, (read_mem_b(byteaddr) & ~(1 << bit_offset)) | ((!!(AX & (1 << i))) << bit_offset));
                                     bit_offset++;
                                     if (bit_offset == 8) {
                                         DI++;
@@ -3063,7 +3103,7 @@ execx86(int cycs)
                     bits = 8 << (opcode & 1);
                     wait(2, 0);
                     cpu_state.eaaddr = pfq_fetchw();
-                    set_accum(bits, readmem((ovr_seg ? *ovr_seg : ds)));
+                    set_accum(bits, readmem(ovr_seg ? *ovr_seg : ds));
                     break;
                 case 0xA2:
                 case 0xA3:
@@ -3453,55 +3493,55 @@ execx86(int cycs)
                         if (fpu_softfloat) {
                             switch (opcode) {
                                 case 0xD8:
-                                    ops_sf_fpu_8087_d8[(rmdat >> 3) & 0x1f]((uint32_t) rmdat);
+                                    ops_sf_fpu_8087_d8[(rmdat >> 3) & 0x1f](rmdat);
                                     break;
                                 case 0xD9:
-                                    ops_sf_fpu_8087_d9[rmdat & 0xff]((uint32_t) rmdat);
+                                    ops_sf_fpu_8087_d9[rmdat & 0xff](rmdat);
                                     break;
                                 case 0xDA:
-                                    ops_sf_fpu_8087_da[rmdat & 0xff]((uint32_t) rmdat);
+                                    ops_sf_fpu_8087_da[rmdat & 0xff](rmdat);
                                     break;
                                 case 0xDB:
-                                    ops_sf_fpu_8087_db[rmdat & 0xff]((uint32_t) rmdat);
+                                    ops_sf_fpu_8087_db[rmdat & 0xff](rmdat);
                                     break;
                                 case 0xDC:
-                                    ops_sf_fpu_8087_dc[(rmdat >> 3) & 0x1f]((uint32_t) rmdat);
+                                    ops_sf_fpu_8087_dc[(rmdat >> 3) & 0x1f](rmdat);
                                     break;
                                 case 0xDD:
-                                    ops_sf_fpu_8087_dd[rmdat & 0xff]((uint32_t) rmdat);
+                                    ops_sf_fpu_8087_dd[rmdat & 0xff](rmdat);
                                     break;
                                 case 0xDE:
-                                    ops_sf_fpu_8087_de[rmdat & 0xff]((uint32_t) rmdat);
+                                    ops_sf_fpu_8087_de[rmdat & 0xff](rmdat);
                                     break;
                                 case 0xDF:
-                                    ops_sf_fpu_8087_df[rmdat & 0xff]((uint32_t) rmdat);
+                                    ops_sf_fpu_8087_df[rmdat & 0xff](rmdat);
                                     break;
                             }
                         } else {
                             switch (opcode) {
                                 case 0xD8:
-                                    ops_fpu_8087_d8[(rmdat >> 3) & 0x1f]((uint32_t) rmdat);
+                                    ops_fpu_8087_d8[(rmdat >> 3) & 0x1f](rmdat);
                                     break;
                                 case 0xD9:
-                                    ops_fpu_8087_d9[rmdat & 0xff]((uint32_t) rmdat);
+                                    ops_fpu_8087_d9[rmdat & 0xff](rmdat);
                                     break;
                                 case 0xDA:
-                                    ops_fpu_8087_da[rmdat & 0xff]((uint32_t) rmdat);
+                                    ops_fpu_8087_da[rmdat & 0xff](rmdat);
                                     break;
                                 case 0xDB:
-                                    ops_fpu_8087_db[rmdat & 0xff]((uint32_t) rmdat);
+                                    ops_fpu_8087_db[rmdat & 0xff](rmdat);
                                     break;
                                 case 0xDC:
-                                    ops_fpu_8087_dc[(rmdat >> 3) & 0x1f]((uint32_t) rmdat);
+                                    ops_fpu_8087_dc[(rmdat >> 3) & 0x1f](rmdat);
                                     break;
                                 case 0xDD:
-                                    ops_fpu_8087_dd[rmdat & 0xff]((uint32_t) rmdat);
+                                    ops_fpu_8087_dd[rmdat & 0xff](rmdat);
                                     break;
                                 case 0xDE:
-                                    ops_fpu_8087_de[rmdat & 0xff]((uint32_t) rmdat);
+                                    ops_fpu_8087_de[rmdat & 0xff](rmdat);
                                     break;
                                 case 0xDF:
-                                    ops_fpu_8087_df[rmdat & 0xff]((uint32_t) rmdat);
+                                    ops_fpu_8087_df[rmdat & 0xff](rmdat);
                                     break;
                             }
                         }
@@ -3800,7 +3840,7 @@ execx86(int cycs)
                             if (cpu_mod != 3)
                                 wait(1, 0);
                             wait(4, 0);
-                            push((uint16_t *) &(cpu_data));
+                            push((uint16_t *) &cpu_data);
                             break;
                     }
                     break;

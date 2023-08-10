@@ -37,16 +37,17 @@ static int
 opFXTRACT(uint32_t fetchdat)
 {
     x87_conv_t test;
-    int64_t exp80, exp80final;
-    double mant;
+    int64_t    exp80;
+    int64_t    exp80final;
+    double     mant;
 
     FP_ENTER();
     cpu_state.pc++;
     test.eind.d = ST(0);
-    exp80 = test.eind.ll & (0x7ff0000000000000ll);
-    exp80final = (exp80 >> 52) - BIAS64;
-    mant = test.eind.d / (pow(2.0, (double)exp80final));
-    ST(0) = (double)exp80final;
+    exp80       = test.eind.ll & 0x7ff0000000000000LL;
+    exp80final  = (exp80 >> 52) - BIAS64;
+    mant        = test.eind.d / (pow(2.0, (double) exp80final));
+    ST(0)       = (double) exp80final;
     FP_TAG_VALID;
     x87_push(mant);
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fxtract) : (x87_timings.fxtract * cpu_multi));
@@ -82,7 +83,7 @@ opFINIT(uint32_t fetchdat)
 #ifdef USE_NEW_DYNAREC
     *p = 0;
 #else
-    *p                                            = 0x0303030303030303ll;
+    *p                                            = 0x0303030303030303LL;
 #endif
     cpu_state.TOP   = 0;
     cpu_state.ismmx = 0;
@@ -410,7 +411,7 @@ FSAVE(void)
 #ifdef USE_NEW_DYNAREC
     *p = 0;
 #else
-    *p = 0x0303030303030303ll;
+    *p = 0x0303030303030303LL;
 #endif
     cpu_state.TOP   = 0;
     cpu_state.ismmx = 0;
@@ -629,7 +630,7 @@ opFLDLN2(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
-    x87_push_u64(0x3fe62e42fefa39f0ull);
+    x87_push_u64(0x3fe62e42fefa39f0ULL);
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fld_const) : (x87_timings.fld_const * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fld_const) : (x87_concurrency.fld_const * cpu_multi));
     return 0;

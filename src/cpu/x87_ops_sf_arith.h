@@ -203,7 +203,9 @@ sf_FPU(il, uint32_t, 32, temp, geteal(), int32_to_floatx80((int32_t)temp), 0, _i
 static int
 sf_FADD_st0_stj(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -230,7 +232,9 @@ next_ins:
 static int
 sf_FADD_sti_st0(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -258,7 +262,9 @@ next_ins:
 static int
 sf_FADDP_sti_st0(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -288,7 +294,9 @@ next_ins:
 static int
 sf_FDIV_st0_stj(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -315,7 +323,9 @@ next_ins:
 static int
 sf_FDIV_sti_st0(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -341,7 +351,9 @@ next_ins:
 static int
 sf_FDIVP_sti_st0(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -370,7 +382,9 @@ next_ins:
 static int
 sf_FDIVR_st0_stj(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -396,7 +410,9 @@ next_ins:
 static int
 sf_FDIVR_sti_st0(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -422,7 +438,9 @@ next_ins:
 static int
 sf_FDIVRP_sti_st0(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -451,7 +469,9 @@ next_ins:
 static int
 sf_FMUL_st0_stj(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -478,7 +498,9 @@ next_ins:
 static int
 sf_FMUL_sti_st0(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -505,7 +527,9 @@ next_ins:
 static int
 sf_FMULP_sti_st0(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -534,7 +558,9 @@ next_ins:
 static int
 sf_FSUB_st0_stj(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -561,7 +587,9 @@ next_ins:
 static int
 sf_FSUB_sti_st0(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -588,7 +616,9 @@ next_ins:
 static int
 sf_FSUBP_sti_st0(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -617,7 +647,9 @@ next_ins:
 static int
 sf_FSUBR_st0_stj(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -644,7 +676,9 @@ next_ins:
 static int
 sf_FSUBR_sti_st0(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();
@@ -671,7 +705,9 @@ next_ins:
 static int
 sf_FSUBRP_sti_st0(uint32_t fetchdat)
 {
-    floatx80 a, b, result;
+    floatx80              a;
+    floatx80              b;
+    floatx80              result;
     struct float_status_t status;
 
     FP_ENTER();

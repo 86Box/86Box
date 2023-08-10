@@ -432,15 +432,15 @@ typedef struct {
 } cpu_state_t;
 
 typedef struct {
-    uint16_t cwd;
-    uint16_t swd;
-    uint16_t tag;
-    uint16_t foo;
-    uint32_t fip;
-    uint32_t fdp;
-    uint16_t fcs;
-    uint16_t fds;
-    floatx80 st_space[8];
+    uint16_t      cwd;
+    uint16_t      swd;
+    uint16_t      tag;
+    uint16_t      foo;
+    uint32_t      fip;
+    uint32_t      fdp;
+    uint16_t      fcs;
+    uint16_t      fds;
+    floatx80      st_space[8];
     unsigned char tos;
     unsigned char align1;
     unsigned char align2;

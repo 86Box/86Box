@@ -111,6 +111,7 @@ typedef union
 static __inline void
 x87_checkexceptions(void)
 {
+    //
 }
 
 static __inline void
@@ -169,7 +170,8 @@ x87_pop(void)
 static __inline int16_t
 x87_fround16(double b)
 {
-    int16_t a, c;
+    int16_t a;
+    int16_t c;
 
     switch ((cpu_state.npxc >> 10) & 3) {
         case 0: /*Nearest*/
@@ -201,7 +203,8 @@ x87_fround16_64(double b)
 static __inline int32_t
 x87_fround32(double b)
 {
-    int32_t a, c;
+    int32_t a;
+    int32_t c;
 
     switch ((cpu_state.npxc >> 10) & 3) {
         case 0: /*Nearest*/
@@ -233,7 +236,8 @@ x87_fround32_64(double b)
 static __inline int64_t
 x87_fround(double b)
 {
-    int64_t a, c;
+    int64_t a;
+    int64_t c;
 
     switch ((cpu_state.npxc >> 10) & 3) {
         case 0: /*Nearest*/
@@ -338,9 +342,10 @@ x87_compare(double a, double b)
 {
 #ifdef X87_INLINE_ASM
     uint32_t       result;
-    double         ea = a, eb = b;
-    const uint64_t ia = 0x3fec1a6ff866a936ull;
-    const uint64_t ib = 0x3fec1a6ff866a938ull;
+    double         ea = a;
+    double         eb = b;
+    const uint64_t ia = 0x3fec1a6ff866a936ULL;
+    const uint64_t ib = 0x3fec1a6ff866a938ULL;
 
     /* Hack to make CHKCOP happy. */
     if (!memcmp(&ea, &ia, 8) && !memcmp(&eb, &ib, 8))
