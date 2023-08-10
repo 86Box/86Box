@@ -876,11 +876,11 @@ pic_irq_ack(void)
         /* Needed for Xi8088. */
         if (pic.flags & PIC_SLAVE_PENDING) {
             pic2.flags &= ~PIC_FREEZE;
-            pic_update_irr(&pic2, num & 0x00ff);
+            pic_update_irr(&pic2, 0x00ff);
             pic2.interrupt = 0x17;
         }
         pic.flags &= ~(PIC_SLAVE_PENDING | PIC_FREEZE);
-        pic_update_irr(&pic, num & 0x00ff);
+        pic_update_irr(&pic, 0x00ff);
         pic.interrupt = 0x17;
         update_pending();
     }
