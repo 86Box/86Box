@@ -128,8 +128,6 @@ postcard_reset(void)
 static void
 postcard_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 {
-    uint8_t matches = 0;
-
     if (postcard_written[port & POSTCARD_MASK] &&
         (val == postcard_codes[port & POSTCARD_MASK]))
         return;

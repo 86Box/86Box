@@ -308,13 +308,13 @@ static png_infop   info_ptr[MONITORS_NUM];
 static void
 video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int start_y, int row_len, int monitor_index)
 {
-    png_bytep   *b_rgb         = NULL;
-    FILE        *fp            = NULL;
-    uint32_t     temp          = 0x00000000;
-    blit_data_t *blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+    png_bytep         *b_rgb         = NULL;
+    FILE              *fp            = NULL;
+    uint32_t           temp          = 0x00000000;
+    const blit_data_t *blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
 
     /* create file */
-    fp = plat_fopen((char *) fn, (char *) "wb");
+    fp = plat_fopen(fn, (const char *) "wb");
     if (!fp) {
         video_log("[video_take_screenshot] File %s could not be opened for writing", fn);
         return;
@@ -423,8 +423,8 @@ void *
 video_transform_copy(void *__restrict _Dst, const void *__restrict _Src, size_t _Size)
 #endif
 {
-    uint32_t *dest_ex = (uint32_t *) _Dst;
-    uint32_t *src_ex  = (uint32_t *) _Src;
+    uint32_t       *dest_ex = (uint32_t *) _Dst;
+    const uint32_t *src_ex  = (const uint32_t *) _Src;
 
     _Size /= sizeof(uint32_t);
 
@@ -496,8 +496,8 @@ pixel_to_color(uint8_t *pixels32, uint8_t pos)
     uint32_t temp;
     temp = *(pixels32 + pos) & 0x03;
     switch (temp) {
-        case 0:
         default:
+        case 0:
             return 0x00;
         case 1:
             return 0x07;
@@ -774,23 +774,27 @@ hline(bitmap_t *b, int x1, int y, int x2, uint32_t col)
 }
 
 void
-blit(bitmap_t *src, bitmap_t *dst, int x1, int y1, int x2, int y2, int xs, int ys)
+blit(UNUSED(bitmap_t *src), UNUSED(bitmap_t *dst), UNUSED(int x1), UNUSED(int y1), UNUSED(int x2), UNUSED(int y2), UNUSED(int xs), UNUSED(int ys))
 {
+    //
 }
 
 void
-stretch_blit(bitmap_t *src, bitmap_t *dst, int x1, int y1, int xs1, int ys1, int x2, int y2, int xs2, int ys2)
+stretch_blit(UNUSED(bitmap_t *src), UNUSED(bitmap_t *dst), UNUSED(int x1), UNUSED(int y1), UNUSED(int xs1), UNUSED(int ys1), UNUSED(int x2), UNUSED(int y2), UNUSED(int xs2), UNUSED(int ys2))
 {
+    //
 }
 
 void
-rectfill(bitmap_t *b, int x1, int y1, int x2, int y2, uint32_t col)
+rectfill(UNUSED(bitmap_t *b), UNUSED(int x1), UNUSED(int y1), UNUSED(int x2), UNUSED(int y2), UNUSED(uint32_t col))
 {
+    //
 }
 
 void
-set_palette(PALETTE p)
+set_palette(UNUSED(PALETTE p))
 {
+    //
 }
 
 void
@@ -1115,8 +1119,10 @@ uint32_t
 video_color_transform(uint32_t color)
 {
     uint8_t *clr8 = (uint8_t *) &color;
-    /* if (!video_grayscale && !invert_display)
-        return color; */
+#if 0
+    if (!video_grayscale && !invert_display)
+        return color;
+#endif
     if (video_grayscale) {
         if (video_graytype) {
             if (video_graytype == 1)
@@ -1129,7 +1135,7 @@ video_color_transform(uint32_t color)
             case 2:
             case 3:
             case 4:
-                color = (uint32_t) shade[video_grayscale][color];
+                color = shade[video_grayscale][color];
                 break;
             default:
                 clr8[3] = 0;

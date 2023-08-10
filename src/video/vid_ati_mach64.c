@@ -740,9 +740,7 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
         case 0x11e:
         case 0x11f:
             WRITE8(addr, mach64->dst_height_width, val);
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case 0x113:
             if (((addr & 0x3ff) == 0x11b || (addr & 0x3ff) == 0x11f || (addr & 0x3ff) == 0x113) && !(val & 0x80)) {
                 mach64_start_fill(mach64);
@@ -965,9 +963,7 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
         case 0x2a4:
         case 0x2a5:
             addr += 2;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case 0x2aa:
         case 0x2ab:
             WRITE8(addr, mach64->sc_left_right, val);
@@ -982,9 +978,7 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
         case 0x2b0:
         case 0x2b1:
             addr += 2;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case 0x2b6:
         case 0x2b7:
             WRITE8(addr, mach64->sc_top_bottom, val);
