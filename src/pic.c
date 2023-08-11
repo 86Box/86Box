@@ -236,12 +236,7 @@ pic_update_pending_at(void)
     if (!(pic2.flags & PIC_FREEZE)) {
         pic2.int_pending = (find_best_interrupt(&pic2) != -1);
 
-        // pic_cascade(pic2.int_pending);
-
-        if (pic2.int_pending)
-            pic.irr |= (1 << pic2.icw3);
-        else
-            pic.irr &= ~(1 << pic2.icw3);
+        pic_cascade(pic2.int_pending);
     }
 
     if (!(pic.flags & PIC_FREEZE))

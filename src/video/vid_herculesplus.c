@@ -365,7 +365,6 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
     unsigned             olc = 0;
     unsigned             val;
     unsigned             ibg;
-    unsigned             ifg = 0;
     unsigned             cfg;
     const unsigned char *fnt;
     int                  cw    = HERCULESPLUS_CW;
