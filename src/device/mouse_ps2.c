@@ -305,7 +305,7 @@ ps2_poll(void *priv)
     atkbc_dev_t *dev = (atkbc_dev_t *) priv;
     int packet_size = (dev->flags & FLAG_INTMODE) ? 4 : 3;
 
-    int cond = (!mouse_capture && !video_fullscreen) || (!mouse_scan || mouse_state_changed()) ||
+    int cond = (!mouse_capture && !video_fullscreen) || (!mouse_scan || !mouse_state_changed()) ||
                ((dev->mode == MODE_STREAM) && (kbc_at_dev_queue_pos(dev, 1) >= (FIFO_SIZE - packet_size)));
 
     if (!cond && (dev->mode == MODE_STREAM))
