@@ -44,8 +44,7 @@
 
 /* NOTE: When porting from Rust to C, please use uintptr_t and not size_t,
          so it can be printed with PRIuPTR. */
-typedef struct queue_t
-{
+typedef struct queue_t {
     uintptr_t     size;
     uintptr_t     len;
     uintptr_t     back;

@@ -27,7 +27,7 @@
 #include "x86_flags.h"
 #include "x86seg.h"
 
-MMX_REG *MMP[8];
+MMX_REG  *MMP[8];
 uint16_t *MMEP[8];
 
 static uint16_t MME[8];
@@ -40,10 +40,10 @@ mmx_init(void)
 
     for (uint8_t i = 0; i < 8; i++) {
         if (fpu_softfloat) {
-            MMP[i] = (MMX_REG *) &fpu_state.st_space[i].fraction;
+            MMP[i]  = (MMX_REG *) &fpu_state.st_space[i].fraction;
             MMEP[i] = (uint16_t *) &fpu_state.st_space[i].exp;
         } else {
-            MMP[i] = &(cpu_state.MM[i]);
+            MMP[i]  = &(cpu_state.MM[i]);
             MMEP[i] = &(MME[i]);
         }
     }

@@ -46,7 +46,8 @@
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
-int inrecomp = 0, cpu_block_end = 0;
+int inrecomp                = 0;
+int cpu_block_end           = 0;
 int cpu_end_block_after_ins = 0;
 
 #ifdef ENABLE_386_DYNAREC_LOG
@@ -334,8 +335,9 @@ exec386_dynarec_int(void)
 static __inline void
 exec386_dynarec_dyn(void)
 {
-    uint32_t start_pc = 0, phys_addr = get_phys(cs + cpu_state.pc);
-    int      hash = HASH(phys_addr);
+    uint32_t start_pc  = 0;
+    uint32_t phys_addr = get_phys(cs + cpu_state.pc);
+    int      hash      = HASH(phys_addr);
 #    ifdef USE_NEW_DYNAREC
     codeblock_t *block = &codeblock[codeblock_hash[hash]];
 #    else
@@ -674,10 +676,13 @@ exec386_dynarec_dyn(void)
 void
 exec386_dynarec(int cycs)
 {
-    int      vector, tempi;
+    int      vector;
+    int      tempi;
     int      cycdiff;
-    int      oldcyc, oldcyc2;
-    uint64_t oldtsc, delta;
+    int      oldcyc;
+    int      oldcyc2;
+    uint64_t oldtsc;
+    uint64_t delta;
 
     int cyc_period = cycs / 2000; /*5us*/
 
@@ -794,8 +799,12 @@ exec386_dynarec(int cycs)
 void
 exec386(int cycs)
 {
-    int      vector, tempi, cycdiff, oldcyc;
-    int      cycle_period, ins_cycles;
+    int      vector;
+    int      tempi;
+    int      cycdiff;
+    int      oldcyc;
+    int      cycle_period;
+    int      ins_cycles;
     uint32_t addr;
 
     cycles += cycs;

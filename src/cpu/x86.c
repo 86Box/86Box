@@ -59,10 +59,12 @@ uint32_t  rmdat;
 uint64_t xt_cpu_multi;
 
 /* Variables for handling the non-maskable interrupts. */
-int nmi = 0, nmi_auto_clear = 0;
+int nmi            = 0;
+int nmi_auto_clear = 0;
 
 /* Was the CPU ever reset? */
-int x86_was_reset = 0, soft_reset_pci = 0;
+int x86_was_reset  = 0;
+int soft_reset_pci = 0;
 
 /* Is the TRAP flag on? */
 int trap = 0;
@@ -71,7 +73,8 @@ int trap = 0;
 uint32_t easeg;
 
 /* This is for the OPTI 283 special reset handling mode. */
-int reset_on_hlt, hlt_reset_pending;
+int reset_on_hlt;
+int hlt_reset_pending;
 
 #ifdef ENABLE_X86_LOG
 void dumpregs(int);
@@ -171,7 +174,10 @@ makemod1table(void)
 static void
 makeznptable(void)
 {
-    int c, d, e;
+    int c;
+    int d;
+    int e;
+
     for (c = 0; c < 256; c++) {
         d = 0;
         for (e = 0; e < 8; e++) {
@@ -267,7 +273,7 @@ reset_common(int hard)
         loadcs(0xF000);
         cpu_state.pc = 0xFFF0;
         if (hard) {
-            rammask      = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+            rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
             if (is6117)
                 rammask |= 0x03000000;
             mem_a20_key = mem_a20_alt = mem_a20_state = 0;

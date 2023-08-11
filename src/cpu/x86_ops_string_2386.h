@@ -219,7 +219,8 @@ opMOVSL_a32(uint32_t fetchdat)
 static int
 opCMPSB_a16(uint32_t fetchdat)
 {
-    uint8_t src, dst;
+    uint8_t src;
+    uint8_t dst;
 
     addr64 = addr64_2 = 0x00000000;
 
@@ -255,7 +256,8 @@ opCMPSB_a16(uint32_t fetchdat)
 static int
 opCMPSB_a32(uint32_t fetchdat)
 {
-    uint8_t src, dst;
+    uint8_t src;
+    uint8_t dst;
 
     addr64 = addr64_2 = 0x00000000;
 
@@ -292,7 +294,8 @@ opCMPSB_a32(uint32_t fetchdat)
 static int
 opCMPSW_a16(uint32_t fetchdat)
 {
-    uint16_t src, dst;
+    uint16_t src;
+    uint16_t dst;
 
     addr64a[0] = addr64a[1] = 0x00000000;
     addr64a_2[0] = addr64a_2[1] = 0x00000000;
@@ -329,7 +332,8 @@ opCMPSW_a16(uint32_t fetchdat)
 static int
 opCMPSW_a32(uint32_t fetchdat)
 {
-    uint16_t src, dst;
+    uint16_t src;
+    uint16_t dst;
 
     addr64a[0] = addr64a[1] = 0x00000000;
     addr64a_2[0] = addr64a_2[1] = 0x00000000;
@@ -367,7 +371,8 @@ opCMPSW_a32(uint32_t fetchdat)
 static int
 opCMPSL_a16(uint32_t fetchdat)
 {
-    uint32_t src, dst;
+    uint32_t src;
+    uint32_t dst;
 
     addr64a[0] = addr64a[1] = addr64a[2] = addr64a[3] = 0x00000000;
     addr64a_2[0] = addr64a_2[1] = addr64a_2[2] = addr64a_2[3] = 0x00000000;
@@ -404,7 +409,8 @@ opCMPSL_a16(uint32_t fetchdat)
 static int
 opCMPSL_a32(uint32_t fetchdat)
 {
-    uint32_t src, dst;
+    uint32_t src;
+    uint32_t dst;
 
     addr64a[0] = addr64a[1] = addr64a[2] = addr64a[3] = 0x00000000;
     addr64a_2[0] = addr64a_2[1] = addr64a_2[2] = addr64a_2[3] = 0x00000000;
