@@ -475,12 +475,13 @@ ms_write(uint16_t port, uint8_t val, void *priv)
 
 /* The emulator calls us with an update on the host mouse device. */
 static int
-bm_poll(int x, int y, UNUSED(int z), int b, UNUSED(double abs_x), UNUSED(double abs_y), void *priv)
+bm_poll(void *priv)
 {
     mouse_t *dev = (mouse_t *) priv;
     int delta_x;
     int delta_y;
     int xor;
+    int b = mouse_get_buttons_ex();
 
     if (!mouse_capture && !video_fullscreen)
         return 1;
@@ -488,8 +489,8 @@ bm_poll(int x, int y, UNUSED(int z), int b, UNUSED(double abs_x), UNUSED(double 
     if (!(dev->flags & FLAG_ENABLED))
         return 1; /* Mouse is disabled, do nothing. */
 
-    if (!mouse_x && !mouse_y && !((b ^ dev->mouse_buttons_last) & 0x07)) {
-        dev->mouse_buttons_last = b;
+    if (!mouse_state_changed()) {
+        dev->mouse_buttons_last = 0x00;
         return 1; /* State has not changed, do nothing. */
     }
 
@@ -503,11 +504,11 @@ bm_poll(int x, int y, UNUSED(int z), int b, UNUSED(double abs_x), UNUSED(double 
            so update bits 6-3 here. */
 
         /* If the mouse has moved, set bit 6. */
-        if (mouse_x || mouse_y)
+        if (mouse_moved())
             dev->mouse_buttons |= 0x40;
 
         /* Set bits 3-5 according to button state changes. */
-        xor = ((dev->current_b ^ dev->mouse_buttons) & 0x07) << 3;
+        xor = ((dev->current_b ^ mouse_get_buttons_ex()) & 0x07) << 3;
         dev->mouse_buttons |= xor;
     }
 

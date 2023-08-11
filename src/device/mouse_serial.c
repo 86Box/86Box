@@ -82,8 +82,8 @@ typedef struct mouse_t {
     int8_t      type;  /* type of this device */
     int8_t      port;
 
-    int         old_buttons;
     int         state;
+
     int         bps;
     int         rps;
 
@@ -180,16 +180,17 @@ sermouse_report_msystems(mouse_t *dev)
 {
     int delta_x = 0;
     int delta_y = 0;
+    int b = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 1, 0);
 
     dev->buf[0] = 0x80;
-    dev->buf[0] |= (mouse_buttons & 0x01) ? 0x00 : 0x04; /* left button */
+    dev->buf[0] |= (b & 0x01) ? 0x00 : 0x04; /* left button */
     if (dev->but >= 3)
-        dev->buf[0] |= (mouse_buttons & 0x04) ? 0x00 : 0x02; /* middle button */
+        dev->buf[0] |= (b & 0x04) ? 0x00 : 0x02; /* middle button */
     else
         dev->buf[0] |= 0x02; /* middle button */
-    dev->buf[0] |= (mouse_buttons & 0x02) ? 0x00 : 0x01; /* right button */
+    dev->buf[0] |= (b & 0x02) ? 0x00 : 0x01; /* right button */
     dev->buf[1] = delta_x;
     dev->buf[2] = delta_y;
     dev->buf[2] = delta_x;    /* same as byte 1 */
@@ -203,14 +204,15 @@ sermouse_report_3bp(mouse_t *dev)
 {
     int delta_x = 0;
     int delta_y = 0;
+    int b = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 1, 0);
 
     dev->buf[0] = 0x80;
-    dev->buf[0] |= (mouse_buttons & 0x01) ? 0x04 : 0x00; /* left button */
+    dev->buf[0] |= (b & 0x01) ? 0x04 : 0x00; /* left button */
     if (dev->but >= 3)
-        dev->buf[0] |= (mouse_buttons & 0x04) ? 0x02 : 0x00; /* middle button */
-    dev->buf[0] |= (mouse_buttons & 0x02) ? 0x01 : 0x00; /* right button */
+        dev->buf[0] |= (b & 0x04) ? 0x02 : 0x00; /* middle button */
+    dev->buf[0] |= (b & 0x02) ? 0x01 : 0x00; /* right button */
     dev->buf[1] = delta_x;
     dev->buf[2] = delta_y;
     dev->buf[2] = delta_x;    /* same as byte 1 */
@@ -224,6 +226,7 @@ sermouse_report_mmseries(mouse_t *dev)
 {
     int delta_x = 0;
     int delta_y = 0;
+    int b = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -127, 127, 1, 0);
 
@@ -233,10 +236,10 @@ sermouse_report_mmseries(mouse_t *dev)
     if (delta_y >= 0)
         dev->buf[0] |= 0x08;
 
-    dev->buf[0] |= (mouse_buttons & 0x01) ? 0x04 : 0x00; /* left button */
+    dev->buf[0] |= (b & 0x01) ? 0x04 : 0x00; /* left button */
     if (dev->but >= 3)
-        dev->buf[0] |= (mouse_buttons & 0x04) ? 0x02 : 0x00; /* middle button */
-    dev->buf[0] |= (mouse_buttons & 0x02) ? 0x01 : 0x00; /* right button */
+        dev->buf[0] |= (b & 0x04) ? 0x02 : 0x00; /* middle button */
+    dev->buf[0] |= (b & 0x02) ? 0x01 : 0x00; /* right button */
     dev->buf[1] = ABS(delta_x) & 0x7f;
     dev->buf[2] = ABS(delta_y) & 0x7f;
     mouse_serial_log("MM series mouse report: %02X %02X %02X\n", dev->buf[0], dev->buf[1], dev->buf[2]);
@@ -249,14 +252,15 @@ sermouse_report_bp1(mouse_t *dev, int abs)
 {
     int delta_x = 0;
     int delta_y = 0;
+    int b = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -2048, 2047, 1, abs);
 
     dev->buf[0] = 0x80;
-    dev->buf[0] |= (mouse_buttons & 0x01) ? 0x10 : 0x00; /* left button */
+    dev->buf[0] |= (b & 0x01) ? 0x10 : 0x00; /* left button */
     if (dev->but >= 3)
-        dev->buf[0] |= (mouse_buttons & 0x04) ? 0x08 : 0x00; /* middle button */
-    dev->buf[0] |= (mouse_buttons & 0x02) ? 0x04 : 0x00; /* right button */
+        dev->buf[0] |= (b & 0x04) ? 0x08 : 0x00; /* middle button */
+    dev->buf[0] |= (b & 0x02) ? 0x04 : 0x00; /* right button */
     dev->buf[1] = (delta_x & 0x3f);
     dev->buf[2] = ((delta_x >> 6) & 0x3f);
     dev->buf[3] = (delta_y & 0x3f);
@@ -272,15 +276,17 @@ sermouse_report_ms(mouse_t *dev)
     int delta_x = 0;
     int delta_y = 0;
     int delta_z = 0;
+    int b = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 0, 0);
+    mouse_subtract_z(&delta_z, -8, 7, 1);
 
     dev->buf[0] = 0x40;
     dev->buf[0] |= (((delta_y >> 6) & 0x03) << 2);
     dev->buf[0] |= ((delta_x >> 6) & 0x03);
-    if (mouse_buttons & 0x01)
+    if (b & 0x01)
         dev->buf[0] |= 0x20;
-    if (mouse_buttons & 0x02)
+    if (b & 0x02)
         dev->buf[0] |= 0x10;
     dev->buf[1] = delta_x & 0x3f;
     dev->buf[2] = delta_y & 0x3f;
@@ -288,12 +294,12 @@ sermouse_report_ms(mouse_t *dev)
     if (dev->but == 3) {
         len = 3;
         if (dev->format == FORMAT_MS) {
-            if (mouse_buttons & 0x04) {
+            if (b & 0x04) {
                 dev->buf[3] = 0x20;
                 len++;
             }
         } else {
-            if ((mouse_buttons ^ dev->old_buttons) & 0x04) {
+            if (mouse_mbut_changed()) {
                 /* Microsoft 3-button mice send a fourth byte of 0x00 when the middle button
                    has changed. */
                 dev->buf[3] = 0x00;
@@ -303,19 +309,8 @@ sermouse_report_ms(mouse_t *dev)
     } else if (dev->but == 4) {
         len = 4;
 
-        if (mouse_z > 7) {
-            delta_z = 7;
-            mouse_z -= 7;
-        } else if (mouse_z < -8) {
-            delta_z = -8;
-            mouse_z += 8;
-        } else {
-            delta_z = mouse_z;
-            mouse_z = 0;
-        }
-
         dev->buf[3] = delta_z & 0x0f;
-        if (mouse_buttons & 0x04)
+        if (b & 0x04)
             dev->buf[3] |= 0x10;
     } else
         len = 3;
@@ -330,13 +325,14 @@ sermouse_report_hex(mouse_t *dev)
     uint8_t but = 0x00;
     int delta_x = 0;
     int delta_y = 0;
+    int b = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 1, 0);
 
-    but |= (mouse_buttons & 0x01) ? 0x04 : 0x00; /* left button */
+    but |= (b & 0x01) ? 0x04 : 0x00; /* left button */
     if (dev->but >= 3)
-        but |= (mouse_buttons & 0x04) ? 0x02 : 0x00; /* middle button */
-    but |= (mouse_buttons & 0x02) ? 0x01 : 0x00; /* right button */
+        but |= (b & 0x04) ? 0x02 : 0x00; /* middle button */
+    but |= (b & 0x02) ? 0x01 : 0x00; /* right button */
 
     sprintf(ret, "%01X%02X%02X", but & 0x0f, (int8_t) delta_x, (int8_t) delta_y);
 
@@ -387,16 +383,9 @@ sermouse_report(mouse_t *dev)
 static void
 sermouse_transmit_report(mouse_t *dev, int from_report)
 {
-    int z_changed = (dev->but == 4) ? mouse_z : 0;
-    int b_changed = ((mouse_buttons ^ dev->old_buttons) & 0x07);
-
-    if (dev->but < 3)
-        b_changed &= ~0x04;
-
-    if (mouse_capture && (mouse_x || mouse_y || z_changed || b_changed)) {
+    if (mouse_capture && mouse_state_changed())
         sermouse_transmit(dev, sermouse_report(dev), from_report, 1);
-        dev->old_buttons = mouse_buttons;
-    } else {
+    else {
         if (dev->prompt || dev->continuous)
             sermouse_set_period(dev, 0.0);
         else {
@@ -418,7 +407,7 @@ sermouse_transmit_report(mouse_t *dev, int from_report)
 }
 
 static int
-sermouse_poll(int x, int y, int z, int b, UNUSED(double abs_x), UNUSED(double abs_y), void *priv)
+sermouse_poll(void *priv)
 {
     mouse_t *dev = (mouse_t *) priv;
 
@@ -533,6 +522,7 @@ static void
 ltsermouse_process_command(mouse_t *dev)
 {
     int cmd_to_rps[9] = { 10, 20, 35, 70, 150, 0, -1, 100, 50 };
+    int b;
     uint8_t format_codes[FORMATS_NUM] = {
                         [FORMAT_BP1_ABS]   = 0x0c,
                         [FORMAT_BP1_REL]   = 0x06,
@@ -620,7 +610,8 @@ ltsermouse_process_command(mouse_t *dev)
             break;
         case 0x05:
             /* Diagnostic */
-            dev->buf[0] = ((mouse_buttons & 0x01) << 2) | ((mouse_buttons & 0x06) >> 1);
+            b = mouse_get_buttons_ex();
+            dev->buf[0] = ((b & 0x01) << 2) | ((b & 0x06) >> 1);
             dev->buf[1] = dev->buf[2] = 0x00;
             sermouse_transmit(dev, 3, 0, 0);
             break;

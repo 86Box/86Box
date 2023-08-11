@@ -47,11 +47,6 @@
 
 #ifdef __cplusplus
 extern "C" {
-#else
-extern atomic_int    mouse_x;
-extern atomic_int    mouse_y;
-extern atomic_int    mouse_z;
-extern atomic_int    mouse_buttons;
 #endif
 
 extern int    mouse_type;
@@ -62,19 +57,14 @@ extern double mouse_x_abs;
 extern double mouse_y_abs;
 extern int    tablet_tool_type;
 extern double mouse_sensitivity;
-#ifdef _Atomic
-extern _Atomic double mouse_x_error;
-extern _Atomic double mouse_y_error;
-#endif
 
 #ifdef EMU_DEVICE_H
-extern const device_t *mouse_get_device(int mouse);
 extern void           *mouse_ps2_init(const device_t *);
 
 extern const device_t mouse_logibus_device;
 extern const device_t mouse_logibus_onboard_device;
 extern const device_t mouse_msinport_device;
-#    if 0
+#    ifdef USE_GENIBUS
 extern const device_t	mouse_genibus_device;
 #    endif
 extern const device_t mouse_mssystems_device;
@@ -85,36 +75,44 @@ extern const device_t mouse_wacom_device;
 extern const device_t mouse_wacom_artpad_device;
 #endif
 
-extern void mouse_clear_coords(void);
-extern void mouse_init(void);
-extern void mouse_close(void);
-extern void mouse_subtract_coords(int *delta_x, int *delta_y, int *o_x, int *o_y,
-                                  int min, int max, int invert, int abs);
-extern void mouse_reset(void);
-extern void mouse_set_buttons(int buttons);
-extern void mouse_set_poll_ex(void (*poll_ex)(void));
-extern void mouse_process(void);
-extern void mouse_set_poll(int (*f)(int, int, int, int, void *), void *);
+extern void            mouse_clear_x(void);
+extern void            mouse_clear_y(void);
+extern void            mouse_clear_coords(void);
+extern void            mouse_subtract_x(int *delta_x, int *o_x, int min, int max, int abs);
+extern void            mouse_subtract_y(int *delta_y, int *o_y, int min, int max, int invert, int abs);
+extern void            mouse_subtract_coords(int *delta_x, int *delta_y, int *o_x, int *o_y,
+                                             int min, int max, int invert, int abs);
+extern  int            mouse_moved(void);
+extern  int            mouse_state_changed(void);
+extern  int            mouse_mbut_changed(void);
+extern void            mouse_scale(int x, int y);
+extern void            mouse_scale_x(int x);
+extern void            mouse_scale_y(int y);
+extern void            mouse_set_z(int z);
+extern void            mouse_clear_z(void);
+extern void            mouse_subtract_z(int *delta_z, int min, int max, int invert);
+extern void            mouse_set_buttons_ex(int b);
+extern int             mouse_get_buttons_ex(void);
+extern void            mouse_set_sample_rate(double new_rate);
+extern void            mouse_set_buttons(int buttons);
+extern void            mouse_get_abs_coords(double *x_abs, double *y_abs);
+extern void            mouse_process(void);
+extern void            mouse_set_poll_ex(void (*poll_ex)(void));
+extern void            mouse_set_poll(int (*f)(void *), void *);
+extern char *          mouse_get_name(int mouse);
+extern char *          mouse_get_internal_name(int mouse);
+extern int             mouse_get_from_internal_name(char *s);
+extern int             mouse_has_config(int mouse);
+#ifdef EMU_DEVICE_H
+extern const device_t *mouse_get_device(int mouse);
+#endif
+extern int             mouse_get_buttons(void);
+extern int             mouse_get_ndev(void);
+extern void            mouse_reset(void);
+extern void            mouse_close(void);
+extern void            mouse_init(void);
 
-extern void mouse_bus_set_irq(void *priv, int irq);
-
-extern void mouse_set_sample_rate(double new_rate);
-extern void mouse_scale(int x, int y);
-extern void mouse_scale_x(int x);
-extern void mouse_scale_y(int y);
-extern void mouse_set_z(int z);
-extern void mouse_set_buttons_ex(int b);
-extern int  mouse_get_buttons_ex(void);
-
-extern char *mouse_get_name(int mouse);
-extern char *mouse_get_internal_name(int mouse);
-extern int   mouse_get_from_internal_name(char *s);
-extern int   mouse_has_config(int mouse);
-extern int   mouse_get_type(int mouse);
-extern int   mouse_get_ndev(void);
-extern int   mouse_get_buttons(void);
-
-extern void mouse_clear_data(void *priv);
+extern void            mouse_bus_set_irq(void *priv, int irq);
 
 #ifdef __cplusplus
 }

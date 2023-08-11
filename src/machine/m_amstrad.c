@@ -152,8 +152,6 @@ typedef struct amstrad_t {
     pc_timer_t send_delay_timer;
 
     /* Mouse stuff. */
-    uint8_t mousex;
-    uint8_t mousey;
     int oldb;
 
     /* Video stuff. */
@@ -2012,9 +2010,9 @@ ms_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
     amstrad_t *ams = (amstrad_t *) priv;
 
     if ((addr == 0x78) || (addr == 0x79))
-        ams->mousex = 0;
+        mouse_clear_x();
     else
-        ams->mousey = 0;
+        mouse_clear_y();
 }
 
 static uint8_t
@@ -2022,25 +2020,26 @@ ms_read(uint16_t addr, void *priv)
 {
     amstrad_t *ams = (amstrad_t *) priv;
     uint8_t    ret;
+    int delta = 0;
 
     if ((addr == 0x78) || (addr == 0x79)) {
-        ret         = ams->mousex;
-        ams->mousex = 0;
+        mouse_subtract_x(&delta, NULL, -128, 127, 0);
+        mouse_clear_x();
     } else {
-        ret         = ams->mousey;
-        ams->mousey = 0;
+        mouse_subtract_y(&delta, NULL, -128, 127, 1, 0);
+        mouse_clear_y();
     }
+
+    ret = (uint8_t) (int8_t) delta;
 
     return ret;
 }
 
 static int
-ms_poll(int x, int y, UNUSED(int z), int b, void *priv)
+ms_poll(void *priv)
 {
     amstrad_t *ams = (amstrad_t *) priv;
-
-    ams->mousex += x;
-    ams->mousey -= y;
+    int b = mouse_get_buttons_ex();
 
     if ((b & 1) && !(ams->oldb & 1))
         keyboard_send(0x7e);
