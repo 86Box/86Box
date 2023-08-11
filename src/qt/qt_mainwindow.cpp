@@ -293,7 +293,9 @@ MainWindow::MainWindow(QWidget *parent)
 
     connect(this, &MainWindow::resizeContentsMonitor, this, [this](int w, int h, int monitor_index) {
         if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
+#ifdef QT_RESIZE_DEBUG
             qDebug() << "Resize";
+#endif
             w = (w / (!dpi_scale ? util::screenOfWidget(renderers[monitor_index].get())->devicePixelRatio() : 1.));
 
             int modifiedHeight = (h / (!dpi_scale ? util::screenOfWidget(renderers[monitor_index].get())->devicePixelRatio() : 1.));

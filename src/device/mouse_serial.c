@@ -82,8 +82,6 @@ typedef struct mouse_t {
     int8_t      type;  /* type of this device */
     int8_t      port;
 
-    int         abs_x;
-    int         abs_y;
     int         old_buttons;
     int         state;
     int         bps;
@@ -177,89 +175,13 @@ sermouse_transmit(mouse_t *dev, int len, int from_report, int to_report)
         sermouse_set_period(dev, dev->transmit_period);
 }
 
-/* It appears all host platforms give us y in the Microsoft format
-   (positive to the south), so for all non-Microsoft report formsts,
-   we have to invenrt that. */
-static void
-sermouse_subtract_coords(mouse_t *dev, int *delta_x, int *delta_y, int min, int max, int invert, int abs)
-{
-    int real_y = mouse_y;
-    int abs_max = max + ABS(min);
-
-    if (invert)
-        real_y = -real_y;
-
-    if (mouse_x > max) {
-        if (abs) {
-            dev->abs_x += max;
-            *delta_x = dev->abs_x;
-        } else
-            *delta_x = max;
-        mouse_x -= max;
-    } else if (mouse_x < min) {
-        if (abs) {
-            dev->abs_x += min;
-            *delta_x = dev->abs_x;
-        } else
-            *delta_x = min;
-        mouse_x += ABS(min);
-    } else {
-        if (abs) {
-            dev->abs_x += mouse_x;
-            *delta_x = dev->abs_x;
-        } else
-            *delta_x = mouse_x;
-        mouse_x = 0;
-    }
-
-    if (real_y > max) {
-        if (abs) {
-            dev->abs_y += max;
-            *delta_y = dev->abs_y;
-        } else
-            *delta_y = max;
-        real_y -= max;
-    } else if (real_y < min) {
-        if (abs) {
-            dev->abs_y += min;
-            *delta_y = dev->abs_y;
-        } else
-            *delta_y = min;
-        real_y += ABS(min);
-    } else {
-        if (abs) {
-            dev->abs_y += real_y;
-            *delta_y = dev->abs_y;
-        } else
-            *delta_y = real_y;
-        real_y = 0;
-    }
-
-    if (abs) {
-        if (dev->abs_x < 0)
-            *delta_x = 0;
-        else if (dev->abs_x > abs_max)
-            *delta_x = abs_max;
-
-        if (dev->abs_y < 0)
-            *delta_y = 0;
-        else if (dev->abs_y > abs_max)
-            *delta_y = abs_max;
-    }
-
-    if (invert)
-        real_y = -real_y;
-
-    mouse_y = real_y;
-}
-
 static uint8_t
 sermouse_report_msystems(mouse_t *dev)
 {
     int delta_x = 0;
     int delta_y = 0;
 
-    sermouse_subtract_coords(dev, &delta_x, &delta_y, -128, 127, 1, 0);
+    mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 1, 0);
 
     dev->buf[0] = 0x80;
     dev->buf[0] |= (mouse_buttons & 0x01) ? 0x00 : 0x04; /* left button */
@@ -282,7 +204,7 @@ sermouse_report_3bp(mouse_t *dev)
     int delta_x = 0;
     int delta_y = 0;
 
-    sermouse_subtract_coords(dev, &delta_x, &delta_y, -128, 127, 1, 0);
+    mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 1, 0);
 
     dev->buf[0] = 0x80;
     dev->buf[0] |= (mouse_buttons & 0x01) ? 0x04 : 0x00; /* left button */
@@ -303,7 +225,7 @@ sermouse_report_mmseries(mouse_t *dev)
     int delta_x = 0;
     int delta_y = 0;
 
-    sermouse_subtract_coords(dev, &delta_x, &delta_y, -127, 127, 1, 0);
+    mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -127, 127, 1, 0);
 
     dev->buf[0] = 0x80;
     if (delta_x >= 0)
@@ -328,7 +250,7 @@ sermouse_report_bp1(mouse_t *dev, int abs)
     int delta_x = 0;
     int delta_y = 0;
 
-    sermouse_subtract_coords(dev, &delta_x, &delta_y, -2048, 2047, 1, abs);
+    mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -2048, 2047, 1, abs);
 
     dev->buf[0] = 0x80;
     dev->buf[0] |= (mouse_buttons & 0x01) ? 0x10 : 0x00; /* left button */
@@ -351,7 +273,7 @@ sermouse_report_ms(mouse_t *dev)
     int delta_y = 0;
     int delta_z = 0;
 
-    sermouse_subtract_coords(dev, &delta_x, &delta_y, -128, 127, 0, 0);
+    mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 0, 0);
 
     dev->buf[0] = 0x40;
     dev->buf[0] |= (((delta_y >> 6) & 0x03) << 2);
@@ -409,7 +331,7 @@ sermouse_report_hex(mouse_t *dev)
     int delta_x = 0;
     int delta_y = 0;
 
-    sermouse_subtract_coords(dev, &delta_x, &delta_y, -128, 127, 1, 0);
+    mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 1, 0);
 
     but |= (mouse_buttons & 0x01) ? 0x04 : 0x00; /* left button */
     if (dev->but >= 3)
@@ -669,7 +591,7 @@ ltsermouse_process_command(mouse_t *dev)
 
         case 0x41:
             /* Absolute Bit Pad One Packed Binary Format */
-            dev->abs_x = dev->abs_y = 0;
+            mouse_clear_coords();
             fallthrough;
         case 0x42:    /* Relative Bit Pad One Packed Binary Format */
         case 0x53:    /* MM Series Data Format */
