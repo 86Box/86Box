@@ -131,9 +131,8 @@ typedef struct m24_kbd_t {
 
     /* Mouse stuff. */
     int        mouse_mode;
-    int        x;
-    int        y;
     int        b;
+
     pc_timer_t send_delay_timer;
 } m24_kbd_t;
 
@@ -732,12 +731,14 @@ m24_kbd_reset(void *priv)
 }
 
 static int
-ms_poll(int x, int y, UNUSED(int z), int b, void *priv)
+ms_poll(void *priv)
 {
     m24_kbd_t *m24_kbd = (m24_kbd_t *) priv;
-
-    m24_kbd->x += x;
-    m24_kbd->y += y;
+    int delta_x;
+    int delta_y;
+    int o_x;
+    int o_y;
+    int b = mouse_get_buttons_ex();
 
     if (((key_queue_end - key_queue_start) & 0xf) > 14)
         return 0xff;
@@ -770,53 +771,45 @@ ms_poll(int x, int y, UNUSED(int z), int b, void *priv)
         if (((key_queue_end - key_queue_start) & 0xf) > 12)
             return 0xff;
 
-        if (!m24_kbd->x && !m24_kbd->y)
+        if (!mouse_moved())
             return 0xff;
 
-        m24_kbd->y = -m24_kbd->y;
+        mouse_subtract_coords(&delta_x, &delta_y, &o_x, &o_y, -127, 127, 1, 0);
 
-        if (m24_kbd->x < -127)
-            m24_kbd->x = -127;
-        if (m24_kbd->x > 127)
-            m24_kbd->x = 127;
-        if (m24_kbd->x < -127)
-            m24_kbd->x = 0x80 | ((-m24_kbd->x) & 0x7f);
+        if ((delta_x == -127) && o_x)
+            delta_x = 0x80 | ((-delta_x) & 0x7f);
 
-        if (m24_kbd->y < -127)
-            m24_kbd->y = -127;
-        if (m24_kbd->y > 127)
-            m24_kbd->y = 127;
-        if (m24_kbd->y < -127)
-            m24_kbd->y = 0x80 | ((-m24_kbd->y) & 0x7f);
+        if ((delta_y == -127) && o_y)
+            delta_y = 0x80 | ((-delta_y) & 0x7f);
 
         m24_kbd_adddata(0xfe);
-        m24_kbd_adddata(m24_kbd->x);
-        m24_kbd_adddata(m24_kbd->y);
-
-        m24_kbd->x = m24_kbd->y = 0;
+        m24_kbd_adddata(delta_x);
+        m24_kbd_adddata(delta_y);
     } else {
-        while (m24_kbd->x < -4) {
+        mouse_subtract_coords(&delta_x, &delta_y, &o_x, &o_y, -127, 127, 1, 0);
+
+        while (delta_x < -4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
                 return 0xff;
-            m24_kbd->x += 4;
+            delta_x += 4;
             m24_kbd_adddata(m24_kbd->scan[3]);
         }
-        while (m24_kbd->x > 4) {
+        while (delta_x > 4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
                 return 0xff;
-            m24_kbd->x -= 4;
+            delta_x -= 4;
             m24_kbd_adddata(m24_kbd->scan[4]);
         }
-        while (m24_kbd->y < -4) {
+        while (delta_y < -4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
                 return 0xff;
-            m24_kbd->y += 4;
+            delta_y += 4;
             m24_kbd_adddata(m24_kbd->scan[5]);
         }
-        while (m24_kbd->y > 4) {
+        while (delta_y > 4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
                 return 0xff;
-            m24_kbd->y -= 4;
+            delta_y -= 4;
             m24_kbd_adddata(m24_kbd->scan[6]);
         }
     }

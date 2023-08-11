@@ -375,6 +375,7 @@ pic_action(pic_t *dev, uint8_t irq, uint8_t eoi, uint8_t rotate)
         if (rotate)
             dev->priority = (irq + 1) & 7;
 
+        pic_update_request(dev, irq);
         update_pending();
     }
 }
@@ -414,13 +415,10 @@ pic_latch_read(UNUSED(uint16_t addr), UNUSED(void *priv))
 {
     uint8_t ret = 0xff;
 
-    pic_log("pic_latch_read(%04X): %02X%02X\n", enabled_latches, latched_irqs & 0x10, latched_irqs & 0x02);
+    pic_log("pic_latch_read(%04X): %04X\n", enabled_latches, latched_irqs & 0x1002);
 
-    if ((latched_irqs & enabled_latches) & 0x0002)
-        picintc(0x0002);
-
-    if ((latched_irqs & enabled_latches) & 0x1000)
-        picintc(0x1000);
+    if (latched_irqs & 0x1002)
+        picintc(latched_irqs & 0x1002);
 
     /* Return FF - we just lower IRQ 1 and IRQ 12. */
     return ret;

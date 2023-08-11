@@ -3164,9 +3164,9 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
     banshee->svga.decode_mask = 0x1ffffff;
 
     if (banshee->has_bios)
-        pci_add_card(banshee->agp ? PCI_ADD_AGP : PCI_ADD_VIDEO, banshee_pci_read, banshee_pci_write, banshee, &banshee->pci_slot);
-    else
         pci_add_card(banshee->agp ? PCI_ADD_AGP : PCI_ADD_NORMAL, banshee_pci_read, banshee_pci_write, banshee, &banshee->pci_slot);
+    else
+        pci_add_card(banshee->agp ? PCI_ADD_AGP : PCI_ADD_VIDEO, banshee_pci_read, banshee_pci_write, banshee, &banshee->pci_slot);
 
     banshee->voodoo               = voodoo_2d3d_card_init(voodoo_type);
     banshee->voodoo->p            = banshee;
