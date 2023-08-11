@@ -5,9 +5,9 @@
 /*Instruction has input dependency on register in R/M field*/
 #define SRCDEP_RM (1ULL << 1)
 /*Instruction modifies register in REG field*/
-#define DSTDEP_REG (1ULL<< 2)
+#define DSTDEP_REG (1ULL << 2)
 /*Instruction modifies register in R/M field*/
-#define DSTDEP_RM  (1ULL << 3)
+#define DSTDEP_RM    (1ULL << 3)
 
 #define SRCDEP_SHIFT 4
 #define DSTDEP_SHIFT 12

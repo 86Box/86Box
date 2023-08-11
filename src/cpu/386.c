@@ -26,7 +26,7 @@
 #include <86box/machine.h>
 #include <86box/gdbstub.h>
 #ifndef OPS_286_386
-#define OPS_286_386
+#    define OPS_286_386
 #endif
 #include "386_common.h"
 #ifdef USE_NEW_DYNAREC
@@ -204,24 +204,24 @@ fetch_ea_16_long(uint32_t rmdat)
 #define PREFETCH_FLUSH() prefetch_flush()
 
 #ifndef FPU_CYCLES
-#define FPU_CYCLES
+#    define FPU_CYCLES
 #endif
 
-#define OP_TABLE(name)   ops_2386_##name
-#    define CLOCK_CYCLES(c)               \
-        {                                 \
-            if (fpu_cycles > 0) {         \
-                fpu_cycles -= (c);        \
-                if (fpu_cycles < 0) {     \
-                    cycles += fpu_cycles; \
-                }                         \
-            } else {                      \
-                cycles -= (c);            \
-            }                             \
-        }
+#define OP_TABLE(name) ops_2386_##name
+#define CLOCK_CYCLES(c)               \
+    {                                 \
+        if (fpu_cycles > 0) {         \
+            fpu_cycles -= (c);        \
+            if (fpu_cycles < 0) {     \
+                cycles += fpu_cycles; \
+            }                         \
+        } else {                      \
+            cycles -= (c);            \
+        }                             \
+    }
 
-#    define CLOCK_CYCLES_FPU(c)   cycles -= (c)
-#    define CONCURRENCY_CYCLES(c) fpu_cycles = (c)
+#define CLOCK_CYCLES_FPU(c)    cycles -= (c)
+#define CONCURRENCY_CYCLES(c)  fpu_cycles = (c)
 
 #define CLOCK_CYCLES_ALWAYS(c) cycles -= (c)
 

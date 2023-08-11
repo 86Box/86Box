@@ -536,4 +536,4 @@ opLSS_l_a32(uint32_t fetchdat)
 opLsel(ES, cpu_state.seg_es)
 opLsel(FS, cpu_state.seg_fs)
 opLsel(GS, cpu_state.seg_gs)
-// clang-format on
+    // clang-format on

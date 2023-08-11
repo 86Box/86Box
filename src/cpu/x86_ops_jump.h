@@ -86,7 +86,7 @@ opJ(L)
 opJ(NL)
 opJ(LE)
 opJ(NLE)
-// clang-format on
+    // clang-format on
 
 static int
 opLOOPNE_w(uint32_t fetchdat)

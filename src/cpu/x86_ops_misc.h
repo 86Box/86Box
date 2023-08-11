@@ -289,7 +289,7 @@ static int
 opF7_w_a16(uint32_t fetchdat)
 {
     uint32_t templ;
-    uint32_t templ2  = 0;
+    uint32_t templ2 = 0;
     int      tempws;
     int      tempws2 = 0;
     int16_t  temps16;
@@ -402,7 +402,7 @@ static int
 opF7_w_a32(uint32_t fetchdat)
 {
     uint32_t templ;
-    uint32_t templ2  = 0;
+    uint32_t templ2 = 0;
     int      tempws;
     int      tempws2 = 1;
     int16_t  temps16;

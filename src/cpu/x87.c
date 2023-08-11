@@ -105,7 +105,6 @@ x87_settag(uint16_t new_tag)
 }
 #endif
 
-
 static floatx80
 FPU_handle_NaN32_Func(floatx80 a, int aIsNaN, float32 b32, int bIsNaN, struct float_status_t *status)
 {
@@ -118,24 +117,27 @@ FPU_handle_NaN32_Func(floatx80 a, int aIsNaN, float32 b32, int bIsNaN, struct fl
     // propagate QNaN to SNaN
     a = propagateFloatx80NaNOne(a, status);
 
-    if (aIsNaN & !bIsNaN) return a;
+    if (aIsNaN & !bIsNaN)
+        return a;
 
     // float32 is NaN so conversion will propagate SNaN to QNaN and raise
     // appropriate exception flags
     floatx80 b = float32_to_floatx80(b32, status);
 
     if (aIsSignalingNaN) {
-        if (bIsSignalingNaN) goto returnLargerSignificand;
+        if (bIsSignalingNaN)
+            goto returnLargerSignificand;
         return bIsNaN ? b : a;
-    }
-    else if (aIsNaN) {
-        if (bIsSignalingNaN) return a;
- returnLargerSignificand:
-        if (a.fraction < b.fraction) return b;
-        if (b.fraction < a.fraction) return a;
+    } else if (aIsNaN) {
+        if (bIsSignalingNaN)
+            return a;
+returnLargerSignificand:
+        if (a.fraction < b.fraction)
+            return b;
+        if (b.fraction < a.fraction)
+            return a;
         return (a.exp < b.exp) ? a : b;
-    }
-    else {
+    } else {
         return b;
     }
 }
@@ -172,24 +174,27 @@ FPU_handle_NaN64_Func(floatx80 a, int aIsNaN, float64 b64, int bIsNaN, struct fl
     // propagate QNaN to SNaN
     a = propagateFloatx80NaNOne(a, status);
 
-    if (aIsNaN & !bIsNaN) return a;
+    if (aIsNaN & !bIsNaN)
+        return a;
 
     // float64 is NaN so conversion will propagate SNaN to QNaN and raise
     // appropriate exception flags
     floatx80 b = float64_to_floatx80(b64, status);
 
     if (aIsSignalingNaN) {
-        if (bIsSignalingNaN) goto returnLargerSignificand;
+        if (bIsSignalingNaN)
+            goto returnLargerSignificand;
         return bIsNaN ? b : a;
-    }
-    else if (aIsNaN) {
-        if (bIsSignalingNaN) return a;
- returnLargerSignificand:
-        if (a.fraction < b.fraction) return b;
-        if (b.fraction < a.fraction) return a;
+    } else if (aIsNaN) {
+        if (bIsSignalingNaN)
+            return a;
+returnLargerSignificand:
+        if (a.fraction < b.fraction)
+            return b;
+        if (b.fraction < a.fraction)
+            return a;
         return (a.exp < b.exp) ? a : b;
-    }
-    else {
+    } else {
         return b;
     }
 }
@@ -218,7 +223,7 @@ struct float_status_t
 i387cw_to_softfloat_status_word(uint16_t control_word)
 {
     struct float_status_t status;
-    int precision = control_word & FPU_CW_PC;
+    int                   precision = control_word & FPU_CW_PC;
 
     switch (precision) {
         case FPU_PR_32_BITS:
@@ -231,23 +236,22 @@ i387cw_to_softfloat_status_word(uint16_t control_word)
             status.float_rounding_precision = 80;
             break;
         default:
-        /* With the precision control bits set to 01 "(reserved)", a
-           real CPU behaves as if the precision control bits were
-           set to 11 "80 bits" */
+            /* With the precision control bits set to 01 "(reserved)", a
+               real CPU behaves as if the precision control bits were
+               set to 11 "80 bits" */
             status.float_rounding_precision = 80;
             break;
     }
 
-    status.float_exception_flags = 0; // clear exceptions before execution
-    status.float_nan_handling_mode = float_first_operand_nan;
-    status.float_rounding_mode = (control_word & FPU_CW_RC) >> 10;
-    status.flush_underflow_to_zero = 0;
+    status.float_exception_flags    = 0; // clear exceptions before execution
+    status.float_nan_handling_mode  = float_first_operand_nan;
+    status.float_rounding_mode      = (control_word & FPU_CW_RC) >> 10;
+    status.flush_underflow_to_zero  = 0;
     status.float_suppress_exception = 0;
-    status.float_exception_masks = control_word & FPU_CW_Exceptions_Mask;
-    status.denormals_are_zeros = 0;
+    status.float_exception_masks    = control_word & FPU_CW_Exceptions_Mask;
+    status.denormals_are_zeros      = 0;
     return status;
 }
-
 
 int
 FPU_status_word_flags_fpu_compare(int float_relation)
@@ -266,7 +270,7 @@ FPU_status_word_flags_fpu_compare(int float_relation)
             return C3;
     }
 
-    return (-1);        // should never get here
+    return (-1); // should never get here
 }
 
 void
@@ -320,9 +324,9 @@ FPU_exception(uint32_t fetchdat, uint16_t exceptions, int store)
         fpu_state.swd |= exceptions;
         if (exceptions & FPU_SW_Stack_Fault) {
             if (!(exceptions & C1)) {
-               /* This bit distinguishes over- from underflow for a stack fault,
-                  and roundup from round-down for precision loss. */
-                  fpu_state.swd &= ~C1;
+                /* This bit distinguishes over- from underflow for a stack fault,
+                   and roundup from round-down for precision loss. */
+                fpu_state.swd &= ~C1;
             }
         }
         return unmasked;
@@ -355,8 +359,8 @@ FPU_exception(uint32_t fetchdat, uint16_t exceptions, int store)
 
     if (exceptions & FPU_EX_Precision) {
         if (!(exceptions & C1)) {
-          /* This bit distinguishes over- from underflow for a stack fault,
-               and roundup from round-down for precision loss. */
+            /* This bit distinguishes over- from underflow for a stack fault,
+                 and roundup from round-down for precision loss. */
             fpu_state.swd &= ~C1;
         }
     }
@@ -445,14 +449,22 @@ pack_FPU_TW(uint16_t twd)
 {
     uint8_t tag_byte = 0;
 
-    if ((twd & 0x0003) != 0x0003) tag_byte |= 0x01;
-    if ((twd & 0x000c) != 0x000c) tag_byte |= 0x02;
-    if ((twd & 0x0030) != 0x0030) tag_byte |= 0x04;
-    if ((twd & 0x00c0) != 0x00c0) tag_byte |= 0x08;
-    if ((twd & 0x0300) != 0x0300) tag_byte |= 0x10;
-    if ((twd & 0x0c00) != 0x0c00) tag_byte |= 0x20;
-    if ((twd & 0x3000) != 0x3000) tag_byte |= 0x40;
-    if ((twd & 0xc000) != 0xc000) tag_byte |= 0x80;
+    if ((twd & 0x0003) != 0x0003)
+        tag_byte |= 0x01;
+    if ((twd & 0x000c) != 0x000c)
+        tag_byte |= 0x02;
+    if ((twd & 0x0030) != 0x0030)
+        tag_byte |= 0x04;
+    if ((twd & 0x00c0) != 0x00c0)
+        tag_byte |= 0x08;
+    if ((twd & 0x0300) != 0x0300)
+        tag_byte |= 0x10;
+    if ((twd & 0x0c00) != 0x0c00)
+        tag_byte |= 0x20;
+    if ((twd & 0x3000) != 0x3000)
+        tag_byte |= 0x40;
+    if ((twd & 0xc000) != 0xc000)
+        tag_byte |= 0x80;
 
     return tag_byte;
 }
@@ -462,45 +474,45 @@ unpack_FPU_TW(uint16_t tag_byte)
 {
     uint32_t twd = 0;
 
-  /*                                 FTW
-   *
-   * Note that the original format for FTW can be recreated from the stored
-   * FTW valid bits and the stored 80-bit FP data (assuming the stored data
-   * was not the contents of MMX registers) using the following table:
+    /*                                 FTW
+     *
+     * Note that the original format for FTW can be recreated from the stored
+     * FTW valid bits and the stored 80-bit FP data (assuming the stored data
+     * was not the contents of MMX registers) using the following table:
 
-     | Exponent | Exponent | Fraction | J,M bits | FTW valid | x87 FTW |
-     |  all 1s  |  all 0s  |  all 0s  |          |           |         |
-     -------------------------------------------------------------------
-     |    0     |    0     |    0     |    0x    |     1     | S    10 |
-     |    0     |    0     |    0     |    1x    |     1     | V    00 |
-     -------------------------------------------------------------------
-     |    0     |    0     |    1     |    00    |     1     | S    10 |
-     |    0     |    0     |    1     |    10    |     1     | V    00 |
-     -------------------------------------------------------------------
-     |    0     |    1     |    0     |    0x    |     1     | S    10 |
-     |    0     |    1     |    0     |    1x    |     1     | S    10 |
-     -------------------------------------------------------------------
-     |    0     |    1     |    1     |    00    |     1     | Z    01 |
-     |    0     |    1     |    1     |    10    |     1     | S    10 |
-     -------------------------------------------------------------------
-     |    1     |    0     |    0     |    1x    |     1     | S    10 |
-     |    1     |    0     |    0     |    1x    |     1     | S    10 |
-     -------------------------------------------------------------------
-     |    1     |    0     |    1     |    00    |     1     | S    10 |
-     |    1     |    0     |    1     |    10    |     1     | S    10 |
-     -------------------------------------------------------------------
-     |        all combinations above             |     0     | E    11 |
+       | Exponent | Exponent | Fraction | J,M bits | FTW valid | x87 FTW |
+       |  all 1s  |  all 0s  |  all 0s  |          |           |         |
+       -------------------------------------------------------------------
+       |    0     |    0     |    0     |    0x    |     1     | S    10 |
+       |    0     |    0     |    0     |    1x    |     1     | V    00 |
+       -------------------------------------------------------------------
+       |    0     |    0     |    1     |    00    |     1     | S    10 |
+       |    0     |    0     |    1     |    10    |     1     | V    00 |
+       -------------------------------------------------------------------
+       |    0     |    1     |    0     |    0x    |     1     | S    10 |
+       |    0     |    1     |    0     |    1x    |     1     | S    10 |
+       -------------------------------------------------------------------
+       |    0     |    1     |    1     |    00    |     1     | Z    01 |
+       |    0     |    1     |    1     |    10    |     1     | S    10 |
+       -------------------------------------------------------------------
+       |    1     |    0     |    0     |    1x    |     1     | S    10 |
+       |    1     |    0     |    0     |    1x    |     1     | S    10 |
+       -------------------------------------------------------------------
+       |    1     |    0     |    1     |    00    |     1     | S    10 |
+       |    1     |    0     |    1     |    10    |     1     | S    10 |
+       -------------------------------------------------------------------
+       |        all combinations above             |     0     | E    11 |
 
-   *
-   * The J-bit is defined to be the 1-bit binary integer to the left of
-   * the decimal place in the significand.
-   *
-   * The M-bit is defined to be the most significant bit of the fractional
-   * portion of the significand (i.e., the bit immediately to the right of
-   * the decimal place). When the M-bit is the most significant bit of the
-   * fractional portion  of the significand, it must be  0 if the fraction
-   * is all 0's.
-   */
+     *
+     * The J-bit is defined to be the 1-bit binary integer to the left of
+     * the decimal place in the significand.
+     *
+     * The M-bit is defined to be the most significant bit of the fractional
+     * portion of the significand (i.e., the bit immediately to the right of
+     * the decimal place). When the M-bit is the most significant bit of the
+     * fractional portion  of the significand, it must be  0 if the fraction
+     * is all 0's.
+     */
 
     for (int index = 7; index >= 0; index--, twd <<= 2, tag_byte <<= 1) {
         if (tag_byte & 0x80) {

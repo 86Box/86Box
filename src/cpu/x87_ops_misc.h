@@ -1046,23 +1046,23 @@ opFSTCW_a32(uint32_t fetchdat)
 #endif
 
 #ifndef FPU_8087
-#ifndef OPS_286_386
-#    define opFCMOV(condition)                                                                      \
-        static int opFCMOV##condition(uint32_t fetchdat)                                            \
-        {                                                                                           \
-            FP_ENTER();                                                                             \
-            cpu_state.pc++;                                                                         \
-            if (cond_##condition) {                                                                 \
-                cpu_state.tag[cpu_state.TOP & 7]  = cpu_state.tag[(cpu_state.TOP + fetchdat) & 7];  \
-                cpu_state.MM[cpu_state.TOP & 7].q = cpu_state.MM[(cpu_state.TOP + fetchdat) & 7].q; \
-                ST(0)                             = ST(fetchdat & 7);                               \
-            }                                                                                       \
-            CLOCK_CYCLES_FPU(4);                                                                    \
-            return 0;                                                                               \
-        }
+#    ifndef OPS_286_386
+#        define opFCMOV(condition)                                                                      \
+            static int opFCMOV##condition(uint32_t fetchdat)                                            \
+            {                                                                                           \
+                FP_ENTER();                                                                             \
+                cpu_state.pc++;                                                                         \
+                if (cond_##condition) {                                                                 \
+                    cpu_state.tag[cpu_state.TOP & 7]  = cpu_state.tag[(cpu_state.TOP + fetchdat) & 7];  \
+                    cpu_state.MM[cpu_state.TOP & 7].q = cpu_state.MM[(cpu_state.TOP + fetchdat) & 7].q; \
+                    ST(0)                             = ST(fetchdat & 7);                               \
+                }                                                                                       \
+                CLOCK_CYCLES_FPU(4);                                                                    \
+                return 0;                                                                               \
+            }
 
-#    define cond_U  (PF_SET())
-#    define cond_NU (!PF_SET())
+#        define cond_U  (PF_SET())
+#        define cond_NU (!PF_SET())
 
 // clang-format off
 opFCMOV(B)
@@ -1074,5 +1074,5 @@ opFCMOV(NE)
 opFCMOV(NBE)
 opFCMOV(NU)
 // clang-format on
-#endif
+#    endif
 #endif

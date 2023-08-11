@@ -59,11 +59,11 @@ uint32_t  rmdat;
 uint64_t xt_cpu_multi;
 
 /* Variables for handling the non-maskable interrupts. */
-int nmi = 0;
+int nmi            = 0;
 int nmi_auto_clear = 0;
 
 /* Was the CPU ever reset? */
-int x86_was_reset = 0;
+int x86_was_reset  = 0;
 int soft_reset_pci = 0;
 
 /* Is the TRAP flag on? */
@@ -273,7 +273,7 @@ reset_common(int hard)
         loadcs(0xF000);
         cpu_state.pc = 0xFFF0;
         if (hard) {
-            rammask      = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+            rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
             if (is6117)
                 rammask |= 0x03000000;
             mem_a20_key = mem_a20_alt = mem_a20_state = 0;

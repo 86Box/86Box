@@ -1071,4 +1071,4 @@ opSHxD(SHLD_w)
 opSHxD(SHLD_l)
 opSHxD(SHRD_w)
 opSHxD(SHRD_l)
-// clang-format on
+    // clang-format on

@@ -46,8 +46,8 @@
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
-int inrecomp = 0;
-int cpu_block_end = 0;
+int inrecomp                = 0;
+int cpu_block_end           = 0;
 int cpu_end_block_after_ins = 0;
 
 #ifdef ENABLE_386_DYNAREC_LOG
@@ -335,9 +335,9 @@ exec386_dynarec_int(void)
 static __inline void
 exec386_dynarec_dyn(void)
 {
-    uint32_t start_pc = 0;
+    uint32_t start_pc  = 0;
     uint32_t phys_addr = get_phys(cs + cpu_state.pc);
-    int      hash = HASH(phys_addr);
+    int      hash      = HASH(phys_addr);
 #    ifdef USE_NEW_DYNAREC
     codeblock_t *block = &codeblock[codeblock_hash[hash]];
 #    else

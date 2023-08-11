@@ -241,7 +241,7 @@ uint32_t cache_index = 0;
 uint8_t  _cache[2048];
 
 uint64_t cpu_CR4_mask;
-uint64_t tsc = 0;
+uint64_t tsc    = 0;
 uint64_t pmc[2] = { 0, 0 };
 
 double cpu_dmulti;
@@ -254,7 +254,7 @@ cyrix_t cyrix;
 cpu_family_t *cpu_f;
 CPU          *cpu_s;
 
-uint8_t do_translate = 0;
+uint8_t do_translate  = 0;
 uint8_t do_translate2 = 0;
 
 void (*cpu_exec)(int cycs);
@@ -474,7 +474,7 @@ SF_FPU_reset(void)
         fpu_state.fcs = 0;
         fpu_state.fds = 0;
         fpu_state.fdp = 0;
-        memset(fpu_state.st_space, 0, sizeof(floatx80)*8);
+        memset(fpu_state.st_space, 0, sizeof(floatx80) * 8);
     }
 }
 
@@ -561,11 +561,11 @@ cpu_set(void)
     x86_setopcodes(ops_386, ops_386_0f);
 #endif
     x86_setopcodes_2386(ops_2386_386, ops_2386_386_0f);
-    x86_opcodes_REPE  = ops_REPE;
-    x86_opcodes_REPNE = ops_REPNE;
-    x86_2386_opcodes_REPE = ops_2386_REPE;
+    x86_opcodes_REPE       = ops_REPE;
+    x86_opcodes_REPNE      = ops_REPNE;
+    x86_2386_opcodes_REPE  = ops_2386_REPE;
     x86_2386_opcodes_REPNE = ops_2386_REPNE;
-    x86_opcodes_3DNOW = ops_3DNOW;
+    x86_opcodes_3DNOW      = ops_3DNOW;
 #ifdef USE_DYNAREC
     x86_dynarec_opcodes_REPE  = dynarec_ops_REPE;
     x86_dynarec_opcodes_REPNE = dynarec_ops_REPNE;
@@ -1442,9 +1442,9 @@ cpu_set(void)
                 x86_setopcodes(ops_386, ops_pentium_0f, dynarec_ops_386, dynarec_ops_pentium_0f);
             else
                 x86_setopcodes(ops_386, ops_c6x86mx_0f, dynarec_ops_386, dynarec_ops_c6x86mx_0f);
-#if 0
+#        if 0
                 x86_setopcodes(ops_386, ops_c6x86_0f, dynarec_ops_386, dynarec_ops_c6x86_0f);
-#endif
+#        endif
 #    else
             if (cpu_s->cpu_type == CPU_Cx6x86MX)
                 x86_setopcodes(ops_386, ops_c6x86mx_0f);
@@ -1452,9 +1452,9 @@ cpu_set(void)
                 x86_setopcodes(ops_386, ops_pentium_0f);
             else
                 x86_setopcodes(ops_386, ops_c6x86mx_0f);
-#if 0
+#        if 0
                 x86_setopcodes(ops_386, ops_c6x86_0f);
-#endif
+#        endif
 #    endif
 
             timing_rr  = 1; /* register dest - register src */
@@ -1791,11 +1791,11 @@ cpu_set(void)
             cpu_exec = exec386_dynarec;
         else
 #endif
-        /* Use exec386 for CPU_IBM486SLC because it can reach 100 MHz. */
-        if ((cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type > CPU_486DLC))
-           cpu_exec = exec386;
-        else
-            cpu_exec = exec386_2386;
+            /* Use exec386 for CPU_IBM486SLC because it can reach 100 MHz. */
+            if ((cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type > CPU_486DLC))
+                cpu_exec = exec386;
+            else
+                cpu_exec = exec386_2386;
     } else if (cpu_s->cpu_type >= CPU_286)
         cpu_exec = exec386_2386;
     else
@@ -3567,7 +3567,7 @@ x86_setopcodes(const OpFn *opcodes, const OpFn *opcodes_0f,
 #else
 x86_setopcodes(const OpFn *opcodes, const OpFn *opcodes_0f)
 {
-    x86_opcodes = opcodes;
+    x86_opcodes    = opcodes;
     x86_opcodes_0f = opcodes_0f;
 }
 #endif
@@ -3575,7 +3575,7 @@ x86_setopcodes(const OpFn *opcodes, const OpFn *opcodes_0f)
 void
 x86_setopcodes_2386(const OpFn *opcodes, const OpFn *opcodes_0f)
 {
-    x86_2386_opcodes = opcodes;
+    x86_2386_opcodes    = opcodes;
     x86_2386_opcodes_0f = opcodes_0f;
 }
 

@@ -133,7 +133,7 @@ opCMPXCHG8B_a16(uint32_t fetchdat)
 {
     uint32_t temp;
     uint32_t temp_hi;
-    uint32_t temp2 = EAX;
+    uint32_t temp2    = EAX;
     uint32_t temp2_hi = EDX;
 
     fetch_ea_16(fetchdat);
@@ -164,7 +164,7 @@ opCMPXCHG8B_a32(uint32_t fetchdat)
 {
     uint32_t temp;
     uint32_t temp_hi;
-    uint32_t temp2 = EAX;
+    uint32_t temp2    = EAX;
     uint32_t temp2_hi = EDX;
 
     fetch_ea_32(fetchdat);

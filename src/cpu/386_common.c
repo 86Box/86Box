@@ -100,22 +100,22 @@ uint32_t backupregs[16];
 
 x86seg _oldds;
 
-int opcode_length[256] = { 3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 3,       /* 0x0x */
-                           3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1,       /* 0x1x */
-                           3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1,       /* 0x2x */
-                           3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1,       /* 0x3x */
-                           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,       /* 0x4x */
-                           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,       /* 0x5x */
-                           1, 1, 3, 3, 1, 1, 1, 1, 3, 3, 2, 3, 1, 1, 1, 1,       /* 0x6x */
-                           2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,       /* 0x7x */
-                           3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,       /* 0x8x */
-                           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1,       /* 0x9x */
-                           3, 3, 3, 3, 1, 1, 1, 1, 2, 3, 1, 1, 1, 1, 1, 1,       /* 0xax */
-                           2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,       /* 0xbx */
-                           3, 3, 3, 1, 3, 3, 3, 3, 3, 1, 3, 1, 1, 2, 1, 1,       /* 0xcx */
-                           3, 3, 3, 3, 2, 2, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3,       /* 0xdx */
-                           2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 2, 1, 1, 1, 1,       /* 0xex */
-                           1, 1, 1, 1, 1, 1, 3, 3, 1, 1, 1, 1, 1, 1, 3, 3  };    /* 0xfx */
+int opcode_length[256] = { 3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 3,   /* 0x0x */
+                           3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1,   /* 0x1x */
+                           3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1,   /* 0x2x */
+                           3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1,   /* 0x3x */
+                           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,   /* 0x4x */
+                           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,   /* 0x5x */
+                           1, 1, 3, 3, 1, 1, 1, 1, 3, 3, 2, 3, 1, 1, 1, 1,   /* 0x6x */
+                           2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,   /* 0x7x */
+                           3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,   /* 0x8x */
+                           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1,   /* 0x9x */
+                           3, 3, 3, 3, 1, 1, 1, 1, 2, 3, 1, 1, 1, 1, 1, 1,   /* 0xax */
+                           2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,   /* 0xbx */
+                           3, 3, 3, 1, 3, 3, 3, 3, 3, 1, 3, 1, 1, 2, 1, 1,   /* 0xcx */
+                           3, 3, 3, 3, 2, 2, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3,   /* 0xdx */
+                           2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 2, 1, 1, 1, 1,   /* 0xex */
+                           1, 1, 1, 1, 1, 1, 3, 3, 1, 1, 1, 1, 1, 1, 3, 3 }; /* 0xfx */
 
 uint32_t addr64;
 uint32_t addr64_2;
@@ -382,7 +382,7 @@ x386_common_log(const char *fmt, ...)
   Note that this is only used for 286 / 386 systems. It is disabled when the
   internal cache on 486+ CPUs is enabled.
 */
-static int prefetch_bytes    = 0;
+static int prefetch_bytes = 0;
 
 void
 prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32)
@@ -1164,13 +1164,13 @@ enter_smm(int in_hlt)
 
     memset(saved_state, 0x00, SMM_SAVE_STATE_MAP_SIZE * sizeof(uint32_t));
 
-    if (is_cxsmm)                    /* Cx6x86 */
+    if (is_cxsmm) /* Cx6x86 */
         smram_save_state_cyrix(saved_state, in_hlt);
     else if (is_pentium || is_am486) /* Am486 / 5x86 / Intel P5 (Pentium) */
         smram_save_state_p5(saved_state, in_hlt);
-    else if (is_k5 || is_k6)         /* AMD K5 and K6 */
+    else if (is_k5 || is_k6) /* AMD K5 and K6 */
         smram_save_state_amd_k(saved_state, in_hlt);
-    else if (is_p6)                  /* Intel P6 (Pentium Pro, Pentium II, Celeron) */
+    else if (is_p6) /* Intel P6 (Pentium Pro, Pentium II, Celeron) */
         smram_save_state_p6(saved_state, in_hlt);
 
     cr0 &= ~0x8000000d;
@@ -1335,13 +1335,13 @@ leave_smm(void)
     }
 
     x386_common_log("New SMBASE: %08X (%08X)\n", saved_state[SMRAM_FIELD_P5_SMBASE_OFFSET], saved_state[66]);
-    if (is_cxsmm)                    /* Cx6x86 */
+    if (is_cxsmm) /* Cx6x86 */
         smram_restore_state_cyrix(saved_state);
     else if (is_pentium || is_am486) /* Am486 / 5x86 / Intel P5 (Pentium) */
         smram_restore_state_p5(saved_state);
-    else if (is_k5 || is_k6)         /* AMD K5 and K6 */
+    else if (is_k5 || is_k6) /* AMD K5 and K6 */
         smram_restore_state_amd_k(saved_state);
-    else if (is_p6)                  /* Intel P6 (Pentium Pro, Pentium II, Celeron) */
+    else if (is_p6) /* Intel P6 (Pentium Pro, Pentium II, Celeron) */
         smram_restore_state_p6(saved_state);
 
     in_smm = 0;
