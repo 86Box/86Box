@@ -1,7 +1,7 @@
 static int
 opPCMPEQB_a16(uint32_t fetchdat)
 {
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *dst;
     MMX_ENTER();
 
@@ -27,7 +27,7 @@ opPCMPEQB_a16(uint32_t fetchdat)
 static int
 opPCMPEQB_a32(uint32_t fetchdat)
 {
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *dst;
     MMX_ENTER();
 
@@ -54,7 +54,7 @@ opPCMPEQB_a32(uint32_t fetchdat)
 static int
 opPCMPGTB_a16(uint32_t fetchdat)
 {
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *dst;
     MMX_ENTER();
 
@@ -80,7 +80,7 @@ opPCMPGTB_a16(uint32_t fetchdat)
 static int
 opPCMPGTB_a32(uint32_t fetchdat)
 {
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *dst;
     MMX_ENTER();
 
@@ -107,7 +107,7 @@ opPCMPGTB_a32(uint32_t fetchdat)
 static int
 opPCMPEQW_a16(uint32_t fetchdat)
 {
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *dst;
     MMX_ENTER();
 
@@ -129,7 +129,7 @@ opPCMPEQW_a16(uint32_t fetchdat)
 static int
 opPCMPEQW_a32(uint32_t fetchdat)
 {
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *dst;
     MMX_ENTER();
 
@@ -152,7 +152,7 @@ opPCMPEQW_a32(uint32_t fetchdat)
 static int
 opPCMPGTW_a16(uint32_t fetchdat)
 {
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *dst;
     MMX_ENTER();
 
@@ -174,7 +174,7 @@ opPCMPGTW_a16(uint32_t fetchdat)
 static int
 opPCMPGTW_a32(uint32_t fetchdat)
 {
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *dst;
     MMX_ENTER();
 
@@ -197,7 +197,7 @@ opPCMPGTW_a32(uint32_t fetchdat)
 static int
 opPCMPEQD_a16(uint32_t fetchdat)
 {
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *dst;
     MMX_ENTER();
 
@@ -217,7 +217,7 @@ opPCMPEQD_a16(uint32_t fetchdat)
 static int
 opPCMPEQD_a32(uint32_t fetchdat)
 {
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *dst;
     MMX_ENTER();
 
@@ -238,7 +238,7 @@ opPCMPEQD_a32(uint32_t fetchdat)
 static int
 opPCMPGTD_a16(uint32_t fetchdat)
 {
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *dst;
     MMX_ENTER();
 
@@ -258,7 +258,7 @@ opPCMPGTD_a16(uint32_t fetchdat)
 static int
 opPCMPGTD_a32(uint32_t fetchdat)
 {
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *dst;
     MMX_ENTER();
 

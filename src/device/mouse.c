@@ -423,8 +423,8 @@ mouse_set_buttons(int buttons)
 void
 mouse_get_abs_coords(double *x_abs, double *y_abs)
 {
-    *x_abs = atomic_load(&mouse_x_abs);
-    *y_abs = atomic_load(&mouse_y_abs);
+    *x_abs = mouse_x_abs;
+    *y_abs = mouse_y_abs;
 }
 
 void

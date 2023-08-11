@@ -190,7 +190,9 @@ opIRET(uint32_t fetchdat)
 
     if ((cr0 & 1) && (cpu_state.eflags & VM_FLAG) && (IOPL != 3)) {
         if (cr4 & CR4_VME) {
-            uint16_t new_pc, new_cs, new_flags;
+            uint16_t new_pc;
+            uint16_t new_cs;
+            uint16_t new_flags;
 
             new_pc    = readmemw(ss, SP);
             new_cs    = readmemw(ss, ((SP + 2) & 0xffff));

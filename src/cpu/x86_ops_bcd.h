@@ -19,6 +19,7 @@ static int
 opAAD(uint32_t fetchdat)
 {
     int base = getbytef();
+
     if (!cpu_isintel)
         base = 10;
     AL = (AH * base) + AL;
@@ -33,6 +34,7 @@ static int
 opAAM(uint32_t fetchdat)
 {
     int base = getbytef();
+
     if (!base || !cpu_isintel)
         base = 10;
     AH = AL / base;
@@ -63,7 +65,9 @@ opAAS(uint32_t fetchdat)
 static int
 opDAA(uint32_t fetchdat)
 {
-    uint16_t tempw, old_AL, old_CF;
+    uint16_t tempw;
+    uint16_t old_AL;
+    uint16_t old_CF;
 
     flags_rebuild();
     old_AL = AL;
@@ -98,7 +102,9 @@ opDAA(uint32_t fetchdat)
 static int
 opDAS(uint32_t fetchdat)
 {
-    uint16_t tempw, old_AL, old_CF;
+    uint16_t tempw;
+    uint16_t old_AL;
+    uint16_t old_CF;
 
     flags_rebuild();
     old_AL = AL;

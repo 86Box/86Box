@@ -201,13 +201,17 @@ opBT_l_r_a32(uint32_t fetchdat)
         return 0;                                                         \
     }
 
+// clang-format off
 opBT(C, ^=)
-    opBT(R, &= ~)
-        opBT(S, |=)
+opBT(R, &= ~)
+opBT(S, |=)
+    // clang-format on
 
-            static int opBA_w_a16(uint32_t fetchdat)
+static int
+opBA_w_a16(uint32_t fetchdat)
 {
-    int      tempc, count;
+    int      tempc;
+    int      count;
     uint16_t temp;
 
     fetch_ea_16(fetchdat);
@@ -258,7 +262,8 @@ opBT(C, ^=)
 static int
 opBA_w_a32(uint32_t fetchdat)
 {
-    int      tempc, count;
+    int      tempc;
+    int      count;
     uint16_t temp;
 
     fetch_ea_32(fetchdat);
@@ -310,7 +315,8 @@ opBA_w_a32(uint32_t fetchdat)
 static int
 opBA_l_a16(uint32_t fetchdat)
 {
-    int      tempc, count;
+    int      tempc;
+    int      count;
     uint32_t temp;
 
     fetch_ea_16(fetchdat);
@@ -361,7 +367,8 @@ opBA_l_a16(uint32_t fetchdat)
 static int
 opBA_l_a32(uint32_t fetchdat)
 {
-    int      tempc, count;
+    int      tempc;
+    int      count;
     uint32_t temp;
 
     fetch_ea_32(fetchdat);

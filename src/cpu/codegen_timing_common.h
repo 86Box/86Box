@@ -1,79 +1,79 @@
 #include "codegen_ops.h"
 
 /*Instruction has input dependency on register in REG field*/
-#define SRCDEP_REG (1ull << 0)
+#define SRCDEP_REG (1ULL << 0)
 /*Instruction has input dependency on register in R/M field*/
-#define SRCDEP_RM (1ull << 1)
+#define SRCDEP_RM (1ULL << 1)
 /*Instruction modifies register in REG field*/
-#define DSTDEP_REG (1ull << 2)
+#define DSTDEP_REG (1ULL << 2)
 /*Instruction modifies register in R/M field*/
-#define DSTDEP_RM    (1ull << 3)
+#define DSTDEP_RM    (1ULL << 3)
 
 #define SRCDEP_SHIFT 4
 #define DSTDEP_SHIFT 12
 
 /*Instruction has input dependency on given register*/
-#define SRCDEP_EAX (1ull << 4)
-#define SRCDEP_ECX (1ull << 5)
-#define SRCDEP_EDX (1ull << 6)
-#define SRCDEP_EBX (1ull << 7)
-#define SRCDEP_ESP (1ull << 8)
-#define SRCDEP_EBP (1ull << 9)
-#define SRCDEP_ESI (1ull << 10)
-#define SRCDEP_EDI (1ull << 11)
+#define SRCDEP_EAX (1ULL << 4)
+#define SRCDEP_ECX (1ULL << 5)
+#define SRCDEP_EDX (1ULL << 6)
+#define SRCDEP_EBX (1ULL << 7)
+#define SRCDEP_ESP (1ULL << 8)
+#define SRCDEP_EBP (1ULL << 9)
+#define SRCDEP_ESI (1ULL << 10)
+#define SRCDEP_EDI (1ULL << 11)
 
 /*Instruction modifies given register*/
-#define DSTDEP_EAX (1ull << 12)
-#define DSTDEP_ECX (1ull << 13)
-#define DSTDEP_EDX (1ull << 14)
-#define DSTDEP_EBX (1ull << 15)
-#define DSTDEP_ESP (1ull << 16)
-#define DSTDEP_EBP (1ull << 17)
-#define DSTDEP_ESI (1ull << 18)
-#define DSTDEP_EDI (1ull << 19)
+#define DSTDEP_EAX (1ULL << 12)
+#define DSTDEP_ECX (1ULL << 13)
+#define DSTDEP_EDX (1ULL << 14)
+#define DSTDEP_EBX (1ULL << 15)
+#define DSTDEP_ESP (1ULL << 16)
+#define DSTDEP_EBP (1ULL << 17)
+#define DSTDEP_ESI (1ULL << 18)
+#define DSTDEP_EDI (1ULL << 19)
 
 /*Instruction has ModR/M byte*/
-#define MODRM (1ull << 20)
+#define MODRM (1ULL << 20)
 /*Instruction implicitly uses ESP*/
-#define IMPL_ESP (1ull << 21)
+#define IMPL_ESP (1ULL << 21)
 
 /*Instruction is MMX shift or pack/unpack instruction*/
-#define MMX_SHIFTPACK (1ull << 22)
+#define MMX_SHIFTPACK (1ULL << 22)
 /*Instruction is MMX multiply instruction*/
-#define MMX_MULTIPLY (1ull << 23)
+#define MMX_MULTIPLY (1ULL << 23)
 
 /*Instruction pops the FPU stack*/
-#define FPU_POP (1ull << 24)
+#define FPU_POP (1ULL << 24)
 /*Instruction pops the FPU stack twice*/
-#define FPU_POP2 (1ull << 25)
+#define FPU_POP2 (1ULL << 25)
 /*Instruction pushes onto the FPU stack*/
-#define FPU_PUSH (1ull << 26)
+#define FPU_PUSH (1ULL << 26)
 
 /*Instruction writes to ST(0)*/
-#define FPU_WRITE_ST0 (1ull << 27)
+#define FPU_WRITE_ST0 (1ULL << 27)
 /*Instruction reads from ST(0)*/
-#define FPU_READ_ST0 (1ull << 28)
+#define FPU_READ_ST0 (1ULL << 28)
 /*Instruction reads from and writes to ST(0)*/
-#define FPU_RW_ST0 (3ull << 27)
+#define FPU_RW_ST0 (3ULL << 27)
 
 /*Instruction reads from ST(1)*/
-#define FPU_READ_ST1 (1ull << 29)
+#define FPU_READ_ST1 (1ULL << 29)
 /*Instruction writes to ST(1)*/
-#define FPU_WRITE_ST1 (1ull << 30)
+#define FPU_WRITE_ST1 (1ULL << 30)
 /*Instruction reads from and writes to ST(1)*/
-#define FPU_RW_ST1 (3ull << 29)
+#define FPU_RW_ST1 (3ULL << 29)
 
 /*Instruction reads from ST(reg)*/
-#define FPU_READ_STREG (1ull << 31)
+#define FPU_READ_STREG (1ULL << 31)
 /*Instruction writes to ST(reg)*/
-#define FPU_WRITE_STREG (1ull << 32)
+#define FPU_WRITE_STREG (1ULL << 32)
 /*Instruction reads from and writes to ST(reg)*/
-#define FPU_RW_STREG      (3ull << 31)
+#define FPU_RW_STREG      (3ULL << 31)
 
-#define FPU_FXCH          (1ull << 33)
+#define FPU_FXCH          (1ULL << 33)
 
-#define HAS_IMM8          (1ull << 34)
-#define HAS_IMM1632       (1ull << 35)
+#define HAS_IMM8          (1ULL << 34)
+#define HAS_IMM1632       (1ULL << 35)
 
 #define REGMASK_IMPL_ESP  (1 << 8)
 #define REGMASK_SHIFTPACK (1 << 9)

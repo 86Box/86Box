@@ -115,7 +115,7 @@ opMOVD_mm_l_a32(uint32_t fetchdat)
 static int
 opMOVD_mm_l_a16_cx(uint32_t fetchdat)
 {
-    MMX_REG *op;
+    const MMX_REG *op;
 
     if (in_smm)
         return opSMINT(fetchdat);
@@ -144,7 +144,7 @@ opMOVD_mm_l_a16_cx(uint32_t fetchdat)
 static int
 opMOVD_mm_l_a32_cx(uint32_t fetchdat)
 {
-    MMX_REG *op;
+    const MMX_REG *op;
 
     if (in_smm)
         return opSMINT(fetchdat);
@@ -176,14 +176,14 @@ static int
 opMOVQ_q_mm_a16(uint32_t fetchdat)
 {
     uint64_t dst;
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *op;
     MMX_ENTER();
 
     fetch_ea_16(fetchdat);
 
     src = MMX_GETREG(cpu_rm);
-    op = MMX_GETREGP(cpu_reg);
+    op  = MMX_GETREGP(cpu_reg);
 
     if (cpu_mod == 3) {
         op->q = src.q;
@@ -206,14 +206,14 @@ static int
 opMOVQ_q_mm_a32(uint32_t fetchdat)
 {
     uint64_t dst;
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *op;
     MMX_ENTER();
 
     fetch_ea_32(fetchdat);
 
     src = MMX_GETREG(cpu_rm);
-    op = MMX_GETREGP(cpu_reg);
+    op  = MMX_GETREGP(cpu_reg);
 
     if (cpu_mod == 3) {
         op->q = src.q;
@@ -236,7 +236,7 @@ opMOVQ_q_mm_a32(uint32_t fetchdat)
 static int
 opMOVQ_mm_q_a16(uint32_t fetchdat)
 {
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *dst;
 
     MMX_ENTER();
@@ -266,7 +266,7 @@ opMOVQ_mm_q_a16(uint32_t fetchdat)
 static int
 opMOVQ_mm_q_a32(uint32_t fetchdat)
 {
-    MMX_REG src;
+    MMX_REG  src;
     MMX_REG *dst;
 
     MMX_ENTER();
