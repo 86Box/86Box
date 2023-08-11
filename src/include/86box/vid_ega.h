@@ -44,9 +44,9 @@ typedef struct ega_t {
     uint8_t colournocare;
     uint8_t scrblank;
     uint8_t plane_mask;
+    uint8_t ctl_mode;
     uint8_t pad;
     uint8_t pad0;
-    uint8_t pad1;
     uint8_t crtc[32];
     uint8_t gdcreg[16];
     uint8_t attrregs[32];

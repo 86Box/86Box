@@ -188,6 +188,10 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                     break;
             }
             break;
+        case 0x3c6:
+            if (ega_type == 2)
+                ega->ctl_mode = val;
+            break;
         case 0x3ce:
             ega->gdcaddr = val;
             break;
@@ -308,6 +312,10 @@ ega_in(uint16_t addr, void *priv)
             if (ega_type)
                 ret = ega->seqregs[ega->seqaddr & 0xf];
             break;
+        case 0x3c6:
+            if (ega_type == 2)
+                ret = ega->ctl_mode;
+            break;
         case 0x3c8:
             if (ega_type)
                 ret = 2;
@@ -341,7 +349,7 @@ ega_in(uint16_t addr, void *priv)
 
                 case 0x10:
                 case 0x11:
-                    // TODO: Return light pen address once implemented
+                    /* TODO: Return light pen address once implemented. */
                     if (ega_type)
                         ret = ega->crtc[ega->crtcreg];
                     break;
@@ -353,8 +361,22 @@ ega_in(uint16_t addr, void *priv)
             break;
         case 0x3da:
             ega->attrff = 0;
-            ega->stat ^= 0x30; /*Fools IBM EGA video BIOS self-test*/
+            ega->stat ^= 0x30; /* Fools IBM EGA video BIOS self-test. */
             ret = ega->stat;
+            break;
+        case 0x7c6:
+            ret = 0xfd;        /* EGA mode supported. */
+            break;
+        case 0xbc6:
+            /* 0000 = None;
+               0001 = Compaq Dual-Mode (DM) Monitor;
+               0010 = RGBI Color Monitor;
+               0011 = COMAPQ Color Monitor (RrGgBb) or Compatible;
+               0100 - 1111 = Reserved. */
+            ret = 0x01;
+            break;
+        case 0xfc6:
+            ret = 0xfd;
             break;
 
         default:
@@ -368,6 +390,7 @@ void
 ega_recalctimings(ega_t *ega)
 {
     int clksel;
+    int color;
 
     double _dispontime;
     double _dispofftime;
@@ -411,7 +434,26 @@ ega_recalctimings(ega_t *ega)
     ega->linedbl  = ega->crtc[9] & 0x80;
     ega->rowcount = ega->crtc[9] & 0x1f;
 
-    if (ega->eeprom) {
+    if (ega_type == 2) {
+        color = (ega->miscout & 1);
+        clksel = ((ega->miscout & 0xc) >> 2) | ((ega->regs[0xbe] & 0x10) ? 4 : 0);
+
+        if (color) {
+            if (clksel)
+                crtcconst = (cpuclock / 16257000.0 * (double) (1ULL << 32));
+            else
+                crtcconst = (cpuclock / (157500000.0 / 11.0) * (double) (1ULL << 32));
+        } else {
+            if (clksel)
+                crtcconst = (cpuclock / 18981000.0 * (double) (1ULL << 32));
+            else
+                crtcconst = (cpuclock / 16872000.0 * (double) (1ULL << 32));
+        }
+        if (!(ega->seqregs[1] & 1))
+            crtcconst *= 9.0;
+        else
+            crtcconst *= 8.0;
+    } else if (ega->eeprom) {
         clksel = ((ega->miscout & 0xc) >> 2) | ((ega->regs[0xbe] & 0x10) ? 4 : 0);
 
         switch (clksel) {
@@ -1229,7 +1271,7 @@ ega_standalone_init(const device_t *info)
     ega_t *ega = malloc(sizeof(ega_t));
     int    monitor_type;
 
-    memset(ega, 0, sizeof(ega_t));
+    memset(ega, 0x00, sizeof(ega_t));
 
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ega);
 
@@ -1240,6 +1282,8 @@ ega_standalone_init(const device_t *info)
 
     if ((info->local == EGA_IBM) || (info->local == EGA_ISKRA) || (info->local == EGA_TSENG))
         ega_type = 0;
+    else if (info->local == EGA_COMPAQ)
+        ega_type = 2;
     else
         ega_type = 1;
 
@@ -1250,6 +1294,7 @@ ega_standalone_init(const device_t *info)
                      0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
             break;
         case EGA_COMPAQ:
+            ega->ctl_mode = 0x21;
             rom_init(&ega->bios_rom, BIOS_CPQ_PATH,
                      0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
             break;
@@ -1293,6 +1338,10 @@ ega_standalone_init(const device_t *info)
         ega->eeprom = malloc(sizeof(ati_eeprom_t));
         memset(ega->eeprom, 0, sizeof(ati_eeprom_t));
         ati_eeprom_load((ati_eeprom_t *) ega->eeprom, "egawonder800.nvr", 0);
+    } else if (info->local == EGA_COMPAQ) {
+        io_sethandler(0x07c6, 0x0001, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
+        io_sethandler(0x0bc6, 0x0001, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
+        io_sethandler(0x0fc6, 0x0001, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
     }
 
     return ega;
