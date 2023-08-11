@@ -115,8 +115,8 @@ RendererCommon::onResize(int width, int height)
         }
     }
 
-    monitors[r_monitor_index].mon_res_x = (int) ((double) destination.width() * plat_get_dpi());
-    monitors[r_monitor_index].mon_res_y = (int) ((double) destination.height() * plat_get_dpi());
+    monitors[r_monitor_index].mon_res_x = (double) destination.width();
+    monitors[r_monitor_index].mon_res_y = (double) destination.height();
 }
 
 bool
