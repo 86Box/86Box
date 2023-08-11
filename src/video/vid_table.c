@@ -154,6 +154,7 @@ video_cards[] = {
     { &vga_device                                    },
     { &v7_vga_1024i_device                           },
     { &wy700_device                                  },
+    { &mach32_mca_device,       VIDEO_FLAG_TYPE_8514 },
     { &gd5426_mca_device                             },
     { &gd5428_mca_device                             },
     { &et4000_mca_device                             },
@@ -343,9 +344,9 @@ video_reset(int card)
     monitor_index_global = 0;
     loadfont("roms/video/mda/mda.rom", 0);
 
-    if (!(card == VID_NONE)
+    if ((card != VID_NONE)
         && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)
-        && gfxcard[1] != 0
+        && (gfxcard[1] != 0)
         && device_is_valid(video_card_getdevice(gfxcard[1]), machine)) {
         video_monitor_init(1);
         monitor_index_global = 1;
@@ -354,7 +355,7 @@ video_reset(int card)
     }
 
     /* Do not initialize internal cards here. */
-    if (!(card == VID_NONE) && !(card == VID_INTERNAL) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
+    if ((card != VID_NONE) && (card != VID_INTERNAL) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
         vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].device->name);
 
         video_prepare();
@@ -369,13 +370,23 @@ video_reset(int card)
 void
 video_post_reset(void)
 {
-    if (gfxcard[0] != VID_NONE) {
-        if (ibm8514_enabled) {
+    if (gfxcard[0] == VID_INTERNAL)
+        ibm8514_has_vga = (video_get_type_monitor(0) == VIDEO_FLAG_TYPE_8514);
+    else if (gfxcard[0] != VID_NONE)
+        ibm8514_has_vga = (video_card_get_flags(gfxcard[0]) == VIDEO_FLAG_TYPE_8514);
+    else
+        ibm8514_has_vga = 0;
+
+    if (ibm8514_has_vga)
+        ibm8514_enabled = 1;
+
+    if (ibm8514_enabled) {
+        if (!ibm8514_has_vga)
             ibm8514_device_add();
-        }
-        if (xga_enabled)
-            xga_device_add();
     }
+
+    if (xga_enabled)
+        xga_device_add();
 
     /* Reset the graphics card (or do nothing if it was already done
        by the machine's init function). */

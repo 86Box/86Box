@@ -102,11 +102,17 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
         ui->comboBoxVideoSecondary->setEnabled(true);
         ui->pushButtonConfigureSecondary->setEnabled(true);
     }
-	if (video_card_get_flags(gfxcard[0]) != VIDEO_FLAG_TYPE_8514)
-		ibm8514_has_vga = 0;
-	if (video_card_get_flags(gfxcard[0]) != VIDEO_FLAG_TYPE_XGA)
-		xga_has_vga = 0;
-
+    if (gfxcard[0] == VID_INTERNAL) {
+        if (video_get_type_monitor(0) != VIDEO_FLAG_TYPE_8514)
+            ibm8514_has_vga = 0;
+        if (video_get_type_monitor(0) != VIDEO_FLAG_TYPE_XGA)
+            xga_has_vga = 0;
+    } else {
+        if (video_card_get_flags(gfxcard[0]) != VIDEO_FLAG_TYPE_8514)
+            ibm8514_has_vga = 0;
+        if (video_card_get_flags(gfxcard[0]) != VIDEO_FLAG_TYPE_XGA)
+            xga_has_vga = 0;
+    }
     ui->comboBoxVideo->setCurrentIndex(selectedRow);
     if (gfxcard[1] == 0)
         ui->pushButtonConfigureSecondary->setEnabled(false);
