@@ -459,8 +459,8 @@ text_line(herculesplus_t *dev, uint16_t ca)
 
     for (uint8_t x = 0; x < dev->crtc[1]; x++) {
         if (dev->ctrl & 8) {
-            chr  = dev->vram[(dev->ma << 1) & 0xfff];
-            attr = dev->vram[((dev->ma << 1) + 1) & 0xfff];
+            chr  = dev->vram[(dev->ma << 1) & 0x3fff];
+            attr = dev->vram[((dev->ma << 1) + 1) & 0x3fff];
         } else
             chr = attr = 0;
 
