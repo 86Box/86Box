@@ -850,6 +850,7 @@ incolor_poll(void *priv)
     int        x;
     int        oldvc;
     int        oldsc;
+    int        cw      = INCOLOR_CW;
 
     if (!dev->linepos) {
         timer_advance_u64(&dev->timer, dev->dispofftime);
@@ -931,7 +932,7 @@ incolor_poll(void *priv)
                     if ((dev->ctrl & INCOLOR_CTRL_GRAPH) && (dev->ctrl2 & INCOLOR_CTRL2_GRAPH))
                         x = dev->crtc[1] << 4;
                     else
-                        x = dev->crtc[1] * 9;
+                        x = dev->crtc[1] * cw;
                     dev->lastline++;
                     if ((dev->ctrl & 8) && ((x != xsize) || ((dev->lastline - dev->firstline) != ysize) || video_force_resize_get())) {
                         xsize = x;

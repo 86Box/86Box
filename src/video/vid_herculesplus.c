@@ -139,6 +139,7 @@ herculesplus_out(uint16_t port, uint8_t val, void *priv)
                 return;
             old                     = dev->crtc[dev->crtcreg];
             dev->crtc[dev->crtcreg] = val;
+
             if (dev->crtc[10] == 6 && dev->crtc[11] == 7) {
                 /*Fix for Generic Turbo XT BIOS,
                  *which sets up cursor registers wrong*/
@@ -535,6 +536,7 @@ herculesplus_poll(void *priv)
     int             x;
     int             oldvc;
     int             oldsc;
+    int             cw = HERCULESPLUS_CW;
 
     VIDEO_MONITOR_PROLOGUE();
     if (!dev->linepos) {
@@ -558,7 +560,7 @@ herculesplus_poll(void *priv)
             if ((dev->ctrl & HERCULESPLUS_CTRL_GRAPH) && (dev->ctrl2 & HERCULESPLUS_CTRL2_GRAPH))
                 x = dev->crtc[1] << 4;
             else
-                x = dev->crtc[1] * 9;
+                x = dev->crtc[1] * cw;
 
             video_process_8(x, dev->displine);
         }
@@ -621,7 +623,7 @@ herculesplus_poll(void *priv)
                     if ((dev->ctrl & HERCULESPLUS_CTRL_GRAPH) && (dev->ctrl2 & HERCULESPLUS_CTRL2_GRAPH))
                         x = dev->crtc[1] << 4;
                     else
-                        x = dev->crtc[1] * 9;
+                        x = dev->crtc[1] * cw;
                     dev->lastline++;
                     if ((dev->ctrl & 8) && ((x != xsize) || ((dev->lastline - dev->firstline) != ysize) || video_force_resize_get())) {
                         xsize = x;
