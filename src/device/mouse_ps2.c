@@ -75,35 +75,19 @@ static void
 ps2_report_coordinates(atkbc_dev_t *dev, int main)
 {
     uint8_t buff[3] = { 0x08, 0x00, 0x00 };
+    int delta_x;
+    int delta_y;
+    int overflow_x;
+    int overflow_y;
     int temp_z;
 
-    if (mouse_x > 255) {
-        buff[0] |= 0x40;
-        buff[1] = 255;
-        mouse_x -= 255;
-    } else if (mouse_x < -256) {
-        buff[0] |= (0x40 | 0x10);
-        mouse_x += 256;
-    } else {
-        if (mouse_x < 0)
-            buff[0] |= 0x10;
-        buff[1] = mouse_x;
-        mouse_x = 0;
-    }
-
-    if (mouse_y < -255) {
-        buff[0] |= 0x80;
-        buff[2] = 255;
-        mouse_y += 255;
-    } else if (mouse_y > 256) {
-        buff[0] |= (0x80 | 0x20);
-        mouse_y -= 256;
-    } else {
-        if (mouse_y > 0)
-            buff[0] |= 0x20;
-        buff[2] = -mouse_y;
-        mouse_y = 0;
-    }
+    mouse_subtract_coords(&delta_x, &delta_y, &overflow_x, &overflow_y,
+                          -256, 255, 1, 0);
+    buff[0] = (overflow_y << 7) | (overflow_x << 6) |
+              ((delta_y & 0x0100) >> 3) | ((delta_x & 0x0100) >> 4) |
+              (mouse_buttons & ((dev->flags & FLAG_INTELLI) ? 0x07 : 0x03));
+    buff[1] = (delta_x & 0x00ff);
+    buff[2] = (delta_y & 0x00ff);
 
     if (dev->z < -7) {
         temp_z = 7;
@@ -115,8 +99,6 @@ ps2_report_coordinates(atkbc_dev_t *dev, int main)
         temp_z = (-mouse_y) & 0x0f;
         mouse_z = 0;
     }
-
-    buff[0] |= (mouse_buttons & ((dev->flags & FLAG_INTELLI) ? 0x07 : 0x03));
 
     kbc_at_dev_queue_add(dev, buff[0], main);
     kbc_at_dev_queue_add(dev, buff[1], main);

@@ -26,7 +26,7 @@
 #endif
 
 #define MOUSE_TYPE_NONE     0 /* no mouse configured */
-#define MOUSE_TYPE_INTERNAL 1 /* machine has internal mouse */
+#define MOUSE_TYPE_INTERNAL 1 /* achine has internal mouse */
 #define MOUSE_TYPE_LOGIBUS  2 /* Logitech/ATI Bus Mouse */
 #define MOUSE_TYPE_INPORT   3 /* Microsoft InPort Mouse */
 #if 0
@@ -62,8 +62,10 @@ extern double mouse_x_abs;
 extern double mouse_y_abs;
 extern int    tablet_tool_type;
 extern double mouse_sensitivity;
-extern double mouse_x_error;
-extern double mouse_y_error;
+#ifdef _Atomic
+extern _Atomic double mouse_x_error;
+extern _Atomic double mouse_y_error;
+#endif
 
 #ifdef EMU_DEVICE_H
 extern const device_t *mouse_get_device(int mouse);
@@ -83,8 +85,11 @@ extern const device_t mouse_wacom_device;
 extern const device_t mouse_wacom_artpad_device;
 #endif
 
+extern void mouse_clear_coords(void);
 extern void mouse_init(void);
 extern void mouse_close(void);
+extern void mouse_subtract_coords(int *delta_x, int *delta_y, int *o_x, int *o_y,
+                                  int min, int max, int invert, int abs);
 extern void mouse_reset(void);
 extern void mouse_set_buttons(int buttons);
 extern void mouse_set_poll_ex(void (*poll_ex)(void));

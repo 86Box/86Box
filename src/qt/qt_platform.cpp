@@ -42,9 +42,12 @@
 #include <QLibrary>
 #include <QElapsedTimer>
 
+#include <QScreen>
+
 #include "qt_rendererstack.hpp"
 #include "qt_mainwindow.hpp"
 #include "qt_progsettings.hpp"
+#include "qt_util.hpp"
 
 #ifdef Q_OS_UNIX
 #    include <sys/mman.h>
@@ -641,7 +644,7 @@ plat_get_global_config_dir(char* strptr)
 }
 
 void
-plat_init_rom_paths()
+plat_init_rom_paths(void)
 {
     auto paths = QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
 
@@ -727,4 +730,10 @@ plat_get_cpu_string(char *outbuf, uint8_t len) {
 
     qstrncpy(outbuf, cpu_string.toUtf8().constData(), len);
 
+}
+
+double
+plat_get_dpi(void)
+{
+    return util::screenOfWidget(main_window)->devicePixelRatio();
 }

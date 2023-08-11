@@ -552,3 +552,19 @@ RendererStack::event(QEvent* event)
     }
     return QStackedWidget::event(event);
 }
+
+void
+RendererStack::setFocusRenderer()
+{
+    if (current)
+        current->setFocus();
+}
+
+void
+RendererStack::onResize(int width, int height)
+{
+    if (rendererWindow) {
+        rendererWindow->r_monitor_index = m_monitor_index;
+        rendererWindow->onResize(width, height);
+    }
+}

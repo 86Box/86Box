@@ -478,7 +478,9 @@ static int
 bm_poll(int x, int y, UNUSED(int z), int b, UNUSED(double abs_x), UNUSED(double abs_y), void *priv)
 {
     mouse_t *dev = (mouse_t *) priv;
-    int xor ;
+    int delta_x;
+    int delta_y;
+    int xor;
 
     if (!mouse_capture && !video_fullscreen)
         return 1;
@@ -514,27 +516,10 @@ bm_poll(int x, int y, UNUSED(int z), int b, UNUSED(double abs_x), UNUSED(double 
     if (!dev->timer_enabled) {
         /* If the counters are not frozen, update them. */
         if (!(dev->flags & FLAG_HOLD)) {
-            if (mouse_x > 127) {
-                dev->current_x = 127;
-                mouse_x -= 127;
-            } else if (mouse_x < 1-128) {
-                dev->current_x = -128;
-                mouse_x += 128;
-            } else {
-                dev->current_x = mouse_x;
-                mouse_x = 0;
-            }
+            mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 0, 0);
 
-            if (mouse_y > 127) {
-                dev->current_y = 127;
-                mouse_y -= 127;
-            } else if (mouse_y < 1-128) {
-                dev->current_y = -128;
-                mouse_y += 128;
-            } else {
-                dev->current_y = mouse_y;
-                mouse_y = 0;
-            }
+            dev->current_x = (int8_t) delta_x;
+            dev->current_y = (int8_t) delta_y;
 
             dev->current_b = dev->mouse_buttons;
         }
@@ -561,27 +546,7 @@ bm_update_data(mouse_t *dev)
     /* If the counters are not frozen, update them. */
     if ((mouse_capture || video_fullscreen) && !(dev->flags & FLAG_HOLD)) {
         /* Update the deltas and the delays. */
-        if (mouse_x > 127) {
-            delta_x = 127;
-            mouse_x -= 127;
-        } else if (mouse_x < -128) {
-            delta_x = -128;
-            mouse_x += 128;
-        } else {
-            delta_x = mouse_x;
-            mouse_x = 0;
-        }
-
-        if (mouse_y > 127) {
-            delta_y = 127;
-            mouse_y -= 127;
-        } else if (mouse_y < -128) {
-            delta_y = -128;
-            mouse_y += 128;
-        } else {
-            delta_y = mouse_y;
-            mouse_y = 0;
-        }
+        mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 0, 0);
 
         dev->current_x = (int8_t) delta_x;
         dev->current_y = (int8_t) delta_y;

@@ -32,6 +32,8 @@
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
 #include <86box/mouse.h>
+#include <86box/video.h>
+#include <86box/plat.h>
 #include <86box/plat_unused.h>
 
 typedef struct mouse_t {
@@ -43,6 +45,8 @@ atomic_int mouse_x;
 atomic_int mouse_y;
 atomic_int mouse_z;
 atomic_int mouse_buttons;
+atomic_int old_mouse_x;
+atomic_int old_mouse_y;
 int mouse_mode;
 int mouse_timed = 1;
 int mouse_tablet_in_proximity = 0;
@@ -52,8 +56,10 @@ double mouse_x_abs;
 double mouse_y_abs;
 
 double mouse_sensitivity = 1.0;
-double mouse_x_error = 0.0;
-double mouse_y_error = 0.0;
+_Atomic double mouse_x_error = 0.0;
+_Atomic double mouse_y_error = 0.0;
+_Atomic double mouse_x_raw = 0.0;
+_Atomic double mouse_y_raw = 0.0;
 
 pc_timer_t mouse_timer; /* mouse event timer */
 
@@ -130,12 +136,21 @@ mouse_log(const char *fmt, ...)
 #    define mouse_log(fmt, ...)
 #endif
 
+void
+mouse_clear_coords(void)
+{
+    mouse_x = mouse_y = mouse_z = 0;
+    old_mouse_x = old_mouse_y = 0;
+    mouse_x_error = mouse_y_error = 0.0;
+    mouse_x_raw = mouse_y_raw = 0.0;
+}
+
 /* Initialize the mouse module. */
 void
 mouse_init(void)
 {
     /* Initialize local data. */
-    mouse_x = mouse_y = mouse_z = 0;
+    mouse_clear_coords();
     mouse_buttons               = 0x00;
 
     mouse_type     = MOUSE_TYPE_NONE;
@@ -159,6 +174,132 @@ mouse_close(void)
     timer_stop(&mouse_timer);
 }
 
+static int
+mouse_scale_coord_x(int x, int mul)
+{
+    double temp_x = (double) x;
+    double ratio = (double) monitors[0].mon_unscaled_size_x / (double) monitors[0].mon_res_x;
+
+    if (mul)
+        temp_x *= ratio;
+    else
+        temp_x /= ratio;
+
+    return (int) temp_x;
+}
+
+static int
+mouse_scale_coord_y(int y, int mul)
+{
+    double temp_y = (double) y;
+    double ratio = (double) monitors[0].mon_efscrnsz_y / (double) monitors[0].mon_res_y;
+
+    if (mul)
+        temp_y *= ratio;
+    else
+        temp_y /= ratio;
+
+    return (int) temp_y;
+}
+
+/* It appears all host platforms give us y in the Microsoft format
+   (positive to the south), so for all non-Microsoft report formsts,
+   we have to invenrt that. */
+void
+mouse_subtract_coords(int *delta_x, int *delta_y, int *o_x, int *o_y,
+                      int min, int max, int invert, int abs)
+{
+    int real_x = mouse_x;
+    int real_y = mouse_y;
+    int smax_x;
+    int smax_y;
+    int rsmin_x;
+    int rsmin_y;
+    int smin_x;
+    int smin_y;
+
+    if (invert)
+        real_y = -real_y;
+
+    rsmin_x = mouse_scale_coord_x(min, 0);
+    rsmin_y = mouse_scale_coord_y(min, 0);
+    if (abs) {
+        smax_x = mouse_scale_coord_x(max, 0) + ABS(rsmin_x);
+        smax_y = mouse_scale_coord_y(max, 0) + ABS(rsmin_y);
+        max += ABS(min);
+        real_x += rsmin_x;
+        real_y += rsmin_y;
+        smin_x = 0;
+        smin_y = 0;
+    } else {
+        smax_x = mouse_scale_coord_x(max, 0);
+        smax_y = mouse_scale_coord_y(max, 0);
+        smin_x = rsmin_x;
+        smin_y = rsmin_y;
+    }
+
+    /* Default the X and Y overflows to 1. */
+    if (o_x != NULL)
+        *o_x = 1;
+    if (o_y != NULL)
+        *o_y = 1;
+
+    if (real_x > smax_x) {
+        if (abs)
+            *delta_x = mouse_scale_coord_x(real_x, 1);
+        else
+            *delta_x = max;
+        real_x -= smax_x;
+    } else if (real_x < smin_x) {
+        if (abs)
+            *delta_x = mouse_scale_coord_x(real_x, 1);
+         else
+            *delta_x = min;
+        real_x += ABS(smin_x);
+    } else {
+        if (abs)
+            *delta_x = mouse_scale_coord_x(real_x, 1);
+        else
+            *delta_x = mouse_scale_coord_x(real_x, 1);
+        real_x = 0;
+        if (o_x != NULL)
+            *o_x = 0;
+    }
+
+    if (real_y > smax_y) {
+        if (abs)
+            *delta_y = mouse_scale_coord_y(real_y, 1);
+        else
+            *delta_y = max;
+        real_y -= smax_y;
+    } else if (real_y < smin_y) {
+        if (abs)
+            *delta_y = mouse_scale_coord_y(real_y, 1);
+         else
+            *delta_y = min;
+        real_y += ABS(smin_y);
+    } else {
+        if (abs)
+            *delta_y = mouse_scale_coord_y(real_y, 1);
+        else
+            *delta_y = mouse_scale_coord_y(real_y, 1);
+        real_y = 0;
+        if (o_y != NULL)
+            *o_y = 0;
+    }
+
+    if (abs) {
+        real_x -= rsmin_x;
+        real_y -= rsmin_y;
+    }
+
+    if (invert)
+        real_y = -real_y;
+
+    mouse_x = real_x;
+    mouse_y = real_y;
+}
+
 static void
 mouse_timer_poll(UNUSED(void *priv))
 {
@@ -178,8 +319,11 @@ mouse_timer_poll(UNUSED(void *priv))
 void
 mouse_scale(int x, int y)
 {
-    double scaled_x = (((double) x) * mouse_sensitivity) + mouse_x_error;
-    double scaled_y = (((double) y) * mouse_sensitivity) + mouse_y_error;
+    double scaled_x = (((double) x) * mouse_sensitivity);
+    double scaled_y = (((double) y) * mouse_sensitivity);
+
+    scaled_x += mouse_x_error;
+    scaled_y += mouse_y_error;
 
     mouse_x += (int) scaled_x;
     mouse_y += (int) scaled_y;
@@ -191,21 +335,25 @@ mouse_scale(int x, int y)
 void
 mouse_scale_x(int x)
 {
-    double scaled_x = ((double) x) * mouse_sensitivity + mouse_x_error;
+    double scaled_x = (((double) x) * mouse_sensitivity);
+
+    scaled_x += mouse_x_error;
 
     mouse_x += (int) scaled_x;
 
-    mouse_x_error = scaled_x - ((double) mouse_x);
+    mouse_x_error = scaled_x - floor(scaled_x);
 }
 
 void
 mouse_scale_y(int y)
 {
-    double scaled_y = ((double) y) * mouse_sensitivity + mouse_y_error;
+    double scaled_y = (((double) y) * mouse_sensitivity);
+
+    scaled_y += mouse_y_error;
 
     mouse_y += (int) scaled_y;
 
-    mouse_y_error = scaled_y - ((double) mouse_y);
+    mouse_y_error = scaled_y - floor(scaled_y);
 }
 
 void
@@ -248,7 +396,7 @@ mouse_reset(void)
               mouse_type, mouse_devices[mouse_type].device->name);
 
     /* Clear local data. */
-    mouse_x = mouse_y = mouse_z = 0;
+    mouse_clear_coords();
     mouse_buttons               = 0x00;
     mouse_mode                  = 0;
     mouse_timed                 = 1;
@@ -292,8 +440,7 @@ mouse_process(void)
 
     if ((mouse_mode >= 1) && mouse_poll_ex)
         mouse_poll_ex();
-
-    if ((mouse_dev_poll != NULL) || (mouse_curr->poll != NULL)) {
+    else if ((mouse_mode == 0) && ((mouse_dev_poll != NULL) || (mouse_curr->poll != NULL))) {
         if (mouse_curr->poll != NULL)
             mouse_curr->poll(mouse_x, mouse_y, mouse_z, mouse_buttons, mouse_x_abs, mouse_y_abs, mouse_priv);
         else
