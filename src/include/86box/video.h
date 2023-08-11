@@ -302,7 +302,9 @@ extern void ibm8514_device_add(void);
 extern const device_t mach8_isa_device;
 extern const device_t mach32_isa_device;
 extern const device_t mach32_vlb_device;
+extern const device_t mach32_mca_device;
 extern const device_t mach32_pci_device;
+extern const device_t mach32_onboard_pci_device;
 
 /* ATi Mach64 */
 extern const device_t mach64gx_isa_device;

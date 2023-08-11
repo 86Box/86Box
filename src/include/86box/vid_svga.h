@@ -89,6 +89,7 @@ typedef struct svga_t {
     int dac_pos;
     int dac_r;
     int dac_g;
+    int dac_b;
     int vtotal;
     int dispend;
     int vsyncstart;
@@ -341,6 +342,9 @@ extern void    ati68860_ramdac_set_render(void *priv, svga_t *svga);
 extern void    ati68860_ramdac_set_pallook(void *priv, int i, uint32_t col);
 extern void    ati68860_hwcursor_draw(svga_t *svga, int displine);
 
+extern void    ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga);
+
 extern void    att49x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t att49x_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
 
@@ -396,6 +400,7 @@ extern float   tvp3026_getclock(int clock, void *priv);
 
 #    ifdef EMU_DEVICE_H
 extern const device_t ati68860_ramdac_device;
+extern const device_t ati68875_ramdac_device;
 extern const device_t att490_ramdac_device;
 extern const device_t att491_ramdac_device;
 extern const device_t att492_ramdac_device;
@@ -409,6 +414,9 @@ extern const device_t bt485a_ramdac_device;
 extern const device_t gendac_ramdac_device;
 extern const device_t ibm_rgb528_ramdac_device;
 extern const device_t ics2494an_305_device;
+extern const device_t ati18810_device;
+extern const device_t ati18811_0_device;
+extern const device_t ati18811_1_device;
 extern const device_t ics2595_device;
 extern const device_t icd2061_device;
 extern const device_t ics9161_device;

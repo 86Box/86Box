@@ -19,7 +19,16 @@
 #ifndef VIDEO_8514A_H
 #define VIDEO_8514A_H
 
+typedef struct {
+    int ena,
+        x, y, xoff, yoff, cur_xsize, cur_ysize,
+        v_acc, h_acc;
+    uint32_t addr, pitch;
+} hwcursor8514_t;
+
 typedef struct ibm8514_t {
+	hwcursor8514_t hwcursor;
+	hwcursor8514_t hwcursor_latch;
     uint8_t pos_regs[8];
 
     int force_old_addr;
@@ -29,8 +38,10 @@ typedef struct ibm8514_t {
 
     uint32_t vram_size;
     uint32_t vram_mask;
+    uint32_t pallook[512];
 
     PALETTE   vgapal;
+    uint8_t   hwcursor_oddeven;
     uint8_t   dac_mask;
     uint8_t   dac_status;
     uint32_t *map8;
@@ -38,7 +49,9 @@ typedef struct ibm8514_t {
     int       dac_pos;
     int       dac_r;
     int       dac_g;
+    int		  dac_b;
     int       internal_pitch;
+    int 	  hwcursor_on;
 
     struct {
         uint16_t subsys_cntl;

@@ -84,8 +84,9 @@ oti_out(uint16_t addr, uint8_t val, void *priv)
             if (!oti->chip_id) {
                 oti->enable_register = val & 1;
                 return;
-            } else
-                break;
+            }
+            svga_out(addr, val, svga);
+            return;
 
         case 0x3c6:
         case 0x3c7:
