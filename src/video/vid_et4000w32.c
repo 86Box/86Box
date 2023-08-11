@@ -500,7 +500,8 @@ et4000w32p_recalctimings(svga_t *svga)
     switch (svga->bpp) {
         case 15:
         case 16:
-            svga->hdisp >>= 1;
+            if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1))
+                svga->hdisp >>= 1;
             if (et4000->type <= ET4000W32P_REVC) {
                 if (et4000->type == ET4000W32P_REVC) {
                     if (svga->hdisp != 1024)
@@ -513,7 +514,7 @@ et4000w32p_recalctimings(svga_t *svga)
             svga->hdisp /= 3;
             if (et4000->type <= ET4000W32P_REVC)
                 et4000->adjust_cursor = 2;
-            if (et4000->type == ET4000W32P_DIAMOND && (svga->hdisp == 640 / 2 || svga->hdisp == 1232)) {
+            if ((et4000->type == ET4000W32P_DIAMOND) && ((svga->hdisp == (640 / 2)) || (svga->hdisp == 1232))) {
                 svga->hdisp = 640;
             }
             break;
@@ -1072,8 +1073,7 @@ et4000w32p_mmu_read(uint32_t addr, void *priv)
                 case 0x8e:
                     if (et4000->type >= ET4000W32P_REVC)
                         return et4000->acl.internal.pixel_depth;
-                    else
-                        return et4000->acl.internal.vbus;
+                    return et4000->acl.internal.vbus;
                 case 0x8f:
                     return et4000->acl.internal.xy_dir;
                 case 0x90:
