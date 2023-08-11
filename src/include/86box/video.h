@@ -103,8 +103,8 @@ typedef struct monitor_t {
     int                      mon_efscrnsz_y;
     int                      mon_unscaled_size_x;
     int                      mon_unscaled_size_y;
-    int                      mon_res_x;
-    int                      mon_res_y;
+    double                   mon_res_x;
+    double                   mon_res_y;
     int                      mon_bpp;
     bitmap_t                *target_buffer;
     int                      mon_video_timing_read_b;

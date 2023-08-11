@@ -85,9 +85,9 @@ extern void            mouse_subtract_coords(int *delta_x, int *delta_y, int *o_
 extern  int            mouse_moved(void);
 extern  int            mouse_state_changed(void);
 extern  int            mouse_mbut_changed(void);
-extern void            mouse_scale(int x, int y);
 extern void            mouse_scale_x(int x);
 extern void            mouse_scale_y(int y);
+extern void            mouse_scale(int x, int y);
 extern void            mouse_set_z(int z);
 extern void            mouse_clear_z(void);
 extern void            mouse_subtract_z(int *delta_z, int min, int max, int invert);
@@ -108,6 +108,7 @@ extern const device_t *mouse_get_device(int mouse);
 #endif
 extern int             mouse_get_buttons(void);
 extern int             mouse_get_ndev(void);
+extern void            mouse_set_raw(int raw);
 extern void            mouse_reset(void);
 extern void            mouse_close(void);
 extern void            mouse_init(void);

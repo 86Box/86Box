@@ -69,6 +69,12 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     : QStackedWidget(parent)
     , ui(new Ui::RendererStack)
 {
+#ifdef Q_OS_WINDOWS
+    int raw = 1;
+#else
+    int raw = 0;
+#endif
+
     ui->setupUi(this);
 
     m_monitor_index = monitor_index;
@@ -95,8 +101,10 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     }
 #    endif
 #    ifdef EVDEV_INPUT
-    if (!stricmp(mousedata.mouse_type, "evdev"))
+    if (!stricmp(mousedata.mouse_type, "evdev")) {
         evdev_init();
+        raw = 0;
+    }
 #    endif
     if (!stricmp(mousedata.mouse_type, "xinput2")) {
         extern void xinput2_init();
@@ -105,6 +113,9 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
         this->mouse_exit_func = xinput2_exit;
     }
 #endif
+
+    if (monitor_index == 0)
+        mouse_set_raw(raw);
 }
 
 RendererStack::~RendererStack()
