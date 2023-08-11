@@ -54,7 +54,7 @@ Part::Part(Synth *useSynth, unsigned int usePartNum) {
 		// Nasty hack for rhythm
 		timbreTemp = NULL;
 	} else {
-		sprintf(name, "Part %d", partNum + 1);
+                snprintf(name, sizeof(name), "Part %d", partNum + 1);
 		timbreTemp = &synth->mt32ram.timbreTemp[partNum];
 	}
 	currentInstr[0] = 0;
