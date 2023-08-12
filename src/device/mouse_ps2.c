@@ -84,9 +84,9 @@ ps2_report_coordinates(atkbc_dev_t *dev, int main)
 
     mouse_subtract_coords(&delta_x, &delta_y, &overflow_x, &overflow_y,
                           -256, 255, 1, 0);
-    mouse_subtract_z(&delta_z, -8, 7, 1);
+    mouse_subtract_z(&delta_z, -8, 7, 0);
 
-    buff[0] = (overflow_y << 7) | (overflow_x << 6) |
+    buff[0] |= (overflow_y << 7) | (overflow_x << 6) |
               ((delta_y & 0x0100) >> 3) | ((delta_x & 0x0100) >> 4) |
               (b & ((dev->flags & FLAG_INTELLI) ? 0x07 : 0x03));
     buff[1] = (delta_x & 0x00ff);
