@@ -92,11 +92,11 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                 case 0xb2:
                 case 0xbe:
 #if 0
-				if (ega->regs[0xbe] & 8) {	/*Read/write bank mode*/
-					svga->read_bank  = ((ega->regs[0xb2] >> 5) & 7) * 0x10000;
-					svga->write_bank = ((ega->regs[0xb2] >> 1) & 7) * 0x10000;
-				} else                    /*Single bank mode*/
-					svga->read_bank = svga->write_bank = ((ega->regs[0xb2] >> 1) & 7) * 0x10000;
+                    if (ega->regs[0xbe] & 8) { /*Read/write bank mode*/
+                        svga->read_bank  = ((ega->regs[0xb2] >> 5) & 7) * 0x10000;
+                        svga->write_bank = ((ega->regs[0xb2] >> 1) & 7) * 0x10000;
+                    } else                    /*Single bank mode*/
+                        svga->read_bank = svga->write_bank = ((ega->regs[0xb2] >> 1) & 7) * 0x10000;
 #endif
                     break;
                 case 0xb3:
@@ -371,7 +371,7 @@ ega_in(uint16_t addr, void *priv)
             /* 0000 = None;
                0001 = Compaq Dual-Mode (DM) Monitor;
                0010 = RGBI Color Monitor;
-               0011 = COMAPQ Color Monitor (RrGgBb) or Compatible;
+               0011 = COMPAQ Color Monitor (RrGgBb) or Compatible;
                0100 - 1111 = Reserved. */
             ret = 0x01;
             break;
@@ -1403,11 +1403,11 @@ ega_speed_changed(void *priv)
 }
 
 /* SW1 SW2 SW3 SW4
-   OFF OFF  ON OFF	Monochrome			(5151)		1011	0x0B
-    ON OFF OFF  ON	Color 40x25			(5153)		0110	0x06
-   OFF OFF OFF  ON	Color 80x25			(5153)		0111	0x07
-    ON  ON  ON OFF	Enhanced Color - Normal Mode	(5154)		1000	0x08
-   OFF  ON  ON OFF	Enhanced Color - Enhanced Mode	(5154)		1001	0x09
+   OFF OFF  ON OFF  Monochrome                      (5151) 1011 0x0B
+    ON OFF OFF  ON  Color 40x25                     (5153) 0110 0x06
+   OFF OFF OFF  ON  Color 80x25                     (5153) 0111 0x07
+    ON  ON  ON OFF  Enhanced Color - Normal Mode    (5154) 1000 0x08
+   OFF  ON  ON OFF  Enhanced Color - Enhanced Mode  (5154) 1001 0x09
 
    0 = Switch closed (ON);
    1 = Switch open   (OFF). */

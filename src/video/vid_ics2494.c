@@ -49,9 +49,9 @@ ics2494_log(const char *fmt, ...)
 #endif
 
 float
-ics2494_getclock(int clock, void *p)
+ics2494_getclock(int clock, void *priv)
 {
-    ics2494_t *ics2494 = (ics2494_t *) p;
+    const ics2494_t *ics2494 = (ics2494_t *) priv;
 
     if (clock > 15)
         clock = 15;
@@ -141,6 +141,9 @@ ics2494_init(const device_t *info)
             ics2494->freq[0xd] = 65000000.0;
             ics2494->freq[0xe] = 75000000.0;
             ics2494->freq[0xf] = 94500000.0;
+            break;
+
+        default:
             break;
     }
 
