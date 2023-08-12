@@ -2595,9 +2595,6 @@ mach_recalctimings(svga_t *svga)
     if (mach->regs[0xb0] & 0x40)
         svga->ma_latch |= 0x20000;
 
-    if (mach->regs[0xa7] & 0x80)
-        svga->clock *= 3;
-
     if (mach->regs[0xb6] & 0x10) {
         svga->hdisp <<= 1;
         svga->htotal <<= 1;
@@ -2611,8 +2608,12 @@ mach_recalctimings(svga_t *svga)
 
     if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
         if (((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1))) {
-            mach_log("VGA ON.\n");
-            svga->clock = (uint64_t)((cpuclock * svga->getclock(clock_sel, svga->clock_gen)) / (double) (1ull << 32));
+            if (!ibm8514_on) {
+                mach_log("VGA ON.\n");
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel, svga->clock_gen);
+                if (mach->regs[0xa7] & 0x80)
+                    svga->clock *= 3;
+            }
             switch (svga->gdcreg[5] & 0x60) {
                 case 0x00:
                     if (svga->seqregs[1] & 8) /*Low res (320)*/
@@ -2648,7 +2649,7 @@ mach_recalctimings(svga_t *svga)
 
     if (dev->local >= 2) {
         if (ibm8514_on) {
-            svga->clock = (uint64_t)((cpuclock * svga->getclock((mach->accel.clock_sel >> 2) & 0x0f, svga->clock_gen)) / (double) (1ull << 32));
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock((mach->accel.clock_sel >> 2) & 0x0f, svga->clock_gen);
             dev->h_disp                     = (dev->hdisp + 1) << 3;
             dev->h_total                    = (dev->htotal + 1);
             dev->v_total                    = (dev->vtotal + 1);
@@ -2744,7 +2745,7 @@ mach_recalctimings(svga_t *svga)
         }
     } else {
         if (ibm8514_on) {
-            svga->clock = (uint64_t)((cpuclock * svga->getclock((mach->accel.clock_sel >> 2) & 0x0f, svga->clock_gen)) / (double) (1ull << 32));
+            svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock((mach->accel.clock_sel >> 2) & 0x0f, svga->clock_gen);
             dev->h_disp                     = (dev->hdisp + 1) << 3;
             dev->h_total                    = (dev->htotal + 1);
             dev->v_total                    = (dev->vtotal + 1);
