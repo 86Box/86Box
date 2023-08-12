@@ -445,7 +445,7 @@ joystick_process(void)
 {
     int d;
 
-    if (joystick_type == 7)
+    if (joystick_type == 0)
         return;
 
     for (int c = 0; c < joystick_get_max_joysticks(joystick_type); c++) {
