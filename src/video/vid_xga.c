@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		IBM XGA emulation.
+ *          IBM XGA emulation.
  *
  *
  *
- * Authors:	TheCollector1995.
+ * Authors: TheCollector1995.
  *
- *		Copyright 2022 TheCollector1995.
+ *          Copyright 2022 TheCollector1995.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -3079,6 +3079,7 @@ xga_init(const device_t *info)
     xga_t   *xga  = &svga->xga;
     FILE    *f;
     uint8_t *rom = NULL;
+    size_t   res;
 
     xga->ext_mem_addr = device_get_config_hex16("ext_mem_addr");
     xga->instance_isa = device_get_config_int("instance");
@@ -3103,7 +3104,7 @@ xga_init(const device_t *info)
 
     rom = malloc(xga->bios_rom.sz);
     memset(rom, 0xff, xga->bios_rom.sz);
-    (void) fread(rom, xga->bios_rom.sz, 1, f);
+    res = fread(rom, xga->bios_rom.sz, 1, f);
     (void) fclose(f);
 
     xga->bios_rom.rom  = rom;

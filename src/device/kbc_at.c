@@ -921,7 +921,7 @@ write64_generic(void *priv, uint8_t val)
            Bit 6: Mostly, display: 0 = CGA, 1 = MDA, inverted on Xi8088 and Acer KBC's;
                   Intel AMI MegaKey KB-5: Used for green features, SMM handler expects it to be set;
                   IBM PS/1 Model 2011: 0 = current FDD is 3.5", 1 = current FDD is 5.25";
-                  Comapq: 0 = Compaq dual-scan display, 1 = non-Compaq display.
+                  Compaq: 0 = Compaq dual-scan display, 1 = non-Compaq display.
            Bit 5: Mostly, manufacturing jumper: 0 = installed (infinite loop at POST), 1 = not installed;
                   NCR: power-on default speed: 0 = high, 1 = low;
                   Compaq: System board DIP switch 5: 0 = ON, 1 = OFF.

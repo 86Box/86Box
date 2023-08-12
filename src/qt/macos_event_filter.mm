@@ -33,7 +33,7 @@ CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, 
                 || [event type] == NSEventTypeLeftMouseDragged
                 || [event type] == NSEventTypeRightMouseDragged
                 || [event type] == NSEventTypeOtherMouseDragged) {
-                mouse_scale([event deltaX], [event deltaY]);
+                mouse_scalef((double) [event deltaX], (double) [event deltaY]);
                 return true;
             }
             if ([event type] == NSEventTypeScrollWheel) {

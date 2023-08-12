@@ -380,6 +380,18 @@ atomic_double_add(_Atomic double *var, double val)
 }
 
 void
+mouse_scale_fx(double x)
+{
+    atomic_double_add(&mouse_x, ((double) x) * mouse_sensitivity);
+}
+
+void
+mouse_scale_fy(double y)
+{
+    atomic_double_add(&mouse_y, ((double) y) * mouse_sensitivity);
+}
+
+void
 mouse_scale_x(int x)
 {
     atomic_double_add(&mouse_x, ((double) x) * mouse_sensitivity);
@@ -389,6 +401,15 @@ void
 mouse_scale_y(int y)
 {
     atomic_double_add(&mouse_y, ((double) y) * mouse_sensitivity);
+}
+
+void
+mouse_scalef(double x, double y)
+{
+    pclog("DPI = %lf (%lfx%lf)\n", plat_get_dpi(), monitors[0].mon_res_x, monitors[0].mon_res_y);
+
+    mouse_scale_fx(x);
+    mouse_scale_fy(y);
 }
 
 void
