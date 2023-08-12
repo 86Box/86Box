@@ -1102,8 +1102,8 @@ tgui_ext_linear_write(uint32_t addr, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
     tgui_t *tgui = (tgui_t *) svga->priv;
-    int c;
-    int bpp = (tgui->ext_gdc_regs[0] & EXT_CTRL_16BIT);
+    int     c;
+    int     bpp = (tgui->ext_gdc_regs[0] & EXT_CTRL_16BIT);
     uint8_t fg[2] = { tgui->ext_gdc_regs[4], tgui->ext_gdc_regs[5] };
     uint8_t bg[2] = { tgui->ext_gdc_regs[1], tgui->ext_gdc_regs[2] };
     uint8_t mask  = tgui->ext_gdc_regs[7];
@@ -1168,8 +1168,8 @@ tgui_ext_linear_writew(uint32_t addr, uint16_t val, void *priv)
 {
     svga_t  *svga = (svga_t *) priv;
     tgui_t  *tgui = (tgui_t *) svga->priv;
-    int  c;
-    int bpp = (tgui->ext_gdc_regs[0] & EXT_CTRL_16BIT);
+    int      c;
+    int      bpp = (tgui->ext_gdc_regs[0] & EXT_CTRL_16BIT);
     uint8_t  fg[2] = { tgui->ext_gdc_regs[4], tgui->ext_gdc_regs[5] };
     uint8_t  bg[2] = { tgui->ext_gdc_regs[1], tgui->ext_gdc_regs[2] };
     uint16_t mask  = (tgui->ext_gdc_regs[7] << 8) | tgui->ext_gdc_regs[8];

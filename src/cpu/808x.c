@@ -462,6 +462,9 @@ cycles_biu(int bus, int init)
                         cycles_idle(5 - BUS_CYCLE); /* Leftover BIU cycles + 2 idle cycles. */
                         BUS_CYCLE_T1;               /* Abort the prefetch. */
                         break;
+
+                    default:
+                        break;
                 }
 
                 schedule_fetch = 0;
@@ -1035,6 +1038,9 @@ do_mod_rm(void)
             case 2:
                 wait(3, 0);
                 break;
+
+            default:
+                break;
         }
     cpu_state.eaaddr = (*mod1add[0][cpu_rm]) + (*mod1add[1][cpu_rm]);
     easeg            = ovr_seg ? *ovr_seg : *mod1seg[cpu_rm];
@@ -1048,6 +1054,8 @@ do_mod_rm(void)
             wait(2, 0);
             cpu_state.eaaddr += pfq_fetchw();
             wait(1, 0);
+            break;
+        default:
             break;
     }
     cpu_state.eaaddr &= 0xffff;
@@ -1590,6 +1598,9 @@ alu_op(int bits)
             break;
         case 6:
             bitwise(bits, (cpu_dest ^ cpu_src));
+            break;
+
+        default:
             break;
     }
 }
@@ -2274,6 +2285,9 @@ execx86(int cycs)
                                 set_af(0);
                                 set_pzs(bits);
                                 break;
+
+                            default:
+                                break;
                         }
                         if ((opcode & 2) != 0)
                             wait(4, 0);
@@ -2287,6 +2301,9 @@ execx86(int cycs)
                     SP      = BP;
                     BP      = pop();
                     handled = 1;
+                    break;
+
+                default:
                     break;
             }
         }
@@ -3433,6 +3450,9 @@ execx86(int cycs)
                                 set_af(0);
                                 set_pzs(bits);
                                 break;
+
+                            default:
+                                break;
                         }
                         if ((opcode & 2) != 0)
                             wait(4, 0);
@@ -3517,6 +3537,9 @@ execx86(int cycs)
                                 case 0xDF:
                                     ops_sf_fpu_8087_df[rmdat & 0xff](rmdat);
                                     break;
+
+                                default:
+                                    break;
                             }
                         } else {
                             switch (opcode) {
@@ -3543,6 +3566,9 @@ execx86(int cycs)
                                     break;
                                 case 0xDF:
                                     ops_fpu_8087_df[rmdat & 0xff](rmdat);
+                                    break;
+
+                                default:
                                     break;
                             }
                         }
@@ -3571,6 +3597,9 @@ execx86(int cycs)
                             case 0xE1:
                                 if (!(cpu_state.flags & Z_FLAG))
                                     oldc = 0;
+                                break;
+
+                            default:
                                 break;
                         }
                     } else
@@ -3744,6 +3773,9 @@ execx86(int cycs)
                             if (x86_div(AL, AH))
                                 wait(1, 0);
                             break;
+
+                        default:
+                            break;
                     }
                     break;
 
@@ -3842,6 +3874,9 @@ execx86(int cycs)
                                 wait(1, 0);
                             wait(4, 0);
                             push((uint16_t *) &cpu_data);
+                            break;
+
+                        default:
                             break;
                     }
                     break;

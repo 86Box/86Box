@@ -193,7 +193,7 @@ int ibm8514_has_vga = 0;
 int
 ibm8514_cpu_src(svga_t *svga)
 {
-    ibm8514_t *dev = &svga->dev8514;
+    const ibm8514_t *dev = &svga->dev8514;
 
     if (!(dev->accel.cmd & 0x100))
         return 0;
@@ -207,7 +207,7 @@ ibm8514_cpu_src(svga_t *svga)
 int
 ibm8514_cpu_dest(svga_t *svga)
 {
-    ibm8514_t *dev = &svga->dev8514;
+    const ibm8514_t *dev = &svga->dev8514;
 
     if (!(dev->accel.cmd & 0x100))
         return 0;
@@ -962,8 +962,8 @@ ibm8514_accel_out(uint16_t port, uint32_t val, svga_t *svga, int len)
                 if (!val)
                     break;
                 dev->accel.advfunc_cntl = val & 0x0f;
-                ibm8514_on = val & 0x01;
-                vga_on = !ibm8514_on;
+                ibm8514_on              = val & 0x01;
+                vga_on                  = !ibm8514_on;
                 ibm8514_log("IBM 8514/A: VGA ON = %i, val = %02x\n", vga_on, val);
                 svga_recalctimings(svga);
                 break;
@@ -978,6 +978,7 @@ static void
 ibm8514_accel_outb(uint16_t port, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
+
     ibm8514_accel_out(port, val, svga, 1);
 }
 
@@ -985,6 +986,7 @@ static void
 ibm8514_accel_outw(uint16_t port, uint16_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
+
     ibm8514_accel_out(port, val, svga, 2);
 }
 
@@ -3742,7 +3744,6 @@ void
 ibm8514_render_8bpp(svga_t *svga)
 {
     ibm8514_t *dev = &svga->dev8514;
-    int       x;
     uint32_t  *p;
     uint32_t   dat;
 
@@ -3757,7 +3758,7 @@ ibm8514_render_8bpp(svga_t *svga)
             dev->firstline_draw = dev->displine;
         dev->lastline_draw = dev->displine;
 
-        for (x = 0; x <= dev->h_disp; x += 8) {
+        for (int x = 0; x <= dev->h_disp; x += 8) {
             dat  = *(uint32_t *) (&dev->vram[dev->ma & dev->vram_mask]);
             p[0] = dev->pallook[dat & 0xff];
             p[1] = dev->pallook[(dat >> 8) & 0xff];
@@ -3781,7 +3782,7 @@ void
 ibm8514_render_15bpp(svga_t *svga)
 {
     ibm8514_t *dev = &svga->dev8514;
-    int x;
+    int        x;
     uint32_t  *p;
     uint32_t   dat;
 
@@ -3822,7 +3823,7 @@ void
 ibm8514_render_16bpp(svga_t *svga)
 {
     ibm8514_t *dev = &svga->dev8514;
-    int x;
+    int        x;
     uint32_t  *p;
     uint32_t   dat;
 
@@ -3863,7 +3864,6 @@ void
 ibm8514_render_24bpp(svga_t *svga)
 {
     ibm8514_t *dev = &svga->dev8514;
-    int       x;
     uint32_t *p;
     uint32_t  dat;
 
@@ -3877,7 +3877,7 @@ ibm8514_render_24bpp(svga_t *svga)
             dev->firstline_draw = dev->displine;
         dev->lastline_draw = dev->displine;
 
-        for (x = 0; x <= dev->h_disp; x += 4) {
+        for (int x = 0; x <= dev->h_disp; x += 4) {
             dat  = *(uint32_t *) (&dev->vram[dev->ma & dev->vram_mask]);
             p[x] = dat & 0xffffff;
 
@@ -3900,9 +3900,8 @@ void
 ibm8514_render_BGR(svga_t *svga)
 {
     ibm8514_t *dev = &svga->dev8514;
-    int       x;
-    uint32_t *p;
-    uint32_t  dat;
+    uint32_t  *p;
+    uint32_t   dat;
 
     if ((dev->displine + svga->y_add) < 0)
         return;
@@ -3914,7 +3913,7 @@ ibm8514_render_BGR(svga_t *svga)
             dev->firstline_draw = dev->displine;
         dev->lastline_draw = dev->displine;
 
-        for (x = 0; x <= dev->h_disp; x += 4) {
+        for (int x = 0; x <= dev->h_disp; x += 4) {
             dat  = *(uint32_t *) (&dev->vram[dev->ma & dev->vram_mask]);
             p[x] = ((dat & 0xff0000) >> 16) | (dat & 0x00ff00) | ((dat & 0x0000ff) << 16);
 
@@ -3937,9 +3936,9 @@ void
 ibm8514_render_ABGR8888(svga_t *svga)
 {
     ibm8514_t *dev = &svga->dev8514;
-    int       x;
-    uint32_t *p;
-    uint32_t  dat;
+    int        x;
+    uint32_t  *p;
+    uint32_t   dat;
 
     if ((dev->displine + svga->y_add) < 0)
         return;
@@ -3964,9 +3963,9 @@ void
 ibm8514_render_RGBA8888(svga_t *svga)
 {
     ibm8514_t *dev = &svga->dev8514;
-    int       x;
-    uint32_t *p;
-    uint32_t  dat;
+    int        x;
+    uint32_t  *p;
+    uint32_t   dat;
 
     if ((dev->displine + svga->y_add) < 0)
         return;
