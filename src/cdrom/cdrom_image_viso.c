@@ -331,7 +331,7 @@ viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries
     }
 
     /* Check if this filename is unique, and add a tail if required, while also adding the extension. */
-    char tail[8];
+    char tail[16];
     for (int i = force_tail; i <= 999999; i++) {
         /* Add tail to the filename if this is not the first run. */
         int tail_len = -1;
