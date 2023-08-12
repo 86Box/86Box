@@ -171,8 +171,8 @@ mouse_scale_coord_x(double x, int mul)
     double ratio = 1.0;
 
     if (!mouse_raw)        
-        ratio = (monitors[0].mon_res_x * plat_get_dpi())/
-                ((double) monitors[0].mon_unscaled_size_x);
+        ratio = ((double) monitors[0].mon_unscaled_size_x) /
+                (monitors[0].mon_res_x * plat_get_dpi());
 
     if (mul)
         x *= ratio;
@@ -188,8 +188,8 @@ mouse_scale_coord_y(double y, int mul)
     double ratio = 1.0;
 
     if (!mouse_raw)        
-        ratio = (monitors[0].mon_res_y * plat_get_dpi()) /
-                ((double) monitors[0].mon_efscrnsz_y);
+        ratio = ((double) monitors[0].mon_efscrnsz_y) /
+                (monitors[0].mon_res_y * plat_get_dpi());
 
     if (mul)
         y *= ratio;
