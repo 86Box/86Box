@@ -85,8 +85,11 @@ extern void            mouse_subtract_coords(int *delta_x, int *delta_y, int *o_
 extern  int            mouse_moved(void);
 extern  int            mouse_state_changed(void);
 extern  int            mouse_mbut_changed(void);
+extern void            mouse_scale_fx(double x);
+extern void            mouse_scale_fy(double y);
 extern void            mouse_scale_x(int x);
 extern void            mouse_scale_y(int y);
+extern void            mouse_scalef(double x, double y);
 extern void            mouse_scale(int x, int y);
 extern void            mouse_set_z(int z);
 extern void            mouse_clear_z(void);
