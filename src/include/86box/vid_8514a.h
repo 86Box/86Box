@@ -35,7 +35,6 @@ typedef struct ibm8514_t {
     int type;
     int local;
     int bpp;
-    int accel_bpp;
 
     uint32_t vram_size;
     uint32_t vram_mask;

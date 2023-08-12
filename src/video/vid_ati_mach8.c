@@ -456,11 +456,11 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
         }
     }
 
-    if ((dev->accel_bpp == 8) || (dev->accel_bpp == 15) || (dev->accel_bpp == 16) || (dev->accel_bpp == 24)) {
-        if (dev->accel_bpp == 24)
+    if ((svga->bpp == 8) || (svga->bpp == 15) || (svga->bpp == 16) || (svga->bpp == 24)) {
+        if (svga->bpp == 24)
             mach_log("24BPP: CMDType=%d, cwh(%d,%d,%d,%d), dpconfig=%04x\n", cmd_type, clip_l, clip_r, clip_t, clip_b, mach->accel.dp_config);
         else
-            mach_log("BPP=%d, CMDType = %d, offs=%08x, DPCONFIG = %04x, cnt = %d, input = %d, mono_src = %d, frgdsel = %d, dstx = %d, dstxend = %d, pitch = %d, extcrt = %d, rw = %x, monpattern = %x.\n", dev->accel_bpp, cmd_type, mach->accel.ge_offset, mach->accel.dp_config, count, cpu_input, mono_src, frgd_sel, dev->accel.cur_x, mach->accel.dest_x_end, dev->ext_pitch, dev->ext_crt_pitch, mach->accel.dp_config & 1, mach->accel.mono_pattern_enable);
+            mach_log("BPP=%d, CMDType = %d, offs=%08x, DPCONFIG = %04x, cnt = %d, input = %d, mono_src = %d, frgdsel = %d, dstx = %d, dstxend = %d, pitch = %d, extcrt = %d, rw = %x, monpattern = %x.\n", svga->bpp, cmd_type, mach->accel.ge_offset, mach->accel.dp_config, count, cpu_input, mono_src, frgd_sel, dev->accel.cur_x, mach->accel.dest_x_end, dev->ext_pitch, dev->ext_crt_pitch, mach->accel.dp_config & 1, mach->accel.mono_pattern_enable);
     }
 
     switch (cmd_type) {
@@ -972,10 +972,10 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 dev->accel.sx                 = 0;
                 mach->accel.poly_fill         = 0;
                 mach->accel.color_pattern_idx = ((dev->accel.dx + (dev->accel.dy << 3)) & mach->accel.patt_len);
-                if ((dev->accel_bpp == 24) && (mono_src != 1)) {
+                if ((svga->bpp == 24) && (mono_src != 1)) {
                     if (mach->accel.color_pattern_idx == mach->accel.patt_len)
                         mach->accel.color_pattern_idx = mach->accel.patt_data_idx;
-                } else if ((dev->accel_bpp == 24) && (frgd_sel == 5) && (mono_src == 1) && (mach->accel.patt_len_reg & 0x4000))
+                } else if ((svga->bpp == 24) && (frgd_sel == 5) && (mono_src == 1) && (mach->accel.patt_len_reg & 0x4000))
                     mach->accel.color_pattern_idx = 0;
 
                 /*Height*/
@@ -1043,7 +1043,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 else
                     dev->accel.src = (mach->accel.ge_offset << 2) + (dev->accel.cy * (dev->pitch));
 
-                if ((dev->accel_bpp == 24) && (frgd_sel == 5)) {
+                if ((svga->bpp == 24) && (frgd_sel == 5)) {
                     mach_log("BitBLT=%04x, WH(%d,%d), SRCWidth=%d, c(%d,%d), s(%d,%d).\n", mach->accel.dp_config, mach->accel.width, mach->accel.height, mach->accel.src_width, dev->accel.dx, dev->accel.dy, dev->accel.cx, dev->accel.cy);
                 } else
                     mach_log("BitBLT=%04x, Pitch=%d, C(%d,%d), SRCWidth=%d, WH(%d,%d), geoffset=%08x.\n", mach->accel.dp_config, dev->ext_pitch, dev->accel.cx, dev->accel.cy, mach->accel.src_width, mach->accel.width, mach->accel.height, (mach->accel.ge_offset << 2));
@@ -1096,7 +1096,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         mach->accel.color_pattern_word[x + (mach->accel.color_pattern_idx & 1)] |= (mach->accel.patt_data[(x + 1) & mach->accel.patt_len] << 8);
                     }
                 } else {
-                    if ((dev->accel_bpp == 24) && (mach->accel.patt_len < 3)) {
+                    if ((svga->bpp == 24) && (mach->accel.patt_len < 3)) {
                         for (int x = 0; x <= mach->accel.patt_len; x++) {
                             mach->accel.color_pattern[x] = mach->accel.patt_data[x];
                             mach_log("BITBLT: Color Pattern 24bpp[%d]=%02x, dataidx=%d, pattlen=%d.\n", x, mach->accel.color_pattern[x], mach->accel.patt_data_idx, mach->accel.patt_len);
@@ -1141,7 +1141,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         if (mach->accel.mono_pattern_enable) {
                             mix = mach->accel.mono_pattern[dev->accel.dy & 7][dev->accel.dx & 7];
                         } else {
-                            if ((dev->accel_bpp == 24) && (frgd_sel == 5) && (mach->accel.patt_len_reg & 0x4000))
+                            if ((svga->bpp == 24) && (frgd_sel == 5) && (mach->accel.patt_len_reg & 0x4000))
                                 mix = 1;
                             else {
                                 if (!dev->accel.temp_cnt) {
@@ -1224,7 +1224,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         }
                     }
 
-                    if ((dev->accel_bpp == 24) && (mono_src == 1) && (frgd_sel == 5) && (mach->accel.patt_len_reg & 0x4000)) {
+                    if ((svga->bpp == 24) && (mono_src == 1) && (frgd_sel == 5) && (mach->accel.patt_len_reg & 0x4000)) {
                         if (dev->accel.sy & 1) {
                             READ(dev->accel.dest + dev->accel.dx - dev->ext_pitch, dest_dat);
                         } else {
@@ -1270,7 +1270,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                     }
 
                     if (mach->accel.dp_config & 0x10) {
-                        if ((dev->accel_bpp == 24) && (mono_src == 1) && (frgd_sel == 5) && (mach->accel.patt_len_reg & 0x4000)) {
+                        if ((svga->bpp == 24) && (mono_src == 1) && (frgd_sel == 5) && (mach->accel.patt_len_reg & 0x4000)) {
                             if (dev->accel.sy & 1) {
                                 WRITE(dev->accel.dest + dev->accel.dx - dev->ext_pitch, dest_dat);
                             } else {
@@ -1306,12 +1306,12 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
 
                 dev->accel.dx += mach->accel.stepx;
 
-                if ((dev->accel_bpp == 8) || ((dev->accel_bpp == 24) && (mach->accel.patt_len >= 3) && (mono_src != 1)))
+                if ((svga->bpp == 8) || ((svga->bpp == 24) && (mach->accel.patt_len >= 3) && (mono_src != 1)))
                     mach->accel.color_pattern_idx = (mach->accel.color_pattern_idx + mach->accel.stepx) & mach->accel.patt_len;
 
-                if ((dev->accel_bpp == 24) && (mach->accel.color_pattern_idx == mach->accel.patt_len) && (mach->accel.patt_len >= 3) && (mono_src != 1)) {
+                if ((svga->bpp == 24) && (mach->accel.color_pattern_idx == mach->accel.patt_len) && (mach->accel.patt_len >= 3) && (mono_src != 1)) {
                     mach->accel.color_pattern_idx = mach->accel.patt_data_idx;
-                } else if ((dev->accel_bpp == 24) && (mach->accel.patt_len < 3)) {
+                } else if ((svga->bpp == 24) && (mach->accel.patt_len < 3)) {
                     if (mach->accel.patt_len == 2) {
                         mach->accel.color_pattern_idx++;
                         if (mach->accel.color_pattern_idx == 3)
@@ -1319,7 +1319,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                     } else {
                         mach->accel.color_pattern_idx = (mach->accel.color_pattern_idx + mach->accel.stepx) & mach->accel.patt_len;
                     }
-                } else if ((dev->accel_bpp == 24) && (mach->accel.patt_len_reg & 0x4000) && (frgd_sel == 5)) {
+                } else if ((svga->bpp == 24) && (mach->accel.patt_len_reg & 0x4000) && (frgd_sel == 5)) {
                     mach->accel.color_pattern_idx++;
                     if (mach->accel.color_pattern_idx == 3)
                         mach->accel.color_pattern_idx = 0;
@@ -1347,12 +1347,12 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                     else {
                         dev->accel.dest = (mach->accel.ge_offset << 2) + (dev->accel.dy * (dev->pitch));
                     }
-                    if ((mono_src == 1) && (dev->accel_bpp == 24) && (frgd_sel == 5))
+                    if ((mono_src == 1) && (svga->bpp == 24) && (frgd_sel == 5))
                         mach->accel.color_pattern_idx = 0;
                     else
                         mach->accel.color_pattern_idx = ((dev->accel.dx + (dev->accel.dy << 3)) & mach->accel.patt_len);
 
-                    if ((dev->accel_bpp == 24) && (mach->accel.color_pattern_idx == mach->accel.patt_len) && (mono_src != 1))
+                    if ((svga->bpp == 24) && (mach->accel.color_pattern_idx == mach->accel.patt_len) && (mono_src != 1))
                         mach->accel.color_pattern_idx = 0;
                     if ((mono_src == 1) && !mach->accel.mono_pattern_enable && !(mach->accel.patt_len_reg & 0x4000)) {
                         dev->accel.cur_x = dev->accel.dx;
@@ -1362,7 +1362,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                     if (dev->accel.sy >= mach->accel.height) {
                         if ((mono_src == 2) || (mono_src == 3) || (frgd_sel == 2) || (frgd_sel == 3) || (bkgd_sel == 2) || (bkgd_sel == 3))
                             return;
-                        if ((mono_src == 1) && (frgd_sel == 5) && (dev->accel_bpp == 24) && (mach->accel.patt_len_reg & 0x4000))
+                        if ((mono_src == 1) && (frgd_sel == 5) && (svga->bpp == 24) && (mach->accel.patt_len_reg & 0x4000))
                             return;
                         dev->accel.cur_x = dev->accel.dx;
                         dev->accel.cur_y = dev->accel.dy;
@@ -1953,7 +1953,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 }
 
                 dev->accel.sx = 0;
-                if ((dev->accel_bpp == 24) && (mach->accel.patt_len < 0x17))
+                if ((svga->bpp == 24) && (mach->accel.patt_len < 0x17))
                     mach->accel.color_pattern_idx = 0;
 
                 /*Step Y*/
@@ -2014,7 +2014,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 else
                     dev->accel.src = (mach->accel.ge_offset << 2) + (dev->accel.cy * (dev->pitch));
 
-                if ((dev->accel_bpp == 24) && (frgd_sel == 5)) {
+                if ((svga->bpp == 24) && (frgd_sel == 5)) {
                     if (mach->accel.patt_len == 0x17)
                         mach->accel.color_pattern_idx = 0;
                     dev->accel.x1 = dev->accel.dx + mach->accel.width;
@@ -2051,7 +2051,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
             }
 
             if (frgd_sel == 5) {
-                if (dev->accel_bpp != 24) {
+                if (svga->bpp != 24) {
                     for (int x = 0; x <= mach->accel.patt_len; x++) {
                         mach->accel.color_pattern[x] = mach->accel.patt_data[x & mach->accel.patt_len];
                     }
@@ -2132,7 +2132,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                             break;
                         case 5:
                             if (mix) {
-                                if (dev->accel_bpp == 24) {
+                                if (svga->bpp == 24) {
                                     if (mach->accel.patt_len == 0x17)
                                         src_dat = mach->accel.color_pattern_full[mach->accel.color_pattern_idx];
                                     else
@@ -2210,7 +2210,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                 }
 
                 dev->accel.dx += mach->accel.stepx;
-                if ((dev->accel_bpp == 24) && (mach->accel.patt_len == 0x17)) {
+                if ((svga->bpp == 24) && (mach->accel.patt_len == 0x17)) {
                     mach->accel.color_pattern_idx++;
                     if (dev->accel.x3) {
                         if (mach->accel.color_pattern_idx == 9)
@@ -2219,7 +2219,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         if (mach->accel.color_pattern_idx == 6)
                             mach->accel.color_pattern_idx = 0;
                     }
-                } else if ((dev->accel_bpp == 24) && (mach->accel.patt_len < 3)) {
+                } else if ((svga->bpp == 24) && (mach->accel.patt_len < 3)) {
                     mach->accel.color_pattern_idx++;
                     if (mach->accel.color_pattern_idx == 3)
                         mach->accel.color_pattern_idx = 0;
@@ -2695,19 +2695,19 @@ mach_recalctimings(svga_t *svga)
             if ((mach->accel.ext_ge_config & 0x800) || ((!(mach->accel.ext_ge_config & 0x8000) && !(mach->accel.ext_ge_config & 0x800)))) {
                 if ((mach->accel.ext_ge_config & 0x30) == 0x20) {
                     if ((mach->accel.ext_ge_config & 0xc0) == 0x40)
-                        dev->accel_bpp = 16;
+                        svga->bpp = 16;
                     else
-                        dev->accel_bpp = 15;
+                        svga->bpp = 15;
                 } else if ((mach->accel.ext_ge_config & 0x30) == 0x30) {
                     if (mach->accel.ext_ge_config & 0x200)
-                        dev->accel_bpp = 32;
+                        svga->bpp = 32;
                     else
-                        dev->accel_bpp = 24;
+                        svga->bpp = 24;
                 } else
-                    dev->accel_bpp = 8;
+                    svga->bpp = 8;
 
                 mach_log("hv(%d,%d), pitch=%d, rowoffset=%d, gextconfig=%03x.\n", dev->h_disp, dev->dispend, dev->pitch, dev->rowoffset, mach->accel.ext_ge_config & 0xcec0);
-                switch (dev->accel_bpp) {
+                switch (svga->bpp) {
                     case 8:
                         svga->render = ibm8514_render_8bpp;
                         break;
@@ -3236,7 +3236,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                 if ((dev->accel.multifunc_cntl >> 12) == 4) {
                     dev->accel.multifunc[4] = val & 0x7ff;
                 }
-                mach_log("CLIPBOTTOM=%d, CLIPRIGHT=%d, bpp=%d, pitch=%d.\n", dev->accel.multifunc[3], dev->accel.multifunc[4], dev->accel_bpp, dev->pitch);
+                mach_log("CLIPBOTTOM=%d, CLIPRIGHT=%d, bpp=%d, pitch=%d.\n", dev->accel.multifunc[3], dev->accel.multifunc[4], svga->bpp, dev->pitch);
                 if ((dev->accel.multifunc_cntl >> 12) == 5) {
                     if (!dev->ext_crt_pitch || ((dev->local < 2)))
                         dev->ext_crt_pitch = 128;
@@ -3288,11 +3288,11 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                 else {
                     frgd_sel = (mach->accel.dp_config >> 13) & 7;
                     mono_src = (mach->accel.dp_config >> 5) & 3;
-                    if ((dev->accel_bpp == 24) && (mach->accel.patt_len == 0x17) && (frgd_sel == 5)) {
+                    if ((svga->bpp == 24) && (mach->accel.patt_len == 0x17) && (frgd_sel == 5)) {
                         mach->accel.patt_data_idx += 2;
                         dev->accel.y1 = 1;
                     } else {
-                        if (dev->accel_bpp == 24)
+                        if (svga->bpp == 24)
                             mach->accel.patt_data_idx += 2;
                         else
                             mach->accel.patt_data_idx = (mach->accel.patt_data_idx + 2) & mach->accel.patt_len;
@@ -3308,7 +3308,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                     mach->accel.patt_data_idx = (mach->accel.patt_data_idx + 2) & 7;
                 else {
                     frgd_sel = (mach->accel.dp_config >> 13) & 7;
-                    if ((dev->accel_bpp == 24) && (mach->accel.patt_len == 0x17) && (frgd_sel == 5)) {
+                    if ((svga->bpp == 24) && (mach->accel.patt_len == 0x17) && (frgd_sel == 5)) {
                         mach->accel.patt_data_idx += 2;
                         dev->accel.y1 = 1;
                     } else
@@ -3761,10 +3761,10 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
             mach_log("CRT Pitch = %d, original val = %d.\n", val << 3, val);
             dev->ext_crt_pitch = val;
             dev->internal_pitch = val;
-            if (dev->accel_bpp > 8) {
-                if (dev->accel_bpp == 24)
+            if (svga->bpp > 8) {
+                if (svga->bpp == 24)
                     dev->ext_crt_pitch *= 3;
-                else if (dev->accel_bpp == 32)
+                else if (svga->bpp == 32)
                     dev->ext_crt_pitch <<= 2;
                 else
                     dev->ext_crt_pitch <<= 1;
@@ -4806,13 +4806,13 @@ mach32_hwcursor_draw(svga_t *svga, int displine)
     uint32_t      color0;
     uint32_t      color1;
 
-    if (dev->accel_bpp == 8) {
+    if (svga->bpp == 8) {
         color0 = dev->pallook[mach->cursor_col_0];
         color1 = dev->pallook[mach->cursor_col_1];
-    } else if (dev->accel_bpp == 15) {
+    } else if (svga->bpp == 15) {
         color0 = video_15to32[((mach->ext_cur_col_0_r << 16) | (mach->ext_cur_col_0_g << 8) | mach->cursor_col_0) & 0xffff];
         color1 = video_15to32[((mach->ext_cur_col_1_r << 16) | (mach->ext_cur_col_1_g << 8) | mach->cursor_col_1) & 0xffff];
-    } else if (dev->accel_bpp == 16) {
+    } else if (svga->bpp == 16) {
         color0 = video_16to32[((mach->ext_cur_col_0_r << 16) | (mach->ext_cur_col_0_g << 8) | mach->cursor_col_0) & 0xffff];
         color1 = video_16to32[((mach->ext_cur_col_1_r << 16) | (mach->ext_cur_col_1_g << 8) | mach->cursor_col_1) & 0xffff];
     } else {
@@ -5388,7 +5388,6 @@ mach8_init(const device_t *info)
     svga->force_old_addr = 1;
     svga->miscout = 1;
     svga->bpp = 8;
-    dev->accel_bpp = 8;
     svga->packed_chain4 = 1;
     dev->rowoffset = 0x80;
     io_sethandler(0x01ce, 2,  mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
