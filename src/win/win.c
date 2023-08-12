@@ -1286,3 +1286,11 @@ endblit(void)
 {
     ReleaseMutex(ghMutex);
 }
+
+double
+plat_get_dpi(void)
+{
+    UINT dpi = GetDeviceCaps(dc, LOGPIXELSX);
+
+    return ((double) dpi) / 96.0;
+}
