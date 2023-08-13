@@ -110,11 +110,11 @@ svga_set_override(svga_t *svga, int val)
 void
 svga_out(uint16_t addr, uint8_t val, void *priv)
 {
-    svga_t *svga = (svga_t *) priv;
+    svga_t    *svga = (svga_t *) priv;
     ibm8514_t *dev = &svga->dev8514;
-    xga_t *xga = &svga->xga;
-    uint8_t o;
-    uint8_t index;
+    xga_t     *xga = &svga->xga;
+    uint8_t    o;
+    uint8_t    index;
 
     switch (addr) {
         case 0x2ea:
@@ -149,6 +149,9 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                         dev->pallook[index] = makecol32(video_6to8[svga->vgapal[index].r & 0x3f], video_6to8[svga->vgapal[index].g & 0x3f], video_6to8[svga->vgapal[index].b & 0x3f]);
                     dev->dac_pos  = 0;
                     dev->dac_addr = (dev->dac_addr + 1) & 0xff;
+                    break;
+
+                default:
                     break;
             }
             break;
@@ -274,7 +277,7 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                     break;
                 case 2:
                     index                 = svga->dac_addr & 255;
-					svga->dac_b 		  = val;
+                    svga->dac_b           = val;
                     svga->vgapal[index].r = svga->dac_r;
                     svga->vgapal[index].g = svga->dac_g;
                     svga->vgapal[index].b = svga->dac_b;
@@ -353,10 +356,10 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 svga_in(uint16_t addr, void *priv)
 {
-    svga_t *svga = (svga_t *) priv;
+    svga_t    *svga = (svga_t *) priv;
     ibm8514_t *dev = &svga->dev8514;
-    uint8_t index;
-    uint8_t ret = 0xff;
+    uint8_t    index;
+    uint8_t    ret = 0xff;
 
     switch (addr) {
         case 0x2ea:
@@ -394,8 +397,8 @@ svga_in(uint16_t addr, void *priv)
                         ret = svga->vgapal[index].b & 0x3f;
                     break;
 
-              	default:
-              		break;
+                default:
+                    break;
             }
             break;
 
@@ -537,12 +540,11 @@ svga_set_ramdac_type(svga_t *svga, int type)
 void
 svga_recalctimings(svga_t *svga)
 {
-    ibm8514_t *dev = &svga->dev8514;
-    xga_t *xga = &svga->xga;
-    double crtcconst;
-    double _dispontime;
-    double _dispofftime;
-    double disptime;
+    const ibm8514_t *dev = &svga->dev8514;
+    double           crtcconst;
+    double           _dispontime;
+    double           _dispofftime;
+    double           disptime;
 
     svga->vtotal      = svga->crtc[6];
     svga->dispend     = svga->crtc[0x12];
@@ -812,7 +814,7 @@ svga_poll(void *priv)
 {
     svga_t    *svga = (svga_t *) priv;
     ibm8514_t *dev  = &svga->dev8514;
-   	xga_t     *xga  = &svga->xga;
+    xga_t     *xga  = &svga->xga;
     uint32_t   x;
     uint32_t   blink_delay;
     int        wx;
@@ -919,7 +921,7 @@ svga_poll(void *priv)
             svga->con = 0;
         if (svga->dispon) {
             if (svga->linedbl && !svga->linecountff) {
-            	svga->linecountff = 1;
+                svga->linecountff = 1;
                 svga->ma          = svga->maback;
             } else if (svga->sc == svga->rowcount) {
                 svga->linecountff = 0;
@@ -1220,12 +1222,12 @@ svga_decode_addr(svga_t *svga, uint32_t addr, int write)
 static __inline void
 svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
 {
-    svga_t *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    svga_t *svga       = (svga_t *) priv;
+    xga_t  *xga        = &svga->xga;
     int     writemask2 = svga->writemask;
     int     reset_wm   = 0;
     latch_t vall;
-    uint8_t wm = svga->writemask;
+    uint8_t wm         = svga->writemask;
     uint8_t count;
     uint8_t i;
 
@@ -1437,7 +1439,7 @@ static __inline uint8_t
 svga_read_common(uint32_t addr, uint8_t linear, void *priv)
 {
     svga_t  *svga       = (svga_t *) priv;
-    xga_t  *xga         = &svga->xga;
+    xga_t   *xga        = &svga->xga;
     uint32_t latch_addr = 0;
     int      readplane  = svga->readplane;
     uint8_t  count;

@@ -91,7 +91,7 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
 
 #if 0
     if (((addr & 0xfff0) == 0x03d0 || (addr & 0xfff0) == 0x03b0) &&
-	!(svga->miscout & 1)) addr ^= 0x60;
+        !(svga->miscout & 1)) addr ^= 0x60;
 #endif
 
     switch (addr) {
@@ -151,7 +151,7 @@ vid_in(uint16_t addr, void *priv)
 
 #if 0
     if (((addr & 0xfff0) == 0x03d0 || (addr & 0xfff0) == 0x03b0) &&
-	!(svga->miscout & 1)) addr ^= 0x60;
+        !(svga->miscout & 1)) addr ^= 0x60;
 #endif
 
     switch (addr) {

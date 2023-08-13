@@ -692,7 +692,7 @@ adgold_timer_poll(void *priv)
 {
     adgold_t *adgold = (adgold_t *) priv;
 
-	/*A small timer period will result in hangs.*/
+    /*A small timer period will result in hangs.*/
     timer_on_auto(&adgold->adgold_mma_timer_count, 4.88964);
 
     if (adgold->adgold_midi_ctrl & 0x3f) {

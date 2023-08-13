@@ -35,7 +35,7 @@
     }
 
 #define CHECK_CURRENT_CARD()                                       \
-    do {                                                           \
+    if (1) {                                                       \
         card = dev->first_card;                                    \
         while (card) {                                             \
             if (card->enable && (card->state == PNP_STATE_CONFIG)) \
@@ -46,7 +46,7 @@
             isapnp_log("ISAPnP: No card in CONFIG state\n");       \
             break;                                                 \
         }                                                          \
-    } while (0);
+    }
 
 static const uint8_t  pnp_init_key[32] = { 0x6A, 0xB5, 0xDA, 0xED, 0xF6, 0xFB, 0x7D, 0xBE,
                                            0xDF, 0x6F, 0x37, 0x1B, 0x0D, 0x86, 0xC3, 0x61,
