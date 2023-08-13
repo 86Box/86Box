@@ -46,15 +46,6 @@ static int              ptr_x;
 static int              ptr_y;
 static int              ptr_but;
 
-typedef struct {
-    int buttons;
-    int dx;
-    int dy;
-    int dwheel;
-} MOUSESTATE;
-
-static MOUSESTATE ms;
-
 #ifdef ENABLE_VNC_LOG
 int vnc_do_log = ENABLE_VNC_LOG;
 
@@ -153,7 +144,6 @@ vnc_newclient(rfbClientPtr cl)
         ptr_y   = allowedY / 2;
         mouse_clear_coords();
         mouse_clear_buttons();
-        memset(&ms, 0, sizeof(MOUSESTATE));
 
         /* We now have clients, un-pause the emulator if needed. */
         vnc_log("VNC: unpausing..\n");

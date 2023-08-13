@@ -78,6 +78,7 @@ extern const device_t mouse_wacom_artpad_device;
 extern void            mouse_clear_x(void);
 extern void            mouse_clear_y(void);
 extern void            mouse_clear_coords(void);
+extern void            mouse_clear_buttons(void);
 extern void            mouse_subtract_x(int *delta_x, int *o_x, int min, int max, int abs);
 extern void            mouse_subtract_y(int *delta_y, int *o_y, int min, int max, int invert, int abs);
 extern void            mouse_subtract_coords(int *delta_x, int *delta_y, int *o_x, int *o_y,

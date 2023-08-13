@@ -156,7 +156,7 @@ mouse_clear_coords(void)
     mouse_z = 0;
 }
 
-static void
+void
 mouse_clear_buttons(void)
 {
     mouse_buttons  = 0x00;
