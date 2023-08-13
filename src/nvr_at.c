@@ -440,12 +440,14 @@ timer_update_irq(nvr_t *nvr)
     local_t *local = (local_t *) nvr->data;
     uint8_t irq = (nvr->regs[RTC_REGB] & nvr->regs[RTC_REGC]) & (REGB_UIE | REGB_AIE | REGB_PIE);
 
-    if (irq) {
-        nvr->regs[RTC_REGC] |= REGC_IRQF;
-        picintlevel(1 << nvr->irq, &local->irq_state);
-    } else {
-        nvr->regs[RTC_REGC] &= ~REGC_IRQF;
-        picintclevel(1 << nvr->irq, &local->irq_state);
+    if (irq || (local->irq_state != !!irq)) {
+        if (irq) {
+            nvr->regs[RTC_REGC] |= REGC_IRQF;
+            picintlevel(1 << nvr->irq, &local->irq_state);
+        } else {
+            nvr->regs[RTC_REGC] &= ~REGC_IRQF;
+            picintclevel(1 << nvr->irq, &local->irq_state);
+        }
     }
 }
 
