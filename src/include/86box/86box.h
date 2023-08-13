@@ -47,10 +47,14 @@
 #ifdef ABS
 #    undef ABS
 #endif
+#ifdef ABSD
+#    undef ABSD
+#endif
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define ABS(x)    ((x) > 0 ? (x) : -(x))
+#define ABSD(x)   ((x) > 0.0 ? (x) : -(x))
 #define BCD8(x)   ((((x) / 10) << 4) | ((x) % 10))
 #define BCD16(x)  ((((x) / 1000) << 12) | (((x) / 100) << 8) | BCD8(x))
 #define BCD32(x)  ((((x) / 10000000) << 28) | (((x) / 1000000) << 24) | (((x) / 100000) << 20) | (((x) / 10000) << 16) | BCD16(x))

@@ -210,7 +210,7 @@ mouse_subtract_x(int *delta_x, int *o_x, int min, int max, int abs)
     rsmin_x = mouse_scale_coord_x(min, 0);
     if (abs) {
         smax_x = mouse_scale_coord_x(max, 0) + ABS(rsmin_x);
-        max += ABS(min);
+        max += ABSD(min);
         real_x += rsmin_x;
         smin_x = 0;
     } else {
@@ -246,7 +246,7 @@ mouse_subtract_x(int *delta_x, int *o_x, int min, int max, int abs)
             real_x -= mouse_scale_coord_x((double) scaled_x, 0);
         } else {
             *delta_x = min;
-            real_x += ABS(smin_x);
+            real_x += ABSD(smin_x);
         }
     } else {
         *delta_x = scaled_x;
@@ -280,7 +280,7 @@ mouse_subtract_y(int *delta_y, int *o_y, int min, int max, int invert, int abs)
     rsmin_y = mouse_scale_coord_y(min, 0);
     if (abs) {
         smax_y = mouse_scale_coord_y(max, 0) + ABS(rsmin_y);
-        max += ABS(min);
+        max += ABSD(min);
         real_y += rsmin_y;
         smin_y = 0;
     } else {
@@ -316,7 +316,7 @@ mouse_subtract_y(int *delta_y, int *o_y, int min, int max, int invert, int abs)
             real_y -= mouse_scale_coord_y((double) scaled_y, 0);
         } else {
             *delta_y = min;
-            real_y += ABS(smin_y);
+            real_y += ABSD(smin_y);
         }
     } else {
         *delta_y = scaled_y;
@@ -348,15 +348,11 @@ mouse_subtract_coords(int *delta_x, int *delta_y, int *o_x, int *o_y,
 int
 mouse_moved(void)
 {
-    double scaled_x = mouse_scale_coord_x(atomic_load(&mouse_x), 1);
-    double scaled_y = mouse_scale_coord_y(atomic_load(&mouse_y), 1);
-
-    scaled_x = (scaled_x >= 0.0) ? floor(scaled_x) : ceil(scaled_x);
-    scaled_y = (scaled_y >= 0.0) ? floor(scaled_y) : ceil(scaled_y);
+    int moved_x = !!((int) floor(ABSD(mouse_scale_coord_x(atomic_load(&mouse_x), 1))));
+    int moved_y = !!((int) floor(ABSD(mouse_scale_coord_y(atomic_load(&mouse_y), 1))));
 
     /* Convert them to integer so we treat < 1.0 and > -1.0 as 0. */
-    int ret = ((((int) scaled_x) != 0) ||
-               (((int) scaled_y) != 0));
+    int ret = (moved_x || moved_y);
 
     return ret;
 }
