@@ -433,8 +433,6 @@ mouse_scale_y(int y)
 void
 mouse_scalef(double x, double y)
 {
-    pclog("DPI = %lf (%lfx%lf)\n", plat_get_dpi(), monitors[0].mon_res_x, monitors[0].mon_res_y);
-
     mouse_scale_fx(x);
     mouse_scale_fy(y);
 }
@@ -442,8 +440,6 @@ mouse_scalef(double x, double y)
 void
 mouse_scale(int x, int y)
 {
-    pclog("DPI = %lf (%lfx%lf)\n", plat_get_dpi(), monitors[0].mon_res_x, monitors[0].mon_res_y);
-
     mouse_scale_x(x);
     mouse_scale_y(y);
 }
