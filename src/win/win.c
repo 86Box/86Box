@@ -1290,7 +1290,7 @@ endblit(void)
 double
 plat_get_dpi(void)
 {
-    UINT dpi = GetDeviceCaps(dc, LOGPIXELSX);
+    UINT dpi = win_get_dpi(hwndRender);
 
     return ((double) dpi) / 96.0;
 }
