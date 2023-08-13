@@ -348,9 +348,15 @@ mouse_subtract_coords(int *delta_x, int *delta_y, int *o_x, int *o_y,
 int
 mouse_moved(void)
 {
+    double scaled_x = mouse_scale_coord_x(atomic_load(&mouse_x), 1);
+    double scaled_y = mouse_scale_coord_y(atomic_load(&mouse_y), 1);
+
+    scaled_x = (scaled_x >= 0.0) ? floor(scaled_x) : ceil(scaled_x);
+    scaled_y = (scaled_y >= 0.0) ? floor(scaled_y) : ceil(scaled_y);
+
     /* Convert them to integer so we treat < 1.0 and > -1.0 as 0. */
-    int ret = (((int) floor(mouse_scale_coord_x(atomic_load(&mouse_x), 1)) != 0) ||
-               ((int) floor(mouse_scale_coord_x(atomic_load(&mouse_y), 1)) != 0));
+    int ret = ((((int) scaled_x) != 0) ||
+               (((int) scaled_y) != 0));
 
     return ret;
 }
