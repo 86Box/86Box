@@ -27,6 +27,7 @@
 
 extern "C" {
 #include <86box/86box.h>
+#include <86box/plat.h>
 #include <86box/video.h>
 }
 
@@ -51,62 +52,71 @@ integer_scale(double *d, double *g)
 void
 RendererCommon::onResize(int width, int height)
 {
-    if ((video_fullscreen == 0) && (video_fullscreen_scale_maximized ? ((parentWidget->isMaximized() == false) && (main_window->isAncestorOf(parentWidget) && main_window->isMaximized() == false)) : 1)) {
+    /* This is needed so that the if below does not take like, 5 lines. */
+    bool is_fs = (video_fullscreen == 0);
+    bool parent_max = (parentWidget->isMaximized() == false);
+    bool main_is_ancestor = main_window->isAncestorOf(parentWidget);
+    bool main_max = main_window->isMaximized();
+    bool main_is_max = (main_is_ancestor && main_max == false);
+
+    if (is_fs && (video_fullscreen_scale_maximized ? (parent_max && main_is_max) : 1))
         destination.setRect(0, 0, width, height);
-        return;
-    }
-    double dx;
-    double dy;
-    double dw;
-    double dh;
-    double gsr;
+    else {
+        double dx;
+        double dy;
+        double dw;
+        double dh;
+        double gsr;
 
-    double hw  = width;
-    double hh  = height;
-    double gw  = source.width();
-    double gh  = source.height();
-    double hsr = hw / hh;
+        double hw  = width;
+        double hh  = height;
+        double gw  = source.width();
+        double gh  = source.height();
+        double hsr = hw / hh;
 
-    switch (video_fullscreen_scale) {
-        case FULLSCR_SCALE_INT:
-            gsr = gw / gh;
-            if (gsr <= hsr) {
-                dw = hh * gsr;
-                dh = hh;
-            } else {
-                dw = hw;
-                dh = hw / gsr;
-            }
-            integer_scale(&dw, &gw);
-            integer_scale(&dh, &gh);
-            dx = (hw - dw) / 2.0;
-            dy = (hh - dh) / 2.0;
-            destination.setRect(dx, dy, dw, dh);
-            break;
-        case FULLSCR_SCALE_43:
-        case FULLSCR_SCALE_KEEPRATIO:
-            if (video_fullscreen_scale == FULLSCR_SCALE_43) {
-                gsr = 4.0 / 3.0;
-            } else {
+        switch (video_fullscreen_scale) {
+            case FULLSCR_SCALE_INT:
                 gsr = gw / gh;
-            }
+                if (gsr <= hsr) {
+                    dw = hh * gsr;
+                    dh = hh;
+                } else {
+                    dw = hw;
+                    dh = hw / gsr;
+                }
+                integer_scale(&dw, &gw);
+                integer_scale(&dh, &gh);
+                dx = (hw - dw) / 2.0;
+                dy = (hh - dh) / 2.0;
+                destination.setRect((int) dx, (int) dy, (int) dw, (int) dh);
+                break;
+            case FULLSCR_SCALE_43:
+            case FULLSCR_SCALE_KEEPRATIO:
+                if (video_fullscreen_scale == FULLSCR_SCALE_43)
+                    gsr = 4.0 / 3.0;
+                else
+                    gsr = gw / gh;
 
-            if (gsr <= hsr) {
-                dw = hh * gsr;
-                dh = hh;
-            } else {
-                dw = hw;
-                dh = hw / gsr;
-            }
-            dx = (hw - dw) / 2.0;
-            dy = (hh - dh) / 2.0;
-            destination.setRect(dx, dy, dw, dh);
-            break;
-        case FULLSCR_SCALE_FULL:
-        default:
-            destination.setRect(0, 0, hw, hh);
-            break;
+                if (gsr <= hsr) {
+                    dw = hh * gsr;
+                    dh = hh;
+                } else {
+                    dw = hw;
+                    dh = hw / gsr;
+                }
+                dx = (hw - dw) / 2.0;
+                dy = (hh - dh) / 2.0;
+                destination.setRect((int) dx, (int) dy, (int) dw, (int) dh);
+                break;
+            case FULLSCR_SCALE_FULL:
+            default:
+                destination.setRect(0, 0, (int) hw, (int) hh);
+                break;
+        }
     }
+
+    monitors[r_monitor_index].mon_res_x = (double) destination.width();
+    monitors[r_monitor_index].mon_res_y = (double) destination.height();
 }
 
 bool

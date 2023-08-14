@@ -17,17 +17,24 @@ typedef struct pci_dummy_t {
 
     bar_t pci_bar[2];
 
-    uint8_t card;
+    uint8_t pci_slot;
+    uint8_t irq_state;
     uint8_t interrupt_on;
+
+    uint8_t irq_level;
 } pci_dummy_t;
 
 static void
 pci_dummy_interrupt(int set, pci_dummy_t *dev)
 {
-    if (set)
-        pci_set_irq(dev->card, PCI_INTA);
-    else
-        pci_clear_irq(dev->card, PCI_INTA);
+    if (set != dev->irq_level) {
+        if (set)
+            pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
+        else
+            pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
+    }
+
+    dev->irq_level = set;
 }
 
 static uint8_t
@@ -160,8 +167,8 @@ pci_dummy_pci_read(int func, int addr, void *priv)
                 ret = dev->pci_regs[addr];
                 break;
 
-            case 0x08: /* Techncially, revision, but we return the card (slot) here. */
-                ret = dev->card;
+            case 0x08: /* Techncially, revision, but we return the slot here. */
+                ret = dev->pci_slot;
                 break;
 
             case 0x10: /* PCI_BAR 7:5 */
@@ -211,9 +218,7 @@ pci_dummy_pci_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x10:       /* PCI_BAR */
                 val &= 0xe0; /* 0xe0 acc to RTL DS */
-#ifdef FALLTHROUGH_ANNOTATION
-                [[fallthrough]];
-#endif
+                fallthrough;
 
             case 0x11: /* PCI_BAR */
                 /* Remove old I/O. */
@@ -236,7 +241,7 @@ pci_dummy_pci_write(int func, int addr, uint8_t val, void *priv)
                 break;
 
             case 0x3c: /* PCI_ILR */
-                pclog("AB0B:071A Device %02X: IRQ now: %i\n", dev->card, val);
+                pclog("AB0B:071A Device %02X: IRQ now: %i\n", dev->pci_slot, val);
                 dev->pci_regs[addr] = val;
                 return;
 
@@ -273,7 +278,7 @@ pci_dummy_card_init(UNUSED(const device_t *info))
 {
     pci_dummy_t *dev = (pci_dummy_t *) calloc(1, sizeof(pci_dummy_t));
 
-    dev->card = pci_add_card(PCI_ADD_NORMAL, pci_dummy_pci_read, pci_dummy_pci_write, dev);
+    pci_add_card(PCI_ADD_NORMAL, pci_dummy_pci_read, pci_dummy_pci_write, dev,  &dev->pci_slot);
 
     return dev;
 }

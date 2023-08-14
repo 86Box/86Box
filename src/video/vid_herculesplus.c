@@ -139,6 +139,7 @@ herculesplus_out(uint16_t port, uint8_t val, void *priv)
                 return;
             old                     = dev->crtc[dev->crtcreg];
             dev->crtc[dev->crtcreg] = val;
+
             if (dev->crtc[10] == 6 && dev->crtc[11] == 7) {
                 /*Fix for Generic Turbo XT BIOS,
                  *which sets up cursor registers wrong*/
@@ -282,6 +283,7 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 {
     unsigned       ull;
     unsigned       val;
+    unsigned       ifg;
     unsigned       ibg;
     unsigned       cfg;
     const uint8_t *fnt;
@@ -299,14 +301,19 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
 
     /* MDA-compatible attributes */
     ibg = 0;
+    ifg = 7;
     if ((attr & 0x77) == 0x70) { /* Invert */
+        ifg = 0;
         ibg = 7;
     }
     if (attr & 8)
-        if (attr & 0x80)
-            ibg |= 8;       /* High intensity BG */
+        ifg |= 8; /* High intensity FG */
+    if (attr & 0x80)
+        ibg |= 8; /* High intensity BG */
     if ((attr & 0x77) == 0) /* Blank */
-        ull = ((attr & 0x07) == 1) ? 13 : 0xffff;
+        ifg = ibg;
+    ull = ((attr & 0x07) == 1) ? 13 : 0xffff;
+
     if (dev->crtc[HERCULESPLUS_CRTC_XMODE] & HERCULESPLUS_XMODE_90COL)
         elg = 0;
     else
@@ -329,6 +336,11 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
     for (int i = 0; i < cw; i++) {
         /* Generate pixel colour */
         cfg = 0;
+
+        if (val & 0x100)
+            cfg = ifg;
+        else
+            cfg = ibg;
 
         /* cfg = colour of foreground pixels */
         if ((attr & 0x77) == 0)
@@ -427,6 +439,8 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
             cfg = olc ^ ibg; /* Strikethrough */
         else if (dev->sc == ull)
             cfg = ulc ^ ibg; /* Underline */
+        else if (val & 0x100)
+            cfg |= ~ibg;
         else
             cfg |= ibg;
 
@@ -445,8 +459,8 @@ text_line(herculesplus_t *dev, uint16_t ca)
 
     for (uint8_t x = 0; x < dev->crtc[1]; x++) {
         if (dev->ctrl & 8) {
-            chr  = dev->vram[(dev->ma << 1) & 0xfff];
-            attr = dev->vram[((dev->ma << 1) + 1) & 0xfff];
+            chr  = dev->vram[(dev->ma << 1) & 0x3fff];
+            attr = dev->vram[((dev->ma << 1) + 1) & 0x3fff];
         } else
             chr = attr = 0;
 
@@ -521,6 +535,7 @@ herculesplus_poll(void *priv)
     int             x;
     int             oldvc;
     int             oldsc;
+    int             cw = HERCULESPLUS_CW;
 
     VIDEO_MONITOR_PROLOGUE();
     if (!dev->linepos) {
@@ -544,7 +559,7 @@ herculesplus_poll(void *priv)
             if ((dev->ctrl & HERCULESPLUS_CTRL_GRAPH) && (dev->ctrl2 & HERCULESPLUS_CTRL2_GRAPH))
                 x = dev->crtc[1] << 4;
             else
-                x = dev->crtc[1] * 9;
+                x = dev->crtc[1] * cw;
 
             video_process_8(x, dev->displine);
         }
@@ -607,7 +622,7 @@ herculesplus_poll(void *priv)
                     if ((dev->ctrl & HERCULESPLUS_CTRL_GRAPH) && (dev->ctrl2 & HERCULESPLUS_CTRL2_GRAPH))
                         x = dev->crtc[1] << 4;
                     else
-                        x = dev->crtc[1] * 9;
+                        x = dev->crtc[1] * cw;
                     dev->lastline++;
                     if ((dev->ctrl & 8) && ((x != xsize) || ((dev->lastline - dev->firstline) != ysize) || video_force_resize_get())) {
                         xsize = x;

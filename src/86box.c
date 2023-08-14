@@ -918,11 +918,15 @@ pc_init_modules(void)
 
 #ifdef USE_DYNAREC
 #    if defined(__APPLE__) && defined(__aarch64__)
-    pthread_jit_write_protect_np(0);
+    if (__builtin_available(macOS 11.0, *)) {
+        pthread_jit_write_protect_np(0);
+    }
 #    endif
     codegen_init();
 #    if defined(__APPLE__) && defined(__aarch64__)
-    pthread_jit_write_protect_np(1);
+    if (__builtin_available(macOS 11.0, *)) {
+        pthread_jit_write_protect_np(1);
+    }
 #    endif
 #endif
 
@@ -1048,19 +1052,9 @@ pc_reset_hard_init(void)
     /* Initialize the actual machine and its basic modules. */
     machine_init();
 
-    /* Reset and reconfigure the serial ports. */
-    serial_standalone_init();
-    serial_passthrough_init();
-
-    /* Reset and reconfigure the Sound Card layer. */
-    sound_card_reset();
-
-    /* Reset any ISA RTC cards. */
-    isartc_reset();
-
-    fdc_card_init();
-
-    fdd_reset();
+    /* Reset some basic devices. */
+    speaker_init();
+    shadowbios = 0;
 
     /*
      * Once the machine has been initialized, all that remains
@@ -1071,10 +1065,20 @@ pc_reset_hard_init(void)
      * that will be a call to device_reset_all() later !
      */
 
-    /* Reset some basic devices. */
-    speaker_init();
+    if (joystick_type)
+        gameport_update_joystick_type();
+
+    /* Reset and reconfigure the Sound Card layer. */
+    sound_card_reset();
+
+    /* Reset and reconfigure the Network Card layer. */
+    network_reset();
+
     lpt_devices_init();
-    shadowbios = 0;
+
+    /* Reset and reconfigure the serial ports. */
+    serial_standalone_init();
+    serial_passthrough_init();
 
     /*
      * Reset the mouse, this will attach it to any port needed.
@@ -1084,25 +1088,30 @@ pc_reset_hard_init(void)
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
 
+    fdc_card_init();
+
+    fdd_reset();
+
     /* Reset the CD-ROM Controller module. */
     cdrom_interface_reset();
 
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
 
-    cdrom_hard_reset();
+    scsi_disk_hard_reset();
 
-    zip_hard_reset();
+    cdrom_hard_reset();
 
     mo_hard_reset();
 
-    scsi_disk_hard_reset();
+    zip_hard_reset();
 
-    /* Reset and reconfigure the Network Card layer. */
-    network_reset();
+    /* Reset any ISA RTC cards. */
+    isartc_reset();
 
-    if (joystick_type)
-        gameport_update_joystick_type();
+    /* Initialize the Voodoo cards here inorder to minmize
+       the chances of the SCSI controller ending up on the bridge. */
+    video_voodoo_init();
 
     ui_sb_update_panes();
 
@@ -1118,6 +1127,11 @@ pc_reset_hard_init(void)
         device_add(&bugger_device);
     if (postcard_enabled)
         device_add(&postcard_device);
+
+    if (IS_ARCH(machine, MACHINE_BUS_PCI)) {
+        pci_register_cards();
+        device_reset_all(DEVICE_PCI);
+    }
 
     /* Reset the CPU module. */
     resetx86();
@@ -1273,10 +1287,12 @@ pc_run(void)
     startblit();
     cpu_exec(cpu_s->rspeed / 100);
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
-    // if (gdbstub_step == GDBSTUB_EXEC)
+    if (gdbstub_step == GDBSTUB_EXEC) {
 #endif
-#if 0
-        mouse_process();
+        if (!mouse_timed)
+            mouse_process();
+#ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
+    }
 #endif
     joystick_process();
     endblit();

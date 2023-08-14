@@ -46,10 +46,10 @@ opSYSEXIT(uint32_t fetchdat)
 static int
 sf_fx_save_stor_common(uint32_t fetchdat, int bits)
 {
-    uint8_t   fxinst     = 0;
-    uint32_t  tag_byte;
-    unsigned  index;
-    floatx80  reg;
+    uint8_t  fxinst = 0;
+    uint32_t tag_byte;
+    unsigned index;
+    floatx80 reg;
 
     if (CPUID < 0x650)
         return ILLEGAL(fetchdat);
@@ -129,33 +129,33 @@ sf_fx_save_stor_common(uint32_t fetchdat, int bits)
         /* The lower 11 bits contain the FPU opcode, upper 5 bits are reserved */
         writememw(easeg, cpu_state.eaaddr + 6, fpu_state.foo);
 
-      /*
-       * x87 FPU IP Offset (32/64 bits)
-       * The contents of this field differ depending on the current
-       * addressing mode (16/32/64 bit) when the FXSAVE instruction was executed:
-       *   + 64-bit mode - 64-bit IP offset
-       *   + 32-bit mode - 32-bit IP offset
-       *   + 16-bit mode - low 16 bits are IP offset; high 16 bits are reserved.
-       * x87 CS FPU IP Selector
-       *   + 16 bit, in 16/32 bit mode only
-       */
+        /*
+         * x87 FPU IP Offset (32/64 bits)
+         * The contents of this field differ depending on the current
+         * addressing mode (16/32/64 bit) when the FXSAVE instruction was executed:
+         *   + 64-bit mode - 64-bit IP offset
+         *   + 32-bit mode - 32-bit IP offset
+         *   + 16-bit mode - low 16 bits are IP offset; high 16 bits are reserved.
+         * x87 CS FPU IP Selector
+         *   + 16 bit, in 16/32 bit mode only
+         */
         writememl(easeg, cpu_state.eaaddr + 8, fpu_state.fip);
         writememl(easeg, cpu_state.eaaddr + 12, fpu_state.fcs);
 
-      /*
-       * x87 FPU Instruction Operand (Data) Pointer Offset (32/64 bits)
-       * The contents of this field differ depending on the current
-       * addressing mode (16/32 bit) when the FXSAVE instruction was executed:
-       *   + 64-bit mode - 64-bit offset
-       *   + 32-bit mode - 32-bit offset
-       *   + 16-bit mode - low 16 bits are offset; high 16 bits are reserved.
-       * x87 DS FPU Instruction Operand (Data) Pointer Selector
-       *   + 16 bit, in 16/32 bit mode only
-       */
+        /*
+         * x87 FPU Instruction Operand (Data) Pointer Offset (32/64 bits)
+         * The contents of this field differ depending on the current
+         * addressing mode (16/32 bit) when the FXSAVE instruction was executed:
+         *   + 64-bit mode - 64-bit offset
+         *   + 32-bit mode - 32-bit offset
+         *   + 16-bit mode - low 16 bits are offset; high 16 bits are reserved.
+         * x87 DS FPU Instruction Operand (Data) Pointer Selector
+         *   + 16 bit, in 16/32 bit mode only
+         */
         writememl(easeg, cpu_state.eaaddr + 16, fpu_state.fdp);
         writememl(easeg, cpu_state.eaaddr + 20, fpu_state.fds);
 
-       /* store i387 register file */
+        /* store i387 register file */
         for (index = 0; index < 8; index++) {
             const floatx80 fp = FPU_read_regi(index);
 
@@ -172,70 +172,72 @@ sf_fx_save_stor_common(uint32_t fetchdat, int bits)
 static int
 fx_save_stor_common(uint32_t fetchdat, int bits)
 {
-    uint8_t   fxinst     = 0;
-    uint16_t  twd        = x87_gettag();
-    uint32_t  old_eaaddr = 0;
-    uint8_t   ftwb       = 0;
-    uint16_t  rec_ftw    = 0;
-    uint16_t  fpus       = 0;
-    int       i, mmx_tags = 0;
-    uint16_t  exp        = 0x0000;
-    uint64_t  mant       = 0x0000000000000000ULL;
-    uint64_t  fraction;
-    uint8_t   jm, valid;
-                                      /* Exp_all_1 Exp_all_0 Frac_all_0 J M FTW_Valid  |  Ent
-                                         ----------------------------------------------+------ */
-    uint8_t   ftw_table_idx;
-    uint8_t   ftw_table[48] = { 0x03,   /* 0         0         0          0 0 0          |  0x00 */
-                                0x02,   /* 0         0         0          0 0 1          |  0x01 */
-                                0x03,   /* 0         0         0          0 0 0          |  0x02 */
-                                0x02,   /* 0         0         0          0 1 1          |  0x03 */
-                                0x03,   /* 0         0         0          1 0 0          |  0x04 */
-                                0x00,   /* 0         0         0          1 0 1          |  0x05 */
-                                0x03,   /* 0         0         0          1 1 0          |  0x06 */
-                                0x00,   /* 0         0         0          1 1 1          |  0x07 */
-                                0x03,   /* 0         0         1          0 0 0          |  0x08 */
-                                0x02,   /* 0         0         1          0 0 1          |  0x09 */
-                                0x03,   /* 0         0         1          0 1 0          |  0x0a - Impossible */
-                                0x03,   /* 0         0         1          0 1 1          |  0x0b - Impossible */
-                                0x03,   /* 0         0         1          1 0 0          |  0x0c */
-                                0x02,   /* 0         0         1          1 0 1          |  0x0d */
-                                0x03,   /* 0         0         1          1 1 0          |  0x0e - Impossible */
-                                0x03,   /* 0         0         1          1 1 1          |  0x0f - Impossible */
-                                0x03,   /* 0         1         0          0 0 0          |  0x10 */
-                                0x02,   /* 0         1         0          0 0 1          |  0x11 */
-                                0x03,   /* 0         1         0          0 1 0          |  0x12 */
-                                0x02,   /* 0         1         0          0 1 1          |  0x13 */
-                                0x03,   /* 0         1         0          1 0 0          |  0x14 */
-                                0x02,   /* 0         1         0          1 0 1          |  0x15 */
-                                0x03,   /* 0         1         0          1 1 0          |  0x16 */
-                                0x02,   /* 0         1         0          1 1 1          |  0x17 */
-                                0x03,   /* 0         1         1          0 0 0          |  0x18 */
-                                0x01,   /* 0         1         1          0 0 1          |  0x19 */
-                                0x03,   /* 0         1         1          0 1 0          |  0x1a - Impossible */
-                                0x03,   /* 0         1         1          0 1 1          |  0x1b - Impossible */
-                                0x03,   /* 0         1         1          1 0 0          |  0x1c */
-                                0x01,   /* 0         1         1          1 0 1          |  0x1d */
-                                0x03,   /* 0         1         1          1 1 0          |  0x1e - Impossible */
-                                0x03,   /* 0         1         1          1 1 1          |  0x1f - Impossible */
-                                0x03,   /* 1         0         0          0 0 0          |  0x20 */
-                                0x02,   /* 1         0         0          0 0 1          |  0x21 */
-                                0x03,   /* 1         0         0          0 1 0          |  0x22 */
-                                0x02,   /* 1         0         0          0 1 1          |  0x23 */
-                                0x03,   /* 1         0         0          1 0 0          |  0x24 */
-                                0x02,   /* 1         0         0          1 0 1          |  0x25 */
-                                0x03,   /* 1         0         0          1 1 0          |  0x26 */
-                                0x02,   /* 1         0         0          1 1 1          |  0x27 */
-                                0x03,   /* 1         0         1          0 0 0          |  0x28 */
-                                0x02,   /* 1         0         1          0 0 1          |  0x29 */
-                                0x03,   /* 1         0         1          0 1 0          |  0x2a - Impossible */
-                                0x03,   /* 1         0         1          0 1 1          |  0x2b - Impossible */
-                                0x03,   /* 1         0         1          1 0 0          |  0x2c */
-                                0x02,   /* 1         0         1          1 0 1          |  0x2d */
-                                0x03,   /* 1         0         1          1 1 0          |  0x2e - Impossible */
-                                0x03 }; /* 1         0         1          1 1 1          |  0x2f - Impossible */
-                                  /* M is the most significant bit of the franction, so it is impossible
-                                     for M to o be 1 when the fraction is all 0's. */
+    uint8_t  fxinst     = 0;
+    uint16_t twd        = x87_gettag();
+    uint32_t old_eaaddr = 0;
+    uint8_t  ftwb       = 0;
+    uint16_t rec_ftw    = 0;
+    uint16_t fpus       = 0;
+    int      i;
+    int      mmx_tags = 0;
+    uint16_t exp      = 0x0000;
+    uint64_t mant     = 0x0000000000000000ULL;
+    uint64_t fraction;
+    uint8_t  jm;
+    uint8_t  valid;
+    /* Exp_all_1 Exp_all_0 Frac_all_0 J M FTW_Valid  |  Ent
+       ----------------------------------------------+------ */
+    uint8_t ftw_table_idx;
+    uint8_t ftw_table[48] = { 0x03,   /* 0         0         0          0 0 0          |  0x00 */
+                              0x02,   /* 0         0         0          0 0 1          |  0x01 */
+                              0x03,   /* 0         0         0          0 0 0          |  0x02 */
+                              0x02,   /* 0         0         0          0 1 1          |  0x03 */
+                              0x03,   /* 0         0         0          1 0 0          |  0x04 */
+                              0x00,   /* 0         0         0          1 0 1          |  0x05 */
+                              0x03,   /* 0         0         0          1 1 0          |  0x06 */
+                              0x00,   /* 0         0         0          1 1 1          |  0x07 */
+                              0x03,   /* 0         0         1          0 0 0          |  0x08 */
+                              0x02,   /* 0         0         1          0 0 1          |  0x09 */
+                              0x03,   /* 0         0         1          0 1 0          |  0x0a - Impossible */
+                              0x03,   /* 0         0         1          0 1 1          |  0x0b - Impossible */
+                              0x03,   /* 0         0         1          1 0 0          |  0x0c */
+                              0x02,   /* 0         0         1          1 0 1          |  0x0d */
+                              0x03,   /* 0         0         1          1 1 0          |  0x0e - Impossible */
+                              0x03,   /* 0         0         1          1 1 1          |  0x0f - Impossible */
+                              0x03,   /* 0         1         0          0 0 0          |  0x10 */
+                              0x02,   /* 0         1         0          0 0 1          |  0x11 */
+                              0x03,   /* 0         1         0          0 1 0          |  0x12 */
+                              0x02,   /* 0         1         0          0 1 1          |  0x13 */
+                              0x03,   /* 0         1         0          1 0 0          |  0x14 */
+                              0x02,   /* 0         1         0          1 0 1          |  0x15 */
+                              0x03,   /* 0         1         0          1 1 0          |  0x16 */
+                              0x02,   /* 0         1         0          1 1 1          |  0x17 */
+                              0x03,   /* 0         1         1          0 0 0          |  0x18 */
+                              0x01,   /* 0         1         1          0 0 1          |  0x19 */
+                              0x03,   /* 0         1         1          0 1 0          |  0x1a - Impossible */
+                              0x03,   /* 0         1         1          0 1 1          |  0x1b - Impossible */
+                              0x03,   /* 0         1         1          1 0 0          |  0x1c */
+                              0x01,   /* 0         1         1          1 0 1          |  0x1d */
+                              0x03,   /* 0         1         1          1 1 0          |  0x1e - Impossible */
+                              0x03,   /* 0         1         1          1 1 1          |  0x1f - Impossible */
+                              0x03,   /* 1         0         0          0 0 0          |  0x20 */
+                              0x02,   /* 1         0         0          0 0 1          |  0x21 */
+                              0x03,   /* 1         0         0          0 1 0          |  0x22 */
+                              0x02,   /* 1         0         0          0 1 1          |  0x23 */
+                              0x03,   /* 1         0         0          1 0 0          |  0x24 */
+                              0x02,   /* 1         0         0          1 0 1          |  0x25 */
+                              0x03,   /* 1         0         0          1 1 0          |  0x26 */
+                              0x02,   /* 1         0         0          1 1 1          |  0x27 */
+                              0x03,   /* 1         0         1          0 0 0          |  0x28 */
+                              0x02,   /* 1         0         1          0 0 1          |  0x29 */
+                              0x03,   /* 1         0         1          0 1 0          |  0x2a - Impossible */
+                              0x03,   /* 1         0         1          0 1 1          |  0x2b - Impossible */
+                              0x03,   /* 1         0         1          1 0 0          |  0x2c */
+                              0x02,   /* 1         0         1          1 0 1          |  0x2d */
+                              0x03,   /* 1         0         1          1 1 0          |  0x2e - Impossible */
+                              0x03 }; /* 1         0         1          1 1 1          |  0x2f - Impossible */
+                                      /* M is the most significant bit of the franction, so it is impossible
+                                         for M to o be 1 when the fraction is all 0's. */
 
     if (CPUID < 0x650)
         return ILLEGAL(fetchdat);
@@ -285,11 +287,11 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
         for (i = 0; i <= 7; i++) {
             cpu_state.eaaddr = old_eaaddr + 32 + (i << 4);
-            mant = readmemq(easeg, cpu_state.eaaddr);
-            fraction = mant & 0x7fffffffffffffffULL;
-            exp = readmemw(easeg, cpu_state.eaaddr + 8);
-            jm = (mant >> 62) & 0x03;
-            valid = !(ftwb & (1 << i));
+            mant             = readmemq(easeg, cpu_state.eaaddr);
+            fraction         = mant & 0x7fffffffffffffffULL;
+            exp              = readmemw(easeg, cpu_state.eaaddr + 8);
+            jm               = (mant >> 62) & 0x03;
+            valid            = !(ftwb & (1 << i));
 
             ftw_table_idx = (!!(exp == 0x1111)) << 5;
             ftw_table_idx |= (!!(exp == 0x0000)) << 4;
@@ -379,7 +381,7 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 static int
 opFXSAVESTOR_a16(uint32_t fetchdat)
 {
-    if (fpu_softfloat) 
+    if (fpu_softfloat)
         return sf_fx_save_stor_common(fetchdat, 16);
 
     return fx_save_stor_common(fetchdat, 16);

@@ -1522,8 +1522,11 @@ void fm_engine_base<RegisterType>::engine_timer_expired(uint32_t tnum)
 				m_modified_channels |= 1 << chnum;
 			}
 
-	// reset
-	m_timer_running[tnum] = false;
+        // Make sure the array does not go out of bounds to keep gcc happy
+        if(tnum < 2) {
+            // reset
+            m_timer_running[tnum] = false;
+        }
 	update_timer(tnum, 1, 0);
 }
 

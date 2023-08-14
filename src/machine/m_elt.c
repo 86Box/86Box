@@ -124,9 +124,7 @@ elt_vid_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3d1:
             if (cga->crtcreg >= 32)
                 return;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         default:
             cga->crtcreg &= 31;

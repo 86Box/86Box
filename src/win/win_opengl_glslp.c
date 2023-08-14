@@ -50,8 +50,8 @@ in vec2 VertexCoord;\n\
 in vec2 TexCoord;\n\
 out vec2 tex;\n\
 void main(){\n\
-	gl_Position = vec4(VertexCoord, 0.0, 1.0);\n\
-	tex = TexCoord;\n\
+    gl_Position = vec4(VertexCoord, 0.0, 1.0);\n\
+    tex = TexCoord;\n\
 }\n";
 
 /**
@@ -62,7 +62,7 @@ in vec2 tex;\n\
 uniform sampler2D texsampler;\n\
 out vec4 color;\n\
 void main() {\n\
-	color = texture(texsampler, tex);\n\
+    color = texture(texsampler, tex);\n\
 }\n";
 
 /**
@@ -179,7 +179,7 @@ load_custom_shaders(const char *path)
         /* Check if the shader program defines version directive */
         char *version_start = strstr(shader, "#version");
 
-        /*	If the shader program contains a version directive,
+        /* If the shader program contains a version directive,
                 it must be captured and placed as the first statement. */
         if (version_start != NULL) {
             /* Version directive found, search the line end */
@@ -197,7 +197,7 @@ load_custom_shaders(const char *path)
                 fragment_sources[0] = version;
             }
 
-            /*	Comment out the original version directive
+            /* Comment out the original version directive
                     as only one is allowed. */
             memset(version_start, '/', 2);
         }

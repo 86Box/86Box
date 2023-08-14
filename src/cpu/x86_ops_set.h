@@ -36,4 +36,4 @@ opSET(L)
 opSET(NL)
 opSET(LE)
 opSET(NLE)
-// clang-format on
+    // clang-format on

@@ -150,12 +150,15 @@ public:
     {
         for (uint32_t i = 0; i < num_samples; i++) {
             m_chip.generate(&m_output);
-            if (ChipType::OUTPUTS == 1) {
-                *data++ = m_output.data[(m_type == FM_YMF278B) ? 4 : 0];
-                *data++ = m_output.data[(m_type == FM_YMF278B) ? 4 : 0];
+            if(m_type == FM_YMF278B) {
+                *data++ += m_output.data[4 % ChipType::OUTPUTS];
+                *data++ += m_output.data[5 % ChipType::OUTPUTS];
+            } else if (ChipType::OUTPUTS == 1) {
+                *data++ = m_output.data[0];
+                *data++ = m_output.data[0];
             } else {
-                *data++ = m_output.data[(m_type == FM_YMF278B) ? 4 : 0];
-                *data++ = m_output.data[(m_type == FM_YMF278B) ? 5 : (1 % ChipType::OUTPUTS)];
+                *data++ = m_output.data[0];
+                *data++ = m_output.data[1 % ChipType::OUTPUTS];
             }
         }
     }
@@ -167,12 +170,15 @@ public:
                 m_oldsamples[0] = m_samples[0];
                 m_oldsamples[1] = m_samples[1];
                 m_chip.generate(&m_output);
-                if (ChipType::OUTPUTS == 1) {
-                    m_samples[0] = m_output.data[(m_type == FM_YMF278B) ? 4 : 0];
-                    m_samples[1] = m_output.data[(m_type == FM_YMF278B) ? 4 : 0];
+                if(m_type == FM_YMF278B) {
+                    m_samples[0] += m_output.data[4 % ChipType::OUTPUTS];
+                    m_samples[1] += m_output.data[5 % ChipType::OUTPUTS];
+                } else if (ChipType::OUTPUTS == 1) {
+                    m_samples[0] = m_output.data[0];
+                    m_samples[1] = m_output.data[0];
                 } else {
-                    m_samples[0] = m_output.data[(m_type == FM_YMF278B) ? 4 : 0];
-                    m_samples[1] = m_output.data[(m_type == FM_YMF278B) ? 5 : (1 % ChipType::OUTPUTS)];
+                    m_samples[0] = m_output.data[0];
+                    m_samples[1] = m_output.data[1 % ChipType::OUTPUTS];
                 }
                 m_samplecnt -= m_rateratio;
             }

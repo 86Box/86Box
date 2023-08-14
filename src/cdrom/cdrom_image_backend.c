@@ -652,9 +652,7 @@ cdi_cue_get_buffer(char *str, char **line, int up)
                     done = 1;
                     break;
                 }
-#ifdef FALLTHROUGH_ANNOTATION
-                [[fallthrough]];
-#endif
+                fallthrough;
 
             default:
                 if (up && islower((int) *s))

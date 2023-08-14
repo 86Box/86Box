@@ -136,9 +136,7 @@ kbc_at_dev_poll(void *priv)
                 dev->port->wantcmd    = 0;
                 break;
             }
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case DEV_STATE_MAIN_WANT_IN:
             /* Output command response and then return to main loop #2. */
             if ((dev->port->out_new == -1) && (dev->cmd_queue_start != dev->cmd_queue_end)) {

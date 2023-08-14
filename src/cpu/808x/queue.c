@@ -15,6 +15,7 @@
  *          Copyright 2023 gloriouscow.
  *          Copyright 2023 Miran Grca.
  */
+#include <inttypes.h>
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -41,12 +42,13 @@
 /* TODO: Move to cpu.h so this can eventually be reused for 286+ as well. */
 #define QUEUE_MAX 6
 
-typedef struct queue_t
-{
-    size_t        size;
-    size_t        len;
-    size_t        back;
-    size_t        front;
+/* NOTE: When porting from Rust to C, please use uintptr_t and not size_t,
+         so it can be printed with PRIuPTR. */
+typedef struct queue_t {
+    uintptr_t     size;
+    uintptr_t     len;
+    uintptr_t     back;
+    uintptr_t     front;
     uint8_t       q[QUEUE_MAX];
     uint16_t      preload;
     queue_delay_t delay;
@@ -73,15 +75,15 @@ queue_log(const char *fmt, ...)
 #endif
 
 void
-queue_set_size(size_t size)
+queue_set_size(uintptr_t size)
 {
     if (size > QUEUE_MAX)
-        fatal("Requested prefetch queue of %i bytes is too big\n", size);
+        fatal("Requested prefetch queue of %" PRIuPTR " bytes is too big\n", size);
 
     queue.size = size;
 }
 
-size_t
+uintptr_t
 queue_get_len(void)
 {
     return queue.len;

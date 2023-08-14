@@ -198,12 +198,6 @@ static const uint16_t sdl_to_xt[0x200] = {
     [SDL_SCANCODE_NONUSBACKSLASH] = 0x56,
 };
 
-typedef struct mouseinputdata {
-    int deltax, deltay, deltaz;
-    int mousebuttons;
-} mouseinputdata;
-static mouseinputdata mousedata;
-
 // #define ENABLE_SDL_LOG 3
 #ifdef ENABLE_SDL_LOG
 int sdl_do_log = ENABLE_SDL_LOG;
@@ -620,16 +614,14 @@ sdl_main()
                             event.wheel.x *= -1;
                             event.wheel.y *= -1;
                         }
-                        mousedata.deltaz = event.wheel.y;
+                        mouse_set_z(event.wheel.y);
                     }
                     break;
                 }
             case SDL_MOUSEMOTION:
                 {
-                    if (mouse_capture || video_fullscreen) {
-                        mousedata.deltax += event.motion.xrel;
-                        mousedata.deltay += event.motion.yrel;
-                    }
+                    if (mouse_capture || video_fullscreen)
+                        mouse_scale(event.motion.xrel, event.motion.yrel);
                     break;
                 }
             case SDL_MOUSEBUTTONDOWN:
@@ -660,10 +652,10 @@ sdl_main()
                                 buttonmask = 4;
                                 break;
                         }
-                        if (event.button.state == SDL_PRESSED) {
-                            mousedata.mousebuttons |= buttonmask;
-                        } else
-                            mousedata.mousebuttons &= ~buttonmask;
+                        if (event.button.state == SDL_PRESSED)
+                            mouse_set_buttons_ex(mouse_get_buttons_ex() | buttonmask);
+                        else
+                            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~buttonmask);
                     }
                     break;
                 }
@@ -713,14 +705,4 @@ void
 sdl_mouse_capture(int on)
 {
     SDL_SetRelativeMouseMode((SDL_bool) on);
-}
-
-void
-sdl_mouse_poll()
-{
-    mouse_x          = mousedata.deltax;
-    mouse_y          = mousedata.deltay;
-    mouse_z          = mousedata.deltaz;
-    mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
-    mouse_buttons                                          = mousedata.mousebuttons;
 }

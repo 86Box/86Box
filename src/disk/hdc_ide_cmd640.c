@@ -42,9 +42,12 @@ typedef struct cmd640_t {
     uint8_t  id;
     uint8_t  in_cfg;
     uint8_t  channels;
-    uint8_t  pci, regs[256];
+    uint8_t  pci;
+    uint8_t  irq_state;
+    uint8_t  pci_slot;
+    uint8_t  pad0;
+    uint8_t  regs[256];
     uint32_t local;
-    int      slot;
     int      irq_mode[2];
     int      irq_pin;
     int      irq_line;
@@ -95,12 +98,12 @@ cmd640_set_irq(int channel, void *priv)
 
     if (irq) {
         if (dev->irq_mode[channel] == 1)
-            pci_set_irq(dev->slot, dev->irq_pin);
+            pci_set_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
         else
             picint(1 << (14 + channel));
     } else {
         if (dev->irq_mode[channel] == 1)
-            pci_clear_irq(dev->slot, dev->irq_pin);
+            pci_clear_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
         else
             picintc(1 << (14 + channel));
     }
@@ -500,7 +503,10 @@ cmd640_init(const device_t *info)
     if (info->flags & DEVICE_PCI) {
         device_add(&ide_pci_2ch_device);
 
-        dev->slot = pci_add_card(PCI_ADD_IDE, cmd640_pci_read, cmd640_pci_write, dev);
+        if (info->local & 0x80000)
+            pci_add_card(PCI_ADD_NORMAL, cmd640_pci_read, cmd640_pci_write, dev, &dev->pci_slot);
+        else
+            pci_add_card(PCI_ADD_IDE, cmd640_pci_read, cmd640_pci_write, dev, &dev->pci_slot);
 
         if (dev->channels & 0x01)
             ide_set_bus_master(0, NULL, cmd640_set_irq, dev);

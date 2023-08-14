@@ -331,6 +331,24 @@ extern void     writememll_no_mmut(uint32_t addr, uint32_t *a64, uint32_t val);
 
 extern void do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write);
 
+extern uint8_t  readmembl_2386(uint32_t addr);
+extern void     writemembl_2386(uint32_t addr, uint8_t val);
+extern uint16_t readmemwl_2386(uint32_t addr);
+extern void     writememwl_2386(uint32_t addr, uint16_t val);
+extern uint32_t readmemll_2386(uint32_t addr);
+extern void     writememll_2386(uint32_t addr, uint32_t val);
+extern uint64_t readmemql_2386(uint32_t addr);
+extern void     writememql_2386(uint32_t addr, uint64_t val);
+
+extern uint8_t  readmembl_no_mmut_2386(uint32_t addr, uint32_t a64);
+extern void     writemembl_no_mmut_2386(uint32_t addr, uint32_t a64, uint8_t val);
+extern uint16_t readmemwl_no_mmut_2386(uint32_t addr, uint32_t *a64);
+extern void     writememwl_no_mmut_2386(uint32_t addr, uint32_t *a64, uint16_t val);
+extern uint32_t readmemll_no_mmut_2386(uint32_t addr, uint32_t *a64);
+extern void     writememll_no_mmut_2386(uint32_t addr, uint32_t *a64, uint32_t val);
+
+extern void     do_mmutranslate_2386(uint32_t addr, uint32_t *a64, int num, int write);
+
 extern uint8_t *getpccache(uint32_t a);
 extern uint64_t mmutranslatereal(uint32_t addr, int rw);
 extern uint32_t mmutranslatereal32(uint32_t addr, int rw);
@@ -428,6 +446,9 @@ extern void mem_init(void);
 extern void mem_close(void);
 extern void mem_reset(void);
 extern void mem_remap_top(int kb);
+
+extern mem_mapping_t    *read_mapping[MEM_MAPPINGS_NO];
+extern mem_mapping_t    *write_mapping[MEM_MAPPINGS_NO];
 
 #ifdef EMU_CPU_H
 static __inline uint32_t

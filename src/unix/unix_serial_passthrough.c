@@ -94,6 +94,7 @@ plat_serpt_write_vcon(serial_passthrough_t *dev, uint8_t data)
     fd_set wrfds;
     int    res;
 #endif
+    size_t res;
 
     /* We cannot use select here, this would block the hypervisor! */
 #if 0
@@ -109,12 +110,11 @@ plat_serpt_write_vcon(serial_passthrough_t *dev, uint8_t data)
 
     /* just write it out */
     if (dev->mode == SERPT_MODE_HOSTSER) {
-        int res = 0;
         do {
             res = write(dev->master_fd, &data, 1);
         } while (res == 0 || (res == -1 && (errno == EAGAIN || res == EWOULDBLOCK)));
     } else
-        write(dev->master_fd, &data, 1);
+        res = write(dev->master_fd, &data, 1);
 }
 
 void

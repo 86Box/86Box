@@ -59,9 +59,6 @@ public:
 
     ~WindowsRawInputFilter();
 
-public slots:
-    void mousePoll();
-
 private:
     MainWindow *window;
     uint16_t     scancode_map[768];

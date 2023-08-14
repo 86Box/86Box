@@ -54,7 +54,7 @@ typedef struct pci_bridge_t {
 
     uint8_t regs[256];
     uint8_t bus_index;
-    int     slot;
+    uint8_t slot;
 } pci_bridge_t;
 
 #ifdef ENABLE_PCI_BRIDGE_LOG
@@ -493,7 +493,7 @@ pci_bridge_init(const device_t *info)
 
     pci_bridge_reset(dev);
 
-    dev->slot = pci_add_card(AGP_BRIDGE(dev->local) ? PCI_ADD_AGPBRIDGE : PCI_ADD_BRIDGE, pci_bridge_read, pci_bridge_write, dev);
+    pci_add_bridge(AGP_BRIDGE(dev->local), pci_bridge_read, pci_bridge_write, dev, &dev->slot);
 
     interrupt_count = sizeof(interrupts);
     interrupt_mask  = interrupt_count - 1;

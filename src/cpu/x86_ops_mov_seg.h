@@ -258,7 +258,8 @@ opMOV_seg_w_a32(uint32_t fetchdat)
 static int
 opLDS_w_a16(uint32_t fetchdat)
 {
-    uint16_t addr, seg;
+    uint16_t addr;
+    uint16_t seg;
 
     fetch_ea_16(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
@@ -280,7 +281,8 @@ opLDS_w_a16(uint32_t fetchdat)
 static int
 opLDS_w_a32(uint32_t fetchdat)
 {
-    uint16_t addr, seg;
+    uint16_t addr;
+    uint16_t seg;
 
     fetch_ea_32(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
@@ -349,7 +351,8 @@ opLDS_l_a32(uint32_t fetchdat)
 static int
 opLSS_w_a16(uint32_t fetchdat)
 {
-    uint16_t addr, seg;
+    uint16_t addr;
+    uint16_t seg;
 
     fetch_ea_16(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
@@ -371,7 +374,8 @@ opLSS_w_a16(uint32_t fetchdat)
 static int
 opLSS_w_a32(uint32_t fetchdat)
 {
-    uint16_t addr, seg;
+    uint16_t addr;
+    uint16_t seg;
 
     fetch_ea_32(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
@@ -532,4 +536,4 @@ opLSS_l_a32(uint32_t fetchdat)
 opLsel(ES, cpu_state.seg_es)
 opLsel(FS, cpu_state.seg_fs)
 opLsel(GS, cpu_state.seg_gs)
-// clang-format on
+    // clang-format on

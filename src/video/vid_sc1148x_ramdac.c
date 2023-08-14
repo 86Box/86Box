@@ -28,8 +28,7 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 
-typedef struct
-{
+typedef struct sc1148x_ramdac_t {
     int     type;
     int     state;
     int     rs2;
@@ -37,9 +36,9 @@ typedef struct
 } sc1148x_ramdac_t;
 
 void
-sc1148x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
+sc1148x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga)
 {
-    sc1148x_ramdac_t *ramdac = (sc1148x_ramdac_t *) p;
+    sc1148x_ramdac_t *ramdac = (sc1148x_ramdac_t *) priv;
     uint8_t           rs     = (addr & 0x03) | ((!!rs2) << 2);
     int               oldbpp = 0;
 
@@ -72,6 +71,9 @@ sc1148x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
                             } else if (val == 0x00)
                                 svga->bpp = 8;
                             break;
+
+                        default:
+                            break;
                     }
                     if (oldbpp != svga->bpp)
                         svga_recalctimings(svga);
@@ -90,9 +92,9 @@ sc1148x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
 }
 
 uint8_t
-sc1148x_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
+sc1148x_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
 {
-    sc1148x_ramdac_t *ramdac = (sc1148x_ramdac_t *) p;
+    sc1148x_ramdac_t *ramdac = (sc1148x_ramdac_t *) priv;
     uint8_t           ret = 0xff;
     uint8_t           rs = (addr & 0x03) | ((!!rs2) << 2);
 

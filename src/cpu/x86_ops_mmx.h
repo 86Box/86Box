@@ -1,12 +1,12 @@
-#define SSATB(val) (((val) < -128) ? -128 : (((val) > 127) ? 127 : (val)))
-#define SSATW(val) (((val) < -32768) ? -32768 : (((val) > 32767) ? 32767 : (val)))
-#define USATB(val) (((val) < 0) ? 0 : (((val) > 255) ? 255 : (val)))
-#define USATW(val) (((val) < 0) ? 0 : (((val) > 65535) ? 65535 : (val)))
+#define SSATB(val)     (((val) < -128) ? -128 : (((val) > 127) ? 127 : (val)))
+#define SSATW(val)     (((val) < -32768) ? -32768 : (((val) > 32767) ? 32767 : (val)))
+#define USATB(val)     (((val) < 0) ? 0 : (((val) > 255) ? 255 : (val)))
+#define USATW(val)     (((val) < 0) ? 0 : (((val) > 65535) ? 65535 : (val)))
 
 #define MMX_GETREGP(r) MMP[r]
-#define MMX_GETREG(r) *(MMP[r])
+#define MMX_GETREG(r)  *(MMP[r])
 
-#define MMX_SETEXP(r)  \
+#define MMX_SETEXP(r) \
     *(MMEP[r]) = 0xffff
 
 #define MMX_GETSRC()                               \

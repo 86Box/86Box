@@ -89,6 +89,5 @@ private:
     VkFormat       m_texFormat;
 
     QMatrix4x4 m_proj;
-    float      m_rotation = 0.0f;
 };
 #endif

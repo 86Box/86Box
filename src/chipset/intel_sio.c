@@ -37,6 +37,10 @@
 
 typedef struct sio_t {
     uint8_t id;
+    uint8_t pci_slot;
+    uint8_t pad;
+    uint8_t pad0;
+
     uint8_t regs[256];
 
     uint16_t timer_base;
@@ -507,7 +511,7 @@ sio_init(const device_t *info)
     sio_t *dev = (sio_t *) malloc(sizeof(sio_t));
     memset(dev, 0, sizeof(sio_t));
 
-    pci_add_card(PCI_ADD_SOUTHBRIDGE, sio_read, sio_write, dev);
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, sio_read, sio_write, dev, &dev->pci_slot);
 
     dev->id = info->local;
 

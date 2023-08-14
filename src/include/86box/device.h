@@ -135,8 +135,7 @@ typedef struct _device_ {
     void (*reset)(void *priv);
     union {
         int (*available)(void);
-        int (*poll)(int x, int y, int z, int b, double abs_x, double abs_y, void *priv);
-        void (*register_pci_slot)(int device, int type, int inta, int intb, int intc, int intd, void *priv);
+        int (*poll)(void *priv);
     };
     void (*speed_changed)(void *priv);
     void (*force_redraw)(void *priv);
@@ -179,8 +178,7 @@ extern void  device_close_all(void);
 extern void  device_reset_all(uint32_t match_flags);
 extern void *device_get_priv(const device_t *d);
 extern int   device_available(const device_t *d);
-extern int   device_poll(const device_t *d, int x, int y, int z, int b);
-extern void  device_register_pci_slot(const device_t *d, int device, int type, int inta, int intb, int intc, int intd);
+extern int   device_poll(const device_t *d);
 extern void  device_speed_changed(void);
 extern void  device_force_redraw(void);
 extern void  device_get_name(const device_t *d, int bus, char *name);

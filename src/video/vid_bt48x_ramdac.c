@@ -29,13 +29,13 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 
-typedef struct
-{
+typedef struct bt48x_ramdac_t {
     PALETTE  extpal;
     uint32_t extpallook[256];
     uint8_t  cursor32_data[256];
     uint8_t  cursor64_data[1024];
-    int      hwc_y, hwc_x;
+    int      hwc_y;
+    int      hwc_x;
     uint8_t  cmd_r0;
     uint8_t  cmd_r1;
     uint8_t  cmd_r2;
@@ -85,9 +85,9 @@ bt48x_set_bpp(bt48x_ramdac_t *ramdac, svga_t *svga)
 }
 
 void
-bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t *svga)
+bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga)
 {
-    bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) p;
+    bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) priv;
     uint32_t        o32;
     uint8_t        *cd;
     uint16_t        index;
@@ -233,11 +233,11 @@ bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t *
 }
 
 uint8_t
-bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
+bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga)
 {
-    bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) p;
+    bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) priv;
     uint8_t         temp   = 0xff;
-    uint8_t        *cd;
+    const uint8_t  *cd;
     uint16_t        index;
     uint8_t         rs      = (addr & 0x03);
     uint16_t        da_mask = 0x03ff;
@@ -360,9 +360,9 @@ bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
 }
 
 void
-bt48x_recalctimings(void *p, svga_t *svga)
+bt48x_recalctimings(void *priv, svga_t *svga)
 {
-    bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) p;
+    const bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) priv;
 
     svga->interlace = ramdac->cmd_r2 & 0x08;
     if (ramdac->cmd_r3 & 0x08)
@@ -386,7 +386,7 @@ bt48x_hwcursor_draw(svga_t *svga, int displine)
     uint32_t        clr2;
     uint32_t        clr3;
     uint32_t       *p;
-    uint8_t        *cd;
+    const uint8_t  *cd;
     bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) svga->ramdac;
 
     clr1 = ramdac->extpallook[1];

@@ -98,8 +98,6 @@ joystick_add_button(raw_joystick_t *rawjoy, plat_joystick_t *joy, USAGE usage)
 void
 joystick_add_axis(raw_joystick_t *rawjoy, plat_joystick_t *joy, PHIDP_VALUE_CAPS prop)
 {
-    LONG               center;
-
     if (joy->nr_axes >= 8)
         return;
 
@@ -139,14 +137,11 @@ joystick_add_axis(raw_joystick_t *rawjoy, plat_joystick_t *joy, PHIDP_VALUE_CAPS
          * Some joysticks will send -1 in LogicalMax, like Xbox Controllers
          * so we need to mask that to appropriate value (instead of 0xFFFFFFFF)
          */
-        rawjoy->axis[joy->nr_axes].max = prop->LogicalMax & ((1 << prop->BitSize) - 1);
+        rawjoy->axis[joy->nr_axes].max = prop->LogicalMax & ((1ULL << prop->BitSize) - 1);
     }
     rawjoy->axis[joy->nr_axes].min = prop->LogicalMin;
 
-    center = (rawjoy->axis[joy->nr_axes].max - rawjoy->axis[joy->nr_axes].min + 1) / 2;
-
-    if (center != 0x00)
-        joy->nr_axes++;
+    joy->nr_axes++;
 }
 
 void
@@ -450,7 +445,7 @@ joystick_process(void)
 {
     int d;
 
-    if (joystick_type == 7)
+    if (joystick_type == 0)
         return;
 
     for (int c = 0; c < joystick_get_max_joysticks(joystick_type); c++) {

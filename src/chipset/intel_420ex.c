@@ -52,6 +52,9 @@
 typedef struct i420ex_t {
     uint8_t has_ide;
     uint8_t smram_locked;
+    uint8_t pci_slot;
+    uint8_t pad;
+
     uint8_t regs[256];
 
     uint16_t timer_base;
@@ -534,7 +537,7 @@ i420ex_init(const device_t *info)
 
     dev->smram = smram_add();
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, i420ex_read, i420ex_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, i420ex_read, i420ex_write, dev, &dev->pci_slot);
 
     dev->has_ide = info->local;
 
