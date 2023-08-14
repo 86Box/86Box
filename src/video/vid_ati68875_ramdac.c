@@ -36,20 +36,6 @@ typedef struct ati68875_ramdac_t {
     uint8_t test_reg;
 } ati68875_ramdac_t;
 
-static void
-ati68875_set_bpp(ati68875_ramdac_t *ramdac, svga_t *svga)
-{
-    if (ramdac->mux_cntl == 0xff)
-        return;
-
-    if (ramdac->mux_cntl & 0x20)
-        svga->bpp = 8;
-    else {
-        svga->bpp = 24;
-    }
-    svga_recalctimings(svga);
-}
-
 void
 ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t *svga)
 {
@@ -77,7 +63,6 @@ ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_
             break;
         case 0x0b: /* MUX Control Register (RS value = 1011) */
             ramdac->mux_cntl = val;
-            ati68875_set_bpp(ramdac, svga);
             break;
         case 0x0c: /* Palette Page Register (RS value = 1100) */
             ramdac->palette_page_sel = val;
@@ -87,8 +72,6 @@ ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_
             break;
         case 0x0f: /* Reset State (RS value = 1111) */
             ramdac->mux_cntl = 0x2d;
-            svga->bpp = 8;
-            svga_recalctimings(svga);
             break;
     }
 
@@ -130,52 +113,8 @@ ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
             break;
         case 0x0e: /* Test Register (RS value = 1110) */
             switch (ramdac->test_reg & 0x07) {
-                case 0x00:
-                    temp = ibm8514_on ? dev->dac_r : svga->dac_r;
-                    break;
-                case 0x01:
-                    temp = ibm8514_on ? dev->dac_g : svga->dac_g;
-                    break;
-                case 0x02:
-                    temp = ibm8514_on ? dev->dac_b : svga->dac_b;
-                    break;
                 case 0x03:
                     temp = 0x75;
-                    break;
-                case 0x04:
-                    if (ibm8514_on) {
-                        dev->dac_r++;
-                        temp = dev->dac_r;
-                    } else {
-                        svga->dac_r++;
-                        temp = svga->dac_r;
-                    }
-                    break;
-                case 0x05:
-                    if (ibm8514_on) {
-                        dev->dac_g++;
-                        temp = dev->dac_g;
-                    } else {
-                        svga->dac_g++;
-                        temp = svga->dac_g;
-                    }
-                    break;
-                case 0x06:
-                    if (ibm8514_on) {
-                        dev->dac_b++;
-                        temp = dev->dac_b;
-                    } else {
-                        svga->dac_b++;
-                        temp = svga->dac_b;
-                    }
-                    break;
-                case 0x07:
-                    if (ramdac->test_reg & 0x80)
-                        temp = ibm8514_on ? dev->dac_r : svga->dac_r;
-                    else if (ramdac->test_reg & 0x40)
-                        temp = ibm8514_on ? dev->dac_g : svga->dac_g;
-                    else if (ramdac->test_reg & 0x20)
-                        temp = ibm8514_on ? dev->dac_b : svga->dac_b;
                     break;
             }
             break;
