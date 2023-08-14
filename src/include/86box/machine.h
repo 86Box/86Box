@@ -28,18 +28,25 @@
 #define MACHINE_BUS_ISA       0x00000001 /* sys has ISA bus */
 #define MACHINE_BUS_CASSETTE  0x00000002 /* sys has cassette port */
 #define MACHINE_BUS_CARTRIDGE 0x00000004 /* sys has two cartridge bays */
-#define MACHINE_BUS_ISA16     0x00000008 /* sys has ISA16 bus - PC/AT architecture */
-#define MACHINE_BUS_CBUS      0x00000010 /* sys has C-BUS bus */
-#define MACHINE_BUS_PS2_LATCH 0x00000020 /* system has PS/2 keyboard controller IRQ latch */
-#define MACHINE_BUS_PS2_PORTS 0x00000040 /* system has PS/2 keyboard and mouse ports */
+#define MACHINE_BUS_PCJR      0x00000008 /* sys has PCjr sidecar bus */
+#define MACHINE_BUS_DM_KBC    0x00000010 /* system has keyboard controller that supports
+                                            both XT and AT keyboards */
+#define MACHINE_BUS_ISA16     0x00000020 /* sys has ISA16 bus - PC/AT architecture */
+#define MACHINE_BUS_CBUS      0x00000040 /* sys has C-BUS bus */
+#define MACHINE_BUS_PCMCIA    0x00000080 /* sys has PCMCIA bus */
+#define MACHINE_BUS_PS2_LATCH 0x00000100 /* system has PS/2 keyboard controller IRQ latch */
+#define MACHINE_BUS_PS2_PORTS 0x00000200 /* system has PS/2 keyboard and mouse ports */
 #define MACHINE_BUS_PS2       (MACHINE_BUS_PS2_LATCH | MACHINE_BUS_PS2_PORTS)
-#define MACHINE_BUS_EISA      0x00000080 /* sys has EISA bus */
-#define MACHINE_BUS_VLB       0x00000100 /* sys has VL bus */
-#define MACHINE_BUS_MCA       0x00000200 /* sys has MCA bus */
-#define MACHINE_BUS_PCI       0x00000400 /* sys has PCI bus */
-#define MACHINE_BUS_PCMCIA    0x00000800 /* sys has PCMCIA bus */
-#define MACHINE_BUS_AGP       0x00001000 /* sys has AGP bus */
-#define MACHINE_BUS_AC97      0x00002000 /* sys has AC97 bus (ACR/AMR/CNR slot) */
+#define MACHINE_BUS_HIL       0x00000400 /* system has HP HIL keyboard and mouse ports */
+#define MACHINE_BUS_EISA      0x00000800 /* sys has EISA bus */
+#define MACHINE_BUS_OLB       0x00001000 /* sys has OPTi local bus */
+#define MACHINE_BUS_VLB       0x00002000 /* sys has VL bus */
+#define MACHINE_BUS_MCA       0x00004000 /* sys has MCA bus */
+#define MACHINE_BUS_PCI       0x00008000 /* sys has PCI bus */
+#define MACHINE_BUS_CARDBUS   0x00010000 /* sys has CardBus bus */
+#define MACHINE_BUS_USB       0x00020000 /* sys has USB bus */
+#define MACHINE_BUS_AGP       0x00040000 /* sys has AGP bus */
+#define MACHINE_BUS_AC97      0x00080000 /* sys has AC97 bus (ACR/AMR/CNR slot) */
 /* Aliases. */
 #define MACHINE_CASSETTE  (MACHINE_BUS_CASSETTE)  /* sys has cassette port */
 #define MACHINE_CARTRIDGE (MACHINE_BUS_CARTRIDGE) /* sys has two cartridge bays */
