@@ -1,3 +1,4 @@
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
@@ -305,7 +306,7 @@ add_to_block_list(codeblock_t *block)
 
 #ifndef RELEASE_BUILD
     if (!block->page_mask)
-        fatal("add_to_block_list - mask = 0 %llx %llx\n", block->page_mask, block->page_mask2);
+        fatal("add_to_block_list - mask = 0 %" PRIx64 " %" PRIx64 "\n", block->page_mask, block->page_mask2);
 #endif
 
     if (block_prev_nr) {

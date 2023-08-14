@@ -2,7 +2,8 @@ static int
 opIMUL_w_iw_a16(uint32_t fetchdat)
 {
     int32_t templ;
-    int16_t tempw, tempw2;
+    int16_t tempw;
+    int16_t tempw2;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -31,7 +32,8 @@ static int
 opIMUL_w_iw_a32(uint32_t fetchdat)
 {
     int32_t templ;
-    int16_t tempw, tempw2;
+    int16_t tempw;
+    int16_t tempw2;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -61,7 +63,8 @@ static int
 opIMUL_l_il_a16(uint32_t fetchdat)
 {
     int64_t temp64;
-    int32_t templ, templ2;
+    int32_t templ;
+    int32_t templ2;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -90,7 +93,8 @@ static int
 opIMUL_l_il_a32(uint32_t fetchdat)
 {
     int64_t temp64;
-    int32_t templ, templ2;
+    int32_t templ;
+    int32_t templ2;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -120,7 +124,8 @@ static int
 opIMUL_w_ib_a16(uint32_t fetchdat)
 {
     int32_t templ;
-    int16_t tempw, tempw2;
+    int16_t tempw;
+    int16_t tempw2;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -151,7 +156,8 @@ static int
 opIMUL_w_ib_a32(uint32_t fetchdat)
 {
     int32_t templ;
-    int16_t tempw, tempw2;
+    int16_t tempw;
+    int16_t tempw2;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -183,7 +189,8 @@ static int
 opIMUL_l_ib_a16(uint32_t fetchdat)
 {
     int64_t temp64;
-    int32_t templ, templ2;
+    int32_t templ;
+    int32_t templ2;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -214,7 +221,8 @@ static int
 opIMUL_l_ib_a32(uint32_t fetchdat)
 {
     int64_t temp64;
-    int32_t templ, templ2;
+    int32_t templ;
+    int32_t templ2;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)

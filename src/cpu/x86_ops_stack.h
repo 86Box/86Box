@@ -189,22 +189,50 @@ static int
 opPOPA_l(uint32_t fetchdat)
 {
     if (stack32) {
-        EDI = readmeml(ss, ESP);                        if (cpu_state.abrt) return 1;
-        ESI = readmeml(ss, ESP +  4);                   if (cpu_state.abrt) return 1;
-        EBP = readmeml(ss, ESP +  8);                   if (cpu_state.abrt) return 1;
-        EBX = readmeml(ss, ESP + 16);                   if (cpu_state.abrt) return 1;
-        EDX = readmeml(ss, ESP + 20);                   if (cpu_state.abrt) return 1;
-        ECX = readmeml(ss, ESP + 24);                   if (cpu_state.abrt) return 1;
-        EAX = readmeml(ss, ESP + 28);                   if (cpu_state.abrt) return 1;
+        EDI = readmeml(ss, ESP);
+        if (cpu_state.abrt)
+            return 1;
+        ESI = readmeml(ss, ESP + 4);
+        if (cpu_state.abrt)
+            return 1;
+        EBP = readmeml(ss, ESP + 8);
+        if (cpu_state.abrt)
+            return 1;
+        EBX = readmeml(ss, ESP + 16);
+        if (cpu_state.abrt)
+            return 1;
+        EDX = readmeml(ss, ESP + 20);
+        if (cpu_state.abrt)
+            return 1;
+        ECX = readmeml(ss, ESP + 24);
+        if (cpu_state.abrt)
+            return 1;
+        EAX = readmeml(ss, ESP + 28);
+        if (cpu_state.abrt)
+            return 1;
         ESP += 32;
     } else {
-        EDI = readmeml(ss, ((SP)      & 0xFFFF));       if (cpu_state.abrt) return 1;
-        ESI = readmeml(ss, ((SP +  4) & 0xFFFF));       if (cpu_state.abrt) return 1;
-        EBP = readmeml(ss, ((SP +  8) & 0xFFFF));       if (cpu_state.abrt) return 1;
-        EBX = readmeml(ss, ((SP + 16) & 0xFFFF));       if (cpu_state.abrt) return 1;
-        EDX = readmeml(ss, ((SP + 20) & 0xFFFF));       if (cpu_state.abrt) return 1;
-        ECX = readmeml(ss, ((SP + 24) & 0xFFFF));       if (cpu_state.abrt) return 1;
-        EAX = readmeml(ss, ((SP + 28) & 0xFFFF));       if (cpu_state.abrt) return 1;
+        EDI = readmeml(ss, ((SP) &0xFFFF));
+        if (cpu_state.abrt)
+            return 1;
+        ESI = readmeml(ss, ((SP + 4) & 0xFFFF));
+        if (cpu_state.abrt)
+            return 1;
+        EBP = readmeml(ss, ((SP + 8) & 0xFFFF));
+        if (cpu_state.abrt)
+            return 1;
+        EBX = readmeml(ss, ((SP + 16) & 0xFFFF));
+        if (cpu_state.abrt)
+            return 1;
+        EDX = readmeml(ss, ((SP + 20) & 0xFFFF));
+        if (cpu_state.abrt)
+            return 1;
+        ECX = readmeml(ss, ((SP + 24) & 0xFFFF));
+        if (cpu_state.abrt)
+            return 1;
+        EAX = readmeml(ss, ((SP + 28) & 0xFFFF));
+        if (cpu_state.abrt)
+            return 1;
         SP += 32;
     }
     CLOCK_CYCLES((is486) ? 9 : 24);
@@ -379,9 +407,13 @@ opENTER_w(uint32_t fetchdat)
 {
     uint16_t offset;
     int      count;
-    uint32_t tempEBP, tempESP, frame_ptr;
+    uint32_t tempEBP;
+    uint32_t tempESP;
+    uint32_t frame_ptr;
 #ifndef IS_DYNAREC
-    int reads = 0, writes = 1, instr_cycles = 0;
+    int reads        = 0;
+    int writes       = 1;
+    int instr_cycles = 0;
 #endif
     uint16_t tempw;
 
@@ -448,9 +480,13 @@ opENTER_l(uint32_t fetchdat)
 {
     uint16_t offset;
     int      count;
-    uint32_t tempEBP, tempESP, frame_ptr;
+    uint32_t tempEBP;
+    uint32_t tempESP;
+    uint32_t frame_ptr;
 #ifndef IS_DYNAREC
-    int reads = 0, writes = 1, instr_cycles = 0;
+    int reads        = 0;
+    int writes       = 1;
+    int instr_cycles = 0;
 #endif
     uint32_t templ;
 

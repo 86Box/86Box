@@ -271,6 +271,8 @@ typedef struct voodoo_t {
 
     int pci_enable;
 
+    uint8_t  pci_slot;
+
     uint8_t  dac_data[8];
     int      dac_reg;
     int      dac_reg_ff;

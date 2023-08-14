@@ -197,6 +197,7 @@ typedef struct esp_t {
         int     pos;
     } dma_86c01;
 
+    uint8_t irq_state;
     uint8_t pos_regs[8];
 } esp_t;
 
@@ -247,10 +248,10 @@ esp_irq(esp_t *dev, int level)
         }
     } else {
         if (level) {
-            pci_set_irq(dev->pci_slot, PCI_INTA);
+            pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
             esp_log("Raising IRQ...\n");
         } else {
-            pci_clear_irq(dev->pci_slot, PCI_INTA);
+            pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
             esp_log("Lowering IRQ...\n");
         }
     }
@@ -1029,9 +1030,7 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
     switch (saddr) {
         case ESP_TCHI:
             dev->tchi_written = 1;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case ESP_TCLO:
         case ESP_TCMID:
             esp_log("Transfer count regs %02x = %i\n", saddr, val);
@@ -1842,7 +1841,7 @@ dc390_init(UNUSED(const device_t *info))
     dev->PCIBase  = 0;
     dev->MMIOBase = 0;
 
-    dev->pci_slot = pci_add_card(PCI_ADD_NORMAL, esp_pci_read, esp_pci_write, dev);
+    pci_add_card(PCI_ADD_NORMAL, esp_pci_read, esp_pci_write, dev, &dev->pci_slot);
 
     esp_pci_bar[0].addr_regs[0] = 1;
     esp_pci_regs[0x04]          = 3;

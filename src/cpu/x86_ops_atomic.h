@@ -1,7 +1,9 @@
 static int
 opCMPXCHG_b_a16(uint32_t fetchdat)
 {
-    uint8_t temp, temp2 = AL;
+    uint8_t temp;
+    uint8_t temp2 = AL;
+
     fetch_ea_16(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     temp = geteab();
@@ -20,7 +22,9 @@ opCMPXCHG_b_a16(uint32_t fetchdat)
 static int
 opCMPXCHG_b_a32(uint32_t fetchdat)
 {
-    uint8_t temp, temp2 = AL;
+    uint8_t temp;
+    uint8_t temp2 = AL;
+
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     temp = geteab();
@@ -40,7 +44,9 @@ opCMPXCHG_b_a32(uint32_t fetchdat)
 static int
 opCMPXCHG_w_a16(uint32_t fetchdat)
 {
-    uint16_t temp, temp2 = AX;
+    uint16_t temp;
+    uint16_t temp2 = AX;
+
     fetch_ea_16(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     temp = geteaw();
@@ -59,7 +65,9 @@ opCMPXCHG_w_a16(uint32_t fetchdat)
 static int
 opCMPXCHG_w_a32(uint32_t fetchdat)
 {
-    uint16_t temp, temp2 = AX;
+    uint16_t temp;
+    uint16_t temp2 = AX;
+
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     temp = geteaw();
@@ -79,7 +87,9 @@ opCMPXCHG_w_a32(uint32_t fetchdat)
 static int
 opCMPXCHG_l_a16(uint32_t fetchdat)
 {
-    uint32_t temp, temp2 = EAX;
+    uint32_t temp;
+    uint32_t temp2 = EAX;
+
     fetch_ea_16(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     temp = geteal();
@@ -98,7 +108,9 @@ opCMPXCHG_l_a16(uint32_t fetchdat)
 static int
 opCMPXCHG_l_a32(uint32_t fetchdat)
 {
-    uint32_t temp, temp2 = EAX;
+    uint32_t temp;
+    uint32_t temp2 = EAX;
+
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     temp = geteal();
@@ -115,10 +127,15 @@ opCMPXCHG_l_a32(uint32_t fetchdat)
     return 0;
 }
 
+#ifndef OPS_286_386
 static int
 opCMPXCHG8B_a16(uint32_t fetchdat)
 {
-    uint32_t temp, temp_hi, temp2 = EAX, temp2_hi = EDX;
+    uint32_t temp;
+    uint32_t temp_hi;
+    uint32_t temp2    = EAX;
+    uint32_t temp2_hi = EDX;
+
     fetch_ea_16(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     temp    = geteal();
@@ -145,7 +162,11 @@ opCMPXCHG8B_a16(uint32_t fetchdat)
 static int
 opCMPXCHG8B_a32(uint32_t fetchdat)
 {
-    uint32_t temp, temp_hi, temp2 = EAX, temp2_hi = EDX;
+    uint32_t temp;
+    uint32_t temp_hi;
+    uint32_t temp2    = EAX;
+    uint32_t temp2_hi = EDX;
+
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     temp    = geteal();
@@ -169,13 +190,16 @@ opCMPXCHG8B_a32(uint32_t fetchdat)
     cycles -= (cpu_mod == 3) ? 6 : 10;
     return 0;
 }
+#endif
 
 /* dest = eab, src = r8 */
 static int
 opXADD_b_a16(uint32_t fetchdat)
 {
     uint8_t temp;
-    uint8_t src, dest;
+    uint8_t src;
+    uint8_t dest;
+
     fetch_ea_16(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     src  = getr8(cpu_reg);
@@ -195,7 +219,9 @@ static int
 opXADD_b_a32(uint32_t fetchdat)
 {
     uint8_t temp;
-    uint8_t src, dest;
+    uint8_t src;
+    uint8_t dest;
+
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     src  = getr8(cpu_reg);
@@ -216,7 +242,9 @@ static int
 opXADD_w_a16(uint32_t fetchdat)
 {
     uint16_t temp;
-    uint16_t src, dest;
+    uint16_t src;
+    uint16_t dest;
+
     fetch_ea_16(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     src  = cpu_state.regs[cpu_reg].w;
@@ -236,7 +264,9 @@ static int
 opXADD_w_a32(uint32_t fetchdat)
 {
     uint16_t temp;
-    uint16_t src, dest;
+    uint16_t src;
+    uint16_t dest;
+
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     src  = cpu_state.regs[cpu_reg].w;
@@ -257,7 +287,9 @@ static int
 opXADD_l_a16(uint32_t fetchdat)
 {
     uint32_t temp;
-    uint32_t src, dest;
+    uint32_t src;
+    uint32_t dest;
+
     fetch_ea_16(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     src  = cpu_state.regs[cpu_reg].l;
@@ -277,7 +309,9 @@ static int
 opXADD_l_a32(uint32_t fetchdat)
 {
     uint32_t temp;
-    uint32_t src, dest;
+    uint32_t src;
+    uint32_t dest;
+
     fetch_ea_32(fetchdat);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
     src  = cpu_state.regs[cpu_reg].l;

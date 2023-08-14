@@ -605,7 +605,8 @@ opC0_a16(uint32_t fetchdat)
 {
     int     c;
     int     tempc;
-    uint8_t temp, temp2 = 0;
+    uint8_t temp;
+    uint8_t temp2 = 0;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -624,7 +625,8 @@ opC0_a32(uint32_t fetchdat)
 {
     int     c;
     int     tempc;
-    uint8_t temp, temp2 = 0;
+    uint8_t temp;
+    uint8_t temp2 = 0;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -643,7 +645,8 @@ opC1_w_a16(uint32_t fetchdat)
 {
     int      c;
     int      tempc;
-    uint16_t temp, temp2 = 0;
+    uint16_t temp;
+    uint16_t temp2 = 0;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -662,7 +665,8 @@ opC1_w_a32(uint32_t fetchdat)
 {
     int      c;
     int      tempc;
-    uint16_t temp, temp2 = 0;
+    uint16_t temp;
+    uint16_t temp2 = 0;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -681,7 +685,8 @@ opC1_l_a16(uint32_t fetchdat)
 {
     int      c;
     int      tempc;
-    uint32_t temp, temp2 = 0;
+    uint32_t temp;
+    uint32_t temp2 = 0;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -700,7 +705,8 @@ opC1_l_a32(uint32_t fetchdat)
 {
     int      c;
     int      tempc;
-    uint32_t temp, temp2 = 0;
+    uint32_t temp;
+    uint32_t temp2 = 0;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -720,7 +726,8 @@ opD0_a16(uint32_t fetchdat)
 {
     int     c = 1;
     int     tempc;
-    uint8_t temp, temp2 = 0;
+    uint8_t temp;
+    uint8_t temp2 = 0;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -736,7 +743,8 @@ opD0_a32(uint32_t fetchdat)
 {
     int     c = 1;
     int     tempc;
-    uint8_t temp, temp2 = 0;
+    uint8_t temp;
+    uint8_t temp2 = 0;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -752,7 +760,8 @@ opD1_w_a16(uint32_t fetchdat)
 {
     int      c = 1;
     int      tempc;
-    uint16_t temp, temp2 = 0;
+    uint16_t temp;
+    uint16_t temp2 = 0;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -768,7 +777,8 @@ opD1_w_a32(uint32_t fetchdat)
 {
     int      c = 1;
     int      tempc;
-    uint16_t temp, temp2 = 0;
+    uint16_t temp;
+    uint16_t temp2 = 0;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -784,7 +794,8 @@ opD1_l_a16(uint32_t fetchdat)
 {
     int      c = 1;
     int      tempc;
-    uint32_t temp, temp2 = 0;
+    uint32_t temp;
+    uint32_t temp2 = 0;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -800,7 +811,8 @@ opD1_l_a32(uint32_t fetchdat)
 {
     int      c = 1;
     int      tempc;
-    uint32_t temp, temp2 = 0;
+    uint32_t temp;
+    uint32_t temp2 = 0;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -817,7 +829,8 @@ opD2_a16(uint32_t fetchdat)
 {
     int     c;
     int     tempc;
-    uint8_t temp, temp2 = 0;
+    uint8_t temp;
+    uint8_t temp2 = 0;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -834,7 +847,8 @@ opD2_a32(uint32_t fetchdat)
 {
     int     c;
     int     tempc;
-    uint8_t temp, temp2 = 0;
+    uint8_t temp;
+    uint8_t temp2 = 0;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -851,7 +865,8 @@ opD3_w_a16(uint32_t fetchdat)
 {
     int      c;
     int      tempc;
-    uint16_t temp, temp2 = 0;
+    uint16_t temp;
+    uint16_t temp2 = 0;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -868,7 +883,8 @@ opD3_w_a32(uint32_t fetchdat)
 {
     int      c;
     int      tempc;
-    uint16_t temp, temp2 = 0;
+    uint16_t temp;
+    uint16_t temp2 = 0;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -885,7 +901,8 @@ opD3_l_a16(uint32_t fetchdat)
 {
     int      c;
     int      tempc;
-    uint32_t temp, temp2 = 0;
+    uint32_t temp;
+    uint32_t temp2 = 0;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -902,7 +919,8 @@ opD3_l_a32(uint32_t fetchdat)
 {
     int      c;
     int      tempc;
-    uint32_t temp, temp2 = 0;
+    uint32_t temp;
+    uint32_t temp2 = 0;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -1053,4 +1071,4 @@ opSHxD(SHLD_w)
 opSHxD(SHLD_l)
 opSHxD(SHRD_w)
 opSHxD(SHRD_l)
-// clang-format on
+    // clang-format on

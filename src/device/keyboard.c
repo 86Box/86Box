@@ -167,6 +167,12 @@ keyboard_input(int down, uint16_t scan)
                 case 0x138: /* Right Alt */
                     shift |= 0x40;
                     break;
+                case 0x15b: /* Left Windows */
+                    shift |= 0x08;
+                    break;
+                case 0x15c: /* Right Windows */
+                    shift |= 0x80;
+                    break;
 
                 default:
                     break;
@@ -190,6 +196,12 @@ keyboard_input(int down, uint16_t scan)
                     break;
                 case 0x138: /* Right Alt */
                     shift &= ~0x40;
+                    break;
+                case 0x15b: /* Left Windows */
+                    shift &= ~0x08;
+                    break;
+                case 0x15c: /* Right Windows */
+                    shift &= ~0x80;
                     break;
                 case 0x03a: /* Caps Lock */
                     caps_lock ^= 1;

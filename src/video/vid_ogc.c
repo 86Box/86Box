@@ -84,8 +84,8 @@ ogc_out(uint16_t addr, uint8_t val, void *priv)
 {
     ogc_t *ogc = (ogc_t *) priv;
 
-    // if (addr >= 0x3c0 && addr <= 0x3cf){
-    // 	addr = addr + 16;
+    // if (addr >= 0x3c0 && addr <= 0x3cf) {
+    //     addr = addr + 16;
     // }
 
     switch (addr) {
@@ -110,8 +110,8 @@ ogc_in(uint16_t addr, void *priv)
 {
     ogc_t *ogc = (ogc_t *) priv;
 
-    // if (addr >= 0x3c0 && addr <= 0x3cf){
-    // 	addr = addr + 16;
+    // if (addr >= 0x3c0 && addr <= 0x3cf) {
+    //     addr = addr + 16;
     // }
 
     uint8_t ret = 0xff;

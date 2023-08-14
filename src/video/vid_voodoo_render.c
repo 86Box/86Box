@@ -475,6 +475,9 @@ voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_sta
             case TC_MSELECT_LOD_FRAC:
                 factor_r = factor_g = factor_b = state->lod_frac[1];
                 break;
+
+            default:
+                break;
         }
         if (!c_reverse) {
             r = (-state->tex_r[1] * (factor_r + 1)) >> 8;
@@ -519,6 +522,9 @@ voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_sta
                 break;
             case TCA_MSELECT_LOD_FRAC:
                 factor_a = state->lod_frac[1];
+                break;
+
+            default:
                 break;
         }
         if (!a_reverse)
@@ -575,6 +581,9 @@ voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_sta
         case TC_MSELECT_LOD_FRAC:
             factor_r = factor_g = factor_b = state->lod_frac[0];
             break;
+
+        default:
+            break;
     }
     if (!c_reverse) {
         r = (r * (factor_r + 1)) >> 8;
@@ -621,6 +630,9 @@ voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_sta
             break;
         case TCA_MSELECT_LOD_FRAC:
             factor_a = state->lod_frac[0];
+            break;
+
+        default:
             break;
     }
     if (a_reverse)
@@ -1073,6 +1085,9 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                             cother_g = src_g;
                             cother_b = src_b;
                             break;
+
+                        default:
+                            break;
                     }
 
                     switch (cca_localselect) {
@@ -1460,15 +1475,15 @@ voodoo_triangle(voodoo_t *voodoo, voodoo_params_t *params, int odd_even)
     vertexCy_adjusted = (state.vertexCy + 7) >> 4;
 
     if (state.vertexBy - state.vertexAy)
-        state.dxAB = (int) ((((int64_t) state.vertexBx << 12) - ((int64_t) state.vertexAx << 12)) << 4) / (int) (state.vertexBy - state.vertexAy);
+        state.dxAB = (int) ((((int64_t) state.vertexBx << 12) - ((int64_t) state.vertexAx << 12)) << 4) / (state.vertexBy - state.vertexAy);
     else
         state.dxAB = 0;
     if (state.vertexCy - state.vertexAy)
-        state.dxAC = (int) ((((int64_t) state.vertexCx << 12) - ((int64_t) state.vertexAx << 12)) << 4) / (int) (state.vertexCy - state.vertexAy);
+        state.dxAC = (int) ((((int64_t) state.vertexCx << 12) - ((int64_t) state.vertexAx << 12)) << 4) / (state.vertexCy - state.vertexAy);
     else
         state.dxAC = 0;
     if (state.vertexCy - state.vertexBy)
-        state.dxBC = (int) ((((int64_t) state.vertexCx << 12) - ((int64_t) state.vertexBx << 12)) << 4) / (int) (state.vertexCy - state.vertexBy);
+        state.dxBC = (int) ((((int64_t) state.vertexCx << 12) - ((int64_t) state.vertexBx << 12)) << 4) / (state.vertexCy - state.vertexBy);
     else
         state.dxBC = 0;
 

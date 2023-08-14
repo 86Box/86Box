@@ -108,7 +108,7 @@ machine_init_ex(int m)
         /* Reset the fast off stuff. */
         cpu_fast_off_reset();
 
-        pci_take_over_io = 0x00000000;
+        pci_flags = 0x00000000;
     }
 
     /* All good, boot the machine! */
@@ -118,17 +118,7 @@ machine_init_ex(int m)
     if (bios_only || !ret)
         return ret;
 
-    if (gfxcard[0] != VID_NONE) {
-        if (ibm8514_enabled) {
-            ibm8514_device_add();
-        }
-        if (xga_enabled)
-            xga_device_add();
-    }
-
-    /* Reset the graphics card (or do nothing if it was already done
-       by the machine's init function). */
-    video_reset(gfxcard[0]);
+    video_post_reset();
 
     return ret;
 }

@@ -97,7 +97,9 @@ opWAIT(uint32_t fetchdat)
         return 1;
     }
 
-    // if (!cpu_use_dynarec && fpu_softfloat) {
+#if 0
+    if (!cpu_use_dynarec && fpu_softfloat) {
+#endif
     if (fpu_softfloat) {
         if (fpu_state.swd & FPU_SW_Summary) {
             if (cr0 & 0x20) {

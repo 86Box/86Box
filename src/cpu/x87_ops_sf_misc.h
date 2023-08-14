@@ -2,8 +2,10 @@ static int
 sf_FXCH_sti(uint32_t fetchdat)
 {
     const floatx80 floatx80_default_nan = packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
-    floatx80 st0_reg, sti_reg;
-    int st0_tag, sti_tag;
+    floatx80       st0_reg;
+    floatx80       sti_reg;
+    int            st0_tag;
+    int            sti_tag;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -48,7 +50,7 @@ sf_FCHS(uint32_t fetchdat)
     else {
         clear_C1();
         st0_reg = FPU_read_regi(0);
-        result = floatx80_chs(st0_reg);
+        result  = floatx80_chs(st0_reg);
         FPU_save_regi(result, 0);
     }
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fchs) : (x87_timings.fchs * cpu_multi));
@@ -70,7 +72,7 @@ sf_FABS(uint32_t fetchdat)
     else {
         clear_C1();
         st0_reg = FPU_read_regi(0);
-        result = floatx80_abs(st0_reg);
+        result  = floatx80_abs(st0_reg);
         FPU_save_regi(result, 0);
     }
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fabs) : (x87_timings.fabs * cpu_multi));

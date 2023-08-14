@@ -124,18 +124,18 @@ acpi_update_irq(acpi_t *dev)
 
     if (sci_level) {
         if (dev->irq_mode == 1)
-            pci_set_irq(dev->slot, dev->irq_pin);
+            pci_set_irq(dev->slot, dev->irq_pin, &dev->irq_state);
         else if (dev->irq_mode == 2)
-            pci_set_mirq(5, dev->mirq_is_level);
+            pci_set_mirq(5, dev->mirq_is_level, &dev->irq_state);
         else
-            pci_set_mirq(0xf0 | dev->irq_line, 1);
+            pci_set_mirq(PCI_DIRQ_BASE | dev->irq_line, 1, &dev->irq_state);
     } else {
         if (dev->irq_mode == 1)
-            pci_clear_irq(dev->slot, dev->irq_pin);
+            pci_clear_irq(dev->slot, dev->irq_pin, &dev->irq_state);
         else if (dev->irq_mode == 2)
-            pci_clear_mirq(5, dev->mirq_is_level);
+            pci_clear_mirq(5, dev->mirq_is_level, &dev->irq_state);
         else
-            pci_clear_mirq(0xf0 | dev->irq_line, 1);
+            pci_clear_mirq(PCI_DIRQ_BASE | dev->irq_line, 1, &dev->irq_state);
     }
 
     acpi_timer_update(dev, (dev->regs.pmen & TMROF_EN) && !(dev->regs.pmsts & TMROF_STS));
@@ -1657,6 +1657,9 @@ acpi_reset(void *priv)
     dev->regs.pmsts |= 0x8000;
 
     acpi_rtc_status = 0;
+
+    acpi_update_irq(dev);
+    dev->irq_state = 0;
 }
 
 static void

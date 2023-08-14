@@ -747,7 +747,7 @@ pgc_plot(pgc_t *dev, uint16_t x, uint16_t y)
  * Draw a line (using raster coordinates).
  *
  * Bresenham's Algorithm from:
- *	<https://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#C>
+ *  <https://rosettacode.org/wiki/Bitmap/Bresenham%27s_line_algorithm#C>
  *
  * The line pattern mask to use is passed in. Return value is the
  * line pattern mask, rotated by the number of points drawn.
@@ -1384,11 +1384,11 @@ hndl_window(pgc_t *dev)
  * core commands (listed below) and subclass commands (listed in the clone).
  *
  * Each row has five parameters:
- * 	ASCII-mode command
- * 	Hex-mode command
- * 	Function that executes this command
- * 	Function that parses this command when building a command list
- * 	Parameter for the parse function
+ *  ASCII-mode command
+ *  Hex-mode command
+ *  Function that executes this command
+ *  Function that parses this command when building a command list
+ *  Parameter for the parse function
  *
  * TODO: This list omits numerous commands present in a genuine PGC
  *       (ARC, AREA, AREABC, BUFFER, CIRCLE etc etc).

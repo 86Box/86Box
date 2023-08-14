@@ -94,9 +94,7 @@ ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                     if (!dat)
                         break;
                     eeprom->state = EEPROM_OPCODE;
-#ifdef FALLTHROUGH_ANNOTATION
-                    [[fallthrough]];
-#endif
+                    fallthrough;
                 case EEPROM_OPCODE:
                     eeprom->opcode = (eeprom->opcode << 1) | (dat ? 1 : 0);
                     eeprom->count--;

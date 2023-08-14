@@ -83,23 +83,27 @@ x54x_irq(x54x_t *dev, int set)
     if (dev->card_bus & DEVICE_PCI) {
         x54x_log("PCI IRQ: %02X, PCI_INTA\n", dev->pci_slot);
         if (set)
-            pci_set_irq(dev->pci_slot, PCI_INTA);
+            pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
         else
-            pci_clear_irq(dev->pci_slot, PCI_INTA);
+            pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
     } else {
         x54x_log("%sing IRQ %i\n", set ? "Rais" : "Lower", irq);
 
-        if (set) {
-            if (dev->interrupt_type)
-                int_type = dev->interrupt_type(dev);
+        if (dev->interrupt_type)
+            int_type = dev->interrupt_type(dev);
 
+        if (set) {
             if (int_type)
-                picintlevel(1 << irq);
+                picintlevel(1 << irq, &dev->irq_state);
             else
                 picint(1 << irq);
-        } else
-            picintc(1 << irq);
-    }
+        } else {
+            if (int_type)
+                picintclevel(1 << irq, &dev->irq_state);
+            else
+                picintc(1 << irq);
+        }
+    }    
 }
 
 static void
@@ -486,9 +490,7 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 
             default:
                 x54x_log("BIOS: Unimplemented command: %02X\n", cmd->command);
-#ifdef FALLTHROUGH_ANNOTATION
-                [[fallthrough]];
-#endif
+                fallthrough;
             case 0x05: /* Format Track, invalid since SCSI has no tracks */
             case 0x0a: /* ???? */
             case 0x0b: /* ???? */
@@ -1415,6 +1417,7 @@ static void
 x54x_reset(x54x_t *dev)
 {
     clear_irq(dev);
+    dev->irq_state = 0;
     if (dev->flags & X54X_INT_GEOM_WRITABLE)
         dev->Geometry = 0x90;
     else

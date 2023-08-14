@@ -568,7 +568,8 @@ MAINOBJ := 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma.
            usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o ini.o \
            $(VNCOBJ)
 
-MEMOBJ := catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o row.o smram.o spd.o sst_flash.o
+MEMOBJ := catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o mmu_2386.o rom.o row.o \
+          smram.o spd.o sst_flash.o
 
 CPU808XOBJ := queue.o
 
@@ -581,6 +582,7 @@ CPUOBJ := $(DYNARECOBJ) \
 	  softfloat-muladd.o softfloat-round-pack.o softfloat-specialize.o softfloatx80.o
 
 CHIPSETOBJ := 82c100.o acc2168.o \
+              compaq_386.o \
               contaq_82c59x.o \
               cs4031.o cs8230.o \
               ali1429.o ali1435.o ali1489.o ali1531.o ali1541.o ali1543.o ali1621.o ali6117.o \
@@ -737,6 +739,7 @@ VIDOBJ := agpgart.o video.o \
           vid_ati_eeprom.o \
           vid_ati18800.o vid_ati28800.o \
 	  vid_ati_mach8.o \
+          vid_ati68875_ramdac.o \
           vid_ati_mach64.o vid_ati68860_ramdac.o \
           vid_bt48x_ramdac.o \
           vid_av9194.o vid_icd2061.o vid_ics2494.o vid_ics2595.o \

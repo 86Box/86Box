@@ -340,6 +340,7 @@ static int
 opCMP_b_rmw_a16(uint32_t fetchdat)
 {
     uint8_t dst;
+
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -359,6 +360,7 @@ static int
 opCMP_b_rmw_a32(uint32_t fetchdat)
 {
     uint8_t dst;
+
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -379,6 +381,7 @@ static int
 opCMP_w_rmw_a16(uint32_t fetchdat)
 {
     uint16_t dst;
+
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -398,6 +401,7 @@ static int
 opCMP_w_rmw_a32(uint32_t fetchdat)
 {
     uint16_t dst;
+
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -418,6 +422,7 @@ static int
 opCMP_l_rmw_a16(uint32_t fetchdat)
 {
     uint32_t dst;
+
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -437,6 +442,7 @@ static int
 opCMP_l_rmw_a32(uint32_t fetchdat)
 {
     uint32_t dst;
+
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -457,6 +463,7 @@ static int
 opCMP_b_rm_a16(uint32_t fetchdat)
 {
     uint8_t src;
+
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -472,6 +479,7 @@ static int
 opCMP_b_rm_a32(uint32_t fetchdat)
 {
     uint8_t src;
+
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -488,6 +496,7 @@ static int
 opCMP_w_rm_a16(uint32_t fetchdat)
 {
     uint16_t src;
+
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -503,6 +512,7 @@ static int
 opCMP_w_rm_a32(uint32_t fetchdat)
 {
     uint16_t src;
+
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -519,6 +529,7 @@ static int
 opCMP_l_rm_a16(uint32_t fetchdat)
 {
     uint32_t src;
+
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -534,6 +545,7 @@ static int
 opCMP_l_rm_a32(uint32_t fetchdat)
 {
     uint32_t src;
+
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -550,6 +562,7 @@ static int
 opCMP_AL_imm(uint32_t fetchdat)
 {
     uint8_t src = getbytef();
+
     setsub8(AL, src);
     CLOCK_CYCLES(timing_rr);
     PREFETCH_RUN(timing_rr, 2, -1, 0, 0, 0, 0, 0);
@@ -560,6 +573,7 @@ static int
 opCMP_AX_imm(uint32_t fetchdat)
 {
     uint16_t src = getwordf();
+
     setsub16(AX, src);
     CLOCK_CYCLES(timing_rr);
     PREFETCH_RUN(timing_rr, 3, -1, 0, 0, 0, 0, 0);
@@ -570,6 +584,7 @@ static int
 opCMP_EAX_imm(uint32_t fetchdat)
 {
     uint32_t src = getlong();
+
     if (cpu_state.abrt)
         return 1;
     setsub32(EAX, src);
@@ -581,7 +596,9 @@ opCMP_EAX_imm(uint32_t fetchdat)
 static int
 opTEST_b_a16(uint32_t fetchdat)
 {
-    uint8_t temp, temp2;
+    uint8_t temp;
+    uint8_t temp2;
+
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -601,7 +618,9 @@ opTEST_b_a16(uint32_t fetchdat)
 static int
 opTEST_b_a32(uint32_t fetchdat)
 {
-    uint8_t temp, temp2;
+    uint8_t temp;
+    uint8_t temp2;
+
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -622,7 +641,9 @@ opTEST_b_a32(uint32_t fetchdat)
 static int
 opTEST_w_a16(uint32_t fetchdat)
 {
-    uint16_t temp, temp2;
+    uint16_t temp;
+    uint16_t temp2;
+
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -642,7 +663,9 @@ opTEST_w_a16(uint32_t fetchdat)
 static int
 opTEST_w_a32(uint32_t fetchdat)
 {
-    uint16_t temp, temp2;
+    uint16_t temp;
+    uint16_t temp2;
+
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -663,7 +686,9 @@ opTEST_w_a32(uint32_t fetchdat)
 static int
 opTEST_l_a16(uint32_t fetchdat)
 {
-    uint32_t temp, temp2;
+    uint32_t temp;
+    uint32_t temp2;
+
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -683,7 +708,9 @@ opTEST_l_a16(uint32_t fetchdat)
 static int
 opTEST_l_a32(uint32_t fetchdat)
 {
-    uint32_t temp, temp2;
+    uint32_t temp;
+    uint32_t temp2;
+
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_READ(cpu_state.ea_seg);
@@ -803,7 +830,8 @@ opTEST_EAX(uint32_t fetchdat)
 static int
 op80_a16(uint32_t fetchdat)
 {
-    uint8_t src, dst;
+    uint8_t src;
+    uint8_t dst;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -823,7 +851,8 @@ op80_a16(uint32_t fetchdat)
 static int
 op80_a32(uint32_t fetchdat)
 {
-    uint8_t src, dst;
+    uint8_t src;
+    uint8_t dst;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -843,7 +872,8 @@ op80_a32(uint32_t fetchdat)
 static int
 op81_w_a16(uint32_t fetchdat)
 {
-    uint16_t src, dst;
+    uint16_t src;
+    uint16_t dst;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -863,7 +893,8 @@ op81_w_a16(uint32_t fetchdat)
 static int
 op81_w_a32(uint32_t fetchdat)
 {
-    uint16_t src, dst;
+    uint16_t src;
+    uint16_t dst;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -883,7 +914,8 @@ op81_w_a32(uint32_t fetchdat)
 static int
 op81_l_a16(uint32_t fetchdat)
 {
-    uint32_t src, dst;
+    uint32_t src;
+    uint32_t dst;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -903,7 +935,8 @@ op81_l_a16(uint32_t fetchdat)
 static int
 op81_l_a32(uint32_t fetchdat)
 {
-    uint32_t src, dst;
+    uint32_t src;
+    uint32_t dst;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -924,7 +957,8 @@ op81_l_a32(uint32_t fetchdat)
 static int
 op83_w_a16(uint32_t fetchdat)
 {
-    uint16_t src, dst;
+    uint16_t src;
+    uint16_t dst;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -946,7 +980,8 @@ op83_w_a16(uint32_t fetchdat)
 static int
 op83_w_a32(uint32_t fetchdat)
 {
-    uint16_t src, dst;
+    uint16_t src;
+    uint16_t dst;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -969,7 +1004,8 @@ op83_w_a32(uint32_t fetchdat)
 static int
 op83_l_a16(uint32_t fetchdat)
 {
-    uint32_t src, dst;
+    uint32_t src;
+    uint32_t dst;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -991,7 +1027,8 @@ op83_l_a16(uint32_t fetchdat)
 static int
 op83_l_a32(uint32_t fetchdat)
 {
-    uint32_t src, dst;
+    uint32_t src;
+    uint32_t dst;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)

@@ -17,13 +17,6 @@ extern int  mouse_capture;
 extern void plat_mouse_capture(int);
 }
 
-typedef struct mouseinputdata {
-    int deltax, deltay, deltaz;
-    int mousebuttons;
-} mouseinputdata;
-
-static mouseinputdata mousedata;
-
 CocoaEventFilter::~CocoaEventFilter()
 {
 }
@@ -31,6 +24,8 @@ CocoaEventFilter::~CocoaEventFilter()
 bool
 CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, result_t *result)
 {
+    int b = 0;
+
     if (mouse_capture) {
         if (eventType == "mac_generic_NSEvent") {
             NSEvent *event = (NSEvent *) message;
@@ -38,12 +33,11 @@ CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, 
                 || [event type] == NSEventTypeLeftMouseDragged
                 || [event type] == NSEventTypeRightMouseDragged
                 || [event type] == NSEventTypeOtherMouseDragged) {
-                mousedata.deltax += [event deltaX];
-                mousedata.deltay += [event deltaY];
+                mouse_scalef((double) [event deltaX], (double) [event deltaY]);
                 return true;
             }
             if ([event type] == NSEventTypeScrollWheel) {
-                mousedata.deltaz += [event deltaY];
+                mouse_set_z([event deltaY]);
                 return true;
             }
             switch ([event type]) {
@@ -51,27 +45,32 @@ CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, 
                     return false;
                 case NSEventTypeLeftMouseDown:
                     {
-                        mousedata.mousebuttons |= 1;
+                        b = mouse_get_buttons_ex() | 1;
+                        mouse_set_buttons_ex(b);
                         break;
                     }
                 case NSEventTypeLeftMouseUp:
                     {
-                        mousedata.mousebuttons &= ~1;
+                        b = mouse_get_buttons_ex() & ~1;
+                        mouse_set_buttons_ex(b);
                         break;
                     }
                 case NSEventTypeRightMouseDown:
                     {
-                        mousedata.mousebuttons |= 2;
+                        b = mouse_get_buttons_ex() | 2;
+                        mouse_set_buttons_ex(b);
                         break;
                     }
                 case NSEventTypeRightMouseUp:
                     {
-                        mousedata.mousebuttons &= ~2;
+                        b = mouse_get_buttons_ex() & ~2;
+                        mouse_set_buttons_ex(b);
                         break;
                     }
                 case NSEventTypeOtherMouseDown:
                     {
-                        mousedata.mousebuttons |= 4;
+                        b = mouse_get_buttons_ex() | 4;
+                        mouse_set_buttons_ex(b);
                         break;
                     }
                 case NSEventTypeOtherMouseUp:
@@ -80,7 +79,8 @@ CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, 
                             plat_mouse_capture(0);
                             return true;
                         }
-                        mousedata.mousebuttons &= ~4;
+                        b = mouse_get_buttons_ex() & ~4;
+                        mouse_set_buttons_ex(b);
                         break;
                     }
             }
@@ -88,14 +88,4 @@ CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, 
         }
     }
     return false;
-}
-
-extern "C" void
-macos_poll_mouse()
-{
-    mouse_x          = mousedata.deltax;
-    mouse_y          = mousedata.deltay;
-    mouse_z          = mousedata.deltaz;
-    mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
-    mouse_buttons                                          = mousedata.mousebuttons;
 }

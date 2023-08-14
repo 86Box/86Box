@@ -62,11 +62,15 @@ i450kx_log(const char *fmt, ...)
 typedef struct i450kx_t {
     smram_t *smram[2];
 
+    uint8_t bus_index;
+    uint8_t pb_slot;
+    uint8_t mc_slot;
+    uint8_t pad;
+
     uint8_t pb_pci_conf[256];
     uint8_t mc_pci_conf[256];
-    uint8_t mem_state[2][256];
 
-    uint8_t bus_index;
+    uint8_t mem_state[2][256];
 } i450kx_t;
 
 static void
@@ -801,8 +805,8 @@ i450kx_init(UNUSED(const device_t *info))
 {
     i450kx_t *dev = (i450kx_t *) malloc(sizeof(i450kx_t));
     memset(dev, 0, sizeof(i450kx_t));
-    pci_add_card(PCI_ADD_NORTHBRIDGE, pb_read, pb_write, dev); /* Device 19h: Intel 450KX PCI Bridge PB */
-    pci_add_card(PCI_ADD_AGPBRIDGE, mc_read, mc_write, dev);   /* Device 14h: Intel 450KX Memory Controller MC */
+    pci_add_card(PCI_ADD_NORTHBRIDGE, pb_read, pb_write, dev, &dev->pb_slot);        /* Device 19h: Intel 450KX PCI Bridge PB */
+    pci_add_card(PCI_ADD_NORTHBRIDGE_SEC, mc_read, mc_write, dev, &dev->mc_slot);    /* Device 14h: Intel 450KX Memory Controller MC */
 
     dev->smram[0] = smram_add();
     dev->smram[1] = smram_add();

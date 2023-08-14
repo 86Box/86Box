@@ -142,8 +142,11 @@ typedef struct banshee_t {
     int      desktop_y;
     uint32_t desktop_stride_tiled;
 
-    int type, card, agp, has_bios;
-    int vblank_irq;
+    int type, agp;
+    int has_bios, vblank_irq;
+
+    uint8_t pci_slot;
+    uint8_t irq_state;
 
     void *i2c, *i2c_ddc, *ddc;
 } banshee_t;
@@ -306,9 +309,9 @@ static void
 banshee_update_irqs(banshee_t *banshee)
 {
     if (banshee->vblank_irq > 0 && banshee_vga_vsync_enabled(banshee)) {
-        pci_set_irq(banshee->card, PCI_INTA);
+        pci_set_irq(banshee->pci_slot, PCI_INTA, &banshee->irq_state);
     } else {
-        pci_clear_irq(banshee->card, PCI_INTA);
+        pci_clear_irq(banshee->pci_slot, PCI_INTA, &banshee->irq_state);
     }
 }
 
@@ -370,6 +373,9 @@ banshee_out(uint16_t addr, uint8_t val, void *priv)
                 }
             }
             break;
+
+        default:
+            break;
     }
     svga_out(addr, val, svga);
 }
@@ -430,8 +436,7 @@ banshee_updatemapping(banshee_t *banshee)
     }
 
     banshee_log("Update mapping - bank %02X ", svga->gdcreg[6] & 0xc);
-    switch (svga->gdcreg[6] & 0xc) /*Banked framebuffer*/
-    {
+    switch (svga->gdcreg[6] & 0xc) { /*Banked framebuffer*/
         case 0x0: /*128k at A0000*/
             mem_mapping_set_addr(&svga->mapping, 0xa0000, 0x20000);
             svga->banked_mask = 0xffff;
@@ -448,6 +453,9 @@ banshee_updatemapping(banshee_t *banshee)
             mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
             svga->banked_mask = 0x7fff;
             break;
+
+        default:
+            break;
     }
 
     banshee_log("Linear framebuffer %08X  ", banshee->memBaseAddr1);
@@ -461,7 +469,7 @@ static void
 banshee_render_16bpp_tiled(svga_t *svga)
 {
     banshee_t *banshee = (banshee_t *) svga->priv;
-    uint32_t  *p = &((uint32_t *) svga->monitor->target_buffer->line[svga->displine + svga->y_add])[svga->x_add];
+    uint32_t  *p = &(svga->monitor->target_buffer->line[svga->displine + svga->y_add])[svga->x_add];
     uint32_t   addr;
     int        drawn = 0;
 
@@ -477,7 +485,7 @@ banshee_render_16bpp_tiled(svga_t *svga)
         if (svga->hwcursor_on || svga->overlay_on)
             svga->changedvram[addr >> 12] = 2;
         if (svga->changedvram[addr >> 12] || svga->fullchange) {
-            uint16_t *vram_p = (uint16_t *) &svga->vram[addr & svga->vram_display_mask];
+            const uint16_t *vram_p = (uint16_t *) &svga->vram[addr & svga->vram_display_mask];
 
             for (uint8_t xx = 0; xx < 64; xx++)
                 *p++ = video_16to32[*vram_p++];
@@ -500,8 +508,8 @@ banshee_render_16bpp_tiled(svga_t *svga)
 static void
 banshee_recalctimings(svga_t *svga)
 {
-    banshee_t *banshee = (banshee_t *) svga->priv;
-    voodoo_t  *voodoo  = banshee->voodoo;
+    banshee_t      *banshee = (banshee_t *) svga->priv;
+    const voodoo_t *voodoo  = banshee->voodoo;
 
     /*7 R/W Horizontal Retrace End bit 5. -
       6 R/W Horizontal Retrace Start bit 8 0x4
@@ -905,10 +913,11 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
             svga->fullchange = changeframecount;
             svga_recalctimings(svga);
             break;
-#if 0
         default:
+#if 0
             fatal("bad banshee_ext_outl: addr=%04x val=%08x\n", addr, val);
 #endif
+            break;
     }
 }
 
@@ -996,15 +1005,14 @@ banshee_ext_in(uint16_t addr, void *priv)
 static uint32_t
 banshee_status(banshee_t *banshee)
 {
-    voodoo_t *voodoo       = banshee->voodoo;
-    svga_t   *svga         = &banshee->svga;
-    int       fifo_entries = FIFO_ENTRIES;
-    int       swap_count   = voodoo->swap_count;
-    int       written      = voodoo->cmd_written + voodoo->cmd_written_fifo;
-    int       busy         = (written - voodoo->cmd_read) || (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr) || voodoo->render_voodoo_busy[0] || voodoo->render_voodoo_busy[1] || voodoo->render_voodoo_busy[2] || voodoo->render_voodoo_busy[3] || voodoo->voodoo_busy;
-    uint32_t  ret;
+    voodoo_t     *voodoo       = banshee->voodoo;
+    const svga_t *svga         = &banshee->svga;
+    int           fifo_entries = FIFO_ENTRIES;
+    int           swap_count   = voodoo->swap_count;
+    int           written      = voodoo->cmd_written + voodoo->cmd_written_fifo;
+    int           busy         = (written - voodoo->cmd_read) || (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr) || voodoo->render_voodoo_busy[0] || voodoo->render_voodoo_busy[1] || voodoo->render_voodoo_busy[2] || voodoo->render_voodoo_busy[3] || voodoo->voodoo_busy;
+    uint32_t      ret          = 0;
 
-    ret = 0;
     if (fifo_entries < 0x20)
         ret |= 0x1f - fifo_entries;
     else
@@ -1037,10 +1045,10 @@ banshee_status(banshee_t *banshee)
 static uint32_t
 banshee_ext_inl(uint16_t addr, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) priv;
-    voodoo_t  *voodoo  = banshee->voodoo;
-    svga_t    *svga    = &banshee->svga;
-    uint32_t   ret     = 0xffffffff;
+    banshee_t      *banshee = (banshee_t *) priv;
+    const voodoo_t *voodoo  = banshee->voodoo;
+    const svga_t   *svga    = &banshee->svga;
+    uint32_t        ret     = 0xffffffff;
 
     cycles -= voodoo->read_time;
 
@@ -1212,8 +1220,8 @@ banshee_reg_readw(uint32_t addr, void *priv)
 static uint32_t
 banshee_cmd_read(banshee_t *banshee, uint32_t addr)
 {
-    voodoo_t *voodoo = banshee->voodoo;
-    uint32_t  ret    = 0xffffffff;
+    const voodoo_t *voodoo = banshee->voodoo;
+    uint32_t        ret    = 0xffffffff;
 
     switch (addr & 0x1fc) {
         case Agp_agpHostAddressLow:
@@ -1419,6 +1427,9 @@ banshee_reg_readl(uint32_t addr, void *priv)
                     break;
             }
             break;
+
+        default:
+            break;
     }
 
 #if 0
@@ -1466,6 +1477,9 @@ banshee_reg_writew(uint32_t addr, uint16_t val, void *priv)
         case 0x1e00000:
         case 0x1f00000:
             voodoo_queue_command(voodoo, (addr & 0xffffff) | FIFO_WRITEW_FB, val);
+            break;
+
+        default:
             break;
     }
 }
@@ -1679,15 +1693,18 @@ banshee_reg_writel(uint32_t addr, uint32_t val, void *priv)
         case 0x1f00000:
             voodoo_queue_command(voodoo, (addr & 0xfffffc) | FIFO_WRITEL_FB, val);
             break;
+
+        default:
+            break;
     }
 }
 
 static uint8_t
 banshee_read_linear(uint32_t addr, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) priv;
-    voodoo_t  *voodoo  = banshee->voodoo;
-    svga_t    *svga    = &banshee->svga;
+    banshee_t      *banshee = (banshee_t *) priv;
+    const voodoo_t *voodoo  = banshee->voodoo;
+    const svga_t   *svga    = &banshee->svga;
 
     cycles -= voodoo->read_time;
 
@@ -1723,9 +1740,9 @@ banshee_read_linear(uint32_t addr, void *priv)
 static uint16_t
 banshee_read_linear_w(uint32_t addr, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) priv;
-    voodoo_t  *voodoo  = banshee->voodoo;
-    svga_t    *svga    = &banshee->svga;
+    banshee_t      *banshee = (banshee_t *) priv;
+    const voodoo_t *voodoo  = banshee->voodoo;
+    svga_t         *svga    = &banshee->svga;
 
     if (addr & 1)
         return banshee_read_linear(addr, priv) | (banshee_read_linear(addr + 1, priv) << 8);
@@ -1763,9 +1780,9 @@ banshee_read_linear_w(uint32_t addr, void *priv)
 static uint32_t
 banshee_read_linear_l(uint32_t addr, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) priv;
-    voodoo_t  *voodoo  = banshee->voodoo;
-    svga_t    *svga    = &banshee->svga;
+    banshee_t      *banshee = (banshee_t *) priv;
+    const voodoo_t *voodoo  = banshee->voodoo;
+    svga_t         *svga    = &banshee->svga;
 
     if (addr & 3)
         return banshee_read_linear_w(addr, priv) | (banshee_read_linear_w(addr + 2, priv) << 16);
@@ -1804,9 +1821,9 @@ banshee_read_linear_l(uint32_t addr, void *priv)
 static void
 banshee_write_linear(uint32_t addr, uint8_t val, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) priv;
-    voodoo_t  *voodoo  = banshee->voodoo;
-    svga_t    *svga    = &banshee->svga;
+    banshee_t      *banshee = (banshee_t *) priv;
+    const voodoo_t *voodoo  = banshee->voodoo;
+    svga_t         *svga    = &banshee->svga;
 
     cycles -= voodoo->write_time;
 
@@ -1839,9 +1856,9 @@ banshee_write_linear(uint32_t addr, uint8_t val, void *priv)
 static void
 banshee_write_linear_w(uint32_t addr, uint16_t val, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) priv;
-    voodoo_t  *voodoo  = banshee->voodoo;
-    svga_t    *svga    = &banshee->svga;
+    banshee_t      *banshee = (banshee_t *) priv;
+    const voodoo_t *voodoo  = banshee->voodoo;
+    svga_t         *svga    = &banshee->svga;
 
     if (addr & 1) {
         banshee_write_linear(addr, val, priv);
@@ -1981,14 +1998,14 @@ banshee_write_linear_l(uint32_t addr, uint32_t val, void *priv)
 void
 banshee_hwcursor_draw(svga_t *svga, int displine)
 {
-    banshee_t *banshee = (banshee_t *) svga->priv;
-    int        x;
-    int        x_off;
-    int        xx;
-    uint32_t   col0 = banshee->hwCurC0;
-    uint32_t   col1 = banshee->hwCurC1;
-    uint8_t    plane0[8];
-    uint8_t    plane1[8];
+    const banshee_t *banshee = (banshee_t *) svga->priv;
+    int              x;
+    int              x_off;
+    int              xx;
+    uint32_t         col0 = banshee->hwCurC0;
+    uint32_t         col1 = banshee->hwCurC1;
+    uint8_t          plane0[8];
+    uint8_t          plane1[8];
 
     for (uint8_t c = 0; c < 8; c++)
         plane0[c] = svga->vram[svga->hwcursor_latch.addr + c];
@@ -2004,7 +2021,7 @@ banshee_hwcursor_draw(svga_t *svga, int displine)
             if (x_off > -8) {
                 for (xx = 0; xx < 8; xx++) {
                     if (plane0[x >> 3] & (1 << 7))
-                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
+                        (svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
 
                     plane0[x >> 3] <<= 1;
                     plane1[x >> 3] <<= 1;
@@ -2019,9 +2036,9 @@ banshee_hwcursor_draw(svga_t *svga, int displine)
             if (x_off > -8) {
                 for (xx = 0; xx < 8; xx++) {
                     if (!(plane0[x >> 3] & (1 << 7)))
-                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
+                        (svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
                     else if (plane1[x >> 3] & (1 << 7))
-                        ((uint32_t *) svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] ^= 0xffffff;
+                        (svga->monitor->target_buffer->line[displine])[x_off + xx + svga->x_add] ^= 0xffffff;
 
                     plane0[x >> 3] <<= 1;
                     plane1[x >> 3] <<= 1;
@@ -2186,8 +2203,6 @@ banshee_hwcursor_draw(svga_t *svga, int displine)
 void
 voodoo_generate_vb_filters(voodoo_t *voodoo, int fcr, int fcg)
 {
-    int   g;
-    int   h;
     float difference;
     float diffg;
     float thiscol;
@@ -2201,10 +2216,8 @@ voodoo_generate_vb_filters(voodoo_t *voodoo, int fcr, int fcg)
     fcg *= hack;
 
     /* box prefilter */
-    for (g = 0; g < 256; g++) // pixel 1 - our target pixel we want to bleed into
-    {
-        for (h = 0; h < 256; h++) // pixel 2 - our main pixel
-        {
+    for (uint16_t g = 0; g < 256; g++) { // pixel 1 - our target pixel we want to bleed into
+        for (uint16_t h = 0; h < 256; h++) { // pixel 2 - our main pixel
             float avg;
             float avgdiff;
 
@@ -2286,10 +2299,8 @@ voodoo_generate_vb_filters(voodoo_t *voodoo, int fcr, int fcg)
     fcg *= 6;
 #endif
 
-    for (g = 0; g < 256; g++) // pixel 1
-    {
-        for (h = 0; h < 256; h++) // pixel 2
-        {
+    for (uint16_t g = 0; g < 256; g++) { // pixel 1
+        for (uint16_t h = 0; h < 256; h++) { // pixel 2
             difference = (float) (h - g);
             diffg      = difference;
 
@@ -2329,18 +2340,18 @@ voodoo_generate_vb_filters(voodoo_t *voodoo, int fcr, int fcg)
 static void
 banshee_overlay_draw(svga_t *svga, int displine)
 {
-    banshee_t   *banshee = (banshee_t *) svga->priv;
-    voodoo_t    *voodoo  = banshee->voodoo;
-    uint32_t    *p;
-    int          x;
-    int          y         = voodoo->overlay.src_y >> 20;
-    uint32_t     src_addr  = svga->overlay_latch.addr + ((banshee->vidProcCfg & VIDPROCCFG_OVERLAY_TILE) ? ((y & 31) * 128 + (y >> 5) * svga->overlay_latch.pitch) : y * svga->overlay_latch.pitch);
-    uint32_t     src_addr2 = svga->overlay_latch.addr + ((banshee->vidProcCfg & VIDPROCCFG_OVERLAY_TILE) ? (((y + 1) & 31) * 128 + ((y + 1) >> 5) * svga->overlay_latch.pitch) : (y + 1) * svga->overlay_latch.pitch);
-    uint8_t     *src       = &svga->vram[src_addr & svga->vram_mask];
-    uint32_t     src_x     = 0;
-    unsigned int y_coeff   = (voodoo->overlay.src_y & 0xfffff) >> 4;
-    int          skip_filtering;
-    uint32_t    *clut = &svga->pallook[(banshee->vidProcCfg & VIDPROCCFG_OVERLAY_CLUT_SEL) ? 256 : 0];
+    banshee_t      *banshee = (banshee_t *) svga->priv;
+    voodoo_t       *voodoo  = banshee->voodoo;
+    uint32_t       *p;
+    int             x;
+    int             y         = voodoo->overlay.src_y >> 20;
+    uint32_t        src_addr  = svga->overlay_latch.addr + ((banshee->vidProcCfg & VIDPROCCFG_OVERLAY_TILE) ? ((y & 31) * 128 + (y >> 5) * svga->overlay_latch.pitch) : y * svga->overlay_latch.pitch);
+    uint32_t        src_addr2 = svga->overlay_latch.addr + ((banshee->vidProcCfg & VIDPROCCFG_OVERLAY_TILE) ? (((y + 1) & 31) * 128 + ((y + 1) >> 5) * svga->overlay_latch.pitch) : (y + 1) * svga->overlay_latch.pitch);
+    uint8_t        *src       = &svga->vram[src_addr & svga->vram_mask];
+    uint32_t        src_x     = 0;
+    unsigned int    y_coeff   = (voodoo->overlay.src_y & 0xfffff) >> 4;
+    int             skip_filtering;
+    const uint32_t *clut = &svga->pallook[(banshee->vidProcCfg & VIDPROCCFG_OVERLAY_CLUT_SEL) ? 256 : 0];
 
     if (svga->render == svga_render_null && !svga->changedvram[src_addr >> 12] && !svga->changedvram[src_addr2 >> 12] && !svga->fullchange && ((voodoo->overlay.src_y >> 20) < 2048 && !voodoo->dirty_line[voodoo->overlay.src_y >> 20]) && !(banshee->vidProcCfg & VIDPROCCFG_V_SCALE_ENABLE)) {
         voodoo->overlay.src_y += (1 << 20);
@@ -2354,7 +2365,7 @@ banshee_overlay_draw(svga_t *svga, int displine)
     if (src_addr >= 0x800000)
         fatal("overlay out of range!\n");
 #endif
-    p = &((uint32_t *) svga->monitor->target_buffer->line[displine])[svga->overlay_latch.x + svga->x_add];
+    p = &(svga->monitor->target_buffer->line[displine])[svga->overlay_latch.x + svga->x_add];
 
     if (banshee->voodoo->scrfilter && banshee->voodoo->scrfilterEnabled)
         skip_filtering = ((banshee->vidProcCfg & VIDPROCCFG_FILTER_MODE_MASK) != VIDPROCCFG_FILTER_MODE_BILINEAR && !(banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) && !(banshee->vidProcCfg & VIDPROCCFG_FILTER_MODE_DITHER_4X4) && !(banshee->vidProcCfg & VIDPROCCFG_FILTER_MODE_DITHER_2X2));
@@ -2608,7 +2619,7 @@ banshee_vsync_callback(svga_t *svga)
 static uint8_t
 banshee_pci_read(int func, int addr, void *priv)
 {
-    banshee_t *banshee = (banshee_t *) priv;
+    const banshee_t *banshee = (banshee_t *) priv;
 #if 0
     svga_t *svga = &banshee->svga;
 #endif
@@ -2803,6 +2814,9 @@ banshee_pci_read(int func, int addr, void *priv)
         case 0x67:
             ret = banshee->pci_regs[0x67];
             break;
+
+        default:
+            break;
     }
 #if 0
     banshee_log("%02X\n", ret);
@@ -2932,6 +2946,9 @@ banshee_pci_write(int func, int addr, uint8_t val, void *priv)
         case 0x66:
             banshee->pci_regs[0x66] = val & 0xc0;
             return;
+
+        default:
+            break;
     }
 }
 
@@ -3146,7 +3163,10 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
         banshee->dramInit1 = 1 << 30; /*SDRAM*/
     banshee->svga.decode_mask = 0x1ffffff;
 
-    banshee->card = pci_add_card(banshee->agp ? PCI_ADD_AGP : PCI_ADD_VIDEO, banshee_pci_read, banshee_pci_write, banshee);
+    if (banshee->has_bios)
+        pci_add_card(banshee->agp ? PCI_ADD_AGP : PCI_ADD_NORMAL, banshee_pci_read, banshee_pci_write, banshee, &banshee->pci_slot);
+    else
+        pci_add_card(banshee->agp ? PCI_ADD_AGP : PCI_ADD_VIDEO, banshee_pci_read, banshee_pci_write, banshee, &banshee->pci_slot);
 
     banshee->voodoo               = voodoo_2d3d_card_init(voodoo_type);
     banshee->voodoo->p            = banshee;
@@ -3237,6 +3257,9 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
             banshee->pci_regs[0x2d] = 0x12;
             banshee->pci_regs[0x2e] = 0x54;
             banshee->pci_regs[0x2f] = 0x00;
+            break;
+
+        default:
             break;
     }
 
