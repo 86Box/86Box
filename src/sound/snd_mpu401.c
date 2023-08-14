@@ -10,14 +10,13 @@
  *
  *
  *
- * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
- *           DOSBox Team,
+ * Authors:  DOSBox Team,
  *           Miran Grca, <mgrca8@gmail.com>
  *           TheCollector1995, <mariogplayer@gmail.com>
  *
- *           Copyright 2008-2020 Sarah Walker.
  *           Copyright 2008-2020 DOSBox Team.
  *           Copyright 2016-2020 Miran Grca.
+ *           Copyright 2016-2020 TheCollector1995.
  */
 #include <stdarg.h>
 #include <stdint.h>

@@ -194,11 +194,10 @@
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Mahod,
- *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2016-2020 Miran Grca.
- *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Mahod.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
