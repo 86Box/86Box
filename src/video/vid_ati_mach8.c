@@ -41,7 +41,7 @@
 #include <86box/vid_ati_eeprom.h>
 
 #define BIOS_MACH8_ROM_PATH      "roms/video/mach8/BIOS.BIN"
-#define BIOS_MACH32_ISA_ROM_PATH "roms/video/mach32/ATi Mach32 Graphics Pro ISA.BIN"
+#define BIOS_MACH32_ISA_ROM_PATH "roms/video/mach32/Mach32_ISA.BIN"
 #define BIOS_MACH32_VLB_ROM_PATH "roms/video/mach32/MACH32VLB.VBI"
 #define BIOS_MACH32_MCA_ROM_PATH "roms/video/mach32/MACH32MCA_Olivetti.BIN"
 #define BIOS_MACH32_PCI_ROM_PATH "roms/video/mach32/intelopt_00000.rom"
@@ -408,7 +408,6 @@ mach_pixel_read(mach_t *mach)
 static void
 mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint32_t cpu_dat, mach_t *mach, ibm8514_t *dev)
 {
-    const svga_t *svga = &mach->svga;
     int           compare_mode;
     int           poly_src     = 0;
     uint16_t      rd_mask      = dev->accel.rd_mask;
@@ -2249,7 +2248,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
 }
 
 static void
-mach_accel_out_pixtrans(mach_t *mach, ibm8514_t *dev, UNUSED(uint16_t port), uint16_t val)
+mach_accel_out_pixtrans(mach_t *mach, ibm8514_t *dev, uint16_t val)
 {
     int frgd_sel;
     int bkgd_sel;
@@ -2999,7 +2998,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                         if (mach->accel.cmd_type >= 0) {
                             if (mach_pixel_read(mach))
                                 break;
-                            mach_accel_out_pixtrans(mach, dev, port, val, len);
+                            mach_accel_out_pixtrans(mach, dev, val, len);
                         } else {
                             if (ibm8514_cpu_dest(svga))
                                 break;
@@ -3084,7 +3083,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                         if (mach->accel.cmd_type >= 0) {
                             if (mach_pixel_read(mach))
                                 break;
-                            mach_accel_out_pixtrans(mach, dev, port, val, len);
+                            mach_accel_out_pixtrans(mach, dev, val, len);
                         } else {
                             if (ibm8514_cpu_dest(svga))
                                 break;
@@ -4030,7 +4029,7 @@ mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, in
                         } else {
                             READ_PIXTRANS_WORD(dev->accel.dx, 0)
                         }
-                        mach_accel_out_pixtrans(mach, dev, port, temp, len);
+                        mach_accel_out_pixtrans(mach, dev, temp, len);
                     }
                 }
             } else {
@@ -5631,6 +5630,10 @@ mach8_init(const device_t *info)
                      BIOS_MACH32_ISA_ROM_PATH,
                      0xc0000, 0x8000, 0x7fff,
                      0, MEM_MAPPING_EXTERNAL);
+            rom_init(&mach->bios_rom2,
+                     BIOS_MACH32_ISA_ROM_PATH,
+                     0xc8000, 0x1000, 0x0fff,
+                     0x8000, MEM_MAPPING_EXTERNAL);
         }
     } else {
         rom_init(&mach->bios_rom,
