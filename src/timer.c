@@ -29,7 +29,10 @@ timer_enable(pc_timer_t *timer)
     if (timer->next || timer->prev)
         fatal("timer_enable - timer->next\n");
 
-    timer->flags |= TIMER_ENABLED;
+    if (timer->flags & TIMER_PROCESS)
+        timer->flags = (timer->flags & ~TIMER_PROCESS) | TIMER_ENABLE;
+    else
+        timer->flags |= TIMER_ENABLED;
 
     /*List currently empty - add to head*/
     if (!timer_head) {
@@ -118,13 +121,17 @@ timer_process(void)
             timer_head->prev = NULL;
 
         timer->next = timer->prev = NULL;
+        timer->flags |= TIMER_PROCESS;
 
         if (timer->flags & TIMER_SPLIT)
             timer_advance_ex(timer, 0);   /* We're splitting a > 1 s period into multiple <= 1 s periods. */
         else if (timer->callback != NULL) /* Make sure it's no NULL, so that we can have a NULL callback when no operation is needed. */
             timer->callback(timer->priv);
 
-        timer->flags &= ~TIMER_ENABLED;
+        if (timer->flags |= TIMER_ENABLE)
+            timer->flags = (timer_flags & ~TIMER_ENABLE) | TIMER_ENABLED;
+        else
+            timer->flags &= ~TIMER_ENABLED;
     }
 
     timer_target = timer_head->ts.ts32.integer;
