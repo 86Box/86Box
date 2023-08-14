@@ -1568,7 +1568,7 @@ machine_at_ecs486_init(const machine_t *model)
     device_add(&ide_cmd640_pci_legacy_only_device);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&keyboard_at_ami_device);
+    device_add(&keyboard_ps2_ami_device);
 
     return ret;
 }
@@ -1717,7 +1717,7 @@ machine_at_spc7700plw_init(const machine_t *model)
     device_add(&umc_8886af_device);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
-    device_add(&keyboard_at_ami_device);
+    device_add(&keyboard_ps2_ami_device);
 
     return ret;
 }
