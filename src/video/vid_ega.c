@@ -17,6 +17,7 @@
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
  */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -26,6 +27,7 @@
 #include "cpu.h"
 #include <86box/io.h>
 #include <86box/timer.h>
+#include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -302,8 +304,8 @@ ega_in(uint16_t addr, void *priv)
                 ret = ega->attrregs[ega->attraddr];
             break;
         case 0x3c2:
-            ret = (egaswitches & (8 >> egaswitchread)) ? 0x10 : 0x00;
-            break;
+             ret = (egaswitches & (8 >> egaswitchread)) ? 0x10 : 0x00;
+             break;
         case 0x3c4:
             if (ega_type)
                 ret = ega->seqaddr;
@@ -361,8 +363,31 @@ ega_in(uint16_t addr, void *priv)
             break;
         case 0x3da:
             ega->attrff = 0;
-            ega->stat ^= 0x30; /* Fools IBM EGA video BIOS self-test. */
-            ret = ega->stat;
+            if (ega_type == 2) {
+                ret = ega->stat & 0xcf;
+                switch ((ega->attrregs[0x12] >> 4) & 0x03) {
+                    case 0x00:
+                        /* 00 = Pri. Red (5), Pri. Blue (4) */
+                        ret |= (ega->color_mux & 0x04) ? 0x20 : 0x00;
+                        ret |= (ega->color_mux & 0x01) ? 0x10 : 0x00;
+                        break;
+                    case 0x01:
+                    case 0x03:
+                        /* 01 = Sec. Red (5), Sec. Green (4) */
+                        /* 11 = Sec. Red (5), Sec. Green (4) */
+                        ret |= (ega->color_mux & 0x20) ? 0x20 : 0x00;
+                        ret |= (ega->color_mux & 0x10) ? 0x10 : 0x00;
+                        break;
+                    case 0x02:
+                        /* 10 = Sec. Blue (5), Pri. Green (4) */
+                        ret |= (ega->color_mux & 0x08) ? 0x20 : 0x00;
+                        ret |= (ega->color_mux & 0x02) ? 0x10 : 0x00;
+                        break;
+                }
+            } else {
+                ega->stat ^= 0x30; /* Fools IBM EGA video BIOS self-test. */
+                ret = ega->stat;
+            }
             break;
         case 0x7c6:
             ret = 0xfd;        /* EGA mode supported. */
@@ -436,15 +461,15 @@ ega_recalctimings(ega_t *ega)
 
     if (ega_type == 2) {
         color = (ega->miscout & 1);
-        clksel = ((ega->miscout & 0xc) >> 2) | ((ega->regs[0xbe] & 0x10) ? 4 : 0);
+        clksel = ((ega->miscout & 0xc) >> 2);
 
         if (color) {
-            if (clksel)
+            if (ega->vidclock)
                 crtcconst = (cpuclock / 16257000.0 * (double) (1ULL << 32));
             else
                 crtcconst = (cpuclock / (157500000.0 / 11.0) * (double) (1ULL << 32));
         } else {
-            if (clksel)
+            if (ega->vidclock)
                 crtcconst = (cpuclock / 18981000.0 * (double) (1ULL << 32));
             else
                 crtcconst = (cpuclock / 16872000.0 * (double) (1ULL << 32));
@@ -484,6 +509,10 @@ ega_recalctimings(ega_t *ega)
         else
             crtcconst = (ega->seqregs[1] & 1) ? CGACONST : (CGACONST * (9.0 / 8.0));
     }
+    if (!(ega->seqregs[1] & 1))
+        ega->dot_clock = crtcconst / 9.0;
+    else
+        ega->dot_clock = crtcconst / 8.0;
 
     ega->interlace = 0;
 
@@ -538,7 +567,108 @@ ega_recalctimings(ega_t *ega)
     if (ega->dispofftime < TIMER_USEC)
         ega->dispofftime = TIMER_USEC;
 
+    ega->dot_time  = (uint64_t) (ega->dot_clock);
+    if (ega->dot_time < TIMER_USEC)
+        ega->dot_time = TIMER_USEC;
+
     ega_recalc_remap_func(ega);
+}
+
+/* This is needed for the Compaq EGA so that it can pass the 3DA
+   palette mux part of the self-test. */
+void
+ega_dot_poll(void *priv)
+{
+    ega_t   *ega = (ega_t *) priv;
+    static uint8_t chr;
+    static uint8_t attr;
+    const bool doublewidth   = ((ega->seqregs[1] & 8) != 0);
+    const bool attrblink     = ((ega->attrregs[0x10] & 8) != 0);
+    const bool attrlinechars = (ega->attrregs[0x10] & 4);
+    const bool crtcreset     = ((ega->crtc[0x17] & 0x80) == 0);
+    const bool seq9dot       = ((ega->seqregs[1] & 1) == 0);
+    const bool blinked       = ega->blink & 0x10;
+    const int  dwshift       = doublewidth ? 1 : 0;
+    const int  dotwidth      = 1 << dwshift;
+    const int  charwidth     = dotwidth * (seq9dot ? 9 : 8);
+    const int  cursoron      = (ega->sc == (ega->crtc[10] & 31));
+    const int  cursoraddr    = (ega->crtc[0xe] << 8) | ega->crtc[0xf];
+    uint32_t addr;
+    int drawcursor;
+    uint32_t charaddr;
+    static int fg;
+    static int bg;
+    static uint32_t dat;
+    static int disptime;
+    static int _dispontime;
+    static int _dispofftime;
+    static int cclock = 0;
+    static int active = 0;
+
+    if (ega->seqregs[1] & 8) {
+        disptime    = ((ega->crtc[0] + 2) << 1);
+        _dispontime = ((ega->crtc[1] + 1) << 1);
+    } else {
+        disptime    = (ega->crtc[0] + 2);
+        _dispontime = (ega->crtc[1] + 1);
+    }
+    _dispofftime = disptime - _dispontime;
+
+    timer_advance_u64(&ega->dot_timer, ega->dot_time);
+
+    if (ega->render == ega_render_text)
+        ega->color_mux = (dat & (0x100 >> (ega->dot >> dwshift))) ? fg : bg;
+    else
+        ega->color_mux = 0x00;
+
+    addr = ega->remap_func(ega, ega->cca) & ega->vrammask;
+
+    if (!crtcreset) {
+        chr  = ega->vram[addr];
+        attr = ega->vram[addr + 1];
+    } else
+        chr = attr = 0;
+
+    drawcursor = ((ega->cca == cursoraddr) && cursoron && ega->cursoron);
+
+    if (attr & 8)
+        charaddr = ega->charsetb + (chr * 0x80);
+    else
+        charaddr = ega->charseta + (chr * 0x80);
+
+    dat = ega->vram[charaddr + (ega->sc << 2)];
+    dat <<= 1;
+    if ((chr & ~0x1F) == 0xC0 && attrlinechars)
+        dat |= (dat >> 1) & 1;
+
+    if (!active)
+        dat = 0x200;
+
+    if (drawcursor) {
+        bg = ega->egapal[attr & 0x0f];
+        fg = ega->egapal[attr >> 4];
+    } else {
+        fg = ega->egapal[attr & 0x0f];
+        bg = ega->egapal[attr >> 4];
+        if ((attr & 0x80) && attrblink) {
+            bg = ega->egapal[(attr >> 4) & 7];
+            if (blinked)
+                fg = bg;
+        }
+    }
+
+    ega->dot = (ega->dot + 1) % charwidth;
+
+    if (ega->dot == 0) {
+        ega->cca = (ega->cca + 4) & 0x3ffff;
+
+        cclock++;
+
+        if (active && (cclock == _dispofftime))
+            active = 0;
+        else if (!active && (cclock == _dispontime))
+            active = 1;
+    }
 }
 
 void
@@ -623,6 +753,7 @@ ega_poll(void *priv)
             if (ega->linedbl && !ega->linecountff) {
                 ega->linecountff = 1;
                 ega->ma          = ega->maback;
+                ega->cca          = ega->maback;
             }
             if (ega->sc == (ega->crtc[9] & 31)) {
                 ega->linecountff = 0;
@@ -633,11 +764,13 @@ ega_poll(void *priv)
                     ega->maback += (ega->rowoffset << 3);
                 ega->maback &= ega->vrammask;
                 ega->ma = ega->maback;
+                ega->cca = ega->maback;
             } else {
                 ega->linecountff = 0;
                 ega->sc++;
                 ega->sc &= 31;
                 ega->ma = ega->maback;
+                ega->cca = ega->maback;
             }
         }
         ega->vc++;
@@ -649,6 +782,7 @@ ega_poll(void *priv)
             else
                 ega->ma = ega->maback = 0;
             ega->ma <<= 2;
+            ega->cca = ega->ma;
             ega->maback <<= 2;
             ega->sc = 0;
             if (ega->attrregs[0x10] & 0x20) {
@@ -676,6 +810,7 @@ ega_poll(void *priv)
         if (ega->vc == ega->vsyncstart) {
             ega->dispon = 0;
             ega->stat |= 8;
+            // picint(1 << 2);
             x = ega->hdisp;
 
             if (ega->interlace && !ega->oddeven)
@@ -715,6 +850,7 @@ ega_poll(void *priv)
             ega->ma <<= 2;
             ega->maback <<= 2;
             ega->ca <<= 2;
+            ega->cca = ega->ma;
         }
         if (ega->vc == ega->vtotal) {
             ega->vc       = 0;
@@ -1263,6 +1399,8 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
     ega->crtc[6] = 255;
 
     timer_add(&ega->timer, ega_poll, ega, 1);
+    if (ega_type == 2)
+        timer_add(&ega->dot_timer, ega_dot_poll, ega, 1);
 }
 
 static void *
@@ -1339,6 +1477,7 @@ ega_standalone_init(const device_t *info)
         memset(ega->eeprom, 0, sizeof(ati_eeprom_t));
         ati_eeprom_load((ati_eeprom_t *) ega->eeprom, "egawonder800.nvr", 0);
     } else if (info->local == EGA_COMPAQ) {
+        io_sethandler(0x0084, 0x0001, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
         io_sethandler(0x07c6, 0x0001, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
         io_sethandler(0x0bc6, 0x0001, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
         io_sethandler(0x0fc6, 0x0001, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
