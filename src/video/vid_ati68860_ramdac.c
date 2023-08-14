@@ -68,7 +68,7 @@ void
 ati68860_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga)
 {
     ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) priv;
-    ibm8514_t 		  *dev    = &svga->dev8514;
+    const ibm8514_t   *dev    = &svga->dev8514;
 
     switch (addr) {
         case 0:
@@ -172,7 +172,7 @@ uint8_t
 ati68860_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
 {
     const ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) priv;
-    ibm8514_t 		  *dev    = &svga->dev8514;
+    const ibm8514_t         *dev    = &svga->dev8514;
     uint8_t                  temp   = 0;
 
     switch (addr) {

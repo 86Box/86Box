@@ -26,6 +26,7 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
+#include <86box/plat_unused.h>
 
 typedef struct ati68875_ramdac_t {
     uint8_t gen_cntl;
@@ -37,9 +38,9 @@ typedef struct ati68875_ramdac_t {
 } ati68875_ramdac_t;
 
 void
-ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t *svga)
+ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga)
 {
-    ati68875_ramdac_t *ramdac = (ati68875_ramdac_t *) p;
+    ati68875_ramdac_t *ramdac = (ati68875_ramdac_t *) priv;
     uint8_t rs = (addr & 0x03);
 
     rs |= (!!rs2 << 2);
@@ -73,18 +74,20 @@ ati68875_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_
         case 0x0f: /* Reset State (RS value = 1111) */
             ramdac->mux_cntl = 0x2d;
             break;
+
+        default:
+            break;
     }
 
     return;
 }
 
 uint8_t
-ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
+ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga)
 {
-    ati68875_ramdac_t *ramdac = (ati68875_ramdac_t *) p;
-    ibm8514_t *dev = &svga->dev8514;
-    uint8_t rs = (addr & 0x03);
-    uint8_t temp = 0;
+    const ati68875_ramdac_t *ramdac = (ati68875_ramdac_t *) priv;
+    uint8_t                  rs = (addr & 0x03);
+    uint8_t                  temp = 0;
 
     rs |= (!!rs2 << 2);
     rs |= (!!rs3 << 3);
@@ -116,7 +119,13 @@ ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
                 case 0x03:
                     temp = 0x75;
                     break;
+
+                default:
+                    break;
             }
+            break;
+
+        default:
             break;
     }
 
@@ -124,7 +133,7 @@ ati68875_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t *svga)
 }
 
 static void *
-ati68875_ramdac_init(const device_t *info)
+ati68875_ramdac_init(UNUSED(const device_t *info))
 {
     ati68875_ramdac_t *ramdac = (ati68875_ramdac_t *) malloc(sizeof(ati68875_ramdac_t));
     memset(ramdac, 0, sizeof(ati68875_ramdac_t));
