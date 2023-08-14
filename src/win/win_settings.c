@@ -1349,10 +1349,10 @@ static BOOL CALLBACK
 #endif
 win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
-    wchar_t str[128];
-    char   *joy_name;
-    int     c;
-    int     d;
+    wchar_t     str[128];
+    const char *joy_name;
+    int         c;
+    int         d;
 
     switch (message) {
         case WM_INITDIALOG:
@@ -1408,7 +1408,7 @@ win_settings_input_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 case IDC_COMBO_JOYSTICK:
                     temp_joystick = settings_get_cur_sel(hdlg, IDC_COMBO_JOYSTICK);
 
-                    for (c = 0; c < 4; c++)
+                    for (c = 0; c < MAX_JOYSTICKS; c++)
                         settings_enable_window(hdlg, IDC_JOY1 + c, joystick_get_max_joysticks(temp_joystick) > c);
                     break;
 
