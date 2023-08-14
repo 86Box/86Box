@@ -3353,13 +3353,13 @@ gd54xx_pattern_copy(gd54xx_t *gd54xx)
     /* The vertical offset is in the three low-order bits of the Source Address register. */
     pattern_y = gd54xx->blt.src_addr & 0x07;
 
-    /* Mode		Pattern bytes	Pattern line bytes
+    /* Mode             Pattern bytes   Pattern line bytes
        ---------------------------------------------------
-       Color Expansion	8		1
-       8-bpp		64		8
-       16-bpp		128		16
-       24-bpp		256		32
-       32-bpp		256		32
+       Color Expansion    8              1
+       8-bpp             64              8
+       16-bpp           128             16
+       24-bpp           256             32
+       32-bpp           256             32
      */
 
     /* The boundary has to be equal to the size of the pattern. */

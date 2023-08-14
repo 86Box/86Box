@@ -582,6 +582,7 @@ CPUOBJ := $(DYNARECOBJ) \
 	  softfloat-muladd.o softfloat-round-pack.o softfloat-specialize.o softfloatx80.o
 
 CHIPSETOBJ := 82c100.o acc2168.o \
+              compaq_386.o \
               contaq_82c59x.o \
               cs4031.o cs8230.o \
               ali1429.o ali1435.o ali1489.o ali1531.o ali1541.o ali1543.o ali1621.o ali6117.o \

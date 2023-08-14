@@ -65,9 +65,9 @@ typedef struct ati68860_ramdac_t {
 } ati68860_ramdac_t;
 
 void
-ati68860_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
+ati68860_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga)
 {
-    ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) p;
+    ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) priv;
 
     switch (addr) {
         case 0:
@@ -168,10 +168,10 @@ ati68860_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
 }
 
 uint8_t
-ati68860_ramdac_in(uint16_t addr, void *p, svga_t *svga)
+ati68860_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
 {
-    ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) p;
-    uint8_t            temp   = 0;
+    const ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) priv;
+    uint8_t                  temp   = 0;
 
     switch (addr) {
         case 0:
@@ -207,9 +207,9 @@ ati68860_ramdac_in(uint16_t addr, void *p, svga_t *svga)
 }
 
 void
-ati68860_set_ramdac_type(void *p, int type)
+ati68860_set_ramdac_type(void *priv, int type)
 {
-    ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) p;
+    ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) priv;
 
     if (ramdac->ramdac_type != type) {
         ramdac->ramdac_type = type;
@@ -237,17 +237,17 @@ ati68860_ramdac_init(UNUSED(const device_t *info))
 }
 
 void
-ati68860_ramdac_set_render(void *p, svga_t *svga)
+ati68860_ramdac_set_render(void *priv, svga_t *svga)
 {
-    ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) p;
+    ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) priv;
 
     svga->render = ramdac->render;
 }
 
 void
-ati68860_ramdac_set_pallook(void *p, int i, uint32_t col)
+ati68860_ramdac_set_pallook(void *priv, int i, uint32_t col)
 {
-    ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) p;
+    ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) priv;
 
     ramdac->pallook[i] = col;
 }
@@ -255,11 +255,11 @@ ati68860_ramdac_set_pallook(void *p, int i, uint32_t col)
 void
 ati68860_hwcursor_draw(svga_t *svga, int displine)
 {
-    ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) svga->ramdac;
-    int                offset;
-    uint8_t            dat;
-    uint32_t           col0 = ramdac->pallook[0];
-    uint32_t           col1 = ramdac->pallook[1];
+    const ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) svga->ramdac;
+    int                      offset;
+    uint8_t                  dat;
+    uint32_t                 col0 = ramdac->pallook[0];
+    uint32_t                 col1 = ramdac->pallook[1];
 
     offset = svga->dac_hwcursor_latch.xoff;
     for (uint32_t x = 0; x < 64 - svga->dac_hwcursor_latch.xoff; x += 4) {
