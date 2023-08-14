@@ -71,20 +71,12 @@ public:
     /* Returns options dialog for current renderer */
     QDialog *getOptions(QWidget *parent) { return rendererWindow ? rendererWindow->getOptions(parent) : nullptr; }
 
-    void setFocusRenderer()
-    {
-        if (current)
-            current->setFocus();
-    }
-    void onResize(int width, int height)
-    {
-        if (rendererWindow)
-            rendererWindow->onResize(width, height);
-    }
+    void setFocusRenderer();
+    void onResize(int width, int height);
 
-    void (*mouse_poll_func)()                   = nullptr;
     void (*mouse_capture_func)(QWindow *window) = nullptr;
     void (*mouse_uncapture_func)()              = nullptr;
+
     void (*mouse_exit_func)()                   = nullptr;
 
 signals:

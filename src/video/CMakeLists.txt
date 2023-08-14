@@ -18,7 +18,8 @@ add_library(vid OBJECT agpgart.c video.c vid_table.c vid_cga.c vid_cga_comp.c
     vid_incolor.c vid_colorplus.c vid_genius.c vid_pgc.c vid_im1024.c
     vid_sigma.c vid_wy700.c vid_ega.c vid_ega_render.c vid_svga.c vid_8514a.c
     vid_svga_render.c vid_ddc.c vid_vga.c vid_ati_eeprom.c vid_ati18800.c
-    vid_ati28800.c vid_ati_mach8.c vid_ati_mach64.c vid_ati68860_ramdac.c vid_bt48x_ramdac.c
+    vid_ati28800.c vid_ati_mach8.c vid_ati_mach64.c vid_ati68875_ramdac.c
+    vid_ati68860_ramdac.c vid_bt48x_ramdac.c
     vid_av9194.c vid_icd2061.c vid_ics2494.c vid_ics2595.c vid_cl54xx.c
     vid_et3000.c vid_et4000.c vid_sc1148x_ramdac.c vid_sc1502x_ramdac.c
     vid_et4000w32.c vid_stg_ramdac.c vid_ht216.c vid_oak_oti.c vid_paradise.c

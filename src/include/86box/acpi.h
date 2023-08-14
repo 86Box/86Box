@@ -113,7 +113,8 @@ typedef struct acpi_regs_t {
 typedef struct acpi_t {
     acpi_regs_t regs;
     uint8_t     gpireg2_default;
-    uint8_t     pad[3];
+    uint8_t     irq_state;
+    uint8_t     pad[2];
     uint8_t     gporeg_default[4];
     uint8_t     suspend_types[8];
     uint16_t    io_base;

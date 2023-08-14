@@ -189,8 +189,10 @@
 static int
 opCALL_far_w(uint32_t fetchdat)
 {
-    uint32_t old_cs, old_pc;
-    uint16_t new_cs, new_pc;
+    uint32_t old_cs;
+    uint32_t old_pc;
+    uint16_t new_cs;
+    uint16_t new_pc;
     int      cycles_old = cycles;
     UN_USED(cycles_old);
 
@@ -209,8 +211,10 @@ opCALL_far_w(uint32_t fetchdat)
 static int
 opCALL_far_l(uint32_t fetchdat)
 {
-    uint32_t old_cs, old_pc;
-    uint32_t new_cs, new_pc;
+    uint32_t old_cs;
+    uint32_t old_pc;
+    uint32_t new_cs;
+    uint32_t new_pc;
     int      cycles_old = cycles;
     UN_USED(cycles_old);
 
@@ -230,8 +234,10 @@ opCALL_far_l(uint32_t fetchdat)
 static int
 opFF_w_a16(uint32_t fetchdat)
 {
-    uint16_t old_cs, new_cs;
-    uint32_t old_pc, new_pc;
+    uint16_t old_cs;
+    uint16_t new_cs;
+    uint32_t old_pc;
+    uint32_t new_pc;
     int      cycles_old = cycles;
     UN_USED(cycles_old);
 
@@ -392,8 +398,10 @@ opFF_w_a16(uint32_t fetchdat)
 static int
 opFF_w_a32(uint32_t fetchdat)
 {
-    uint16_t old_cs, new_cs;
-    uint32_t old_pc, new_pc;
+    uint16_t old_cs;
+    uint16_t new_cs;
+    uint32_t old_pc;
+    uint32_t new_pc;
     int      cycles_old = cycles;
     UN_USED(cycles_old);
 
@@ -555,8 +563,10 @@ opFF_w_a32(uint32_t fetchdat)
 static int
 opFF_l_a16(uint32_t fetchdat)
 {
-    uint16_t old_cs, new_cs;
-    uint32_t old_pc, new_pc;
+    uint16_t old_cs;
+    uint16_t new_cs;
+    uint32_t old_pc;
+    uint32_t new_pc;
     int      cycles_old = cycles;
     UN_USED(cycles_old);
 
@@ -717,8 +727,10 @@ opFF_l_a16(uint32_t fetchdat)
 static int
 opFF_l_a32(uint32_t fetchdat)
 {
-    uint16_t old_cs, new_cs;
-    uint32_t old_pc, new_pc;
+    uint16_t old_cs;
+    uint16_t new_cs;
+    uint32_t old_pc;
+    uint32_t new_pc;
     int      cycles_old = cycles;
     UN_USED(cycles_old);
 

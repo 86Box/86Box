@@ -74,7 +74,7 @@ static video_timings_t timing_genius = { .type = VIDEO_ISA, .write_b = 8, .write
  * Two card-specific registers control text and graphics display:
  *
  *  03B0: Control register.
- * 	   Bit 0: Map all graphics framebuffer into memory.
+ *         Bit 0: Map all graphics framebuffer into memory.
  *         Bit 2: Unknown. Set by GMC /M; cleared by mode set or GMC /T.
  *         Bit 4: Set for CGA-compatible graphics, clear for native graphics.
  *         Bit 5: Set for black on white, clear for white on black.
@@ -404,13 +404,13 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
         charh = 15 - (genius->genius_charh & 3);
 
 #if 0
-	if (genius->genius_charh & 0x10) {
-		row = ((dl >> 1) / charh);
-		sc  = ((dl >> 1) % charh);
-	} else {
-		row = (dl / charh);
-		sc  = (dl % charh);
-	}
+    if (genius->genius_charh & 0x10) {
+        row = ((dl >> 1) / charh);
+        sc  = ((dl >> 1) % charh);
+    } else {
+        row = (dl / charh);
+        sc  = (dl % charh);
+    }
 #else
         row = (dl / charh);
         sc  = (dl % charh);
@@ -449,10 +449,10 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
 
     for (int x = 0; x < w; x++) {
 #if 0
-	if ((genius->genius_charh & 0x10) && ((addr + 2 * x) > 0x0FFF))
-		chr = 0x00;
-	if ((genius->genius_charh & 0x10) && ((addr + 2 * x + 1) > 0x0FFF))
-		attr = 0x00;
+    if ((genius->genius_charh & 0x10) && ((addr + 2 * x) > 0x0FFF))
+        chr = 0x00;
+    if ((genius->genius_charh & 0x10) && ((addr + 2 * x + 1) > 0x0FFF))
+        attr = 0x00;
 #endif
         chr  = framebuf[(addr + 2 * x) & 0x3FFF];
         attr = framebuf[(addr + 2 * x + 1) & 0x3FFF];

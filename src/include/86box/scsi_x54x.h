@@ -396,6 +396,10 @@ typedef struct x54x_t {
     uint8_t setup_info_len;
     uint8_t max_id;
     uint8_t pci_slot;
+    uint8_t irq_state;
+    uint8_t pad;
+    uint8_t pad0;
+    uint8_t pad1;
     uint8_t temp_cdb[12];
 
     /* for multi-threading, keep these volatile */
@@ -437,7 +441,7 @@ typedef struct x54x_t {
     volatile int PendingInterrupt;
     volatile int Lock;
     volatile int target_data_len;
-    volatile int pad0;
+    volatile int pad2;
 
     uint32_t Base;
     uint32_t fdc_address;

@@ -321,9 +321,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                         svga->adv_flags &= ~FLAG_RAMDAC_SHIFT;
                         if (val & 0x04)
                             svga->adv_flags |= FLAG_RAMDAC_SHIFT;
-#ifdef FALLTHROUGH_ANNOTATION
-                        [[fallthrough]];
-#endif
+                        fallthrough;
                     /*Bank registers*/
                     case 0xe8:
                     case 0xe9:

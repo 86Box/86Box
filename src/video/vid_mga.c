@@ -424,11 +424,12 @@ typedef struct mystique_t {
         xcolkeyl, xcolkeyh,
         xcrcbitsel;
 
+    uint8_t pci_slot, irq_state, pad, pad0;
+
     uint8_t pci_regs[256], crtcext_regs[6],
         xreg_regs[256], dmamap[16];
 
-    int card, vram_size, crtcext_idx, xreg_idx,
-        xzoomctrl,
+    int vram_size, crtcext_idx, xreg_idx, xzoomctrl,
         pixel_count, trap_count;
 
     atomic_int busy, blitter_submit_refcount,
@@ -664,9 +665,7 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
     switch (addr) {
         case 0x3c8:
             mystique->xreg_idx = val;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case 0x3c6:
         case 0x3c7:
         case 0x3c9:
@@ -1031,9 +1030,9 @@ mystique_update_irqs(mystique_t *mystique)
         irq = 1;
 
     if (irq)
-        pci_set_irq(mystique->card, PCI_INTA);
+        pci_set_irq(mystique->pci_slot, PCI_INTA, &mystique->irq_state);
     else
-        pci_clear_irq(mystique->card, PCI_INTA);
+        pci_clear_irq(mystique->pci_slot, PCI_INTA, &mystique->irq_state);
 }
 
 #define READ8(addr, var)                \
@@ -5460,7 +5459,7 @@ static void *
 mystique_init(const device_t *info)
 {
     mystique_t *mystique = malloc(sizeof(mystique_t));
-    char       *romfn;
+    char       *romfn = NULL;
 
     memset(mystique, 0, sizeof(mystique_t));
 
@@ -5524,7 +5523,10 @@ mystique_init(const device_t *info)
                     NULL, 0, mystique);
     mem_mapping_disable(&mystique->iload_mapping);
 
-    mystique->card           = pci_add_card(PCI_ADD_VIDEO, mystique_pci_read, mystique_pci_write, mystique);
+    if (romfn == NULL)
+        pci_add_card(PCI_ADD_VIDEO, mystique_pci_read, mystique_pci_write, mystique, &mystique->pci_slot);
+    else
+        pci_add_card(PCI_ADD_NORMAL, mystique_pci_read, mystique_pci_write, mystique, &mystique->pci_slot);
     mystique->pci_regs[0x06] = 0x80;
     mystique->pci_regs[0x07] = 0 << 1;
     mystique->pci_regs[0x2c] = mystique->bios_rom.rom[0x7ff8];

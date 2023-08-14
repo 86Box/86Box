@@ -69,7 +69,7 @@ typedef struct et4000w32p_t {
 
     svga_t svga;
 
-    uint8_t banking, banking2, adjust_cursor, rev;
+    uint8_t banking, banking2, adjust_cursor, rev, pci_slot;
 
     uint8_t regs[256], pci_regs[256];
 
@@ -500,7 +500,8 @@ et4000w32p_recalctimings(svga_t *svga)
     switch (svga->bpp) {
         case 15:
         case 16:
-            svga->hdisp >>= 1;
+            if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1))
+                svga->hdisp >>= 1;
             if (et4000->type <= ET4000W32P_REVC) {
                 if (et4000->type == ET4000W32P_REVC) {
                     if (svga->hdisp != 1024)
@@ -513,7 +514,7 @@ et4000w32p_recalctimings(svga_t *svga)
             svga->hdisp /= 3;
             if (et4000->type <= ET4000W32P_REVC)
                 et4000->adjust_cursor = 2;
-            if (et4000->type == ET4000W32P_DIAMOND && (svga->hdisp == 640 / 2 || svga->hdisp == 1232)) {
+            if ((et4000->type == ET4000W32P_DIAMOND) && ((svga->hdisp == (640 / 2)) || (svga->hdisp == 1232))) {
                 svga->hdisp = 640;
             }
             break;
@@ -1072,8 +1073,7 @@ et4000w32p_mmu_read(uint32_t addr, void *priv)
                 case 0x8e:
                     if (et4000->type >= ET4000W32P_REVC)
                         return et4000->acl.internal.pixel_depth;
-                    else
-                        return et4000->acl.internal.vbus;
+                    return et4000->acl.internal.vbus;
                 case 0x8f:
                     return et4000->acl.internal.xy_dir;
                 case 0x90:
@@ -2800,7 +2800,7 @@ et4000w32p_init(const device_t *info)
     et4000w32p_io_set(et4000);
 
     if (info->flags & DEVICE_PCI)
-        pci_add_card(PCI_ADD_VIDEO, et4000w32p_pci_read, et4000w32p_pci_write, et4000);
+        pci_add_card(PCI_ADD_NORMAL, et4000w32p_pci_read, et4000w32p_pci_write, et4000, &et4000->pci_slot);
 
     /* Hardwired bits: 00000000 1xx0x0xx */
     /* R/W bits:                 xx xxxx */

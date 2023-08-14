@@ -553,7 +553,7 @@ codegen_FABS(codeblock_t *block, uop_t *uop)
     if (REG_IS_D(dest_size) && REG_IS_D(src_size_a)) {
         host_arm64_FABS_D(block, dest_reg, src_reg_a);
     } else
-        fatal("codegen_FABS %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
+        fatal("codegen_FABS %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
 
     return 0;
 }
@@ -566,7 +566,7 @@ codegen_FCHS(codeblock_t *block, uop_t *uop)
     if (REG_IS_D(dest_size) && REG_IS_D(src_size_a)) {
         host_arm64_FNEG_D(block, dest_reg, src_reg_a);
     } else
-        fatal("codegen_FCHS %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
+        fatal("codegen_FCHS %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
 
     return 0;
 }
@@ -579,7 +579,7 @@ codegen_FSQRT(codeblock_t *block, uop_t *uop)
     if (REG_IS_D(dest_size) && REG_IS_D(src_size_a)) {
         host_arm64_FSQRT_D(block, dest_reg, src_reg_a);
     } else
-        fatal("codegen_FSQRT %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
+        fatal("codegen_FSQRT %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
 
     return 0;
 }
@@ -1548,7 +1548,7 @@ codegen_PF2ID(codeblock_t *block, uop_t *uop)
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_a)) {
         host_arm64_FCVTZS_V2S(block, dest_reg, src_reg_a);
     } else
-        fatal("PF2ID %02x %02x\n", uop->dest_reg_a_real);
+        fatal("PF2ID %02x\n", uop->dest_reg_a_real);
 
     return 0;
 }
@@ -1655,7 +1655,7 @@ codegen_PFRCP(codeblock_t *block, uop_t *uop)
         host_arm64_FDIV_S(block, dest_reg, REG_V_TEMP, src_reg_a);
         host_arm64_DUP_V2S(block, dest_reg, dest_reg, 0);
     } else
-        fatal("PFRCP %02x %02x\n", uop->dest_reg_a_real);
+        fatal("PFRCP %02x\n", uop->dest_reg_a_real);
 
     return 0;
 }
@@ -1672,7 +1672,7 @@ codegen_PFRSQRT(codeblock_t *block, uop_t *uop)
         host_arm64_FDIV_S(block, dest_reg, dest_reg, REG_V_TEMP);
         host_arm64_DUP_V2S(block, dest_reg, dest_reg, 0);
     } else
-        fatal("PFRSQRT %02x %02x\n", uop->dest_reg_a_real);
+        fatal("PFRSQRT %02x\n", uop->dest_reg_a_real);
 
     return 0;
 }
@@ -1698,7 +1698,7 @@ codegen_PI2FD(codeblock_t *block, uop_t *uop)
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_a)) {
         host_arm64_SCVTF_V2S(block, dest_reg, src_reg_a);
     } else
-        fatal("PI2FD %02x %02x\n", uop->dest_reg_a_real);
+        fatal("PI2FD %02x\n", uop->dest_reg_a_real);
 
     return 0;
 }

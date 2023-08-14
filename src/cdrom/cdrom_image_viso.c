@@ -331,7 +331,7 @@ viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries
     }
 
     /* Check if this filename is unique, and add a tail if required, while also adding the extension. */
-    char tail[8];
+    char tail[16];
     for (int i = force_tail; i <= 999999; i++) {
         /* Add tail to the filename if this is not the first run. */
         int tail_len = -1;
@@ -429,7 +429,7 @@ viso_fill_time(uint8_t *data, time_t time, int format, int longform)
            or way too far into 64-bit space (Linux). Fall back to epoch. */
         time_t epoch = 0;
         time_s       = localtime(&epoch);
-        if (!time_s)
+        if (UNLIKELY(!time_s))
             fatal("VISO: localtime(0) = NULL\n");
 
         /* Force year clamping if the timestamp is known to be outside the supported ranges. */
@@ -636,12 +636,8 @@ pad_susp:
             break;
     }
 
-    if ((p - data) > 255)
-#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
-        fatal("VISO: Directory record overflow (%d) on entry %016" PRIX64 "\n", (uint32_t) (uintptr_t) (p - data), (uint64_t) (uintptr_t) entry);
-#else
-        fatal("VISO: Directory record overflow (%d) on entry %08X\n", (uint32_t) (uintptr_t) (p - data), (uint32_t) (uintptr_t) entry);
-#endif
+    if (UNLIKELY((p - data) > 255))
+        fatal("VISO: Directory record overflow (%" PRIuPTR ") on entry %08" PRIXPTR "\n", (uintptr_t) (p - data), (uintptr_t) entry);
 
     data[0] = p - data; /* length */
     return data[0];

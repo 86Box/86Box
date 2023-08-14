@@ -120,14 +120,15 @@ int      purgeable_page_count    = 0;
 
 uint8_t high_page = 0; /* if a high (> 4 gb) page was detected */
 
+mem_mapping_t        *read_mapping[MEM_MAPPINGS_NO];
+mem_mapping_t        *write_mapping[MEM_MAPPINGS_NO];
+
 /* FIXME: re-do this with a 'mem_ops' struct. */
 static uint8_t       *page_lookupp; /* pagetable mmu_perm lookup */
 static uint8_t       *readlookupp;
 static uint8_t       *writelookupp;
 static mem_mapping_t *base_mapping;
 static mem_mapping_t *last_mapping;
-static mem_mapping_t *read_mapping[MEM_MAPPINGS_NO];
-static mem_mapping_t *write_mapping[MEM_MAPPINGS_NO];
 static mem_mapping_t *read_mapping_bus[MEM_MAPPINGS_NO];
 static mem_mapping_t *write_mapping_bus[MEM_MAPPINGS_NO];
 static uint8_t       *_mem_exec[MEM_MAPPINGS_NO];

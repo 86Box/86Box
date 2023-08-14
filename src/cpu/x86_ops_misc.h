@@ -55,7 +55,8 @@ opF6_a16(uint32_t fetchdat)
     int      tempws2 = 0;
     uint16_t tempw   = 0;
     uint16_t src16;
-    uint8_t  src, dst;
+    uint8_t  src;
+    uint8_t  dst;
     int8_t   temps;
 
     fetch_ea_16(fetchdat);
@@ -173,7 +174,8 @@ opF6_a32(uint32_t fetchdat)
     int      tempws2 = 0;
     uint16_t tempw   = 0;
     uint16_t src16;
-    uint8_t  src, dst;
+    uint8_t  src;
+    uint8_t  dst;
     int8_t   temps;
 
     fetch_ea_32(fetchdat);
@@ -287,7 +289,7 @@ static int
 opF7_w_a16(uint32_t fetchdat)
 {
     uint32_t templ;
-    uint32_t templ2  = 0;
+    uint32_t templ2 = 0;
     int      tempws;
     int      tempws2 = 0;
     int16_t  temps16;
@@ -400,11 +402,12 @@ static int
 opF7_w_a32(uint32_t fetchdat)
 {
     uint32_t templ;
-    uint32_t templ2  = 0;
+    uint32_t templ2 = 0;
     int      tempws;
     int      tempws2 = 1;
     int16_t  temps16;
-    uint16_t src, dst;
+    uint16_t src;
+    uint16_t dst;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -514,7 +517,8 @@ static int
 opF7_l_a16(uint32_t fetchdat)
 {
     uint64_t temp64;
-    uint32_t src, dst;
+    uint32_t src;
+    uint32_t dst;
 
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
@@ -606,7 +610,8 @@ static int
 opF7_l_a32(uint32_t fetchdat)
 {
     uint64_t temp64;
-    uint32_t src, dst;
+    uint32_t src;
+    uint32_t dst;
 
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
@@ -739,7 +744,8 @@ opLOCK(uint32_t fetchdat)
 static int
 opBOUND_w_a16(uint32_t fetchdat)
 {
-    int16_t low, high;
+    int16_t low;
+    int16_t high;
 
     fetch_ea_16(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
@@ -761,7 +767,8 @@ opBOUND_w_a16(uint32_t fetchdat)
 static int
 opBOUND_w_a32(uint32_t fetchdat)
 {
-    int16_t low, high;
+    int16_t low;
+    int16_t high;
 
     fetch_ea_32(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
@@ -784,7 +791,8 @@ opBOUND_w_a32(uint32_t fetchdat)
 static int
 opBOUND_l_a16(uint32_t fetchdat)
 {
-    int32_t low, high;
+    int32_t low;
+    int32_t high;
 
     fetch_ea_16(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
@@ -806,7 +814,8 @@ opBOUND_l_a16(uint32_t fetchdat)
 static int
 opBOUND_l_a32(uint32_t fetchdat)
 {
-    int32_t low, high;
+    int32_t low;
+    int32_t high;
 
     fetch_ea_32(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
