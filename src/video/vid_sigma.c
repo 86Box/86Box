@@ -109,8 +109,8 @@
  * 0x2DC: On write: Resets the NMI.
  * 0x2DD: Memory paging. The memory from 0xC1800 to 0xC1FFF can be either:
  *
- *	> ROM: A 128 character 8x16 font for use in graphics modes
- *	> RAM: Use by the video BIOS to hold its settings.
+ *  > ROM: A 128 character 8x16 font for use in graphics modes
+ *  > RAM: Use by the video BIOS to hold its settings.
  *
  * Reading port 2DD switches to ROM. Bit 7 of the value read gives the
  * previous paging state: bit 7 set if ROM was paged, clear if RAM was

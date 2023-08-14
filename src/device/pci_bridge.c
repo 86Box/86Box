@@ -552,10 +552,7 @@ pci_bridge_init(const device_t *info)
 
     pci_bridge_reset(dev);
 
-    if (AGP_BRIDGE(dev->local))
-        pci_add_card(PCI_ADD_AGPBRIDGE, pci_bridge_read, pci_bridge_write, dev, &dev->slot);
-    else
-        dev->slot = pci_add_bridge(pci_bridge_read, pci_bridge_write, dev);
+    pci_add_bridge(AGP_BRIDGE(dev->local), pci_bridge_read, pci_bridge_write, dev, &dev->slot);
 
     if ((info->local != PCI_BRIDGE_INTEL_ICH2) && (info->local != AGP_BRIDGE_INTEL_815EP)) { /* Let the machine configuration slot handle the absurd interrupt tables */
         interrupt_count = sizeof(interrupts);

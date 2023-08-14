@@ -490,9 +490,7 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 
             default:
                 x54x_log("BIOS: Unimplemented command: %02X\n", cmd->command);
-#ifdef FALLTHROUGH_ANNOTATION
-                [[fallthrough]];
-#endif
+                fallthrough;
             case 0x05: /* Format Track, invalid since SCSI has no tracks */
             case 0x0a: /* ???? */
             case 0x0b: /* ???? */

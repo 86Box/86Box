@@ -424,9 +424,17 @@ wacom_write(UNUSED(struct serial_s *serial), void *priv, uint8_t data)
 }
 
 static int
-wacom_poll(int x, int y, UNUSED(int z), int b, double abs_x, double abs_y, void *priv)
+wacom_poll(void *priv)
 {
     mouse_wacom_t *wacom = (mouse_wacom_t *) priv;
+    int delta_x;
+    int delta_y;
+    int b = mouse_get_buttons_ex();
+    double abs_x;
+    double abs_y;
+
+    mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -32768, 32767, 0, 0);
+    mouse_get_abs_coords(&abs_x, &abs_y);
 
     if (wacom->settings_bits.cmd_set == WACOM_CMDSET_IV) {
         wacom->abs_x = abs_x * 5039. * (wacom->x_res / 1000.);
@@ -442,8 +450,8 @@ wacom_poll(int x, int y, UNUSED(int z), int b, double abs_x, double abs_y, void 
             wacom->abs_x = 0;
         if (wacom->abs_y < 0)
             wacom->abs_y = 0;
-        wacom->rel_x = x;
-        wacom->rel_y = y;
+        wacom->rel_x = delta_x;
+        wacom->rel_y = delta_y;
     }
     if (wacom->b != b)
         wacom->oldb = wacom->b;

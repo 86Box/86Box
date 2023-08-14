@@ -665,9 +665,7 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
     switch (addr) {
         case 0x3c8:
             mystique->xreg_idx = val;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case 0x3c6:
         case 0x3c7:
         case 0x3c9:
@@ -5525,10 +5523,10 @@ mystique_init(const device_t *info)
                     NULL, 0, mystique);
     mem_mapping_disable(&mystique->iload_mapping);
 
-    if (romfn = NULL)
-        pci_add_card(PCI_ADD_NORMAL, mystique_pci_read, mystique_pci_write, mystique, &mystique->pci_slot);
-    else
+    if (romfn == NULL)
         pci_add_card(PCI_ADD_VIDEO, mystique_pci_read, mystique_pci_write, mystique, &mystique->pci_slot);
+    else
+        pci_add_card(PCI_ADD_NORMAL, mystique_pci_read, mystique_pci_write, mystique, &mystique->pci_slot);
     mystique->pci_regs[0x06] = 0x80;
     mystique->pci_regs[0x07] = 0 << 1;
     mystique->pci_regs[0x2c] = mystique->bios_rom.rom[0x7ff8];

@@ -75,64 +75,40 @@ static void
 ps2_report_coordinates(atkbc_dev_t *dev, int main)
 {
     uint8_t buff[3] = { 0x08, 0x00, 0x00 };
-    int temp_z;
+    int delta_x;
+    int delta_y;
+    int overflow_x;
+    int overflow_y;
+    int b = mouse_get_buttons_ex();
+    int delta_z;
 
-    if (mouse_x > 255) {
-        buff[0] |= 0x40;
-        buff[1] = 255;
-        mouse_x -= 255;
-    } else if (mouse_x < -256) {
-        buff[0] |= (0x40 | 0x10);
-        mouse_x += 256;
-    } else {
-        if (mouse_x < 0)
-            buff[0] |= 0x10;
-        buff[1] = mouse_x;
-        mouse_x = 0;
-    }
+    mouse_subtract_coords(&delta_x, &delta_y, &overflow_x, &overflow_y,
+                          -256, 255, 1, 0);
+    mouse_subtract_z(&delta_z, -8, 7, 0);
 
-    if (mouse_y < -255) {
-        buff[0] |= 0x80;
-        buff[2] = 255;
-        mouse_y += 255;
-    } else if (mouse_y > 256) {
-        buff[0] |= (0x80 | 0x20);
-        mouse_y -= 256;
-    } else {
-        if (mouse_y > 0)
-            buff[0] |= 0x20;
-        buff[2] = -mouse_y;
-        mouse_y = 0;
-    }
-
-    if (dev->z < -7) {
-        temp_z = 7;
-        temp_z += 7;
-    } else if (mouse_z > 8) {
-        temp_z = (-8) & 0x0f;
-        mouse_z -= 8;
-    } else {
-        temp_z = (-mouse_y) & 0x0f;
-        mouse_z = 0;
-    }
-
-    buff[0] |= (mouse_buttons & ((dev->flags & FLAG_INTELLI) ? 0x07 : 0x03));
+    buff[0] |= (overflow_y << 7) | (overflow_x << 6) |
+              ((delta_y & 0x0100) >> 3) | ((delta_x & 0x0100) >> 4) |
+              (b & ((dev->flags & FLAG_INTELLI) ? 0x07 : 0x03));
+    buff[1] = (delta_x & 0x00ff);
+    buff[2] = (delta_y & 0x00ff);
 
     kbc_at_dev_queue_add(dev, buff[0], main);
     kbc_at_dev_queue_add(dev, buff[1], main);
     kbc_at_dev_queue_add(dev, buff[2], main);
     if (dev->flags & FLAG_INTMODE) {
+        delta_z &= 0x0f;
+
         if (dev->flags & FLAG_5BTN) {
-            if (mouse_buttons & 8)
-                temp_z |= 0x10;
-            if (mouse_buttons & 16)
-                temp_z |= 0x20;
+            if (b & 8)
+                delta_z |= 0x10;
+            if (b & 16)
+                delta_z |= 0x20;
         } else {
             /* The wheel coordinate is sign-extended. */
-            if (temp_z & 0x08)
-                temp_z |= 0xf0;
+            if (delta_z & 0x08)
+                delta_z |= 0xf0;
         }
-        kbc_at_dev_queue_add(dev, temp_z, main);
+        kbc_at_dev_queue_add(dev, delta_z, main);
     }
 }
 
@@ -162,6 +138,7 @@ static void
 ps2_write(void *priv)
 {
     atkbc_dev_t *dev = (atkbc_dev_t *) priv;
+    int b;
     uint8_t  temp;
     uint8_t  val;
     static uint8_t last_data[6] = { 0x00 };
@@ -220,15 +197,16 @@ ps2_write(void *priv)
 
             case 0xe9: /* status request */
                 mouse_ps2_log("%s: Status request\n", dev->name);
+                b = mouse_get_buttons_ex();
                 kbc_at_dev_queue_add(dev, 0xfa, 0);
                 temp = (dev->flags & 0x20);
                 if (mouse_scan)
                     temp |= FLAG_ENABLED;
-                if (mouse_buttons & 1)
+                if (b & 1)
                     temp |= 4;
-                if (mouse_buttons & 2)
+                if (b & 2)
                     temp |= 1;
-                if ((mouse_buttons & 4) && (dev->flags & FLAG_INTELLI))
+                if ((b & 4) && (dev->flags & FLAG_INTELLI))
                     temp |= 2;
                 kbc_at_dev_queue_add(dev, temp, 0);
                 kbc_at_dev_queue_add(dev, dev->resolution, 0);
@@ -322,20 +300,16 @@ ps2_write(void *priv)
 }
 
 static int
-ps2_poll(int x, int y, int z, int b, UNUSED(double abs_x), UNUSED(double abs_y), void *priv)
+ps2_poll(void *priv)
 {
     atkbc_dev_t *dev = (atkbc_dev_t *) priv;
     int packet_size = (dev->flags & FLAG_INTMODE) ? 4 : 3;
 
-    int cond = (!mouse_capture && !video_fullscreen) || (!mouse_scan || (!x && !y && !z && (b == dev->b))) ||
+    int cond = (!mouse_capture && !video_fullscreen) || (!mouse_scan || !mouse_state_changed()) ||
                ((dev->mode == MODE_STREAM) && (kbc_at_dev_queue_pos(dev, 1) >= (FIFO_SIZE - packet_size)));
 
-    if (!cond) {
-        dev->b = b;
-
-        if (dev->mode == MODE_STREAM)
-            ps2_report_coordinates(dev, 1);
-    }
+    if (!cond && (dev->mode == MODE_STREAM))
+        ps2_report_coordinates(dev, 1);
 
     return cond;
 }
@@ -360,9 +334,6 @@ mouse_ps2_init(const device_t *info)
         dev->flags |= FLAG_INTELLI;
     if (i > 4)
         dev->flags |= FLAG_EXPLORER;
-
-    if (i >= 4)
-        i = 3;
 
     mouse_ps2_log("%s: buttons=%d\n", dev->name, i);
 

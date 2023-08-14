@@ -31,13 +31,17 @@
 #include <86box/machine.h>
 #include <86box/mem.h>
 #include <86box/nvr.h>
+#include <86box/plat_fallthrough.h>
+#include <86box/plat_unused.h>
+
 #include "x86.h"
 #include "x86_flags.h"
 #include "386_common.h"
 
 uint8_t opcode2;
 
-int cgate16, cgate32;
+int cgate16;
+int cgate32;
 int intgatesize;
 
 void taskswitch286(uint16_t seg, uint16_t *segdat, int is32);
@@ -157,7 +161,7 @@ x86_doabrt(int x86_abrt)
 }
 
 void
-x86de(char *s, uint16_t error)
+x86de(UNUSED(char *s), UNUSED(uint16_t error))
 {
 #ifdef BAD_CODE
     cpu_state.abrt = ABRT_DE;
@@ -168,35 +172,35 @@ x86de(char *s, uint16_t error)
 }
 
 void
-x86gpf(char *s, uint16_t error)
+x86gpf(UNUSED(char *s), uint16_t error)
 {
     cpu_state.abrt = ABRT_GPF;
     abrt_error     = error;
 }
 
 void
-x86gpf_expected(char *s, uint16_t error)
+x86gpf_expected(UNUSED(char *s), uint16_t error)
 {
     cpu_state.abrt = ABRT_GPF | ABRT_EXPECTED;
     abrt_error     = error;
 }
 
 void
-x86ss(char *s, uint16_t error)
+x86ss(UNUSED(char *s), uint16_t error)
 {
     cpu_state.abrt = ABRT_SS;
     abrt_error     = error;
 }
 
 void
-x86ts(char *s, uint16_t error)
+x86ts(UNUSED(char *s), uint16_t error)
 {
     cpu_state.abrt = ABRT_TS;
     abrt_error     = error;
 }
 
 void
-x86np(char *s, uint16_t error)
+x86np(UNUSED(char *s), uint16_t error)
 {
     cpu_state.abrt = ABRT_NP;
     abrt_error     = error;
@@ -272,9 +276,9 @@ do_seg_v86_init(x86seg *s)
 static void
 check_seg_valid(x86seg *s)
 {
-    int     dpl   = (s->access >> 5) & 3;
-    int     valid = 1;
-    x86seg *dt    = (s->seg & 0x0004) ? &ldt : &gdt;
+    int           dpl   = (s->access >> 5) & 3;
+    int           valid = 1;
+    const x86seg *dt    = (s->seg & 0x0004) ? &ldt : &gdt;
 
     if (((s->seg & 0xfff8UL) + 7UL) > dt->limit)
         valid = 0;
@@ -334,10 +338,11 @@ void
 #endif
 loadseg(uint16_t seg, x86seg *s)
 {
-    uint16_t segdat[4];
-    uint32_t addr, *segdat32 = (uint32_t *) segdat;
-    int      dpl;
-    x86seg  *dt;
+    uint16_t      segdat[4];
+    uint32_t      addr;
+    uint32_t     *segdat32 = (uint32_t *) segdat;
+    int           dpl;
+    const x86seg *dt;
 
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG)) {
         if (!(seg & 0xfffc)) {
@@ -531,9 +536,10 @@ loadseg(uint16_t seg, x86seg *s)
 void
 loadcs(uint16_t seg)
 {
-    uint16_t segdat[4];
-    uint32_t addr, *segdat32 = (uint32_t *) segdat;
-    x86seg  *dt;
+    uint16_t      segdat[4];
+    uint32_t      addr;
+    uint32_t     *segdat32 = (uint32_t *) segdat;
+    const x86seg *dt;
 
     x86seg_log("Load CS %04X\n", seg);
 
@@ -619,11 +625,13 @@ loadcs(uint16_t seg)
 void
 loadcsjmp(uint16_t seg, uint32_t old_pc)
 {
-    uint16_t  type, seg2;
-    uint16_t  segdat[4];
-    uint32_t  addr, newpc;
-    uint32_t *segdat32 = (uint32_t *) segdat;
-    x86seg   *dt;
+    uint16_t      type;
+    uint16_t      seg2;
+    uint16_t      segdat[4];
+    uint32_t      addr;
+    uint32_t      newpc;
+    uint32_t     *segdat32 = (uint32_t *) segdat;
+    const x86seg *dt;
 
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG)) {
         if (!(seg & 0xfffc)) {
@@ -743,7 +751,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                                 x86gpf("loadcsjmp(): Non-conforming DPL > CPL", seg2 & 0xfffc);
                                 return;
                             }
-                            /*FALLTHROUGH*/
+                            fallthrough;
                         case 0x1c00:
                         case 0x1d00:
                         case 0x1e00:
@@ -890,16 +898,24 @@ void
 loadcscall(uint16_t seg)
 #endif
 {
-    uint16_t  seg2, newss;
-    uint16_t  segdat[4], segdat2[4];
-    uint32_t  addr, oldssbase = ss;
-    uint32_t  oaddr, newpc;
-    uint32_t *segdat32  = (uint32_t *) segdat;
-    uint32_t *segdat232 = (uint32_t *) segdat2;
-    int       count, type;
-    uint32_t  oldss, oldsp, newsp, oldsp2;
-    uint16_t  tempw;
-    x86seg   *dt;
+    uint16_t      seg2;
+    uint16_t      newss;
+    uint16_t      segdat[4];
+    uint16_t      segdat2[4];
+    uint32_t      addr;
+    uint32_t      oldssbase = ss;
+    uint32_t      oaddr;
+    uint32_t      newpc;
+    uint32_t     *segdat32  = (uint32_t *) segdat;
+    uint32_t     *segdat232 = (uint32_t *) segdat2;
+    int           count;
+    int           type;
+    uint32_t      oldss;
+    uint32_t      oldsp;
+    uint32_t      newsp;
+    uint32_t      oldsp2;
+    uint16_t      tempw;
+    const x86seg *dt;
 
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG)) {
         x86seg_log("Protected mode CS load! %04X\n", seg);
@@ -1174,7 +1190,7 @@ loadcscall(uint16_t seg)
                                 x86gpf("loadcscall(): Call PM Gate Inner DPL > CPL", seg2 & 0xfffc);
                                 return;
                             }
-                            /*FALLTHROUGH*/
+                            fallthrough;
                         case 0x1c00:
                         case 0x1d00:
                         case 0x1e00:
@@ -1237,12 +1253,18 @@ loadcscall(uint16_t seg)
 void
 pmoderetf(int is32, uint16_t off)
 {
-    uint16_t  segdat[4], segdat2[4], seg, newss;
-    uint32_t  newpc, newsp, addr, oaddr;
-    uint32_t  oldsp     = ESP;
-    uint32_t *segdat32  = (uint32_t *) segdat;
-    uint32_t *segdat232 = (uint32_t *) segdat2;
-    x86seg   *dt;
+    uint16_t      segdat[4];
+    uint16_t      segdat2[4];
+    uint16_t      seg;
+    uint16_t      newss;
+    uint32_t      newpc;
+    uint32_t      newsp;
+    uint32_t      addr;
+    uint32_t      oaddr;
+    uint32_t      oldsp     = ESP;
+    uint32_t     *segdat32  = (uint32_t *) segdat;
+    uint32_t     *segdat232 = (uint32_t *) segdat2;
+    const x86seg *dt;
 
     x86seg_log("RETF %i %04X:%04X  %08X %04X\n", is32, CS, cpu_state.pc, cr0, cpu_state.eflags);
     if (is32) {
@@ -1467,17 +1489,22 @@ pmoderetf(int is32, uint16_t off)
 void
 pmodeint(int num, int soft)
 {
-    uint16_t  segdat[4], segdat2[4];
-    uint16_t  segdat3[4];
-    uint16_t  newss, seg = 0;
-    int       type, new_cpl;
-    uint32_t  addr, oaddr;
-    uint32_t  oldss, oldsp;
-    uint32_t  newsp;
-    uint32_t *segdat32  = (uint32_t *) segdat;
-    uint32_t *segdat232 = (uint32_t *) segdat2;
-    uint32_t *segdat332 = (uint32_t *) segdat3;
-    x86seg   *dt;
+    uint16_t      segdat[4];
+    uint16_t      segdat2[4];
+    uint16_t      segdat3[4];
+    uint16_t      newss;
+    uint16_t      seg = 0;
+    int           type;
+    int           new_cpl;
+    uint32_t      addr;
+    uint32_t      oaddr;
+    uint32_t      oldss;
+    uint32_t      oldsp;
+    uint32_t      newsp;
+    uint32_t     *segdat32  = (uint32_t *) segdat;
+    uint32_t     *segdat232 = (uint32_t *) segdat2;
+    uint32_t     *segdat332 = (uint32_t *) segdat3;
+    const x86seg *dt;
 
     if ((cpu_state.eflags & VM_FLAG) && (IOPL != 3) && soft) {
         x86seg_log("V86 banned int\n");
@@ -1661,7 +1688,7 @@ pmodeint(int num, int soft)
                         x86gpf("pmodeint(): DPL != CPL", seg & 0xfffc);
                         return;
                     }
-                    /*FALLTHROUGH*/
+                    fallthrough;
                 case 0x1c00:
                 case 0x1d00:
                 case 0x1e00:
@@ -1750,16 +1777,21 @@ pmodeint(int num, int soft)
 void
 pmodeiret(int is32)
 {
-    uint16_t  newss, seg = 0;
-    uint16_t  segdat[4], segdat2[4];
-    uint16_t  segs[4];
-    uint32_t  tempflags, flagmask;
-    uint32_t  newpc, newsp;
-    uint32_t  addr, oaddr;
-    uint32_t  oldsp     = ESP;
-    uint32_t *segdat32  = (uint32_t *) segdat;
-    uint32_t *segdat232 = (uint32_t *) segdat2;
-    x86seg   *dt;
+    uint16_t      newss;
+    uint16_t      seg = 0;
+    uint16_t      segdat[4];
+    uint16_t      segdat2[4];
+    uint16_t      segs[4];
+    uint32_t      tempflags;
+    uint32_t      flagmask;
+    uint32_t      newpc;
+    uint32_t      newsp;
+    uint32_t      addr;
+    uint32_t      oaddr;
+    uint32_t      oldsp     = ESP;
+    uint32_t     *segdat32  = (uint32_t *) segdat;
+    uint32_t     *segdat232 = (uint32_t *) segdat2;
+    const x86seg *dt;
 
     if (is386 && (cpu_state.eflags & VM_FLAG)) {
         if (IOPL != 3) {
@@ -2058,15 +2090,32 @@ pmodeiret(int is32)
 void
 taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
 {
-    uint16_t  tempw, new_ldt;
-    uint16_t  new_es, new_cs, new_ss, new_ds, new_fs, new_gs;
-    uint16_t  segdat2[4];
-    uint32_t  base, limit;
-    uint32_t  templ, new_cr3 = 0;
-    uint32_t  new_eax, new_ebx, new_ecx, new_edx, new_esp, new_ebp;
-    uint32_t  new_esi, new_edi, new_pc, new_flags, addr;
-    uint32_t *segdat232 = (uint32_t *) segdat2;
-    x86seg   *dt;
+    uint16_t      tempw;
+    uint16_t      new_ldt;
+    uint16_t      new_es;
+    uint16_t      new_cs;
+    uint16_t      new_ss;
+    uint16_t      new_ds;
+    uint16_t      new_fs;
+    uint16_t      new_gs;
+    uint16_t      segdat2[4];
+    uint32_t      base;
+    uint32_t      limit;
+    uint32_t      templ;
+    uint32_t      new_cr3 = 0;
+    uint32_t      new_eax;
+    uint32_t      new_ebx;
+    uint32_t      new_ecx;
+    uint32_t      new_edx;
+    uint32_t      new_esp;
+    uint32_t      new_ebp;
+    uint32_t      new_esi;
+    uint32_t      new_edi;
+    uint32_t      new_pc;
+    uint32_t      new_flags;
+    uint32_t      addr;
+    uint32_t     *segdat232 = (uint32_t *) segdat2;
+    const x86seg *dt;
 
     base  = segdat[1] | ((segdat[2] & 0x00ff) << 16);
     limit = segdat[0];
@@ -2447,7 +2496,8 @@ cyrix_write_seg_descriptor(uint32_t addr, x86seg *seg)
 void
 cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg)
 {
-    uint16_t segdat[4], selector;
+    uint16_t segdat[4];
+    uint16_t selector;
 
     segdat[0] = readmemw(0, addr);
     segdat[1] = readmemw(0, addr + 2);

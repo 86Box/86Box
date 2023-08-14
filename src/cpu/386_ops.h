@@ -180,7 +180,7 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #include "x86_ops_bit.h"
 #include "x86_ops_bitscan.h"
 #ifndef OPS_286_386
-#include "x86_ops_cyrix.h"
+#    include "x86_ops_cyrix.h"
 #endif
 #include "x86_ops_flag.h"
 #include "x86_ops_fpu.h"
@@ -191,21 +191,21 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #include "x86_ops_misc.h"
 #include "x87_ops.h"
 #ifndef OPS_286_386
-#include "x86_ops_i686.h"
-#include "x86_ops_mmx.h"
-#include "x86_ops_mmx_arith.h"
-#include "x86_ops_mmx_cmp.h"
-#include "x86_ops_mmx_logic.h"
-#include "x86_ops_mmx_mov.h"
-#include "x86_ops_mmx_pack.h"
-#include "x86_ops_mmx_shift.h"
+#    include "x86_ops_i686.h"
+#    include "x86_ops_mmx.h"
+#    include "x86_ops_mmx_arith.h"
+#    include "x86_ops_mmx_cmp.h"
+#    include "x86_ops_mmx_logic.h"
+#    include "x86_ops_mmx_mov.h"
+#    include "x86_ops_mmx_pack.h"
+#    include "x86_ops_mmx_shift.h"
 #endif
 #include "x86_ops_mov.h"
 #include "x86_ops_mov_ctrl.h"
 #include "x86_ops_mov_seg.h"
 #include "x86_ops_movx.h"
 #ifndef OPS_286_386
-#include "x86_ops_msr.h"
+#    include "x86_ops_msr.h"
 #endif
 #include "x86_ops_mul.h"
 #include "x86_ops_pmode.h"
@@ -213,26 +213,26 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #ifdef IS_DYNAREC
 #    include "x86_ops_rep_dyn.h"
 #else
-#ifdef OPS_286_386
-#    include "x86_ops_rep_2386.h"
-#else
-#    include "x86_ops_rep.h"
-#endif
+#    ifdef OPS_286_386
+#        include "x86_ops_rep_2386.h"
+#    else
+#        include "x86_ops_rep.h"
+#    endif
 #endif
 #include "x86_ops_ret.h"
 #include "x86_ops_set.h"
 #include "x86_ops_stack.h"
 #ifdef OPS_286_386
-#include "x86_ops_string_2386.h"
+#    include "x86_ops_string_2386.h"
 #else
-#include "x86_ops_string.h"
+#    include "x86_ops_string.h"
 #endif
 #include "x86_ops_xchg.h"
 #include "x86_ops_call.h"
 #include "x86_ops_shift.h"
 #ifndef OPS_286_386
-#include "x86_ops_amd.h"
-#include "x86_ops_3dnow.h"
+#    include "x86_ops_amd.h"
+#    include "x86_ops_3dnow.h"
 #endif
 #include <time.h>
 
@@ -351,40 +351,44 @@ opVPCEXT(uint32_t fetchdat)
 #endif
 
 #ifdef OPS_286_386
-static int op0F_w_a16(uint32_t fetchdat)
+static int
+op0F_w_a16(uint32_t fetchdat)
 {
     int opcode = fetchdat & 0xff;
-    fopcode = opcode;
+    fopcode    = opcode;
     cpu_state.pc++;
 
     PREFETCH_PREFIX();
 
     return x86_2386_opcodes_0f[opcode](fetchdat >> 8);
 }
-static int op0F_l_a16(uint32_t fetchdat)
+static int
+op0F_l_a16(uint32_t fetchdat)
 {
     int opcode = fetchdat & 0xff;
-    fopcode = opcode;
+    fopcode    = opcode;
     cpu_state.pc++;
 
     PREFETCH_PREFIX();
 
     return x86_2386_opcodes_0f[opcode | 0x100](fetchdat >> 8);
 }
-static int op0F_w_a32(uint32_t fetchdat)
+static int
+op0F_w_a32(uint32_t fetchdat)
 {
     int opcode = fetchdat & 0xff;
-    fopcode = opcode;
+    fopcode    = opcode;
     cpu_state.pc++;
 
     PREFETCH_PREFIX();
 
     return x86_2386_opcodes_0f[opcode | 0x200](fetchdat >> 8);
 }
-static int op0F_l_a32(uint32_t fetchdat)
+static int
+op0F_l_a32(uint32_t fetchdat)
 {
     int opcode = fetchdat & 0xff;
-    fopcode = opcode;
+    fopcode    = opcode;
     cpu_state.pc++;
 
     PREFETCH_PREFIX();
@@ -1361,7 +1365,7 @@ const OpFn OP_TABLE(pentium_0f)[1024] = {
     // clang-format on
 };
 
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
+#    if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 const OpFn OP_TABLE(c6x86_0f)[1024] = {
     // clang-format off
         /*16-bit data, 16-bit addr*/
@@ -1453,7 +1457,7 @@ const OpFn OP_TABLE(c6x86_0f)[1024] = {
 /*f0*/  ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,        ILLEGAL,
     // clang-format on
 };
-#endif
+#    endif
 
 const OpFn OP_TABLE(pentiummmx_0f)[1024] = {
     // clang-format off
@@ -1731,7 +1735,7 @@ const OpFn OP_TABLE(k62_0f)[1024] = {
     // clang-format on
 };
 
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
+#    if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 const OpFn OP_TABLE(c6x86mx_0f)[1024] = {
     // clang-format off
         /*16-bit data, 16-bit addr*/
@@ -1823,7 +1827,7 @@ const OpFn OP_TABLE(c6x86mx_0f)[1024] = {
 /*f0*/  ILLEGAL,        opPSLLW_a32,    opPSLLD_a32,    opPSLLQ_a32,    ILLEGAL,        opPMADDWD_a32,  ILLEGAL,        ILLEGAL,        opPSUBB_a32,    opPSUBW_a32,    opPSUBD_a32,    ILLEGAL,        opPADDB_a32,    opPADDW_a32,    opPADDD_a32,    ILLEGAL,
     // clang-format on
 };
-#endif
+#    endif
 
 const OpFn OP_TABLE(pentiumpro_0f)[1024] = {
     // clang-format off

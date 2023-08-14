@@ -439,13 +439,14 @@ MVHDAPI int
 mvhd_file_is_vhd(FILE* f)
 {
     uint8_t con_str[8];
+    size_t res;
 
     if (f == NULL) {
         return 0;
     }
 
     mvhd_fseeko64(f, -MVHD_FOOTER_SIZE, SEEK_END);
-    fread(con_str, sizeof con_str, 1, f);
+    res = fread(con_str, sizeof con_str, 1, f);
     if (mvhd_is_conectix_str(con_str)) {
         return 1;
     }

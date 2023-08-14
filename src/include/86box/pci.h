@@ -255,8 +255,9 @@ extern void        pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int 
                                 void (*write)(int func, int addr, uint8_t val, void *priv), void *priv, uint8_t *slot);
 
 /* Add an instance of the PCI bridge. */
-extern uint8_t     pci_add_bridge(uint8_t (*read)(int func, int addr, void *priv),
-                                  void (*write)(int func, int addr, uint8_t val, void *priv), void *priv);
+extern void        pci_add_bridge(uint8_t agp, uint8_t (*read)(int func, int addr, void *priv),
+                                  void (*write)(int func, int addr, uint8_t val, void *priv), void *priv,
+                                  uint8_t *slot);
 
 /* Register the cards that have been added into slots. */
 extern void        pci_register_cards(void);

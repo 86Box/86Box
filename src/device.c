@@ -439,34 +439,18 @@ device_has_config(const device_t *dev)
 }
 
 int
-device_poll(const device_t *dev, int x, int y, int z, int b)
+device_poll(const device_t *dev)
 {
     for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
             if (devices[c] == dev) {
                 if (devices[c]->poll)
-                    return (devices[c]->poll(x, y, z, b, 0, 0, device_priv[c]));
+                    return (devices[c]->poll(device_priv[c]));
             }
         }
     }
 
     return 0;
-}
-
-void
-device_register_pci_slot(const device_t *dev, int device, int type, int inta, int intb, int intc, int intd)
-{
-    for (uint16_t c = 0; c < DEVICE_MAX; c++) {
-        if (devices[c] != NULL) {
-            if (devices[c] == dev) {
-                if (devices[c]->register_pci_slot)
-                    devices[c]->register_pci_slot(device, type, inta, intb, intc, intd, device_priv[c]);
-                return;
-            }
-        }
-    }
-
-    return;
 }
 
 void

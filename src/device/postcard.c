@@ -37,7 +37,7 @@ static uint8_t  postcard_written[POSTCARDS_NUM];
 static uint8_t  postcard_ports_num = 1;
 static uint8_t  postcard_codes[POSTCARDS_NUM];
 static uint8_t  postcard_prev_codes[POSTCARDS_NUM];
-#define UISTR_LEN 13
+#define UISTR_LEN 32
 static char postcard_str[UISTR_LEN]; /* UI output string */
 
 extern void ui_sb_bugui(char *__str);
@@ -66,44 +66,44 @@ static void
 postcard_setui(void)
 {
     if (postcard_ports_num > 1) {
-        char ps[2][POSTCARDS_NUM][64] = { { 0 },
+        char ps[2][POSTCARDS_NUM][3] = { { 0 },
                                           { 0 } };
         for (uint8_t i = 0; i < POSTCARDS_NUM; i++) {
             if (!postcard_written[i]) {
-                sprintf(ps[0][i], "--");
-                sprintf(ps[1][i], "--");
+                snprintf(ps[0][i], sizeof(ps[0][i]), "--");
+                snprintf(ps[1][i], sizeof(ps[1][i]), "--");
             } else if (postcard_written[i] == 1) {
-                sprintf(ps[0][i], "%02X", postcard_codes[i]);
-                sprintf(ps[1][i], "--");
+                snprintf(ps[0][i], sizeof(ps[0][i]), "%02X", postcard_codes[i]);
+                snprintf(ps[1][i], sizeof(ps[1][i]), "--");
             } else {
-                sprintf(ps[0][i], "%02X", postcard_codes[i]);
-                sprintf(ps[1][i], "%02X", postcard_prev_codes[i]);
+                snprintf(ps[0][i], sizeof(ps[0][i]), "%02X", postcard_codes[i]);
+                snprintf(ps[1][i], sizeof(ps[1][i]), "%02X", postcard_prev_codes[i]);
             }
         }
  
         switch (postcard_ports_num) {
             default:
             case 2:
-                sprintf(postcard_str, "POST: %s%s %s%s",
+                snprintf(postcard_str, sizeof(postcard_str), "POST: %s%s %s%s",
                         ps[0][0], ps[0][1], ps[1][0], ps[1][1]);
                 break;
             case 3:
-                sprintf(postcard_str, "POST: %s/%s%s %s/%s%s",
+                snprintf(postcard_str, sizeof(postcard_str), "POST: %s/%s%s %s/%s%s",
                         ps[0][0], ps[0][1], ps[0][2], ps[1][0], ps[1][1], ps[1][2]);
                 break;
             case 4:
-                sprintf(postcard_str, "POST: %s%s/%s%s %s%s/%s%s",
+                snprintf(postcard_str, sizeof(postcard_str), "POST: %s%s/%s%s %s%s/%s%s",
                         ps[0][0], ps[0][1], ps[0][2], ps[0][3],
                         ps[1][0], ps[1][1], ps[1][2], ps[1][3]);
                 break;
         }
     } else {
         if (!postcard_written[0])
-            sprintf(postcard_str, "POST: -- --");
+            snprintf(postcard_str, sizeof(postcard_str), "POST: -- --");
         else if (postcard_written[0] == 1)
-            sprintf(postcard_str, "POST: %02X --", postcard_codes[0]);
+            snprintf(postcard_str, sizeof(postcard_str), "POST: %02X --", postcard_codes[0]);
         else
-            sprintf(postcard_str, "POST: %02X %02X", postcard_codes[0], postcard_prev_codes[0]);
+            snprintf(postcard_str, sizeof(postcard_str), "POST: %02X %02X", postcard_codes[0], postcard_prev_codes[0]);
     }
 
     ui_sb_bugui(postcard_str);
@@ -128,8 +128,6 @@ postcard_reset(void)
 static void
 postcard_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 {
-    uint8_t matches = 0;
-
     if (postcard_written[port & POSTCARD_MASK] &&
         (val == postcard_codes[port & POSTCARD_MASK]))
         return;

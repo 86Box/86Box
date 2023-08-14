@@ -32,15 +32,6 @@
 
 int    mouse_capture;
 
-typedef struct {
-    int buttons;
-    int dx;
-    int dy;
-    int dwheel;
-} MOUSESTATE;
-
-MOUSESTATE mousestate;
-
 void
 win_mouse_init(void)
 {
@@ -56,8 +47,6 @@ win_mouse_init(void)
     ridev.usUsage     = 0x02;
     if (!RegisterRawInputDevices(&ridev, 1, sizeof(ridev)))
         fatal("plat_mouse_init: RegisterRawInputDevices failed\n");
-
-    memset(&mousestate, 0, sizeof(MOUSESTATE));
 }
 
 void

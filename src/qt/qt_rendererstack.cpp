@@ -69,6 +69,12 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     : QStackedWidget(parent)
     , ui(new Ui::RendererStack)
 {
+#ifdef Q_OS_WINDOWS
+    int raw = 1;
+#else
+    int raw = 0;
+#endif
+
     ui->setupUi(this);
 
     m_monitor_index = monitor_index;
@@ -95,8 +101,10 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
     }
 #    endif
 #    ifdef EVDEV_INPUT
-    if (!stricmp(mousedata.mouse_type, "evdev"))
+    if (!stricmp(mousedata.mouse_type, "evdev")) {
         evdev_init();
+        raw = 0;
+    }
 #    endif
     if (!stricmp(mousedata.mouse_type, "xinput2")) {
         extern void xinput2_init();
@@ -105,6 +113,9 @@ RendererStack::RendererStack(QWidget *parent, int monitor_index)
         this->mouse_exit_func = xinput2_exit;
     }
 #endif
+
+    if (monitor_index == 0)
+        mouse_set_raw(raw);
 }
 
 RendererStack::~RendererStack()
@@ -177,7 +188,17 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
         return;
     }
     if (mouse_capture || (mouse_mode >= 1)) {
-        if ((mouse_mode >= 1) && ((m_monitor_index < 1) || mousedata.mouse_tablet_in_proximity))
+#ifdef Q_OS_WINDOWS
+        if (((m_monitor_index >= 1) && (mouse_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
+             ((m_monitor_index < 1) && (mouse_mode >= 1)))
+#else
+#ifndef __APPLE__
+        if (((m_monitor_index >= 1) && (mouse_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
+             (m_monitor_index < 1))
+#else
+        if ((m_monitor_index >= 1) && (mouse_mode >= 1) && mousedata.mouse_tablet_in_proximity)
+#endif
+#endif
             mouse_set_buttons_ex(mouse_get_buttons_ex() & ~event->button());
     }
     isMouseDown &= ~1;
@@ -188,7 +209,17 @@ RendererStack::mousePressEvent(QMouseEvent *event)
 {
     isMouseDown |= 1;
     if (mouse_capture || (mouse_mode >= 1)) {
-        if ((mouse_mode >= 1) && ((m_monitor_index < 1) || mousedata.mouse_tablet_in_proximity))
+#ifdef Q_OS_WINDOWS
+        if (((m_monitor_index >= 1) && (mouse_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
+             ((m_monitor_index < 1) && (mouse_mode >= 1)))
+#else
+#ifndef __APPLE__
+        if (((m_monitor_index >= 1) && (mouse_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
+             (m_monitor_index < 1))
+#else
+        if ((m_monitor_index >= 1) && (mouse_mode >= 1) && mousedata.mouse_tablet_in_proximity)
+#endif
+#endif
             mouse_set_buttons_ex(mouse_get_buttons_ex() | event->button());
     }
     event->accept();
@@ -531,4 +562,20 @@ RendererStack::event(QEvent* event)
         }
     }
     return QStackedWidget::event(event);
+}
+
+void
+RendererStack::setFocusRenderer()
+{
+    if (current)
+        current->setFocus();
+}
+
+void
+RendererStack::onResize(int width, int height)
+{
+    if (rendererWindow) {
+        rendererWindow->r_monitor_index = m_monitor_index;
+        rendererWindow->onResize(width, height);
+    }
 }

@@ -38,7 +38,7 @@
 #include <86box/vid_mda.h>
 #include <86box/vid_xga_device.h>
 
-typedef struct {
+typedef struct video_card_t {
     const device_t *device;
     int             flags;
 } VIDEO_CARD;
@@ -81,7 +81,7 @@ video_cards[] = {
     { &vid_internal_device                           },
     { &atiega_device                                 },
     { &mach8_isa_device,        VIDEO_FLAG_TYPE_8514 },
-    { &mach32_isa_device, 		VIDEO_FLAG_TYPE_8514 },
+    { &mach32_isa_device,       VIDEO_FLAG_TYPE_8514 },
     { &mach64gx_isa_device                           },
     { &ati28800k_device                              },
     { &ati18800_vga88_device                         },
@@ -154,11 +154,12 @@ video_cards[] = {
     { &vga_device                                    },
     { &v7_vga_1024i_device                           },
     { &wy700_device                                  },
+    { &mach32_mca_device,       VIDEO_FLAG_TYPE_8514 },
     { &gd5426_mca_device                             },
     { &gd5428_mca_device                             },
     { &et4000_mca_device                             },
     { &radius_svga_multiview_mca_device              },
-    { &mach32_pci_device, 		VIDEO_FLAG_TYPE_8514 },
+    { &mach32_pci_device,       VIDEO_FLAG_TYPE_8514 },
     { &mach64gx_pci_device                           },
     { &mach64vt2_device                              },
     { &et4000w32p_videomagic_revb_pci_device         },
@@ -216,7 +217,7 @@ video_cards[] = {
     { &voodoo_3_1000_device                          },
     { &voodoo_3_2000_device                          },
     { &voodoo_3_3000_device                          },
-    { &mach32_vlb_device, 		VIDEO_FLAG_TYPE_8514 },
+    { &mach32_vlb_device,       VIDEO_FLAG_TYPE_8514 },
     { &mach64gx_vlb_device                           },
     { &et4000w32i_vlb_device                         },
     { &et4000w32p_videomagic_revb_vlb_device         },
@@ -343,9 +344,9 @@ video_reset(int card)
     monitor_index_global = 0;
     loadfont("roms/video/mda/mda.rom", 0);
 
-    if (!(card == VID_NONE)
+    if ((card != VID_NONE)
         && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)
-        && gfxcard[1] != 0
+        && (gfxcard[1] != 0)
         && device_is_valid(video_card_getdevice(gfxcard[1]), machine)) {
         video_monitor_init(1);
         monitor_index_global = 1;
@@ -354,7 +355,7 @@ video_reset(int card)
     }
 
     /* Do not initialize internal cards here. */
-    if (!(card == VID_NONE) && !(card == VID_INTERNAL) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
+    if ((card != VID_NONE) && (card != VID_INTERNAL) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
         vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].device->name);
 
         video_prepare();
@@ -363,11 +364,41 @@ video_reset(int card)
         device_add(video_cards[card].device);
     }
 
+    was_reset = 1;
+}
+
+void
+video_post_reset(void)
+{
+    if (gfxcard[0] == VID_INTERNAL)
+        ibm8514_has_vga = (video_get_type_monitor(0) == VIDEO_FLAG_TYPE_8514);
+    else if (gfxcard[0] != VID_NONE)
+        ibm8514_has_vga = (video_card_get_flags(gfxcard[0]) == VIDEO_FLAG_TYPE_8514);
+    else
+        ibm8514_has_vga = 0;
+
+    if (ibm8514_has_vga)
+        ibm8514_enabled = 1;
+
+    if (ibm8514_enabled) {
+        if (!ibm8514_has_vga)
+            ibm8514_device_add();
+    }
+
+    if (xga_enabled)
+        xga_device_add();
+
+    /* Reset the graphics card (or do nothing if it was already done
+       by the machine's init function). */
+    video_reset(gfxcard[0]);
+}
+
+void
+video_voodoo_init(void)
+{
     /* Enable the Voodoo if configured. */
     if (voodoo_enabled)
         device_add(&voodoo_device);
-
-    was_reset = 1;
 }
 
 int

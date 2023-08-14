@@ -17,27 +17,26 @@
 #ifndef EMU_QUEUE_H
 #define EMU_QUEUE_H
 
-typedef enum queue_delay_t
-{
+typedef enum queue_delay_t {
     DELAY_READ,
     DELAY_WRITE,
     DELAY_NONE
 } queue_delay_t;
 
-#define FLAG_PRELOADED    0x8000
+#define FLAG_PRELOADED 0x8000
 
-extern void               queue_set_size(size_t size);
-extern size_t             queue_get_len(void);
-extern int                queue_is_full(void);
-extern uint16_t           queue_get_preload(void);
-extern int                queue_has_preload(void);
-extern void               queue_set_preload(void);
-extern void               queue_push8(uint8_t byte);
-extern void               queue_push16(uint16_t word);
-extern uint8_t            queue_pop(void);
-extern queue_delay_t      queue_get_delay(void);
-extern void               queue_flush(void);
+extern void          queue_set_size(uintptr_t size);
+extern uintptr_t     queue_get_len(void);
+extern int           queue_is_full(void);
+extern uint16_t      queue_get_preload(void);
+extern int           queue_has_preload(void);
+extern void          queue_set_preload(void);
+extern void          queue_push8(uint8_t byte);
+extern void          queue_push16(uint16_t word);
+extern uint8_t       queue_pop(void);
+extern queue_delay_t queue_get_delay(void);
+extern void          queue_flush(void);
 
-extern void               queue_init(void);
+extern void          queue_init(void);
 
 #endif /*EMU_QUEUE_H*/

@@ -439,12 +439,12 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
             svga->crtcreg = val & 0x3f;
             return;
         case 0x3D5:
+            if (svga->crtcreg > 0x20)
+                return;
             if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
                 return;
             if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
                 val = (svga->crtc[7] & ~0x10) | (val & 0x10);
-            if (svga->crtcreg > 0x18)
-                return;
             old                       = svga->crtc[svga->crtcreg];
             svga->crtc[svga->crtcreg] = val;
 
@@ -454,7 +454,7 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
                         svga->fullchange = 3;
                         svga->ma_latch   = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
                     } else {
-                        svga->fullchange = changeframecount;
+                        svga->fullchange = svga->monitor->mon_changeframecount;
                         svga_recalctimings(svga);
                     }
                 }
@@ -493,7 +493,7 @@ mach64_in(uint16_t addr, void *priv)
         case 0x3D4:
             return svga->crtcreg;
         case 0x3D5:
-            if (svga->crtcreg > 0x18)
+            if (svga->crtcreg > 0x20)
                 return 0xff;
             return svga->crtc[svga->crtcreg];
 
@@ -740,9 +740,7 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
         case 0x11e:
         case 0x11f:
             WRITE8(addr, mach64->dst_height_width, val);
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case 0x113:
             if (((addr & 0x3ff) == 0x11b || (addr & 0x3ff) == 0x11f || (addr & 0x3ff) == 0x113) && !(val & 0x80)) {
                 mach64_start_fill(mach64);
@@ -965,9 +963,7 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
         case 0x2a4:
         case 0x2a5:
             addr += 2;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case 0x2aa:
         case 0x2ab:
             WRITE8(addr, mach64->sc_left_right, val);
@@ -982,9 +978,7 @@ mach64_accel_write_fifo(mach64_t *mach64, uint32_t addr, uint8_t val)
         case 0x2b0:
         case 0x2b1:
             addr += 2;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case 0x2b6:
         case 0x2b7:
             WRITE8(addr, mach64->sc_top_bottom, val);
@@ -1527,13 +1521,13 @@ mach64_start_line(mach64_t *mach64)
 #define WRITE(addr, width)                                                                  \
     if (width == 0) {                                                                       \
         svga->vram[(addr) &mach64->vram_mask]                = dest_dat;                    \
-        svga->changedvram[((addr) &mach64->vram_mask) >> 12] = changeframecount;            \
+        svga->changedvram[((addr) &mach64->vram_mask) >> 12] = svga->monitor->mon_changeframecount;            \
     } else if (width == 1) {                                                                \
         *(uint16_t *) &svga->vram[((addr) << 1) & mach64->vram_mask] = dest_dat;            \
-        svga->changedvram[(((addr) << 1) & mach64->vram_mask) >> 12] = changeframecount;    \
+        svga->changedvram[(((addr) << 1) & mach64->vram_mask) >> 12] = svga->monitor->mon_changeframecount;    \
     } else if (width == 2) {                                                                \
         *(uint32_t *) &svga->vram[((addr) << 2) & mach64->vram_mask] = dest_dat;            \
-        svga->changedvram[(((addr) << 2) & mach64->vram_mask) >> 12] = changeframecount;    \
+        svga->changedvram[(((addr) << 2) & mach64->vram_mask) >> 12] = svga->monitor->mon_changeframecount;    \
     } else {                                                                                \
         if (dest_dat & 1) {                                                                 \
             if (mach64->dp_pix_width & DP_BYTE_PIX_ORDER)                                   \
@@ -1546,7 +1540,7 @@ mach64_start_line(mach64_t *mach64)
             else                                                                            \
                 svga->vram[((addr) >> 3) & mach64->vram_mask] &= ~(1 << (7 - ((addr) &7))); \
         }                                                                                   \
-        svga->changedvram[(((addr) >> 3) & mach64->vram_mask) >> 12] = changeframecount;    \
+        svga->changedvram[(((addr) >> 3) & mach64->vram_mask) >> 12] = svga->monitor->mon_changeframecount;    \
     }
 
 void
@@ -3075,7 +3069,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
             case 0x17:
                 WRITE8(addr, mach64->crtc_off_pitch, val);
                 svga_recalctimings(&mach64->svga);
-                svga->fullchange = changeframecount;
+                svga->fullchange = svga->monitor->mon_changeframecount;
                 break;
 
             case 0x18:
@@ -4547,7 +4541,7 @@ mach64_force_redraw(void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
 
-    mach64->svga.fullchange = changeframecount;
+    mach64->svga.fullchange = mach64->svga.monitor->mon_changeframecount;
 }
 
 // clang-format off

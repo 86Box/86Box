@@ -103,8 +103,8 @@ typedef struct monitor_t {
     int                      mon_efscrnsz_y;
     int                      mon_unscaled_size_x;
     int                      mon_unscaled_size_y;
-    int                      mon_res_x;
-    int                      mon_res_y;
+    double                   mon_res_x;
+    double                   mon_res_y;
     int                      mon_bpp;
     bitmap_t                *target_buffer;
     int                      mon_video_timing_read_b;
@@ -263,6 +263,8 @@ extern void    video_close(void);
 extern void    video_reset_close(void);
 extern void    video_pre_reset(int card);
 extern void    video_reset(int card);
+extern void    video_post_reset(void);
+extern void    video_voodoo_init(void);
 extern uint8_t video_force_resize_get_monitor(int monitor_index);
 extern void    video_force_resize_set_monitor(uint8_t res, int monitor_index);
 extern void    video_update_timing(void);
@@ -300,7 +302,9 @@ extern void ibm8514_device_add(void);
 extern const device_t mach8_isa_device;
 extern const device_t mach32_isa_device;
 extern const device_t mach32_vlb_device;
+extern const device_t mach32_mca_device;
 extern const device_t mach32_pci_device;
+extern const device_t mach32_onboard_pci_device;
 
 /* ATi Mach64 */
 extern const device_t mach64gx_isa_device;

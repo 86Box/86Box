@@ -135,8 +135,8 @@ colorplus_poll(void *priv)
                                     0x18, 0x1A, 0x1C, 0x1E,
                                     0x11, 0x13, 0x15, 0x17,
                                     0x19, 0x1B, 0x1D, 0x1F };
-    uint8_t         *plane0     = colorplus->cga.vram;
-    uint8_t         *plane1     = colorplus->cga.vram + 0x4000;
+    const uint8_t   *plane0     = colorplus->cga.vram;
+    const uint8_t   *plane1     = colorplus->cga.vram + 0x4000;
 
     /* If one of the extra modes is not selected, drop down to the CGA
      * drawing code. */

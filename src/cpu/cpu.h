@@ -280,12 +280,12 @@ typedef struct {
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t mcg_ctl; /* 0x0000017b - Machine Check Architecture */
-    uint64_t ecx186; /* 0x00000186, 0x00000187 */
-    uint64_t ecx187; /* 0x00000186, 0x00000187 */
+    uint64_t ecx186;  /* 0x00000186, 0x00000187 */
+    uint64_t ecx187;  /* 0x00000186, 0x00000187 */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t debug_ctl; /* 0x000001d9 - Debug Registers Control */
-    uint64_t ecx1e0; /* 0x000001e0 */
+    uint64_t ecx1e0;    /* 0x000001e0 */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's that are also
        on the VIA Cyrix III */
@@ -438,15 +438,15 @@ typedef struct {
 } cpu_state_t;
 
 typedef struct {
-    uint16_t cwd;
-    uint16_t swd;
-    uint16_t tag;
-    uint16_t foo;
-    uint32_t fip;
-    uint32_t fdp;
-    uint16_t fcs;
-    uint16_t fds;
-    floatx80 st_space[8];
+    uint16_t      cwd;
+    uint16_t      swd;
+    uint16_t      tag;
+    uint16_t      foo;
+    uint32_t      fip;
+    uint32_t      fdp;
+    uint16_t      fcs;
+    uint16_t      fds;
+    floatx80      st_space[8];
     unsigned char tos;
     unsigned char align1;
     unsigned char align2;
@@ -456,7 +456,7 @@ typedef struct {
 #define in_smm   cpu_state._in_smm
 #define smi_line cpu_state._smi_line
 
-#define smbase cpu_state._smbase
+#define smbase   cpu_state._smbase
 
 /*The cpu_state.flags below must match in both cpu_cur_status and block->status for a block
   to be valid*/
@@ -466,9 +466,9 @@ typedef struct {
 #define CPU_STATUS_V86     (1 << 3)
 #define CPU_STATUS_SMM     (1 << 4)
 #ifdef USE_NEW_DYNAREC
-#define CPU_STATUS_FLAGS   0xff
+#    define CPU_STATUS_FLAGS 0xff
 #else
-#define CPU_STATUS_FLAGS   0xffff
+#    define CPU_STATUS_FLAGS 0xffff
 #endif
 
 /*If the cpu_state.flags below are set in cpu_cur_status, they must be set in block->status.
@@ -627,8 +627,8 @@ extern uint64_t star;
 
 #define FPU_CW_Reserved_Bits (0xe0c0)
 
-#define cr0     cpu_state.CR0.l
-#define msw     cpu_state.CR0.w
+#define cr0                  cpu_state.CR0.l
+#define msw                  cpu_state.CR0.w
 extern uint32_t cr2;
 extern uint32_t cr3;
 extern uint32_t cr4;
@@ -732,8 +732,8 @@ extern void loadseg_dynarec(uint16_t seg, x86seg *s);
 extern int  loadseg(uint16_t seg, x86seg *s);
 extern void loadcs(uint16_t seg);
 #else
-extern void loadseg(uint16_t seg, x86seg *s);
-extern void loadcs(uint16_t seg);
+extern void     loadseg(uint16_t seg, x86seg *s);
+extern void     loadcs(uint16_t seg);
 #endif
 
 extern char *cpu_current_pc(char *bufp);
@@ -770,11 +770,11 @@ extern void pmodeint(int num, int soft);
 extern void pmoderetf(int is32, uint16_t off);
 extern void pmodeiret(int is32);
 #else
-extern void loadcscall(uint16_t seg);
-extern void loadcsjmp(uint16_t seg, uint32_t old_pc);
-extern void pmodeint(int num, int soft);
-extern void pmoderetf(int is32, uint16_t off);
-extern void pmodeiret(int is32);
+extern void     loadcscall(uint16_t seg);
+extern void     loadcsjmp(uint16_t seg, uint32_t old_pc);
+extern void     pmodeint(int num, int soft);
+extern void     pmoderetf(int is32, uint16_t off);
+extern void     pmodeiret(int is32);
 #endif
 extern void resetmcr(void);
 extern void resetx86(void);
@@ -865,7 +865,7 @@ extern void cpu_fast_off_reset(void);
 extern void smi_raise(void);
 extern void nmi_raise(void);
 
-extern MMX_REG *MMP[8];
+extern MMX_REG  *MMP[8];
 extern uint16_t *MMEP[8];
 
 extern void mmx_init(void);
