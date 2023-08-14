@@ -129,7 +129,7 @@ timer_process(void)
             timer->callback(timer->priv);
 
         if (timer->flags |= TIMER_ENABLE)
-            timer->flags = (timer_flags & ~TIMER_ENABLE) | TIMER_ENABLED;
+            timer->flags = (timer->flags & ~TIMER_ENABLE) | TIMER_ENABLED;
         else
             timer->flags &= ~TIMER_ENABLED;
     }
