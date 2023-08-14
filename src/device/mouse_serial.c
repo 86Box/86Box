@@ -10,9 +10,9 @@
  *
  * TODO:    Add the Genius Serial Mouse.
  *
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *
- * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Copyright 2023 Miran Grca.
  */
 #include <math.h>
 #include <stdarg.h>
