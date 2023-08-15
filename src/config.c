@@ -2923,16 +2923,14 @@ save_floppy_and_cdrom_drives(void)
         }
 
         sprintf(temp, "cdrom_%02i_parameters", c + 1);
-        if (cdrom[c].bus_type == 0) {
+        if (cdrom[c].bus_type == 0)
             ini_section_delete_var(cat, temp);
-        } else { /*In case one wants an ATAPI drive on SCSI and vice-versa.*/
-            if (cdrom[c].bus_type == CDROM_BUS_ATAPI) {
-                if (cdrom_drive_types[cdrom_get_type(c)].bus_type == BUS_TYPE_SCSI)
-                    cdrom[c].bus_type = CDROM_BUS_SCSI;
-            } else if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
-                if (cdrom_drive_types[cdrom_get_type(c)].bus_type == BUS_TYPE_IDE)
-                    cdrom[c].bus_type = CDROM_BUS_ATAPI;
-            }
+        else {
+            /* In case one wants an ATAPI drive on SCSI and vice-versa. */
+            if ((cdrom_drive_types[cdrom_get_type(c)].bus_type != BUS_TYPE_BOTH) &&
+                (cdrom_drive_types[cdrom_get_type(c)].bus_type != cdrom[c].bus_type))
+                cdrom[c].bus_type = cdrom_drive_types[cdrom_get_type(c)].bus_type;
+
             sprintf(tmp2, "%u, %s", cdrom[c].sound_on,
                     hdd_bus_to_string(cdrom[c].bus_type, 1));
             ini_section_set_string(cat, temp, tmp2);
