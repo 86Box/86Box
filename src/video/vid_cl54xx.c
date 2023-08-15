@@ -4067,9 +4067,9 @@ gd54xx_init(const device_t *info)
                 if (info->local & 0x200) {
                     romfn            = NULL;
                     gd54xx->has_bios = 0;
-                } else if (gd54xx->pci) {
+                } else if (gd54xx->pci)
                     romfn = BIOS_GD5430_PATH;
-                } else if ((gd54xx->vlb) && (info->local & 0x100))
+                else if ((gd54xx->vlb) && (info->local & 0x100))
                     romfn = BIOS_GD5430_ORCHID_VLB_PATH;
                 else
                     romfn = BIOS_GD5430_DIAMOND_A8_VLB_PATH;
@@ -4943,6 +4943,20 @@ const device_t gd5430_pci_device = {
     .internal_name = "cl_gd5430_pci",
     .flags         = DEVICE_PCI,
     .local         = CIRRUS_ID_CLGD5430,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    { .available = gd5430_available },
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .config        = gd5429_config
+};
+
+const device_t gd5430_onboard_pci_device = {
+    .name          = "Cirrus Logic GD5430 (PCI) (On-Board)",
+    .internal_name = "cl_gd5430_onboard_pci",
+    .flags         = DEVICE_PCI,
+    .local         = CIRRUS_ID_CLGD5430 | 0x200,
     .init          = gd54xx_init,
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,

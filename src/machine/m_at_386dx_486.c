@@ -630,16 +630,24 @@ machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU oth
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
     device_add(&ide_vlb_2ch_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
-    pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE,  0,  0,  0,  0);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,       1,  2,  3,  4);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,       5,  6,  7,  8);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,       9, 10, 11, 12);
+    /* This is a guess because the BIOS always gives it a video BIOS
+       and never gives it an IRQ, so it is impossible to known for
+       certain until we obtain PCI readouts from the real machine. */
+    pci_register_slot(0x0E, PCI_CARD_VIDEO,       13, 14, 15, 16);
 
-    device_add(&opti802g_pci_device);
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&gd5430_onboard_pci_device);
+
+    device_add(&opti602_device);
+    device_add(&opti802g_device);
     device_add(&opti822_device);
     device_add(&keyboard_ps2_ami_device);
     device_add(&fdc37c665_ide_device);

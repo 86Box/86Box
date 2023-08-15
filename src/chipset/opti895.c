@@ -140,6 +140,8 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
 {
     opti895_t *dev = (opti895_t *) priv;
 
+    opti895_log("opti895_write(%04X, %08X)\n", addr, val);
+
     switch (addr) {
         case 0x22:
             dev->idx = val;
@@ -230,6 +232,8 @@ opti895_read(uint16_t addr, void *priv)
         default:
             break;
     }
+
+    opti895_log("opti895_read(%04X) = %02X\n", addr, ret);
 
     return ret;
 }
