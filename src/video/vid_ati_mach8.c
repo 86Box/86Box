@@ -3688,7 +3688,7 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
             } else {
                 dev->on = (dev->accel.advfunc_cntl & 0x01);
                 vga_on = !dev->on;
-                pclog("ATI 8514/A: (0x4ae8) val = %04x\n", val & 0x01);
+                mach_log("ATI 8514/A: (0x4ae8) val = %04x\n", val & 0x01);
             }
             svga_recalctimings(svga);
             break;
@@ -3813,7 +3813,7 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
         case 0x4aef:
             WRITE8(port, mach->accel.clock_sel, val);
             if (port & 1) {
-                pclog("ATI 8514/A: (0x4aee) val = %04x\n", mach->accel.clock_sel & 0x01);
+                mach_log("ATI 8514/A: (0x4aee) val = %04x\n", mach->accel.clock_sel & 0x01);
                 dev->on = mach->accel.clock_sel & 0x01;
                 vga_on = !dev->on;
             }
