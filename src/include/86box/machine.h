@@ -318,8 +318,8 @@ typedef struct _machine_ {
     void *kbc_device;
 #endif /* EMU_DEVICE_H */
     /* Bits:
-        7-0	Set bits are forced set on P1 (no forced set = 0x00);
-        15-8	Clear bits are forced clear on P1 (no foced clear = 0xff). */
+        7-0  Set bits are forced set on P1 (no forced set = 0x00);
+        15-8 Clear bits are forced clear on P1 (no foced clear = 0xff). */
     uint16_t kbc_p1;
     uint32_t gpio;
     uint32_t gpio_acpi;

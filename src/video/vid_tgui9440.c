@@ -1357,8 +1357,6 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
     uint32_t  trans_col  = (tgui->accel.flags & TGUI_TRANSREV) ? tgui->accel.fg_col : tgui->accel.bg_col;
     uint16_t *vram_w     = (uint16_t *) svga->vram;
     uint32_t *vram_l     = (uint32_t *) svga->vram;
-    uint8_t   ger22lower = tgui->accel.ger22 & 0xff;
-    uint8_t   ger22upper = (tgui->accel.ger22 >> 8) & 0xff;
 
     if (tgui->accel.bpp == 0) {
         trans_col &= 0xff;

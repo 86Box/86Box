@@ -705,8 +705,8 @@ const device_config_t compaq_plasma_config[] = {
   // clang-format off
     {
         .name = "rgb_type",
-		.description = "RGB type",
-		.type = CONFIG_SELECTION,
+        .description = "RGB type",
+        .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 0,
         .file_filter = "",
