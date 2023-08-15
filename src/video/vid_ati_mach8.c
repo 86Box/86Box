@@ -3877,9 +3877,7 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
         case 0x76ee:
         case 0x76ef:
             WRITE8(port, mach->accel.ge_pitch, val);
-            if (port & 1)
-                dev->ext_pitch = ((mach->accel.ge_pitch & 0xff) << 3);
-
+            dev->ext_pitch = ((mach->accel.ge_pitch & 0xff) << 3);
             svga_recalctimings(svga);
             break;
 
