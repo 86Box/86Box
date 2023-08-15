@@ -538,7 +538,7 @@ svga_set_ramdac_type(svga_t *svga, int type)
 void
 svga_recalctimings(svga_t *svga)
 {
-	ibm8514_t *dev = &svga->dev8514;
+    ibm8514_t *dev = &svga->dev8514;
     double           crtcconst;
     double           _dispontime;
     double           _dispofftime;

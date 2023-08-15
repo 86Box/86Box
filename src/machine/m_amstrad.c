@@ -1299,7 +1299,7 @@ lcdm_poll(amsvid_t *vid)
                 drawcursor = ((mda->ma == ca) && mda->con && mda->cursoron);
                 blink      = ((mda->blink & 16) && (mda->ctrl & 0x20) && (attr & 0x80) && !drawcursor);
 
-                lcd_draw_char_80(vid, &((buffer32->line[mda->displine]))[x * 8], chr, attr, drawcursor, blink, mda->sc, 0, mda->ctrl);
+                lcd_draw_char_80(vid, &(buffer32->line[mda->displine])[x * 8], chr, attr, drawcursor, blink, mda->sc, 0, mda->ctrl);
                 mda->ma++;
             }
         }
@@ -2005,10 +2005,8 @@ const device_t vid_pc3086_device = {
 };
 
 static void
-ms_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
+ms_write(uint16_t addr, UNUSED(uint8_t val), UNUSED(void *priv))
 {
-    amstrad_t *ams = (amstrad_t *) priv;
-
     if ((addr == 0x78) || (addr == 0x79))
         mouse_clear_x();
     else
@@ -2016,11 +2014,10 @@ ms_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
 }
 
 static uint8_t
-ms_read(uint16_t addr, void *priv)
+ms_read(uint16_t addr, UNUSED(void *priv))
 {
-    amstrad_t *ams = (amstrad_t *) priv;
-    uint8_t    ret;
-    int delta = 0;
+    uint8_t ret;
+    int     delta = 0;
 
     if ((addr == 0x78) || (addr == 0x79)) {
         mouse_subtract_x(&delta, NULL, -128, 127, 0);

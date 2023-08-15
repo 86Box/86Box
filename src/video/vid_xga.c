@@ -3079,7 +3079,6 @@ xga_init(const device_t *info)
     xga_t   *xga  = &svga->xga;
     FILE    *f;
     uint8_t *rom = NULL;
-    size_t   res;
 
     xga->ext_mem_addr = device_get_config_hex16("ext_mem_addr");
     xga->instance_isa = device_get_config_int("instance");
@@ -3104,7 +3103,6 @@ xga_init(const device_t *info)
 
     rom = malloc(xga->bios_rom.sz);
     memset(rom, 0xff, xga->bios_rom.sz);
-    res = fread(rom, xga->bios_rom.sz, 1, f);
     (void) fclose(f);
 
     xga->bios_rom.rom  = rom;

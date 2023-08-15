@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Definitions for the SMRAM interface.
+ *          Definitions for the SMRAM interface.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016-2020 Miran Grca.
+ *          Copyright 2016-2020 Miran Grca.
  */
 
 #ifndef EMU_ROW_H
@@ -43,4 +43,4 @@ extern void         row_set_boundary(uint8_t row_id, uint32_t boundary);
 extern device_t     row_device;
 
 
-#endif	/*EMU_ROW_H*/
+#endif /*EMU_ROW_H*/

@@ -40,23 +40,23 @@ struct dirent {
 #    define d_namlen d_reclen
 
 typedef struct DIR_t {
-    short flags;  /* internal flags		*/
-    short offset; /* offset of entry into dir	*/
-    long  handle; /* open handle to Win32 system	*/
-    short sts;    /* last known status code	*/
-    char *dta;    /* internal work data		*/
+    short flags;  /* internal flags */
+    short offset; /* offset of entry into dir */
+    long  handle; /* open handle to Win32 system */
+    short sts;    /* last known status code */
+    char *dta;    /* internal work data */
 #    ifdef UNICODE
-    wchar_t dir[MAXDIRLEN + 1]; /* open dir			*/
+    wchar_t dir[MAXDIRLEN + 1]; /* open dir */
 #    else
-    char dir[MAXDIRLEN + 1]; /* open dir			*/
+    char dir[MAXDIRLEN + 1]; /* open dir */
 #    endif
-    struct dirent dent; /* actual directory entry	*/
+    struct dirent dent; /* actual directory entry */
 } DIR;
 
 /* Directory routine flags. */
-#    define DIR_F_LOWER  0x0001 /* force to lowercase		*/
-#    define DIR_F_SANE   0x0002 /* force this to sane path	*/
-#    define DIR_F_ISROOT 0x0010 /* this is the root directory	*/
+#    define DIR_F_LOWER  0x0001 /* force to lowercase */
+#    define DIR_F_SANE   0x0002 /* force this to sane path */
+#    define DIR_F_ISROOT 0x0010 /* this is the root directory */
 
 /* Function prototypes. */
 extern DIR           *opendir(const char *);

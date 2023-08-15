@@ -30,32 +30,32 @@
 #define NVR_SIZE      256   /* size of NVR */
 
 /* EEPROM map and bit definitions. */
-#define EE0_HOSTID  0x07 /* EE(0) [2:0]				*/
-#define EE0_ALTFLOP 0x80 /* EE(0) [7] FDC at 370h		*/
-#define EE1_IRQCH   0x07 /* EE(1) [3:0]				*/
-#define EE1_DMACH   0x70 /* EE(1) [7:4]				*/
-#define EE2_RMVOK   0x01 /* EE(2) [0] Support removable disks	*/
-#define EE2_HABIOS  0x02 /* EE(2) [1] HA Bios Space Reserved	*/
-#define EE2_INT19   0x04 /* EE(2) [2] HA Bios Controls INT19	*/
-#define EE2_DYNSCAN 0x08 /* EE(2) [3] Dynamically scan bus	*/
-#define EE2_TWODRV  0x10 /* EE(2) [4] Allow more than 2 drives	*/
-#define EE2_SEEKRET 0x20 /* EE(2) [5] Immediate return on seek	*/
-#define EE2_EXT1G   0x80 /* EE(2) [7] Extended Translation >1GB	*/
-#define EE3_SPEED   0x00 /* EE(3) [7:0] DMA Speed		*/
+#define EE0_HOSTID  0x07 /* EE(0) [2:0]                         */
+#define EE0_ALTFLOP 0x80 /* EE(0) [7] FDC at 370h               */
+#define EE1_IRQCH   0x07 /* EE(1) [3:0]                         */
+#define EE1_DMACH   0x70 /* EE(1) [7:4]                         */
+#define EE2_RMVOK   0x01 /* EE(2) [0] Support removable disks   */
+#define EE2_HABIOS  0x02 /* EE(2) [1] HA Bios Space Reserved    */
+#define EE2_INT19   0x04 /* EE(2) [2] HA Bios Controls INT19    */
+#define EE2_DYNSCAN 0x08 /* EE(2) [3] Dynamically scan bus      */
+#define EE2_TWODRV  0x10 /* EE(2) [4] Allow more than 2 drives  */
+#define EE2_SEEKRET 0x20 /* EE(2) [5] Immediate return on seek  */
+#define EE2_EXT1G   0x80 /* EE(2) [7] Extended Translation >1GB */
+#define EE3_SPEED   0x00 /* EE(3) [7:0] DMA Speed               */
 #define SPEED_33    0xFF
 #define SPEED_50    0x00
 #define SPEED_56    0x04
 #define SPEED_67    0x01
 #define SPEED_80    0x02
 #define SPEED_10    0x03
-#define EE4_FLOPTOK 0x80 /* EE(4) [7] Support Flopticals		*/
-#define EE6_PARITY  0x01 /* EE(6) [0] parity check enable	*/
-#define EE6_TERM    0x02 /* EE(6) [1] host term enable		*/
-#define EE6_RSTBUS  0x04 /* EE(6) [2] reset SCSI bus on boot	*/
-#define EEE_SYNC    0x01 /* EE(E) [0] Enable Sync Negotiation	*/
-#define EEE_DISCON  0x02 /* EE(E) [1] Enable Disconnection	*/
-#define EEE_FAST    0x04 /* EE(E) [2] Enable FAST SCSI		*/
-#define EEE_START   0x08 /* EE(E) [3] Enable Start Unit		*/
+#define EE4_FLOPTOK 0x80 /* EE(4) [7] Support Flopticals        */
+#define EE6_PARITY  0x01 /* EE(6) [0] parity check enable       */
+#define EE6_TERM    0x02 /* EE(6) [1] host term enable          */
+#define EE6_RSTBUS  0x04 /* EE(6) [2] reset SCSI bus on boot    */
+#define EEE_SYNC    0x01 /* EE(E) [0] Enable Sync Negotiation   */
+#define EEE_DISCON  0x02 /* EE(E) [1] Enable Disconnection      */
+#define EEE_FAST    0x04 /* EE(E) [2] Enable FAST SCSI          */
+#define EEE_START   0x08 /* EE(E) [3] Enable Start Unit         */
 
 /*
  * Host Adapter I/O ports.
@@ -166,11 +166,11 @@
 #define FOURTEEN_BYTES        0x00 /* Request Sense Buffer size */
 #define NO_AUTO_REQUEST_SENSE 0x01 /* No Request Sense Buffer */
 
-/*    Bytes 4, 5 and 6    Data Length		 - Data transfer byte count */
-/*    Bytes 7, 8 and 9    Data Pointer		 - SGD List or Data Buffer */
-/*    Bytes 10, 11 and 12 Link Pointer		 - Next CCB in Linked List */
-/*    Byte 13   Command Link ID			 - TBD (I don't know yet) */
-/*    Byte 14   Host Status			 - Host Adapter status */
+/*    Bytes 4, 5 and 6    Data Length  - Data transfer byte count */
+/*    Bytes 7, 8 and 9    Data Pointer - SGD List or Data Buffer */
+/*    Bytes 10, 11 and 12 Link Pointer - Next CCB in Linked List */
+/*    Byte 13   Command Link ID        - TBD (I don't know yet) */
+/*    Byte 14   Host Status            - Host Adapter status */
 #define CCB_COMPLETE            0x00 /* CCB completed without error */
 #define CCB_LINKED_COMPLETE     0x0A /* Linked command completed */
 #define CCB_LINKED_COMPLETE_INT 0x0B /* Linked complete with intr */

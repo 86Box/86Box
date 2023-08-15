@@ -64,8 +64,10 @@ static void
 postcard_setui(void)
 {
     if (postcard_ports_num > 1) {
-        char ps[2][POSTCARDS_NUM][3] = { { 0 },
-                                          { 0 } };
+        char ps[2][POSTCARDS_NUM][3] = { { { 0 },
+                                           { 0 },
+                                        } };
+
         for (uint8_t i = 0; i < POSTCARDS_NUM; i++) {
             if (!postcard_written[i]) {
                 snprintf(ps[0][i], sizeof(ps[0][i]), "--");
