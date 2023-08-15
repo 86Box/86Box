@@ -41,7 +41,7 @@
 #include <86box/vid_ati_eeprom.h>
 
 #define BIOS_MACH8_ROM_PATH      "roms/video/mach8/BIOS.BIN"
-#define BIOS_MACH32_ISA_ROM_PATH "roms/video/mach32/Mach32_ISA.BIN"
+#define BIOS_MACH32_ISA_ROM_PATH "roms/video/mach32/ATi Mach32 Graphics Pro ISA.BIN"
 #define BIOS_MACH32_VLB_ROM_PATH "roms/video/mach32/MACH32VLB.VBI"
 #define BIOS_MACH32_MCA_ROM_PATH "roms/video/mach32/MACH32MCA_Olivetti.BIN"
 #define BIOS_MACH32_PCI_ROM_PATH "roms/video/mach32/intelopt_00000.rom"
@@ -2505,6 +2505,10 @@ mach_in(uint16_t addr, void *priv)
                     temp = mach->regs[0xb7] & ~8;
                     if (ati_eeprom_read(&mach->eeprom))
                         temp |= 8;
+                    break;
+
+                case 0xbd:
+                    temp = mach->regs[0xbd] | 0x10;
                     break;
 
                 default:
@@ -5635,10 +5639,6 @@ mach8_init(const device_t *info)
                      BIOS_MACH32_ISA_ROM_PATH,
                      0xc0000, 0x8000, 0x7fff,
                      0, MEM_MAPPING_EXTERNAL);
-            rom_init(&mach->bios_rom2,
-                     BIOS_MACH32_ISA_ROM_PATH,
-                     0xc8000, 0x1000, 0x0fff,
-                     0x8000, MEM_MAPPING_EXTERNAL);
         }
     } else {
         rom_init(&mach->bios_rom,
