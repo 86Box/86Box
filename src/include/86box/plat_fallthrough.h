@@ -18,13 +18,17 @@
 #ifndef EMU_PLAT_FALLTHROUGH_H
 #define EMU_PLAT_FALLTHROUGH_H
 
-#if __has_attribute(__fallthrough__)
-# define fallthrough __attribute__((__fallthrough__))
+#ifdef _MSC_VER
+# define fallthrough do {} while (0) /* fallthrough */
 #else
 # if __has_attribute(fallthrough)
 #  define fallthrough __attribute__((fallthrough))
+# else
+#  if __has_attribute(__fallthrough__)
+#   define fallthrough __attribute__((__fallthrough__))
+#  endif
+#  define fallthrough do {} while (0) /* fallthrough */
 # endif
-# define fallthrough do {} while (0) /* fallthrough */
 #endif
 
 #endif /*EMU_PLAT_FALLTHROUGH_H*/
