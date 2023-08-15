@@ -3654,7 +3654,7 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
             svga_recalctimings(svga);
             break;
 
-		case 0x1ee8:
+        case 0x1ee8:
         case 0x1ee9:
             mach_log("ATI 8514/A: V_SYNC_WID write 1EE8 = %02x\n", val);
             svga_recalctimings(svga);
