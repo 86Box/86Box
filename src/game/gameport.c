@@ -58,7 +58,7 @@ typedef struct _joystick_instance_ {
     void                *dat;
 } joystick_instance_t;
 
-int joystick_type = 0;
+int joystick_type = JS_TYPE_NONE;
 
 static const joystick_if_t joystick_none = {
     .name          = "None",
@@ -128,21 +128,21 @@ int             gameport_instance_id = 0;
    or writes, and ports at the standard 200h location are prioritized. */
 static gameport_t *active_gameports = NULL;
 
-char *
+const char *
 joystick_get_name(int js)
 {
     if (!joysticks[js].joystick)
         return NULL;
-    return (char *) joysticks[js].joystick->name;
+    return joysticks[js].joystick->name;
 }
 
-char *
+const char *
 joystick_get_internal_name(int js)
 {
     if (joysticks[js].joystick == NULL)
         return "";
 
-    return (char *) joysticks[js].joystick->internal_name;
+    return joysticks[js].joystick->internal_name;
 }
 
 int
@@ -151,7 +151,7 @@ joystick_get_from_internal_name(char *s)
     int c = 0;
 
     while (joysticks[c].joystick != NULL) {
-        if (!strcmp((char *) joysticks[c].joystick->internal_name, s))
+        if (!strcmp(joysticks[c].joystick->internal_name, s))
             return c;
         c++;
     }
@@ -183,22 +183,22 @@ joystick_get_pov_count(int js)
     return joysticks[js].joystick->pov_count;
 }
 
-char *
+const char *
 joystick_get_axis_name(int js, int id)
 {
-    return (char *) joysticks[js].joystick->axis_names[id];
+    return joysticks[js].joystick->axis_names[id];
 }
 
-char *
+const char *
 joystick_get_button_name(int js, int id)
 {
-    return (char *) joysticks[js].joystick->button_names[id];
+    return joysticks[js].joystick->button_names[id];
 }
 
-char *
+const char *
 joystick_get_pov_name(int js, int id)
 {
-    return (char *) joysticks[js].joystick->pov_names[id];
+    return joysticks[js].joystick->pov_names[id];
 }
 
 static void
@@ -410,7 +410,7 @@ tmacm_init(UNUSED(const device_t *info))
     dev = malloc(sizeof(gameport_t));
     memset(dev, 0x00, sizeof(gameport_t));
 
-    port = device_get_config_hex16("port1_addr");
+    port = (uint16_t) device_get_config_hex16("port1_addr");
     switch (port) {
         case 0x201:
             dev = gameport_add(&gameport_201_device);
@@ -428,7 +428,7 @@ tmacm_init(UNUSED(const device_t *info))
             break;
     }
 
-    port = device_get_config_hex16("port2_addr");
+    port = (uint16_t) device_get_config_hex16("port2_addr");
     switch (port) {
         case 0x209:
             dev = gameport_add(&gameport_209_device);

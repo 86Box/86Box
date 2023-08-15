@@ -1102,8 +1102,8 @@ tgui_ext_linear_write(uint32_t addr, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
     tgui_t *tgui = (tgui_t *) svga->priv;
-    int c;
-    int bpp = (tgui->ext_gdc_regs[0] & EXT_CTRL_16BIT);
+    int     c;
+    int     bpp = (tgui->ext_gdc_regs[0] & EXT_CTRL_16BIT);
     uint8_t fg[2] = { tgui->ext_gdc_regs[4], tgui->ext_gdc_regs[5] };
     uint8_t bg[2] = { tgui->ext_gdc_regs[1], tgui->ext_gdc_regs[2] };
     uint8_t mask  = tgui->ext_gdc_regs[7];
@@ -1168,8 +1168,8 @@ tgui_ext_linear_writew(uint32_t addr, uint16_t val, void *priv)
 {
     svga_t  *svga = (svga_t *) priv;
     tgui_t  *tgui = (tgui_t *) svga->priv;
-    int  c;
-    int bpp = (tgui->ext_gdc_regs[0] & EXT_CTRL_16BIT);
+    int      c;
+    int      bpp = (tgui->ext_gdc_regs[0] & EXT_CTRL_16BIT);
     uint8_t  fg[2] = { tgui->ext_gdc_regs[4], tgui->ext_gdc_regs[5] };
     uint8_t  bg[2] = { tgui->ext_gdc_regs[1], tgui->ext_gdc_regs[2] };
     uint16_t mask  = (tgui->ext_gdc_regs[7] << 8) | tgui->ext_gdc_regs[8];
@@ -1357,8 +1357,6 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
     uint32_t  trans_col  = (tgui->accel.flags & TGUI_TRANSREV) ? tgui->accel.fg_col : tgui->accel.bg_col;
     uint16_t *vram_w     = (uint16_t *) svga->vram;
     uint32_t *vram_l     = (uint32_t *) svga->vram;
-    uint8_t   ger22lower = tgui->accel.ger22 & 0xff;
-    uint8_t   ger22upper = (tgui->accel.ger22 >> 8) & 0xff;
 
     if (tgui->accel.bpp == 0) {
         trans_col &= 0xff;

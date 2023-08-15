@@ -619,35 +619,35 @@ load_input_devices(void)
             else {
                 c = ini_section_get_int(cat, "joystick_type", 8);
                 switch (c) {
-                    case 1:
+                    case JS_TYPE_2AXIS_4BUTTON:
                         joystick_type = joystick_get_from_internal_name("2axis_4button");
                         break;
-                    case 2:
+                    case JS_TYPE_2AXIS_6BUTTON:
                         joystick_type = joystick_get_from_internal_name("2axis_6button");
                         break;
-                    case 3:
+                    case JS_TYPE_2AXIS_8BUTTON:
                         joystick_type = joystick_get_from_internal_name("2axis_8button");
                         break;
-                    case 4:
+                    case JS_TYPE_4AXIS_4BUTTON:
                         joystick_type = joystick_get_from_internal_name("4axis_4button");
                         break;
-                    case 5:
+                    case JS_TYPE_CH_FLIGHTSTICK_PRO:
                         joystick_type = joystick_get_from_internal_name("ch_flightstick_pro");
                         break;
-                    case 6:
+                    case JS_TYPE_SIDEWINDER_PAD:
                         joystick_type = joystick_get_from_internal_name("sidewinder_pad");
                         break;
-                    case 7:
+                    case JS_TYPE_THRUSTMASTER_FCS:
                         joystick_type = joystick_get_from_internal_name("thrustmaster_fcs");
                         break;
                     default:
-                        joystick_type = 0;
+                        joystick_type = JS_TYPE_NONE;
                         break;
                 }
             }
         }
     } else
-        joystick_type = 0;
+        joystick_type = JS_TYPE_NONE;
 
     for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++) {
         sprintf(temp, "joystick_%i_nr", c);
@@ -2923,16 +2923,14 @@ save_floppy_and_cdrom_drives(void)
         }
 
         sprintf(temp, "cdrom_%02i_parameters", c + 1);
-        if (cdrom[c].bus_type == 0) {
+        if (cdrom[c].bus_type == 0)
             ini_section_delete_var(cat, temp);
-        } else { /*In case one wants an ATAPI drive on SCSI and vice-versa.*/
-            if (cdrom[c].bus_type == CDROM_BUS_ATAPI) {
-                if (cdrom_drive_types[cdrom_get_type(c)].bus_type == BUS_TYPE_SCSI)
-                    cdrom[c].bus_type = CDROM_BUS_SCSI;
-            } else if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
-                if (cdrom_drive_types[cdrom_get_type(c)].bus_type == BUS_TYPE_IDE)
-                    cdrom[c].bus_type = CDROM_BUS_ATAPI;
-            }
+        else {
+            /* In case one wants an ATAPI drive on SCSI and vice-versa. */
+            if ((cdrom_drive_types[cdrom_get_type(c)].bus_type != BUS_TYPE_BOTH) &&
+                (cdrom_drive_types[cdrom_get_type(c)].bus_type != cdrom[c].bus_type))
+                cdrom[c].bus_type = cdrom_drive_types[cdrom_get_type(c)].bus_type;
+
             sprintf(tmp2, "%u, %s", cdrom[c].sound_on,
                     hdd_bus_to_string(cdrom[c].bus_type, 1));
             ini_section_set_string(cat, temp, tmp2);

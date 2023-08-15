@@ -10,12 +10,10 @@
  *
  *
  *
- * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
- *           Miran Grca, <mgrca8@gmail.com>
+ * Authors:  Miran Grca, <mgrca8@gmail.com>
  *           Bit,
  *           DOSBox Team,
  *
- *           Copyright 2008-2020 Sarah Walker.
  *           Copyright 2016-2020 Miran Grca.
  *           Copyright 2016-2020 Bit.
  *           Copyright 2008-2020 DOSBox Team.

@@ -10,11 +10,10 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *          GH Cao, <driver1998.ms@outlook.com>
+ *          Jasmine Iwanek,
  *
- *          Copyright 2008-2017 Sarah Walker.
  *          Copyright 2016-2017 Miran Grca.
  *          Copyright 2019 GH Cao.
  *          Copyright 2021-2023 Jasmine Iwanek.
@@ -32,15 +31,6 @@
 
 int    mouse_capture;
 
-typedef struct {
-    int buttons;
-    int dx;
-    int dy;
-    int dwheel;
-} MOUSESTATE;
-
-MOUSESTATE mousestate;
-
 void
 win_mouse_init(void)
 {
@@ -56,8 +46,6 @@ win_mouse_init(void)
     ridev.usUsage     = 0x02;
     if (!RegisterRawInputDevices(&ridev, 1, sizeof(ridev)))
         fatal("plat_mouse_init: RegisterRawInputDevices failed\n");
-
-    memset(&mousestate, 0, sizeof(MOUSESTATE));
 }
 
 void

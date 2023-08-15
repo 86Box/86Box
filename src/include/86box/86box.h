@@ -38,6 +38,9 @@
 /* Default language 0xFFFF = from system, 0x409 = en-US */
 #define DEFAULT_LANGUAGE 0x0409
 
+#define POSTCARDS_NUM 4
+#define POSTCARD_MASK (POSTCARDS_NUM - 1)
+
 #ifdef MIN
 #    undef MIN
 #endif
@@ -47,10 +50,14 @@
 #ifdef ABS
 #    undef ABS
 #endif
+#ifdef ABSD
+#    undef ABSD
+#endif
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define ABS(x)    ((x) > 0 ? (x) : -(x))
+#define ABSD(x)   ((x) > 0.0 ? (x) : -(x))
 #define BCD8(x)   ((((x) / 10) << 4) | ((x) % 10))
 #define BCD16(x)  ((((x) / 1000) << 12) | (((x) / 100) << 8) | BCD8(x))
 #define BCD32(x)  ((((x) / 10000000) << 28) | (((x) / 1000000) << 24) | (((x) / 100000) << 20) | (((x) / 10000) << 16) | BCD16(x))
@@ -138,8 +145,6 @@ extern int    confirm_exit;       /* (C) enable exit confirmation */
 extern int    confirm_save;       /* (C) enable save confirmation */
 extern int enable_discord;        /* (C) enable Discord integration */
 
-extern int is_pentium; /* TODO: Move back to cpu/cpu.h when it's figured out,
-                                how to remove that hack from the ET4000/W32p. */
 extern int    fixed_size_x;
 extern int    fixed_size_y;
 extern double mouse_sensitivity;            /* (C) Mouse sensitivity scale */
@@ -174,7 +179,7 @@ extern void reset_screen_size_monitor(int monitor_index);
 extern void set_screen_size_natural(void);
 extern void update_mouse_msg(void);
 #if 0
-extern void	pc_reload(wchar_t *fn);
+extern void pc_reload(wchar_t *fn);
 #endif
 extern int  pc_init_modules(void);
 extern int  pc_init(int argc, char *argv[]);
@@ -203,7 +208,8 @@ extern double isa_timing;
 extern int    io_delay;
 extern int    framecountx;
 
-extern volatile int cpu_thread_run;
+extern volatile int     cpu_thread_run;
+extern          uint8_t postcard_codes[POSTCARDS_NUM];
 
 #ifdef __cplusplus
 }

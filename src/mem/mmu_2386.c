@@ -132,6 +132,7 @@ readmembl_2386(uint32_t addr)
 {
     mem_mapping_t *map;
     uint64_t a;
+    uint8_t ret = 0xff;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 1);
 
@@ -145,15 +146,15 @@ readmembl_2386(uint32_t addr)
 	addr64 = (uint32_t) a;
 
 	if (a > 0xffffffffULL)
-		return 0xff;
+            return 0xff;
     }
     addr = (uint32_t) (addr64 & rammask);
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map && map->read_b)
-	return map->read_b(addr, map->priv);
+	ret = map->read_b(addr, map->priv);
 
-    return 0xff;
+    return ret;
 }
 
 
@@ -190,6 +191,7 @@ uint8_t
 readmembl_no_mmut_2386(uint32_t addr, uint32_t a64)
 {
     mem_mapping_t *map;
+    uint8_t ret = 0xff;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 1);
 
@@ -205,9 +207,9 @@ readmembl_no_mmut_2386(uint32_t addr, uint32_t a64)
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map && map->read_b)
-	return map->read_b(addr, map->priv);
+	ret = map->read_b(addr, map->priv);
 
-    return 0xff;
+    return ret;
 }
 
 
@@ -241,6 +243,7 @@ readmemwl_2386(uint32_t addr)
     mem_mapping_t *map;
     int i;
     uint64_t a;
+    uint16_t ret = 0xffff;
 
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
@@ -283,14 +286,13 @@ readmemwl_2386(uint32_t addr)
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->read_w)
-	return map->read_w(addr, map->priv);
-
-    if (map && map->read_b) {
-	return map->read_b(addr, map->priv) |
-	       ((uint16_t) (map->read_b(addr + 1, map->priv)) << 8);
+	ret = map->read_w(addr, map->priv);
+    else if (map && map->read_b) {
+	ret = map->read_b(addr, map->priv) |
+	      ((uint16_t) (map->read_b(addr + 1, map->priv)) << 8);
     }
 
-    return 0xffff;
+    return ret;
 }
 
 
@@ -361,6 +363,7 @@ uint16_t
 readmemwl_no_mmut_2386(uint32_t addr, uint32_t *a64)
 {
     mem_mapping_t *map;
+    uint16_t ret = 0xffff;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 2);
 
@@ -391,14 +394,13 @@ readmemwl_no_mmut_2386(uint32_t addr, uint32_t *a64)
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->read_w)
-	return map->read_w(addr, map->priv);
-
-    if (map && map->read_b) {
-	return map->read_b(addr, map->priv) |
-	       ((uint16_t) (map->read_b(addr + 1, map->priv)) << 8);
+	ret = map->read_w(addr, map->priv);
+    else if (map && map->read_b) {
+	ret = map->read_b(addr, map->priv) |
+	      ((uint16_t) (map->read_b(addr + 1, map->priv)) << 8);
     }
 
-    return 0xffff;
+    return ret;
 }
 
 

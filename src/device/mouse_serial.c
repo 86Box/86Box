@@ -10,9 +10,9 @@
  *
  * TODO:    Add the Genius Serial Mouse.
  *
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *
- * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Copyright 2023 Miran Grca.
  */
 #include <math.h>
 #include <stdarg.h>
@@ -193,8 +193,8 @@ sermouse_report_msystems(mouse_t *dev)
     dev->buf[0] |= (b & 0x02) ? 0x00 : 0x01; /* right button */
     dev->buf[1] = delta_x;
     dev->buf[2] = delta_y;
-    dev->buf[2] = delta_x;    /* same as byte 1 */
-    dev->buf[3] = delta_y;    /* same as byte 2 */
+    dev->buf[3] = delta_x;    /* same as byte 1 */
+    dev->buf[4] = delta_y;    /* same as byte 2 */
 
     return 5;
 }
@@ -215,8 +215,6 @@ sermouse_report_3bp(mouse_t *dev)
     dev->buf[0] |= (b & 0x02) ? 0x01 : 0x00; /* right button */
     dev->buf[1] = delta_x;
     dev->buf[2] = delta_y;
-    dev->buf[2] = delta_x;    /* same as byte 1 */
-    dev->buf[3] = delta_y;    /* same as byte 2 */
 
     return 3;
 }
@@ -279,7 +277,7 @@ sermouse_report_ms(mouse_t *dev)
     int b = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 0, 0);
-    mouse_subtract_z(&delta_z, -8, 7, 1);
+    mouse_subtract_z(&delta_z, -8, 7, 0);
 
     dev->buf[0] = 0x40;
     dev->buf[0] |= (((delta_y >> 6) & 0x03) << 2);

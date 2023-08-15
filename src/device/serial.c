@@ -109,8 +109,12 @@ serial_transmit_period(serial_t *dev)
 void
 serial_do_irq(serial_t *dev, int set)
 {
-    if (dev->irq != 0xff)
-        picint_common(1 << dev->irq, !!(dev->type >= SERIAL_16450), set, &dev->irq_state);
+    if (dev->irq != 0xff) {
+        if (set || (dev->irq_state != !!set))
+            picint_common(1 << dev->irq, !!(dev->type >= SERIAL_16450), set, &dev->irq_state);
+        if (dev->type < SERIAL_16450)
+            dev->irq_state = !!set;
+    }
 }
 
 void

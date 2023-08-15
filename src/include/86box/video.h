@@ -152,7 +152,7 @@ extern int changeframecount;
 
 extern volatile int screenshots;
 #if 0
-extern bitmap_t	*buffer32;
+extern bitmap_t *buffer32;
 #endif
 #define buffer32             (monitors[monitor_index_global].target_buffer)
 #define pal_lookup           (monitors[monitor_index_global].mon_pal_lookup)
@@ -179,7 +179,7 @@ extern bitmap_t	*buffer32;
 extern PALETTE      cgapal;
 extern PALETTE      cgapal_mono[6];
 #if 0
-extern uint32_t	    pal_lookup[256];
+extern uint32_t     pal_lookup[256];
 #endif
 extern int          video_fullscreen;
 extern int          video_fullscreen_scale;
@@ -352,6 +352,7 @@ extern const device_t gd5429_vlb_device;
 extern const device_t gd5430_diamond_speedstar_pro_se_a8_vlb_device;
 extern const device_t gd5430_vlb_device;
 extern const device_t gd5430_pci_device;
+extern const device_t gd5430_onboard_pci_device;
 extern const device_t gd5434_isa_device;
 extern const device_t gd5434_diamond_speedstar_64_a3_isa_device;
 extern const device_t gd5434_onboard_pci_device;

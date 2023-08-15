@@ -1286,3 +1286,11 @@ endblit(void)
 {
     ReleaseMutex(ghMutex);
 }
+
+double
+plat_get_dpi(void)
+{
+    UINT dpi = win_get_dpi(hwndRender);
+
+    return ((double) dpi) / 96.0;
+}

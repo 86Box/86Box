@@ -31,6 +31,7 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/device.h>
+#include <86box/chipset.h>
 #include <86box/keyboard.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
@@ -704,8 +705,8 @@ const device_config_t compaq_plasma_config[] = {
   // clang-format off
     {
         .name = "rgb_type",
-		.description = "RGB type",
-		.type = CONFIG_SELECTION,
+        .description = "RGB type",
+        .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 0,
         .file_filter = "",
@@ -795,34 +796,28 @@ machine_at_compaq_init(const machine_t *model, int type)
 {
     compaq_machine_type = type;
 
-    if ((type != COMPAQ_DESKPRO386) && (type != COMPAQ_DESKPRO386_01_1988))
-        mem_remap_top(384);
-
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    if ((type == COMPAQ_DESKPRO386) || (type == COMPAQ_DESKPRO386_01_1988) || (type == COMPAQ_PORTABLEIII386))
-        mem_mapping_add(&ram_mapping, 0xfa0000, 0x60000,
-                        read_ram, read_ramw, read_raml,
-                        write_ram, write_ramw, write_raml,
-                        0xa0000 + ram, MEM_MAPPING_EXTERNAL, NULL);
-    else
+    if (type < COMPAQ_PORTABLEIII386) {
+        mem_remap_top(384);
         mem_mapping_add(&ram_mapping, 0xfa0000, 0x60000,
                         read_ram, read_ramw, read_raml,
                         write_ram, write_ramw, write_raml,
                         0xa0000 + ram, MEM_MAPPING_INTERNAL, NULL);
+    }
 
     video_reset(gfxcard[0]);
 
     switch (type) {
         case COMPAQ_PORTABLEII:
-			machine_at_init(model);
+            machine_at_init(model);
             break;
 
         case COMPAQ_PORTABLEIII:
             if (gfxcard[0] == VID_INTERNAL)
                 device_add(&compaq_plasma_device);
-			machine_at_init(model);
+            machine_at_init(model);
             break;
 
         case COMPAQ_PORTABLEIII386:
@@ -830,13 +825,14 @@ machine_at_compaq_init(const machine_t *model, int type)
                 device_add(&ide_isa_device);
             if (gfxcard[0] == VID_INTERNAL)
                 device_add(&compaq_plasma_device);
-			machine_at_init(model);
+            machine_at_init(model);
             break;
 
         case COMPAQ_DESKPRO386:
         case COMPAQ_DESKPRO386_01_1988:
             if (hdc_current == 1)
                 device_add(&ide_isa_device);
+            device_add(&compaq_386_device);
             machine_at_common_init(model);
             device_add(&keyboard_at_compaq_device);
             break;

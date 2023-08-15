@@ -122,8 +122,11 @@ timer_process(void)
 
         if (timer->flags & TIMER_SPLIT)
             timer_advance_ex(timer, 0);   /* We're splitting a > 1 s period into multiple <= 1 s periods. */
-        else if (timer->callback != NULL) /* Make sure it's no NULL, so that we can have a NULL callback when no operation is needed. */
+        else if (timer->callback != NULL) {/* Make sure it's no NULL, so that we can have a NULL callback when no operation is needed. */
+            timer->flags |= TIMER_PROCESS;
             timer->callback(timer->priv);
+            timer->flags &= ~TIMER_PROCESS;
+        }
     }
 
     timer_target = timer_head->ts.ts32.integer;
@@ -232,7 +235,7 @@ timer_on_auto(pc_timer_t *timer, double period)
         return;
 
     if (period > 0.0)
-        timer_on(timer, period, (timer->period == 0.0));
+        timer_on(timer, period, !(timer->flags & TIMER_PROCESS) && (timer->period <= 0.0));
     else
         timer_stop(timer);
 }

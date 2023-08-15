@@ -182,6 +182,7 @@ typedef struct svga_t {
     hwcursor_t overlay_latch;
 
     void (*render)(struct svga_t *svga);
+    void (*render8514)(struct svga_t *svga);
     void (*recalctimings_ex)(struct svga_t *svga);
 
     void (*video_out)(uint16_t addr, uint8_t val, void *priv);
@@ -271,7 +272,6 @@ typedef struct svga_t {
 } svga_t;
 
 extern int vga_on;
-extern int ibm8514_on;
 
 extern void    ibm8514_poll(ibm8514_t *dev, svga_t *svga);
 extern void    ibm8514_recalctimings(svga_t *svga);

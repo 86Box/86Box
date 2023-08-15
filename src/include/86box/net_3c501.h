@@ -11,7 +11,7 @@
  *
  *
  *
- * Based on	@(#)Dev3C501.cpp Oracle (VirtualBox)
+ * Based on @(#)Dev3C501.cpp Oracle (VirtualBox)
  *
  * Authors: TheCollector1995, <mariogplayer@gmail.com>
  *          Oracle

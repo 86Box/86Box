@@ -17,6 +17,7 @@
 #include "cpu.h"
 #include <86box/mem.h>
 #include <86box/plat_unused.h>
+#include <inttypes.h>
 
 #include "x86.h"
 #include "x86_ops.h"
@@ -850,7 +851,7 @@ COUNT(uint64_t timings, uint64_t deps, int op_32)
             return cpu_has_feature(CPU_FEATURE_MMX) ? 1 : 2;
     }
 
-    fatal("Illegal COUNT %016llx\n", timings);
+    fatal("Illegal COUNT %016" PRIu64 "\n", timings);
 
     return timings;
 }

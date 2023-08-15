@@ -24,12 +24,12 @@
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
- *          Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          John Elliott, <jce@seasip.info>
  *          Lubomir Rintel, <lkundrak@v3.sk>
  *
  *          Copyright 2018-2019 Fred N. van Kempen.
  *          Copyright 2018-2019 Miran Grca.
- *          Copyright 2018-2019 Sarah Walker.
+ *          Copyright 2018-2019 John Elliott.
  *          Copyright 2021      Lubomir Rintel.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -39,7 +39,7 @@
  *
  * This program is  distributed in the hope that it will be useful, but
  * WITHOUT   ANY  WARRANTY;  without  even   the  implied  warranty  of
- * MERCHANTABILITY  or FITNESS	FOR A PARTICULAR  PURPOSE. See	the GNU
+ * MERCHANTABILITY  or FITNESS  FOR A PARTICULAR  PURPOSE. See  the GNU
  * General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License

@@ -7,6 +7,7 @@
 #define MAX_USEC64    1000000ULL
 #define MAX_USEC      1000000.0
 
+#define TIMER_PROCESS 4
 #define TIMER_SPLIT   2
 #define TIMER_ENABLED 1
 
@@ -115,6 +116,13 @@ static __inline int
 timer_is_enabled(pc_timer_t *timer)
 {
     return !!(timer->flags & TIMER_ENABLED);
+}
+
+/*True if timer currently on*/
+static __inline int
+timer_is_on(pc_timer_t *timer)
+{
+    return ((timer->flags & TIMER_ENABLED) && (timer->period > 0.0));
 }
 
 /*Return integer timestamp of timer*/
