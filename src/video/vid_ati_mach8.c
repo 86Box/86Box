@@ -2998,7 +2998,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                         if (mach->accel.cmd_type >= 0) {
                             if (mach_pixel_read(mach))
                                 break;
-                            mach_accel_out_pixtrans(mach, dev, val, len);
+                            mach_accel_out_pixtrans(mach, dev, val);
                         } else {
                             if (ibm8514_cpu_dest(svga))
                                 break;
@@ -3083,7 +3083,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                         if (mach->accel.cmd_type >= 0) {
                             if (mach_pixel_read(mach))
                                 break;
-                            mach_accel_out_pixtrans(mach, dev, val, len);
+                            mach_accel_out_pixtrans(mach, dev, val);
                         } else {
                             if (ibm8514_cpu_dest(svga))
                                 break;
@@ -4029,7 +4029,7 @@ mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, in
                         } else {
                             READ_PIXTRANS_WORD(dev->accel.dx, 0)
                         }
-                        mach_accel_out_pixtrans(mach, dev, temp, len);
+                        mach_accel_out_pixtrans(mach, dev, temp);
                     }
                 }
             } else {
