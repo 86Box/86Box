@@ -3131,6 +3131,7 @@ xga_init(const device_t *info)
 
     rom = malloc(xga->bios_rom.sz);
     memset(rom, 0xff, xga->bios_rom.sz);
+    (void) fread(rom, xga->bios_rom.sz, 1, f);
     (void) fclose(f);
 
     xga->bios_rom.rom  = rom;
