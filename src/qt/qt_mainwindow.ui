@@ -762,6 +762,9 @@
    <property name="visible">
     <bool>true</bool>
    </property>
+   <property name="iconVisibleInMenu">
+    <bool>false</bool>
+   </property>
   </action>
   <action name="actionBegin_trace">
    <property name="text">
