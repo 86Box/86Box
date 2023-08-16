@@ -57,9 +57,6 @@ extern "C" {
 struct mouseinputdata {
     atomic_bool         mouse_tablet_in_proximity;
 
-    std::atomic<double> x_abs;
-    std::atomic<double> y_abs;
-
     char                *mouse_type;
 };
 static mouseinputdata mousedata;
@@ -241,28 +238,6 @@ RendererStack::mouseMoveEvent(QMouseEvent *event)
     ignoreNextMouseEvent = 2;
     oldPos               = event->pos();
 #endif
-
-    if (m_monitor_index >= 1) {
-        if (mouse_mode >= 1) {
-            mouse_x_abs       = mousedata.x_abs;
-            mouse_y_abs       = mousedata.y_abs;
-            if (!mouse_tablet_in_proximity)
-                mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
-        }
-        return;
-    }
-
-#ifdef Q_OS_WINDOWS
-    if (mouse_mode == 0) {
-        mouse_x_abs           = mousedata.x_abs;
-        mouse_y_abs           = mousedata.y_abs;
-        return;
-    }
-#endif
-
-    mouse_x_abs               = mousedata.x_abs;
-    mouse_y_abs               = mousedata.y_abs;
-    mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
 }
 
 void
@@ -551,11 +526,30 @@ RendererStack::event(QEvent* event)
 {
     if (event->type() == QEvent::MouseMove) {
         QMouseEvent* mouse_event = (QMouseEvent*)event;
-        if (mouse_mode >= 1) {
-            mousedata.x_abs = (mouse_event->localPos().x()) / (long double)width();
-            mousedata.y_abs = (mouse_event->localPos().y()) / (long double)height();
+
+        if (m_monitor_index >= 1) {
+            if (mouse_mode >= 1) {
+                mouse_x_abs       = (mouse_event->localPos().x()) / (long double)width();
+                mouse_y_abs       = (mouse_event->localPos().y()) / (long double)height();
+                if (!mouse_tablet_in_proximity)
+                    mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
+            }
+            return QStackedWidget::event(event);
         }
+
+#ifdef Q_OS_WINDOWS
+        if (mouse_mode == 0) {
+            mouse_x_abs           = (mouse_event->localPos().x()) / (long double)width();
+            mouse_y_abs           = (mouse_event->localPos().y()) / (long double)height();
+            return QStackedWidget::event(event);
+        }
+#endif
+
+        mouse_x_abs               = (mouse_event->localPos().x()) / (long double)width();
+        mouse_y_abs               = (mouse_event->localPos().y()) / (long double)height();
+        mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
     }
+
     return QStackedWidget::event(event);
 }
 
