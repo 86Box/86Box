@@ -191,6 +191,10 @@ jobs:
             triplet: x64-windows-static
             toolchain: ./cmake/llvm-win32-x86_64.cmake
             vcvars: x64
+#          - name: ARM
+#            triplet: arm-windows-static
+#            toolchain: ./cmake/llvm-win32-arm.cmake
+#            vcvars: x64_arm
           - name: ARM64
             triplet: arm64-windows-static
             toolchain: ./cmake/llvm-win32-aarch64.cmake
@@ -217,7 +221,7 @@ jobs:
 
       - name: Setup NuGet Credentials
         run: >
-          & (C:/vcpkg/vcpkg fetch nuget | tail -n 2)
+          & (C:/vcpkg/vcpkg --vcpkg-root "${{ env.VCPKG_ROOT }}" fetch nuget | tail -n 2)
           sources add
           -source "https://nuget.pkg.github.com/86Box/index.json"
           -storepasswordincleartext
