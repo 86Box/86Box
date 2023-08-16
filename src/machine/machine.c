@@ -166,7 +166,7 @@ machine_common_init(UNUSED(const machine_t *model))
 
     int pit_type = IS_AT(machine) ? PIT_8254 : PIT_8253;
     /* Select fast PIT if needed */
-    if ((pit_mode == -1 && is486) || pit_mode == 1)
+    if (((pit_mode == -1) && is486) || (pit_mode == 1))
         pit_type += 2;
 
     pit_common_init(pit_type, pit_irq0_timer, NULL);

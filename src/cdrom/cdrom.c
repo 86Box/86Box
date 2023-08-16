@@ -1868,10 +1868,8 @@ cdrom_insert(uint8_t id)
 {
     cdrom_t *dev = &cdrom[id];
 
-    if (dev->bus_type) {
-        if (dev->insert)
-            dev->insert(dev->priv);
-    }
+    if (dev->bus_type && dev->insert)
+        dev->insert(dev->priv);
 }
 
 /* The mechanics of ejecting a CD-ROM from a drive. */

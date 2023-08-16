@@ -1196,8 +1196,20 @@ msgid "(System Default)"
 msgstr "(Järjestelmän oletus)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "Verkkoajurin alustaminen epäonnistui"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "Verkkokokoonpano vaihtuu nolla-ajuriin"
+
+msgid "PIT mode:"
+msgstr "PIT-tila:"
+
+msgid "Auto"
+msgstr "Automaattinen"
+
+msgid "Slow"
+msgstr "Hidas"
+
+msgid "Fast"
+msgstr "Nopea"
 

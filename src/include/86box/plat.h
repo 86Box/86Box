@@ -55,15 +55,6 @@ extern int strnicmp(const char *s1, const char *s2, size_t n);
 #    define off64_t  off_t
 #endif
 
-#if __has_attribute(fallthrough)
-# define fallthrough __attribute__((fallthrough))
-#else
-# if __has_attribute(__fallthrough__)
-#  define fallthrough __attribute__((__fallthrough__))
-# endif
-# define fallthrough do {} while (0) /* fallthrough */
-#endif
-
 #ifdef _MSC_VER
 #    define UNUSED(arg) arg
 #else
@@ -87,6 +78,19 @@ extern "C" {
 
 #if defined(_MSC_VER)
 #    define ssize_t intptr_t
+#endif
+
+#ifdef _MSC_VER
+# define fallthrough do {} while (0) /* fallthrough */
+#else
+# if __has_attribute(fallthrough)
+#  define fallthrough __attribute__((fallthrough))
+# else
+#  if __has_attribute(__fallthrough__)
+#   define fallthrough __attribute__((__fallthrough__))
+#  endif
+#  define fallthrough do {} while (0) /* fallthrough */
+# endif
 #endif
 
 /* Global variables residing in the platform module. */
