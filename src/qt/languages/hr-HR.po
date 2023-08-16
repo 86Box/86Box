@@ -1196,8 +1196,20 @@ msgid "(System Default)"
 msgstr "(Zadana postavka operativnog sustava)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "Neuspješno pokretanje mrežnog upravljačkog programa"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "Konfiguracija mreže bit će prebačena na nulti upravljački program"
+
+msgid "PIT mode:"
+msgstr "PIT način:"
+
+msgid "Auto"
+msgstr "Auto"
+
+msgid "Slow"
+msgstr "Spori"
+
+msgid "Fast"
+msgstr "Brzi"
 

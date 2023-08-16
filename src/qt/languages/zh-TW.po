@@ -1196,8 +1196,20 @@ msgid "(System Default)"
 msgstr "(系統預設)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "初始化網絡驅動程序失敗"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "網絡配置將切換為空驅動程序"
+
+msgid "PIT mode:"
+msgstr "點模式:"
+
+msgid "Auto"
+msgstr "汽車"
+
+msgid "Slow"
+msgstr "慢的"
+
+msgid "Fast"
+msgstr "快速地"
 

@@ -63,7 +63,8 @@ enum {
 #define KNOWN_CDROM_DRIVE_TYPES    35
 #define BUS_TYPE_IDE                CDROM_BUS_ATAPI
 #define BUS_TYPE_SCSI               CDROM_BUS_SCSI
-#define BUS_TYPE_BOTH              -1
+#define BUS_TYPE_BOTH              -2
+#define BUS_TYPE_NONE              -1
 
 static const struct
 {
@@ -109,7 +110,7 @@ static const struct
     { "TOSHIBA",  "CD-ROM DRIVE:XM",    "3433", "(SCSI) TOSHIBA CD-ROM DRIVE:XM 3433",   "TOSHIBA_CD-ROM_DRIVEXM_3433",   BUS_TYPE_SCSI }, /*33*/
     { "TOSHIBA",  "CD-ROM XM-3301TA",   "0272", "(SCSI) TOSHIBA CD-ROM XM-3301TA 0272",  "TOSHIBA_CD-ROM_XM-3301TA_0272", BUS_TYPE_SCSI }, /*34*/
     { "TOSHIBA",  "CD-ROM XM-5701TA",   "3136", "(SCSI) TOSHIBA CD-ROM XM-5701TA 3136",  "TOSHIBA_CD-ROM_XM-5701TA_3136", BUS_TYPE_SCSI }, /*35*/
-    { "",         "",                   "",     "",                                      "",                              -1            },
+    { "",         "",                   "",     "",                                      "",                              BUS_TYPE_NONE },
 };
 
 /* To shut up the GCC compilers. */

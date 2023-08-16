@@ -1196,8 +1196,20 @@ msgid "(System Default)"
 msgstr "(系统默认)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "网络驱动程序初始化失败"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "网络配置将切换为空驱动程序"
+
+msgid "PIT mode:"
+msgstr "PIT 模式:"
+
+msgid "Auto"
+msgstr "汽车"
+
+msgid "Slow"
+msgstr "慢"
+
+msgid "Fast"
+msgstr "快速"
 

@@ -1196,8 +1196,20 @@ msgid "(System Default)"
 msgstr "(Domyślne ustawienie systemowe)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "Nie udało się zainicjować sterownika sieciowego"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "Konfiguracja sieci zostanie przełączona na sterownik null"
+
+msgid "PIT mode:"
+msgstr "Tryb PIT:"
+
+msgid "Auto"
+msgstr "Automatyczny"
+
+msgid "Slow"
+msgstr "Powolny"
+
+msgid "Fast"
+msgstr "Szybki"
 
