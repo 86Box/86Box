@@ -143,32 +143,6 @@ qt_mouse_capture(int on)
     return;
 }
 
-void
-RendererStack::mousePoll()
-{
-    if (m_monitor_index >= 1) {
-        if (mouse_mode >= 1) {
-            mouse_x_abs       = mousedata.x_abs;
-            mouse_y_abs       = mousedata.y_abs;
-            if (!mouse_tablet_in_proximity)
-                mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
-        }
-        return;
-    }
-
-#ifdef Q_OS_WINDOWS
-    if (mouse_mode == 0) {
-        mouse_x_abs           = mousedata.x_abs;
-        mouse_y_abs           = mousedata.y_abs;
-        return;
-    }
-#endif
-
-    mouse_x_abs               = mousedata.x_abs;
-    mouse_y_abs               = mousedata.y_abs;
-    mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
-}
-
 int ignoreNextMouseEvent = 1;
 void
 RendererStack::mouseReleaseEvent(QMouseEvent *event)
@@ -267,8 +241,29 @@ RendererStack::mouseMoveEvent(QMouseEvent *event)
     ignoreNextMouseEvent = 2;
     oldPos               = event->pos();
 #endif
-}
 
+    if (m_monitor_index >= 1) {
+        if (mouse_mode >= 1) {
+            mouse_x_abs       = mousedata.x_abs;
+            mouse_y_abs       = mousedata.y_abs;
+            if (!mouse_tablet_in_proximity)
+                mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
+        }
+        return;
+    }
+
+#ifdef Q_OS_WINDOWS
+    if (mouse_mode == 0) {
+        mouse_x_abs           = mousedata.x_abs;
+        mouse_y_abs           = mousedata.y_abs;
+        return;
+    }
+#endif
+
+    mouse_x_abs               = mousedata.x_abs;
+    mouse_y_abs               = mousedata.y_abs;
+    mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
+}
 
 void
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
