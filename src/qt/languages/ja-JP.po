@@ -1201,6 +1201,12 @@ msgstr "ネットワークドライバの初期化に失敗しました"
 msgid "The network configuration will be switched to the null driver"
 msgstr "ネットワーク設定がヌル・ドライバに切り替わる"
 
+msgid "Mouse sensitivity:"
+msgstr "マウスの感度:"
+
+msgid "Select media images from program working directory"
+msgstr "プログラムの作業ディレクトリからメディア画像を選択する"
+
 msgid "PIT mode:"
 msgstr "PITモード:"
 

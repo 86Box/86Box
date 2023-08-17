@@ -1201,6 +1201,12 @@ msgstr "Netzwerktreiber konnte nicht initialisiert werden"
 msgid "The network configuration will be switched to the null driver"
 msgstr "Die Netzwerkkonfiguration wird auf den Nulltreiber umgestellt"
 
+msgid "Mouse sensitivity:"
+msgstr "Empfindlichkeit der Maus:"
+
+msgid "Select media images from program working directory"
+msgstr "Medienbilder aus dem Arbeitsverzeichnis des Programms auswählen"
+
 msgid "PIT mode:"
 msgstr "PIT-Modus:"
 

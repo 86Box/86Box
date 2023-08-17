@@ -1201,6 +1201,12 @@ msgstr "Nie udało się zainicjować sterownika sieciowego"
 msgid "The network configuration will be switched to the null driver"
 msgstr "Konfiguracja sieci zostanie przełączona na sterownik null"
 
+msgid "Mouse sensitivity:"
+msgstr "Wrażliwość myszy:"
+
+msgid "Select media images from program working directory"
+msgstr "Wybór obrazów multimedialnych z katalogu roboczego programu"
+
 msgid "PIT mode:"
 msgstr "Tryb PIT:"
 

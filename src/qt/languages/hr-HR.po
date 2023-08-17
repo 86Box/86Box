@@ -1201,6 +1201,12 @@ msgstr "Neuspješno pokretanje mrežnog upravljačkog programa"
 msgid "The network configuration will be switched to the null driver"
 msgstr "Konfiguracija mreže bit će prebačena na nulti upravljački program"
 
+msgid "Mouse sensitivity:"
+msgstr "Osjetljivost miša:"
+
+msgid "Select media images from program working directory"
+msgstr "Medijske slike su odabrane iz radnog direktorija programa"
+
 msgid "PIT mode:"
 msgstr "PIT način:"
 

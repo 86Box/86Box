@@ -1201,6 +1201,12 @@ msgstr "Не вдалося ініціалізувати мережевий др
 msgid "The network configuration will be switched to the null driver"
 msgstr "Конфігурацію мережі буде змінено на нульовий драйвер"
 
+msgid "Mouse sensitivity:"
+msgstr "Чутливість миші:"
+
+msgid "Select media images from program working directory"
+msgstr "Виберіть медіа-зображення з робочої директорії програми"
+
 msgid "PIT mode:"
 msgstr "Режим PIT:"
 

@@ -1201,6 +1201,12 @@ msgstr "Ağ sürücüsü başlatılamadı"
 msgid "The network configuration will be switched to the null driver"
 msgstr "Ağ yapılandırması null sürücüye geçirilecektir"
 
+msgid "Mouse sensitivity:"
+msgstr "Fare hassasiyeti:"
+
+msgid "Select media images from program working directory"
+msgstr "Program çalışma dizininden medya görüntülerini seçme"
+
 msgid "PIT mode:"
 msgstr "PIT modu:"
 
