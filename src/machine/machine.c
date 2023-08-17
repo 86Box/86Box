@@ -10,11 +10,9 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  */
@@ -168,7 +166,7 @@ machine_common_init(UNUSED(const machine_t *model))
 
     int pit_type = IS_AT(machine) ? PIT_8254 : PIT_8253;
     /* Select fast PIT if needed */
-    if ((pit_mode == -1 && is486) || pit_mode == 1)
+    if (((pit_mode == -1) && is486) || (pit_mode == 1))
         pit_type += 2;
 
     pit_common_init(pit_type, pit_irq0_timer, NULL);

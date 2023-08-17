@@ -1,6 +1,7 @@
 #if defined __amd64__ || defined _M_X64
 
 #    include <stdint.h>
+#    include <inttypes.h>
 #    include <86box/86box.h>
 #    include "cpu.h"
 #    include <86box/mem.h>
@@ -125,7 +126,7 @@ host_x86_ADD64_REG_IMM(codeblock_t *block, int dst_reg, uint64_t imm_data)
         codegen_alloc_bytes(block, 4);
         codegen_addbyte4(block, 0x48, 0x83, 0xc0 | RM_OP_ADD | (dst_reg & 7), imm_data & 0xff); /*ADD dst_reg, imm_data*/
     } else
-        fatal("ADD64_REG_IMM !is_imm8 %016llx\n", imm_data);
+        fatal("ADD64_REG_IMM !is_imm8 %016" PRIx64 "\n", imm_data);
 }
 void
 host_x86_ADD8_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
@@ -1614,7 +1615,7 @@ host_x86_SUB64_REG_IMM(codeblock_t *block, int dst_reg, uint64_t imm_data)
         codegen_alloc_bytes(block, 4);
         codegen_addbyte4(block, 0x48, 0x83, 0xc0 | RM_OP_SUB | (dst_reg & 7), imm_data & 0xff); /*SUB dst_reg, imm_data*/
     } else
-        fatal("SUB64_REG_IMM !is_imm8 %016llx\n", imm_data);
+        fatal("SUB64_REG_IMM !is_imm8 %016" PRIx64 "\n", imm_data);
 }
 void
 host_x86_SUB8_REG_REG(codeblock_t *block, int dst_reg, int src_reg)

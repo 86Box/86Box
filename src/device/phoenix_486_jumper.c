@@ -6,15 +6,16 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Implementation of the Phoenix 486 Jumper Readout
+ *          Implementation of the Phoenix 486 Jumper Readout.
  *
  *
  *
- * Authors: Tiseno100
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Tiseno100,
  *
- *          Copyright 2020 Tiseno100
+ *          Copyright 2020-2023 Miran Grca.
+ *          Copyright 2020-2023 Tiseno100.
  */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>

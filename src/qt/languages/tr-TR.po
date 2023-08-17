@@ -1196,8 +1196,20 @@ msgid "(System Default)"
 msgstr "(Sistem Varsayılanı)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "Ağ sürücüsü başlatılamadı"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "Ağ yapılandırması null sürücüye geçirilecektir"
+
+msgid "PIT mode:"
+msgstr "PIT modu:"
+
+msgid "Auto"
+msgstr "Otomatik"
+
+msgid "Slow"
+msgstr "Yavaş"
+
+msgid "Fast"
+msgstr "Hızlı"
 

@@ -321,16 +321,16 @@ HarddiskDialog::onCreateNewFile()
 
     ui->progressBar->setEnabled(true);
     setResult(QDialog::Rejected);
-    quint64 size = ui->lineEditSize->text().toULongLong() << 20U;
+    uint32_t sector_size = 512;
+    quint64  size        = (static_cast<uint64_t>(cylinders_) * static_cast<uint64_t>(heads_) * static_cast<uint64_t>(sectors_) * static_cast<uint64_t>(sector_size));
     if (size > 0x1FFFFFFE00LL) {
         QMessageBox::critical(this, tr("Disk image too large"), tr("Disk images cannot be larger than 127 GB."));
         return;
     }
 
-    int      img_format  = ui->comboBoxFormat->currentIndex();
-    uint32_t zero        = 0;
-    uint32_t base        = 0x1000;
-    uint32_t sector_size = 512;
+    int      img_format = ui->comboBoxFormat->currentIndex();
+    uint32_t zero       = 0;
+    uint32_t base       = 0x1000;
 
     auto    fileName = ui->fileField->fileName();
     QString expectedSuffix;
