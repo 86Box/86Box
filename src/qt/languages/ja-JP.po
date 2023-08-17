@@ -1205,13 +1205,13 @@ msgid "Mouse sensitivity:"
 msgstr "マウスの感度:"
 
 msgid "Select media images from program working directory"
-msgstr "プログラムの作業ディレクトリからメディア画像を選択する"
+msgstr "プログラムの作業ディレクトリからメディアイメージを選択する"
 
 msgid "PIT mode:"
 msgstr "PITモード:"
 
 msgid "Auto"
-msgstr "オート"
+msgstr "自動"
 
 msgid "Slow"
 msgstr "遅い"
