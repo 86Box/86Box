@@ -70,7 +70,6 @@ typedef struct ali1543_t {
     sff8038i_t      *ide_controller[2];
     smbus_ali7101_t *smbus;
     usb_t           *usb;
-    usb_params_t     usb_params;
 
 } ali1543_t;
 
@@ -1473,17 +1472,6 @@ ali7101_read(int func, int addr, void *priv)
 }
 
 static void
-ali5237_usb_update_interrupt(usb_t* usb, void *priv)
-{
-    ali1543_t *dev = (ali1543_t *) priv;
-
-    if (usb->irq_level)
-        pci_set_mirq(4, !!(dev->pci_conf[0x74] & 0x10), &dev->mirq_states[4]);
-    else
-        pci_clear_mirq(4, !!(dev->pci_conf[0x74] & 0x10), &dev->mirq_states[4]);
-}
-
-static void
 ali1543_reset(void *priv)
 {
     ali1543_t *dev = (ali1543_t *) priv;
@@ -1633,10 +1621,7 @@ ali1543_init(const device_t *info)
     dev->smbus = device_add(&ali7101_smbus_device);
 
     /* USB */
-    dev->usb_params.parent_priv      = dev;
-    dev->usb_params.smi_handle       = NULL;
-    dev->usb_params.update_interrupt = ali5237_usb_update_interrupt;
-    dev->usb                         = device_add_parameters(&usb_device, &dev->usb_params);
+    dev->usb = device_add(&usb_device);
 
     dev->type   = info->local & 0xff;
     dev->offset = (info->local >> 8) & 0x7f;

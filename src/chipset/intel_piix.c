@@ -66,7 +66,6 @@ typedef struct _piix_ {
     uint8_t        max_func;
     uint8_t        pci_slot;
     uint8_t        no_mirq0;
-    uint8_t        usb_irq_state;
     uint8_t        regs[4][256];
     uint8_t        readout_regs[256];
     uint8_t        board_config[2];
@@ -84,7 +83,6 @@ typedef struct _piix_ {
     piix_io_trap_t io_traps[26];
     port_92_t     *port_92;
     pc_timer_t     fast_off_timer;
-    usb_params_t   usb_params;
 } piix_t;
 
 #ifdef ENABLE_PIIX_LOG
@@ -1444,17 +1442,6 @@ piix_fast_off_count(void *priv)
 }
 
 static void
-piix_usb_update_interrupt(usb_t* usb, void *priv)
-{
-    piix_t *dev = (piix_t *) priv;
-
-    if (usb->irq_level)
-        pci_set_irq(dev->pci_slot, PCI_INTD, &dev->usb_irq_state);
-    else
-        pci_clear_irq(dev->pci_slot, PCI_INTD, &dev->usb_irq_state);
-}
-
-static void
 piix_reset(void *priv)
 {
     const piix_t *dev = (piix_t *) priv;
@@ -1598,12 +1585,8 @@ piix_init(const device_t *info)
         sff_set_irq_mode(dev->bm[1], 1, 2);
     }
 
-    if (dev->type >= 3) {
-        dev->usb_params.parent_priv      = dev;
-        dev->usb_params.smi_handle       = NULL;
-        dev->usb_params.update_interrupt = piix_usb_update_interrupt;
-        dev->usb                         = device_add_parameters(&usb_device, &dev->usb_params);
-    }
+    if (dev->type >= 3)
+        dev->usb   = device_add(&usb_device);
 
     if (dev->type > 3) {
         dev->nvr   = device_add(&piix4_nvr_device);
