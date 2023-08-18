@@ -3463,11 +3463,15 @@ execx86(int cycs)
 
                 case 0xD4: /*AAM*/
                     wait(1, 0);
+#ifdef NO_VARIANT_ON_NEC
                     if (is_nec) {
                         (void) pfq_fetchb();
                         cpu_src = 10;
                     } else
                         cpu_src = pfq_fetchb();
+#else
+                    cpu_src = pfq_fetchb();
+#endif
                     if (x86_div(AL, 0))
                         set_pzs(16);
                     break;
