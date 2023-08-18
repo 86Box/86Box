@@ -1352,9 +1352,10 @@ load_floppy_and_cdrom_drives(void)
                         fatal("load_floppy_and_cdrom_drives(): strlen(p) > 511 "
                               "(fdd_image_history[%i][%i])\n", c, i);
                     else
-                        strncpy(fdd_image_history[c][i], p, 511);
+                        snprintf(fdd_image_history[c][i], 511, "%s", p);
                 } else
-                    path_append_filename(fdd_image_history[c][i], usr_path, p);
+                    snprintf(fdd_image_history[c][i], 511, "%s%$s%s", usr_path,
+                             path_get_slash(usr_path), p);
                 path_normalize(fdd_image_history[c][i]);
             }
         }
@@ -1452,6 +1453,24 @@ load_floppy_and_cdrom_drives(void)
         if ((cdrom[c].host_drive == 0x200) && (strlen(cdrom[c].image_path) == 0))
             cdrom[c].host_drive = 0;
 
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            cdrom[c].image_history[i] = (char *) calloc(MAX_IMAGE_PATH_LEN + 1, sizeof(char));
+            sprintf(temp, "cdrom_%02i_image_history_%02i", c + 1, i + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            if (p) {
+                if (path_abs(p)) {
+                    if (strlen(p) > 511)
+                        fatal("load_floppy_and_cdrom_drives(): strlen(p) > 511 "
+                              "(cdrom[%i].image_history[%i])\n", c, i);
+                    else
+                        snprintf(cdrom[c].image_history[i], 511, "%s", p);
+                } else
+                    snprintf(cdrom[c].image_history[i], 511, "%s%$s%s", usr_path,
+                             path_get_slash(usr_path), p);
+                path_normalize(cdrom[c].image_history[i]);
+            }
+        }
+
         /* If the CD-ROM is disabled, delete all its variables. */
         if (cdrom[c].bus_type == CDROM_BUS_DISABLED) {
             sprintf(temp, "cdrom_%02i_host_drive", c + 1);
@@ -1468,27 +1487,15 @@ load_floppy_and_cdrom_drives(void)
 
             sprintf(temp, "cdrom_%02i_image_path", c + 1);
             ini_section_delete_var(cat, temp);
+
+            for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+                sprintf(temp, "cdrom_%02i_image_history_%02i", c + 1, i + 1);
+                ini_section_delete_var(cat, temp);
+            }
         }
 
         sprintf(temp, "cdrom_%02i_iso_path", c + 1);
         ini_section_delete_var(cat, temp);
-
-        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
-            cdrom[c].image_history[i] = (char *) calloc(MAX_IMAGE_PATH_LEN + 1, sizeof(char));
-            sprintf(temp, "cdrom_%02i_image_history_%02i", c + 1, i + 1);
-            p = ini_section_get_string(cat, temp, NULL);
-            if (p) {
-                if (path_abs(p)) {
-                    if (strlen(p) > 511)
-                        fatal("load_floppy_and_cdrom_drives(): strlen(p) > 511 "
-                              "(cdrom[%i].image_history[%i])\n", c, i);
-                    else
-                        strncpy(cdrom[c].image_history[i], p, 511);
-                } else
-                    path_append_filename(cdrom[c].image_history[i], usr_path, p);
-                path_normalize(cdrom[c].image_history[i]);
-            }
-        }
     }
 }
 
@@ -1646,7 +1653,25 @@ load_other_removable_devices(void)
             path_append_filename(zip_drives[c].image_path, usr_path, p);
         path_normalize(zip_drives[c].image_path);
 
-        /* If the CD-ROM is disabled, delete all its variables. */
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            zip_drives[c].image_history[i] = (char *) calloc(MAX_IMAGE_PATH_LEN + 1, sizeof(char));
+            sprintf(temp, "zip_%02i_image_history_%02i", c + 1, i + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            if (p) {
+                if (path_abs(p)) {
+                    if (strlen(p) > 511)
+                        fatal("load_other_removable_devices(): strlen(p) > 511 "
+                              "(zip_drives[%i].image_history[%i])\n", c, i);
+                    else
+                        snprintf(zip_drives[c].image_history[i], 511, "%s", p);
+                } else
+                    snprintf(zip_drives[c].image_history[i], 511, "%s%$s%s", usr_path,
+                             path_get_slash(usr_path), p);
+                path_normalize(zip_drives[c].image_history[i]);
+            }
+        }
+
+        /* If the ZIP drive is disabled, delete all its variables. */
         if (zip_drives[c].bus_type == ZIP_BUS_DISABLED) {
             sprintf(temp, "zip_%02i_host_drive", c + 1);
             ini_section_delete_var(cat, temp);
@@ -1662,10 +1687,12 @@ load_other_removable_devices(void)
 
             sprintf(temp, "zip_%02i_image_path", c + 1);
             ini_section_delete_var(cat, temp);
-        }
 
-        sprintf(temp, "zip_%02i_iso_path", c + 1);
-        ini_section_delete_var(cat, temp);
+            for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+                sprintf(temp, "zip_%02i_image_history_%02i", c + 1, i + 1);
+                ini_section_delete_var(cat, temp);
+            }
+        }
     }
 
     memset(temp, 0x00, sizeof(temp));
@@ -1736,7 +1763,25 @@ load_other_removable_devices(void)
             path_append_filename(mo_drives[c].image_path, usr_path, p);
         path_normalize(mo_drives[c].image_path);
 
-        /* If the CD-ROM is disabled, delete all its variables. */
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            mo_drives[c].image_history[i] = (char *) calloc(MAX_IMAGE_PATH_LEN + 1, sizeof(char));
+            sprintf(temp, "mo_%02i_image_history_%02i", c + 1, i + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            if (p) {
+                if (path_abs(p)) {
+                    if (strlen(p) > 511)
+                        fatal("load_other_removable_devices(): strlen(p) > 511 "
+                              "(mo_drives[%i].image_history[%i])\n", c, i);
+                    else
+                        snprintf(mo_drives[c].image_history[i], 511, "%s", p);
+                } else
+                    snprintf(mo_drives[c].image_history[i], 511, "%s%$s%s", usr_path,
+                             path_get_slash(usr_path), p);
+                path_normalize(mo_drives[c].image_history[i]);
+            }
+        }
+
+        /* If the MO drive is disabled, delete all its variables. */
         if (mo_drives[c].bus_type == MO_BUS_DISABLED) {
             sprintf(temp, "mo_%02i_host_drive", c + 1);
             ini_section_delete_var(cat, temp);
@@ -1752,10 +1797,12 @@ load_other_removable_devices(void)
 
             sprintf(temp, "mo_%02i_image_path", c + 1);
             ini_section_delete_var(cat, temp);
-        }
 
-        sprintf(temp, "mo_%02i_iso_path", c + 1);
-        ini_section_delete_var(cat, temp);
+            for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+                sprintf(temp, "mo_%02i_image_history_%02i", c + 1, i + 1);
+                ini_section_delete_var(cat, temp);
+            }
+        }
     }
 }
 
