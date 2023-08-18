@@ -209,15 +209,12 @@ fetch_ea_16_long(uint32_t rmdat)
 
 #define CLOCK_CYCLES_ALWAYS(c) cycles -= (c)
 
-#define CHECK_READ_CS(chseg, low, high)                                          \
-    if ((low < (chseg)->limit_low) || (high > (chseg)->limit_high))              \
-        x86gpf("Limit check (READ)", 0);                                         \
-    if (msw & 1 && !(cpu_state.eflags & VM_FLAG) && !((chseg)->access & 0x80)) { \
-        if ((chseg) == &cpu_state.seg_ss)                                        \
-            x86ss(NULL, (chseg)->seg & 0xfffc);                                  \
-        else                                                                     \
-            x86np("Read from seg not present", (chseg)->seg & 0xfffc);           \
-    }
+#define CHECK_READ_CS(size)                                                            \
+    if ((cpu_state.pc < cpu_state.seg_cs.limit_low) ||                                 \
+        ((cpu_state.pc + size - 1) > cpu_state.seg_cs.limit_high))                     \
+        x86gpf("Limit check (READ)", 0);                                               \
+    if (msw & 1 && !(cpu_state.eflags & VM_FLAG) && !(cpu_state.seg_cs.access & 0x80)) \
+        x86np("Read from seg not present", cpu_state.seg_cs.seg & 0xfffc);             \
 
 #include "386_ops.h"
 
@@ -261,11 +258,7 @@ exec386_2386(int cycs)
 
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
             ol = opcode_length[fetchdat & 0xff];
-            if (ol < 4) {
-                CHECK_READ_CS(&cpu_state.seg_cs, cpu_state.pc, cpu_state.pc + ol - 1);
-            } else {
-                CHECK_READ_CS(&cpu_state.seg_cs, cpu_state.pc, cpu_state.pc + 3);
-            }
+            CHECK_READ_CS(MIN(ol, 4));
 
             if (!cpu_state.abrt) {
 #ifdef ENABLE_386_LOG

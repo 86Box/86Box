@@ -1196,20 +1196,26 @@ msgid "(System Default)"
 msgstr "(系統預設)"
 
 msgid "Failed to initialize network driver"
-msgstr "初始化網絡驅動程序失敗"
+msgstr "初始化網路驅動程式失敗"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "網絡配置將切換為空驅動程序"
+msgstr "網路設定將切換為空驅動程式"
+
+msgid "Mouse sensitivity:"
+msgstr "滑鼠靈敏度:"
+
+msgid "Select media images from program working directory"
+msgstr "從程式工作目錄中選擇介質映像"
 
 msgid "PIT mode:"
-msgstr "點模式:"
+msgstr "PIT模式:"
 
 msgid "Auto"
-msgstr "汽車"
+msgstr "自動"
 
 msgid "Slow"
-msgstr "慢的"
+msgstr "慢"
 
 msgid "Fast"
-msgstr "快速地"
+msgstr "快"
 

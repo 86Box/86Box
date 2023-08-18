@@ -1201,6 +1201,12 @@ msgstr "Ni uspelo inicializirati omrežnega gonilnika"
 msgid "The network configuration will be switched to the null driver"
 msgstr "Omrežne nastavitve bodo preklopljene na ničelni gonilnik"
 
+msgid "Mouse sensitivity:"
+msgstr "Občutljivost miške:"
+
+msgid "Select media images from program working directory"
+msgstr "Izberi slike medijev iz delovnega imenika programa"
+
 msgid "PIT mode:"
 msgstr "Način PIT:"
 

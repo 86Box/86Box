@@ -2695,7 +2695,8 @@ mem_reset(void)
         }
         memset(ram, 0x00, ram_size);
         ram2_size = m - (1 << 30);
-        ram2      = (uint8_t *) plat_mmap(ram2_size, 0); /* allocate and clear the RAM block above 1 GB */
+        /* Allocate 16 extra bytes of RAM to mitigate some dynarec recompiler memory access quirks. */
+        ram2      = (uint8_t *) plat_mmap(ram2_size + 16, 0); /* allocate and clear the RAM block above 1 GB */
         if (ram2 == NULL) {
             if (config_changed == 2)
                 fatal(EMU_NAME " must be restarted for the memory amount change to be applied.\n");
@@ -2703,17 +2704,18 @@ mem_reset(void)
                 fatal("Failed to allocate secondary RAM block. Make sure you have enough RAM available.\n");
             return;
         }
-        memset(ram2, 0x00, ram2_size);
+        memset(ram2, 0x00, ram2_size + 16);
     } else
 #endif
     {
         ram_size = m;
-        ram      = (uint8_t *) plat_mmap(ram_size, 0); /* allocate and clear the RAM block */
+        /* Allocate 16 extra bytes of RAM to mitigate some dynarec recompiler memory access quirks. */
+        ram      = (uint8_t *) plat_mmap(ram_size + 16, 0); /* allocate and clear the RAM block */
         if (ram == NULL) {
             fatal("Failed to allocate RAM block. Make sure you have enough RAM available.\n");
             return;
         }
-        memset(ram, 0x00, ram_size);
+        memset(ram, 0x00, ram_size + 16);
         if (mem_size > 1048576)
             ram2 = &(ram[1 << 30]);
     }
