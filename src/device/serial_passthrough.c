@@ -25,6 +25,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/fifo.h>
 #include <86box/timer.h>
 #include <86box/serial.h>
 #include <86box/serial_passthrough.h>
@@ -78,7 +79,7 @@ host_to_serial_cb(void *priv)
      * can never fetch the bytes in time, so check if the fifo is full if in
      * fifo mode or if lsr has bit 0 set if not in fifo mode */
     if ((dev->serial->type >= SERIAL_16550) && dev->serial->fifo_enabled) {
-        if (dev->serial->rcvr_fifo_full) {
+        if (fifo_get_full(dev->serial->rcvr_fifo)) {
             goto no_write_to_machine;
         }
     } else {
