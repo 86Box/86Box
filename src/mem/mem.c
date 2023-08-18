@@ -2695,7 +2695,7 @@ mem_reset(void)
         }
         memset(ram, 0x00, ram_size);
         ram2_size = m - (1 << 30);
-        ram2      = (uint8_t *) plat_mmap(ram2_size, 0); /* allocate and clear the RAM block above 1 GB */
+        ram2      = (uint8_t *) plat_mmap(ram2_size + 16, 0); /* allocate and clear the RAM block above 1 GB */
         if (ram2 == NULL) {
             if (config_changed == 2)
                 fatal(EMU_NAME " must be restarted for the memory amount change to be applied.\n");
@@ -2708,7 +2708,7 @@ mem_reset(void)
 #endif
     {
         ram_size = m;
-        ram      = (uint8_t *) plat_mmap(ram_size, 0); /* allocate and clear the RAM block */
+        ram      = (uint8_t *) plat_mmap(ram_size + 16, 0); /* allocate and clear the RAM block */
         if (ram == NULL) {
             fatal("Failed to allocate RAM block. Make sure you have enough RAM available.\n");
             return;
