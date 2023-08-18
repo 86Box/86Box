@@ -1202,20 +1202,20 @@ msgid "The network configuration will be switched to the null driver"
 msgstr "网络配置将切换为空驱动程序"
 
 msgid "Mouse sensitivity:"
-msgstr "小鼠敏感性:"
+msgstr "鼠标敏感度:"
 
 msgid "Select media images from program working directory"
-msgstr "从程序工作目录中选择媒体图像"
+msgstr "从程序工作目录中选择介质镜像"
 
 msgid "PIT mode:"
 msgstr "PIT 模式:"
 
 msgid "Auto"
-msgstr "汽车"
+msgstr "自动"
 
 msgid "Slow"
 msgstr "慢"
 
 msgid "Fast"
-msgstr "快速"
+msgstr "快"
 

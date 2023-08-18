@@ -1636,7 +1636,7 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
     uint32_t base;
     uint32_t size;
 
-    if ((gd54xx->pci && (!(gd54xx->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))) || (gd54xx->mca && (!(gd54xx->pos_regs[2] & 1)))) {
+    if (gd54xx->pci && (!(gd54xx->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))) {
         mem_mapping_disable(&svga->mapping);
         mem_mapping_disable(&gd54xx->linear_mapping);
         mem_mapping_disable(&gd54xx->mmio_mapping);
@@ -3863,13 +3863,16 @@ gd5428_mca_write(int port, uint8_t val, void *priv)
         return;
 
     gd54xx->pos_regs[port & 7] = val;
-    gd543x_recalc_mapping(gd54xx);
+    mem_mapping_disable(&gd54xx->bios_rom.mapping);
+    if (gd54xx->pos_regs[2] & 0x01)
+        mem_mapping_enable(&gd54xx->bios_rom.mapping);
 }
 
 static uint8_t
-gd5428_mca_feedb(UNUSED(void *priv))
+gd5428_mca_feedb(void *priv)
 {
-    return 1;
+    gd54xx_t *gd54xx = (gd54xx_t *) priv;
+    return gd54xx->pos_regs[2] & 0x01;
 }
 
 static void
@@ -3891,7 +3894,7 @@ gd54xx_reset(void *priv)
     io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
 
     mem_mapping_disable(&gd54xx->vgablt_mapping);
-    if (gd54xx->has_bios && gd54xx->pci)
+    if (gd54xx->has_bios && (gd54xx->pci || gd54xx->mca))
         mem_mapping_disable(&gd54xx->bios_rom.mapping);
 
     memset(gd54xx->pci_regs, 0x00, 256);
@@ -4235,6 +4238,7 @@ gd54xx_init(const device_t *info)
     if (gd54xx->mca) {
         gd54xx->pos_regs[0] = svga->crtc[0x27] == CIRRUS_ID_CLGD5426 ? 0x82 : 0x7b;
         gd54xx->pos_regs[1] = svga->crtc[0x27] == CIRRUS_ID_CLGD5426 ? 0x81 : 0x91;
+        mem_mapping_disable(&gd54xx->bios_rom.mapping);
         mca_add(gd5428_mca_read, gd5428_mca_write, gd5428_mca_feedb, NULL, gd54xx);
         io_sethandler(0x46e8, 0x0001, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
     }
