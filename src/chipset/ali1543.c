@@ -1068,7 +1068,7 @@ ali7101_write(int func, int addr, uint8_t val, void *priv)
 
         case 0x40:
             dev->pmu_conf[addr] = val & 0x1f;
-            pic_set_smi_irq_mask(8, (dev->pmu_conf[0x77] & 0x08) && (dev->pmu_conf[0x40] & 0x03));
+            nvr_smi_enable((dev->pmu_conf[0x77] & 0x08) && (dev->pmu_conf[0x40] & 0x08), dev->nvr);
             break;
         case 0x41:
             dev->pmu_conf[addr] = val & 0x10;
@@ -1079,6 +1079,8 @@ ali7101_write(int func, int addr, uint8_t val, void *priv)
         /* TODO: Is the status R/W or R/WC? */
         case 0x42:
             dev->pmu_conf[addr] &= ~(val & 0x1f);
+            if (val & 0x08)
+                nvr_smi_status_clear(dev->nvr);
             break;
         case 0x43:
             dev->pmu_conf[addr] &= ~(val & 0x10);
@@ -1216,8 +1218,8 @@ ali7101_write(int func, int addr, uint8_t val, void *priv)
         case 0x77:
             /* TODO: If bit 1 is clear, then status bit is set even if SMI is disabled. */
             dev->pmu_conf[addr] = val;
-            pic_set_smi_irq_mask(8, (dev->pmu_conf[0x77] & 0x08) && (dev->pmu_conf[0x40] & 0x03));
             ali1543_log("PMU77: %02X\n", val);
+            nvr_smi_enable((dev->pmu_conf[0x77] & 0x08) && (dev->pmu_conf[0x40] & 0x08), dev->nvr);
             apm_set_do_smi(dev->acpi->apm, (dev->pmu_conf[0x77] & 0x08) && (dev->pmu_conf[0x41] & 0x10));
             break;
 
@@ -1422,14 +1424,23 @@ ali7101_read(int func, int addr, void *priv)
             return 0xff;
 
         /* TODO: C4, C5 = GPIREG (masks: 0D, 0E) */
-        if (addr == 0x43)
-            ret = acpi_ali_soft_smi_status_read(dev->acpi) ? 0x10 : 0x00;
-        else if (addr == 0x7f)
-            ret = 0x80;
-        else if (addr == 0xbc)
-            ret = inb(0x70);
-        else
-            ret = dev->pmu_conf[addr];
+        switch (addr) {
+            default:
+                ret = dev->pmu_conf[addr];
+                break;
+            case 0x42:
+                ret = (dev->pmu_conf[addr] & 0xf7) | (nvr_smi_status(dev->nvr) ? 0x08 : 0x00);
+                break;
+            case 0x43:
+                ret = acpi_ali_soft_smi_status_read(dev->acpi) ? 0x10 : 0x00;
+                break;
+            case 0x7f:
+                ret = 0x80;
+                break;
+            case 0xbc:
+                ret = inb(0x70);
+                break;
+        }
 
         if (dev->pmu_conf[0x77] & 0x10) {
             switch (addr) {
