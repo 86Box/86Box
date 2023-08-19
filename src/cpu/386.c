@@ -369,7 +369,7 @@ exec386_2386(int cycs)
             }
 
             if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
-                timer_process_inline();
+                timer_process();
 
 #ifdef USE_GDBSTUB
             if (gdbstub_instruction())

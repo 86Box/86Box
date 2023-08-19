@@ -15,10 +15,13 @@ pc_timer_t *timer_head = NULL;
 /* Are we initialized? */
 int timer_inited = 0;
 
+static void timer_advance_ex(pc_timer_t *timer);
+
 void
 timer_enable(pc_timer_t *timer)
 {
     pc_timer_t *timer_node = timer_head;
+    int ret = 0;
 
     if (!timer_inited || (timer == NULL))
         return;
@@ -29,59 +32,63 @@ timer_enable(pc_timer_t *timer)
     if (timer->next || timer->prev)
         fatal("timer_enable - timer->next\n");
 
-    timer->flags |= TIMER_ENABLED;
-
     /*List currently empty - add to head*/
     if (!timer_head) {
         timer_head  = timer;
         timer->next = timer->prev = NULL;
         timer_target              = timer_head->ts.ts32.integer;
-        return;
-    }
-
-    if (TIMER_LESS_THAN(timer, timer_head)) {
+        ret = 1;
+    } else if (TIMER_LESS_THAN(timer, timer_head)) {
         timer->next      = timer_head;
         timer->prev      = NULL;
         timer_head->prev = timer;
         timer_head       = timer;
         timer_target     = timer_head->ts.ts32.integer;
-        return;
-    }
-
-    if (!timer_head->next) {
+        ret = 1;
+    } else if (!timer_head->next) {
         timer_head->next = timer;
         timer->prev      = timer_head;
-        return;
+        ret = 1;
     }
 
-    pc_timer_t *prev = timer_head;
-    timer_node       = timer_head->next;
+    if (ret == 0) {
+        pc_timer_t *prev = timer_head;
+        timer_node       = timer_head->next;
 
-    while (1) {
-        /*Timer expires before timer_node. Add to list in front of timer_node*/
-        if (TIMER_LESS_THAN(timer, timer_node)) {
-            timer->next      = timer_node;
-            timer->prev      = prev;
-            timer_node->prev = timer;
-            prev->next       = timer;
-            return;
+        while (1) {
+            /*Timer expires before timer_node. Add to list in front of timer_node*/
+            if (TIMER_LESS_THAN(timer, timer_node)) {
+                timer->next      = timer_node;
+                timer->prev      = prev;
+                timer_node->prev = timer;
+                prev->next       = timer;
+                ret = 1;
+                break;
+            }
+
+            /*timer_node is last in the list. Add timer to end of list*/
+            if (!timer_node->next) {
+                timer_node->next = timer;
+                timer->prev      = timer_node;
+                ret = 1;
+                break;
+            }
+
+            prev       = timer_node;
+            timer_node = timer_node->next;
         }
-
-        /*timer_node is last in the list. Add timer to end of list*/
-        if (!timer_node->next) {
-            timer_node->next = timer;
-            timer->prev      = timer_node;
-            return;
-        }
-
-        prev       = timer_node;
-        timer_node = timer_node->next;
     }
+
+    /* Do not mark it as enabled if it has failed every single condition. */
+    if (ret == 1)
+        timer->flags |= TIMER_ENABLED;
 }
 
 void
 timer_disable(pc_timer_t *timer)
 {
+    pc_timer_t *cur, *temp;
+
     if (!timer_inited || (timer == NULL) || !(timer->flags & TIMER_ENABLED))
         return;
 
@@ -120,13 +127,15 @@ timer_process(void)
         timer->next = timer->prev = NULL;
         timer->flags &= ~TIMER_ENABLED;
 
+        timer->flags |= TIMER_PROCESS;
         if (timer->flags & TIMER_SPLIT)
-            timer_advance_ex(timer, 0);   /* We're splitting a > 1 s period into multiple <= 1 s periods. */
-        else if (timer->callback != NULL) {/* Make sure it's no NULL, so that we can have a NULL callback when no operation is needed. */
-            timer->flags |= TIMER_PROCESS;
+            timer_advance_ex(timer);      /* We're splitting a > 1 s period into
+                                             multiple <= 1 s periods. */
+        else if (timer->callback != NULL) /* Make sure it's not NULL, so that we can
+                                             have a NULL callback when no operation
+                                             is needed. */
             timer->callback(timer->priv);
-            timer->flags &= ~TIMER_PROCESS;
-        }
+        timer->flags &= ~TIMER_PROCESS;
     }
 
     timer_target = timer_head->ts.ts32.integer;
@@ -182,50 +191,36 @@ timer_stop(pc_timer_t *timer)
         return;
 
     timer->period = 0.0;
-    timer_disable(timer);
+    if (timer_is_enabled(timer))
+        timer_disable(timer);
     timer->flags &= ~TIMER_SPLIT;
 }
 
 static void
-timer_do_period(pc_timer_t *timer, uint64_t period, int start)
+timer_do_period(pc_timer_t *timer, uint64_t period)
 {
-    if (!timer_inited || (timer == NULL))
-        return;
-
-    if (start)
-        timer_set_delay_u64(timer, period);
-    else
+    if (timer->flags & TIMER_PROCESS)
         timer_advance_u64(timer, period);
+    else
+        timer_set_delay_u64(timer, period);
 }
 
-void
-timer_advance_ex(pc_timer_t *timer, int start)
+static void
+timer_advance_ex(pc_timer_t *timer)
 {
-    if (!timer_inited || (timer == NULL))
-        return;
+    double dusec = ((double) TIMER_USEC);
+    double period;
 
-    if (timer->period > MAX_USEC) {
-        timer_do_period(timer, MAX_USEC64 * TIMER_USEC, start);
-        timer->period -= MAX_USEC;
-        timer->flags |= TIMER_SPLIT;
-    } else {
-        if (timer->period > 0.0)
-            timer_do_period(timer, (uint64_t) (timer->period * ((double) TIMER_USEC)), start);
-        else
-            timer_disable(timer);
-        timer->period = 0.0;
+    period = (timer->period > MAX_USEC) ? MAX_USEC64 : timer->period;
+
+    if (timer->period > 0.0) {
+        timer_do_period(timer, (uint64_t) (period * dusec));
+        timer->period -= period;
+        timer->flags = (timer->flags & ~TIMER_SPLIT) | ((timer->period > MAX_USEC) ? TIMER_SPLIT : 0);
+    } else if (timer_is_enabled(timer)) {
+        timer_disable(timer);
         timer->flags &= ~TIMER_SPLIT;
     }
-}
-
-void
-timer_on(pc_timer_t *timer, double period, int start)
-{
-    if (!timer_inited || (timer == NULL))
-        return;
-
-    timer->period = period;
-    timer_advance_ex(timer, start);
 }
 
 void
@@ -234,8 +229,9 @@ timer_on_auto(pc_timer_t *timer, double period)
     if (!timer_inited || (timer == NULL))
         return;
 
-    if (period > 0.0)
-        timer_on(timer, period, !(timer->flags & TIMER_PROCESS) && (timer->period <= 0.0));
-    else
+    if (period > 0.0) {
+        timer->period = period;
+        timer_advance_ex(timer);
+    } else if (timer_is_on(timer))
         timer_stop(timer);
 }

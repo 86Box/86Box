@@ -1055,7 +1055,7 @@ spock_callback(void *priv)
     spock_process_scsi(scsi, scb);
 
     period = 0.2 * ((double) scsi->temp_period);
-    timer_on(&scsi->callback_timer, (scsi->media_period + period + 10.0), 0);
+    timer_on_auto(&scsi->callback_timer, (scsi->media_period + period + 10.0));
     spock_log("Temporary period: %lf us (%" PRIi64 " periods)\n", scsi->callback_timer.period, scsi->temp_period);
 }
 

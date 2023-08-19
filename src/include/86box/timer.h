@@ -122,7 +122,7 @@ timer_is_enabled(pc_timer_t *timer)
 static __inline int
 timer_is_on(pc_timer_t *timer)
 {
-    return ((timer->flags & TIMER_ENABLED) && (timer->period > 0.0));
+    return ((timer->flags & TIMER_SPLIT) && (timer->flags & TIMER_ENABLED));
 }
 
 /*Return integer timestamp of timer*/
@@ -184,44 +184,7 @@ timer_set_p(pc_timer_t *timer, void *priv)
 
 /* The API for big timer periods starts here. */
 extern void timer_stop(pc_timer_t *timer);
-extern void timer_advance_ex(pc_timer_t *timer, int start);
-extern void timer_on(pc_timer_t *timer, double period, int start);
 extern void timer_on_auto(pc_timer_t *timer, double period);
-
-extern void timer_remove_head(void);
-
-extern pc_timer_t *timer_head;
-extern int         timer_inited;
-
-static __inline void
-timer_process_inline(void)
-{
-    pc_timer_t *timer;
-
-    if (!timer_head)
-        return;
-
-    while (1) {
-        timer = timer_head;
-
-        if (!TIMER_LESS_THAN_VAL(timer, (uint32_t) tsc))
-            break;
-
-        timer_head = timer->next;
-        if (timer_head)
-            timer_head->prev = NULL;
-
-        timer->next = timer->prev = NULL;
-        timer->flags &= ~TIMER_ENABLED;
-
-        if (timer->flags & TIMER_SPLIT)
-            timer_advance_ex(timer, 0);   /* We're splitting a > 1 s period into multiple <= 1 s periods. */
-        else if (timer->callback != NULL) /* Make sure it's no NULL, so that we can have a NULL callback when no operation is needed. */
-            timer->callback(timer->priv);
-    }
-
-    timer_target = timer_head->ts.ts32.integer;
-}
 
 #ifdef __cplusplus
 }

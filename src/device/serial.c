@@ -363,7 +363,7 @@ serial_update_speed(serial_t *dev)
     if (dev->transmit_enabled & 3)
         timer_on_auto(&dev->transmit_timer, dev->transmit_period);
 
-    if (timer_is_enabled(&dev->timeout_timer))
+    if (timer_is_on(&dev->timeout_timer))
         timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
 }
 

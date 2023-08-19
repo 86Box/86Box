@@ -88,7 +88,7 @@ static ini_t config;
 static int backwards_compat  = 0;
 static int backwards_compat2 = 0;
 
-#define ENABLE_CONFIG_LOG 1
+#define  ENABLE_CONFIG_LOG 1
 #ifdef ENABLE_CONFIG_LOG
 int config_do_log = ENABLE_CONFIG_LOG;
 
@@ -1254,7 +1254,7 @@ load_floppy_drives(void)
             path_append_filename(floppyfns[c], usr_path, p);
         path_normalize(floppyfns[c]);
 
-#ifdef ENABLE_CONFIG_LOG
+#if defined(ENABLE_CONFIG_LOG) && (ENABLE_CONFIG_LOG == 2)
         if (*p != '\0')
             config_log("Floppy%d: %ls\n", c, floppyfns[c]);
 #endif
@@ -1309,7 +1309,7 @@ load_floppy_and_cdrom_drives(void)
             path_append_filename(floppyfns[c], usr_path, p);
         path_normalize(floppyfns[c]);
 
-#ifdef ENABLE_CONFIG_LOG
+#if defined(ENABLE_CONFIG_LOG) && (ENABLE_CONFIG_LOG == 2)
         if (*p != '\0')
             config_log("Floppy%d: %ls\n", c, floppyfns[c]);
 #endif

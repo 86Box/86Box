@@ -639,7 +639,8 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
                 }
             } else {
                 /*Don't stop the timer until it finishes the transfer*/
-                if (ncr_dev->block_count_loaded && (ncr->mode & MODE_DMA) && !timer_is_enabled(&ncr_dev->timer)) {
+                if (ncr_dev->block_count_loaded && (ncr->mode & MODE_DMA) &&
+                    !timer_is_on(&ncr_dev->timer)) {
                     ncr_log("Continuing DMA mode\n");
                     ncr_timer_on(ncr_dev, ncr, 0);
                 }
@@ -671,7 +672,7 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
                 if (dev->buffer_length > 0) {
                     memset(ncr_dev->t128.buffer, 0, MIN(512, dev->buffer_length));
 
-                    ncr_log("DMA send timer start, enabled? = %i\n", timer_is_enabled(&ncr_dev->timer));
+                    ncr_log("DMA send timer start, enabled? = %i\n", timer_is_on(&ncr_dev->timer));
                     ncr_dev->t128.block_count  = dev->buffer_length >> 9;
                     ncr_dev->t128.block_loaded = 1;
 
@@ -679,7 +680,7 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
                     ncr_dev->t128.status |= 0x04;
                 }
             } else {
-                if ((ncr->mode & MODE_DMA) && !timer_is_enabled(&ncr_dev->timer)) {
+                if ((ncr->mode & MODE_DMA) && !timer_is_on(&ncr_dev->timer)) {
                     memset(ncr_dev->buffer, 0, MIN(128, dev->buffer_length));
 
                     ncr_log("DMA send timer on\n");
@@ -693,7 +694,8 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
             /*a Read 6/10 has occurred, start the timer when the block count is loaded*/
             ncr->dma_mode = DMA_INITIATOR_RECEIVE;
             if (ncr_dev->type == 3) {
-                ncr_log("DMA receive timer start, enabled? = %i, cdb[0] = %02x, buflen = %i\n", timer_is_enabled(&ncr_dev->timer), ncr->command[0], dev->buffer_length);
+                ncr_log("DMA receive timer start, enabled? = %i, cdb[0] = %02x, buflen = %i\n",
+                        timer_is_on(&ncr_dev->timer), ncr->command[0], dev->buffer_length);
                 if (dev->buffer_length > 0) {
                     memset(ncr_dev->t128.buffer, 0, MIN(512, dev->buffer_length));
 
@@ -709,7 +711,7 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
                     timer_on_auto(&ncr_dev->timer, 0.02);
                 }
             } else {
-                if ((ncr->mode & MODE_DMA) && !timer_is_enabled(&ncr_dev->timer)) {
+                if ((ncr->mode & MODE_DMA) && !timer_is_on(&ncr_dev->timer)) {
                     memset(ncr_dev->buffer, 0, MIN(128, dev->buffer_length));
 
                     ncr_log("DMA receive timer start\n");
