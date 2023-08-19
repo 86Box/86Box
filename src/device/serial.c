@@ -12,11 +12,9 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  */
@@ -742,7 +740,7 @@ serial_rcvr_d_empty_evt(void *priv)
 {
     serial_t *dev = (serial_t *) priv;
 
-    dev->lsr = (dev->lsr & 0xfe) | !fifo_get_empty(dev->rcvr_fifo);
+    dev->lsr = (dev->lsr & 0xfe) | (fifo_get_empty(dev->rcvr_fifo) ? 0 : 1);
 }
 
 static void
