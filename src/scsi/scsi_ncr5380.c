@@ -275,9 +275,12 @@ ncr_timer_on(ncr5380_t *ncr_dev, ncr_t *ncr, int callback)
         ncr->data_wait &= ~2;
 
     if (callback) {
-        if (ncr_dev->type == 3)
-            p *= 512.0;
-        else
+        if (ncr_dev->type == 3) {
+            if (callback == 2)
+                p *= 768.0;
+            else
+                p *= 512.0;
+        } else
             p *= 128.0;
     }
 
@@ -1383,7 +1386,7 @@ static uint8_t
 t128_read(uint32_t addr, void *priv)
 {
     ncr5380_t     *ncr_dev = (ncr5380_t *) priv;
-    const ncr_t   *ncr     = &ncr_dev->ncr;
+    ncr_t         *ncr     = &ncr_dev->ncr;
     scsi_device_t *dev     = &scsi_devices[ncr_dev->bus][ncr->target_id];
     uint8_t        ret     = 0xff;
 
@@ -1410,9 +1413,11 @@ t128_read(uint32_t addr, void *priv)
             if (ncr_dev->t128.host_pos == MIN(512, dev->buffer_length)) {
                 ncr_dev->t128.status &= ~0x04;
                 ncr_log("Transfer busy read, status = %02x, period = %lf\n", ncr_dev->t128.status, ncr_dev->period);
-                if (ncr_dev->period == 0.2 || ncr_dev->period == 0.02)
+                if ((ncr_dev->period == 0.2) || (ncr_dev->period == 0.02))
                     timer_on_auto(&ncr_dev->timer, 40.2);
-            } else if (ncr_dev->t128.host_pos < MIN(512, dev->buffer_length) && scsi_device_get_callback(dev) > 100.0)
+                else if (!timer_is_on(&ncr_dev->timer))
+                    ncr_timer_on(ncr_dev, ncr, 2);
+            } else if ((ncr_dev->t128.host_pos < MIN(512, dev->buffer_length)) && (scsi_device_get_callback(dev) > 100.0))
                 cycles += 100; /*Needed to avoid timer de-syncing with transfers.*/
         }
     }
