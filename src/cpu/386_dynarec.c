@@ -256,7 +256,7 @@ update_tsc(void)
 
     if (cycdiff > 0) {
         if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
-            timer_process_inline();
+            timer_process();
     }
 }
 
@@ -782,7 +782,7 @@ exec386_dynarec(int cycs)
 
             if (cycdiff > 0) {
                 if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
-                    timer_process_inline();
+                    timer_process();
             }
 
 #    ifdef USE_GDBSTUB
@@ -943,7 +943,7 @@ exec386(int cycs)
             }
 
             if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
-                timer_process_inline();
+                timer_process();
 
 #ifdef USE_GDBSTUB
             if (gdbstub_instruction())

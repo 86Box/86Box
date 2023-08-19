@@ -1541,10 +1541,10 @@ piix_speed_changed(void *priv)
     if (!dev)
         return;
 
-    int te = timer_is_enabled(&dev->fast_off_timer);
+    int to = timer_is_on(&dev->fast_off_timer);
 
     timer_stop(&dev->fast_off_timer);
-    if (te)
+    if (to)
         timer_on_auto(&dev->fast_off_timer, ((double) cpu_fast_off_val + 1) * dev->fast_off_period);
 }
 
