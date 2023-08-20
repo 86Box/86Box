@@ -280,6 +280,7 @@ END
 #define STR_ENABLED_UTC   "Abilitata (UTC)"
 #define STR_DYNAREC       "Ricompilatore dinamico"
 #define STR_SOFTFLOAT     "Softfloat FPU"
+#define STR_CACHE         "Cache"
 
 #define STR_VIDEO         "Video:"
 #define STR_VIDEO_2       "Video 2:"

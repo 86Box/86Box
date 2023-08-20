@@ -279,6 +279,7 @@ END
 #define STR_ENABLED_UTC   "有効にする (UTC)"
 #define STR_DYNAREC       "動的リコンパイラ"
 #define STR_SOFTFLOAT     "Softfloat FPU"
+#define STR_CACHE         "キャッシュ"
 
 #define STR_VIDEO         "ビデオカード:"
 #define STR_VIDEO_2       "ビデオカード 2:"

@@ -187,25 +187,26 @@
 #    define IDC_CHECK_DYNAREC 1017
 #endif
 #define IDC_CHECK_SOFTFLOAT       1018
-#define IDC_MEMTEXT               1019
-#define IDC_MEMSPIN               1020
+#define IDC_CHECK_CACHE           1019
+#define IDC_MEMTEXT               1020
+#define IDC_MEMSPIN               1021
 #define IDC_TEXT_MB               IDT_MB
 
-#define IDC_VIDEO                 1021 /* video config */
-#define IDC_COMBO_VIDEO           1022
-#define IDC_VIDEO_2               1023
-#define IDC_COMBO_VIDEO_2         1024
-#define IDC_CHECK_VOODOO          1025
-#define IDC_BUTTON_VOODOO         1026
-#define IDC_CHECK_IBM8514         1027
-#define IDC_CHECK_XGA             1028
-#define IDC_BUTTON_XGA            1029
+#define IDC_VIDEO                 1022 /* video config */
+#define IDC_COMBO_VIDEO           1023
+#define IDC_VIDEO_2               1024
+#define IDC_COMBO_VIDEO_2         1025
+#define IDC_CHECK_VOODOO          1026
+#define IDC_BUTTON_VOODOO         1027
+#define IDC_CHECK_IBM8514         1028
+#define IDC_CHECK_XGA             1029
+#define IDC_BUTTON_XGA            1030
 
-#define IDC_INPUT                 1030 /* input config */
-#define IDC_COMBO_MOUSE           1031
-#define IDC_COMBO_JOYSTICK        1032
-#define IDC_COMBO_JOY             1033
-#define IDC_CONFIGURE_MOUSE       1034
+#define IDC_INPUT                 1031 /* input config */
+#define IDC_COMBO_MOUSE           1032
+#define IDC_COMBO_JOYSTICK        1033
+#define IDC_COMBO_JOY             1034
+#define IDC_CONFIGURE_MOUSE       1035
 
 #define IDC_SOUND                 1040 /* sound config */
 #define IDC_COMBO_SOUND1          1041

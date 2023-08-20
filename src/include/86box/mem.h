@@ -298,6 +298,8 @@ extern int readlnum;
 extern int writelnum;
 
 extern int memspeed[11];
+extern int cache;
+extern int memwaitstate;
 
 extern int     mmu_perm;
 extern uint8_t high_page; /* if a high (> 4 gb) page was detected */
@@ -426,6 +428,8 @@ extern void     mem_write_ram_2gbl(uint32_t addr, uint32_t val, void *priv);
 extern int mem_addr_is_ram(uint32_t addr);
 
 extern uint64_t mmutranslate_noabrt(uint32_t addr, int rw);
+
+extern void mem_updatecache(void);
 
 extern void mem_invalidate_range(uint32_t start_addr, uint32_t end_addr);
 

@@ -297,8 +297,8 @@
        <widget class="QCheckBox" name="checkBoxDynamicRecompiler">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-          <horstretch>2</horstretch>
-          <verstretch>2</verstretch>
+          <horstretch>1</horstretch>
+          <verstretch>1</verstretch>
          </sizepolicy>
         </property>
         <property name="text">
@@ -310,12 +310,25 @@
        <widget class="QCheckBox" name="checkBoxFPUSoftfloat">
         <property name="sizePolicy">
          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
-          <horstretch>3</horstretch>
-          <verstretch>3</verstretch>
+          <horstretch>1</horstretch>
+          <verstretch>1</verstretch>
          </sizepolicy>
         </property>
         <property name="text">
          <string>SoftFloat FPU</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="checkBoxCache">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+          <horstretch>1</horstretch>
+          <verstretch>1</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="text">
+         <string>Cache</string>
         </property>
        </widget>
       </item>

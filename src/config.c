@@ -510,6 +510,7 @@ load_machine(void)
 
     cpu_use_dynarec = !!ini_section_get_int(cat, "cpu_use_dynarec", 0);
     fpu_softfloat = !!ini_section_get_int(cat, "fpu_softfloat", 0);
+    cache = !!ini_section_get_int(cat, "cache", 0);
     if (machine_has_flags(machine, MACHINE_SOFTFLOAT_ONLY))
         fpu_softfloat = 1;
 
@@ -2278,6 +2279,7 @@ save_machine(void)
 
     ini_section_set_int(cat, "cpu_use_dynarec", cpu_use_dynarec);
     ini_section_set_int(cat, "fpu_softfloat", fpu_softfloat);
+    ini_section_set_int(cat, "cache", cache);
 
     if (time_sync & TIME_SYNC_ENABLED)
         if (time_sync & TIME_SYNC_UTC)

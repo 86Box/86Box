@@ -279,6 +279,7 @@ END
 #define STR_ENABLED_UTC   "Aktiviert (UTC)"
 #define STR_DYNAREC       "Dynamischer Recompiler"
 #define STR_SOFTFLOAT     "Softfloat FPU"
+#define STR_CACHE         "Cachegeheugen"
 
 #define STR_VIDEO         "Videokarte:"
 #define STR_VIDEO_2       "Videokarte 2:"

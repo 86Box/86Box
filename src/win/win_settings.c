@@ -98,6 +98,7 @@ static uint32_t      temp_mem_size;
 static int temp_dynarec;
 #endif
 static int temp_fpu_softfloat;
+static int temp_cache;
 
 /* Video category */
 static int temp_gfxcard[2];
@@ -364,6 +365,7 @@ win_settings_init(void)
     temp_dynarec = cpu_use_dynarec;
 #endif
     temp_fpu_softfloat = fpu_softfloat;
+    temp_cache = cache;
     temp_fpu  = fpu_type;
     temp_sync = time_sync;
 
@@ -494,6 +496,7 @@ win_settings_changed(void)
     i = i || (temp_dynarec != cpu_use_dynarec);
 #endif
     i = i || (temp_fpu_softfloat != fpu_softfloat);
+    i = i || (temp_cache != cache);
     i = i || (temp_fpu != fpu_type);
     i = i || (temp_sync != time_sync);
 
@@ -588,6 +591,7 @@ win_settings_save(void)
     cpu_use_dynarec = temp_dynarec;
 #endif
     fpu_softfloat  = temp_fpu_softfloat;
+    cache = temp_cache;
     fpu_type  = temp_fpu;
     time_sync = temp_sync;
 
@@ -714,7 +718,8 @@ win_settings_machine_recalc_fpu(HWND hdlg)
         c++;
     }
 
-    settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? TRUE : temp_fpu_softfloat));
+    settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? TRUE : temp_fpu_softfloat));\
+    settings_set_check(hdlg, IDC_CHECK_CACHE, temp_cache);
     settings_enable_window(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? FALSE : TRUE));
 
     settings_enable_window(hdlg, IDC_COMBO_FPU, c > 1);
@@ -969,6 +974,7 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 #endif
 
             settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, 0);
+            settings_set_check(hdlg, IDC_CHECK_CACHE, 0);
 
             h  = GetDlgItem(hdlg, IDC_MEMSPIN);
             h2 = GetDlgItem(hdlg, IDC_MEMTEXT);
@@ -1064,6 +1070,8 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 #endif
 
             temp_fpu_softfloat = settings_get_check(hdlg, IDC_CHECK_SOFTFLOAT);
+
+            temp_cache = settings_get_check(hdlg, IDC_CHECK_CACHE);
 
             if (settings_get_check(hdlg, IDC_RADIO_TS_DISABLED))
                 temp_sync = TIME_SYNC_DISABLED;

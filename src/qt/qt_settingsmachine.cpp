@@ -125,6 +125,7 @@ SettingsMachine::save()
     fpu_type        = ui->comboBoxFPU->currentData().toInt();
     cpu_use_dynarec = ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0;
     fpu_softfloat   = ui->checkBoxFPUSoftfloat->isChecked() ? 1 : 0;
+    cache   = (ui->checkBoxCache->isChecked()) ? 1 : 0;
 
     int64_t temp_mem_size;
     if (machine_get_ram_granularity(machine) < 1024)
@@ -311,6 +312,8 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
                                              true : fpu_softfloat);
         ui->checkBoxFPUSoftfloat->setEnabled(machine_has_flags(machineId, MACHINE_SOFTFLOAT_ONLY) ?
                                              false : true);
+
+        ui->checkBoxCache->setChecked(cache);
     }
 }
 

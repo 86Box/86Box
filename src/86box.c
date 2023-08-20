@@ -181,6 +181,8 @@ int      cpu_use_dynarec                        = 0;              /* (C) cpu use
 int      cpu                                    = 0;              /* (C) cpu type */
 int      fpu_type                               = 0;              /* (C) fpu type */
 int      fpu_softfloat                          = 0;              /* (C) fpu uses softfloat */
+int      cache                                  = 0;
+                  /* (C) machine uses cache */
 int      time_sync                              = 0;              /* (C) enable time sync */
 int      confirm_reset                          = 1;              /* (C) enable reset confirmation */
 int      confirm_exit                           = 1;              /* (C) enable exit confirmation */
@@ -805,6 +807,8 @@ pc_speed_changed(void)
         pit_set_clock(cpu_s->rspeed);
     else
         pit_set_clock(14318184.0);
+    /* On speed change, update memory cache */
+    mem_updatecache();
 }
 
 void
@@ -1048,6 +1052,10 @@ pc_reset_hard_init(void)
 
     scsi_reset();
     scsi_device_init();
+
+    /* Reset and enable memory caching */
+
+    mem_updatecache();
 
     /* Initialize the actual machine and its basic modules. */
     machine_init();
