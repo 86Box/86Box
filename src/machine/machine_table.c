@@ -4708,11 +4708,11 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
-        .name = "[ISA] Compaq Deskpro 386 (January 1988)",
-        .internal_name = "deskpro386_01_1988",
+        .name = "[ISA] Compaq Deskpro 386 (May 1988)",
+        .internal_name = "deskpro386_05_1988",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_DISCRETE,
-        .init = machine_at_deskpro386_01_1988_init,
+        .init = machine_at_deskpro386_05_1988_init,
         .pad = 0,
         .pad0 = 0,
         .pad1 = MACHINE_AVAILABLE,
