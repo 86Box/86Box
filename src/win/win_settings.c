@@ -718,7 +718,7 @@ win_settings_machine_recalc_fpu(HWND hdlg)
         c++;
     }
 
-    settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? TRUE : temp_fpu_softfloat));\
+    settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? TRUE : temp_fpu_softfloat));
     settings_set_check(hdlg, IDC_CHECK_CACHE, temp_cache);
     settings_enable_window(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? FALSE : TRUE));
 
