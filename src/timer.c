@@ -15,8 +15,6 @@ pc_timer_t *timer_head = NULL;
 /* Are we initialized? */
 int timer_inited = 0;
 
-static int  timer_in_process = 0;
-
 static void timer_advance_ex(pc_timer_t *timer, int start);
 
 void
@@ -116,8 +114,6 @@ timer_process(void)
     if (!timer_head)
         return;
 
-    timer_in_process = 0;
-
     while (1) {
         timer = timer_head;
 
@@ -141,8 +137,6 @@ timer_process(void)
     }
 
     timer_target = timer_head->ts.ts32.integer;
-
-    timer_in_process = 1;
 }
 
 void
@@ -250,7 +244,7 @@ timer_on_auto(pc_timer_t *timer, double period)
         return;
 
     if (period > 0.0)
-        timer_on(timer, period, !timer_in_process && (timer->period <= 0.0));
+        timer_on(timer, period, timer->period <= 0.0);
     else
         timer_stop(timer);
 }
