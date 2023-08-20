@@ -247,17 +247,28 @@ viso_convert_utf8(wchar_t *dest, const char *src, ssize_t buf_size)
                         c -= 'a' - 'A';                                             \
                     break;                                                          \
                                                                                     \
-                case ' ':                                                           \
                 case '!':                                                           \
-                case '"':                                                           \
+                case '#':                                                           \
+                case '$':                                                           \
                 case '%':                                                           \
                 case '&':                                                           \
                 case '\'':                                                          \
                 case '(':                                                           \
                 case ')':                                                           \
+                case '-':                                                           \
+                case '@':                                                           \
+                case '^':                                                           \
+                case '`':                                                           \
+                case '{':                                                           \
+                case '}':                                                           \
+                case '~':                                                           \
+                    /* Valid on all sets (non-complying DOS characters). */         \
+                    break;                                                          \
+                                                                                    \
+                case ' ':                                                           \
+                case '"':                                                           \
                 case '+':                                                           \
                 case ',':                                                           \
-                case '-':                                                           \
                 case '.':                                                           \
                 case '<':                                                           \
                 case '=':                                                           \
