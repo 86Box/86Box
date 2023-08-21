@@ -2598,10 +2598,10 @@ machine_amstrad_init(const machine_t *model, int type)
     io_sethandler(0x0060, 7,
                   kbd_read, NULL, NULL, kbd_write, NULL, NULL, ams);
     timer_add(&ams->send_delay_timer, kbd_poll, ams, 1);
-    if (type == AMS_PC200)
-        keyboard_set_table(scancode_pc200);
-    else
+    if (type == AMS_PC1512)
         keyboard_set_table(scancode_xt);
+    else
+        keyboard_set_table(scancode_pc200);
     keyboard_send = kbd_adddata_ex;
     keyboard_scan = 1;
     keyboard_set_is_amstrad(((type == AMS_PC1512) || (type == AMS_PC1640)) ? 0 : 1);

@@ -13,6 +13,7 @@
 #include "cpu.h"
 #include <86box/timer.h>
 #include "x86.h"
+#include "x86seg_common.h"
 #include "x87.h"
 #include <86box/nmi.h>
 #include <86box/mem.h>
@@ -23,9 +24,10 @@
 #include <86box/fdc.h>
 #include <86box/keyboard.h>
 #include <86box/timer.h>
+
+#include "x86seg.h"
 #include "386_common.h"
 #include "x86_flags.h"
-#include "x86seg.h"
 #include <86box/plat_unused.h>
 
 #ifdef USE_DYNAREC
@@ -1184,7 +1186,10 @@ enter_smm(int in_hlt)
     if (is_cxsmm) {
         cpu_state.pc = 0x0000;
         cpl_override = 1;
-        cyrix_write_seg_descriptor(smram_state - 0x20, &cpu_state.seg_cs);
+        if (is486)
+            cyrix_write_seg_descriptor(smram_state - 0x20, &cpu_state.seg_cs);
+        else
+            cyrix_write_seg_descriptor_2386(smram_state - 0x20, &cpu_state.seg_cs);
         cpl_override             = 0;
         cpu_state.seg_cs.seg     = (cyrix.arr[3].base >> 4);
         cpu_state.seg_cs.base    = cyrix.arr[3].base;
@@ -1317,7 +1322,10 @@ leave_smm(void)
         saved_state[3] = readmeml(0, smram_state - 0x10);
         saved_state[4] = readmeml(0, smram_state - 0x14);
         saved_state[5] = readmeml(0, smram_state - 0x18);
-        cyrix_load_seg_descriptor(smram_state - 0x20, &cpu_state.seg_cs);
+        if (is486)
+            cyrix_load_seg_descriptor(smram_state - 0x20, &cpu_state.seg_cs);
+        else
+            cyrix_load_seg_descriptor_2386(smram_state - 0x20, &cpu_state.seg_cs);
         saved_state[6] = readmeml(0, smram_state - 0x24);
     } else {
         for (uint8_t n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
@@ -1403,7 +1411,7 @@ x86_int(int num)
     cpu_state.pc = cpu_state.oldpc;
 
     if (msw & 1)
-        pmodeint(num, 0);
+        is486 ? pmodeint(num, 0) : pmodeint_2386(num, 0);
     else {
         addr = (num << 2) + idt.base;
 
@@ -1436,7 +1444,7 @@ x86_int(int num)
             oxpc = cpu_state.pc;
 #endif
             cpu_state.pc = readmemw(0, addr);
-            loadcs(readmemw(0, addr + 2));
+            is486 ? loadcs(readmemw(0, addr + 2)) : loadcs_2386(readmemw(0, addr + 2));
         }
     }
 
@@ -1453,7 +1461,7 @@ x86_int_sw(int num)
     cycles -= timing_int;
 
     if (msw & 1)
-        pmodeint(num, 1);
+        is486 ? pmodeint(num, 1) : pmodeint_2386(num, 1);
     else {
         addr = (num << 2) + idt.base;
 
@@ -1478,7 +1486,7 @@ x86_int_sw(int num)
             oxpc = cpu_state.pc;
 #endif
             cpu_state.pc = readmemw(0, addr);
-            loadcs(readmemw(0, addr + 2));
+            is486 ? loadcs(readmemw(0, addr + 2)) : loadcs_2386(readmemw(0, addr + 2));
             cycles -= timing_int_rm;
         }
     }
@@ -1520,7 +1528,7 @@ x86_int_sw_rm(int num)
     cpu_state.eflags &= ~VIF_FLAG;
     cpu_state.flags &= ~T_FLAG;
     cpu_state.pc = new_pc;
-    loadcs(new_cs);
+    is486 ? loadcs(new_cs) : loadcs_2386(new_cs);
 #ifndef USE_NEW_DYNAREC
     oxpc = cpu_state.pc;
 #endif

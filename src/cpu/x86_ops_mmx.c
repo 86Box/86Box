@@ -23,9 +23,10 @@
 #include <86box/fdc.h>
 #include <86box/keyboard.h>
 #include <86box/timer.h>
+#include "x86seg_common.h"
+#include "x86seg.h"
 #include "386_common.h"
 #include "x86_flags.h"
-#include "x86seg.h"
 
 MMX_REG  *MMP[8];
 uint16_t *MMEP[8];
