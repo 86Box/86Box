@@ -13,6 +13,8 @@
 #include <86box/timer.h>
 #include "x86.h"
 #include "x86_ops.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
 #include "x87.h"
 #include "x86_flags.h"
 #include <86box/io.h>

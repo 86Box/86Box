@@ -29,6 +29,7 @@
 #include "cpu.h"
 #include "x86_ops.h"
 #include "x86.h"
+#include "x86seg_common.h"
 #include <86box/machine.h>
 #include <86box/m_xt_xi8088.h>
 #include <86box/config.h>

@@ -49,6 +49,8 @@
 #    include "x86.h"
 #    include "x86_flags.h"
 #    include "x86_ops.h"
+#    include "x86seg_common.h"
+#    include "x86seg.h"
 #    include "x87.h"
 /*ex*/
 #    include <86box/nmi.h>
