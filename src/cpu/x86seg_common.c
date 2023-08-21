@@ -90,7 +90,6 @@ x86de(UNUSED(char *s), UNUSED(uint16_t error))
 void
 x86gpf(UNUSED(char *s), uint16_t error)
 {
-    pclog("GPF %04X: %s\n", error, s);
     cpu_state.abrt = ABRT_GPF;
     abrt_error     = error;
 }
