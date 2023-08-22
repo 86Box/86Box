@@ -181,8 +181,7 @@ int      cpu_use_dynarec                        = 0;              /* (C) cpu use
 int      cpu                                    = 0;              /* (C) cpu type */
 int      fpu_type                               = 0;              /* (C) fpu type */
 int      fpu_softfloat                          = 0;              /* (C) fpu uses softfloat */
-int      cache                                  = 0;
-                  /* (C) machine uses cache */
+int      cache                                  = 0;              /* (C) machine uses cache */
 int      time_sync                              = 0;              /* (C) enable time sync */
 int      confirm_reset                          = 1;              /* (C) enable reset confirmation */
 int      confirm_exit                           = 1;              /* (C) enable exit confirmation */

@@ -99,7 +99,6 @@ int shadowbios_write;
 int readlnum  = 0;
 int writelnum = 0;
 int cachesize = 256;
-int cache;
 
 uint32_t get_phys_virt;
 uint32_t get_phys_phys;
