@@ -487,21 +487,6 @@ cycles_biu(int bus, int init)
     BUS_CYCLE_NEXT;
 }
 
-#ifdef REENIGNE_MODELING
-static void
-bus_init(void)
-{
-    /* Replacement for the old access() stuff. */
-    if ((BUS_CYCLE == BUS_T4) && last_was_code && (opcode != 0x8f) && (opcode != 0xc7) && (opcode != 0xcc) && (opcode != 0xcd) && (opcode != 0xce) && ((opcode & 0xf0) != 0xa0))
-        cycles_idle(1);
-
-    cycles_idle(2);
-
-    while ((BUS_CYCLE == BUS_T2) || (BUS_CYCLE == BUS_T3))
-        cycles_idle(1);
-}
-#endif
-
 /* Bus:
    0    CPU cycles without bus access.
    1    CPU cycle T1-T4, bus access.
@@ -561,10 +546,6 @@ resub_cycles(int old_cycles)
 static void
 cpu_io(int bits, int out, uint16_t port)
 {
-#ifdef REENIGNE_MODELING
-    bus_init();
-#endif
-
     if (out) {
         if (bits == 16) {
             if (is8086 && !(port & 1)) {
@@ -608,10 +589,6 @@ readmemb(uint32_t s, uint16_t a)
 {
     uint8_t ret;
 
-#ifdef REENIGNE_MODELING
-    bus_init();
-#endif
-
     mem_seg          = s;
     mem_addr         = a;
     bus_request_type = BUS_MEM;
@@ -641,10 +618,6 @@ static uint16_t
 readmemw(uint32_t s, uint16_t a)
 {
     uint16_t ret;
-
-#ifdef REENIGNE_MODELING
-    bus_init();
-#endif
 
     mem_seg  = s;
     mem_addr = a;
@@ -715,10 +688,6 @@ writememb(uint32_t s, uint32_t a, uint8_t v)
 {
     uint32_t addr = s + a;
 
-#ifdef REENIGNE_MODELING
-    bus_init();
-#endif
-
     mem_seg          = s;
     mem_addr         = a;
     mem_data         = v;
@@ -735,10 +704,6 @@ static void
 writememw(uint32_t s, uint32_t a, uint16_t v)
 {
     uint32_t addr = s + a;
-
-#ifdef REENIGNE_MODELING
-    bus_init();
-#endif
 
     mem_seg  = s;
     mem_addr = a;
