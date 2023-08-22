@@ -393,6 +393,9 @@ void mtr_flush_with_state(int is_last) {
             case 'X':
                 snprintf(id_buf, ARRAY_SIZE(id_buf), ",\"dur\":%i", (int)raw->a_double);
                 break;
+
+            default:
+                break;
             }
         } else {
             id_buf[0] = 0;
