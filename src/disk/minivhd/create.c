@@ -245,11 +245,11 @@ mvhd_create_fixed_raw(const char* path, FILE* raw_img, uint64_t size_in_bytes, M
         goto end;
     }
 
-    FILE* f = mvhd_fopen(path, "wb+", err);
-    if (f == NULL) {
+    FILE* fp = mvhd_fopen(path, "wb+", err);
+    if (fp == NULL) {
         goto cleanup_vhdm;
     }
-    mvhd_fseeko64(f, 0, SEEK_SET);
+    mvhd_fseeko64(fp, 0, SEEK_SET);
 
     uint32_t size_sectors = (uint32_t)(size_in_bytes / MVHD_SECTOR_SIZE);
     uint32_t s;
@@ -269,22 +269,22 @@ mvhd_create_fixed_raw(const char* path, FILE* raw_img, uint64_t size_in_bytes, M
         mvhd_fseeko64(raw_img, 0, SEEK_SET);
         for (s = 0; s < size_sectors; s++) {
             (void) !fread(img_data, sizeof img_data, 1, raw_img);
-            fwrite(img_data, sizeof img_data, 1, f);
+            fwrite(img_data, sizeof img_data, 1, fp);
             if (progress_callback)
                 progress_callback(s + 1, size_sectors);
         }
     } else {
         gen_footer(&vhdm->footer, size_in_bytes, geom, MVHD_TYPE_FIXED, 0);
         for (s = 0; s < size_sectors; s++) {
-            fwrite(img_data, sizeof img_data, 1, f);
+            fwrite(img_data, sizeof img_data, 1, fp);
             if (progress_callback)
                 progress_callback(s + 1, size_sectors);
         }
     }
     mvhd_footer_to_buffer(&vhdm->footer, footer_buff);
-    fwrite(footer_buff, sizeof footer_buff, 1, f);
-    fclose(f);
-    f = NULL;
+    fwrite(footer_buff, sizeof footer_buff, 1, fp);
+    fclose(fp);
+    fp = NULL;
     free(vhdm);
     vhdm = mvhd_open(path, false, err);
     goto end;
@@ -352,11 +352,11 @@ create_sparse_diff(const char* path, const char* par_path, uint64_t size_in_byte
         goto cleanup_vhdm;
     }
 
-    FILE* f = mvhd_fopen(path, "wb+", err);
-    if (f == NULL) {
+    FILE* fp = mvhd_fopen(path, "wb+", err);
+    if (fp == NULL) {
         goto cleanup_vhdm;
     }
-    mvhd_fseeko64(f, 0, SEEK_SET);
+    mvhd_fseeko64(fp, 0, SEEK_SET);
 
     /* Note, the sparse header follows the footer copy at the beginning of the file */
     if (par_path == NULL) {
@@ -367,7 +367,7 @@ create_sparse_diff(const char* path, const char* par_path, uint64_t size_in_byte
     mvhd_footer_to_buffer(&vhdm->footer, footer_buff);
 
     /* As mentioned, start with a copy of the footer */
-    fwrite(footer_buff, sizeof footer_buff, 1, f);
+    fwrite(footer_buff, sizeof footer_buff, 1, fp);
 
     /**
      * Calculate the number of (2MB or 512KB) data blocks required to store the entire
@@ -417,20 +417,20 @@ create_sparse_diff(const char* path, const char* par_path, uint64_t size_in_byte
     }
     gen_sparse_header(&vhdm->sparse, num_blks, bat_offset, block_size_in_sectors);
     mvhd_header_to_buffer(&vhdm->sparse, sparse_buff);
-    fwrite(sparse_buff, sizeof sparse_buff, 1, f);
+    fwrite(sparse_buff, sizeof sparse_buff, 1, fp);
 
     /* The BAT sectors need to be filled with 0xffffffff */
     for (uint32_t k = 0; k < num_bat_sect; k++) {
-        fwrite(bat_sect, sizeof bat_sect, 1, f);
+        fwrite(bat_sect, sizeof bat_sect, 1, fp);
     }
-    mvhd_write_empty_sectors(f, 5);
+    mvhd_write_empty_sectors(fp, 5);
 
     /**
      * If creating a differencing VHD, the paths to the parent image need to be written
      * tp the file. Both absolute and relative paths are written
      * */
     if (par_vhdm != NULL) {
-        uint64_t curr_pos = (uint64_t)mvhd_ftello64(f);
+        uint64_t curr_pos = (uint64_t)mvhd_ftello64(fp);
 
         /* Double check my sums... */
         assert(curr_pos == par_loc_offset);
@@ -440,25 +440,25 @@ create_sparse_diff(const char* path, const char* par_path, uint64_t size_in_byte
 
         for (int i = 0; i < 2; i++) {
             for (uint32_t j = 0; j < (vhdm->sparse.par_loc_entry[i].plat_data_space / MVHD_SECTOR_SIZE); j++) {
-                fwrite(empty_sect, sizeof empty_sect, 1, f);
+                fwrite(empty_sect, sizeof empty_sect, 1, fp);
             }
         }
 
         /* Now write the location entries */
-        mvhd_fseeko64(f, vhdm->sparse.par_loc_entry[0].plat_data_offset, SEEK_SET);
-        fwrite(w2ku_path_buff, vhdm->sparse.par_loc_entry[0].plat_data_len, 1, f);
-        mvhd_fseeko64(f, vhdm->sparse.par_loc_entry[1].plat_data_offset, SEEK_SET);
-        fwrite(w2ru_path_buff, vhdm->sparse.par_loc_entry[1].plat_data_len, 1, f);
+        mvhd_fseeko64(fp, vhdm->sparse.par_loc_entry[0].plat_data_offset, SEEK_SET);
+        fwrite(w2ku_path_buff, vhdm->sparse.par_loc_entry[0].plat_data_len, 1, fp);
+        mvhd_fseeko64(fp, vhdm->sparse.par_loc_entry[1].plat_data_offset, SEEK_SET);
+        fwrite(w2ru_path_buff, vhdm->sparse.par_loc_entry[1].plat_data_len, 1, fp);
 
         /* and reset the file position to continue */
-        mvhd_fseeko64(f, vhdm->sparse.par_loc_entry[1].plat_data_offset + vhdm->sparse.par_loc_entry[1].plat_data_space, SEEK_SET);
-        mvhd_write_empty_sectors(f, 5);
+        mvhd_fseeko64(fp, vhdm->sparse.par_loc_entry[1].plat_data_offset + vhdm->sparse.par_loc_entry[1].plat_data_space, SEEK_SET);
+        mvhd_write_empty_sectors(fp, 5);
     }
 
     /* And finish with the footer */
-    fwrite(footer_buff, sizeof footer_buff, 1, f);
-    fclose(f);
-    f = NULL;
+    fwrite(footer_buff, sizeof footer_buff, 1, fp);
+    fclose(fp);
+    fp = NULL;
     free(vhdm);
     vhdm = mvhd_open(path, false, err);
     goto end;
