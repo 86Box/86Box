@@ -1017,7 +1017,7 @@ load_storage_controllers(void)
         p = ini_section_get_string(cat, temp, "");
 
         if (!strcmp(p, usr_path))
-            p[0] == 0x00;
+            p[0] = 0x00;
 
         if (p[0] != 0x00) {
             if (path_abs(p)) {
@@ -1185,7 +1185,7 @@ load_hard_disks(void)
          * So we should not convert absolute paths to relative. -sards
          */
         if (!strcmp(p, usr_path))
-            p[0] == 0x00;
+            p[0] = 0x00;
 
         if (p[0] != 0x00) {
             if (path_abs(p)) {
@@ -1256,7 +1256,7 @@ load_floppy_drives(void)
         ini_section_delete_var(cat, temp);
 
         if (!strcmp(p, usr_path))
-            p[0] == 0x00;
+            p[0] = 0x00;
 
         if (p[0] != 0x00) {
             if (path_abs(p)) {
@@ -1316,7 +1316,7 @@ load_floppy_and_cdrom_drives(void)
         p = ini_section_get_string(cat, temp, "");
 
         if (!strcmp(p, usr_path))
-            p[0] == 0x00;
+            p[0] = 0x00;
 
         if (p[0] != 0x00) {
             if (path_abs(p)) {
@@ -1459,7 +1459,7 @@ load_floppy_and_cdrom_drives(void)
         p = ini_section_get_string(cat, temp, "");
 
         if (!strcmp(p, usr_path))
-            p[0] == 0x00;
+            p[0] = 0x00;
 
         if (p[0] != 0x00) {
             if (path_abs(p)) {
@@ -1593,7 +1593,7 @@ load_other_removable_devices(void)
             ini_section_delete_var(cat, temp);
 
             if (!strcmp(p, usr_path))
-                p[0] == 0x00;
+                p[0] = 0x00;
 
             if (p[0] != 0x00) {
                 if (path_abs(p)) {
@@ -1676,7 +1676,7 @@ load_other_removable_devices(void)
         p = ini_section_get_string(cat, temp, "");
 
         if (!strcmp(p, usr_path))
-            p[0] == 0x00;
+            p[0] = 0x00;
 
         if (p[0] != 0x00) {
             if (path_abs(p)) {
@@ -1792,7 +1792,7 @@ load_other_removable_devices(void)
         p = ini_section_get_string(cat, temp, "");
 
         if (!strcmp(p, usr_path))
-            p[0] == 0x00;
+            p[0] = 0x00;
 
         if (p[0] != 0x00) {
             if (path_abs(p)) {
