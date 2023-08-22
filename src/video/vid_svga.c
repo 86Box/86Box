@@ -207,9 +207,9 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
             svga_recalctimings(svga);
             break;
         case 0x3c3:
-            if (xga_enabled)
+            if (xga_active)
                 xga->on = (val & 0x01) ? 0 : 1;
-            if (ibm8514_enabled)
+            if (ibm8514_active)
                 dev->on = (val & 0x01) ? 0 : 1;
 
             vga_on = val & 0x01;
@@ -517,7 +517,7 @@ svga_set_ramdac_type(svga_t *svga, int type)
         svga->ramdac_type = type;
 
         for (int c = 0; c < 256; c++) {
-            if (ibm8514_enabled) {
+            if (ibm8514_active) {
                 if (svga->ramdac_type == RAMDAC_8BIT)
                     dev->pallook[c] = makecol32(svga->vgapal[c].r, svga->vgapal[c].g, svga->vgapal[c].b);
                 else
@@ -706,12 +706,12 @@ svga_recalctimings(svga_t *svga)
         svga->recalctimings_ex(svga);
     }
 
-    if (ibm8514_enabled) {
+    if (ibm8514_active) {
         if (!dev->local)
             ibm8514_recalctimings(svga);
     }
 
-    if (xga_enabled)
+    if (xga_active)
         xga_recalctimings(svga);
 
     if (svga->hdisp >= 2048)
@@ -815,11 +815,11 @@ svga_poll(void *priv)
     int        ret;
     int        old_ma;
 
-    if (ibm8514_enabled && dev->on) {
+    if (ibm8514_active && dev->on) {
         ibm8514_poll(dev, svga);
         return;
     }
-    if (xga_enabled && xga->on) {
+    if (xga_active && xga->on) {
         xga_poll(xga, svga);
         return;
     }
@@ -1231,7 +1231,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
     cycles -= svga->monitor->mon_video_timing_write_b;
 
     if (!linear) {
-        if (xga_enabled) {
+        if (xga_active) {
             if (((xga->op_mode & 7) >= 4) && (xga->aperture_cntl >= 1)) {
                 if (val == 0xa5) { /*Memory size test of XGA*/
                     xga->test    = val;
@@ -1438,7 +1438,7 @@ svga_read_common(uint32_t addr, uint8_t linear, void *priv)
     cycles -= svga->monitor->mon_video_timing_read_b;
 
     if (!linear) {
-        if (xga_enabled) {
+        if (xga_active) {
             if (((xga->op_mode & 7) >= 4) && (xga->aperture_cntl >= 1)) {
                 if (xga->test == 0xa5) { /*Memory size test of XGA*/
                     xga->on = 1;

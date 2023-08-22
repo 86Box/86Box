@@ -208,7 +208,8 @@ extern double cpuclock;
 extern int    emu_fps;
 extern int    frames;
 extern int    readflash;
-extern int    ibm8514_has_vga;
+extern int    ibm8514_active;
+extern int    xga_active;
 
 /* Function handler pointers. */
 extern void (*video_recalctimings)(void);
