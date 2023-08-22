@@ -56,7 +56,8 @@ typedef struct {
 static uint8_t
 zenith_scratchpad_read(uint32_t addr, void *priv)
 {
-    zenith_t *dev = (zenith_t *) priv;
+    const zenith_t *dev = (zenith_t *) priv;
+
     return dev->scratchpad_ram[addr & 0x3fff];
 }
 
