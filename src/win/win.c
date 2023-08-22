@@ -739,7 +739,7 @@ path_slash(char *path)
 }
 
 /* Return a trailing (back)slash if necessary. */
-char *
+const char *
 path_get_slash(char *path)
 {
     char *ret = "";
