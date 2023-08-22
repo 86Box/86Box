@@ -173,7 +173,6 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #    endif
 #endif
 
-#include "x86seg.h"
 #include "x86_ops_arith.h"
 #include "x86_ops_atomic.h"
 #include "x86_ops_bcd.h"

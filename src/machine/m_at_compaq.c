@@ -52,7 +52,7 @@ enum {
     COMPAQ_PORTABLEIII,
     COMPAQ_PORTABLEIII386,
     COMPAQ_DESKPRO386,
-    COMPAQ_DESKPRO386_01_1988
+    COMPAQ_DESKPRO386_05_1988
 };
 
 #define CGA_RGB       0
@@ -829,7 +829,7 @@ machine_at_compaq_init(const machine_t *model, int type)
             break;
 
         case COMPAQ_DESKPRO386:
-        case COMPAQ_DESKPRO386_01_1988:
+        case COMPAQ_DESKPRO386_05_1988:
             if (hdc_current == 1)
                 device_add(&ide_isa_device);
             device_add(&compaq_386_device);
@@ -909,17 +909,17 @@ machine_at_deskpro386_init(const machine_t *model)
 }
 
 int
-machine_at_deskpro386_01_1988_init(const machine_t *model)
+machine_at_deskpro386_05_1988_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linearr("roms/machines/deskpro386/1988-01-28.json.bin",
+    ret = bios_load_linearr("roms/machines/deskpro386/1988-05-10.json.bin",
                             0x000f8000, 65536, 0);
 
     if (bios_only || !ret)
         return ret;
 
-    machine_at_compaq_init(model, COMPAQ_DESKPRO386_01_1988);
+    machine_at_compaq_init(model, COMPAQ_DESKPRO386_05_1988);
 
     return ret;
 }

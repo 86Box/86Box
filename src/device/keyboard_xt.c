@@ -662,7 +662,7 @@ kbd_read(uint16_t port, void *priv)
                     /* LaserXT = Always 512k RAM;
                        LaserXT/3 = Bit 0: set = 512k, clear = 256k. */
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
-                    if (kbd->type == KBD_TYPE_TOSHIBA)
+                    if (kbd->type == KBD_TYPE_VTECH)
                         ret = ((mem_size == 512) ? 0x0d : 0x0c) | (hasfpu ? 0x02 : 0x00);
                     else
 #endif

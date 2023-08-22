@@ -14,6 +14,7 @@
 #include "cpu.h"
 #include "x86.h"
 #include "x86_ops.h"
+#include "x86seg_common.h"
 #include "x87.h"
 #include <86box/io.h>
 #include <86box/nmi.h>
@@ -28,6 +29,7 @@
 #ifndef OPS_286_386
 #    define OPS_286_386
 #endif
+#include "x86seg.h"
 #include "386_common.h"
 #ifdef USE_NEW_DYNAREC
 #    include "codegen.h"
@@ -291,7 +293,7 @@ exec386_2386(int cycs)
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
                 cpu_state.abrt = 0;
-                x86_doabrt(tempi);
+                x86_doabrt_2386(tempi);
                 if (cpu_state.abrt) {
                     cpu_state.abrt = 0;
 #ifndef USE_NEW_DYNAREC
@@ -299,7 +301,7 @@ exec386_2386(int cycs)
 #endif
                     cpu_state.pc = cpu_state.oldpc;
                     x386_log("Double fault\n");
-                    pmodeint(8, 0);
+                    pmodeint_2386(8, 0);
                     if (cpu_state.abrt) {
                         cpu_state.abrt = 0;
                         softresetx86();
@@ -342,7 +344,7 @@ exec386_2386(int cycs)
                 if (vector != -1) {
                     flags_rebuild();
                     if (msw & 1)
-                        pmodeint(vector, 0);
+                        pmodeint_2386(vector, 0);
                     else {
                         writememw(ss, (SP - 2) & 0xFFFF, cpu_state.flags);
                         writememw(ss, (SP - 4) & 0xFFFF, CS);
@@ -352,7 +354,7 @@ exec386_2386(int cycs)
                         cpu_state.flags &= ~I_FLAG;
                         cpu_state.flags &= ~T_FLAG;
                         cpu_state.pc = readmemw(0, addr);
-                        loadcs(readmemw(0, addr + 2));
+                        loadcs_2386(readmemw(0, addr + 2));
                     }
                 }
             }
