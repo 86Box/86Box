@@ -272,7 +272,7 @@ it8661f_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 it8661f_read(uint16_t addr, void *priv)
 {
-    it8661f_t *dev = (it8661f_t *) priv;
+    const it8661f_t *dev = (it8661f_t *) priv;
 
     it8661_log("IT8661F:\n", addr, dev->regs[dev->index]);
     return (addr == 0xa79) ? dev->regs[dev->index] : 0xff;
