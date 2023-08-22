@@ -173,8 +173,8 @@ herculesplus_out(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 herculesplus_in(uint16_t port, void *priv)
 {
-    herculesplus_t *dev = (herculesplus_t *) priv;
-    uint8_t         ret = 0xff;
+    const herculesplus_t *dev = (herculesplus_t *) priv;
+    uint8_t               ret = 0xff;
 
     switch (port) {
         case 0x3b0:
@@ -215,7 +215,7 @@ herculesplus_write(uint32_t addr, uint8_t val, void *priv)
 static uint8_t
 herculesplus_read(uint32_t addr, void *priv)
 {
-    herculesplus_t *dev = (herculesplus_t *) priv;
+    const herculesplus_t *dev = (herculesplus_t *) priv;
 
     return dev->vram[addr & 0xffff];
 }
@@ -355,7 +355,7 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
     if (font >= 12)
         font &= 7;
 
-    attr = (attr >> 4) ^ 0x0f;;
+    attr = (attr >> 4) ^ 0x0f;
 
     blk = 0;
     if (blink) {
