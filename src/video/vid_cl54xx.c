@@ -3871,7 +3871,8 @@ gd5428_mca_write(int port, uint8_t val, void *priv)
 static uint8_t
 gd5428_mca_feedb(void *priv)
 {
-    gd54xx_t *gd54xx = (gd54xx_t *) priv;
+    const gd54xx_t *gd54xx = (gd54xx_t *) priv;
+
     return gd54xx->pos_regs[2] & 0x01;
 }
 

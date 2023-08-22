@@ -286,7 +286,6 @@ draw_char_ram4(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
     unsigned       val;
     unsigned       ifg;
     unsigned       ibg;
-    unsigned       cfg;
     const uint8_t *fnt;
     int            elg;
     int            blk;
@@ -346,7 +345,6 @@ draw_char_ram48(herculesplus_t *dev, int x, uint8_t chr, uint8_t attr)
     unsigned       val;
     unsigned       ifg;
     unsigned       ibg;
-    unsigned       cfg;
     const uint8_t *fnt;
     int            elg;
     int            blk;
