@@ -288,16 +288,17 @@ typedef struct _machine_cpu_ {
 } machine_cpu_t;
 
 typedef struct _machine_memory_ {
-    uint32_t min, max;
+    uint32_t min;
+    uint32_t max;
     int      step;
 } machine_memory_t;
 
 typedef struct _machine_ {
-    const char *name;
-    const char *internal_name;
-    uint32_t    type;
-    uintptr_t   chipset;
-    int (*init)(const struct _machine_ *);
+    const char            *name;
+    const char            *internal_name;
+    uint32_t               type;
+    uintptr_t              chipset;
+    int                  (*init)(const struct _machine_ *);
     uintptr_t              pad;
     uintptr_t              pad0;
     uintptr_t              pad1;
@@ -339,18 +340,18 @@ typedef struct _machine_ {
 /* Global variables. */
 extern const machine_filter_t machine_types[];
 extern const machine_filter_t machine_chipsets[];
-extern const machine_t machines[];
-extern int             bios_only;
-extern int             machine;
+extern const machine_t        machines[];
+extern int                    bios_only;
+extern int                    machine;
 
 /* Core functions. */
-extern int   machine_count(void);
-extern int   machine_available(int m);
-extern char *machine_getname(void);
-extern char *machine_getname_ex(int m);
-extern char *machine_get_internal_name(void);
-extern int   machine_get_machine_from_internal_name(char *s);
-extern void  machine_init(void);
+extern int         machine_count(void);
+extern int         machine_available(int m);
+extern const char *machine_getname(void);
+extern const char *machine_getname_ex(int m);
+extern const char *machine_get_internal_name(void);
+extern int         machine_get_machine_from_internal_name(const char *s);
+extern void        machine_init(void);
 #ifdef EMU_DEVICE_H
 extern const device_t *machine_get_kbc_device(int m);
 extern const device_t *machine_get_device(int m);
@@ -360,18 +361,18 @@ extern const device_t *machine_get_vid_device(int m);
 extern const device_t *machine_get_snd_device(int m);
 extern const device_t *machine_get_net_device(int m);
 #endif
-extern char *machine_get_internal_name_ex(int m);
-extern int   machine_get_nvrmask(int m);
-extern int   machine_has_flags(int m, int flags);
-extern int   machine_has_bus(int m, int bus_flags);
-extern int   machine_has_cartridge(int m);
-extern int   machine_get_min_ram(int m);
-extern int   machine_get_max_ram(int m);
-extern int   machine_get_ram_granularity(int m);
-extern int   machine_get_type(int m);
-extern void  machine_close(void);
-extern int   machine_has_mouse(void);
-extern int   machine_is_sony(void);
+extern const char *machine_get_internal_name_ex(int m);
+extern int         machine_get_nvrmask(int m);
+extern int         machine_has_flags(int m, int flags);
+extern int         machine_has_bus(int m, int bus_flags);
+extern int         machine_has_cartridge(int m);
+extern int         machine_get_min_ram(int m);
+extern int         machine_get_max_ram(int m);
+extern int         machine_get_ram_granularity(int m);
+extern int         machine_get_type(int m);
+extern void        machine_close(void);
+extern int         machine_has_mouse(void);
+extern int         machine_is_sony(void);
 
 extern uint8_t  machine_get_p1(void);
 extern void     machine_load_p1(int m);

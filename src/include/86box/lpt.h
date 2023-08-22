@@ -21,13 +21,13 @@ typedef struct lpt_device_t {
     const char *name;
     const char *internal_name;
 
-    void *(*init)(void *lpt);
-    void (*close)(void *p);
-    void (*write_data)(uint8_t val, void *p);
-    void (*write_ctrl)(uint8_t val, void *p);
-    uint8_t (*read_data)(void *p);
-    uint8_t (*read_status)(void *p);
-    uint8_t (*read_ctrl)(void *p);
+    void   *(*init)(void *lpt);
+    void    (*close)(void *priv);
+    void    (*write_data)(uint8_t val, void *priv);
+    void    (*write_ctrl)(uint8_t val, void *priv);
+    uint8_t (*read_data)(void *priv);
+    uint8_t (*read_status)(void *priv);
+    uint8_t (*read_ctrl)(void *priv);
 } lpt_device_t;
 
 extern void lpt_init(void);
@@ -65,7 +65,7 @@ extern void lpt1_remove_ams(void);
 void lpt_devices_init(void);
 void lpt_devices_close(void);
 
-typedef struct {
+typedef struct lpt_port_t {
     uint8_t       enabled;
     uint8_t       irq;
     uint8_t       dat;

@@ -229,17 +229,17 @@ extern int video_card_available(int card);
 #ifdef EMU_DEVICE_H
 extern const device_t *video_card_getdevice(int card);
 #endif
-extern int   video_card_has_config(int card);
-extern char *video_get_internal_name(int card);
-extern int   video_get_video_from_internal_name(char *s);
-extern int   video_card_get_flags(int card);
-extern int   video_is_mda(void);
-extern int   video_is_cga(void);
-extern int   video_is_ega_vga(void);
-extern int   video_is_8514(void);
-extern int   video_is_xga(void);
-extern void  video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
-extern int   video_get_type_monitor(int monitor_index);
+extern int         video_card_has_config(int card);
+extern const char *video_get_internal_name(int card);
+extern int         video_get_video_from_internal_name(char *s);
+extern int         video_card_get_flags(int card);
+extern int         video_is_mda(void);
+extern int         video_is_cga(void);
+extern int         video_is_ega_vga(void);
+extern int         video_is_8514(void);
+extern int         video_is_xga(void);
+extern void        video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
+extern int         video_get_type_monitor(int monitor_index);
 
 extern void video_setblit(void (*blit)(int, int, int, int, int));
 extern void video_blend(int x, int y);

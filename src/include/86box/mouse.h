@@ -103,8 +103,8 @@ extern void            mouse_get_abs_coords(double *x_abs, double *y_abs);
 extern void            mouse_process(void);
 extern void            mouse_set_poll_ex(void (*poll_ex)(void));
 extern void            mouse_set_poll(int (*f)(void *), void *);
-extern char *          mouse_get_name(int mouse);
-extern char *          mouse_get_internal_name(int mouse);
+extern const char *    mouse_get_name(int mouse);
+extern const char *    mouse_get_internal_name(int mouse);
 extern int             mouse_get_from_internal_name(char *s);
 extern int             mouse_has_config(int mouse);
 #ifdef EMU_DEVICE_H
