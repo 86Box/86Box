@@ -734,9 +734,20 @@ path_normalize(char *path)
 void
 path_slash(char *path)
 {
-    if ((path[strlen(path) - 1] != '\\') && (path[strlen(path) - 1] != '/')) {
+    if ((path[strlen(path) - 1] != '\\') && (path[strlen(path) - 1] != '/'))
         strcat(path, "\\");
-    }
+}
+
+/* Return a trailing (back)slash if necessary. */
+char *
+path_get_slash(char *path)
+{
+    char *ret = "";
+
+    if ((path[strlen(path) - 1] != '\\') && (path[strlen(path) - 1] != '/'))
+        ret =  "\\";
+
+    return ret;
 }
 
 /* Check if the given path is absolute or not. */

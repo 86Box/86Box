@@ -347,7 +347,7 @@ fastreadw_fetch(uint32_t a)
     if ((a & 0xFFF) > 0xFFE) {
         val = fastreadb(a);
         if (opcode_length[val & 0xff] > 1)
-            val |= (fastreadb(a + 1) << 8);
+            val |= ((uint16_t) fastreadb(a + 1) << 8);
         return val;
     }
 
@@ -362,7 +362,7 @@ fastreadl_fetch(uint32_t a)
     if (cpu_16bitbus || ((a & 0xFFF) > 0xFFC)) {
         val = fastreadw_fetch(a);
         if (opcode_length[val & 0xff] > 2)
-            val |= (fastreadw(a + 2) << 16);
+            val |= ((uint32_t) fastreadw(a + 2) << 16);
         return val;
     }
 

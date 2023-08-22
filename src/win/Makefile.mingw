@@ -564,8 +564,8 @@ CFLAGS += -Werror=implicit-int -Werror=implicit-function-declaration \
 #             Create the (final) list of objects to build.              #
 #########################################################################
 MAINOBJ := 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
-           nmi.o pic.o pit.o pit_fast.o port_6x.o port_92.o ppi.o pci.o mca.o fifo8.o \
-           usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o ini.o \
+           nmi.o pic.o pit.o pit_fast.o port_6x.o port_92.o ppi.o pci.o mca.o fifo.o \
+           fifo8.o usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o ini.o \
            $(VNCOBJ)
 
 MEMOBJ := catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o mmu_2386.o rom.o row.o \
@@ -577,7 +577,7 @@ CPUOBJ := $(DYNARECOBJ) \
           $(CGTOBJ) \
           cpu.o cpu_table.o fpu.o x86.o \
           8080.o 808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o \
-          x86_ops_mmx.o x86seg.o x87.o x87_timings.o \
+          x86_ops_mmx.o x86seg_common.o x86seg_2386.o x86seg.o x87.o x87_timings.o \
 	  f2xm1.o fpatan.o fprem.o fsincos.o fyl2x.o softfloat_poly.o softfloat.o softfloat16.o \
 	  softfloat-muladd.o softfloat-round-pack.o softfloat-specialize.o softfloatx80.o
 

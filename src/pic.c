@@ -442,6 +442,10 @@ pic_read(uint16_t addr, void *priv)
         }
     } else {
         /* Standard 8259 PIC read */
+#ifndef UNDEFINED_READ
+        /* Put the IRR on to the data bus by default until the real PIC is probed. */
+        dev->data_bus = dev->irr;
+#endif
         if (dev->ocw3 & 0x04) {
             if (dev->int_pending) {
                 dev->data_bus = 0x80 | (dev->interrupt & 7);

@@ -29,6 +29,8 @@
 
 #define ZIP_250_SECTORS (489532)
 
+#define ZIP_IMAGE_HISTORY         4
+
 enum {
     ZIP_BUS_DISABLED = 0,
     ZIP_BUS_ATAPI    = 5,
@@ -60,6 +62,8 @@ typedef struct zip_drive_t {
 
     char image_path[1024];
     char prev_image_path[1024];
+
+    char *image_history[ZIP_IMAGE_HISTORY];
 
     uint32_t is_250;
     uint32_t medium_size;

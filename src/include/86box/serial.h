@@ -65,29 +65,21 @@ typedef struct serial_s {
     uint8_t inst;
     uint8_t transmit_enabled;
     uint8_t fifo_enabled;
-    uint8_t rcvr_fifo_len;
     uint8_t bits;
     uint8_t data_bits;
     uint8_t baud_cycles;
-    uint8_t rcvr_fifo_full;
     uint8_t txsr;
-    uint8_t out;
+    uint8_t txsr_empty;
     uint8_t msr_set;
-    uint8_t pad;
     uint8_t irq_state;
-    uint8_t pad0;
 
     uint16_t dlab;
     uint16_t base_address;
     uint16_t out_new;
-    uint16_t pad1;
+    uint16_t thr_empty;
 
-    uint8_t rcvr_fifo_pos;
-    uint8_t xmit_fifo_pos;
-    uint8_t rcvr_fifo_end;
-    uint8_t xmit_fifo_end;
-    uint8_t rcvr_fifo[SERIAL_FIFO_SIZE];
-    uint8_t xmit_fifo[SERIAL_FIFO_SIZE];
+    void *rcvr_fifo;
+    void *xmit_fifo;
 
     pc_timer_t transmit_timer;
     pc_timer_t timeout_timer;

@@ -307,7 +307,7 @@ typedef struct local_t {
     uint8_t wp_0d;
     uint8_t wp_32;
     uint8_t irq_state;
-    uint8_t pad0;
+    uint8_t smi_status;
 
     uint8_t  addr[8];
     uint8_t  wp[2];
@@ -316,6 +316,8 @@ typedef struct local_t {
 
     int16_t count;
     int16_t state;
+
+    int32_t smi_enable;
 
     uint64_t   ecount;
     uint64_t   rtc_time;
@@ -444,6 +446,10 @@ timer_update_irq(nvr_t *nvr)
         if (irq) {
             nvr->regs[RTC_REGC] |= REGC_IRQF;
             picintlevel(1 << nvr->irq, &local->irq_state);
+            if (local->smi_enable) {
+                smi_raise();
+                local->smi_status = 1;
+            }
         } else {
             nvr->regs[RTC_REGC] &= ~REGC_IRQF;
             picintclevel(1 << nvr->irq, &local->irq_state);
@@ -979,6 +985,33 @@ void
 nvr_irq_set(int irq, nvr_t *nvr)
 {
     nvr->irq = irq;
+}
+
+void
+nvr_smi_enable(int enable, nvr_t *nvr)
+{
+    local_t *local = (local_t *) nvr->data;
+
+    local->smi_enable = enable;
+
+    if (!enable)
+        local->smi_status = 0;
+}
+
+uint8_t
+nvr_smi_status(nvr_t *nvr)
+{
+    local_t *local = (local_t *) nvr->data;
+
+    return local->smi_status;
+}
+
+void
+nvr_smi_status_clear(nvr_t *nvr)
+{
+    local_t *local = (local_t *) nvr->data;
+
+    local->smi_status = 0;
 }
 
 static void

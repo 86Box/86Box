@@ -596,7 +596,6 @@ extern uint64_t cpu_CR4_mask;
 extern uint64_t tsc;
 extern msr_t    msr;
 extern uint8_t  opcode;
-extern int      cgate16;
 extern int      cpl_override;
 extern int      CPUID;
 extern uint64_t xt_cpu_multi;
@@ -727,15 +726,6 @@ extern uint32_t cpu_fast_off_flags;
 /* Functions. */
 extern int cpu_has_feature(int feature);
 
-#ifdef USE_NEW_DYNAREC
-extern void loadseg_dynarec(uint16_t seg, x86seg *s);
-extern int  loadseg(uint16_t seg, x86seg *s);
-extern void loadcs(uint16_t seg);
-#else
-extern void     loadseg(uint16_t seg, x86seg *s);
-extern void     loadcs(uint16_t seg);
-#endif
-
 extern char *cpu_current_pc(char *bufp);
 
 extern void cpu_update_waitstates(void);
@@ -763,19 +753,6 @@ extern void exec386_2386(int cycs);
 extern void exec386(int cycs);
 extern void exec386_dynarec(int cycs);
 extern int  idivl(int32_t val);
-#ifdef USE_NEW_DYNAREC
-extern void loadcscall(uint16_t seg, uint32_t old_pc);
-extern void loadcsjmp(uint16_t seg, uint32_t old_pc);
-extern void pmodeint(int num, int soft);
-extern void pmoderetf(int is32, uint16_t off);
-extern void pmodeiret(int is32);
-#else
-extern void     loadcscall(uint16_t seg);
-extern void     loadcsjmp(uint16_t seg, uint32_t old_pc);
-extern void     pmodeint(int num, int soft);
-extern void     pmoderetf(int is32, uint16_t off);
-extern void     pmodeiret(int is32);
-#endif
 extern void resetmcr(void);
 extern void resetx86(void);
 extern void refreshread(void);
@@ -785,11 +762,6 @@ extern void hardresetx86(void);
 extern void x86_int(int num);
 extern void x86_int_sw(int num);
 extern int  x86_int_sw_rm(int num);
-extern void x86de(char *s, uint16_t error);
-extern void x86gpf(char *s, uint16_t error);
-extern void x86np(char *s, uint16_t error);
-extern void x86ss(char *s, uint16_t error);
-extern void x86ts(char *s, uint16_t error);
 
 #ifdef ENABLE_808X_LOG
 extern void dumpregs(int __force);

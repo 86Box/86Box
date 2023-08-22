@@ -1293,7 +1293,7 @@ x54x_cmd_callback(void *priv)
     }
 
     period = (1000000.0 / dev->ha_bps) * ((double) dev->temp_period);
-    timer_on(&dev->timer, dev->media_period + period + 10.0, 0);
+    timer_on_auto(&dev->timer, dev->media_period + period + 10.0);
 #if 0
     x54x_log("Temporary period: %lf us (%" PRIi64 " periods)\n", dev->timer.period, dev->temp_period);
 #endif

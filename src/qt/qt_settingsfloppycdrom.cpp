@@ -146,19 +146,6 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     for (int i = 0; i < 72; i++)
         Models::AddEntry(model, QString("%1x").arg(i + 1), i + 1);
 
-#if 0
-    model = ui->comboBoxCDROMType->model();
-    i = 0;
-    while (true) {
-        QString name = tr(cdrom_getname(i));
-        if (name.isEmpty())
-            break;
-
-        Models::AddEntry(model, name, i);
-        ++i;
-    }
-#endif
-
     model = new QStandardItemModel(0, 3, this);
     ui->tableViewCDROM->setModel(model);
     model->setHeaderData(0, Qt::Horizontal, tr("Bus"));

@@ -1201,6 +1201,12 @@ msgstr "Nepodařilo se inicializovat síťový ovladač"
 msgid "The network configuration will be switched to the null driver"
 msgstr "Konfigurace sítě bude přepnuta na nulový ovladač"
 
+msgid "Mouse sensitivity:"
+msgstr "Citlivost myší:"
+
+msgid "Select media images from program working directory"
+msgstr "Výběr mediálních obrazů z pracovního adresáře programu"
+
 msgid "PIT mode:"
 msgstr "Režim PIT:"
 

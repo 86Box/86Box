@@ -1201,6 +1201,12 @@ msgstr "Nem sikerült inicializálni a hálózati illesztőprogramot"
 msgid "The network configuration will be switched to the null driver"
 msgstr "A hálózati konfiguráció átvált a null illesztőprogramra"
 
+msgid "Mouse sensitivity:"
+msgstr "Egér érzékenység:"
+
+msgid "Select media images from program working directory"
+msgstr "Médiaképek kiválasztása a program munkakönyvtárából"
+
 msgid "PIT mode:"
 msgstr "PIT üzemmód:"
 

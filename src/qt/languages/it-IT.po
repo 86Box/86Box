@@ -1201,6 +1201,12 @@ msgstr "Impossibile inizializzare il driver di rete"
 msgid "The network configuration will be switched to the null driver"
 msgstr "La configurazione di rete verrà commutata sul driver nullo"
 
+msgid "Mouse sensitivity:"
+msgstr "Sensitività del mouse:"
+
+msgid "Select media images from program working directory"
+msgstr "Seleziona le immagini media dalla directory di lavoro del programma"
+
 msgid "PIT mode:"
 msgstr "Modalità PIT:"
 

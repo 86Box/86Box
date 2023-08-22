@@ -25,6 +25,8 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include "x86.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
 #include <86box/machine.h>
 #include <86box/device.h>
 #include <86box/dma.h>
@@ -270,7 +272,10 @@ reset_common(int hard)
     cpu_state.eflags = 0;
     cgate32          = 0;
     if (is286) {
-        loadcs(0xF000);
+        if (is486)
+            loadcs(0xF000);
+        else
+            loadcs_2386(0xF000);
         cpu_state.pc = 0xFFF0;
         if (hard) {
             rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;

@@ -310,6 +310,17 @@ path_slash(char *path)
     path_normalize(path);
 }
 
+char *
+path_get_slash(char *path)
+{
+    char *ret = "";
+
+    if (path[strlen(path) - 1] != '/')
+        ret =  "/";
+
+    return ret;
+}
+
 void
 plat_put_backslash(char *s)
 {
