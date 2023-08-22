@@ -370,6 +370,7 @@ video_reset(int card)
 void
 video_post_reset(void)
 {
+    int ibm8514_has_vga = 0;
     if (gfxcard[0] == VID_INTERNAL)
         ibm8514_has_vga = (video_get_type_monitor(0) == VIDEO_FLAG_TYPE_8514);
     else if (gfxcard[0] != VID_NONE)
@@ -378,14 +379,12 @@ video_post_reset(void)
         ibm8514_has_vga = 0;
 
     if (ibm8514_has_vga)
-        ibm8514_enabled = 1;
+        ibm8514_active = 1;
 
-    if (ibm8514_enabled) {
-        if (!ibm8514_has_vga)
-            ibm8514_device_add();
-    }
+    if (ibm8514_standalone_enabled)
+        ibm8514_device_add();
 
-    if (xga_enabled)
+    if (xga_standalone_enabled)
         xga_device_add();
 
     /* Reset the graphics card (or do nothing if it was already done

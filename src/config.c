@@ -564,9 +564,16 @@ load_video(void)
             free(p);
     }
 
+    if (((gfxcard[0] == VID_INTERNAL) && machine_has_flags(machine, MACHINE_VIDEO_8514A)) || video_card_get_flags(gfxcard[0]) == VIDEO_FLAG_TYPE_8514)
+        ini_section_delete_var(cat, "8514a");
+    if (((gfxcard[0] == VID_INTERNAL) && machine_has_flags(machine, MACHINE_VIDEO_XGA)) || video_card_get_flags(gfxcard[0]) == VIDEO_FLAG_TYPE_XGA)
+        ini_section_delete_var(cat, "xga");
+
     voodoo_enabled                   = !!ini_section_get_int(cat, "voodoo", 0);
-    ibm8514_enabled                  = !!ini_section_get_int(cat, "8514a", 0);
-    xga_enabled                      = !!ini_section_get_int(cat, "xga", 0);
+    ibm8514_standalone_enabled       = !!ini_section_get_int(cat, "8514a", 0);
+    ibm8514_active                   = ibm8514_standalone_enabled;
+    xga_standalone_enabled           = !!ini_section_get_int(cat, "xga", 0);
+    xga_active                       = xga_standalone_enabled;
     show_second_monitors             = !!ini_section_get_int(cat, "show_second_monitors", 1);
     video_fullscreen_scale_maximized = !!ini_section_get_int(cat, "video_fullscreen_scale_maximized", 0);
 
@@ -2352,15 +2359,15 @@ save_video(void)
     else
         ini_section_set_int(cat, "voodoo", voodoo_enabled);
 
-    if (ibm8514_enabled == 0)
+    if (ibm8514_standalone_enabled == 0)
         ini_section_delete_var(cat, "8514a");
     else
-        ini_section_set_int(cat, "8514a", ibm8514_enabled);
+        ini_section_set_int(cat, "8514a", ibm8514_standalone_enabled);
 
-    if (xga_enabled == 0)
+    if (xga_standalone_enabled == 0)
         ini_section_delete_var(cat, "xga");
     else
-        ini_section_set_int(cat, "xga", xga_enabled);
+        ini_section_set_int(cat, "xga", xga_standalone_enabled);
 
     if (gfxcard[1] == 0)
         ini_section_delete_var(cat, "gfxcard_2");
