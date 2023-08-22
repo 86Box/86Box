@@ -151,7 +151,7 @@ cdrom_interface_reset(void)
     device_add(controllers[cdrom_interface_current].device);
 }
 
-char *
+const char *
 cdrom_interface_get_internal_name(int cdinterface)
 {
     return device_get_internal_name(controllers[cdinterface].device);
