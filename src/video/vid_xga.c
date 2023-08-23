@@ -49,7 +49,7 @@ static uint8_t xga_ext_inb(uint16_t addr, void *priv);
 static void     xga_writew(uint32_t addr, uint16_t val, void *priv);
 static uint16_t xga_readw(uint32_t addr, void *priv);
 
-int xga_has_vga = 0;
+int xga_active = 0;
 
 #ifdef ENABLE_XGA_LOG
 int xga_do_log = ENABLE_XGA_LOG;
@@ -2133,7 +2133,7 @@ xga_mem_read(uint32_t addr, xga_t *xga, UNUSED(svga_t *svga))
 
     addr &= 0x1fff;
     if (addr < 0x1800) {
-        if (!xga_has_vga)
+        if (xga_standalone_enabled)
             temp = xga->bios_rom.rom[addr];
         else
             temp = xga->vga_bios_rom.rom[addr];
@@ -2938,7 +2938,7 @@ xga_pos_in(uint16_t addr, void *priv)
     xga_t  *xga  = &svga->xga;
     uint8_t ret  = 0xff;
 
-    if (xga_has_vga) {
+    if (!xga_standalone_enabled) {
         switch (addr) {
             case 0x0100:
             case 0x0101:
@@ -3053,7 +3053,7 @@ xga_pos_out(uint16_t addr, uint8_t val, void *priv)
     svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
-    if (xga_has_vga) {
+    if (!xga_standalone_enabled) {
         switch (addr) {
             case 0x0106:
                 xga->pos_idx = (xga->pos_idx & 0x00ff) | (val << 8);
@@ -3148,7 +3148,7 @@ xga_init(const device_t *info)
         xga->rom_addr    = 0;
         rom_init(&xga->bios_rom, xga->type ? XGA2_BIOS_PATH : XGA_BIOS_PATH, 0xc0000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
     } else {
-        if (xga_has_vga) {
+        if (!xga_standalone_enabled) {
             rom_init(&xga->vga_bios_rom, INMOS_XGA_BIOS_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         } else
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_xga_isa);
@@ -3168,7 +3168,7 @@ xga_init(const device_t *info)
                     NULL, MEM_MAPPING_EXTERNAL, svga);
     mem_mapping_add(&xga->memio_mapping, 0, 0, xga_memio_readb, xga_memio_readw, xga_memio_readl,
                     xga_memio_writeb, xga_memio_writew, xga_memio_writel,
-                    xga_has_vga ? xga->vga_bios_rom.rom : xga->bios_rom.rom, MEM_MAPPING_EXTERNAL, svga);
+                    !xga_standalone_enabled ? xga->vga_bios_rom.rom : xga->bios_rom.rom, MEM_MAPPING_EXTERNAL, svga);
 
     mem_mapping_disable(&xga->video_mapping);
     mem_mapping_disable(&xga->linear_mapping);
@@ -3181,7 +3181,7 @@ xga_init(const device_t *info)
         mca_add(xga_mca_read, xga_mca_write, xga_mca_feedb, xga_mca_reset, svga);
     } else {
         io_sethandler(0x0100, 0x0008, xga_pos_in, NULL, NULL, NULL, NULL, NULL, svga);
-        if (xga_has_vga)
+        if (!xga_standalone_enabled)
             io_sethandler(0x0106, 0x0002, NULL, NULL, NULL, xga_pos_out, NULL, NULL, svga);
 
         io_sethandler(0x2100 + (xga->instance << 4), 0x0010, xga_ext_inb, NULL, NULL, xga_ext_outb, NULL, NULL, svga);
@@ -3209,8 +3209,7 @@ svga_xga_init(const device_t *info)
 
     svga->bpp     = 8;
     svga->miscout = 1;
-    xga_has_vga   = 1;
-    xga_enabled   = 1;
+    xga_active    = 1;
 
     return xga_init(info);
 }
@@ -3411,7 +3410,7 @@ const device_t inmos_isa_device = {
 void
 xga_device_add(void)
 {
-    if (!xga_enabled || (xga_has_vga && xga_enabled))
+    if (!xga_standalone_enabled)
         return;
 
     if (machine_has_bus(machine, MACHINE_BUS_MCA))

@@ -1690,6 +1690,7 @@ vid_init_200(amstrad_t *ams)
     mda_setcol(0xC0, 0, 1, 0);
 
     cga->fontbase = (device_get_config_int("codepage") & 3) * 256;
+    mda->fontbase = cga->fontbase;
 
     timer_add(&vid->timer, vid_poll_200, vid, 1);
     mem_mapping_add(&vid->mda.mapping, 0xb0000, 0x08000,
