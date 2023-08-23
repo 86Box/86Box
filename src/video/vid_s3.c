@@ -8479,7 +8479,7 @@ s3_init(const device_t *info)
             if (device_get_config_int("memory") == 1)
                 svga->vram_max = 1 << 20; /* Phoenix BIOS does not expect VRAM to be mirrored. */
                                           /* Fall over. */
-
+            fallthrough;
         case S3_NUMBER9_9FX:
             svga->decode_mask = (4 << 20) - 1;
             s3->id            = 0xe1; /*Trio64*/
