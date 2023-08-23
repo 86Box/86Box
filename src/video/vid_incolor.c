@@ -252,6 +252,9 @@ incolor_out(uint16_t port, uint8_t val, void *priv)
             else
                 mem_mapping_set_addr(&dev->mapping, 0xb0000, 0x08000);
             return;
+
+        default:
+            break;
     }
 }
 
@@ -353,6 +356,9 @@ incolor_write(uint32_t addr, uint8_t val, void *priv)
                         w = (latch & vmask);
                     else
                         w = ((~latch) & vmask);
+                    break;
+
+                default:
                     break;
             }
 
@@ -768,6 +774,9 @@ text_line(incolor_t *dev, uint16_t ca)
 
             case 5: /* 48k RAMfont */
                 draw_char_ram48(dev, x, chr, attr);
+                break;
+
+            default:
                 break;
         }
         ++dev->ma;

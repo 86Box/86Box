@@ -4,6 +4,7 @@
 #    include <86box/86box.h>
 #    include "cpu.h"
 #    include <86box/mem.h>
+#    include <86box/plat_unused.h>
 
 #    include "x86.h"
 #    include "x86_ops.h"
@@ -36,10 +37,10 @@
 static int
 codegen_ADD(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -67,10 +68,10 @@ codegen_ADD(codeblock_t *block, uop_t *uop)
 static int
 codegen_ADD_IMM(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
         if (uop->dest_reg_a_real != uop->src_reg_a_real)
@@ -113,10 +114,10 @@ codegen_ADD_LSHIFT(codeblock_t *block, uop_t *uop)
 static int
 codegen_AND(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -145,10 +146,10 @@ codegen_AND(codeblock_t *block, uop_t *uop)
 static int
 codegen_AND_IMM(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
         if (uop->dest_reg_a_real != uop->src_reg_a_real)
@@ -174,11 +175,11 @@ static int
 codegen_ANDN(codeblock_t *block, uop_t *uop)
 {
     int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-#if 0
+#    if 0
     int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-#endif
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+#    endif
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -222,7 +223,9 @@ codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
     host_x86_CALL(block, uop->p);
     host_x86_TEST32_REG(block, REG_EAX, REG_EAX);
     host_x86_JNZ(block, codegen_exit_rout);
-    //        host_x86_CALL(block, codegen_debug);
+#    if 0
+    host_x86_CALL(block, codegen_debug);
+#    endif
 
     return 0;
 }
@@ -287,8 +290,8 @@ codegen_CMP_IMM_JZ_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_CMP_JB(codeblock_t *block, uop_t *uop)
 {
-    int       src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int       src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int       src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int       src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int       src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int       src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
     uint32_t *jump_p;
@@ -308,8 +311,8 @@ codegen_CMP_JB(codeblock_t *block, uop_t *uop)
 static int
 codegen_CMP_JNBE(codeblock_t *block, uop_t *uop)
 {
-    int       src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int       src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int       src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int       src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int       src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int       src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
     uint32_t *jump_p;
@@ -330,8 +333,8 @@ codegen_CMP_JNBE(codeblock_t *block, uop_t *uop)
 static int
 codegen_CMP_JNB_DEST(codeblock_t *block, uop_t *uop)
 {
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -353,8 +356,8 @@ codegen_CMP_JNB_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_CMP_JNBE_DEST(codeblock_t *block, uop_t *uop)
 {
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -376,8 +379,8 @@ codegen_CMP_JNBE_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_CMP_JNL_DEST(codeblock_t *block, uop_t *uop)
 {
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -399,8 +402,8 @@ codegen_CMP_JNL_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_CMP_JNLE_DEST(codeblock_t *block, uop_t *uop)
 {
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -422,8 +425,8 @@ codegen_CMP_JNLE_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_CMP_JNO_DEST(codeblock_t *block, uop_t *uop)
 {
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -445,8 +448,8 @@ codegen_CMP_JNO_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_CMP_JNZ_DEST(codeblock_t *block, uop_t *uop)
 {
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -468,8 +471,8 @@ codegen_CMP_JNZ_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_CMP_JB_DEST(codeblock_t *block, uop_t *uop)
 {
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -491,8 +494,8 @@ codegen_CMP_JB_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_CMP_JBE_DEST(codeblock_t *block, uop_t *uop)
 {
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -514,8 +517,8 @@ codegen_CMP_JBE_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_CMP_JL_DEST(codeblock_t *block, uop_t *uop)
 {
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -537,8 +540,8 @@ codegen_CMP_JL_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_CMP_JLE_DEST(codeblock_t *block, uop_t *uop)
 {
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -560,8 +563,8 @@ codegen_CMP_JLE_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_CMP_JO_DEST(codeblock_t *block, uop_t *uop)
 {
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -583,8 +586,8 @@ codegen_CMP_JO_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_CMP_JZ_DEST(codeblock_t *block, uop_t *uop)
 {
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -607,9 +610,9 @@ codegen_CMP_JZ_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_FABS(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_D(dest_size) && REG_IS_D(src_size_a) && dest_reg == src_reg_a) {
@@ -626,9 +629,9 @@ codegen_FABS(codeblock_t *block, uop_t *uop)
 static int
 codegen_FCHS(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_D(dest_size) && REG_IS_D(src_size_a)) {
@@ -645,9 +648,9 @@ codegen_FCHS(codeblock_t *block, uop_t *uop)
 static int
 codegen_FSQRT(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_D(dest_size) && REG_IS_D(src_size_a)) {
@@ -662,9 +665,9 @@ codegen_FSQRT(codeblock_t *block, uop_t *uop)
 static int
 codegen_FTST(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_W(dest_size) && REG_IS_D(src_size_a)) {
@@ -690,10 +693,10 @@ codegen_FTST(codeblock_t *block, uop_t *uop)
 static int
 codegen_FADD(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -709,10 +712,10 @@ codegen_FADD(codeblock_t *block, uop_t *uop)
 static int
 codegen_FCOM(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -737,10 +740,10 @@ codegen_FCOM(codeblock_t *block, uop_t *uop)
 static int
 codegen_FDIV(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -760,10 +763,10 @@ codegen_FDIV(codeblock_t *block, uop_t *uop)
 static int
 codegen_FMUL(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -779,10 +782,10 @@ codegen_FMUL(codeblock_t *block, uop_t *uop)
 static int
 codegen_FSUB(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -869,7 +872,7 @@ codegen_LOAD_FUNC_ARG0(codeblock_t *block, uop_t *uop)
     return 0;
 }
 static int
-codegen_LOAD_FUNC_ARG1(codeblock_t *block, uop_t *uop)
+codegen_LOAD_FUNC_ARG1(UNUSED(codeblock_t *block), UNUSED(uop_t *uop))
 {
 #    ifdef RECOMPILER_DEBUG
     fatal("codegen_LOAD_FUNC_ARG1 %02x\n", uop->src_reg_a_real);
@@ -877,7 +880,7 @@ codegen_LOAD_FUNC_ARG1(codeblock_t *block, uop_t *uop)
     return 0;
 }
 static int
-codegen_LOAD_FUNC_ARG2(codeblock_t *block, uop_t *uop)
+codegen_LOAD_FUNC_ARG2(UNUSED(codeblock_t *block), UNUSED(uop_t *uop))
 {
 #    ifdef RECOMPILER_DEBUG
     fatal("codegen_LOAD_FUNC_ARG2 %02x\n", uop->src_reg_a_real);
@@ -885,7 +888,7 @@ codegen_LOAD_FUNC_ARG2(codeblock_t *block, uop_t *uop)
     return 0;
 }
 static int
-codegen_LOAD_FUNC_ARG3(codeblock_t *block, uop_t *uop)
+codegen_LOAD_FUNC_ARG3(UNUSED(codeblock_t *block), UNUSED(uop_t *uop))
 {
 #    ifdef RECOMPILER_DEBUG
     fatal("codegen_LOAD_FUNC_ARG3 %02x\n", uop->src_reg_a_real);
@@ -940,8 +943,8 @@ codegen_LOAD_SEG(codeblock_t *block, uop_t *uop)
 static int
 codegen_MEM_LOAD_ABS(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int seg_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int seg_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
 
     host_x86_LEA_REG_IMM(block, REG_ESI, seg_reg, uop->imm_data);
@@ -971,9 +974,9 @@ codegen_MEM_LOAD_ABS(codeblock_t *block, uop_t *uop)
 static int
 codegen_MEM_LOAD_REG(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int seg_reg = HOST_REG_GET(uop->src_reg_a_real);
-    int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int seg_reg   = HOST_REG_GET(uop->src_reg_a_real);
+    int addr_reg  = HOST_REG_GET(uop->src_reg_b_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
 
     host_x86_LEA_REG_REG(block, REG_ESI, seg_reg, addr_reg);
@@ -1010,7 +1013,7 @@ static int
 codegen_MEM_LOAD_SINGLE(codeblock_t *block, uop_t *uop)
 {
     int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int seg_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int seg_reg  = HOST_REG_GET(uop->src_reg_a_real);
     int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
 #    ifdef RECOMPILER_DEBUG
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
@@ -1033,7 +1036,7 @@ static int
 codegen_MEM_LOAD_DOUBLE(codeblock_t *block, uop_t *uop)
 {
     int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int seg_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int seg_reg  = HOST_REG_GET(uop->src_reg_a_real);
     int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
 #    ifdef RECOMPILER_DEBUG
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
@@ -1055,8 +1058,8 @@ codegen_MEM_LOAD_DOUBLE(codeblock_t *block, uop_t *uop)
 static int
 codegen_MEM_STORE_ABS(codeblock_t *block, uop_t *uop)
 {
-    int seg_reg = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_b_real);
+    int seg_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg  = HOST_REG_GET(uop->src_reg_b_real);
     int src_size = IREG_GET_SIZE(uop->src_reg_b_real);
 
     host_x86_LEA_REG_IMM(block, REG_ESI, seg_reg, uop->imm_data);
@@ -1083,9 +1086,9 @@ codegen_MEM_STORE_ABS(codeblock_t *block, uop_t *uop)
 static int
 codegen_MEM_STORE_REG(codeblock_t *block, uop_t *uop)
 {
-    int seg_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int seg_reg  = HOST_REG_GET(uop->src_reg_a_real);
     int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_c_real);
+    int src_reg  = HOST_REG_GET(uop->src_reg_c_real);
     int src_size = IREG_GET_SIZE(uop->src_reg_c_real);
 
     host_x86_LEA_REG_REG(block, REG_ESI, seg_reg, addr_reg);
@@ -1117,7 +1120,7 @@ codegen_MEM_STORE_REG(codeblock_t *block, uop_t *uop)
 static int
 codegen_MEM_STORE_IMM_8(codeblock_t *block, uop_t *uop)
 {
-    int seg_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int seg_reg  = HOST_REG_GET(uop->src_reg_a_real);
     int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
 
     host_x86_LEA_REG_REG(block, REG_ESI, seg_reg, addr_reg);
@@ -1131,7 +1134,7 @@ codegen_MEM_STORE_IMM_8(codeblock_t *block, uop_t *uop)
 static int
 codegen_MEM_STORE_IMM_16(codeblock_t *block, uop_t *uop)
 {
-    int seg_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int seg_reg  = HOST_REG_GET(uop->src_reg_a_real);
     int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
 
     host_x86_LEA_REG_REG(block, REG_ESI, seg_reg, addr_reg);
@@ -1145,7 +1148,7 @@ codegen_MEM_STORE_IMM_16(codeblock_t *block, uop_t *uop)
 static int
 codegen_MEM_STORE_IMM_32(codeblock_t *block, uop_t *uop)
 {
-    int seg_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int seg_reg  = HOST_REG_GET(uop->src_reg_a_real);
     int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
 
     host_x86_LEA_REG_REG(block, REG_ESI, seg_reg, addr_reg);
@@ -1160,9 +1163,9 @@ codegen_MEM_STORE_IMM_32(codeblock_t *block, uop_t *uop)
 static int
 codegen_MEM_STORE_SINGLE(codeblock_t *block, uop_t *uop)
 {
-    int seg_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int seg_reg  = HOST_REG_GET(uop->src_reg_a_real);
     int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_c_real);
+    int src_reg  = HOST_REG_GET(uop->src_reg_c_real);
 #    ifdef RECOMPILER_DEBUG
     int src_size = IREG_GET_SIZE(uop->src_reg_c_real);
 
@@ -1182,9 +1185,9 @@ codegen_MEM_STORE_SINGLE(codeblock_t *block, uop_t *uop)
 static int
 codegen_MEM_STORE_DOUBLE(codeblock_t *block, uop_t *uop)
 {
-    int seg_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int seg_reg  = HOST_REG_GET(uop->src_reg_a_real);
     int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_c_real);
+    int src_reg  = HOST_REG_GET(uop->src_reg_c_real);
 #    ifdef RECOMPILER_DEBUG
     int src_size = IREG_GET_SIZE(uop->src_reg_c_real);
 
@@ -1205,10 +1208,10 @@ codegen_MEM_STORE_DOUBLE(codeblock_t *block, uop_t *uop)
 static int
 codegen_MOV(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
         host_x86_MOV32_REG_REG(block, dest_reg, src_reg);
@@ -1300,10 +1303,10 @@ codegen_MOVZX_REG_PTR_16(codeblock_t *block, uop_t *uop)
 static int
 codegen_MOVSX(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_L(dest_size) && REG_IS_W(src_size)) {
         host_x86_MOVSX_REG_32_16(block, dest_reg, src_reg);
@@ -1321,10 +1324,10 @@ codegen_MOVSX(codeblock_t *block, uop_t *uop)
 static int
 codegen_MOVZX(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_L(src_size)) {
         host_x86_MOVD_XREG_REG(block, dest_reg, src_reg);
@@ -1347,10 +1350,10 @@ codegen_MOVZX(codeblock_t *block, uop_t *uop)
 static int
 codegen_MOV_DOUBLE_INT(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_D(dest_size) && REG_IS_L(src_size)) {
         host_x86_CVTSI2SD_XREG_REG(block, dest_reg, src_reg);
@@ -1374,10 +1377,10 @@ codegen_MOV_DOUBLE_INT(codeblock_t *block, uop_t *uop)
 static int
 codegen_MOV_INT_DOUBLE(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_L(dest_size) && REG_IS_D(src_size)) {
         host_x86_LDMXCSR(block, &cpu_state.new_fp_control);
@@ -1399,12 +1402,12 @@ codegen_MOV_INT_DOUBLE(codeblock_t *block, uop_t *uop)
 static int
 codegen_MOV_INT_DOUBLE_64(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
-    int src_64_reg = HOST_REG_GET(uop->src_reg_b_real);
-    int tag_reg = HOST_REG_GET(uop->src_reg_c_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int dest_reg    = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg     = HOST_REG_GET(uop->src_reg_a_real);
+    int src_64_reg  = HOST_REG_GET(uop->src_reg_b_real);
+    int tag_reg     = HOST_REG_GET(uop->src_reg_c_real);
+    int dest_size   = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size    = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_64_size = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_D(src_size) && REG_IS_Q(src_64_size)) {
@@ -1434,7 +1437,7 @@ codegen_MOV_INT_DOUBLE_64(codeblock_t *block, uop_t *uop)
 }
 
 static int
-codegen_NOP(codeblock_t *block, uop_t *uop)
+codegen_NOP(UNUSED(codeblock_t *block), UNUSED(uop_t *uop))
 {
     return 0;
 }
@@ -1442,10 +1445,10 @@ codegen_NOP(codeblock_t *block, uop_t *uop)
 static int
 codegen_OR(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -1473,8 +1476,8 @@ codegen_OR(codeblock_t *block, uop_t *uop)
 static int
 codegen_OR_IMM(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
 
     if (REG_IS_L(dest_size) && dest_reg == src_reg) {
@@ -1494,9 +1497,9 @@ codegen_OR_IMM(codeblock_t *block, uop_t *uop)
 static int
 codegen_PACKSSWB(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1511,9 +1514,9 @@ codegen_PACKSSWB(codeblock_t *block, uop_t *uop)
 static int
 codegen_PACKSSDW(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1528,9 +1531,9 @@ codegen_PACKSSDW(codeblock_t *block, uop_t *uop)
 static int
 codegen_PACKUSWB(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1546,9 +1549,9 @@ codegen_PACKUSWB(codeblock_t *block, uop_t *uop)
 static int
 codegen_PADDB(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1563,9 +1566,9 @@ codegen_PADDB(codeblock_t *block, uop_t *uop)
 static int
 codegen_PADDW(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1580,9 +1583,9 @@ codegen_PADDW(codeblock_t *block, uop_t *uop)
 static int
 codegen_PADDD(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1597,9 +1600,9 @@ codegen_PADDD(codeblock_t *block, uop_t *uop)
 static int
 codegen_PADDSB(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1614,9 +1617,9 @@ codegen_PADDSB(codeblock_t *block, uop_t *uop)
 static int
 codegen_PADDSW(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1631,9 +1634,9 @@ codegen_PADDSW(codeblock_t *block, uop_t *uop)
 static int
 codegen_PADDUSB(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1648,9 +1651,9 @@ codegen_PADDUSB(codeblock_t *block, uop_t *uop)
 static int
 codegen_PADDUSW(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1666,9 +1669,9 @@ codegen_PADDUSW(codeblock_t *block, uop_t *uop)
 static int
 codegen_PCMPEQB(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1683,9 +1686,9 @@ codegen_PCMPEQB(codeblock_t *block, uop_t *uop)
 static int
 codegen_PCMPEQW(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1700,9 +1703,9 @@ codegen_PCMPEQW(codeblock_t *block, uop_t *uop)
 static int
 codegen_PCMPEQD(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1717,9 +1720,9 @@ codegen_PCMPEQD(codeblock_t *block, uop_t *uop)
 static int
 codegen_PCMPGTB(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1734,9 +1737,9 @@ codegen_PCMPGTB(codeblock_t *block, uop_t *uop)
 static int
 codegen_PCMPGTW(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1751,9 +1754,9 @@ codegen_PCMPGTW(codeblock_t *block, uop_t *uop)
 static int
 codegen_PCMPGTD(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1769,9 +1772,9 @@ codegen_PCMPGTD(codeblock_t *block, uop_t *uop)
 static int
 codegen_PF2ID(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_a)) {
@@ -1788,9 +1791,9 @@ codegen_PF2ID(codeblock_t *block, uop_t *uop)
 static int
 codegen_PFADD(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1805,9 +1808,9 @@ codegen_PFADD(codeblock_t *block, uop_t *uop)
 static int
 codegen_PFCMPEQ(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1822,9 +1825,9 @@ codegen_PFCMPEQ(codeblock_t *block, uop_t *uop)
 static int
 codegen_PFCMPGE(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1839,9 +1842,9 @@ codegen_PFCMPGE(codeblock_t *block, uop_t *uop)
 static int
 codegen_PFCMPGT(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1856,9 +1859,9 @@ codegen_PFCMPGT(codeblock_t *block, uop_t *uop)
 static int
 codegen_PFMAX(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1873,9 +1876,9 @@ codegen_PFMAX(codeblock_t *block, uop_t *uop)
 static int
 codegen_PFMIN(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1890,9 +1893,9 @@ codegen_PFMIN(codeblock_t *block, uop_t *uop)
 static int
 codegen_PFMUL(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -1907,9 +1910,9 @@ codegen_PFMUL(codeblock_t *block, uop_t *uop)
 static int
 codegen_PFRCP(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_a)) {
@@ -1929,9 +1932,9 @@ codegen_PFRCP(codeblock_t *block, uop_t *uop)
 static int
 codegen_PFRSQRT(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_a)) {
@@ -1951,10 +1954,10 @@ codegen_PFRSQRT(codeblock_t *block, uop_t *uop)
 static int
 codegen_PFSUB(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -1974,9 +1977,9 @@ codegen_PFSUB(codeblock_t *block, uop_t *uop)
 static int
 codegen_PI2FD(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_a)) {
@@ -1992,9 +1995,9 @@ codegen_PI2FD(codeblock_t *block, uop_t *uop)
 static int
 codegen_PMADDWD(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2009,9 +2012,9 @@ codegen_PMADDWD(codeblock_t *block, uop_t *uop)
 static int
 codegen_PMULHW(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2026,9 +2029,9 @@ codegen_PMULHW(codeblock_t *block, uop_t *uop)
 static int
 codegen_PMULLW(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2180,9 +2183,9 @@ codegen_PSRLQ_IMM(codeblock_t *block, uop_t *uop)
 static int
 codegen_PSUBB(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2197,9 +2200,9 @@ codegen_PSUBB(codeblock_t *block, uop_t *uop)
 static int
 codegen_PSUBW(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2214,9 +2217,9 @@ codegen_PSUBW(codeblock_t *block, uop_t *uop)
 static int
 codegen_PSUBD(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2231,9 +2234,9 @@ codegen_PSUBD(codeblock_t *block, uop_t *uop)
 static int
 codegen_PSUBSB(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2248,9 +2251,9 @@ codegen_PSUBSB(codeblock_t *block, uop_t *uop)
 static int
 codegen_PSUBSW(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2265,9 +2268,9 @@ codegen_PSUBSW(codeblock_t *block, uop_t *uop)
 static int
 codegen_PSUBUSB(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2282,9 +2285,9 @@ codegen_PSUBUSB(codeblock_t *block, uop_t *uop)
 static int
 codegen_PSUBUSW(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2300,9 +2303,9 @@ codegen_PSUBUSW(codeblock_t *block, uop_t *uop)
 static int
 codegen_PUNPCKHBW(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2318,9 +2321,9 @@ codegen_PUNPCKHBW(codeblock_t *block, uop_t *uop)
 static int
 codegen_PUNPCKHWD(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2336,9 +2339,9 @@ codegen_PUNPCKHWD(codeblock_t *block, uop_t *uop)
 static int
 codegen_PUNPCKHDQ(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2354,9 +2357,9 @@ codegen_PUNPCKHDQ(codeblock_t *block, uop_t *uop)
 static int
 codegen_PUNPCKLBW(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2371,9 +2374,9 @@ codegen_PUNPCKLBW(codeblock_t *block, uop_t *uop)
 static int
 codegen_PUNPCKLWD(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2388,9 +2391,9 @@ codegen_PUNPCKLWD(codeblock_t *block, uop_t *uop)
 static int
 codegen_PUNPCKLDQ(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
     if (REG_IS_Q(dest_size) && REG_IS_Q(src_size_b) && uop->dest_reg_a_real == uop->src_reg_a_real) {
@@ -2406,11 +2409,11 @@ codegen_PUNPCKLDQ(codeblock_t *block, uop_t *uop)
 static int
 codegen_ROL(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int shift_reg = HOST_REG_GET(uop->src_reg_b_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     host_x86_MOV32_REG_REG(block, REG_ECX, shift_reg);
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
@@ -2435,10 +2438,10 @@ codegen_ROL(codeblock_t *block, uop_t *uop)
 static int
 codegen_ROL_IMM(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
         if (uop->dest_reg_a_real != uop->src_reg_a_real)
@@ -2462,11 +2465,11 @@ codegen_ROL_IMM(codeblock_t *block, uop_t *uop)
 static int
 codegen_ROR(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int shift_reg = HOST_REG_GET(uop->src_reg_b_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     host_x86_MOV32_REG_REG(block, REG_ECX, shift_reg);
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
@@ -2491,10 +2494,10 @@ codegen_ROR(codeblock_t *block, uop_t *uop)
 static int
 codegen_ROR_IMM(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
         if (uop->dest_reg_a_real != uop->src_reg_a_real)
@@ -2519,11 +2522,11 @@ codegen_ROR_IMM(codeblock_t *block, uop_t *uop)
 static int
 codegen_SAR(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int shift_reg = HOST_REG_GET(uop->src_reg_b_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     host_x86_MOV32_REG_REG(block, REG_ECX, shift_reg);
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
@@ -2548,10 +2551,10 @@ codegen_SAR(codeblock_t *block, uop_t *uop)
 static int
 codegen_SAR_IMM(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
         if (uop->dest_reg_a_real != uop->src_reg_a_real)
@@ -2575,11 +2578,11 @@ codegen_SAR_IMM(codeblock_t *block, uop_t *uop)
 static int
 codegen_SHL(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int shift_reg = HOST_REG_GET(uop->src_reg_b_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     host_x86_MOV32_REG_REG(block, REG_ECX, shift_reg);
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
@@ -2604,10 +2607,10 @@ codegen_SHL(codeblock_t *block, uop_t *uop)
 static int
 codegen_SHL_IMM(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
         if (uop->dest_reg_a_real != uop->src_reg_a_real)
@@ -2631,11 +2634,11 @@ codegen_SHL_IMM(codeblock_t *block, uop_t *uop)
 static int
 codegen_SHR(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int shift_reg = HOST_REG_GET(uop->src_reg_b_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     host_x86_MOV32_REG_REG(block, REG_ECX, shift_reg);
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
@@ -2660,10 +2663,10 @@ codegen_SHR(codeblock_t *block, uop_t *uop)
 static int
 codegen_SHR_IMM(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
         if (uop->dest_reg_a_real != uop->src_reg_a_real)
@@ -2707,10 +2710,10 @@ codegen_STORE_PTR_IMM_16(codeblock_t *block, uop_t *uop)
 static int
 codegen_SUB(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -2736,10 +2739,10 @@ codegen_SUB(codeblock_t *block, uop_t *uop)
 static int
 codegen_SUB_IMM(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg = HOST_REG_GET(uop->src_reg_a_real);
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
         if (dest_reg != src_reg)
@@ -2807,9 +2810,9 @@ codegen_TEST_JS_DEST(codeblock_t *block, uop_t *uop)
 static int
 codegen_XOR(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
-    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
     int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
 
@@ -2833,7 +2836,7 @@ codegen_XOR_IMM(codeblock_t *block, uop_t *uop)
 {
     int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
-    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size  = IREG_GET_SIZE(uop->src_reg_a_real);
 
     if (REG_IS_L(dest_size) && REG_IS_L(src_size) && uop->dest_reg_a_real == uop->src_reg_a_real) {
         host_x86_XOR32_REG_IMM(block, dest_reg, uop->imm_data);
@@ -3495,7 +3498,7 @@ codegen_direct_write_double_stack(codeblock_t *block, int stack_offset, int host
 }
 
 void
-codegen_set_jump_dest(codeblock_t *block, void *p)
+codegen_set_jump_dest(UNUSED(codeblock_t *block), void *p)
 {
     *(uint32_t *) p = (uintptr_t) &block_write_data[block_pos] - ((uintptr_t) p + 4);
 }

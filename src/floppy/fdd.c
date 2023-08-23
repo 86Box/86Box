@@ -454,7 +454,7 @@ fdd_load(int drive, char *fn)
     int         c = 0;
     int         size;
     const char *p;
-    FILE *      f;
+    FILE *      fp;
 
     fdd_log("FDD: loading drive %d with '%s'\n", drive, fn);
 
@@ -463,12 +463,12 @@ fdd_load(int drive, char *fn)
     p = path_get_extension(fn);
     if (!p)
         return;
-    f = plat_fopen(fn, "rb");
-    if (f) {
-        if (fseek(f, -1, SEEK_END) == -1)
+    fp = plat_fopen(fn, "rb");
+    if (fp) {
+        if (fseek(fp, -1, SEEK_END) == -1)
             fatal("fdd_load(): Error seeking to the end of the file\n");
-        size = ftell(f) + 1;
-        fclose(f);
+        size = ftell(fp) + 1;
+        fclose(fp);
         while (loaders[c].ext) {
             if (!strcasecmp(p, (char *) loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1)) {
                 driveloaders[drive] = c;

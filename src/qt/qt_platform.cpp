@@ -304,16 +304,10 @@ path_slash(char *path)
     path_normalize(path);
 }
 
-char *
+const char *
 path_get_slash(char *path)
 {
-    auto        len = strlen(path);
-    std::string ret = "";
-
-    if (path[len - 1] != '/')
-        ret = "/";
-
-    return (char *) ret.c_str();
+    return QString(path).endsWith("/") ? "" : "/";
 }
 
 void

@@ -810,7 +810,9 @@ ega_poll(void *priv)
         if (ega->vc == ega->vsyncstart) {
             ega->dispon = 0;
             ega->stat |= 8;
-            // picint(1 << 2);
+#if 0
+            picint(1 << 2);
+#endif
             x = ega->hdisp;
 
             if (ega->interlace && !ega->oddeven)

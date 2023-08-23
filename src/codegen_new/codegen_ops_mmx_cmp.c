@@ -45,4 +45,4 @@ ropPcmp(PCMPEQD)
 ropPcmp(PCMPGTB)
 ropPcmp(PCMPGTW)
 ropPcmp(PCMPGTD)
-// clang-format on
+    // clang-format on

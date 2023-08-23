@@ -139,6 +139,7 @@ joystick_init()
 void
 joystick_close()
 {
+    //
 }
 
 void
@@ -261,7 +262,7 @@ joystick_process(void)
 }
 
 void
-win_joystick_handle(PRAWINPUT raw)
+win_joystick_handle(UNUSED(PRAWINPUT raw))
 {
     // Nothing to be done here, atleast currently
 }

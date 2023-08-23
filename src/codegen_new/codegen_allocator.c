@@ -13,6 +13,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "codegen.h"
 #include "codegen_allocator.h"
@@ -112,7 +113,7 @@ codeblock_allocator_get_ptr(mem_block_t *block)
 }
 
 void
-codegen_allocator_clean_blocks(struct mem_block_t *block)
+codegen_allocator_clean_blocks(UNUSED(struct mem_block_t *block))
 {
 #if defined __ARM_EABI__ || defined _ARM_ || defined __aarch64__ || defined _M_ARM || defined _M_ARM64
     while (1) {

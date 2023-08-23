@@ -188,8 +188,8 @@ sdl_stretch(int *w, int *h, int *x, int *y)
     hsr = hw / hh;
 
     switch (video_fullscreen_scale) {
-        case FULLSCR_SCALE_FULL:
         default:
+        case FULLSCR_SCALE_FULL:
             *w = sdl_w;
             *h = sdl_h;
             *x = 0;
@@ -256,7 +256,7 @@ sdl_blit(int x, int y, int w, int h, int monitor_index)
     SDL_UpdateTexture(sdl_tex, &r_src, &(buffer32->line[y][x]), 2048 * sizeof(uint32_t));
 
     if (monitors[0].mon_screenshots)
-        video_screenshot((uint32_t *) buffer32->dat, x, y, 2048);
+        video_screenshot(buffer32->dat, x, y, 2048);
 
     video_blit_complete();
 
@@ -276,7 +276,7 @@ sdl_blit(int x, int y, int w, int h, int monitor_index)
 }
 
 static void
-sdl_blit_ex(int x, int y, int w, int h, int monitor_index)
+sdl_blit_ex(int x, int y, int w, int h, UNUSED(int monitor_index))
 {
     SDL_Rect r_src;
     void    *pixeldata;
@@ -465,7 +465,9 @@ sdl_set_fs(int fs)
     else
         sdl_flags &= ~RENDERER_FULL_SCREEN;
 
-    // sdl_reinit_texture();
+#if 0
+    sdl_reinit_texture();
+#endif
     sdl_enabled = 1;
     SDL_UnlockMutex(sdl_mutex);
 }
@@ -528,19 +530,19 @@ sdl_init_common(int flags)
 }
 
 int
-sdl_inits(HWND h)
+sdl_inits(UNUSED(HWND h))
 {
     return sdl_init_common(0);
 }
 
 int
-sdl_inith(HWND h)
+sdl_inith(UNUSED(HWND h))
 {
     return sdl_init_common(RENDERER_HARDWARE);
 }
 
 int
-sdl_initho(HWND h)
+sdl_initho(UNUSED(HWND h))
 {
     return sdl_init_common(RENDERER_HARDWARE | RENDERER_OPENGL);
 }

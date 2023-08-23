@@ -55,15 +55,15 @@ convert_scan_code(UINT16 scan_code)
 void
 keyboard_getkeymap(void)
 {
-    WCHAR        *keyName   = L"SYSTEM\\CurrentControlSet\\Control\\Keyboard Layout";
-    WCHAR        *valueName = L"Scancode Map";
+    const WCHAR  *keyName   = L"SYSTEM\\CurrentControlSet\\Control\\Keyboard Layout";
+    const WCHAR  *valueName = L"Scancode Map";
     unsigned char buf[32768];
     DWORD         bufSize;
     HKEY          hKey;
     int           j;
-    UINT32       *bufEx2;
+    const UINT32 *bufEx2;
     int           scMapCount;
-    UINT16       *bufEx;
+    const UINT16 *bufEx;
     int           scancode_unmapped;
     int           scancode_mapped;
 

@@ -38,11 +38,13 @@
 #define LOG_PREFIX "serial_passthrough: "
 
 void
-plat_serpt_close(void *p)
+plat_serpt_close(void *priv)
 {
-    serial_passthrough_t *dev = (serial_passthrough_t *) p;
+    serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
-    // fclose(dev->master_fd);
+#if 0
+    fclose(dev->master_fd);
+#endif
     FlushFileBuffers((HANDLE) dev->master_fd);
     if (dev->mode == SERPT_MODE_VCON)
         DisconnectNamedPipe((HANDLE) dev->master_fd);
@@ -56,31 +58,34 @@ plat_serpt_close(void *p)
 static void
 plat_serpt_write_vcon(serial_passthrough_t *dev, uint8_t data)
 {
-    /* fd_set wrfds;
-     * int res;
-     */
+#if 0
+    fd_set wrfds;
+    int res;
+#endif
 
     /* We cannot use select here, this would block the hypervisor! */
-    /* FD_ZERO(&wrfds);
-       FD_SET(ctx->master_fd, &wrfds);
+#if 0
+    FD_ZERO(&wrfds);
+    FD_SET(ctx->master_fd, &wrfds);
 
-       res = select(ctx->master_fd + 1, NULL, &wrfds, NULL, NULL);
+    res = select(ctx->master_fd + 1, NULL, &wrfds, NULL, NULL);
 
-       if (res <= 0) {
-            return;
-       }
-    */
+    if (res <= 0)
+        return;
+#endif
 
     /* just write it out */
-    // fwrite(dev->master_fd, &data, 1);
+#if 0
+    fwrite(dev->master_fd, &data, 1);
+#endif
     DWORD bytesWritten = 0;
     WriteFile((HANDLE) dev->master_fd, &data, 1, &bytesWritten, NULL);
 }
 
 void
-plat_serpt_set_params(void *p)
+plat_serpt_set_params(void *priv)
 {
-    serial_passthrough_t *dev = (serial_passthrough_t *) p;
+    const serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
     if (dev->mode == SERPT_MODE_HOSTSER) {
         DCB serialattr = {};
@@ -123,9 +128,9 @@ plat_serpt_set_params(void *p)
 }
 
 void
-plat_serpt_write(void *p, uint8_t data)
+plat_serpt_write(void *priv, uint8_t data)
 {
-    serial_passthrough_t *dev = (serial_passthrough_t *) p;
+    serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
     switch (dev->mode) {
         case SERPT_MODE_VCON:
@@ -146,9 +151,9 @@ plat_serpt_read_vcon(serial_passthrough_t *dev, uint8_t *data)
 }
 
 int
-plat_serpt_read(void *p, uint8_t *data)
+plat_serpt_read(void *priv, uint8_t *data)
 {
-    serial_passthrough_t *dev = (serial_passthrough_t *) p;
+    serial_passthrough_t *dev = (serial_passthrough_t *) priv;
     int                   res = 0;
 
     switch (dev->mode) {
@@ -212,9 +217,9 @@ open_host_serial_port(serial_passthrough_t *dev)
 }
 
 int
-plat_serpt_open_device(void *p)
+plat_serpt_open_device(void *priv)
 {
-    serial_passthrough_t *dev = (serial_passthrough_t *) p;
+    serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
     switch (dev->mode) {
         case SERPT_MODE_VCON:

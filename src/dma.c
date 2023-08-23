@@ -1271,8 +1271,6 @@ dma_sg(uint8_t *data, int transfer_length, int out, void *priv)
             }
         }
     }
-
-    return 1;
 }
 
 uint8_t

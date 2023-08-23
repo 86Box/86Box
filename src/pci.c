@@ -442,6 +442,9 @@ pci_write(uint16_t port, uint8_t val, UNUSED(void *priv))
             if ((pci_flags & FLAG_MECHANISM_2) && (pci_flags & FLAG_CONFIG_IO_ON))
                 pci_reg_write(port, val);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -460,6 +463,9 @@ pci_writew(uint16_t port, uint16_t val, UNUSED(void *priv))
             case 0xc000 ... 0xcffe:
                 pci_write(port, val & 0xff, priv);
                 pci_write(port + 1, val >> 8, priv);
+                break;
+
+            default:
                 break;
         }
     }
@@ -498,6 +504,9 @@ pci_writel(uint16_t port, uint32_t val, UNUSED(void *priv))
                 /* Still split because we cheat. */
                 pci_writew(port, val & 0xffff, priv);
                 pci_writew(port + 2, val >> 16, priv);
+                break;
+
+            default:
                 break;
         }
     }
@@ -593,6 +602,9 @@ pci_readw(uint16_t port, UNUSED(void *priv))
             case 0xc000 ... 0xcffe:
                 ret = pci_read(port, priv);
                 ret |= ((uint16_t) pci_read(port + 1, priv)) << 8;
+                break;
+
+            default:
                 break;
         }
     }
@@ -751,7 +763,7 @@ pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv),
 }
 
 static void
-pci_clear_card(int pci_card)
+pci_clear_card(UNUSED(int pci_card))
 {
     pci_card_desc_t *dev;
 
@@ -815,7 +827,6 @@ pci_add_bridge(uint8_t agp, uint8_t (*read)(int func, int addr, void *priv), voi
 void
 pci_register_cards(void)
 {
-    uint8_t i;
     uint8_t normal;
 #ifdef ENABLE_PCI_LOG
     uint8_t type;
@@ -825,7 +836,7 @@ pci_register_cards(void)
     next_normal_pci_card = 0;
 
     if (next_pci_card > 0) {
-        for (i = 0; i < next_pci_card; i++) {
+        for (uint8_t i = 0; i < next_pci_card; i++) {
 #ifdef ENABLE_PCI_LOG
             type = pci_card_descs[i].type;
             slot = pci_card_descs[i].slot;

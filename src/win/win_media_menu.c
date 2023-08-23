@@ -723,10 +723,10 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
 
         default:
-            return (0);
+            return 0;
     }
 
-    return (1);
+    return 1;
 }
 
 HMENU

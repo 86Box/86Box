@@ -1445,15 +1445,15 @@ ncr53c8xx_callback(void *priv)
 static void
 ncr53c8xx_eeprom(ncr53c8xx_t *dev, uint8_t save)
 {
-    FILE *f;
+    FILE *fp;
 
-    f = nvr_fopen(dev->nvr_path, save ? "wb" : "rb");
-    if (f) {
+    fp = nvr_fopen(dev->nvr_path, save ? "wb" : "rb");
+    if (fp) {
         if (save)
-            fwrite(&dev->nvram, sizeof(dev->nvram), 1, f);
+            fwrite(&dev->nvram, sizeof(dev->nvram), 1, fp);
         else
-            (void) !fread(&dev->nvram, sizeof(dev->nvram), 1, f);
-        fclose(f);
+            (void) !fread(&dev->nvram, sizeof(dev->nvram), 1, fp);
+        fclose(fp);
     }
 }
 

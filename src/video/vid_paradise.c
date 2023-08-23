@@ -119,6 +119,9 @@ paradise_in(uint16_t addr, void *priv)
 
                 case 0x0f:
                     return (svga->gdcreg[0x0f] & 0x17) | 0x80;
+
+                default:
+                    break;
             }
             break;
 
@@ -130,6 +133,9 @@ paradise_in(uint16_t addr, void *priv)
             if (svga->crtcreg > 0x29 && svga->crtcreg < 0x30 && (svga->crtc[0x29] & 0x88) != 0x80)
                 return 0xff;
             return svga->crtc[svga->crtcreg];
+
+        default:
+            break;
     }
     return svga_in(addr, svga);
 }
@@ -198,6 +204,9 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
                                 mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
                                 svga->banked_mask = 0x7fff;
                                 break;
+
+                            default:
+                                break;
                         }
                     }
                     svga->gdcreg[6] = val;
@@ -213,6 +222,9 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
                     svga->gdcreg[0x0b] = val;
                     paradise_remap(paradise);
                     return;
+
+                default:
+                    break;
             }
             break;
 
@@ -254,6 +266,9 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
                 mem_mapping_enable(&paradise->svga.mapping);
             }
             break;
+
+        default:
+            break;
     }
 
     svga_out(addr, val, svga);
@@ -262,7 +277,8 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
 void
 paradise_remap(paradise_t *paradise)
 {
-    svga_t *svga    = &paradise->svga;
+    const svga_t *svga    = &paradise->svga;
+
     paradise->check = 0;
 
     if (svga->seqregs[0x11] & 0x80) {
@@ -301,7 +317,7 @@ paradise_remap(paradise_t *paradise)
 void
 paradise_recalctimings(svga_t *svga)
 {
-    paradise_t *paradise = (paradise_t *) svga->priv;
+    const paradise_t *paradise = (paradise_t *) svga->priv;
 
     svga->lowres = !(svga->gdcreg[0x0e] & 0x01);
 
@@ -583,6 +599,9 @@ paradise_init(const device_t *info, uint32_t memsize)
             svga->decode_mask   = memsize - 1;
             svga->ramdac        = device_add(&sc11487_ramdac_device); /*Actually a Winbond W82c487-80, probably a clone.*/
             break;
+
+        default:
+            break;
     }
 
     mem_mapping_set_handler(&svga->mapping, paradise_read, paradise_readw, NULL, paradise_write, paradise_writew, NULL);
@@ -606,6 +625,9 @@ paradise_init(const device_t *info, uint32_t memsize)
         case WD90C30:
             svga->crtc[0x36] = '3';
             svga->crtc[0x37] = '0';
+            break;
+
+        default:
             break;
     }
 
