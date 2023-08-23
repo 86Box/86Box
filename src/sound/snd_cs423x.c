@@ -171,13 +171,13 @@ static void cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config
 static void
 cs423x_nvram(cs423x_t *dev, uint8_t save)
 {
-    FILE *f = nvr_fopen(dev->nvr_path, save ? "wb" : "rb");
-    if (f) {
+    FILE *fp = nvr_fopen(dev->nvr_path, save ? "wb" : "rb");
+    if (fp) {
         if (save)
-            fwrite(dev->eeprom_data, sizeof(dev->eeprom_data), 1, f);
+            fwrite(dev->eeprom_data, sizeof(dev->eeprom_data), 1, fp);
         else
-            (void) !fread(dev->eeprom_data, sizeof(dev->eeprom_data), 1, f);
-        fclose(f);
+            (void) !fread(dev->eeprom_data, sizeof(dev->eeprom_data), 1, fp);
+        fclose(fp);
     }
 }
 

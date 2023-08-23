@@ -73,7 +73,7 @@ static int is_flushing = FALSE;
 static int events_in_progress = 0;
 static int64_t time_offset;
 static int first_line = 1;
-static FILE *f;
+static FILE *fp;
 static __thread int cur_thread_id;    // Thread local storage
 static int cur_process_id;
 static pthread_mutex_t mutex;
@@ -235,9 +235,9 @@ void mtr_init_from_stream(void *stream) {
     event_buffer = (raw_event_t *)malloc(INTERNAL_MINITRACE_BUFFER_SIZE * sizeof(raw_event_t));
     flush_buffer = (raw_event_t *)malloc(INTERNAL_MINITRACE_BUFFER_SIZE * sizeof(raw_event_t));
     event_count = 0;
-    f = (FILE *)stream;
+    fp = (FILE *) stream;
     const char *header = "{\"traceEvents\":[\n";
-    fwrite(header, 1, strlen(header), f);
+    fwrite(header, 1, strlen(header), fp);
     time_offset = (uint64_t)(mtr_time_s() * 1000000);
     first_line = 1;
     pthread_mutex_init(&mutex, 0);
@@ -258,11 +258,11 @@ void mtr_shutdown(void) {
 
     mtr_flush_with_state(TRUE);
 
-    fwrite("\n]}\n", 1, 4, f);
-    fclose(f);
+    fwrite("\n]}\n", 1, 4, fp);
+    fclose(fp);
     pthread_mutex_destroy(&mutex);
     pthread_mutex_destroy(&event_mutex);
-    f = 0;
+    fp = 0;
     free(event_buffer);
     event_buffer = 0;
     for (uint8_t i = 0; i < STRING_POOL_SIZE; i++) {
@@ -392,6 +392,9 @@ void mtr_flush_with_state(int is_last) {
                 break;
             case 'X':
                 snprintf(id_buf, ARRAY_SIZE(id_buf), ",\"dur\":%i", (int)raw->a_double);
+                break;
+
+            default:
                 break;
             }
         } else {

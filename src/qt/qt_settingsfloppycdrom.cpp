@@ -179,7 +179,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     auto *modelType  = ui->comboBoxCDROMType->model();
     int   removeRows = modelType->rowCount();
 
-    int j                    = 0;
+    uint32_t j               = 0;
     int selectedTypeRow      = 0;
     int eligibleRows         = 0;
     while (cdrom_drive_types[j].bus_type != BUS_TYPE_NONE) {
@@ -337,7 +337,7 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
     auto *modelType  = ui->comboBoxCDROMType->model();
     int   removeRows = modelType->rowCount();
 
-    int j                    = 0;
+    uint32_t j               = 0;
     int selectedTypeRow      = 0;
     int eligibleRows         = 0;
     while (cdrom_drive_types[j].bus_type != BUS_TYPE_NONE) {

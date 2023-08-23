@@ -204,14 +204,17 @@ genius_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3d9:
             genius->cga_colour = val;
             return;
+
+        default:
+            break;
     }
 }
 
 uint8_t
 genius_in(uint16_t addr, void *priv)
 {
-    genius_t *genius = (genius_t *) priv;
-    uint8_t   ret    = 0xff;
+    const genius_t *genius = (genius_t *) priv;
+    uint8_t         ret    = 0xff;
 
     switch (addr) {
         case 0x3b0:
@@ -252,6 +255,9 @@ genius_in(uint16_t addr, void *priv)
             break;
         case 0x3da:
             ret = genius->cga_stat;
+            break;
+
+        default:
             break;
     }
 
@@ -295,8 +301,9 @@ genius_write(uint32_t addr, uint8_t val, void *priv)
 uint8_t
 genius_read(uint32_t addr, void *priv)
 {
-    genius_t *genius = (genius_t *) priv;
-    uint8_t   ret;
+    const genius_t *genius = (genius_t *) priv;
+    uint8_t         ret;
+
     genius_waitstates();
 
     if (genius->genius_control & 1) {
@@ -364,6 +371,9 @@ genius_lines(genius_t *genius)
         case 0x13:
             ret = 492; /* 80x41 */
             break;
+
+        default:
+            break;
     }
 
     return ret;
@@ -379,7 +389,7 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
     uint8_t        attr;
     uint8_t        sc;
     uint8_t        ctrl;
-    uint8_t       *crtc;
+    const uint8_t *crtc;
     uint8_t        bitmap[2];
     int            blink;
     int            c;
@@ -390,7 +400,7 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
     uint16_t       addr;
     uint16_t       ma       = (genius->mda_crtc[13] | (genius->mda_crtc[12] << 8)) & 0x3fff;
     uint16_t       ca       = (genius->mda_crtc[15] | (genius->mda_crtc[14] << 8)) & 0x3fff;
-    unsigned char *framebuf = genius->vram + 0x10000;
+    const uint8_t *framebuf = genius->vram + 0x10000;
     uint32_t       col;
     uint32_t       dl = genius->displine;
 
@@ -465,6 +475,9 @@ genius_textline(genius_t *genius, uint8_t background, int mda, int cols80)
                 break;
             case 0x60:
                 drawcursor = drawcursor && (genius->blink & 32);
+                break;
+
+            default:
                 break;
         }
 
@@ -721,9 +734,8 @@ genius_poll(void *priv)
     }
 }
 
-void
-    *
-    genius_init(const device_t *info)
+void *
+genius_init(UNUSED(const device_t *info))
 {
     genius_t *genius = malloc(sizeof(genius_t));
 

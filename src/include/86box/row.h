@@ -18,8 +18,7 @@
 #ifndef EMU_ROW_H
 # define EMU_ROW_H
 
-typedef struct _row_
-{
+typedef struct _row_ {
     struct _smram_  *prev;
     struct _smram_  *next;
 
@@ -35,12 +34,9 @@ typedef struct _row_
     uint32_t        boundary;
 } row_t;
 
-
 extern void         row_disable(uint8_t row_id);
 extern void         row_set_boundary(uint8_t row_id, uint32_t boundary);
 
-
 extern device_t     row_device;
-
 
 #endif /*EMU_ROW_H*/

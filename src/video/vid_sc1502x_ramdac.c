@@ -116,9 +116,9 @@ sc1502x_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga)
 }
 
 uint8_t
-sc1502x_ramdac_in(uint16_t addr, void *p, svga_t *svga)
+sc1502x_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
 {
-    sc1502x_ramdac_t *ramdac = (sc1502x_ramdac_t *) p;
+    sc1502x_ramdac_t *ramdac = (sc1502x_ramdac_t *) priv;
     uint8_t           temp   = svga_in(addr, svga);
 
     switch (addr) {

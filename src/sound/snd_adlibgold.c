@@ -888,9 +888,9 @@ adgold_filter_cd_audio(int channel, double *buffer, void *priv)
 }
 
 static void
-adgold_input_msg(void *p, uint8_t *msg, uint32_t len)
+adgold_input_msg(void *priv, uint8_t *msg, uint32_t len)
 {
-    adgold_t *adgold = (adgold_t *) p;
+    adgold_t *adgold = (adgold_t *) priv;
 
     if (adgold->sysex)
         return;
@@ -908,9 +908,9 @@ adgold_input_msg(void *p, uint8_t *msg, uint32_t len)
 }
 
 static int
-adgold_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
+adgold_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
 {
-    adgold_t *adgold = (adgold_t *) p;
+    adgold_t *adgold = (adgold_t *) priv;
 
     if (abort) {
         adgold->sysex = 0;
@@ -930,7 +930,7 @@ adgold_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 void *
 adgold_init(UNUSED(const device_t *info))
 {
-    FILE     *f;
+    FILE     *fp;
     int       c;
     double    out;
     adgold_t *adgold = malloc(sizeof(adgold_t));
@@ -980,11 +980,11 @@ adgold_init(UNUSED(const device_t *info))
     adgold->adgold_eeprom[0x18] = 0x00; /* Surround */
     adgold->adgold_eeprom[0x19] = 0x00;
 
-    f = nvr_fopen("adgold.bin", "rb");
-    if (f) {
-        if (fread(adgold->adgold_eeprom, 1, 0x1a, f) != 0x1a)
+    fp = nvr_fopen("adgold.bin", "rb");
+    if (fp) {
+        if (fread(adgold->adgold_eeprom, 1, 0x1a, fp) != 0x1a)
             fatal("adgold_init(): Error reading data\n");
-        fclose(f);
+        fclose(fp);
     }
 
     adgold->adgold_status   = 0xf;

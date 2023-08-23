@@ -44,7 +44,7 @@ static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
-deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, UNUSED(LPARAM lParam))
 {
     HWND h;
 
@@ -64,8 +64,8 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
     const device_config_bios_t      *bios;
     char                             s[512];
     char                             file_filter[512];
-    char                            *str;
-    char                            *val_str;
+    const char                      *str;
+    const char                      *val_str;
     wchar_t                          ws[512];
     wchar_t                         *wstr;
     LPTSTR                           lptsTemp;
@@ -121,7 +121,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                             mbstowcs(lptsTemp, bios->name, strlen(bios->name) + 1);
                             p = 0;
                             for (d = 0; d < bios->files_no; d++)
-                                p += !!rom_present((char *) bios->files[d]);
+                                p += !!rom_present(bios->files[d]);
                             if (p == bios->files_no) {
                                 SendMessage(h, CB_ADDSTRING, 0, (LPARAM) (LPCSTR) lptsTemp);
                                 if (!strcmp(val_str, bios->internal_name))
