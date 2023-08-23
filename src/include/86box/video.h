@@ -208,7 +208,8 @@ extern double cpuclock;
 extern int    emu_fps;
 extern int    frames;
 extern int    readflash;
-extern int    ibm8514_has_vga;
+extern int    ibm8514_active;
+extern int    xga_active;
 
 /* Function handler pointers. */
 extern void (*video_recalctimings)(void);
@@ -351,6 +352,7 @@ extern const device_t gd5429_isa_device;
 extern const device_t gd5429_vlb_device;
 extern const device_t gd5430_diamond_speedstar_pro_se_a8_vlb_device;
 extern const device_t gd5430_vlb_device;
+extern const device_t gd5430_onboard_vlb_device;
 extern const device_t gd5430_pci_device;
 extern const device_t gd5430_onboard_pci_device;
 extern const device_t gd5434_isa_device;

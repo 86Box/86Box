@@ -188,7 +188,7 @@ ibm8514_log(const char *fmt, ...)
         dev->changedvram[(((addr)) & (dev->vram_mask)) >> 12] = changeframecount; \
     }
 
-int ibm8514_has_vga = 0;
+int ibm8514_active = 0;
 
 int
 ibm8514_cpu_src(svga_t *svga)
@@ -4224,7 +4224,7 @@ ibm8514_recalctimings(svga_t *svga)
             svga->clock = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
         }
         svga->render8514 = ibm8514_render_8bpp;
-        ibm8514_log("BPP=%d, Pitch = %d, rowoffset = %d, crtc13 = %02x, mode = %d, highres bit = %02x, has_vga? = %d.\n", dev->bpp, dev->pitch, dev->rowoffset, svga->crtc[0x13], dev->ibm_mode, dev->accel.advfunc_cntl & 4, ibm8514_has_vga);
+        ibm8514_log("BPP=%d, Pitch = %d, rowoffset = %d, crtc13 = %02x, mode = %d, highres bit = %02x, has_vga? = %d.\n", dev->bpp, dev->pitch, dev->rowoffset, svga->crtc[0x13], dev->ibm_mode, dev->accel.advfunc_cntl & 4, !ibm8514_standalone_enabled);
     }
     ibm8514_log("8514 enabled, hdisp=%d, vtotal=%d, htotal=%d, dispend=%d, rowoffset=%d, split=%d, vsyncstart=%d, split=%08x\n", dev->hdisp, dev->vtotal, dev->htotal, dev->dispend, dev->rowoffset, dev->split, dev->vsyncstart, dev->split);
 }
@@ -4351,7 +4351,7 @@ const device_t ibm8514_mca_device = {
 void
 ibm8514_device_add(void)
 {
-    if (!ibm8514_enabled || (ibm8514_enabled && ibm8514_has_vga))
+    if (!ibm8514_standalone_enabled)
         return;
 
     if (machine_has_bus(machine, MACHINE_BUS_MCA))

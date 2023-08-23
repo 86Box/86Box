@@ -130,8 +130,8 @@ extern int    isamem_type[];          /* (C) enable ISA mem cards */
 extern int    isartc_type;            /* (C) enable ISA RTC card */
 extern int sound_is_float;        /* (C) sound uses FP values */
 extern int    voodoo_enabled;         /* (C) video option */
-extern int    ibm8514_enabled;        /* (C) video option */
-extern int    xga_enabled;            /* (C) video option */
+extern int    ibm8514_standalone_enabled; /* (C) video option */
+extern int    xga_standalone_enabled; /* (C) video option */
 extern uint32_t mem_size;         /* (C) memory size (Installed on system board) */
 extern uint32_t isa_mem_size;     /* (C) memory size (ISA Memory Cards) */
 extern int      cpu;              /* (C) cpu type */

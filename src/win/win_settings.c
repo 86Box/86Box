@@ -373,8 +373,8 @@ win_settings_init(void)
     temp_gfxcard[0] = gfxcard[0];
     temp_gfxcard[1] = gfxcard[1];
     temp_voodoo     = voodoo_enabled;
-    temp_ibm8514    = ibm8514_enabled;
-    temp_xga        = xga_enabled;
+    temp_ibm8514    = ibm8514_standalone_enabled;
+    temp_xga        = xga_standalone_enabled;
 
     /* Input devices category */
     temp_mouse    = mouse_type;
@@ -504,8 +504,8 @@ win_settings_changed(void)
     i = i || (gfxcard[0] != temp_gfxcard[0]);
     i = i || (gfxcard[1] != temp_gfxcard[1]);
     i = i || (voodoo_enabled != temp_voodoo);
-    i = i || (ibm8514_enabled != temp_ibm8514);
-    i = i || (xga_enabled != temp_xga);
+    i = i || (ibm8514_standalone_enabled != temp_ibm8514);
+    i = i || (xga_standalone_enabled != temp_xga);
 
     /* Input devices category */
     i = i || (mouse_type != temp_mouse);
@@ -596,11 +596,11 @@ win_settings_save(void)
     time_sync = temp_sync;
 
     /* Video category */
-    gfxcard[0]      = temp_gfxcard[0];
-    gfxcard[1]      = temp_gfxcard[1];
-    voodoo_enabled  = temp_voodoo;
-    ibm8514_enabled = temp_ibm8514;
-    xga_enabled     = temp_xga;
+    gfxcard[0]                 = temp_gfxcard[0];
+    gfxcard[1]                 = temp_gfxcard[1];
+    voodoo_enabled             = temp_voodoo;
+    ibm8514_standalone_enabled = temp_ibm8514;
+    xga_standalone_enabled     = temp_xga;
 
     /* Input devices category */
     mouse_type    = temp_mouse;
