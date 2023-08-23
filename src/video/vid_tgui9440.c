@@ -646,6 +646,7 @@ void
 tgui_recalctimings(svga_t *svga)
 {
     const tgui_t *tgui       = (tgui_t *) svga->priv;
+    uint8_t       ger22lower = (tgui->accel.ger22 & 0xff);
     uint8_t       ger22upper = (tgui->accel.ger22 >> 8);
 
     if (!svga->rowoffset)
@@ -771,7 +772,8 @@ tgui_recalctimings(svga_t *svga)
                     }
                     switch (svga->hdisp) {
                         case 640:
-                            svga->rowoffset = 80;
+                            if (!ger22lower)
+                                svga->rowoffset = 80;
                             break;
 
                         default:
@@ -2063,16 +2065,24 @@ tgui_accel_out(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x2123:
+            //pclog("Pitch IO23: val = %02x, rowoffset = %x, pitch = %d.\n", val, svga->rowoffset, tgui->accel.pitch);
             tgui->accel.ger22 = (tgui->accel.ger22 & 0xff) | (val << 8);
             if ((val & 0x80) || ((val & 0xc0) == 0x40))
                 tgui->accel.pitch = svga->rowoffset << 3;
-            else if (tgui->accel.pitch <= 1024)
+            else if (tgui->accel.pitch <= 1024) {
                 tgui->accel.pitch = svga->rowoffset << 3;
+                if (!val)
+                    tgui->accel.pitch = 1024;
+            }
 
             if (tgui->accel.bpp == 1)
                 tgui->accel.pitch >>= 1;
             else if (tgui->accel.bpp == 3)
                 tgui->accel.pitch >>= 2;
+
+
+            if (tgui->accel.pitch == 800)
+                tgui->accel.pitch += 32;
 
             svga_recalctimings(svga);
             break;
@@ -2712,16 +2722,23 @@ tgui_accel_write(uint32_t addr, uint8_t val, void *priv)
             break;
 
         case 0x23:
+            //pclog("Pitch MM23: val = %02x, rowoffset = %x, pitch = %d.\n", val, svga->rowoffset, tgui->accel.pitch);
             tgui->accel.ger22 = (tgui->accel.ger22 & 0xff) | (val << 8);
             if ((val & 0x80) || ((val & 0xc0) == 0x40))
                 tgui->accel.pitch = svga->rowoffset << 3;
-            else if (tgui->accel.pitch <= 1024)
+            else if (tgui->accel.pitch <= 1024) {
                 tgui->accel.pitch = svga->rowoffset << 3;
+                if (!val)
+                    tgui->accel.pitch = 1024;
+            }
 
             if (tgui->accel.bpp == 1)
                 tgui->accel.pitch >>= 1;
             else if (tgui->accel.bpp == 3)
                 tgui->accel.pitch >>= 2;
+
+            if (tgui->accel.pitch == 800)
+                tgui->accel.pitch += 32;
 
             svga_recalctimings(svga);
             break;
