@@ -32,6 +32,7 @@
 #include <86box/ui.h>
 #include <86box/scsi_disk.h>
 #include <86box/version.h>
+#include <86box/plat_fallthrough.h>
 
 #define scsi_disk_sense_error dev->sense[0]
 #define scsi_disk_sense_key   dev->sense[2]
@@ -720,6 +721,7 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
                 scsi_disk_command_complete(dev);
                 break;
             }
+            fallthrough;
         case GPCMD_WRITE_6:
         case GPCMD_WRITE_10:
         case GPCMD_WRITE_AND_VERIFY_10:

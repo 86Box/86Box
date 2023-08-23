@@ -46,6 +46,7 @@
 #include <86box/scsi_buslogic.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_x54x.h>
+#include <86box/plat_fallthrough.h>
 
 /*
  * Auto SCSI structure which is located
@@ -872,6 +873,7 @@ buslogic_cmds(void *priv)
                 dev->Status |= STAT_INVCMD;
                 break;
             }
+            fallthrough;
         case 0x92:
             if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) || (bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) || (bl->chip == CHIP_BUSLOGIC_ISA_542BH_1993_05_23) || (bl->chip == CHIP_BUSLOGIC_MCA_640A_1993_05_23)) {
                 dev->DataReplyLeft = 0;
