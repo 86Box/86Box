@@ -163,8 +163,8 @@ fdc37m60x_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 fdc37m60x_read(uint16_t addr, void *priv)
 {
-    fdc37m60x_t *dev = (fdc37m60x_t *) priv;
-    uint8_t      ret = 0xff;
+    const fdc37m60x_t *dev = (fdc37m60x_t *) priv;
+    uint8_t            ret = 0xff;
 
     if (addr & 1)
         ret = (INDEX >= 0x30) ? dev->device_regs[CURRENT_LOGICAL_DEVICE][INDEX] : dev->regs[INDEX];

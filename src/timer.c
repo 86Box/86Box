@@ -87,8 +87,6 @@ timer_enable(pc_timer_t *timer)
 void
 timer_disable(pc_timer_t *timer)
 {
-    pc_timer_t *cur, *temp;
-
     if (!timer_inited || (timer == NULL) || !(timer->flags & TIMER_ENABLED))
         return;
 
@@ -238,8 +236,6 @@ timer_on(pc_timer_t *timer, double period, int start)
 void
 timer_on_auto(pc_timer_t *timer, double period)
 {
-    uint32_t *p = NULL;
-
     if (!timer_inited || (timer == NULL))
         return;
 

@@ -789,7 +789,7 @@ isartc_reset(void)
     device_add(boards[isartc_type].dev);
 }
 
-char *
+const char *
 isartc_get_internal_name(int board)
 {
     return device_get_internal_name(boards[board].dev);

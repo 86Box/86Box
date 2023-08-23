@@ -66,7 +66,7 @@ mcast_index(const void *dst)
     uint32_t       crc = 0xffffffffL;
     int            carry;
     uint8_t        b;
-    const uint8_t *ep = (uint8_t *) dst;
+    const uint8_t *ep = (const uint8_t *) dst;
 
     for (int8_t i = 6; --i >= 0;) {
         b = *ep++;

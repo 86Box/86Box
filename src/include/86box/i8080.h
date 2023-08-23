@@ -51,14 +51,14 @@ typedef struct i8080 {
     uint16_t  oldpc;
     uint16_t  ei;
     uint32_t  pmembase;
-    uint32_t dmembase;   /* Base from where i8080 starts. */
+    uint32_t  dmembase;   /* Base from where i8080 starts. */
     uint8_t   emulated;  /* 0 = not emulated, use separate registers, 1 = emulated, use x86 registers. */
     uint16_t *cpu_flags;
-    void (*writemembyte)(uint32_t, uint8_t);
+    void    (*writemembyte)(uint32_t, uint8_t);
     uint8_t (*readmembyte)(uint32_t);
-    void (*startclock)(void);
-    void (*endclock)(void);
-    void (*checkinterrupts)(void);
+    void    (*startclock)(void);
+    void    (*endclock)(void);
+    void    (*checkinterrupts)(void);
     uint8_t (*fetchinstruction)(void *);
 } i8080;
 

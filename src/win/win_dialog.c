@@ -160,7 +160,9 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, WCHAR *title, int save)
 {
     OPENFILENAME ofn;
     BOOL         r;
-    /* DWORD err; */
+#if 0
+    DWORD err;
+#endif
     int old_dopause;
 
     /* Initialize OPENFILENAME */

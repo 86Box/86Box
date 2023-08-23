@@ -191,10 +191,10 @@ typedef struct cdrom {
 
     void *image;
 
-    void (*insert)(void *p);
-    void (*close)(void *p);
-    uint32_t (*get_volume)(void *p, int channel);
-    uint32_t (*get_channel)(void *p, int channel);
+    void (*insert)(void *priv);
+    void (*close)(void *priv);
+    uint32_t (*get_volume)(void *priv, int channel);
+    uint32_t (*get_channel)(void *priv, int channel);
 
     int16_t cd_buffer[BUF_SIZE];
 } cdrom_t;

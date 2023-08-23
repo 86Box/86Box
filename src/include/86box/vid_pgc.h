@@ -45,9 +45,9 @@ typedef struct pgc_cl {
 typedef struct pgc_cmd {
     char    ascii[6];
     uint8_t hex;
-    void (*handler)(struct pgc *);
-    int (*parser)(struct pgc *, pgc_cl_t *, int);
-    int p;
+    void  (*handler)(struct pgc *);
+    int   (*parser)(struct pgc *, pgc_cl_t *, int);
+    int     p;
 } pgc_cmd_t;
 
 typedef struct pgc {
@@ -71,10 +71,12 @@ typedef struct pgc {
     uint8_t  hex_command;
     uint32_t palette[256];
     uint32_t userpal[256];
-    uint32_t maxw, maxh; /* maximum framebuffer size */
-    uint32_t visw, vish; /* maximum screen size */
+    uint32_t maxw; /* maximum framebuffer size - Width */
+    uint32_t maxh; /* maximum framebuffer size - Height */
+    uint32_t visw; /* maximum screen size - Width */
+    uint32_t vish; /* maximum screen size - Height */
     uint32_t screenw;
-    uint32_t  screenh;
+    uint32_t screenh;
     int16_t  pan_x;
     int16_t  pan_y;
     uint16_t win_x1;

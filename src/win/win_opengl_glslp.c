@@ -82,15 +82,15 @@ typedef enum {
 static char *
 read_file_to_string(const char *path)
 {
-    FILE *file_handle = plat_fopen(path, "rb");
+    FILE *fp = plat_fopen(path, "rb");
 
-    if (file_handle != NULL) {
+    if (fp != NULL) {
         /* get file size */
-        fseek(file_handle, 0, SEEK_END);
+        fseek(fp, 0, SEEK_END);
 
-        size_t file_size = (size_t) ftell(file_handle);
+        size_t file_size = (size_t) ftell(fp);
 
-        fseek(file_handle, 0, SEEK_SET);
+        fseek(fp, 0, SEEK_SET);
 
         /* read to buffer and close */
         char *content = (char *) malloc(sizeof(char) * (file_size + 1));
@@ -98,9 +98,9 @@ read_file_to_string(const char *path)
         if (!content)
             return NULL;
 
-        size_t length = fread(content, sizeof(char), file_size, file_handle);
+        size_t length = fread(content, sizeof(char), file_size, fp);
 
-        fclose(file_handle);
+        fclose(fp);
 
         content[length] = 0;
 
@@ -183,7 +183,7 @@ load_custom_shaders(const char *path)
                 it must be captured and placed as the first statement. */
         if (version_start != NULL) {
             /* Version directive found, search the line end */
-            char *version_end = strchr(version_start, '\n');
+            const char *version_end = strchr(version_start, '\n');
 
             if (version_end != NULL) {
                 char version[30] = "";

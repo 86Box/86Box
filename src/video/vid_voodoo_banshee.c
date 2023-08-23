@@ -3169,7 +3169,7 @@ banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int
         pci_add_card(banshee->agp ? PCI_ADD_AGP : PCI_ADD_VIDEO, banshee_pci_read, banshee_pci_write, banshee, &banshee->pci_slot);
 
     banshee->voodoo               = voodoo_2d3d_card_init(voodoo_type);
-    banshee->voodoo->p            = banshee;
+    banshee->voodoo->priv         = banshee;
     banshee->voodoo->vram         = banshee->svga.vram;
     banshee->voodoo->changedvram  = banshee->svga.changedvram;
     banshee->voodoo->fb_mem       = banshee->svga.vram;

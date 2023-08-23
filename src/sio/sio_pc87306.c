@@ -57,7 +57,7 @@ pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 uint8_t
 pc87306_gpio_read(uint16_t port, void *priv)
 {
-    pc87306_t *dev = (pc87306_t *) priv;
+    const pc87306_t *dev = (pc87306_t *) priv;
 
     return dev->gpio[port & 1];
 }

@@ -1573,10 +1573,10 @@ set_switches(hdc_t *dev, hd_type_t *hdt, int num)
 static void *
 st506_init(const device_t *info)
 {
-    char  *fn = NULL;
-    hdc_t *dev;
-    int    i;
-    int    c;
+    const char *fn = NULL;
+    hdc_t      *dev;
+    int         i;
+    int         c;
 
     dev = (hdc_t *) malloc(sizeof(hdc_t));
     memset(dev, 0x00, sizeof(hdc_t));

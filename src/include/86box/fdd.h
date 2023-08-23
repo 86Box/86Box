@@ -136,7 +136,7 @@ typedef union {
 
 void fdd_calccrc(uint8_t byte, crc_t *crc_var);
 
-typedef struct {
+typedef struct d86f_handler_t {
     uint16_t (*disk_flags)(int drive);
     uint16_t (*side_flags)(int drive);
     void (*writeback)(int drive);
@@ -162,7 +162,7 @@ extern const uint8_t  xdf_physical_sectors[2][2];
 extern const uint8_t  xdf_gap3_sizes[2][2];
 extern const uint16_t xdf_trackx_spos[2][8];
 
-typedef struct {
+typedef struct xdf_id_t {
     uint8_t h;
     uint8_t r;
 } xdf_id_t;
@@ -175,14 +175,14 @@ typedef union {
 extern const xdf_sector_t xdf_img_layout[2][2][46];
 extern const xdf_sector_t xdf_disk_layout[2][2][38];
 
-typedef struct {
+typedef struct sector_id_fields_t {
     uint8_t c;
     uint8_t h;
     uint8_t r;
     uint8_t n;
 } sector_id_fields_t;
 
-typedef union {
+typedef union sector_id_t {
     uint32_t           dword;
     uint8_t            byte_array[4];
     sector_id_fields_t id;

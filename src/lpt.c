@@ -45,22 +45,22 @@ static const struct {
   // clang-format on
 };
 
-char *
+const char *
 lpt_device_get_name(int id)
 {
-    if (strlen((char *) lpt_devices[id].internal_name) == 0)
+    if (strlen(lpt_devices[id].internal_name) == 0)
         return NULL;
     if (!lpt_devices[id].device)
         return "None";
-    return (char *) lpt_devices[id].device->name;
+    return lpt_devices[id].device->name;
 }
 
-char *
+const char *
 lpt_device_get_internal_name(int id)
 {
-    if (strlen((char *) lpt_devices[id].internal_name) == 0)
+    if (strlen(lpt_devices[id].internal_name) == 0)
         return NULL;
-    return (char *) lpt_devices[id].internal_name;
+    return lpt_devices[id].internal_name;
 }
 
 int
@@ -68,7 +68,7 @@ lpt_device_get_from_internal_name(char *s)
 {
     int c = 0;
 
-    while (strlen((char *) lpt_devices[c].internal_name) != 0) {
+    while (strlen(lpt_devices[c].internal_name) != 0) {
         if (strcmp(lpt_devices[c].internal_name, s) == 0)
             return c;
         c++;

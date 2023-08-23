@@ -91,10 +91,10 @@ typedef struct serial_s {
 } serial_t;
 
 typedef struct serial_device_s {
-    void (*rcr_callback)(struct serial_s *serial, void *p);
-    void (*dev_write)(struct serial_s *serial, void *p, uint8_t data);
-    void (*lcr_callback)(struct serial_s *serial, void *p, uint8_t lcr);
-    void (*transmit_period_callback)(struct serial_s *serial, void *p, double transmit_period);
+    void    (*rcr_callback)(struct serial_s *serial, void *priv);
+    void    (*dev_write)(struct serial_s *serial, void *priv, uint8_t data);
+    void    (*lcr_callback)(struct serial_s *serial, void *priv, uint8_t lcr);
+    void    (*transmit_period_callback)(struct serial_s *serial, void *priv, double transmit_period);
     void     *priv;
     serial_t *serial;
 } serial_device_t;
@@ -106,10 +106,10 @@ typedef struct serial_port_s {
 extern serial_port_t com_ports[SERIAL_MAX];
 
 extern serial_t *serial_attach_ex(int port,
-                                  void (*rcr_callback)(struct serial_s *serial, void *p),
-                                  void (*dev_write)(struct serial_s *serial, void *p, uint8_t data),
-                                  void (*transmit_period_callback)(struct serial_s *serial, void *p, double transmit_period),
-                                  void (*lcr_callback)(struct serial_s *serial, void *p, uint8_t data_bits),
+                                  void (*rcr_callback)(struct serial_s *serial, void *priv),
+                                  void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
+                                  void (*transmit_period_callback)(struct serial_s *serial, void *priv, double transmit_period),
+                                  void (*lcr_callback)(struct serial_s *serial, void *priv, uint8_t data_bits),
                                   void *priv);
 
 #define serial_attach(port, rcr_callback, dev_write, priv) \

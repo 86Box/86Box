@@ -675,7 +675,7 @@ buslogic_cmds(void *priv)
 
     const HALocalRAM *HALR = &bl->LocalRAM;
 
-    FILE                                 *f;
+    FILE                                 *fp;
     uint16_t                              TargetsPresentMask = 0;
     uint32_t                              Offset;
     int                                   i = 0;
@@ -890,11 +890,11 @@ buslogic_cmds(void *priv)
                     BuslogicAutoSCSIRamSetDefaults(dev, 3);
                     break;
                 case 1:
-                    f = nvr_fopen(BuslogicGetNVRFileName(bl), "wb");
-                    if (f) {
-                        fwrite(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, f);
-                        fclose(f);
-                        f = NULL;
+                    fp = nvr_fopen(BuslogicGetNVRFileName(bl), "wb");
+                    if (fp) {
+                        fwrite(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, fp);
+                        fclose(fp);
+                        fp = NULL;
                     }
                     break;
                 default:
@@ -1528,16 +1528,16 @@ static void *
 buslogic_init(const device_t *info)
 {
     x54x_t          *dev;
-    char            *bios_rom_name;
+    const char      *bios_rom_name;
     uint16_t         bios_rom_size = 0;
     uint16_t         bios_rom_mask = 0;
     uint8_t          has_autoscsi_rom;
-    char            *autoscsi_rom_name = NULL;
+    const char      *autoscsi_rom_name = NULL;
     uint16_t         autoscsi_rom_size = 0;
     uint8_t          has_scam_rom;
-    char            *scam_rom_name = NULL;
+    const char      *scam_rom_name = NULL;
     uint16_t         scam_rom_size = 0;
-    FILE            *f;
+    FILE            *fp;
     buslogic_data_t *bl;
     uint32_t         bios_rom_addr;
 
@@ -1721,20 +1721,20 @@ buslogic_init(const device_t *info)
         rom_init(&bl->bios, bios_rom_name, bios_rom_addr, bios_rom_size, bios_rom_mask, 0, MEM_MAPPING_EXTERNAL);
 
         if (has_autoscsi_rom) {
-            f = rom_fopen(autoscsi_rom_name, "rb");
-            if (f) {
-                (void) !fread(bl->AutoSCSIROM, 1, autoscsi_rom_size, f);
-                fclose(f);
-                f = NULL;
+            fp = rom_fopen(autoscsi_rom_name, "rb");
+            if (fp) {
+                (void) !fread(bl->AutoSCSIROM, 1, autoscsi_rom_size, fp);
+                fclose(fp);
+                fp = NULL;
             }
         }
 
         if (has_scam_rom) {
-            f = rom_fopen(scam_rom_name, "rb");
-            if (f) {
-                (void) !fread(bl->SCAMData, 1, scam_rom_size, f);
-                fclose(f);
-                f = NULL;
+            fp = rom_fopen(scam_rom_name, "rb");
+            if (fp) {
+                (void) !fread(bl->SCAMData, 1, scam_rom_size, fp);
+                fclose(fp);
+                fp = NULL;
             }
         }
     } else {

@@ -168,7 +168,7 @@ fdc_card_has_config(int card)
     return (device_has_config(fdc_cards[card].device) ? 1 : 0);
 }
 
-char *
+const char *
 fdc_card_get_internal_name(int card)
 {
     return device_get_internal_name(fdc_cards[card].device);
@@ -180,7 +180,7 @@ fdc_card_get_from_internal_name(char *s)
     int c = 0;
 
     while (fdc_cards[c].device != NULL) {
-        if (!strcmp((char *) fdc_cards[c].device->internal_name, s))
+        if (!strcmp(fdc_cards[c].device->internal_name, s))
             return c;
         c++;
     }

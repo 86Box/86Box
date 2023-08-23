@@ -58,4 +58,4 @@ ropParith(PSUBUSW)
 ropParith(PMADDWD)
 ropParith(PMULHW)
 ropParith(PMULLW)
-// clang-format on
+    // clang-format on

@@ -255,7 +255,7 @@ static void
 load_machine(void)
 {
     ini_section_t cat = ini_find_section(config, "Machine");
-    char         *p;
+    const char   *p;
     const char   *migrate_from = NULL;
     int           c;
     int           i;

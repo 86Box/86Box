@@ -191,13 +191,13 @@ device_add_common(const device_t *dev, const device_t *cd, void *p, void *params
     return priv;
 }
 
-char *
+const char *
 device_get_internal_name(const device_t *dev)
 {
     if (dev == NULL)
         return "";
 
-    return (char *) dev->internal_name;
+    return dev->internal_name;
 }
 
 void *

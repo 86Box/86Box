@@ -310,7 +310,7 @@ path_slash(char *path)
     path_normalize(path);
 }
 
-char *
+const char *
 path_get_slash(char *path)
 {
     char *ret = "";

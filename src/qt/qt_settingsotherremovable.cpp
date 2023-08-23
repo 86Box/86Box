@@ -52,6 +52,9 @@ setMOBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_t
         case MO_BUS_SCSI:
             icon = ProgSettings::loadIcon("/mo.ico");
             break;
+
+        default:
+            break;
     }
 
     auto i = idx.siblingAtColumn(0);
@@ -83,6 +86,9 @@ setZIPBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint8_
         case ZIP_BUS_ATAPI:
         case ZIP_BUS_SCSI:
             icon = ProgSettings::loadIcon("/zip.ico");
+            break;
+
+        default:
             break;
     }
 
@@ -158,9 +164,9 @@ SettingsOtherRemovable::~SettingsOtherRemovable()
 void
 SettingsOtherRemovable::save()
 {
-    auto *model = ui->tableViewMO->model();
-    for (int i = 0; i < MO_NUM; i++) {
-        mo_drives[i].f        = NULL;
+    const auto *model = ui->tableViewMO->model();
+    for (uint8_t i = 0; i < MO_NUM; i++) {
+        mo_drives[i].fp       = NULL;
         mo_drives[i].priv     = NULL;
         mo_drives[i].bus_type = model->index(i, 0).data(Qt::UserRole).toUInt();
         mo_drives[i].res      = model->index(i, 0).data(Qt::UserRole + 1).toUInt();
@@ -168,8 +174,8 @@ SettingsOtherRemovable::save()
     }
 
     model = ui->tableViewZIP->model();
-    for (int i = 0; i < ZIP_NUM; i++) {
-        zip_drives[i].f        = NULL;
+    for (uint8_t i = 0; i < ZIP_NUM; i++) {
+        zip_drives[i].fp       = NULL;
         zip_drives[i].priv     = NULL;
         zip_drives[i].bus_type = model->index(i, 0).data(Qt::UserRole).toUInt();
         zip_drives[i].res      = model->index(i, 0).data(Qt::UserRole + 1).toUInt();
@@ -185,8 +191,8 @@ SettingsOtherRemovable::onMORowChanged(const QModelIndex &current)
     uint8_t type    = current.siblingAtColumn(1).data(Qt::UserRole).toUInt();
 
     ui->comboBoxMOBus->setCurrentIndex(-1);
-    auto *model = ui->comboBoxMOBus->model();
-    auto  match = model->match(model->index(0, 0), Qt::UserRole, bus);
+    const auto *model = ui->comboBoxMOBus->model();
+    auto        match = model->match(model->index(0, 0), Qt::UserRole, bus);
     if (!match.isEmpty())
         ui->comboBoxMOBus->setCurrentIndex(match.first().row());
 
@@ -205,8 +211,8 @@ SettingsOtherRemovable::onZIPRowChanged(const QModelIndex &current)
     bool    is250   = current.siblingAtColumn(1).data(Qt::UserRole).toBool();
 
     ui->comboBoxZIPBus->setCurrentIndex(-1);
-    auto *model = ui->comboBoxZIPBus->model();
-    auto  match = model->match(model->index(0, 0), Qt::UserRole, bus);
+    const auto *model = ui->comboBoxZIPBus->model();
+    auto        match = model->match(model->index(0, 0), Qt::UserRole, bus);
     if (!match.isEmpty())
         ui->comboBoxZIPBus->setCurrentIndex(match.first().row());
 

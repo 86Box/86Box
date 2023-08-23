@@ -48,4 +48,4 @@ ropPpack(PUNPCKLDQ)
 ropPpack(PUNPCKHBW)
 ropPpack(PUNPCKHWD)
 ropPpack(PUNPCKHDQ)
-// clang-format on
+    // clang-format on

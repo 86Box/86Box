@@ -74,19 +74,25 @@
 */
 
 typedef struct codeblock_t {
-    uint64_t  page_mask, page_mask2;
-    uint64_t *dirty_mask, *dirty_mask2;
+    uint64_t  page_mask;
+    uint64_t  page_mask2;
+    uint64_t *dirty_mask;
+    uint64_t *dirty_mask2;
     uint64_t  cmp;
 
     /*Previous and next pointers, for the codeblock list associated with
       each physical page. Two sets of pointers, as a codeblock can be
       present in two pages.*/
-    struct codeblock_t *prev, *next;
-    struct codeblock_t *prev_2, *next_2;
+    struct codeblock_t *prev;
+    struct codeblock_t *next;
+    struct codeblock_t *prev_2;
+    struct codeblock_t *next_2;
 
     /*Pointers for codeblock tree, used to search for blocks when hash lookup
       fails.*/
-    struct codeblock_t *parent, *left, *right;
+    struct codeblock_t *parent;
+    struct codeblock_t *left;
+    struct codeblock_t *right;
 
     int pnt;
     int ins;
