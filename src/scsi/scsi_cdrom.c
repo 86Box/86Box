@@ -1011,7 +1011,7 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                 }
                 break;
             case 0xde:
-                if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE74_1.00") ||
+                if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE75_1.00") ||
                     !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE464_1.05")) {
                     bytes_per_second = 176.0 * 1024.0;
                     bytes_per_second *= (double) dev->drv->cur_speed;
@@ -1809,7 +1809,7 @@ begin:
             break;
 
         case 0xDA: /*GPCMD_SPEED_ALT*/
-            if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE74_1.00") ||
+            if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE75_1.00") ||
                 !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE464_1.05")) { /*GPCMD_STILL_NEC*/
                 scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
                 cdrom_audio_pause_resume(dev->drv, 0x00);
@@ -2037,7 +2037,7 @@ begin:
             dev->drv->seek_diff = ABS((int) (pos - dev->sector_pos));
 
             if ((cdb[0] == GPCMD_READ_10) || (cdb[0] == GPCMD_READ_12)) {
-                if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE74_1.00") ||
+                if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE75_1.00") ||
                     !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE464_1.05") ||
                     !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "TOSHIBA_CD-ROM_DRIVEXM_3433") ||
                     !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "TOSHIBA_CD-ROM_XM-3301TA_0272") ||
@@ -2921,7 +2921,7 @@ begin:
                     } else if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b")) {
                         dev->buffer[3] = 0x01;
                         dev->buffer[2] = 0x02;
-                    } else if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE74_1.00")) {
+                    } else if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE75_1.00")) {
                         dev->buffer[3] = 0x01;
                         dev->buffer[2] = 0x02;
                     } else if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "DEC_RRD45_0436")) {
@@ -3117,7 +3117,7 @@ atapi_out:
             }
             dev->drv->seek_diff = ABS((int) (pos - dev->drv->seek_pos));
             if (cdb[0] == GPCMD_SEEK_10) {
-                if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE74_1.00") ||
+                if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE75_1.00") ||
                     !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE464_1.05") ||
                     !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "TOSHIBA_CD-ROM_DRIVEXM_3433") ||
                     !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "TOSHIBA_CD-ROM_XM-3301TA_0272") ||

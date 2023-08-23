@@ -99,7 +99,7 @@ static const struct
     { "CHINON",   "CD-ROM CDS-431",     "H42 ", "(SCSI) CHINON CD-ROM CDS-431 H42",      "CHINON_CD-ROM_CDS-431_H42",     BUS_TYPE_SCSI }, /*22*/
     { "DEC",      "RRD45   (C) DEC",    "0436", "(SCSI) DEC RRD45 0436",                 "DEC_RRD45_0436",                BUS_TYPE_SCSI }, /*23*/
     { "MATSHITA", "CD-ROM CR-501",      "1.0b", "(SCSI) MATSHITA CD-ROM CR-501 1.0b",    "MATSHITA_CD-ROM_CR-501_1.0b",   BUS_TYPE_SCSI }, /*24*/
-    { "NEC",      "CD-ROM DRIVE:74",    "1.00", "(SCSI) NEC CD-ROM DRIVE:74 1.00",       "NEC_CD-ROM_DRIVE74_1.00",       BUS_TYPE_SCSI }, /*25*/
+    { "NEC",      "CD-ROM DRIVE:75",    "1.00", "(SCSI) NEC CD-ROM DRIVE:75 1.00",       "NEC_CD-ROM_DRIVE75_1.00",       BUS_TYPE_SCSI }, /*25*/
     { "NEC",      "CD-ROM DRIVE:464",   "1.05", "(SCSI) NEC CD-ROM DRIVE:464 1.05",      "NEC_CD-ROM_DRIVE464_1.05",      BUS_TYPE_SCSI }, /*26*/
     { "SONY",     "CD-ROM CDU-541",     "1.0i", "(SCSI) SONY CD-ROM CDU-541 1.0i",       "SONY_CD-ROM_CDU-541_1.0i",      BUS_TYPE_SCSI }, /*27*/
     { "SONY",     "CD-ROM CDU-76S",     "1.00", "(SCSI) SONY CD-ROM CDU-76S 1.00",       "SONY_CD-ROM_CDU-76S_1.00",      BUS_TYPE_SCSI }, /*28*/
