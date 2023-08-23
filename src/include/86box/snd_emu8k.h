@@ -668,11 +668,11 @@ Short Delay         Short Delay + Feedback
 
 // Chorus Params
 typedef struct {
-        WORD	FbkLevel;	// Feedback Level (0xE600-0xE6FF)
-        WORD	Delay;		// Delay (0-0x0DA3)  [1/44100 sec]
-        WORD	LfoDepth;	// LFO Depth (0xBC00-0xBCFF)
-        DWORD	DelayR;		// Right Delay (0-0xFFFFFFFF) [1/256/44100 sec]
-        DWORD	LfoFreq;	// LFO Frequency (0-0xFFFFFFFF)
+        WORD  FbkLevel; // Feedback Level (0xE600-0xE6FF)
+        WORD  Delay;    // Delay (0-0x0DA3)  [1/44100 sec]
+        WORD  LfoDepth; // LFO Depth (0xBC00-0xBCFF)
+        DWORD DelayR;   // Right Delay (0-0xFFFFFFFF) [1/256/44100 sec]
+        DWORD LfoFreq;  // LFO Frequency (0-0xFFFFFFFF)
         } CHORUS_TYPE;
 
 

@@ -938,22 +938,22 @@ msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer
 msgstr "Az OpenGL (3.0 Core) megjelenítő-motort nem sikerült inicializálni. Kérem használjon másik renderelőt."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Folytassa a végrehajtást"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Kivitelezés szüneteltetése"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Nyomja meg a Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Nyomja meg a Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "Hardveres újraindítás"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "ACPI leállítás"
 
 msgid "Hard disk (%s)"
 msgstr "Merevlemez (%s)"
@@ -1196,8 +1196,26 @@ msgid "(System Default)"
 msgstr "(A rendszer nyelve)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "Nem sikerült inicializálni a hálózati illesztőprogramot"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "A hálózati konfiguráció átvált a null illesztőprogramra"
+
+msgid "Mouse sensitivity:"
+msgstr "Egér érzékenység:"
+
+msgid "Select media images from program working directory"
+msgstr "Médiaképek kiválasztása a program munkakönyvtárából"
+
+msgid "PIT mode:"
+msgstr "PIT üzemmód:"
+
+msgid "Auto"
+msgstr "Automatikus"
+
+msgid "Slow"
+msgstr "Lassú"
+
+msgid "Fast"
+msgstr "Gyors"
 

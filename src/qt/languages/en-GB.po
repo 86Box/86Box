@@ -1201,3 +1201,21 @@ msgstr "Failed to initialize network driver"
 msgid "The network configuration will be switched to the null driver"
 msgstr "The network configuration will be switched to the null driver"
 
+msgid "Mouse sensitivity:"
+msgstr "Mouse sensitivity:"
+
+msgid "Select media images from program working directory"
+msgstr "Select media images from program working directory"
+
+msgid "PIT mode:"
+msgstr "PIT mode:"
+
+msgid "Auto"
+msgstr "Auto"
+
+msgid "Slow"
+msgstr "Slow"
+
+msgid "Fast"
+msgstr "Fast"
+

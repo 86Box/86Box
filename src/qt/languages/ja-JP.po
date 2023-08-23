@@ -1196,8 +1196,26 @@ msgid "(System Default)"
 msgstr "(システム既定値)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "ネットワークドライバの初期化に失敗しました"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "ネットワーク設定がヌル・ドライバに切り替わる"
+
+msgid "Mouse sensitivity:"
+msgstr "マウスの感度:"
+
+msgid "Select media images from program working directory"
+msgstr "プログラムの作業ディレクトリからメディアイメージを選択する"
+
+msgid "PIT mode:"
+msgstr "PITモード:"
+
+msgid "Auto"
+msgstr "自動"
+
+msgid "Slow"
+msgstr "遅い"
+
+msgid "Fast"
+msgstr "速い"
 

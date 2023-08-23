@@ -178,13 +178,13 @@ opMOV_seg_w_a16(uint32_t fetchdat)
 
     switch (rmdat & 0x38) {
         case 0x00: /*ES*/
-            loadseg(new_seg, &cpu_state.seg_es);
+            op_loadseg(new_seg, &cpu_state.seg_es);
             break;
         case 0x18: /*DS*/
-            loadseg(new_seg, &cpu_state.seg_ds);
+            op_loadseg(new_seg, &cpu_state.seg_ds);
             break;
         case 0x10: /*SS*/
-            loadseg(new_seg, &cpu_state.seg_ss);
+            op_loadseg(new_seg, &cpu_state.seg_ss);
             if (cpu_state.abrt)
                 return 1;
             cpu_state.oldpc  = cpu_state.pc;
@@ -198,10 +198,10 @@ opMOV_seg_w_a16(uint32_t fetchdat)
             x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
             return 1;
         case 0x20: /*FS*/
-            loadseg(new_seg, &cpu_state.seg_fs);
+            op_loadseg(new_seg, &cpu_state.seg_fs);
             break;
         case 0x28: /*GS*/
-            loadseg(new_seg, &cpu_state.seg_gs);
+            op_loadseg(new_seg, &cpu_state.seg_gs);
             break;
     }
 
@@ -223,13 +223,13 @@ opMOV_seg_w_a32(uint32_t fetchdat)
 
     switch (rmdat & 0x38) {
         case 0x00: /*ES*/
-            loadseg(new_seg, &cpu_state.seg_es);
+            op_loadseg(new_seg, &cpu_state.seg_es);
             break;
         case 0x18: /*DS*/
-            loadseg(new_seg, &cpu_state.seg_ds);
+            op_loadseg(new_seg, &cpu_state.seg_ds);
             break;
         case 0x10: /*SS*/
-            loadseg(new_seg, &cpu_state.seg_ss);
+            op_loadseg(new_seg, &cpu_state.seg_ss);
             if (cpu_state.abrt)
                 return 1;
             cpu_state.oldpc  = cpu_state.pc;
@@ -243,10 +243,10 @@ opMOV_seg_w_a32(uint32_t fetchdat)
             x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
             return 1;
         case 0x20: /*FS*/
-            loadseg(new_seg, &cpu_state.seg_fs);
+            op_loadseg(new_seg, &cpu_state.seg_fs);
             break;
         case 0x28: /*GS*/
-            loadseg(new_seg, &cpu_state.seg_gs);
+            op_loadseg(new_seg, &cpu_state.seg_gs);
             break;
     }
 
@@ -269,7 +269,7 @@ opLDS_w_a16(uint32_t fetchdat)
     seg  = readmemw(easeg, cpu_state.eaaddr + 2);
     if (cpu_state.abrt)
         return 1;
-    loadseg(seg, &cpu_state.seg_ds);
+    op_loadseg(seg, &cpu_state.seg_ds);
     if (cpu_state.abrt)
         return 1;
     cpu_state.regs[cpu_reg].w = addr;
@@ -292,7 +292,7 @@ opLDS_w_a32(uint32_t fetchdat)
     seg  = readmemw(easeg, cpu_state.eaaddr + 2);
     if (cpu_state.abrt)
         return 1;
-    loadseg(seg, &cpu_state.seg_ds);
+    op_loadseg(seg, &cpu_state.seg_ds);
     if (cpu_state.abrt)
         return 1;
     cpu_state.regs[cpu_reg].w = addr;
@@ -315,7 +315,7 @@ opLDS_l_a16(uint32_t fetchdat)
     seg  = readmemw(easeg, cpu_state.eaaddr + 4);
     if (cpu_state.abrt)
         return 1;
-    loadseg(seg, &cpu_state.seg_ds);
+    op_loadseg(seg, &cpu_state.seg_ds);
     if (cpu_state.abrt)
         return 1;
     cpu_state.regs[cpu_reg].l = addr;
@@ -338,7 +338,7 @@ opLDS_l_a32(uint32_t fetchdat)
     seg  = readmemw(easeg, cpu_state.eaaddr + 4);
     if (cpu_state.abrt)
         return 1;
-    loadseg(seg, &cpu_state.seg_ds);
+    op_loadseg(seg, &cpu_state.seg_ds);
     if (cpu_state.abrt)
         return 1;
     cpu_state.regs[cpu_reg].l = addr;
@@ -362,7 +362,7 @@ opLSS_w_a16(uint32_t fetchdat)
     seg  = readmemw(easeg, cpu_state.eaaddr + 2);
     if (cpu_state.abrt)
         return 1;
-    loadseg(seg, &cpu_state.seg_ss);
+    op_loadseg(seg, &cpu_state.seg_ss);
     if (cpu_state.abrt)
         return 1;
     cpu_state.regs[cpu_reg].w = addr;
@@ -385,7 +385,7 @@ opLSS_w_a32(uint32_t fetchdat)
     seg  = readmemw(easeg, cpu_state.eaaddr + 2);
     if (cpu_state.abrt)
         return 1;
-    loadseg(seg, &cpu_state.seg_ss);
+    op_loadseg(seg, &cpu_state.seg_ss);
     if (cpu_state.abrt)
         return 1;
     cpu_state.regs[cpu_reg].w = addr;
@@ -408,7 +408,7 @@ opLSS_l_a16(uint32_t fetchdat)
     seg  = readmemw(easeg, cpu_state.eaaddr + 4);
     if (cpu_state.abrt)
         return 1;
-    loadseg(seg, &cpu_state.seg_ss);
+    op_loadseg(seg, &cpu_state.seg_ss);
     if (cpu_state.abrt)
         return 1;
     cpu_state.regs[cpu_reg].l = addr;
@@ -431,7 +431,7 @@ opLSS_l_a32(uint32_t fetchdat)
     seg  = readmemw(easeg, cpu_state.eaaddr + 4);
     if (cpu_state.abrt)
         return 1;
-    loadseg(seg, &cpu_state.seg_ss);
+    op_loadseg(seg, &cpu_state.seg_ss);
     if (cpu_state.abrt)
         return 1;
     cpu_state.regs[cpu_reg].l = addr;
@@ -454,7 +454,7 @@ opLSS_l_a32(uint32_t fetchdat)
         seg  = readmemw(easeg, cpu_state.eaaddr + 2);                         \
         if (cpu_state.abrt)                                                   \
             return 1;                                                         \
-        loadseg(seg, &sel);                                                   \
+        op_loadseg(seg, &sel);                                                \
         if (cpu_state.abrt)                                                   \
             return 1;                                                         \
         cpu_state.regs[cpu_reg].w = addr;                                     \
@@ -476,7 +476,7 @@ opLSS_l_a32(uint32_t fetchdat)
         seg  = readmemw(easeg, cpu_state.eaaddr + 2);                         \
         if (cpu_state.abrt)                                                   \
             return 1;                                                         \
-        loadseg(seg, &sel);                                                   \
+        op_loadseg(seg, &sel);                                                \
         if (cpu_state.abrt)                                                   \
             return 1;                                                         \
         cpu_state.regs[cpu_reg].w = addr;                                     \
@@ -499,7 +499,7 @@ opLSS_l_a32(uint32_t fetchdat)
         seg  = readmemw(easeg, cpu_state.eaaddr + 4);                         \
         if (cpu_state.abrt)                                                   \
             return 1;                                                         \
-        loadseg(seg, &sel);                                                   \
+        op_loadseg(seg, &sel);                                                \
         if (cpu_state.abrt)                                                   \
             return 1;                                                         \
         cpu_state.regs[cpu_reg].l = addr;                                     \
@@ -522,7 +522,7 @@ opLSS_l_a32(uint32_t fetchdat)
         seg  = readmemw(easeg, cpu_state.eaaddr + 4);                         \
         if (cpu_state.abrt)                                                   \
             return 1;                                                         \
-        loadseg(seg, &sel);                                                   \
+        op_loadseg(seg, &sel);                                                \
         if (cpu_state.abrt)                                                   \
             return 1;                                                         \
         cpu_state.regs[cpu_reg].l = addr;                                     \

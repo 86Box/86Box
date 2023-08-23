@@ -522,7 +522,7 @@ i420ex_speed_changed(void *priv)
     if (te)
         timer_set_delay_u64(&dev->timer, ((uint64_t) dev->timer_latch) * TIMER_USEC);
 
-    te = timer_is_enabled(&dev->fast_off_timer);
+    te = timer_is_on(&dev->fast_off_timer);
 
     timer_stop(&dev->fast_off_timer);
     if (te)

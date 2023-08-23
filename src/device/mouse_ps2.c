@@ -8,9 +8,9 @@
  *
  *          Implementation of PS/2 series Mouse devices.
  *
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *
- * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Copyright 2023 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdatomic.h>

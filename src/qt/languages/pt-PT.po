@@ -1196,8 +1196,26 @@ msgid "(System Default)"
 msgstr "(Padrão do sistema)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "Falha ao inicializar o driver de rede"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "A configuração da rede será alterada para o controlador nulo"
+
+msgid "Mouse sensitivity:"
+msgstr "Sensibilidade do rato:"
+
+msgid "Select media images from program working directory"
+msgstr "Selecionar imagens multimédia do diretório de trabalho do programa"
+
+msgid "PIT mode:"
+msgstr "Modo PIT:"
+
+msgid "Auto"
+msgstr "Automático"
+
+msgid "Slow"
+msgstr "Lento"
+
+msgid "Fast"
+msgstr "Rápido"
 

@@ -18,11 +18,9 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Eluan Costa Miranda <eluancm@gmail.com>
+ * Authors: Eluan Costa Miranda <eluancm@gmail.com>
  *          Lubomir Rintel <lkundrak@v3.sk>
  *
- *          Copyright 2020 Sarah Walker.
  *          Copyright 2020 Eluan Costa Miranda.
  *          Copyright 2021 Lubomir Rintel.
  */

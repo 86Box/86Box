@@ -5,6 +5,8 @@
 
 #include "x86.h"
 #include "x86_flags.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
 #include "386_common.h"
 #include "x87.h"
 #include "codegen.h"

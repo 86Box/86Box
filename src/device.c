@@ -731,25 +731,49 @@ device_is_valid(const device_t *device, int m)
     if (device == NULL)
         return 1;
 
+    if ((device->flags & DEVICE_PCJR) && !machine_has_bus(m, MACHINE_BUS_PCJR))
+        return 0;
+
+    if ((device->flags & DEVICE_XTKBC) && machine_has_bus(m, MACHINE_BUS_ISA16) && !machine_has_bus(m, MACHINE_BUS_DM_KBC))
+        return 0;
+
     if ((device->flags & DEVICE_AT) && !machine_has_bus(m, MACHINE_BUS_ISA16))
         return 0;
 
-    if ((device->flags & DEVICE_CBUS) && !machine_has_bus(m, MACHINE_BUS_CBUS))
+    if ((device->flags & DEVICE_ATKBC) && !machine_has_bus(m, MACHINE_BUS_ISA16) && !machine_has_bus(m, MACHINE_BUS_DM_KBC))
         return 0;
 
     if ((device->flags & DEVICE_ISA) && !machine_has_bus(m, MACHINE_BUS_ISA))
         return 0;
 
+    if ((device->flags & DEVICE_CBUS) && !machine_has_bus(m, MACHINE_BUS_CBUS))
+        return 0;
+
+    if ((device->flags & DEVICE_PCMCIA) && !machine_has_bus(m, MACHINE_BUS_PCMCIA))
+        return 0;
+
     if ((device->flags & DEVICE_MCA) && !machine_has_bus(m, MACHINE_BUS_MCA))
         return 0;
 
+    if ((device->flags & DEVICE_HIL) && !machine_has_bus(m, MACHINE_BUS_HIL))
+        return 0;
+
     if ((device->flags & DEVICE_EISA) && !machine_has_bus(m, MACHINE_BUS_EISA))
+        return 0;
+
+    if ((device->flags & DEVICE_OLB) && !machine_has_bus(m, MACHINE_BUS_OLB))
         return 0;
 
     if ((device->flags & DEVICE_VLB) && !machine_has_bus(m, MACHINE_BUS_VLB))
         return 0;
 
     if ((device->flags & DEVICE_PCI) && !machine_has_bus(m, MACHINE_BUS_PCI))
+        return 0;
+
+    if ((device->flags & DEVICE_CARDBUS) && !machine_has_bus(m, MACHINE_BUS_CARDBUS))
+        return 0;
+
+    if ((device->flags & DEVICE_USB) && !machine_has_bus(m, MACHINE_BUS_USB))
         return 0;
 
     if ((device->flags & DEVICE_AGP) && !machine_has_bus(m, MACHINE_BUS_AGP))

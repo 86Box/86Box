@@ -25,6 +25,7 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include "cpu.h"
+#include "x86seg.h"
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/pic.h>
@@ -759,7 +760,7 @@ write_p2(atkbc_t *dev, uint8_t val)
                    correctly despite A20 being gated when the CPU is reset, this will
                    have to do. */
                 else if (kbc_ven == KBC_VEN_SIEMENS)
-                    loadcs(0xF000);
+                    is486 ? loadcs(0xf000) : loadcs_2386(0xf000);
             }
         }
     }

@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/">
+        <file>86box_ca-ES.qm</file>
         <file>86box_cs-CZ.qm</file>
         <file>86box_de-DE.qm</file>
         <file>86box_en-US.qm</file>
@@ -16,6 +17,7 @@
         <file>86box_pt-BR.qm</file>
         <file>86box_pt-PT.qm</file>
         <file>86box_ru-RU.qm</file>
+        <file>86box_sk-SK.qm</file>
         <file>86box_sl-SI.qm</file>
         <file>86box_tr-TR.qm</file>
         <file>86box_uk-UA.qm</file>

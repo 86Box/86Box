@@ -29,7 +29,7 @@ msgid "&Hide status bar"
 msgstr "&Ocultar barra de estado"
 
 msgid "Hide &toolbar"
-msgstr "Hide &toolbar"
+msgstr "Ocultar &barra de herramientas"
 
 msgid "&Resizeable window"
 msgstr "&Ventana redimensionable"
@@ -125,7 +125,7 @@ msgid "&Integer scale"
 msgstr "&Escalado valor entero"
 
 msgid "E&GA/(S)VGA settings"
-msgstr "&Ajustes EGA/(S)VGA"
+msgstr "&Configuraciones EGA/(S)VGA"
 
 msgid "&Inverted VGA monitor"
 msgstr "&Monitor VGA invertido"
@@ -173,7 +173,7 @@ msgid "&Tools"
 msgstr "&Herramientas"
 
 msgid "&Settings..."
-msgstr "&Ajustes..."
+msgstr "&Configuraciones..."
 
 msgid "&Update status bar icons"
 msgstr "&Actualizar iconos en barra de estado"
@@ -287,7 +287,7 @@ msgid "New Image"
 msgstr "Nueva Imagen"
 
 msgid "Settings"
-msgstr "Ajustes"
+msgstr "Configuraciones"
 
 msgid "Specify Main Window Dimensions"
 msgstr "Especificar Dimensiones de la Ventana Principal"
@@ -299,7 +299,7 @@ msgid "Cancel"
 msgstr "Cancelar"
 
 msgid "Save these settings as &global defaults"
-msgstr "Salvar estos ajustes como por &defecto globalmente"
+msgstr "Salvar estos configuraciones como por &defecto globalmente"
 
 msgid "&Default"
 msgstr "&Por defecto"
@@ -650,13 +650,13 @@ msgid "ZIP images"
 msgstr "Imagenes ZIP"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box no pudo encontrar ninguna imagen ROM usable.\n\nPor favor <a href=\"https://github.com/86Box/roms/releases/latest\">descarga</a> un grupo de imágenes y extráelas en el directorio \"roms\"."
+msgstr "86Box no pudo encontrar ninguna imagen ROM usable.\n\nPor favor <a href=\"https://github.com/86Box/roms/releases/latest\">descargue</a> un conjunte de ROMs y extráigalo en el directorio \"roms\"."
 
 msgid "(empty)"
 msgstr "(vacío)"
 
 msgid "All files"
-msgstr "All files"
+msgstr "Todos los archivos"
 
 msgid "Turbo"
 msgstr "Turbo"
@@ -716,13 +716,13 @@ msgid "Other peripherals"
 msgstr "Otros periféricos"
 
 msgid "Click to capture mouse"
-msgstr "Haz click para capturar el ratón"
+msgstr "Haga click para capturar el ratón"
 
 msgid "Press F8+F12 to release mouse"
-msgstr "Pulsa F8+F12 para liberar el ratón"
+msgstr "Pulse F8+F12 para liberar el ratón"
 
 msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Pulsa F8+F12 o el botón central para liberar el ratón"
+msgstr "Pulse F8+F12 o el botón central para liberar el ratón"
 
 msgid "Bus"
 msgstr "Bus"
@@ -743,7 +743,7 @@ msgid "KB"
 msgstr "KB"
 
 msgid "Could not initialize the video renderer."
-msgstr "Incapaz de inicializar el renderizador de vídeo."
+msgstr "No fué posible inicializar el renderizador de vídeo."
 
 msgid "Default"
 msgstr "Por defecto"
@@ -788,10 +788,10 @@ msgid "None"
 msgstr "Ninguno"
 
 msgid "Unable to load keyboard accelerators."
-msgstr "Incapaz de cargar aceleradores de teclado."
+msgstr "No fué posible cargar aceleradores de teclado."
 
 msgid "Unable to register raw input."
-msgstr "Incapaz de registrar entrada directa."
+msgstr "No fué posible registrar entrada directa."
 
 msgid "%u"
 msgstr "%u"
@@ -803,22 +803,22 @@ msgid "Floppy %i (%s): %ls"
 msgstr "Disquete %i (%s): %ls"
 
 msgid "Advanced sector images"
-msgstr "Advanced sector images"
+msgstr "Imágenes avanzadas de sector"
 
 msgid "Flux images"
-msgstr "Flux images"
+msgstr "Imágenes de fluxo"
 
 msgid "Unable to initialize SDL, SDL2.dll is required"
 msgstr "Incapaz de inicializar SDL, se requiere SDL2.dll"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
-msgstr "¿Seguro que quieres resetear la máquina emulada?"
+msgstr "¿Está seguro de que quieres hacer una reinicialización completa de la máquina emulada?"
 
 msgid "Are you sure you want to exit 86Box?"
-msgstr "¿Seguro que quieres cerrar 86Box?"
+msgstr "¿Está seguro de que quiere cerrar a 86Box?"
 
 msgid "Unable to initialize Ghostscript"
-msgstr "Incapaz de inicializar Ghostscript"
+msgstr "No fué posible inicializar Ghostscript"
 
 msgid "MO %i (%ls): %ls"
 msgstr "MO %i (%ls): %ls"
@@ -839,10 +839,10 @@ msgid "No ROMs found"
 msgstr "No se encontraron ROMs"
 
 msgid "Do you want to save the settings?"
-msgstr "¿Quieres guardar los ajustes?"
+msgstr "¿Quiere guardar los configuraciones?"
 
 msgid "This will hard reset the emulated machine."
-msgstr "Se hará hard reset de la máquina emulada."
+msgstr "Se hará una reinicialización completa de la máquina emulada."
 
 msgid "Save"
 msgstr "Guardar"
@@ -857,7 +857,7 @@ msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N
 msgstr "Un emulador de ordenadores antigüos\n\nAutores: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, y otros.\n\nLiberado bajo la GNU General Public License versión 2 o posterior. Ver LICENSE para más información."
 
 msgid "Hardware not available"
-msgstr "Hardware no disponible"
+msgstr "Equipo no disponible"
 
 msgid "WinPcap"
 msgstr "WinPcap"
@@ -890,10 +890,10 @@ msgid "Don't exit"
 msgstr "No salir"
 
 msgid "Reset"
-msgstr "Resetear"
+msgstr "Reinicializar"
 
 msgid "Don't reset"
-msgstr "No resetear"
+msgstr "No reinicializar"
 
 msgid "CD-ROM images"
 msgstr "Imágenes de CD-ROM"
@@ -911,10 +911,10 @@ msgid "OpenGL options"
 msgstr "Opciones OpenGL"
 
 msgid "You are loading an unsupported configuration"
-msgstr "Estás cargando una configuración no soportada"
+msgstr "Está cargando una configuración no soportada"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "El Filtrado de tipo de CPU basado en máquina seleccionada está deshabilitado para la esta máquina.\n\nEsto hace posible seleccionar una CPU que sea incompatible con esta máquina. Por ello, pueden aparecer incompatibilidader con la BIOS de la máquina u otro software.\n\nActivar este ajuste no está oficialmente soportado y cualquier reporte de fallo puede ser cerrado como inválido."
+msgstr "El Filtrado de tipo de CPU basado en máquina seleccionada está deshabilitado para la esta máquina.\n\nEsto hace posible seleccionar una CPU que sea incompatible con esta máquina. Por ello, pueden aparecer incompatibilidader con la BIOS de la máquina u otro software.\n\nActivar esta configuración no está oficialmente soportado y cualquier reporte de fallo puede ser cerrado como inválido."
 
 msgid "Continue"
 msgstr "Continuar"
@@ -932,28 +932,28 @@ msgid "Cartridge images"
 msgstr "Imágenes de Cartucho"
 
 msgid "Error initializing renderer"
-msgstr "Error initializing renderer"
+msgstr "Error al inicializar el renderizador"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "No fué posible inicializar el renderizador OpenGL (3.0 Core). Utilice otro renderizador."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Retomar la ejecución"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Pausar la ejecución"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Pulsar Ctrl+Alt+Supr"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Pulsar Ctrl+Alt+Esc"
 
 msgid "Hard reset"
 msgstr "Hard reset"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "Parada ACPI"
 
 msgid "Hard disk (%s)"
 msgstr "Disco duro (%s)"
@@ -965,7 +965,7 @@ msgid "%01i"
 msgstr "%01i"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "Nunca hubo unidades de CD-ROM MFM/RLL o ESDI"
+msgstr "Nunca existieron unidades de CD-ROM MFM/RLL o ESDI"
 
 msgid "Custom..."
 msgstr "A medida..."
@@ -1070,7 +1070,7 @@ msgid "Parent and child disk timestamps do not match"
 msgstr "Las marcas de tiempo del padre e hijo no coinciden"
 
 msgid "Could not fix VHD timestamp."
-msgstr "No se pudo corregir la marca de tiempo del VHD."
+msgstr "No fué posible corregir la marca de tiempo del VHD."
 
 msgid "%01i:%02i"
 msgstr "%01i:%02i"
@@ -1196,8 +1196,26 @@ msgid "(System Default)"
 msgstr "(Por defecto del sistema)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "No fué posible inicializar el controlador de red"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "La configuración de red se cambiará al controlador nulo"
+
+msgid "Mouse sensitivity:"
+msgstr "Sensibilidad del ratón:"
+
+msgid "Select media images from program working directory"
+msgstr "Seleccionar imágenes de media del directorio de trabajo del programa"
+
+msgid "PIT mode:"
+msgstr "Modalidad PIT:"
+
+msgid "Auto"
+msgstr "Automática"
+
+msgid "Slow"
+msgstr "Lenta"
+
+msgid "Fast"
+msgstr "Rápida"
 

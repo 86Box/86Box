@@ -310,7 +310,9 @@ machine_xt_pxxt_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    device_add(&keyboard_xt_device);
+
+    machine_xt_common_init(model);
 
     return ret;
 }

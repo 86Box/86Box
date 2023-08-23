@@ -88,7 +88,7 @@ static ini_t config;
 static int backwards_compat  = 0;
 static int backwards_compat2 = 0;
 
-#define ENABLE_CONFIG_LOG 1
+#define  ENABLE_CONFIG_LOG 1
 #ifdef ENABLE_CONFIG_LOG
 int config_do_log = ENABLE_CONFIG_LOG;
 
@@ -504,11 +504,6 @@ load_machine(void)
     fpu_type = fpu_get_type(cpu_f, cpu, p);
 
     mem_size = ini_section_get_int(cat, "mem_size", 64);
-#if 0
-    if (mem_size < ((machine_has_bus(machine, MACHINE_AT) &&
-        (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram))
-    mem_size = (((machine_has_bus(machine, MACHINE_AT) && (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram);
-#endif
 
     if (mem_size > machine_get_max_ram(machine))
         mem_size = machine_get_max_ram(machine);
@@ -569,9 +564,16 @@ load_video(void)
             free(p);
     }
 
+    if (((gfxcard[0] == VID_INTERNAL) && machine_has_flags(machine, MACHINE_VIDEO_8514A)) || video_card_get_flags(gfxcard[0]) == VIDEO_FLAG_TYPE_8514)
+        ini_section_delete_var(cat, "8514a");
+    if (((gfxcard[0] == VID_INTERNAL) && machine_has_flags(machine, MACHINE_VIDEO_XGA)) || video_card_get_flags(gfxcard[0]) == VIDEO_FLAG_TYPE_XGA)
+        ini_section_delete_var(cat, "xga");
+
     voodoo_enabled                   = !!ini_section_get_int(cat, "voodoo", 0);
-    ibm8514_enabled                  = !!ini_section_get_int(cat, "8514a", 0);
-    xga_enabled                      = !!ini_section_get_int(cat, "xga", 0);
+    ibm8514_standalone_enabled       = !!ini_section_get_int(cat, "8514a", 0);
+    ibm8514_active                   = ibm8514_standalone_enabled;
+    xga_standalone_enabled           = !!ini_section_get_int(cat, "xga", 0);
+    xga_active                       = xga_standalone_enabled;
     show_second_monitors             = !!ini_section_get_int(cat, "show_second_monitors", 1);
     video_fullscreen_scale_maximized = !!ini_section_get_int(cat, "video_fullscreen_scale_maximized", 0);
 
@@ -619,35 +621,35 @@ load_input_devices(void)
             else {
                 c = ini_section_get_int(cat, "joystick_type", 8);
                 switch (c) {
-                    case 1:
+                    case JS_TYPE_2AXIS_4BUTTON:
                         joystick_type = joystick_get_from_internal_name("2axis_4button");
                         break;
-                    case 2:
+                    case JS_TYPE_2AXIS_6BUTTON:
                         joystick_type = joystick_get_from_internal_name("2axis_6button");
                         break;
-                    case 3:
+                    case JS_TYPE_2AXIS_8BUTTON:
                         joystick_type = joystick_get_from_internal_name("2axis_8button");
                         break;
-                    case 4:
+                    case JS_TYPE_4AXIS_4BUTTON:
                         joystick_type = joystick_get_from_internal_name("4axis_4button");
                         break;
-                    case 5:
+                    case JS_TYPE_CH_FLIGHTSTICK_PRO:
                         joystick_type = joystick_get_from_internal_name("ch_flightstick_pro");
                         break;
-                    case 6:
+                    case JS_TYPE_SIDEWINDER_PAD:
                         joystick_type = joystick_get_from_internal_name("sidewinder_pad");
                         break;
-                    case 7:
+                    case JS_TYPE_THRUSTMASTER_FCS:
                         joystick_type = joystick_get_from_internal_name("thrustmaster_fcs");
                         break;
                     default:
-                        joystick_type = 0;
+                        joystick_type = JS_TYPE_NONE;
                         break;
                 }
             }
         }
     } else
-        joystick_type = 0;
+        joystick_type = JS_TYPE_NONE;
 
     for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++) {
         sprintf(temp, "joystick_%i_nr", c);
@@ -893,12 +895,6 @@ load_ports(void)
         sprintf(temp, "serial%d_enabled", c + 1);
         com_ports[c].enabled = !!ini_section_get_int(cat, temp, (c >= 2) ? 0 : 1);
 
-#if 0
-                sprintf(temp, "serial%d_device", c + 1);
-                p = (char *) ini_section_get_string(cat, temp, "none");
-                com_ports[c].device = com_device_get_from_internal_name(p);
-#endif
-
         sprintf(temp, "serial%d_passthrough_enabled", c + 1);
         serial_passthrough_enabled[c] = !!ini_section_get_int(cat, temp, 0);
 
@@ -1027,27 +1023,19 @@ load_storage_controllers(void)
         sprintf(temp, "cartridge_%02i_fn", c + 1);
         p = ini_section_get_string(cat, temp, "");
 
-#if 0
-    /*
-     * NOTE:
-     * Temporary hack to remove the absolute
-     * path currently saved in most config
-     * files.  We should remove this before
-     * finalizing this release!  --FvK
-     */
-    if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
-        /*
-         * Yep, its absolute and prefixed
-         * with the EXE path.  Just strip
-         * that off for now...
-         */
-        wcsncpy(floppyfns[c], &wp[wcslen(usr_path)], sizeof_w(cart_fns[c]));
-    } else
-#endif
-        if (strlen(p) > 511)
-            fatal("load_storage_controllers(): strlen(p) > 511\n");
-        else
-            strncpy(cart_fns[c], p, 511);
+        if (!strcmp(p, usr_path))
+            p[0] = 0x00;
+
+        if (p[0] != 0x00) {
+            if (path_abs(p)) {
+                if (strlen(p) > 511)
+                    fatal("load_storage_controllers(): strlen(p) > 511 (cart_fns[%i])\n", c);
+                else
+                    strncpy(cart_fns[c], p, 511);
+            } else
+                path_append_filename(cart_fns[c], usr_path, p);
+            path_normalize(cart_fns[c]);
+        }
     }
 }
 
@@ -1198,34 +1186,24 @@ load_hard_disks(void)
         sprintf(temp, "hdd_%02i_fn", c + 1);
         p = ini_section_get_string(cat, temp, "");
 
-#if 0
-    /*
-     * NOTE:
-     * Temporary hack to remove the absolute
-     * path currently saved in most config
-     * files.  We should remove this before
-     * finalizing this release!  --FvK
-     */
-    /*
-     * ANOTHER NOTE:
-     * When loading differencing VHDs, the absolute path is required.
-     * So we should not convert absolute paths to relative. -sards
-     */
-    if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
         /*
-         * Yep, its absolute and prefixed
-         * with the CFG path.  Just strip
-         * that off for now...
+         * NOTE:
+         * When loading differencing VHDs, the absolute path is required.
+         * So we should not convert absolute paths to relative. -sards
          */
-        wcsncpy(hdd[c].fn, &wp[wcslen(usr_path)], sizeof_w(hdd[c].fn));
-    } else
-#endif
-        if (path_abs(p)) {
-            strncpy(hdd[c].fn, p, sizeof(hdd[c].fn) - 1);
-        } else {
-            path_append_filename(hdd[c].fn, usr_path, p);
+        if (!strcmp(p, usr_path))
+            p[0] = 0x00;
+
+        if (p[0] != 0x00) {
+            if (path_abs(p)) {
+                if (strlen(p) > 511)
+                    fatal("load_hard_disks(): strlen(p) > 511 (hdd[%i].fn)\n", c);
+                else
+                    strncpy(hdd[c].fn, p, 511);
+            } else
+                path_append_filename(hdd[c].fn, usr_path, p);
+            path_normalize(hdd[c].fn);
         }
-        path_normalize(hdd[c].fn);
 
         sprintf(temp, "hdd_%02i_vhd_blocksize", c + 1);
         hdd[c].vhd_blocksize = ini_section_get_int(cat, temp, 0);
@@ -1284,30 +1262,22 @@ load_floppy_drives(void)
         p = ini_section_get_string(cat, temp, "");
         ini_section_delete_var(cat, temp);
 
-#if 0
-        /*
-         * NOTE:
-         * Temporary hack to remove the absolute
-         * path currently saved in most config
-         * files.  We should remove this before
-         * finalizing this release!  --FvK
-         */
-        if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
-            /*
-             * Yep, its absolute and prefixed
-             * with the EXE path.  Just strip
-             * that off for now...
-             */
-            wcsncpy(floppyfns[c], &wp[wcslen(usr_path)], sizeof_w(floppyfns[c]));
-        } else
-#endif
-        if (strlen(p) > 511)
-            fatal("load_floppy_drives(): strlen(p) > 511\n");
-        else
-            strncpy(floppyfns[c], p, 511);
+        if (!strcmp(p, usr_path))
+            p[0] = 0x00;
 
-#if 0
-        if (*wp != L'\0')
+        if (p[0] != 0x00) {
+            if (path_abs(p)) {
+                if (strlen(p) > 511)
+                    fatal("load_floppy_drives(): strlen(p) > 511 (floppyfns[%i])\n", c);
+                else
+                    strncpy(floppyfns[c], p, 511);
+            } else
+                path_append_filename(floppyfns[c], usr_path, p);
+            path_normalize(floppyfns[c]);
+        }
+
+#if defined(ENABLE_CONFIG_LOG) && (ENABLE_CONFIG_LOG == 2)
+        if (*p != '\0')
             config_log("Floppy%d: %ls\n", c, floppyfns[c]);
 #endif
         sprintf(temp, "fdd_%02i_writeprot", c + 1);
@@ -1352,30 +1322,22 @@ load_floppy_and_cdrom_drives(void)
         sprintf(temp, "fdd_%02i_fn", c + 1);
         p = ini_section_get_string(cat, temp, "");
 
-#if 0
-        /*
-         * NOTE:
-         * Temporary hack to remove the absolute
-         * path currently saved in most config
-         * files.  We should remove this before
-         * finalizing this release!  --FvK
-         */
-        if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
-            /*
-             * Yep, its absolute and prefixed
-             * with the EXE path.  Just strip
-             * that off for now...
-             */
-            wcsncpy(floppyfns[c], &wp[wcslen(usr_path)], sizeof_w(floppyfns[c]));
-        } else
-#endif
-        if (strlen(p) > 511)
-            fatal("load_floppy_and_cdrom_drives(): strlen(p) > 511\n");
-        else
-            strncpy(floppyfns[c], p, 511);
+        if (!strcmp(p, usr_path))
+            p[0] = 0x00;
 
-#if 0
-        if (*wp != L'\0')
+        if (p[0] != 0x00) {
+            if (path_abs(p)) {
+                if (strlen(p) > 511)
+                    fatal("load_floppy_and_cdrom_drives(): strlen(p) > 511 (floppyfns[%i])\n", c);
+                else
+                    strncpy(floppyfns[c], p, 511);
+            } else
+                path_append_filename(floppyfns[c], usr_path, p);
+            path_normalize(floppyfns[c]);
+        }
+
+#if defined(ENABLE_CONFIG_LOG) && (ENABLE_CONFIG_LOG == 2)
+        if (*p != '\0')
             config_log("Floppy%d: %ls\n", c, floppyfns[c]);
 #endif
         sprintf(temp, "fdd_%02i_writeprot", c + 1);
@@ -1385,7 +1347,8 @@ load_floppy_and_cdrom_drives(void)
         sprintf(temp, "fdd_%02i_check_bpb", c + 1);
         fdd_set_check_bpb(c, !!ini_section_get_int(cat, temp, 1));
 
-        /* Check whether each value is default, if yes, delete it so that only non-default values will later be saved. */
+        /* Check whether each value is default, if yes, delete it so that only
+           non-default values will later be saved. */
         if (fdd_get_type(c) == ((c < 2) ? 2 : 0)) {
             sprintf(temp, "fdd_%02i_type", c + 1);
             ini_section_delete_var(cat, temp);
@@ -1411,7 +1374,16 @@ load_floppy_and_cdrom_drives(void)
             sprintf(temp, "fdd_%02i_image_history_%02i", c + 1, i + 1);
             p = ini_section_get_string(cat, temp, NULL);
             if (p) {
-                sprintf(fdd_image_history[c][i], "%s", p);
+                if (path_abs(p)) {
+                    if (strlen(p) > 255)
+                        fatal("load_floppy_and_cdrom_drives(): strlen(p) > 255 "
+                              "(fdd_image_history[%i][%i])\n", c, i);
+                    else
+                        snprintf(fdd_image_history[c][i], 255, "%s", p);
+                } else
+                    snprintf(fdd_image_history[c][i], 255, "%s%s%s", usr_path,
+                             path_get_slash(usr_path), p);
+                path_normalize(fdd_image_history[c][i]);
             }
         }
     }
@@ -1493,30 +1465,43 @@ load_floppy_and_cdrom_drives(void)
         sprintf(temp, "cdrom_%02i_image_path", c + 1);
         p = ini_section_get_string(cat, temp, "");
 
-#if 0
-        /*
-         * NOTE:
-         * Temporary hack to remove the absolute
-         * path currently saved in most config
-         * files.  We should remove this before
-         * finalizing this release!  --FvK
-         */
-        if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
-            /*
-             * Yep, its absolute and prefixed
-             * with the EXE path.  Just strip
-             * that off for now...
-             */
-            wcsncpy(cdrom[c].image_path, &wp[wcslen(usr_path)], sizeof_w(cdrom[c].image_path));
-        } else
-#endif
-        strncpy(cdrom[c].image_path, p, sizeof(cdrom[c].image_path) - 1);
+        if (!strcmp(p, usr_path))
+            p[0] = 0x00;
+
+        if (p[0] != 0x00) {
+            if (path_abs(p)) {
+                if (strlen(p) > 511)
+                    fatal("load_floppy_and_cdrom_drives(): strlen(p) > 511 (cdrom[%i].image_path)\n", c);
+                else
+                    strncpy(cdrom[c].image_path, p, 511);
+            } else
+                path_append_filename(cdrom[c].image_path, usr_path, p);
+            path_normalize(cdrom[c].image_path);
+        }
 
         if (cdrom[c].host_drive && (cdrom[c].host_drive != 200))
             cdrom[c].host_drive = 0;
 
         if ((cdrom[c].host_drive == 0x200) && (strlen(cdrom[c].image_path) == 0))
             cdrom[c].host_drive = 0;
+
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            cdrom[c].image_history[i] = (char *) calloc(MAX_IMAGE_PATH_LEN + 1, sizeof(char));
+            sprintf(temp, "cdrom_%02i_image_history_%02i", c + 1, i + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            if (p) {
+                if (path_abs(p)) {
+                    if (strlen(p) > 511)
+                        fatal("load_floppy_and_cdrom_drives(): strlen(p) > 511 "
+                              "(cdrom[%i].image_history[%i])\n", c, i);
+                    else
+                        snprintf(cdrom[c].image_history[i], 511, "%s", p);
+                } else
+                    snprintf(cdrom[c].image_history[i], 511, "%s%s%s", usr_path,
+                             path_get_slash(usr_path), p);
+                path_normalize(cdrom[c].image_history[i]);
+            }
+        }
 
         /* If the CD-ROM is disabled, delete all its variables. */
         if (cdrom[c].bus_type == CDROM_BUS_DISABLED) {
@@ -1534,19 +1519,15 @@ load_floppy_and_cdrom_drives(void)
 
             sprintf(temp, "cdrom_%02i_image_path", c + 1);
             ini_section_delete_var(cat, temp);
+
+            for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+                sprintf(temp, "cdrom_%02i_image_history_%02i", c + 1, i + 1);
+                ini_section_delete_var(cat, temp);
+            }
         }
 
         sprintf(temp, "cdrom_%02i_iso_path", c + 1);
         ini_section_delete_var(cat, temp);
-
-        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
-            cdrom[c].image_history[i] = (char *) calloc(MAX_IMAGE_PATH_LEN + 1, sizeof(char));
-            sprintf(temp, "cdrom_%02i_image_history_%02i", c + 1, i + 1);
-            p = ini_section_get_string(cat, temp, NULL);
-            if (p) {
-                sprintf(cdrom[c].image_history[i], "%s", p);
-            }
-        }
     }
 }
 
@@ -1557,7 +1538,7 @@ load_other_removable_devices(void)
     ini_section_t cat = ini_find_section(config, "Other removable devices");
     char          temp[512];
     char          tmp2[512];
-    const char   *p;
+    char         *p;
     char          s[512];
     unsigned int  board = 0;
     unsigned int  dev = 0;
@@ -1618,24 +1599,20 @@ load_other_removable_devices(void)
             p = ini_section_get_string(cat, temp, "");
             ini_section_delete_var(cat, temp);
 
-#if 0
-            /*
-             * NOTE:
-             * Temporary hack to remove the absolute
-             * path currently saved in most config
-             * files.  We should remove this before
-             * finalizing this release!  --FvK
-             */
-            if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
-                /*
-                 * Yep, its absolute and prefixed
-                 * with the EXE path.  Just strip
-                 * that off for now...
-                 */
-                wcsncpy(cdrom[c].image_path, &wp[wcslen(usr_path)], sizeof_w(cdrom[c].image_path));
-            } else
-#endif
-            strncpy(cdrom[c].image_path, p, sizeof(cdrom[c].image_path) - 1);
+            if (!strcmp(p, usr_path))
+                p[0] = 0x00;
+
+            if (p[0] != 0x00) {
+                if (path_abs(p)) {
+                    if (strlen(p) > 511)
+                        fatal("load_other_removable_devices(): strlen(p) > 511 (cdrom[%i].image_path)\n",
+                              c);
+                    else
+                        strncpy(cdrom[c].image_path, p, 511);
+                } else
+                    path_append_filename(cdrom[c].image_path, usr_path, p);
+                path_normalize(cdrom[c].image_path);
+            }
 
             if (cdrom[c].host_drive && (cdrom[c].host_drive != 200))
                 cdrom[c].host_drive = 0;
@@ -1705,26 +1682,40 @@ load_other_removable_devices(void)
         sprintf(temp, "zip_%02i_image_path", c + 1);
         p = ini_section_get_string(cat, temp, "");
 
-#if 0
-        /*
-         * NOTE:
-         * Temporary hack to remove the absolute
-         * path currently saved in most config
-         * files.  We should remove this before
-         * finalizing this release!  --FvK
-         */
-        if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
-            /*
-             * Yep, its absolute and prefixed
-             * with the EXE path.  Just strip
-             * that off for now...
-             */
-            wcsncpy(zip_drives[c].image_path, &wp[wcslen(usr_path)], sizeof_w(zip_drives[c].image_path));
-        } else
-#endif
-        strncpy(zip_drives[c].image_path, p, sizeof(zip_drives[c].image_path) - 1);
+        if (!strcmp(p, usr_path))
+            p[0] = 0x00;
 
-        /* If the CD-ROM is disabled, delete all its variables. */
+        if (p[0] != 0x00) {
+            if (path_abs(p)) {
+                if (strlen(p) > 511)
+                    fatal("load_other_removable_devices(): strlen(p) > 511 (zip_drives[%i].image_path)\n",
+                          c);
+                else
+                    strncpy(zip_drives[c].image_path, p, 511);
+            } else
+                path_append_filename(zip_drives[c].image_path, usr_path, p);
+            path_normalize(zip_drives[c].image_path);
+        }
+
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            zip_drives[c].image_history[i] = (char *) calloc(MAX_IMAGE_PATH_LEN + 1, sizeof(char));
+            sprintf(temp, "zip_%02i_image_history_%02i", c + 1, i + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            if (p) {
+                if (path_abs(p)) {
+                    if (strlen(p) > 511)
+                        fatal("load_other_removable_devices(): strlen(p) > 511 "
+                              "(zip_drives[%i].image_history[%i])\n", c, i);
+                    else
+                        snprintf(zip_drives[c].image_history[i], 511, "%s", p);
+                } else
+                    snprintf(zip_drives[c].image_history[i], 511, "%s%s%s", usr_path,
+                             path_get_slash(usr_path), p);
+                path_normalize(zip_drives[c].image_history[i]);
+            }
+        }
+
+        /* If the ZIP drive is disabled, delete all its variables. */
         if (zip_drives[c].bus_type == ZIP_BUS_DISABLED) {
             sprintf(temp, "zip_%02i_host_drive", c + 1);
             ini_section_delete_var(cat, temp);
@@ -1740,10 +1731,12 @@ load_other_removable_devices(void)
 
             sprintf(temp, "zip_%02i_image_path", c + 1);
             ini_section_delete_var(cat, temp);
-        }
 
-        sprintf(temp, "zip_%02i_iso_path", c + 1);
-        ini_section_delete_var(cat, temp);
+            for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+                sprintf(temp, "zip_%02i_image_history_%02i", c + 1, i + 1);
+                ini_section_delete_var(cat, temp);
+            }
+        }
     }
 
     memset(temp, 0x00, sizeof(temp));
@@ -1805,9 +1798,40 @@ load_other_removable_devices(void)
         sprintf(temp, "mo_%02i_image_path", c + 1);
         p = ini_section_get_string(cat, temp, "");
 
-        strncpy(mo_drives[c].image_path, p, sizeof(mo_drives[c].image_path) - 1);
+        if (!strcmp(p, usr_path))
+            p[0] = 0x00;
 
-        /* If the CD-ROM is disabled, delete all its variables. */
+        if (p[0] != 0x00) {
+            if (path_abs(p)) {
+                if (strlen(p) > 511)
+                    fatal("load_other_removable_devices(): strlen(p) > 511 (mo_drives[%i].image_path)\n", 
+                          c);
+                else
+                    strncpy(mo_drives[c].image_path, p, 511);
+            } else
+                path_append_filename(mo_drives[c].image_path, usr_path, p);
+            path_normalize(mo_drives[c].image_path);
+        }
+
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            mo_drives[c].image_history[i] = (char *) calloc(MAX_IMAGE_PATH_LEN + 1, sizeof(char));
+            sprintf(temp, "mo_%02i_image_history_%02i", c + 1, i + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            if (p) {
+                if (path_abs(p)) {
+                    if (strlen(p) > 511)
+                        fatal("load_other_removable_devices(): strlen(p) > 511 "
+                              "(mo_drives[%i].image_history[%i])\n", c, i);
+                    else
+                        snprintf(mo_drives[c].image_history[i], 511, "%s", p);
+                } else
+                    snprintf(mo_drives[c].image_history[i], 511, "%s%s%s", usr_path,
+                             path_get_slash(usr_path), p);
+                path_normalize(mo_drives[c].image_history[i]);
+            }
+        }
+
+        /* If the MO drive is disabled, delete all its variables. */
         if (mo_drives[c].bus_type == MO_BUS_DISABLED) {
             sprintf(temp, "mo_%02i_host_drive", c + 1);
             ini_section_delete_var(cat, temp);
@@ -1823,10 +1847,12 @@ load_other_removable_devices(void)
 
             sprintf(temp, "mo_%02i_image_path", c + 1);
             ini_section_delete_var(cat, temp);
-        }
 
-        sprintf(temp, "mo_%02i_iso_path", c + 1);
-        ini_section_delete_var(cat, temp);
+            for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+                sprintf(temp, "mo_%02i_image_history_%02i", c + 1, i + 1);
+                ini_section_delete_var(cat, temp);
+            }
+        }
     }
 }
 
@@ -2333,15 +2359,15 @@ save_video(void)
     else
         ini_section_set_int(cat, "voodoo", voodoo_enabled);
 
-    if (ibm8514_enabled == 0)
+    if (ibm8514_standalone_enabled == 0)
         ini_section_delete_var(cat, "8514a");
     else
-        ini_section_set_int(cat, "8514a", ibm8514_enabled);
+        ini_section_set_int(cat, "8514a", ibm8514_standalone_enabled);
 
-    if (xga_enabled == 0)
+    if (xga_standalone_enabled == 0)
         ini_section_delete_var(cat, "xga");
     else
-        ini_section_set_int(cat, "xga", xga_enabled);
+        ini_section_set_int(cat, "xga", xga_standalone_enabled);
 
     if (gfxcard[1] == 0)
         ini_section_delete_var(cat, "gfxcard_2");
@@ -2543,19 +2569,16 @@ save_network(void)
                 ini_section_delete_var(cat, temp);
             else
                 ini_section_set_string(cat, temp, net_cards_conf[c].host_dev_name);
-        } else {
-#if 0
-            ini_section_set_string(cat, temp, "none");
-#endif
+        } else
             ini_section_delete_var(cat, temp);
-        }
 
         sprintf(temp, "net_%02i_link", c + 1);
-        if (net_cards_conf[c].link_state == (NET_LINK_10_HD | NET_LINK_10_FD | NET_LINK_100_HD | NET_LINK_100_FD | NET_LINK_1000_HD | NET_LINK_1000_FD)) {
+        if (net_cards_conf[c].link_state == (NET_LINK_10_HD | NET_LINK_10_FD |
+                                             NET_LINK_100_HD | NET_LINK_100_FD |
+                                             NET_LINK_1000_HD | NET_LINK_1000_FD))
             ini_section_delete_var(cat, temp);
-        } else {
+        else
             ini_section_set_int(cat, temp, net_cards_conf[c].link_state);
-        }
     }
 
     ini_delete_section_if_empty(config, cat);
@@ -2576,21 +2599,6 @@ save_ports(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_int(cat, temp, com_ports[c].enabled);
-
-#if 0
-                        sprintf(temp, "serial%d_type", c + 1);
-                        if (!com_ports[c].enabled))
-                            ini_section_delete_var(cat, temp);
-        //              else
-        //                  ini_section_set_string(cat, temp, (char *) serial_type[c])
-
-                        sprintf(temp, "serial%d_device", c + 1);
-                        if (com_ports[c].device == 0)
-                            ini_section_delete_var(cat, temp);
-                        else
-                            ini_section_set_string(cat, temp,
-                              (char *) com_device_get_internal_name(com_ports[c].device));
-#endif
 
         sprintf(temp, "serial%d_passthrough_enabled", c + 1);
         if (serial_passthrough_enabled[c]) {
@@ -2868,7 +2876,11 @@ save_floppy_and_cdrom_drives(void)
             sprintf(temp, "fdd_%02i_writeprot", c + 1);
             ini_section_delete_var(cat, temp);
         } else {
-            ini_section_set_string(cat, temp, floppyfns[c]);
+            path_normalize(floppyfns[c]);
+            if (!strnicmp(floppyfns[c], usr_path, strlen(usr_path)))
+                ini_section_set_string(cat, temp, &floppyfns[c][strlen(usr_path)]);
+            else
+                ini_section_set_string(cat, temp, floppyfns[c]);
         }
 
         sprintf(temp, "fdd_%02i_writeprot", c + 1);
@@ -2891,10 +2903,14 @@ save_floppy_and_cdrom_drives(void)
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
             sprintf(temp, "fdd_%02i_image_history_%02i", c + 1, i + 1);
-            if ((fdd_image_history[c][i] == 0) || strlen(fdd_image_history[c][i]) == 0) {
+            if ((fdd_image_history[c][i] == 0) || strlen(fdd_image_history[c][i]) == 0)
                 ini_section_delete_var(cat, temp);
-            } else {
-                ini_section_set_string(cat, temp, fdd_image_history[c][i]);
+            else {
+                path_normalize(fdd_image_history[c][i]);
+                if (!strnicmp(fdd_image_history[c][i], usr_path, strlen(usr_path)))
+                    ini_section_set_string(cat, temp, &fdd_image_history[c][i][strlen(usr_path)]);
+                else
+                    ini_section_set_string(cat, temp, fdd_image_history[c][i]);
             }
         }
     }
@@ -2923,16 +2939,14 @@ save_floppy_and_cdrom_drives(void)
         }
 
         sprintf(temp, "cdrom_%02i_parameters", c + 1);
-        if (cdrom[c].bus_type == 0) {
+        if (cdrom[c].bus_type == 0)
             ini_section_delete_var(cat, temp);
-        } else { /*In case one wants an ATAPI drive on SCSI and vice-versa.*/
-            if (cdrom[c].bus_type == CDROM_BUS_ATAPI) {
-                if (cdrom_drive_types[cdrom_get_type(c)].bus_type == BUS_TYPE_SCSI)
-                    cdrom[c].bus_type = CDROM_BUS_SCSI;
-            } else if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
-                if (cdrom_drive_types[cdrom_get_type(c)].bus_type == BUS_TYPE_IDE)
-                    cdrom[c].bus_type = CDROM_BUS_ATAPI;
-            }
+        else {
+            /* In case one wants an ATAPI drive on SCSI and vice-versa. */
+            if ((cdrom_drive_types[cdrom_get_type(c)].bus_type != BUS_TYPE_BOTH) &&
+                (cdrom_drive_types[cdrom_get_type(c)].bus_type != cdrom[c].bus_type))
+                cdrom[c].bus_type = cdrom_drive_types[cdrom_get_type(c)].bus_type;
+
             sprintf(tmp2, "%u, %s", cdrom[c].sound_on,
                     hdd_bus_to_string(cdrom[c].bus_type, 1));
             ini_section_set_string(cat, temp, tmp2);
@@ -2960,18 +2974,26 @@ save_floppy_and_cdrom_drives(void)
         }
 
         sprintf(temp, "cdrom_%02i_image_path", c + 1);
-        if ((cdrom[c].bus_type == 0) || (strlen(cdrom[c].image_path) == 0)) {
+        if ((cdrom[c].bus_type == 0) || (strlen(cdrom[c].image_path) == 0))
             ini_section_delete_var(cat, temp);
-        } else {
-            ini_section_set_string(cat, temp, cdrom[c].image_path);
+        else {
+            path_normalize(cdrom[c].image_path);
+            if (!strnicmp(cdrom[c].image_path, usr_path, strlen(usr_path)))
+                ini_section_set_string(cat, temp, &cdrom[c].image_path[strlen(usr_path)]);
+            else
+                ini_section_set_string(cat, temp, cdrom[c].image_path);
         }
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
             sprintf(temp, "cdrom_%02i_image_history_%02i", c + 1, i + 1);
-            if ((cdrom[c].image_history[i] == 0) || strlen(cdrom[c].image_history[i]) == 0) {
+            if ((cdrom[c].image_history[i] == 0) || strlen(cdrom[c].image_history[i]) == 0)
                 ini_section_delete_var(cat, temp);
-            } else {
-                ini_section_set_string(cat, temp, cdrom[c].image_history[i]);
+            else {
+                path_normalize(cdrom[c].image_history[i]);
+                if (!strnicmp(cdrom[c].image_history[i], usr_path, strlen(usr_path)))
+                    ini_section_set_string(cat, temp, &cdrom[c].image_history[i][strlen(usr_path)]);
+                else
+                    ini_section_set_string(cat, temp, cdrom[c].image_history[i]);
             }
         }
     }
@@ -3020,10 +3042,14 @@ save_other_removable_devices(void)
         }
 
         sprintf(temp, "zip_%02i_image_path", c + 1);
-        if ((zip_drives[c].bus_type == 0) || (strlen(zip_drives[c].image_path) == 0)) {
+        if ((zip_drives[c].bus_type == 0) || (strlen(zip_drives[c].image_path) == 0))
             ini_section_delete_var(cat, temp);
-        } else {
-            ini_section_set_string(cat, temp, zip_drives[c].image_path);
+        else {
+            path_normalize(zip_drives[c].image_path);
+            if (!strnicmp(zip_drives[c].image_path, usr_path, strlen(usr_path)))
+                ini_section_set_string(cat, temp, &zip_drives[c].image_path[strlen(usr_path)]);
+            else
+                ini_section_set_string(cat, temp, zip_drives[c].image_path);
         }
     }
 
@@ -3059,10 +3085,14 @@ save_other_removable_devices(void)
         }
 
         sprintf(temp, "mo_%02i_image_path", c + 1);
-        if ((mo_drives[c].bus_type == 0) || (strlen(mo_drives[c].image_path) == 0)) {
+        if ((mo_drives[c].bus_type == 0) || (strlen(mo_drives[c].image_path) == 0))
             ini_section_delete_var(cat, temp);
-        } else {
-            ini_section_set_string(cat, temp, mo_drives[c].image_path);
+        else {
+            path_normalize(mo_drives[c].image_path);
+            if (!strnicmp(mo_drives[c].image_path, usr_path, strlen(usr_path)))
+                ini_section_set_string(cat, temp, &mo_drives[c].image_path[strlen(usr_path)]);
+            else
+                ini_section_set_string(cat, temp, mo_drives[c].image_path);
         }
     }
 

@@ -10,11 +10,8 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
- *          Melissa Goad, <mszoopers@protonmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2010-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdio.h>
@@ -47,7 +44,7 @@
 static void
 machine_at_thor_common_init(const machine_t *model, int mr)
 {
-    machine_at_common_init_ex(model, mr);
+    machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -61,9 +58,6 @@ machine_at_thor_common_init(const machine_t *model, int mr)
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&s3_phoenix_trio64vplus_onboard_pci_device);
 
-#if 0
-    device_add(&keyboard_ps2_ami_pci_device);
-#endif
     device_add(&keyboard_ps2_intel_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
@@ -213,7 +207,7 @@ machine_at_endeavor_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -276,7 +270,7 @@ machine_at_pb640_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -458,7 +452,7 @@ machine_at_p55t2s_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);

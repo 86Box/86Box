@@ -65,7 +65,7 @@ extern const device_t mouse_logibus_device;
 extern const device_t mouse_logibus_onboard_device;
 extern const device_t mouse_msinport_device;
 #    ifdef USE_GENIBUS
-extern const device_t	mouse_genibus_device;
+extern const device_t mouse_genibus_device;
 #    endif
 extern const device_t mouse_mssystems_device;
 extern const device_t mouse_msserial_device;

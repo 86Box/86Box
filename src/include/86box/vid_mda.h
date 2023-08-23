@@ -21,6 +21,7 @@ typedef struct mda_t {
     int firstline;
     int lastline;
 
+    int      fontbase;
     int      linepos;
     int      displine;
     int      vc;

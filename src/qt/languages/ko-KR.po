@@ -1196,8 +1196,26 @@ msgid "(System Default)"
 msgstr "(시스템 기본값)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "네트워크 드라이버를 초기화하지 못했습니다"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "네트워크 구성이 널 드라이버로 전환됩니다"
+
+msgid "Mouse sensitivity:"
+msgstr "마우스 감도:"
+
+msgid "Select media images from program working directory"
+msgstr "프로그램 작업 디렉토리에서 미디어 이미지 선택"
+
+msgid "PIT mode:"
+msgstr "PIT 모드:"
+
+msgid "Auto"
+msgstr "자동"
+
+msgid "Slow"
+msgstr "느린"
+
+msgid "Fast"
+msgstr "빠른"
 

@@ -610,7 +610,7 @@ opLEAVE_l(uint32_t fetchdat)
         temp_seg          = POP_W();                       \
         if (cpu_state.abrt)                                \
             return 1;                                      \
-        loadseg(temp_seg, realseg);                        \
+        op_loadseg(temp_seg, realseg);                     \
         if (cpu_state.abrt)                                \
             ESP = temp_esp;                                \
         CLOCK_CYCLES(is486 ? 3 : 7);                       \
@@ -624,7 +624,7 @@ opLEAVE_l(uint32_t fetchdat)
         temp_seg          = POP_L();                       \
         if (cpu_state.abrt)                                \
             return 1;                                      \
-        loadseg(temp_seg & 0xffff, realseg);               \
+        op_loadseg(temp_seg & 0xffff, realseg);            \
         if (cpu_state.abrt)                                \
             ESP = temp_esp;                                \
         CLOCK_CYCLES(is486 ? 3 : 7);                       \
@@ -651,7 +651,7 @@ opPOP_SS_w(uint32_t fetchdat)
     temp_seg          = POP_W();
     if (cpu_state.abrt)
         return 1;
-    loadseg(temp_seg, &cpu_state.seg_ss);
+    op_loadseg(temp_seg, &cpu_state.seg_ss);
     if (cpu_state.abrt) {
         ESP = temp_esp;
         return 1;
@@ -679,7 +679,7 @@ opPOP_SS_l(uint32_t fetchdat)
     temp_seg          = POP_L();
     if (cpu_state.abrt)
         return 1;
-    loadseg(temp_seg & 0xffff, &cpu_state.seg_ss);
+    op_loadseg(temp_seg & 0xffff, &cpu_state.seg_ss);
     if (cpu_state.abrt) {
         ESP = temp_esp;
         return 1;
