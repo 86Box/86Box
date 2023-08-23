@@ -10,13 +10,13 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *          GH Cao, <driver1998.ms@outlook.com>
+ *          Jasmine Iwanek,
  *
- *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2020 GH Cao.
+ *          Copyright 2021-2023 Jasmine Iwanek.
  */
 #include <windows.h>
 #include <windowsx.h>
@@ -445,7 +445,7 @@ joystick_process(void)
 {
     int d;
 
-    if (joystick_type == 0)
+    if (joystick_type == JS_TYPE_NONE)
         return;
 
     for (int c = 0; c < joystick_get_max_joysticks(joystick_type); c++) {

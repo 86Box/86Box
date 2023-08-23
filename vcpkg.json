@@ -9,7 +9,8 @@
         "libpng",
         "sdl2",
         "rtmidi",
-        "libslirp"
+        "libslirp",
+        "fluidsynth"
     ],
     "features": {
         "qt-ui": {

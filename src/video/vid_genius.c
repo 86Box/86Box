@@ -10,10 +10,10 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ * Authors: John Elliott, <jce@seasip.info>
  *          Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2008-2019 John Elliott.
  *          Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>

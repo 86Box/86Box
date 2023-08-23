@@ -88,7 +88,6 @@ public slots:
     void blitCommon(int x, int y, int w, int h);
     void blitRenderer(int x, int y, int w, int h);
     void blitDummy(int x, int y, int w, int h);
-    void mousePoll();
 
 private:
     void createRenderer(Renderer renderer);

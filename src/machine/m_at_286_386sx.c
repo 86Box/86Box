@@ -10,11 +10,9 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *          EngiNerd <webmaster.crrc@yahoo.it>
  *
- *          Copyright 2010-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2020 EngiNerd.
  */

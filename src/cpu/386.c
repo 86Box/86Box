@@ -14,6 +14,7 @@
 #include "cpu.h"
 #include "x86.h"
 #include "x86_ops.h"
+#include "x86seg_common.h"
 #include "x87.h"
 #include <86box/io.h>
 #include <86box/nmi.h>
@@ -28,6 +29,7 @@
 #ifndef OPS_286_386
 #    define OPS_286_386
 #endif
+#include "x86seg.h"
 #include "386_common.h"
 #ifdef USE_NEW_DYNAREC
 #    include "codegen.h"
@@ -77,7 +79,6 @@ x386_log(const char *fmt, ...)
 static __inline void
 fetch_ea_32_long(uint32_t rmdat)
 {
-    eal_r = eal_w = NULL;
     easeg         = cpu_state.ea_seg->base;
     if (cpu_rm == 4) {
         uint8_t sib = rmdat >> 8;
@@ -122,19 +123,11 @@ fetch_ea_32_long(uint32_t rmdat)
             cpu_state.eaaddr = getlong();
         }
     }
-    if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
-        uint32_t addr = easeg + cpu_state.eaaddr;
-        if (readlookup2[addr >> 12] != (uintptr_t) -1)
-            eal_r = (uint32_t *) (readlookup2[addr >> 12] + addr);
-        if (writelookup2[addr >> 12] != (uintptr_t) -1)
-            eal_w = (uint32_t *) (writelookup2[addr >> 12] + addr);
-    }
 }
 
 static __inline void
 fetch_ea_16_long(uint32_t rmdat)
 {
-    eal_r = eal_w = NULL;
     easeg         = cpu_state.ea_seg->base;
     if (!cpu_mod && cpu_rm == 6) {
         cpu_state.eaaddr = getword();
@@ -157,13 +150,6 @@ fetch_ea_16_long(uint32_t rmdat)
             cpu_state.ea_seg = &cpu_state.seg_ss;
         }
         cpu_state.eaaddr &= 0xFFFF;
-    }
-    if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
-        uint32_t addr = easeg + cpu_state.eaaddr;
-        if (readlookup2[addr >> 12] != (uintptr_t) -1)
-            eal_r = (uint32_t *) (readlookup2[addr >> 12] + addr);
-        if (writelookup2[addr >> 12] != (uintptr_t) -1)
-            eal_w = (uint32_t *) (writelookup2[addr >> 12] + addr);
     }
 }
 
@@ -225,11 +211,20 @@ fetch_ea_16_long(uint32_t rmdat)
 
 #define CLOCK_CYCLES_ALWAYS(c) cycles -= (c)
 
+#define CHECK_READ_CS(size)                                                            \
+    if ((cpu_state.pc < cpu_state.seg_cs.limit_low) ||                                 \
+        ((cpu_state.pc + size - 1) > cpu_state.seg_cs.limit_high))                     \
+        x86gpf("Limit check (READ)", 0);                                               \
+    if (msw & 1 && !(cpu_state.eflags & VM_FLAG) && !(cpu_state.seg_cs.access & 0x80)) \
+        x86np("Read from seg not present", cpu_state.seg_cs.seg & 0xfffc);             \
+
 #include "386_ops.h"
 
 void
 exec386_2386(int cycs)
 {
+    int      ol;
+
     int      vector;
     int      tempi;
     int      cycdiff;
@@ -264,6 +259,8 @@ exec386_2386(int cycs)
             cpu_state.ssegs  = 0;
 
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
+            ol = opcode_length[fetchdat & 0xff];
+            CHECK_READ_CS(MIN(ol, 4));
 
             if (!cpu_state.abrt) {
 #ifdef ENABLE_386_LOG
@@ -296,7 +293,7 @@ exec386_2386(int cycs)
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
                 cpu_state.abrt = 0;
-                x86_doabrt(tempi);
+                x86_doabrt_2386(tempi);
                 if (cpu_state.abrt) {
                     cpu_state.abrt = 0;
 #ifndef USE_NEW_DYNAREC
@@ -304,7 +301,7 @@ exec386_2386(int cycs)
 #endif
                     cpu_state.pc = cpu_state.oldpc;
                     x386_log("Double fault\n");
-                    pmodeint(8, 0);
+                    pmodeint_2386(8, 0);
                     if (cpu_state.abrt) {
                         cpu_state.abrt = 0;
                         softresetx86();
@@ -347,7 +344,7 @@ exec386_2386(int cycs)
                 if (vector != -1) {
                     flags_rebuild();
                     if (msw & 1)
-                        pmodeint(vector, 0);
+                        pmodeint_2386(vector, 0);
                     else {
                         writememw(ss, (SP - 2) & 0xFFFF, cpu_state.flags);
                         writememw(ss, (SP - 4) & 0xFFFF, CS);
@@ -357,7 +354,7 @@ exec386_2386(int cycs)
                         cpu_state.flags &= ~I_FLAG;
                         cpu_state.flags &= ~T_FLAG;
                         cpu_state.pc = readmemw(0, addr);
-                        loadcs(readmemw(0, addr + 2));
+                        loadcs_2386(readmemw(0, addr + 2));
                     }
                 }
             }
@@ -374,7 +371,7 @@ exec386_2386(int cycs)
             }
 
             if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
-                timer_process_inline();
+                timer_process();
 
 #ifdef USE_GDBSTUB
             if (gdbstub_instruction())

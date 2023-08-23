@@ -225,19 +225,19 @@ int checkio(uint32_t port, int mask);
 static __inline uint8_t
 fastreadb(uint32_t a)
 {
-    return readmembl(a);
+    return readmembl_2386(a);
 }
 
 static __inline uint16_t
 fastreadw(uint32_t a)
 {
-    return readmemwl(a);
+    return readmemwl_2386(a);
 }
 
 static __inline uint32_t
 fastreadl(uint32_t a)
 {
-    return readmemll(a);
+    return readmemll_2386(a);
 }
 #else
 static __inline uint8_t
@@ -347,11 +347,11 @@ fastreadw_fetch(uint32_t a)
     if ((a & 0xFFF) > 0xFFE) {
         val = fastreadb(a);
         if (opcode_length[val & 0xff] > 1)
-            val |= (fastreadb(a + 1) << 8);
+            val |= ((uint16_t) fastreadb(a + 1) << 8);
         return val;
     }
 
-    return readmemwl(a);
+    return readmemwl_2386(a);
 }
 
 static __inline uint32_t
@@ -359,14 +359,14 @@ fastreadl_fetch(uint32_t a)
 {
     uint32_t val;
 
-    if ((a & 0xFFF) > 0xFFC) {
+    if (cpu_16bitbus || ((a & 0xFFF) > 0xFFC)) {
         val = fastreadw_fetch(a);
         if (opcode_length[val & 0xff] > 2)
-            val |= (fastreadw(a + 2) << 16);
+            val |= ((uint32_t) fastreadw(a + 2) << 16);
         return val;
     }
 
-    return readmemll(a);
+    return readmemll_2386(a);
 }
 #else
 static __inline uint16_t

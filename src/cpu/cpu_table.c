@@ -378,7 +378,7 @@ const cpu_family_t cpu_families[] = {
     }, {
     .package = CPU_PKG_SOCKET1,
     .manufacturer = "Intel",
-    .name = "i486SX (SL-Enhanced)",
+    .name = "i486SX-S",
     .internal_name = "i486sx_slenh",
     .cpus = (const CPU[]) {
         {"25",            CPU_i486SX_SLENH,     fpus_486sx,  25000000, 1,  5000, 0x423,    0x423, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
@@ -409,7 +409,7 @@ const cpu_family_t cpu_families[] = {
     }, {
     .package = CPU_PKG_SOCKET1,
     .manufacturer = "Intel",
-    .name = "i486DX (SL-Enhanced)",
+    .name = "i486DX-S",
     .internal_name = "i486dx_slenh",
     .cpus = (const CPU[]) {
         {"33",            CPU_i486DX_SLENH,  fpus_internal,  33333333, 1,  5000, 0x414,    0x414, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
@@ -430,7 +430,7 @@ const cpu_family_t cpu_families[] = {
     }, {
     .package = CPU_PKG_SOCKET1,
     .manufacturer = "Intel",
-    .name = "i486DX2 (SL-Enhanced)",
+    .name = "i486DX2-S",
     .internal_name = "i486dx2_slenh",
     .cpus = (const CPU[]) {
         {"40",           CPU_i486DX_SLENH, fpus_internal,  40000000, 2,  5000, 0x435,    0x435, 0, CPU_SUPPORTS_DYNAREC,  7, 7,6,6,  5},

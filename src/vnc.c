@@ -94,7 +94,7 @@ vnc_ptrevent(int but, int x, int y, rfbClientPtr cl)
     dy = (y - ptr_y) / 0.96;
 
     /* VNC uses absolute positions within the window, no deltas. */
-    mouse_scale_x(dx, dy);
+    mouse_scale(dx, dy);
 
     ptr_x = x;
     ptr_y = y;

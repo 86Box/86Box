@@ -1299,7 +1299,7 @@ lcdm_poll(amsvid_t *vid)
                 drawcursor = ((mda->ma == ca) && mda->con && mda->cursoron);
                 blink      = ((mda->blink & 16) && (mda->ctrl & 0x20) && (attr & 0x80) && !drawcursor);
 
-                lcd_draw_char_80(vid, &((buffer32->line[mda->displine]))[x * 8], chr, attr, drawcursor, blink, mda->sc, 0, mda->ctrl);
+                lcd_draw_char_80(vid, &(buffer32->line[mda->displine])[x * 8], chr, attr, drawcursor, blink, mda->sc, 0, mda->ctrl);
                 mda->ma++;
             }
         }
@@ -1690,6 +1690,7 @@ vid_init_200(amstrad_t *ams)
     mda_setcol(0xC0, 0, 1, 0);
 
     cga->fontbase = (device_get_config_int("codepage") & 3) * 256;
+    mda->fontbase = cga->fontbase;
 
     timer_add(&vid->timer, vid_poll_200, vid, 1);
     mem_mapping_add(&vid->mda.mapping, 0xb0000, 0x08000,
@@ -2005,10 +2006,8 @@ const device_t vid_pc3086_device = {
 };
 
 static void
-ms_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
+ms_write(uint16_t addr, UNUSED(uint8_t val), UNUSED(void *priv))
 {
-    amstrad_t *ams = (amstrad_t *) priv;
-
     if ((addr == 0x78) || (addr == 0x79))
         mouse_clear_x();
     else
@@ -2016,11 +2015,10 @@ ms_write(uint16_t addr, UNUSED(uint8_t val), void *priv)
 }
 
 static uint8_t
-ms_read(uint16_t addr, void *priv)
+ms_read(uint16_t addr, UNUSED(void *priv))
 {
-    amstrad_t *ams = (amstrad_t *) priv;
-    uint8_t    ret;
-    int delta = 0;
+    uint8_t ret;
+    int     delta = 0;
 
     if ((addr == 0x78) || (addr == 0x79)) {
         mouse_subtract_x(&delta, NULL, -128, 127, 0);
@@ -2601,10 +2599,10 @@ machine_amstrad_init(const machine_t *model, int type)
     io_sethandler(0x0060, 7,
                   kbd_read, NULL, NULL, kbd_write, NULL, NULL, ams);
     timer_add(&ams->send_delay_timer, kbd_poll, ams, 1);
-    if (type == AMS_PC200)
-        keyboard_set_table(scancode_pc200);
-    else
+    if (type == AMS_PC1512)
         keyboard_set_table(scancode_xt);
+    else
+        keyboard_set_table(scancode_pc200);
     keyboard_send = kbd_adddata_ex;
     keyboard_scan = 1;
     keyboard_set_is_amstrad(((type == AMS_PC1512) || (type == AMS_PC1640)) ? 0 : 1);

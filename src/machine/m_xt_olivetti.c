@@ -1504,7 +1504,7 @@ m19_vid_init(m19_vid_t *vid)
 #endif
 
     /* OGC emulation part begin */
-    loadfont_ex("roms/machines/m19/BIOS.BIN", 1, 90);
+    loadfont("roms/machines/m19/MBM2764-30 8514 107 AB PCF3.BIN", 7);
     /* composite is not working yet */
     vid->ogc.cga.composite    = 0; // (display_type != CGA_RGB);
     vid->ogc.cga.revision     = device_get_config_int("composite_type");
@@ -1916,6 +1916,7 @@ machine_xt_m19_init(const machine_t *model)
 
     ret = bios_load_linear("roms/machines/m19/BIOS.BIN",
                            0x000fc000, 16384, 0);
+    ret &= rom_present("roms/machines/m19/MBM2764-30 8514 107 AB PCF3.BIN");
 
     if (bios_only || !ret)
         return ret;

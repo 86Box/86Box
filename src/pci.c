@@ -616,7 +616,7 @@ pci_readl(uint16_t port, UNUSED(void *priv))
                 /* No split here, actual 32-bit access. */
                 if (pci_flags & FLAG_MECHANISM_1) {
                     ret = pci_index | (pci_func << 8) | (pci_card << 11) | (pci_bus << 16);
-                    if (pci_flags & FLAG_CONFIG_IO_ON)
+                    if (pci_flags & FLAG_CONFIG_M1_IO_ON)
                         ret |= PCI_ENABLED;
 
                     pci_log("PCI: [RL] Mechanism #1 port 0CF8 = %08X\n", ret);
