@@ -1495,10 +1495,10 @@ s3_virge_mmio_read(uint32_t addr, void *priv)
             ret = virge->advfunc_cntl & 0x3f;
             ret |= virge->fifo_slots_num << 6;
             ret &= 0xff;
-            break;
+            return ret;
         case 0x850d:
             ret = virge->fifo_slots_num >> 2;
-            break;
+            return ret;
 
         case 0x83b0:
         case 0x83b1:
@@ -1585,7 +1585,7 @@ s3_virge_mmio_read_w(uint32_t addr, void *priv)
         case 0x850c:
             ret = virge->advfunc_cntl & 0x3f;
             ret |= virge->fifo_slots_num << 6;
-            break;
+            return ret;
 
         case 0x859c:
             return virge->cmd_dma;
