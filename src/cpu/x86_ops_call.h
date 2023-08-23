@@ -6,9 +6,9 @@
         optype       = CALL;             \
         cgate16 = cgate32 = 0;           \
         if (msw & 1)                     \
-            loadcscall(new_seg, old_pc); \
+            op_loadcscall(new_seg, old_pc); \
         else {                           \
-            loadcs(new_seg);             \
+            op_loadcs(new_seg);          \
             cycles -= timing_call_rm;    \
         }                                \
         optype = 0;                      \
@@ -54,9 +54,9 @@
         optype       = CALL;             \
         cgate16 = cgate32 = 0;           \
         if (msw & 1)                     \
-            loadcscall(new_seg, old_pc); \
+            op_loadcscall(new_seg, old_pc); \
         else {                           \
-            loadcs(new_seg);             \
+            op_loadcs(new_seg);          \
             cycles -= timing_call_rm;    \
         }                                \
         optype = 0;                      \
@@ -103,9 +103,9 @@
         optype       = CALL;            \
         cgate16 = cgate32 = 0;          \
         if (msw & 1)                    \
-            loadcscall(new_seg);        \
+            op_loadcscall(new_seg);        \
         else {                          \
-            loadcs(new_seg);            \
+            op_loadcs(new_seg);          \
             cycles -= timing_call_rm;   \
         }                               \
         optype = 0;                     \
@@ -148,9 +148,9 @@
         optype       = CALL;            \
         cgate16 = cgate32 = 0;          \
         if (msw & 1)                    \
-            loadcscall(new_seg);        \
+            op_loadcscall(new_seg);        \
         else {                          \
-            loadcs(new_seg);            \
+            op_loadcs(new_seg);         \
             cycles -= timing_call_rm;   \
         }                               \
         optype = 0;                     \
@@ -362,14 +362,12 @@ opFF_w_a16(uint32_t fetchdat)
                 return 1;
             cpu_state.pc = new_pc;
 #ifdef USE_NEW_DYNAREC
-            loadcsjmp(new_cs, old_pc);
-            if (cpu_state.abrt)
-                return 1;
+            op_loadcsjmp(new_cs, old_pc);
 #else
-            loadcsjmp(new_cs, oxpc);
+            op_loadcsjmp(new_cs, oxpc);
+#endif
             if (cpu_state.abrt)
                 return 1;
-#endif
             CPU_BLOCK_END();
             PREFETCH_RUN(cycles_old - cycles, 2, rmdat, 2, 0, 0, 0, 0);
             PREFETCH_FLUSH();
@@ -526,14 +524,12 @@ opFF_w_a32(uint32_t fetchdat)
                 return 1;
             cpu_state.pc = new_pc;
 #ifdef USE_NEW_DYNAREC
-            loadcsjmp(new_cs, old_pc);
-            if (cpu_state.abrt)
-                return 1;
+            op_loadcsjmp(new_cs, old_pc);
 #else
-            loadcsjmp(new_cs, oxpc);
+            op_loadcsjmp(new_cs, oxpc);
+#endif
             if (cpu_state.abrt)
                 return 1;
-#endif
             CPU_BLOCK_END();
             PREFETCH_RUN(cycles_old - cycles, 2, rmdat, 2, 0, 0, 0, 1);
             PREFETCH_FLUSH();
@@ -691,14 +687,12 @@ opFF_l_a16(uint32_t fetchdat)
                 return 1;
             cpu_state.pc = new_pc;
 #ifdef USE_NEW_DYNAREC
-            loadcsjmp(new_cs, old_pc);
-            if (cpu_state.abrt)
-                return 1;
+            op_loadcsjmp(new_cs, old_pc);
 #else
-            loadcsjmp(new_cs, oxpc);
+            op_loadcsjmp(new_cs, oxpc);
+#endif
             if (cpu_state.abrt)
                 return 1;
-#endif
             CPU_BLOCK_END();
             PREFETCH_RUN(cycles_old - cycles, 2, rmdat, 1, 1, 0, 0, 0);
             PREFETCH_FLUSH();
@@ -857,14 +851,12 @@ opFF_l_a32(uint32_t fetchdat)
                 return 1;
             cpu_state.pc = new_pc;
 #ifdef USE_NEW_DYNAREC
-            loadcsjmp(new_cs, old_pc);
-            if (cpu_state.abrt)
-                return 1;
+            op_loadcsjmp(new_cs, old_pc);
 #else
-            loadcsjmp(new_cs, oxpc);
+            op_loadcsjmp(new_cs, oxpc);
+#endif
             if (cpu_state.abrt)
                 return 1;
-#endif
             CPU_BLOCK_END();
             PREFETCH_RUN(cycles_old - cycles, 2, rmdat, 1, 1, 0, 0, 1);
             PREFETCH_FLUSH();

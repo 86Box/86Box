@@ -156,12 +156,12 @@ extern void pgc_sto_raster(pgc_t *, int16_t *x, int16_t *y);
 extern void pgc_ito_raster(pgc_t *, int32_t *x, int32_t *y);
 extern void pgc_dto_raster(pgc_t *, double *x, double *y);
 #if 0
-extern int	pgc_input_byte(pgc_t *, uint8_t *val);
-extern int	pgc_output_byte(pgc_t *, uint8_t val);
+extern int pgc_input_byte(pgc_t *, uint8_t *val);
+extern int pgc_output_byte(pgc_t *, uint8_t val);
 #endif
 extern int pgc_output_string(pgc_t *, const char *val);
 #if 0
-extern int	pgc_error_byte(pgc_t *, uint8_t val);
+extern int pgc_error_byte(pgc_t *, uint8_t val);
 #endif
 extern int pgc_error_string(pgc_t *, const char *val);
 extern int pgc_error(pgc_t *, int err);

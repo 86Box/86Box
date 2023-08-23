@@ -13,6 +13,8 @@
 #    include "codegen_backend_arm64_ops.h"
 #    include "codegen_reg.h"
 #    include "x86.h"
+#    include "x86seg_common.h"
+#    include "x86seg.h"
 #    include "x87.h"
 
 #    if defined(__linux__) || defined(__APPLE__)

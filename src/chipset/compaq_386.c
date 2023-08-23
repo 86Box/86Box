@@ -100,9 +100,8 @@ typedef struct cpq_386_t {
 static uint8_t
 cpq_read_ram(uint32_t addr, void *priv)
 {
-    cpq_ram_t *dev = (cpq_ram_t *) priv;
-    uint8_t ret = 0xff;
-    uint32_t old = addr;
+    const cpq_ram_t *dev = (cpq_ram_t *) priv;
+    uint8_t          ret = 0xff;
 
     addr = (addr - dev->virt_base) + dev->phys_base;
 
@@ -115,9 +114,8 @@ cpq_read_ram(uint32_t addr, void *priv)
 static uint16_t
 cpq_read_ramw(uint32_t addr, void *priv)
 {
-    cpq_ram_t *dev = (cpq_ram_t *) priv;
-    uint16_t ret = 0xffff;
-    uint32_t old = addr;
+    const cpq_ram_t *dev = (cpq_ram_t *) priv;
+    uint16_t         ret = 0xffff;
 
     addr = (addr - dev->virt_base) + dev->phys_base;
 
@@ -130,9 +128,8 @@ cpq_read_ramw(uint32_t addr, void *priv)
 static uint32_t
 cpq_read_raml(uint32_t addr, void *priv)
 {
-    cpq_ram_t *dev = (cpq_ram_t *) priv;
-    uint32_t ret = 0xffffffff;
-    uint32_t old = addr;
+    const cpq_ram_t *dev = (cpq_ram_t *) priv;
+    uint32_t         ret = 0xffffffff;
 
     addr = (addr - dev->virt_base) + dev->phys_base;
 
@@ -145,8 +142,7 @@ cpq_read_raml(uint32_t addr, void *priv)
 static void
 cpq_write_ram(uint32_t addr, uint8_t val, void *priv)
 {
-    cpq_ram_t *dev = (cpq_ram_t *) priv;
-    uint32_t old = addr;
+    const cpq_ram_t *dev = (cpq_ram_t *) priv;
 
     addr = (addr - dev->virt_base) + dev->phys_base;
 
@@ -157,8 +153,7 @@ cpq_write_ram(uint32_t addr, uint8_t val, void *priv)
 static void
 cpq_write_ramw(uint32_t addr, uint16_t val, void *priv)
 {
-    cpq_ram_t *dev = (cpq_ram_t *) priv;
-    uint32_t old = addr;
+    const cpq_ram_t *dev = (cpq_ram_t *) priv;
 
     addr = (addr - dev->virt_base) + dev->phys_base;
 
@@ -169,8 +164,7 @@ cpq_write_ramw(uint32_t addr, uint16_t val, void *priv)
 static void
 cpq_write_raml(uint32_t addr, uint32_t val, void *priv)
 {
-    cpq_ram_t *dev = (cpq_ram_t *) priv;
-    uint32_t old = addr;
+    const cpq_ram_t *dev = (cpq_ram_t *) priv;
 
     addr = (addr - dev->virt_base) + dev->phys_base;
 
@@ -181,8 +175,8 @@ cpq_write_raml(uint32_t addr, uint32_t val, void *priv)
 static uint8_t
 cpq_read_regs(uint32_t addr, void *priv)
 {
-    cpq_386_t *dev = (cpq_386_t *) priv;
-    uint8_t ret = 0xff;
+    const cpq_386_t *dev = (cpq_386_t *) priv;
+    uint8_t          ret = 0xff;
 
     addr &= 0x00000fff;
 
@@ -195,6 +189,9 @@ cpq_read_regs(uint32_t addr, void *priv)
             /* RAM Setup Port (Read/Write) */
             ret = dev->regs[addr];
             break;
+
+        default:
+            break;
     }
 
     return ret;
@@ -203,7 +200,6 @@ cpq_read_regs(uint32_t addr, void *priv)
 static uint16_t
 cpq_read_regsw(uint32_t addr, void *priv)
 {
-    cpq_386_t *dev = (cpq_386_t *) priv;
     uint16_t ret = 0xffff;
 
     ret = cpq_read_regs(addr, priv);
@@ -215,7 +211,6 @@ cpq_read_regsw(uint32_t addr, void *priv)
 static uint32_t
 cpq_read_regsl(uint32_t addr, void *priv)
 {
-    cpq_386_t *dev = (cpq_386_t *) priv;
     uint32_t ret = 0xffffffff;
 
     ret = cpq_read_regsw(addr, priv);
@@ -306,8 +301,6 @@ cpq_recalc_ram(cpq_386_t *dev)
     uint8_t  end;
     uint8_t  k;
     uint32_t virt_base;
-    uint32_t virt_addr;
-    uint32_t phys_addr;
     cpq_ram_t *cram;
 
     for (uint16_t i = 0x10; i < sys_min_high; i++)
@@ -393,14 +386,15 @@ cpq_write_regs(uint32_t addr, uint8_t val, void *priv)
                 cpq_recalc_cache(dev);
             }
             break;
+
+        default:
+            break;
     }
 }
 
 static void
 cpq_write_regsw(uint32_t addr, uint16_t val, void *priv)
 {
-    cpq_386_t *dev = (cpq_386_t *) priv;
-
     cpq_write_regs(addr, val & 0xff, priv);
     cpq_write_regs(addr + 1, (val >> 8) & 0xff, priv);
 }
@@ -408,8 +402,6 @@ cpq_write_regsw(uint32_t addr, uint16_t val, void *priv)
 static void
 cpq_write_regsl(uint32_t addr, uint32_t val, void *priv)
 {
-    cpq_386_t *dev = (cpq_386_t *) priv;
-
     cpq_write_regsw(addr, val & 0xff, priv);
     cpq_write_regsw(addr + 2, (val >> 16) & 0xff, priv);
 }
@@ -436,10 +428,8 @@ compaq_ram_init(cpq_ram_t *dev)
 static void
 compaq_ram_diags_parse(cpq_386_t *dev)
 {
-    uint8_t val = dev->regs[0x00000001];
+    uint8_t  val = dev->regs[0x00000001];
     uint32_t accum = 0x00100000;
-
-        val;
 
     for (uint8_t i = 0; i < 4; i++) {
         dev->ram_bases[i] = accum;
@@ -450,6 +440,9 @@ compaq_ram_diags_parse(cpq_386_t *dev)
                 break;
             case RAM_DIAG_H_SYS_RAM_4MB:
                 dev->ram_sizes[i] = 0x00400000;
+                break;
+
+            default:
                 break;
         }
         if (i == 0)
@@ -476,8 +469,6 @@ compaq_recalc_base_ram(cpq_386_t *dev)
     uint8_t  low_end     = 0x00;
     uint8_t  high_start  = 0x00;
     uint8_t  high_end    = 0x00;
-    uint32_t phys_addr   = 0x00000000;
-    uint32_t virt_addr   = 0x00000000;
     cpq_ram_t *cram;
 
     switch (base_mem) {
@@ -618,7 +609,7 @@ compaq_386_close(void *priv)
 }
 
 static void *
-compaq_386_init(const device_t *info)
+compaq_386_init(UNUSED(const device_t *info))
 {
     cpq_386_t *dev = (cpq_386_t *) calloc(1, sizeof(cpq_386_t));
 
@@ -705,6 +696,9 @@ compaq_386_init(const device_t *info)
             case 16384:
                 dev->regs[0x00000001] = RAM_DIAG_H_SYS_RAM_4MB | RAM_DIAG_H_MOD_A_RAM_4MB |
                                         RAM_DIAG_H_MOD_B_RAM_4MB | RAM_DIAG_H_MOD_C_RAM_4MB;
+                break;
+
+            default:
                 break;
         }
     } else

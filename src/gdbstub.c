@@ -75,8 +75,10 @@ enum {
     GDB_REG_ES,
     GDB_REG_FS,
     GDB_REG_GS,
+#if 0
     GDB_REG_FS_BASE,
     GDB_REG_GS_BASE,
+#endif
     GDB_REG_CR0,
     GDB_REG_CR2,
     GDB_REG_CR3,
@@ -678,9 +680,11 @@ gdbstub_client_read_reg(int index, uint8_t *buf)
             *((uint16_t *) buf) = segment_regs[index - GDB_REG_CS]->seg;
             break;
 
+#if 0
         case GDB_REG_FS_BASE ... GDB_REG_GS_BASE:
             *((uint32_t *) buf) = segment_regs[(index - 16) + (GDB_REG_FS - GDB_REG_CS)]->base;
             break;
+#endif
 
         case GDB_REG_CR0 ... GDB_REG_CR4:
             *((uint32_t *) buf) = *cr_regs[index - GDB_REG_CR0];

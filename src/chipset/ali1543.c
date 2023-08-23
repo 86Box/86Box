@@ -70,7 +70,6 @@ typedef struct ali1543_t {
     sff8038i_t      *ide_controller[2];
     smbus_ali7101_t *smbus;
     usb_t           *usb;
-    usb_params_t     usb_params;
 
 } ali1543_t;
 
@@ -1069,7 +1068,7 @@ ali7101_write(int func, int addr, uint8_t val, void *priv)
 
         case 0x40:
             dev->pmu_conf[addr] = val & 0x1f;
-            pic_set_smi_irq_mask(8, (dev->pmu_conf[0x77] & 0x08) && (dev->pmu_conf[0x40] & 0x03));
+            nvr_smi_enable((dev->pmu_conf[0x77] & 0x08) && (dev->pmu_conf[0x40] & 0x08), dev->nvr);
             break;
         case 0x41:
             dev->pmu_conf[addr] = val & 0x10;
@@ -1080,6 +1079,8 @@ ali7101_write(int func, int addr, uint8_t val, void *priv)
         /* TODO: Is the status R/W or R/WC? */
         case 0x42:
             dev->pmu_conf[addr] &= ~(val & 0x1f);
+            if (val & 0x08)
+                nvr_smi_status_clear(dev->nvr);
             break;
         case 0x43:
             dev->pmu_conf[addr] &= ~(val & 0x10);
@@ -1217,8 +1218,8 @@ ali7101_write(int func, int addr, uint8_t val, void *priv)
         case 0x77:
             /* TODO: If bit 1 is clear, then status bit is set even if SMI is disabled. */
             dev->pmu_conf[addr] = val;
-            pic_set_smi_irq_mask(8, (dev->pmu_conf[0x77] & 0x08) && (dev->pmu_conf[0x40] & 0x03));
             ali1543_log("PMU77: %02X\n", val);
+            nvr_smi_enable((dev->pmu_conf[0x77] & 0x08) && (dev->pmu_conf[0x40] & 0x08), dev->nvr);
             apm_set_do_smi(dev->acpi->apm, (dev->pmu_conf[0x77] & 0x08) && (dev->pmu_conf[0x41] & 0x10));
             break;
 
@@ -1423,14 +1424,23 @@ ali7101_read(int func, int addr, void *priv)
             return 0xff;
 
         /* TODO: C4, C5 = GPIREG (masks: 0D, 0E) */
-        if (addr == 0x43)
-            ret = acpi_ali_soft_smi_status_read(dev->acpi) ? 0x10 : 0x00;
-        else if (addr == 0x7f)
-            ret = 0x80;
-        else if (addr == 0xbc)
-            ret = inb(0x70);
-        else
-            ret = dev->pmu_conf[addr];
+        switch (addr) {
+            default:
+                ret = dev->pmu_conf[addr];
+                break;
+            case 0x42:
+                ret = (dev->pmu_conf[addr] & 0xf7) | (nvr_smi_status(dev->nvr) ? 0x08 : 0x00);
+                break;
+            case 0x43:
+                ret = acpi_ali_soft_smi_status_read(dev->acpi) ? 0x10 : 0x00;
+                break;
+            case 0x7f:
+                ret = 0x80;
+                break;
+            case 0xbc:
+                ret = inb(0x70);
+                break;
+        }
 
         if (dev->pmu_conf[0x77] & 0x10) {
             switch (addr) {
@@ -1470,17 +1480,6 @@ ali7101_read(int func, int addr, void *priv)
     }
 
     return ret;
-}
-
-static void
-ali5237_usb_update_interrupt(usb_t* usb, void *priv)
-{
-    ali1543_t *dev = (ali1543_t *) priv;
-
-    if (usb->irq_level)
-        pci_set_mirq(4, !!(dev->pci_conf[0x74] & 0x10), &dev->mirq_states[4]);
-    else
-        pci_clear_mirq(4, !!(dev->pci_conf[0x74] & 0x10), &dev->mirq_states[4]);
 }
 
 static void
@@ -1633,10 +1632,7 @@ ali1543_init(const device_t *info)
     dev->smbus = device_add(&ali7101_smbus_device);
 
     /* USB */
-    dev->usb_params.parent_priv      = dev;
-    dev->usb_params.smi_handle       = NULL;
-    dev->usb_params.update_interrupt = ali5237_usb_update_interrupt;
-    dev->usb                         = device_add_parameters(&usb_device, &dev->usb_params);
+    dev->usb = device_add(&usb_device);
 
     dev->type   = info->local & 0xff;
     dev->offset = (info->local >> 8) & 0x7f;

@@ -60,12 +60,14 @@ enum {
     CDROM_BUS_USB      = 8
 };
 
-#define KNOWN_CDROM_DRIVE_TYPES 35
-#define BUS_TYPE_ALL 0
-#define BUS_TYPE_IDE 1
-#define BUS_TYPE_SCSI 2
+#define KNOWN_CDROM_DRIVE_TYPES    35
+#define BUS_TYPE_IDE                CDROM_BUS_ATAPI
+#define BUS_TYPE_SCSI               CDROM_BUS_SCSI
+#define BUS_TYPE_BOTH              -2
+#define BUS_TYPE_NONE              -1
 
-static const struct {
+static const struct
+{
     const char  vendor[9];
     const char  model[17];
     const char  revision[5];
@@ -73,7 +75,7 @@ static const struct {
     const char *internal_name;
     const int   bus_type;
 } cdrom_drive_types[] = {
-    { "86BOX",    "CD-ROM",             "1.00", "(ATAPI/SCSI) 86BOX CD-ROM 1.00",        "86BOX_CD-ROM_1.00",             BUS_TYPE_ALL  }, /*1*/
+    { "86BOX",    "CD-ROM",             "1.00", "(ATAPI/SCSI) 86BOX CD-ROM 1.00",        "86BOX_CD-ROM_1.00",             BUS_TYPE_BOTH  }, /*1*/
     { "AZT",      "CDA46802I",          "1.15", "(ATAPI) AZT CDA46802I 1.15",            "AZT_CDA46802I_1.15",            BUS_TYPE_IDE  }, /*2*/
     { "BTC",      "CD-ROM BCD36XH",     "U1.0", "(ATAPI) BTC CD-ROM BCD36XH U1.0",       "BTC_CD-ROM_BCD36XH_U1.0",       BUS_TYPE_IDE  }, /*3*/
     { "GOLDSTAR", "CRD-8160B",          "3.14", "(ATAPI) GOLDSTAR CRD-8160B 3.14",       "GOLDSTAR_CRD-8160B_3.14",       BUS_TYPE_IDE  }, /*4*/
@@ -108,7 +110,7 @@ static const struct {
     { "TOSHIBA",  "CD-ROM DRIVE:XM",    "3433", "(SCSI) TOSHIBA CD-ROM DRIVE:XM 3433",   "TOSHIBA_CD-ROM_DRIVEXM_3433",   BUS_TYPE_SCSI }, /*33*/
     { "TOSHIBA",  "CD-ROM XM-3301TA",   "0272", "(SCSI) TOSHIBA CD-ROM XM-3301TA 0272",  "TOSHIBA_CD-ROM_XM-3301TA_0272", BUS_TYPE_SCSI }, /*34*/
     { "TOSHIBA",  "CD-ROM XM-5701TA",   "3136", "(SCSI) TOSHIBA CD-ROM XM-5701TA 3136",  "TOSHIBA_CD-ROM_XM-5701TA_3136", BUS_TYPE_SCSI }, /*35*/
-    { "",         "",                   "",     "",                                      "",                              -1            },
+    { "",         "",                   "",     "",                                      "",                              BUS_TYPE_NONE },
 };
 
 /* To shut up the GCC compilers. */

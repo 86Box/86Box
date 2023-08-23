@@ -29,13 +29,11 @@
 #include <86box/postcard.h>
 #include "cpu.h"
 
-#define POSTCARDS_NUM 4
-#define POSTCARD_MASK (POSTCARDS_NUM - 1)
+uint8_t         postcard_codes[POSTCARDS_NUM];
 
 static uint16_t postcard_port;
 static uint8_t  postcard_written[POSTCARDS_NUM];
 static uint8_t  postcard_ports_num = 1;
-static uint8_t  postcard_codes[POSTCARDS_NUM];
 static uint8_t  postcard_prev_codes[POSTCARDS_NUM];
 #define UISTR_LEN 32
 static char postcard_str[UISTR_LEN]; /* UI output string */
@@ -66,8 +64,10 @@ static void
 postcard_setui(void)
 {
     if (postcard_ports_num > 1) {
-        char ps[2][POSTCARDS_NUM][3] = { { 0 },
-                                          { 0 } };
+        char ps[2][POSTCARDS_NUM][3] = { { { 0 },
+                                           { 0 },
+                                        } };
+
         for (uint8_t i = 0; i < POSTCARDS_NUM; i++) {
             if (!postcard_written[i]) {
                 snprintf(ps[0][i], sizeof(ps[0][i]), "--");

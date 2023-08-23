@@ -282,7 +282,7 @@ opJMP_far_a16(uint32_t fetchdat)
         return 1;
     old_pc       = cpu_state.pc;
     cpu_state.pc = addr;
-    loadcsjmp(seg, old_pc);
+    op_loadcsjmp(seg, old_pc);
     CPU_BLOCK_END();
     PREFETCH_RUN(11, 5, -1, 0, 0, 0, 0, 0);
     PREFETCH_FLUSH();
@@ -301,7 +301,7 @@ opJMP_far_a32(uint32_t fetchdat)
         return 1;
     old_pc       = cpu_state.pc;
     cpu_state.pc = addr;
-    loadcsjmp(seg, old_pc);
+    op_loadcsjmp(seg, old_pc);
     CPU_BLOCK_END();
     PREFETCH_RUN(11, 7, -1, 0, 0, 0, 0, 0);
     PREFETCH_FLUSH();

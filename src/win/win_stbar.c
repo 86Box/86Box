@@ -522,7 +522,7 @@ ui_sb_update_panes(void)
     xta_int  = machine_has_flags(machine, MACHINE_XTA) ? 1 : 0;
     esdi_int = machine_has_flags(machine, MACHINE_ESDI) ? 1 : 0;
     ide_int  = machine_has_flags(machine, MACHINE_IDE_QUAD) ? 1 : 0;
-    scsi_int = machine_has_flags(machine, MACHINE_SCSI_DUAL) ? 1 : 0;
+    scsi_int = machine_has_flags(machine, MACHINE_SCSI) ? 1 : 0;
 
     c_mfm  = hdd_count(HDD_BUS_MFM);
     c_esdi = hdd_count(HDD_BUS_ESDI);

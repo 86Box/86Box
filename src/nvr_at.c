@@ -194,11 +194,10 @@
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
  *          Mahod,
- *          Sarah Walker, <https://pcem-emulator.co.uk/>
  *
  *          Copyright 2017-2020 Fred N. van Kempen.
  *          Copyright 2016-2020 Miran Grca.
- *          Copyright 2008-2020 Sarah Walker.
+ *          Copyright 2016-2020 Mahod.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -299,6 +298,7 @@
 #define FLAG_AMI_1995_HACK 0x08
 #define FLAG_P6RP4_HACK    0x10
 #define FLAG_PIIX4         0x20
+#define FLAG_MULTI_BANK    0x40
 
 typedef struct local_t {
     int8_t stat;
@@ -310,7 +310,7 @@ typedef struct local_t {
     uint8_t wp_0d;
     uint8_t wp_32;
     uint8_t irq_state;
-    uint8_t pad0;
+    uint8_t smi_status;
 
     uint8_t  addr[8];
     uint8_t  wp[2];
@@ -319,6 +319,8 @@ typedef struct local_t {
 
     int16_t count;
     int16_t state;
+
+    int32_t smi_enable;
 
     uint64_t   ecount;
     uint64_t   rtc_time;
@@ -447,6 +449,10 @@ timer_update_irq(nvr_t *nvr)
         if (irq) {
             nvr->regs[RTC_REGC] |= REGC_IRQF;
             picintlevel(1 << nvr->irq, &local->irq_state);
+            if (local->smi_enable) {
+                smi_raise();
+                local->smi_status = 1;
+            }
         } else {
             nvr->regs[RTC_REGC] &= ~REGC_IRQF;
             picintclevel(1 << nvr->irq, &local->irq_state);
@@ -563,6 +569,8 @@ timer_tick(nvr_t *nvr)
 static void
 nvr_reg_common_write(uint16_t reg, uint8_t val, nvr_t *nvr, local_t *local)
 {
+    if (local->lock[reg])
+        return;
     if ((reg == 0x2c) && (local->flags & FLAG_AMI_1994_HACK))
         nvr->is_new = 0;
     if ((reg == 0x2d) && (local->flags & FLAG_AMI_1992_HACK))
@@ -572,8 +580,6 @@ nvr_reg_common_write(uint16_t reg, uint8_t val, nvr_t *nvr, local_t *local)
     if ((reg >= 0x38) && (reg <= 0x3f) && local->wp[0])
         return;
     if ((reg >= 0xb8) && (reg <= 0xbf) && local->wp[1])
-        return;
-    if (local->lock[reg])
         return;
     if (nvr->regs[reg] != val) {
         nvr->regs[reg] = val;
@@ -668,9 +674,12 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
     } else {
         local->addr[addr_id] = (val & (nvr->size - 1));
         /* Some chipsets use a 256 byte NVRAM but ports 70h and 71h always access only 128 bytes. */
-        if (addr_id == 0x0)
+        if (addr_id == 0x0) {
             local->addr[addr_id] &= 0x7f;
-        else if ((addr_id == 0x1) && (local->flags & FLAG_PIIX4))
+            /* Needed for OPTi 82C601/82C602 and NSC PC87306. */
+            if (local->flags & FLAG_MULTI_BANK)
+                local->addr[addr_id] |= (0x80 * local->bank[addr_id]);
+        } else if ((addr_id == 0x1) && (local->flags & FLAG_PIIX4))
             local->addr[addr_id] = (local->addr[addr_id] & 0x7f) | 0x80;
         if (local->bank[addr_id] > 0)
             local->addr[addr_id] = (local->addr[addr_id] & 0x7f) | (0x80 * local->bank[addr_id]);
@@ -1025,6 +1034,33 @@ nvr_irq_set(int irq, nvr_t *nvr)
     nvr->irq = irq;
 }
 
+void
+nvr_smi_enable(int enable, nvr_t *nvr)
+{
+    local_t *local = (local_t *) nvr->data;
+
+    local->smi_enable = enable;
+
+    if (!enable)
+        local->smi_status = 0;
+}
+
+uint8_t
+nvr_smi_status(nvr_t *nvr)
+{
+    local_t *local = (local_t *) nvr->data;
+
+    return local->smi_status;
+}
+
+void
+nvr_smi_status_clear(nvr_t *nvr)
+{
+    local_t *local = (local_t *) nvr->data;
+
+    local->smi_status = 0;
+}
+
 static void
 nvr_at_reset(void *priv)
 {
@@ -1128,6 +1164,12 @@ nvr_at_init(const device_t *info)
             break;
     }
 
+    if (info->local & 0x20)
+        local->def = 0x00;
+
+    if (info->local & 0x40)
+        local->flags |= FLAG_MULTI_BANK;
+
     local->read_addr = 1;
 
     /* Set up any local handlers here. */
@@ -1213,6 +1255,20 @@ const device_t at_nvr_device = {
     .internal_name = "at_nvr",
     .flags         = DEVICE_ISA | DEVICE_AT,
     .local         = 1,
+    .init          = nvr_at_init,
+    .close         = nvr_at_close,
+    .reset         = nvr_at_reset,
+    { .available = NULL },
+    .speed_changed = nvr_at_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t at_mb_nvr_device = {
+    .name          = "PC/AT NVRAM",
+    .internal_name = "at_nvr",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0x40 | 0x20 | 1,
     .init          = nvr_at_init,
     .close         = nvr_at_close,
     .reset         = nvr_at_reset,

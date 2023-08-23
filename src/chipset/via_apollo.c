@@ -10,13 +10,12 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
- *          Melissa Goad, <mszoopers@protonmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          RichardG, <richardg867@gmail.com>
  *          Tiseno100,
  *
  *          Copyright 2020 Miran Grca.
- *          Copyright 2020 Melissa Goad.
+ *          Copyright 2020 RichardG.
  *          Copyright 2020 Tiseno100.
  */
 #include <stdio.h>
