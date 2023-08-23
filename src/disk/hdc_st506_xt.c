@@ -86,6 +86,7 @@
 #include <86box/pic.h>
 #include <86box/hdc.h>
 #include <86box/hdd.h>
+#include <86box/plat_fallthrough.h>
 
 #define ST506_XT_TYPE_XEBEC              0
 #define ST506_XT_TYPE_WDXT_GEN           1
@@ -671,6 +672,7 @@ st506_callback(void *priv)
                 st506_complete(dev);
                 break;
             }
+            fallthrough;
         case CMD_READ:
 #if 0
         case CMD_READ_LONG:
@@ -770,6 +772,7 @@ st506_callback(void *priv)
                 st506_complete(dev);
                 break;
             }
+            fallthrough;
         case CMD_WRITE:
 #if 0
         case CMD_WRITE_LONG:
