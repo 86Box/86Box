@@ -145,7 +145,9 @@ MPU401_RunClock(mpu_t *mpu)
         return;
     }
     timer_advance_u64(&mpu->mpu401_event_callback, (MPU401_TIMECONSTANT / mpu->clock.freq) * 1000 * TIMER_USEC);
-    // mpu401_log("Next event after %" PRIu64 " us (time constant: %i)\n", (uint64_t) ((MPU401_TIMECONSTANT / mpu->clock.freq) * 1000 * TIMER_USEC), (int) MPU401_TIMECONSTANT);
+#if 0
+    mpu401_log("Next event after %" PRIu64 " us (time constant: %i)\n", (uint64_t) ((MPU401_TIMECONSTANT / mpu->clock.freq) * 1000 * TIMER_USEC), (int) MPU401_TIMECONSTANT);
+#endif
 }
 
 static void
@@ -1410,9 +1412,9 @@ MPU401_NotesOff(mpu_t *mpu, int i)
 
 /*Input handler for SysEx */
 int
-MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort)
+MPU401_InputSysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
 {
-    mpu_t  *mpu = (mpu_t *) p;
+    mpu_t  *mpu = (mpu_t *) priv;
     int     i;
     uint8_t val_ff = 0xff;
 
@@ -1465,9 +1467,9 @@ MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 
 /*Input handler for MIDI*/
 void
-MPU401_InputMsg(void *p, uint8_t *msg, uint32_t len)
+MPU401_InputMsg(void *priv, uint8_t *msg, uint32_t len)
 {
-    mpu_t         *mpu = (mpu_t *) p;
+    mpu_t         *mpu = (mpu_t *) priv;
     int            i;
     int            tick;
     static uint8_t old_msg = 0;

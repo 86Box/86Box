@@ -432,13 +432,13 @@ do_fmt:
 static void
 hdc_callback(void *priv)
 {
-    hdc_t   *dev = (hdc_t *) priv;
-    dcb_t   *dcb = &dev->dcb;
-    drive_t *drive;
-    dprm_t  *params;
-    off64_t  addr;
-    int      no_data = 0;
-    int      val;
+    hdc_t        *dev = (hdc_t *) priv;
+    dcb_t        *dcb = &dev->dcb;
+    drive_t      *drive;
+    const dprm_t *params;
+    off64_t       addr;
+    int           no_data = 0;
+    int           val;
 
     drive     = &dev->drives[dcb->drvsel];
     dev->comp = (dcb->drvsel) ? COMP_DRIVE : 0x00;
@@ -983,12 +983,12 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
 static void *
 xta_init(const device_t *info)
 {
-    drive_t *drive;
-    char    *bios_rev = NULL;
-    char    *fn       = NULL;
-    hdc_t   *dev;
-    int      c;
-    int      max = XTA_NUM;
+    drive_t    *drive;
+    const char *bios_rev = NULL;
+    const char *fn       = NULL;
+    hdc_t      *dev;
+    int         c;
+    int         max = XTA_NUM;
 
     /* Allocate and initialize device block. */
     dev = malloc(sizeof(hdc_t));
@@ -1004,7 +1004,7 @@ xta_init(const device_t *info)
             dev->rom_addr = device_get_config_hex20("bios_addr");
             dev->dma      = 3;
             bios_rev      = (char *) device_get_config_bios("bios_rev");
-            fn            = (char *) device_get_bios_file(info, (const char *) bios_rev, 0);
+            fn            = (char *) device_get_bios_file(info, bios_rev, 0);
             max           = 1;
             break;
 

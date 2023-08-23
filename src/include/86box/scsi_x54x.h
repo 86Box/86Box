@@ -256,11 +256,11 @@ typedef struct Mailbox32_t {
       Bytes 18 through 18+n-1, where n=size of CDB  Command Descriptor Block */
 
 typedef struct CCB32_t {
-    uint8_t Opcode;
-    uint8_t Reserved1 : 3,
-        ControlByte   : 2,
-        TagQueued     : 1,
-        QueueTag      : 2;
+    uint8_t  Opcode;
+    uint8_t  Reserved1   : 3;
+    uint8_t  ControlByte : 2;
+    uint8_t  TagQueued   : 1;
+    uint8_t  QueueTag    : 2;
     uint8_t  CdbLength;
     uint8_t  RequestSenseLength;
     uint32_t DataLength;
@@ -269,9 +269,9 @@ typedef struct CCB32_t {
     uint8_t  HostStatus;
     uint8_t  TargetStatus;
     uint8_t  Id;
-    uint8_t  Lun        : 5,
-        LegacyTagEnable : 1,
-        LegacyQueueTag  : 2;
+    uint8_t  Lun             : 5;
+    uint8_t  LegacyTagEnable : 1;
+    uint8_t  LegacyQueueTag   : 2;
     uint8_t  Cdb[12];
     uint8_t  Reserved3[6];
     uint32_t SensePointer;
@@ -296,9 +296,9 @@ typedef struct CCB_t {
 
 typedef struct CCBC_t {
     uint8_t Opcode;
-    uint8_t Pad1    : 3,
-        ControlByte : 2,
-        Pad2        : 3;
+    uint8_t Pad1        : 3;
+    uint8_t ControlByte : 2;
+    uint8_t Pad2        : 3;
     uint8_t CdbLength;
     uint8_t RequestSenseLength;
     uint8_t Pad3[9];
@@ -311,8 +311,8 @@ typedef struct CCBC_t {
 
 typedef union CCBU_t {
     CCB32 new;
-    CCB  old;
-    CCBC common;
+    CCB   old;
+    CCBC  common;
 } CCBU;
 
 typedef struct {
@@ -329,9 +329,9 @@ typedef struct {
 
 typedef struct BIOSCMD_t {
     uint8_t command;
-    uint8_t lun  : 3,
-        reserved : 2,
-        id       : 3;
+    uint8_t lun      : 3;
+    uint8_t reserved : 2;
+    uint8_t id       : 3;
     union {
         struct chs_t {
             uint16_t cyl;
@@ -345,7 +345,7 @@ typedef struct BIOSCMD_t {
             uint8_t lba3; /* LSB */
         } lba;
     } u;
-    uint8_t secount;
+    uint8_t   secount;
     addr24_t  dma_address;
 } BIOSCMD;
 
@@ -379,7 +379,7 @@ typedef struct x54x_t {
     int8_t DmaChannel;
     int8_t HostID;
 
-    uint8_t callback_phase : 4;
+    uint8_t callback_phase     : 4;
     uint8_t callback_sub_phase : 4;
     uint8_t scsi_cmd_phase;
     uint8_t bus;
@@ -482,31 +482,31 @@ typedef struct x54x_t {
     void *ven_data;
 
     /* Pointer to a function that performs vendor-specific operation during the timer callback */
-    void (*ven_callback)(void *p);
+    void (*ven_callback)(void *priv);
     /* Pointer to a function that executes the second parameter phase of the vendor-specific command */
-    void (*ven_cmd_phase1)(void *p);
+    void (*ven_cmd_phase1)(void *priv);
     /* Pointer to a function that gets the host adapter ID in case it has to be read from a non-standard location */
-    uint8_t (*ven_get_host_id)(void *p);
+    uint8_t (*ven_get_host_id)(void *priv);
     /* Pointer to a function that updates the IRQ in the vendor-specific space */
-    uint8_t (*ven_get_irq)(void *p);
+    uint8_t (*ven_get_irq)(void *priv);
     /* Pointer to a function that updates the DMA channel in the vendor-specific space */
-    uint8_t (*ven_get_dma)(void *p);
+    uint8_t (*ven_get_dma)(void *priv);
     /* Pointer to a function that returns whether command is fast */
-    uint8_t (*ven_cmd_is_fast)(void *p);
+    uint8_t (*ven_cmd_is_fast)(void *priv);
     /* Pointer to a function that executes vendor-specific fast path commands */
-    uint8_t (*ven_fast_cmds)(void *p, uint8_t cmd);
+    uint8_t (*ven_fast_cmds)(void *priv, uint8_t cmd);
     /* Pointer to a function that gets the parameter length for vendor-specific commands */
-    uint8_t (*get_ven_param_len)(void *p);
+    uint8_t (*get_ven_param_len)(void *priv);
     /* Pointer to a function that executes vendor-specific commands and returns whether or not to suppress the IRQ */
-    uint8_t (*ven_cmds)(void *p);
+    uint8_t (*ven_cmds)(void *priv);
     /* Pointer to a function that fills in the vendor-specific setup data */
-    void (*get_ven_data)(void *p);
+    void (*get_ven_data)(void *priv);
     /* Pointer to a function that determines if the mode is aggressive */
-    uint8_t (*is_aggressive_mode)(void *p);
+    uint8_t (*is_aggressive_mode)(void *priv);
     /* Pointer to a function that returns interrupt type (0 = edge, 1 = level) */
-    uint8_t (*interrupt_type)(void *p);
+    uint8_t (*interrupt_type)(void *priv);
     /* Pointer to a function that resets vendor-specific data */
-    void (*ven_reset)(void *p);
+    void (*ven_reset)(void *priv);
 
     rom_t bios;     /* BIOS memory descriptor */
     rom_t uppersck; /* BIOS memory descriptor */

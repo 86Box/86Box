@@ -35,7 +35,7 @@ extern const device_t fdc_monster_device;
 
 extern void fdc_card_init(void);
 
-extern char           *fdc_card_get_internal_name(int card);
+extern const char     *fdc_card_get_internal_name(int card);
 extern int             fdc_card_get_from_internal_name(char *s);
 extern const device_t *fdc_card_getdevice(int card);
 extern int             fdc_card_has_config(int card);

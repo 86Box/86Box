@@ -3105,7 +3105,7 @@ xga_init(const device_t *info)
 
     svga_t  *svga = svga_get_pri();
     xga_t   *xga  = &svga->xga;
-    FILE    *f;
+    FILE    *fp;
     uint8_t *rom = NULL;
 
     xga->ext_mem_addr = device_get_config_hex16("ext_mem_addr");
@@ -3125,18 +3125,18 @@ xga_init(const device_t *info)
     xga->linear_endian_reverse = 0;
     xga->a5_test               = 0;
 
-    f = rom_fopen(xga->type ? XGA2_BIOS_PATH : XGA_BIOS_PATH, "rb");
-    (void) fseek(f, 0L, SEEK_END);
-    (void) fseek(f, 0L, SEEK_SET);
+    fp = rom_fopen(xga->type ? XGA2_BIOS_PATH : XGA_BIOS_PATH, "rb");
+    (void) fseek(fp, 0L, SEEK_END);
+    (void) fseek(fp, 0L, SEEK_SET);
 
     rom = malloc(xga->bios_rom.sz);
     memset(rom, 0xff, xga->bios_rom.sz);
-    (void) fread(rom, xga->bios_rom.sz, 1, f);
-    (void) fclose(f);
+    (void) !fread(rom, xga->bios_rom.sz, 1, fp);
+    (void) fclose(fp);
 
     xga->bios_rom.rom  = rom;
     xga->bios_rom.mask = xga->bios_rom.sz - 1;
-    if (f != NULL) {
+    if (fp != NULL) {
         free(rom);
     }
 

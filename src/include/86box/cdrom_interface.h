@@ -21,7 +21,7 @@ extern int cdrom_interface_current;
 
 extern void cdrom_interface_reset(void);
 
-extern char           *cdrom_interface_get_internal_name(int cdinterface);
+extern const char     *cdrom_interface_get_internal_name(int cdinterface);
 extern int             cdrom_interface_get_from_internal_name(char *s);
 extern int             cdrom_interface_has_config(int cdinterface);
 extern const device_t *cdrom_interface_get_device(int cdinterface);

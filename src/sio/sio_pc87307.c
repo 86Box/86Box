@@ -67,11 +67,11 @@ pc87307_gpio_write(uint16_t port, uint8_t val, void *priv)
 uint8_t
 pc87307_gpio_read(uint16_t port, void *priv)
 {
-    pc87307_t *dev  = (pc87307_t *) priv;
-    uint8_t    pins = 0xff;
-    uint8_t    bank = ((port & 0xfffc) == dev->gpio_base2);
-    uint8_t    mask;
-    uint8_t    ret  = dev->gpio[bank][port & 0x0003];
+    const pc87307_t *dev  = (pc87307_t *) priv;
+    uint8_t          pins = 0xff;
+    uint8_t          bank = ((port & 0xfffc) == dev->gpio_base2);
+    uint8_t          mask;
+    uint8_t          ret  = dev->gpio[bank][port & 0x0003];
 
     switch (port & 0x0003) {
         case 0x0000:
@@ -139,7 +139,7 @@ pc87307_pm_write(uint16_t port, uint8_t val, void *priv)
 uint8_t
 pc87307_pm_read(uint16_t port, void *priv)
 {
-    pc87307_t *dev = (pc87307_t *) priv;
+    const pc87307_t *dev = (pc87307_t *) priv;
 
     if (port & 1)
         return dev->pm[dev->pm_idx];
@@ -456,9 +456,9 @@ pc87307_write(uint16_t port, uint8_t val, void *priv)
 uint8_t
 pc87307_read(uint16_t port, void *priv)
 {
-    pc87307_t *dev = (pc87307_t *) priv;
-    uint8_t    ret = 0xff;
-    uint8_t    index;
+    const pc87307_t *dev = (pc87307_t *) priv;
+    uint8_t          ret = 0xff;
+    uint8_t          index;
 
     index = (port & 1) ? 0 : 1;
 

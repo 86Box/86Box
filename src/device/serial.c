@@ -132,11 +132,10 @@ serial_update_ints(serial_t *dev)
              as equal and still somehow distinguish them. */
     uint8_t ier_map[7] = { 0x04, 0x01, 0x01, 0x02, 0x08, 0x40, 0x80 };
     uint8_t iir_map[7] = { 0x06, 0x0c, 0x04, 0x02, 0x00, 0x0e, 0x0a };
-    int i;
 
     dev->iir = (dev->iir & 0xf0) | 0x01;
 
-    for (i = 0; i < 7; i++) {
+    for (uint8_t i = 0; i < 7; i++) {
         if ((dev->ier & ier_map[i]) && (dev->int_status & (1 << i))) {
             dev->iir = (dev->iir & 0xf0) | iir_map[i];
             break;
@@ -175,8 +174,10 @@ serial_receive_timer(void *priv)
             fifo_write_evt((uint8_t) (dev->out_new & 0xff), dev->rcvr_fifo);
             dev->out_new = 0xffff;
 
-            /* pclog("serial_receive_timer(): lsr = %02X, ier = %02X, iir = %02X, int_status = %02X\n",
-                  dev->lsr, dev->ier, dev->iir, dev->int_status); */
+#if 0
+            pclog("serial_receive_timer(): lsr = %02X, ier = %02X, iir = %02X, int_status = %02X\n",
+                  dev->lsr, dev->ier, dev->iir, dev->int_status);
+#endif
 
             timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
         }
@@ -441,9 +442,9 @@ serial_set_clock_src(serial_t *dev, double clock_src)
 }
 
 void
-serial_write(uint16_t addr, uint8_t val, void *p)
+serial_write(uint16_t addr, uint8_t val, void *priv)
 {
-    serial_t *dev = (serial_t *) p;
+    serial_t *dev = (serial_t *) priv;
     uint8_t   new_msr;
     uint8_t   old;
 
@@ -527,6 +528,9 @@ serial_write(uint16_t addr, uint8_t val, void *p)
                         break;
                     case 3:
                         fifo_set_trigger_len(dev->rcvr_fifo, 14);
+                        break;
+
+                    default:
                         break;
                 }
                 fifo_set_trigger_len(dev->xmit_fifo, 16);
@@ -620,9 +624,9 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 }
 
 uint8_t
-serial_read(uint16_t addr, void *p)
+serial_read(uint16_t addr, void *priv)
 {
-    serial_t *dev = (serial_t *) p;
+    serial_t *dev = (serial_t *) priv;
     uint8_t   ret = 0;
 
     cycles -= ISA_CYCLES(8);
@@ -773,10 +777,10 @@ serial_xmit_d_empty_evt(void *priv)
 
 serial_t *
 serial_attach_ex(int port,
-                 void (*rcr_callback)(struct serial_s *serial, void *p),
-                 void (*dev_write)(struct serial_s *serial, void *p, uint8_t data),
-                 void (*transmit_period_callback)(struct serial_s *serial, void *p, double transmit_period),
-                 void (*lcr_callback)(struct serial_s *serial, void *p, uint8_t data_bits),
+                 void (*rcr_callback)(struct serial_s *serial, void *priv),
+                 void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
+                 void (*transmit_period_callback)(struct serial_s *serial, void *priv, double transmit_period),
+                 void (*lcr_callback)(struct serial_s *serial, void *priv, uint8_t data_bits),
                  void *priv)
 {
     serial_device_t *sd = &serial_devices[port];

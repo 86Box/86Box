@@ -789,7 +789,7 @@ esdi_callback(void *priv)
 
         default:
             esdi_at_log("WD1007: callback on unknown command %02x\n", esdi->command);
-            /*FALLTHROUGH*/
+            fallthrough;
 
         case 0xe8:
             esdi->status = STAT_READY | STAT_ERR | STAT_DSC;

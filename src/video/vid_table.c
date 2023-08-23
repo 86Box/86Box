@@ -430,7 +430,7 @@ video_card_has_config(int card)
     return (device_has_config(video_cards[card].device) ? 1 : 0);
 }
 
-char *
+const char *
 video_get_internal_name(int card)
 {
     return device_get_internal_name(video_cards[card].device);
