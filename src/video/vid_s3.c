@@ -37,6 +37,7 @@
 #include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
+#include <86box/plat_fallthrough.h>
 #include "cpu.h"
 
 #define ROM_ORCHID_86C911              "roms/video/s3/BIOS.BIN"
