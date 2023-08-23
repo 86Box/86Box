@@ -86,7 +86,6 @@
 #include <86box/pic.h>
 #include <86box/hdc.h>
 #include <86box/hdd.h>
-#include <86box/plat_fallthrough.h>
 
 #define ST506_XT_TYPE_XEBEC              0
 #define ST506_XT_TYPE_WDXT_GEN           1
@@ -625,7 +624,6 @@ st506_callback(void *priv)
                 break;
             }
             fallthrough;
-
         case CMD_FORMAT_TRACK:
         case CMD_FORMAT_BAD_TRACK:
             switch (dev->state) {
