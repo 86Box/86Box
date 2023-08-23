@@ -40,7 +40,6 @@
 #include <86box/cdrom.h>
 #include <86box/scsi_cdrom.h>
 #include <86box/version.h>
-#include <86box/plat_fallthrough.h>
 
 #pragma pack(push, 1)
 typedef struct gesn_cdb_t {
