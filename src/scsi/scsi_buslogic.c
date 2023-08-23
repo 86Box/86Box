@@ -46,7 +46,6 @@
 #include <86box/scsi_buslogic.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_x54x.h>
-#include <86box/plat_fallthrough.h>
 
 /*
  * Auto SCSI structure which is located
