@@ -50,7 +50,11 @@
     </widget>
    </item>
    <item row="6" column="5">
-    <widget class="QComboBox" name="comboBoxSpeed"/>
+    <widget class="QComboBox" name="comboBoxSpeed">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+    </widget>
    </item>
    <item row="3" column="4">
     <widget class="QLabel" name="label_5">
@@ -106,7 +110,11 @@
     </widget>
    </item>
    <item row="5" column="5">
-    <widget class="QComboBox" name="comboBoxChannel"/>
+    <widget class="QComboBox" name="comboBoxChannel">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+    </widget>
    </item>
    <item row="11" column="0" colspan="6">
     <widget class="QDialogButtonBox" name="buttonBox">
@@ -172,7 +180,11 @@
     </widget>
    </item>
    <item row="4" column="3" colspan="3">
-    <widget class="QComboBox" name="comboBoxType"/>
+    <widget class="QComboBox" name="comboBoxType">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+    </widget>
    </item>
    <item row="5" column="0">
     <widget class="QLabel" name="label_8">
@@ -182,10 +194,18 @@
     </widget>
    </item>
    <item row="6" column="1" colspan="3">
-    <widget class="QComboBox" name="comboBoxFormat"/>
+    <widget class="QComboBox" name="comboBoxFormat">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+    </widget>
    </item>
    <item row="7" column="1" colspan="3">
-    <widget class="QComboBox" name="comboBoxBlockSize"/>
+    <widget class="QComboBox" name="comboBoxBlockSize">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+    </widget>
    </item>
    <item row="3" column="3">
     <widget class="QLineEdit" name="lineEditHeads">
@@ -207,7 +227,11 @@
     </widget>
    </item>
    <item row="5" column="1" colspan="3">
-    <widget class="QComboBox" name="comboBoxBus"/>
+    <widget class="QComboBox" name="comboBoxBus">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
+    </widget>
    </item>
    <item row="7" column="0">
     <widget class="QLabel" name="labelBlockSize">
