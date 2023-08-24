@@ -61,6 +61,9 @@
    </item>
    <item row="1" column="0" colspan="2">
     <widget class="QComboBox" name="comboBoxVideo">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
        <horstretch>0</horstretch>
@@ -119,6 +122,9 @@
    </item>
    <item row="3" column="0" colspan="2">
     <widget class="QComboBox" name="comboBoxVideoSecondary">
+     <property name="maxVisibleItems">
+      <number>30</number>
+     </property>
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
        <horstretch>0</horstretch>
