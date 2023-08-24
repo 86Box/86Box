@@ -14,6 +14,7 @@
  *
  *          Copyright 2019-2020 Miran Grca.
  */
+#define USE_DRB_HACK
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
