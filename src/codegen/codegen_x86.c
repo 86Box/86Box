@@ -1258,7 +1258,7 @@ codegen_init(void)
 #    else
     __asm
     {
-                fstcw cpu_state.old_npxc
+        fstcw cpu_state.old_npxc
     }
 #    endif
 }
@@ -1679,6 +1679,7 @@ int opcode_0f_modrm[256] = {
 void
 codegen_debug(void)
 {
+    //
 }
 
 static x86seg *

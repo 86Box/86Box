@@ -47,6 +47,7 @@
 #include <86box/network.h>
 #include <86box/net_pcnet.h>
 #include <86box/bswap.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
 /* PCI info. */
@@ -748,7 +749,7 @@ static const uint32_t crctab[256] =
 static __inline int
 padr_match(nic_t *dev, const uint8_t *buf, UNUSED(int size))
 {
-    const struct ether_header *hdr = (struct ether_header *) buf;
+    const struct ether_header *hdr = (const struct ether_header *) buf;
     int                        result;
     uint8_t                    padr[6];
 
@@ -774,7 +775,7 @@ static __inline int
 padr_bcast(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 {
     static uint8_t             aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-    const struct ether_header *hdr       = (struct ether_header *) buf;
+    const struct ether_header *hdr       = (const struct ether_header *) buf;
     int                        result    = !CSR_DRCVBC(dev) && !memcmp(hdr->ether_dhost, aBCAST, 6);
 
     pcnet_log(3, "%s: padr_bcast result=%d\n", dev->name, result);
@@ -785,7 +786,7 @@ padr_bcast(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 static int
 ladr_match(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 {
-    const struct ether_header *hdr = (struct ether_header *) buf;
+    const struct ether_header *hdr = (const struct ether_header *) buf;
 
     if ((hdr->ether_dhost[0] & 0x01) && ((uint64_t *) &dev->aCSR[8])[0] != 0LL) {
         int     index;
@@ -1998,7 +1999,7 @@ pcnet_bcr_writew(nic_t *dev, uint16_t rap, uint16_t val)
                     break;
             }
             dev->aCSR[58] = val;
-            /* fall through */
+            fallthrough;
         case BCR_LNKST:
         case BCR_LED1:
         case BCR_LED2:

@@ -2,6 +2,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "x86.h"
 #include "x86_flags.h"
@@ -16,7 +17,7 @@
 #include "codegen_ops_helpers.h"
 
 uint32_t
-ropPAND(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPAND(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -38,7 +39,7 @@ ropPAND(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, ui
     return op_pc + 1;
 }
 uint32_t
-ropPANDN(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPANDN(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -60,7 +61,7 @@ ropPANDN(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, u
     return op_pc + 1;
 }
 uint32_t
-ropPOR(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPOR(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -82,7 +83,7 @@ ropPOR(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uin
     return op_pc + 1;
 }
 uint32_t
-ropPXOR(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPXOR(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 

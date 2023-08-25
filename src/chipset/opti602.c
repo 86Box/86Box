@@ -29,6 +29,7 @@
 #include <86box/smram.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
+#include <86box/plat_unused.h>
 
 typedef struct opti602_t {
     uint8_t    idx;
@@ -73,7 +74,7 @@ opti602_gpio_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 opti602_gpio_read(uint16_t addr, void *priv)
 {
-    opti602_t *dev = (opti602_t *) priv;
+    const opti602_t *dev = (opti602_t *) priv;
     uint8_t ret = 0xff;
 
     ret = dev->gpio[addr - dev->gpio_base];
@@ -195,7 +196,7 @@ opti602_close(void *priv)
 }
 
 static void *
-opti602_init(const device_t *info)
+opti602_init(UNUSED(const device_t *info))
 {
     opti602_t *dev = (opti602_t *) calloc(1, sizeof(opti602_t));
 

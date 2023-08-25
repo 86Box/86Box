@@ -283,8 +283,7 @@ extern uint8_t reg_last_version[IREG_COUNT];
 /*This register and the parent uOP have been optimised out.*/
 #define REG_FLAGS_DEAD (1 << 1)
 
-typedef struct
-{
+typedef struct {
     /*Refcount of pending reads on this register version*/
     uint8_t refcount;
     /*Flags*/
@@ -308,8 +307,7 @@ add_to_dead_list(reg_version_t *regv, int reg, int version)
     reg_dead_list = version | (reg << 8);
 }
 
-typedef struct
-{
+typedef struct {
     uint16_t reg;
     uint16_t version;
 } ir_reg_t;
@@ -347,7 +345,9 @@ codegen_reg_read(int reg)
         CPU_BLOCK_END();
     if (version->refcount > max_version_refcount)
         max_version_refcount = version->refcount;
-    //        pclog("codegen_reg_read: %i %i %i\n", reg & IREG_REG_MASK, ireg.version, reg_version_refcount[IREG_GET_REG(ireg.reg)][ireg.version]);
+#if 0
+    pclog("codegen_reg_read: %i %i %i\n", reg & IREG_REG_MASK, ireg.version, reg_version_refcount[IREG_GET_REG(ireg.reg)][ireg.version]);
+#endif
     return ireg;
 }
 
@@ -387,7 +387,9 @@ codegen_reg_write(int reg, int uop_nr)
     version->refcount   = 0;
     version->flags      = 0;
     version->parent_uop = uop_nr;
-    //        pclog("codegen_reg_write: %i\n", reg & IREG_REG_MASK);
+#if 0
+    pclog("codegen_reg_write: %i\n", reg & IREG_REG_MASK);
+#endif
     return ireg;
 }
 

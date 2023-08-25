@@ -2054,18 +2054,18 @@ generate_es1371_filter(void)
 }
 
 static void
-es1371_input_msg(void *p, uint8_t *msg, uint32_t len)
+es1371_input_msg(void *priv, uint8_t *msg, uint32_t len)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
 
     for (uint32_t i = 0; i < len; i++)
         es1371_write_fifo(dev, msg[i]);
 }
 
 static int
-es1371_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
+es1371_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
     uint32_t  i   = -1;
 
     audiopci_log("Abort = %i\n", abort);

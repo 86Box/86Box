@@ -28,21 +28,21 @@ extern "C" {
 
 #if 0
 typedef struct storage_cfg_t {
-    uint8_t     id;
-    uint8_t bus_type;    /* Bus type: IDE, SCSI, etc. */
-    uint8_t bus, : 4;    /* ID of the bus (for example, for IDE,
+    uint8_t id;
+    uint8_t bus_type;   /* Bus type: IDE, SCSI, etc. */
+    uint8_t bus    : 4; /* ID of the bus (for example, for IDE,
                             0 = primary, 1 = secondary, etc. */
-    uint8_t bus_id, : 4; /* ID of the device on the bus */
-    uint8_t type;        /* Type flags, interpretation depends
-                            on the device */
-    uint8_t is_image;    /* This is only used for CD-ROM:
+    uint8_t bus_id : 4; /* ID of the device on the bus */
+    uint8_t type;       /* Type flags, interpretation depends
+                           on the device */
+    uint8_t is_image;   /* This is only used for CD-ROM:
                             0 = Image;
                             1 = Host drive */
 
-    wchar_t path[1024];  /* Name of current image file or
+    wchar_t path[1024]; /* Name of current image file or
                             host drive */
 
-    uint32_t spt;        /* Physical geometry parameters */
+    uint32_t spt;       /* Physical geometry parameters */
     uint32_t hpc;
     uint32_t tracks;
 } storage_cfg_t;

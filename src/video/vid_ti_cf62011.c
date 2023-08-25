@@ -137,6 +137,9 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
         case 0x210a:
             ti->reg_210a = val;
             break;
+
+        default:
+            break;
     }
 
     svga_out(addr, val, svga);

@@ -22,11 +22,12 @@
 extern "C" {
 #endif
 
-typedef struct
-{
-    uint8_t       uhci_io[32], ohci_mmio[4096];
+typedef struct usb_t {
+    uint8_t       uhci_io[32];
+    uint8_t       ohci_mmio[4096];
     uint16_t      uhci_io_base;
-    int           uhci_enable, ohci_enable;
+    int           uhci_enable;
+    int           ohci_enable;
     uint32_t      ohci_mem_base;
     mem_mapping_t ohci_mmio_mapping;
 } usb_t;

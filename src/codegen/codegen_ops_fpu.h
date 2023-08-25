@@ -194,23 +194,24 @@ ropFSTPd(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, code
     return new_pc;
 }
 
-#define ropFarith(name, size, load, op)                                                                                     \
-    static uint32_t ropF##name##size(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
-    {                                                                                                                       \
-        x86seg *target_seg;                                                                                                 \
-                                                                                                                            \
-        FP_ENTER();                                                                                                         \
-        op_pc--;                                                                                                            \
-        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);                                                \
-                                                                                                                            \
-        STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);                                                          \
-                                                                                                                            \
-        CHECK_SEG_READ(target_seg);                                                                                         \
-        load(target_seg);                                                                                                   \
-                                                                                                                            \
-        op(FPU_##name);                                                                                                     \
-                                                                                                                            \
-        return op_pc + 1;                                                                                                   \
+#define ropFarith(name, size, load, op)                                                                     \
+    static uint32_t                                                                                         \
+    ropF##name##size(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
+    {                                                                                                       \
+        x86seg *target_seg;                                                                                 \
+                                                                                                            \
+        FP_ENTER();                                                                                         \
+        op_pc--;                                                                                            \
+        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);                                \
+                                                                                                            \
+        STORE_IMM_ADDR_L((uintptr_t) &cpu_state.oldpc, op_old_pc);                                          \
+                                                                                                            \
+        CHECK_SEG_READ(target_seg);                                                                         \
+        load(target_seg);                                                                                   \
+                                                                                                            \
+        op(FPU_##name);                                                                                     \
+                                                                                                            \
+        return op_pc + 1;                                                                                   \
     }
 
 ropFarith(ADD, s, MEM_LOAD_ADDR_EA_L, FP_OP_S);
@@ -239,7 +240,8 @@ ropFarith(SUB, il, MEM_LOAD_ADDR_EA_L, FP_OP_IL);
 ropFarith(SUBR, il, MEM_LOAD_ADDR_EA_L, FP_OP_IL);
 
 #define ropFcompare(name, size, load, op)                                                                                      \
-    static uint32_t ropF##name##size(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)    \
+    static uint32_t                                                                                                            \
+    ropF##name##size(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)                    \
     {                                                                                                                          \
         x86seg *target_seg;                                                                                                    \
                                                                                                                                \
@@ -270,74 +272,80 @@ ropFcompare(COM, d, MEM_LOAD_ADDR_EA_Q, FP_COMPARE_D);
 ropFcompare(COM, iw, MEM_LOAD_ADDR_EA_W, FP_COMPARE_IW);
 ropFcompare(COM, il, MEM_LOAD_ADDR_EA_L, FP_COMPARE_IL);
 
-/*static uint32_t ropFADDs(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+#if 0
+static uint32_t
+ropFADDs(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-        x86seg *target_seg;
+    x86seg *target_seg;
 
-        FP_ENTER();
-        op_pc--;
-        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
+    FP_ENTER();
+    op_pc--;
+    target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
 
-        STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
+    STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
 
-        CHECK_SEG_READ(target_seg);
-        MEM_LOAD_ADDR_EA_L(target_seg);
+    CHECK_SEG_READ(target_seg);
+    MEM_LOAD_ADDR_EA_L(target_seg);
 
-        FP_OP_S(FPU_ADD);
+    FP_OP_S(FPU_ADD);
 
-        return op_pc + 1;
+    return op_pc + 1;
 }
-static uint32_t ropFDIVs(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+static uint32_t
+ropFDIVs(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-        x86seg *target_seg;
+    x86seg *target_seg;
 
-        FP_ENTER();
-        op_pc--;
-        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
+    FP_ENTER();
+    op_pc--;
+    target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
 
-        STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
+    STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
 
-        CHECK_SEG_READ(target_seg);
-        MEM_LOAD_ADDR_EA_L(target_seg);
+    CHECK_SEG_READ(target_seg);
+    MEM_LOAD_ADDR_EA_L(target_seg);
 
-        FP_OP_S(FPU_DIV);
+    FP_OP_S(FPU_DIV);
 
-        return op_pc + 1;
+    return op_pc + 1;
 }
-static uint32_t ropFMULs(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+static uint32_t
+ropFMULs(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-        x86seg *target_seg;
+    x86seg *target_seg;
 
-        FP_ENTER();
-        op_pc--;
-        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
+    FP_ENTER();
+    op_pc--;
+    target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
 
-        STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
+    STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
 
-        CHECK_SEG_READ(target_seg);
-        MEM_LOAD_ADDR_EA_L(target_seg);
+    CHECK_SEG_READ(target_seg);
+    MEM_LOAD_ADDR_EA_L(target_seg);
 
-        FP_OP_S(FPU_MUL);
+    FP_OP_S(FPU_MUL);
 
-        return op_pc + 1;
+    return op_pc + 1;
 }
-static uint32_t ropFSUBs(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+static uint32_t
+ropFSUBs(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-        x86seg *target_seg;
+    x86seg *target_seg;
 
-        FP_ENTER();
-        op_pc--;
-        target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
+    FP_ENTER();
+    op_pc--;
+    target_seg = FETCH_EA(op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32);
 
-        STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
+    STORE_IMM_ADDR_L((uintptr_t)&cpu_state.oldpc, op_old_pc);
 
-        CHECK_SEG_READ(target_seg);
-        MEM_LOAD_ADDR_EA_L(target_seg);
+    CHECK_SEG_READ(target_seg);
+    MEM_LOAD_ADDR_EA_L(target_seg);
 
-        FP_OP_S(FPU_SUB);
+    FP_OP_S(FPU_SUB);
 
-        return op_pc + 1;
-}*/
+    return op_pc + 1;
+}
+#endif
 
 static uint32_t
 ropFADD(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
@@ -658,15 +666,16 @@ ropFCHS(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeb
     return op_pc;
 }
 
-#define opFLDimm(name, v)                                                                                               \
-    static uint32_t ropFLD##name(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
-    {                                                                                                                   \
-        static double fp_imm = v;                                                                                       \
-                                                                                                                        \
-        FP_ENTER();                                                                                                     \
-        FP_LOAD_IMM_Q(*(uint64_t *) &fp_imm);                                                                           \
-                                                                                                                        \
-        return op_pc;                                                                                                   \
+#define opFLDimm(name, v)                                                                               \
+    static uint32_t                                                                                     \
+    ropFLD##name(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block) \
+    {                                                                                                   \
+        static double fp_imm = v;                                                                       \
+                                                                                                        \
+        FP_ENTER();                                                                                     \
+        FP_LOAD_IMM_Q(*(uint64_t *) &fp_imm);                                                           \
+                                                                                                        \
+        return op_pc;                                                                                   \
     }
 
 // clang-format off
@@ -678,7 +687,8 @@ opFLDimm(EG2, 0.3010299956639812);
 opFLDimm(Z, 0.0)
 // clang-format on
 
-static uint32_t ropFLDLN2(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
+static uint32_t
+ropFLDLN2(UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc, UNUSED(codeblock_t *block))
 {
     FP_ENTER();
     FP_LOAD_IMM_Q(0x3fe62e42fefa39f0ULL);

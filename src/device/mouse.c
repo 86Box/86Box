@@ -94,8 +94,10 @@ static mouse_t mouse_devices[] = {
     { &mouse_msserial_device     },
     { &mouse_ltserial_device     },
     { &mouse_ps2_device          },
+#ifdef USE_WACOM
     { &mouse_wacom_device        },
     { &mouse_wacom_artpad_device },
+#endif
     { NULL                       }
     // clang-format on
 };
@@ -546,13 +548,13 @@ mouse_set_poll(int (*func)(void *), void *arg)
     mouse_priv     = arg;
 }
 
-char *
+const char *
 mouse_get_name(int mouse)
 {
-    return ((char *) mouse_devices[mouse].device->name);
+    return (mouse_devices[mouse].device->name);
 }
 
-char *
+const char *
 mouse_get_internal_name(int mouse)
 {
     return device_get_internal_name(mouse_devices[mouse].device);

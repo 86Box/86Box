@@ -49,8 +49,8 @@ fifo_log(const char *fmt, ...)
 int
 fifo_get_count(void *priv)
 {
-    fifo_t *fifo = (fifo_t *) priv;
-    int ret = fifo->len;
+    const fifo_t *fifo = (fifo_t *) priv;
+    int           ret  = fifo->len;
 
     if (fifo->end == fifo->start)
         ret = fifo->full ? fifo->len : 0;
@@ -65,14 +65,14 @@ fifo_write(uint8_t val, void *priv)
 {
     fifo_t *fifo = (fifo_t *) priv;
 
-    fifo->d_full = fifo->d_empty = 0;
+    fifo->d_full  = fifo->d_empty = 0;
     fifo->d_ready = fifo->d_overrun = 0;
 
     if (fifo->full)
         fifo->overrun = 1;
     else {
         fifo->buf[fifo->end] = val;
-        fifo->end = (fifo->end + 1) & 0x0f;
+        fifo->end            = (fifo->end + 1) & 0x0f;
 
         if (fifo->end == fifo->start)
             fifo->full = 1;
@@ -89,21 +89,21 @@ fifo_write_evt(uint8_t val, void *priv)
 {
     fifo_t *fifo = (fifo_t *) priv;
 
-    fifo->d_full = fifo->d_empty = 0;
+    fifo->d_full  = fifo->d_empty = 0;
     fifo->d_ready = fifo->d_overrun = 0;
 
     if (fifo->full) {
         fifo->d_overrun = (fifo->overrun != 1);
-        fifo->overrun = 1;
+        fifo->overrun   = 1;
         if (fifo->d_overrun && (fifo->d_overrun_evt != NULL))
             fifo->d_overrun_evt(fifo->priv);
     } else {
         fifo->buf[fifo->end] = val;
-        fifo->end = (fifo->end + 1) & 0x0f;
+        fifo->end            = (fifo->end + 1) & 0x0f;
 
         if (fifo->end == fifo->start) {
             fifo->d_full = (fifo->full != 1);
-            fifo->full = 1;
+            fifo->full   = 1;
             if (fifo->d_full && (fifo->d_full_evt != NULL))
                 fifo->d_full_evt(fifo->priv);
         }
@@ -115,7 +115,7 @@ fifo_write_evt(uint8_t val, void *priv)
 
         if (fifo_get_count(fifo) >= fifo->trigger_len) {
             fifo->d_ready = (fifo->ready != 1);
-            fifo->ready = 1;
+            fifo->ready   = 1;
             if (fifo->d_ready && (fifo->d_ready_evt != NULL))
                 fifo->d_ready_evt(fifo->priv);
         }
@@ -126,11 +126,11 @@ uint8_t
 fifo_read(void *priv)
 {
     fifo_t *fifo = (fifo_t *) priv;
-    uint8_t ret = 0x00;
-    int count;
+    uint8_t ret  = 0x00;
+    int     count;
 
     if (!fifo->empty) {
-        ret = fifo->buf[fifo->start];
+        ret         = fifo->buf[fifo->start];
         fifo->start = (fifo->start + 1) & 0x0f;
 
         fifo->full = 0;
@@ -153,17 +153,17 @@ fifo_read_evt(void *priv)
 {
     fifo_t *fifo = (fifo_t *) priv;
     uint8_t ret = 0x00;
-    int count;
+    int     count;
 
     fifo->d_full = fifo->d_empty = 0;
     fifo->d_ready = 0;
 
     if (!fifo->empty) {
-        ret = fifo->buf[fifo->start];
+        ret         = fifo->buf[fifo->start];
         fifo->start = (fifo->start + 1) & 0x0f;
 
         fifo->d_full = (fifo->full != 0);
-        fifo->full = 0;
+        fifo->full   = 0;
         if (fifo->d_full && (fifo->d_full_evt != NULL))
             fifo->d_full_evt(fifo->priv);
 
@@ -171,13 +171,13 @@ fifo_read_evt(void *priv)
 
         if (count < fifo->trigger_len) {
             fifo->d_ready = (fifo->ready != 0);
-            fifo->ready = 0;
+            fifo->ready   = 0;
             if (fifo->d_ready && (fifo->d_ready_evt != NULL))
                 fifo->d_ready_evt(fifo->priv);
 
             if (count == 0) {
                 fifo->d_empty = (fifo->empty != 1);
-                fifo->empty = 1;
+                fifo->empty   = 1;
                 if (fifo->d_empty && (fifo->d_empty_evt != NULL))
                     fifo->d_empty_evt(fifo->priv);
             }
@@ -193,13 +193,13 @@ fifo_clear_overrun(void *priv)
     fifo_t *fifo = (fifo_t *) priv;
 
     fifo->d_overrun = (fifo->overrun != 0);
-    fifo->overrun = 0;
+    fifo->overrun   = 0;
 }
 
 int
 fifo_get_full(void *priv)
 {
-    fifo_t *fifo = (fifo_t *) priv;
+    const fifo_t *fifo = (fifo_t *) priv;
 
     return fifo->full;
 }
@@ -208,16 +208,17 @@ int
 fifo_get_d_full(void *priv)
 {
     fifo_t *fifo = (fifo_t *) priv;
-    int ret = fifo->d_full;
+    int     ret  = fifo->d_full;
 
     fifo->d_full = 0;
+
     return ret;
 }
 
 int
 fifo_get_empty(void *priv)
 {
-    fifo_t *fifo = (fifo_t *) priv;
+    const fifo_t *fifo = (fifo_t *) priv;
 
     return fifo->empty;
 }
@@ -226,16 +227,17 @@ int
 fifo_get_d_empty(void *priv)
 {
     fifo_t *fifo = (fifo_t *) priv;
-    int ret = fifo->d_empty;
+    int     ret  = fifo->d_empty;
 
     fifo->d_empty = 0;
+
     return ret;
 }
 
 int
 fifo_get_overrun(void *priv)
 {
-    fifo_t *fifo = (fifo_t *) priv;
+    const fifo_t *fifo = (fifo_t *) priv;
 
     return fifo->overrun;
 }
@@ -244,16 +246,17 @@ int
 fifo_get_d_overrun(void *priv)
 {
     fifo_t *fifo = (fifo_t *) priv;
-    int ret = fifo->d_overrun;
+    int     ret  = fifo->d_overrun;
 
     fifo->d_overrun = 0;
+
     return ret;
 }
 
 int
 fifo_get_ready(void *priv)
 {
-    fifo_t *fifo = (fifo_t *) priv;
+    const fifo_t *fifo = (fifo_t *) priv;
 
     return fifo->ready;
 }
@@ -262,16 +265,17 @@ int
 fifo_get_d_ready(void *priv)
 {
     fifo_t *fifo = (fifo_t *) priv;
-    int ret = fifo->d_ready;
+    int     ret  = fifo->d_ready;
 
     fifo->d_ready = 0;
+
     return ret;
 }
 
 int
 fifo_get_trigger_len(void *priv)
 {
-    fifo_t *fifo = (fifo_t *) priv;
+    const fifo_t *fifo = (fifo_t *) priv;
 
     return fifo->trigger_len;
 }
@@ -338,7 +342,7 @@ fifo_reset(void *priv)
     fifo_t *fifo = (fifo_t *) priv;
 
     fifo->start = fifo->end = 0;
-    fifo->full = fifo->overrun = 0;
+    fifo->full  = fifo->overrun = 0;
     fifo->empty = 1;
     fifo->ready = 0;
 }
@@ -348,11 +352,11 @@ fifo_reset_evt(void *priv)
 {
     fifo_t *fifo = (fifo_t *) priv;
 
-    fifo->start = fifo->end = 0;
-    fifo->full = fifo->overrun = 0;
-    fifo->empty = 1;
-    fifo->ready = 0;
-    fifo->d_full = fifo->d_overrun = 0;
+    fifo->start   = fifo->end = 0;
+    fifo->full    = fifo->overrun = 0;
+    fifo->empty   = 1;
+    fifo->ready   = 0;
+    fifo->d_full  = fifo->d_overrun = 0;
     fifo->d_empty = fifo->d_ready = 0;
 
     if (fifo->d_full_evt != NULL)
@@ -380,9 +384,9 @@ fifo_init(int len)
     void *fifo = NULL;
 
     if (len == 64)
-        fifo = (void *) calloc(1, sizeof(fifo64_t));
+        fifo = calloc(1, sizeof(fifo64_t));
     else if (len == 16)
-        fifo = (void *) calloc(1, sizeof(fifo16_t));
+        fifo = calloc(1, sizeof(fifo16_t));
     else {
         fatal("FIFO  : Invalid FIFO length: %i\n", len);
         return NULL;
@@ -405,11 +409,14 @@ enum {
     SERIAL_INT_TIMEOUT  = 16
 };
 
-typedef struct
-{
-    uint8_t    lsr, int_status, tsr, tsr_empty;
+typedef struct serial_t {
+    uint8_t lsr;
+    uint8_t int_status;
+    uint8_t tsr;
+    uint8_t tsr_empty;
 
-    fifo16_t   *rcvr_fifo, *xmit_fifo;
+    fifo16_t *rcvr_fifo;
+    fifo16_t *xmit_fifo;
 } serial_t;
 
 static void
@@ -421,29 +428,32 @@ serial_receive_timer(fifo16_t *f16, uint8_t val)
            fifo_get_full(f16), fifo_get_empty(f16),
            fifo_get_overrun(f16), fifo_get_ready(f16));
 
-    /*
-        if (fifo_get_d_overrun(f16))
-            dev->lsr = (dev->lsr & 0xfd) | (fifo_get_overrun(f16) << 1);
-     */
+#if 0
+    if (fifo_get_d_overrun(f16))
+        dev->lsr = (dev->lsr & 0xfd) | (fifo_get_overrun(f16) << 1);
+#endif
+
     if (fifo_get_d_overrun(f16))  printf("    FIFO overrun state changed: %i -> %i\n",
                                         !fifo_get_overrun(f16), fifo_get_overrun(f16));
 
-    /*
-        if (fifo_get_d_empty(f16)) {
-            dev->lsr = (dev->lsr & 0xfe) | !fifo_get_empty(f16);
-            timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
-        }
-     */
-    if (fifo_get_d_empty(f16))  printf("    FIFO empty   state changed: %i -> %i\n",
-                                      !fifo_get_empty(f16), fifo_get_empty(f16));
+#if 0
+    if (fifo_get_d_empty(f16)) {
+        dev->lsr = (dev->lsr & 0xfe) | !fifo_get_empty(f16);
+        timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
+    }
+#endif
 
-    /*
-        if (fifo_get_d_ready(f16)) {
-            dev->int_status = (dev->int_status & ~SERIAL_INT_RECEIVE) |
-                              (fifo_get_ready(f16) ? SERIAL_INT_RECEIVE : 0);
-            serial_update_ints();
-        }
-     */
+    if (fifo_get_d_empty(f16))
+        printf("    FIFO empty   state changed: %i -> %i\n",
+               !fifo_get_empty(f16), fifo_get_empty(f16));
+
+#if 0
+    if (fifo_get_d_ready(f16)) {
+        dev->int_status = (dev->int_status & ~SERIAL_INT_RECEIVE) |
+                          (fifo_get_ready(f16) ? SERIAL_INT_RECEIVE : 0);
+        serial_update_ints();
+    }
+#endif
     if (fifo_get_d_ready(f16))  printf("    FIFO ready   state changed: %i -> %i\n",
                                       !fifo_get_ready(f16), fifo_get_ready(f16));
 }
@@ -459,24 +469,27 @@ serial_read(fifo16_t *f16)
            fifo_get_full(f16), fifo_get_empty(f16),
            fifo_get_overrun(f16), fifo_get_ready(f16));
 
-    /*
-        if (fifo_get_d_ready(f16)) {
-            dev->int_status = (dev->int_status & ~SERIAL_INT_RECEIVE) |
-                              (fifo_get_ready(f16) ? SERIAL_INT_RECEIVE : 0);
-            serial_update_ints();
-        }
-     */
-    if (fifo_get_d_ready(f16))  printf("    FIFO ready   state changed: %i -> %i\n",
-                                      !fifo_get_ready(f16), fifo_get_ready(f16));
+#if 0
+    if (fifo_get_d_ready(f16)) {
+        dev->int_status = (dev->int_status & ~SERIAL_INT_RECEIVE) |
+                          (fifo_get_ready(f16) ? SERIAL_INT_RECEIVE : 0);
+        serial_update_ints();
+    }
+#endif
 
-    /*
+    if (fifo_get_d_ready(f16))
+        printf("    FIFO ready   state changed: %i -> %i\n",
+              !fifo_get_ready(f16), fifo_get_ready(f16));
+
+#if 0
         if (fifo_get_d_empty(f16)) {
             dev->lsr = (dev->lsr & 0xfe) | !fifo_get_empty(f16);
             timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
         }
-     */
-    if (fifo_get_d_empty(f16))  printf("    FIFO empty   state changed: %i -> %i\n",
-                                      !fifo_get_empty(f16), fifo_get_empty(f16));
+#endif
+    if (fifo_get_d_empty(f16))
+        printf("    FIFO empty   state changed: %i -> %i\n",
+              !fifo_get_empty(f16), fifo_get_empty(f16));
 
     return ret;
 }
@@ -532,7 +545,8 @@ serial_rcvr_d_ready_evt(void *priv)
 int
 main(int argc, char *argv[])
 {
-    uint8_t val, ret;
+    uint8_t val;
+    uint8_t ret;
 
     printf("Initializing serial...\n");
     serial_t *dev = (serial_t *) calloc(1, sizeof(serial_t));

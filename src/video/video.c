@@ -880,29 +880,27 @@ video_monitor_close(int monitor_index)
 void
 video_init(void)
 {
-    int     c;
-    int     d;
     uint8_t total[2] = { 0, 1 };
 
-    for (c = 0; c < 16; c++) {
+    for (uint8_t c = 0; c < 16; c++) {
         cga_2_table[c] = (total[(c >> 3) & 1] << 0) | (total[(c >> 2) & 1] << 8) | (total[(c >> 1) & 1] << 16) | (total[(c >> 0) & 1] << 24);
     }
 
-    for (c = 0; c < 64; c++) {
+    for (uint8_t c = 0; c < 64; c++) {
         cgapal[c + 64].r = (((c & 4) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
         cgapal[c + 64].g = (((c & 2) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
         cgapal[c + 64].b = (((c & 1) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
         if ((c & 0x17) == 6)
             cgapal[c + 64].g >>= 1;
     }
-    for (c = 0; c < 64; c++) {
+    for (uint8_t c = 0; c < 64; c++) {
         cgapal[c + 128].r = (((c & 4) ? 2 : 0) | ((c & 0x20) ? 1 : 0)) * 21;
         cgapal[c + 128].g = (((c & 2) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
         cgapal[c + 128].b = (((c & 1) ? 2 : 0) | ((c & 0x08) ? 1 : 0)) * 21;
     }
 
-    for (c = 0; c < 4; c++) {
-        for (d = 0; d < 4; d++) {
+    for (uint8_t c = 0; c < 4; c++) {
+        for (uint8_t d = 0; d < 4; d++) {
             edatlookup[c][d] = 0;
             if (c & 1)
                 edatlookup[c][d] |= 1;
@@ -916,23 +914,23 @@ video_init(void)
     }
 
     video_6to8 = malloc(4 * 256);
-    for (c = 0; c < 256; c++)
+    for (uint16_t c = 0; c < 256; c++)
         video_6to8[c] = calc_6to8(c);
 
     video_8togs = malloc(4 * 256);
-    for (c = 0; c < 256; c++)
+    for (uint16_t c = 0; c < 256; c++)
         video_8togs[c] = c | (c << 16) | (c << 24);
 
     video_8to32 = malloc(4 * 256);
-    for (c = 0; c < 256; c++)
+    for (uint16_t c = 0; c < 256; c++)
         video_8to32[c] = calc_8to32(c);
 
     video_15to32 = malloc(4 * 65536);
-    for (c = 0; c < 65536; c++)
+    for (uint32_t c = 0; c < 65536; c++)
         video_15to32[c] = calc_15to32(c & 0x7fff);
 
     video_16to32 = malloc(4 * 65536);
-    for (c = 0; c < 65536; c++)
+    for (uint32_t c = 0; c < 65536; c++)
         video_16to32[c] = calc_16to32(c);
 
     memset(monitors, 0, sizeof(monitors));
@@ -1098,14 +1096,14 @@ loadfont_common(FILE *f, int format)
 void
 loadfont_ex(char *s, int format, int offset)
 {
-    FILE *f;
+    FILE *fp;
 
-    f = rom_fopen(s, "rb");
-    if (f == NULL)
+    fp = rom_fopen(s, "rb");
+    if (fp == NULL)
         return;
 
-    fseek(f, offset, SEEK_SET);
-    loadfont_common(f, format);
+    fseek(fp, offset, SEEK_SET);
+    loadfont_common(fp, format);
 }
 
 void

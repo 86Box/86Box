@@ -478,7 +478,6 @@ static void
 pic_write(uint16_t addr, uint8_t val, void *priv)
 {
     pic_t *dev = (pic_t *) priv;
-    uint8_t i;
 
     pic_log("pic_write(%04X, %02X, %08X)\n", addr, val, priv);
 
@@ -527,7 +526,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
             dev->irr  = 0x00;
             dev->edge_lines  = 0x00;
             dev->irq_latch  = 0x00;
-            for (i = 0; i <= 7; i++)
+            for (uint8_t i = 0; i <= 7; i++)
                 pic_update_request(dev, i);
             dev->flags &= ~PIC_MASTER_CLEAR;
             dev->imr = dev->isr = 0x00;
@@ -652,7 +651,8 @@ pic2_init(void)
 void
 pic_update_lines(pic_t *dev, uint16_t num, int level, int set, uint8_t *irq_state)
 {
-    uint8_t old_edge_lines, bit;
+    uint8_t old_edge_lines;
+    uint8_t bit;
 
     switch (level) {
         case PIC_IRQ_EDGE:
@@ -676,6 +676,9 @@ pic_update_lines(pic_t *dev, uint16_t num, int level, int set, uint8_t *irq_stat
 
             if ((!!*irq_state) != !!set)
                 *irq_state = set;
+            break;
+
+        default:
             break;
     }
 }

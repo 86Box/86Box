@@ -207,7 +207,7 @@ prime3c_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 prime3c_read(UNUSED(uint16_t addr), void *priv)
 {
-    prime3c_t *dev = (prime3c_t *) priv;
+    const prime3c_t *dev = (prime3c_t *) priv;
 
     return dev->regs[dev->index];
 }
