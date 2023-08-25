@@ -78,6 +78,8 @@ uint32_t easeg;
 int reset_on_hlt;
 int hlt_reset_pending;
 
+int fpu_cycles = 0;
+
 #ifdef ENABLE_X86_LOG
 void dumpregs(int);
 

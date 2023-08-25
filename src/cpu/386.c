@@ -40,8 +40,6 @@
 
 extern int codegen_flags_changed;
 
-static int fpu_cycles = 0;
-
 #ifdef ENABLE_386_LOG
 int x386_do_log = ENABLE_386_LOG;
 
