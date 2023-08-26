@@ -83,6 +83,7 @@ extern void            mouse_subtract_x(int *delta_x, int *o_x, int min, int max
 extern void            mouse_subtract_y(int *delta_y, int *o_y, int min, int max, int invert, int abs);
 extern void            mouse_subtract_coords(int *delta_x, int *delta_y, int *o_x, int *o_y,
                                              int min, int max, int invert, int abs);
+extern  int            mouse_wheel_moved(void);
 extern  int            mouse_moved(void);
 extern  int            mouse_state_changed(void);
 extern  int            mouse_mbut_changed(void);

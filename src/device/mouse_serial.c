@@ -277,7 +277,7 @@ sermouse_report_ms(mouse_t *dev)
     int b = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 0, 0);
-    mouse_subtract_z(&delta_z, -8, 7, 0);
+    mouse_subtract_z(&delta_z, -8, 7, 1);
 
     dev->buf[0] = 0x40;
     dev->buf[0] |= (((delta_y >> 6) & 0x03) << 2);
@@ -381,7 +381,12 @@ sermouse_report(mouse_t *dev)
 static void
 sermouse_transmit_report(mouse_t *dev, int from_report)
 {
-    if (mouse_capture && mouse_state_changed())
+    int changed = mouse_state_changed();
+
+    if (dev->but == 4)
+        changed |= mouse_wheel_moved();
+
+    if (mouse_capture && changed)
         sermouse_transmit(dev, sermouse_report(dev), from_report, 1);
     else {
         if (dev->prompt || dev->continuous)
