@@ -381,12 +381,7 @@ sermouse_report(mouse_t *dev)
 static void
 sermouse_transmit_report(mouse_t *dev, int from_report)
 {
-    int changed = mouse_state_changed();
-
-    if (dev->but == 4)
-        changed |= mouse_wheel_moved();
-
-    if (mouse_capture && changed)
+    if (mouse_capture && mouse_state_changed())
         sermouse_transmit(dev, sermouse_report(dev), from_report, 1);
     else {
         if (dev->prompt || dev->continuous)
@@ -912,7 +907,7 @@ sermouse_init(const device_t *info)
     sermouse_set_period(dev, 5000000.0);
 
     /* Tell them how many buttons we have. */
-    mouse_set_buttons((dev->flags & FLAG_3BTN) ? 3 : 2);
+    mouse_set_buttons(dev->but);
 
     /* Return our private data to the I/O layer. */
     return dev;
