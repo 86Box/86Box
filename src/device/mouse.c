@@ -471,7 +471,7 @@ mouse_subtract_z(int *delta_z, int min, int max, int invert)
         *delta_z = min;
         real_z += ABS(min);
     } else {
-        *delta_z = mouse_z;
+        *delta_z = real_z;
         real_z = 0;
     }
 

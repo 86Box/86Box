@@ -96,7 +96,6 @@ ps2_report_coordinates(atkbc_dev_t *dev, int main)
     kbc_at_dev_queue_add(dev, buff[1], main);
     kbc_at_dev_queue_add(dev, buff[2], main);
     if (dev->flags & FLAG_INTMODE) {
-        delta_z = -delta_z;
         delta_z &= 0x0f;
 
         if (dev->flags & FLAG_5BTN) {
