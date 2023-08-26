@@ -960,7 +960,10 @@ monitor_thread(void *param)
                     printf(
                         "%s v%s [%s] [%s, %s]\n\n"
                         "An emulator of old computers\n"
-                        "Authors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\n"
+                        "Authors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), "
+                        "Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), "
+                        "Tiseno100, reenigne, and others.\n"
+                        "With previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\n"
                         "Released under the GNU General Public License version 2 or later. See LICENSE for more information.\n",
                         EMU_NAME, EMU_VERSION_FULL, EMU_GIT_HASH, ARCH_STR, DYNAREC_STR);
                 } else if (strncasecmp(xargv[0], "fullscreen", 10) == 0) {
