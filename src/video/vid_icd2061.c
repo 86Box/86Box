@@ -61,9 +61,9 @@ icd2061_log(const char *fmt, ...)
 #endif
 
 void
-icd2061_write(void *p, int val)
+icd2061_write(void *priv, int val)
 {
-    icd2061_t *icd2061 = (icd2061_t *) p;
+    icd2061_t *icd2061 = (icd2061_t *) priv;
 
     int nd;
     int oc;

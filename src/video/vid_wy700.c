@@ -28,6 +28,7 @@
 #include <86box/mem.h>
 #include <86box/device.h>
 #include <86box/video.h>
+#include <86box/plat_unused.h>
 
 #define WY700_XSIZE 1280
 #define WY700_YSIZE 800
@@ -283,13 +284,17 @@ wy700_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3D9:
             wy700->cga_colour = val;
             return;
+
+        default:
+            break;
     }
 }
 
 uint8_t
 wy700_in(uint16_t addr, void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) priv;
+    const wy700_t *wy700 = (wy700_t *) priv;
+
     switch (addr) {
         case 0x3b0:
         case 0x3b2:
@@ -318,6 +323,9 @@ wy700_in(uint16_t addr, void *priv)
             return wy700->mda_stat;
         case 0x3da:
             return wy700->cga_stat;
+
+        default:
+            break;
     }
     return 0xff;
 }
@@ -377,6 +385,9 @@ wy700_checkchanges(wy700_t *wy700)
 
             case 7: /* Enable display */
                 wy700->enabled = 1;
+                break;
+
+            default:
                 break;
         }
         /* A control write with the top bit set selects graphics mode */
@@ -477,9 +488,9 @@ wy700_write(uint32_t addr, uint8_t val, void *priv)
 uint8_t
 wy700_read(uint32_t addr, void *priv)
 {
-    wy700_t *wy700 = (wy700_t *) priv;
-    if (wy700->wy700_mode & 0x80) /* High-res mode. */
-    {
+    const wy700_t *wy700 = (wy700_t *) priv;
+
+    if (wy700->wy700_mode & 0x80) { /* High-res mode. */
         addr &= 0xFFFF;
         /* In 800-line modes, bit 0 of the control register sets the high bit of the
          * read address. */
@@ -512,21 +523,21 @@ wy700_recalctimings(wy700_t *wy700)
 void
 wy700_textline(wy700_t *wy700)
 {
-    int      w  = (wy700->wy700_mode == 0) ? 40 : 80;
-    int      cw = (wy700->wy700_mode == 0) ? 32 : 16;
-    uint8_t  chr;
-    uint8_t  attr;
-    uint8_t  bitmap[2];
-    uint8_t *fontbase = &fontdatw[0][0];
-    int      blink;
-    int      c;
-    int      drawcursor;
-    int      cursorline;
-    int      mda = 0;
-    uint16_t addr;
-    uint8_t  sc;
-    uint16_t ma = (wy700->cga_crtc[13] | (wy700->cga_crtc[12] << 8)) & 0x3fff;
-    uint16_t ca = (wy700->cga_crtc[15] | (wy700->cga_crtc[14] << 8)) & 0x3fff;
+    int            w  = (wy700->wy700_mode == 0) ? 40 : 80;
+    int            cw = (wy700->wy700_mode == 0) ? 32 : 16;
+    uint8_t        chr;
+    uint8_t        attr;
+    uint8_t        bitmap[2];
+    const uint8_t *fontbase = &fontdatw[0][0];
+    int            blink;
+    int            c;
+    int            drawcursor;
+    int            cursorline;
+    int            mda = 0;
+    uint16_t       addr;
+    uint8_t        sc;
+    uint16_t       ma = (wy700->cga_crtc[13] | (wy700->cga_crtc[12] << 8)) & 0x3fff;
+    uint16_t       ca = (wy700->cga_crtc[15] | (wy700->cga_crtc[14] << 8)) & 0x3fff;
 
     /* The fake CRTC character height register selects whether MDA or CGA
      * attributes are used */
@@ -629,6 +640,9 @@ wy700_cgaline(wy700_t *wy700)
                     case 3:
                         ink = 16 + 15;
                         break;
+
+                    default:
+                        break;
                 }
                 if (!(wy700->enabled) || !(wy700->cga_ctrl & 8))
                     ink = 16;
@@ -668,6 +682,9 @@ wy700_medresline(wy700_t *wy700)
                         break;
                     case 3:
                         ink = 16 + 15;
+                        break;
+
+                    default:
                         break;
                 }
                 /* Display disabled? */
@@ -723,6 +740,9 @@ wy700_hiresline(wy700_t *wy700)
                         break;
                     case 3:
                         ink = 16 + 15;
+                        break;
+
+                    default:
                         break;
                 }
                 /* Display disabled? */
@@ -857,10 +877,11 @@ wy700_poll(void *priv)
 }
 
 void *
-wy700_init(const device_t *info)
+wy700_init(UNUSED(const device_t *info))
 {
     int      c;
     wy700_t *wy700 = malloc(sizeof(wy700_t));
+
     memset(wy700, 0, sizeof(wy700_t));
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_wy700);
 

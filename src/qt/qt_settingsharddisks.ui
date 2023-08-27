@@ -55,7 +55,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="comboBoxBus"/>
+      <widget class="QComboBox" name="comboBoxBus">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QLabel" name="labelChannel">
@@ -65,7 +69,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="comboBoxChannel"/>
+      <widget class="QComboBox" name="comboBoxChannel">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QLabel" name="labelSpeed">
@@ -75,7 +83,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="comboBoxSpeed"/>
+      <widget class="QComboBox" name="comboBoxSpeed">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>

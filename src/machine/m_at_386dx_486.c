@@ -644,7 +644,7 @@ machine_at_pc330_6573_init(const machine_t *model) /* doesn't like every CPU oth
     pci_register_slot(0x0E, PCI_CARD_VIDEO,       13, 14, 15, 16);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&gd5430_onboard_pci_device);
+        device_add(&gd5430_onboard_vlb_device);
 
     device_add(&opti602_device);
     device_add(&opti802g_device);

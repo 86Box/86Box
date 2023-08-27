@@ -169,13 +169,17 @@ x87_pop(void)
 static __inline int16_t
 x87_fround16(double b)
 {
+    double da;
+    double dc;
     int16_t a;
     int16_t c;
 
     switch ((cpu_state.npxc >> 10) & 3) {
         case 0: /*Nearest*/
-            a = (int16_t) floor(b);
-            c = (int16_t) floor(b + 1.0);
+            da = floor(b);
+            dc = floor(b + 1.0);
+            a = (int16_t) da;
+            c = (int16_t) dc;
             if ((b - a) < (c - b))
                 return a;
             else if ((b - a) > (c - b))
@@ -183,9 +187,11 @@ x87_fround16(double b)
             else
                 return (a & 1) ? c : a;
         case 1: /*Down*/
-            return (int16_t) floor(b);
+            da = floor(b);
+            return (int16_t) da;
         case 2: /*Up*/
-            return (int16_t) ceil(b);
+            da = ceil(b);
+            return (int16_t) da;
         case 3: /*Chop*/
             return (int16_t) b;
     }
@@ -202,13 +208,17 @@ x87_fround16_64(double b)
 static __inline int32_t
 x87_fround32(double b)
 {
+    double da;
+    double dc;
     int32_t a;
     int32_t c;
 
     switch ((cpu_state.npxc >> 10) & 3) {
         case 0: /*Nearest*/
-            a = (int32_t) floor(b);
-            c = (int32_t) floor(b + 1.0);
+            da = floor(b);
+            dc = floor(b + 1.0);
+            a = (int32_t) da;
+            c = (int32_t) dc;
             if ((b - a) < (c - b))
                 return a;
             else if ((b - a) > (c - b))
@@ -216,9 +226,11 @@ x87_fround32(double b)
             else
                 return (a & 1) ? c : a;
         case 1: /*Down*/
-            return (int32_t) floor(b);
+            da = floor(b);
+            return (int32_t) da;
         case 2: /*Up*/
-            return (int32_t) ceil(b);
+            da = ceil(b);
+            return (int32_t) da;
         case 3: /*Chop*/
             return (int32_t) b;
     }
@@ -235,13 +247,17 @@ x87_fround32_64(double b)
 static __inline int64_t
 x87_fround(double b)
 {
+    double da;
+    double dc;
     int64_t a;
     int64_t c;
 
     switch ((cpu_state.npxc >> 10) & 3) {
         case 0: /*Nearest*/
-            a = (int64_t) floor(b);
-            c = (int64_t) floor(b + 1.0);
+            da = floor(b);
+            dc = floor(b + 1.0);
+            a = (int64_t) da;
+            c = (int64_t) dc;
             if ((b - a) < (c - b))
                 return a;
             else if ((b - a) > (c - b))
@@ -249,9 +265,11 @@ x87_fround(double b)
             else
                 return (a & 1) ? c : a;
         case 1: /*Down*/
-            return (int64_t) floor(b);
+            da = floor(b);
+            return (int64_t) da;
         case 2: /*Up*/
-            return (int64_t) ceil(b);
+            da = ceil(b);
+            return (int64_t) da;
         case 3: /*Chop*/
             return (int64_t) b;
     }

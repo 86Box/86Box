@@ -470,9 +470,9 @@ find_zip_for_channel(uint8_t channel)
 static int
 zip_load_abort(zip_t *dev)
 {
-    if (dev->drv->f)
-        fclose(dev->drv->f);
-    dev->drv->f           = NULL;
+    if (dev->drv->fp)
+        fclose(dev->drv->fp);
+    dev->drv->fp           = NULL;
     dev->drv->medium_size = 0;
     zip_eject(dev->id); /* Make sure the host OS knows we've rejected (and ejected) the image. */
     return 0;
@@ -483,11 +483,11 @@ zip_load(zip_t *dev, char *fn)
 {
     int size = 0;
 
-    dev->drv->f = plat_fopen(fn, dev->drv->read_only ? "rb" : "rb+");
-    if (!dev->drv->f) {
+    dev->drv->fp = plat_fopen(fn, dev->drv->read_only ? "rb" : "rb+");
+    if (!dev->drv->fp) {
         if (!dev->drv->read_only) {
-            dev->drv->f = plat_fopen(fn, "rb");
-            if (dev->drv->f)
+            dev->drv->fp = plat_fopen(fn, "rb");
+            if (dev->drv->fp)
                 dev->drv->read_only = 1;
             else
                 return zip_load_abort(dev);
@@ -495,8 +495,8 @@ zip_load(zip_t *dev, char *fn)
             return zip_load_abort(dev);
     }
 
-    fseek(dev->drv->f, 0, SEEK_END);
-    size = ftell(dev->drv->f);
+    fseek(dev->drv->fp, 0, SEEK_END);
+    size = ftell(dev->drv->fp);
 
     if ((size == ((ZIP_250_SECTORS << 9) + 0x1000)) || (size == ((ZIP_SECTORS << 9) + 0x1000))) {
         /* This is a ZDI image. */
@@ -521,7 +521,7 @@ zip_load(zip_t *dev, char *fn)
 
     dev->drv->medium_size = size >> 9;
 
-    if (fseek(dev->drv->f, dev->drv->base, SEEK_SET) == -1)
+    if (fseek(dev->drv->fp, dev->drv->base, SEEK_SET) == -1)
         fatal("zip_load(): Error seeking to the beginning of the file\n");
 
     strncpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path) - 1);
@@ -546,16 +546,16 @@ zip_disk_reload(zip_t *dev)
 void
 zip_disk_unload(zip_t *dev)
 {
-    if (dev->drv->f) {
-        fclose(dev->drv->f);
-        dev->drv->f = NULL;
+    if (dev->drv->fp) {
+        fclose(dev->drv->fp);
+        dev->drv->fp = NULL;
     }
 }
 
 void
 zip_disk_close(zip_t *dev)
 {
-    if (dev->drv->f) {
+    if (dev->drv->fp) {
         zip_disk_unload(dev);
 
         memcpy(dev->drv->prev_image_path, dev->drv->image_path, sizeof(dev->drv->prev_image_path));
@@ -660,8 +660,8 @@ zip_atapi_phase_to_scsi(zip_t *dev)
 static void
 zip_mode_sense_load(zip_t *dev)
 {
-    FILE *f;
-    char  file_name[512];
+    FILE *fp;
+    char  fn[512];
 
     memset(&dev->ms_pages_saved, 0, sizeof(mode_sense_pages_t));
     if (dev->drv->is_250) {
@@ -676,33 +676,33 @@ zip_mode_sense_load(zip_t *dev)
             memcpy(&dev->ms_pages_saved, &zip_mode_sense_pages_default, sizeof(mode_sense_pages_t));
     }
 
-    memset(file_name, 0, 512);
+    memset(fn, 0, 512);
     if (dev->drv->bus_type == ZIP_BUS_SCSI)
-        sprintf(file_name, "scsi_zip_%02i_mode_sense_bin", dev->id);
+        sprintf(fn, "scsi_zip_%02i_mode_sense_bin", dev->id);
     else
-        sprintf(file_name, "zip_%02i_mode_sense_bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), "rb");
-    if (f) {
+        sprintf(fn, "zip_%02i_mode_sense_bin", dev->id);
+    fp = plat_fopen(nvr_path(fn), "rb");
+    if (fp) {
         /* Nothing to read, not used by ZIP. */
-        fclose(f);
+        fclose(fp);
     }
 }
 
 static void
 zip_mode_sense_save(zip_t *dev)
 {
-    FILE *f;
-    char  file_name[512];
+    FILE *fp;
+    char  fn[512];
 
-    memset(file_name, 0, 512);
+    memset(fn, 0, 512);
     if (dev->drv->bus_type == ZIP_BUS_SCSI)
-        sprintf(file_name, "scsi_zip_%02i_mode_sense_bin", dev->id);
+        sprintf(fn, "scsi_zip_%02i_mode_sense_bin", dev->id);
     else
-        sprintf(file_name, "zip_%02i_mode_sense_bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), "wb");
-    if (f) {
+        sprintf(fn, "zip_%02i_mode_sense_bin", dev->id);
+    fp = plat_fopen(nvr_path(fn), "wb");
+    if (fp) {
         /* Nothing to write, not used by ZIP. */
-        fclose(f);
+        fclose(fp);
     }
 }
 
@@ -1140,17 +1140,17 @@ zip_blocks(zip_t *dev, int32_t *len, UNUSED(int first_batch), int out)
     *len = dev->requested_blocks << 9;
 
     for (int i = 0; i < dev->requested_blocks; i++) {
-        if (fseek(dev->drv->f, dev->drv->base + (dev->sector_pos << 9) + (i << 9), SEEK_SET) == 1)
+        if (fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos << 9) + (i << 9), SEEK_SET) == 1)
             break;
 
-        if (feof(dev->drv->f))
+        if (feof(dev->drv->fp))
             break;
 
         if (out) {
-            if (fwrite(dev->buffer + (i << 9), 1, 512, dev->drv->f) != 512)
+            if (fwrite(dev->buffer + (i << 9), 1, 512, dev->drv->fp) != 512)
                 fatal("zip_blocks(): Error writing data\n");
         } else {
-            if (fread(dev->buffer + (i << 9), 1, 512, dev->drv->f) != 512)
+            if (fread(dev->buffer + (i << 9), 1, 512, dev->drv->fp) != 512)
                 fatal("zip_blocks(): Error reading data\n");
         }
     }
@@ -1209,7 +1209,7 @@ zip_pre_execution_check(zip_t *dev, uint8_t *cdb)
         return 0;
     }
 
-    ready = (dev->drv->f != NULL);
+    ready = (dev->drv->fp != NULL);
 
     /* If the drive is not ready, there is no reason to keep the
        UNIT ATTENTION condition present, as we only use it to mark
@@ -1325,7 +1325,7 @@ zip_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer, uint8_t alloc_len
     zip_t *dev   = (zip_t *) sc;
     int    ready = 0;
 
-    ready = (dev->drv->f != NULL);
+    ready = (dev->drv->fp != NULL);
 
     if (!ready && dev->unit_attention) {
         /* If the drive is not ready, there is no reason to keep the
@@ -1972,7 +1972,7 @@ atapi_out:
             dev->buffer[pos++] = 0;
             dev->buffer[pos++] = 0;
             dev->buffer[pos++] = 0;
-            if (dev->drv->f != NULL)
+            if (dev->drv->fp != NULL)
                 dev->buffer[pos++] = 16;
             else
                 dev->buffer[pos++] = 8;
@@ -1981,7 +1981,7 @@ atapi_out:
             if (dev->drv->is_250) {
                 /* ZIP 250 also supports ZIP 100 media, so if the medium is inserted,
                    we return the inserted medium's size, otherwise, the ZIP 250 size. */
-                if (dev->drv->f != NULL) {
+                if (dev->drv->fp != NULL) {
                     dev->buffer[pos++] = (dev->drv->medium_size >> 24) & 0xff;
                     dev->buffer[pos++] = (dev->drv->medium_size >> 16) & 0xff;
                     dev->buffer[pos++] = (dev->drv->medium_size >> 8) & 0xff;
@@ -2001,7 +2001,7 @@ atapi_out:
                 dev->buffer[pos++] = (ZIP_SECTORS >> 16) & 0xff;
                 dev->buffer[pos++] = (ZIP_SECTORS >> 8) & 0xff;
                 dev->buffer[pos++] = ZIP_SECTORS & 0xff;
-                if (dev->drv->f != NULL)
+                if (dev->drv->fp != NULL)
                     dev->buffer[pos++] = 2;
                 else
                     dev->buffer[pos++] = 3;
@@ -2011,7 +2011,7 @@ atapi_out:
             dev->buffer[pos++] = 512 >> 8;
             dev->buffer[pos++] = 512 & 0xff;
 
-            if (dev->drv->f != NULL) {
+            if (dev->drv->fp != NULL) {
                 /* Formattable capacity descriptor */
                 dev->buffer[pos++] = (dev->drv->medium_size >> 24) & 0xff;
                 dev->buffer[pos++] = (dev->drv->medium_size >> 16) & 0xff;
@@ -2117,9 +2117,9 @@ zip_phase_data_out(scsi_common_t *sc)
                     dev->buffer[6] = (s >> 8) & 0xff;
                     dev->buffer[7] = s & 0xff;
                 }
-                if (fseek(dev->drv->f, dev->drv->base + (i << 9), SEEK_SET) == -1)
+                if (fseek(dev->drv->fp, dev->drv->base + (i << 9), SEEK_SET) == -1)
                     fatal("zip_phase_data_out(): Error seeking\n");
-                if (fwrite(dev->buffer, 1, 512, dev->drv->f) != 512)
+                if (fwrite(dev->buffer, 1, 512, dev->drv->fp) != 512)
                     fatal("zip_phase_data_out(): Error writing data\n");
             }
             break;

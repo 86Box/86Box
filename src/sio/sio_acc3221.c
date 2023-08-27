@@ -416,7 +416,7 @@ acc3221_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 acc3221_read(uint16_t addr, void *priv)
 {
-    acc3221_t *dev = (acc3221_t *) priv;
+    const acc3221_t *dev = (acc3221_t *) priv;
 
     if (!(addr & 1))
         return dev->reg_idx;

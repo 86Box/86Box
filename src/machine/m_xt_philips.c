@@ -91,8 +91,8 @@ philips_write(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 philips_read(uint16_t port, void *priv)
 {
-    philips_t *dev = (philips_t *) priv;
-    uint8_t    ret = 0xff;
+    const philips_t *dev = (philips_t *) priv;
+    uint8_t          ret = 0xff;
 
     switch (port) {
         /* port 0xc0

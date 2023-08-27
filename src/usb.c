@@ -28,6 +28,7 @@
 #include <86box/mem.h>
 #include <86box/usb.h>
 #include "cpu.h"
+#include <86box/plat_unused.h>
 
 #ifdef ENABLE_USB_LOG
 int usb_do_log = ENABLE_USB_LOG;
@@ -48,10 +49,11 @@ usb_log(const char *fmt, ...)
 #endif
 
 static uint8_t
-uhci_reg_read(uint16_t addr, void *p)
+uhci_reg_read(uint16_t addr, void *priv)
 {
-    usb_t  *dev = (usb_t *) p;
-    uint8_t ret, *regs = dev->uhci_io;
+    const usb_t   *dev = (usb_t *) priv;
+    uint8_t        ret;
+    const uint8_t *regs = dev->uhci_io;
 
     addr &= 0x0000001f;
 
@@ -61,9 +63,9 @@ uhci_reg_read(uint16_t addr, void *p)
 }
 
 static void
-uhci_reg_write(uint16_t addr, uint8_t val, void *p)
+uhci_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
-    usb_t   *dev  = (usb_t *) p;
+    usb_t   *dev  = (usb_t *) priv;
     uint8_t *regs = dev->uhci_io;
 
     addr &= 0x0000001f;
@@ -85,13 +87,16 @@ uhci_reg_write(uint16_t addr, uint8_t val, void *p)
         case 0x0c:
             regs[0x0c] = (val & 0x7f);
             break;
+
+        default:
+            break;
     }
 }
 
 static void
-uhci_reg_writew(uint16_t addr, uint16_t val, void *p)
+uhci_reg_writew(uint16_t addr, uint16_t val, void *priv)
 {
-    usb_t    *dev  = (usb_t *) p;
+    usb_t    *dev  = (usb_t *) priv;
     uint16_t *regs = (uint16_t *) dev->uhci_io;
 
     addr &= 0x0000001f;
@@ -112,8 +117,8 @@ uhci_reg_writew(uint16_t addr, uint16_t val, void *p)
             regs[addr >> 1] = ((regs[addr >> 1] & 0xedbb) | (val & 0x1244)) & ~(val & 0x080a);
             break;
         default:
-            uhci_reg_write(addr, val & 0xff, p);
-            uhci_reg_write(addr + 1, (val >> 8) & 0xff, p);
+            uhci_reg_write(addr, val & 0xff, priv);
+            uhci_reg_write(addr + 1, (val >> 8) & 0xff, priv);
             break;
     }
 }
@@ -132,10 +137,10 @@ uhci_update_io_mapping(usb_t *dev, uint8_t base_l, uint8_t base_h, int enable)
 }
 
 static uint8_t
-ohci_mmio_read(uint32_t addr, void *p)
+ohci_mmio_read(uint32_t addr, void *priv)
 {
-    usb_t  *dev = (usb_t *) p;
-    uint8_t ret = 0x00;
+    const usb_t  *dev = (usb_t *) priv;
+    uint8_t       ret = 0x00;
 
     addr &= 0x00000fff;
 
@@ -148,9 +153,9 @@ ohci_mmio_read(uint32_t addr, void *p)
 }
 
 static void
-ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
+ohci_mmio_write(uint32_t addr, uint8_t val, void *priv)
 {
-    usb_t  *dev = (usb_t *) p;
+    usb_t  *dev = (usb_t *) priv;
     uint8_t old;
 
     addr &= 0x00000fff;
@@ -312,8 +317,10 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
 
             if (!(dev->ohci_mmio[addr] & 0x04) && (old & 0x04))
                 dev->ohci_mmio[addr + 2] |= 0x04;
-            /* if (!(dev->ohci_mmio[addr] & 0x02))
-                    dev->ohci_mmio[addr + 2] |= 0x02; */
+#if 0
+            if (!(dev->ohci_mmio[addr] & 0x02))
+                 dev->ohci_mmio[addr + 2] |= 0x02;
+#endif
             return;
         case 0x55:
             if ((val & 0x02) && ((dev->ohci_mmio[0x49] & 0x03) == 0x00) && (dev->ohci_mmio[0x4e] & 0x02)) {
@@ -340,6 +347,9 @@ ohci_mmio_write(uint32_t addr, uint8_t val, void *p)
         case 0x57:
         case 0x5b:
             return;
+
+        default:
+            break;
     }
 
     dev->ohci_mmio[addr] = val;
@@ -388,7 +398,7 @@ usb_close(void *priv)
 }
 
 static void *
-usb_init(const device_t *info)
+usb_init(UNUSED(const device_t *info))
 {
     usb_t *dev;
 

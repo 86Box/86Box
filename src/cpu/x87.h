@@ -144,7 +144,7 @@ void codegen_set_rounding_mode(int mode);
 
 #include "softfloat/softfloatx80.h"
 
-static __inline const int
+static __inline int
 is_IA_masked(void)
 {
     return (fpu_state.cwd & FPU_CW_Invalid);

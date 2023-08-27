@@ -3871,7 +3871,8 @@ gd5428_mca_write(int port, uint8_t val, void *priv)
 static uint8_t
 gd5428_mca_feedb(void *priv)
 {
-    gd54xx_t *gd54xx = (gd54xx_t *) priv;
+    const gd54xx_t *gd54xx = (gd54xx_t *) priv;
+
     return gd54xx->pos_regs[2] & 0x01;
 }
 
@@ -4942,6 +4943,20 @@ const device_t gd5430_vlb_device = {
     .config        = gd5429_config
 };
 
+const device_t gd5430_onboard_vlb_device = {
+    .name          = "Cirrus Logic GD5430 (On-Board)",
+    .internal_name = "cl_gd5430_onboard_vlb",
+    .flags         = DEVICE_VLB,
+    .local         = CIRRUS_ID_CLGD5430 | 0x200,
+    .init          = gd54xx_init,
+    .close         = gd54xx_close,
+    .reset         = gd54xx_reset,
+    { .available = NULL },
+    .speed_changed = gd54xx_speed_changed,
+    .force_redraw  = gd54xx_force_redraw,
+    .config        = gd5429_config
+};
+
 const device_t gd5430_pci_device = {
     .name          = "Cirrus Logic GD5430 (PCI)",
     .internal_name = "cl_gd5430_pci",
@@ -4964,7 +4979,7 @@ const device_t gd5430_onboard_pci_device = {
     .init          = gd54xx_init,
     .close         = gd54xx_close,
     .reset         = gd54xx_reset,
-    { .available = gd5430_available },
+    { .available = NULL },
     .speed_changed = gd54xx_speed_changed,
     .force_redraw  = gd54xx_force_redraw,
     .config        = gd5429_config

@@ -72,13 +72,12 @@
     <addaction name="actionRight_CTRL_is_left_ALT"/>
     <addaction name="menuTablet_tool"/>
     <addaction name="separator"/>
-    <addaction name="actionPause"/>
-    <addaction name="actionCtrl_Alt_Esc"/>
-    <addaction name="separator"/>
-    <addaction name="actionACPI_Shutdown"/>
-    <addaction name="separator"/>
     <addaction name="actionHard_Reset"/>
     <addaction name="actionCtrl_Alt_Del"/>
+    <addaction name="separator"/>
+    <addaction name="actionCtrl_Alt_Esc"/>
+    <addaction name="separator"/>
+    <addaction name="actionPause"/>
     <addaction name="separator"/>
     <addaction name="actionExit"/>
    </widget>
@@ -255,12 +254,12 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionPause"/>
-   <addaction name="actionCtrl_Alt_Esc"/>
+   <addaction name="actionHard_Reset"/>
    <addaction name="separator"/>
    <addaction name="actionACPI_Shutdown"/>
    <addaction name="separator"/>
-   <addaction name="actionHard_Reset"/>
    <addaction name="actionCtrl_Alt_Del"/>
+   <addaction name="actionCtrl_Alt_Esc"/>
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
   </widget>
@@ -754,16 +753,13 @@
      <normaloff>:/menuicons/win/icons/acpi_shutdown.ico</normaloff>:/menuicons/win/icons/acpi_shutdown.ico</iconset>
    </property>
    <property name="text">
-    <string>ACPI shutdown</string>
+    <string>ACPI Shutdown</string>
    </property>
    <property name="toolTip">
-    <string>ACPI shutdown</string>
+    <string>ACPI Shutdown</string>
    </property>
    <property name="visible">
     <bool>true</bool>
-   </property>
-   <property name="iconVisibleInMenu">
-    <bool>false</bool>
    </property>
   </action>
   <action name="actionBegin_trace">

@@ -52,9 +52,12 @@ void
 win_mouse_handle(PRAWINPUT raw)
 {
     RAWMOUSE   state = raw->data.mouse;
-    static int x, delta_x;
-    static int y, delta_y;
-    static int b, delta_z;
+    static int x;
+    static int delta_x;
+    static int y;
+    static int delta_y;
+    static int b;
+    static int delta_z;
 
     b = mouse_get_buttons_ex();
 

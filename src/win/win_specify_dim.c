@@ -178,7 +178,7 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
             break;
     }
 
-    return (FALSE);
+    return FALSE;
 }
 
 void
