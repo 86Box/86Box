@@ -33,6 +33,8 @@ int codegen_in_recompile;
 void
 codegen_set_rounding_mode(int mode)
 {
-    /* cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (cpu_state.npxc & 0xc00); */
+#if 0
+    cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (cpu_state.npxc & 0xc00);
+#endif
     cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (mode << 10);
 }

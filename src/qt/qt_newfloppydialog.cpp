@@ -259,7 +259,7 @@ NewFloppyDialog::onCreate()
 bool
 NewFloppyDialog::create86f(const QString &filename, const disk_size_t &disk_size, uint8_t rpm_mode)
 {
-    FILE *f;
+    FILE *fp;
 
     uint32_t magic          = 0x46423638;
     uint16_t version        = 0x020C;
@@ -326,13 +326,13 @@ NewFloppyDialog::create86f(const QString &filename, const disk_size_t &disk_size
     memset(tarray, 0, 2048);
     memset(empty, 0, array_size);
 
-    f = plat_fopen(filename.toUtf8().data(), "wb");
-    if (!f)
+    fp = plat_fopen(filename.toUtf8().data(), "wb");
+    if (!fp)
         return false;
 
-    fwrite(&magic, 4, 1, f);
-    fwrite(&version, 2, 1, f);
-    fwrite(&dflags, 2, 1, f);
+    fwrite(&magic, 4, 1, fp);
+    fwrite(&version, 2, 1, fp);
+    fwrite(&dflags, 2, 1, fp);
 
     track_size = array_size + 6;
 
@@ -344,17 +344,17 @@ NewFloppyDialog::create86f(const QString &filename, const disk_size_t &disk_size
     for (i = 0; i < (disk_size.tracks * disk_size.sides) << shift; i++)
         tarray[i] = track_base + (i * track_size);
 
-    fwrite(tarray, 1, (disk_size.sides == 2) ? 2048 : 1024, f);
+    fwrite(tarray, 1, (disk_size.sides == 2) ? 2048 : 1024, fp);
 
     for (i = 0; i < (disk_size.tracks * disk_size.sides) << shift; i++) {
-        fwrite(&tflags, 2, 1, f);
-        fwrite(&index_hole_pos, 4, 1, f);
-        fwrite(empty, 1, array_size, f);
+        fwrite(&tflags, 2, 1, fp);
+        fwrite(&index_hole_pos, 4, 1, fp);
+        fwrite(empty, 1, array_size, fp);
     }
 
     free(empty);
 
-    fclose(f);
+    fclose(fp);
 
     return true;
 }

@@ -29,6 +29,6 @@ extern const device_t buslogic_445s_device;
 extern const device_t buslogic_445c_device;
 extern const device_t buslogic_958d_pci_device;
 
-extern void BuslogicDeviceReset(void *p);
+extern void BuslogicDeviceReset(void *priv);
 
 #endif /*SCSI_BUSLOGIC_H*/

@@ -137,7 +137,7 @@ scsi_disk_log(const char *fmt, ...)
 void
 scsi_disk_mode_sense_load(scsi_disk_t *dev)
 {
-    FILE *f;
+    FILE *fp;
     char  file_name[512];
 
     memset(&dev->ms_pages_saved, 0, sizeof(mode_sense_pages_t));
@@ -145,26 +145,26 @@ scsi_disk_mode_sense_load(scsi_disk_t *dev)
 
     memset(file_name, 0, 512);
     sprintf(file_name, "scsi_disk_%02i_mode_sense.bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), "rb");
-    if (f) {
-        if (fread(dev->ms_pages_saved.pages[0x30], 1, 0x18, f) != 0x18)
+    fp = plat_fopen(nvr_path(file_name), "rb");
+    if (fp) {
+        if (fread(dev->ms_pages_saved.pages[0x30], 1, 0x18, fp) != 0x18)
             fatal("scsi_disk_mode_sense_load(): Error reading data\n");
-        fclose(f);
+        fclose(fp);
     }
 }
 
 void
 scsi_disk_mode_sense_save(scsi_disk_t *dev)
 {
-    FILE *f;
+    FILE *fp;
     char  file_name[512];
 
     memset(file_name, 0, 512);
     sprintf(file_name, "scsi_disk_%02i_mode_sense.bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), "wb");
-    if (f) {
-        fwrite(dev->ms_pages_saved.pages[0x30], 1, 0x18, f);
-        fclose(f);
+    fp = plat_fopen(nvr_path(file_name), "wb");
+    if (fp) {
+        fwrite(dev->ms_pages_saved.pages[0x30], 1, 0x18, fp);
+        fclose(fp);
     }
 }
 
@@ -720,6 +720,7 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
                 scsi_disk_command_complete(dev);
                 break;
             }
+            fallthrough;
         case GPCMD_WRITE_6:
         case GPCMD_WRITE_10:
         case GPCMD_WRITE_AND_VERIFY_10:

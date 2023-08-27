@@ -69,10 +69,18 @@
       </widget>
      </item>
      <item row="0" column="1">
-      <widget class="QComboBox" name="comboBoxMOBus"/>
+      <widget class="QComboBox" name="comboBoxMOBus">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
      <item row="0" column="3">
-      <widget class="QComboBox" name="comboBoxMOChannel"/>
+      <widget class="QComboBox" name="comboBoxMOChannel">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
      <item row="1" column="0">
       <widget class="QLabel" name="label_4">
@@ -82,7 +90,11 @@
       </widget>
      </item>
      <item row="1" column="1" colspan="3">
-      <widget class="QComboBox" name="comboBoxMOType"/>
+      <widget class="QComboBox" name="comboBoxMOType">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>
@@ -135,7 +147,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="comboBoxZIPBus"/>
+      <widget class="QComboBox" name="comboBoxZIPBus">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QLabel" name="label_5">
@@ -145,7 +161,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="comboBoxZIPChannel"/>
+      <widget class="QComboBox" name="comboBoxZIPChannel">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QCheckBox" name="checkBoxZIP250">

@@ -122,7 +122,7 @@ pc87311_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 pc87311_read(UNUSED(uint16_t addr), void *priv)
 {
-    pc87311_t *dev = (pc87311_t *) priv;
+    const pc87311_t *dev = (pc87311_t *) priv;
 
     return dev->regs[dev->index];
 }

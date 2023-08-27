@@ -81,9 +81,9 @@ tkd8001_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga)
 }
 
 uint8_t
-tkd8001_ramdac_in(uint16_t addr, void *p, svga_t *svga)
+tkd8001_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
 {
-    tkd8001_ramdac_t *ramdac = (tkd8001_ramdac_t *) p;
+    tkd8001_ramdac_t *ramdac = (tkd8001_ramdac_t *) priv;
 
     switch (addr) {
         case 0x3C6:

@@ -228,8 +228,8 @@ f82c606_update_ports(upc_t *dev, int set)
 static uint8_t
 f82c710_config_read(uint16_t port, void *priv)
 {
-    upc_t  *dev  = (upc_t *) priv;
-    uint8_t temp = 0xff;
+    const upc_t  *dev  = (upc_t *) priv;
+    uint8_t       temp = 0xff;
 
     if (dev->configuration_mode) {
         if (port == dev->cri_addr) {

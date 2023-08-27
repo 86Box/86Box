@@ -132,9 +132,9 @@ typedef struct sb_dsp_t {
     mpu_t *mpu;
 } sb_dsp_t;
 
-void sb_dsp_input_msg(void *p, uint8_t *msg, uint32_t len);
+void sb_dsp_input_msg(void *priv, uint8_t *msg, uint32_t len);
 
-int sb_dsp_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort);
+int sb_dsp_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort);
 
 void sb_dsp_set_mpu(sb_dsp_t *dsp, mpu_t *src_mpu);
 

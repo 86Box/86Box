@@ -22,10 +22,10 @@ typedef struct scsi_disk_t {
     hard_disk_t *drv;
 
     uint8_t *temp_buffer;
-    uint8_t pad[16]; /* This is atapi_cdb in ATAPI-supporting devices,
+    uint8_t  pad[16]; /* This is atapi_cdb in ATAPI-supporting devices,
                         and pad in SCSI-only devices. */
-    uint8_t current_cdb[16];
-    uint8_t sense[256];
+    uint8_t  current_cdb[16];
+    uint8_t  sense[256];
 
     uint8_t status;
     uint8_t phase;

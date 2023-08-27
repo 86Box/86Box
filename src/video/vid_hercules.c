@@ -152,8 +152,8 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 hercules_in(uint16_t addr, void *priv)
 {
-    hercules_t *dev = (hercules_t *) priv;
-    uint8_t     ret = 0xff;
+    const hercules_t *dev = (hercules_t *) priv;
+    uint8_t           ret = 0xff;
 
     switch (addr) {
         case 0x03b0:

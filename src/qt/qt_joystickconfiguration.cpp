@@ -106,6 +106,7 @@ JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index)
         auto label = new QLabel(joystick_get_axis_name(type, c), this);
         auto cbox  = new QComboBox(this);
         cbox->setObjectName(QString("cboxAxis%1").arg(QString::number(c)));
+        cbox->setMaxVisibleItems(30);
         auto model = cbox->model();
 
         for (int d = 0; d < plat_joystick_state[joystick].nr_axes; d++) {
@@ -146,6 +147,7 @@ JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index)
         auto label = new QLabel(joystick_get_button_name(type, c), this);
         auto cbox  = new QComboBox(this);
         cbox->setObjectName(QString("cboxButton%1").arg(QString::number(c)));
+        cbox->setMaxVisibleItems(30);
         auto model = cbox->model();
 
         for (int d = 0; d < plat_joystick_state[joystick].nr_buttons; d++) {
@@ -172,6 +174,7 @@ JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index)
         }
         auto cbox = new QComboBox(this);
         cbox->setObjectName(QString("cboxPov%1").arg(QString::number(c)));
+        cbox->setMaxVisibleItems(30);
         auto model = cbox->model();
 
         for (int d = 0; d < plat_joystick_state[joystick].nr_povs; d++) {

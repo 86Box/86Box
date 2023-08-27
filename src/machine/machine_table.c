@@ -13019,16 +13019,16 @@ machine_count(void)
     return ((sizeof(machines) / sizeof(machine_t)) - 1);
 }
 
-char *
+const char *
 machine_getname(void)
 {
-    return ((char *) machines[machine].name);
+    return (machines[machine].name);
 }
 
-char *
+const char *
 machine_getname_ex(int m)
 {
-    return ((char *) machines[m].name);
+    return (machines[m].name);
 }
 
 const device_t *
@@ -13094,16 +13094,16 @@ machine_get_net_device(int m)
     return (NULL);
 }
 
-char *
+const char *
 machine_get_internal_name(void)
 {
-    return ((char *) machines[machine].internal_name);
+    return (machines[machine].internal_name);
 }
 
-char *
+const char *
 machine_get_internal_name_ex(int m)
 {
-    return ((char *) machines[m].internal_name);
+    return (machines[m].internal_name);
 }
 
 int
@@ -13159,12 +13159,12 @@ machine_get_type(int m)
 }
 
 int
-machine_get_machine_from_internal_name(char *s)
+machine_get_machine_from_internal_name(const char *s)
 {
     int c = 0;
 
     while (machines[c].init != NULL) {
-        if (!strcmp(machines[c].internal_name, (const char *) s))
+        if (!strcmp(machines[c].internal_name, s))
             return c;
         c++;
     }

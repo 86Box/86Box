@@ -40,19 +40,19 @@ typedef struct {
     int firstline;
     int lastline;
 
-    int linepos;
-    int displine;
-    int vc;
-    int sc;
+    int      linepos;
+    int      displine;
+    int      vc;
+    int      sc;
     uint16_t ma;
     uint16_t maback;
-    int con;
-    int coff;
-    int cursoron;
-    int dispon;
-    int blink;
-    int vsynctime;
-    int vadj;
+    int      con;
+    int      coff;
+    int      cursoron;
+    int      dispon;
+    int      blink;
+    int      vsynctime;
+    int      vadj;
 
     int lp_ff;
     int fullchange;

@@ -2227,11 +2227,11 @@ sb_awe32_pnp_init(const device_t *info)
 
     uint8_t *pnp_rom = NULL;
     if (pnp_rom_file) {
-        FILE *f = rom_fopen(pnp_rom_file, "rb");
-        if (f) {
-            if (fread(sb->pnp_rom, 1, 512, f) == 512)
+        FILE *fp = rom_fopen(pnp_rom_file, "rb");
+        if (fp) {
+            if (fread(sb->pnp_rom, 1, 512, fp) == 512)
                 pnp_rom = sb->pnp_rom;
-            fclose(f);
+            fclose(fp);
         }
     }
 

@@ -742,6 +742,9 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
                 }
             }
             break;
+
+        default:
+            break;
     }
 
     svga_out(addr, val, svga);
@@ -827,7 +830,7 @@ mystique_vsync_callback(svga_t *svga)
 static float
 mystique_getclock(int clock, void *priv)
 {
-    mystique_t *mystique = (mystique_t *) priv;
+    const mystique_t *mystique = (mystique_t *) priv;
 
     if (clock == 0)
         return 25175000.0;
@@ -925,6 +928,9 @@ mystique_recalctimings(svga_t *svga)
                     svga->render = svga_render_32bpp_highres;
                     svga->bpp    = 32;
                     break;
+
+                default:
+                    break;
             }
         } else {
             switch (svga->bpp) {
@@ -942,6 +948,9 @@ mystique_recalctimings(svga_t *svga)
                     break;
                 case 32:
                     svga->render = svga_render_32bpp_highres;
+                    break;
+
+                default:
                     break;
             }
         }
@@ -1004,6 +1013,9 @@ mystique_recalc_mapping(mystique_t *mystique)
                 mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
                 svga->banked_mask = 0x7fff;
                 break;
+
+            default:
+                break;
         }
         if (svga->gdcreg[6] & 0xc) {
             /*64k banks*/
@@ -1021,8 +1033,8 @@ mystique_recalc_mapping(mystique_t *mystique)
 static void
 mystique_update_irqs(mystique_t *mystique)
 {
-    svga_t *svga = &mystique->svga;
-    int     irq  = 0;
+    const svga_t *svga = &mystique->svga;
+    int           irq  = 0;
 
     if ((mystique->status & mystique->ien) & STATUS_SOFTRAPEN)
         irq = 1;
@@ -2275,7 +2287,9 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
                         mystique->dwgreg.pattern[y][x] = val & (1 << (x + ((y - 2) * 16)));
                     }
                 }
-                // pclog("SRC1 = 0x%08X\n", val);
+#if 0
+                pclog("SRC1 = 0x%08X\n", val);
+#endif
                 if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
                     blit_iload_write(mystique, mystique->dwgreg.src[1], 32);
             }
@@ -2288,7 +2302,9 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
                         mystique->dwgreg.pattern[y][x] = val & (1 << (x + ((y - 4) * 16)));
                     }
                 }
-                // pclog("SRC2 = 0x%08X\n", val);
+#if 0
+                pclog("SRC2 = 0x%08X\n", val);
+#endif
                 if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
                     blit_iload_write(mystique, mystique->dwgreg.src[2], 32);
                 break;
@@ -2301,7 +2317,9 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
                         mystique->dwgreg.pattern[y][x] = val & (1 << (x + ((y - 6) * 16)));
                     }
                 }
-                // pclog("SRC3 = 0x%08X\n", val);
+#if 0
+                pclog("SRC3 = 0x%08X\n", val);
+#endif
                 if (mystique->busy && (mystique->dwgreg.dwgctrl_running & DWGCTRL_OPCODE_MASK) == DWGCTRL_OPCODE_ILOAD)
                     blit_iload_write(mystique, mystique->dwgreg.src[3], 32);
                 break;
@@ -2549,7 +2567,7 @@ mystique_accel_iload_write_l(UNUSED(uint32_t addr), uint32_t val, void *priv)
 static uint8_t
 mystique_readb_linear(uint32_t addr, void *priv)
 {
-    svga_t *svga = (svga_t *) priv;
+    const svga_t *svga = (svga_t *) priv;
 
     cycles -= video_timing_read_b;
 
@@ -2754,6 +2772,9 @@ run_dma(mystique_t *mystique)
                         fatal("DMA_STATE_SEC: mode %i\n", mystique->dma.secaddress & DMA_MODE_MASK);
                 }
                 break;
+
+            default:
+                break;
         }
     }
 
@@ -2785,6 +2806,9 @@ fifo_thread(void *priv)
                         break;
                     case FIFO_WRITE_ILOAD_LONG:
                         mystique_accel_iload_write_l(fifo->addr_type & FIFO_ADDR, fifo->val, mystique);
+                        break;
+
+                    default:
                         break;
                 }
 
@@ -2922,6 +2946,9 @@ bitop(uint32_t src, uint32_t dst, uint32_t dwgctrl)
             return dst | src;
         case BOP(0xf):
             return ~0;
+
+        default:
+            break;
     }
 
     return 0;
@@ -3838,10 +3865,10 @@ blit_iload_iload_high(mystique_t *mystique, uint32_t data, int size)
 }
 
 static void
-blit_iload_iload_highv(mystique_t *mystique, uint32_t data, int size)
+blit_iload_iload_highv(mystique_t *mystique, uint32_t data, UNUSED(int size))
 {
-    uint8_t *src0;
-    uint8_t *src1;
+    const uint8_t *src0;
+    uint8_t       *src1;
 
     switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK) {
         case DWGCTRL_BLTMOD_BUYUV:
@@ -3917,7 +3944,7 @@ z_check(uint16_t z, uint16_t old_z, uint32_t z_mode) // mystique->dwgreg.dwgctrl
 }
 
 static void
-blit_line(mystique_t *mystique, int closed)
+blit_line(mystique_t *mystique, UNUSED(int closed))
 {
     svga_t  *svga = &mystique->svga;
     uint32_t src;
@@ -4060,7 +4087,9 @@ blit_line(mystique_t *mystique, int closed)
             break;
 
         default:
-            /* pclog("Unknown atype %03x %08x LINE\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK, mystique->dwgreg.dwgctrl_running); */
+#if 0
+            pclog("Unknown atype %03x %08x LINE\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK, mystique->dwgreg.dwgctrl_running);
+#endif
             break;
     }
 
@@ -4406,8 +4435,8 @@ texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atra
         const int t_shift = (20 + 16) - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
         int64_t   q       = mystique->dwgreg.tmr[8] ? (0x100000000LL / (int64_t) (int32_t) mystique->dwgreg.tmr[8] /*>> 16*/) : 0;
 
-        s = (((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) /*<< 8*/) >> s_shift; /*((16+20)-12);*/
-        t = (((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q) /*<< 8*/) >> t_shift; /*((16+20)-9);*/
+        s = ((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q /*<< 8*/) >> s_shift; /*((16+20)-12);*/
+        t = ((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q /*<< 8*/) >> t_shift; /*((16+20)-9);*/
     }
 
     if (mystique->dwgreg.texctl & TEXCTL_CLAMPU) {
@@ -4935,7 +4964,9 @@ blit_bitblt(mystique_t *mystique)
             break;
 
         default:
-            /* pclog("Unknown BITBLT atype %03x %08x\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK, mystique->dwgreg.dwgctrl_running); */
+#if 0
+            pclog("Unknown BITBLT atype %03x %08x\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK, mystique->dwgreg.dwgctrl_running);
+#endif
             break;
     }
 
@@ -4949,7 +4980,9 @@ blit_iload(mystique_t *mystique)
         case DWGCTRL_ATYPE_RPL:
         case DWGCTRL_ATYPE_RSTR:
         case DWGCTRL_ATYPE_BLK:
-            /* pclog("ILOAD BLTMOD DWGCTRL = %08x\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK); */
+#if 0
+            pclog("ILOAD BLTMOD DWGCTRL = %08x\n", mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK);
+#endif
             switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK) {
                 case DWGCTRL_BLTMOD_BFCOL:
                 case DWGCTRL_BLTMOD_BMONOLEF:
@@ -4961,7 +4994,9 @@ blit_iload(mystique_t *mystique)
                     mystique->dwgreg.iload_rem_data  = 0;
                     mystique->dwgreg.iload_rem_count = 0;
                     mystique->busy                   = 1;
-                    /* pclog("ILOAD busy\n"); */
+#if 0
+                    pclog("ILOAD busy\n");
+#endif
                     mystique->dwgreg.words = 0;
                     break;
 
@@ -5161,9 +5196,9 @@ mystique_start_blit(mystique_t *mystique)
 static void
 mystique_hwcursor_draw(svga_t *svga, int displine)
 {
-    mystique_t *mystique = (mystique_t *) svga->priv;
-    uint64_t    dat[2];
-    int         offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
+    const mystique_t *mystique = (mystique_t *) svga->priv;
+    uint64_t          dat[2];
+    int               offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
 
     if (svga->interlace && svga->hwcursor_oddeven)
         svga->hwcursor_latch.addr += 16;
@@ -5183,6 +5218,9 @@ mystique_hwcursor_draw(svga_t *svga, int displine)
                 dat[0] <<= 1;
                 dat[1] <<= 1;
             }
+            break;
+
+        default:
             break;
     }
 
@@ -5335,6 +5373,9 @@ mystique_pci_read(UNUSED(int func), int addr, void *priv)
                 addr = (mystique->pci_regs[0x44] & 0xfc) | ((mystique->pci_regs[0x45] & 0x3f) << 8) | (addr & 3);
                 ret  = mystique_ctrl_read_b(addr, mystique);
                 break;
+
+            default:
+                break;
         }
 
     return ret;
@@ -5449,8 +5490,13 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
         case 0x4a:
         case 0x4b:
             addr = (mystique->pci_regs[0x44] & 0xfc) | ((mystique->pci_regs[0x45] & 0x3f) << 8) | (addr & 3);
-            /* pclog("mystique_ctrl_write_b(%04X, %02X)\n", addr, val); */
+#if 0
+            pclog("mystique_ctrl_write_b(%04X, %02X)\n", addr, val);
+#endif
             mystique_ctrl_write_b(addr, val, mystique);
+            break;
+
+        default:
             break;
     }
 }
@@ -5459,7 +5505,7 @@ static void *
 mystique_init(const device_t *info)
 {
     mystique_t *mystique = malloc(sizeof(mystique_t));
-    char       *romfn = NULL;
+    const char *romfn = NULL;
 
     memset(mystique, 0, sizeof(mystique_t));
 

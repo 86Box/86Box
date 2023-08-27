@@ -151,7 +151,7 @@ midi_out_device_has_config(int card)
     return devices[card].device->config ? 1 : 0;
 }
 
-char *
+const char *
 midi_out_device_get_internal_name(int card)
 {
     return device_get_internal_name(devices[card].device);
@@ -269,7 +269,7 @@ midi_in_device_has_config(int card)
     return midi_in_devices[card].device->config ? 1 : 0;
 }
 
-char *
+const char *
 midi_in_device_get_internal_name(int card)
 {
     return device_get_internal_name(midi_in_devices[card].device);

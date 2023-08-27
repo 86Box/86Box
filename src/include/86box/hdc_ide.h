@@ -85,15 +85,15 @@ typedef struct ide_s {
     int            interrupt_drq;
     double         pending_delay;
 
-    int (*get_max)(int ide_has_dma, int type);
-    int (*get_timings)(int ide_has_dma, int type);
-    void (*identify)(struct ide_s *ide, int ide_has_dma);
-    void (*stop)(scsi_common_t *sc);
-    void (*packet_command)(scsi_common_t *sc, uint8_t *cdb);
-    void (*device_reset)(scsi_common_t *sc);
+    int     (*get_max)(int ide_has_dma, int type);
+    int     (*get_timings)(int ide_has_dma, int type);
+    void    (*identify)(struct ide_s *ide, int ide_has_dma);
+    void    (*stop)(scsi_common_t *sc);
+    void    (*packet_command)(scsi_common_t *sc, uint8_t *cdb);
+    void    (*device_reset)(scsi_common_t *sc);
     uint8_t (*phase_data_out)(scsi_common_t *sc);
-    void (*command_stop)(scsi_common_t *sc);
-    void (*bus_master_error)(scsi_common_t *sc);
+    void    (*command_stop)(scsi_common_t *sc);
+    void    (*bus_master_error)(scsi_common_t *sc);
 } ide_t;
 
 extern ide_t *ide_drives[IDE_NUM];
@@ -180,9 +180,9 @@ extern void ide_set_board_callback(uint8_t board, double callback);
 extern void ide_padstr(char *str, const char *src, int len);
 extern void ide_padstr8(uint8_t *buf, int buf_size, const char *src);
 
-extern int (*ide_bus_master_dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv);
+extern int  (*ide_bus_master_dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv);
 extern void (*ide_bus_master_set_irq)(int channel, void *priv);
-extern void *ide_bus_master_priv[2];
+extern void  *ide_bus_master_priv[2];
 
 extern uint8_t ide_read_ali_75(void);
 extern uint8_t ide_read_ali_76(void);

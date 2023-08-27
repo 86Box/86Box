@@ -39,7 +39,7 @@ static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
-SoundGainDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+SoundGainDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, UNUSED(LPARAM lParam))
 {
     HWND h;
 
@@ -47,7 +47,7 @@ SoundGainDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
         case WM_INITDIALOG:
             old_gain = sound_gain;
             h        = GetDlgItem(hdlg, IDC_SLIDER_GAIN);
-            SendMessage(h, TBM_SETRANGE, (WPARAM) 1, (LPARAM) MAKELONG(0, 9));
+            SendMessage(h, TBM_SETRANGE, (WPARAM) 1, MAKELONG(0, 9));
             SendMessage(h, TBM_SETPOS, (WPARAM) 1, 9 - (sound_gain >> 1));
             SendMessage(h, TBM_SETTICFREQ, (WPARAM) 1, 0);
             SendMessage(h, TBM_SETLINESIZE, (WPARAM) 0, 1);

@@ -19,8 +19,10 @@ extern RecompOpFn recomp_opcodes_dc[512];
 extern RecompOpFn recomp_opcodes_dd[512];
 extern RecompOpFn recomp_opcodes_de[512];
 extern RecompOpFn recomp_opcodes_df[512];
-/*extern RecompOpFn recomp_opcodes_REPE[512];
-extern RecompOpFn recomp_opcodes_REPNE[512];*/
+#if 0
+extern RecompOpFn recomp_opcodes_REPE[512];
+extern RecompOpFn recomp_opcodes_REPNE[512];
+#endif
 
 #define REG_EAX 0
 #define REG_ECX 1
