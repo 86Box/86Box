@@ -348,6 +348,14 @@ mouse_subtract_coords(int *delta_x, int *delta_y, int *o_x, int *o_y,
 }
 
 int
+mouse_wheel_moved(void)
+{
+    int ret = !!(atomic_load(&mouse_z));
+
+    return ret;
+}
+
+int
 mouse_moved(void)
 {
     int moved_x = !!((int) floor(ABSD(mouse_scale_coord_x(atomic_load(&mouse_x), 1))));
@@ -471,7 +479,7 @@ mouse_subtract_z(int *delta_z, int min, int max, int invert)
         *delta_z = min;
         real_z += ABS(min);
     } else {
-        *delta_z = mouse_z;
+        *delta_z = real_z;
         real_z = 0;
     }
 
