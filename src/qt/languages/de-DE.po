@@ -853,8 +853,8 @@ msgstr "Über 86Box"
 msgid "86Box v"
 msgstr "86Box Version "
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Ein Emulator für alte Computer\n\nAutoren: Sarah Walker, Miran Grča, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho sowie andere.\n\nÜbersetzt von: dob205\n\nVeröffentlicht unter der GNU General Public License in der Version 2 oder neuer. Siehe LICENSE für mehr Informationen."
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Ein Emulator für alte Computer\n\nAutoren: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne sowie andere.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho sowie andere.\n\nÜbersetzt von: dob205\n\nVeröffentlicht unter der GNU General Public License in der Version 2 oder neuer. Siehe LICENSE für mehr Informationen."
 
 msgid "Hardware not available"
 msgstr "Hardware nicht verfügbar"

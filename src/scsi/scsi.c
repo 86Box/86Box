@@ -143,7 +143,7 @@ scsi_card_has_config(int card)
     return (device_has_config(scsi_cards[card].device) ? 1 : 0);
 }
 
-char *
+const char *
 scsi_card_get_internal_name(int card)
 {
     return device_get_internal_name(scsi_cards[card].device);
@@ -155,7 +155,7 @@ scsi_card_get_from_internal_name(char *s)
     int c = 0;
 
     while (scsi_cards[c].device != NULL) {
-        if (!strcmp((char *) scsi_cards[c].device->internal_name, s))
+        if (!strcmp(scsi_cards[c].device->internal_name, s))
             return c;
         c++;
     }

@@ -41,7 +41,7 @@ static unsigned char *empty;
 static int
 create_86f(char *file_name, disk_size_t disk_size, uint8_t rpm_mode)
 {
-    FILE *f;
+    FILE *fp;
 
     uint32_t magic          = 0x46423638;
     uint16_t version        = 0x020C;
@@ -67,9 +67,9 @@ create_86f(char *file_name, disk_size_t disk_size, uint8_t rpm_mode)
     tflags |= (disk_size.rpm << 5);      /* RPM. */
 
     switch (disk_size.hole) {
+        default:
         case 0:
         case 1:
-        default:
             switch (rpm_mode) {
                 case 1:
                     array_size = 25250;
@@ -108,13 +108,13 @@ create_86f(char *file_name, disk_size_t disk_size, uint8_t rpm_mode)
     memset(tarray, 0, 2048);
     memset(empty, 0, array_size);
 
-    f = plat_fopen(file_name, "wb");
-    if (!f)
+    fp = plat_fopen(file_name, "wb");
+    if (!fp)
         return 0;
 
-    fwrite(&magic, 4, 1, f);
-    fwrite(&version, 2, 1, f);
-    fwrite(&dflags, 2, 1, f);
+    fwrite(&magic, 4, 1, fp);
+    fwrite(&version, 2, 1, fp);
+    fwrite(&dflags, 2, 1, fp);
 
     track_size = array_size + 6;
 
@@ -126,17 +126,17 @@ create_86f(char *file_name, disk_size_t disk_size, uint8_t rpm_mode)
     for (i = 0; i < (disk_size.tracks * disk_size.sides) << shift; i++)
         tarray[i] = track_base + (i * track_size);
 
-    fwrite(tarray, 1, (disk_size.sides == 2) ? 2048 : 1024, f);
+    fwrite(tarray, 1, (disk_size.sides == 2) ? 2048 : 1024, fp);
 
     for (i = 0; i < (disk_size.tracks * disk_size.sides) << shift; i++) {
-        fwrite(&tflags, 2, 1, f);
-        fwrite(&index_hole_pos, 4, 1, f);
-        fwrite(empty, 1, array_size, f);
+        fwrite(&tflags, 2, 1, fp);
+        fwrite(&index_hole_pos, 4, 1, fp);
+        fwrite(empty, 1, array_size, fp);
     }
 
     free(empty);
 
-    fclose(f);
+    fclose(fp);
 
     return 1;
 }
@@ -147,7 +147,7 @@ static int is_mo;
 static int
 create_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_fdi)
 {
-    FILE    *f;
+    FILE    *fp;
     uint32_t total_size     = 0;
     uint32_t total_sectors  = 0;
     uint32_t sector_bytes   = 0;
@@ -158,8 +158,8 @@ create_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_fdi)
     uint32_t zero_bytes     = 0;
     uint16_t base           = 0x1000;
 
-    f = plat_fopen(file_name, "wb");
-    if (!f)
+    fp = plat_fopen(file_name, "wb");
+    if (!fp)
         return 0;
 
     sector_bytes  = (128 << disk_size.sector_len);
@@ -184,7 +184,7 @@ create_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_fdi)
         *(uint8_t *) &(empty[0x18])  = (uint8_t) disk_size.sides;
         *(uint8_t *) &(empty[0x1C])  = (uint8_t) disk_size.tracks;
 
-        fwrite(empty, 1, base, f);
+        fwrite(empty, 1, base, fp);
         free(empty);
     }
 
@@ -241,10 +241,10 @@ create_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_fdi)
         empty[fat1_offs + 0x02] = empty[fat2_offs + 0x02] = 0xFF;
     }
 
-    fwrite(empty, 1, total_size, f);
+    fwrite(empty, 1, total_size, fp);
     free(empty);
 
-    fclose(f);
+    fclose(fp);
 
     return 1;
 }
@@ -253,7 +253,7 @@ static int
 create_zip_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_zdi, HWND hwnd)
 {
     HWND     h;
-    FILE    *f;
+    FILE    *fp;
     uint32_t total_size     = 0;
     uint32_t total_sectors  = 0;
     uint32_t sector_bytes   = 0;
@@ -266,8 +266,8 @@ create_zip_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_zdi, 
     uint32_t pbar_max       = 0;
     MSG      msg;
 
-    f = plat_fopen(file_name, "wb");
-    if (!f)
+    fp = plat_fopen(file_name, "wb");
+    if (!fp)
         return 0;
 
     sector_bytes  = (128 << disk_size.sector_len);
@@ -316,7 +316,7 @@ create_zip_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_zdi, 
         *(uint8_t *) &(empty[0x18])  = (uint8_t) disk_size.sides;
         *(uint8_t *) &(empty[0x1C])  = (uint8_t) disk_size.tracks;
 
-        fwrite(empty, 1, 2048, f);
+        fwrite(empty, 1, 2048, fp);
         SendMessage(h, PBM_SETPOS, (WPARAM) 1, (LPARAM) 0);
 
         while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
@@ -324,7 +324,7 @@ create_zip_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_zdi, 
             DispatchMessage(&msg);
         }
 
-        fwrite(&empty[0x0800], 1, 2048, f);
+        fwrite(&empty[0x0800], 1, 2048, fp);
         free(empty);
 
         SendMessage(h, PBM_SETPOS, (WPARAM) 2, (LPARAM) 0);
@@ -468,7 +468,7 @@ create_zip_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_zdi, 
     }
 
     for (uint32_t i = 0; i < pbar_max; i++) {
-        fwrite(&empty[i << 11], 1, 2048, f);
+        fwrite(&empty[i << 11], 1, 2048, fp);
         SendMessage(h, PBM_SETPOS, (WPARAM) i + 2, (LPARAM) 0);
 
         while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
@@ -479,7 +479,7 @@ create_zip_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_zdi, 
 
     free(empty);
 
-    fclose(f);
+    fclose(fp);
 
     return 1;
 }
@@ -488,7 +488,7 @@ static int
 create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND hwnd)
 {
     HWND             h;
-    FILE            *f;
+    FILE            *fp;
     const mo_type_t *dp = &mo_types[disk_size];
     uint8_t         *empty;
     uint8_t         *empty2 = NULL;
@@ -502,8 +502,8 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
     uint32_t         j;
     MSG              msg;
 
-    f = plat_fopen(file_name, "wb");
-    if (!f)
+    fp = plat_fopen(file_name, "wb");
+    if (!fp)
         return 0;
 
     sector_bytes  = dp->bytes_per_sector;
@@ -551,7 +551,7 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
         *(uint8_t *) &(empty[0x18])  = (uint8_t) 64;
         *(uint8_t *) &(empty[0x1C])  = (uint8_t) (dp->sectors / 64) / 25;
 
-        fwrite(empty, 1, 2048, f);
+        fwrite(empty, 1, 2048, fp);
         SendMessage(h, PBM_SETPOS, (WPARAM) 1, (LPARAM) 0);
 
         while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
@@ -559,7 +559,7 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
             DispatchMessage(&msg);
         }
 
-        fwrite(&empty[0x0800], 1, 2048, f);
+        fwrite(&empty[0x0800], 1, 2048, fp);
         free(empty);
 
         SendMessage(h, PBM_SETPOS, (WPARAM) 1, (LPARAM) 0);
@@ -579,7 +579,7 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
     }
 
     for (uint32_t i = 0; i < blocks_num; i++) {
-        fwrite(empty, 1, 1048576, f);
+        fwrite(empty, 1, 1048576, fp);
 
         SendMessage(h, PBM_SETPOS, (WPARAM) i + j, (LPARAM) 0);
 
@@ -590,7 +590,7 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
     }
 
     if (total_size2 > 0) {
-        fwrite(empty2, 1, total_size2, f);
+        fwrite(empty2, 1, total_size2, fp);
 
         SendMessage(h, PBM_SETPOS, (WPARAM) pbar_max - 1, (LPARAM) 0);
 
@@ -604,7 +604,7 @@ create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND h
         free(empty2);
     free(empty);
 
-    fclose(f);
+    fclose(fp);
 
     return 1;
 }
@@ -653,21 +653,21 @@ static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
-NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, UNUSED(LPARAM lParam))
 {
-    HWND     h;
-    int      i = 0;
-    int      wcs_len;
-    int      ext_offs;
-    wchar_t *ext;
-    uint8_t  disk_size;
-    uint8_t  rpm_mode;
-    int      ret;
-    FILE    *f;
-    int      zip_types;
-    int      mo_types;
-    int      floppy_types;
-    wchar_t *twcs;
+    HWND           h;
+    int            i = 0;
+    int            wcs_len;
+    int            ext_offs;
+    const wchar_t *ext;
+    uint8_t        disk_size;
+    uint8_t        rpm_mode;
+    int            ret;
+    FILE          *fp;
+    int            zip_types;
+    int            mo_types;
+    int            floppy_types;
+    wchar_t       *twcs;
 
     switch (message) {
         case WM_INITDIALOG:
@@ -763,9 +763,9 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                             }
                         }
                         h = GetDlgItem(hdlg, IDC_EDIT_FILE_NAME);
-                        f = _wfopen(wopenfilestring, L"rb");
-                        if (f != NULL) {
-                            fclose(f);
+                        fp = _wfopen(wopenfilestring, L"rb");
+                        if (fp != NULL) {
+                            fclose(fp);
                             if (new_floppy_msgbox_ex(hdlg, MBX_QUESTION, (wchar_t *) IDS_4111, (wchar_t *) IDS_4118, (wchar_t *) IDS_4120, (wchar_t *) IDS_4121, NULL) != 0) /* yes */
                                 return FALSE;
                         }

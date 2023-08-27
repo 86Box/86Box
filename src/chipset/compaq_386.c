@@ -748,7 +748,7 @@ compaq_386_init(UNUSED(const device_t *info))
 
 const device_t compaq_386_device = {
     .name          = "Compaq 386 Memory Control",
-    .internal_name = "opti391",
+    .internal_name = "compaq_386",
     .flags         = 0,
     .local         = 0,
     .init          = compaq_386_init,

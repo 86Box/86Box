@@ -1239,7 +1239,7 @@ static void *
 eep_init(const device_t *info)
 {
     t1keep_t *eep;
-    FILE     *f = NULL;
+    FILE     *fp = NULL;
 
     eep = (t1keep_t *) malloc(sizeof(t1keep_t));
     memset(eep, 0x00, sizeof(t1keep_t));
@@ -1257,11 +1257,11 @@ eep_init(const device_t *info)
             break;
     }
 
-    f = nvr_fopen(eep->path, "rb");
-    if (f != NULL) {
-        if (fread(eep->store, 1, 128, f) != 128)
+    fp = nvr_fopen(eep->path, "rb");
+    if (fp != NULL) {
+        if (fread(eep->store, 1, 128, fp) != 128)
             fatal("eep_init(): Error reading Tandy EEPROM\n");
-        (void) fclose(f);
+        (void) fclose(fp);
     } else
         memset(eep->store, 0x00, 128);
 
@@ -1274,12 +1274,12 @@ static void
 eep_close(void *priv)
 {
     t1keep_t *eep = (t1keep_t *) priv;
-    FILE     *f   = NULL;
+    FILE     *fp  = NULL;
 
-    f = nvr_fopen(eep->path, "wb");
-    if (f != NULL) {
-        (void) fwrite(eep->store, 128, 1, f);
-        (void) fclose(f);
+    fp = nvr_fopen(eep->path, "wb");
+    if (fp != NULL) {
+        (void) fwrite(eep->store, 128, 1, fp);
+        (void) fclose(fp);
     }
 
     free(eep);

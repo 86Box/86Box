@@ -18,6 +18,7 @@
 #ifndef EMU_PLAT_FALLTHROUGH_H
 #define EMU_PLAT_FALLTHROUGH_H
 
+#ifndef EMU_PLAT_H
 #ifdef _MSC_VER
 # define fallthrough do {} while (0) /* fallthrough */
 #else
@@ -29,6 +30,7 @@
 #  endif
 #  define fallthrough do {} while (0) /* fallthrough */
 # endif
+#endif
 #endif
 
 #endif /*EMU_PLAT_FALLTHROUGH_H*/

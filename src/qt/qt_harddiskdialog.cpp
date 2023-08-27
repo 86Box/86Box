@@ -511,24 +511,24 @@ void
 HarddiskDialog::onExistingFileSelected(const QString &fileName, bool precheck)
 {
     // TODO : Over to non-existing file selected
-    /*
+#if 0
     if (!(existing & 1)) {
-        f = _wfopen(wopenfilestring, L"rb");
-        if (f != NULL) {
-            fclose(f);
+        fp = _wfopen(wopenfilestring, L"rb");
+        if (fp != NULL) {
+            fclose(fp);
             if (settings_msgbox_ex(MBX_QUESTION_YN, (wchar_t *) IDS_4111, (wchar_t *) IDS_4118, (wchar_t *) IDS_4120, (wchar_t *) IDS_4121, NULL) != 0)	/ * yes * /
                 return FALSE;
         }
     }
 
-    f = _wfopen(wopenfilestring, (existing & 1) ? L"rb" : L"wb");
-    if (f == NULL) {
+    fp = _wfopen(wopenfilestring, (existing & 1) ? L"rb" : L"wb");
+    if (fp == NULL) {
     hdd_add_file_open_error:
-        fclose(f);
+        fclose(fp);
         settings_msgbox_header(MBX_ERROR, (existing & 1) ? (wchar_t *) IDS_4114 : (wchar_t *) IDS_4115, (existing & 1) ? (wchar_t *) IDS_4107 : (wchar_t *) IDS_4108);
         return TRUE;
     }
-    */
+#endif
 
     uint64_t size        = 0;
     uint32_t sector_size = 0;

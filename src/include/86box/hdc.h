@@ -95,7 +95,7 @@ extern const device_t xtide_at_ps2_device;    /* xtide_at_ps2 */
 extern void hdc_init(void);
 extern void hdc_reset(void);
 
-extern char           *hdc_get_internal_name(int hdc);
+extern const char     *hdc_get_internal_name(int hdc);
 extern int             hdc_get_from_internal_name(char *s);
 extern int             hdc_has_config(int hdc);
 extern const device_t *hdc_get_device(int hdc);

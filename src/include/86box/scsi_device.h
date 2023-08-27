@@ -347,7 +347,7 @@ typedef struct mode_sense_pages_t {
 typedef struct scsi_common_s {
     mode_sense_pages_t ms_pages_saved;
 
-    void *p;
+    void *priv;
 
     uint8_t *temp_buffer;
     uint8_t atapi_cdb[16]; /* This is atapi_cdb in ATAPI-supporting devices,
@@ -393,11 +393,11 @@ typedef struct scsi_device_t {
 
     scsi_common_t *sc;
 
-    void (*command)(scsi_common_t *sc, uint8_t *cdb);
-    void (*request_sense)(scsi_common_t *sc, uint8_t *buffer, uint8_t alloc_length);
-    void (*reset)(scsi_common_t *sc);
+    void    (*command)(scsi_common_t *sc, uint8_t *cdb);
+    void    (*request_sense)(scsi_common_t *sc, uint8_t *buffer, uint8_t alloc_length);
+    void    (*reset)(scsi_common_t *sc);
     uint8_t (*phase_data_out)(scsi_common_t *sc);
-    void (*command_stop)(scsi_common_t *sc);
+    void    (*command_stop)(scsi_common_t *sc);
 } scsi_device_t;
 
 /* These are based on the INQUIRY values. */

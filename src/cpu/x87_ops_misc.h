@@ -818,9 +818,12 @@ opFSINCOS(uint32_t fetchdat)
 static int
 opFRNDINT(uint32_t fetchdat)
 {
+    double dst0;
+
     FP_ENTER();
     cpu_state.pc++;
-    ST(0) = (double) x87_fround(ST(0));
+    dst0 = x87_fround(ST(0));
+    ST(0) = (double) dst0;
     FP_TAG_VALID;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.frndint) : (x87_timings.frndint * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.frndint) : (x87_concurrency.frndint * cpu_multi));

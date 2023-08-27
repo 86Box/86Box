@@ -722,7 +722,7 @@ network_card_has_config(int card)
 }
 
 /* UI */
-char *
+const char *
 network_card_get_internal_name(int card)
 {
     return device_get_internal_name(net_cards[card]);
@@ -735,7 +735,7 @@ network_card_get_from_internal_name(char *s)
     int c = 0;
 
     while (net_cards[c] != NULL) {
-        if (!strcmp((char *) net_cards[c]->internal_name, s))
+        if (!strcmp(net_cards[c]->internal_name, s))
             return c;
         c++;
     }

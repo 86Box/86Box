@@ -71,7 +71,7 @@ make_port(fdc37c67x_t *dev, uint8_t ld)
 static uint8_t
 fdc37c67x_auxio_read(UNUSED(uint16_t port), void *priv)
 {
-    fdc37c67x_t *dev = (fdc37c67x_t *) priv;
+    const fdc37c67x_t *dev = (fdc37c67x_t *) priv;
 
     return dev->auxio_reg;
 }
@@ -87,8 +87,8 @@ fdc37c67x_auxio_write(UNUSED(uint16_t port), uint8_t val, void *priv)
 static uint8_t
 fdc37c67x_gpio_read(uint16_t port, void *priv)
 {
-    fdc37c67x_t *dev = (fdc37c67x_t *) priv;
-    uint8_t      ret = 0xff;
+    const fdc37c67x_t *dev = (fdc37c67x_t *) priv;
+    uint8_t            ret = 0xff;
 
     ret = dev->gpio_regs[port & 1];
 
@@ -316,6 +316,7 @@ fdc37c67x_write(uint16_t port, uint8_t val, void *priv)
             case 0x26:
             case 0x27:
                 fdc37c67x_sio_handler(dev);
+                break;
 
             default:
                 break;

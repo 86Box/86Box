@@ -105,7 +105,7 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *priv)
 
                 voodoo_wait_for_render_thread_idle(voodoo);
                 if (!(val & 1)) {
-                    banshee_set_overlay_addr(voodoo->p, voodoo->leftOverlayBuf);
+                    banshee_set_overlay_addr(voodoo->priv, voodoo->leftOverlayBuf);
                     thread_wait_mutex(voodoo->swap_mutex);
                     if (voodoo->swap_count > 0)
                         voodoo->swap_count--;

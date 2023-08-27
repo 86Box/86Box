@@ -367,10 +367,10 @@ win_joystick_handle(PRAWINPUT raw)
 
     /* Read axes */
     for (int a = 0; a < plat_joystick_state[j].nr_axes; a++) {
-        struct raw_axis_t *axis   = &raw_joystick_state[j].axis[a];
-        ULONG              uvalue = 0;
-        LONG               value  = 0;
-        LONG               center = (axis->max - axis->min + 1) / 2;
+        const struct raw_axis_t *axis   = &raw_joystick_state[j].axis[a];
+        ULONG                    uvalue = 0;
+        LONG                     value  = 0;
+        LONG                     center = (axis->max - axis->min + 1) / 2;
 
         r = HidP_GetUsageValue(HidP_Input, HID_USAGE_PAGE_GENERIC, axis->link, axis->usage, &uvalue,
                                raw_joystick_state[j].data, (PCHAR) raw->data.hid.bRawData, raw->data.hid.dwSizeHid);
@@ -400,9 +400,9 @@ win_joystick_handle(PRAWINPUT raw)
 
     /* read povs */
     for (int p = 0; p < plat_joystick_state[j].nr_povs; p++) {
-        struct raw_pov_t *pov    = &raw_joystick_state[j].pov[p];
-        ULONG             uvalue = 0;
-        LONG              value  = -1;
+        const struct raw_pov_t *pov    = &raw_joystick_state[j].pov[p];
+        ULONG                   uvalue = 0;
+        LONG                    value  = -1;
 
         r = HidP_GetUsageValue(HidP_Input, HID_USAGE_PAGE_GENERIC, pov->link, pov->usage, &uvalue,
                                raw_joystick_state[j].data, (PCHAR) raw->data.hid.bRawData, raw->data.hid.dwSizeHid);
@@ -415,9 +415,13 @@ win_joystick_handle(PRAWINPUT raw)
 
         plat_joystick_state[j].p[p] = value;
 
-        // joystick_log("%s %-3d ", plat_joystick_state[j].pov[p].name, plat_joystick_state[j].p[p]);
+#if 0
+        joystick_log("%s %-3d ", plat_joystick_state[j].pov[p].name, plat_joystick_state[j].p[p]);
+#endif
     }
-    // joystick_log("\n");
+#if 0
+    joystick_log("\n");
+#endif
 }
 
 static int

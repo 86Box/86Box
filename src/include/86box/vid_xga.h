@@ -42,6 +42,7 @@ typedef struct xga_t {
     PALETTE        extpal;
 
     uint8_t test;
+    uint8_t test2;
     uint8_t atest[2];
     uint8_t testpixel;
 
@@ -157,10 +158,10 @@ typedef struct xga_t {
     uint32_t rom_addr;
     uint32_t ma;
     uint32_t maback;
-    uint32_t extpallook[256];
     uint32_t read_bank;
     uint32_t write_bank;
     uint32_t px_map_base;
+    uint32_t pallook[512];
 
     uint64_t dispontime;
     uint64_t dispofftime;
