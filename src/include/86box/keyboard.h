@@ -47,7 +47,7 @@ typedef struct kbc_at_port_t {
 
     void *priv;
 
-    void  (*poll)(void *priv);
+    void (*poll)(void *priv);
 } kbc_at_port_t;
 
 /* Used by the AT / PS/2 common device, keyboard, and mouse. */

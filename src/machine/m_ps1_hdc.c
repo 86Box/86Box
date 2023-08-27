@@ -649,7 +649,7 @@ do_format(hdc_t *dev, drive_t *drive, ccb_t *ccb)
         fcb = (fcb_t *)dev->data;
 #endif
             dev->state = STATE_FINIT;
-            /*FALLTHROUGH*/
+            fallthrough;
 
         case STATE_FINIT:
 do_fmt:
@@ -745,7 +745,7 @@ hdc_callback(void *priv)
     switch (ccb->cmd) {
         case CMD_READ_VERIFY:
             no_data = 1;
-            /*FALLTHROUGH*/
+            fallthrough;
 
         case CMD_READ_SECTORS:
             if (!drive->present) {
@@ -772,7 +772,7 @@ hdc_callback(void *priv)
                     dev->buf_len = (128 << dev->ssb.sect_size);
 
                     dev->state = STATE_SEND;
-                    /*FALLTHROUGH*/
+                    fallthrough;
 
                 case STATE_SEND:
                     /* Activate the status icon. */
@@ -938,7 +938,7 @@ do_send:
 
         case CMD_WRITE_VERIFY:
             no_data = 1;
-            /*FALLTHROUGH*/
+            fallthrough;
 
         case CMD_WRITE_SECTORS:
             if (!drive->present) {
@@ -965,7 +965,7 @@ do_send:
                     dev->buf_len = (128 << dev->ssb.sect_size);
 
                     dev->state = STATE_RECV;
-                    /*FALLTHROUGH*/
+                    fallthrough;
 
                 case STATE_RECV:
                     /* Activate the status icon. */

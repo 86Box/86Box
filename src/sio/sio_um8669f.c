@@ -187,6 +187,7 @@ um8669f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
                 um8669f_log("UM8669F: Game port disabled\n");
                 gameport_remap(dev->gameport, 0);
             }
+            break;
 
         default:
             break;
@@ -223,8 +224,8 @@ um8669f_write(uint16_t port, uint8_t val, void *priv)
 uint8_t
 um8669f_read(uint16_t port, void *priv)
 {
-    um8669f_t *dev = (um8669f_t *) priv;
-    uint8_t    ret = 0xff;
+    const um8669f_t *dev = (um8669f_t *) priv;
+    uint8_t          ret = 0xff;
 
     if (!dev->locked) {
         if (port == 0x108)

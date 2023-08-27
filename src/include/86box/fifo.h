@@ -12,24 +12,29 @@
  *
  *          Copyright 2023 Miran Grca.
  */
-#define FIFO(size)                           \
-    typedef struct                           \
-    {                                        \
-        int     start, end,                  \
-                trigger_len, len,            \
-                empty, overrun,              \
-                full, ready,                 \
-                d_empty, d_overrun,          \
-                d_full, d_ready;             \
-                                             \
-        void    *priv;                       \
-                                             \
-        void    (*d_empty_evt)(void *);      \
-        void    (*d_overrun_evt)(void *);    \
-        void    (*d_full_evt)(void *);       \
-        void    (*d_ready_evt)(void *);      \
-                                             \
-        uint8_t buf[size];                   \
+#define FIFO(size)                      \
+    typedef struct {                    \
+        int     start;                  \
+        int     end;                    \
+        int     trigger_len;            \
+        int     len;                    \
+        int     empty;                  \
+        int     overrun;                \
+        int     full;                   \
+        int     ready;                  \
+        int     d_empty;                \
+        int     d_overrun;              \
+        int     d_full;                 \
+        int     d_ready;                \
+                                        \
+        void   *priv;                   \
+                                        \
+        void  (*d_empty_evt)(void *);   \
+        void  (*d_overrun_evt)(void *); \
+        void  (*d_full_evt)(void *);    \
+        void  (*d_ready_evt)(void *);   \
+                                        \
+        uint8_t buf[size];              \
     } fifo## size ##_t;
 
 FIFO()
@@ -65,4 +70,4 @@ extern void       fifo_set_priv(void *priv, void *sub_priv);
 extern void       fifo_reset(void *priv);
 extern void       fifo_reset_evt(void *priv);
 extern void       fifo_close(void *priv);
-extern void *     fifo_init(int len);
+extern void      *fifo_init(int len);

@@ -1048,7 +1048,7 @@ nvr_smi_enable(int enable, nvr_t *nvr)
 uint8_t
 nvr_smi_status(nvr_t *nvr)
 {
-    local_t *local = (local_t *) nvr->data;
+    const local_t *local = (local_t *) nvr->data;
 
     return local->smi_status;
 }

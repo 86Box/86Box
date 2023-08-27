@@ -83,6 +83,7 @@ extern void            mouse_subtract_x(int *delta_x, int *o_x, int min, int max
 extern void            mouse_subtract_y(int *delta_y, int *o_y, int min, int max, int invert, int abs);
 extern void            mouse_subtract_coords(int *delta_x, int *delta_y, int *o_x, int *o_y,
                                              int min, int max, int invert, int abs);
+extern  int            mouse_wheel_moved(void);
 extern  int            mouse_moved(void);
 extern  int            mouse_state_changed(void);
 extern  int            mouse_mbut_changed(void);
@@ -103,8 +104,8 @@ extern void            mouse_get_abs_coords(double *x_abs, double *y_abs);
 extern void            mouse_process(void);
 extern void            mouse_set_poll_ex(void (*poll_ex)(void));
 extern void            mouse_set_poll(int (*f)(void *), void *);
-extern char *          mouse_get_name(int mouse);
-extern char *          mouse_get_internal_name(int mouse);
+extern const char *    mouse_get_name(int mouse);
+extern const char *    mouse_get_internal_name(int mouse);
 extern int             mouse_get_from_internal_name(char *s);
 extern int             mouse_has_config(int mouse);
 #ifdef EMU_DEVICE_H

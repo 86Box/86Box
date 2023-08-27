@@ -480,7 +480,7 @@ BEGIN
     IDS_2125    "86Box Hakkında"
     IDS_2126    "86Box v" EMU_VERSION
 
-    IDS_2127    "Bir eski bilgisayar emülatörü\n\nYapanlar: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, ve diğerleri.\n\nGNU Genel Kamu Lisansı versiyon 2 veya sonrası altında yayınlanmıştır. Daha fazla bilgi için LICENSE'ı gözden geçirin."
+    IDS_2127    "Bir eski bilgisayar emülatörü\n\nYapanlar: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, ve diğerleri.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, ve diğerleri.\n\nGNU Genel Kamu Lisansı versiyon 2 veya sonrası altında yayınlanmıştır. Daha fazla bilgi için LICENSE'ı gözden geçirin."
     IDS_2128    "Tamam"
     IDS_2129    "Donanım mevcut değil"
 #ifdef _WIN32

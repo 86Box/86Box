@@ -70,6 +70,8 @@ extern uint32_t *mod1seg[8];
 extern uint32_t *eal_r;
 extern uint32_t *eal_w;
 
+extern int fpu_cycles;
+
 #define fetchdat  rmdat
 
 #define setznp168 setznp16

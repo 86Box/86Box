@@ -61,6 +61,9 @@
      </item>
      <item row="2" column="1">
       <widget class="QComboBox" name="comboBoxCDInterface">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
        <property name="visible">
         <bool>false</bool>
        </property>
@@ -78,6 +81,9 @@
      </item>
      <item row="0" column="1">
       <widget class="QComboBox" name="comboBoxHD">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -94,7 +100,11 @@
       </widget>
      </item>
      <item row="1" column="1">
-      <widget class="QComboBox" name="comboBoxFD"/>
+      <widget class="QComboBox" name="comboBoxFD">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
      <item row="3" column="0">
       <widget class="QCheckBox" name="checkBoxTertiaryIDE">
@@ -161,6 +171,9 @@
       </item>
       <item row="0" column="2">
        <widget class="QComboBox" name="comboBoxSCSI1">
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -177,13 +190,43 @@
        </widget>
       </item>
       <item row="1" column="2">
-       <widget class="QComboBox" name="comboBoxSCSI2"/>
+       <widget class="QComboBox" name="comboBoxSCSI2">
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
       </item>
       <item row="2" column="2">
-       <widget class="QComboBox" name="comboBoxSCSI3"/>
+       <widget class="QComboBox" name="comboBoxSCSI3">
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
       </item>
       <item row="3" column="2">
-       <widget class="QComboBox" name="comboBoxSCSI4"/>
+       <widget class="QComboBox" name="comboBoxSCSI4">
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
       </item>
       <item row="0" column="0">
        <widget class="QLabel" name="label_3">

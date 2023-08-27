@@ -277,7 +277,7 @@ sermouse_report_ms(mouse_t *dev)
     int b = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 0, 0);
-    mouse_subtract_z(&delta_z, -8, 7, 0);
+    mouse_subtract_z(&delta_z, -8, 7, 1);
 
     dev->buf[0] = 0x40;
     dev->buf[0] |= (((delta_y >> 6) & 0x03) << 2);
@@ -437,8 +437,10 @@ ltsermouse_set_report_period(mouse_t *dev, int rps)
         dev->report_period = 0.0;
         dev->continuous = 1;
     } else {
-        /* if (rps > dev->max_rps)
-            rps = dev->max_rps; */
+#if 0
+        if (rps > dev->max_rps)
+            rps = dev->max_rps;
+#endif
 
         dev->continuous = 0;
         dev->report_period = 1000000.0 / ((double) rps);
@@ -478,18 +480,22 @@ ltsermouse_switch_baud_rate(mouse_t *dev, int next_state)
 
     word_len += 1.0 + 2.0;            /* 1 start bit + 2 stop bits */
 
-    // dev->max_rps = (int) floor(((double) dev->bps) / (word_len * num_words));
+#if 0
+    dev->max_rps = (int) floor(((double) dev->bps) / (word_len * num_words));
+#endif
 
     if (next_state == STATE_BAUD_RATE)
         dev->transmit_period = dev->host_transmit_period;
     else
-        dev->transmit_period = (1000000.0) / ((double) dev->bps);
+        dev->transmit_period = 1000000.0 / ((double) dev->bps);
 
     dev->min_bit_period = dev->transmit_period;
 
     dev->transmit_period *= word_len;
     /* The transmit period for the entire report, we're going to need this in ltsermouse_set_report_period(). */
-    // dev->report_transmit_period = dev->transmit_period * num_words;
+#if 0
+    dev->report_transmit_period = dev->transmit_period * num_words;
+#endif
 
     ltsermouse_set_report_period(dev, dev->rps);
 
@@ -531,7 +537,7 @@ ltsermouse_process_command(mouse_t *dev)
                         [FORMAT_HEX]       = 0x04,
                         [FORMAT_MS_4BYTE]  = 0x08,         /* Guess */
                         [FORMAT_MS_WHEEL]  = 0x08 };       /* Guess */
-    char *copr = "\r\n(C) 2023 86Box, Revision 3.0";
+    const char *copr = "\r\n(C) 2023 86Box, Revision 3.0";
 
     mouse_serial_log("ltsermouse_process_command(): %02X\n", dev->ib);
     dev->command = dev->ib;
@@ -652,6 +658,9 @@ ltsermouse_process_command(mouse_t *dev)
         case 0x6b:
             /* Buttons - 86Box-specific command. */
             dev->state = dev->but;
+            break;
+
+        default:
             break;
     }
 }
@@ -831,9 +840,9 @@ static void *
 sermouse_init(const device_t *info)
 {
     mouse_t *dev;
-    void (*rcr_callback)(struct serial_s *serial, void *p);
-    void (*dev_write)(struct serial_s *serial, void *p, uint8_t data);
-    void (*transmit_period_callback)(struct serial_s *serial, void *p, double transmit_period);
+    void (*rcr_callback)(struct serial_s *serial, void *priv);
+    void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data);
+    void (*transmit_period_callback)(struct serial_s *serial, void *priv, double transmit_period);
 
     dev = (mouse_t *) malloc(sizeof(mouse_t));
     memset(dev, 0x00, sizeof(mouse_t));
@@ -898,7 +907,7 @@ sermouse_init(const device_t *info)
     sermouse_set_period(dev, 5000000.0);
 
     /* Tell them how many buttons we have. */
-    mouse_set_buttons((dev->flags & FLAG_3BTN) ? 3 : 2);
+    mouse_set_buttons(dev->but);
 
     /* Return our private data to the I/O layer. */
     return dev;

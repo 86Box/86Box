@@ -12,8 +12,7 @@
 #define TIMER_ENABLED 1
 
 #pragma pack(push, 1)
-typedef struct ts_struct_t
-{
+typedef struct ts_struct_t {
     uint32_t frac;
     uint32_t integer;
 } ts_struct_t;

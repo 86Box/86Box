@@ -152,13 +152,13 @@ aha154x_shram(x54x_t *dev, uint8_t cmd)
 static void
 aha_eeprom_save(x54x_t *dev)
 {
-    FILE *f;
+    FILE *fp;
 
-    f = nvr_fopen(dev->nvr_path, "wb");
-    if (f) {
-        fwrite(dev->nvr, 1, NVR_SIZE, f);
-        fclose(f);
-        f = NULL;
+    fp = nvr_fopen(dev->nvr_path, "wb");
+    if (fp) {
+        fwrite(dev->nvr, 1, NVR_SIZE, fp);
+        fclose(fp);
+        fp = NULL;
     }
 }
 
@@ -282,15 +282,12 @@ aha_param_len(void *priv)
         case CMD_BIOS_MBINIT:
             /* Same as 0x01 for AHA. */
             return sizeof(MailboxInit_t);
-            break;
 
         case CMD_SHADOW_RAM:
             return 1;
-            break;
 
         case CMD_WRITE_EEPROM:
             return 35;
-            break;
 
         case CMD_READ_EEPROM:
             return 3;
@@ -716,7 +713,7 @@ aha_setbios(x54x_t *dev)
     uint32_t size;
     uint32_t mask;
     uint32_t temp;
-    FILE    *f;
+    FILE    *fp;
     int      i;
 
     /* Only if this device has a BIOS ROM. */
@@ -725,7 +722,7 @@ aha_setbios(x54x_t *dev)
 
     /* Open the BIOS image file and make sure it exists. */
     aha_log("%s: loading BIOS from '%s'\n", dev->name, dev->bios_path);
-    if ((f = rom_fopen(dev->bios_path, "rb")) == NULL) {
+    if ((fp = rom_fopen(dev->bios_path, "rb")) == NULL) {
         aha_log("%s: BIOS ROM not found!\n", dev->name);
         return;
     }
@@ -737,17 +734,17 @@ aha_setbios(x54x_t *dev)
      * this special case, we can't: we may need WRITE access to the
      * memory later on.
      */
-    (void) fseek(f, 0L, SEEK_END);
-    temp = ftell(f);
-    (void) fseek(f, 0L, SEEK_SET);
+    (void) fseek(fp, 0L, SEEK_END);
+    temp = ftell(fp);
+    (void) fseek(fp, 0L, SEEK_SET);
 
     /* Load first chunk of BIOS (which is the main BIOS, aka ROM1.) */
     dev->rom1 = malloc(ROM_SIZE);
-    (void) !fread(dev->rom1, ROM_SIZE, 1, f);
+    (void) !fread(dev->rom1, ROM_SIZE, 1, fp);
     temp -= ROM_SIZE;
     if (temp > 0) {
         dev->rom2 = malloc(ROM_SIZE);
-        (void) !fread(dev->rom2, ROM_SIZE, 1, f);
+        (void) !fread(dev->rom2, ROM_SIZE, 1, fp);
         temp -= ROM_SIZE;
     } else {
         dev->rom2 = NULL;
@@ -757,13 +754,13 @@ aha_setbios(x54x_t *dev)
         free(dev->rom1);
         if (dev->rom2 != NULL)
             free(dev->rom2);
-        (void) fclose(f);
+        (void) fclose(fp);
         return;
     }
-    temp = ftell(f);
+    temp = ftell(fp);
     if (temp > ROM_SIZE)
         temp = ROM_SIZE;
-    (void) fclose(f);
+    (void) fclose(fp);
 
     /* Adjust BIOS size in chunks of 2K, as per BIOS spec. */
     size = 0x10000;
@@ -824,7 +821,7 @@ static void
 aha_setmcode(x54x_t *dev)
 {
     uint32_t temp;
-    FILE    *f;
+    FILE    *fp;
 
     /* Only if this device has a BIOS ROM. */
     if (dev->mcode_path == NULL)
@@ -832,7 +829,7 @@ aha_setmcode(x54x_t *dev)
 
     /* Open the microcode image file and make sure it exists. */
     aha_log("%s: loading microcode from '%ls'\n", dev->name, dev->bios_path);
-    if ((f = rom_fopen(dev->mcode_path, "rb")) == NULL) {
+    if ((fp = rom_fopen(dev->mcode_path, "rb")) == NULL) {
         aha_log("%s: microcode ROM not found!\n", dev->name);
         return;
     }
@@ -844,13 +841,13 @@ aha_setmcode(x54x_t *dev)
      * this special case, we can't: we may need WRITE access to the
      * memory later on.
      */
-    (void) fseek(f, 0L, SEEK_END);
-    temp = ftell(f);
-    (void) fseek(f, 0L, SEEK_SET);
+    (void) fseek(fp, 0L, SEEK_END);
+    temp = ftell(fp);
+    (void) fseek(fp, 0L, SEEK_SET);
 
     if (temp < (dev->cmd_33_offset + dev->cmd_33_len - 1)) {
         aha_log("%s: microcode ROM size invalid!\n", dev->name);
-        (void) fclose(f);
+        (void) fclose(fp);
         return;
     }
 
@@ -860,11 +857,11 @@ aha_setmcode(x54x_t *dev)
         aha1542cp_pnp_rom = NULL;
     }
     aha1542cp_pnp_rom = (uint8_t *) malloc(dev->pnp_len + 7);
-    fseek(f, dev->pnp_offset, SEEK_SET);
-    (void) !fread(aha1542cp_pnp_rom, dev->pnp_len, 1, f);
+    fseek(fp, dev->pnp_offset, SEEK_SET);
+    (void) !fread(aha1542cp_pnp_rom, dev->pnp_len, 1, fp);
     memset(&(aha1542cp_pnp_rom[4]), 0x00, 5);
-    fseek(f, dev->pnp_offset + 4, SEEK_SET);
-    (void) !fread(&(aha1542cp_pnp_rom[9]), dev->pnp_len - 4, 1, f);
+    fseek(fp, dev->pnp_offset + 4, SEEK_SET);
+    (void) !fread(&(aha1542cp_pnp_rom[9]), dev->pnp_len - 4, 1, fp);
     /* Even the real AHA-1542CP microcode seem to be flipping bit
        4 to not erroneously indicate there is a range length. */
     aha1542cp_pnp_rom[0x87] |= 0x04;
@@ -874,10 +871,10 @@ aha_setmcode(x54x_t *dev)
     aha1542cp_pnp_rom[dev->pnp_len + 6] = 0x00;
 
     /* Load the SCSISelect decompression code. */
-    fseek(f, dev->cmd_33_offset, SEEK_SET);
-    (void) !fread(dev->cmd_33_buf, dev->cmd_33_len, 1, f);
+    fseek(fp, dev->cmd_33_offset, SEEK_SET);
+    (void) !fread(dev->cmd_33_buf, dev->cmd_33_len, 1, fp);
 
-    (void) fclose(f);
+    (void) fclose(fp);
 }
 
 static void
@@ -902,7 +899,7 @@ aha_initnvr(x54x_t *dev)
 static void
 aha_setnvr(x54x_t *dev)
 {
-    FILE *f;
+    FILE *fp;
 
     /* Only if this device has an EEPROM. */
     if (dev->nvr_path == NULL)
@@ -912,12 +909,12 @@ aha_setnvr(x54x_t *dev)
     dev->nvr = (uint8_t *) malloc(NVR_SIZE);
     memset(dev->nvr, 0x00, NVR_SIZE);
 
-    f = nvr_fopen(dev->nvr_path, "rb");
-    if (f) {
-        if (fread(dev->nvr, 1, NVR_SIZE, f) != NVR_SIZE)
+    fp = nvr_fopen(dev->nvr_path, "rb");
+    if (fp) {
+        if (fread(dev->nvr, 1, NVR_SIZE, fp) != NVR_SIZE)
             fatal("aha_setnvr(): Error reading data\n");
-        fclose(f);
-        f = NULL;
+        fclose(fp);
+        fp = NULL;
     } else
         aha_initnvr(dev);
 

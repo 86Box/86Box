@@ -40,9 +40,10 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/nvr.h>
+#include <86box/plat_unused.h>
 
 static void
-machine_at_thor_common_init(const machine_t *model, int mr)
+machine_at_thor_common_init(const machine_t *model, UNUSED(int mr))
 {
     machine_at_common_init_ex(model, 2);
 

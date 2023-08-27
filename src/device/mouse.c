@@ -94,8 +94,10 @@ static mouse_t mouse_devices[] = {
     { &mouse_msserial_device     },
     { &mouse_ltserial_device     },
     { &mouse_ps2_device          },
+#ifdef USE_WACOM
     { &mouse_wacom_device        },
     { &mouse_wacom_artpad_device },
+#endif
     { NULL                       }
     // clang-format on
 };
@@ -346,6 +348,14 @@ mouse_subtract_coords(int *delta_x, int *delta_y, int *o_x, int *o_y,
 }
 
 int
+mouse_wheel_moved(void)
+{
+    int ret = !!(atomic_load(&mouse_z));
+
+    return ret;
+}
+
+int
 mouse_moved(void)
 {
     int moved_x = !!((int) floor(ABSD(mouse_scale_coord_x(atomic_load(&mouse_x), 1))));
@@ -469,7 +479,7 @@ mouse_subtract_z(int *delta_z, int min, int max, int invert)
         *delta_z = min;
         real_z += ABS(min);
     } else {
-        *delta_z = mouse_z;
+        *delta_z = real_z;
         real_z = 0;
     }
 
@@ -546,13 +556,13 @@ mouse_set_poll(int (*func)(void *), void *arg)
     mouse_priv     = arg;
 }
 
-char *
+const char *
 mouse_get_name(int mouse)
 {
-    return ((char *) mouse_devices[mouse].device->name);
+    return (mouse_devices[mouse].device->name);
 }
 
-char *
+const char *
 mouse_get_internal_name(int mouse)
 {
     return device_get_internal_name(mouse_devices[mouse].device);
