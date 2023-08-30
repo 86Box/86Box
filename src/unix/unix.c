@@ -643,12 +643,15 @@ ui_msgbox_header(int flags, void *header, void *message)
     SDL_MessageBoxData       msgdata;
     SDL_MessageBoxButtonData msgbtn;
 
+#if 0
     if (!header)
         header = (void *) (flags & MBX_ANSI) ? "86Box" : L"86Box";
+#endif
     if (header <= (void *) 7168)
-        header = (void *) plat_get_string((int) header);
+        header = (void *) plat_get_string((uintptr_t) header);
     if (message <= (void *) 7168)
-        message = (void *) plat_get_string((int) message);
+        message = (void *) plat_get_string((uintptr_t) message);
+
     msgbtn.buttonid = 1;
     msgbtn.text     = "OK";
     msgbtn.flags    = 0;
@@ -914,7 +917,7 @@ monitor_thread(void *param)
                 line = f_readline("(86Box) ");
             else {
                 printf("(86Box) ");
-                getline(&line, &n, stdin);
+                !getline(&line, &n, stdin);
             }
             if (line) {
                 int   cmdargc = 0;
