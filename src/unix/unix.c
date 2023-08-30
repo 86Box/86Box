@@ -21,6 +21,10 @@
 #include <pwd.h>
 #include <stdatomic.h>
 
+#ifdef __APPLE__
+#    include "macOSXGlue.h"
+#endif
+
 #include <86box/86box.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -40,10 +44,6 @@
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/gdbstub.h>
-
-#ifdef __APPLE__
-#    include "macOSXGlue.h"
-#endif
 
 static int      first_use = 1;
 static uint64_t StartingTime;
