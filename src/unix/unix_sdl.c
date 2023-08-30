@@ -167,6 +167,7 @@ sdl_real_blit(SDL_Rect *r_src)
     int      ret;
     int      winx;
     int      winy;
+
     SDL_GL_GetDrawableSize(sdl_win, &winx, &winy);
     SDL_RenderClear(sdl_render);
 
@@ -526,10 +527,13 @@ ui_window_title(wchar_t *str)
 void
 ui_init_monitor(int monitor_index)
 {
+    /* No-op. */
 }
+
 void
 ui_deinit_monitor(int monitor_index)
 {
+    /* No-op. */
 }
 
 void
