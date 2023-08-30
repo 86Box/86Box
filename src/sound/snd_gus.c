@@ -216,7 +216,7 @@ gus_update_int_status(gus_t *gus)
             picintclevel(1 << gus->irq, &gus->irq_state);
     }
 
-    if (gus->irq_midi != -1) {
+    if ((gus->irq_midi != -1) && (gus->irq_midi != gus->irq)) {
         if (midi_intr_pending)
             picintlevel(1 << gus->irq_midi, &gus->midi_irq_state);
         else
