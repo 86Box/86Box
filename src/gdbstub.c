@@ -631,10 +631,10 @@ gdbstub_client_respond(gdbstub_client_t *client)
     /* Send response packet. */
     client->response[client->response_pos] = '\0';
 #ifdef ENABLE_GDBSTUB_LOG
-    i                     = client->response[995]; /* pclog_ex buffer too small */
-    client->response[995] = '\0';
+    i                     = client->response[994]; /* pclog_ex buffer too small */
+    client->response[994] = '\0';
     gdbstub_log("GDB Stub: Sending response: %s\n", client->response);
-    client->response[995] = i;
+    client->response[994] = i;
 #endif
     send(client->socket, "$", 1, 0);
     send(client->socket, client->response, client->response_pos, 0);
@@ -1100,7 +1100,7 @@ e00:
             } else if (!strcmp(client->response, "C")) {
                 FAST_RESPONSE("QC1");
             } else if (!strcmp(client->response, "fThreadInfo")) {
-                FAST_RESPONSE("m 1");
+                FAST_RESPONSE("m1");
             } else if (!strcmp(client->response, "sThreadInfo")) {
                 FAST_RESPONSE("l");
             } else if (!strcmp(client->response, "Rcmd")) {
