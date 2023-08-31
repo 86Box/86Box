@@ -1100,7 +1100,7 @@ e00:
             } else if (!strcmp(client->response, "C")) {
                 FAST_RESPONSE("QC1");
             } else if (!strcmp(client->response, "fThreadInfo")) {
-                FAST_RESPONSE("m 1");
+                FAST_RESPONSE("m1");
             } else if (!strcmp(client->response, "sThreadInfo")) {
                 FAST_RESPONSE("l");
             } else if (!strcmp(client->response, "Rcmd")) {
