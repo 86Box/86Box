@@ -111,6 +111,7 @@ typedef struct gus_t {
     int      irq;
     int      dma;
     int      irq_midi;
+    int      dma2;
     uint16_t base;
     int      latch_enable;
 
@@ -600,9 +601,17 @@ writegus(uint16_t addr, uint8_t val, void *priv)
                         gus->sb_nmi = val & 0x80;
                     } else {
                         gus->dma = gus_dmas[val & 7];
+
+                        if (val & 0x40) {
+                            if (gus->dma == -1)
+                                gus->dma = gus->dma2 = gus_dmas[(val >> 3) & 7];
+                            else
+                                gus->dma2 = gus->dma;
+                        } else
+                            gus->dma2 = gus_dmas[(val >> 3) & 7];
 #if defined(DEV_BRANCH) && defined(USE_GUSMAX)
                         if (gus->type == GUS_MAX)
-                            ad1848_setdma(&gus->ad1848, gus->dma);
+                            ad1848_setdma(&gus->ad1848, gus->dma2);
 #endif
                     }
                     break;
@@ -664,7 +673,9 @@ writegus(uint16_t addr, uint8_t val, void *priv)
 #if defined(DEV_BRANCH) && defined(USE_GUSMAX)
             if (gus->type == GUS_MAX) {
                 if (gus->dma >= 4)
-                    val |= 0x30;
+                    val |= 0x10;
+                if (gus->dma2 >= 4)
+                    val |= 0x20;
                 gus->max_ctrl = (val >> 6) & 1;
                 if (val & 0x40) {
                     if ((val & 0xF) != ((addr >> 4) & 0xF)) {
