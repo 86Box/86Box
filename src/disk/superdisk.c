@@ -1887,14 +1887,14 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
                         dev->buffer[idx++] = 0x01;
                         dev->buffer[idx++] = 0x00;
                         dev->buffer[idx++] = 68;
-                        ide_padstr8(dev->buffer + idx, 8, "IMATION  "); /* Vendor */
+                        ide_padstr8(dev->buffer + idx, 8, "MATSHITA "); /* Vendor */
                         idx += 8;
                         if (dev->drv->is_240)
-                            ide_padstr8(dev->buffer + idx, 40, "SUPERDRIVE 240         "); /* Product */
+                            ide_padstr8(dev->buffer + idx, 40, "LS-240_COSM            "); /* Product */
                         else
-                            ide_padstr8(dev->buffer + idx, 40, "SUPERDRIVE 120         "); /* Product */
+                            ide_padstr8(dev->buffer + idx, 40, "LS-120_COSM            "); /* Product */
                         idx += 40;
-                        ide_padstr8(dev->buffer + idx, 20, "53R141"); /* Product */
+                        ide_padstr8(dev->buffer + idx, 20, "    04"); /* Product */
                         idx += 20;
                         break;
                     default:
@@ -1925,17 +1925,17 @@ superdisk_command(scsi_common_t *sc, uint8_t *cdb)
                 }
                 dev->buffer[7] |= 0x02;
 
-                ide_padstr8(dev->buffer + 8, 8, "IMATION  "); /* Vendor */
+                ide_padstr8(dev->buffer + 8, 8, "MATSHITA "); /* Vendor */
                 if (dev->drv->is_240) {
-                    ide_padstr8(dev->buffer + 16, 16, "SUPERDRIVE 240         "); /* Product */
-                    ide_padstr8(dev->buffer + 32, 4, "42.S");              /* Revision */
+                    ide_padstr8(dev->buffer + 16, 16, "LS-240_COSM            "); /* Product */
+                    ide_padstr8(dev->buffer + 32, 4, "  04");              /* Revision */
                     if (max_len >= 44)
-                        ide_padstr8(dev->buffer + 36, 8, "08/08/01"); /* Date? */
+                        ide_padstr8(dev->buffer + 36, 8, "07/01/01"); /* Date? */
                     if (max_len >= 122)
-                        ide_padstr8(dev->buffer + 96, 26, "(c) Copyright IMATION 2000 "); /* Copyright string */
+                        ide_padstr8(dev->buffer + 96, 26, "(c) Copyright Matshita 2001"); /* Copyright string */
                 } else {
-                    ide_padstr8(dev->buffer + 16, 16, "SUPERDRIVE 120         "); /* Product */
-                    ide_padstr8(dev->buffer + 32, 4, "E.08");              /* Revision */
+                    ide_padstr8(dev->buffer + 16, 16, "LS-120_COSM            "); /* Product */
+                    ide_padstr8(dev->buffer + 32, 4, "  04");              /* Revision */
                 }
                 idx = 36;
 
