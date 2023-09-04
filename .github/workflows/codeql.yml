@@ -113,7 +113,7 @@ jobs:
             ${{ matrix.ui.packages }}
 
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
@@ -199,7 +199,7 @@ jobs:
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
@@ -275,7 +275,7 @@ jobs:
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v2
