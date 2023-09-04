@@ -95,7 +95,7 @@ jobs:
             libvncserver:p
 
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: make
         run: >-
