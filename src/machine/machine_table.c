@@ -11300,6 +11300,45 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* It's a Intel VS440FX with a Gateway 2000 OEM BIOS */
+    {
+        .name = "[i440FX] Gateway 2000 Venus",
+        .internal_name = "GW2KVenus",
+        .type = MACHINE_TYPE_SOCKET8,
+        .chipset = MACHINE_CHIPSET_INTEL_440FX,
+        .init = machine_at_GW2KVenus_init,
+        .pad = 0,
+        .pad0 = 0,
+        .pad1 = MACHINE_AVAILABLE,
+        .pad2 = 0,
+        .cpu = {
+            .package = CPU_PKG_SOCKET8,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2100,
+            .max_voltage = 3500,
+            .min_multi = 2.0,
+            .max_multi = 3.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0,
+        .gpio = 0,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has the SMC FDC73C935's on-chip KBC with Phoenix MultiKey firmware. */
     {
         .name = "[i440FX] Micronics M6Mi",
