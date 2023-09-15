@@ -182,7 +182,6 @@ plat_serpt_set_params(void *priv)
                 term_attr.c_cflag |= CMSPAR;
 #endif
         }
-        printf("c_cflag=%08x\n", term_attr.c_cflag);
         tcsetattr(dev->master_fd, TCSANOW, &term_attr);
 #undef BAUDRATE_RANGE
     }
