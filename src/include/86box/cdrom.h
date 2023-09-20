@@ -198,8 +198,8 @@ typedef struct cdrom {
 
     void *image;
 
-    void (*insert)(void *p);
-    void (*close)(void *p);
+    void (*insert)(void *priv);
+    void (*close)(void *priv);
     uint32_t (*get_volume)(void *p, int channel);
     uint32_t (*get_channel)(void *p, int channel);
 
@@ -253,6 +253,10 @@ extern void cdrom_reload(uint8_t id);
 extern int  cdrom_image_open(cdrom_t *dev, const char *fn);
 extern void cdrom_image_close(cdrom_t *dev);
 extern void cdrom_image_reset(cdrom_t *dev);
+
+extern void cdrom_ioctl_eject(void);
+extern void cdrom_ioctl_load(void);
+extern int  cdrom_ioctl_open(cdrom_t *dev, const char d);
 
 extern void cdrom_update_cdb(uint8_t *cdb, int lba_pos,
                              int number_of_blocks);

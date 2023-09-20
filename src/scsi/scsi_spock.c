@@ -248,18 +248,18 @@ spock_rethink_irqs(spock_t *scsi)
         if (irq_pending) {
             spock_log("IRQ issued\n");
             scsi->irq_inactive = 0;
-            picintlevel(1 << scsi->irq, &scsi->irq_state);
+            picint(1 << scsi->irq);
         } else {
             /* No IRQs pending, clear IRQ state */
             spock_log("IRQ cleared\n");
             scsi->irq_status   = 0;
             scsi->irq_inactive = 1;
             scsi->status &= ~STATUS_IRQ;
-            picintclevel(1 << scsi->irq, &scsi->irq_state);
+            picintc(1 << scsi->irq);
         }
     } else {
         spock_log("IRQ disabled\n");
-        picintclevel(1 << scsi->irq, &scsi->irq_state);
+        picintc(1 << scsi->irq);
     }
 }
 

@@ -1002,7 +1002,6 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                     bytes_per_second *= (double) dev->drv->cur_speed;
                     break;
                 }
-                fallthrough;
             case 0xc0:
                 if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-541_1.0i") ||
                     !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-76S_1.00") ||
@@ -1013,7 +1012,6 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                     bytes_per_second *= (double) dev->drv->cur_speed;
                     break;
                 }
-                fallthrough;
             case 0xc1:
                 if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-541_1.0i") ||
                     !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-76S_1.00") ||
@@ -1025,7 +1023,6 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                     bytes_per_second *= (double) dev->drv->cur_speed;
                     break;
                 }
-                fallthrough;
             case 0xc2:
                 if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-541_1.0i") ||
                     !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-76S_1.00") ||
@@ -1038,7 +1035,6 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                     bytes_per_second *= (double) dev->drv->cur_speed;
                     break;
                 }
-                fallthrough;
             case 0xc3:
                 if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-541_1.0i") ||
                     !strcmp(cdrom_drive_types[dev->drv->type].internal_name, "SONY_CD-ROM_CDU-76S_1.00") ||
@@ -1050,7 +1046,6 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                     bytes_per_second *= (double) dev->drv->cur_speed;
                     break;
                 }
-                fallthrough;
             case 0xdd:
             case 0xde:
                 if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "NEC_CD-ROM_DRIVE38_1.03") ||
@@ -1861,7 +1856,6 @@ begin:
                 scsi_cdrom_command_complete(dev);
                 break;
             }
-            fallthrough;
         case GPCMD_SET_SPEED:
             dev->drv->cur_speed = (cdb[3] | (cdb[2] << 8)) / 176;
             if (dev->drv->cur_speed < 1)
@@ -1957,7 +1951,6 @@ begin:
                 dev->sony_vendor    = 1;
                 goto begin;
             }      /*GPCMD_READ_DISC_INFORMATION_TOSHIBA*/
-            fallthrough;
         case 0xDE: /*GPCMD_READ_DISC_INFORMATION_NEC*/
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
             scsi_cdrom_buf_alloc(dev, 4);
@@ -2494,7 +2487,6 @@ begin:
                 scsi_cdrom_command_complete(dev);
                 break;
             } /*GPCMD_AUDIO_TRACK_SEARCH_TOSHIBA and GPCMD_EJECT_CHINON*/
-            fallthrough;
         case 0xD8: /*GPCMD_AUDIO_TRACK_SEARCH_NEC*/
             if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "CHINON_CD-ROM_CDS-431_H42")) {
                 scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
@@ -2572,7 +2564,6 @@ begin:
                 scsi_cdrom_data_command_finish(dev, len, len, len, 0);
                 return;
             } /*GPCMD_PLAY_AUDIO_TOSHIBA*/
-            fallthrough;
         case 0xD9: /*GPCMD_PLAY_AUDIO_NEC*/
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             if ((dev->drv->host_drive < 1) || (dev->drv->cd_status <= CD_STATUS_DATA_ONLY)) {
@@ -2759,7 +2750,6 @@ begin:
                     scsi_cdrom_illegal_mode(dev);
                 break;
             }      /*GPCMD_READ_SUBCODEQ_PLAYING_STATUS_TOSHIBA and GPCMD_STOP_CHINON*/
-            fallthrough;
         case 0xDD: /*GPCMD_READ_SUBCODEQ_PLAYING_STATUS_NEC*/
             if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "CHINON_CD-ROM_CDS-431_H42")) {
                 scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
@@ -2903,7 +2893,6 @@ begin:
                 scsi_cdrom_data_command_finish(dev, len, len, len, 0);
                 break;
             } /*GPCMD_CADDY_EJECT_TOSHIBA and GPCMD_CADDY_EJECT_NEC*/
-            fallthrough;
         case 0xDC:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
             scsi_cdrom_stop(sc);
@@ -3303,7 +3292,6 @@ atapi_out:
                 scsi_cdrom_command_complete(dev);
                 break;
             }
-            fallthrough;
         case 0xC8:
             if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b")) { /*GPCMD_PLAY_AUDIO_TRACK_INDEX_MATSUSHITA*/
                 cdb[0]              = GPCMD_PLAY_AUDIO_TRACK_INDEX;
@@ -3332,8 +3320,8 @@ atapi_out:
                     scsi_cdrom_command_complete(dev);
                 else
                     scsi_cdrom_illegal_mode(dev);
+                break;
             }
-            fallthrough;
         case 0xC9:
             if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b")) { /*GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10_MATSUSHITA*/
                 cdb[0]              = GPCMD_PLAY_AUDIO_TRACK_RELATIVE_10;
@@ -3368,7 +3356,6 @@ atapi_out:
                     scsi_cdrom_illegal_mode(dev);
                 break;
             }
-            fallthrough;
         case 0xCA:
             if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "PIONEER_CD-ROM_DRM-604X_2403")) { /*GPCMD_PAUSE_PIONEER*/
                 scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
@@ -3376,7 +3363,6 @@ atapi_out:
                 scsi_cdrom_command_complete(dev);
                 break;
             }
-            fallthrough;
         case 0xCB:
             if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b")) { /*GPCMD_PAUSE_RESUME_MATSUSHITA*/
                 cdb[0]              = GPCMD_PAUSE_RESUME;
@@ -3388,7 +3374,6 @@ atapi_out:
                 scsi_cdrom_command_complete(dev);
                 break;
             }
-            fallthrough;
         case 0xCC:
             if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "PIONEER_CD-ROM_DRM-604X_2403")) { /*GPCMD_PLAYBACK_STATUS_PIONEER*/
                 scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
@@ -3412,7 +3397,6 @@ atapi_out:
                 scsi_cdrom_data_command_finish(dev, len, len, len, 0);
                 break;
             }
-            fallthrough;
         case 0xE0:
             if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "PIONEER_CD-ROM_DRM-604X_2403")) { /*GPCMD_DRIVE_STATUS_PIONEER*/
                 scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
@@ -3448,14 +3432,12 @@ atapi_out:
                 scsi_cdrom_data_command_finish(dev, len, len, alloc_length, 0);
                 return;
             }
-            fallthrough;
         case 0xE5:
             if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b")) { /*GPCMD_PLAY_AUDIO_12_MATSUSHITA*/
                 cdb[0]              = GPCMD_PLAY_AUDIO_12;
                 dev->current_cdb[0] = cdb[0];
                 goto begin;
             }
-            fallthrough;
         case 0xE9:
             if (!strcmp(cdrom_drive_types[dev->drv->type].internal_name, "MATSHITA_CD-ROM_CR-501_1.0b")) { /*GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12_MATSUSHITA*/
                 cdb[0]              = GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12;
