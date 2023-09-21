@@ -5518,7 +5518,7 @@ const machine_t machines[] = {
         .pad2 = 0,
         .cpu = {
             .package = CPU_PKG_SOCKET1,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_i486SX, CPU_i486SX_SLENH, CPU_Am486SX, CPU_Cx486S),
             .min_bus = 0,
             .max_bus = 0,
             .min_voltage = 0,
@@ -6955,7 +6955,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCIV,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
-            .min = 1024,
+            .min = 2048,
             .max = 261120,
             .step = 1024
         },
@@ -6995,7 +6995,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
-            .min = 1024,
+            .min = 2048,
             .max = 261120,
             .step = 1024
         },
