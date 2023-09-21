@@ -29,6 +29,7 @@
 #include "cpu.h"
 #include "x86_ops.h"
 #include "x86.h"
+#include "x86seg_common.h"
 #include <86box/machine.h>
 #include <86box/m_xt_xi8088.h>
 #include <86box/config.h>
@@ -73,7 +74,6 @@ mem_readw_map(uint32_t addr)
 {
     mem_mapping_t  *map = read_mapping[addr >> MEM_GRANULARITY_BITS];
     uint16_t        ret;
-    const uint16_t *p;
 
     mem_logical_addr = 0xffffffff;
 
@@ -92,7 +92,6 @@ mem_readl_map(uint32_t addr)
 {
     mem_mapping_t  *map = read_mapping[addr >> MEM_GRANULARITY_BITS];
     uint32_t        ret;
-    const uint32_t *p;
 
     mem_logical_addr = 0xffffffff;
 
@@ -121,7 +120,6 @@ void
 mem_writew_map(uint32_t addr, uint16_t val)
 {
     mem_mapping_t  *map = read_mapping[addr >> MEM_GRANULARITY_BITS];
-    const uint16_t *p;
 
     mem_logical_addr = 0xffffffff;
 
@@ -137,7 +135,6 @@ void
 mem_writel_map(uint32_t addr, uint32_t val)
 {
     mem_mapping_t  *map = read_mapping[addr >> MEM_GRANULARITY_BITS];
-    const uint32_t *p;
 
     mem_logical_addr = 0xffffffff;
 

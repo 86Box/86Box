@@ -25,6 +25,7 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include "cpu.h"
+#include "x86seg.h"
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/pic.h>
@@ -149,8 +150,8 @@ typedef struct atkbc_t {
     /* Local copies of the pointers to both ports for easier swapping (AMI '5' MegaKey). */
     kbc_at_port_t     *ports[2];
 
-    uint8_t (*write60_ven)(void *p, uint8_t val);
-    uint8_t (*write64_ven)(void *p, uint8_t val);
+    uint8_t (*write60_ven)(void *priv, uint8_t val);
+    uint8_t (*write64_ven)(void *priv, uint8_t val);
 } atkbc_t;
 
 /* Keyboard controller ports. */
@@ -502,7 +503,6 @@ at_main_ibf:
             dev->state = STATE_MAIN_IBF;
             dev->pending = 0;
             goto at_main_ibf;
-            break;
         case STATE_KBC_OUT:
             /* Keyboard controller command want to output multiple bytes. */
             if (dev->status & STAT_IFULL) {
@@ -646,7 +646,6 @@ ps2_main_ibf:
             dev->state = STATE_MAIN_IBF;
             dev->pending = 0;
             goto ps2_main_ibf;
-            break;
         case STATE_KBC_OUT:
             /* Keyboard controller command want to output multiple bytes. */
             if (dev->status & STAT_IFULL) {
@@ -759,7 +758,7 @@ write_p2(atkbc_t *dev, uint8_t val)
                    correctly despite A20 being gated when the CPU is reset, this will
                    have to do. */
                 else if (kbc_ven == KBC_VEN_SIEMENS)
-                    loadcs(0xF000);
+                    is486 ? loadcs(0xf000) : loadcs_2386(0xf000);
             }
         }
     }

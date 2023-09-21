@@ -188,7 +188,7 @@ ibm8514_log(const char *fmt, ...)
         dev->changedvram[(((addr)) & (dev->vram_mask)) >> 12] = changeframecount; \
     }
 
-int ibm8514_has_vga = 0;
+int ibm8514_active = 0;
 
 int
 ibm8514_cpu_src(svga_t *svga)
@@ -1297,7 +1297,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
     /*Bit 4 of the Command register is the draw yes bit, which enables writing to memory/reading from memory when enabled.
       When this bit is disabled, no writing to memory/reading from memory is allowed. (This bit is almost meaningless on
       the NOP command)*/
-    ibm8514_log("CMD8514: CMD=%d, full=%04x, ssvdraw=%x.\n", cmd, dev->accel.cmd, dev->accel.ssv_draw);
+    ibm8514_log("CMD8514: CMD=%d, full=%04x, pixcntl=%x, count=%d.\n", cmd, dev->accel.cmd, pixcntl, count);
 
     switch (cmd) {
         case 0: /*NOP (Short Stroke Vectors)*/
@@ -2007,7 +2007,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                 if (dev->accel.cur_y >= 0x600)
                     dev->accel.cy |= ~0x5ff;
 
-                if ((dev->local >= 2) && dev->accel.ge_offset && (svga->bpp == 24))
+                if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
                     dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                 else
                     dev->accel.dest = dev->accel.cy * dev->pitch;
@@ -2059,7 +2059,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         if (!(dev->accel.cmd & 0x40) && (frgd_mix == 2) && (bkgd_mix == 2) && (pixcntl == 0) && (cmd == 2)) {
                             if (!(dev->accel.sx & 1)) {
                                 dev->accel.output = 1;
-                                if ((dev->local >= 2) && dev->accel.ge_offset && (svga->bpp == 24))
+                                if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
                                     dev->accel.newdest_out = (dev->accel.ge_offset << 2) + ((dev->accel.cy + 1) * dev->pitch);
                                 else
                                     dev->accel.newdest_out = (dev->accel.cy + 1) * dev->pitch;
@@ -2073,7 +2073,10 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                     if (!(dev->accel.cmd & 2) && (frgd_mix == 2) && (pixcntl == 0) && (cmd == 2)) {
                         if (!(dev->accel.sx & 1)) {
                             dev->accel.input      = 1;
-                            dev->accel.newdest_in = (dev->accel.cy + 1) * dev->pitch;
+                            if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                dev->accel.newdest_in = (dev->accel.ge_offset << 2) + ((dev->accel.cy + 1) * dev->pitch);
+                            else
+                                dev->accel.newdest_in = (dev->accel.cy + 1) * dev->pitch;
                         }
                     } else if (dev->accel.cmd & 2) {
                         if (dev->accel.cmd & 8) {
@@ -2253,7 +2256,10 @@ rect_fill_pix:
                                         break;
                                 }
 
-                                dev->accel.dest = dev->accel.cy * dev->pitch;
+                                if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                    dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                                else
+                                    dev->accel.dest = dev->accel.cy * dev->pitch;
                                 dev->accel.sy--;
                                 return;
                             }
@@ -2335,7 +2341,7 @@ rect_fill_pix:
                                 else
                                     dev->accel.cy--;
 
-                                if ((dev->local >= 2) && dev->accel.ge_offset && (svga->bpp == 24))
+                                if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
                                     dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                                 else
                                     dev->accel.dest = dev->accel.cy * dev->pitch;
@@ -2427,7 +2433,7 @@ rect_fill_pix:
                                 else
                                     dev->accel.cy--;
 
-                                if ((dev->local >= 2) && dev->accel.ge_offset && (svga->bpp == 24))
+                                if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
                                     dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                                 else
                                     dev->accel.dest = dev->accel.cy * dev->pitch;
@@ -2485,8 +2491,14 @@ rect_fill_pix:
                                             dev->accel.cy++;
                                         else
                                             dev->accel.cy--;
-                                        dev->accel.dest       = dev->accel.cy * dev->pitch;
-                                        dev->accel.newdest_in = (dev->accel.cy + 1) * dev->pitch;
+
+                                        if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24)) {
+                                            dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                                            dev->accel.newdest_in = (dev->accel.ge_offset << 2) + ((dev->accel.cy + 1) * dev->pitch);
+                                        } else {
+                                            dev->accel.dest       = dev->accel.cy * dev->pitch;
+                                            dev->accel.newdest_in = (dev->accel.cy + 1) * dev->pitch;
+                                        }
                                         dev->accel.sy--;
                                         return;
                                     }
@@ -2504,8 +2516,14 @@ rect_fill_pix:
                                             dev->accel.cy++;
                                         else
                                             dev->accel.cy--;
-                                        dev->accel.dest       = dev->accel.cy * dev->pitch;
-                                        dev->accel.newdest_in = (dev->accel.cy + 1) * dev->pitch;
+
+                                        if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24)) {
+                                            dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                                            dev->accel.newdest_in = (dev->accel.ge_offset << 2) + ((dev->accel.cy + 1) * dev->pitch);
+                                        } else {
+                                            dev->accel.dest       = dev->accel.cy * dev->pitch;
+                                            dev->accel.newdest_in = (dev->accel.cy + 1) * dev->pitch;
+                                        }
                                         dev->accel.sy--;
                                         return;
                                     }
@@ -2555,8 +2573,13 @@ rect_fill_pix:
                                         else
                                             dev->accel.cy--;
 
-                                        dev->accel.dest        = dev->accel.cy * dev->pitch;
-                                        dev->accel.newdest_out = (dev->accel.cy + 1) * dev->pitch;
+                                        if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24)) {
+                                            dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                                            dev->accel.newdest_out = (dev->accel.ge_offset << 2) + ((dev->accel.cy + 1) * dev->pitch);
+                                        } else {
+                                            dev->accel.dest        = dev->accel.cy * dev->pitch;
+                                            dev->accel.newdest_out = (dev->accel.cy + 1) * dev->pitch;
+                                        }
                                         dev->accel.sy--;
                                         return;
                                     }
@@ -2575,8 +2598,13 @@ rect_fill_pix:
                                         else
                                             dev->accel.cy--;
 
-                                        dev->accel.dest        = dev->accel.cy * dev->pitch;
-                                        dev->accel.newdest_out = (dev->accel.cy + 1) * dev->pitch;
+                                        if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24)) {
+                                            dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                                            dev->accel.newdest_out = (dev->accel.ge_offset << 2) + ((dev->accel.cy + 1) * dev->pitch);
+                                        } else {
+                                            dev->accel.dest        = dev->accel.cy * dev->pitch;
+                                            dev->accel.newdest_out = (dev->accel.cy + 1) * dev->pitch;
+                                        }
                                         dev->accel.sy--;
                                         return;
                                     }
@@ -2660,7 +2688,11 @@ rect_fill_pix:
                                     else
                                         dev->accel.cy--;
 
-                                    dev->accel.dest = dev->accel.cy * dev->pitch;
+                                    if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                        dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                                    else
+                                        dev->accel.dest = dev->accel.cy * dev->pitch;
+
                                     dev->accel.sy--;
                                     return;
                                 }
@@ -2733,7 +2765,11 @@ rect_fill:
                                     else
                                         dev->accel.cy--;
 
-                                    dev->accel.dest = dev->accel.cy * dev->pitch;
+                                    if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                        dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                                    else
+                                        dev->accel.dest = dev->accel.cy * dev->pitch;
+
                                     dev->accel.sy--;
 
                                     dev->accel.cur_x = dev->accel.cx;
@@ -2800,7 +2836,11 @@ rect_fill:
                                     else
                                         dev->accel.cy--;
 
-                                    dev->accel.dest = dev->accel.cy * dev->pitch;
+                                    if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                        dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                                    else
+                                        dev->accel.dest = dev->accel.cy * dev->pitch;
+
                                     dev->accel.sy--;
 
                                     if (dev->accel.sy < 0) {
@@ -2881,7 +2921,11 @@ rect_fill:
                                     else
                                         dev->accel.cy--;
 
-                                    dev->accel.dest = dev->accel.cy * dev->pitch;
+                                    if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                        dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                                    else
+                                        dev->accel.dest = dev->accel.cy * dev->pitch;
+
                                     dev->accel.sy--;
 
                                     if (dev->accel.sy < 0) {
@@ -2944,7 +2988,11 @@ rect_fill:
                                     else
                                         dev->accel.cy--;
 
-                                    dev->accel.dest = dev->accel.cy * dev->pitch;
+                                    if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                        dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
+                                    else
+                                        dev->accel.dest = dev->accel.cy * dev->pitch;
+
                                     dev->accel.sy--;
 
                                     if (dev->accel.sy < 0) {
@@ -3609,7 +3657,7 @@ bitblt:
                             }
                         }
                     } else {
-                        if ((svga->bpp == 24) && (dev->local >= 2) && (dev->accel.cmd == 0xc2b5)) {
+                        if ((dev->accel_bpp == 24) && (dev->local >= 2) && (dev->accel.cmd == 0xc2b5)) {
                             int64_t cx;
                             int64_t dx;
 
@@ -4224,7 +4272,7 @@ ibm8514_recalctimings(svga_t *svga)
             svga->clock = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
         }
         svga->render8514 = ibm8514_render_8bpp;
-        ibm8514_log("BPP=%d, Pitch = %d, rowoffset = %d, crtc13 = %02x, mode = %d, highres bit = %02x, has_vga? = %d.\n", dev->bpp, dev->pitch, dev->rowoffset, svga->crtc[0x13], dev->ibm_mode, dev->accel.advfunc_cntl & 4, ibm8514_has_vga);
+        ibm8514_log("BPP=%d, Pitch = %d, rowoffset = %d, crtc13 = %02x, mode = %d, highres bit = %02x, has_vga? = %d.\n", dev->bpp, dev->pitch, dev->rowoffset, svga->crtc[0x13], dev->ibm_mode, dev->accel.advfunc_cntl & 4, !ibm8514_standalone_enabled);
     }
     ibm8514_log("8514 enabled, hdisp=%d, vtotal=%d, htotal=%d, dispend=%d, rowoffset=%d, split=%d, vsyncstart=%d, split=%08x\n", dev->hdisp, dev->vtotal, dev->htotal, dev->dispend, dev->rowoffset, dev->split, dev->vsyncstart, dev->split);
 }
@@ -4351,7 +4399,7 @@ const device_t ibm8514_mca_device = {
 void
 ibm8514_device_add(void)
 {
-    if (!ibm8514_enabled || (ibm8514_enabled && ibm8514_has_vga))
+    if (!ibm8514_standalone_enabled)
         return;
 
     if (machine_has_bus(machine, MACHINE_BUS_MCA))

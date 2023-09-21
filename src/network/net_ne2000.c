@@ -812,7 +812,7 @@ static void
 nic_rom_init(nic_t *dev, char *s)
 {
     uint32_t temp;
-    FILE    *f;
+    FILE    *fp;
 
     if (s == NULL)
         return;
@@ -820,10 +820,10 @@ nic_rom_init(nic_t *dev, char *s)
     if (dev->bios_addr == 0)
         return;
 
-    if ((f = rom_fopen(s, "rb")) != NULL) {
-        fseek(f, 0L, SEEK_END);
-        temp = ftell(f);
-        fclose(f);
+    if ((fp = rom_fopen(s, "rb")) != NULL) {
+        fseek(fp, 0L, SEEK_END);
+        temp = ftell(fp);
+        fclose(fp);
         dev->bios_size = 0x10000;
         if (temp <= 0x8000)
             dev->bios_size = 0x8000;

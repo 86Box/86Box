@@ -12,7 +12,7 @@
 # After a successful build, you can install the RPMs as follows:
 #  sudo dnf install RPMS/$(uname -m)/86Box-3* RPMS/noarch/86Box-roms*
 
-%global romver 3.11
+%global romver 4.0
 
 Name:		86Box
 Version:	4.1
@@ -27,11 +27,14 @@ Source1:	https://github.com/86Box/roms/archive/refs/tags/v%{romver}.zip
 BuildRequires: cmake
 BuildRequires: desktop-file-utils
 BuildRequires: extra-cmake-modules
+BuildRequires: fluidsynth-devel
 BuildRequires: freetype-devel
 BuildRequires: gcc-c++
 BuildRequires: libFAudio-devel
 BuildRequires: libappstream-glib
+BuildRequires: libatomic
 BuildRequires: libevdev-devel
+BuildRequires: libslirp-devel
 BuildRequires: libxkbcommon-x11-devel
 BuildRequires: libXi-devel
 BuildRequires: ninja-build
@@ -118,5 +121,5 @@ popd
 %{_datadir}/%{name}/roms
 
 %changelog
-* Sat Jul 29 2023 Robert de Rooy <robert.de.rooy[AT]gmail.com> 4.1-1
+* Sat Aug 26 2023 Robert de Rooy <robert.de.rooy[AT]gmail.com> 4.1-1
 - Bump release

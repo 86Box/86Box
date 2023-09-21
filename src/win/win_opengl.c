@@ -236,9 +236,9 @@ handle_window_messages(UINT message, WPARAM wParam, LPARAM lParam, int fullscree
                 PRAWINPUT raw  = NULL;
 
                 /* Here we read the raw input data */
-                GetRawInputData((HRAWINPUT) (LPARAM) lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+                GetRawInputData((HRAWINPUT) lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
                 raw = (PRAWINPUT) malloc(size);
-                if (GetRawInputData((HRAWINPUT) (LPARAM) lParam, RID_INPUT, raw, &size, sizeof(RAWINPUTHEADER)) == size) {
+                if (GetRawInputData((HRAWINPUT) lParam, RID_INPUT, raw, &size, sizeof(RAWINPUTHEADER)) == size) {
                     switch (raw->header.dwType) {
                         case RIM_TYPEKEYBOARD:
                             keyboard_handle(raw);
@@ -447,8 +447,8 @@ opengl_fail(void)
         window = NULL;
     }
 
-    wchar_t *message = plat_get_string(IDS_2153);
-    wchar_t *header  = plat_get_string(IDS_2154);
+    const wchar_t *message = plat_get_string(IDS_2153);
+    const wchar_t *header  = plat_get_string(IDS_2154);
     MessageBox(parent, header, message, MB_OK);
 
     WaitForSingleObject(sync_objects.closing, INFINITE);
@@ -456,7 +456,7 @@ opengl_fail(void)
     _endthread();
 }
 
-static void __stdcall opengl_debugmsg_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar *message, const void *userParam)
+static void __stdcall opengl_debugmsg_callback(UNUSED(GLenum source), UNUSED(GLenum type), UNUSED(GLuint id), UNUSED(GLenum severity), UNUSED(GLsizei length), const GLchar *message, UNUSED(const void *userParam))
 {
     pclog("OpenGL: %s\n", message);
 }
@@ -468,7 +468,7 @@ static void __stdcall opengl_debugmsg_callback(GLenum source, GLenum type, GLuin
  * Events are used to synchronize communication.
  */
 static void
-opengl_main(void *param)
+opengl_main(UNUSED(void *param))
 {
     /* Initialize COM library for this thread before SDL does so. */
     CoInitializeEx(NULL, COINIT_MULTITHREADED);
@@ -638,7 +638,7 @@ opengl_main(void *param)
 
         } while (wait_result == WAIT_TIMEOUT);
 
-        HANDLE sync_event = sync_objects.asArray[wait_result - WAIT_OBJECT_0];
+        const HANDLE sync_event = sync_objects.asArray[wait_result - WAIT_OBJECT_0];
 
         if (sync_event == sync_objects.closing) {
             closing = 1;
@@ -902,7 +902,7 @@ opengl_init(HWND hwnd)
 
     write_pos = 0;
 
-    thread = thread_create(opengl_main, (void *) NULL);
+    thread = thread_create(opengl_main, NULL);
 
     atexit(opengl_close);
 
@@ -936,7 +936,7 @@ opengl_close(void)
 
     for (int i = 0; i < sizeof(sync_objects) / sizeof(HANDLE); i++) {
         CloseHandle(sync_objects.asArray[i]);
-        sync_objects.asArray[i] = (HANDLE) NULL;
+        sync_objects.asArray[i] = NULL;
     }
 
     parent = NULL;

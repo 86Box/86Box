@@ -161,36 +161,36 @@ extern "C" {
 #endif
 
 extern void  device_init(void);
-extern void  device_set_context(device_context_t *c, const device_t *d, int inst);
-extern void  device_context(const device_t *d);
-extern void  device_context_inst(const device_t *d, int inst);
+extern void  device_set_context(device_context_t *c, const device_t *dev, int inst);
+extern void  device_context(const device_t *dev);
+extern void  device_context_inst(const device_t *dev, int inst);
 extern void  device_context_restore(void);
 extern void *device_add(const device_t *d);
-extern void *device_add_parameters(const device_t *d, void *params);
-extern void  device_add_ex(const device_t *d, void *priv);
-extern void  device_add_ex_parameters(const device_t *d, void *priv, void *params);
-extern void *device_add_inst(const device_t *d, int inst);
-extern void *device_add_inst_parameters(const device_t *d, int inst, void *params);
-extern void  device_add_inst_ex(const device_t *d, void *priv, int inst);
-extern void  device_add_inst_ex_parameters(const device_t *d, void *priv, int inst, void *params);
-extern void *device_cadd(const device_t *d, const device_t *cd);
-extern void *device_cadd_parameters(const device_t *d, const device_t *cd, void *params);
-extern void  device_cadd_ex(const device_t *d, const device_t *cd, void *priv);
-extern void  device_cadd_ex_parameters(const device_t *d, const device_t *cd, void *priv, void *params);
-extern void *device_cadd_inst(const device_t *d, const device_t *cd, int inst);
-extern void *device_cadd_inst_parameters(const device_t *d, const device_t *cd, int inst, void *params);
-extern void  device_cadd_inst_ex(const device_t *d, const device_t *cd, void *priv, int inst);
-extern void  device_cadd_inst_ex_parameters(const device_t *d, const device_t *cd, void *priv, int inst, void *params);
+extern void *device_add_parameters(const device_t *dev, void *params);
+extern void  device_add_ex(const device_t *dev, void *priv);
+extern void  device_add_ex_parameters(const device_t *dev, void *priv, void *params);
+extern void *device_add_inst(const device_t *dev, int inst);
+extern void *device_add_inst_parameters(const device_t *dev, int inst, void *params);
+extern void  device_add_inst_ex(const device_t *dev, void *priv, int inst);
+extern void  device_add_inst_ex_parameters(const device_t *dev, void *priv, int inst, void *params);
+extern void *device_cadd(const device_t *dev, const device_t *cd);
+extern void *device_cadd_parameters(const device_t *dev, const device_t *cd, void *params);
+extern void  device_cadd_ex(const device_t *dev, const device_t *cd, void *priv);
+extern void  device_cadd_ex_parameters(const device_t *dev, const device_t *cd, void *priv, void *params);
+extern void *device_cadd_inst(const device_t *dev, const device_t *cd, int inst);
+extern void *device_cadd_inst_parameters(const device_t *dev, const device_t *cd, int inst, void *params);
+extern void  device_cadd_inst_ex(const device_t *dev, const device_t *cd, void *priv, int inst);
+extern void  device_cadd_inst_ex_parameters(const device_t *dev, const device_t *cd, void *priv, int inst, void *params);
 extern void  device_close_all(void);
 extern void  device_reset_all(uint32_t match_flags);
-extern void *device_get_priv(const device_t *d);
-extern int   device_available(const device_t *d);
-extern int   device_poll(const device_t *d);
+extern void *device_get_priv(const device_t *dev);
+extern int   device_available(const device_t *dev);
+extern int   device_poll(const device_t *dev);
 extern void  device_speed_changed(void);
 extern void  device_force_redraw(void);
-extern void  device_get_name(const device_t *d, int bus, char *name);
-extern int   device_has_config(const device_t *d);
-extern const char *device_get_bios_file(const device_t *d, const char *internal_name, int file_no);
+extern void  device_get_name(const device_t *dev, int bus, char *name);
+extern int   device_has_config(const device_t *dev);
+extern const char *device_get_bios_file(const device_t *dev, const char *internal_name, int file_no);
 
 extern int device_is_valid(const device_t *, int m);
 
@@ -207,7 +207,7 @@ extern const char *device_get_config_string(const char *name);
 extern const int   device_get_instance(void);
 #define device_get_config_bios device_get_config_string
 
-extern char *device_get_internal_name(const device_t *d);
+extern const char *device_get_internal_name(const device_t *dev);
 
 extern int   machine_get_config_int(char *s);
 extern char *machine_get_config_string(char *s);

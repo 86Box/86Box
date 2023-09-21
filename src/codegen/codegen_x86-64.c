@@ -11,8 +11,11 @@
 #    include "x86.h"
 #    include "x86_flags.h"
 #    include "x86_ops.h"
+#    include "x86seg_common.h"
+#    include "x86seg.h"
 #    include "x87.h"
 #    include <86box/mem.h>
+#    include <86box/plat_unused.h>
 
 #    include "386_common.h"
 
@@ -29,7 +32,8 @@
 #        include <windows.h>
 #    endif
 
-int      codegen_flat_ds, codegen_flat_ss;
+int      codegen_flat_ds;
+int      codegen_flat_ss;
 int      codegen_flags_changed = 0;
 int      codegen_fpu_entered   = 0;
 int      codegen_fpu_loaded_iq[8];
@@ -63,8 +67,6 @@ static int      last_ssegs;
 void
 codegen_init(void)
 {
-    int c;
-
 #    if _WIN64
     codeblock = VirtualAlloc(NULL, BLOCK_SIZE * sizeof(codeblock_t), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 #    elif defined(__unix__) || defined(__APPLE__) || defined(__HAIKU__)
@@ -77,26 +79,25 @@ codegen_init(void)
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
     memset(codeblock_hash, 0, HASH_SIZE * sizeof(codeblock_t *));
 
-    for (c = 0; c < BLOCK_SIZE; c++)
+    for (int c = 0; c < BLOCK_SIZE; c++)
         codeblock[c].valid = 0;
 }
 
 void
 codegen_reset(void)
 {
-    int c;
-
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
     memset(codeblock_hash, 0, HASH_SIZE * sizeof(codeblock_t *));
     mem_reset_page_blocks();
 
-    for (c = 0; c < BLOCK_SIZE; c++)
+    for (int c = 0; c < BLOCK_SIZE; c++)
         codeblock[c].valid = 0;
 }
 
 void
 dump_block(void)
 {
+    //
 }
 
 static void
@@ -534,6 +535,7 @@ int opcode_0f_modrm[256] = {
 void
 codegen_debug(void)
 {
+    //
 }
 
 static x86seg *

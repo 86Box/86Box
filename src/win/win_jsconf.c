@@ -150,7 +150,7 @@ static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
-joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+joystickconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, UNUSED(LPARAM lParam))
 {
     HWND h;
     int  c;

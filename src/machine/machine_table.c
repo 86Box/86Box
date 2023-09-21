@@ -1892,7 +1892,7 @@ const machine_t machines[] = {
             .package = CPU_PKG_8086,
             .block = CPU_BLOCK_NONE,
             .min_bus = 0,
-            .max_bus = 0,
+            .max_bus = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -1930,7 +1930,7 @@ const machine_t machines[] = {
             .package = CPU_PKG_8086,
             .block = CPU_BLOCK_NONE,
             .min_bus = 0,
-            .max_bus = 0,
+            .max_bus = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -1968,7 +1968,7 @@ const machine_t machines[] = {
             .package = CPU_PKG_8086,
             .block = CPU_BLOCK_NONE,
             .min_bus = 0,
-            .max_bus = 0,
+            .max_bus = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -2006,7 +2006,7 @@ const machine_t machines[] = {
             .package = CPU_PKG_8086,
             .block = CPU_BLOCK_NONE,
             .min_bus = 0,
-            .max_bus = 0,
+            .max_bus = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -2044,7 +2044,7 @@ const machine_t machines[] = {
             .package = CPU_PKG_8086,
             .block = CPU_BLOCK_NONE,
             .min_bus = 0,
-            .max_bus = 0,
+            .max_bus = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -3067,7 +3067,7 @@ const machine_t machines[] = {
             .max_multi = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags = MACHINE_FLAGS_NONE,
+        .flags = MACHINE_SOFTFLOAT_ONLY,
         .ram = {
             .min = 512,
             .max = 16384,
@@ -4708,11 +4708,11 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
-        .name = "[ISA] Compaq Deskpro 386 (January 1988)",
-        .internal_name = "deskpro386_01_1988",
+        .name = "[ISA] Compaq Deskpro 386 (May 1988)",
+        .internal_name = "deskpro386_05_1988",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_DISCRETE,
-        .init = machine_at_deskpro386_01_1988_init,
+        .init = machine_at_deskpro386_05_1988_init,
         .pad = 0,
         .pad0 = 0,
         .pad1 = MACHINE_AVAILABLE,
@@ -5518,7 +5518,7 @@ const machine_t machines[] = {
         .pad2 = 0,
         .cpu = {
             .package = CPU_PKG_SOCKET1,
-            .block = CPU_BLOCK_NONE,
+            .block = CPU_BLOCK(CPU_i486SX, CPU_i486SX_SLENH, CPU_Am486SX, CPU_Cx486S),
             .min_bus = 0,
             .max_bus = 0,
             .min_voltage = 0,
@@ -6955,7 +6955,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCIV,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
-            .min = 1024,
+            .min = 2048,
             .max = 261120,
             .step = 1024
         },
@@ -6995,7 +6995,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
-            .min = 1024,
+            .min = 2048,
             .max = 261120,
             .step = 1024
         },
@@ -7752,7 +7752,7 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_VIDEO_8514A | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
             .max = 131072,
@@ -13059,16 +13059,16 @@ machine_count(void)
     return ((sizeof(machines) / sizeof(machine_t)) - 1);
 }
 
-char *
+const char *
 machine_getname(void)
 {
-    return ((char *) machines[machine].name);
+    return (machines[machine].name);
 }
 
-char *
+const char *
 machine_getname_ex(int m)
 {
-    return ((char *) machines[m].name);
+    return (machines[m].name);
 }
 
 const device_t *
@@ -13134,16 +13134,16 @@ machine_get_net_device(int m)
     return (NULL);
 }
 
-char *
+const char *
 machine_get_internal_name(void)
 {
-    return ((char *) machines[machine].internal_name);
+    return (machines[machine].internal_name);
 }
 
-char *
+const char *
 machine_get_internal_name_ex(int m)
 {
-    return ((char *) machines[m].internal_name);
+    return (machines[m].internal_name);
 }
 
 int
@@ -13199,12 +13199,12 @@ machine_get_type(int m)
 }
 
 int
-machine_get_machine_from_internal_name(char *s)
+machine_get_machine_from_internal_name(const char *s)
 {
     int c = 0;
 
     while (machines[c].init != NULL) {
-        if (!strcmp(machines[c].internal_name, (const char *) s))
+        if (!strcmp(machines[c].internal_name, s))
             return c;
         c++;
     }

@@ -33,6 +33,7 @@
 #include <86box/machine.h>
 #include <86box/io.h>
 #include "x86_ops.h"
+#include "x86seg_common.h"
 #include <86box/mem.h>
 #include <86box/nmi.h>
 #include <86box/pic.h>

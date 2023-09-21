@@ -26,7 +26,7 @@
 #include <86box/win.h>
 
 #define MACHINE_HAS_IDE  (machine_has_flags(machine, MACHINE_IDE_QUAD))
-#define MACHINE_HAS_SCSI (machine_has_flags(machine, MACHINE_SCSI_DUAL))
+#define MACHINE_HAS_SCSI (machine_has_flags(machine, MACHINE_SCSI))
 
 #define CASSETTE_FIRST   0
 #define CARTRIDGE_FIRST  CASSETTE_FIRST + 1
@@ -723,10 +723,10 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
             break;
 
         default:
-            return (0);
+            return 0;
     }
 
-    return (1);
+    return 1;
 }
 
 HMENU

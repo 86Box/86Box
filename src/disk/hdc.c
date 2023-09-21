@@ -142,7 +142,7 @@ hdc_reset(void)
         device_add(&ide_qua_device);
 }
 
-char *
+const char *
 hdc_get_internal_name(int hdc)
 {
     return device_get_internal_name(controllers[hdc].device);
@@ -154,7 +154,7 @@ hdc_get_from_internal_name(char *s)
     int c = 0;
 
     while (controllers[c].device != NULL) {
-        if (!strcmp((char *) controllers[c].device->internal_name, s))
+        if (!strcmp(controllers[c].device->internal_name, s))
             return c;
         c++;
     }

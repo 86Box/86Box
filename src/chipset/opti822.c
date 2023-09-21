@@ -384,9 +384,9 @@ opti822_reset(void *priv)
 }
 
 static void
-opti822_close(void *p)
+opti822_close(void *priv)
 {
-    opti822_t *dev = (opti822_t *) p;
+    opti822_t *dev = (opti822_t *) priv;
 
     free(dev);
 }

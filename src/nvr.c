@@ -274,8 +274,8 @@ nvr_set_ven_save(void (*ven_save)(void))
 int
 nvr_save(void)
 {
-    char *path;
-    FILE *fp;
+    const char *path;
+    FILE       *fp;
 
     /* Make sure we have been initialized. */
     if (saved_nvr == NULL)

@@ -1503,12 +1503,12 @@ dumpstream(UNUSED(int track), UNUSED(uint8_t *stream), UNUSED(int len))
 {
 #if 0
     char name[100];
-    FILE *f;
+    FILE *fp;
 
     sprintf (name, "track_%d.raw", track);
-    f = fopen(name, "wb");
-    fwrite (stream, 1, len * 4, f);
-    fclose (f);
+    fp = fopen(name, "wb");
+    fwrite (stream, 1, len * 4, fp);
+    fclose (fp);
 #endif
 }
 
@@ -2162,7 +2162,7 @@ fdi2raw_get_tpi(FDI *fdi)
 }
 
 FDI *
-fdi2raw_header(FILE *f)
+fdi2raw_header(FILE *fp)
 {
     long    i;
     long    offset;
@@ -2174,7 +2174,7 @@ fdi2raw_header(FILE *f)
     fdi2raw_log("ALLOC: memory allocated %d\n", fdi_allocated);
     fdi = fdi_malloc(sizeof(FDI));
     memset(fdi, 0, sizeof(FDI));
-    fdi->file = f;
+    fdi->file = fp;
     oldseek   = ftell(fdi->file);
     if (oldseek == -1) {
         fdi_free(fdi);

@@ -228,8 +228,8 @@ fdc37c6xx_write(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 fdc37c6xx_read(uint16_t port, void *priv)
 {
-    fdc37c6xx_t *dev = (fdc37c6xx_t *) priv;
-    uint8_t      ret = 0xff;
+    const fdc37c6xx_t *dev = (fdc37c6xx_t *) priv;
+    uint8_t            ret = 0xff;
 
     if (dev->tries == 2) {
         if (port == 0x3f1)

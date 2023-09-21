@@ -4,6 +4,7 @@
 #    include <86box/86box.h>
 #    include "cpu.h"
 #    include <86box/mem.h>
+#    include <86box/plat_unused.h>
 
 #    include "codegen.h"
 #    include "codegen_allocator.h"
@@ -127,7 +128,7 @@ host_x86_LDMXCSR(codeblock_t *block, void *p)
     if (offset >= -128 && offset < 127) {
         codegen_alloc_bytes(block, 4);
         codegen_addbyte4(block, 0x0f, 0xae, 0x50 | REG_EBP, offset); /*LDMXCSR offset[EBP]*/
-    } else if (offset < (1ull << 32)) {
+    } else if (offset < (1ULL << 32)) {
         codegen_alloc_bytes(block, 7);
         codegen_addbyte3(block, 0x0f, 0xae, 0x90 | REG_EBP); /*LDMXCSR offset[EBP]*/
         codegen_addlong(block, offset);

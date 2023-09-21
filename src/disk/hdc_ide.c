@@ -1279,7 +1279,7 @@ ide_write_data(ide_t *ide, uint32_t val, int length)
 void
 ide_writew(uint16_t addr, uint16_t val, void *priv)
 {
-    ide_board_t *dev = (ide_board_t *) priv;
+    const ide_board_t *dev = (ide_board_t *) priv;
 
     ide_t *ide;
     int    ch;

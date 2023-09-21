@@ -13,6 +13,8 @@
 #    include "codegen_backend_arm64_ops.h"
 #    include "codegen_reg.h"
 #    include "x86.h"
+#    include "x86seg_common.h"
+#    include "x86seg.h"
 #    include "x87.h"
 
 #    if defined(__linux__) || defined(__APPLE__)
@@ -45,7 +47,7 @@ void *codegen_gpf_rout;
 void *codegen_exit_rout;
 
 host_reg_def_t codegen_host_reg_list[CODEGEN_HOST_REGS] = {
-    {REG_X19,  0},
+    { REG_X19, 0},
     { REG_X20, 0},
     { REG_X21, 0},
     { REG_X22, 0},
@@ -58,7 +60,7 @@ host_reg_def_t codegen_host_reg_list[CODEGEN_HOST_REGS] = {
 };
 
 host_reg_def_t codegen_host_fp_reg_list[CODEGEN_HOST_FP_REGS] = {
-    {REG_V8,   0},
+    { REG_V8,  0},
     { REG_V9,  0},
     { REG_V10, 0},
     { REG_V11, 0},
@@ -281,7 +283,6 @@ void
 codegen_backend_init(void)
 {
     codeblock_t *block;
-    int          c;
 
     codeblock      = malloc(BLOCK_SIZE * sizeof(codeblock_t));
     codeblock_hash = malloc(HASH_SIZE * sizeof(codeblock_t *));
@@ -289,7 +290,7 @@ codegen_backend_init(void)
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
     memset(codeblock_hash, 0, HASH_SIZE * sizeof(codeblock_t *));
 
-    for (c = 0; c < BLOCK_SIZE; c++) {
+    for (int c = 0; c < BLOCK_SIZE; c++) {
         codeblock[c].pc = BLOCK_PC_INVALID;
     }
 

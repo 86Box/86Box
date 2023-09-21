@@ -278,7 +278,7 @@ MachineStatus::hasIDE()
 bool
 MachineStatus::hasSCSI()
 {
-    return machine_has_flags(machine, MACHINE_SCSI_DUAL) > 0;
+    return machine_has_flags(machine, MACHINE_SCSI) > 0;
 }
 
 void

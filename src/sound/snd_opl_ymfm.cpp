@@ -51,7 +51,7 @@ enum {
 
 class YMFMChipBase {
 public:
-    YMFMChipBase(uint32_t clock, fm_type type, UNUSED(uint32_t samplerate))
+    YMFMChipBase(UNUSED(uint32_t clock), fm_type type, UNUSED(uint32_t samplerate))
         : m_buf_pos(0)
         , m_flags(0)
         , m_type(type)

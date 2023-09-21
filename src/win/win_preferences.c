@@ -45,7 +45,7 @@ int c;
 HWND hwndPreferences;
 
 BOOL CALLBACK
-EnumResLangProc(HMODULE hModule, LPCTSTR lpszType, LPCTSTR lpszName, WORD wIDLanguage, LONG_PTR lParam)
+EnumResLangProc(UNUSED(HMODULE hModule), UNUSED(LPCTSTR lpszType), UNUSED(LPCTSTR lpszName), WORD wIDLanguage, LONG_PTR lParam)
 {
     wchar_t temp[LOCALE_NAME_MAX_LENGTH + 1];
     LCIDToLocaleName(wIDLanguage, temp, LOCALE_NAME_MAX_LENGTH, 0);
@@ -205,7 +205,7 @@ static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
-PreferencesDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+PreferencesDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, UNUSED(LPARAM lParam))
 {
     switch (message) {
         case WM_INITDIALOG:
