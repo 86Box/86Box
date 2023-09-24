@@ -689,6 +689,18 @@ win_settings_save(void)
 }
 
 static void
+win_settings_machine_recalc_softfloat(HWND hdlg)
+{
+    if (temp_fpu == FPU_NONE) {
+        settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, FALSE);
+        settings_enable_window(hdlg, IDC_CHECK_SOFTFLOAT, FALSE);
+    } else {
+        settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? TRUE : temp_fpu_softfloat));
+        settings_enable_window(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? FALSE : TRUE));
+    }
+}
+
+static void
 win_settings_machine_recalc_fpu(HWND hdlg)
 {
     int         c;
@@ -714,12 +726,11 @@ win_settings_machine_recalc_fpu(HWND hdlg)
         c++;
     }
 
-    settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? TRUE : temp_fpu_softfloat));
-    settings_enable_window(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? FALSE : TRUE));
-
     settings_enable_window(hdlg, IDC_COMBO_FPU, c > 1);
 
     temp_fpu = fpu_get_type_from_index(temp_cpu_f, temp_cpu, settings_get_cur_sel(hdlg, IDC_COMBO_FPU));
+
+    win_settings_machine_recalc_softfloat(hdlg);
 }
 
 static void
@@ -1046,6 +1057,7 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, UNUSED(LPARAM 
                         temp_fpu = fpu_get_type_from_index(temp_cpu_f, temp_cpu,
                                                            settings_get_cur_sel(hdlg, IDC_COMBO_FPU));
                     }
+                    win_settings_machine_recalc_softfloat(hdlg);
                     break;
                 case IDC_CONFIGURE_MACHINE:
                     temp_machine = listtomachine[settings_get_cur_sel(hdlg, IDC_COMBO_MACHINE)];

@@ -277,7 +277,7 @@ sermouse_report_ms(mouse_t *dev)
     int b = mouse_get_buttons_ex();
 
     mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -128, 127, 0, 0);
-    mouse_subtract_z(&delta_z, -8, 7, 0);
+    mouse_subtract_z(&delta_z, -8, 7, 1);
 
     dev->buf[0] = 0x40;
     dev->buf[0] |= (((delta_y >> 6) & 0x03) << 2);
@@ -907,7 +907,7 @@ sermouse_init(const device_t *info)
     sermouse_set_period(dev, 5000000.0);
 
     /* Tell them how many buttons we have. */
-    mouse_set_buttons((dev->flags & FLAG_3BTN) ? 3 : 2);
+    mouse_set_buttons(dev->but);
 
     /* Return our private data to the I/O layer. */
     return dev;
