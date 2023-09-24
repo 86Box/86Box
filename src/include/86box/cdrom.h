@@ -106,7 +106,7 @@ enum
     CDROM_TYPES_NUM
 };
 
-#define KNOWN_CDROM_DRIVE_TYPES    41
+#define KNOWN_CDROM_DRIVE_TYPES     CDROM_TYPES_NUM
 #define BUS_TYPE_IDE                CDROM_BUS_ATAPI
 #define BUS_TYPE_SCSI               CDROM_BUS_SCSI
 #define BUS_TYPE_BOTH              -2
