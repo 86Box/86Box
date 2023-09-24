@@ -531,7 +531,7 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
         f = pos & 0xff;
 
         /* NEC CDR-260 speaks BCD. */
-        if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) /*NEC*/
+        if ((dev->type == CDROM_TYPE_NEC_260_100) || (dev->type == CDROM_TYPE_NEC_260_101)) /*NEC*/
             msf_from_bcd(&m, &s, &f);
 
         if (pos == 0xffffff) {
@@ -545,7 +545,7 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
         f = len & 0xff;
 
         /* NEC CDR-260 speaks BCD. */
-        if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) /*NEC*/
+        if ((dev->type == CDROM_TYPE_NEC_260_100) || (dev->type == CDROM_TYPE_NEC_260_101)) /*NEC*/
             msf_from_bcd(&m, &s, &f);
 
         len = MSFtoLBA(m, s, f) - 150;
@@ -810,7 +810,7 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
         b[pos] = 0;
 
         /* NEC CDR-260 speaks BCD. */
-        if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) /*NEC*/ {
+        if ((dev->type == CDROM_TYPE_NEC_260_100) || (dev->type == CDROM_TYPE_NEC_260_101)) { /*NEC*/
             m = subc.abs_m;
             s = subc.abs_s;
             f = subc.abs_f;
@@ -829,7 +829,7 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
         b[pos] = 0;
 
         /* NEC CDR-260 speaks BCD. */
-        if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) /*NEC*/ {
+        if ((dev->type == CDROM_TYPE_NEC_260_100) || (dev->type == CDROM_TYPE_NEC_260_101)) { /*NEC*/
             m = subc.rel_m;
             s = subc.rel_s;
             f = subc.rel_f;
@@ -1063,7 +1063,7 @@ read_toc_normal(cdrom_t *dev, unsigned char *b, unsigned char start_track, int m
             b[len++] = 0;
 
             /* NEC CDR-260 speaks BCD. */
-            if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) { /*NEC*/
+            if ((dev->type == CDROM_TYPE_NEC_260_100) || (dev->type == CDROM_TYPE_NEC_260_101)) { /*NEC*/
                 m = ti.m;
                 s = ti.s;
                 f = ti.f;
