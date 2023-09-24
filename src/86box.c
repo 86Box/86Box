@@ -1071,10 +1071,12 @@ pc_reset_hard_init(void)
     /* Reset and reconfigure the Sound Card layer. */
     sound_card_reset();
 
+    /* Initialize parallel devices. */
+    /* note: PLIP LPT side has to be initialized before the network side */
+    lpt_devices_init();
+
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
-
-    lpt_devices_init();
 
     /* Reset and reconfigure the serial ports. */
     serial_standalone_init();
