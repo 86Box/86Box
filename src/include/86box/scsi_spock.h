@@ -22,5 +22,6 @@
 #define SCSI_SPOCK_H
 
 extern const device_t spock_device;
+extern const device_t tribble_device;
 
 #endif /*SCSI_SPOCK_H*/
