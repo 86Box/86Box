@@ -1805,7 +1805,7 @@ load_other_removable_devices(void)
         if (p[0] != 0x00) {
             if (path_abs(p)) {
                 if (strlen(p) > 511)
-                    fatal("load_other_removable_devices(): strlen(p) > 511 (mo_drives[%i].image_path)\n", 
+                    fatal("load_other_removable_devices(): strlen(p) > 511 (mo_drives[%i].image_path)\n",
                           c);
                 else
                     strncpy(mo_drives[c].image_path, p, 511);
