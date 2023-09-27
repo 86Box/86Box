@@ -713,7 +713,7 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
                     if ((num >> 8) & b) {
                         if ((!!*irq_state) != !!set)
                             pic2.lines[i]--;
-                        if (pic2.lines[i] == 0)
+                        if (!pic_level_triggered(&pic2, i) || (pic2.lines[i] == 0))
                             lines |= ((uint16_t) b << 8);
                     }
                 }
@@ -737,7 +737,7 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
                     if (num & b) {
                         if ((!!*irq_state) != !!set)
                             pic.lines[i]--;
-                        if (pic.lines[i] == 0)
+                        if (!pic_level_triggered(&pic, i) || (pic.lines[i] == 0))
                             lines |= ((uint16_t) b << 8);
                     }
                 }
