@@ -630,6 +630,7 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
     int     raise;
     uint8_t b;
     uint8_t slaves = 0;
+    uint16_t lines = 0x0000;
 
     /* Make sure to ignore all slave IRQ's, and in case of AT+,
        translate IRQ 2 to IRQ 9. */
@@ -659,7 +660,7 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
     if (num & 0x0100)
         acpi_rtc_status = !!set;
 
-    if (set) {
+   if (set) {
         if (smi_irq_mask & num) {
             smi_raise();
             smi_irq_status |= num;
@@ -709,8 +710,12 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
             if (level) {
                 for (uint8_t i = 0; i < 8; i++) {
                     b     = (uint8_t) (1 << i);
-                    if (((num >> 8) & b) && ((!!*irq_state) != !!set))
-                        pic2.lines[i]--;
+                    if ((num >> 8) & b) {
+                        if ((!!*irq_state) != !!set)
+                            pic2.lines[i]--;
+                        if (pic2.lines[i] == 0)
+                            lines |= ((uint16_t) b << 8);
+                    }
                 }
 
                 if ((!!*irq_state) != !!set)
@@ -721,15 +726,20 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
             if ((num & 0x1000) && mouse_latch)
                 latched_irqs &= 0xefff;
 
-            pic2.irr &= ~(num >> 8);
+            if (!level || lines)
+                pic2.irr &= ~(num >> 8);
         }
 
         if (num & 0x00ff) {
             if (level) {
                 for (uint8_t i = 0; i < 8; i++) {
                     b     = (uint8_t) (1 << i);
-                    if ((num & b) && ((!!*irq_state) != !!set))
-                        pic.lines[i]--;
+                    if (num & b) {
+                        if ((!!*irq_state) != !!set)
+                            pic.lines[i]--;
+                        if (pic.lines[i] == 0)
+                            lines |= ((uint16_t) b << 8);
+                    }
                 }
 
                 if ((!!*irq_state) != !!set)
@@ -740,7 +750,8 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
             if (kbd_latch && (num & 0x0002))
                 latched_irqs &= 0xfffd;
 
-            pic.irr &= ~(num & 0x00ff);
+            if (!level || lines)
+                pic.irr &= ~(num & 0x00ff);
         }
     }
 
