@@ -630,7 +630,7 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
     int     raise;
     uint8_t b;
     uint8_t slaves = 0;
-    uint16_t lines = 0x0000;
+    uint16_t lines = level ? 0x0000 : num;
 
     /* Make sure to ignore all slave IRQ's, and in case of AT+,
        translate IRQ 2 to IRQ 9. */
@@ -727,7 +727,7 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
                 latched_irqs &= 0xefff;
 
             if (!level || lines)
-                pic2.irr &= ~(num >> 8);
+                pic2.irr &= ~(lines >> 8);
         }
 
         if (num & 0x00ff) {
@@ -738,7 +738,7 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
                         if ((!!*irq_state) != !!set)
                             pic.lines[i]--;
                         if (!pic_level_triggered(&pic, i) || (pic.lines[i] == 0))
-                            lines |= ((uint16_t) b << 8);
+                            lines |= ((uint16_t) b);
                     }
                 }
 
@@ -751,7 +751,7 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
                 latched_irqs &= 0xfffd;
 
             if (!level || lines)
-                pic.irr &= ~(num & 0x00ff);
+                pic.irr &= ~(lines & 0x00ff);
         }
     }
 
