@@ -1274,6 +1274,7 @@ xga_line_draw_write(svga_t *svga)
     int      x = 0;
     int      dx;
     int      dy;
+    int      draw_pixel;
 
     dminor = (xga->accel.bres_k1);
     if (xga->accel.bres_k1 & 0x2000)
