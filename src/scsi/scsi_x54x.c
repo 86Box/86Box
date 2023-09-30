@@ -103,7 +103,7 @@ x54x_irq(x54x_t *dev, int set)
             else
                 picintc(1 << irq);
         }
-    }    
+    }
 }
 
 static void
@@ -466,6 +466,7 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
                 }
 
                 return 0;
+                break;
 
             case 0x02: /* Read Desired Sectors to Memory */
             case 0x03: /* Write Desired Sectors from Memory */
@@ -1341,24 +1342,27 @@ x54x_in(uint16_t port, void *priv)
             if (dev->flags & X54X_INT_GEOM_WRITABLE)
                 ret = dev->Geometry;
             else {
-                switch (dev->Geometry) {
-                    default:
-                    case 0:
-                        ret = 'A';
-                        break;
-                    case 1:
-                        ret = 'D';
-                        break;
-                    case 2:
-                        ret = 'A';
-                        break;
-                    case 3:
-                        ret = 'P';
-                        break;
-                }
-                ret ^= 1;
-                dev->Geometry++;
-                dev->Geometry &= 0x03;
+                if (dev->flags & X54X_HAS_SIGNATURE) {
+                    switch (dev->Geometry) {
+                        default:
+                        case 0:
+                            ret = 'A';
+                            break;
+                        case 1:
+                            ret = 'D';
+                            break;
+                        case 2:
+                            ret = 'A';
+                            break;
+                        case 3:
+                            ret = 'P';
+                            break;
+                    }
+                    ret ^= 1;
+                    dev->Geometry++;
+                    dev->Geometry &= 0x03;
+                } else
+                    ret = 0xff;
                 break;
             }
             break;

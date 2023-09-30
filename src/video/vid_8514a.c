@@ -144,13 +144,13 @@ ibm8514_log(const char *fmt, ...)
                 dest_dat = MAX(src_dat, dest_dat);                                            \
                 break;                                                                        \
             case 0x15:                                                                        \
-                dest_dat = (dest_dat - src_dat) / 2;                                          \
+                dest_dat = (dest_dat - src_dat) >> 1;                                         \
                 break;                                                                        \
             case 0x16:                                                                        \
-                dest_dat = (src_dat - dest_dat) / 2;                                          \
+                dest_dat = (src_dat - dest_dat) >> 1;                                         \
                 break;                                                                        \
             case 0x17:                                                                        \
-                dest_dat = (dest_dat + src_dat) / 2;                                          \
+                dest_dat = (dest_dat + src_dat) >> 1;                                         \
                 break;                                                                        \
             case 0x18:                                                                        \
                 dest_dat = MAX(0, (dest_dat - src_dat));                                      \
@@ -162,7 +162,7 @@ ibm8514_log(const char *fmt, ...)
                 dest_dat = MAX(0, (src_dat - dest_dat));                                      \
                 break;                                                                        \
             case 0x1b:                                                                        \
-                dest_dat = MIN(0xff, (dest_dat + src_dat));                                   \
+                dest_dat = MIN(~0, (dest_dat + src_dat));                                     \
                 break;                                                                        \
             case 0x1c:                                                                        \
                 dest_dat = MAX(0, (dest_dat - src_dat)) / 2;                                  \
@@ -174,7 +174,7 @@ ibm8514_log(const char *fmt, ...)
                 dest_dat = MAX(0, (src_dat - dest_dat)) / 2;                                  \
                 break;                                                                        \
             case 0x1f:                                                                        \
-                dest_dat = (0xff < (src_dat + dest_dat)) ? 0xff : ((src_dat + dest_dat) / 2); \
+                dest_dat = (~0 < (src_dat + dest_dat)) ? ~0 : ((src_dat + dest_dat) >> 1); 	  \
                 break;                                                                        \
         }                                                                                     \
     }
@@ -1297,7 +1297,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
     /*Bit 4 of the Command register is the draw yes bit, which enables writing to memory/reading from memory when enabled.
       When this bit is disabled, no writing to memory/reading from memory is allowed. (This bit is almost meaningless on
       the NOP command)*/
-    ibm8514_log("CMD8514: CMD=%d, full=%04x, pixcntl=%x, count=%d.\n", cmd, dev->accel.cmd, pixcntl, count);
+    ibm8514_log("CMD8514: CMD=%d, full=%04x, pixcntl=%x, count=%d, frgdmix = %02x, bkgdmix = %02x, polygon=%x.\n", cmd, dev->accel.cmd, pixcntl, count, frgd_mix, bkgd_mix, dev->accel.multifunc[0x0a] & 6);
 
     switch (cmd) {
         case 0: /*NOP (Short Stroke Vectors)*/
@@ -3057,13 +3057,39 @@ rect_fill:
                         old_dest_dat = dest_dat;
                         MIX(mix_dat & mix_mask, dest_dat, src_dat);
                         dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
-                        if ((dev->accel.cmd & 4) && (dev->accel.sy < dev->accel.maj_axis_pcnt)) {
-                            if (!dev->accel.sy) {
+                        if (dev->accel.cmd & 4) {
+                            if (dev->accel.sy < dev->accel.maj_axis_pcnt) {
+                                if (dev->accel.cmd & 0x40) {
+                                    WRITE((dev->accel.cy * dev->pitch) + (dev->accel.cx), dest_dat);
+                                } else {
+                                    if (dev->accel.cy == (dev->accel.oldcy + 1)) {
+                                        if (dev->accel.cmd & 0x20) {
+                                            if (dev->accel.err_term < (dev->accel.destx_distp + dev->accel.desty_axstp)) {
+                                                WRITE((dev->accel.cy * dev->pitch) + (dev->accel.cx), dest_dat);
+                                            }
+                                        } else {
+                                            if (dev->accel.err_term >= 0) {
+                                                WRITE((dev->accel.cy * dev->pitch) + (dev->accel.cx), dest_dat);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            if (dev->accel.cmd & 0x40) {
                                 WRITE((dev->accel.cy * dev->pitch) + (dev->accel.cx), dest_dat);
-                            } else if ((dev->accel.cmd & 0x40) && dev->accel.sy && (dev->accel.cy == (dev->accel.oldcy + 1))) {
-                                WRITE((dev->accel.cy * dev->pitch) + (dev->accel.cx), dest_dat);
-                            } else if (!(dev->accel.cmd & 0x40) && dev->accel.sy && (dev->accel.err_term >= 0) && (dev->accel.cy == (dev->accel.oldcy + 1))) {
-                                WRITE((dev->accel.cy * dev->pitch) + (dev->accel.cx), dest_dat);
+                            } else {
+                                if (dev->accel.cy == (dev->accel.oldcy + 1)) {
+                                    if (dev->accel.cmd & 0x20) {
+                                        if (dev->accel.err_term < (dev->accel.destx_distp + dev->accel.desty_axstp)) {
+                                            WRITE((dev->accel.cy * dev->pitch) + (dev->accel.cx), dest_dat);
+                                        }
+                                    } else {
+                                        if (dev->accel.err_term >= 0) {
+                                            WRITE((dev->accel.cy * dev->pitch) + (dev->accel.cx), dest_dat);
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -3080,7 +3106,42 @@ rect_fill:
                     break;
                 }
 
-                if (dev->accel.err_term >= dev->accel.maj_axis_pcnt) {
+                /*Step major axis*/
+                switch (dev->accel.cmd & 0xe0) {
+                    case 0x00:
+                        dev->accel.cx--;
+                        break;
+                    case 0x20:
+                        dev->accel.cx++;
+                        break;
+                    case 0x40:
+                        dev->accel.oldcy = dev->accel.cy;
+                        dev->accel.cy--;
+                        break;
+                    case 0x60:
+                        dev->accel.oldcy = dev->accel.cy;
+                        dev->accel.cy--;
+                        break;
+                    case 0x80:
+                        dev->accel.cx--;
+                        break;
+                    case 0xa0:
+                        dev->accel.cx++;
+                        break;
+                    case 0xc0:
+                        dev->accel.oldcy = dev->accel.cy;
+                        dev->accel.cy++;
+                        break;
+                    case 0xe0:
+                        dev->accel.oldcy = dev->accel.cy;
+                        dev->accel.cy++;
+                        break;
+
+                    default:
+                        break;
+                }
+
+                if (dev->accel.err_term >= 0) {
                     dev->accel.err_term += dev->accel.destx_distp;
                     /*Step minor axis*/
                     switch (dev->accel.cmd & 0xe0) {
@@ -3118,41 +3179,6 @@ rect_fill:
                     }
                 } else
                     dev->accel.err_term += dev->accel.desty_axstp;
-
-                /*Step major axis*/
-                switch (dev->accel.cmd & 0xe0) {
-                    case 0x00:
-                        dev->accel.cx--;
-                        break;
-                    case 0x20:
-                        dev->accel.cx++;
-                        break;
-                    case 0x40:
-                        dev->accel.oldcy = dev->accel.cy;
-                        dev->accel.cy--;
-                        break;
-                    case 0x60:
-                        dev->accel.oldcy = dev->accel.cy;
-                        dev->accel.cy--;
-                        break;
-                    case 0x80:
-                        dev->accel.cx--;
-                        break;
-                    case 0xa0:
-                        dev->accel.cx++;
-                        break;
-                    case 0xc0:
-                        dev->accel.oldcy = dev->accel.cy;
-                        dev->accel.cy++;
-                        break;
-                    case 0xe0:
-                        dev->accel.oldcy = dev->accel.cy;
-                        dev->accel.cy++;
-                        break;
-
-                    default:
-                        break;
-                }
 
                 dev->accel.sy++;
             }
