@@ -201,6 +201,8 @@ typedef struct xga_t {
         int dst_map;
         int bkgd_src;
         int fore_src;
+        int oldx;
+        int oldy;
         int x;
         int y;
         int sx;
@@ -211,6 +213,7 @@ typedef struct xga_t {
         int py;
         int pattern;
         int command_len;
+        int filling;
 
         uint32_t short_stroke;
         uint32_t color_cmp;
