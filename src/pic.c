@@ -634,9 +634,12 @@ void
 picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
 {
     int     raise;
+    int     max = 16;
     uint8_t b;
     uint8_t slaves = 0;
+    uint16_t w;
     uint16_t lines = level ? 0x0000 : num;
+    pic_t   *dev;
 
     /* Make sure to ignore all slave IRQ's, and in case of AT+,
        translate IRQ 2 to IRQ 9. */
@@ -656,112 +659,90 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
     }
 
     if (!slaves)
-        num &= 0x00ff;
+        max = 8;
 
     if (!num) {
         pic_log("Attempting to %s null IRQ\n", set ? "raise" : "lower");
         return;
     }
 
-    if (num & 0x0100)
-        acpi_rtc_status = !!set;
+    if (level) {
+        dev = &pic;
 
-   if (set) {
-        if (smi_irq_mask & num) {
-            smi_raise();
-            smi_irq_status |= num;
+        for (uint16_t i = 0; i < max; i++) {
+            if (i == 8)
+                dev = &pic2;
+
+            b = i & 7;
+            w = 1 << i;
+
+            if (num & w) {
+                if ((!!*irq_state) != !!set)
+                    set ? dev->lines[b]++ : dev->lines[b]--;
+
+                if ((!pic_level_triggered(dev, b) || ((!!*irq_state) != !!set)))
+                    lines |= w;
+            }
         }
 
-        if (num & 0xff00) {
-            if (level) {
-                for (uint8_t i = 0; i < 8; i++) {
-                    b     = (uint8_t) (1 << i);
-                    if (((num >> 8) & b) && ((!!*irq_state) != !!set))
-                        pic2.lines[i]++;
-                }
+        if ((!!*irq_state) != !!set)
+            *irq_state = set;
 
-                if ((!!*irq_state) != !!set)
-                    *irq_state = set;
+        num = lines;
+   }
+
+   if (!slaves)
+       num &= 0x00ff;
+
+   if (num & 0x0100)
+       acpi_rtc_status = !!set;
+
+   if (num) {
+       if (set) {
+            if (smi_irq_mask & num) {
+                smi_raise();
+                smi_irq_status |= num;
             }
 
-            /* Latch IRQ 12 if the mouse latch is enabled. */
-            if ((num & 0x1000) && mouse_latch)
-                latched_irqs |= 0x1000;
+            if (num & 0xff00) {
+                /* Latch IRQ 12 if the mouse latch is enabled. */
+                if ((num & 0x1000) && mouse_latch)
+                    latched_irqs |= 0x1000;
 
-            pic2.irr |= (num >> 8);
-        }
-
-        if (num & 0x00ff) {
-            if (level) {
-                for (uint8_t i = 0; i < 8; i++) {
-                    b     = (uint8_t) (1 << i);
-                    if ((num & b) && ((!!*irq_state) != !!set))
-                        pic.lines[i]++;
-                }
-
-                if ((!!*irq_state) != !!set)
-                    *irq_state = set;
+                pic2.irr |= (num >> 8);
             }
 
-            /* Latch IRQ 1 if the keyboard latch is enabled. */
-            if (kbd_latch && (num & 0x0002))
-                latched_irqs |= 0x0002;
+            if (num & 0x00ff) {
+                /* Latch IRQ 1 if the keyboard latch is enabled. */
+                if (kbd_latch && (num & 0x0002))
+                    latched_irqs |= 0x0002;
 
-            pic.irr |= (num & 0x00ff);
-        }
-    } else {
-        smi_irq_status &= ~num;
+                pic.irr |= (num & 0x00ff);
+            }
+        } else {
+            smi_irq_status &= ~num;
 
-        if (num & 0xff00) {
-            if (level) {
-                for (uint8_t i = 0; i < 8; i++) {
-                    b     = (uint8_t) (1 << i);
-                    if ((num >> 8) & b) {
-                        if ((!!*irq_state) != !!set)
-                            pic2.lines[i]--;
-                        if (!pic_level_triggered(&pic2, i) || (pic2.lines[i] == 0))
-                            lines |= ((uint16_t) b << 8);
-                    }
-                }
+            if (num & 0xff00) {
+                /* Unlatch IRQ 12 if the mouse latch is enabled. */
+                if ((num & 0x1000) && mouse_latch)
+                    latched_irqs &= 0xefff;
 
-                if ((!!*irq_state) != !!set)
-                    *irq_state = set;
+                if (!level || lines)
+                    pic2.irr &= ~(num >> 8);
             }
 
-            /* Unlatch IRQ 12 if the mouse latch is enabled. */
-            if ((num & 0x1000) && mouse_latch)
-                latched_irqs &= 0xefff;
+            if (num & 0x00ff) {
+                /* Unlatch IRQ 1 if the keyboard latch is enabled. */
+                if (kbd_latch && (num & 0x0002))
+                    latched_irqs &= 0xfffd;
 
-            if (!level || lines)
-                pic2.irr &= ~(lines >> 8);
-        }
-
-        if (num & 0x00ff) {
-            if (level) {
-                for (uint8_t i = 0; i < 8; i++) {
-                    b     = (uint8_t) (1 << i);
-                    if (num & b) {
-                        if ((!!*irq_state) != !!set)
-                            pic.lines[i]--;
-                        if (!pic_level_triggered(&pic, i) || (pic.lines[i] == 0))
-                            lines |= ((uint16_t) b);
-                    }
-                }
-
-                if ((!!*irq_state) != !!set)
-                    *irq_state = set;
+                if (!level || lines)
+                    pic.irr &= ~(num & 0x00ff);
             }
-
-            /* Unlatch IRQ 1 if the keyboard latch is enabled. */
-            if (kbd_latch && (num & 0x0002))
-                latched_irqs &= 0xfffd;
-
-            if (!level || lines)
-                pic.irr &= ~(lines & 0x00ff);
         }
+
+        update_pending();
     }
-
-    update_pending();
 }
 
 static uint8_t
