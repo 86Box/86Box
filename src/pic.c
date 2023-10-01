@@ -238,12 +238,12 @@ pic_update_pending_at(void)
 {
     if (!(pic2.interrupt & 0x20)) {
         pic2.int_pending = (find_best_interrupt(&pic2) != -1);
-
-        if (pic2.int_pending)
-            pic.irr |= (1 << pic2.icw3);
-        else
-            pic.irr &= ~(1 << pic2.icw3);
     }
+ 
+    if (pic2.int_pending)
+        pic.irr |= (1 << pic2.icw3);
+    else
+        pic.irr &= ~(1 << pic2.icw3);
 
     if (!(pic.interrupt & 0x20))
         pic.int_pending = (find_best_interrupt(&pic) != -1);
