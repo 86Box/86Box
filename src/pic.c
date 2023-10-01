@@ -223,25 +223,30 @@ find_best_interrupt(pic_t *dev)
 static __inline void
 pic_update_pending_xt(void)
 {
-    if (find_best_interrupt(&pic) != -1) {
-        latched++;
-        if (latched == 1)
-            timer_on_auto(&pic_timer, 0.35);
-    } else if (latched == 0)
-        pic.int_pending = 0;
+    if (!(pic.interrupt & 0x20)) {
+        if (find_best_interrupt(&pic) != -1) {
+            latched++;
+            if (latched == 1)
+                timer_on_auto(&pic_timer, 0.35);
+        } else if (latched == 0)
+            pic.int_pending = 0;
+    }
 }
 
 static __inline void
 pic_update_pending_at(void)
 {
-    pic2.int_pending = (find_best_interrupt(&pic2) != -1);
+    if (!(pic2.interrupt & 0x20)) {
+        pic2.int_pending = (find_best_interrupt(&pic2) != -1);
 
-    if (pic2.int_pending)
-        pic.irr |= (1 << pic2.icw3);
-    else
-        pic.irr &= ~(1 << pic2.icw3);
+        if (pic2.int_pending)
+            pic.irr |= (1 << pic2.icw3);
+        else
+            pic.irr &= ~(1 << pic2.icw3);
+    }
 
-    pic.int_pending = (find_best_interrupt(&pic) != -1);
+    if (!(pic.interrupt & 0x20))
+        pic.int_pending = (find_best_interrupt(&pic) != -1);
 }
 
 static void
@@ -755,8 +760,7 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
         }
     }
 
-    if (!(pic.interrupt & 0x20) && !(pic2.interrupt & 0x20))
-        update_pending();
+    update_pending();
 }
 
 static uint8_t
