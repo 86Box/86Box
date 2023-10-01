@@ -855,29 +855,32 @@ picinterrupt(void)
                 /* If we are on AT, IRQ 2 is pending, and we cannot find a pending IRQ on PIC 2, fatal out. */
                 // fatal("IRQ %i pending on AT without a pending IRQ on PIC %i (normal)\n", pic.interrupt, pic.interrupt);
                 // exit(-1);
-                /* Error correction mechanism: Clear IRQ 2 and find best interrupt again. */
-                pic.irr &= ~(1 << pic2.icw3);
-                pic.int_pending = (find_best_interrupt(&pic) != -1);
-                return ret;
-            }
-
-            pic.interrupt |= 0x40; /* Mark slave pending. */
+                /* Error correction mechanism: Do a supurious IRQ 15 (spurious IRQ 7 on PIC 2). */
+                pic.slaves[pic.interrupt]->int_pending = 1;
+                pic.slaves[pic.interrupt]->interrupt = 0x07;
+            } else
+                pic.interrupt |= 0x40; /* Mark slave pending. */
         }
+    } else {
+        /* pic.int_pending was somehow cleared despite the fact we made it here,
+           do a spurious IRQ 7. */
+        pic.int_pending = 1;
+        pic.interrupt = 0x07;
+    }
 
-        if ((pic.interrupt == 0) && (pit_devs[1].data != NULL))
-            pit_devs[1].set_gate(pit_devs[1].data, 0, 0);
+    if ((pic.interrupt == 0) && (pit_devs[1].data != NULL))
+        pit_devs[1].set_gate(pit_devs[1].data, 0, 0);
 
-        /* Two ACK's - do them in a loop to avoid potential compiler misoptimizations. */
-        for (uint8_t i = 0; i < 2; i++) {
-            ret           = pic_irq_ack_read(&pic, pic.ack_bytes);
-            pic.ack_bytes = (pic.ack_bytes + 1) % (pic_i86_mode(&pic) ? 2 : 3);
+    /* Two ACK's - do them in a loop to avoid potential compiler misoptimizations. */
+    for (uint8_t i = 0; i < 2; i++) {
+        ret           = pic_irq_ack_read(&pic, pic.ack_bytes);
+        pic.ack_bytes = (pic.ack_bytes + 1) % (pic_i86_mode(&pic) ? 2 : 3);
 
-            if (pic.ack_bytes == 0) {
-                if (pic.interrupt & 0x40)
-                    pic2.interrupt = 0x17;
-                pic.interrupt = 0x17;
-                update_pending();
-            }
+        if (pic.ack_bytes == 0) {
+            if (pic.interrupt & 0x40)
+                pic2.interrupt = 0x17;
+            pic.interrupt = 0x17;
+            update_pending();
         }
     }
 
