@@ -233,20 +233,21 @@ pic_update_pending_xt(void)
     }
 }
 
+/* Only check if PIC 1 frozen, because it should not happen
+   that one is frozen but the other is not. */
 static __inline void
 pic_update_pending_at(void)
 {
-    if (!(pic2.interrupt & 0x20)) {
+    if (!(pic.interrupt & 0x20)) {
         pic2.int_pending = (find_best_interrupt(&pic2) != -1);
-    }
  
-    if (pic2.int_pending)
-        pic.irr |= (1 << pic2.icw3);
-    else
-        pic.irr &= ~(1 << pic2.icw3);
+        if (pic2.int_pending)
+            pic.irr |= (1 << pic2.icw3);
+        else
+            pic.irr &= ~(1 << pic2.icw3);
 
-    if (!(pic.interrupt & 0x20))
         pic.int_pending = (find_best_interrupt(&pic) != -1);
+    }
 }
 
 static void
@@ -852,8 +853,12 @@ picinterrupt(void)
         if (pic_slave_on(&pic, pic.interrupt)) {
             if (!pic.slaves[pic.interrupt]->int_pending) {
                 /* If we are on AT, IRQ 2 is pending, and we cannot find a pending IRQ on PIC 2, fatal out. */
-                fatal("IRQ %i pending on AT without a pending IRQ on PIC %i (normal)\n", pic.interrupt, pic.interrupt);
-                exit(-1);
+                // fatal("IRQ %i pending on AT without a pending IRQ on PIC %i (normal)\n", pic.interrupt, pic.interrupt);
+                // exit(-1);
+                /* Error correction mechanism: Clear IRQ 2 and find best interrupt again. */
+                pic.irr &= ~(1 << pic2.icw3);
+                pic.int_pending = (find_best_interrupt(&pic) != -1);
+                return ret;
             }
 
             pic.interrupt |= 0x40; /* Mark slave pending. */
