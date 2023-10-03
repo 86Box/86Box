@@ -680,7 +680,7 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
                 if ((!!*irq_state) != !!set)
                     set ? dev->lines[b]++ : dev->lines[b]--;
 
-                if ((!pic_level_triggered(dev, b) || ((!!*irq_state) != !!set)))
+                if (!pic_level_triggered(dev, b) || (dev->lines[b] == (!!set)))
                     lines |= w;
             }
         }
