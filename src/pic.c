@@ -727,8 +727,7 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
                 if ((num & 0x1000) && mouse_latch)
                     latched_irqs &= 0xefff;
 
-                if (!level || lines)
-                    pic2.irr &= ~(num >> 8);
+                pic2.irr &= ~(num >> 8);
             }
 
             if (num & 0x00ff) {
@@ -736,13 +735,12 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
                 if (kbd_latch && (num & 0x0002))
                     latched_irqs &= 0xfffd;
 
-                if (!level || lines)
-                    pic.irr &= ~(num & 0x00ff);
+                pic.irr &= ~(num & 0x00ff);
             }
         }
-
-        update_pending();
     }
+
+    update_pending();
 }
 
 static uint8_t
