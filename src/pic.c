@@ -738,9 +738,9 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
                 pic.irr &= ~(num & 0x00ff);
             }
         }
-    }
 
-    update_pending();
+        update_pending();
+    }
 }
 
 static uint8_t
