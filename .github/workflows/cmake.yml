@@ -62,11 +62,12 @@ jobs:
             static: on
           - name: Qt GUI
             qt: on
-            static: off
+            static: on
             slug: -Qt
             packages: >-
-              qt5-base:p
-              qt5-tools:p
+              qt5-static:p
+#              qt5-base:p
+#              qt5-tools:p
         environment:
 #          - msystem: MSYS
 #            toolchain: ./cmake/flags-gcc-x86_64.cmake
