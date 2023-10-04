@@ -15,7 +15,7 @@
 #ifndef EMU_CDROM_H
 #define EMU_CDROM_H
 
-#define CDROM_NUM                   4
+#define CDROM_NUM                   8
 
 #define CD_STATUS_EMPTY             0
 #define CD_STATUS_DATA_ONLY         1

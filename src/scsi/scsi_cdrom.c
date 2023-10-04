@@ -2256,7 +2256,7 @@ begin:
                another variable. */
             if (dev->drv->cd_status == CD_STATUS_EMPTY)
                 max_len = 70; /* No media inserted. */
-            else if (dev->drv->cdrom_capacity > 405000)
+            else if (dev->drv->cdrom_capacity > CD_MAX_SECTORS)
                 max_len = 65; /* DVD. */
             else if (dev->drv->cd_status == CD_STATUS_DATA_ONLY)
                 max_len = 1; /* Data CD. */
