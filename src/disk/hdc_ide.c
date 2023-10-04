@@ -140,13 +140,13 @@ static uint8_t ide_ter_pnp_rom[] = {
     0x15, 0x09, 0xf8, 0x00, 0x01, 0x00,             /* logical device BOX0001 */
     0x1c, 0x41, 0xd0, 0x06, 0x00,                   /* compatible device PNP0600 */
     0x31, 0x00,                                     /* start dependent functions, preferred */
-    0x22, 0x00, 0x04,                               /* IRQ 10 */
-    0x47, 0x01, 0x68, 0x01, 0x68, 0x01, 0x01, 0x08, /* I/O 0x168, decodes 16-bit, 1-byte alignment, 8 addresses */
-    0x47, 0x01, 0x6e, 0x03, 0x6e, 0x03, 0x01, 0x01, /* I/O 0x36E, decodes 16-bit, 1-byte alignment, 1 address */
+    0x22, 0x00, 0x08,                               /* IRQ 11 */
+    0x47, 0x01, 0xe8, 0x01, 0xe8, 0x01, 0x01, 0x08, /* I/O 0x168, decodes 16-bit, 1-byte alignment, 8 addresses */
+    0x47, 0x01, 0xee, 0x03, 0xee, 0x03, 0x01, 0x01, /* I/O 0x36E, decodes 16-bit, 1-byte alignment, 1 address */
     0x30,                                           /* start dependent functions, acceptable */
     0x22, 0xb8, 0x1e,                               /* IRQ 3/4/5/7/9/10/11/12 */
-    0x47, 0x01, 0x68, 0x01, 0x68, 0x01, 0x01, 0x08, /* I/O 0x168, decodes 16-bit, 1-byte alignment, 8 addresses */
-    0x47, 0x01, 0x6e, 0x03, 0x6e, 0x03, 0x01, 0x01, /* I/O 0x36E, decodes 16-bit, 1-byte alignment, 1 address */
+    0x47, 0x01, 0xe8, 0x01, 0xe8, 0x01, 0x01, 0x08, /* I/O 0x168, decodes 16-bit, 1-byte alignment, 8 addresses */
+    0x47, 0x01, 0xee, 0x03, 0xee, 0x03, 0x01, 0x01, /* I/O 0x36E, decodes 16-bit, 1-byte alignment, 1 address */
     0x30,                                           /* start dependent functions, acceptable */
     0x22, 0xb8, 0x1e,                               /* IRQ 3/4/5/7/9/10/11/12 */
     0x47, 0x01, 0x00, 0x01, 0xf8, 0xff, 0x08, 0x08, /* I/O 0x100-0xFFF8, decodes 16-bit, 8-byte alignment, 8 addresses */
@@ -163,13 +163,13 @@ static uint8_t ide_qua_pnp_rom[] = {
     0x15, 0x09, 0xf8, 0x00, 0x01, 0x00,             /* logical device BOX0001 */
     0x1c, 0x41, 0xd0, 0x06, 0x00,                   /* compatible device PNP0600 */
     0x31, 0x00,                                     /* start dependent functions, preferred */
-    0x22, 0x00, 0x08,                               /* IRQ 11 */
-    0x47, 0x01, 0xe8, 0x01, 0xe8, 0x01, 0x01, 0x08, /* I/O 0x1E8, decodes 16-bit, 1-byte alignment, 8 addresses */
-    0x47, 0x01, 0xee, 0x03, 0xee, 0x03, 0x01, 0x01, /* I/O 0x3EE, decodes 16-bit, 1-byte alignment, 1 address */
+    0x22, 0x00, 0x04,                               /* IRQ 10 */
+    0x47, 0x01, 0x68, 0x01, 0x68, 0x01, 0x01, 0x08, /* I/O 0x1E8, decodes 16-bit, 1-byte alignment, 8 addresses */
+    0x47, 0x01, 0x6e, 0x03, 0x6e, 0x03, 0x01, 0x01, /* I/O 0x3EE, decodes 16-bit, 1-byte alignment, 1 address */
     0x30,                                           /* start dependent functions, acceptable */
     0x22, 0xb8, 0x1e,                               /* IRQ 3/4/5/7/9/10/11/12 */
-    0x47, 0x01, 0xe8, 0x01, 0xe8, 0x01, 0x01, 0x08, /* I/O 0x1E8, decodes 16-bit, 1-byte alignment, 8 addresses */
-    0x47, 0x01, 0xee, 0x03, 0xee, 0x03, 0x01, 0x01, /* I/O 0x3EE, decodes 16-bit, 1-byte alignment, 1 address */
+    0x47, 0x01, 0x68, 0x01, 0x68, 0x01, 0x01, 0x08, /* I/O 0x1E8, decodes 16-bit, 1-byte alignment, 8 addresses */
+    0x47, 0x01, 0x6e, 0x03, 0x6e, 0x03, 0x01, 0x01, /* I/O 0x3EE, decodes 16-bit, 1-byte alignment, 1 address */
     0x30,                                           /* start dependent functions, acceptable */
     0x22, 0xb8, 0x1e,                               /* IRQ 3/4/5/7/9/10/11/12 */
     0x47, 0x01, 0x00, 0x01, 0xf8, 0xff, 0x08, 0x08, /* I/O 0x100-0xFFF8, decodes 16-bit, 8-byte alignment, 8 addresses */
@@ -2979,7 +2979,7 @@ ide_ter_init(const device_t *info)
         if (irq == -1)
             isapnp_add_card(ide_ter_pnp_rom, sizeof(ide_ter_pnp_rom), ide_pnp_config_changed, NULL, NULL, NULL, (void *) 2);
     } else {
-        ide_board_init(2, irq, 0x168, 0x36e, 0);
+        ide_board_init(2, irq, HDC_TERTIARY_BASE, HDC_TERTIARY_SIDE, 0);
     }
 
     return (ide_boards[2]);
@@ -3010,7 +3010,7 @@ ide_qua_init(const device_t *info)
         if (irq == -1)
             isapnp_add_card(ide_qua_pnp_rom, sizeof(ide_qua_pnp_rom), ide_pnp_config_changed, NULL, NULL, NULL, (void *) 3);
     } else {
-        ide_board_init(3, irq, 0x1e8, 0x3ee, 0);
+        ide_board_init(3, irq, HDC_QUATERNARY_BASE, HDC_QUATERNARY_SIDE, 0);
     }
 
     return (ide_boards[3]);
@@ -3239,7 +3239,7 @@ static const device_config_t ide_ter_config[] = {
         .description = "IRQ",
         .type = CONFIG_SELECTION,
         .default_string = "",
-        .default_int = 10,
+        .default_int = HDC_TERTIARY_IRQ,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
@@ -3265,7 +3265,7 @@ static const device_config_t ide_qua_config[] = {
         .description = "IRQ",
         .type = CONFIG_SELECTION,
         .default_string = "",
-        .default_int = 11,
+        .default_int = HDC_QUATERNARY_IRQ,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
