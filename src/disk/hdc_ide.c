@@ -2979,7 +2979,7 @@ ide_ter_init(const device_t *info)
         if (irq == -1)
             isapnp_add_card(ide_ter_pnp_rom, sizeof(ide_ter_pnp_rom), ide_pnp_config_changed, NULL, NULL, NULL, (void *) 2);
     } else {
-        ide_board_init(2, irq, 0x168, 0x36e, 0);
+        ide_board_init(2, irq, HDC_TERTIARY_BASE, HDC_TERTIARY_SIDE, 0);
     }
 
     return (ide_boards[2]);
@@ -3010,7 +3010,7 @@ ide_qua_init(const device_t *info)
         if (irq == -1)
             isapnp_add_card(ide_qua_pnp_rom, sizeof(ide_qua_pnp_rom), ide_pnp_config_changed, NULL, NULL, NULL, (void *) 3);
     } else {
-        ide_board_init(3, irq, 0x1e8, 0x3ee, 0);
+        ide_board_init(3, irq, HDC_QUATERNARY_BASE, HDC_QUATERNARY_SIDE, 0);
     }
 
     return (ide_boards[3]);
@@ -3239,7 +3239,7 @@ static const device_config_t ide_ter_config[] = {
         .description = "IRQ",
         .type = CONFIG_SELECTION,
         .default_string = "",
-        .default_int = 10,
+        .default_int = HDC_TERTIARY_IRQ,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
@@ -3265,7 +3265,7 @@ static const device_config_t ide_qua_config[] = {
         .description = "IRQ",
         .type = CONFIG_SELECTION,
         .default_string = "",
-        .default_int = 11,
+        .default_int = HDC_QUATERNARY_IRQ,
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
