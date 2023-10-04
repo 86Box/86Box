@@ -62,11 +62,12 @@ jobs:
             static: on
           - name: Qt GUI
             qt: on
-            static: off
+            static: on
             slug: -Qt
             packages: >-
-              qt5-base:p
-              qt5-tools:p
+              qt5-static:p
+#              qt5-base:p
+#              qt5-tools:p
         environment:
 #          - msystem: MSYS
 #            toolchain: ./cmake/flags-gcc-x86_64.cmake
@@ -457,10 +458,12 @@ jobs:
           sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
 
       - name: Generate package
+        if: 0
         run: |
           cmake --install build
 
       - name: Upload artifact
+        if: 0
         uses: actions/upload-artifact@v3
         with:
           name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
