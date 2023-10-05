@@ -394,9 +394,9 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                     }
                     break;
                 case CMD_GET_VER:
-                    dev->cmdbuf[1]    = 1;
-                    dev->cmdbuf[2]    = 'D';
-                    dev->cmdbuf[3]    = 0;
+                    dev->cmdbuf[0]    = 1;
+                    dev->cmdbuf[1]    = 'D';
+                    dev->cmdbuf[2]    = 0;
                     dev->cmdbuf_count = 4;
                     break;
                 case CMD_EJECT:
