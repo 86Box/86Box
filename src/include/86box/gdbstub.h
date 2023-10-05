@@ -36,19 +36,19 @@ enum {
 
 #ifdef USE_GDBSTUB
 
-#    define GDBSTUB_MEM_ACCESS(addr, access, width)                                \
-        uint32_t gdbstub_page = addr >> MEM_GRANULARITY_BITS;                      \
-        if (gdbstub_watch_pages[gdbstub_page >> 6] & (1 << (gdbstub_page & 63))) { \
-            uint32_t gdbstub_addrs[width];                                         \
-            for (int gdbstub_i = 0; gdbstub_i < width; gdbstub_i++)                \
-                gdbstub_addrs[gdbstub_i] = addr + gdbstub_i;                       \
-            gdbstub_mem_access(gdbstub_addrs, access | width);                     \
+#    define GDBSTUB_MEM_ACCESS(addr, access, width)                                   \
+        uint32_t gdbstub_page = (addr) >> MEM_GRANULARITY_BITS;                       \
+        if (gdbstub_watch_pages[gdbstub_page >> 6] & (1ULL << (gdbstub_page & 63))) { \
+            uint32_t gdbstub_addrs[(width)];                                          \
+            for (int gdbstub_i = 0; gdbstub_i < (width); gdbstub_i++)                 \
+                gdbstub_addrs[gdbstub_i] = (addr) + gdbstub_i;                        \
+            gdbstub_mem_access(gdbstub_addrs, (access) | (width));                    \
         }
 
-#    define GDBSTUB_MEM_ACCESS_FAST(addrs, access, width)                        \
-        uint32_t gdbstub_page = addr >> MEM_GRANULARITY_BITS;                    \
-        if (gdbstub_watch_pages[gdbstub_page >> 6] & (1 << (gdbstub_page & 63))) \
-            gdbstub_mem_access(addrs, access | width);
+#    define GDBSTUB_MEM_ACCESS_FAST(addrs, access, width)                           \
+        uint32_t gdbstub_page = (addrs)[0] >> MEM_GRANULARITY_BITS;                 \
+        if (gdbstub_watch_pages[gdbstub_page >> 6] & (1ULL << (gdbstub_page & 63))) \
+            gdbstub_mem_access((addrs), (access) | (width));
 
 extern int      gdbstub_step, gdbstub_next_asap;
 extern uint64_t gdbstub_watch_pages[(((uint32_t) -1) >> (MEM_GRANULARITY_BITS + 6)) + 1];

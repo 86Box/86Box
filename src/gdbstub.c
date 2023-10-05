@@ -1348,7 +1348,7 @@ unknown:
                         /* Flag this watchpoint's corresponding pages as having a watchpoint. */
                         k = (breakpoint->end - 1) >> MEM_GRANULARITY_BITS;
                         for (i = breakpoint->addr >> MEM_GRANULARITY_BITS; i <= k; i++)
-                            gdbstub_watch_pages[i >> 6] |= (1 << (i & 63));
+                            gdbstub_watch_pages[i >> 6] |= (1ULL << (i & 63));
 
                         breakpoint = breakpoint->next;
                     } else {
@@ -1752,8 +1752,10 @@ gdbstub_mem_access(uint32_t *addrs, int access)
         if (watchpoint) {
             /* Check if any component of this address is within the breakpoint's range. */
             for (i = 0; i < width; i++) {
-                if ((addrs[i] >= watchpoint->addr) && (addrs[i] < watchpoint->end))
+                if ((addrs[i] >= watchpoint->addr) && (addrs[i] < watchpoint->end)) {
+                    watch_addr = addrs[i];
                     break;
+                }
             }
             if (i < width) {
                 gdbstub_log("GDB Stub: %s watchpoint at %08X\n", (access & GDBSTUB_MEM_AWATCH) ? "Access" : ((access & GDBSTUB_MEM_WRITE) ? "Write" : "Read"), watch_addr);
