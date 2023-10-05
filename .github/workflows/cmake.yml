@@ -417,7 +417,7 @@ jobs:
     steps:
       - name: Install source dependencies
         run: >-
-          brew install -s
+          brew reinstall -s
           ${{ matrix.ui.src-packages }}
 
       - name: Install dependencies
