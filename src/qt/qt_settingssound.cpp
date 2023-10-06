@@ -192,7 +192,12 @@ SettingsSound::on_comboBoxSoundCard1_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureSoundCard1->setEnabled(sound_card_has_config(ui->comboBoxSoundCard1->currentData().toInt()));
+    int sndCard = ui->comboBoxSoundCard1->currentData().toInt();
+    if (sndCard == SOUND_INTERNAL)
+        ui->pushButtonConfigureSoundCard1->setEnabled(machine_has_flags(machineId, MACHINE_SOUND) &&
+                                            device_has_config(machine_get_snd_device(machineId)));
+    else
+        ui->pushButtonConfigureSoundCard1->setEnabled(sound_card_has_config(sndCard));
 }
 
 void
@@ -207,7 +212,12 @@ SettingsSound::on_comboBoxSoundCard2_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureSoundCard2->setEnabled(sound_card_has_config(ui->comboBoxSoundCard2->currentData().toInt()));
+    int sndCard = ui->comboBoxSoundCard2->currentData().toInt();
+    if (sndCard == SOUND_INTERNAL)
+        ui->pushButtonConfigureSoundCard2->setEnabled(machine_has_flags(machineId, MACHINE_SOUND) &&
+                                            device_has_config(machine_get_snd_device(machineId)));
+    else
+        ui->pushButtonConfigureSoundCard2->setEnabled(sound_card_has_config(ui->comboBoxSoundCard2->currentData().toInt()));
 }
 
 void
@@ -222,7 +232,12 @@ SettingsSound::on_comboBoxSoundCard3_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureSoundCard3->setEnabled(sound_card_has_config(ui->comboBoxSoundCard3->currentData().toInt()));
+    int sndCard = ui->comboBoxSoundCard3->currentData().toInt();
+    if (sndCard == SOUND_INTERNAL)
+        ui->pushButtonConfigureSoundCard3->setEnabled(machine_has_flags(machineId, MACHINE_SOUND) &&
+                                            device_has_config(machine_get_snd_device(machineId)));
+    else
+        ui->pushButtonConfigureSoundCard3->setEnabled(sound_card_has_config(ui->comboBoxSoundCard3->currentData().toInt()));
 }
 
 void
@@ -237,7 +252,12 @@ SettingsSound::on_comboBoxSoundCard4_currentIndexChanged(int index)
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureSoundCard4->setEnabled(sound_card_has_config(ui->comboBoxSoundCard4->currentData().toInt()));
+    int sndCard = ui->comboBoxSoundCard4->currentData().toInt();
+    if (sndCard == SOUND_INTERNAL)
+        ui->pushButtonConfigureSoundCard4->setEnabled(machine_has_flags(machineId, MACHINE_SOUND) &&
+                                            device_has_config(machine_get_snd_device(machineId)));
+    else
+        ui->pushButtonConfigureSoundCard4->setEnabled(sound_card_has_config(ui->comboBoxSoundCard4->currentData().toInt()));
 }
 
 void

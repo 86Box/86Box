@@ -47,7 +47,12 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
 
         intf_cbox->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_PCAP);
         nic_cbox->setEnabled(adaptersEnabled);
-        conf_btn->setEnabled(adaptersEnabled && network_card_has_config(nic_cbox->currentData().toInt()));
+        int netCard = nic_cbox->currentData().toInt();
+        if (netCard == NET_INTERNAL)
+            conf_btn->setEnabled(adaptersEnabled && machine_has_flags(machineId, MACHINE_NIC) &&
+                                 device_has_config(machine_get_net_device(machineId)));
+        else
+            conf_btn->setEnabled(adaptersEnabled && network_card_has_config(nic_cbox->currentData().toInt()));
         socket_line->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_VDE);
     }
 }
