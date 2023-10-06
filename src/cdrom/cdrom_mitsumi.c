@@ -90,8 +90,9 @@ enum {
     IRQ_ERROR     = 4
 };
 
-typedef struct {
-    int      dma, irq;
+typedef struct mcd_t {
+    int      dma;
+    int      irq;
     int      change;
     int      data;
     uint8_t  stat;
