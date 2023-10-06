@@ -206,13 +206,13 @@ msgid "&About 86Box..."
 msgstr "关于 86Box(&A)..."
 
 msgid "&New image..."
-msgstr "新建镜像(&N)..."
+msgstr "新建映像(&N)..."
 
 msgid "&Existing image..."
-msgstr "打开已存在的镜像(&E)..."
+msgstr "打开已存在的映像(&E)..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "打开已存在的镜像并写保护(&W)..."
+msgstr "打开已存在的映像并写保护(&W)..."
 
 msgid "&Record"
 msgstr "录制(&R)"
@@ -230,7 +230,7 @@ msgid "E&ject"
 msgstr "弹出(&J)"
 
 msgid "&Image..."
-msgstr "镜像(&I)..."
+msgstr "映像(&I)..."
 
 msgid "E&xport to 86F..."
 msgstr "导出为 86F 格式(&x)..."
@@ -242,7 +242,7 @@ msgid "E&mpty"
 msgstr "空置驱动器(&M)"
 
 msgid "&Reload previous image"
-msgstr "载入上一个镜像(&R)"
+msgstr "载入上一个映像(&R)"
 
 msgid "&Folder..."
 msgstr "文件夹(&F)..."
@@ -284,7 +284,7 @@ msgid "Sound Gain"
 msgstr "音量增益"
 
 msgid "New Image"
-msgstr "新建镜像"
+msgstr "新建映像"
 
 msgid "Settings"
 msgstr "设置"
@@ -533,7 +533,7 @@ msgid "&New..."
 msgstr "新建(&N)..."
 
 msgid "&Existing..."
-msgstr "已有镜像(&E)..."
+msgstr "已有映像(&E)..."
 
 msgid "&Remove"
 msgstr "移除(&R)"
@@ -566,7 +566,7 @@ msgid "Type:"
 msgstr "类型:"
 
 msgid "Image Format:"
-msgstr "镜像格式:"
+msgstr "映像格式:"
 
 msgid "Block Size:"
 msgstr "块大小:"
@@ -599,7 +599,7 @@ msgid "ISA RTC:"
 msgstr "ISA 实时时钟:"
 
 msgid "ISA Memory Expansion"
-msgstr "ISA 内存扩充"
+msgstr "ISA 内存扩展"
 
 msgid "Card 1:"
 msgstr "扩展卡 1:"
@@ -647,10 +647,10 @@ msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
 msgid "ZIP images"
-msgstr "ZIP 镜像"
+msgstr "ZIP 映像"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box 找不到任何可用的 ROM 镜像。\n\n请<a href=\"https://github.com/86Box/roms/releases/latest\">下载</a>ROM 包并将其解压到 \"roms\" 文件夹。"
+msgstr "86Box 找不到任何可用的 ROM 映像。\n\n请<a href=\"https://github.com/86Box/roms/releases/latest\">下载</a>ROM 包并将其解压到 \"roms\" 文件夹中。"
 
 msgid "(empty)"
 msgstr "(空)"
@@ -668,13 +668,13 @@ msgid "Off"
 msgstr "关"
 
 msgid "All images"
-msgstr "所有镜像"
+msgstr "所有映像"
 
 msgid "Basic sector images"
-msgstr "基本扇区镜像"
+msgstr "基本扇区映像"
 
 msgid "Surface images"
-msgstr "表面镜像"
+msgstr "表面映像"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "由于 roms/machines 文件夹中缺少合适的 ROM，机型 \"%hs\" 不可用。将切换到其他可用机型。"
@@ -803,10 +803,10 @@ msgid "Floppy %i (%s): %ls"
 msgstr "软盘 %i (%s): %ls"
 
 msgid "Advanced sector images"
-msgstr "高级扇区镜像"
+msgstr "高级扇区映像"
 
 msgid "Flux images"
-msgstr "Flux 镜像"
+msgstr "Flux 映像"
 
 msgid "Unable to initialize SDL, SDL2.dll is required"
 msgstr "无法初始化 SDL，需要 SDL2.dll"
@@ -824,7 +824,7 @@ msgid "MO %i (%ls): %ls"
 msgstr "磁光盘 %i (%ls): %ls"
 
 msgid "MO images"
-msgstr "磁光盘镜像"
+msgstr "磁光盘映像"
 
 msgid "Welcome to 86Box!"
 msgstr "欢迎使用 86Box！"
@@ -896,7 +896,7 @@ msgid "Don't reset"
 msgstr "不重置"
 
 msgid "CD-ROM images"
-msgstr "光盘镜像"
+msgstr "光盘映像"
 
 msgid "%hs Device Configuration"
 msgstr "%hs 设备配置"
@@ -923,13 +923,13 @@ msgid "Cassette: %s"
 msgstr "磁带: %s"
 
 msgid "Cassette images"
-msgstr "磁带镜像"
+msgstr "磁带映像"
 
 msgid "Cartridge %i: %ls"
 msgstr "卡带 %i: %ls"
 
 msgid "Cartridge images"
-msgstr "卡带镜像"
+msgstr "卡带映像"
 
 msgid "Error initializing renderer"
 msgstr "初始化渲染器时出错"
@@ -980,13 +980,13 @@ msgid "Add Existing Hard Disk"
 msgstr "添加已存在的硬盘"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI 磁盘镜像不能超过 4 GB。"
+msgstr "HDI 磁盘映像不能超过 4 GB。"
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "磁盘镜像不能超过 127 GB。"
+msgstr "磁盘映像不能超过 127 GB。"
 
 msgid "Hard disk images"
-msgstr "硬盘镜像"
+msgstr "硬盘映像"
 
 msgid "Unable to read file"
 msgstr "无法读取文件"
@@ -995,19 +995,19 @@ msgid "Unable to write file"
 msgstr "无法写入文件"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "不支持非 512 字节扇区大小的 HDI 或 HDX 镜像。"
+msgstr "不支持非 512 字节扇区大小的 HDI 或 HDX 映像。"
 
 msgid "USB is not yet supported"
 msgstr "尚未支持 USB"
 
 msgid "Disk image file already exists"
-msgstr "磁盘镜像文件已存在"
+msgstr "磁盘映像文件已存在"
 
 msgid "Please specify a valid file name."
 msgstr "请指定有效的文件名。"
 
 msgid "Disk image created"
-msgstr "已创建磁盘镜像"
+msgstr "已创建磁盘映像"
 
 msgid "Make sure the file exists and is readable."
 msgstr "请确定此文件已存在并可读取。"
@@ -1016,16 +1016,16 @@ msgid "Make sure the file is being saved to a writable directory."
 msgstr "请确定此文件保存在可写目录中。"
 
 msgid "Disk image too large"
-msgstr "磁盘镜像太大"
+msgstr "磁盘映像太大"
 
 msgid "Remember to partition and format the newly-created drive."
-msgstr "请记得为新创建的镜像分区并格式化。"
+msgstr "请记得为新创建的映像分区并格式化。"
 
 msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "选定的文件将被覆盖。确定继续使用此文件吗？"
 
 msgid "Unsupported disk image"
-msgstr "不支持的磁盘镜像"
+msgstr "不支持的磁盘映像"
 
 msgid "Overwrite"
 msgstr "覆盖"
@@ -1034,13 +1034,13 @@ msgid "Don't overwrite"
 msgstr "不覆盖"
 
 msgid "Raw image (.img)"
-msgstr "原始镜像 (.img)"
+msgstr "原始映像 (.img)"
 
 msgid "HDI image (.hdi)"
-msgstr "HDI 镜像 (.hdi)"
+msgstr "HDI 映像 (.hdi)"
 
 msgid "HDX image (.hdx)"
-msgstr "HDX 镜像 (.hdx)"
+msgstr "HDX 映像 (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
 msgstr "固定大小 VHD (.vhd)"
@@ -1064,7 +1064,7 @@ msgid "Select the parent VHD"
 msgstr "选择父 VHD 文件"
 
 msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "父映像可能在创建差异镜像后被修改。\n\n如果镜像文件被移动或复制，或创建此磁盘的程序中存在错误，也可能发生这种情况。\n\n是否需要修复时间戳？"
+msgstr "父映像可能在创建差异映像后被修改。\n\n如果映像文件被移动或复制，或创建此磁盘的程序中存在错误，也可能发生这种情况。\n\n是否需要修复时间戳？"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "父盘与子盘的时间戳不匹配"
@@ -1205,7 +1205,7 @@ msgid "Mouse sensitivity:"
 msgstr "鼠标敏感度:"
 
 msgid "Select media images from program working directory"
-msgstr "从程序工作目录中选择介质镜像"
+msgstr "从程序工作目录中选择介质映像"
 
 msgid "PIT mode:"
 msgstr "PIT 模式:"
