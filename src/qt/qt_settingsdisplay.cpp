@@ -110,7 +110,10 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
 void
 SettingsDisplay::on_pushButtonConfigure_clicked()
 {
-    auto *device = video_card_getdevice(ui->comboBoxVideo->currentData().toInt());
+    int videoCard = ui->comboBoxVideo->currentData().toInt();
+    auto *device = video_card_getdevice(videoCard);
+    if (videoCard == VID_INTERNAL)
+        device = machine_get_vid_device(machineId);
     DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings *>(Settings::settings));
 }
 

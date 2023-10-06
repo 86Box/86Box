@@ -193,23 +193,39 @@ SettingsNetwork::on_comboIndexChanged(int index)
 void
 SettingsNetwork::on_pushButtonConf1_clicked()
 {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC1->currentData().toInt()), 1, qobject_cast<Settings *>(Settings::settings));
+    int netCard = ui->comboBoxNIC1->currentData().toInt();
+    auto *device = network_card_getdevice(netCard);
+    if (netCard == NET_INTERNAL)
+        device = machine_get_net_device(machineId);
+    DeviceConfig::ConfigureDevice(device, 1, qobject_cast<Settings *>(Settings::settings));
 }
 
 void
 SettingsNetwork::on_pushButtonConf2_clicked()
 {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC2->currentData().toInt()), 2, qobject_cast<Settings *>(Settings::settings));
+    int netCard = ui->comboBoxNIC2->currentData().toInt();
+    auto *device = network_card_getdevice(netCard);
+    if (netCard == NET_INTERNAL)
+        device = machine_get_net_device(machineId);
+    DeviceConfig::ConfigureDevice(device, 2, qobject_cast<Settings *>(Settings::settings));
 }
 
 void
 SettingsNetwork::on_pushButtonConf3_clicked()
 {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC3->currentData().toInt()), 3, qobject_cast<Settings *>(Settings::settings));
+    int netCard = ui->comboBoxNIC3->currentData().toInt();
+    auto *device = network_card_getdevice(netCard);
+    if (netCard == NET_INTERNAL)
+        device = machine_get_net_device(machineId);
+    DeviceConfig::ConfigureDevice(device, 3, qobject_cast<Settings *>(Settings::settings));
 }
 
 void
 SettingsNetwork::on_pushButtonConf4_clicked()
 {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC4->currentData().toInt()), 4, qobject_cast<Settings *>(Settings::settings));
+    int netCard = ui->comboBoxNIC4->currentData().toInt();
+    auto *device = network_card_getdevice(netCard);
+    if (netCard == NET_INTERNAL)
+        device = machine_get_net_device(machineId);
+    DeviceConfig::ConfigureDevice(device, 4, qobject_cast<Settings *>(Settings::settings));
 }

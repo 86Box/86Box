@@ -203,7 +203,11 @@ SettingsSound::on_comboBoxSoundCard1_currentIndexChanged(int index)
 void
 SettingsSound::on_pushButtonConfigureSoundCard1_clicked()
 {
-    DeviceConfig::ConfigureDevice(sound_card_getdevice(ui->comboBoxSoundCard1->currentData().toInt()), 0, qobject_cast<Settings *>(Settings::settings));
+    int sndCard = ui->comboBoxSoundCard1->currentData().toInt();
+    auto *device = sound_card_getdevice(sndCard);
+    if (sndCard == SOUND_INTERNAL)
+        device = machine_get_snd_device(machineId);
+    DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings *>(Settings::settings));
 }
 
 void
@@ -223,7 +227,11 @@ SettingsSound::on_comboBoxSoundCard2_currentIndexChanged(int index)
 void
 SettingsSound::on_pushButtonConfigureSoundCard2_clicked()
 {
-    DeviceConfig::ConfigureDevice(sound_card_getdevice(ui->comboBoxSoundCard2->currentData().toInt()), 0, qobject_cast<Settings *>(Settings::settings));
+    int sndCard = ui->comboBoxSoundCard2->currentData().toInt();
+    auto *device = sound_card_getdevice(sndCard);
+    if (sndCard == SOUND_INTERNAL)
+        device = machine_get_snd_device(machineId);
+    DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings *>(Settings::settings));
 }
 
 void
@@ -243,7 +251,11 @@ SettingsSound::on_comboBoxSoundCard3_currentIndexChanged(int index)
 void
 SettingsSound::on_pushButtonConfigureSoundCard3_clicked()
 {
-    DeviceConfig::ConfigureDevice(sound_card_getdevice(ui->comboBoxSoundCard3->currentData().toInt()), 0, qobject_cast<Settings *>(Settings::settings));
+    int sndCard = ui->comboBoxSoundCard3->currentData().toInt();
+    auto *device = sound_card_getdevice(sndCard);
+    if (sndCard == SOUND_INTERNAL)
+        device = machine_get_snd_device(machineId);
+    DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings *>(Settings::settings));
 }
 
 void
@@ -263,7 +275,11 @@ SettingsSound::on_comboBoxSoundCard4_currentIndexChanged(int index)
 void
 SettingsSound::on_pushButtonConfigureSoundCard4_clicked()
 {
-    DeviceConfig::ConfigureDevice(sound_card_getdevice(ui->comboBoxSoundCard4->currentData().toInt()), 0, qobject_cast<Settings *>(Settings::settings));
+    int sndCard = ui->comboBoxSoundCard4->currentData().toInt();
+    auto *device = sound_card_getdevice(sndCard);
+    if (sndCard == SOUND_INTERNAL)
+        device = machine_get_snd_device(machineId);
+    DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings *>(Settings::settings));
 }
 
 void
