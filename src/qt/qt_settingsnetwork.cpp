@@ -115,6 +115,12 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
         selectedRow      = 0;
 
         while (true) {
+            /* Skip "internal" if machine doesn't have it. */
+            if ((c == 1) && (machine_has_flags(machineId, MACHINE_NIC) == 0)) {
+                c++;
+                continue;
+            }
+
             auto name = DeviceConfig::DeviceName(network_card_getdevice(c), network_card_get_internal_name(c), 1);
             if (name.isEmpty()) {
                 break;
