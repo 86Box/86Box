@@ -107,13 +107,13 @@ msgid "Hi&DPI scaling"
 msgstr "HiDPIスケーリング(&D)"
 
 msgid "&Fullscreen\tCtrl+Alt+PgUp"
-msgstr 全画面表示(&F)\tCtrl+Alt+PgUp"
+msgstr "全画面表示(&F)\tCtrl+Alt+PgUp"
 
 msgid "Fullscreen &stretch mode"
 msgstr "全画面の拡大表示モード(&S)"
 
 msgid "&Full screen stretch"
-msgstr ""ストレッチ モード(&F)"
+msgstr "全画面の拡大表示(&F)"
 
 msgid "&4:3"
 msgstr "4:3(&4)"
@@ -353,7 +353,7 @@ msgid "FPU:"
 msgstr "FPU:"
 
 msgid "Wait states:"
-msgstr "ウェイト ステート:"
+msgstr "ウェイトステート:"
 
 msgid "MB"
 msgstr "MB"
@@ -431,7 +431,7 @@ msgid "Use FLOAT32 sound"
 msgstr "FLOAT32サウンドを使用する"
 
 msgid "FM synth driver"
-msgstr "FMシンセ ドライバー"
+msgstr "FMシンセドライバー"
 
 msgid "Nuked (more accurate)"
 msgstr "Nuked(高精度化)"
@@ -446,7 +446,7 @@ msgid "PCap device:"
 msgstr "PCapデバイス:"
 
 msgid "Network adapter:"
-msgstr "ネットワーク アダプター:"
+msgstr "ネットワークアダプター:"
 
 msgid "COM1 Device:"
 msgstr "COM1デバイス:"
@@ -473,28 +473,28 @@ msgid "LPT4 Device:"
 msgstr "LPT4デバイス:"
 
 msgid "Serial port 1"
-msgstr "シリアル ポート1"
+msgstr "シリアルポート1"
 
 msgid "Serial port 2"
-msgstr "シリアル ポート2"
+msgstr "シリアルポート2"
 
 msgid "Serial port 3"
-msgstr "シリアル ポート3"
+msgstr "シリアルポート3"
 
 msgid "Serial port 4"
-msgstr "シリアル ポート4"
+msgstr "シリアルポート4"
 
 msgid "Parallel port 1"
-msgstr "パラレル ポート1"
+msgstr "パラレルポート1"
 
 msgid "Parallel port 2"
-msgstr "パラレル ポート2"
+msgstr "パラレルポート2"
 
 msgid "Parallel port 3"
-msgstr "パラレル ポート3"
+msgstr "パラレルポート3"
 
 msgid "Parallel port 4"
-msgstr "パラレル ポート4"
+msgstr "パラレルポート4"
 
 msgid "HD Controller:"
 msgstr "HDDコントローラー:"
@@ -569,10 +569,10 @@ msgid "Image Format:"
 msgstr "イメージ形式:"
 
 msgid "Block Size:"
-msgstr "ブロック サイズ:"
+msgstr "ブロックサイズ:"
 
 msgid "Floppy drives:"
-msgstr "フロッピー ドライブ:"
+msgstr "フロッピードライブ:"
 
 msgid "Turbo timings"
 msgstr "高速タイミング"
@@ -671,16 +671,16 @@ msgid "All images"
 msgstr "すべてのイメージ"
 
 msgid "Basic sector images"
-msgstr "基本的なセクター イメージ"
+msgstr "基本的なセクターイメージ"
 
 msgid "Surface images"
 msgstr "表面イメージ"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "「roms/machines」ディレクトリにROMがないため、マシン「%hs」は使用できません。使用可能なマシンに切り替えます。"
+msgstr "roms/machines ディレクトリにROMがないため、マシン「%hs」は使用できません。使用可能なマシンに切り替えます。"
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "「roms/video」ディレクトリにROMがないため、ビデオ カード「%hs」は使用できません。使用可能なビデオカードに切り替えます。"
+msgstr "roms/video ディレクトリにROMがないため、ビデオ カード「%hs」は使用できません。使用可能なビデオカードに切り替えます。"
 
 msgid "Machine"
 msgstr "マシン"
@@ -788,7 +788,7 @@ msgid "None"
 msgstr "なし"
 
 msgid "Unable to load keyboard accelerators."
-msgstr "キーボード アクセラレータを読み込めません。"
+msgstr "キーボードアクセラレータを読み込めません。"
 
 msgid "Unable to register raw input."
 msgstr "生入力が登録できません。"
@@ -803,7 +803,7 @@ msgid "Floppy %i (%s): %ls"
 msgstr "フロッピー %i (%s): %ls"
 
 msgid "Advanced sector images"
-msgstr "アドバンスド セクター イメージ"
+msgstr "アドバンスドセクターイメージ"
 
 msgid "Flux images"
 msgstr "Fluxイメージ"
@@ -842,7 +842,7 @@ msgid "Do you want to save the settings?"
 msgstr "設定を保存しますか？"
 
 msgid "This will hard reset the emulated machine."
-msgstr "使用中のマシンがハード リセットされます。"
+msgstr "使用中のマシンがハードリセットされます。"
 
 msgid "Save"
 msgstr "保存"
@@ -902,7 +902,7 @@ msgid "%hs Device Configuration"
 msgstr "%hs デバイスの設定"
 
 msgid "Monitor in sleep mode"
-msgstr "モニターのスリー プモード"
+msgstr "モニターのスリープモード"
 
 msgid "OpenGL Shaders"
 msgstr "OpenGLシェーダー"
@@ -923,13 +923,13 @@ msgid "Cassette: %s"
 msgstr "カセット: %s"
 
 msgid "Cassette images"
-msgstr "カセット イメージ"
+msgstr "カセットイメージ"
 
 msgid "Cartridge %i: %ls"
 msgstr "カートリッジ %i: %ls"
 
 msgid "Cartridge images"
-msgstr "カートリッジ イメージ"
+msgstr "カートリッジイメージ"
 
 msgid "Error initializing renderer"
 msgstr "レンダラーの初期化エラー"
@@ -950,13 +950,13 @@ msgid "Press Ctrl+Alt+Esc"
 msgstr "Ctrl+Alt+Escを押し"
 
 msgid "Hard reset"
-msgstr "ハード リセット"
+msgstr "ハードリセット"
 
 msgid "ACPI shutdown"
 msgstr "ACPIシャットダウン"
 
 msgid "Hard disk (%s)"
-msgstr "ハード ディスク (%s)"
+msgstr "ハードディスク (%s)"
 
 msgid "%01i:%01i"
 msgstr "%01i:%01i"
@@ -986,7 +986,7 @@ msgid "Disk images cannot be larger than 127 GB."
 msgstr "ディスクイメージは127GBを超えることはできません。"
 
 msgid "Hard disk images"
-msgstr "ハード ディスク イメージ"
+msgstr "ハードディスクイメージ"
 
 msgid "Unable to read file"
 msgstr "ファイルの読み込みができません"
@@ -1001,13 +1001,13 @@ msgid "USB is not yet supported"
 msgstr "USBはまだ非対応です"
 
 msgid "Disk image file already exists"
-msgstr "ディスク イメージ ファイルが既に存在します"
+msgstr "ディスクイメージファイルが既に存在します"
 
 msgid "Please specify a valid file name."
 msgstr "有効なファイル名を指定してください。"
 
 msgid "Disk image created"
-msgstr "ディスク イメージが作成されました"
+msgstr "ディスクイメージが作成されました"
 
 msgid "Make sure the file exists and is readable."
 msgstr "ファイルが存在し、読み取り可能であることを確認してください。"
@@ -1016,7 +1016,7 @@ msgid "Make sure the file is being saved to a writable directory."
 msgstr "ファイルが書き込み可能なディレクトリに保存されていることを確認してください。"
 
 msgid "Disk image too large"
-msgstr "ディスク イメージのサイズが大きすぎます"
+msgstr "ディスクイメージのサイズが大きすぎます"
 
 msgid "Remember to partition and format the newly-created drive."
 msgstr "新規ドライブをパーティション分割し、フォーマットを必ずしといてください。"
@@ -1025,7 +1025,7 @@ msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "選択したファイルは上書きされます。よろしいですか？"
 
 msgid "Unsupported disk image"
-msgstr "非対応のディスク イメージジ"
+msgstr "非対応のディスクイメージジ"
 
 msgid "Overwrite"
 msgstr "上書き"
@@ -1070,7 +1070,7 @@ msgid "Parent and child disk timestamps do not match"
 msgstr "親ディスクと子ディスクのタイムス タンプが一致しません"
 
 msgid "Could not fix VHD timestamp."
-msgstr "VHD のタイム スタンプを修正できません。"
+msgstr "VHD のタイムスタンプを修正できません。"
 
 msgid "%01i:%02i"
 msgstr "%01i:%02i"
@@ -1196,16 +1196,16 @@ msgid "(System Default)"
 msgstr "(システム既定値)"
 
 msgid "Failed to initialize network driver"
-msgstr "ネットワーク ドライバの初期化に失敗しました"
+msgstr "ネットワークドライバの初期化に失敗しました"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "ネットワーク設定がヌル ドライバに切り替えられます"
+msgstr "ネットワーク設定がヌルドライバに切り替えられます"
 
 msgid "Mouse sensitivity:"
 msgstr "マウスの感度:"
 
 msgid "Select media images from program working directory"
-msgstr "プログラムの作業ディレクトリからメディア イメージを選択してください"
+msgstr "プログラムの作業ディレクトリからメディアイメージを選択してください"
 
 msgid "PIT mode:"
 msgstr "PITモード:"
