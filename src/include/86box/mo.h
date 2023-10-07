@@ -37,17 +37,17 @@ typedef struct mo_type_t {
 #define KNOWN_MO_TYPES 10
 static const mo_type_t mo_types[KNOWN_MO_TYPES] = {
   // 3.5" standard M.O. disks
-    {248826,   512 },
-    { 446325,  512 },
-    { 1041500, 512 },
-    { 310352,  2048},
-    { 605846,  2048},
-    { 1063146, 2048},
+    { 248826,   512 },
+    { 446325,   512 },
+    { 1041500,  512 },
+    { 310352,  2048 },
+    { 605846,  2048 },
+    { 1063146, 2048 },
  // 5.25" M.O. disks
-    { 573624,  512 },
-    { 314568,  1024},
-    { 904995,  512 },
-    { 637041,  1024},
+    { 573624,   512 },
+    { 314568,  1024 },
+    { 904995,   512 },
+    { 637041,  1024 },
 };
 
 typedef struct mo_drive_type_t {
@@ -60,7 +60,7 @@ typedef struct mo_drive_type_t {
 #define KNOWN_MO_DRIVE_TYPES 22
 static const mo_drive_type_t mo_drive_types[KNOWN_MO_DRIVE_TYPES] = {
     {"86BOX",     "MAGNETO OPTICAL", "1.00", { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 }},
-    { "FUJITSU",  "M2512A",          "1314", { 1, 1, 0, 0, 0, 0, 0, 0, 0 }   },
+    { "FUJITSU",  "M2512A",          "1314", { 1, 1, 0, 0, 0, 0, 0, 0, 0, 0 }},
     { "FUJITSU",  "M2513-MCC3064SS", "1.00", { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 }},
     { "FUJITSU",  "MCE3130SS",       "0070", { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 }},
     { "FUJITSU",  "MCF3064SS",       "0030", { 1, 1, 1, 1, 0, 0, 0, 0, 0, 0 }},
@@ -165,8 +165,10 @@ typedef struct mo_t {
 
 extern mo_t      *mo[MO_NUM];
 extern mo_drive_t mo_drives[MO_NUM];
+#if 0
 extern uint8_t    atapi_mo_drives[8];
 extern uint8_t    scsi_mo_drives[16];
+#endif
 
 #define mo_sense_error dev->sense[0]
 #define mo_sense_key   dev->sense[2]

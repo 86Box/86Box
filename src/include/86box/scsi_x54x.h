@@ -366,6 +366,7 @@ typedef struct SGE_t {
 #define X54X_INT_GEOM_WRITABLE 8
 #define X54X_MBX_24BIT         16
 #define X54X_ISAPNP            32
+#define X54X_HAS_SIGNATURE     64
 
 typedef struct x54x_t {
     /* 32 bytes */
@@ -404,7 +405,7 @@ typedef struct x54x_t {
 
     /* for multi-threading, keep these volatile */
     volatile uint8_t Status;
-    volatile uint8_t Interrupt; 
+    volatile uint8_t Interrupt;
     volatile uint8_t MailboxIsBIOS;
     volatile uint8_t ToRaise;
     volatile uint8_t flags;

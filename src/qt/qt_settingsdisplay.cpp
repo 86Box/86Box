@@ -110,7 +110,10 @@ SettingsDisplay::onCurrentMachineChanged(int machineId)
 void
 SettingsDisplay::on_pushButtonConfigure_clicked()
 {
-    auto *device = video_card_getdevice(ui->comboBoxVideo->currentData().toInt());
+    int videoCard = ui->comboBoxVideo->currentData().toInt();
+    auto *device = video_card_getdevice(videoCard);
+    if (videoCard == VID_INTERNAL)
+        device = machine_get_vid_device(machineId);
     DeviceConfig::ConfigureDevice(device, 0, qobject_cast<Settings *>(Settings::settings));
 }
 
@@ -138,7 +141,11 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     }
     auto curVideoCard_2 = videoCard[1];
     videoCard[0] = ui->comboBoxVideo->currentData().toInt();
-    ui->pushButtonConfigure->setEnabled(video_card_has_config(videoCard[0]) > 0);
+    if (videoCard[0] == VID_INTERNAL)
+        ui->pushButtonConfigure->setEnabled(machine_has_flags(machineId, MACHINE_VIDEO) &&
+                                            device_has_config(machine_get_vid_device(machineId)));
+    else
+        ui->pushButtonConfigure->setEnabled(video_card_has_config(videoCard[0]) > 0);
     bool machineHasPci = machine_has_bus(machineId, MACHINE_BUS_PCI) > 0;
     ui->checkBoxVoodoo->setEnabled(machineHasPci);
     if (machineHasPci) {

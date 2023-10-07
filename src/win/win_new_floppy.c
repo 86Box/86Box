@@ -739,7 +739,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, UNUSED(LPARAM l
                         new_floppy_msgbox_header(hdlg, MBX_ERROR, (wchar_t *) IDS_4108, (wchar_t *) IDS_4115);
                         return TRUE;
                     }
-                    /*FALLTHROUGH*/
+                    fallthrough;
                 case IDCANCEL:
                     EndDialog(hdlg, 0);
                     plat_pause(0);

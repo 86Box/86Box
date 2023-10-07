@@ -1739,6 +1739,10 @@ gd54xx_recalctimings(svga_t *svga)
 
     svga->interlace = (svga->crtc[0x1a] & 0x01);
 
+    if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
+        svga->interlace = 0;
+    }
+
     svga->map8 = svga->pallook;
     if (svga->seqregs[7] & CIRRUS_SR7_BPP_SVGA) {
         if (linedbl)
@@ -1921,6 +1925,13 @@ gd54xx_recalctimings(svga_t *svga)
     }
 
     svga->vram_display_mask = (svga->crtc[0x1b] & 2) ? gd54xx->vram_mask : 0x3ffff;
+
+    if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
+        if (svga->seqregs[1] & 8) {
+            svga->render = svga_render_text_40;
+        } else
+            svga->render = svga_render_text_80;
+    }
 }
 
 static void

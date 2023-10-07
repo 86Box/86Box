@@ -240,7 +240,6 @@ pci_relocate_slot(int type, int new_slot)
 {
     int     card = -1;
     int     old_slot;
-    uint8_t mapping;
 
     if ((new_slot < 0) || (new_slot > 31))
         return;
@@ -257,9 +256,12 @@ pci_relocate_slot(int type, int new_slot)
 
     old_slot                              = pci_cards[card].id;
     pci_cards[card].id                    = new_slot;
-    mapping                               = pci_card_to_slot_mapping[0][old_slot];
-    pci_card_to_slot_mapping[0][old_slot] = PCI_CARD_INVALID;
-    pci_card_to_slot_mapping[0][new_slot] = mapping;
+
+    if (pci_card_to_slot_mapping[0][old_slot] == card)
+        pci_card_to_slot_mapping[0][old_slot] = PCI_CARD_INVALID;
+
+    if (pci_card_to_slot_mapping[0][new_slot] == PCI_CARD_INVALID)
+        pci_card_to_slot_mapping[0][new_slot] = card;
 }
 
 /* Write PCI enable/disable key, split for the ALi M1435. */
