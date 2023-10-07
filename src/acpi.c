@@ -128,14 +128,14 @@ acpi_update_irq(acpi_t *dev)
         else if (dev->irq_mode == 2)
             pci_set_mirq(5, dev->mirq_is_level, &dev->irq_state);
         else
-            pci_set_mirq(PCI_DIRQ_BASE | dev->irq_line, 1, &dev->irq_state);
+            picintlevel(1 << dev->irq_line, &dev->irq_state);
     } else {
         if (dev->irq_mode == 1)
             pci_clear_irq(dev->slot, dev->irq_pin, &dev->irq_state);
         else if (dev->irq_mode == 2)
             pci_clear_mirq(5, dev->mirq_is_level, &dev->irq_state);
         else
-            pci_clear_mirq(PCI_DIRQ_BASE | dev->irq_line, 1, &dev->irq_state);
+            picintclevel(1 << dev->irq_line, &dev->irq_state);
     }
 
     acpi_timer_update(dev, (dev->regs.pmen & TMROF_EN) && !(dev->regs.pmsts & TMROF_STS));

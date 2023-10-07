@@ -362,11 +362,6 @@ static void
 model_50_write(uint16_t port, uint8_t val)
 {
     switch (port) {
-        case 0x100:
-            ps2.io_id = val;
-            break;
-        case 0x101:
-            break;
         case 0x102:
             lpt1_remove();
             serial_remove(ps2.uart);
@@ -499,11 +494,6 @@ static void
 model_55sx_write(uint16_t port, uint8_t val)
 {
     switch (port) {
-        case 0x100:
-            ps2.io_id = val;
-            break;
-        case 0x101:
-            break;
         case 0x102:
             lpt1_remove();
             serial_remove(ps2.uart);
@@ -563,10 +553,6 @@ static void
 model_70_type3_write(uint16_t port, uint8_t val)
 {
     switch (port) {
-        case 0x100:
-            break;
-        case 0x101:
-            break;
         case 0x102:
             lpt1_remove();
             serial_remove(ps2.uart);
@@ -621,10 +607,6 @@ static void
 model_80_write(uint16_t port, uint8_t val)
 {
     switch (port) {
-        case 0x100:
-            break;
-        case 0x101:
-            break;
         case 0x102:
             lpt1_remove();
             serial_remove(ps2.uart);
@@ -985,12 +967,12 @@ ps2_mca_mem_d071_init(int start_mb)
 }
 
 static void
-ps2_mca_board_model_50_init(int slots)
+ps2_mca_board_model_50_init(void)
 {
     ps2_mca_board_common_init();
 
     mem_remap_top(384);
-    mca_init(slots);
+    mca_init(4);
     device_add(&keyboard_ps2_mca_2_device);
 
     ps2.planar_read  = model_50_read;
@@ -1000,6 +982,29 @@ ps2_mca_board_model_50_init(int slots)
         /* Only 2 MB supported on planar, create a memory expansion card for the rest */
         ps2_mca_mem_fffc_init(2);
     }
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&ps1vga_mca_device);
+}
+
+static void
+ps2_mca_board_model_60_init(void)
+{
+    ps2_mca_board_common_init();
+
+    mem_remap_top(384);
+    mca_init(8);
+    device_add(&keyboard_ps2_mca_2_device);
+
+    ps2.planar_read  = model_50_read;
+    ps2.planar_write = model_50_write;
+
+    if (mem_size > 2048) {
+        /* Only 2 MB supported on planar, create a memory expansion card for the rest */
+        ps2_mca_mem_fffc_init(2);
+    }
+
+    device_add(&ps2_nvr_55ls_device);
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(&ps1vga_mca_device);
@@ -1051,10 +1056,8 @@ ps2_mca_board_model_55sx_init(int has_sec_nvram, int slots)
     mca_init(slots);
     device_add(&keyboard_ps2_device);
 
-    if (has_sec_nvram == 1)
+    if (has_sec_nvram)
         device_add(&ps2_nvr_55ls_device);
-    else if (has_sec_nvram == 2)
-        device_add(&ps2_nvr_device);
 
     ps2.planar_read  = model_55sx_read;
     ps2.planar_write = model_55sx_write;
@@ -1312,7 +1315,7 @@ ps2_mca_board_model_70_type34_init(int is_type4, int slots)
 }
 
 static void
-ps2_mca_board_model_80_type2_init(int is486ps2)
+ps2_mca_board_model_80_type2_init(void)
 {
     ps2_mca_board_common_init();
 
@@ -1372,7 +1375,7 @@ ps2_mca_board_model_80_type2_init(int is486ps2)
                     NULL);
     mem_mapping_disable(&ps2.split_mapping);
 
-    if ((mem_size > 4096) && !is486ps2) {
+    if (mem_size > 4096) {
         /* Only 4 MB supported on planar, create a memory expansion card for the rest */
         if (mem_size > 12288)
             ps2_mca_mem_d071_init(4);
@@ -1426,7 +1429,7 @@ machine_ps2_model_50_init(const machine_t *model)
     machine_ps2_common_init(model);
 
     ps2.planar_id = 0xfbff;
-    ps2_mca_board_model_50_init(4);
+    ps2_mca_board_model_50_init();
 
     return ret;
 }
@@ -1448,8 +1451,8 @@ machine_ps2_model_60_init(const machine_t *model)
 
     machine_ps2_common_init(model);
 
-    ps2.planar_id = 0xfbff;
-    ps2_mca_board_model_50_init(8);
+    ps2.planar_id = 0xf7ff;
+    ps2_mca_board_model_60_init();
 
     return ret;
 }
@@ -1509,7 +1512,6 @@ machine_ps2_model_70_type3_init(const machine_t *model)
     machine_ps2_common_init(model);
 
     ps2.planar_id = 0xf9ff;
-
     ps2_mca_board_model_70_type34_init(0, 4);
 
     return ret;
@@ -1530,7 +1532,7 @@ machine_ps2_model_80_init(const machine_t *model)
     machine_ps2_common_init(model);
 
     ps2.planar_id = 0xfdff;
-    ps2_mca_board_model_80_type2_init(0);
+    ps2_mca_board_model_80_type2_init();
 
     return ret;
 }
@@ -1550,7 +1552,6 @@ machine_ps2_model_80_axx_init(const machine_t *model)
     machine_ps2_common_init(model);
 
     ps2.planar_id = 0xfff9;
-
     ps2_mca_board_model_70_type34_init(0, 8);
 
     return ret;
@@ -1571,7 +1572,6 @@ machine_ps2_model_70_type4_init(const machine_t *model)
     machine_ps2_common_init(model);
 
     ps2.planar_id = 0xf9ff;
-
     ps2_mca_board_model_70_type34_init(1, 4);
 
     return ret;

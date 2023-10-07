@@ -68,7 +68,7 @@ Donations
 ---------
 
 We do not charge you for the emulator but donations are still welcome:
-https://paypal.me/86Box.
+<https://paypal.me/86Box>.
 
 You can also support the project on Patreon:
-https://www.patreon.com/86box.
+<https://www.patreon.com/86box>.
