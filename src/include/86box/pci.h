@@ -146,11 +146,11 @@
         pci_register_bus_slot(0, card, type, inta, intb, intc, intd)
 
 #define pci_set_mirq(mirq, level, irq_state) \
-        pci_irq(PCI_MIRQ_BASE | mirq, 0, level, 1, irq_state)
+        pci_irq(PCI_MIRQ_BASE | (mirq), 0, level, 1, irq_state)
 #define pci_set_irq(slot, pci_int, irq_state) \
         pci_irq(slot, pci_int, 0, 1, irq_state)
 #define pci_clear_mirq(mirq, level, irq_state) \
-        pci_irq(PCI_MIRQ_BASE | mirq, 0, level, 0, irq_state)
+        pci_irq(PCI_MIRQ_BASE | (mirq), 0, level, 0, irq_state)
 #define pci_clear_irq(slot, pci_int, irq_state) \
         pci_irq(slot, pci_int, 0, 0, irq_state)
 

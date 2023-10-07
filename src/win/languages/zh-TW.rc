@@ -480,7 +480,7 @@ BEGIN
     IDS_2125    "關於 86Box"
     IDS_2126    "86Box v" EMU_VERSION
 
-    IDS_2127    "一個舊式電腦模擬器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\nWith previous core contributions from Sarah Walker、leilei、JohnElliott、greatpsycho 等人。\n\n本軟體依據 GNU 通用公共授權第二版或更新版本發布。詳情見 LICENSE 檔案。"
+    IDS_2127    "一個舊式電腦模擬器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\n本軟體依據 GNU 通用公共授權第二版或更新版本發布。詳情見 LICENSE 檔案。"
     IDS_2128    "確定"
     IDS_2129    "硬體不可用"
 #ifdef _WIN32

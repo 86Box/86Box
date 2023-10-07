@@ -348,7 +348,7 @@ ini_read(const char *fn)
     while (1) {
         memset(buff, 0x00, sizeof(buff));
 #ifdef __HAIKU__
-        ini_fgetws(buff, sizeof_w(buff), f);
+        ini_fgetws(buff, sizeof_w(buff), fp);
 #else
         (void) !fgetws(buff, sizeof_w(buff), fp);
 #endif

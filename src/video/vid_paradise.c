@@ -341,22 +341,43 @@ paradise_recalctimings(svga_t *svga)
         }
     }
 
+    if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
+        svga->interlace = 0;
+    }
+
     if (paradise->type < WD90C30) {
-        if (svga->bpp >= 8 && !svga->lowres) {
+        if ((svga->bpp >= 8) && !svga->lowres) {
             svga->render = svga_render_8bpp_highres;
         }
     } else {
-        if (svga->bpp >= 8 && !svga->lowres) {
+        if ((svga->bpp >= 8) && !svga->lowres) {
             if (svga->bpp == 16) {
                 svga->render = svga_render_16bpp_highres;
                 svga->hdisp >>= 1;
+                if (svga->hdisp == 788)
+                    svga->hdisp += 12;
+                if (svga->hdisp == 800)
+                    svga->ma_latch -= 3;
             } else if (svga->bpp == 15) {
                 svga->render = svga_render_15bpp_highres;
                 svga->hdisp >>= 1;
+                if (svga->hdisp == 788)
+                    svga->hdisp += 12;
+                if (svga->hdisp == 800)
+                    svga->ma_latch -= 3;
             } else {
                 svga->render = svga_render_8bpp_highres;
             }
         }
+    }
+
+    if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
+        if (svga->hdisp == 360)
+            svga->hdisp <<= 1;
+        if (svga->seqregs[1] & 8) {
+            svga->render = svga_render_text_40;
+        } else
+            svga->render = svga_render_text_80;
     }
 }
 

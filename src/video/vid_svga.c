@@ -830,7 +830,7 @@ svga_poll(void *priv)
         return;
     }
     if (xga_active && xga->on) {
-        if ((xga->disp_cntl_2 & 7) >= 3) {
+        if ((xga->disp_cntl_2 & 7) >= 2) {
             xga_poll(xga, svga);
             return;
         }
@@ -1247,11 +1247,12 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
             if (((xga->op_mode & 7) >= 4) && (xga->aperture_cntl >= 1)) {
                 if (val == 0xa5) { /*Memory size test of XGA*/
                     xga->test    = val;
-                    xga->a5_test = 1;
+                    if (addr == 0xa0001)
+                        xga->a5_test = 1;
+
                     xga->on = 0;
                     vga_on = 1;
                     xga->disp_cntl_2 = 0;
-                    xga->clk_sel_1 = 0;
                     svga_log("XGA test1 addr = %05x.\n", addr);
                     return;
                 } else if (val == 0x5a) {
@@ -1259,7 +1260,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
                     xga->on = 0;
                     vga_on = 1;
                     xga->disp_cntl_2 = 0;
-                    xga->clk_sel_1 = 0;
+                    svga_log("XGA test2 addr = %05x.\n", addr);
                     return;
                 } else if ((addr == 0xa0000) || (addr == 0xa0010)) {
                     addr += xga->write_bank;
@@ -1469,6 +1470,7 @@ svga_read_common(uint32_t addr, uint8_t linear, void *priv)
                         xga->on = 1;
                         vga_on = 0;
                     } else if ((addr == 0xa0000) && xga->a5_test) { /*This is required by XGAKIT to pass the memory test*/
+                        svga_log("A5 test bank = %x.\n", addr);
                         addr += xga->read_bank;
                         ret = xga->vram[addr & xga->vram_mask];
                     } else {
@@ -1476,7 +1478,7 @@ svga_read_common(uint32_t addr, uint8_t linear, void *priv)
                         xga->on = 1;
                         vga_on = 0;
                     }
-                    svga_log("A5 read: XGA ON = %d, addr = %05x.\n", xga->on, addr);
+                    svga_log("A5 read: XGA ON = %d, addr = %05x, ret = %02x, test1 = %x.\n", xga->on, addr, ret, xga->a5_test);
                     return ret;
                 } else if (xga->test == 0x5a) {
                     ret = xga->test;
