@@ -73,7 +73,7 @@ bin_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
     track_file_t *tf = (track_file_t *) priv;
 
     cdrom_image_backend_log("CDROM: binary_read(%08lx, pos=%" PRIu64 " count=%lu\n",
-                            tf->file, seek, count);
+                            tf->fp, seek, count);
 
     if (tf->fp == NULL)
         return 0;
@@ -101,14 +101,14 @@ bin_get_length(void *priv)
     off64_t       len;
     track_file_t *tf = (track_file_t *) priv;
 
-    cdrom_image_backend_log("CDROM: binary_length(%08lx)\n", tf->file);
+    cdrom_image_backend_log("CDROM: binary_length(%08lx)\n", tf->fp);
 
     if (tf->fp == NULL)
         return 0;
 
     fseeko64(tf->fp, 0, SEEK_END);
     len = ftello64(tf->fp);
-    cdrom_image_backend_log("CDROM: binary_length(%08lx) = %" PRIu64 "\n", tf->file, len);
+    cdrom_image_backend_log("CDROM: binary_length(%08lx) = %" PRIu64 "\n", tf->fp, len);
 
     return len;
 }
@@ -145,7 +145,7 @@ bin_init(const char *filename, int *error)
     memset(tf->fn, 0x00, sizeof(tf->fn));
     strncpy(tf->fn, filename, sizeof(tf->fn) - 1);
     tf->fp = plat_fopen64(tf->fn, "rb");
-    cdrom_image_backend_log("CDROM: binary_open(%s) = %08lx\n", tf->fn, tf->file);
+    cdrom_image_backend_log("CDROM: binary_open(%s) = %08lx\n", tf->fn, tf->fp);
 
     if (stat(tf->fn, &stats) != 0) {
         /* Use a blank structure if stat failed. */
@@ -332,6 +332,11 @@ cdi_get_track(cd_img_t *cdi, uint32_t sector)
     for (int i = 0; i < (cdi->tracks_num - 1); i++) {
         cur  = &cdi->tracks[i];
         next = &cdi->tracks[i + 1];
+
+        /* Take into account cue sheets that do not start on sector 0. */
+        if ((i == 0) && (sector < cur->start))
+            return cur->number;
+
         if ((cur->start <= sector) && (sector < next->start))
             return cur->number;
     }
@@ -425,8 +430,9 @@ cdi_read_sector(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector)
         return 1;
     } else if (!raw && track_is_raw)
         return trk->file->read(trk->file, buffer, seek + offset, length);
-    else
+    else {
         return trk->file->read(trk->file, buffer, seek, length);
+    }
 }
 
 int

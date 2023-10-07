@@ -149,7 +149,7 @@ plat_serpt_set_params(void *priv)
         BAUDRATE_RANGE(dev->baudrate, 57600, 115200, B57600);
         BAUDRATE_RANGE(dev->baudrate, 115200, 0xFFFFFFFF, B115200);
 
-        term_attr.c_cflag &= CSIZE;
+        term_attr.c_cflag &= ~CSIZE;
         switch (dev->data_bits) {
             case 8:
             default:
@@ -165,13 +165,13 @@ plat_serpt_set_params(void *priv)
                 term_attr.c_cflag |= CS5;
                 break;
         }
-        term_attr.c_cflag &= CSTOPB;
+        term_attr.c_cflag &= ~CSTOPB;
         if (dev->serial->lcr & 0x04)
             term_attr.c_cflag |= CSTOPB;
 #if !defined(__linux__)
-        term_attr.c_cflag &= PARENB | PARODD;
+        term_attr.c_cflag &= ~(PARENB | PARODD);
 #else
-        term_attr.c_cflag &= PARENB | PARODD | CMSPAR;
+        term_attr.c_cflag &= ~(PARENB | PARODD | CMSPAR);
 #endif
         if (dev->serial->lcr & 0x08) {
             term_attr.c_cflag |= PARENB;

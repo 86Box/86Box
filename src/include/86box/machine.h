@@ -300,10 +300,10 @@ typedef struct _machine_ {
     uint32_t               type;
     uintptr_t              chipset;
     int                  (*init)(const struct _machine_ *);
-    uintptr_t              pad;
-    uintptr_t              pad0;
-    uintptr_t              pad1;
-    uintptr_t              pad2;
+    uint8_t              (*p1_handler)(uint8_t write, uint8_t val);
+    uint32_t             (*gpio_handler)(uint8_t write, uint32_t val);
+    uintptr_t              available_flag;
+    uint32_t             (*gpio_acpi_handler)(uint8_t write, uint32_t val);
     const machine_cpu_t    cpu;
     uintptr_t              bus_flags;
     uintptr_t              flags;
@@ -315,10 +315,7 @@ typedef struct _machine_ {
 #else
     void *kbc_device;
 #endif /* EMU_DEVICE_H */
-    /* Bits:
-        7-0  Set bits are forced set on P1 (no forced set = 0x00);
-        15-8 Clear bits are forced clear on P1 (no foced clear = 0xff). */
-    uint16_t kbc_p1;
+    uint8_t  kbc_p1;
     uint32_t gpio;
     uint32_t gpio_acpi;
 #ifdef EMU_DEVICE_H
@@ -376,10 +373,17 @@ extern int         machine_has_mouse(void);
 extern int         machine_is_sony(void);
 
 extern uint8_t  machine_get_p1(void);
-extern void     machine_load_p1(int m);
-extern uint32_t machine_get_gpi(void);
-extern void     machine_load_gpi(int m);
-extern void     machine_set_gpi(uint32_t gpi);
+extern void     machine_set_p1(uint8_t val);
+extern void     machine_init_p1(void);
+extern uint8_t  machine_handle_p1(uint8_t write, uint8_t val);
+extern uint32_t machine_get_gpio(void);
+extern void     machine_set_gpio(uint32_t val);
+extern void     machine_init_gpio(void);
+extern uint32_t machine_handle_gpio(uint8_t write, uint32_t val);
+extern uint32_t machine_get_gpio_acpi(void);
+extern void     machine_set_gpio_acpi(uint32_t gpio_val);
+extern void     machine_init_gpio_acpi(void);
+extern uint32_t machine_handle_gpio_acpi(uint8_t write, uint32_t val);
 
 /* Initialization functions for boards and systems. */
 extern void machine_common_init(const machine_t *);

@@ -135,7 +135,7 @@ typedef struct {
     int cir_status;
 
     uint8_t pacing;
-
+    uint8_t irq_state;
     uint8_t buf[0x600];
 
     struct {
@@ -159,6 +159,7 @@ typedef struct {
     int scb_state;
     int in_reset;
     int in_invalid;
+    int spock_16bit;
 
     uint64_t temp_period;
     double   media_period;
@@ -674,9 +675,9 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
                             spock_log("Get POS Info\n");
                             get_pos_info_t *get_pos_info = &scsi->get_pos_info;
 
-                            get_pos_info->pos  = 0x8eff;
+                            get_pos_info->pos  = scsi->spock_16bit ? 0x8efe : 0x8eff;
                             get_pos_info->pos1 = scsi->pos_regs[3] | (scsi->pos_regs[2] << 8);
-                            get_pos_info->pos2 = 0x0e | (scsi->pos_regs[4] << 8);
+                            get_pos_info->pos2 = scsi->irq | (scsi->pos_regs[4] << 8);
                             get_pos_info->pos3 = 1 << 12;
                             get_pos_info->pos4 = (7 << 8) | 8;
                             get_pos_info->pos5 = (16 << 8) | scsi->pacing;
@@ -716,7 +717,7 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
                     case CMD_SEND_OTHER_SCSI:
                         scsi->cdb_id = scsi->assign ? scsi->dev_id[scsi->scb_id].phys_id : scsi->present[scsi->scb_id];
                         dma_bm_read(scsi->scb_addr + 0x18, scsi->cdb, 12, 2);
-                        spock_log("Send Other SCSI, SCB ID=%d, PHYS ID=%d\n", scsi->scb_id, scsi->dev_id[scsi->scb_id].phys_id);
+                        spock_log("Send Other SCSI, SCB ID=%d, PHYS ID=%d, CDB[0]=%02x, CDB_ID=%d\n", scsi->scb_id, scsi->dev_id[scsi->scb_id].phys_id, scsi->cdb[0], scsi->cdb_id);
                         scsi->cdb[1]     = (scsi->cdb[1] & 0x1f) | (scsi->dev_id[scsi->scb_id].lun_id << 5); /*Patch correct LUN into command*/
                         scsi->cdb_len    = (scb->lba_addr & 0xff) ? (scb->lba_addr & 0xff) : 6;
                         scsi->scsi_state = SCSI_STATE_SELECT;
@@ -916,7 +917,7 @@ spock_process_scsi(spock_t *scsi, scb_t *scb)
             scsi_device_command_phase0(sd, scsi->temp_cdb);
             spock_log("SCSI ID %i: Current CDB[0] = %02x, LUN = %i, data len = %i, max len = %i, phase val = %02x\n", scsi->cdb_id, scsi->temp_cdb[0], scsi->temp_cdb[1] >> 5, sd->buffer_length, spock_get_len(scsi, scb), sd->phase);
 
-            if (sd->phase != SCSI_PHASE_STATUS && sd->buffer_length > 0) {
+            if ((sd->phase != SCSI_PHASE_STATUS) && (sd->buffer_length > 0)) {
                 p = scsi_device_get_callback(sd);
                 if (p <= 0.0)
                     spock_add_to_period(scsi, sd->buffer_length);
@@ -969,9 +970,9 @@ spock_process_scsi(spock_t *scsi, scb_t *scb)
             scsi->scsi_state = SCSI_STATE_IDLE;
 
             spock_log("State to idle, cmd timer %d\n", scsi->cmd_timer);
-            if (!scsi->cmd_timer) {
+            if (!scsi->cmd_timer)
                 scsi->cmd_timer = 1;
-            }
+
             spock_add_to_period(scsi, 1);
             break;
     }
@@ -1056,7 +1057,7 @@ spock_callback(void *priv)
 
     period = 0.2 * ((double) scsi->temp_period);
     timer_on_auto(&scsi->callback_timer, (scsi->media_period + period + 10.0));
-    spock_log("Temporary period: %lf us (%" PRIi64 " periods)\n", scsi->callback_timer.period, scsi->temp_period);
+    spock_log("Temporary period: %lf us (%" PRIi64 " periods), media period = %lf\n", scsi->callback_timer.period, scsi->temp_period, scsi->media_period);
 }
 
 static void
@@ -1081,6 +1082,7 @@ spock_mca_write(int port, uint8_t val, void *priv)
             mem_mapping_enable(&scsi->bios_rom.mapping);
         }
     }
+    spock_log("[%04X:%08X]: POS Write Port = %x, val = %02x, rom addr = %05x\n", CS, cpu_state.pc, port & 7, val, ((scsi->pos_regs[2] >> 4) * 0x2000) + 0xc0000);
 }
 
 static uint8_t
@@ -1088,6 +1090,8 @@ spock_mca_read(int port, void *priv)
 {
     const spock_t *scsi = (spock_t *) priv;
 
+    spock_log("[%04X:%08X]: POS Read Port = %x, val = %02x\n", CS, cpu_state.pc,
+            port & 7, scsi->pos_regs[port & 7]);
     return scsi->pos_regs[port & 7];
 }
 
@@ -1118,10 +1122,14 @@ spock_mca_reset(void *priv)
         scsi_device_reset(&scsi_devices[scsi->bus][i]);
         scsi->present[i] = 0;
     }
+
+    spock_log("Reset.\n");
+    mem_mapping_disable(&scsi->bios_rom.mapping);
+    spock_mca_write(0x102, 0, scsi);
 }
 
 static void *
-spock_init(UNUSED(const device_t *info))
+spock_init(const device_t *info)
 {
     spock_t *scsi = malloc(sizeof(spock_t));
     memset(scsi, 0x00, sizeof(spock_t));
@@ -1131,14 +1139,15 @@ spock_init(UNUSED(const device_t *info))
     scsi->irq = 14;
 
     scsi->bios_ver = device_get_config_int("bios_ver");
+    scsi->spock_16bit = info->local & 0xff;
 
     switch (scsi->bios_ver) {
-        case 1:
-            rom_init_interleaved(&scsi->bios_rom, SPOCK_U68_1991_ROM, SPOCK_U69_1991_ROM,
-                                 0xc8000, 0x8000, 0x7fff, 0x4000, MEM_MAPPING_EXTERNAL);
-            break;
         case 0:
             rom_init_interleaved(&scsi->bios_rom, SPOCK_U68_1990_ROM, SPOCK_U69_1990_ROM,
+                                 0xc8000, 0x8000, 0x7fff, 0x4000, MEM_MAPPING_EXTERNAL);
+            break;
+        case 1:
+            rom_init_interleaved(&scsi->bios_rom, SPOCK_U68_1991_ROM, SPOCK_U69_1991_ROM,
                                  0xc8000, 0x8000, 0x7fff, 0x4000, MEM_MAPPING_EXTERNAL);
             break;
 
@@ -1147,7 +1156,7 @@ spock_init(UNUSED(const device_t *info))
     }
     mem_mapping_disable(&scsi->bios_rom.mapping);
 
-    scsi->pos_regs[0] = 0xff;
+    scsi->pos_regs[0] = scsi->spock_16bit ? 0xfe : 0xff;
     scsi->pos_regs[1] = 0x8e;
     mca_add(spock_mca_read, spock_mca_write, spock_mca_feedb, spock_mca_reset, scsi);
 
@@ -1210,6 +1219,20 @@ const device_t spock_device = {
     .internal_name = "spock",
     .flags         = DEVICE_MCA,
     .local         = 0,
+    .init          = spock_init,
+    .close         = spock_close,
+    .reset         = NULL,
+    { .available = spock_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = spock_rom_config
+};
+
+const device_t tribble_device = {
+    .name          = "IBM PS/2 SCSI Adapter (Tribble)",
+    .internal_name = "tribble",
+    .flags         = DEVICE_MCA,
+    .local         = 1,
     .init          = spock_init,
     .close         = spock_close,
     .reset         = NULL,

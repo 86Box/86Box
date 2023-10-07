@@ -278,7 +278,7 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
         if (!(flags & CPU_SUPPORTS_DYNAREC)) {
             ui->checkBoxDynamicRecompiler->setChecked(false);
             ui->checkBoxDynamicRecompiler->setEnabled(false);
-        } else if (flags & CPU_REQUIRES_DYNAREC) {
+        } else if ((flags & CPU_REQUIRES_DYNAREC) && !cpu_override) {
             ui->checkBoxDynamicRecompiler->setChecked(true);
             ui->checkBoxDynamicRecompiler->setEnabled(false);
         } else {
@@ -288,7 +288,6 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
 #endif
 
         // win_settings_machine_recalc_fpu
-        int   machineId  = ui->comboBoxMachine->currentData().toInt();
         auto *modelFpu   = ui->comboBoxFPU->model();
         int   removeRows = modelFpu->rowCount();
 
@@ -306,11 +305,27 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
         ui->comboBoxFPU->setEnabled(modelFpu->rowCount() > 1);
         ui->comboBoxFPU->setCurrentIndex(-1);
         ui->comboBoxFPU->setCurrentIndex(selectedFpuRow);
+    }
+}
 
-        ui->checkBoxFPUSoftfloat->setChecked(machine_has_flags(machineId, MACHINE_SOFTFLOAT_ONLY) ?
-                                             true : fpu_softfloat);
-        ui->checkBoxFPUSoftfloat->setEnabled(machine_has_flags(machineId, MACHINE_SOFTFLOAT_ONLY) ?
-                                             false : true);
+void
+SettingsMachine::on_comboBoxFPU_currentIndexChanged(int index)
+{
+    if (index >= 0) {
+        int         cpuFamilyId = ui->comboBoxCPU->currentData().toInt();
+        const auto *cpuFamily   = &cpu_families[cpuFamilyId];
+        int         cpuId       = ui->comboBoxSpeed->currentData().toInt();
+        int         machineId   = ui->comboBoxMachine->currentData().toInt();
+
+        if (fpu_get_type_from_index(cpuFamily, cpuId, index) == FPU_NONE) {
+            ui->checkBoxFPUSoftfloat->setChecked(false);
+            ui->checkBoxFPUSoftfloat->setEnabled(false);
+        } else {
+            ui->checkBoxFPUSoftfloat->setChecked(machine_has_flags(machineId, MACHINE_SOFTFLOAT_ONLY) ?
+                                                 true : fpu_softfloat);
+            ui->checkBoxFPUSoftfloat->setEnabled(machine_has_flags(machineId, MACHINE_SOFTFLOAT_ONLY) ?
+                                                 false : true);
+        }
     }
 }
 

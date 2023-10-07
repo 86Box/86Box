@@ -47,7 +47,12 @@ SettingsNetwork::enableElements(Ui::SettingsNetwork *ui)
 
         intf_cbox->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_PCAP);
         nic_cbox->setEnabled(adaptersEnabled);
-        conf_btn->setEnabled(adaptersEnabled && network_card_has_config(nic_cbox->currentData().toInt()));
+        int netCard = nic_cbox->currentData().toInt();
+        if ((i == 0) && (netCard == NET_INTERNAL))
+            conf_btn->setEnabled(adaptersEnabled && machine_has_flags(machineId, MACHINE_NIC) &&
+                                 device_has_config(machine_get_net_device(machineId)));
+        else
+            conf_btn->setEnabled(adaptersEnabled && network_card_has_config(nic_cbox->currentData().toInt()));
         socket_line->setEnabled(net_type_cbox->currentData().toInt() == NET_TYPE_VDE);
     }
 }
@@ -110,6 +115,12 @@ SettingsNetwork::onCurrentMachineChanged(int machineId)
         selectedRow      = 0;
 
         while (true) {
+            /* Skip "internal" if machine doesn't have it or this is not the primary card. */
+            if ((c == 1) && ((i > 0) || (machine_has_flags(machineId, MACHINE_NIC) == 0))) {
+                c++;
+                continue;
+            }
+
             auto name = DeviceConfig::DeviceName(network_card_getdevice(c), network_card_get_internal_name(c), 1);
             if (name.isEmpty()) {
                 break;
@@ -182,23 +193,33 @@ SettingsNetwork::on_comboIndexChanged(int index)
 void
 SettingsNetwork::on_pushButtonConf1_clicked()
 {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC1->currentData().toInt()), 1, qobject_cast<Settings *>(Settings::settings));
+    int netCard = ui->comboBoxNIC1->currentData().toInt();
+    auto *device = network_card_getdevice(netCard);
+    if (netCard == NET_INTERNAL)
+        device = machine_get_net_device(machineId);
+    DeviceConfig::ConfigureDevice(device, 1, qobject_cast<Settings *>(Settings::settings));
 }
 
 void
 SettingsNetwork::on_pushButtonConf2_clicked()
 {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC2->currentData().toInt()), 2, qobject_cast<Settings *>(Settings::settings));
+    int netCard = ui->comboBoxNIC2->currentData().toInt();
+    auto *device = network_card_getdevice(netCard);
+    DeviceConfig::ConfigureDevice(device, 2, qobject_cast<Settings *>(Settings::settings));
 }
 
 void
 SettingsNetwork::on_pushButtonConf3_clicked()
 {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC3->currentData().toInt()), 3, qobject_cast<Settings *>(Settings::settings));
+    int netCard = ui->comboBoxNIC3->currentData().toInt();
+    auto *device = network_card_getdevice(netCard);
+    DeviceConfig::ConfigureDevice(device, 3, qobject_cast<Settings *>(Settings::settings));
 }
 
 void
 SettingsNetwork::on_pushButtonConf4_clicked()
 {
-    DeviceConfig::ConfigureDevice(network_card_getdevice(ui->comboBoxNIC4->currentData().toInt()), 4, qobject_cast<Settings *>(Settings::settings));
+    int netCard = ui->comboBoxNIC4->currentData().toInt();
+    auto *device = network_card_getdevice(netCard);
+    DeviceConfig::ConfigureDevice(device, 4, qobject_cast<Settings *>(Settings::settings));
 }

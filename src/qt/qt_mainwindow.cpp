@@ -333,6 +333,8 @@ MainWindow::MainWindow(QWidget *parent)
 
 #ifndef DISCORD
     ui->actionEnable_Discord_integration->setVisible(false);
+#else
+    ui->actionEnable_Discord_integration->setEnabled(discord_loaded);
 #endif
 
 #if defined Q_OS_WINDOWS || defined Q_OS_MACOS
