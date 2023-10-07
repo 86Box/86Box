@@ -748,7 +748,7 @@ win_settings_machine_recalc_cpu(HWND hdlg)
     cpu_flags = temp_cpu_f->cpus[temp_cpu].cpu_flags;
     if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) && (cpu_flags & CPU_REQUIRES_DYNAREC))
         fatal("Attempting to select a CPU that requires the recompiler and does not support it at the same time\n");
-    if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) || ((cpu_flags & CPU_REQUIRES_DYNAREC) && !cpu_override))) {
+    if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) || ((cpu_flags & CPU_REQUIRES_DYNAREC) && !cpu_override)) {
         if (!(cpu_flags & CPU_SUPPORTS_DYNAREC))
             temp_dynarec = 0;
         if (cpu_flags & CPU_REQUIRES_DYNAREC)
