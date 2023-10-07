@@ -35,11 +35,11 @@
 #include <86box/fdc.h>
 #include <86box/sio.h>
 #include <86box/plat_unused.h>
+#include <86box/machine.h>
 
 typedef struct pc87306_t {
     uint8_t   tries;
     uint8_t   regs[29];
-    uint8_t   gpio[2];
     uint16_t  gpioba;
     int       cur_reg;
     fdc_t    *fdc;
@@ -51,8 +51,11 @@ static void
 pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 {
     pc87306_t *dev = (pc87306_t *) priv;
+    uint8_t shift = ((8 << (port & 1)) - 8);
+    uint32_t shifted_val = (((uint32_t) val) << shift);
+    uint32_t ff_mask = ~(((uint32_t) 0xff) << shift);
 
-    dev->gpio[port & 1] = val;
+    (void) machine_handle_gpio(1, ff_mask | shifted_val);
 }
 
 uint8_t
@@ -60,7 +63,7 @@ pc87306_gpio_read(uint16_t port, void *priv)
 {
     const pc87306_t *dev = (pc87306_t *) priv;
 
-    return dev->gpio[port & 1];
+    return machine_handle_gpio(0, 0xffffffff) >> ((8 << (port & 1)) - 8);
 }
 
 static void
@@ -410,9 +413,6 @@ pc87306_reset(void *priv)
     dev->regs[0x0f] = 0x1E;
     dev->regs[0x12] = 0x30;
     dev->regs[0x19] = 0xEF;
-
-    dev->gpio[0] = 0xff;
-    dev->gpio[1] = 0xfb;
 
     /*
         0 = 360 rpm @ 500 kbps for 3.5"
