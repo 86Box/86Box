@@ -13263,9 +13263,13 @@ const machine_t machines[] = {
 
 /* Saved copies - jumpers get applied to these.
    We use also machine_gpio to store IBM PC/XT jumpers as they need more than one byte. */
+static uint8_t machine_p1_default;
 static uint8_t machine_p1;
 
+static uint32_t machine_gpio_default;
 static uint32_t machine_gpio;
+
+static uint32_t machine_gpio_acpi_default;
 static uint32_t machine_gpio_acpi;
 
 uint8_t
@@ -13301,7 +13305,7 @@ machine_handle_p1(uint8_t write, uint8_t val)
 void
 machine_init_p1(void)
 {
-    machine_p1 = machines[machine].kbc_p1;
+    machine_p1 = machine_p1_default = machines[machine].kbc_p1;
 }
 
 uint32_t
@@ -13336,7 +13340,7 @@ machine_handle_gpio(uint8_t write, uint32_t val)
 void
 machine_init_gpio(void)
 {
-    machine_gpio = machines[machine].gpio;
+    machine_gpio = machine_gpio_default = machines[machine].gpio;
 }
 
 uint32_t
@@ -13371,7 +13375,7 @@ machine_handle_gpio_acpi(uint8_t write, uint32_t val)
 void
 machine_init_gpio_acpi(void)
 {
-    machine_gpio_acpi = machines[machine].gpio_acpi;
+    machine_gpio_acpi = machine_gpio_acpi_default = machines[machine].gpio_acpi;
 }
 
 int

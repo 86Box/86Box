@@ -72,6 +72,11 @@ machine_init_ex(int m)
     if (!bios_only) {
         machine_log("Initializing as \"%s\"\n", machine_getname());
 
+        machine_init_p1();
+
+        machine_init_gpio();
+        machine_init_gpio_acpi();
+
         is_vpc                   = 0;
         standalone_gameport_type = NULL;
         gameport_instance_id     = 0;
