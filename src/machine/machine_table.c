@@ -13279,9 +13279,15 @@ machine_get_p1(void)
 }
 
 void
+machine_set_p1_default(uint8_t val)
+{
+    machine_p1 = machine_p1_default = val;
+}
+
+void
 machine_set_p1(uint8_t val)
 {
-    machine_p1 = machines[machine].kbc_p1 & val;
+    machine_p1 = machine_p1_default & val;
 }
 
 
@@ -13294,7 +13300,7 @@ machine_handle_p1(uint8_t write, uint8_t val)
         ret = machines[machine].p1_handler(write, val);
     else {
         if (write)
-            machine_p1 = machines[machine].kbc_p1 & val;
+            machine_p1 = machine_p1_default & val;
         else
             ret = machine_p1;
     }
@@ -13315,9 +13321,15 @@ machine_get_gpio(void)
 }
 
 void
+machine_set_gpio_default(uint32_t val)
+{
+    machine_gpio = machine_gpio_default = val;
+}
+
+void
 machine_set_gpio(uint32_t val)
 {
-    machine_gpio = machines[machine].gpio & val;
+    machine_gpio = machine_gpio_default & val;
 }
 
 uint32_t
@@ -13329,7 +13341,7 @@ machine_handle_gpio(uint8_t write, uint32_t val)
         ret = machines[machine].gpio_handler(write, val);
     else {
         if (write)
-            machine_gpio = machines[machine].gpio & val;
+            machine_gpio = machine_gpio_default & val;
         else
             ret = machine_gpio;
     }
@@ -13350,9 +13362,15 @@ machine_get_gpio_acpi(void)
 }
 
 void
+machine_set_gpio_acpi_default(uint32_t val)
+{
+    machine_gpio_acpi = machine_gpio_acpi_default = val;
+}
+
+void
 machine_set_gpio_acpi(uint32_t val)
 {
-    machine_gpio_acpi = machines[machine].gpio_acpi & val;
+    machine_gpio_acpi = machine_gpio_acpi_default & val;
 }
 
 uint32_t
@@ -13364,7 +13382,7 @@ machine_handle_gpio_acpi(uint8_t write, uint32_t val)
         ret = machines[machine].gpio_acpi_handler(write, val);
     else {
         if (write)
-            machine_gpio_acpi = machines[machine].gpio_acpi & val;
+            machine_gpio_acpi = machine_gpio_acpi_default & val;
         else
             ret = machine_gpio_acpi;
     }

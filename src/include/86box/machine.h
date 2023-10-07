@@ -372,15 +372,18 @@ extern int         machine_has_mouse(void);
 extern int         machine_is_sony(void);
 
 extern uint8_t  machine_get_p1(void);
+extern void     machine_set_p1_default(uint8_t val);
 extern void     machine_set_p1(uint8_t val);
 extern void     machine_init_p1(void);
 extern uint8_t  machine_handle_p1(uint8_t write, uint8_t val);
 extern uint32_t machine_get_gpio(void);
+extern void     machine_set_gpio_default(uint32_t val);
 extern void     machine_set_gpio(uint32_t val);
 extern void     machine_init_gpio(void);
 extern uint32_t machine_handle_gpio(uint8_t write, uint32_t val);
 extern uint32_t machine_get_gpio_acpi(void);
-extern void     machine_set_gpio_acpi(uint32_t gpio_val);
+extern void     machine_set_gpio_acpi_default(uint32_t val);
+extern void     machine_set_gpio_acpi(uint32_t val);
 extern void     machine_init_gpio_acpi(void);
 extern uint32_t machine_handle_gpio_acpi(uint8_t write, uint32_t val);
 
