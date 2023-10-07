@@ -299,10 +299,10 @@ typedef struct _machine_ {
     uint32_t               type;
     uintptr_t              chipset;
     int                  (*init)(const struct _machine_ *);
+    uint32_t             (*gpio_handler)(uint8_t write, uint32_t val);
     uintptr_t              pad;
     uintptr_t              pad0;
     uintptr_t              pad1;
-    uintptr_t              pad2;
     const machine_cpu_t    cpu;
     uintptr_t              bus_flags;
     uintptr_t              flags;
@@ -375,10 +375,11 @@ extern int         machine_has_mouse(void);
 extern int         machine_is_sony(void);
 
 extern uint8_t  machine_get_p1(void);
-extern void     machine_load_p1(int m);
-extern uint32_t machine_get_gpi(void);
-extern void     machine_load_gpi(int m);
-extern void     machine_set_gpi(uint32_t gpi);
+extern void     machine_load_p1(void);
+extern uint32_t machine_get_gpio(void);
+extern void     machine_load_gpio(void);
+extern void     machine_set_gpio(uint32_t gpio);
+extern uint32_t machine_handle_gpio(uint8_t write, uint32_t val);
 
 /* Initialization functions for boards and systems. */
 extern void machine_common_init(const machine_t *);
