@@ -230,33 +230,6 @@ codegen_init(void)
 }
 
 void
-codegen_close(void)
-{
-#ifdef DEBUG_EXTRA
-    pclog("Instruction counts :\n");
-    while (1) {
-        int      c;
-        uint32_t highest_num = 0, highest_idx = 0;
-
-        for (c = 0; c < 256 * 256; c++) {
-            if (instr_counts[c] > highest_num) {
-                highest_num = instr_counts[c];
-                highest_idx = c;
-            }
-        }
-        if (!highest_num)
-            break;
-
-        instr_counts[highest_idx] = 0;
-        if (highest_idx > 256)
-            pclog(" %02x %02x = %u\n", highest_idx >> 8, highest_idx & 0xff, highest_num);
-        else
-            pclog("    %02x = %u\n", highest_idx & 0xff, highest_num);
-    }
-#endif
-}
-
-void
 codegen_reset(void)
 {
     int c;

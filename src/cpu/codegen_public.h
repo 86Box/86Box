@@ -50,9 +50,6 @@
 #endif
 
 extern void codegen_init(void);
-#ifdef USE_NEW_DYNAREC
-extern void codegen_close(void);
-#endif
 extern void codegen_flush(void);
 
 /*Current physical page of block being recompiled. -1 if no recompilation taking place */
