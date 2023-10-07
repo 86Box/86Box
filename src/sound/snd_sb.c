@@ -1461,7 +1461,7 @@ sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
             break;
 
         case 1: /* IDE */
-            ide_pnp_config_changed(0, config, (void *) 2);
+            ide_pnp_config_changed(0, config, (void *) 3);
             break;
 
         case 2: /* Reserved (16) / WaveTable (32+) */
@@ -2033,7 +2033,7 @@ sb_16_pnp_init(UNUSED(const device_t *info))
 
     sb->gameport = gameport_add(&gameport_pnp_device);
 
-    device_add(&ide_ter_pnp_device);
+    device_add(&ide_qua_pnp_device);
 
     isapnp_add_card(sb_16_pnp_rom, sizeof(sb_16_pnp_rom), sb_16_pnp_config_changed, NULL, NULL, NULL, sb);
 
@@ -2200,7 +2200,7 @@ sb_awe32_pnp_init(const device_t *info)
     sb->gameport = gameport_add(&gameport_pnp_device);
 
     if ((info->local != 2) && (info->local != 3) && (info->local != 4))
-        device_add(&ide_ter_pnp_device);
+        device_add(&ide_qua_pnp_device);
 
     const char *pnp_rom_file = NULL;
     switch (info->local) {

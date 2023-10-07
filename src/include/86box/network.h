@@ -78,13 +78,9 @@ enum {
     NET_LINK_1000_FD   = (1 << 8),
 };
 
-/* Supported network cards. */
 enum {
-    NONE      = 0,
-    NE1000    = 1,
-    NE2000    = 2,
-    RTL8019AS = 3,
-    RTL8029AS = 4
+    NET_NONE = 0,
+    NET_INTERNAL
 };
 
 enum {

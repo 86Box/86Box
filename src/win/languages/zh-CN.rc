@@ -34,7 +34,7 @@ BEGIN
         MENUITEM "隐藏状态栏(&H)", IDM_VID_HIDE_STATUS_BAR
         MENUITEM "隐藏工具栏(&T)", IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
-        MENUITEM "Show non-primary monitors(&S)", IDM_VID_MONITORS
+        MENUITEM "显示次要显示器(&S)", IDM_VID_MONITORS
         MENUITEM "窗口大小可调(&R)", IDM_VID_RESIZE
         MENUITEM "记住窗口大小和位置(&E)", IDM_VID_REMEMBER
         MENUITEM SEPARATOR
@@ -137,10 +137,10 @@ CassetteSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新建镜像(&N)...", IDM_CASSETTE_IMAGE_NEW
+        MENUITEM "新建映像(&N)...", IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "打开已存在的镜像(&E)...", IDM_CASSETTE_IMAGE_EXISTING
-        MENUITEM "打开已存在的镜像并写保护(&W)...", IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM "打开已存在的映像(&E)...", IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "打开已存在的映像并写保护(&W)...", IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "录制(&R)", IDM_CASSETTE_RECORD
         MENUITEM "播放(&P)", IDM_CASSETTE_PLAY
@@ -155,7 +155,7 @@ CartridgeSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "镜像(&I)...", IDM_CARTRIDGE_IMAGE
+        MENUITEM "映像(&I)...", IDM_CARTRIDGE_IMAGE
         MENUITEM SEPARATOR
         MENUITEM "弹出(&J)", IDM_CARTRIDGE_EJECT
     END
@@ -165,10 +165,10 @@ FloppySubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新建镜像(&N)...", IDM_FLOPPY_IMAGE_NEW
+        MENUITEM "新建映像(&N)...", IDM_FLOPPY_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "打开已存在的镜像(&E)...", IDM_FLOPPY_IMAGE_EXISTING
-        MENUITEM "打开已存在的镜像并写保护(&W)...", IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM "打开已存在的映像(&E)...", IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "打开已存在的映像并写保护(&W)...", IDM_FLOPPY_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "导出为 86F 格式(&x)...", IDM_FLOPPY_EXPORT_TO_86F
         MENUITEM SEPARATOR
@@ -183,9 +183,9 @@ BEGIN
         MENUITEM "静音(&M)", IDM_CDROM_MUTE
         MENUITEM SEPARATOR
         MENUITEM "空置驱动器(&M)", IDM_CDROM_EMPTY
-        MENUITEM "载入上一个镜像(&R)", IDM_CDROM_RELOAD
+        MENUITEM "载入上一个映像(&R)", IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "镜像(&I)...", IDM_CDROM_IMAGE
+        MENUITEM "映像(&I)...", IDM_CDROM_IMAGE
         MENUITEM "文件夹(&F)...", IDM_CDROM_DIR
     END
 END
@@ -194,13 +194,13 @@ ZIPSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新建镜像(&N)...", IDM_ZIP_IMAGE_NEW
+        MENUITEM "新建映像(&N)...", IDM_ZIP_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "打开已存在的镜像(&E)...", IDM_ZIP_IMAGE_EXISTING
-        MENUITEM "打开已存在的镜像并写保护(&W)...", IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM "打开已存在的映像(&E)...", IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "打开已存在的映像并写保护(&W)...", IDM_ZIP_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "弹出(&J)", IDM_ZIP_EJECT
-        MENUITEM "载入上一个镜像(&R)", IDM_ZIP_RELOAD
+        MENUITEM "载入上一个映像(&R)", IDM_ZIP_RELOAD
     END
 END
 
@@ -208,13 +208,13 @@ MOSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "新建镜像(&N)...", IDM_MO_IMAGE_NEW
+        MENUITEM "新建映像(&N)...", IDM_MO_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "打开已存在的镜像(&E)...", IDM_MO_IMAGE_EXISTING
-        MENUITEM "打开已存在的镜像并写保护(&W)...", IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM "打开已存在的映像(&E)...", IDM_MO_IMAGE_EXISTING
+        MENUITEM "打开已存在的映像并写保护(&W)...", IDM_MO_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "弹出(&J)", IDM_MO_EJECT
-        MENUITEM "载入上一个镜像(&R)", IDM_MO_RELOAD
+        MENUITEM "载入上一个映像(&R)", IDM_MO_RELOAD
     END
 END
 
@@ -242,7 +242,7 @@ END
 
 #define STR_PREFERENCES   "首选项"
 #define STR_SND_GAIN      "音量增益"
-#define STR_NEW_FLOPPY    "新建镜像"
+#define STR_NEW_FLOPPY    "新建映像"
 #define STR_CONFIG        "设置"
 #define STR_SPECIFY_DIM   "指定主窗口大小"
 
@@ -276,15 +276,15 @@ END
 #define STR_TIME_SYNC     "时间同步"
 #define STR_DISABLED      "禁用"
 #define STR_ENABLED_LOCAL "启用 (本地时间)"
-#define STR_ENABLED_UTC   "启用 (UTC)"
+#define STR_ENABLED_UTC   "启用 (协调世界时)"
 #define STR_DYNAREC       "动态重编译器"
-#define STR_SOFTFLOAT     "Softfloat FPU"
+#define STR_SOFTFLOAT     "软浮点 FPU"
 
 #define STR_VIDEO         "显卡:"
 #define STR_VIDEO_2       "显卡 2:"
-#define STR_VOODOO        "Voodoo Graphics"
-#define STR_IBM8514       "IBM 8514/a Graphics"
-#define STR_XGA           "XGA Graphics"
+#define STR_VOODOO        "Voodoo 显卡"
+#define STR_IBM8514       "IBM 8514/a 显卡"
+#define STR_XGA           "XGA 显卡"
 
 #define STR_MOUSE         "鼠标:"
 #define STR_JOYSTICK      "操纵杆:"
@@ -308,10 +308,10 @@ END
 #define STR_NET_TYPE      "网络类型:"
 #define STR_PCAP          "PCap 设备:"
 #define STR_NET           "网络适配器:"
-#define STR_NET1          "Network card 1:"
-#define STR_NET2          "Network card 2:"
-#define STR_NET3          "Network card 3:"
-#define STR_NET4          "Network card 4:"
+#define STR_NET1          "网卡 1:"
+#define STR_NET2          "网卡 2:"
+#define STR_NET3          "网卡 3:"
+#define STR_NET4          "网卡 4:"
 
 #define STR_COM1          "COM1 设备:"
 #define STR_COM2          "COM2 设备:"
@@ -329,10 +329,10 @@ END
 #define STR_PARALLEL2     "并口 2"
 #define STR_PARALLEL3     "并口 3"
 #define STR_PARALLEL4     "并口 4"
-#define STR_SERIAL_PASS1  "Serial port passthrough 1"
-#define STR_SERIAL_PASS2  "Serial port passthrough 2"
-#define STR_SERIAL_PASS3  "Serial port passthrough 3"
-#define STR_SERIAL_PASS4  "Serial port passthrough 4"
+#define STR_SERIAL_PASS1  "串口直通 1"
+#define STR_SERIAL_PASS2  "串口直通 2"
+#define STR_SERIAL_PASS3  "串口直通 3"
+#define STR_SERIAL_PASS4  "串口直通 4"
 
 #define STR_HDC           "硬盘控制器:"
 #define STR_FDC           "软盘控制器:"
@@ -347,12 +347,12 @@ END
 
 #define STR_HDD           "硬盘:"
 #define STR_NEW           "新建(&N)..."
-#define STR_EXISTING      "已有镜像(&E)..."
+#define STR_EXISTING      "已有映像(&E)..."
 #define STR_REMOVE        "移除(&R)"
 #define STR_BUS           "总线:"
 #define STR_CHANNEL       "通道:"
 #define STR_ID            "ID:"
-#define STR_SPEED         "Speed:"
+#define STR_SPEED         "速度:"
 
 #define STR_SPECIFY       "指定(&S)..."
 #define STR_SECTORS       "扇区(S):"
@@ -360,7 +360,7 @@ END
 #define STR_CYLS          "柱面(C):"
 #define STR_SIZE_MB       "大小 (MB):"
 #define STR_TYPE          "类型:"
-#define STR_IMG_FORMAT    "镜像格式:"
+#define STR_IMG_FORMAT    "映像格式:"
 #define STR_BLOCK_SIZE    "块大小:"
 
 #define STR_FLOPPY_DRIVES "软盘驱动器:"
@@ -401,14 +401,14 @@ BEGIN
     IDS_2052    "按下 Ctrl+Alt+PgDn 返回到窗口模式。"
     IDS_2053    "速度"
     IDS_2054    "ZIP %03i %i (%s): %ls"
-    IDS_2055    "ZIP 镜像 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056    "86Box 找不到任何可用的 ROM 镜像。\n\n请<a href=""https://github.com/86Box/roms/releases/latest"">下载</a>ROM 包并将其解压到 ""roms"" 文件夹。"
+    IDS_2055    "ZIP 映像 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
+    IDS_2056    "86Box 找不到任何可用的 ROM 映像。\n\n请<a href=""https://github.com/86Box/roms/releases/latest"">下载</a>ROM 包并将其解压到 ""roms"" 文件夹中。"
     IDS_2057    "(空)"
-    IDS_2058    "ZIP 镜像 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0所有文件 (*.*)\0*.*\0"
+    IDS_2058    "ZIP 映像 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0所有文件 (*.*)\0*.*\0"
     IDS_2059    "加速"
     IDS_2060    "开"
     IDS_2061    "关"
-    IDS_2062    "所有镜像 (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0基本扇区镜像 (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0表面镜像 (*.86F)\0*.86F\0"
+    IDS_2062    "所有映像 (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0基本扇区映像 (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0表面映像 (*.86F)\0*.86F\0"
     IDS_2063    "由于 roms/machines 文件夹中缺少合适的 ROM，机型 ""%hs"" 不可用。将切换到其他可用机型。"
 END
 
@@ -426,7 +426,7 @@ BEGIN
     IDS_2073    "软盘/光盘驱动器"
     IDS_2074    "其他可移动设备"
     IDS_2075    "其他外围设备"
-    IDS_2076    "表面镜像 (*.86F)\0*.86F\0"
+    IDS_2076    "表面映像 (*.86F)\0*.86F\0"
     IDS_2077    "单击窗口捕捉鼠标"
     IDS_2078    "按下 F8+F12 释放鼠标"
     IDS_2079    "按下 F8+F12 或鼠标中键释放鼠标"
@@ -440,7 +440,7 @@ BEGIN
     IDS_2084    "H"
     IDS_2085    "S"
     IDS_2086    "MB"
-    IDS_2087    "Speed"
+    IDS_2087    "速度"
     IDS_2088    "检查 BPB"
     IDS_2089    "KB"
     IDS_2090    "无法初始化视频渲染器。"
@@ -463,13 +463,13 @@ BEGIN
     IDS_2107    "%u"
     IDS_2108    "%u MB (CHS: %i, %i, %i)"
     IDS_2109    "软盘 %i (%s): %ls"
-    IDS_2110    "所有镜像 (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0高级扇区镜像 (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0基本扇区镜像 (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux 镜像 (*.FDI)\0*.FDI\0表面镜像 (*.86F;*.MFM)\0*.86F;*.MFM\0所有文件 (*.*)\0*.*\0"
+    IDS_2110    "所有映像 (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0高级扇区映像 (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0基本扇区映像 (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux 映像 (*.FDI)\0*.FDI\0表面映像 (*.86F;*.MFM)\0*.86F;*.MFM\0所有文件 (*.*)\0*.*\0"
     IDS_2112    "无法初始化 SDL，需要 SDL2.dll"
     IDS_2113    "确定要硬重置模拟器吗？"
     IDS_2114    "确定要退出 86Box 吗？"
     IDS_2115    "无法初始化 Ghostscript"
     IDS_2116    "磁光盘 %i (%ls): %ls"
-    IDS_2117    "磁光盘镜像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
+    IDS_2117    "磁光盘映像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
     IDS_2118    "欢迎使用 86Box！"
     IDS_2119    "内部控制器"
     IDS_2120    "退出"
@@ -480,7 +480,7 @@ BEGIN
     IDS_2125    "关于 86Box"
     IDS_2126    "86Box v" EMU_VERSION
 
-    IDS_2127    "一个旧式计算机模拟器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\nWith previous core contributions from Sarah Walker、leilei、JohnElliott、greatpsycho 等人。\n\n本软件依据 GNU 通用公共许可证第二版或更新版本发布。详情见 LICENSE 文件。"
+    IDS_2127    "一个旧式计算机模拟器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\n本软件依据 GNU 通用公共许可证第二版或更新版本发布。详情见 LICENSE 文件。"
     IDS_2128    "确定"
     IDS_2129    "硬件不可用"
 #ifdef _WIN32
@@ -497,12 +497,12 @@ BEGIN
 #endif
     IDS_2133    LIB_NAME_GS " 是将 PostScript 文件转换为 PDF 所需要的库。\n\n使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
     IDS_2135    "正在进入全屏模式"
-    IDS_2136    "不要再显示此消息"
+    IDS_2136    "不再显示此消息"
     IDS_2137    "不退出"
     IDS_2138    "重置"
     IDS_2139    "不重置"
-    IDS_2140    "磁光盘镜像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
-    IDS_2141    "光盘镜像 (*.ISO;*.CUE)\0*.ISO;*.CUE\0所有文件 (*.*)\0*.*\0"
+    IDS_2140    "磁光盘映像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
+    IDS_2141    "光盘映像 (*.ISO;*.CUE)\0*.ISO;*.CUE\0所有文件 (*.*)\0*.*\0"
     IDS_2142    "%hs 设备配置"
     IDS_2143    "显示器处在睡眠状态"
     IDS_2144    "OpenGL 着色器 (*.GLSL)\0*.GLSL\0所有文件 (*.*)\0*.*\0"
@@ -511,9 +511,9 @@ BEGIN
     IDS_2147    "此模拟计算机禁用了基于选定计算机的 CPU 类型过滤。\n\n能够选中与所选机器本不兼容的 CPU，但是可能会遇到与机器 BIOS 或其他软件不兼容的问题。\n\n启用此设置不受官方支持，并且提交的任何错误报告可能会视为无效而关闭。"
     IDS_2148    "继续"
     IDS_2149    "磁带: %s"
-    IDS_2150    "磁带镜像 (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0所有文件 (*.*)\0*.*\0"
+    IDS_2150    "磁带映像 (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0所有文件 (*.*)\0*.*\0"
     IDS_2151    "卡带 %i: %ls"
-    IDS_2152    "卡带镜像 (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0所有文件 (*.*)\0*.*\0"
+    IDS_2152    "卡带映像 (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0所有文件 (*.*)\0*.*\0"
     IDS_2153    "初始化渲染器时出错"
     IDS_2154    "无法初始化 OpenGL (3.0 核心) 渲染器。请使用其他渲染器。"
     IDS_2155    "恢复执行"
@@ -523,13 +523,13 @@ BEGIN
     IDS_2159    "硬重置"
     IDS_2160    "ACPI 关机"
     IDS_2161    "设置"
-    IDS_2162    "Type"
-    IDS_2163    "No Dynarec"
-    IDS_2164    "Old Dynarec"
-    IDS_2165    "New Dynarec"
-    IDS_2166    "Video card #2 ""%hs"" is not available due to missing ROMs in the roms/video directory. Disabling the second video card."
-    IDS_2167    "Failed to initialize network driver"
-    IDS_2168    "The network configuration will be switched to the null driver"
+    IDS_2162    "类型"
+    IDS_2163    "无动态重编译"
+    IDS_2164    "旧式动态重编译"
+    IDS_2165    "新式动态重编译"
+    IDS_2166    "由于 roms/video 文件夹中缺少合适的 ROM，显卡 #2 ""%hs"" 不可用。将禁用第二张显卡。"
+    IDS_2167    "初始化网络驱动程序失败"
+    IDS_2168    "网络配置将切换为空驱动程序"
 END
 
 STRINGTABLE DISCARDABLE
@@ -542,27 +542,27 @@ BEGIN
     IDS_4101    "自定义 (大容量)..."
     IDS_4102    "添加新硬盘"
     IDS_4103    "添加已存在的硬盘"
-    IDS_4104    "HDI 磁盘镜像不能超过 4 GB。"
-    IDS_4105    "磁盘镜像不能超过 127 GB。"
-    IDS_4106    "硬盘镜像 (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0所有文件 (*.*)\0*.*\0"
+    IDS_4104    "HDI 磁盘映像不能超过 4 GB。"
+    IDS_4105    "磁盘映像不能超过 127 GB。"
+    IDS_4106    "硬盘映像 (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0所有文件 (*.*)\0*.*\0"
     IDS_4107    "无法读取文件"
     IDS_4108    "无法写入文件"
-    IDS_4109    "不支持非 512 字节扇区大小的 HDI 或 HDX 镜像。"
+    IDS_4109    "不支持非 512 字节扇区大小的 HDI 或 HDX 映像。"
     IDS_4110    "尚未支持 USB"
-    IDS_4111    "磁盘镜像文件已存在"
+    IDS_4111    "磁盘映像文件已存在"
     IDS_4112    "请指定有效的文件名。"
-    IDS_4113    "已创建磁盘镜像"
+    IDS_4113    "已创建磁盘映像"
     IDS_4114    "请确定此文件已存在并可读取。"
     IDS_4115    "请确定此文件保存在可写目录中。"
-    IDS_4116    "磁盘镜像太大"
-    IDS_4117    "请记得为新创建的镜像分区并格式化。"
+    IDS_4116    "磁盘映像太大"
+    IDS_4117    "请记得为新创建的映像分区并格式化。"
     IDS_4118    "选定的文件将被覆盖。确定继续使用此文件吗？"
-    IDS_4119    "不支持的磁盘镜像"
+    IDS_4119    "不支持的磁盘映像"
     IDS_4120    "覆盖"
     IDS_4121    "不覆盖"
-    IDS_4122    "原始镜像 (.img)"
-    IDS_4123    "HDI 镜像 (.hdi)"
-    IDS_4124    "HDX 镜像 (.hdx)"
+    IDS_4122    "原始映像 (.img)"
+    IDS_4123    "HDI 映像 (.hdi)"
+    IDS_4124    "HDX 映像 (.hdx)"
     IDS_4125    "固定大小 VHD (.vhd)"
     IDS_4126    "动态大小 VHD (.vhd)"
     IDS_4127    "差分 VHD (.vhd)"
@@ -570,7 +570,7 @@ BEGIN
     IDS_4129    "小块 (512 KB)"
     IDS_4130    "VHD 文件 (*.VHD)\0*.VHD\0所有文件 (*.*)\0*.*\0"
     IDS_4131    "选择父 VHD 文件"
-    IDS_4132    "父映像可能在创建差异镜像后被修改。\n\n如果镜像文件被移动或复制，或创建此磁盘的程序中存在错误，也可能发生这种情况。\n\n是否需要修复时间戳？"
+    IDS_4132    "父映像可能在创建差异映像后被修改。\n\n如果映像文件被移动或复制，或创建此磁盘的程序中存在错误，也可能发生这种情况。\n\n是否需要修复时间戳？"
     IDS_4133    "父盘与子盘的时间戳不匹配"
     IDS_4134    "无法修复 VHD 时间戳。"
     IDS_4135    "%01i:%02i"

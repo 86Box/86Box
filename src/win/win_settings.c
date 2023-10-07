@@ -689,6 +689,18 @@ win_settings_save(void)
 }
 
 static void
+win_settings_machine_recalc_softfloat(HWND hdlg)
+{
+    if (temp_fpu == FPU_NONE) {
+        settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, FALSE);
+        settings_enable_window(hdlg, IDC_CHECK_SOFTFLOAT, FALSE);
+    } else {
+        settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? TRUE : temp_fpu_softfloat));
+        settings_enable_window(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? FALSE : TRUE));
+    }
+}
+
+static void
 win_settings_machine_recalc_fpu(HWND hdlg)
 {
     int         c;
@@ -714,12 +726,11 @@ win_settings_machine_recalc_fpu(HWND hdlg)
         c++;
     }
 
-    settings_set_check(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? TRUE : temp_fpu_softfloat));
-    settings_enable_window(hdlg, IDC_CHECK_SOFTFLOAT, (machine_has_flags(temp_machine, MACHINE_SOFTFLOAT_ONLY) ? FALSE : TRUE));
-
     settings_enable_window(hdlg, IDC_COMBO_FPU, c > 1);
 
     temp_fpu = fpu_get_type_from_index(temp_cpu_f, temp_cpu, settings_get_cur_sel(hdlg, IDC_COMBO_FPU));
+
+    win_settings_machine_recalc_softfloat(hdlg);
 }
 
 static void
@@ -737,7 +748,7 @@ win_settings_machine_recalc_cpu(HWND hdlg)
     cpu_flags = temp_cpu_f->cpus[temp_cpu].cpu_flags;
     if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) && (cpu_flags & CPU_REQUIRES_DYNAREC))
         fatal("Attempting to select a CPU that requires the recompiler and does not support it at the same time\n");
-    if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) || (cpu_flags & CPU_REQUIRES_DYNAREC)) {
+    if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) || ((cpu_flags & CPU_REQUIRES_DYNAREC) && !cpu_override)) {
         if (!(cpu_flags & CPU_SUPPORTS_DYNAREC))
             temp_dynarec = 0;
         if (cpu_flags & CPU_REQUIRES_DYNAREC)
@@ -1046,6 +1057,7 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, UNUSED(LPARAM 
                         temp_fpu = fpu_get_type_from_index(temp_cpu_f, temp_cpu,
                                                            settings_get_cur_sel(hdlg, IDC_COMBO_FPU));
                     }
+                    win_settings_machine_recalc_softfloat(hdlg);
                     break;
                 case IDC_CONFIGURE_MACHINE:
                     temp_machine = listtomachine[settings_get_cur_sel(hdlg, IDC_COMBO_MACHINE)];
@@ -4384,7 +4396,7 @@ win_settings_mo_drives_init_columns(HWND hdlg)
 static void
 win_settings_zip_drives_resize_columns(HWND hdlg)
 {
-    int  width[C_COLUMNS_MO_DRIVES] = {
+    int  width[C_COLUMNS_ZIP_DRIVES] = {
                                         C_COLUMNS_ZIP_DRIVES_BUS,
                                         C_COLUMNS_ZIP_DRIVES_TYPE
                                       };
@@ -4701,12 +4713,12 @@ cdrom_recalc_location_controls(HWND hdlg, int assign_id)
     settings_show_window(hdlg, IDC_COMBO_CD_SPEED, bus != CDROM_BUS_DISABLED);
     settings_show_window(hdlg, IDT_CD_SPEED, bus != CDROM_BUS_DISABLED);
 #if 0
-    settings_show_window(hdlg, IDC_CHECKEARLY, bus != CDROM_BUS_DISABLED);
+    settings_show_window(hdlg, IDC_COMBO_CD_TYPE, bus != CDROM_BUS_DISABLED);
 #endif
     if (bus != CDROM_BUS_DISABLED) {
         settings_set_cur_sel(hdlg, IDC_COMBO_CD_SPEED, temp_cdrom[lv2_current_sel].speed - 1);
 #if 0
-    settings_set_check(hdlg, IDC_CHECKEARLY, temp_cdrom[lv2_current_sel].early);
+    settings_set_check(hdlg, IDC_COMBO_CD_TYPE, temp_cdrom[lv2_current_sel].early);
 #endif
     }
 
@@ -4912,7 +4924,7 @@ static void
 mo_track(uint8_t id)
 {
     if (temp_mo_drives[id].bus_type == MO_BUS_ATAPI)
-        ide_tracking |= (1 << (temp_zip_drives[id].ide_channel << 3));
+        ide_tracking |= (1 << (temp_mo_drives[id].ide_channel << 3));
     else if (temp_mo_drives[id].bus_type == MO_BUS_SCSI)
         scsi_tracking[temp_mo_drives[id].scsi_device_id >> 3] |= (1 << (temp_mo_drives[id].scsi_device_id & 0x07));
 }
@@ -4921,7 +4933,7 @@ static void
 mo_untrack(uint8_t id)
 {
     if (temp_mo_drives[id].bus_type == MO_BUS_ATAPI)
-        ide_tracking &= ~(1 << (temp_zip_drives[id].ide_channel << 3));
+        ide_tracking &= ~(1 << (temp_mo_drives[id].ide_channel << 3));
     else if (temp_mo_drives[id].bus_type == MO_BUS_SCSI)
         scsi_tracking[temp_mo_drives[id].scsi_device_id >> 3] &= ~(1 << (temp_mo_drives[id].scsi_device_id & 0x07));
 }
@@ -5098,8 +5110,8 @@ win_settings_floppy_and_cdrom_drives_proc(HWND hdlg, UINT message, WPARAM wParam
                     break;
 
 #if 0
-                case IDC_CHECKEARLY:
-                    temp_cdrom[lv2_current_sel].early = settings_get_check(hdlg, IDC_CHECKEARLY);
+                case IDC_COMBO_CD_TYPE::
+                    temp_cdrom[lv2_current_sel].early = settings_get_check(hdlg, IDC_COMBO_CD_TYPE:);
                     win_settings_cdrom_drives_update_item(hdlg, lv2_current_sel);
                     break;
 #endif

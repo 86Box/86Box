@@ -1553,10 +1553,14 @@ ncr_init(const device_t *info)
                 ncr_dev->bios_ver = 1;
             }
 
-            if (ncr_dev->bios_ver == 1)
-                fn = RT1000B_820R_ROM;
-            else
-                fn = RT1000B_810R_ROM;
+            switch (ncr_dev->bios_ver) {
+                case 0:
+                    fn = RT1000B_810R_ROM;
+                    break;
+                case 1:
+                    fn = RT1000B_820R_ROM;
+                    break;
+            }
 
             rom_init(&ncr_dev->bios_rom, fn,
                      ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
@@ -1601,9 +1605,8 @@ ncr_init(const device_t *info)
             ncr_dev->irq               = device_get_config_int("irq");
             ncr_dev->t128.bios_enabled = device_get_config_int("boot");
 
-            if (ncr_dev->t128.bios_enabled)
-                rom_init(&ncr_dev->bios_rom, T128_ROM,
-                         ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+            rom_init(&ncr_dev->bios_rom, T128_ROM,
+                     ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
             mem_mapping_add(&ncr_dev->mapping, ncr_dev->rom_addr, 0x4000,
                             t128_read, NULL, NULL,
@@ -1635,15 +1638,12 @@ ncr_init(const device_t *info)
     ncr_log("%s\n", temp);
 
     ncr_reset(ncr_dev, &ncr_dev->ncr);
-    if (ncr_dev->type < 3 || ncr_dev->type == 4) {
+    if ((ncr_dev->type < 3) || (ncr_dev->type == 4)) {
         ncr_dev->status_ctrl     = STATUS_BUFFER_NOT_READY;
         ncr_dev->buffer_host_pos = 128;
     } else {
         ncr_dev->t128.status   = 0x04;
         ncr_dev->t128.host_pos = 512;
-
-        if (!ncr_dev->t128.bios_enabled)
-            ncr_dev->t128.status |= 0x80;
     }
     timer_add(&ncr_dev->timer, ncr_callback, ncr_dev, 0);
 
@@ -1893,13 +1893,6 @@ static const device_config_t t128_config[] = {
             { .description = "IRQ 7", .value = 7 },
             { .description = ""                  }
         },
-    },
-    {
-        .name = "boot",
-        .description = "Enable Boot ROM",
-        .type = CONFIG_BINARY,
-        .default_string = "",
-        .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

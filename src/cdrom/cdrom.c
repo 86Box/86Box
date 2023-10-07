@@ -531,7 +531,7 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
         f = pos & 0xff;
 
         /* NEC CDR-260 speaks BCD. */
-        if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) /*NEC*/
+        if ((dev->type == CDROM_TYPE_NEC_260_100) || (dev->type == CDROM_TYPE_NEC_260_101)) /*NEC*/
             msf_from_bcd(&m, &s, &f);
 
         if (pos == 0xffffff) {
@@ -545,7 +545,7 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
         f = len & 0xff;
 
         /* NEC CDR-260 speaks BCD. */
-        if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) /*NEC*/
+        if ((dev->type == CDROM_TYPE_NEC_260_100) || (dev->type == CDROM_TYPE_NEC_260_101)) /*NEC*/
             msf_from_bcd(&m, &s, &f);
 
         len = MSFtoLBA(m, s, f) - 150;
@@ -571,7 +571,6 @@ cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf)
     dev->cd_end    = len;
     dev->cd_status = CD_STATUS_PLAYING;
     dev->cd_buflen = 0;
-
     return 1;
 }
 
@@ -625,6 +624,52 @@ cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit)
 }
 
 uint8_t
+cdrom_audio_track_search_pioneer(cdrom_t *dev, uint32_t pos, uint8_t playbit)
+{
+    int m = 0;
+    int s = 0;
+    int f = 0;
+
+    if (dev->cd_status == CD_STATUS_DATA_ONLY)
+        return 0;
+
+    f   = bcd2bin((pos >> 24) & 0xff);
+    s   = bcd2bin((pos >> 16) & 0xff);
+    m   = bcd2bin((pos >> 8) & 0xff);
+    if (pos == 0xffffffff) {
+        pos = dev->seek_pos;
+    } else
+        pos = MSFtoLBA(m, s, f) - 150;
+
+    dev->seek_pos = pos;
+
+    dev->cd_buflen = 0;
+    dev->cd_status = playbit ? CD_STATUS_PLAYING : CD_STATUS_PAUSED;
+    return 1;
+}
+
+uint8_t
+cdrom_audio_play_pioneer(cdrom_t *dev, uint32_t pos)
+{
+    int m = 0;
+    int s = 0;
+    int f = 0;
+
+    if (dev->cd_status == CD_STATUS_DATA_ONLY)
+        return 0;
+
+    f   = bcd2bin((pos >> 24) & 0xff);
+    s   = bcd2bin((pos >> 16) & 0xff);
+    m   = bcd2bin((pos >> 8) & 0xff);
+    pos = MSFtoLBA(m, s, f) - 150;
+    dev->cd_end = pos;
+
+    dev->cd_buflen = 0;
+    dev->cd_status = CD_STATUS_PLAYING;
+    return 1;
+}
+
+uint8_t
 cdrom_audio_play_toshiba(cdrom_t *dev, uint32_t pos, int type)
 {
     int m = 0;
@@ -664,7 +709,6 @@ cdrom_audio_play_toshiba(cdrom_t *dev, uint32_t pos, int type)
 
     /* Unlike standard commands, if there's a data track on an Audio CD (mixed mode)
        the playback continues with the audio muted (Toshiba CD-ROM SCSI-2 manual reference). */
-
     dev->cd_buflen = 0;
     dev->cd_status = CD_STATUS_PLAYING;
     return 1;
@@ -751,7 +795,7 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
             ret = 0x13;
     }
 
-    cdrom_log("CD-ROM %i: Returned subchannel at %02i:%02i.%02i, ret = %02x, seek pos = %08x, cd_end = %08x.\n", dev->id, subc.abs_m, subc.abs_s, subc.abs_f, ret, dev->seek_pos, dev->cd_end);
+    cdrom_log("CD-ROM %i: Returned subchannel absolute at %02i:%02i.%02i, relative at %02i:%02i.%02i, ret = %02x, seek pos = %08x, cd_end = %08x.\n", dev->id, subc.abs_m, subc.abs_s, subc.abs_f, subc.rel_m, subc.rel_s, subc.rel_f, ret, dev->seek_pos, dev->cd_end);
 
     if (b[pos] > 1) {
         cdrom_log("B[%i] = %02x, ret = %02x.\n", pos, b[pos], ret);
@@ -766,7 +810,7 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
         b[pos] = 0;
 
         /* NEC CDR-260 speaks BCD. */
-        if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) /*NEC*/ {
+        if ((dev->type == CDROM_TYPE_NEC_260_100) || (dev->type == CDROM_TYPE_NEC_260_101)) { /*NEC*/
             m = subc.abs_m;
             s = subc.abs_s;
             f = subc.abs_f;
@@ -785,7 +829,7 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, int msf)
         b[pos] = 0;
 
         /* NEC CDR-260 speaks BCD. */
-        if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) /*NEC*/ {
+        if ((dev->type == CDROM_TYPE_NEC_260_100) || (dev->type == CDROM_TYPE_NEC_260_101)) { /*NEC*/
             m = subc.rel_m;
             s = subc.rel_s;
             f = subc.rel_f;
@@ -820,36 +864,62 @@ void
 cdrom_get_current_subchannel_sony(cdrom_t *dev, uint8_t *b, int msf)
 {
     subchannel_t subc;
-    int          pos = 0;
     uint32_t     dat;
 
     dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
 
-    cdrom_log("CD-ROM %i: Returned subchannel at %02i:%02i.%02i, seek pos = %08x, cd_end = %08x.\n", dev->id, subc.abs_m, subc.abs_s, subc.abs_f, dev->seek_pos, dev->cd_end);
+    cdrom_log("CD-ROM %i: Returned subchannel at %02i:%02i.%02i, seek pos = %08x, cd_end = %08x, msf = %x.\n", dev->id, subc.abs_m, subc.abs_s, subc.abs_f, dev->seek_pos, dev->cd_end, msf);
 
-    b[pos++] = subc.attr;
-    b[pos++] = subc.track;
-    b[pos++] = subc.index;
+    b[0] = subc.attr;
+    b[1] = subc.track;
+    b[2] = subc.index;
 
     if (msf) {
-        b[pos++] = subc.rel_m;
-        b[pos++] = subc.rel_s;
-        b[pos++] = subc.rel_f;
-        b[pos++] = subc.abs_m;
-        b[pos++] = subc.abs_s;
-        b[pos++] = subc.abs_f;
+        b[3] = subc.rel_m;
+        b[4] = subc.rel_s;
+        b[5] = subc.rel_f;
+        b[6] = subc.abs_m;
+        b[7] = subc.abs_s;
+        b[8] = subc.abs_f;
     } else {
         dat      = MSFtoLBA(subc.rel_m, subc.rel_s, subc.rel_f);
-        b[pos++] = (dat >> 16) & 0xff;
-        b[pos++] = (dat >> 8) & 0xff;
-        b[pos++] = dat & 0xff;
+        b[3] = (dat >> 16) & 0xff;
+        b[4] = (dat >> 8) & 0xff;
+        b[5] = dat & 0xff;
         dat      = MSFtoLBA(subc.abs_m, subc.abs_s, subc.abs_f) - 150;
-        b[pos++] = (dat >> 16) & 0xff;
-        b[pos++] = (dat >> 8) & 0xff;
-        b[pos++] = dat & 0xff;
+        b[6] = (dat >> 16) & 0xff;
+        b[7] = (dat >> 8) & 0xff;
+        b[8] = dat & 0xff;
     }
 }
 
+uint8_t
+cdrom_get_audio_status_pioneer(cdrom_t *dev, uint8_t *b)
+{
+    uint8_t      ret;
+    subchannel_t subc;
+    uint32_t     dat;
+
+    dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
+
+    if (dev->cd_status == CD_STATUS_DATA_ONLY)
+        ret = 0x05;
+    else {
+        if (dev->cd_status == CD_STATUS_PLAYING)
+            ret = dev->sound_on ? 0x00 : 0x02;
+        else if (dev->cd_status == CD_STATUS_PAUSED)
+            ret = 0x01;
+        else
+            ret = 0x03;
+    }
+
+    b[0] = 0;
+    b[1] = bin2bcd(subc.abs_m);
+    b[2] = bin2bcd(subc.abs_s);
+    b[3] = bin2bcd(subc.abs_f);
+
+    return ret;
+}
 
 uint8_t
 cdrom_get_audio_status_sony(cdrom_t *dev, uint8_t *b, int msf)
@@ -887,17 +957,36 @@ cdrom_get_audio_status_sony(cdrom_t *dev, uint8_t *b, int msf)
     return ret;
 }
 
-uint8_t
-cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b)
+void
+cdrom_get_current_subcodeq(cdrom_t *dev, uint8_t *b)
 {
-    uint8_t      ret;
+    uint8_t ret;
     subchannel_t subc;
 
     dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
 
-    cdrom_log("Get Current Subcode-q Play Status = %02x, op = %02x.\n", dev->cd_status, dev->audio_op);
+    b[0] = subc.attr;
+    b[1] = bin2bcd(subc.track);
+    b[2] = bin2bcd(subc.index);
+    b[3] = bin2bcd(subc.rel_m);
+    b[4] = bin2bcd(subc.rel_s);
+    b[5] = bin2bcd(subc.rel_f);
+    b[6] = bin2bcd(subc.abs_m);
+    b[7] = bin2bcd(subc.abs_s);
+    b[8] = bin2bcd(subc.abs_f);
+}
 
-    if ((dev->cd_status == CD_STATUS_DATA_ONLY) || (dev->cd_status == CD_STATUS_PLAYING_COMPLETED))
+uint8_t
+cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b)
+{
+    uint8_t ret;
+    subchannel_t subc;
+
+    dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
+
+    if ((dev->cd_status == CD_STATUS_DATA_ONLY) ||
+        (dev->cd_status == CD_STATUS_PLAYING_COMPLETED) ||
+        (dev->cd_status == CD_STATUS_STOPPED))
         ret = 0x03;
     else
         ret = (dev->cd_status == CD_STATUS_PLAYING) ? 0x00 : dev->audio_op;
@@ -957,9 +1046,7 @@ read_toc_normal(cdrom_t *dev, unsigned char *b, unsigned char start_track, int m
 
     /* No suitable starting track, return with error. */
     if (first_track == -1) {
-#ifdef ENABLE_CDROM_LOG
         cdrom_log("    [ERROR] No suitable track found\n");
-#endif
         return -1;
     }
 
@@ -976,7 +1063,7 @@ read_toc_normal(cdrom_t *dev, unsigned char *b, unsigned char start_track, int m
             b[len++] = 0;
 
             /* NEC CDR-260 speaks BCD. */
-            if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) { /*NEC*/
+            if ((dev->type == CDROM_TYPE_NEC_260_100) || (dev->type == CDROM_TYPE_NEC_260_101)) { /*NEC*/
                 m = ti.m;
                 s = ti.s;
                 f = ti.f;
@@ -1128,9 +1215,7 @@ read_toc_sony(cdrom_t *dev, unsigned char *b, unsigned char start_track, int msf
 
     /* No suitable starting track, return with error. */
     if (first_track == -1) {
-#ifdef ENABLE_CDROM_LOG
         cdrom_log("    [ERROR] No suitable track found\n");
-#endif
         return -1;
     }
 
@@ -1138,8 +1223,8 @@ read_toc_sony(cdrom_t *dev, unsigned char *b, unsigned char start_track, int msf
         cdrom_log("    tracks(%i) = %02X, %02X, %i:%02i.%02i\n", i, ti.attr, ti.number, ti.m, ti.s, ti.f);
         dev->ops->get_track_info(dev, i + 1, 0, &ti);
 
-        b[len++] = ti.attr;
         b[len++] = ti.number; /* track number */
+        b[len++] = ti.attr;
 
         if (msf) {
             b[len++] = 0;
@@ -1154,7 +1239,6 @@ read_toc_sony(cdrom_t *dev, unsigned char *b, unsigned char start_track, int msf
             b[len++] = temp;
         }
     }
-
     return len;
 }
 

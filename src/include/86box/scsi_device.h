@@ -224,12 +224,12 @@
 #define RW_DELAY    (TIMER_USEC * 500)
 
 /* Some generally useful CD-ROM information */
-#define CD_MINS        75   /* max. minutes per CD */
+#define CD_MINS        90   /* max. minutes per CD */
 #define CD_SECS        60   /* seconds per minute */
 #define CD_FRAMES      75   /* frames per second */
 #define CD_FRAMESIZE   2048 /* bytes per frame, "cooked" mode */
 #define CD_MAX_BYTES   (CD_MINS * CD_SECS * CD_FRAMES * CD_FRAMESIZE)
-#define CD_MAX_SECTORS (CD_MAX_BYTES / 512)
+#define CD_MAX_SECTORS (CD_MAX_BYTES / 2048)
 
 /* Event notification classes for GET EVENT STATUS NOTIFICATION */
 #define GESN_NO_EVENTS          0

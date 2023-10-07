@@ -22,6 +22,9 @@ private slots:
     void on_pushButtonConfigure_clicked();
 
 private slots:
+    void on_comboBoxFPU_currentIndexChanged(int index);
+
+private slots:
     void on_comboBoxSpeed_currentIndexChanged(int index);
 
 private slots:
