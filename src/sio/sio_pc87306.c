@@ -40,6 +40,7 @@ typedef struct pc87306_t {
     uint8_t   tries;
     uint8_t   regs[29];
     uint8_t   gpio[2];
+    uint16_t  gpioba;
     int       cur_reg;
     fdc_t    *fdc;
     serial_t *uart[2];
@@ -65,22 +66,35 @@ pc87306_gpio_read(uint16_t port, void *priv)
 static void
 pc87306_gpio_remove(pc87306_t *dev)
 {
-    io_removehandler(dev->regs[0x0f] << 2, 0x0001,
-                     pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL, dev);
-    io_removehandler((dev->regs[0x0f] << 2) + 1, 0x0001,
-                     pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL, dev);
+    if (dev->gpioba != 0x0000) {
+        io_removehandler(dev->gpioba, 0x0001,
+                         pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL, dev);
+        io_removehandler(dev->gpioba + 1, 0x0001,
+                         pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL, dev);
+    }
 }
 
 static void
 pc87306_gpio_init(pc87306_t *dev)
 {
-    if ((dev->regs[0x12]) & 0x10)
-        io_sethandler(dev->regs[0x0f] << 2, 0x0001,
-                      pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL, dev);
+    dev->gpioba = ((uint16_t) dev->regs[0x0f]) << 2;
 
-    if ((dev->regs[0x12]) & 0x20)
-        io_sethandler((dev->regs[0x0f] << 2) + 1, 0x0001,
-                      pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL, dev);
+    if (dev->gpioba != 0x0000) {
+        if ((dev->regs[0x12]) & 0x10)
+            io_sethandler(dev->regs[0x0f] << 2, 0x0001,
+                          pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL, dev);
+
+        if ((dev->regs[0x12]) & 0x20)
+            io_sethandler((dev->regs[0x0f] << 2) + 1, 0x0001,
+                          pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL, dev);
+    }
+}
+
+static void
+pc87306_gpio_handler(pc87306_t *dev)
+{
+    pc87306_gpio_remove(dev);
+    pc87306_gpio_init(dev);
 }
 
 static void
@@ -315,13 +329,13 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
             break;
         case 0xF:
             if (valxor)
-                pc87306_gpio_init(dev);
+                pc87306_gpio_handler(dev);
             break;
         case 0x12:
             if (valxor & 0x01)
                 nvr_wp_set(!!(val & 0x01), 0, dev->nvr);
             if (valxor & 0x30)
-                pc87306_gpio_init(dev);
+                pc87306_gpio_handler(dev);
             break;
         case 0x19:
             if (valxor) {
