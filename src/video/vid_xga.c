@@ -1499,7 +1499,6 @@ xga_bitblt(svga_t *svga)
     int      mix  = 0;
     int      xdir;
     int      ydir;
-    int      skip = 0;
     int      x = 0;
     int      y = 0;
 

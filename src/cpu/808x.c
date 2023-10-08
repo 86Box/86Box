@@ -92,9 +92,6 @@ static uint16_t mem_addr         = 0;
 static int      schedule_fetch   = 1;
 static int      pasv             = 0;
 
-static int      pfq_idle         = 1;
-static int      pfq_delay        = 0;
-
 #define BUS_OUT         1
 #define BUS_HIGH        2
 #define BUS_WIDE        4
@@ -1268,7 +1265,6 @@ intr_routine(uint16_t intr, int skip_first)
     uint16_t tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
     uint16_t new_cs;
     uint16_t new_ip;
-    uint16_t old_ip;
 
     if (!skip_first)
         wait(1, 0);
@@ -1368,7 +1364,6 @@ custom_nmi(void)
     uint16_t tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
     uint16_t new_cs;
     uint16_t new_ip;
-    uint16_t old_ip;
 
     wait(1, 0);
     wait(2, 0);
@@ -2155,7 +2150,6 @@ execx86(int cycs)
     uint16_t old_flags;
     uint16_t tmpa;
     int      bits;
-    uint32_t dest_seg;
     uint32_t i;
     uint32_t carry;
     uint32_t nibble;
