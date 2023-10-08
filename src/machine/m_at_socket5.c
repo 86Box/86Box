@@ -174,7 +174,7 @@ machine_at_zappa_gpio_init(void)
     /*        66 MHz: Switch 7 = Off, Switch 8 = On. */
     /* Bit 2: No Connect. */
     /* Bit 1: No Connect. */
-    /* Bit 0: 0 = 1.5x multiplier, 1 = 2x multiplier (Switch 6). */
+    /* Bit 0: 2x multiplier, 1 = 1.5x multiplier (Switch 6). */
     /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
     gpio = 0xffffe6ff;
 

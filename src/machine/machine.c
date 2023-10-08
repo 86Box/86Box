@@ -77,7 +77,10 @@ machine_init_ex(int m)
         machine_init_gpio();
         machine_init_gpio_acpi();
 
+        machine_snd              = NULL;
+
         is_vpc                   = 0;
+
         standalone_gameport_type = NULL;
         gameport_instance_id     = 0;
 

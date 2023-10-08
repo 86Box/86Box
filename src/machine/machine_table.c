@@ -9085,7 +9085,7 @@ const machine_t machines[] = {
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
         .init = machine_at_endeavor_init,
         .p1_handler = NULL,
-        .gpio_handler = NULL,
+        .gpio_handler = machine_at_endeavor_gpio_handler,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
         .cpu = {
@@ -9114,7 +9114,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = &s3_phoenix_trio64_onboard_pci_device,
-        .snd_device = NULL,
+        .snd_device = &sb_vibra16s_onboard_device,
         .net_device = NULL
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
@@ -13272,6 +13272,14 @@ static uint32_t machine_gpio;
 static uint32_t machine_gpio_acpi_default;
 static uint32_t machine_gpio_acpi;
 
+void *machine_snd = NULL;
+
+uint8_t
+machine_get_p1_default(void)
+{
+    return machine_p1_default;
+}
+
 uint8_t
 machine_get_p1(void)
 {
@@ -13287,9 +13295,14 @@ machine_set_p1_default(uint8_t val)
 void
 machine_set_p1(uint8_t val)
 {
-    machine_p1 = machine_p1_default & val;
+    machine_p1 = val;
 }
 
+void
+machine_and_p1(uint8_t val)
+{
+    machine_p1 = machine_p1_default & val;
+}
 
 uint8_t
 machine_handle_p1(uint8_t write, uint8_t val)
@@ -13315,6 +13328,12 @@ machine_init_p1(void)
 }
 
 uint32_t
+machine_get_gpio_default(void)
+{
+    return machine_gpio_default;
+}
+
+uint32_t
 machine_get_gpio(void)
 {
     return machine_gpio;
@@ -13328,6 +13347,12 @@ machine_set_gpio_default(uint32_t val)
 
 void
 machine_set_gpio(uint32_t val)
+{
+    machine_gpio = val;
+}
+
+void
+machine_and_gpio(uint32_t val)
 {
     machine_gpio = machine_gpio_default & val;
 }
@@ -13356,6 +13381,12 @@ machine_init_gpio(void)
 }
 
 uint32_t
+machine_get_gpio_acpi_default(void)
+{
+    return machine_gpio_acpi_default;
+}
+
+uint32_t
 machine_get_gpio_acpi(void)
 {
     return machine_gpio_acpi;
@@ -13369,6 +13400,12 @@ machine_set_gpio_acpi_default(uint32_t val)
 
 void
 machine_set_gpio_acpi(uint32_t val)
+{
+    machine_gpio_acpi = val;
+}
+
+void
+machine_and_gpio_acpi(uint32_t val)
 {
     machine_gpio_acpi = machine_gpio_acpi_default & val;
 }

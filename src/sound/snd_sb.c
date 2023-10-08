@@ -854,6 +854,15 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
 
             case 0x84:
                 /* MPU Control register, per the Linux source code. */
+                /* Bits 2-1: MPU-401 address:
+                       0, 0 = 330h;
+                       0, 1 = Disabled;
+                       1, 0 = 300h;
+                       1, 1 = ???? (Reserved?)
+                   Bit 0: Gameport address:
+                       0, 0 = 200-207h;
+                       0, 1 = Disabled
+                 */
                 if (sb->mpu != NULL) {
                     if ((val & 0x06) == 0x00)
                         mpu401_change_addr(sb->mpu, 0x330);
@@ -861,6 +870,12 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
                         mpu401_change_addr(sb->mpu, 0x300);
                     else if ((val & 0x06) == 0x02)
                         mpu401_change_addr(sb->mpu, 0);
+                }
+                sb->gameport_addr = 0;
+                gameport_remap(sb->gameport, 0);
+                if (!(val & 0x01)) {
+                    sb->gameport_addr = 0x200;
+                    gameport_remap(sb->gameport, 0x200);
                 }
                 break;
 
@@ -1055,6 +1070,8 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                     else
                         ret = 0x06; /* Should never happen. */
                 }
+                if (!sb->gameport_addr)
+                    ret |= 0x01;
                 break;
 
             case 0x90:
@@ -1373,6 +1390,45 @@ sb_16_reply_mca_write(int port, uint8_t val, void *priv)
 
     sb_dsp_setdma8(&sb->dsp, low_dma);
     sb_dsp_setdma16(&sb->dsp, high_dma);
+}
+
+void
+sb_vibra16s_onboard_relocate_base(uint16_t new_addr, void *priv)
+{
+    sb_t    *sb   = (sb_t *) priv;
+    uint16_t addr = sb->dsp.sb_addr;
+
+    io_removehandler(addr, 0x0004,
+                     sb->opl.read, NULL, NULL,
+                     sb->opl.write, NULL, NULL,
+                     sb->opl.priv);
+    io_removehandler(addr + 8, 0x0002,
+                     sb->opl.read, NULL, NULL,
+                     sb->opl.write, NULL, NULL,
+                     sb->opl.priv);
+    io_removehandler(addr + 4, 0x0002,
+                     sb_ct1745_mixer_read, NULL, NULL,
+                     sb_ct1745_mixer_write, NULL, NULL,
+                     sb);
+
+    sb_dsp_setaddr(&sb->dsp, 0);
+
+    addr = new_addr;
+
+    io_sethandler(addr, 0x0004,
+                  sb->opl.read, NULL, NULL,
+                  sb->opl.write, NULL, NULL,
+                  sb->opl.priv);
+    io_sethandler(addr + 8, 0x0002,
+                  sb->opl.read, NULL, NULL,
+                  sb->opl.write, NULL, NULL,
+                  sb->opl.priv);
+    io_sethandler(addr + 4, 0x0002,
+                  sb_ct1745_mixer_read, NULL, NULL,
+                  sb_ct1745_mixer_write, NULL, NULL,
+                  sb);
+
+    sb_dsp_setaddr(&sb->dsp, addr);
 }
 
 static void
@@ -1968,6 +2024,8 @@ sb_16_init(UNUSED(const device_t *info))
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
+    sb->gameport_addr = 0x200;
+
     return sb;
 }
 
@@ -2002,6 +2060,8 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
     mca_add(sb_16_reply_mca_read, sb_16_reply_mca_write, sb_mcv_feedb, NULL, sb);
     sb->pos_regs[0] = 0x38;
     sb->pos_regs[1] = 0x51;
+
+    sb->gameport_addr = 0x200;
 
     return sb;
 }
@@ -2045,6 +2105,7 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     mpu401_change_addr(sb->mpu, 0);
     ide_remove_handlers(2);
 
+    sb->gameport_addr = 0;
     gameport_remap(sb->gameport, 0);
 
     return sb;
@@ -2068,6 +2129,8 @@ sb_16_compat_init(const device_t *info)
     memset(sb->mpu, 0, sizeof(mpu_t));
     mpu401_init(sb->mpu, 0, 0, M_UART, info->local);
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
+
+    sb->gameport_addr = 0x200;
 
     return sb;
 }
@@ -2164,6 +2227,8 @@ sb_awe32_init(UNUSED(const device_t *info))
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
+    sb->gameport_addr = 0x200;
 
     return sb;
 }
@@ -2263,6 +2328,8 @@ sb_awe32_pnp_init(const device_t *info)
     ide_remove_handlers(2);
 
     emu8k_change_addr(&sb->emu8k, 0);
+
+    sb->gameport_addr = 0;
 
     gameport_remap(sb->gameport, 0);
 
@@ -3598,6 +3665,20 @@ const device_t sb_pro_compat_device = {
 const device_t sb_16_device = {
     .name          = "Sound Blaster 16",
     .internal_name = "sb16",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = sb_16_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_config
+};
+
+const device_t sb_vibra16s_onboard_device = {
+    .name          = "Sound Blaster Vibra 16S (On-Board)",
+    .internal_name = "sb_vibra16s_onboard",
     .flags         = DEVICE_ISA | DEVICE_AT,
     .local         = 0,
     .init          = sb_16_init,

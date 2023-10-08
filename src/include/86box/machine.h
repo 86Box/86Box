@@ -340,6 +340,7 @@ extern const machine_filter_t machine_chipsets[];
 extern const machine_t        machines[];
 extern int                    bios_only;
 extern int                    machine;
+extern void *                 machine_snd;
 
 /* Core functions. */
 extern int         machine_count(void);
@@ -371,19 +372,25 @@ extern void        machine_close(void);
 extern int         machine_has_mouse(void);
 extern int         machine_is_sony(void);
 
+extern uint8_t  machine_get_p1_default(void);
 extern uint8_t  machine_get_p1(void);
 extern void     machine_set_p1_default(uint8_t val);
 extern void     machine_set_p1(uint8_t val);
+extern void     machine_and_p1(uint8_t val);
 extern void     machine_init_p1(void);
 extern uint8_t  machine_handle_p1(uint8_t write, uint8_t val);
+extern uint32_t machine_get_gpio_default(void);
 extern uint32_t machine_get_gpio(void);
 extern void     machine_set_gpio_default(uint32_t val);
 extern void     machine_set_gpio(uint32_t val);
+extern void     machine_and_gpio(uint32_t val);
 extern void     machine_init_gpio(void);
 extern uint32_t machine_handle_gpio(uint8_t write, uint32_t val);
+extern uint32_t machine_get_gpio_acpi_default(void);
 extern uint32_t machine_get_gpio_acpi(void);
 extern void     machine_set_gpio_acpi_default(uint32_t val);
 extern void     machine_set_gpio_acpi(uint32_t val);
+extern void     machine_and_gpio_acpi(uint32_t val);
 extern void     machine_init_gpio_acpi(void);
 extern uint32_t machine_handle_gpio_acpi(uint8_t write, uint32_t val);
 
@@ -615,6 +622,7 @@ extern int machine_at_exp8551_init(const machine_t *);
 extern int machine_at_gw2katx_init(const machine_t *);
 extern int machine_at_thor_init(const machine_t *);
 extern int machine_at_mrthor_init(const machine_t *);
+extern uint32_t machine_at_endeavor_gpio_handler(uint8_t write, uint32_t val);
 extern int machine_at_endeavor_init(const machine_t *);
 extern int machine_at_ms5119_init(const machine_t *);
 extern int machine_at_pb640_init(const machine_t *);

@@ -81,6 +81,8 @@ extern void inital(void);
 extern void givealbuffer(void *buf);
 extern void givealbuffer_cd(void *buf);
 
+extern void sb_vibra16s_onboard_relocate_base(uint16_t new_addr, void *priv);
+
 #ifdef EMU_DEVICE_H
 /* AdLib and AdLib Gold */
 extern const device_t adlib_device;
@@ -128,6 +130,7 @@ extern const device_t sb_pro_v2_device;
 extern const device_t sb_pro_mcv_device;
 extern const device_t sb_pro_compat_device;
 extern const device_t sb_16_device;
+extern const device_t sb_vibra16s_onboard_device;
 extern const device_t sb_16_pnp_device;
 extern const device_t sb_16_compat_device;
 extern const device_t sb_16_compat_nompu_device;

@@ -40,6 +40,7 @@
 typedef struct pc87306_t {
     uint8_t   tries;
     uint8_t   regs[29];
+    uint8_t   gpio[2];
     uint16_t  gpioba;
     int       cur_reg;
     fdc_t    *fdc;
@@ -51,19 +52,33 @@ static void
 pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 {
     pc87306_t *dev = (pc87306_t *) priv;
-    uint8_t shift = ((8 << (port & 1)) - 8);
-    uint32_t shifted_val = (((uint32_t) val) << shift);
-    uint32_t ff_mask = ~(((uint32_t) 0xff) << shift);
+    uint32_t gpio = 0xffff0000;
 
-    (void) machine_handle_gpio(1, ff_mask | shifted_val);
+    dev->gpio[port & 0x0001] = val;
+
+    if (port & 0x0001) {
+        gpio |= ((uint32_t) val) << 8;
+        gpio |= dev->gpio[0];
+    } else {
+        gpio |= ((uint32_t) dev->gpio[1]) << 8;
+        gpio |= val;
+    }
+
+    (void) machine_handle_gpio(1, gpio);
 }
 
 uint8_t
 pc87306_gpio_read(uint16_t port, void *priv)
 {
     const pc87306_t *dev = (pc87306_t *) priv;
+    uint32_t ret = machine_handle_gpio(0, 0xffffffff);
 
-    return machine_handle_gpio(0, 0xffffffff) >> ((8 << (port & 1)) - 8);
+    if (port & 0x0001)
+        ret = (ret >> 8) & 0xff;
+    else
+        ret &= 0xff;
+
+    return ret;
 }
 
 static void
@@ -397,7 +412,7 @@ pc87306_read(uint16_t port, void *priv)
 }
 
 void
-pc87306_reset(void *priv)
+pc87306_reset_common(void *priv)
 {
     pc87306_t *dev = (pc87306_t *) priv;
 
@@ -432,6 +447,17 @@ pc87306_reset(void *priv)
     nvr_wp_set(0, 0, dev->nvr);
 }
 
+void
+pc87306_reset(void *priv)
+{
+    pc87306_t *dev = (pc87306_t *) priv;
+
+    pc87306_gpio_write(0x0000, 0xff, dev);
+    pc87306_gpio_write(0x0001, 0xff, dev);
+
+    pc87306_reset_common(dev);
+}
+
 static void
 pc87306_close(void *priv)
 {
@@ -453,7 +479,9 @@ pc87306_init(UNUSED(const device_t *info))
 
     dev->nvr = device_add(&at_mb_nvr_device);
 
-    pc87306_reset(dev);
+    dev->gpio[0] = dev->gpio[1] = 0xff;
+
+    pc87306_reset_common(dev);
 
     io_sethandler(0x02e, 0x0002,
                   pc87306_read, NULL, NULL, pc87306_write, NULL, NULL, dev);
