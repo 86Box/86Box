@@ -219,7 +219,7 @@ sound_card_get_from_internal_name(const char *s)
 void
 sound_card_init(void)
 {
-    if (sound_cards[sound_card_current[0]].device)
+    if ((sound_card_current[0] != SOUND_INTERNAL) && (sound_cards[sound_card_current[0]].device))
         device_add(sound_cards[sound_card_current[0]].device);
     if (sound_cards[sound_card_current[1]].device)
         device_add(sound_cards[sound_card_current[1]].device);
@@ -512,14 +512,14 @@ sound_reset(void)
     filter_cd_audio_p = NULL;
 
     sound_set_cd_volume(65535, 65535);
+
+    /* Reset the MPU-401 already loaded flag and the chain of input/output handlers. */
+    midi_in_handlers_clear();
 }
 
 void
 sound_card_reset(void)
 {
-    /* Reset the MPU-401 already loaded flag and the chain of input/output handlers. */
-    midi_in_handlers_clear();
-
     sound_card_init();
 
     if (mpu401_standalone_enable)

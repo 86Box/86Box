@@ -345,8 +345,8 @@ machine_at_cu430hx_gpio_handler(uint8_t write, uint32_t val)
     uint32_t ret = machine_get_gpio_default();
 
     if (write) {
-        ret &= (val | 0xffff00ff);
-        ret = (ret & 0xffffffcf) | (val & 0x0000ff30);
+        ret &= ((val & 0xffffffcf) | 0xffff0000);
+        ret |= (val & 0x00000030);
         if (machine_snd != NULL)  switch ((val >> 4) & 0x03) {
             case 0x00:
                 sb_vibra16c_onboard_relocate_base(0x0220, machine_snd);

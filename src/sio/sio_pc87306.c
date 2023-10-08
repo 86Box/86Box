@@ -70,7 +70,6 @@ pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 uint8_t
 pc87306_gpio_read(uint16_t port, void *priv)
 {
-    const pc87306_t *dev = (pc87306_t *) priv;
     uint32_t ret = machine_handle_gpio(0, 0xffffffff);
 
     if (port & 0x0001)
@@ -99,11 +98,11 @@ pc87306_gpio_init(pc87306_t *dev)
 
     if (dev->gpioba != 0x0000) {
         if ((dev->regs[0x12]) & 0x10)
-            io_sethandler(dev->regs[0x0f] << 2, 0x0001,
+            io_sethandler(dev->gpioba, 0x0001,
                           pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL, dev);
 
         if ((dev->regs[0x12]) & 0x20)
-            io_sethandler((dev->regs[0x0f] << 2) + 1, 0x0001,
+            io_sethandler(dev->gpioba + 1, 0x0001,
                           pc87306_gpio_read, NULL, NULL, pc87306_gpio_write, NULL, NULL, dev);
     }
 }
@@ -254,8 +253,6 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
             if ((dev->cur_reg <= 28) && (dev->cur_reg != 8)) {
                 if (dev->cur_reg == 0)
                     val &= 0x5f;
-                if (((dev->cur_reg == 0x0F) || (dev->cur_reg == 0x12)) && valxor)
-                    pc87306_gpio_remove(dev);
                 dev->regs[dev->cur_reg] = val;
             } else
                 return;
@@ -266,7 +263,7 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
     }
 
     switch (dev->cur_reg) {
-        case 0:
+        case 0x00:
             if (valxor & 1) {
                 lpt1_remove();
                 if ((val & 1) && !(dev->regs[2] & 1))
@@ -288,7 +285,7 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
                     fdc_set_base(dev->fdc, (val & 0x20) ? FDC_SECONDARY_ADDR : FDC_PRIMARY_ADDR);
             }
             break;
-        case 1:
+        case 0x01:
             if (valxor & 3) {
                 lpt1_remove();
                 if ((dev->regs[0] & 1) && !(dev->regs[2] & 1))
@@ -305,7 +302,7 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
                     serial_handler(dev, 1);
             }
             break;
-        case 2:
+        case 0x02:
             if (valxor & 1) {
                 lpt1_remove();
                 serial_remove(dev->uart[0]);
@@ -329,23 +326,23 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
                     lpt1_handler(dev);
             }
             break;
-        case 4:
+        case 0x04:
             if (valxor & 0x80)
                 nvr_lock_set(0x00, 256, !!(val & 0x80), dev->nvr);
             break;
-        case 5:
+        case 0x05:
             if (valxor & 0x08)
                 nvr_at_handler(!!(val & 0x08), 0x0070, dev->nvr);
             if (valxor & 0x20)
                 nvr_bank_set(0, !!(val & 0x20), dev->nvr);
             break;
-        case 9:
+        case 0x09:
             if (valxor & 0x44) {
                 fdc_update_enh_mode(dev->fdc, (val & 4) ? 1 : 0);
                 fdc_update_densel_polarity(dev->fdc, (val & 0x40) ? 1 : 0);
             }
             break;
-        case 0xF:
+        case 0x0f:
             if (valxor)
                 pc87306_gpio_handler(dev);
             break;

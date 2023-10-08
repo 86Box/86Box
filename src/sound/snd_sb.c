@@ -2024,6 +2024,7 @@ sb_16_init(UNUSED(const device_t *info))
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
+    sb->gameport = gameport_add(&gameport_pnp_device);
     sb->gameport_addr = 0x200;
 
     return sb;
@@ -2130,6 +2131,7 @@ sb_16_compat_init(const device_t *info)
     mpu401_init(sb->mpu, 0, 0, M_UART, info->local);
     sb_dsp_set_mpu(&sb->dsp, sb->mpu);
 
+    sb->gameport = gameport_add(&gameport_pnp_device);
     sb->gameport_addr = 0x200;
 
     return sb;
@@ -2228,6 +2230,7 @@ sb_awe32_init(UNUSED(const device_t *info))
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
 
+    sb->gameport = gameport_add(&gameport_pnp_device);
     sb->gameport_addr = 0x200;
 
     return sb;
