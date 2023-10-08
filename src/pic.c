@@ -54,7 +54,6 @@ static pc_timer_t pic_timer;
 static int shadow = 0;
 static int elcr_enabled = 0;
 static int tmr_inited = 0;
-static int latched = 0;
 static int pic_pci = 0;
 static int kbd_latch = 0;
 static int mouse_latch = 0;

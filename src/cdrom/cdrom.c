@@ -898,7 +898,6 @@ cdrom_get_audio_status_pioneer(cdrom_t *dev, uint8_t *b)
 {
     uint8_t      ret;
     subchannel_t subc;
-    uint32_t     dat;
 
     dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
 
@@ -960,7 +959,6 @@ cdrom_get_audio_status_sony(cdrom_t *dev, uint8_t *b, int msf)
 void
 cdrom_get_current_subcodeq(cdrom_t *dev, uint8_t *b)
 {
-    uint8_t ret;
     subchannel_t subc;
 
     dev->ops->get_subchannel(dev, dev->seek_pos, &subc);
