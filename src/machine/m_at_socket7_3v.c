@@ -46,7 +46,7 @@
 static void
 machine_at_thor_gpio_init(void)
 {
-    uint32_t gpio = 0xffffffff;
+    uint32_t gpio = 0xffffe1ff;
 
     /* Register 0x0079: */
     /* Bit 7: 0 = Clear password, 1 = Keep password. */
@@ -61,8 +61,6 @@ machine_at_thor_gpio_init(void)
     /* Bit 1: 0 = Soft-off capable power supply present, 1 = Soft-off capable power supply absent. */
     /* Bit 0: 0 = Reserved. */
     /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
-    gpio = 0xffffe1ff;
-
     if (cpu_busspeed <= 50000000)
         gpio |= 0xffff10ff;
     else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
@@ -74,7 +72,7 @@ machine_at_thor_gpio_init(void)
 }
 
 static void
-machine_at_thor_common_init(const machine_t *model, UNUSED(int mr))
+machine_at_thor_common_init(const machine_t *model, int has_video)
 {
     machine_at_common_init_ex(model, 2);
     machine_at_thor_gpio_init();
@@ -88,8 +86,8 @@ machine_at_thor_common_init(const machine_t *model, UNUSED(int mr))
     pci_register_slot(0x10, PCI_CARD_NORMAL,      4, 3, 2, 1);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
 
-    if (gfxcard[0] == VID_INTERNAL)
-        device_add(&s3_phoenix_trio64vplus_onboard_pci_device);
+    if (has_video && (gfxcard[0] == VID_INTERNAL))
+        device_add(machine_get_vid_device(machine));
 
     device_add(&keyboard_ps2_intel_ami_pci_device);
     device_add(&i430fx_device);
@@ -207,7 +205,7 @@ machine_at_thor_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_thor_common_init(model, 0);
+    machine_at_thor_common_init(model, 1);
 
     return ret;
 }
@@ -223,7 +221,7 @@ machine_at_mrthor_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_thor_common_init(model, 1);
+    machine_at_thor_common_init(model, 0);
 
     return ret;
 }

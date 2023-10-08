@@ -9071,7 +9071,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = &s3_phoenix_trio64vplus_onboard_pci_device,
+        .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -9099,7 +9099,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -9770,12 +9770,11 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &s3_virge_375_pci_device,
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* OEM version of Intel TC430HX, has AMI MegaKey KBC firmware on the PC87306
-       Super I/O chip */
+    /* OEM version of Intel TC430HX, has AMI MegaKey KBC firmware on the PC87306 Super I/O chip. */
     {
         .name = "[i430HX] Toshiba Infinia 7200",
         .internal_name = "infinia7200",
@@ -9811,13 +9810,11 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &s3_virge_375_pci_device,
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
-       PC87306 Super I/O chip, command 0xA1 returns '5'.
-       Command 0xA0 copyright string: (C)1994 AMI . */
+    /* OEM-only Intel CU430HX, has AMI MegaKey KBC firmware on the PC87306 Super I/O chip. */
     {
         .name = "[i430HX] Toshiba Equium 5200D",
         .internal_name = "equium5200",
@@ -9825,7 +9822,7 @@ const machine_t machines[] = {
         .chipset = MACHINE_CHIPSET_INTEL_430HX,
         .init = machine_at_equium5200_init,
         .p1_handler = NULL,
-        .gpio_handler = NULL,
+        .gpio_handler = machine_at_cu430hx_gpio_handler,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
         .cpu = {
@@ -9839,7 +9836,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 196608,
@@ -9854,7 +9851,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = NULL,
+        .snd_device = &sb_vibra16c_onboard_device,
         .net_device = NULL
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
@@ -10288,7 +10285,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -10302,7 +10299,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &s3_phoenix_trio64vplus_onboard_pci_device,
         .snd_device = NULL,
         .net_device = NULL
     },

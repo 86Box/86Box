@@ -161,7 +161,7 @@ machine_at_apollo_init(const machine_t *model)
 static void
 machine_at_zappa_gpio_init(void)
 {
-    uint32_t gpio = 0xffffffff;
+    uint32_t gpio = 0xffffe6ff;
 
     /* Register 0x0079: */
     /* Bit 7: 0 = Clear password, 1 = Keep password. */
@@ -176,8 +176,6 @@ machine_at_zappa_gpio_init(void)
     /* Bit 1: No Connect. */
     /* Bit 0: 2x multiplier, 1 = 1.5x multiplier (Switch 6). */
     /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
-    gpio = 0xffffe6ff;
-
     if (cpu_busspeed <= 50000000)
         gpio |= 0xffff10ff;
     else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
