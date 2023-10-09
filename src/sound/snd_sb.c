@@ -1538,6 +1538,100 @@ sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 }
 
 static void
+sb_vibra16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
+{
+    sb_t    *sb   = (sb_t *) priv;
+    uint16_t addr = sb->dsp.sb_addr;
+    uint8_t  val;
+
+    switch (ld) {
+        case 0: /* Audio */
+            io_removehandler(addr, 0x0004,
+                             sb->opl.read, NULL, NULL,
+                             sb->opl.write, NULL, NULL,
+                             sb->opl.priv);
+            io_removehandler(addr + 8, 0x0002,
+                             sb->opl.read, NULL, NULL,
+                             sb->opl.write, NULL, NULL,
+                             sb->opl.priv);
+            io_removehandler(addr + 4, 0x0002,
+                             sb_ct1745_mixer_read, NULL, NULL,
+                             sb_ct1745_mixer_write, NULL, NULL,
+                             sb);
+
+            addr = sb->opl_pnp_addr;
+            if (addr) {
+                sb->opl_pnp_addr = 0;
+                io_removehandler(addr, 0x0004,
+                                 sb->opl.read, NULL, NULL,
+                                 sb->opl.write, NULL, NULL,
+                                 sb->opl.priv);
+            }
+
+            sb_dsp_setaddr(&sb->dsp, 0);
+            sb_dsp_setirq(&sb->dsp, 0);
+            sb_dsp_setdma8(&sb->dsp, ISAPNP_DMA_DISABLED);
+            sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
+
+            mpu401_change_addr(sb->mpu, 0);
+
+            if (config->activate) {
+                addr = config->io[0].base;
+                if (addr != ISAPNP_IO_DISABLED) {
+                    io_sethandler(addr, 0x0004,
+                                  sb->opl.read, NULL, NULL,
+                                  sb->opl.write, NULL, NULL,
+                                  sb->opl.priv);
+                    io_sethandler(addr + 8, 0x0002,
+                                  sb->opl.read, NULL, NULL,
+                                  sb->opl.write, NULL, NULL,
+                                  sb->opl.priv);
+                    io_sethandler(addr + 4, 0x0002,
+                                  sb_ct1745_mixer_read, NULL, NULL,
+                                  sb_ct1745_mixer_write, NULL, NULL,
+                                  sb);
+
+                    sb_dsp_setaddr(&sb->dsp, addr);
+                }
+
+                addr = config->io[1].base;
+                if (addr != ISAPNP_IO_DISABLED)
+                    mpu401_change_addr(sb->mpu, addr);
+
+                addr = config->io[2].base;
+                if (addr != ISAPNP_IO_DISABLED) {
+                    sb->opl_pnp_addr = addr;
+                    io_sethandler(addr, 0x0004,
+                                  sb->opl.read, NULL, NULL,
+                                  sb->opl.write, NULL, NULL,
+                                  sb->opl.priv);
+                }
+
+                val = config->irq[0].irq;
+                if (val != ISAPNP_IRQ_DISABLED)
+                    sb_dsp_setirq(&sb->dsp, val);
+
+                val = config->dma[0].dma;
+                if (val != ISAPNP_DMA_DISABLED)
+                    sb_dsp_setdma8(&sb->dsp, val);
+
+                val = config->dma[1].dma;
+                if (val != ISAPNP_DMA_DISABLED)
+                    sb_dsp_setdma16(&sb->dsp, val);
+            }
+
+            break;
+
+        case 1: /* Game */
+            gameport_remap(sb->gameport, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
+            break;
+
+        default:
+            break;
+    }
+}
+
+static void
 sb_awe32_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
     sb_t *sb = (sb_t *) priv;
@@ -2105,6 +2199,93 @@ sb_16_pnp_init(UNUSED(const device_t *info))
 
     mpu401_change_addr(sb->mpu, 0);
     ide_remove_handlers(2);
+
+    sb->gameport_addr = 0;
+    gameport_remap(sb->gameport, 0);
+
+    return sb;
+}
+
+static int
+sb_vibra16xv_available(void)
+{
+    return rom_present("roms/sound/CT4170 PnP.BIN");
+}
+
+static int
+sb_vibra16c_available(void)
+{
+    return rom_present("roms/sound/CT4180 PnP.BIN");
+}
+
+static void *
+sb_vibra16_pnp_init(UNUSED(const device_t *info))
+{
+    sb_t *sb = malloc(sizeof(sb_t));
+    memset(sb, 0x00, sizeof(sb_t));
+
+    sb->opl_enabled = 1;
+    fm_driver_get(FM_YMF262, &sb->opl);
+
+    sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_ct1745_mixer_reset(sb);
+
+    sb->mixer_enabled            = 1;
+    sb->mixer_sb16.output_filter = 1;
+    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
+
+    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
+    memset(sb->mpu, 0, sizeof(mpu_t));
+    mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
+    sb_dsp_set_mpu(&sb->dsp, sb->mpu);
+
+    if (device_get_config_int("receive_input"))
+        midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
+    sb->gameport = gameport_add(&gameport_pnp_device);
+
+    const char *pnp_rom_file = NULL;
+    switch (info->local) {
+        case 0:
+            pnp_rom_file = "roms/sound/CT4170 PnP.BIN";
+            break;
+
+        case 1:
+            pnp_rom_file = "roms/sound/CT4180 PnP.BIN";
+            break;
+
+        default:
+            break;
+    }
+
+    uint8_t *pnp_rom = NULL;
+    if (pnp_rom_file) {
+        FILE *fp = rom_fopen(pnp_rom_file, "rb");
+        if (fp) {
+            if (fread(sb->pnp_rom, 1, 512, fp) == 512)
+                pnp_rom = sb->pnp_rom;
+            fclose(fp);
+        }
+    }
+
+    switch (info->local) {
+        case 0:
+        case 1:
+            isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_vibra16_pnp_config_changed,
+                            NULL, NULL, NULL, sb);
+            break;
+
+        default:
+            break;
+    }
+
+    sb_dsp_setaddr(&sb->dsp, 0);
+    sb_dsp_setirq(&sb->dsp, 0);
+    sb_dsp_setdma8(&sb->dsp, ISAPNP_DMA_DISABLED);
+    sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
+
+    mpu401_change_addr(sb->mpu, 0);
 
     sb->gameport_addr = 0;
     gameport_remap(sb->gameport, 0);
@@ -3693,11 +3874,11 @@ const device_t sb_vibra16s_onboard_device = {
     .config        = sb_16_config
 };
 
-const device_t sb_vibra16c_onboard_device = {
-    .name          = "Sound Blaster Vibra 16C (On-Board)",
-    .internal_name = "sb_vibra16c_onboard",
+const device_t sb_vibra16s_device = {
+    .name          = "Sound Blaster Vibra 16S",
+    .internal_name = "sb_vibra16s",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = FM_YMF262, /* Should have the CQM but we do not emulate that yet. */
+    .local         = FM_YMF289B,
     .init          = sb_16_init,
     .close         = sb_close,
     .reset         = NULL,
@@ -3705,6 +3886,48 @@ const device_t sb_vibra16c_onboard_device = {
     .speed_changed = sb_speed_changed,
     .force_redraw  = NULL,
     .config        = sb_16_config
+};
+
+const device_t sb_vibra16xv_device = {
+    .name          = "Sound Blaster Vibra 16XV",
+    .internal_name = "sb_vibra16xv",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 0,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    { .available = sb_vibra16xv_available },
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_vibra16c_onboard_device = {
+    .name          = "Sound Blaster Vibra 16C (On-Board)",
+    .internal_name = "sb_vibra16c_onboard",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 1,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
+};
+
+const device_t sb_vibra16c_device = {
+    .name          = "Sound Blaster Vibra 16C",
+    .internal_name = "sb_vibra16c",
+    .flags         = DEVICE_ISA | DEVICE_AT,
+    .local         = 1,
+    .init          = sb_vibra16_pnp_init,
+    .close         = sb_close,
+    .reset         = NULL,
+    { .available = sb_vibra16c_available },
+    .speed_changed = sb_speed_changed,
+    .force_redraw  = NULL,
+    .config        = sb_16_pnp_config
 };
 
 const device_t sb_16_reply_mca_device = {

@@ -182,7 +182,7 @@ machine_at_m7shi_init(const machine_t *model)
 static void
 machine_at_tc430hx_gpio_init(void)
 {
-    uint32_t gpio = 0xffffffff;
+    uint32_t gpio = 0xffffe1ff;
 
     /* Register 0x0079: */
     /* Bit 7: 0 = Clear password, 1 = Keep password. */
@@ -197,8 +197,6 @@ machine_at_tc430hx_gpio_init(void)
     /* Bit 1: 0 = Soft-off capable power supply present, 1 = Soft-off capable power supply absent. */
     /* Bit 0: 0 = Reserved. */
     /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
-    gpio = 0xffffe1ff;
-
     if (cpu_busspeed <= 50000000)
         gpio |= 0xffff10ff;
     else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
@@ -290,28 +288,7 @@ machine_at_infinia7200_init(const machine_t *model)
 static void
 machine_at_cu430hx_gpio_init(void)
 {
-    uint32_t gpio = 0xffffe1cf;
-    uint16_t addr;
-
-    /* Register 0x0078: */
-    /* Bit 5,4: Vibra 16C base address: 0 = 220h, 1 = 260h, 2 = 240h, 3 = 280h. */
-    device_context(machine_get_snd_device(machine));
-    addr = device_get_config_hex16("base");
-    switch (addr) {
-        case 0x0220:
-            gpio |= 0xffff00cf;
-            break;
-        case 0x0240:
-            gpio |= 0xffff00ef;
-            break;
-        case 0x0260:
-            gpio |= 0xffff00df;
-            break;
-        case 0x0280:
-            gpio |= 0xffff00ff;
-            break;
-    }
-    device_context_restore();
+    uint32_t gpio = 0xffffe1ff;
 
     /* Register 0x0079: */
     /* Bit 7: 0 = Clear password, 1 = Keep password. */
@@ -327,48 +304,64 @@ machine_at_cu430hx_gpio_init(void)
     /* Bit 0: 0 = Reserved. */
     /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
     if (cpu_busspeed <= 50000000)
-        gpio |= 0xffff10cf;
+        gpio |= 0xffff10ff;
     else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
-        gpio |= 0xffff18cf;
+        gpio |= 0xffff18ff;
     else if (cpu_busspeed > 60000000)
-        gpio |= 0xffff00cf;
+        gpio |= 0xffff00ff;
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        gpio |= 0xffff04cf;
+        gpio |= 0xffff04ff;
 
     machine_set_gpio_default(gpio);
 }
 
-uint32_t
-machine_at_cu430hx_gpio_handler(uint8_t write, uint32_t val)
+static void
+machine_at_cu430hx_common_init(const machine_t *model)
 {
-    uint32_t ret = machine_get_gpio_default();
+    machine_at_common_init_ex(model, 2);
+    machine_at_cu430hx_gpio_init();
 
-    if (write) {
-        ret &= ((val & 0xffffffcf) | 0xffff0000);
-        ret |= (val & 0x00000030);
-        if (machine_snd != NULL)  switch ((val >> 4) & 0x03) {
-            case 0x00:
-                sb_vibra16c_onboard_relocate_base(0x0220, machine_snd);
-                break;
-            case 0x01:
-                sb_vibra16c_onboard_relocate_base(0x0260, machine_snd);
-                break;
-            case 0x02:
-                sb_vibra16c_onboard_relocate_base(0x0240, machine_snd);
-                break;
-            case 0x03:
-                sb_vibra16c_onboard_relocate_base(0x0280, machine_snd);
-                break;
-        }
-        machine_set_gpio(ret);
-    } else
-        ret = machine_get_gpio();
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_VIDEO,       4, 0, 0, 0); // ATI VGA Graphics
+    pci_register_slot(0x0C, PCI_CARD_NETWORK,     4, 0, 0, 0); // Intel 82557 Ethernet Network
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 0, 0, 0); // riser
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
+
+    device_add(&i430hx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&pc87306_device);
+    device_add(&intel_flash_bxt_ami_device);
+}
+
+int
+machine_at_cu430hx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined2("roms/machines/cu430hx/1006DK0_.BIO",
+                                     "roms/machines/cu430hx/1006DK0_.BI1",
+                                     "roms/machines/cu430hx/1006DK0_.BI2",
+                                     "roms/machines/cu430hx/1006DK0_.BI3",
+                                     "roms/machines/cu430hx/1006DK0_.RCV",
+                                     0x3a000, 128);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_cu430hx_common_init(model);
 
     return ret;
 }
 
-/* Information about that machine on machine.h */
 int
 machine_at_equium5200_init(const machine_t *model)
 {
@@ -384,26 +377,7 @@ machine_at_equium5200_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init_ex(model, 2);
-    machine_at_cu430hx_gpio_init();
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x08, PCI_CARD_VIDEO,       4, 0, 0, 0);
-    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 3, 4, 1);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL,      3, 4, 1, 2);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 0, 0, 0); // riser
-
-    if (sound_card_current[0] == SOUND_INTERNAL)
-        machine_snd = device_add(machine_get_snd_device(machine));
-
-    device_add(&i430hx_device);
-    device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&pc87306_device);
-    device_add(&intel_flash_bxt_ami_device);
+    machine_at_cu430hx_common_init(model);
 
     return ret;
 }
