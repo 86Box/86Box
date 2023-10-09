@@ -718,12 +718,12 @@ svga_recalctimings(svga_t *svga)
         svga->recalctimings_ex(svga);
     }
 
-    if (ibm8514_active) {
+    if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (!dev->local)
             ibm8514_recalctimings(svga);
     }
 
-    if (xga_active)
+    if (xga_active && (svga->xga != NULL))
         xga_recalctimings(svga);
 
     if (svga->hdisp >= 2048)
