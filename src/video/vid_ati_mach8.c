@@ -36,6 +36,7 @@
 #include <86box/video.h>
 #include <86box/i2c.h>
 #include <86box/vid_ddc.h>
+#include <86box/vid_8514a.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/vid_ati_eeprom.h>
@@ -2299,7 +2300,7 @@ mach_out(uint16_t addr, uint8_t val, void *priv)
 {
     mach_t          *mach = (mach_t *) priv;
     svga_t          *svga = &mach->svga;
-    const ibm8514_t *dev  = &svga->dev8514;
+    const ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
     uint8_t          old;
     uint8_t          rs2;
     uint8_t          rs3;
@@ -2472,7 +2473,7 @@ mach_in(uint16_t addr, void *priv)
 {
     mach_t          *mach = (mach_t *) priv;
     svga_t          *svga = &mach->svga;
-    const ibm8514_t *dev  = &svga->dev8514;
+    const ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
     uint8_t          temp = 0xff;
     uint8_t          rs2;
     uint8_t          rs3;
@@ -2569,7 +2570,7 @@ static void
 mach_recalctimings(svga_t *svga)
 {
     const mach_t *mach = (mach_t *) svga->priv;
-    ibm8514_t    *dev  = &svga->dev8514;
+    ibm8514_t    *dev  = (ibm8514_t *) svga->dev8514;
     int           clock_sel;
 
     clock_sel = ((svga->miscout >> 2) & 3) | ((mach->regs[0xbe] & 0x10) >> 1) | ((mach->regs[0xb9] & 2) << 1);
@@ -3622,7 +3623,7 @@ static void
 mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
 {
     svga_t    *svga = &mach->svga;
-    ibm8514_t *dev  = &svga->dev8514;
+    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
 
     mach_log("Port accel out = %04x, val = %04x.\n", port, val);
 
@@ -4349,7 +4350,7 @@ static uint8_t
 mach_accel_in(uint16_t port, mach_t *mach)
 {
     svga_t         *svga   = &mach->svga;
-    ibm8514_t      *dev    = &svga->dev8514;
+    ibm8514_t      *dev    = (ibm8514_t *) svga->dev8514;
     uint8_t         temp   = 0;
     int             vpos      = 0;
     int             vblankend = svga->vblankstart + svga->crtc[0x16];
@@ -4550,7 +4551,7 @@ mach_accel_outb(uint16_t port, uint8_t val, void *priv)
     svga_t *svga = &mach->svga;
 
     if (port & 0x8000)
-        mach_accel_out_fifo(mach, svga, &svga->dev8514, port, val, 1);
+        mach_accel_out_fifo(mach, svga, (ibm8514_t *) svga->dev8514, port, val, 1);
     else
         mach_accel_out(port, val, mach);
 }
@@ -4562,7 +4563,7 @@ mach_accel_outw(uint16_t port, uint16_t val, void *priv)
     svga_t *svga = &mach->svga;
 
     if (port & 0x8000)
-        mach_accel_out_fifo(mach, svga, &svga->dev8514, port, val, 2);
+        mach_accel_out_fifo(mach, svga, (ibm8514_t *) svga->dev8514, port, val, 2);
     else {
         mach_accel_out(port, val, mach);
         mach_accel_out(port + 1, (val >> 8), mach);
@@ -4576,8 +4577,8 @@ mach_accel_outl(uint16_t port, uint32_t val, void *priv)
     svga_t *svga = &mach->svga;
 
     if (port & 0x8000) {
-        mach_accel_out_fifo(mach, svga, &svga->dev8514, port, val & 0xffff, 2);
-        mach_accel_out_fifo(mach, svga, &svga->dev8514, port + 2, val >> 16, 2);
+        mach_accel_out_fifo(mach, svga, (ibm8514_t *) svga->dev8514, port, val & 0xffff, 2);
+        mach_accel_out_fifo(mach, svga, (ibm8514_t *) svga->dev8514, port + 2, val >> 16, 2);
     } else {
         mach_accel_out(port, val, mach);
         mach_accel_out(port + 1, (val >> 8), mach);
@@ -4593,7 +4594,7 @@ mach_accel_inb(uint16_t port, void *priv)
     uint8_t temp;
 
     if (port & 0x8000)
-        temp = mach_accel_in_fifo(mach, svga, &svga->dev8514, port, 1);
+        temp = mach_accel_in_fifo(mach, svga, (ibm8514_t *) svga->dev8514, port, 1);
     else
         temp = mach_accel_in(port, mach);
 
@@ -4608,7 +4609,7 @@ mach_accel_inw(uint16_t port, void *priv)
     uint16_t temp;
 
     if (port & 0x8000)
-        temp = mach_accel_in_fifo(mach, svga, &svga->dev8514, port, 2);
+        temp = mach_accel_in_fifo(mach, svga, (ibm8514_t *) svga->dev8514, port, 2);
     else {
         temp = mach_accel_in(port, mach);
         temp |= (mach_accel_in(port + 1, mach) << 8);
@@ -4624,8 +4625,8 @@ mach_accel_inl(uint16_t port, void *priv)
     uint32_t temp;
 
     if (port & 0x8000) {
-        temp = mach_accel_in_fifo(mach, svga, &svga->dev8514, port, 2);
-        temp = (mach_accel_in_fifo(mach, svga, &svga->dev8514, port + 2, 2) << 16);
+        temp = mach_accel_in_fifo(mach, svga, (ibm8514_t *) svga->dev8514, port, 2);
+        temp = (mach_accel_in_fifo(mach, svga, (ibm8514_t *) svga->dev8514, port + 2, 2) << 16);
     } else {
         temp = mach_accel_in(port, mach);
         temp |= (mach_accel_in(port + 1, mach) << 8);
@@ -4639,7 +4640,7 @@ static void
 mach32_write_linear(uint32_t addr, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    ibm8514_t *dev = &svga->dev8514;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
     int     writemask2 = svga->writemask;
     int     reset_wm   = 0;
     latch_t vall;
@@ -4802,7 +4803,7 @@ static uint8_t
 mach32_read_linear(uint32_t addr, void *priv)
 {
     svga_t          *svga       = (svga_t *) priv;
-    const ibm8514_t *dev        = &svga->dev8514;
+    const ibm8514_t *dev        = (ibm8514_t *) svga->dev8514;
     uint32_t         latch_addr = 0;
     int              readplane  = svga->readplane;
     uint8_t          count;
@@ -5066,7 +5067,7 @@ static void
 mach32_updatemapping(mach_t *mach)
 {
     svga_t *svga = &mach->svga;
-    ibm8514_t *dev = &svga->dev8514;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
     if (mach->pci_bus && (!(mach->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))) {
         mem_mapping_disable(&svga->mapping);
@@ -5129,7 +5130,7 @@ static void
 mach32_hwcursor_draw(svga_t *svga, int displine)
 {
     const mach_t *mach   = (mach_t *) svga->priv;
-    ibm8514_t    *dev    = &svga->dev8514;
+    ibm8514_t    *dev    = (ibm8514_t *) svga->dev8514;
     uint16_t      dat;
     int           comb;
     int           offset = dev->hwcursor_latch.x - dev->hwcursor_latch.xoff;
@@ -5452,7 +5453,7 @@ mach_mca_reset(void *priv)
 {
     mach_t *mach = (mach_t *) priv;
     svga_t    *svga = &mach->svga;
-    ibm8514_t *dev  = &svga->dev8514;
+    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
 
     mem_mapping_disable(&mach->bios_rom.mapping);
     mem_mapping_disable(&mach->bios_rom2.mapping);
@@ -5599,11 +5600,12 @@ mach8_init(const device_t *info)
     svga_t    *svga;
     ibm8514_t *dev;
 
-    mach = malloc(sizeof(mach_t));
-    memset(mach, 0x00, sizeof(mach_t));
+    mach             = calloc(1, sizeof(mach_t));
 
-    svga = &mach->svga;
-    dev  = &svga->dev8514;
+    svga             = &mach->svga;
+    dev              = (ibm8514_t *) calloc(1, sizeof(ibm8514_t));
+
+    svga->dev8514    = dev;
 
     mach->pci_bus    = !!(info->flags & DEVICE_PCI);
     mach->vlb_bus    = !!(info->flags & DEVICE_VLB);
@@ -5800,11 +5802,13 @@ mach_close(void *priv)
 {
     mach_t    *mach = (mach_t *) priv;
     svga_t    *svga = &mach->svga;
-    ibm8514_t *dev  = &svga->dev8514;
+    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
 
     if (dev) {
         free(dev->vram);
         free(dev->changedvram);
+
+        free(dev);
     }
 
     svga_close(svga);
