@@ -1982,7 +1982,7 @@ sb_16_init(UNUSED(const device_t *info))
 
     sb->opl_enabled = device_get_config_int("opl");
     if (sb->opl_enabled)
-        fm_driver_get(FM_YMF262, &sb->opl);
+        fm_driver_get(info->local, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
@@ -3669,7 +3669,7 @@ const device_t sb_16_device = {
     .name          = "Sound Blaster 16",
     .internal_name = "sb16",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 0,
+    .local         = FM_YMF262,
     .init          = sb_16_init,
     .close         = sb_close,
     .reset         = NULL,
@@ -3683,7 +3683,7 @@ const device_t sb_vibra16s_onboard_device = {
     .name          = "Sound Blaster Vibra 16S (On-Board)",
     .internal_name = "sb_vibra16s_onboard",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 0,
+    .local         = FM_YMF289B,
     .init          = sb_16_init,
     .close         = sb_close,
     .reset         = NULL,
@@ -3697,7 +3697,7 @@ const device_t sb_vibra16c_onboard_device = {
     .name          = "Sound Blaster Vibra 16C (On-Board)",
     .internal_name = "sb_vibra16c_onboard",
     .flags         = DEVICE_ISA | DEVICE_AT,
-    .local         = 0,
+    .local         = FM_YMF262, /* Should have the CQM but we do not emulate that yet. */
     .init          = sb_16_init,
     .close         = sb_close,
     .reset         = NULL,

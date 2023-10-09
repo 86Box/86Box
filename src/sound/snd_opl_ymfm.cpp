@@ -312,11 +312,11 @@ ymfm_drv_init(const device_t *info)
             break;
 
         case FM_YMF289B:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(33868800, FM_YMF289B, OPL_FREQ);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(16934400, FM_YMF289B, 44100);
             break;
 
         case FM_YMF278B:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf278b>(33868800, FM_YMF278B, 48000);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf278b>(16934400, FM_YMF278B, 44100);
             break;
     }
 
