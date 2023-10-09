@@ -411,8 +411,15 @@ jobs:
             slug: -Qt
             packages: >-
               qt@5
+            src-packages: >-
+              libsndfile
 
     steps:
+      - name: Install source dependencies
+        run: >-
+          brew reinstall -s
+          ${{ matrix.ui.src-packages }}
+
       - name: Install dependencies
         run: >-
           brew install
@@ -458,12 +465,10 @@ jobs:
           sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
 
       - name: Generate package
-        if: 0
         run: |
           cmake --install build
 
       - name: Upload artifact
-        if: 0
         uses: actions/upload-artifact@v3
         with:
           name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-macOS-x86_64-gha${{ github.run_number }}'
