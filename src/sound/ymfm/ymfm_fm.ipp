@@ -1523,7 +1523,7 @@ void fm_engine_base<RegisterType>::engine_timer_expired(uint32_t tnum)
 			}
 
         // Make sure the array does not go out of bounds to keep gcc happy
-        if(tnum < 2) {
+        if ((tnum < 2) || (sizeof(m_timer_running) > (2 * sizeof(uint8_t)))) {
             // reset
             m_timer_running[tnum] = false;
         }
