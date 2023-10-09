@@ -1212,10 +1212,6 @@ pc_close(UNUSED(thread_t *ptr))
     /* Terminate the UI thread. */
     is_quit = 1;
 
-#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
-    codegen_close();
-#endif
-
     nvr_save();
 
     config_save();

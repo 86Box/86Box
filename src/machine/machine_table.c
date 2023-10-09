@@ -9110,7 +9110,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = &s3_phoenix_trio64vplus_onboard_pci_device,
+        .vid_device = NULL,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -9124,7 +9124,7 @@ const machine_t machines[] = {
         .chipset = MACHINE_CHIPSET_INTEL_430FX,
         .init = machine_at_endeavor_init,
         .p1_handler = NULL,
-        .gpio_handler = NULL,
+        .gpio_handler = machine_at_endeavor_gpio_handler,
         .available_flag = MACHINE_AVAILABLE,
         .gpio_acpi_handler = NULL,
         .cpu = {
@@ -9138,7 +9138,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -9153,7 +9153,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = &s3_phoenix_trio64_onboard_pci_device,
-        .snd_device = NULL,
+        .snd_device = &sb_vibra16s_onboard_device,
         .net_device = NULL
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
@@ -9809,12 +9809,11 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &s3_virge_375_pci_device,
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* OEM version of Intel TC430HX, has AMI MegaKey KBC firmware on the PC87306
-       Super I/O chip */
+    /* OEM version of Intel TC430HX, has AMI MegaKey KBC firmware on the PC87306 Super I/O chip. */
     {
         .name = "[i430HX] Toshiba Infinia 7200",
         .internal_name = "infinia7200",
@@ -9850,13 +9849,51 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &s3_virge_375_pci_device,
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
-       PC87306 Super I/O chip, command 0xA1 returns '5'.
-       Command 0xA0 copyright string: (C)1994 AMI . */
+    /* OEM-only Intel CU430HX, has AMI MegaKey KBC firmware on the PC87306 Super I/O chip. */
+    {
+        .name = "[i430HX] Intel CU430HX",
+        .internal_name = "cu430hx",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430HX,
+        .init = machine_at_cu430hx_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2800,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 196608,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = &sb_vibra16c_onboard_device,
+        .net_device = NULL
+    },
+    /* OEM-only Intel CU430HX, has AMI MegaKey KBC firmware on the PC87306 Super I/O chip. */
     {
         .name = "[i430HX] Toshiba Equium 5200D",
         .internal_name = "equium5200",
@@ -9878,7 +9915,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 196608,
@@ -9893,7 +9930,7 @@ const machine_t machines[] = {
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
-        .snd_device = NULL,
+        .snd_device = &sb_vibra16c_onboard_device,
         .net_device = NULL
     },
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
@@ -10327,7 +10364,7 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_VIDEO | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
             .max = 131072,
@@ -10341,7 +10378,7 @@ const machine_t machines[] = {
         .device = NULL,
         .fdc_device = NULL,
         .sio_device = NULL,
-        .vid_device = NULL,
+        .vid_device = &s3_phoenix_trio64vplus_onboard_pci_device,
         .snd_device = NULL,
         .net_device = NULL
     },
@@ -13380,10 +13417,22 @@ const machine_t machines[] = {
 
 /* Saved copies - jumpers get applied to these.
    We use also machine_gpio to store IBM PC/XT jumpers as they need more than one byte. */
+static uint8_t machine_p1_default;
 static uint8_t machine_p1;
 
+static uint32_t machine_gpio_default;
 static uint32_t machine_gpio;
+
+static uint32_t machine_gpio_acpi_default;
 static uint32_t machine_gpio_acpi;
+
+void *machine_snd = NULL;
+
+uint8_t
+machine_get_p1_default(void)
+{
+    return machine_p1_default;
+}
 
 uint8_t
 machine_get_p1(void)
@@ -13392,11 +13441,22 @@ machine_get_p1(void)
 }
 
 void
-machine_set_p1(uint8_t val)
+machine_set_p1_default(uint8_t val)
 {
-    machine_p1 = machines[machine].kbc_p1 & val;
+    machine_p1 = machine_p1_default = val;
 }
 
+void
+machine_set_p1(uint8_t val)
+{
+    machine_p1 = val;
+}
+
+void
+machine_and_p1(uint8_t val)
+{
+    machine_p1 = machine_p1_default & val;
+}
 
 uint8_t
 machine_handle_p1(uint8_t write, uint8_t val)
@@ -13407,7 +13467,7 @@ machine_handle_p1(uint8_t write, uint8_t val)
         ret = machines[machine].p1_handler(write, val);
     else {
         if (write)
-            machine_p1 = machines[machine].kbc_p1 & val;
+            machine_p1 = machine_p1_default & val;
         else
             ret = machine_p1;
     }
@@ -13418,7 +13478,13 @@ machine_handle_p1(uint8_t write, uint8_t val)
 void
 machine_init_p1(void)
 {
-    machine_p1 = machines[machine].kbc_p1;
+    machine_p1 = machine_p1_default = machines[machine].kbc_p1;
+}
+
+uint32_t
+machine_get_gpio_default(void)
+{
+    return machine_gpio_default;
 }
 
 uint32_t
@@ -13428,9 +13494,21 @@ machine_get_gpio(void)
 }
 
 void
+machine_set_gpio_default(uint32_t val)
+{
+    machine_gpio = machine_gpio_default = val;
+}
+
+void
 machine_set_gpio(uint32_t val)
 {
-    machine_gpio = machines[machine].gpio & val;
+    machine_gpio = val;
+}
+
+void
+machine_and_gpio(uint32_t val)
+{
+    machine_gpio = machine_gpio_default & val;
 }
 
 uint32_t
@@ -13442,7 +13520,7 @@ machine_handle_gpio(uint8_t write, uint32_t val)
         ret = machines[machine].gpio_handler(write, val);
     else {
         if (write)
-            machine_gpio = machines[machine].gpio & val;
+            machine_gpio = machine_gpio_default & val;
         else
             ret = machine_gpio;
     }
@@ -13453,7 +13531,13 @@ machine_handle_gpio(uint8_t write, uint32_t val)
 void
 machine_init_gpio(void)
 {
-    machine_gpio = machines[machine].gpio;
+    machine_gpio = machine_gpio_default = machines[machine].gpio;
+}
+
+uint32_t
+machine_get_gpio_acpi_default(void)
+{
+    return machine_gpio_acpi_default;
 }
 
 uint32_t
@@ -13463,9 +13547,21 @@ machine_get_gpio_acpi(void)
 }
 
 void
+machine_set_gpio_acpi_default(uint32_t val)
+{
+    machine_gpio_acpi = machine_gpio_acpi_default = val;
+}
+
+void
 machine_set_gpio_acpi(uint32_t val)
 {
-    machine_gpio_acpi = machines[machine].gpio_acpi & val;
+    machine_gpio_acpi = val;
+}
+
+void
+machine_and_gpio_acpi(uint32_t val)
+{
+    machine_gpio_acpi = machine_gpio_acpi_default & val;
 }
 
 uint32_t
@@ -13477,7 +13573,7 @@ machine_handle_gpio_acpi(uint8_t write, uint32_t val)
         ret = machines[machine].gpio_acpi_handler(write, val);
     else {
         if (write)
-            machine_gpio_acpi = machines[machine].gpio_acpi & val;
+            machine_gpio_acpi = machine_gpio_acpi_default & val;
         else
             ret = machine_gpio_acpi;
     }
@@ -13488,7 +13584,7 @@ machine_handle_gpio_acpi(uint8_t write, uint32_t val)
 void
 machine_init_gpio_acpi(void)
 {
-    machine_gpio_acpi = machines[machine].gpio_acpi;
+    machine_gpio_acpi = machine_gpio_acpi_default = machines[machine].gpio_acpi;
 }
 
 int

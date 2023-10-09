@@ -46,6 +46,7 @@
 #include <86box/mem.h>
 #include <86box/timer.h>
 #include <86box/video.h>
+#include <86box/vid_8514a.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/plat_unused.h>
@@ -68,7 +69,7 @@ void
 ati68860_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga)
 {
     ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) priv;
-    const ibm8514_t   *dev    = &svga->dev8514;
+    const ibm8514_t   *dev    = (ibm8514_t *) svga->dev8514;
 
     switch (addr) {
         case 0:
@@ -172,7 +173,7 @@ uint8_t
 ati68860_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
 {
     const ati68860_ramdac_t *ramdac = (ati68860_ramdac_t *) priv;
-    const ibm8514_t         *dev    = &svga->dev8514;
+    const ibm8514_t         *dev    = (ibm8514_t *) svga->dev8514;
     uint8_t                  temp   = 0;
 
     switch (addr) {

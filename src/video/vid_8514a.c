@@ -34,6 +34,8 @@
 #include <86box/plat.h>
 #include <86box/thread.h>
 #include <86box/video.h>
+#include <86box/vid_8514a.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include "cpu.h"
@@ -193,7 +195,7 @@ int ibm8514_active = 0;
 int
 ibm8514_cpu_src(svga_t *svga)
 {
-    const ibm8514_t *dev = &svga->dev8514;
+    const ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
     if (!(dev->accel.cmd & 0x100))
         return 0;
@@ -207,7 +209,7 @@ ibm8514_cpu_src(svga_t *svga)
 int
 ibm8514_cpu_dest(svga_t *svga)
 {
-    const ibm8514_t *dev = &svga->dev8514;
+    const ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
     if (!(dev->accel.cmd & 0x100))
         return 0;
@@ -221,7 +223,7 @@ ibm8514_cpu_dest(svga_t *svga)
 void
 ibm8514_accel_out_pixtrans(svga_t *svga, UNUSED(uint16_t port), uint16_t val, int len)
 {
-    ibm8514_t *dev       = &svga->dev8514;
+    ibm8514_t *dev       = (ibm8514_t *) svga->dev8514;
     uint8_t    nibble    = 0;
     uint32_t   pixelxfer = 0;
     uint32_t   monoxfer  = 0xffffffff;
@@ -443,7 +445,7 @@ regular_nibble:
 static void
 ibm8514_accel_out_fifo(svga_t *svga, uint16_t port, uint32_t val, int len)
 {
-    ibm8514_t *dev = &svga->dev8514;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
     switch (port) {
         case 0x82e8:
@@ -845,7 +847,7 @@ ibm8514_io_set(svga_t *svga)
 static void
 ibm8514_accel_out(uint16_t port, uint32_t val, svga_t *svga, int len)
 {
-    ibm8514_t *dev = &svga->dev8514;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
     if (port & 0x8000) {
         ibm8514_accel_out_fifo(svga, port, val, len);
@@ -993,7 +995,7 @@ ibm8514_accel_outw(uint16_t port, uint16_t val, void *priv)
 static uint32_t
 ibm8514_accel_in(uint16_t port, svga_t *svga, int len)
 {
-    ibm8514_t *dev  = &svga->dev8514;
+    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
     uint32_t   temp = 0;
     int        cmd;
     int        vpos      = 0;
@@ -1138,7 +1140,7 @@ ibm8514_accel_inw(uint16_t port, void *priv)
 void
 ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, uint8_t ssv, int len)
 {
-    ibm8514_t *dev = &svga->dev8514;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
     if (!cpu_input) {
         dev->accel.ssv_len  = ssv & 0x0f;
@@ -1156,7 +1158,7 @@ ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t 
 void
 ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, UNUSED(int len))
 {
-    ibm8514_t *dev     = &svga->dev8514;
+    ibm8514_t *dev     = (ibm8514_t *) svga->dev8514;
     uint16_t  *vram_w  = (uint16_t *) dev->vram;
     uint16_t   src_dat = 0;
     uint16_t   dest_dat;
@@ -3817,7 +3819,7 @@ bitblt:
 void
 ibm8514_render_8bpp(svga_t *svga)
 {
-    ibm8514_t *dev = &svga->dev8514;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
     uint32_t  *p;
     uint32_t   dat;
 
@@ -3855,7 +3857,7 @@ ibm8514_render_8bpp(svga_t *svga)
 void
 ibm8514_render_15bpp(svga_t *svga)
 {
-    ibm8514_t *dev = &svga->dev8514;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
     int        x;
     uint32_t  *p;
     uint32_t   dat;
@@ -3896,7 +3898,7 @@ ibm8514_render_15bpp(svga_t *svga)
 void
 ibm8514_render_16bpp(svga_t *svga)
 {
-    ibm8514_t *dev = &svga->dev8514;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
     int        x;
     uint32_t  *p;
     uint32_t   dat;
@@ -3937,7 +3939,7 @@ ibm8514_render_16bpp(svga_t *svga)
 void
 ibm8514_render_24bpp(svga_t *svga)
 {
-    ibm8514_t *dev = &svga->dev8514;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
     uint32_t *p;
     uint32_t  dat;
 
@@ -3973,7 +3975,7 @@ ibm8514_render_24bpp(svga_t *svga)
 void
 ibm8514_render_BGR(svga_t *svga)
 {
-    ibm8514_t *dev = &svga->dev8514;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
     uint32_t  *p;
     uint32_t   dat;
 
@@ -4009,7 +4011,7 @@ ibm8514_render_BGR(svga_t *svga)
 void
 ibm8514_render_ABGR8888(svga_t *svga)
 {
-    ibm8514_t *dev = &svga->dev8514;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
     int        x;
     uint32_t  *p;
     uint32_t   dat;
@@ -4036,7 +4038,7 @@ ibm8514_render_ABGR8888(svga_t *svga)
 void
 ibm8514_render_RGBA8888(svga_t *svga)
 {
-    ibm8514_t *dev = &svga->dev8514;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
     int        x;
     uint32_t  *p;
     uint32_t   dat;
@@ -4090,8 +4092,9 @@ ibm8514_render_overscan_right(ibm8514_t *dev, svga_t *svga)
 }
 
 void
-ibm8514_poll(ibm8514_t *dev, svga_t *svga)
+ibm8514_poll(void *priv, svga_t *svga)
 {
+    ibm8514_t *dev = (ibm8514_t *) priv;
     uint32_t x;
     int      wx;
     int      wy;
@@ -4238,7 +4241,7 @@ ibm8514_poll(ibm8514_t *dev, svga_t *svga)
 void
 ibm8514_recalctimings(svga_t *svga)
 {
-    ibm8514_t *dev = &svga->dev8514;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
     if (dev->on) {
         dev->h_disp      = (dev->hdisp + 1) << 3;
@@ -4307,7 +4310,7 @@ static uint8_t
 ibm8514_mca_read(int port, void *priv)
 {
     const svga_t    *svga = (svga_t *) priv;
-    const ibm8514_t *dev  = &svga->dev8514;
+    const ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
 
     return (dev->pos_regs[port & 7]);
 }
@@ -4316,7 +4319,7 @@ static void
 ibm8514_mca_write(int port, uint8_t val, void *priv)
 {
     svga_t    *svga = (svga_t *) priv;
-    ibm8514_t *dev  = &svga->dev8514;
+    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
 
     /* MCA does not write registers below 0x0100. */
     if (port < 0x0102)
@@ -4330,7 +4333,7 @@ static uint8_t
 ibm8514_mca_feedb(void *priv)
 {
     const svga_t    *svga = (svga_t *) priv;
-    const ibm8514_t *dev  = &svga->dev8514;
+    const ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
 
     return dev->pos_regs[2] & 1;
 }
@@ -4341,8 +4344,10 @@ ibm8514_init(const device_t *info)
     if (svga_get_pri() == NULL)
         return NULL;
 
-    svga_t    *svga = svga_get_pri();
-    ibm8514_t *dev  = &svga->dev8514;
+    svga_t    *svga  = svga_get_pri();
+    ibm8514_t *dev   = (ibm8514_t *) calloc(1, sizeof(ibm8514_t));
+
+    svga->dev8514    = dev;
 
     dev->vram_size   = 1024 << 10;
     dev->vram        = calloc(dev->vram_size, 1);
@@ -4368,11 +4373,13 @@ static void
 ibm8514_close(void *priv)
 {
     svga_t    *svga = (svga_t *) priv;
-    ibm8514_t *dev  = &svga->dev8514;
+    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
 
     if (dev) {
         free(dev->vram);
         free(dev->changedvram);
+
+        free(dev);
     }
 }
 

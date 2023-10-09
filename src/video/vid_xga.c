@@ -30,6 +30,7 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/video.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/vid_xga_device.h>
@@ -143,7 +144,7 @@ svga_xga_in(uint16_t addr, void *priv)
 void
 xga_updatemapping(svga_t *svga)
 {
-    xga_t *xga = &svga->xga;
+    xga_t *xga = (xga_t *) svga->xga;
 
     xga_log("OpMode = %x, linear base = %08x, aperture cntl = %d, access mode = %x, map = %x, "
             "endian reverse = %d, a5test = %d, XGA on = %d.\n", xga->op_mode, xga->linear_base,
@@ -186,7 +187,7 @@ xga_updatemapping(svga_t *svga)
 void
 xga_recalctimings(svga_t *svga)
 {
-    xga_t *xga = &svga->xga;
+    xga_t *xga = (xga_t *) svga->xga;
 
     if (xga->on) {
         xga->v_total      = xga->vtotal + 1;
@@ -505,7 +506,7 @@ static void
 xga_ext_outb(uint16_t addr, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     xga_log("[%04X:%08X]: EXT OUTB = %02x, val = %02x\n", CS, cpu_state.pc, addr, val);
 
@@ -567,7 +568,7 @@ static uint8_t
 xga_ext_inb(uint16_t addr, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
     uint8_t ret  = 0;
     uint8_t index;
 
@@ -906,7 +907,7 @@ xga_ext_inb(uint16_t addr, void *priv)
 static uint32_t
 xga_accel_read_pattern_map_pixel(svga_t *svga, int x, int y, int map, uint32_t base, int width)
 {
-    const xga_t *xga  = &svga->xga;
+    const xga_t *xga  = (xga_t *) svga->xga;
     uint32_t     addr = base;
     int          bits;
     uint8_t      byte;
@@ -944,7 +945,7 @@ xga_accel_read_pattern_map_pixel(svga_t *svga, int x, int y, int map, uint32_t b
 static uint32_t
 xga_accel_read_map_pixel(svga_t *svga, int x, int y, int map, uint32_t base, int width, UNUSED(int usesrc))
 {
-    xga_t   *xga  = &svga->xga;
+    xga_t   *xga  = (xga_t *) svga->xga;
     uint32_t addr = base;
     int      bits;
     uint32_t byte;
@@ -1024,7 +1025,7 @@ xga_accel_read_map_pixel(svga_t *svga, int x, int y, int map, uint32_t base, int
 static void
 xga_accel_write_map_pixel(svga_t *svga, int x, int y, int map, uint32_t base, uint32_t pixel, int width)
 {
-    xga_t   *xga  = &svga->xga;
+    xga_t   *xga  = (xga_t *) svga->xga;
     uint32_t addr = base;
     uint8_t  byte;
     uint8_t  mask;
@@ -1125,7 +1126,7 @@ xga_accel_write_map_pixel(svga_t *svga, int x, int y, int map, uint32_t base, ui
 static void
 xga_short_stroke(svga_t *svga, uint8_t ssv)
 {
-    xga_t   *xga = &svga->xga;
+    xga_t   *xga = (xga_t *) svga->xga;
     uint32_t src_dat;
     uint32_t dest_dat;
     uint32_t old_dest_dat;
@@ -1254,7 +1255,7 @@ xga_short_stroke(svga_t *svga, uint8_t ssv)
 static void
 xga_line_draw_write(svga_t *svga)
 {
-    xga_t   *xga = &svga->xga;
+    xga_t   *xga = (xga_t *) svga->xga;
     uint32_t src_dat;
     uint32_t dest_dat;
     uint32_t old_dest_dat;
@@ -1476,7 +1477,7 @@ xga_line_draw_write(svga_t *svga)
 static void
 xga_bitblt(svga_t *svga)
 {
-    xga_t   *xga = &svga->xga;
+    xga_t   *xga = (xga_t *) svga->xga;
     uint8_t  area_state = 0;
     uint32_t src_dat;
     uint32_t dest_dat;
@@ -1499,7 +1500,6 @@ xga_bitblt(svga_t *svga)
     int      mix  = 0;
     int      xdir;
     int      ydir;
-    int      skip = 0;
     int      x = 0;
     int      y = 0;
 
@@ -2284,7 +2284,7 @@ static void
 xga_memio_writeb(uint32_t addr, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     xga_mem_write(addr, val, xga, svga, 1);
 
@@ -2295,7 +2295,7 @@ static void
 xga_memio_writew(uint32_t addr, uint16_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     xga_mem_write(addr, val, xga, svga, 2);
 
@@ -2306,7 +2306,7 @@ static void
 xga_memio_writel(uint32_t addr, uint32_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     xga_mem_write(addr, val, xga, svga, 4);
 
@@ -2401,7 +2401,7 @@ static uint8_t
 xga_memio_readb(uint32_t addr, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
     uint8_t temp;
 
     temp = xga_mem_read(addr, xga, svga);
@@ -2415,7 +2415,7 @@ static uint16_t
 xga_memio_readw(uint32_t addr, void *priv)
 {
     svga_t  *svga = (svga_t *) priv;
-    xga_t   *xga  = &svga->xga;
+    xga_t   *xga  = (xga_t *) svga->xga;
     uint16_t temp;
 
     temp = xga_mem_read(addr, xga, svga);
@@ -2430,7 +2430,7 @@ static uint32_t
 xga_memio_readl(uint32_t addr, void *priv)
 {
     svga_t  *svga = (svga_t *) priv;
-    xga_t   *xga  = &svga->xga;
+    xga_t   *xga  = (xga_t *) svga->xga;
     uint32_t temp;
 
     temp = xga_mem_read(addr, xga, svga);
@@ -2446,7 +2446,7 @@ xga_memio_readl(uint32_t addr, void *priv)
 static void
 xga_hwcursor_draw(svga_t *svga, int displine)
 {
-    xga_t    *xga    = &svga->xga;
+    xga_t    *xga    = (xga_t *) svga->xga;
     uint8_t   dat    = 0;
     int       offset = xga->hwcursor_latch.x - xga->hwcursor_latch.xoff;
     int       x_pos;
@@ -2532,7 +2532,7 @@ xga_render_overscan_right(xga_t *xga, svga_t *svga)
 static void
 xga_render_4bpp(svga_t *svga)
 {
-    xga_t *xga = &svga->xga;
+    xga_t *xga = (xga_t *) svga->xga;
     uint32_t *p;
     uint32_t  dat;
 
@@ -2573,7 +2573,7 @@ xga_render_4bpp(svga_t *svga)
 static void
 xga_render_8bpp(svga_t *svga)
 {
-    xga_t *xga = &svga->xga;
+    xga_t *xga = (xga_t *) svga->xga;
     uint32_t *p;
     uint32_t  dat;
 
@@ -2610,7 +2610,7 @@ xga_render_8bpp(svga_t *svga)
 static void
 xga_render_16bpp(svga_t *svga)
 {
-    xga_t *xga = &svga->xga;
+    xga_t *xga = (xga_t *) svga->xga;
     int       x;
     uint32_t *p;
     uint32_t  dat;
@@ -2651,7 +2651,7 @@ static void
 xga_write(uint32_t addr, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     if (!xga->on) {
         svga_write(addr, val, svga);
@@ -2679,7 +2679,7 @@ static void
 xga_writew(uint32_t addr, uint16_t val, void *priv)
 {
     svga_t      *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     if (!xga->on) {
         svga_writew(addr, val, svga);
@@ -2694,7 +2694,7 @@ static void
 xga_writel(uint32_t addr, uint32_t val, void *priv)
 {
     svga_t      *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     if (!xga->on) {
         svga_writel(addr, val, svga);
@@ -2711,7 +2711,7 @@ static uint8_t
 xga_read(uint32_t addr, void *priv)
 {
     svga_t      *svga = (svga_t *) priv;
-    xga_t *xga  = &svga->xga;
+    xga_t *xga  = (xga_t *) svga->xga;
     uint8_t      ret  = 0xff;
 
     if (!xga->on) {
@@ -2741,7 +2741,7 @@ static uint16_t
 xga_readw(uint32_t addr, void *priv)
 {
     svga_t      *svga = (svga_t *) priv;
-    xga_t       *xga  = &svga->xga;
+    xga_t       *xga  = (xga_t *) svga->xga;
     uint16_t     ret  = 0xffff;
 
     if (!xga->on) {
@@ -2759,7 +2759,7 @@ static uint32_t
 xga_readl(uint32_t addr, void *priv)
 {
     svga_t      *svga = (svga_t *) priv;
-    xga_t       *xga  = &svga->xga;
+    xga_t       *xga  = (xga_t *) svga->xga;
     uint32_t     ret  = 0xffffffff;
 
     if (!xga->on) {
@@ -2779,7 +2779,7 @@ static void
 xga_write_linear(uint32_t addr, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     if (!xga->on) {
         svga_write_linear(addr, val, svga);
@@ -2811,7 +2811,7 @@ static void
 xga_writew_linear(uint32_t addr, uint16_t val, void *priv)
 {
     svga_t      *svga = (svga_t *) priv;
-    const xga_t *xga  = &svga->xga;
+    const xga_t *xga  = (xga_t *) svga->xga;
 
     if (!xga->on) {
         svga_writew_linear(addr, val, svga);
@@ -2826,7 +2826,7 @@ static void
 xga_writel_linear(uint32_t addr, uint32_t val, void *priv)
 {
     svga_t      *svga = (svga_t *) priv;
-    const xga_t *xga  = &svga->xga;
+    const xga_t *xga  = (xga_t *) svga->xga;
 
     if (!xga->on) {
         svga_writel_linear(addr, val, svga);
@@ -2843,7 +2843,7 @@ static uint8_t
 xga_read_linear(uint32_t addr, void *priv)
 {
     svga_t      *svga = (svga_t *) priv;
-    const xga_t *xga  = &svga->xga;
+    const xga_t *xga  = (xga_t *) svga->xga;
     uint8_t      ret  = 0xff;
 
     if (!xga->on)
@@ -2873,7 +2873,7 @@ static uint16_t
 xga_readw_linear(uint32_t addr, void *priv)
 {
     svga_t      *svga = (svga_t *) priv;
-    const xga_t *xga  = &svga->xga;
+    const xga_t *xga  = (xga_t *) svga->xga;
     uint16_t     ret;
 
     if (!xga->on)
@@ -2889,7 +2889,7 @@ static uint32_t
 xga_readl_linear(uint32_t addr, void *priv)
 {
     svga_t      *svga = (svga_t *) priv;
-    const xga_t *xga  = &svga->xga;
+    const xga_t *xga  = (xga_t *) svga->xga;
     uint32_t     ret;
 
     if (!xga->on)
@@ -2906,7 +2906,7 @@ xga_readl_linear(uint32_t addr, void *priv)
 static void
 xga_do_render(svga_t *svga)
 {
-    xga_t *xga = &svga->xga;
+    xga_t *xga = (xga_t *) svga->xga;
 
     xga_log("DISPCNTL = %d, vga = %d.\n", xga->disp_cntl_2 & 7, vga_on);
     switch (xga->disp_cntl_2 & 7) {
@@ -2937,8 +2937,9 @@ xga_do_render(svga_t *svga)
 }
 
 void
-xga_poll(xga_t *xga, svga_t *svga)
+xga_poll(void *priv, svga_t *svga)
 {
+    xga_t *xga = (xga_t *) priv;
     uint32_t x;
     int      wx;
     int      wy;
@@ -3076,7 +3077,7 @@ static uint8_t
 xga_mca_read(int port, void *priv)
 {
     const svga_t *svga = (svga_t *) priv;
-    const xga_t  *xga  = &svga->xga;
+    const xga_t  *xga  = (xga_t *) svga->xga;
     uint8_t       ret  = xga->pos_regs[port & 7];
 
     if (((port & 7) == 3) && !(ret & 1)) /*Always enable the mapping.*/
@@ -3092,7 +3093,7 @@ static void
 xga_mca_write(int port, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     /* MCA does not write registers below 0x0100. */
     if (port < 0x0102)
@@ -3134,7 +3135,7 @@ static uint8_t
 xga_mca_feedb(void *priv)
 {
     const svga_t *svga = (svga_t *) priv;
-    const xga_t  *xga  = &svga->xga;
+    const xga_t  *xga  = (xga_t *) svga->xga;
 
     return xga->pos_regs[2] & 1;
 }
@@ -3143,7 +3144,7 @@ static void
 xga_mca_reset(void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     mem_mapping_disable(&xga->bios_rom.mapping);
     mem_mapping_disable(&xga->memio_mapping);
@@ -3156,7 +3157,7 @@ static void
 xga_reset(void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     mem_mapping_disable(&xga->bios_rom.mapping);
     mem_mapping_disable(&xga->memio_mapping);
@@ -3170,7 +3171,7 @@ static uint8_t
 xga_pos_in(uint16_t addr, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
     uint8_t ret  = 0xff;
 
     if (!xga_standalone_enabled) {
@@ -3286,7 +3287,7 @@ static void
 xga_pos_out(uint16_t addr, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     if (!xga_standalone_enabled) {
         switch (addr) {
@@ -3338,10 +3339,12 @@ xga_init(const device_t *info)
     if (svga_get_pri() == NULL)
         return NULL;
 
-    svga_t  *svga = svga_get_pri();
-    xga_t   *xga  = &svga->xga;
+    svga_t  *svga     = svga_get_pri();
+    xga_t   *xga      = (xga_t *) calloc(1, sizeof(xga_t));
     FILE    *fp;
-    uint8_t *rom = NULL;
+    uint8_t *rom      = NULL;
+
+    svga->xga         = xga;
 
     xga->ext_mem_addr = device_get_config_hex16("ext_mem_addr");
     xga->instance_isa = device_get_config_int("instance");
@@ -3428,8 +3431,7 @@ xga_init(const device_t *info)
 static void *
 svga_xga_init(const device_t *info)
 {
-    svga_t *svga = malloc(sizeof(svga_t));
-    memset(svga, 0, sizeof(svga_t));
+    svga_t *svga = (svga_t *) calloc(1, sizeof(svga_t));
 
     video_inform(VIDEO_FLAG_TYPE_XGA, &timing_xga_isa);
 
@@ -3452,11 +3454,13 @@ static void
 xga_close(void *priv)
 {
     svga_t *svga = (svga_t *) priv;
-    xga_t  *xga  = &svga->xga;
+    xga_t  *xga  = (xga_t *) svga->xga;
 
     if (svga) {
         free(xga->vram);
         free(xga->changedvram);
+
+        free(xga);
     }
 }
 

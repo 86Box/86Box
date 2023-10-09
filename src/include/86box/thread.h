@@ -1,3 +1,24 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          Thread API header.
+ *
+ *
+ *
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2008-2023 Sarah Walker.
+ *          Copyright 2016-2023 Miran Grca.
+ */
+#ifndef THREAD_H
+#    define THREAD_H
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -44,3 +65,5 @@ extern int      thread_release_mutex(mutex_t *mutex);
 #ifdef __cplusplus
 }
 #endif
+
+#endif /*THREAD_H*/
