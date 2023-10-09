@@ -310,7 +310,7 @@ machine_at_cu430hx_gpio_init(void)
     else if (cpu_busspeed > 60000000)
         gpio |= 0xffff00ff;
 
-    if (sound_card_current[0] == SOUND_INTERNAL)
+    if ((sound_card_current[0] == SOUND_INTERNAL) && machine_get_snd_device(machine)->available())
         gpio |= 0xffff04ff;
 
     machine_set_gpio_default(gpio);
@@ -332,7 +332,7 @@ machine_at_cu430hx_common_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 0, 0, 0); // riser
 
-    if (sound_card_current[0] == SOUND_INTERNAL)
+    if ((sound_card_current[0] == SOUND_INTERNAL) && machine_get_snd_device(machine)->available())
         machine_snd = device_add(machine_get_snd_device(machine));
 
     device_add(&i430hx_device);
