@@ -1,8 +1,7 @@
 name: Bug Report
 description: File a bug report
-title: "[Bug]: "
-labels: ["bug", "triage"]
-projects: ["octo-org/1", "octo-org/44"]
+title: ""
+labels: ["bug"]
 assignees:
   - octocat
 body:
@@ -10,55 +9,68 @@ body:
     attributes:
       value: |
         Thanks for taking the time to fill out this bug report!
-  - type: input
-    id: contact
-    attributes:
-      label: Contact Details
-      description: How can we get in touch with you if we need more info?
-      placeholder: ex. email@example.com
-    validations:
-      required: false
   - type: textarea
-    id: what-happened
     attributes:
       label: What happened?
       description: Also tell us, what did you expect to happen?
       placeholder: Tell us what you see!
-      value: "A bug happened!"
-    validations:
-      required: true
+  - type: input
+    attributes:
+      label: Operating system
+      description: What is your host operating system?
+      placeholder: e.g. Windows 10
+  - type: input
+    attributes:
+      label: CPU
+      description: What is your host CPU?
+      placeholder: e.g. AMD Ryzen 5 5600G
+  - type: input
+    attributes:
+      label: 86Box version
+      description: What version of 86Box are you running? (Saying "Latest from Jenkins" is not helpful.)
+      placeholder: e.g. v4.0 build 4000
   - type: dropdown
-    id: version
     attributes:
-      label: Version
-      description: What version of our software are you running?
+      label: Download source
+      description: Where did you get 86Box from?
       options:
-        - 1.0.2 (Default)
-        - 1.0.3 (Edge)
-      default: 0
-    validations:
-      required: true
+        - The official website
+        - I compiled 86Box myself (please tell us about the configuration of your build environment!)
+        - I downloaded 86Box from a third party repository (please tell us where!)
   - type: dropdown
-    id: browsers
     attributes:
-      label: What browsers are you seeing the problem on?
-      multiple: true
-      options:
-        - Firefox
-        - Chrome
-        - Safari
-        - Microsoft Edge
-  - type: textarea
-    id: logs
-    attributes:
-      label: Relevant log output
-      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
-      render: shell
+      label: Build architecture
+      description: 86Box for what architecture are you using?
+      options: 
+        - Linux - ARM (32-bit) 
+        - Linux - ARM (64-bit) 
+        - Linux - x64 (64-bit) 
+        - Linux - x86 (32-bit) 
+        - macOS - Universal (Intel and Apple Silicon) 
+        - Windows - x64 (64-bit) 
+        - Windows - x86 (32-bit)
   - type: checkboxes
-    id: terms
     attributes:
-      label: Code of Conduct
-      description: By submitting this issue, you agree to follow our [Code of Conduct](https://example.com)
+      label: Build type
+      description: What type of build are you using?
       options:
-        - label: I agree to follow this project's Code of Conduct
-          required: true
+        - label: New recompiler
+        - label: Debug build
+  - type: dropdown
+    attributes:
+      label: Download source
+      description: Where did you download 86Box from?
+      options:
+        - label: Official website (Jenkins, GitHub)
+        - label: Manager auto-update
+        - label: I built 86Box myself (please tell us more about your build configuration)
+        - label: I got 86Box from a third party repository (please tell us where)
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Is there anything else you want to tell us?
+  - type: textarea
+    attributes:
+      label: Configuration file
+      description: Please copy and paste your machine configuration file (`86box.cfg`). This will be automatically formatted into code, so no need for backticks.
+      render: ini
