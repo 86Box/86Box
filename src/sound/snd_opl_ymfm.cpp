@@ -152,11 +152,11 @@ public:
             m_chip.generate(&m_output);
             if ((m_type == FM_YMF278B) && (sizeof(m_output.data) > (4 * sizeof(int32_t)))) {
                 if (ChipType::OUTPUTS == 1) {
-                    *data++ += m_output.data[4];
-                    *data++ += m_output.data[4];
+                    *data++ = m_output.data[4];
+                    *data++ = m_output.data[4];
                 } else {
-                    *data++ += m_output.data[4];
-                    *data++ += m_output.data[5];
+                    *data++ = m_output.data[4];
+                    *data++ = m_output.data[5];
                 }
             } else if (ChipType::OUTPUTS == 1) {
                 *data++ = m_output.data[0];
@@ -177,11 +177,11 @@ public:
                 m_chip.generate(&m_output);
                 if ((m_type == FM_YMF278B) && (sizeof(m_output.data) > (4 * sizeof(int32_t)))) {
                     if (ChipType::OUTPUTS == 1) {
-                        m_samples[0] += m_output.data[4];
-                        m_samples[1] += m_output.data[4];
+                        m_samples[0] = m_output.data[4];
+                        m_samples[1] = m_output.data[4];
                     } else {
-                        m_samples[0] += m_output.data[4];
-                        m_samples[1] += m_output.data[5];
+                        m_samples[0] = m_output.data[4];
+                        m_samples[1] = m_output.data[5];
                     }
                 } else if (ChipType::OUTPUTS == 1) {
                     m_samples[0] = m_output.data[0];
