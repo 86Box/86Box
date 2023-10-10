@@ -1,0 +1,68 @@
+name: Bug report
+description: File a bug report
+title: ""
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time to fill out this bug report!
+  - type: markdown
+    attributes:
+      value: "## Bug information"
+  - type: textarea
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+  - type: textarea
+    attributes:
+      label: To reproduce
+      description: Steps to reproduce the behavior.
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. Scroll down to '...'
+        4. See error
+  - type: textarea
+    attibutes:
+      label: Screenshots
+      description: If applicable, add screenshots to help explain your problem.
+  - type: markdown
+    attributes:
+      value: "## Host information"
+  - type: input
+    attributes:
+      label: Operating system
+      placeholder: e.g. Windows 10
+  - type: input
+    attributes:
+      label: CPU
+      placeholder: e.g. AMD Ryzen 5 5600G
+  - type: markdown
+    attributes:
+      value: "## 86Box version information"
+  - type: input
+    attributes:
+      label: Version
+      placeholder: e.g. v3.7.1 build 4032
+  - type: dropdown
+    attributes:
+      label: Build type
+      options:
+        - Linux - ARM (32-bit) 
+        - Linux - ARM (64-bit) 
+        - Linux - x64 (64-bit) 
+        - Linux - x86 (32-bit) 
+        - macOS - Universal (Intel and Apple Silicon) 
+        - Windows - x64 (64-bit) 
+        - Windows - x86 (32-bit)
+  - type: checkboxes
+    attributes:
+      options:
+        - New recompiler
+        - Debug build
+        - I compiled 86Box myself (please tell us about your build environment configuration)
+        - I installed 86Box from a third party repository (please tell us where)
+  - type: textarea
+    attributes:
+      label: Additional context
+      placeholder: Is there anything else you want to tell us?
