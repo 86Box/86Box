@@ -1,68 +1,64 @@
-name: Bug report
+name: Bug Report
 description: File a bug report
-title: ""
-labels: [bug]
+title: "[Bug]: "
+labels: ["bug", "triage"]
+projects: ["octo-org/1", "octo-org/44"]
+assignees:
+  - octocat
 body:
   - type: markdown
     attributes:
-      value: Thanks for taking the time to fill out this bug report!
-  - type: markdown
-    attributes:
-      value: "## Bug information"
-  - type: textarea
-    attributes:
-      label: Describe the bug
-      description: A clear and concise description of what the bug is.
-  - type: textarea
-    attributes:
-      label: To reproduce
-      description: Steps to reproduce the behavior.
-      placeholder: |
-        1. Go to '...'
-        2. Click on '...'
-        3. Scroll down to '...'
-        4. See error
-  - type: textarea
-    attibutes:
-      label: Screenshots
-      description: If applicable, add screenshots to help explain your problem.
-  - type: markdown
-    attributes:
-      value: "## Host information"
+      value: |
+        Thanks for taking the time to fill out this bug report!
   - type: input
+    id: contact
     attributes:
-      label: Operating system
-      placeholder: e.g. Windows 10
-  - type: input
+      label: Contact Details
+      description: How can we get in touch with you if we need more info?
+      placeholder: ex. email@example.com
+    validations:
+      required: false
+  - type: textarea
+    id: what-happened
     attributes:
-      label: CPU
-      placeholder: e.g. AMD Ryzen 5 5600G
-  - type: markdown
-    attributes:
-      value: "## 86Box version information"
-  - type: input
+      label: What happened?
+      description: Also tell us, what did you expect to happen?
+      placeholder: Tell us what you see!
+      value: "A bug happened!"
+    validations:
+      required: true
+  - type: dropdown
+    id: version
     attributes:
       label: Version
-      placeholder: e.g. v3.7.1 build 4032
+      description: What version of our software are you running?
+      options:
+        - 1.0.2 (Default)
+        - 1.0.3 (Edge)
+      default: 0
+    validations:
+      required: true
   - type: dropdown
+    id: browsers
     attributes:
-      label: Build type
+      label: What browsers are you seeing the problem on?
+      multiple: true
       options:
-        - Linux - ARM (32-bit) 
-        - Linux - ARM (64-bit) 
-        - Linux - x64 (64-bit) 
-        - Linux - x86 (32-bit) 
-        - macOS - Universal (Intel and Apple Silicon) 
-        - Windows - x64 (64-bit) 
-        - Windows - x86 (32-bit)
-  - type: checkboxes
-    attributes:
-      options:
-        - New recompiler
-        - Debug build
-        - I compiled 86Box myself (please tell us about your build environment configuration)
-        - I installed 86Box from a third party repository (please tell us where)
+        - Firefox
+        - Chrome
+        - Safari
+        - Microsoft Edge
   - type: textarea
+    id: logs
     attributes:
-      label: Additional context
-      placeholder: Is there anything else you want to tell us?
+      label: Relevant log output
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      render: shell
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our [Code of Conduct](https://example.com)
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
