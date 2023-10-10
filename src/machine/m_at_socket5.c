@@ -177,11 +177,11 @@ machine_at_zappa_gpio_init(void)
     /* Bit 0: 2x multiplier, 1 = 1.5x multiplier (Switch 6). */
     /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
     if (cpu_busspeed <= 50000000)
-        gpio |= 0xffff10ff;
-    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
-        gpio |= 0xffff18ff;
-    else if (cpu_busspeed > 60000000)
         gpio |= 0xffff00ff;
+    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
+        gpio |= 0xffff08ff;
+    else if (cpu_busspeed > 60000000)
+        gpio |= 0xffff10ff;
 
     if (cpu_dmulti <= 1.5)
         gpio |= 0xffff01ff;
