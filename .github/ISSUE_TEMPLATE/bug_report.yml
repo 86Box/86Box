@@ -31,7 +31,7 @@ body:
     attributes:
       label: 86Box version
       description: What version of 86Box are you running? (Saying "Latest from Jenkins" is not helpful.)
-      placeholder: e.g. v4.0 build 4000
+      placeholder: e.g. v4.0 build 5000
   - type: dropdown
     attributes:
       label: Build architecture
