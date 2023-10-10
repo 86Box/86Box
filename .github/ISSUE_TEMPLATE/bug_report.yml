@@ -1,6 +1,6 @@
 name: Bug Report
 description: File a bug report
-title: ""
+title: "Title"
 labels: ["bug"]
 body:
   - type: markdown
@@ -12,6 +12,11 @@ body:
       label: What happened?
       description: Also tell us, what did you expect to happen?
       placeholder: Tell us what you see!
+  - type: textarea
+    attributes:
+      label: Configuration file
+      description: Please copy and paste your machine configuration file (`86box.cfg`). This will be automatically formatted into code, so no need for backticks.
+      render: ini
   - type: input
     attributes:
       label: Operating system
@@ -27,14 +32,6 @@ body:
       label: 86Box version
       description: What version of 86Box are you running? (Saying "Latest from Jenkins" is not helpful.)
       placeholder: e.g. v4.0 build 4000
-  - type: dropdown
-    attributes:
-      label: Download source
-      description: Where did you get 86Box from?
-      options:
-        - The official website
-        - I compiled 86Box myself (please tell us about the configuration of your build environment!)
-        - I downloaded 86Box from a third party repository (please tell us where!)
   - type: dropdown
     attributes:
       label: Build architecture
@@ -59,16 +56,11 @@ body:
       label: Download source
       description: Where did you download 86Box from?
       options:
-        - label: Official website (Jenkins, GitHub)
-        - label: Manager auto-update
-        - label: I built 86Box myself (please tell us more about your build configuration)
-        - label: I got 86Box from a third party repository (please tell us where)
+        - Official website (Jenkins, GitHub)
+        - Manager auto-update
+        - I built 86Box myself (please tell us more about your build configuration)
+        - I got 86Box from a third party repository (please tell us where)
   - type: textarea
     attributes:
       label: Additional context
       description: Is there anything else you want to tell us?
-  - type: textarea
-    attributes:
-      label: Configuration file
-      description: Please copy and paste your machine configuration file (`86box.cfg`). This will be automatically formatted into code, so no need for backticks.
-      render: ini
