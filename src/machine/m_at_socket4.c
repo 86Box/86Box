@@ -187,17 +187,10 @@ machine_at_dellxp60_init(const machine_t *model)
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     /* Not: 00, 02, 03, 04, 05, 06, 07, 08, 09, 0A, 0B, 0C, 0D, 0E, 0F. */
     /* Yes: 01, 10, 11, 12, 13, 14. */
-#if 0
     pci_register_slot(0x01, PCI_CARD_NORMAL,      1, 3, 2, 4);
     pci_register_slot(0x04, PCI_CARD_NORMAL,      4, 4, 3, 3);
     pci_register_slot(0x05, PCI_CARD_NORMAL,      1, 4, 3, 2);
     pci_register_slot(0x06, PCI_CARD_NORMAL,      2, 1, 3, 4);
-#else
-    pci_register_slot(0x01, PCI_CARD_IDE,         0, 0, 0, 0);
-    pci_register_slot(0x06, PCI_CARD_NORMAL,      3, 2, 1, 4);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 1, 3, 4);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 3, 2, 4);
-#endif
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430lx_device);
     device_add(&keyboard_ps2_intel_ami_pci_device);
