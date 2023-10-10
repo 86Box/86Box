@@ -2209,13 +2209,13 @@ sb_16_pnp_init(UNUSED(const device_t *info))
 static int
 sb_vibra16xv_available(void)
 {
-    return rom_present("roms/sound/CT4170 PnP.BIN");
+    return rom_present("roms/sound/creative/CT4170 PnP.BIN");
 }
 
 static int
 sb_vibra16c_available(void)
 {
-    return rom_present("roms/sound/CT4180 PnP.BIN");
+    return rom_present("roms/sound/creative/CT4180 PnP.BIN");
 }
 
 static void *
@@ -2248,11 +2248,11 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     const char *pnp_rom_file = NULL;
     switch (info->local) {
         case 0:
-            pnp_rom_file = "roms/sound/CT4170 PnP.BIN";
+            pnp_rom_file = "roms/sound/creative/CT4170 PnP.BIN";
             break;
 
         case 1:
-            pnp_rom_file = "roms/sound/CT4180 PnP.BIN";
+            pnp_rom_file = "roms/sound/creative/CT4180 PnP.BIN";
             break;
 
         default:
@@ -2321,37 +2321,37 @@ sb_16_compat_init(const device_t *info)
 static int
 sb_awe32_available(void)
 {
-    return rom_present("roms/sound/awe32.raw");
+    return rom_present("roms/sound/creative/awe32.raw");
 }
 
 static int
 sb_32_pnp_available(void)
 {
-    return sb_awe32_available() && rom_present("roms/sound/CT3600 PnP.BIN");
+    return sb_awe32_available() && rom_present("roms/sound/creative/CT3600 PnP.BIN");
 }
 
 static int
 sb_awe32_pnp_available(void)
 {
-    return sb_awe32_available() && rom_present("roms/sound/CT3980 PnP.BIN");
+    return sb_awe32_available() && rom_present("roms/sound/creative/CT3980 PnP.BIN");
 }
 
 static int
 sb_awe64_value_available(void)
 {
-    return sb_awe32_available() && rom_present("roms/sound/CT4520 PnP.BIN");
+    return sb_awe32_available() && rom_present("roms/sound/creative/CT4520 PnP.BIN");
 }
 
 static int
 sb_awe64_available(void)
 {
-    return sb_awe32_available() && rom_present("roms/sound/CT4520 PnP.BIN");
+    return sb_awe32_available() && rom_present("roms/sound/creative/CT4520 PnP.BIN");
 }
 
 static int
 sb_awe64_gold_available(void)
 {
-    return sb_awe32_available() && rom_present("roms/sound/CT4540 PnP.BIN");
+    return sb_awe32_available() && rom_present("roms/sound/creative/CT4540 PnP.BIN");
 }
 
 static void *
@@ -2454,20 +2454,20 @@ sb_awe32_pnp_init(const device_t *info)
     const char *pnp_rom_file = NULL;
     switch (info->local) {
         case 0:
-            pnp_rom_file = "roms/sound/CT3600 PnP.BIN";
+            pnp_rom_file = "roms/sound/creative/CT3600 PnP.BIN";
             break;
 
         case 1:
-            pnp_rom_file = "roms/sound/CT3980 PnP.BIN";
+            pnp_rom_file = "roms/sound/creative/CT3980 PnP.BIN";
             break;
 
         case 2:
         case 3:
-            pnp_rom_file = "roms/sound/CT4520 PnP.BIN";
+            pnp_rom_file = "roms/sound/creative/CT4520 PnP.BIN";
             break;
 
         case 4:
-            pnp_rom_file = "roms/sound/CT4540 PnP.BIN";
+            pnp_rom_file = "roms/sound/creative/CT4540 PnP.BIN";
             break;
 
         default:
