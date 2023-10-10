@@ -324,11 +324,11 @@ ymfm_drv_init(const device_t *info)
         case FM_YMF289B:
             /* According to the datasheet, we should be using 33868800, but YMFM appears
                to cheat and does it using the same values as the YMF262. */
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(14318181, FM_YMF289B, 44100);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(14318181, FM_YMF289B, OPL_FREQ);
             break;
 
         case FM_YMF278B:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf278b>(33868800, FM_YMF278B, 44100);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf278b>(33868800, FM_YMF278B, OPL_FREQ);
             break;
     }
 

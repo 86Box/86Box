@@ -46,7 +46,24 @@
 static void
 machine_at_thor_gpio_init(void)
 {
-    uint32_t gpio = 0xffffe1ff;
+    uint32_t gpio = 0xffffe1cf;
+
+    /* Register 0x0078 (Undocumented): */
+    /* Bit 5: 0 = Multiplier. */
+    /* Bit 4: 0 = Multiplier. */
+    /*        1.5: 0, 0. */
+    /*        3.0: 0, 1. */
+    /*        2.0: 1, 0. */
+    /*        2.5: 1, 1. */
+    /* Bit 1: 0 = Error beep, 1 = No error. */
+    if (cpu_dmulti <= 1.5)
+        gpio |= 0xffff0000;
+    else if ((cpu_dmulti > 1.5) && (cpu_dmulti <= 2.0))
+        gpio |= 0xffff0020;
+    else if ((cpu_dmulti > 2.0) && (cpu_dmulti <= 2.5))
+        gpio |= 0xffff0030;
+    else if (cpu_dmulti > 2.5)
+        gpio |= 0xffff0010;
 
     /* Register 0x0079: */
     /* Bit 7: 0 = Clear password, 1 = Keep password. */
@@ -62,11 +79,11 @@ machine_at_thor_gpio_init(void)
     /* Bit 0: 0 = Reserved. */
     /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
     if (cpu_busspeed <= 50000000)
-        gpio |= 0xffff10ff;
+        gpio |= 0xffff0000;
     else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
-        gpio |= 0xffff18ff;
+        gpio |= 0xffff0800;
     else if (cpu_busspeed > 60000000)
-        gpio |= 0xffff00ff;
+        gpio |= 0xffff1000;
 
     machine_set_gpio_default(gpio);
 }
@@ -232,7 +249,7 @@ machine_at_endeavor_gpio_init(void)
     uint32_t gpio = 0xffffe0cf;
     uint16_t addr;
 
-    /* Register 0x0078: */
+    /* Register 0x0078 (Undocumented): */
     /* Bit 5,4: Vibra 16S base address: 0 = 220h, 1 = 260h, 2 = 240h, 3 = 280h. */
     device_context(machine_get_snd_device(machine));
     addr = device_get_config_hex16("base");
@@ -266,19 +283,19 @@ machine_at_endeavor_gpio_init(void)
     /* Bit 0: 0 = 2x multiplier, 1 = 1.5x multiplier (Switch 6). */
     /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
     if (cpu_busspeed <= 50000000)
-        gpio |= 0xffff10cf;
+        gpio |= 0xffff0000;
     else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
-        gpio |= 0xffff18cf;
+        gpio |= 0xffff0800;
     else if (cpu_busspeed > 60000000)
-        gpio |= 0xffff00cf;
+        gpio |= 0xffff1000;
 
     if (sound_card_current[0] == SOUND_INTERNAL)
-        gpio |= 0xffff04cf;
+        gpio |= 0xffff0400;
 
     if (cpu_dmulti <= 1.5)
-        gpio |= 0xffff01cf;
+        gpio |= 0xffff0100;
     else
-        gpio |= 0xffff00cf;
+        gpio |= 0xffff0000;
 
     machine_set_gpio_default(gpio);
 }
@@ -383,7 +400,7 @@ machine_at_ms5119_init(const machine_t *model)
 static void
 machine_at_pb640_gpio_init(void)
 {
-    uint32_t gpio = 0xffffffff;
+    uint32_t gpio = 0xffffe6ff;
 
     /* Register 0x0079: */
     /* Bit 7: 0 = Clear password, 1 = Keep password. */
@@ -398,14 +415,12 @@ machine_at_pb640_gpio_init(void)
     /* Bit 1: No Connect. */
     /* Bit 0: 2x multiplier, 1 = 1.5x multiplier (Switch 6). */
     /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
-    gpio = 0xffffe6ff;
-
     if (cpu_busspeed <= 50000000)
-        gpio |= 0xffff10ff;
-    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
-        gpio |= 0xffff18ff;
-    else if (cpu_busspeed > 60000000)
         gpio |= 0xffff00ff;
+    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
+        gpio |= 0xffff08ff;
+    else if (cpu_busspeed > 60000000)
+        gpio |= 0xffff10ff;
 
     if (cpu_dmulti <= 1.5)
         gpio |= 0xffff01ff;
