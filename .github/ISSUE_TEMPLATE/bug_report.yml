@@ -1,0 +1,66 @@
+name: Bug Report
+description: File a bug report
+title: "Title"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: textarea
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen?
+      placeholder: Tell us what you see!
+  - type: textarea
+    attributes:
+      label: Configuration file
+      description: Please copy and paste your machine configuration file (`86box.cfg`). This will be automatically formatted into code, so no need for backticks.
+      render: ini
+  - type: input
+    attributes:
+      label: Operating system
+      description: What is your host operating system?
+      placeholder: e.g. Windows 10
+  - type: input
+    attributes:
+      label: CPU
+      description: What is your host CPU?
+      placeholder: e.g. AMD Ryzen 5 5600G
+  - type: input
+    attributes:
+      label: 86Box version
+      description: What version of 86Box are you running? (Saying "Latest from Jenkins" is not helpful.)
+      placeholder: e.g. v4.0 build 5000
+  - type: dropdown
+    attributes:
+      label: Build architecture
+      description: 86Box for what architecture are you using?
+      options: 
+        - Linux - ARM (32-bit) 
+        - Linux - ARM (64-bit) 
+        - Linux - x64 (64-bit) 
+        - Linux - x86 (32-bit) 
+        - macOS - Universal (Intel and Apple Silicon) 
+        - Windows - x64 (64-bit) 
+        - Windows - x86 (32-bit)
+  - type: checkboxes
+    attributes:
+      label: Build type
+      description: What type of build are you using?
+      options:
+        - label: New recompiler
+        - label: Debug build
+  - type: dropdown
+    attributes:
+      label: Download source
+      description: Where did you download 86Box from?
+      options:
+        - Official website (Jenkins, GitHub)
+        - Manager auto-update
+        - I built 86Box myself (please tell us more about your build configuration)
+        - I got 86Box from a third party repository (please tell us where)
+  - type: textarea
+    attributes:
+      label: Additional context
+      description: Is there anything else you want to tell us?
