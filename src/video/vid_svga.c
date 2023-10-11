@@ -117,6 +117,9 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
     uint8_t    o;
     uint8_t    index;
 
+    if (!dev && (addr >= 0x2ea) && (addr <= 0x2ed))
+        return;
+
     switch (addr) {
         case 0x2ea:
             dev->dac_mask = val;
@@ -362,6 +365,9 @@ svga_in(uint16_t addr, void *priv)
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
     uint8_t    index;
     uint8_t    ret = 0xff;
+
+    if (!dev && (addr >= 0x2ea) && (addr <= 0x2ed))
+        return ret;
 
     switch (addr) {
         case 0x2ea:
@@ -827,14 +833,16 @@ svga_poll(void *priv)
     int        ret;
     int        old_ma;
 
-    if (ibm8514_active && dev->on) {
-        ibm8514_poll(dev, svga);
-        return;
-    }
-    if (xga_active && xga->on) {
-        if ((xga->disp_cntl_2 & 7) >= 2) {
-            xga_poll(xga, svga);
+    if (!svga->override) {
+        if (ibm8514_active && dev->on) {
+            ibm8514_poll(dev, svga);
             return;
+        }
+        if (xga_active && xga->on) {
+            if ((xga->disp_cntl_2 & 7) >= 2) {
+                xga_poll(xga, svga);
+                return;
+            }
         }
     }
 
