@@ -7,7 +7,7 @@ opFI(uint32_t fetchdat)
     cpu_state.npxc &= ~0x80;
     if (rmdat == 0xe1)
         cpu_state.npxc |= 0x80;
-    wait(3, 0);
+    do_cycles(3);
     return 0;
 }
 #else

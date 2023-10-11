@@ -13,9 +13,9 @@
 #          Copyright 2020-2021 David Hrdlička.
 #
 
-add_library(cpu OBJECT cpu.c cpu_table.c fpu.c x86.c 808x.c 386.c 386_common.c
-    386_dynarec.c x86_ops_mmx.c x86seg_common.c x86seg.c x86seg_2386.c x87.c
-    x87_timings.c 8080.c)
+add_library(cpu OBJECT cpu.c cpu_table.c fpu.c x86.c 808x.c 808x_biu.c 386.c
+    386_common.c 386_dynarec.c x86_ops_mmx.c x86seg_common.c x86seg.c
+    x86seg_2386.c x87.c x87_timings.c 8080.c)
 
 if(AMD_K5)
     target_compile_definitions(cpu PRIVATE USE_AMD_K5)
