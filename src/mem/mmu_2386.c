@@ -38,22 +38,6 @@
 #include <86box/plat.h>
 #include <86box/rom.h>
 #include <86box/gdbstub.h>
-#ifdef USE_DYNAREC
-#    include "codegen_public.h"
-#else
-#    ifdef USE_NEW_DYNAREC
-#        define PAGE_MASK_SHIFT 6
-#    else
-#        define PAGE_MASK_INDEX_MASK  3
-#        define PAGE_MASK_INDEX_SHIFT 10
-#        define PAGE_MASK_SHIFT       4
-#    endif
-#    define PAGE_MASK_MASK 63
-#endif
-#if (!defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
-#    define BLOCK_PC_INVALID 0xffffffff
-#    define BLOCK_INVALID    0
-#endif
 
 uint8_t
 mem_readb_map(uint32_t addr)

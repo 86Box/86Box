@@ -14,7 +14,6 @@
  *
  *          Copyright 2022 TheCollector1995.
  */
-
 #ifndef VIDEO_XGA_H
 #define VIDEO_XGA_H
 
@@ -232,4 +231,5 @@ typedef struct xga_t {
 
     int big_endian_linear;
 } xga_t;
+
 #endif /*VIDEO_XGA_H*/

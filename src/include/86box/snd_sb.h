@@ -71,7 +71,6 @@ typedef struct sb_ct1345_mixer_t {
 
     uint8_t index;
     uint8_t regs[256];
-
 } sb_ct1345_mixer_t;
 
 /* SB16 and AWE32 */
@@ -147,6 +146,7 @@ typedef struct sb_t {
     uint8_t pnp_rom[512];
 
     uint16_t opl_pnp_addr;
+    uint16_t gameport_addr;
 
     void   *opl_mixer;
     void  (*opl_mix)(void*, double*, double*);

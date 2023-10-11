@@ -98,7 +98,7 @@ public:
         memset(m_samples, 0, sizeof(m_samples));
         memset(m_oldsamples, 0, sizeof(m_oldsamples));
         m_rateratio   = (samplerate << RSM_FRAC) / m_chip.sample_rate(m_clock);
-        m_clock_us    = 1000000 / (double) m_clock;
+        m_clock_us    = 1000000.0 / (double) m_clock;
         m_subtract[0] = 80.0;
         m_subtract[1] = 320.0;
         m_type        = type;
@@ -139,7 +139,7 @@ public:
     virtual void set_clock(uint32_t clock) override
     {
         m_clock     = clock;
-        m_clock_us  = 1000000 / (double) m_clock;
+        m_clock_us  = 1000000.0 / (double) m_clock;
         m_rateratio = (m_samplerate << RSM_FRAC) / m_chip.sample_rate(m_clock);
 
         ymfm_set_timer(0, m_duration_in_clocks[0]);
@@ -150,9 +150,14 @@ public:
     {
         for (uint32_t i = 0; i < num_samples; i++) {
             m_chip.generate(&m_output);
-            if(m_type == FM_YMF278B) {
-                *data++ += m_output.data[4 % ChipType::OUTPUTS];
-                *data++ += m_output.data[5 % ChipType::OUTPUTS];
+            if ((m_type == FM_YMF278B) && (sizeof(m_output.data) > (4 * sizeof(int32_t)))) {
+                if (ChipType::OUTPUTS == 1) {
+                    *data++ = m_output.data[4];
+                    *data++ = m_output.data[4];
+                } else {
+                    *data++ = m_output.data[4];
+                    *data++ = m_output.data[5];
+                }
             } else if (ChipType::OUTPUTS == 1) {
                 *data++ = m_output.data[0];
                 *data++ = m_output.data[0];
@@ -170,9 +175,14 @@ public:
                 m_oldsamples[0] = m_samples[0];
                 m_oldsamples[1] = m_samples[1];
                 m_chip.generate(&m_output);
-                if(m_type == FM_YMF278B) {
-                    m_samples[0] += m_output.data[4 % ChipType::OUTPUTS];
-                    m_samples[1] += m_output.data[5 % ChipType::OUTPUTS];
+                if ((m_type == FM_YMF278B) && (sizeof(m_output.data) > (4 * sizeof(int32_t)))) {
+                    if (ChipType::OUTPUTS == 1) {
+                        m_samples[0] = m_output.data[4];
+                        m_samples[1] = m_output.data[4];
+                    } else {
+                        m_samples[0] = m_output.data[4];
+                        m_samples[1] = m_output.data[5];
+                    }
                 } else if (ChipType::OUTPUTS == 1) {
                     m_samples[0] = m_output.data[0];
                     m_samples[1] = m_output.data[0];
@@ -312,11 +322,13 @@ ymfm_drv_init(const device_t *info)
             break;
 
         case FM_YMF289B:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(33868800, FM_YMF289B, OPL_FREQ);
+            /* According to the datasheet, we should be using 33868800, but YMFM appears
+               to cheat and does it using the same values as the YMF262. */
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf289b>(14318181, FM_YMF289B, OPL_FREQ);
             break;
 
         case FM_YMF278B:
-            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf278b>(33868800, FM_YMF278B, 48000);
+            fm = (YMFMChipBase *) new YMFMChip<ymfm::ymf278b>(33868800, FM_YMF278B, OPL_FREQ);
             break;
     }
 

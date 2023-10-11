@@ -1388,31 +1388,36 @@ t128_read(uint32_t addr, void *priv)
     uint8_t        ret     = 0xff;
 
     addr &= 0x3fff;
-    if (addr >= 0 && addr < 0x1800)
+    if (ncr_dev->t128.bios_enabled && (addr >= 0) && (addr < 0x1800))
         ret = ncr_dev->bios_rom.rom[addr & 0x1fff];
-    else if (addr >= 0x1800 && addr < 0x1880)
+    else if ((addr >= 0x1800) && (addr < 0x1880))
         ret = ncr_dev->t128.ext_ram[addr & 0x7f];
-    else if (addr >= 0x1c00 && addr < 0x1c20) {
+    else if ((addr >= 0x1c00) && (addr < 0x1c20))
         ret = ncr_dev->t128.ctrl;
-    } else if (addr >= 0x1c20 && addr < 0x1c40) {
+    else if ((addr >= 0x1c20) && (addr < 0x1c40)) {
         ret = ncr_dev->t128.status;
-        ncr_log("T128 status read = %02x, cur bus = %02x, req = %02x, dma = %02x\n", ret, ncr->cur_bus, ncr->cur_bus & BUS_REQ, ncr->mode & MODE_DMA);
-    } else if (addr >= 0x1d00 && addr < 0x1e00) {
+        ncr_log("T128 status read = %02x, cur bus = %02x, req = %02x, dma = %02x\n",
+                ret, ncr->cur_bus, ncr->cur_bus & BUS_REQ, ncr->mode & MODE_DMA);
+    } else if ((addr >= 0x1d00) && (addr < 0x1e00))
         ret = ncr_read((addr - 0x1d00) >> 5, ncr_dev);
-    } else if (addr >= 0x1e00 && addr < 0x2000) {
-        if (ncr_dev->t128.host_pos >= MIN(512, dev->buffer_length) || ncr->dma_mode != DMA_INITIATOR_RECEIVE) {
+    else if (addr >= 0x1e00 && addr < 0x2000) {
+        if ((ncr_dev->t128.host_pos >= MIN(512, dev->buffer_length)) ||
+            (ncr->dma_mode != DMA_INITIATOR_RECEIVE))
             ret = 0xff;
-        } else {
+        else {
             ret = ncr_dev->t128.buffer[ncr_dev->t128.host_pos++];
 
-            ncr_log("Read transfer, addr = %i, pos = %i\n", addr & 0x1ff, ncr_dev->t128.host_pos);
+            ncr_log("Read transfer, addr = %i, pos = %i\n", addr & 0x1ff,
+                    ncr_dev->t128.host_pos);
 
             if (ncr_dev->t128.host_pos == MIN(512, dev->buffer_length)) {
                 ncr_dev->t128.status &= ~0x04;
-                ncr_log("Transfer busy read, status = %02x, period = %lf\n", ncr_dev->t128.status, ncr_dev->period);
+                ncr_log("Transfer busy read, status = %02x, period = %lf\n",
+                        ncr_dev->t128.status, ncr_dev->period);
                 if (ncr_dev->period == 0.2 || ncr_dev->period == 0.02)
                     timer_on_auto(&ncr_dev->timer, 40.2);
-            } else if (ncr_dev->t128.host_pos < MIN(512, dev->buffer_length) && scsi_device_get_callback(dev) > 100.0)
+            } else if ((ncr_dev->t128.host_pos < MIN(512, dev->buffer_length)) &&
+                       (scsi_device_get_callback(dev) > 100.0))
                 cycles += 100; /*Needed to avoid timer de-syncing with transfers.*/
         }
     }
@@ -1428,23 +1433,25 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
     const scsi_device_t *dev     = &scsi_devices[ncr_dev->bus][ncr->target_id];
 
     addr &= 0x3fff;
-    if (addr >= 0x1800 && addr < 0x1880)
+    if ((addr >= 0x1800) && (addr < 0x1880))
         ncr_dev->t128.ext_ram[addr & 0x7f] = val;
-    else if (addr >= 0x1c00 && addr < 0x1c20) {
+    else if ((addr >= 0x1c00) && (addr < 0x1c20)) {
         if ((val & 0x02) && !(ncr_dev->t128.ctrl & 0x02)) {
             ncr_dev->t128.status |= 0x02;
             ncr_log("Timer fired\n");
         }
         ncr_dev->t128.ctrl = val;
         ncr_log("T128 ctrl write = %02x\n", val);
-    } else if (addr >= 0x1d00 && addr < 0x1e00)
+    } else if ((addr >= 0x1d00) && (addr < 0x1e00))
         ncr_write((addr - 0x1d00) >> 5, val, ncr_dev);
-    else if (addr >= 0x1e00 && addr < 0x2000) {
-        if (ncr_dev->t128.host_pos < MIN(512, dev->buffer_length) && ncr->dma_mode == DMA_SEND) {
+    else if ((addr >= 0x1e00) && (addr < 0x2000)) {
+        if ((ncr_dev->t128.host_pos < MIN(512, dev->buffer_length)) &&
+            (ncr->dma_mode == DMA_SEND)) {
             ncr_dev->t128.buffer[ncr_dev->t128.host_pos] = val;
             ncr_dev->t128.host_pos++;
 
-            ncr_log("Write transfer, addr = %i, pos = %i, val = %02x\n", addr & 0x1ff, ncr_dev->t128.host_pos, val);
+            ncr_log("Write transfer, addr = %i, pos = %i, val = %02x\n",
+                    addr & 0x1ff, ncr_dev->t128.host_pos, val);
 
             if (ncr_dev->t128.host_pos == MIN(512, dev->buffer_length)) {
                 ncr_dev->t128.status &= ~0x04;
@@ -1605,8 +1612,9 @@ ncr_init(const device_t *info)
             ncr_dev->irq               = device_get_config_int("irq");
             ncr_dev->t128.bios_enabled = device_get_config_int("boot");
 
-            rom_init(&ncr_dev->bios_rom, T128_ROM,
-                     ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+            if (ncr_dev->t128.bios_enabled)
+                rom_init(&ncr_dev->bios_rom, T128_ROM,
+                         ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
             mem_mapping_add(&ncr_dev->mapping, ncr_dev->rom_addr, 0x4000,
                             t128_read, NULL, NULL,
@@ -1644,6 +1652,9 @@ ncr_init(const device_t *info)
     } else {
         ncr_dev->t128.status   = 0x04;
         ncr_dev->t128.host_pos = 512;
+
+        if (!ncr_dev->t128.bios_enabled)
+            ncr_dev->t128.status |= 0x80;
     }
     timer_add(&ncr_dev->timer, ncr_callback, ncr_dev, 0);
 
@@ -1893,6 +1904,13 @@ static const device_config_t t128_config[] = {
             { .description = "IRQ 7", .value = 7 },
             { .description = ""                  }
         },
+    },
+    {
+        .name = "boot",
+        .description = "Enable Boot ROM",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 1
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };

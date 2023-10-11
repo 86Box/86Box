@@ -212,7 +212,7 @@ msgid "&Existing image..."
 msgstr "既存のイメージを開く(&E)..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "既存のイメージを開く(書き込み保護)(&W)..."
+msgstr "既存のイメージを開く(書き込み禁止)(&W)..."
 
 msgid "&Record"
 msgstr "録音(&R)"
@@ -311,7 +311,7 @@ msgid "Icon set:"
 msgstr "アイコンセット:"
 
 msgid "Gain"
-msgstr "ゲイン値"
+msgstr "音量"
 
 msgid "File name:"
 msgstr "ファイル名:"
@@ -335,7 +335,7 @@ msgid "Lock to this size"
 msgstr "サイズを固定"
 
 msgid "Machine type:"
-msgstr "マシン タイプ:"
+msgstr "マシンタイプ:"
 
 msgid "Machine:"
 msgstr "マシン:"
@@ -374,7 +374,7 @@ msgid "Enabled (UTC)"
 msgstr "有効(UTC)"
 
 msgid "Dynamic Recompiler"
-msgstr "動的リコンパイラ"
+msgstr "動的再コンパイル"
 
 msgid "Video:"
 msgstr "ビデオカード:"
@@ -638,7 +638,7 @@ msgid " - PAUSED"
 msgstr " - 一時停止"
 
 msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
-msgstr "Ctrl+Alt+PgDnでウィンドウモードに戻ります。"
+msgstr "Ctrl+Alt+PgDnでウィンドウ モードに戻ります。"
 
 msgid "Speed"
 msgstr "速度"
@@ -650,7 +650,7 @@ msgid "ZIP images"
 msgstr "ZIPイメージ"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Boxで使用可能なROMイメージが見つかりませんでした。\n\nROMセットを<a href=\"https://github.com/86Box/roms/releases/latest\">ダウンロード</a>して、「roms」ディレクトリに解凍してください。"
+msgstr "86Boxで使用可能なROMイメージが見つかりません。\n\nROMセットを<a href=\"https://github.com/86Box/roms/releases/latest\">ダウンロード</a>して、roms ディレクトリに解凍してください。"
 
 msgid "(empty)"
 msgstr "(空)"
@@ -671,10 +671,10 @@ msgid "All images"
 msgstr "すべてのイメージ"
 
 msgid "Basic sector images"
-msgstr "基本的なセクターイメージ"
+msgstr "ベーシック セクター イメージ"
 
 msgid "Surface images"
-msgstr "表面イメージ"
+msgstr "サーフェス イメージ"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "roms/machines ディレクトリにROMがないため、マシン「%hs」は使用できません。使用可能なマシンに切り替えます。"
@@ -686,7 +686,7 @@ msgid "Machine"
 msgstr "マシン"
 
 msgid "Display"
-msgstr "画面表示"
+msgstr "ディスプレイ"
 
 msgid "Input devices"
 msgstr "入力デバイス"
@@ -701,28 +701,28 @@ msgid "Ports (COM & LPT)"
 msgstr "ポート (COM/LPT)"
 
 msgid "Storage controllers"
-msgstr "ストレージ コントローラ"
+msgstr "ストレージコントローラ"
 
 msgid "Hard disks"
-msgstr "ハード ディスク"
+msgstr "ハードディスク"
 
 msgid "Floppy & CD-ROM drives"
-msgstr "フロッピー/CD-ROMドライブ"
+msgstr "フロッピー／CD-ROMドライブ"
 
 msgid "Other removable devices"
-msgstr "他のリムーバブル デバイス"
+msgstr "他のリムーバブルデバイス"
 
 msgid "Other peripherals"
 msgstr "他の周辺デバイス"
 
 msgid "Click to capture mouse"
-msgstr "クリックするとマウスをキャプチャします"
+msgstr "左クリックでマウスをキャプチャします"
 
 msgid "Press F8+F12 to release mouse"
 msgstr "F8+F12キーでマウスを解放します"
 
 msgid "Press F8+F12 or middle button to release mouse"
-msgstr "F8+F12キーまたはマウスの中ボタンを押してマウスを解放します"
+msgstr "F8+F12キーまたは中クリックでマウスを解放します"
 
 msgid "Bus"
 msgstr "バス"
@@ -761,7 +761,7 @@ msgid "No PCap devices found"
 msgstr "PCapデバイスがありません"
 
 msgid "Invalid PCap device"
-msgstr "不正なPCapデバイスです"
+msgstr "不正なPCapデバイス"
 
 msgid "Standard 2-button joystick(s)"
 msgstr "標準ジョイスティック(2ボタン)"
@@ -899,7 +899,7 @@ msgid "CD-ROM images"
 msgstr "CD-ROMイメージ"
 
 msgid "%hs Device Configuration"
-msgstr "%hs デバイスの設定"
+msgstr "%hs のデバイス設定"
 
 msgid "Monitor in sleep mode"
 msgstr "モニターのスリープモード"
@@ -911,7 +911,7 @@ msgid "OpenGL options"
 msgstr "OpenGL設定"
 
 msgid "You are loading an unsupported configuration"
-msgstr "サポートされていない設定を読み込んでいます"
+msgstr "読み込んでいる設定がサポートされません"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
 msgstr "選択したマシンに基づくCPUタイプのフィルター機能は、使用中のマシンでは無効になっています。\n\nこれにより、選択したマシンと互換性のないCPUが選択できます。しかし、マシンのBIOSや他のソフトウェアと互換性がない場合があります。\n\nこの設定を有効にすることは公式にはサポートされておらず、バグレポートは無効として中止される可能性があります。"
@@ -935,7 +935,7 @@ msgid "Error initializing renderer"
 msgstr "レンダラーの初期化エラー"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0コア) レンダラーが初期化できませんでした。別のレンダラーを使用してください。"
+msgstr "OpenGL (3.0コア) レンダラーが初期化できません。別のレンダラーを使用してください。"
 
 msgid "Resume execution"
 msgstr "実行を再開"
@@ -944,10 +944,10 @@ msgid "Pause execution"
 msgstr "実行を一時停止"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Ctrl+Alt+DELを押し"
+msgstr "Ctrl+Alt+DELを押す"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Ctrl+Alt+Escを押し"
+msgstr "Ctrl+Alt+Escを押す"
 
 msgid "Hard reset"
 msgstr "ハードリセット"
@@ -965,13 +965,13 @@ msgid "%01i"
 msgstr "%01i"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "MFM/RLLまたはESDIのCD-ROMドライブが存在しません"
+msgstr "MFM/RLLやESDI CD-ROMドライブが存在しません"
 
 msgid "Custom..."
 msgstr "カスタム..."
 
 msgid "Custom (large)..."
-msgstr "カスタム (大型)..."
+msgstr "カスタム (大容量)..."
 
 msgid "Add New Hard Disk"
 msgstr "新規のディスクを追加"
@@ -1181,7 +1181,7 @@ msgid "5.25\" 1.3 GB"
 msgstr "5.25\" 1.3 GB"
 
 msgid "Perfect RPM"
-msgstr "規定のRPM"
+msgstr "既定RPM"
 
 msgid "1% below perfect RPM"
 msgstr "1%低いRPM"

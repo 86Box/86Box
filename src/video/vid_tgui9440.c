@@ -760,10 +760,18 @@ tgui_recalctimings(svga_t *svga)
             case 8:
                 svga->render = svga_render_8bpp_highres;
                 if (tgui->type >= TGUI_9660) {
-                    if ((svga->dispend == 510) || (svga->dispend == 512))
-                        svga->hdisp = 1280;
-                    else if ((svga->dispend == 600) && (svga->hdisp == 800) && svga->interlace)
-                        svga->hdisp = 1600;
+                    if (svga->dispend == ((1024 >> 1) - 2))
+                        svga->dispend += 2;
+                    if (svga->dispend == (1024 >> 1))
+                        svga->hdisp <<= 1;
+                    else if ((svga->hdisp == (1600 >> 1)) && (svga->dispend == (1200 >> 1)) && svga->interlace)
+                        svga->hdisp <<= 1;
+                    else if (svga->hdisp == (1024 >> 1)) {
+                        if (svga->interlace && (svga->dispend == (768 >> 1)))
+                            svga->hdisp <<= 1;
+                        else if (!svga->interlace && (svga->dispend == 768))
+                            svga->hdisp <<= 1;
+                    }
 
                     if (ger22upper & 0x80) {
                         svga->htotal <<= 1;
@@ -799,7 +807,7 @@ tgui_recalctimings(svga_t *svga)
             case 32:
                 svga->render = svga_render_32bpp_highres;
                 if (tgui->type >= TGUI_9660) {
-                    if (svga->hdisp == 1024)
+                    if (!ger22upper)
                         svga->rowoffset <<= 1;
                 }
                 break;
@@ -1399,7 +1407,6 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
     uint32_t        trans_col = (tgui->accel.flags & TGUI_TRANSREV) ? tgui->accel.fg_col : tgui->accel.bg_col;
     uint16_t       *vram_w    = (uint16_t *) svga->vram;
     uint32_t       *vram_l    = (uint32_t *) svga->vram;
-    uint8_t   		ger22upper = (tgui->accel.ger22 >> 8);
 
     if (tgui->accel.bpp == 0) {
         trans_col &= 0xff;
@@ -1455,15 +1462,21 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
         }
     }
 
-    /*For delayed mode switches.*/
-    if (tgui->type == TGUI_9440) {
-        if (tgui->accel.pitch == 800)
-            tgui->accel.pitch += 32;
+    /*See this: https://android.googlesource.com/kernel/tegra/+/android-tegra-flounder-3.10-lollipop-release/drivers/video/tridentfb.c for the pitch*/
+    tgui->accel.pitch = svga->rowoffset;
 
-        if (tgui->accel.bpp == 1) {
-            if (!ger22upper)
-                tgui->accel.pitch = svga->rowoffset << 2;
-        }
+    switch (svga->bpp) {
+        case 8:
+        case 24:
+            tgui->accel.pitch <<= 3;
+            break;
+        case 15:
+        case 16:
+            tgui->accel.pitch <<= 2;
+            break;
+        case 32:
+            tgui->accel.pitch <<= 1;
+            break;
     }
 #if 0
     pclog("TGUI accel command = %x, ger22 = %04x, hdisp = %d, dispend = %d, vtotal = %d, rowoffset = %d, svgabpp = %d, interlace = %d, accelbpp = %d, pitch = %d.\n", tgui->accel.command, tgui->accel.ger22, svga->hdisp, svga->dispend, svga->vtotal, svga->rowoffset, svga->bpp, svga->interlace, tgui->accel.bpp, tgui->accel.pitch);
@@ -2056,7 +2069,6 @@ tgui_accel_out(uint16_t addr, uint8_t val, void *priv)
     switch (addr) {
         case 0x2122:
             tgui->accel.ger22 = (tgui->accel.ger22 & 0xff00) | val;
-            tgui->accel.pitch = 0x200 << ((val >> 2) & 3);
             switch (svga->bpp) {
                 case 8:
                 case 24:
@@ -2076,7 +2088,8 @@ tgui_accel_out(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x2123:
-            //pclog("Pitch IO23: val = %02x, rowoffset = %x, pitch = %d.\n", val, svga->rowoffset, tgui->accel.pitch);
+            tgui->accel.ger22 = (tgui->accel.ger22 & 0xff) | (val << 8);
+            //pclog("Pitch IO23: val = %02x, rowoffset = %x.\n", tgui->accel.ger22, svga->crtc[0x13]);
             switch (svga->bpp) {
                 case 8:
                 case 24:
@@ -2090,24 +2103,6 @@ tgui_accel_out(uint16_t addr, uint8_t val, void *priv)
                     tgui->accel.bpp = 3;
                     break;
             }
-            tgui->accel.ger22 = (tgui->accel.ger22 & 0xff) | (val << 8);
-            if ((val & 0x80) || ((val & 0xc0) == 0x40))
-                tgui->accel.pitch = svga->rowoffset << 3;
-            else if (tgui->accel.pitch <= 1024) {
-                tgui->accel.pitch = svga->rowoffset << 3;
-                if (!val)
-                    tgui->accel.pitch = 1024;
-            }
-
-            if (tgui->accel.pitch == 800)
-                tgui->accel.pitch += 32;
-
-            if (tgui->accel.bpp == 1)
-                tgui->accel.pitch >>= 1;
-            else if (tgui->accel.bpp == 3)
-                tgui->accel.pitch >>= 2;
-
-            svga_recalctimings(svga);
             break;
 
         case 0x2124: /*Command*/
@@ -2724,59 +2719,11 @@ tgui_accel_write(uint32_t addr, uint8_t val, void *priv)
 
     switch (addr & 0xff) {
         case 0x22:
-            tgui->accel.ger22 = (tgui->accel.ger22 & 0xff00) | val;
-            tgui->accel.pitch = 0x200 << ((val >> 2) & 3);
-            switch (svga->bpp) {
-                case 8:
-                case 24:
-                    tgui->accel.bpp = 0;
-                    break;
-                case 15:
-                case 16:
-                    tgui->accel.bpp = 1;
-                    break;
-                case 32:
-                    tgui->accel.bpp = 3;
-                    break;
-
-                default:
-                    break;
-            }
+            tgui_accel_out(0x2122, val, tgui);
             break;
 
         case 0x23:
-            switch (svga->bpp) {
-                case 8:
-                case 24:
-                    tgui->accel.bpp = 0;
-                    break;
-                case 15:
-                case 16:
-                    tgui->accel.bpp = 1;
-                    break;
-                case 32:
-                    tgui->accel.bpp = 3;
-                    break;
-            }
-            tgui->accel.ger22 = (tgui->accel.ger22 & 0xff) | (val << 8);
-            if ((val & 0x80) || ((val & 0xc0) == 0x40))
-                tgui->accel.pitch = svga->rowoffset << 3;
-            else if (tgui->accel.pitch <= 1024) {
-                tgui->accel.pitch = svga->rowoffset << 3;
-                if (!val)
-                    tgui->accel.pitch = 1024;
-            }
-
-            if (tgui->accel.pitch == 800)
-                tgui->accel.pitch += 32;
-
-            if (tgui->accel.bpp == 1)
-                tgui->accel.pitch >>= 1;
-            else if (tgui->accel.bpp == 3)
-                tgui->accel.pitch >>= 2;
-
-            //pclog("Pitch MM23: fullval = %04x, rowoffset = %x, pitch = %d.\n", tgui->accel.ger22, svga->rowoffset, tgui->accel.pitch);
-            svga_recalctimings(svga);
+            tgui_accel_out(0x2123, val, tgui);
             break;
 
         case 0x24: /*Command*/
