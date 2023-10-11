@@ -1960,18 +1960,17 @@ stos(int bits)
 static void
 ins(int bits)
 {
-    cpu_state.eaaddr = DI;
+    cpu_state.eaaddr = DX;
     cpu_io(bits, 0, cpu_state.eaaddr);
-    DI = string_increment(bits);
+    stos(bits);
 }
 
 static void
 outs(int bits)
 {
-    cpu_state.eaaddr = SI;
-    cpu_data         = (bits == 16) ? AX : AL;
+    lods(bits);
+    cpu_state.eaaddr = DX;
     cpu_io(bits, 1, cpu_state.eaaddr);
-    SI = string_increment(bits);
 }
 
 static void
@@ -2274,7 +2273,6 @@ execx86(int cycs)
                     bits = 8 << (opcode & 1);
                     if (rep_start()) {
                         ins(bits);
-                        set_accum(bits, cpu_data);
                         wait(3, 0);
 
                         if (in_rep != 0) {
@@ -2304,7 +2302,6 @@ execx86(int cycs)
                     handled = 1;
                     bits = 8 << (opcode & 1);
                     if (rep_start()) {
-                        cpu_data = AX;
                         wait(1, 0);
                         outs(bits);
                         if (in_rep != 0) {
