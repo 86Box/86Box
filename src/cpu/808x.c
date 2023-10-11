@@ -1960,18 +1960,18 @@ stos(int bits)
 static void
 ins(int bits)
 {
-    cpu_state.eaaddr = SI;
+    cpu_state.eaaddr = DI;
     cpu_io(bits, 0, cpu_state.eaaddr);
-    SI = string_increment(bits);
+    DI = string_increment(bits);
 }
 
 static void
 outs(int bits)
 {
-    cpu_state.eaaddr = DI;
+    cpu_state.eaaddr = SI;
     cpu_data         = (bits == 16) ? AX : AL;
     cpu_io(bits, 1, cpu_state.eaaddr);
-    DI = string_increment(bits);
+    SI = string_increment(bits);
 }
 
 static void
