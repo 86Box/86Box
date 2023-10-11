@@ -31,8 +31,6 @@ Performance may vary depending on both host and guest configuration. Most emulat
 It is also recommended to use a manager application with 86Box for easier handling of multiple virtual machines.
 
 * [86Box Manager](https://github.com/86Box/86BoxManager) by [Overdoze](https://github.com/daviunic) (Windows only)
-* [86Box Manager Lite](https://github.com/insanemal/86box_manager_py) by [Insanemal](https://github.com/insanemal)
-* [WinBox for 86Box](https://github.com/86Box/WinBox-for-86Box) by Laci bá' (Windows only)
 * [Linbox-qt5](https://github.com/Dungeonseeker/linbox-qt5) by Dungeonseeker (Linux focused, should work on Windows though untested)
 * [MacBox for 86Box](https://github.com/Moonif/MacBox) by [Moonif](https://github.com/Moonif) (MacOS only)
 
