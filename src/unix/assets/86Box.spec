@@ -121,9 +121,5 @@ popd
 %{_datadir}/%{name}/roms
 
 %changelog
-<<<<<<< HEAD
-* Sat Aug 26 2023 Robert de Rooy <robert.de.rooy[AT]gmail.com> 4.1-1
-=======
-* Thu Oct 12 2023 Robert de Rooy <robert.de.rooy[AT]gmail.com> 4.0.1-1
->>>>>>> origin/master
+* Thu Oct 12 2023 Robert de Rooy <robert.de.rooy[AT]gmail.com> 4.1-1
 - Bump release
