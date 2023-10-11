@@ -101,6 +101,7 @@ typedef struct mach_t {
     uint8_t  bank_r;
     uint16_t shadow_set;
     int ext_on;
+    int ati_mode;
 
     struct {
         uint8_t  line_idx;
@@ -3707,6 +3708,7 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
                 mach_log("ATI 8514/A: (0x4ae9) val = %04x, ext = %d.\n", dev->accel.advfunc_cntl & 0x01, mach->ext_on);
                 mach32_updatemapping(mach);
             }
+            mach->ati_mode = 0;
             svga_recalctimings(svga);
             break;
 
@@ -3832,9 +3834,11 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
             WRITE8(port, mach->accel.clock_sel, val);
             if (port & 1) {
                 dev->on = mach->accel.clock_sel & 0x01;
+				mach->ext_on = dev->on;
                 vga_on = !dev->on;
-                pclog("ATI 8514/A: (0x4aef) val = %04x, ext = %d.\n", mach->accel.clock_sel & 0x01, mach->ext_on);
+                mach_log("ATI 8514/A: (0x4aef) val = %04x, ext = %d.\n", mach->accel.clock_sel & 0x01, mach->ext_on);
             }
+			mach->ati_mode = 1;
             svga_recalctimings(svga);
             break;
 
@@ -3932,7 +3936,11 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
                         break;
                 }
                 svga_set_ramdac_type(svga, !!(mach->accel.ext_ge_config & 0x4000));
-                mach_log("7AEE write val = %04x.\n", mach->accel.ext_ge_config);
+                if (port & 1) {
+                    mach->ati_mode = 1;
+                    mach_log("ATI 8514/A: (0x%04x) val = %04x.\n", port, val);
+                    mach32_updatemapping(mach);
+                }
             }
             svga_recalctimings(svga);
             break;
@@ -5117,7 +5125,7 @@ mach32_updatemapping(mach_t *mach)
         mach->ap_size = 4;
         mem_mapping_disable(&mach->mmio_linear_mapping);
     }
-    if (mach->ext_on && (dev->local >= 2)) {
+    if (mach->ext_on && (dev->local >= 2) && mach->ati_mode) {
         mem_mapping_set_handler(&svga->mapping, mach32_read, mach32_readw, mach32_readl, mach32_write, mach32_writew, mach32_writel);
         mem_mapping_set_p(&svga->mapping, mach);
     } else {
@@ -5553,20 +5561,25 @@ mach32_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
         case PCI_REG_COMMAND:
             mach->pci_regs[PCI_REG_COMMAND] = val & 0x27;
             if (val & PCI_COMMAND_IO) {
+                io_removehandler(0x02ea, 4,  mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
                 io_removehandler(0x03c0, 32, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
+                io_sethandler(0x02ea, 4,  mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
                 io_sethandler(0x03c0, 32, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
-            } else
+            } else {
                 io_removehandler(0x03c0, 32, mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
-
+                io_removehandler(0x02ea, 4,  mach_in, NULL, NULL, mach_out, NULL, NULL, mach);
+            }
             mach32_updatemapping(mach);
             break;
 
         case 0x12:
             mach->linear_base = (mach->linear_base & 0xff000000) | ((val & 0xc0) << 16);
+            mach->ati_mode = 1;
             mach32_updatemapping(mach);
             break;
         case 0x13:
             mach->linear_base = (mach->linear_base & 0xc00000) | (val << 24);
+            mach->ati_mode = 1;
             mach32_updatemapping(mach);
             break;
 
