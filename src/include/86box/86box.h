@@ -155,8 +155,10 @@ extern int    pit_mode;                     /* (C) force setting PIT mode */
 extern int    fm_driver;                    /* (C) select FM sound driver */
 
 /* Keyboard variables for future key combination redefinition. */
-extern uint16_t key_prefix_1;
-extern uint16_t key_prefix_2;
+extern uint16_t key_prefix_1_1;
+extern uint16_t key_prefix_1_2;
+extern uint16_t key_prefix_2_1;
+extern uint16_t key_prefix_2_2;
 extern uint16_t key_uncapture_1;
 extern uint16_t key_uncapture_2;
 
