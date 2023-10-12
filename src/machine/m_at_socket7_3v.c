@@ -373,7 +373,7 @@ machine_at_ms5119_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/ms5119/A37E.ROM",
+    ret = bios_load_linear("roms/machines/ms5119/A37EB.ROM",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
