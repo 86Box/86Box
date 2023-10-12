@@ -78,7 +78,6 @@ extern "C" {
 extern uint32_t lang_sys; /* (-) system language code */
 
 extern int dump_on_exit;        /* (O) dump regs on exit*/
-extern int do_dump_config;      /* (O) dump cfg after load */
 extern int start_in_fullscreen; /* (O) start in fullscreen */
 #ifdef _WIN32
 extern int force_debug; /* (O) force debug output */
