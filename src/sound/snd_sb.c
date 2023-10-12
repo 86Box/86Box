@@ -3861,7 +3861,7 @@ const device_t sb_16_device = {
 };
 
 const device_t sb_vibra16s_onboard_device = {
-    .name          = "Sound Blaster Vibra 16S (On-Board)",
+    .name          = "Sound Blaster ViBRA 16S (On-Board)",
     .internal_name = "sb_vibra16s_onboard",
     .flags         = DEVICE_ISA | DEVICE_AT,
     .local         = FM_YMF289B,
@@ -3875,7 +3875,7 @@ const device_t sb_vibra16s_onboard_device = {
 };
 
 const device_t sb_vibra16s_device = {
-    .name          = "Sound Blaster Vibra 16S",
+    .name          = "Sound Blaster ViBRA 16S",
     .internal_name = "sb_vibra16s",
     .flags         = DEVICE_ISA | DEVICE_AT,
     .local         = FM_YMF289B,
@@ -3889,7 +3889,7 @@ const device_t sb_vibra16s_device = {
 };
 
 const device_t sb_vibra16xv_device = {
-    .name          = "Sound Blaster Vibra 16XV",
+    .name          = "Sound Blaster ViBRA 16XV",
     .internal_name = "sb_vibra16xv",
     .flags         = DEVICE_ISA | DEVICE_AT,
     .local         = 0,
@@ -3903,7 +3903,7 @@ const device_t sb_vibra16xv_device = {
 };
 
 const device_t sb_vibra16c_onboard_device = {
-    .name          = "Sound Blaster Vibra 16C (On-Board)",
+    .name          = "Sound Blaster ViBRA 16C (On-Board)",
     .internal_name = "sb_vibra16c_onboard",
     .flags         = DEVICE_ISA | DEVICE_AT,
     .local         = 1,
@@ -3917,7 +3917,7 @@ const device_t sb_vibra16c_onboard_device = {
 };
 
 const device_t sb_vibra16c_device = {
-    .name          = "Sound Blaster Vibra 16C",
+    .name          = "Sound Blaster ViBRA 16C",
     .internal_name = "sb_vibra16c",
     .flags         = DEVICE_ISA | DEVICE_AT,
     .local         = 1,
