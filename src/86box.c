@@ -525,6 +525,7 @@ usage:
 #ifdef USE_INSTRUMENT
             printf("-J or --instrument name - set 'name' to be the profiling instrument\n");
 #endif
+            printf("-K or --keycodes codes  - set 'codes' to be the uncapture combination\n");
             printf("-L or --logfile path    - set 'path' to be the logfile\n");
             printf("-M or --dumpmissing     - dump missing machines and video cards\n");
             printf("-N or --noconfirm       - do not ask for confirmation on quit\n");
@@ -610,6 +611,13 @@ usage:
             clear_flash = 1;
         } else if (!strcasecmp(argv[c], "--clearnvr") || !strcasecmp(argv[c], "-Q")) {
             clear_cmos = 1;
+        } else if (!strcasecmp(argv[c], "--keycodes") || !strcasecmp(argv[c], "-K")) {
+            if ((c + 1) == argc)
+                goto usage;
+
+            sscanf(argv[++c], "%03hX,%03hX,%03hX,%03hX,%03hX,%03hX",
+                   &key_prefix_1_1, &key_prefix_1_2, &key_prefix_2_1, &key_prefix_2_2,
+                   &key_uncapture_1, &key_uncapture_2);
         } else if (!strcasecmp(argv[c], "--clearboth") || !strcasecmp(argv[c], "-X")) {
             clear_cmos = 1;
             clear_flash = 1;
