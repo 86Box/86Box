@@ -146,13 +146,19 @@ extern int      enable_discord;             /* (C) enable Discord integration */
 
 extern int    fixed_size_x;
 extern int    fixed_size_y;
-extern double mouse_sensitivity;        /* (C) Mouse sensitivity scale */
+extern double mouse_sensitivity;            /* (C) Mouse sensitivity scale */
 #ifdef _Atomic
-extern _Atomic double mouse_x_error;    /* Mouse error accumulator - Y */
-extern _Atomic double mouse_y_error;    /* Mouse error accumulator - Y */
+extern _Atomic double mouse_x_error;        /* Mouse error accumulator - Y */
+extern _Atomic double mouse_y_error;        /* Mouse error accumulator - Y */
 #endif
-extern int    pit_mode;                 /* (C) force setting PIT mode */
-extern int    fm_driver;                /* (C) select FM sound driver */
+extern int    pit_mode;                     /* (C) force setting PIT mode */
+extern int    fm_driver;                    /* (C) select FM sound driver */
+
+/* Keyboard variables for future key combination redefinition. */
+extern uint16_t key_prefix_1;
+extern uint16_t key_prefix_2;
+extern uint16_t key_uncapture_1;
+extern uint16_t key_uncapture_2;
 
 extern char exe_path[2048];    /* path (dir) of executable */
 extern char usr_path[1024];    /* path (dir) of user data */
