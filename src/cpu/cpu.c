@@ -1920,7 +1920,10 @@ cpu_CPUID(void)
                 EDX = 0x49656e69;
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
-                EAX = CPUID;
+                if ((CPUID == 0x0436) && (cr0 & (1 << 29)))
+                    EAX = 0x0470;
+                else
+                    EAX = CPUID;
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME;
             } else
