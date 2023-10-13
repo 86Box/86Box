@@ -68,7 +68,6 @@ typedef struct _piix_ {
     uint8_t        no_mirq0;
     uint8_t        regs[4][256];
     uint8_t        readout_regs[256];
-    uint8_t        board_config[2];
     uint16_t       func0_id;
     uint16_t       nvr_io_base;
     uint16_t       acpi_io_base;
@@ -1189,9 +1188,7 @@ board_write(uint16_t port, uint8_t val, void *priv)
 {
     piix_t *dev = (piix_t *) priv;
 
-    if (port == 0x0078)
-        dev->board_config[0] = val;
-    else if (port == 0x00e0)
+    if (port == 0x00e0)
         dev->cur_readout_reg = val;
     else if (port == 0x00e1)
         dev->readout_regs[dev->cur_readout_reg] = val;
@@ -1203,11 +1200,7 @@ board_read(uint16_t port, void *priv)
     const piix_t *dev = (piix_t *) priv;
     uint8_t       ret = 0x64;
 
-    if (port == 0x0078)
-        ret = dev->board_config[0];
-    else if (port == 0x0079)
-        ret = dev->board_config[1];
-    else if (port == 0x00e0)
+    if (port == 0x00e0)
         ret = dev->cur_readout_reg;
     else if (port == 0x00e1)
         ret = dev->readout_regs[dev->cur_readout_reg];
@@ -1662,36 +1655,7 @@ piix_init(const device_t *info)
     else if (cpu_dmulti > 2.5)
         dev->readout_regs[1] |= 0x80;
 
-    io_sethandler(0x0078, 0x0002, board_read, NULL, NULL, board_write, NULL, NULL, dev);
     io_sethandler(0x00e0, 0x0002, board_read, NULL, NULL, board_write, NULL, NULL, dev);
-
-    dev->board_config[0] = 0xff;
-    /* Register 0x0079: */
-    /* Bit 7: 0 = Clear password, 1 = Keep password. */
-    /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
-    /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
-    /* Bit 4: External CPU clock (Switch 8). */
-    /* Bit 3: External CPU clock (Switch 7). */
-    /*        50 MHz: Switch 7 = Off, Switch 8 = Off. */
-    /*        60 MHz: Switch 7 = On, Switch 8 = Off. */
-    /*        66 MHz: Switch 7 = Off, Switch 8 = On. */
-    /* Bit 2: 0 = On-board audio absent, 1 = On-board audio present. */
-    /* Bit 1: 0 = Soft-off capable power supply present, 1 = Soft-off capable power supply absent. */
-    /* Bit 0: 0 = 1.5x multiplier, 1 = 2x multiplier (Switch 6). */
-    /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
-    dev->board_config[1] = 0xe0;
-
-    if (cpu_busspeed <= 50000000)
-        dev->board_config[1] |= 0x10;
-    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
-        dev->board_config[1] |= 0x18;
-    else if (cpu_busspeed > 60000000)
-        dev->board_config[1] |= 0x00;
-
-    if (cpu_dmulti <= 1.5)
-        dev->board_config[1] |= 0x01;
-    else
-        dev->board_config[1] |= 0x00;
 
 #if 0
     device_add(&i8254_sec_device);

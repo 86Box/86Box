@@ -16,11 +16,6 @@
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  */
-
-#include <86box/thread.h>
-#include <86box/vid_8514a.h>
-#include <86box/vid_xga.h>
-
 #ifndef VIDEO_SVGA_H
 #    define VIDEO_SVGA_H
 
@@ -58,8 +53,6 @@ typedef union {
 } latch_t;
 
 typedef struct svga_t {
-    ibm8514_t     dev8514;
-    xga_t         xga;
     mem_mapping_t mapping;
 
     uint8_t fast;
@@ -269,11 +262,14 @@ typedef struct svga_t {
 
     /* Pointer to monitor */
     monitor_t *monitor;
+
+    void *  dev8514;
+    void *  xga;
 } svga_t;
 
 extern int vga_on;
 
-extern void    ibm8514_poll(ibm8514_t *dev, svga_t *svga);
+extern void    ibm8514_poll(void *priv, svga_t *svga);
 extern void    ibm8514_recalctimings(svga_t *svga);
 extern uint8_t ibm8514_ramdac_in(uint16_t port, void *priv);
 extern void    ibm8514_ramdac_out(uint16_t port, uint8_t val, void *priv);
@@ -283,7 +279,7 @@ extern void    ibm8514_accel_out_pixtrans(svga_t *svga, uint16_t port, uint16_t 
 extern void    ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, uint8_t ssv, int len);
 extern void    ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, int len);
 
-extern void xga_poll(xga_t *xga, svga_t *svga);
+extern void xga_poll(void *priv, svga_t *svga);
 extern void xga_recalctimings(svga_t *svga);
 
 extern int  svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,

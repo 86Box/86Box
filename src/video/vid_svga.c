@@ -39,6 +39,8 @@
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/video.h>
+#include <86box/vid_8514a.h>
+#include <86box/vid_xga.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/vid_xga_device.h>
@@ -110,10 +112,13 @@ void
 svga_out(uint16_t addr, uint8_t val, void *priv)
 {
     svga_t    *svga = (svga_t *) priv;
-    ibm8514_t *dev = &svga->dev8514;
-    xga_t     *xga = &svga->xga;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    xga_t     *xga = (xga_t *) svga->xga;
     uint8_t    o;
     uint8_t    index;
+
+    if (!dev && (addr >= 0x2ea) && (addr <= 0x2ed))
+        return;
 
     switch (addr) {
         case 0x2ea:
@@ -357,9 +362,12 @@ uint8_t
 svga_in(uint16_t addr, void *priv)
 {
     svga_t    *svga = (svga_t *) priv;
-    ibm8514_t *dev = &svga->dev8514;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
     uint8_t    index;
     uint8_t    ret = 0xff;
+
+    if (!dev && (addr >= 0x2ea) && (addr <= 0x2ed))
+        return ret;
 
     switch (addr) {
         case 0x2ea:
@@ -512,8 +520,8 @@ svga_in(uint16_t addr, void *priv)
 void
 svga_set_ramdac_type(svga_t *svga, int type)
 {
-    ibm8514_t *dev = &svga->dev8514;
-    xga_t *xga = &svga->xga;
+    ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
+    xga_t *xga = (xga_t *) svga->xga;
 
     if (svga->ramdac_type != type) {
         svga->ramdac_type = type;
@@ -548,7 +556,7 @@ svga_set_ramdac_type(svga_t *svga, int type)
 void
 svga_recalctimings(svga_t *svga)
 {
-    const ibm8514_t *dev = &svga->dev8514;
+    const ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
     double           crtcconst;
     double           _dispontime;
     double           _dispofftime;
@@ -716,12 +724,12 @@ svga_recalctimings(svga_t *svga)
         svga->recalctimings_ex(svga);
     }
 
-    if (ibm8514_active) {
+    if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (!dev->local)
             ibm8514_recalctimings(svga);
     }
 
-    if (xga_active)
+    if (xga_active && (svga->xga != NULL))
         xga_recalctimings(svga);
 
     if (svga->hdisp >= 2048)
@@ -816,8 +824,8 @@ void
 svga_poll(void *priv)
 {
     svga_t    *svga = (svga_t *) priv;
-    ibm8514_t *dev  = &svga->dev8514;
-    xga_t     *xga  = &svga->xga;
+    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
+    xga_t     *xga  = (xga_t *) svga->xga;
     uint32_t   x;
     uint32_t   blink_delay;
     int        wx;
@@ -825,14 +833,16 @@ svga_poll(void *priv)
     int        ret;
     int        old_ma;
 
-    if (ibm8514_active && dev->on) {
-        ibm8514_poll(dev, svga);
-        return;
-    }
-    if (xga_active && xga->on) {
-        if ((xga->disp_cntl_2 & 7) >= 2) {
-            xga_poll(xga, svga);
+    if (!svga->override) {
+        if (ibm8514_active && dev->on) {
+            ibm8514_poll(dev, svga);
             return;
+        }
+        if (xga_active && xga->on) {
+            if ((xga->disp_cntl_2 & 7) >= 2) {
+                xga_poll(xga, svga);
+                return;
+            }
         }
     }
 
@@ -1229,7 +1239,7 @@ static __inline void
 svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
 {
     svga_t *svga       = (svga_t *) priv;
-    xga_t  *xga        = &svga->xga;
+    xga_t  *xga        = (xga_t *) svga->xga;
     int     writemask2 = svga->writemask;
     int     reset_wm   = 0;
     latch_t vall;
@@ -1449,7 +1459,7 @@ static __inline uint8_t
 svga_read_common(uint32_t addr, uint8_t linear, void *priv)
 {
     svga_t  *svga       = (svga_t *) priv;
-    xga_t   *xga        = &svga->xga;
+    xga_t   *xga        = (xga_t *) svga->xga;
     uint32_t latch_addr = 0;
     int      readplane  = svga->readplane;
     uint8_t  count;

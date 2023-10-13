@@ -183,7 +183,7 @@ isapnp_reset_ld_config(isapnp_device_t *ld)
 
     /* Populate configuration registers. */
     ld->regs[0x30] = !!config->activate;
-    uint8_t reg_base;
+    uint8_t  reg_base;
     uint32_t size;
     for (uint8_t i = 0; i < 4; i++) {
         reg_base               = 0x40 + (8 * i);
@@ -795,22 +795,28 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
 #ifdef ENABLE_ISAPNP_LOG
     uint16_t vendor = (card->rom[0] << 8) | card->rom[1];
     isapnp_log("ISAPnP: Parsing ROM resources for card %c%c%c%02X%02X (serial %08X)\n", '@' + ((vendor >> 10) & 0x1f), '@' + ((vendor >> 5) & 0x1f), '@' + (vendor & 0x1f), card->rom[2], card->rom[3], (card->rom[7] << 24) | (card->rom[6] << 16) | (card->rom[5] << 8) | card->rom[4]);
+    const char *df_priority[]  = { "good", "acceptable", "sub-optimal", "unknown priority" };
+    const char *mem_control[]  = { "8-bit", "16-bit", "8/16-bit", "32-bit" };
+    const char *dma_transfer[] = { "8-bit", "8/16-bit", "16-bit", "unknown" };
+    const char *dma_speed[]    = { "compatibility", "Type A", "Type B", "Type F" };
 #endif
     uint16_t         i        = 9;
     uint8_t          existing = 0;
-    uint8_t          ldn = 0;
+    uint8_t          ldn      = 0;
     uint8_t          res;
-    uint8_t          in_df = 0;
-    uint8_t          irq = 0;
-    uint8_t          io = 0;
-    uint8_t          mem_range = 0;
-    uint8_t          mem_range_32 = 0;
-    uint8_t          irq_df = 0;
-    uint8_t          io_df = 0;
-    uint8_t          mem_range_df = 0;
+    uint8_t          in_df           = 0;
+    uint8_t          irq             = 0;
+    uint8_t          dma             = 0;
+    uint8_t          io              = 0;
+    uint8_t          mem_range       = 0;
+    uint8_t          mem_range_32    = 0;
+    uint8_t          irq_df          = 0;
+    uint8_t          dma_df          = 0;
+    uint8_t          io_df           = 0;
+    uint8_t          mem_range_df    = 0;
     uint8_t          mem_range_32_df = 0;
     uint32_t         len;
-    isapnp_device_t *ld = NULL;
+    isapnp_device_t *ld      = NULL;
     isapnp_device_t *prev_ld = NULL;
 
     /* Check if this is an existing card which already has logical devices.
@@ -838,7 +844,10 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                             break;
                         }
 
-                        isapnp_log("ISAPnP: >>%s Memory range %d uses upper limit = ", in_df ? ">" : "", mem_range);
+                        isapnp_log("ISAPnP: >>%s Memory range %d with %d bytes at %06X-%06X, align %d",
+                                   in_df ? ">" : "", mem_range,
+                                   *((uint16_t *) &card->rom[i + 10]) << 8, *((uint16_t *) &card->rom[i + 4]) << 8, ((card->rom[i + 3] & 0x4) ? 0 : (*((uint16_t *) &card->rom[i + 4]) << 8)) + (*((uint16_t *) &card->rom[i + 6]) << 8),
+                                   (*((uint16_t *) &card->rom[i + 8]) + 1) << 16);
                         res = 1 << mem_range;
                         mem_range++;
                     } else {
@@ -852,18 +861,27 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                             break;
                         }
 
-                        isapnp_log("ISAPnP: >>%s 32-bit memory range %d uses upper limit = ", in_df ? ">" : "", mem_range_32);
+                        isapnp_log("ISAPnP: >>%s 32-bit memory range %d with %d bytes at %08X-%08X, align %d", in_df ? ">" : "", mem_range_32,
+                                   *((uint32_t *) &card->rom[i + 16]) << 8, *((uint32_t *) &card->rom[i + 4]) << 8, ((card->rom[i + 3] & 0x4) ? 0 : (*((uint32_t *) &card->rom[i + 4]) << 8)) + (*((uint32_t *) &card->rom[i + 8]) << 8),
+                                   *((uint32_t *) &card->rom[i + 12]));
                         res = 1 << (4 + mem_range_32);
                         mem_range_32++;
                     }
 
-                    if (card->rom[i + 3] & 0x4) {
-                        isapnp_log("yes\n");
+#ifdef ENABLE_ISAPNP_LOG
+                    isapnp_log(" bytes, %swritable, %sread cacheable, %s, %sshadowable, %sexpansion ROM\n",
+                               (card->rom[i + 3] & 0x01) ? "not " : "",
+                               (card->rom[i + 3] & 0x02) ? "not " : "",
+                               (card->rom[i + 3] & 0x04) ? "upper limit" : "range length",
+                               mem_control[(card->rom[i + 3] >> 3) & 0x03],
+                               (card->rom[i + 3] & 0x20) ? "not " : "",
+                               (card->rom[i + 3] & 0x40) ? "not " : "");
+#endif
+
+                    if (card->rom[i + 3] & 0x4)
                         ld->mem_upperlimit |= res;
-                    } else {
-                        isapnp_log("no\n");
+                    else
                         ld->mem_upperlimit &= ~res;
-                    }
 
                     break;
 
@@ -874,14 +892,11 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                     isapnp_log("ISAPnP: >%s ANSI identifier: \"%s\"\n", ldn ? ">" : "", &card->rom[i + 3]);
                     card->rom[i + 3 + len] = res;
                     break;
+#endif
 
                 default:
                     isapnp_log("ISAPnP: >%s%s Large resource %02X (length %d)\n", ldn ? ">" : "", in_df ? ">" : "", res, (card->rom[i + 2] << 8) | card->rom[i + 1]);
                     break;
-#else
-                default:
-                    break;
-#endif
             }
 
             i += 3; /* header */
@@ -890,7 +905,13 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
             len = card->rom[i] & 0x07;
 
             switch (res) {
-                case 0x02:
+#ifdef ENABLE_ISAPNP_LOG
+                case 0x01: /* PnP version */
+                    isapnp_log("ISAPnP: > PnP version %d.%d, vendor-specific version %02X\n", card->rom[i + 1] >> 4, card->rom[i + 1] & 0x0f, card->rom[i + 2]);
+                    break;
+#endif
+
+                case 0x02: /* logical device */
 #ifdef ENABLE_ISAPNP_LOG
                     vendor = (card->rom[i + 1] << 8) | card->rom[i + 2];
                     isapnp_log("ISAPnP: > Logical device %02X: %c%c%c%02X%02X\n", ldn, '@' + ((vendor >> 10) & 0x1f), '@' + ((vendor >> 5) & 0x1f), '@' + (vendor & 0x1f), card->rom[i + 3], card->rom[i + 4]);
@@ -931,7 +952,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                     ld->number = ldn++;
 
                     /* Start the position counts over. */
-                    irq = io = mem_range = mem_range_32 = irq_df = io_df = mem_range_df = mem_range_32_df = 0;
+                    irq = dma = io = mem_range = mem_range_32 = irq_df = dma_df = io_df = mem_range_df = mem_range_32_df = 0;
 
                     break;
 
@@ -963,7 +984,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                     else            /* specific */
                         res = card->rom[i + 3] & 0x0f;
 
-                    isapnp_log("ISAPnP: >>%s IRQ index %d interrupt types = %01X\n", in_df ? ">" : "", irq, res);
+                    isapnp_log("ISAPnP: >>%s IRQ index %d with mask %04X, types %01X\n", in_df ? ">" : "", irq, *((uint16_t *) &card->rom[i + 1]), res);
 
                     ld->irq_types &= ~(0x0f << (4 * irq));
                     ld->irq_types |= res << (4 * irq);
@@ -972,24 +993,39 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
 
                     break;
 
+#ifdef ENABLE_ISAPNP_LOG
+                case 0x05: /* DMA */
+                    isapnp_log("ISAPnP: >>%s DMA index %d with mask %02X, %s, %sbus master, %scount by byte, %scount by word, %s speed\n", in_df ? ">" : "", dma++, card->rom[i + 1],
+                               dma_transfer[card->rom[i + 2] & 3],
+                               (card->rom[i + 2] & 0x04) ? "not " : "",
+                               (card->rom[i + 2] & 0x08) ? "not " : "",
+                               (card->rom[i + 2] & 0x10) ? "not " : "",
+                               dma_speed[(card->rom[i + 2] >> 5) & 3]);
+                    break;
+#endif
+
                 case 0x06: /* start dependent function */
                     if (!ld) {
                         isapnp_log("ISAPnP: >> Start dependent function with no logical device\n");
                         break;
                     }
 
-                    isapnp_log("ISAPnP: >> Start dependent function: %s\n", (((len == 0) || (card->rom[i + 1] == 1)) ? "acceptable" : ((card->rom[i + 1] == 0) ? "good" : ((card->rom[i + 1] == 2) ? "sub-optimal" : "unknown priority"))));
+#ifdef ENABLE_ISAPNP_LOG
+                    isapnp_log("ISAPnP: >> Start dependent function: %s\n", df_priority[(len < 1) ? 1 : (card->rom[i + 1] & 3)]);
+#endif
 
                     if (in_df) {
                         /* We're in a dependent function and this is the next one starting.
                            Walk positions back to the saved values. */
                         irq          = irq_df;
+                        dma          = dma_df;
                         io           = io_df;
                         mem_range    = mem_range_df;
                         mem_range_32 = mem_range_32_df;
                     } else {
                         /* Save current positions to restore at the next DF. */
                         irq_df          = irq;
+                        dma_df          = dma;
                         io_df           = io;
                         mem_range_df    = mem_range;
                         mem_range_32_df = mem_range_32;
@@ -1014,7 +1050,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                         break;
                     }
 
-                    isapnp_log("ISAPnP: >>%s I/O range %d %d-bit decode, %d ports\n", in_df ? ">" : "", io, (card->rom[i + 1] & 0x01) ? 16 : 10, card->rom[i + 7]);
+                    isapnp_log("ISAPnP: >>%s I/O range %d with %d ports at %04X-%04X, align %d, %d-bit decode\n", in_df ? ">" : "", io, card->rom[i + 7], *((uint16_t *) &card->rom[i + 2]), *((uint16_t *) &card->rom[i + 4]), card->rom[i + 6], (card->rom[i + 1] & 0x01) ? 16 : 10);
 
                     if (card->rom[i + 1] & 0x01)
                         ld->io_16bit |= 1 << io;
@@ -1042,9 +1078,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
                     break;
 
                 default:
-#ifdef ENABLE_ISAPNP_LOG
                     isapnp_log("ISAPnP: >%s%s Small resource %02X (length %d)\n", ldn ? ">" : "", in_df ? ">" : "", res, card->rom[i] & 0x07);
-#endif
                     break;
             }
 

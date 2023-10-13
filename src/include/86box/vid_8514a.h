@@ -15,7 +15,6 @@
  *
  *          Copyright 2022 TheCollector1995.
  */
-
 #ifndef VIDEO_8514A_H
 #define VIDEO_8514A_H
 
@@ -203,4 +202,5 @@ typedef struct ibm8514_t {
     int      ext_pitch;
     int      ext_crt_pitch;
 } ibm8514_t;
+
 #endif /*VIDEO_8514A_H*/

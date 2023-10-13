@@ -92,9 +92,6 @@ static uint16_t mem_addr         = 0;
 static int      schedule_fetch   = 1;
 static int      pasv             = 0;
 
-static int      pfq_idle         = 1;
-static int      pfq_delay        = 0;
-
 #define BUS_OUT         1
 #define BUS_HIGH        2
 #define BUS_WIDE        4
@@ -1237,19 +1234,6 @@ nearcall(uint16_t new_ip)
 }
 
 static void
-farcall(uint16_t new_cs, uint16_t new_ip, int jump)
-{
-    if (jump)
-        wait(1, 0);
-    pfq_do_suspend();
-    wait(3, 0);
-    push(&CS);
-    load_cs(new_cs);
-    wait(2, 0);
-    nearcall(new_ip);
-}
-
-static void
 farcall2(uint16_t new_cs, uint16_t new_ip)
 {
     wait(3, 0);
@@ -1268,7 +1252,6 @@ intr_routine(uint16_t intr, int skip_first)
     uint16_t tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
     uint16_t new_cs;
     uint16_t new_ip;
-    uint16_t old_ip;
 
     if (!skip_first)
         wait(1, 0);
@@ -1325,35 +1308,10 @@ sw_int(uint16_t intr)
 }
 
 static void
-int1(void)
-{
-    wait(2, 0);
-    intr_routine(1, 1);
-}
-
-static void
-int2(void)
-{
-    wait(2, 0);
-    intr_routine(2, 1);
-}
-
-static void
 int3(void)
 {
     wait(4, 0);
     intr_routine(3, 0);
-}
-
-static void
-int_o(void)
-{
-    wait(4, 0);
-
-    if (cpu_state.flags & V_FLAG) {
-        wait(2, 0);
-        intr_routine(4, 0);
-    }
 }
 
 void
@@ -1368,7 +1326,6 @@ custom_nmi(void)
     uint16_t tempf = cpu_state.flags & (is_nec ? 0x8fd7 : 0x0fd7);
     uint16_t new_cs;
     uint16_t new_ip;
-    uint16_t old_ip;
 
     wait(1, 0);
     wait(2, 0);
@@ -1965,18 +1922,17 @@ stos(int bits)
 static void
 ins(int bits)
 {
-    cpu_state.eaaddr = SI;
+    cpu_state.eaaddr = DX;
     cpu_io(bits, 0, cpu_state.eaaddr);
-    SI = string_increment(bits);
+    stos(bits);
 }
 
 static void
 outs(int bits)
 {
-    cpu_state.eaaddr = DI;
-    cpu_data         = (bits == 16) ? AX : AL;
+    lods(bits);
+    cpu_state.eaaddr = DX;
     cpu_io(bits, 1, cpu_state.eaaddr);
-    DI = string_increment(bits);
 }
 
 static void
@@ -2104,19 +2060,6 @@ farret(int far)
     set_ip(new_ip);
 }
 
-/* The IRET microcode routine. */
-static void
-iret_routine(void)
-{
-    wait(1, 0);
-    farret(1);
-    if (is_nec)
-        cpu_state.flags = pop() | 0x8002;
-    else
-        cpu_state.flags = pop() | 0x0002;
-    wait(1, 0);
-}
-
 /* Executes instructions up to the specified number of cycles. */
 void
 execx86(int cycs)
@@ -2155,7 +2098,6 @@ execx86(int cycs)
     uint16_t old_flags;
     uint16_t tmpa;
     int      bits;
-    uint32_t dest_seg;
     uint32_t i;
     uint32_t carry;
     uint32_t nibble;
@@ -2280,7 +2222,6 @@ execx86(int cycs)
                     bits = 8 << (opcode & 1);
                     if (rep_start()) {
                         ins(bits);
-                        set_accum(bits, cpu_data);
                         wait(3, 0);
 
                         if (in_rep != 0) {
@@ -2310,7 +2251,6 @@ execx86(int cycs)
                     handled = 1;
                     bits = 8 << (opcode & 1);
                     if (rep_start()) {
-                        cpu_data = AX;
                         wait(1, 0);
                         outs(bits);
                         if (in_rep != 0) {

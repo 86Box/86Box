@@ -103,25 +103,11 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
-
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/plat_unused.h>
 #include <86box/port_92.h>
 #include <86box/smram.h>
-
-#ifdef USE_DYNAREC
-#    include "codegen_public.h"
-#else
-#    ifdef USE_NEW_DYNAREC
-#        define PAGE_MASK_SHIFT 6
-#    else
-#        define PAGE_MASK_INDEX_MASK  3
-#        define PAGE_MASK_INDEX_SHIFT 10
-#        define PAGE_MASK_SHIFT       4
-#    endif
-#    define PAGE_MASK_MASK 63
-#endif
 #include <86box/chipset.h>
 
 #ifdef ENABLE_HB4_LOG
