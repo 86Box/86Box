@@ -124,6 +124,9 @@ msgstr "保持比例(&S)"
 msgid "&Integer scale"
 msgstr "整數比例(&I)"
 
+msgid "4:&3 Integer scale"
+msgstr "4:3 整數比例(&3)"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "EGA/(S)VGA 設定(&G)"
 
@@ -1219,3 +1222,5 @@ msgstr "慢"
 msgid "Fast"
 msgstr "快"
 
+msgid "&Auto-pause on focus loss"
+msgstr "&失去焦點時自動暫停"

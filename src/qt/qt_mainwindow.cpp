@@ -211,7 +211,11 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::hardResetCompleted, this, [this]() {
         ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
         QApplication::setOverrideCursor(Qt::ArrowCursor);
+#ifdef USE_WACOM
         ui->menuTablet_tool->menuAction()->setVisible(mouse_mode >= 1);
+#else
+        ui->menuTablet_tool->menuAction()->setVisible(false);
+#endif
     });
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
@@ -268,8 +272,20 @@ MainWindow::MainWindow(QWidget *parent)
     });
 
     connect(qApp, &QGuiApplication::applicationStateChanged, [this](Qt::ApplicationState state) {
-        if (mouse_capture && state != Qt::ApplicationState::ApplicationActive)
-            emit setMouseCapture(false);
+        if (state == Qt::ApplicationState::ApplicationActive) {
+            if (auto_paused) {
+                plat_pause(0);
+                auto_paused = 0;
+            }
+        } else {
+            if (mouse_capture)
+                emit setMouseCapture(false);
+
+            if (do_auto_pause && !dopause) {
+                auto_paused = 1;
+                plat_pause(1);
+            }
+        }
     });
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
@@ -530,6 +546,9 @@ MainWindow::MainWindow(QWidget *parent)
         case FULLSCR_SCALE_INT:
             ui->actionFullScreen_int->setChecked(true);
             break;
+        case FULLSCR_SCALE_INT43:
+            ui->actionFullScreen_int43->setChecked(true);
+            break;
     }
     actGroup = new QActionGroup(this);
     actGroup->addAction(ui->actionFullScreen_stretch);
@@ -582,6 +601,9 @@ MainWindow::MainWindow(QWidget *parent)
     }
     if (vid_cga_contrast > 0) {
         ui->actionChange_contrast_for_monochrome_display->setChecked(true);
+    }
+    if (do_auto_pause > 0) {
+        ui->actionAuto_pause->setChecked(true);
     }
 
 #ifdef Q_OS_MACOS
@@ -1559,6 +1581,13 @@ MainWindow::on_actionFullScreen_int_triggered()
     update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_int);
 }
 
+void
+MainWindow::on_actionFullScreen_int43_triggered()
+{
+    video_fullscreen_scale = FULLSCR_SCALE_INT43;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_int43);
+}
+
 static void
 update_greyscale_checkboxes(Ui::MainWindow *ui, QAction *selected, int value)
 {
@@ -1707,6 +1736,13 @@ void
 MainWindow::on_actionForce_4_3_display_ratio_triggered()
 {
     video_toggle_option(ui->actionForce_4_3_display_ratio, &force_43);
+}
+
+void
+MainWindow::on_actionAuto_pause_triggered()
+{
+    do_auto_pause ^= 1;
+    ui->actionAuto_pause->setChecked(do_auto_pause > 0 ? true : false);
 }
 
 void

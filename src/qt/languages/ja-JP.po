@@ -124,6 +124,9 @@ msgstr "正方形ピクセル(アスペクト比を維持)(&S)"
 msgid "&Integer scale"
 msgstr "整数倍(&I)"
 
+msgid "4:&3 Integer scale"
+msgstr "4:3 整数倍(&3)"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "E&GA/(S)VGAの設定"
 
@@ -1219,3 +1222,5 @@ msgstr "遅い"
 msgid "Fast"
 msgstr "速い"
 
+msgid "&Auto-pause on focus loss"
+msgstr "フォーカスが外れると自動ポーズ(&A)"

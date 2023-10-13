@@ -124,6 +124,9 @@ msgstr "&Square pixels (Keep ratio)"
 msgid "&Integer scale"
 msgstr "&Integer scale"
 
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Integer scale"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "E&GA/(S)VGA settings"
 
@@ -1219,3 +1222,5 @@ msgstr "Slow"
 msgid "Fast"
 msgstr "Fast"
 
+msgid "&Auto-pause on focus loss"
+msgstr "&Auto-pause on focus loss"

@@ -69,6 +69,7 @@ private slots:
     void on_actionFullscreen_triggered();
     void on_actionSettings_triggered();
     void on_actionExit_triggered();
+    void on_actionAuto_pause_triggered();
     void on_actionPause_triggered();
     void on_actionCtrl_Alt_Del_triggered();
     void on_actionCtrl_Alt_Esc_triggered();
@@ -90,6 +91,7 @@ private slots:
     void on_actionLinear_triggered();
     void on_actionNearest_triggered();
     void on_actionFullScreen_int_triggered();
+    void on_actionFullScreen_int43_triggered();
     void on_actionFullScreen_keepRatio_triggered();
     void on_actionFullScreen_43_triggered();
     void on_actionFullScreen_stretch_triggered();

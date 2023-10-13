@@ -76,7 +76,12 @@ RendererCommon::onResize(int width, int height)
 
         switch (video_fullscreen_scale) {
             case FULLSCR_SCALE_INT:
-                gsr = gw / gh;
+            case FULLSCR_SCALE_INT43:
+                if (video_fullscreen_scale == FULLSCR_SCALE_INT43)
+                    gsr = 4.0 / 3.0;
+                else
+                    gsr = gw / gh;
+
                 if (gsr <= hsr) {
                     dw = hh * gsr;
                     dh = hh;
@@ -138,5 +143,4 @@ RendererCommon::eventDelegate(QEvent *event, bool &result)
             result = QApplication::sendEvent(parentWidget, event);
             return true;
     }
-    return false;
 }
