@@ -242,204 +242,28 @@ load_machine(void)
 {
     ini_section_t cat = ini_find_section(config, "Machine");
     const char   *p;
-    const char   *migrate_from = NULL;
     int           c;
     int           i;
-    int           j;
     int           speed;
-    int           legacy_mfg;
-    int           legacy_cpu;
     double        multi;
 
     p = ini_section_get_string(cat, "machine", NULL);
-    if (p != NULL) {
-        migrate_from = p;
-        if (!strcmp(p, "8500ttc")) /* migrate typo... */
-            machine = machine_get_machine_from_internal_name("8600ttc");
-        else if (!strcmp(p, "eagle_pcspirit")) /* ...legacy names... */
-            machine = machine_get_machine_from_internal_name("pcspirit");
-        else if (!strcmp(p, "multitech_pc700"))
-            machine = machine_get_machine_from_internal_name("pc700");
-        else if (!strcmp(p, "ncr_pc4i"))
-            machine = machine_get_machine_from_internal_name("pc4i");
-        else if (!strcmp(p, "olivetti_m19"))
-            machine = machine_get_machine_from_internal_name("m19");
-        else if (!strcmp(p, "open_xt"))
-            machine = machine_get_machine_from_internal_name("openxt");
-        else if (!strcmp(p, "open_at"))
-            machine = machine_get_machine_from_internal_name("openat");
-        else if (!strcmp(p, "philips_p3105"))
-            machine = machine_get_machine_from_internal_name("p3105");
-        else if (!strcmp(p, "philips_p3120"))
-            machine = machine_get_machine_from_internal_name("p3120");
-        else if (!strcmp(p, "olivetti_m24"))
-            machine = machine_get_machine_from_internal_name("m24");
-        else if (!strcmp(p, "olivetti_m240"))
-            machine = machine_get_machine_from_internal_name("m240");
-        else if (!strcmp(p, "ncr_pc8"))
-            machine = machine_get_machine_from_internal_name("pc8");
-        else if (!strcmp(p, "olivetti_m290"))
-            machine = machine_get_machine_from_internal_name("m290");
-        else if (!strcmp(p, "ncr_3302"))
-            machine = machine_get_machine_from_internal_name("3302");
-        else if (!strcmp(p, "ncr_pc916sx"))
-            machine = machine_get_machine_from_internal_name("pc916sx");
-        else if (!strcmp(p, "cbm_sl386sx16"))
-            machine = machine_get_machine_from_internal_name("cmdsl386sx16");
-        else if (!strcmp(p, "cbm_sl386sx25"))
-            machine = machine_get_machine_from_internal_name("cmdsl386sx25");
-        else if (!strcmp(p, "mr586"))
-            machine = machine_get_machine_from_internal_name("p54tp4xe_mr");
-        else if (!strcmp(p, "pcv240"))
-            machine = machine_get_machine_from_internal_name("pcv90");
-        else if (!strcmp(p, "v60n"))
-            machine = machine_get_machine_from_internal_name("acerv60n");
-        else if (!strcmp(p, "tsunamiatx"))
-            machine = machine_get_machine_from_internal_name("s1846");
-        else if (!strcmp(p, "trinity371"))
-            machine = machine_get_machine_from_internal_name("s1857");
-        else if (!strcmp(p, "63a"))
-            machine = machine_get_machine_from_internal_name("63a1");
-        else if (!strcmp(p, "4sa2"))
-            machine = machine_get_machine_from_internal_name("4saw2");
-        else if (!strcmp(p, "award386dx")) /* ...merged machines... */
-            machine = machine_get_machine_from_internal_name("award495");
-        else if (!strcmp(p, "ami386dx"))
-            machine = machine_get_machine_from_internal_name("ami495");
-        else if (!strcmp(p, "mr386dx"))
-            machine = machine_get_machine_from_internal_name("mr495");
-        else if (!strcmp(p, "award486"))
-            machine = machine_get_machine_from_internal_name("award495");
-        else if (!strcmp(p, "ami486"))
-            machine = machine_get_machine_from_internal_name("ami495");
-        else if (!strcmp(p, "mr486"))
-            machine = machine_get_machine_from_internal_name("mr495");
-        else if (!strcmp(p, "ibmps1_2121_isa"))
-            machine = machine_get_machine_from_internal_name("ibmps1_2121");
-        else if (!strcmp(p, "fw6400gx_s1"))
-            machine = machine_get_machine_from_internal_name("fw6400gx");
-        else if (!strcmp(p, "p54vl"))
-            machine = machine_get_machine_from_internal_name("p5vl");
-        else if (!strcmp(p, "chariot"))
-            machine = machine_get_machine_from_internal_name("fmb");
-        else if (!strcmp(p, "president")) { /* ...and removed machines */
-            machine      = machine_get_machine_from_internal_name("mb500n");
-            migrate_from = NULL;
-        } else if (!strcmp(p, "j656vxd")) {
-            machine      = machine_get_machine_from_internal_name("p55va");
-            migrate_from = NULL;
-        } else {
-            machine      = machine_get_machine_from_internal_name(p);
-            migrate_from = NULL;
-        }
-    } else
+    if (p != NULL)
+        machine = machine_get_machine_from_internal_name(p);
+    else
         machine = 0;
 
-    /* This is for backwards compatibility. */
-    p = ini_section_get_string(cat, "model", NULL);
-    if (p != NULL) {
-        migrate_from = p;
-        if (!strcmp(p, "p55r2p4")) /* migrate typo */
-            machine = machine_get_machine_from_internal_name("p55t2p4");
-        else {
-            machine      = machine_get_machine_from_internal_name(p);
-            migrate_from = NULL;
-        }
-        ini_section_delete_var(cat, "model");
-    }
     if (machine >= machine_count())
         machine = machine_count() - 1;
-
-    /* Copy NVR files when migrating a machine to a new internal name. */
-    if (migrate_from) {
-        char old_fn[256];
-        strcpy(old_fn, migrate_from);
-        strcat(old_fn, ".");
-        c = strlen(old_fn);
-        char new_fn[256];
-        strcpy(new_fn, machines[machine].internal_name);
-        strcat(new_fn, ".");
-        i = strlen(new_fn);
-
-        /* Iterate through NVR files. */
-        DIR *dirp = opendir(nvr_path("."));
-        if (dirp) {
-            struct dirent *entry;
-            while ((entry = readdir(dirp))) {
-                /* Check if this file corresponds to the old name. */
-                if (strncmp(entry->d_name, old_fn, c))
-                    continue;
-
-                /* Add extension to the new name. */
-                strcpy(&new_fn[i], &entry->d_name[c]);
-
-                /* Only copy if a file with the new name doesn't already exist. */
-                FILE *g = nvr_fopen(new_fn, "rb");
-                if (!g) {
-                    FILE *f = nvr_fopen(entry->d_name, "rb");
-                    g       = nvr_fopen(new_fn, "wb");
-
-                    uint8_t buf[4096];
-                    while ((j = fread(buf, 1, sizeof(buf), f)))
-                        fwrite(buf, 1, j, g);
-
-                    fclose(f);
-                }
-                fclose(g);
-            }
-        }
-    }
 
     cpu_override = ini_section_get_int(cat, "cpu_override", 0);
     cpu_f        = NULL;
     p            = ini_section_get_string(cat, "cpu_family", NULL);
     if (p) {
-        if (!strcmp(p, "enh_am486dx2")) /* migrate modified names */
-            cpu_f = cpu_get_family("am486dx2_slenh");
-        else if (!strcmp(p, "enh_am486dx4"))
-            cpu_f = cpu_get_family("am486dx4_slenh");
-        else
-            cpu_f = cpu_get_family(p);
+        cpu_f = cpu_get_family(p);
 
         if (cpu_f && !cpu_family_is_eligible(cpu_f, machine)) /* only honor eligible families */
             cpu_f = NULL;
-    } else {
-        /* Backwards compatibility with the previous CPU model system. */
-        legacy_mfg = ini_section_get_int(cat, "cpu_manufacturer", 0);
-        legacy_cpu = ini_section_get_int(cat, "cpu", 0);
-
-        /* Check if either legacy ID is present, and if they are within bounds. */
-        if (((legacy_mfg > 0) || (legacy_cpu > 0)) && (legacy_mfg >= 0) && (legacy_mfg < 4) && (legacy_cpu >= 0)) {
-            /* Look for a machine entry on the legacy table. */
-            p = machine_get_internal_name();
-            c = 0;
-            while (cpu_legacy_table[c].machine) {
-                if (!strcmp(p, cpu_legacy_table[c].machine))
-                    break;
-                c++;
-            }
-            if (cpu_legacy_table[c].machine) {
-                /* Determine the amount of CPU entries on the table. */
-                i = -1;
-                while (cpu_legacy_table[c].tables[legacy_mfg][++i].family)
-                    ;
-
-                /* If the CPU ID is out of bounds, reset to the last known ID. */
-                if (legacy_cpu >= i)
-                    legacy_cpu = i - 1;
-
-                const cpu_legacy_table_t *legacy_table_entry = &cpu_legacy_table[c].tables[legacy_mfg][legacy_cpu];
-
-                /* Check if the referenced family exists. */
-                cpu_f = cpu_get_family(legacy_table_entry->family);
-                if (cpu_f) {
-                    /* Save the new values. */
-                    ini_section_set_string(cat, "cpu_family", legacy_table_entry->family);
-                    ini_section_set_int(cat, "cpu_speed", legacy_table_entry->rspeed);
-                    ini_section_set_double(cat, "cpu_multi", legacy_table_entry->multi);
-                }
-            }
-        }
     }
 
     if (cpu_f) {
@@ -544,11 +368,7 @@ load_video(void)
             }
             free_p = 1;
         }
-        if (!strcmp(p, "virge375_vbe20_pci"))
-            /* Migrate renamed cards */
-            gfxcard[0] = video_get_video_from_internal_name("virge385_pci");
-        else
-            gfxcard[0] = video_get_video_from_internal_name(p);
+        gfxcard[0] = video_get_video_from_internal_name(p);
         if (free_p)
             free(p);
     }
