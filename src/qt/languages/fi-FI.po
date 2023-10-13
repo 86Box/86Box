@@ -124,6 +124,9 @@ msgstr "&Tasasivuiset kuvapisteet (säilytä kuvasuhde)"
 msgid "&Integer scale"
 msgstr "&Kokonaislukuskaalaus"
 
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Kokonaislukuskaalaus"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "&EGA/(S)VGA-asetukset"
 
@@ -1219,3 +1222,5 @@ msgstr "Hidas"
 msgid "Fast"
 msgstr "Nopea"
 
+msgid "&Auto-pause on focus loss"
+msgstr "&Automaattinen tauko tarkennuksen hävitessä"

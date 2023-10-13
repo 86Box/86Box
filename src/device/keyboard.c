@@ -29,6 +29,25 @@
 #include "cpu.h"
 
 int keyboard_scan;
+
+#ifdef _WIN32
+/* Windows: F8+F12 */
+uint16_t key_prefix_1_1 = 0x042;     /* F8 */
+uint16_t key_prefix_1_2 = 0x000;     /* Invalid */
+uint16_t key_prefix_2_1 = 0x000;     /* Invalid */
+uint16_t key_prefix_2_2 = 0x000;     /* Invalid */
+uint16_t key_uncapture_1 = 0x058;    /* F12 */
+uint16_t key_uncapture_2 = 0x000;    /* Invalid */
+#else
+/* WxWidgets cannot do two regular keys.. CTRL+END */
+uint16_t key_prefix_1_1 = 0x01d;     /* Left Ctrl */
+uint16_t key_prefix_1_2 = 0x11d;     /* Right Ctrl */
+uint16_t key_prefix_2_1 = 0x000;     /* Invalid */
+uint16_t key_prefix_2_2 = 0x000;     /* Invalid */
+uint16_t key_uncapture_1 = 0x04f;    /* Numpad End */
+uint16_t key_uncapture_2 = 0x14f;    /* End */
+#endif
+
 void (*keyboard_send)(uint16_t val);
 
 static int recv_key[512]; /* keyboard input buffer */
@@ -350,15 +369,15 @@ keyboard_isfsexit_up(void)
     return (!recv_key[0x01d] && !recv_key[0x11d] && !recv_key[0x038] && !recv_key[0x138] && !recv_key[0x051] && !recv_key[0x151]);
 }
 
-/* Do we have F8-F12 in the keyboard buffer? */
+/* Do we have the mouse uncapture combination in the keyboard buffer? */
 int
 keyboard_ismsexit(void)
 {
-#ifdef _WIN32
-    /* Windows: F8+F12 */
-    return (recv_key[0x042] && recv_key[0x058]);
-#else
-    /* WxWidgets cannot do two regular keys.. CTRL+END */
-    return ((recv_key[0x01D] || recv_key[0x11D]) && (recv_key[0x04F] || recv_key[0x14F]));
-#endif
+    if ((key_prefix_2_1 != 0x000) || (key_prefix_2_2 != 0x000))
+        return ((recv_key[key_prefix_1_1] || recv_key[key_prefix_1_2]) &&
+                (recv_key[key_prefix_2_1] || recv_key[key_prefix_2_2]) &&
+                (recv_key[key_uncapture_1] || recv_key[key_uncapture_2]));
+    else
+        return ((recv_key[key_prefix_1_1] || recv_key[key_prefix_1_2]) &&
+                (recv_key[key_uncapture_1] || recv_key[key_uncapture_2]));
 }

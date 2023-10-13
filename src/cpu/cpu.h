@@ -143,7 +143,7 @@ typedef struct cpu_t {
     const char *name;
     uint64_t    cpu_type;
     const FPU  *fpus;
-    int         rspeed;
+    uint32_t    rspeed;
     double      multi;
     uint16_t    voltage;
     uint32_t    edx_reset;
@@ -166,9 +166,9 @@ typedef struct {
 } cpu_family_t;
 
 typedef struct {
-    const char  *family;
-    const int    rspeed;
-    const double multi;
+    const char    *family;
+    const uint32_t rspeed;
+    const double   multi;
 } cpu_legacy_table_t;
 
 typedef struct {
@@ -739,13 +739,13 @@ extern void codegen_block_end(void);
 extern void codegen_reset(void);
 extern void cpu_set_edx(void);
 extern int  divl(uint32_t val);
-extern void execx86(int cycs);
+extern void execx86(int32_t cycs);
 extern void enter_smm(int in_hlt);
 extern void enter_smm_check(int in_hlt);
 extern void leave_smm(void);
-extern void exec386_2386(int cycs);
-extern void exec386(int cycs);
-extern void exec386_dynarec(int cycs);
+extern void exec386_2386(int32_t cycs);
+extern void exec386(int32_t cycs);
+extern void exec386_dynarec(int32_t cycs);
 extern int  idivl(int32_t val);
 extern void resetmcr(void);
 extern void resetx86(void);
@@ -814,7 +814,7 @@ extern int prefetch_prefixes;
 extern uint8_t  use_custom_nmi_vector;
 extern uint32_t custom_nmi_vector;
 
-extern void (*cpu_exec)(int cycs);
+extern void (*cpu_exec)(int32_t cycs);
 extern uint8_t do_translate;
 extern uint8_t do_translate2;
 

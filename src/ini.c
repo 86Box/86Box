@@ -560,6 +560,46 @@ ini_section_get_int(ini_section_t self, const char *name, int def)
     return value;
 }
 
+uint32_t
+ini_section_get_uint(ini_section_t self, const char *name, uint32_t def)
+{
+    section_t     *section = (section_t *) self;
+    const entry_t *entry;
+    uint32_t       value;
+
+    if (section == NULL)
+        return def;
+
+    entry = find_entry(section, name);
+    if (entry == NULL)
+        return def;
+
+    sscanf(entry->data, "%u", &value);
+
+    return value;
+}
+
+#if 0
+float
+ini_section_get_float(ini_section_t self, const char *name, float def)
+{
+    section_t     *section = (section_t *) self;
+    const entry_t *entry;
+    float         value;
+
+    if (section == NULL)
+        return def;
+
+    entry = find_entry(section, name);
+    if (entry == NULL)
+        return def;
+
+    sscanf(entry->data, "%g", &value);
+
+    return value;
+}
+#endif
+
 double
 ini_section_get_double(ini_section_t self, const char *name, double def)
 {
@@ -686,6 +726,42 @@ ini_section_set_int(ini_section_t self, const char *name, int val)
     sprintf(ent->data, "%i", val);
     mbstowcs(ent->wdata, ent->data, 512);
 }
+
+void
+ini_section_set_uint(ini_section_t self, const char *name, uint32_t val)
+{
+    section_t *section = (section_t *) self;
+    entry_t   *ent;
+
+    if (section == NULL)
+        return;
+
+    ent = find_entry(section, name);
+    if (ent == NULL)
+        ent = create_entry(section, name);
+
+    sprintf(ent->data, "%i", val);
+    mbstowcs(ent->wdata, ent->data, 512);
+}
+
+#if 0
+void
+ini_section_set_float(ini_section_t self, const char *name, float val)
+{
+    section_t *section = (section_t *) self;
+    entry_t   *ent;
+
+    if (section == NULL)
+        return;
+
+    ent = find_entry(section, name);
+    if (ent == NULL)
+        ent = create_entry(section, name);
+
+    sprintf(ent->data, "%g", val);
+    mbstowcs(ent->wdata, ent->data, 512);
+}
+#endif
 
 void
 ini_section_set_double(ini_section_t self, const char *name, double val)

@@ -122,7 +122,10 @@ msgid "&Square pixels (Keep ratio)"
 msgstr "&Píxels quadrats (Mant. aspecte)"
 
 msgid "&Integer scale"
-msgstr "&Escalat valor sencer"
+msgstr "&Escala de valor enter"
+
+msgid "4:&3 Integer scale"
+msgstr "Escala de valor enter 4:&3"
 
 msgid "E&GA/(S)VGA settings"
 msgstr "&Ajustaments EGA/(S)VGA"
@@ -1219,3 +1222,5 @@ msgstr "Lent"
 msgid "Fast"
 msgstr "Ràpid"
 
+msgid "&Auto-pause on focus loss"
+msgstr "&Pausa automàtica en la pèrdua del focus"

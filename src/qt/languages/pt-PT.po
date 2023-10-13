@@ -124,6 +124,9 @@ msgstr "Pixels &quadrados (Manter rácio)"
 msgid "&Integer scale"
 msgstr "Escala &inteira"
 
+msgid "4:&3 Integer scale"
+msgstr "Escala inteira 4:&3"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "Definições E&GA/(S)VGA"
 
@@ -1219,3 +1222,5 @@ msgstr "Lento"
 msgid "Fast"
 msgstr "Rápido"
 
+msgid "&Auto-pause on focus loss"
+msgstr "Pausa &automática na perda de focagem"

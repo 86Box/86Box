@@ -124,6 +124,9 @@ msgstr "&Quadratische Pixel (Seitenverhältnis beibehalten)"
 msgid "&Integer scale"
 msgstr "&Integer-Skalierung"
 
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Integer-Skalierung"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "E&GA/(S)VGA-Einstellungen"
 
@@ -1219,3 +1222,5 @@ msgstr "Langsam"
 msgid "Fast"
 msgstr "Schnell"
 
+msgid "&Auto-pause on focus loss"
+msgstr "&Auto-Pause bei Fokusverlust"

@@ -78,7 +78,6 @@ extern "C" {
 extern uint32_t lang_sys; /* (-) system language code */
 
 extern int dump_on_exit;        /* (O) dump regs on exit*/
-extern int do_dump_config;      /* (O) dump cfg after load */
 extern int start_in_fullscreen; /* (O) start in fullscreen */
 #ifdef _WIN32
 extern int force_debug; /* (O) force debug output */
@@ -147,13 +146,23 @@ extern int      enable_discord;             /* (C) enable Discord integration */
 
 extern int    fixed_size_x;
 extern int    fixed_size_y;
-extern double mouse_sensitivity;        /* (C) Mouse sensitivity scale */
+extern int    do_auto_pause;                /* (C) Auto-pause the emulator on focus loss */
+extern int    auto_paused;
+extern double mouse_sensitivity;            /* (C) Mouse sensitivity scale */
 #ifdef _Atomic
-extern _Atomic double mouse_x_error;    /* Mouse error accumulator - Y */
-extern _Atomic double mouse_y_error;    /* Mouse error accumulator - Y */
+extern _Atomic double mouse_x_error;        /* Mouse error accumulator - Y */
+extern _Atomic double mouse_y_error;        /* Mouse error accumulator - Y */
 #endif
-extern int    pit_mode;                 /* (C) force setting PIT mode */
-extern int    fm_driver;                /* (C) select FM sound driver */
+extern int    pit_mode;                     /* (C) force setting PIT mode */
+extern int    fm_driver;                    /* (C) select FM sound driver */
+
+/* Keyboard variables for future key combination redefinition. */
+extern uint16_t key_prefix_1_1;
+extern uint16_t key_prefix_1_2;
+extern uint16_t key_prefix_2_1;
+extern uint16_t key_prefix_2_2;
+extern uint16_t key_uncapture_1;
+extern uint16_t key_uncapture_2;
 
 extern char exe_path[2048];    /* path (dir) of executable */
 extern char usr_path[1024];    /* path (dir) of user data */

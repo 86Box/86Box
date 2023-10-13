@@ -258,7 +258,7 @@ CPU          *cpu_s;
 uint8_t do_translate  = 0;
 uint8_t do_translate2 = 0;
 
-void (*cpu_exec)(int cycs);
+void (*cpu_exec)(int32_t cycs);
 
 static uint8_t ccr0;
 static uint8_t ccr1;
@@ -1920,7 +1920,10 @@ cpu_CPUID(void)
                 EDX = 0x49656e69;
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
-                EAX = CPUID;
+                if ((CPUID == 0x0436) && (cr0 & (1 << 29)))
+                    EAX = 0x0470;
+                else
+                    EAX = CPUID;
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME;
             } else

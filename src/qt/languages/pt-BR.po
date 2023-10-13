@@ -124,6 +124,9 @@ msgstr "Pixel&s quadrados (manter proporção)"
 msgid "&Integer scale"
 msgstr "&Redimensionamento com valores inteiros"
 
+msgid "4:&3 Integer scale"
+msgstr "Redimensionamento com valores inteiros 4:&3"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "Configurações E&GA/(S)VGA"
 
@@ -1219,3 +1222,5 @@ msgstr "Lento"
 msgid "Fast"
 msgstr "Rápido"
 
+msgid "&Auto-pause on focus loss"
+msgstr "Pausa &automática ao perder o foco"
