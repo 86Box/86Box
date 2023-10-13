@@ -863,7 +863,6 @@ nvr_reset(nvr_t *nvr)
 static void
 nvr_start(nvr_t *nvr)
 {
-    int            fdd;
     const local_t *local = (local_t *) nvr->data;
 
     struct tm tm;
@@ -881,6 +880,7 @@ nvr_start(nvr_t *nvr)
     if (machines[machine].flags & MACHINE_COREBOOT) {
         /* Sync floppy drive types on coreboot machines, as SeaBIOS
            lacks a setup utility and just leaves these untouched. */
+        uint8_t fdd;
 
         nvr->regs[RTC_FDD_TYPES] = 0x00;
         nvr->regs[RTC_INST_EQUIP] |= 0xc0;
