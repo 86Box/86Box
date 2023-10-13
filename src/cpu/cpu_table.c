@@ -439,13 +439,13 @@ const cpu_family_t cpu_families[] = {
         {"", 0}
     }
     }, {
-    .package = CPU_PKG_SOCKET3_PC330,
+    .package = CPU_PKG_SOCKET1 | CPU_PKG_SOCKET3_PC330,
     .manufacturer = "Intel",
-    .name = "i486DX2",
+    .name = "i486DX2 WB",
     .internal_name = "i486dx2_pc330",
     .cpus = (const CPU[]) {
-        {"50",           CPU_i486DX_SLENH, fpus_internal,  50000000, 2,  5000, 0x470,    0x470, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
-        {"66",           CPU_i486DX_SLENH, fpus_internal,  66666666, 2,  5000, 0x470,    0x470, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6,  8},
+        {"50",           CPU_i486DX_SLENH, fpus_internal,  50000000, 2,  5000, 0x436,    0x436, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
+        {"66",           CPU_i486DX_SLENH, fpus_internal,  66666666, 2,  5000, 0x436,    0x436, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6,  8},
         {"", 0}
     }
     }, {
