@@ -1500,8 +1500,6 @@ xga_bitblt(svga_t *svga)
     int      mix  = 0;
     int      xdir;
     int      ydir;
-    int      x = 0;
-    int      y = 0;
 
     if (xga->accel.octant & 0x02) {
         ydir = -1;
@@ -1704,10 +1702,8 @@ xga_bitblt(svga_t *svga)
                 xga->accel.px = ((xga->accel.px + 1) & patwidth) | (xga->accel.px & ~patwidth);
                 xga->accel.dx++;
                 xga->accel.x--;
-                x++;
                 if (xga->accel.x < 0) {
                     area_state = 0;
-                    x = 0;
                     xga->accel.y--;
                     xga->accel.x = xga->accel.blt_width & 0xfff;
 
@@ -1720,7 +1716,6 @@ xga_bitblt(svga_t *svga)
                     xga->accel.sy = ((xga->accel.sy + ydir) & srcheight) | (xga->accel.sy & ~srcheight);
                     xga->accel.py += ydir;
                     xga->accel.dy += ydir;
-                    y++;
 
                     if (xga->accel.y < 0) {
                         xga->accel.dst_map_x = xga->accel.dx;
@@ -3369,7 +3364,7 @@ xga_init(const device_t *info)
 
     rom = malloc(xga->bios_rom.sz);
     memset(rom, 0xff, xga->bios_rom.sz);
-    (void) fread(rom, xga->bios_rom.sz, 1, fp);
+    (void) !fread(rom, xga->bios_rom.sz, 1, fp);
     (void) fclose(fp);
 
     xga->bios_rom.rom  = rom;

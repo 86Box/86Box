@@ -124,6 +124,9 @@ msgstr "&Négyzetes képpontok (aránytartás)"
 msgid "&Integer scale"
 msgstr "&Egész tényezős nagyítás"
 
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Egész tényezős nagyítás"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "E&GA/(S)VGA beállítások"
 
@@ -1219,3 +1222,5 @@ msgstr "Lassú"
 msgid "Fast"
 msgstr "Gyors"
 
+msgid "&Auto-pause on focus loss"
+msgstr "&Automatikus szünet fókuszvesztéskor"

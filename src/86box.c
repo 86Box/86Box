@@ -142,12 +142,13 @@ char       log_path[1024] = { '\0' };     /* (O) full path of logfile */
 char       vm_name[1024]  = { '\0' };     /* (O) display name of the VM */
 int      do_nothing                             = 0;
 int      dump_missing                           = 0;
+int      clear_cmos                             = 0;
 #ifdef USE_INSTRUMENT
 uint8_t  instru_enabled                         = 0;
 uint64_t instru_run_ms                          = 0;
 #endif
-int      clear_cmos                             = 0;
 int      clear_flash                            = 0;
+int      auto_paused                            = 0;
 
 /* Configuration values. */
 int      window_remember;
@@ -155,7 +156,8 @@ int      vid_resize;                                              /* (C) allow r
 int      invert_display                         = 0;              /* (C) invert the display */
 int      suppress_overscan                      = 0;              /* (C) suppress overscans */
 int      scale                                  = 0;              /* (C) screen scale factor */
-int      dpi_scale                              = 0;              /* (C) DPI scaling of the emulated screen */
+int      dpi_scale                              = 0;              /* (C) DPI scaling of the emulated
+                                                                         screen */
 int      vid_api                                = 0;              /* (C) video renderer */
 int      vid_cga_contrast                       = 0;              /* (C) video */
 int      video_fullscreen                       = 0;              /* (C) video */
@@ -167,7 +169,8 @@ int      video_filter_method                    = 1;              /* (C) video *
 int      video_vsync                            = 0;              /* (C) video */
 int      video_framerate                        = -1;             /* (C) video */
 char     video_shader[512]                      = { '\0' };       /* (C) video */
-bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0 }; /* (C) activation and kind of pass-through for serial ports */
+bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0 }; /* (C) activation and kind of
+                                                                         pass-through for serial ports */
 int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
 int      postcard_enabled                       = 0;              /* (C) enable POST card */
 int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
@@ -178,7 +181,8 @@ int      sound_is_float                         = 1;              /* (C) sound u
 int      voodoo_enabled                         = 0;              /* (C) video option */
 int      ibm8514_standalone_enabled             = 0;              /* (C) video option */
 int      xga_standalone_enabled                 = 0;              /* (C) video option */
-uint32_t mem_size                               = 0;              /* (C) memory size (Installed on system board)*/
+uint32_t mem_size                               = 0;              /* (C) memory size (Installed on
+                                                                         system board)*/
 uint32_t isa_mem_size                           = 0;              /* (C) memory size (ISA Memory Cards) */
 int      cpu_use_dynarec                        = 0;              /* (C) cpu uses/needs Dyna */
 int      cpu                                    = 0;              /* (C) cpu type */
@@ -191,8 +195,12 @@ int      confirm_save                           = 1;              /* (C) enable 
 int      enable_discord                         = 0;              /* (C) enable Discord integration */
 int      pit_mode                               = -1;             /* (C) force setting PIT mode */
 int      fm_driver                              = 0;              /* (C) select FM sound driver */
-int      open_dir_usr_path                      = 0;              /* default file open dialog directory of usr_path */
-int      video_fullscreen_scale_maximized       = 0;              /* (C) Whether fullscreen scaling settings also apply when maximized. */
+int      open_dir_usr_path                      = 0;              /* (C) default file open dialog directory
+                                                                         of usr_path */
+int      video_fullscreen_scale_maximized       = 0;              /* (C) Whether fullscreen scaling settings
+                                                                         also apply when maximized. */
+int      do_auto_pause                          = 0;              /* (C) Auto-pause the emulator on focus
+                                                                         loss */
 
 /* Statistics. */
 extern int mmuflush;
@@ -444,6 +452,7 @@ pc_init(int argc, char *argv[])
     char            *fn[FDD_NUM] = { NULL };
     char             drive = 0;
     char            *temp2 = NULL;
+    char            *what;
     const struct tm *info;
     time_t           now;
     int              c;
@@ -508,7 +517,6 @@ usage:
             printf("\nUsage: 86box [options] [cfg-file]\n\n");
             printf("Valid options are:\n\n");
             printf("-? or --help            - show this information\n");
-            printf("-B or --clearflash      - clears the BIOS flash file\n");
             printf("-C or --config path     - set 'path' to be config file\n");
 #ifdef _WIN32
             printf("-D or --debug           - force debug output logging\n");
@@ -527,14 +535,13 @@ usage:
 #endif
             printf("-K or --keycodes codes  - set 'codes' to be the uncapture combination\n");
             printf("-L or --logfile path    - set 'path' to be the logfile\n");
-            printf("-M or --dumpmissing     - dump missing machines and video cards\n");
+            printf("-M or --missing         - dump missing machines and video cards\n");
             printf("-N or --noconfirm       - do not ask for confirmation on quit\n");
             printf("-P or --vmpath path     - set 'path' to be root for vm\n");
-            printf("-Q or --clearnvr        - clears the CMOS file\n");
             printf("-R or --rompath path    - set 'path' to be ROM path\n");
             printf("-S or --settings        - show only the settings dialog\n");
             printf("-V or --vmname name     - overrides the name of the running VM\n");
-            printf("-X or --clearboth       - clears the CMOS and BIOS flash files\n");
+            printf("-X or --clear what      - clears the 'what' (cmos/flash/both)\n");
             printf("-Y or --donothing       - do not show any UI or run the emulation\n");
             printf("-Z or --lastvmpath      - the last parameter is VM path rather than config\n");
             printf("\nA config file can be specified. If none is, the default file will be used.\n");
@@ -603,14 +610,10 @@ usage:
             settings_only = 1;
         } else if (!strcasecmp(argv[c], "--noconfirm") || !strcasecmp(argv[c], "-N")) {
             confirm_exit_cmdl = 0;
-        } else if (!strcasecmp(argv[c], "--dumpmissing") || !strcasecmp(argv[c], "-M")) {
+        } else if (!strcasecmp(argv[c], "--missing") || !strcasecmp(argv[c], "-M")) {
             dump_missing = 1;
         } else if (!strcasecmp(argv[c], "--donothing") || !strcasecmp(argv[c], "-Y")) {
             do_nothing = 1;
-        } else if (!strcasecmp(argv[c], "--clearflash") || !strcasecmp(argv[c], "-B")) {
-            clear_flash = 1;
-        } else if (!strcasecmp(argv[c], "--clearnvr") || !strcasecmp(argv[c], "-Q")) {
-            clear_cmos = 1;
         } else if (!strcasecmp(argv[c], "--keycodes") || !strcasecmp(argv[c], "-K")) {
             if ((c + 1) == argc)
                 goto usage;
@@ -619,8 +622,20 @@ usage:
                    &key_prefix_1_1, &key_prefix_1_2, &key_prefix_2_1, &key_prefix_2_2,
                    &key_uncapture_1, &key_uncapture_2);
         } else if (!strcasecmp(argv[c], "--clearboth") || !strcasecmp(argv[c], "-X")) {
-            clear_cmos = 1;
-            clear_flash = 1;
+            if ((c + 1) == argc)
+                goto usage;
+
+            what = argv[++c];
+
+            if (!strcasecmp(what, "cmos"))
+                clear_cmos = 1;
+            else if (!strcasecmp(what, "flash"))
+                clear_flash = 1;
+            else if (!strcasecmp(what, "both")) {
+                clear_cmos = 1;
+                clear_flash = 1;
+            } else
+                goto usage;
 #ifdef _WIN32
         } else if (!strcasecmp(argv[c], "--hwnd") || !strcasecmp(argv[c], "-H")) {
 
@@ -867,7 +882,7 @@ pc_speed_changed(void)
     if (cpu_s->cpu_type >= CPU_286)
         pit_set_clock(cpu_s->rspeed);
     else
-        pit_set_clock(14318184.0);
+        pit_set_clock((uint32_t) 14318184.0);
 }
 
 void
@@ -1353,7 +1368,7 @@ pc_run(void)
 
     /* Run a block of code. */
     startblit();
-    cpu_exec(cpu_s->rspeed / 100);
+    cpu_exec((int32_t) cpu_s->rspeed / 100);
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     if (gdbstub_step == GDBSTUB_EXEC) {
 #endif

@@ -124,6 +124,9 @@ msgstr "정사각형 픽셀 (비율 유지)(&S)"
 msgid "&Integer scale"
 msgstr "정수배 확대(&I)"
 
+msgid "4:&3 Integer scale"
+msgstr "4:3 정수배 확대(&3)"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "E&GA/(S)VGA 설정"
 
@@ -1219,3 +1222,5 @@ msgstr "느린"
 msgid "Fast"
 msgstr "빠른"
 
+msgid "&Auto-pause on focus loss"
+msgstr "집중력 저하 시 자동 일시 중지(&A)"

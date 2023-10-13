@@ -1000,11 +1000,11 @@ pit_ps2_init(int type)
 }
 
 void
-pit_set_clock(int clock)
+pit_set_clock(uint32_t clock)
 {
     /* Set default CPU/crystal clock and xt_cpu_multi. */
     if (cpu_s->cpu_type >= CPU_286) {
-        int remainder = (clock % 100000000);
+        uint32_t remainder = (clock % 100000000);
         if (remainder == 66666666)
             cpuclock = (double) (clock - remainder) + (200000000.0 / 3.0);
         else if (remainder == 33333333)

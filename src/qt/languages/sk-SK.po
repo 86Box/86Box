@@ -124,6 +124,9 @@ msgstr "&Zachovať pomer strán"
 msgid "&Integer scale"
 msgstr "&Celočíselné škálovanie"
 
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Celočíselné škálovanie"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "Nastavenia pre E&GA a (S)VGA"
 
@@ -1218,3 +1221,6 @@ msgstr "Pomalý"
 
 msgid "Fast"
 msgstr "Rýchly"
+
+msgid "&Auto-pause on focus loss"
+msgstr "&Automatická pauza pri strate fokusu okna"
