@@ -1943,7 +1943,7 @@ machine_xt_m19_init(const machine_t *model)
 
     device_add(&keyboard_xt_olivetti_device);
 
-    pit_set_clock(14318184.0);
+    pit_set_clock((uint32_t) 14318184.0);
 
     return ret;
 }

@@ -2063,7 +2063,7 @@ farret(int far)
 
 /* Executes instructions up to the specified number of cycles. */
 void
-execx86(int cycs)
+execx86(int32_t cycs)
 {
     uint8_t  temp = 0;
     uint8_t  temp2;

@@ -332,7 +332,7 @@ static void
 time_get(nvr_t *nvr, struct tm *tm)
 {
     const local_t *local = (local_t *) nvr->data;
-    int8_t   temp;
+    int8_t         temp;
 
     if (nvr->regs[RTC_REGB] & REGB_DM) {
         /* NVR is in Binary data mode. */
@@ -370,7 +370,7 @@ static void
 time_set(nvr_t *nvr, struct tm *tm)
 {
     const local_t *local = (local_t *) nvr->data;
-    int      year  = (tm->tm_year + 1900);
+    int            year  = (tm->tm_year + 1900);
 
     if (nvr->regs[RTC_REGB] & REGB_DM) {
         /* NVR is in Binary data mode. */

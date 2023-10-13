@@ -1845,7 +1845,7 @@ save_machine(void)
     ini_section_set_string(cat, "machine", p);
 
     ini_section_set_string(cat, "cpu_family", cpu_f->internal_name);
-    ini_section_set_int(cat, "cpu_speed", cpu_f->cpus[cpu].rspeed);
+    ini_section_set_uint(cat, "cpu_speed", cpu_f->cpus[cpu].rspeed);
     ini_section_set_double(cat, "cpu_multi", cpu_f->cpus[cpu].multi);
     if (cpu_override)
         ini_section_set_int(cat, "cpu_override", cpu_override);

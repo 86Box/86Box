@@ -226,12 +226,12 @@ fetch_ea_16_long(uint32_t rmdat)
 #define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
 
 #ifdef USE_DYNAREC
-int             cycles_main = 0;
-static int      cycles_old  = 0;
+int32_t         cycles_main = 0;
+static int32_t  cycles_old  = 0;
 static uint64_t tsc_old     = 0;
 
 #    ifdef USE_ACYCS
-int acycs = 0;
+int32_t acycs = 0;
 #    endif
 
 void
@@ -676,24 +676,24 @@ exec386_dynarec_dyn(void)
 }
 
 void
-exec386_dynarec(int cycs)
+exec386_dynarec(int32_t cycs)
 {
     int      vector;
     int      tempi;
-    int      cycdiff;
-    int      oldcyc;
-    int      oldcyc2;
+    int32_t  cycdiff;
+    int32_t  oldcyc;
+    int32_t  oldcyc2;
     uint64_t oldtsc;
     uint64_t delta;
 
-    int cyc_period = cycs / 2000; /*5us*/
+    int32_t cyc_period = cycs / 2000; /*5us*/
 
 #    ifdef USE_ACYCS
     acycs = 0;
 #    endif
     cycles_main += cycs;
     while (cycles_main > 0) {
-        int cycles_start;
+        int32_t cycles_start;
 
         cycles += cyc_period;
         cycles_start = cycles;
@@ -799,14 +799,14 @@ exec386_dynarec(int cycs)
 #endif
 
 void
-exec386(int cycs)
+exec386(int32_t cycs)
 {
     int      vector;
     int      tempi;
-    int      cycdiff;
-    int      oldcyc;
-    int      cycle_period;
-    int      ins_cycles;
+    int32_t  cycdiff;
+    int32_t  oldcyc;
+    int32_t  cycle_period;
+    int32_t  ins_cycles;
     uint32_t addr;
 
     cycles += cycs;

@@ -882,7 +882,7 @@ pc_speed_changed(void)
     if (cpu_s->cpu_type >= CPU_286)
         pit_set_clock(cpu_s->rspeed);
     else
-        pit_set_clock(14318184.0);
+        pit_set_clock((uint32_t) 14318184.0);
 }
 
 void
@@ -1368,7 +1368,7 @@ pc_run(void)
 
     /* Run a block of code. */
     startblit();
-    cpu_exec(cpu_s->rspeed / 100);
+    cpu_exec((int32_t) cpu_s->rspeed / 100);
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     if (gdbstub_step == GDBSTUB_EXEC) {
 #endif

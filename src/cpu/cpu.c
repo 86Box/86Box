@@ -258,7 +258,7 @@ CPU          *cpu_s;
 uint8_t do_translate  = 0;
 uint8_t do_translate2 = 0;
 
-void (*cpu_exec)(int cycs);
+void (*cpu_exec)(int32_t cycs);
 
 static uint8_t ccr0;
 static uint8_t ccr1;

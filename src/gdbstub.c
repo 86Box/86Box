@@ -343,7 +343,7 @@ static gdbstub_client_t *first_client = NULL;
 static gdbstub_client_t *last_client = NULL;
 static mutex_t          *client_list_mutex;
 
-static void (*cpu_exec_shadow)(int cycs);
+static void (*cpu_exec_shadow)(int32_t cycs);
 static gdbstub_breakpoint_t *first_swbreak = NULL;
 static gdbstub_breakpoint_t *first_hwbreak = NULL;
 static gdbstub_breakpoint_t *first_rwatch = NULL;
@@ -1373,7 +1373,7 @@ end:
 }
 
 static void
-gdbstub_cpu_exec(int cycs)
+gdbstub_cpu_exec(int32_t cycs)
 {
     /* Flag that we're now in the debugger context to avoid triggering watchpoints. */
     in_gdbstub = 1;
