@@ -412,19 +412,7 @@ load_input_devices(void)
 
     p = ini_section_get_string(cat, "joystick_type", NULL);
     if (p != NULL) {
-        if (!strcmp(p, "standard_2button"))
-            /* Migrate renamed types */
-            joystick_type = joystick_get_from_internal_name("2axis_2button");
-        else if (!strcmp(p, "standard_4button"))
-            joystick_type = joystick_get_from_internal_name("2axis_4button");
-        else if (!strcmp(p, "standard_6button"))
-            joystick_type = joystick_get_from_internal_name("2axis_6button");
-        else if (!strcmp(p, "standard_8button"))
-            joystick_type = joystick_get_from_internal_name("2axis_8button");
-        else if (!strcmp(p, "ch_flighstick_pro")) /* fix typo */
-            joystick_type = joystick_get_from_internal_name("ch_flightstick_pro");
-        else
-            joystick_type = joystick_get_from_internal_name(p);
+        joystick_type = joystick_get_from_internal_name(p);
 
         if (!joystick_type) {
             /* Try to read an integer for backwards compatibility with old configs */
