@@ -447,8 +447,8 @@ extern void mem_close(void);
 extern void mem_reset(void);
 extern void mem_remap_top(int kb);
 
-extern mem_mapping_t    *read_mapping[MEM_MAPPINGS_NO];
-extern mem_mapping_t    *write_mapping[MEM_MAPPINGS_NO];
+extern mem_mapping_t *read_mapping[MEM_MAPPINGS_NO];
+extern mem_mapping_t *write_mapping[MEM_MAPPINGS_NO];
 
 #ifdef EMU_CPU_H
 static __inline uint32_t

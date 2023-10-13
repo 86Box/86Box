@@ -143,5 +143,4 @@ RendererCommon::eventDelegate(QEvent *event, bool &result)
             result = QApplication::sendEvent(parentWidget, event);
             return true;
     }
-    return false;
 }
