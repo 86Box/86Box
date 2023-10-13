@@ -124,6 +124,9 @@ msgstr "&Kvadratni piksli (ohrani razmerje)"
 msgid "&Integer scale"
 msgstr "&Celoštevilsko raztezanje"
 
+msgid "4:&3 Integer scale"
+msgstr "Celoštevilsko raztezanje 4:&3"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "Nastavitve E&GA/(S)VGA"
 
@@ -1219,3 +1222,5 @@ msgstr "Počasni"
 msgid "Fast"
 msgstr "Hitri"
 
+msgid "&Auto-pause on focus loss"
+msgstr "&Samodejni premor ob izgubi fokusa"

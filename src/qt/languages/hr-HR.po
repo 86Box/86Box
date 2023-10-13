@@ -124,6 +124,9 @@ msgstr "&Kvadratni pikseli (zadrži omjer)"
 msgid "&Integer scale"
 msgstr "&Cijelobrojno skaliranje"
 
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Cijelobrojno skaliranje"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "E&GA/(S)VGA postavke"
 
@@ -1219,3 +1222,5 @@ msgstr "Spori"
 msgid "Fast"
 msgstr "Brzi"
 
+msgid "&Auto-pause on focus loss"
+msgstr "&Automatska pauza pri gubitku fokusa"

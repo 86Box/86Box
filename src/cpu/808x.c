@@ -2056,7 +2056,8 @@ farret(int far)
     }
 
     wait(2, 0);
-    load_cs(new_cs);
+    if (far)
+        load_cs(new_cs);
     set_ip(new_ip);
 }
 

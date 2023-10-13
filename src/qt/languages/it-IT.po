@@ -124,6 +124,9 @@ msgstr "&Pixel quadrati (mantiene l'aspetto)"
 msgid "&Integer scale"
 msgstr "&Scala intera"
 
+msgid "4:&3 Integer scale"
+msgstr "Scala intera 4:&3"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "Impostazioni E&GA/(S)VGA"
 
@@ -1219,3 +1222,5 @@ msgstr "Lenta"
 msgid "Fast"
 msgstr "Veloce"
 
+msgid "&Auto-pause on focus loss"
+msgstr "&Pausa automatica alla perdita della messa a fuoco"

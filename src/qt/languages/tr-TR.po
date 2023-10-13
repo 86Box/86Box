@@ -124,6 +124,9 @@ msgstr "&Kare piksel (ölçeği koru)"
 msgid "&Integer scale"
 msgstr "Tam &sayı ölçeklemesi"
 
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Tam sayı ölçeklemesi"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "EGA/&(S)VGA ayarları"
 
@@ -1219,3 +1222,5 @@ msgstr "Yavaş"
 msgid "Fast"
 msgstr "Hızlı"
 
+msgid "&Auto-pause on focus loss"
+msgstr "&Odak kaybında otomatik duraklatma"
