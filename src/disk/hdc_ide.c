@@ -2917,7 +2917,9 @@ ide_board_init(int board, int irq, int base_main, int side_main, int type)
 
     ide_log("IDE: Initializing board %i...\n", board);
 
-    ide_boards[board] = (ide_board_t *) malloc(sizeof(ide_board_t));
+    if (ide_boards[board] == NULL)
+        ide_boards[board] = (ide_board_t *) malloc(sizeof(ide_board_t));
+
     memset(ide_boards[board], 0, sizeof(ide_board_t));
     ide_boards[board]->irq     = irq;
     ide_boards[board]->cur_dev = board << 1;
@@ -3072,7 +3074,8 @@ ide_init(const device_t *info)
             break;
     }
 
-    return ide_drives;
+    // return ide_drives;
+    return (void *) (intptr_t) -1;
 }
 
 static void

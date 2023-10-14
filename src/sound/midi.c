@@ -174,7 +174,7 @@ midi_out_device_get_from_internal_name(char *s)
 void
 midi_out_device_init(void)
 {
-    if (devices[midi_output_device_current].device)
+    if ((midi_output_device_current > 0) && devices[midi_output_device_current].device)
         device_add(devices[midi_output_device_current].device);
     midi_output_device_last = midi_output_device_current;
 }
@@ -292,7 +292,7 @@ midi_in_device_get_from_internal_name(char *s)
 void
 midi_in_device_init(void)
 {
-    if (midi_in_devices[midi_input_device_current].device)
+    if ((midi_input_device_current > 0) && midi_in_devices[midi_input_device_current].device)
         device_add(midi_in_devices[midi_input_device_current].device);
     midi_input_device_last = midi_input_device_current;
 }

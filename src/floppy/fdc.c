@@ -191,10 +191,8 @@ fdc_card_get_from_internal_name(char *s)
 void
 fdc_card_init(void)
 {
-    if (!fdc_cards[fdc_type].device)
-        return;
-
-    device_add(fdc_cards[fdc_type].device);
+    if ((fdc_type > 0) && fdc_cards[fdc_type].device)
+        device_add(fdc_cards[fdc_type].device);
 }
 
 uint8_t

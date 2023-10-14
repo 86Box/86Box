@@ -817,10 +817,12 @@ pci_add_bridge(uint8_t agp, uint8_t (*read)(int func, int addr, void *priv), voi
     pci_card_t *card;
     uint8_t bridge_slot = agp ? pci_find_slot(PCI_ADD_AGPBRIDGE, 0xff) : last_normal_pci_card_id;
 
-    card = &pci_cards[bridge_slot];
-    card->read  = read;
-    card->write = write;
-    card->priv  = priv;
+    if (bridge_slot != PCI_CARD_INVALID) {
+        card = &pci_cards[bridge_slot];
+        card->read  = read;
+        card->write = write;
+        card->priv  = priv;
+    }
 
     *slot = bridge_slot;
 }

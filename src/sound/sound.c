@@ -222,13 +222,13 @@ sound_card_get_from_internal_name(const char *s)
 void
 sound_card_init(void)
 {
-    if ((sound_card_current[0] != SOUND_INTERNAL) && (sound_cards[sound_card_current[0]].device))
+    if ((sound_card_current[0] > SOUND_INTERNAL) && (sound_cards[sound_card_current[0]].device))
         device_add(sound_cards[sound_card_current[0]].device);
-    if (sound_cards[sound_card_current[1]].device)
+    if ((sound_card_current[1] > SOUND_INTERNAL) && (sound_cards[sound_card_current[1]].device))
         device_add(sound_cards[sound_card_current[1]].device);
-    if (sound_cards[sound_card_current[2]].device)
+    if ((sound_card_current[2] > SOUND_INTERNAL) && (sound_cards[sound_card_current[2]].device))
         device_add(sound_cards[sound_card_current[2]].device);
-    if (sound_cards[sound_card_current[3]].device)
+    if ((sound_card_current[3] > SOUND_INTERNAL) && (sound_cards[sound_card_current[3]].device))
         device_add(sound_cards[sound_card_current[3]].device);
 }
 

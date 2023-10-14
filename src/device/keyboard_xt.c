@@ -546,8 +546,8 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
             timer_process();
 
-            if (((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ)) &&
-                (cassette != NULL))
+            if (((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
+                (kbd->type == KBD_TYPE_PRAVETZ)) && (cassette != NULL))
                 pc_cas_set_motor(cassette, (kbd->pb & 0x08) == 0);
 
             speaker_update();
@@ -681,7 +681,8 @@ kbd_read(uint16_t port, void *priv)
 
             /* This is needed to avoid error 131 (cassette error).
                This is serial read: bit 5 = clock, bit 4 = data, cassette header is 256 x 0xff. */
-            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ)) {
+            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
+                (kbd->type == KBD_TYPE_PRAVETZ)) {
                 if (cassette == NULL)
                     ret |= (ppispeakon ? 0x10 : 0);
                 else

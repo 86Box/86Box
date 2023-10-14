@@ -579,7 +579,8 @@ network_reset(void)
         }
 
         net_card_current = i;
-        device_add_inst(net_cards[net_cards_conf[i].device_num], i + 1);
+        if (net_cards_conf[i].device_num > NET_INTERNAL)
+            device_add_inst(net_cards[net_cards_conf[i].device_num], i + 1);
     }
 }
 
@@ -684,7 +685,8 @@ network_dev_available(int id)
 {
     int available = (net_cards_conf[id].device_num > 0);
 
-    if (net_cards_conf[id].net_type == NET_TYPE_PCAP && (network_dev_to_id(net_cards_conf[id].host_dev_name) <= 0))
+    if ((net_cards_conf[id].net_type == NET_TYPE_PCAP) &&
+        (network_dev_to_id(net_cards_conf[id].host_dev_name) <= 0))
         available = 0;
 
     // TODO: Handle VDE device
