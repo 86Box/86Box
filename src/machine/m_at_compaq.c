@@ -453,19 +453,16 @@ compaq_plasma_poll(void *priv)
                         cols[0] = normcols[attr][0];
                     }
                     /* character underline active and 7th row of pixels in character height being drawn */
-                    /* character underline active and 7th row of pixels in character height being drawn */
                     if (underline && (sc == 7)) {
                         /* for each pixel in character width */
                         for (uint8_t c = 0; c < 8; c++)
-                            buffer32->line[self->cga.displine][(x << 3) + c] = mdaattr[attr][blink][1];
+                            buffer32->line[self->cga.displine][(x << 4) + (c * 2)] = buffer32->line[self->cga.displine][(x << 4) + (c * 2) + 1] = mdaattr[attr][blink][1];
                     } else if (drawcursor) {
-                        for (uint8_t c = 0; c < 8; c++) {
+                        for (uint8_t c = 0; c < 8; c++)
                             buffer32->line[self->cga.displine][(x << 4) + c * 2] = buffer32->line[self->cga.displine][(x << 4) + c * 2 + 1] = cols[(fontdatm2[chr][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
-                        }
                     } else {
-                        for (uint8_t c = 0; c < 8; c++) {
+                        for (uint8_t c = 0; c < 8; c++)
                             buffer32->line[self->cga.displine][(x << 4) + c * 2] = buffer32->line[self->cga.displine][(x << 4) + c * 2 + 1] = cols[(fontdatm2[chr][sc] & (1 << (c ^ 7))) ? 1 : 0];
-                        }
                     }
                     ++ma;
                 }
