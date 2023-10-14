@@ -443,7 +443,7 @@ const device_t ymf289b_ymfm_device = {
 
 const device_t ymf278b_ymfm_device = {
     .name          = "Yamaha YMF278B OPL4 (YMFM)",
-    .internal_name = "ymf289b_ymfm",
+    .internal_name = "ymf278b_ymfm",
     .flags         = 0,
     .local         = FM_YMF278B,
     .init          = ymfm_drv_init,
