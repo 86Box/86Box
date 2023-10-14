@@ -174,9 +174,6 @@ void
 WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
 {
     USHORT     scancode;
-    static int recv_lalt = 0;
-    static int recv_ralt = 0;
-    static int recv_tab = 0;
 
     RAWKEYBOARD rawKB = raw->data.keyboard;
     scancode          = rawKB.MakeCode;
@@ -185,7 +182,18 @@ WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
         return;
 
     /* If it's not a scan code that starts with 0xE1 */
-    if (!(rawKB.Flags & RI_KEY_E1)) {
+    if ((rawKB.Flags & RI_KEY_E1)) {
+        if (rawKB.MakeCode == 0x1D) {
+            scancode = scancode_map[0x100]; /* Translate E1 1D to 0x100 (which would
+                                               otherwise be E0 00 but that is invalid
+                                               anyway).
+                                               Also, take a potential mapping into
+                                               account. */
+        } else
+            scancode = 0xFFFF;
+        if (scancode != 0xFFFF)
+            keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
+    } else {
         if (rawKB.Flags & RI_KEY_E0)
             scancode |= 0x100;
 
@@ -198,70 +206,22 @@ WindowsRawInputFilter::keyboard_handle(PRAWINPUT raw)
         scancode = scancode_map[scancode];
 
         /* If it's not 0xFFFF, send it to the emulated
-       keyboard.
-       We use scan code 0xFFFF to mean a mapping that
-       has a prefix other than E0 and that is not E1 1D,
-       which is, for our purposes, invalid. */
-        if ((scancode == 0x00f) && !(rawKB.Flags & RI_KEY_BREAK) && (recv_lalt || recv_ralt) && (!kbd_req_capture || mouse_capture)) {
-            /* We received a TAB while ALT was pressed, while the mouse
-               is not captured, suppress the TAB and send an ALT key up. */
-            if (recv_lalt) {
-                keyboard_input(0, 0x038);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x038);
-                keyboard_input(0, 0x038);
-                recv_lalt = 0;
-            }
-            if (recv_ralt) {
-                keyboard_input(0, 0x138);
-                /* Extra key press and release so the guest is not stuck in the
-                   menu bar. */
-                keyboard_input(1, 0x138);
-                keyboard_input(0, 0x138);
-                recv_ralt = 0;
-            }
-        } else if (((scancode == 0x038) || (scancode == 0x138)) && !(rawKB.Flags & RI_KEY_BREAK) && recv_tab && (!kbd_req_capture || mouse_capture)) {
-            /* We received an ALT while TAB was pressed, while the mouse
-               is not captured, suppress the ALT and send a TAB key up. */
-            keyboard_input(0, 0x00f);
-            recv_tab = 0;
-        } else {
-            switch (scancode) {
-                case 0x00f:
-                    recv_tab = !(rawKB.Flags & RI_KEY_BREAK);
-                    break;
-                case 0x038:
-                    recv_lalt = !(rawKB.Flags & RI_KEY_BREAK);
-                    break;
-                case 0x138:
-                    recv_ralt = !(rawKB.Flags & RI_KEY_BREAK);
-                    break;
-            }
+           keyboard.
+           We use scan code 0xFFFF to mean a mapping that
+           has a prefix other than E0 and that is not E1 1D,
+           which is, for our purposes, invalid. */
 
-            /* Translate right CTRL to left ALT if the user has so
+        /* Translate right CTRL to left ALT if the user has so
            chosen. */
-            if ((scancode == 0x11d) && rctrl_is_lalt)
-                scancode = 0x038;
+        if ((scancode == 0x11d) && rctrl_is_lalt)
+            scancode = 0x038;
 
-            /* Normal scan code pass through, pass it through as is if
+        /* Normal scan code pass through, pass it through as is if
            it's not an invalid scan code. */
-            if (scancode != 0xFFFF)
-                keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
-
-            window->checkFullscreenHotkey();
-        }
-    } else {
-        if (rawKB.MakeCode == 0x1D) {
-            scancode = scancode_map[0x100]; /* Translate E1 1D to 0x100 (which would
-                           otherwise be E0 00 but that is invalid
-                           anyway).
-                           Also, take a potential mapping into
-                           account. */
-        } else
-            scancode = 0xFFFF;
         if (scancode != 0xFFFF)
             keyboard_input(!(rawKB.Flags & RI_KEY_BREAK), scancode);
+
+        window->checkFullscreenHotkey();
     }
 }
 

@@ -555,6 +555,7 @@ MainWindow::MainWindow(QWidget *parent)
     actGroup->addAction(ui->actionFullScreen_43);
     actGroup->addAction(ui->actionFullScreen_keepRatio);
     actGroup->addAction(ui->actionFullScreen_int);
+    actGroup->addAction(ui->actionFullScreen_int43);
     switch (video_grayscale) {
         case 0:
             ui->actionRGB_Color->setChecked(true);
@@ -1534,10 +1535,11 @@ MainWindow::on_actionLinear_triggered()
 static void
 update_fullscreen_scale_checkboxes(Ui::MainWindow *ui, QAction *selected)
 {
-    ui->actionFullScreen_stretch->setChecked(ui->actionFullScreen_stretch == selected);
-    ui->actionFullScreen_43->setChecked(ui->actionFullScreen_43 == selected);
-    ui->actionFullScreen_keepRatio->setChecked(ui->actionFullScreen_keepRatio == selected);
-    ui->actionFullScreen_int->setChecked(ui->actionFullScreen_int == selected);
+    ui->actionFullScreen_stretch->setChecked(selected == ui->actionFullScreen_stretch);
+    ui->actionFullScreen_43->setChecked(selected == ui->actionFullScreen_43);
+    ui->actionFullScreen_keepRatio->setChecked(selected == ui->actionFullScreen_keepRatio);
+    ui->actionFullScreen_int->setChecked(selected == ui->actionFullScreen_int);
+    ui->actionFullScreen_int43->setChecked(selected == ui->actionFullScreen_int43);
 
     {
         auto widget = ui->stackedWidget->currentWidget();
@@ -1546,7 +1548,8 @@ update_fullscreen_scale_checkboxes(Ui::MainWindow *ui, QAction *selected)
 
     for (int i = 1; i < MONITORS_NUM; i++) {
         if (main_window->renderers[i])
-            main_window->renderers[i]->onResize(main_window->renderers[i]->width(), main_window->renderers[i]->height());
+            main_window->renderers[i]->onResize(main_window->renderers[i]->width(),
+                                                main_window->renderers[i]->height());
     }
 
     device_force_redraw();
