@@ -187,6 +187,8 @@ extern int          video_fullscreen_scale;
 extern int          video_fullscreen_first;
 extern uint8_t      fontdat[2048][8];
 extern uint8_t      fontdatm[2048][16];
+extern uint8_t      fontdat2[2048][8];
+extern uint8_t      fontdatm2[2048][16];
 extern uint8_t      fontdatw[512][32];
 extern uint8_t      fontdat8x12[256][16];
 extern uint8_t      fontdat12x18[256][36];

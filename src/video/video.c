@@ -80,6 +80,8 @@ volatile int screenshots = 0;
 uint8_t      edatlookup[4][4];
 uint8_t      fontdat[2048][8];            /* IBM CGA font */
 uint8_t      fontdatm[2048][16];          /* IBM MDA font */
+uint8_t      fontdat2[2048][8];           /* IBM CGA 2nd instance font */
+uint8_t      fontdatm2[2048][16];         /* IBM MDA 2nd instance font */
 uint8_t      fontdatw[512][32];           /* Wyse700 font */
 uint8_t      fontdat8x12[256][16];        /* MDSI Genius font */
 uint8_t      fontdat12x18[256][36];       /* IM1024 font */
@@ -1087,6 +1089,19 @@ loadfont_common(FILE *f, int format)
             for (c = 0; c < 1024; c++) /* Allow up to 1024 chars */
                 for (d = 0; d < 8; d++)
                     fontdat[c][d] = fgetc(f) & 0xff;
+            break;
+
+
+        case 11: /* PC200 */
+            for (d = 0; d < 4; d++) {
+                /* There are 4 fonts in the ROM */
+                for (c = 0; c < 256; c++) /* 8x14 MDA in 8x16 cell */
+                    (void) !fread(&fontdatm2[256 * d + c][0], 1, 16, f);
+                for (c = 0; c < 256; c++) { /* 8x8 CGA in 8x16 cell */
+                    (void) !fread(&fontdat2[256 * d + c][0], 1, 8, f);
+                    fseek(f, 8, SEEK_CUR);
+                }
+            }
             break;
     }
 
