@@ -39,7 +39,7 @@
 #define MACHINE_BUS_PS2       (MACHINE_BUS_PS2_LATCH | MACHINE_BUS_PS2_PORTS)
 #define MACHINE_BUS_HIL       0x00000400 /* system has HP HIL keyboard and mouse ports */
 #define MACHINE_BUS_EISA      0x00000800 /* sys has EISA bus */
-#define MACHINE_BUS_AT32      0x00001000 /* sys has OPTi local bus */
+#define MACHINE_BUS_AT32      0x00001000 /* sys has Mylex AT/32 local bus */
 #define MACHINE_BUS_OLB       0x00002000 /* sys has OPTi local bus */
 #define MACHINE_BUS_VLB       0x00004000 /* sys has VL bus */
 #define MACHINE_BUS_MCA       0x00008000 /* sys has MCA bus */
