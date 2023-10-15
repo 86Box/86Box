@@ -80,6 +80,18 @@ RendererCommon::onResize(int width, int height)
             case FULLSCR_SCALE_INT43:
                 gsr = gw / gh;
 
+                if (video_fullscreen_scale == FULLSCR_SCALE_INT43) {
+                    if (r43 <= gsr) {
+                        gw = gh * r43;
+                        gh = gh;
+                    } else {
+                        gh = gw / r43;
+                        gw = gw;
+                    }
+
+                    gsr = r43;
+                }
+
                 if (gsr <= hsr) {
                     dw = hh * gsr;
                     dh = hh;
@@ -90,16 +102,6 @@ RendererCommon::onResize(int width, int height)
 
                 integer_scale(&dw, &gw);
                 integer_scale(&dh, &gh);
-
-                if (video_fullscreen_scale == FULLSCR_SCALE_INT43) {
-                    if (r43 <= gsr) {
-                        dw = dh * r43;
-                        dh = dh;
-                    } else {
-                        dh = dw / r43;
-                        dw = dw;
-                    }
-                }
 
                 dx = (hw - dw) / 2.0;
                 dy = (hh - dh) / 2.0;
