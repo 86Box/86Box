@@ -1259,6 +1259,8 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
                     xga->test    = val;
                     if (addr == 0xa0001)
                         xga->a5_test = 1;
+                    else if (addr == 0xafffe)
+                        xga->a5_test = 2;
 
                     xga->on = 0;
                     vga_on = 1;
@@ -1479,7 +1481,7 @@ svga_read_common(uint32_t addr, uint8_t linear, void *priv)
                         ret = xga->test;
                         xga->on = 1;
                         vga_on = 0;
-                    } else if ((addr == 0xa0000) && xga->a5_test) { /*This is required by XGAKIT to pass the memory test*/
+                    } else if ((addr == 0xa0000) && (xga->a5_test == 1)) { /*This is required by XGAKIT to pass the memory test*/
                         svga_log("A5 test bank = %x.\n", addr);
                         addr += xga->read_bank;
                         ret = xga->vram[addr & xga->vram_mask];
