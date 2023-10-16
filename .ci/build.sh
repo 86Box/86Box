@@ -579,6 +579,7 @@ else
 		arm32)	arch_deb="armhf";;
 		*)	arch_deb="$arch";;
 	esac
+        grep -q " bullseye " /etc/apt/sources.list || echo [!] WARNING: System not running the expected Debian version
 
 	# Establish general dependencies.
 	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream"
