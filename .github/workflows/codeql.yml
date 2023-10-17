@@ -26,6 +26,7 @@ on:
 jobs:
 
   analyze-msys2:
+
     name: "Analyze Windows MSYS2 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }})"
 
     runs-on: windows-2022
