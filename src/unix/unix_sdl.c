@@ -51,7 +51,7 @@ int                 title_set         = 0;
 int                 resize_pending    = 0;
 int                 resize_w          = 0;
 int                 resize_h          = 0;
-static uint8_t      interpixels[17842176];
+static void        *pixeldata;
 
 extern void RenderImGui(void);
 static void
@@ -150,11 +150,15 @@ sdl_blit_shim(int x, int y, int w, int h, int monitor_index)
     params.y = y;
     params.w = w;
     params.h = h;
+
     if (!(!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) || (monitor_index >= 1))
-        video_copy(interpixels, &(buffer32->line[y][x]), h * 2048 * sizeof(uint32_t));
-    if (screenshots)
-        video_screenshot(interpixels, 0, 0, 2048);
+        for (int row = 0; row < h; ++row)
+            video_copy(&(((uint8_t *) pixeldata)[row * 2048 * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
+
+    if (monitors[monitor_index].mon_screenshots)
+        video_screenshot((uint32_t *) pixeldata, 0, 0, 2048);
     blitreq = 1;
+
     video_blit_complete_monitor(monitor_index);
 }
 
@@ -167,6 +171,7 @@ sdl_real_blit(SDL_Rect *r_src)
     int      ret;
     int      winx;
     int      winy;
+
     SDL_GL_GetDrawableSize(sdl_win, &winx, &winy);
     SDL_RenderClear(sdl_render);
 
@@ -213,7 +218,7 @@ sdl_blit(int x, int y, int w, int h)
     r_src.y = y;
     r_src.w = w;
     r_src.h = h;
-    SDL_UpdateTexture(sdl_tex, &r_src, interpixels, 2048 * 4);
+    SDL_UpdateTexture(sdl_tex, &r_src, pixeldata, 2048 * 4);
     blitreq = 0;
 
     sdl_real_blit(&r_src);
@@ -269,8 +274,6 @@ sdl_close(void)
     SDL_Quit();
     sdl_flags = -1;
 }
-
-static int old_capture = 0;
 
 void
 sdl_enable(int enable)
@@ -392,7 +395,6 @@ plat_vidapi(char *api)
 static int
 sdl_init_common(int flags)
 {
-    wchar_t     temp[128];
     SDL_version ver;
 
     /* Get and log the version of the DLL we are using. */
@@ -526,10 +528,13 @@ ui_window_title(wchar_t *str)
 void
 ui_init_monitor(int monitor_index)
 {
+    /* No-op. */
 }
+
 void
 ui_deinit_monitor(int monitor_index)
 {
+    /* No-op. */
 }
 
 void
