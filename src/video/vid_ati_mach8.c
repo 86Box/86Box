@@ -2427,16 +2427,6 @@ mach_out(uint16_t addr, uint8_t val, void *priv)
                 svga_out(addr, val, svga);
             return;
 
-        case 0x3CF:
-            if (svga->gdcaddr == 6) {
-                uint8_t old_val = svga->gdcreg[6];
-                svga->gdcreg[6] = val;
-                if ((svga->gdcreg[6] & 0xc) != (old_val & 0xc))
-                    mach32_updatemapping(mach);
-                return;
-            }
-            break;
-
         case 0x3D4:
             svga->crtcreg = val & 0x3f;
             return;

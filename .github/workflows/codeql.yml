@@ -26,6 +26,7 @@ on:
 jobs:
 
   analyze-msys2:
+
     name: "Analyze Windows MSYS2 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }})"
 
     runs-on: windows-2022
@@ -171,6 +172,8 @@ jobs:
             new: on
             slug: -NDR
         ui:
+          - name: SDL GUI
+            qt: off
           - name: Qt GUI
             qt: on
             slug: -Qt
@@ -224,6 +227,7 @@ jobs:
           category: "/language:${{matrix.language}}"
 
   analyze-macos11:
+
     name: "Analyze macOS 11 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
 
     runs-on: macos-11
@@ -254,6 +258,8 @@ jobs:
             new: on
             slug: -NDR
         ui:
+          - name: SDL GUI
+            qt: off
           - name: Qt GUI
             qt: on
             slug: -Qt
