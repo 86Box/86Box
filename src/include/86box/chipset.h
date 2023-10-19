@@ -36,6 +36,9 @@ extern const device_t ali6117d_device;
 /* AMD */
 extern const device_t amd640_device;
 
+/* Compaq */
+extern const device_t compaq_386_device;
+
 /* Contaq/Cypress */
 extern const device_t contaq_82c596a_device;
 extern const device_t contaq_82c597_device;
@@ -108,6 +111,8 @@ extern const device_t opti283_device;
 extern const device_t opti291_device;
 extern const device_t opti493_device;
 extern const device_t opti495_device;
+extern const device_t opti601_device;
+extern const device_t opti602_device;
 extern const device_t opti802g_device;
 extern const device_t opti802g_pci_device;
 extern const device_t opti822_device;

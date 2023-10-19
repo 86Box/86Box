@@ -33,9 +33,9 @@ extern int scsi_card_available(int card);
 #ifdef EMU_DEVICE_H
 extern const device_t *scsi_card_getdevice(int card);
 #endif
-extern int   scsi_card_has_config(int card);
-extern char *scsi_card_get_internal_name(int card);
-extern int   scsi_card_get_from_internal_name(char *s);
-extern void  scsi_card_init(void);
+extern int         scsi_card_has_config(int card);
+extern const char *scsi_card_get_internal_name(int card);
+extern int         scsi_card_get_from_internal_name(char *s);
+extern void        scsi_card_init(void);
 
 #endif /*EMU_SCSI_H*/

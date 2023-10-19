@@ -255,6 +255,7 @@
    </attribute>
    <addaction name="actionPause"/>
    <addaction name="actionHard_Reset"/>
+   <addaction name="separator"/>
    <addaction name="actionACPI_Shutdown"/>
    <addaction name="separator"/>
    <addaction name="actionCtrl_Alt_Del"/>

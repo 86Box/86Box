@@ -10,11 +10,9 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  */
@@ -118,17 +116,7 @@ machine_init_ex(int m)
     if (bios_only || !ret)
         return ret;
 
-    if (gfxcard[0] != VID_NONE) {
-        if (ibm8514_enabled) {
-            ibm8514_device_add();
-        }
-        if (xga_enabled)
-            xga_device_add();
-    }
-
-    /* Reset the graphics card (or do nothing if it was already done
-       by the machine's init function). */
-    video_reset(gfxcard[0]);
+    video_post_reset();
 
     return ret;
 }
@@ -178,7 +166,7 @@ machine_common_init(UNUSED(const machine_t *model))
 
     int pit_type = IS_AT(machine) ? PIT_8254 : PIT_8253;
     /* Select fast PIT if needed */
-    if ((pit_mode == -1 && is486) || pit_mode == 1)
+    if (((pit_mode == -1) && is486) || (pit_mode == 1))
         pit_type += 2;
 
     pit_common_init(pit_type, pit_irq0_timer, NULL);

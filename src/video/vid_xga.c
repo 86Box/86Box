@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		IBM XGA emulation.
+ *          IBM XGA emulation.
  *
  *
  *
- * Authors:	TheCollector1995.
+ * Authors: TheCollector1995.
  *
- *		Copyright 2022 TheCollector1995.
+ *          Copyright 2022 TheCollector1995.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -49,7 +49,28 @@ static uint8_t xga_ext_inb(uint16_t addr, void *priv);
 static void     xga_writew(uint32_t addr, uint16_t val, void *priv);
 static uint16_t xga_readw(uint32_t addr, void *priv);
 
-int xga_has_vga = 0;
+static void xga_render_8bpp(svga_t *svga);
+static void xga_render_16bpp(svga_t *svga);
+
+int xga_active = 0;
+
+#ifdef ENABLE_XGA_LOG
+int xga_do_log = ENABLE_XGA_LOG;
+
+static void
+xga_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (xga_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define xga_log(fmt, ...)
+#endif
 
 void
 svga_xga_out(uint16_t addr, uint8_t val, void *priv)
@@ -123,12 +144,13 @@ xga_updatemapping(svga_t *svga)
 {
     xga_t *xga = &svga->xga;
 
-#if 0
-    pclog("OpMode = %x, linear base = %08x, aperture cntl = %d, access mode = %x, map = %x, endian reverse = %d, a5test = %d, XGA on = %d.\n", xga->op_mode, xga->linear_base, xga->aperture_cntl, xga->access_mode, svga->gdcreg[6] & 0x0c, xga->linear_endian_reverse, xga->a5_test, xga->on);
-#endif
+    xga_log("OpMode = %x, linear base = %08x, aperture cntl = %d, access mode = %x, map = %x, "
+            "endian reverse = %d, a5test = %d, XGA on = %d.\n", xga->op_mode, xga->linear_base,
+            xga->aperture_cntl, xga->access_mode, svga->gdcreg[6] & 0x0c,
+            xga->linear_endian_reverse, xga->a5_test, xga->on);
+
     if (((xga->op_mode & 7) >= 4) || ((xga->op_mode & 7) == 0)) {
         if ((xga->aperture_cntl == 1) || (xga->aperture_cntl == 2)) {
-            mem_mapping_disable(&svga->mapping);
             if (xga->aperture_cntl == 1)
                 mem_mapping_set_addr(&xga->video_mapping, 0xa0000, 0x10000);
             else
@@ -139,7 +161,6 @@ xga_updatemapping(svga_t *svga)
             if (!xga->linear_endian_reverse)
                 mem_mapping_disable(&xga->linear_mapping);
         } else if (xga->aperture_cntl == 0) {
-            mem_mapping_disable(&svga->mapping);
             mem_mapping_set_addr(&xga->video_mapping, 0xa0000, 0x10000);
             mem_mapping_enable(&xga->video_mapping);
             xga->banked_mask = 0xffff;
@@ -147,23 +168,18 @@ xga_updatemapping(svga_t *svga)
                 mem_mapping_set_addr(&xga->linear_mapping, xga->base_addr_1mb, 0x100000);
             else
                 mem_mapping_set_addr(&xga->linear_mapping, xga->linear_base, 0x400000);
-            if (((xga->op_mode & 7) == 4) && ((svga->gdcreg[6] & 0x0c) == 0x0c) && !xga->a5_test && xga->on)
-                xga->linear_endian_reverse = 1;
-            else if (((xga->op_mode & 7) == 0) && ((svga->gdcreg[6] & 0x0c) == 0x0c) && !xga->a5_test && !xga->on) {
-                xga->linear_endian_reverse = 1;
-            }
+
             if (xga->a5_test && (xga->access_mode & 8) && !xga->linear_endian_reverse) {
                 xga->on = 0;
-                vga_on  = !xga->on;
+                vga_on  = 1;
+                xga_log("A5 test valid.\n");
             }
         }
-#if 0
-        pclog("XGA opmode (extended) = %d, disp mode = %d, aperture = %d.\n", xga->op_mode & 7, xga->disp_cntl_2 & 7, xga->aperture_cntl);
-#endif
+
+        xga_log("XGA opmode (extended) = %d, disp mode = %d, aperture = %d.\n", xga->op_mode & 7,
+                xga->disp_cntl_2 & 7, xga->aperture_cntl);
     }
-#if 0
-    pclog("VGA on = %d.\n", vga_on);
-#endif
+    xga_log("VGA on = %d, map = %02x.\n", vga_on, svga->gdcreg[6] & 0x0c);
 }
 
 void
@@ -195,15 +211,17 @@ xga_recalctimings(svga_t *svga)
 
         xga->ma_latch = xga->disp_start_addr;
 
+        xga_log("XGA ClkSel1 = %d, ClkSel2 = %02x.\n", (xga->clk_sel_1 >> 2) & 3, xga->clk_sel_2 & 0x80);
         switch ((xga->clk_sel_1 >> 2) & 3) {
             case 0:
-                if (xga->clk_sel_2 & 0x80) {
+                xga_log("HDISP VGA0 = %d, XGA = %d.\n", svga->hdisp, xga->h_disp);
+                if (xga->clk_sel_2 & 0x80)
                     svga->clock = (cpuclock * (double) (1ULL << 32)) / 41539000.0;
-                } else {
+                else
                     svga->clock = (cpuclock * (double) (1ULL << 32)) / 25175000.0;
-                }
                 break;
             case 1:
+                xga_log("HDISP VGA1 = %d, XGA = %d.\n", svga->hdisp, xga->h_disp);
                 svga->clock = (cpuclock * (double) (1ULL << 32)) / 28322000.0;
                 break;
             case 3:
@@ -350,11 +368,13 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
             break;
 
         case 0x50:
+            xga_log("Reg50 write = %02x.\n", val);
             xga->disp_cntl_1 = val;
             svga_recalctimings(svga);
             break;
 
         case 0x51:
+            xga_log("Reg51 write = %02x.\n", val);
             xga->disp_cntl_2 = val;
             xga->on          = ((val & 7) >= 3);
             vga_on           = !xga->on;
@@ -362,6 +382,7 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
             break;
 
         case 0x54:
+            xga_log("Reg54 write = %02x.\n", val);
             xga->clk_sel_1 = val;
             svga_recalctimings(svga);
             break;
@@ -385,7 +406,7 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
             if ((xga->sprite_pos >= 0) && (xga->sprite_pos <= 16)) {
                 if ((xga->op_mode & 7) >= 5)
                     xga->cursor_data_on = 1;
-                else if ((xga->sprite_pos >= 1) || ((xga->disp_cntl_2 & 7) > 3))
+                else if ((xga->sprite_pos >= 1) || ((xga->disp_cntl_2 & 7) == 4))
                     xga->cursor_data_on = 1;
                 else if (xga->aperture_cntl == 0) {
                     if (xga->linear_endian_reverse && !(xga->access_mode & 8))
@@ -403,9 +424,9 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
                     xga->cursor_data_on = 0;
                 }
             }
-#if 0
-            pclog("Sprite POS = %d, data on = %d, idx = %d, apcntl = %d\n", xga->sprite_pos, xga->cursor_data_on, xga->sprite_pal_addr_idx, xga->aperture_cntl);
-#endif
+
+            xga_log("Sprite POS = %d, data on = %d, idx = %d, apcntl = %d\n", xga->sprite_pos,
+                    xga->cursor_data_on, xga->sprite_pal_addr_idx, xga->aperture_cntl);
             break;
 
         case 0x62:
@@ -439,7 +460,7 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
                     svga->vgapal[index].r = svga->dac_r;
                     svga->vgapal[index].g = svga->dac_g;
                     svga->vgapal[index].b = xga->pal_b;
-                    svga->pallook[index]  = makecol32(svga->vgapal[index].r, svga->vgapal[index].g, svga->vgapal[index].b);
+                    xga->pallook[index]  = makecol32(svga->vgapal[index].r, svga->vgapal[index].g, svga->vgapal[index].b);
                     svga->dac_pos         = 0;
                     svga->dac_addr        = (svga->dac_addr + 1) & 0xff;
                     break;
@@ -469,6 +490,7 @@ xga_ext_out_reg(xga_t *xga, svga_t *svga, uint8_t idx, uint8_t val)
             break;
 
         case 0x70:
+            xga_log("Reg70 write = %02x.\n", val);
             xga->clk_sel_2 = val;
             svga_recalctimings(svga);
             break;
@@ -484,9 +506,8 @@ xga_ext_outb(uint16_t addr, uint8_t val, void *priv)
     svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
-#if 0
-    pclog("[%04X:%08X]: EXT OUTB = %02x, val = %02x\n", CS, cpu_state.pc, addr, val);
-#endif
+    xga_log("[%04X:%08X]: EXT OUTB = %02x, val = %02x\n", CS, cpu_state.pc, addr, val);
+
     switch (addr & 0x0f) {
         case 0:
             xga->op_mode = val;
@@ -502,14 +523,23 @@ xga_ext_outb(uint16_t addr, uint8_t val, void *priv)
             break;
         case 8:
             xga->ap_idx = val;
-#if 0
-            pclog("Aperture CNTL = %d, val = %02x, up to bit6 = %02x\n", xga->aperture_cntl, val, val & 0x3f);
-#endif
+            xga_log("Aperture CNTL = %d, val = %02x, up to bit6 = %02x\n", xga->aperture_cntl,
+                    val, val & 0x3f);
             if ((xga->op_mode & 7) < 4) {
                 xga->write_bank = xga->read_bank = 0;
             } else {
-                xga->write_bank = (xga->ap_idx & 0x3f) << 16;
-                xga->read_bank  = xga->write_bank;
+                if (xga->base_addr_1mb) {
+                    if (xga->aperture_cntl) {
+                        xga->write_bank = (xga->ap_idx & 0x3f) << 16;
+                        xga->read_bank  = xga->write_bank;
+                    } else {
+                        xga->write_bank = (xga->ap_idx & 0x30) << 16;
+                        xga->read_bank  = xga->write_bank;
+                    }
+                } else {
+                    xga->write_bank = (xga->ap_idx & 0x3f) << 16;
+                    xga->read_bank  = xga->write_bank;
+                }
             }
             break;
         case 9:
@@ -742,9 +772,8 @@ xga_ext_inb(uint16_t addr, void *priv)
                     break;
 
                 case 0x6a:
-#if 0
-                    pclog("Sprite POS Read = %d, addr idx = %04x\n", xga->sprite_pos, xga->sprite_pal_addr_idx_prefetch);
-#endif
+                    xga_log("Sprite POS Read = %d, addr idx = %04x\n", xga->sprite_pos,
+                            xga->sprite_pal_addr_idx_prefetch);
                     ret                      = xga->sprite_data[xga->sprite_pos_prefetch];
                     xga->sprite_pos_prefetch = (xga->sprite_pos_prefetch + 1) & 0x3ff;
                     break;
@@ -773,9 +802,7 @@ xga_ext_inb(uint16_t addr, void *priv)
             break;
     }
 
-#if 0
-    pclog("[%04X:%08X]: EXT INB = %02x, ret = %02x\n", CS, cpu_state.pc, addr, ret);
-#endif
+    xga_log("[%04X:%08X]: EXT INB = %02x, ret = %02x\n", CS, cpu_state.pc, addr, ret);
 
     return ret;
 }
@@ -1003,7 +1030,7 @@ xga_accel_write_map_pixel(svga_t *svga, int x, int y, int map, uint32_t base, ui
 
     switch (xga->accel.px_map_format[map] & 7) {
         case 0: /*1-bit*/
-            addr += (y * width >> 3);
+            addr += (y * (width >> 3));
             addr += (x >> 3);
             if (!skip) {
                 READ(addr, byte);
@@ -1410,10 +1437,15 @@ xga_bitblt(svga_t *svga)
 
     xga->accel.pattern = 0;
 
-#if 0
-    pclog("XGA bitblt linear endian reverse=%d, access_mode=%x, octanty=%d, src command = %08x, pxsrcmap=%x, pxpatmap=%x, pxdstmap=%x, srcmap=%d, patmap=%d, dstmap=%d, usesrcvramfr=%d, usevrambk=%d.\n",
-          xga->linear_endian_reverse, xga->access_mode & 0x0f, ydir, xga->accel.command, xga->accel.px_map_format[xga->accel.src_map] & 0x0f, xga->accel.px_map_format[xga->accel.pat_src] & 0x0f, xga->accel.px_map_format[xga->accel.dst_map] & 0x0f, xga->accel.src_map, xga->accel.pat_src, xga->accel.dst_map, ((xga->accel.command >> 28) & 3), ((xga->accel.command >> 30) & 3));
-#endif
+    xga_log("XGA bitblt linear endian reverse=%d, access_mode=%x, octanty=%d, src command = %08x, "
+            "pxsrcmap=%x, pxpatmap=%x, pxdstmap=%x, srcmap=%d, patmap=%d, dstmap=%d, "
+            "usesrcvramfr=%d, usevrambk=%d.\n",
+            xga->linear_endian_reverse, xga->access_mode & 0x0f, ydir, xga->accel.command,
+            xga->accel.px_map_format[xga->accel.src_map] & 0x0f,
+            xga->accel.px_map_format[xga->accel.pat_src] & 0x0f,
+            xga->accel.px_map_format[xga->accel.dst_map] & 0x0f,
+            xga->accel.src_map, xga->accel.pat_src,
+            xga->accel.dst_map, ((xga->accel.command >> 28) & 3), ((xga->accel.command >> 30) & 3));
 
     if (xga->accel.pat_src == 8) {
         if (srcheight == 7)
@@ -1427,10 +1459,17 @@ xga_bitblt(svga_t *svga)
                 }
             }
         }
-#if 0
-        pclog("Pattern Map = 8: CMD = %08x: SRCBase = %08x, DSTBase = %08x, from/to vram dir = %d, cmd dir = %06x\n", xga->accel.command, srcbase, dstbase, xga->from_to_vram, xga->accel.dir_cmd);
-        pclog("CMD = %08x: Y = %d, X = %d, patsrc = %02x, srcmap = %d, dstmap = %d, py = %d, sy = %d, dy = %d, width0 = %d, width1 = %d, width2 = %d, width3 = %d\n", xga->accel.command, xga->accel.y, xga->accel.x, xga->accel.pat_src, xga->accel.src_map, xga->accel.dst_map, xga->accel.py, xga->accel.sy, xga->accel.dy, xga->accel.px_map_width[0], xga->accel.px_map_width[1], xga->accel.px_map_width[2], xga->accel.px_map_width[3]);
-#endif
+
+        xga_log("Pattern Map = 8: CMD = %08x: SRCBase = %08x, DSTBase = %08x, from/to vram dir = %d, "
+                "cmd dir = %06x\n", xga->accel.command, srcbase, dstbase, xga->from_to_vram,
+                xga->accel.dir_cmd);
+        xga_log("CMD = %08x: Y = %d, X = %d, patsrc = %02x, srcmap = %d, dstmap = %d, py = %d, "
+                "sy = %d, dy = %d, width0 = %d, width1 = %d, width2 = %d, width3 = %d\n",
+                xga->accel.command, xga->accel.y, xga->accel.x, xga->accel.pat_src, xga->accel.src_map,
+                xga->accel.dst_map, xga->accel.py, xga->accel.sy, xga->accel.dy,
+                xga->accel.px_map_width[0], xga->accel.px_map_width[1],
+                xga->accel.px_map_width[2], xga->accel.px_map_width[3]);
+
         while (xga->accel.y >= 0) {
             if (xga->accel.command & 0xc0) {
                 if ((xga->accel.dx >= xga->accel.mask_map_origin_x_off) && (xga->accel.dx <= ((xga->accel.px_map_width[0] & 0xfff) + xga->accel.mask_map_origin_x_off)) && (xga->accel.dy >= xga->accel.mask_map_origin_y_off) && (xga->accel.dy <= ((xga->accel.px_map_height[0] & 0xfff) + xga->accel.mask_map_origin_y_off))) {
@@ -1507,11 +1546,22 @@ xga_bitblt(svga_t *svga)
             }
         }
 
-#if 0
-        pclog("XGA bitblt linear endian reverse=%d, octanty=%d, src command = %08x, pxsrcmap=%x, pxdstmap=%x, srcmap=%d, patmap=%d, dstmap=%d, dstwidth=%d, dstheight=%d, srcwidth=%d, srcheight=%d, dstbase=%08x, srcbase=%08x.\n", xga->linear_endian_reverse, ydir, xga->accel.command, xga->accel.px_map_format[xga->accel.src_map] & 0x0f, xga->accel.px_map_format[xga->accel.dst_map] & 0x0f, xga->accel.src_map, xga->accel.pat_src, xga->accel.dst_map, dstwidth, dstheight, srcwidth, srcheight, dstbase, srcbase);
-        pclog("Pattern Map = %d: CMD = %08x: PATBase = %08x, SRCBase = %08x, DSTBase = %08x\n", xga->accel.pat_src, xga->accel.command, patbase, srcbase, dstbase);
-        pclog("CMD = %08x: Y = %d, X = %d, patsrc = %02x, srcmap = %d, dstmap = %d, py = %d, sy = %d, dy = %d, width0 = %d, width1 = %d, width2 = %d, width3 = %d\n", xga->accel.command, xga->accel.y, xga->accel.x, xga->accel.pat_src, xga->accel.src_map, xga->accel.dst_map, xga->accel.py, xga->accel.sy, xga->accel.dy, xga->accel.px_map_width[0], xga->accel.px_map_width[1], xga->accel.px_map_width[2], xga->accel.px_map_width[3]);
-#endif
+        xga_log("XGA bitblt linear endian reverse=%d, octanty=%d, src command = %08x, pxsrcmap=%x, "
+                "pxdstmap=%x, srcmap=%d, patmap=%d, dstmap=%d, dstwidth=%d, dstheight=%d, srcwidth=%d, "
+                "srcheight=%d, dstbase=%08x, srcbase=%08x.\n", xga->linear_endian_reverse, ydir,
+                xga->accel.command, xga->accel.px_map_format[xga->accel.src_map] & 0x0f,
+                xga->accel.px_map_format[xga->accel.dst_map] & 0x0f, xga->accel.src_map,
+                xga->accel.pat_src, xga->accel.dst_map, dstwidth, dstheight, srcwidth, srcheight,
+                dstbase, srcbase);
+        xga_log("Pattern Map = %d: CMD = %08x: PATBase = %08x, SRCBase = %08x, DSTBase = %08x\n",
+                xga->accel.pat_src, xga->accel.command, patbase, srcbase, dstbase);
+        xga_log("CMD = %08x: Y = %d, X = %d, patsrc = %02x, srcmap = %d, dstmap = %d, py = %d, "
+                "sy = %d, dy = %d, width0 = %d, width1 = %d, width2 = %d, width3 = %d\n",
+                xga->accel.command, xga->accel.y, xga->accel.x, xga->accel.pat_src,
+                xga->accel.src_map, xga->accel.dst_map, xga->accel.py, xga->accel.sy, xga->accel.dy,
+                xga->accel.px_map_width[0], xga->accel.px_map_width[1],
+                xga->accel.px_map_width[2], xga->accel.px_map_width[3]);
+
         while (xga->accel.y >= 0) {
             mix = xga_accel_read_pattern_map_pixel(svga, xga->accel.px, xga->accel.py, xga->accel.pat_src, patbase, patwidth + 1);
 
@@ -1702,9 +1752,10 @@ xga_mem_write(uint32_t addr, uint32_t val, xga_t *xga, svga_t *svga, int len)
                     xga->accel.short_stroke_vector3 = (xga->accel.short_stroke >> 16) & 0xff;
                     xga->accel.short_stroke_vector4 = (xga->accel.short_stroke >> 24) & 0xff;
 
-#if 0
-                    pclog("1Vector = %02x, 2Vector = %02x, 3Vector = %02x, 4Vector = %02x\n", xga->accel.short_stroke_vector1, xga->accel.short_stroke_vector2, xga->accel.short_stroke_vector3, xga->accel.short_stroke_vector4);
-#endif
+                    xga_log("1Vector = %02x, 2Vector = %02x, 3Vector = %02x, 4Vector = %02x\n",
+                            xga->accel.short_stroke_vector1, xga->accel.short_stroke_vector2,
+                            xga->accel.short_stroke_vector3, xga->accel.short_stroke_vector4);
+
                     xga_short_stroke(svga, xga->accel.short_stroke_vector1);
                     xga_short_stroke(svga, xga->accel.short_stroke_vector2);
                     xga_short_stroke(svga, xga->accel.short_stroke_vector3);
@@ -1975,51 +2026,52 @@ exec_command:
                     xga->accel.dst_map   = ((xga->accel.command >> 16) & 0x0f);
                     xga->accel.src_map   = ((xga->accel.command >> 20) & 0x0f);
 
-#if 0
-                    if (xga->accel.pat_src) {
-                        pclog("[%04X:%08X]: Accel Command = %02x, full = %08x, patwidth = %d, dstwidth = %d, srcwidth = %d, patheight = %d, dstheight = %d, srcheight = %d, px = %d, py = %d, dx = %d, dy = %d, sx = %d, sy = %d, patsrc = %d, dstmap = %d, srcmap = %d, dstbase = %08x, srcbase = %08x, patbase = %08x, dstformat = %x, srcformat = %x, planemask = %08x\n",
-                              CS, cpu_state.pc, ((xga->accel.command >> 24) & 0x0f), xga->accel.command, xga->accel.px_map_width[xga->accel.pat_src],
-                              xga->accel.px_map_width[xga->accel.dst_map], xga->accel.px_map_width[xga->accel.src_map],
-                              xga->accel.px_map_height[xga->accel.pat_src], xga->accel.px_map_height[xga->accel.dst_map],
-                              xga->accel.px_map_height[xga->accel.src_map],
-                              xga->accel.pat_map_x, xga->accel.pat_map_y,
-                              xga->accel.dst_map_x, xga->accel.dst_map_y,
-                              xga->accel.src_map_x, xga->accel.src_map_y,
-                              xga->accel.pat_src, xga->accel.dst_map, xga->accel.src_map,
-                              xga->accel.px_map_base[xga->accel.dst_map], xga->accel.px_map_base[xga->accel.src_map], xga->accel.px_map_base[xga->accel.pat_src],
-                              xga->accel.px_map_format[xga->accel.dst_map] & 0x0f, xga->accel.px_map_format[xga->accel.src_map] & 0x0f, xga->accel.plane_mask);
-                        pclog("\n");
-                    }
+#ifdef ENABLE_XGA_LOG
+                    if (xga->accel.pat_src)
+                        xga_log("[%04X:%08X]: Accel Command = %02x, full = %08x, patwidth = %d, "
+                                "dstwidth = %d, srcwidth = %d, patheight = %d, dstheight = %d, "
+                                "srcheight = %d, px = %d, py = %d, dx = %d, dy = %d, sx = %d, "
+                                "sy = %d, patsrc = %d, dstmap = %d, srcmap = %d, dstbase = %08x, "
+                                "srcbase = %08x, patbase = %08x, dstformat = %x, srcformat = %x, "
+                                "planemask = %08x\n\n",
+                                CS, cpu_state.pc, ((xga->accel.command >> 24) & 0x0f),
+                                xga->accel.command, xga->accel.px_map_width[xga->accel.pat_src],
+                                xga->accel.px_map_width[xga->accel.dst_map],
+                                xga->accel.px_map_width[xga->accel.src_map],
+                                xga->accel.px_map_height[xga->accel.pat_src],
+                                xga->accel.px_map_height[xga->accel.dst_map],
+                                xga->accel.px_map_height[xga->accel.src_map],
+                                xga->accel.pat_map_x, xga->accel.pat_map_y,
+                                xga->accel.dst_map_x, xga->accel.dst_map_y,
+                                xga->accel.src_map_x, xga->accel.src_map_y,
+                                xga->accel.pat_src, xga->accel.dst_map,
+                                xga->accel.src_map, xga->accel.px_map_base[xga->accel.dst_map],
+                                xga->accel.px_map_base[xga->accel.src_map],
+                                xga->accel.px_map_base[xga->accel.pat_src],
+                                xga->accel.px_map_format[xga->accel.dst_map] & 0x0f,
+                                xga->accel.px_map_format[xga->accel.src_map] & 0x0f,
+                                xga->accel.plane_mask);
 #endif
+
                     switch ((xga->accel.command >> 24) & 0x0f) {
                         case 3: /*Bresenham Line Draw Read*/
-#if 0
-                            pclog("Line Draw Read\n");
-#endif
+                            xga_log("Line Draw Read\n");
                             break;
                         case 4: /*Short Stroke Vectors*/
-#if 0
-                            pclog("Short Stroke Vectors.\n");
-#endif
+                            xga_log("Short Stroke Vectors.\n");
                             break;
                         case 5: /*Bresenham Line Draw Write*/
-#if 0
-                            pclog("Line Draw Write.\n");
-#endif
+                            xga_log("Line Draw Write.\n");
                             xga_line_draw_write(svga);
                             break;
                         case 8: /*BitBLT*/
                             xga_bitblt(svga);
                             break;
                         case 9: /*Inverting BitBLT*/
-#if 0
-                            pclog("Inverting BitBLT\n");
-#endif
+                            xga_log("Inverting BitBLT\n");
                             break;
                         case 0x0a: /*Area Fill*/
-#if 0
-                            pclog("Area Fill.\n");
-#endif
+                            xga_log("Area Fill.\n");
                             break;
 
                         default:
@@ -2061,9 +2113,8 @@ xga_memio_writeb(uint32_t addr, uint8_t val, void *priv)
     xga_t  *xga  = &svga->xga;
 
     xga_mem_write(addr, val, xga, svga, 1);
-#if 0
-    pclog("Write MEMIOB = %04x, val = %02x\n", addr & 0x7f, val);
-#endif
+
+    xga_log("Write MEMIOB = %04x, val = %02x\n", addr & 0x7f, val);
 }
 
 static void
@@ -2073,9 +2124,8 @@ xga_memio_writew(uint32_t addr, uint16_t val, void *priv)
     xga_t  *xga  = &svga->xga;
 
     xga_mem_write(addr, val, xga, svga, 2);
-#if 0
-    pclog("Write MEMIOW = %04x, val = %04x\n", addr & 0x7f, val);
-#endif
+
+    xga_log("Write MEMIOW = %04x, val = %04x\n", addr & 0x7f, val);
 }
 
 static void
@@ -2085,9 +2135,8 @@ xga_memio_writel(uint32_t addr, uint32_t val, void *priv)
     xga_t  *xga  = &svga->xga;
 
     xga_mem_write(addr, val, xga, svga, 4);
-#if 0
-    pclog("Write MEMIOL = %04x, val = %08x\n", addr & 0x7f, val);
-#endif
+
+    xga_log("Write MEMIOL = %04x, val = %08x\n", addr & 0x7f, val);
 }
 
 static uint8_t
@@ -2097,7 +2146,7 @@ xga_mem_read(uint32_t addr, xga_t *xga, UNUSED(svga_t *svga))
 
     addr &= 0x1fff;
     if (addr < 0x1800) {
-        if (!xga_has_vga)
+        if (xga_standalone_enabled)
             temp = xga->bios_rom.rom[addr];
         else
             temp = xga->vga_bios_rom.rom[addr];
@@ -2183,9 +2232,7 @@ xga_memio_readb(uint32_t addr, void *priv)
 
     temp = xga_mem_read(addr, xga, svga);
 
-#if 0
-    pclog("[%04X:%08X]: Read MEMIOB = %04x, temp = %02x\n", CS, cpu_state.pc, addr, temp);
-#endif
+    xga_log("[%04X:%08X]: Read MEMIOB = %04x, temp = %02x\n", CS, cpu_state.pc, addr, temp);
 
     return temp;
 }
@@ -2200,9 +2247,8 @@ xga_memio_readw(uint32_t addr, void *priv)
     temp = xga_mem_read(addr, xga, svga);
     temp |= (xga_mem_read(addr + 1, xga, svga) << 8);
 
-#if 0
-    pclog("[%04X:%08X]: Read MEMIOW = %04x, temp = %04x\n", CS, cpu_state.pc, addr, temp);
-#endif
+    xga_log("[%04X:%08X]: Read MEMIOW = %04x, temp = %04x\n", CS, cpu_state.pc, addr, temp);
+
     return temp;
 }
 
@@ -2218,9 +2264,8 @@ xga_memio_readl(uint32_t addr, void *priv)
     temp |= (xga_mem_read(addr + 2, xga, svga) << 16);
     temp |= (xga_mem_read(addr + 3, xga, svga) << 24);
 
-#if 0
-    pclog("Read MEMIOL = %04x, temp = %08x\n", addr, temp);
-#endif
+    xga_log("Read MEMIOL = %04x, temp = %08x\n", addr, temp);
+
     return temp;
 }
 
@@ -2311,8 +2356,9 @@ xga_render_overscan_right(xga_t *xga, svga_t *svga)
 }
 
 static void
-xga_render_8bpp(xga_t *xga, svga_t *svga)
+xga_render_8bpp(svga_t *svga)
 {
+    xga_t *xga = &svga->xga;
     uint32_t *p;
     uint32_t  dat;
 
@@ -2328,16 +2374,16 @@ xga_render_8bpp(xga_t *xga, svga_t *svga)
 
         for (int x = 0; x <= xga->h_disp; x += 8) {
             dat  = *(uint32_t *) (&xga->vram[xga->ma & xga->vram_mask]);
-            p[0] = svga->pallook[dat & 0xff];
-            p[1] = svga->pallook[(dat >> 8) & 0xff];
-            p[2] = svga->pallook[(dat >> 16) & 0xff];
-            p[3] = svga->pallook[(dat >> 24) & 0xff];
+            p[0] = xga->pallook[dat & 0xff];
+            p[1] = xga->pallook[(dat >> 8) & 0xff];
+            p[2] = xga->pallook[(dat >> 16) & 0xff];
+            p[3] = xga->pallook[(dat >> 24) & 0xff];
 
             dat  = *(uint32_t *) (&xga->vram[(xga->ma + 4) & xga->vram_mask]);
-            p[4] = svga->pallook[dat & 0xff];
-            p[5] = svga->pallook[(dat >> 8) & 0xff];
-            p[6] = svga->pallook[(dat >> 16) & 0xff];
-            p[7] = svga->pallook[(dat >> 24) & 0xff];
+            p[4] = xga->pallook[dat & 0xff];
+            p[5] = xga->pallook[(dat >> 8) & 0xff];
+            p[6] = xga->pallook[(dat >> 16) & 0xff];
+            p[7] = xga->pallook[(dat >> 24) & 0xff];
 
             xga->ma += 8;
             p += 8;
@@ -2347,8 +2393,9 @@ xga_render_8bpp(xga_t *xga, svga_t *svga)
 }
 
 static void
-xga_render_16bpp(xga_t *xga, svga_t *svga)
+xga_render_16bpp(svga_t *svga)
 {
+    xga_t *xga = &svga->xga;
     int       x;
     uint32_t *p;
     uint32_t  dat;
@@ -2417,7 +2464,7 @@ static void
 xga_writew(uint32_t addr, uint16_t val, void *priv)
 {
     svga_t      *svga = (svga_t *) priv;
-    const xga_t *xga  = &svga->xga;
+    xga_t  *xga  = &svga->xga;
 
     if (!xga->on) {
         svga_writew(addr, val, svga);
@@ -2432,7 +2479,7 @@ static void
 xga_writel(uint32_t addr, uint32_t val, void *priv)
 {
     svga_t      *svga = (svga_t *) priv;
-    const xga_t *xga  = &svga->xga;
+    xga_t  *xga  = &svga->xga;
 
     if (!xga->on) {
         svga_writel(addr, val, svga);
@@ -2449,11 +2496,13 @@ static uint8_t
 xga_read(uint32_t addr, void *priv)
 {
     svga_t      *svga = (svga_t *) priv;
-    const xga_t *xga  = &svga->xga;
+    xga_t *xga  = &svga->xga;
     uint8_t      ret  = 0xff;
 
-    if (!xga->on)
-        return svga_read(addr, svga);
+    if (!xga->on) {
+        ret = svga_read(addr, svga);
+        return ret;
+    }
 
     addr &= xga->banked_mask;
     addr += xga->read_bank;
@@ -2477,11 +2526,13 @@ static uint16_t
 xga_readw(uint32_t addr, void *priv)
 {
     svga_t      *svga = (svga_t *) priv;
-    const xga_t *xga  = &svga->xga;
+    xga_t       *xga  = &svga->xga;
     uint16_t     ret  = 0xffff;
 
-    if (!xga->on)
-        return svga_readw(addr, svga);
+    if (!xga->on) {
+        ret = svga_readw(addr, svga);
+        return ret;
+    }
 
     ret = xga_read(addr, svga);
     ret |= (xga_read(addr + 1, svga) << 8);
@@ -2493,11 +2544,13 @@ static uint32_t
 xga_readl(uint32_t addr, void *priv)
 {
     svga_t      *svga = (svga_t *) priv;
-    const xga_t *xga  = &svga->xga;
+    xga_t       *xga  = &svga->xga;
     uint32_t     ret  = 0xffffffff;
 
-    if (!xga->on)
-        return svga_readl(addr, svga);
+    if (!xga->on) {
+        ret = svga_readl(addr, svga);
+        return ret;
+    }
 
     ret = xga_read(addr, svga);
     ret |= (xga_read(addr + 1, svga) << 8);
@@ -2523,7 +2576,7 @@ xga_write_linear(uint32_t addr, uint8_t val, void *priv)
     if (addr >= xga->vram_size)
         return;
 
-    cycles -= video_timing_write_b;
+    cycles -= svga->monitor->mon_video_timing_write_b;
 
     if (xga->linear_endian_reverse) {
         if ((xga->access_mode & 7) == 4) {
@@ -2586,7 +2639,7 @@ xga_read_linear(uint32_t addr, void *priv)
     if (addr >= xga->vram_size)
         return ret;
 
-    cycles -= video_timing_read_b;
+    cycles -= svga->monitor->mon_video_timing_read_b;
 
     if (xga->linear_endian_reverse) {
         if ((xga->access_mode & 7) == 4) {
@@ -2640,14 +2693,14 @@ xga_do_render(svga_t *svga)
 {
     xga_t *xga = &svga->xga;
 
+    xga_log("DISPCNTL = %d, vga = %d.\n", xga->disp_cntl_2 & 7, vga_on);
     switch (xga->disp_cntl_2 & 7) {
         case 3:
-            xga_render_8bpp(xga, svga);
+            xga_render_8bpp(svga);
             break;
         case 4:
-            xga_render_16bpp(xga, svga);
+            xga_render_16bpp(svga);
             break;
-
         default:
             break;
     }
@@ -2693,7 +2746,7 @@ xga_poll(xga_t *xga, svga_t *svga)
 
             if (xga->firstline == 2000) {
                 xga->firstline = xga->displine;
-                video_wait_for_buffer();
+                video_wait_for_buffer_monitor(svga->monitor_index);
             }
 
             if (xga->hwcursor_on) {
@@ -2817,9 +2870,8 @@ xga_mca_read(int port, void *priv)
     if (((port & 7) == 3) && !(ret & 1)) /*Always enable the mapping.*/
         ret |= 1;
 
-#if 0
-    pclog("[%04X:%08X]: POS Read Port = %x, val = %02x\n", CS, cpu_state.pc, port & 7, xga->pos_regs[port & 7]);
-#endif
+    xga_log("[%04X:%08X]: POS Read Port = %x, val = %02x\n", CS, cpu_state.pc,
+            port & 7, xga->pos_regs[port & 7]);
 
     return ret;
 }
@@ -2838,7 +2890,7 @@ xga_mca_write(int port, uint8_t val, void *priv)
     mem_mapping_disable(&xga->bios_rom.mapping);
     mem_mapping_disable(&xga->memio_mapping);
     xga->on                    = 0;
-    vga_on                     = !xga->on;
+    vga_on                     = 1;
     xga->linear_endian_reverse = 0;
     xga->a5_test               = 0;
 
@@ -2860,9 +2912,10 @@ xga_mca_write(int port, uint8_t val, void *priv)
         else
             mem_mapping_set_addr(&xga->memio_mapping, xga->rom_addr + 0x1c00 + (xga->instance * 0x80), 0x80);
     }
-#if 0
-    pclog("[%04X:%08X]: POS Write Port = %x, val = %02x, linear base = %08x, instance = %d, rom addr = %05x\n", CS, cpu_state.pc, port & 7, val, xga->linear_base, xga->instance, xga->rom_addr);
-#endif
+
+    xga_log("[%04X:%08X]: POS Write Port = %x, val = %02x, linear base = %08x, instance = %d, "
+            "rom addr = %05x\n", CS, cpu_state.pc, port & 7, val, xga->linear_base,
+            xga->instance, xga->rom_addr);
 }
 
 static uint8_t
@@ -2880,8 +2933,10 @@ xga_mca_reset(void *priv)
     svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
+    mem_mapping_disable(&xga->bios_rom.mapping);
+    mem_mapping_disable(&xga->memio_mapping);
     xga->on = 0;
-    vga_on  = !xga->on;
+    vga_on  = 1;
     xga_mca_write(0x102, 0, svga);
 }
 
@@ -2894,7 +2949,7 @@ xga_reset(void *priv)
     mem_mapping_disable(&xga->bios_rom.mapping);
     mem_mapping_disable(&xga->memio_mapping);
     xga->on                    = 0;
-    vga_on                     = !xga->on;
+    vga_on                     = 1;
     xga->linear_endian_reverse = 0;
     xga->a5_test               = 0;
 }
@@ -2906,7 +2961,7 @@ xga_pos_in(uint16_t addr, void *priv)
     xga_t  *xga  = &svga->xga;
     uint8_t ret  = 0xff;
 
-    if (xga_has_vga) {
+    if (!xga_standalone_enabled) {
         switch (addr) {
             case 0x0100:
             case 0x0101:
@@ -2926,13 +2981,12 @@ xga_pos_in(uint16_t addr, void *priv)
                 ret = xga->pos_idx & 0xff;
                 break;
             case 0x0103:
-                if (!(xga->pos_idx & 3)) {
+                if (!(xga->pos_idx & 3))
                     ret = xga->pos_regs[3];
-                } else
+                else
                     ret = 0;
-#if 0
-                pclog("POS IDX for 0103 = %d, ret = %02x.\n", xga->pos_idx & 3, ret);
-#endif
+
+                xga_log("POS IDX for 0103 = %d, ret = %02x.\n", xga->pos_idx & 3, ret);
                 break;
             case 0x0104:
                 switch (xga->pos_idx & 3) {
@@ -2952,9 +3006,8 @@ xga_pos_in(uint16_t addr, void *priv)
                     default:
                         break;
                 }
-#if 0
-                pclog("POS IDX for 0104 = %d, ret = %02x.\n", xga->pos_idx & 3, ret);
-#endif
+
+                xga_log("POS IDX for 0104 = %d, ret = %02x.\n", xga->pos_idx & 3, ret);
                 break;
             case 0x0108:
             case 0x0109:
@@ -3023,16 +3076,14 @@ xga_pos_out(uint16_t addr, uint8_t val, void *priv)
     svga_t *svga = (svga_t *) priv;
     xga_t  *xga  = &svga->xga;
 
-    if (xga_has_vga) {
+    if (!xga_standalone_enabled) {
         switch (addr) {
             case 0x0106:
                 xga->pos_idx = (xga->pos_idx & 0x00ff) | (val << 8);
                 break;
             case 0x0107:
                 xga->pos_idx = (xga->pos_idx & 0xff00) | val;
-#if 0
-                pclog("POS IDX Write = %04x.\n", xga->pos_idx);
-#endif
+                xga_log("POS IDX Write = %04x.\n", xga->pos_idx);
                 break;
             case 0x0108:
             case 0x0109:
@@ -3077,8 +3128,7 @@ xga_init(const device_t *info)
 
     svga_t  *svga = svga_get_pri();
     xga_t   *xga  = &svga->xga;
-    FILE    *f;
-    uint32_t temp;
+    FILE    *fp;
     uint8_t *rom = NULL;
 
     xga->ext_mem_addr = device_get_config_hex16("ext_mem_addr");
@@ -3098,20 +3148,18 @@ xga_init(const device_t *info)
     xga->linear_endian_reverse = 0;
     xga->a5_test               = 0;
 
-    f = rom_fopen(xga->type ? XGA2_BIOS_PATH : XGA_BIOS_PATH, "rb");
-    (void) fseek(f, 0L, SEEK_END);
-    temp = ftell(f);
-    (void) fseek(f, 0L, SEEK_SET);
+    fp = rom_fopen(xga->type ? XGA2_BIOS_PATH : XGA_BIOS_PATH, "rb");
+    (void) fseek(fp, 0L, SEEK_END);
+    (void) fseek(fp, 0L, SEEK_SET);
 
     rom = malloc(xga->bios_rom.sz);
     memset(rom, 0xff, xga->bios_rom.sz);
-    (void) fread(rom, xga->bios_rom.sz, 1, f);
-    temp -= xga->bios_rom.sz;
-    (void) fclose(f);
+    (void) fread(rom, xga->bios_rom.sz, 1, fp);
+    (void) fclose(fp);
 
     xga->bios_rom.rom  = rom;
     xga->bios_rom.mask = xga->bios_rom.sz - 1;
-    if (f != NULL) {
+    if (fp != NULL) {
         free(rom);
     }
 
@@ -3123,9 +3171,9 @@ xga_init(const device_t *info)
         xga->rom_addr    = 0;
         rom_init(&xga->bios_rom, xga->type ? XGA2_BIOS_PATH : XGA_BIOS_PATH, 0xc0000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
     } else {
-        if (xga_has_vga) {
+        if (!xga_standalone_enabled)
             rom_init(&xga->vga_bios_rom, INMOS_XGA_BIOS_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-        } else
+        else
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_xga_isa);
 
         xga->pos_regs[2] = 1 | (xga->instance_isa << 1) | xga->ext_mem_addr;
@@ -3143,9 +3191,8 @@ xga_init(const device_t *info)
                     NULL, MEM_MAPPING_EXTERNAL, svga);
     mem_mapping_add(&xga->memio_mapping, 0, 0, xga_memio_readb, xga_memio_readw, xga_memio_readl,
                     xga_memio_writeb, xga_memio_writew, xga_memio_writel,
-                    xga_has_vga ? xga->vga_bios_rom.rom : xga->bios_rom.rom, MEM_MAPPING_EXTERNAL, svga);
+                    !xga_standalone_enabled ? xga->vga_bios_rom.rom : xga->bios_rom.rom, MEM_MAPPING_EXTERNAL, svga);
 
-    mem_mapping_disable(&xga->video_mapping);
     mem_mapping_disable(&xga->linear_mapping);
     mem_mapping_disable(&xga->memio_mapping);
 
@@ -3156,7 +3203,7 @@ xga_init(const device_t *info)
         mca_add(xga_mca_read, xga_mca_write, xga_mca_feedb, xga_mca_reset, svga);
     } else {
         io_sethandler(0x0100, 0x0008, xga_pos_in, NULL, NULL, NULL, NULL, NULL, svga);
-        if (xga_has_vga)
+        if (!xga_standalone_enabled)
             io_sethandler(0x0106, 0x0002, NULL, NULL, NULL, xga_pos_out, NULL, NULL, svga);
 
         io_sethandler(0x2100 + (xga->instance << 4), 0x0010, xga_ext_inb, NULL, NULL, xga_ext_outb, NULL, NULL, svga);
@@ -3184,8 +3231,7 @@ svga_xga_init(const device_t *info)
 
     svga->bpp     = 8;
     svga->miscout = 1;
-    xga_has_vga   = 1;
-    xga_enabled   = 1;
+    xga_active    = 1;
 
     return xga_init(info);
 }
@@ -3386,7 +3432,7 @@ const device_t inmos_isa_device = {
 void
 xga_device_add(void)
 {
-    if (!xga_enabled || (xga_has_vga && xga_enabled))
+    if (!xga_standalone_enabled)
         return;
 
     if (machine_has_bus(machine, MACHINE_BUS_MCA))

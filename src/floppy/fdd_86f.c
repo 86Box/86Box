@@ -1951,9 +1951,7 @@ d86f_format_track(int drive, int side, int do_write)
                 if (dev->datac == 3)
                     fdc_stop_id_request(d86f_fdc);
             }
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         case FMT_PRETRK_SYNC:
         case FMT_SECTOR_DATA_SYNC:
@@ -2296,9 +2294,7 @@ d86f_turbo_poll(int drive, int side)
         case STATE_0D_SPIN_TO_INDEX:
             dev->sector_count = 0;
             dev->datac        = 5;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         case STATE_02_SPIN_TO_INDEX:
             dev->state++;
@@ -2343,9 +2339,7 @@ d86f_turbo_poll(int drive, int side)
             dev->last_sector.id.r = dev->req_sector.id.r;
             dev->last_sector.id.n = dev->req_sector.id.n;
             d86f_handler[drive].set_sector(drive, side, dev->last_sector.id.c, dev->last_sector.id.h, dev->last_sector.id.r, dev->last_sector.id.n);
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         case STATE_0A_FIND_ID:
             dev->turbo_pos = 0;
@@ -3013,24 +3007,24 @@ d86f_seek(int drive, int track)
 }
 
 void
-d86f_write_track(int drive, FILE **f, int side, uint16_t *da0, uint16_t *sa0)
+d86f_write_track(int drive, FILE **fp, int side, uint16_t *da0, uint16_t *sa0)
 {
     uint32_t array_size      = d86f_get_array_size(drive, side, 0);
     uint16_t side_flags      = d86f_handler[drive].side_flags(drive);
     uint32_t extra_bit_cells = d86f_handler[drive].extra_bit_cells(drive, side);
     uint32_t index_hole_pos  = d86f_handler[drive].index_hole_pos(drive, side);
 
-    fwrite(&side_flags, 1, 2, *f);
+    fwrite(&side_flags, 1, 2, *fp);
 
     if (d86f_has_extra_bit_cells(drive))
-        fwrite(&extra_bit_cells, 1, 4, *f);
+        fwrite(&extra_bit_cells, 1, 4, *fp);
 
-    fwrite(&index_hole_pos, 1, 4, *f);
+    fwrite(&index_hole_pos, 1, 4, *fp);
 
-    fwrite(da0, 1, array_size, *f);
+    fwrite(da0, 1, array_size, *fp);
 
     if (d86f_has_surface_desc(drive))
-        fwrite(sa0, 1, array_size, *f);
+        fwrite(sa0, 1, array_size, *fp);
 }
 
 int
@@ -3053,7 +3047,7 @@ d86f_set_cur_track(int drive, int track)
 }
 
 void
-d86f_write_tracks(int drive, FILE **f, uint32_t *track_table)
+d86f_write_tracks(int drive, FILE **fp, uint32_t *track_table)
 {
     d86f_t   *dev = d86f[drive];
     int       sides;
@@ -3083,13 +3077,13 @@ d86f_write_tracks(int drive, FILE **f, uint32_t *track_table)
                     logical_track = dev->cur_track + thin_track;
 
                 if (track_table && !tbl[logical_track]) {
-                    fseek(*f, 0, SEEK_END);
-                    tbl[logical_track] = ftell(*f);
+                    fseek(*fp, 0, SEEK_END);
+                    tbl[logical_track] = ftell(*fp);
                 }
 
                 if (tbl[logical_track]) {
-                    fseek(*f, tbl[logical_track], SEEK_SET);
-                    d86f_write_track(drive, f, side, dev->thin_track_encoded_data[thin_track][side], dev->thin_track_surface_data[thin_track][side]);
+                    fseek(*fp, tbl[logical_track], SEEK_SET);
+                    d86f_write_track(drive, fp, side, dev->thin_track_encoded_data[thin_track][side], dev->thin_track_surface_data[thin_track][side]);
                 }
             }
         }
@@ -3102,14 +3096,14 @@ d86f_write_tracks(int drive, FILE **f, uint32_t *track_table)
                 logical_track = dev->cur_track;
 
             if (track_table && !tbl[logical_track]) {
-                fseek(*f, 0, SEEK_END);
-                tbl[logical_track] = ftell(*f);
+                fseek(*fp, 0, SEEK_END);
+                tbl[logical_track] = ftell(*fp);
             }
 
             if (tbl[logical_track]) {
-                if (fseek(*f, tbl[logical_track], SEEK_SET) == -1)
+                if (fseek(*fp, tbl[logical_track], SEEK_SET) == -1)
                     fatal("d86f_write_tracks(): Error seeking to offset tbl[logical_track]\n");
-                d86f_write_track(drive, f, side, d86f_handler[drive].encoded_data(drive, side), dev->track_surface_data[side]);
+                d86f_write_track(drive, fp, side, d86f_handler[drive].encoded_data(drive, side), dev->track_surface_data[side]);
             }
         }
     }

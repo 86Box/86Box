@@ -173,8 +173,8 @@ int      gfxcard[2]                             = { 0, 0 };       /* (C) graphic
 int      show_second_monitors                   = 1;              /* (C) show non-primary monitors */
 int      sound_is_float                         = 1;              /* (C) sound uses FP values */
 int      voodoo_enabled                         = 0;              /* (C) video option */
-int      ibm8514_enabled                        = 0;              /* (C) video option */
-int      xga_enabled                            = 0;              /* (C) video option */
+int      ibm8514_standalone_enabled             = 0;              /* (C) video option */
+int      xga_standalone_enabled                 = 0;              /* (C) video option */
 uint32_t mem_size                               = 0;              /* (C) memory size (Installed on system board)*/
 uint32_t isa_mem_size                           = 0;              /* (C) memory size (ISA Memory Cards) */
 int      cpu_use_dynarec                        = 0;              /* (C) cpu uses/needs Dyna */
@@ -918,11 +918,15 @@ pc_init_modules(void)
 
 #ifdef USE_DYNAREC
 #    if defined(__APPLE__) && defined(__aarch64__)
-    pthread_jit_write_protect_np(0);
+    if (__builtin_available(macOS 11.0, *)) {
+        pthread_jit_write_protect_np(0);
+    }
 #    endif
     codegen_init();
 #    if defined(__APPLE__) && defined(__aarch64__)
-    pthread_jit_write_protect_np(1);
+    if (__builtin_available(macOS 11.0, *)) {
+        pthread_jit_write_protect_np(1);
+    }
 #    endif
 #endif
 
@@ -1105,6 +1109,10 @@ pc_reset_hard_init(void)
     /* Reset any ISA RTC cards. */
     isartc_reset();
 
+    /* Initialize the Voodoo cards here inorder to minmize
+       the chances of the SCSI controller ending up on the bridge. */
+    video_voodoo_init();
+
     ui_sb_update_panes();
 
     if (config_changed) {
@@ -1279,10 +1287,12 @@ pc_run(void)
     startblit();
     cpu_exec(cpu_s->rspeed / 100);
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
-    // if (gdbstub_step == GDBSTUB_EXEC)
+    if (gdbstub_step == GDBSTUB_EXEC) {
 #endif
-#if 0
-        mouse_process();
+        if (!mouse_timed)
+            mouse_process();
+#ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
+    }
 #endif
     joystick_process();
     endblit();

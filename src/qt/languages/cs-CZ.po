@@ -656,7 +656,7 @@ msgid "(empty)"
 msgstr "(prázdné)"
 
 msgid "All files"
-msgstr "All files"
+msgstr "Všechny soubory"
 
 msgid "Turbo"
 msgstr "Turbo"
@@ -853,8 +853,8 @@ msgstr "O programu 86Box"
 msgid "86Box v"
 msgstr "86Box v"
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Emulátor starých počítačů\n\nAutoři: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nZveřejněno pod licencí GNU General Public License verze 2 nebo novější. Viz soubor LICENSE pro více informací."
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Emulátor starých počítačů\n\nAutoři: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nZveřejněno pod licencí GNU General Public License verze 2 nebo novější. Viz soubor LICENSE pro více informací."
 
 msgid "Hardware not available"
 msgstr "Hardware není dostupný"
@@ -932,10 +932,10 @@ msgid "Cartridge images"
 msgstr "Obrazy cartridge"
 
 msgid "Error initializing renderer"
-msgstr "Error initializing renderer"
+msgstr "Chyba při inicializaci vykreslovače"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "Vykreslovač OpenGL (3.0 Core) se nepodařilo inicializovat. Použijte jiný renderer."
 
 msgid "Resume execution"
 msgstr "Obnovit"
@@ -1196,8 +1196,25 @@ msgid "(System Default)"
 msgstr "(Výchozí nastavení systému)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "Nepodařilo se inicializovat síťový ovladač"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "Konfigurace sítě bude přepnuta na nulový ovladač"
 
+msgid "Mouse sensitivity:"
+msgstr "Citlivost myší:"
+
+msgid "Select media images from program working directory"
+msgstr "Výběr mediálních obrazů z pracovního adresáře programu"
+
+msgid "PIT mode:"
+msgstr "Režim PIT:"
+
+msgid "Auto"
+msgstr "Automatický"
+
+msgid "Slow"
+msgstr "Pomalý"
+
+msgid "Fast"
+msgstr "Rychlý"

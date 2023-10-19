@@ -39,7 +39,9 @@
 #include <86box/isapnp.h>
 #include <86box/plat_unused.h>
 
-/* This ROM was reconstructed out of many assumptions, some of which based on the IT8671F. */
+/* Real chips don't have a PnP ROM and instead rely on the BIOS going in blind.
+   We create a fake ROM here (with values based on the IT8671F) to delegate
+   all the logical device register handling over to the ISAPnP subsystem. */
 static uint8_t um8669f_pnp_rom[] = {
     0x55, 0xa3, 0x86, 0x69, 0x00, 0x00, 0x00, 0x00, 0x00, /* UMC8669, dummy checksum (filled in by isapnp_add_card) */
     0x0a, 0x10, 0x10,                                     /* PnP version 1.0, vendor version 1.0 */
@@ -61,7 +63,7 @@ static uint8_t um8669f_pnp_rom[] = {
     0x22, 0xfa, 0x1f,                               /* IRQ 1/3/4/5/6/7/8/9/10/11/12 */
     0x47, 0x00, 0x00, 0x01, 0xf8, 0x03, 0x08, 0x08, /* I/O 0x100-0x3F8, decodes 10-bit, 8-byte alignment, 8 addresses */
 
-    0x15, 0x41, 0xd0, 0xff, 0xff, 0x00, /* logical device PNPFFFF (just a dummy to create a gap in LDNs) */
+    0x15, 0x41, 0xd0, 0xff, 0xff, 0x00, /* logical device PNPFFFF (dummy to create a gap in LDNs) */
 
     0x15, 0x41, 0xd0, 0xb0, 0x2f, 0x01,             /* logical device PNPB02F, can participate in boot */
     0x47, 0x00, 0x00, 0x01, 0xf8, 0x03, 0x08, 0x08, /* I/O 0x100-0x3F8, decodes 10-bit, 8-byte alignment, 8 addresses */
@@ -113,10 +115,9 @@ um8669f_log(const char *fmt, ...)
 #endif
 
 typedef struct um8669f_t {
-    int                     locked;
-    int                     cur_reg_108;
-    void                   *pnp_card;
-    isapnp_device_config_t *pnp_config[5];
+    uint8_t locked;
+    uint8_t cur_reg_108;
+    void   *pnp_card;
 
     uint8_t regs_108[256];
 
@@ -186,6 +187,7 @@ um8669f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
                 um8669f_log("UM8669F: Game port disabled\n");
                 gameport_remap(dev->gameport, 0);
             }
+            break;
 
         default:
             break;
@@ -222,8 +224,8 @@ um8669f_write(uint16_t port, uint8_t val, void *priv)
 uint8_t
 um8669f_read(uint16_t port, void *priv)
 {
-    um8669f_t *dev = (um8669f_t *) priv;
-    uint8_t    ret = 0xff;
+    const um8669f_t *dev = (um8669f_t *) priv;
+    uint8_t          ret = 0xff;
 
     if (!dev->locked) {
         if (port == 0x108)

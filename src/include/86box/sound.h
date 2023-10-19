@@ -50,21 +50,21 @@ extern int sound_pos_global;
 extern int sound_card_current[SOUND_CARD_MAX];
 
 extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                 int len, void *p),
-                              void *p);
+                                                 int len, void *priv),
+                              void *priv);
 extern void sound_set_cd_audio_filter(void (*filter)(int     channel,
-                                                     double *buffer, void *p),
-                                      void *p);
+                                                     double *buffer, void *priv),
+                                      void *priv);
 
 extern int sound_card_available(int card);
 #ifdef EMU_DEVICE_H
 extern const device_t *sound_card_getdevice(int card);
 #endif
-extern int   sound_card_has_config(int card);
-extern char *sound_card_get_internal_name(int card);
-extern int   sound_card_get_from_internal_name(const char *s);
-extern void  sound_card_init(void);
-extern void  sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r);
+extern int         sound_card_has_config(int card);
+extern const char *sound_card_get_internal_name(int card);
+extern int         sound_card_get_from_internal_name(const char *s);
+extern void        sound_card_init(void);
+extern void        sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r);
 
 extern void sound_speed_changed(void);
 

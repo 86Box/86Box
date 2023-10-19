@@ -759,9 +759,7 @@ nic_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
         case 0x10:       /* PCI_BAR */
             val &= 0xe0; /* 0xe0 acc to RTL DS */
             val |= 0x01; /* re-enable IOIN bit */
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         case 0x11: /* PCI_BAR */
         case 0x12: /* PCI_BAR */
@@ -814,7 +812,7 @@ static void
 nic_rom_init(nic_t *dev, char *s)
 {
     uint32_t temp;
-    FILE    *f;
+    FILE    *fp;
 
     if (s == NULL)
         return;
@@ -822,10 +820,10 @@ nic_rom_init(nic_t *dev, char *s)
     if (dev->bios_addr == 0)
         return;
 
-    if ((f = rom_fopen(s, "rb")) != NULL) {
-        fseek(f, 0L, SEEK_END);
-        temp = ftell(f);
-        fclose(f);
+    if ((fp = rom_fopen(s, "rb")) != NULL) {
+        fseek(fp, 0L, SEEK_END);
+        temp = ftell(fp);
+        fclose(fp);
         dev->bios_size = 0x10000;
         if (temp <= 0x8000)
             dev->bios_size = 0x8000;

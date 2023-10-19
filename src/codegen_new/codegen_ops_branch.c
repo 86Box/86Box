@@ -2,8 +2,11 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "x86.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
 #include "386_common.h"
 #include "x86_flags.h"
 #include "codegen.h"
@@ -25,7 +28,7 @@ VF_SET_01(void)
 }
 
 static int
-ropJO_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t next_pc)
+ropJO_common(UNUSED(codeblock_t *block), ir_data_t *ir, uint32_t dest_addr, UNUSED(uint32_t next_pc))
 {
     int jump_uop;
 
@@ -63,7 +66,7 @@ ropJO_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t nex
     return 0;
 }
 static int
-ropJNO_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t next_pc)
+ropJNO_common(UNUSED(codeblock_t *block), ir_data_t *ir, uint32_t dest_addr, UNUSED(uint32_t next_pc))
 {
     int jump_uop;
 
@@ -526,7 +529,7 @@ ropJNS_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
 }
 
 static int
-ropJP_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t next_pc)
+ropJP_common(UNUSED(codeblock_t *block), ir_data_t *ir, uint32_t dest_addr, UNUSED(uint32_t next_pc))
 {
     int jump_uop;
 
@@ -538,7 +541,7 @@ ropJP_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t nex
     return 0;
 }
 static int
-ropJNP_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t next_pc)
+ropJNP_common(UNUSED(codeblock_t *block), ir_data_t *ir, uint32_t dest_addr, UNUSED(uint32_t next_pc))
 {
     int jump_uop;
 
@@ -850,23 +853,24 @@ ropJNLE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t n
     }
 
 ropJ(O)
-    ropJ(NO)
-        ropJ(B)
-            ropJ(NB)
-                ropJ(E)
-                    ropJ(NE)
-                        ropJ(BE)
-                            ropJ(NBE)
-                                ropJ(S)
-                                    ropJ(NS)
-                                        ropJ(P)
-                                            ropJ(NP)
-                                                ropJ(L)
-                                                    ropJ(NL)
-                                                        ropJ(LE)
-                                                            ropJ(NLE)
+ropJ(NO)
+ropJ(B)
+ropJ(NB)
+ropJ(E)
+ropJ(NE)
+ropJ(BE)
+ropJ(NBE)
+ropJ(S)
+ropJ(NS)
+ropJ(P)
+ropJ(NP)
+ropJ(L)
+ropJ(NL)
+ropJ(LE)
+ropJ(NLE)
 
-                                                                uint32_t ropJCXZ(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+uint32_t
+ropJCXZ(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     uint32_t offset    = (int32_t) (int8_t) fastreadb(cs + op_pc);
     uint32_t dest_addr = op_pc + 1 + offset;
@@ -888,7 +892,7 @@ ropJ(O)
 }
 
 uint32_t
-ropLOOP(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropLOOP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     uint32_t offset    = (int32_t) (int8_t) fastreadb(cs + op_pc);
     uint32_t dest_addr = op_pc + 1 + offset;
@@ -928,7 +932,7 @@ ropLOOP(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, ui
 }
 
 uint32_t
-ropLOOPE(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropLOOPE(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     uint32_t offset    = (int32_t) (int8_t) fastreadb(cs + op_pc);
     uint32_t dest_addr = op_pc + 1 + offset;
@@ -961,7 +965,7 @@ ropLOOPE(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, u
     return op_pc + 1;
 }
 uint32_t
-ropLOOPNE(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropLOOPNE(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     uint32_t offset    = (int32_t) (int8_t) fastreadb(cs + op_pc);
     uint32_t dest_addr = op_pc + 1 + offset;

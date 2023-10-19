@@ -25,6 +25,7 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include "cpu.h"
+#include "x86seg.h"
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/pic.h>
@@ -149,8 +150,8 @@ typedef struct atkbc_t {
     /* Local copies of the pointers to both ports for easier swapping (AMI '5' MegaKey). */
     kbc_at_port_t     *ports[2];
 
-    uint8_t (*write60_ven)(void *p, uint8_t val);
-    uint8_t (*write64_ven)(void *p, uint8_t val);
+    uint8_t (*write60_ven)(void *priv, uint8_t val);
+    uint8_t (*write64_ven)(void *priv, uint8_t val);
 } atkbc_t;
 
 /* Keyboard controller ports. */
@@ -468,9 +469,7 @@ kbc_at_poll_at(atkbc_t *dev)
         case STATE_KBC_AMI_OUT:
             if (dev->status & STAT_OFULL)
                 break;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case STATE_MAIN_IBF:
         default:
 at_main_ibf:
@@ -504,7 +503,6 @@ at_main_ibf:
             dev->state = STATE_MAIN_IBF;
             dev->pending = 0;
             goto at_main_ibf;
-            break;
         case STATE_KBC_OUT:
             /* Keyboard controller command want to output multiple bytes. */
             if (dev->status & STAT_IFULL) {
@@ -593,9 +591,7 @@ kbc_at_poll_ps2(atkbc_t *dev)
         case STATE_KBC_AMI_OUT:
             if (dev->status & STAT_OFULL)
                 break;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case STATE_MAIN_IBF:
         default:
 ps2_main_ibf:
@@ -650,7 +646,6 @@ ps2_main_ibf:
             dev->state = STATE_MAIN_IBF;
             dev->pending = 0;
             goto ps2_main_ibf;
-            break;
         case STATE_KBC_OUT:
             /* Keyboard controller command want to output multiple bytes. */
             if (dev->status & STAT_IFULL) {
@@ -763,7 +758,7 @@ write_p2(atkbc_t *dev, uint8_t val)
                    correctly despite A20 being gated when the CPU is reset, this will
                    have to do. */
                 else if (kbc_ven == KBC_VEN_SIEMENS)
-                    loadcs(0xF000);
+                    is486 ? loadcs(0xf000) : loadcs_2386(0xf000);
             }
         }
     }
@@ -925,7 +920,7 @@ write64_generic(void *priv, uint8_t val)
            Bit 6: Mostly, display: 0 = CGA, 1 = MDA, inverted on Xi8088 and Acer KBC's;
                   Intel AMI MegaKey KB-5: Used for green features, SMM handler expects it to be set;
                   IBM PS/1 Model 2011: 0 = current FDD is 3.5", 1 = current FDD is 5.25";
-                  Comapq: 0 = Compaq dual-scan display, 1 = non-Compaq display.
+                  Compaq: 0 = Compaq dual-scan display, 1 = non-Compaq display.
            Bit 5: Mostly, manufacturing jumper: 0 = installed (infinite loop at POST), 1 = not installed;
                   NCR: power-on default speed: 0 = high, 1 = low;
                   Compaq: System board DIP switch 5: 0 = ON, 1 = OFF.

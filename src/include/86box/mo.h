@@ -27,6 +27,8 @@
 
 #define MO_TIME  10.0
 
+#define MO_IMAGE_HISTORY 4
+
 typedef struct mo_type_t {
     uint32_t sectors;
     uint16_t bytes_per_sector;
@@ -107,11 +109,13 @@ typedef struct mo_drive_t {
     uint8_t pad;
     uint8_t pad0;
 
-    FILE *f;
+    FILE *fp;
     void *priv;
 
     char image_path[1024];
     char prev_image_path[1024];
+
+    char *image_history[MO_IMAGE_HISTORY];
 
     uint32_t type;
     uint32_t medium_size;

@@ -853,8 +853,8 @@ msgstr "O programu 86Box"
 msgid "86Box v"
 msgstr "86Box v"
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Emulator starih računalnikov\n\nAvtorji: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho in drugi.\n\nIzdano pod licenco GNU General Public License različica 2 ali novejša. Glej datoteko LICENSE za več informacij."
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Emulator starih računalnikov\n\nAvtorji: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne in drugi.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho in drugi.\n\nIzdano pod licenco GNU General Public License različica 2 ali novejša. Glej datoteko LICENSE za več informacij."
 
 msgid "Hardware not available"
 msgstr "Strojna oprema ni na voljo"
@@ -944,10 +944,10 @@ msgid "Pause execution"
 msgstr "Prekini izvajanje"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Pritisni Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Pritisni Ctrl+Alt+Esc"
 
 msgid "Hard reset"
 msgstr "Ponovni zagon"
@@ -1196,8 +1196,26 @@ msgid "(System Default)"
 msgstr "(Sistemsko privzeto)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "Ni uspelo inicializirati omrežnega gonilnika"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "Omrežne nastavitve bodo preklopljene na ničelni gonilnik"
+
+msgid "Mouse sensitivity:"
+msgstr "Občutljivost miške:"
+
+msgid "Select media images from program working directory"
+msgstr "Izberi slike medijev iz delovnega imenika programa"
+
+msgid "PIT mode:"
+msgstr "Način PIT:"
+
+msgid "Auto"
+msgstr "Samodejni"
+
+msgid "Slow"
+msgstr "Počasni"
+
+msgid "Fast"
+msgstr "Hitri"
 

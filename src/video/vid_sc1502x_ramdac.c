@@ -29,17 +29,17 @@
 #include <86box/timer.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
+#include <86box/plat_unused.h>
 
-typedef struct
-{
+typedef struct sc1502x_ramdac_t {
     int     state;
     uint8_t ctrl;
 } sc1502x_ramdac_t;
 
 void
-sc1502x_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
+sc1502x_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga)
 {
-    sc1502x_ramdac_t *ramdac = (sc1502x_ramdac_t *) p;
+    sc1502x_ramdac_t *ramdac = (sc1502x_ramdac_t *) priv;
     int               oldbpp = 0;
 
     switch (addr) {
@@ -63,6 +63,9 @@ sc1502x_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
                             case 0x20:
                                 svga->bpp = 24;
                                 break;
+
+                            default:
+                                break;
                         }
                         break;
                     case 4:
@@ -81,12 +84,16 @@ sc1502x_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
                                 case 0x20:
                                     svga->bpp = 24;
                                     break;
+
+                                default:
+                                    break;
                             }
-                            break;
                         } else {
                             svga->bpp = 16;
-                            break;
                         }
+                        break;
+
+                    default:
                         break;
                 }
                 if (oldbpp != svga->bpp)
@@ -100,15 +107,18 @@ sc1502x_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
         case 0x3C9:
             ramdac->state = 0;
             break;
+
+        default:
+            break;
     }
 
     svga_out(addr, val, svga);
 }
 
 uint8_t
-sc1502x_ramdac_in(uint16_t addr, void *p, svga_t *svga)
+sc1502x_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
 {
-    sc1502x_ramdac_t *ramdac = (sc1502x_ramdac_t *) p;
+    sc1502x_ramdac_t *ramdac = (sc1502x_ramdac_t *) priv;
     uint8_t           temp   = svga_in(addr, svga);
 
     switch (addr) {
@@ -125,13 +135,16 @@ sc1502x_ramdac_in(uint16_t addr, void *p, svga_t *svga)
         case 0x3C9:
             ramdac->state = 0;
             break;
+
+        default:
+            break;
     }
 
     return temp;
 }
 
 static void *
-sc1502x_ramdac_init(const device_t *info)
+sc1502x_ramdac_init(UNUSED(const device_t *info))
 {
     sc1502x_ramdac_t *ramdac = (sc1502x_ramdac_t *) malloc(sizeof(sc1502x_ramdac_t));
     memset(ramdac, 0, sizeof(sc1502x_ramdac_t));

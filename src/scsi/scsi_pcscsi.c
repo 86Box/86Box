@@ -1030,9 +1030,7 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
     switch (saddr) {
         case ESP_TCHI:
             dev->tchi_written = 1;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case ESP_TCLO:
         case ESP_TCMID:
             esp_log("Transfer count regs %02x = %i\n", saddr, val);
@@ -1465,11 +1463,11 @@ esp_bios_disable(esp_t *dev)
 static void
 dc390_save_eeprom(esp_t *dev)
 {
-    FILE *f = nvr_fopen(dev->nvr_path, "wb");
-    if (!f)
+    FILE *fp = nvr_fopen(dev->nvr_path, "wb");
+    if (!fp)
         return;
-    fwrite(dev->eeprom.data, 1, 128, f);
-    fclose(f);
+    fwrite(dev->eeprom.data, 1, 128, fp);
+    fclose(fp);
 }
 
 static void
@@ -1601,16 +1599,16 @@ dc390_load_eeprom(esp_t *dev)
     uint8_t      *nvr    = (uint8_t *) eeprom->data;
     int           i;
     uint16_t      checksum = 0;
-    FILE         *f;
+    FILE         *fp;
 
     eeprom->out = 1;
 
-    f = nvr_fopen(dev->nvr_path, "rb");
-    if (f) {
+    fp = nvr_fopen(dev->nvr_path, "rb");
+    if (fp) {
         esp_log("EEPROM Load\n");
-        if (fread(nvr, 1, 128, f) != 128)
+        if (fread(nvr, 1, 128, fp) != 128)
             fatal("dc390_eeprom_load(): Error reading data\n");
-        fclose(f);
+        fclose(fp);
     } else {
         for (i = 0; i < 16; i++) {
             nvr[i * 2]     = 0x57;
@@ -1658,7 +1656,6 @@ esp_pci_read(UNUSED(int func), int addr, void *priv)
                     return 2;
                 }
             }
-            break;
         case 0x01:
             return 0x10;
         case 0x02:

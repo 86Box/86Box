@@ -14,6 +14,7 @@
  *
  *          Copyright 2019-2020 Miran Grca.
  */
+#define USE_DRB_HACK
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -616,9 +617,9 @@ sis_85c496_reset(void *priv)
 }
 
 static void
-sis_85c496_close(void *p)
+sis_85c496_close(void *priv)
 {
-    sis_85c496_t *dev = (sis_85c496_t *) p;
+    sis_85c496_t *dev = (sis_85c496_t *) priv;
 
     smram_del(dev->smram);
 

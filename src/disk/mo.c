@@ -316,9 +316,9 @@ find_mo_for_channel(uint8_t channel)
 static int
 mo_load_abort(mo_t *dev)
 {
-    if (dev->drv->f)
-        fclose(dev->drv->f);
-    dev->drv->f           = NULL;
+    if (dev->drv->fp)
+        fclose(dev->drv->fp);
+    dev->drv->fp           = NULL;
     dev->drv->medium_size = 0;
     dev->drv->sector_size = 0;
     mo_eject(dev->id); /* Make sure the host OS knows we've rejected (and ejected) the image. */
@@ -343,11 +343,11 @@ mo_load(mo_t *dev, char *fn)
 
     is_mdi = image_is_mdi(fn);
 
-    dev->drv->f = plat_fopen(fn, dev->drv->read_only ? "rb" : "rb+");
-    if (!dev->drv->f) {
+    dev->drv->fp = plat_fopen(fn, dev->drv->read_only ? "rb" : "rb+");
+    if (!dev->drv->fp) {
         if (!dev->drv->read_only) {
-            dev->drv->f = plat_fopen(fn, "rb");
-            if (dev->drv->f)
+            dev->drv->fp = plat_fopen(fn, "rb");
+            if (dev->drv->fp)
                 dev->drv->read_only = 1;
             else
                 return mo_load_abort(dev);
@@ -355,8 +355,8 @@ mo_load(mo_t *dev, char *fn)
             return mo_load_abort(dev);
     }
 
-    fseek(dev->drv->f, 0, SEEK_END);
-    size = (uint32_t) ftell(dev->drv->f);
+    fseek(dev->drv->fp, 0, SEEK_END);
+    size = (uint32_t) ftell(dev->drv->fp);
 
     if (is_mdi) {
         /* This is a MDI image. */
@@ -376,7 +376,7 @@ mo_load(mo_t *dev, char *fn)
     if (!found)
         return mo_load_abort(dev);
 
-    if (fseek(dev->drv->f, dev->drv->base, SEEK_SET) == -1)
+    if (fseek(dev->drv->fp, dev->drv->base, SEEK_SET) == -1)
         fatal("mo_load(): Error seeking to the beginning of the file\n");
 
     strncpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path) - 1);
@@ -401,16 +401,16 @@ mo_disk_reload(mo_t *dev)
 void
 mo_disk_unload(mo_t *dev)
 {
-    if (dev->drv->f) {
-        fclose(dev->drv->f);
-        dev->drv->f = NULL;
+    if (dev->drv->fp) {
+        fclose(dev->drv->fp);
+        dev->drv->fp = NULL;
     }
 }
 
 void
 mo_disk_close(mo_t *dev)
 {
-    if (dev->drv->f) {
+    if (dev->drv->fp) {
         mo_disk_unload(dev);
 
         memcpy(dev->drv->prev_image_path, dev->drv->image_path, sizeof(dev->drv->prev_image_path));
@@ -515,8 +515,8 @@ mo_atapi_phase_to_scsi(mo_t *dev)
 static void
 mo_mode_sense_load(mo_t *dev)
 {
-    FILE *f;
-    char  file_name[512];
+    FILE *fp;
+    char  fn[512];
 
     memset(&dev->ms_pages_saved, 0, sizeof(mode_sense_pages_t));
     if (mo_drives[dev->id].bus_type == MO_BUS_SCSI)
@@ -524,33 +524,33 @@ mo_mode_sense_load(mo_t *dev)
     else
         memcpy(&dev->ms_pages_saved, &mo_mode_sense_pages_default, sizeof(mode_sense_pages_t));
 
-    memset(file_name, 0, 512);
+    memset(fn, 0, 512);
     if (dev->drv->bus_type == MO_BUS_SCSI)
-        sprintf(file_name, "scsi_mo_%02i_mode_sense_bin", dev->id);
+        sprintf(fn, "scsi_mo_%02i_mode_sense_bin", dev->id);
     else
-        sprintf(file_name, "mo_%02i_mode_sense_bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), "rb");
-    if (f) {
+        sprintf(fn, "mo_%02i_mode_sense_bin", dev->id);
+    fp = plat_fopen(nvr_path(fn), "rb");
+    if (fp) {
         /* Nothing to read, not used by MO. */
-        fclose(f);
+        fclose(fp);
     }
 }
 
 static void
 mo_mode_sense_save(mo_t *dev)
 {
-    FILE *f;
-    char  file_name[512];
+    FILE *fp;
+    char  fn[512];
 
-    memset(file_name, 0, 512);
+    memset(fn, 0, 512);
     if (dev->drv->bus_type == MO_BUS_SCSI)
-        sprintf(file_name, "scsi_mo_%02i_mode_sense_bin", dev->id);
+        sprintf(fn, "scsi_mo_%02i_mode_sense_bin", dev->id);
     else
-        sprintf(file_name, "mo_%02i_mode_sense_bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), "wb");
-    if (f) {
+        sprintf(fn, "mo_%02i_mode_sense_bin", dev->id);
+    fp = plat_fopen(nvr_path(fn), "wb");
+    if (fp) {
         /* Nothing to write, not used by MO. */
-        fclose(f);
+        fclose(fp);
     }
 }
 
@@ -562,16 +562,13 @@ mo_mode_sense_read(mo_t *dev, uint8_t page_control, uint8_t page, uint8_t pos)
         case 0:
         case 3:
             return dev->ms_pages_saved.pages[page][pos];
-            break;
         case 1:
             return mo_mode_sense_pages_changeable.pages[page][pos];
-            break;
         case 2:
             if (dev->drv->bus_type == MO_BUS_SCSI)
                 return mo_mode_sense_pages_default_scsi.pages[page][pos];
             else
                 return mo_mode_sense_pages_default.pages[page][pos];
-            break;
 
         default:
             break;
@@ -655,9 +652,8 @@ mo_update_request_length(mo_t *dev, int len, int block_len)
                     break;
                 }
             }
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
+
         default:
             dev->packet_len = len;
             break;
@@ -966,17 +962,17 @@ mo_blocks(mo_t *dev, int32_t *len, UNUSED(int first_batch), int out)
     *len = dev->requested_blocks * dev->drv->sector_size;
 
     for (int i = 0; i < dev->requested_blocks; i++) {
-        if (fseek(dev->drv->f, dev->drv->base + (dev->sector_pos * dev->drv->sector_size) + (i * dev->drv->sector_size), SEEK_SET) == 1)
+        if (fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos * dev->drv->sector_size) + (i * dev->drv->sector_size), SEEK_SET) == 1)
             break;
 
-        if (feof(dev->drv->f))
+        if (feof(dev->drv->fp))
             break;
 
         if (out) {
-            if (fwrite(dev->buffer + (i * dev->drv->sector_size), 1, dev->drv->sector_size, dev->drv->f) != dev->drv->sector_size)
+            if (fwrite(dev->buffer + (i * dev->drv->sector_size), 1, dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size)
                 fatal("mo_blocks(): Error writing data\n");
         } else {
-            if (fread(dev->buffer + (i * dev->drv->sector_size), 1, dev->drv->sector_size, dev->drv->f) != dev->drv->sector_size)
+            if (fread(dev->buffer + (i * dev->drv->sector_size), 1, dev->drv->sector_size, dev->drv->fp) != dev->drv->sector_size)
                 fatal("mo_blocks(): Error reading data\n");
         }
     }
@@ -1004,14 +1000,14 @@ mo_format(mo_t *dev)
 
     mo_log("MO %i: Formatting media...\n", dev->id);
 
-    fseek(dev->drv->f, 0, SEEK_END);
-    size = ftell(dev->drv->f);
+    fseek(dev->drv->fp, 0, SEEK_END);
+    size = ftell(dev->drv->fp);
 
 #ifdef _WIN32
     HANDLE        fh;
     LARGE_INTEGER liSize;
 
-    fd = _fileno(dev->drv->f);
+    fd = _fileno(dev->drv->fp);
     fh = (HANDLE) _get_osfhandle(fd);
 
     liSize.QuadPart = 0;
@@ -1045,7 +1041,7 @@ mo_format(mo_t *dev)
         return;
     }
 #else
-    fd = fileno(dev->drv->f);
+    fd = fileno(dev->drv->fp);
 
     ret = ftruncate(fd, 0);
 
@@ -1084,13 +1080,13 @@ mo_erase(mo_t *dev)
     mo_buf_alloc(dev, dev->drv->sector_size);
     memset(dev->buffer, 0, dev->drv->sector_size);
 
-    fseek(dev->drv->f, dev->drv->base + (dev->sector_pos * dev->drv->sector_size), SEEK_SET);
+    fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos * dev->drv->sector_size), SEEK_SET);
 
     for (i = 0; i < dev->requested_blocks; i++) {
-        if (feof(dev->drv->f))
+        if (feof(dev->drv->fp))
             break;
 
-        fwrite(dev->buffer, 1, dev->drv->sector_size, dev->drv->f);
+        fwrite(dev->buffer, 1, dev->drv->sector_size, dev->drv->fp);
     }
 
     mo_log("MO %i: Erased %i bytes of blocks...\n", dev->id, i * dev->drv->sector_size);
@@ -1141,7 +1137,7 @@ mo_pre_execution_check(mo_t *dev, uint8_t *cdb)
         return 0;
     }
 
-    ready = (dev->drv->f != NULL);
+    ready = (dev->drv->fp != NULL);
 
     /* If the drive is not ready, there is no reason to keep the
        UNIT ATTENTION condition present, as we only use it to mark
@@ -1257,7 +1253,7 @@ mo_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer, uint8_t alloc_leng
     mo_t *dev   = (mo_t *) sc;
     int   ready = 0;
 
-    ready = (dev->drv->f != NULL);
+    ready = (dev->drv->fp != NULL);
 
     if (!ready && dev->unit_attention) {
         /* If the drive is not ready, there is no reason to keep the
@@ -1344,9 +1340,7 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
                 mo_invalid_field(dev);
                 return;
             }
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case GPCMD_SCSI_RESERVE:
         case GPCMD_SCSI_RELEASE:
         case GPCMD_TEST_UNIT_READY:

@@ -1,0 +1,1221 @@
+msgid "&Action"
+msgstr "&Acció"
+
+msgid "&Keyboard requires capture"
+msgstr "&Teclat requereix captura"
+
+msgid "&Right CTRL is left ALT"
+msgstr "CTRL &dret és ALT esquerre"
+
+msgid "&Hard Reset..."
+msgstr "&Reinicialització completa..."
+
+msgid "&Ctrl+Alt+Del\tCtrl+F12"
+msgstr "&Ctrl+Alt+Del\tCtrl+F12"
+
+msgid "Ctrl+Alt+&Esc"
+msgstr "Ctrl+Alt+&Esc"
+
+msgid "&Pause"
+msgstr "&Pausa"
+
+msgid "E&xit..."
+msgstr "&Sortir..."
+
+msgid "&View"
+msgstr "&Vista"
+
+msgid "&Hide status bar"
+msgstr "&Amagar barra d'estat"
+
+msgid "Hide &toolbar"
+msgstr "Amagar &barra d'eines"
+
+msgid "&Resizeable window"
+msgstr "&Finestra redimensionable"
+
+msgid "R&emember size && position"
+msgstr "&Recordar mida i posició"
+
+msgid "Re&nderer"
+msgstr "Re&nderitzador"
+
+msgid "&SDL (Software)"
+msgstr "&SDL (Software)"
+
+msgid "SDL (&Hardware)"
+msgstr "SDL (&Hardware)"
+
+msgid "SDL (&OpenGL)"
+msgstr "SDL (&OpenGL)"
+
+msgid "Open&GL (3.0 Core)"
+msgstr "Open&GL (3.0 Core)"
+
+msgid "&VNC"
+msgstr "&VNC"
+
+msgid "Specify dimensions..."
+msgstr "E&specificar dimensions..."
+
+msgid "F&orce 4:3 display ratio"
+msgstr "F&orçar ràtio 4:3"
+
+msgid "&Window scale factor"
+msgstr "&Factor d'escalat de finestra"
+
+msgid "&0.5x"
+msgstr "&0.5x"
+
+msgid "&1x"
+msgstr "&1x"
+
+msgid "1.&5x"
+msgstr "1.&5x"
+
+msgid "&2x"
+msgstr "&2x"
+
+msgid "&3x"
+msgstr "&3x"
+
+msgid "&4x"
+msgstr "&4x"
+
+msgid "&5x"
+msgstr "&5x"
+
+msgid "&6x"
+msgstr "&6x"
+
+msgid "&7x"
+msgstr "&7x"
+
+msgid "&8x"
+msgstr "&8x"
+
+msgid "Filter method"
+msgstr "&Mètode de filtrat"
+
+msgid "&Nearest"
+msgstr "&Més proper"
+
+msgid "&Linear"
+msgstr "&Lineal"
+
+msgid "Hi&DPI scaling"
+msgstr "&Escalat alta densitat"
+
+msgid "&Fullscreen\tCtrl+Alt+PgUp"
+msgstr "&Pantalla completa\tCtrl+Alt+PgUp"
+
+msgid "Fullscreen &stretch mode"
+msgstr "Escalat pantalla completa"
+
+msgid "&Full screen stretch"
+msgstr "&Estirar"
+
+msgid "&4:3"
+msgstr "&4:3"
+
+msgid "&Square pixels (Keep ratio)"
+msgstr "&Píxels quadrats (Mant. aspecte)"
+
+msgid "&Integer scale"
+msgstr "&Escalat valor sencer"
+
+msgid "E&GA/(S)VGA settings"
+msgstr "&Ajustaments EGA/(S)VGA"
+
+msgid "&Inverted VGA monitor"
+msgstr "&Monitor VGA invertit"
+
+msgid "VGA screen &type"
+msgstr "&Tipus de pantalla VGA"
+
+msgid "RGB &Color"
+msgstr "RGB &Color"
+
+msgid "&RGB Grayscale"
+msgstr "RGB &Grisos"
+
+msgid "&Amber monitor"
+msgstr "Monitor & Ambre"
+
+msgid "&Green monitor"
+msgstr "Monitor &Verd"
+
+msgid "&White monitor"
+msgstr "Monitor &Blanc"
+
+msgid "Grayscale &conversion type"
+msgstr "&Conversió a grisos"
+
+msgid "BT&601 (NTSC/PAL)"
+msgstr "BT&601 (NTSC/PAL)"
+
+msgid "BT&709 (HDTV)"
+msgstr "BT&709 (HDTV)"
+
+msgid "&Average"
+msgstr "&Mitjana"
+
+msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
+msgstr "&Overscan CGA/PCjr/Tandy/EGA/(S)VGA"
+
+msgid "Change contrast for &monochrome display"
+msgstr "Canviar contrast per a pantalla &monocroma"
+
+msgid "&Media"
+msgstr "&Mitjans"
+
+msgid "&Tools"
+msgstr "&Eines"
+
+msgid "&Settings..."
+msgstr "&Ajustaments..."
+
+msgid "&Update status bar icons"
+msgstr "&Actualitzar icones a la barra d'estat"
+
+msgid "Take s&creenshot\tCtrl+F11"
+msgstr "Prendre c&aptura\tCtrl+F11"
+
+msgid "&Preferences..."
+msgstr "&Preferències..."
+
+msgid "Enable &Discord integration"
+msgstr "Habilita la integració amb el &Discord"
+
+msgid "Sound &gain..."
+msgstr "&Guany de so..."
+
+msgid "Begin trace\tCtrl+T"
+msgstr "Començar traça\tCtrl+T"
+
+msgid "End trace\tCtrl+T"
+msgstr "Acabar traça\tCtrl+T"
+
+msgid "&Help"
+msgstr "&Ajuda"
+
+msgid "&Documentation..."
+msgstr "&Documentació..."
+
+msgid "&About 86Box..."
+msgstr "&Quant a 86Box..."
+
+msgid "&New image..."
+msgstr "&Nova imatge..."
+
+msgid "&Existing image..."
+msgstr "Imatge &Existent..."
+
+msgid "Existing image (&Write-protected)..."
+msgstr "Imatge Existent (&Només-lectura)..."
+
+msgid "&Record"
+msgstr "&Gravar"
+
+msgid "&Play"
+msgstr "&Reproduir"
+
+msgid "&Rewind to the beginning"
+msgstr "&Rebobinar a l'inici"
+
+msgid "&Fast forward to the end"
+msgstr "&Avanç ràpid al final"
+
+msgid "E&ject"
+msgstr "E&xtreure"
+
+msgid "&Image..."
+msgstr "&Imatge..."
+
+msgid "E&xport to 86F..."
+msgstr "E&xportar a 86F..."
+
+msgid "&Mute"
+msgstr "&Silenciar"
+
+msgid "E&mpty"
+msgstr "E&xtreure disc"
+
+msgid "&Reload previous image"
+msgstr "&Recarregar imatge prèvia"
+
+msgid "&Folder..."
+msgstr "&Carpeta..."
+
+msgid "Target &framerate"
+msgstr "&Taxa de refresc objectiu"
+
+msgid "&Sync with video"
+msgstr "&Sincronitzar amb vídeo"
+
+msgid "&25 fps"
+msgstr "&25 fps"
+
+msgid "&30 fps"
+msgstr "&30 fps"
+
+msgid "&50 fps"
+msgstr "&50 fps"
+
+msgid "&60 fps"
+msgstr "&60 fps"
+
+msgid "&75 fps"
+msgstr "&75 fps"
+
+msgid "&VSync"
+msgstr "&VSync"
+
+msgid "&Select shader..."
+msgstr "&Seleccionar shader..."
+
+msgid "&Remove shader"
+msgstr "&Eliminar shader"
+
+msgid "Preferences"
+msgstr "Preferències"
+
+msgid "Sound Gain"
+msgstr "Guany de So"
+
+msgid "New Image"
+msgstr "Nova Imatge"
+
+msgid "Settings"
+msgstr "Ajustaments"
+
+msgid "Specify Main Window Dimensions"
+msgstr "Especificar Dimensions de la Finestra Principal"
+
+msgid "OK"
+msgstr "D'acord"
+
+msgid "Cancel"
+msgstr "Anuŀlació"
+
+msgid "Save these settings as &global defaults"
+msgstr "Salvar aquests paràmetres com per &defecte globalment"
+
+msgid "&Default"
+msgstr "&Per defecte"
+
+msgid "Language:"
+msgstr "Idioma:"
+
+msgid "Icon set:"
+msgstr "Conjunt d'icones:"
+
+msgid "Gain"
+msgstr "Guany"
+
+msgid "File name:"
+msgstr "Nom del fitxer:"
+
+msgid "Disk size:"
+msgstr "Grandària de disc:"
+
+msgid "RPM mode:"
+msgstr "Mode RPM:"
+
+msgid "Progress:"
+msgstr "Progrés:"
+
+msgid "Width:"
+msgstr "Amplada:"
+
+msgid "Height:"
+msgstr "Alçada:"
+
+msgid "Lock to this size"
+msgstr "Bloquejar aquesta mida"
+
+msgid "Machine type:"
+msgstr "Tipus de màquina:"
+
+msgid "Machine:"
+msgstr "Màquina:"
+
+msgid "Configure"
+msgstr "Configurar"
+
+msgid "CPU type:"
+msgstr "Tipus de CPU:"
+
+msgid "Speed:"
+msgstr "Velocitat:"
+
+msgid "FPU:"
+msgstr "FPU:"
+
+msgid "Wait states:"
+msgstr "Estats en espera:"
+
+msgid "MB"
+msgstr "MB"
+
+msgid "Memory:"
+msgstr "Memòria:"
+
+msgid "Time synchronization"
+msgstr "Sincronització horària"
+
+msgid "Disabled"
+msgstr "Desactuvat"
+
+msgid "Enabled (local time)"
+msgstr "Activat (hora local)"
+
+msgid "Enabled (UTC)"
+msgstr "Activat (UTC)"
+
+msgid "Dynamic Recompiler"
+msgstr "Recopilador Dinàmic"
+
+msgid "Video:"
+msgstr "Vídeo:"
+
+msgid "Voodoo Graphics"
+msgstr "Gràfics Voodoo"
+
+msgid "IBM 8514/a Graphics"
+msgstr "Gràfics IBM 8514/a"
+
+msgid "XGA Graphics"
+msgstr "Gràfics XGA"
+
+msgid "Mouse:"
+msgstr "Ratolí:"
+
+msgid "Joystick:"
+msgstr "Joystick:"
+
+msgid "Joystick 1..."
+msgstr "Joystick 1..."
+
+msgid "Joystick 2..."
+msgstr "Joystick 2..."
+
+msgid "Joystick 3..."
+msgstr "Joystick 3..."
+
+msgid "Joystick 4..."
+msgstr "Joystick 4..."
+
+msgid "Sound card 1:"
+msgstr "Targeta de so 1:"
+
+msgid "Sound card 2:"
+msgstr "Targeta de so 2:"
+
+msgid "Sound card 3:"
+msgstr "Targeta de so 3:"
+
+msgid "Sound card 4:"
+msgstr "Targeta de so 4:"
+
+msgid "MIDI Out Device:"
+msgstr "Dispositiu de sortida MIDI:"
+
+msgid "MIDI In Device:"
+msgstr "Dispositiu d'entrada MIDI:"
+
+msgid "Standalone MPU-401"
+msgstr "MPU-401 autònom"
+
+msgid "Use FLOAT32 sound"
+msgstr "Usar so FLOAT32"
+
+msgid "FM synth driver"
+msgstr "Manejador de sintet. FM"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (més acurat)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (més ràpid)"
+
+msgid "Network type:"
+msgstr "Tipus de xarxa:"
+
+msgid "PCap device:"
+msgstr "Dispositiu PCap:"
+
+msgid "Network adapter:"
+msgstr "Adaptador de xarxa:"
+
+msgid "COM1 Device:"
+msgstr "Dispositiu COM1:"
+
+msgid "COM2 Device:"
+msgstr "Dispositiu COM2:"
+
+msgid "COM3 Device:"
+msgstr "Dispositiu COM3:"
+
+msgid "COM4 Device:"
+msgstr "Dispositiu COM4:"
+
+msgid "LPT1 Device:"
+msgstr "Dispositiu LPT1:"
+
+msgid "LPT2 Device:"
+msgstr "Dispositiu LPT2:"
+
+msgid "LPT3 Device:"
+msgstr "Dispositiu LPT3:"
+
+msgid "LPT4 Device:"
+msgstr "Dispositiu LPT4:"
+
+msgid "Serial port 1"
+msgstr "Port sèrie 1"
+
+msgid "Serial port 2"
+msgstr "Port sèrie 2"
+
+msgid "Serial port 3"
+msgstr "Port sèrie 3"
+
+msgid "Serial port 4"
+msgstr "Port sèrie 4"
+
+msgid "Parallel port 1"
+msgstr "Port paral·lel 1"
+
+msgid "Parallel port 2"
+msgstr "Port paral·lel 2"
+
+msgid "Parallel port 3"
+msgstr "Port paral·lel 3"
+
+msgid "Parallel port 4"
+msgstr "Port paral·lel 4"
+
+msgid "HD Controller:"
+msgstr "Controlador de HD:"
+
+msgid "FD Controller:"
+msgstr "Controlador de FD:"
+
+msgid "Tertiary IDE Controller"
+msgstr "Controlador IDE terciari"
+
+msgid "Quaternary IDE Controller"
+msgstr "Controlador IDE quaternari"
+
+msgid "SCSI"
+msgstr "SCSI"
+
+msgid "Controller 1:"
+msgstr "Controlador 1:"
+
+msgid "Controller 2:"
+msgstr "Controlador 2:"
+
+msgid "Controller 3:"
+msgstr "Controlador 3:"
+
+msgid "Controller 4:"
+msgstr "Controlador 4:"
+
+msgid "Cassette"
+msgstr "Casset"
+
+msgid "Hard disks:"
+msgstr "Discs durs:"
+
+msgid "&New..."
+msgstr "&Nou..."
+
+msgid "&Existing..."
+msgstr "&Existent..."
+
+msgid "&Remove"
+msgstr "E&liminar"
+
+msgid "Bus:"
+msgstr "Bus:"
+
+msgid "Channel:"
+msgstr "Canal:"
+
+msgid "ID:"
+msgstr "ID:"
+
+msgid "&Specify..."
+msgstr "E&specificar..."
+
+msgid "Sectors:"
+msgstr "Sectors:"
+
+msgid "Heads:"
+msgstr "Caps:"
+
+msgid "Cylinders:"
+msgstr "Cilindres:"
+
+msgid "Size (MB):"
+msgstr "Mida (MB):"
+
+msgid "Type:"
+msgstr "Tipus:"
+
+msgid "Image Format:"
+msgstr "Format d'imatge:"
+
+msgid "Block Size:"
+msgstr "Mida del bloc:"
+
+msgid "Floppy drives:"
+msgstr "Unitats de disquet:"
+
+msgid "Turbo timings"
+msgstr "Temps turbo"
+
+msgid "Check BPB"
+msgstr "Comprovar BPB"
+
+msgid "CD-ROM drives:"
+msgstr "Unitats de CD-ROM:"
+
+msgid "Earlier drive"
+msgstr "Unitat anterior"
+
+msgid "MO drives:"
+msgstr "Unitats MO:"
+
+msgid "ZIP drives:"
+msgstr "Unitats ZIP:"
+
+msgid "ZIP 250"
+msgstr "ZIP 250"
+
+msgid "ISA RTC:"
+msgstr "ISA RTC:"
+
+msgid "ISA Memory Expansion"
+msgstr "Expansió de memòria ISA"
+
+msgid "Card 1:"
+msgstr "Targeta 1:"
+
+msgid "Card 2:"
+msgstr "Targeta 2:"
+
+msgid "Card 3:"
+msgstr "Targeta 3:"
+
+msgid "Card 4:"
+msgstr "Targeta 4:"
+
+msgid "ISABugger device"
+msgstr "Dispositiu ISABugger"
+
+msgid "POST card"
+msgstr "Targeta POST"
+
+msgid "FONT_SIZE"
+msgstr "9"
+
+msgid "FONT_NAME"
+msgstr "Segoe UI"
+
+msgid "86Box"
+msgstr "86Box"
+
+msgid "Error"
+msgstr "Error"
+
+msgid "Fatal error"
+msgstr "Error fatal"
+
+msgid " - PAUSED"
+msgstr " - EN PAUSA"
+
+msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
+msgstr "Premeu Ctrl+Alt+PgDn per tornar al mode de finestra."
+
+msgid "Speed"
+msgstr "Velocitat"
+
+msgid "ZIP %03i %i (%s): %ls"
+msgstr "ZIP %03i %i (%s): %ls"
+
+msgid "ZIP images"
+msgstr "Imatges ZIP"
+
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "86Box no ha pogut trobar cap imatge ROM utilitzable.\n\nSi us plau, <a href=\"https://github.com/86Box/roms/releases/latest\">descarregueu</a> un conjunt de ROM i extreu-lo al directori \"roms\"."
+
+msgid "(empty)"
+msgstr "(buit)"
+
+msgid "All files"
+msgstr "Tots els fitxers"
+
+msgid "Turbo"
+msgstr "Turbo"
+
+msgid "On"
+msgstr "On"
+
+msgid "Off"
+msgstr "Off"
+
+msgid "All images"
+msgstr "Totes les imatges"
+
+msgid "Basic sector images"
+msgstr "Imatges sectorials bàsiques"
+
+msgid "Surface images"
+msgstr "Imatges superficials"
+
+msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "La màquina \"%hs\" no està disponible perquè falten ROM al directori roms/machines. Canvi a una màquina disponible."
+
+msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "La targeta de vídeo \"%hs\" no està disponible perquè falten ROM al directori roms/video. Canvi a una targeta de vídeo disponible."
+
+msgid "Machine"
+msgstr "Màquina"
+
+msgid "Display"
+msgstr "Vídeo"
+
+msgid "Input devices"
+msgstr "Dispositius d'entrada"
+
+msgid "Sound"
+msgstr "So"
+
+msgid "Network"
+msgstr "Xarxa"
+
+msgid "Ports (COM & LPT)"
+msgstr "Ports (COM i LPT)"
+
+msgid "Storage controllers"
+msgstr "Controladors d'emmagatzematge"
+
+msgid "Hard disks"
+msgstr "Discs durs"
+
+msgid "Floppy & CD-ROM drives"
+msgstr "Unitats de disquet i CD-ROM"
+
+msgid "Other removable devices"
+msgstr "Altres dispositius extraïbles"
+
+msgid "Other peripherals"
+msgstr "Altres perifèrics"
+
+msgid "Click to capture mouse"
+msgstr "Feu clic per capturar el ratolí"
+
+msgid "Press F8+F12 to release mouse"
+msgstr "Premeu F8+F12 per alliberar el ratolí"
+
+msgid "Press F8+F12 or middle button to release mouse"
+msgstr "Premeu F8+F12 o el botó central per alliberar el ratolí"
+
+msgid "Bus"
+msgstr "Bus"
+
+msgid "File"
+msgstr "Fitxer"
+
+msgid "C"
+msgstr "C"
+
+msgid "H"
+msgstr "H"
+
+msgid "S"
+msgstr "S"
+
+msgid "KB"
+msgstr "KB"
+
+msgid "Could not initialize the video renderer."
+msgstr "No has estat possible inicialitzar el renderitzador de vídeo."
+
+msgid "Default"
+msgstr "Per defecte"
+
+msgid "%i estat(s) d'espera"
+msgstr "%i estado(s) de Espera"
+
+msgid "Type"
+msgstr "Tipus"
+
+msgid "Failed to set up PCap"
+msgstr "No s'ha pogut configurar PCap"
+
+msgid "No PCap devices found"
+msgstr "No s'han trobat dispositius PCap"
+
+msgid "Invalid PCap device"
+msgstr "El dispositiu PCap no és vàlid"
+
+msgid "Standard 2-button joystick(s)"
+msgstr "Joystick(s) estàndard de 2 botons"
+
+msgid "Standard 4-button joystick"
+msgstr "Joystick(s) estàndard de 4 botons"
+
+msgid "Standard 6-button joystick"
+msgstr "Joystick(s) estàndard de 6 botons"
+
+msgid "Standard 8-button joystick"
+msgstr "Joystick(s) estàndard de 8 botons"
+
+msgid "CH Flightstick Pro"
+msgstr "CH Flightstick Pro"
+
+msgid "Microsoft SideWinder Pad"
+msgstr "Microsoft SideWinder Pad"
+
+msgid "Thrustmaster Flight Control System"
+msgstr "Thrustmaster Flight Control System"
+
+msgid "None"
+msgstr "Cap"
+
+msgid "Unable to load keyboard accelerators."
+msgstr "No has estat possible carregar els acceleradors del teclat."
+
+msgid "Unable to register raw input."
+msgstr "No has estat possible registrar l'entrada en brut."
+
+msgid "%u"
+msgstr "%u"
+
+msgid "%u MB (CHS: %i, %i, %i)"
+msgstr "%u MB (CHS: %i, %i, %i)"
+
+msgid "Floppy %i (%s): %ls"
+msgstr "Disquet %i (%s): %ls"
+
+msgid "Advanced sector images"
+msgstr "Imatges avançates del sector"
+
+msgid "Flux images"
+msgstr "Imatges de flux"
+
+msgid "Unable to initialize SDL, SDL2.dll is required"
+msgstr "No has estat possible inicialitzar SDL, és necessari SDL2.dll"
+
+msgid "Are you sure you want to hard reset the emulated machine?"
+msgstr "Esteu segur que voleu restablir la màquina emulada?"
+
+msgid "Are you sure you want to exit 86Box?"
+msgstr "Esteu segur que voleu sortir de 86Box?"
+
+msgid "Unable to initialize Ghostscript"
+msgstr "No es pot inicialitzar Ghostscript"
+
+msgid "MO %i (%ls): %ls"
+msgstr "MO %i (%ls): %ls"
+
+msgid "MO images"
+msgstr "Imatges MO"
+
+msgid "Welcome to 86Box!"
+msgstr "Benvingut a 86Box!"
+
+msgid "Internal controller"
+msgstr "Controlador intern"
+
+msgid "Exit"
+msgstr "Sortir"
+
+msgid "No ROMs found"
+msgstr "No s'ha trobat cap ROM"
+
+msgid "Do you want to save the settings?"
+msgstr "Voleu desar les configuracions?"
+
+msgid "This will hard reset the emulated machine."
+msgstr "Es farà una reinicialització completa de la màquina emulada."
+
+msgid "Save"
+msgstr "Desar"
+
+msgid "About 86Box"
+msgstr "Quant a 86Box"
+
+msgid "86Box v"
+msgstr "86Box v"
+
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Un emulador d'ordinadors antics\n\nAutors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne i altres.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho i altres.\n\nAlliberat sota la GNU General Public License versió 2 o posterior. Veure LLICENSE per a més informació."
+
+msgid "Hardware not available"
+msgstr "Maquinari no disponible"
+
+msgid "WinPcap"
+msgstr "WinPcap"
+
+msgid "libpcap"
+msgstr "libpcap"
+
+msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
+msgstr "Assegureu-vos que el libpcap està instal·lat i que està en una connexió de xarxa compatible amb libpcap."
+
+msgid "Invalid configuration"
+msgstr "Configuració invàlida"
+
+msgid "gsdll32.dll"
+msgstr "gsdll32.dll"
+
+msgid "libgs"
+msgstr "libgs"
+
+msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+msgstr " és necessària per a la conversió automàtica de fitxers PostScript a PDF.\n\nQualsevol document enviat a la impressora genèrica postScript es desarà com a fitxer PostScript (.ps)."
+
+msgid "Entering fullscreen mode"
+msgstr "Entrant en mode pantalla completa"
+
+msgid "Don't show this message again"
+msgstr "No mostreu més aquest missatge"
+
+msgid "Don't exit"
+msgstr "No sortir"
+
+msgid "Reset"
+msgstr "Resetejar"
+
+msgid "Don't reset"
+msgstr "No resetejar"
+
+msgid "CD-ROM images"
+msgstr "Imatges de CD-ROM"
+
+msgid "%hs Device Configuration"
+msgstr "%hs Configuració de Dispositiu"
+
+msgid "Monitor in sleep mode"
+msgstr "Monitor en mode estalvi"
+
+msgid "OpenGL Shaders"
+msgstr "Shaders OpenGL"
+
+msgid "OpenGL options"
+msgstr "Opcions OpenGL"
+
+msgid "You are loading an unsupported configuration"
+msgstr "S'està carregant una configuració no suportada"
+
+msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
+msgstr "El Filtratge de tipus de CPU basat en màquina seleccionada està deshabilitat per a aquesta màquina.\n\nAixò fa possible seleccionar una CPU que sigui incompatible amb aquesta màquina. Per això, poden aparèixer incompatibilitat amb la BIOS de la màquina o un altre programari.\n\nActivar aquest ajustament no està oficialment suportat i qualsevol informe de fallada pot ser tancat com a invàlid."
+
+msgid "Continue"
+msgstr "Continuar"
+
+msgid "Cassette: %s"
+msgstr "Casset: %s"
+
+msgid "Cassette images"
+msgstr "Imatges de casset"
+
+msgid "Cartridge %i: %ls"
+msgstr "Cartutx %i: %ls"
+
+msgid "Cartridge images"
+msgstr "Imatges de cartutx"
+
+msgid "Error initializing renderer"
+msgstr "Error en inicialitzar el renderitzador"
+
+msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "No has estat possible inicialitzar el renderitzador OpenGL (3.0 Core). Utilitzar un altre renderitzador."
+
+msgid "Resume execution"
+msgstr "Reprendre l'execució"
+
+msgid "Pause execution"
+msgstr "Pausar l'execució"
+
+msgid "Press Ctrl+Alt+Del"
+msgstr "Pulsar Ctrl+Alt+Supr"
+
+msgid "Press Ctrl+Alt+Esc"
+msgstr "Pulsar Ctrl+Alt+Esc"
+
+msgid "Hard reset"
+msgstr "Reinicialització completa"
+
+msgid "ACPI shutdown"
+msgstr "Apagada ACPI"
+
+msgid "Hard disk (%s)"
+msgstr "Disc dur (%s)"
+
+msgid "%01i:%01i"
+msgstr "%01i:%01i"
+
+msgid "%01i"
+msgstr "%01i"
+
+msgid "MFM/RLL or ESDI CD-ROM drives never existed"
+msgstr "Les unitats de CD-ROM MFM/RLL o ESDI no van existir mai"
+
+msgid "Custom..."
+msgstr "Personalitzat..."
+
+msgid "Custom (large)..."
+msgstr "Personalitzat (gran)..."
+
+msgid "Add New Hard Disk"
+msgstr "Afegir disc dur nou"
+
+msgid "Add Existing Hard Disk"
+msgstr "Afegir disc dur existent"
+
+msgid "HDI disk images cannot be larger than 4 GB."
+msgstr "Les imatges de disc HDI no poden superar els 4 GB."
+
+msgid "Disk images cannot be larger than 127 GB."
+msgstr "Les imatges del disc no poden superar els 127 GB."
+
+msgid "Hard disk images"
+msgstr "Imatges del disc dur"
+
+msgid "Unable to read file"
+msgstr "No has estat possible llegir el fitxer"
+
+msgid "Unable to write file"
+msgstr "No has estat possible escriure el fitxer"
+
+msgid "HDI or HDX images with a sector size other than 512 are not supported."
+msgstr "Les imatges HDI o HDX amb una mida de sector diferent de 512 no s'admeten."
+
+msgid "USB is not yet supported"
+msgstr "L'USB encara no s'admete"
+
+msgid "Disk image file already exists"
+msgstr "El fitxer d'imatge de disc ja existeix"
+
+msgid "Please specify a valid file name."
+msgstr "Especifiqueu un nom de fitxer vàlid."
+
+msgid "Disk image created"
+msgstr "La imatge de disc ha estat creada"
+
+msgid "Make sure the file exists and is readable."
+msgstr "Assegureu-vos que el fitxer existeix i és llegible."
+
+msgid "Make sure the file is being saved to a writable directory."
+msgstr "Assegureu-vos que el fitxer s'està desant en un directori que es pugui escriure."
+
+msgid "Disk image too large"
+msgstr "La imatge del disc és massa gran"
+
+msgid "Remember to partition and format the newly-created drive."
+msgstr "Recordeu particionar i formatar la unitat de nova creació."
+
+msgid "The selected file will be overwritten. Are you sure you want to use it?"
+msgstr "El fitxer seleccionat se sobreescriurà. Esteu segur que voleu utilitzar-lo?"
+
+msgid "Unsupported disk image"
+msgstr "Imatge de disc no compatible"
+
+msgid "Overwrite"
+msgstr "Sobreescriure"
+
+msgid "Don't overwrite"
+msgstr "No sobreescriure"
+
+msgid "Raw image (.img)"
+msgstr "Imatge crua (.img)"
+
+msgid "HDI image (.hdi)"
+msgstr "Imatge HDI (.hdi)"
+
+msgid "HDX image (.hdx)"
+msgstr "Imatge HDX (.hdx)"
+
+msgid "Fixed-size VHD (.vhd)"
+msgstr "VHD de mida fixa (.vhd)"
+
+msgid "Dynamic-size VHD (.vhd)"
+msgstr "VHD de mida dinàmica (.vhd)"
+
+msgid "Differencing VHD (.vhd)"
+msgstr "VHD diferencial (.vhd)"
+
+msgid "Large blocks (2 MB)"
+msgstr "Blocs grans (2 MB)"
+
+msgid "Small blocks (512 KB)"
+msgstr "Blocs petits (512 KB)"
+
+msgid "VHD files"
+msgstr "Fitxers VHD"
+
+msgid "Select the parent VHD"
+msgstr "Seleccioneu el VHD pare"
+
+msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+msgstr "Això pot ser perquè la imatge pare es va modificar després que la imatge diferencial es creés.\n\nTambé pot passar si les imatges van ser mogudes o copiades, o per una fallada al programa que va crear aquest disc.\n\n¿ Voleu corregir els registres de temps?"
+
+msgid "Parent and child disk timestamps do not match"
+msgstr "Les marques de temps del pare i el fill no coincideixen"
+
+msgid "Could not fix VHD timestamp."
+msgstr "No has estat possible corregir la marca de temps del VHD."
+
+msgid "%01i:%02i"
+msgstr "%01i:%02i"
+
+msgid "MFM/RLL"
+msgstr "MFM/RLL"
+
+msgid "XTA"
+msgstr "XTA"
+
+msgid "ESDI"
+msgstr "ESDI"
+
+msgid "IDE"
+msgstr "IDE"
+
+msgid "ATAPI"
+msgstr "ATAPI"
+
+msgid "MFM/RLL (%01i:%01i)"
+msgstr "MFM/RLL (%01i:%01i)"
+
+msgid "XTA (%01i:%01i)"
+msgstr "XTA (%01i:%01i)"
+
+msgid "ESDI (%01i:%01i)"
+msgstr "ESDI (%01i:%01i)"
+
+msgid "IDE (%01i:%01i)"
+msgstr "IDE (%01i:%01i)"
+
+msgid "ATAPI (%01i:%01i)"
+msgstr "ATAPI (%01i:%01i)"
+
+msgid "SCSI (%01i:%02i)"
+msgstr "SCSI (%01i:%02i)"
+
+msgid "CD-ROM %i (%s): %s"
+msgstr "CD-ROM %i (%s): %s"
+
+msgid "160 kB"
+msgstr "160 kB"
+
+msgid "180 kB"
+msgstr "180 kB"
+
+msgid "320 kB"
+msgstr "320 kB"
+
+msgid "360 kB"
+msgstr "360 kB"
+
+msgid "640 kB"
+msgstr "640 kB"
+
+msgid "720 kB"
+msgstr "720 kB"
+
+msgid "1.2 MB"
+msgstr "1.2 MB"
+
+msgid "1.25 MB"
+msgstr "1.25 MB"
+
+msgid "1.44 MB"
+msgstr "1.44 MB"
+
+msgid "DMF (cluster 1024)"
+msgstr "DMF (clúster 1024)"
+
+msgid "DMF (cluster 2048)"
+msgstr "DMF (clúster 2048)"
+
+msgid "2.88 MB"
+msgstr "2.88 MB"
+
+msgid "ZIP 100"
+msgstr "ZIP 100"
+
+msgid "3.5\" 128 MB (ISO 10090)"
+msgstr "3.5\" 128 MB (ISO 10090)"
+
+msgid "3.5\" 230 MB (ISO 13963)"
+msgstr "3.5\" 230 MB (ISO 13963)"
+
+msgid "3.5\" 540 MB (ISO 15498)"
+msgstr "3.5\" 540 MB (ISO 15498)"
+
+msgid "3.5\" 640 MB (ISO 15498)"
+msgstr "3.5\" 640 MB (ISO 15498)"
+
+msgid "3.5\" 1.3 GB (GigaMO)"
+msgstr "3.5\" 1.3 GB (GigaMO)"
+
+msgid "3.5\" 2.3 GB (GigaMO 2)"
+msgstr "3.5\" 2.3 GB (GigaMO 2)"
+
+msgid "5.25\" 600 MB"
+msgstr "5.25\" 600 MB"
+
+msgid "5.25\" 650 MB"
+msgstr "5.25\" 650 MB"
+
+msgid "5.25\" 1 GB"
+msgstr "5.25\" 1 GB"
+
+msgid "5.25\" 1.3 GB"
+msgstr "5.25\" 1.3 GB"
+
+msgid "Perfect RPM"
+msgstr "RPM perfectes"
+
+msgid "1% below perfect RPM"
+msgstr "1% per sota de RPM perfectes"
+
+msgid "1.5% below perfect RPM"
+msgstr "1.5% per sota de RPM perfectes"
+
+msgid "2% below perfect RPM"
+msgstr "2% per sota de RPM perfectes"
+
+msgid "(System Default)"
+msgstr "(Per defecte del sistema)"
+
+msgid "Failed to initialize network driver"
+msgstr "No has estat possible inicialitzar el controlador de xarxa"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "La configuració de la xarxa es canviarà al controlador nul"
+
+msgid "Mouse sensitivity:"
+msgstr "Sensibilitat del ratolí:"
+
+msgid "Select media images from program working directory"
+msgstr "Seleccioneu imatges multimèdia del directori de treball del programa"
+
+msgid "PIT mode:"
+msgstr "Mode PIT:"
+
+msgid "Auto"
+msgstr "Automàtic"
+
+msgid "Slow"
+msgstr "Lent"
+
+msgid "Fast"
+msgstr "Ràpid"
+

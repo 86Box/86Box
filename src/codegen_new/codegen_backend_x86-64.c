@@ -14,6 +14,8 @@
 #    include "codegen_backend_x86-64_ops_sse.h"
 #    include "codegen_reg.h"
 #    include "x86.h"
+#    include "x86seg_common.h"
+#    include "x86seg.h"
 
 #    if defined(__linux__) || defined(__APPLE__)
 #        include <sys/mman.h>

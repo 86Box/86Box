@@ -151,7 +151,7 @@ cdrom_interface_reset(void)
     device_add(controllers[cdrom_interface_current].device);
 }
 
-char *
+const char *
 cdrom_interface_get_internal_name(int cdinterface)
 {
     return device_get_internal_name(controllers[cdinterface].device);
@@ -1868,10 +1868,8 @@ cdrom_insert(uint8_t id)
 {
     cdrom_t *dev = &cdrom[id];
 
-    if (dev->bus_type) {
-        if (dev->insert)
-            dev->insert(dev->priv);
-    }
+    if (dev->bus_type && dev->insert)
+        dev->insert(dev->priv);
 }
 
 /* The mechanics of ejecting a CD-ROM from a drive. */

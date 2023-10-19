@@ -643,9 +643,7 @@ writegus(uint16_t addr, uint8_t val, void *priv)
                 else if (gus->irq != -1)
                     picint(1 << gus->irq);
             }
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case 0x20d:
             gus->sb_2xc = val;
             break;
@@ -907,7 +905,7 @@ readgus(uint16_t addr, void *priv)
 #ifdef OLD_NMI_BEHAVIOR
             nmi = 0;
 #endif
-            /*FALLTHROUGH*/
+            fallthrough;
         case 0x389:
             val = gus->ad_data;
             break;
@@ -1151,9 +1149,9 @@ gus_get_buffer(int32_t *buffer, int len, void *priv)
 }
 
 static void
-gus_input_msg(void *p, uint8_t *msg, uint32_t len)
+gus_input_msg(void *priv, uint8_t *msg, uint32_t len)
 {
-    gus_t  *gus = (gus_t *) p;
+    gus_t  *gus = (gus_t *) priv;
 
     if (gus->sysex)
         return;
@@ -1171,9 +1169,9 @@ gus_input_msg(void *p, uint8_t *msg, uint32_t len)
 }
 
 static int
-gus_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
+gus_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
 {
-    gus_t   *gus = (gus_t *) p;
+    gus_t   *gus = (gus_t *) priv;
 
     if (abort) {
         gus->sysex = 0;
@@ -1191,11 +1189,11 @@ gus_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 }
 
 static void
-gus_reset(void *p)
+gus_reset(void *priv)
 {
-    gus_t   *gus = (gus_t *) p;
-    int     c;
-    double  out     = 1.0;
+    gus_t   *gus = (gus_t *) priv;
+    int      c;
+    double   out     = 1.0;
 
     if (gus == NULL)
         return;

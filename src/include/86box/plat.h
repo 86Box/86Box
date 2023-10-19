@@ -49,14 +49,10 @@ extern int strnicmp(const char *s1, const char *s2, size_t n);
 #    define ftello64 ftello
 #    define off64_t  off_t
 #elif defined(_MSC_VER)
-// # define fopen64	fopen
+// # define fopen64  fopen
 #    define fseeko64 _fseeki64
 #    define ftello64 _ftelli64
 #    define off64_t  off_t
-#endif
-
-#if !defined (__APPLE__) && !defined(__clang__)
-#    define FALLTHROUGH_ANNOTATION
 #endif
 
 #ifdef _MSC_VER
@@ -82,6 +78,19 @@ extern "C" {
 
 #if defined(_MSC_VER)
 #    define ssize_t intptr_t
+#endif
+
+#ifdef _MSC_VER
+# define fallthrough do {} while (0) /* fallthrough */
+#else
+# if __has_attribute(fallthrough)
+#  define fallthrough __attribute__((fallthrough))
+# else
+#  if __has_attribute(__fallthrough__)
+#   define fallthrough __attribute__((__fallthrough__))
+#  endif
+#  define fallthrough do {} while (0) /* fallthrough */
+# endif
 #endif
 
 /* Global variables residing in the platform module. */
@@ -137,6 +146,8 @@ extern void     plat_vidapi_reload(void);
 extern void     plat_vid_reload_options(void);
 extern uint32_t plat_language_code(char *langcode);
 extern void     plat_language_code_r(uint32_t lcid, char *outbuf, int len);
+extern void     plat_get_cpu_string(char *outbuf, uint8_t len);
+extern double   plat_get_dpi(void);
 
 /* Resource management. */
 extern void     set_language(uint32_t id);

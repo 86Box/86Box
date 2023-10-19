@@ -493,10 +493,7 @@ pci_bridge_init(const device_t *info)
 
     pci_bridge_reset(dev);
 
-    if (AGP_BRIDGE(dev->local))
-        pci_add_card(PCI_ADD_AGPBRIDGE, pci_bridge_read, pci_bridge_write, dev, &dev->slot);
-    else
-        dev->slot = pci_add_bridge(pci_bridge_read, pci_bridge_write, dev);
+    pci_add_bridge(AGP_BRIDGE(dev->local), pci_bridge_read, pci_bridge_write, dev, &dev->slot);
 
     interrupt_count = sizeof(interrupts);
     interrupt_mask  = interrupt_count - 1;

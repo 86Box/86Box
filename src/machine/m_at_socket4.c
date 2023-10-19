@@ -10,10 +10,8 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2010-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
@@ -269,6 +267,7 @@ machine_at_valuepointp60_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_IDE,         0, 0, 0, 0);
+    pci_register_slot(0x03, PCI_CARD_VIDEO,       3, 3, 3, 3);
     pci_register_slot(0x06, PCI_CARD_NORMAL,      3, 2, 1, 4);
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 1, 3, 4);
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 3, 2, 4);
@@ -279,6 +278,9 @@ machine_at_valuepointp60_init(const machine_t *model)
     device_add(&intel_flash_bxt_ami_device);
 
     device_add(&i430lx_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(&mach32_onboard_pci_device);
 
     return ret;
 }

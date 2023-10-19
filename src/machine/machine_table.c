@@ -13,11 +13,9 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  */
@@ -302,7 +300,7 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_PCJR,
         .flags = MACHINE_VIDEO_FIXED,
         .ram = {
-            .min = 128,
+            .min = 64,
             .max = 640,
             .step = 64
         },
@@ -1894,7 +1892,7 @@ const machine_t machines[] = {
             .package = CPU_PKG_8086,
             .block = CPU_BLOCK_NONE,
             .min_bus = 0,
-            .max_bus = 0,
+            .max_bus = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -1932,7 +1930,7 @@ const machine_t machines[] = {
             .package = CPU_PKG_8086,
             .block = CPU_BLOCK_NONE,
             .min_bus = 0,
-            .max_bus = 0,
+            .max_bus = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -1970,7 +1968,7 @@ const machine_t machines[] = {
             .package = CPU_PKG_8086,
             .block = CPU_BLOCK_NONE,
             .min_bus = 0,
-            .max_bus = 0,
+            .max_bus = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -2008,7 +2006,7 @@ const machine_t machines[] = {
             .package = CPU_PKG_8086,
             .block = CPU_BLOCK_NONE,
             .min_bus = 0,
-            .max_bus = 0,
+            .max_bus = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -2046,7 +2044,7 @@ const machine_t machines[] = {
             .package = CPU_PKG_8086,
             .block = CPU_BLOCK_NONE,
             .min_bus = 0,
-            .max_bus = 0,
+            .max_bus = 10000000,
             .min_voltage = 0,
             .max_voltage = 0,
             .min_multi = 0,
@@ -4694,9 +4692,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
-            .min = 640,
+            .min = 1024,
             .max = 16384,
-            .step = 128
+            .step = 1024
         },
         .nvrmask = 63,
         .kbc_device = NULL,
@@ -4710,11 +4708,11 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
-        .name = "[ISA] Compaq Deskpro 386 (January 1988)",
-        .internal_name = "deskpro386_01_1988",
+        .name = "[ISA] Compaq Deskpro 386 (May 1988)",
+        .internal_name = "deskpro386_05_1988",
         .type = MACHINE_TYPE_386DX,
         .chipset = MACHINE_CHIPSET_DISCRETE,
-        .init = machine_at_deskpro386_01_1988_init,
+        .init = machine_at_deskpro386_05_1988_init,
         .pad = 0,
         .pad0 = 0,
         .pad1 = MACHINE_AVAILABLE,
@@ -4732,9 +4730,9 @@ const machine_t machines[] = {
         .bus_flags = MACHINE_AT,
         .flags = MACHINE_IDE,
         .ram = {
-            .min = 640,
+            .min = 1024,
             .max = 16384,
-            .step = 128
+            .step = 1024
         },
         .nvrmask = 63,
         .kbc_device = NULL,
@@ -6485,17 +6483,17 @@ const machine_t machines[] = {
             .max_multi = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE | MACHINE_APM,
+        .flags = MACHINE_IDE | MACHINE_VIDEO | MACHINE_APM,
         .ram = {
             .min = 1024,
             .max = 65536,
             .step = 1024
         },
-        .nvrmask = 127,
+        .nvrmask = 255,
         .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
-        .device = NULL,
+        .device = &gd5430_onboard_pci_device,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
@@ -7072,7 +7070,7 @@ const machine_t machines[] = {
             .min_multi = 0,
             .max_multi = 0
         },
-        .bus_flags = MACHINE_PCI,
+        .bus_flags = MACHINE_PCI | MACHINE_BUS_PS2_LATCH,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM,
         .ram = {
             .min = 1024,
@@ -7754,7 +7752,7 @@ const machine_t machines[] = {
             .max_multi = MACHINE_MULTIPLIER_FIXED
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_VIDEO_8514A | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 2048,
             .max = 131072,
@@ -7764,7 +7762,7 @@ const machine_t machines[] = {
         .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
-        .device = NULL,
+        .device = &mach32_onboard_pci_device,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
@@ -8283,7 +8281,7 @@ const machine_t machines[] = {
             .max = 131072,
             .step = 8192
         },
-        .nvrmask = 127,
+        .nvrmask = 255,
         .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
@@ -8724,7 +8722,7 @@ const machine_t machines[] = {
             .max = 131072,
             .step = 8192
         },
-        .nvrmask = 127,
+        .nvrmask = 255,
         .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
@@ -8805,7 +8803,7 @@ const machine_t machines[] = {
             .max = 131072,
             .step = 8192
         },
-        .nvrmask = 127,
+        .nvrmask = 255,
         .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
@@ -8846,7 +8844,7 @@ const machine_t machines[] = {
             .max = 131072,
             .step = 8192
         },
-        .nvrmask = 127,
+        .nvrmask = 255,
         .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
@@ -8887,7 +8885,7 @@ const machine_t machines[] = {
             .max = 131072,
             .step = 8192
         },
-        .nvrmask = 127,
+        .nvrmask = 255,
         .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
@@ -8966,7 +8964,7 @@ const machine_t machines[] = {
             .max = 131072,
             .step = 8192
         },
-        .nvrmask = 127,
+        .nvrmask = 255,
         .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
@@ -9205,7 +9203,7 @@ const machine_t machines[] = {
             .max = 786432,
             .step = 8192
         },
-        .nvrmask = 127,
+        .nvrmask = 255,
         .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
@@ -9609,7 +9607,7 @@ const machine_t machines[] = {
             .max = 196608,
             .step = 8192
         },
-        .nvrmask = 127,
+        .nvrmask = 255,
         .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
@@ -9651,7 +9649,7 @@ const machine_t machines[] = {
             .max = 196608,
             .step = 8192
         },
-        .nvrmask = 127,
+        .nvrmask = 255,
         .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
@@ -10047,7 +10045,7 @@ const machine_t machines[] = {
             .max = 131072,
             .step = 8192
         },
-        .nvrmask = 127,
+        .nvrmask = 255,
         .kbc_device = NULL,
         .kbc_p1 = 0,
         .gpio = 0,
@@ -12983,16 +12981,16 @@ machine_count(void)
     return ((sizeof(machines) / sizeof(machine_t)) - 1);
 }
 
-char *
+const char *
 machine_getname(void)
 {
-    return ((char *) machines[machine].name);
+    return (machines[machine].name);
 }
 
-char *
+const char *
 machine_getname_ex(int m)
 {
-    return ((char *) machines[m].name);
+    return (machines[m].name);
 }
 
 const device_t *
@@ -13058,16 +13056,16 @@ machine_get_net_device(int m)
     return (NULL);
 }
 
-char *
+const char *
 machine_get_internal_name(void)
 {
-    return ((char *) machines[machine].internal_name);
+    return (machines[machine].internal_name);
 }
 
-char *
+const char *
 machine_get_internal_name_ex(int m)
 {
-    return ((char *) machines[m].internal_name);
+    return (machines[m].internal_name);
 }
 
 int
@@ -13123,12 +13121,12 @@ machine_get_type(int m)
 }
 
 int
-machine_get_machine_from_internal_name(char *s)
+machine_get_machine_from_internal_name(const char *s)
 {
     int c = 0;
 
     while (machines[c].init != NULL) {
-        if (!strcmp(machines[c].internal_name, (const char *) s))
+        if (!strcmp(machines[c].internal_name, s))
             return c;
         c++;
     }

@@ -58,19 +58,26 @@
 
 enum {
     DEVICE_PCJR      = 2,          /* requires an IBM PCjr */
-    DEVICE_AT        = 4,          /* requires an AT-compatible system */
-    DEVICE_PS2       = 8,          /* requires a PS/1 or PS/2 system */
-    DEVICE_ISA       = 0x10,       /* requires the ISA bus */
-    DEVICE_CBUS      = 0x20,       /* requires the C-BUS bus */
-    DEVICE_MCA       = 0x40,       /* requires the MCA bus */
-    DEVICE_EISA      = 0x80,       /* requires the EISA bus */
-    DEVICE_VLB       = 0x100,      /* requires the PCI bus */
-    DEVICE_PCI       = 0x200,      /* requires the VLB bus */
-    DEVICE_AGP       = 0x400,      /* requires the AGP bus */
-    DEVICE_AC97      = 0x800,      /* requires the AC'97 bus */
-    DEVICE_COM       = 0x1000,     /* requires a serial port */
-    DEVICE_LPT       = 0x2000,     /* requires a parallel port */
-    DEVICE_KBC       = 0x4000,     /* is a keyboard controller */
+    DEVICE_XTKBC     = 4,          /* requires an XT-compatible keyboard controller */
+    DEVICE_AT        = 8,          /* requires an AT-compatible system */
+    DEVICE_ATKBC     = 0x10,       /* requires an AT-compatible keyboard controller */
+    DEVICE_PS2       = 0x20,       /* requires a PS/1 or PS/2 system */
+    DEVICE_ISA       = 0x40,       /* requires the ISA bus */
+    DEVICE_CBUS      = 0x80,       /* requires the C-BUS bus */
+    DEVICE_PCMCIA    = 0x100,      /* requires the PCMCIA bus */
+    DEVICE_MCA       = 0x200,      /* requires the MCA bus */
+    DEVICE_HIL       = 0x400,      /* requires the HP HIL bus */
+    DEVICE_EISA      = 0x800,      /* requires the EISA bus */
+    DEVICE_OLB       = 0x1000,     /* requires the OPTi local bus */
+    DEVICE_VLB       = 0x2000,     /* requires the VLB bus */
+    DEVICE_PCI       = 0x4000,     /* requires the PCI bus */
+    DEVICE_CARDBUS   = 0x8000,     /* requires the CardBus bus */
+    DEVICE_USB       = 0x10000,    /* requires the USB bus */
+    DEVICE_AGP       = 0x20000,    /* requires the AGP bus */
+    DEVICE_AC97      = 0x40000,    /* requires the AC'97 bus */
+    DEVICE_COM       = 0x80000,    /* requires a serial port */
+    DEVICE_LPT       = 0x100000,   /* requires a parallel port */
+    DEVICE_KBC       = 0x200000,   /* is a keyboard controller */
 
     DEVICE_EXTPARAMS = 0x40000000, /* accepts extended parameters */
 
@@ -135,8 +142,7 @@ typedef struct _device_ {
     void (*reset)(void *priv);
     union {
         int (*available)(void);
-        int (*poll)(int x, int y, int z, int b, double abs_x, double abs_y, void *priv);
-        void (*register_pci_slot)(int device, int type, int inta, int intb, int intc, int intd, void *priv);
+        int (*poll)(void *priv);
     };
     void (*speed_changed)(void *priv);
     void (*force_redraw)(void *priv);
@@ -155,37 +161,36 @@ extern "C" {
 #endif
 
 extern void  device_init(void);
-extern void  device_set_context(device_context_t *c, const device_t *d, int inst);
-extern void  device_context(const device_t *d);
-extern void  device_context_inst(const device_t *d, int inst);
+extern void  device_set_context(device_context_t *c, const device_t *dev, int inst);
+extern void  device_context(const device_t *dev);
+extern void  device_context_inst(const device_t *dev, int inst);
 extern void  device_context_restore(void);
 extern void *device_add(const device_t *d);
-extern void *device_add_parameters(const device_t *d, void *params);
-extern void  device_add_ex(const device_t *d, void *priv);
-extern void  device_add_ex_parameters(const device_t *d, void *priv, void *params);
-extern void *device_add_inst(const device_t *d, int inst);
-extern void *device_add_inst_parameters(const device_t *d, int inst, void *params);
-extern void  device_add_inst_ex(const device_t *d, void *priv, int inst);
-extern void  device_add_inst_ex_parameters(const device_t *d, void *priv, int inst, void *params);
-extern void *device_cadd(const device_t *d, const device_t *cd);
-extern void *device_cadd_parameters(const device_t *d, const device_t *cd, void *params);
-extern void  device_cadd_ex(const device_t *d, const device_t *cd, void *priv);
-extern void  device_cadd_ex_parameters(const device_t *d, const device_t *cd, void *priv, void *params);
-extern void *device_cadd_inst(const device_t *d, const device_t *cd, int inst);
-extern void *device_cadd_inst_parameters(const device_t *d, const device_t *cd, int inst, void *params);
-extern void  device_cadd_inst_ex(const device_t *d, const device_t *cd, void *priv, int inst);
-extern void  device_cadd_inst_ex_parameters(const device_t *d, const device_t *cd, void *priv, int inst, void *params);
+extern void *device_add_parameters(const device_t *dev, void *params);
+extern void  device_add_ex(const device_t *dev, void *priv);
+extern void  device_add_ex_parameters(const device_t *dev, void *priv, void *params);
+extern void *device_add_inst(const device_t *dev, int inst);
+extern void *device_add_inst_parameters(const device_t *dev, int inst, void *params);
+extern void  device_add_inst_ex(const device_t *dev, void *priv, int inst);
+extern void  device_add_inst_ex_parameters(const device_t *dev, void *priv, int inst, void *params);
+extern void *device_cadd(const device_t *dev, const device_t *cd);
+extern void *device_cadd_parameters(const device_t *dev, const device_t *cd, void *params);
+extern void  device_cadd_ex(const device_t *dev, const device_t *cd, void *priv);
+extern void  device_cadd_ex_parameters(const device_t *dev, const device_t *cd, void *priv, void *params);
+extern void *device_cadd_inst(const device_t *dev, const device_t *cd, int inst);
+extern void *device_cadd_inst_parameters(const device_t *dev, const device_t *cd, int inst, void *params);
+extern void  device_cadd_inst_ex(const device_t *dev, const device_t *cd, void *priv, int inst);
+extern void  device_cadd_inst_ex_parameters(const device_t *dev, const device_t *cd, void *priv, int inst, void *params);
 extern void  device_close_all(void);
 extern void  device_reset_all(uint32_t match_flags);
-extern void *device_get_priv(const device_t *d);
-extern int   device_available(const device_t *d);
-extern int   device_poll(const device_t *d, int x, int y, int z, int b);
-extern void  device_register_pci_slot(const device_t *d, int device, int type, int inta, int intb, int intc, int intd);
+extern void *device_get_priv(const device_t *dev);
+extern int   device_available(const device_t *dev);
+extern int   device_poll(const device_t *dev);
 extern void  device_speed_changed(void);
 extern void  device_force_redraw(void);
-extern void  device_get_name(const device_t *d, int bus, char *name);
-extern int   device_has_config(const device_t *d);
-extern const char *device_get_bios_file(const device_t *d, const char *internal_name, int file_no);
+extern void  device_get_name(const device_t *dev, int bus, char *name);
+extern int   device_has_config(const device_t *dev);
+extern const char *device_get_bios_file(const device_t *dev, const char *internal_name, int file_no);
 
 extern int device_is_valid(const device_t *, int m);
 
@@ -202,7 +207,7 @@ extern const char *device_get_config_string(const char *name);
 extern const int   device_get_instance(void);
 #define device_get_config_bios device_get_config_string
 
-extern char *device_get_internal_name(const device_t *d);
+extern const char *device_get_internal_name(const device_t *dev);
 
 extern int   machine_get_config_int(char *s);
 extern char *machine_get_config_string(char *s);

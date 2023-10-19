@@ -50,8 +50,8 @@ in vec2 VertexCoord;\n\
 in vec2 TexCoord;\n\
 out vec2 tex;\n\
 void main(){\n\
-	gl_Position = vec4(VertexCoord, 0.0, 1.0);\n\
-	tex = TexCoord;\n\
+    gl_Position = vec4(VertexCoord, 0.0, 1.0);\n\
+    tex = TexCoord;\n\
 }\n";
 
 /**
@@ -62,7 +62,7 @@ in vec2 tex;\n\
 uniform sampler2D texsampler;\n\
 out vec4 color;\n\
 void main() {\n\
-	color = texture(texsampler, tex);\n\
+    color = texture(texsampler, tex);\n\
 }\n";
 
 /**
@@ -82,15 +82,15 @@ typedef enum {
 static char *
 read_file_to_string(const char *path)
 {
-    FILE *file_handle = plat_fopen(path, "rb");
+    FILE *fp = plat_fopen(path, "rb");
 
-    if (file_handle != NULL) {
+    if (fp != NULL) {
         /* get file size */
-        fseek(file_handle, 0, SEEK_END);
+        fseek(fp, 0, SEEK_END);
 
-        size_t file_size = (size_t) ftell(file_handle);
+        size_t file_size = (size_t) ftell(fp);
 
-        fseek(file_handle, 0, SEEK_SET);
+        fseek(fp, 0, SEEK_SET);
 
         /* read to buffer and close */
         char *content = (char *) malloc(sizeof(char) * (file_size + 1));
@@ -98,9 +98,9 @@ read_file_to_string(const char *path)
         if (!content)
             return NULL;
 
-        size_t length = fread(content, sizeof(char), file_size, file_handle);
+        size_t length = fread(content, sizeof(char), file_size, fp);
 
-        fclose(file_handle);
+        fclose(fp);
 
         content[length] = 0;
 
@@ -179,11 +179,11 @@ load_custom_shaders(const char *path)
         /* Check if the shader program defines version directive */
         char *version_start = strstr(shader, "#version");
 
-        /*	If the shader program contains a version directive,
+        /* If the shader program contains a version directive,
                 it must be captured and placed as the first statement. */
         if (version_start != NULL) {
             /* Version directive found, search the line end */
-            char *version_end = strchr(version_start, '\n');
+            const char *version_end = strchr(version_start, '\n');
 
             if (version_end != NULL) {
                 char version[30] = "";
@@ -197,7 +197,7 @@ load_custom_shaders(const char *path)
                 fragment_sources[0] = version;
             }
 
-            /*	Comment out the original version directive
+            /* Comment out the original version directive
                     as only one is allowed. */
             memset(version_start, '/', 2);
         }

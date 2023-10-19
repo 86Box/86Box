@@ -21,13 +21,13 @@ typedef struct lpt_device_t {
     const char *name;
     const char *internal_name;
 
-    void *(*init)(void *lpt);
-    void (*close)(void *p);
-    void (*write_data)(uint8_t val, void *p);
-    void (*write_ctrl)(uint8_t val, void *p);
-    uint8_t (*read_data)(void *p);
-    uint8_t (*read_status)(void *p);
-    uint8_t (*read_ctrl)(void *p);
+    void   *(*init)(void *lpt);
+    void    (*close)(void *priv);
+    void    (*write_data)(uint8_t val, void *priv);
+    void    (*write_ctrl)(uint8_t val, void *priv);
+    uint8_t (*read_data)(void *priv);
+    uint8_t (*read_status)(void *priv);
+    uint8_t (*read_ctrl)(void *priv);
 } lpt_device_t;
 
 extern void lpt_init(void);
@@ -53,19 +53,19 @@ extern void lpt1_remove_ams(void);
 #define lpt4_remove() lpt_port_remove(3)
 
 #if 0
-#define lpt5_init(a)	lpt_port_init(4, a)
-#define lpt5_irq(a)	lpt_port_irq(4, a)
-#define lpt5_remove()	lpt_port_remove(4)
+#define lpt5_init(a)  lpt_port_init(4, a)
+#define lpt5_irq(a)   lpt_port_irq(4, a)
+#define lpt5_remove() lpt_port_remove(4)
 
-#define lpt6_init(a)	lpt_port_init(5, a)
-#define lpt6_irq(a)	lpt_port_irq(5, a)
-#define lpt6_remove()	lpt_port_remove(5)
+#define lpt6_init(a)  lpt_port_init(5, a)
+#define lpt6_irq(a)   lpt_port_irq(5, a)
+#define lpt6_remove() lpt_port_remove(5)
 #endif
 
 void lpt_devices_init(void);
 void lpt_devices_close(void);
 
-typedef struct {
+typedef struct lpt_port_t {
     uint8_t       enabled;
     uint8_t       irq;
     uint8_t       dat;
@@ -83,10 +83,11 @@ extern lpt_port_t lpt_ports[PARALLEL_MAX];
 extern void    lpt_write(uint16_t port, uint8_t val, void *priv);
 extern uint8_t lpt_read(uint16_t port, void *priv);
 
-extern void lpt_irq(void *priv, int raise);
+extern uint8_t lpt_read_status(int port);
+extern void    lpt_irq(void *priv, int raise);
 
-extern char *lpt_device_get_name(int id);
-extern char *lpt_device_get_internal_name(int id);
+extern const char *lpt_device_get_name(int id);
+extern const char *lpt_device_get_internal_name(int id);
 
 extern int lpt_device_get_from_internal_name(char *s);
 

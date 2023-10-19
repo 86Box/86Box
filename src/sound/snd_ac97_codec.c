@@ -418,9 +418,7 @@ rate:              /* Writable only if VRA/VRM is set. */
                 /* Get actual previous value. */
                 prev = dev->vendor_reg_pages[(i << 3) | ((reg & 0x0e) >> 1)];
             }
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         case 0x5a ... 0x5e: /* Vendor Reserved */
         case 0x70 ... 0x7a:
@@ -587,7 +585,7 @@ ac97_codec_init(const device_t *info)
             break;
     }
     if (dev->model >= (sizeof(ac97_codecs) / sizeof(ac97_codecs[0]))) {
-        fatal("AC97 Codec %d: Unknown ID %c%c%c%02X\n", ac97_codec_id, (info->local >> 24) & 0xff, (info->local >> 16) & 0xff, (info->local >> 8) & 0xff, info->local & 0xff);
+        fatal("AC97 Codec %d: Unknown ID %c%c%c%02X\n", ac97_codec_id, (uint32_t) ((info->local >> 24) & 0xff), (uint32_t) ((info->local >> 16) & 0xff), (uint32_t) ((info->local >> 8) & 0xff), (uint32_t) (info->local & 0xff));
         free(dev);
         return NULL;
     }

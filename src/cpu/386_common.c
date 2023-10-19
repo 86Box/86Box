@@ -13,6 +13,7 @@
 #include "cpu.h"
 #include <86box/timer.h>
 #include "x86.h"
+#include "x86seg_common.h"
 #include "x87.h"
 #include <86box/nmi.h>
 #include <86box/mem.h>
@@ -23,9 +24,11 @@
 #include <86box/fdc.h>
 #include <86box/keyboard.h>
 #include <86box/timer.h>
+
+#include "x86seg.h"
 #include "386_common.h"
 #include "x86_flags.h"
-#include "x86seg.h"
+#include <86box/plat_unused.h>
 
 #ifdef USE_DYNAREC
 #    include "codegen.h"
@@ -34,19 +37,26 @@
 #    define CPU_BLOCK_END()
 #endif
 
-x86seg gdt, ldt, idt, tr;
+x86seg gdt;
+x86seg ldt;
+x86seg idt;
+x86seg tr;
 
-uint32_t cr2, cr3, cr4;
+uint32_t cr2;
+uint32_t cr3;
+uint32_t cr4;
 uint32_t dr[8];
 
 uint32_t use32;
 int      stack32;
 
-uint32_t *eal_r, *eal_w;
+uint32_t *eal_r;
+uint32_t *eal_w;
 
 int nmi_enable = 1;
 
-int alt_access, cpl_override = 0;
+int alt_access;
+int cpl_override = 0;
 
 #ifdef USE_NEW_DYNAREC
 uint16_t cpu_cur_status = 0;
@@ -59,16 +69,60 @@ extern uint8_t *pccache2;
 extern int      optype;
 extern uint32_t pccache;
 
-int      in_sys = 0, unmask_a20_in_smm = 0;
-uint32_t old_rammask = 0xffffffff;
+int      in_sys            = 0;
+int      unmask_a20_in_smm = 0;
+uint32_t old_rammask       = 0xffffffff;
 
 int soft_reset_mask = 0;
 
 int smi_latched = 0;
-int smm_in_hlt = 0, smi_block = 0;
+int smm_in_hlt  = 0;
+int smi_block   = 0;
 
-uint32_t addr64, addr64_2;
-uint32_t addr64a[8], addr64a_2[8];
+int prefetch_prefixes = 0;
+
+int tempc;
+int oldcpl;
+int optype;
+int inttype;
+int oddeven = 0;
+int timetolive;
+
+uint16_t oldcs;
+
+uint32_t oldds;
+uint32_t oldss;
+uint32_t olddslimit;
+uint32_t oldsslimit;
+uint32_t olddslimitw;
+uint32_t oldsslimitw;
+uint32_t oxpc;
+uint32_t rmdat32;
+uint32_t backupregs[16];
+
+x86seg _oldds;
+
+int opcode_length[256] = { 3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 3,   /* 0x0x */
+                           3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1,   /* 0x1x */
+                           3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1,   /* 0x2x */
+                           3, 3, 3, 3, 3, 3, 1, 1, 3, 3, 3, 3, 3, 3, 1, 1,   /* 0x3x */
+                           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,   /* 0x4x */
+                           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,   /* 0x5x */
+                           1, 1, 3, 3, 1, 1, 1, 1, 3, 3, 2, 3, 1, 1, 1, 1,   /* 0x6x */
+                           2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,   /* 0x7x */
+                           3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,   /* 0x8x */
+                           1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1, 1, 1, 1, 1,   /* 0x9x */
+                           3, 3, 3, 3, 1, 1, 1, 1, 2, 3, 1, 1, 1, 1, 1, 1,   /* 0xax */
+                           2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,   /* 0xbx */
+                           3, 3, 3, 1, 3, 3, 3, 3, 3, 1, 3, 1, 1, 2, 1, 1,   /* 0xcx */
+                           3, 3, 3, 3, 2, 2, 1, 1, 3, 3, 3, 3, 3, 3, 3, 3,   /* 0xdx */
+                           2, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 2, 1, 1, 1, 1,   /* 0xex */
+                           1, 1, 1, 1, 1, 1, 3, 3, 1, 1, 1, 1, 1, 1, 3, 3 }; /* 0xfx */
+
+uint32_t addr64;
+uint32_t addr64_2;
+uint32_t addr64a[8];
+uint32_t addr64a_2[8];
 
 static pc_timer_t *cpu_fast_off_timer  = NULL;
 static double      cpu_fast_off_period = 0.0;
@@ -321,6 +375,77 @@ x386_common_log(const char *fmt, ...)
 #    define x386_common_log(fmt, ...)
 #endif
 
+/*Prefetch emulation is a fairly simplistic model:
+  - All instruction bytes must be fetched before it starts.
+  - Cycles used for non-instruction memory accesses are counted and subtracted
+    from the total cycles taken
+  - Any remaining cycles are used to refill the prefetch queue.
+
+  Note that this is only used for 286 / 386 systems. It is disabled when the
+  internal cache on 486+ CPUs is enabled.
+*/
+static int prefetch_bytes = 0;
+
+void
+prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32)
+{
+    int mem_cycles = reads * cpu_cycles_read + reads_l * cpu_cycles_read_l + writes * cpu_cycles_write + writes_l * cpu_cycles_write_l;
+
+    if (instr_cycles < mem_cycles)
+        instr_cycles = mem_cycles;
+
+    prefetch_bytes -= prefetch_prefixes;
+    prefetch_bytes -= bytes;
+    if (modrm != -1) {
+        if (ea32) {
+            if ((modrm & 7) == 4) {
+                if ((modrm & 0x700) == 0x500)
+                    prefetch_bytes -= 5;
+                else if ((modrm & 0xc0) == 0x40)
+                    prefetch_bytes -= 2;
+                else if ((modrm & 0xc0) == 0x80)
+                    prefetch_bytes -= 5;
+            } else {
+                if ((modrm & 0xc7) == 0x05)
+                    prefetch_bytes -= 4;
+                else if ((modrm & 0xc0) == 0x40)
+                    prefetch_bytes--;
+                else if ((modrm & 0xc0) == 0x80)
+                    prefetch_bytes -= 4;
+            }
+        } else {
+            if ((modrm & 0xc7) == 0x06)
+                prefetch_bytes -= 2;
+            else if ((modrm & 0xc0) != 0xc0)
+                prefetch_bytes -= ((modrm & 0xc0) >> 6);
+        }
+    }
+
+    /* Fill up prefetch queue */
+    while (prefetch_bytes < 0) {
+        prefetch_bytes += cpu_prefetch_width;
+        cycles -= cpu_prefetch_cycles;
+    }
+
+    /* Subtract cycles used for memory access by instruction */
+    instr_cycles -= mem_cycles;
+
+    while (instr_cycles >= cpu_prefetch_cycles) {
+        prefetch_bytes += cpu_prefetch_width;
+        instr_cycles -= cpu_prefetch_cycles;
+    }
+
+    prefetch_prefixes = 0;
+    if (prefetch_bytes > 16)
+        prefetch_bytes = 16;
+}
+
+void
+prefetch_flush(void)
+{
+    prefetch_bytes = 0;
+}
+
 static __inline void
 set_stack32(int s)
 {
@@ -391,12 +516,10 @@ smm_seg_load(x86seg *s)
 static void
 smram_save_state_p5(uint32_t *saved_state, int in_hlt)
 {
-    int n = 0;
-
     saved_state[SMRAM_FIELD_P5_SMM_REVISION_ID] = SMM_REVISION_ID;
     saved_state[SMRAM_FIELD_P5_SMBASE_OFFSET]   = smbase;
 
-    for (n = 0; n < 8; n++)
+    for (uint8_t n = 0; n < 8; n++)
         saved_state[SMRAM_FIELD_P5_EAX - n] = cpu_state.regs[n].l;
 
     if (in_hlt)
@@ -485,9 +608,7 @@ smram_save_state_p5(uint32_t *saved_state, int in_hlt)
 static void
 smram_restore_state_p5(uint32_t *saved_state)
 {
-    int n = 0;
-
-    for (n = 0; n < 8; n++)
+    for (uint8_t n = 0; n < 8; n++)
         cpu_state.regs[n].l = saved_state[SMRAM_FIELD_P5_EAX - n];
 
     if (saved_state[SMRAM_FIELD_P5_AUTOHALT_RESTART] & 0xffff)
@@ -598,12 +719,10 @@ smram_restore_state_p5(uint32_t *saved_state)
 static void
 smram_save_state_p6(uint32_t *saved_state, int in_hlt)
 {
-    int n = 0;
-
     saved_state[SMRAM_FIELD_P6_SMM_REVISION_ID] = SMM_REVISION_ID;
     saved_state[SMRAM_FIELD_P6_SMBASE_OFFSET]   = smbase;
 
-    for (n = 0; n < 8; n++)
+    for (uint8_t n = 0; n < 8; n++)
         saved_state[SMRAM_FIELD_P6_EAX - n] = cpu_state.regs[n].l;
 
     if (in_hlt)
@@ -684,9 +803,7 @@ smram_save_state_p6(uint32_t *saved_state, int in_hlt)
 static void
 smram_restore_state_p6(uint32_t *saved_state)
 {
-    int n = 0;
-
-    for (n = 0; n < 8; n++)
+    for (uint8_t n = 0; n < 8; n++)
         cpu_state.regs[n].l = saved_state[SMRAM_FIELD_P6_EAX - n];
 
     if (saved_state[SMRAM_FIELD_P6_AUTOHALT_RESTART] & 0xffff)
@@ -791,12 +908,10 @@ smram_restore_state_p6(uint32_t *saved_state)
 static void
 smram_save_state_amd_k(uint32_t *saved_state, int in_hlt)
 {
-    int n = 0;
-
     saved_state[SMRAM_FIELD_AMD_K_SMM_REVISION_ID] = SMM_REVISION_ID;
     saved_state[SMRAM_FIELD_AMD_K_SMBASE_OFFSET]   = smbase;
 
-    for (n = 0; n < 8; n++)
+    for (uint8_t n = 0; n < 8; n++)
         saved_state[SMRAM_FIELD_AMD_K_EAX - n] = cpu_state.regs[n].l;
 
     if (in_hlt)
@@ -876,9 +991,7 @@ smram_save_state_amd_k(uint32_t *saved_state, int in_hlt)
 static void
 smram_restore_state_amd_k(uint32_t *saved_state)
 {
-    int n = 0;
-
-    for (n = 0; n < 8; n++)
+    for (uint8_t n = 0; n < 8; n++)
         cpu_state.regs[n].l = saved_state[SMRAM_FIELD_AMD_K_EAX - n];
 
     if (saved_state[SMRAM_FIELD_AMD_K_AUTOHALT_RESTART] & 0xffff)
@@ -977,7 +1090,7 @@ smram_restore_state_amd_k(uint32_t *saved_state)
 }
 
 static void
-smram_save_state_cyrix(uint32_t *saved_state, int in_hlt)
+smram_save_state_cyrix(uint32_t *saved_state, UNUSED(int in_hlt))
 {
     saved_state[0] = dr[7];
     saved_state[1] = cpu_state.flags | (cpu_state.eflags << 16);
@@ -1001,7 +1114,7 @@ smram_restore_state_cyrix(uint32_t *saved_state)
 void
 enter_smm(int in_hlt)
 {
-    uint32_t saved_state[SMM_SAVE_STATE_MAP_SIZE], n;
+    uint32_t saved_state[SMM_SAVE_STATE_MAP_SIZE];
     uint32_t smram_state = smbase + 0x10000;
 
     /* If it's a CPU on which SMM is not supported, do nothing. */
@@ -1053,13 +1166,13 @@ enter_smm(int in_hlt)
 
     memset(saved_state, 0x00, SMM_SAVE_STATE_MAP_SIZE * sizeof(uint32_t));
 
-    if (is_cxsmm)                    /* Cx6x86 */
+    if (is_cxsmm) /* Cx6x86 */
         smram_save_state_cyrix(saved_state, in_hlt);
     else if (is_pentium || is_am486) /* Am486 / 5x86 / Intel P5 (Pentium) */
         smram_save_state_p5(saved_state, in_hlt);
-    else if (is_k5 || is_k6)         /* AMD K5 and K6 */
+    else if (is_k5 || is_k6) /* AMD K5 and K6 */
         smram_save_state_amd_k(saved_state, in_hlt);
-    else if (is_p6)                  /* Intel P6 (Pentium Pro, Pentium II, Celeron) */
+    else if (is_p6) /* Intel P6 (Pentium Pro, Pentium II, Celeron) */
         smram_save_state_p6(saved_state, in_hlt);
 
     cr0 &= ~0x8000000d;
@@ -1073,7 +1186,10 @@ enter_smm(int in_hlt)
     if (is_cxsmm) {
         cpu_state.pc = 0x0000;
         cpl_override = 1;
-        cyrix_write_seg_descriptor(smram_state - 0x20, &cpu_state.seg_cs);
+        if (is486)
+            cyrix_write_seg_descriptor(smram_state - 0x20, &cpu_state.seg_cs);
+        else
+            cyrix_write_seg_descriptor_2386(smram_state - 0x20, &cpu_state.seg_cs);
         cpl_override             = 0;
         cpu_state.seg_cs.seg     = (cyrix.arr[3].base >> 4);
         cpu_state.seg_cs.base    = cyrix.arr[3].base;
@@ -1128,7 +1244,7 @@ enter_smm(int in_hlt)
         writememl(0, smram_state - 0x18, saved_state[5]);
         writememl(0, smram_state - 0x24, saved_state[6]);
     } else {
-        for (n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
+        for (uint8_t n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
             smram_state -= 4;
             writememl(0, smram_state, saved_state[n]);
         }
@@ -1188,7 +1304,7 @@ enter_smm_check(int in_hlt)
 void
 leave_smm(void)
 {
-    uint32_t saved_state[SMM_SAVE_STATE_MAP_SIZE], n;
+    uint32_t saved_state[SMM_SAVE_STATE_MAP_SIZE];
     uint32_t smram_state = smbase + 0x10000;
 
     /* If it's a CPU on which SMM is not supported (or not implemented in 86Box), do nothing. */
@@ -1206,10 +1322,13 @@ leave_smm(void)
         saved_state[3] = readmeml(0, smram_state - 0x10);
         saved_state[4] = readmeml(0, smram_state - 0x14);
         saved_state[5] = readmeml(0, smram_state - 0x18);
-        cyrix_load_seg_descriptor(smram_state - 0x20, &cpu_state.seg_cs);
+        if (is486)
+            cyrix_load_seg_descriptor(smram_state - 0x20, &cpu_state.seg_cs);
+        else
+            cyrix_load_seg_descriptor_2386(smram_state - 0x20, &cpu_state.seg_cs);
         saved_state[6] = readmeml(0, smram_state - 0x24);
     } else {
-        for (n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
+        for (uint8_t n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
             smram_state -= 4;
             saved_state[n] = readmeml(0, smram_state);
             x386_common_log("Reading %08X from memory at %08X to array element %i\n", saved_state[n], smram_state, n);
@@ -1224,13 +1343,13 @@ leave_smm(void)
     }
 
     x386_common_log("New SMBASE: %08X (%08X)\n", saved_state[SMRAM_FIELD_P5_SMBASE_OFFSET], saved_state[66]);
-    if (is_cxsmm)                    /* Cx6x86 */
+    if (is_cxsmm) /* Cx6x86 */
         smram_restore_state_cyrix(saved_state);
     else if (is_pentium || is_am486) /* Am486 / 5x86 / Intel P5 (Pentium) */
         smram_restore_state_p5(saved_state);
-    else if (is_k5 || is_k6)         /* AMD K5 and K6 */
+    else if (is_k5 || is_k6) /* AMD K5 and K6 */
         smram_restore_state_amd_k(saved_state);
-    else if (is_p6)                  /* Intel P6 (Pentium Pro, Pentium II, Celeron) */
+    else if (is_p6) /* Intel P6 (Pentium Pro, Pentium II, Celeron) */
         smram_restore_state_p6(saved_state);
 
     in_smm = 0;
@@ -1292,7 +1411,7 @@ x86_int(int num)
     cpu_state.pc = cpu_state.oldpc;
 
     if (msw & 1)
-        pmodeint(num, 0);
+        is486 ? pmodeint(num, 0) : pmodeint_2386(num, 0);
     else {
         addr = (num << 2) + idt.base;
 
@@ -1325,7 +1444,7 @@ x86_int(int num)
             oxpc = cpu_state.pc;
 #endif
             cpu_state.pc = readmemw(0, addr);
-            loadcs(readmemw(0, addr + 2));
+            is486 ? loadcs(readmemw(0, addr + 2)) : loadcs_2386(readmemw(0, addr + 2));
         }
     }
 
@@ -1342,7 +1461,7 @@ x86_int_sw(int num)
     cycles -= timing_int;
 
     if (msw & 1)
-        pmodeint(num, 1);
+        is486 ? pmodeint(num, 1) : pmodeint_2386(num, 1);
     else {
         addr = (num << 2) + idt.base;
 
@@ -1367,7 +1486,7 @@ x86_int_sw(int num)
             oxpc = cpu_state.pc;
 #endif
             cpu_state.pc = readmemw(0, addr);
-            loadcs(readmemw(0, addr + 2));
+            is486 ? loadcs(readmemw(0, addr + 2)) : loadcs_2386(readmemw(0, addr + 2));
             cycles -= timing_int_rm;
         }
     }
@@ -1380,7 +1499,8 @@ int
 x86_int_sw_rm(int num)
 {
     uint32_t addr;
-    uint16_t new_pc, new_cs;
+    uint16_t new_pc;
+    uint16_t new_cs;
 
     flags_rebuild();
     cycles -= timing_int;
@@ -1408,7 +1528,7 @@ x86_int_sw_rm(int num)
     cpu_state.eflags &= ~VIF_FLAG;
     cpu_state.flags &= ~T_FLAG;
     cpu_state.pc = new_pc;
-    loadcs(new_cs);
+    is486 ? loadcs(new_cs) : loadcs_2386(new_cs);
 #ifndef USE_NEW_DYNAREC
     oxpc = cpu_state.pc;
 #endif
@@ -1468,8 +1588,10 @@ checkio(uint32_t port, int mask)
 int
 divl(uint32_t val)
 {
-    uint64_t num, quo;
-    uint32_t rem, quo32;
+    uint64_t num;
+    uint64_t quo;
+    uint32_t rem;
+    uint32_t quo32;
 
     if (val == 0) {
         divexcp();
@@ -1495,8 +1617,10 @@ divl(uint32_t val)
 int
 idivl(int32_t val)
 {
-    int64_t num, quo;
-    int32_t rem, quo32;
+    int64_t num;
+    int64_t quo;
+    int32_t rem;
+    int32_t quo32;
 
     if (val == 0) {
         divexcp();

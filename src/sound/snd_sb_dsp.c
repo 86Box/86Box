@@ -489,7 +489,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x17: /* 2-bit ADPCM output with reference */
             dsp->sbref  = dsp->dma_readb(dsp->dma_priv);
             dsp->sbstep = 0;
-            /* Fall through */
+            fallthrough;
         case 0x16: /* 2-bit ADPCM output */
             sb_start_dma(dsp, 1, 0, ADPCM_2, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
             dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
@@ -601,9 +601,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x75: /* 4-bit ADPCM output with reference */
             dsp->sbref  = dsp->dma_readb(dsp->dma_priv);
             dsp->sbstep = 0;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case 0x74: /* 4-bit ADPCM output */
             sb_start_dma(dsp, 1, 0, ADPCM_4, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
             dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
@@ -614,7 +612,7 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x77: /* 2.6-bit ADPCM output with reference */
             dsp->sbref  = dsp->dma_readb(dsp->dma_priv);
             dsp->sbstep = 0;
-            /* Fall through */
+            fallthrough;
         case 0x76: /* 2.6-bit ADPCM output */
             sb_start_dma(dsp, 1, 0, ADPCM_26, dsp->sb_data[0] + (dsp->sb_data[1] << 8));
             dsp->sbdat2 = dsp->dma_readb(dsp->dma_priv);
@@ -993,6 +991,9 @@ sb_write(uint16_t a, uint8_t v, void *priv)
                 }
             }
             break;
+
+        default:
+            break;
     }
 }
 
@@ -1066,9 +1067,9 @@ sb_read(uint16_t a, void *priv)
 }
 
 void
-sb_dsp_input_msg(void *p, uint8_t *msg, uint32_t len)
+sb_dsp_input_msg(void *priv, uint8_t *msg, uint32_t len)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) p;
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
 
     sb_dsp_log("MIDI in sysex = %d, uart irq = %d, msg = %d\n", dsp->midi_in_sysex, dsp->uart_irq, len);
 
@@ -1091,9 +1092,9 @@ sb_dsp_input_msg(void *p, uint8_t *msg, uint32_t len)
 }
 
 int
-sb_dsp_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
+sb_dsp_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) p;
+    sb_dsp_t *dsp = (sb_dsp_t *) priv;
 
     if (!dsp->uart_irq && !dsp->midi_in_poll && (dsp->mpu != NULL))
         return MPU401_InputSysex(dsp->mpu, buffer, len, abort);

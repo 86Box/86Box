@@ -60,12 +60,13 @@ static uint16_t latched_irqs       = 0x0000;
 static int shadow = 0;
 static int elcr_enabled = 0;
 static int tmr_inited = 0;
-static int latched = 0;
 static int pic_pci = 0;
 
 static void    (*update_pending)(void);
 
 static void    pic_update_request(pic_t *dev, int irq);
+static void    pic_update_irr(pic_t *dev, uint16_t num);
+
 static void    pic_cascade(int set);
 
 #ifdef ENABLE_PIC_LOG
@@ -225,34 +226,29 @@ find_best_interrupt(pic_t *dev)
 static __inline void
 pic_update_pending_xt(void)
 {
-    if (find_best_interrupt(&pic) != -1) {
-        latched++;
-        if (latched == 1)
-            timer_on_auto(&pic_timer, 0.35);
-    } else if (latched == 0)
-        pic.int_pending = 0;
+    if (!(pic.flags & PIC_FREEZE))
+        pic.int_pending = (find_best_interrupt(&pic) != -1);
 }
 
 static __inline void
 pic_update_pending_at(void)
 {
-    pic2.int_pending = (find_best_interrupt(&pic2) != -1);
+    if (!(pic2.flags & PIC_FREEZE)) {
+        pic2.int_pending = (find_best_interrupt(&pic2) != -1);
 
-    pic_cascade(pic2.int_pending);
+        pic_cascade(pic2.int_pending);
+    }
 
-    pic.int_pending = (find_best_interrupt(&pic) != -1);
+    if (!(pic.flags & PIC_FREEZE))
+        pic.int_pending = (find_best_interrupt(&pic) != -1);
+
+    pic_log("pic_update_pending_at(): dev->int_pending = %i (%i)\n", pic.int_pending, !!(pic.flags & PIC_FREEZE));
 }
 
 static void
-pic_callback(void *priv)
+pic_callback(UNUSED(void *priv))
 {
-    pic_t *dev = (pic_t *) priv;
-
-    dev->int_pending = 1;
-
-    latched--;
-    if (latched > 0)
-        timer_on_auto(&pic_timer, 0.35);
+    update_pending();
 }
 
 void
@@ -324,7 +320,7 @@ picint_is_level(int irq)
 }
 
 static void
-pic_acknowledge(pic_t *dev)
+pic_acknowledge(pic_t *dev, int poll)
 {
     int pic_int     = dev->interrupt & 7;
     int pic_int_num = 1 << pic_int;
@@ -336,10 +332,13 @@ pic_acknowledge(pic_t *dev)
     /* Clear the edge sense latch. */
     dev->irq_latch &= ~pic_int_num;
 
-    dev->flags |= PIC_FREEZE;    /* Freeze it so it still takes interrupts but they do not
-                                    override the one currently being processed. */
-    /* Clear the reset latch. */
-    pic_update_request(dev, pic_int);
+    if (!poll) {
+        dev->flags |= PIC_FREEZE;    /* Freeze it so it still takes interrupts but they do not
+                                        override the one currently being processed. */
+
+        /* Clear the reset latch. */
+        pic_update_request(dev, pic_int);
+    }
 }
 
 /* Find IRQ for non-specific EOI (either by command or automatic) by finding the highest IRQ
@@ -376,6 +375,7 @@ pic_action(pic_t *dev, uint8_t irq, uint8_t eoi, uint8_t rotate)
         if (rotate)
             dev->priority = (irq + 1) & 7;
 
+        pic_update_request(dev, irq);
         update_pending();
     }
 }
@@ -415,13 +415,10 @@ pic_latch_read(UNUSED(uint16_t addr), UNUSED(void *priv))
 {
     uint8_t ret = 0xff;
 
-    pic_log("pic_latch_read(%04X): %02X%02X\n", enabled_latches, latched_irqs & 0x10, latched_irqs & 0x02);
+    pic_log("pic_latch_read(%04X): %04X\n", enabled_latches, latched_irqs & 0x1002);
 
-    if ((latched_irqs & enabled_latches) & 0x0002)
-        picintc(0x0002);
-
-    if ((latched_irqs & enabled_latches) & 0x1000)
-        picintc(0x1000);
+    if (latched_irqs & 0x1002)
+        picintc(latched_irqs & 0x1002);
 
     /* Return FF - we just lower IRQ 1 and IRQ 12. */
     return ret;
@@ -445,16 +442,21 @@ pic_read(uint16_t addr, void *priv)
         }
     } else {
         /* Standard 8259 PIC read */
+#ifndef UNDEFINED_READ
+        /* Put the IRR on to the data bus by default until the real PIC is probed. */
+        dev->data_bus = dev->irr;
+#endif
         if (dev->ocw3 & 0x04) {
-            dev->flags &= ~PIC_FREEZE; /* Freeze the interrupt until the poll is over. */
             if (dev->int_pending) {
                 dev->data_bus = 0x80 | (dev->interrupt & 7);
-                pic_acknowledge(dev);
+                pic_acknowledge(dev, 1);
                 dev->int_pending = 0;
-                update_pending();
             } else
                 dev->data_bus = 0x00;
             dev->ocw3 &= ~0x04;
+            dev->flags &= ~PIC_FREEZE; /* Freeze the interrupt until the poll is over. */
+            pic_update_irr(dev, 0x00ff); /* Update IRR, just in case anything came while frozen. */
+            update_pending();
         } else if (addr & 0x0001)
             dev->data_bus = dev->imr;
         else if (dev->ocw3 & 0x02) {
@@ -476,7 +478,6 @@ static void
 pic_write(uint16_t addr, uint8_t val, void *priv)
 {
     pic_t *dev = (pic_t *) priv;
-    uint8_t i;
 
     pic_log("pic_write(%04X, %02X, %08X)\n", addr, val, priv);
 
@@ -501,7 +502,10 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
                 break;
             case STATE_NONE:
                 dev->imr = val;
-                update_pending();
+                if (is286)
+                    update_pending();
+                else
+                    timer_on_auto(&pic_timer, 1.0 * ((10000000.0 * (double) xt_cpu_multi) / (double) cpu_s->rspeed));
                 break;
 
             default:
@@ -518,11 +522,11 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
             if (!(dev->icw1 & 1))
                 dev->icw4 = 0x00;
             dev->ocw2 = dev->ocw3 = 0x00;
+            dev->flags = PIC_MASTER_CLEAR;
             dev->irr  = 0x00;
             dev->edge_lines  = 0x00;
             dev->irq_latch  = 0x00;
-            dev->flags |= PIC_MASTER_CLEAR;
-            for (i = 0; i <= 7; i++)
+            for (uint8_t i = 0; i <= 7; i++)
                 pic_update_request(dev, i);
             dev->flags &= ~PIC_MASTER_CLEAR;
             dev->imr = dev->isr = 0x00;
@@ -642,7 +646,8 @@ pic2_init(void)
 void
 pic_update_lines(pic_t *dev, uint16_t num, int level, int set, uint8_t *irq_state)
 {
-    uint8_t old_edge_lines, bit;
+    uint8_t old_edge_lines;
+    uint8_t bit;
 
     switch (level) {
         case PIC_IRQ_EDGE:
@@ -667,6 +672,9 @@ pic_update_lines(pic_t *dev, uint16_t num, int level, int set, uint8_t *irq_stat
             if ((!!*irq_state) != !!set)
                 *irq_state = set;
             break;
+
+        default:
+            break;
     }
 }
 
@@ -677,7 +685,6 @@ pic_irq_get_request(pic_t *dev, int irq)
 
     ret = ((dev->edge_lines & (1 << irq)) || (dev->lines[irq] > 0));
 
-    pic_log("pic_irq_get_request(%08X, %i) = %02X\n", (uint32_t) (uintptr_t) dev, irq, ret);
     return ret;
 }
 
@@ -688,7 +695,6 @@ pic_es_latch_clear(pic_t *dev, int irq)
 
     ret = (dev->isr & (1 << irq)) || (dev->flags & PIC_MASTER_CLEAR);
 
-    pic_log("pic_es_latch_clear(%08X, %i) = %02X\n", (uint32_t) (uintptr_t) dev, irq, ret);
     return ret;
 }
 
@@ -699,7 +705,6 @@ pic_es_latch_out(pic_t *dev, int irq)
 
     ret = !((pic_es_latch_clear(dev, irq) && (dev->irq_latch & (1 << irq))) || !pic_irq_get_request(dev, irq));
 
-    pic_log("pic_es_latch_out(%08X, %i) = %02X\n", (uint32_t) (uintptr_t) dev, irq, ret);
     return ret;
 }
 
@@ -710,7 +715,6 @@ pic_es_latch_nor(pic_t *dev, int irq)
 
     ret = !(pic_es_latch_out(dev, irq) || picint_is_level(irq));
 
-    pic_log("pic_es_latch_nor(%08X, %i) = %02X\n", (uint32_t) (uintptr_t) dev, irq, ret);
     return ret;
 }
 
@@ -721,7 +725,6 @@ pic_irq_request_nor(pic_t *dev, int irq)
 
     ret = !(pic_es_latch_nor(dev, irq) || !pic_irq_get_request(dev, irq));
 
-    pic_log("pic_irq_request_nor(%08X, %i) = %02X\n", (uint32_t) (uintptr_t) dev, irq, ret);
     return ret;
 }
 
@@ -730,12 +733,8 @@ pic_update_request(pic_t *dev, int irq)
 {
     dev->irr &= ~(1 << irq);
 
-    if (dev->flags & PIC_FREEZE) {
-        pic_log("pic_update_request(%08X, %i): FREEZE#\n", (uint32_t) (uintptr_t) dev, irq);
-    } else {
+    if (!(dev->flags & PIC_FREEZE))
         dev->irr |= (pic_irq_request_nor(dev, irq) << irq);
-        pic_log("pic_update_request(%08X, %i): IRR = %02X\n", (uint32_t) (uintptr_t) dev, irq, dev->irr);
-    }
 }
 
 static void
@@ -745,8 +744,6 @@ pic_update_irr(pic_t *dev, uint16_t num)
         if (num & (1 << i))
             pic_update_request(dev, i);
     }
-
-    pic_log("IRQ %04x: IRR now: %02X\n", num, dev->irr);
 }
 
 void
@@ -801,8 +798,7 @@ picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
         pic_update_irr(&pic, num & 0x00ff);
     }
 
-    if (!(pic.flags & PIC_FREEZE) && !(pic2.flags & PIC_FREEZE))
-        update_pending();
+    update_pending();
 }
 
 static void
@@ -827,7 +823,7 @@ pic_irq_ack_read(pic_t *dev, int phase)
 
     if (dev != NULL) {
         if (phase == 0) {
-            pic_acknowledge(dev);
+            pic_acknowledge(dev, 0);
             if (slave)
                 dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
             else
@@ -859,6 +855,9 @@ pic_irq_ack_read(pic_t *dev, int phase)
     return dev->data_bus;
 }
 
+/* 808x: Update the requests for all interrupts since any of them
+         could have arrived during the freeze. */
+        
 uint8_t
 pic_irq_ack(void)
 {
@@ -882,11 +881,11 @@ pic_irq_ack(void)
         /* Needed for Xi8088. */
         if (pic.flags & PIC_SLAVE_PENDING) {
             pic2.flags &= ~PIC_FREEZE;
-            pic_update_request(&pic2, pic2.interrupt & 0x07);
+            pic_update_irr(&pic2, 0x00ff);
             pic2.interrupt = 0x17;
         }
         pic.flags &= ~(PIC_SLAVE_PENDING | PIC_FREEZE);
-        pic_update_request(&pic, pic.interrupt & 0x07);
+        pic_update_irr(&pic, 0x00ff);
         pic.interrupt = 0x17;
         update_pending();
     }
@@ -894,6 +893,9 @@ pic_irq_ack(void)
     return ret;
 }
 
+/* 286+: Only update the request for the pending interrupt as it is
+         impossible that any other interrupt has arrived during the
+         freeze. */
 int
 picinterrupt(void)
 {

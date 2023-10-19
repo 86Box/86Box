@@ -5,6 +5,8 @@
 
 #include "x86.h"
 #include "x86_flags.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
 #include "386_common.h"
 #include "codegen.h"
 #include "codegen_accumulate.h"
@@ -46,4 +48,4 @@ ropPpack(PUNPCKLDQ)
 ropPpack(PUNPCKHBW)
 ropPpack(PUNPCKHWD)
 ropPpack(PUNPCKHDQ)
-// clang-format on
+    // clang-format on

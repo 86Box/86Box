@@ -45,9 +45,9 @@
 #define LOG_PREFIX "serial_passthrough: "
 
 int
-plat_serpt_read(void *p, uint8_t *data)
+plat_serpt_read(void *priv, uint8_t *data)
 {
-    serial_passthrough_t *dev = (serial_passthrough_t *) p;
+    serial_passthrough_t *dev = (serial_passthrough_t *) priv;
     int                   res;
     struct timeval        tv;
     fd_set                rdfds;
@@ -76,9 +76,9 @@ plat_serpt_read(void *p, uint8_t *data)
 }
 
 void
-plat_serpt_close(void *p)
+plat_serpt_close(void *priv)
 {
-    serial_passthrough_t *dev = (serial_passthrough_t *) p;
+    serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
     if (dev->mode == SERPT_MODE_HOSTSER) {
         tcsetattr(dev->master_fd, TCSANOW, (struct termios *) dev->backend_priv);
@@ -94,6 +94,7 @@ plat_serpt_write_vcon(serial_passthrough_t *dev, uint8_t data)
     fd_set wrfds;
     int    res;
 #endif
+    size_t res;
 
     /* We cannot use select here, this would block the hypervisor! */
 #if 0
@@ -109,18 +110,17 @@ plat_serpt_write_vcon(serial_passthrough_t *dev, uint8_t data)
 
     /* just write it out */
     if (dev->mode == SERPT_MODE_HOSTSER) {
-        int res = 0;
         do {
             res = write(dev->master_fd, &data, 1);
         } while (res == 0 || (res == -1 && (errno == EAGAIN || res == EWOULDBLOCK)));
     } else
-        write(dev->master_fd, &data, 1);
+        res = write(dev->master_fd, &data, 1);
 }
 
 void
-plat_serpt_set_params(void *p)
+plat_serpt_set_params(void *priv)
 {
-    serial_passthrough_t *dev = (serial_passthrough_t *) p;
+    serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
     if (dev->mode == SERPT_MODE_HOSTSER) {
         struct termios term_attr;
@@ -188,9 +188,9 @@ plat_serpt_set_params(void *p)
 }
 
 void
-plat_serpt_write(void *p, uint8_t data)
+plat_serpt_write(void *priv, uint8_t data)
 {
-    serial_passthrough_t *dev = (serial_passthrough_t *) p;
+    serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
     switch (dev->mode) {
         case SERPT_MODE_VCON:
@@ -297,9 +297,9 @@ open_host_serial_port(serial_passthrough_t *dev)
 }
 
 int
-plat_serpt_open_device(void *p)
+plat_serpt_open_device(void *priv)
 {
-    serial_passthrough_t *dev = (serial_passthrough_t *) p;
+    serial_passthrough_t *dev = (serial_passthrough_t *) priv;
 
     switch (dev->mode) {
         case SERPT_MODE_VCON:

@@ -24,6 +24,16 @@
 #define MAX_PLAT_JOYSTICKS  8
 #define MAX_JOYSTICKS       4
 
+#define JS_TYPE_NONE               0
+#define JS_TYPE_2AXIS_4BUTTON      1
+#define JS_TYPE_2AXIS_6BUTTON      2
+#define JS_TYPE_2AXIS_8BUTTON      3
+#define JS_TYPE_4AXIS_4BUTTON      4
+#define JS_TYPE_CH_FLIGHTSTICK_PRO 5
+#define JS_TYPE_SIDEWINDER_PAD     6
+#define JS_TYPE_THRUSTMASTER_FCS   7
+
+
 #define POV_X               0x80000000
 #define POV_Y               0x40000000
 #define SLIDER              0x20000000
@@ -84,11 +94,11 @@ typedef struct joystick_if_t {
     const char *internal_name;
 
     void   *(*init)(void);
-    void    (*close)(void *p);
-    uint8_t (*read)(void *p);
-    void    (*write)(void *p);
-    int     (*read_axis)(void *p, int axis);
-    void    (*a0_over)(void *p);
+    void    (*close)(void *priv);
+    uint8_t (*read)(void *priv);
+    void    (*write)(void *priv);
+    int     (*read_axis)(void *priv, int axis);
+    void    (*a0_over)(void *priv);
 
     int         axis_count;
     int         button_count;
@@ -133,16 +143,16 @@ extern void joystick_init(void);
 extern void joystick_close(void);
 extern void joystick_process(void);
 
-extern char *joystick_get_name(int js);
-extern char *joystick_get_internal_name(int js);
-extern int   joystick_get_from_internal_name(char *s);
-extern int   joystick_get_max_joysticks(int js);
-extern int   joystick_get_axis_count(int js);
-extern int   joystick_get_button_count(int js);
-extern int   joystick_get_pov_count(int js);
-extern char *joystick_get_axis_name(int js, int id);
-extern char *joystick_get_button_name(int js, int id);
-extern char *joystick_get_pov_name(int js, int id);
+extern const char *joystick_get_name(int js);
+extern const char *joystick_get_internal_name(int js);
+extern int         joystick_get_from_internal_name(char *s);
+extern int         joystick_get_max_joysticks(int js);
+extern int         joystick_get_axis_count(int js);
+extern int         joystick_get_button_count(int js);
+extern int         joystick_get_pov_count(int js);
+extern const char *joystick_get_axis_name(int js, int id);
+extern const char *joystick_get_button_name(int js, int id);
+extern const char *joystick_get_pov_name(int js, int id);
 
 extern void  gameport_update_joystick_type(void);
 extern void  gameport_remap(void *priv, uint16_t address);

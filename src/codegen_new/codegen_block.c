@@ -1,13 +1,17 @@
+#include <inttypes.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "x86.h"
 #include "x86_flags.h"
 #include "x86_ops.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
 #include "x87.h"
 
 #include "386_common.h"
@@ -281,20 +285,24 @@ codegen_reset(void)
 void
 dump_block(void)
 {
-    /*        codeblock_t *block = pages[0x119000 >> 12].block;
+#if 0
+    codeblock_t *block = pages[0x119000 >> 12].block;
 
-            pclog("dump_block:\n");
-            while (block)
-            {
-                    uint32_t start_pc = (block->pc & 0xffc) | (block->phys & ~0xfff);
-                    uint32_t end_pc = (block->endpc & 0xffc) | (block->phys & ~0xfff);
-                    pclog(" %p : %08x-%08x  %08x-%08x %p %p\n", (void *)block, start_pc, end_pc,  block->pc, block->endpc, (void *)block->prev, (void *)block->next);
-                    if (!block->pc)
-                            fatal("Dead PC=0\n");
+    pclog("dump_block:\n");
+    while (block) {
+        uint32_t start_pc = (block->pc & 0xffc) | (block->phys & ~0xfff);
+        uint32_t end_pc = (block->endpc & 0xffc) | (block->phys & ~0xfff);
 
-                    block = block->next;
-            }
-            pclog("dump_block done\n");*/
+        pclog(" %p : %08x-%08x  %08x-%08x %p %p\n", (void *)block, start_pc, end_pc,  block->pc, block->endpc, (void *)block->prev, (void *)block->next);
+
+        if (!block->pc)
+            fatal("Dead PC=0\n");
+
+        block = block->next;
+    }
+
+    pclog("dump_block done\n");*/
+#endif
 }
 
 static void
@@ -305,7 +313,7 @@ add_to_block_list(codeblock_t *block)
 
 #ifndef RELEASE_BUILD
     if (!block->page_mask)
-        fatal("add_to_block_list - mask = 0 %llx %llx\n", block->page_mask, block->page_mask2);
+        fatal("add_to_block_list - mask = 0 %" PRIx64 " %" PRIx64 "\n", block->page_mask, block->page_mask2);
 #endif
 
     if (block_prev_nr) {
@@ -341,7 +349,7 @@ add_to_block_list(codeblock_t *block)
 }
 
 static void
-remove_from_block_list(codeblock_t *block, uint32_t pc)
+remove_from_block_list(codeblock_t *block, UNUSED(uint32_t pc))
 {
     if (!block->page_mask)
         return;
@@ -468,7 +476,7 @@ codegen_delete_random_block(int required_mem_block)
 }
 
 void
-codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
+codegen_check_flush(page_t *page, UNUSED(uint64_t mask), UNUSED(uint32_t phys_addr))
 {
     uint16_t block_nr               = page->block;
     int      remove_from_evict_list = 0;

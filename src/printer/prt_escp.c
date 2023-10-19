@@ -1462,9 +1462,7 @@ process_char(escp_t *dev, uint8_t ch)
             dev->curr_x = dev->left_margin;
             if (!dev->autofeed)
                 return 1;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         case 0x0a: /* Line feed */
             if (dev->font_style & STYLE_DOUBLEWIDTHONELINE) {

@@ -138,6 +138,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                 {
                     auto *cbox = new QComboBox();
                     cbox->setObjectName(config->name);
+                    cbox->setMaxVisibleItems(30);
                     auto *model        = cbox->model();
                     int   currentIndex = -1;
                     int   selected     = config_get_int(device_context.name, const_cast<char *>(config->name), config->default_int);
@@ -158,6 +159,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                 {
                     auto *cbox = new QComboBox();
                     cbox->setObjectName(config->name);
+                    cbox->setMaxVisibleItems(30);
                     auto *model        = cbox->model();
                     int   currentIndex = -1;
                     int   selected     = config_get_int(device_context.name, const_cast<char *>(config->name), config->default_int);
@@ -181,6 +183,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                 {
                     auto *cbox = new QComboBox();
                     cbox->setObjectName(config->name);
+                    cbox->setMaxVisibleItems(30);
                     auto *model        = cbox->model();
                     int   currentIndex = -1;
                     int   selected     = 0;
@@ -210,6 +213,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                 {
                     auto *cbox = new QComboBox();
                     cbox->setObjectName(config->name);
+                    cbox->setMaxVisibleItems(30);
                     auto *model        = cbox->model();
                     int   currentIndex = -1;
                     char *selected;
@@ -269,6 +273,7 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                 {
                     auto *cbox = new QComboBox();
                     cbox->setObjectName(config->name);
+                    cbox->setMaxVisibleItems(30);
                     auto *model         = cbox->model();
                     int   currentIndex  = 0;
                     auto  serialDevices = EnumerateSerialDevices();

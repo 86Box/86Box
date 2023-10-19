@@ -17,6 +17,8 @@
 #include "cpu.h"
 #include "x86.h"
 #include "x86_ops.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
 #include "x87.h"
 #include <86box/io.h>
 #include <86box/mem.h>
@@ -46,7 +48,8 @@
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
-int inrecomp = 0, cpu_block_end = 0;
+int inrecomp                = 0;
+int cpu_block_end           = 0;
 int cpu_end_block_after_ins = 0;
 
 #ifdef ENABLE_386_DYNAREC_LOG
@@ -183,78 +186,6 @@ fetch_ea_16_long(uint32_t rmdat)
 
 #include "x86_flags.h"
 
-/*Prefetch emulation is a fairly simplistic model:
-  - All instruction bytes must be fetched before it starts.
-  - Cycles used for non-instruction memory accesses are counted and subtracted
-    from the total cycles taken
-  - Any remaining cycles are used to refill the prefetch queue.
-
-  Note that this is only used for 286 / 386 systems. It is disabled when the
-  internal cache on 486+ CPUs is enabled.
-*/
-static int prefetch_bytes    = 0;
-static int prefetch_prefixes = 0;
-
-static void
-prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32)
-{
-    int mem_cycles = reads * cpu_cycles_read + reads_l * cpu_cycles_read_l + writes * cpu_cycles_write + writes_l * cpu_cycles_write_l;
-
-    if (instr_cycles < mem_cycles)
-        instr_cycles = mem_cycles;
-
-    prefetch_bytes -= prefetch_prefixes;
-    prefetch_bytes -= bytes;
-    if (modrm != -1) {
-        if (ea32) {
-            if ((modrm & 7) == 4) {
-                if ((modrm & 0x700) == 0x500)
-                    prefetch_bytes -= 5;
-                else if ((modrm & 0xc0) == 0x40)
-                    prefetch_bytes -= 2;
-                else if ((modrm & 0xc0) == 0x80)
-                    prefetch_bytes -= 5;
-            } else {
-                if ((modrm & 0xc7) == 0x05)
-                    prefetch_bytes -= 4;
-                else if ((modrm & 0xc0) == 0x40)
-                    prefetch_bytes--;
-                else if ((modrm & 0xc0) == 0x80)
-                    prefetch_bytes -= 4;
-            }
-        } else {
-            if ((modrm & 0xc7) == 0x06)
-                prefetch_bytes -= 2;
-            else if ((modrm & 0xc0) != 0xc0)
-                prefetch_bytes -= ((modrm & 0xc0) >> 6);
-        }
-    }
-
-    /* Fill up prefetch queue */
-    while (prefetch_bytes < 0) {
-        prefetch_bytes += cpu_prefetch_width;
-        cycles -= cpu_prefetch_cycles;
-    }
-
-    /* Subtract cycles used for memory access by instruction */
-    instr_cycles -= mem_cycles;
-
-    while (instr_cycles >= cpu_prefetch_cycles) {
-        prefetch_bytes += cpu_prefetch_width;
-        instr_cycles -= cpu_prefetch_cycles;
-    }
-
-    prefetch_prefixes = 0;
-    if (prefetch_bytes > 16)
-        prefetch_bytes = 16;
-}
-
-static void
-prefetch_flush(void)
-{
-    prefetch_bytes = 0;
-}
-
 #define PREFETCH_RUN(instr_cycles, bytes, modrm, reads, reads_l, writes, writes_l, ea32)      \
     do {                                                                                      \
         if (cpu_prefetch_cycles)                                                              \
@@ -327,7 +258,7 @@ update_tsc(void)
 
     if (cycdiff > 0) {
         if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
-            timer_process_inline();
+            timer_process();
     }
 }
 
@@ -406,8 +337,9 @@ exec386_dynarec_int(void)
 static __inline void
 exec386_dynarec_dyn(void)
 {
-    uint32_t start_pc = 0, phys_addr = get_phys(cs + cpu_state.pc);
-    int      hash = HASH(phys_addr);
+    uint32_t start_pc  = 0;
+    uint32_t phys_addr = get_phys(cs + cpu_state.pc);
+    int      hash      = HASH(phys_addr);
 #    ifdef USE_NEW_DYNAREC
     codeblock_t *block = &codeblock[codeblock_hash[hash]];
 #    else
@@ -556,7 +488,9 @@ exec386_dynarec_dyn(void)
         x86_was_reset = 0;
 
 #    if defined(__APPLE__) && defined(__aarch64__)
-        pthread_jit_write_protect_np(0);
+        if (__builtin_available(macOS 11.0, *)) {
+            pthread_jit_write_protect_np(0);
+        }
 #    endif
         codegen_block_start_recompile(block);
         codegen_in_recompile = 1;
@@ -640,7 +574,9 @@ exec386_dynarec_dyn(void)
 
         codegen_in_recompile = 0;
 #    if defined(__APPLE__) && defined(__aarch64__)
-        pthread_jit_write_protect_np(1);
+        if (__builtin_available(macOS 11.0, *)) {
+            pthread_jit_write_protect_np(1);
+        }
 #    endif
     } else if (!cpu_state.abrt) {
         /* Mark block but do not recompile */
@@ -742,10 +678,13 @@ exec386_dynarec_dyn(void)
 void
 exec386_dynarec(int cycs)
 {
-    int      vector, tempi;
+    int      vector;
+    int      tempi;
     int      cycdiff;
-    int      oldcyc, oldcyc2;
-    uint64_t oldtsc, delta;
+    int      oldcyc;
+    int      oldcyc2;
+    uint64_t oldtsc;
+    uint64_t delta;
 
     int cyc_period = cycs / 2000; /*5us*/
 
@@ -845,7 +784,7 @@ exec386_dynarec(int cycs)
 
             if (cycdiff > 0) {
                 if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
-                    timer_process_inline();
+                    timer_process();
             }
 
 #    ifdef USE_GDBSTUB
@@ -858,3 +797,160 @@ exec386_dynarec(int cycs)
     }
 }
 #endif
+
+void
+exec386(int cycs)
+{
+    int      vector;
+    int      tempi;
+    int      cycdiff;
+    int      oldcyc;
+    int      cycle_period;
+    int      ins_cycles;
+    uint32_t addr;
+
+    cycles += cycs;
+
+    while (cycles > 0) {
+        cycle_period = (timer_target - (uint32_t) tsc) + 1;
+
+        x86_was_reset = 0;
+        cycdiff       = 0;
+        oldcyc        = cycles;
+        while (cycdiff < cycle_period) {
+            ins_cycles = cycles;
+
+#ifndef USE_NEW_DYNAREC
+            oldcs  = CS;
+            oldcpl = CPL;
+#endif
+            cpu_state.oldpc = cpu_state.pc;
+            cpu_state.op32  = use32;
+
+#ifndef USE_NEW_DYNAREC
+            x86_was_reset = 0;
+#endif
+
+            cpu_state.ea_seg = &cpu_state.seg_ds;
+            cpu_state.ssegs  = 0;
+
+            fetchdat = fastreadl_fetch(cs + cpu_state.pc);
+
+            if (!cpu_state.abrt) {
+#ifdef ENABLE_386_LOG
+                if (in_smm)
+                    x386_dynarec_log("[%04X:%08X] %08X\n", CS, cpu_state.pc, fetchdat);
+#endif
+                opcode = fetchdat & 0xFF;
+                fetchdat >>= 8;
+                trap = cpu_state.flags & T_FLAG;
+
+                cpu_state.pc++;
+                x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
+                if (x86_was_reset)
+                    break;
+            }
+#ifdef ENABLE_386_LOG
+            else if (in_smm)
+                x386_dynarec_log("[%04X:%08X] ABRT\n", CS, cpu_state.pc);
+#endif
+
+#ifndef USE_NEW_DYNAREC
+            if (!use32)
+                cpu_state.pc &= 0xffff;
+#endif
+
+            if (cpu_end_block_after_ins)
+                cpu_end_block_after_ins--;
+
+            if (cpu_state.abrt) {
+                flags_rebuild();
+                tempi          = cpu_state.abrt & ABRT_MASK;
+                cpu_state.abrt = 0;
+                x86_doabrt(tempi);
+                if (cpu_state.abrt) {
+                    cpu_state.abrt = 0;
+#ifndef USE_NEW_DYNAREC
+                    CS = oldcs;
+#endif
+                    cpu_state.pc = cpu_state.oldpc;
+                    x386_dynarec_log("Double fault\n");
+                    pmodeint(8, 0);
+                    if (cpu_state.abrt) {
+                        cpu_state.abrt = 0;
+                        softresetx86();
+                        cpu_set_edx();
+#ifdef ENABLE_386_LOG
+                        x386_dynarec_log("Triple fault - reset\n");
+#endif
+                    }
+                }
+            } else if (trap) {
+                flags_rebuild();
+                trap = 0;
+#ifndef USE_NEW_DYNAREC
+                oldcs = CS;
+#endif
+                cpu_state.oldpc = cpu_state.pc;
+                dr[6] |= 0x4000;
+                x86_int(1);
+            }
+
+            if (smi_line)
+                enter_smm_check(0);
+            else if (nmi && nmi_enable && nmi_mask) {
+#ifndef USE_NEW_DYNAREC
+                oldcs = CS;
+#endif
+                cpu_state.oldpc = cpu_state.pc;
+                x86_int(2);
+                nmi_enable = 0;
+#ifdef OLD_NMI_BEHAVIOR
+                if (nmi_auto_clear) {
+                    nmi_auto_clear = 0;
+                    nmi            = 0;
+                }
+#else
+                nmi = 0;
+#endif
+            } else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins) {
+                vector = picinterrupt();
+                if (vector != -1) {
+                    flags_rebuild();
+                    if (msw & 1)
+                        pmodeint(vector, 0);
+                    else {
+                        writememw(ss, (SP - 2) & 0xFFFF, cpu_state.flags);
+                        writememw(ss, (SP - 4) & 0xFFFF, CS);
+                        writememw(ss, (SP - 6) & 0xFFFF, cpu_state.pc);
+                        SP -= 6;
+                        addr = (vector << 2) + idt.base;
+                        cpu_state.flags &= ~I_FLAG;
+                        cpu_state.flags &= ~T_FLAG;
+                        cpu_state.pc = readmemw(0, addr);
+                        loadcs(readmemw(0, addr + 2));
+                    }
+                }
+            }
+
+            ins_cycles -= cycles;
+            tsc += ins_cycles;
+
+            cycdiff = oldcyc - cycles;
+
+            if (timetolive) {
+                timetolive--;
+                if (!timetolive)
+                    fatal("Life expired\n");
+            }
+
+            if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
+                timer_process();
+
+#ifdef USE_GDBSTUB
+            if (gdbstub_instruction())
+                return;
+#endif
+        }
+    }
+}

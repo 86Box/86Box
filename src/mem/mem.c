@@ -29,6 +29,7 @@
 #include "cpu.h"
 #include "x86_ops.h"
 #include "x86.h"
+#include "x86seg_common.h"
 #include <86box/machine.h>
 #include <86box/m_xt_xi8088.h>
 #include <86box/config.h>
@@ -119,14 +120,15 @@ int      purgeable_page_count    = 0;
 
 uint8_t high_page = 0; /* if a high (> 4 gb) page was detected */
 
+mem_mapping_t        *read_mapping[MEM_MAPPINGS_NO];
+mem_mapping_t        *write_mapping[MEM_MAPPINGS_NO];
+
 /* FIXME: re-do this with a 'mem_ops' struct. */
 static uint8_t       *page_lookupp; /* pagetable mmu_perm lookup */
 static uint8_t       *readlookupp;
 static uint8_t       *writelookupp;
 static mem_mapping_t *base_mapping;
 static mem_mapping_t *last_mapping;
-static mem_mapping_t *read_mapping[MEM_MAPPINGS_NO];
-static mem_mapping_t *write_mapping[MEM_MAPPINGS_NO];
 static mem_mapping_t *read_mapping_bus[MEM_MAPPINGS_NO];
 static mem_mapping_t *write_mapping_bus[MEM_MAPPINGS_NO];
 static uint8_t       *_mem_exec[MEM_MAPPINGS_NO];
@@ -2694,7 +2696,8 @@ mem_reset(void)
         }
         memset(ram, 0x00, ram_size);
         ram2_size = m - (1 << 30);
-        ram2      = (uint8_t *) plat_mmap(ram2_size, 0); /* allocate and clear the RAM block above 1 GB */
+        /* Allocate 16 extra bytes of RAM to mitigate some dynarec recompiler memory access quirks. */
+        ram2      = (uint8_t *) plat_mmap(ram2_size + 16, 0); /* allocate and clear the RAM block above 1 GB */
         if (ram2 == NULL) {
             if (config_changed == 2)
                 fatal(EMU_NAME " must be restarted for the memory amount change to be applied.\n");
@@ -2702,17 +2705,18 @@ mem_reset(void)
                 fatal("Failed to allocate secondary RAM block. Make sure you have enough RAM available.\n");
             return;
         }
-        memset(ram2, 0x00, ram2_size);
+        memset(ram2, 0x00, ram2_size + 16);
     } else
 #endif
     {
         ram_size = m;
-        ram      = (uint8_t *) plat_mmap(ram_size, 0); /* allocate and clear the RAM block */
+        /* Allocate 16 extra bytes of RAM to mitigate some dynarec recompiler memory access quirks. */
+        ram      = (uint8_t *) plat_mmap(ram_size + 16, 0); /* allocate and clear the RAM block */
         if (ram == NULL) {
             fatal("Failed to allocate RAM block. Make sure you have enough RAM available.\n");
             return;
         }
-        memset(ram, 0x00, ram_size);
+        memset(ram, 0x00, ram_size + 16);
         if (mem_size > 1048576)
             ram2 = &(ram[1 << 30]);
     }

@@ -11,12 +11,12 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ * Authors: Tux,
  *          Miran Grca, <mgrca8@gmail.com>
  *          TheCollector1995, <mariogplayer@gmail.com>
  *          EngiNerd <webmaster.crrc@yahoo.it>
  *
- *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Tux.
  *          Copyright 2016-2019 Miran Grca.
  *          Copyright 2020 EngiNerd.
  */
@@ -56,7 +56,8 @@ typedef struct {
 static uint8_t
 zenith_scratchpad_read(uint32_t addr, void *priv)
 {
-    zenith_t *dev = (zenith_t *) priv;
+    const zenith_t *dev = (zenith_t *) priv;
+
     return dev->scratchpad_ram[addr & 0x3fff];
 }
 

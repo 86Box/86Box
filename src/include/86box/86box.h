@@ -38,6 +38,9 @@
 /* Default language 0xFFFF = from system, 0x409 = en-US */
 #define DEFAULT_LANGUAGE 0x0409
 
+#define POSTCARDS_NUM 4
+#define POSTCARD_MASK (POSTCARDS_NUM - 1)
+
 #ifdef MIN
 #    undef MIN
 #endif
@@ -47,10 +50,14 @@
 #ifdef ABS
 #    undef ABS
 #endif
+#ifdef ABSD
+#    undef ABSD
+#endif
 
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define ABS(x)    ((x) > 0 ? (x) : -(x))
+#define ABSD(x)   ((x) > 0.0 ? (x) : -(x))
 #define BCD8(x)   ((((x) / 10) << 4) | ((x) % 10))
 #define BCD16(x)  ((((x) / 1000) << 12) | (((x) / 100) << 8) | BCD8(x))
 #define BCD32(x)  ((((x) / 10000000) << 28) | (((x) / 1000000) << 24) | (((x) / 100000) << 20) | (((x) / 10000) << 16) | BCD16(x))
@@ -98,55 +105,55 @@ extern uint64_t instru_run_ms;
 #define window_w monitor_settings[0].mon_window_w
 #define window_h monitor_settings[0].mon_window_h
 extern int      window_remember;
-extern int      vid_resize;       /* (C) allow resizing */
-extern int      invert_display;   /* (C) invert the display */
-extern int      suppress_overscan; /* (C) suppress overscans */
-extern uint32_t lang_id;          /* (C) language code identifier */
-extern char     icon_set[256];    /* (C) iconset identifier */
-extern int      scale;            /* (C) screen scale factor */
-extern int      dpi_scale;        /* (C) DPI scaling of the emulated screen */
-extern int      vid_api;          /* (C) video renderer */
-extern int      vid_cga_contrast; /* (C) video */
-extern int    video_fullscreen;       /* (C) video */
-extern int    video_fullscreen_first; /* (C) video */
-extern int    video_fullscreen_scale; /* (C) video */
-extern int    enable_overscan;        /* (C) video */
-extern int    force_43;               /* (C) video */
-extern int    video_filter_method;    /* (C) video */
-extern int    video_vsync;            /* (C) video */
-extern int    video_framerate;        /* (C) video */
-extern int    gfxcard[2];             /* (C) graphics/video card */
-extern char video_shader[512];    /* (C) video */
-extern int  bugger_enabled;       /* (C) enable ISAbugger */
-extern int    postcard_enabled;       /* (C) enable POST card */
-extern int    isamem_type[];          /* (C) enable ISA mem cards */
-extern int    isartc_type;            /* (C) enable ISA RTC card */
-extern int sound_is_float;        /* (C) sound uses FP values */
-extern int    voodoo_enabled;         /* (C) video option */
-extern int    ibm8514_enabled;        /* (C) video option */
-extern int    xga_enabled;            /* (C) video option */
-extern uint32_t mem_size;         /* (C) memory size (Installed on system board) */
-extern uint32_t isa_mem_size;     /* (C) memory size (ISA Memory Cards) */
-extern int      cpu;              /* (C) cpu type */
-extern int    cpu_use_dynarec;    /* (C) cpu uses/needs Dyna */
-extern int    fpu_type;           /* (C) fpu type */
-extern int    fpu_softfloat;      /* (C) fpu uses softfloat */
-extern int time_sync;             /* (C) enable time sync */
-extern int hdd_format_type;       /* (C) hard disk file format */
-extern int confirm_reset;         /* (C) enable reset confirmation */
-extern int    confirm_exit;       /* (C) enable exit confirmation */
-extern int    confirm_save;       /* (C) enable save confirmation */
-extern int enable_discord;        /* (C) enable Discord integration */
+extern int      vid_resize;                 /* (C) allow resizing */
+extern int      invert_display;             /* (C) invert the display */
+extern int      suppress_overscan;          /* (C) suppress overscans */
+extern uint32_t lang_id;                    /* (C) language code identifier */
+extern char     icon_set[256];              /* (C) iconset identifier */
+extern int      scale;                      /* (C) screen scale factor */
+extern int      dpi_scale;                  /* (C) DPI scaling of the emulated screen */
+extern int      vid_api;                    /* (C) video renderer */
+extern int      vid_cga_contrast;           /* (C) video */
+extern int      video_fullscreen;           /* (C) video */
+extern int      video_fullscreen_first;     /* (C) video */
+extern int      video_fullscreen_scale;     /* (C) video */
+extern int      enable_overscan;            /* (C) video */
+extern int      force_43;                   /* (C) video */
+extern int      video_filter_method;        /* (C) video */
+extern int      video_vsync;                /* (C) video */
+extern int      video_framerate;            /* (C) video */
+extern int      gfxcard[2];                 /* (C) graphics/video card */
+extern char     video_shader[512];          /* (C) video */
+extern int      bugger_enabled;             /* (C) enable ISAbugger */
+extern int      postcard_enabled;           /* (C) enable POST card */
+extern int      isamem_type[];              /* (C) enable ISA mem cards */
+extern int      isartc_type;                /* (C) enable ISA RTC card */
+extern int      sound_is_float;             /* (C) sound uses FP values */
+extern int      voodoo_enabled;             /* (C) video option */
+extern int      ibm8514_standalone_enabled; /* (C) video option */
+extern int      xga_standalone_enabled;     /* (C) video option */
+extern uint32_t mem_size;                   /* (C) memory size (Installed on system board) */
+extern uint32_t isa_mem_size;               /* (C) memory size (ISA Memory Cards) */
+extern int      cpu;                        /* (C) cpu type */
+extern int      cpu_use_dynarec;            /* (C) cpu uses/needs Dyna */
+extern int      fpu_type;                   /* (C) fpu type */
+extern int      fpu_softfloat;              /* (C) fpu uses softfloat */
+extern int      time_sync;                  /* (C) enable time sync */
+extern int      hdd_format_type;            /* (C) hard disk file format */
+extern int      confirm_reset;              /* (C) enable reset confirmation */
+extern int      confirm_exit;               /* (C) enable exit confirmation */
+extern int      confirm_save;               /* (C) enable save confirmation */
+extern int      enable_discord;             /* (C) enable Discord integration */
 
-extern int is_pentium; /* TODO: Move back to cpu/cpu.h when it's figured out,
-                                how to remove that hack from the ET4000/W32p. */
 extern int    fixed_size_x;
 extern int    fixed_size_y;
-extern double mouse_sensitivity;            /* (C) Mouse sensitivity scale */
-extern double mouse_x_error;     /* Mouse error accumulator - Y */
-extern double mouse_y_error;     /* Mouse error accumulator - Y */
-extern int    pit_mode;                     /* (C) force setting PIT mode */
-extern int    fm_driver;                    /* (C) select FM sound driver */
+extern double mouse_sensitivity;        /* (C) Mouse sensitivity scale */
+#ifdef _Atomic
+extern _Atomic double mouse_x_error;    /* Mouse error accumulator - Y */
+extern _Atomic double mouse_y_error;    /* Mouse error accumulator - Y */
+#endif
+extern int    pit_mode;                 /* (C) force setting PIT mode */
+extern int    fm_driver;                /* (C) select FM sound driver */
 
 extern char exe_path[2048];    /* path (dir) of executable */
 extern char usr_path[1024];    /* path (dir) of user data */
@@ -172,7 +179,7 @@ extern void reset_screen_size_monitor(int monitor_index);
 extern void set_screen_size_natural(void);
 extern void update_mouse_msg(void);
 #if 0
-extern void	pc_reload(wchar_t *fn);
+extern void pc_reload(wchar_t *fn);
 #endif
 extern int  pc_init_modules(void);
 extern int  pc_init(int argc, char *argv[]);
@@ -201,7 +208,8 @@ extern double isa_timing;
 extern int    io_delay;
 extern int    framecountx;
 
-extern volatile int cpu_thread_run;
+extern volatile int     cpu_thread_run;
+extern          uint8_t postcard_codes[POSTCARDS_NUM];
 
 #ifdef __cplusplus
 }

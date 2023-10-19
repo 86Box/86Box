@@ -141,12 +141,12 @@ acpi_update_irq(acpi_t *dev)
     acpi_timer_update(dev, (dev->regs.pmen & TMROF_EN) && !(dev->regs.pmsts & TMROF_STS));
 }
 
-static void
-acpi_do_raise_smi(void *priv, int do_smi, int is_apm)
+void
+acpi_raise_smi(void *priv, int do_smi)
 {
     acpi_t *dev = (acpi_t *) priv;
 
-    if (is_apm || (dev->regs.glbctl & 0x01)) {
+    if (dev->regs.glbctl & 0x01) {
         if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
             if (!dev->regs.smi_lock || !dev->regs.smi_active) {
                 if (do_smi)
@@ -166,12 +166,6 @@ acpi_do_raise_smi(void *priv, int do_smi, int is_apm)
                 smi_raise();
         }
     }
-}
-
-void
-acpi_raise_smi(void *priv, int do_smi)
-{
-    acpi_do_raise_smi(priv, do_smi, 0);
 }
 
 static uint32_t
@@ -1588,7 +1582,7 @@ acpi_apm_out(uint16_t port, uint8_t val, void *priv)
             dev->apm->cmd = val;
             if (dev->vendor == VEN_INTEL)
                 dev->regs.glbsts |= 0x20;
-            acpi_do_raise_smi(dev, dev->apm->do_smi, 1);
+            acpi_raise_smi(dev, dev->apm->do_smi);
         } else
             dev->apm->stat = val;
     }

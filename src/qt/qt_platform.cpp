@@ -36,13 +36,18 @@
 #include <QDateTime>
 #include <QLocalSocket>
 #include <QTimer>
+#include <QProcess>
+#include <QRegularExpression>
 
 #include <QLibrary>
 #include <QElapsedTimer>
 
+#include <QScreen>
+
 #include "qt_rendererstack.hpp"
 #include "qt_mainwindow.hpp"
 #include "qt_progsettings.hpp"
+#include "qt_util.hpp"
 
 #ifdef Q_OS_UNIX
 #    include <sys/mman.h>
@@ -299,6 +304,12 @@ path_slash(char *path)
     path_normalize(path);
 }
 
+const char *
+path_get_slash(char *path)
+{
+    return QString(path).endsWith("/") ? "" : "/";
+}
+
 void
 path_append_filename(char *dest, const char *s1, const char *s2)
 {
@@ -424,14 +435,16 @@ set_language(uint32_t id)
 
 extern "C++" {
 QMap<uint32_t, QPair<QString, QString>> ProgSettings::lcid_langcode = {
-    {0x0405,  { "cs-CZ", "Czech (Czech Republic)" }  },
+    { 0x0403, { "ca-ES", "Catalan (Spain)" }         },
+    { 0x0804, { "zh-CN", "Chinese (Simplified)" }    },
+    { 0x0404, { "zh-TW", "Chinese (Traditional)" }   },
+    { 0x041A, { "hr-HR", "Croatian (Croatia)" }      },
+    { 0x0405, { "cs-CZ", "Czech (Czech Republic)" }  },
     { 0x0407, { "de-DE", "German (Germany)" }        },
-    { 0x0409, { "en-US", "English (United States)" } },
     { 0x0809, { "en-GB", "English (United Kingdom)" }},
-    { 0x0C0A, { "es-ES", "Spanish (Spain)" }         },
+    { 0x0409, { "en-US", "English (United States)" } },
     { 0x040B, { "fi-FI", "Finnish (Finland)" }       },
     { 0x040C, { "fr-FR", "French (France)" }         },
-    { 0x041A, { "hr-HR", "Croatian (Croatia)" }      },
     { 0x040E, { "hu-HU", "Hungarian (Hungary)" }     },
     { 0x0410, { "it-IT", "Italian (Italy)" }         },
     { 0x0411, { "ja-JP", "Japanese (Japan)" }        },
@@ -440,11 +453,11 @@ QMap<uint32_t, QPair<QString, QString>> ProgSettings::lcid_langcode = {
     { 0x0416, { "pt-BR", "Portuguese (Brazil)" }     },
     { 0x0816, { "pt-PT", "Portuguese (Portugal)" }   },
     { 0x0419, { "ru-RU", "Russian (Russia)" }        },
+    { 0x041B, { "sk-SK", "Slovak (Slovakia)" }       },
     { 0x0424, { "sl-SI", "Slovenian (Slovenia)" }    },
+    { 0x0C0A, { "es-ES", "Spanish (Spain, Modern Sort)" } },
     { 0x041F, { "tr-TR", "Turkish (Turkey)" }        },
     { 0x0422, { "uk-UA", "Ukrainian (Ukraine)" }     },
-    { 0x0804, { "zh-CN", "Chinese (China)" }         },
-    { 0x0404, { "zh-TW", "Chinese (Taiwan)" }        },
     { 0xFFFF, { "system", "(System Default)" }       },
 };
 }
@@ -639,7 +652,7 @@ plat_get_global_config_dir(char* strptr)
 }
 
 void
-plat_init_rom_paths()
+plat_init_rom_paths(void)
 {
     auto paths = QStandardPaths::standardLocations(QStandardPaths::GenericDataLocation);
 
@@ -659,4 +672,76 @@ plat_init_rom_paths()
         rom_add_path(QDir(path).filePath("86Box/roms").toUtf8().constData());
 #endif
     }
+}
+
+void
+plat_get_cpu_string(char *outbuf, uint8_t len) {
+    auto cpu_string = QString("Unknown");
+    /* Write the default string now in case we have to exit early from an error */
+    qstrncpy(outbuf, cpu_string.toUtf8().constData(), len);
+
+#if defined(Q_OS_MACOS)
+    auto *process = new QProcess(nullptr);
+    QStringList arguments;
+    QString program = "/usr/sbin/sysctl";
+    arguments << "machdep.cpu.brand_string";
+    process->start(program, arguments);
+    if (!process->waitForStarted()) {
+        return;
+    }
+    if (!process->waitForFinished()) {
+        return;
+    }
+    QByteArray result = process->readAll();
+    auto command_result = QString(result).split(": ").last();
+    if(!command_result.isEmpty()) {
+        cpu_string = command_result;
+    }
+#elif defined(Q_OS_WINDOWS)
+    const LPCSTR  keyName   = "HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0";
+    const LPCSTR  valueName = "ProcessorNameString";
+    unsigned char buf[32768];
+    DWORD         bufSize;
+    HKEY          hKey;
+    bufSize = 32768;
+    if (RegOpenKeyExA(HKEY_LOCAL_MACHINE, keyName, 0, 1, &hKey) == ERROR_SUCCESS) {
+        if (RegQueryValueExA(hKey, valueName, NULL, NULL, buf, &bufSize) == ERROR_SUCCESS) {
+            cpu_string = reinterpret_cast<const char*>(buf);
+        }
+        RegCloseKey(hKey);
+    }
+#elif defined(Q_OS_LINUX)
+    auto cpuinfo = QString("/proc/cpuinfo");
+    auto cpuinfo_fi = QFileInfo(cpuinfo);
+    if(!cpuinfo_fi.isReadable()) {
+        return;
+    }
+    QFile file(cpuinfo);
+    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream textStream(&file);
+        while(true) {
+            QString line = textStream.readLine();
+            if (line.isNull()) {
+                break;
+            }
+            if(QRegularExpression("model name.*:").match(line).hasMatch()) {
+                auto list = line.split(": ");
+                if(!list.last().isEmpty()) {
+                    cpu_string = list.last();
+                    break;
+                }
+            }
+
+        }
+    }
+#endif
+
+    qstrncpy(outbuf, cpu_string.toUtf8().constData(), len);
+
+}
+
+double
+plat_get_dpi(void)
+{
+    return util::screenOfWidget(main_window)->devicePixelRatio();
 }

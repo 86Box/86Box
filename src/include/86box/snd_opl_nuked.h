@@ -8,7 +8,7 @@
  *
  *          Definitions for the NukedOPL3 driver.
  *
- * Version: @(#)snd_opl_nuked.h	1.0.5	2020/07/16
+ * Version: @(#)snd_opl_nuked.h 1.0.5 2020/07/16
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>

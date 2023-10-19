@@ -168,7 +168,7 @@ fdc_card_has_config(int card)
     return (device_has_config(fdc_cards[card].device) ? 1 : 0);
 }
 
-char *
+const char *
 fdc_card_get_internal_name(int card)
 {
     return device_get_internal_name(fdc_cards[card].device);
@@ -180,7 +180,7 @@ fdc_card_get_from_internal_name(char *s)
     int c = 0;
 
     while (fdc_cards[c].device != NULL) {
-        if (!strcmp((char *) fdc_cards[c].device->internal_name, s))
+        if (!strcmp(fdc_cards[c].device->internal_name, s))
             return c;
         c++;
     }
@@ -917,9 +917,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                             fdc_bad_command(fdc);
                             break;
                         }
-#ifdef FALLTHROUGH_ANNOTATION
-                        [[fallthrough]];
-#endif
+                        fallthrough;
                     case 0x07: /*Recalibrate*/
                         fdc->pnum = 0;
                         fdc->ptot = 1;
@@ -962,9 +960,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                             fdc_bad_command(fdc);
                             break;
                         }
-#ifdef FALLTHROUGH_ANNOTATION
-                        [[fallthrough]];
-#endif
+                        fallthrough;
                     case 0x10: /*Get version*/
                     case 0x14: /*Unlock*/
                     case 0x94: /*Lock*/
@@ -1086,9 +1082,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         case 0x16: /* Verify */
                             if (fdc->params[0] & 0x80)
                                 fdc->sc = fdc->params[7];
-#ifdef FALLTHROUGH_ANNOTATION
-                            [[fallthrough]];
-#endif
+                            fallthrough;
                         case 0x06: /* Read data */
                         case 0x0c: /* Read deleted data */
                             fdc_io_command_phase1(fdc, 0);

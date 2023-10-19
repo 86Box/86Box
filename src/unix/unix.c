@@ -310,6 +310,17 @@ path_slash(char *path)
     path_normalize(path);
 }
 
+const char *
+path_get_slash(char *path)
+{
+    char *ret = "";
+
+    if (path[strlen(path) - 1] != '/')
+        ret =  "/";
+
+    return ret;
+}
+
 void
 plat_put_backslash(char *s)
 {
@@ -699,19 +710,6 @@ typedef struct mouseinputdata {
     int mousebuttons;
 } mouseinputdata;
 SDL_mutex            *mousemutex;
-static mouseinputdata mousedata;
-void
-mouse_poll(void)
-{
-    SDL_LockMutex(mousemutex);
-    mouse_x          = mousedata.deltax;
-    mouse_y          = mousedata.deltay;
-    mouse_z          = mousedata.deltaz;
-    mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
-    mouse_buttons                                          = mousedata.mousebuttons;
-    SDL_UnlockMutex(mousemutex);
-}
-
 int real_sdl_w;
 int real_sdl_h;
 void
@@ -962,7 +960,10 @@ monitor_thread(void *param)
                     printf(
                         "%s v%s [%s] [%s, %s]\n\n"
                         "An emulator of old computers\n"
-                        "Authors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\n"
+                        "Authors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), "
+                        "Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), "
+                        "Tiseno100, reenigne, and others.\n"
+                        "With previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\n"
                         "Released under the GNU General Public License version 2 or later. See LICENSE for more information.\n",
                         EMU_NAME, EMU_VERSION_FULL, EMU_GIT_HASH, ARCH_STR, DYNAREC_STR);
                 } else if (strncasecmp(xargv[0], "fullscreen", 10) == 0) {
@@ -1182,7 +1183,7 @@ main(int argc, char **argv)
                                 event.wheel.y *= -1;
                             }
                             SDL_LockMutex(mousemutex);
-                            mousedata.deltaz = event.wheel.y;
+                            mouse_set_z(event.wheel.y);
                             SDL_UnlockMutex(mousemutex);
                         }
                         break;
@@ -1191,8 +1192,7 @@ main(int argc, char **argv)
                     {
                         if (mouse_capture || video_fullscreen) {
                             SDL_LockMutex(mousemutex);
-                            mousedata.deltax += event.motion.xrel;
-                            mousedata.deltay += event.motion.yrel;
+                            mouse_scale(event.motion.xrel, event.motion.yrel);
                             SDL_UnlockMutex(mousemutex);
                         }
                         break;
@@ -1232,10 +1232,10 @@ main(int argc, char **argv)
                                     break;
                             }
                             SDL_LockMutex(mousemutex);
-                            if (event.button.state == SDL_PRESSED) {
-                                mousedata.mousebuttons |= buttonmask;
-                            } else
-                                mousedata.mousebuttons &= ~buttonmask;
+                            if (event.button.state == SDL_PRESSED)
+                                mouse_set_buttons_ex(mouse_get_buttons_ex() | buttonmask);
+                            else
+                                mouse_set_buttons_ex(mouse_get_buttons_ex() & ~buttonmask);
                             SDL_UnlockMutex(mousemutex);
                         }
                         break;
@@ -1321,6 +1321,12 @@ plat_language_code(char *langcode)
 {
     /* or maybe not */
     return 0;
+}
+
+void
+plat_get_cpu_string(char *outbuf, uint8_t len) {
+    char cpu_string[] = "Unknown";
+    strncpy(outbuf, cpu_string, len);
 }
 
 /* Converts back the language code to LCID */

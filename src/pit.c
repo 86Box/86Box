@@ -1014,7 +1014,11 @@ pit_set_clock(int clock)
 
         PITCONSTD    = (cpuclock / 1193182.0);
         PITCONST     = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
+#ifdef IMPRECISE_CGACONST
         CGACONST     = (uint64_t) ((cpuclock / (19687503.0 / 11.0)) * (double) (1ULL << 32));
+#else
+        CGACONST     = (uint64_t) ((cpuclock / (157500000.0 / 88.0)) * (double) (1ULL << 32));
+#endif
         ISACONST     = (uint64_t) ((cpuclock / (double) cpu_isa_speed) * (double) (1ULL << 32));
         xt_cpu_multi = 1ULL;
     } else {
@@ -1064,7 +1068,11 @@ pit_set_clock(int clock)
         } else if (cpuclock != 14318184.0) {
             PITCONSTD = (cpuclock / 1193182.0);
             PITCONST  = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
+#ifdef IMPRECISE_CGACONST
             CGACONST  = (uint64_t) ((cpuclock / (19687503.0 / 11.0)) * (double) (1ULL << 32));
+#else
+            CGACONST  = (uint64_t) ((cpuclock / (157500000.0 / 88.0)) * (double) (1ULL << 32));
+#endif
         }
 
         ISACONST = (1ULL << 32ULL);
@@ -1074,7 +1082,11 @@ pit_set_clock(int clock)
     /* Delay for empty I/O ports. */
     io_delay = (int) round(((double) cpu_s->rspeed) / 3000000.0);
 
+#ifdef WRONG_MDACONST
     MDACONST  = (uint64_t) (cpuclock / 2032125.0 * (double) (1ULL << 32));
+#else
+    MDACONST  = (uint64_t) (cpuclock / (16257000.0 / 9.0) * (double) (1ULL << 32));
+#endif
     HERCCONST = MDACONST;
     VGACONST1 = (uint64_t) (cpuclock / 25175000.0 * (double) (1ULL << 32));
     VGACONST2 = (uint64_t) (cpuclock / 28322000.0 * (double) (1ULL << 32));
@@ -1084,9 +1096,9 @@ pit_set_clock(int clock)
 
     isa_timing = (cpuclock / (double) cpu_isa_speed);
     if (cpu_64bitbus)
-        bus_timing = (cpuclock / ((double) cpu_busspeed / 2));
+        bus_timing = (cpuclock / (cpu_busspeed / 2));
     else
-        bus_timing = (cpuclock / (double) cpu_busspeed);
+        bus_timing = (cpuclock / cpu_busspeed);
     pci_timing = (cpuclock / (double) cpu_pci_speed);
     agp_timing = (cpuclock / (double) cpu_agp_speed);
 

@@ -466,7 +466,6 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
                 }
 
                 return 0;
-                break;
 
             case 0x02: /* Read Desired Sectors to Memory */
             case 0x03: /* Write Desired Sectors from Memory */
@@ -490,9 +489,7 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 
             default:
                 x54x_log("BIOS: Unimplemented command: %02X\n", cmd->command);
-#ifdef FALLTHROUGH_ANNOTATION
-                [[fallthrough]];
-#endif
+                fallthrough;
             case 0x05: /* Format Track, invalid since SCSI has no tracks */
             case 0x0a: /* ???? */
             case 0x0b: /* ???? */
@@ -1295,7 +1292,7 @@ x54x_cmd_callback(void *priv)
     }
 
     period = (1000000.0 / dev->ha_bps) * ((double) dev->temp_period);
-    timer_on(&dev->timer, dev->media_period + period + 10.0, 0);
+    timer_on_auto(&dev->timer, dev->media_period + period + 10.0);
 #if 0
     x54x_log("Temporary period: %lf us (%" PRIi64 " periods)\n", dev->timer.period, dev->temp_period);
 #endif
@@ -1469,7 +1466,7 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
 {
     ReplyInquireSetupInformation *ReplyISI;
     x54x_t                       *dev = (x54x_t *) priv;
-    MailboxInit_t                *mbi;
+    const MailboxInit_t          *mbi;
     int                           i = 0;
     BIOSCMD                      *cmd;
     uint16_t                      cyl      = 0;
@@ -1775,6 +1772,9 @@ x54x_out(uint16_t port, uint8_t val, void *priv)
         case 3:
             if (dev->flags & X54X_INT_GEOM_WRITABLE)
                 dev->Geometry = val;
+            break;
+
+        default:
             break;
     }
 }

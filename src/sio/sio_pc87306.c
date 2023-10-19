@@ -57,7 +57,7 @@ pc87306_gpio_write(uint16_t port, uint8_t val, void *priv)
 uint8_t
 pc87306_gpio_read(uint16_t port, void *priv)
 {
-    pc87306_t *dev = (pc87306_t *) priv;
+    const pc87306_t *dev = (pc87306_t *) priv;
 
     return dev->gpio[port & 1];
 }
@@ -297,6 +297,16 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
                     lpt1_handler(dev);
             }
             break;
+        case 4:
+            if (valxor & 0x80)
+                nvr_lock_set(0x00, 256, !!(val & 0x80), dev->nvr);
+            break;
+        case 5:
+            if (valxor & 0x08)
+                nvr_at_handler(!!(val & 0x08), 0x0070, dev->nvr);
+            if (valxor & 0x20)
+                nvr_bank_set(0, !!(val & 0x20), dev->nvr);
+            break;
         case 9:
             if (valxor & 0x44) {
                 fdc_update_enh_mode(dev->fdc, (val & 4) ? 1 : 0);
@@ -308,6 +318,8 @@ pc87306_write(uint16_t port, uint8_t val, void *priv)
                 pc87306_gpio_init(dev);
             break;
         case 0x12:
+            if (valxor & 0x01)
+                nvr_wp_set(!!(val & 0x01), 0, dev->nvr);
             if (valxor & 0x30)
                 pc87306_gpio_init(dev);
             break;
@@ -368,8 +380,10 @@ pc87306_read(uint16_t port, void *priv)
 }
 
 void
-pc87306_reset(pc87306_t *dev)
+pc87306_reset(void *priv)
 {
+    pc87306_t *dev = (pc87306_t *) priv;
+
     memset(dev->regs, 0, 29);
 
     dev->regs[0x00] = 0x0B;
@@ -398,6 +412,10 @@ pc87306_reset(pc87306_t *dev)
     serial_handler(dev, 1);
     fdc_reset(dev->fdc);
     pc87306_gpio_init(dev);
+    nvr_lock_set(0x00, 256, 0, dev->nvr);
+    nvr_at_handler(1, 0x0070, dev->nvr);
+    nvr_bank_set(0, 0, dev->nvr);
+    nvr_wp_set(0, 0, dev->nvr);
 }
 
 static void
@@ -419,7 +437,7 @@ pc87306_init(UNUSED(const device_t *info))
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-    // dev->nvr = device_add(&piix4_nvr_device);
+    dev->nvr = device_add(&at_mb_nvr_device);
 
     pc87306_reset(dev);
 
@@ -436,7 +454,7 @@ const device_t pc87306_device = {
     .local         = 0,
     .init          = pc87306_init,
     .close         = pc87306_close,
-    .reset         = NULL,
+    .reset         = pc87306_reset,
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,

@@ -76,7 +76,7 @@ voodoo_fb_readw(uint32_t addr, void *priv)
     }
 
     if (SLI_ENABLED) {
-        voodoo_set_t *set = voodoo->set;
+        const voodoo_set_t *set = voodoo->set;
 
         if (y & 1)
             voodoo = set->voodoos[1];
@@ -117,7 +117,7 @@ voodoo_fb_readl(uint32_t addr, void *priv)
     }
 
     if (SLI_ENABLED) {
-        voodoo_set_t *set = voodoo->set;
+        const voodoo_set_t *set = voodoo->set;
 
         if (y & 1)
             voodoo = set->voodoos[1];
@@ -170,16 +170,16 @@ do_dither(voodoo_params_t *params, rgba8_t col, int x, int y)
 void
 voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    voodoo_t        *voodoo = (voodoo_t *) priv;
-    voodoo_params_t *params = &voodoo->params;
-    int              x;
-    int              y;
-    uint32_t         write_addr;
-    uint32_t         write_addr_aux;
-    rgba8_t          colour_data;
-    uint16_t         depth_data;
-    uint8_t          alpha_data;
-    int              write_mask = 0;
+    voodoo_t              *voodoo = (voodoo_t *) priv;
+    const voodoo_params_t *params = &voodoo->params;
+    int                    x;
+    int                    y;
+    uint32_t               write_addr;
+    uint32_t               write_addr_aux;
+    rgba8_t                colour_data;
+    uint16_t               depth_data;
+    uint8_t                alpha_data;
+    int                    write_mask = 0;
 
     colour_data.r = colour_data.g = colour_data.b = colour_data.a = 0;
 
@@ -310,17 +310,17 @@ skip_pixel:
 void
 voodoo_fb_writel(uint32_t addr, uint32_t val, void *priv)
 {
-    voodoo_t        *voodoo = (voodoo_t *) priv;
-    voodoo_params_t *params = &voodoo->params;
-    int              x;
-    int              y;
-    uint32_t         write_addr;
-    uint32_t         write_addr_aux;
-    rgba8_t          colour_data[2];
-    uint16_t         depth_data[2];
-    uint8_t          alpha_data[2];
-    int              write_mask = 0;
-    int              count = 1;
+    voodoo_t              *voodoo = (voodoo_t *) priv;
+    const voodoo_params_t *params = &voodoo->params;
+    int                    x;
+    int                    y;
+    uint32_t               write_addr;
+    uint32_t               write_addr_aux;
+    rgba8_t                colour_data[2];
+    uint16_t               depth_data[2];
+    uint8_t                alpha_data[2];
+    int                    write_mask = 0;
+    int                    count = 1;
 
     depth_data[0] = depth_data[1] = voodoo->params.zaColor & 0xffff;
     alpha_data[0] = alpha_data[1] = voodoo->params.zaColor >> 24;

@@ -10,14 +10,10 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
- *          Melissa Goad, <mszoopers@protonmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *          RichardG, <richardg867@gmail.com>
  *
- *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
- *          Copyright 2020 Melissa Goad.
  *          Copyright 2020-2021 RichardG.
  */
 #include <stdarg.h>
@@ -1477,9 +1473,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
             case 0xd2:
                 if (dev->local == VIA_PIPC_686B)
                     smbus_piix4_setclock(dev->smbus, (val & 0x04) ? 65536 : 16384);
-#ifdef FALLTHROUGH_ANNOTATION
-                [[fallthrough]];
-#endif
+                fallthrough;
 
             case 0x90:
             case 0x91:
