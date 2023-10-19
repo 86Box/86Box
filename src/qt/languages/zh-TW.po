@@ -1223,4 +1223,4 @@ msgid "Fast"
 msgstr "快"
 
 msgid "&Auto-pause on focus loss"
-msgstr "&失去焦點時自動暫停"
+msgstr "失去焦點時自動暫停(&A)"
