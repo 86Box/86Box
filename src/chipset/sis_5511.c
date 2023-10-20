@@ -360,7 +360,7 @@ sis_5511_slic_read(uint32_t addr, void *priv)
 void
 sis_5513_pci_to_isa_write(int addr, uint8_t val, sis_5511_t *dev)
 {
-    sis_5511_log("SiS 5513 P2I: [W] dev->pci_conf[%02X] = %02X\n", addr, val);
+    sis_5511_log("SiS 5513 P2I: [W] dev->pci_conf_sb[0][%02X] = %02X\n", addr, val);
 
     switch (addr) {
         case 0x04: /* Command */
@@ -452,11 +452,11 @@ sis_5513_ide_irq_handler(sis_5511_t *dev)
     if (dev->pci_conf_sb[1][0x09] & 0x04) {
         /* Secondary IDE is native. */
         sis_5511_log("Secondary IDE IRQ mode: Native, Native\n");
-        sff_set_irq_mode(dev->bm[0], IRQ_MODE_SIS_551X);
+        sff_set_irq_mode(dev->bm[1], IRQ_MODE_SIS_551X);
     } else {
         /* Secondary IDE is legacy. */
         sis_5511_log("Secondary IDE IRQ mode: IRQ14, IRQ15\n");
-        sff_set_irq_mode(dev->bm[0], IRQ_MODE_LEGACY);
+        sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
     }
 }
 
@@ -525,7 +525,7 @@ sis_5513_ide_handler(sis_5511_t *dev)
 void
 sis_5513_ide_write(int addr, uint8_t val, sis_5511_t *dev)
 {
-    sis_5511_log("SiS 5513 IDE: [W] dev->pci_conf[%02X] = %02X\n", addr, val);
+    sis_5511_log("SiS 5513 IDE: [W] dev->pci_conf_sb[1][%02X] = %02X\n", addr, val);
 
     switch (addr) {
         case 0x04: /* Command low byte */
@@ -657,11 +657,11 @@ sis_5513_read(int func, int addr, void *priv)
                 break;
         }
 
-        sis_5511_log("SiS 5513 P2I: [R] dev->pci_conf[%02X] = %02X\n", addr, ret);
+        sis_5511_log("SiS 5513 P2I: [R] dev->pci_conf_sb[0][%02X] = %02X\n", addr, ret);
     } else if (func == 0x01) {
         ret = dev->pci_conf_sb[func][addr];
 
-        sis_5511_log("SiS 5513 IDE: [R] dev->pci_conf[%02X] = %02X\n", addr, ret);
+        sis_5511_log("SiS 5513 IDE: [R] dev->pci_conf_sb[1][%02X] = %02X\n", addr, ret);
     }
 
     return ret;
@@ -721,7 +721,6 @@ sis_5513_isa_write(uint16_t addr, uint8_t val, void *priv)
                 default:
                     break;
             }
-            sis_5511_log("SiS 5513-ISA: dev->regs[%02x] = %02x POST: %02x\n", dev->index + 0x50, dev->regs[dev->index], inb(0x80));
             break;
 
         default:
