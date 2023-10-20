@@ -127,40 +127,43 @@ typedef struct sb_dsp_t {
     int16_t buffer[SOUNDBUFLEN * 2];
     int     pos;
 
+    uint8_t dma16through8;
+
     uint8_t azt_eeprom[AZTECH_EEPROM_SIZE]; /* the eeprom in the Aztech cards is attached to the DSP */
 
     mpu_t *mpu;
 } sb_dsp_t;
 
-void sb_dsp_input_msg(void *priv, uint8_t *msg, uint32_t len);
+extern void sb_dsp_input_msg(void *priv, uint8_t *msg, uint32_t len);
 
-int sb_dsp_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort);
+extern int  sb_dsp_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort);
 
-void sb_dsp_set_mpu(sb_dsp_t *dsp, mpu_t *src_mpu);
+extern void sb_dsp_set_mpu(sb_dsp_t *dsp, mpu_t *src_mpu);
 
-void sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent);
-void sb_dsp_close(sb_dsp_t *dsp);
+extern void sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent);
+extern void sb_dsp_close(sb_dsp_t *dsp);
 
-void sb_dsp_setirq(sb_dsp_t *dsp, int irq);
-void sb_dsp_setdma8(sb_dsp_t *dsp, int dma);
-void sb_dsp_setdma16(sb_dsp_t *dsp, int dma);
-void sb_dsp_setaddr(sb_dsp_t *dsp, uint16_t addr);
+extern void sb_dsp_setirq(sb_dsp_t *dsp, int irq);
+extern void sb_dsp_setdma8(sb_dsp_t *dsp, int dma);
+extern void sb_dsp_setdma16(sb_dsp_t *dsp, int dma);
+extern void sb_dsp_setdma16through8(sb_dsp_t *dsp, int dma16through8);
+extern void sb_dsp_setaddr(sb_dsp_t *dsp, uint16_t addr);
 
-void sb_dsp_speed_changed(sb_dsp_t *dsp);
+extern void sb_dsp_speed_changed(sb_dsp_t *dsp);
 
-void sb_dsp_poll(sb_dsp_t *dsp, int16_t *l, int16_t *r);
+extern void sb_dsp_poll(sb_dsp_t *dsp, int16_t *l, int16_t *r);
 
-void sb_dsp_set_stereo(sb_dsp_t *dsp, int stereo);
+extern void sb_dsp_set_stereo(sb_dsp_t *dsp, int stereo);
 
-void sb_dsp_update(sb_dsp_t *dsp);
-void sb_update_mask(sb_dsp_t *dsp, int irqm8, int irqm16, int irqm401);
+extern void sb_dsp_update(sb_dsp_t *dsp);
+extern void sb_update_mask(sb_dsp_t *dsp, int irqm8, int irqm16, int irqm401);
 
-void sb_dsp_irq_attach(sb_dsp_t *dsp, void (*irq_update)(void *priv, int set), void *priv);
-void sb_dsp_dma_attach(sb_dsp_t *dsp,
-                       int (*dma_readb)(void *priv),
-                       int (*dma_readw)(void *priv),
-                       int (*dma_writeb)(void *priv, uint8_t val),
-                       int (*dma_writew)(void *priv, uint16_t val),
-                       void *priv);
+extern void sb_dsp_irq_attach(sb_dsp_t *dsp, void (*irq_update)(void *priv, int set), void *priv);
+extern void sb_dsp_dma_attach(sb_dsp_t *dsp,
+                              int (*dma_readb)(void *priv),
+                              int (*dma_readw)(void *priv),
+                              int (*dma_writeb)(void *priv, uint8_t val),
+                              int (*dma_writew)(void *priv, uint16_t val),
+                              void *priv);
 
 #endif /* SOUND_SND_SB_DSP_H */

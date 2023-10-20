@@ -65,7 +65,7 @@ static int sb_commands[256] = {
 };
 
 char     sb16_copyright[]  = "COPYRIGHT (C) CREATIVE TECHNOLOGY LTD, 1992.";
-uint16_t sb_dsp_versions[] = { 0, 0, 0x105, 0x200, 0x201, 0x300, 0x302, 0x405, 0x40d, 0x410 };
+uint16_t sb_dsp_versions[] = { 0, 0, 0x105, 0x200, 0x201, 0x300, 0x302, 0x405, 0x40c, 0x40d, 0x410 };
 
 /*These tables were 'borrowed' from DOSBox*/
 int8_t scaleMap4[64] = {
@@ -427,22 +427,57 @@ int
 sb_16_read_dma(void *priv)
 {
     const sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    int temp, ret = 0;
+    int dma_flags;
 
-    return dma_channel_read(dsp->sb_16_dmanum);
+    if (dsp->dma16through8) {
+        temp = dma_channel_read(dsp->sb_16_dmanum);
+        ret = temp;
+        if ((temp != DMA_NODATA) && !(temp & DMA_OVER)) {
+            temp = dma_channel_read(dsp->sb_16_dmanum);
+            if (temp == DMA_NODATA)
+                ret = DMA_NODATA;
+            else {
+                dma_flags = temp & DMA_OVER;
+                temp &= ~DMA_OVER;
+                ret |= (temp << 8) | dma_flags;
+           }
+        }
+    } else
+        ret = dma_channel_read(dsp->sb_16_dmanum);
+
+    return ret;
 }
 
 int
 sb_16_write_dma(void *priv, uint16_t val)
 {
     const sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    int temp, ret = 0;
+ 
+    if (dsp->dma16through8) {
+        temp = dma_channel_write(dsp->sb_16_dmanum, val & 0xff);
+        ret = temp;
+        if ((temp != DMA_NODATA) && (temp != DMA_OVER)) {
+            temp = dma_channel_write(dsp->sb_16_dmanum, val >> 8);
+            ret = temp;
+        }
+    } else
+        ret = dma_channel_write(dsp->sb_16_dmanum, val) == DMA_NODATA;
 
-    return dma_channel_write(dsp->sb_16_dmanum, val) == DMA_NODATA;
+    return ret;
 }
 
 void
 sb_dsp_setirq(sb_dsp_t *dsp, int irq)
 {
     dsp->sb_irqnum = irq;
+}
+
+void
+sb_dsp_setdma16through8(sb_dsp_t *dsp, int dma16through8)
+{
+    dsp->dma16through8 = dma16through8;
 }
 
 void
@@ -670,7 +705,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xB6:
         case 0xB7: /* 16-bit DMA output */
             if (dsp->sb_type >= SB16) {
-                sb_start_dma(dsp, 0, dsp->sb_command & 4, dsp->sb_data[0], dsp->sb_data[1] + (dsp->sb_data[2] << 8));
+                sb_start_dma(dsp, 0, dsp->sb_command & 4, dsp->sb_data[0],
+                             dsp->sb_data[1] + (dsp->sb_data[2] << 8));
                 dsp->sb_16_autolen = dsp->sb_data[1] + (dsp->sb_data[2] << 8);
             }
             break;
@@ -683,7 +719,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xBE:
         case 0xBF: /* 16-bit DMA input */
             if (dsp->sb_type >= SB16) {
-                sb_start_dma_i(dsp, 0, dsp->sb_command & 4, dsp->sb_data[0], dsp->sb_data[1] + (dsp->sb_data[2] << 8));
+                sb_start_dma_i(dsp, 0, dsp->sb_command & 4, dsp->sb_data[0],
+                               dsp->sb_data[1] + (dsp->sb_data[2] << 8));
                 dsp->sb_16_autolen = dsp->sb_data[1] + (dsp->sb_data[2] << 8);
             }
             break;
@@ -696,7 +733,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xC6:
         case 0xC7: /* 8-bit DMA output */
             if (dsp->sb_type >= SB16) {
-                sb_start_dma(dsp, 1, dsp->sb_command & 4, dsp->sb_data[0], dsp->sb_data[1] + (dsp->sb_data[2] << 8));
+                sb_start_dma(dsp, 1, dsp->sb_command & 4, dsp->sb_data[0],
+                             dsp->sb_data[1] + (dsp->sb_data[2] << 8));
                 dsp->sb_8_autolen = dsp->sb_data[1] + (dsp->sb_data[2] << 8);
             }
             break;
@@ -709,7 +747,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xCE:
         case 0xCF: /* 8-bit DMA input */
             if (dsp->sb_type >= SB16) {
-                sb_start_dma_i(dsp, 1, dsp->sb_command & 4, dsp->sb_data[0], dsp->sb_data[1] + (dsp->sb_data[2] << 8));
+                sb_start_dma_i(dsp, 1, dsp->sb_command & 4, dsp->sb_data[0],
+                               dsp->sb_data[1] + (dsp->sb_data[2] << 8));
                 dsp->sb_8_autolen = dsp->sb_data[1] + (dsp->sb_data[2] << 8);
             }
             break;

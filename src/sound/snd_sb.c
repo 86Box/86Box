@@ -839,12 +839,21 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
                     sb_dsp_setdma8(&sb->dsp, 1);
                 if (val & 0x08)
                     sb_dsp_setdma8(&sb->dsp, 3);
-                if (val & 0x20)
-                    sb_dsp_setdma16(&sb->dsp, 5);
-                if (val & 0x40)
-                    sb_dsp_setdma16(&sb->dsp, 6);
-                if (val & 0x80)
-                    sb_dsp_setdma16(&sb->dsp, 7);
+                if (sb->dsp.dma16through8) {
+                    if (val & 0x10)
+                        sb_dsp_setdma16(&sb->dsp, 0);
+                    if (val & 0x20)
+                        sb_dsp_setdma16(&sb->dsp, 1);
+                    if (val & 0x80)
+                        sb_dsp_setdma16(&sb->dsp, 3);
+                } else {
+                    if (val & 0x20)
+                        sb_dsp_setdma16(&sb->dsp, 5);
+                    if (val & 0x40)
+                        sb_dsp_setdma16(&sb->dsp, 6);
+                    if (val & 0x80)
+                        sb_dsp_setdma16(&sb->dsp, 7);
+                }
                 break;
 
             case 0x83:
@@ -1023,7 +1032,20 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                     default:
                         break;
                 }
-                switch (sb->dsp.sb_16_dmanum) {
+                if (sb->dsp.dma16through8)  switch (sb->dsp.sb_16_dmanum) {
+                    case 0:
+                        ret |= 0x10;
+                        break;
+                    case 1:
+                        ret |= 0x20;
+                        break;
+                    case 3:
+                        ret |= 0x80;
+                        break;
+
+                    default:
+                        break;
+                } else  switch (sb->dsp.sb_16_dmanum) {
                     case 5:
                         ret |= 0x20;
                         break;
@@ -1041,8 +1063,8 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
 
             case 0x82:
                 /* The Interrupt status register, addressed as register 82h on the Mixer register map,
-                   is used by the ISR to determine whether the interrupt is meant for it or for some other ISR,
-                   in which case it should chain to the previous routine. */
+                   is used by the ISR to determine whether the interrupt is meant for it or for some
+                   other ISR, in which case it should chain to the previous routine. */
                 /* 0 = none, 1 =  digital 8bit or SBMIDI, 2 = digital 16bit, 4 = MPU-401 */
                 /* 0x02000 DSP v4.04, 0x4000 DSP v4.05, 0x8000 DSP v4.12.
                    I haven't seen this making any difference, but I'm keeping it for now. */
@@ -2078,7 +2100,7 @@ sb_16_init(UNUSED(const device_t *info))
     if (sb->opl_enabled)
         fm_driver_get(info->local, &sb->opl);
 
-    sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, (info->local == FM_YMF289B) ? SBAWE32PNP : SB16, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
@@ -2227,7 +2249,10 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     sb->opl_enabled = 1;
     fm_driver_get(FM_YMF262, &sb->opl);
 
-    sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, (info->local == 0) ? SBAWE64 : SBAWE32PNP, SB_SUBTYPE_DEFAULT, sb);
+    /* The ViBRA 16XV does 16-bit DMA through 8-bit DMA. */
+    if (info->local == 0)
+        sb_dsp_setdma16through8(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled            = 1;
@@ -2428,7 +2453,8 @@ sb_awe32_pnp_init(const device_t *info)
     sb->opl_enabled = 1;
     fm_driver_get(FM_YMF262, &sb->opl);
 
-    sb_dsp_init(&sb->dsp, ((info->local == 2) || (info->local == 3) || (info->local == 4)) ? SBAWE64 : SBAWE32, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, ((info->local == 2) || (info->local == 3) || (info->local == 4)) ?
+                SBAWE64 : SBAWE32PNP, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled            = 1;
