@@ -757,7 +757,7 @@ machine_at_ms5124_init(const machine_t *model)
 
     device_add(&sis_5511_device);
     device_add(&keyboard_ps2_ami_device);
-    device_add(&w83787f_device);
+    device_add(&w83787f_88h_device);
     device_add(&sst_flash_29ee010_device);
 
     return ret;
