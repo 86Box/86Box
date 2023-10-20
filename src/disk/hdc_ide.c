@@ -1069,7 +1069,7 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
 {
     scsi_common_t *dev = ide->sc;
 
-    ide_irq_lower(ide_drives[ide->board]);
+    ide_irq_lower(ide);
 
     dev->status = BSY_STAT;
 
