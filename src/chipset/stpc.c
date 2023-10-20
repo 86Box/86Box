@@ -929,11 +929,9 @@ stpc_init(const device_t *info)
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
     dev->bm[1] = device_add_inst(&sff8038i_device, 2);
 
-    sff_set_irq_mode(dev->bm[0], 0, 0);
-    sff_set_irq_mode(dev->bm[0], 1, 0);
+    sff_set_irq_mode(dev->bm[0], IRQ_MODE_LEGACY);
 
-    sff_set_irq_mode(dev->bm[1], 0, 0);
-    sff_set_irq_mode(dev->bm[1], 1, 0);
+    sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
 
     stpc_setup(dev);
     stpc_reset(dev);

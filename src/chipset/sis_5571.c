@@ -703,8 +703,8 @@ sis_5571_reset(void *priv)
     dev->pci_conf_sb[1][0x4a] = 0x06;
     sff_set_slot(dev->ide_drive[0], dev->sb_slot);
     sff_set_slot(dev->ide_drive[1], dev->sb_slot);
-    sff_bus_master_reset(dev->ide_drive[0], BUS_MASTER_BASE);
-    sff_bus_master_reset(dev->ide_drive[1], BUS_MASTER_BASE + 8);
+    sff_bus_master_reset(dev->ide_drive[0]);
+    sff_bus_master_reset(dev->ide_drive[1]);
 
     /* USB Controller */
     dev->pci_conf_sb[2][0x00] = 0x39;

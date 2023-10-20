@@ -147,10 +147,14 @@
 
 #define pci_set_mirq(mirq, level, irq_state) \
         pci_irq(PCI_MIRQ_BASE | (mirq), 0, level, 1, irq_state)
+#define pci_set_dirq(irq, irq_state) \
+        pci_irq(PCI_DIRQ_BASE | (irq), 0, 1, 1, irq_state)
 #define pci_set_irq(slot, pci_int, irq_state) \
         pci_irq(slot, pci_int, 0, 1, irq_state)
 #define pci_clear_mirq(mirq, level, irq_state) \
         pci_irq(PCI_MIRQ_BASE | (mirq), 0, level, 0, irq_state)
+#define pci_clear_dirq(dirq, irq_state) \
+        pci_irq(PCI_DIRQ_BASE | (irq), 0, 1, 0, irq_state)
 #define pci_clear_irq(slot, pci_int, irq_state) \
         pci_irq(slot, pci_int, 0, 0, irq_state)
 
@@ -216,7 +220,9 @@ extern uint32_t    pci_size;
 extern void        pci_set_irq_routing(int pci_int, int irq);
 extern void        pci_set_irq_level(int pci_int, int level);
 extern void        pci_enable_mirq(int mirq);
-extern void        pci_set_mirq_routing(int mirq, int irq);
+extern void        pci_set_mirq_routing(int mirq, uint8_t irq);
+extern uint8_t     pci_get_mirq_level(int mirq);
+extern void        pci_set_mirq_level(int mirq, uint8_t irq);
 
 /* PCI raise IRQ: the first parameter is slot if < PCI_MIRQ_BASE, MIRQ if >= PCI_MIRQ_BASE
                   and < PCI_DIRQ_BASE, and direct IRQ line if >= PCI_DIRQ_BASE (RichardG's

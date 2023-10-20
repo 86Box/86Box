@@ -716,18 +716,18 @@ machine_at_ap5s_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
-    pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 4, 2, 1);
-    pci_register_slot(0x13, PCI_CARD_NORMAL,      4, 3, 2, 1);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&sis_5511_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&keyboard_ps2_ami_device);
     device_add(&fdc37c665_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -745,18 +745,18 @@ machine_at_ms5124_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0xFE, 0xFF, 0, 0);
-    pci_register_slot(0x10, PCI_CARD_NORMAL,      0x41, 0x42, 0x43, 0x44);
-    pci_register_slot(0x11, PCI_CARD_NORMAL,      0x44, 0x41, 0x42, 0x43);
-    pci_register_slot(0x12, PCI_CARD_NORMAL,      0x43, 0x44, 0x41, 0x42);
-    pci_register_slot(0x0F, PCI_CARD_NORMAL,      0x42, 0x43, 0x44, 0x41);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
 
     device_add(&sis_5511_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&keyboard_ps2_ami_device);
     device_add(&w83787f_device);
     device_add(&sst_flash_29ee010_device);
 

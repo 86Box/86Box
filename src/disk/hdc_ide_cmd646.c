@@ -73,31 +73,41 @@ cmd646_log(const char *fmt, ...)
 #endif
 
 static void
-cmd646_set_irq(int channel, void *priv)
+cmd646_set_irq_0(uint8_t status, void *priv)
 {
     cmd646_t *dev = (cmd646_t *) priv;
 
-    if (channel & 0x01) {
-        if (!(dev->regs[0x57] & 0x10) || (channel & 0x40)) {
-            dev->regs[0x57] &= ~0x10;
-            dev->regs[0x57] |= (channel >> 2);
-        }
-    } else {
-        if (!(dev->regs[0x50] & 0x04) || (channel & 0x40)) {
-            dev->regs[0x50] &= ~0x04;
-            dev->regs[0x50] |= (channel >> 4);
-        }
-    }
+    if (!(dev->regs[0x50] & 0x04) || (status & 0x04))
+        dev->regs[0x50] = (dev->regs[0x50] & ~0x04) | status;
 
-    sff_bus_master_set_irq(channel, dev->bm[channel & 0x01]);
+    sff_bus_master_set_irq(status, dev->bm[0]);
+}
+
+static void
+cmd646_set_irq_1(uint8_t status, void *priv)
+{
+    cmd646_t *dev = (cmd646_t *) priv;
+
+    if (!(dev->regs[0x57] & 0x10) || (status & 0x04))
+        dev->regs[0x57] = (dev->regs[0x57] & ~0x10) | (status << 2);
+
+    sff_bus_master_set_irq(status, dev->bm[1]);
 }
 
 static int
-cmd646_bus_master_dma(int channel, uint8_t *data, int transfer_length, int out, void *priv)
+cmd646_bus_master_dma_0(uint8_t *data, int transfer_length, int out, void *priv)
 {
     const cmd646_t *dev = (cmd646_t *) priv;
 
-    return sff_bus_master_dma(channel, data, transfer_length, out, dev->bm[channel & 0x01]);
+    return sff_bus_master_dma(data, transfer_length, out, dev->bm[0]);
+}
+
+static int
+cmd646_bus_master_dma_1(uint8_t *data, int transfer_length, int out, void *priv)
+{
+    const cmd646_t *dev = (cmd646_t *) priv;
+
+    return sff_bus_master_dma(data, transfer_length, out, dev->bm[1]);
 }
 
 static void
@@ -105,7 +115,7 @@ cmd646_ide_handlers(cmd646_t *dev)
 {
     uint16_t main;
     uint16_t side;
-    int      irq_mode[2] = { 0, 0 };
+    int      irq_mode[2] = { IRQ_MODE_LEGACY, IRQ_MODE_LEGACY };
 
     sff_set_slot(dev->bm[0], dev->pci_slot);
     sff_set_slot(dev->bm[1], dev->pci_slot);
@@ -124,10 +134,9 @@ cmd646_ide_handlers(cmd646_t *dev)
     ide_set_side(0, side);
 
     if (dev->regs[0x09] & 0x01)
-        irq_mode[0] = 1;
+        irq_mode[0] = IRQ_MODE_PCI_IRQ_PIN;
 
-    sff_set_irq_mode(dev->bm[0], 0, irq_mode[0]);
-    sff_set_irq_mode(dev->bm[0], 1, irq_mode[1]);
+    sff_set_irq_mode(dev->bm[0], irq_mode[0]);
 
     if (dev->regs[0x04] & 0x01)
         ide_pri_enable();
@@ -151,8 +160,7 @@ cmd646_ide_handlers(cmd646_t *dev)
     if (dev->regs[0x09] & 0x04)
         irq_mode[1] = 1;
 
-    sff_set_irq_mode(dev->bm[1], 0, irq_mode[0]);
-    sff_set_irq_mode(dev->bm[1], 1, irq_mode[1]);
+    sff_set_irq_mode(dev->bm[1], irq_mode[1]);
 
     if ((dev->regs[0x04] & 0x01) && (dev->regs[0x51] & 0x08))
         ide_sec_enable();
@@ -321,8 +329,8 @@ cmd646_reset(void *priv)
             mo_reset((scsi_common_t *) mo_drives[i].priv);
     }
 
-    cmd646_set_irq(0x00, priv);
-    cmd646_set_irq(0x01, priv);
+    cmd646_set_irq_0(0x00, priv);
+    cmd646_set_irq_1(0x00, priv);
 
     memset(dev->regs, 0x00, sizeof(dev->regs));
 
@@ -401,17 +409,14 @@ cmd646_init(const device_t *info)
     if (!dev->single_channel)
         dev->bm[1] = device_add_inst(&sff8038i_device, 2);
 
-    ide_set_bus_master(0, cmd646_bus_master_dma, cmd646_set_irq, dev);
+    ide_set_bus_master(0, cmd646_bus_master_dma_0, cmd646_set_irq_0, dev);
     if (!dev->single_channel)
-        ide_set_bus_master(1, cmd646_bus_master_dma, cmd646_set_irq, dev);
+        ide_set_bus_master(1, cmd646_bus_master_dma_1, cmd646_set_irq_1, dev);
 
-    sff_set_irq_mode(dev->bm[0], 0, 0);
-    sff_set_irq_mode(dev->bm[0], 1, 0);
+    sff_set_irq_mode(dev->bm[0], IRQ_MODE_LEGACY);
 
-    if (!dev->single_channel) {
-        sff_set_irq_mode(dev->bm[1], 0, 0);
-        sff_set_irq_mode(dev->bm[1], 1, 0);
-    }
+    if (!dev->single_channel)
+        sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
 
     cmd646_reset(dev);
 

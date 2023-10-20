@@ -498,6 +498,41 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
     }
 }
 
+uint8_t
+pitf_read_reg(void *priv, uint8_t reg)
+{
+    pitf_t *dev = (pitf_t *) priv;
+    uint8_t ret = 0xff;
+
+    switch (reg) {
+        case 0x00:
+        case 0x02:
+        case 0x04:
+            ret = dev->counters[reg >> 1].l & 0xff;
+            break;
+        case 0x01:
+        case 0x03:
+        case 0x05:
+            ret = (dev->counters[reg >> 1].l >> 8) & 0xff;
+            break;
+        case 0x06:
+            ret = dev->ctrl;
+            break;
+        case 0x07:
+            /* The SiS 551x datasheet is unclear about how exactly
+               this register is structured. */
+            ret = (dev->counters[0].rm & 0x80) ? 0x01 : 0x00;
+            ret = (dev->counters[0].wm & 0x80) ? 0x02 : 0x00;
+            ret = (dev->counters[1].rm & 0x80) ? 0x04 : 0x00;
+            ret = (dev->counters[1].wm & 0x80) ? 0x08 : 0x00;
+            ret = (dev->counters[2].rm & 0x80) ? 0x10 : 0x00;
+            ret = (dev->counters[2].wm & 0x80) ? 0x20 : 0x00;
+            break;
+    }
+
+    return ret;
+}
+
 static uint8_t
 pitf_read(uint16_t addr, void *priv)
 {
@@ -654,7 +689,7 @@ pitf_init(const device_t *info)
 const device_t i8253_fast_device = {
     .name          = "Intel 8253/8253-5 Programmable Interval Timer",
     .internal_name = "i8253_fast",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA | DEVICE_PIT,
     .local         = PIT_8253,
     .init          = pitf_init,
     .close         = pitf_close,
@@ -668,7 +703,7 @@ const device_t i8253_fast_device = {
 const device_t i8254_fast_device = {
     .name          = "Intel 8254 Programmable Interval Timer",
     .internal_name = "i8254_fast",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA | DEVICE_PIT,
     .local         = PIT_8254,
     .init          = pitf_init,
     .close         = pitf_close,

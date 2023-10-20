@@ -333,6 +333,23 @@ device_reset_all(uint32_t match_flags)
 }
 
 void *
+device_find_first_priv(uint32_t match_flags)
+{
+    void *ret = NULL;
+
+    for (uint16_t c = 0; c < DEVICE_MAX; c++) {
+        if (devices[c] != NULL) {
+            if ((device_priv[c] != NULL) && (devices[c]->flags & match_flags)) {
+                ret = device_priv[c];
+                break;
+            }
+        }
+    }
+
+    return ret;
+}
+
+void *
 device_get_priv(const device_t *dev)
 {
     for (uint16_t c = 0; c < DEVICE_MAX; c++) {

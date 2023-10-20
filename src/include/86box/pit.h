@@ -131,6 +131,8 @@ extern void pit_nmi_timer_ps2(int new_out, int old_out);
 extern void pit_set_clock(uint32_t clock);
 extern void pit_handler(int set, uint16_t base, int size, void *priv);
 
+extern uint8_t pit_read_reg(void *priv, uint8_t reg);
+
 #ifdef EMU_DEVICE_H
 extern const device_t i8253_device;
 extern const device_t i8254_device;

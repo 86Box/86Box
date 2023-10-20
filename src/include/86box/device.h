@@ -86,6 +86,8 @@ enum {
     DEVICE_ONBOARD   = 0x20000000, /* is on-board */
     DEVICE_EXTPARAMS = 0x40000000, /* accepts extended parameters */
 
+    DEVICE_PIT       = 0x80000000, /* device is a PIT */
+
     DEVICE_ALL       = 0xffffffff  /* match all devices */
 };
 
@@ -188,6 +190,7 @@ extern void  device_cadd_inst_ex(const device_t *dev, const device_t *cd, void *
 extern void  device_cadd_inst_ex_parameters(const device_t *dev, const device_t *cd, void *priv, int inst, void *params);
 extern void  device_close_all(void);
 extern void  device_reset_all(uint32_t match_flags);
+extern void *device_find_first_priv(uint32_t match_flags);
 extern void *device_get_priv(const device_t *dev);
 extern int   device_available(const device_t *dev);
 extern int   device_poll(const device_t *dev);
