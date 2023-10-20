@@ -1223,4 +1223,4 @@ msgid "Fast"
 msgstr "速い"
 
 msgid "&Auto-pause on focus loss"
-msgstr "フォーカスが外れると自動ポーズ(&A)"
+msgstr "フォーカスが奪われると自動停止(&A)"
