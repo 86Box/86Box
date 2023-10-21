@@ -521,6 +521,48 @@ sb16_awe32_filter_cd_audio(int channel, double *buffer, void *priv)
 }
 
 void
+sb16_awe32_filter_pc_speaker(int channel, double *buffer, void *priv)
+{
+    const sb_t              *sb    = (sb_t *) priv;
+    const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
+    double                   c;
+    double                   spk    = mixer->speaker;
+    double                   master = channel ? mixer->master_r : mixer->master_l;
+    int32_t                  bass   = channel ? mixer->bass_r : mixer->bass_l;
+    int32_t                  treble = channel ? mixer->treble_r : mixer->treble_l;
+    double                   bass_treble;
+    double                   output_gain = (channel ? mixer->output_gain_R : mixer->output_gain_L);
+
+    if (mixer->output_filter)
+        c = (low_fir_sb16(2, channel, *buffer) * spk) / 3.0;
+    else
+        c = ((*buffer) * spk) / 3.0;
+    c *= master;
+
+    /* This is not exactly how one does bass/treble controls, but the end result is like it.
+       A better implementation would reduce the CPU usage. */
+    if (bass != 8) {
+        bass_treble = sb_bass_treble_4bits[bass];
+
+        if (bass > 8)
+            c += (low_iir(2, channel, c) * bass_treble);
+        else if (bass < 8)
+            c = (c * bass_treble + low_cut_iir(1, channel, c) * (1.0 - bass_treble));
+    }
+
+    if (treble != 8) {
+        bass_treble = sb_bass_treble_4bits[treble];
+
+        if (treble > 8)
+            c += (high_iir(2, channel, c) * bass_treble);
+        else if (treble < 8)
+            c = (c * bass_treble + high_cut_iir(1, channel, c) * (1.0 - bass_treble));
+    }
+
+    *buffer = c * output_gain;
+}
+
+void
 sb_ct1335_mixer_write(uint16_t addr, uint8_t val, void *priv)
 {
     sb_t              *sb    = (sb_t *) priv;
@@ -743,6 +785,8 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
            SoundBlaster 16 sets bit 7 if previous mixer index invalid.
            Status bytes initially 080h on startup for all but level bytes (SB16). */
 
+        sb_log("CT1745: [W] %02X = %02X\n", mixer->index, val);
+
         if (mixer->index == 0) {
             /* Reset: Changed defaults from -14dB to 0dB */
 
@@ -764,7 +808,12 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
             mixer->regs[0x44] = mixer->regs[0x45] = 0x80;
             mixer->regs[0x46] = mixer->regs[0x47] = 0x80;
 
+            /* 0x43 = Mic AGC (Automatic Gain Control?) according to Linux's sb.h.
+                      NSC LM4560 datasheet: Bit 0: 1 = Enable, 0 = Disable;
+                      Another source says this: Bit 0: 0 = AGC on (default), 1 = Fixed gain of 20 dB. */
             mixer->regs[0x43] = 0x00;
+
+            mixer->regs[0x49] = mixer->regs[0x4a] = 0x80;
 
             mixer->regs[0x83]  = 0xff;
             sb->dsp.sb_irqm8   = 0;
@@ -820,38 +869,35 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
 
                Note: Registers 80h and 81h are Read-only for PnP boards. */
             case 0x80:
-                if (val & 0x01)
-                    sb_dsp_setirq(&sb->dsp, 2);
-                if (val & 0x02)
-                    sb_dsp_setirq(&sb->dsp, 5);
-                if (val & 0x04)
-                    sb_dsp_setirq(&sb->dsp, 7);
-                if (val & 0x08)
-                    sb_dsp_setirq(&sb->dsp, 10);
+                if (!sb->pnp) {
+                    if (val & 0x01)
+                        sb_dsp_setirq(&sb->dsp, 2);
+                    if (val & 0x02)
+                        sb_dsp_setirq(&sb->dsp, 5);
+                    if (val & 0x04)
+                        sb_dsp_setirq(&sb->dsp, 7);
+                    if (val & 0x08)
+                        sb_dsp_setirq(&sb->dsp, 10);
+                }
                 break;
 
             case 0x81:
                 /* The documentation is confusing. sounds as if multple dma8 channels could
                    be set. */
-                if (val & 0x01)
-                    sb_dsp_setdma8(&sb->dsp, 0);
-                if (val & 0x02)
-                    sb_dsp_setdma8(&sb->dsp, 1);
-                if (val & 0x08)
-                    sb_dsp_setdma8(&sb->dsp, 3);
-                if (sb->dsp.dma16through8) {
-                    if (val & 0x10)
-                        sb_dsp_setdma16(&sb->dsp, 0);
-                    if (val & 0x20)
-                        sb_dsp_setdma16(&sb->dsp, 1);
-                    if (val & 0x80)
-                        sb_dsp_setdma16(&sb->dsp, 3);
-                } else {
+                if (!sb->pnp) {
+                    if (val & 0x01)
+                        sb_dsp_setdma8(&sb->dsp, 0);
+                    else if (val & 0x02)
+                        sb_dsp_setdma8(&sb->dsp, 1);
+                    else if (val & 0x08)
+                        sb_dsp_setdma8(&sb->dsp, 3);
+
+                    sb_dsp_setdma16(&sb->dsp, 4);
                     if (val & 0x20)
                         sb_dsp_setdma16(&sb->dsp, 5);
-                    if (val & 0x40)
+                    else if (val & 0x40)
                         sb_dsp_setdma16(&sb->dsp, 6);
-                    if (val & 0x80)
+                    else if (val & 0x80)
                         sb_dsp_setdma16(&sb->dsp, 7);
                 }
                 break;
@@ -872,19 +918,21 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
                        0, 0 = 200-207h;
                        0, 1 = Disabled
                  */
-                if (sb->mpu != NULL) {
-                    if ((val & 0x06) == 0x00)
-                        mpu401_change_addr(sb->mpu, 0x330);
-                    else if ((val & 0x06) == 0x04)
-                        mpu401_change_addr(sb->mpu, 0x300);
-                    else if ((val & 0x06) == 0x02)
-                        mpu401_change_addr(sb->mpu, 0);
-                }
-                sb->gameport_addr = 0;
-                gameport_remap(sb->gameport, 0);
-                if (!(val & 0x01)) {
-                    sb->gameport_addr = 0x200;
-                    gameport_remap(sb->gameport, 0x200);
+                if (!sb->pnp) {
+                    if (sb->mpu != NULL) {
+                        if ((val & 0x06) == 0x00)
+                            mpu401_change_addr(sb->mpu, 0x330);
+                        else if ((val & 0x06) == 0x04)
+                            mpu401_change_addr(sb->mpu, 0x300);
+                        else if ((val & 0x06) == 0x02)
+                            mpu401_change_addr(sb->mpu, 0);
+                    }
+                    sb->gameport_addr = 0;
+                    gameport_remap(sb->gameport, 0);
+                    if (!(val & 0x01)) {
+                        sb->gameport_addr = 0x200;
+                        gameport_remap(sb->gameport, 0x200);
+                    }
                 }
                 break;
 
@@ -940,7 +988,7 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
 
     if ((mixer->index >= 0x30) && (mixer->index <= 0x47))
         ret = mixer->regs[mixer->index];
-    else
+    else {
         switch (mixer->index) {
             case 0x00:
                 ret = mixer->regs[mixer->index];
@@ -1032,20 +1080,7 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                     default:
                         break;
                 }
-                if (sb->dsp.dma16through8)  switch (sb->dsp.sb_16_dmanum) {
-                    case 0:
-                        ret |= 0x10;
-                        break;
-                    case 1:
-                        ret |= 0x20;
-                        break;
-                    case 3:
-                        ret |= 0x80;
-                        break;
-
-                    default:
-                        break;
-                } else  switch (sb->dsp.sb_16_dmanum) {
+                switch (sb->dsp.sb_16_dmanum) {
                     case 5:
                         ret |= 0x20;
                         break;
@@ -1054,9 +1089,6 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                         break;
                     case 7:
                         ret |= 0x80;
-                        break;
-
-                    default:
                         break;
                 }
                 break;
@@ -1069,8 +1101,13 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                 /* 0x02000 DSP v4.04, 0x4000 DSP v4.05, 0x8000 DSP v4.12.
                    I haven't seen this making any difference, but I'm keeping it for now. */
                 /* If QEMU is any indication, then the values are actually 0x20, 0x40, and 0x80. */
-                temp = ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) | ((sb->dsp.sb_irq401) ? 4 : 0) | 0x40;
-                ret  = temp;
+                /* http://the.earth.li/~tfm/oldpage/sb_mixer.html - 0x10, 0x20, 0x80. */
+                temp = ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) |
+                       ((sb->dsp.sb_irq401) ? 4 : 0);
+                if (sb->dsp.sb_type >= SBAWE32)
+                    ret  = temp | 0x80;
+                else
+                    ret  = temp | 0x40;
                 break;
 
             case 0x83:
@@ -1096,24 +1133,34 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                     ret |= 0x01;
                 break;
 
-            case 0x90:
-                /* 3D Enhancement switch. */
+            case 0x49:    /* Undocumented register used by some Creative drivers. */
+            case 0x4a:    /* Undocumented register used by some Creative drivers. */
+            case 0x8c:    /* Undocumented register used by some Creative drivers. */
+            case 0x8e:    /* Undocumented register used by some Creative drivers. */
+            case 0x90:    /* 3D Enhancement switch. */
+            case 0xfd:    /* Undocumented register used by some Creative drivers. */
+            case 0xfe:    /* Undocumented register used by some Creative drivers. */
                 ret = mixer->regs[mixer->index];
                 break;
 
-            /* TODO: creative drivers read and write on 0xFE and 0xFF. not sure what they are supposed to be. */
-            case 0xfd:
-                ret = 16;
-                break;
-
-            case 0xfe:
-                ret = 6;
+            case 0xff:    /* Undocumented register used by some Creative drivers.
+                             This and the upper bits of 0x82 seem to affect the
+                             playback volume:
+                             - Register FF = FF: Volume playback normal.
+                             - Register FF = Not FF: Volume playback low unless
+                                             bit 6 of 82h is set. */
+                if (sb->dsp.sb_type >= SBAWE32)
+                    ret = mixer->regs[mixer->index];
                 break;
 
             default:
+                fatal("Unknown register: %02X\n", mixer->index);
                 sb_log("sb_ct1745: Unknown register READ: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
                 break;
         }
+
+        sb_log("CT1745: [R] %02X = %02X\n", mixer->index, ret);
+    }
 
     sb_log("CT1745: read  REG%02X: %02X\n", mixer->index, ret);
 
@@ -1125,9 +1172,6 @@ sb_ct1745_mixer_reset(sb_t *sb)
 {
     sb_ct1745_mixer_write(4, 0, sb);
     sb_ct1745_mixer_write(5, 0, sb);
-
-    sb->mixer_sb16.regs[0xfd] = 16;
-    sb->mixer_sb16.regs[0xfe] = 6;
 }
 
 uint8_t
@@ -2128,6 +2172,8 @@ sb_16_init(UNUSED(const device_t *info))
                   sb_ct1745_mixer_write, NULL, NULL, sb);
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
+    if (device_get_config_int("control_pc_speaker"))
+        sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
     if (mpu_addr) {
         sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
@@ -2162,6 +2208,8 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
+    if (device_get_config_int("control_pc_speaker"))
+        sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
     sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
     memset(sb->mpu, 0, sizeof(mpu_t));
@@ -2189,6 +2237,8 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     sb_t *sb = malloc(sizeof(sb_t));
     memset(sb, 0x00, sizeof(sb_t));
 
+    sb->pnp = 1;
+
     sb->opl_enabled = 1;
     fm_driver_get(FM_YMF262, &sb->opl);
 
@@ -2199,6 +2249,8 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
+    if (device_get_config_int("control_pc_speaker"))
+        sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
     sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
     memset(sb->mpu, 0, sizeof(mpu_t));
@@ -2246,6 +2298,8 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     sb_t *sb = malloc(sizeof(sb_t));
     memset(sb, 0x00, sizeof(sb_t));
 
+    sb->pnp = 1;
+
     sb->opl_enabled = 1;
     fm_driver_get(FM_YMF262, &sb->opl);
 
@@ -2259,6 +2313,8 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
+    if (device_get_config_int("control_pc_speaker"))
+        sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
     sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
     memset(sb->mpu, 0, sizeof(mpu_t));
@@ -2422,6 +2478,8 @@ sb_awe32_init(UNUSED(const device_t *info))
                   sb_ct1745_mixer_write, NULL, NULL, sb);
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
+    if (device_get_config_int("control_pc_speaker"))
+        sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
     if (mpu_addr) {
         sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
@@ -2450,6 +2508,8 @@ sb_awe32_pnp_init(const device_t *info)
 
     memset(sb, 0x00, sizeof(sb_t));
 
+    sb->pnp = 1;
+
     sb->opl_enabled = 1;
     fm_driver_get(FM_YMF262, &sb->opl);
 
@@ -2461,6 +2521,8 @@ sb_awe32_pnp_init(const device_t *info)
     sb->mixer_sb16.output_filter = 1;
     sound_add_handler(sb_get_buffer_sb16_awe32, sb);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
+    if (device_get_config_int("control_pc_speaker"))
+        sound_set_pc_speaker_filter(sb16_awe32_filter_pc_speaker, sb);
 
     sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
     memset(sb->mpu, 0, sizeof(mpu_t));
@@ -3218,6 +3280,13 @@ static const device_config_t sb_16_config[] = {
         .default_int = 1
     },
     {
+        .name = "control_pc_speaker",
+        .description = "Control PC speaker",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
+    {
         .name = "receive_input",
         .description = "Receive input (SB MIDI)",
         .type = CONFIG_BINARY,
@@ -3235,6 +3304,13 @@ static const device_config_t sb_16_config[] = {
 };
 
 static const device_config_t sb_16_pnp_config[] = {
+    {
+        .name = "control_pc_speaker",
+        .description = "Control PC speaker",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
     {
         .name = "receive_input",
         .description = "Receive input (SB MIDI)",
@@ -3284,6 +3360,13 @@ static const device_config_t sb_32_pnp_config[] = {
             },
             { .description = "" }
         }
+    },
+    {
+        .name = "control_pc_speaker",
+        .description = "Control PC speaker",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
     },
     {
         .name = "receive_input",
@@ -3499,6 +3582,13 @@ static const device_config_t sb_awe32_config[] = {
         .default_int = 1
     },
     {
+        .name = "control_pc_speaker",
+        .description = "Control PC speaker",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
+    {
         .name = "receive_input",
         .description = "Receive input (SB MIDI)",
         .type = CONFIG_BINARY,
@@ -3547,6 +3637,13 @@ static const device_config_t sb_awe32_pnp_config[] = {
             },
             { .description = "" }
         }
+    },
+    {
+        .name = "control_pc_speaker",
+        .description = "Control PC speaker",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
     },
     {
         .name = "receive_input",
@@ -3619,6 +3716,13 @@ static const device_config_t sb_awe64_value_config[] = {
         }
     },
     {
+        .name = "control_pc_speaker",
+        .description = "Control PC speaker",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
+    {
         .name = "receive_input",
         .description = "Receive input (SB MIDI)",
         .type = CONFIG_BINARY,
@@ -3685,6 +3789,13 @@ static const device_config_t sb_awe64_config[] = {
         }
     },
     {
+        .name = "control_pc_speaker",
+        .description = "Control PC speaker",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
+    },
+    {
         .name = "receive_input",
         .description = "Receive input (SB MIDI)",
         .type = CONFIG_BINARY,
@@ -3741,6 +3852,13 @@ static const device_config_t sb_awe64_gold_config[] = {
             },
             { .description = "" }
         }
+    },
+    {
+        .name = "control_pc_speaker",
+        .description = "Control PC speaker",
+        .type = CONFIG_BINARY,
+        .default_string = "",
+        .default_int = 0
     },
     {
         .name = "receive_input",

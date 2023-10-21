@@ -115,7 +115,7 @@ uint8_t adjustMap2[24] = {
     252, 0, 252, 0
 };
 
-double low_fir_sb16_coef[2][SB16_NCoef];
+double low_fir_sb16_coef[3][SB16_NCoef];
 
 #ifdef ENABLE_SB_DSP_LOG
 int sb_dsp_do_log = ENABLE_SB_DSP_LOG;
@@ -428,13 +428,15 @@ sb_16_read_dma(void *priv)
 {
     const sb_dsp_t *dsp = (sb_dsp_t *) priv;
     int temp, ret = 0;
-    int dma_flags;
+    int dma_flags, dma_ch = dsp->sb_16_dmanum;
 
-    if (dsp->dma16through8) {
-        temp = dma_channel_read(dsp->sb_16_dmanum);
+    if (dsp->dma16through8 || (dsp->sb_16_dmanum == 4)) {
+        if (dma_ch == 4)
+            dma_ch = dsp->sb_8_dmanum;
+        temp = dma_channel_read(dma_ch);
         ret = temp;
         if ((temp != DMA_NODATA) && !(temp & DMA_OVER)) {
-            temp = dma_channel_read(dsp->sb_16_dmanum);
+            temp = dma_channel_read(dma_ch);
             if (temp == DMA_NODATA)
                 ret = DMA_NODATA;
             else {
@@ -454,12 +456,15 @@ sb_16_write_dma(void *priv, uint16_t val)
 {
     const sb_dsp_t *dsp = (sb_dsp_t *) priv;
     int temp, ret = 0;
+    int dma_ch = dsp->sb_16_dmanum;
  
-    if (dsp->dma16through8) {
-        temp = dma_channel_write(dsp->sb_16_dmanum, val & 0xff);
+    if (dsp->dma16through8 || (dsp->sb_16_dmanum == 4)) {
+        if (dma_ch == 4)
+            dma_ch = dsp->sb_8_dmanum;
+        temp = dma_channel_write(dma_ch, val & 0xff);
         ret = temp;
         if ((temp != DMA_NODATA) && (temp != DMA_OVER)) {
-            temp = dma_channel_write(dsp->sb_16_dmanum, val >> 8);
+            temp = dma_channel_write(dma_ch, val >> 8);
             ret = temp;
         }
     } else
@@ -978,6 +983,10 @@ sb_write(uint16_t a, uint8_t v, void *priv)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) priv;
 
+    /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
+    if (dsp->sb_type < SB16)
+        a &= 0xfffe;
+
     switch (a & 0xF) {
         case 6: /* Reset */
             if (!dsp->uart_midi) {
@@ -1041,6 +1050,10 @@ sb_read(uint16_t a, void *priv)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) priv;
     uint8_t   ret = 0x00;
+
+    /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
+    if (dsp->sb_type < SB16)
+        a &= 0xfffe;
 
     switch (a & 0xf) {
         case 0xA: /* Read data */
@@ -1192,6 +1205,7 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
        a set frequency command is sent. */
     recalc_sb16_filter(0, 3200 * 2);
     recalc_sb16_filter(1, FREQ_44100);
+    recalc_sb16_filter(2, 18939);
 
     /* Initialize SB16 8051 RAM and ASP internal RAM */
     memset(dsp->sb_8051_ram, 0x00, sizeof(dsp->sb_8051_ram));

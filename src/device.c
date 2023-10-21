@@ -159,10 +159,8 @@ device_add_common(const device_t *dev, const device_t *cd, void *p, void *params
     /* Do this so that a chained device_add will not identify the same ID
        its master device is already trying to assign. */
     devices[c] = (device_t *) dev;
-    if (!strcmp(dev->name, "None") || !strcmp(dev->name, "Internal")) {
-        uint32_t *p = NULL;
-        *p = 5; /* Crash deliberately. */
-    }
+    if (!strcmp(dev->name, "None") || !strcmp(dev->name, "Internal"))
+        fatal("Attempting to add dummy device of type: %s\n", dev->name);
 
     if (p == NULL) {
         memcpy(&device_prev, &device_current, sizeof(device_context_t));

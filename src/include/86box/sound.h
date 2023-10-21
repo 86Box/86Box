@@ -52,9 +52,16 @@ extern int sound_card_current[SOUND_CARD_MAX];
 extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
                                                  int len, void *priv),
                               void *priv);
+
 extern void sound_set_cd_audio_filter(void (*filter)(int     channel,
                                                      double *buffer, void *priv),
                                       void *priv);
+extern void sound_set_pc_speaker_filter(void (*filter)(int     channel,
+                                                       double *buffer, void *priv),
+                                        void *priv);
+
+extern void (*filter_pc_speaker)(int channel, double *buffer, void *priv);
+extern void *filter_pc_speaker_p;
 
 extern int sound_card_available(int card);
 #ifdef EMU_DEVICE_H

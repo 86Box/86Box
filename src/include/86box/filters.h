@@ -197,8 +197,8 @@ low_iir(int c, int i, double NewSample)
         0.93726236021404663000
     };
 
-    static double y[2][2][NCoef + 1]; /* output samples */
-    static double x[2][2][NCoef + 1]; /* input samples */
+    static double y[3][2][NCoef + 1]; /* output samples */
+    static double x[3][2][NCoef + 1]; /* input samples */
     int           n;
 
     /* shift the old samples */
@@ -232,8 +232,8 @@ low_cut_iir(int c, int i, double NewSample)
         0.93726236021916731000
     };
 
-    static double y[2][2][NCoef + 1]; /* output samples */
-    static double x[2][2][NCoef + 1]; /* input samples */
+    static double y[3][2][NCoef + 1]; /* output samples */
+    static double x[3][2][NCoef + 1]; /* input samples */
     int           n;
 
     /* shift the old samples */
@@ -266,8 +266,8 @@ high_iir(int c, int i, double NewSample)
         -1.36640781670578510000,
         0.52352474706139873000
     };
-    static double y[2][2][NCoef + 1]; /* output samples */
-    static double x[2][2][NCoef + 1]; /* input samples */
+    static double y[3][2][NCoef + 1]; /* output samples */
+    static double x[3][2][NCoef + 1]; /* input samples */
     int           n;
 
     /* shift the old samples */
@@ -300,8 +300,8 @@ high_cut_iir(int c, int i, double NewSample)
         -1.36640781666419950000,
         0.52352474703279628000
     };
-    static double y[2][2][NCoef + 1]; /* output samples */
-    static double x[2][2][NCoef + 1]; /* input samples */
+    static double y[3][2][NCoef + 1]; /* output samples */
+    static double x[3][2][NCoef + 1]; /* input samples */
     int           n;
 
     /* shift the old samples */
@@ -334,8 +334,8 @@ deemph_iir(int i, double NewSample)
         -1.05429146278569141337,
         0.26412280202756849290
     };
-    static double y[2][NCoef + 1]; /* output samples */
-    static double x[2][NCoef + 1]; /* input samples */
+    static double y[3][NCoef + 1]; /* output samples */
+    static double x[3][NCoef + 1]; /* input samples */
     int           n;
 
     /* shift the old samples */
@@ -372,8 +372,8 @@ sb_iir(int c, int i, double NewSample)
         0.55326988968868285000
     };
 
-    static double y[2][2][NCoef + 1]; /* output samples */
-    static double x[2][2][NCoef + 1]; /* input samples */
+    static double y[3][2][NCoef + 1]; /* output samples */
+    static double x[3][2][NCoef + 1]; /* input samples */
     int           n;
 
     /* shift the old samples */
@@ -395,13 +395,13 @@ sb_iir(int c, int i, double NewSample)
 #define NCoef      1
 #define SB16_NCoef 51
 
-extern double low_fir_sb16_coef[2][SB16_NCoef];
+extern double low_fir_sb16_coef[3][SB16_NCoef];
 
 static inline double
 low_fir_sb16(int c, int i, double NewSample)
 {
-    static double x[2][2][SB16_NCoef + 1]; // input samples
-    static int    pos[2] = { 0, 0 };
+    static double x[3][2][SB16_NCoef + 1]; // input samples
+    static int    pos[3] = { 0, 0 };
     double        out    = 0.0;
     int           n;
 

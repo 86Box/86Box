@@ -1,0 +1,1 @@
+gcc $1 -std=gnu17 -Wall -Wclobbered -Wbad-function-cast -Wempty-body -Wignored-qualifiers -Wmissing-field-initializers -Wmissing-parameter-type -Wold-style-declaration -Woverride-init -Wsign-compare -Wtype-limits -Wuninitialized -Wunknown-pragmas -pedantic -Werror -I../include -iquote . 2> error_log.txt

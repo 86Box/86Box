@@ -144,6 +144,7 @@ typedef struct sb_t {
     void   *gameport;
 
     int pos;
+    int pnp;
 
     uint8_t pos_regs[8];
     uint8_t pnp_rom[512];

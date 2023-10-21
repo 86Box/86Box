@@ -1,0 +1,29 @@
+808x.c: In function 'execx86':
+808x.c:1912:13: error: range expressions in switch statements are non-standard [-Werror=pedantic]
+ 1912 |             case 0x40 ... 0x47: /* INC r16 */
+      |             ^~~~
+808x.c:1927:13: error: range expressions in switch statements are non-standard [-Werror=pedantic]
+ 1927 |             case 0x48 ... 0x4f: /* DEC r16 */
+      |             ^~~~
+808x.c:1942:13: error: range expressions in switch statements are non-standard [-Werror=pedantic]
+ 1942 |             case 0x50 ... 0x57: /* PUSH r16 */
+      |             ^~~~
+808x.c:1947:13: error: range expressions in switch statements are non-standard [-Werror=pedantic]
+ 1947 |             case 0x58 ... 0x5f: /* POP r16 */
+      |             ^~~~
+808x.c:1952:13: error: range expressions in switch statements are non-standard [-Werror=pedantic]
+ 1952 |             case 0x60 ... 0x7f: /* JMP rel8 */
+      |             ^~~~
+808x.c:2201:13: error: range expressions in switch statements are non-standard [-Werror=pedantic]
+ 2201 |             case 0x90 ... 0x97: /* XCHG AX, r */
+      |             ^~~~
+808x.c:2482:13: error: range expressions in switch statements are non-standard [-Werror=pedantic]
+ 2482 |             case 0xb0 ... 0xb7: /* MOV r8, imm8 */
+      |             ^~~~
+808x.c:2494:13: error: range expressions in switch statements are non-standard [-Werror=pedantic]
+ 2494 |             case 0xb8 ... 0xbf: /* MOV r16, imm16 */
+      |             ^~~~
+808x.c:2766:13: error: range expressions in switch statements are non-standard [-Werror=pedantic]
+ 2766 |             case 0xd8 ... 0xdf: /* ESC - FPU instructions. */
+      |             ^~~~
+cc1.exe: all warnings being treated as errors
