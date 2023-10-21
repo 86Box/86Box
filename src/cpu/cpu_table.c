@@ -33,39 +33,39 @@
 #include <86box/machine.h>
 
 FPU fpus_none[] = {
-    {"None", "none", FPU_NONE},
-    { NULL,  NULL,   0       }
+    { .name = "None", .internal_name = "none", .type = FPU_NONE },
+    { .name = NULL,   .internal_name = NULL,   .type = 0        }
 };
 FPU fpus_8088[] = {
-    {"None",  "none", FPU_NONE},
-    { "8087", "8087", FPU_8087},
-    { NULL,   NULL,   0       }
+    { .name = "None", .internal_name = "none", .type = FPU_NONE },
+    { .name = "8087", .internal_name = "8087", .type = FPU_8087 },
+    { .name = NULL,   .internal_name = NULL,   .type = 0        }
 };
 FPU fpus_80186[] = {
-    {"None",   "none",  FPU_NONE },
-    { "8087",  "8087",  FPU_8087 },
-    { "80187", "80187", FPU_80187},
-    { NULL,    NULL,    0        }
+    { .name = "None",  .internal_name = "none",  .type = FPU_NONE  },
+    { .name = "8087",  .internal_name = "8087",  .type = FPU_8087  },
+    { .name = "80187", .internal_name = "80187", .type = FPU_80187 },
+    { .name = NULL,    .internal_name = NULL,    .type = 0         }
 };
 FPU fpus_80286[] = {
-    {"None",   "none",  FPU_NONE },
-    { "287",   "287",   FPU_287  },
-    { "287XL", "287xl", FPU_287XL},
-    { NULL,    NULL,    0        }
+    { .name = "None",  .internal_name = "none",  .type = FPU_NONE  },
+    { .name = "287",   .internal_name = "287",   .type = FPU_287   },
+    { .name = "287XL", .internal_name = "287xl", .type = FPU_287XL },
+    { .name = NULL,    .internal_name = NULL,    .type = 0         }
 };
 FPU fpus_80386[] = {
-    {"None", "none", FPU_NONE},
-    { "387", "387",  FPU_387 },
-    { NULL,  NULL,   0       }
+    { .name = "None", .internal_name = "none", .type = FPU_NONE },
+    { .name = "387",  .internal_name = "387",  .type = FPU_387  },
+    { .name = NULL,   .internal_name = NULL,   .type = 0        }
 };
 FPU fpus_486sx[] = {
-    {"None",   "none",  FPU_NONE },
-    { "487SX", "487sx", FPU_487SX},
-    { NULL,    NULL,    0        }
+    { .name = "None",  .internal_name = "none",  .type = FPU_NONE  },
+    { .name = "487SX", .internal_name = "487sx", .type = FPU_487SX },
+    { .name = NULL,    .internal_name = NULL,    .type = 0         }
 };
 FPU fpus_internal[] = {
-    {"Internal", "internal", FPU_INTERNAL},
-    { NULL,      NULL,       0           }
+    { .name = "Internal", .internal_name = "internal", .type = FPU_INTERNAL },
+    { .name = NULL,       .internal_name = NULL,       .type = 0            }
 };
 
 const cpu_family_t cpu_families[] = {
