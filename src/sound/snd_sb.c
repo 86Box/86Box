@@ -158,6 +158,7 @@ static uint8_t sb_16_pnp_rom[] = {
     // clang-format on
 };
 
+// #define ENABLE_SB_LOG 1
 #ifdef ENABLE_SB_LOG
 int sb_do_log = ENABLE_SB_LOG;
 
@@ -933,6 +934,15 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
                         sb->gameport_addr = 0x200;
                         gameport_remap(sb->gameport, 0x200);
                     }
+                }
+                break;
+
+            case 0xff:
+                if (sb->dsp.sb_type >= SBAWE32) {
+                    if (val & 0x20)
+                        sb_dsp_setdma16(&sb->dsp, 4);
+                    else
+                        sb_dsp_setdma16(&sb->dsp, val & 0x07);
                 }
                 break;
 

@@ -519,6 +519,100 @@ sb_exec_command(sb_dsp_t *dsp)
             if (dsp->sb_type >= SB16)
                 sb_add_data(dsp, 0);
             break;
+        case 0x04: /* ASP set mode register */
+            if (dsp->sb_type >= SB16) {
+                dsp->sb_asp_mode = dsp->sb_data[0];
+                if (dsp->sb_asp_mode & 4)
+                    dsp->sb_asp_ram_index = 0;
+                sb_dsp_log("SB16 ASP set mode %02X\n", dsp->sb_asp_mode);
+            } /* else DSP Status (Obsolete) */
+            break;
+        case 0x05: /* ASP set codec parameter */
+            if (dsp->sb_type >= SB16)
+                sb_dsp_log("SB16 ASP unknown codec params %02X, %02X\n", dsp->sb_data[0], dsp->sb_data[1]);
+            break;
+        case 0x07:
+            break;
+        case 0x08: /* ASP get version / AZTECH type/EEPROM access */
+            if (IS_AZTECH(dsp)) {
+                if ((dsp->sb_data[0] == 0x05 || dsp->sb_data[0] == 0x55) && dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11)
+                    sb_add_data(dsp, 0x11); /* AZTECH get type, WASHINGTON/latest - according to devkit. E.g.: The one in the Itautec Infoway Multimidia */
+                else if ((dsp->sb_data[0] == 0x05 || dsp->sb_data[0] == 0x55) && dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C)
+                    sb_add_data(dsp, 0x0C); /* AZTECH get type, CLINTON - according to devkit. E.g.: The one in the Packard Bell Legend 100CD */
+                else if (dsp->sb_data[0] == 0x08) {
+                    /* EEPROM address to write followed by byte */
+                    if (dsp->sb_data[1] < 0 || dsp->sb_data[1] >= AZTECH_EEPROM_SIZE)
+                        fatal("AZT EEPROM: out of bounds write to %02X\n", dsp->sb_data[1]);
+                    sb_dsp_log("EEPROM write = %02x\n", dsp->sb_data[2]);
+                    dsp->azt_eeprom[dsp->sb_data[1]] = dsp->sb_data[2];
+                    break;
+                } else if (dsp->sb_data[0] == 0x07) {
+                    /* EEPROM address to read */
+                    if (dsp->sb_data[1] < 0 || dsp->sb_data[1] >= AZTECH_EEPROM_SIZE)
+                        fatal("AZT EEPROM: out of bounds read to %02X\n", dsp->sb_data[1]);
+                    sb_dsp_log("EEPROM read = %02x\n", dsp->azt_eeprom[dsp->sb_data[1]]);
+                    sb_add_data(dsp, dsp->azt_eeprom[dsp->sb_data[1]]);
+                    break;
+                } else
+                    sb_dsp_log("AZT2316A: UNKNOWN 0x08 COMMAND: %02X\n", dsp->sb_data[0]); /* 0x08 (when shutting down, driver tries to read 1 byte of response), 0x55, 0x0D, 0x08D seen */
+                break;
+            }
+            if (dsp->sb_type == SBAWE64) /* AWE64 has no ASP or a socket for it */
+                sb_add_data(dsp, 0xFF);
+            else if (dsp->sb_type >= SB16)
+                sb_add_data(dsp, 0x18);
+            break;
+        case 0x09: /* AZTECH mode set */
+            if (IS_AZTECH(dsp)) {
+                if (dsp->sb_data[0] == 0x00) {
+                    sb_dsp_log("AZT2316A: WSS MODE!\n");
+                    azt2316a_enable_wss(1, dsp->parent);
+                } else if (dsp->sb_data[0] == 0x01) {
+                    sb_dsp_log("AZT2316A: SB8PROV2 MODE!\n");
+                    azt2316a_enable_wss(0, dsp->parent);
+                } else
+                    sb_dsp_log("AZT2316A: UNKNOWN MODE! = %02x\n", dsp->sb_data[0]); // sequences 0x02->0xFF, 0x04->0xFF seen
+            }
+            break;
+        case 0x0E: /* ASP set register */
+            if (dsp->sb_type >= SB16) {
+                dsp->sb_asp_regs[dsp->sb_data[0]] = dsp->sb_data[1];
+
+                if ((dsp->sb_data[0] == 0x83) && (dsp->sb_asp_mode & 128) && (dsp->sb_asp_mode & 8)) { /* ASP memory write */
+                    if (dsp->sb_asp_mode & 8)
+                        dsp->sb_asp_ram_index = 0;
+
+                    dsp->sb_asp_ram[dsp->sb_asp_ram_index] = dsp->sb_data[1];
+
+                    if (dsp->sb_asp_mode & 2) {
+                        dsp->sb_asp_ram_index++;
+                        if (dsp->sb_asp_ram_index >= 2048)
+                            dsp->sb_asp_ram_index = 0;
+                    }
+                }
+                sb_dsp_log("SB16 ASP write reg %02X, val %02X\n", dsp->sb_data[0], dsp->sb_data[1]);
+            }
+            break;
+        case 0x0F: /* ASP get register */
+            if (dsp->sb_type >= SB16) {
+                if ((dsp->sb_data[0] == 0x83) && (dsp->sb_asp_mode & 128) && (dsp->sb_asp_mode & 8)) { /* ASP memory read */
+                    if (dsp->sb_asp_mode & 8)
+                        dsp->sb_asp_ram_index = 0;
+
+                    dsp->sb_asp_regs[0x83] = dsp->sb_asp_ram[dsp->sb_asp_ram_index];
+
+                    if (dsp->sb_asp_mode & 1) {
+                        dsp->sb_asp_ram_index++;
+                        if (dsp->sb_asp_ram_index >= 2048)
+                            dsp->sb_asp_ram_index = 0;
+                    }
+                } else if (dsp->sb_data[0] == 0x83) {
+                    dsp->sb_asp_regs[0x83] = 0x18;
+                }
+                sb_add_data(dsp, dsp->sb_asp_regs[dsp->sb_data[0]]);
+                sb_dsp_log("SB16 ASP read reg %02X, val %02X\n", dsp->sb_data[0], dsp->sb_asp_regs[dsp->sb_data[0]]);
+            }
+            break;
         case 0x10: /* 8-bit direct mode */
             sb_dsp_update(dsp);
             dsp->sbdat = dsp->sbdatl = dsp->sbdatr = (dsp->sb_data[0] ^ 0x80) << 8;
@@ -832,6 +926,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xE4: /* Write test register */
             dsp->sb_test = dsp->sb_data[0];
             break;
+        case 0xE7: /* ???? */
+            break;
         case 0xE8: /* Read test register */
             sb_add_data(dsp, dsp->sb_test);
             break;
@@ -842,79 +938,6 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xF3: /* Trigger 16-bit IRQ */
             sb_dsp_log("Trigger IRQ\n");
             sb_irq(dsp, 0);
-            break;
-        case 0xE7: /* ???? */
-            break;
-        case 0x07:
-        case 0xFF: /* No, that's not how you program auto-init DMA */
-            break;
-        case 0x08: /* ASP get version / AZTECH type/EEPROM access */
-            if (IS_AZTECH(dsp)) {
-                if ((dsp->sb_data[0] == 0x05 || dsp->sb_data[0] == 0x55) && dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11)
-                    sb_add_data(dsp, 0x11); /* AZTECH get type, WASHINGTON/latest - according to devkit. E.g.: The one in the Itautec Infoway Multimidia */
-                else if ((dsp->sb_data[0] == 0x05 || dsp->sb_data[0] == 0x55) && dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C)
-                    sb_add_data(dsp, 0x0C); /* AZTECH get type, CLINTON - according to devkit. E.g.: The one in the Packard Bell Legend 100CD */
-                else if (dsp->sb_data[0] == 0x08) {
-                    /* EEPROM address to write followed by byte */
-                    if (dsp->sb_data[1] < 0 || dsp->sb_data[1] >= AZTECH_EEPROM_SIZE)
-                        fatal("AZT EEPROM: out of bounds write to %02X\n", dsp->sb_data[1]);
-                    sb_dsp_log("EEPROM write = %02x\n", dsp->sb_data[2]);
-                    dsp->azt_eeprom[dsp->sb_data[1]] = dsp->sb_data[2];
-                    break;
-                } else if (dsp->sb_data[0] == 0x07) {
-                    /* EEPROM address to read */
-                    if (dsp->sb_data[1] < 0 || dsp->sb_data[1] >= AZTECH_EEPROM_SIZE)
-                        fatal("AZT EEPROM: out of bounds read to %02X\n", dsp->sb_data[1]);
-                    sb_dsp_log("EEPROM read = %02x\n", dsp->azt_eeprom[dsp->sb_data[1]]);
-                    sb_add_data(dsp, dsp->azt_eeprom[dsp->sb_data[1]]);
-                    break;
-                } else
-                    sb_dsp_log("AZT2316A: UNKNOWN 0x08 COMMAND: %02X\n", dsp->sb_data[0]); /* 0x08 (when shutting down, driver tries to read 1 byte of response), 0x55, 0x0D, 0x08D seen */
-                break;
-            }
-            if (dsp->sb_type == SBAWE64) /* AWE64 has no ASP or a socket for it */
-                sb_add_data(dsp, 0xFF);
-            else if (dsp->sb_type >= SB16)
-                sb_add_data(dsp, 0x18);
-            break;
-        case 0x0E: /* ASP set register */
-            if (dsp->sb_type >= SB16) {
-                dsp->sb_asp_regs[dsp->sb_data[0]] = dsp->sb_data[1];
-
-                if ((dsp->sb_data[0] == 0x83) && (dsp->sb_asp_mode & 128) && (dsp->sb_asp_mode & 8)) { /* ASP memory write */
-                    if (dsp->sb_asp_mode & 8)
-                        dsp->sb_asp_ram_index = 0;
-
-                    dsp->sb_asp_ram[dsp->sb_asp_ram_index] = dsp->sb_data[1];
-
-                    if (dsp->sb_asp_mode & 2) {
-                        dsp->sb_asp_ram_index++;
-                        if (dsp->sb_asp_ram_index >= 2048)
-                            dsp->sb_asp_ram_index = 0;
-                    }
-                }
-                sb_dsp_log("SB16 ASP write reg %02X, val %02X\n", dsp->sb_data[0], dsp->sb_data[1]);
-            }
-            break;
-        case 0x0F: /* ASP get register */
-            if (dsp->sb_type >= SB16) {
-                if ((dsp->sb_data[0] == 0x83) && (dsp->sb_asp_mode & 128) && (dsp->sb_asp_mode & 8)) { /* ASP memory read */
-                    if (dsp->sb_asp_mode & 8)
-                        dsp->sb_asp_ram_index = 0;
-
-                    dsp->sb_asp_regs[0x83] = dsp->sb_asp_ram[dsp->sb_asp_ram_index];
-
-                    if (dsp->sb_asp_mode & 1) {
-                        dsp->sb_asp_ram_index++;
-                        if (dsp->sb_asp_ram_index >= 2048)
-                            dsp->sb_asp_ram_index = 0;
-                    }
-                } else if (dsp->sb_data[0] == 0x83) {
-                    dsp->sb_asp_regs[0x83] = 0x18;
-                }
-                sb_add_data(dsp, dsp->sb_asp_regs[dsp->sb_data[0]]);
-                sb_dsp_log("SB16 ASP read reg %02X, val %02X\n", dsp->sb_data[0], dsp->sb_asp_regs[dsp->sb_data[0]]);
-            }
             break;
         case 0xF8:
             if (dsp->sb_type < SB16)
@@ -928,30 +951,7 @@ sb_exec_command(sb_dsp_t *dsp)
             if (dsp->sb_type >= SB16)
                 dsp->sb_8051_ram[dsp->sb_data[0]] = dsp->sb_data[1];
             break;
-        case 0x04: /* ASP set mode register */
-            if (dsp->sb_type >= SB16) {
-                dsp->sb_asp_mode = dsp->sb_data[0];
-                if (dsp->sb_asp_mode & 4)
-                    dsp->sb_asp_ram_index = 0;
-                sb_dsp_log("SB16 ASP set mode %02X\n", dsp->sb_asp_mode);
-            } /* else DSP Status (Obsolete) */
-            break;
-        case 0x05: /* ASP set codec parameter */
-            if (dsp->sb_type >= SB16)
-                sb_dsp_log("SB16 ASP unknown codec params %02X, %02X\n", dsp->sb_data[0], dsp->sb_data[1]);
-            break;
-
-        case 0x09: /* AZTECH mode set */
-            if (IS_AZTECH(dsp)) {
-                if (dsp->sb_data[0] == 0x00) {
-                    sb_dsp_log("AZT2316A: WSS MODE!\n");
-                    azt2316a_enable_wss(1, dsp->parent);
-                } else if (dsp->sb_data[0] == 0x01) {
-                    sb_dsp_log("AZT2316A: SB8PROV2 MODE!\n");
-                    azt2316a_enable_wss(0, dsp->parent);
-                } else
-                    sb_dsp_log("AZT2316A: UNKNOWN MODE! = %02x\n", dsp->sb_data[0]); // sequences 0x02->0xFF, 0x04->0xFF seen
-            }
+        case 0xFF: /* No, that's not how you program auto-init DMA */
             break;
 
             /* TODO: Some more data about the DSP registeres
@@ -969,6 +969,7 @@ sb_exec_command(sb_dsp_t *dsp)
              */
 
         default:
+            fatal("Unknown DSP command: %02X\n", dsp->sb_command);
             break;
     }
 
