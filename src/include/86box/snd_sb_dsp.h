@@ -33,6 +33,10 @@ typedef struct sb_dsp_t {
     int sb_16_autolen;
     int sb_16_output;
     int sb_16_dmanum;
+    int sb_16_8_dmanum;
+    int sb_16_dma_enabled;
+    int sb_16_dma_supported;
+    int sb_16_dma_translate;
     int sb_pausetime;
     int (*dma_readb)(void *priv);
     int (*dma_readw)(void *priv);
@@ -127,8 +131,6 @@ typedef struct sb_dsp_t {
     int16_t buffer[SOUNDBUFLEN * 2];
     int     pos;
 
-    uint8_t dma16through8;
-
     uint8_t azt_eeprom[AZTECH_EEPROM_SIZE]; /* the eeprom in the Aztech cards is attached to the DSP */
 
     mpu_t *mpu;
@@ -146,7 +148,10 @@ extern void sb_dsp_close(sb_dsp_t *dsp);
 extern void sb_dsp_setirq(sb_dsp_t *dsp, int irq);
 extern void sb_dsp_setdma8(sb_dsp_t *dsp, int dma);
 extern void sb_dsp_setdma16(sb_dsp_t *dsp, int dma);
-extern void sb_dsp_setdma16through8(sb_dsp_t *dsp, int dma16through8);
+extern void sb_dsp_setdma16_8(sb_dsp_t *dsp, int dma);
+extern void sb_dsp_setdma16_enabled(sb_dsp_t *dsp, int enabled);
+extern void sb_dsp_setdma16_supported(sb_dsp_t *dsp, int supported);
+extern void sb_dsp_setdma16_translate(sb_dsp_t *dsp, int translate);
 extern void sb_dsp_setaddr(sb_dsp_t *dsp, uint16_t addr);
 
 extern void sb_dsp_speed_changed(sb_dsp_t *dsp);

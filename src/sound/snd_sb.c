@@ -939,10 +939,10 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
 
             case 0xff:
                 if (sb->dsp.sb_type >= SBAWE32) {
-                    if (val & 0x20)
-                        sb_dsp_setdma16(&sb->dsp, 4);
-                    else
-                        sb_dsp_setdma16(&sb->dsp, val & 0x07);
+                    if (val != ISAPNP_DMA_DISABLED)
+                        sb_dsp_setdma16_8(&sb->dsp, val & 0x07);
+                    sb_dsp_setdma16_enabled(&sb->dsp, !(val & 0x20));
+                    sb_dsp_setdma16_translate(&sb->dsp, val != ISAPNP_DMA_DISABLED);
                 }
                 break;
 
@@ -1691,8 +1691,14 @@ sb_vibra16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *
                     sb_dsp_setdma8(&sb->dsp, val);
 
                 val = config->dma[1].dma;
-                if (val != ISAPNP_DMA_DISABLED)
-                    sb_dsp_setdma16(&sb->dsp, val);
+                sb_dsp_setdma16_enabled(&sb->dsp, val != ISAPNP_DMA_DISABLED);
+                sb_dsp_setdma16_translate(&sb->dsp, val < ISAPNP_DMA_DISABLED);
+                if (val != ISAPNP_DMA_DISABLED) {
+                    if (sb->dsp.sb_16_dma_supported)
+                        sb_dsp_setdma16(&sb->dsp, val);
+                    else
+                        sb_dsp_setdma16_8(&sb->dsp, val);
+                }
             }
 
             break;
@@ -2158,6 +2164,7 @@ sb_16_init(UNUSED(const device_t *info))
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
     sb_dsp_setdma16(&sb->dsp, device_get_config_int("dma16"));
+    sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
     if (sb->opl_enabled) {
@@ -2211,6 +2218,7 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled            = 1;
@@ -2252,6 +2260,7 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled            = 1;
@@ -2314,8 +2323,7 @@ sb_vibra16_pnp_init(UNUSED(const device_t *info))
 
     sb_dsp_init(&sb->dsp, (info->local == 0) ? SBAWE64 : SBAWE32PNP, SB_SUBTYPE_DEFAULT, sb);
     /* The ViBRA 16XV does 16-bit DMA through 8-bit DMA. */
-    if (info->local == 0)
-        sb_dsp_setdma16through8(&sb->dsp, 1);
+    sb_dsp_setdma16_supported(&sb->dsp, info->local != 0);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled            = 1;
@@ -2392,6 +2400,7 @@ sb_16_compat_init(const device_t *info)
     fm_driver_get(FM_YMF262, &sb->opl);
 
     sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
@@ -2464,6 +2473,7 @@ sb_awe32_init(UNUSED(const device_t *info))
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
     sb_dsp_setdma16(&sb->dsp, device_get_config_int("dma16"));
+    sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
     if (sb->opl_enabled) {
@@ -2524,6 +2534,7 @@ sb_awe32_pnp_init(const device_t *info)
 
     sb_dsp_init(&sb->dsp, ((info->local == 2) || (info->local == 3) || (info->local == 4)) ?
                 SBAWE64 : SBAWE32PNP, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_setdma16_supported(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled            = 1;

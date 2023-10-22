@@ -423,6 +423,18 @@ sb_8_write_dma(void *priv, uint8_t val)
     return dma_channel_write(dsp->sb_8_dmanum, val) == DMA_NODATA;
 }
 
+/*
+   Supported    High DMA    Translation    Channel
+   ----------------------------------------------------
+   0            0           0              First 8-bit
+   0            0           1              First 8-bit
+   0            1           0              Second 8-bit
+   0            1           1              Second 8-bit
+   1            0           0              First 8-bit
+   1            0           1              First 8-bit
+   1            1           0              16-bit
+   1            1           1              Second 8-bit
+ */
 int
 sb_16_read_dma(void *priv)
 {
@@ -430,8 +442,16 @@ sb_16_read_dma(void *priv)
     int temp, ret = 0;
     int dma_flags, dma_ch = dsp->sb_16_dmanum;
 
-    if (dsp->dma16through8 || (dsp->sb_16_dmanum == 4)) {
-        if (dma_ch == 4)
+    if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate)
+        ret = dma_channel_read(dma_ch);
+    else {
+        if (dsp->sb_16_dma_enabled) {
+            /* High DMA channel enabled, either translation is enabled or
+               16-bit transfers are not supported. */
+            if (dsp->sb_16_dma_translate || !dsp->sb_16_dma_supported)
+                dma_ch = dsp->sb_16_8_dmanum;
+        } else
+            /* High DMA channel disabled, always use the first 8-bit channel. */
             dma_ch = dsp->sb_8_dmanum;
         temp = dma_channel_read(dma_ch);
         ret = temp;
@@ -445,8 +465,7 @@ sb_16_read_dma(void *priv)
                 ret |= (temp << 8) | dma_flags;
            }
         }
-    } else
-        ret = dma_channel_read(dsp->sb_16_dmanum);
+    }
 
     return ret;
 }
@@ -458,8 +477,16 @@ sb_16_write_dma(void *priv, uint16_t val)
     int temp, ret = 0;
     int dma_ch = dsp->sb_16_dmanum;
  
-    if (dsp->dma16through8 || (dsp->sb_16_dmanum == 4)) {
-        if (dma_ch == 4)
+    if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate)
+        ret = dma_channel_write(dma_ch, val) == DMA_NODATA;
+    else {
+        if (dsp->sb_16_dma_enabled) {
+            /* High DMA channel enabled, either translation is enabled or
+               16-bit transfers are not supported. */
+            if (dsp->sb_16_dma_translate || !dsp->sb_16_dma_supported)
+                dma_ch = dsp->sb_16_8_dmanum;
+        } else
+            /* High DMA channel disabled, always use the first 8-bit channel. */
             dma_ch = dsp->sb_8_dmanum;
         temp = dma_channel_write(dma_ch, val & 0xff);
         ret = temp;
@@ -467,8 +494,7 @@ sb_16_write_dma(void *priv, uint16_t val)
             temp = dma_channel_write(dma_ch, val >> 8);
             ret = temp;
         }
-    } else
-        ret = dma_channel_write(dsp->sb_16_dmanum, val) == DMA_NODATA;
+    }
 
     return ret;
 }
@@ -480,21 +506,45 @@ sb_dsp_setirq(sb_dsp_t *dsp, int irq)
 }
 
 void
-sb_dsp_setdma16through8(sb_dsp_t *dsp, int dma16through8)
-{
-    dsp->dma16through8 = dma16through8;
-}
-
-void
 sb_dsp_setdma8(sb_dsp_t *dsp, int dma)
 {
+    sb_dsp_log("8-bit DMA now: %i\n", dma);
     dsp->sb_8_dmanum = dma;
 }
 
 void
 sb_dsp_setdma16(sb_dsp_t *dsp, int dma)
 {
+    sb_dsp_log("16-bit DMA now: %i\n", dma);
     dsp->sb_16_dmanum = dma;
+}
+
+void
+sb_dsp_setdma16_8(sb_dsp_t *dsp, int dma)
+{
+    sb_dsp_log("16-bit to 8-bit translation DMA now: %i\n", dma);
+    dsp->sb_16_8_dmanum = dma;
+}
+
+void
+sb_dsp_setdma16_enabled(sb_dsp_t *dsp, int enabled)
+{
+    sb_dsp_log("16-bit DMA now: %sabled\n", enabled ? "en" : "dis");
+    dsp->sb_16_dma_enabled = enabled;
+}
+
+void
+sb_dsp_setdma16_supported(sb_dsp_t *dsp, int supported)
+{
+    sb_dsp_log("16-bit DMA now: %ssupported\n", supported ? "" : "not ");
+    dsp->sb_16_dma_supported = supported;
+}
+
+void
+sb_dsp_setdma16_translate(sb_dsp_t *dsp, int translate)
+{
+    sb_dsp_log("16-bit to 8-bit translation now: %sabled\n", translate ? "en" : "dis");
+    dsp->sb_16_dma_translate = translate;
 }
 
 void
