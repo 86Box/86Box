@@ -144,7 +144,7 @@ int ignoreNextMouseEvent = 1;
 void
 RendererStack::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (this->geometry().contains(event->pos()) && (event->button() == Qt::LeftButton) && !mouse_capture && (isMouseDown & 1) && (kbd_req_capture || (mouse_get_buttons() != 0)) && (mouse_mode == 0)) {
+    if (this->geometry().contains(event->pos()) && (event->button() == Qt::LeftButton) && !mouse_capture && (isMouseDown & 1) && (kbd_req_capture || (mouse_get_buttons() != 0)) && (mouse_input_mode == 0)) {
         plat_mouse_capture(1);
         this->setCursor(Qt::BlankCursor);
         if (!ignoreNextMouseEvent)
@@ -158,16 +158,16 @@ RendererStack::mouseReleaseEvent(QMouseEvent *event)
         isMouseDown &= ~1;
         return;
     }
-    if (mouse_capture || (mouse_mode >= 1)) {
+    if (mouse_capture || (mouse_input_mode >= 1)) {
 #ifdef Q_OS_WINDOWS
-        if (((m_monitor_index >= 1) && (mouse_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
-             ((m_monitor_index < 1) && (mouse_mode >= 1)))
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
+             ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
 #else
 #ifndef __APPLE__
-        if (((m_monitor_index >= 1) && (mouse_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
              (m_monitor_index < 1))
 #else
-        if ((m_monitor_index >= 1) && (mouse_mode >= 1) && mousedata.mouse_tablet_in_proximity)
+        if ((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity)
 #endif
 #endif
             mouse_set_buttons_ex(mouse_get_buttons_ex() & ~event->button());
@@ -179,16 +179,16 @@ void
 RendererStack::mousePressEvent(QMouseEvent *event)
 {
     isMouseDown |= 1;
-    if (mouse_capture || (mouse_mode >= 1)) {
+    if (mouse_capture || (mouse_input_mode >= 1)) {
 #ifdef Q_OS_WINDOWS
-        if (((m_monitor_index >= 1) && (mouse_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
-             ((m_monitor_index < 1) && (mouse_mode >= 1)))
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
+             ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
 #else
 #ifndef __APPLE__
-        if (((m_monitor_index >= 1) && (mouse_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
              (m_monitor_index < 1))
 #else
-        if ((m_monitor_index >= 1) && (mouse_mode >= 1) && mousedata.mouse_tablet_in_proximity)
+        if ((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity)
 #endif
 #endif
             mouse_set_buttons_ex(mouse_get_buttons_ex() | event->button());
@@ -249,7 +249,7 @@ RendererStack::enterEvent(QEvent *event)
 {
     mousedata.mouse_tablet_in_proximity = 1;
 
-    if (mouse_mode == 1)
+    if (mouse_input_mode == 1)
         QApplication::setOverrideCursor(Qt::BlankCursor);
 }
 
@@ -258,7 +258,7 @@ RendererStack::leaveEvent(QEvent *event)
 {
     mousedata.mouse_tablet_in_proximity = 0;
 
-    if (mouse_mode == 1 && QApplication::overrideCursor())
+    if (mouse_input_mode == 1 && QApplication::overrideCursor())
         QApplication::restoreOverrideCursor();
     if (QApplication::platformName().contains("wayland")) {
         event->accept();
@@ -528,7 +528,7 @@ RendererStack::event(QEvent* event)
         QMouseEvent* mouse_event = (QMouseEvent*)event;
 
         if (m_monitor_index >= 1) {
-            if (mouse_mode >= 1) {
+            if (mouse_input_mode >= 1) {
                 mouse_x_abs       = (mouse_event->localPos().x()) / (long double)width();
                 mouse_y_abs       = (mouse_event->localPos().y()) / (long double)height();
                 if (!mouse_tablet_in_proximity)
@@ -538,7 +538,7 @@ RendererStack::event(QEvent* event)
         }
 
 #ifdef Q_OS_WINDOWS
-        if (mouse_mode == 0) {
+        if (mouse_input_mode == 0) {
             mouse_x_abs           = (mouse_event->localPos().x()) / (long double)width();
             mouse_y_abs           = (mouse_event->localPos().y()) / (long double)height();
             return QStackedWidget::event(event);

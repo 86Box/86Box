@@ -50,7 +50,7 @@ extern "C" {
 #endif
 
 extern int    mouse_type;
-extern int    mouse_mode; /* 1 = Absolute, 0 = Relative */
+extern int    mouse_input_mode; /* 1 = Absolute, 0 = Relative */
 extern int    mouse_timed; /* 1 = Timed, 0 = Constant */
 extern int    mouse_tablet_in_proximity;
 extern double mouse_x_abs;
