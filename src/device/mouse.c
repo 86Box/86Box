@@ -643,7 +643,7 @@ mouse_reset(void)
 
     mouse_curr = mouse_devices[mouse_type].device;
 
-    if (mouse_curr != NULL)
+    if ((mouse_type > 1) && (mouse_curr != NULL))
         mouse_priv = device_add(mouse_curr);
 }
 
