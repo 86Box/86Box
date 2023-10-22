@@ -1024,6 +1024,13 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                 ret = 0x02;
                 break;
             case 0x10:    /* Read by Future Crew. */
+            case 0x12:    /* Possbly read by Future Crew. */
+            case 0x14:
+            case 0x16:
+            case 0x18:
+            case 0x1a:
+            case 0x1c:
+            case 0x1e:
                 ret = 0xff;
                 break;
             case 0x22:
