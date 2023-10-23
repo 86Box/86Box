@@ -36,6 +36,8 @@
 #define GL518SM_VOLTAGE_TO_REG(v) ((uint8_t) round((v) / 19.0))
 #define GL518SM_VDD_TO_REG(v)     ((uint8_t) (((v) *4) / 95.0))
 
+#define GL520SM 0x100
+
 typedef struct gl518sm_t {
     uint32_t      local;
     hwm_values_t *values;
@@ -128,7 +130,7 @@ gl518sm_read(gl518sm_t *dev, uint8_t reg)
 
     switch (reg) {
         case 0x04: /* temperature */
-            ret = (dev->values->temperatures[0] + 119) & 0xff;
+            ret = (dev->values->temperatures[0] + ((dev->local & GL520SM) ? 130 : 119)) & 0xff;
             break;
 
         case 0x07: /* fan speeds */
@@ -138,6 +140,10 @@ gl518sm_read(gl518sm_t *dev, uint8_t reg)
 
         case 0x0d: /* VIN3 */
             ret = GL518SM_VOLTAGE_TO_REG(dev->values->voltages[2]);
+            break;
+
+        case 0x0e: /* temperature 2 */
+            ret = (dev->local & GL520SM) ? ((dev->values->temperatures[1] + 130) & 0xff) : dev->regs[reg];
             break;
 
         case 0x13: /* VIN2 */
@@ -217,6 +223,11 @@ gl518sm_write(gl518sm_t *dev, uint8_t reg, uint16_t val)
                 gl518sm_reset(dev);
             break;
 
+        case 0x0e:
+            if (dev->local & GL520SM)
+                return 0;
+            break;
+
         case 0x0f:
             dev->regs[reg] = val & 0xf8;
             break;
@@ -238,8 +249,14 @@ gl518sm_reset(gl518sm_t *dev)
 {
     memset(dev->regs, 0, sizeof(dev->regs));
 
-    dev->regs[0x00] = 0x80;
-    dev->regs[0x01] = 0x80; /* revision 0x80 can read all voltages */
+    if (dev->local & GL520SM) {
+        dev->regs[0x00] = 0x20;
+        dev->regs[0x01] = 0x00;
+        dev->regs[0x03] = 0x04;
+    } else {
+        dev->regs[0x00] = 0x80;
+        dev->regs[0x01] = 0x80; /* revision 0x80 can read all voltages */
+    }
     dev->regs[0x05] = 0xc7;
     dev->regs[0x06] = 0xc2;
     dev->regs[0x08] = 0x6464;
@@ -279,7 +296,8 @@ gl518sm_init(const device_t *info)
         },
         {
          /* temperatures */
-            30 /* usually CPU */
+            30, /* usually CPU */
+            30  /* GL520SM only: usually System */
         },
         {
          /* voltages */
@@ -319,6 +337,37 @@ const device_t gl518sm_2d_device = {
     .internal_name = "gl518sm_2d",
     .flags         = DEVICE_ISA,
     .local         = 0x2d,
+    .init          = gl518sm_init,
+    .close         = gl518sm_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+/* GL520SM on SMBus address 2Ch */
+const device_t gl520sm_2c_device = {
+    .name          = "Genesys Logic GL520SM Hardware Monitor",
+    .internal_name = "gl520sm_2c",
+    .flags         = DEVICE_ISA,
+    .local         = GL520SM | 0x2c,
+    .init          = gl518sm_init,
+    .close         = gl518sm_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+
+/* GL520SM on SMBus address 2Dh */
+const device_t gl520sm_2d_device = {
+    .name          = "Genesys Logic GL520SM Hardware Monitor",
+    .internal_name = "gl520sm_2d",
+    .flags         = DEVICE_ISA,
+    .local         = GL520SM | 0x2d,
     .init          = gl518sm_init,
     .close         = gl518sm_close,
     .reset         = NULL,
