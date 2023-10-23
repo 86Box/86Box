@@ -31,8 +31,8 @@
 
 
 #define CLAMP(a, min, max) (((a) < (min)) ? (min) : (((a) > (max)) ? (max) : (a)))
-/* Formulas and factors derived from Linux's gl518sm.c driver. */
-#define GL518SM_RPM_TO_REG(r, d)  ((r) ? CLAMP((480000 + (r) * (d) / 2) / (r) * (d), 1, 255) : 0)
+/* Formulas and factors derived from Linux's gl518sm.c and gl520sm.c drivers. */
+#define GL518SM_RPM_TO_REG(r, d)  ((r) ? (480000 / (CLAMP((r), (480000 >> (d)) / 255, (480000 >> (d))) << (d))) : 0)
 #define GL518SM_VOLTAGE_TO_REG(v) ((uint8_t) round((v) / 19.0))
 #define GL518SM_VDD_TO_REG(v)     ((uint8_t) (((v) *4) / 95.0))
 
@@ -134,8 +134,8 @@ gl518sm_read(gl518sm_t *dev, uint8_t reg)
             break;
 
         case 0x07: /* fan speeds */
-            ret = GL518SM_RPM_TO_REG(dev->values->fans[0], 1 << ((dev->regs[0x0f] >> 6) & 0x3)) << 8;
-            ret |= GL518SM_RPM_TO_REG(dev->values->fans[1], 1 << ((dev->regs[0x0f] >> 4) & 0x3));
+            ret = GL518SM_RPM_TO_REG(dev->values->fans[0], (dev->regs[0x0f] >> 6) & 0x3) << 8;
+            ret |= GL518SM_RPM_TO_REG(dev->values->fans[1], (dev->regs[0x0f] >> 4) & 0x3);
             break;
 
         case 0x0d: /* VIN3 */
@@ -256,9 +256,9 @@ gl518sm_reset(gl518sm_t *dev)
     } else {
         dev->regs[0x00] = 0x80;
         dev->regs[0x01] = 0x80; /* revision 0x80 can read all voltages */
+        dev->regs[0x05] = 0xc7;
+        dev->regs[0x06] = 0xc2;
     }
-    dev->regs[0x05] = 0xc7;
-    dev->regs[0x06] = 0xc2;
     dev->regs[0x08] = 0x6464;
     dev->regs[0x09] = 0xdac5;
     dev->regs[0x0a] = 0xdac5;

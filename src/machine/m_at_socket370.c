@@ -275,8 +275,10 @@ machine_at_m773_init(const machine_t *model)
     device_add(&it8671f_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
-    device_add(&gl520sm_2d_device); /* fans: CPU, Chassis; temperature: System */
-    hwm_values.voltages[0] = 3300;  /* Vcore and 3.3V are swapped */
+    device_add(&gl520sm_2d_device);  /* fans: CPU, Chassis; temperature: System */
+    hwm_values.temperatures[0] += 2; /* System offset */
+    hwm_values.temperatures[1] += 2; /* CPU offset */
+    hwm_values.voltages[0] = 3300;   /* Vcore and 3.3V are swapped */
     hwm_values.voltages[2] = hwm_get_vcore();
 
     if (sound_card_current[0] == SOUND_INTERNAL)
