@@ -409,6 +409,48 @@ pic_latch_read(UNUSED(uint16_t addr), UNUSED(void *priv))
 }
 
 uint8_t
+pic_read_icw(uint8_t pic_id, uint8_t icw)
+{
+    pic_t *dev = pic_id ? &pic2 : &pic;
+    uint8_t ret = 0xff;
+
+    switch (icw) {
+        case 0x00:
+            ret = dev->icw1;
+            break;
+        case 0x01:
+            ret = dev->icw2;
+            break;
+        case 0x02:
+            ret = dev->icw3;
+            break;
+        case 0x03:
+            ret = dev->icw4;
+            break;
+    }
+
+    return ret;
+}
+
+uint8_t
+pic_read_ocw(uint8_t pic_id, uint8_t ocw)
+{
+    pic_t *dev = pic_id ? &pic2 : &pic;
+    uint8_t ret = 0xff;
+
+    switch (ocw) {
+        case 0x00:
+            ret = dev->ocw2;
+            break;
+        case 0x01:
+            ret = dev->ocw3;
+            break;
+    }
+
+    return ret;
+}
+
+uint8_t
 pic_read(uint16_t addr, void *priv)
 {
     pic_t *dev = (pic_t *) priv;

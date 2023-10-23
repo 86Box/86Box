@@ -1388,7 +1388,7 @@ pc_run(void)
     }
 
     if (title_update) {
-        mouse_msg_idx = ((mouse_type == MOUSE_TYPE_NONE) || (mouse_mode >= 1)) ? 2 : !!mouse_capture;
+        mouse_msg_idx = ((mouse_type == MOUSE_TYPE_NONE) || (mouse_input_mode >= 1)) ? 2 : !!mouse_capture;
         swprintf(temp, sizeof_w(temp), mouse_msg[mouse_msg_idx], fps);
 #ifdef __APPLE__
         /* Needed due to modifying the UI on the non-main thread is a big no-no. */

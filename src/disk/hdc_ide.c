@@ -124,8 +124,8 @@ typedef struct ide_board_t {
 } ide_board_t;
 
 typedef struct ide_bm_t {
-    int (*dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv);
-    void (*set_irq)(int channel, void *priv);
+    int (*dma)(uint8_t *data, int transfer_length, int out, void *priv);
+    void (*set_irq)(uint8_t status, void *priv);
     void *priv;
 } ide_bm_t;
 
@@ -342,7 +342,7 @@ ide_irq_raise(ide_t *ide)
 
     if (!(ide->fdisk & 2) && ide->selected) {
         if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
-            ide_bm[ide->board]->set_irq(ide->board | 0x40, ide_bm[ide->board]->priv);
+            ide_bm[ide->board]->set_irq(0x04, ide_bm[ide->board]->priv);
         else if (ide_boards[ide->board]->irq != -1)
             picint(1 << ide_boards[ide->board]->irq);
     }
@@ -363,7 +363,7 @@ ide_irq_lower(ide_t *ide)
 
     if (ide->irqstat && ide->selected) {
         if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
-            ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
+            ide_bm[ide->board]->set_irq(0x00, ide_bm[ide->board]->priv);
         else if (ide_boards[ide->board]->irq != -1)
             picintc(1 << ide_boards[ide->board]->irq);
     }
@@ -382,8 +382,8 @@ ide_irq_update(ide_t *ide)
     if (!(ide->fdisk & 2) && ide->irqstat) {
         ide_log("IDE %i: IRQ update raise\n", ide->board);
         if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->set_irq) {
-            ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
-            ide_bm[ide->board]->set_irq(ide->board | 0x40, ide_bm[ide->board]->priv);
+            ide_bm[ide->board]->set_irq(0x00, ide_bm[ide->board]->priv);
+            ide_bm[ide->board]->set_irq(0x04, ide_bm[ide->board]->priv);
         } else if (ide_boards[ide->board]->irq != -1) {
             picintc(1 << ide_boards[ide->board]->irq);
             picint(1 << ide_boards[ide->board]->irq);
@@ -391,7 +391,7 @@ ide_irq_update(ide_t *ide)
     } else if ((ide->fdisk & 2) || !ide->irqstat) {
         ide_log("IDE %i: IRQ update lower\n", ide->board);
         if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
-            ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
+            ide_bm[ide->board]->set_irq(0x00, ide_bm[ide->board]->priv);
         else if (ide_boards[ide->board]->irq != -1)
             picintc(1 << ide_boards[ide->board]->irq);
     }
@@ -1022,9 +1022,9 @@ ide_atapi_callback(ide_t *ide)
 #endif
             out = (ide->sc->packet_status & 0x01);
 
-            if (!ide->sc->pad0 && !ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->dma) {
-                ret = ide_bm[ide->board]->dma(ide->board,
-                                              ide->sc->temp_buffer, ide->sc->packet_len,
+            if (!ide->sc->pad0 && !ide_boards[ide->board]->force_ata3 &&
+                ide_bm[ide->board] && ide_bm[ide->board]->dma) {
+                ret = ide_bm[ide->board]->dma(ide->sc->temp_buffer, ide->sc->packet_len,
                                               out, ide_bm[ide->board]->priv);
             } else {
                 /* DMA command without a bus master. */
@@ -1069,7 +1069,7 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
 {
     scsi_common_t *dev = ide->sc;
 
-    ide_irq_lower(ide_drives[ide->board]);
+    ide_irq_lower(ide);
 
     dev->status = BSY_STAT;
 
@@ -2333,8 +2333,7 @@ ide_callback(void *priv)
 
             if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->dma) {
                 /* We should not abort - we should simply wait for the host to start DMA. */
-                ret = ide_bm[ide->board]->dma(ide->board,
-                                              ide->sector_buffer, ide->sector_pos * 512,
+                ret = ide_bm[ide->board]->dma(ide->sector_buffer, ide->sector_pos * 512,
                                               0, ide_bm[ide->board]->priv);
                 if (ret == 2) {
                     /* Bus master DMA disabled, simply wait for the host to enable DMA. */
@@ -2431,8 +2430,7 @@ ide_callback(void *priv)
                 else
                     ide->sector_pos = 256;
 
-                ret = ide_bm[ide->board]->dma(ide->board,
-                                              ide->sector_buffer, ide->sector_pos * 512,
+                ret = ide_bm[ide->board]->dma(ide->sector_buffer, ide->sector_pos * 512,
                                               1, ide_bm[ide->board]->priv);
 
                 if (ret == 2) {
@@ -2917,7 +2915,9 @@ ide_board_init(int board, int irq, int base_main, int side_main, int type)
 
     ide_log("IDE: Initializing board %i...\n", board);
 
-    ide_boards[board] = (ide_board_t *) malloc(sizeof(ide_board_t));
+    if (ide_boards[board] == NULL)
+        ide_boards[board] = (ide_board_t *) malloc(sizeof(ide_board_t));
+
     memset(ide_boards[board], 0, sizeof(ide_board_t));
     ide_boards[board]->irq     = irq;
     ide_boards[board]->cur_dev = board << 1;
@@ -3039,8 +3039,8 @@ ide_xtide_close(void)
 
 void
 ide_set_bus_master(int board,
-                   int (*dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv),
-                   void (*set_irq)(int channel, void *priv), void *priv)
+                   int (*dma)(uint8_t *data, int transfer_length, int out, void *priv),
+                   void (*set_irq)(uint8_t status, void *priv), void *priv)
 {
     if (ide_bm[board] == NULL)
         ide_bm[board] = (ide_bm_t *) malloc(sizeof(ide_bm_t));
@@ -3072,7 +3072,8 @@ ide_init(const device_t *info)
             break;
     }
 
-    return ide_drives;
+    // return ide_drives;
+    return (void *) (intptr_t) -1;
 }
 
 static void

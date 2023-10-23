@@ -149,8 +149,8 @@ extern uint8_t  ide_read_alt_status(uint16_t addr, void *priv);
 extern uint16_t ide_readw(uint16_t addr, void *priv);
 
 extern void ide_set_bus_master(int board,
-                               int (*dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv),
-                               void (*set_irq)(int channel, void *priv), void *priv);
+                               int (*dma)(uint8_t *data, int transfer_length, int out, void *priv),
+                               void (*set_irq)(uint8_t status, void *priv), void *priv);
 
 extern void win_cdrom_eject(uint8_t id);
 extern void win_cdrom_reload(uint8_t id);
@@ -179,10 +179,6 @@ extern void ide_set_board_callback(uint8_t board, double callback);
 
 extern void ide_padstr(char *str, const char *src, int len);
 extern void ide_padstr8(uint8_t *buf, int buf_size, const char *src);
-
-extern int  (*ide_bus_master_dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv);
-extern void (*ide_bus_master_set_irq)(int channel, void *priv);
-extern void  *ide_bus_master_priv[2];
 
 extern uint8_t ide_read_ali_75(void);
 extern uint8_t ide_read_ali_76(void);

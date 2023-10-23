@@ -74,7 +74,7 @@ sff_log(const char *fmt, ...)
 void
 sff_bus_master_handler(sff8038i_t *dev, int enabled, uint16_t base)
 {
-    if (dev->base != 0x0000) {
+    if (dev->enabled && (dev->base != 0x0000)) {
         io_removehandler(dev->base, 0x08,
                          sff_bus_master_read, sff_bus_master_readw, sff_bus_master_readl,
                          sff_bus_master_write, sff_bus_master_writew, sff_bus_master_writel,
@@ -314,7 +314,7 @@ sff_bus_master_readl(uint16_t port, void *priv)
 }
 
 int
-sff_bus_master_dma(UNUSED(int channel), uint8_t *data, int transfer_length, int out, void *priv)
+sff_bus_master_dma(uint8_t *data, int transfer_length, int out, void *priv)
 {
     sff8038i_t *dev = (sff8038i_t *) priv;
 #ifdef ENABLE_SFF_LOG
@@ -385,64 +385,72 @@ sff_bus_master_dma(UNUSED(int channel), uint8_t *data, int transfer_length, int 
 }
 
 void
-sff_bus_master_set_irq(int channel, void *priv)
+sff_bus_master_set_irq(uint8_t status, void *priv)
 {
     sff8038i_t *dev = (sff8038i_t *) priv;
-    uint8_t     irq = !!(channel & 0x40);
+    uint8_t     irq = !!(status & 0x04);
+    int         irq_shift = 0;
 
-    if (!(dev->status & 0x04) || (channel & 0x40)) {
-        dev->status &= ~0x04;
-        dev->status |= (channel >> 4);
-    }
+    if (!(dev->status & 0x04) || (status & 0x04))
+        dev->status = (dev->status & ~0x04) | status;
 
-    channel &= 0x01;
-
-    switch (dev->irq_mode[channel]) {
+    switch (dev->irq_mode) {
         default:
-        case 0:
+        case IRQ_MODE_LEGACY:
             /* Legacy IRQ mode. */
             if (irq)
-                picint(1 << (14 + channel));
+                picint(1 << dev->irq_line);
             else
-                picintc(1 << (14 + channel));
+                picintc(1 << dev->irq_line);
             break;
-        case 1:
+        case IRQ_MODE_PCI_IRQ_PIN:
             /* Native PCI IRQ mode with interrupt pin. */
             if (irq)
                 pci_set_irq(dev->slot, dev->irq_pin, &dev->irq_state);
             else
                 pci_clear_irq(dev->slot, dev->irq_pin, &dev->irq_state);
             break;
-        case 2:
-        case 5:
+        case IRQ_MODE_MIRQ_0:
+        case IRQ_MODE_MIRQ_1:
             /* MIRQ 0 or 1. */
+        case IRQ_MODE_MIRQ_2:
+        case IRQ_MODE_MIRQ_3:
+            /* MIRQ 2 or 3. */
             if (irq)
-                pci_set_mirq((dev->irq_mode[channel] & 1), 0, &dev->irq_state);
+                pci_set_mirq((dev->irq_mode & 3) + irq_shift, 0, &dev->irq_state);
             else
-                pci_clear_mirq((dev->irq_mode[channel] & 1), 0, &dev->irq_state);
+                pci_clear_mirq((dev->irq_mode & 3) + irq_shift, 0, &dev->irq_state);
             break;
-        case 3:
+        /* TODO: Redo this as a MIRQ. */
+        case IRQ_MODE_PCI_IRQ_LINE:
             /* Native PCI IRQ mode with specified interrupt line. */
             if (irq)
-                picintlevel(1 << dev->irq_line, &dev->irq_state);
+                pci_set_dirq(dev->pci_irq_line, &dev->irq_state);
             else
-                picintclevel(1 << dev->irq_line, &dev->irq_state);
+                pci_clear_dirq(dev->pci_irq_line, &dev->irq_state);
             break;
-        case 4:
+        case IRQ_MODE_ALI_ALADDIN:
             /* ALi Aladdin Native PCI INTAJ mode. */
             if (irq)
-                pci_set_mirq((channel + 2), dev->irq_level[channel], &dev->irq_state);
+                pci_set_mirq((dev->channel + 2), pci_get_mirq_level(dev->channel + 2), &dev->irq_state);
             else
-                pci_clear_mirq((channel + 2), dev->irq_level[channel], &dev->irq_state);
+                pci_clear_mirq((dev->channel + 2), pci_get_mirq_level(dev->channel + 2), &dev->irq_state);
+            break;
+        case IRQ_MODE_SIS_551X:
+            /* SiS 551x mode. */
+            if (irq)
+                pci_set_mirq(2, 1, &dev->irq_state);
+            else
+                pci_clear_mirq(2, 1, &dev->irq_state);
             break;
     }
 }
 
 void
-sff_bus_master_reset(sff8038i_t *dev, uint16_t old_base)
+sff_bus_master_reset(sff8038i_t *dev)
 {
-    if (dev->enabled) {
-        io_removehandler(old_base, 0x08,
+    if (dev->enabled && (dev->base != 0x0000)) {
+        io_removehandler(dev->base, 0x08,
                          sff_bus_master_read, sff_bus_master_readw, sff_bus_master_readl,
                          sff_bus_master_write, sff_bus_master_writew, sff_bus_master_writel,
                          dev);
@@ -493,44 +501,54 @@ sff_set_slot(sff8038i_t *dev, int slot)
 }
 
 void
-sff_set_irq_line(sff8038i_t *dev, int irq_line)
+sff_set_irq_line(sff8038i_t *dev, int pci_irq_line)
 {
-    dev->irq_line = irq_line;
+    dev->pci_irq_line = pci_irq_line;
+}
+
+/* TODO: Why does this always set the level to 0, regardless of the parameter?! */
+void
+sff_set_irq_level(sff8038i_t *dev, UNUSED(int irq_level))
+{
+    dev->irq_level = 0;
 }
 
 void
-sff_set_irq_level(sff8038i_t *dev, int channel, UNUSED(int irq_level))
+sff_set_irq_mode(sff8038i_t *dev, int irq_mode)
 {
-    dev->irq_level[channel] = 0;
-}
+    dev->irq_mode = irq_mode;
 
-void
-sff_set_irq_mode(sff8038i_t *dev, int channel, int irq_mode)
-{
-    dev->irq_mode[channel] = irq_mode;
-
-    switch (dev->irq_mode[channel]) {
+    switch (dev->irq_mode) {
         default:
-        case 0:
+        case IRQ_MODE_LEGACY:
             /* Legacy IRQ mode. */
-            sff_log("[%08X] Setting channel %i to legacy IRQ %i\n", dev, channel, 14 + channel);
+            sff_log("[%08X] Setting IRQ mode to legacy IRQ %i\n", dev, 14 + channel);
             break;
-        case 1:
+        case IRQ_MODE_PCI_IRQ_PIN:
             /* Native PCI IRQ mode with interrupt pin. */
-            sff_log("[%08X] Setting channel %i to native PCI INT%c\n", dev, channel, '@' + dev->irq_pin);
+            sff_log("[%08X] Setting IRQ mode to native PCI INT%c\n", dev, 0x40 + dev->irq_pin);
             break;
-        case 2:
-        case 5:
+        case IRQ_MODE_MIRQ_0:
+        case IRQ_MODE_MIRQ_1:
             /* MIRQ 0 or 1. */
-            sff_log("[%08X] Setting channel %i to PCI MIRQ%i\n", dev, channel, irq_mode & 1);
+            sff_log("[%08X] Setting IRQ mode to PCI MIRQ%i\n", dev, irq_mode & 1);
             break;
-        case 3:
+        case IRQ_MODE_MIRQ_2:
+        case IRQ_MODE_MIRQ_3:
+            /* MIRQ 0 or 1. */
+            sff_log("[%08X] Setting IRQ mode to PCI MIRQ%i\n", dev, (irq_mode & 1) + 1);
+            break;
+        case IRQ_MODE_PCI_IRQ_LINE:
             /* Native PCI IRQ mode with specified interrupt line. */
-            sff_log("[%08X] Setting channel %i to native PCI IRQ %i\n", dev, channel, dev->irq_line);
+            sff_log("[%08X] Setting IRQ mode to native PCI IRQ %i\n", dev, dev->pci_irq_line);
             break;
-        case 4:
+        case IRQ_MODE_ALI_ALADDIN:
             /* ALi Aladdin Native PCI INTAJ mode. */
-            sff_log("[%08X] Setting channel %i to INT%cJ\n", dev, channel, 'A' + channel);
+            sff_log("[%08X] Setting IRQ mode to INT%cJ\n", dev, 'A' + dev->channel);
+            break;
+        case IRQ_MODE_SIS_551X:
+            /* SiS 551x mode. */
+            sff_log("[%08X] Setting IRQ mode to PCI MIRQ2\n", dev);
             break;
     }
 }
@@ -566,13 +584,15 @@ sff_init(UNUSED(const device_t *info))
     ide_set_bus_master(next_id, sff_bus_master_dma, sff_bus_master_set_irq, dev);
 
     dev->slot         = 7;
-    dev->irq_mode[0]  = 0; /* Channel 0 goes to IRQ 14. */
-    dev->irq_mode[1]  = 2; /* Channel 1 goes to MIRQ0. */
+    /* Channel 0 goes to IRQ 14, channel 1 goes to MIRQ0. */
+    dev->irq_mode     = next_id ? IRQ_MODE_MIRQ_0 : IRQ_MODE_LEGACY;
     dev->irq_pin      = PCI_INTA;
-    dev->irq_line     = 14;
-    dev->irq_level[0] = dev->irq_level[1] = 0;
+    dev->irq_line     = 14 + next_id;
+    dev->pci_irq_line = 14;
+    dev->irq_level    = 0;
     dev->irq_state    = 0;
 
+    dev->channel      = next_id;
     next_id++;
 
     return dev;

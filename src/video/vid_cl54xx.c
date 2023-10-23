@@ -3693,8 +3693,7 @@ cl_pci_read(UNUSED(int func), int addr, void *priv)
 
     if ((addr >= 0x30) && (addr <= 0x33) && (!gd54xx->has_bios))
         ret = 0x00;
-    else
-        switch (addr) {
+    else  switch (addr) {
             case 0x00:
                 ret = 0x13; /*Cirrus Logic*/
                 break;
@@ -3743,7 +3742,7 @@ cl_pci_read(UNUSED(int func), int addr, void *priv)
             case 0x13:
                 ret = gd54xx->lfb_base >> 24;
                 if (svga->crtc[0x27] == CIRRUS_ID_CLGD5480)
-                    ret = 0xfe;
+                    ret &= 0xfe;
                 break;
 
             case 0x14:
@@ -3781,7 +3780,7 @@ cl_pci_read(UNUSED(int func), int addr, void *priv)
 
             default:
                 break;
-        }
+    }
 
     return ret;
 }

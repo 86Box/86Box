@@ -229,6 +229,7 @@ typedef struct mach64_t {
         int      dst_size;
         int      src_size;
         int      host_size;
+        int      temp_cnt;
 
         uint32_t dp_bkgd_clr;
         uint32_t dp_frgd_clr;
@@ -1326,10 +1327,12 @@ mach64_start_fill(mach64_t *mach64)
 
     mach64->accel.source_host = ((mach64->dp_src & 7) == SRC_HOST) || (((mach64->dp_src >> 8) & 7) == SRC_HOST);
 
-    for (uint8_t y = 0; y < 8; y++) {
-        for (uint8_t x = 0; x < 8; x++) {
-            uint32_t temp                   = (y & 4) ? mach64->pat_reg1 : mach64->pat_reg0;
-            mach64->accel.pattern[y][7 - x] = (temp >> (x + ((y & 3) * 8))) & 1;
+    if (mach64->pat_cntl & 1) {
+        for (uint8_t y = 0; y < 8; y++) {
+            for (uint8_t x = 0; x < 8; x++) {
+                uint32_t temp                   = (y & 4) ? mach64->pat_reg1 : mach64->pat_reg0;
+                mach64->accel.pattern[y][7 - x] = (temp >> (x + ((y & 3) << 3))) & 1;
+            }
         }
     }
 
@@ -1342,7 +1345,9 @@ mach64_start_fill(mach64_t *mach64)
         mach64->accel.pattern_clr4x2[1][1] = ((mach64->pat_reg1 >> 8) & 0xff);
         mach64->accel.pattern_clr4x2[1][2] = ((mach64->pat_reg1 >> 16) & 0xff);
         mach64->accel.pattern_clr4x2[1][3] = ((mach64->pat_reg1 >> 24) & 0xff);
-    } else if (mach64->pat_cntl & 4) {
+    }
+
+    if (mach64->pat_cntl & 4) {
         mach64->accel.pattern_clr8x1[0] = (mach64->pat_reg0 & 0xff);
         mach64->accel.pattern_clr8x1[1] = ((mach64->pat_reg0 >> 8) & 0xff);
         mach64->accel.pattern_clr8x1[2] = ((mach64->pat_reg0 >> 16) & 0xff);
@@ -1425,10 +1430,12 @@ mach64_start_line(mach64_t *mach64)
 
     mach64->accel.source_host = ((mach64->dp_src & 7) == SRC_HOST) || (((mach64->dp_src >> 8) & 7) == SRC_HOST);
 
-    for (uint8_t y = 0; y < 8; y++) {
-        for (uint8_t x = 0; x < 8; x++) {
-            uint32_t temp                   = (y & 4) ? mach64->pat_reg1 : mach64->pat_reg0;
-            mach64->accel.pattern[y][7 - x] = (temp >> (x + ((y & 3) * 8))) & 1;
+    if (mach64->pat_cntl & 1) {
+        for (uint8_t y = 0; y < 8; y++) {
+            for (uint8_t x = 0; x < 8; x++) {
+                uint32_t temp                   = (y & 4) ? mach64->pat_reg1 : mach64->pat_reg0;
+                mach64->accel.pattern[y][7 - x] = (temp >> (x + ((y & 3) << 3))) & 1;
+            }
         }
     }
 
@@ -1555,6 +1562,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
 {
     svga_t *svga    = &mach64->svga;
     int     cmp_clr = 0;
+    int     mix = 0;
 
     if (!mach64->accel.busy) {
         mach64_log("mach64_blit : return as not busy\n");
@@ -1565,11 +1573,10 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
         case OP_RECT:
             while (count) {
                 uint8_t  write_mask = 0;
-                uint32_t src_dat    = 0;
+                uint32_t src_dat = 0;
                 uint32_t dest_dat;
                 uint32_t host_dat = 0;
                 uint32_t old_dest_dat;
-                int      mix = 0;
                 int      dst_x;
                 int      dst_y;
                 int      src_x;
@@ -1617,7 +1624,11 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                         }
                         break;
                     case MONO_SRC_PAT:
-                        mix = mach64->accel.pattern[dst_y & 7][dst_x & 7];
+                        if (mach64->dst_cntl & DST_24_ROT_EN) {
+                            if (!mach64->accel.xx_count)
+                                mix = mach64->accel.pattern[dst_y & 7][dst_x & 7];
+                        } else
+                            mix = mach64->accel.pattern[dst_y & 7][dst_x & 7];
                         break;
                     case MONO_SRC_1:
                         mix = 1;
@@ -1643,18 +1654,18 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                             READ(mach64->accel.src_offset + (src_y * mach64->accel.src_pitch) + src_x, src_dat, mach64->accel.src_size);
                             break;
                         case SRC_FG:
-                            if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24) {
+                            if (mach64->dst_cntl & DST_24_ROT_EN) {
                                 if (mach64->accel.xinc == -1) {
-                                    if ((mach64->accel.xx_count % 3) == 2)
+                                    if (mach64->accel.xx_count == 2)
                                         src_dat = mach64->accel.dp_frgd_clr & 0xff;
-                                    else if ((mach64->accel.xx_count % 3) == 1)
+                                    else if (mach64->accel.xx_count == 1)
                                         src_dat = (mach64->accel.dp_frgd_clr >> 8) & 0xff;
                                     else
                                         src_dat = (mach64->accel.dp_frgd_clr >> 16) & 0xff;
                                 } else {
-                                    if ((mach64->accel.xx_count % 3) == 2)
+                                    if (mach64->accel.xx_count == 2)
                                         src_dat = (mach64->accel.dp_frgd_clr >> 16) & 0xff;
-                                    else if ((mach64->accel.xx_count % 3) == 1)
+                                    else if (mach64->accel.xx_count == 1)
                                         src_dat = (mach64->accel.dp_frgd_clr >> 8) & 0xff;
                                     else
                                         src_dat = mach64->accel.dp_frgd_clr & 0xff;
@@ -1663,18 +1674,18 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                                 src_dat = mach64->accel.dp_frgd_clr;
                             break;
                         case SRC_BG:
-                            if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24) {
+                            if (mach64->dst_cntl & DST_24_ROT_EN) {
                                 if (mach64->accel.xinc == -1) {
-                                    if ((mach64->accel.xx_count % 3) == 2)
+                                    if (mach64->accel.xx_count == 2)
                                         src_dat = mach64->accel.dp_bkgd_clr & 0xff;
-                                    else if ((mach64->accel.xx_count % 3) == 1)
+                                    else if (mach64->accel.xx_count == 1)
                                         src_dat = (mach64->accel.dp_bkgd_clr >> 8) & 0xff;
                                     else
                                         src_dat = (mach64->accel.dp_bkgd_clr >> 16) & 0xff;
                                 } else {
-                                    if ((mach64->accel.xx_count % 3) == 2)
+                                    if (mach64->accel.xx_count == 2)
                                         src_dat = (mach64->accel.dp_bkgd_clr >> 16) & 0xff;
-                                    else if ((mach64->accel.xx_count % 3) == 1)
+                                    else if (mach64->accel.xx_count == 1)
                                         src_dat = (mach64->accel.dp_bkgd_clr >> 8) & 0xff;
                                     else
                                         src_dat = mach64->accel.dp_bkgd_clr & 0xff;
@@ -1724,27 +1735,25 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                         if (!cmp_clr) {
                             old_dest_dat = dest_dat;
                             MIX
-
-                            if (((mach64->crtc_gen_cntl >> 8) & 7) == BPP_24) {
+                            if (mach64->dst_cntl & DST_24_ROT_EN) {
                                 if (mach64->accel.xinc == -1) {
-                                    if ((mach64->accel.xx_count % 3) == 2)
+                                    if (mach64->accel.xx_count == 2)
                                         write_mask = mach64->accel.write_mask & 0xff;
-                                    else if ((mach64->accel.xx_count % 3) == 1)
+                                    else if (mach64->accel.xx_count == 1)
                                         write_mask = (mach64->accel.write_mask >> 8) & 0xff;
                                     else
                                         write_mask = (mach64->accel.write_mask >> 16) & 0xff;
                                 } else {
-                                    if ((mach64->accel.xx_count % 3) == 2)
+                                    if (mach64->accel.xx_count == 2)
                                         write_mask = (mach64->accel.write_mask >> 16) & 0xff;
-                                    else if ((mach64->accel.xx_count % 3) == 1)
+                                    else if (mach64->accel.xx_count == 1)
                                         write_mask = (mach64->accel.write_mask >> 8) & 0xff;
                                     else
                                         write_mask = mach64->accel.write_mask & 0xff;
                                 }
                                 dest_dat = (dest_dat & write_mask) | (old_dest_dat & ~write_mask);
-                            } else {
+                            } else
                                 dest_dat = (dest_dat & mach64->accel.write_mask) | (old_dest_dat & ~mach64->accel.write_mask);
-                            }
                         }
 
                         WRITE(mach64->accel.dst_offset + ((dst_y) * mach64->accel.dst_pitch) + (dst_x), mach64->accel.dst_size);
@@ -1767,11 +1776,11 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                     }
                 }
 
-                mach64->accel.xx_count++;
                 mach64->accel.x_count--;
+                mach64->accel.xx_count = (mach64->accel.xx_count + 1) % 3;
                 if (mach64->accel.x_count <= 0) {
-                    mach64->accel.xx_count = 0;
                     mach64->accel.x_count  = mach64->accel.dst_width;
+                    mach64->accel.xx_count = 0;
                     mach64->accel.dst_x    = 0;
                     mach64->accel.dst_y += mach64->accel.yinc;
                     mach64->accel.src_x_start = (mach64->src_y_x >> 16) & 0xfff;
@@ -1794,9 +1803,7 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                     }
 
                     mach64->accel.poly_draw = 0;
-
                     mach64->accel.dst_height--;
-
                     if (mach64->accel.dst_height <= 0) {
                         /*Blit finished*/
                         mach64_log("mach64 blit finished\n");

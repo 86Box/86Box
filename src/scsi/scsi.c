@@ -178,10 +178,8 @@ scsi_card_init(void)
            bus left. */
     if (max > 0) {
         for (int i = 0; i < max; i++) {
-            if (!scsi_cards[scsi_card_current[i]].device)
-                continue;
-
-            device_add_inst(scsi_cards[scsi_card_current[i]].device, i + 1);
+            if ((scsi_card_current[i] > 0) && scsi_cards[scsi_card_current[i]].device)
+                device_add_inst(scsi_cards[scsi_card_current[i]].device, i + 1);
         }
     }
 }

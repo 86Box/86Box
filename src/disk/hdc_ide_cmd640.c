@@ -74,38 +74,52 @@ cmd640_log(const char *fmt, ...)
 #endif
 
 void
-cmd640_set_irq(int channel, void *priv)
+cmd640_set_irq_0(uint8_t status, void *priv)
 {
     cmd640_t *dev = (cmd640_t *) priv;
-    int       irq = !!(channel & 0x40);
+    int       irq = !!(status & 0x04);
 
-    if (channel & 0x01) {
-        if (!(dev->regs[0x57] & 0x10) || (channel & 0x40)) {
-            dev->regs[0x57] &= ~0x10;
-            dev->regs[0x57] |= (channel >> 2);
-        }
-    } else {
-        if (!(dev->regs[0x50] & 0x04) || (channel & 0x40)) {
-            dev->regs[0x50] &= ~0x04;
-            dev->regs[0x50] |= (channel >> 4);
-        }
-    }
+    if (!(dev->regs[0x50] & 0x04) || (status & 0x04))
+        dev->regs[0x50] = (dev->regs[0x50] & ~0x04) | status;
 
-    channel &= 0x01;
-
-    if (!(dev->channels & (1 << channel)))
+    if (!(dev->channels & 1))
         return;
 
     if (irq) {
-        if (dev->irq_mode[channel] == 1)
+        if (dev->irq_mode[0] == 1)
             pci_set_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
         else
-            picint(1 << (14 + channel));
+            picint(1 << 14);
     } else {
-        if (dev->irq_mode[channel] == 1)
+        if (dev->irq_mode[0] == 1)
             pci_clear_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
         else
-            picintc(1 << (14 + channel));
+            picintc(1 << 14);
+    }
+}
+
+void
+cmd640_set_irq_1(uint8_t status, void *priv)
+{
+    cmd640_t *dev = (cmd640_t *) priv;
+    int       irq = !!(status & 0x04);
+
+    if (!(dev->regs[0x57] & 0x10) || (status & 0x04))
+        dev->regs[0x57] = (dev->regs[0x57] & ~0x10) | (status << 2);
+
+    if (!(dev->channels & 2))
+        return;
+
+    if (irq) {
+        if (dev->irq_mode[1] == 1)
+            pci_set_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
+        else
+            picint(1 << 15);
+    } else {
+        if (dev->irq_mode[1] == 1)
+            pci_clear_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
+        else
+            picintc(1 << 15);
     }
 }
 
@@ -415,10 +429,10 @@ cmd640_reset(void *priv)
     }
 
     if (dev->channels & 0x01)
-        cmd640_set_irq(0x00, priv);
+        cmd640_set_irq_0(0x00, priv);
 
     if (dev->channels & 0x02)
-        cmd640_set_irq(0x01, priv);
+        cmd640_set_irq_1(0x00, priv);
 
     memset(dev->regs, 0x00, sizeof(dev->regs));
 
@@ -509,10 +523,10 @@ cmd640_init(const device_t *info)
             pci_add_card(PCI_ADD_IDE, cmd640_pci_read, cmd640_pci_write, dev, &dev->pci_slot);
 
         if (dev->channels & 0x01)
-            ide_set_bus_master(0, NULL, cmd640_set_irq, dev);
+            ide_set_bus_master(0, NULL, cmd640_set_irq_0, dev);
 
         if (dev->channels & 0x02)
-            ide_set_bus_master(1, NULL, cmd640_set_irq, dev);
+            ide_set_bus_master(1, NULL, cmd640_set_irq_1, dev);
 
         /* The CMD PCI-0640B IDE controller has no DMA capability,
            so set our devices IDE devices to force ATA-3 (no DMA). */

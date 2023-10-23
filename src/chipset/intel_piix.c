@@ -106,13 +106,13 @@ static void
 smsc_ide_irqs(piix_t *dev)
 {
     int irq_line = 3;
-    uint8_t irq_mode[2] = { 0, 0 };
+    uint8_t irq_mode[2] = { IRQ_MODE_LEGACY, IRQ_MODE_LEGACY };
 
     if (dev->regs[1][0x09] & 0x01)
-        irq_mode[0] = (dev->regs[0][0xe1] & 0x01) ? 3 : 1;
+        irq_mode[0] = (dev->regs[0][0xe1] & 0x01) ? IRQ_MODE_PCI_IRQ_LINE : IRQ_MODE_PCI_IRQ_PIN;
 
     if (dev->regs[1][0x09] & 0x04)
-        irq_mode[1] = (dev->regs[0][0xe1] & 0x01) ? 3 : 1;
+        irq_mode[1] = (dev->regs[0][0xe1] & 0x01) ? IRQ_MODE_PCI_IRQ_LINE : IRQ_MODE_PCI_IRQ_PIN;
 
     switch ((dev->regs[0][0xe1] >> 1) & 0x07) {
         case 0x00:
@@ -144,12 +144,10 @@ smsc_ide_irqs(piix_t *dev)
     }
 
     sff_set_irq_line(dev->bm[0], irq_line);
-    sff_set_irq_mode(dev->bm[0], 0, irq_mode[0]);
-    sff_set_irq_mode(dev->bm[0], 1, irq_mode[1]);
+    sff_set_irq_mode(dev->bm[0], irq_mode[0]);
 
     sff_set_irq_line(dev->bm[1], irq_line);
-    sff_set_irq_mode(dev->bm[1], 0, irq_mode[0]);
-    sff_set_irq_mode(dev->bm[1], 1, irq_mode[1]);
+    sff_set_irq_mode(dev->bm[1], irq_mode[1]);
 }
 
 static void
@@ -1213,23 +1211,19 @@ piix_reset_hard(piix_t *dev)
 {
     uint8_t *fregs;
 
-    uint16_t old_base = (dev->regs[1][0x20] & 0xf0) | (dev->regs[1][0x21] << 8);
-
-    sff_bus_master_reset(dev->bm[0], old_base);
-    sff_bus_master_reset(dev->bm[1], old_base + 8);
+    sff_bus_master_reset(dev->bm[0]);
+    sff_bus_master_reset(dev->bm[1]);
 
     if (dev->type >= 4) {
         sff_set_slot(dev->bm[0], dev->pci_slot);
         sff_set_irq_pin(dev->bm[0], PCI_INTA);
         sff_set_irq_line(dev->bm[0], 14);
-        sff_set_irq_mode(dev->bm[0], 0, 0);
-        sff_set_irq_mode(dev->bm[0], 1, 0);
+        sff_set_irq_mode(dev->bm[0], IRQ_MODE_LEGACY);
 
         sff_set_slot(dev->bm[1], dev->pci_slot);
         sff_set_irq_pin(dev->bm[1], PCI_INTA);
         sff_set_irq_line(dev->bm[1], 14);
-        sff_set_irq_mode(dev->bm[1], 0, 0);
-        sff_set_irq_mode(dev->bm[1], 1, 0);
+        sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
     }
 
 #ifdef ENABLE_PIIX_LOG
@@ -1504,16 +1498,12 @@ piix_reset(void *priv)
         piix_write(3, 0xd2, 0x00, priv);
     }
 
-    sff_set_irq_mode(dev->bm[0], 0, 0);
-    sff_set_irq_mode(dev->bm[1], 0, 0);
+    sff_set_irq_mode(dev->bm[0], IRQ_MODE_LEGACY);
 
-    if (dev->no_mirq0 || (dev->type >= 4)) {
-        sff_set_irq_mode(dev->bm[0], 1, 0);
-        sff_set_irq_mode(dev->bm[1], 1, 0);
-    } else {
-        sff_set_irq_mode(dev->bm[0], 1, 2);
-        sff_set_irq_mode(dev->bm[1], 1, 2);
-    }
+    if (dev->no_mirq0 || (dev->type >= 4))
+        sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
+    else
+        sff_set_irq_mode(dev->bm[1], IRQ_MODE_MIRQ_0);
 }
 
 static void
@@ -1567,16 +1557,12 @@ piix_init(const device_t *info)
         ide_board_set_force_ata3(1, 1);
     }
 
-    sff_set_irq_mode(dev->bm[0], 0, 0);
-    sff_set_irq_mode(dev->bm[1], 0, 0);
+    sff_set_irq_mode(dev->bm[0], IRQ_MODE_LEGACY);
 
-    if (dev->no_mirq0 || (dev->type >= 4)) {
-        sff_set_irq_mode(dev->bm[0], 1, 0);
-        sff_set_irq_mode(dev->bm[1], 1, 0);
-    } else {
-        sff_set_irq_mode(dev->bm[0], 1, 2);
-        sff_set_irq_mode(dev->bm[1], 1, 2);
-    }
+    if (dev->no_mirq0 || (dev->type >= 4))
+        sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
+    else
+        sff_set_irq_mode(dev->bm[1], IRQ_MODE_MIRQ_0);
 
     if (dev->type >= 3)
         dev->usb   = device_add(&usb_device);

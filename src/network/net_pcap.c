@@ -122,15 +122,15 @@ struct pcap_if {
 };
 
 struct pcap_send_queue {
-    u_int maxlen; /* Maximum size of the queue, in bytes. This
+    unsigned int maxlen; /* Maximum size of the queue, in bytes. This
              variable contains the size of the buffer field. */
-    u_int len;    /* Current size of the queue, in bytes. */
+    unsigned int len;    /* Current size of the queue, in bytes. */
     char *buffer; /* Buffer containing the packets to be sent. */
 };
 
 typedef struct pcap_send_queue pcap_send_queue;
 
-typedef void (*pcap_handler)(u_char *user, const struct pcap_pkthdr *h, const u_char *bytes);
+typedef void (*pcap_handler)(unsigned char *user, const struct pcap_pkthdr *h, const unsigned char *bytes);
 #endif
 
 typedef struct {
@@ -169,15 +169,15 @@ static int (*f_pcap_setnonblock)(void *, int, char *);
 static int (*f_pcap_set_immediate_mode)(void *, int);
 static int (*f_pcap_set_promisc)(void *, int);
 static int (*f_pcap_set_snaplen)(void *, int);
-static int (*f_pcap_dispatch)(void *, int, pcap_handler callback, u_char *user);
+static int (*f_pcap_dispatch)(void *, int, pcap_handler callback, unsigned char *user);
 static void *(*f_pcap_create)(const char *, char *);
 static int (*f_pcap_activate)(void *);
 static void *(*f_pcap_geterr)(void *);
 #ifdef _WIN32
 static HANDLE (*f_pcap_getevent)(void *);
 static int (*f_pcap_sendqueue_queue)(void *, void *, void *);
-static u_int (*f_pcap_sendqueue_transmit)(void *, void *, int sync);
-static void *(*f_pcap_sendqueue_alloc)(u_int memsize);
+static unsigned int (*f_pcap_sendqueue_transmit)(void *, void *, int sync);
+static void *(*f_pcap_sendqueue_alloc)(unsigned int memsize);
 static void (*f_pcap_sendqueue_destroy)(void *);
 #else
 static int (*f_pcap_get_selectable_fd)(void *);
@@ -294,7 +294,7 @@ net_pcap_thread(void *priv)
                 break;
 
             case NET_EVENT_RX:
-                f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (u_char *) pcap);
+                f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (unsigned char *) pcap);
                 break;
 
             default:
@@ -341,7 +341,7 @@ net_pcap_thread(void *priv)
         }
 
         if (pfd[NET_EVENT_RX].revents & POLLIN) {
-            f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (u_char *) pcap);
+            f_pcap_dispatch(pcap->pcap, PCAP_PKT_BATCH, net_pcap_rx_handler, (unsigned char *) pcap);
         }
     }
 

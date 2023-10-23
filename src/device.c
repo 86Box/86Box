@@ -39,6 +39,7 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -158,6 +159,8 @@ device_add_common(const device_t *dev, const device_t *cd, void *p, void *params
     /* Do this so that a chained device_add will not identify the same ID
        its master device is already trying to assign. */
     devices[c] = (device_t *) dev;
+    if (!strcmp(dev->name, "None") || !strcmp(dev->name, "Internal"))
+        fatal("Attempting to add dummy device of type: %s\n", dev->name);
 
     if (p == NULL) {
         memcpy(&device_prev, &device_current, sizeof(device_context_t));
@@ -325,6 +328,23 @@ device_reset_all(uint32_t match_flags)
                 devices[c]->reset(device_priv[c]);
         }
     }
+}
+
+void *
+device_find_first_priv(uint32_t match_flags)
+{
+    void *ret = NULL;
+
+    for (uint16_t c = 0; c < DEVICE_MAX; c++) {
+        if (devices[c] != NULL) {
+            if ((device_priv[c] != NULL) && (devices[c]->flags & match_flags)) {
+                ret = device_priv[c];
+                break;
+            }
+        }
+    }
+
+    return ret;
 }
 
 void *
@@ -550,6 +570,8 @@ device_speed_changed(void)
 {
     for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
+            device_log("DEVICE: device '%s' speed changed\n", devices[c]->name);
+
             if (devices[c]->speed_changed != NULL)
                 devices[c]->speed_changed(device_priv[c]);
         }

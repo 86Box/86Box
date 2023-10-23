@@ -25,15 +25,18 @@
 #include <86box/snd_opl.h>
 #include <86box/snd_sb_dsp.h>
 
-#define SADLIB  1 /* No DSP */
-#define SB1     2 /* DSP v1.05 */
-#define SB15    3 /* DSP v2.00 */
-#define SB2     4 /* DSP v2.01 - needed for high-speed DMA */
-#define SBPRO   5 /* DSP v3.00 */
-#define SBPRO2  6 /* DSP v3.02 + OPL3 */
-#define SB16    7 /* DSP v4.05 + OPL3 */
-#define SBAWE32 8 /* DSP v4.13 + OPL3 */
-#define SBAWE64 9 /* DSP v4.16 + OPL3 */
+enum {
+    SADLIB  = 1,     /* No DSP */
+    SB1,             /* DSP v1.05 */
+    SB15,            /* DSP v2.00 */
+    SB2,             /* DSP v2.01 - needed for high-speed DMA */
+    SBPRO,           /* DSP v3.00 */
+    SBPRO2,          /* DSP v3.02 + OPL3 */
+    SB16,            /* DSP v4.05 + OPL3 */
+    SBAWE32,         /* DSP v4.12 + OPL3 */
+    SBAWE32PNP,      /* DSP v4.13 + OPL3 */
+    SBAWE64          /* DSP v4.16 + OPL3 */
+};
 
 /* SB 2.0 CD version */
 typedef struct sb_ct1335_mixer_t {
@@ -141,6 +144,7 @@ typedef struct sb_t {
     void   *gameport;
 
     int pos;
+    int pnp;
 
     uint8_t pos_regs[8];
     uint8_t pnp_rom[512];

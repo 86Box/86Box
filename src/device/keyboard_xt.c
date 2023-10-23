@@ -546,8 +546,8 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
             timer_process();
 
-            if (((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ)) &&
-                (cassette != NULL))
+            if (((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
+                (kbd->type == KBD_TYPE_PRAVETZ)) && (cassette != NULL))
                 pc_cas_set_motor(cassette, (kbd->pb & 0x08) == 0);
 
             speaker_update();
@@ -599,12 +599,19 @@ kbd_read(uint16_t port, void *priv)
 
     switch (port) {
         case 0x60: /* Keyboard Data Register  (aka Port A) */
-            if ((kbd->pb & 0x80) && ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_XT82) ||
-                (kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_ZENITH))) {
-                if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_PRAVETZ))
+            if ((kbd->pb & 0x80) && ((kbd->type == KBD_TYPE_PC81) ||
+                (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ) ||
+                (kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86) ||
+                (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) ||
+                (kbd->type == KBD_TYPE_ZENITH))) {
+                if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
+                    (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) ||
+                    (kbd->type == KBD_TYPE_PRAVETZ))
                     ret = (kbd->pd & ~0x02) | (hasfpu ? 0x02 : 0x00);
                 else if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86))
-                    ret = 0xff; /* According to Ruud on the PCem forum, this is supposed to return 0xFF on the XT. */
+                    /* According to Ruud on the PCem forum, this is supposed to
+                       return 0xFF on the XT. */
+                    ret = 0xff;
                 else if (kbd->type == KBD_TYPE_ZENITH) {
                     /* Zenith Data Systems Z-151
                      * SW1 switch settings:
@@ -633,7 +640,8 @@ kbd_read(uint16_t port, void *priv)
             break;
 
         case 0x62: /* Switch Register (aka Port C) */
-            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ)) {
+            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
+                (kbd->type == KBD_TYPE_PRAVETZ)) {
                 if (kbd->pb & 0x04) /* PB2 */
                     switch (mem_size + isa_mem_size) {
                         case 64:
@@ -648,8 +656,8 @@ kbd_read(uint16_t port, void *priv)
                     }
                 else
                     ret = (((mem_size + isa_mem_size) - 64) / 32) >> 4;
-            } else if (kbd->type == KBD_TYPE_OLIVETTI
-                       || kbd->type == KBD_TYPE_ZENITH) {
+            } else if ((kbd->type == KBD_TYPE_OLIVETTI) ||
+                       (kbd->type == KBD_TYPE_ZENITH)) {
                 /* Olivetti M19 or Zenith Data Systems Z-151 */
                 if (kbd->pb & 0x04) /* PB2 */
                     ret = kbd->pd & 0xbf;
@@ -673,7 +681,8 @@ kbd_read(uint16_t port, void *priv)
 
             /* This is needed to avoid error 131 (cassette error).
                This is serial read: bit 5 = clock, bit 4 = data, cassette header is 256 x 0xff. */
-            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ)) {
+            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
+                (kbd->type == KBD_TYPE_PRAVETZ)) {
                 if (cassette == NULL)
                     ret |= (ppispeakon ? 0x10 : 0);
                 else
@@ -754,7 +763,6 @@ kbd_init(const device_t *info)
         (kbd->type <= KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_XTCLONE) ||
         (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_TOSHIBA) ||
         (kbd->type == KBD_TYPE_OLIVETTI)) {
-
         /* DIP switch readout: bit set = OFF, clear = ON. */
         if (kbd->type == KBD_TYPE_OLIVETTI)
             /* Olivetti M19

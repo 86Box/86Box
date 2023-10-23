@@ -77,7 +77,10 @@ static volatile int cdaudioon        = 0;
 static int          cd_thread_enable = 0;
 
 static void (*filter_cd_audio)(int channel, double *buffer, void *priv) = NULL;
-static void *filter_cd_audio_p                                       = NULL;
+static void *filter_cd_audio_p                                          = NULL;
+
+void (*filter_pc_speaker)(int channel, double *buffer, void *priv) = NULL;
+void *filter_pc_speaker_p                                          = NULL;
 
 static const device_t sound_none_device = {
     .name          = "None",
@@ -222,13 +225,13 @@ sound_card_get_from_internal_name(const char *s)
 void
 sound_card_init(void)
 {
-    if ((sound_card_current[0] != SOUND_INTERNAL) && (sound_cards[sound_card_current[0]].device))
+    if ((sound_card_current[0] > SOUND_INTERNAL) && (sound_cards[sound_card_current[0]].device))
         device_add(sound_cards[sound_card_current[0]].device);
-    if (sound_cards[sound_card_current[1]].device)
+    if ((sound_card_current[1] > SOUND_INTERNAL) && (sound_cards[sound_card_current[1]].device))
         device_add(sound_cards[sound_card_current[1]].device);
-    if (sound_cards[sound_card_current[2]].device)
+    if ((sound_card_current[2] > SOUND_INTERNAL) && (sound_cards[sound_card_current[2]].device))
         device_add(sound_cards[sound_card_current[2]].device);
-    if (sound_cards[sound_card_current[3]].device)
+    if ((sound_card_current[3] > SOUND_INTERNAL) && (sound_cards[sound_card_current[3]].device))
         device_add(sound_cards[sound_card_current[3]].device);
 }
 
@@ -445,6 +448,15 @@ sound_set_cd_audio_filter(void (*filter)(int channel, double *buffer, void *priv
 }
 
 void
+sound_set_pc_speaker_filter(void (*filter)(int channel, double *buffer, void *priv), void *priv)
+{
+    if ((filter_pc_speaker == NULL) || (filter == NULL)) {
+        filter_pc_speaker   = filter;
+        filter_pc_speaker_p = priv;
+    }
+}
+
+void
 sound_poll(UNUSED(void *priv))
 {
     timer_advance_u64(&sound_poll_timer, sound_poll_latch);
@@ -513,6 +525,9 @@ sound_reset(void)
 
     filter_cd_audio   = NULL;
     filter_cd_audio_p = NULL;
+
+    filter_pc_speaker   = NULL;
+    filter_pc_speaker_p = NULL;
 
     sound_set_cd_volume(65535, 65535);
 
