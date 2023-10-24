@@ -1112,7 +1112,7 @@ read_toc_session(cdrom_t *dev, unsigned char *b, int msf)
         b[len++] = 0;
 
         /* NEC CDR-260 speaks BCD. */
-        if (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.01") || (!strcmp(cdrom_drive_types[dev->type].internal_name, "NEC_CD-ROM_DRIVE260_1.00"))) { /*NEC*/
+        if ((dev->type == CDROM_TYPE_NEC_260_100) || (dev->type == CDROM_TYPE_NEC_260_101)) { /*NEC*/
             m = ti.m;
             s = ti.s;
             f = ti.f;
@@ -1374,6 +1374,7 @@ cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, in
     int          m = 0;
     int          s = 0;
     int          f = 0;
+    uint32_t     temp;
 
     dev->ops->get_tracks(dev, &first_track, &last_track);
 
@@ -1413,11 +1414,32 @@ cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, in
             b[3] = ti.attr;
             cdrom_log("CD-ROM %i: Returned Toshiba/NEC disc information (type 2) at %02i:%02i.%02i, track=%d, m=%02i,s=%02i,f=%02i, tno=%02x.\n", dev->id, b[0], b[1], b[2], bcd2bin(track), m, s, f, ti.attr);
             break;
-        case 3:
-            b[0] = 0x00; /*TODO: correct it further, mark it as CD-Audio/CD-ROM disc for now*/
-            b[1] = 0;
-            b[2] = 0;
-            b[3] = 0;
+        case 3: /*Undocumented on NEC CD-ROM's, from information based on sr_vendor.c from Android's source code*/
+            switch (dev->type) {
+                case CDROM_TYPE_NEC_25_10a:
+                case CDROM_TYPE_NEC_38_103:
+                case CDROM_TYPE_NEC_75_103:
+                case CDROM_TYPE_NEC_77_106:
+                case CDROM_TYPE_NEC_211_100:
+                case CDROM_TYPE_NEC_464_105:
+                    dev->ops->get_track_info(dev, 1, 0, &ti);
+                    b[0x0e] = 0;
+                    temp    = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
+                    b[0x0f] = temp >> 24;
+                    b[0x10] = temp >> 16;
+                    b[0x11] = temp >> 8;
+                    b[0x12] = temp;
+                    break;
+
+                default:
+                    dev->ops->get_track_info(dev, 1, 0, &ti);
+                    b[0] = 0;
+                    temp = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
+                    b[1] = temp >> 24;
+                    b[2] = temp >> 16;
+                    b[3] = temp >> 8;
+                    break;
+            }
             break;
         default:
             break;
