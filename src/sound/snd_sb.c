@@ -820,8 +820,13 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
             sb->dsp.sb_irqm16  = 0;
             sb->dsp.sb_irqm401 = 0;
 
-            // mixer->regs[0xfd] = 0x10;
-            // mixer->regs[0xfe] = 0x06;
+            mixer->regs[0xfd] = 0x10;
+            mixer->regs[0xfe] = 0x06;
+
+            mixer->regs[0xff] = sb->dsp.sb_16_dma_supported ? 0x05 : 0x03;
+
+            sb_dsp_setdma16_enabled(&sb->dsp, 0x01);
+            sb_dsp_setdma16_translate(&sb->dsp, mixer->regs[0xff] & 0x02);
         } else
             mixer->regs[mixer->index] = val;
 
