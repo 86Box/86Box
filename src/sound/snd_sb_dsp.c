@@ -65,7 +65,7 @@ static int sb_commands[256] = {
 };
 
 char     sb16_copyright[]  = "COPYRIGHT (C) CREATIVE TECHNOLOGY LTD, 1992.";
-uint16_t sb_dsp_versions[] = { 0, 0, 0x105, 0x200, 0x201, 0x300, 0x302, 0x405, 0x40d, 0x410 };
+uint16_t sb_dsp_versions[] = { 0, 0, 0x105, 0x200, 0x201, 0x300, 0x302, 0x405, 0x40c, 0x40d, 0x410 };
 
 /*These tables were 'borrowed' from DOSBox*/
 int8_t scaleMap4[64] = {
@@ -115,7 +115,7 @@ uint8_t adjustMap2[24] = {
     252, 0, 252, 0
 };
 
-double low_fir_sb16_coef[2][SB16_NCoef];
+double low_fir_sb16_coef[3][SB16_NCoef];
 
 #ifdef ENABLE_SB_DSP_LOG
 int sb_dsp_do_log = ENABLE_SB_DSP_LOG;
@@ -423,38 +423,129 @@ sb_8_write_dma(void *priv, uint8_t val)
     return dma_channel_write(dsp->sb_8_dmanum, val) == DMA_NODATA;
 }
 
+/*
+   Supported    High DMA    Translation    Channel
+   ----------------------------------------------------
+   0            0           0              First 8-bit
+   0            0           1              First 8-bit
+   0            1           0              Second 8-bit
+   0            1           1              Second 8-bit
+   1            0           0              First 8-bit
+   1            0           1              First 8-bit
+   1            1           0              16-bit
+   1            1           1              Second 8-bit
+ */
 int
 sb_16_read_dma(void *priv)
 {
     const sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    int temp, ret = 0;
+    int dma_flags, dma_ch = dsp->sb_16_dmanum;
 
-    return dma_channel_read(dsp->sb_16_dmanum);
+    if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate)
+        ret = dma_channel_read(dma_ch);
+    else {
+        if (dsp->sb_16_dma_enabled) {
+            /* High DMA channel enabled, either translation is enabled or
+               16-bit transfers are not supported. */
+            if (dsp->sb_16_dma_translate || !dsp->sb_16_dma_supported)
+                dma_ch = dsp->sb_16_8_dmanum;
+        } else
+            /* High DMA channel disabled, always use the first 8-bit channel. */
+            dma_ch = dsp->sb_8_dmanum;
+        temp = dma_channel_read(dma_ch);
+        ret = temp;
+        if ((temp != DMA_NODATA) && !(temp & DMA_OVER)) {
+            temp = dma_channel_read(dma_ch);
+            if (temp == DMA_NODATA)
+                ret = DMA_NODATA;
+            else {
+                dma_flags = temp & DMA_OVER;
+                temp &= ~DMA_OVER;
+                ret |= (temp << 8) | dma_flags;
+           }
+        }
+    }
+
+    return ret;
 }
 
 int
 sb_16_write_dma(void *priv, uint16_t val)
 {
     const sb_dsp_t *dsp = (sb_dsp_t *) priv;
+    int temp, ret = 0;
+    int dma_ch = dsp->sb_16_dmanum;
+ 
+    if (dsp->sb_16_dma_enabled && dsp->sb_16_dma_supported && !dsp->sb_16_dma_translate)
+        ret = dma_channel_write(dma_ch, val) == DMA_NODATA;
+    else {
+        if (dsp->sb_16_dma_enabled) {
+            /* High DMA channel enabled, either translation is enabled or
+               16-bit transfers are not supported. */
+            if (dsp->sb_16_dma_translate || !dsp->sb_16_dma_supported)
+                dma_ch = dsp->sb_16_8_dmanum;
+        } else
+            /* High DMA channel disabled, always use the first 8-bit channel. */
+            dma_ch = dsp->sb_8_dmanum;
+        temp = dma_channel_write(dma_ch, val & 0xff);
+        ret = temp;
+        if ((temp != DMA_NODATA) && (temp != DMA_OVER)) {
+            temp = dma_channel_write(dma_ch, val >> 8);
+            ret = temp;
+        }
+    }
 
-    return dma_channel_write(dsp->sb_16_dmanum, val) == DMA_NODATA;
+    return ret;
 }
 
 void
 sb_dsp_setirq(sb_dsp_t *dsp, int irq)
 {
+    sb_dsp_log("IRQ now: %i\n", irq);
     dsp->sb_irqnum = irq;
 }
 
 void
 sb_dsp_setdma8(sb_dsp_t *dsp, int dma)
 {
+    sb_dsp_log("8-bit DMA now: %i\n", dma);
     dsp->sb_8_dmanum = dma;
 }
 
 void
 sb_dsp_setdma16(sb_dsp_t *dsp, int dma)
 {
+    sb_dsp_log("16-bit DMA now: %i\n", dma);
     dsp->sb_16_dmanum = dma;
+}
+
+void
+sb_dsp_setdma16_8(sb_dsp_t *dsp, int dma)
+{
+    sb_dsp_log("16-bit to 8-bit translation DMA now: %i\n", dma);
+    dsp->sb_16_8_dmanum = dma;
+}
+
+void
+sb_dsp_setdma16_enabled(sb_dsp_t *dsp, int enabled)
+{
+    sb_dsp_log("16-bit DMA now: %sabled\n", enabled ? "en" : "dis");
+    dsp->sb_16_dma_enabled = enabled;
+}
+
+void
+sb_dsp_setdma16_supported(sb_dsp_t *dsp, int supported)
+{
+    sb_dsp_log("16-bit DMA now: %ssupported\n", supported ? "" : "not ");
+    dsp->sb_16_dma_supported = supported;
+}
+
+void
+sb_dsp_setdma16_translate(sb_dsp_t *dsp, int translate)
+{
+    sb_dsp_log("16-bit to 8-bit translation now: %sabled\n", translate ? "en" : "dis");
+    dsp->sb_16_dma_translate = translate;
 }
 
 void
@@ -478,6 +569,100 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0x03: /* ASP status */
             if (dsp->sb_type >= SB16)
                 sb_add_data(dsp, 0);
+            break;
+        case 0x04: /* ASP set mode register */
+            if (dsp->sb_type >= SB16) {
+                dsp->sb_asp_mode = dsp->sb_data[0];
+                if (dsp->sb_asp_mode & 4)
+                    dsp->sb_asp_ram_index = 0;
+                sb_dsp_log("SB16 ASP set mode %02X\n", dsp->sb_asp_mode);
+            } /* else DSP Status (Obsolete) */
+            break;
+        case 0x05: /* ASP set codec parameter */
+            if (dsp->sb_type >= SB16)
+                sb_dsp_log("SB16 ASP unknown codec params %02X, %02X\n", dsp->sb_data[0], dsp->sb_data[1]);
+            break;
+        case 0x07:
+            break;
+        case 0x08: /* ASP get version / AZTECH type/EEPROM access */
+            if (IS_AZTECH(dsp)) {
+                if ((dsp->sb_data[0] == 0x05 || dsp->sb_data[0] == 0x55) && dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11)
+                    sb_add_data(dsp, 0x11); /* AZTECH get type, WASHINGTON/latest - according to devkit. E.g.: The one in the Itautec Infoway Multimidia */
+                else if ((dsp->sb_data[0] == 0x05 || dsp->sb_data[0] == 0x55) && dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C)
+                    sb_add_data(dsp, 0x0C); /* AZTECH get type, CLINTON - according to devkit. E.g.: The one in the Packard Bell Legend 100CD */
+                else if (dsp->sb_data[0] == 0x08) {
+                    /* EEPROM address to write followed by byte */
+                    if (dsp->sb_data[1] < 0 || dsp->sb_data[1] >= AZTECH_EEPROM_SIZE)
+                        fatal("AZT EEPROM: out of bounds write to %02X\n", dsp->sb_data[1]);
+                    sb_dsp_log("EEPROM write = %02x\n", dsp->sb_data[2]);
+                    dsp->azt_eeprom[dsp->sb_data[1]] = dsp->sb_data[2];
+                    break;
+                } else if (dsp->sb_data[0] == 0x07) {
+                    /* EEPROM address to read */
+                    if (dsp->sb_data[1] < 0 || dsp->sb_data[1] >= AZTECH_EEPROM_SIZE)
+                        fatal("AZT EEPROM: out of bounds read to %02X\n", dsp->sb_data[1]);
+                    sb_dsp_log("EEPROM read = %02x\n", dsp->azt_eeprom[dsp->sb_data[1]]);
+                    sb_add_data(dsp, dsp->azt_eeprom[dsp->sb_data[1]]);
+                    break;
+                } else
+                    sb_dsp_log("AZT2316A: UNKNOWN 0x08 COMMAND: %02X\n", dsp->sb_data[0]); /* 0x08 (when shutting down, driver tries to read 1 byte of response), 0x55, 0x0D, 0x08D seen */
+                break;
+            }
+            if (dsp->sb_type == SBAWE64) /* AWE64 has no ASP or a socket for it */
+                sb_add_data(dsp, 0xFF);
+            else if (dsp->sb_type >= SB16)
+                sb_add_data(dsp, 0x18);
+            break;
+        case 0x09: /* AZTECH mode set */
+            if (IS_AZTECH(dsp)) {
+                if (dsp->sb_data[0] == 0x00) {
+                    sb_dsp_log("AZT2316A: WSS MODE!\n");
+                    azt2316a_enable_wss(1, dsp->parent);
+                } else if (dsp->sb_data[0] == 0x01) {
+                    sb_dsp_log("AZT2316A: SB8PROV2 MODE!\n");
+                    azt2316a_enable_wss(0, dsp->parent);
+                } else
+                    sb_dsp_log("AZT2316A: UNKNOWN MODE! = %02x\n", dsp->sb_data[0]); // sequences 0x02->0xFF, 0x04->0xFF seen
+            }
+            break;
+        case 0x0E: /* ASP set register */
+            if (dsp->sb_type >= SB16) {
+                dsp->sb_asp_regs[dsp->sb_data[0]] = dsp->sb_data[1];
+
+                if ((dsp->sb_data[0] == 0x83) && (dsp->sb_asp_mode & 128) && (dsp->sb_asp_mode & 8)) { /* ASP memory write */
+                    if (dsp->sb_asp_mode & 8)
+                        dsp->sb_asp_ram_index = 0;
+
+                    dsp->sb_asp_ram[dsp->sb_asp_ram_index] = dsp->sb_data[1];
+
+                    if (dsp->sb_asp_mode & 2) {
+                        dsp->sb_asp_ram_index++;
+                        if (dsp->sb_asp_ram_index >= 2048)
+                            dsp->sb_asp_ram_index = 0;
+                    }
+                }
+                sb_dsp_log("SB16 ASP write reg %02X, val %02X\n", dsp->sb_data[0], dsp->sb_data[1]);
+            }
+            break;
+        case 0x0F: /* ASP get register */
+            if (dsp->sb_type >= SB16) {
+                if ((dsp->sb_data[0] == 0x83) && (dsp->sb_asp_mode & 128) && (dsp->sb_asp_mode & 8)) { /* ASP memory read */
+                    if (dsp->sb_asp_mode & 8)
+                        dsp->sb_asp_ram_index = 0;
+
+                    dsp->sb_asp_regs[0x83] = dsp->sb_asp_ram[dsp->sb_asp_ram_index];
+
+                    if (dsp->sb_asp_mode & 1) {
+                        dsp->sb_asp_ram_index++;
+                        if (dsp->sb_asp_ram_index >= 2048)
+                            dsp->sb_asp_ram_index = 0;
+                    }
+                } else if (dsp->sb_data[0] == 0x83) {
+                    dsp->sb_asp_regs[0x83] = 0x18;
+                }
+                sb_add_data(dsp, dsp->sb_asp_regs[dsp->sb_data[0]]);
+                sb_dsp_log("SB16 ASP read reg %02X, val %02X\n", dsp->sb_data[0], dsp->sb_asp_regs[dsp->sb_data[0]]);
+            }
             break;
         case 0x10: /* 8-bit direct mode */
             sb_dsp_update(dsp);
@@ -670,7 +855,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xB6:
         case 0xB7: /* 16-bit DMA output */
             if (dsp->sb_type >= SB16) {
-                sb_start_dma(dsp, 0, dsp->sb_command & 4, dsp->sb_data[0], dsp->sb_data[1] + (dsp->sb_data[2] << 8));
+                sb_start_dma(dsp, 0, dsp->sb_command & 4, dsp->sb_data[0],
+                             dsp->sb_data[1] + (dsp->sb_data[2] << 8));
                 dsp->sb_16_autolen = dsp->sb_data[1] + (dsp->sb_data[2] << 8);
             }
             break;
@@ -683,7 +869,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xBE:
         case 0xBF: /* 16-bit DMA input */
             if (dsp->sb_type >= SB16) {
-                sb_start_dma_i(dsp, 0, dsp->sb_command & 4, dsp->sb_data[0], dsp->sb_data[1] + (dsp->sb_data[2] << 8));
+                sb_start_dma_i(dsp, 0, dsp->sb_command & 4, dsp->sb_data[0],
+                               dsp->sb_data[1] + (dsp->sb_data[2] << 8));
                 dsp->sb_16_autolen = dsp->sb_data[1] + (dsp->sb_data[2] << 8);
             }
             break;
@@ -696,7 +883,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xC6:
         case 0xC7: /* 8-bit DMA output */
             if (dsp->sb_type >= SB16) {
-                sb_start_dma(dsp, 1, dsp->sb_command & 4, dsp->sb_data[0], dsp->sb_data[1] + (dsp->sb_data[2] << 8));
+                sb_start_dma(dsp, 1, dsp->sb_command & 4, dsp->sb_data[0],
+                             dsp->sb_data[1] + (dsp->sb_data[2] << 8));
                 dsp->sb_8_autolen = dsp->sb_data[1] + (dsp->sb_data[2] << 8);
             }
             break;
@@ -709,7 +897,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xCE:
         case 0xCF: /* 8-bit DMA input */
             if (dsp->sb_type >= SB16) {
-                sb_start_dma_i(dsp, 1, dsp->sb_command & 4, dsp->sb_data[0], dsp->sb_data[1] + (dsp->sb_data[2] << 8));
+                sb_start_dma_i(dsp, 1, dsp->sb_command & 4, dsp->sb_data[0],
+                               dsp->sb_data[1] + (dsp->sb_data[2] << 8));
                 dsp->sb_8_autolen = dsp->sb_data[1] + (dsp->sb_data[2] << 8);
             }
             break;
@@ -788,6 +977,8 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xE4: /* Write test register */
             dsp->sb_test = dsp->sb_data[0];
             break;
+        case 0xE7: /* ???? */
+            break;
         case 0xE8: /* Read test register */
             sb_add_data(dsp, dsp->sb_test);
             break;
@@ -798,79 +989,6 @@ sb_exec_command(sb_dsp_t *dsp)
         case 0xF3: /* Trigger 16-bit IRQ */
             sb_dsp_log("Trigger IRQ\n");
             sb_irq(dsp, 0);
-            break;
-        case 0xE7: /* ???? */
-            break;
-        case 0x07:
-        case 0xFF: /* No, that's not how you program auto-init DMA */
-            break;
-        case 0x08: /* ASP get version / AZTECH type/EEPROM access */
-            if (IS_AZTECH(dsp)) {
-                if ((dsp->sb_data[0] == 0x05 || dsp->sb_data[0] == 0x55) && dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11)
-                    sb_add_data(dsp, 0x11); /* AZTECH get type, WASHINGTON/latest - according to devkit. E.g.: The one in the Itautec Infoway Multimidia */
-                else if ((dsp->sb_data[0] == 0x05 || dsp->sb_data[0] == 0x55) && dsp->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C)
-                    sb_add_data(dsp, 0x0C); /* AZTECH get type, CLINTON - according to devkit. E.g.: The one in the Packard Bell Legend 100CD */
-                else if (dsp->sb_data[0] == 0x08) {
-                    /* EEPROM address to write followed by byte */
-                    if (dsp->sb_data[1] < 0 || dsp->sb_data[1] >= AZTECH_EEPROM_SIZE)
-                        fatal("AZT EEPROM: out of bounds write to %02X\n", dsp->sb_data[1]);
-                    sb_dsp_log("EEPROM write = %02x\n", dsp->sb_data[2]);
-                    dsp->azt_eeprom[dsp->sb_data[1]] = dsp->sb_data[2];
-                    break;
-                } else if (dsp->sb_data[0] == 0x07) {
-                    /* EEPROM address to read */
-                    if (dsp->sb_data[1] < 0 || dsp->sb_data[1] >= AZTECH_EEPROM_SIZE)
-                        fatal("AZT EEPROM: out of bounds read to %02X\n", dsp->sb_data[1]);
-                    sb_dsp_log("EEPROM read = %02x\n", dsp->azt_eeprom[dsp->sb_data[1]]);
-                    sb_add_data(dsp, dsp->azt_eeprom[dsp->sb_data[1]]);
-                    break;
-                } else
-                    sb_dsp_log("AZT2316A: UNKNOWN 0x08 COMMAND: %02X\n", dsp->sb_data[0]); /* 0x08 (when shutting down, driver tries to read 1 byte of response), 0x55, 0x0D, 0x08D seen */
-                break;
-            }
-            if (dsp->sb_type == SBAWE64) /* AWE64 has no ASP or a socket for it */
-                sb_add_data(dsp, 0xFF);
-            else if (dsp->sb_type >= SB16)
-                sb_add_data(dsp, 0x18);
-            break;
-        case 0x0E: /* ASP set register */
-            if (dsp->sb_type >= SB16) {
-                dsp->sb_asp_regs[dsp->sb_data[0]] = dsp->sb_data[1];
-
-                if ((dsp->sb_data[0] == 0x83) && (dsp->sb_asp_mode & 128) && (dsp->sb_asp_mode & 8)) { /* ASP memory write */
-                    if (dsp->sb_asp_mode & 8)
-                        dsp->sb_asp_ram_index = 0;
-
-                    dsp->sb_asp_ram[dsp->sb_asp_ram_index] = dsp->sb_data[1];
-
-                    if (dsp->sb_asp_mode & 2) {
-                        dsp->sb_asp_ram_index++;
-                        if (dsp->sb_asp_ram_index >= 2048)
-                            dsp->sb_asp_ram_index = 0;
-                    }
-                }
-                sb_dsp_log("SB16 ASP write reg %02X, val %02X\n", dsp->sb_data[0], dsp->sb_data[1]);
-            }
-            break;
-        case 0x0F: /* ASP get register */
-            if (dsp->sb_type >= SB16) {
-                if ((dsp->sb_data[0] == 0x83) && (dsp->sb_asp_mode & 128) && (dsp->sb_asp_mode & 8)) { /* ASP memory read */
-                    if (dsp->sb_asp_mode & 8)
-                        dsp->sb_asp_ram_index = 0;
-
-                    dsp->sb_asp_regs[0x83] = dsp->sb_asp_ram[dsp->sb_asp_ram_index];
-
-                    if (dsp->sb_asp_mode & 1) {
-                        dsp->sb_asp_ram_index++;
-                        if (dsp->sb_asp_ram_index >= 2048)
-                            dsp->sb_asp_ram_index = 0;
-                    }
-                } else if (dsp->sb_data[0] == 0x83) {
-                    dsp->sb_asp_regs[0x83] = 0x18;
-                }
-                sb_add_data(dsp, dsp->sb_asp_regs[dsp->sb_data[0]]);
-                sb_dsp_log("SB16 ASP read reg %02X, val %02X\n", dsp->sb_data[0], dsp->sb_asp_regs[dsp->sb_data[0]]);
-            }
             break;
         case 0xF8:
             if (dsp->sb_type < SB16)
@@ -884,30 +1002,7 @@ sb_exec_command(sb_dsp_t *dsp)
             if (dsp->sb_type >= SB16)
                 dsp->sb_8051_ram[dsp->sb_data[0]] = dsp->sb_data[1];
             break;
-        case 0x04: /* ASP set mode register */
-            if (dsp->sb_type >= SB16) {
-                dsp->sb_asp_mode = dsp->sb_data[0];
-                if (dsp->sb_asp_mode & 4)
-                    dsp->sb_asp_ram_index = 0;
-                sb_dsp_log("SB16 ASP set mode %02X\n", dsp->sb_asp_mode);
-            } /* else DSP Status (Obsolete) */
-            break;
-        case 0x05: /* ASP set codec parameter */
-            if (dsp->sb_type >= SB16)
-                sb_dsp_log("SB16 ASP unknown codec params %02X, %02X\n", dsp->sb_data[0], dsp->sb_data[1]);
-            break;
-
-        case 0x09: /* AZTECH mode set */
-            if (IS_AZTECH(dsp)) {
-                if (dsp->sb_data[0] == 0x00) {
-                    sb_dsp_log("AZT2316A: WSS MODE!\n");
-                    azt2316a_enable_wss(1, dsp->parent);
-                } else if (dsp->sb_data[0] == 0x01) {
-                    sb_dsp_log("AZT2316A: SB8PROV2 MODE!\n");
-                    azt2316a_enable_wss(0, dsp->parent);
-                } else
-                    sb_dsp_log("AZT2316A: UNKNOWN MODE! = %02x\n", dsp->sb_data[0]); // sequences 0x02->0xFF, 0x04->0xFF seen
-            }
+        case 0xFF: /* No, that's not how you program auto-init DMA */
             break;
 
             /* TODO: Some more data about the DSP registeres
@@ -925,6 +1020,7 @@ sb_exec_command(sb_dsp_t *dsp)
              */
 
         default:
+            sb_dsp_log("Unknown DSP command: %02X\n", dsp->sb_command);
             break;
     }
 
@@ -938,6 +1034,10 @@ void
 sb_write(uint16_t a, uint8_t v, void *priv)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) priv;
+
+    /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
+    if (dsp->sb_type < SB16)
+        a &= 0xfffe;
 
     switch (a & 0xF) {
         case 6: /* Reset */
@@ -1002,6 +1102,10 @@ sb_read(uint16_t a, void *priv)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) priv;
     uint8_t   ret = 0x00;
+
+    /* Sound Blasters prior to Sound Blaster 16 alias the I/O ports. */
+    if (dsp->sb_type < SB16)
+        a &= 0xfffe;
 
     switch (a & 0xf) {
         case 0xA: /* Read data */
@@ -1153,6 +1257,7 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
        a set frequency command is sent. */
     recalc_sb16_filter(0, 3200 * 2);
     recalc_sb16_filter(1, FREQ_44100);
+    recalc_sb16_filter(2, 18939);
 
     /* Initialize SB16 8051 RAM and ASP internal RAM */
     memset(dsp->sb_8051_ram, 0x00, sizeof(dsp->sb_8051_ram));

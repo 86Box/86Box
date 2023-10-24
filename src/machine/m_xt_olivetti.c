@@ -130,7 +130,7 @@ typedef struct m24_kbd_t {
     uint8_t scan[7];
 
     /* Mouse stuff. */
-    int        mouse_mode;
+    int        mouse_input_mode;
     int        b;
 
     pc_timer_t send_delay_timer;
@@ -550,7 +550,7 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
                 if (m24_kbd->param == m24_kbd->param_total) {
                     switch (m24_kbd->command) {
                         case 0x11:
-                            m24_kbd->mouse_mode = 0;
+                            m24_kbd->mouse_input_mode = 0;
                             m24_kbd->scan[0]    = m24_kbd->params[0];
                             m24_kbd->scan[1]    = m24_kbd->params[1];
                             m24_kbd->scan[2]    = m24_kbd->params[2];
@@ -561,7 +561,7 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
                             break;
 
                         case 0x12:
-                            m24_kbd->mouse_mode = 1;
+                            m24_kbd->mouse_input_mode = 1;
                             m24_kbd->scan[0]    = m24_kbd->params[0];
                             m24_kbd->scan[1]    = m24_kbd->params[1];
                             m24_kbd->scan[2]    = m24_kbd->params[2];
@@ -720,7 +720,7 @@ m24_kbd_reset(void *priv)
     m24_kbd->wantirq = 0;
     keyboard_scan    = 1;
     m24_kbd->param = m24_kbd->param_total = 0;
-    m24_kbd->mouse_mode                   = 0;
+    m24_kbd->mouse_input_mode                   = 0;
     m24_kbd->scan[0]                      = 0x1c;
     m24_kbd->scan[1]                      = 0x53;
     m24_kbd->scan[2]                      = 0x01;
@@ -767,7 +767,7 @@ ms_poll(void *priv)
         m24_kbd_adddata(m24_kbd->scan[1] | 0x80);
     m24_kbd->b = (m24_kbd->b & ~4) | (b & 4);
 
-    if (m24_kbd->mouse_mode) {
+    if (m24_kbd->mouse_input_mode) {
         if (((key_queue_end - key_queue_start) & 0xf) > 12)
             return 0xff;
 

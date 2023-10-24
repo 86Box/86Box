@@ -41,20 +41,23 @@
 #ifndef EMU_DEVICE_H
 #define EMU_DEVICE_H
 
-#define CONFIG_END       -1
-#define CONFIG_STRING    0
-#define CONFIG_INT       1
-#define CONFIG_BINARY    2
-#define CONFIG_SELECTION 3
-#define CONFIG_MIDI_OUT  4
-#define CONFIG_FNAME     5
-#define CONFIG_SPINNER   6
-#define CONFIG_HEX16     7
-#define CONFIG_HEX20     8
-#define CONFIG_MAC       9
-#define CONFIG_MIDI_IN   10
-#define CONFIG_BIOS      11
-#define CONFIG_SERPORT   12
+#define CONFIG_END         -1
+#define CONFIG_STRING       0
+#define CONFIG_INT          1
+#define CONFIG_BINARY       2
+#define CONFIG_SELECTION    3
+#define CONFIG_MIDI_OUT     4
+#define CONFIG_FNAME        5
+#define CONFIG_SPINNER      6
+#define CONFIG_HEX16        7
+#define CONFIG_HEX20        8
+#define CONFIG_MAC          9
+#define CONFIG_MIDI_IN     10
+#define CONFIG_BIOS        11
+#define CONFIG_SERPORT     12
+
+#define CONFIG_ONBOARD    256      /* only avaialble on the on-board variant */
+#define CONFIG_STANDALONE 257      /* not available on the on-board variant */
 
 enum {
     DEVICE_PCJR      = 2,          /* requires an IBM PCjr */
@@ -68,18 +71,22 @@ enum {
     DEVICE_MCA       = 0x200,      /* requires the MCA bus */
     DEVICE_HIL       = 0x400,      /* requires the HP HIL bus */
     DEVICE_EISA      = 0x800,      /* requires the EISA bus */
-    DEVICE_OLB       = 0x1000,     /* requires the OPTi local bus */
-    DEVICE_VLB       = 0x2000,     /* requires the VLB bus */
-    DEVICE_PCI       = 0x4000,     /* requires the PCI bus */
-    DEVICE_CARDBUS   = 0x8000,     /* requires the CardBus bus */
-    DEVICE_USB       = 0x10000,    /* requires the USB bus */
-    DEVICE_AGP       = 0x20000,    /* requires the AGP bus */
-    DEVICE_AC97      = 0x40000,    /* requires the AC'97 bus */
-    DEVICE_COM       = 0x80000,    /* requires a serial port */
-    DEVICE_LPT       = 0x100000,   /* requires a parallel port */
-    DEVICE_KBC       = 0x200000,   /* is a keyboard controller */
+    DEVICE_AT32      = 0x1000,     /* requires the Mylex AT/32 local bus */
+    DEVICE_OLB       = 0x2000,     /* requires the OPTi local bus */
+    DEVICE_VLB       = 0x4000,     /* requires the VLB bus */
+    DEVICE_PCI       = 0x8000,     /* requires the PCI bus */
+    DEVICE_CARDBUS   = 0x10000,    /* requires the CardBus bus */
+    DEVICE_USB       = 0x20000,    /* requires the USB bus */
+    DEVICE_AGP       = 0x40000,    /* requires the AGP bus */
+    DEVICE_AC97      = 0x80000,    /* requires the AC'97 bus */
+    DEVICE_COM       = 0x100000,   /* requires a serial port */
+    DEVICE_LPT       = 0x200000,   /* requires a parallel port */
+    DEVICE_KBC       = 0x400000,   /* is a keyboard controller */
 
+    DEVICE_ONBOARD   = 0x20000000, /* is on-board */
     DEVICE_EXTPARAMS = 0x40000000, /* accepts extended parameters */
+
+    DEVICE_PIT       = 0x80000000, /* device is a PIT */
 
     DEVICE_ALL       = 0xffffffff  /* match all devices */
 };
@@ -183,6 +190,7 @@ extern void  device_cadd_inst_ex(const device_t *dev, const device_t *cd, void *
 extern void  device_cadd_inst_ex_parameters(const device_t *dev, const device_t *cd, void *priv, int inst, void *params);
 extern void  device_close_all(void);
 extern void  device_reset_all(uint32_t match_flags);
+extern void *device_find_first_priv(uint32_t match_flags);
 extern void *device_get_priv(const device_t *dev);
 extern int   device_available(const device_t *dev);
 extern int   device_poll(const device_t *dev);

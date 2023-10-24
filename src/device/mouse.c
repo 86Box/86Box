@@ -41,7 +41,7 @@ typedef struct mouse_t {
 } mouse_t;
 
 int mouse_type = 0;
-int mouse_mode;
+int mouse_input_mode;
 int mouse_timed = 1;
 int mouse_tablet_in_proximity = 0;
 int tablet_tool_type          = 1; /* 0 = Puck/Cursor, 1 = Pen */
@@ -530,9 +530,9 @@ mouse_process(void)
     if (mouse_curr == NULL)
         return;
 
-    if ((mouse_mode >= 1) && mouse_poll_ex)
+    if ((mouse_input_mode >= 1) && mouse_poll_ex)
         mouse_poll_ex();
-    else if ((mouse_mode == 0) && ((mouse_dev_poll != NULL) || (mouse_curr->poll != NULL))) {
+    else if ((mouse_input_mode == 0) && ((mouse_dev_poll != NULL) || (mouse_curr->poll != NULL))) {
         if (mouse_curr->poll != NULL)
             mouse_curr->poll(mouse_priv);
         else
@@ -628,7 +628,7 @@ mouse_reset(void)
     /* Clear local data. */
     mouse_clear_coords();
     mouse_clear_buttons();
-    mouse_mode                  = 0;
+    mouse_input_mode                  = 0;
     mouse_timed                 = 1;
 
     /* If no mouse configured, we're done. */
@@ -643,7 +643,7 @@ mouse_reset(void)
 
     mouse_curr = mouse_devices[mouse_type].device;
 
-    if (mouse_curr != NULL)
+    if ((mouse_type > 1) && (mouse_curr != NULL))
         mouse_priv = device_add(mouse_curr);
 }
 

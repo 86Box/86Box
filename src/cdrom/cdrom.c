@@ -145,10 +145,8 @@ cdrom_interface_reset(void)
             cdrom_interface_current);
 
     /* If we have a valid controller, add its device. */
-    if (!controllers[cdrom_interface_current].device)
-        return;
-
-    device_add(controllers[cdrom_interface_current].device);
+    if ((cdrom_interface_current > 0) && controllers[cdrom_interface_current].device)
+        device_add(controllers[cdrom_interface_current].device);
 }
 
 const char *

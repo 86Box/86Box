@@ -580,7 +580,8 @@ nvr_reg_common_write(uint16_t reg, uint8_t val, nvr_t *nvr, local_t *local)
         return;
     if (nvr->regs[reg] != val) {
         nvr->regs[reg] = val;
-        nvr_dosave     = 1;
+        if ((reg >= 0x0d) && ((local->cent == 0xff) || (reg != local->cent)))
+            nvr_dosave     = 1;
     }
 }
 
@@ -643,7 +644,7 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
                 /* Update internal clock. */
                 time_get(nvr, &tm);
                 nvr_time_set(&tm);
-                nvr_dosave = 1;
+                // nvr_dosave = 1;
             }
         }
     }

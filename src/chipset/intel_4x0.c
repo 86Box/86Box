@@ -1672,11 +1672,12 @@ i4x0_init(const device_t *info)
             regs[0x52] = 0xea; /* 512 kB burst cache, set to 0xaa for 256 kB */
             regs[0x57] = 0x31;
             regs[0x59] = 0x0f;
-            regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x02;
-            dev->max_drb                                                                                          = 7;
-            dev->drb_unit                                                                                         = 1;
-            dev->drb_default                                                                                      = 0x02;
-            dev->write_drbs                                                                                       = spd_write_drbs_with_ext;
+            regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] =
+            regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x02;
+            dev->max_drb = 7;
+            dev->drb_unit = 1;
+            dev->drb_default = 0x02;
+            dev->write_drbs = spd_write_drbs_with_ext;
             break;
         case INTEL_430FX:
             regs[0x02] = 0x2d;
@@ -1705,11 +1706,12 @@ i4x0_init(const device_t *info)
                 regs[0x57] |= 0x02;
             else if ((cpu_busspeed > 60000000) && (cpu_busspeed <= 66666667))
                 regs[0x57] |= 0x03;
-            regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x02;
-            regs[0x72]                                                                                            = 0x02;
-            dev->max_drb                                                                                          = 7;
-            dev->drb_unit                                                                                         = 4;
-            dev->drb_default                                                                                      = 0x02;
+            regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] =
+            regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x02;
+            regs[0x72] = 0x02;
+            dev->max_drb = 7;
+            dev->drb_unit = 4;
+            dev->drb_default = 0x02;
             break;
         case INTEL_430VX:
             regs[0x02] = 0x30;
@@ -1764,12 +1766,13 @@ i4x0_init(const device_t *info)
             regs[0x53] = 0x80;
             regs[0x57] = 0x01;
             regs[0x58] = 0x10;
-            regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x02;
-            regs[0x71]                                                                                            = 0x10;
-            regs[0x72]                                                                                            = 0x02;
-            dev->max_drb                                                                                          = 7;
-            dev->drb_unit                                                                                         = 8;
-            dev->drb_default                                                                                      = 0x02;
+            regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] =
+            regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x02;
+            regs[0x71] = 0x10;
+            regs[0x72] = 0x02;
+            dev->max_drb = 7;
+            dev->drb_unit = 8;
+            dev->drb_default = 0x02;
             break;
         case INTEL_440LX:
             regs[0x02] = 0x80;
@@ -1784,7 +1787,8 @@ i4x0_init(const device_t *info)
                 regs[0x51] |= 0x00;
             regs[0x53] = 0x83;
             regs[0x57] = 0x01;
-            regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x01;
+            regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] =
+            regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x01;
             regs[0x6c] = regs[0x6d] = regs[0x6e] = regs[0x6f] = 0x55;
             regs[0x72]                                        = 0x02;
             regs[0xa0]                                        = 0x02;
@@ -1806,7 +1810,8 @@ i4x0_init(const device_t *info)
             regs[0x51] = 0x80;
             regs[0x53] = 0x83;
             regs[0x57] = 0x01;
-            regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x01;
+            regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] =
+            regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x01;
             regs[0x6c] = regs[0x6d] = regs[0x6e] = regs[0x6f] = 0x55;
             regs[0x72]                                        = 0x02;
             regs[0xa0]                                        = 0x02;
@@ -1834,19 +1839,20 @@ i4x0_init(const device_t *info)
                 regs[0x51] |= 0x00;
             regs[0x57] = 0x28; /* 4 DIMMs, SDRAM */
             regs[0x58] = 0x03;
-            regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x01;
-            regs[0x72]                                                                                            = 0x02;
-            regs[0x73]                                                                                            = 0x38;
-            regs[0x7b]                                                                                            = 0x38;
-            regs[0x90]                                                                                            = 0x80;
-            regs[0xa0]                                                                                            = (regs[0x7a] & 0x02) ? 0x00 : 0x02;
-            regs[0xa2]                                                                                            = (regs[0x7a] & 0x02) ? 0x00 : 0x10;
-            regs[0xa4]                                                                                            = 0x03;
-            regs[0xa5]                                                                                            = 0x02;
-            regs[0xa7]                                                                                            = 0x1f;
-            dev->max_drb                                                                                          = 7;
-            dev->drb_unit                                                                                         = 8;
-            dev->drb_default                                                                                      = 0x01;
+            regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] =
+            regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x01;
+            regs[0x72] = 0x02;
+            regs[0x73] = 0x38;
+            regs[0x7b] = 0x38;
+            regs[0x90] = 0x80;
+            regs[0xa0] = (regs[0x7a] & 0x02) ? 0x00 : 0x02;
+            regs[0xa2] = (regs[0x7a] & 0x02) ? 0x00 : 0x10;
+            regs[0xa4] = 0x03;
+            regs[0xa5] = 0x02;
+            regs[0xa7] = 0x1f;
+            dev->max_drb = 7;
+            dev->drb_unit = 8;
+            dev->drb_default = 0x01;
             break;
         case INTEL_440GX:
             regs[0x7a] = (info->local >> 8) & 0xff;
@@ -1857,19 +1863,20 @@ i4x0_init(const device_t *info)
             regs[0x10] = 0x08;
             regs[0x34] = (regs[0x7a] & 0x02) ? 0x00 : 0xa0;
             regs[0x57] = 0x28;
-            regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x01;
-            regs[0x72]                                                                                            = 0x02;
-            regs[0x73]                                                                                            = 0x38;
-            regs[0x7b]                                                                                            = 0x38;
-            regs[0x90]                                                                                            = 0x80;
-            regs[0xa0]                                                                                            = (regs[0x7a] & 0x02) ? 0x00 : 0x02;
-            regs[0xa2]                                                                                            = (regs[0x7a] & 0x02) ? 0x00 : 0x10;
-            regs[0xa4]                                                                                            = 0x03;
-            regs[0xa5]                                                                                            = 0x02;
-            regs[0xa7]                                                                                            = 0x1f;
-            dev->max_drb                                                                                          = 7;
-            dev->drb_unit                                                                                         = 8;
-            dev->drb_default                                                                                      = 0x01;
+            regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] =
+            regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x01;
+            regs[0x72] = 0x02;
+            regs[0x73] = 0x38;
+            regs[0x7b] = 0x38;
+            regs[0x90] = 0x80;
+            regs[0xa0] = (regs[0x7a] & 0x02) ? 0x00 : 0x02;
+            regs[0xa2] = (regs[0x7a] & 0x02) ? 0x00 : 0x10;
+            regs[0xa4] = 0x03;
+            regs[0xa5] = 0x02;
+            regs[0xa7] = 0x1f;
+            dev->max_drb = 7;
+            dev->drb_unit = 8;
+            dev->drb_default = 0x01;
             break;
         default:
             break;
@@ -1918,7 +1925,7 @@ i4x0_init(const device_t *info)
     if ((dev->type >= INTEL_440BX) && !(regs[0x7a] & 0x02)) {
         device_add((dev->type == INTEL_440GX) ? &i440gx_agp_device : &i440bx_agp_device);
         dev->agpgart = device_add(&agpgart_device);
-    } else if (dev->type >= INTEL_440LX) {
+    } else if ((dev->type == INTEL_440LX) || (dev->type == INTEL_440EX)) {
         device_add(&i440lx_agp_device);
         dev->agpgart = device_add(&agpgart_device);
     }
@@ -2109,7 +2116,7 @@ const device_t i440bx_device = {
 };
 
 const device_t i440bx_no_agp_device = {
-    .name          = "Intel 82443BX",
+    .name          = "Intel 82443BX (No AGP)",
     .internal_name = "i440bx_no_agp",
     .flags         = DEVICE_PCI,
     .local         = 0x8200 | INTEL_440BX,

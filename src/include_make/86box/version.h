@@ -22,12 +22,12 @@
 #define EMU_NAME    "86Box"
 #define EMU_NAME_W  LSTR(EMU_NAME)
 
-#define EMU_VERSION       "4.0.1"
+#define EMU_VERSION       "4.0.2"
 #define EMU_VERSION_W     LSTR(EMU_VERSION)
 #define EMU_VERSION_EX    "3.50" /* frozen due to IDE re-detection behavior on Windows */
 #define EMU_VERSION_MAJ   4
 #define EMU_VERSION_MIN   0
-#define EMU_VERSION_PATCH 1
+#define EMU_VERSION_PATCH 2
 
 #define EMU_BUILD_NUM 0
 

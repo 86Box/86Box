@@ -35,7 +35,7 @@ if(MUNT_EXTERNAL)
 endif()
 
 project(86Box
-    VERSION 4.0.1
+    VERSION 4.0.2
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
@@ -197,7 +197,7 @@ if(NOT EMU_BUILD_NUM)
     set(EMU_BUILD_NUM 0)
 endif()
 if(NOT EMU_COPYRIGHT_YEAR)
-    set(EMU_COPYRIGHT_YEAR 2022)
+    set(EMU_COPYRIGHT_YEAR 2023)
 endif()
 
 add_subdirectory(src)

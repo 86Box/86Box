@@ -81,9 +81,11 @@ extern void pic_init_pcjr(void);
 extern void pic2_init(void);
 extern void pic_reset(void);
 
-extern int  picint_is_level(int irq);
-extern void picint_common(uint16_t num, int level, int set, uint8_t *irq_state);
-extern int  picinterrupt(void);
+extern uint8_t pic_read_icw(uint8_t pic_id, uint8_t icw);
+extern uint8_t pic_read_ocw(uint8_t pic_id, uint8_t ocw);
+extern int     picint_is_level(int irq);
+extern void    picint_common(uint16_t num, int level, int set, uint8_t *irq_state);
+extern int     picinterrupt(void);
 
 #define PIC_IRQ_EDGE                    0
 #define PIC_IRQ_LEVEL                   1
