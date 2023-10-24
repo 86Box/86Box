@@ -149,6 +149,7 @@
 #define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12_MATSUSHITA 0xe9 /* Matsushita Vendor Unique command */
 
 /* Mode page codes for mode sense/set */
+#define GPMODE_UNIT_ATN_PAGE         0x00
 #define GPMODE_R_W_ERROR_PAGE        0x01
 #define GPMODE_DISCONNECT_PAGE       0x02 /* Disconnect/reconnect page */
 #define GPMODE_FORMAT_DEVICE_PAGE    0x03
@@ -165,6 +166,7 @@
 #define GPMODE_ALL_PAGES             0x3f
 
 /* Mode page codes for presence */
+#define GPMODEP_UNIT_ATN_PAGE         0x0000000000000001LL
 #define GPMODEP_R_W_ERROR_PAGE        0x0000000000000002LL
 #define GPMODEP_DISCONNECT_PAGE       0x0000000000000004LL
 #define GPMODEP_FORMAT_DEVICE_PAGE    0x0000000000000008LL
