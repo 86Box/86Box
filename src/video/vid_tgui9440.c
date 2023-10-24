@@ -113,7 +113,7 @@ typedef struct tgui_t {
 
     struct
     {
-        int32_t  src_x, src_y;
+        int16_t  src_x, src_y;
         int16_t  src_x_clip, src_y_clip;
         int16_t  dst_x, dst_y;
         int16_t  dst_y_clip, dst_x_clip;
@@ -129,9 +129,9 @@ typedef struct tgui_t {
         int      offset;
         uint16_t ger22;
 
-        int32_t  err;
+        int16_t  err;
         int16_t  top, left, bottom, right;
-        int      x, y, dx, dy;
+        int16_t  x, y, cx, cy, dx, dy;
         uint32_t src, dst, src_old, dst_old;
         int      pat_x, pat_y;
         int      use_src;
@@ -1699,49 +1699,47 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
             break;
 
         case TGUI_SCANLINE:
-            {
-                if (count == -1) {
-                    tgui->accel.src_old = tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch);
-                    tgui->accel.src     = tgui->accel.src_old;
+            if (count == -1) {
+                tgui->accel.src_old = tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch);
+                tgui->accel.src     = tgui->accel.src_old;
 
-                    tgui->accel.dst_old = tgui->accel.dst_x + (tgui->accel.dst_y * tgui->accel.pitch);
-                    tgui->accel.dst     = tgui->accel.dst_old;
+                tgui->accel.dst_old = tgui->accel.dst_x + (tgui->accel.dst_y * tgui->accel.pitch);
+                tgui->accel.dst     = tgui->accel.dst_old;
 
-                    tgui->accel.pat_x = tgui->accel.dst_x;
-                    tgui->accel.pat_y = tgui->accel.dst_y;
+                tgui->accel.pat_x = tgui->accel.dst_x;
+                tgui->accel.pat_y = tgui->accel.dst_y;
+            }
+
+            while (count--) {
+                READ(tgui->accel.src, src_dat);
+                READ(tgui->accel.dst, dst_dat);
+
+                pat_dat = pattern_data[((tgui->accel.pat_y & 7) * 8) + (tgui->accel.pat_x & 7)];
+
+                if (tgui->accel.bpp == 0)
+                    pat_dat &= 0xff;
+                else if (tgui->accel.bpp == 1)
+                    pat_dat &= 0xffff;
+
+                if (!(tgui->accel.flags & TGUI_TRANSENA) || (src_dat != trans_col)) {
+                    MIX();
+
+                    WRITE(tgui->accel.dst, out);
                 }
 
-                while (count--) {
-                    READ(tgui->accel.src, src_dat);
-                    READ(tgui->accel.dst, dst_dat);
+                tgui->accel.src += xdir;
+                tgui->accel.dst += xdir;
+                tgui->accel.pat_x += xdir;
 
-                    pat_dat = pattern_data[((tgui->accel.pat_y & 7) * 8) + (tgui->accel.pat_x & 7)];
+                tgui->accel.x++;
+                if (tgui->accel.x > tgui->accel.size_x) {
+                    tgui->accel.x = 0;
 
-                    if (tgui->accel.bpp == 0)
-                        pat_dat &= 0xff;
-                    else if (tgui->accel.bpp == 1)
-                        pat_dat &= 0xffff;
-
-                    if (!(tgui->accel.flags & TGUI_TRANSENA) || (src_dat != trans_col)) {
-                        MIX();
-
-                        WRITE(tgui->accel.dst, out);
-                    }
-
-                    tgui->accel.src += xdir;
-                    tgui->accel.dst += xdir;
-                    tgui->accel.pat_x += xdir;
-
-                    tgui->accel.x++;
-                    if (tgui->accel.x > tgui->accel.size_x) {
-                        tgui->accel.x = 0;
-
-                        tgui->accel.pat_x = tgui->accel.dst_x;
-                        tgui->accel.src = tgui->accel.src_old = tgui->accel.src_old + (ydir * tgui->accel.pitch);
-                        tgui->accel.dst = tgui->accel.dst_old = tgui->accel.dst_old + (ydir * tgui->accel.pitch);
-                        tgui->accel.pat_y += ydir;
-                        return;
-                    }
+                    tgui->accel.pat_x = tgui->accel.dst_x;
+                    tgui->accel.src = tgui->accel.src_old = tgui->accel.src_old + (ydir * tgui->accel.pitch);
+                    tgui->accel.dst = tgui->accel.dst_old = tgui->accel.dst_old + (ydir * tgui->accel.pitch);
+                    tgui->accel.pat_y += ydir;
+                    return;
                 }
             }
             break;
@@ -1750,11 +1748,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
             if (count == -1) {
                 tgui->accel.dx = tgui->accel.dst_x & 0xfff;
                 tgui->accel.dy = tgui->accel.dst_y & 0xfff;
-
-                if (tgui->accel.dst_x & 0x1000)
-                    tgui->accel.dx |= ~0xfff;
-                if (tgui->accel.dst_y & 0x1000)
-                    tgui->accel.dy |= ~0xfff;
+                tgui->accel.y = tgui->accel.size_y;
 
                 tgui->accel.left   = tgui->accel.src_x_clip & 0xfff;
                 tgui->accel.right  = tgui->accel.dst_x_clip & 0xfff;
@@ -1770,113 +1764,74 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
                 }
             }
 
-#if 0
-            pclog("TGUI bres = %04x, err = %d, sizex = %d, sizey = %d, srcx = %d, srcy = %d.\n", tgui->accel.flags & 0x700, err, tgui->accel.size_x, tgui->accel.size_y, cx, tgui->accel.src_y);
-#endif
-            while (count-- && (tgui->accel.y <= (tgui->accel.size_y))) {
-#if 0
-                READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
-#endif
-
+            while (count--) {
                 /*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
-                if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && tgui->accel.dx >= tgui->accel.left && tgui->accel.dx <= tgui->accel.right && tgui->accel.dy >= tgui->accel.top && tgui->accel.dy <= tgui->accel.bottom)) {
+                if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && ((tgui->accel.dx & 0xfff) >= tgui->accel.left) && ((tgui->accel.dx & 0xfff) <= tgui->accel.right) && ((tgui->accel.dy & 0xfff) >= tgui->accel.top) && ((tgui->accel.dy & 0xfff) <= tgui->accel.bottom))) {
                     READ(tgui->accel.dx + (tgui->accel.dy * tgui->accel.pitch), dst_dat);
 
                     pat_dat = tgui->accel.fg_col;
-
-                    if (tgui->accel.bpp == 0)
-                        pat_dat &= 0xff;
-                    else if (tgui->accel.bpp == 1)
-                        pat_dat &= 0xffff;
 
                     MIX();
 
                     WRITE(tgui->accel.dx + (tgui->accel.dy * tgui->accel.pitch), out);
                 }
 
-                if (tgui->accel.y == (tgui->accel.size_y & 0xfff)) {
+                if (!tgui->accel.y)
                     break;
-                }
 
-                if (tgui->accel.err >= (tgui->accel.size_y & 0xfff)) {
-#if 0
-                    pclog("Bres DEC: destx = %d, desty = %d, err = %d, sizey = %d.\n", tgui->accel.src_x, tgui->accel.src_y, tgui->accel.err, tgui->accel.size_y);
-#endif
-                    if ((tgui->accel.src_x >= 2048) && (tgui->accel.src_x < 4096))
-                        tgui->accel.err -= (4096 - tgui->accel.src_x);
-                    else if ((tgui->accel.src_x >= 4096) && (tgui->accel.src_x < 32768))
-                        tgui->accel.err -= (32768 - tgui->accel.src_x);
-                    else
-                        tgui->accel.err += tgui->accel.src_x;
+                if (tgui->accel.size_x >= 0) {
+                    tgui->accel.size_x += tgui->accel.src_x;
                     /*Step minor axis*/
-                    switch (tgui->accel.flags & 0x700) {
-                        case 0x300:
-                            tgui->accel.dy--;
-                            break;
-                        case 0x100:
-                            tgui->accel.dy--;
-                            break;
-                        case 0x700:
-                            tgui->accel.dx--;
-                            break;
-                        case 0x500:
-                            tgui->accel.dx++;
-                            break;
-                        case 0x200:
+                    switch ((tgui->accel.flags >> 8) & 7) {
+                        case 0:
+                        case 2:
                             tgui->accel.dy++;
                             break;
-                        case 0x000:
-                            tgui->accel.dy++;
+                        case 1:
+                        case 3:
+                            tgui->accel.dy--;
                             break;
-                        case 0x600:
-                            tgui->accel.dx--;
-                            break;
-                        case 0x400:
+                        case 4:
+                        case 5:
                             tgui->accel.dx++;
+                            break;
+                        case 6:
+                        case 7:
+                            tgui->accel.dx--;
                             break;
 
                         default:
                             break;
-                    }
-                } else {
-#if 0
-                    pclog("Bres INC: desty = %d, destx = %d, err = %d, sizey = %d.\n", tgui->accel.src_y, tgui->accel.src_x, tgui->accel.err, tgui->accel.size_y);
-#endif
-                    tgui->accel.err += tgui->accel.src_y;
-                }
+                        }
+                } else
+                    tgui->accel.size_x += tgui->accel.src_y;
 
                 /*Step major axis*/
-                switch (tgui->accel.flags & 0x700) {
-                    case 0x300:
-                        tgui->accel.dx--;
-                        break;
-                    case 0x100:
+                switch ((tgui->accel.flags >> 8) & 7) {
+                    case 0:
+                    case 1:
                         tgui->accel.dx++;
                         break;
-                    case 0x700:
-                        tgui->accel.dy--;
-                        break;
-                    case 0x500:
-                        tgui->accel.dy--;
-                        break;
-                    case 0x200:
+                    case 2:
+                    case 3:
                         tgui->accel.dx--;
                         break;
-                    case 0x000:
-                        tgui->accel.dx++;
-                        break;
-                    case 0x600:
+                    case 4:
+                    case 6:
                         tgui->accel.dy++;
                         break;
-                    case 0x400:
-                        tgui->accel.dy++;
+                    case 5:
+                    case 7:
+                        tgui->accel.dy--;
                         break;
 
                     default:
                         break;
                 }
 
-                tgui->accel.y++;
+                tgui->accel.y--;
+                tgui->accel.dx &= 0xfff;
+                tgui->accel.dy &= 0xfff;
             }
             break;
 
@@ -1884,11 +1839,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
             if (count == -1) {
                 tgui->accel.dx = tgui->accel.dst_x & 0xfff;
                 tgui->accel.dy = tgui->accel.dst_y & 0xfff;
-
-                if (tgui->accel.dst_x & 0x1000)
-                    tgui->accel.dx |= ~0xfff;
-                if (tgui->accel.dst_y & 0x1000)
-                    tgui->accel.dy |= ~0xfff;
+                tgui->accel.y = tgui->accel.sv_size_y & 0xfff;
 
                 tgui->accel.left   = tgui->accel.src_x_clip & 0xfff;
                 tgui->accel.right  = tgui->accel.dst_x_clip & 0xfff;
@@ -1904,28 +1855,19 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
                 }
             }
 
-            while (count-- && (tgui->accel.y <= (tgui->accel.sv_size_y & 0xfff))) {
-#if 0
-                READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
-#endif
-
+            while (count--) {
                 /*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
-                if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && tgui->accel.dx >= tgui->accel.left && tgui->accel.dx <= tgui->accel.right && tgui->accel.dy >= tgui->accel.top && tgui->accel.dy <= tgui->accel.bottom)) {
+                if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && ((tgui->accel.dx & 0xfff) >= tgui->accel.left) && ((tgui->accel.dx & 0xfff) <= tgui->accel.right) && ((tgui->accel.dy & 0xfff) >= tgui->accel.top) && ((tgui->accel.dy & 0xfff) <= tgui->accel.bottom))) {
                     READ(tgui->accel.dx + (tgui->accel.dy * tgui->accel.pitch), dst_dat);
 
                     pat_dat = tgui->accel.fg_col;
-
-                    if (tgui->accel.bpp == 0)
-                        pat_dat &= 0xff;
-                    else if (tgui->accel.bpp == 1)
-                        pat_dat &= 0xffff;
 
                     MIX();
 
                     WRITE(tgui->accel.dx + (tgui->accel.dy * tgui->accel.pitch), out);
                 }
 
-                if (tgui->accel.y == (tgui->accel.sv_size_y & 0xfff))
+                if (!tgui->accel.y)
                     break;
 
                 switch ((tgui->accel.sv_size_y >> 8) & 0xe0) {
@@ -1962,7 +1904,9 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
                         break;
                 }
 
-                tgui->accel.y++;
+                tgui->accel.y--;
+                tgui->accel.dx &= 0xfff;
+                tgui->accel.dy &= 0xfff;
             }
             break;
 
@@ -1973,11 +1917,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
             if (count == -1) {
                 tgui->accel.dx = tgui->accel.dst_x & 0xfff;
                 tgui->accel.dy = tgui->accel.dst_y & 0xfff;
-
-                if (tgui->accel.dst_x & 0x1000)
-                    tgui->accel.dx |= ~0xfff;
-                if (tgui->accel.dst_y & 0x1000)
-                    tgui->accel.dy |= ~0xfff;
+                tgui->accel.y = tgui->accel.size_y;
 
                 tgui->accel.left   = tgui->accel.src_x_clip & 0xfff;
                 tgui->accel.right  = tgui->accel.dst_x_clip & 0xfff;
@@ -1993,28 +1933,19 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
                 }
             }
 
-            while (count-- && (tgui->accel.y <= (tgui->accel.size_y & 0xfff))) {
-#if 0
-                READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
-#endif
-
+            while (count--) {
                 /*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
-                if (tgui->accel.dx >= tgui->accel.left && tgui->accel.dx <= tgui->accel.right && tgui->accel.dy >= tgui->accel.top && tgui->accel.dy <= tgui->accel.bottom) {
+                if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && ((tgui->accel.dx & 0xfff) >= tgui->accel.left) && ((tgui->accel.dx & 0xfff) <= tgui->accel.right) && ((tgui->accel.dy & 0xfff) >= tgui->accel.top) && ((tgui->accel.dy & 0xfff) <= tgui->accel.bottom))) {
                     READ(tgui->accel.dx + (tgui->accel.dy * tgui->accel.pitch), dst_dat);
 
                     pat_dat = tgui->accel.fg_col;
-
-                    if (tgui->accel.bpp == 0)
-                        pat_dat &= 0xff;
-                    else if (tgui->accel.bpp == 1)
-                        pat_dat &= 0xffff;
 
                     MIX();
 
                     WRITE(tgui->accel.dx + (tgui->accel.dy * tgui->accel.pitch), out);
                 }
 
-                if (tgui->accel.y == (tgui->accel.size_y & 0xfff))
+                if (!tgui->accel.y)
                     break;
 
                 switch ((tgui->accel.size_y >> 8) & 0xe0) {
@@ -2051,7 +1982,9 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
                         break;
                 }
 
-                tgui->accel.y++;
+                tgui->accel.y--;
+                tgui->accel.dx &= 0xfff;
+                tgui->accel.dy &= 0xfff;
             }
             break;
 
@@ -2182,36 +2115,37 @@ tgui_accel_out(uint16_t addr, uint8_t val, void *priv)
             tgui->accel.dst_y = (tgui->accel.dst_y & 0xff) | (val << 8);
             break;
 
-        case 0x213c: /*Src X*/
-            tgui->accel.src_x = (tgui->accel.src_x & 0xff00) | val;
+        case 0x213c: /*Src X, Diagonal Step Constant*/
+            tgui->accel.src_x = (tgui->accel.src_x & 0x3f00) | val;
             break;
-        case 0x213d: /*Src X*/
-            tgui->accel.src_x = (tgui->accel.src_x & 0xff) | (val << 8);
+        case 0x213d: /*Src X, Diagonal Step Constant*/
+            tgui->accel.src_x = (tgui->accel.src_x & 0xff) | ((val & 0x3f) << 8);
+            if (val & 0x20)
+                tgui->accel.src_x |= ~0x3fff;
             break;
-        case 0x213e: /*Src Y*/
-            tgui->accel.src_y = (tgui->accel.src_y & 0xff00) | val;
+        case 0x213e: /*Src Y, Axial Step Constant*/
+            tgui->accel.src_y = (tgui->accel.src_y & 0x3f00) | val;
             break;
-        case 0x213f: /*Src Y*/
-            tgui->accel.src_y = (tgui->accel.src_y & 0xff) | (val << 8);
+        case 0x213f: /*Src Y, Axial Step Constant*/
+            tgui->accel.src_y = (tgui->accel.src_y & 0xff) | ((val & 0x3f) << 8);
+            if (val & 0x20)
+                tgui->accel.src_y |= ~0x3fff;
             break;
 
-        case 0x2140: /*Size X*/
-            tgui->accel.size_x = (tgui->accel.size_x & 0xff00) | val;
+        case 0x2140: /*Size X, Line Error Term*/
+            tgui->accel.size_x = (tgui->accel.size_x & 0x3f00) | val;
             break;
-        case 0x2141: /*Size X*/
-            tgui->accel.size_x = (tgui->accel.size_x & 0xff) | (val << 8);
-            tgui->accel.err    = tgui->accel.size_x;
-            if ((tgui->accel.err >= 2048) && (tgui->accel.err < 4096))
-                tgui->accel.err -= 4096;
-            else if ((tgui->accel.err >= 4096) && (tgui->accel.err < 32768))
-                tgui->accel.err -= 32768;
+        case 0x2141: /*Size X, Line Error Term*/
+            tgui->accel.size_x = (tgui->accel.size_x & 0xff) | ((val & 0x3f) << 8);
+            if (val & 0x20)
+                tgui->accel.size_x |= ~0x1fff;
             break;
-        case 0x2142: /*Size Y*/
-            tgui->accel.size_y    = (tgui->accel.size_y & 0xff00) | val;
+        case 0x2142: /*Size Y, Major Axis Pixel Count*/
+            tgui->accel.size_y    = (tgui->accel.size_y & 0xf00) | val;
             tgui->accel.sv_size_y = (tgui->accel.sv_size_y & 0xff00) | val;
             break;
-        case 0x2143: /*Size Y*/
-            tgui->accel.size_y    = (tgui->accel.size_y & 0xff) | (val << 8);
+        case 0x2143: /*Size Y, Major Axis Pixel Count*/
+            tgui->accel.size_y    = (tgui->accel.size_y & 0xff) | ((val & 0x0f) << 8);
             tgui->accel.sv_size_y = (tgui->accel.sv_size_y & 0xff) | (val << 8);
             break;
 
@@ -2717,311 +2651,7 @@ tgui_accel_write(uint32_t addr, uint8_t val, void *priv)
             return;
     }
 
-    switch (addr & 0xff) {
-        case 0x22:
-            tgui_accel_out(0x2122, val, tgui);
-            break;
-
-        case 0x23:
-            tgui_accel_out(0x2123, val, tgui);
-            break;
-
-        case 0x24: /*Command*/
-            tgui->accel.command = val;
-            tgui_accel_command(-1, 0, tgui);
-            break;
-
-        case 0x27: /*ROP*/
-            tgui->accel.rop     = val;
-            tgui->accel.use_src = (val & 0x33) ^ ((val >> 2) & 0x33);
-            break;
-
-        case 0x28: /*Flags*/
-            tgui->accel.flags = (tgui->accel.flags & 0xffffff00) | val;
-            break;
-        case 0x29: /*Flags*/
-            tgui->accel.flags = (tgui->accel.flags & 0xffff00ff) | (val << 8);
-            break;
-        case 0x2a: /*Flags*/
-            tgui->accel.flags = (tgui->accel.flags & 0xff00ffff) | (val << 16);
-            break;
-        case 0x2b: /*Flags*/
-            tgui->accel.flags = (tgui->accel.flags & 0x0000ffff) | (val << 24);
-            break;
-
-        case 0x2c: /*Foreground colour*/
-        case 0x78:
-            tgui->accel.fg_col = (tgui->accel.fg_col & 0xffffff00) | val;
-            break;
-        case 0x2d: /*Foreground colour*/
-        case 0x79:
-            tgui->accel.fg_col = (tgui->accel.fg_col & 0xffff00ff) | (val << 8);
-            break;
-        case 0x2e: /*Foreground colour*/
-        case 0x7a:
-            tgui->accel.fg_col = (tgui->accel.fg_col & 0xff00ffff) | (val << 16);
-            break;
-        case 0x2f: /*Foreground colour*/
-        case 0x7b:
-            tgui->accel.fg_col = (tgui->accel.fg_col & 0x00ffffff) | (val << 24);
-            break;
-
-        case 0x30: /*Background colour*/
-        case 0x7c:
-            tgui->accel.bg_col = (tgui->accel.bg_col & 0xffffff00) | val;
-            break;
-        case 0x31: /*Background colour*/
-        case 0x7d:
-            tgui->accel.bg_col = (tgui->accel.bg_col & 0xffff00ff) | (val << 8);
-            break;
-        case 0x32: /*Background colour*/
-        case 0x7e:
-            tgui->accel.bg_col = (tgui->accel.bg_col & 0xff00ffff) | (val << 16);
-            break;
-        case 0x33: /*Background colour*/
-        case 0x7f:
-            tgui->accel.bg_col = (tgui->accel.bg_col & 0x00ffffff) | (val << 24);
-            break;
-
-        case 0x34: /*Pattern location*/
-            tgui->accel.patloc = (tgui->accel.patloc & 0xff00) | val;
-            break;
-        case 0x35: /*Pattern location*/
-            tgui->accel.patloc = (tgui->accel.patloc & 0xff) | (val << 8);
-            break;
-
-        case 0x38: /*Dest X*/
-            tgui->accel.dst_x = (tgui->accel.dst_x & 0xff00) | val;
-            break;
-        case 0x39: /*Dest X*/
-            tgui->accel.dst_x = (tgui->accel.dst_x & 0xff) | (val << 8);
-            break;
-        case 0x3a: /*Dest Y*/
-            tgui->accel.dst_y = (tgui->accel.dst_y & 0xff00) | val;
-            break;
-        case 0x3b: /*Dest Y*/
-            tgui->accel.dst_y = (tgui->accel.dst_y & 0xff) | (val << 8);
-            break;
-
-        case 0x3c: /*Src X*/
-            tgui->accel.src_x = (tgui->accel.src_x & 0xff00) | val;
-            break;
-        case 0x3d: /*Src X*/
-            tgui->accel.src_x = (tgui->accel.src_x & 0xff) | (val << 8);
-            break;
-        case 0x3e: /*Src Y*/
-            tgui->accel.src_y = (tgui->accel.src_y & 0xff00) | val;
-            break;
-        case 0x3f: /*Src Y*/
-            tgui->accel.src_y = (tgui->accel.src_y & 0xff) | (val << 8);
-            break;
-
-        case 0x40: /*Size X*/
-            tgui->accel.size_x = (tgui->accel.size_x & 0xff00) | val;
-            break;
-        case 0x41: /*Size X*/
-            tgui->accel.size_x = (tgui->accel.size_x & 0xff) | (val << 8);
-            tgui->accel.err    = tgui->accel.size_x;
-            if ((tgui->accel.err >= 2048) && (tgui->accel.err < 4096))
-                tgui->accel.err -= 4096;
-            else if ((tgui->accel.err >= 4096) && (tgui->accel.err < 32768))
-                tgui->accel.err -= 32768;
-            break;
-        case 0x42: /*Size Y*/
-            tgui->accel.size_y    = (tgui->accel.size_y & 0xff00) | val;
-            tgui->accel.sv_size_y = (tgui->accel.sv_size_y & 0xff00) | val;
-            break;
-        case 0x43: /*Size Y*/
-            tgui->accel.size_y    = (tgui->accel.size_y & 0xff) | (val << 8);
-            tgui->accel.sv_size_y = (tgui->accel.sv_size_y & 0xff) | (val << 8);
-            break;
-
-        case 0x44: /*Style*/
-            tgui->accel.style = (tgui->accel.style & 0xffffff00) | val;
-            break;
-        case 0x45: /*Style*/
-            tgui->accel.style = (tgui->accel.style & 0xffff00ff) | (val << 8);
-            break;
-        case 0x46: /*Style*/
-            tgui->accel.style = (tgui->accel.style & 0xff00ffff) | (val << 16);
-            break;
-        case 0x47: /*Style*/
-            tgui->accel.style = (tgui->accel.style & 0x00ffffff) | (val << 24);
-            break;
-
-        case 0x48: /*Clip Src X*/
-            tgui->accel.src_x_clip = (tgui->accel.src_x_clip & 0xff00) | val;
-            break;
-        case 0x49: /*Clip Src X*/
-            tgui->accel.src_x_clip = (tgui->accel.src_x_clip & 0xff) | (val << 8);
-            break;
-        case 0x4a: /*Clip Src Y*/
-            tgui->accel.src_y_clip = (tgui->accel.src_y_clip & 0xff00) | val;
-            break;
-        case 0x4b: /*Clip Src Y*/
-            tgui->accel.src_y_clip = (tgui->accel.src_y_clip & 0xff) | (val << 8);
-            break;
-
-        case 0x4c: /*Clip Dest X*/
-            tgui->accel.dst_x_clip = (tgui->accel.dst_x_clip & 0xff00) | val;
-            break;
-        case 0x4d: /*Clip Dest X*/
-            tgui->accel.dst_x_clip = (tgui->accel.dst_x_clip & 0xff) | (val << 8);
-            break;
-        case 0x4e: /*Clip Dest Y*/
-            tgui->accel.dst_y_clip = (tgui->accel.dst_y_clip & 0xff00) | val;
-            break;
-        case 0x4f: /*Clip Dest Y*/
-            tgui->accel.dst_y_clip = (tgui->accel.dst_y_clip & 0xff) | (val << 8);
-            break;
-
-        case 0x68: /*CKey*/
-            tgui->accel.ckey = (tgui->accel.ckey & 0xffffff00) | val;
-            break;
-        case 0x69: /*CKey*/
-            tgui->accel.ckey = (tgui->accel.ckey & 0xffff00ff) | (val << 8);
-            break;
-        case 0x6a: /*CKey*/
-            tgui->accel.ckey = (tgui->accel.ckey & 0xff00ffff) | (val << 16);
-            break;
-        case 0x6b: /*CKey*/
-            tgui->accel.ckey = (tgui->accel.ckey & 0x00ffffff) | (val << 24);
-            break;
-
-        case 0x80:
-        case 0x81:
-        case 0x82:
-        case 0x83:
-        case 0x84:
-        case 0x85:
-        case 0x86:
-        case 0x87:
-        case 0x88:
-        case 0x89:
-        case 0x8a:
-        case 0x8b:
-        case 0x8c:
-        case 0x8d:
-        case 0x8e:
-        case 0x8f:
-        case 0x90:
-        case 0x91:
-        case 0x92:
-        case 0x93:
-        case 0x94:
-        case 0x95:
-        case 0x96:
-        case 0x97:
-        case 0x98:
-        case 0x99:
-        case 0x9a:
-        case 0x9b:
-        case 0x9c:
-        case 0x9d:
-        case 0x9e:
-        case 0x9f:
-        case 0xa0:
-        case 0xa1:
-        case 0xa2:
-        case 0xa3:
-        case 0xa4:
-        case 0xa5:
-        case 0xa6:
-        case 0xa7:
-        case 0xa8:
-        case 0xa9:
-        case 0xaa:
-        case 0xab:
-        case 0xac:
-        case 0xad:
-        case 0xae:
-        case 0xaf:
-        case 0xb0:
-        case 0xb1:
-        case 0xb2:
-        case 0xb3:
-        case 0xb4:
-        case 0xb5:
-        case 0xb6:
-        case 0xb7:
-        case 0xb8:
-        case 0xb9:
-        case 0xba:
-        case 0xbb:
-        case 0xbc:
-        case 0xbd:
-        case 0xbe:
-        case 0xbf:
-        case 0xc0:
-        case 0xc1:
-        case 0xc2:
-        case 0xc3:
-        case 0xc4:
-        case 0xc5:
-        case 0xc6:
-        case 0xc7:
-        case 0xc8:
-        case 0xc9:
-        case 0xca:
-        case 0xcb:
-        case 0xcc:
-        case 0xcd:
-        case 0xce:
-        case 0xcf:
-        case 0xd0:
-        case 0xd1:
-        case 0xd2:
-        case 0xd3:
-        case 0xd4:
-        case 0xd5:
-        case 0xd6:
-        case 0xd7:
-        case 0xd8:
-        case 0xd9:
-        case 0xda:
-        case 0xdb:
-        case 0xdc:
-        case 0xdd:
-        case 0xde:
-        case 0xdf:
-        case 0xe0:
-        case 0xe1:
-        case 0xe2:
-        case 0xe3:
-        case 0xe4:
-        case 0xe5:
-        case 0xe6:
-        case 0xe7:
-        case 0xe8:
-        case 0xe9:
-        case 0xea:
-        case 0xeb:
-        case 0xec:
-        case 0xed:
-        case 0xee:
-        case 0xef:
-        case 0xf0:
-        case 0xf1:
-        case 0xf2:
-        case 0xf3:
-        case 0xf4:
-        case 0xf5:
-        case 0xf6:
-        case 0xf7:
-        case 0xf8:
-        case 0xf9:
-        case 0xfa:
-        case 0xfb:
-        case 0xfc:
-        case 0xfd:
-        case 0xfe:
-        case 0xff:
-            tgui->accel.pattern[addr & 0x7f] = val;
-            break;
-
-        default:
-            break;
-    }
+    tgui_accel_out((addr & 0xff) + 0x2100, val, tgui);
 }
 
 static void
