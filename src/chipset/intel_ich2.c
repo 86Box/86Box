@@ -878,8 +878,8 @@ intel_ich2_reset(void *priv)
     if (cpu_busspeed >= 100000000) /* Go UltraDMA 100 if CPU is up for it. Not that it actually matters */
         dev->pci_conf[1][0x55] = 0xf0;
 
-    sff_bus_master_reset(dev->ide_drive[0], 0); /* Setup the IDE */
-    sff_bus_master_reset(dev->ide_drive[1], 8);
+    sff_bus_master_reset(dev->ide_drive[0]); /* Setup the IDE */
+    sff_bus_master_reset(dev->ide_drive[1]);
     intel_ich2_ide_setup(dev);
 
     /* Function 2: USB Hub 0 */
