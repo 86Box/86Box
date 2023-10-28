@@ -344,13 +344,15 @@ ide_irq_update(ide_board_t *dev)
     if (dev == NULL)
         return;
 
+    ide_log("IDE %i: IRQ update (%i)\n", dev->cur_dev >> 1, dev->irq);
+
     ide = ide_drives[dev->cur_dev];
     set = !(ide_boards[ide->board]->devctl & 2) && ide->irqstat;
 
     if (!dev->force_ata3 && dev->bm && dev->bm->set_irq)
         dev->bm->set_irq(set << 2, dev->bm->priv);
     else if (ide_boards[ide->board]->irq != -1)
-        picint_common(dev->irq, PIC_IRQ_EDGE, set, NULL);
+        picint_common(1 << dev->irq, PIC_IRQ_EDGE, set, NULL);
 }
 
 void
@@ -359,9 +361,7 @@ ide_irq_raise(ide_t *ide)
     if (!ide_boards[ide->board])
         return;
 
-    /* ide_log("Raising IRQ %i (board %i)\n", ide_boards[ide->board]->irq, ide->board); */
-
-    ide_log("IDE %i: IRQ raise\n", ide->board);
+    ide_log("IDE %i: IRQ raise\n", ide->channel);
 
     ide->irqstat = 1;
     ide->service = 1;
@@ -376,9 +376,7 @@ ide_irq_lower(ide_t *ide)
     if (!ide_boards[ide->board])
         return;
 
-    /* ide_log("Lowering IRQ %i (board %i)\n", ide_boards[ide->board]->irq, ide->board); */
-
-    // ide_log("IDE %i: IRQ lower\n", ide->board);
+    ide_log("IDE %i: IRQ lower\n", ide->channel);
 
     ide->irqstat = 0;
 
@@ -1497,7 +1495,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
             break;
 
         case 0x7: /* Command register */
-            if (absent == 2)
+            if (absent != 0)
                 break;
 
             ide_irq_lower(ide);
