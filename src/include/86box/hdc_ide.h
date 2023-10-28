@@ -41,13 +41,46 @@ enum {
     IDE_ATAPI
 };
 
-#ifdef SCSI_DEVICE_H
+typedef struct ide_tf_s {
+    union {
+        uint8_t cylprecomp;
+        uint8_t features;
+    };
+    union {
+        uint8_t secount;
+        uint8_t phase;
+    };
+    union {
+        uint16_t cylinder;
+        uint16_t request_length;
+    };
+    union {
+        uint8_t atastat;
+        uint8_t status;
+    };
+    uint8_t error;
+    uint16_t pad;
+    uint32_t pos;
+} ide_tf_t;
+
+#ifdef _TIMER_H_
 typedef struct ide_s {
-    uint8_t  selected;
+#ifdef ANCIENT_CODE
+    /* Task file. */
+    uint8_t  cylprecomp;
+    uint8_t  secount;
+    uint16_t cylinder;
     uint8_t  atastat;
     uint8_t  error;
+    uint16_t pad;
+    uint32_t pos;
+#endif
+
+    /* The rest. */
+    uint8_t  selected;
     uint8_t  command;
-    uint8_t  fdisk;
+    uint8_t  head;
+    uint8_t  sector;
     int      type;
     int      board;
     int      irqstat;
@@ -56,18 +89,12 @@ typedef struct ide_s {
     int      blockcount;
     int      hdd_num;
     int      channel;
-    int      pos;
     int      sector_pos;
     int      lba;
     int      reset;
     int      mdma_mode;
     int      do_initial_read;
-    uint32_t secount;
-    uint32_t sector;
-    uint32_t cylinder;
-    uint32_t head;
     uint32_t drive;
-    uint32_t cylprecomp;
     uint32_t cfg_spt;
     uint32_t cfg_hpc;
     uint32_t lba_addr;
@@ -80,11 +107,19 @@ typedef struct ide_s {
 
     pc_timer_t timer;
 
+    /* Task file. */
+    ide_tf_t *     tf;
+
     /* Stuff mostly used by ATAPI */
+#ifdef SCSI_DEVICE_H
     scsi_common_t *sc;
+#else
+    void *         sc;
+#endif
     int            interrupt_drq;
     double         pending_delay;
 
+#ifdef SCSI_DEVICE_H
     int     (*get_max)(int ide_has_dma, int type);
     int     (*get_timings)(int ide_has_dma, int type);
     void    (*identify)(struct ide_s *ide, int ide_has_dma);
@@ -94,9 +129,21 @@ typedef struct ide_s {
     uint8_t (*phase_data_out)(scsi_common_t *sc);
     void    (*command_stop)(scsi_common_t *sc);
     void    (*bus_master_error)(scsi_common_t *sc);
+#else
+    void *  get_max;
+    void *  get_timings;
+    void *  identify;
+    void *  stop;
+    void *  device_reset;
+    void *  phase_data_out;
+    void *  command_stop;
+    void *  bus_master_error;
+#endif
 } ide_t;
 
+#ifdef EMU_HDC_H
 extern ide_t *ide_drives[IDE_NUM];
+#endif
 #endif
 
 /* Type:
@@ -155,16 +202,9 @@ extern void ide_set_bus_master(int board,
 extern void win_cdrom_eject(uint8_t id);
 extern void win_cdrom_reload(uint8_t id);
 
-extern void ide_set_base(int board, uint16_t port);
-extern void ide_set_side(int board, uint16_t port);
+extern void ide_set_base_addr(int board, int base, uint16_t port);
 
-extern void ide_set_handlers(uint8_t board);
-extern void ide_remove_handlers(uint8_t board);
-
-extern void ide_pri_enable(void);
-extern void ide_pri_disable(void);
-extern void ide_sec_enable(void);
-extern void ide_sec_disable(void);
+extern void ide_handlers(uint8_t board, int set);
 
 extern void ide_board_set_force_ata3(int board, int force_ata3);
 #ifdef EMU_ISAPNP_H
@@ -182,5 +222,17 @@ extern void ide_padstr8(uint8_t *buf, int buf_size, const char *src);
 
 extern uint8_t ide_read_ali_75(void);
 extern uint8_t ide_read_ali_76(void);
+
+/* Legacy #define's. */
+#define ide_set_base(board, port) ide_set_base_addr(board, 0, port)
+#define ide_set_side(board, port) ide_set_base_addr(board, 1, port)
+
+#define ide_pri_enable()     ide_handlers(0, 1)
+#define ide_pri_disable()    ide_handlers(0, 0)
+#define ide_sec_enable()     ide_handlers(1, 1)
+#define ide_sec_disable()    ide_handlers(1, 0)
+
+#define ide_set_handlers(board) ide_handlers(board, 1)
+#define ide_remove_handlers(board) ide_handlers(board, 0)
 
 #endif /*EMU_IDE_H*/

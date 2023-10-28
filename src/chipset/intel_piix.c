@@ -1600,7 +1600,10 @@ piix_init(const device_t *info)
 
     dev->port_92 = device_add(&port_92_pci_device);
 
-    cpu_set_isa_pci_div(4);
+    if (cpu_busspeed > 50000000)
+        cpu_set_isa_pci_div(4);
+    else
+        cpu_set_isa_pci_div(3);
 
     dma_alias_set();
 

@@ -347,7 +347,12 @@ typedef struct mode_sense_pages_t {
 typedef struct scsi_common_s {
     mode_sense_pages_t ms_pages_saved;
 
-    void *priv;
+    void *    priv;
+#ifdef EMU_IDE_H
+    ide_tf_t *tf;
+#else
+    void *    tf;
+#endif
 
     uint8_t *temp_buffer;
     uint8_t atapi_cdb[16]; /* This is atapi_cdb in ATAPI-supporting devices,
@@ -355,17 +360,24 @@ typedef struct scsi_common_s {
     uint8_t current_cdb[16];
     uint8_t sense[256];
 
-    uint8_t status;
-    uint8_t phase;
-    uint8_t error;
-    uint8_t id;
+#ifdef ANCIENT_CODE
+    /* Task file. */
     uint8_t features;
+    uint8_t phase;
+    uint16_t request_length;
+    uint8_t status;
+    uint8_t error;
+    uint16_t pad;
+    uint32_t pos;
+#endif
+
+    uint8_t id;
     uint8_t cur_lun;
     uint8_t pad0;
     uint8_t pad1;
 
-    uint16_t request_length;
     uint16_t max_transfer_len;
+    uint16_t pad2;
 
     int requested_blocks;
     int packet_status;
@@ -379,7 +391,6 @@ typedef struct scsi_common_s {
     uint32_t sector_pos;
     uint32_t sector_len;
     uint32_t packet_len;
-    uint32_t pos;
 
     double callback;
 } scsi_common_t;
