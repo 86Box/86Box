@@ -191,7 +191,6 @@ int    ide_qua_enabled = 0;
 static void ide_atapi_callback(ide_t *ide);
 static void ide_callback(void *priv);
 
-// #define ENABLE_IDE_LOG 1
 #ifdef ENABLE_IDE_LOG
 int ide_do_log = ENABLE_IDE_LOG;
 
