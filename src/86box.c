@@ -1055,8 +1055,7 @@ pc_send_cad(void)
 void
 pc_send_cae(void)
 {
-    // pc_send_ca(1);
-    picint(1 << 14);
+    pc_send_ca(1);
 }
 
 void
