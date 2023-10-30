@@ -236,6 +236,9 @@ int efscrnsz_y = SCREEN_RES_Y;
 
 static wchar_t mouse_msg[3][200];
 
+static int do_pause_ack = 0;
+static int pause_ack = 0;
+
 #ifndef RELEASE_BUILD
 static char buff[1024];
 static int  seen = 0;
@@ -1354,6 +1357,15 @@ _ui_window_title(void *s)
 #endif
 
 void
+ack_pause(void)
+{
+    if (do_pause_ack) {
+        do_pause_ack = 0;
+        pause_ack = 1;
+    }
+}
+
+void
 pc_run(void)
 {
     int     mouse_msg_idx;
@@ -1369,6 +1381,7 @@ pc_run(void)
     /* Run a block of code. */
     startblit();
     cpu_exec((int32_t) cpu_s->rspeed / 100);
+    ack_pause();
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     if (gdbstub_step == GDBSTUB_EXEC) {
 #endif
@@ -1561,4 +1574,17 @@ int
 get_actual_size_y(void)
 {
     return (efscrnsz_y);
+}
+
+void
+do_pause(int p)
+{
+    if (p)
+        do_pause_ack = p;
+    dopause = p;
+    if (p) {
+        while (!pause_ack)
+            ;
+    }
+    pause_ack = 0;
 }
