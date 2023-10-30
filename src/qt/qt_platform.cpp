@@ -408,9 +408,6 @@ plat_pause(int p)
 #endif
 }
 
-// because we can't include nvr.h because it's got fields named new
-extern int nvr_save(void);
-
 void
 plat_power_off(void)
 {
