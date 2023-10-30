@@ -421,28 +421,91 @@ scsi_disk_bus_speed(scsi_disk_t *dev)
     }
 }
 
-static void
+void
 scsi_disk_command_common(scsi_disk_t *dev)
 {
-    double bytes_per_second;
+    double bytes_per_second = 0.0;
     double period;
 
-    dev->tf->status = BUSY_STAT;
-    dev->tf->phase  = 1;
-    dev->tf->pos    = 0;
-    if (dev->packet_status == PHASE_COMPLETE)
-        dev->callback = 0.0;
-    else {
-        if (dev->drv->bus == HDD_BUS_SCSI) {
-            dev->callback = -1.0; /* Speed depends on SCSI controller */
-            return;
-        } else
-            bytes_per_second = scsi_disk_bus_speed(dev);
+    /* MAP: BUSY_STAT, no DRQ, phase 1. */
+    dev->tf->status    = BUSY_STAT;
+    dev->tf->phase     = 1;
+    dev->tf->pos       = 0;
+    dev->callback      = 0;
 
-        period        = 1000000.0 / bytes_per_second;
-        dev->callback = period * (double) (dev->packet_len);
+    scsi_disk_log("SCSI HD %i: Current speed: %ix\n", dev->id, dev->drv->cur_speed);
+
+    if (dev->packet_status == PHASE_COMPLETE) {
+        switch (dev->current_cdb[0]) {
+            case GPCMD_VERIFY_6:
+            case GPCMD_VERIFY_10:
+            case GPCMD_VERIFY_12:
+            case GPCMD_WRITE_6:
+            case GPCMD_WRITE_10:
+            case GPCMD_WRITE_AND_VERIFY_10:
+            case GPCMD_WRITE_12:
+            case GPCMD_WRITE_AND_VERIFY_12:
+            case GPCMD_WRITE_SAME_10:
+                /* Seek time is in us. */
+                period = hdd_timing_write(dev->drv, dev->sector_pos, 1);
+                scsi_disk_log("SCSI HD %i: Seek period: %" PRIu64 " us\n",
+                              dev->id, (uint64_t) period);
+                dev->callback += period;
+                /* Account for seek time. */
+                bytes_per_second = scsi_disk_bus_speed(dev);
+
+                period = 1000000.0 / bytes_per_second;
+                scsi_disk_log("SCSI HD %i: Byte transfer period: %" PRIu64 " us\n", dev->id,
+                              (uint64_t) period);
+                period = period * (double) (dev->packet_len);
+                scsi_disk_log("CD-ROM %i: Sector transfer period: %" PRIu64 " us\n", dev->id,
+                              (uint64_t) period);
+                dev->callback += period;
+                break;
+            default:    
+                dev->callback = 0;
+                break;
+        }
+    } else {
+        switch (dev->current_cdb[0]) {
+            case GPCMD_REZERO_UNIT:
+            case 0x0b:
+            case 0x2b:
+                /* Seek time is in us. */
+                period = hdd_timing_write(dev->drv, dev->sector_pos, 1);
+                scsi_disk_log("SCSI HD %i: Seek period: %" PRIu64 " us\n",
+                              dev->id, (uint64_t) period);
+                dev->callback += period;
+                scsi_disk_set_callback(dev);
+                return;
+            case 0x08:
+            case 0x28:
+            case 0xa8:
+                /* Seek time is in us. */
+                period = hdd_timing_write(dev->drv, dev->sector_pos, 1);
+                scsi_disk_log("SCSI HD %i: Seek period: %" PRIu64 " us\n",
+                              dev->id, (uint64_t) period);
+                dev->callback += period;
+                fallthrough;
+            case 0x25:
+                /* Account for seek time. */
+                bytes_per_second = scsi_disk_bus_speed(dev);
+                break;
+            default:
+                bytes_per_second = scsi_disk_bus_speed(dev);
+                if (bytes_per_second == 0.0) {
+                    dev->callback = -1; /* Speed depends on SCSI controller */
+                    return;
+                }
+                break;
+        }
+
+        period = 1000000.0 / bytes_per_second;
+        scsi_disk_log("SCSI HD %i: Byte transfer period: %" PRIu64 " us\n", dev->id, (uint64_t) period);
+        period = period * (double) (dev->packet_len);
+        scsi_disk_log("SCSI HD %i: Sector transfer period: %" PRIu64 " us\n", dev->id, (uint64_t) period);
+        dev->callback += period;
     }
-
     scsi_disk_set_callback(dev);
 }
 
