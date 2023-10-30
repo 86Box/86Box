@@ -2442,7 +2442,8 @@ save_hard_disks(void)
             ini_section_delete_var(cat, temp);
 
         sprintf(temp, "hdd_%02i_speed", c + 1);
-        if (!hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_IDE && hdd[c].bus != HDD_BUS_ESDI))
+        if (!hdd_is_valid(c) || ((hdd[c].bus != HDD_BUS_ESDI) && (hdd[c].bus != HDD_BUS_IDE) &&
+            (hdd[c].bus != HDD_BUS_SCSI) && (hdd[c].bus != HDD_BUS_ATAPI)))
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp, hdd_preset_get_internal_name(hdd[c].speed_preset));
