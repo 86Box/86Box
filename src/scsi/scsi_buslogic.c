@@ -1706,9 +1706,10 @@ buslogic_init(const device_t *info)
             break;
     }
 
-    if ((dev->Base != 0) && !(dev->card_bus & DEVICE_MCA) && !(dev->card_bus & DEVICE_PCI)) {
+    scsi_bus_set_speed(dev->bus, dev->ha_bps);
+
+    if ((dev->Base != 0) && !(dev->card_bus & DEVICE_MCA) && !(dev->card_bus & DEVICE_PCI))
         x54x_io_set(dev, dev->Base, 4);
-    }
 
     memset(bl->AutoSCSIROM, 0xff, 32768);
 

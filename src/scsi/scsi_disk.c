@@ -12,11 +12,13 @@
  *
  *          Copyright 2017-2018 Miran Grca.
  */
+#include <stdarg.h>
+#include <inttypes.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -433,8 +435,6 @@ scsi_disk_command_common(scsi_disk_t *dev)
     dev->tf->pos       = 0;
     dev->callback      = 0;
 
-    scsi_disk_log("SCSI HD %i: Current speed: %ix\n", dev->id, dev->drv->cur_speed);
-
     if (dev->packet_status == PHASE_COMPLETE) {
         switch (dev->current_cdb[0]) {
             case GPCMD_VERIFY_6:
@@ -447,12 +447,12 @@ scsi_disk_command_common(scsi_disk_t *dev)
             case GPCMD_WRITE_AND_VERIFY_12:
             case GPCMD_WRITE_SAME_10:
                 /* Seek time is in us. */
-                period = hdd_timing_write(dev->drv, dev->sector_pos, 1);
+                period = hdd_timing_write(dev->drv, dev->sector_pos, dev->packet_len >> 9);
                 scsi_disk_log("SCSI HD %i: Seek period: %" PRIu64 " us\n",
                               dev->id, (uint64_t) period);
                 dev->callback += period;
                 /* Account for seek time. */
-                bytes_per_second = scsi_disk_bus_speed(dev);
+                bytes_per_second = scsi_bus_get_speed(dev->drv->scsi_id >> 4);
 
                 period = 1000000.0 / bytes_per_second;
                 scsi_disk_log("SCSI HD %i: Byte transfer period: %" PRIu64 " us\n", dev->id,
@@ -472,7 +472,8 @@ scsi_disk_command_common(scsi_disk_t *dev)
             case 0x0b:
             case 0x2b:
                 /* Seek time is in us. */
-                period = hdd_timing_write(dev->drv, dev->sector_pos, 1);
+                period = hdd_seek_get_time(dev->drv, (dev->current_cdb[0] == GPCMD_REZERO_UNIT) ?
+                                           0 : dev->sector_pos, HDD_OP_SEEK, 0, 0.0);
                 scsi_disk_log("SCSI HD %i: Seek period: %" PRIu64 " us\n",
                               dev->id, (uint64_t) period);
                 dev->callback += period;
@@ -482,15 +483,14 @@ scsi_disk_command_common(scsi_disk_t *dev)
             case 0x28:
             case 0xa8:
                 /* Seek time is in us. */
-                period = hdd_timing_write(dev->drv, dev->sector_pos, 1);
+                period = hdd_timing_read(dev->drv, dev->sector_pos, dev->packet_len >> 9);
                 scsi_disk_log("SCSI HD %i: Seek period: %" PRIu64 " us\n",
                               dev->id, (uint64_t) period);
                 dev->callback += period;
-                fallthrough;
-            case 0x25:
                 /* Account for seek time. */
-                bytes_per_second = scsi_disk_bus_speed(dev);
+                bytes_per_second = scsi_bus_get_speed(dev->drv->scsi_id >> 4);
                 break;
+            case 0x25:
             default:
                 bytes_per_second = scsi_disk_bus_speed(dev);
                 if (bytes_per_second == 0.0) {
@@ -1684,6 +1684,8 @@ scsi_disk_hard_reset(void)
 
             valid = 1;
 
+            hdd_preset_apply(c);
+
             if (!hdd[c].priv)
                 hdd[c].priv = (scsi_disk_t *) calloc(1, sizeof(scsi_disk_t));
 
@@ -1710,16 +1712,18 @@ scsi_disk_hard_reset(void)
                 continue;
 
             /* Make sure to ignore any SCSI disk whose image fails to load. */
-            if (!hdd_image_load(c))
-                continue;
-
             /* ATAPI hard disk, attach to the IDE bus. */
             id = ide_get_drive(hdd[c].ide_channel);
             /* If the IDE channel is initialized, we attach to it,
                otherwise, we do nothing - it's going to be a drive
                that's not attached to anything. */
             if (id) {
+                if (!hdd_image_load(c))
+                    continue;
+
                 valid = 1;
+
+                hdd_preset_apply(c);
 
                 if (!hdd[c].priv)
                     hdd[c].priv = (scsi_disk_t *) calloc(1, sizeof(scsi_disk_t));

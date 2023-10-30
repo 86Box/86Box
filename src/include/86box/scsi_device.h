@@ -448,4 +448,7 @@ extern void     scsi_device_init(void);
 extern void    scsi_reset(void);
 extern uint8_t scsi_get_bus(void);
 
+extern void    scsi_bus_set_speed(uint8_t bus, double speed);
+extern double  scsi_bus_get_speed(uint8_t bus);
+
 #endif /*SCSI_DEVICE_H*/

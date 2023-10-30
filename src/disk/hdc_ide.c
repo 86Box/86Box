@@ -1515,8 +1515,8 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                         ide->sc->callback = 100.0 * IDE_TIME;
                         ide_set_callback(ide, 100.0 * IDE_TIME);
                     } else {
-                        double seek_time = hdd_seek_get_time(&hdd[ide->hdd_num],
-                                                             ide_get_sector(ide), HDD_OP_SEEK, 0, 0.0);
+                        double seek_time = hdd_seek_get_time(&hdd[ide->hdd_num], (val & 0x60) ?
+                                                             ide_get_sector(ide) : 0, HDD_OP_SEEK, 0, 0.0);
                         ide_set_callback(ide, seek_time);
                     }
                     break;
@@ -2062,8 +2062,6 @@ ide_callback(void *priv)
     switch (ide->command) {
         case WIN_SEEK ... 0x7F:
             chk_chs = !ide->lba;
-            fallthrough;
-        case WIN_RECAL ... 0x1F:
             if (ide->type == IDE_ATAPI)
                 atapi_error_no_ready(ide);
             else {
@@ -2074,6 +2072,15 @@ ide_callback(void *priv)
                     ide->tf->atastat = DRDY_STAT | DSC_STAT;
                     ide_irq_raise(ide);
                 }
+            }
+            break;
+
+        case WIN_RECAL ... 0x1F:
+            if (ide->type == IDE_ATAPI)
+                atapi_error_no_ready(ide);
+            else {
+                ide->tf->atastat = DRDY_STAT | DSC_STAT;
+                ide_irq_raise(ide);
             }
             break;
 
