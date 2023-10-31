@@ -223,14 +223,14 @@ typedef struct s3_t {
         uint16_t subsys_cntl;
         uint16_t setup_md;
         uint8_t  advfunc_cntl;
-        uint16_t cur_y, cur_y2, cur_y_bitres;
-        uint16_t cur_x, cur_x2, cur_x_bitres;
+        uint16_t cur_y, cur_y2;
+        uint16_t cur_x, cur_x2;
         uint16_t x2, ropmix;
         uint16_t pat_x, pat_y;
         int16_t  desty_axstp, desty_axstp2;
         int16_t  destx_distp;
-        int16_t  err_term, err_term2;
         int16_t  maj_axis_pcnt, maj_axis_pcnt2;
+        int16_t  err_term, err_term2;
         uint16_t cmd, cmd2;
         uint16_t short_stroke;
         uint32_t pat_bg_color, pat_fg_color;
@@ -811,7 +811,7 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
         case 0x92e9:
             s3->accel.err_term = (s3->accel.err_term & 0xff) | ((val & 0x3f) << 8);
             if (val & 0x20)
-                s3->accel.err_term |= ~0x3fff;
+                s3->accel.err_term |= ~0x1fff;
             break;
         case 0x914a:
         case 0x92ea:
@@ -821,7 +821,7 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
         case 0x92eb:
             s3->accel.err_term2 = (s3->accel.err_term2 & 0xff) | ((val & 0x3f) << 8);
             if (val & 0x20)
-                s3->accel.err_term2 |= ~0x3fff;
+                s3->accel.err_term2 |= ~0x1fff;
             break;
 
         case 0x9548:
@@ -831,8 +831,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
         case 0x9459:
         case 0x96e9:
             s3->accel.maj_axis_pcnt = (s3->accel.maj_axis_pcnt & 0xff) | ((val & 0x0f) << 8);
-            if (val & 0x08)
-                s3->accel.maj_axis_pcnt |= ~0x0fff;
             break;
         case 0x954a:
         case 0x96ea:
@@ -841,8 +839,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
         case 0x954b:
         case 0x96eb:
             s3->accel.maj_axis_pcnt2 = (s3->accel.maj_axis_pcnt2 & 0xff) | ((val & 0x0f) << 8);
-            if (val & 0x08)
-                s3->accel.maj_axis_pcnt2 |= ~0x0fff;
             break;
 
         case 0x9948:
@@ -879,13 +875,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 
             s3->accel.cx = s3->accel.cur_x & 0xfff;
             s3->accel.cy = s3->accel.cur_y & 0xfff;
-
-            if (s3->accel.cur_x & 0x1000) {
-                s3->accel.cx |= ~0xfff;
-            }
-            if (s3->accel.cur_y & 0x1000) {
-                s3->accel.cy |= ~0xfff;
-            }
 
             if (s3->accel.cmd & 0x1000) {
                 s3_short_stroke_start(-1, 0, 0xffffffff, 0, s3, s3->accel.short_stroke & 0xff);
@@ -1421,13 +1410,6 @@ s3_accel_out_fifo_w(s3_t *s3, uint16_t port, uint16_t val)
 
         s3->accel.cx = s3->accel.cur_x & 0xfff;
         s3->accel.cy = s3->accel.cur_y & 0xfff;
-
-        if (s3->accel.cur_x & 0x1000) {
-            s3->accel.cx |= ~0xfff;
-        }
-        if (s3->accel.cur_y & 0x1000) {
-            s3->accel.cy |= ~0xfff;
-        }
 
         if (s3->accel.cmd & 0x1000) {
             s3_short_stroke_start(-1, 0, 0xffffffff, 0, s3, s3->accel.short_stroke & 0xff);
@@ -6364,6 +6346,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                     }
 
                     s3->accel.ssv_len--;
+                    s3->accel.cx &= 0xfff;
+                    s3->accel.cy &= 0xfff;
                 }
 
                 s3->accel.cur_x = s3->accel.cx;
@@ -6375,13 +6359,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
             if (!cpu_input) {
                 s3->accel.cx = s3->accel.cur_x & 0xfff;
                 s3->accel.cy = s3->accel.cur_y & 0xfff;
-
-                if (s3->accel.cur_x & 0x1000)
-                    s3->accel.cx |= ~0xfff;
-
-                if (s3->accel.cur_y & 0x1000)
-                    s3->accel.cy |= ~0xfff;
-
                 s3->accel.sy = s3->accel.maj_axis_pcnt;
 
                 if (s3_cpu_src(s3))
@@ -6428,9 +6405,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                     else
                         cpu_dat >>= 16;
 
-                    if (!s3->accel.sy) {
+                    if (!s3->accel.sy)
                         break;
-                    }
 
                     switch (s3->accel.cmd & 0xe0) {
                         case 0x00:
@@ -6466,6 +6442,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                             break;
                     }
                     s3->accel.sy--;
+                    s3->accel.cx &= 0xfff;
+                    s3->accel.cy &= 0xfff;
                 }
                 s3->accel.cur_x = s3->accel.cx;
                 s3->accel.cur_y = s3->accel.cy;
@@ -6526,9 +6504,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                         cpu_dat >>= 16;
                     }
 
-                    if (!s3->accel.sy) {
+                    if (!s3->accel.sy)
                         break;
-                    }
 
                     if (s3->accel.err_term >= s3->accel.maj_axis_pcnt) {
                         s3->accel.err_term += s3->accel.destx_distp;
@@ -6597,6 +6574,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                             break;
                     }
                     s3->accel.sy--;
+                    s3->accel.cx &= 0xfff;
+                    s3->accel.cy &= 0xfff;
                 }
                 s3->accel.cur_x = s3->accel.cx;
                 s3->accel.cur_y = s3->accel.cy;
@@ -6610,13 +6589,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                 s3->accel.sy = s3->accel.multifunc[0] & 0xfff;
                 s3->accel.cx = s3->accel.cur_x & 0xfff;
                 s3->accel.cy = s3->accel.cur_y & 0xfff;
-
-                if (s3->accel.cur_x & 0x1000) {
-                    s3->accel.cx |= ~0xfff;
-                }
-                if (s3->accel.cur_y & 0x1000) {
-                    s3->accel.cy |= ~0xfff;
-                }
 
                 s3->accel.dest = dstbase + s3->accel.cy * s3->width;
 
@@ -6709,6 +6681,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                 else
                     s3->accel.cx--;
 
+                s3->accel.cx &= 0xfff;
                 s3->accel.sx--;
                 if (s3->accel.sx < 0) {
                     if (s3->accel.cmd & 0x20)
@@ -6722,6 +6695,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                     else
                         s3->accel.cy--;
 
+                    s3->accel.cy &= 0xfff;
                     s3->accel.dest = dstbase + s3->accel.cy * s3->width;
                     s3->accel.sy--;
 
@@ -6840,13 +6814,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                 s3->accel.cx = s3->accel.cur_x & 0xfff;
                 s3->accel.cy = s3->accel.cur_y & 0xfff;
 
-                if (s3->accel.cur_x & 0x1000) {
-                    s3->accel.cx |= ~0xfff;
-                }
-                if (s3->accel.cur_y & 0x1000) {
-                    s3->accel.cy |= ~0xfff;
-                }
-
                 s3->accel.src  = srcbase + s3->accel.cy * s3->width;
                 s3->accel.dest = dstbase + s3->accel.dy * s3->width;
             }
@@ -6894,8 +6861,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                 }
             } else {
                 while (count-- && s3->accel.sy >= 0) {
-                    /*This is almost required by OS/2's software cursor or we will risk writing/reading garbage around it.*/
-                    if ((s3->accel.dx) >= clip_l && (s3->accel.dx) <= clip_r && ((s3->accel.dy) >= clip_t && (s3->accel.dy) <= clip_b)) {
+                    if ((s3->accel.dx & 0xfff) >= clip_l && (s3->accel.dx & 0xfff) <= clip_r && ((s3->accel.dy & 0xfff) >= clip_t && (s3->accel.dy & 0xfff) <= clip_b)) {
                         if (vram_mask && (s3->accel.cmd & 0x10)) {
                             READ(s3->accel.src + s3->accel.cx, mix_dat);
                             mix_dat = ((mix_dat & rd_mask) == rd_mask);
@@ -6952,13 +6918,12 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                     s3->accel.sx--;
                     if (s3->accel.sx < 0) {
                         if (s3->accel.cmd & 0x20) {
-                            s3->accel.cx -= (s3->accel.maj_axis_pcnt & 0xfff) + 1;
-                            s3->accel.dx -= (s3->accel.maj_axis_pcnt & 0xfff) + 1;
+                            s3->accel.cx -= ((s3->accel.maj_axis_pcnt & 0xfff) + 1);
+                            s3->accel.dx -= ((s3->accel.maj_axis_pcnt & 0xfff) + 1);
                         } else {
-                            s3->accel.cx += (s3->accel.maj_axis_pcnt & 0xfff) + 1;
-                            s3->accel.dx += (s3->accel.maj_axis_pcnt & 0xfff) + 1;
+                            s3->accel.cx += ((s3->accel.maj_axis_pcnt & 0xfff) + 1);
+                            s3->accel.dx += ((s3->accel.maj_axis_pcnt & 0xfff) + 1);
                         }
-
                         s3->accel.sx = s3->accel.maj_axis_pcnt & 0xfff;
 
                         if (s3->accel.cmd & 0x80) {
@@ -6968,7 +6933,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                             s3->accel.cy--;
                             s3->accel.dy--;
                         }
-
                         s3->accel.src  = srcbase + s3->accel.cy * s3->width;
                         s3->accel.dest = dstbase + s3->accel.dy * s3->width;
 
@@ -7000,11 +6964,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                     s3->accel.dy |= ~0xfff;
 
                 s3->accel.cx = s3->accel.cur_x & 0xfff;
-                if (s3->accel.cur_x & 0x1000)
-                    s3->accel.cx |= ~0xfff;
                 s3->accel.cy = s3->accel.cur_y & 0xfff;
-                if (s3->accel.cur_y & 0x1000)
-                    s3->accel.cy |= ~0xfff;
 
                 /*Align source with destination*/
                 s3->accel.pattern = (s3->accel.cy * s3->width) + s3->accel.cx;
@@ -7078,11 +7038,11 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                 s3->accel.sx--;
                 if (s3->accel.sx < 0) {
                     if (s3->accel.cmd & 0x20) {
-                        s3->accel.cx = ((s3->accel.cx - ((s3->accel.maj_axis_pcnt & 0xfff) + 1)) & 7) | (s3->accel.cx & ~7);
-                        s3->accel.dx -= (s3->accel.maj_axis_pcnt & 0xfff) + 1;
+                        s3->accel.cx = ((s3->accel.cx - (((s3->accel.maj_axis_pcnt & 0xfff) + 1))) & 7) | (s3->accel.cx & ~7);
+                        s3->accel.dx -= ((s3->accel.maj_axis_pcnt & 0xfff) + 1);
                     } else {
-                        s3->accel.cx = ((s3->accel.cx + ((s3->accel.maj_axis_pcnt & 0xfff) + 1)) & 7) | (s3->accel.cx & ~7);
-                        s3->accel.dx += (s3->accel.maj_axis_pcnt & 0xfff) + 1;
+                        s3->accel.cx = ((s3->accel.cx + (((s3->accel.maj_axis_pcnt & 0xfff) + 1))) & 7) | (s3->accel.cx & ~7);
+                        s3->accel.dx += ((s3->accel.maj_axis_pcnt & 0xfff) + 1);
                     }
                     s3->accel.sx = s3->accel.maj_axis_pcnt & 0xfff;
 
@@ -7124,12 +7084,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                     if (s3->accel.desty_axstp & 0x1000)
                         s3->accel.dy |= ~0xfff;
 
-                    s3->accel.cx = s3->accel.cur_x;
-                    if (s3->accel.cur_x & 0x1000)
-                        s3->accel.cx |= ~0xfff;
-                    s3->accel.cy = s3->accel.cur_y;
-                    if (s3->accel.cur_y & 0x1000)
-                        s3->accel.cy |= ~0xfff;
+                    s3->accel.cx = s3->accel.cur_x & 0xfff;
+                    s3->accel.cy = s3->accel.cur_y & 0xfff;
                 }
 
                 if ((s3->accel.cmd & 0x100) && !cpu_input)
@@ -7159,12 +7115,15 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                                 s3->accel.cy++;
                             else
                                 s3->accel.cy--;
-                        }
 
+                            s3->accel.cy &= 0xfff;
+                        }
                         if (s3->accel.destx_distp > s3->accel.cur_x)
                             s3->accel.cx++;
                         else
                             s3->accel.cx--;
+
+                        s3->accel.cx &= 0xfff;
                     }
                 } else {
                     error = s3->accel.dy / 2;
@@ -7190,11 +7149,15 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                                 s3->accel.cx++;
                             else
                                 s3->accel.cx--;
+
+                            s3->accel.cx &= 0xfff;
                         }
                         if (s3->accel.desty_axstp > s3->accel.cur_y)
                             s3->accel.cy++;
                         else
                             s3->accel.cy--;
+
+                        s3->accel.cy &= 0xfff;
                     }
                 }
                 s3->accel.cur_x = s3->accel.cx;
@@ -7316,18 +7279,10 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                     s3->accel.dy |= ~0xfff;
 
                 s3->accel.cx = s3->accel.cur_x & 0xfff;
-                if (s3->accel.cur_x & 0x1000)
-                    s3->accel.cx |= ~0xfff;
                 s3->accel.cy = s3->accel.cur_y & 0xfff;
-                if (s3->accel.cur_y & 0x1000)
-                    s3->accel.cy |= ~0xfff;
 
                 s3->accel.px = s3->accel.pat_x & 0xfff;
-                if (s3->accel.pat_x & 0x1000)
-                    s3->accel.px |= ~0xfff;
                 s3->accel.py = s3->accel.pat_y & 0xfff;
-                if (s3->accel.pat_y & 0x1000)
-                    s3->accel.py |= ~0xfff;
 
                 s3->accel.dest    = dstbase + (s3->accel.dy * s3->width);
                 s3->accel.src     = srcbase + (s3->accel.cy * s3->width);
@@ -7428,13 +7383,13 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                 s3->accel.sx--;
                 if (s3->accel.sx < 0) {
                     if (s3->accel.cmd & 0x20) {
-                        s3->accel.cx -= (s3->accel.maj_axis_pcnt & 0xfff) + 1;
-                        s3->accel.dx -= (s3->accel.maj_axis_pcnt & 0xfff) + 1;
-                        s3->accel.px -= (s3->accel.maj_axis_pcnt & 0xfff) + 1;
+                        s3->accel.cx -= ((s3->accel.maj_axis_pcnt & 0xfff) + 1);
+                        s3->accel.dx -= ((s3->accel.maj_axis_pcnt & 0xfff) + 1);
+                        s3->accel.px -= ((s3->accel.maj_axis_pcnt & 0xfff) + 1);
                     } else {
-                        s3->accel.cx += (s3->accel.maj_axis_pcnt & 0xfff) + 1;
-                        s3->accel.dx += (s3->accel.maj_axis_pcnt & 0xfff) + 1;
-                        s3->accel.px += (s3->accel.maj_axis_pcnt & 0xfff) + 1;
+                        s3->accel.cx += ((s3->accel.maj_axis_pcnt & 0xfff) + 1);
+                        s3->accel.dx += ((s3->accel.maj_axis_pcnt & 0xfff) + 1);
+                        s3->accel.px += ((s3->accel.maj_axis_pcnt & 0xfff) + 1);
                     }
                     s3->accel.sx = s3->accel.maj_axis_pcnt & 0xfff;
 
@@ -7447,7 +7402,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
                         s3->accel.dy--;
                         s3->accel.py--;
                     }
-
                     s3->accel.src     = srcbase + (s3->accel.cy * s3->width);
                     s3->accel.dest    = dstbase + (s3->accel.dy * s3->width);
                     s3->accel.pattern = (s3->accel.py * s3->width);
