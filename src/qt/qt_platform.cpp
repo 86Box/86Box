@@ -382,7 +382,7 @@ plat_pause(int p)
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
 
-    dopause = p;
+    do_pause(p);
     if (p) {
         if (mouse_capture)
             plat_mouse_capture(0);
@@ -407,9 +407,6 @@ plat_pause(int p)
         PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!p, (LPARAM) (HWND) main_window->winId());
 #endif
 }
-
-// because we can't include nvr.h because it's got fields named new
-extern int nvr_save(void);
 
 void
 plat_power_off(void)

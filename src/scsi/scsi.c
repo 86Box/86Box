@@ -42,7 +42,8 @@
 #include <86box/scsi_pcscsi.h>
 #include <86box/scsi_spock.h>
 
-int scsi_card_current[SCSI_BUS_MAX] = { 0, 0 };
+int scsi_card_current[SCSI_BUS_MAX] = { 0, 0, 0, 0 };
+double scsi_bus_speed[SCSI_BUS_MAX] = { 0.0, 0.0, 0.0, 0.0 };
 
 static uint8_t next_scsi_bus = 0;
 
@@ -182,4 +183,16 @@ scsi_card_init(void)
                 device_add_inst(scsi_cards[scsi_card_current[i]].device, i + 1);
         }
     }
+}
+
+void
+scsi_bus_set_speed(uint8_t bus, double speed)
+{
+    scsi_bus_speed[bus] = speed;
+}
+
+double
+scsi_bus_get_speed(uint8_t bus)
+{
+    return scsi_bus_speed[bus];
 }

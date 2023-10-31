@@ -1658,6 +1658,8 @@ ncr_init(const device_t *info)
     }
     timer_add(&ncr_dev->timer, ncr_callback, ncr_dev, 0);
 
+    scsi_bus_set_speed(ncr_dev->bus, 5000000.0);
+
     return ncr_dev;
 }
 

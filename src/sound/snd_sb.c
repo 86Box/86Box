@@ -158,7 +158,6 @@ static uint8_t sb_16_pnp_rom[] = {
     // clang-format on
 };
 
-// #define ENABLE_SB_LOG 1
 #ifdef ENABLE_SB_LOG
 int sb_do_log = ENABLE_SB_LOG;
 
@@ -820,6 +819,14 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
             sb->dsp.sb_irqm8   = 0;
             sb->dsp.sb_irqm16  = 0;
             sb->dsp.sb_irqm401 = 0;
+
+            mixer->regs[0xfd] = 0x10;
+            mixer->regs[0xfe] = 0x06;
+
+            mixer->regs[0xff] = sb->dsp.sb_16_dma_supported ? 0x05 : 0x03;
+
+            sb_dsp_setdma16_enabled(&sb->dsp, 0x01);
+            sb_dsp_setdma16_translate(&sb->dsp, mixer->regs[0xff] & 0x02);
         } else
             mixer->regs[mixer->index] = val;
 
@@ -938,11 +945,16 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
                 break;
 
             case 0xff:
-                if (sb->dsp.sb_type >= SBAWE32) {
-                    if (val != ISAPNP_DMA_DISABLED)
-                        sb_dsp_setdma16_8(&sb->dsp, val & 0x07);
+                if (sb->dsp.sb_type >= SB16) {
+                    /*
+                       Bit 5: High DMA channel enabled (0 = yes, 1 = no);
+                       Bit 2: ????;
+                       Bit 1: ???? (16-bit to 8-bit translation?);
+                       Bit 0: ????
+                       Seen values: 20, 05, 04, 03
+                     */
                     sb_dsp_setdma16_enabled(&sb->dsp, !(val & 0x20));
-                    sb_dsp_setdma16_translate(&sb->dsp, val != ISAPNP_DMA_DISABLED);
+                    sb_dsp_setdma16_translate(&sb->dsp, val & 0x02);
                 }
                 break;
 
@@ -1159,7 +1171,7 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                              - Register FF = FF: Volume playback normal.
                              - Register FF = Not FF: Volume playback low unless
                                              bit 6 of 82h is set. */
-                if (sb->dsp.sb_type >= SBAWE32)
+                if (sb->dsp.sb_type >= SB16)
                     ret = mixer->regs[mixer->index];
                 break;
 

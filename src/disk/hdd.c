@@ -210,7 +210,7 @@ hdd_readahead_update(hard_disk_t *hdd)
     uint64_t elapsed_cycles;
     double   elapsed_us;
     double   seek_time;
-    uint32_t max_read_ahead;
+    int32_t  max_read_ahead;
     uint32_t space_needed;
 
     hdd_cache_t *cache = &hdd->cache;
@@ -224,7 +224,7 @@ hdd_readahead_update(hard_disk_t *hdd)
 
         seek_time = 0.0;
 
-        for (uint32_t i = 0; i < max_read_ahead; i++) {
+        for (int32_t i = 0; i < max_read_ahead; i++) {
             seek_time += hdd_seek_get_time(hdd, segment->ra_addr, HDD_OP_READ, 1, elapsed_us - seek_time);
             if (seek_time > elapsed_us)
                 break;

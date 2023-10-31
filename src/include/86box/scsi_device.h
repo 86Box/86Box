@@ -149,6 +149,7 @@
 #define GPCMD_PLAY_AUDIO_TRACK_RELATIVE_12_MATSUSHITA 0xe9 /* Matsushita Vendor Unique command */
 
 /* Mode page codes for mode sense/set */
+#define GPMODE_UNIT_ATN_PAGE         0x00
 #define GPMODE_R_W_ERROR_PAGE        0x01
 #define GPMODE_DISCONNECT_PAGE       0x02 /* Disconnect/reconnect page */
 #define GPMODE_FORMAT_DEVICE_PAGE    0x03
@@ -165,6 +166,7 @@
 #define GPMODE_ALL_PAGES             0x3f
 
 /* Mode page codes for presence */
+#define GPMODEP_UNIT_ATN_PAGE         0x0000000000000001LL
 #define GPMODEP_R_W_ERROR_PAGE        0x0000000000000002LL
 #define GPMODEP_DISCONNECT_PAGE       0x0000000000000004LL
 #define GPMODEP_FORMAT_DEVICE_PAGE    0x0000000000000008LL
@@ -347,7 +349,12 @@ typedef struct mode_sense_pages_t {
 typedef struct scsi_common_s {
     mode_sense_pages_t ms_pages_saved;
 
-    void *priv;
+    void *    priv;
+#ifdef EMU_IDE_H
+    ide_tf_t *tf;
+#else
+    void *    tf;
+#endif
 
     uint8_t *temp_buffer;
     uint8_t atapi_cdb[16]; /* This is atapi_cdb in ATAPI-supporting devices,
@@ -355,17 +362,24 @@ typedef struct scsi_common_s {
     uint8_t current_cdb[16];
     uint8_t sense[256];
 
-    uint8_t status;
-    uint8_t phase;
-    uint8_t error;
-    uint8_t id;
+#ifdef ANCIENT_CODE
+    /* Task file. */
     uint8_t features;
+    uint8_t phase;
+    uint16_t request_length;
+    uint8_t status;
+    uint8_t error;
+    uint16_t pad;
+    uint32_t pos;
+#endif
+
+    uint8_t id;
     uint8_t cur_lun;
     uint8_t pad0;
     uint8_t pad1;
 
-    uint16_t request_length;
     uint16_t max_transfer_len;
+    uint16_t pad2;
 
     int requested_blocks;
     int packet_status;
@@ -379,7 +393,6 @@ typedef struct scsi_common_s {
     uint32_t sector_pos;
     uint32_t sector_len;
     uint32_t packet_len;
-    uint32_t pos;
 
     double callback;
 } scsi_common_t;
@@ -434,5 +447,8 @@ extern void     scsi_device_init(void);
 
 extern void    scsi_reset(void);
 extern uint8_t scsi_get_bus(void);
+
+extern void    scsi_bus_set_speed(uint8_t bus, double speed);
+extern double  scsi_bus_get_speed(uint8_t bus);
 
 #endif /*SCSI_DEVICE_H*/

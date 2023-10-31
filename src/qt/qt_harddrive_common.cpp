@@ -75,8 +75,10 @@ Harddrives::populateSpeeds(QAbstractItemModel *model, int bus)
     int num_preset;
 
     switch (bus) {
-        case HDD_BUS_IDE:
         case HDD_BUS_ESDI:
+        case HDD_BUS_IDE:
+        case HDD_BUS_ATAPI:
+        case HDD_BUS_SCSI:
             num_preset = hdd_preset_get_num();
             break;
 

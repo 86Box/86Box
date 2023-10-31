@@ -921,16 +921,10 @@ MainWindow::on_actionSettings_triggered()
 
     switch (settings.result()) {
         case QDialog::Accepted:
-            /*
             pc_reset_hard_close();
             settings.save();
             config_changed = 2;
             pc_reset_hard_init();
-            */
-            settings.save();
-            config_changed = 2;
-            pc_reset_hard();
-
             break;
         case QDialog::Rejected:
             break;

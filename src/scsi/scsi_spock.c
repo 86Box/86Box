@@ -1164,15 +1164,18 @@ spock_init(const device_t *info)
     scsi->cmd_timer = SPOCK_TIME * 50;
     scsi->status    = STATUS_BUSY;
 
-    for (uint8_t c = 0; c < (SCSI_ID_MAX - 1); c++) {
+    for (uint8_t c = 0; c < (SCSI_ID_MAX - 1); c++)
         scsi->dev_id[c].phys_id = -1;
-    }
 
     scsi->dev_id[SCSI_ID_MAX - 1].phys_id = scsi->adapter_id;
 
     timer_add(&scsi->callback_timer, spock_callback, scsi, 1);
     scsi->callback_timer.period = 10.0;
-    timer_set_delay_u64(&scsi->callback_timer, (uint64_t) (scsi->callback_timer.period * ((double) TIMER_USEC)));
+
+    timer_set_delay_u64(&scsi->callback_timer,
+                        (uint64_t) (scsi->callback_timer.period * ((double) TIMER_USEC)));
+
+    scsi_bus_set_speed(scsi->bus, 5000000.0);
 
     return scsi;
 }

@@ -502,6 +502,7 @@ sb_16_write_dma(void *priv, uint16_t val)
 void
 sb_dsp_setirq(sb_dsp_t *dsp, int irq)
 {
+    sb_dsp_log("IRQ now: %i\n", irq);
     dsp->sb_irqnum = irq;
 }
 
