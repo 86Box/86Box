@@ -1946,6 +1946,7 @@ const cpu_legacy_machine_t cpu_legacy_table[] = {
     { "award286",          cputables_286                                },
     { "gw286ct",           cputables_286                                },
     { "gdc212m",           cputables_286                                },
+    { "super286c",         cputables_286                                },
     { "super286tr",        cputables_286                                },
     { "spc4200p",          cputables_286                                },
     { "spc4216p",          cputables_286                                },
