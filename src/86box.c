@@ -237,7 +237,7 @@ int efscrnsz_y = SCREEN_RES_Y;
 static wchar_t mouse_msg[3][200];
 
 static int do_pause_ack = 0;
-static int pause_ack = 0;
+static volatile int pause_ack = 0;
 
 #ifndef RELEASE_BUILD
 static char buff[1024];
