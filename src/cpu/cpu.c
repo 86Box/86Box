@@ -1745,8 +1745,8 @@ cpu_set(void)
             timing_misaligned = 2;
 
             cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MMX | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_3DNOW;
-            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21);
-            cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE;
+            msr.fcr      = (1 << 7) | (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21);
+            cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE | CR4_PGE;
 
             cpu_cyrix_alignment = 1;
 
@@ -2433,6 +2433,8 @@ cpu_CPUID(void)
                     EDX       = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_MMX | CPUID_MTRR;
                     if (cpu_has_feature(CPU_FEATURE_CX8))
                         EDX |= CPUID_CMPXCHG8B;
+                    if (msr.fcr & (1 << 7))
+                        EDX |= CPUID_PGE;
                     break;
                 case 0x80000000:
                     EAX = 0x80000005;
@@ -2442,6 +2444,8 @@ cpu_CPUID(void)
                     EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_MMX | CPUID_MTRR | CPUID_3DNOW;
                     if (cpu_has_feature(CPU_FEATURE_CX8))
                         EDX |= CPUID_CMPXCHG8B;
+                    if (msr.fcr & (1 << 7))
+                        EDX |= CPUID_PGE;
                     break;
                 case 0x80000002:      /* Processor name string */
                     EAX = 0x20414956; /* VIA Samuel */
@@ -2497,8 +2501,8 @@ cpu_ven_reset(void)
             break;
 
         case CPU_CYRIX3S:
-            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) |
-                           (1 << 20) | (1 << 21);
+            msr.fcr = (1 << 7) (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) |
+                      (1 << 20) | (1 << 21);
             break;
     }
 }
@@ -3098,6 +3102,10 @@ cpu_WRMSR(void)
                         cpu_features |= CPU_FEATURE_CX8;
                     else
                         cpu_features &= ~CPU_FEATURE_CX8;
+                    if (EAX & (1 << 7))
+                        cpu_CR4_mask |= CR4_PGE;
+                    else
+                        cpu_CR4_mask &= ~CR4_PGE;
                     break;
                 case 0x1108:
                     msr.fcr2 = EAX | ((uint64_t) EDX << 32);
