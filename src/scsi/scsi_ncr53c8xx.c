@@ -2623,6 +2623,8 @@ ncr53c8xx_init(const device_t *info)
 
     timer_add(&dev->timer, ncr53c8xx_callback, dev, 0);
 
+    scsi_bus_set_speed(dev->bus, 10000000.0);
+
     return dev;
 }
 

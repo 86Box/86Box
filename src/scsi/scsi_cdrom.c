@@ -41,6 +41,8 @@
 #include <86box/scsi_cdrom.h>
 #include <86box/version.h>
 
+#define IDE_ATAPI_IS_EARLY             id->sc->pad0
+
 #pragma pack(push, 1)
 typedef struct gesn_cdb_t {
     uint8_t opcode;
@@ -184,7 +186,7 @@ uint8_t scsi_cdrom_command_flags[0x100] = {
     0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0   /* 0xF0-0xFF */
 };
 
-static uint64_t scsi_cdrom_mode_sense_page_flags      = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_DISCONNECT_PAGE | GPMODEP_CDROM_PAGE | GPMODEP_CDROM_AUDIO_PAGE | (1ULL << 0x0fULL) | GPMODEP_CAPABILITIES_PAGE | GPMODEP_ALL_PAGES);
+static uint64_t scsi_cdrom_mode_sense_page_flags      = (GPMODEP_UNIT_ATN_PAGE | GPMODEP_R_W_ERROR_PAGE | GPMODEP_DISCONNECT_PAGE | GPMODEP_FORMAT_DEVICE_PAGE | GPMODEP_CDROM_PAGE | GPMODEP_CDROM_AUDIO_PAGE | (1ULL << 0x0fULL) | GPMODEP_CAPABILITIES_PAGE | GPMODEP_ALL_PAGES);
 static uint64_t scsi_cdrom_mode_sense_page_flags_sony = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_DISCONNECT_PAGE | GPMODEP_CDROM_PAGE_SONY | GPMODEP_CDROM_AUDIO_PAGE_SONY | (1ULL << 0x0fULL) | GPMODEP_CAPABILITIES_PAGE | GPMODEP_ALL_PAGES);
 static uint64_t scsi_cdrom_drive_status_page_flags    = ((1ULL << 0x01ULL) | (1ULL << 0x02ULL) | (1ULL << 0x0fULL) | GPMODEP_ALL_PAGES);
 
@@ -281,10 +283,10 @@ static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_default = {
 };
 
 static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_default_scsi = {
-    {{ 0, 0 },
+    {{ GPMODE_UNIT_ATN_PAGE, 6, 0, 0, 0, 0, 0, 0 }, /*Guess-work*/
      { GPMODE_R_W_ERROR_PAGE, 6, 0, 5, 0, 0, 0, 0 },
      { GPMODE_DISCONNECT_PAGE, 0x0e, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-     { 0, 0 },
+     { GPMODE_FORMAT_DEVICE_PAGE, 0x16, 0, 1, 0, 1, 0, 1, 0, 1, 1, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
      { 0, 0 },
      { 0, 0 },
      { 0, 0 },
@@ -373,10 +375,10 @@ static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_default_sony_scsi = 
 };
 
 static const mode_sense_pages_t scsi_cdrom_mode_sense_pages_changeable = {
-    {{ 0, 0 },
+    {{ GPMODE_UNIT_ATN_PAGE, 6, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }, /*Guess-work*/
      { GPMODE_R_W_ERROR_PAGE, 6, 0xFF, 0xFF, 0, 0, 0, 0 },
      { GPMODE_DISCONNECT_PAGE, 0x0E, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0xFF, 0xFF, 0, 0, 0, 0 },
-     { 0, 0 },
+     { GPMODE_FORMAT_DEVICE_PAGE, 0x16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
      { 0, 0 },
      { 0, 0 },
      { 0, 0 },
@@ -516,15 +518,17 @@ scsi_cdrom_init(scsi_cdrom_t *dev)
         dev->drv->bus_mode |= 2;
     if (dev->drv->bus_type < CDROM_BUS_SCSI)
         dev->drv->bus_mode |= 1;
-    scsi_cdrom_log("CD-ROM %i: Bus type %i, bus mode %i\n", dev->id, dev->drv->bus_type, dev->drv->bus_mode);
+    scsi_cdrom_log("CD-ROM %i: Bus type %i, bus mode %i\n",
+                   dev->id, dev->drv->bus_type, dev->drv->bus_mode);
 
     dev->sense[0] = 0xf0;
     dev->sense[7] = 10;
-    if ((dev->drv->type == CDROM_TYPE_NEC_260_100) || (dev->drv->type == CDROM_TYPE_NEC_260_101)) /*NEC only*/
-        dev->status = READY_STAT | DSC_STAT;
+    /* NEC only */
+    if ((dev->drv->type == CDROM_TYPE_NEC_260_100) || (dev->drv->type == CDROM_TYPE_NEC_260_101))
+        dev->tf->status = READY_STAT | DSC_STAT;
     else
-        dev->status = 0;
-    dev->pos             = 0;
+        dev->tf->status = 0;
+    dev->tf->pos         = 0;
     dev->packet_status   = PHASE_NONE;
     scsi_cdrom_sense_key = scsi_cdrom_asc = scsi_cdrom_ascq = dev->unit_attention = 0;
     dev->drv->cur_speed                                                           = dev->drv->speed;
@@ -541,37 +545,9 @@ scsi_cdrom_current_mode(scsi_cdrom_t *dev)
         return 2;
     else if (dev->drv->bus_type == CDROM_BUS_ATAPI) {
         scsi_cdrom_log("CD-ROM %i: ATAPI drive, setting to %s\n", dev->id,
-                       (dev->features & 1) ? "DMA" : "PIO",
+                       (dev->tf->features & 1) ? "DMA" : "PIO",
                        dev->id);
-        return (dev->features & 1) ? 2 : 1;
-    }
-
-    return 0;
-}
-
-/* Translates ATAPI phase (DRQ, I/O, C/D) to SCSI phase (MSG, C/D, I/O). */
-int
-scsi_cdrom_atapi_phase_to_scsi(scsi_cdrom_t *dev)
-{
-    if (dev->status & 8) {
-        switch (dev->phase & 3) {
-            case 0:
-                return 0;
-            case 1:
-                return 2;
-            case 2:
-                return 1;
-            case 3:
-                return 7;
-
-            default:
-                break;
-        }
-    } else {
-        if ((dev->phase & 3) == 3)
-            return 3;
-        else
-            return 4;
+        return (dev->tf->features & 1) ? 2 : 1;
     }
 
     return 0;
@@ -617,7 +593,8 @@ scsi_cdrom_get_volume(void *priv, int channel)
         case CDROM_TYPE_SONY_CDU561_18k:
         case CDROM_TYPE_SONY_CDU76S_100:
         case CDROM_TYPE_TEXEL_DMXX24_100:
-            ret = dev->ms_pages_saved_sony.pages[dev->sony_vendor ? GPMODE_CDROM_AUDIO_PAGE_SONY : GPMODE_CDROM_AUDIO_PAGE][channel ? 11 : 9];
+            ret = dev->ms_pages_saved_sony.pages[dev->sony_vendor ? GPMODE_CDROM_AUDIO_PAGE_SONY :
+                                                 GPMODE_CDROM_AUDIO_PAGE][channel ? 11 : 9];
             break;
         default:
             ret = dev->ms_pages_saved.pages[GPMODE_CDROM_AUDIO_PAGE][channel ? 11 : 9];
@@ -640,13 +617,15 @@ scsi_cdrom_mode_sense_load(scsi_cdrom_t *dev)
         case CDROM_TYPE_SONY_CDU76S_100:
         case CDROM_TYPE_TEXEL_DMXX24_100:
             memset(&dev->ms_pages_saved_sony, 0, sizeof(mode_sense_pages_t));
-            memcpy(&dev->ms_pages_saved_sony, &scsi_cdrom_mode_sense_pages_default_sony_scsi, sizeof(mode_sense_pages_t));
+            memcpy(&dev->ms_pages_saved_sony, &scsi_cdrom_mode_sense_pages_default_sony_scsi,
+                   sizeof(mode_sense_pages_t));
 
             memset(file_name, 0, 512);
             sprintf(file_name, "scsi_cdrom_%02i_mode_sense_sony_bin", dev->id);
             fp = plat_fopen(nvr_path(file_name), "rb");
             if (fp) {
-                if (fread(dev->ms_pages_saved_sony.pages[GPMODE_CDROM_AUDIO_PAGE_SONY], 1, 0x10, fp) != 0x10)
+                if (fread(dev->ms_pages_saved_sony.pages[GPMODE_CDROM_AUDIO_PAGE_SONY], 1,
+                          0x10, fp) != 0x10)
                     fatal("scsi_cdrom_mode_sense_load(): Error reading data\n");
                 fclose(fp);
             }
@@ -654,9 +633,11 @@ scsi_cdrom_mode_sense_load(scsi_cdrom_t *dev)
         default:
             memset(&dev->ms_pages_saved, 0, sizeof(mode_sense_pages_t));
             if (dev->drv->bus_type == CDROM_BUS_SCSI)
-                memcpy(&dev->ms_pages_saved, &scsi_cdrom_mode_sense_pages_default_scsi, sizeof(mode_sense_pages_t));
+                memcpy(&dev->ms_pages_saved, &scsi_cdrom_mode_sense_pages_default_scsi,
+                       sizeof(mode_sense_pages_t));
             else
-                memcpy(&dev->ms_pages_saved, &scsi_cdrom_mode_sense_pages_default, sizeof(mode_sense_pages_t));
+                memcpy(&dev->ms_pages_saved, &scsi_cdrom_mode_sense_pages_default,
+                       sizeof(mode_sense_pages_t));
 
             memset(file_name, 0, 512);
             if (dev->drv->bus_type == CDROM_BUS_SCSI)
@@ -839,14 +820,14 @@ scsi_cdrom_mode_sense(scsi_cdrom_t *dev, uint8_t *buf, uint32_t pos, uint8_t pag
                     else {
                         if ((i == GPMODE_CAPABILITIES_PAGE) && (j == 4)) {
                             buf[pos] = scsi_cdrom_mode_sense_read(dev, page_control, i, 2 + j) & 0x1f;
-                            /* The early CD-ROM drives we emulate (NEC CDR-260 for ATAPI and early vendor SCSI CD-ROM models) are
-                               caddy drives, the later ones are tray drives. */
-                            if (dev->drv->bus_type == CDROM_BUS_SCSI) {
+                            /* The early CD-ROM drives we emulate (NEC CDR-260 for ATAPI and
+                               early vendor SCSI CD-ROM models) are caddy drives, the later
+                               ones are tray drives. */
+                            if (dev->drv->bus_type == CDROM_BUS_SCSI)
                                 buf[pos++] |= ((dev->drv->type == CDROM_TYPE_86BOX_100) ? 0x20 : 0x00);
-                            } else {
+                            else
                                 buf[pos++] |= ((dev->drv->type == CDROM_TYPE_NEC_260_100) ||
                                                 ((dev->drv->type == CDROM_TYPE_NEC_260_101)) ? 0x00 : 0x20);
-                            }
                         } else if ((i == GPMODE_CAPABILITIES_PAGE) && (j >= 6) && (j <= 7)) {
                             if (j & 1)
                                 buf[pos++] = ((dev->drv->speed * 176) & 0xff);
@@ -881,7 +862,7 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
     int32_t min_len = 0;
     double  dlen;
 
-    dev->max_transfer_len = dev->request_length;
+    dev->max_transfer_len = dev->tf->request_length;
 
     /* For media access commands, make sure the requested DRQ length matches the block length. */
     switch (dev->current_cdb[0]) {
@@ -936,9 +917,9 @@ scsi_cdrom_update_request_length(scsi_cdrom_t *dev, int len, int block_len)
         dev->max_transfer_len = 65534;
 
     if ((len <= dev->max_transfer_len) && (len >= min_len))
-        dev->request_length = dev->max_transfer_len = len;
+        dev->tf->request_length = dev->max_transfer_len = len;
     else if (len > dev->max_transfer_len)
-        dev->request_length = dev->max_transfer_len;
+        dev->tf->request_length = dev->max_transfer_len;
 
     return;
 }
@@ -969,10 +950,11 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
     double bytes_per_second = 0.0;
     double period;
 
-    dev->status   = BUSY_STAT;
-    dev->phase    = 1;
-    dev->pos      = 0;
-    dev->callback = 0;
+    /* MAP: BUSY_STAT, no DRQ, phase 1. */
+    dev->tf->status    = BUSY_STAT;
+    dev->tf->phase     = 1;
+    dev->tf->pos       = 0;
+    dev->callback      = 0;
 
     scsi_cdrom_log("CD-ROM %i: Current speed: %ix\n", dev->id, dev->drv->cur_speed);
 
@@ -1000,14 +982,10 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                 dev->callback += period;
                 fallthrough;
             case 0x25:
-            case 0x42:
-            case 0x43:
-            case 0x44:
-            case 0x51:
-            case 0x52:
+            case 0x42 ... 0x44:
+            case 0x51 ... 0x52:
             case 0xad:
-            case 0xb8:
-            case 0xb9:
+            case 0xb8 ... 0xb9:
             case 0xbe:
                 if (dev->current_cdb[0] == 0x42)
                     dev->callback += 40.0;
@@ -1015,8 +993,7 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                 bytes_per_second = 176.0 * 1024.0;
                 bytes_per_second *= (double) dev->drv->cur_speed;
                 break;
-            case 0xc6:
-            case 0xc7:
+            case 0xc6 ... 0xc7:
                 switch (dev->drv->type) {
                     case CDROM_TYPE_TOSHIBA_XM_3433:
                     case CDROM_TYPE_TOSHIBA_XM3201B_3232:
@@ -1050,8 +1027,7 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                         bytes_per_second *= (double) dev->drv->cur_speed;
                         break;
                 }
-            case 0xc2:
-            case 0xc3:
+            case 0xc2 ... 0xc3:
                 switch (dev->drv->type) {
                     case CDROM_TYPE_DEC_RRD45_0436:
                     case CDROM_TYPE_SONY_CDU541_10i:
@@ -1065,10 +1041,12 @@ scsi_cdrom_command_common(scsi_cdrom_t *dev)
                         bytes_per_second *= (double) dev->drv->cur_speed;
                         break;
                 }
-            case 0xdd:
-            case 0xde:
+            case 0xdd ... 0xde:
                 switch (dev->drv->type) {
+                    case CDROM_TYPE_NEC_25_10a:
                     case CDROM_TYPE_NEC_38_103:
+                    case CDROM_TYPE_NEC_75_103:
+                    case CDROM_TYPE_NEC_77_106:
                     case CDROM_TYPE_NEC_211_100:
                     case CDROM_TYPE_NEC_464_105:
                         bytes_per_second = 176.0 * 1024.0;
@@ -1100,7 +1078,7 @@ scsi_cdrom_command_complete(scsi_cdrom_t *dev)
     ui_sb_update_icon(SB_CDROM | dev->id, 0);
     dev->packet_status = PHASE_COMPLETE;
     scsi_cdrom_command_common(dev);
-    dev->phase = 3;
+    dev->tf->phase = 3;
 }
 
 static void
@@ -1108,7 +1086,7 @@ scsi_cdrom_command_read(scsi_cdrom_t *dev)
 {
     dev->packet_status = PHASE_DATA_IN;
     scsi_cdrom_command_common(dev);
-    dev->phase = !(dev->packet_status & 0x01) << 1;
+    dev->tf->phase = !(dev->packet_status & 0x01) << 1;
 }
 
 static void
@@ -1123,7 +1101,7 @@ scsi_cdrom_command_write(scsi_cdrom_t *dev)
 {
     dev->packet_status = PHASE_DATA_OUT;
     scsi_cdrom_command_common(dev);
-    dev->phase = !(dev->packet_status & 0x01) << 1;
+    dev->tf->phase = !(dev->packet_status & 0x01) << 1;
 }
 
 static void
@@ -1142,8 +1120,9 @@ static void
 scsi_cdrom_data_command_finish(scsi_cdrom_t *dev, int len, int block_len, int alloc_len, int direction)
 {
     scsi_cdrom_log("CD-ROM %i: Finishing command (%02X): %i, %i, %i, %i, %i\n",
-                   dev->id, dev->current_cdb[0], len, block_len, alloc_len, direction, dev->request_length);
-    dev->pos = 0;
+                   dev->id, dev->current_cdb[0], len, block_len, alloc_len, direction,
+                   dev->tf->request_length);
+    dev->tf->pos = 0;
     if (alloc_len >= 0) {
         if (alloc_len < len)
             len = alloc_len;
@@ -1172,7 +1151,8 @@ scsi_cdrom_data_command_finish(scsi_cdrom_t *dev, int len, int block_len, int al
     }
 
     scsi_cdrom_log("CD-ROM %i: Status: %i, cylinder %i, packet length: %i, position: %i, phase: %i\n",
-                   dev->id, dev->packet_status, dev->request_length, dev->packet_len, dev->pos, dev->phase);
+                   dev->id, dev->packet_status, dev->tf->request_length, dev->packet_len, dev->tf->pos,
+                   dev->tf->phase);
 }
 
 static void
@@ -1197,14 +1177,14 @@ static void
 scsi_cdrom_cmd_error(scsi_cdrom_t *dev)
 {
     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
-    dev->error = ((scsi_cdrom_sense_key & 0xf) << 4) | ABRT_ERR;
+    dev->tf->error = ((scsi_cdrom_sense_key & 0xf) << 4) | ABRT_ERR;
     if (dev->unit_attention)
-        dev->error |= MCR_ERR;
-    dev->status        = READY_STAT | ERR_STAT;
-    dev->phase         = 3;
-    dev->pos           = 0;
-    dev->packet_status = PHASE_ERROR;
-    dev->callback      = 50.0 * CDROM_TIME;
+        dev->tf->error |= MCR_ERR;
+    dev->tf->status        = READY_STAT | ERR_STAT;
+    dev->tf->phase         = 3;
+    dev->tf->pos           = 0;
+    dev->packet_status     = PHASE_ERROR;
+    dev->callback          = 50.0 * CDROM_TIME;
     scsi_cdrom_set_callback(dev);
     ui_sb_update_icon(SB_CDROM | dev->id, 0);
     scsi_cdrom_log("CD-ROM %i: ERROR: %02X/%02X/%02X\n", dev->id, scsi_cdrom_sense_key, scsi_cdrom_asc, scsi_cdrom_ascq);
@@ -1214,12 +1194,12 @@ static void
 scsi_cdrom_unit_attention(scsi_cdrom_t *dev)
 {
     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
-    dev->error = (SENSE_UNIT_ATTENTION << 4) | ABRT_ERR;
+    dev->tf->error = (SENSE_UNIT_ATTENTION << 4) | ABRT_ERR;
     if (dev->unit_attention)
-        dev->error |= MCR_ERR;
-    dev->status        = READY_STAT | ERR_STAT;
-    dev->phase         = 3;
-    dev->pos           = 0;
+        dev->tf->error |= MCR_ERR;
+    dev->tf->status     = READY_STAT | ERR_STAT;
+    dev->tf->phase     = 3;
+    dev->tf->pos       = 0;
     dev->packet_status = PHASE_ERROR;
     dev->callback      = 50.0 * CDROM_TIME;
     scsi_cdrom_set_callback(dev);
@@ -1298,7 +1278,7 @@ scsi_cdrom_invalid_field(scsi_cdrom_t *dev)
     scsi_cdrom_asc       = ASC_INV_FIELD_IN_CMD_PACKET;
     scsi_cdrom_ascq      = 0;
     scsi_cdrom_cmd_error(dev);
-    dev->status = 0x53;
+    dev->tf->status = 0x53;
 }
 
 static void
@@ -1308,7 +1288,7 @@ scsi_cdrom_invalid_field_pl(scsi_cdrom_t *dev)
     scsi_cdrom_asc       = ASC_INV_FIELD_IN_PARAMETER_LIST;
     scsi_cdrom_ascq      = 0;
     scsi_cdrom_cmd_error(dev);
-    dev->status = 0x53;
+    dev->tf->status = 0x53;
 }
 
 static void
@@ -1575,7 +1555,7 @@ scsi_cdrom_pre_execution_check(scsi_cdrom_t *dev, uint8_t *cdb)
 
     if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) && (cdb[1] & 0xe0)) {
         scsi_cdrom_log("CD-ROM %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n",
-                       dev->id, ((dev->request_length >> 5) & 7));
+                       dev->id, ((dev->tf->request_length >> 5) & 7));
         scsi_cdrom_invalid_lun(dev);
         return 0;
     }
@@ -1674,14 +1654,14 @@ scsi_cdrom_reset(scsi_common_t *sc)
         return;
 
     scsi_cdrom_rezero(dev);
-    dev->status   = 0;
-    dev->callback = 0.0;
+    dev->tf->status   = 0;
+    dev->callback     = 0.0;
     scsi_cdrom_set_callback(dev);
-    dev->phase          = 1;
-    dev->request_length = 0xEB14;
-    dev->packet_status  = PHASE_NONE;
-    dev->unit_attention = 0xff;
-    dev->cur_lun        = SCSI_LUN_USE_CDB;
+    dev->tf->phase          = 1;
+    dev->tf->request_length = 0xeb14;
+    dev->packet_status      = PHASE_NONE;
+    dev->unit_attention     = 0xff;
+    dev->cur_lun            = SCSI_LUN_USE_CDB;
 }
 
 static void
@@ -1793,10 +1773,10 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 
     if (dev->drv->bus_type == CDROM_BUS_SCSI) {
         BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
-        dev->status &= ~ERR_STAT;
+        dev->tf->status &= ~ERR_STAT;
     } else {
         BufLen     = &blen;
-        dev->error = 0;
+        dev->tf->error = 0;
     }
 
     dev->packet_len  = 0;
@@ -1814,11 +1794,12 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 
     if (cdb[0] != 0) {
         scsi_cdrom_log("CD-ROM %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, Unit attention: %i\n",
-                       dev->id, cdb[0], scsi_cdrom_sense_key, scsi_cdrom_asc, scsi_cdrom_ascq, dev->unit_attention);
-        scsi_cdrom_log("CD-ROM %i: Request length: %04X\n", dev->id, dev->request_length);
+                       dev->id, cdb[0], scsi_cdrom_sense_key, scsi_cdrom_asc, scsi_cdrom_ascq,
+                       dev->unit_attention);
+        scsi_cdrom_log("CD-ROM %i: Request length: %04X\n", dev->id, dev->tf->request_length);
 
-        scsi_cdrom_log("CD-ROM %i: CDB: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n", dev->id,
-                       cdb[0], cdb[1], cdb[2], cdb[3], cdb[4], cdb[5], cdb[6], cdb[7],
+        scsi_cdrom_log("CD-ROM %i: CDB: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n",
+                       dev->id, cdb[0], cdb[1], cdb[2], cdb[3], cdb[4], cdb[5], cdb[6], cdb[7],
                        cdb[8], cdb[9], cdb[10], cdb[11]);
     }
 
@@ -1868,7 +1849,10 @@ begin:
 
         case 0xDA: /*GPCMD_SPEED_ALT*/
             switch (dev->drv->type) {
+                case CDROM_TYPE_NEC_25_10a:
                 case CDROM_TYPE_NEC_38_103:
+                case CDROM_TYPE_NEC_75_103:
+                case CDROM_TYPE_NEC_77_106:
                 case CDROM_TYPE_NEC_211_100:
                 case CDROM_TYPE_NEC_464_105: /*GPCMD_STILL_NEC*/
                     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
@@ -2006,11 +1990,14 @@ begin:
 
         case 0xDE:
             switch (dev->drv->type) {
+                case CDROM_TYPE_NEC_25_10a:
                 case CDROM_TYPE_NEC_38_103:
+                case CDROM_TYPE_NEC_75_103:
+                case CDROM_TYPE_NEC_77_106:
                 case CDROM_TYPE_NEC_211_100:
                 case CDROM_TYPE_NEC_464_105: /*GPCMD_READ_DISC_INFORMATION_NEC*/
                     scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
-                    scsi_cdrom_buf_alloc(dev, 4);
+                    scsi_cdrom_buf_alloc(dev, 22); /*NEC manual claims 4 bytes, but the Android source code (namely sr_vendor.c) actually states otherwise.*/
 
                     if (!dev->drv->ops) {
                         scsi_cdrom_not_ready(dev);
@@ -2018,7 +2005,7 @@ begin:
                     }
 
                     ret = cdrom_read_disc_info_toc(dev->drv, dev->buffer, cdb[2], cdb[1] & 3);
-                    len = 4;
+                    len = 22;
                     if (!ret) {
                         scsi_cdrom_invalid_field(dev);
                         scsi_cdrom_buf_free(dev);
@@ -2141,7 +2128,10 @@ begin:
 
             if ((cdb[0] == GPCMD_READ_10) || (cdb[0] == GPCMD_READ_12)) {
                 switch (dev->drv->type) {
+                    case CDROM_TYPE_NEC_25_10a:
                     case CDROM_TYPE_NEC_38_103:
+                    case CDROM_TYPE_NEC_75_103:
+                    case CDROM_TYPE_NEC_77_106:
                     case CDROM_TYPE_NEC_211_100:
                     case CDROM_TYPE_NEC_464_105:
                     case CDROM_TYPE_TOSHIBA_XM_3433:
@@ -2583,7 +2573,10 @@ begin:
 
         case 0xD8:
             switch (dev->drv->type) {
+                case CDROM_TYPE_NEC_25_10a:
                 case CDROM_TYPE_NEC_38_103:
+                case CDROM_TYPE_NEC_75_103:
+                case CDROM_TYPE_NEC_77_106:
                 case CDROM_TYPE_NEC_211_100:
                 case CDROM_TYPE_NEC_464_105: /*GPCMD_AUDIO_TRACK_SEARCH_NEC*/
                     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
@@ -2686,7 +2679,10 @@ begin:
 
         case 0xD9:
             switch (dev->drv->type) {
+                case CDROM_TYPE_NEC_25_10a:
                 case CDROM_TYPE_NEC_38_103:
+                case CDROM_TYPE_NEC_75_103:
+                case CDROM_TYPE_NEC_77_106:
                 case CDROM_TYPE_NEC_211_100:
                 case CDROM_TYPE_NEC_464_105: /*GPCMD_PLAY_AUDIO_NEC*/
                     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
@@ -2926,7 +2922,10 @@ begin:
 
         case 0xDD:
             switch (dev->drv->type) {
+                case CDROM_TYPE_NEC_25_10a:
                 case CDROM_TYPE_NEC_38_103:
+                case CDROM_TYPE_NEC_75_103:
+                case CDROM_TYPE_NEC_77_106:
                 case CDROM_TYPE_NEC_211_100:
                 case CDROM_TYPE_NEC_464_105: /*GPCMD_READ_SUBCODEQ_PLAYING_STATUS_NEC*/
                     scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
@@ -3093,7 +3092,10 @@ begin:
 
         case 0xDC:
             switch (dev->drv->type) {
+                case CDROM_TYPE_NEC_25_10a:
                 case CDROM_TYPE_NEC_38_103:
+                case CDROM_TYPE_NEC_75_103:
+                case CDROM_TYPE_NEC_77_106:
                 case CDROM_TYPE_NEC_211_100:
                 case CDROM_TYPE_NEC_464_105: /*GPCMD_CADDY_EJECT_NEC*/
                     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
@@ -3192,16 +3194,22 @@ begin:
                         case CDROM_TYPE_CHINON_CDS431_H42:
                         case CDROM_TYPE_DEC_RRD45_0436:
                         case CDROM_TYPE_MATSHITA_501_10b:
-                        case CDROM_TYPE_NEC_38_103:
-                        case CDROM_TYPE_NEC_211_100:
                         case CDROM_TYPE_SONY_CDU541_10i:
                         case CDROM_TYPE_SONY_CDU76S_100:
                         case CDROM_TYPE_TEAC_CD50_100:
                         case CDROM_TYPE_TEAC_R55S_10R:
                         case CDROM_TYPE_TEXEL_DMXX24_100:
                         case CDROM_TYPE_TOSHIBA_XM3201B_3232:
-                            dev->buffer[2] = 0x01;
+                            dev->buffer[2] = 0x00;
                             dev->buffer[3] = 0x01; /*SCSI-1 compliant*/
+                            break;
+                        case CDROM_TYPE_NEC_25_10a:
+                        case CDROM_TYPE_NEC_38_103:
+                        case CDROM_TYPE_NEC_75_103:
+                        case CDROM_TYPE_NEC_77_106:
+                        case CDROM_TYPE_NEC_211_100:
+                        case CDROM_TYPE_NEC_464_105:
+                            dev->buffer[3] = 0x00; /*SCSI unknown version per NEC manuals*/
                             break;
                         default:
                             dev->buffer[2] = 0x02; /*SCSI-2 compliant*/
@@ -3224,6 +3232,13 @@ begin:
                             break;
                         case CDROM_TYPE_PIONEER_DRM604X_2403:
                             dev->buffer[4] = 42;
+                            break;
+                        case CDROM_TYPE_NEC_25_10a:
+                        case CDROM_TYPE_NEC_38_103:
+                        case CDROM_TYPE_NEC_75_103:
+                        case CDROM_TYPE_NEC_77_106:
+                        case CDROM_TYPE_NEC_211_100:
+                        case CDROM_TYPE_NEC_464_105:
                             break;
                         default:
                             dev->buffer[6] = 0x01; /* 16-bit transfers supported */
@@ -3345,7 +3360,10 @@ atapi_out:
 
         case 0xDB:
             switch (dev->drv->type) {
+                case CDROM_TYPE_NEC_25_10a:
                 case CDROM_TYPE_NEC_38_103:
+                case CDROM_TYPE_NEC_75_103:
+                case CDROM_TYPE_NEC_77_106:
                 case CDROM_TYPE_NEC_211_100:
                 case CDROM_TYPE_NEC_464_105: /*GPCMD_SET_STOP_TIME_NEC*/
                     scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
@@ -3459,7 +3477,10 @@ atapi_out:
             dev->drv->seek_diff = ABS((int) (pos - dev->drv->seek_pos));
             if (cdb[0] == GPCMD_SEEK_10) {
                 switch (dev->drv->type) {
+                    case CDROM_TYPE_NEC_25_10a:
                     case CDROM_TYPE_NEC_38_103:
+                    case CDROM_TYPE_NEC_75_103:
+                    case CDROM_TYPE_NEC_77_106:
                     case CDROM_TYPE_NEC_211_100:
                     case CDROM_TYPE_NEC_464_105:
                     case CDROM_TYPE_TOSHIBA_XM_3433:
@@ -3727,9 +3748,10 @@ atapi_out:
             break;
     }
 
-    /* scsi_cdrom_log("CD-ROM %i: Phase: %02X, request length: %i\n", dev->phase, dev->request_length); */
+    /* scsi_cdrom_log("CD-ROM %i: Phase: %02X, request length: %i\n", dev->tf->phase,
+                      dev->tf->request_length); */
 
-    if (scsi_cdrom_atapi_phase_to_scsi(dev) == SCSI_PHASE_STATUS)
+    if ((dev->packet_status == PHASE_COMPLETE) || (dev->packet_status == PHASE_ERROR))
         scsi_cdrom_buf_free(dev);
 }
 
@@ -3904,6 +3926,9 @@ static void
 scsi_cdrom_close(void *priv)
 {
     scsi_cdrom_t *dev = (scsi_cdrom_t *) priv;
+
+    if (dev->tf)
+        free(dev->tf);
 
     if (dev)
         free(dev);
@@ -4086,6 +4111,7 @@ scsi_cdrom_drive_reset(int c)
     ide_t         *id;
     uint8_t        scsi_bus = (drv->scsi_device_id >> 4) & 0x0f;
     uint8_t        scsi_id  = drv->scsi_device_id & 0x0f;
+    uint8_t        valid = 0;
 
     if (drv->bus_type == CDROM_BUS_SCSI) {
         /* Make sure to ignore any SCSI CD-ROM drive that has an out of range SCSI bus. */
@@ -4118,9 +4144,12 @@ scsi_cdrom_drive_reset(int c)
     drv->get_channel = scsi_cdrom_get_channel;
     drv->close       = scsi_cdrom_close;
 
-    scsi_cdrom_init(dev);
-
     if (drv->bus_type == CDROM_BUS_SCSI) {
+        valid = 1;
+
+        if (!dev->tf)
+            dev->tf        = (ide_tf_t *) calloc(1, sizeof(ide_tf_t));
+
         /* SCSI CD-ROM, attach to the SCSI bus. */
         sd = &scsi_devices[scsi_bus][scsi_id];
 
@@ -4140,7 +4169,12 @@ scsi_cdrom_drive_reset(int c)
            otherwise, we do nothing - it's going to be a drive
            that's not attached to anything. */
         if (id) {
+            valid = 1;
+
             id->sc               = (scsi_common_t *) dev;
+            dev->tf              = id->tf;
+            if ((dev->drv->type == CDROM_TYPE_NEC_260_100) || (dev->drv->type == CDROM_TYPE_NEC_260_101))
+                IDE_ATAPI_IS_EARLY   = 1;
             id->get_max          = scsi_cdrom_get_max;
             id->get_timings      = scsi_cdrom_get_timings;
             id->identify         = scsi_cdrom_identify;
@@ -4158,4 +4192,7 @@ scsi_cdrom_drive_reset(int c)
 
         scsi_cdrom_log("ATAPI CD-ROM drive %i attached to IDE channel %i\n", c, cdrom[c].ide_channel);
     }
+
+    if (valid)
+        scsi_cdrom_init(dev);
 }

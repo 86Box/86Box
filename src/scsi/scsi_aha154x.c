@@ -1101,6 +1101,8 @@ aha_init(const device_t *info)
             break;
     }
 
+    scsi_bus_set_speed(dev->bus, dev->ha_bps);
+
     /* Initialize ROM BIOS if needed. */
     aha_setbios(dev);
 

@@ -40,6 +40,7 @@
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>

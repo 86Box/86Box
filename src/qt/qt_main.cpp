@@ -137,6 +137,8 @@ main_thread_fn()
             }
         } else {
             /* Just so we dont overload the host OS. */
+            if (dopause)
+                ack_pause();
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     }

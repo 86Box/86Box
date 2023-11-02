@@ -876,6 +876,7 @@ load_hard_disks(void)
                 break;
 
             case HDD_BUS_SCSI:
+            case HDD_BUS_ATAPI:
                 max_spt    = 255;
                 max_hpc    = 255;
                 max_tracks = 266305;
@@ -893,6 +894,8 @@ load_hard_disks(void)
         switch (hdd[c].bus) {
             case HDD_BUS_IDE:
             case HDD_BUS_ESDI:
+            case HDD_BUS_ATAPI:
+            case HDD_BUS_SCSI:
                 sprintf(tmp2, "1997_5400rpm");
                 break;
             default:
@@ -925,7 +928,7 @@ load_hard_disks(void)
 
         /* IDE */
         sprintf(temp, "hdd_%02i_ide_channel", c + 1);
-        if (hdd[c].bus == HDD_BUS_IDE) {
+        if ((hdd[c].bus == HDD_BUS_IDE) || (hdd[c].bus == HDD_BUS_ATAPI)) {
             sprintf(tmp2, "%01u:%01u", c >> 1, c & 1);
             p = ini_section_get_string(cat, temp, tmp2);
             sscanf(p, "%01u:%01u", &board, &dev);
@@ -2396,7 +2399,7 @@ save_hard_disks(void)
             ini_section_delete_var(cat, temp);
 
         sprintf(temp, "hdd_%02i_ide_channel", c + 1);
-        if (!hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_IDE))
+        if (!hdd_is_valid(c) || ((hdd[c].bus != HDD_BUS_IDE) && (hdd[c].bus != HDD_BUS_ATAPI)))
             ini_section_delete_var(cat, temp);
         else {
             sprintf(tmp2, "%01u:%01u", hdd[c].ide_channel >> 1, hdd[c].ide_channel & 1);
@@ -2439,7 +2442,8 @@ save_hard_disks(void)
             ini_section_delete_var(cat, temp);
 
         sprintf(temp, "hdd_%02i_speed", c + 1);
-        if (!hdd_is_valid(c) || (hdd[c].bus != HDD_BUS_IDE && hdd[c].bus != HDD_BUS_ESDI))
+        if (!hdd_is_valid(c) || ((hdd[c].bus != HDD_BUS_ESDI) && (hdd[c].bus != HDD_BUS_IDE) &&
+            (hdd[c].bus != HDD_BUS_SCSI) && (hdd[c].bus != HDD_BUS_ATAPI)))
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp, hdd_preset_get_internal_name(hdd[c].speed_preset));

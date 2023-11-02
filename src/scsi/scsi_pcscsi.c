@@ -1870,6 +1870,8 @@ dc390_init(UNUSED(const device_t *info))
 
     timer_add(&dev->timer, esp_callback, dev, 0);
 
+    scsi_bus_set_speed(dev->bus, 10000000.0);
+
     return dev;
 }
 
@@ -2039,6 +2041,8 @@ ncr53c90_mca_init(UNUSED(const device_t *info))
     esp_hard_reset(dev);
 
     timer_add(&dev->timer, esp_callback, dev, 0);
+
+    scsi_bus_set_speed(dev->bus, 5000000.0);
 
     return dev;
 }
