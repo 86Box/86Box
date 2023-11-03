@@ -27,7 +27,9 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/cdrom.h>
+#include <86box/hdd.h>
 #include <86box/scsi_device.h>
+#include <86box/scsi_disk.h>
 #include <86box/scsi_cdrom.h>
 #include <86box/dma.h>
 #include <86box/io.h>
@@ -389,7 +391,6 @@ sff_bus_master_set_irq(uint8_t status, void *priv)
 {
     sff8038i_t *dev = (sff8038i_t *) priv;
     uint8_t     irq = !!(status & 0x04);
-    int         irq_shift = 0;
 
     if (!(dev->status & 0x04) || (status & 0x04))
         dev->status = (dev->status & ~0x04) | status;
@@ -410,16 +411,12 @@ sff_bus_master_set_irq(uint8_t status, void *priv)
             else
                 pci_clear_irq(dev->slot, dev->irq_pin, &dev->irq_state);
             break;
-        case IRQ_MODE_MIRQ_0:
-        case IRQ_MODE_MIRQ_1:
-            /* MIRQ 0 or 1. */
-        case IRQ_MODE_MIRQ_2:
-        case IRQ_MODE_MIRQ_3:
-            /* MIRQ 2 or 3. */
+        case IRQ_MODE_MIRQ_0 ... IRQ_MODE_MIRQ_3:
+            /* MIRQ 0, 1, 2, or 3. */
             if (irq)
-                pci_set_mirq((dev->irq_mode & 3) + irq_shift, 0, &dev->irq_state);
+                pci_set_mirq(dev->irq_mode & 3, 0, &dev->irq_state);
             else
-                pci_clear_mirq((dev->irq_mode & 3) + irq_shift, 0, &dev->irq_state);
+                pci_clear_mirq(dev->irq_mode & 3, 0, &dev->irq_state);
             break;
         /* TODO: Redo this as a MIRQ. */
         case IRQ_MODE_PCI_IRQ_LINE:
@@ -477,6 +474,10 @@ sff_reset(void *priv)
     sff_log("SFF8038i: Reset\n");
 #endif
 
+    for (uint8_t i = 0; i < HDD_NUM; i++) {
+        if ((hdd[i].bus == HDD_BUS_ATAPI) && (hdd[i].ide_channel < 4) && hdd[i].priv)
+            scsi_disk_reset((scsi_common_t *) hdd[i].priv);
+    }
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
         if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && (cdrom[i].ide_channel < 4) && cdrom[i].priv)
             scsi_cdrom_reset((scsi_common_t *) cdrom[i].priv);
@@ -522,21 +523,15 @@ sff_set_irq_mode(sff8038i_t *dev, int irq_mode)
         default:
         case IRQ_MODE_LEGACY:
             /* Legacy IRQ mode. */
-            sff_log("[%08X] Setting IRQ mode to legacy IRQ %i\n", dev, 14 + channel);
+            sff_log("[%08X] Setting IRQ mode to legacy IRQ %i\n", dev, dev->irq_line);
             break;
         case IRQ_MODE_PCI_IRQ_PIN:
             /* Native PCI IRQ mode with interrupt pin. */
             sff_log("[%08X] Setting IRQ mode to native PCI INT%c\n", dev, 0x40 + dev->irq_pin);
             break;
-        case IRQ_MODE_MIRQ_0:
-        case IRQ_MODE_MIRQ_1:
-            /* MIRQ 0 or 1. */
-            sff_log("[%08X] Setting IRQ mode to PCI MIRQ%i\n", dev, irq_mode & 1);
-            break;
-        case IRQ_MODE_MIRQ_2:
-        case IRQ_MODE_MIRQ_3:
-            /* MIRQ 0 or 1. */
-            sff_log("[%08X] Setting IRQ mode to PCI MIRQ%i\n", dev, (irq_mode & 1) + 1);
+        case IRQ_MODE_MIRQ_0 ... IRQ_MODE_MIRQ_3:
+            /* MIRQ 0, 1, 2, or 3. */
+            sff_log("[%08X] Setting IRQ mode to PCI MIRQ%i\n", dev, dev->irq_mode & 3);
             break;
         case IRQ_MODE_PCI_IRQ_LINE:
             /* Native PCI IRQ mode with specified interrupt line. */

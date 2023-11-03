@@ -336,7 +336,7 @@ ide_atapi_get_period(uint8_t channel)
 }
 
 static void
-ide_irq_update(ide_board_t *dev)
+ide_irq_update(ide_board_t *dev, int log)
 {
     ide_t *ide;
     uint8_t set;
@@ -344,7 +344,10 @@ ide_irq_update(ide_board_t *dev)
     if (dev == NULL)
         return;
 
-    ide_log("IDE %i: IRQ update (%i)\n", dev->cur_dev >> 1, dev->irq);
+#ifdef ENABLE_IDE_LOG
+    if (log)
+        ide_log("IDE %i: IRQ update (%i)\n", dev->cur_dev >> 1, dev->irq);
+#endif
 
     ide = ide_drives[dev->cur_dev];
     set = !(ide_boards[ide->board]->devctl & 2) && ide->irqstat;
@@ -356,32 +359,22 @@ ide_irq_update(ide_board_t *dev)
 }
 
 void
-ide_irq_raise(ide_t *ide)
+ide_irq(ide_t *ide, int set, int log)
 {
     if (!ide_boards[ide->board])
         return;
 
-    ide_log("IDE %i: IRQ raise\n", ide->channel);
+#ifdef IDE_MORE_SPECIFIC_LOGS
+    ide_log("IDE %i: IRQ %s\n", set ? "raise" : "lower");
+#endif
 
-    ide->irqstat = 1;
-    ide->service = 1;
+    ide->irqstat = set;
 
-    if (ide->selected)
-        ide_irq_update(ide_boards[ide->board]);
-}
-
-void
-ide_irq_lower(ide_t *ide)
-{
-    if (!ide_boards[ide->board])
-        return;
-
-    ide_log("IDE %i: IRQ lower\n", ide->channel);
-
-    ide->irqstat = 0;
+    if (set)
+        ide->service = 1;
 
     if (ide->selected)
-        ide_irq_update(ide_boards[ide->board]);
+        ide_irq_update(ide_boards[ide->board], log);
 }
 
 /**
@@ -1214,7 +1207,9 @@ ide_writew(uint16_t addr, uint16_t val, void *priv)
     ch  = dev->cur_dev;
     ide = ide_drives[ch];
 
+#ifdef IDE_MORE_SPECIFIC_LOGS
     ide_log("ide_writew(%04X, %04X, %08X)\n", addr, val, priv);
+#endif
 
     addr &= 0x7;
 
@@ -1246,7 +1241,9 @@ ide_writel(uint16_t addr, uint32_t val, void *priv)
     ch  = dev->cur_dev;
     ide = ide_drives[ch];
 
+#ifdef IDE_MORE_SPECIFIC_LOGS
     ide_log("ide_writel(%04X, %08X, %08X)\n", addr, val, priv);
+#endif
 
     addr &= 0x7;
 
@@ -1361,7 +1358,7 @@ ide_write_devctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
     old         = dev->devctl;
     dev->devctl = val;
     if (!(val & 0x02) && (old & 0x02))
-        ide_irq_update(ide_boards[ide->board]);
+        ide_irq_update(ide_boards[ide->board], 1);
 }
 
 static void
@@ -1429,7 +1426,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 #ifdef WRITE_PARAM_TO_BOTH_DEVICES
             ide_other->tf->cylprecomp = val;
 #endif
-            return;
+            break;
 
         case 0x2: /* Sector count */
             ide->tf->secount       = val;
@@ -1439,6 +1436,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
         case 0x3: /* Sector */
             ide->sector         = val;
             ide->lba_addr       = (ide->lba_addr & 0xfffff00) | val;
+
             ide_other->sector   = val;
             ide_other->lba_addr = (ide_other->lba_addr & 0xfffff00) | val;
             break;
@@ -1482,7 +1480,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                     ide_set_board_callback(ide->board, 0.0);
                     reset = 1;
                 } else
-                    ide_irq_update(ide_boards[ide->board]);
+                    ide_irq_update(ide_boards[ide->board], 1);
             }
 
             if (!reset) {
@@ -1911,7 +1909,7 @@ ide_readb(uint16_t addr, void *priv)
         /* For ATAPI: Bit 5 is DMA ready, but without overlapped or interlaved DMA, it is
                       DF (drive fault). */
         case 0x7: /* Status */
-            ide_irq_lower(ide);
+            ide_irq(ide, 0, 0);
             ret = ide_status(ide, ide_drives[ch ^ 1], ch);
             break;
 
@@ -1969,7 +1967,9 @@ ide_readw(uint16_t addr, void *priv)
             break;
     }
 
+#ifdef IDE_MORE_SPECIFIC_LOGS
     ide_log("ide_readw(%04X, %08X) = %04X\n", addr, priv, ret);
+#endif
     return ret;
 }
 
@@ -2002,7 +2002,9 @@ ide_readl(uint16_t addr, void *priv)
             break;
     }
 
+#ifdef IDE_MORE_SPECIFIC_LOGS
     ide_log("ide_readl(%04X, %08X) = %04X\n", addr, priv, ret);
+#endif
     return ret;
 }
 
@@ -2012,9 +2014,7 @@ ide_board_callback(void *priv)
     ide_board_t *dev = (ide_board_t *) priv;
     ide_t *ide;
 
-#ifdef ENABLE_IDE_LOG
     ide_log("ide_board_callback(%i)\n", dev->cur_dev >> 1);
-#endif
 
     for (uint8_t i = 0; i < 2; i++) {
         ide = dev->ide[i];

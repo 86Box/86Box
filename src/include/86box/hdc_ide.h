@@ -179,8 +179,7 @@ extern int ide_qua_enabled;
 
 #ifdef SCSI_DEVICE_H
 extern ide_t *ide_get_drive(int ch);
-extern void   ide_irq_raise(ide_t *ide);
-extern void   ide_irq_lower(ide_t *ide);
+extern void   ide_irq(ide_t *ide, int set, int log);
 extern void   ide_allocate_buffer(ide_t *dev);
 extern void   ide_atapi_attach(ide_t *dev);
 #endif
@@ -224,6 +223,9 @@ extern uint8_t ide_read_ali_75(void);
 extern uint8_t ide_read_ali_76(void);
 
 /* Legacy #define's. */
+#define ide_irq_raise(ide) ide_irq(ide, 1, 1)
+#define ide_irq_lower(ide) ide_irq(ide, 0, 1)
+
 #define ide_set_base(board, port) ide_set_base_addr(board, 0, port)
 #define ide_set_side(board, port) ide_set_base_addr(board, 1, port)
 
