@@ -954,7 +954,9 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
                        Seen values: 20, 05, 04, 03
                      */
                     sb_dsp_setdma16_enabled(&sb->dsp, !(val & 0x20));
+#ifdef TOGGLABLE_TRANSLATION
                     sb_dsp_setdma16_translate(&sb->dsp, val & 0x02);
+#endif
                 }
                 break;
 

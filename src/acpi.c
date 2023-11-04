@@ -1656,9 +1656,6 @@ acpi_reset(void *priv)
             dev->regs.gpi_val |= 0x00000004;
     }
 
-    /* Power on always generates a resume event. */
-    dev->regs.pmsts |= 0x8100;
-
     acpi_rtc_status = 0;
 
     acpi_update_irq(dev);
@@ -1764,6 +1761,9 @@ acpi_init(const device_t *info)
     timer_on_auto(&dev->pwrbtn_timer, 16. * 1000.);
 
     acpi_reset(dev);
+
+    /* Power on always generates a resume event. */
+    dev->regs.pmsts |= 0x8100;
 
     acpi_enabled = 1;
     return dev;

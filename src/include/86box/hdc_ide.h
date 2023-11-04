@@ -36,9 +36,13 @@
 #define HDC_QUATERNARY_IRQ  10
 
 enum {
-    IDE_NONE = 0,
-    IDE_HDD,
-    IDE_ATAPI
+    IDE_NONE = 0,       /* Absent master or both. */
+    IDE_HDD,            /* Hard disk. */
+    IDE_ATAPI,          /* ATAPI device. */
+    IDE_RESERVED,       /* Reserved, do not use. */
+    IDE_SHADOW,         /* Shadow flag, do not assign on is own. */
+    IDE_HDD_SHADOW,     /* Shadow of a hard disk. */
+    IDE_ATAPI_SHADOW    /* Shadow of an ATAPI device. */
 };
 
 typedef struct ide_tf_s {
@@ -59,28 +63,26 @@ typedef struct ide_tf_s {
         uint8_t status;
     };
     uint8_t error;
-    uint16_t pad;
+    uint8_t sector;
+    union {
+        uint8_t drvsel;
+        struct {
+            uint8_t head :4;
+            uint8_t pad  :2; 
+            uint8_t lba  :1; 
+            uint8_t pad0 :1;
+        };
+    };
     uint32_t pos;
 } ide_tf_t;
 
 #ifdef _TIMER_H_
 typedef struct ide_s {
-#ifdef ANCIENT_CODE
-    /* Task file. */
-    uint8_t  cylprecomp;
-    uint8_t  secount;
-    uint16_t cylinder;
-    uint8_t  atastat;
-    uint8_t  error;
-    uint16_t pad;
-    uint32_t pos;
-#endif
-
     /* The rest. */
     uint8_t  selected;
     uint8_t  command;
     uint8_t  head;
-    uint8_t  sector;
+    uint8_t  pad;
     int      type;
     int      board;
     int      irqstat;
@@ -90,7 +92,6 @@ typedef struct ide_s {
     int      hdd_num;
     int      channel;
     int      sector_pos;
-    int      lba;
     int      reset;
     int      mdma_mode;
     int      do_initial_read;
@@ -179,8 +180,7 @@ extern int ide_qua_enabled;
 
 #ifdef SCSI_DEVICE_H
 extern ide_t *ide_get_drive(int ch);
-extern void   ide_irq_raise(ide_t *ide);
-extern void   ide_irq_lower(ide_t *ide);
+extern void   ide_irq(ide_t *ide, int set, int log);
 extern void   ide_allocate_buffer(ide_t *dev);
 extern void   ide_atapi_attach(ide_t *dev);
 #endif
@@ -224,6 +224,9 @@ extern uint8_t ide_read_ali_75(void);
 extern uint8_t ide_read_ali_76(void);
 
 /* Legacy #define's. */
+#define ide_irq_raise(ide) ide_irq(ide, 1, 1)
+#define ide_irq_lower(ide) ide_irq(ide, 0, 1)
+
 #define ide_set_base(board, port) ide_set_base_addr(board, 0, port)
 #define ide_set_side(board, port) ide_set_base_addr(board, 1, port)
 

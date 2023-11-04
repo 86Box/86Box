@@ -128,7 +128,6 @@ static void scsi_disk_command_complete(scsi_disk_t *dev);
 static void scsi_disk_mode_sense_load(scsi_disk_t *dev);
 
 static void scsi_disk_init(scsi_disk_t *dev);
-static void scsi_disk_reset(scsi_common_t *sc);
 
 #ifdef ENABLE_SCSI_DISK_LOG
 int scsi_disk_do_log = ENABLE_SCSI_DISK_LOG;
@@ -787,7 +786,7 @@ scsi_disk_rezero(scsi_disk_t *dev)
     scsi_disk_seek(dev, 0);
 }
 
-static void
+void
 scsi_disk_reset(scsi_common_t *sc)
 {
     scsi_disk_t *dev = (scsi_disk_t *) sc;

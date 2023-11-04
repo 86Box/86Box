@@ -388,9 +388,9 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
 
         /* Determine the DRB register to write. */
         if (two_step)
-            drb = reg_min + row;
-        else
             drb = reg_min + (row << 1);
+        else
+            drb = reg_min + row;
         if (apollo && ((drb & 0xf) < 0xa))
             drb = apollo + (drb & 0xf);
 
