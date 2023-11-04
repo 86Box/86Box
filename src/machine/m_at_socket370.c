@@ -173,9 +173,8 @@ machine_at_p6bat_init(const machine_t *model)
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
-    if (sound_card_current[0] == SOUND_INTERNAL) {
+    if (sound_card_current[0] == SOUND_INTERNAL)
         device_add(&cmi8738_onboard_device);
-    }
 
     return ret;
 }
