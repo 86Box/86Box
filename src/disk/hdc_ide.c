@@ -1544,17 +1544,15 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 
             if (!reset) {
                 if (!(ide->tf->atastat & (BSY_STAT | DRQ_STAT))) {
-                    ide->tf->head       = val & 0xf;
-                    ide->tf->lba        = val & 0x40;
-
-                    ide->lba_addr       = (ide->lba_addr & 0x0ffffff) | (ide->tf->head << 24);
+                    ide->tf->drvsel     = val & 0xef;
+                    ide->lba_addr       = (ide->lba_addr & 0x0ffffff) |
+                                          (ide->tf->head << 24);
                 }
 
                 if (!(ide_other->tf->atastat & (BSY_STAT | DRQ_STAT))) {
-                    ide_other->tf->head = val & 0xf;
-                    ide_other->tf->lba  = val & 0x40;
-
-                    ide_other->lba_addr = (ide_other->lba_addr & 0x0ffffff) | (ide->tf->head << 24);
+                    ide_other->tf->drvsel = val & 0xef;
+                    ide_other->lba_addr = (ide_other->lba_addr & 0x0ffffff) |
+                                          (ide->tf->head << 24);
                 }
             }
             break;
