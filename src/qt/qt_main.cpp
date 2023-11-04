@@ -208,6 +208,20 @@ main(int argc, char *argv[])
         return 0;
     }
 
+    /* Warn the user about unsupported configs */
+    if (cpu_override) {
+        QMessageBox warningbox(QMessageBox::Icon::Warning, QObject::tr("You are loading an unsupported configuration"),
+                               QObject::tr("CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."),
+                               QMessageBox::NoButton, main_window);
+        warningbox.addButton(QObject::tr("Continue"), QMessageBox::AcceptRole);
+        warningbox.addButton(QObject::tr("Exit"), QMessageBox::RejectRole);
+        warningbox.exec();
+        if (warningbox.result() == QDialog::Accepted) {
+              confirm_exit_cmdl = 0; /* skip the confirmation prompt without touching the config */
+              emit main_window->close();
+        }
+    }
+
 #ifdef DISCORD
     discord_load();
 #endif
@@ -277,20 +291,6 @@ main(int argc, char *argv[])
         QObject::connect(&socket, &UnixManagerSocket::ctrlaltdel, []() { pc_send_cad(); });
         main_window->installEventFilter(&socket);
         socket.connectToServer(qgetenv("86BOX_MANAGER_SOCKET"));
-    }
-
-    /* Warn the user about unsupported configs */
-    if (cpu_override) {
-        QMessageBox warningbox(QMessageBox::Icon::Warning, QObject::tr("You are loading an unsupported configuration"),
-                               QObject::tr("CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."),
-                               QMessageBox::NoButton, main_window);
-        warningbox.addButton(QObject::tr("Continue"), QMessageBox::AcceptRole);
-        warningbox.addButton(QObject::tr("Exit"), QMessageBox::RejectRole);
-        warningbox.exec();
-        if (warningbox.result() == QDialog::Accepted) {
-              confirm_exit_cmdl = 0; /* skip the confirmation prompt without touching the config */
-              emit main_window->close();
-        }
     }
 
     // pc_reset_hard_init();
