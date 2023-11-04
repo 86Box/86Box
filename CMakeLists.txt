@@ -197,7 +197,7 @@ if(NOT EMU_BUILD_NUM)
     set(EMU_BUILD_NUM 0)
 endif()
 if(NOT EMU_COPYRIGHT_YEAR)
-    set(EMU_COPYRIGHT_YEAR 2022)
+    set(EMU_COPYRIGHT_YEAR 2023)
 endif()
 
 add_subdirectory(src)
