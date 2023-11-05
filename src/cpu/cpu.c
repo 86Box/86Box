@@ -2377,9 +2377,9 @@ cpu_CPUID(void)
                                      Instruction TLB: 4 MB pages, fully associative, 2 entries
                                      Data TLB: 4 KB pages, 4-way set associative, 64 entries */
                 EBX = ECX = 0;
-                EDX       = 0x0C040842; /* Data TLB: 4 MB pages, 4-way set associative, 8 entries
-                                           Level 1 instruction cache: 16 KB, 4-way set associative, 32 byte line size
-                                           Level 1 data cache: 16 KB, 4-way set associative, 32 byte line size
+                EDX       = 0x06040A42; /* Data TLB: 4 MB pages, 4-way set associative, 8 entries
+                                           Level 1 instruction cache: 8 KB, 4-way set associative, 32-byte line size
+                                           Level 1 data cache: 8 KB, 2-way set associative, 32 byte line size
                                            Level 2 cache: 256 KB, 4-way set associative, 32 byte line size */
             } else
                 EAX = EBX = ECX = EDX = 0;
