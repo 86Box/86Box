@@ -1336,10 +1336,6 @@ ide_write_devctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
     uint8_t old;
 
     ch        = dev->cur_dev;
-    /* ATA/ATAPI specification: On a slave with non-present master, pretend the
-                                master is selected. */
-    if (ide_drives[ch]->type & IDE_SHADOW)
-        ch        ^= 1;
     ide       = ide_drives[ch];
     ide_other = ide_drives[ch ^ 1];
 
