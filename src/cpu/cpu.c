@@ -2373,14 +2373,14 @@ cpu_CPUID(void)
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
             } else if (EAX == 2) {
-                EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set fully associative, 32 entries
+                EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set associative, 32 entries
                                      Instruction TLB: 4 MB pages, fully associative, 2 entries
                                      Data TLB: 4 KB pages, 4-way set associative, 64 entries */
                 EBX = ECX = 0;
-                EDX       = 0x06040A42; /* Data TLB: 4 MB pages, 4-way set associative, 8 entries
-                                           Level 1 instruction cache: 8 KB, 4-way set associative, 32-byte line size
-                                           Level 1 data cache: 8 KB, 2-way set associative, 32 byte line size
-                                           Level 2 cache: 256 KB, 4-way set associative, 32 byte line size */
+                EDX       = 0x06040a42; /* 2nd-level cache: 256 KB, 4-way set associative, 32-byte line size
+                                           1st-level data cache: 8 KB, 2-way set associative, 32-byte line size
+                                           Data TLB: 4 MB pages, 4-way set associative, 8 entries
+                                           1st-level instruction cache:8 KB, 4-way set associative, 32-byte line size */
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -2396,14 +2396,14 @@ cpu_CPUID(void)
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
             } else if (EAX == 2) {
-                EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set fully associative, 32 entries
+                EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set associative, 32 entries
                                      Instruction TLB: 4 MB pages, fully associative, 2 entries
                                      Data TLB: 4 KB pages, 4-way set associative, 64 entries */
                 EBX = ECX = 0;
-                EDX       = 0x0C040843; /* Data TLB: 4 MB pages, 4-way set associative, 8 entries
-                                           Level 1 instruction cache: 16 KB, 4-way set associative, 32 byte line size
-                                           Level 1 data cache: 16 KB, 4-way set associative, 32 byte line size
-                                           Level 2 cache: 512 KB, 4-way set associative, 32 byte line size */
+                EDX       = 0x0c040843; /* 2nd-level cache: 512 KB, 4-way set associative, 32-byte line size
+                                           1st-level data cache: 16 KB, 4-way set associative, 32-byte line size
+                                           Data TLB: 4 MB pages, 4-way set associative, 8 entries
+                                           1st-level instruction cache: 16 KB, 4-way set associative, 32-byte line size */
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -2419,22 +2419,22 @@ cpu_CPUID(void)
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_FXSR | CPUID_CMOV;
             } else if (EAX == 2) {
-                EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set fully associative, 32 entries
+                EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set associative, 32 entries
                                      Instruction TLB: 4 MB pages, fully associative, 2 entries
                                      Data TLB: 4 KB pages, 4-way set associative, 64 entries */
                 EBX = ECX = 0;
                 if (cpu_f->package == CPU_PKG_SLOT2) /* Pentium II Xeon Drake */
-                    EDX = 0x0C040844; /* Data TLB: 4 MB pages, 4-way set associative, 8 entries
-                                         Level 1 instruction cache: 16 KB, 4-way set associative, 32 byte line size
-                                         Level 1 data cache: 16 KB, 4-way set associative, 32 byte line size
-                                         Level 2 cache: 1 MB, 4-way set associative, 32 byte line size */
+                    EDX = 0x0c040844; /* 2nd-level cache: 1 MB, 4-way set associative, 32-byte line size
+                                         1st-level data cache: 16 KB, 4-way set associative, 32-byte line size
+                                         Data TLB: 4 MB pages, 4-way set associative, 8 entries
+                                         1st-level instruction cache: 16 KB, 4-way set associative, 32-byte line size */
                 else if (!strncmp(cpu_f->internal_name, "celeron", 7)) { /* Celeron */
                     if (CPUID >= 0x660) /* Mendocino */
-                        EDX = 0x0C040841; /* Level 2 cache: 128 KB, 4-way set associative, 32 byte line size */
+                        EDX = 0x0c040841; /* 2nd-level cache: 128 KB, 4-way set associative, 32-byte line size */
                     else /* Covington */
-                        EDX = 0x0C040840; /* No Level 2 cache */
+                        EDX = 0x0c040840; /* No 2nd-level cache */
                 } else /* Pentium II Deschutes and OverDrive */
-                    EDX = 0x0C040843; /* Level 2 cache: 512 KB, 4-way set associative, 32 byte line size */
+                    EDX = 0x0c040843; /* 2nd-level cache: 512 KB, 4-way set associative, 32-byte line size */
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
