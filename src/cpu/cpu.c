@@ -1389,7 +1389,6 @@ cpu_set(void)
             cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME;
             if (cpu_s->cpu_type == CPU_PENTIUMMMX)
                 cpu_features |= CPU_FEATURE_MMX;
-            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
             cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
             codegen_timing_set(&codegen_timing_pentium);
@@ -1503,7 +1502,6 @@ cpu_set(void)
                 cpu_features |= CPU_FEATURE_MSR | CPU_FEATURE_CR4;
             if (cpu_s->cpu_type == CPU_Cx6x86MX)
                 cpu_features |= CPU_FEATURE_MMX;
-            msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
             if (cpu_s->cpu_type >= CPU_CxGX1)
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE;
 
@@ -1598,7 +1596,6 @@ cpu_set(void)
                 cpu_features |= CPU_FEATURE_3DNOW;
             if ((cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P))
                 cpu_features |= CPU_FEATURE_3DNOWE;
-            msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
 #if defined(DEV_BRANCH) && defined(USE_AMD_K5)
             cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE;
             if (cpu_s->cpu_type >= CPU_K6) {
@@ -1701,7 +1698,6 @@ cpu_set(void)
             cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME;
             if (cpu_s->cpu_type >= CPU_PENTIUM2)
                 cpu_features |= CPU_FEATURE_MMX;
-            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
             cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PAE | CR4_PCE | CR4_PGE;
             if (cpu_s->cpu_type == CPU_PENTIUM2D)
                 cpu_CR4_mask |= CR4_OSFXSR;
@@ -1749,8 +1745,8 @@ cpu_set(void)
             timing_misaligned = 2;
 
             cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MMX | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_3DNOW;
-            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21);
-            cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE;
+            msr.fcr      = (1 << 7) | (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21);
+            cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE | CR4_PGE;
 
             cpu_cyrix_alignment = 1;
 
@@ -2437,6 +2433,8 @@ cpu_CPUID(void)
                     EDX       = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_MMX | CPUID_MTRR;
                     if (cpu_has_feature(CPU_FEATURE_CX8))
                         EDX |= CPUID_CMPXCHG8B;
+                    if (msr.fcr & (1 << 7))
+                        EDX |= CPUID_PGE;
                     break;
                 case 0x80000000:
                     EAX = 0x80000005;
@@ -2446,6 +2444,8 @@ cpu_CPUID(void)
                     EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_MMX | CPUID_MTRR | CPUID_3DNOW;
                     if (cpu_has_feature(CPU_FEATURE_CX8))
                         EDX |= CPUID_CMPXCHG8B;
+                    if (msr.fcr & (1 << 7))
+                        EDX |= CPUID_PGE;
                     break;
                 case 0x80000002:      /* Processor name string */
                     EAX = 0x20414956; /* VIA Samuel */
@@ -2479,21 +2479,6 @@ cpu_ven_reset(void)
                 msr.fcr |= (1 << 18) | (1 << 20);
             break;
 
-        case CPU_P24T:
-        case CPU_PENTIUM:
-        case CPU_PENTIUMMMX:
-            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
-            break;
-
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
-        case CPU_Cx6x86:
-        case CPU_Cx6x86L:
-        case CPU_CxGX1:
-        case CPU_Cx6x86MX:
-            msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
-            break;
-#endif
-
         case CPU_K6_2P:
         case CPU_K6_3P:
         case CPU_K6_3:
@@ -2507,19 +2492,17 @@ cpu_ven_reset(void)
 #endif
         case CPU_K6:
             msr.amd_efer = (cpu_s->cpu_type >= CPU_K6_2C) ? 2ULL : 0ULL;
-            msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
             break;
 
         case CPU_PENTIUMPRO:
         case CPU_PENTIUM2:
         case CPU_PENTIUM2D:
             msr.mtrr_cap = 0x00000508ULL;
-            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
             break;
 
         case CPU_CYRIX3S:
-            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) |
-                           (1 << 20) | (1 << 21);
+            msr.fcr = (1 << 7) (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) |
+                      (1 << 20) | (1 << 21);
             break;
     }
 }
@@ -3119,6 +3102,10 @@ cpu_WRMSR(void)
                         cpu_features |= CPU_FEATURE_CX8;
                     else
                         cpu_features &= ~CPU_FEATURE_CX8;
+                    if (EAX & (1 << 7))
+                        cpu_CR4_mask |= CR4_PGE;
+                    else
+                        cpu_CR4_mask &= ~CR4_PGE;
                     break;
                 case 0x1108:
                     msr.fcr2 = EAX | ((uint64_t) EDX << 32);
