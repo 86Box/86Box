@@ -1816,11 +1816,12 @@ cpu_set_isa_speed(int speed)
 {
     if (speed) {
         cpu_isa_speed = speed;
-        pc_speed_changed();
     } else if (cpu_busspeed >= 8000000)
         cpu_isa_speed = 8000000;
     else
         cpu_isa_speed = cpu_busspeed;
+
+    pc_speed_changed();
 
     cpu_log("cpu_set_isa_speed(%d) = %d\n", speed, cpu_isa_speed);
 }
@@ -2471,6 +2472,28 @@ cpu_ven_reset(void)
     memset(&msr, 0, sizeof(msr));
 
     switch (cpu_s->cpu_type) {
+        case CPU_WINCHIP:
+        case CPU_WINCHIP2:
+            msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
+            if (cpu_s->cpu_type == CPU_WINCHIP2)
+                msr.fcr |= (1 << 18) | (1 << 20);
+            break;
+
+        case CPU_P24T:
+        case CPU_PENTIUM:
+        case CPU_PENTIUMMMX:
+            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
+            break;
+
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
+        case CPU_Cx6x86:
+        case CPU_Cx6x86L:
+        case CPU_CxGX1:
+        case CPU_Cx6x86MX:
+            msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
+            break;
+#endif
+
         case CPU_K6_2P:
         case CPU_K6_3P:
         case CPU_K6_3:
@@ -2484,12 +2507,19 @@ cpu_ven_reset(void)
 #endif
         case CPU_K6:
             msr.amd_efer = (cpu_s->cpu_type >= CPU_K6_2C) ? 2ULL : 0ULL;
+            msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
             break;
 
         case CPU_PENTIUMPRO:
         case CPU_PENTIUM2:
         case CPU_PENTIUM2D:
             msr.mtrr_cap = 0x00000508ULL;
+            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
+            break;
+
+        case CPU_CYRIX3S:
+            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) |
+                           (1 << 20) | (1 << 21);
             break;
     }
 }
