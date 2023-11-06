@@ -404,6 +404,8 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
 
     pit_log("[%04X:%08X] pit_write(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
 
+    cycles -= ISA_CYCLES(8);
+
     switch (addr & 3) {
         case 3: /* control */
             t = val >> 6;
@@ -470,15 +472,18 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
             switch (ctr->wm) {
                 case 1:
                     ctr->l = val;
+                    if (t == 1)  pclog("Timer 1 counter set to: %08X\n", ctr->l);
                     pitf_ctr_load(ctr);
                     break;
                 case 2:
                     ctr->l = (val << 8);
+                    if (t == 1)  pclog("Timer 1 counter set to: %08X\n", ctr->l);
                     pitf_ctr_load(ctr);
                     break;
                 case 0:
                     ctr->l &= 0xFF;
                     ctr->l |= (val << 8);
+                    if (t == 1)  pclog("Timer 1 counter set to: %08X\n", ctr->l);
                     pitf_ctr_load(ctr);
                     ctr->wm = 3;
                     break;
@@ -540,6 +545,8 @@ pitf_read(uint16_t addr, void *priv)
     uint8_t ret = 0xff;
     int     t   = (addr & 3);
     ctrf_t *ctr;
+
+    cycles -= ISA_CYCLES(8);
 
     switch (addr & 3) {
         case 3: /* Control. */
