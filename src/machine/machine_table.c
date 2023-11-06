@@ -1084,7 +1084,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 256,
             .max = 640,
-            .step = 256
+            .step = 128
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_olivetti_device,
@@ -1162,7 +1162,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 256,
             .max = 640,
-            .step = 256
+            .step = 128
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
@@ -1318,7 +1318,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 256,
             .max = 640,
-            .step = 256
+            .step = 128
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
