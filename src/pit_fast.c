@@ -472,18 +472,15 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
             switch (ctr->wm) {
                 case 1:
                     ctr->l = val;
-                    if (t == 1)  pclog("Timer 1 counter set to: %08X\n", ctr->l);
                     pitf_ctr_load(ctr);
                     break;
                 case 2:
                     ctr->l = (val << 8);
-                    if (t == 1)  pclog("Timer 1 counter set to: %08X\n", ctr->l);
                     pitf_ctr_load(ctr);
                     break;
                 case 0:
                     ctr->l &= 0xFF;
                     ctr->l |= (val << 8);
-                    if (t == 1)  pclog("Timer 1 counter set to: %08X\n", ctr->l);
                     pitf_ctr_load(ctr);
                     ctr->wm = 3;
                     break;
