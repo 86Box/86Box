@@ -1796,7 +1796,9 @@ pmodeiret(int is32)
     }
 
     if (cpu_state.flags & NT_FLAG) {
+        cpl_override = 1;
         seg  = readmemw(tr.base, 0);
+        cpl_override = 0;
         addr = seg & 0xfff8;
         if (seg & 0x0004) {
             x86seg_log("TS LDT %04X %04X IRET\n", seg, gdt.limit);
