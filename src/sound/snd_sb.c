@@ -945,7 +945,7 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
                 break;
 
             case 0xff:
-                if (sb->dsp.sb_type >= SB16) {
+                if (sb->dsp.sb_type > SBAWE32) {
                     /*
                        Bit 5: High DMA channel enabled (0 = yes, 1 = no);
                        Bit 2: ????;
@@ -1173,7 +1173,7 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                              - Register FF = FF: Volume playback normal.
                              - Register FF = Not FF: Volume playback low unless
                                              bit 6 of 82h is set. */
-                if (sb->dsp.sb_type >= SB16)
+                if (sb->dsp.sb_type > SBAWE32)
                     ret = mixer->regs[mixer->index];
                 break;
 
@@ -2179,6 +2179,7 @@ sb_16_init(UNUSED(const device_t *info))
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
     sb_dsp_setdma16(&sb->dsp, device_get_config_int("dma16"));
     sb_dsp_setdma16_supported(&sb->dsp, 1);
+    sb_dsp_setdma16_enabled(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
     if (sb->opl_enabled) {
@@ -2233,6 +2234,7 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
 
     sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
+    sb_dsp_setdma16_enabled(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled            = 1;
@@ -2415,6 +2417,7 @@ sb_16_compat_init(const device_t *info)
 
     sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
+    sb_dsp_setdma16_enabled(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
@@ -2488,6 +2491,7 @@ sb_awe32_init(UNUSED(const device_t *info))
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
     sb_dsp_setdma16(&sb->dsp, device_get_config_int("dma16"));
     sb_dsp_setdma16_supported(&sb->dsp, 1);
+    sb_dsp_setdma16_enabled(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
     if (sb->opl_enabled) {
