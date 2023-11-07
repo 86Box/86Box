@@ -1811,8 +1811,8 @@ pmodeiret(int is32)
             }
             addr += gdt.base;
         }
-        cpl_override = 1;
         read_descriptor(addr, segdat, segdat32, 1);
+        cpl_override = 1;
         op_taskswitch286(seg, segdat, segdat[2] & 0x0800);
         cpl_override = 0;
         return;
