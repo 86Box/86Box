@@ -2,13 +2,12 @@
 #include <QByteArray>
 
 #if QT_VERSION_MAJOR >= 6
-#define result_t qintptr
+#    define result_t qintptr
 #else
-#define result_t long
+#    define result_t long
 #endif
 
-class CocoaEventFilter : public QAbstractNativeEventFilter
-{
+class CocoaEventFilter : public QAbstractNativeEventFilter {
 public:
     CocoaEventFilter() {};
     ~CocoaEventFilter();

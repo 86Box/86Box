@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>458</width>
-    <height>390</height>
+    <height>434</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -28,7 +28,7 @@
    </property>
    <item>
     <widget class="QWidget" name="widget" native="true">
-     <layout class="QFormLayout" name="formLayout">
+     <layout class="QGridLayout" name="gridLayout">
       <property name="leftMargin">
        <number>0</number>
       </property>
@@ -41,68 +41,93 @@
       <property name="bottomMargin">
        <number>0</number>
       </property>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Machine type:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QComboBox" name="comboBoxMachineType"/>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Machine:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>CPU type:</string>
-        </property>
-       </widget>
-      </item>
       <item row="4" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>FPU:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="5" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
          <string>Wait states:</string>
         </property>
        </widget>
       </item>
-      <item row="6" column="0">
+      <item row="0" column="1">
+       <widget class="QComboBox" name="comboBoxMachineType">
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="0">
        <widget class="QLabel" name="label_6">
         <property name="text">
          <string>Memory:</string>
         </property>
        </widget>
       </item>
-      <item row="4" column="1">
-       <widget class="QComboBox" name="comboBoxFPU"/>
-      </item>
-      <item row="5" column="1">
-       <widget class="QComboBox" name="comboBoxWaitStates"/>
-      </item>
-      <item row="6" column="1">
-       <widget class="QSpinBox" name="spinBoxRAM">
-        <property name="sizePolicy">
-         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-          <horstretch>0</horstretch>
-          <verstretch>0</verstretch>
-         </sizepolicy>
+      <item row="3" column="1">
+       <widget class="QComboBox" name="comboBoxFPU">
+        <property name="maxVisibleItems">
+         <number>30</number>
         </property>
        </widget>
       </item>
-      <item row="3" column="1">
+      <item row="4" column="1">
+       <widget class="QWidget" name="widget_4" native="true">
+        <layout class="QHBoxLayout" name="horizontalLayout_3">
+         <property name="leftMargin">
+          <number>0</number>
+         </property>
+         <property name="topMargin">
+          <number>0</number>
+         </property>
+         <property name="rightMargin">
+          <number>0</number>
+         </property>
+         <property name="bottomMargin">
+          <number>0</number>
+         </property>
+         <item>
+          <widget class="QComboBox" name="comboBoxWaitStates">
+           <property name="maxVisibleItems">
+            <number>30</number>
+           </property>
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_8">
+           <property name="text">
+            <string>PIT Mode:</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QComboBox" name="comboBoxPitMode">
+           <property name="maxVisibleItems">
+            <number>30</number>
+           </property>
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </widget>
+      </item>
+      <item row="2" column="0">
+       <widget class="QLabel" name="label_3">
+        <property name="text">
+         <string>CPU type:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="1">
        <widget class="QWidget" name="widget_2" native="true">
         <layout class="QHBoxLayout" name="horizontalLayout">
          <property name="leftMargin">
@@ -119,6 +144,9 @@
          </property>
          <item>
           <widget class="QComboBox" name="comboBoxCPU">
+           <property name="maxVisibleItems">
+            <number>30</number>
+           </property>
            <property name="sizePolicy">
             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
              <horstretch>0</horstretch>
@@ -139,6 +167,9 @@
          </item>
          <item>
           <widget class="QComboBox" name="comboBoxSpeed">
+           <property name="maxVisibleItems">
+            <number>30</number>
+           </property>
            <property name="sizePolicy">
             <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
              <horstretch>0</horstretch>
@@ -150,7 +181,17 @@
         </layout>
        </widget>
       </item>
-      <item row="2" column="1">
+      <item row="5" column="1">
+       <widget class="QSpinBox" name="spinBoxRAM">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="1">
        <widget class="QWidget" name="widget_3" native="true">
         <layout class="QHBoxLayout" name="horizontalLayout_2">
          <property name="leftMargin">
@@ -166,7 +207,11 @@
           <number>0</number>
          </property>
          <item>
-          <widget class="QComboBox" name="comboBoxMachine"/>
+          <widget class="QComboBox" name="comboBoxMachine">
+           <property name="maxVisibleItems">
+            <number>30</number>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="QPushButton" name="pushButtonConfigure">
@@ -182,6 +227,27 @@
           </widget>
          </item>
         </layout>
+       </widget>
+      </item>
+      <item row="0" column="0">
+       <widget class="QLabel" name="label">
+        <property name="text">
+         <string>Machine type:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="1" column="0">
+       <widget class="QLabel" name="label_2">
+        <property name="text">
+         <string>Machine:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="0">
+       <widget class="QLabel" name="label_4">
+        <property name="text">
+         <string>FPU:</string>
+        </property>
        </widget>
       </item>
      </layout>
@@ -201,7 +267,26 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="checkBoxFPUSoftfloat">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+       <horstretch>3</horstretch>
+       <verstretch>3</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="text">
+      <string>Softfloat FPU</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QGroupBox" name="groupBox">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
      <property name="title">
       <string>Time synchronization</string>
      </property>

@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Common functions for hardware monitoring chips.
+ *          Common functions for hardware monitoring chips.
  *
  *
  *
- * Author:	RichardG, <richardg867@gmail.com>
+ * Authors: RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2020 RichardG.
+ *          Copyright 2020 RichardG.
  */
 
 #include <stdarg.h>
@@ -27,13 +27,11 @@
 #include <86box/machine.h>
 #include <86box/hwm.h>
 
-
 /* Refer to specific hardware monitor implementations for the meaning of hwm_values. */
-hwm_values_t	hwm_values;
-
+hwm_values_t hwm_values;
 
 uint16_t
-hwm_get_vcore()
+hwm_get_vcore(void)
 {
     /* Determine Vcore for the active CPU. */
     return cpu_s->voltage;

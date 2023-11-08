@@ -49,8 +49,41 @@
        </property>
       </widget>
      </item>
+     <item row="2" column="0">
+      <widget class="QLabel" name="label_7">
+       <property name="text">
+        <string>CD-ROM Controller:</string>
+       </property>
+       <property name="visible">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="1">
+      <widget class="QComboBox" name="comboBoxCDInterface">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+       <property name="visible">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item row="2" column="2">
+      <widget class="QPushButton" name="pushButtonCDInterface">
+       <property name="text">
+        <string>Configure</string>
+       </property>
+       <property name="visible">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
      <item row="0" column="1">
       <widget class="QComboBox" name="comboBoxHD">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
          <horstretch>0</horstretch>
@@ -67,23 +100,27 @@
       </widget>
      </item>
      <item row="1" column="1">
-      <widget class="QComboBox" name="comboBoxFD"/>
+      <widget class="QComboBox" name="comboBoxFD">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
-     <item row="2" column="0">
+     <item row="3" column="0">
       <widget class="QCheckBox" name="checkBoxTertiaryIDE">
        <property name="text">
         <string>Tertiary IDE Controller</string>
        </property>
       </widget>
      </item>
-     <item row="3" column="0">
+     <item row="4" column="0">
       <widget class="QCheckBox" name="checkBoxQuaternaryIDE">
        <property name="text">
         <string>Quaternary IDE Controller</string>
        </property>
       </widget>
      </item>
-     <item row="2" column="2">
+     <item row="3" column="2">
       <widget class="QPushButton" name="pushButtonTertiaryIDE">
        <property name="enabled">
         <bool>false</bool>
@@ -93,7 +130,7 @@
        </property>
       </widget>
      </item>
-     <item row="3" column="2">
+     <item row="4" column="2">
       <widget class="QPushButton" name="pushButtonQuaternaryIDE">
        <property name="enabled">
         <bool>false</bool>
@@ -134,6 +171,9 @@
       </item>
       <item row="0" column="2">
        <widget class="QComboBox" name="comboBoxSCSI1">
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
         <property name="sizePolicy">
          <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
           <horstretch>0</horstretch>
@@ -150,13 +190,43 @@
        </widget>
       </item>
       <item row="1" column="2">
-       <widget class="QComboBox" name="comboBoxSCSI2"/>
+       <widget class="QComboBox" name="comboBoxSCSI2">
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
       </item>
       <item row="2" column="2">
-       <widget class="QComboBox" name="comboBoxSCSI3"/>
+       <widget class="QComboBox" name="comboBoxSCSI3">
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
       </item>
       <item row="3" column="2">
-       <widget class="QComboBox" name="comboBoxSCSI4"/>
+       <widget class="QComboBox" name="comboBoxSCSI4">
+        <property name="maxVisibleItems">
+         <number>30</number>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+       </widget>
       </item>
       <item row="0" column="0">
        <widget class="QLabel" name="label_3">
@@ -172,7 +242,7 @@
         </property>
        </widget>
       </item>
-      <item row="3" column="0" rowspan="2">
+      <item row="3" column="0">
        <widget class="QLabel" name="label_5">
         <property name="text">
          <string>Controller 4:</string>

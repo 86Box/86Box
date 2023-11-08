@@ -1,48 +1,46 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * VARCem   Virtual ARchaeological Computer EMulator.
+ *          An emulator of (mostly) x86-based PC systems and devices,
+ *          using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *          spanning the era between 1981 and 1995.
  *
- *		This file is part of the VARCem Project.
+ *          Implementation of the DTK MiniMicro series of Floppy Disk Controllers.
+ *          Original code from VARCem. Fully rewritten, fixed and improved for 86Box.
  *
- *	  Implementation of the DTK MiniMicro series of Floppy Disk Controllers.
- *    Original code from VARCem. Fully rewritten, fixed and improved for 86Box.
- *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>, 
+ * Authors: Fred N. van Kempen, <decwiz@yahoo.com>,
  *          Tiseno100
  *
- *		Copyright 2019 Fred N. van Kempen.
- *      Copyright 2021 Tiseno100
+ *          Copyright 2019 Fred N. van Kempen.
+ *          Copyright 2021 Tiseno100
  *
- *		Redistribution and use in source and binary forms, with
- *		or without modification, are permitted provided that the
- *		following conditions are met:
+ *          Redistribution and  use  in source  and binary forms, with
+ *          or  without modification, are permitted  provided that the
+ *          following conditions are met:
  *
- *		1. Redistributions of source code must retain the entire
- *		  above notice, this list of conditions and the following
- *		  disclaimer.
+ *          1. Redistributions of  source  code must retain the entire
+ *             above notice, this list of conditions and the following
+ *             disclaimer.
  *
- *		2. Redistributions in binary form must reproduce the above
- *		  copyright notice, this list of conditions and the
- *		  following disclaimer in the documentation and/or other
- *		  materials provided with the distribution.
+ *          2. Redistributions in binary form must reproduce the above
+ *             copyright  notice,  this list  of  conditions  and  the
+ *             following disclaimer in  the documentation and/or other
+ *             materials provided with the distribution.
  *
- *		3. Neither the name of the copyright holder nor the names
- *		  of its contributors may be used to endorse or promote
- *		  products derived from this software without specific
- *		  prior written permission.
+ *          3. Neither the  name of the copyright holder nor the names
+ *             of  its  contributors may be used to endorse or promote
+ *             products  derived from  this  software without specific
+ *             prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * PARTICULAR PURPOSE  ARE  DISCLAIMED. IN  NO  EVENT  SHALL THE COPYRIGHT
+ * HOLDER OR  CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL,  EXEMPLARY,  OR  CONSEQUENTIAL  DAMAGES  (INCLUDING,  BUT  NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE  GOODS OR SERVICES;  LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON  ANY
+ * THEORY OF  LIABILITY, WHETHER IN  CONTRACT, STRICT  LIABILITY, OR  TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
@@ -76,21 +74,20 @@ MiniMicro 4 also won't work with the XT FDC which the Zilog claims to be.
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 
-#define DTK_VARIANT ((info->local == 158) ? ROM_PII_158B : ROM_PII_151B)
-#define DTK_CHIP ((info->local == 158) ? &fdc_xt_device : &fdc_dp8473_device)
-#define BIOS_ADDR (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
+#define DTK_VARIANT  ((info->local == 158) ? ROM_PII_158B : ROM_PII_151B)
+#define DTK_CHIP     ((info->local == 158) ? &fdc_xt_device : &fdc_dp8473_device)
+#define BIOS_ADDR    (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
 #define ROM_PII_151B "roms/floppy/dtk/pii-151b.rom"
 #define ROM_PII_158B "roms/floppy/dtk/pii-158b.rom"
 
-typedef struct
-{
+typedef struct pii_t {
     rom_t bios_rom;
 } pii_t;
 
 static void
 pii_close(void *priv)
 {
-    pii_t *dev = (pii_t *)priv;
+    pii_t *dev = (pii_t *) priv;
 
     free(dev);
 }
@@ -100,7 +97,7 @@ pii_init(const device_t *info)
 {
     pii_t *dev;
 
-    dev = (pii_t *)malloc(sizeof(pii_t));
+    dev = (pii_t *) malloc(sizeof(pii_t));
     memset(dev, 0, sizeof(pii_t));
 
     if (BIOS_ADDR != 0)
@@ -111,64 +108,64 @@ pii_init(const device_t *info)
     return dev;
 }
 
-static int pii_151b_available(void)
+static int
+pii_151b_available(void)
 {
     return rom_present(ROM_PII_151B);
 }
 
-static int pii_158_available(void)
+static int
+pii_158_available(void)
 {
     return rom_present(ROM_PII_158B);
 }
 
 static const device_config_t pii_config[] = {
+  // clang-format off
     {
-	"bios_addr", "BIOS Address:", CONFIG_HEX20, "", 0xce000, "", { 0 },
-	{
-		{
-			"Disabled", 0
-		},
-		{
-			"CA00H", 0xca000
-		},
-		{
-			"CC00H", 0xcc000
-		},
-		{
-			"CE00H", 0xce000
-		},
-		{
-			""
-		}
-	}
+        .name = "bios_addr",
+        .description = "BIOS Address:",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xce000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "Disabled", .value = 0 },
+            { .description = "CA00H",    .value = 0xca000 },
+            { .description = "CC00H",    .value = 0xcc000 },
+            { .description = "CE00H",    .value = 0xce000 },
+            { .description = ""                           }
+        }
     },
-    {
-	"", "", -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
 };
 
 const device_t fdc_pii151b_device = {
-    "DTK PII-151B (MiniMicro) Floppy Drive Controller",
-    "dtk_pii151b",
-    DEVICE_ISA,
-    151,
-    pii_init,
-    pii_close,
-    NULL,
-    {pii_151b_available},
-    NULL,
-    NULL,
-    pii_config};
+    .name          = "DTK PII-151B (MiniMicro) Floppy Drive Controller",
+    .internal_name = "dtk_pii151b",
+    .flags         = DEVICE_ISA,
+    .local         = 151,
+    .init          = pii_init,
+    .close         = pii_close,
+    .reset         = NULL,
+    { .available = pii_151b_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pii_config
+};
 
 const device_t fdc_pii158b_device = {
-    "DTK PII-158B (MiniMicro4) Floppy Drive Controller",
-    "dtk_pii158b",
-    DEVICE_ISA,
-    158,
-    pii_init,
-    pii_close,
-    NULL,
-    {pii_158_available},
-    NULL,
-    NULL,
-    pii_config};
+    .name          = "DTK PII-158B (MiniMicro4) Floppy Drive Controller",
+    .internal_name = "dtk_pii158b",
+    .flags         = DEVICE_ISA,
+    .local         = 158,
+    .init          = pii_init,
+    .close         = pii_close,
+    .reset         = NULL,
+    { .available = pii_158_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pii_config
+};

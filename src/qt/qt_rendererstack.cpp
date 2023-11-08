@@ -1,12 +1,12 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Program settings UI module.
+ *          Program settings UI module.
  *
  *
  *
@@ -14,72 +14,119 @@
  *          Cacodemon345
  *          Teemu Korhonen
  *
- *      Copyright 2021 Joakim L. Gilje
- *      Copyright 2021-2021 Teemu Korhonen
- *      Copyright 2021-2022 Cacodemon345
+ *          Copyright 2021 Joakim L. Gilje
+ *          Copyright 2021-2021 Teemu Korhonen
+ *          Copyright 2021-2022 Cacodemon345
  */
 #include "qt_rendererstack.hpp"
 #include "ui_qt_rendererstack.h"
 
-#include "qt_softwarerenderer.hpp"
 #include "qt_hardwarerenderer.hpp"
+#include "qt_openglrenderer.hpp"
+#include "qt_softwarerenderer.hpp"
+#include "qt_vulkanwindowrenderer.hpp"
+#ifdef Q_OS_WIN
+#    include "qt_d3d9renderer.hpp"
+#endif
 
 #include "qt_mainwindow.hpp"
 #include "qt_util.hpp"
 
+#include "ui_qt_mainwindow.h"
+
 #include "evdev_mouse.hpp"
 
+#include <atomic>
+#include <stdexcept>
+
 #include <QScreen>
+#include <QMessageBox>
 
 #ifdef __APPLE__
-#include <CoreGraphics/CoreGraphics.h>
+#    include <CoreGraphics/CoreGraphics.h>
 #endif
 
-extern "C"
-{
-#include <86box/mouse.h>
+extern "C" {
+#include <86box/86box.h>
+#include <86box/config.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+#include <86box/mouse.h>
 }
 
-extern MainWindow* main_window;
-RendererStack::RendererStack(QWidget *parent) :
-    QStackedWidget(parent),
-    ui(new Ui::RendererStack)
+struct mouseinputdata {
+    atomic_bool         mouse_tablet_in_proximity;
+
+    char                *mouse_type;
+};
+static mouseinputdata mousedata;
+
+extern MainWindow *main_window;
+RendererStack::RendererStack(QWidget *parent, int monitor_index)
+    : QStackedWidget(parent)
+    , ui(new Ui::RendererStack)
 {
+#ifdef Q_OS_WINDOWS
+    int raw = 1;
+#else
+    int raw = 0;
+#endif
+
     ui->setupUi(this);
 
-#ifdef __unix__
-#ifdef WAYLAND
-    if (QApplication::platformName().contains("wayland")) {
+    m_monitor_index = monitor_index;
+#if defined __unix__ && !defined __HAIKU__
+    char auto_mouse_type[16];
+    mousedata.mouse_type = getenv("EMU86BOX_MOUSE");
+    if (!mousedata.mouse_type || (mousedata.mouse_type[0] == '\0') || !stricmp(mousedata.mouse_type, "auto")) {
+        if (QApplication::platformName().contains("wayland"))
+            strcpy(auto_mouse_type, "wayland");
+        else if (QApplication::platformName() == "eglfs")
+            strcpy(auto_mouse_type, "evdev");
+        else if (QApplication::platformName() == "xcb")
+            strcpy(auto_mouse_type, "xinput2");
+        else
+            auto_mouse_type[0] = '\0';
+        mousedata.mouse_type = auto_mouse_type;
+    }
+
+#    ifdef WAYLAND
+    if (!stricmp(mousedata.mouse_type, "wayland")) {
         wl_init();
+        this->mouse_capture_func   = wl_mouse_capture;
+        this->mouse_uncapture_func = wl_mouse_uncapture;
     }
-#endif
-#ifdef EVDEV_INPUT
-    if (QApplication::platformName() == "eglfs") {
+#    endif
+#    ifdef EVDEV_INPUT
+    if (!stricmp(mousedata.mouse_type, "evdev")) {
         evdev_init();
+        raw = 0;
     }
-#endif
-    if (QApplication::platformName() == "xcb") {
+#    endif
+    if (!stricmp(mousedata.mouse_type, "xinput2")) {
         extern void xinput2_init();
+        extern void xinput2_exit();
         xinput2_init();
+        this->mouse_exit_func = xinput2_exit;
     }
 #endif
+
+    if (monitor_index == 0)
+        mouse_set_raw(raw);
 }
 
 RendererStack::~RendererStack()
 {
+    QApplication::restoreOverrideCursor();
     delete ui;
 }
 
-extern "C" void macos_poll_mouse();
 void
 qt_mouse_capture(int on)
 {
-    if (!on)
-    {
+    if (!on) {
         mouse_capture = 0;
-        QApplication::setOverrideCursor(Qt::ArrowCursor);
+        if (QApplication::overrideCursor()) QApplication::restoreOverrideCursor();
 #ifdef __APPLE__
         CGAssociateMouseAndMouseCursorPosition(true);
 #endif
@@ -93,196 +140,434 @@ qt_mouse_capture(int on)
     return;
 }
 
-void RendererStack::mousePoll()
-{
-#ifdef __APPLE__
-    return macos_poll_mouse();
-#else /* !defined __APPLE__ */
-    mouse_x = mousedata.deltax;
-    mouse_y = mousedata.deltay;
-    mouse_z = mousedata.deltaz;
-    mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
-    mouse_buttons = mousedata.mousebuttons;
-
-#ifdef __unix__
-#ifdef WAYLAND
-    if (QApplication::platformName().contains("wayland"))
-        wl_mouse_poll();
-#endif
-
-#ifdef EVDEV_INPUT
-    if (QApplication::platformName() == "eglfs") evdev_mouse_poll();
-    else
-#endif
-    if (QApplication::platformName() == "xcb")
-    {
-        extern void xinput2_poll();
-        xinput2_poll();
-    }
-#endif /* defined __unix__ */
-#endif /* !defined __APPLE__ */
-
-}
-
 int ignoreNextMouseEvent = 1;
-void RendererStack::mouseReleaseEvent(QMouseEvent *event)
+void
+RendererStack::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture && (isMouseDown & 1))
-    {
+    if (!dopause && this->geometry().contains(event->pos()) &&
+        (event->button() == Qt::LeftButton) && !mouse_capture &&
+        (isMouseDown & 1) && (kbd_req_capture || (mouse_get_buttons() != 0)) &&
+        (mouse_input_mode == 0)) {
         plat_mouse_capture(1);
         this->setCursor(Qt::BlankCursor);
-        if (!ignoreNextMouseEvent) ignoreNextMouseEvent++; // Avoid jumping cursor when moved.
+        if (!ignoreNextMouseEvent)
+            ignoreNextMouseEvent++; // Avoid jumping cursor when moved.
         isMouseDown &= ~1;
         return;
     }
-    if (mouse_capture && event->button() == Qt::MiddleButton && mouse_get_buttons() < 3)
-    {
+    if (mouse_capture && (event->button() == Qt::MiddleButton) && (mouse_get_buttons() < 3)) {
         plat_mouse_capture(0);
         this->setCursor(Qt::ArrowCursor);
         isMouseDown &= ~1;
         return;
     }
-    if (mouse_capture)
-    {
-        mousedata.mousebuttons &= ~event->button();
+    if (mouse_capture || (mouse_input_mode >= 1)) {
+#ifdef Q_OS_WINDOWS
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
+             ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
+#else
+#ifndef __APPLE__
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
+             (m_monitor_index < 1))
+#else
+        if ((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity)
+#endif
+#endif
+            mouse_set_buttons_ex(mouse_get_buttons_ex() & ~event->button());
     }
     isMouseDown &= ~1;
 }
-void RendererStack::mousePressEvent(QMouseEvent *event)
+
+void
+RendererStack::mousePressEvent(QMouseEvent *event)
 {
     isMouseDown |= 1;
-    if (mouse_capture)
-    {
-        mousedata.mousebuttons |= event->button();
+    if (mouse_capture || (mouse_input_mode >= 1)) {
+#ifdef Q_OS_WINDOWS
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
+             ((m_monitor_index < 1) && (mouse_input_mode >= 1)))
+#else
+#ifndef __APPLE__
+        if (((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity) ||
+             (m_monitor_index < 1))
+#else
+        if ((m_monitor_index >= 1) && (mouse_input_mode >= 1) && mousedata.mouse_tablet_in_proximity)
+#endif
+#endif
+            mouse_set_buttons_ex(mouse_get_buttons_ex() | event->button());
     }
     event->accept();
 }
-void RendererStack::wheelEvent(QWheelEvent *event)
+
+void
+RendererStack::wheelEvent(QWheelEvent *event)
 {
-    if (mouse_capture)
-    {
-        mousedata.deltaz += event->pixelDelta().y();
-    }
+    mouse_set_z(event->pixelDelta().y());
 }
 
-void RendererStack::mouseMoveEvent(QMouseEvent *event)
+void
+RendererStack::mouseMoveEvent(QMouseEvent *event)
 {
-    if (QApplication::platformName().contains("wayland"))
-    {
+    if (QApplication::platformName().contains("wayland")) {
         event->accept();
         return;
     }
-    if (!mouse_capture) { event->ignore(); return; }
-#ifdef __APPLE__
+    if (!mouse_capture) {
+        event->ignore();
+        return;
+    }
+#if defined __APPLE__ || defined _WIN32
     event->accept();
     return;
 #else
     static QPoint oldPos = QCursor::pos();
-    if (ignoreNextMouseEvent) { oldPos = event->pos(); ignoreNextMouseEvent--; event->accept(); return; }
-    mousedata.deltax += event->pos().x() - oldPos.x();
-    mousedata.deltay += event->pos().y() - oldPos.y();
-    if (QApplication::platformName() == "eglfs")
-    {
-        leaveEvent((QEvent*)event);
+    if (ignoreNextMouseEvent) {
+        oldPos = event->pos();
+        ignoreNextMouseEvent--;
+        event->accept();
+        return;
+    }
+
+#if defined __unix__ && !defined __HAIKU__
+    if (!stricmp(mousedata.mouse_type, "wayland"))
+        mouse_scale(event->pos().x() - oldPos.x(), event->pos().y() - oldPos.y());
+#endif
+
+    if (QApplication::platformName() == "eglfs") {
+        leaveEvent((QEvent *) event);
         ignoreNextMouseEvent--;
     }
     QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
     ignoreNextMouseEvent = 2;
-    oldPos = event->pos();
+    oldPos               = event->pos();
 #endif
 }
 
-void RendererStack::leaveEvent(QEvent* event)
+void
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+RendererStack::enterEvent(QEnterEvent *event)
+#else
+RendererStack::enterEvent(QEvent *event)
+#endif
 {
-    if (QApplication::platformName().contains("wayland"))
-    {
+    mousedata.mouse_tablet_in_proximity = 1;
+
+    if (mouse_input_mode == 1)
+        QApplication::setOverrideCursor(Qt::BlankCursor);
+}
+
+void
+RendererStack::leaveEvent(QEvent *event)
+{
+    mousedata.mouse_tablet_in_proximity = 0;
+
+    if (mouse_input_mode == 1 && QApplication::overrideCursor())
+        QApplication::restoreOverrideCursor();
+    if (QApplication::platformName().contains("wayland")) {
         event->accept();
         return;
     }
-    if (!mouse_capture) return;
+    if (!mouse_capture)
+        return;
+    QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
     ignoreNextMouseEvent = 2;
     event->accept();
 }
 
-void RendererStack::switchRenderer(Renderer renderer) {
+void
+RendererStack::switchRenderer(Renderer renderer)
+{
     startblit();
     if (current) {
-        removeWidget(current.get());
-    }
+        if ((current_vid_api == Renderer::Direct3D9 && renderer != Renderer::Direct3D9)
+            || (current_vid_api != Renderer::Direct3D9 && renderer == Renderer::Direct3D9)) {
+            rendererWindow->finalize();
+            if (rendererWindow->hasBlitFunc()) {
+                while (directBlitting) { }
+                connect(this, &RendererStack::blit, this, &RendererStack::blitDummy, Qt::DirectConnection);
+                disconnect(this, &RendererStack::blit, this, &RendererStack::blitRenderer);
+            } else {
+                connect(this, &RendererStack::blit, this, &RendererStack::blitDummy, Qt::DirectConnection);
+                disconnect(this, &RendererStack::blit, this, &RendererStack::blitCommon);
+            }
 
+            removeWidget(current.get());
+            disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
+
+            /* Create new renderer only after previous is destroyed! */
+            connect(current.get(), &QObject::destroyed, [this, renderer](QObject *) {
+                createRenderer(renderer);
+                disconnect(this, &RendererStack::blit, this, &RendererStack::blitDummy);
+                blitDummied = false;
+                QTimer::singleShot(1000, this, []() { blitDummied = false; });
+            });
+
+            rendererWindow->hasBlitFunc() ? current.reset() : current.release()->deleteLater();
+        } else {
+            rendererWindow->finalize();
+            removeWidget(current.get());
+            disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
+
+            /* Create new renderer only after previous is destroyed! */
+            connect(current.get(), &QObject::destroyed, [this, renderer](QObject *) { createRenderer(renderer); });
+
+            current.release()->deleteLater();
+        }
+    } else {
+        createRenderer(renderer);
+    }
+}
+
+void
+RendererStack::createRenderer(Renderer renderer)
+{
+    current_vid_api = renderer;
     switch (renderer) {
-    case Renderer::Software:
-    {
-        auto sw = new SoftwareRenderer(this);        
-        rendererWindow = sw;
-        connect(this, &RendererStack::blitToRenderer, sw, &SoftwareRenderer::onBlit, Qt::QueuedConnection);
-        current.reset(this->createWindowContainer(sw, this));
+        default:
+        case Renderer::Software:
+            {
+                auto sw        = new SoftwareRenderer(this);
+                rendererWindow = sw;
+                connect(this, &RendererStack::blitToRenderer, sw, &SoftwareRenderer::onBlit, Qt::QueuedConnection);
+#ifdef __HAIKU__
+                current.reset(sw);
+#else
+                current.reset(this->createWindowContainer(sw, this));
+#endif
+            }
+            break;
+        case Renderer::OpenGL:
+            {
+                this->createWinId();
+                auto hw        = new HardwareRenderer(this);
+                rendererWindow = hw;
+                connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
+                current.reset(this->createWindowContainer(hw, this));
+                break;
+            }
+        case Renderer::OpenGLES:
+            {
+                this->createWinId();
+                auto hw        = new HardwareRenderer(this, HardwareRenderer::RenderType::OpenGLES);
+                rendererWindow = hw;
+                connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
+                current.reset(this->createWindowContainer(hw, this));
+                break;
+            }
+        case Renderer::OpenGL3:
+            {
+                this->createWinId();
+                auto hw        = new OpenGLRenderer(this);
+                rendererWindow = hw;
+                connect(this, &RendererStack::blitToRenderer, hw, &OpenGLRenderer::onBlit, Qt::QueuedConnection);
+                connect(hw, &OpenGLRenderer::initialized, [=]() {
+                    /* Buffers are available only after initialization. */
+                    imagebufs = rendererWindow->getBuffers();
+                    endblit();
+                    emit rendererChanged();
+                });
+                connect(hw, &OpenGLRenderer::errorInitializing, [=]() {
+                    /* Renderer not could initialize, fallback to software. */
+                    imagebufs = {};
+                    QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
+                });
+                current.reset(this->createWindowContainer(hw, this));
+                break;
+            }
+#ifdef Q_OS_WIN
+        case Renderer::Direct3D9:
+            {
+                this->createWinId();
+                auto hw        = new D3D9Renderer(this, m_monitor_index);
+                rendererWindow = hw;
+                connect(hw, &D3D9Renderer::error, this, [this](QString str) {
+                    auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", QString("Failed to initialize D3D9 renderer. Falling back to software rendering.\n\n") + str, QMessageBox::Ok);
+                    msgBox->setAttribute(Qt::WA_DeleteOnClose);
+                    msgBox->show();
+                    imagebufs = {};
+                    QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
+                });
+                connect(hw, &D3D9Renderer::initialized, this, [this]() {
+                    endblit();
+                    emit rendererChanged();
+                });
+                current.reset(hw);
+                break;
+            }
+#endif
+#if QT_CONFIG(vulkan)
+        case Renderer::Vulkan:
+            {
+                this->createWinId();
+                VulkanWindowRenderer *hw = nullptr;
+                try {
+                    hw = new VulkanWindowRenderer(this);
+                } catch (std::runtime_error &e) {
+                    auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", e.what() + QString("\nFalling back to software rendering."), QMessageBox::Ok);
+                    msgBox->setAttribute(Qt::WA_DeleteOnClose);
+                    msgBox->show();
+                    imagebufs = {};
+                    QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
+                    current.reset(nullptr);
+                    break;
+                }
+                rendererWindow = hw;
+                connect(this, &RendererStack::blitToRenderer, hw, &VulkanWindowRenderer::onBlit, Qt::QueuedConnection);
+                connect(hw, &VulkanWindowRenderer::rendererInitialized, [=]() {
+                    /* Buffers are available only after initialization. */
+                    imagebufs = rendererWindow->getBuffers();
+                    endblit();
+                    emit rendererChanged();
+                });
+                connect(hw, &VulkanWindowRenderer::errorInitializing, [=]() {
+                    /* Renderer could not initialize, fallback to software. */
+                    auto msgBox = new QMessageBox(QMessageBox::Critical, "86Box", QString("Failed to initialize Vulkan renderer.\nFalling back to software rendering."), QMessageBox::Ok);
+                    msgBox->setAttribute(Qt::WA_DeleteOnClose);
+                    msgBox->show();
+                    imagebufs = {};
+                    QTimer::singleShot(0, this, [this]() { switchRenderer(Renderer::Software); });
+                });
+                current.reset(this->createWindowContainer(hw, this));
+                break;
+            }
+#endif
     }
-        break;
-    case Renderer::OpenGL:
-    {
-        this->createWinId();
-        auto hw = new HardwareRenderer(this);
-        rendererWindow = hw;
-        connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
-        current.reset(this->createWindowContainer(hw, this));
-        break;
-    }
-    case Renderer::OpenGLES:
-    {
-        this->createWinId();
-        auto hw = new HardwareRenderer(this, HardwareRenderer::RenderType::OpenGLES);
-        rendererWindow = hw;
-        connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
-        current.reset(this->createWindowContainer(hw, this));
-        break;
-    }
-    case Renderer::OpenGL3:
-    {
-        this->createWinId();
-        auto hw = new HardwareRenderer(this, HardwareRenderer::RenderType::OpenGL3);
-        rendererWindow = hw;
-        connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
-        current.reset(this->createWindowContainer(hw, this));
-        break;
-    }
-    }
-
-    imagebufs = std::move(rendererWindow->getBuffers());
-
+    if (current.get() == nullptr)
+        return;
     current->setFocusPolicy(Qt::NoFocus);
     current->setFocusProxy(this);
+    current->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    current->setStyleSheet("background-color: black");
     addWidget(current.get());
 
     this->setStyleSheet("background-color: black");
 
-    endblit();
+    currentBuf = 0;
+
+    if (rendererWindow->hasBlitFunc()) {
+        connect(this, &RendererStack::blit, this, &RendererStack::blitRenderer, Qt::DirectConnection);
+    } else {
+        connect(this, &RendererStack::blit, this, &RendererStack::blitCommon, Qt::DirectConnection);
+    }
+
+    if (renderer != Renderer::OpenGL3 && renderer != Renderer::Vulkan && renderer != Renderer::Direct3D9) {
+        imagebufs = rendererWindow->getBuffers();
+        endblit();
+        emit rendererChanged();
+    }
+}
+
+void
+RendererStack::blitDummy(int x, int y, int w, int h)
+{
+    video_blit_complete_monitor(m_monitor_index);
+    blitDummied = true;
+}
+
+void
+RendererStack::blitRenderer(int x, int y, int w, int h)
+{
+    if (blitDummied) {
+        blitDummied = false;
+        video_blit_complete_monitor(m_monitor_index);
+        return;
+    }
+    directBlitting = true;
+    rendererWindow->blit(x, y, w, h);
+    directBlitting = false;
 }
 
 // called from blitter thread
-void RendererStack::blit(int x, int y, int w, int h)
+void
+RendererStack::blitCommon(int x, int y, int w, int h)
 {
-    if ((w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || std::get<std::atomic_flag*>(imagebufs[currentBuf])->test_and_set())
-    {
-        video_blit_complete();
+    if (blitDummied || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (monitors[m_monitor_index].target_buffer == NULL) || imagebufs.empty() || std::get<std::atomic_flag *>(imagebufs[currentBuf])->test_and_set()) {
+        video_blit_complete_monitor(m_monitor_index);
         return;
     }
     sx = x;
     sy = y;
     sw = this->w = w;
-    sh = this->h = h;
-    uint8_t* imagebits = std::get<uint8_t*>(imagebufs[currentBuf]);
-    for (int y1 = y; y1 < (y + h); y1++)
-    {
-        auto scanline = imagebits + (y1 * (2048) * 4) + (x * 4);
-        video_copy(scanline, &(buffer32->line[y1][x]), w * 4);
+    sh = this->h       = h;
+    uint8_t *imagebits = std::get<uint8_t *>(imagebufs[currentBuf]);
+    for (int y1 = y; y1 < (y + h); y1++) {
+        auto scanline = imagebits + (y1 * rendererWindow->getBytesPerRow()) + (x * 4);
+        video_copy(scanline, &(monitors[m_monitor_index].target_buffer->line[y1][x]), w * 4);
     }
 
-    if (screenshots)
-    {
-        video_screenshot((uint32_t *)imagebits, x, y, 2048);
+    if (monitors[m_monitor_index].mon_screenshots) {
+        video_screenshot_monitor((uint32_t *) imagebits, x, y, 2048, m_monitor_index);
     }
-    video_blit_complete();
+    video_blit_complete_monitor(m_monitor_index);
     emit blitToRenderer(currentBuf, sx, sy, sw, sh);
     currentBuf = (currentBuf + 1) % imagebufs.size();
+}
+
+void
+RendererStack::closeEvent(QCloseEvent *event)
+{
+    if (cpu_thread_run == 1 || is_quit == 0) {
+        event->accept();
+        main_window->ui->actionShow_non_primary_monitors->setChecked(false);
+        return;
+    }
+    event->ignore();
+    main_window->close();
+}
+
+void
+RendererStack::changeEvent(QEvent *event)
+{
+    if (m_monitor_index != 0 && isVisible()) {
+        monitor_settings[m_monitor_index].mon_window_maximized = isMaximized();
+        config_save();
+    }
+}
+
+bool
+RendererStack::event(QEvent* event)
+{
+    if (event->type() == QEvent::MouseMove) {
+        QMouseEvent* mouse_event = (QMouseEvent*)event;
+
+        if (m_monitor_index >= 1) {
+            if (mouse_input_mode >= 1) {
+                mouse_x_abs       = (mouse_event->localPos().x()) / (long double)width();
+                mouse_y_abs       = (mouse_event->localPos().y()) / (long double)height();
+                if (!mouse_tablet_in_proximity)
+                    mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
+            }
+            return QStackedWidget::event(event);
+        }
+
+#ifdef Q_OS_WINDOWS
+        if (mouse_input_mode == 0) {
+            mouse_x_abs           = (mouse_event->localPos().x()) / (long double)width();
+            mouse_y_abs           = (mouse_event->localPos().y()) / (long double)height();
+            return QStackedWidget::event(event);
+        }
+#endif
+
+        mouse_x_abs               = (mouse_event->localPos().x()) / (long double)width();
+        mouse_y_abs               = (mouse_event->localPos().y()) / (long double)height();
+        mouse_tablet_in_proximity = mousedata.mouse_tablet_in_proximity;
+    }
+
+    return QStackedWidget::event(event);
+}
+
+void
+RendererStack::setFocusRenderer()
+{
+    if (current)
+        current->setFocus();
+}
+
+void
+RendererStack::onResize(int width, int height)
+{
+    if (rendererWindow) {
+        rendererWindow->r_monitor_index = m_monitor_index;
+        rendererWindow->onResize(width, height);
+    }
 }

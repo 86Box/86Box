@@ -1,18 +1,18 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of Miscellaneous, Fake, Hypervisor machines.
+ *          Implementation of Miscellaneous, Fake, Hypervisor machines.
  *
  *
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2016-2019 Miran Grca.
+ *          Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -44,10 +44,10 @@ machine_at_vpc2007_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/vpc2007/13500.bin",
-			   0x000c0000, 262144, 0);
+                           0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+        return ret;
 
     machine_at_common_init_ex(model, 2);
     is_vpc = 1;

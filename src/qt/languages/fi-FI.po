@@ -29,7 +29,7 @@ msgid "&Hide status bar"
 msgstr "&Piilota tilapalkki"
 
 msgid "Hide &toolbar"
-msgstr "Hide &toolbar"
+msgstr "Piilota &työkalupalkki"
 
 msgid "&Resizeable window"
 msgstr "&Salli koon muuttaminen"
@@ -59,7 +59,7 @@ msgid "Specify dimensions..."
 msgstr "&Määritä koko..."
 
 msgid "F&orce 4:3 display ratio"
-msgstr "Pakota 4:3 näyttösuhde"
+msgstr "Pakota 4:3-näyttösuhde"
 
 msgid "&Window scale factor"
 msgstr "&Ikkunan kokokerroin"
@@ -75,6 +75,24 @@ msgstr "1.&5x"
 
 msgid "&2x"
 msgstr "&2x"
+
+msgid "&3x"
+msgstr "&3x"
+
+msgid "&4x"
+msgstr "&4x"
+
+msgid "&5x"
+msgstr "&5x"
+
+msgid "&6x"
+msgstr "&6x"
+
+msgid "&7x"
+msgstr "&7x"
+
+msgid "&8x"
+msgstr "&8x"
 
 msgid "Filter method"
 msgstr "&Suodatusmetodi"
@@ -106,20 +124,23 @@ msgstr "&Tasasivuiset kuvapisteet (säilytä kuvasuhde)"
 msgid "&Integer scale"
 msgstr "&Kokonaislukuskaalaus"
 
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Kokonaislukuskaalaus"
+
 msgid "E&GA/(S)VGA settings"
-msgstr "&EGA/(S)VGA asetukset"
+msgstr "&EGA/(S)VGA-asetukset"
 
 msgid "&Inverted VGA monitor"
-msgstr "&VGA näyttö käänteisillä väreillä"
+msgstr "&VGA-näyttö käänteisillä väreillä"
 
 msgid "VGA screen &type"
-msgstr "VGA näytön &tyyppi"
+msgstr "VGA-näytön &tyyppi"
 
 msgid "RGB &Color"
-msgstr "RGB &värit"
+msgstr "RGB, &värit"
 
 msgid "&RGB Grayscale"
-msgstr "&RGB harmaasävyinen"
+msgstr "&RGB, harmaasävy"
 
 msgid "&Amber monitor"
 msgstr "&Meripihkanvärinen"
@@ -152,7 +173,7 @@ msgid "&Media"
 msgstr "&Media"
 
 msgid "&Tools"
-msgstr "&Työkalut"
+msgstr "Työ&kalut"
 
 msgid "&Settings..."
 msgstr "&Kokoonpano..."
@@ -167,10 +188,10 @@ msgid "&Preferences..."
 msgstr "&Sovellusasetukset..."
 
 msgid "Enable &Discord integration"
-msgstr "Käytä &Discord integraatiota"
+msgstr "Käytä &Discord-integraatiota"
 
 msgid "Sound &gain..."
-msgstr "&Äänen tulotaso..."
+msgstr "&Äänitasot..."
 
 msgid "Begin trace\tCtrl+T"
 msgstr "Aloita jäljitys\tCtrl+T"
@@ -182,10 +203,10 @@ msgid "&Help"
 msgstr "&Ohje"
 
 msgid "&Documentation..."
-msgstr "&Dokumentaatio..."
+msgstr "&Ohjekirja..."
 
 msgid "&About 86Box..."
-msgstr "&Tietoja 86Box:sta..."
+msgstr "&Tietoja 86Boxista..."
 
 msgid "&New image..."
 msgstr "&Uusi kasettikuva..."
@@ -226,8 +247,8 @@ msgstr "&Tyhjä"
 msgid "&Reload previous image"
 msgstr "&Lataa edellinen levykuva uudelleen"
 
-msgid "&Image"
-msgstr "L&evykuva"
+msgid "&Folder..."
+msgstr "&Kansio..."
 
 msgid "Target &framerate"
 msgstr "&Kuvataajuustavoite"
@@ -263,7 +284,7 @@ msgid "Preferences"
 msgstr "Sovellusasetukset"
 
 msgid "Sound Gain"
-msgstr "Äänen tulotaso"
+msgstr "Äänen taso"
 
 msgid "New Image"
 msgstr "Uusi levykuva"
@@ -302,7 +323,7 @@ msgid "Disk size:"
 msgstr "Levyn koko:"
 
 msgid "RPM mode:"
-msgstr "RPM tila:"
+msgstr "Kierroslukutila:"
 
 msgid "Progress:"
 msgstr "Edistyminen:"
@@ -364,6 +385,12 @@ msgstr "Näytönohjain:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo-grafiikkasuoritin"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a-grafiikkasuoritin"
+
+msgid "XGA Graphics"
+msgstr "XGA-grafiikkasuoritin"
+
 msgid "Mouse:"
 msgstr "Hiiri:"
 
@@ -382,8 +409,17 @@ msgstr "Peliohjain 3..."
 msgid "Joystick 4..."
 msgstr "Peliohjain 4..."
 
-msgid "Sound card:"
-msgstr "Äänikortti:"
+msgid "Sound card 1:"
+msgstr "Äänikortti 1:"
+
+msgid "Sound card 2:"
+msgstr "Äänikortti 2:"
+
+msgid "Sound card 3:"
+msgstr "Äänikortti 3:"
+
+msgid "Sound card 4:"
+msgstr "Äänikortti 4:"
 
 msgid "MIDI Out Device:"
 msgstr "MIDI-ulostulo:"
@@ -394,17 +430,17 @@ msgstr "MIDI-sisääntulo:"
 msgid "Standalone MPU-401"
 msgstr "Erillinen MPU-401"
 
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
-
 msgid "Use FLOAT32 sound"
 msgstr "Käytä FLOAT32-ääntä"
+
+msgid "FM synth driver"
+msgstr "FM-syntetisaattoriohjain"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (tarkempi)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (nopeampi)"
 
 msgid "Network type:"
 msgstr "Verkon tyyppi:"
@@ -470,10 +506,10 @@ msgid "FD Controller:"
 msgstr "Levykeohjain:"
 
 msgid "Tertiary IDE Controller"
-msgstr "Tertinäärinen IDE-ohjain"
+msgstr "Kolmas IDE-ohjain"
 
 msgid "Quaternary IDE Controller"
-msgstr "Kvaternaarinen IDE-ohjain"
+msgstr "Neljäs IDE-ohjain"
 
 msgid "SCSI"
 msgstr "SCSI"
@@ -521,7 +557,7 @@ msgid "Sectors:"
 msgstr "Sektorit:"
 
 msgid "Heads:"
-msgstr "Päät:"
+msgstr "Lukupäät:"
 
 msgid "Cylinders:"
 msgstr "Sylinterit:"
@@ -549,6 +585,9 @@ msgstr "Tarkista BPB"
 
 msgid "CD-ROM drives:"
 msgstr "CD-ROM-asemat:"
+
+msgid "Earlier drive"
+msgstr "Aiemmat asemat"
 
 msgid "MO drives:"
 msgstr "Magneettisoptiset asemat (MO):"
@@ -599,7 +638,7 @@ msgid "Fatal error"
 msgstr "Vakava virhe"
 
 msgid " - PAUSED"
-msgstr " - PAUSED"
+msgstr " - TAUKO"
 
 msgid "Press Ctrl+Alt+PgDn to return to windowed mode."
 msgstr "Paina Ctrl+Alt+PgDn palataksesi ikkunoituun tilaan."
@@ -614,7 +653,7 @@ msgid "ZIP images"
 msgstr "ZIP-levykuvat"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\nVoit <a href=\"https://github.com/86Box/roms/releases/latest\">ladata</a> ROM-paketin ja purkaa sen \"roms\" hakemistoon."
+msgstr "86Box ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\nVoit <a href=\"https://github.com/86Box/roms/releases/latest\">ladata</a> ROM-paketin ja purkaa sen \"roms\"-hakemistoon."
 
 msgid "(empty)"
 msgstr "(tyhjä)"
@@ -688,9 +727,6 @@ msgstr "Paina F8+F12 vapauttaaksesi hiiren"
 msgid "Press F8+F12 or middle button to release mouse"
 msgstr "Paina F8+F12 tai keskipainiketta vapauttaaksesi hiiren"
 
-msgid "Unable to initialize FluidSynth"
-msgstr "FluidSynth:in alustus epäonnistui"
-
 msgid "Bus"
 msgstr "Väylä"
 
@@ -710,7 +746,7 @@ msgid "KB"
 msgstr "kt"
 
 msgid "Could not initialize the video renderer."
-msgstr "Video-renderöijän alustus epäonnistui"
+msgstr "Videorenderöijän alustus epäonnistui"
 
 msgid "Default"
 msgstr "Oletus"
@@ -775,20 +811,17 @@ msgstr "Kehittyneet sektorilevykuvat"
 msgid "Flux images"
 msgstr "Flux-levykuvat"
 
-msgid "Unable to initialize FreeType"
-msgstr "FreeType:n alustus epäonnistui"
-
 msgid "Unable to initialize SDL, SDL2.dll is required"
 msgstr "SDL:n alustus epäonnistui. Tarvitaan SDL2.dll"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
-msgstr "Oletko varma, että haluat käynnistää emuloidun tietokoneen uudelleen?"
+msgstr "Haluatko varmasti käynnistää emuloidun tietokoneen uudelleen?"
 
 msgid "Are you sure you want to exit 86Box?"
-msgstr "Haluatko varmasti sulkea 86Box:in?"
+msgstr "Haluatko varmasti sulkea 86Boxin?"
 
 msgid "Unable to initialize Ghostscript"
-msgstr "Ghostscript:in alustus epäonnistui"
+msgstr "Ghostscriptin alustus epäonnistui"
 
 msgid "MO %i (%ls): %ls"
 msgstr "MO %i (%ls): %ls"
@@ -797,7 +830,7 @@ msgid "MO images"
 msgstr "MO-levykuvat"
 
 msgid "Welcome to 86Box!"
-msgstr "Tervetuloa 86Box:iin!"
+msgstr "Tervetuloa 86Boxiin!"
 
 msgid "Internal controller"
 msgstr "Sisäinen ohjain"
@@ -823,8 +856,8 @@ msgstr "Tietoja 86Box:sta"
 msgid "86Box v"
 msgstr "86Box v"
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Vanhojen tietokoneiden emulaattori\n\nTekijät: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho ja muut.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Vanhojen tietokoneiden emulaattori\n\nTekijät: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne ja muut.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho ja muut.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
 
 msgid "Hardware not available"
 msgstr "Laitteisto ei ole saatavilla"
@@ -841,15 +874,6 @@ msgstr "Varmista, että libpcap on asennettu ja että verkkoyhteytesi on libpcap
 msgid "Invalid configuration"
 msgstr "Virheelliset määritykset"
 
-msgid "freetype.dll"
-msgstr "freetype.dll"
-
-msgid "libfreetype"
-msgstr "libfreetype"
-
-msgid " is required for ESC/P printer emulation."
-msgstr " vaaditaan ESC/P-tulostimen emuloimiseksi."
-
 msgid "gsdll32.dll"
 msgstr "gsdll32.dll"
 
@@ -858,15 +882,6 @@ msgstr "libgs"
 
 msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr " vaaditaan PostScript-tiedostojen automaattiseen muuntamiseen PDF-tiedostoiksi.\n\nKaikki geneeriselle PostScript-tulostimelle lähetetyt asiakirjat tallennetaan PostScript (.ps) -tiedostoina."
-
-msgid "libfluidsynth.dll"
-msgstr "libfluidsynth.dll"
-
-msgid "libfluidsynth"
-msgstr "libfluidsynth"
-
-msgid " is required for FluidSynth MIDI output."
-msgstr " vaaditaan FluidSynth MIDI-ulostuloa varten."
 
 msgid "Entering fullscreen mode"
 msgstr "Siirrytään koko näytön tilaan"
@@ -911,7 +926,7 @@ msgid "Cassette: %s"
 msgstr "Kasetti: %s"
 
 msgid "Cassette images"
-msgstr "Kasetti-tiedostot"
+msgstr "Kasettitiedostot"
 
 msgid "Cartridge %i: %ls"
 msgstr "ROM-moduuli %i: %ls"
@@ -923,25 +938,25 @@ msgid "Error initializing renderer"
 msgstr "Virhe renderöijän alustuksessa"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderöijän alustus epäonnistui. Käytä toista renderöijää."
+msgstr "OpenGL (3.0 Core) -renderöijän alustus epäonnistui. Käytä toista renderöijää."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Jatka suoritusta"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Pysäytä suoritus"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Paina Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Paina Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "Kylmä uudelleenkäynnistys"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "ACPI-sammutus"
 
 msgid "Hard disk (%s)"
 msgstr "Kiintolevy (%s)"
@@ -953,7 +968,7 @@ msgid "%01i"
 msgstr "%01i"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "MFM/RLL tai ESDI CD-ROM asemia ei ole koskaan ollut olemassa"
+msgstr "MFM/RLL- tai ESDI-CD-ROM-asemia ei ole koskaan ollut olemassa"
 
 msgid "Custom..."
 msgstr "Mukautettu..."
@@ -968,7 +983,7 @@ msgid "Add Existing Hard Disk"
 msgstr "Lisää olemassaoleva kiintolevy"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI levykuvan suurin mahdollinen koko on 4 Gt."
+msgstr "HDI-levykuvan suurin mahdollinen koko on 4 Gt."
 
 msgid "Disk images cannot be larger than 127 GB."
 msgstr "Levykuvien suurin mahdollinen koko on 127 Gt."
@@ -1010,16 +1025,16 @@ msgid "Remember to partition and format the newly-created drive."
 msgstr "Muista osioida ja alustaa juuri luomasi asema."
 
 msgid "The selected file will be overwritten. Are you sure you want to use it?"
-msgstr "Valittu tiedosto ylikirjoitetaan. Oletko varma, että haluat käyttää sitä?"
+msgstr "Valittu tiedosto korvataan. Oletko varma, että haluat käyttää sitä?"
 
 msgid "Unsupported disk image"
-msgstr "Levynkuvaa ei tueta"
+msgstr "Levykuvaa ei tueta"
 
 msgid "Overwrite"
-msgstr "Ylikirjoita"
+msgstr "Korvaa"
 
 msgid "Don't overwrite"
-msgstr "Älä ylikirjoita"
+msgstr "Älä korvaa"
 
 msgid "Raw image (.img)"
 msgstr "Raaka levykuva (.img)"
@@ -1183,3 +1198,29 @@ msgstr "2% alle täydellisen RPM:n"
 msgid "(System Default)"
 msgstr "(Järjestelmän oletus)"
 
+msgid "Failed to initialize network driver"
+msgstr "Verkkoajurin alustaminen epäonnistui"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "Verkkokokoonpano vaihtuu nolla-ajuriin"
+
+msgid "Mouse sensitivity:"
+msgstr "Hiiren herkkyys:"
+
+msgid "Select media images from program working directory"
+msgstr "Valitse mediakuvat ohjelman työhakemistosta"
+
+msgid "PIT mode:"
+msgstr "PIT-tila:"
+
+msgid "Auto"
+msgstr "Automaattinen"
+
+msgid "Slow"
+msgstr "Hidas"
+
+msgid "Fast"
+msgstr "Nopea"
+
+msgid "&Auto-pause on focus loss"
+msgstr "&Automaattinen tauko tarkennuksen hävitessä"

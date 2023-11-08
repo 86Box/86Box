@@ -7,20 +7,20 @@ namespace Ui {
 class HarddiskDialog;
 }
 
-class HarddiskDialog : public QDialog
-{
+class HarddiskDialog : public QDialog {
     Q_OBJECT
 
 public:
     explicit HarddiskDialog(bool existing, QWidget *parent = nullptr);
     ~HarddiskDialog();
 
-    uint8_t bus() const;
-    uint8_t channel() const;
-    QString fileName() const;
+    uint8_t  bus() const;
+    uint8_t  channel() const;
+    QString  fileName() const;
     uint32_t cylinders() const { return cylinders_; }
     uint32_t heads() const { return heads_; }
     uint32_t sectors() const { return sectors_; }
+    uint32_t speed() const;
 
 signals:
     void fileProgress(int i);
@@ -37,7 +37,8 @@ private slots:
     void on_comboBoxBus_currentIndexChanged(int index);
     void on_comboBoxFormat_currentIndexChanged(int index);
     void onCreateNewFile();
-    void onExistingFileSelected(const QString& fileName);
+    void onExistingFileSelected(const QString &fileName, bool precheck);
+
 private:
     Ui::HarddiskDialog *ui;
 
@@ -45,9 +46,16 @@ private:
     uint32_t heads_;
     uint32_t sectors_;
 
-    uint32_t max_sectors = 0;
-    uint32_t max_heads = 0;
+    uint32_t max_sectors   = 0;
+    uint32_t max_heads     = 0;
     uint32_t max_cylinders = 0;
+
+    bool disallowSizeModifications = false;
+
+    QStringList filters;
+    // "Dynamic-size VHD" is number 4 in the `filters` list and the
+    // comboBoxFormat model
+    const uint8_t DEFAULT_DISK_FORMAT = 4;
 
     bool checkAndAdjustCylinders();
     bool checkAndAdjustHeads();

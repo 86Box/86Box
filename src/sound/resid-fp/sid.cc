@@ -91,6 +91,7 @@ static int host_cpu_features_by_cpuid(void)
   return features;
 }
 
+#if (RESID_USE_SSE==1)
 static int host_cpu_features(void)
 {
   static int features = 0;
@@ -151,6 +152,7 @@ static int host_cpu_features(void)
 {
   return 0;
 }
+#endif
 #endif
 
 float SIDFP::kinked_dac(const int x, const float nonlinearity, const int max)

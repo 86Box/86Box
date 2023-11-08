@@ -130,7 +130,7 @@ void EnvelopeGeneratorFP::clock()
       --envelope_counter &= 0xff;
       break;
     }
-    
+
     // Check for change of exponential counter period.
     switch (envelope_counter) {
     case 0xff:

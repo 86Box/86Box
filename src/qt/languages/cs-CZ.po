@@ -76,6 +76,24 @@ msgstr "1.&5x"
 msgid "&2x"
 msgstr "&2x"
 
+msgid "&3x"
+msgstr "&3x"
+
+msgid "&4x"
+msgstr "&4x"
+
+msgid "&5x"
+msgstr "&5x"
+
+msgid "&6x"
+msgstr "&6x"
+
+msgid "&7x"
+msgstr "&7x"
+
+msgid "&8x"
+msgstr "&8x"
+
 msgid "Filter method"
 msgstr "Metoda &filtrování"
 
@@ -105,6 +123,9 @@ msgstr "&Zachovat poměr stran"
 
 msgid "&Integer scale"
 msgstr "&Celočíselné škálování"
+
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Celočíselné škálování"
 
 msgid "E&GA/(S)VGA settings"
 msgstr "Nastavení pro E&GA a (S)VGA"
@@ -226,8 +247,8 @@ msgstr "&Vyjmout"
 msgid "&Reload previous image"
 msgstr "&Načíst znova předchozí obraz"
 
-msgid "&Image"
-msgstr "&Obraz..."
+msgid "&Folder..."
+msgstr "&Složka..."
 
 msgid "Target &framerate"
 msgstr "&Cílová snímková frekvence"
@@ -364,6 +385,12 @@ msgstr "Grafika:"
 msgid "Voodoo Graphics"
 msgstr "Použít grafický akcelerátor Voodoo"
 
+msgid "IBM 8514/a Graphics"
+msgstr "Grafika IBM 8514/a"
+
+msgid "XGA Graphics"
+msgstr "Grafika XGA"
+
 msgid "Mouse:"
 msgstr "Myš:"
 
@@ -382,8 +409,17 @@ msgstr "Joystick 3..."
 msgid "Joystick 4..."
 msgstr "Joystick 4..."
 
-msgid "Sound card:"
-msgstr "Zvuková karta:"
+msgid "Sound card 1:"
+msgstr "Zvuková karta 1:"
+
+msgid "Sound card 2:"
+msgstr "Zvuková karta 2:"
+
+msgid "Sound card 3:"
+msgstr "Zvuková karta 3:"
+
+msgid "Sound card 4:"
+msgstr "Zvuková karta 4:"
 
 msgid "MIDI Out Device:"
 msgstr "MIDI výstup:"
@@ -394,17 +430,17 @@ msgstr "MIDI vstup:"
 msgid "Standalone MPU-401"
 msgstr "Samostatný MPU-401"
 
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
-
 msgid "Use FLOAT32 sound"
 msgstr "Použít zvuk FLOAT32"
+
+msgid "FM synth driver"
+msgstr "FM synth driver"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (přesnější)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (rychlejší)"
 
 msgid "Network type:"
 msgstr "Druh sítě:"
@@ -550,6 +586,9 @@ msgstr "Kontrola BPB"
 msgid "CD-ROM drives:"
 msgstr "Mechaniky CD-ROM:"
 
+msgid "Earlier drive"
+msgstr "Časná mechanika"
+
 msgid "MO drives:"
 msgstr "Magnetooptické mechaniky:"
 
@@ -620,7 +659,7 @@ msgid "(empty)"
 msgstr "(prázdné)"
 
 msgid "All files"
-msgstr "All files"
+msgstr "Všechny soubory"
 
 msgid "Turbo"
 msgstr "Turbo"
@@ -687,9 +726,6 @@ msgstr "Stiskněte F8+F12 pro uvolnění myši"
 
 msgid "Press F8+F12 or middle button to release mouse"
 msgstr "Stiskněte F8+F12 nebo prostřední tlačítko pro uvolnění myši"
-
-msgid "Unable to initialize FluidSynth"
-msgstr "Nastala chyba při inicializaci knihovny FluidSynth."
 
 msgid "Bus"
 msgstr "Sběrnice"
@@ -775,9 +811,6 @@ msgstr "Rozšířené sektorové obrazy"
 msgid "Flux images"
 msgstr "Obrazy magnetického toku"
 
-msgid "Unable to initialize FreeType"
-msgstr "Nastala chyba při inicializaci knihovny FreeType"
-
 msgid "Unable to initialize SDL, SDL2.dll is required"
 msgstr "Nastala chyba při inicializaci knihovny SDL, je potřeba SDL2.dll"
 
@@ -823,8 +856,8 @@ msgstr "O programu 86Box"
 msgid "86Box v"
 msgstr "86Box v"
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Emulátor starých počítačů\n\nAutoři: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nZveřejněno pod licencí GNU General Public License verze 2 nebo novější. Viz soubor LICENSE pro více informací."
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Emulátor starých počítačů\n\nAutoři: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nZveřejněno pod licencí GNU General Public License verze 2 nebo novější. Viz soubor LICENSE pro více informací."
 
 msgid "Hardware not available"
 msgstr "Hardware není dostupný"
@@ -841,15 +874,6 @@ msgstr "Ujistěte se, že je nainstalován libpcap a používáte síťové při
 msgid "Invalid configuration"
 msgstr "Neplatná konfigurace"
 
-msgid "freetype.dll"
-msgstr "freetype.dll"
-
-msgid "libfreetype"
-msgstr "libfreetype"
-
-msgid " is required for ESC/P printer emulation."
-msgstr " je potřeba pro emulaci ESC/P tiskáren."
-
 msgid "gsdll32.dll"
 msgstr "gsdll32.dll"
 
@@ -858,15 +882,6 @@ msgstr "libgs"
 
 msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr " je potřeba pro automatický převod PostScript dokumentů do PDF.\n\nJakékoliv dokumenty vytisknuté přes obecnou PostScriptovou tiskárnu budou uloženy jako PostScript (.ps) soubory."
-
-msgid "libfluidsynth.dll"
-msgstr "libfluidsynth.dll"
-
-msgid "libfluidsynth"
-msgstr "libfluidsynth"
-
-msgid " is required for FluidSynth MIDI output."
-msgstr " je potřeba pro MIDI výstup přes knihovnu FluidSynth."
 
 msgid "Entering fullscreen mode"
 msgstr "Vstup do režimu celé obrazovky"
@@ -920,10 +935,10 @@ msgid "Cartridge images"
 msgstr "Obrazy cartridge"
 
 msgid "Error initializing renderer"
-msgstr "Error initializing renderer"
+msgstr "Chyba při inicializaci vykreslovače"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "Vykreslovač OpenGL (3.0 Core) se nepodařilo inicializovat. Použijte jiný renderer."
 
 msgid "Resume execution"
 msgstr "Obnovit"
@@ -1183,3 +1198,29 @@ msgstr "2% pod dokonalými ot./m"
 msgid "(System Default)"
 msgstr "(Výchozí nastavení systému)"
 
+msgid "Failed to initialize network driver"
+msgstr "Nepodařilo se inicializovat síťový ovladač"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "Konfigurace sítě bude přepnuta na nulový ovladač"
+
+msgid "Mouse sensitivity:"
+msgstr "Citlivost myší:"
+
+msgid "Select media images from program working directory"
+msgstr "Výběr mediálních obrazů z pracovního adresáře programu"
+
+msgid "PIT mode:"
+msgstr "Režim PIT:"
+
+msgid "Auto"
+msgstr "Automatický"
+
+msgid "Slow"
+msgstr "Pomalý"
+
+msgid "Fast"
+msgstr "Rychlý"
+
+msgid "&Auto-pause on focus loss"
+msgstr "&Automatická pauza při ztrátě zaměření okna"

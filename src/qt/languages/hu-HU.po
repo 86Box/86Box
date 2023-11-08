@@ -76,6 +76,24 @@ msgstr "1,&5x"
 msgid "&2x"
 msgstr "&2x"
 
+msgid "&3x"
+msgstr "&3x"
+
+msgid "&4x"
+msgstr "&4x"
+
+msgid "&5x"
+msgstr "&5x"
+
+msgid "&6x"
+msgstr "&6x"
+
+msgid "&7x"
+msgstr "&7x"
+
+msgid "&8x"
+msgstr "&8x"
+
 msgid "Filter method"
 msgstr "Szűrési mód"
 
@@ -105,6 +123,9 @@ msgstr "&Négyzetes képpontok (aránytartás)"
 
 msgid "&Integer scale"
 msgstr "&Egész tényezős nagyítás"
+
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Egész tényezős nagyítás"
 
 msgid "E&GA/(S)VGA settings"
 msgstr "E&GA/(S)VGA beállítások"
@@ -226,8 +247,8 @@ msgstr "&Kiadás"
 msgid "&Reload previous image"
 msgstr "Előző képfájl &újratöltése"
 
-msgid "&Image"
-msgstr "&Meglévő képfájl &megnyitása..."
+msgid "&Folder..."
+msgstr "&Mappa..."
 
 msgid "Target &framerate"
 msgstr "Cél &képkockasebesség"
@@ -364,6 +385,12 @@ msgstr "Videokártya:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo-gyorsítókártya"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a-gyorsítókártya"
+
+msgid "XGA Graphics"
+msgstr "XGA-gyorsítókártya"
+
 msgid "Mouse:"
 msgstr "Egér:"
 
@@ -382,8 +409,17 @@ msgstr "Játékvez. 3..."
 msgid "Joystick 4..."
 msgstr "Játékvez. 4..."
 
-msgid "Sound card:"
-msgstr "Hangkártya:"
+msgid "Sound card 1:"
+msgstr "Hangkártya 1:"
+
+msgid "Sound card 2:"
+msgstr "Hangkártya 2:"
+
+msgid "Sound card 3:"
+msgstr "Hangkártya 3:"
+
+msgid "Sound card 4:"
+msgstr "Hangkártya 4:"
 
 msgid "MIDI Out Device:"
 msgstr "MIDI-kimenet:"
@@ -394,17 +430,17 @@ msgstr "MIDI-bemenet:"
 msgid "Standalone MPU-401"
 msgstr "Különálló MPU-401"
 
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
-
 msgid "Use FLOAT32 sound"
 msgstr "FLOAT32 használata"
+
+msgid "FM synth driver"
+msgstr "FM szintetizátor meghajtó"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (pontosabb)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (gyorsabb)"
 
 msgid "Network type:"
 msgstr "Hálózati típusa:"
@@ -550,6 +586,9 @@ msgstr "BPB ellenőrzés"
 msgid "CD-ROM drives:"
 msgstr "CD-ROM meghajtók:"
 
+msgid "Earlier drive"
+msgstr "Korábbi meghajtó"
+
 msgid "MO drives:"
 msgstr "MO-meghajtók:"
 
@@ -688,9 +727,6 @@ msgstr "Nyomja meg az F8+F12-t az egér elengédéséhez"
 msgid "Press F8+F12 or middle button to release mouse"
 msgstr "Nyomja meg az F8+F12-t vagy a középső gombot az egér elengédéséhez"
 
-msgid "Unable to initialize FluidSynth"
-msgstr "Nem sikerült a FluidSynth inicializálása"
-
 msgid "Bus"
 msgstr "Busz"
 
@@ -775,9 +811,6 @@ msgstr "Továbbfejlesztett szektor képek"
 msgid "Flux images"
 msgstr "Flux képekfájlok"
 
-msgid "Unable to initialize FreeType"
-msgstr "A FreeType inicializálása nem lehetséges"
-
 msgid "Unable to initialize SDL, SDL2.dll is required"
 msgstr "Az SDL inicializálása nem lehetséges, az SDL2.dll fájl szükséges"
 
@@ -823,8 +856,8 @@ msgstr "A 86Box névjegye"
 msgid "86Box v"
 msgstr "86Box v"
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Régi számítógépek emulátora\n\nFejlesztők: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nFordította: Laci bá'\n\nMegjelent a GNU General Public License v2 vagy újabb alatt. További információért lásd a LICENSE fájlt."
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Régi számítógépek emulátora\n\nFejlesztők: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nFordította: Laci bá'\n\nMegjelent a GNU General Public License v2 vagy újabb alatt. További információért lásd a LICENSE fájlt."
 
 msgid "Hardware not available"
 msgstr "Hardver nem elérhető"
@@ -841,15 +874,6 @@ msgstr "Győződjön meg hogy a(z) libpcap telepítve van és jelenleg a libpcap
 msgid "Invalid configuration"
 msgstr "Érvénytelen konfiguráció"
 
-msgid "freetype.dll"
-msgstr "freetype.dll"
-
-msgid "libfreetype"
-msgstr "libfreetype"
-
-msgid " is required for ESC/P printer emulation."
-msgstr " szükséges az ESC/P nyomtató emulációhoz."
-
 msgid "gsdll32.dll"
 msgstr "gsdll32.dll"
 
@@ -858,15 +882,6 @@ msgstr "libgs"
 
 msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr " szükséges a PostScript fájlok PDF formátumba való automatikus konvertálásához.\n\nAz általános PostScript nyomtatóra küldött dokumentumok PostScript (.ps) fájlként kerülnek mentésre."
-
-msgid "libfluidsynth.dll"
-msgstr "libfluidsynth.dll"
-
-msgid "libfluidsynth"
-msgstr "libfluidsynth"
-
-msgid " is required for FluidSynth MIDI output."
-msgstr " szükséges a FluidSynth MIDI kimenethez."
 
 msgid "Entering fullscreen mode"
 msgstr "Teljes képernyős módra váltás"
@@ -926,22 +941,22 @@ msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer
 msgstr "Az OpenGL (3.0 Core) megjelenítő-motort nem sikerült inicializálni. Kérem használjon másik renderelőt."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Folytassa a végrehajtást"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Kivitelezés szüneteltetése"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Nyomja meg a Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Nyomja meg a Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "Hardveres újraindítás"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "ACPI leállítás"
 
 msgid "Hard disk (%s)"
 msgstr "Merevlemez (%s)"
@@ -1183,3 +1198,29 @@ msgstr "2%-kal a tökéletes RPM alatt"
 msgid "(System Default)"
 msgstr "(A rendszer nyelve)"
 
+msgid "Failed to initialize network driver"
+msgstr "Nem sikerült inicializálni a hálózati illesztőprogramot"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "A hálózati konfiguráció átvált a null illesztőprogramra"
+
+msgid "Mouse sensitivity:"
+msgstr "Egér érzékenység:"
+
+msgid "Select media images from program working directory"
+msgstr "Médiaképek kiválasztása a program munkakönyvtárából"
+
+msgid "PIT mode:"
+msgstr "PIT üzemmód:"
+
+msgid "Auto"
+msgstr "Automatikus"
+
+msgid "Slow"
+msgstr "Lassú"
+
+msgid "Fast"
+msgstr "Gyors"
+
+msgid "&Auto-pause on focus loss"
+msgstr "&Automatikus szünet fókuszvesztéskor"

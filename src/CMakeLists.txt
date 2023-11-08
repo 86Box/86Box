@@ -1,26 +1,39 @@
 #
-# 86Box     A hypervisor and IBM PC system emulator that specializes in
-#           running old operating systems and software designed for IBM
-#           PC systems and compatibles from 1981 through fairly recent
-#           system designs based on the PCI bus.
+# 86Box    A hypervisor and IBM PC system emulator that specializes in
+#          running old operating systems and software designed for IBM
+#          PC systems and compatibles from 1981 through fairly recent
+#          system designs based on the PCI bus.
 #
-#           This file is part of the 86Box distribution.
+#          This file is part of the 86Box distribution.
 #
-#           CMake build script.
+#          CMake build script.
 #
-# Authors:  David Hrdlička, <hrdlickadavid@outlook.com>
-#           dob205
+# Authors: David Hrdlička, <hrdlickadavid@outlook.com>
+#          dob205
 #
-#           Copyright 2020-2022 David Hrdlička.
-#           Copyright 2021 dob205.
+#          Copyright 2020-2022 David Hrdlička.
+#          Copyright 2021 dob205.
 #
+if(APPLE)
+    set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+endif()
 
 add_executable(86Box 86box.c config.c log.c random.c timer.c io.c acpi.c apm.c
-    dma.c ddma.c discord.c nmi.c pic.c pit.c port_6x.c port_92.c ppi.c pci.c
-    mca.c usb.c fifo8.c device.c nvr.c nvr_at.c nvr_ps2.c)
+    dma.c ddma.c nmi.c pic.c pit.c pit_fast.c port_6x.c port_92.c ppi.c pci.c
+    mca.c usb.c fifo.c fifo8.c device.c nvr.c nvr_at.c nvr_ps2.c
+    machine_status.c ini.c)
+
+if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+    add_compile_definitions(_FILE_OFFSET_BITS=64 _LARGEFILE_SOURCE=1 _LARGEFILE64_SOURCE=1)
+endif()
 
 if(CPPTHREADS)
     target_sources(86Box PRIVATE thread.cpp)
+endif()
+
+if(GDBSTUB)
+    add_compile_definitions(USE_GDBSTUB)
+    target_sources(86Box PRIVATE gdbstub.c)
 endif()
 
 if(NEW_DYNAREC)
@@ -39,13 +52,25 @@ if(DEV_BRANCH)
     add_compile_definitions(DEV_BRANCH)
 endif()
 
+if(DISCORD)
+    add_compile_definitions(DISCORD)
+    target_sources(86Box PRIVATE discord.c)
+endif()
+
 if(VNC)
-    add_compile_definitions(USE_VNC)
-    add_library(vnc OBJECT vnc.c vnc_keymap.c)
-    target_link_libraries(86Box vnc vncserver)
-    if (WIN32)
-        target_link_libraries(86Box ws2_32)
+    find_package(LibVNCServer)
+    if(LibVNCServer_FOUND)
+        add_compile_definitions(USE_VNC)
+        add_library(vnc OBJECT vnc.c vnc_keymap.c)
+            target_link_libraries(86Box vnc LibVNCServer::vncserver)
+        if(WIN32)
+            target_link_libraries(86Box ws2_32)
+        endif()
     endif()
+endif()
+
+if(INSTRUMENT)
+    add_compile_definitions(USE_INSTRUMENT)
 endif()
 
 target_link_libraries(86Box cpu chipset mch dev mem fdd game cdrom zip mo hdd
@@ -70,37 +95,28 @@ if(APPLE)
     # Force using the newest library if it's installed by homebrew
     set(CMAKE_FIND_FRAMEWORK LAST)
 
-    # setting our compilation target to macOS 10.15 Catalina if targetting Qt6, macOS 10.13 High Sierra otherwise
+    # setting our compilation target to macOS 10.15 Catalina if targeting Qt6,
+    # macOS 10.14 Mojave for vulkan support, 10.13 High Sierra otherwise
     if (USE_QT6)
         set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15")
     else()
-        set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
+        if(MOLTENVK)
+            set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14")
+        else()
+            set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
+        endif()
     endif()
 endif()
 
 find_package(Freetype REQUIRED)
 include_directories(${FREETYPE_INCLUDE_DIRS})
+if(FREETYPE_INCLUDE_DIR_ft2build)
+    include_directories(${FREETYPE_INCLUDE_DIR_ft2build})
+endif()
 if(APPLE)
     # Freetype is dynamically loaded by the emulator, however, we link it
     # on macOS so it gets copied to the bundle by the installation process
     target_link_libraries(86Box Freetype::Freetype)
-endif()
-
-if(OPENAL)
-    if(VCPKG_TOOLCHAIN)
-        find_package(OpenAL CONFIG REQUIRED)
-    elseif(MINGW)
-        find_package(OpenAL MODULE REQUIRED)
-    else()
-        find_package(OpenAL REQUIRED)
-    endif()
-
-    if(TARGET OpenAL::OpenAL)
-        target_link_libraries(86Box OpenAL::OpenAL)
-    else()
-        include_directories(${OPENAL_INCLUDE_DIR})
-        target_link_libraries(86Box ${OPENAL_LIBRARY})
-    endif()
 endif()
 
 find_package(SDL2 REQUIRED)
@@ -116,20 +132,6 @@ endif()
 find_package(PNG REQUIRED)
 include_directories(${PNG_INCLUDE_DIRS})
 target_link_libraries(86Box PNG::PNG)
-
-if(VCPKG_TOOLCHAIN)
-    # vcpkg includes a config file for rtmidi
-    find_package(RtMidi REQUIRED)
-    target_link_libraries(86Box RtMidi::rtmidi)
-else()
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(RTMIDI REQUIRED IMPORTED_TARGET rtmidi)
-    target_link_libraries(86Box PkgConfig::RTMIDI)
-
-    if(WIN32)
-        target_link_libraries(PkgConfig::RTMIDI INTERFACE winmm)
-    endif()
-endif()
 
 configure_file(include/86box/version.h.in include/86box/version.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
@@ -205,6 +207,7 @@ elseif(WIN32)
         OPTIONAL)
 endif()
 
+
 add_subdirectory(device)
 add_subdirectory(disk)
 add_subdirectory(floppy)
@@ -218,7 +221,7 @@ add_subdirectory(scsi)
 add_subdirectory(sound)
 add_subdirectory(video)
 if (APPLE)
-	add_subdirectory(mac)
+    add_subdirectory(mac)
 endif()
 
 if (QT)

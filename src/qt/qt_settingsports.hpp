@@ -7,8 +7,7 @@ namespace Ui {
 class SettingsPorts;
 }
 
-class SettingsPorts : public QWidget
-{
+class SettingsPorts : public QWidget {
     Q_OBJECT
 
 public:
@@ -16,6 +15,30 @@ public:
     ~SettingsPorts();
 
     void save();
+private slots:
+    void on_checkBoxSerialPassThru4_clicked(bool checked);
+
+private slots:
+    void on_checkBoxSerialPassThru3_clicked(bool checked);
+
+private slots:
+    void on_checkBoxSerialPassThru2_clicked(bool checked);
+
+private slots:
+    void on_pushButtonSerialPassThru4_clicked();
+
+private slots:
+    void on_pushButtonSerialPassThru3_clicked();
+
+private slots:
+    void on_pushButtonSerialPassThru2_clicked();
+
+private slots:
+    void on_pushButtonSerialPassThru1_clicked();
+
+private slots:
+    void on_checkBoxSerialPassThru1_clicked(bool checked);
+
 private slots:
     void on_checkBoxParallel3_stateChanged(int arg1);
     void on_checkBoxParallel2_stateChanged(int arg1);

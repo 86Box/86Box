@@ -1,24 +1,24 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the XT-style keyboard.
+ *          Implementation of the XT-style keyboard.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
- *		Fred N. van Kempen, <decwiz@yahoo.com>
- *      EngiNerd, <webmaster.crrc@yahoo.it>
+ * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
+ *          EngiNerd, <webmaster.crrc@yahoo.it>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2017-2019 Fred N. van kempen.
- *      Copyright 2020 EngiNerd.
+ *          Copyright 2008-2019 Sarah Walker.
+ *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2017-2019 Fred N. van kempen.
+ *          Copyright 2020 EngiNerd.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -45,43 +45,51 @@
 #include <86box/video.h>
 #include <86box/keyboard.h>
 
+#define STAT_PARITY   0x80
+#define STAT_RTIMEOUT 0x40
+#define STAT_TTIMEOUT 0x20
+#define STAT_LOCK     0x10
+#define STAT_CD       0x08
+#define STAT_SYSFLAG  0x04
+#define STAT_IFULL    0x02
+#define STAT_OFULL    0x01
 
-#define STAT_PARITY     0x80
-#define STAT_RTIMEOUT   0x40
-#define STAT_TTIMEOUT   0x20
-#define STAT_LOCK       0x10
-#define STAT_CD         0x08
-#define STAT_SYSFLAG    0x04
-#define STAT_IFULL      0x02
-#define STAT_OFULL      0x01
+/* Keyboard Types */
+enum {
+    KBD_TYPE_PC81 = 0,
+    KBD_TYPE_PC82,
+    KBD_TYPE_XT82,
+    KBD_TYPE_XT86,
+    KBD_TYPE_COMPAQ,
+    KBD_TYPE_TANDY,
+    KBD_TYPE_TOSHIBA,
+    KBD_TYPE_VTECH,
+    KBD_TYPE_OLIVETTI,
+    KBD_TYPE_ZENITH,
+    KBD_TYPE_PRAVETZ,
+    KBD_TYPE_HYUNDAI,
+    KBD_TYPE_XTCLONE
+};
 
-// Keyboard Types
-#define KBD_TYPE_PC81     0
-#define KBD_TYPE_PC82     1
-#define KBD_TYPE_XT82     2
-#define KBD_TYPE_XT86     3
-#define KBD_TYPE_COMPAQ   4
-#define KBD_TYPE_TANDY    5
-#define KBD_TYPE_TOSHIBA  6
-#define KBD_TYPE_VTECH    7
-#define KBD_TYPE_OLIVETTI 8
-#define KBD_TYPE_ZENITH   9
-
-typedef struct {
-    int want_irq;        
+typedef struct xtkbd_t {
+    int want_irq;
     int blocked;
     int tandy;
 
-    uint8_t pa, pb, pd;
+    uint8_t pa;
+    uint8_t pb;
+    uint8_t pd;
+    uint8_t clock;
     uint8_t key_waiting;
     uint8_t type;
+    uint8_t pravetz_flags;
 
     pc_timer_t send_delay_timer;
 } xtkbd_t;
 
-
 /*XT keyboard has no escape scancodes, and no scancodes beyond 53*/
 const scancode scancode_xt[512] = {
+  // clang-format off
     { {0},       {0}       }, { {0x01, 0}, {0x81, 0} },
     { {0x02, 0}, {0x82, 0} }, { {0x03, 0}, {0x83, 0} },
     { {0x04, 0}, {0x84, 0} }, { {0x05, 0}, {0x85, 0} },
@@ -125,232 +133,231 @@ const scancode scancode_xt[512] = {
     { {0x50, 0}, {0xd0, 0} }, { {0x51, 0}, {0xd1, 0} },
     { {0x52, 0}, {0xd2, 0} }, { {0x53, 0}, {0xd3, 0} },
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*054*/
+    { {0},             {0} }, { {0},             {0} }, /*054*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*058*/
+    { {0},             {0} }, { {0},             {0} }, /*058*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*05c*/
+    { {0},             {0} }, { {0},             {0} }, /*05c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*060*/
+    { {0},             {0} }, { {0},             {0} }, /*060*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*064*/
+    { {0},             {0} }, { {0},             {0} }, /*064*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*068*/
+    { {0},             {0} }, { {0},             {0} }, /*068*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*06c*/
+    { {0},             {0} }, { {0},             {0} }, /*06c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*070*/
+    { {0},             {0} }, { {0},             {0} }, /*070*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*074*/
+    { {0},             {0} }, { {0},             {0} }, /*074*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*078*/
+    { {0},             {0} }, { {0},             {0} }, /*078*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*07c*/
+    { {0},             {0} }, { {0},             {0} }, /*07c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*080*/
+    { {0},             {0} }, { {0},             {0} }, /*080*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*084*/
+    { {0},             {0} }, { {0},             {0} }, /*084*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*088*/
+    { {0},             {0} }, { {0},             {0} }, /*088*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*08c*/
+    { {0},             {0} }, { {0},             {0} }, /*08c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*090*/
+    { {0},             {0} }, { {0},             {0} }, /*090*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*094*/
+    { {0},             {0} }, { {0},             {0} }, /*094*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*098*/
+    { {0},             {0} }, { {0},             {0} }, /*098*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*09c*/
+    { {0},             {0} }, { {0},             {0} }, /*09c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0a0*/
+    { {0},             {0} }, { {0},             {0} }, /*0a0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0a4*/
+    { {0},             {0} }, { {0},             {0} }, /*0a4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0a8*/
+    { {0},             {0} }, { {0},             {0} }, /*0a8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0ac*/
+    { {0},             {0} }, { {0},             {0} }, /*0ac*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0b0*/
+    { {0},             {0} }, { {0},             {0} }, /*0b0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0b4*/
+    { {0},             {0} }, { {0},             {0} }, /*0b4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0b8*/
+    { {0},             {0} }, { {0},             {0} }, /*0b8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0bc*/
+    { {0},             {0} }, { {0},             {0} }, /*0bc*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0c0*/
+    { {0},             {0} }, { {0},             {0} }, /*0c0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0c4*/
+    { {0},             {0} }, { {0},             {0} }, /*0c4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0c8*/
+    { {0},             {0} }, { {0},             {0} }, /*0c8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0cc*/
+    { {0},             {0} }, { {0},             {0} }, /*0cc*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0d0*/
+    { {0},             {0} }, { {0},             {0} }, /*0d0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0d4*/
+    { {0},             {0} }, { {0},             {0} }, /*0d4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0d8*/
+    { {0},             {0} }, { {0},             {0} }, /*0d8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0dc*/
+    { {0},             {0} }, { {0},             {0} }, /*0dc*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0e0*/
+    { {0},             {0} }, { {0},             {0} }, /*0e0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0e4*/
+    { {0},             {0} }, { {0},             {0} }, /*0e4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0e8*/
+    { {0},             {0} }, { {0},             {0} }, /*0e8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0ec*/
+    { {0},             {0} }, { {0},             {0} }, /*0ec*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0f0*/
+    { {0},             {0} }, { {0},             {0} }, /*0f0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0f4*/
+    { {0},             {0} }, { {0},             {0} }, /*0f4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0f8*/
+    { {0},             {0} }, { {0},             {0} }, /*0f8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*0fc*/
+    { {0},             {0} }, { {0},             {0} }, /*0fc*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*100*/
+    { {0},             {0} }, { {0},             {0} }, /*100*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*104*/
+    { {0},             {0} }, { {0},             {0} }, /*104*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*108*/
+    { {0},             {0} }, { {0},             {0} }, /*108*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*10c*/
+    { {0},             {0} }, { {0},             {0} }, /*10c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*110*/
+    { {0},             {0} }, { {0},             {0} }, /*110*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*114*/
+    { {0},             {0} }, { {0},             {0} }, /*114*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*118*/
+    { {0},             {0} }, { {0},             {0} }, /*118*/
     { {0x1c, 0}, {0x9c, 0} }, { {0x1d, 0}, {0x9d, 0} },
-    { {0},             {0} }, { {0},             {0} },	/*11c*/
+    { {0},             {0} }, { {0},             {0} }, /*11c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*120*/
+    { {0},             {0} }, { {0},             {0} }, /*120*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*124*/
+    { {0},             {0} }, { {0},             {0} }, /*124*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*128*/
+    { {0},             {0} }, { {0},             {0} }, /*128*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*12c*/
+    { {0},             {0} }, { {0},             {0} }, /*12c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*130*/
+    { {0},             {0} }, { {0},             {0} }, /*130*/
     { {0},             {0} }, { {0x35, 0}, {0xb5, 0} },
-    { {0},             {0} }, { {0x37, 0}, {0xb7, 0} },	/*134*/
+    { {0},             {0} }, { {0x37, 0}, {0xb7, 0} }, /*134*/
     { {0x38, 0}, {0xb8, 0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*138*/
+    { {0},             {0} }, { {0},             {0} }, /*138*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*13c*/
+    { {0},             {0} }, { {0},             {0} }, /*13c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*140*/
+    { {0},             {0} }, { {0},             {0} }, /*140*/
     { {0},             {0} }, { {0},             {0} },
-    { {0x46, 0}, {0xc6, 0} }, { {0x47, 0}, {0xc7, 0} },	/*144*/
+    { {0x46, 0}, {0xc6, 0} }, { {0x47, 0}, {0xc7, 0} }, /*144*/
     { {0x48, 0}, {0xc8, 0} }, { {0x49, 0}, {0xc9, 0} },
-    { {0},             {0} }, { {0x4b, 0}, {0xcb, 0} },	/*148*/
+    { {0},             {0} }, { {0x4b, 0}, {0xcb, 0} }, /*148*/
     { {0},             {0} }, { {0x4d, 0}, {0xcd, 0} },
-    { {0},             {0} }, { {0x4f, 0}, {0xcf, 0} },	/*14c*/
+    { {0},             {0} }, { {0x4f, 0}, {0xcf, 0} }, /*14c*/
     { {0x50, 0}, {0xd0, 0} }, { {0x51, 0}, {0xd1, 0} },
-    { {0x52, 0}, {0xd2, 0} }, { {0x53, 0}, {0xd3, 0} },	/*150*/
+    { {0x52, 0}, {0xd2, 0} }, { {0x53, 0}, {0xd3, 0} }, /*150*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*154*/
+    { {0},             {0} }, { {0},             {0} }, /*154*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*158*/
+    { {0},             {0} }, { {0},             {0} }, /*158*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*15c*/
+    { {0},             {0} }, { {0},             {0} }, /*15c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*160*/
+    { {0},             {0} }, { {0},             {0} }, /*160*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*164*/
+    { {0},             {0} }, { {0},             {0} }, /*164*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*168*/
+    { {0},             {0} }, { {0},             {0} }, /*168*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*16c*/
+    { {0},             {0} }, { {0},             {0} }, /*16c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*170*/
+    { {0},             {0} }, { {0},             {0} }, /*170*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*174*/
+    { {0},             {0} }, { {0},             {0} }, /*174*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*148*/
+    { {0},             {0} }, { {0},             {0} }, /*148*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*17c*/
+    { {0},             {0} }, { {0},             {0} }, /*17c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*180*/
+    { {0},             {0} }, { {0},             {0} }, /*180*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*184*/
+    { {0},             {0} }, { {0},             {0} }, /*184*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*88*/
+    { {0},             {0} }, { {0},             {0} }, /*88*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*18c*/
+    { {0},             {0} }, { {0},             {0} }, /*18c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*190*/
+    { {0},             {0} }, { {0},             {0} }, /*190*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*194*/
+    { {0},             {0} }, { {0},             {0} }, /*194*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*198*/
+    { {0},             {0} }, { {0},             {0} }, /*198*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*19c*/
+    { {0},             {0} }, { {0},             {0} }, /*19c*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1a0*/
+    { {0},             {0} }, { {0},             {0} }, /*1a0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1a4*/
+    { {0},             {0} }, { {0},             {0} }, /*1a4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1a8*/
+    { {0},             {0} }, { {0},             {0} }, /*1a8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1ac*/
+    { {0},             {0} }, { {0},             {0} }, /*1ac*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1b0*/
+    { {0},             {0} }, { {0},             {0} }, /*1b0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1b4*/
+    { {0},             {0} }, { {0},             {0} }, /*1b4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1b8*/
+    { {0},             {0} }, { {0},             {0} }, /*1b8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1bc*/
+    { {0},             {0} }, { {0},             {0} }, /*1bc*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1c0*/
+    { {0},             {0} }, { {0},             {0} }, /*1c0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1c4*/
+    { {0},             {0} }, { {0},             {0} }, /*1c4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1c8*/
+    { {0},             {0} }, { {0},             {0} }, /*1c8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1cc*/
+    { {0},             {0} }, { {0},             {0} }, /*1cc*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1d0*/
+    { {0},             {0} }, { {0},             {0} }, /*1d0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1d4*/
+    { {0},             {0} }, { {0},             {0} }, /*1d4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1d8*/
+    { {0},             {0} }, { {0},             {0} }, /*1d8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1dc*/
+    { {0},             {0} }, { {0},             {0} }, /*1dc*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1e0*/
+    { {0},             {0} }, { {0},             {0} }, /*1e0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1e4*/
+    { {0},             {0} }, { {0},             {0} }, /*1e4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1e8*/
+    { {0},             {0} }, { {0},             {0} }, /*1e8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1ec*/
+    { {0},             {0} }, { {0},             {0} }, /*1ec*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1f0*/
+    { {0},             {0} }, { {0},             {0} }, /*1f0*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1f4*/
+    { {0},             {0} }, { {0},             {0} }, /*1f4*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} },	/*1f8*/
+    { {0},             {0} }, { {0},             {0} }, /*1f8*/
     { {0},             {0} }, { {0},             {0} },
-    { {0},             {0} }, { {0},             {0} }	/*1fc*/
+    { {0},             {0} }, { {0},             {0} } /*1fc*/
+  // clang-format on
 };
 
-
-static uint8_t	key_queue[16];
-static int	key_queue_start = 0,
-		key_queue_end = 0;
-static int	is_tandy = 0, is_t1x00 = 0,
-		is_amstrad = 0;
-
+static uint8_t key_queue[16];
+static int     key_queue_start = 0;
+static int     key_queue_end   = 0;
+static int     is_tandy = 0;
+static int     is_t1x00 = 0;
+static int     is_amstrad = 0;
 
 #ifdef ENABLE_KEYBOARD_XT_LOG
 int keyboard_xt_do_log = ENABLE_KEYBOARD_XT_LOG;
-
 
 static void
 kbd_log(const char *fmt, ...)
@@ -358,23 +365,24 @@ kbd_log(const char *fmt, ...)
     va_list ap;
 
     if (keyboard_xt_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
 #else
-#define kbd_log(fmt, ...)
+#    define kbd_log(fmt, ...)
 #endif
 
 static uint8_t
-get_fdd_switch_settings() {
+get_fdd_switch_settings(void)
+{
 
-    int i, fdd_count = 0;
-    
-    for (i = 0; i < FDD_NUM; i++) {
-                if (fdd_get_flags(i))
-                    fdd_count++;
+    uint8_t fdd_count = 0;
+
+    for (uint8_t i = 0; i < FDD_NUM; i++) {
+        if (fdd_get_flags(i))
+            fdd_count++;
     }
 
     if (!fdd_count)
@@ -384,12 +392,13 @@ get_fdd_switch_settings() {
 }
 
 static uint8_t
-get_videomode_switch_settings() {
+get_videomode_switch_settings(void)
+{
 
     if (video_is_mda())
         return 0x30;
     else if (video_is_cga())
-        return 0x20;	/* 0x10 would be 40x25 */
+        return 0x20; /* 0x10 would be 40x25 */
     else
         return 0x00;
 }
@@ -397,108 +406,116 @@ get_videomode_switch_settings() {
 static void
 kbd_poll(void *priv)
 {
-    xtkbd_t *kbd = (xtkbd_t *)priv;
+    xtkbd_t *kbd = (xtkbd_t *) priv;
 
     timer_advance_u64(&kbd->send_delay_timer, 1000 * TIMER_USEC);
 
     if (!(kbd->pb & 0x40) && (kbd->type != KBD_TYPE_TANDY))
-	return;
+        return;
 
     if (kbd->want_irq) {
-	kbd->want_irq = 0;
-	kbd->pa = kbd->key_waiting;
-	kbd->blocked = 1;
-	picint(2);
+        kbd->want_irq = 0;
+        kbd->pa       = kbd->key_waiting;
+        kbd->blocked  = 1;
+        picint(2);
 #ifdef ENABLE_KEYBOARD_XT_LOG
-	kbd_log("kbd_poll(): keyboard_xt : take IRQ\n");
+        kbd_log("XTkbd: kbd_poll(): keyboard_xt : take IRQ\n");
 #endif
     }
 
     if ((key_queue_start != key_queue_end) && !kbd->blocked) {
-	kbd->key_waiting = key_queue[key_queue_start];
-	kbd_log("XTkbd: reading %02X from the key queue at %i\n",
-		kbd->key_waiting, key_queue_start);
-	key_queue_start = (key_queue_start + 1) & 0x0f;
-	kbd->want_irq = 1;
+        kbd->key_waiting = key_queue[key_queue_start];
+        kbd_log("XTkbd: reading %02X from the key queue at %i\n",
+                kbd->key_waiting, key_queue_start);
+        key_queue_start = (key_queue_start + 1) & 0x0f;
+        kbd->want_irq   = 1;
     }
 }
-
 
 static void
 kbd_adddata(uint16_t val)
 {
     /* Test for T1000 'Fn' key (Right Alt / Right Ctrl) */
     if (is_t1x00) {
- 	if (keyboard_recv(0xb8) || keyboard_recv(0x9d)) {	/* 'Fn' pressed */
-		t1000_syskey(0x00, 0x04, 0x00);	/* Set 'Fn' indicator */
-		switch (val) {
-			case 0x45: /* Num Lock => toggle numpad */
-				t1000_syskey(0x00, 0x00, 0x10); break;
-			case 0x47: /* Home => internal display */
-				t1000_syskey(0x40, 0x00, 0x00); break;
-			case 0x49: /* PgDn => turbo on */
-				t1000_syskey(0x80, 0x00, 0x00); break;
-			case 0x4D: /* Right => toggle LCD font */
-				t1000_syskey(0x00, 0x00, 0x20); break;
-			case 0x4F: /* End => external display */
-				t1000_syskey(0x00, 0x40, 0x00); break;
-			case 0x51: /* PgDn => turbo off */
-				t1000_syskey(0x00, 0x80, 0x00); break;
-			case 0x54: /* SysRQ => toggle window */
-				t1000_syskey(0x00, 0x00, 0x08); break;
-		}
-	} else
-		t1000_syskey(0x04, 0x00, 0x00);	/* Reset 'Fn' indicator */
+        if (keyboard_recv(0x138) || keyboard_recv(0x11d)) { /* 'Fn' pressed */
+            t1000_syskey(0x00, 0x04, 0x00);                 /* Set 'Fn' indicator */
+            switch (val) {
+                case 0x45: /* Num Lock => toggle numpad */
+                    t1000_syskey(0x00, 0x00, 0x10);
+                    break;
+                case 0x47: /* Home => internal display */
+                    t1000_syskey(0x40, 0x00, 0x00);
+                    break;
+                case 0x49: /* PgDn => turbo on */
+                    t1000_syskey(0x80, 0x00, 0x00);
+                    break;
+                case 0x4D: /* Right => toggle LCD font */
+                    t1000_syskey(0x00, 0x00, 0x20);
+                    break;
+                case 0x4F: /* End => external display */
+                    t1000_syskey(0x00, 0x40, 0x00);
+                    break;
+                case 0x51: /* PgDn => turbo off */
+                    t1000_syskey(0x00, 0x80, 0x00);
+                    break;
+                case 0x54: /* SysRQ => toggle window */
+                    t1000_syskey(0x00, 0x00, 0x08);
+                    break;
+
+                default:
+                    break;
+            }
+        } else
+            t1000_syskey(0x04, 0x00, 0x00); /* Reset 'Fn' indicator */
     }
 
     key_queue[key_queue_end] = val;
     kbd_log("XTkbd: %02X added to key queue at %i\n",
-	    val, key_queue_end);
+            val, key_queue_end);
     key_queue_end = (key_queue_end + 1) & 0x0f;
 }
-
 
 void
 kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
 {
-    uint8_t num_lock = 0, shift_states = 0;
+    uint8_t num_lock = 0;
+    uint8_t shift_states = 0;
 
     if (!adddata)
-	return;
+        return;
 
     keyboard_get_states(NULL, &num_lock, NULL);
     shift_states = keyboard_get_shift() & STATE_LSHIFT;
 
     if (is_amstrad)
-	num_lock = !num_lock;
+        num_lock = !num_lock;
 
     /* If NumLock is on, invert the left shift state so we can always check for
        the the same way flag being set (and with NumLock on that then means it
        is actually *NOT* set). */
     if (num_lock)
-	shift_states ^= STATE_LSHIFT;
+        shift_states ^= STATE_LSHIFT;
 
-    switch(val) {
-	case FAKE_LSHIFT_ON:
-		/* If NumLock is on, fake shifts are sent when shift is *NOT* presed,
-		   if NumLock is off, fake shifts are sent when shift is pressed. */
-		if (shift_states) {
-			/* Send fake shift. */
-			adddata(num_lock ? 0x2a : 0xaa);
-		}
-		break;
-	case FAKE_LSHIFT_OFF:
-		if (shift_states) {
-			/* Send fake shift. */
-			adddata(num_lock ? 0xaa : 0x2a);
-		}
-		break;
-	default:
-		adddata(val);
-		break;
+    switch (val) {
+        case FAKE_LSHIFT_ON:
+            /* If NumLock is on, fake shifts are sent when shift is *NOT* presed,
+               if NumLock is off, fake shifts are sent when shift is pressed. */
+            if (shift_states) {
+                /* Send fake shift. */
+                adddata(num_lock ? 0x2a : 0xaa);
+            }
+            break;
+        case FAKE_LSHIFT_OFF:
+            if (shift_states) {
+                /* Send fake shift. */
+                adddata(num_lock ? 0xaa : 0x2a);
+            }
+            break;
+        default:
+            adddata(val);
+            break;
     }
 }
-
 
 static void
 kbd_adddata_ex(uint16_t val)
@@ -506,180 +523,215 @@ kbd_adddata_ex(uint16_t val)
     kbd_adddata_process(val, kbd_adddata);
 }
 
-
 static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
-    xtkbd_t *kbd = (xtkbd_t *)priv;
+    xtkbd_t *kbd = (xtkbd_t *) priv;
+    uint8_t  bit;
+    uint8_t  set;
+    uint8_t  new_clock;
 
     switch (port) {
-	case 0x61: /* Keyboard Control Register (aka Port B) */
-		if (!(kbd->pb & 0x40) && (val & 0x40)) {
-			key_queue_start = key_queue_end = 0;
-			kbd->want_irq = 0;
-			kbd->blocked = 0;
-			kbd_adddata(0xaa);
-		}
-		kbd->pb = val;
-		ppi.pb = val;
+        case 0x61: /* Keyboard Control Register (aka Port B) */
+            if (!(val & 0x80) || (kbd->type == KBD_TYPE_HYUNDAI)) {
+                new_clock = !!(val & 0x40);
+                if (!kbd->clock && new_clock) {
+                    key_queue_start = key_queue_end = 0;
+                    kbd->want_irq                   = 0;
+                    kbd->blocked                    = 0;
+                    kbd_adddata(0xaa);
+                }
+            }
+            kbd->pb = val;
+            if (!(kbd->pb & 0x80) || (kbd->type == KBD_TYPE_HYUNDAI))
+                kbd->clock = !!(kbd->pb & 0x40);
+            ppi.pb = val;
 
-        timer_process();
+            timer_process();
 
-		if (((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)) && (cassette != NULL))
-			pc_cas_set_motor(cassette, (kbd->pb & 0x08) == 0);
+            if (((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
+                (kbd->type == KBD_TYPE_PRAVETZ)) && (cassette != NULL))
+                pc_cas_set_motor(cassette, (kbd->pb & 0x08) == 0);
 
-		speaker_update();
+            speaker_update();
 
-		speaker_gated = val & 1;
-		speaker_enable = val & 2;
+            speaker_gated  = val & 1;
+            speaker_enable = val & 2;
 
-		if (speaker_enable) 
-			was_speaker_enable = 1;
-		pit_ctr_set_gate(&pit->counters[2], val & 1);
+            if (speaker_enable)
+                was_speaker_enable = 1;
+            pit_devs[0].set_gate(pit_devs[0].data, 2, val & 1);
 
-		if (val & 0x80) {
-			kbd->pa = 0;
-			kbd->blocked = 0;
-			picintc(2);
-		}
+            if (val & 0x80) {
+                kbd->pa      = 0;
+                kbd->blocked = 0;
+                picintc(2);
+            }
 
 #ifdef ENABLE_KEYBOARD_XT_LOG
-		if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82))
-			kbd_log("Cassette motor is %s\n", !(val & 0x08) ? "ON" : "OFF");
+            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ))
+                kbd_log("XTkbd: Cassette motor is %s\n", !(val & 0x08) ? "ON" : "OFF");
 #endif
-		break;
+            break;
 #ifdef ENABLE_KEYBOARD_XT_LOG
-	case 0x62: /* Switch Register (aka Port C) */
-		if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82))
-			kbd_log("Cassette IN is %i\n", !!(val & 0x10));
-		break;
+        case 0x62: /* Switch Register (aka Port C) */
+            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ))
+                kbd_log("XTkbd: Cassette IN is %i\n", !!(val & 0x10));
+            break;
 #endif
+
+        case 0xc0 ... 0xcf: /* Pravetz Flags */
+            kbd_log("XTkbd: Port %02X out: %02X\n", port, val);
+            if (kbd->type == KBD_TYPE_PRAVETZ) {
+                bit                = (port >> 1) & 0x07;
+                set                = (port & 0x01) << bit;
+                kbd->pravetz_flags = (kbd->pravetz_flags & ~(1 << bit)) | set;
+            }
+            break;
+
+        default:
+            break;
     }
 }
-
 
 static uint8_t
 kbd_read(uint16_t port, void *priv)
 {
-    xtkbd_t *kbd = (xtkbd_t *)priv;
-    uint8_t ret = 0xff;
+    const xtkbd_t *kbd = (xtkbd_t *) priv;
+    uint8_t        ret = 0xff;
 
     switch (port) {
-	case 0x60: /* Keyboard Data Register  (aka Port A) */
-		if ((kbd->pb & 0x80) && ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)
-                || (kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86)
-                || (kbd->type == KBD_TYPE_ZENITH))) {
-			if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82))
-				ret = (kbd->pd & ~0x02) | (hasfpu ? 0x02 : 0x00);
-			else if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86))
-				ret = 0xff;	/* According to Ruud on the PCem forum, this is supposed to return 0xFF on the XT. */
-			else if (kbd->type == KBD_TYPE_ZENITH) {
-				/* Zenith Data Systems Z-151
-				 * SW1 switch settings:
-				 * bits 6-7: floppy drive number
-				 * bits 4-5: video mode
-				 * bit 2-3: base memory size
-				 * bit 1: fpu enable
-				 * bit 0: fdc enable
-				 */
-				ret = get_fdd_switch_settings();
+        case 0x60: /* Keyboard Data Register  (aka Port A) */
+            if ((kbd->pb & 0x80) && ((kbd->type == KBD_TYPE_PC81) ||
+                (kbd->type == KBD_TYPE_PC82) || (kbd->type == KBD_TYPE_PRAVETZ) ||
+                (kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86) ||
+                (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) ||
+                (kbd->type == KBD_TYPE_ZENITH) || (kbd->type == KBD_TYPE_HYUNDAI))) {
+                if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
+                    (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) ||
+                    (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_HYUNDAI))
+                    ret = (kbd->pd & ~0x02) | (hasfpu ? 0x02 : 0x00);
+                else if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86))
+                    /* According to Ruud on the PCem forum, this is supposed to
+                       return 0xFF on the XT. */
+                    ret = 0xff;
+                else if (kbd->type == KBD_TYPE_ZENITH) {
+                    /* Zenith Data Systems Z-151
+                     * SW1 switch settings:
+                     * bits 6-7: floppy drive number
+                     * bits 4-5: video mode
+                     * bit 2-3: base memory size
+                     * bit 1: fpu enable
+                     * bit 0: fdc enable
+                     */
+                    ret = get_fdd_switch_settings();
 
-				ret |= get_videomode_switch_settings();
+                    ret |= get_videomode_switch_settings();
 
-				/* Base memory size should always be 64k */
-				ret |= 0x0c;
+                    /* Base memory size should always be 64k */
+                    ret |= 0x0c;
 
-				if (hasfpu)
-					ret |= 0x02;
-			}
-		} else
-			ret = kbd->pa;
-		break;
-
-	case 0x61: /* Keyboard Control Register (aka Port B) */
-		ret = kbd->pb;
-		break;
-
-	case 0x62: /* Switch Register (aka Port C) */
-		if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)) {
-			if (kbd->pb & 0x04) /* PB2 */
-                switch (mem_size + isa_mem_size) {
-                    case 64:
-                    case 48:
-                    case 32:
-                    case 16:
-                        ret = 0x00;
-                        break;
-                    default:
-                        ret = (((mem_size + isa_mem_size) - 64) / 32) & 0x0f;
-                        break;
+                    if (hasfpu)
+                        ret |= 0x02;
                 }
-			else
-				ret = (((mem_size + isa_mem_size) - 64) / 32) >> 4;
-		}  else if (kbd->type == KBD_TYPE_OLIVETTI
-                        || kbd->type == KBD_TYPE_ZENITH) {
-			/* Olivetti M19 or Zenith Data Systems Z-151 */
-			if (kbd->pb & 0x04) /* PB2 */
-				ret = kbd->pd & 0xbf;
-			else
-				ret = kbd->pd >> 4;
-		} else {
-			if (kbd->pb & 0x08) /* PB3 */
-				ret = kbd->pd >> 4;
-			else {
-				/* LaserXT = Always 512k RAM;
-				   LaserXT/3 = Bit 0: set = 512k, clear = 256k. */
+            } else
+                ret = kbd->pa;
+            break;
+
+        case 0x61: /* Keyboard Control Register (aka Port B) */
+            ret = kbd->pb;
+            break;
+
+        case 0x62: /* Switch Register (aka Port C) */
+            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
+                (kbd->type == KBD_TYPE_PRAVETZ)) {
+                if (kbd->pb & 0x04) /* PB2 */
+                    switch (mem_size + isa_mem_size) {
+                        case 64:
+                        case 48:
+                        case 32:
+                        case 16:
+                            ret = 0x00;
+                            break;
+                        default:
+                            ret = (((mem_size + isa_mem_size) - 64) / 32) & 0x0f;
+                            break;
+                    }
+                else
+                    ret = (((mem_size + isa_mem_size) - 64) / 32) >> 4;
+            } else if ((kbd->type == KBD_TYPE_OLIVETTI) ||
+                       (kbd->type == KBD_TYPE_ZENITH)) {
+                /* Olivetti M19 or Zenith Data Systems Z-151 */
+                if (kbd->pb & 0x04) /* PB2 */
+                    ret = kbd->pd & 0xbf;
+                else
+                    ret = kbd->pd >> 4;
+            } else {
+                if (kbd->pb & 0x08) /* PB3 */
+                    ret = kbd->pd >> 4;
+                else {
+                    /* LaserXT = Always 512k RAM;
+                       LaserXT/3 = Bit 0: set = 512k, clear = 256k. */
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
-				if (kbd->type == KBD_TYPE_TOSHIBA)
-					ret = ((mem_size == 512) ? 0x0d : 0x0c) | (hasfpu ? 0x02 : 0x00);
-				else
+                    if (kbd->type == KBD_TYPE_VTECH)
+                        ret = ((mem_size == 512) ? 0x0d : 0x0c) | (hasfpu ? 0x02 : 0x00);
+                    else
 #endif
-					ret = (kbd->pd & 0x0d) | (hasfpu ? 0x02 : 0x00);
-			}
-		}
-		ret |= (ppispeakon ? 0x20 : 0);
+                        ret = (kbd->pd & 0x0d) | (hasfpu ? 0x02 : 0x00);
+                }
+            }
+            ret |= (ppispeakon ? 0x20 : 0);
 
-		/* This is needed to avoid error 131 (cassette error).
-		   This is serial read: bit 5 = clock, bit 4 = data, cassette header is 256 x 0xff. */
-		if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)) {
-			if (cassette == NULL)
-				ret |= (ppispeakon ? 0x10 : 0);
-			else
-				ret |= (pc_cas_get_inp(cassette) ? 0x10 : 0);
-		}
+            /* This is needed to avoid error 131 (cassette error).
+               This is serial read: bit 5 = clock, bit 4 = data, cassette header is 256 x 0xff. */
+            if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
+                (kbd->type == KBD_TYPE_PRAVETZ)) {
+                if (cassette == NULL)
+                    ret |= (ppispeakon ? 0x10 : 0);
+                else
+                    ret |= (pc_cas_get_inp(cassette) ? 0x10 : 0);
+            }
 
-		if (kbd->type == KBD_TYPE_TANDY)
-			ret |= (tandy1k_eeprom_read() ? 0x10 : 0);
-		break;
+            if (kbd->type == KBD_TYPE_TANDY)
+                ret |= (tandy1k_eeprom_read() ? 0x10 : 0);
+            break;
 
-	case 0x63: /* Keyboard Configuration Register (aka Port D) */
-		if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86)
-                || (kbd->type == KBD_TYPE_COMPAQ)
-                || (kbd->type == KBD_TYPE_TOSHIBA))
-			ret = kbd->pd;
-		break;
+        case 0x63: /* Keyboard Configuration Register (aka Port D) */
+            if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86) ||
+                (kbd->type == KBD_TYPE_XTCLONE) || (kbd->type == KBD_TYPE_COMPAQ) ||
+                (kbd->type == KBD_TYPE_TOSHIBA) || (kbd->type == KBD_TYPE_HYUNDAI))
+                ret = kbd->pd;
+            break;
+
+        case 0xc0: /* Pravetz Flags */
+            if (kbd->type == KBD_TYPE_PRAVETZ)
+                ret = kbd->pravetz_flags;
+            kbd_log("XTkbd: Port %02X in : %02X\n", port, ret);
+            break;
+
+        default:
+            break;
     }
 
-    return(ret);
+    return ret;
 }
-
 
 static void
 kbd_reset(void *priv)
 {
-    xtkbd_t *kbd = (xtkbd_t *)priv;
+    xtkbd_t *kbd = (xtkbd_t *) priv;
 
-    kbd->want_irq = 0;
-    kbd->blocked = 0;
-    kbd->pa = 0x00;
-    kbd->pb = 0x00;
+    kbd->want_irq      = 0;
+    kbd->blocked       = 0;
+    kbd->pa            = 0x00;
+    kbd->pb            = 0x00;
+    kbd->pravetz_flags = 0x00;
 
     keyboard_scan = 1;
 
-    key_queue_start = 0,
-    key_queue_end = 0;
+    key_queue_start = 0;
+    key_queue_end   = 0;
 }
-
 
 void
 keyboard_set_is_amstrad(int ams)
@@ -687,51 +739,53 @@ keyboard_set_is_amstrad(int ams)
     is_amstrad = ams;
 }
 
-
 static void *
 kbd_init(const device_t *info)
 {
     xtkbd_t *kbd;
 
-    kbd = (xtkbd_t *)malloc(sizeof(xtkbd_t));
+    kbd = (xtkbd_t *) malloc(sizeof(xtkbd_t));
     memset(kbd, 0x00, sizeof(xtkbd_t));
 
     io_sethandler(0x0060, 4,
-		  kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
+                  kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
     keyboard_send = kbd_adddata_ex;
     kbd_reset(kbd);
     kbd->type = info->local;
+    if (kbd->type == KBD_TYPE_PRAVETZ) {
+        io_sethandler(0x00c0, 16,
+                      kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
+    }
 
     key_queue_start = key_queue_end = 0;
 
-    video_reset(gfxcard);
+    video_reset(gfxcard[0]);
 
-    if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)
-            || (kbd->type == KBD_TYPE_XT82) || (kbd->type <= KBD_TYPE_XT86)
-            || (kbd->type == KBD_TYPE_COMPAQ)
-            || (kbd->type == KBD_TYPE_TOSHIBA)
-            || (kbd->type == KBD_TYPE_OLIVETTI)) {
-
+    if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82) ||
+        (kbd->type == KBD_TYPE_PRAVETZ) || (kbd->type == KBD_TYPE_XT82) ||
+        (kbd->type <= KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_XTCLONE) ||
+        (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_TOSHIBA) ||
+        (kbd->type == KBD_TYPE_OLIVETTI) || (kbd->type == KBD_TYPE_HYUNDAI)) {
         /* DIP switch readout: bit set = OFF, clear = ON. */
         if (kbd->type == KBD_TYPE_OLIVETTI)
-		/* Olivetti M19
-		 * Jumpers J1, J2 - monitor type. 
-		 * 01 - mono (high-res)
-		 * 10 - color (low-res, disables 640x400x2 mode)
-		 * 00 - autoswitching
-		 */
-		    kbd->pd |= 0x00;
-	    else
-		    /* Switches 7, 8 - floppy drives. */
-		    kbd->pd = get_fdd_switch_settings();
+            /* Olivetti M19
+             * Jumpers J1, J2 - monitor type.
+             * 01 - mono (high-res)
+             * 10 - color (low-res, disables 640x400x2 mode)
+             * 00 - autoswitching
+             */
+            kbd->pd |= 0x00;
+        else
+            /* Switches 7, 8 - floppy drives. */
+            kbd->pd = get_fdd_switch_settings();
 
         /* Siitches 5, 6 - video card type */
-	    kbd->pd |= get_videomode_switch_settings();
+        kbd->pd |= get_videomode_switch_settings();
 
         /* Switches 3, 4 - memory size. */
-        if ((kbd->type == KBD_TYPE_XT86)
-                || (kbd->type == KBD_TYPE_COMPAQ)
-                || (kbd->type == KBD_TYPE_TOSHIBA)) {
+        if ((kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_XTCLONE) ||
+            (kbd->type == KBD_TYPE_HYUNDAI) || (kbd->type == KBD_TYPE_COMPAQ) ||
+            (kbd->type == KBD_TYPE_TOSHIBA)) {
             switch (mem_size) {
                 case 256:
                     kbd->pd |= 0x00;
@@ -747,9 +801,9 @@ kbd_init(const device_t *info)
                     kbd->pd |= 0x0c;
                     break;
             }
-	    } else if (kbd->type == KBD_TYPE_XT82) {
+        } else if (kbd->type == KBD_TYPE_XT82) {
             switch (mem_size) {
-                case 64:  /* 1x64k */
+                case 64: /* 1x64k */
                     kbd->pd |= 0x00;
                     break;
                 case 128: /* 2x64k */
@@ -763,7 +817,7 @@ kbd_init(const device_t *info)
                     kbd->pd |= 0x0c;
                     break;
             }
-	    } else if (kbd->type == KBD_TYPE_PC82) {
+        } else if (kbd->type == KBD_TYPE_PC82) {
             switch (mem_size) {
                 case 192: /* 3x64k, not supported by stock BIOS due to bugs */
                     kbd->pd |= 0x08;
@@ -793,19 +847,19 @@ kbd_init(const device_t *info)
                 default:
                     kbd->pd |= 0x0c;
                     break;
-    		}
-	    }
+            }
+        }
 
         /* Switch 2 - 8087 FPU. */
         if (hasfpu)
             kbd->pd |= 0x02;
-    } else if (kbd-> type == KBD_TYPE_ZENITH) {
+    } else if (kbd->type == KBD_TYPE_ZENITH) {
         /* Zenith Data Systems Z-151
-        * SW2 switch settings:
-        * bit 7: monitor frequency
-        * bits 5-6: autoboot (00-11 resident monitor, 10 hdd, 01 fdd)
-        * bits 0-4: installed memory
-        */
+         * SW2 switch settings:
+         * bit 7: monitor frequency
+         * bits 5-6: autoboot (00-11 resident monitor, 10 hdd, 01 fdd)
+         * bits 0-4: installed memory
+         */
         kbd->pd = 0x20;
         switch (mem_size) {
             case 128:
@@ -848,14 +902,13 @@ kbd_init(const device_t *info)
 
     is_amstrad = 0;
 
-    return(kbd);
+    return kbd;
 }
-
 
 static void
 kbd_close(void *priv)
 {
-    xtkbd_t *kbd = (xtkbd_t *)priv;
+    xtkbd_t *kbd = (xtkbd_t *) priv;
 
     /* Stop the timer. */
     timer_disable(&kbd->send_delay_timer);
@@ -866,120 +919,191 @@ kbd_close(void *priv)
     keyboard_send = NULL;
 
     io_removehandler(0x0060, 4,
-		     kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
+                     kbd_read, NULL, NULL, kbd_write, NULL, NULL, kbd);
 
     free(kbd);
 }
 
-
 const device_t keyboard_pc_device = {
-    "IBM PC Keyboard (1981)",
-    "keyboard_pc",
-    0,
-    KBD_TYPE_PC81,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name          = "IBM PC Keyboard (1981)",
+    .internal_name = "keyboard_pc",
+    .flags         = 0,
+    .local         = KBD_TYPE_PC81,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t keyboard_pc82_device = {
-    "IBM PC Keyboard (1982)",
-    "keyboard_pc82",
-    0,
-    KBD_TYPE_PC82,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name          = "IBM PC Keyboard (1982)",
+    .internal_name = "keyboard_pc82",
+    .flags         = 0,
+    .local         = KBD_TYPE_PC82,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t keyboard_pravetz_device = {
+    .name          = "Pravetz Keyboard",
+    .internal_name = "keyboard_pravetz",
+    .flags         = 0,
+    .local         = KBD_TYPE_PRAVETZ,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t keyboard_xt_device = {
-    "XT (1982) Keyboard",
-    "keyboard_xt",
-    0,
-    KBD_TYPE_XT82,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name          = "XT (1982) Keyboard",
+    .internal_name = "keyboard_xt",
+    .flags         = 0,
+    .local         = KBD_TYPE_XT82,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t keyboard_xt86_device = {
-    "XT (1986) Keyboard",
-    "keyboard_xt86",
-    0,
-    KBD_TYPE_XT86,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name          = "XT (1986) Keyboard",
+    .internal_name = "keyboard_xt86",
+    .flags         = 0,
+    .local         = KBD_TYPE_XT86,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t keyboard_xt_compaq_device = {
-    "Compaq Portable Keyboard",
-    "keyboard_xt_compaq",
-    0,
-    KBD_TYPE_COMPAQ,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name          = "Compaq Portable Keyboard",
+    .internal_name = "keyboard_xt_compaq",
+    .flags         = 0,
+    .local         = KBD_TYPE_COMPAQ,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t keyboard_tandy_device = {
-    "Tandy 1000 Keyboard",
-    "keyboard_tandy",
-    0,
-    KBD_TYPE_TANDY,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name          = "Tandy 1000 Keyboard",
+    .internal_name = "keyboard_tandy",
+    .flags         = 0,
+    .local         = KBD_TYPE_TANDY,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t keyboard_xt_t1x00_device = {
-    "Toshiba T1x00 Keyboard",
-    "keyboard_xt_t1x00",
-    0,
-    KBD_TYPE_TOSHIBA,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name          = "Toshiba T1x00 Keyboard",
+    .internal_name = "keyboard_xt_t1x00",
+    .flags         = 0,
+    .local         = KBD_TYPE_TOSHIBA,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
 const device_t keyboard_xt_lxt3_device = {
-    "VTech Laser XT3 Keyboard",
-    "keyboard_xt_lxt3",
-    0,
-    KBD_TYPE_VTECH,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name          = "VTech Laser XT3 Keyboard",
+    .internal_name = "keyboard_xt_lxt3",
+    .flags         = 0,
+    .local         = KBD_TYPE_VTECH,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 #endif
 
 const device_t keyboard_xt_olivetti_device = {
-    "Olivetti XT Keyboard",
-    "keyboard_xt_olivetti",
-    0,
-    KBD_TYPE_OLIVETTI,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name          = "Olivetti XT Keyboard",
+    .internal_name = "keyboard_xt_olivetti",
+    .flags         = 0,
+    .local         = KBD_TYPE_OLIVETTI,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t keyboard_xt_zenith_device = {
-    "Zenith XT Keyboard",
-    "keyboard_xt_zenith",
-    0,
-    KBD_TYPE_ZENITH,
-    kbd_init,
-    kbd_close,
-    kbd_reset,
-    { NULL }, NULL, NULL
+    .name          = "Zenith XT Keyboard",
+    .internal_name = "keyboard_xt_zenith",
+    .flags         = 0,
+    .local         = KBD_TYPE_ZENITH,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t keyboard_xt_hyundai_device = {
+    .name          = "Hyundai XT Keyboard",
+    .internal_name = "keyboard_x_hyundai",
+    .flags         = 0,
+    .local         = KBD_TYPE_HYUNDAI,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t keyboard_xtclone_device = {
+    .name          = "XT (Clone) Keyboard",
+    .internal_name = "keyboard_xtclone",
+    .flags         = 0,
+    .local         = KBD_TYPE_XTCLONE,
+    .init          = kbd_init,
+    .close         = kbd_close,
+    .reset         = kbd_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };

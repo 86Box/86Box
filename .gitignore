@@ -1,8 +1,8 @@
 # CMake
-/CMakeUserPresets.json
-/CMakeCache.txt
-/build
+CMakeUserPresets.json
+CMakeCache.txt
 CMakeFiles
+/build
 Makefile
 *.a
 /src/*.exe
@@ -26,6 +26,7 @@ Makefile
 
 # Build scripts
 /archive_tmp
+/archive_tmp_universal
 /static2dll.*
 /VERSION
 *.zip
@@ -33,11 +34,28 @@ Makefile
 *.tar.*
 *.AppImage
 /appimage-builder-cache
+/appimage-build
+/AppImageBuilder-generated.yml
 
 # Visual Studio Code
 /.vs
 /.vscode
-src/win/RCa04980
+/out
+
+# Windows resource compiler
+RC*
 
 # Qt Creator
 CMakeLists.txt.user
+
+# Debian builder
+/debian/*.log
+/debian/*.substvars
+/debian/.debhelper
+/debian/86box
+/debian/debhelper-build-stamp
+/debian/files
+/obj-*-linux-gnu
+
+# MacOS Finder stuff
+.DS_Store

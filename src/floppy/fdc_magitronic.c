@@ -1,17 +1,16 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Implementation of the Magitronic B215 XT-FDC Controller.
+ *          Implementation of the Magitronic B215 XT-FDC Controller.
  *
- *      Authors: Tiseno100
+ * Authors: Tiseno100
  *
- *		Copyright 2021 Tiseno100
- *
+ *          Copyright 2021 Tiseno100
  */
 
 #include <stdarg.h>
@@ -30,21 +29,21 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
+#include <86box/plat_unused.h>
 
-#define ROM_B215 "roms/floppy/magitronic/Magitronic B215 - BIOS ROM.bin"
-#define ROM_ADDR (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
+#define ROM_B215     "roms/floppy/magitronic/Magitronic B215 - BIOS ROM.bin"
+#define ROM_ADDR     (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
 
-#define DRIVE_SELECT (int)(real_drive(dev->fdc_controller, i))
-typedef struct
-{
+#define DRIVE_SELECT (int) (real_drive(dev->fdc_controller, i))
+typedef struct b215_t {
     fdc_t *fdc_controller;
-    rom_t rom;
+    rom_t  rom;
 } b215_t;
 
 static uint8_t
-b215_read(uint16_t addr, void *priv)
+b215_read(UNUSED(uint16_t addr), void *priv)
 {
-    b215_t *dev = (b215_t *)priv;
+    b215_t *dev = (b215_t *) priv;
 
     /*
     Register 3F0h
@@ -59,19 +58,15 @@ b215_read(uint16_t addr, void *priv)
 */
     int drive_spec[2];
 
-    for (int i = 0; i <= 1; i++)
-    {
-        if (fdd_is_525(DRIVE_SELECT))
-        {
+    for (uint8_t i = 0; i <= 1; i++) {
+        if (fdd_is_525(DRIVE_SELECT)) {
             if (!fdd_is_dd(DRIVE_SELECT))
                 drive_spec[i] = 1;
             else if (fdd_doublestep_40(DRIVE_SELECT))
                 drive_spec[i] = 2;
             else
                 drive_spec[i] = 0;
-        }
-        else
-        {
+        } else {
             if (fdd_is_dd(DRIVE_SELECT) && !fdd_is_double_sided(DRIVE_SELECT))
                 drive_spec[i] = 0;
             else if (fdd_is_dd(DRIVE_SELECT) && fdd_is_double_sided(DRIVE_SELECT))
@@ -87,15 +82,15 @@ b215_read(uint16_t addr, void *priv)
 static void
 b215_close(void *priv)
 {
-    b215_t *dev = (b215_t *)priv;
+    b215_t *dev = (b215_t *) priv;
 
     free(dev);
 }
 
 static void *
-b215_init(const device_t *info)
+b215_init(UNUSED(const device_t *info))
 {
-    b215_t *dev = (b215_t *)malloc(sizeof(b215_t));
+    b215_t *dev = (b215_t *) malloc(sizeof(b215_t));
     memset(dev, 0, sizeof(b215_t));
 
     rom_init(&dev->rom, ROM_B215, ROM_ADDR, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
@@ -106,40 +101,42 @@ b215_init(const device_t *info)
     return dev;
 }
 
-static int b215_available(void)
+static int
+b215_available(void)
 {
     return rom_present(ROM_B215);
 }
 
 static const device_config_t b215_config[] = {
+  // clang-format off
     {
-	"bios_addr", "BIOS Address:", CONFIG_HEX20, "", 0xca000, "", { 0 },
-	{
-		{
-			"CA00H", 0xca000
-		},
-		{
-			"CC00H", 0xcc000
-		},
-		{
-			""
-		}
-	}
+        .name = "bios_addr",
+        .description = "BIOS Address:",
+        .type = CONFIG_HEX20,
+        .default_string = "",
+        .default_int = 0xca000,
+        .file_filter = "",
+        .spinner = { 0 },
+        .selection = {
+            { .description = "CA00H", .value = 0xca000 },
+            { .description = "CC00H", .value = 0xcc000 },
+            { .description = ""                        }
+        }
     },
-    {
-	"", "", -1
-    }
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
 };
 
 const device_t fdc_b215_device = {
-    "Magitronic B215",
-    "b215",
-    DEVICE_ISA,
-    0,
-    b215_init,
-    b215_close,
-    NULL,
-    {b215_available},
-    NULL,
-    NULL,
-    b215_config};
+    .name          = "Magitronic B215",
+    .internal_name = "b215",
+    .flags         = DEVICE_ISA,
+    .local         = 0,
+    .init          = b215_init,
+    .close         = b215_close,
+    .reset         = NULL,
+    { .available = b215_available },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = b215_config
+};

@@ -10,7 +10,7 @@
 #
 # Authors:  David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#           Copyright 2020,2021 David Hrdlička.
+#           Copyright 2020-2021 David Hrdlička.
 #
 
 cmake_minimum_required(VERSION 3.16)
@@ -18,12 +18,16 @@ cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
-if(QT)
+if(HAIKU)
+    set(OPENAL ON)
+endif()
+
+if(NOT DEFINED QT OR QT)
     list(APPEND VCPKG_MANIFEST_FEATURES "qt-ui")
 endif()
 
-if(SLIRP_EXTERNAL)
-    list(APPEND VCPKG_MANIFEST_FEATURES "slirp")
+if(NOT DEFINED OPENAL OR OPENAL)
+    list(APPEND VCPKG_MANIFEST_FEATURES "openal")
 endif()
 
 if(MUNT_EXTERNAL)
@@ -31,7 +35,7 @@ if(MUNT_EXTERNAL)
 endif()
 
 project(86Box
-    VERSION 3.2
+    VERSION 4.0.2
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
@@ -57,6 +61,9 @@ if(VCPKG_TOOLCHAIN)
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
         set(STATIC_BUILD OFF)
     endif()
+
+    # `vcpkg.json` defaults to Qt6
+    set(USE_QT6 ON)
 endif()
 
 if(WIN32)
@@ -105,7 +112,12 @@ if(WIN32)
     add_compile_definitions(_WINSOCK_DEPRECATED_NO_WARNINGS)
 endif()
 
-set(CMAKE_CXX_STANDARD 11)
+if(NOT (WIN32 OR APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Linux"))
+    set(DISCORD OFF)
+endif()
+
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 
 # Optional features
@@ -115,44 +127,46 @@ set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 option(RELEASE      "Release build"                                                 OFF)
 option(DYNAREC      "Dynamic recompiler"                                            ON)
 option(OPENAL       "OpenAL"                                                        ON)
+option(RTMIDI       "RtMidi"                                                        ON)
 option(FLUIDSYNTH   "FluidSynth"                                                    ON)
 option(MUNT         "MUNT"                                                          ON)
+option(VNC          "VNC renderer"                                                  OFF)
 option(DINPUT       "DirectInput"                                                   OFF)
 option(CPPTHREADS   "C++11 threads"                                                 ON)
 option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"                 OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"    OFF)
+option(GDBSTUB      "Enable GDB stub server for debugging"                          OFF)
 option(DEV_BRANCH   "Development branch"                                            OFF)
-if(NOT WIN32)
-option(QT           "QT GUI"                                                        ON)
-else()
-option(QT           "QT GUI"                                                        OFF)
-endif()
+option(QT           "Qt GUI"                                                        ON)
+option(DISCORD      "Discord Rich Presence support"                                 ON)
 
 # Development branch features
 #
 #                      Option         Description                                   Def.    Condition       Otherwise
 #                      ------         -----------                                   ----    ---------       ---------
 cmake_dependent_option(AMD_K5         "AMD K5"                                      ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(AN430TX        "Intel AN430TX"                               ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(CYRIX_6X86     "Cyrix 6x86"                                  ON      "DEV_BRANCH"    OFF)
+cmake_dependent_option(DESKPRO386     "Compaq Deskpro 386"                          ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(GUSMAX         "Gravis UltraSound MAX"                       ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(ISAMEM_RAMPAGE "AST Rampage"                                 ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(ISAMEM_IAB     "Intel Above Board"                           ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(ISAMEM_BRAT    "BocaRAM/AT"                                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(LASERXT        "VTech Laser XT"                              ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(MGA            "Matrox Mystique graphics adapters"           ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(NO_SIO         "Machines without emulated Super I/O chips"   ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(OLIVETTI       "Olivetti M290"                               ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(OPEN_AT        "OpenAT"                                      ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(PAS16          "Pro Audio Spectrum 16"                       OFF     "DEV_BRANCH"    OFF)
+cmake_dependent_option(PAS16          "Pro Audio Spectrum 16"                       ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"                  ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(TANDY_ISA      "Tandy PSG ISA clone boards"                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(VGAWONDER      "ATI VGA Wonder (ATI-18800)"                  ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(VNC            "VNC renderer"                                OFF     "DEV_BRANCH"    OFF)
 cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"           ON      "DEV_BRANCH"    OFF)
 
 # Ditto but for Qt
-if (QT)
+if(QT)
     option(USE_QT6 "Use Qt6 instead of Qt5" OFF)
+    if(APPLE)
+        option(MOLTENVK "Use MoltenVK libraries for Vulkan support on macOS. Requires a Vulkan-enabled QT." OFF)
+    endif()
 endif()
 
 # Determine the build type
@@ -175,7 +189,7 @@ elseif(BUILD_TYPE_LOWER STREQUAL "alpha")
     add_compile_definitions(ALPHA_BUILD)
 endif()
 
-# Variables introduced by richardg867 for versioning stuff
+# Versioning variables
 if(NOT CMAKE_PROJECT_VERSION_PATCH)
     set(CMAKE_PROJECT_VERSION_PATCH 0)
 endif()
@@ -183,7 +197,7 @@ if(NOT EMU_BUILD_NUM)
     set(EMU_BUILD_NUM 0)
 endif()
 if(NOT EMU_COPYRIGHT_YEAR)
-    set(EMU_COPYRIGHT_YEAR 2022)
+    set(EMU_COPYRIGHT_YEAR 2023)
 endif()
 
 add_subdirectory(src)

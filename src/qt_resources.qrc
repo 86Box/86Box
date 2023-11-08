@@ -33,6 +33,7 @@
         <file>win/icons/mo_empty_active.ico</file>
         <file>win/icons/network.ico</file>
         <file>win/icons/network_active.ico</file>
+        <file>win/icons/network_empty.ico</file>
         <file>win/icons/other_peripherals.ico</file>
         <file>win/icons/other_removable_devices.ico</file>
         <file>win/icons/ports.ico</file>
@@ -56,5 +57,9 @@
         <file>win/icons/send_cad.ico</file>
         <file>win/icons/send_cae.ico</file>
         <file>win/icons/settings.ico</file>
+    </qresource>
+    <qresource prefix="/">
+        <file alias="/texture_vert.spv">qt/texture_vert.spv</file>
+        <file alias="/texture_frag.spv">qt/texture_frag.spv</file>
     </qresource>
 </RCC>

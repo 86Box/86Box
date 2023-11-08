@@ -1,32 +1,37 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Jenkins build pipeline definition.
+ *          Jenkins build pipeline definition.
  *
  *
  *
- * Authors:	RichardG, <richardg867@gmail.com>
+ * Authors: RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2021 RichardG.
+ *          Copyright 2021-2022 RichardG.
  */
 
-def repository = 'https://github.com/86Box/86Box.git'
-def commitBrowser = 'https://github.com/86Box/86Box/commit/%s'
-def branch = 'master'
+/* ['main builds', 'branch builds'] */
+def repository = ['https://github.com/86Box/86Box.git', scm.userRemoteConfigs[0].url]
+def commitBrowser = ['https://github.com/86Box/86Box/commit/%s', null]
+def branch = ['master', scm.branches[0].name]
+def buildType = ['beta', 'alpha']
+def buildBranch = env.JOB_BASE_NAME.contains('-') ? 1 : 0
 
 def osArchs = [
 	'Windows': ['32', '64'],
-	'Linux': ['x86', 'x86_64', 'arm32', 'arm64']
+	'Linux': ['x86', 'x86_64', 'arm32', 'arm64'],
+	'macOS': ['x86_64+x86_64h+arm64']
 ]
 
 def osFlags = [
-	'Windows': '',
-	'Linux': '-D QT=ON'
+	'Windows': '-D QT=ON',
+	'Linux': '-D QT=ON',
+	'macOS': '-D QT=ON'
 ]
 
 def archNames = [
@@ -36,6 +41,12 @@ def archNames = [
 	'x86_64': 'x64 (64-bit)',
 	'arm32': 'ARM (32-bit)',
 	'arm64': 'ARM (64-bit)'
+]
+
+def archNamesMac = [
+	'x86_64': 'Intel',
+	'arm64': 'Apple Silicon',
+	'x86_64+arm64': 'Universal (Intel and Apple Silicon)'
 ]
 
 def dynarecNames = [
@@ -50,9 +61,8 @@ def dynarecArchs = [
 	'64': ['ODR', 'NDR'],
 	'x86_64': ['ODR', 'NDR'],
 	'arm32': ['NDR'],
-	'ARM32': ['NDR'],
 	'arm64': ['NDR'],
-	'ARM64': ['NDR']
+	'x86_64+arm64': ['ODR', 'NDR']
 ]
 
 def dynarecFlags = [
@@ -68,8 +78,7 @@ def dynarecSlugs = [
 ]
 
 def presets = [
-	'Regular',
-	'Debug'
+	'Regular'
 ]
 
 def presetSlugs = [
@@ -80,58 +89,77 @@ def presetSlugs = [
 
 def presetFlags = [
 	'Regular': '-t --preset=regular -D CMAKE_BUILD_TYPE=Release',
-	'Debug': '--preset=debug -D CMAKE_BUILD_TYPE=Debug',
-	'Dev': '--preset=experimental -D CMAKE_BUILD_TYPE=Debug -D VNC=OFF'
+	'Debug': '--preset=debug -D CMAKE_BUILD_TYPE=Debug -D STATIC_BUILD=OFF',
+	'Dev': '--preset=experimental -D CMAKE_BUILD_TYPE=Debug -D VNC=OFF -D STATIC_BUILD=OFF'
 ]
-
-def anyFailure = false
 
 def gitClone(repository, branch) {
 	/* Clean workspace. */
 	cleanWs()
 
-	/* Use stashes to avoid performing multiple clones. */
-	if (env.GIT_STASHED != 'true') {
-		/* Perform clone/checkout. */
-		def scmVars = checkout poll: true,
-				       changelog: true,
-				       scm: [$class: 'GitSCM',
-					     branches: [[name: branch]],
-					     userRemoteConfigs: [[url: repository]]]
+	/* Perform git clone if stashed data isn't available yet, or if
+	   this is not debian.citadel where stash is faster than clone. */
+	if (env.GIT_STASHED != 'true' || env.NODE_NAME != 'debian.citadel') {
+		/* Catch network issues in clone. */
+		try {
+			/* Perform clone/checkout, making sure to set poll and changelog only
+			   once to avoid interference from new commits pushed inbetween clones. */
+			def scmVars = checkout(poll: env.GIT_STASHED != 'true',
+					       changelog: env.GIT_STASHED != 'true',
+					       scm: [$class: 'GitSCM',
+						     branches: [[name: branch]],
+						     userRemoteConfigs: [[url: repository]]])
 
-		if (env.GIT_COMMIT == null) {
-			/* Save the current HEAD commit. */
-			env.GIT_COMMIT = scmVars.GIT_COMMIT
-		} else if (env.GIT_COMMIT != scmVars.GIT_COMMIT) {
-			/* Checkout the commit read from the polling log. */
-			if (isUnix())
-				sh "git checkout ${env.GIT_COMMIT} || exit 0"
-			else
-				bat "git checkout ${env.GIT_COMMIT} || exit /b 0"
+			if (env.GIT_COMMIT == null) {
+				/* Save the current HEAD commit. */
+				env.GIT_COMMIT = scmVars.GIT_COMMIT
+			} else if (env.GIT_COMMIT != scmVars.GIT_COMMIT) {
+				/* Checkout the commit read from the polling log. */
+				if (isUnix())
+					sh(returnStatus: true, script: "git checkout ${env.GIT_COMMIT}")
+				else
+					bat(returnStatus: true, script: "git checkout ${env.GIT_COMMIT}")
+			}
+			println "[-] Using git commit [${env.GIT_COMMIT}]"
+
+			/* Stash data if required, marking it as stashed. */
+			if (env.GIT_STASHED != 'true') {
+				stash(name: 'git', useDefaultExcludes: false)
+				env.GIT_STASHED = 'true'
+			}
+
+			/* No need to use stashed data. */
+			return;
+		} catch (e) {
+			/* If clone fails, use stashed data if available, or re-throw exception otherwise. */
+			if (env.GIT_STASHED != 'true')
+				throw e;
 		}
-		println "[-] Using git commit [${env.GIT_COMMIT}]"
-
-		/* Stash data and mark it as stashed. */
-		stash name: 'git', useDefaultExcludes: false
-		env.GIT_STASHED = 'true'
-	} else {
-		/* Unstash data. */
-		unstash name: 'git'
 	}
+	
+	/* Unstash data. */
+	unstash(name: 'git')
 }
 
 def removeDir(dir) {
 	if (isUnix())
-		sh "rm -rf \"$dir\" || exit 0"
+		return sh(returnStatus: true, script: "rm -rf '$dir'")
 	else
-		bat "if exist \"$dir\" rd /s /q \"$dir\" & exit /b 0"
+		return bat(returnStatus: true, script: "rd /s /q \"$dir\"")
 }
 
 def runBuild(args) {
 	if (isUnix())
-		sh "chmod u+x \"$WORKSPACE/.ci/build.sh\" && exec \"$WORKSPACE/.ci/build.sh\" $args"
+		return sh(returnStatus: true, script: "chmod u+x '$WORKSPACE/.ci/build.sh' && exec '$WORKSPACE/.ci/build.sh' $args")
 	else
-		bat "C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c 'exec \"\$(cygpath -u \\'%WORKSPACE%\\')/.ci/build.sh\" $args'"
+		return bat(returnStatus: true, script: "C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c 'exec \"\$(cygpath -u \\'%WORKSPACE%\\')/.ci/build.sh\" $args'")
+}
+
+def failStage() {
+	/* Force this stage to fail. */
+	catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
+		def x = 1 / 0
+	}
 }
 
 pipeline {
@@ -142,24 +170,26 @@ pipeline {
 	}
 
 	options {
-		disableConcurrentBuilds()
 		quietPeriod(0)
 	}
 
 	parameters {
 		string(name: 'BUILD_TYPE',
-		       defaultValue: 'beta', /* !!! CHANGE HERE !!! for build type */
-		       description: "Build type to pass on to CMake. Should only be changed for one-off builds, otherwise change the default on .ci/Jenkinsfile")
+		       defaultValue: buildType[buildBranch],
+		       description: "Build type to pass on to CMake (on main builds) or feature branch identifier (on branch builds).")
 	}
 
 	stages {
 		stage('Source Tarball') {
 			agent none
+			failFast false
 
 			steps {
 				script {
-					/* Extract the polled commit from the polling log, so that git checkout can be used
-					   to avoid JENKINS-20518 race conditions caused by two pushes too close together. */
+					/* Extract the polled commit from the polling log, so that git checkout
+					   can be used to avoid JENKINS-20518 race conditions caused by the
+					   webhook being triggered more than once in a short period of time.
+					   This is a backup strategy for FilterProxy's webhook queuing. */
 					node('master') { /* must run on master node to read polling log */
 						/* Ignore exceptions as this is not really critical. */
 						try {
@@ -178,78 +208,103 @@ pipeline {
 
 					/* Adding to the above, run a git clone as soon as possible on any node
 					   to further avoid race conditions caused by busy node executor delays. */
-					node {
-						/* Run git clone. */
-						gitClone(repository, branch)
+					retry(10) {
+						node('!Windows') {
+							/* Run git clone. */
+							gitClone(repository[buildBranch], branch[buildBranch])
 
-						/* Clean workspace, in case this is running in a non-build node. */
-						cleanWs()
+							/* Clean workspace, in case this is running in a non-build node. */
+							cleanWs()
+						}
+					}
+
+					/* Determine build metadata. */
+					def buildFlags = "-D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\""
+					def buildSuffix = "-b${env.BUILD_NUMBER}"
+					if (buildBranch > 0) {
+						def date = new Date().format("yyyyMMdd")
+						buildFlags = "-D \"BUILD_TYPE=${buildType[buildBranch]}\" -D \"EMU_BUILD=${env.JOB_BASE_NAME.split('-')[1]} build $date.$BUILD_TYPE\""
+						buildSuffix = "-$date-$BUILD_TYPE"
 					}
 
 					/* Create source tarball. */
-					node('Linux') {
-						try {
-							/* Run git clone. */
-							gitClone(repository, branch)
+					try {
+						retry(10) {
+							node('Linux || macOS') {
+								/* Run git clone. */
+								gitClone(repository[buildBranch], branch[buildBranch])
 
-							/* Switch to temp directory. */
-							dir("${env.WORKSPACE_TMP}/output") {
-								/* Run source tarball creation process. */
-								def packageName = "${env.JOB_BASE_NAME}-Source-b${env.BUILD_NUMBER}"
-								runBuild("-s \"$packageName\"")
+								/* Switch to temp directory. */
+								dir("${env.WORKSPACE_TMP}/output") {
+									/* Run source tarball creation process. */
+									def packageName = "${env.JOB_BASE_NAME}-Source$buildSuffix"
+									if (runBuild("-s \"$packageName\"") == 0) {
+										/* Archive resulting artifacts. */
+										archiveArtifacts artifacts: "$packageName*"
+									} else {
+										/* Fail this stage. */
+										failStage()
+									}
+								}
 
-								/* Archive resulting artifacts. */
-								archiveArtifacts artifacts: "$packageName*"
-							}
-
-							/* Clean up. */
-							removeDir("${env.WORKSPACE_TMP}/output")
-						} catch (e) {
-							/* Mark that a failure occurred. */
-							anyFailure = true
-
-							/* Force this stage to fail. */
-							catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-								throw e;
+								/* Clean up. */
+								removeDir("${env.WORKSPACE_TMP}/output")
 							}
 						}
+					} catch (e) {
+						/* Fail this stage. */
+						failStage()
 					}
 
 					/* Build here to avoid creating a redundant parent stage on the stage view. */
 					osArchs.each { os, thisOsArchs ->
+						def combinations = [:]
 						thisOsArchs.each { arch ->
-							def thisArchDynarecs = dynarecArchs[arch]
+							def archSlug = arch.replace('+x86_64h', '') /* all instances of arch except the one passed to -b */
+							def thisArchDynarecs = dynarecArchs[archSlug.toLowerCase()]
 							if (!thisArchDynarecs)
 								thisArchDynarecs = ['NoDR']
 							thisArchDynarecs.each { dynarec ->
 								presets.each { preset ->
-									node(os) {
-										stage("$os $arch $dynarec $preset") {
-											try {
-												/* Run git clone. */
-												gitClone(repository, branch)
+									def combination = "$os $archSlug $dynarec $preset"
+									combinations[combination] = {
+										catchError(buildResult: 'FAILURE', stageResult: 'SUCCESS') {
+											retry(10) {
+												node(os) {
+													stage(combination) {
+														/* Run git clone. */
+														gitClone(repository[buildBranch], branch[buildBranch])
 
-												/* Switch to output directory. */
-												dir("${env.WORKSPACE_TMP}/output") {
-													/* Run build process. */
-													def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch-b${env.BUILD_NUMBER}"
-													dir("${dynarecNames[dynarec]}/$os - ${archNames[arch]}") {
-														runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\"")
+														/* Switch to output directory. */
+														dir("${env.WORKSPACE_TMP}/output") {
+															/* Run build process. */
+															def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$archSlug$buildSuffix"
+															def ret = -1
+															def archName = archNames[archSlug]
+															if (os == 'macOS')
+																archName = archNamesMac[archSlug]
+															dir(dynarecNames[dynarec]) {
+																dir("$os - $archName") {
+																	ret = runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} ${osFlags[os]} $buildFlags")
+																	if (presets.size() == 1)
+																		writeFile file: '.forcedir', text: ''
+																}
+																if ((osArchs.size() == 1) && (thisOsArchs.size() == 1))
+																	writeFile file: '.forcedir', text: ''
+															}
+
+															if (ret == 0) {
+																/* Archive resulting artifacts. */
+																archiveArtifacts artifacts: "**/$packageName*, **/.forcedir", defaultExcludes: false
+															} else {
+																/* Fail this stage. */
+																failStage()
+															}
+														}
+
+														/* Clean up. */
+														removeDir("${env.WORKSPACE_TMP}/output")
 													}
-
-													/* Archive resulting artifacts. */
-													archiveArtifacts artifacts: "**/**/$packageName*"
-												}
-
-												/* Clean up. */
-												removeDir("${env.WORKSPACE_TMP}/output")
-											} catch (e) {
-												/* Mark that a failure occurred. */
-												anyFailure = true
-
-												/* Force this stage to fail. */
-												catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-													throw e;
 												}
 											}
 										}
@@ -257,6 +312,7 @@ pipeline {
 								}
 							}
 						}
+						parallel combinations
 					}
 				}
 			}
@@ -266,14 +322,8 @@ pipeline {
 	post {
 		always {
 			script {
-				/* Mark build as failed if any step has failed. */
-				if (anyFailure) {
-					println "[!] Failing build because a build stage failed"
-					currentBuild.result = 'FAILURE'
-				}
-
 				/* Send out build notifications. */
-				if (!env.JOB_BASE_NAME.contains('TestBuildPleaseIgnore')) {
+				if (commitBrowser[buildBranch]) {
 					try {
 						/* Notify Discord. */
 						def result = currentBuild.currentResult.toLowerCase()
@@ -284,10 +334,10 @@ pipeline {
 							    description: "**Status:** ${result}\n\u2060", /* word joiner character forces a blank line */
 							    enableArtifactsList: false,
 							    showChangeset: true,
-							    scmWebUrl: commitBrowser
+							    scmWebUrl: commitBrowser[buildBranch]
 
 						/* Notify IRC, which needs a node for whatever reason. */
-						node {
+						node('citadel || rg || master') {
 							ircNotify()
 						}
 					} catch (e) {

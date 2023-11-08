@@ -62,4 +62,3 @@ static const u32 crc_32_tab[] =
 #define crc32(crc,byte) (crc_32_tab[(u8)(crc) ^ (u8)(byte)] ^ ((crc) >> 8))
 
 #endif
-

@@ -1,8 +1,7 @@
 #ifndef EMU_FIFO8_H
 #define EMU_FIFO8_H
 
-
-typedef struct {
+typedef struct Fifo8 {
     /* All fields are private */
     uint8_t *data;
     uint32_t capacity;
@@ -26,7 +25,7 @@ extern void fifo8_create(Fifo8 *fifo, uint32_t capacity);
  * @fifo: FIFO to cleanup
  *
  * Cleanup a FIFO created with fifo8_create(). Frees memory created for FIFO
-  *storage. The FIFO is no longer usable after this has been called.
+ *storage. The FIFO is no longer usable after this has been called.
  */
 
 extern void fifo8_destroy(Fifo8 *fifo);

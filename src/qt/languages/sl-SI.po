@@ -76,6 +76,24 @@ msgstr "1.&5x"
 msgid "&2x"
 msgstr "&2x"
 
+msgid "&3x"
+msgstr "&3x"
+
+msgid "&4x"
+msgstr "&4x"
+
+msgid "&5x"
+msgstr "&5x"
+
+msgid "&6x"
+msgstr "&6x"
+
+msgid "&7x"
+msgstr "&7x"
+
+msgid "&8x"
+msgstr "&8x"
+
 msgid "Filter method"
 msgstr "&Metoda filtriranja"
 
@@ -105,6 +123,9 @@ msgstr "&Kvadratni piksli (ohrani razmerje)"
 
 msgid "&Integer scale"
 msgstr "&Celoštevilsko raztezanje"
+
+msgid "4:&3 Integer scale"
+msgstr "Celoštevilsko raztezanje 4:&3"
 
 msgid "E&GA/(S)VGA settings"
 msgstr "Nastavitve E&GA/(S)VGA"
@@ -226,8 +247,8 @@ msgstr "&Prazen"
 msgid "&Reload previous image"
 msgstr "&Naloži zadnjo sliko"
 
-msgid "&Image"
-msgstr "&Slika"
+msgid "&Folder..."
+msgstr "&Mapa..."
 
 msgid "Target &framerate"
 msgstr "&Ciljno št. sličic na sekundo"
@@ -364,6 +385,12 @@ msgstr "Video:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo grafika"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a grafika"
+
+msgid "XGA Graphics"
+msgstr "XGA grafika"
+
 msgid "Mouse:"
 msgstr "Miška:"
 
@@ -382,8 +409,17 @@ msgstr "Igralna palica 3..."
 msgid "Joystick 4..."
 msgstr "Igralna palica 4..."
 
-msgid "Sound card:"
-msgstr "Zvočna kartica:"
+msgid "Sound card 1:"
+msgstr "Zvočna kartica 1:"
+
+msgid "Sound card 2:"
+msgstr "Zvočna kartica 2:"
+
+msgid "Sound card 3:"
+msgstr "Zvočna kartica 3:"
+
+msgid "Sound card 4:"
+msgstr "Zvočna kartica 4:"
 
 msgid "MIDI Out Device:"
 msgstr "Izhodna naprava MIDI:"
@@ -394,17 +430,17 @@ msgstr "Vhodna naprava MIDI:"
 msgid "Standalone MPU-401"
 msgstr "Samostojen MPU-401"
 
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
-
 msgid "Use FLOAT32 sound"
 msgstr "Uporabi FLOAT32 za zvok"
+
+msgid "FM synth driver"
+msgstr "Gonilnik sintetizacije FM"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (točnejši)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (hitrejši)"
 
 msgid "Network type:"
 msgstr "Vrsta omrežja:"
@@ -550,6 +586,9 @@ msgstr "Preverjaj BPB"
 msgid "CD-ROM drives:"
 msgstr "Pogoni CD-ROM:"
 
+msgid "Earlier drive"
+msgstr "Zgodnejši pogon"
+
 msgid "MO drives:"
 msgstr "Magnetno-optični pogoni:"
 
@@ -688,9 +727,6 @@ msgstr "Pritisnite F8+F12 za izpust miške"
 msgid "Press F8+F12 or middle button to release mouse"
 msgstr "Pritisnite F8+F12 ali srednji gumb za izpust miške"
 
-msgid "Unable to initialize FluidSynth"
-msgstr "Ne morem inicializirati FluidSynth"
-
 msgid "Bus"
 msgstr "Vodilo"
 
@@ -775,9 +811,6 @@ msgstr "Napredne sektorske slike"
 msgid "Flux images"
 msgstr "Tokovne slike"
 
-msgid "Unable to initialize FreeType"
-msgstr "Ne morem inicializirati FreeType"
-
 msgid "Unable to initialize SDL, SDL2.dll is required"
 msgstr "Ne morem inicializirati SDL, potrebna je knjižica SDL2.dll"
 
@@ -823,8 +856,8 @@ msgstr "O programu 86Box"
 msgid "86Box v"
 msgstr "86Box v"
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Emulator starih računalnikov\n\nAvtorji: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho in drugi.\n\nIzdano pod licenco GNU General Public License različica 2 ali novejša. Glej datoteko LICENSE za več informacij."
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Emulator starih računalnikov\n\nAvtorji: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne in drugi.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho in drugi.\n\nIzdano pod licenco GNU General Public License različica 2 ali novejša. Glej datoteko LICENSE za več informacij."
 
 msgid "Hardware not available"
 msgstr "Strojna oprema ni na voljo"
@@ -841,15 +874,6 @@ msgstr "Prepičajte se, da je nameščen libpcap in da ste na omrežni povezavi,
 msgid "Invalid configuration"
 msgstr "Neveljavna konfiguracija"
 
-msgid "freetype.dll"
-msgstr "freetype.dll"
-
-msgid "libfreetype"
-msgstr "libfreetype"
-
-msgid " is required for ESC/P printer emulation."
-msgstr " je potreben za emuliranje ESC/P tiskalnika."
-
 msgid "gsdll32.dll"
 msgstr "gsdll32.dll"
 
@@ -858,15 +882,6 @@ msgstr "libgs"
 
 msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr " je potreben za samodejno pretvorbo PostScript datotek v PDF.\n\nVsi dokumenti, poslani generičnemu PostScript tiskalniku bodo shranjeni kot PostScript (.ps) datoteke."
-
-msgid "libfluidsynth.dll"
-msgstr "libfluidsynth.dll"
-
-msgid "libfluidsynth"
-msgstr "libfluidsynth"
-
-msgid " is required for FluidSynth MIDI output."
-msgstr " je potreben za FluidSynth MIDI izhod."
 
 msgid "Entering fullscreen mode"
 msgstr "Preklapljam v celozaslonski način"
@@ -920,28 +935,28 @@ msgid "Cartridge images"
 msgstr "Slike spominskega vložka"
 
 msgid "Error initializing renderer"
-msgstr "Error initializing renderer"
+msgstr "Napaka pri zagonu sistema za upodabljanje"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "Sistema za upodabljanje OpenGL (3.0 Core) ni bilo mogoče zagnati. Uporabite drug sistem za upodabljanje."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Nadaljuj izvajanje"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Prekini izvajanje"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Pritisni Ctrl+Alt+Del"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Pritisni Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "Ponovni zagon"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "Zaustavitev ACPI"
 
 msgid "Hard disk (%s)"
 msgstr "Trdi disk (%s)"
@@ -1183,3 +1198,29 @@ msgstr "2% pod popolnimi obrati"
 msgid "(System Default)"
 msgstr "(Sistemsko privzeto)"
 
+msgid "Failed to initialize network driver"
+msgstr "Ni uspelo inicializirati omrežnega gonilnika"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "Omrežne nastavitve bodo preklopljene na ničelni gonilnik"
+
+msgid "Mouse sensitivity:"
+msgstr "Občutljivost miške:"
+
+msgid "Select media images from program working directory"
+msgstr "Izberi slike medijev iz delovnega imenika programa"
+
+msgid "PIT mode:"
+msgstr "Način PIT:"
+
+msgid "Auto"
+msgstr "Samodejni"
+
+msgid "Slow"
+msgstr "Počasni"
+
+msgid "Fast"
+msgstr "Hitri"
+
+msgid "&Auto-pause on focus loss"
+msgstr "&Samodejni premor ob izgubi fokusa"

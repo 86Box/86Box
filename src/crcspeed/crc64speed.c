@@ -36,7 +36,8 @@
  * each 8x256 lookup table is 16k. */
 #ifndef CRC64SPEED_DUAL
 static uint64_t crc64_table[8][256] = {{0}};
-static void *crc64_table_little = NULL, *crc64_table_big = NULL;
+static void *crc64_table_little = NULL;
+static void *crc64_table_big = NULL;
 static const bool dual = false;
 #else
 static uint64_t crc64_table_little[8][256] = {{0}};
@@ -124,7 +125,7 @@ static inline uint_fast64_t crc_reflect(uint_fast64_t data, size_t data_len) {
  * \return         The updated crc value.
  ******************************************************************************/
 uint64_t crc64(uint_fast64_t crc, const void *in_data, const uint64_t len) {
-    const uint8_t *data = in_data;
+    const uint8_t *data = (uint8_t *) in_data;
     bool bit;
 
     for (uint64_t offset = 0; offset < len; offset++) {
@@ -152,7 +153,7 @@ uint64_t crc64(uint_fast64_t crc, const void *in_data, const uint64_t len) {
 
 /* Only for testing; doesn't support DUAL */
 uint64_t crc64_lookup(uint64_t crc, const void *in_data, const uint64_t len) {
-    const uint8_t *data = in_data;
+    const uint8_t *data = (uint8_t *) in_data;
     for (size_t i = 0; i < len; i++) {
         crc = crc64_table[0][(uint8_t)crc ^ data[i]] ^ (crc >> 8);
     }
@@ -167,7 +168,7 @@ bool crc64speed_init(void) {
 #else
     should_init(crc64_table_little, LITTLE1);
 #endif
-    crcspeed64little_init(crc64, dual ? crc64_table_little : crc64_table);
+    crcspeed64little_init(crc64, dual ? (uint64_t (*)[256]) crc64_table_little : crc64_table);
     return true;
 }
 
@@ -178,7 +179,7 @@ bool crc64speed_init_big(void) {
 #else
     should_init(crc64_table_big, BIG1);
 #endif
-    crcspeed64big_init(crc64, dual ? crc64_table_big : crc64_table);
+    crcspeed64big_init(crc64, dual ? (uint64_t (*)[256]) crc64_table_big : crc64_table);
     return true;
 }
 
@@ -189,7 +190,7 @@ uint64_t crc64speed(uint64_t crc, const void *s, const uint64_t l) {
 #else
     check_init(crc64_table_little, LITTLE1);
 #endif
-    return crcspeed64little(dual ? crc64_table_little : crc64_table, crc,
+    return crcspeed64little(dual ? (uint64_t (*)[256]) crc64_table_little : crc64_table, crc,
                             (void *)s, l);
 }
 
@@ -200,7 +201,7 @@ uint64_t crc64speed_big(uint64_t crc, const void *s, const uint64_t l) {
 #else
     check_init(crc64_table_big, BIG1);
 #endif
-    return crcspeed64big(dual ? crc64_table_big : crc64_table, crc, (void *)s,
+    return crcspeed64big(dual ? (uint64_t (*)[256]) crc64_table_big : crc64_table, crc, (void *)s,
                          l);
 }
 

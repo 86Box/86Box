@@ -1,118 +1,144 @@
 /*
- * 86Box	A hypervisor and IBM PC system emulator that specializes in
- *		running old operating systems and software designed for IBM
- *		PC systems and compatibles from 1981 through fairly recent
- *		system designs based on the PCI bus.
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
  *
- *		This file is part of the 86Box distribution.
+ *          This file is part of the 86Box distribution.
  *
- *		Header of the implementation of the Intel 8253/8254
- *		Programmable Interval Timer.
+ *          Header of the implementation of the Intel 8253/8254
+ *          Programmable Interval Timer.
  *
  *
  *
- * Author:	Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2019,2020 Miran Grca.
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *
+ *          Copyright 2019-2020 Miran Grca.
  */
+
 #ifndef EMU_PIT_H
-# define EMU_PIT_H
+#define EMU_PIT_H
 
+typedef struct ctr_t {
+    uint8_t m;
+    uint8_t ctrl;
+    uint8_t read_status;
+    uint8_t latch;
+    uint8_t s1_det;
+    uint8_t l_det;
+    uint8_t bcd;
+    uint8_t incomplete;
 
-typedef struct {
-    uint8_t	m, ctrl,
-		read_status, latch,
-		s1_det, l_det,
-		bcd, pad;
+    uint16_t rl;
 
-    uint16_t	rl;
-
-    int		rm, wm, gate, out,
-		newcount, clock, using_timer, latched,
-		state, null_count, do_read_status;
+    int rm;
+    int wm;
+    int gate;
+    int out;
+    int newcount;
+    int clock;
+    int using_timer;
+    int latched;
+    int state;
+    int null_count;
+    int do_read_status;
 
     union {
-		int	count;
-		struct {
-			int	units		:4;
-			int	tens		:4;
-			int	hundreds	:4;
-			int	thousands	:4;
-			int	myriads		:4;
-		};
+        int32_t count;
+        struct {
+            int32_t units     : 4;
+            int32_t tens      : 4;
+            int32_t hundreds  : 4;
+            int32_t thousands : 4;
+            int32_t myriads   : 4;
+        };
     };
 
-    uint32_t	l;
+    uint32_t l;
 
-    void	(*load_func)(uint8_t new_m, int new_count);
-    void	(*out_func)(int new_out, int old_out);
+    void (*load_func)(uint8_t new_m, int new_count);
+    void (*out_func)(int new_out, int old_out);
 } ctr_t;
 
-
 typedef struct PIT {
-    int		flags, clock;
-    pc_timer_t	callback_timer;
+    int        flags;
+    int        clock;
+    pc_timer_t callback_timer;
 
-    ctr_t	counters[3];
+    ctr_t counters[3];
 
-    uint8_t	ctrl;
+    uint8_t ctrl;
 } pit_t;
 
+enum {
+    PIT_8253      = 0,
+    PIT_8254      = 1,
+    PIT_8253_FAST = 2,
+    PIT_8254_FAST = 3
+};
 
-extern pit_t	*pit,
-		*pit2;
+typedef struct pit_intf_t {
+    uint8_t (*read)(uint16_t addr, void *priv);
+    void (*write)(uint16_t addr, uint8_t val, void *priv);
+    /* Gets a counter's count. */
+    uint16_t (*get_count)(void *data, int counter_id);
+    /* Sets a counter's GATE input. */
+    void (*set_gate)(void *data, int counter_id, int gate);
+    /* Sets if a counter's CLOCK input is from the timer or not - used by PCjr. */
+    void (*set_using_timer)(void *data, int counter_id, int using_timer);
+    /* Sets a counter's OUT output handler. */
+    void (*set_out_func)(void *data, int counter_id, void (*func)(int new_out, int old_out));
+    /* Sets a counter's load count handler. */
+    void (*set_load_func)(void *data, int counter_id, void (*func)(uint8_t new_m, int new_count));
+    void (*ctr_clock)(void *data, int counter_id);
+    void *data;
+} pit_intf_t;
 
-extern double	SYSCLK, PCICLK, AGPCLK;
+extern pit_intf_t       pit_devs[2];
+extern const pit_intf_t pit_classic_intf;
 
-extern uint64_t	PITCONST, ISACONST,
-		CGACONST,
-		MDACONST,
-		HERCCONST,
-		VGACONST1,
-		VGACONST2,
-		RTCCONST, ACPICONST;
+extern double SYSCLK;
+extern double PCICLK;
+extern double AGPCLK;
 
-extern int	refresh_at_enable;
+extern uint64_t PITCONST;
+extern uint64_t ISACONST;
+extern uint64_t CGACONST;
+extern uint64_t MDACONST;
+extern uint64_t HERCCONST;
+extern uint64_t VGACONST1;
+extern uint64_t VGACONST2;
+extern uint64_t RTCCONST;
 
+extern int refresh_at_enable;
 
-/* Gets a counter's count. */
-extern uint16_t	pit_ctr_get_count(ctr_t *ctr);
-/* Sets a counter's load count handler. */
-extern void	pit_ctr_set_load_func(ctr_t *ctr, void (*func)(uint8_t new_m, int new_count));
-/* Sets a counter's OUT output handler. */
-extern void	pit_ctr_set_out_func(ctr_t *ctr, void (*func)(int new_out, int old_out));
-/* Sets a counter's GATE input. */
-extern void	pit_ctr_set_gate(ctr_t *ctr, int gate);
 /* Sets a counter's CLOCK input. */
-extern void	pit_ctr_set_clock(ctr_t *ctr, int clock);
-/* Sets if a counter's CLOCK input is from the timer or not - used by PCjr. */
-extern void	pit_ctr_set_using_timer(ctr_t *ctr, int using_timer);
+extern void pit_ctr_set_clock(ctr_t *ctr, int clock);
 
-extern pit_t *	pit_common_init(int type, void (*out0)(int new_out, int old_out), void (*out1)(int new_out, int old_out));
-extern pit_t *	pit_ps2_init(void);
-extern void	pit_reset(pit_t *dev);
+extern pit_t *pit_common_init(int type, void (*out0)(int new_out, int old_out), void (*out1)(int new_out, int old_out));
+extern pit_t *pit_ps2_init(int type);
+extern void   pit_reset(pit_t *dev);
 
-extern void	pit_irq0_timer(int new_out, int old_out);
-extern void	pit_irq0_timer_pcjr(int new_out, int old_out);
-extern void	pit_irq0_timer_ps2(int new_out, int old_out);
+extern void pit_irq0_timer_ps2(int new_out, int old_out);
 
-extern void	pit_refresh_timer_xt(int new_out, int old_out);
-extern void	pit_refresh_timer_at(int new_out, int old_out);
+extern void pit_refresh_timer_xt(int new_out, int old_out);
+extern void pit_refresh_timer_at(int new_out, int old_out);
 
-extern void	pit_speaker_timer(int new_out, int old_out);
+extern void pit_speaker_timer(int new_out, int old_out);
 
-extern void	pit_nmi_timer_ps2(int new_out, int old_out);
+extern void pit_nmi_timer_ps2(int new_out, int old_out);
 
-extern void     pit_set_clock(int clock);
-extern void	pit_handler(int set, uint16_t base, int size, void *priv);
+extern void pit_set_clock(uint32_t clock);
+extern void pit_handler(int set, uint16_t base, int size, void *priv);
 
+extern uint8_t pit_read_reg(void *priv, uint8_t reg);
 
 #ifdef EMU_DEVICE_H
-extern const device_t	i8253_device;
-extern const device_t	i8254_device;
-extern const device_t	i8254_sec_device;
-extern const device_t	i8254_ext_io_device;
-extern const device_t	i8254_ps2_device;
+extern const device_t i8253_device;
+extern const device_t i8254_device;
+extern const device_t i8254_sec_device;
+extern const device_t i8254_ext_io_device;
+extern const device_t i8254_ps2_device;
 #endif
 
-
-#endif	/*EMU_PIT_H*/
+#endif /*EMU_PIT_H*/

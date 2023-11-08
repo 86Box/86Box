@@ -76,6 +76,24 @@ msgstr "1.5x(&5)"
 msgid "&2x"
 msgstr "2x(&2)"
 
+msgid "&3x"
+msgstr "3x(&3)"
+
+msgid "&4x"
+msgstr "4x(&4)"
+
+msgid "&5x"
+msgstr "5x(&5)"
+
+msgid "&6x"
+msgstr "6x(&6)"
+
+msgid "&7x"
+msgstr "7x(&7)"
+
+msgid "&8x"
+msgstr "8x(&8)"
+
 msgid "Filter method"
 msgstr "过滤方式"
 
@@ -105,6 +123,9 @@ msgstr "保持比例(&S)"
 
 msgid "&Integer scale"
 msgstr "整数比例(&I)"
+
+msgid "4:&3 Integer scale"
+msgstr "4:3 整数比例(&3)"
 
 msgid "E&GA/(S)VGA settings"
 msgstr "EGA/(S)VGA 设置(&G)"
@@ -188,13 +209,13 @@ msgid "&About 86Box..."
 msgstr "关于 86Box(&A)..."
 
 msgid "&New image..."
-msgstr "新建镜像(&N)..."
+msgstr "新建映像(&N)..."
 
 msgid "&Existing image..."
-msgstr "打开已存在的镜像(&E)..."
+msgstr "打开已存在的映像(&E)..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "打开已存在的镜像并写保护(&W)..."
+msgstr "打开已存在的映像并写保护(&W)..."
 
 msgid "&Record"
 msgstr "录制(&R)"
@@ -212,7 +233,7 @@ msgid "E&ject"
 msgstr "弹出(&J)"
 
 msgid "&Image..."
-msgstr "镜像(&I)..."
+msgstr "映像(&I)..."
 
 msgid "E&xport to 86F..."
 msgstr "导出为 86F 格式(&x)..."
@@ -224,10 +245,10 @@ msgid "E&mpty"
 msgstr "空置驱动器(&M)"
 
 msgid "&Reload previous image"
-msgstr "载入上一个镜像(&R)"
+msgstr "载入上一个映像(&R)"
 
-msgid "&Image"
-msgstr "镜像(&I)"
+msgid "&Folder..."
+msgstr "文件夹(&F)..."
 
 msgid "Target &framerate"
 msgstr "目标帧率(&F)"
@@ -266,7 +287,7 @@ msgid "Sound Gain"
 msgstr "音量增益"
 
 msgid "New Image"
-msgstr "新建镜像"
+msgstr "新建映像"
 
 msgid "Settings"
 msgstr "设置"
@@ -364,6 +385,12 @@ msgstr "显卡:"
 msgid "Voodoo Graphics"
 msgstr "Voodoo Graphics"
 
+msgid "IBM 8514/a Graphics"
+msgstr "IBM 8514/a Graphics"
+
+msgid "XGA Graphics"
+msgstr "XGA Graphics"
+
 msgid "Mouse:"
 msgstr "鼠标:"
 
@@ -382,8 +409,17 @@ msgstr "操纵杆 3..."
 msgid "Joystick 4..."
 msgstr "操纵杆 4..."
 
-msgid "Sound card:"
-msgstr "声卡:"
+msgid "Sound card 1:"
+msgstr "声卡 1:"
+
+msgid "Sound card 2:"
+msgstr "声卡 2:"
+
+msgid "Sound card 3:"
+msgstr "声卡 3:"
+
+msgid "Sound card 4:"
+msgstr "声卡 4:"
 
 msgid "MIDI Out Device:"
 msgstr "MIDI 输出设备:"
@@ -394,17 +430,17 @@ msgstr "MIDI 输入设备:"
 msgid "Standalone MPU-401"
 msgstr "独立 MPU-401"
 
-msgid "Innovation SSI-2001"
-msgstr "Innovation SSI-2001"
-
-msgid "CMS / Game Blaster"
-msgstr "CMS / Game Blaster"
-
-msgid "Gravis Ultrasound"
-msgstr "Gravis Ultrasound"
-
 msgid "Use FLOAT32 sound"
 msgstr "使用单精度浮点 (FLOAT32)"
+
+msgid "FM synth driver"
+msgstr "调频合成器驱动器"
+
+msgid "Nuked (more accurate)"
+msgstr "Nuked (更准确)"
+
+msgid "YMFM (faster)"
+msgstr "YMFM (更快)"
 
 msgid "Network type:"
 msgstr "网络类型:"
@@ -500,7 +536,7 @@ msgid "&New..."
 msgstr "新建(&N)..."
 
 msgid "&Existing..."
-msgstr "已有镜像(&E)..."
+msgstr "已有映像(&E)..."
 
 msgid "&Remove"
 msgstr "移除(&R)"
@@ -533,7 +569,7 @@ msgid "Type:"
 msgstr "类型:"
 
 msgid "Image Format:"
-msgstr "镜像格式:"
+msgstr "映像格式:"
 
 msgid "Block Size:"
 msgstr "块大小:"
@@ -550,6 +586,9 @@ msgstr "检查 BPB"
 msgid "CD-ROM drives:"
 msgstr "光盘驱动器:"
 
+msgid "Earlier drive"
+msgstr "早先的驱动器"
+
 msgid "MO drives:"
 msgstr "磁光盘驱动器:"
 
@@ -563,7 +602,7 @@ msgid "ISA RTC:"
 msgstr "ISA 实时时钟:"
 
 msgid "ISA Memory Expansion"
-msgstr "ISA 内存扩充"
+msgstr "ISA 内存扩展"
 
 msgid "Card 1:"
 msgstr "扩展卡 1:"
@@ -611,10 +650,10 @@ msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
 msgid "ZIP images"
-msgstr "ZIP 镜像"
+msgstr "ZIP 映像"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box 找不到任何可用的 ROM 镜像。\n\n请<a href=\"https://github.com/86Box/roms/releases/latest\">下载</a>ROM 包并将其解压到 \"roms\" 文件夹。"
+msgstr "86Box 找不到任何可用的 ROM 映像。\n\n请<a href=\"https://github.com/86Box/roms/releases/latest\">下载</a> ROM 包并将其解压到 \"roms\" 文件夹中。"
 
 msgid "(empty)"
 msgstr "(空)"
@@ -632,13 +671,13 @@ msgid "Off"
 msgstr "关"
 
 msgid "All images"
-msgstr "所有镜像"
+msgstr "所有映像"
 
 msgid "Basic sector images"
-msgstr "基本扇区镜像"
+msgstr "基本扇区映像"
 
 msgid "Surface images"
-msgstr "表面镜像"
+msgstr "表面映像"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "由于 roms/machines 文件夹中缺少合适的 ROM，机型 \"%hs\" 不可用。将切换到其他可用机型。"
@@ -687,9 +726,6 @@ msgstr "按下 F8+F12 释放鼠标"
 
 msgid "Press F8+F12 or middle button to release mouse"
 msgstr "按下 F8+F12 或鼠标中键释放鼠标"
-
-msgid "Unable to initialize FluidSynth"
-msgstr "无法初始化 FluidSynth"
 
 msgid "Bus"
 msgstr "总线"
@@ -770,13 +806,10 @@ msgid "Floppy %i (%s): %ls"
 msgstr "软盘 %i (%s): %ls"
 
 msgid "Advanced sector images"
-msgstr "高级扇区镜像"
+msgstr "高级扇区映像"
 
 msgid "Flux images"
-msgstr "Flux 镜像"
-
-msgid "Unable to initialize FreeType"
-msgstr "无法初始化 FreeType"
+msgstr "Flux 映像"
 
 msgid "Unable to initialize SDL, SDL2.dll is required"
 msgstr "无法初始化 SDL，需要 SDL2.dll"
@@ -794,7 +827,7 @@ msgid "MO %i (%ls): %ls"
 msgstr "磁光盘 %i (%ls): %ls"
 
 msgid "MO images"
-msgstr "磁光盘镜像"
+msgstr "磁光盘映像"
 
 msgid "Welcome to 86Box!"
 msgstr "欢迎使用 86Box！"
@@ -823,8 +856,8 @@ msgstr "关于 86Box"
 msgid "86Box v"
 msgstr "86Box v"
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "一个旧式计算机模拟器\n\n作者: Sarah Walker、Miran Grca、Fred N. van Kempen (waltje)、SA1988、Tiseno100、reenigne、leilei、JohnElliott、greatpsycho 等人。\n\n本软件依据 GNU 通用公共许可证第二版或更新版本发布。详情见 LICENSE 文件。"
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "一个旧式计算机模拟器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\n本软件依据 GNU 通用公共许可证第二版或更新版本发布。详情见 LICENSE 文件。"
 
 msgid "Hardware not available"
 msgstr "硬件不可用"
@@ -841,15 +874,6 @@ msgstr "请确认 libpcap 已安装且使用兼容 libpcap 的网络连接。"
 msgid "Invalid configuration"
 msgstr "无效配置"
 
-msgid "freetype.dll"
-msgstr "freetype.dll"
-
-msgid "libfreetype"
-msgstr "libfreetype"
-
-msgid " is required for ESC/P printer emulation."
-msgstr "ESC/P 打印机模拟需要"
-
 msgid "gsdll32.dll"
 msgstr "gsdll32.dll"
 
@@ -858,15 +882,6 @@ msgstr "libgs"
 
 msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 msgstr " 是将 PostScript 文件转换为 PDF 所需要的库。\n\n使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
-
-msgid "libfluidsynth.dll"
-msgstr "libfluidsynth.dll"
-
-msgid "libfluidsynth"
-msgstr "libfluidsynth"
-
-msgid " is required for FluidSynth MIDI output."
-msgstr "FluidSynth MIDI 输出需要"
 
 msgid "Entering fullscreen mode"
 msgstr "正在进入全屏模式"
@@ -884,7 +899,7 @@ msgid "Don't reset"
 msgstr "不重置"
 
 msgid "CD-ROM images"
-msgstr "光盘镜像"
+msgstr "光盘映像"
 
 msgid "%hs Device Configuration"
 msgstr "%hs 设备配置"
@@ -911,13 +926,13 @@ msgid "Cassette: %s"
 msgstr "磁带: %s"
 
 msgid "Cassette images"
-msgstr "磁带镜像"
+msgstr "磁带映像"
 
 msgid "Cartridge %i: %ls"
 msgstr "卡带 %i: %ls"
 
 msgid "Cartridge images"
-msgstr "卡带镜像"
+msgstr "卡带映像"
 
 msgid "Error initializing renderer"
 msgstr "初始化渲染器时出错"
@@ -968,13 +983,13 @@ msgid "Add Existing Hard Disk"
 msgstr "添加已存在的硬盘"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI 磁盘镜像不能超过 4 GB。"
+msgstr "HDI 磁盘映像不能超过 4 GB。"
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "磁盘镜像不能超过 127 GB。"
+msgstr "磁盘映像不能超过 127 GB。"
 
 msgid "Hard disk images"
-msgstr "硬盘镜像"
+msgstr "硬盘映像"
 
 msgid "Unable to read file"
 msgstr "无法读取文件"
@@ -983,19 +998,19 @@ msgid "Unable to write file"
 msgstr "无法写入文件"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "不支持非 512 字节扇区大小的 HDI 或 HDX 镜像。"
+msgstr "不支持非 512 字节扇区大小的 HDI 或 HDX 映像。"
 
 msgid "USB is not yet supported"
 msgstr "尚未支持 USB"
 
 msgid "Disk image file already exists"
-msgstr "磁盘镜像文件已存在"
+msgstr "磁盘映像文件已存在"
 
 msgid "Please specify a valid file name."
 msgstr "请指定有效的文件名。"
 
 msgid "Disk image created"
-msgstr "已创建磁盘镜像"
+msgstr "已创建磁盘映像"
 
 msgid "Make sure the file exists and is readable."
 msgstr "请确定此文件已存在并可读取。"
@@ -1004,16 +1019,16 @@ msgid "Make sure the file is being saved to a writable directory."
 msgstr "请确定此文件保存在可写目录中。"
 
 msgid "Disk image too large"
-msgstr "磁盘镜像太大"
+msgstr "磁盘映像太大"
 
 msgid "Remember to partition and format the newly-created drive."
-msgstr "请记得为新创建的镜像分区并格式化。"
+msgstr "请记得为新创建的映像分区并格式化。"
 
 msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "选定的文件将被覆盖。确定继续使用此文件吗？"
 
 msgid "Unsupported disk image"
-msgstr "不支持的磁盘镜像"
+msgstr "不支持的磁盘映像"
 
 msgid "Overwrite"
 msgstr "覆盖"
@@ -1022,13 +1037,13 @@ msgid "Don't overwrite"
 msgstr "不覆盖"
 
 msgid "Raw image (.img)"
-msgstr "原始镜像 (.img)"
+msgstr "原始映像 (.img)"
 
 msgid "HDI image (.hdi)"
-msgstr "HDI 镜像 (.hdi)"
+msgstr "HDI 映像 (.hdi)"
 
 msgid "HDX image (.hdx)"
-msgstr "HDX 镜像 (.hdx)"
+msgstr "HDX 映像 (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
 msgstr "固定大小 VHD (.vhd)"
@@ -1052,7 +1067,7 @@ msgid "Select the parent VHD"
 msgstr "选择父 VHD 文件"
 
 msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "父映像可能在创建差异镜像后被修改。\n\n如果镜像文件被移动或复制，或创建此磁盘的程序中存在错误，也可能发生这种情况。\n\n是否需要修复时间戳？"
+msgstr "父映像可能在创建差异映像后被修改。\n\n如果映像文件被移动或复制，或创建此磁盘的程序中存在错误，也可能发生这种情况。\n\n是否需要修复时间戳？"
 
 msgid "Parent and child disk timestamps do not match"
 msgstr "父盘与子盘的时间戳不匹配"
@@ -1182,4 +1197,31 @@ msgstr "低于标准转速的 2%"
 
 msgid "(System Default)"
 msgstr "(系统默认)"
+
+msgid "Failed to initialize network driver"
+msgstr "网络驱动程序初始化失败"
+
+msgid "The network configuration will be switched to the null driver"
+msgstr "网络配置将切换为空驱动程序"
+
+msgid "Mouse sensitivity:"
+msgstr "鼠标敏感度:"
+
+msgid "Select media images from program working directory"
+msgstr "从程序工作目录中选择介质映像"
+
+msgid "PIT mode:"
+msgstr "PIT 模式:"
+
+msgid "Auto"
+msgstr "自动"
+
+msgid "Slow"
+msgstr "慢"
+
+msgid "Fast"
+msgstr "快"
+
+msgid "&Auto-pause on focus loss"
+msgstr "失去焦点时自动暂停(&A)"
 

@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2020 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2022 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -191,7 +191,7 @@ Bit32u MidiStreamParserImpl::parseShortMessageDataBytes(const Bit8u stream[], Bi
 		} else if (dataByte < 0xF8) {
 			// Discard invalid bytes and start over
 			char s[128];
-			sprintf(s, "parseShortMessageDataBytes: Invalid short message: status %02x, expected length %i, actual %i -> ignored", *streamBuffer, shortMessageLength, streamBufferSize);
+			snprintf(s, sizeof(s), "parseShortMessageDataBytes: Invalid short message: status %02x, expected length %i, actual %i -> ignored", *streamBuffer, shortMessageLength, streamBufferSize);
 			midiReporter.printDebug(s);
 			streamBufferSize = 0; // Clear streamBuffer
 			return parsedLength;
