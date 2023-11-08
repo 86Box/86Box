@@ -2230,7 +2230,7 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
 
     mpu401_change_addr(sb->mpu, 0);
-    ide_remove_handlers(2);
+    ide_remove_handlers(3);
 
     sb->gameport_addr = 0;
     gameport_remap(sb->gameport, 0);
@@ -2559,7 +2559,8 @@ sb_awe32_pnp_init(const device_t *info)
     sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
 
     mpu401_change_addr(sb->mpu, 0);
-    ide_remove_handlers(2);
+    if ((info->local != 2) && (info->local != 3) && (info->local != 4))
+        ide_remove_handlers(3);
 
     emu8k_change_addr(&sb->emu8k, 0);
 
