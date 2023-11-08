@@ -180,6 +180,7 @@
     </widget>
     <addaction name="actionHide_tool_bar"/>
     <addaction name="actionHide_status_bar"/>
+    <addaction name="actionShow_status_icons_in_fullscreen"/>
     <addaction name="separator"/>
     <addaction name="actionShow_non_primary_monitors"/>
     <addaction name="actionResizable_window"/>
@@ -879,6 +880,14 @@
    </property>
    <property name="text">
     <string>Cursor/Puck</string>
+   </property>
+  </action>
+  <action name="actionShow_status_icons_in_fullscreen">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show status icons in fullscreen</string>
    </property>
   </action>
   <action name="actionPen">

@@ -346,6 +346,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
     ui->actionEnable_Discord_integration->setChecked(enable_discord);
     ui->actionApply_fullscreen_stretch_mode_when_maximized->setChecked(video_fullscreen_scale_maximized);
+    ui->actionShow_status_icons_in_fullscreen->setChecked(status_icons_fullscreen);
 
 #ifndef DISCORD
     ui->actionEnable_Discord_integration->setVisible(false);
@@ -2027,3 +2028,10 @@ void MainWindow::on_actionACPI_Shutdown_triggered()
 {
     acpi_pwrbut_pressed = 1;
 }
+
+void MainWindow::on_actionShow_status_icons_in_fullscreen_triggered()
+{
+    status_icons_fullscreen = !status_icons_fullscreen;
+    ui->actionShow_status_icons_in_fullscreen->setChecked(status_icons_fullscreen);
+}
+

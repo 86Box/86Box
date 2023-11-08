@@ -60,6 +60,7 @@ extern wchar_t  sdl_win_title[512];
 plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
 joystick_t      joystick_state[MAX_JOYSTICKS];
 int             joysticks_present;
+int             status_icons_fullscreen = 0; /* unused. */
 SDL_mutex      *blitmtx;
 SDL_threadID    eventthread;
 static int      exit_event         = 0;
