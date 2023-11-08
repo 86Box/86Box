@@ -18,6 +18,35 @@
  *          Copyright 2016-2021 Miran Grca.
  *          Copyright 2021 RichardG.
  */
+
+/*
+   UMC UM8669F non-PnP register definitions
+
+   C0:
+      [7] Infrared half duplex
+    [4:3] LPT mode:
+          00 SPP
+          01 EPP
+          10 ECP
+          11 ECP + EPP
+
+   C1:
+      [7] Enable PnP access
+    [6:0] Always set regardless of PnP access enabled/disabled
+
+   C2:
+    [6:5] Potentially pin muxing mode: (names from AMI "IR group" setup option)
+          00 Reserved
+          01 A (no IDE)
+          10 B (no IDE)
+          11 C
+    [4:3] Infrared mode:
+          00 Reserved
+          01 HPSIR
+          10 ASKIR
+          11 Disabled
+*/
+
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -122,10 +151,9 @@ um8669f_log(const char *fmt, ...)
 
 typedef struct um8669f_t {
     uint8_t locked;
-    uint8_t cur_reg_108;
+    uint8_t cur_reg;
     void   *pnp_card;
-
-    uint8_t regs_108[256];
+    uint8_t regs[3];
 
     fdc_t    *fdc;
     serial_t *uart[2];
@@ -228,11 +256,11 @@ um8669f_write(uint16_t port, uint8_t val, void *priv)
             if (val == 0x55)
                 dev->locked = 1;
             else
-                dev->cur_reg_108 = val;
-        } else {
-            dev->regs_108[dev->cur_reg_108] = val;
+                dev->cur_reg = val;
+        } else if ((dev->cur_reg >= 0xc0) && (dev->cur_reg <= 0xc2)) {
+            dev->regs[dev->cur_reg & 3] = val;
 
-            if (dev->cur_reg_108 == 0xc1) {
+            if (dev->cur_reg == 0xc1) {
                 um8669f_log("UM8669F: ISAPnP %sabled\n", (val & 0x80) ? "en" : "dis");
                 isapnp_enable_card(dev->pnp_card, (val & 0x80) ? ISAPNP_CARD_FORCE_CONFIG : ISAPNP_CARD_DISABLE);
             }
@@ -248,9 +276,9 @@ um8669f_read(uint16_t port, void *priv)
 
     if (!dev->locked) {
         if (port == 0x108)
-            ret = dev->cur_reg_108; /* ??? */
-        else
-            ret = dev->regs_108[dev->cur_reg_108];
+            ret = dev->cur_reg; /* ??? */
+        else if ((dev->cur_reg >= 0xc0) && (dev->cur_reg <= 0xc2))
+            ret = dev->regs[dev->cur_reg & 3];
     }
 
     um8669f_log("UM8669F: read(%04X) = %02X\n", port, ret);
