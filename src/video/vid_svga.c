@@ -212,10 +212,12 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
             svga_recalctimings(svga);
             break;
         case 0x3c3:
-            if (xga_active)
+            if (xga_active && xga)
                 xga->on = (val & 0x01) ? 0 : 1;
-            if (ibm8514_active)
-                dev->on = (val & 0x01) ? 0 : 1;
+            if (ibm8514_active && dev) {
+                dev->on[0] = (val & 0x01) ? 0 : 1;
+                dev->on[1] = dev->on[0];
+            }
 
             svga_log("3C3: XGA ON = %d.\n", xga->on);
             vga_on = val & 0x01;
@@ -527,7 +529,7 @@ svga_set_ramdac_type(svga_t *svga, int type)
         svga->ramdac_type = type;
 
         for (int c = 0; c < 256; c++) {
-            if (ibm8514_active) {
+            if (ibm8514_active && dev) {
                 if (svga->ramdac_type == RAMDAC_8BIT)
                     dev->pallook[c] = makecol32(svga->vgapal[c].r, svga->vgapal[c].g, svga->vgapal[c].b);
                 else
@@ -535,7 +537,7 @@ svga_set_ramdac_type(svga_t *svga, int type)
                                                  (svga->vgapal[c].g & 0x3f) * 4,
                                                  (svga->vgapal[c].b & 0x3f) * 4);
             }
-            if (xga_active) {
+            if (xga_active && xga) {
                 if (svga->ramdac_type == RAMDAC_8BIT)
                     xga->pallook[c] = makecol32(svga->vgapal[c].r, svga->vgapal[c].g, svga->vgapal[c].b);
                 else
@@ -834,11 +836,11 @@ svga_poll(void *priv)
     int        old_ma;
 
     if (!svga->override) {
-        if (ibm8514_active && dev->on) {
+        if (ibm8514_active && dev && (dev->on[0] || dev->on[1])) {
             ibm8514_poll(dev, svga);
             return;
         }
-        if (xga_active && xga->on) {
+        if (xga_active && xga && xga->on) {
             if ((xga->disp_cntl_2 & 7) >= 2) {
                 xga_poll(xga, svga);
                 return;
@@ -1253,7 +1255,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *priv)
     cycles -= svga->monitor->mon_video_timing_write_b;
 
     if (!linear) {
-        if (xga_active) {
+        if (xga_active && xga) {
             if (((xga->op_mode & 7) >= 4) && (xga->aperture_cntl >= 1)) {
                 if (val == 0xa5) { /*Memory size test of XGA*/
                     xga->test    = val;
@@ -1474,7 +1476,7 @@ svga_read_common(uint32_t addr, uint8_t linear, void *priv)
     cycles -= svga->monitor->mon_video_timing_read_b;
 
     if (!linear) {
-        if (xga_active) {
+        if (xga_active && xga) {
             if (((xga->op_mode & 7) >= 4) && (xga->aperture_cntl >= 1)) {
                 if (xga->test == 0xa5) { /*Memory size test of XGA*/
                     if (addr == 0xa0001) {
