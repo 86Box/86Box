@@ -493,6 +493,14 @@ machine_xt_vendex_init(const machine_t *model)
     return ret;
 }
 
+static void
+machine_xt_hyundai_common_init(const machine_t *model)
+{
+    device_add(&keyboard_xt_hyundai_device);
+
+    machine_xt_common_init(model);
+}
+
 int
 machine_xt_super16t_init(const machine_t *model)
 {
@@ -504,7 +512,7 @@ machine_xt_super16t_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_hyundai_common_init(model);
 
     /* On-board FDC cannot be disabled */
     device_add(&fdc_xt_device);
@@ -523,7 +531,7 @@ machine_xt_super16te_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_xt_clone_init(model);
+    machine_xt_hyundai_common_init(model);
 
     /* On-board FDC cannot be disabled */
     device_add(&fdc_xt_device);

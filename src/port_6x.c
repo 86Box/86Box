@@ -37,6 +37,7 @@
 #include <86box/video.h>
 #include <86box/port_6x.h>
 #include <86box/plat_unused.h>
+#include <86box/random.h>
 
 #define PS2_REFRESH_TIME (16 * TIMER_USEC)
 
@@ -51,6 +52,8 @@ port_6x_write(uint16_t port, uint8_t val, void *priv)
     const port_6x_t *dev = (port_6x_t *) priv;
 
     port &= 3;
+
+    cycles -= ISA_CYCLES(8);
 
     if ((port == 3) && (dev->flags & PORT_6X_MIRROR))
         port = 1;
@@ -80,6 +83,8 @@ port_61_read_simple(UNUSED(uint16_t port), UNUSED(void *priv))
 {
     uint8_t ret = ppi.pb & 0x1f;
 
+    cycles -= ISA_CYCLES(8);
+
     if (ppispeakon)
         ret |= 0x20;
 
@@ -91,6 +96,8 @@ port_61_read(UNUSED(uint16_t port), void *priv)
 {
     const port_6x_t *dev = (port_6x_t *) priv;
     uint8_t          ret = 0xff;
+
+    cycles -= ISA_CYCLES(8);
 
     if (dev->flags & PORT_6X_EXT_REF) {
         ret = ppi.pb & 0x0f;

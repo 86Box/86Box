@@ -404,6 +404,8 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
 
     pit_log("[%04X:%08X] pit_write(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
 
+    cycles -= ISA_CYCLES(8);
+
     switch (addr & 3) {
         case 3: /* control */
             t = val >> 6;
@@ -540,6 +542,8 @@ pitf_read(uint16_t addr, void *priv)
     uint8_t ret = 0xff;
     int     t   = (addr & 3);
     ctrf_t *ctr;
+
+    cycles -= ISA_CYCLES(8);
 
     switch (addr & 3) {
         case 3: /* Control. */

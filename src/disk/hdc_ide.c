@@ -2651,7 +2651,7 @@ ide_board_close(int board)
 
             if (dev->type == IDE_ATAPI)
                 dev->tf->atastat = DRDY_STAT | DSC_STAT;
-            else if (dev->tf != NULL) {
+            else if (!(dev->type & IDE_SHADOW) && (dev->tf != NULL)) {
                 free(dev->tf);
                 dev->tf = NULL;
             }

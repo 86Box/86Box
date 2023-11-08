@@ -439,6 +439,7 @@ pc87306_reset_common(void *priv)
     fdc_reset(dev->fdc);
     pc87306_gpio_init(dev);
     nvr_lock_set(0x00, 256, 0, dev->nvr);
+    nvr_at_handler(0, 0x0070, dev->nvr);
     nvr_at_handler(1, 0x0070, dev->nvr);
     nvr_bank_set(0, 0, dev->nvr);
     nvr_wp_set(0, 0, dev->nvr);
