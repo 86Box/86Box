@@ -2033,5 +2033,6 @@ void MainWindow::on_actionShow_status_icons_in_fullscreen_triggered()
 {
     status_icons_fullscreen = !status_icons_fullscreen;
     ui->actionShow_status_icons_in_fullscreen->setChecked(status_icons_fullscreen);
+    config_save();
 }
 
