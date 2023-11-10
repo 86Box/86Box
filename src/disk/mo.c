@@ -2147,13 +2147,13 @@ mo_hard_reset(void)
 
             dev = (mo_t *) mo_drives[c].priv;
 
+            if (dev->tf == NULL)
+                continue;
+
             dev->id  = c;
             dev->drv = &mo_drives[c];
 
             mo_init(dev);
-
-            if (dev->tf == NULL)
-                continue;
 
             if (strlen(mo_drives[c].image_path))
                 mo_load(dev, mo_drives[c].image_path);

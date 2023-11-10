@@ -2386,13 +2386,13 @@ zip_hard_reset(void)
 
             dev = (zip_t *) zip_drives[c].priv;
 
+            if (dev->tf == NULL)
+                continue;
+
             dev->id  = c;
             dev->drv = &zip_drives[c];
 
             zip_init(dev);
-
-            if (dev->tf == NULL)
-                continue;
 
             if (strlen(zip_drives[c].image_path))
                 zip_load(dev, zip_drives[c].image_path);
