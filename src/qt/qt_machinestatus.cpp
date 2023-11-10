@@ -429,11 +429,12 @@ MachineStatus::refresh(QStatusBar *sbar)
     bool has_xta  = machine_has_flags(machine, MACHINE_XTA) > 0;
     bool has_esdi = machine_has_flags(machine, MACHINE_ESDI) > 0;
 
-    int c_mfm  = hdd_count(HDD_BUS_MFM);
-    int c_esdi = hdd_count(HDD_BUS_ESDI);
-    int c_xta  = hdd_count(HDD_BUS_XTA);
-    int c_ide  = hdd_count(HDD_BUS_IDE);
-    int c_scsi = hdd_count(HDD_BUS_SCSI);
+    int c_mfm   = hdd_count(HDD_BUS_MFM);
+    int c_esdi  = hdd_count(HDD_BUS_ESDI);
+    int c_xta   = hdd_count(HDD_BUS_XTA);
+    int c_ide   = hdd_count(HDD_BUS_IDE);
+    int c_atapi = hdd_count(HDD_BUS_ATAPI);
+    int c_scsi  = hdd_count(HDD_BUS_SCSI);
 
     sbar->removeWidget(d->cassette.label.get());
     for (int i = 0; i < 2; ++i) {
@@ -597,12 +598,21 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->hdds[HDD_BUS_XTA].label->setToolTip(tr("Hard disk (%s)").replace("%s", "XTA"));
         sbar->addWidget(d->hdds[HDD_BUS_XTA].label.get());
     }
-    if ((hasIDE() || hdc_name.left(5) == QStringLiteral("xtide") || hdc_name.left(3) == QStringLiteral("ide")) && c_ide > 0) {
-        d->hdds[HDD_BUS_IDE].label = std::make_unique<QLabel>();
-        d->hdds[HDD_BUS_IDE].setActive(false);
-        d->hdds[HDD_BUS_IDE].refresh();
-        d->hdds[HDD_BUS_IDE].label->setToolTip(tr("Hard disk (%s)").replace("%s", "IDE"));
-        sbar->addWidget(d->hdds[HDD_BUS_IDE].label.get());
+    if (hasIDE() || hdc_name.left(5) == QStringLiteral("xtide") || hdc_name.left(3) == QStringLiteral("ide")) {
+        if (c_ide > 0) {
+            d->hdds[HDD_BUS_IDE].label = std::make_unique<QLabel>();
+            d->hdds[HDD_BUS_IDE].setActive(false);
+            d->hdds[HDD_BUS_IDE].refresh();
+            d->hdds[HDD_BUS_IDE].label->setToolTip(tr("Hard disk (%s)").replace("%s", "IDE"));
+            sbar->addWidget(d->hdds[HDD_BUS_IDE].label.get());
+        }
+        if (c_atapi > 0) {
+            d->hdds[HDD_BUS_ATAPI].label = std::make_unique<QLabel>();
+            d->hdds[HDD_BUS_ATAPI].setActive(false);
+            d->hdds[HDD_BUS_ATAPI].refresh();
+            d->hdds[HDD_BUS_ATAPI].label->setToolTip(tr("Hard disk (%s)").replace("%s", "ATAPI"));
+            sbar->addWidget(d->hdds[HDD_BUS_ATAPI].label.get());
+        }
     }
     if ((hasSCSI() || (scsi_card_current[0] != 0) || (scsi_card_current[1] != 0) || (scsi_card_current[2] != 0) || (scsi_card_current[3] != 0)) && c_scsi > 0) {
         d->hdds[HDD_BUS_SCSI].label = std::make_unique<QLabel>();
