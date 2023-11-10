@@ -2391,6 +2391,9 @@ zip_hard_reset(void)
 
             zip_init(dev);
 
+            if (dev->tf == NULL)
+                continue;
+
             if (strlen(zip_drives[c].image_path))
                 zip_load(dev, zip_drives[c].image_path);
 

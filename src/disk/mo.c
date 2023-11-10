@@ -2152,6 +2152,9 @@ mo_hard_reset(void)
 
             mo_init(dev);
 
+            if (dev->tf == NULL)
+                continue;
+
             if (strlen(mo_drives[c].image_path))
                 mo_load(dev, mo_drives[c].image_path);
 
