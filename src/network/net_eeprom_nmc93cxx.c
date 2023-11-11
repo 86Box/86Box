@@ -66,10 +66,6 @@ nmc93cxx_eeprom_log(int lvl, const char *fmt, ...)
 #    define nmc93cxx_eeprom_log(lvl, fmt, ...)
 #endif
 
-static const char *opstring[] = {
-    "extended", "write", "read", "erase"
-};
-
 static void *
 nmc93cxx_eeprom_init_params(UNUSED(const device_t *info), void *params)
 {

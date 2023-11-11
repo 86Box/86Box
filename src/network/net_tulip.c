@@ -514,129 +514,6 @@ tulip_receive(void *priv, uint8_t *buf, int size)
     return 1;
 }
 
-static const char *
-tulip_reg_name(const uint32_t addr)
-{
-    switch (addr) {
-        case CSR(0):
-            return "CSR0";
-
-        case CSR(1):
-            return "CSR1";
-
-        case CSR(2):
-            return "CSR2";
-
-        case CSR(3):
-            return "CSR3";
-
-        case CSR(4):
-            return "CSR4";
-
-        case CSR(5):
-            return "CSR5";
-
-        case CSR(6):
-            return "CSR6";
-
-        case CSR(7):
-            return "CSR7";
-
-        case CSR(8):
-            return "CSR8";
-
-        case CSR(9):
-            return "CSR9";
-
-        case CSR(10):
-            return "CSR10";
-
-        case CSR(11):
-            return "CSR11";
-
-        case CSR(12):
-            return "CSR12";
-
-        case CSR(13):
-            return "CSR13";
-
-        case CSR(14):
-            return "CSR14";
-
-        case CSR(15):
-            return "CSR15";
-
-        default:
-            break;
-    }
-    return "";
-}
-
-static const char *
-tulip_rx_state_name(int state)
-{
-    switch (state) {
-        case CSR5_RS_STOPPED:
-            return "STOPPED";
-
-        case CSR5_RS_RUNNING_FETCH:
-            return "RUNNING/FETCH";
-
-        case CSR5_RS_RUNNING_CHECK_EOR:
-            return "RUNNING/CHECK EOR";
-
-        case CSR5_RS_RUNNING_WAIT_RECEIVE:
-            return "WAIT RECEIVE";
-
-        case CSR5_RS_SUSPENDED:
-            return "SUSPENDED";
-
-        case CSR5_RS_RUNNING_CLOSE:
-            return "RUNNING/CLOSE";
-
-        case CSR5_RS_RUNNING_FLUSH:
-            return "RUNNING/FLUSH";
-
-        case CSR5_RS_RUNNING_QUEUE:
-            return "RUNNING/QUEUE";
-
-        default:
-            break;
-    }
-    return "";
-}
-
-static const char *
-tulip_tx_state_name(int state)
-{
-    switch (state) {
-        case CSR5_TS_STOPPED:
-            return "STOPPED";
-
-        case CSR5_TS_RUNNING_FETCH:
-            return "RUNNING/FETCH";
-
-        case CSR5_TS_RUNNING_WAIT_EOT:
-            return "RUNNING/WAIT EOT";
-
-        case CSR5_TS_RUNNING_READ_BUF:
-            return "RUNNING/READ BUF";
-
-        case CSR5_TS_RUNNING_SETUP:
-            return "RUNNING/SETUP";
-
-        case CSR5_TS_SUSPENDED:
-            return "SUSPENDED";
-
-        case CSR5_TS_RUNNING_CLOSE:
-            return "RUNNING/CLOSE";
-
-        default:
-            break;
-    }
-    return "";
-}
-
 static void
 tulip_update_rs(TULIPState *s, int state)
 {
@@ -683,44 +560,6 @@ static const uint16_t tulip_mdi_default[] = {
 };
 
 /* Readonly mask for MDI (PHY) registers */
-static const uint16_t tulip_mdi_mask[] = {
-    /* MDI Registers 0 - 6, 7 */
-    0x0000,
-    0xffff,
-    0xffff,
-    0xffff,
-    0xc01f,
-    0xffff,
-    0xffff,
-    0x0000,
-    /* MDI Registers 8 - 15 */
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    /* MDI Registers 16 - 31 */
-    0x0fff,
-    0x0000,
-    0xffff,
-    0xffff,
-    0xffff,
-    0xffff,
-    0xffff,
-    0xffff,
-    0xffff,
-    0xffff,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-    0x0000,
-};
-
 extern uint16_t l80225_mii_readw(uint16_t* regs, uint16_t addr);
 extern void l80225_mii_writew(uint16_t* regs, uint16_t addr, uint16_t val);
 
@@ -1460,16 +1299,6 @@ static const uint8_t eeprom_default_24110[128] = {
     0x00,
     0x00,
 };
-
-static void
-tulip_fill_eeprom(TULIPState *s)
-{
-    uint16_t *eeprom = nmc93cxx_eeprom_data(s->eeprom);
-    memcpy(eeprom, eeprom_default, 128);
-
-    tulip_idblock_crc(eeprom);
-    eeprom[63] = (tulip_srom_crc((uint8_t *) eeprom, 126));
-}
 
 static uint8_t
 tulip_pci_read(UNUSED(int func), int addr, void *priv)
