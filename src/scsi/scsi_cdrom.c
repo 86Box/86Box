@@ -1997,7 +1997,7 @@ begin:
                 case CDROM_TYPE_NEC_211_100:
                 case CDROM_TYPE_NEC_464_105: /*GPCMD_READ_DISC_INFORMATION_NEC*/
                     scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
-                    scsi_cdrom_buf_alloc(dev, 22); /*NEC manual claims 4 bytes, but the Android source code (namely sr_vendor.c) actually states otherwise.*/
+                    scsi_cdrom_buf_alloc(dev, 22); /* NEC manual claims 4 bytes, but the Linux kernel (namely sr_vendor.c) actually states otherwise. */
 
                     if (!dev->drv->ops) {
                         scsi_cdrom_not_ready(dev);

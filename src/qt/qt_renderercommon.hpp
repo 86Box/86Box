@@ -42,6 +42,7 @@ public:
 
 protected:
     bool     eventDelegate(QEvent *event, bool &result);
+    void      drawStatusBarIcons(QPainter* painter);
 
     QRect    source { 0, 0, 0, 0 };
     QRect    destination;

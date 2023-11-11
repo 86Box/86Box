@@ -1462,7 +1462,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
         }
     }
 
-    /*See this: https://android.googlesource.com/kernel/tegra/+/android-tegra-flounder-3.10-lollipop-release/drivers/video/tridentfb.c for the pitch*/
+    /* See Linux kernel drivers/video/tridentfb.c for the pitch */
     tgui->accel.pitch = svga->rowoffset;
 
     switch (svga->bpp) {

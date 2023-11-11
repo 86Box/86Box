@@ -1636,8 +1636,6 @@ static void
 sb_vibra16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
     sb_t    *sb   = (sb_t *) priv;
-    uint16_t addr = sb->dsp.sb_addr;
-    uint8_t  val;
 
     switch (ld) {
         case 0: /* Audio */

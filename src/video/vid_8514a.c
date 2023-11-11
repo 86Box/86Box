@@ -964,8 +964,8 @@ ibm8514_accel_out(uint16_t port, uint32_t val, svga_t *svga, int len)
                 if (!val)
                     break;
                 dev->accel.advfunc_cntl = val & 0x0f;
-                dev->on                 = val & 0x01;
-                vga_on                  = !dev->on;
+                dev->on[0]              = val & 0x01;
+                vga_on                  = !dev->on[0];
                 ibm8514_log("IBM 8514/A: VGA ON = %i, val = %02x\n", vga_on, val);
                 svga_recalctimings(svga);
                 break;
@@ -1200,17 +1200,16 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
 
     if (cpu_input) {
         if ((dev->accel.cmd & 2) || (pixcntl == 2)) {
-            if ((frgd_mix == 2) || (bkgd_mix == 2)) {
+            if ((frgd_mix == 2) || (bkgd_mix == 2))
                 count >>= 3;
-            } else if (pixcntl == 2) {
-                if (dev->accel.cmd & 2) {
+            else if (pixcntl == 2) {
+                if (dev->accel.cmd & 2)
                     count >>= 1;
-                } else
+                else
                     count >>= 3;
             }
-        } else {
+        } else
             count >>= 3;
-        }
 
         if (dev->bpp) {
             if ((dev->accel.cmd & 0x200) && (count == 2))
@@ -1299,7 +1298,8 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
     /*Bit 4 of the Command register is the draw yes bit, which enables writing to memory/reading from memory when enabled.
       When this bit is disabled, no writing to memory/reading from memory is allowed. (This bit is almost meaningless on
       the NOP command)*/
-    ibm8514_log("CMD8514: CMD=%d, full=%04x, pixcntl=%x, count=%d, frgdmix = %02x, bkgdmix = %02x, polygon=%x.\n", cmd, dev->accel.cmd, pixcntl, count, frgd_mix, bkgd_mix, dev->accel.multifunc[0x0a] & 6);
+    if (dev->accel.cmd == 0x53b1 && !cpu_dat)
+        ibm8514_log("CMD8514: CMD=%d, full=%04x, pixcntl=%x, count=%d, frgdmix = %02x, bkgdmix = %02x, polygon=%x, cpu=%08x, frgdmix=%02x, bkgdmix=%02x.\n", cmd, dev->accel.cmd, pixcntl, count, frgd_mix, bkgd_mix, dev->accel.multifunc[0x0a] & 6, cpu_dat, dev->accel.frgd_mix, dev->accel.bkgd_mix);
 
     switch (cmd) {
         case 0: /*NOP (Short Stroke Vectors)*/
@@ -4243,7 +4243,7 @@ ibm8514_recalctimings(svga_t *svga)
 {
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
 
-    if (dev->on) {
+    if (dev->on[0]) {
         dev->h_disp      = (dev->hdisp + 1) << 3;
         dev->pitch       = (dev->accel.advfunc_cntl & 4) ? 1024 : 640;
         dev->h_total     = (dev->htotal + 1);

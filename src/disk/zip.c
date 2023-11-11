@@ -2386,6 +2386,9 @@ zip_hard_reset(void)
 
             dev = (zip_t *) zip_drives[c].priv;
 
+            if (dev->tf == NULL)
+                continue;
+
             dev->id  = c;
             dev->drv = &zip_drives[c];
 

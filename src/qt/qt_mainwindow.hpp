@@ -144,6 +144,7 @@ private slots:
     void on_actionCursor_Puck_triggered();
 
     void on_actionACPI_Shutdown_triggered();
+    void on_actionShow_status_icons_in_fullscreen_triggered();
 
 private slots:
     void on_actionShow_non_primary_monitors_triggered();
