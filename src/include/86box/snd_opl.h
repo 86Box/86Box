@@ -38,6 +38,7 @@ typedef struct fm_drv_t {
     void     (*reset_buffer)(void *priv);
     void     (*set_do_cycles)(void *priv, int8_t do_cycles);
     void      *priv;
+    void     (*generate)(void *priv, int32_t *data, uint32_t num_samples); /* daughterboard only. */
 } fm_drv_t;
 
 extern uint8_t fm_driver_get(int chip_id, fm_drv_t *drv);

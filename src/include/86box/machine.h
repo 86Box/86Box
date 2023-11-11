@@ -446,6 +446,7 @@ extern int machine_at_quadt386sx_init(const machine_t *);
 extern int machine_at_award286_init(const machine_t *);
 extern int machine_at_gdc212m_init(const machine_t *);
 extern int machine_at_gw286ct_init(const machine_t *);
+extern int machine_at_super286c_init(const machine_t *);
 extern int machine_at_super286tr_init(const machine_t *);
 extern int machine_at_spc4200p_init(const machine_t *);
 extern int machine_at_spc4216p_init(const machine_t *);
@@ -599,6 +600,7 @@ extern int machine_at_p5sp4_init(const machine_t *);
 
 /* m_at_socket5.c */
 extern int machine_at_plato_init(const machine_t *);
+extern int machine_at_dellplato_init(const machine_t *);
 extern int machine_at_ambradp90_init(const machine_t *);
 extern int machine_at_430nx_init(const machine_t *);
 
@@ -672,6 +674,7 @@ extern int machine_at_tx97_init(const machine_t *);
 extern int machine_at_an430tx_init(const machine_t *);
 #endif
 extern int machine_at_ym430tx_init(const machine_t *);
+extern int machine_at_thunderbolt_init(const machine_t *);
 extern int machine_at_mb540n_init(const machine_t *);
 extern int machine_at_56a5_init(const machine_t *);
 extern int machine_at_p5mms98_init(const machine_t *);
@@ -704,6 +707,7 @@ extern int machine_at_aurora_init(const machine_t *);
 extern int machine_at_686nx_init(const machine_t *);
 extern int machine_at_acerv60n_init(const machine_t *);
 extern int machine_at_vs440fx_init(const machine_t *);
+extern int machine_at_GW2KVenus_init(const machine_t *);
 extern int machine_at_ap440fx_init(const machine_t *);
 extern int machine_at_mb600n_init(const machine_t *);
 extern int machine_at_8600ttc_init(const machine_t *);
@@ -752,6 +756,7 @@ extern int machine_at_s370slm_init(const machine_t *);
 
 extern int machine_at_cubx_init(const machine_t *);
 extern int machine_at_atc7020bxii_init(const machine_t *);
+extern int machine_at_m773_init(const machine_t *);
 extern int machine_at_ambx133_init(const machine_t *);
 extern int machine_at_awo671r_init(const machine_t *);
 extern int machine_at_63a1_init(const machine_t *);

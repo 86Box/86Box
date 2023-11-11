@@ -1625,7 +1625,10 @@ acpi_reset(void *priv)
     acpi_t *dev = (acpi_t *) priv;
 
     memset(&dev->regs, 0x00, sizeof(acpi_regs_t));
-    dev->regs.gpireg[0] = 0xff;
+    /* PC Chips M773:
+       - Bit 3: 80-conductor cable on unknown IDE channel (active low)
+       - Bit 1: 80-conductor cable on unknown IDE channel (active low) */
+    dev->regs.gpireg[0] = !strcmp(machine_get_internal_name(), "m773") ? 0xf5 : 0xff;
     dev->regs.gpireg[1] = 0xff;
     /* A-Trend ATC7020BXII:
        - Bit 3: 80-conductor cable on secondary IDE channel (active low)

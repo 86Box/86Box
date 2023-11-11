@@ -399,6 +399,13 @@ ymfm_drv_set_do_cycles(void *priv, int8_t do_cycles)
     drv->set_do_cycles(do_cycles);
 }
 
+static void
+ymfm_drv_generate(void *priv, int32_t *data, uint32_t num_samples)
+{
+    YMFMChipBase *drv = (YMFMChipBase *) priv;
+    drv->generate_resampled(data, num_samples);
+}
+
 const device_t ym3812_ymfm_device = {
     .name          = "Yamaha YM3812 OPL2 (YMFM)",
     .internal_name = "ym3812_ymfm",
@@ -462,6 +469,7 @@ const fm_drv_t ymfm_drv {
     &ymfm_drv_reset_buffer,
     &ymfm_drv_set_do_cycles,
     NULL,
+    ymfm_drv_generate,
 };
 
 #ifdef __clang__
