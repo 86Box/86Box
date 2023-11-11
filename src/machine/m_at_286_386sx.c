@@ -359,14 +359,14 @@ machine_at_super286c_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_init(model);
+    machine_at_common_init(model);
 
-    device_add(&neat_device);
+    device_add(&keyboard_at_ami_device);
 
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    device_add(&keyboard_at_ami_device);
+    device_add(&neat_device);
 
     return ret;
 }
