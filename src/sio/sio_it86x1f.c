@@ -394,6 +394,7 @@ static void
 it86x1f_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
 {
     it86x1f_t *dev = (it86x1f_t *) priv;
+    uint8_t effective_ldn;
 
     it86x1f_log("IT86x1F: write_vendor_reg(%X, %02X, %02X)\n", ld, reg, val);
 
@@ -450,7 +451,6 @@ it86x1f_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
 
         case 0xf0 ... 0xff:
             /* Translate GPIO LDN to 7 for the switch block. */
-            uint8_t effective_ldn;
             if (ld == dev->gpio_ldn)
                 effective_ldn = 7;
             else if (ld == 7)
