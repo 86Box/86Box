@@ -615,7 +615,7 @@ MainWindow::MainWindow(QWidget *parent)
     if (!vnc_enabled)
         video_setblit(qt_blit);
 
-        if (start_in_fullscreen) {
+    if (start_in_fullscreen) {
         connect(ui->stackedWidget, &RendererStack::blit, this, [this] () {
             if (start_in_fullscreen) {
                 QTimer::singleShot(100, ui->actionFullscreen, &QAction::trigger);
