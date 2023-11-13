@@ -706,6 +706,8 @@ SNDOBJ := sound.o \
           wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
           wave8580_PST.o wave.o \
           midi.o \
+          midi_opl4.o \
+          midi_opl4_yrw801.o \
           snd_speaker.o \
           snd_pssj.o \
           snd_ps1.o \
