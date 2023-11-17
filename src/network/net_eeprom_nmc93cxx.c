@@ -103,7 +103,7 @@ nmc93cxx_eeprom_init_params(UNUSED(const device_t *info), void *params)
 
     if (params_details->filename) {
         FILE *fp = nvr_fopen(params_details->filename, "rb");
-        strncpy(eeprom->filename, params_details->filename, 1024);
+        strncpy(eeprom->filename, params_details->filename, sizeof(eeprom->filename) - 1);
         if (fp) {
             filldefault = !fread(eeprom->contents, sizeof(uint16_t), nwords, fp);
             fclose(fp);

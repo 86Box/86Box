@@ -196,15 +196,15 @@ machine_at_vs440fx_init(const machine_t *model)
 }
 
 int
-machine_at_GW2KVenus_init(const machine_t *model)
+machine_at_gw2kvenus_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2("roms/machines/GW2KVenus/1011CS1T.BIO",
-                                     "roms/machines/GW2KVenus/1011CS1T.BI1",
-                                     "roms/machines/GW2KVenus/1011CS1T.BI2",
-                                     "roms/machines/GW2KVenus/1011CS1T.BI3",
-                                     "roms/machines/GW2KVenus/1011CS1T.RCV",
+    ret = bios_load_linear_combined2("roms/machines/gw2kvenus/1011CS1T.BIO",
+                                     "roms/machines/gw2kvenus/1011CS1T.BI1",
+                                     "roms/machines/gw2kvenus/1011CS1T.BI2",
+                                     "roms/machines/gw2kvenus/1011CS1T.BI3",
+                                     "roms/machines/gw2kvenus/1011CS1T.RCV",
                                      0x3a000, 128);
 
     if (bios_only || !ret)
