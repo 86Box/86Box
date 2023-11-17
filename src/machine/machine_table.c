@@ -11738,10 +11738,10 @@ const machine_t machines[] = {
     /* It's a Intel VS440FX with a Gateway 2000 OEM BIOS */
     {
         .name = "[i440FX] Gateway 2000 Venus",
-        .internal_name = "GW2KVenus",
+        .internal_name = "gw2kvenus",
         .type = MACHINE_TYPE_SOCKET8,
         .chipset = MACHINE_CHIPSET_INTEL_440FX,
-        .init = machine_at_GW2KVenus_init,
+        .init = machine_at_gw2kvenus_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
