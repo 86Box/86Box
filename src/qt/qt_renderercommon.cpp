@@ -147,8 +147,10 @@ void RendererCommon::drawStatusBarIcons(QPainter* painter)
         if (label) {
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
             const QPixmap pixmap = label->pixmap();
+#elif QT_VERSION >= QT_VERSION_CHECK(5, 15, 0)
+            const QPixmap pixmap = label->pixmap(Qt::ReturnByValue);
 #else
-            const QPixmap pixmap = label->pixmap() ? *label->pixmap() : QPixmap();
+            const QPixmap pixmap = (label->pixmap() ? *label->pixmap() : QPixmap());
 #endif
             if (!pixmap.isNull()) {
                 painter->setBrush(QColor::fromRgbF(0, 0, 0, 1.));
