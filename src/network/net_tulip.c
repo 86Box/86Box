@@ -23,6 +23,7 @@
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/pci.h>
+#include <86box/random.h>
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/dma.h>
@@ -1169,6 +1170,7 @@ static const uint8_t eeprom_default[128] = {
     0x00,
 };
 
+/* MAC address at 14h, card-specific at 17h. */
 static const uint8_t eeprom_default_24110[128] = {
     0x46,
     0x26,
@@ -1405,12 +1407,40 @@ nic_init(const device_t *info)
     nmc93cxx_eeprom_params_t params;
     TULIPState              *s              = calloc(1, sizeof(TULIPState));
     char                     filename[1024] = { 0 };
+    uint32_t                 mac;
 
     if (!s)
         return NULL;
     
     s->device_info = info;
-    memcpy(eeprom_default_local, s->device_info->local ? eeprom_default_24110 : eeprom_default, sizeof(eeprom_default));
+    memcpy(eeprom_default_local, info->local ? eeprom_default_24110 : eeprom_default,
+           sizeof(eeprom_default));
+    if (info->local == 2) {
+        /* Microsoft VPC DEC Tulip. */
+        eeprom_default_local[0x14] = 0x00;
+        eeprom_default_local[0x15] = 0x03;
+        eeprom_default_local[0x16] = 0x0f;
+    }
+
+    /* See if we have a local MAC address configured. */
+    mac = device_get_config_mac("mac", -1);
+
+    /* Set up our BIA. */
+    if (mac & 0xff000000) {
+        /* Generate new local MAC. */
+        eeprom_default_local[0x17] = random_generate();
+        eeprom_default_local[0x18] = random_generate();
+        eeprom_default_local[0x19] = random_generate();
+        mac              = (((int) eeprom_default_local[0x17]) << 16);
+        mac             |= (((int) eeprom_default_local[0x18]) << 8);
+        mac             |= ((int) eeprom_default_local[0x19]);
+        device_set_config_mac("mac", mac);
+    } else {
+        eeprom_default_local[0x17] = (mac >> 16) & 0xff;
+        eeprom_default_local[0x18] = (mac >> 8) & 0xff;
+        eeprom_default_local[0x19] = (mac & 0xff);
+    }
+
     tulip_idblock_crc((uint16_t *) eeprom_default_local);
     ((uint16_t *) eeprom_default_local)[63] = (tulip_srom_crc((uint8_t *) eeprom_default_local, 126));
 
@@ -1425,7 +1455,7 @@ nic_init(const device_t *info)
     }
     memcpy(s->mii_regs, tulip_mdi_default, sizeof(tulip_mdi_default));
     s->nic = network_attach(s, (uint8_t *) &nmc93cxx_eeprom_data(s->eeprom)[10], tulip_receive, NULL);
-    pci_add_card(PCI_ADD_NETWORK, tulip_pci_read, tulip_pci_write, s, &s->pci_slot);
+    pci_add_card(PCI_ADD_NORMAL, tulip_pci_read, tulip_pci_write, s, &s->pci_slot);
     mem_mapping_add(&s->memory, 0, 0, NULL, NULL, tulip_read, NULL, NULL, tulip_write, NULL, MEM_MAPPING_EXTERNAL, s);
     tulip_reset(s);
     return s;
@@ -1436,6 +1466,19 @@ nic_close(void *priv)
 {
     free(priv);
 }
+
+// clang-format off
+static const device_config_t dec_tulip_pci_config[] = {
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+// clang-format on
 
 const device_t dec_tulip_device = {
     .name          = "Compu-Shack FASTLine-II UTP 10/100 (DECchip 21143 \"Tulip\")",
@@ -1448,7 +1491,7 @@ const device_t dec_tulip_device = {
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = dec_tulip_pci_config
 };
 
 const device_t dec_tulip_21140_device = {
@@ -1462,5 +1505,19 @@ const device_t dec_tulip_21140_device = {
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = dec_tulip_pci_config
+};
+
+const device_t dec_tulip_21140_vpc_device = {
+    .name          = "Microsoft Virtual PC Network (DECchip 21140 \"Tulip FasterNet\")",
+    .internal_name = "dec_21140_tulip_vpc",
+    .flags         = DEVICE_PCI,
+    .local         = 2,
+    .init          = nic_init,
+    .close         = nic_close,
+    .reset         = tulip_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = dec_tulip_pci_config
 };
