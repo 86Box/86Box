@@ -1060,9 +1060,15 @@ static const uint8_t eeprom_default[128] = {
     0x08,
     0x04,
     0x01,
+#ifdef USE_DEC_OID
     0x00,
     0x80,
     0x48,
+#else
+    0x00,
+    0x00,
+    0xcb,
+#endif
     0xb3,
     0x0e,
     0xa7,
@@ -1192,12 +1198,12 @@ static const uint8_t eeprom_default_24110[128] = {
     0x08,
     0x04,
     0x01,
-    0x00, /* TODO: Change the MAC Address to the correct one. */
-    0x80,
-    0x48,
-    0xc3,
-    0x3e,
-    0xa7,
+    0x00, /* Obtained from a Linux dump from the real Kingston KNE110TX: 00:C0:F0:16:2A:CB */
+    0xc0,
+    0xf0,
+    0x16,
+    0x2a,
+    0xcb,
     0x00,
     0x1e,
     0x00,
@@ -1468,7 +1474,7 @@ nic_close(void *priv)
 }
 
 // clang-format off
-static const device_config_t dec_tulip_pci_config[] = {
+static const device_config_t dec_tulip_config[] = {
     {
         .name = "mac",
         .description = "MAC Address",
@@ -1491,7 +1497,7 @@ const device_t dec_tulip_device = {
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = dec_tulip_pci_config
+    .config        = dec_tulip_config
 };
 
 const device_t dec_tulip_21140_device = {
@@ -1505,7 +1511,7 @@ const device_t dec_tulip_21140_device = {
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = dec_tulip_pci_config
+    .config        = dec_tulip_config
 };
 
 const device_t dec_tulip_21140_vpc_device = {
@@ -1519,5 +1525,5 @@ const device_t dec_tulip_21140_vpc_device = {
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = dec_tulip_pci_config
+    .config        = dec_tulip_config
 };

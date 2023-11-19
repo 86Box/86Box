@@ -32,6 +32,7 @@
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/pci.h>
+#include <86box/random.h>
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/dma.h>
@@ -3300,9 +3301,11 @@ nic_init(const device_t *info)
     RTL8139State *s                     = calloc(1, sizeof(RTL8139State));
     FILE         *fp                    = NULL;
     char          eeprom_filename[1024] = { 0 };
+    uint8_t       *mac_bytes;
+    uint32_t       mac;
 
     mem_mapping_add(&s->bar_mem, 0, 0, rtl8139_io_readb, rtl8139_io_readw, rtl8139_io_readl, rtl8139_io_writeb, rtl8139_io_writew, rtl8139_io_writel, NULL, MEM_MAPPING_EXTERNAL, s);
-    pci_add_card(PCI_ADD_NETWORK, rtl8139_pci_read, rtl8139_pci_write, s, &s->pci_slot);
+    pci_add_card(PCI_ADD_NORMAL, rtl8139_pci_read, rtl8139_pci_write, s, &s->pci_slot);
     s->inst = device_get_instance();
 
     snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_rtl8139c_plus_%d.nvr", s->inst);
@@ -3321,9 +3324,35 @@ nic_init(const device_t *info)
         s->eeprom.contents[2] = 0x8139;
 
         /* XXX: Get proper MAC addresses from real EEPROM dumps. OID taken from net_ne2000.c */
+#ifdef USE_REALTEK_OID
         s->eeprom.contents[7] = 0xe000;
         s->eeprom.contents[8] = 0x124c;
+#else
+        s->eeprom.contents[7] = 0x1400;
+        s->eeprom.contents[8] = 0x122a;
+#endif
         s->eeprom.contents[9] = 0x1413;
+    }
+
+    mac_bytes = (uint8_t *) &(s->eeprom.contents[7]);
+
+    /* See if we have a local MAC address configured. */
+    mac = device_get_config_mac("mac", -1);
+
+    /* Set up our BIA. */
+    if (mac & 0xff000000) {
+        /* Generate new local MAC. */
+        mac_bytes[3] = random_generate();
+        mac_bytes[4] = random_generate();
+        mac_bytes[5] = random_generate();
+        mac              = (((int) mac_bytes[3]) << 16);
+        mac             |= (((int) mac_bytes[4]) << 8);
+        mac             |= ((int) mac_bytes[5]);
+        device_set_config_mac("mac", mac);
+    } else {
+        mac_bytes[3] = (mac >> 16) & 0xff;
+        mac_bytes[4] = (mac >> 8) & 0xff;
+        mac_bytes[5] = (mac & 0xff);
     }
 
     s->nic = network_attach(s, (uint8_t *) &s->eeprom.contents[7], rtl8139_do_receive, rtl8139_set_link_status);
@@ -3354,6 +3383,19 @@ nic_close(void *priv)
     free(priv);
 }
 
+// clang-format off
+static const device_config_t rtl8139c_config[] = {
+    {
+        .name = "mac",
+        .description = "MAC Address",
+        .type = CONFIG_MAC,
+        .default_string = "",
+        .default_int = -1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+// clang-format on
+
 const device_t rtl8139c_plus_device = {
     .name          = "Realtek RTL8139C+",
     .internal_name = "rtl8139c+",
@@ -3365,5 +3407,5 @@ const device_t rtl8139c_plus_device = {
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = rtl8139c_config
 };
