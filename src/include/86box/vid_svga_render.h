@@ -34,6 +34,7 @@ extern int      cgablink;
 extern int scrollcache;
 
 extern uint8_t edatlookup[4][4];
+extern uint8_t egaremap2bpp[256];
 
 void svga_recalc_remap_func(svga_t *svga);
 

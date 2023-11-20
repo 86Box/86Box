@@ -78,6 +78,7 @@
 
 volatile int screenshots = 0;
 uint8_t      edatlookup[4][4];
+uint8_t      egaremap2bpp[256];
 uint8_t      fontdat[2048][8];            /* IBM CGA font */
 uint8_t      fontdatm[2048][16];          /* IBM MDA font */
 uint8_t      fontdat2[2048][8];           /* IBM CGA 2nd instance font */
@@ -913,6 +914,18 @@ video_init(void)
             if (d & 2)
                 edatlookup[c][d] |= 0x20;
         }
+    }
+
+    for (uint16_t c = 0; c < 256; c++) {
+        egaremap2bpp[c] = 0;
+        if (c & 0x01)
+            egaremap2bpp[c] |= 0x01;
+        if (c & 0x04)
+            egaremap2bpp[c] |= 0x02;
+        if (c & 0x10)
+            egaremap2bpp[c] |= 0x04;
+        if (c & 0x40)
+            egaremap2bpp[c] |= 0x08;
     }
 
     video_6to8 = malloc(4 * 256);
