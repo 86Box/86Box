@@ -1414,7 +1414,7 @@ cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, in
             b[3] = ti.attr;
             cdrom_log("CD-ROM %i: Returned Toshiba/NEC disc information (type 2) at %02i:%02i.%02i, track=%d, m=%02i,s=%02i,f=%02i, tno=%02x.\n", dev->id, b[0], b[1], b[2], bcd2bin(track), m, s, f, ti.attr);
             break;
-        case 3: /*Undocumented on NEC CD-ROM's, from information based on sr_vendor.c from Android's source code*/
+        case 3: /* Undocumented on NEC CD-ROM's, from information based on sr_vendor.c from the Linux kernel */
             switch (dev->type) {
                 case CDROM_TYPE_NEC_25_10a:
                 case CDROM_TYPE_NEC_38_103:

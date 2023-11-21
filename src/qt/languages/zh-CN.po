@@ -653,7 +653,7 @@ msgid "ZIP images"
 msgstr "ZIP 映像"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "86Box 找不到任何可用的 ROM 映像。\n\n请<a href=\"https://github.com/86Box/roms/releases/latest\">下载</a>ROM 包并将其解压到 \"roms\" 文件夹中。"
+msgstr "86Box 找不到任何可用的 ROM 映像。\n\n请<a href=\"https://github.com/86Box/roms/releases/latest\">下载</a> ROM 包并将其解压到 \"roms\" 文件夹中。"
 
 msgid "(empty)"
 msgstr "(空)"

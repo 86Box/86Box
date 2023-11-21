@@ -12,10 +12,10 @@
 # After a successful build, you can install the RPMs as follows:
 #  sudo dnf install RPMS/$(uname -m)/86Box-3* RPMS/noarch/86Box-roms*
 
-%global romver 4.0.1
+%global romver 4.1
 
 Name:		86Box
-Version:	4.0.2
+Version:	4.1
 Release:	1%{?dist}
 Summary:	Classic PC emulator
 License:	GPLv2+
@@ -121,5 +121,5 @@ popd
 %{_datadir}/%{name}/roms
 
 %changelog
-* Mon Oct 16 2023 Robert de Rooy <robert.de.rooy[AT]gmail.com> 4.0.2-1
+* Mon Oct 16 2023 Robert de Rooy <robert.de.rooy[AT]gmail.com> 4.1-1
 - Bump release

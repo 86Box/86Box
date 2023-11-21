@@ -637,7 +637,7 @@ DEVOBJ := bugger.o cartridge.o cassette.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm
 SIOOBJ := sio_acc3221.o sio_ali5123.o \
           sio_f82c710.o sio_82091aa.o sio_fdc37c6xx.o \
           sio_fdc37c67x.o sio_fdc37c669.o sio_fdc37c93x.o sio_fdc37m60x.o \
-          sio_it8661f.o \
+          sio_it86x1f.o \
           sio_it8702.o \
           sio_pc87306.o sio_pc87307.o sio_pc87309.o sio_pc87310.o sio_pc87311.o sio_pc87332.o \
           sio_prime3b.o sio_prime3c.o \
@@ -692,7 +692,11 @@ NETOBJ := network.o \
           net_3c503.o net_ne2000.o \
           net_pcnet.o net_wd8003.o \
           net_plip.o net_event.o \
-          net_null.o
+          net_null.o \
+          net_eeprom_nmc93cxx.o \
+          net_tulip.o \
+          net_rtl8139.o \
+          net_l80225.o
 
 PRINTOBJ := png.o prt_cpmap.o \
             prt_escp.o prt_text.o prt_ps.o
@@ -708,6 +712,8 @@ SNDOBJ := sound.o \
           wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
           wave8580_PST.o wave.o \
           midi.o \
+          midi_opl4.o \
+          midi_opl4_yrw801.o \
           snd_speaker.o \
           snd_pssj.o \
           snd_ps1.o \

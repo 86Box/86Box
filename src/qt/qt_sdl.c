@@ -627,7 +627,7 @@ sdl_main()
             case SDL_MOUSEBUTTONDOWN:
             case SDL_MOUSEBUTTONUP:
                 {
-                    if ((event.button.button == SDL_BUTTON_LEFT)
+                    if (!dopause && (event.button.button == SDL_BUTTON_LEFT)
                         && !(mouse_capture || video_fullscreen)
                         && event.button.state == SDL_RELEASED
                         && mouse_inside) {

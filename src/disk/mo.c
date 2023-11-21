@@ -2147,6 +2147,9 @@ mo_hard_reset(void)
 
             dev = (mo_t *) mo_drives[c].priv;
 
+            if (dev->tf == NULL)
+                continue;
+
             dev->id  = c;
             dev->drv = &mo_drives[c];
 

@@ -100,6 +100,7 @@ static const MIDI_OUT_DEVICE devices[] = {
 #ifdef USE_RTMIDI
     { &rtmidi_output_device  },
 #endif
+    { &opl4_midi_device      },
     { NULL                   }
     // clang-format on
 };

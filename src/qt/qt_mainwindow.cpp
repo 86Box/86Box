@@ -346,6 +346,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
     ui->actionEnable_Discord_integration->setChecked(enable_discord);
     ui->actionApply_fullscreen_stretch_mode_when_maximized->setChecked(video_fullscreen_scale_maximized);
+    ui->actionShow_status_icons_in_fullscreen->setChecked(status_icons_fullscreen);
 
 #ifndef DISCORD
     ui->actionEnable_Discord_integration->setVisible(false);
@@ -614,6 +615,15 @@ MainWindow::MainWindow(QWidget *parent)
     if (!vnc_enabled)
         video_setblit(qt_blit);
 
+    if (start_in_fullscreen) {
+        connect(ui->stackedWidget, &RendererStack::blit, this, [this] () {
+            if (start_in_fullscreen) {
+                QTimer::singleShot(100, ui->actionFullscreen, &QAction::trigger);
+                start_in_fullscreen = 0;
+            }
+        });
+    }
+
 #ifdef MTR_ENABLED
     {
         ui->actionBegin_trace->setVisible(true);
@@ -839,10 +849,6 @@ MainWindow::showEvent(QShowEvent *event)
         ui->stackedWidget->setFixedSize(window_w, window_h);
         QApplication::processEvents();
         this->adjustSize();
-    }
-    if (start_in_fullscreen) {
-        start_in_fullscreen = 0;
-        QTimer::singleShot(0, ui->actionFullscreen, &QAction::trigger);
     }
 }
 
@@ -2027,3 +2033,11 @@ void MainWindow::on_actionACPI_Shutdown_triggered()
 {
     acpi_pwrbut_pressed = 1;
 }
+
+void MainWindow::on_actionShow_status_icons_in_fullscreen_triggered()
+{
+    status_icons_fullscreen = !status_icons_fullscreen;
+    ui->actionShow_status_icons_in_fullscreen->setChecked(status_icons_fullscreen);
+    config_save();
+}
+

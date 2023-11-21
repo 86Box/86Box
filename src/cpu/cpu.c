@@ -1389,7 +1389,6 @@ cpu_set(void)
             cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME;
             if (cpu_s->cpu_type == CPU_PENTIUMMMX)
                 cpu_features |= CPU_FEATURE_MMX;
-            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
             cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
             codegen_timing_set(&codegen_timing_pentium);
@@ -1503,7 +1502,6 @@ cpu_set(void)
                 cpu_features |= CPU_FEATURE_MSR | CPU_FEATURE_CR4;
             if (cpu_s->cpu_type == CPU_Cx6x86MX)
                 cpu_features |= CPU_FEATURE_MMX;
-            msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
             if (cpu_s->cpu_type >= CPU_CxGX1)
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE;
 
@@ -1598,7 +1596,6 @@ cpu_set(void)
                 cpu_features |= CPU_FEATURE_3DNOW;
             if ((cpu_s->cpu_type == CPU_K6_2P) || (cpu_s->cpu_type == CPU_K6_3P))
                 cpu_features |= CPU_FEATURE_3DNOWE;
-            msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
 #if defined(DEV_BRANCH) && defined(USE_AMD_K5)
             cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE;
             if (cpu_s->cpu_type >= CPU_K6) {
@@ -1701,7 +1698,6 @@ cpu_set(void)
             cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME;
             if (cpu_s->cpu_type >= CPU_PENTIUM2)
                 cpu_features |= CPU_FEATURE_MMX;
-            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
             cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PAE | CR4_PCE | CR4_PGE;
             if (cpu_s->cpu_type == CPU_PENTIUM2D)
                 cpu_CR4_mask |= CR4_OSFXSR;
@@ -1749,8 +1745,8 @@ cpu_set(void)
             timing_misaligned = 2;
 
             cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MMX | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_3DNOW;
-            msr.fcr      = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21);
-            cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE;
+            msr.fcr      = (1 << 7) | (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21);
+            cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE | CR4_PGE;
 
             cpu_cyrix_alignment = 1;
 
@@ -1816,11 +1812,12 @@ cpu_set_isa_speed(int speed)
 {
     if (speed) {
         cpu_isa_speed = speed;
-        pc_speed_changed();
     } else if (cpu_busspeed >= 8000000)
         cpu_isa_speed = 8000000;
     else
         cpu_isa_speed = cpu_busspeed;
+
+    pc_speed_changed();
 
     cpu_log("cpu_set_isa_speed(%d) = %d\n", speed, cpu_isa_speed);
 }
@@ -2373,9 +2370,14 @@ cpu_CPUID(void)
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
             } else if (EAX == 2) {
-                EAX = 0x00000001;
+                EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set associative, 32 entries
+                                     Instruction TLB: 4 MB pages, fully associative, 2 entries
+                                     Data TLB: 4 KB pages, 4-way set associative, 64 entries */
                 EBX = ECX = 0;
-                EDX       = 0x00000000;
+                EDX       = 0x06040a42; /* 2nd-level cache: 256 KB, 4-way set associative, 32-byte line size
+                                           1st-level data cache: 8 KB, 2-way set associative, 32-byte line size
+                                           Data TLB: 4 MB pages, 4-way set associative, 8 entries
+                                           1st-level instruction cache:8 KB, 4-way set associative, 32-byte line size */
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -2391,9 +2393,14 @@ cpu_CPUID(void)
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
             } else if (EAX == 2) {
-                EAX = 0x00000001;
+                EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set associative, 32 entries
+                                     Instruction TLB: 4 MB pages, fully associative, 2 entries
+                                     Data TLB: 4 KB pages, 4-way set associative, 64 entries */
                 EBX = ECX = 0;
-                EDX       = 0x00000000;
+                EDX       = 0x0c040843; /* 2nd-level cache: 512 KB, 4-way set associative, 32-byte line size
+                                           1st-level data cache: 16 KB, 4-way set associative, 32-byte line size
+                                           Data TLB: 4 MB pages, 4-way set associative, 8 entries
+                                           1st-level instruction cache: 16 KB, 4-way set associative, 32-byte line size */
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -2409,9 +2416,22 @@ cpu_CPUID(void)
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_FXSR | CPUID_CMOV;
             } else if (EAX == 2) {
-                EAX = 0x00000001;
+                EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set associative, 32 entries
+                                     Instruction TLB: 4 MB pages, fully associative, 2 entries
+                                     Data TLB: 4 KB pages, 4-way set associative, 64 entries */
                 EBX = ECX = 0;
-                EDX       = 0x00000000;
+                if (cpu_f->package == CPU_PKG_SLOT2) /* Pentium II Xeon Drake */
+                    EDX = 0x0c040844; /* 2nd-level cache: 1 MB, 4-way set associative, 32-byte line size
+                                         1st-level data cache: 16 KB, 4-way set associative, 32-byte line size
+                                         Data TLB: 4 MB pages, 4-way set associative, 8 entries
+                                         1st-level instruction cache: 16 KB, 4-way set associative, 32-byte line size */
+                else if (!strncmp(cpu_f->internal_name, "celeron", 7)) { /* Celeron */
+                    if (CPUID >= 0x660) /* Mendocino */
+                        EDX = 0x0c040841; /* 2nd-level cache: 128 KB, 4-way set associative, 32-byte line size */
+                    else /* Covington */
+                        EDX = 0x0c040840; /* No 2nd-level cache */
+                } else /* Pentium II Deschutes and OverDrive */
+                    EDX = 0x0c040843; /* 2nd-level cache: 512 KB, 4-way set associative, 32-byte line size */
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -2436,6 +2456,8 @@ cpu_CPUID(void)
                     EDX       = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_MMX | CPUID_MTRR;
                     if (cpu_has_feature(CPU_FEATURE_CX8))
                         EDX |= CPUID_CMPXCHG8B;
+                    if (msr.fcr & (1 << 7))
+                        EDX |= CPUID_PGE;
                     break;
                 case 0x80000000:
                     EAX = 0x80000005;
@@ -2445,6 +2467,8 @@ cpu_CPUID(void)
                     EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_MMX | CPUID_MTRR | CPUID_3DNOW;
                     if (cpu_has_feature(CPU_FEATURE_CX8))
                         EDX |= CPUID_CMPXCHG8B;
+                    if (msr.fcr & (1 << 7))
+                        EDX |= CPUID_PGE;
                     break;
                 case 0x80000002:      /* Processor name string */
                     EAX = 0x20414956; /* VIA Samuel */
@@ -2471,6 +2495,13 @@ cpu_ven_reset(void)
     memset(&msr, 0, sizeof(msr));
 
     switch (cpu_s->cpu_type) {
+        case CPU_WINCHIP:
+        case CPU_WINCHIP2:
+            msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 19) | (1 << 21);
+            if (cpu_s->cpu_type == CPU_WINCHIP2)
+                msr.fcr |= (1 << 18) | (1 << 20);
+            break;
+
         case CPU_K6_2P:
         case CPU_K6_3P:
         case CPU_K6_3:
@@ -2490,6 +2521,11 @@ cpu_ven_reset(void)
         case CPU_PENTIUM2:
         case CPU_PENTIUM2D:
             msr.mtrr_cap = 0x00000508ULL;
+            break;
+
+        case CPU_CYRIX3S:
+            msr.fcr = (1 << 7) | (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) |
+                      (1 << 20) | (1 << 21);
             break;
     }
 }
@@ -3105,6 +3141,10 @@ cpu_WRMSR(void)
                         cpu_features |= CPU_FEATURE_CX8;
                     else
                         cpu_features &= ~CPU_FEATURE_CX8;
+                    if (EAX & (1 << 7))
+                        cpu_CR4_mask |= CR4_PGE;
+                    else
+                        cpu_CR4_mask &= ~CR4_PGE;
                     break;
                 case 0x1108:
                     msr.fcr2 = EAX | ((uint64_t) EDX << 32);

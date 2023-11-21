@@ -68,6 +68,8 @@ typedef struct scsi_disk_t {
 
 extern scsi_disk_t *scsi_disk[HDD_NUM];
 
+extern void scsi_disk_reset(scsi_common_t *sc);
+
 extern void scsi_disk_hard_reset(void);
 extern void scsi_disk_close(void);
 

@@ -1796,7 +1796,9 @@ pmodeiret(int is32)
     }
 
     if (cpu_state.flags & NT_FLAG) {
+        cpl_override = 1;
         seg  = readmemw(tr.base, 0);
+        cpl_override = 0;
         addr = seg & 0xfff8;
         if (seg & 0x0004) {
             x86seg_log("TS LDT %04X %04X IRET\n", seg, gdt.limit);
@@ -1809,8 +1811,8 @@ pmodeiret(int is32)
             }
             addr += gdt.base;
         }
-        cpl_override = 1;
         read_descriptor(addr, segdat, segdat32, 1);
+        cpl_override = 1;
         op_taskswitch286(seg, segdat, segdat[2] & 0x0800);
         cpl_override = 0;
         return;

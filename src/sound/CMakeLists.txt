@@ -18,7 +18,7 @@ add_library(snd OBJECT sound.c snd_opl.c snd_opl_nuked.c snd_opl_ymfm.cpp snd_re
     snd_lpt_dss.c snd_ps1.c snd_adlib.c snd_adlibgold.c snd_ad1848.c snd_audiopci.c
     snd_azt2316a.c snd_cms.c snd_cmi8x38.c snd_cs423x.c snd_gus.c snd_sb.c snd_sb_dsp.c
     snd_emu8k.c snd_mpu401.c snd_sn76489.c snd_ssi2001.c snd_wss.c snd_ym7128.c
-    snd_optimc.c)
+    snd_optimc.c midi_opl4.c midi_opl4_yrw801.c)
 
 if(OPENAL)
     if(VCPKG_TOOLCHAIN)

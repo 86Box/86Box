@@ -945,7 +945,7 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
                 break;
 
             case 0xff:
-                if (sb->dsp.sb_type >= SB16) {
+                if (sb->dsp.sb_type > SBAWE32) {
                     /*
                        Bit 5: High DMA channel enabled (0 = yes, 1 = no);
                        Bit 2: ????;
@@ -1173,7 +1173,7 @@ sb_ct1745_mixer_read(uint16_t addr, void *priv)
                              - Register FF = FF: Volume playback normal.
                              - Register FF = Not FF: Volume playback low unless
                                              bit 6 of 82h is set. */
-                if (sb->dsp.sb_type >= SB16)
+                if (sb->dsp.sb_type > SBAWE32)
                     ret = mixer->regs[mixer->index];
                 break;
 
@@ -1599,8 +1599,14 @@ sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
                     sb_dsp_setdma8(&sb->dsp, val);
 
                 val = config->dma[1].dma;
-                if (val != ISAPNP_DMA_DISABLED)
-                    sb_dsp_setdma16(&sb->dsp, val);
+                sb_dsp_setdma16_enabled(&sb->dsp, val != ISAPNP_DMA_DISABLED);
+                sb_dsp_setdma16_translate(&sb->dsp, val < ISAPNP_DMA_DISABLED);
+                if (val != ISAPNP_DMA_DISABLED) {
+                    if (sb->dsp.sb_16_dma_supported)
+                        sb_dsp_setdma16(&sb->dsp, val);
+                    else
+                        sb_dsp_setdma16_8(&sb->dsp, val);
+                }
             }
 
             break;
@@ -1630,95 +1636,11 @@ static void
 sb_vibra16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
     sb_t    *sb   = (sb_t *) priv;
-    uint16_t addr = sb->dsp.sb_addr;
-    uint8_t  val;
 
     switch (ld) {
         case 0: /* Audio */
-            io_removehandler(addr, 0x0004,
-                             sb->opl.read, NULL, NULL,
-                             sb->opl.write, NULL, NULL,
-                             sb->opl.priv);
-            io_removehandler(addr + 8, 0x0002,
-                             sb->opl.read, NULL, NULL,
-                             sb->opl.write, NULL, NULL,
-                             sb->opl.priv);
-            io_removehandler(addr + 4, 0x0002,
-                             sb_ct1745_mixer_read, NULL, NULL,
-                             sb_ct1745_mixer_write, NULL, NULL,
-                             sb);
-
-            addr = sb->opl_pnp_addr;
-            if (addr) {
-                sb->opl_pnp_addr = 0;
-                io_removehandler(addr, 0x0004,
-                                 sb->opl.read, NULL, NULL,
-                                 sb->opl.write, NULL, NULL,
-                                 sb->opl.priv);
-            }
-
-            sb_dsp_setaddr(&sb->dsp, 0);
-            sb_dsp_setirq(&sb->dsp, 0);
-            sb_dsp_setdma8(&sb->dsp, ISAPNP_DMA_DISABLED);
-            sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
-
-            mpu401_change_addr(sb->mpu, 0);
-
-            if (config->activate) {
-                addr = config->io[0].base;
-                if (addr != ISAPNP_IO_DISABLED) {
-                    io_sethandler(addr, 0x0004,
-                                  sb->opl.read, NULL, NULL,
-                                  sb->opl.write, NULL, NULL,
-                                  sb->opl.priv);
-                    io_sethandler(addr + 8, 0x0002,
-                                  sb->opl.read, NULL, NULL,
-                                  sb->opl.write, NULL, NULL,
-                                  sb->opl.priv);
-                    io_sethandler(addr + 4, 0x0002,
-                                  sb_ct1745_mixer_read, NULL, NULL,
-                                  sb_ct1745_mixer_write, NULL, NULL,
-                                  sb);
-
-                    sb_dsp_setaddr(&sb->dsp, addr);
-                }
-
-                addr = config->io[1].base;
-                if (addr != ISAPNP_IO_DISABLED)
-                    mpu401_change_addr(sb->mpu, addr);
-
-                addr = config->io[2].base;
-                if (addr != ISAPNP_IO_DISABLED) {
-                    sb->opl_pnp_addr = addr;
-                    io_sethandler(addr, 0x0004,
-                                  sb->opl.read, NULL, NULL,
-                                  sb->opl.write, NULL, NULL,
-                                  sb->opl.priv);
-                }
-
-                val = config->irq[0].irq;
-                if (val != ISAPNP_IRQ_DISABLED)
-                    sb_dsp_setirq(&sb->dsp, val);
-
-                val = config->dma[0].dma;
-                if (val != ISAPNP_DMA_DISABLED)
-                    sb_dsp_setdma8(&sb->dsp, val);
-
-                val = config->dma[1].dma;
-                sb_dsp_setdma16_enabled(&sb->dsp, val != ISAPNP_DMA_DISABLED);
-                sb_dsp_setdma16_translate(&sb->dsp, val < ISAPNP_DMA_DISABLED);
-                if (val != ISAPNP_DMA_DISABLED) {
-                    if (sb->dsp.sb_16_dma_supported)
-                        sb_dsp_setdma16(&sb->dsp, val);
-                    else
-                        sb_dsp_setdma16_8(&sb->dsp, val);
-                }
-            }
-
-            break;
-
         case 1: /* Game */
-            gameport_remap(sb->gameport, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
+            sb_16_pnp_config_changed(ld * 3, config, sb);
             break;
 
         default:
@@ -2179,6 +2101,7 @@ sb_16_init(UNUSED(const device_t *info))
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
     sb_dsp_setdma16(&sb->dsp, device_get_config_int("dma16"));
     sb_dsp_setdma16_supported(&sb->dsp, 1);
+    sb_dsp_setdma16_enabled(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
     if (sb->opl_enabled) {
@@ -2233,6 +2156,7 @@ sb_16_reply_mca_init(UNUSED(const device_t *info))
 
     sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
+    sb_dsp_setdma16_enabled(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled            = 1;
@@ -2304,7 +2228,7 @@ sb_16_pnp_init(UNUSED(const device_t *info))
     sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
 
     mpu401_change_addr(sb->mpu, 0);
-    ide_remove_handlers(2);
+    ide_remove_handlers(3);
 
     sb->gameport_addr = 0;
     gameport_remap(sb->gameport, 0);
@@ -2415,6 +2339,7 @@ sb_16_compat_init(const device_t *info)
 
     sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setdma16_supported(&sb->dsp, 1);
+    sb_dsp_setdma16_enabled(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
@@ -2488,6 +2413,7 @@ sb_awe32_init(UNUSED(const device_t *info))
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
     sb_dsp_setdma16(&sb->dsp, device_get_config_int("dma16"));
     sb_dsp_setdma16_supported(&sb->dsp, 1);
+    sb_dsp_setdma16_enabled(&sb->dsp, 1);
     sb_ct1745_mixer_reset(sb);
 
     if (sb->opl_enabled) {
@@ -2631,7 +2557,8 @@ sb_awe32_pnp_init(const device_t *info)
     sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
 
     mpu401_change_addr(sb->mpu, 0);
-    ide_remove_handlers(2);
+    if ((info->local != 2) && (info->local != 3) && (info->local != 4))
+        ide_remove_handlers(3);
 
     emu8k_change_addr(&sb->emu8k, 0);
 

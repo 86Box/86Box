@@ -164,7 +164,6 @@ const machine_filter_t machine_chipsets[] = {
 };
 
 /* Machines to add before machine freeze:
-   - PCChips M773 (440BX + SMSC with AMI BIOS);
    - TMC Mycomp PCI54ST;
    - Zeos Quadtel 486.
 
@@ -1085,7 +1084,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 256,
             .max = 640,
-            .step = 256
+            .step = 128
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xt_olivetti_device,
@@ -1163,7 +1162,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 256,
             .max = 640,
-            .step = 256
+            .step = 128
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
@@ -1319,7 +1318,7 @@ const machine_t machines[] = {
         .ram = {
             .min = 256,
             .max = 640,
-            .step = 256
+            .step = 128
         },
         .nvrmask = 0,
         .kbc_device = &keyboard_xtclone_device,
@@ -3226,6 +3225,46 @@ const machine_t machines[] = {
         .ram = {
             .min = 512,
             .max = 8192,
+            .step = 128
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* has an Award-branded KBC controller */
+    {
+        .name = "[NEAT] Hyundai Super-286C",
+        .internal_name = "super286c",
+        .type = MACHINE_TYPE_286,
+        .chipset = MACHINE_CHIPSET_NEAT,
+        .init = machine_at_super286c_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_286,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 512,
+            .max = 1024,
             .step = 128
         },
         .nvrmask = 127,
@@ -8294,6 +8333,46 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Same as Intel Premiere PCI/II, but with a Dell OEM BIOS */
+    {
+        .name = "[i430NX] Dell Dimension XPS Pxxx",
+        .internal_name = "dellplato",
+        .type = MACHINE_TYPE_SOCKET5,
+        .chipset = MACHINE_CHIPSET_INTEL_430NX,
+        .init = machine_at_dellplato_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3520,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 1.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 2048,
+            .max = 131072,
+            .step = 2048
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* This has the Phoenix MultiKey KBC firmware.
        This is basically an Intel Premiere/PCI II with a fancier POST screen. */
     {
@@ -10630,6 +10709,46 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+	/* PhoenixBIOS 4.0 Rel 6.0 for 430TX, most likely has AMI KBC of some sort. Also has onboard Yamaha YMF701 which can't be emulated yet. */
+    {
+        .name = "[i430TX] Micronics Thunderbolt",
+        .internal_name = "thunderbolt",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_INTEL_430TX,
+        .init = machine_at_thunderbolt_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK(CPU_WINCHIP, CPU_WINCHIP2),
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 262144,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* The BIOS sends KBC command BB and expects it to output a byte, which is AMI KBC behavior. */
     {
         .name = "[i430TX] PC Partner MB540N",
@@ -11586,6 +11705,46 @@ const machine_t machines[] = {
         .type = MACHINE_TYPE_SOCKET8,
         .chipset = MACHINE_CHIPSET_INTEL_440FX,
         .init = machine_at_vs440fx_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET8,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2100,
+            .max_voltage = 3500,
+            .min_multi = 2.0,
+            .max_multi = 3.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* It's a Intel VS440FX with a Gateway 2000 OEM BIOS */
+    {
+        .name = "[i440FX] Gateway 2000 Venus",
+        .internal_name = "gw2kvenus",
+        .type = MACHINE_TYPE_SOCKET8,
+        .chipset = MACHINE_CHIPSET_INTEL_440FX,
+        .init = machine_at_gw2kvenus_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -13045,6 +13204,47 @@ const machine_t machines[] = {
         .sio_device = NULL,
         .vid_device = NULL,
         .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Has an ITE IT8671F Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware. */
+    {
+        .name = "[SMSC VictoryBX-66] PC Chips M773",
+        .internal_name = "m773",
+        .type = MACHINE_TYPE_SOCKET370,
+        .chipset = MACHINE_CHIPSET_SMSC_VICTORYBX_66,
+        .init = machine_at_m773_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET370,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 133333333,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = &cmi8738_onboard_device,
         .net_device = NULL
     },
 
