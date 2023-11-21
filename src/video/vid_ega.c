@@ -61,8 +61,6 @@ static uint32_t        pallook64[256];
 static int             ega_type           = 0;
 static int             old_overscan_color = 0;
 
-uint8_t egaremap2bpp[256];
-
 /* 3C2 controls default mode on EGA. On VGA, it determines monitor type (mono or colour):
     7=CGA mode (200 lines), 9=EGA mode (350 lines), 8=EGA mode (200 lines). */
 int egaswitchread;
@@ -1280,32 +1278,6 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
             ega_rotate[d][c] = e;
             e                = (e >> 1) | ((e & 1) ? 0x80 : 0);
         }
-    }
-
-    for (c = 0; c < 4; c++) {
-        for (d = 0; d < 4; d++) {
-            edatlookup[c][d] = 0;
-            if (c & 1)
-                edatlookup[c][d] |= 1;
-            if (d & 1)
-                edatlookup[c][d] |= 2;
-            if (c & 2)
-                edatlookup[c][d] |= 0x10;
-            if (d & 2)
-                edatlookup[c][d] |= 0x20;
-        }
-    }
-
-    for (c = 0; c < 256; c++) {
-        egaremap2bpp[c] = 0;
-        if (c & 0x01)
-            egaremap2bpp[c] |= 0x01;
-        if (c & 0x04)
-            egaremap2bpp[c] |= 0x02;
-        if (c & 0x10)
-            egaremap2bpp[c] |= 0x04;
-        if (c & 0x40)
-            egaremap2bpp[c] |= 0x08;
     }
 
     if (is_mono) {
