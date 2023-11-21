@@ -53,6 +53,8 @@ void svga_render_4bpp_lowres(svga_t *svga);
 void svga_render_4bpp_highres(svga_t *svga);
 void svga_render_8bpp_lowres(svga_t *svga);
 void svga_render_8bpp_highres(svga_t *svga);
+void svga_render_8bpp_s3_lowres(svga_t *svga);
+void svga_render_8bpp_s3_highres(svga_t *svga);
 void svga_render_8bpp_tseng_lowres(svga_t *svga);
 void svga_render_8bpp_tseng_highres(svga_t *svga);
 void svga_render_8bpp_gs_lowres(svga_t *svga);

@@ -461,19 +461,18 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
     const bool    blinked     = svga->blink & 0x10;
     const bool    attrblink   = ((svga->attrregs[0x10] & 0x08) != 0);
 
-    // FIXME:
     // The following is likely how it works on an IBM VGA - that is, it works with its BIOS.
     // But on an S3 Trio, mode 13h is broken - seemingly accepting the address shift but ignoring the increment.
-    const bool    is_s3       = true;
+    // Forcing it to use incbypow2=0, incevery=1, loadevery=1 makes it behave.
     const bool    dwordload   = ((svga->seqregs[0x01] & 0x10) != 0);
     const bool    wordload    = ((svga->seqregs[0x01] & 0x04) != 0) && !dwordload;
     const bool    wordincr    = ((svga->crtc[0x17] & 0x08) != 0);
     const bool    dwordincr   = ((svga->crtc[0x14] & 0x20) != 0) && !wordincr;
     const bool    dwordshift  = ((svga->crtc[0x14] & 0x40) != 0);
     const bool    wordshift   = ((svga->crtc[0x17] & 0x40) == 0) && !dwordshift;
-    const uint32_t incbypow2  = (dwordshift ? 2 : wordshift ? 1 : 0);
-    const uint32_t incevery   = (dwordincr  ? 4 : wordincr  ? 2 : 1);
-    const uint32_t loadevery  = (dwordload  ? 4 : wordload  ? 2 : 1);
+    const uint32_t incbypow2  = combine8bits && svga->force_old_addr ? 0 : (dwordshift ? 2 : wordshift ? 1 : 0);
+    const uint32_t incevery   = combine8bits && svga->force_old_addr ? 1 : (dwordincr  ? 4 : wordincr  ? 2 : 1);
+    const uint32_t loadevery  = combine8bits && svga->force_old_addr ? 1 : (dwordload  ? 4 : wordload  ? 2 : 1);
 
     const bool    shift2bit   = ((svga->gdcreg[0x05] & 0x60) == 0x20 );
     const bool    shift4bit   = ((svga->gdcreg[0x05] & 0x40) == 0x40 );
@@ -486,8 +485,7 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
     if ((svga->displine + svga->y_add) < 0)
         return;
 
-    // FIXME look into SVGA remap func to see what we actually need to do here --GM
-    if (true || svga->force_old_addr) {
+    if (svga->force_old_addr) {
         changed_offset = (svga->ma + (svga->sc & ~svga->crtc[0x17] & 3) * 0x8000) >> 12;
     } else {
         changed_offset = svga->remap_func(svga, svga->ma) >> 12;
@@ -507,13 +505,12 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
     for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += charwidth) {
         if (load_counter == 0) {
             // Find our address
-            if (true || svga->force_old_addr) {
-                addr = ((svga->ma & ~0x3) << incbypow2) & svga->vram_display_mask;
+            if (svga->force_old_addr) {
+                addr = ((svga->ma & ~0x3) << incbypow2);
 
                 if (incbypow2 == 2) {
-                    // Mapping is from the 82C451 datasheet, minus the chip-specific extensions.
-                    // if (svga->ma & (4<<13)) addr |= 0x8;
-                    // if (svga->ma & (4<<12)) addr |= 0x4;
+                    if (svga->ma & (4<<15)) addr |= 0x8;
+                    if (svga->ma & (4<<14)) addr |= 0x4;
                 } else if (incbypow2 == 1) {
                     if ((svga->crtc[0x17] & 0x20)) {
                         if (svga->ma & (4<<15)) addr |= 0x4;
@@ -531,6 +528,7 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
             } else {
                 addr = svga->remap_func(svga, svga->ma);
             }
+            addr &= svga->vram_display_mask;
 
             // Load VRAM
             *(uint32_t *)&edat[0] = *(uint32_t *)&svga->vram[addr];
@@ -780,7 +778,6 @@ svga_render_8bpp_highres(svga_t *svga)
     }
 }
 #endif
-
 
 void
 svga_render_8bpp_tseng_lowres(svga_t *svga)
