@@ -470,9 +470,9 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
     const bool    dwordincr   = ((svga->crtc[0x14] & 0x20) != 0) && !wordincr;
     const bool    dwordshift  = ((svga->crtc[0x14] & 0x40) != 0);
     const bool    wordshift   = ((svga->crtc[0x17] & 0x40) == 0) && !dwordshift;
-    const uint32_t incbypow2  = combine8bits && svga->force_old_addr ? 0 : (dwordshift ? 2 : wordshift ? 1 : 0);
-    const uint32_t incevery   = combine8bits && svga->force_old_addr ? 1 : (dwordincr  ? 4 : wordincr  ? 2 : 1);
-    const uint32_t loadevery  = combine8bits && svga->force_old_addr ? 1 : (dwordload  ? 4 : wordload  ? 2 : 1);
+    const uint32_t incbypow2  = (combine8bits && (svga->force_old_addr || svga->packed_chain4)) ? 0 : (dwordshift ? 2 : wordshift ? 1 : 0);
+    const uint32_t incevery   = (combine8bits && (svga->force_old_addr || svga->packed_chain4)) ? 1 : (dwordincr  ? 4 : wordincr  ? 2 : 1);
+    const uint32_t loadevery  = (combine8bits && (svga->force_old_addr || svga->packed_chain4)) ? 1 : (dwordload  ? 4 : wordload  ? 2 : 1);
 
     const bool    shift2bit   = ((svga->gdcreg[0x05] & 0x60) == 0x20 );
     const bool    shift4bit   = ((svga->gdcreg[0x05] & 0x40) == 0x40 );
