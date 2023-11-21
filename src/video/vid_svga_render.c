@@ -449,10 +449,9 @@ svga_render_2bpp_headland_highres(svga_t *svga)
 }
 
 void
-svga_render_4bpp(svga_t *svga, bool highres, bool cga2bpp)
+svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
 {
     int       x;
-    int       oddeven;
     uint32_t  addr;
     uint32_t *p;
     uint8_t   edat[4];
@@ -461,16 +460,34 @@ svga_render_4bpp(svga_t *svga, bool highres, bool cga2bpp)
 
     const bool    blinked     = svga->blink & 0x10;
     const bool    attrblink   = ((svga->attrregs[0x10] & 0x08) != 0);
-    const bool    wordmode    = ((svga->crtc[0x17] & 0x40) == 0);
+
+    // FIXME:
+    // The following is likely how it works on an IBM VGA - that is, it works with its BIOS.
+    // But on an S3 Trio, mode 13h is broken - seemingly accepting the address shift but ignoring the increment.
+    const bool    is_s3       = true;
+    const bool    dwordload   = ((svga->seqregs[0x01] & 0x10) != 0);
+    const bool    wordload    = ((svga->seqregs[0x01] & 0x04) != 0) && !dwordload;
+    const bool    wordincr    = ((svga->crtc[0x17] & 0x08) != 0);
+    const bool    dwordincr   = ((svga->crtc[0x14] & 0x20) != 0) && !wordincr;
+    const bool    dwordshift  = ((svga->crtc[0x14] & 0x40) != 0);
+    const bool    wordshift   = ((svga->crtc[0x17] & 0x40) == 0) && !dwordshift;
+    const uint32_t incbypow2  = (dwordshift ? 2 : wordshift ? 1 : 0);
+    const uint32_t incevery   = (dwordincr  ? 4 : wordincr  ? 2 : 1);
+    const uint32_t loadevery  = (dwordload  ? 4 : wordload  ? 2 : 1);
+
+    const bool    shift2bit   = ((svga->gdcreg[0x05] & 0x60) == 0x20 );
+    const bool    shift4bit   = ((svga->gdcreg[0x05] & 0x40) == 0x40 );
+
     const int     dwshift     = highres ? 0 : 1;
     const int     dotwidth    = 1 << dwshift;
-    const int     charwidth   = dotwidth * 8;
+    const int     charwidth   = dotwidth * (combine8bits ? 4 : 8);
     const uint8_t blinkmask   = (attrblink && blinked ? 0x8 : 0x0);
 
     if ((svga->displine + svga->y_add) < 0)
         return;
 
-    if (svga->force_old_addr) {
+    // FIXME look into SVGA remap func to see what we actually need to do here --GM
+    if (true || svga->force_old_addr) {
         changed_offset = (svga->ma + (svga->sc & ~svga->crtc[0x17] & 3) * 0x8000) >> 12;
     } else {
         changed_offset = svga->remap_func(svga, svga->ma) >> 12;
@@ -485,84 +502,129 @@ svga_render_4bpp(svga_t *svga, bool highres, bool cga2bpp)
         svga->firstline_draw = svga->displine;
     svga->lastline_draw = svga->displine;
 
+    uint32_t incr_counter = 0;
+    uint32_t load_counter = 0;
     for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += charwidth) {
-        oddeven = 0;
+        if (load_counter == 0) {
+            // Find our address
+            if (true || svga->force_old_addr) {
+                addr = ((svga->ma & ~0x3) << incbypow2) & svga->vram_display_mask;
 
-        if (svga->force_old_addr) {
-            addr = svga->ma;
+                if (incbypow2 == 2) {
+                    // Mapping is from the 82C451 datasheet, minus the chip-specific extensions.
+                    // if (svga->ma & (4<<13)) addr |= 0x8;
+                    // if (svga->ma & (4<<12)) addr |= 0x4;
+                } else if (incbypow2 == 1) {
+                    if ((svga->crtc[0x17] & 0x20)) {
+                        if (svga->ma & (4<<15)) addr |= 0x4;
+                    } else {
+                        if (svga->ma & (4<<13)) addr |= 0x4;
+                    }
+                } else {
+                    // Nothing
+                }
 
-            if (wordmode) {
-                addr = (addr << 1) & svga->vram_mask;
-
-                if (svga->seqregs[1] & 4)
-                    oddeven = (addr & 4) ? 1 : 0;
-
-                addr &= ~7;
-
-                if ((svga->crtc[0x17] & 0x20) && (svga->ma & 0x20000))
-                    addr |= 4;
-                if (!(svga->crtc[0x17] & 0x20) && (svga->ma & 0x8000))
-                    addr |= 4;
+                if (!(svga->crtc[0x17] & 0x01))
+                    addr = (addr & ~0x8000) | ((svga->sc & 1) ? 0x8000 : 0);
+                if (!(svga->crtc[0x17] & 0x02))
+                    addr = (addr & ~0x10000) | ((svga->sc & 2) ? 0x10000 : 0);
+            } else {
+                addr = svga->remap_func(svga, svga->ma);
             }
 
-            if (!(svga->crtc[0x17] & 0x01))
-                addr = (addr & ~0x8000) | ((svga->sc & 1) ? 0x8000 : 0);
-            if (!(svga->crtc[0x17] & 0x02))
-                addr = (addr & ~0x10000) | ((svga->sc & 2) ? 0x10000 : 0);
+            // Load VRAM
+            *(uint32_t *)&edat[0] = *(uint32_t *)&svga->vram[addr];
+
+            if (shift4bit) {
+                // Remap VGA 4bpp-chunky data into fully planar data
+                // Plane 3 LSbit is aligned with MSbit
+                uint8_t tmpdat[4] = {0, 0, 0, 0};
+                for (int j = 0; j < 4; j++) {
+                    for (int i = 0; i < 8; i++) {
+                        tmpdat[j] <<= 1;
+                        tmpdat[j] |= (edat[i>>1] >> (((0x1&~i)<<2)+j)) & 0x1;
+                    }
+                }
+                *(uint32_t *) (&edat[0]) = *(uint32_t *) (&tmpdat[0]);
+            }
+
+            if (shift2bit) {
+                // Remap CGA 2bpp-chunky data into fully planar data
+                uint8_t dat0 = egaremap2bpp[edat[1]] | (egaremap2bpp[edat[0]] << 4);
+                uint8_t dat1 = egaremap2bpp[edat[1] >> 1] | (egaremap2bpp[edat[0] >> 1] << 4);
+                uint8_t dat2 = egaremap2bpp[edat[3]] | (egaremap2bpp[edat[2]] << 4);
+                uint8_t dat3 = egaremap2bpp[edat[3] >> 1] | (egaremap2bpp[edat[2] >> 1] << 4);
+                edat[0]      = dat0;
+                edat[1]      = dat1;
+                edat[2]      = dat2;
+                edat[3]      = dat3;
+            }
         } else {
-            addr = svga->remap_func(svga, svga->ma);
+            // According to the 82C451 VGA clone chipset datasheet, all 4 planes chain in a ring.
+            // So, rotate them all around.
+            *(uint32_t *)&edat[0]
+                = ((*(uint32_t *)&edat[0]) >> 8)
+                | ((*(uint32_t *)&edat[0]) << 24);
+        }
+        load_counter += 1;
+        if (load_counter >= loadevery) {
+            load_counter = 0;
         }
 
-        if (svga->seqregs[1] & 4) {
-            if (!svga->force_old_addr) {
-                oddeven = (addr & 4) ? 1 : 0;
-            }
-            edat[0] = svga->vram[addr | oddeven];
-            edat[2] = svga->vram[addr | oddeven | 0x2];
-            edat[1] = edat[3] = 0;
-            svga->ma += 2;
-        } else {
-            *(uint32_t *) (&edat[0]) = *(uint32_t *) (&svga->vram[addr]);
+        if (incr_counter == 0) {
             svga->ma += 4;
+            // DISCREPANCY TODO FIXME 2/4bpp used vram_mask, 8bpp used vram_display_mask --GM
+            svga->ma &= svga->vram_display_mask;
         }
-        svga->ma &= svga->vram_mask;
-
-        if (cga2bpp) {
-            // Remap CGA 2bpp-chunky data into fully planar data
-            uint8_t dat0 = egaremap2bpp[edat[1]] | (egaremap2bpp[edat[0]] << 4);
-            uint8_t dat1 = egaremap2bpp[edat[1] >> 1] | (egaremap2bpp[edat[0] >> 1] << 4);
-            uint8_t dat2 = egaremap2bpp[edat[3]] | (egaremap2bpp[edat[2]] << 4);
-            uint8_t dat3 = egaremap2bpp[edat[3] >> 1] | (egaremap2bpp[edat[2] >> 1] << 4);
-            edat[0]      = dat0;
-            edat[1]      = dat1;
-            edat[2]      = dat2;
-            edat[3]      = dat3;
+        incr_counter += 1;
+        if (incr_counter >= incevery) {
+            incr_counter = 0;
         }
 
+        //
+        // Now that we've converted it all to planar, convert it (back?) to chunky!
+        //
         for (int i = 0; i < 8; i += 2) {
-            const int outoffs = i << dwshift;
             const int inshift = 6 - i;
-            uint8_t   dat     = (edatlookup[(edat[0] >> inshift) & 3][(edat[1] >> inshift) & 3])
+            uint8_t dat
+                = (edatlookup[(edat[0] >> inshift) & 3][(edat[1] >> inshift) & 3])
                 | (edatlookup[(edat[2] >> inshift) & 3][(edat[3] >> inshift) & 3] << 2);
+
             // FIXME: Confirm blink behaviour is actually XOR on real hardware
-            uint32_t p0 = svga->pallook[svga->egapal[((dat >> 4) & svga->plane_mask) ^ blinkmask]];
-            uint32_t p1 = svga->pallook[svga->egapal[(dat & svga->plane_mask) ^ blinkmask]];
-            for (int subx = 0; subx < dotwidth; subx++)
-                p[outoffs + subx] = p0;
-            for (int subx = 0; subx < dotwidth; subx++)
-                p[outoffs + subx + dotwidth] = p1;
+            uint32_t c0 = ((dat >> 4) & svga->plane_mask) ^ blinkmask;
+            uint32_t c1 = (dat & svga->plane_mask) ^ blinkmask;
+            if (combine8bits) {
+                uint32_t ccombined = (c0 << 4) | c1;
+                uint32_t p0 = svga->map8[ccombined];
+                const int outoffs = (i >> 1) << dwshift;
+                for (int subx = 0; subx < dotwidth; subx++)
+                    p[outoffs + subx] = p0;
+            } else {
+                uint32_t p0 = svga->pallook[svga->egapal[c0]];
+                uint32_t p1 = svga->pallook[svga->egapal[c1]];
+                const int outoffs = i << dwshift;
+                for (int subx = 0; subx < dotwidth; subx++)
+                    p[outoffs + subx] = p0;
+                for (int subx = 0; subx < dotwidth; subx++)
+                    p[outoffs + subx + dotwidth] = p1;
+            }
         }
 
         p += charwidth;
     }
 }
 
-// Remap these to the 4bpp renderer
-void svga_render_2bpp_lowres(svga_t *svga) { svga_render_4bpp(svga, false, true); }
-void svga_render_2bpp_highres(svga_t *svga) { svga_render_4bpp(svga, true, true); }
-void svga_render_4bpp_lowres(svga_t *svga) { svga_render_4bpp(svga, false, false); }
-void svga_render_4bpp_highres(svga_t *svga) { svga_render_4bpp(svga, true, false); }
+// Remap these to the paletted renderer
+// (*, highres, combine8bits)
+void svga_render_2bpp_lowres(svga_t *svga) { svga_render_indexed_gfx(svga, false, false); }
+void svga_render_2bpp_highres(svga_t *svga) { svga_render_indexed_gfx(svga, true, false); }
+void svga_render_4bpp_lowres(svga_t *svga) { svga_render_indexed_gfx(svga, false, false); }
+void svga_render_4bpp_highres(svga_t *svga) { svga_render_indexed_gfx(svga, true, false); }
+void svga_render_8bpp_lowres(svga_t *svga) { svga_render_indexed_gfx(svga, false, true); }
+void svga_render_8bpp_highres(svga_t *svga) { svga_render_indexed_gfx(svga, true, true); }
 
+// TODO: Integrate more of this into the generic paletted renderer --GM
+#if 0
 void
 svga_render_8bpp_lowres(svga_t *svga)
 {
@@ -717,6 +779,8 @@ svga_render_8bpp_highres(svga_t *svga)
         }
     }
 }
+#endif
+
 
 void
 svga_render_8bpp_tseng_lowres(svga_t *svga)
