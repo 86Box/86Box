@@ -569,14 +569,12 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
             load_counter = 0;
         }
 
-        if (incr_counter == 0) {
-            svga->ma += 4;
-            // DISCREPANCY TODO FIXME 2/4bpp used vram_mask, 8bpp used vram_display_mask --GM
-            svga->ma &= svga->vram_display_mask;
-        }
         incr_counter += 1;
         if (incr_counter >= incevery) {
             incr_counter = 0;
+            svga->ma += 4;
+            // DISCREPANCY TODO FIXME 2/4bpp used vram_mask, 8bpp used vram_display_mask --GM
+            svga->ma &= svga->vram_display_mask;
         }
 
         //
