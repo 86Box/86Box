@@ -117,6 +117,11 @@ extern int qt_nvr_save(void);
 #    undef KeyRelease
 #endif
 
+#if defined Q_OS_UNIX && !defined Q_OS_HAIKU && !defined Q_OS_MACOS
+#include <qpa/qplatformwindow.h>
+#include "x11_util.h"
+#endif
+
 #ifdef Q_OS_MACOS
 #    include "cocoa_keyboard.hpp"
 // The namespace is required to avoid clashing typedefs; we only use this
@@ -711,6 +716,20 @@ MainWindow::MainWindow(QWidget *parent)
     else
 #    endif
     {}
+#endif
+
+#if defined Q_OS_UNIX && !defined Q_OS_MACOS && !defined Q_OS_HAIKU
+    if (QApplication::platformName().contains("xcb")) {
+        QTimer::singleShot(0, this, [this] {
+            auto whandle = windowHandle();
+            if (! whandle) {
+                qWarning() << "No window handle";
+            } else {
+                QPlatformWindow *window = whandle->handle();
+                set_wm_class(window->winId(), vm_name);
+            }
+        });
+    }
 #endif
 }
 
