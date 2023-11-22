@@ -718,7 +718,7 @@ MainWindow::MainWindow(QWidget *parent)
     {}
 #endif
 
-#if !defined Q_OS_MACOS && !defined Q_OS_HAIKU
+#if defined Q_OS_UNIX && !defined Q_OS_MACOS && !defined Q_OS_HAIKU
     if (QApplication::platformName().contains("xcb")) {
         QTimer::singleShot(0, this, [this] {
             auto whandle = windowHandle();
