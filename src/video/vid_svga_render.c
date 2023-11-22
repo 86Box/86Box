@@ -455,27 +455,33 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
     uint32_t  addr;
     uint32_t *p;
     uint8_t   edat[4];
-    uint8_t   dat;
     uint32_t  changed_offset;
 
     const bool    blinked     = svga->blink & 0x10;
     const bool    attrblink   = ((svga->attrregs[0x10] & 0x08) != 0);
 
     // The following is likely how it works on an IBM VGA - that is, it works with its BIOS.
-    // But on an S3 Trio, mode 13h is broken - seemingly accepting the address shift but ignoring the increment.
-    // Forcing it to use incbypow2=0, incevery=1, loadevery=1 makes it behave.
+    // But on some cards, certain modes are broken.
+    // - S3 Trio: mode 13h (320x200x8), incbypow2 given as 2 treated as 0
+    // - ET4000/W32i: mode 2Eh (640x480x8), incevery given as 2 treated as 1
+    const bool    forcepacked = combine8bits && (svga->force_old_addr || svga->packed_chain4);
+
+    // SVGA cards with a high-resolution 8bpp mode may actually bypass the VGA shifter logic.
+    // - HT-216 (+ other Video7 chipsets?) has 0x3C4.0xC8 bit 4 which, when set to 1, loads bytes directly, bypassing the shifters.
+    const bool    highres8bpp = combine8bits && highres;
+
     const bool    dwordload   = ((svga->seqregs[0x01] & 0x10) != 0);
     const bool    wordload    = ((svga->seqregs[0x01] & 0x04) != 0) && !dwordload;
     const bool    wordincr    = ((svga->crtc[0x17] & 0x08) != 0);
     const bool    dwordincr   = ((svga->crtc[0x14] & 0x20) != 0) && !wordincr;
     const bool    dwordshift  = ((svga->crtc[0x14] & 0x40) != 0);
     const bool    wordshift   = ((svga->crtc[0x17] & 0x40) == 0) && !dwordshift;
-    const uint32_t incbypow2  = (combine8bits && (svga->force_old_addr || svga->packed_chain4)) ? 0 : (dwordshift ? 2 : wordshift ? 1 : 0);
-    const uint32_t incevery   = (combine8bits && (svga->force_old_addr || svga->packed_chain4)) ? 1 : (dwordincr  ? 4 : wordincr  ? 2 : 1);
-    const uint32_t loadevery  = (combine8bits && (svga->force_old_addr || svga->packed_chain4)) ? 1 : (dwordload  ? 4 : wordload  ? 2 : 1);
+    const uint32_t incbypow2  = forcepacked ? 0 : (dwordshift ? 2 : wordshift ? 1 : 0);
+    const uint32_t incevery   = forcepacked ? 1 : (dwordincr  ? 4 : wordincr  ? 2 : 1);
+    const uint32_t loadevery  = forcepacked ? 1 : (dwordload  ? 4 : wordload  ? 2 : 1);
 
-    const bool    shift2bit   = ((svga->gdcreg[0x05] & 0x60) == 0x20 );
-    const bool    shift4bit   = ((svga->gdcreg[0x05] & 0x40) == 0x40 );
+    const bool    shift4bit   = ((svga->gdcreg[0x05] & 0x40) == 0x40 ) || highres8bpp;
+    const bool    shift2bit   = ((svga->gdcreg[0x05] & 0x60) == 0x20 ) && !shift4bit;
 
     const int     dwshift     = highres ? 0 : 1;
     const int     dotwidth    = 1 << dwshift;
