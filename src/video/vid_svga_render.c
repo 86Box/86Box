@@ -455,7 +455,6 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
     uint32_t  addr;
     uint32_t *p;
     uint8_t   edat[4];
-    uint8_t   dat;
     uint32_t  changed_offset;
 
     const bool    blinked     = svga->blink & 0x10;
