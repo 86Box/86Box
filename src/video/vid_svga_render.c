@@ -486,7 +486,7 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
     const int     dwshift     = highres ? 0 : 1;
     const int     dotwidth    = 1 << dwshift;
     const int     charwidth   = dotwidth * (combine8bits ? 4 : 8);
-    const uint8_t blinkmask   = (attrblink ? 0x7 : 0xF);
+    const uint8_t blinkmask   = (attrblink ? 0x8 : 0x0);
     const uint8_t blinkval    = (attrblink && blinked ? 0x8 : 0x0);
 
     if ((svga->displine + svga->y_add) < 0)
@@ -594,12 +594,24 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
                 | (edatlookup[(edat[2] >> inshift) & 3][(edat[3] >> inshift) & 3] << 2);
 
             // FIXME: Confirm blink behaviour on real hardware
-            // This is how it behaves on an Intel GMA 4500MHD (2008).
-            // That includes 8bpp modes.
-            // However, an AMD Stoney Ridge (2016) seems to ignore blink in 8bpp modes.
 
-            uint32_t c0 = ((dat >> 4) & svga->plane_mask & blinkmask) | blinkval;
-            uint32_t c1 = (dat & svga->plane_mask & blinkmask) | blinkval;
+            // The VGA 4bpp graphics blink logic was a pain to work out.
+            //
+            // If plane 3 is enabled in the attribute controller, then:
+            // - if bit 3 is 0, then we force the output of it to be 1.
+            // - if bit 3 is 1, then the output blinks.
+            // This can be tested with Lotus 1-2-3 release 2.3 with the WYSIWYG addon.
+            //
+            // If plane 3 is disabled in the attribute controller, then the output blinks.
+            // This can be tested with QBASIC SCREEN 10 - anything using color #2 should blink and nothing else.
+            //
+            // If you can simplify the following and have it still work, give yourself a medal.
+            //
+            uint32_t c0 = (dat >> 4) & 0xF;
+            uint32_t c1 = dat & 0xF;
+            c0 = ((c0 & svga->plane_mask & ~blinkmask) | ((c0 | ~svga->plane_mask) & blinkmask & blinkval)) ^ blinkmask;
+            c1 = ((c1 & svga->plane_mask & ~blinkmask) | ((c1 | ~svga->plane_mask) & blinkmask & blinkval)) ^ blinkmask;
+
             if (combine8bits) {
                 uint32_t ccombined = (c0 << 4) | c1;
                 uint32_t p0 = svga->map8[ccombined];
