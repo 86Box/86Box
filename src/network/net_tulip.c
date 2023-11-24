@@ -1327,7 +1327,6 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 static void *
 nic_init(const device_t *info)
 {
-    uint8_t                  eeprom_default_local[128];
     nmc93cxx_eeprom_params_t params;
     TULIPState              *s              = calloc(1, sizeof(TULIPState));
     char                     filename[1024] = { 0 };

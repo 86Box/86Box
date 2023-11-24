@@ -59,16 +59,6 @@ nmc93cxx_eeprom_log(int lvl, const char *fmt, ...)
 #    define nmc93cxx_eeprom_log(lvl, fmt, ...)
 #endif
 
-static void
-nmc93cxx_eeprom_save(nmc93cxx_eeprom_t *eeprom)
-{
-    FILE              *fp     = nvr_fopen(eeprom->filename, "wb");
-    if (fp) {
-        fwrite(eeprom->dev.data, 2, eeprom->size, fp);
-        fclose(fp);
-    }
-}
-
 static void *
 nmc93cxx_eeprom_init_params(UNUSED(const device_t *info), void *params)
 {
