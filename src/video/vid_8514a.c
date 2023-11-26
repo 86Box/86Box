@@ -4403,6 +4403,7 @@ ibm8514_force_redraw(void *priv)
 const device_t gen8514_isa_device = {
     .name = "Generic 8514/A clone (ISA)",
     .internal_name = "8514_isa",
+    .year = "1990",
     .flags = DEVICE_AT | DEVICE_ISA,
     .local = 0,
     .init = ibm8514_init,
@@ -4417,6 +4418,7 @@ const device_t gen8514_isa_device = {
 const device_t ibm8514_mca_device = {
     .name = "IBM 8514/A (MCA)",
     .internal_name = "8514_mca",
+    .year = "1987",
     .flags = DEVICE_MCA,
     .local = 0,
     .init = ibm8514_init,

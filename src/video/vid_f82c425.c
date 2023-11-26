@@ -626,6 +626,7 @@ f82c425_speed_changed(void *priv)
 const device_t f82c425_video_device = {
     .name          = "82C425 CGA LCD/CRT Controller",
     .internal_name = "f82c425_video",
+    .year          = "1991",
     .flags         = 0,
     .local         = 0,
     .init          = f82c425_init,

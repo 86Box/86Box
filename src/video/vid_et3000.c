@@ -308,6 +308,7 @@ static const device_config_t et3000_config[] = {
 const device_t et3000_isa_device = {
     .name          = "Tseng Labs ET3000AX (ISA)",
     .internal_name = "et3000ax",
+    .year          = "1987",
     .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = et3000_init,

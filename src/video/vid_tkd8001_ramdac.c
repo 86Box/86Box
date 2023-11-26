@@ -124,6 +124,7 @@ tkd8001_ramdac_close(void *priv)
 const device_t tkd8001_ramdac_device = {
     .name          = "Trident TKD8001 RAMDAC",
     .internal_name = "tkd8001_ramdac",
+    .year          = "1991",
     .flags         = 0,
     .local         = 0,
     .init          = tkd8001_ramdac_init,

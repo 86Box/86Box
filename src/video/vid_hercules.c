@@ -656,6 +656,7 @@ static const device_config_t hercules_config[] = {
 const device_t hercules_device = {
     .name          = "Hercules",
     .internal_name = "hercules",
+    .year          = "1984",
     .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = hercules_init,

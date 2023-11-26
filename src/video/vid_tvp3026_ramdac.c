@@ -659,6 +659,7 @@ tvp3026_ramdac_close(void *priv)
 const device_t tvp3026_ramdac_device = {
     .name          = "TI TVP3026 RAMDAC",
     .internal_name = "tvp3026_ramdac",
+    .year          = "1996",
     .flags         = 0,
     .local         = 0,
     .init          = tvp3026_ramdac_init,

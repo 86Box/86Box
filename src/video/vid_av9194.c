@@ -98,6 +98,7 @@ av9194_init(UNUSED(const device_t *info))
 const device_t av9194_device = {
     .name          = "AV9194 Clock Generator",
     .internal_name = "av9194",
+    .year          = "1992",
     .flags         = 0,
     .local         = 0,
     .init          = av9194_init,

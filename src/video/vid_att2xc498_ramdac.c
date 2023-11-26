@@ -178,6 +178,7 @@ att498_ramdac_close(void *priv)
 const device_t att498_ramdac_device = {
     .name          = "AT&T 22c498 RAMDAC",
     .internal_name = "att498_ramdac",
+    .year          = "1995",
     .flags         = 0,
     .local         = 0,
     .init          = att498_ramdac_init,

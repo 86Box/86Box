@@ -155,6 +155,7 @@ ati68875_ramdac_close(void *priv)
 const device_t ati68875_ramdac_device = {
     .name          = "ATI 68875 RAMDAC",
     .internal_name = "ati68875_ramdac",
+    .year          = "1994",
     .flags         = 0,
     .local         = 0,
     .init          = ati68875_ramdac_init,

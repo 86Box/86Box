@@ -999,6 +999,7 @@ wy700_speed_changed(void *priv)
 const device_t wy700_device = {
     .name          = "Wyse 700",
     .internal_name = "wy700",
+    .year          = "1987",
     .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = wy700_init,

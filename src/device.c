@@ -512,7 +512,7 @@ device_get_name(const device_t *dev, int bus, char *name)
             /* First concatenate [<Bus>] before the device's name. */
             strcat(name, "[");
             strcat(name, sbus);
-            strcat(name, "]");
+            strcat(name, "] ");
 
             /* Then change string from ISA16 to ISA if applicable. */
             if (!strcmp(sbus, "ISA16"))

@@ -821,6 +821,7 @@ genius_speed_changed(void *priv)
 const device_t genius_device = {
     .name          = "Genius VHR",
     .internal_name = "genius",
+    .year          = "1990",
     .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = genius_init,
