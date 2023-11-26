@@ -138,6 +138,7 @@ typedef struct device_config_t {
 typedef struct _device_ {
     const char *name;
     const char *internal_name;
+    const char *year;
     uint32_t    flags; /* system flags */
     uintptr_t   local; /* flags local to device */
 
