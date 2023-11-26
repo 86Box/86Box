@@ -485,6 +485,11 @@ zip_load(zip_t *dev, char *fn)
 {
     int size = 0;
 
+    if (!dev->drv) {
+        zip_eject(dev->id);
+        return 0;
+    }
+
     dev->drv->fp = plat_fopen(fn, dev->drv->read_only ? "rb" : "rb+");
     if (!dev->drv->fp) {
         if (!dev->drv->read_only) {
@@ -548,7 +553,7 @@ zip_disk_reload(zip_t *dev)
 void
 zip_disk_unload(zip_t *dev)
 {
-    if (dev->drv->fp) {
+    if (dev->drv && dev->drv->fp) {
         fclose(dev->drv->fp);
         dev->drv->fp = NULL;
     }
@@ -557,7 +562,7 @@ zip_disk_unload(zip_t *dev)
 void
 zip_disk_close(zip_t *dev)
 {
-    if (dev->drv->fp) {
+    if (dev->drv && dev->drv->fp) {
         zip_disk_unload(dev);
 
         memcpy(dev->drv->prev_image_path, dev->drv->image_path, sizeof(dev->drv->prev_image_path));
