@@ -343,6 +343,11 @@ mo_load(mo_t *dev, char *fn)
     uint32_t     size  = 0;
     unsigned int found = 0;
 
+    if (!dev->drv) {
+        mo_eject(dev->id);
+        return 0;
+    }
+
     is_mdi = image_is_mdi(fn);
 
     dev->drv->fp = plat_fopen(fn, dev->drv->read_only ? "rb" : "rb+");
@@ -403,7 +408,7 @@ mo_disk_reload(mo_t *dev)
 void
 mo_disk_unload(mo_t *dev)
 {
-    if (dev->drv->fp) {
+    if (dev->drv && dev->drv->fp) {
         fclose(dev->drv->fp);
         dev->drv->fp = NULL;
     }
@@ -412,7 +417,7 @@ mo_disk_unload(mo_t *dev)
 void
 mo_disk_close(mo_t *dev)
 {
-    if (dev->drv->fp) {
+    if (dev->drv && dev->drv->fp) {
         mo_disk_unload(dev);
 
         memcpy(dev->drv->prev_image_path, dev->drv->image_path, sizeof(dev->drv->prev_image_path));
