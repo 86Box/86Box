@@ -605,6 +605,14 @@ et4000_recalctimings(svga_t *svga)
             }
         }
     }
+
+    if ((svga->bpp == 8) && ((svga->gdcreg[5] & 0x60) >= 0x40)) {
+        svga->map8 = svga->pallook;
+        if (svga->lowres)
+            svga->render = svga_render_8bpp_lowres;
+        else
+            svga->render = svga_render_8bpp_highres;
+    }
 }
 
 static void
