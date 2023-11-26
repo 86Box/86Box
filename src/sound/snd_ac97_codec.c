@@ -656,6 +656,7 @@ ac97_codec_get(uint32_t id)
 const device_t ad1881_device = {
     .name          = "Analog Devices AD1881",
     .internal_name = "ad1881",
+    .year          = "1999",
     .flags         = DEVICE_AC97,
     .local         = AC97_CODEC_AD1881,
     .init          = ac97_codec_init,

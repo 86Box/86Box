@@ -198,6 +198,7 @@ ps1snd_close(void *priv)
 const device_t ps1snd_device = {
     .name          = "IBM PS/1 Audio Card",
     .internal_name = "ps1snd",
+    .year          = "1990",
     .flags         = 0,
     .local         = 0,
     .init          = ps1snd_init,

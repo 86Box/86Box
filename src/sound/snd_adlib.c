@@ -146,6 +146,7 @@ adlib_close(void *priv)
 const device_t adlib_device = {
     .name          = "AdLib",
     .internal_name = "adlib",
+    .year          = "1987",
     .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = adlib_init,
@@ -160,6 +161,7 @@ const device_t adlib_device = {
 const device_t adlib_mca_device = {
     .name          = "AdLib (MCA)",
     .internal_name = "adlib_mca",
+    .year          = "1987",
     .flags         = DEVICE_MCA,
     .local         = 0,
     .init          = adlib_mca_init,

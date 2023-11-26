@@ -244,6 +244,7 @@ static const device_config_t cms_config[] = {
 const device_t cms_device = {
     .name          = "Creative Music System / Game Blaster",
     .internal_name = "cms",
+    .year          = "1988",
     .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = cms_init,

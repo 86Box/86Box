@@ -1155,6 +1155,7 @@ static const device_config_t adgold_config[] = {
 const device_t adgold_device = {
     .name          = "AdLib Gold",
     .internal_name = "adlibgold",
+    .year          = "1991",
     .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = adgold_init,

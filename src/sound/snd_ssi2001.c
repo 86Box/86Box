@@ -129,6 +129,7 @@ const device_t ssi2001_device =
 {
     .name = "Innovation SSI-2001",
     .internal_name = "ssi2001",
+    .year = "1989",
     .flags = DEVICE_ISA,
     .local = 0,
     .init = ssi2001_init,
