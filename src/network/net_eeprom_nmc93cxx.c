@@ -270,6 +270,7 @@ nmc93cxx_eeprom_data(nmc93cxx_eeprom_t *eeprom)
 const device_t nmc93cxx_device = {
     .name          = "National Semiconductor NMC93Cxx",
     .internal_name = "nmc93cxx",
+    .year          = "1988",
     .flags         = DEVICE_EXTPARAMS,
     .local         = 0,
     .init_ext      = nmc93cxx_eeprom_init_params,

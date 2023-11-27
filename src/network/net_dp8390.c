@@ -1037,6 +1037,7 @@ dp8390_close(void *priv)
 const device_t dp8390_device = {
     .name          = "DP8390 Network Interface Controller",
     .internal_name = "dp8390",
+    .year          = "1995",
     .flags         = 0,
     .local         = 0,
     .init          = dp8390_init,

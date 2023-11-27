@@ -1218,6 +1218,7 @@ static const device_config_t threec501_config[] = {
 const device_t threec501_device = {
     .name          = "3Com EtherLink (3c500/3c501)",
     .internal_name = "3c501",
+    .year          = "1986",
     .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = threec501_nic_init,

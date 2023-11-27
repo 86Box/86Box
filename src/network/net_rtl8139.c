@@ -3399,6 +3399,7 @@ static const device_config_t rtl8139c_config[] = {
 const device_t rtl8139c_plus_device = {
     .name          = "Realtek RTL8139C+",
     .internal_name = "rtl8139c+",
+    .year          = "2004",
     .flags         = DEVICE_PCI,
     .local         = 0,
     .init          = nic_init,
