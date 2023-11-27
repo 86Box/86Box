@@ -1048,6 +1048,7 @@ speed_changed(void *priv)
 const device_t incolor_device = {
     .name          = "Hercules InColor",
     .internal_name = "incolor",
+    .year          = "1987",
     .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = incolor_init,
