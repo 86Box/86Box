@@ -596,6 +596,7 @@ sff_init(UNUSED(const device_t *info))
 const device_t sff8038i_device = {
     .name          = "SFF-8038i IDE Bus Master",
     .internal_name = "sff8038i",
+    .year          = "1994",
     .flags         = DEVICE_PCI,
     .local         = 0,
     .init          = sff_init,

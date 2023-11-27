@@ -336,6 +336,7 @@ opti611_init(UNUSED(const device_t *info))
 const device_t ide_opti611_vlb_device = {
     .name          = "OPTi 82C611/82C611A VLB",
     .internal_name = "ide_opti611_vlb",
+    .year          = "1995",
     .flags         = DEVICE_VLB,
     .local         = 0,
     .init          = opti611_init,
@@ -350,6 +351,7 @@ const device_t ide_opti611_vlb_device = {
 const device_t ide_opti611_vlb_sec_device = {
     .name          = "OPTi 82C611/82C611A VLB (Secondary)",
     .internal_name = "ide_opti611_vlb",
+    .year          = "1995",
     .flags         = DEVICE_VLB,
     .local         = 1,
     .init          = opti611_init,
