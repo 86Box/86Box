@@ -945,7 +945,7 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
                 break;
 
             case 0xff:
-                if (sb->dsp.sb_type > SBAWE32) {
+                if ((sb->dsp.sb_type > SBAWE32) && !sb->dsp.sb_16_dma_supported) {
                     /*
                        Bit 5: High DMA channel enabled (0 = yes, 1 = no);
                        Bit 2: ????;
