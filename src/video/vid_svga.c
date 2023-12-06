@@ -219,7 +219,7 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                 dev->on[1] = dev->on[0];
             }
 
-            svga_log("3C3: XGA ON = %d.\n", xga->on);
+            svga_log("3C3: VGA ON = %d.\n", val & 0x01);
             vga_on = val & 0x01;
             break;
         case 0x3c4:
@@ -611,7 +611,7 @@ svga_recalctimings(svga_t *svga)
 
     svga->clock = (svga->vidclock) ? VGACONST2 : VGACONST1;
 
-    svga->lowres = svga->attrregs[0x10] & 0x40;
+    svga->lowres = !!(svga->attrregs[0x10] & 0x40);
 
     svga->interlace = 0;
 
@@ -742,7 +742,7 @@ svga_recalctimings(svga_t *svga)
     }
 
     if (ibm8514_active && (svga->dev8514 != NULL)) {
-        if (!dev->local)
+        if ((dev->local & 0xff) == 0x00)
             ibm8514_recalctimings(svga);
     }
 
