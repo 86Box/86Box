@@ -129,6 +129,7 @@ static void scsi_disk_mode_sense_load(scsi_disk_t *dev);
 
 static void scsi_disk_init(scsi_disk_t *dev);
 
+#define ENABLE_SCSI_DISK_LOG 1
 #ifdef ENABLE_SCSI_DISK_LOG
 int scsi_disk_do_log = ENABLE_SCSI_DISK_LOG;
 
@@ -709,7 +710,7 @@ static int
 scsi_disk_blocks(scsi_disk_t *dev, int32_t *len, UNUSED(int first_batch), int out)
 {
     *len = 0;
-    uint32_t medium_size = hdd_image_get_last_sector(dev->id);
+    uint32_t medium_size = hdd_image_get_last_sector(dev->id) + 1;
 
     if (!dev->sector_len) {
         scsi_disk_command_complete(dev);
