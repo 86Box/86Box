@@ -2009,7 +2009,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                 if (dev->accel.cur_y >= 0x600)
                     dev->accel.cy |= ~0x5ff;
 
-                if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                if (((dev->local & 0xff) >= 0x02) && dev->accel.ge_offset && (dev->accel_bpp == 24))
                     dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                 else
                     dev->accel.dest = dev->accel.cy * dev->pitch;
@@ -2061,7 +2061,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                         if (!(dev->accel.cmd & 0x40) && (frgd_mix == 2) && (bkgd_mix == 2) && (pixcntl == 0) && (cmd == 2)) {
                             if (!(dev->accel.sx & 1)) {
                                 dev->accel.output = 1;
-                                if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                if (((dev->local & 0xff) >= 0x02) && dev->accel.ge_offset && (dev->accel_bpp == 24))
                                     dev->accel.newdest_out = (dev->accel.ge_offset << 2) + ((dev->accel.cy + 1) * dev->pitch);
                                 else
                                     dev->accel.newdest_out = (dev->accel.cy + 1) * dev->pitch;
@@ -2075,7 +2075,7 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
                     if (!(dev->accel.cmd & 2) && (frgd_mix == 2) && (pixcntl == 0) && (cmd == 2)) {
                         if (!(dev->accel.sx & 1)) {
                             dev->accel.input      = 1;
-                            if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                            if (((dev->local & 0xff) >= 0x02) && dev->accel.ge_offset && (dev->accel_bpp == 24))
                                 dev->accel.newdest_in = (dev->accel.ge_offset << 2) + ((dev->accel.cy + 1) * dev->pitch);
                             else
                                 dev->accel.newdest_in = (dev->accel.cy + 1) * dev->pitch;
@@ -2258,7 +2258,7 @@ rect_fill_pix:
                                         break;
                                 }
 
-                                if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                if (((dev->local & 0xff) >= 0x02) && dev->accel.ge_offset && (dev->accel_bpp == 24))
                                     dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                                 else
                                     dev->accel.dest = dev->accel.cy * dev->pitch;
@@ -2343,7 +2343,7 @@ rect_fill_pix:
                                 else
                                     dev->accel.cy--;
 
-                                if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                if (((dev->local & 0xff) >= 0x02) && dev->accel.ge_offset && (dev->accel_bpp == 24))
                                     dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                                 else
                                     dev->accel.dest = dev->accel.cy * dev->pitch;
@@ -2435,7 +2435,7 @@ rect_fill_pix:
                                 else
                                     dev->accel.cy--;
 
-                                if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                if (((dev->local & 0xff) >= 0x02) && dev->accel.ge_offset && (dev->accel_bpp == 24))
                                     dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                                 else
                                     dev->accel.dest = dev->accel.cy * dev->pitch;
@@ -2494,7 +2494,7 @@ rect_fill_pix:
                                         else
                                             dev->accel.cy--;
 
-                                        if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24)) {
+                                        if (((dev->local & 0xff) >= 0x02) && dev->accel.ge_offset && (dev->accel_bpp == 24)) {
                                             dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                                             dev->accel.newdest_in = (dev->accel.ge_offset << 2) + ((dev->accel.cy + 1) * dev->pitch);
                                         } else {
@@ -2519,7 +2519,7 @@ rect_fill_pix:
                                         else
                                             dev->accel.cy--;
 
-                                        if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24)) {
+                                        if (((dev->local & 0xff) >= 0x02) && dev->accel.ge_offset && (dev->accel_bpp == 24)) {
                                             dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                                             dev->accel.newdest_in = (dev->accel.ge_offset << 2) + ((dev->accel.cy + 1) * dev->pitch);
                                         } else {
@@ -2575,7 +2575,7 @@ rect_fill_pix:
                                         else
                                             dev->accel.cy--;
 
-                                        if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24)) {
+                                        if (((dev->local & 0xff) >= 0x02) && dev->accel.ge_offset && (dev->accel_bpp == 24)) {
                                             dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                                             dev->accel.newdest_out = (dev->accel.ge_offset << 2) + ((dev->accel.cy + 1) * dev->pitch);
                                         } else {
@@ -2600,7 +2600,7 @@ rect_fill_pix:
                                         else
                                             dev->accel.cy--;
 
-                                        if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24)) {
+                                        if (((dev->local & 0xff) >= 0x02) && dev->accel.ge_offset && (dev->accel_bpp == 24)) {
                                             dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                                             dev->accel.newdest_out = (dev->accel.ge_offset << 2) + ((dev->accel.cy + 1) * dev->pitch);
                                         } else {
@@ -2690,7 +2690,7 @@ rect_fill_pix:
                                     else
                                         dev->accel.cy--;
 
-                                    if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                    if (((dev->local & 0xff) >= 0x02) && dev->accel.ge_offset && (dev->accel_bpp == 24))
                                         dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                                     else
                                         dev->accel.dest = dev->accel.cy * dev->pitch;
@@ -2767,7 +2767,7 @@ rect_fill:
                                     else
                                         dev->accel.cy--;
 
-                                    if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                    if (((dev->local & 0xff) >= 0x02) && dev->accel.ge_offset && (dev->accel_bpp == 24))
                                         dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                                     else
                                         dev->accel.dest = dev->accel.cy * dev->pitch;
@@ -2838,7 +2838,7 @@ rect_fill:
                                     else
                                         dev->accel.cy--;
 
-                                    if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                    if (((dev->local & 0xff) >= 0x02) && dev->accel.ge_offset && (dev->accel_bpp == 24))
                                         dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                                     else
                                         dev->accel.dest = dev->accel.cy * dev->pitch;
@@ -2923,7 +2923,7 @@ rect_fill:
                                     else
                                         dev->accel.cy--;
 
-                                    if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                    if (((dev->local & 0xff) >= 0x02) && dev->accel.ge_offset && (dev->accel_bpp == 24))
                                         dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                                     else
                                         dev->accel.dest = dev->accel.cy * dev->pitch;
@@ -2990,7 +2990,7 @@ rect_fill:
                                     else
                                         dev->accel.cy--;
 
-                                    if ((dev->local >= 2) && dev->accel.ge_offset && (dev->accel_bpp == 24))
+                                    if (((dev->local & 0xff) >= 0x02) && dev->accel.ge_offset && (dev->accel_bpp == 24))
                                         dev->accel.dest = (dev->accel.ge_offset << 2) + (dev->accel.cy * dev->pitch);
                                     else
                                         dev->accel.dest = dev->accel.cy * dev->pitch;
@@ -3685,7 +3685,7 @@ bitblt:
                             }
                         }
                     } else {
-                        if ((dev->accel_bpp == 24) && (dev->local >= 2) && (dev->accel.cmd == 0xc2b5)) {
+                        if ((dev->accel_bpp == 24) && ((dev->local & 0xff) >= 0x02) && (dev->accel.cmd == 0xc2b5)) {
                             int64_t cx;
                             int64_t dx;
 
