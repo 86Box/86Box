@@ -129,7 +129,6 @@ static void scsi_disk_mode_sense_load(scsi_disk_t *dev);
 
 static void scsi_disk_init(scsi_disk_t *dev);
 
-#define ENABLE_SCSI_DISK_LOG 1
 #ifdef ENABLE_SCSI_DISK_LOG
 int scsi_disk_do_log = ENABLE_SCSI_DISK_LOG;
 
