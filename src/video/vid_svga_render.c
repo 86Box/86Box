@@ -454,11 +454,10 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
     int       x;
     uint32_t  addr;
     uint32_t *p;
-    uint8_t   edat[4];
     uint32_t  changed_offset;
 
-    const bool    blinked     = svga->blink & 0x10;
-    const bool    attrblink   = ((svga->attrregs[0x10] & 0x08) != 0);
+    const bool blinked   = svga->blink & 0x10;
+    const bool attrblink = ((svga->attrregs[0x10] & 0x08) != 0);
 
     /*
        The following is likely how it works on an IBM VGA - that is, it works with its BIOS.
@@ -466,33 +465,50 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
        - S3 Trio: mode 13h (320x200x8), incbypow2 given as 2 treated as 0
        - ET4000/W32i: mode 2Eh (640x480x8), incevery given as 2 treated as 1
      */
-    const bool    forcepacked = combine8bits && (svga->force_old_addr || svga->packed_chain4);
+    const bool forcepacked = combine8bits && (svga->force_old_addr || svga->packed_chain4);
 
     /*
        SVGA cards with a high-resolution 8bpp mode may actually bypass the VGA shifter logic.
        - HT-216 (+ other Video7 chipsets?) has 0x3C4.0xC8 bit 4 which, when set to 1, loads
          bytes directly, bypassing the shifters.
      */
-    const bool    highres8bpp = combine8bits && highres;
+    const bool highres8bpp = combine8bits && highres;
 
-    const bool    dwordload   = ((svga->seqregs[0x01] & 0x10) != 0);
-    const bool    wordload    = ((svga->seqregs[0x01] & 0x04) != 0) && !dwordload;
-    const bool    wordincr    = ((svga->crtc[0x17] & 0x08) != 0);
-    const bool    dwordincr   = ((svga->crtc[0x14] & 0x20) != 0) && !wordincr;
-    const bool    dwordshift  = ((svga->crtc[0x14] & 0x40) != 0);
-    const bool    wordshift   = ((svga->crtc[0x17] & 0x40) == 0) && !dwordshift;
+    const bool     dwordload  = ((svga->seqregs[0x01] & 0x10) != 0);
+    const bool     wordload   = ((svga->seqregs[0x01] & 0x04) != 0) && !dwordload;
+    const bool     wordincr   = ((svga->crtc[0x17] & 0x08) != 0);
+    const bool     dwordincr  = ((svga->crtc[0x14] & 0x20) != 0) && !wordincr;
+    const bool     dwordshift = ((svga->crtc[0x14] & 0x40) != 0);
+    const bool     wordshift  = ((svga->crtc[0x17] & 0x40) == 0) && !dwordshift;
     const uint32_t incbypow2  = forcepacked ? 0 : (dwordshift ? 2 : wordshift ? 1 : 0);
-    const uint32_t incevery   = forcepacked ? 1 : (dwordincr  ? 4 : wordincr  ? 2 : 1);
-    const uint32_t loadevery  = forcepacked ? 1 : (dwordload  ? 4 : wordload  ? 2 : 1);
+    const uint32_t incevery   = forcepacked ? 1 : (dwordincr ? 4 : wordincr ? 2 : 1);
+    const uint32_t loadevery  = forcepacked ? 1 : (dwordload ? 4 : wordload ? 2 : 1);
 
-    const bool    shift4bit   = ((svga->gdcreg[0x05] & 0x40) == 0x40 ) || highres8bpp;
-    const bool    shift2bit   = ((svga->gdcreg[0x05] & 0x60) == 0x20 ) && !shift4bit;
+    const bool shift4bit = ((svga->gdcreg[0x05] & 0x40) == 0x40) || highres8bpp;
+    const bool shift2bit = ((svga->gdcreg[0x05] & 0x60) == 0x20) && !shift4bit;
 
-    const int     dwshift     = highres ? 0 : 1;
-    const int     dotwidth    = 1 << dwshift;
-    const int     charwidth   = dotwidth * (combine8bits ? 4 : 8);
-    const uint8_t blinkmask   = (attrblink ? 0x8 : 0x0);
-    const uint8_t blinkval    = (attrblink && blinked ? 0x8 : 0x0);
+    const int      dwshift   = highres ? 0 : 1;
+    const int      dotwidth  = 1 << dwshift;
+    const int      charwidth = dotwidth * (combine8bits ? 4 : 8);
+    const uint32_t planemask = 0x11111111 * (uint32_t) (svga->plane_mask);
+    const uint32_t blinkmask = (attrblink ? 0x88888888 : 0x0);
+    const uint32_t blinkval  = (attrblink && blinked ? 0x88888888 : 0x0);
+
+    /*
+       This is actually a 8x 3-bit lookup table,
+       preshifted by 2 bits to allow shifting by multiples of 4 bits.
+
+       Anyway, when we perform a planar-to-chunky conversion,
+       we keep the pixel values in a scrambled order.
+       This lookup table unscrambles them.
+
+       WARNING: Octal values are used here!
+     */
+    const uint32_t shift_values = (shift4bit
+                                       ? ((067452301) << 2)
+                                       : shift2bit
+                                       ? ((026370415) << 2)
+                                       : ((002461357) << 2));
 
     if ((svga->displine + svga->y_add) < 0)
         return;
@@ -502,8 +518,7 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
     else
         changed_offset = svga->remap_func(svga, svga->ma) >> 12;
 
-    if (!(svga->changedvram[changed_offset] || svga->changedvram[changed_offset + 1] ||
-        svga->fullchange))
+    if (!(svga->changedvram[changed_offset] || svga->changedvram[changed_offset + 1] || svga->fullchange))
         return;
     p = &svga->monitor->target_buffer->line[svga->displine + svga->y_add][svga->x_add];
 
@@ -513,6 +528,7 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
 
     uint32_t incr_counter = 0;
     uint32_t load_counter = 0;
+    uint32_t edat         = 0;
     for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += charwidth) {
         if (load_counter == 0) {
             /* Find our address */
@@ -529,7 +545,7 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
                         if (svga->ma & (4 << 15))
                             addr |= 0x4;
                     } else {
-                        if (svga->ma & (4<<13))
+                        if (svga->ma & (4 << 13))
                             addr |= 0x4;
                     }
                 } else {
@@ -548,42 +564,31 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
             addr &= svga->vram_display_mask;
 
             /* Load VRAM */
-            *(uint32_t *)&edat[0] = *(uint32_t *)&svga->vram[addr];
+            edat = *(uint32_t *) &svga->vram[addr];
 
-            if (shift4bit) {
-                /*
-                   Remap VGA 4bpp-chunky data into fully planar data
-                   Plane 3 LSbit is aligned with MSbit
-                 */
-                uint8_t tmpdat[4] = {0, 0, 0, 0};
-                for (int j = 0; j < 4; j++) {
-                    for (int i = 0; i < 8; i++) {
-                        tmpdat[j] <<= 1;
-                        tmpdat[j] |= (edat[i>>1] >> (((0x1&~i)<<2)+j)) & 0x1;
-                    }
+            /*
+               EGA and VGA actually use 4bpp planar as its native format.
+               But 4bpp chunky is generally easier to deal with on a modern CPU.
+               shift4bit is the native format for this renderer (4bpp chunky).
+             */
+            if (!shift4bit) {
+                if (shift2bit) {
+                    /* Group 2x 2bpp values into 4bpp values */
+                    edat = (edat & 0xCCCC3333) | ((edat << 14) & 0x33330000) | ((edat >> 14) & 0x0000CCCC);
+                } else {
+                    /* Group 4x 1bpp values into 4bpp values */
+                    edat = (edat & 0xAA55AA55) | ((edat << 7) & 0x55005500) | ((edat >> 7) & 0x00AA00AA);
+                    edat = (edat & 0xCCCC3333) | ((edat << 14) & 0x33330000) | ((edat >> 14) & 0x0000CCCC);
                 }
-                *(uint32_t *) (&edat[0]) = *(uint32_t *) (&tmpdat[0]);
-            }
-
-            if (shift2bit) {
-                // Remap CGA 2bpp-chunky data into fully planar data
-                uint8_t dat0 = egaremap2bpp[edat[1]] | (egaremap2bpp[edat[0]] << 4);
-                uint8_t dat1 = egaremap2bpp[edat[1] >> 1] | (egaremap2bpp[edat[0] >> 1] << 4);
-                uint8_t dat2 = egaremap2bpp[edat[3]] | (egaremap2bpp[edat[2]] << 4);
-                uint8_t dat3 = egaremap2bpp[edat[3] >> 1] | (egaremap2bpp[edat[2] >> 1] << 4);
-                edat[0]      = dat0;
-                edat[1]      = dat1;
-                edat[2]      = dat2;
-                edat[3]      = dat3;
             }
         } else {
             /*
                According to the 82C451 VGA clone chipset datasheet, all 4 planes chain in a ring.
                So, rotate them all around.
+               Planar version: edat = (edat >> 8) | (edat << 24);
+               Here's the chunky version...
              */
-            *(uint32_t *)&edat[0]
-                = ((*(uint32_t *)&edat[0]) >> 8)
-                | ((*(uint32_t *)&edat[0]) << 24);
+            edat = ((edat >> 1) & 0x77777777) | ((edat << 3) & 0x88888888);
         }
         load_counter += 1;
         if (load_counter >= loadevery)
@@ -593,50 +598,50 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
         if (incr_counter >= incevery) {
             incr_counter = 0;
             svga->ma += 4;
-            // DISCREPANCY TODO FIXME 2/4bpp used vram_mask, 8bpp used vram_display_mask --GM
+            /* DISCREPANCY TODO FIXME 2/4bpp used vram_mask, 8bpp used vram_display_mask --GM */
             svga->ma &= svga->vram_display_mask;
         }
 
+        uint32_t current_shift = shift_values;
+        uint32_t out_edat      = edat;
         /*
-           Now that we've converted it all to planar, convert it (back?) to chunky!
+           Apply blink
+           FIXME: Confirm blink behaviour on real hardware
+
+           The VGA 4bpp graphics blink logic was a pain to work out.
+
+           If plane 3 is enabled in the attribute controller, then:
+           - if bit 3 is 0, then we force the output of it to be 1.
+           - if bit 3 is 1, then the output blinks.
+           This can be tested with Lotus 1-2-3 release 2.3 with the WYSIWYG addon.
+
+           If plane 3 is disabled in the attribute controller, then the output blinks.
+           This can be tested with QBASIC SCREEN 10 - anything using color #2 should
+           blink and nothing else.
+
+           If you can simplify the following and have it still work, give yourself a medal.
          */
+        out_edat = ((out_edat & planemask & ~blinkmask) | ((out_edat | ~planemask) & blinkmask & blinkval)) ^ blinkmask;
+
         for (int i = 0; i < 8; i += 2) {
-            const int inshift = 6 - i;
-            uint8_t dat
-                = (edatlookup[(edat[0] >> inshift) & 3][(edat[1] >> inshift) & 3])
-                | (edatlookup[(edat[2] >> inshift) & 3][(edat[3] >> inshift) & 3] << 2);
-
-            /* FIXME: Confirm blink behaviour on real hardware
-
-               The VGA 4bpp graphics blink logic was a pain to work out.
-
-               If plane 3 is enabled in the attribute controller, then:
-               - if bit 3 is 0, then we force the output of it to be 1.
-               - if bit 3 is 1, then the output blinks.
-               This can be tested with Lotus 1-2-3 release 2.3 with the WYSIWYG addon.
-
-               If plane 3 is disabled in the attribute controller, then the output blinks.
-               This can be tested with QBASIC SCREEN 10 - anything using color #2 should
-               blink and nothing else.
-
-               If you can simplify the following and have it still work, give yourself a medal.
+            /*
+               c0 denotes the first 4bpp pixel shifted, while c1 denotes the second.
+               For 8bpp modes, the first 4bpp pixel is the upper 4 bits.
              */
-            uint32_t c0 = (dat >> 4) & 0xF;
-            uint32_t c1 = dat & 0xF;
-            c0 = ((c0 & svga->plane_mask & ~blinkmask) |
-                 ((c0 | ~svga->plane_mask) & blinkmask & blinkval)) ^ blinkmask;
-            c1 = ((c1 & svga->plane_mask & ~blinkmask) |
-                 ((c1 | ~svga->plane_mask) & blinkmask & blinkval)) ^ blinkmask;
+            uint32_t c0 = (out_edat >> (current_shift & 0x1C)) & 0xF;
+            current_shift >>= 3;
+            uint32_t c1 = (out_edat >> (current_shift & 0x1C)) & 0xF;
+            current_shift >>= 3;
 
             if (combine8bits) {
-                uint32_t ccombined = (c0 << 4) | c1;
-                uint32_t p0 = svga->map8[ccombined];
-                const int outoffs = (i >> 1) << dwshift;
+                uint32_t  ccombined = (c0 << 4) | c1;
+                uint32_t  p0        = svga->map8[ccombined];
+                const int outoffs   = (i >> 1) << dwshift;
                 for (int subx = 0; subx < dotwidth; subx++)
                     p[outoffs + subx] = p0;
             } else {
-                uint32_t p0 = svga->pallook[svga->egapal[c0]];
-                uint32_t p1 = svga->pallook[svga->egapal[c1]];
+                uint32_t  p0      = svga->pallook[svga->egapal[c0]];
+                uint32_t  p1      = svga->pallook[svga->egapal[c1]];
                 const int outoffs = i << dwshift;
                 for (int subx = 0; subx < dotwidth; subx++)
                     p[outoffs + subx] = p0;
