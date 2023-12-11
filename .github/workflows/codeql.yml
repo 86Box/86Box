@@ -226,11 +226,11 @@ jobs:
         with:
           category: "/language:${{matrix.language}}"
 
-  analyze-macos11:
+  analyze-macos12:
 
-    name: "Analyze macOS 11 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
+    name: "Analyze macOS 12 (${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64)"
 
-    runs-on: macos-11
+    runs-on: macos-12
 
     permissions:
       actions: read
