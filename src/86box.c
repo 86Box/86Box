@@ -111,7 +111,7 @@
 
 /* Stuff that used to be globally declared in plat.h but is now extern there
    and declared here instead. */
-int          dopause;  /* system is paused */
+int          dopause = 1;  /* system is paused */
 atomic_flag  doresize; /* screen resize requested */
 volatile int is_quit;  /* system exit requested */
 uint64_t     timer_freq;
@@ -236,8 +236,8 @@ int efscrnsz_y = SCREEN_RES_Y;
 
 static wchar_t mouse_msg[3][200];
 
-static volatile int do_pause_ack = 0;
-static volatile int pause_ack = 0;
+static volatile atomic_int do_pause_ack = 0;
+static volatile atomic_int pause_ack = 0;
 
 #ifndef RELEASE_BUILD
 static char buff[1024];
@@ -1359,9 +1359,9 @@ _ui_window_title(void *s)
 void
 ack_pause(void)
 {
-    if (do_pause_ack) {
-        do_pause_ack = 0;
-        pause_ack = 1;
+    if (atomic_load(&do_pause_ack)) {
+        atomic_store(&do_pause_ack, 0);
+        atomic_store(&pause_ack, 1);
     }
 }
 
@@ -1579,12 +1579,14 @@ get_actual_size_y(void)
 void
 do_pause(int p)
 {
-    if (p)
+    int old_p = dopause;
+
+    if (p && !old_p)
         do_pause_ack = p;
     dopause = p;
-    if (p) {
-        while (!pause_ack)
+    if (p && !old_p) {
+        while (!atomic_load(&pause_ack))
             ;
     }
-    pause_ack = 0;
+    atomic_store(&pause_ack, 0);
 }

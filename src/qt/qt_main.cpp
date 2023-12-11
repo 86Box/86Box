@@ -293,8 +293,6 @@ main(int argc, char *argv[])
 
     // pc_reset_hard_init();
 
-    /* Set the PAUSE mode depending on the renderer. */
-    // plat_pause(0);
     QTimer onesec;
     QObject::connect(&onesec, &QTimer::timeout, &app, [] {
         pc_onesec();
@@ -323,6 +321,14 @@ main(int argc, char *argv[])
     QTimer::singleShot(0, &app, [] {
         pc_reset_hard_init();
         main_thread = new std::thread(main_thread_fn);
+
+        /* Set the PAUSE mode depending on the renderer. */
+#ifdef USE_VNC
+        if (vnc_enabled && vid_api != 6)
+            plat_pause(1);
+        else
+#endif
+            plat_pause(0);
     });
 
     auto ret       = app.exec();
