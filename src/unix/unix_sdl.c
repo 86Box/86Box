@@ -270,6 +270,11 @@ sdl_close(void)
     sdl_destroy_texture();
     sdl_destroy_window();
 
+    if (pixeldata != NULL) {
+        free(pixeldata);
+        pixeldata = NULL;
+    }
+
     /* Quit. */
     SDL_Quit();
     sdl_flags = -1;
@@ -429,6 +434,8 @@ sdl_init_common(int flags)
 
     /* Make sure we get a clean exit. */
     atexit(sdl_close);
+
+    pixeldata = malloc(2048 * 2048 * 4);
 
     /* Register our renderer! */
     video_setblit(sdl_blit_shim);

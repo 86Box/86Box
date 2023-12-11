@@ -16,34 +16,27 @@
 
 /* Ported over from QEMU */
 
-#include <stdint.h>
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <wchar.h>
 #include <time.h>
-
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
+#include <86box/vid_ati_eeprom.h>
 #include <86box/net_eeprom_nmc93cxx.h>
 #include <86box/plat_unused.h>
 
 struct nmc93cxx_eeprom_t {
-    uint8_t tick;
-    uint8_t address;
-    uint8_t command;
-    uint8_t writable;
-
-    uint8_t eecs;
-    uint8_t eesk;
-    uint8_t eedo;
-
+    ati_eeprom_t dev;
     uint8_t  addrbits;
     uint16_t size;
-    uint16_t data;
     char     filename[1024];
-    uint16_t contents[];
 };
 
 typedef struct nmc93cxx_eeprom_t nmc93cxx_eeprom_t;
@@ -99,19 +92,19 @@ nmc93cxx_eeprom_init_params(UNUSED(const device_t *info), void *params)
     eeprom->size     = nwords;
     eeprom->addrbits = addrbits;
     /* Output DO is tristate, read results in 1. */
-    eeprom->eedo = 1;
+    eeprom->dev.out = 1;
 
     if (params_details->filename) {
         FILE *fp = nvr_fopen(params_details->filename, "rb");
         strncpy(eeprom->filename, params_details->filename, sizeof(eeprom->filename) - 1);
         if (fp) {
-            filldefault = !fread(eeprom->contents, sizeof(uint16_t), nwords, fp);
+            filldefault = !fread(eeprom->dev.data, sizeof(uint16_t), nwords, fp);
             fclose(fp);
         }
     }
 
     if (filldefault) {
-        memcpy(eeprom->contents, params_details->default_content, nwords * sizeof(uint16_t));
+        memcpy(eeprom->dev.data, params_details->default_content, nwords * sizeof(uint16_t));
     }
 
     return eeprom;
@@ -120,47 +113,47 @@ nmc93cxx_eeprom_init_params(UNUSED(const device_t *info), void *params)
 void
 nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *eeprom, int eecs, int eesk, int eedi)
 {
-    uint8_t  tick    = eeprom->tick;
-    uint8_t  eedo    = eeprom->eedo;
-    uint16_t address = eeprom->address;
-    uint8_t  command = eeprom->command;
+    uint8_t  tick    = eeprom->dev.count;
+    uint8_t  eedo    = eeprom->dev.out;
+    uint16_t address = eeprom->dev.address;
+    uint8_t  command = eeprom->dev.opcode;
 
     nmc93cxx_eeprom_log(1, "CS=%u SK=%u DI=%u DO=%u, tick = %u\n",
                         eecs, eesk, eedi, eedo, tick);
 
-    if (!eeprom->eecs && eecs) {
+    if (!eeprom->dev.oldena && eecs) {
         /* Start chip select cycle. */
         nmc93cxx_eeprom_log(1, "Cycle start, waiting for 1st start bit (0)\n");
         tick    = 0;
         command = 0x0;
         address = 0x0;
-    } else if (eeprom->eecs && !eecs) {
+    } else if (eeprom->dev.oldena && !eecs) {
         /* End chip select cycle. This triggers write / erase. */
-        if (eeprom->writable) {
+        if (!eeprom->dev.wp) {
             uint8_t subcommand = address >> (eeprom->addrbits - 2);
             if (command == 0 && subcommand == 2) {
                 /* Erase all. */
                 for (address = 0; address < eeprom->size; address++) {
-                    eeprom->contents[address] = 0xffff;
+                    eeprom->dev.data[address] = 0xffff;
                 }
             } else if (command == 3) {
                 /* Erase word. */
-                eeprom->contents[address] = 0xffff;
+                eeprom->dev.data[address] = 0xffff;
             } else if (tick >= 2 + 2 + eeprom->addrbits + 16) {
                 if (command == 1) {
                     /* Write word. */
-                    eeprom->contents[address] &= eeprom->data;
+                    eeprom->dev.data[address] &= eeprom->dev.dat;
                 } else if (command == 0 && subcommand == 1) {
                     /* Write all. */
                     for (address = 0; address < eeprom->size; address++) {
-                        eeprom->contents[address] &= eeprom->data;
+                        eeprom->dev.data[address] &= eeprom->dev.dat;
                     }
                 }
             }
         }
         /* Output DO is tristate, read results in 1. */
         eedo = 1;
-    } else if (eecs && !eeprom->eesk && eesk) {
+    } else if (eecs && !eeprom->dev.oldclk && eesk) {
         /* Raising edge of clock shifts data in. */
         if (tick == 0) {
             /* Wait for 1st start bit. */
@@ -194,8 +187,8 @@ nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *eeprom, int eecs, int eesk, int eedi)
             tick++;
             address = ((address << 1) | eedi);
             if (tick == 2 + 2 + eeprom->addrbits) {
-                nmc93cxx_eeprom_log(1, "%s command, address = 0x%02x (value 0x%04x)\n",
-                                    opstring[command], address, eeprom->contents[address]);
+                nmc93cxx_eeprom_log(1, "Address = 0x%02x (value 0x%04x)\n",
+                                    address, eeprom->dev.data[address]);
                 if (command == 2) {
                     eedo = 0;
                 }
@@ -205,7 +198,7 @@ nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *eeprom, int eecs, int eesk, int eedi)
                     switch (address >> (eeprom->addrbits - 2)) {
                         case 0:
                             nmc93cxx_eeprom_log(1, "write disable command\n");
-                            eeprom->writable = 0;
+                            eeprom->dev.wp = 1;
                             break;
                         case 1:
                             nmc93cxx_eeprom_log(1, "write all command\n");
@@ -215,7 +208,7 @@ nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *eeprom, int eecs, int eesk, int eedi)
                             break;
                         case 3:
                             nmc93cxx_eeprom_log(1, "write enable command\n");
-                            eeprom->writable = 1;
+                            eeprom->dev.wp = 0;
                             break;
 
                         default:
@@ -223,7 +216,7 @@ nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *eeprom, int eecs, int eesk, int eedi)
                     }
                 } else {
                     /* Read, write or erase word. */
-                    eeprom->data = eeprom->contents[address];
+                    eeprom->dev.dat = eeprom->dev.data[address];
                 }
             }
         } else if (tick < 2 + 2 + eeprom->addrbits + 16) {
@@ -231,28 +224,28 @@ nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *eeprom, int eecs, int eesk, int eedi)
             tick++;
             if (command == 2) {
                 /* Read word. */
-                eedo = ((eeprom->data & 0x8000) != 0);
+                eedo = ((eeprom->dev.dat & 0x8000) != 0);
             }
-            eeprom->data <<= 1;
-            eeprom->data += eedi;
+            eeprom->dev.dat <<= 1;
+            eeprom->dev.dat += eedi;
         } else {
             nmc93cxx_eeprom_log(1, "additional unneeded tick, not processed\n");
         }
     }
     /* Save status of EEPROM. */
-    eeprom->tick    = tick;
-    eeprom->eecs    = eecs;
-    eeprom->eesk    = eesk;
-    eeprom->eedo    = eedo;
-    eeprom->address = address;
-    eeprom->command = command;
+    eeprom->dev.count    = tick;
+    eeprom->dev.oldena   = eecs;
+    eeprom->dev.oldclk   = eesk;
+    eeprom->dev.out      = eedo;
+    eeprom->dev.address  = address;
+    eeprom->dev.opcode   = command;
 }
 
 uint16_t
 nmc93cxx_eeprom_read(nmc93cxx_eeprom_t *eeprom)
 {
     /* Return status of pin DO (0 or 1). */
-    return eeprom->eedo;
+    return eeprom->dev.out;
 }
 
 static void
@@ -261,7 +254,7 @@ nmc93cxx_eeprom_close(void *priv)
     nmc93cxx_eeprom_t *eeprom = (nmc93cxx_eeprom_t *) priv;
     FILE              *fp     = nvr_fopen(eeprom->filename, "wb");
     if (fp) {
-        fwrite(eeprom->contents, 2, eeprom->size, fp);
+        fwrite(eeprom->dev.data, 2, eeprom->size, fp);
         fclose(fp);
     }
     free(priv);
@@ -271,7 +264,7 @@ uint16_t *
 nmc93cxx_eeprom_data(nmc93cxx_eeprom_t *eeprom)
 {
     /* Get EEPROM data array. */
-    return &eeprom->contents[0];
+    return &eeprom->dev.data[0];
 }
 
 const device_t nmc93cxx_device = {

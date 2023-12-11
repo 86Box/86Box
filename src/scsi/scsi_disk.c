@@ -709,7 +709,7 @@ static int
 scsi_disk_blocks(scsi_disk_t *dev, int32_t *len, UNUSED(int first_batch), int out)
 {
     *len = 0;
-    uint32_t medium_size = hdd_image_get_last_sector(dev->id);
+    uint32_t medium_size = hdd_image_get_last_sector(dev->id) + 1;
 
     if (!dev->sector_len) {
         scsi_disk_command_complete(dev);

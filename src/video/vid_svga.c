@@ -219,7 +219,7 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                 dev->on[1] = dev->on[0];
             }
 
-            svga_log("3C3: XGA ON = %d.\n", xga->on);
+            svga_log("3C3: VGA ON = %d.\n", val & 0x01);
             vga_on = val & 0x01;
             break;
         case 0x3c4:
@@ -611,7 +611,7 @@ svga_recalctimings(svga_t *svga)
 
     svga->clock = (svga->vidclock) ? VGACONST2 : VGACONST1;
 
-    svga->lowres = svga->attrregs[0x10] & 0x40;
+    svga->lowres = !!(svga->attrregs[0x10] & 0x40);
 
     svga->interlace = 0;
 
@@ -639,67 +639,82 @@ svga_recalctimings(svga_t *svga)
             svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
             svga->hdisp_old = svga->hdisp;
 
-            switch (svga->gdcreg[5] & 0x60) {
-                case 0x00:
+            if (svga->bpp <= 8) {
+                if (svga->attrregs[0x10] & 0x40) { /*8bpp mode*/
+                    svga->map8 = svga->pallook;
+                    if (svga->lowres) /*Low res (320)*/
+                        svga->render = svga_render_8bpp_lowres;
+                    else
+                        svga->render = svga_render_8bpp_highres;
+                } else {
                     if (svga->seqregs[1] & 8) /*Low res (320)*/
                         svga->render = svga_render_4bpp_lowres;
                     else
                         svga->render = svga_render_4bpp_highres;
-                    break;
-                case 0x20:                    /*4 colours*/
-                    if (svga->seqregs[1] & 8) /*Low res (320)*/
-                        svga->render = svga_render_2bpp_lowres;
-                    else
-                        svga->render = svga_render_2bpp_highres;
-                    break;
-                case 0x40:
-                case 0x60: /*256+ colours*/
-                    switch (svga->bpp) {
-                        case 8:
-                            svga->map8 = svga->pallook;
-                            if (svga->lowres)
-                                svga->render = svga_render_8bpp_lowres;
-                            else
-                                svga->render = svga_render_8bpp_highres;
-                            break;
-                        case 15:
-                            if (svga->lowres)
-                                svga->render = svga_render_15bpp_lowres;
-                            else
-                                svga->render = svga_render_15bpp_highres;
-                            break;
-                        case 16:
-                            if (svga->lowres)
-                                svga->render = svga_render_16bpp_lowres;
-                            else
-                                svga->render = svga_render_16bpp_highres;
-                            break;
-                        case 17:
-                            if (svga->lowres)
-                                svga->render = svga_render_15bpp_mix_lowres;
-                            else
-                                svga->render = svga_render_15bpp_mix_highres;
-                            break;
-                        case 24:
-                            if (svga->lowres)
-                                svga->render = svga_render_24bpp_lowres;
-                            else
-                                svga->render = svga_render_24bpp_highres;
-                            break;
-                        case 32:
-                            if (svga->lowres)
-                                svga->render = svga_render_32bpp_lowres;
-                            else
-                                svga->render = svga_render_32bpp_highres;
-                            break;
+                }
+            } else {
+                switch (svga->gdcreg[5] & 0x60) {
+                    case 0x00:
+                        if (svga->seqregs[1] & 8) /*Low res (320)*/
+                            svga->render = svga_render_4bpp_lowres;
+                        else
+                            svga->render = svga_render_4bpp_highres;
+                        break;
+                    case 0x20:                    /*4 colours*/
+                        if (svga->seqregs[1] & 8) /*Low res (320)*/
+                            svga->render = svga_render_2bpp_lowres;
+                        else
+                            svga->render = svga_render_2bpp_highres;
+                        break;
+                    case 0x40:
+                    case 0x60: /*256+ colours*/
+                        switch (svga->bpp) {
+                            case 8:
+                                svga->map8 = svga->pallook;
+                                if (svga->lowres)
+                                    svga->render = svga_render_8bpp_lowres;
+                                else
+                                    svga->render = svga_render_8bpp_highres;
+                                break;
+                            case 15:
+                                if (svga->lowres)
+                                    svga->render = svga_render_15bpp_lowres;
+                                else
+                                    svga->render = svga_render_15bpp_highres;
+                                break;
+                            case 16:
+                                if (svga->lowres)
+                                    svga->render = svga_render_16bpp_lowres;
+                                else
+                                    svga->render = svga_render_16bpp_highres;
+                                break;
+                            case 17:
+                                if (svga->lowres)
+                                    svga->render = svga_render_15bpp_mix_lowres;
+                                else
+                                    svga->render = svga_render_15bpp_mix_highres;
+                                break;
+                            case 24:
+                                if (svga->lowres)
+                                    svga->render = svga_render_24bpp_lowres;
+                                else
+                                    svga->render = svga_render_24bpp_highres;
+                                break;
+                            case 32:
+                                if (svga->lowres)
+                                    svga->render = svga_render_32bpp_lowres;
+                                else
+                                    svga->render = svga_render_32bpp_highres;
+                                break;
 
-                        default:
-                            break;
-                    }
-                    break;
+                            default:
+                                break;
+                        }
+                        break;
 
-                default:
-                    break;
+                    default:
+                        break;
+                }
             }
         }
     }
@@ -727,7 +742,7 @@ svga_recalctimings(svga_t *svga)
     }
 
     if (ibm8514_active && (svga->dev8514 != NULL)) {
-        if (!dev->local)
+        if ((dev->local & 0xff) == 0x00)
             ibm8514_recalctimings(svga);
     }
 
@@ -1001,7 +1016,7 @@ svga_poll(void *priv)
             else
                 svga->cursoron = svga->blink & (16 + (16 * blink_delay));
 
-            if (!(svga->gdcreg[6] & 1) && !(svga->blink & 15))
+            if (!(svga->blink & 15))
                 svga->fullchange = 2;
 
             svga->blink = (svga->blink + 1) & 0x7f;

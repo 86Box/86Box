@@ -137,7 +137,7 @@ typedef struct ibm8514_t {
     } accel;
 
     uint16_t test;
-    int      ibm_mode;
+    int      vendor_mode[2];
 
     int      v_total;
     int      dispend;

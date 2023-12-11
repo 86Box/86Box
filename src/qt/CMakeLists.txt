@@ -371,6 +371,8 @@ if (APPLE AND CMAKE_MACOSX_BUNDLE)
 endif()
 
 if (UNIX AND NOT APPLE AND NOT HAIKU)
+    target_sources(ui PRIVATE x11_util.c)
+
     find_package(X11 REQUIRED)
     target_link_libraries(ui PRIVATE X11::X11 X11::Xi)
     target_sources(ui PRIVATE evdev_keyboard.cpp xinput2_mouse.cpp)

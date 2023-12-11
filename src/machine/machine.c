@@ -168,7 +168,7 @@ pit_irq0_timer(int new_out, int old_out)
 void
 machine_common_init(UNUSED(const machine_t *model))
 {
-    uint8_t cpu_requires_fast_pit = is486 || (is8086 && (cpu_s->rspeed >= 8000000));
+    uint8_t cpu_requires_fast_pit = is486 || (!is286 && is8086 && (cpu_s->rspeed >= 8000000));
 
     /* System devices first. */
     pic_init();

@@ -211,6 +211,7 @@ enum {
     Agp_agpGraphicsStride  = 0x10,
 };
 
+#define VGAINIT0_RAMDAC_8BIT                (1 << 2)
 #define VGAINIT0_EXTENDED_SHIFT_OUT         (1 << 12)
 
 #define VIDPROCCFG_VIDPROC_ENABLE           (1 << 0)
@@ -765,6 +766,7 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
             break;
         case Init_vgaInit0:
             banshee->vgaInit0 = val;
+            svga_set_ramdac_type(svga, (val & VGAINIT0_RAMDAC_8BIT ? RAMDAC_8BIT : RAMDAC_6BIT));
             break;
         case Init_vgaInit1:
             banshee->vgaInit1   = val;
