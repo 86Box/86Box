@@ -1533,6 +1533,7 @@ static void
 set_switches(hdc_t *dev, hd_type_t *hdt, int num)
 {
     const drive_t *drive;
+    int            c;
     int            e;
 
     dev->switches = 0x00;
@@ -1546,7 +1547,7 @@ set_switches(hdc_t *dev, hd_type_t *hdt, int num)
             continue;
         }
 
-        for (int c = 0; c < num; c++) {
+        for (c = 0; c < num; c++) {
             /* Does the Xebec also support more than 4 types? */
             if ((drive->spt == hdt[c].spt) && (drive->hpc == hdt[c].hpc) && (drive->tracks == hdt[c].tracks)) {
                 /* Olivetti M24/M240: Move the upper 2 bites up by 2 bits, as the
