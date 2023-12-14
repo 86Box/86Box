@@ -5213,7 +5213,6 @@ mach32_hwcursor_draw(svga_t *svga, int displine)
             color0 = ((mach->ext_cur_col_0_r << 16) | (mach->ext_cur_col_0_g << 8) | mach->cursor_col_0);
             color1 = ((mach->ext_cur_col_1_r << 16) | (mach->ext_cur_col_1_g << 8) | mach->cursor_col_1);
             break;
-            break;
     }
 
     if (dev->interlace && dev->hwcursor_oddeven)
