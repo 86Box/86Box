@@ -1389,7 +1389,13 @@ ide_write_devctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
         } else {
             /* Currently active device is 1, simply reset the status and the active device. */
             dev_reset(ide);
-            ide->tf->atastat = DRDY_STAT | DSC_STAT;
+            if (ide->type == IDE_ATAPI) {
+                /* Non-early ATAPI devices have DRDY clear after SRST. */
+                ide->tf->atastat = 0;
+                if (IDE_ATAPI_IS_EARLY)
+                    ide->tf->atastat |= DRDY_STAT;
+            } else
+                ide->tf->atastat = DRDY_STAT | DSC_STAT;
             ide->tf->error   = 1;
             dev->cur_dev &= ~1;
             ch = dev->cur_dev;
@@ -1788,7 +1794,7 @@ ide_read_data(ide_t *ide, int length)
     double xfer_us;
 
 #if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 2)
-    ide_log("ide_read_data(): ch = %i, board = %i, type = %i\n", ch,
+    ide_log("ide_read_data(): ch = %i, board = %i, type = %i\n", ide->channel,
             ide->board, ide->type);
 #endif
 
@@ -1868,7 +1874,8 @@ ide_status(ide_t *ide, ide_t *ide_other, int ch)
         /* On real hardware, a slave with a present master always
            returns a status of 0x00.
            Confirmed by the ATA-3 and ATA-4 specifications. */
-        ret = 0x00;
+        // ret = 0x00;
+        ret = 0x01;
     } else {
         ret = ide->tf->atastat;
         if (ide->type == IDE_ATAPI)
@@ -1948,8 +1955,8 @@ ide_readb(uint16_t addr, void *priv)
             else
                 ret = ide->tf->cylinder >> 8;
 #if defined(ENABLE_IDE_LOG) && (ENABLE_IDE_LOG == 2)
-            pclog("Cylinder high @ board %i, channel %i: ide->type = %i, "
-                  "ret = %02X\n", ide->board, ide->channel, ide->type, ret);
+            ide_log("Cylinder high @ board %i, channel %i: ide->type = %i, "
+                    "ret = %02X\n", ide->board, ide->channel, ide->type, ret);
 #endif
             break;
 
@@ -2070,7 +2077,11 @@ ide_board_callback(void *priv)
 
     ide_log("ide_board_callback(%i)\n", dev->cur_dev >> 1);
 
-    for (uint8_t i = 0; i < 2; i++) {
+    dev->cur_dev &= ~1;
+
+    /* Reset the devices in reverse so if there's a slave without a master,
+       its copy of the master's task file gets reset first. */
+    for (int8_t i = 1; i >= 0; i--) {
         ide = dev->ide[i];
         if (ide->type == IDE_ATAPI) {
             ide->tf->atastat = 0;
@@ -2079,8 +2090,6 @@ ide_board_callback(void *priv)
         } else
             ide->tf->atastat = DRDY_STAT | DSC_STAT;
     }
-
-    dev->cur_dev &= ~1;
 
     ide = dev->ide[0];
     if (dev->diag) {
@@ -2287,6 +2296,9 @@ ide_callback(void *priv)
 
         case WIN_WRITE:
         case WIN_WRITE_NORETRY:
+#ifdef ENABLE_IDE_LOG
+            off64_t s = ide_get_sector(ide);
+#endif
             if (ide->type == IDE_ATAPI)
                 err = ABRT_ERR;
             else if (!ide->tf->lba && (ide->cfg_spt == 0))
@@ -2305,6 +2317,7 @@ ide_callback(void *priv)
                     ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
                 }
             }
+            ide_log("Write: %02X, %i, %08X, %" PRIi64 "\n", err, ide->hdd_num, ide->lba_addr, s);
             break;
 
         case WIN_WRITE_DMA:
