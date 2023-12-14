@@ -87,6 +87,7 @@ typedef struct mach_t {
     uint16_t cursor_col_1_rg;
     uint16_t cursor_col_b;
     uint16_t cursor_offset_lo;
+    uint16_t cursor_offset_lo_reg;
     uint16_t cursor_offset_hi;
     uint16_t cursor_offset_hi_reg;
     uint16_t cursor_vh_offset;
@@ -2583,13 +2584,10 @@ mach_recalctimings(svga_t *svga)
         svga->htotal <<= 1;
         svga->rowoffset <<= 1;
         svga->gdcreg[5] &= ~0x40;
-        svga->attrregs[0x10] &= ~0x40;
     }
 
-    if (mach->regs[0xb0] & 0x20) {
+    if (mach->regs[0xb0] & 0x20)
         svga->gdcreg[5] |= 0x40;
-        svga->attrregs[0x10] |= 0x40;
-    }
 
     mach_log("ON[0]=%d, ON[1]=%d, exton[0]=%d, exton[1]=%d, vendormode0=%d, vendormode1=%d.\n", dev->on[0], dev->on[1], mach->ext_on[0], mach->ext_on[1], dev->vendor_mode[0], dev->vendor_mode[1]);
     if (dev->on[0] || dev->on[1]) {
@@ -2671,16 +2669,18 @@ mach_recalctimings(svga_t *svga)
                         svga->render8514 = ibm8514_render_16bpp;
                         break;
                     case 24:
+                        mach_log("GEConfig24bpp: %03x.\n", mach->accel.ext_ge_config & 0x600);
                         if (mach->accel.ext_ge_config & 0x400)
                             svga->render8514 = ibm8514_render_BGR;
                         else
                             svga->render8514 = ibm8514_render_24bpp;
                         break;
                     case 32:
+                        mach_log("GEConfig32bpp: %03x.\n", mach->accel.ext_ge_config & 0x600);
                         if (mach->accel.ext_ge_config & 0x400)
                             svga->render8514 = ibm8514_render_ABGR8888;
                         else
-                            svga->render8514 = ibm8514_render_RGBA8888;
+                            svga->render8514 = ibm8514_render_32bpp;
                         break;
 
                     default:
@@ -2760,58 +2760,39 @@ mach_recalctimings(svga_t *svga)
             svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel, svga->clock_gen);
             if (mach->regs[0xa7] & 0x80)
                 svga->clock *= 3;
-            if (svga->bpp <= 8) {
-                if (svga->attrregs[0x10] & 0x40) { /*8bpp mode*/
-                    svga->map8 = svga->pallook;
-                    if (svga->lowres) /*Low res (320)*/
-                        svga->render = svga_render_8bpp_lowres;
-                    else {
-                        svga->render = svga_render_8bpp_highres;
-                        svga->ma_latch <<= 1;
-                        svga->rowoffset <<= 1;
-                    }
-                } else {
-                    mach_log("4bpp.\n");
+            switch (svga->gdcreg[5] & 0x60) {
+                case 0x00:
                     if (svga->seqregs[1] & 8) /*Low res (320)*/
                         svga->render = svga_render_4bpp_lowres;
                     else
                         svga->render = svga_render_4bpp_highres;
-                }
-            } else {
-                switch (svga->gdcreg[5] & 0x60) {
-                    case 0x00:
-                        if (svga->seqregs[1] & 8) /*Low res (320)*/
-                            svga->render = svga_render_4bpp_lowres;
-                        else
-                            svga->render = svga_render_4bpp_highres;
-                        break;
-                    case 0x20:                    /*4 colours*/
-                        if (svga->seqregs[1] & 8) /*Low res (320)*/
-                            svga->render = svga_render_2bpp_lowres;
-                        else
-                            svga->render = svga_render_2bpp_highres;
-                        break;
-                    case 0x40:
-                    case 0x60: /*256+ colours*/
-                        switch (svga->bpp) {
-                            default:
-                            case 8:
-                                svga->map8 = svga->pallook;
-                                if (svga->lowres)
-                                    svga->render = svga_render_8bpp_lowres;
-                                else {
-                                    svga->render = svga_render_8bpp_highres;
-                                    svga->ma_latch <<= 1;
-                                    svga->rowoffset <<= 1;
-                                }
-                                break;
+                    break;
+                case 0x20:                    /*4 colours*/
+                    if (svga->seqregs[1] & 8) /*Low res (320)*/
+                        svga->render = svga_render_2bpp_lowres;
+                    else
+                        svga->render = svga_render_2bpp_highres;
+                    break;
+                case 0x40:
+                case 0x60: /*256+ colours*/
+                    switch (svga->bpp) {
+                        default:
+                        case 8:
+                            svga->map8 = svga->pallook;
+                            mach_log("Lowres=%x, seqreg[1]bit3=%x.\n", svga->lowres, svga->seqregs[1] & 8);
+                            if (svga->lowres)
+                                svga->render = svga_render_8bpp_lowres;
+                            else {
+                                svga->render = svga_render_8bpp_highres;
+                                svga->ma_latch <<= 1;
+                                svga->rowoffset <<= 1;
+                            }
+                            break;
+                    }
+                    break;
 
-                        }
-                        break;
-
-                    default:
-                        break;
-                }
+                default:
+                    break;
             }
         }
     }
@@ -3736,7 +3717,8 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
 
         case 0xaee:
         case 0xaef:
-            WRITE8(port, mach->cursor_offset_lo, val);
+            WRITE8(port, mach->cursor_offset_lo_reg, val);
+            mach->cursor_offset_lo = mach->cursor_offset_lo_reg;
             break;
 
         case 0xeee:
@@ -3938,7 +3920,7 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
                 dev->vendor_mode[port & 1] = 1;
                 mach32_updatemapping(mach);
             }
-            mach_log("ATI 8514/A: (0x%04x) val = %04x.\n", port, val);
+            mach_log("ATI 8514/A: (0x%04x) val = %02x.\n", port, val);
             svga_recalctimings(svga);
             break;
 
@@ -3947,7 +3929,6 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
             WRITE8(port, mach->accel.eeprom_control, val);
             ati_eeprom_write(&mach->eeprom, mach->accel.eeprom_control & 4, mach->accel.eeprom_control & 2, mach->accel.eeprom_control & 1);
             mach_log("ATI 8514/A: (0x%04x) val = %04x.\n", port, val);
-            svga_recalctimings(svga);
             break;
 
         default:
@@ -4416,10 +4397,6 @@ mach_accel_in(uint16_t port, mach_t *mach)
             }
             break;
 
-        case 0x4ae8:
-            temp = dev->accel.advfunc_cntl;
-            break;
-
             /*ATI Mach8/32 specific registers*/
         case 0x12ee:
         case 0x12ef:
@@ -4511,6 +4488,7 @@ mach_accel_in(uint16_t port, mach_t *mach)
         case 0x62ef:
             if (mach->force_busy)
                 temp |= 0x20;
+
             mach->force_busy = 0;
             if (ati_eeprom_read(&mach->eeprom))
                 temp |= 0x40;
@@ -4701,6 +4679,7 @@ mach32_write_common(uint32_t addr, uint8_t val, int linear, mach_t *mach)
     if (!(svga->gdcreg[6] & 1))
         svga->fullchange = 2;
 
+    mach_log("WriteCommon chain4 = %x.\n", svga->chain4);
     if (((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) && (svga->writemode < 4)) {
         writemask2 = 1 << (addr & 3);
         addr &= ~3;
@@ -4865,6 +4844,7 @@ mach32_read_common(uint32_t addr, int linear, mach_t *mach)
     latch_addr = (addr << count) & svga->decode_mask;
     count      = (1 << count);
 
+    mach_log("ReadCommon chain4 = %x.\n", svga->chain4);
     if ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) {
         addr &= svga->decode_mask;
         if (addr >= dev->vram_size)
@@ -5209,7 +5189,11 @@ mach32_hwcursor_draw(svga_t *svga, int displine)
     int           offset = dev->hwcursor_latch.x - dev->hwcursor_latch.xoff;
     uint32_t      color0;
     uint32_t      color1;
+    uint32_t      *p;
+    int           x_pos;
+    int           y_pos;
 
+    mach_log("BPP=%d.\n", dev->accel_bpp);
     switch (dev->accel_bpp) {
         case 8:
             color0 = dev->pallook[mach->cursor_col_0];
@@ -5225,9 +5209,10 @@ mach32_hwcursor_draw(svga_t *svga, int displine)
             break;
         case 24:
         case 32:
-        default:
             color0 = ((mach->ext_cur_col_0_r << 16) | (mach->ext_cur_col_0_g << 8) | mach->cursor_col_0);
             color1 = ((mach->ext_cur_col_1_r << 16) | (mach->ext_cur_col_1_g << 8) | mach->cursor_col_1);
+            break;
+        default:
             break;
     }
 
@@ -5238,16 +5223,22 @@ mach32_hwcursor_draw(svga_t *svga, int displine)
         dat = dev->vram[dev->hwcursor_latch.addr & dev->vram_mask] | (dev->vram[(dev->hwcursor_latch.addr + 1) & dev->vram_mask] << 8);
         for (int xx = 0; xx < 8; xx++) {
             comb = (dat >> (xx << 1)) & 0x03;
+
+            y_pos = displine;
+            x_pos = offset + svga->x_add;
+            p     = buffer32->line[y_pos];
+
             if (offset >= dev->hwcursor_latch.x) {
+                mach_log("COMB=%d.\n", comb);
                 switch (comb) {
                     case 0:
-                        (svga->monitor->target_buffer->line[displine])[offset + svga->x_add] = color0;
+                        p[x_pos] = color0;
                         break;
                     case 1:
-                        (svga->monitor->target_buffer->line[displine])[offset + svga->x_add] = color1;
+                        p[x_pos] = color1;
                         break;
                     case 3:
-                        (svga->monitor->target_buffer->line[displine])[offset + svga->x_add] ^= 0xffffff;
+                        p[x_pos] ^= 0xffffff;
                         break;
 
                     default:
