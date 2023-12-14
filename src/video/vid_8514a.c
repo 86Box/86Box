@@ -4036,7 +4036,7 @@ ibm8514_render_ABGR8888(svga_t *svga)
 }
 
 void
-ibm8514_render_RGBA8888(svga_t *svga)
+ibm8514_render_32bpp(svga_t *svga)
 {
     ibm8514_t *dev = (ibm8514_t *) svga->dev8514;
     int        x;
@@ -4046,7 +4046,7 @@ ibm8514_render_RGBA8888(svga_t *svga)
     if ((dev->displine + svga->y_add) < 0)
         return;
 
-    if (dev->changedvram[dev->ma >> 12] || dev->changedvram[(dev->ma >> 12) + 1] || svga->fullchange) {
+    if (dev->changedvram[dev->ma >> 12] || dev->changedvram[(dev->ma >> 12) + 1] || dev->changedvram[(dev->ma >> 12) + 2] || svga->fullchange) {
         p = &buffer32->line[dev->displine + svga->y_add][svga->x_add];
 
         if (dev->firstline_draw == 2000)
@@ -4055,7 +4055,7 @@ ibm8514_render_RGBA8888(svga_t *svga)
 
         for (x = 0; x <= dev->h_disp; x++) {
             dat  = *(uint32_t *) (&dev->vram[(dev->ma + (x << 2)) & dev->vram_mask]);
-            *p++ = dat >> 8;
+            p[x] = dat & 0xffffff;
         }
         dev->ma += (x * 4);
         dev->ma &= dev->vram_mask;
