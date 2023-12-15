@@ -1,4 +1,4 @@
-name: CodeQL Analasis (Windows, msys2)
+name: CodeQL Analysis (Windows, msys2)
 
 on:
 
