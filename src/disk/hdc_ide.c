@@ -2297,7 +2297,7 @@ ide_callback(void *priv)
         case WIN_WRITE:
         case WIN_WRITE_NORETRY:
 #ifdef ENABLE_IDE_LOG
-            off64_t s = ide_get_sector(ide);
+            off64_t sector = ide_get_sector(ide);
 #endif
             if (ide->type == IDE_ATAPI)
                 err = ABRT_ERR;
@@ -2317,7 +2317,7 @@ ide_callback(void *priv)
                     ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
                 }
             }
-            ide_log("Write: %02X, %i, %08X, %" PRIi64 "\n", err, ide->hdd_num, ide->lba_addr, s);
+            ide_log("Write: %02X, %i, %08X, %" PRIi64 "\n", err, ide->hdd_num, ide->lba_addr, sector);
             break;
 
         case WIN_WRITE_DMA:
