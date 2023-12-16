@@ -55,6 +55,11 @@ typedef struct tvp3026_ramdac_t {
         uint8_t n;
         uint8_t p;
     } pix, mem, loop;
+    uint8_t   gpio_cntl;
+    uint8_t   gpio_data;
+    uint8_t (*gpio_read)(uint8_t cntl, void *priv);
+    void    (*gpio_write)(uint8_t cntl, uint8_t val, void *priv);
+    void     *gpio_priv;
 } tvp3026_ramdac_t;
 
 static void
@@ -210,6 +215,16 @@ tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svg
                 case 0x1e: /* Miscellaneous Control */
                     ramdac->misc      = val;
                     svga->ramdac_type = (val & 0x08) ? RAMDAC_8BIT : RAMDAC_6BIT;
+                    break;
+                case 0x2a: /* General-Purpose I/O Control */
+                    ramdac->gpio_cntl = val;
+                    if (ramdac->gpio_write)
+                        ramdac->gpio_write(ramdac->gpio_cntl, ramdac->gpio_data, ramdac->gpio_priv);
+                    break;
+                case 0x2b: /* General-Purpose I/O Data */
+                    ramdac->gpio_data = val;
+                    if (ramdac->gpio_write)
+                        ramdac->gpio_write(ramdac->gpio_cntl, ramdac->gpio_data, ramdac->gpio_priv);
                     break;
                 case 0x2c: /* PLL Address */
                     ramdac->pll_addr = val;
@@ -388,6 +403,16 @@ tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga)
                     break;
                 case 0x1e: /* Miscellaneous Control */
                     temp = ramdac->misc;
+                    break;
+                case 0x2a: /* General-Purpose I/O Control */
+                    temp = ramdac->gpio_cntl;
+                    break;
+                case 0x2b: /* General-Purpose I/O Data */
+                    if (ramdac->gpio_read) {
+                        temp = 0xe0 | (ramdac->gpio_cntl & 0x1f); /* keep upper bits untouched */
+                        ramdac->gpio_data = (ramdac->gpio_data & temp) | (ramdac->gpio_read(ramdac->gpio_cntl, ramdac->gpio_priv) & ~temp);
+                    }
+                    temp = ramdac->gpio_data;
                     break;
                 case 0x2c: /* PLL Address */
                     temp = ramdac->pll_addr;
@@ -628,6 +653,18 @@ tvp3026_getclock(int clock, void *priv)
     f_pll = f_vco / (float) (1 << pl);
 
     return f_pll;
+}
+
+void
+tvp3026_gpio(uint8_t (*read)(uint8_t cntl, void *priv),
+             void (*write)(uint8_t cntl, uint8_t val, void *priv),
+             void *cb_priv, void *priv)
+{
+    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t *) priv;
+
+    ramdac->gpio_read  = read;
+    ramdac->gpio_write = write;
+    ramdac->gpio_priv  = cb_priv;
 }
 
 void *

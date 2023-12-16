@@ -5315,6 +5315,27 @@ mystique_hwcursor_draw(svga_t *svga, int displine)
 }
 
 static uint8_t
+mystique_tvp3026_gpio_read(uint8_t cntl, void *priv)
+{
+    mystique_t *mystique = (mystique_t *) priv;
+
+    uint8_t ret = 0xff;
+    if (!i2c_gpio_get_scl(mystique->i2c_ddc))
+        ret &= ~0x10;
+    if (!i2c_gpio_get_sda(mystique->i2c_ddc))
+        ret &= ~0x04;
+    return ret;
+}
+
+static void
+mystique_tvp3026_gpio_write(uint8_t cntl, uint8_t data, void *priv)
+{
+    mystique_t *mystique = (mystique_t *) priv;
+
+    i2c_gpio_set(mystique->i2c_ddc, !(cntl & 0x10) || (data & 0x10), !(cntl & 0x04) || (data & 0x04));
+}
+
+static uint8_t
 mystique_pci_read(UNUSED(int func), int addr, void *priv)
 {
     mystique_t *mystique = (mystique_t *) priv;
@@ -5625,6 +5646,7 @@ mystique_init(const device_t *info)
         mystique->svga.ramdac            = device_add(&tvp3026_ramdac_device);
         mystique->svga.clock_gen         = mystique->svga.ramdac;
         mystique->svga.getclock          = tvp3026_getclock;
+        tvp3026_gpio(mystique_tvp3026_gpio_read, mystique_tvp3026_gpio_write, mystique, mystique->svga.ramdac);
     } else {
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_matrox_mystique);
         svga_init(info, &mystique->svga, mystique, mystique->vram_size << 20,
