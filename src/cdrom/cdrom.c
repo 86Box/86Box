@@ -614,8 +614,14 @@ cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit)
             break;
     }
 
-    /* Unlike standard commands, if there's a data track on an Audio CD (mixed mode)
-       the playback continues with the audio muted (Toshiba CD-ROM SCSI-2 manual reference). */
+    /* Do this at this point, since it's at this point that we know the
+       actual LBA position to start playing from. */
+    if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
+        cdrom_log("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
+        cdrom_stop(dev);
+        return 0;
+    }
+
     dev->cd_buflen = 0;
     dev->cd_status = playbit ? CD_STATUS_PLAYING : CD_STATUS_PAUSED;
     return 1;
@@ -640,6 +646,14 @@ cdrom_audio_track_search_pioneer(cdrom_t *dev, uint32_t pos, uint8_t playbit)
         pos = MSFtoLBA(m, s, f) - 150;
 
     dev->seek_pos = pos;
+
+    /* Do this at this point, since it's at this point that we know the
+       actual LBA position to start playing from. */
+    if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
+        cdrom_log("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
+        cdrom_stop(dev);
+        return 0;
+    }
 
     dev->cd_buflen = 0;
     dev->cd_status = playbit ? CD_STATUS_PLAYING : CD_STATUS_PAUSED;
@@ -705,8 +719,14 @@ cdrom_audio_play_toshiba(cdrom_t *dev, uint32_t pos, int type)
 
     cdrom_log("Toshiba/NEC Play Audio: MSF = %06x, type = %02x, cdstatus = %02x\n", pos, type, dev->cd_status);
 
-    /* Unlike standard commands, if there's a data track on an Audio CD (mixed mode)
-       the playback continues with the audio muted (Toshiba CD-ROM SCSI-2 manual reference). */
+    /* Do this at this point, since it's at this point that we know the
+       actual LBA position to start playing from. */
+    if (!(dev->ops->track_type(dev, pos) & CD_TRACK_AUDIO)) {
+        cdrom_log("CD-ROM %i: LBA %08X not on an audio track\n", dev->id, pos);
+        cdrom_stop(dev);
+        return 0;
+    }
+
     dev->cd_buflen = 0;
     dev->cd_status = CD_STATUS_PLAYING;
     return 1;
