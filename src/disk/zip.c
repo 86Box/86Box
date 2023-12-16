@@ -531,7 +531,7 @@ zip_load(zip_t *dev, char *fn)
     if (fseek(dev->drv->fp, dev->drv->base, SEEK_SET) == -1)
         fatal("zip_load(): Error seeking to the beginning of the file\n");
 
-    strncpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path) - 1);
+    strncpy(dev->drv->image_path, fn, strlen(dev->drv->image_path) + 1);
 
     return 1;
 }
