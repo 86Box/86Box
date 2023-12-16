@@ -457,7 +457,7 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
     uint32_t  changed_offset;
 
     const bool blinked   = svga->blink & 0x10;
-    const bool attrblink = ((svga->attrregs[0x10] & 0x08) != 0);
+    const bool attrblink = (!svga->disable_blink) && ((svga->attrregs[0x10] & 0x08) != 0);
 
     /*
        The following is likely how it works on an IBM VGA - that is, it works with its BIOS.

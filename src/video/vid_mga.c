@@ -935,7 +935,7 @@ mystique_recalctimings(svga_t *svga)
         } else {
             switch (svga->bpp) {
                 case 8:
-                    svga->render = svga_render_8bpp_incompatible_highres;
+                    svga->render = svga_render_8bpp_highres;
                     break;
                 case 15:
                     svga->render = svga_render_15bpp_highres;
@@ -958,6 +958,8 @@ mystique_recalctimings(svga_t *svga)
         if (mystique->type >= MGA_1064SG)
             svga->bpp = 8;
     }
+
+    svga->disable_blink = (svga->bpp > 4);
 }
 
 static void
