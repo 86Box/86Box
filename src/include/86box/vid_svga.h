@@ -246,6 +246,11 @@ typedef struct svga_t {
       addresses are shifted to match*/
     int packed_chain4;
 
+    /*Disable 8bpp blink mode - some cards support it, some don't, it's a weird mode
+      If mode 13h appears in a reddish-brown background (0x88) with dark green text (0x8F),
+      you should set this flag when entering that mode*/
+    int disable_blink;
+
     /*Force CRTC to dword mode, regardless of CR14/CR17. Required for S3 enhanced mode*/
     int force_dword_mode;
 
