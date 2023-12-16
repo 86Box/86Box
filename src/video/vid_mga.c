@@ -3944,7 +3944,7 @@ static void
 blit_line(mystique_t *mystique, int closed)
 {
     svga_t  *svga = &mystique->svga;
-    uint32_t src;
+    uint32_t src = 0;
     uint32_t dst;
     uint32_t old_dst;
     int      x;
