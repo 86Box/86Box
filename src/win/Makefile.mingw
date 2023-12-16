@@ -498,7 +498,6 @@ ifeq ($(DEV_BRANCH), y)
 
  ifeq ($(MGA), y)
   OPTS     += -DUSE_MGA
-  DEVBROBJ += vid_mga.o
  endif
 
  ifeq ($(OPEN_AT), y)
@@ -765,6 +764,7 @@ VIDOBJ := agpgart.o video.o \
           vid_s3.o vid_s3_virge.o \
           vid_ibm_rgb528_ramdac.o vid_sdac_ramdac.o \
           vid_ogc.o \
+          vid_mga.o \
           vid_nga.o \
           vid_tvp3026_ramdac.o \
           vid_xga.o
