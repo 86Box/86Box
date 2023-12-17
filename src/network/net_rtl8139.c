@@ -3312,7 +3312,7 @@ nic_init(const device_t *info)
 
     fp = nvr_fopen(eeprom_filename, "rb");
     if (fp) {
-        fread(s->eeprom.contents, 2, 64, fp);
+        (void) !fread(s->eeprom.contents, 2, 64, fp);
         fclose(fp);
         fp = NULL;
     } else {

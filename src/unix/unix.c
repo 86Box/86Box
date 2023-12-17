@@ -918,7 +918,7 @@ monitor_thread(void *param)
                 line = f_readline("(86Box) ");
             else {
                 printf("(86Box) ");
-                !getline(&line, &n, stdin);
+                (void) !getline(&line, &n, stdin);
             }
             if (line) {
                 int   cmdargc = 0;
