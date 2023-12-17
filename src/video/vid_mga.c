@@ -946,7 +946,7 @@ mystique_recalctimings(svga_t *svga)
             }
         }
         svga->line_compare = mystique_line_compare;
-        svga->packed_chain4 = ((svga->gdcreg[5] & 0x60) == 0x00);
+        svga->packed_chain4 = !svga->chain4;
     } else {
         svga->packed_chain4 = 0;
         svga->line_compare  = NULL;
