@@ -720,15 +720,10 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
             if (mystique->crtcext_idx == 1)
                 svga->dpms = !!(val & 0x30);
             if (mystique->crtcext_idx < 4) {
-                svga->fullchange = changeframecount;
-                svga_recalctimings(svga);
-            }
-            if (mystique->crtcext_idx == 3) {
-                if (val & CRTCX_R3_MGAMODE)
-                    svga->fb_only = 1;
-                else
-                    svga->fb_only = 0;
-                svga_recalctimings(svga);
+                if (mystique->crtcext_idx != 3) {
+                    svga->fullchange = changeframecount;
+                    svga_recalctimings(svga);
+                }
             }
             if (mystique->crtcext_idx == 4) {
                 if (svga->gdcreg[6] & 0xc) {
@@ -880,7 +875,6 @@ mystique_recalctimings(svga_t *svga)
         svga->interlace = !!(mystique->crtcext_regs[0] & 0x80);
 
     if (mystique->crtcext_regs[3] & CRTCX_R3_MGAMODE) {
-        svga->packed_chain4 = 1;
         svga->lowres        = 0;
         svga->char_width    = 8;
         svga->hdisp         = (svga->crtc[1] + 1) * 8;
@@ -891,6 +885,7 @@ mystique_recalctimings(svga_t *svga)
             svga->rowoffset <<= 1;
             svga->ma_latch <<= 1;
         }
+
         if (mystique->type >= MGA_1064SG) {
             /*Mystique, unlike most SVGA cards, allows display start to take
               effect mid-screen*/
@@ -903,7 +898,6 @@ mystique_recalctimings(svga_t *svga)
             }
 
             svga->rowoffset <<= 1;
-
             switch (mystique->xmulctrl & XMULCTRL_DEPTH_MASK) {
                 case XMULCTRL_DEPTH_8:
                 case XMULCTRL_DEPTH_2G8V16:
@@ -952,6 +946,7 @@ mystique_recalctimings(svga_t *svga)
             }
         }
         svga->line_compare = mystique_line_compare;
+        svga->packed_chain4 = ((svga->gdcreg[5] & 0x60) == 0x00);
     } else {
         svga->packed_chain4 = 0;
         svga->line_compare  = NULL;
@@ -959,7 +954,11 @@ mystique_recalctimings(svga_t *svga)
             svga->bpp = 8;
     }
 
+    svga->fb_only       = svga->packed_chain4;
     svga->disable_blink = (svga->bpp > 4);
+#if 0
+    pclog("PackedChain4=%d, chain4=%x, fast=%x, bit6 attrreg10=%02x, bits 5-6 gdcreg5=%02x.\n", svga->packed_chain4, svga->chain4, svga->fast, svga->attrregs[0x10] & 0x40, svga->gdcreg[5] & 0x60);
+#endif
 }
 
 static void
@@ -2563,6 +2562,7 @@ mystique_accel_iload_write_l(UNUSED(uint32_t addr), uint32_t val, void *priv)
     }
 }
 
+#if 0
 static uint8_t
 mystique_readb_linear(uint32_t addr, void *priv)
 {
@@ -2616,7 +2616,7 @@ mystique_writeb_linear(uint32_t addr, uint8_t val, void *priv)
     if (addr >= svga->vram_max)
         return;
     addr &= svga->vram_mask;
-    svga->changedvram[addr >> 12] = changeframecount;
+    svga->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
     svga->vram[addr]              = val;
 }
 
@@ -2631,7 +2631,7 @@ mystique_writew_linear(uint32_t addr, uint16_t val, void *priv)
     if (addr >= svga->vram_max)
         return;
     addr &= svga->vram_mask;
-    svga->changedvram[addr >> 12]   = changeframecount;
+    svga->changedvram[addr >> 12]   = svga->monitor->mon_changeframecount;
     *(uint16_t *) &svga->vram[addr] = val;
 }
 
@@ -2646,9 +2646,10 @@ mystique_writel_linear(uint32_t addr, uint32_t val, void *priv)
     if (addr >= svga->vram_max)
         return;
     addr &= svga->vram_mask;
-    svga->changedvram[addr >> 12]   = changeframecount;
+    svga->changedvram[addr >> 12]   = svga->monitor->mon_changeframecount;
     *(uint32_t *) &svga->vram[addr] = val;
 }
+#endif
 
 static void
 run_dma(mystique_t *mystique)
@@ -3950,102 +3951,67 @@ blit_line(mystique_t *mystique, int closed)
     uint32_t dst;
     uint32_t old_dst;
     int      x;
+    int      len = 0;
     int      z_write;
-    int      pattern;
-    int      funcnt = mystique->dwgreg.funcnt;
 
     switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK) {
         case DWGCTRL_ATYPE_RSTR:
         case DWGCTRL_ATYPE_RPL:
             x = mystique->dwgreg.xdst;
-            while (mystique->dwgreg.length >= 0) {
-                pattern = mystique->dwgreg.src[0] & (1 << funcnt);
-
+            while (len <= mystique->dwgreg.length) {
                 if (x >= mystique->dwgreg.cxleft && x <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot) {
                     switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
                         case MACCESS_PWIDTH_8:
-                            if (mystique->dwgreg.dwgctrl_running & DWGCTRL_SOLID)
-                                src = mystique->dwgreg.fcol;
-                            else {
-                                if (mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANSC) {
-                                    if (pattern)
-                                        src = mystique->dwgreg.fcol;
-                                } else
-                                    src = pattern ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
-                            }
+                            src = mystique->dwgreg.fcol;
                             dst = svga->vram[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask];
 
                             dst                                                                              = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
                             if (closed) {
                                 svga->vram[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask]                = dst;
                                 svga->changedvram[((mystique->dwgreg.ydst_lin + x) & mystique->vram_mask) >> 12] = changeframecount;
-                            } else if (!closed && mystique->dwgreg.length > 0) {
+                            } else if (!closed && (len < mystique->dwgreg.length)) {
                                 svga->vram[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask]                = dst;
                                 svga->changedvram[((mystique->dwgreg.ydst_lin + x) & mystique->vram_mask) >> 12] = changeframecount;
                             }
                             break;
 
                         case MACCESS_PWIDTH_16:
-                            if (mystique->dwgreg.dwgctrl_running & DWGCTRL_SOLID)
-                                src = mystique->dwgreg.fcol;
-                            else {
-                                if (mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANSC) {
-                                    if (pattern)
-                                        src = mystique->dwgreg.fcol;
-                                } else
-                                    src = pattern ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
-                            }
+                            src = mystique->dwgreg.fcol;
                             dst = ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_w];
 
                             dst                                                                                = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
                             if (closed) {
                                 ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_w] = dst;
                                 svga->changedvram[((mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_w) >> 11] = changeframecount;
-                            } else if (!closed && mystique->dwgreg.length > 0) {
+                            } else if (!closed && (len < mystique->dwgreg.length)) {
                                 ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_w] = dst;
                                 svga->changedvram[((mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_w) >> 11] = changeframecount;
                             }
                             break;
 
                         case MACCESS_PWIDTH_24:
-                            if (mystique->dwgreg.dwgctrl_running & DWGCTRL_SOLID)
-                                src = mystique->dwgreg.fcol;
-                            else {
-                                if (mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANSC) {
-                                    if (pattern)
-                                        src = mystique->dwgreg.fcol;
-                                } else
-                                    src = pattern ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
-                            }
+                            src = mystique->dwgreg.fcol;
                             old_dst = *(uint32_t *) &svga->vram[((mystique->dwgreg.ydst_lin + x) * 3) & mystique->vram_mask];
 
                             dst                                                                                    = bitop(src, old_dst, mystique->dwgreg.dwgctrl_running);
                             if (closed) {
                                 *(uint32_t *) &svga->vram[((mystique->dwgreg.ydst_lin + x) * 3) & mystique->vram_mask] = (dst & 0xffffff) | (old_dst & 0xff000000);
                                 svga->changedvram[(((mystique->dwgreg.ydst_lin + x) * 3) & mystique->vram_mask) >> 12] = changeframecount;
-                            } else if (!closed && mystique->dwgreg.length > 0) {
+                            } else if (!closed && (len < mystique->dwgreg.length)) {
                                 *(uint32_t *) &svga->vram[((mystique->dwgreg.ydst_lin + x) * 3) & mystique->vram_mask] = (dst & 0xffffff) | (old_dst & 0xff000000);
                                 svga->changedvram[(((mystique->dwgreg.ydst_lin + x) * 3) & mystique->vram_mask) >> 12] = changeframecount;
                             }
                             break;
 
                         case MACCESS_PWIDTH_32:
-                            if (mystique->dwgreg.dwgctrl_running & DWGCTRL_SOLID)
-                                src = mystique->dwgreg.fcol;
-                            else {
-                                if (mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANSC) {
-                                    if (pattern)
-                                        src = mystique->dwgreg.fcol;
-                                } else
-                                    src = pattern ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
-                            }
+                            src = mystique->dwgreg.fcol;
                             dst = ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l];
 
                             dst                                                                                = bitop(src, dst, mystique->dwgreg.dwgctrl_running);
                             if (closed) {
                                 ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l] = dst;
                                 svga->changedvram[((mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l) >> 10] = changeframecount;
-                            } else if (!closed && mystique->dwgreg.length > 0) {
+                            } else if (!closed && (len < mystique->dwgreg.length)) {
                                 ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l] = dst;
                                 svga->changedvram[((mystique->dwgreg.ydst_lin + x) & mystique->vram_mask_l) >> 10] = changeframecount;
                             }
@@ -4070,10 +4036,7 @@ blit_line(mystique_t *mystique, int closed)
                 } else
                     mystique->dwgreg.ar[1] += mystique->dwgreg.ar[0];
 
-                mystique->dwgreg.length--;
-                funcnt = (funcnt - 1) & mystique->dwgreg.stylelen;
-                if (mystique->dwgreg.length == 0xffff)
-                    break;
+                len++;
             }
             break;
 
@@ -5666,9 +5629,9 @@ mystique_init(const device_t *info)
     mem_mapping_disable(&mystique->ctrl_mapping);
 
     mem_mapping_add(&mystique->lfb_mapping, 0, 0,
-                    mystique_readb_linear, mystique_readw_linear, mystique_readl_linear,
-                    mystique_writeb_linear, mystique_writew_linear, mystique_writel_linear,
-                    NULL, 0, mystique);
+                    svga_read_linear, svga_readw_linear, svga_readl_linear,
+                    svga_write_linear, svga_writew_linear, svga_writel_linear,
+                    NULL, 0, &mystique->svga);
     mem_mapping_disable(&mystique->lfb_mapping);
 
     mem_mapping_add(&mystique->iload_mapping, 0, 0,
