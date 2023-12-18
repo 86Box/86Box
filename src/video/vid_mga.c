@@ -952,7 +952,7 @@ mystique_recalctimings(svga_t *svga)
 
     svga->fb_only       = svga->packed_chain4;
     svga->disable_blink = (svga->bpp > 4);
-#if 1
+#if 0
     pclog("PackedChain4=%d, chain4=%x, fast=%x, bit6 attrreg10=%02x, bits 5-6 gdcreg5=%02x, extmode=%02x.\n", svga->packed_chain4, svga->chain4, svga->fast, svga->attrregs[0x10] & 0x40, svga->gdcreg[5] & 0x60, mystique->pci_regs[0x41] & 1, mystique->crtcext_regs[3] & CRTCX_R3_MGAMODE);
 #endif
 }
