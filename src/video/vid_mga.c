@@ -55,7 +55,7 @@
 #define FIFO_ADDR        0x00ffffff
 
 #define DMA_POLL_TIME_US 100 /*100us*/
-#define DMA_MAX_WORDS    256 /*256 quad words per 100us poll*/
+#define DMA_MAX_WORDS    (20 * 14) /*280 quad words per 100us poll*/
 
 /*These registers are also mirrored into 0x1dxx, with the mirrored versions starting
   the blitter*/
@@ -505,10 +505,10 @@ typedef struct mystique_t {
 
     struct
     {
-        int pri_pos, sec_pos, iload_pos,
+        atomic_int pri_pos, sec_pos, iload_pos,
             pri_state, sec_state, iload_state, state;
 
-        uint32_t primaddress, primend, secaddress, secend,
+        atomic_uint primaddress, primend, secaddress, secend,
             pri_header, sec_header,
             iload_header;
 
@@ -2660,21 +2660,23 @@ run_dma(mystique_t *mystique)
     }
 
     while (words_transferred < DMA_MAX_WORDS && mystique->dma.state != DMA_STATE_IDLE) {
-        switch (mystique->dma.state) {
+        switch (atomic_load(&mystique->dma.state)) {
             case DMA_STATE_PRI:
                 switch (mystique->dma.primaddress & DMA_MODE_MASK) {
                     case DMA_MODE_REG:
                         if (mystique->dma.pri_state == 0) {
                             dma_bm_read(mystique->dma.primaddress & DMA_ADDR_MASK, (uint8_t *) &mystique->dma.pri_header, 4, 4);
                             mystique->dma.primaddress += 4;
+                            words_transferred++;
                         }
 
-                        if ((mystique->dma.pri_header & 0xff) != 0x15) {
+                        if ((mystique->dma.pri_header & 0xff) != 0x15 && (mystique->dma.primaddress & DMA_ADDR_MASK) < (mystique->dma.primend & DMA_ADDR_MASK)) {
                             uint32_t val;
                             uint32_t reg_addr;
 
                             dma_bm_read(mystique->dma.primaddress & DMA_ADDR_MASK, (uint8_t *) &val, 4, 4);
                             mystique->dma.primaddress += 4;
+                            words_transferred++;
 
                             reg_addr = (mystique->dma.pri_header & 0x7f) << 2;
                             if (mystique->dma.pri_header & 0x80)
@@ -2691,10 +2693,9 @@ run_dma(mystique_t *mystique)
                         mystique->dma.pri_header >>= 8;
                         mystique->dma.pri_state = (mystique->dma.pri_state + 1) & 3;
 
-                        words_transferred++;
                         if (mystique->dma.state == DMA_STATE_SEC)
                             mystique->dma.pri_state = 0;
-                        else if ((mystique->dma.primaddress & DMA_ADDR_MASK) == (mystique->dma.primend & DMA_ADDR_MASK)) {
+                        else if ((mystique->dma.primaddress & DMA_ADDR_MASK) >= (mystique->dma.primend & DMA_ADDR_MASK)) {
                             mystique->endprdmasts_pending = 1;
                             mystique->dma.state           = DMA_STATE_IDLE;
                         }
@@ -2711,6 +2712,7 @@ run_dma(mystique_t *mystique)
                         if (mystique->dma.sec_state == 0) {
                             dma_bm_read(mystique->dma.secaddress & DMA_ADDR_MASK, (uint8_t *) &mystique->dma.sec_header, 4, 4);
                             mystique->dma.secaddress += 4;
+                            words_transferred++;
                         }
 
                         uint32_t val;
@@ -2734,8 +2736,8 @@ run_dma(mystique_t *mystique)
                         mystique->dma.sec_state = (mystique->dma.sec_state + 1) & 3;
 
                         words_transferred++;
-                        if ((mystique->dma.secaddress & DMA_ADDR_MASK) == (mystique->dma.secend & DMA_ADDR_MASK)) {
-                            if ((mystique->dma.primaddress & DMA_ADDR_MASK) == (mystique->dma.primend & DMA_ADDR_MASK)) {
+                        if ((mystique->dma.secaddress & DMA_ADDR_MASK) >= (mystique->dma.secend & DMA_ADDR_MASK)) {
+                            if ((mystique->dma.primaddress & DMA_ADDR_MASK) >= (mystique->dma.primend & DMA_ADDR_MASK)) {
                                 mystique->endprdmasts_pending = 1;
                                 mystique->dma.state           = DMA_STATE_IDLE;
                             } else
@@ -2754,8 +2756,8 @@ run_dma(mystique_t *mystique)
                                 blit_iload_write(mystique, val, 32);
 
                             words_transferred++;
-                            if ((mystique->dma.secaddress & DMA_ADDR_MASK) == (mystique->dma.secend & DMA_ADDR_MASK)) {
-                                if ((mystique->dma.primaddress & DMA_ADDR_MASK) == (mystique->dma.primend & DMA_ADDR_MASK)) {
+                            if ((mystique->dma.secaddress & DMA_ADDR_MASK) >= (mystique->dma.secend & DMA_ADDR_MASK)) {
+                                if ((mystique->dma.primaddress & DMA_ADDR_MASK) >= (mystique->dma.primend & DMA_ADDR_MASK)) {
                                     mystique->endprdmasts_pending = 1;
                                     mystique->dma.state           = DMA_STATE_IDLE;
                                 } else
