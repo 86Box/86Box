@@ -634,12 +634,14 @@ static void wake_fifo_thread(mystique_t *mystique);
 static void wait_fifo_idle(mystique_t *mystique);
 static void mystique_queue(mystique_t *mystique, uint32_t addr, uint32_t val, uint32_t type);
 
+#if 0
 static uint8_t  mystique_readb_linear(uint32_t addr, void *priv);
 static uint16_t mystique_readw_linear(uint32_t addr, void *priv);
 static uint32_t mystique_readl_linear(uint32_t addr, void *priv);
 static void     mystique_writeb_linear(uint32_t addr, uint8_t val, void *priv);
 static void     mystique_writew_linear(uint32_t addr, uint16_t val, void *priv);
 static void     mystique_writel_linear(uint32_t addr, uint32_t val, void *priv);
+#endif
 
 static void mystique_recalc_mapping(mystique_t *mystique);
 static int  mystique_line_compare(svga_t *svga);
@@ -946,7 +948,7 @@ mystique_recalctimings(svga_t *svga)
             }
         }
         svga->line_compare = mystique_line_compare;
-        svga->packed_chain4 = ((svga->gdcreg[5] & 0x60) == 0x00);
+        svga->packed_chain4 = !svga->chain4;
     } else {
         svga->packed_chain4 = 0;
         svga->line_compare  = NULL;
