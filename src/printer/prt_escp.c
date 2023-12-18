@@ -531,7 +531,7 @@ update_font(escp_t *dev)
                 fn = FONT_FILE_OCRB;
                 break;
             default:
-                fn = FONT_FILE_DOTMATRIX;
+                fn = FONT_FILE_ROMAN;
         }
 
     /* Create a full pathname for the ROM file. */
