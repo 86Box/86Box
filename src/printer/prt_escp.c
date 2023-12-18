@@ -531,7 +531,7 @@ update_font(escp_t *dev)
                 fn = FONT_FILE_OCRB;
                 break;
             default:
-                fn = FONT_FILE_DOTMATRIX;
+                fn = FONT_FILE_ROMAN;
         }
 
     /* Create a full pathname for the ROM file. */
@@ -545,6 +545,17 @@ update_font(escp_t *dev)
     if (FT_New_Face(ft_lib, path, 0, &dev->fontface)) {
         escp_log("ESC/P: unable to load font '%s'\n", path);
         dev->fontface = NULL;
+
+        /* Try to fall back to Courier in case the dot matrix font is absent. */
+        if (!strcmp(fn, FONT_FILE_DOTMATRIX)) {
+            strcpy(path, dev->fontpath);
+            path_slash(path);
+            strcat(path, FONT_FILE_COURIER);
+            if (FT_New_Face(ft_lib, path, 0, &dev->fontface)) {
+                escp_log("ESC/P: unable to load font '%s'\n", path);
+                dev->fontface = NULL;
+            }
+        }
     }
 
     if (!dev->multipoint_mode) {
