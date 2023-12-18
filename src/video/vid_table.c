@@ -79,7 +79,7 @@ video_cards[] = {
   // clang-format off
     { &vid_none_device                               },
     { &vid_internal_device                           },
-    { &atiega_device                                 },
+    { &ati18800_egawonder800plus_device              },
     { &mach8_isa_device,        VIDEO_FLAG_TYPE_8514 },
     { &mach32_isa_device,       VIDEO_FLAG_TYPE_8514 },
     { &mach64gx_isa_device                           },

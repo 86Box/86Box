@@ -41,7 +41,6 @@ void ega_doblit(int wx, int wy, ega_t *ega);
 #define BIOS_IBM_PATH    "roms/video/ega/ibm_6277356_ega_card_u44_27128.bin"
 #define BIOS_CPQ_PATH    "roms/video/ega/108281-001.bin"
 #define BIOS_SEGA_PATH   "roms/video/ega/lega.vbi"
-#define BIOS_ATIEGA_PATH "roms/video/ega/ATI EGA Wonder 800+ N1.00.BIN"
 #define BIOS_ISKRA_PATH  "roms/video/ega/143-02.bin", "roms/video/ega/143-03.bin"
 #define BIOS_TSENG_PATH  "roms/video/ega/EGA ET2000.BIN"
 
@@ -49,7 +48,6 @@ enum {
     EGA_IBM = 0,
     EGA_COMPAQ,
     EGA_SUPEREGA,
-    EGA_ATI,
     EGA_ISKRA,
     EGA_TSENG
 };
@@ -80,34 +78,6 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
         addr ^= 0x60;
 
     switch (addr) {
-        case 0x1ce:
-            ega->index = val;
-            break;
-        case 0x1cf:
-            ega->regs[ega->index] = val;
-            switch (ega->index) {
-                case 0xb0:
-                    ega_recalctimings(ega);
-                    break;
-                case 0xb2:
-                case 0xbe:
-#if 0
-                    if (ega->regs[0xbe] & 8) { /*Read/write bank mode*/
-                        svga->read_bank  = ((ega->regs[0xb2] >> 5) & 7) * 0x10000;
-                        svga->write_bank = ((ega->regs[0xb2] >> 1) & 7) * 0x10000;
-                    } else                    /*Single bank mode*/
-                        svga->read_bank = svga->write_bank = ((ega->regs[0xb2] >> 1) & 7) * 0x10000;
-#endif
-                    break;
-                case 0xb3:
-                    ati_eeprom_write((ati_eeprom_t *) ega->eeprom, val & 8, val & 2, val & 1);
-                    break;
-
-                default:
-                    break;
-            }
-            break;
-
         case 0x3c0:
         case 0x3c1:
             if (!ega->attrff) {
@@ -276,23 +246,6 @@ ega_in(uint16_t addr, void *priv)
         addr ^= 0x60;
 
     switch (addr) {
-        case 0x1ce:
-            ret = ega->index;
-            break;
-        case 0x1cf:
-            switch (ega->index) {
-                case 0xb7:
-                    ret = ega->regs[ega->index] & ~8;
-                    if (ati_eeprom_read((ati_eeprom_t *) ega->eeprom))
-                        ret |= 8;
-                    break;
-
-                default:
-                    ret = ega->regs[ega->index];
-                    break;
-            }
-            break;
-
         case 0x3c0:
             if (ega_type)
                 ret = ega->attraddr | ega->attr_palette_enable;
@@ -471,31 +424,6 @@ ega_recalctimings(ega_t *ega)
                 crtcconst = (cpuclock / 18981000.0 * (double) (1ULL << 32));
             else
                 crtcconst = (cpuclock / 16872000.0 * (double) (1ULL << 32));
-        }
-        if (!(ega->seqregs[1] & 1))
-            crtcconst *= 9.0;
-        else
-            crtcconst *= 8.0;
-    } else if (ega->eeprom) {
-        clksel = ((ega->miscout & 0xc) >> 2) | ((ega->regs[0xbe] & 0x10) ? 4 : 0);
-
-        switch (clksel) {
-            case 0:
-                crtcconst = (cpuclock / 25175000.0 * (double) (1ULL << 32));
-                break;
-            case 1:
-                crtcconst = (cpuclock / 28322000.0 * (double) (1ULL << 32));
-                break;
-            case 4:
-                crtcconst = (cpuclock / 14318181.0 * (double) (1ULL << 32));
-                break;
-            case 5:
-                crtcconst = (cpuclock / 16257000.0 * (double) (1ULL << 32));
-                break;
-            case 7:
-            default:
-                crtcconst = (cpuclock / 36000000.0 * (double) (1ULL << 32));
-                break;
         }
         if (!(ega->seqregs[1] & 1))
             crtcconst *= 9.0;
@@ -1414,10 +1342,6 @@ ega_standalone_init(const device_t *info)
             rom_init(&ega->bios_rom, BIOS_SEGA_PATH,
                      0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
             break;
-        case EGA_ATI:
-            rom_init(&ega->bios_rom, BIOS_ATIEGA_PATH,
-                     0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-            break;
         case EGA_ISKRA:
             rom_init_interleaved(&ega->bios_rom, BIOS_ISKRA_PATH,
                                  0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -1445,12 +1369,7 @@ ega_standalone_init(const device_t *info)
     mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
     io_sethandler(0x03c0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
 
-    if (info->local == EGA_ATI) {
-        io_sethandler(0x01ce, 0x0002, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
-        ega->eeprom = malloc(sizeof(ati_eeprom_t));
-        memset(ega->eeprom, 0, sizeof(ati_eeprom_t));
-        ati_eeprom_load((ati_eeprom_t *) ega->eeprom, "egawonder800.nvr", 0);
-    } else if (info->local == EGA_COMPAQ) {
+    if (info->local == EGA_COMPAQ) {
         io_sethandler(0x0084, 0x0001, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
         io_sethandler(0x07c6, 0x0001, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
         io_sethandler(0x0bc6, 0x0001, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
@@ -1479,12 +1398,6 @@ sega_standalone_available(void)
 }
 
 static int
-atiega_standalone_available(void)
-{
-    return rom_present(BIOS_ATIEGA_PATH);
-}
-
-static int
 iskra_ega_standalone_available(void)
 {
     return rom_present("roms/video/ega/143-02.bin") && rom_present("roms/video/ega/143-03.bin");
@@ -1501,8 +1414,6 @@ ega_close(void *priv)
 {
     ega_t *ega = (ega_t *) priv;
 
-    if (ega->eeprom)
-        free(ega->eeprom);
     free(ega->vram);
     free(ega);
 }
@@ -1635,20 +1546,6 @@ const device_t sega_device = {
     .close         = ega_close,
     .reset         = NULL,
     { .available = sega_standalone_available },
-    .speed_changed = ega_speed_changed,
-    .force_redraw  = NULL,
-    .config        = ega_config
-};
-
-const device_t atiega_device = {
-    .name          = "ATI EGA Wonder 800+",
-    .internal_name = "egawonder800",
-    .flags         = DEVICE_ISA,
-    .local         = EGA_ATI,
-    .init          = ega_standalone_init,
-    .close         = ega_close,
-    .reset         = NULL,
-    { .available = atiega_standalone_available },
     .speed_changed = ega_speed_changed,
     .force_redraw  = NULL,
     .config        = ega_config
