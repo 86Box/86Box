@@ -2670,7 +2670,7 @@ run_dma(mystique_t *mystique)
                             words_transferred++;
                         }
 
-                        if ((mystique->dma.pri_header & 0xff) != 0x15 || (mystique->dma.primaddress & DMA_ADDR_MASK) < (mystique->dma.primend & DMA_ADDR_MASK)) {
+                        if ((mystique->dma.pri_header & 0xff) != 0x15 && (mystique->dma.primaddress & DMA_ADDR_MASK) < (mystique->dma.primend & DMA_ADDR_MASK)) {
                             uint32_t val;
                             uint32_t reg_addr;
 
