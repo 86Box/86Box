@@ -124,7 +124,7 @@ static void
 isapnp_device_config_changed(isapnp_card_t *card, isapnp_device_t *ld)
 {
     /* Ignore card if it hasn't signed up for configuration changes. */
-    if (!card->config_changed)
+    if ((card == NULL) || !card->config_changed)
         return;
 
     /* Populate config structure, performing endianness conversion as needed. */
