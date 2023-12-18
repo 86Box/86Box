@@ -639,27 +639,21 @@ svga_recalctimings(svga_t *svga)
             svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
             svga->hdisp_old = svga->hdisp;
 
-            if (svga->bpp <= 8) {
-                if (svga->attrregs[0x10] & 0x40) { /*8bpp mode*/
-                    svga->map8 = svga->pallook;
-                    if (svga->lowres) /*Low res (320)*/
-                        svga->render = svga_render_8bpp_lowres;
-                    else
-                        svga->render = svga_render_8bpp_highres;
-                } else {
+            if ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) == 0x00)) {
+                if ((svga->gdcreg[5] & 0x60) == 0x00) {
                     if (svga->seqregs[1] & 8) /*Low res (320)*/
                         svga->render = svga_render_4bpp_lowres;
                     else
                         svga->render = svga_render_4bpp_highres;
+                } else {
+                    svga->map8 = svga->pallook;
+                    if (svga->attrregs[0x10] & 0x40) /*Low res (320)*/
+                        svga->render = svga_render_8bpp_lowres;
+                    else
+                        svga->render = svga_render_8bpp_highres;
                 }
             } else {
                 switch (svga->gdcreg[5] & 0x60) {
-                    case 0x00:
-                        if (svga->seqregs[1] & 8) /*Low res (320)*/
-                            svga->render = svga_render_4bpp_lowres;
-                        else
-                            svga->render = svga_render_4bpp_highres;
-                        break;
                     case 0x20:                    /*4 colours*/
                         if (svga->seqregs[1] & 8) /*Low res (320)*/
                             svga->render = svga_render_2bpp_lowres;
@@ -669,13 +663,6 @@ svga_recalctimings(svga_t *svga)
                     case 0x40:
                     case 0x60: /*256+ colours*/
                         switch (svga->bpp) {
-                            case 8:
-                                svga->map8 = svga->pallook;
-                                if (svga->lowres)
-                                    svga->render = svga_render_8bpp_lowres;
-                                else
-                                    svga->render = svga_render_8bpp_highres;
-                                break;
                             case 15:
                                 if (svga->lowres)
                                     svga->render = svga_render_15bpp_lowres;
@@ -1920,9 +1907,8 @@ svga_readl_common(uint32_t addr, uint8_t linear, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-    if (!svga->fast) {
+    if (!svga->fast)
         return svga_read_common(addr, linear, priv) | (svga_read_common(addr + 1, linear, priv) << 8) | (svga_read_common(addr + 2, linear, priv) << 16) | (svga_read_common(addr + 3, linear, priv) << 24);
-    }
 
     cycles -= svga->monitor->mon_video_timing_read_l;
 
