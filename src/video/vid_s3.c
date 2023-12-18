@@ -2576,17 +2576,11 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3C7:
         case 0x3C8:
         case 0x3C9:
-            if ((svga->crtc[0x55] & 0x03) == 0x00)
-                rs2 = !!(svga->crtc[0x43] & 0x02);
-            else
-                rs2 = (svga->crtc[0x55] & 0x01);
+            rs2 = (svga->crtc[0x55] & 0x01) || !!(svga->crtc[0x43] & 2);
             if (s3->chip >= S3_TRIO32)
                 svga_out(addr, val, svga);
             else if ((s3->chip == S3_VISION964 && s3->card_type != S3_ELSAWIN2KPROX_964) || (s3->chip == S3_86C928)) {
-                if (!(svga->crtc[0x45] & 0x20) || (s3->chip == S3_86C928))
-                    rs3 = !!(svga->crtc[0x55] & 0x02);
-                else
-                    rs3 = 0;
+                rs3 = !!(svga->crtc[0x55] & 0x02);
                 bt48x_ramdac_out(addr, rs2, rs3, val, svga->ramdac, svga);
             } else if ((s3->chip == S3_VISION964 && s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->chip == S3_VISION968 && (s3->card_type == S3_ELSAWIN2KPROX || s3->card_type == S3_PHOENIX_VISION968 || s3->card_type == S3_NUMBER9_9FX_771)))
                 ibm_rgb528_ramdac_out(addr, rs2, val, svga->ramdac, svga);
@@ -2633,10 +2627,7 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                     svga->force_dword_mode = !!(val & 0x08);
                     break;
                 case 0x32:
-                    if ((svga->crtc[0x31] & 0x30) && (svga->crtc[0x51] & 0x01) && (val & 0x40))
-                        svga->vram_display_mask = 0x3ffff;
-                    else
-                        svga->vram_display_mask = s3->vram_mask;
+                    svga->vram_display_mask = (val & 0x40) ? 0x3ffff : s3->vram_mask;
                     break;
 
                 case 0x40:
