@@ -489,12 +489,10 @@ static void
 ali5229_ide_irq_handler(ali1543_t *dev)
 {
     int ctl = 0;
-    int ch = 0;
     int bit = 0;
 
     if (dev->ide_conf[0x52] & 0x10) {
         ctl ^= 1;
-        ch ^= 1;
         bit ^= 5;
     }
 
