@@ -322,7 +322,6 @@ extern const device_t ati18800_wonder_device;
 #    endif
 extern const device_t ati18800_vga88_device;
 extern const device_t ati18800_device;
-extern const device_t ati18800_egawonder800plus_device;
 
 /* ATi 28800 */
 extern const device_t ati28800_device;
