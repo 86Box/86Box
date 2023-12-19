@@ -490,6 +490,8 @@ struct RTL8139State {
     int      cplus_txbuffer_len;
     int      cplus_txbuffer_offset;
 
+    uint32_t mem_base;
+
     /* PCI interrupt timer */
     pc_timer_t timer;
 
@@ -3151,6 +3153,72 @@ rtl8139_io_writeb_ioport(uint16_t addr, uint8_t val, void *priv)
     return rtl8139_io_writeb(addr, val, priv);
 }
 
+static uint32_t
+rtl8139_io_readl_mem(uint32_t addr, void *priv)
+{
+    RTL8139State *s = (RTL8139State *) priv;
+
+    if ((addr < s->mem_base) || (addr > (s->mem_base + 0xff)))
+        return 0xffffffff;
+
+    return rtl8139_io_readl(addr, priv);
+}
+
+static uint16_t
+rtl8139_io_readw_mem(uint32_t addr, void *priv)
+{
+    RTL8139State *s = (RTL8139State *) priv;
+
+    if ((addr < s->mem_base) || (addr > (s->mem_base + 0xff)))
+        return 0xffff;
+
+    return rtl8139_io_readw(addr, priv);
+}
+
+static uint8_t
+rtl8139_io_readb_mem(uint32_t addr, void *priv)
+{
+    RTL8139State *s = (RTL8139State *) priv;
+
+    if ((addr < s->mem_base) || (addr > (s->mem_base + 0xff)))
+        return 0xff;
+
+    return rtl8139_io_readb(addr, priv);
+}
+
+static void
+rtl8139_io_writel_mem(uint32_t addr, uint32_t val, void *priv)
+{
+    RTL8139State *s = (RTL8139State *) priv;
+
+    if ((addr < s->mem_base) || (addr > (s->mem_base + 0xff)))
+        return;
+
+    return rtl8139_io_writel(addr, val, priv);
+}
+
+static void
+rtl8139_io_writew_mem(uint32_t addr, uint16_t val, void *priv)
+{
+    RTL8139State *s = (RTL8139State *) priv;
+
+    if ((addr < s->mem_base) || (addr > (s->mem_base + 0xff)))
+        return;
+
+    return rtl8139_io_writew(addr, val, priv);
+}
+
+static void
+rtl8139_io_writeb_mem(uint32_t addr, uint8_t val, void *priv)
+{
+    RTL8139State *s = (RTL8139State *) priv;
+
+    if ((addr < s->mem_base) || (addr > (s->mem_base + 0xff)))
+        return;
+
+    return rtl8139_io_writeb(addr, val, priv);
+}
+
 static int
 rtl8139_set_link_status(void *priv, uint32_t link_state)
 {
@@ -3286,6 +3354,7 @@ rtl8139_pci_write(int func, int addr, uint8_t val, void *priv)
         case 0x16:
         case 0x17:
             s->pci_conf[addr & 0xFF] = val;
+            s->mem_base = (s->pci_conf[0x15] << 8) | (s->pci_conf[0x16] << 16) | (s->pci_conf[0x17] << 24); 
             if (s->pci_conf[0x4] & PCI_COMMAND_MEM)
                 mem_mapping_set_addr(&s->bar_mem, (s->pci_conf[0x15] << 8) | (s->pci_conf[0x16] << 16) | (s->pci_conf[0x17] << 24), 256);
             break;
@@ -3304,7 +3373,10 @@ nic_init(const device_t *info)
     uint8_t       *mac_bytes;
     uint32_t       mac;
 
-    mem_mapping_add(&s->bar_mem, 0, 0, rtl8139_io_readb, rtl8139_io_readw, rtl8139_io_readl, rtl8139_io_writeb, rtl8139_io_writew, rtl8139_io_writel, NULL, MEM_MAPPING_EXTERNAL, s);
+    mem_mapping_add(&s->bar_mem, 0, 0,
+                    rtl8139_io_readb_mem, rtl8139_io_readw_mem, rtl8139_io_readl_mem,
+                    rtl8139_io_writeb_mem, rtl8139_io_writew_mem, rtl8139_io_writel_mem,
+                    NULL, MEM_MAPPING_EXTERNAL, s);
     pci_add_card(PCI_ADD_NORMAL, rtl8139_pci_read, rtl8139_pci_write, s, &s->pci_slot);
     s->inst = device_get_instance();
 
