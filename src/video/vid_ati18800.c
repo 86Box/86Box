@@ -37,18 +37,15 @@
 #endif
 #define BIOS_ROM_PATH_VGA88          "roms/video/ati18800/vga88.bin"
 #define BIOS_ROM_PATH_EDGE16         "roms/video/ati18800/vgaedge16.vbi"
-#define BIOS_ROM_PATH_ATIEGAPLUS     "roms/video/ati18800/ATI EGA Wonder 800+ N1.00.BIN"
 
 enum {
 #if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
     ATI18800_WONDER = 0,
     ATI18800_VGA88,
-    ATI18800_EDGE16,
-    ATI18800_EGAWONDER800PLUS
+    ATI18800_EDGE16
 #else
     ATI18800_VGA88 = 0,
-    ATI18800_EDGE16,
-    ATI18800_EGAWONDER800PLUS
+    ATI18800_EDGE16
 #endif
 };
 
@@ -71,6 +68,7 @@ ati18800_out(uint16_t addr, uint8_t val, void *priv)
 {
     ati18800_t *ati18800 = (ati18800_t *) priv;
     svga_t     *svga     = &ati18800->svga;
+    uint8_t     o;
     uint8_t     old;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
@@ -182,40 +180,6 @@ ati18800_recalctimings(svga_t *svga)
 
     clock_sel = ((svga->miscout >> 2) & 3) | ((ati18800->regs[0xbe] & 0x10) >> 1) | ((ati18800->regs[0xb9] & 2) << 1);
 
-    if (ati18800->type == ATI18800_EGAWONDER800PLUS) {
-        svga->crtc[5] &= ~0x60; /*Not supported by the EGA Wonder 800+*/
-        svga->crtc[0x0b] &= ~0x60; /*Not supported by the EGA Wonder 800+*/
-
-        svga->hdisp_time = svga->hdisp;
-
-        svga->hdisp = svga->crtc[1];
-        svga->hdisp++;
-
-        svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]);
-
-        svga->hdisp_time = svga->hdisp;
-        svga->render     = svga_render_blank;
-
-        if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
-            if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-                if (svga->seqregs[1] & 8) {                              /*40 column*/
-                    svga->render = svga_render_text_40;
-                    svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
-                    /* Character clock is off by 1 now in 40-line modes, on all cards. */
-                    svga->ma_latch--;
-                    svga->hdisp += (svga->seqregs[1] & 1) ? 16 : 18;
-                } else {
-                    svga->render = svga_render_text_80;
-                    svga->hdisp *= (svga->seqregs[1] & 1) ? 8 : 9;
-                }
-                svga->hdisp_old = svga->hdisp;
-            } else {
-                svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
-                svga->hdisp_old = svga->hdisp;
-            }
-        }
-    }
-
     if (ati18800->regs[0xb6] & 0x10) {
         svga->hdisp <<= 1;
         svga->htotal <<= 1;
@@ -291,10 +255,6 @@ ati18800_init(const device_t *info)
             rom_init(&ati18800->bios_rom, BIOS_ROM_PATH_EDGE16, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
             ati18800->memory = 512;
             break;
-        case ATI18800_EGAWONDER800PLUS:
-            rom_init(&ati18800->bios_rom, BIOS_ROM_PATH_ATIEGAPLUS, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-            ati18800->memory = 256;
-            break;
     }
 
     svga_init(info, &ati18800->svga, ati18800, ati18800->memory << 10,
@@ -311,10 +271,7 @@ ati18800_init(const device_t *info)
     ati18800->svga.miscout = 1;
     ati18800->svga.bpp = 8;
 
-    if (info->local == ATI18800_EGAWONDER800PLUS)
-        ati_eeprom_load(&ati18800->eeprom, "egawonder800.nvr", 0);
-    else
-        ati_eeprom_load(&ati18800->eeprom, "ati18800.nvr", 0);
+    ati_eeprom_load(&ati18800->eeprom, "ati18800.nvr", 0);
 
     return ati18800;
 }
@@ -337,12 +294,6 @@ static int
 ati18800_available(void)
 {
     return rom_present(BIOS_ROM_PATH_EDGE16);
-}
-
-static int
-ati18800_egawonder800plus_available(void)
-{
-    return rom_present(BIOS_ROM_PATH_ATIEGAPLUS);
 }
 
 static void
@@ -410,20 +361,6 @@ const device_t ati18800_device = {
     .close         = ati18800_close,
     .reset         = NULL,
     { .available = ati18800_available },
-    .speed_changed = ati18800_speed_changed,
-    .force_redraw  = ati18800_force_redraw,
-    .config        = NULL
-};
-
-const device_t ati18800_egawonder800plus_device = {
-    .name          = "ATI EGA Wonder 800+",
-    .internal_name = "egawonder800",
-    .flags         = DEVICE_ISA,
-    .local         = ATI18800_EGAWONDER800PLUS,
-    .init          = ati18800_init,
-    .close         = ati18800_close,
-    .reset         = NULL,
-    { .available = ati18800_egawonder800plus_available },
     .speed_changed = ati18800_speed_changed,
     .force_redraw  = ati18800_force_redraw,
     .config        = NULL
