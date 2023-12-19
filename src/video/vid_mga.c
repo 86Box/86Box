@@ -15,6 +15,7 @@
  *          Copyright 2008-2020 Sarah Walker.
  */
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
@@ -511,6 +512,8 @@ typedef struct mystique_t {
         atomic_uint primaddress, primend, secaddress, secend,
             pri_header, sec_header,
             iload_header;
+
+        bool words_expected, sec_words_expected;
 
         mutex_t *lock;
     } dma;
@@ -2664,13 +2667,21 @@ run_dma(mystique_t *mystique)
             case DMA_STATE_PRI:
                 switch (mystique->dma.primaddress & DMA_MODE_MASK) {
                     case DMA_MODE_REG:
-                        if (mystique->dma.pri_state == 0) {
+                        if (mystique->dma.pri_state == 0 && !mystique->dma.words_expected) {
                             dma_bm_read(mystique->dma.primaddress & DMA_ADDR_MASK, (uint8_t *) &mystique->dma.pri_header, 4, 4);
                             mystique->dma.primaddress += 4;
                             words_transferred++;
                         }
 
-                        if ((mystique->dma.pri_header & 0xff) != 0x15 && (mystique->dma.primaddress & DMA_ADDR_MASK) < (mystique->dma.primend & DMA_ADDR_MASK)) {
+                        if ((mystique->dma.primaddress & DMA_ADDR_MASK) >= (mystique->dma.primend & DMA_ADDR_MASK) && !mystique->dma.words_expected)
+                        {
+                            /* Wait until more data is available. */
+                            mystique->dma.words_expected = 1;
+                            break;
+                        }
+
+                        mystique->dma.words_expected = 0;
+                        if ((mystique->dma.pri_header & 0xff) != 0x15) {
                             uint32_t val;
                             uint32_t reg_addr;
 
@@ -2709,7 +2720,7 @@ run_dma(mystique_t *mystique)
             case DMA_STATE_SEC:
                 switch (mystique->dma.secaddress & DMA_MODE_MASK) {
                     case DMA_MODE_REG:
-                        if (mystique->dma.sec_state == 0) {
+                        if (mystique->dma.sec_state == 0 && !mystique->dma.sec_words_expected) {
                             dma_bm_read(mystique->dma.secaddress & DMA_ADDR_MASK, (uint8_t *) &mystique->dma.sec_header, 4, 4);
                             mystique->dma.secaddress += 4;
                             words_transferred++;
@@ -2718,6 +2729,14 @@ run_dma(mystique_t *mystique)
                         uint32_t val;
                         uint32_t reg_addr;
 
+                        if ((mystique->dma.secaddress & DMA_ADDR_MASK) >= (mystique->dma.secend & DMA_ADDR_MASK) && !mystique->dma.sec_words_expected)
+                        {
+                            /* Wait until more data is available. */
+                            mystique->dma.sec_words_expected = 1;
+                            break;
+                        }
+
+                        mystique->dma.sec_words_expected = 0;
                         dma_bm_read(mystique->dma.secaddress & DMA_ADDR_MASK, (uint8_t *) &val, 4, 4);
                         mystique->dma.secaddress += 4;
 
