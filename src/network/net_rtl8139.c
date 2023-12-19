@@ -3427,6 +3427,9 @@ nic_init(const device_t *info)
         mac_bytes[5] = (mac & 0xff);
     }
 
+    for (uint32_t i = 0; i < 6; i++)
+        s->phys[MAC0 + i] = mac_bytes[i];
+
     s->nic = network_attach(s, (uint8_t *) &s->eeprom.contents[7], rtl8139_do_receive, rtl8139_set_link_status);
     timer_add(&s->timer, rtl8139_timer, s, 0);
     timer_on_auto(&s->timer, 1000000.0 / cpu_pci_speed);
