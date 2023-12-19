@@ -2685,6 +2685,7 @@ run_dma(mystique_t *mystique)
                         }
                         if (mystique->dma.pri_state == 0 && !mystique->dma.words_expected) {
                             dma_bm_read(mystique->dma.primaddress & DMA_ADDR_MASK, (uint8_t *) &mystique->dma.pri_header, 4, 4);
+                            //pclog("DMA header: 0x%08X\n", mystique->dma.pri_header);
                             mystique->dma.primaddress += 4;
                             mystique->dma.words_expected = 4;
                             words_transferred++;
@@ -2712,7 +2713,12 @@ run_dma(mystique_t *mystique)
                             if ((reg_addr & 0x300) == 0x100)
                                 mystique->blitter_submit_dma_refcount++;
 
+                            //pclog("DMA value: 0x%08X to reg 0x%04X\n", val, reg_addr);
                             mystique_accel_ctrl_write_l(reg_addr, val, mystique);
+                            if (reg_addr == REG_SOFTRAP) {
+                                mystique->dma.primaddress += 4;
+                                break;
+                            }
                         }
 
                         if (mystique->dma.words_expected)
@@ -2723,8 +2729,6 @@ run_dma(mystique_t *mystique)
                         mystique->dma.pri_state = (mystique->dma.pri_state + 1) & 3;
 
                         if (mystique->dma.state == DMA_STATE_SEC) {
-                            mystique->dma.pri_state = 0;
-                            mystique->dma.words_expected = 0;
                             mystique->dma.sec_state = 0;
                         }
                         else if ((mystique->dma.primaddress & DMA_ADDR_MASK) >= (mystique->dma.primend & DMA_ADDR_MASK)) {
@@ -2756,7 +2760,21 @@ run_dma(mystique_t *mystique)
                         if (mystique->dma.sec_state == 0) {
                             dma_bm_read(mystique->dma.secaddress & DMA_ADDR_MASK, (uint8_t *) &mystique->dma.sec_header, 4, 4);
                             mystique->dma.secaddress += 4;
+                            //pclog("DMA header (secondary): 0x%08X\n", mystique->dma.sec_header);
                             words_transferred++;
+                        }
+
+                        if ((mystique->dma.secaddress & DMA_ADDR_MASK) >= (mystique->dma.secend & DMA_ADDR_MASK)) {
+                            if ((mystique->dma.primaddress & DMA_ADDR_MASK) >= (mystique->dma.primend & DMA_ADDR_MASK)) {
+                                mystique->endprdmasts_pending = 1;
+                                mystique->dma.state           = DMA_STATE_IDLE;
+                                mystique->dma.pri_state       = 0;
+                                mystique->dma.words_expected  = 0;
+                            } else {
+                                mystique->dma.state = DMA_STATE_PRI;
+                                mystique->dma.words_expected = 0;
+                                mystique->dma.pri_state = 0;
+                            }
                         }
 
                         uint32_t val;
@@ -2775,7 +2793,7 @@ run_dma(mystique_t *mystique)
                             mystique->blitter_submit_dma_refcount++;
 
                         mystique_accel_ctrl_write_l(reg_addr, val, mystique);
-
+                        //pclog("DMA value (secondary): 0x%08X\n", val);
                         mystique->dma.sec_header >>= 8;
                         mystique->dma.sec_state = (mystique->dma.sec_state + 1) & 3;
 
