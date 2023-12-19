@@ -2934,8 +2934,14 @@ s3_in(uint16_t addr, void *priv)
                     return (s3->chip == S3_TRIO64V2) ? 0x89 : 0x88; /*Extended chip ID*/
                 case 0x2e:
                     return s3->id_ext; /*New chip ID*/
-                case 0x2f:
-                    return (s3->chip == S3_TRIO64V) ? 0x40 : 0; /*Revision level*/
+                case 0x2f: switch (s3->chip) { /*Revision level*/
+                    case S3_TRIO64V:
+                        return 0x40;
+                    case S3_TRIO64V2:
+                        return 0x16; /*Confirmed on an onboard 64V2/DX*/
+                    default:
+                        return 0x00;
+                }
                 case 0x30:
                     return s3->id; /*Chip ID*/
                 case 0x31:
@@ -7558,8 +7564,14 @@ s3_pci_read(UNUSED(int func), int addr, void *priv)
         case 0x07:
             return (s3->chip == S3_TRIO64V2) ? (s3->pci_regs[0x07] & 0x36) : (1 << 1); /*Medium DEVSEL timing*/
 
-        case 0x08:
-            return (s3->chip == S3_TRIO64V) ? 0x40 : 0; /*Revision ID*/
+        case 0x08: switch (s3->chip) { /*Revision ID*/
+            case S3_TRIO64V:
+                return 0x40;
+            case S3_TRIO64V2:
+                return 0x16; /*Confirmed on an onboard 64V2/DX*/
+            default:
+                return 0x00;
+        }
         case 0x09:
             return 0; /*Programming interface*/
 
