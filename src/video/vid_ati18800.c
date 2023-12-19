@@ -68,7 +68,6 @@ ati18800_out(uint16_t addr, uint8_t val, void *priv)
 {
     ati18800_t *ati18800 = (ati18800_t *) priv;
     svga_t     *svga     = &ati18800->svga;
-    uint8_t     o;
     uint8_t     old;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
