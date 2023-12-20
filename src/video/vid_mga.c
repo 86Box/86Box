@@ -1032,6 +1032,8 @@ mystique_update_irqs(mystique_t *mystique)
 
     if ((mystique->status & mystique->ien) & STATUS_SOFTRAPEN)
         irq = 1;
+    if ((mystique->status & mystique->ien) & STATUS_VLINEPEN)
+        irq = 1;
     if ((mystique->status & STATUS_VSYNCPEN) && (svga->crtc[0x11] & 0x30) == 0x10)
         irq = 1;
 
@@ -1442,7 +1444,7 @@ mystique_ctrl_read_b(uint32_t addr, void *priv)
                 break;
 
             case REG_IEN:
-                ret = mystique->ien & 0x64;
+                ret = mystique->ien & 0x65;
                 break;
             case REG_IEN + 1:
             case REG_IEN + 2:
@@ -1985,6 +1987,7 @@ mystique_ctrl_write_b(uint32_t addr, uint8_t val, void *priv)
     switch (addr & 0x3fff) {
         case REG_ICLEAR:
             if (val & ICLEAR_SOFTRAPICLR) {
+                //pclog("softrapiclr\n");
                 mystique->status &= ~STATUS_SOFTRAPEN;
                 mystique_update_irqs(mystique);
             }
@@ -2401,7 +2404,7 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
             mystique->dma.words_expected  = 0;
             mystique->endprdmasts_pending = 1;
             mystique->softrap_pending_val = val;
-            mystique->softrap_pending     = 1;
+            mystique->softrap_pending     += 1;
             break;
 
         default:
@@ -2669,6 +2672,11 @@ run_dma(mystique_t *mystique)
     thread_wait_mutex(mystique->dma.lock);
 
     if (mystique->dma.state == DMA_STATE_IDLE) {
+        if (!(mystique->status & STATUS_ENDPRDMASTS))
+        {
+            /* Force this to appear. */
+            mystique->endprdmasts_pending = 1;
+        }
         thread_release_mutex(mystique->dma.lock);
         return;
     }
@@ -2869,13 +2877,13 @@ fifo_thread(void *priv)
     mystique_t *mystique = (mystique_t *) priv;
 
     while (mystique->thread_run) {
+        int words_transferred = 0;
         thread_set_event(mystique->fifo_not_full_event);
         thread_wait_event(mystique->wake_fifo_thread, -1);
         thread_reset_event(mystique->wake_fifo_thread);
 
         while (!FIFO_EMPTY || mystique->dma.state != DMA_STATE_IDLE) {
-            int words_transferred = 0;
-
+            words_transferred = 0;
             while (!FIFO_EMPTY && words_transferred < 100) {
                 fifo_entry_t *fifo = &mystique->fifo[mystique->fifo_read_idx & FIFO_MASK];
 
@@ -2902,13 +2910,13 @@ fifo_thread(void *priv)
 
                 words_transferred++;
             }
-
-            /*Only run DMA once the FIFO is empty. Required by
-              Screamer 2 / Rally which will incorrectly clip an ILOAD
-              if DMA runs ahead*/
-            if (!words_transferred)
-                run_dma(mystique);
         }
+
+        /*Only run DMA once the FIFO is empty. Required by
+          Screamer 2 / Rally which will incorrectly clip an ILOAD
+          if DMA runs ahead*/
+        if (!words_transferred)
+            run_dma(mystique);
     }
 }
 
@@ -2964,12 +2972,16 @@ mystique_softrap_pending_timer(void *priv)
         mystique->status |= STATUS_ENDPRDMASTS;
     }
     if (mystique->softrap_pending) {
-        mystique->softrap_pending = 0;
+        mystique->softrap_pending--;
 
         mystique->dma.secaddress = mystique->softrap_pending_val;
         mystique->status |= STATUS_SOFTRAPEN;
+        //pclog("softrapen\n");
         mystique_update_irqs(mystique);
     }
+    /* Force ENDPRDMASTS flag to be set. */
+    if (mystique->dma.state == DMA_STATE_IDLE && !(mystique->status & STATUS_ENDPRDMASTS))
+        wake_fifo_thread(mystique);
 }
 
 static void
