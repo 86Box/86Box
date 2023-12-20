@@ -205,6 +205,10 @@ main(int argc, char *argv[])
     app.setWindowIcon(QIcon(":/settings/win/icons/86Box-gray.ico"));
 #endif
 
+#if (!defined(Q_OS_WINDOWS) && !defined(__APPLE__))
+    app.setDesktopFileName("net.86box.86Box");
+#endif
+
     if (!pc_init_modules()) {
         ui_msgbox_header(MBX_FATAL, (void *) IDS_2121, (void *) IDS_2056);
         return 6;
