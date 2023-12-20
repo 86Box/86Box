@@ -194,6 +194,17 @@ main(int argc, char *argv[])
     QApplication::setFont(QFont(font_name, font_size.toInt()));
     SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
 #endif
+
+#ifdef RELEASE_BUILD
+    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-green.ico"));
+#elif defined ALPHA_BUILD
+    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-red.ico"));
+#elif defined BETA_BUILD
+    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
+#else
+    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-gray.ico"));
+#endif
+
     if (!pc_init_modules()) {
         ui_msgbox_header(MBX_FATAL, (void *) IDS_2121, (void *) IDS_2056);
         return 6;
