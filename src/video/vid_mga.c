@@ -2672,6 +2672,11 @@ run_dma(mystique_t *mystique)
     thread_wait_mutex(mystique->dma.lock);
 
     if (mystique->dma.state == DMA_STATE_IDLE) {
+        if (!(mystique->status & STATUS_ENDPRDMASTS))
+        {
+            /* Force this to appear. */
+            mystique->endprdmasts_pending = 1;
+        }
         thread_release_mutex(mystique->dma.lock);
         return;
     }
@@ -2872,13 +2877,13 @@ fifo_thread(void *priv)
     mystique_t *mystique = (mystique_t *) priv;
 
     while (mystique->thread_run) {
+        int words_transferred = 0;
         thread_set_event(mystique->fifo_not_full_event);
         thread_wait_event(mystique->wake_fifo_thread, -1);
         thread_reset_event(mystique->wake_fifo_thread);
 
         while (!FIFO_EMPTY || mystique->dma.state != DMA_STATE_IDLE) {
-            int words_transferred = 0;
-
+            words_transferred = 0;
             while (!FIFO_EMPTY && words_transferred < 100) {
                 fifo_entry_t *fifo = &mystique->fifo[mystique->fifo_read_idx & FIFO_MASK];
 
@@ -2905,13 +2910,13 @@ fifo_thread(void *priv)
 
                 words_transferred++;
             }
-
-            /*Only run DMA once the FIFO is empty. Required by
-              Screamer 2 / Rally which will incorrectly clip an ILOAD
-              if DMA runs ahead*/
-            if (!words_transferred)
-                run_dma(mystique);
         }
+
+        /*Only run DMA once the FIFO is empty. Required by
+          Screamer 2 / Rally which will incorrectly clip an ILOAD
+          if DMA runs ahead*/
+        if (!words_transferred)
+            run_dma(mystique);
     }
 }
 
@@ -2962,22 +2967,21 @@ mystique_softrap_pending_timer(void *priv)
 
     timer_advance_u64(&mystique->softrap_pending_timer, TIMER_USEC * 100);
 
-    if (thread_test_mutex(mystique->dma.lock))
-    {
-        if (mystique->endprdmasts_pending) {
-            mystique->endprdmasts_pending = 0;
-            mystique->status |= STATUS_ENDPRDMASTS;
-        }
-        if (mystique->softrap_pending) {
-            mystique->softrap_pending--;
-
-            mystique->dma.secaddress = mystique->softrap_pending_val;
-            mystique->status |= STATUS_SOFTRAPEN;
-            //pclog("softrapen\n");
-            mystique_update_irqs(mystique);
-        }
-        thread_release_mutex(mystique->dma.lock);
+    if (mystique->endprdmasts_pending) {
+        mystique->endprdmasts_pending = 0;
+        mystique->status |= STATUS_ENDPRDMASTS;
     }
+    if (mystique->softrap_pending) {
+        mystique->softrap_pending--;
+
+        mystique->dma.secaddress = mystique->softrap_pending_val;
+        mystique->status |= STATUS_SOFTRAPEN;
+        //pclog("softrapen\n");
+        mystique_update_irqs(mystique);
+    }
+    /* Force ENDPRDMASTS flag to be set. */
+    if (mystique->dma.state == DMA_STATE_IDLE && !(mystique->status & STATUS_ENDPRDMASTS))
+        wake_fifo_thread(mystique);
 }
 
 static void
