@@ -1581,10 +1581,10 @@ do_pause(int p)
 {
     int old_p = dopause;
 
-    if (p && !old_p)
+    if ((p == 1) && !old_p)
         do_pause_ack = p;
-    dopause = p;
-    if (p && !old_p) {
+    dopause = !!p;
+    if ((p == 1) && !old_p) {
         while (!atomic_load(&pause_ack))
             ;
     }
