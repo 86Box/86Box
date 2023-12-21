@@ -371,7 +371,7 @@ plat_pause(int p)
     wchar_t        title[1024];
     wchar_t        paused_msg[512];
 
-    if (p == dopause) {
+    if ((!!p) == dopause) {
 #ifdef Q_OS_WINDOWS
         if (source_hwnd)
             PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!p, (LPARAM) (HWND) main_window->winId());
