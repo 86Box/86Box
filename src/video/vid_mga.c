@@ -886,6 +886,7 @@ mystique_recalctimings(svga_t *svga)
         if (mystique->type >= MGA_1064SG) {
             /*Mystique, unlike most SVGA cards, allows display start to take
               effect mid-screen*/
+#ifdef CHANGE_MA
             if (svga->ma_latch != mystique->ma_latch_old) {
                 if (svga->interlace && svga->oddeven)
                     svga->ma = svga->maback = (svga->maback - (mystique->ma_latch_old << 2)) + (svga->ma_latch << 2) + (svga->rowoffset << 1);
@@ -893,6 +894,17 @@ mystique_recalctimings(svga_t *svga)
                     svga->ma = svga->maback = (svga->maback - (mystique->ma_latch_old << 2)) + (svga->ma_latch << 2);
                 mystique->ma_latch_old = svga->ma_latch;
             }
+#else
+            /* Only change maback so the new display start will take effect on the next
+               horizontal retrace. */
+            if (svga->ma_latch != mystique->ma_latch_old) {
+                if (svga->interlace && svga->oddeven)
+                    svga->maback = (svga->maback - (mystique->ma_latch_old << 2)) + (svga->ma_latch << 2) + (svga->rowoffset << 1);
+                else
+                    svga->maback = (svga->maback - (mystique->ma_latch_old << 2)) + (svga->ma_latch << 2);
+                mystique->ma_latch_old = svga->ma_latch;
+            }
+#endif
 
             svga->rowoffset <<= 1;
             switch (mystique->xmulctrl & XMULCTRL_DEPTH_MASK) {
