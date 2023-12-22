@@ -3628,7 +3628,9 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
         case 0x6e8:
         case 0x6e9:
             if (!(port & 1)) {
-                dev->hdisp = val;
+                if (!dev->on[0] || !dev->on[1])
+                    dev->hdisp = val;
+
                 mach_log("ATI 8514/A: H_DISP write 06E8 = %d\n", dev->hdisp + 1);
             }
             svga_recalctimings(svga);
@@ -3653,8 +3655,10 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
 
         case 0x16e8:
         case 0x16e9:
-            WRITE8(port, dev->vdisp, val);
-            dev->vdisp &= 0x1fff;
+            if (!dev->on[0] || !dev->on[1]) {
+                WRITE8(port, dev->vdisp, val);
+                dev->vdisp &= 0x1fff;
+            }
             svga_recalctimings(svga);
             break;
 
