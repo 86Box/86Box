@@ -108,6 +108,8 @@ ega_out(uint16_t addr, uint8_t val, void *priv)
                     ega_recalctimings(ega);
                 }
             } else {
+                if ((ega->attraddr == 0x13) && (ega->attrregs[0x13] != val))
+                    ega->fullchange = changeframecount;
                 o                                 = ega->attrregs[ega->attraddr & 31];
                 ega->attrregs[ega->attraddr & 31] = val;
                 if (ega->attraddr < 16)
