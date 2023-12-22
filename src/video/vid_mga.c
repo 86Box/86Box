@@ -805,7 +805,7 @@ mystique_line_compare(svga_t *svga)
     mystique->status |= STATUS_VLINEPEN;
     mystique_update_irqs(mystique);
 
-    return 1;
+    return 0;
 }
 
 static void
