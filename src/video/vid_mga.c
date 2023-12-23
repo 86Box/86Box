@@ -887,9 +887,10 @@ mystique_recalctimings(svga_t *svga)
     if (mystique->crtcext_regs[2] & CRTCX_R2_LINECOMP10)
         svga->split |= 0x400;
 
-    if (mystique->type == MGA_2064W)
+    if (mystique->type == MGA_2064W) {
         tvp3026_recalctimings(svga->ramdac, svga);
-    else
+        svga->interlace |= !!(mystique->crtcext_regs[0] & 0x80);
+    } else
         svga->interlace = !!(mystique->crtcext_regs[0] & 0x80);
 
     if (mystique->crtcext_regs[3] & CRTCX_R3_MGAMODE) {
