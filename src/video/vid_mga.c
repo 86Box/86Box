@@ -725,8 +725,7 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
             if (mystique->crtcext_idx == 0 && (mystique->crtcext_regs[3] & CRTCX_R3_MGAMODE))
             {
                 svga->rowoffset     = svga->crtc[0x13] | ((mystique->crtcext_regs[0] & CRTCX_R0_OFFSET_MASK) << 4);
-                if (mystique->type >= MGA_1064SG)
-                    svga->rowoffset <<= 1;
+                svga->rowoffset <<= 1;
                 svga->ma_latch      = ((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) | (svga->crtc[0xc] << 8) | svga->crtc[0xd];
                 if (mystique->pci_regs[0x41] & (OPTION_INTERLEAVE >> 8)) {
                     svga->rowoffset <<= 1;
