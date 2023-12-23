@@ -5945,7 +5945,6 @@ const device_t millennium_device = {
     .config        = mystique_config
 };
 
-#if defined(DEV_BRANCH) && defined(USE_MGA)
 const device_t mystique_device = {
     .name          = "Matrox Mystique",
     .internal_name = "mystique",
@@ -5973,4 +5972,3 @@ const device_t mystique_220_device = {
     .force_redraw  = mystique_force_redraw,
     .config        = mystique_config
 };
-#endif
