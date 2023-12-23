@@ -30,8 +30,8 @@
 #include <86box/vid_svga_render.h>
 #include <86box/vid_svga_render_remap.h>
 
-static inline uint32_t
-lookup_lut_ram(svga_t* svga, uint32_t val)
+uint32_t
+svga_lookup_lut_ram(svga_t* svga, uint32_t val)
 {
     if (!svga->lut_map)
         return val;
@@ -42,7 +42,7 @@ lookup_lut_ram(svga_t* svga, uint32_t val)
     return makecol32(r, g, b) | (val & 0xFF000000);
 }
 
-#define lookup_lut(val) lookup_lut_ram(svga, val)
+#define lookup_lut(val) svga_lookup_lut_ram(svga, val)
 
 void
 svga_render_null(svga_t *svga)

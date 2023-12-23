@@ -337,6 +337,8 @@ enum {
     RAMDAC_8BIT
 };
 
+uint32_t svga_lookup_lut_ram(svga_t* svga, uint32_t val);
+
 /* We need a way to add a device with a pointer to a parent device so it can attach itself to it, and
    possibly also a second ATi 68860 RAM DAC type that auto-sets SVGA render on RAM DAC render change. */
 extern void    ati68860_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga);
