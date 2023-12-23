@@ -268,6 +268,9 @@ typedef struct svga_t {
     /* Pointer to monitor */
     monitor_t *monitor;
 
+    /* Enable LUT mapping of >= 24 bpp modes. */
+    int lut_map;
+
     void *  dev8514;
     void *  xga;
 } svga_t;
