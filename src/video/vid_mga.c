@@ -914,6 +914,7 @@ mystique_recalctimings(svga_t *svga)
         svga->hdisp         = (svga->crtc[1] + 1) << 3;
         svga->hdisp_time    = svga->hdisp;
         svga->rowoffset     = svga->crtc[0x13] | ((mystique->crtcext_regs[0] & CRTCX_R0_OFFSET_MASK) << 4);
+        svga->lut_map       = 1;
 
         if (mystique->pci_regs[0x41] & (OPTION_INTERLEAVE >> 8)) {
             svga->rowoffset <<= 1;
@@ -992,6 +993,7 @@ mystique_recalctimings(svga_t *svga)
     } else {
         svga->packed_chain4 = 0;
         svga->line_compare  = NULL;
+        svga->lut_map       = 0;
         if (mystique->type >= MGA_1064SG)
             svga->bpp = 8;
         else
