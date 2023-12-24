@@ -925,7 +925,7 @@ mystique_recalctimings(svga_t *svga)
         if (mystique->type >= MGA_1064SG) {
             /*Mystique, unlike most SVGA cards, allows display start to take
               effect mid-screen*/
-            svga->ma_latch <<= 1;
+            svga->ma_latch      = (((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) | (svga->crtc[0xc] << 8) | svga->crtc[0xd]) << 1;
             /* Only change maback so the new display start will take effect on the next
                horizontal retrace. */
             if (svga->ma_latch != mystique->ma_latch_old) {
