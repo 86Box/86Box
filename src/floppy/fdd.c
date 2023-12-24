@@ -563,8 +563,10 @@ fdd_poll(void *priv)
 
     if (fdd_notfound) {
         fdd_notfound--;
+#ifdef RETURN_NOIDAM
         if (!fdd_notfound)
             fdc_noidam(fdd_fdc);
+#endif
     }
 }
 
@@ -606,6 +608,8 @@ fdd_reset(void)
 void
 fdd_readsector(int drive, int sector, int track, int side, int density, int sector_size)
 {
+    pclog("readsector = %08X\n", drives[drive].readsector);
+
     if (drives[drive].readsector)
         drives[drive].readsector(drive, sector, track, side, density, sector_size);
     else
