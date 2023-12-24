@@ -915,6 +915,8 @@ mystique_recalctimings(svga_t *svga)
         svga->hdisp_time    = svga->hdisp;
         svga->rowoffset     = svga->crtc[0x13] | ((mystique->crtcext_regs[0] & CRTCX_R0_OFFSET_MASK) << 4);
         svga->lut_map       = 1;
+        if (mystique->type >= MGA_1064SG)
+            svga->ma_latch      = ((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) | (svga->crtc[0xc] << 8) | svga->crtc[0xd];
 
         if (mystique->pci_regs[0x41] & (OPTION_INTERLEAVE >> 8)) {
             svga->rowoffset <<= 1;
