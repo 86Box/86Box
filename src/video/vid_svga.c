@@ -1102,6 +1102,12 @@ svga_poll(void *priv)
     }
 }
 
+uint32_t
+svga_conv_16to32(struct svga_t *svga, uint16_t color, uint8_t bpp)
+{
+    return (bpp == 15) ? video_15to32[color] : video_16to32[color];
+}
+
 int
 svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
           void (*recalctimings_ex)(struct svga_t *svga),
@@ -1148,6 +1154,7 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->video_out                           = video_out;
     svga->hwcursor_draw                       = hwcursor_draw;
     svga->overlay_draw                        = overlay_draw;
+    svga->conv_16to32                         = svga_conv_16to32;
 
     svga->hwcursor.cur_xsize = svga->hwcursor.cur_ysize = 32;
 
