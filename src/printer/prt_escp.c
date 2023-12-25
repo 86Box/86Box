@@ -508,9 +508,12 @@ update_font(escp_t *dev)
     if (dev->fontface)
         FT_Done_Face(dev->fontface);
 
-    if (dev->print_quality == QUALITY_DRAFT)
-        fn = FONT_FILE_DOTMATRIX;
-    else
+    if (dev->print_quality == QUALITY_DRAFT) {
+        if (dev->font_style & STYLE_ITALICS)
+            fn = FONT_FILE_DOTMATRIX_ITALIC;
+        else
+            fn = FONT_FILE_DOTMATRIX;
+    } else
         switch (dev->lq_typeface) {
             case TYPEFACE_ROMAN:
                 fn = FONT_FILE_ROMAN;
@@ -592,7 +595,7 @@ update_font(escp_t *dev)
                      (uint16_t) (hpoints * 64), (uint16_t) (vpoints * 64),
                      dev->dpi, dev->dpi);
 
-    if ((dev->font_style & STYLE_ITALICS) || (dev->char_tables[dev->curr_char_table] == 0)) {
+    if ((dev->print_quality != QUALITY_DRAFT) && ((dev->font_style & STYLE_ITALICS) || (dev->char_tables[dev->curr_char_table] == 0))) {
         /* Italics transformation. */
         matrix.xx = 0x10000L;
         matrix.xy = (FT_Fixed) (0.20 * 0x10000L);
