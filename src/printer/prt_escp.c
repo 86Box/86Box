@@ -437,6 +437,7 @@ reset_printer(escp_t *dev)
     dev->cpi                              = PAGE_CPI;
     dev->curr_char_table                  = 1;
     dev->font_style                       = 0;
+    dev->print_quality                    = QUALITY_DRAFT;
     dev->extra_intra_space                = 0.0;
     dev->print_upper_control              = 1;
     dev->bg_remaining_bytes               = 0;
@@ -508,9 +509,12 @@ update_font(escp_t *dev)
     if (dev->fontface)
         FT_Done_Face(dev->fontface);
 
-    if (dev->print_quality == QUALITY_DRAFT)
-        fn = FONT_FILE_DOTMATRIX;
-    else
+    if (dev->print_quality == QUALITY_DRAFT) {
+        if (dev->font_style & STYLE_ITALICS)
+            fn = FONT_FILE_DOTMATRIX_ITALIC;
+        else
+            fn = FONT_FILE_DOTMATRIX;
+    } else
         switch (dev->lq_typeface) {
             case TYPEFACE_ROMAN:
                 fn = FONT_FILE_ROMAN;
@@ -545,17 +549,6 @@ update_font(escp_t *dev)
     if (FT_New_Face(ft_lib, path, 0, &dev->fontface)) {
         escp_log("ESC/P: unable to load font '%s'\n", path);
         dev->fontface = NULL;
-
-        /* Try to fall back to Courier in case the dot matrix font is absent. */
-        if (!strcmp(fn, FONT_FILE_DOTMATRIX)) {
-            strcpy(path, dev->fontpath);
-            path_slash(path);
-            strcat(path, FONT_FILE_COURIER);
-            if (FT_New_Face(ft_lib, path, 0, &dev->fontface)) {
-                escp_log("ESC/P: unable to load font '%s'\n", path);
-                dev->fontface = NULL;
-            }
-        }
     }
 
     if (!dev->multipoint_mode) {
@@ -603,7 +596,7 @@ update_font(escp_t *dev)
                      (uint16_t) (hpoints * 64), (uint16_t) (vpoints * 64),
                      dev->dpi, dev->dpi);
 
-    if ((dev->font_style & STYLE_ITALICS) || (dev->char_tables[dev->curr_char_table] == 0)) {
+    if ((dev->print_quality != QUALITY_DRAFT) && ((dev->font_style & STYLE_ITALICS) || (dev->char_tables[dev->curr_char_table] == 0))) {
         /* Italics transformation. */
         matrix.xx = 0x10000L;
         matrix.xy = (FT_Fixed) (0.20 * 0x10000L);
@@ -1589,8 +1582,8 @@ handle_char(escp_t *dev, uint8_t ch)
         FT_Render_Glyph(dev->fontface->glyph, FT_RENDER_MODE_NORMAL);
     }
 
-    pen_x = PIXX + dev->fontface->glyph->bitmap_left;
-    pen_y = (uint16_t) (PIXY - dev->fontface->glyph->bitmap_top + dev->fontface->size->metrics.ascender / 64);
+    pen_x = PIXX + fmax(0.0, dev->fontface->glyph->bitmap_left);
+    pen_y = (uint16_t) (PIXY + fmax(0.0, -dev->fontface->glyph->bitmap_top + dev->fontface->size->metrics.ascender / 64));
 
     if (dev->font_style & STYLE_SUBSCRIPT)
         pen_y += dev->fontface->glyph->bitmap.rows / 2;

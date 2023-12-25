@@ -46,7 +46,8 @@
 #ifndef PRINTER_H
 #define PRINTER_H
 
-#define FONT_FILE_DOTMATRIX "dotmatrix.ttf"
+#define FONT_FILE_DOTMATRIX        "dotmatrix.otf"
+#define FONT_FILE_DOTMATRIX_ITALIC "dotmatrix_italic.otf"
 
 #define FONT_FILE_ROMAN     "roman.ttf"
 #define FONT_FILE_SANSSERIF "sansserif.ttf"
