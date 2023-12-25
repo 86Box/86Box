@@ -1578,8 +1578,8 @@ handle_char(escp_t *dev, uint8_t ch)
         FT_Render_Glyph(dev->fontface->glyph, FT_RENDER_MODE_NORMAL);
     }
 
-    pen_x = PIXX + dev->fontface->glyph->bitmap_left;
-    pen_y = (uint16_t) (PIXY - dev->fontface->glyph->bitmap_top + dev->fontface->size->metrics.ascender / 64);
+    pen_x = PIXX + fmax(0.0, dev->fontface->glyph->bitmap_left);
+    pen_y = (uint16_t) (PIXY + fmax(0.0, -dev->fontface->glyph->bitmap_top + dev->fontface->size->metrics.ascender / 64));
 
     if (dev->font_style & STYLE_SUBSCRIPT)
         pen_y += dev->fontface->glyph->bitmap.rows / 2;
