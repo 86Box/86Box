@@ -5728,6 +5728,31 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
     }
 }
 
+static uint32_t
+mystique_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
+{
+    mystique_t *mystique = (mystique_t*)svga->priv;
+
+    if (svga->lut_map) {
+        if (bpp == 15) {
+            if (mystique->xgenctrl & (1 << 2)) {
+                color &= 0x7FFF;
+            }
+            uint8_t b = getcolr(svga->pallook[(color & 0x1F) | (!!(color & 0x8000) >> 8)]);
+            uint8_t g = getcolg(svga->pallook[((color & 0x3E0) >> 5) | (!!(color & 0x8000) >> 8)]);
+            uint8_t r = getcolb(svga->pallook[((color & 0x7C00) >> 10) | (!!(color & 0x8000) >> 8)]);
+            return video_15to32[color] & 0xFF000000 | makecol(r, g, b);
+        } else {
+            uint8_t b = getcolr(svga->pallook[color & 0x1f]);
+            uint8_t g = getcolg(svga->pallook[(color & 0x7e0) >> 5]);
+            uint8_t r = getcolb(svga->pallook[(color & 0xf800) >> 11]);
+            return video_16to32[color] & 0xFF000000 | makecol(r, g, b);
+        }
+    }
+    
+    return (bpp == 15) ? video_15to32[color] : video_16to32[color];
+}
+
 static void *
 mystique_init(const device_t *info)
 {
@@ -5852,6 +5877,7 @@ mystique_init(const device_t *info)
     mystique->softrap_status_read = 1;
 
     mystique->svga.vsync_callback = mystique_vsync_callback;
+    mystique->svga.conv_16to32    = mystique_conv_16to32;
 
     mystique->i2c     = i2c_gpio_init("i2c_mga");
     mystique->i2c_ddc = i2c_gpio_init("ddc_mga");
