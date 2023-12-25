@@ -437,6 +437,7 @@ reset_printer(escp_t *dev)
     dev->cpi                              = PAGE_CPI;
     dev->curr_char_table                  = 1;
     dev->font_style                       = 0;
+    dev->print_quality                    = QUALITY_DRAFT;
     dev->extra_intra_space                = 0.0;
     dev->print_upper_control              = 1;
     dev->bg_remaining_bytes               = 0;
