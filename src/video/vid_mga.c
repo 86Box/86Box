@@ -440,7 +440,10 @@ typedef struct mystique_t {
     uint32_t vram_mask, vram_mask_w, vram_mask_l,
         lfb_base, ctrl_base, iload_base,
         ma_latch_old, maccess, mctlwtst, maccess_running,
-        status, softrap_pending_val;
+        softrap_pending_val;
+    
+    atomic_uint status;
+    atomic_bool softrap_status_read;
 
     uint64_t blitter_time, status_time;
 
@@ -1483,13 +1486,16 @@ mystique_ctrl_read_b(uint32_t addr, void *priv)
                 ret = mystique->status & 0xff;
                 if (svga->cgastat & 8)
                     ret |= REG_STATUS_VSYNCSTS;
+                if (ret & 1)
+                    mystique->softrap_status_read = 1;
                 break;
             case REG_STATUS + 1:
                 ret = (mystique->status >> 8) & 0xff;
                 break;
             case REG_STATUS + 2:
                 ret = (mystique->status >> 16) & 0xff;
-                if (mystique->busy || ((mystique->blitter_submit_refcount + mystique->blitter_submit_dma_refcount) != mystique->blitter_complete_refcount) || !FIFO_EMPTY)
+                if (mystique->busy || ((mystique->blitter_submit_refcount + mystique->blitter_submit_dma_refcount) != mystique->blitter_complete_refcount) || !FIFO_EMPTY
+                || mystique->dma.state != DMA_STATE_IDLE || mystique->softrap_pending || mystique->endprdmasts_pending)
                     ret |= (STATUS_DWGENGSTS >> 16);
                 break;
             case REG_STATUS + 3:
@@ -2724,6 +2730,12 @@ run_dma(mystique_t *mystique)
 
     thread_wait_mutex(mystique->dma.lock);
 
+    if (mystique->softrap_pending || mystique->endprdmasts_pending || !mystique->softrap_status_read)
+    {
+        thread_release_mutex(mystique->dma.lock);
+        return;
+    }
+
     if (mystique->dma.state == DMA_STATE_IDLE) {
         if (!(mystique->status & STATUS_ENDPRDMASTS))
         {
@@ -3025,16 +3037,14 @@ mystique_softrap_pending_timer(void *priv)
         mystique->status |= STATUS_ENDPRDMASTS;
     }
     if (mystique->softrap_pending) {
-        mystique->softrap_pending--;
-
         mystique->dma.secaddress = mystique->softrap_pending_val;
         mystique->status |= STATUS_SOFTRAPEN;
+        mystique->softrap_status_read = 0;
         //pclog("softrapen\n");
         mystique_update_irqs(mystique);
+        mystique->softrap_pending--;
     }
-    /* Force ENDPRDMASTS flag to be set. */
-    if (mystique->dma.state == DMA_STATE_IDLE && !(mystique->status & STATUS_ENDPRDMASTS))
-        mystique->status |= STATUS_ENDPRDMASTS;
+    
 }
 
 static void
@@ -5838,6 +5848,8 @@ mystique_init(const device_t *info)
     timer_add(&mystique->softrap_pending_timer, mystique_softrap_pending_timer, (void *) mystique, 1);
 
     mystique->status = STATUS_ENDPRDMASTS;
+    
+    mystique->softrap_status_read = 1;
 
     mystique->svga.vsync_callback = mystique_vsync_callback;
 
