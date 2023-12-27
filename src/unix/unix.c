@@ -1212,6 +1212,7 @@ main(int argc, char **argv)
     thread_create(monitor_thread, NULL);
 #endif
     SDL_AddTimer(1000, timer_onesec, NULL);
+    plat_pause(1);
     while (!is_quit) {
         static int mouse_inside = 0;
 
