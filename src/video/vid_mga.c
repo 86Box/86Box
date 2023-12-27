@@ -5760,12 +5760,12 @@ mystique_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
             uint8_t g = getcolg(svga->pallook[(color & 0x3e0) >> 5]);
             uint8_t r = getcolb(svga->pallook[(color & 0x7c00) >> 10]);
 #endif
-            ret = video_15to32[color] & 0xFF000000 | makecol(r, g, b);
+            ret = (video_15to32[color] & 0xFF000000) | makecol(r, g, b);
         } else {
             uint8_t b = getcolr(svga->pallook[color & 0x1f]);
             uint8_t g = getcolg(svga->pallook[(color & 0x7e0) >> 5]);
             uint8_t r = getcolb(svga->pallook[(color & 0xf800) >> 11]);
-            ret = video_16to32[color] & 0xFF000000 | makecol(r, g, b);
+            ret = (video_16to32[color] & 0xFF000000) | makecol(r, g, b);
         }
     } else
         ret = (bpp == 15) ? video_15to32[color] : video_16to32[color];
