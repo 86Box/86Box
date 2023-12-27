@@ -620,7 +620,7 @@ svga_recalctimings(svga_t *svga)
     svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
     svga->ca_adj   = 0;
 
-    svga->rowcount = svga->crtc[9] & 31;
+    svga->rowcount = svga->crtc[9] & 0x1f;
 
     svga->hdisp_time = svga->hdisp;
     svga->render     = svga_render_blank;
@@ -641,27 +641,26 @@ svga_recalctimings(svga_t *svga)
             svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
             svga->hdisp_old = svga->hdisp;
 
-            if ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) == 0x00)) {
+            if ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) <= 0x20)) {
                 if ((svga->gdcreg[5] & 0x60) == 0x00) {
                     if (svga->seqregs[1] & 8) /*Low res (320)*/
                         svga->render = svga_render_4bpp_lowres;
                     else
                         svga->render = svga_render_4bpp_highres;
+                } else if ((svga->gdcreg[5] & 0x60) == 0x20) {
+                    if (svga->seqregs[1] & 8) /*Low res (320)*/
+                        svga->render = svga_render_2bpp_lowres;
+                    else
+                        svga->render = svga_render_2bpp_highres;
                 } else {
                     svga->map8 = svga->pallook;
-                    if (svga->attrregs[0x10] & 0x40) /*Low res (320)*/
+                    if (svga->lowres) /*Low res (320)*/
                         svga->render = svga_render_8bpp_lowres;
                     else
                         svga->render = svga_render_8bpp_highres;
                 }
             } else {
                 switch (svga->gdcreg[5] & 0x60) {
-                    case 0x20:                    /*4 colours*/
-                        if (svga->seqregs[1] & 8) /*Low res (320)*/
-                            svga->render = svga_render_2bpp_lowres;
-                        else
-                            svga->render = svga_render_2bpp_highres;
-                        break;
                     case 0x40:
                     case 0x60: /*256+ colours*/
                         switch (svga->bpp) {

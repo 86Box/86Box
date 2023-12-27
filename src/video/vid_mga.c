@@ -2511,6 +2511,16 @@ mystique_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
                 //mystique->dma.pri_state = 0;
                 wake_fifo_thread(mystique);
             }
+            /* HACK: For DirectX 9.0b Direct3D testing on Windows 98 SE.
+            
+                The 4.12.013 drivers give an out-of-bounds busmastering range when dxdiag enumerates Direct3D, with exactly 16384 bytes of difference.
+                Don't attempt busmastering in such cases. This isn't ideal, but there are no more crashes faced in this case. */
+            if ((mystique->dma.primend & DMA_ADDR_MASK) < (mystique->dma.primaddress & DMA_ADDR_MASK) && ((mystique->dma.primaddress & DMA_ADDR_MASK) - (mystique->dma.primend & DMA_ADDR_MASK)) == 0x4000)
+            {
+                mystique->dma.primaddress = mystique->dma.primend;
+                mystique->endprdmasts_pending = 1;
+                mystique->dma.state = DMA_STATE_IDLE;
+            }
             thread_release_mutex(mystique->dma.lock);
             break;
 
