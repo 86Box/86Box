@@ -234,6 +234,7 @@
 #define XREG_XPIXPLLSTAT              0x4f
 
 #define XMISCCTRL_VGA8DAC             (1 << 3)
+#define XMISCCTRL_RAMCS               (1 << 4)
 
 #define XMULCTRL_DEPTH_MASK           (7 << 0)
 #define XMULCTRL_DEPTH_8              (0 << 0)
@@ -917,7 +918,7 @@ mystique_recalctimings(svga_t *svga)
         svga->hdisp         = (svga->crtc[1] + 1) << 3;
         svga->hdisp_time    = svga->hdisp;
         svga->rowoffset     = svga->crtc[0x13] | ((mystique->crtcext_regs[0] & CRTCX_R0_OFFSET_MASK) << 4);
-        svga->lut_map       = 1;
+        svga->lut_map       = !!(mystique->xmiscctrl & XMISCCTRL_RAMCS);
         if (mystique->type >= MGA_1064SG)
             svga->ma_latch      = ((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) | (svga->crtc[0xc] << 8) | svga->crtc[0xd];
 
@@ -1321,6 +1322,8 @@ mystique_write_xreg(mystique_t *mystique, int reg, uint8_t val)
         case XREG_XMISCCTRL:
             mystique->xmiscctrl = val;
             svga_set_ramdac_type(svga, (val & XMISCCTRL_VGA8DAC) ? RAMDAC_8BIT : RAMDAC_6BIT);
+            if (mystique->crtcext_regs[3] & CRTCX_R3_MGAMODE)
+                svga->lut_map       = !!(mystique->xmiscctrl & XMISCCTRL_RAMCS);
             break;
 
         case XREG_XGENCTRL:
@@ -5738,15 +5741,21 @@ mystique_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
         if (bpp == 15) {
             if (mystique->xgenctrl & (1 << 2))
                 color &= 0x7FFF;
+#if 0
             uint8_t b = getcolr(svga->pallook[(color & 0x1F) | (!!(color & 0x8000) >> 8)]);
             uint8_t g = getcolg(svga->pallook[((color & 0x3E0) >> 5) | (!!(color & 0x8000) >> 8)]);
             uint8_t r = getcolb(svga->pallook[((color & 0x7C00) >> 10) | (!!(color & 0x8000) >> 8)]);
-            ret = (video_15to32[color] & 0xFF000000) | makecol(r, g, b);
+#else
+            uint8_t b = getcolr(svga->pallook[color & 0x1f]);
+            uint8_t g = getcolg(svga->pallook[(color & 0x3e0) >> 5]);
+            uint8_t r = getcolb(svga->pallook[(color & 0x7c00) >> 10]);
+#endif
+            ret = video_15to32[color] & 0xFF000000 | makecol(r, g, b);
         } else {
             uint8_t b = getcolr(svga->pallook[color & 0x1f]);
             uint8_t g = getcolg(svga->pallook[(color & 0x7e0) >> 5]);
             uint8_t r = getcolb(svga->pallook[(color & 0xf800) >> 11]);
-            ret = (video_16to32[color] & 0xFF000000) | makecol(r, g, b);
+            ret = video_16to32[color] & 0xFF000000 | makecol(r, g, b);
         }
     } else
         ret = (bpp == 15) ? video_15to32[color] : video_16to32[color];
