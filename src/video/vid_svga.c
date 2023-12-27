@@ -174,8 +174,10 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                     svga->fullchange = svga->monitor->mon_changeframecount;
                 o                                   = svga->attrregs[svga->attraddr & 31];
                 svga->attrregs[svga->attraddr & 31] = val;
-                if (svga->attraddr < 16)
+                if (svga->attraddr < 16) {
+                    svga->color_4bpp = (val >> 4) & 0x03;
                     svga->fullchange = svga->monitor->mon_changeframecount;
+                }
                 if (svga->attraddr == 0x10 || svga->attraddr == 0x14 || svga->attraddr < 0x10) {
                     for (int c = 0; c < 16; c++) {
                         if (svga->attrregs[0x10] & 0x80) {

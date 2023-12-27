@@ -231,6 +231,7 @@ typedef struct svga_t {
     uint8_t dac_status;
     uint8_t dpms;
     uint8_t dpms_ui;
+    uint8_t color_4bpp;
     uint8_t ksc5601_sbyte_mask;
     uint8_t ksc5601_udc_area_msb[2];
 
