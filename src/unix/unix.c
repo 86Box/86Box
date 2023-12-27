@@ -1163,9 +1163,12 @@ main(int argc, char **argv)
 {
     SDL_Event event;
     void     *libedithandle;
+    int      ret = 0;
 
     SDL_Init(0);
-    pc_init(argc, argv);
+    ret = pc_init(argc, argv);
+    if (ret == 0)
+        return 0;
     if (!pc_init_modules()) {
         ui_msgbox_header(MBX_FATAL, L"No ROMs found.", L"86Box could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
         SDL_Quit();
