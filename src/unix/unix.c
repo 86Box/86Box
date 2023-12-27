@@ -816,7 +816,7 @@ plat_init_rom_paths(void)
             while (xdg_rom_paths[strlen(xdg_rom_paths) - 1] == ':') {
                 xdg_rom_paths[strlen(xdg_rom_paths) - 1] = '\0';
             }
-            while ((cur_xdg_rom_path = local_strsep(&xdg_rom_paths, ";")) != NULL) {
+            while ((cur_xdg_rom_path = local_strsep(&xdg_rom_paths, ":")) != NULL) {
                 char real_xdg_rom_path[1024] = { '\0' };
                 strcat(real_xdg_rom_path, cur_xdg_rom_path);
                 path_slash(real_xdg_rom_path);
