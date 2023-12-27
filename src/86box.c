@@ -1153,9 +1153,6 @@ pc_reset_hard_init(void)
      * that will be a call to device_reset_all() later !
      */
 
-    if (joystick_type)
-        gameport_update_joystick_type();
-
     /* Reset and reconfigure the Sound Card layer. */
     sound_card_reset();
 
@@ -1199,9 +1196,12 @@ pc_reset_hard_init(void)
     /* Reset any ISA RTC cards. */
     isartc_reset();
 
-    /* Initialize the Voodoo cards here inorder to minmize
+    /* Initialize the Voodoo cards here inorder to minimize
        the chances of the SCSI controller ending up on the bridge. */
     video_voodoo_init();
+
+    if (joystick_type)
+        gameport_update_joystick_type(); /* installs game port if no device provides one, must be late */
 
     ui_sb_update_panes();
 
