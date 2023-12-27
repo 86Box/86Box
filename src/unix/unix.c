@@ -762,10 +762,13 @@ plat_pause(int p)
     static wchar_t oldtitle[512];
     wchar_t        title[512];
 
+    if ((!!p) == dopause)
+        return;
+
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
 
-    dopause = p;
+    do_pause(p);
     if (p) {
         wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
         wcscpy(title, oldtitle);
