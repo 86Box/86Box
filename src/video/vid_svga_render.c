@@ -586,8 +586,8 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
                But 4bpp chunky is generally easier to deal with on a modern CPU.
                shift4bit is the native format for this renderer (4bpp chunky).
              */
-            if (!shift4bit) {
-                if (shift2bit) {
+            if (svga->ati_4color || !shift4bit) {
+                if (shift2bit && !svga->ati_4color) {
                     /* Group 2x 2bpp values into 4bpp values */
                     edat = (edat & 0xCCCC3333) | ((edat << 14) & 0x33330000) | ((edat >> 14) & 0x0000CCCC);
                 } else {
@@ -648,7 +648,19 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
             uint32_t c1 = (out_edat >> (current_shift & 0x1C)) & 0xF;
             current_shift >>= 3;
 
-            if (combine8bits) {
+            if (svga->ati_4color) {
+                uint32_t  q[4];
+                q[0]      = svga->pallook[svga->egapal[(c0 & 0x0c) >> 2]];
+                q[1]      = svga->pallook[svga->egapal[c0 & 0x03]];
+                q[2]      = svga->pallook[svga->egapal[(c1 & 0x0c) >> 2]];
+                q[3]      = svga->pallook[svga->egapal[c1 & 0x03]];
+
+                const int outoffs = i << dwshift;
+                for (int ch = 0; ch < 4; ch++) {
+                    for (int subx = 0; subx < dotwidth; subx++)
+                        p[outoffs + subx + (dotwidth * ch)] = q[ch];
+                }
+            } else if (combine8bits) {
                 if (svga->packed_4bpp) {
                     uint32_t  p0      = svga->map8[c0];
                     uint32_t  p1      = svga->map8[c1];
@@ -664,22 +676,6 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
                     for (int subx = 0; subx < dotwidth; subx++)
                         p[outoffs + subx] = p0;
                 }
-            } else if (svga->ati_4color) {
-                uint8_t   pal4to16[16] = {0, 7, 8 | 0x30, 15 | 0x30, 0, 2, 4, 14 | 0x30, 0, 3, 4, 15 | 0x30, 0, 3, 5, 15 | 0x30};
-                uint8_t   *cur_pal = &(pal4to16[svga->color_2bpp << 2]);
-                uint32_t  q[4];
-                q[0]      = svga->pallook[svga->egapal[cur_pal[(c0 & 0x0c) >> 2]]];
-                q[1]      = svga->pallook[svga->egapal[cur_pal[c0 & 0x03]]];
-                q[2]      = svga->pallook[svga->egapal[cur_pal[(c1 & 0x0c) >> 2]]];
-                q[3]      = svga->pallook[svga->egapal[cur_pal[c1 & 0x03]]];
-
-                const int outoffs = i << dwshift;
-                for (int ch = 0; ch < 4; ch++) {
-                    for (int subx = 0; subx < (dotwidth + 1); subx++)
-                        p[outoffs + subx] = q[ch];
-
-                    p += (dotwidth + 1);
-                }
             } else {
                 uint32_t  p0      = svga->pallook[svga->egapal[c0]];
                 uint32_t  p1      = svga->pallook[svga->egapal[c1]];
@@ -691,7 +687,10 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
             }
         }
 
-        if (!svga->ati_4color)
+        if (svga->ati_4color)
+            p += (charwidth << 1);
+            // p += charwidth;
+        else
             p += charwidth;
     }
 }
