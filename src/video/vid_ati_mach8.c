@@ -2579,15 +2579,30 @@ mach_recalctimings(svga_t *svga)
     if (mach->regs[0xb0] & 0x40)
         svga->ma_latch |= 0x20000;
 
-    if (mach->regs[0xb6] & 0x10) {
+    if ((mach->regs[0xb6] & 0x18) >= 0x10) {
         svga->hdisp <<= 1;
         svga->htotal <<= 1;
         svga->rowoffset <<= 1;
         svga->gdcreg[5] &= ~0x40;
     }
 
-    if (mach->regs[0xb0] & 0x20)
+    if (mach->regs[0xb0] & 0x20) {
         svga->gdcreg[5] |= 0x40;
+        if ((mach->regs[0xb6] & 0x18) >= 0x10)
+            svga->packed_4bpp = 1;
+        else
+            svga->packed_4bpp = 0;
+    } else
+        svga->packed_4bpp = 0;
+
+    if ((dev->local & 0xff) < 0x02) {
+        if ((mach->regs[0xb6] & 0x18) == 8) {
+            svga->hdisp <<= 1;
+            svga->htotal <<= 1;
+            svga->ati_4color = 1;
+        } else
+            svga->ati_4color = 0;
+    }
 
     mach_log("ON[0]=%d, ON[1]=%d, exton[0]=%d, exton[1]=%d, vendormode0=%d, vendormode1=%d.\n", dev->on[0], dev->on[1], mach->ext_on[0], mach->ext_on[1], dev->vendor_mode[0], dev->vendor_mode[1]);
     if (dev->on[0] || dev->on[1]) {
@@ -2605,9 +2620,6 @@ mach_recalctimings(svga_t *svga)
 
             if (dev->dispend == 598)
                 dev->dispend += 2;
-
-            if (dev->h_disp == 1024)
-                dev->accel.advfunc_cntl |= 4; /*Bit 2 means high resolution e.g.: 1024x768*/
 
             if (dev->accel.advfunc_cntl & 4) {
                 if (mach->shadow_set & 2) {
@@ -2784,8 +2796,10 @@ mach_recalctimings(svga_t *svga)
                                 svga->render = svga_render_8bpp_lowres;
                             else {
                                 svga->render = svga_render_8bpp_highres;
-                                svga->ma_latch <<= 1;
-                                svga->rowoffset <<= 1;
+                                if (!svga->packed_4bpp) {
+                                    svga->ma_latch <<= 1;
+                                    svga->rowoffset <<= 1;
+                                }
                             }
                             break;
                     }
@@ -3628,7 +3642,9 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
         case 0x6e8:
         case 0x6e9:
             if (!(port & 1)) {
-                if (!dev->on[0] || !dev->on[1])
+                if ((dev->vendor_mode[0] || dev->vendor_mode[1]) && ((mach->shadow_set & 3) == 0))
+                    dev->hdisp = val;
+                else if (!dev->on[0] || !dev->on[1])
                     dev->hdisp = val;
 
                 mach_log("ATI 8514/A: H_DISP write 06E8 = %d\n", dev->hdisp + 1);
@@ -3655,10 +3671,13 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
 
         case 0x16e8:
         case 0x16e9:
-            if (!dev->on[0] || !dev->on[1]) {
+            if ((dev->vendor_mode[0] || dev->vendor_mode[1]) && ((mach->shadow_set & 3) == 0)) {
                 WRITE8(port, dev->vdisp, val);
-                dev->vdisp &= 0x1fff;
+            } else if (!dev->on[0] || !dev->on[1]) {
+                WRITE8(port, dev->vdisp, val);
             }
+            dev->vdisp &= 0x1fff;
+            mach_log("ATI 8514/A: V_DISP write 16E8 = %d\n", (dev->vdisp >> 1) + 1);
             svga_recalctimings(svga);
             break;
 
@@ -3848,7 +3867,8 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
         case 0x5aef:
             WRITE8(port, mach->shadow_set, val);
             mach_log("ATI 8514/A: (0x%04x) val = %04x.\n", port, val);
-            svga_recalctimings(svga);
+            if (mach->shadow_set & 3)
+                svga_recalctimings(svga);
             break;
 
         case 0x5eee:

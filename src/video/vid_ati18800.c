@@ -186,8 +186,22 @@ ati18800_recalctimings(svga_t *svga)
         svga->gdcreg[5] &= ~0x40;
     }
 
-    if (ati18800->regs[0xb0] & 6)
+    if (ati18800->regs[0xb0] & 6) {
         svga->gdcreg[5] |= 0x40;
+        if ((ati18800->regs[0xb6] & 0x18) >= 0x10)
+            svga->packed_4bpp = 1;
+        else
+            svga->packed_4bpp = 0;
+    } else
+        svga->packed_4bpp = 0;
+
+    if ((ati18800->regs[0xb6] & 0x18) == 8) {
+        svga->hdisp <<= 1;
+        svga->htotal <<= 1;
+        svga->ati_4color = 1;
+    } else
+        svga->ati_4color = 0;
+
 
     if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
          if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
@@ -215,8 +229,10 @@ ati18800_recalctimings(svga_t *svga)
                                 svga->render = svga_render_8bpp_lowres;
                             else {
                                 svga->render = svga_render_8bpp_highres;
-                                svga->ma_latch <<= 1;
-                                svga->rowoffset <<= 1;
+                                if (!svga->packed_4bpp) {
+                                    svga->ma_latch <<= 1;
+                                    svga->rowoffset <<= 1;
+                                }
                             }
                             break;
                     }
