@@ -466,7 +466,6 @@ static void
 svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
 {
     int       x;
-    int       xx = 0;
     uint32_t  addr;
     uint32_t *p;
     uint32_t  changed_offset;
