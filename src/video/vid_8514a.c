@@ -221,7 +221,7 @@ ibm8514_cpu_dest(svga_t *svga)
 }
 
 void
-ibm8514_accel_out_pixtrans(svga_t *svga, UNUSED(uint16_t port), uint16_t val, int len)
+ibm8514_accel_out_pixtrans(svga_t *svga, UNUSED(uint16_t port), uint32_t val, int len)
 {
     ibm8514_t *dev       = (ibm8514_t *) svga->dev8514;
     uint8_t    nibble    = 0;
@@ -1298,8 +1298,9 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
     /*Bit 4 of the Command register is the draw yes bit, which enables writing to memory/reading from memory when enabled.
       When this bit is disabled, no writing to memory/reading from memory is allowed. (This bit is almost meaningless on
       the NOP command)*/
-    if (dev->accel.cmd == 0x53b1 && !cpu_dat)
-        ibm8514_log("CMD8514: CMD=%d, full=%04x, pixcntl=%x, count=%d, frgdmix = %02x, bkgdmix = %02x, polygon=%x, cpu=%08x, frgdmix=%02x, bkgdmix=%02x.\n", cmd, dev->accel.cmd, pixcntl, count, frgd_mix, bkgd_mix, dev->accel.multifunc[0x0a] & 6, cpu_dat, dev->accel.frgd_mix, dev->accel.bkgd_mix);
+    if (dev->accel.cmd == 0x43b3) {
+        ibm8514_log("CMD8514: CMD=%d, full=%04x, pixcntl=%x, count=%d, frcolor=%02x, bkcolor=%02x, polygon=%x, cpu=%08x, frgdmix=%02x, bkgdmix=%02x.\n", cmd, dev->accel.cmd, pixcntl, count, frgd_color, bkgd_color, dev->accel.multifunc[0x0a] & 6, cpu_dat, dev->accel.frgd_mix, dev->accel.bkgd_mix);
+    }
 
     switch (cmd) {
         case 0: /*NOP (Short Stroke Vectors)*/
@@ -3758,7 +3759,6 @@ bitblt:
                                     old_dest_dat = dest_dat;
                                     MIX(mix_dat & mix_mask, dest_dat, src_dat);
                                     dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
-
                                     if (dev->accel.cmd & 4) {
                                         if (dev->accel.sx > 0) {
                                             WRITE(dev->accel.dest + dev->accel.dx, dest_dat);
@@ -4356,6 +4356,7 @@ ibm8514_init(const device_t *info)
     dev->changedvram = calloc(dev->vram_size >> 12, 1);
     dev->vram_mask   = dev->vram_size - 1;
     dev->map8        = dev->pallook;
+    dev->local       = 0;
 
     dev->type     = info->flags;
     dev->bpp      = 0;

@@ -116,6 +116,7 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
     xga_t     *xga = (xga_t *) svga->xga;
     uint8_t    o;
     uint8_t    index;
+    uint8_t    pal4to16[16] = { 0, 7, 0x38, 0x3f, 0, 3, 4, 0x3f, 0, 2, 4, 0x3e, 0, 3, 5, 0x3f };
 
     if (!dev && (addr >= 0x2ea) && (addr <= 0x2ed))
         return;
@@ -163,7 +164,7 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3c0:
         case 0x3c1:
             if (!svga->attrff) {
-                svga->attraddr = val & 31;
+                svga->attraddr = val & 0x1f;
                 if ((val & 0x20) != svga->attr_palette_enable) {
                     svga->fullchange          = 3;
                     svga->attr_palette_enable = val & 0x20;
@@ -172,19 +173,19 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
             } else {
                 if ((svga->attraddr == 0x13) && (svga->attrregs[0x13] != val))
                     svga->fullchange = svga->monitor->mon_changeframecount;
-                o                                   = svga->attrregs[svga->attraddr & 31];
-                svga->attrregs[svga->attraddr & 31] = val;
-                if (svga->attraddr < 16) {
-                    svga->color_2bpp = (val >> 4) & 0x03;
+                o                                   = svga->attrregs[svga->attraddr & 0x1f];
+                svga->attrregs[svga->attraddr & 0x1f] = val;
+                if (svga->attraddr < 0x10)
                     svga->fullchange = svga->monitor->mon_changeframecount;
-                }
-                if (svga->attraddr == 0x10 || svga->attraddr == 0x14 || svga->attraddr < 0x10) {
-                    for (int c = 0; c < 16; c++) {
-                        if (svga->attrregs[0x10] & 0x80) {
+
+                if ((svga->attraddr == 0x10) || (svga->attraddr == 0x14) || (svga->attraddr < 0x10)) {
+                    for (int c = 0; c < 0x10; c++) {
+                        if (svga->attrregs[0x10] & 0x80)
                             svga->egapal[c] = (svga->attrregs[c] & 0xf) | ((svga->attrregs[0x14] & 0xf) << 4);
-                        } else {
+                        else if (svga->ati_4color)
+                            svga->egapal[c] = pal4to16[(c & 0x03) | ((val >> 2) & 0xc)];
+                        else
                             svga->egapal[c] = (svga->attrregs[c] & 0x3f) | ((svga->attrregs[0x14] & 0xc) << 4);
-                        }
                     }
                     svga->fullchange = svga->monitor->mon_changeframecount;
                 }
