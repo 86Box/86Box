@@ -35,7 +35,7 @@ svga_lookup_lut_ram(svga_t* svga, uint32_t val)
 {
     if (!svga->lut_map)
         return val;
-    
+
     uint8_t r = getcolr(svga->pallook[getcolr(val)]);
     uint8_t g = getcolg(svga->pallook[getcolg(val)]);
     uint8_t b = getcolb(svga->pallook[getcolb(val)]);
@@ -466,11 +466,12 @@ static void
 svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
 {
     int       x;
+    int       xx = 0;
     uint32_t  addr;
     uint32_t *p;
     uint32_t  changed_offset;
 
-    const bool blinked   = svga->blink & 0x10;
+    const bool blinked   = !!(svga->blink & 0x10);
     const bool attrblink = (!svga->disable_blink) && ((svga->attrregs[0x10] & 0x08) != 0);
 
     /*
@@ -499,11 +500,11 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
     const uint32_t loadevery  = forcepacked ? 1 : (dwordload ? 4 : wordload ? 2 : 1);
 
     const bool shift4bit = ((svga->gdcreg[0x05] & 0x40) == 0x40) || highres8bpp;
-    const bool shift2bit = ((svga->gdcreg[0x05] & 0x60) == 0x20) && !shift4bit;
+    const bool shift2bit = (((svga->gdcreg[0x05] & 0x60) == 0x20) && !shift4bit);
 
     const int      dwshift   = highres ? 0 : 1;
     const int      dotwidth  = 1 << dwshift;
-    const int      charwidth = dotwidth * (combine8bits ? 4 : 8);
+    const int      charwidth = dotwidth * ((combine8bits && !svga->packed_4bpp) ? 4 : 8);
     const uint32_t planemask = 0x11111111 * (uint32_t) (svga->plane_mask);
     const uint32_t blinkmask = (attrblink ? 0x88888888 : 0x0);
     const uint32_t blinkval  = (attrblink && blinked ? 0x88888888 : 0x0);
@@ -637,7 +638,7 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
          */
         out_edat = ((out_edat & planemask & ~blinkmask) | ((out_edat | ~planemask) & blinkmask & blinkval)) ^ blinkmask;
 
-        for (int i = 0; i < 8; i += 2) {
+        for (int i = 0; i < (8 + (svga->ati_4color ? 8 : 0)); i += (svga->ati_4color ? 4 : 2)) {
             /*
                c0 denotes the first 4bpp pixel shifted, while c1 denotes the second.
                For 8bpp modes, the first 4bpp pixel is the upper 4 bits.
@@ -648,11 +649,37 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
             current_shift >>= 3;
 
             if (combine8bits) {
-                uint32_t  ccombined = (c0 << 4) | c1;
-                uint32_t  p0        = svga->map8[ccombined];
-                const int outoffs   = (i >> 1) << dwshift;
-                for (int subx = 0; subx < dotwidth; subx++)
-                    p[outoffs + subx] = p0;
+                if (svga->packed_4bpp) {
+                    uint32_t  p0      = svga->map8[c0];
+                    uint32_t  p1      = svga->map8[c1];
+                    const int outoffs = i << dwshift;
+                    for (int subx = 0; subx < dotwidth; subx++)
+                        p[outoffs + subx] = p0;
+                    for (int subx = 0; subx < dotwidth; subx++)
+                        p[outoffs + subx + dotwidth] = p1;
+                } else {
+                    uint32_t  ccombined = (c0 << 4) | c1;
+                    uint32_t  p0        = svga->map8[ccombined];
+                    const int outoffs   = (i >> 1) << dwshift;
+                    for (int subx = 0; subx < dotwidth; subx++)
+                        p[outoffs + subx] = p0;
+                }
+            } else if (svga->ati_4color) {
+                uint8_t   pal4to16[16] = {0, 7, 8 | 0x30, 15 | 0x30, 0, 2, 4, 14 | 0x30, 0, 3, 4, 15 | 0x30, 0, 3, 5, 15 | 0x30};
+                uint8_t   *cur_pal = &(pal4to16[svga->color_2bpp << 2]);
+                uint32_t  q[4];
+                q[0]      = svga->pallook[svga->egapal[cur_pal[(c0 & 0x0c) >> 2]]];
+                q[1]      = svga->pallook[svga->egapal[cur_pal[c0 & 0x03]]];
+                q[2]      = svga->pallook[svga->egapal[cur_pal[(c1 & 0x0c) >> 2]]];
+                q[3]      = svga->pallook[svga->egapal[cur_pal[c1 & 0x03]]];
+
+                const int outoffs = i << dwshift;
+                for (int ch = 0; ch < 4; ch++) {
+                    for (int subx = 0; subx < (dotwidth + 1); subx++)
+                        p[outoffs + subx] = q[ch];
+
+                    p += (dotwidth + 1);
+                }
             } else {
                 uint32_t  p0      = svga->pallook[svga->egapal[c0]];
                 uint32_t  p1      = svga->pallook[svga->egapal[c1]];
@@ -664,7 +691,8 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
             }
         }
 
-        p += charwidth;
+        if (!svga->ati_4color)
+            p += charwidth;
     }
 }
 
