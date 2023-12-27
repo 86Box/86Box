@@ -32,6 +32,9 @@ using atomic_int  = std::atomic_int;
 
 #define makecol(r, g, b)   ((b) | ((g) << 8) | ((r) << 16))
 #define makecol32(r, g, b) ((b) | ((g) << 8) | ((r) << 16))
+#define getcolr(color) (((color) >> 16) & 0xFF)
+#define getcolg(color) (((color) >> 8) & 0xFF)
+#define getcolb(color) ((color) & 0xFF)
 
 enum {
     VID_NONE = 0,
@@ -433,10 +436,8 @@ extern const device_t pgc_device;
 
 /* Matrox MGA */
 extern const device_t millennium_device;
-#    if defined(DEV_BRANCH) && defined(USE_MGA)
 extern const device_t mystique_device;
 extern const device_t mystique_220_device;
-#    endif
 
 /* Oak OTI-0x7 */
 extern const device_t oti037c_device;

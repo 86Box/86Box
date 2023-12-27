@@ -723,7 +723,8 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
 
                     /* Since the UI doesn't have a power button at the moment, pause emulation,
                        then trigger a resume event so that the system resumes after unpausing. */
-                    plat_pause(1);
+                    plat_pause(2);    /* 2 means do not wait for pause as
+                                         we're already in the CPU thread. */
                     timer_set_delay_u64(&dev->resume_timer, 50 * TIMER_USEC);
                 }
             }

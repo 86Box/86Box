@@ -174,8 +174,10 @@ svga_out(uint16_t addr, uint8_t val, void *priv)
                     svga->fullchange = svga->monitor->mon_changeframecount;
                 o                                   = svga->attrregs[svga->attraddr & 31];
                 svga->attrregs[svga->attraddr & 31] = val;
-                if (svga->attraddr < 16)
+                if (svga->attraddr < 16) {
+                    svga->color_2bpp = (val >> 4) & 0x03;
                     svga->fullchange = svga->monitor->mon_changeframecount;
+                }
                 if (svga->attraddr == 0x10 || svga->attraddr == 0x14 || svga->attraddr < 0x10) {
                     for (int c = 0; c < 16; c++) {
                         if (svga->attrregs[0x10] & 0x80) {
@@ -618,7 +620,7 @@ svga_recalctimings(svga_t *svga)
     svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
     svga->ca_adj   = 0;
 
-    svga->rowcount = svga->crtc[9] & 31;
+    svga->rowcount = svga->crtc[9] & 0x1f;
 
     svga->hdisp_time = svga->hdisp;
     svga->render     = svga_render_blank;
@@ -639,43 +641,29 @@ svga_recalctimings(svga_t *svga)
             svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
             svga->hdisp_old = svga->hdisp;
 
-            if (svga->bpp <= 8) {
-                if (svga->attrregs[0x10] & 0x40) { /*8bpp mode*/
+            if ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) <= 0x20)) {
+                if ((svga->gdcreg[5] & 0x60) == 0x00) {
+                    if (svga->seqregs[1] & 8) /*Low res (320)*/
+                        svga->render = svga_render_4bpp_lowres;
+                    else
+                        svga->render = svga_render_4bpp_highres;
+                } else if ((svga->gdcreg[5] & 0x60) == 0x20) {
+                    if (svga->seqregs[1] & 8) /*Low res (320)*/
+                        svga->render = svga_render_2bpp_lowres;
+                    else
+                        svga->render = svga_render_2bpp_highres;
+                } else {
                     svga->map8 = svga->pallook;
                     if (svga->lowres) /*Low res (320)*/
                         svga->render = svga_render_8bpp_lowres;
                     else
                         svga->render = svga_render_8bpp_highres;
-                } else {
-                    if (svga->seqregs[1] & 8) /*Low res (320)*/
-                        svga->render = svga_render_4bpp_lowres;
-                    else
-                        svga->render = svga_render_4bpp_highres;
                 }
             } else {
                 switch (svga->gdcreg[5] & 0x60) {
-                    case 0x00:
-                        if (svga->seqregs[1] & 8) /*Low res (320)*/
-                            svga->render = svga_render_4bpp_lowres;
-                        else
-                            svga->render = svga_render_4bpp_highres;
-                        break;
-                    case 0x20:                    /*4 colours*/
-                        if (svga->seqregs[1] & 8) /*Low res (320)*/
-                            svga->render = svga_render_2bpp_lowres;
-                        else
-                            svga->render = svga_render_2bpp_highres;
-                        break;
                     case 0x40:
                     case 0x60: /*256+ colours*/
                         switch (svga->bpp) {
-                            case 8:
-                                svga->map8 = svga->pallook;
-                                if (svga->lowres)
-                                    svga->render = svga_render_8bpp_lowres;
-                                else
-                                    svga->render = svga_render_8bpp_highres;
-                                break;
                             case 15:
                                 if (svga->lowres)
                                     svga->render = svga_render_15bpp_lowres;
@@ -1115,6 +1103,12 @@ svga_poll(void *priv)
     }
 }
 
+uint32_t
+svga_conv_16to32(struct svga_t *svga, uint16_t color, uint8_t bpp)
+{
+    return (bpp == 15) ? video_15to32[color] : video_16to32[color];
+}
+
 int
 svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
           void (*recalctimings_ex)(struct svga_t *svga),
@@ -1161,6 +1155,7 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
     svga->video_out                           = video_out;
     svga->hwcursor_draw                       = hwcursor_draw;
     svga->overlay_draw                        = overlay_draw;
+    svga->conv_16to32                         = svga_conv_16to32;
 
     svga->hwcursor.cur_xsize = svga->hwcursor.cur_ysize = 32;
 
@@ -1920,9 +1915,8 @@ svga_readl_common(uint32_t addr, uint8_t linear, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-    if (!svga->fast) {
+    if (!svga->fast)
         return svga_read_common(addr, linear, priv) | (svga_read_common(addr + 1, linear, priv) << 8) | (svga_read_common(addr + 2, linear, priv) << 16) | (svga_read_common(addr + 3, linear, priv) << 24);
-    }
 
     cycles -= svga->monitor->mon_video_timing_read_l;
 

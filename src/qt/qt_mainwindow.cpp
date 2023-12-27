@@ -196,15 +196,6 @@ MainWindow::MainWindow(QWidget *parent)
     auto toolbar_label = new QLabel();
     ui->toolBar->addWidget(toolbar_label);
 
-#ifdef RELEASE_BUILD
-    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-green.ico"));
-#elif defined ALPHA_BUILD
-    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-red.ico"));
-#elif defined BETA_BUILD
-    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
-#else
-    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-gray.ico"));
-#endif
     this->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, vid_resize != 1);
     this->setWindowFlag(Qt::WindowMaximizeButtonHint, vid_resize == 1);
 

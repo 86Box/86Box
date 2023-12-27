@@ -489,12 +489,10 @@ static void
 ali5229_ide_irq_handler(ali1543_t *dev)
 {
     int ctl = 0;
-    int ch = 0;
     int bit = 0;
 
     if (dev->ide_conf[0x52] & 0x10) {
         ctl ^= 1;
-        ch ^= 1;
         bit ^= 5;
     }
 
@@ -984,7 +982,7 @@ static void
 ali7101_write(int func, int addr, uint8_t val, void *priv)
 {
     ali1543_t *dev = (ali1543_t *) priv;
-    ali1543_log("M7101: dev->pmu_conf[%02x] = %02x\n", addr, val);
+    ali1543_log("M7101: [W] dev->pmu_conf[%02x] = %02x\n", addr, val);
 
     if (func > 0)
         return;
@@ -1408,64 +1406,77 @@ ali7101_read(int func, int addr, void *priv)
     uint8_t    ret = 0xff;
 
     if (dev->pmu_dev_enable && (func == 0)) {
-        if ((dev->pmu_conf[0xc9] & 0x01) && (addr >= 0x40) && (addr != 0xc9))
-            return 0xff;
-
-        /* TODO: C4, C5 = GPIREG (masks: 0D, 0E) */
-        switch (addr) {
-            default:
-                ret = dev->pmu_conf[addr];
-                break;
-            case 0x42:
-                ret = (dev->pmu_conf[addr] & 0xf7) | (nvr_smi_status(dev->nvr) ? 0x08 : 0x00);
-                break;
-            case 0x43:
-                ret = acpi_ali_soft_smi_status_read(dev->acpi) ? 0x10 : 0x00;
-                break;
-            case 0x7f:
-                ret = 0x80;
-                break;
-            case 0xbc:
-                ret = inb(0x70);
-                break;
-        }
-
-        if (dev->pmu_conf[0x77] & 0x10) {
+        if (!(dev->pmu_conf[0xc9] & 0x01) || (addr < 0x40) || (addr == 0xc9)) {
+            /* TODO: C4, C5 = GPIREG (masks: 0D, 0E) */
             switch (addr) {
+                default:
+                    ret = dev->pmu_conf[addr];
+                    break;
+                case 0x10 ... 0x13:
+                    if (dev->pmu_conf[0x5b] & 0x02)
+                        ret = 0x00;
+                    else
+                        ret = dev->pmu_conf[addr];
+                    break;
+                case 0x14 ... 0x17:
+                    if (dev->pmu_conf[0x5b] & 0x04)
+                        ret = 0x00;
+                    else
+                        ret = dev->pmu_conf[addr];
+                    break;
                 case 0x42:
-                    dev->pmu_conf[addr] &= 0xe0;
+                    ret = (dev->pmu_conf[addr] & 0xf7) | (nvr_smi_status(dev->nvr) ? 0x08 : 0x00);
                     break;
                 case 0x43:
-                    dev->pmu_conf[addr] &= 0xef;
-                    acpi_ali_soft_smi_status_write(dev->acpi, 0);
+                    ret = acpi_ali_soft_smi_status_read(dev->acpi) ? 0x10 : 0x00;
                     break;
+                case 0x7f:
+                    ret = 0x80;
+                    break;
+                case 0xbc:
+                    ret = inb(0x70);
+                    break;
+            }
 
-                case 0x48:
-                    dev->pmu_conf[addr] = 0x00;
-                    break;
-                case 0x49:
-                    dev->pmu_conf[addr] &= 0x60;
-                    break;
-                case 0x4a:
-                    dev->pmu_conf[addr] &= 0xc7;
-                    break;
+            if (dev->pmu_conf[0x77] & 0x10) {
+                switch (addr) {
+                    case 0x42:
+                        dev->pmu_conf[addr] &= 0xe0;
+                        break;
+                    case 0x43:
+                        dev->pmu_conf[addr] &= 0xef;
+                        acpi_ali_soft_smi_status_write(dev->acpi, 0);
+                        break;
 
-                case 0x4e:
-                    dev->pmu_conf[addr] &= 0xfa;
-                    break;
-                case 0x4f:
-                    dev->pmu_conf[addr] &= 0xfe;
-                    break;
+                    case 0x48:
+                        dev->pmu_conf[addr] = 0x00;
+                        break;
+                    case 0x49:
+                        dev->pmu_conf[addr] &= 0x60;
+                        break;
+                    case 0x4a:
+                        dev->pmu_conf[addr] &= 0xc7;
+                        break;
 
-                case 0x74:
-                    dev->pmu_conf[addr] &= 0xcc;
-                    break;
+                    case 0x4e:
+                        dev->pmu_conf[addr] &= 0xfa;
+                        break;
+                    case 0x4f:
+                        dev->pmu_conf[addr] &= 0xfe;
+                        break;
 
-                default:
-                    break;
+                    case 0x74:
+                        dev->pmu_conf[addr] &= 0xcc;
+                        break;
+
+                    default:
+                        break;
+                }
             }
         }
     }
+
+    ali1543_log("M7101: [R] dev->pmu_conf[%02x] = %02x\n", addr, ret);
 
     return ret;
 }

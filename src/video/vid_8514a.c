@@ -2940,9 +2940,11 @@ rect_fill:
                         } else {
                             while (count-- && dev->accel.sy >= 0) {
                                 if (dev->accel.cx >= dev->accel.clip_left && dev->accel.cx <= clip_r && dev->accel.cy >= dev->accel.clip_top && dev->accel.cy <= clip_b) {
-                                    switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
+                                    switch (frgd_mix) {
                                         case 0:
                                             src_dat = bkgd_color;
+                                            if (!bkgd_mix && (dev->accel.cmd & 0x40) && ((dev->accel.frgd_mix & 0x1f) == 7) && ((dev->accel.bkgd_mix & 0x1f) == 3) && !dev->bpp && (bkgd_color == 0x00)) /*For some reason, the September 1992 Mach8/32 drivers for Win3.x don't set the background colors properly.*/
+                                                src_dat = frgd_color;
                                             break;
                                         case 1:
                                             src_dat = frgd_color;
@@ -2962,7 +2964,7 @@ rect_fill:
 
                                     if ((compare_mode == 0) || ((compare_mode == 0x10) && (dest_dat >= compare)) || ((compare_mode == 0x18) && (dest_dat < compare)) || ((compare_mode == 0x20) && (dest_dat != compare)) || ((compare_mode == 0x28) && (dest_dat == compare)) || ((compare_mode == 0x30) && (dest_dat <= compare)) || ((compare_mode == 0x38) && (dest_dat > compare))) {
                                         old_dest_dat = dest_dat;
-                                        MIX(mix_dat & mix_mask, dest_dat, src_dat);
+                                        MIX(1, dest_dat, src_dat);
                                         dest_dat = (dest_dat & wrt_mask) | (old_dest_dat & ~wrt_mask);
                                         WRITE(dev->accel.dest + dev->accel.cx, dest_dat);
                                     }
@@ -3740,7 +3742,7 @@ bitblt:
                                     case 3:
                                         READ(dev->accel.src + dev->accel.cx, src_dat);
                                         if (pixcntl == 3) {
-                                            if (dev->accel.cmd & 0x10) {
+                                            if ((dev->accel.cmd & 0x10) && !(dev->accel.cmd & 0x40)) {
                                                 src_dat = ((src_dat & rd_mask) == rd_mask);
                                             }
                                         }

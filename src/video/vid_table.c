@@ -79,7 +79,7 @@ video_cards[] = {
   // clang-format off
     { &vid_none_device                               },
     { &vid_internal_device                           },
-    { &atiega_device                                 },
+    { &atiega800p_device                             },
     { &mach8_isa_device,        VIDEO_FLAG_TYPE_8514 },
     { &mach32_isa_device,       VIDEO_FLAG_TYPE_8514 },
     { &mach64gx_isa_device                           },
@@ -205,10 +205,8 @@ video_cards[] = {
     { &s3_diamond_stealth_4000_pci_device            },
     { &s3_trio3d2x_pci_device                        },
     { &millennium_device                             },
-#if defined(DEV_BRANCH) && defined(USE_MGA)
     { &mystique_device                               },
     { &mystique_220_device                           },
-#endif
     { &tgui9440_pci_device                           },
     { &tgui9660_pci_device                           },
     { &tgui9680_pci_device                           },

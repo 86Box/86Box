@@ -39,6 +39,7 @@
 #include <86box/device.h>
 #include <86box/thread.h>
 #include <86box/network.h>
+#include <86box/net_eeprom_nmc93cxx.h>
 #include <86box/bswap.h>
 #include <86box/nvr.h>
 #include "cpu.h"
@@ -351,44 +352,6 @@ enum chip_flags {
 
 #define RTL8139_PCI_REVID           RTL8139_PCI_REVID_8139CPLUS
 
-/* Size is 64 * 16bit words */
-#define EEPROM_9346_ADDR_BITS 6
-#define EEPROM_9346_SIZE      (1 << EEPROM_9346_ADDR_BITS)
-#define EEPROM_9346_ADDR_MASK (EEPROM_9346_SIZE - 1)
-
-enum Chip9346Operation {
-    Chip9346_op_mask          = 0xc0, /* 10 zzzzzz */
-    Chip9346_op_read          = 0x80, /* 10 AAAAAA */
-    Chip9346_op_write         = 0x40, /* 01 AAAAAA D(15)..D(0) */
-    Chip9346_op_ext_mask      = 0xf0, /* 11 zzzzzz */
-    Chip9346_op_write_enable  = 0x30, /* 00 11zzzz */
-    Chip9346_op_write_all     = 0x10, /* 00 01zzzz */
-    Chip9346_op_write_disable = 0x00, /* 00 00zzzz */
-};
-
-enum Chip9346Mode {
-    Chip9346_none = 0,
-    Chip9346_enter_command_mode,
-    Chip9346_read_command,
-    Chip9346_data_read,      /* from output register */
-    Chip9346_data_write,     /* to input register, then to contents at specified address */
-    Chip9346_data_write_all, /* to input register, then filling contents */
-};
-
-typedef struct EEprom9346 {
-    uint16_t contents[EEPROM_9346_SIZE];
-    int      mode;
-    uint32_t tick;
-    uint8_t  address;
-    uint16_t input;
-    uint16_t output;
-
-    uint8_t eecs;
-    uint8_t eesk;
-    uint8_t eedi;
-    uint8_t eedo;
-} EEprom9346;
-
 #pragma pack(push, 1)
 typedef struct RTL8139TallyCounters {
     /* Tally counters */
@@ -476,8 +439,6 @@ struct RTL8139State {
     uint32_t RxRingAddrLO;
     uint32_t RxRingAddrHI;
 
-    EEprom9346 eeprom;
-
     uint32_t TCTR;
     uint32_t TimerInt;
     int64_t  TCTR_base;
@@ -490,6 +451,8 @@ struct RTL8139State {
     int      cplus_txbuffer_len;
     int      cplus_txbuffer_offset;
 
+    uint32_t mem_base;
+
     /* PCI interrupt timer */
     pc_timer_t timer;
 
@@ -497,189 +460,13 @@ struct RTL8139State {
 
     /* Support migration to/from old versions */
     int rtl8139_mmio_io_addr_dummy;
+
+    nmc93cxx_eeprom_t *eeprom;
+    uint8_t            eeprom_data[128];
 };
 
 /* Writes tally counters to memory via DMA */
 static void RTL8139TallyCounters_dma_write(RTL8139State *s, uint32_t tc_addr);
-
-static void
-prom9346_decode_command(EEprom9346 *eeprom, uint8_t command)
-{
-    rtl8139_log("eeprom command 0x%02x\n", command);
-
-    switch (command & Chip9346_op_mask) {
-        case Chip9346_op_read:
-            {
-                eeprom->address = command & EEPROM_9346_ADDR_MASK;
-                eeprom->output  = eeprom->contents[eeprom->address];
-                eeprom->eedo    = 0;
-                eeprom->tick    = 0;
-                eeprom->mode    = Chip9346_data_read;
-                rtl8139_log("eeprom read from address 0x%02x data=0x%04x\n",
-                            eeprom->address, eeprom->output);
-            }
-            break;
-
-        case Chip9346_op_write:
-            {
-                eeprom->address = command & EEPROM_9346_ADDR_MASK;
-                eeprom->input   = 0;
-                eeprom->tick    = 0;
-                eeprom->mode    = Chip9346_none; /* Chip9346_data_write */
-                rtl8139_log("eeprom begin write to address 0x%02x\n",
-                            eeprom->address);
-            }
-            break;
-        default:
-            eeprom->mode = Chip9346_none;
-            switch (command & Chip9346_op_ext_mask) {
-                case Chip9346_op_write_enable:
-                    rtl8139_log("eeprom write enabled\n");
-                    break;
-                case Chip9346_op_write_all:
-                    rtl8139_log("eeprom begin write all\n");
-                    break;
-                case Chip9346_op_write_disable:
-                    rtl8139_log("eeprom write disabled\n");
-                    break;
-
-                default:
-                    break;
-            }
-            break;
-    }
-}
-
-static void
-prom9346_shift_clock(EEprom9346 *eeprom)
-{
-    int bit = eeprom->eedi ? 1 : 0;
-
-    ++eeprom->tick;
-
-    rtl8139_log("eeprom: tick %d eedi=%d eedo=%d\n", eeprom->tick, eeprom->eedi,
-                eeprom->eedo);
-
-    switch (eeprom->mode) {
-        case Chip9346_enter_command_mode:
-            if (bit) {
-                eeprom->mode  = Chip9346_read_command;
-                eeprom->tick  = 0;
-                eeprom->input = 0;
-                rtl8139_log("eeprom: +++ synchronized, begin command read\n");
-            }
-            break;
-
-        case Chip9346_read_command:
-            eeprom->input = (eeprom->input << 1) | (bit & 1);
-            if (eeprom->tick == 8) {
-                prom9346_decode_command(eeprom, eeprom->input & 0xff);
-            }
-            break;
-
-        case Chip9346_data_read:
-            eeprom->eedo = (eeprom->output & 0x8000) ? 1 : 0;
-            eeprom->output <<= 1;
-            if (eeprom->tick == 16) {
-#if 1
-                // the FreeBSD drivers (rl and re) don't explicitly toggle
-                // CS between reads (or does setting Cfg9346 to 0 count too?),
-                // so we need to enter wait-for-command state here
-                eeprom->mode  = Chip9346_enter_command_mode;
-                eeprom->input = 0;
-                eeprom->tick  = 0;
-
-                rtl8139_log("eeprom: +++ end of read, awaiting next command\n");
-#else
-                // original behaviour
-                ++eeprom->address;
-                eeprom->address &= EEPROM_9346_ADDR_MASK;
-                eeprom->output = eeprom->contents[eeprom->address];
-                eeprom->tick   = 0;
-
-                rtl8139_log("eeprom: +++ read next address 0x%02x data=0x%04x\n",
-                            eeprom->address, eeprom->output);
-#endif
-            }
-            break;
-
-        case Chip9346_data_write:
-            eeprom->input = (eeprom->input << 1) | (bit & 1);
-            if (eeprom->tick == 16) {
-                rtl8139_log("eeprom write to address 0x%02x data=0x%04x\n",
-                            eeprom->address, eeprom->input);
-
-                eeprom->contents[eeprom->address] = eeprom->input;
-                eeprom->mode                      = Chip9346_none; /* waiting for next command after CS cycle */
-                eeprom->tick                      = 0;
-                eeprom->input                     = 0;
-            }
-            break;
-
-        case Chip9346_data_write_all:
-            eeprom->input = (eeprom->input << 1) | (bit & 1);
-            if (eeprom->tick == 16) {
-                for (int i = 0; i < EEPROM_9346_SIZE; i++) {
-                    eeprom->contents[i] = eeprom->input;
-                }
-                rtl8139_log("eeprom filled with data=0x%04x\n", eeprom->input);
-
-                eeprom->mode  = Chip9346_enter_command_mode;
-                eeprom->tick  = 0;
-                eeprom->input = 0;
-            }
-            break;
-
-        default:
-            break;
-    }
-}
-
-static int
-prom9346_get_wire(RTL8139State *s)
-{
-    const EEprom9346 *eeprom = &s->eeprom;
-    if (!eeprom->eecs)
-        return 0;
-
-    return eeprom->eedo;
-}
-
-/* FIXME: This should be merged into/replaced by eeprom93xx.c.  */
-static void
-prom9346_set_wire(RTL8139State *s, int eecs, int eesk, int eedi)
-{
-    EEprom9346 *eeprom   = &s->eeprom;
-    uint8_t     old_eecs = eeprom->eecs;
-    uint8_t     old_eesk = eeprom->eesk;
-
-    eeprom->eecs = eecs;
-    eeprom->eesk = eesk;
-    eeprom->eedi = eedi;
-
-    rtl8139_log("eeprom: +++ wires CS=%d SK=%d DI=%d DO=%d\n", eeprom->eecs,
-                eeprom->eesk, eeprom->eedi, eeprom->eedo);
-
-    if (!old_eecs && eecs) {
-        /* Synchronize start */
-        eeprom->tick   = 0;
-        eeprom->input  = 0;
-        eeprom->output = 0;
-        eeprom->mode   = Chip9346_enter_command_mode;
-
-        rtl8139_log("=== eeprom: begin access, enter command mode\n");
-    }
-
-    if (!eecs) {
-        rtl8139_log("=== eeprom: end access\n");
-        return;
-    }
-
-    if (!old_eesk && eesk) {
-        /* SK front rules */
-        prom9346_shift_clock(eeprom);
-    }
-}
 
 static void
 rtl8139_update_irq(RTL8139State *s)
@@ -1434,9 +1221,8 @@ rtl8139_IntrMitigate_read(UNUSED(RTL8139State *s))
 static int
 rtl8139_config_writable(RTL8139State *s)
 {
-    if ((s->Cfg9346 & Chip9346_op_mask) == Cfg9346_ConfigWrite) {
+    if ((s->Cfg9346 & 0xc0) == 0xc0)
         return 1;
-    }
 
     rtl8139_log("Configuration registers are write-protected\n");
 
@@ -1518,10 +1304,10 @@ rtl8139_Cfg9346_write(RTL8139State *s, uint32_t val)
 
     if (opmode == 0x80) {
         /* eeprom access */
-        int eecs = (eeprom_val & 0x08) ? 1 : 0;
-        int eesk = (eeprom_val & 0x04) ? 1 : 0;
-        int eedi = (eeprom_val & 0x02) ? 1 : 0;
-        prom9346_set_wire(s, eecs, eesk, eedi);
+        nmc93cxx_eeprom_write(s->eeprom,
+                              !!(eeprom_val & 0x08),
+                              !!(eeprom_val & 0x04),
+                              !!(eeprom_val & 0x02));
     } else if (opmode == 0x40) {
         /* Reset.  */
         val = 0;
@@ -1539,13 +1325,10 @@ rtl8139_Cfg9346_read(RTL8139State *s)
     uint32_t opmode = ret & 0xc0;
 
     if (opmode == 0x80) {
-        /* eeprom access */
-        int eedo = prom9346_get_wire(s);
-        if (eedo) {
+        if (nmc93cxx_eeprom_read(s->eeprom))
             ret |= 0x01;
-        } else {
+        else
             ret &= ~0x01;
-        }
     }
 
     rtl8139_log("Cfg9346 read val=0x%02x\n", ret);
@@ -3118,37 +2901,136 @@ rtl8139_io_readl(uint32_t addr, void *priv)
 static uint32_t
 rtl8139_io_readl_ioport(uint16_t addr, void *priv)
 {
-    return rtl8139_io_readl(addr, priv);
+    uint32_t ret = 0xffffffff;
+
+    ret = rtl8139_io_readl(addr, priv);
+
+    rtl8139_log("[%04X:%08X] [RLI] %04X = %08X\n", CS, cpu_state.pc, addr, ret);
+
+    return ret;
 }
 
 static uint16_t
 rtl8139_io_readw_ioport(uint16_t addr, void *priv)
 {
-    return rtl8139_io_readw(addr, priv);
+    uint16_t ret = 0xffff;
+
+    ret = rtl8139_io_readw(addr, priv);
+
+    rtl8139_log("[%04X:%08X] [RWI] %04X = %04X\n", CS, cpu_state.pc, addr, ret);
+
+    return ret;
 }
 
 static uint8_t
 rtl8139_io_readb_ioport(uint16_t addr, void *priv)
 {
-    return rtl8139_io_readb(addr, priv);
+    uint8_t ret = 0xff;
+
+    ret = rtl8139_io_readb(addr, priv);
+
+    rtl8139_log("[%04X:%08X] [RBI] %04X = %02X\n", CS, cpu_state.pc, addr, ret);
+
+    return ret;
 }
 
 static void
 rtl8139_io_writel_ioport(uint16_t addr, uint32_t val, void *priv)
 {
-    return rtl8139_io_writel(addr, val, priv);
+    rtl8139_log("[%04X:%08X] [WLI] %04X = %08X\n", CS, cpu_state.pc, addr, val);
+
+    rtl8139_io_writel(addr, val, priv);
 }
 
 static void
 rtl8139_io_writew_ioport(uint16_t addr, uint16_t val, void *priv)
 {
-    return rtl8139_io_writew(addr, val, priv);
+    rtl8139_log("[%04X:%08X] [WWI] %04X = %04X\n", CS, cpu_state.pc, addr, val);
+
+    rtl8139_io_writew(addr, val, priv);
 }
 
 static void
 rtl8139_io_writeb_ioport(uint16_t addr, uint8_t val, void *priv)
 {
-    return rtl8139_io_writeb(addr, val, priv);
+    rtl8139_log("[%04X:%08X] [WBI] %04X = %02X\n", CS, cpu_state.pc, addr, val);
+
+    rtl8139_io_writeb(addr, val, priv);
+}
+
+static uint32_t
+rtl8139_io_readl_mem(uint32_t addr, void *priv)
+{
+    RTL8139State *s = (RTL8139State *) priv;
+    uint32_t ret = 0xffffffff;
+
+    if ((addr >= s->mem_base) && (addr < (s->mem_base + 0xff)))
+        ret = rtl8139_io_readl(addr, priv);
+
+    rtl8139_log("[%04X:%08X] [RLM] %08X = %08X\n", CS, cpu_state.pc, addr, ret);
+
+    return ret;
+ }
+
+static uint16_t
+rtl8139_io_readw_mem(uint32_t addr, void *priv)
+{
+    RTL8139State *s = (RTL8139State *) priv;
+    uint16_t ret = 0xffff;
+
+    if ((addr >= s->mem_base) && (addr < (s->mem_base + 0xff)))
+        ret = rtl8139_io_readw(addr, priv);
+
+    rtl8139_log("[%04X:%08X] [RWM] %08X = %04X\n", CS, cpu_state.pc, addr, ret);
+
+    return ret;
+}
+
+static uint8_t
+rtl8139_io_readb_mem(uint32_t addr, void *priv)
+{
+    RTL8139State *s = (RTL8139State *) priv;
+    uint8_t ret = 0xff;
+
+    if ((addr >= s->mem_base) && (addr < (s->mem_base + 0xff)))
+        ret = rtl8139_io_readb(addr, priv);
+
+    rtl8139_log("[%04X:%08X] [RBM] %08X = %02X\n", CS, cpu_state.pc, addr, ret);
+
+    return ret;
+}
+
+static void
+rtl8139_io_writel_mem(uint32_t addr, uint32_t val, void *priv)
+{
+    RTL8139State *s = (RTL8139State *) priv;
+
+    rtl8139_log("[%04X:%08X] [WLM] %08X = %08X\n", CS, cpu_state.pc, addr, val);
+
+    if ((addr >= s->mem_base) && (addr < (s->mem_base + 0xff)))
+        rtl8139_io_writel(addr, val, priv);
+}
+
+static void
+rtl8139_io_writew_mem(uint32_t addr, uint16_t val, void *priv)
+{
+    RTL8139State *s = (RTL8139State *) priv;
+
+    rtl8139_log("[%04X:%08X] [WWM] %08X = %04X\n", CS, cpu_state.pc, addr, val);
+
+    if ((addr >= s->mem_base) && (addr < (s->mem_base + 0xff)))
+        rtl8139_io_writew(addr, val, priv);
+}
+
+static void
+rtl8139_io_writeb_mem(uint32_t addr, uint8_t val, void *priv)
+{
+    RTL8139State *s = (RTL8139State *) priv;
+
+    rtl8139_log("[%04X:%08X] [WBM] %08X = %02X\n", CS, cpu_state.pc, addr, val);
+
+    if ((addr >= s->mem_base) && (addr < (s->mem_base + 0xff)))
+        rtl8139_io_writeb(addr, val, priv);
 }
 
 static int
@@ -3275,6 +3157,7 @@ rtl8139_pci_write(int func, int addr, uint8_t val, void *priv)
                              rtl8139_io_writeb_ioport, rtl8139_io_writew_ioport, rtl8139_io_writel_ioport,
                              priv);
             s->pci_conf[addr & 0xFF] = val;
+            rtl8139_log("New I/O base: %04X\n", s->pci_conf[0x11] << 8);
             if (s->pci_conf[0x4] & PCI_COMMAND_IO)
                 io_sethandler((s->pci_conf[0x11] << 8), 256,
                               rtl8139_io_readb_ioport, rtl8139_io_readw_ioport, rtl8139_io_readl_ioport,
@@ -3286,6 +3169,8 @@ rtl8139_pci_write(int func, int addr, uint8_t val, void *priv)
         case 0x16:
         case 0x17:
             s->pci_conf[addr & 0xFF] = val;
+            s->mem_base = (s->pci_conf[0x15] << 8) | (s->pci_conf[0x16] << 16) | (s->pci_conf[0x17] << 24); 
+            rtl8139_log("New memory base: %08X\n", s->mem_base);
             if (s->pci_conf[0x4] & PCI_COMMAND_MEM)
                 mem_mapping_set_addr(&s->bar_mem, (s->pci_conf[0x15] << 8) | (s->pci_conf[0x16] << 16) | (s->pci_conf[0x17] << 24), 256);
             break;
@@ -3299,42 +3184,42 @@ static void *
 nic_init(const device_t *info)
 {
     RTL8139State *s                     = calloc(1, sizeof(RTL8139State));
-    FILE         *fp                    = NULL;
+    nmc93cxx_eeprom_params_t params;
     char          eeprom_filename[1024] = { 0 };
-    uint8_t       *mac_bytes;
-    uint32_t       mac;
+    char          filename[1024] = { 0 };
+    uint8_t      *mac_bytes;
+    uint16_t     *eep_data;
+    uint32_t      mac;
 
-    mem_mapping_add(&s->bar_mem, 0, 0, rtl8139_io_readb, rtl8139_io_readw, rtl8139_io_readl, rtl8139_io_writeb, rtl8139_io_writew, rtl8139_io_writel, NULL, MEM_MAPPING_EXTERNAL, s);
+    mem_mapping_add(&s->bar_mem, 0, 0,
+                    rtl8139_io_readb_mem, rtl8139_io_readw_mem, rtl8139_io_readl_mem,
+                    rtl8139_io_writeb_mem, rtl8139_io_writew_mem, rtl8139_io_writel_mem,
+                    NULL, MEM_MAPPING_EXTERNAL, s);
     pci_add_card(PCI_ADD_NORMAL, rtl8139_pci_read, rtl8139_pci_write, s, &s->pci_slot);
     s->inst = device_get_instance();
 
     snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_rtl8139c_plus_%d.nvr", s->inst);
 
-    fp = nvr_fopen(eeprom_filename, "rb");
-    if (fp) {
-        fread(s->eeprom.contents, 2, 64, fp);
-        fclose(fp);
-        fp = NULL;
-    } else {
-        /* prepare eeprom */
-        s->eeprom.contents[0] = 0x8129;
+    eep_data = (uint16_t *) s->eeprom_data;
 
-        /* PCI vendor and device ID should be mirrored here */
-        s->eeprom.contents[1] = 0x10EC;
-        s->eeprom.contents[2] = 0x8139;
+    /* prepare eeprom */
+    eep_data[0] = 0x8129;
 
-        /* XXX: Get proper MAC addresses from real EEPROM dumps. OID taken from net_ne2000.c */
+    /* PCI vendor and device ID should be mirrored here */
+    eep_data[1] = 0x10EC;
+    eep_data[2] = 0x8139;
+
+    /* XXX: Get proper MAC addresses from real EEPROM dumps. OID taken from net_ne2000.c */
 #ifdef USE_REALTEK_OID
-        s->eeprom.contents[7] = 0xe000;
-        s->eeprom.contents[8] = 0x124c;
+    eep_data[7] = 0xe000;
+    eep_data[8] = 0x124c;
 #else
-        s->eeprom.contents[7] = 0x1400;
-        s->eeprom.contents[8] = 0x122a;
+    eep_data[7] = 0x1400;
+    eep_data[8] = 0x122a;
 #endif
-        s->eeprom.contents[9] = 0x1413;
-    }
+    eep_data[9] = 0x1413;
 
-    mac_bytes = (uint8_t *) &(s->eeprom.contents[7]);
+    mac_bytes = (uint8_t *) &(eep_data[7]);
 
     /* See if we have a local MAC address configured. */
     mac = device_get_config_mac("mac", -1);
@@ -3355,7 +3240,20 @@ nic_init(const device_t *info)
         mac_bytes[5] = (mac & 0xff);
     }
 
-    s->nic = network_attach(s, (uint8_t *) &s->eeprom.contents[7], rtl8139_do_receive, rtl8139_set_link_status);
+    for (uint32_t i = 0; i < 6; i++)
+        s->phys[MAC0 + i] = mac_bytes[i];
+
+    params.nwords          = 64;
+    params.default_content = (uint16_t *) s->eeprom_data;
+    params.filename        = filename;
+    snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, device_get_instance());
+    s->eeprom = device_add_parameters(&nmc93cxx_device, &params);
+    if (!s->eeprom) {
+        free(s);
+        return NULL;
+    }
+
+    s->nic = network_attach(s, (uint8_t *) &s->phys[MAC0], rtl8139_do_receive, rtl8139_set_link_status);
     timer_add(&s->timer, rtl8139_timer, s, 0);
     timer_on_auto(&s->timer, 1000000.0 / cpu_pci_speed);
 
@@ -3369,17 +3267,6 @@ nic_init(const device_t *info)
 static void
 nic_close(void *priv)
 {
-    const RTL8139State *s                     = (RTL8139State *) priv;
-    FILE               *fp                    = NULL;
-    char                eeprom_filename[1024] = { 0 };
-
-    snprintf(eeprom_filename, sizeof(eeprom_filename), "eeprom_rtl8139c_plus_%d.nvr", s->inst);
-    fp = nvr_fopen(eeprom_filename, "wb");
-    if (fp) {
-        fwrite(s->eeprom.contents, 2, 64, fp);
-        fclose(fp);
-        fp = NULL;
-    }
     free(priv);
 }
 
