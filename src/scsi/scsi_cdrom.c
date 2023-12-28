@@ -1751,7 +1751,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
     int           used_len;
     int           alloc_length;
     int           msf;
-    int           pos = 0;
+    int           pos = dev->drv->seek_pos;
     int           size_idx;
     int           idx = 0;
     uint32_t      feature;
