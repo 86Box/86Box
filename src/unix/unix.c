@@ -917,12 +917,16 @@ monitor_thread(void *param)
         while (!exit_event) {
             if (feof(stdin))
                 break;
+#ifdef ENABLE_READLINE
             if (f_readline)
                 line = f_readline("(86Box) ");
             else {
+#endif
                 printf("(86Box) ");
                 (void) !getline(&line, &n, stdin);
+#ifdef ENABLE_READLINE
             }
+#endif
             if (line) {
                 int   cmdargc = 0;
                 char *linecpy;
