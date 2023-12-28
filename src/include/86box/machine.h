@@ -728,6 +728,8 @@ extern int machine_at_kn97_init(const machine_t *);
 extern int machine_at_lx6_init(const machine_t *);
 extern int machine_at_spitfire_init(const machine_t *);
 
+extern int machine_at_mate_nx_ma30d_23d_init(const machine_t *);
+
 extern int machine_at_p6i440e2_init(const machine_t *);
 
 extern int machine_at_p2bls_init(const machine_t *);

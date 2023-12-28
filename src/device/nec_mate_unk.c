@@ -29,9 +29,6 @@
 #include <86box/chipset.h>
 #include <86box/plat_unused.h>
 
-    if ((port == 0x6b) || (port == 0x3d6d))
-        ret = 0x2a;
-
 static uint8_t
 nec_mate_unk_read(UNUSED(uint16_t addr), void *priv)
 {
@@ -46,6 +43,8 @@ nec_mate_unk_read(UNUSED(uint16_t addr), void *priv)
 static void
 nec_mate_unk_close(void *priv)
 {
+    uint8_t *dev = (uint8_t *) priv;
+
     free(dev);
 }
 
@@ -63,12 +62,12 @@ nec_mate_unk_init(const device_t *info)
 
 const device_t nec_mate_unk_device = {
     .name          = "NEC Mate NX MA30D/23D Unknown Readout",
-    .internal_name = "nec_mate_unk_jumper",
+    .internal_name = "nec_mate_unk",
     .flags         = 0,
     .local         = 0,
-    .init          = nec_mate_unk_jumper_init,
-    .close         = nec_mate_unk_jumper_close,
-    .reset         = nec_mate_unk_jumper_reset,
+    .init          = nec_mate_unk_init,
+    .close         = nec_mate_unk_close,
+    .reset         = NULL,
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,
