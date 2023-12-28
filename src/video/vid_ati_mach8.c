@@ -135,8 +135,9 @@ typedef struct mach_t {
         uint16_t scratch1;
         uint16_t test;
         uint16_t pattern;
-        uint8_t  test2[2];
-        uint8_t  test3[2];
+        uint16_t  test2;
+        uint16_t  test3;
+        uint16_t  test4;
         int      src_y_dir;
         int      cmd_type;
         int      block_write_mono_pattern_enable;
@@ -1361,7 +1362,7 @@ mach_accel_start(int cmd_type, int cpu_input, int count, uint32_t mix_dat, uint3
                         return;
                     }
                     if (dev->accel.sy >= mach->accel.height) {
-                        if ((mono_src == 2) || (mono_src == 3) || (frgd_sel == 2) || (frgd_sel == 3) || (bkgd_sel == 2) || (bkgd_sel == 3))
+                        if ((mono_src == 2) || (mono_src == 3) || (frgd_sel == 3) || (bkgd_sel == 3))
                             return;
                         if ((mono_src == 1) && (frgd_sel == 5) && (dev->accel_bpp == 24) && (mach->accel.patt_len_reg & 0x4000))
                             return;
@@ -2623,7 +2624,7 @@ mach_recalctimings(svga_t *svga)
 
             if (dev->accel.advfunc_cntl & 4) {
                 if (mach->shadow_set & 2) {
-                    if (dev->h_disp == 8) {
+                    if ((dev->h_disp == 8) && !dev->bpp) {
                         dev->h_disp = 1024;
                         dev->dispend = 768;
                         dev->v_total = 1536;
@@ -2634,7 +2635,7 @@ mach_recalctimings(svga_t *svga)
                 } else
                     svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock((mach->accel.clock_sel >> 2) & 0x0f, svga->clock_gen);
             } else {
-                if (dev->h_disp == 1024) {
+                if ((dev->h_disp == 1024) && !dev->bpp) {
                     dev->h_disp = 640;
                     dev->dispend = 480;
                 }
@@ -2819,9 +2820,12 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
     int bkgd_sel;
     int mono_src;
 
+    mach_log("[%04X:%08X]: Port FIFO OUT=%04x, val=%04x, len=%d.\n", CS, cpu_state.pc, port, val, len);
+
     switch (port) {
         case 0x82e8:
         case 0xc2e8:
+        case 0xf6ee:
             if (len == 1) {
                 dev->accel.cur_y = (dev->accel.cur_y & 0x700) | val;
             } else {
@@ -2830,6 +2834,7 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             break;
         case 0x82e9:
         case 0xc2e9:
+        case 0xf6ef:
             if (len == 1) {
                 dev->accel.cur_y = (dev->accel.cur_y & 0xff) | ((val & 0x07) << 8);
             }
@@ -3497,6 +3502,8 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
             if (len == 1)
                 mach->accel.dp_config = (mach->accel.dp_config & 0xff00) | val;
             else {
+                dev->data_available  = 0;
+                dev->data_available2 = 0;
                 mach->accel.dp_config = val;
             }
             break;
@@ -3631,7 +3638,7 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
     svga_t    *svga = &mach->svga;
     ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
 
-    mach_log("Port accel out = %04x, val = %04x.\n", port, val);
+    mach_log("[%04X:%08X]: Port NORMAL OUT=%04x, val=%04x.\n", CS, cpu_state.pc, port, val);
 
     switch (port) {
         case 0x2e8:
@@ -3830,12 +3837,12 @@ mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
 
         case 0x42ee:
         case 0x42ef:
-            mach->accel.test2[port & 1] = val;
+            WRITE8(port, mach->accel.test2, val);
             break;
 
         case 0x46ee:
         case 0x46ef:
-            mach->accel.test3[port & 1] = val;
+            WRITE8(port, mach->accel.test3, val);
             break;
 
         case 0x4aee:
@@ -4183,6 +4190,11 @@ mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, in
             temp = mach->accel.patt_data_idx;
             break;
 
+        case 0x86ee:
+        case 0x86ef:
+            temp = 0x0000;
+            break;
+
         case 0x8eee:
             if (len == 1)
                 temp = mach->accel.ext_ge_config & 0xff;
@@ -4352,7 +4364,7 @@ mach_accel_in_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, in
             break;
     }
 
-    mach_log("Port FIFO IN=%04x, temp=%04x, len=%d.\n", port, temp, len);
+    mach_log("[%04X:%08X]: Port FIFO IN=%04x, temp=%04x, len=%d.\n", CS, cpu_state.pc, port, temp, len);
     return temp;
 }
 
@@ -4362,8 +4374,8 @@ mach_accel_in(uint16_t port, mach_t *mach)
     svga_t         *svga   = &mach->svga;
     ibm8514_t      *dev    = (ibm8514_t *) svga->dev8514;
     uint8_t         temp   = 0;
-    int             vpos      = 0;
-    int             vblankend = svga->vblankstart + svga->crtc[0x16];
+    uint16_t        vpos      = 0;
+    uint16_t        vblankend = svga->vblankstart + svga->crtc[0x16];
 
     switch (port) {
         case 0x2e8:
@@ -4469,17 +4481,13 @@ mach_accel_in(uint16_t port, mach_t *mach)
             break;
 
         case 0x42ee:
-            temp = mach->accel.test2[0];
-            break;
         case 0x42ef:
-            temp = mach->accel.test2[1];
+            READ8(port, mach->accel.test2);
             break;
 
         case 0x46ee:
-            temp = mach->accel.test3[0];
-            break;
         case 0x46ef:
-            temp = mach->accel.test3[1];
+            READ8(port, mach->accel.test3);
             break;
 
         case 0x4aee:
@@ -4547,7 +4555,7 @@ mach_accel_in(uint16_t port, mach_t *mach)
         default:
             break;
     }
-    mach_log("Port accel in = %04x, temp = %04x.\n", port, temp);
+    mach_log("[%04X:%08X]: Port NORMAL IN=%04x, temp=%04x.\n", CS, cpu_state.pc, port, temp);
     return temp;
 }
 
@@ -5478,6 +5486,7 @@ mach_io_set(mach_t *mach)
     io_sethandler(0x7aee, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_sethandler(0x7eee, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_sethandler(0x82ee, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
+    io_sethandler(0x86ee, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_sethandler(0x8eee, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_sethandler(0x92ee, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_sethandler(0x96ee, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
@@ -5502,6 +5511,7 @@ mach_io_set(mach_t *mach)
     io_sethandler(0xe6ee, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_sethandler(0xeeee, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_sethandler(0xf2ee, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
+    io_sethandler(0xf6ee, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_sethandler(0xfaee, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
     io_sethandler(0xfeee, 0x0002, mach_accel_inb, mach_accel_inw, mach_accel_inl, mach_accel_outb, mach_accel_outw, mach_accel_outl, mach);
 }
@@ -5781,7 +5791,6 @@ mach8_init(const device_t *info)
             else
                 mach->config1 |= 0x06;
             mach->config1 |= 0x0400;
-            mach->config1 |= 0x1000;
             svga->clock_gen = device_add(&ati18811_1_device);
         } else if (mach->pci_bus) {
             video_inform(VIDEO_FLAG_TYPE_8514, &timing_mach32_pci);
