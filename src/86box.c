@@ -542,7 +542,9 @@ usage:
             printf("-N or --noconfirm       - do not ask for confirmation on quit\n");
             printf("-P or --vmpath path     - set 'path' to be root for vm\n");
             printf("-R or --rompath path    - set 'path' to be ROM path\n");
+#ifndef USE_SDL_UI
             printf("-S or --settings        - show only the settings dialog\n");
+#endif
             printf("-V or --vmname name     - overrides the name of the running VM\n");
             printf("-X or --clear what      - clears the 'what' (cmos/flash/both)\n");
             printf("-Y or --donothing       - do not show any UI or run the emulation\n");
@@ -609,8 +611,10 @@ usage:
                 goto usage;
 
             strcpy(vm_name, argv[++c]);
+#ifndef USE_SDL_UI
         } else if (!strcasecmp(argv[c], "--settings") || !strcasecmp(argv[c], "-S")) {
             settings_only = 1;
+#endif
         } else if (!strcasecmp(argv[c], "--noconfirm") || !strcasecmp(argv[c], "-N")) {
             confirm_exit_cmdl = 0;
         } else if (!strcasecmp(argv[c], "--missing") || !strcasecmp(argv[c], "-M")) {
