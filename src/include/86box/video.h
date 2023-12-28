@@ -438,6 +438,7 @@ extern const device_t pgc_device;
 extern const device_t millennium_device;
 extern const device_t mystique_device;
 extern const device_t mystique_220_device;
+extern const device_t millennium_ii_device;
 
 /* Oak OTI-0x7 */
 extern const device_t oti037c_device;
