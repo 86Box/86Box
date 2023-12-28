@@ -186,16 +186,8 @@ JoystickConfiguration::on_comboBoxDevice_currentIndexChanged(int index)
             Models::AddEntry(model, plat_joystick_state[joystick].axis[d].name, 0);
         }
 
-        int mapping = joystick_state[joystick_nr].pov_mapping[c][0];
+        int mapping = joystick_state[joystick_nr].pov_mapping[c / 2][c & 1];
         int nr_povs = plat_joystick_state[joystick].nr_povs;
-        if (mapping & POV_X)
-            cbox->setCurrentIndex((mapping & 3) * 2);
-        else if (mapping & POV_Y)
-            cbox->setCurrentIndex((mapping & 3) * 2 + 1);
-        else
-            cbox->setCurrentIndex(mapping + nr_povs * 2);
-
-        mapping = joystick_state[joystick_nr].pov_mapping[c][1];
         if (mapping & POV_X)
             cbox->setCurrentIndex((mapping & 3) * 2);
         else if (mapping & POV_Y)
