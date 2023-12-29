@@ -756,7 +756,8 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
                     svga->ma_latch <<= 1;
                 }
 
-                svga->ma_latch <<= 1;
+                if (!(mystique->type >= MGA_2164W))
+                    svga->ma_latch <<= 1;
                 if (svga->ma_latch != mystique->ma_latch_old) {
                     if (svga->interlace && svga->oddeven)
                         svga->maback = (svga->maback - (mystique->ma_latch_old << 2)) +
@@ -949,7 +950,8 @@ mystique_recalctimings(svga_t *svga)
         if (mystique->type >= MGA_1064SG) {
             /*Mystique, unlike most SVGA cards, allows display start to take
               effect mid-screen*/
-            svga->ma_latch <<= 1;
+            if (!(mystique->type >= MGA_2164W))
+                svga->ma_latch <<= 1;
             /* Only change maback so the new display start will take effect on the next
                horizontal retrace. */
             if (svga->ma_latch != mystique->ma_latch_old) {
@@ -1009,6 +1011,7 @@ mystique_recalctimings(svga_t *svga)
                         break;
                     case 32:
                         svga->render = svga_render_32bpp_highres;
+                        svga->rowoffset <<= 1;
                         break;
                 }
             }
@@ -1714,6 +1717,7 @@ mystique_accel_ctrl_write_b(uint32_t addr, uint8_t val, void *priv)
         case REG_MACCESS + 3:
             WRITE8(addr, mystique->maccess, val);
             mystique->dwgreg.dither = mystique->maccess >> 30;
+            mystique->dwgreg.z_base = mystique->dwgreg.ydstorg * ((mystique->maccess & MACCESS_ZWIDTH) ? 4 : 2) + mystique->dwgreg.zorg;
             break;
 
         case REG_MCTLWTST:
@@ -2575,6 +2579,7 @@ mystique_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
         case REG_PRIMEND:
             thread_wait_mutex(mystique->dma.lock);
             mystique->dma.primend = val;
+            //pclog("PRIMADDRESS = 0x%08X, PRIMEND = 0x%08X\n", mystique->dma.primaddress, mystique->dma.primend);
             if (mystique->dma.state == DMA_STATE_IDLE && (mystique->dma.primaddress & DMA_ADDR_MASK) != (mystique->dma.primend & DMA_ADDR_MASK)) {
                 mystique->endprdmasts_pending = 0;
                 mystique->status &= ~STATUS_ENDPRDMASTS;
@@ -5074,6 +5079,7 @@ blit_bitblt(mystique_t *mystique)
         case DWGCTRL_ATYPE_BLK:
             switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK) {
                 case DWGCTRL_BLTMOD_BMONOLEF:
+                case DWGCTRL_BLTMOD_BMONOWF:
                     src_addr = mystique->dwgreg.ar[3];
 
                     for (y = 0; y < mystique->dwgreg.length; y++) {
@@ -5082,7 +5088,7 @@ blit_bitblt(mystique_t *mystique)
                         while (1) {
                             if (x >= mystique->dwgreg.cxleft && x <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot) {
                                 uint32_t byte_addr  = (src_addr >> 3) & mystique->vram_mask;
-                                int      bit_offset = src_addr & 7;
+                                int      bit_offset = ((mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK) == DWGCTRL_BLTMOD_BMONOWF) ? (7 - (src_addr & 7)) : (src_addr & 7);
                                 uint32_t old_dst;
 
                                 switch (mystique->maccess_running & MACCESS_PWIDTH_MASK) {
@@ -5180,6 +5186,7 @@ blit_bitblt(mystique_t *mystique)
         case DWGCTRL_ATYPE_RSTR:
             switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK) {
                 case DWGCTRL_BLTMOD_BMONOLEF:
+                case DWGCTRL_BLTMOD_BMONOWF:
                     if (mystique->dwgreg.dwgctrl_running & DWGCTRL_PATTERN)
                         fatal("BITBLT RPL/RSTR BMONOLEF with pattern\n");
 
@@ -5191,7 +5198,7 @@ blit_bitblt(mystique_t *mystique)
 
                         while (1) {
                             uint32_t byte_addr  = (src_addr >> 3) & mystique->vram_mask;
-                            int      bit_offset = src_addr & 7;
+                            int      bit_offset = ((mystique->dwgreg.dwgctrl_running & DWGCTRL_BLTMOD_MASK) == DWGCTRL_BLTMOD_BMONOWF) ? (7 - (src_addr & 7)) : (src_addr & 7);
 
                             if (x >= mystique->dwgreg.cxleft && x <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot && ((svga->vram[byte_addr] & (1 << bit_offset)) || !(mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANSC)) && trans[x & 3]) {
                                 uint32_t src = (svga->vram[byte_addr] & (1 << bit_offset)) ? mystique->dwgreg.fcol : mystique->dwgreg.bcol;
