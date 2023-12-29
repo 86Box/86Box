@@ -1006,11 +1006,11 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                 break;
             case 0xc0:
                 if (dev->type <= 4)
-                    fregs[0xc0] = (fregs[0xc0] & ~(val & 0xbf)) | (val & 0x20);
+                    fregs[0xc0] = (fregs[0xc0] & 0x40) | (val & 0xbf);
                 break;
             case 0xc1:
                 if (dev->type <= 4)
-                    fregs[0xc1] &= ~val;
+                    fregs[0xc1] = (fregs[0xc0] & ~(val & 0x8f)) | (val & 0x20);
                 break;
             case 0xff:
                 if (dev->type == 4) {
