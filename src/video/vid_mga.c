@@ -947,9 +947,12 @@ mystique_recalctimings(svga_t *svga)
         svga->hdisp         = (svga->crtc[1] + 1) << 3;
         svga->hdisp_time    = svga->hdisp;
         svga->rowoffset     = svga->crtc[0x13] | ((mystique->crtcext_regs[0] & CRTCX_R0_OFFSET_MASK) << 4);
-        svga->lut_map       = !!(mystique->xmiscctrl & XMISCCTRL_RAMCS);
+
+        if (mystique->type != MGA_2164W && mystique->type != MGA_2064W)
+            svga->lut_map = !!(mystique->xmiscctrl & XMISCCTRL_RAMCS);
+
         if (mystique->type >= MGA_1064SG)
-            svga->ma_latch      = ((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) | (svga->crtc[0xc] << 8) | svga->crtc[0xd];
+            svga->ma_latch = ((mystique->crtcext_regs[0] & CRTCX_R0_STARTADD_MASK) << 16) | (svga->crtc[0xc] << 8) | svga->crtc[0xd];
 
         if ((mystique->pci_regs[0x41] & (OPTION_INTERLEAVE >> 8))) {
             svga->rowoffset <<= 1;
@@ -5676,9 +5679,9 @@ mystique_pci_read(UNUSED(int func), int addr, void *priv)
     mystique_t *mystique = (mystique_t *) priv;
     uint8_t     ret      = 0x00;
 
-    if (mystique->type >= MGA_2164W)
+    if (mystique->type >= MGA_1164SG)
     {
-        /* Millennium II and later Matrox cards swap MGABASE1 and 2. */
+        /* Mystique 220, Millennium II and later Matrox cards swap MGABASE1 and 2. */
         if (addr >= 0x10 && addr <= 0x13)
             addr += 0x4;
         else if (addr >= 0x14 && addr <= 0x17)
@@ -5718,7 +5721,7 @@ mystique_pci_read(UNUSED(int func), int addr, void *priv)
                 break; /*Fast DEVSEL timing*/
 
             case 0x08:
-                ret = 0;
+                ret = (mystique->type == MGA_1164SG) ? 3 : 0;
                 break; /*Revision ID*/
             case 0x09:
                 ret = 0;
@@ -5837,9 +5840,9 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     mystique_t *mystique = (mystique_t *) priv;
 
-    if (mystique->type >= MGA_2164W)
+    if (mystique->type >= MGA_1164SG)
     {
-        /* Millennium II and later Matrox cards swap MGABASE1 and 2. */
+        /* Mystique 220, Millennium II and later Matrox cards swap MGABASE1 and 2. */
         if (addr >= 0x10 && addr <= 0x13)
             addr += 0x4;
         else if (addr >= 0x14 && addr <= 0x17)
