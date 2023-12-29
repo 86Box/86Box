@@ -487,6 +487,7 @@ extern const device_t s3_phoenix_trio64_onboard_pci_device;
 extern const device_t s3_phoenix_trio64_pci_device;
 extern const device_t s3_phoenix_trio64vplus_pci_device;
 extern const device_t s3_phoenix_trio64vplus_onboard_pci_device;
+extern const device_t s3_cardex_trio64vplus_pci_device;
 extern const device_t s3_mirocrystal_20sv_964_vlb_device;
 extern const device_t s3_mirocrystal_20sv_964_pci_device;
 extern const device_t s3_mirocrystal_20sd_864_vlb_device;

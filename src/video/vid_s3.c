@@ -62,6 +62,7 @@
 #define ROM_DIAMOND_STEALTH64_764      "roms/video/s3/stealt64.bin"
 #define ROM_TRIO64V2_DX_VBE20          "roms/video/s3/86c775_2.bin"
 #define ROM_PHOENIX_TRIO64VPLUS        "roms/video/s3/64V1506.ROM"
+#define ROM_CARDEX_TRIO64VPLUS         "roms/video/s3/S3T64VP.VBI"
 #define ROM_DIAMOND_STEALTH_SE         "roms/video/s3/DiamondStealthSE.VBI"
 #define ROM_ELSAWIN2KPROX_964          "roms/video/s3/elsaw20004m.BIN"
 #define ROM_ELSAWIN2KPROX              "roms/video/s3/elsaw20008m.BIN"
@@ -92,6 +93,7 @@ enum {
     S3_TRIO64V2_DX_ONBOARD,
     S3_PHOENIX_TRIO64VPLUS,
     S3_PHOENIX_TRIO64VPLUS_ONBOARD,
+    S3_CARDEX_TRIO64VPLUS,
     S3_DIAMOND_STEALTH_SE,
     S3_DIAMOND_STEALTH_VRAM,
     S3_ELSAWIN2KPROX_964,
@@ -146,6 +148,7 @@ static video_timings_t timing_s3_trio32_vlb    = { .type = VIDEO_BUS, .write_b =
 static video_timings_t timing_s3_trio32_pci    = { .type = VIDEO_PCI, .write_b = 4, .write_w = 3, .write_l = 5, .read_b = 26, .read_w = 26, .read_l = 42 };
 static video_timings_t timing_s3_trio64_vlb    = { .type = VIDEO_BUS, .write_b = 3, .write_w = 2, .write_l = 4, .read_b = 25, .read_w = 25, .read_l = 40 };
 static video_timings_t timing_s3_trio64_pci    = { .type = VIDEO_PCI, .write_b = 3, .write_w = 2, .write_l = 4, .read_b = 25, .read_w = 25, .read_l = 40 };
+static video_timings_t timing_s3_trio64vp_cardex_pci    = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 3, .read_b = 19, .read_w = 19, .read_l = 30 };
 
 enum {
     VRAM_4MB   = 0,
@@ -2894,7 +2897,8 @@ s3_in(uint16_t addr, void *priv)
                 temp = svga->seqregs[svga->seqaddr];
                 /* This is needed for the Intel Advanced/ATX's built-in S3 Trio64V+ BIOS to not
                    get stuck in an infinite loop. */
-                if ((s3->card_type == S3_PHOENIX_TRIO64VPLUS_ONBOARD) && (svga->seqaddr == 0x17))
+                if (((s3->card_type == S3_PHOENIX_TRIO64VPLUS_ONBOARD) ||
+                    (s3->card_type == S3_CARDEX_TRIO64VPLUS)) && (svga->seqaddr == 0x17))
                     svga->seqregs[svga->seqaddr] ^= 0x01;
                 return temp;
             }
@@ -7891,12 +7895,15 @@ s3_reset(void *priv)
 
         case S3_PHOENIX_TRIO64:
         case S3_PHOENIX_TRIO64_ONBOARD:
+        case S3_CARDEX_TRIO64VPLUS:
         case S3_PHOENIX_TRIO64VPLUS:
         case S3_PHOENIX_TRIO64VPLUS_ONBOARD:
         case S3_DIAMOND_STEALTH64_764:
         case S3_SPEA_MIRAGE_P64:
         case S3_NUMBER9_9FX:
-            if (s3->card_type == S3_PHOENIX_TRIO64VPLUS || s3->card_type == S3_PHOENIX_TRIO64VPLUS_ONBOARD)
+            if ((s3->card_type == S3_CARDEX_TRIO64VPLUS) ||
+                (s3->card_type == S3_PHOENIX_TRIO64VPLUS) ||
+                (s3->card_type == S3_PHOENIX_TRIO64VPLUS_ONBOARD))
                 svga->crtc[0x53] = 0x08;
             break;
 
@@ -8140,6 +8147,11 @@ s3_init(const device_t *info)
                 video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
             else
                 video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
+            break;
+        case S3_CARDEX_TRIO64VPLUS:
+            bios_fn = ROM_CARDEX_TRIO64VPLUS;
+            chip    = S3_TRIO64V;
+            video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64vp_cardex_pci);
             break;
         case S3_DIAMOND_STEALTH64_764:
             bios_fn = ROM_DIAMOND_STEALTH64_764;
@@ -8543,6 +8555,7 @@ s3_init(const device_t *info)
         case S3_PHOENIX_TRIO64_ONBOARD:
         case S3_PHOENIX_TRIO64VPLUS:
         case S3_PHOENIX_TRIO64VPLUS_ONBOARD:
+        case S3_CARDEX_TRIO64VPLUS:
         case S3_DIAMOND_STEALTH64_764:
         case S3_SPEA_MIRAGE_P64:
             if (device_get_config_int("memory") == 1)
@@ -8782,6 +8795,12 @@ s3_phoenix_trio64_available(void)
 
 static int
 s3_phoenix_trio64vplus_available(void)
+{
+    return rom_present(ROM_PHOENIX_TRIO64VPLUS);
+}
+
+static int
+s3_cardex_trio64vplus_available(void)
 {
     return rom_present(ROM_PHOENIX_TRIO64VPLUS);
 }
@@ -9412,6 +9431,20 @@ const device_t s3_phoenix_trio64vplus_pci_device = {
     .close         = s3_close,
     .reset         = s3_reset,
     { .available = s3_phoenix_trio64vplus_available },
+    .speed_changed = s3_speed_changed,
+    .force_redraw  = s3_force_redraw,
+    .config        = s3_standard_config
+};
+
+const device_t s3_cardex_trio64vplus_pci_device = {
+    .name          = "S3 Trio64V+ PCI (Cardex)",
+    .internal_name = "cardex_trio64vplus_pci",
+    .flags         = DEVICE_PCI,
+    .local         = S3_CARDEX_TRIO64VPLUS,
+    .init          = s3_init,
+    .close         = s3_close,
+    .reset         = s3_reset,
+    { .available = s3_cardex_trio64vplus_available },
     .speed_changed = s3_speed_changed,
     .force_redraw  = s3_force_redraw,
     .config        = s3_standard_config
