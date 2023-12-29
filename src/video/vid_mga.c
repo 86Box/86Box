@@ -5676,9 +5676,9 @@ mystique_pci_read(UNUSED(int func), int addr, void *priv)
     mystique_t *mystique = (mystique_t *) priv;
     uint8_t     ret      = 0x00;
 
-    if (mystique->type >= MGA_2164W)
+    if (mystique->type >= MGA_1164SG)
     {
-        /* Millennium II and later Matrox cards swap MGABASE1 and 2. */
+        /* Mystique 220, Millennium II and later Matrox cards swap MGABASE1 and 2. */
         if (addr >= 0x10 && addr <= 0x13)
             addr += 0x4;
         else if (addr >= 0x14 && addr <= 0x17)
@@ -5718,7 +5718,7 @@ mystique_pci_read(UNUSED(int func), int addr, void *priv)
                 break; /*Fast DEVSEL timing*/
 
             case 0x08:
-                ret = 0;
+                ret = (mystique->type == MGA_1164SG) ? 3 : 0;
                 break; /*Revision ID*/
             case 0x09:
                 ret = 0;
@@ -5837,9 +5837,9 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     mystique_t *mystique = (mystique_t *) priv;
 
-    if (mystique->type >= MGA_2164W)
+    if (mystique->type >= MGA_1164SG)
     {
-        /* Millennium II and later Matrox cards swap MGABASE1 and 2. */
+        /* Mystique 220, Millennium II and later Matrox cards swap MGABASE1 and 2. */
         if (addr >= 0x10 && addr <= 0x13)
             addr += 0x4;
         else if (addr >= 0x14 && addr <= 0x17)
