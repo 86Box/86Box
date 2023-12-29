@@ -522,7 +522,6 @@ tvp3026_recalctimings(void *priv, svga_t *svga)
 uint32_t
 tvp3026_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp)
 {
-    tvp3026_ramdac_t *ramdac = (tvp3026_ramdac_t*)svga->ramdac;
     uint32_t ret = 0x00000000;
 
     if (svga->lut_map) {
