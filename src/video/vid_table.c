@@ -205,6 +205,7 @@ video_cards[] = {
     { &s3_diamond_stealth_4000_pci_device            },
     { &s3_trio3d2x_pci_device                        },
     { &millennium_device                             },
+    { &millennium_ii_device                          },
     { &mystique_device                               },
     { &mystique_220_device                           },
     { &tgui9440_pci_device                           },
