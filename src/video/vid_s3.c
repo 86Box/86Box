@@ -8491,9 +8491,10 @@ s3_init(const device_t *info)
                 svga->clock_gen = device_add(&icd2061_device);
                 svga->getclock  = icd2061_getclock;
             } else {
-                svga->ramdac    = device_add(&tvp3026_ramdac_device);
-                svga->clock_gen = svga->ramdac;
-                svga->getclock  = tvp3026_getclock;
+                svga->ramdac      = device_add(&tvp3026_ramdac_device);
+                svga->clock_gen   = svga->ramdac;
+                svga->getclock    = tvp3026_getclock;
+                svga->conv_16to32 = tvp3026_conv_16to32;
             }
             break;
 

@@ -404,12 +404,13 @@ extern float   stg_getclock(int clock, void *priv);
 extern void    tkd8001_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t tkd8001_ramdac_in(uint16_t addr, void *priv, svga_t *svga);
 
-extern void    tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga);
-extern uint8_t tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga);
-extern void    tvp3026_recalctimings(void *priv, svga_t *svga);
-extern void    tvp3026_hwcursor_draw(svga_t *svga, int displine);
-extern float   tvp3026_getclock(int clock, void *priv);
-extern void    tvp3026_gpio(uint8_t (*read)(uint8_t cntl, void *priv), void (*write)(uint8_t cntl, uint8_t data, void *priv), void *cb_priv, void *priv);
+extern void     tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga);
+extern uint8_t  tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga);
+extern uint32_t tvp3026_conv_16to32(svga_t* svga, uint16_t color, uint8_t bpp);
+extern void     tvp3026_recalctimings(void *priv, svga_t *svga);
+extern void     tvp3026_hwcursor_draw(svga_t *svga, int displine);
+extern float    tvp3026_getclock(int clock, void *priv);
+extern void     tvp3026_gpio(uint8_t (*read)(uint8_t cntl, void *priv), void (*write)(uint8_t cntl, uint8_t data, void *priv), void *cb_priv, void *priv);
 
 #    ifdef EMU_DEVICE_H
 extern const device_t ati68860_ramdac_device;

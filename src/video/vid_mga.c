@@ -6038,6 +6038,7 @@ mystique_init(const device_t *info)
         mystique->svga.ramdac            = device_add(&tvp3026_ramdac_device);
         mystique->svga.clock_gen         = mystique->svga.ramdac;
         mystique->svga.getclock          = tvp3026_getclock;
+        mystique->svga.conv_16to32       = tvp3026_conv_16to32;
         if (mystique->vram_size >= 16)
             mystique->svga.decode_mask = mystique->svga.vram_mask;
         tvp3026_gpio(mystique_tvp3026_gpio_read, mystique_tvp3026_gpio_write, mystique, mystique->svga.ramdac);
@@ -6126,7 +6127,9 @@ mystique_init(const device_t *info)
     mystique->softrap_status_read = 1;
 
     mystique->svga.vsync_callback = mystique_vsync_callback;
-    mystique->svga.conv_16to32    = mystique_conv_16to32;
+
+    if (mystique->type != MGA_2064W && mystique->type != MGA_2164W)
+        mystique->svga.conv_16to32    = mystique_conv_16to32;
 
     mystique->i2c     = i2c_gpio_init("i2c_mga");
     mystique->i2c_ddc = i2c_gpio_init("ddc_mga");
