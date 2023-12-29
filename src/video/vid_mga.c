@@ -772,12 +772,22 @@ mystique_out(uint16_t addr, uint8_t val, void *priv)
            if (mystique->crtcext_idx == 4) {
                 if (svga->gdcreg[6] & 0xc) {
                     /*64k banks*/
-                    svga->read_bank  = (val & 0x7f) << 16;
-                    svga->write_bank = (val & 0x7f) << 16;
+                    if (mystique->type >= MGA_2164W) {
+                        svga->read_bank  = val << 16;
+                        svga->write_bank = val << 16;
+                    } else {
+                        svga->read_bank  = (val & 0x7f) << 16;
+                        svga->write_bank = (val & 0x7f) << 16;
+                    }
                 } else {
                     /*128k banks*/
-                    svga->read_bank  = (val & 0x7e) << 16;
-                    svga->write_bank = (val & 0x7e) << 16;
+                    if (mystique->type >= MGA_2164W) {
+                        svga->read_bank  = (val & 0xfe) << 16;
+                        svga->write_bank = (val & 0xfe) << 16;
+                    } else {
+                        svga->read_bank  = (val & 0x7e) << 16;
+                        svga->write_bank = (val & 0x7e) << 16;
+                    }
                 }
             }
             break;
@@ -1005,9 +1015,13 @@ mystique_recalctimings(svga_t *svga)
                         break;
                     case 16:
                         svga->render = svga_render_16bpp_highres;
+                        if (svga->hdisp >= 1024)
+                            svga->rowoffset <<= 1;
                         break;
                     case 24:
                         svga->render = svga_render_24bpp_highres;
+                        if (svga->hdisp >= 1024)
+                            svga->rowoffset <<= 1;
                         break;
                     case 32:
                         svga->render = svga_render_32bpp_highres;
@@ -6016,7 +6030,7 @@ mystique_init(const device_t *info)
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_matrox_mystique);
 
     if (mystique->type == MGA_2064W || mystique->type == MGA_2164W) {
-        video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_matrox_millennium);
+        video_inform(VIDEO_FLAG_TYPE_SPECIAL, (mystique->type == MGA_2164W) ? &timing_matrox_mystique : &timing_matrox_millennium);
         svga_init(info, &mystique->svga, mystique, mystique->vram_size << 20,
                   mystique_recalctimings,
                   mystique_in, mystique_out,
@@ -6026,6 +6040,8 @@ mystique_init(const device_t *info)
         mystique->svga.ramdac            = device_add(&tvp3026_ramdac_device);
         mystique->svga.clock_gen         = mystique->svga.ramdac;
         mystique->svga.getclock          = tvp3026_getclock;
+        if (mystique->vram_size >= 16)
+            mystique->svga.decode_mask = mystique->svga.vram_mask;
         tvp3026_gpio(mystique_tvp3026_gpio_read, mystique_tvp3026_gpio_write, mystique, mystique->svga.ramdac);
     } else {
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_matrox_mystique);
@@ -6231,6 +6247,10 @@ static const device_config_t millennium_ii_config[] = {
                 .value = 8
             },
             {
+                .description = "16 MB",
+                .value = 16
+            },
+            {
                 .description = ""
             }
         },
@@ -6295,5 +6315,5 @@ const device_t millennium_ii_device = {
     { .available = millennium_ii_available },
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
-    .config        = mystique_config
+    .config        = millennium_ii_config
 };
