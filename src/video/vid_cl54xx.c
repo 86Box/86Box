@@ -2074,18 +2074,49 @@ gd54xx_rop(gd54xx_t *gd54xx, uint8_t *res, uint8_t *dst, const uint8_t *src)
 }
 
 static uint8_t
-gd54xx_mem_sys_dest_read(gd54xx_t *gd54xx)
+gd54xx_get_aperture(uint32_t addr)
 {
+    uint32_t ap = addr >> 22;
+    return (uint8_t) (ap & 0x03);
+}
+
+static uint32_t
+gd54xx_mem_sys_pos_adj(gd54xx_t *gd54xx, uint8_t ap, uint32_t pos)
+{
+    uint32_t ret = pos;
+
+    if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) &&
+        !(gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY)) {
+        switch (ap) {
+            case 1:
+                ret ^= 1;
+                break;
+            case 2:
+                ret ^= 3;
+                break;
+        }
+    }
+
+    return ret;
+}
+
+static uint8_t
+gd54xx_mem_sys_dest_read(gd54xx_t *gd54xx, uint8_t ap)
+{
+    uint32_t adj_pos = gd54xx_mem_sys_pos_adj(gd54xx, ap, gd54xx->blt.msd_buf_pos);
     uint8_t ret = 0xff;
 
     if (gd54xx->blt.msd_buf_cnt != 0) {
-        ret = gd54xx->blt.msd_buf[gd54xx->blt.msd_buf_pos++];
+        ret = gd54xx->blt.msd_buf[adj_pos];
+
+        gd54xx->blt.msd_buf_pos++;
         gd54xx->blt.msd_buf_cnt--;
 
         if (gd54xx->blt.msd_buf_cnt == 0) {
             if (gd54xx->countminusone == 1) {
                 gd54xx->blt.msd_buf_pos = 0;
-                if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) && !(gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY))
+                if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) &&
+                    !(gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY))
                     gd54xx_start_blit(0xff, 8, gd54xx, &gd54xx->svga);
                 else
                     gd54xx_start_blit(0xffffffff, 32, gd54xx, &gd54xx->svga);
@@ -2098,14 +2129,17 @@ gd54xx_mem_sys_dest_read(gd54xx_t *gd54xx)
 }
 
 static void
-gd54xx_mem_sys_src_write(gd54xx_t *gd54xx, uint8_t val)
+gd54xx_mem_sys_src_write(gd54xx_t *gd54xx, uint8_t val, uint8_t ap)
 {
-    gd54xx->blt.sys_src32 &= ~(0xff << (gd54xx->blt.sys_cnt << 3));
-    gd54xx->blt.sys_src32 |= (val << (gd54xx->blt.sys_cnt << 3));
+    uint32_t adj_pos = gd54xx_mem_sys_pos_adj(gd54xx, ap, gd54xx->blt.sys_cnt);
+
+    gd54xx->blt.sys_src32 &= ~(0xff << (adj_pos << 3));
+    gd54xx->blt.sys_src32 |= (val << (adj_pos << 3));
     gd54xx->blt.sys_cnt = (gd54xx->blt.sys_cnt + 1) & 3;
 
     if (gd54xx->blt.sys_cnt == 0) {
-        if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) && !(gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY)) {
+        if ((gd54xx->blt.mode & CIRRUS_BLTMODE_COLOREXPAND) &&
+            !(gd54xx->blt.modeext & CIRRUS_BLTMODEEXT_DWORDGRANULARITY)) {
             for (uint8_t i = 0; i < 32; i += 8)
                 gd54xx_start_blit((gd54xx->blt.sys_src32 >> i) & 0xff, 8, gd54xx, &gd54xx->svga);
         } else
@@ -2120,7 +2154,7 @@ gd54xx_write(uint32_t addr, uint8_t val, void *priv)
     svga_t   *svga   = &gd54xx->svga;
 
     if (gd54xx->countminusone && !gd54xx->blt.ms_is_dest && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
-        gd54xx_mem_sys_src_write(gd54xx, val);
+        gd54xx_mem_sys_src_write(gd54xx, val, 0);
         return;
     }
 
@@ -2251,13 +2285,6 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
     svga->changedvram[addr >> 12] = changeframecount;
 }
 
-static uint8_t
-gd54xx_get_aperture(uint32_t addr)
-{
-    uint32_t ap = addr >> 22;
-    return (uint8_t) (ap & 0x03);
-}
-
 static int
 gd54xx_aperture2_enabled(gd54xx_t *gd54xx)
 {
@@ -2294,7 +2321,7 @@ gd54xx_readb_linear(uint32_t addr, void *priv)
 
     /* Do mem sys dest reads here if the blitter is neither paused, nor is there a second aperture. */
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest && !gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED))
-        return gd54xx_mem_sys_dest_read(gd54xx);
+        return gd54xx_mem_sys_dest_read(gd54xx, ap);
 
     switch (ap) {
         default:
@@ -2318,8 +2345,9 @@ gd54xx_readb_linear(uint32_t addr, void *priv)
 static uint16_t
 gd54xx_readw_linear(uint32_t addr, void *priv)
 {
-    gd54xx_t *gd54xx = (gd54xx_t *) priv;
-    svga_t   *svga   = &gd54xx->svga;
+    gd54xx_t *gd54xx   = (gd54xx_t *) priv;
+    svga_t   *svga     = &gd54xx->svga;
+    uint32_t  old_addr = addr;
 
     uint8_t  ap = gd54xx_get_aperture(addr);
     uint16_t temp;
@@ -2338,8 +2366,8 @@ gd54xx_readw_linear(uint32_t addr, void *priv)
 
     /* Do mem sys dest reads here if the blitter is neither paused, nor is there a second aperture. */
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest && !gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
-        temp = gd54xx_readb_linear(addr, priv);
-        temp |= gd54xx_readb_linear(addr + 1, priv) << 8;
+        temp = gd54xx_readb_linear(old_addr, priv);
+        temp |= gd54xx_readb_linear(old_addr + 1, priv) << 8;
         return temp;
     }
 
@@ -2367,8 +2395,9 @@ gd54xx_readw_linear(uint32_t addr, void *priv)
 static uint32_t
 gd54xx_readl_linear(uint32_t addr, void *priv)
 {
-    gd54xx_t *gd54xx = (gd54xx_t *) priv;
-    svga_t   *svga   = &gd54xx->svga;
+    gd54xx_t *gd54xx   = (gd54xx_t *) priv;
+    svga_t   *svga     = &gd54xx->svga;
+    uint32_t  old_addr = addr;
 
     uint8_t  ap = gd54xx_get_aperture(addr);
     uint32_t temp;
@@ -2387,10 +2416,10 @@ gd54xx_readl_linear(uint32_t addr, void *priv)
 
     /* Do mem sys dest reads here if the blitter is neither paused, nor is there a second aperture. */
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest && !gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
-        temp = gd54xx_readb_linear(addr, priv);
-        temp |= gd54xx_readb_linear(addr + 1, priv) << 8;
-        temp |= gd54xx_readb_linear(addr + 2, priv) << 16;
-        temp |= gd54xx_readb_linear(addr + 3, priv) << 24;
+        temp = gd54xx_readb_linear(old_addr, priv);
+        temp |= gd54xx_readb_linear(old_addr + 1, priv) << 8;
+        temp |= gd54xx_readb_linear(old_addr + 2, priv) << 16;
+        temp |= gd54xx_readb_linear(old_addr + 3, priv) << 24;
         return temp;
     }
 
@@ -2427,9 +2456,11 @@ static uint8_t
 gd5436_aperture2_readb(UNUSED(uint32_t addr), void *priv)
 {
     gd54xx_t *gd54xx = (gd54xx_t *) priv;
+    uint8_t  ap = gd54xx_get_aperture(addr);
 
-    if (gd54xx->countminusone && gd54xx->blt.ms_is_dest && gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED))
-        return gd54xx_mem_sys_dest_read(gd54xx);
+    if (gd54xx->countminusone && gd54xx->blt.ms_is_dest &&
+        gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED))
+        return gd54xx_mem_sys_dest_read(gd54xx, ap);
 
     return 0xff;
 }
@@ -2440,7 +2471,8 @@ gd5436_aperture2_readw(uint32_t addr, void *priv)
     gd54xx_t *gd54xx = (gd54xx_t *) priv;
     uint16_t  ret    = 0xffff;
 
-    if (gd54xx->countminusone && gd54xx->blt.ms_is_dest && gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
+    if (gd54xx->countminusone && gd54xx->blt.ms_is_dest &&
+        gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
         ret = gd5436_aperture2_readb(addr, priv);
         ret |= gd5436_aperture2_readb(addr + 1, priv) << 8;
         return ret;
@@ -2455,7 +2487,8 @@ gd5436_aperture2_readl(uint32_t addr, void *priv)
     gd54xx_t *gd54xx = (gd54xx_t *) priv;
     uint32_t  ret    = 0xffffffff;
 
-    if (gd54xx->countminusone && gd54xx->blt.ms_is_dest && gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
+    if (gd54xx->countminusone && gd54xx->blt.ms_is_dest &&
+        gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
         ret = gd5436_aperture2_readb(addr, priv);
         ret |= gd5436_aperture2_readb(addr + 1, priv) << 8;
         ret |= gd5436_aperture2_readb(addr + 2, priv) << 16;
@@ -2470,10 +2503,11 @@ static void
 gd5436_aperture2_writeb(UNUSED(uint32_t addr), uint8_t val, void *priv)
 {
     gd54xx_t *gd54xx = (gd54xx_t *) priv;
+    uint8_t  ap = gd54xx_get_aperture(addr);
 
-    if (gd54xx->countminusone && !gd54xx->blt.ms_is_dest
-        && gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED))
-        gd54xx_mem_sys_src_write(gd54xx, val);
+    if (gd54xx->countminusone && !gd54xx->blt.ms_is_dest &&
+        gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED))
+        gd54xx_mem_sys_src_write(gd54xx, val, ap);
 }
 
 static void
@@ -2481,8 +2515,8 @@ gd5436_aperture2_writew(uint32_t addr, uint16_t val, void *priv)
 {
     gd54xx_t *gd54xx = (gd54xx_t *) priv;
 
-    if (gd54xx->countminusone && !gd54xx->blt.ms_is_dest
-        && gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
+    if (gd54xx->countminusone && !gd54xx->blt.ms_is_dest &&
+        gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
         gd5436_aperture2_writeb(addr, val, gd54xx);
         gd5436_aperture2_writeb(addr + 1, val >> 8, gd54xx);
     }
@@ -2493,8 +2527,8 @@ gd5436_aperture2_writel(uint32_t addr, uint32_t val, void *priv)
 {
     gd54xx_t *gd54xx = (gd54xx_t *) priv;
 
-    if (gd54xx->countminusone && !gd54xx->blt.ms_is_dest
-        && gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
+    if (gd54xx->countminusone && !gd54xx->blt.ms_is_dest &&
+        gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
         gd5436_aperture2_writeb(addr, val, gd54xx);
         gd5436_aperture2_writeb(addr + 1, val >> 8, gd54xx);
         gd5436_aperture2_writeb(addr + 2, val >> 16, gd54xx);
@@ -2508,7 +2542,7 @@ gd54xx_writeb_linear(uint32_t addr, uint8_t val, void *priv)
     gd54xx_t *gd54xx = (gd54xx_t *) priv;
     svga_t   *svga   = &gd54xx->svga;
 
-    uint8_t ap = gd54xx_get_aperture(addr);
+    uint8_t ap       = gd54xx_get_aperture(addr);
 
     if ((svga->seqregs[0x07] & 0x01) == 0) {
         svga_write_linear(addr, val, svga);
@@ -2526,7 +2560,7 @@ gd54xx_writeb_linear(uint32_t addr, uint8_t val, void *priv)
 
     /* Do mem sys src writes here if the blitter is neither paused, nor is there a second aperture. */
     if (gd54xx->countminusone && !gd54xx->blt.ms_is_dest && !gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
-        gd54xx_mem_sys_src_write(gd54xx, val);
+        gd54xx_mem_sys_src_write(gd54xx, val, ap);
         return;
     }
 
@@ -2552,10 +2586,10 @@ gd54xx_writeb_linear(uint32_t addr, uint8_t val, void *priv)
 static void
 gd54xx_writew_linear(uint32_t addr, uint16_t val, void *priv)
 {
-    gd54xx_t *gd54xx = (gd54xx_t *) priv;
-    svga_t   *svga   = &gd54xx->svga;
-
-    uint8_t ap = gd54xx_get_aperture(addr);
+    gd54xx_t *gd54xx   = (gd54xx_t *) priv;
+    svga_t   *svga     = &gd54xx->svga;
+    uint32_t  old_addr = addr;
+    uint8_t ap         = gd54xx_get_aperture(addr);
 
     if ((svga->seqregs[0x07] & 0x01) == 0) {
         svga_writew_linear(addr, val, svga);
@@ -2573,8 +2607,8 @@ gd54xx_writew_linear(uint32_t addr, uint16_t val, void *priv)
 
     /* Do mem sys src writes here if the blitter is neither paused, nor is there a second aperture. */
     if (gd54xx->countminusone && !gd54xx->blt.ms_is_dest && !gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
-        gd54xx_writeb_linear(addr, val, gd54xx);
-        gd54xx_writeb_linear(addr + 1, val >> 8, gd54xx);
+        gd54xx_writeb_linear(old_addr, val, gd54xx);
+        gd54xx_writeb_linear(old_addr + 1, val >> 8, gd54xx);
         return;
     }
 
@@ -2619,10 +2653,10 @@ gd54xx_writew_linear(uint32_t addr, uint16_t val, void *priv)
 static void
 gd54xx_writel_linear(uint32_t addr, uint32_t val, void *priv)
 {
-    gd54xx_t *gd54xx = (gd54xx_t *) priv;
-    svga_t   *svga   = &gd54xx->svga;
-
-    uint8_t ap = gd54xx_get_aperture(addr);
+    gd54xx_t *gd54xx   = (gd54xx_t *) priv;
+    svga_t   *svga     = &gd54xx->svga;
+    uint32_t  old_addr = addr;
+    uint8_t ap         = gd54xx_get_aperture(addr);
 
     if ((svga->seqregs[0x07] & 0x01) == 0) {
         svga_writel_linear(addr, val, svga);
@@ -2640,10 +2674,10 @@ gd54xx_writel_linear(uint32_t addr, uint32_t val, void *priv)
 
     /* Do mem sys src writes here if the blitter is neither paused, nor is there a second aperture. */
     if (gd54xx->countminusone && !gd54xx->blt.ms_is_dest && !gd54xx_aperture2_enabled(gd54xx) && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
-        gd54xx_writeb_linear(addr, val, gd54xx);
-        gd54xx_writeb_linear(addr + 1, val >> 8, gd54xx);
-        gd54xx_writeb_linear(addr + 2, val >> 16, gd54xx);
-        gd54xx_writeb_linear(addr + 3, val >> 24, gd54xx);
+        gd54xx_writeb_linear(old_addr, val, gd54xx);
+        gd54xx_writeb_linear(old_addr + 1, val >> 8, gd54xx);
+        gd54xx_writeb_linear(old_addr + 2, val >> 16, gd54xx);
+        gd54xx_writeb_linear(old_addr + 3, val >> 24, gd54xx);
         return;
     }
 
@@ -2705,7 +2739,7 @@ gd54xx_read(uint32_t addr, void *priv)
         return svga_read(addr, svga);
 
     if (gd54xx->countminusone && gd54xx->blt.ms_is_dest && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED))
-        return gd54xx_mem_sys_dest_read(gd54xx);
+        return gd54xx_mem_sys_dest_read(gd54xx, 0);
 
     addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
     return svga_read_linear(addr, svga);
@@ -2938,7 +2972,7 @@ gd543x_mmio_writeb(uint32_t addr, uint8_t val, void *priv)
     svga_t   *svga   = &gd54xx->svga;
 
     if (!gd543x_do_mmio(svga, addr) && !gd54xx->blt.ms_is_dest && gd54xx->countminusone && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
-        gd54xx_mem_sys_src_write(gd54xx, val);
+        gd54xx_mem_sys_src_write(gd54xx, val, 0);
         return;
     }
 
@@ -3127,7 +3161,7 @@ gd543x_mmio_read(uint32_t addr, void *priv)
     } else if (gd54xx->mmio_vram_overlap)
         ret = gd54xx_read(addr, gd54xx);
     else if (gd54xx->countminusone && gd54xx->blt.ms_is_dest && !(gd54xx->blt.status & CIRRUS_BLT_PAUSED)) {
-        ret = gd54xx_mem_sys_dest_read(gd54xx);
+        ret = gd54xx_mem_sys_dest_read(gd54xx, 0);
     }
 
     return ret;
