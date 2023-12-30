@@ -290,8 +290,8 @@ machine_at_revenge_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/revenge/1009af2_.bio",
-                                    "roms/machines/revenge/1009af2_.bi1",
+    ret = bios_load_linear_combined("roms/machines/revenge/1013af2_.bio",
+                                    "roms/machines/revenge/1013af2_.bi1",
                                     0x1c000, 128);
 
     if (bios_only || !ret)
