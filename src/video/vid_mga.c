@@ -1729,7 +1729,10 @@ mystique_accel_ctrl_write_b(uint32_t addr, uint8_t val, void *priv)
         case REG_MACCESS + 3:
             WRITE8(addr, mystique->maccess, val);
             mystique->dwgreg.dither = mystique->maccess >> 30;
-            mystique->dwgreg.z_base = mystique->dwgreg.ydstorg * ((mystique->maccess & MACCESS_ZWIDTH) ? 4 : 2) + mystique->dwgreg.zorg;
+            if (mystique->type < MGA_2164W)
+                mystique->maccess &= ~MACCESS_ZWIDTH;
+            else
+                mystique->dwgreg.z_base = mystique->dwgreg.ydstorg * ((mystique->maccess & MACCESS_ZWIDTH) ? 4 : 2) + mystique->dwgreg.zorg;
             break;
 
         case REG_MCTLWTST:
