@@ -2141,6 +2141,7 @@ sb_16_init(UNUSED(const device_t *info))
 
     sb->gameport = gameport_add(&gameport_pnp_device);
     sb->gameport_addr = 0x200;
+    gameport_remap(sb->gameport, sb->gameport_addr);
 
     return sb;
 }
@@ -2352,6 +2353,7 @@ sb_16_compat_init(const device_t *info)
 
     sb->gameport = gameport_add(&gameport_pnp_device);
     sb->gameport_addr = 0x200;
+    gameport_remap(sb->gameport, sb->gameport_addr);
 
     return sb;
 }
@@ -2455,6 +2457,7 @@ sb_awe32_init(UNUSED(const device_t *info))
 
     sb->gameport = gameport_add(&gameport_pnp_device);
     sb->gameport_addr = 0x200;
+    gameport_remap(sb->gameport, sb->gameport_addr);
 
     return sb;
 }
