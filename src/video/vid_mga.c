@@ -4728,10 +4728,10 @@ blit_trap(mystique_t *mystique)
                 }
 
                 if (mystique->maccess_running & MACCESS_ZWIDTH) {
-                    mystique->dwgreg.extended_dr[0] += z_back_32 + mystique->dwgreg.extended_dr[3];
+                    mystique->dwgreg.extended_dr[0] = z_back_32 + mystique->dwgreg.extended_dr[3];
                     mystique->dwgreg.dr[0] = (mystique->dwgreg.extended_dr[0] >> 16) & 0xFFFFFFFF;
                 } else {
-                    mystique->dwgreg.dr[0] += z_back + mystique->dwgreg.dr[3];
+                    mystique->dwgreg.dr[0] = z_back + mystique->dwgreg.dr[3];
                     mystique->dwgreg.extended_dr[0] = (mystique->dwgreg.extended_dr[0] & ~0xFFFFull) | ((uint64_t)mystique->dwgreg.dr[0] << 16ull);
                 }
                 mystique->dwgreg.dr[4]  = r_back + mystique->dwgreg.dr[7];
