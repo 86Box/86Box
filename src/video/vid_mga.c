@@ -6564,7 +6564,7 @@ static const device_config_t millennium_ii_config[] = {
         .description = "Memory size",
         .type = CONFIG_SELECTION,
         .selection =
-        {   
+        {
             {
                 .description = "4 MB",
                 .value = 4
