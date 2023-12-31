@@ -4934,10 +4934,7 @@ static double lerp(double v0, double v1, double t) {
 static int
 texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atransp, int *tex_a)
 {
-    svga_t *svga = &mystique->svga;
-
     const int          tex_shift = 3 + ((mystique->dwgreg.texctl & TEXCTL_TPITCH_MASK) >> TEXCTL_TPITCH_SHIFT);
-    const unsigned int palsel    = mystique->dwgreg.texctl & TEXCTL_PALSEL_MASK;
     const uint16_t     tckey     = mystique->dwgreg.textrans & TEXTRANS_TCKEY_MASK;
     const uint16_t     tkmask    = (mystique->dwgreg.textrans & TEXTRANS_TKMASK_MASK) >> TEXTRANS_TKMASK_SHIFT;
     const unsigned int w_mask    = (mystique->dwgreg.texwidth & TEXWIDTH_TWMASK_MASK) >> TEXWIDTH_TWMASK_SHIFT;
