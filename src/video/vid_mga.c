@@ -4905,7 +4905,6 @@ static uint16_t texture_texel_fetch(mystique_t *mystique, int *tex_r, int *tex_g
             *tex_g = ((src >> 4) & 0xf) << 4;
             *tex_b = (src & 0xf) << 4;
             *tex_a = ((src >> 12) & 0xf) << 4;
-            pclog("TEXFORMAT_TW12\n");
             if (mystique->dwgreg.texctl & TEXCTL_AZEROEXTEND) {
                 *atransp = (((src >> 12) & 0xf) & mystique->dwgreg.ta_mask)  == mystique->dwgreg.ta_key;
             } else {
