@@ -120,6 +120,7 @@
 #define REG_DR2_Z32MSB      0x2c64
 #define REG_DR3_Z32LSB      0x2c68
 #define REG_DR3_Z32MSB      0x2c6c
+#define REG_TEXFILTER       0x2c58
 
 #define REG_FIFOSTATUS   0x1e10
 #define REG_STATUS       0x1e14
@@ -510,7 +511,8 @@ typedef struct mystique_t {
             texctl, textrans, zorg, ydst_lin,
             src_addr, z_base, iload_rem_data, highv_data,
             fogcol, fogxinc : 24, fogyinc : 24, fogstart : 24,
-            alphactrl, alphaxinc : 24, alphayinc : 24, alphastart : 24;
+            alphactrl, alphaxinc : 24, alphayinc : 24, alphastart : 24,
+            texfilter;
 
         uint32_t src[4], ar[7],
             dr[16], tmr[9];
@@ -658,6 +660,15 @@ static const uint8_t trans_masks[16][16] = {
 
 static int8_t dither5[256][2][2];
 static int8_t dither6[256][2][2];
+static double bayer_mat[4][4] =
+{
+    { 0.0, 8. / 16., 2. / 16., 10. / 16.},
+    { 12. / 16., 4. / 16., 14. / 16., 6. / 16.},
+    { 3. / 16., 11. / 16., 1. / 16., 9. / 16.},
+    { 15. / 16., 7. / 16., 13. / 16., 5. / 16.},
+};
+
+static const int grey_lut[16] = { 0, 16, 32, 48, 64, 80, 96, 112, 128, 143, 159, 175, 191, 207, 223, 239 };
 
 static video_timings_t timing_matrox_millennium = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 10, .read_w = 10, .read_l = 10 };
 static video_timings_t timing_matrox_mystique   = { .type = VIDEO_PCI, .write_b = 4, .write_w = 4, .write_l = 4, .read_b = 10, .read_w = 10, .read_l = 10 };
@@ -2606,6 +2617,10 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
 
         case REG_FOGYINC:
             mystique->dwgreg.fogyinc = val;
+            break;
+
+        case REG_TEXFILTER:
+            mystique->dwgreg.texfilter = val;
             break;
 
         default:
@@ -4828,45 +4843,18 @@ blit_trap(mystique_t *mystique)
     mystique->blitter_complete_refcount++;
 }
 
-static int
-texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atransp, int *tex_a)
+static uint16_t texture_texel_fetch(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *tex_a, int *atransp, int s, int t, int tex_pitch)
 {
-    svga_t *svga = &mystique->svga;
-
-    const int          tex_shift = 3 + ((mystique->dwgreg.texctl & TEXCTL_TPITCH_MASK) >> TEXCTL_TPITCH_SHIFT);
-    const unsigned int palsel    = mystique->dwgreg.texctl & TEXCTL_PALSEL_MASK;
-    const uint16_t     tckey     = mystique->dwgreg.textrans & TEXTRANS_TCKEY_MASK;
-    const uint16_t     tkmask    = (mystique->dwgreg.textrans & TEXTRANS_TKMASK_MASK) >> TEXTRANS_TKMASK_SHIFT;
     const unsigned int w_mask    = (mystique->dwgreg.texwidth & TEXWIDTH_TWMASK_MASK) >> TEXWIDTH_TWMASK_SHIFT;
     const unsigned int h_mask    = (mystique->dwgreg.texheight & TEXHEIGHT_THMASK_MASK) >> TEXHEIGHT_THMASK_SHIFT;
-    uint16_t           src       = 0;
-    int                s;
-    int                t;
-    int                tex_pitch = 1 << tex_shift;
+    const unsigned int palsel    = mystique->dwgreg.texctl & TEXCTL_PALSEL_MASK;
+    svga_t*            svga      = &mystique->svga;
+    uint16_t           src       = 0x0;
 
-    *tex_a = 255;
+    int atransp_dummy = 0;
 
-    if (mystique->type >= MGA_G100 && (mystique->dwgreg.texctl & TEXCTL_TPITCHLIN))
-    {
-        tex_pitch = (mystique->dwgreg.texctl & TEXCTL_TPITCHEXT_MASK) >> 9;
-        if (tex_pitch == 0)
-            tex_pitch = 2048;
-    }
-
-    if (mystique->dwgreg.texctl & TEXCTL_NPCEN) {
-        const int s_shift = 20 - (mystique->dwgreg.texwidth & TEXWIDTH_TW_MASK);
-        const int t_shift = 20 - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
-
-        s = (int32_t) mystique->dwgreg.tmr[6] >> s_shift;
-        t = (int32_t) mystique->dwgreg.tmr[7] >> t_shift;
-    } else {
-        const int s_shift = (20 + 16) - (mystique->dwgreg.texwidth & TEXWIDTH_TW_MASK);
-        const int t_shift = (20 + 16) - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
-        int64_t   q       = mystique->dwgreg.tmr[8] ? (0x100000000LL / (int64_t) (int32_t) mystique->dwgreg.tmr[8] /*>> 16*/) : 0;
-
-        s = ((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q /*<< 8*/) >> s_shift; /*((16+20)-12);*/
-        t = ((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q /*<< 8*/) >> t_shift; /*((16+20)-9);*/
-    }
+    if (!atransp)
+        atransp = &atransp_dummy;
 
     if (mystique->dwgreg.texctl & TEXCTL_CLAMPU) {
         if (s < 0)
@@ -4915,10 +4903,11 @@ texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atra
             break;
         case TEXCTL_TEXFORMAT_TW12:
             src    = ((uint16_t *) svga->vram)[((mystique->dwgreg.texorg >> 1) + (t * tex_pitch) + s) & mystique->vram_mask_w];
-            *tex_r = ((src >> 8) & 0xf) << 3;
-            *tex_g = ((src >> 4) & 0xf) << 3;
-            *tex_b = (src & 0xf) << 3;
-            *tex_a = ((src >> 12) & 0xf) << 3;
+            *tex_r = ((src >> 8) & 0xf) << 4;
+            *tex_g = ((src >> 4) & 0xf) << 4;
+            *tex_b = (src & 0xf) << 4;
+            *tex_a = ((src >> 12) & 0xf) << 4;
+            pclog("TEXFORMAT_TW12\n");
             if (mystique->dwgreg.texctl & TEXCTL_AZEROEXTEND) {
                 *atransp = (((src >> 12) & 0xf) & mystique->dwgreg.ta_mask)  == mystique->dwgreg.ta_key;
             } else {
@@ -4937,6 +4926,114 @@ texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atra
         default:
             fatal("Unknown texture format %i\n", mystique->dwgreg.texctl & TEXCTL_TEXFORMAT_MASK);
             break;
+    }
+    return src;
+}
+
+static double lerp(double v0, double v1, double t) {
+  return (1. - t) * v0 + t * v1;
+}
+
+static int
+texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atransp, int *tex_a)
+{
+    svga_t *svga = &mystique->svga;
+
+    const int          tex_shift = 3 + ((mystique->dwgreg.texctl & TEXCTL_TPITCH_MASK) >> TEXCTL_TPITCH_SHIFT);
+    const unsigned int palsel    = mystique->dwgreg.texctl & TEXCTL_PALSEL_MASK;
+    const uint16_t     tckey     = mystique->dwgreg.textrans & TEXTRANS_TCKEY_MASK;
+    const uint16_t     tkmask    = (mystique->dwgreg.textrans & TEXTRANS_TKMASK_MASK) >> TEXTRANS_TKMASK_SHIFT;
+    const unsigned int w_mask    = (mystique->dwgreg.texwidth & TEXWIDTH_TWMASK_MASK) >> TEXWIDTH_TWMASK_SHIFT;
+    const unsigned int h_mask    = (mystique->dwgreg.texheight & TEXHEIGHT_THMASK_MASK) >> TEXHEIGHT_THMASK_SHIFT;
+    uint16_t           src       = 0;
+    int                s;
+    int                t;
+    int                tex_pitch = 1 << tex_shift;
+    double             s_frac = 0;
+    double             t_frac = 0;
+
+    *tex_a = 255;
+
+    if (mystique->type >= MGA_G100 && (mystique->dwgreg.texctl & TEXCTL_TPITCHLIN))
+    {
+        tex_pitch = (mystique->dwgreg.texctl & TEXCTL_TPITCHEXT_MASK) >> 9;
+        if (tex_pitch == 0)
+            tex_pitch = 2048;
+    }
+
+    if (mystique->dwgreg.texctl & TEXCTL_NPCEN) {
+        const int s_shift = 20 - (mystique->dwgreg.texwidth & TEXWIDTH_TW_MASK);
+        const int t_shift = 20 - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
+
+        s = (int32_t) mystique->dwgreg.tmr[6] >> s_shift;
+        t = (int32_t) mystique->dwgreg.tmr[7] >> t_shift;
+        s_frac = (((int32_t) mystique->dwgreg.tmr[6] >> s_shift) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
+        t_frac = (((int32_t) mystique->dwgreg.tmr[7] >> t_shift) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
+    } else {
+        const int s_shift = (20 + 16) - (mystique->dwgreg.texwidth & TEXWIDTH_TW_MASK);
+        const int t_shift = (20 + 16) - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
+        int64_t   q       = mystique->dwgreg.tmr[8] ? (0x100000000LL / (int64_t) (int32_t) mystique->dwgreg.tmr[8]) : 0;
+
+        s = ((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) >> s_shift;
+        t = ((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q) >> t_shift;
+        s_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
+        t_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
+    }
+
+    if (mystique->dwgreg.texctl & TEXCTL_CLAMPU) {
+        if (s < 0)
+            s = 0;
+        else if (s > w_mask)
+            s = w_mask;
+    } else
+        s &= w_mask;
+
+    if (mystique->dwgreg.texctl & TEXCTL_CLAMPV) {
+        if (t < 0)
+            t = 0;
+        else if (t > h_mask)
+            t = h_mask;
+    } else
+        t &= h_mask;
+
+    src = texture_texel_fetch(mystique, tex_r, tex_g, tex_b, tex_a, atransp, s, t, tex_pitch);
+    switch (mystique->dwgreg.texfilter & 3)
+    {
+        case 0:
+            s_frac = t_frac = 0;
+            break;
+        case 1:
+        case 2:
+            break;
+        case 3:
+            s_frac = t_frac = .25;
+            break;
+    }
+    if (s_frac && s != w_mask)
+    {
+        int s_tex_r = 0, s_tex_g = 0, s_tex_b = 0, s_tex_a = 255;
+        texture_texel_fetch(mystique, &s_tex_r, &s_tex_g, &s_tex_b, &s_tex_a, NULL, s + 1, t, tex_pitch);
+        *tex_r = (int)lerp(*tex_r, s_tex_r, s_frac);
+        *tex_g = (int)lerp(*tex_g, s_tex_g, s_frac);
+        *tex_b = (int)lerp(*tex_b, s_tex_b, s_frac);
+        *tex_a = (int)lerp(*tex_a, s_tex_a, s_frac);
+        if (*tex_r > 255) *tex_r = 255;
+        if (*tex_g > 255) *tex_g = 255;
+        if (*tex_b > 255) *tex_b = 255;
+        if (*tex_a > 255) *tex_a = 255;
+    }
+    if (t_frac && t != h_mask)
+    {
+        int t_tex_r = 0, t_tex_g = 0, t_tex_b = 0, t_tex_a = 255;
+        texture_texel_fetch(mystique, &t_tex_r, &t_tex_g, &t_tex_b, &t_tex_a, NULL, s, t + 1, tex_pitch);
+        *tex_r = (int)lerp(*tex_r, t_tex_r, t_frac);
+        *tex_g = (int)lerp(*tex_g, t_tex_g, t_frac);
+        *tex_b = (int)lerp(*tex_b, t_tex_b, t_frac);
+        *tex_a = (int)lerp(*tex_a, t_tex_a, t_frac);
+        if (*tex_r > 255) *tex_r = 255;
+        if (*tex_g > 255) *tex_g = 255;
+        if (*tex_b > 255) *tex_b = 255;
+        if (*tex_a > 255) *tex_a = 255;
     }
 
     return ((src & tkmask) == tckey);
@@ -4995,7 +5092,7 @@ blit_texture_trap(mystique_t *mystique)
                             int tex_r = 0;
                             int tex_g = 0;
                             int tex_b = 0;
-                            int tex_a = 0;
+                            int tex_a = 255;
                             int ctransp;
                             int atransp = 0;
                             int i_r = 0;
@@ -5107,6 +5204,25 @@ blit_texture_trap(mystique_t *mystique)
 
                             if (final_a != 255)
                             {
+                                /* Does this actually work? I'm not sure. */
+                                if (final_a & 0xf) {
+                                    double threshold = bayer_mat[mystique->dwgreg.selline & 3][x_l & 3];
+                                    double final_a_frac = (final_a & 0xf) / 16.;
+                                    if (final_a_frac >= threshold) {
+                                        if ((final_a >> 4) == 0x0)
+                                            final_a = grey_lut[1];
+                                        else if ((final_a >> 4) == 0xf)
+                                            final_a = 255;
+                                        else
+                                            final_a = grey_lut[final_a >> 4];
+                                    } else {
+                                        if ((final_a >> 4) == 0x0)
+                                            final_a = 0;
+                                        else
+                                            final_a = grey_lut[(final_a >> 4) - 1];
+                                    }
+                                }
+                                
                                 if (dest32) {
                                     uint32_t dst_col = ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x_l) & mystique->vram_mask_l];
                                     uint8_t dst_b = dst_col & 0xFF;
@@ -6480,7 +6596,11 @@ static const device_config_t millennium_ii_config[] = {
         .description = "Memory size",
         .type = CONFIG_SELECTION,
         .selection =
-        {
+        {   
+            {
+                .description = "4 MB",
+                .value = 4
+            },
             {
                 .description = "8 MB",
                 .value = 8
