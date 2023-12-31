@@ -668,8 +668,6 @@ static double bayer_mat[4][4] =
     { 15. / 16., 7. / 16., 13. / 16., 5. / 16.},
 };
 
-static const int grey_lut[16] = { 0, 16, 32, 48, 64, 80, 96, 112, 128, 143, 159, 175, 191, 207, 223, 239 };
-
 static video_timings_t timing_matrox_millennium = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 10, .read_w = 10, .read_l = 10 };
 static video_timings_t timing_matrox_mystique   = { .type = VIDEO_PCI, .write_b = 4, .write_w = 4, .write_l = 4, .read_b = 10, .read_w = 10, .read_l = 10 };
 
@@ -5204,43 +5202,14 @@ blit_texture_trap(mystique_t *mystique)
 
                             if (final_a != 255)
                             {
-                                /* Does this actually work? I'm not sure. */
-                                if (final_a & 0xf) {
+                                {
                                     double threshold = bayer_mat[mystique->dwgreg.selline & 3][x_l & 3];
-                                    double final_a_frac = (final_a & 0xf) / 16.;
+                                    double final_a_frac = (final_a) / 255.;
                                     if (final_a_frac >= threshold) {
-                                        if ((final_a >> 4) == 0x0)
-                                            final_a = grey_lut[1];
-                                        else if ((final_a >> 4) == 0xf)
-                                            final_a = 255;
-                                        else
-                                            final_a = grey_lut[final_a >> 4];
+                                        final_a = 255;
                                     } else {
-                                        if ((final_a >> 4) == 0x0)
-                                            final_a = 0;
-                                        else
-                                            final_a = grey_lut[(final_a >> 4) - 1];
+                                        goto skip_pixel;
                                     }
-                                }
-                                
-                                if (dest32) {
-                                    uint32_t dst_col = ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x_l) & mystique->vram_mask_l];
-                                    uint8_t dst_b = dst_col & 0xFF;
-                                    uint8_t dst_g = (dst_col >> 8) & 0xFF;
-                                    uint8_t dst_r = (dst_col >> 16) & 0xFF;
-
-                                    tex_r = (tex_r * ((final_a) / 255.)) + dst_r * ((255 - final_a) / 255.);
-                                    tex_g = (tex_g * ((final_a) / 255.)) + dst_g * ((255 - final_a) / 255.);
-                                    tex_b = (tex_b * ((final_a) / 255.)) + dst_b * ((255 - final_a) / 255.);
-                                } else {
-                                    uint16_t dst_col = ((uint16_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x_l) & mystique->vram_mask_w];
-                                    uint8_t dst_b = (dst_col & 0x1f) << 3;
-                                    uint8_t dst_g = (dst_col & 0x7e0) >> 3;
-                                    uint8_t dst_r = (dst_col & 0xf800) >> 8;
-
-                                    tex_r = (tex_r * ((final_a) / 255.)) + dst_r * ((255 - final_a) / 255.);
-                                    tex_g = (tex_g * ((final_a) / 255.)) + dst_g * ((255 - final_a) / 255.);
-                                    tex_b = (tex_b * ((final_a) / 255.)) + dst_b * ((255 - final_a) / 255.);
                                 }
                             }
 
