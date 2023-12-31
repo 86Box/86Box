@@ -41,6 +41,7 @@
 #define ROM_MILLENNIUM_II "roms/video/matrox/matrox2164wpc.BIN"
 #define ROM_MYSTIQUE      "roms/video/matrox/MYSTIQUE.VBI"
 #define ROM_MYSTIQUE_220  "roms/video/matrox/Myst220_66-99mhz.vbi"
+#define ROM_G100          "roms/video/matrox/productiva8mbsdr.BIN"
 
 #define FIFO_SIZE        65536
 #define FIFO_MASK        (FIFO_SIZE - 1)
@@ -119,6 +120,7 @@
 #define REG_DR2_Z32MSB      0x2c64
 #define REG_DR3_Z32LSB      0x2c68
 #define REG_DR3_Z32MSB      0x2c6c
+#define REG_TEXFILTER       0x2c58
 
 #define REG_FIFOSTATUS   0x1e10
 #define REG_STATUS       0x1e14
@@ -166,6 +168,14 @@
 #define REG_SECADDRESS 0x2c40
 #define REG_SECEND     0x2c44
 #define REG_SOFTRAP    0x2c48
+#define REG_ALPHASTART 0x2c70
+#define REG_ALPHACTRL  0x2c7c
+#define REG_ALPHAXINC  0x2c74
+#define REG_ALPHAYINC  0x2c78
+#define REG_FOGSTART   0x1cc4
+#define REG_FOGXINC    0x1cd4
+#define REG_FOGYINC    0x1ce4
+#define REG_FOGCOL     0x1cf4
 
 /*Mystique only*/
 #define REG_PALWTADD                  0x3c00
@@ -319,6 +329,7 @@
 #define MACCESS_PWIDTH_32             (2 << 0)
 #define MACCESS_PWIDTH_24             (3 << 0)
 #define MACCESS_ZWIDTH                (1 << 3)
+#define MACCESS_FOGEN                 (1 << 26)
 #define MACCESS_TLUTLOAD              (1 << 29)
 #define MACCESS_NODITHER              (1 << 30)
 #define MACCESS_DIT555                (1 << 31)
@@ -359,7 +370,10 @@
 #define TEXCTL_PALSEL_MASK            (0xf << 4)
 #define TEXCTL_TPITCH_SHIFT           (16)
 #define TEXCTL_TPITCH_MASK            (7 << TEXCTL_TPITCH_SHIFT)
+#define TEXCTL_TPITCHLIN              (1 << 8)
+#define TEXCTL_TPITCHEXT_MASK         (0x7ff << 9)
 #define TEXCTL_NPCEN                  (1 << 21)
+#define TEXCTL_AZEROEXTEND            (1 << 23)
 #define TEXCTL_DECALCKEY              (1 << 24)
 #define TEXCTL_TAKEY                  (1 << 25)
 #define TEXCTL_TAMASK                 (1 << 26)
@@ -394,6 +408,7 @@ enum {
     MGA_1064SG, /*Mystique*/
     MGA_1164SG, /*Mystique 220*/
     MGA_2164W, /*Millennium II*/
+    MGA_G100,  /*Productiva G100*/
 };
 
 enum {
@@ -494,7 +509,10 @@ typedef struct mystique_t {
             pitch, plnwt, ybot, ydstorg,
             ytop, texorg, texwidth, texheight,
             texctl, textrans, zorg, ydst_lin,
-            src_addr, z_base, iload_rem_data, highv_data;
+            src_addr, z_base, iload_rem_data, highv_data,
+            fogcol, fogxinc : 24, fogyinc : 24, fogstart : 24,
+            alphactrl, alphaxinc : 24, alphayinc : 24, alphastart : 24,
+            texfilter;
 
         uint32_t src[4], ar[7],
             dr[16], tmr[9];
@@ -642,6 +660,13 @@ static const uint8_t trans_masks[16][16] = {
 
 static int8_t dither5[256][2][2];
 static int8_t dither6[256][2][2];
+static double bayer_mat[4][4] =
+{
+    { 0.0, 8. / 16., 2. / 16., 10. / 16.},
+    { 12. / 16., 4. / 16., 14. / 16., 6. / 16.},
+    { 3. / 16., 11. / 16., 1. / 16., 9. / 16.},
+    { 15. / 16., 7. / 16., 13. / 16., 5. / 16.},
+};
 
 static video_timings_t timing_matrox_millennium = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 10, .read_w = 10, .read_l = 10 };
 static video_timings_t timing_matrox_mystique   = { .type = VIDEO_PCI, .write_b = 4, .write_w = 4, .write_l = 4, .read_b = 10, .read_w = 10, .read_l = 10 };
@@ -2558,6 +2583,42 @@ mystique_accel_ctrl_write_l(uint32_t addr, uint32_t val, void *priv)
             mystique->endprdmasts_pending = 1;
             mystique->softrap_pending_val = val;
             mystique->softrap_pending     += 1;
+            break;
+
+        case REG_ALPHACTRL:
+            mystique->dwgreg.alphactrl = val;
+            break;
+        
+        case REG_ALPHASTART:
+            mystique->dwgreg.alphastart = val;
+            break;
+
+        case REG_ALPHAXINC:
+            mystique->dwgreg.alphaxinc = val;
+            break;
+
+        case REG_ALPHAYINC:
+            mystique->dwgreg.alphayinc = val;
+            break;
+
+        case REG_FOGCOL:
+            mystique->dwgreg.fogcol = val;
+            break;
+        
+        case REG_FOGSTART:
+            mystique->dwgreg.fogstart = val;
+            break;
+
+        case REG_FOGXINC:
+            mystique->dwgreg.fogxinc = val;
+            break;
+
+        case REG_FOGYINC:
+            mystique->dwgreg.fogyinc = val;
+            break;
+
+        case REG_TEXFILTER:
+            mystique->dwgreg.texfilter = val;
             break;
 
         default:
@@ -4780,35 +4841,18 @@ blit_trap(mystique_t *mystique)
     mystique->blitter_complete_refcount++;
 }
 
-static int
-texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atransp)
+static uint16_t texture_texel_fetch(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *tex_a, int *atransp, int s, int t, int tex_pitch)
 {
-    svga_t *svga = &mystique->svga;
-
-    const int          tex_shift = 3 + ((mystique->dwgreg.texctl & TEXCTL_TPITCH_MASK) >> TEXCTL_TPITCH_SHIFT);
-    const unsigned int palsel    = mystique->dwgreg.texctl & TEXCTL_PALSEL_MASK;
-    const uint16_t     tckey     = mystique->dwgreg.textrans & TEXTRANS_TCKEY_MASK;
-    const uint16_t     tkmask    = (mystique->dwgreg.textrans & TEXTRANS_TKMASK_MASK) >> TEXTRANS_TKMASK_SHIFT;
     const unsigned int w_mask    = (mystique->dwgreg.texwidth & TEXWIDTH_TWMASK_MASK) >> TEXWIDTH_TWMASK_SHIFT;
     const unsigned int h_mask    = (mystique->dwgreg.texheight & TEXHEIGHT_THMASK_MASK) >> TEXHEIGHT_THMASK_SHIFT;
-    uint16_t           src       = 0;
-    int                s;
-    int                t;
+    const unsigned int palsel    = mystique->dwgreg.texctl & TEXCTL_PALSEL_MASK;
+    svga_t*            svga      = &mystique->svga;
+    uint16_t           src       = 0x0;
 
-    if (mystique->dwgreg.texctl & TEXCTL_NPCEN) {
-        const int s_shift = 20 - (mystique->dwgreg.texwidth & TEXWIDTH_TW_MASK);
-        const int t_shift = 20 - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
+    int atransp_dummy = 0;
 
-        s = (int32_t) mystique->dwgreg.tmr[6] >> s_shift;
-        t = (int32_t) mystique->dwgreg.tmr[7] >> t_shift;
-    } else {
-        const int s_shift = (20 + 16) - (mystique->dwgreg.texwidth & TEXWIDTH_TW_MASK);
-        const int t_shift = (20 + 16) - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
-        int64_t   q       = mystique->dwgreg.tmr[8] ? (0x100000000LL / (int64_t) (int32_t) mystique->dwgreg.tmr[8] /*>> 16*/) : 0;
-
-        s = ((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q /*<< 8*/) >> s_shift; /*((16+20)-12);*/
-        t = ((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q /*<< 8*/) >> t_shift; /*((16+20)-9);*/
-    }
+    if (!atransp)
+        atransp = &atransp_dummy;
 
     if (mystique->dwgreg.texctl & TEXCTL_CLAMPU) {
         if (s < 0)
@@ -4828,7 +4872,7 @@ texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atra
 
     switch (mystique->dwgreg.texctl & TEXCTL_TEXFORMAT_MASK) {
         case TEXCTL_TEXFORMAT_TW4:
-            src = svga->vram[(mystique->dwgreg.texorg + (((t << tex_shift) + s) >> 1)) & mystique->vram_mask];
+            src = svga->vram[(mystique->dwgreg.texorg + (((t * tex_pitch) + s) >> 1)) & mystique->vram_mask];
             if (s & 1)
                 src >>= 4;
             else
@@ -4839,14 +4883,14 @@ texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atra
             *atransp = 0;
             break;
         case TEXCTL_TEXFORMAT_TW8:
-            src      = svga->vram[(mystique->dwgreg.texorg + (t << tex_shift) + s) & mystique->vram_mask];
+            src      = svga->vram[(mystique->dwgreg.texorg + (t * tex_pitch) + s) & mystique->vram_mask];
             *tex_r   = mystique->lut[src].r;
             *tex_g   = mystique->lut[src].g;
             *tex_b   = mystique->lut[src].b;
             *atransp = 0;
             break;
         case TEXCTL_TEXFORMAT_TW15:
-            src    = ((uint16_t *) svga->vram)[((mystique->dwgreg.texorg >> 1) + (t << tex_shift) + s) & mystique->vram_mask_w];
+            src    = ((uint16_t *) svga->vram)[((mystique->dwgreg.texorg >> 1) + (t * tex_pitch) + s) & mystique->vram_mask_w];
             *tex_r = ((src >> 10) & 0x1f) << 3;
             *tex_g = ((src >> 5) & 0x1f) << 3;
             *tex_b = (src & 0x1f) << 3;
@@ -4855,8 +4899,22 @@ texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atra
             else
                 *atransp = 0;
             break;
+        case TEXCTL_TEXFORMAT_TW12:
+            src    = ((uint16_t *) svga->vram)[((mystique->dwgreg.texorg >> 1) + (t * tex_pitch) + s) & mystique->vram_mask_w];
+            *tex_r = ((src >> 8) & 0xf) << 4;
+            *tex_g = ((src >> 4) & 0xf) << 4;
+            *tex_b = (src & 0xf) << 4;
+            *tex_a = ((src >> 12) & 0xf) << 4;
+            if (mystique->dwgreg.texctl & TEXCTL_AZEROEXTEND) {
+                *atransp = (((src >> 12) & 0xf) & mystique->dwgreg.ta_mask)  == mystique->dwgreg.ta_key;
+            } else {
+                uint8_t ta_mask = mystique->dwgreg.ta_mask ? 0xf : 0x0;
+                uint8_t ta_key = mystique->dwgreg.ta_key ? 0xf : 0x0;
+                *atransp = (((src >> 12) & 0xf) & ta_mask) == ta_key;
+            }
+            break;
         case TEXCTL_TEXFORMAT_TW16:
-            src      = ((uint16_t *) svga->vram)[((mystique->dwgreg.texorg >> 1) + (t << tex_shift) + s) & mystique->vram_mask_w];
+            src      = ((uint16_t *) svga->vram)[((mystique->dwgreg.texorg >> 1) + (t * tex_pitch) + s) & mystique->vram_mask_w];
             *tex_r   = (src >> 11) << 3;
             *tex_g   = ((src >> 5) & 0x3f) << 2;
             *tex_b   = (src & 0x1f) << 3;
@@ -4865,6 +4923,114 @@ texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atra
         default:
             fatal("Unknown texture format %i\n", mystique->dwgreg.texctl & TEXCTL_TEXFORMAT_MASK);
             break;
+    }
+    return src;
+}
+
+static double lerp(double v0, double v1, double t) {
+  return (1. - t) * v0 + t * v1;
+}
+
+static int
+texture_read(mystique_t *mystique, int *tex_r, int *tex_g, int *tex_b, int *atransp, int *tex_a)
+{
+    svga_t *svga = &mystique->svga;
+
+    const int          tex_shift = 3 + ((mystique->dwgreg.texctl & TEXCTL_TPITCH_MASK) >> TEXCTL_TPITCH_SHIFT);
+    const unsigned int palsel    = mystique->dwgreg.texctl & TEXCTL_PALSEL_MASK;
+    const uint16_t     tckey     = mystique->dwgreg.textrans & TEXTRANS_TCKEY_MASK;
+    const uint16_t     tkmask    = (mystique->dwgreg.textrans & TEXTRANS_TKMASK_MASK) >> TEXTRANS_TKMASK_SHIFT;
+    const unsigned int w_mask    = (mystique->dwgreg.texwidth & TEXWIDTH_TWMASK_MASK) >> TEXWIDTH_TWMASK_SHIFT;
+    const unsigned int h_mask    = (mystique->dwgreg.texheight & TEXHEIGHT_THMASK_MASK) >> TEXHEIGHT_THMASK_SHIFT;
+    uint16_t           src       = 0;
+    int                s;
+    int                t;
+    int                tex_pitch = 1 << tex_shift;
+    double             s_frac = 0;
+    double             t_frac = 0;
+
+    *tex_a = 255;
+
+    if (mystique->type >= MGA_G100 && (mystique->dwgreg.texctl & TEXCTL_TPITCHLIN))
+    {
+        tex_pitch = (mystique->dwgreg.texctl & TEXCTL_TPITCHEXT_MASK) >> 9;
+        if (tex_pitch == 0)
+            tex_pitch = 2048;
+    }
+
+    if (mystique->dwgreg.texctl & TEXCTL_NPCEN) {
+        const int s_shift = 20 - (mystique->dwgreg.texwidth & TEXWIDTH_TW_MASK);
+        const int t_shift = 20 - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
+
+        s = (int32_t) mystique->dwgreg.tmr[6] >> s_shift;
+        t = (int32_t) mystique->dwgreg.tmr[7] >> t_shift;
+        s_frac = (((int32_t) mystique->dwgreg.tmr[6] >> s_shift) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
+        t_frac = (((int32_t) mystique->dwgreg.tmr[7] >> t_shift) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
+    } else {
+        const int s_shift = (20 + 16) - (mystique->dwgreg.texwidth & TEXWIDTH_TW_MASK);
+        const int t_shift = (20 + 16) - (mystique->dwgreg.texheight & TEXHEIGHT_TH_MASK);
+        int64_t   q       = mystique->dwgreg.tmr[8] ? (0x100000000LL / (int64_t) (int32_t) mystique->dwgreg.tmr[8]) : 0;
+
+        s = ((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) >> s_shift;
+        t = ((int64_t) (int32_t) mystique->dwgreg.tmr[7] * q) >> t_shift;
+        s_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) & ((1 << s_shift) - 1)) / (double)(1 << s_shift);
+        t_frac = (((int64_t) (int32_t) mystique->dwgreg.tmr[6] * q) & ((1 << t_shift) - 1)) / (double)(1 << t_shift);
+    }
+
+    if (mystique->dwgreg.texctl & TEXCTL_CLAMPU) {
+        if (s < 0)
+            s = 0;
+        else if (s > w_mask)
+            s = w_mask;
+    } else
+        s &= w_mask;
+
+    if (mystique->dwgreg.texctl & TEXCTL_CLAMPV) {
+        if (t < 0)
+            t = 0;
+        else if (t > h_mask)
+            t = h_mask;
+    } else
+        t &= h_mask;
+
+    src = texture_texel_fetch(mystique, tex_r, tex_g, tex_b, tex_a, atransp, s, t, tex_pitch);
+    switch (mystique->dwgreg.texfilter & 3)
+    {
+        case 0:
+            s_frac = t_frac = 0;
+            break;
+        case 1:
+        case 2:
+            break;
+        case 3:
+            s_frac = t_frac = .25;
+            break;
+    }
+    if (s_frac && s != w_mask)
+    {
+        int s_tex_r = 0, s_tex_g = 0, s_tex_b = 0, s_tex_a = 255;
+        texture_texel_fetch(mystique, &s_tex_r, &s_tex_g, &s_tex_b, &s_tex_a, NULL, s + 1, t, tex_pitch);
+        *tex_r = (int)lerp(*tex_r, s_tex_r, s_frac);
+        *tex_g = (int)lerp(*tex_g, s_tex_g, s_frac);
+        *tex_b = (int)lerp(*tex_b, s_tex_b, s_frac);
+        *tex_a = (int)lerp(*tex_a, s_tex_a, s_frac);
+        if (*tex_r > 255) *tex_r = 255;
+        if (*tex_g > 255) *tex_g = 255;
+        if (*tex_b > 255) *tex_b = 255;
+        if (*tex_a > 255) *tex_a = 255;
+    }
+    if (t_frac && t != h_mask)
+    {
+        int t_tex_r = 0, t_tex_g = 0, t_tex_b = 0, t_tex_a = 255;
+        texture_texel_fetch(mystique, &t_tex_r, &t_tex_g, &t_tex_b, &t_tex_a, NULL, s, t + 1, tex_pitch);
+        *tex_r = (int)lerp(*tex_r, t_tex_r, t_frac);
+        *tex_g = (int)lerp(*tex_g, t_tex_g, t_frac);
+        *tex_b = (int)lerp(*tex_b, t_tex_b, t_frac);
+        *tex_a = (int)lerp(*tex_a, t_tex_a, t_frac);
+        if (*tex_r > 255) *tex_r = 255;
+        if (*tex_g > 255) *tex_g = 255;
+        if (*tex_b > 255) *tex_b = 255;
+        if (*tex_a > 255) *tex_a = 255;
     }
 
     return ((src & tkmask) == tckey);
@@ -4903,6 +5069,8 @@ blit_texture_trap(mystique_t *mystique)
                 uint32_t s_back = mystique->dwgreg.tmr[6];
                 uint32_t t_back = mystique->dwgreg.tmr[7];
                 uint32_t q_back = mystique->dwgreg.tmr[8];
+                uint32_t a_back = mystique->dwgreg.alphastart;
+                uint32_t fog_back = mystique->dwgreg.fogstart;
 
                 while (x_l != x_r) {
                     if (x_l >= mystique->dwgreg.cxleft && x_l <= mystique->dwgreg.cxright && mystique->dwgreg.ydst_lin >= mystique->dwgreg.ytop && mystique->dwgreg.ydst_lin <= mystique->dwgreg.ybot && trans[x_l & 3]) {
@@ -4921,11 +5089,15 @@ blit_texture_trap(mystique_t *mystique)
                             int tex_r = 0;
                             int tex_g = 0;
                             int tex_b = 0;
+                            int tex_a = 255;
                             int ctransp;
                             int atransp = 0;
                             int i_r = 0;
                             int i_g = 0;
                             int i_b = 0;
+                            int i_a = 255;
+                            int i_fog = 0;
+                            uint8_t final_a = 255;
 
                             if (!(mystique->dwgreg.dr[4] & (1 << 23)))
                                 i_r = (mystique->dwgreg.dr[4] >> 15) & 0xff;
@@ -4934,7 +5106,43 @@ blit_texture_trap(mystique_t *mystique)
                             if (!(mystique->dwgreg.dr[12] & (1 << 23)))
                                 i_b = (mystique->dwgreg.dr[12] >> 15) & 0xff;
 
-                            ctransp = texture_read(mystique, &tex_r, &tex_g, &tex_b, &atransp);
+                            if (mystique->type >= MGA_G100)
+                            {
+                                if (!(mystique->dwgreg.alphastart & (1 << 23)))
+                                    i_a = (mystique->dwgreg.alphastart >> 15) & 0xff;
+                                else
+                                    i_a = 0;
+
+                                if (!(mystique->dwgreg.fogstart & (1 << 23)))
+                                    i_fog = (mystique->dwgreg.fogstart >> 15) & 0xff;
+                                else
+                                    i_fog = 0;
+                            }
+
+                            ctransp = texture_read(mystique, &tex_r, &tex_g, &tex_b, &atransp, &tex_a);
+
+                            if (mystique->type >= MGA_G100)
+                            {
+                                uint8_t alpha_sel = (mystique->dwgreg.alphactrl >> 24) & 3;
+
+                                switch (alpha_sel)
+                                {
+                                    case 0x0: /* alpha from texture */
+                                        final_a = tex_a;
+                                        break;
+                                    default:
+                                    case 0x1: /* interpolated alpha */
+                                        if ((mystique->dwgreg.alphactrl & (1 << 11)))
+                                            final_a = i_a;
+                                        break;
+                                    case 0x2: /* modulated alpha */
+                                        if (!(mystique->dwgreg.alphactrl & (1 << 11)))
+                                            final_a = tex_a;
+                                        else
+                                            final_a = ((i_a * tex_a) >> 8) & 0xFF;
+                                        break;
+                                }
+                            }
 
                             switch (mystique->dwgreg.texctl & (TEXCTL_TMODULATE | TEXCTL_STRANS | TEXCTL_ITRANS | TEXCTL_DECALCKEY)) {
                                 case 0:
@@ -4984,6 +5192,26 @@ blit_texture_trap(mystique_t *mystique)
                                     fatal("Bad TEXCTL %08x %08x\n", mystique->dwgreg.texctl, mystique->dwgreg.texctl & (TEXCTL_TMODULATE | TEXCTL_STRANS | TEXCTL_ITRANS | TEXCTL_DECALCKEY));
                             }
 
+                            if (mystique->type >= MGA_G100 && (mystique->maccess_running & MACCESS_FOGEN))
+                            {
+                                tex_r = (tex_r * ((255 - i_fog) / 255.)) + (mystique->dwgreg.fogcol >> 16) * (i_fog / 255.);
+                                tex_g = (tex_g * ((255 - i_fog) / 255.)) + ((mystique->dwgreg.fogcol >> 8) & 0xFF) * (i_fog / 255.);
+                                tex_b = (tex_b * ((255 - i_fog) / 255.)) + ((mystique->dwgreg.fogcol) & 0xFF) * (i_fog / 255.);
+                            }
+
+                            if (final_a != 255)
+                            {
+                                {
+                                    double threshold = bayer_mat[mystique->dwgreg.selline & 3][x_l & 3];
+                                    double final_a_frac = (final_a) / 255.;
+                                    if (final_a_frac >= threshold) {
+                                        final_a = 255;
+                                    } else {
+                                        goto skip_pixel;
+                                    }
+                                }
+                            }
+
                             if (dest32) {
                                 ((uint32_t *) svga->vram)[(mystique->dwgreg.ydst_lin + x_l) & mystique->vram_mask_l] = tex_b | (tex_g << 8) | (tex_r << 16);
                                 svga->changedvram[((mystique->dwgreg.ydst_lin + x_l) & mystique->vram_mask_l) >> 10] = changeframecount;
@@ -5021,6 +5249,10 @@ skip_pixel:
                     mystique->dwgreg.tmr[6] += mystique->dwgreg.tmr[0];
                     mystique->dwgreg.tmr[7] += mystique->dwgreg.tmr[2];
                     mystique->dwgreg.tmr[8] += mystique->dwgreg.tmr[4];
+                    mystique->dwgreg.fogstart += mystique->dwgreg.fogxinc;
+                    mystique->dwgreg.alphastart += mystique->dwgreg.alphaxinc;
+                    mystique->dwgreg.fogstart &= 0xFFFFFF;
+                    mystique->dwgreg.alphastart &= 0xFFFFFF;
                 }
 
                 if (mystique->maccess_running & MACCESS_ZWIDTH) {
@@ -5030,12 +5262,16 @@ skip_pixel:
                     mystique->dwgreg.dr[0] = z_back + mystique->dwgreg.dr[3];
                     mystique->dwgreg.extended_dr[0] = (mystique->dwgreg.extended_dr[0] & ~0xFFFFull) | ((uint64_t)mystique->dwgreg.dr[0] << 16ull);
                 }
-                mystique->dwgreg.dr[4]  = r_back + mystique->dwgreg.dr[7];
-                mystique->dwgreg.dr[8]  = g_back + mystique->dwgreg.dr[11];
-                mystique->dwgreg.dr[12] = b_back + mystique->dwgreg.dr[15];
-                mystique->dwgreg.tmr[6] = s_back + mystique->dwgreg.tmr[1];
-                mystique->dwgreg.tmr[7] = t_back + mystique->dwgreg.tmr[3];
-                mystique->dwgreg.tmr[8] = q_back + mystique->dwgreg.tmr[5];
+                mystique->dwgreg.dr[4]      = r_back + mystique->dwgreg.dr[7];
+                mystique->dwgreg.dr[8]      = g_back + mystique->dwgreg.dr[11];
+                mystique->dwgreg.dr[12]     = b_back + mystique->dwgreg.dr[15];
+                mystique->dwgreg.tmr[6]     = s_back + mystique->dwgreg.tmr[1];
+                mystique->dwgreg.tmr[7]     = t_back + mystique->dwgreg.tmr[3];
+                mystique->dwgreg.tmr[8]     = q_back + mystique->dwgreg.tmr[5];
+                mystique->dwgreg.fogstart   = fog_back + mystique->dwgreg.fogyinc;
+                mystique->dwgreg.alphastart = a_back + mystique->dwgreg.alphayinc;
+                mystique->dwgreg.fogstart &= 0xFFFFFF;
+                mystique->dwgreg.alphastart &= 0xFFFFFF;
 
                 while ((int32_t) mystique->dwgreg.ar[1] < 0 && mystique->dwgreg.ar[0]) {
                     mystique->dwgreg.ar[1] += mystique->dwgreg.ar[0];
@@ -5063,6 +5299,10 @@ skip_pixel:
                 mystique->dwgreg.tmr[6] += dx * mystique->dwgreg.tmr[0];
                 mystique->dwgreg.tmr[7] += dx * mystique->dwgreg.tmr[2];
                 mystique->dwgreg.tmr[8] += dx * mystique->dwgreg.tmr[4];
+                mystique->dwgreg.fogstart += dx * mystique->dwgreg.fogxinc;
+                mystique->dwgreg.alphastart += dx * mystique->dwgreg.alphaxinc;
+                mystique->dwgreg.fogstart &= 0xFFFFFF;
+                mystique->dwgreg.alphastart &= 0xFFFFFF;
 
                 mystique->dwgreg.ydst++;
                 mystique->dwgreg.ydst &= 0x7fffff;
@@ -5703,10 +5943,16 @@ mystique_pci_read(UNUSED(int func), int addr, void *priv)
                 break;
 
             case 0x02:
-                ret = (mystique->type == MGA_2164W) ? 0x1b : ((mystique->type == MGA_2064W) ? 0x19 : 0x1a);
+                if (mystique->type == MGA_G100)
+                    ret = 0x01;
+                else
+                    ret = (mystique->type == MGA_2164W) ? 0x1b : ((mystique->type == MGA_2064W) ? 0x19 : 0x1a);
                 break; /*MGA*/
             case 0x03:
-                ret = 0x05;
+                if (mystique->type == MGA_G100)
+                    ret = 0x10;
+                else
+                    ret = 0x05;
                 break;
 
             case PCI_REG_COMMAND:
@@ -5795,6 +6041,10 @@ mystique_pci_read(UNUSED(int func), int addr, void *priv)
             case 0x33:
                 ret = mystique->pci_regs[0x33];
                 break;
+            
+            case 0x34:
+                ret = mystique->type == MGA_G100 ? 0xdc : 0x00;
+                break;
 
             case 0x3c:
                 ret = mystique->int_line;
@@ -5829,6 +6079,59 @@ mystique_pci_read(UNUSED(int func), int addr, void *priv)
             case 0x4b:
                 addr = (mystique->pci_regs[0x44] & 0xfc) | ((mystique->pci_regs[0x45] & 0x3f) << 8) | (addr & 3);
                 ret  = mystique_ctrl_read_b(addr, mystique);
+                break;
+
+            case 0xdc:
+                ret = 0x01;
+                break;
+            
+            case 0xdd:
+                ret = 0xf0;
+                break;
+
+            case 0xde:
+                ret = 0x21;
+                break;
+            
+            /* No support for turning off the video adapter yet. */
+            case 0xe0:
+                ret = 0x0;
+                break;
+
+            case 0xf0:
+                ret = 0x02;
+                break;
+            
+            case 0xf1:
+                ret = 0x00;
+                break;
+            
+            case 0xf2:
+                ret = 0x10;
+                break;
+            
+            case 0xf4:
+                ret = 0x1;
+                break;
+            
+            case 0xf5:
+                ret = 0x2;
+                break;
+
+            case 0xf7:
+                ret = 0x1;
+                break;
+            
+            case 0xf8:
+                ret = mystique->pci_regs[0xf8] & 0x7;
+                break;
+            
+            case 0xf9:
+                ret = mystique->pci_regs[0xf9] & 0x3;
+                break;
+            
+            case 0xfb:
+                ret = mystique->pci_regs[0xfb];
                 break;
 
             default:
@@ -5964,6 +6267,18 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             mystique_ctrl_write_b(addr, val, mystique);
             break;
 
+            case 0xf8:
+                mystique->pci_regs[0xf8] = val & 0x7;
+                break;
+            
+            case 0xf9:
+                mystique->pci_regs[0xf9] = val & 0x3;
+                break;
+            
+            case 0xfb:
+                mystique->pci_regs[0xfb] = val;
+                break;
+
         default:
             break;
     }
@@ -6017,6 +6332,8 @@ mystique_init(const device_t *info)
         romfn = ROM_MILLENNIUM_II;
     else if (mystique->type == MGA_1064SG)
         romfn = ROM_MYSTIQUE;
+    else if (mystique->type == MGA_G100)
+        romfn = ROM_G100;
     else
         romfn = ROM_MYSTIQUE_220;
 
@@ -6186,6 +6503,12 @@ millennium_ii_available(void)
     return rom_present(ROM_MILLENNIUM_II);
 }
 
+static int
+matrox_g100_available(void)
+{
+    return rom_present(ROM_G100);
+}
+
 static void
 mystique_speed_changed(void *priv)
 {
@@ -6317,6 +6640,20 @@ const device_t millennium_ii_device = {
     .close         = mystique_close,
     .reset         = NULL,
     { .available = millennium_ii_available },
+    .speed_changed = mystique_speed_changed,
+    .force_redraw  = mystique_force_redraw,
+    .config        = millennium_ii_config
+};
+
+const device_t productiva_g100_device = {
+    .name          = "Matrox Productiva G100",
+    .internal_name = "productiva_g100",
+    .flags         = DEVICE_AGP,
+    .local         = MGA_G100,
+    .init          = mystique_init,
+    .close         = mystique_close,
+    .reset         = NULL,
+    { .available = matrox_g100_available },
     .speed_changed = mystique_speed_changed,
     .force_redraw  = mystique_force_redraw,
     .config        = millennium_ii_config
