@@ -6368,6 +6368,8 @@ mystique_init(const device_t *info)
                   NULL);
         mystique->svga.clock_gen = mystique;
         mystique->svga.getclock  = mystique_getclock;
+        if (mystique->vram_size >= 16)
+            mystique->svga.decode_mask = mystique->svga.vram_mask;
     }
 
     io_sethandler(0x03c0, 0x0020, mystique_in, NULL, NULL, mystique_out, NULL, NULL, mystique);
