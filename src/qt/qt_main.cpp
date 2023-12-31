@@ -204,6 +204,7 @@ main(int argc, char *argv[])
     app.setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
 #    else
     app.setWindowIcon(QIcon(":/settings/win/icons/86Box-gray.ico"));
+#    endif
 
 #    ifdef Q_OS_UNIX
     app.setDesktopFileName("net.86box.86Box");
