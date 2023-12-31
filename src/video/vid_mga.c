@@ -456,8 +456,7 @@ typedef struct mystique_t {
     uint8_t pci_regs[256], crtcext_regs[6],
         xreg_regs[256], dmamap[16];
 
-    int vram_size, crtcext_idx, xreg_idx, xzoomctrl,
-        pixel_count, trap_count;
+    int vram_size, crtcext_idx, xreg_idx, xzoomctrl;
 
     atomic_int busy, blitter_submit_refcount,
         blitter_submit_dma_refcount, blitter_complete_refcount,
@@ -540,8 +539,7 @@ typedef struct mystique_t {
 
     struct
     {
-        atomic_int pri_pos, sec_pos, iload_pos,
-            pri_state, sec_state, iload_state, state;
+        atomic_int pri_state, sec_state, iload_state, state;
 
         atomic_uint primaddress, primend, secaddress, secend,
             pri_header, sec_header,
@@ -4535,8 +4533,6 @@ blit_trap(mystique_t *mystique)
     int       y;
     const int trans_sel = (mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANS_MASK) >> DWGCTRL_TRANS_SHIFT;
 
-    mystique->trap_count++;
-
     switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK) {
         case DWGCTRL_ATYPE_BLK:
         case DWGCTRL_ATYPE_RPL:
@@ -4583,7 +4579,6 @@ blit_trap(mystique_t *mystique)
                     else
                         x_l++;
 
-                    mystique->pixel_count++;
                 }
 
                 while ((int32_t) mystique->dwgreg.ar[1] < 0 && mystique->dwgreg.ar[0]) {
@@ -4662,8 +4657,6 @@ blit_trap(mystique_t *mystique)
                         x_l--;
                     else
                         x_l++;
-
-                    mystique->pixel_count++;
                 }
 
                 while ((int32_t) mystique->dwgreg.ar[1] < 0 && mystique->dwgreg.ar[0]) {
@@ -4784,8 +4777,6 @@ blit_trap(mystique_t *mystique)
                         x_l--;
                     else
                         x_l++;
-
-                    mystique->pixel_count++;
                 }
 
                 if (mystique->maccess_running & MACCESS_ZWIDTH) {
@@ -5042,8 +5033,6 @@ blit_texture_trap(mystique_t *mystique)
     const int trans_sel = (mystique->dwgreg.dwgctrl_running & DWGCTRL_TRANS_MASK) >> DWGCTRL_TRANS_SHIFT;
     const int dest32    = ((mystique->maccess_running & MACCESS_PWIDTH_MASK) == MACCESS_PWIDTH_32);
 
-    mystique->trap_count++;
-
     switch (mystique->dwgreg.dwgctrl_running & DWGCTRL_ATYPE_MASK) {
         case DWGCTRL_ATYPE_I:
         case DWGCTRL_ATYPE_ZI:
@@ -5191,9 +5180,9 @@ blit_texture_trap(mystique_t *mystique)
 
                             if (mystique->type >= MGA_G100 && (mystique->maccess_running & MACCESS_FOGEN))
                             {
-                                tex_r = (tex_r * ((255 - i_fog) / 255.)) + (mystique->dwgreg.fogcol >> 16) * (i_fog / 255.);
-                                tex_g = (tex_g * ((255 - i_fog) / 255.)) + ((mystique->dwgreg.fogcol >> 8) & 0xFF) * (i_fog / 255.);
-                                tex_b = (tex_b * ((255 - i_fog) / 255.)) + ((mystique->dwgreg.fogcol) & 0xFF) * (i_fog / 255.);
+                                tex_r = (tex_r * ((i_fog) / 255.)) + (mystique->dwgreg.fogcol >> 16) * ((255 - i_fog) / 255.);
+                                tex_g = (tex_g * ((i_fog) / 255.)) + ((mystique->dwgreg.fogcol >> 8) & 0xFF) * ((255 - i_fog) / 255.);
+                                tex_b = (tex_b * ((i_fog) / 255.)) + ((mystique->dwgreg.fogcol) & 0xFF) * ((255 - i_fog) / 255.);
                             }
 
                             if (final_a != 255)
@@ -5230,8 +5219,6 @@ skip_pixel:
                         x_l--;
                     else
                         x_l++;
-
-                    mystique->pixel_count++;
 
                     if (mystique->maccess_running & MACCESS_ZWIDTH) {
                         mystique->dwgreg.extended_dr[0] += mystique->dwgreg.extended_dr[2];
