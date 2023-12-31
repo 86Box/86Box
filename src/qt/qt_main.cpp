@@ -195,7 +195,7 @@ main(int argc, char *argv[])
     SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
 #endif
 
-#ifndef Q_OS_APPLE
+#ifndef Q_OS_MACOS
 #    ifdef RELEASE_BUILD
     app.setWindowIcon(QIcon(":/settings/win/icons/86Box-green.ico"));
 #    elif defined ALPHA_BUILD
