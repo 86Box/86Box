@@ -2797,11 +2797,14 @@ static uint8_t
 mystique_readb_linear(uint32_t addr, void *priv)
 {
     const svga_t *svga = (svga_t *) priv;
+    mystique_t *mystique = (mystique_t *) svga->priv;
 
-    if (!svga->fast)
-        return svga_read_linear(addr, priv);
+    if (mystique->type < MGA_1064SG) {
+        if (!svga->fast)
+            return svga_read_linear(addr, priv);
+    }
 
-    cycles -= video_timing_read_b;
+    cycles -= svga->monitor->mon_video_timing_read_b;
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
@@ -2815,7 +2818,7 @@ mystique_readw_linear(uint32_t addr, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-    cycles -= video_timing_read_w;
+    cycles -= svga->monitor->mon_video_timing_read_w;
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
@@ -2829,7 +2832,7 @@ mystique_readl_linear(uint32_t addr, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-    cycles -= video_timing_read_l;
+    cycles -= svga->monitor->mon_video_timing_read_l;
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
@@ -2842,13 +2845,16 @@ static void
 mystique_writeb_linear(uint32_t addr, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
+    mystique_t *mystique = (mystique_t *) svga->priv;
 
-    if (!svga->fast) {
-        svga_write_linear(addr, val, priv);
-        return;
+    if (mystique->type < MGA_1064SG) {
+        if (!svga->fast) {
+            svga_write_linear(addr, val, priv);
+            return;
+        }
     }
 
-    cycles -= video_timing_write_b;
+    cycles -= svga->monitor->mon_video_timing_write_b;
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
@@ -2863,7 +2869,7 @@ mystique_writew_linear(uint32_t addr, uint16_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-    cycles -= video_timing_write_w;
+    cycles -= svga->monitor->mon_video_timing_write_w;
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
@@ -2878,7 +2884,7 @@ mystique_writel_linear(uint32_t addr, uint32_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-    cycles -= video_timing_write_l;
+    cycles -= svga->monitor->mon_video_timing_write_l;
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
