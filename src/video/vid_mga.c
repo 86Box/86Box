@@ -6202,9 +6202,11 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             if (!(mystique->pci_regs[0x43] & 0x40))
                 return;
             mystique->pci_regs[addr] = val;
+            if (addr == 0x30)
+                mystique->pci_regs[addr] &= 1;
             if (mystique->pci_regs[0x30] & 0x01) {
                 uint32_t addr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
-                mem_mapping_set_addr(&mystique->bios_rom.mapping, addr, 0x8000);
+                mem_mapping_set_addr(&mystique->bios_rom.mapping, addr, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
             } else
                 mem_mapping_disable(&mystique->bios_rom.mapping);
             return;
@@ -6228,11 +6230,11 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
                 if (val & 0x40) {
                     if (mystique->pci_regs[0x30] & 0x01) {
                         uint32_t addr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
-                        mem_mapping_set_addr(&mystique->bios_rom.mapping, addr, 0x8000);
+                        mem_mapping_set_addr(&mystique->bios_rom.mapping, addr, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
                     } else
                         mem_mapping_disable(&mystique->bios_rom.mapping);
                 } else
-                    mem_mapping_set_addr(&mystique->bios_rom.mapping, 0x000c0000, 0x8000);
+                    mem_mapping_set_addr(&mystique->bios_rom.mapping, 0x000c0000, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
             }
             break;
 
@@ -6331,7 +6333,10 @@ mystique_init(const device_t *info)
     else
         romfn = ROM_MYSTIQUE_220;
 
-    rom_init(&mystique->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    if (mystique->type == MGA_G100)
+        rom_init(&mystique->bios_rom, romfn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+    else
+        rom_init(&mystique->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     mem_mapping_disable(&mystique->bios_rom.mapping);
 
     mystique->vram_size   = device_get_config_int("memory");
