@@ -2797,11 +2797,14 @@ static uint8_t
 mystique_readb_linear(uint32_t addr, void *priv)
 {
     const svga_t *svga = (svga_t *) priv;
+    mystique_t *mystique = (mystique_t *) svga->priv;
 
-    if (!svga->fast)
-        return svga_read_linear(addr, priv);
+    if (mystique->type < MGA_1064SG) {
+        if (!svga->fast)
+            return svga_read_linear(addr, priv);
+    }
 
-    cycles -= video_timing_read_b;
+    cycles -= svga->monitor->mon_video_timing_read_b;
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
@@ -2815,7 +2818,7 @@ mystique_readw_linear(uint32_t addr, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-    cycles -= video_timing_read_w;
+    cycles -= svga->monitor->mon_video_timing_read_w;
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
@@ -2829,7 +2832,7 @@ mystique_readl_linear(uint32_t addr, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-    cycles -= video_timing_read_l;
+    cycles -= svga->monitor->mon_video_timing_read_l;
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
@@ -2842,13 +2845,16 @@ static void
 mystique_writeb_linear(uint32_t addr, uint8_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
+    mystique_t *mystique = (mystique_t *) svga->priv;
 
-    if (!svga->fast) {
-        svga_write_linear(addr, val, priv);
-        return;
+    if (mystique->type < MGA_1064SG) {
+        if (!svga->fast) {
+            svga_write_linear(addr, val, priv);
+            return;
+        }
     }
 
-    cycles -= video_timing_write_b;
+    cycles -= svga->monitor->mon_video_timing_write_b;
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
@@ -2863,7 +2869,7 @@ mystique_writew_linear(uint32_t addr, uint16_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-    cycles -= video_timing_write_w;
+    cycles -= svga->monitor->mon_video_timing_write_w;
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
@@ -2878,7 +2884,7 @@ mystique_writel_linear(uint32_t addr, uint32_t val, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-    cycles -= video_timing_write_l;
+    cycles -= svga->monitor->mon_video_timing_write_l;
 
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
@@ -6193,9 +6199,11 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             if (!(mystique->pci_regs[0x43] & 0x40))
                 return;
             mystique->pci_regs[addr] = val;
+            if (addr == 0x30)
+                mystique->pci_regs[addr] &= 1;
             if (mystique->pci_regs[0x30] & 0x01) {
                 uint32_t addr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
-                mem_mapping_set_addr(&mystique->bios_rom.mapping, addr, 0x8000);
+                mem_mapping_set_addr(&mystique->bios_rom.mapping, addr, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
             } else
                 mem_mapping_disable(&mystique->bios_rom.mapping);
             return;
@@ -6219,11 +6227,11 @@ mystique_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
                 if (val & 0x40) {
                     if (mystique->pci_regs[0x30] & 0x01) {
                         uint32_t addr = (mystique->pci_regs[0x32] << 16) | (mystique->pci_regs[0x33] << 24);
-                        mem_mapping_set_addr(&mystique->bios_rom.mapping, addr, 0x8000);
+                        mem_mapping_set_addr(&mystique->bios_rom.mapping, addr, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
                     } else
                         mem_mapping_disable(&mystique->bios_rom.mapping);
                 } else
-                    mem_mapping_set_addr(&mystique->bios_rom.mapping, 0x000c0000, 0x8000);
+                    mem_mapping_set_addr(&mystique->bios_rom.mapping, 0x000c0000, (mystique->type == MGA_G100) ? 0x10000 : 0x8000);
             }
             break;
 
@@ -6322,7 +6330,10 @@ mystique_init(const device_t *info)
     else
         romfn = ROM_MYSTIQUE_220;
 
-    rom_init(&mystique->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    if (mystique->type == MGA_G100)
+        rom_init(&mystique->bios_rom, romfn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+    else
+        rom_init(&mystique->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     mem_mapping_disable(&mystique->bios_rom.mapping);
 
     mystique->vram_size   = device_get_config_int("memory");
@@ -6382,7 +6393,7 @@ mystique_init(const device_t *info)
     if (romfn == NULL)
         pci_add_card(PCI_ADD_VIDEO, mystique_pci_read, mystique_pci_write, mystique, &mystique->pci_slot);
     else
-        pci_add_card(PCI_ADD_NORMAL, mystique_pci_read, mystique_pci_write, mystique, &mystique->pci_slot);
+        pci_add_card((info->flags & DEVICE_AGP) ? PCI_ADD_AGP : PCI_ADD_NORMAL, mystique_pci_read, mystique_pci_write, mystique, &mystique->pci_slot);
     mystique->pci_regs[0x06] = 0x80;
     mystique->pci_regs[0x07] = 0 << 1;
     mystique->pci_regs[0x2c] = mystique->bios_rom.rom[0x7ff8];
