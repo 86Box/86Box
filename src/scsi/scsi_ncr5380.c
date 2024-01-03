@@ -185,7 +185,7 @@ typedef struct ncr5380_t {
 #define DMA_SEND              1
 #define DMA_INITIATOR_RECEIVE 2
 
-static int cmd_len[8] = { 6, 10, 10, 6, 16, 12, 6, 6 };
+static int cmd_len[8] = { 6, 10, 10, 6, 16, 12, 10, 6 };
 
 #ifdef ENABLE_NCR5380_LOG
 int ncr5380_do_log = ENABLE_NCR5380_LOG;
@@ -278,7 +278,7 @@ ncr_timer_on(ncr5380_t *ncr_dev, ncr_t *ncr, int callback)
         if (ncr_dev->type == 3)
             p *= 512.0;
         else
-            p *= 128.0;
+            p *= 144.0;
     }
 
     p += 1.0;
