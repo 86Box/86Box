@@ -820,13 +820,13 @@ sis_5511_reset(void *priv)
     dev->pci_conf_sb[0][0x40] = 0x00;
     dev->pci_conf_sb[0][0x41] = dev->pci_conf_sb[0][0x42] = 0x80;
     dev->pci_conf_sb[0][0x43] = dev->pci_conf_sb[0][0x44] = 0x80;
-    dev->pci_conf_sb[0][0x48] = dev->pci_conf_sb[0][0x49] = 0x80;
-    dev->pci_conf_sb[0][0x4a] = dev->pci_conf_sb[0][0x4b] = 0x80;
-    dev->pci_conf_sb[0][0x60] = dev->pci_conf_sb[0][0x51] = 0x80;
+    dev->pci_conf_sb[0][0x48] = dev->pci_conf_sb[0][0x49] = 0x00;
+    dev->pci_conf_sb[0][0x4a] = dev->pci_conf_sb[0][0x4b] = 0x00;
+    dev->pci_conf_sb[0][0x60] = dev->pci_conf_sb[0][0x61] = 0x80;
     dev->pci_conf_sb[0][0x62] = 0x00;
     dev->pci_conf_sb[0][0x63] = 0x80;
     dev->pci_conf_sb[0][0x64] = 0x00;
-    dev->pci_conf_sb[0][0x65] = 0x80;
+    dev->pci_conf_sb[0][0x65] = 0x00;
     dev->pci_conf_sb[0][0x66] = dev->pci_conf_sb[0][0x67] = 0x00;
     dev->pci_conf_sb[0][0x68] = dev->pci_conf_sb[0][0x69] = 0x00;
     dev->pci_conf_sb[0][0x6a] = 0x04;
