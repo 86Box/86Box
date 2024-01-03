@@ -3233,7 +3233,7 @@ s3_recalctimings(svga_t *svga)
 #endif
 
     if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10)) {
-        //pclog("BPP=%d, pitch=%d, width=%02x, double?=%x, 16bit?=%d, highres?=%d, attr=%02x.\n", svga->bpp, s3->width, svga->crtc[0x50], svga->crtc[0x31] & 0x02, s3->color_16bit, s3->accel.advfunc_cntl & 4, svga->attrregs[0x10] & 0x40);
+        pclog("BPP=%d, pitch=%d, width=%02x, double?=%x, 16bit?=%d, highres?=%d, attr=%02x.\n", svga->bpp, s3->width, svga->crtc[0x50], svga->crtc[0x31] & 0x02, s3->color_16bit, s3->accel.advfunc_cntl & 4, svga->attrregs[0x10] & 0x40);
         switch (svga->bpp) {
             case 8:
                 svga->render = svga_render_8bpp_highres;
@@ -3433,6 +3433,23 @@ s3_recalctimings(svga_t *svga)
                                 break;
                         }
                         break;
+                    case S3_VISION964:
+                        switch (s3->card_type) {
+                            case S3_ELSAWIN2KPROX_964:
+                                switch (s3->width) {
+                                    case 1280:
+                                    case 1600:
+                                        svga->hdisp <<= 1;
+                                        break;
+                                    default:
+                                        break;
+                                }
+                                break;
+
+                            default:
+                                break;
+                        }
+                        break;
                     case S3_VISION868:
                         switch (s3->card_type) {
                             case S3_PHOENIX_VISION868:
@@ -3452,7 +3469,16 @@ s3_recalctimings(svga_t *svga)
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
                                 break;
-
+                            case S3_ELSAWIN2KPROX:
+                                switch (s3->width) {
+                                    case 1280:
+                                    case 1600:
+                                        svga->hdisp <<= 1;
+                                        break;
+                                    default:
+                                        break;
+                                }
+                                break;
                             default:
                                 break;
                         }
@@ -3585,6 +3611,23 @@ s3_recalctimings(svga_t *svga)
                                 break;
                         }
                         break;
+                    case S3_VISION964:
+                        switch (s3->card_type) {
+                            case S3_ELSAWIN2KPROX_964:
+                                switch (s3->width) {
+                                    case 1280:
+                                    case 1600:
+                                        svga->hdisp <<= 1;
+                                        break;
+                                    default:
+                                        break;
+                                }
+                                break;
+
+                            default:
+                                break;
+                        }
+                        break;
                     case S3_VISION968:
                         switch (s3->card_type) {
                             case S3_NUMBER9_9FX_771:
@@ -3593,7 +3636,16 @@ s3_recalctimings(svga_t *svga)
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
                                 break;
-
+                            case S3_ELSAWIN2KPROX:
+                                switch (s3->width) {
+                                    case 1280:
+                                    case 1600:
+                                        svga->hdisp <<= 1;
+                                        break;
+                                    default:
+                                        break;
+                                }
+                                break;
                             default:
                                 break;
                         }
@@ -3760,6 +3812,16 @@ s3_recalctimings(svga_t *svga)
                                         break;
                                 }
                                 break;
+                            case S3_ELSAWIN2KPROX_964:
+                                switch (s3->width) {
+                                    case 1280:
+                                    case 1600:
+                                        svga->hdisp <<= 1;
+                                        break;
+                                    default:
+                                        break;
+                                }
+                                break;
                             default:
                                 break;
                         }
@@ -3771,6 +3833,16 @@ s3_recalctimings(svga_t *svga)
                                 svga->hdisp <<= 1;
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
+                                break;
+                            case S3_ELSAWIN2KPROX:
+                                switch (s3->width) {
+                                    case 1280:
+                                    case 1600:
+                                        svga->hdisp <<= 1;
+                                        break;
+                                    default:
+                                        break;
+                                }
                                 break;
                             default:
                                 break;
