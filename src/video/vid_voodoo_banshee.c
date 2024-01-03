@@ -3503,7 +3503,7 @@ banshee_force_redraw(void *priv)
 }
 
 const device_t voodoo_banshee_device = {
-    .name          = "3dfx Voodoo Banshee",
+    .name          = "3Dfx Voodoo Banshee",
     .internal_name = "voodoo_banshee_pci",
     .flags         = DEVICE_PCI,
     .local         = 0,
@@ -3531,7 +3531,7 @@ const device_t creative_voodoo_banshee_device = {
 };
 
 const device_t voodoo_3_1000_device = {
-    .name          = "3dfx Voodoo3 1000",
+    .name          = "3Dfx Voodoo3 1000",
     .internal_name = "voodoo3_1k_pci",
     .flags         = DEVICE_PCI,
     .local         = 0,
@@ -3545,7 +3545,7 @@ const device_t voodoo_3_1000_device = {
 };
 
 const device_t voodoo_3_1000_agp_device = {
-    .name          = "3dfx Voodoo3 1000",
+    .name          = "3Dfx Voodoo3 1000",
     .internal_name = "voodoo3_1k_agp",
     .flags         = DEVICE_AGP,
     .local         = 0,
@@ -3559,7 +3559,7 @@ const device_t voodoo_3_1000_agp_device = {
 };
 
 const device_t voodoo_3_2000_device = {
-    .name          = "3dfx Voodoo3 2000",
+    .name          = "3Dfx Voodoo3 2000",
     .internal_name = "voodoo3_2k_pci",
     .flags         = DEVICE_PCI,
     .local         = 0,
@@ -3573,7 +3573,7 @@ const device_t voodoo_3_2000_device = {
 };
 
 const device_t voodoo_3_2000_agp_device = {
-    .name          = "3dfx Voodoo3 2000",
+    .name          = "3Dfx Voodoo3 2000",
     .internal_name = "voodoo3_2k_agp",
     .flags         = DEVICE_AGP,
     .local         = 0,
@@ -3587,7 +3587,7 @@ const device_t voodoo_3_2000_agp_device = {
 };
 
 const device_t voodoo_3_2000_agp_onboard_8m_device = {
-    .name          = "3dfx Voodoo3 2000 (On-Board 8MB SGRAM)",
+    .name          = "3Dfx Voodoo3 2000 (On-Board 8MB SGRAM)",
     .internal_name = "voodoo3_2k_agp_onboard_8m",
     .flags         = DEVICE_AGP,
     .local         = 8,
@@ -3601,7 +3601,7 @@ const device_t voodoo_3_2000_agp_onboard_8m_device = {
 };
 
 const device_t voodoo_3_3000_device = {
-    .name          = "3dfx Voodoo3 3000",
+    .name          = "3Dfx Voodoo3 3000",
     .internal_name = "voodoo3_3k_pci",
     .flags         = DEVICE_PCI,
     .local         = 0,
@@ -3615,7 +3615,7 @@ const device_t voodoo_3_3000_device = {
 };
 
 const device_t voodoo_3_3000_agp_device = {
-    .name          = "3dfx Voodoo3 3000",
+    .name          = "3Dfx Voodoo3 3000",
     .internal_name = "voodoo3_3k_agp",
     .flags         = DEVICE_AGP,
     .local         = 0,
@@ -3629,7 +3629,7 @@ const device_t voodoo_3_3000_agp_device = {
 };
 
 const device_t voodoo_3_3500_agp_ntsc_device = {
-    .name          = "3dfx Voodoo3 3500 TV (NTSC)",
+    .name          = "3Dfx Voodoo3 3500 TV (NTSC)",
     .internal_name = "voodoo3_3500_agp_ntsc",
     .flags         = DEVICE_AGP,
     .local         = 0,
@@ -3643,7 +3643,7 @@ const device_t voodoo_3_3500_agp_ntsc_device = {
 };
 
 const device_t voodoo_3_3500_agp_pal_device = {
-    .name          = "3dfx Voodoo3 3500 TV (PAL)",
+    .name          = "3Dfx Voodoo3 3500 TV (PAL)",
     .internal_name = "voodoo3_3500_agp_pal",
     .flags         = DEVICE_AGP,
     .local         = 0,
@@ -3671,7 +3671,7 @@ const device_t compaq_voodoo_3_3500_agp_device = {
 };
 
 const device_t voodoo_3_3500_se_agp_device = {
-    .name          = "Falcon Northwest Voodoo3 3500 SE",
+    .name          = "Falcon Northwest 3Dfx Voodoo3 3500 SE",
     .internal_name = "voodoo3_3500_se_agp",
     .flags         = DEVICE_AGP,
     .local         = 0,
@@ -3685,7 +3685,7 @@ const device_t voodoo_3_3500_se_agp_device = {
 };
 
 const device_t voodoo_3_3500_si_agp_device = {
-    .name          = "3dfx Voodoo3 3500 SI",
+    .name          = "3Dfx Voodoo3 3500 SI",
     .internal_name = "voodoo3_3500_si_agp",
     .flags         = DEVICE_AGP,
     .local         = 0,
@@ -3699,7 +3699,7 @@ const device_t voodoo_3_3500_si_agp_device = {
 };
 
 const device_t velocity_100_agp_device = {
-    .name          = "3dfx Velocity 100",
+    .name          = "3Dfx Velocity 100",
     .internal_name = "velocity100_agp",
     .flags         = DEVICE_AGP,
     .local         = 0,
@@ -3713,7 +3713,7 @@ const device_t velocity_100_agp_device = {
 };
 
 const device_t velocity_200_agp_device = {
-    .name          = "3dfx Velocity 200",
+    .name          = "3Dfx Velocity 200",
     .internal_name = "velocity200_agp",
     .flags         = DEVICE_AGP,
     .local         = 0,
