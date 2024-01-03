@@ -269,7 +269,7 @@ msgid "E&ject"
 msgstr "И&звлечь"
 
 msgid "Eject %s"
-msgstr "И&звлечь"
+msgstr "Извлечь %s"
 
 msgid "&Image..."
 msgstr "&Образ..."
