@@ -26,6 +26,6 @@
 #define SCSI_PCSCSI_H
 
 extern const device_t dc390_pci_device;
-extern const device_t ncr53c90_mca_device;
+extern const device_t ncr53c90a_mca_device;
 
 #endif /*SCSI_BUSLOGIC_H*/
