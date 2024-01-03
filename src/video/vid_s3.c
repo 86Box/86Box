@@ -7340,12 +7340,6 @@ s3_911_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat,
 
                     READ(s3->accel.dest + s3->accel.cx - s3->accel.minus, dest_dat);
 
-                    if (s3->accel.cmd == 0x41b1 || s3->accel.cmd == 0x41b0) {
-                        uint16_t dest_dat2;
-                        READ(s3->accel.dest + s3->accel.cx, dest_dat2);
-                        //pclog("CMD=%04x, initialdest=%04x, c(%d,%d), cpu=%04x, minus=%d, len=%d.\n", s3->accel.cmd, dest_dat2, s3->accel.cx - s3->accel.minus, s3->accel.cy, cpu_dat & 0xffff, s3->accel.minus, s3->accel.maj_axis_pcnt);
-                    }
-
                     MIX
 
                     if (s3->accel.cmd & 0x10) {
@@ -7625,7 +7619,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
     int       clip_r       = s3->accel.multifunc[4] & 0xfff;
     int       vram_mask    = (s3->accel.multifunc[0xa] & 0xc0) == 0xc0;
     uint32_t  mix_mask     = 0;
-    uint8_t  *vram         = (uint8_t *) svga->vram;
     uint16_t *vram_w       = (uint16_t *) svga->vram;
     uint32_t *vram_l       = (uint32_t *) svga->vram;
     uint32_t  compare      = s3->accel.color_cmp;
