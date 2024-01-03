@@ -3834,7 +3834,7 @@ s3_recalctimings(svga_t *svga)
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
                                 break;
-                            case S3_ELSAWIN2KPROX_964:
+                            case S3_ELSAWIN2KPROX:
                                 switch (s3->width) {
                                     case 1280:
                                     case 1600:
