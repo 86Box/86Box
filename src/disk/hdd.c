@@ -426,7 +426,7 @@ hdd_zones_init(hard_disk_t *hdd)
 
 static hdd_preset_t hdd_speed_presets[] = {
   // clang-format off
-    { .name = "RAM Disk (max. speed)", .internal_name = "ramdisk",                                                                                                        .rcache_num_seg = 16, .rcache_seg_size = 128, .max_multiple = 32 },
+    { .name = "RAM Disk (Max. Speed)", .internal_name = "ramdisk",                                                                                                        .rcache_num_seg = 16, .rcache_seg_size = 128, .max_multiple = 32 },
     { .name = "[1989] 3500 RPM",       .internal_name = "1989_3500rpm", .zones =  1,  .avg_spt = 35, .heads = 2, .rpm = 3500, .full_stroke_ms = 40, .track_seek_ms = 8,   .rcache_num_seg =  1, .rcache_seg_size =  16, .max_multiple =  8 },
     { .name = "[1992] 3600 RPM",       .internal_name = "1992_3600rpm", .zones =  1,  .avg_spt = 45, .heads = 2, .rpm = 3600, .full_stroke_ms = 30, .track_seek_ms = 6,   .rcache_num_seg =  4, .rcache_seg_size =  16, .max_multiple =  8 },
     { .name = "[1994] 4500 RPM",       .internal_name = "1994_4500rpm", .zones =  8,  .avg_spt = 80, .heads = 4, .rpm = 4500, .full_stroke_ms = 26, .track_seek_ms = 5,   .rcache_num_seg =  4, .rcache_seg_size =  32, .max_multiple = 16 },
