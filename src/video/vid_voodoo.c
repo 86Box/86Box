@@ -772,7 +772,7 @@ voodoo_pci_read(int func, int addr, void *priv)
 
     switch (addr) {
         case 0x00:
-            return 0x1a; /*3dfx*/
+            return 0x1a; /*3Dfx*/
         case 0x01:
             return 0x12;
 
@@ -1306,11 +1306,11 @@ static const device_config_t voodoo_config[] = {
   // clang-format off
     {
         .name = "type",
-        .description = "Voodoo type",
+        .description = "3Dfx Voodoo type",
         .type = CONFIG_SELECTION,
         .selection = {
             {
-                .description = "Voodoo Graphics",
+                .description = "3Dfx Voodoo Graphics",
                 .value = VOODOO_1
             },
             {
@@ -1318,7 +1318,7 @@ static const device_config_t voodoo_config[] = {
                 .value = VOODOO_SB50
             },
             {
-                .description = "Voodoo 2",
+                .description = "3Dfx Voodoo 2",
                 .value = VOODOO_2
             },
             {
@@ -1427,7 +1427,7 @@ static const device_config_t voodoo_config[] = {
 };
 
 const device_t voodoo_device = {
-    .name          = "3DFX Voodoo Graphics",
+    .name          = "3Dfx Voodoo Graphics",
     .internal_name = "voodoo",
     .flags         = DEVICE_PCI,
     .local         = 0,
