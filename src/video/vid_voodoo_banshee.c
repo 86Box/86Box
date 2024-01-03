@@ -3657,7 +3657,7 @@ const device_t voodoo_3_3500_agp_pal_device = {
 };
 
 const device_t compaq_voodoo_3_3500_agp_device = {
-    .name          = "Compaq Voodoo3 3500 TV",
+    .name          = "Compaq 3Dfx Voodoo3 3500 TV",
     .internal_name = "compaq_voodoo3_3500_agp",
     .flags         = DEVICE_AGP,
     .local         = 0,
