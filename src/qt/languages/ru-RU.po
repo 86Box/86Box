@@ -158,7 +158,7 @@ msgid "4:&3 Integer scale"
 msgstr "4:&3 Целочисленное масштабирование"
 
 msgid "Apply fullscreen stretch mode when maximized"
-msgstr "Применить полноэкранный режим растяжения при максимальном увеличении"
+msgstr "Применить полноэкранный режим растяжения при разворачивании окна"
 
 msgid "E&GA/(S)VGA settings"
 msgstr "Настройки E&GA/(S)VGA"
