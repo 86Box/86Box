@@ -25,11 +25,17 @@ msgstr "&Выход..."
 msgid "&View"
 msgstr "&Вид"
 
+msgid "Hide &toolbar"
+msgstr "С&крыть панель инструментов"
+
 msgid "&Hide status bar"
 msgstr "&Скрыть строку состояния"
 
-msgid "Hide &toolbar"
-msgstr "С&крыть панель инструментов"
+msgid "Show status icons in fullscreen"
+msgstr "Показывать значки статуса в полноэкранном режиме"
+
+msgid "Show non-primary monitors"
+msgstr "&Показывать неосновные мониторы"
 
 msgid "&Resizeable window"
 msgstr "&Изменяемый размер окна"
@@ -50,13 +56,37 @@ msgid "SDL (&OpenGL)"
 msgstr "SDL (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0)"
+msgstr "Open&GL 3.0"
 
 msgid "&VNC"
 msgstr "&VNC"
 
+msgid "Renderer options..."
+msgstr "Параметры рендеринга OpenGL 3.0..."
+
+msgid "OpenGL 3.0 Renderer options"
+msgstr "Параметры рендеринга OpenGL 3.0"
+
+msgid "Render behavior"
+msgstr "Режим рендеринга"
+
+msgid "Synchronize with video"
+msgstr "Синхронизировать с видео"
+
+msgid "Use target framerate:"
+msgstr "Использовать целевую частоту кадров:"
+
+msgid "VSync"
+msgstr "Вертикальная синхронизация"
+
+msgid "Shaders"
+msgstr "Шейдеры"
+
+msgid "No shader selected"
+msgstr "Шейдер не выбран"
+
 msgid "Specify dimensions..."
-msgstr "&Указать размеры..."
+msgstr "&Указать размеры главного окна..."
 
 msgid "F&orce 4:3 display ratio"
 msgstr "У&становить соотношение сторон 4:3"
@@ -127,6 +157,9 @@ msgstr "&Целочисленное масштабирование"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Целочисленное масштабирование"
 
+msgid "Apply fullscreen stretch mode when maximized"
+msgstr "Применить полноэкранный режим растяжения при максимальном увеличении"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "Настройки E&GA/(S)VGA"
 
@@ -193,6 +226,9 @@ msgstr "Включить интеграцию &Discord"
 msgid "Sound &gain..."
 msgstr "&Усиление звука..."
 
+msgid "Open screenshots folder..."
+msgstr "Открыть папку скриншотов..."
+
 msgid "Begin trace\tCtrl+T"
 msgstr "Начать трассировку\tCtrl+T"
 
@@ -232,6 +268,9 @@ msgstr "&Перемотка в конец"
 msgid "E&ject"
 msgstr "И&звлечь"
 
+msgid "Eject %s"
+msgstr "И&звлечь"
+
 msgid "&Image..."
 msgstr "&Образ..."
 
@@ -240,6 +279,9 @@ msgstr "Э&кспорт в 86F..."
 
 msgid "&Mute"
 msgstr "О&тключить звук"
+
+msgid "&Unmute"
+msgstr "В&ключить звук"
 
 msgid "E&mpty"
 msgstr "П&устой"
@@ -349,8 +391,8 @@ msgstr "Настройка"
 msgid "CPU type:"
 msgstr "Тип ЦП:"
 
-msgid "Speed:"
-msgstr "Скорость:"
+msgid "Frequency:"
+msgstr "Частота:"
 
 msgid "FPU:"
 msgstr "FPU:"
@@ -368,28 +410,31 @@ msgid "Time synchronization"
 msgstr "Синхронизация времени"
 
 msgid "Disabled"
-msgstr "Отключить"
+msgstr "Отключено"
 
 msgid "Enabled (local time)"
-msgstr "Включить (местное)"
+msgstr "Включено (местное)"
 
 msgid "Enabled (UTC)"
-msgstr "Включить (UTC)"
+msgstr "Включено (UTC)"
 
 msgid "Dynamic Recompiler"
 msgstr "Динамический рекомпилятор"
 
 msgid "Video:"
-msgstr "Видеокарта:"
+msgstr "Видеокарта 1:"
 
-msgid "Voodoo Graphics"
-msgstr "Ускоритель Voodoo"
+msgid "Video #2:"
+msgstr "Видеокарта 2:"
 
-msgid "IBM 8514/a Graphics"
-msgstr "Ускоритель IBM 8514/a"
+msgid "3Dfx Voodoo Graphics"
+msgstr "3Dfx Voodoo Graphics"
+
+msgid "IBM 8514/A Graphics"
+msgstr "IBM 8514/A Graphics"
 
 msgid "XGA Graphics"
-msgstr "Ускоритель XGA"
+msgstr "XGA Graphics"
 
 msgid "Mouse:"
 msgstr "Мышь:"
@@ -409,23 +454,23 @@ msgstr "Джойстик 3..."
 msgid "Joystick 4..."
 msgstr "Джойстик 4..."
 
-msgid "Sound card 1:"
+msgid "Sound card #1:"
 msgstr "Звуковая карта 1:"
 
-msgid "Sound card 2:"
+msgid "Sound card #2:"
 msgstr "Звуковая карта 2:"
 
-msgid "Sound card 3:"
+msgid "Sound card #3:"
 msgstr "Звуковая карта 3:"
 
-msgid "Sound card 4:"
+msgid "Sound card #4:"
 msgstr "Звуковая карта 4:"
 
 msgid "MIDI Out Device:"
-msgstr "MIDI Out устр-во:"
+msgstr "MIDI Out устройство:"
 
 msgid "MIDI In Device:"
-msgstr "MIDI In устр-во:"
+msgstr "MIDI In устройство:"
 
 msgid "Standalone MPU-401"
 msgstr "Отдельный MPU-401"
@@ -440,7 +485,7 @@ msgid "Nuked (more accurate)"
 msgstr "Nuked (более точный)"
 
 msgid "YMFM (faster)"
-msgstr "YMFM (быстрей)"
+msgstr "YMFM (быстрее)"
 
 msgid "Network type:"
 msgstr "Тип сети:"
@@ -450,6 +495,30 @@ msgstr "Устройство PCap:"
 
 msgid "Network adapter:"
 msgstr "Сетевая карта:"
+
+msgid "Network Card #1"
+msgstr "Сетевая карта 1:"
+
+msgid "Network Card #2"
+msgstr "Сетевая карта 2:"
+
+msgid "Network Card #3"
+msgstr "Сетевая карта 3:"
+
+msgid "Network Card #4"
+msgstr "Сетевая карта 4:"
+
+msgid "Mode"
+msgstr "Режим:"
+
+msgid "Interface"
+msgstr "Интерфейс:"
+
+msgid "Adapter"
+msgstr "Адаптер:"
+
+msgid "VDE Socket"
+msgstr "VDE Socket:"
 
 msgid "COM1 Device:"
 msgstr "Устройство COM1:"
@@ -476,16 +545,28 @@ msgid "LPT4 Device:"
 msgstr "Устройство LPT4:"
 
 msgid "Serial port 1"
-msgstr "Последов. порт COM1"
+msgstr "Последовательный порт COM1"
 
 msgid "Serial port 2"
-msgstr "Последов. порт COM2"
+msgstr "Последовательный порт COM2"
 
 msgid "Serial port 3"
-msgstr "Последов. порт COM3"
+msgstr "Последовательный порт COM3"
 
 msgid "Serial port 4"
-msgstr "Последов. порт COM4"
+msgstr "Последовательный порт COM4"
+
+msgid "Serial port passthrough 1"
+msgstr "Сквозной последовательный порт COM1"
+
+msgid "Serial port passthrough 2"
+msgstr "Сквозной последовательный порт COM2"
+
+msgid "Serial port passthrough 3"
+msgstr "Сквозной последовательный порт COM3"
+
+msgid "Serial port passthrough 4"
+msgstr "Сквозной последовательный порт COM4"
 
 msgid "Parallel port 1"
 msgstr "Параллельный порт LPT1"
@@ -538,8 +619,14 @@ msgstr "&Создать..."
 msgid "&Existing..."
 msgstr "&Выбрать..."
 
+msgid "Browse..."
+msgstr "Выбрать..."
+
 msgid "&Remove"
-msgstr "&Убрать"
+msgstr "&Удалить"
+
+msgid "Remove"
+msgstr "Удалить"
 
 msgid "Bus:"
 msgstr "Шина:"
@@ -602,7 +689,7 @@ msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
 msgid "ISA Memory Expansion"
-msgstr "Карта расширения памяти (ISA)"
+msgstr "Карта расширения памяти ISA"
 
 msgid "Card 1:"
 msgstr "Карта 1:"
@@ -646,6 +733,9 @@ msgstr "Нажмите Ctrl+Alt+PgDn для возврата в оконный �
 msgid "Speed"
 msgstr "Скорость"
 
+msgid "Speed:"
+msgstr "Скорость:"
+
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
@@ -657,6 +747,9 @@ msgstr "86Box не смог найти ни одного подходящего 
 
 msgid "(empty)"
 msgstr "(пусто)"
+
+msgid "Clear image history"
+msgstr "Очистить историю образов"
 
 msgid "All files"
 msgstr "Все файлы"
@@ -713,7 +806,7 @@ msgid "Floppy & CD-ROM drives"
 msgstr "Гибкие диски и CD-ROM"
 
 msgid "Other removable devices"
-msgstr "Другие съёмные устр-ва"
+msgstr "Другие съёмные устройства"
 
 msgid "Other peripherals"
 msgstr "Другая периферия"
@@ -785,7 +878,7 @@ msgid "Microsoft SideWinder Pad"
 msgstr "Microsoft SideWinder Pad"
 
 msgid "Thrustmaster Flight Control System"
-msgstr "Система управления полетом Thrustmaster"
+msgstr "Система управления полётом Thrustmaster"
 
 msgid "None"
 msgstr "Нет"
@@ -938,7 +1031,7 @@ msgid "Error initializing renderer"
 msgstr "Ошибка инициализации рендерера"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Невозможно инициализировать рендерер OpenGL (3.0). Пожалуйста, используйте другой рендерер."
+msgstr "Невозможно инициализировать рендерер OpenGL 3.0. Пожалуйста, используйте другой рендерер."
 
 msgid "Resume execution"
 msgstr "Возобновить выполнение"
@@ -955,7 +1048,7 @@ msgstr "Нажать Ctrl+Alt+Esc"
 msgid "Hard reset"
 msgstr "Холодная перезагрузка"
 
-msgid "ACPI shutdown"
+msgid "ACPI Shutdown"
 msgstr "Сигнал завершения ACPI"
 
 msgid "Hard disk (%s)"
