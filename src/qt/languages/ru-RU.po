@@ -62,7 +62,7 @@ msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Renderer options..."
-msgstr "Параметры рендеринга OpenGL 3.0..."
+msgstr "Параметры рендеринга..."
 
 msgid "OpenGL 3.0 Renderer options"
 msgstr "Параметры рендеринга OpenGL 3.0"
