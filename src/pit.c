@@ -659,13 +659,14 @@ pit_read_reg(void *priv, uint8_t reg)
             break;
         case 0x07:
             /* The SiS 551x datasheet is unclear about how exactly
-               this register is structured. */
+               this register is structured.
+               Update: But the SiS 5571 datasheet is clear. */
             ret = (dev->counters[0].rm & 0x80) ? 0x01 : 0x00;
-            ret = (dev->counters[0].wm & 0x80) ? 0x02 : 0x00;
-            ret = (dev->counters[1].rm & 0x80) ? 0x04 : 0x00;
-            ret = (dev->counters[1].wm & 0x80) ? 0x08 : 0x00;
-            ret = (dev->counters[2].rm & 0x80) ? 0x10 : 0x00;
-            ret = (dev->counters[2].wm & 0x80) ? 0x20 : 0x00;
+            ret |= (dev->counters[1].rm & 0x80) ? 0x02 : 0x00;
+            ret |= (dev->counters[2].rm & 0x80) ? 0x04 : 0x00;
+            ret |= (dev->counters[0].wm & 0x80) ? 0x08 : 0x00;
+            ret |= (dev->counters[1].wm & 0x80) ? 0x10 : 0x00;
+            ret |= (dev->counters[2].wm & 0x80) ? 0x20 : 0x00;
             break;
     }
 

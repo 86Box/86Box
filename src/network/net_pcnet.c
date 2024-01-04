@@ -866,7 +866,7 @@ pcnetSoftReset(nic_t *dev)
         case DEV_AM79C960_VLB:
         case DEV_AM79C961:
             dev->aCSR[88] = 0x3003;
-            dev->aCSR[89] = 0x0262;
+            dev->aCSR[89] = 0x0000;
             break;
 
         default:
@@ -3101,9 +3101,12 @@ static const device_config_t pcnet_isa_config[] = {
             { .description = "IRQ 3", .value = 3 },
             { .description = "IRQ 4", .value = 4 },
             { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
             { .description = "IRQ 9", .value = 9 },
             { .description = "IRQ 10", .value = 10 },
             { .description = "IRQ 11", .value = 11 },
+            { .description = "IRQ 12", .value = 12 },
+            { .description = "IRQ 15", .value = 15 },
             { .description = ""                  }
         },
     },
@@ -3116,6 +3119,7 @@ static const device_config_t pcnet_isa_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
+            { .description = "DMA 0", .value = 0 },
             { .description = "DMA 3", .value = 3 },
             { .description = "DMA 5", .value = 5 },
             { .description = "DMA 6", .value = 6 },
@@ -3162,9 +3166,12 @@ static const device_config_t pcnet_vlb_config[] = {
             { .description = "IRQ 3", .value = 3 },
             { .description = "IRQ 4", .value = 4 },
             { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
             { .description = "IRQ 9", .value = 9 },
             { .description = "IRQ 10", .value = 10 },
             { .description = "IRQ 11", .value = 11 },
+            { .description = "IRQ 12", .value = 12 },
+            { .description = "IRQ 15", .value = 15 },
             { .description = ""                  }
         },
     },
