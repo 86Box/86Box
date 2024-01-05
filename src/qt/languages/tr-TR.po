@@ -49,8 +49,8 @@ msgstr "SDL (&Donanım)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (&OpenGL)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL 3.0"
+msgstr "Open&GL 3.0"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -349,8 +349,8 @@ msgstr "Ayarla"
 msgid "CPU type:"
 msgstr "CPU türü:"
 
-msgid "Speed:"
-msgstr "Hız:"
+msgid "Frequency:"
+msgstr "Sıklık:"
 
 msgid "FPU:"
 msgstr "FPU:"
@@ -937,8 +937,8 @@ msgstr "Kartuş imajları"
 msgid "Error initializing renderer"
 msgstr "Oluşturucu başlatılırken hata oluştu"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) görüntüleyici başlatılamadı. Başka bir görüntüleyici kullanın."
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "OpenGL 3.0 görüntüleyici başlatılamadı. Başka bir görüntüleyici kullanın."
 
 msgid "Resume execution"
 msgstr "Yürütmeye devam et"
