@@ -49,8 +49,8 @@ msgstr "SDL (&Hardver)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (&OpenGL)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 jezgra)"
+msgid "Open&GL 3.0"
+msgstr "Open&GL 3.0"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -349,8 +349,8 @@ msgstr "Namjesti"
 msgid "CPU type:"
 msgstr "Tip procesora:"
 
-msgid "Speed:"
-msgstr "Brzina:"
+msgid "Frequency:"
+msgstr "Frekvencija:"
 
 msgid "FPU:"
 msgstr "FPU uređaj:"
@@ -937,8 +937,8 @@ msgstr "Slike kasete"
 msgid "Error initializing renderer"
 msgstr "Nije moguće inicijalizirati renderer"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Nije moguće inicijalizirati OpenGL (3.0 jezgra) renderer. Molimte koristite drugi renderer."
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "Nije moguće inicijalizirati OpenGL 3.0 renderer. Molimte koristite drugi renderer."
 
 msgid "Resume execution"
 msgstr "Nastavi"
