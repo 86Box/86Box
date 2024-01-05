@@ -49,8 +49,8 @@ msgstr "SDL (&Hardware)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (&OpenGL)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0-Kern)"
+msgid "Open&GL 3.0"
+msgstr "Open&GL 3.0"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -349,8 +349,8 @@ msgstr "Einstellen"
 msgid "CPU type:"
 msgstr "CPU-Typ:"
 
-msgid "Speed:"
-msgstr "Takt:"
+msgid "Frequency:"
+msgstr "Frequenz:"
 
 msgid "FPU:"
 msgstr "FPU-Einheit:"
@@ -937,8 +937,8 @@ msgstr "Cartridgeimages"
 msgid "Error initializing renderer"
 msgstr "Fehler bei der Rendererinitialisierung"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Der OpenGL (3.0-Kern)-Renderer konnte nicht initialisiert werden. Bitte benutzen Sie einen anderen Renderer."
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "Der OpenGL 3.0-Renderer konnte nicht initialisiert werden. Bitte benutzen Sie einen anderen Renderer."
 
 msgid "Resume execution"
 msgstr "Fortsetzen"
