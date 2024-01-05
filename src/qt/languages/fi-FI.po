@@ -49,8 +49,8 @@ msgstr "SDL (&laitteistokiihdytetty)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (&OpenGL)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL 3.0"
+msgstr "Open&GL 3.0"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -349,8 +349,8 @@ msgstr "Määritys"
 msgid "CPU type:"
 msgstr "Suorittimen tyyppi:"
 
-msgid "Speed:"
-msgstr "Nopeus:"
+msgid "Frequency:"
+msgstr "Taajuus:"
 
 msgid "FPU:"
 msgstr "Apusuoritin:"
@@ -937,8 +937,8 @@ msgstr "ROM-moduulikuvat"
 msgid "Error initializing renderer"
 msgstr "Virhe renderöijän alustuksessa"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) -renderöijän alustus epäonnistui. Käytä toista renderöijää."
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "OpenGL 3.0 -renderöijän alustus epäonnistui. Käytä toista renderöijää."
 
 msgid "Resume execution"
 msgstr "Jatka suoritusta"
