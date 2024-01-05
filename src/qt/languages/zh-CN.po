@@ -49,8 +49,8 @@ msgstr "SDL (硬件)(&H)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (OpenGL)(&O)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "OpenGL (3.0 核心)(&G)"
+msgid "Open&GL 3.0"
+msgstr "OpenGL 3.0(&G)"
 
 msgid "&VNC"
 msgstr "VNC(&V)"
@@ -349,8 +349,8 @@ msgstr "配置"
 msgid "CPU type:"
 msgstr "CPU 类型:"
 
-msgid "Speed:"
-msgstr "速度:"
+msgid "Frequency:"
+msgstr "频率:"
 
 msgid "FPU:"
 msgstr "浮点处理器 (FPU):"
@@ -937,8 +937,8 @@ msgstr "卡带映像"
 msgid "Error initializing renderer"
 msgstr "初始化渲染器时出错"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "无法初始化 OpenGL (3.0 核心) 渲染器。请使用其他渲染器。"
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "无法初始化 OpenGL 3.0 渲染器。请使用其他渲染器。"
 
 msgid "Resume execution"
 msgstr "恢复执行"
