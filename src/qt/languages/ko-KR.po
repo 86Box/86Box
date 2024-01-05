@@ -49,8 +49,8 @@ msgstr "SDL (하드웨어)(&H)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (OpenGL)(&O)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "OpenGL (3.0 코어)(&G)"
+msgid "Open&GL 3.0"
+msgstr "OpenGL 3.0(&G)"
 
 msgid "&VNC"
 msgstr "VNC(&V)"
@@ -349,8 +349,8 @@ msgstr "설정"
 msgid "CPU type:"
 msgstr "CPU 종류:"
 
-msgid "Speed:"
-msgstr "속도:"
+msgid "Frequency:"
+msgstr "빈도:"
 
 msgid "FPU:"
 msgstr "FPU:"
@@ -937,8 +937,8 @@ msgstr "카트리지 이미지"
 msgid "Error initializing renderer"
 msgstr "렌더러 초기화 오류"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) 렌더러를 초기화할 수 없습니다. 다른 렌더러를 사용하십시오."
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "OpenGL 3.0 렌더러를 초기화할 수 없습니다. 다른 렌더러를 사용하십시오."
 
 msgid "Resume execution"
 msgstr "실행 재개"
