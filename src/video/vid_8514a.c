@@ -1224,15 +1224,12 @@ ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat
     int        compare_mode    = dev->accel.multifunc[0x0a] & 0x38;
     int        cmd             = dev->accel.cmd >> 13;
     uint16_t   wrt_mask        = dev->accel.wrt_mask;
-    uint16_t   wrt_mask_polygon = dev->accel.wrt_mask;
     uint16_t   rd_mask         = dev->accel.rd_mask;
     uint16_t   rd_mask_polygon = dev->accel.rd_mask;
     uint16_t   frgd_color      = dev->accel.frgd_color;
     uint16_t   bkgd_color      = dev->accel.bkgd_color;
     uint32_t   old_mix_dat;
     int        and3            = dev->accel.cur_x & 3;
-    uint16_t   poly_src        = 0;
-    uint16_t   old_poly_src    = 0;
 
     if (!dev->bpp) {
         compare &= 0xff;

@@ -4433,7 +4433,6 @@ mach_accel_in(uint16_t port, mach_t *mach)
     uint8_t         temp   = 0;
     uint16_t        vpos      = 0;
     uint16_t        vblankend = svga->vblankstart + svga->crtc[0x16];
-    int             cmd;
 
     switch (port) {
         case 0x2e8:
@@ -4470,7 +4469,6 @@ mach_accel_in(uint16_t port, mach_t *mach)
 
         case 0x42e8:
         case 0x42e9:
-            cmd  = dev->accel.cmd >> 13;
             vpos = dev->vc & 0x7ff;
             if (!(dev->subsys_stat & 1)) {
                 if (vblankend > dev->v_total) {
