@@ -55,7 +55,7 @@ msgstr "SDL (&Hardware)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (&OpenGL)"
 
-msgid "Open&GL (3.0 Core)"
+msgid "Open&GL 3.0"
 msgstr "Open&GL 3.0"
 
 msgid "&VNC"
