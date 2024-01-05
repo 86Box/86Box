@@ -49,8 +49,8 @@ msgstr "SDL (s&trojno)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (&OpenGL)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (Jedro 3.0)"
+msgid "Open&GL 3.0"
+msgstr "Open&GL 3.0"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -349,8 +349,8 @@ msgstr "Nastavi"
 msgid "CPU type:"
 msgstr "Vrsta procesorja:"
 
-msgid "Speed:"
-msgstr "Hitrost:"
+msgid "Frequency:"
+msgstr "Pogostost:"
 
 msgid "FPU:"
 msgstr "Procesor plavajoče vejice:"
@@ -937,8 +937,8 @@ msgstr "Slike spominskega vložka"
 msgid "Error initializing renderer"
 msgstr "Napaka pri zagonu sistema za upodabljanje"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Sistema za upodabljanje OpenGL (3.0 Core) ni bilo mogoče zagnati. Uporabite drug sistem za upodabljanje."
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "Sistema za upodabljanje OpenGL 3.0 ni bilo mogoče zagnati. Uporabite drug sistem za upodabljanje."
 
 msgid "Resume execution"
 msgstr "Nadaljuj izvajanje"
