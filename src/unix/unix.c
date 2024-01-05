@@ -644,10 +644,8 @@ ui_msgbox_header(int flags, void *header, void *message)
     SDL_MessageBoxData       msgdata;
     SDL_MessageBoxButtonData msgbtn;
 
-#if 0
     if (!header)
-        header = (void *) (flags & MBX_ANSI) ? "86Box" : L"86Box";
-#endif
+        header = (void *) ((flags & MBX_ANSI) ? "86Box" : L"86Box");
     if (header <= (void *) 7168)
         header = (void *) plat_get_string((uintptr_t) header);
     if (message <= (void *) 7168)
