@@ -49,8 +49,8 @@ msgstr "SDL (&Hardveres)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (&OpenGL)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL 3.0"
+msgstr "Open&GL 3.0"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -349,8 +349,8 @@ msgstr "Beállítások..."
 msgid "CPU type:"
 msgstr "Processzor:"
 
-msgid "Speed:"
-msgstr "Seb.:"
+msgid "Frequency:"
+msgstr "Frekvencia:"
 
 msgid "FPU:"
 msgstr "FPU-egység:"
@@ -937,8 +937,8 @@ msgstr "ROM-kazetta képek"
 msgid "Error initializing renderer"
 msgstr "Hiba történt a renderelő inicializálásakor"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Az OpenGL (3.0 Core) megjelenítő-motort nem sikerült inicializálni. Kérem használjon másik renderelőt."
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "Az OpenGL 3.0 megjelenítő-motort nem sikerült inicializálni. Kérem használjon másik renderelőt."
 
 msgid "Resume execution"
 msgstr "Folytassa a végrehajtást"
