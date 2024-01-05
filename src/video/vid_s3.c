@@ -3469,6 +3469,7 @@ s3_recalctimings(svga_t *svga)
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
                                 break;
+
                             case S3_ELSAWIN2KPROX:
                                 switch (s3->width) {
                                     case 1280:
@@ -3483,6 +3484,12 @@ s3_recalctimings(svga_t *svga)
                                 break;
                         }
                         break;
+
+                    case S3_TRIO64:
+                    case S3_TRIO32:
+                        svga->hdisp >>= 1;
+                        break;
+
                     default:
                         break;
                 }
@@ -3636,6 +3643,7 @@ s3_recalctimings(svga_t *svga)
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
                                 break;
+
                             case S3_ELSAWIN2KPROX:
                                 switch (s3->width) {
                                     case 1280:
@@ -3650,6 +3658,12 @@ s3_recalctimings(svga_t *svga)
                                 break;
                         }
                         break;
+
+                    case S3_TRIO64:
+                    case S3_TRIO32:
+                        svga->hdisp >>= 1;
+                        break;
+
                     default:
                         break;
                 }
@@ -3756,6 +3770,11 @@ s3_recalctimings(svga_t *svga)
                         }
                         break;
 
+                    case S3_TRIO64:
+                    case S3_TRIO32:
+                        svga->hdisp /= 3;
+                        break;
+
                     default:
                         break;
                 }
@@ -3834,6 +3853,7 @@ s3_recalctimings(svga_t *svga)
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
                                 break;
+
                             case S3_ELSAWIN2KPROX:
                                 switch (s3->width) {
                                     case 1280:
@@ -7222,71 +7242,36 @@ s3_911_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat,
                     if (!s3->accel.sy)
                         break;
 
-                    if (s3->accel.err_term >= s3->accel.maj_axis_pcnt) {
-                        s3->accel.err_term += s3->accel.destx_distp;
-                        /*Step minor axis*/
-                        switch (s3->accel.cmd & 0xe0) {
-                            case 0x00:
-                                s3->accel.cy--;
-                                break;
-                            case 0x20:
-                                s3->accel.cy--;
-                                break;
-                            case 0x40:
-                                s3->accel.cx--;
-                                break;
-                            case 0x60:
-                                s3->accel.cx++;
-                                break;
-                            case 0x80:
-                                s3->accel.cy++;
-                                break;
-                            case 0xa0:
-                                s3->accel.cy++;
-                                break;
-                            case 0xc0:
-                                s3->accel.cx--;
-                                break;
-                            case 0xe0:
-                                s3->accel.cx++;
-                                break;
-
-                            default:
-                                break;
-                        }
-                    } else
-                        s3->accel.err_term += s3->accel.desty_axstp;
-
-                    /*Step major axis*/
-                    switch (s3->accel.cmd & 0xe0) {
-                        case 0x00:
-                            s3->accel.cx--;
-                            break;
-                        case 0x20:
-                            s3->accel.cx++;
-                            break;
-                        case 0x40:
-                            s3->accel.cy--;
-                            break;
-                        case 0x60:
-                            s3->accel.cy--;
-                            break;
-                        case 0x80:
-                            s3->accel.cx--;
-                            break;
-                        case 0xa0:
-                            s3->accel.cx++;
-                            break;
-                        case 0xc0:
+                    if (s3->accel.cmd & 0x40) {
+                        if (s3->accel.cmd & 0x80)
                             s3->accel.cy++;
-                            break;
-                        case 0xe0:
-                            s3->accel.cy++;
-                            break;
+                        else
+                            s3->accel.cy--;
 
-                        default:
-                            break;
+                        if (s3->accel.err_term >= 0) {
+                            s3->accel.err_term += s3->accel.destx_distp;
+                            if (s3->accel.cmd & 0x20)
+                                s3->accel.cx++;
+                            else
+                                s3->accel.cx--;
+                        } else
+                            s3->accel.err_term += s3->accel.desty_axstp;
+                    } else {
+                        if (s3->accel.cmd & 0x20)
+                            s3->accel.cx++;
+                        else
+                            s3->accel.cx--;
+
+                        if (s3->accel.err_term >= 0) {
+                            s3->accel.err_term += s3->accel.destx_distp;
+                            if (s3->accel.cmd & 0x80)
+                                s3->accel.cy++;
+                            else
+                                s3->accel.cy--;
+                        } else
+                            s3->accel.err_term += s3->accel.desty_axstp;
                     }
+
                     s3->accel.sy--;
                     s3->accel.cx &= 0xfff;
                     s3->accel.cy &= 0xfff;
@@ -8028,71 +8013,36 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, voi
                     if (!s3->accel.sy)
                         break;
 
-                    if (s3->accel.err_term >= s3->accel.maj_axis_pcnt) {
-                        s3->accel.err_term += s3->accel.destx_distp;
-                        /*Step minor axis*/
-                        switch (s3->accel.cmd & 0xe0) {
-                            case 0x00:
-                                s3->accel.cy--;
-                                break;
-                            case 0x20:
-                                s3->accel.cy--;
-                                break;
-                            case 0x40:
-                                s3->accel.cx--;
-                                break;
-                            case 0x60:
-                                s3->accel.cx++;
-                                break;
-                            case 0x80:
-                                s3->accel.cy++;
-                                break;
-                            case 0xa0:
-                                s3->accel.cy++;
-                                break;
-                            case 0xc0:
-                                s3->accel.cx--;
-                                break;
-                            case 0xe0:
-                                s3->accel.cx++;
-                                break;
-
-                            default:
-                                break;
-                        }
-                    } else
-                        s3->accel.err_term += s3->accel.desty_axstp;
-
-                    /*Step major axis*/
-                    switch (s3->accel.cmd & 0xe0) {
-                        case 0x00:
-                            s3->accel.cx--;
-                            break;
-                        case 0x20:
-                            s3->accel.cx++;
-                            break;
-                        case 0x40:
-                            s3->accel.cy--;
-                            break;
-                        case 0x60:
-                            s3->accel.cy--;
-                            break;
-                        case 0x80:
-                            s3->accel.cx--;
-                            break;
-                        case 0xa0:
-                            s3->accel.cx++;
-                            break;
-                        case 0xc0:
+                    if (s3->accel.cmd & 0x40) {
+                        if (s3->accel.cmd & 0x80)
                             s3->accel.cy++;
-                            break;
-                        case 0xe0:
-                            s3->accel.cy++;
-                            break;
+                        else
+                            s3->accel.cy--;
 
-                        default:
-                            break;
+                        if (s3->accel.err_term >= 0) {
+                            s3->accel.err_term += s3->accel.destx_distp;
+                            if (s3->accel.cmd & 0x20)
+                                s3->accel.cx++;
+                            else
+                                s3->accel.cx--;
+                        } else
+                            s3->accel.err_term += s3->accel.desty_axstp;
+                    } else {
+                        if (s3->accel.cmd & 0x20)
+                            s3->accel.cx++;
+                        else
+                            s3->accel.cx--;
+
+                        if (s3->accel.err_term >= 0) {
+                            s3->accel.err_term += s3->accel.destx_distp;
+                            if (s3->accel.cmd & 0x80)
+                                s3->accel.cy++;
+                            else
+                                s3->accel.cy--;
+                        } else
+                            s3->accel.err_term += s3->accel.desty_axstp;
                     }
+
                     s3->accel.sy--;
                     s3->accel.cx &= 0xfff;
                     s3->accel.cy &= 0xfff;
