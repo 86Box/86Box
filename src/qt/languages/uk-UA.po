@@ -49,8 +49,8 @@ msgstr "SDL (&Hardware)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (&OpenGL)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0)"
+msgid "Open&GL 3.0"
+msgstr "Open&GL 3.0"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -349,8 +349,8 @@ msgstr "Налаштування"
 msgid "CPU type:"
 msgstr "Тип ЦП:"
 
-msgid "Speed:"
-msgstr "Швидкість:"
+msgid "Frequency:"
+msgstr "Частота:"
 
 msgid "FPU:"
 msgstr "FPU:"
@@ -937,8 +937,8 @@ msgstr "Образи картриджів"
 msgid "Error initializing renderer"
 msgstr "Помилка ініціалізації рендерера"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Неможливо ініціалізувати рендерер OpenGL (3.0). Будь ласка, використовуйте інший рендерер."
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "Неможливо ініціалізувати рендерер OpenGL 3.0. Будь ласка, використовуйте інший рендерер."
 
 msgid "Resume execution"
 msgstr "Відновити виконання"
