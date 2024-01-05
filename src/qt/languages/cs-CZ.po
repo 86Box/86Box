@@ -49,8 +49,8 @@ msgstr "SDL (&Hardware)"
 msgid "SDL (&OpenGL)"
 msgstr "SDL (&OpenGL)"
 
-msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgid "Open&GL 3.0"
+msgstr "Open&GL 3.0"
 
 msgid "&VNC"
 msgstr "&VNC"
@@ -349,8 +349,8 @@ msgstr "Nastavit"
 msgid "CPU type:"
 msgstr "Procesor:"
 
-msgid "Speed:"
-msgstr "Rychlost:"
+msgid "Frequency:"
+msgstr "Frekvence:"
 
 msgid "FPU:"
 msgstr "Koprocesor:"
@@ -937,8 +937,8 @@ msgstr "Obrazy cartridge"
 msgid "Error initializing renderer"
 msgstr "Chyba při inicializaci vykreslovače"
 
-msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "Vykreslovač OpenGL (3.0 Core) se nepodařilo inicializovat. Použijte jiný renderer."
+msgid "OpenGL 3.0 renderer could not be initialized. Use another renderer."
+msgstr "Vykreslovač OpenGL 3.0 se nepodařilo inicializovat. Použijte jiný renderer."
 
 msgid "Resume execution"
 msgstr "Obnovit"
