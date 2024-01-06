@@ -342,6 +342,8 @@ reset_common(int hard)
 
     if (!is286)
         reset_808x(hard);
+
+    cpu_cpurst_on_sr = 0;
 }
 
 /* Hard reset. */
