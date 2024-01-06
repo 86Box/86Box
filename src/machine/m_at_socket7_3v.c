@@ -752,7 +752,7 @@ machine_at_ap5s_init(const machine_t *model)
 
     machine_at_common_init_ex(model, 2);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
@@ -781,7 +781,7 @@ machine_at_ms5124_init(const machine_t *model)
 
     machine_at_common_init_ex(model, 2);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0xFE, 0xFF, 0, 0);
     pci_register_slot(0x10, PCI_CARD_NORMAL,      1, 2, 3, 4);
