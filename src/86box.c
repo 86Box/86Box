@@ -173,6 +173,7 @@ bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0 }; /* (C) activat
                                                                          pass-through for serial ports */
 int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
 int      postcard_enabled                       = 0;              /* (C) enable POST card */
+int      unittester_enabled                     = 0;              /* (C) enable unit tester device */
 int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
 int      isartc_type                            = 0;              /* (C) enable ISA RTC card */
 int      gfxcard[2]                             = { 0, 0 };       /* (C) graphics/video card */

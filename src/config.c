@@ -1514,8 +1514,9 @@ load_other_peripherals(void)
     char         *p;
     char          temp[512];
 
-    bugger_enabled   = !!ini_section_get_int(cat, "bugger_enabled", 0);
-    postcard_enabled = !!ini_section_get_int(cat, "postcard_enabled", 0);
+    bugger_enabled     = !!ini_section_get_int(cat, "bugger_enabled", 0);
+    postcard_enabled   = !!ini_section_get_int(cat, "postcard_enabled", 0);
+    unittester_enabled = !!ini_section_get_int(cat, "unittester_enabled", 0);
 
     for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
         sprintf(temp, "isamem%d_type", c);
@@ -2347,6 +2348,11 @@ save_other_peripherals(void)
         ini_section_delete_var(cat, "postcard_enabled");
     else
         ini_section_set_int(cat, "postcard_enabled", postcard_enabled);
+
+    if (unittester_enabled == 0)
+        ini_section_delete_var(cat, "unittester_enabled");
+    else
+        ini_section_set_int(cat, "unittester_enabled", unittester_enabled);
 
     for (uint8_t c = 0; c < ISAMEM_MAX; c++) {
         sprintf(temp, "isamem%d_type", c);

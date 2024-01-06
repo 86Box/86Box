@@ -190,6 +190,13 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QCheckBox" name="checkBoxUnitTester">
+       <property name="text">
+        <string>86Box unit tester</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>

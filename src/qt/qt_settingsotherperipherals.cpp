@@ -44,6 +44,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
     bool machineHasIsa = (machine_has_bus(machineId, MACHINE_BUS_ISA) > 0);
     ui->checkBoxISABugger->setChecked((machineHasIsa && (bugger_enabled > 0)) ? true : false);
     ui->checkBoxPOSTCard->setChecked(postcard_enabled > 0 ? true : false);
+    ui->checkBoxUnitTester->setChecked(unittester_enabled > 0 ? true : false);
     ui->checkBoxISABugger->setEnabled(machineHasIsa);
     ui->comboBoxRTC->setEnabled(machineHasIsa);
     ui->pushButtonConfigureRTC->setEnabled(machineHasIsa);
@@ -112,9 +113,10 @@ void
 SettingsOtherPeripherals::save()
 {
     /* Other peripherals category */
-    bugger_enabled   = ui->checkBoxISABugger->isChecked() ? 1 : 0;
-    postcard_enabled = ui->checkBoxPOSTCard->isChecked() ? 1 : 0;
-    isartc_type      = ui->comboBoxRTC->currentData().toInt();
+    bugger_enabled     = ui->checkBoxISABugger->isChecked() ? 1 : 0;
+    postcard_enabled   = ui->checkBoxPOSTCard->isChecked() ? 1 : 0;
+    unittester_enabled = ui->checkBoxUnitTester->isChecked() ? 1 : 0;
+    isartc_type        = ui->comboBoxRTC->currentData().toInt();
 
     /* ISA memory boards. */
     for (int i = 0; i < ISAMEM_MAX; i++) {
