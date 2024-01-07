@@ -101,8 +101,6 @@ This is an easy way to reset the status to 0x04 (no command in flight, not waiti
 
 ### 0x01: Capture Screen Snapshot
 
-**TODO: IMPLEMENT ME!**
-
 Captures a snapshot of the current screen state and stores it in the current snapshot buffer.
 
 The initial state of the screen snapshot buffer has an image area of 0x0, an overscanned area of 0x0, and an image start offset of (0,0).

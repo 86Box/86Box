@@ -248,7 +248,7 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                         /* Monitor disabled - clear snapshot */
                         unittester.snap_monitor = 0x00;
                     } else {
-                        /* Capture snapshot from monitor */
+                        /* Compute bounds for snapshot */
                         const monitor_t *m = &monitors[unittester.snap_monitor - 1];
                         unittester.snap_img_width = m->mon_xsize;
                         unittester.snap_img_height = m->mon_ysize;
@@ -256,7 +256,12 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                         unittester.snap_overscan_height = m->mon_ysize + m->mon_overscan_y;
                         unittester.snap_img_xoffs = (m->mon_overscan_x >> 1);
                         unittester.snap_img_yoffs = (m->mon_overscan_y >> 1);
-                        /* TODO: Actually take snapshot! --GM */
+                        /* Take snapshot */
+                        for (size_t y = 0; y < unittester.snap_img_height; y++) {
+                            for (size_t x = 0; x < unittester.snap_img_width; x++) {
+                                unittester_screen_buffer->line[y][x] = m->target_buffer->line[y][x];
+                            }
+                        }
                     }
 
                     /* We have 12 bytes to read. */
