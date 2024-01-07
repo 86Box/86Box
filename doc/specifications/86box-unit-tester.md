@@ -1,6 +1,51 @@
-# 86Box Unit Tester device specification
+# 86Box Unit Tester device specification v1.0.0
 
-**TODO: DESCRIBE ME!**
+By GreaseMonkey + other 86Box contributors, 2024.
+This specification, including any code samples included, has been released into the Public Domain under the Creative Commons CC0 licence version 1.0 or later, as described here: <http://creativecommons.org/publicdomain/zero/1.0>
+
+The 86Box Unit Tester is a facility for allowing one to unit-test various parts of 86Box's emulation which would otherwise not be exposed to the emulated system. 
+
+The original purpose of this was to make it possible to analyse and verify aspects of the monitor framebuffers in order to detect and prevent regressions in certain pieces of video hardware.
+
+----------------------------------------------------------------------------
+
+## Versioning
+
+This specification follows the rules of Semantic Versioning 2.0.0 as documented here: <https://semver.org/spec/v2.0.0.html>
+
+The format is `major.minor.patch`.
+
+- Before you mess with this specification, talk to the other contributors first!
+- Any changes need to be tracked in the Version History below, mostly in the event that this document escapes into the wild and doesn't have the Git history attached to it.
+- If it clarifies something without introducing any behaviour changes (e.g. formatting changes, spelling fixes), increment the patch version.
+- If it introduces a backwards-compatible change, increment the minor version and reset the patch version to 0.
+- If it introduces a backwards-incompatible change, increment the major version and reset the minor and patch versions to 0.
+  - If you make a mistake and accidentally introduce a backward-incompatible change, fix the mistake and increment the minor version.
+  - To clarify, modifications to *this* section are to be classified as a *patch* version update.
+- If you understand SemVer 2.0.0, you may also do other things to the version number according to the specification.
+
+And lastly, the 3 golden rules of protocol specifications:
+
+1. If it's not documented, it doesn't exist.
+2. If it's not documented but somehow exists, it's a bug.
+3. If it's a bug, it needs to be fixed. (Yes, I'm talking to you. You who introduced the bug. Go fix it.)
+
+The checklist:
+
+- Work out what kind of version number this document needs.
+- Update the version number at the top of the file.
+- Add an entry to the "Version History" section below describing roughly what was changed.
+
+----------------------------------------------------------------------------
+
+## Version History
+
+Dates are based on what day it was in UTC at the time of publication.
+
+New entries are placed at the top. That is, immediately following this paragraph.
+
+### v1.0.0 (2024-01-08)
+Initial release. Authored by GreaseMonkey.
 
 ----------------------------------------------------------------------------
 
@@ -12,7 +57,7 @@
 - `u8` denotes an unsigned 8-bit value.
 - `w8` denotes an 8-bit value which wraps around.
 - `x8` denotes an 8-bit value where the signedness is irrelevant.
-- `e8` ("either") denotes an 8-bit value where the most significant bit is clear - in effect, this is a 7-bit unsigned value.
+- `e8` ("either") denotes an 8-bit value where the most significant bit is clear - in effect, this is a 7-bit unsigned value, and can be interepreted identically as a signed 8-bit value.
 - `u16L` denotes a little-endian unsigned 16-bit value.
 - `u16B` would denote a big-endian unsigned 16-bit value if we had any big-endian values.
 - `[N]T` denotes an array of `N` values of type `T`, whatever `N` and `T` are.
@@ -200,12 +245,6 @@ FSM2:
 - Wait for high byte.
     Once received, replace IOBASE with this byte in the high byte and the temporary value in the low byte,
     then go back to "Idle".
-
-### Command processing state machine
-
-**TODO: IMPLEMENT ME!**
-
-**TODO: DOCUMENT ME!**
 
 ----------------------------------------------------------------------------
 

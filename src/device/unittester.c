@@ -8,6 +8,8 @@
  *
  *          Debug device for assisting in unit testing.
  *          See doc/specifications/86box-unit-tester.md for more info.
+ *          If modifying the protocol, you MUST modify the specification
+ *          and increment the version number.
  *
  *
  *
@@ -117,9 +119,6 @@ static bitmap_t *unittester_screen_buffer = NULL;
 
 /* FIXME: This needs a config option! --GM */
 static bool unittester_exit_enabled = true;
-
-/* FIXME TEMPORARY --GM */
-#define ENABLE_UNITTESTER_LOG 1
 
 #ifdef ENABLE_UNITTESTER_LOG
 int unittester_do_log = ENABLE_UNITTESTER_LOG;

@@ -8,6 +8,8 @@
  *
  *          Debug device for assisting in unit testing.
  *          See doc/specifications/86box-unit-tester.md for more info.
+ *          If modifying the protocol, you MUST modify the specification
+ *          and increment the version number.
  *
  *
  *
