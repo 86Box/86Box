@@ -382,11 +382,11 @@ msgstr "Dinamikus újrafordítás"
 msgid "Video:"
 msgstr "Videokártya:"
 
-msgid "Voodoo Graphics"
-msgstr "Voodoo-gyorsítókártya"
+msgid "3Dfx Voodoo Graphics"
+msgstr "3Dfx Voodoo-gyorsítókártya"
 
-msgid "IBM 8514/a Graphics"
-msgstr "IBM 8514/a-gyorsítókártya"
+msgid "IBM 8514/A Graphics"
+msgstr "IBM 8514/A-gyorsítókártya"
 
 msgid "XGA Graphics"
 msgstr "XGA-gyorsítókártya"
