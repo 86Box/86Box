@@ -371,7 +371,7 @@ unittester_read(uint16_t port, UNUSED(void *priv))
         return unittester.status;
     } else if (port == unittester.iobase_port+0x01) {
         /* Data port */
-        unittester_log("[UT] R -- Data\n");
+        /* unittester_log("[UT] R -- Data\n"); */
 
         /* Skip if not awaiting */
         if ((unittester.status & UT_STATUS_AWAITING_READ) == 0)
