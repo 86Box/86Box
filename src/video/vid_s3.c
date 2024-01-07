@@ -911,7 +911,7 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
             s3->accel.ssv_state = 0;
             s3->accel_start(-1, 0, 0xffffffff, 0, s3);
             if (s3->bpp == 3) {
-                if (!(s3->accel.multifunc[0xe] & 0x200))
+                if (!(s3->accel.multifunc[0xe] & 0x200) && !(svga->crtc[0x32] & 0x40))
                     s3->accel.multifunc[0xe] &= ~0x10;
             }
             break;
@@ -2717,11 +2717,6 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                     s3->ma_ext             = (s3->ma_ext & 0x1c) | ((val & 0x30) >> 4);
                     svga->force_dword_mode = !!(val & 0x08);
                     break;
-                case 0x32:
-                    svga->vram_display_mask = (val & 0x40) ? 0x3ffff : s3->vram_mask;
-                    if (s3->color_16bit)
-                        svga->vram_display_mask = s3->vram_mask;
-                    break;
 
                 case 0x40:
                     s3->enable_8514 = (val & 0x01);
@@ -3101,15 +3096,6 @@ s3_recalctimings(svga_t *svga)
     int   clk_sel = (svga->miscout >> 2) & 3;
     uint8_t mask = 0xc0;
 
-    if (!svga->scrblank && svga->attr_palette_enable) {
-        if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
-            if (svga->crtc[0x3a] & 0x10) { /*256+ color register*/
-                svga->gdcreg[5] |= 0x40;
-                svga->attrregs[0x10] |= 0x40;
-            }
-        }
-    }
-
     svga->ma_latch |= (s3->ma_ext << 16);
     if (s3->chip >= S3_86C928) {
         svga->hdisp = svga->hdisp_old;
@@ -3173,7 +3159,7 @@ s3_recalctimings(svga_t *svga)
             break;
     }
 
-    svga->lowres = !((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10));
+    svga->lowres = (!!(svga->attrregs[0x10] & 0x40) && !(svga->crtc[0x3a] & 0x10));
 
     if (s3->chip != S3_86C801)
         mask |= 0x01;
@@ -3232,7 +3218,8 @@ s3_recalctimings(svga_t *svga)
     }
 #endif
 
-    if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10)) {
+    if ((svga->crtc[0x3a] & 0x10) && !svga->lowres) {
+        svga->vram_display_mask = s3->vram_mask;
         pclog("BPP=%d, pitch=%d, width=%02x, double?=%x, 16bit?=%d, highres?=%d, attr=%02x.\n", svga->bpp, s3->width, svga->crtc[0x50], svga->crtc[0x31] & 0x02, s3->color_16bit, s3->accel.advfunc_cntl & 4, svga->attrregs[0x10] & 0x40);
         switch (svga->bpp) {
             case 8:
@@ -3920,9 +3907,11 @@ s3_recalctimings(svga_t *svga)
                 break;
         }
     } else {
+        svga->vram_display_mask = (svga->crtc[0x32] & 0x40) ? 0x3ffff : s3->vram_mask;
         if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
             if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
-                if ((svga->crtc[0x31] & 0x08) && (svga->attrregs[0x10] & 0x40) == 0x00) {
+                if (svga->crtc[0x31] & 0x08) {
+                    svga->vram_display_mask = s3->vram_mask;
                     if (svga->bpp == 8) {
                         svga->render = svga_render_8bpp_highres; /*Enhanced 4bpp mode, just like the 8bpp mode per spec.*/
                         svga->rowoffset <<= 1;
@@ -3939,14 +3928,6 @@ s3_trio64v_recalctimings(svga_t *svga)
     s3_t *s3            = (s3_t *) svga->priv;
     int         clk_sel = (svga->miscout >> 2) & 3;
 
-    if (!svga->scrblank && svga->attr_palette_enable) {
-        if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
-            if (svga->crtc[0x3a] & 0x10) { /*256+ color register*/
-                svga->gdcreg[5] |= 0x40;
-                svga->attrregs[0x10] |= 0x40;
-            }
-        }
-    }
     svga->hdisp = svga->hdisp_old;
     if (svga->crtc[0x5d] & 0x01)
         svga->htotal |= 0x100;
@@ -4002,9 +3983,10 @@ s3_trio64v_recalctimings(svga_t *svga)
         if (!svga->rowoffset)
             svga->rowoffset = 256;
 
-        svga->lowres = !((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10));
+        svga->lowres = (!!(svga->attrregs[0x10] & 0x40) && !(svga->crtc[0x3a] & 0x10));
 
-        if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10)) {
+        if ((svga->crtc[0x3a] & 0x10) && !svga->lowres) {
+            svga->vram_display_mask = s3->vram_mask;
             switch (svga->bpp) {
                 case 8:
                     svga->render = svga_render_8bpp_highres;
@@ -4028,7 +4010,9 @@ s3_trio64v_recalctimings(svga_t *svga)
                 default:
                     break;
             }
-        }
+        } else
+            svga->vram_display_mask = (svga->crtc[0x32] & 0x40) ? 0x3ffff : s3->vram_mask;
+
     } else /*Streams mode*/
     {
         if (s3->streams.buffer_ctrl & 1)
@@ -4053,6 +4037,7 @@ s3_trio64v_recalctimings(svga_t *svga)
         svga->overlay.v_acc = s3->streams.dda_vert_accumulator;
         svga->rowoffset     = s3->streams.pri_stride >> 3;
 
+        svga->vram_display_mask = s3->vram_mask;
         switch ((s3->streams.pri_ctrl >> 24) & 0x7) {
             case 0: /*RGB-8 (CLUT)*/
                 svga->render = svga_render_8bpp_highres;
