@@ -16,6 +16,7 @@
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -23,6 +24,7 @@
 #include <math.h>
 #include <wchar.h>
 #include <stdatomic.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
@@ -413,6 +415,24 @@ static uint32_t s3_accel_in_l(uint16_t port, void *priv);
 static uint8_t  s3_pci_read(int func, int addr, void *priv);
 static void     s3_pci_write(int func, int addr, uint8_t val, void *priv);
 
+#ifdef ENABLE_S3_LOG
+int s3_do_log = ENABLE_S3_LOG;
+
+static void
+s3_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (s3_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define s3_log(fmt, ...)
+#endif
+
 /*Remap address for chain-4/doubleword style layout.
   These will stay for convenience.*/
 static __inline uint32_t
@@ -581,7 +601,9 @@ s3_accel_out_pixtrans_w(s3_t *s3, uint16_t val)
     const svga_t *svga = &s3->svga;
 
     if (s3->accel.cmd & 0x100) {
-        //pclog("S3 PIXTRANS_W write: cmd=%03x, pixelcntl=%02x, frgdmix=%02x, bkgdmix=%02x, curx=%d, val=%04x.\n", s3->accel.cmd, s3->accel.multifunc[0x0a], s3->accel.frgd_mix, s3->accel.bkgd_mix, s3->accel.cur_x, val);
+        s3_log("S3 PIXTRANS_W write: cmd=%03x, pixelcntl=%02x, frgdmix=%02x, bkgdmix=%02x, "
+               "curx=%d, val=%04x.\n", s3->accel.cmd, s3->accel.multifunc[0x0a],
+               s3->accel.frgd_mix, s3->accel.bkgd_mix, s3->accel.cur_x, val);
         switch (s3->accel.cmd & 0x600) {
             case 0x000:
                 if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
@@ -595,7 +617,9 @@ s3_accel_out_pixtrans_w(s3_t *s3, uint16_t val)
                     if (s3->accel.color_16bit_check_rectfill) {
                         if (s3->accel.color_16bit_check) {
                             if (s3->accel.pix_trans_x_count < s3->accel.pix_trans_ptr_cnt) {
-                                //pclog("Word: CPU data CMD=%04x, byte write=%02x, cnt=%d, check=%d.\n", s3->accel.cmd, val & 0xff, s3->accel.pix_trans_x_count, s3->accel.color_16bit_check);
+                                s3_log("Word: CPU data CMD=%04x, byte write=%02x, "
+                                       "cnt=%d, check=%d.\n", s3->accel.cmd, val & 0xff,
+                                       s3->accel.pix_trans_x_count, s3->accel.color_16bit_check);
                                 s3->accel.pix_trans_ptr[s3->accel.pix_trans_x_count] = val & 0xff;
                                 s3->accel.pix_trans_ptr[s3->accel.pix_trans_x_count + 1] = val >> 8;
                                 s3->accel.pix_trans_x_count += 2;
@@ -618,7 +642,10 @@ s3_accel_out_pixtrans_w(s3_t *s3, uint16_t val)
                     if (s3->accel.color_16bit_check_rectfill) {
                         if (s3->accel.color_16bit_check) {
                             if (s3->accel.pix_trans_x_count < s3->accel.pix_trans_ptr_cnt) {
-                                //pclog("Word: CPU data CMD=%04x, word write=%04x, cnt=%d, check=%d, totalptrcnt=%d.\n", s3->accel.cmd, val, s3->accel.pix_trans_x_count, s3->accel.color_16bit_check, s3->accel.pix_trans_ptr_cnt);
+                                s3_log("Word: CPU data CMD=%04x, word write=%04x, cnt=%d, check=%d, "
+                                       "totalptrcnt=%d.\n", s3->accel.cmd, val,
+                                       s3->accel.pix_trans_x_count, s3->accel.color_16bit_check,
+                                       s3->accel.pix_trans_ptr_cnt);
                                 s3->accel.pix_trans_ptr[s3->accel.pix_trans_x_count] = val & 0xff;
                                 s3->accel.pix_trans_ptr[s3->accel.pix_trans_x_count + 1] = val >> 8;
                                 s3->accel.pix_trans_x_count += 2;
@@ -626,15 +653,23 @@ s3_accel_out_pixtrans_w(s3_t *s3, uint16_t val)
                             }
                         } else {
                             if (s3->accel.pix_trans_x_count < s3->accel.pix_trans_ptr_cnt) {
-                                //pclog("Word: CPU data CMD=%04x, word write=%04x, cnt=%d, check=%d, totalptrcnt=%d.\n", s3->accel.cmd, val, s3->accel.pix_trans_x_count, s3->accel.color_16bit_check, s3->accel.pix_trans_ptr_cnt);
+                                s3_log("Word: CPU data CMD=%04x, word write=%04x, cnt=%d, check=%d, "
+                                       "totalptrcnt=%d.\n", s3->accel.cmd, val,
+                                       s3->accel.pix_trans_x_count, s3->accel.color_16bit_check,
+                                       s3->accel.pix_trans_ptr_cnt);
                                 s3->accel.pix_trans_ptr[s3->accel.pix_trans_x_count2] = val & 0xff;
                                 s3->accel.pix_trans_ptr[s3->accel.pix_trans_x_count2 + 1] = val >> 8;
                                 s3->accel.pix_trans_x_count += 2;
                             }
                             if (s3->accel.pix_trans_x_count2 == s3->accel.pix_trans_ptr_cnt) {
                                 for (int i = 0; i < s3->accel.pix_trans_ptr_cnt; i += 2) {
-                                    //pclog("Transferring write count=%d, bytes=%08x.\n", i, s3->accel.pix_trans_ptr[i] | (s3->accel.pix_trans_ptr[i + 1] << 8) | (s3->accel.pix_trans_ptr[i + 2] << 16) | (s3->accel.pix_trans_ptr[i + 3] << 24));
-                                    s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans_ptr[i] | (s3->accel.pix_trans_ptr[i + 1] << 8), s3);
+                                    s3_log("Transferring write count=%d, bytes=%08x.\n", i,
+                                           s3->accel.pix_trans_ptr[i] |
+                                           (s3->accel.pix_trans_ptr[i + 1] << 8) |
+                                           (s3->accel.pix_trans_ptr[i + 2] << 16) |
+                                           (s3->accel.pix_trans_ptr[i + 3] << 24));
+                                    s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans_ptr[i] |
+                                                    (s3->accel.pix_trans_ptr[i + 1] << 8), s3);
                                 }
 
                                 s3->accel.pix_trans_x_count2 = 0;
@@ -1253,22 +1288,30 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
                             if (s3->accel.color_16bit_check_rectfill) {
                                 if (s3->accel.color_16bit_check) {
                                     if (s3->accel.pix_trans_x_count < s3->accel.pix_trans_ptr_cnt) {
-                                        //pclog("Byte: CPU data CMD=%04x, byte write=%02x, cnt=%d, check=%d.\n", s3->accel.cmd, val, s3->accel.pix_trans_x_count, s3->accel.color_16bit_check);
+                                        s3_log("Byte: CPU data CMD=%04x, byte write=%02x, cnt=%d, "
+                                               "check=%d.\n", s3->accel.cmd, val,
+                                               s3->accel.pix_trans_x_count, s3->accel.color_16bit_check);
                                         s3->accel.pix_trans_ptr[s3->accel.pix_trans_x_count] = val;
                                         s3->accel.pix_trans_x_count++;
                                         s3->accel.pix_trans_x_count2 = s3->accel.pix_trans_x_count;
                                     }
                                 } else {
                                     if (s3->accel.pix_trans_x_count2 < s3->accel.pix_trans_ptr_cnt) {
-                                        //pclog("Byte: CPU data CMD=%04x, byte write=%02x, cnt=%d, check=%d.\n", s3->accel.cmd, val, s3->accel.pix_trans_x_count2, s3->accel.color_16bit_check);
+                                        s3_log("Byte: CPU data CMD=%04x, byte write=%02x, cnt=%d, "
+                                               "check=%d.\n", s3->accel.cmd, val,
+                                               s3->accel.pix_trans_x_count2, s3->accel.color_16bit_check);
                                         s3->accel.pix_trans_ptr[s3->accel.pix_trans_x_count2] = val;
                                         s3->accel.pix_trans_x_count2++;
                                     }
-                                    //pclog("WriteCNT=%d, TotalCNT=%d.\n", s3->accel.pix_trans_x_count2, s3->accel.pix_trans_ptr_cnt);
+                                    s3_log("WriteCNT=%d, TotalCNT=%d.\n", s3->accel.pix_trans_x_count2,
+                                           s3->accel.pix_trans_ptr_cnt);
                                     if (s3->accel.pix_trans_x_count2 == s3->accel.pix_trans_ptr_cnt) {
                                         for (int i = 0; i < s3->accel.pix_trans_ptr_cnt; i += 2) {
-                                            //pclog("Transferring write count=%d, bytes=%04x.\n", i, s3->accel.pix_trans_ptr[i] | (s3->accel.pix_trans_ptr[i + 1] << 8));
-                                            s3->accel_start(1, 1, 0xffffffff, s3->accel.pix_trans_ptr[i] | (s3->accel.pix_trans_ptr[i + 1] << 8), s3);
+                                            s3_log("Transferring write count=%d, bytes=%04x.\n", i,
+                                                   s3->accel.pix_trans_ptr[i] |
+                                                   (s3->accel.pix_trans_ptr[i + 1] << 8));
+                                            s3->accel_start(1, 1, 0xffffffff, s3->accel.pix_trans_ptr[i] |
+                                                            (s3->accel.pix_trans_ptr[i + 1] << 8), s3);
                                         }
 
                                         s3->accel.pix_trans_x_count2 = 0;
@@ -1297,35 +1340,48 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
                 break;
             s3->accel.pix_trans[1] = val;
             if (s3->accel.cmd & 0x100) {
-                //pclog("S3 PIXTRANS_B write (E2E9): cmd=%03x, pixelcntl=%02x, frgdmix=%02x, bkgdmix=%02x, curx=%d, val=%04x.\n", s3->accel.cmd, s3->accel.multifunc[0x0a], s3->accel.frgd_mix, s3->accel.bkgd_mix, s3->accel.cur_x, val);
+                s3_log("S3 PIXTRANS_B write (E2E9): cmd=%03x, pixelcntl=%02x, frgdmix=%02x, "
+                       "bkgdmix=%02x, curx=%d, val=%04x.\n", s3->accel.cmd, s3->accel.multifunc[0x0a],
+                       s3->accel.frgd_mix, s3->accel.bkgd_mix, s3->accel.cur_x, val);
                 switch (s3->accel.cmd & 0x600) {
                     case 0x000:
                         if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
-                            if (((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40))
-                                s3->accel_start(8, 1, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), 0, s3);
+                            if (((s3->accel.frgd_mix & 0x60) != 0x40) ||
+                                ((s3->accel.bkgd_mix & 0x60) != 0x40))
+                                s3->accel_start(8, 1, s3->accel.pix_trans[0] |
+                                                (s3->accel.pix_trans[1] << 8), 0, s3);
                             else
-                                s3->accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), s3);
+                                s3->accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0] |
+                                                (s3->accel.pix_trans[1] << 8), s3);
                         } else
-                            s3->accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), s3);
+                            s3->accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0] |
+                                            (s3->accel.pix_trans[1] << 8), s3);
                         break;
                     case 0x200:
                         if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
-                            if (((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40)) {
+                            if (((s3->accel.frgd_mix & 0x60) != 0x40) ||
+                                ((s3->accel.bkgd_mix & 0x60) != 0x40)) {
                                 if (s3->accel.cmd & 0x1000)
-                                    s3->accel_start(16, 1, s3->accel.pix_trans[1] | (s3->accel.pix_trans[0] << 8), 0, s3);
+                                    s3->accel_start(16, 1, s3->accel.pix_trans[1] |
+                                                    (s3->accel.pix_trans[0] << 8), 0, s3);
                                 else
-                                    s3->accel_start(16, 1, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), 0, s3);
+                                    s3->accel_start(16, 1, s3->accel.pix_trans[0] |
+                                                    (s3->accel.pix_trans[1] << 8), 0, s3);
                             } else {
                                 if (s3->accel.cmd & 0x1000)
-                                    s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[1] | (s3->accel.pix_trans[0] << 8), s3);
+                                    s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[1] |
+                                                    (s3->accel.pix_trans[0] << 8), s3);
                                 else
-                                    s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), s3);
+                                    s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] |
+                                                    (s3->accel.pix_trans[1] << 8), s3);
                             }
                         } else {
                             if (s3->accel.cmd & 0x1000)
-                                s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[1] | (s3->accel.pix_trans[0] << 8), s3);
+                                s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[1] |
+                                                (s3->accel.pix_trans[0] << 8), s3);
                             else
-                                s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), s3);
+                                s3->accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] |
+                                                (s3->accel.pix_trans[1] << 8), s3);
                         }
                         break;
                     case 0x400:
@@ -3220,7 +3276,10 @@ s3_recalctimings(svga_t *svga)
 
     if ((svga->crtc[0x3a] & 0x10) && !svga->lowres) {
         svga->vram_display_mask = s3->vram_mask;
-        pclog("BPP=%d, pitch=%d, width=%02x, double?=%x, 16bit?=%d, highres?=%d, attr=%02x.\n", svga->bpp, s3->width, svga->crtc[0x50], svga->crtc[0x31] & 0x02, s3->color_16bit, s3->accel.advfunc_cntl & 4, svga->attrregs[0x10] & 0x40);
+        s3_log("BPP=%d, pitch=%d, width=%02x, double?=%x, 16bit?=%d, highres?=%d, "
+               "attr=%02x.\n", svga->bpp, s3->width, svga->crtc[0x50],
+               svga->crtc[0x31] & 0x02, s3->color_16bit, s3->accel.advfunc_cntl & 4,
+               svga->attrregs[0x10] & 0x40);
         switch (svga->bpp) {
             case 8:
                 svga->render = svga_render_8bpp_highres;
@@ -7165,27 +7224,32 @@ s3_911_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat,
                     }
                 }
 
-                //pclog("CMD=%04x, curx=%d, lwrtmask=%04x, actual wrtmask=%04x, frgdmix=%d, bkgdmix=%d, input=%d, cnt=%d.\n", s3->accel.cmd, s3->accel.cur_x, wrt_mask, s3->accel.wrt_mask, frgd_mix, bkgd_mix, cpu_input, count);
+                s3_log("CMD=%04x, curx=%d, lwrtmask=%04x, actual wrtmask=%04x, frgdmix=%d, "
+                       "bkgdmix=%d, input=%d, cnt=%d.\n", s3->accel.cmd, s3->accel.cur_x,
+                       wrt_mask, s3->accel.wrt_mask, frgd_mix, bkgd_mix, cpu_input, count);
                 while (count-- && s3->accel.sy >= 0) {
                     if (s3->accel.b2e8_pix && s3_cpu_src(s3) && !s3->accel.temp_cnt) {
                         mix_dat >>= 16;
                         s3->accel.temp_cnt = 16;
                     }
 
-                    if ((s3->accel.cx & 0xfff) >= clip_l && (s3->accel.cx & 0xfff) <= clip_r && (s3->accel.cy & 0xfff) >= clip_t && (s3->accel.cy & 0xfff) <= clip_b) {
+                    if ((s3->accel.cx & 0xfff) >= clip_l && (s3->accel.cx & 0xfff) <= clip_r &&
+                        (s3->accel.cy & 0xfff) >= clip_t && (s3->accel.cy & 0xfff) <= clip_b) {
                         switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix) {
                             case 0:
                                 src_dat = bkgd_color;
                                 if (s3->color_16bit && (svga->bpp < 24) && !s3->accel.b2e8_pix) {
                                     if (!s3->accel.color_16bit_check)
-                                        src_dat = s3->accel.bkgd_color_actual[0] | (s3->accel.bkgd_color_actual[1] << 8);
+                                        src_dat = s3->accel.bkgd_color_actual[0] |
+                                                  (s3->accel.bkgd_color_actual[1] << 8);
                                 }
                                 break;
                             case 1:
                                 src_dat = frgd_color;
                                 if (s3->color_16bit && (svga->bpp < 24) && !s3->accel.b2e8_pix) {
                                     if (!s3->accel.color_16bit_check)
-                                        src_dat = s3->accel.frgd_color_actual[0] | (s3->accel.frgd_color_actual[1] << 8);
+                                        src_dat = s3->accel.frgd_color_actual[0] |
+                                                  (s3->accel.frgd_color_actual[1] << 8);
                                 }
                                 break;
                             case 2:
