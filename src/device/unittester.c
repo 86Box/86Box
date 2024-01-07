@@ -21,11 +21,42 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/io.h>
 #include <86box/plat.h>
 #include <86box/unittester.h>
 
-static uint16_t unittester_trigger_port = 0x0080;
-static uint16_t unittester_base_port    = 0xFFFF;
+enum fsm1_value {
+    UT_FSM1_WAIT_8,
+    UT_FSM1_WAIT_6,
+    UT_FSM1_WAIT_B,
+    UT_FSM1_WAIT_o,
+    UT_FSM1_WAIT_x,
+};
+enum fsm2_value {
+    UT_FSM2_IDLE,
+    UT_FSM2_WAIT_IOBASE_0,
+    UT_FSM2_WAIT_IOBASE_1,
+};
+
+struct unittester_state {
+    /* I/O port settings */
+    uint16_t trigger_port;
+    uint16_t iobase_port;
+
+    /* Trigger port finite state machines */
+    /* FSM1: "86Box" string detection */
+    enum fsm1_value fsm1;
+    /* FSM2: IOBASE port selection, once trigger is activated */
+    enum fsm2_value fsm2;
+    uint16_t        fsm2_new_iobase;
+};
+static struct unittester_state unittester;
+static const struct unittester_state unittester_defaults = {
+    .trigger_port = 0x0080,
+    .iobase_port  = 0xFFFF,
+    .fsm1         = UT_FSM1_WAIT_8,
+    .fsm2         = UT_FSM2_IDLE,
+};
 
 /* FIXME TEMPORARY --GM */
 #define ENABLE_UNITTESTER_LOG 1
@@ -48,19 +79,84 @@ unittester_log(const char *fmt, ...)
 #    define unittester_log(fmt, ...)
 #endif
 
+static void
+unittester_trigger_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
+{
+    /* Update FSM2 */
+    switch (unittester.fsm2) {
+        /* IDLE: Do nothing - FSM1 will put us in the right state. */
+        case UT_FSM2_IDLE:
+            unittester.fsm2 = UT_FSM2_IDLE;
+            break;
+
+        /* WAIT IOBASE 0: Set low byte of temporary IOBASE. */
+        case UT_FSM2_WAIT_IOBASE_0:
+            unittester.fsm2_new_iobase = ((uint16_t)val);
+            unittester.fsm2 = UT_FSM2_WAIT_IOBASE_1;
+            break;
+
+        /* WAIT IOBASE 0: Set high byte of temporary IOBASE and commit to the real IOBASE. */
+        case UT_FSM2_WAIT_IOBASE_1:
+            unittester.fsm2_new_iobase |= ((uint16_t)val)<<8;
+            unittester.iobase_port = unittester.fsm2_new_iobase;
+            unittester.fsm2 = UT_FSM2_IDLE;
+            break;
+    }
+
+    /* Update FSM1 */
+    switch (val) {
+        case '8':
+            unittester.fsm1 = UT_FSM1_WAIT_6;
+            break;
+        case '6':
+            if (unittester.fsm1 == UT_FSM1_WAIT_6)
+                unittester.fsm1 = UT_FSM1_WAIT_B;
+            else
+                unittester.fsm1 = UT_FSM1_WAIT_8;
+            break;
+        case 'B':
+            if (unittester.fsm1 == UT_FSM1_WAIT_B)
+                unittester.fsm1 = UT_FSM1_WAIT_o;
+            else
+                unittester.fsm1 = UT_FSM1_WAIT_8;
+            break;
+        case 'o':
+            if (unittester.fsm1 == UT_FSM1_WAIT_o)
+                unittester.fsm1 = UT_FSM1_WAIT_x;
+            else
+                unittester.fsm1 = UT_FSM1_WAIT_8;
+            break;
+        case 'x':
+            if (unittester.fsm1 == UT_FSM1_WAIT_x) {
+                unittester.fsm2 = UT_FSM2_WAIT_IOBASE_0;
+            }
+            unittester.fsm1 = UT_FSM1_WAIT_8;
+            break;
+
+        default:
+            unittester.fsm1 = UT_FSM1_WAIT_8;
+            break;
+    }
+
+    unittester_log("[UT] Trigger value %02X -> FSM1 = %02X, FSM2 = %02X, IOBASE = %04X\n", val, unittester.fsm1, unittester.fsm2, unittester.iobase_port);
+}
+
 static void *
 unittester_init(UNUSED(const device_t *info))
 {
-    //io_sethandler(unittester_trigger_port, 1, NULL, NULL, NULL, unittester_write, NULL, NULL, NULL);
+    unittester = (struct unittester_state)unittester_defaults;
+    io_sethandler(unittester.trigger_port, 1, NULL, NULL, NULL, unittester_trigger_write, NULL, NULL, NULL);
+
     unittester_log("[UT] 86Box Unit Tester initialised\n");
 
-    return &unittester_trigger_port;  /* Dummy non-NULL value */
+    return &unittester;  /* Dummy non-NULL value */
 }
 
 static void
 unittester_close(UNUSED(void *priv))
 {
-    //io_removehandler(unittester_trigger_port, 1, NULL, NULL, NULL, unittester_write, NULL, NULL, NULL);
+    io_removehandler(unittester.trigger_port, 1, NULL, NULL, NULL, unittester_trigger_write, NULL, NULL, NULL);
+
     unittester_log("[UT] 86Box Unit Tester closed\n");
 }
 
