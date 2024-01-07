@@ -253,7 +253,8 @@ unittester_read(uint16_t port, UNUSED(void *priv))
 static void
 unittester_trigger_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
 {
-    unittester_log("[UT] Trigger value %02X -> FSM1 = %02X, FSM2 = %02X, IOBASE = %04X\n", val, unittester.fsm1, unittester.fsm2, unittester.iobase_port);
+    /* This one gets quite spammy. */
+    /* unittester_log("[UT] Trigger value %02X -> FSM1 = %02X, FSM2 = %02X, IOBASE = %04X\n", val, unittester.fsm1, unittester.fsm2, unittester.iobase_port); */
 
     /* Update FSM2 */
     switch (unittester.fsm2) {
