@@ -273,7 +273,7 @@ unittester_trigger_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
         case UT_FSM2_WAIT_IOBASE_1:
             unittester.fsm2_new_iobase |= ((uint16_t)val)<<8;
 
-            unittester_log("[UT] Remapping IOBASE: %04X -> %04X\n", val, unittester.iobase_port, unittester.fsm2_new_iobase);
+            unittester_log("[UT] Remapping IOBASE: %04X -> %04X\n", unittester.iobase_port, unittester.fsm2_new_iobase);
 
             /* Unmap old IOBASE */
             if (unittester.iobase_port != 0xFFFF)
