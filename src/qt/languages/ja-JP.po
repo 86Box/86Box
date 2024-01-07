@@ -382,11 +382,11 @@ msgstr "動的再コンパイル"
 msgid "Video:"
 msgstr "ビデオカード:"
 
-msgid "Voodoo Graphics"
-msgstr "Voodooグラフィック"
+msgid "3Dfx Voodoo Graphics"
+msgstr "3Dfx Voodooグラフィック"
 
-msgid "IBM 8514/a Graphics"
-msgstr "IBM 8514/aグラフィック"
+msgid "IBM 8514/A Graphics"
+msgstr "IBM 8514/Aグラフィック"
 
 msgid "XGA Graphics"
 msgstr "XGAグラフィック"
