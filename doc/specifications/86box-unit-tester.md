@@ -95,8 +95,6 @@ This is how most commands will work.
 
 ### 0x00: No-op
 
-**TODO: IMPLEMENT ME!**
-
 This does nothing, takes no input, and gives no output.
 
 This is an easy way to reset the status to 0x04 (no command in flight, not waiting for reads or writes, and no errors).

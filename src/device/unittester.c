@@ -39,6 +39,20 @@ enum fsm2_value {
     UT_FSM2_WAIT_IOBASE_1,
 };
 
+/* Status bit mask */
+#define UT_STATUS_AWAITING_READ   (1<<0)
+#define UT_STATUS_AWAITING_WRITE  (1<<1)
+#define UT_STATUS_IDLE            (1<<2)
+#define UT_STATUS_UNSUPPORTED_CMD (1<<3)
+
+/* Command list */
+enum unittester_cmd {
+    UT_CMD_NOOP = 0x00,
+    UT_CMD_CAPTURE_SCREEN_SNAPSHOT = 0x01,
+    UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE = 0x02,
+    UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE = 0x03,
+};
+
 struct unittester_state {
     /* I/O port settings */
     uint16_t trigger_port;
@@ -50,6 +64,10 @@ struct unittester_state {
     /* FSM2: IOBASE port selection, once trigger is activated */
     enum fsm2_value fsm2;
     uint16_t        fsm2_new_iobase;
+
+    /* Runtime state */
+    uint8_t             status;
+    enum unittester_cmd cmd_id;
 };
 static struct unittester_state unittester;
 static const struct unittester_state unittester_defaults = {
@@ -57,6 +75,7 @@ static const struct unittester_state unittester_defaults = {
     .iobase_port  = 0xFFFF,
     .fsm1         = UT_FSM1_WAIT_8,
     .fsm2         = UT_FSM2_IDLE,
+    .status       = UT_STATUS_IDLE,
 };
 
 /* FIXME TEMPORARY --GM */
@@ -85,8 +104,22 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 {
     if (port == unittester.iobase_port+0x00) {
         /* Command port */
-        /* TODO! --GM */
         unittester_log("[UT] W %02X Command\n", val);
+
+        switch (val) {
+            /* 0x00: No-op */
+            case UT_CMD_NOOP:
+                unittester.cmd_id = UT_CMD_NOOP;
+                unittester.status = UT_STATUS_IDLE;
+                break;
+
+            /* Unsupported command - terminate here */
+            default:
+                unittester.cmd_id = UT_CMD_NOOP;
+                unittester.status = UT_STATUS_IDLE | UT_STATUS_UNSUPPORTED_CMD;
+                break;
+        }
+
     } else if (port == unittester.iobase_port+0x01) {
         /* Data port */
         /* TODO! --GM */
@@ -101,14 +134,13 @@ unittester_read(uint16_t port, UNUSED(void *priv))
 {
     if (port == unittester.iobase_port+0x00) {
         /* Status port */
-        /* TODO! --GM */
-        unittester_log("[UT] R -- Status\n");
-        return 0x04;
+        unittester_log("[UT] R -- Status = %02X\n", unittester.status);
+        return unittester.status;
     } else if (port == unittester.iobase_port+0x01) {
         /* Data port */
-        /* TODO! --GM */
         unittester_log("[UT] R -- Data\n");
-        return 0xFE;
+        /* TODO! --GM */
+        return 0xFF;
     } else {
         /* Not handled here - possibly open bus! */
         return 0xFF;
