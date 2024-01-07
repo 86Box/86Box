@@ -91,6 +91,13 @@ struct unittester_state {
     uint16_t snap_img_yoffs;
 
     /* Command-specific state */
+    /* 0x02: Read Screen Snapshot Rectangle */
+    /* 0x03: Verify Screen Snapshot Rectangle */
+    uint16_t read_snap_width;
+    uint16_t read_snap_height;
+    int16_t read_snap_xoffs;
+    int16_t read_snap_yoffs;
+
     /* 0x04: Exit */
     uint8_t exit_code;
 };
@@ -157,6 +164,13 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                 unittester.write_len = 1;
                 break;
 
+            /* 0x02: Read Screen Snapshot Rectangle */
+            case UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE:
+                unittester.cmd_id = UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE;
+                unittester.status = UT_STATUS_AWAITING_WRITE;
+                unittester.write_len = 8;
+                break;
+
             /* 0x04: Exit */
             case UT_CMD_EXIT:
                 unittester.cmd_id = UT_CMD_EXIT;
@@ -194,6 +208,37 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                 switch(unittester.write_offs) {
                     case 0:
                         unittester.snap_monitor = val;
+                        break;
+                    default:
+                        break;
+                }
+                break;
+
+            case UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE:
+                switch(unittester.write_offs) {
+                    case 0:
+                        unittester.read_snap_width = (uint16_t)val;
+                        break;
+                    case 1:
+                        unittester.read_snap_width |= ((uint16_t)val) << 8;
+                        break;
+                    case 2:
+                        unittester.read_snap_height = (uint16_t)val;
+                        break;
+                    case 3:
+                        unittester.read_snap_height |= ((uint16_t)val) << 8;
+                        break;
+                    case 4:
+                        unittester.read_snap_xoffs = (uint16_t)val;
+                        break;
+                    case 5:
+                        unittester.read_snap_xoffs |= ((uint16_t)val) << 8;
+                        break;
+                    case 6:
+                        unittester.read_snap_yoffs = (uint16_t)val;
+                        break;
+                    case 7:
+                        unittester.read_snap_yoffs |= ((uint16_t)val) << 8;
                         break;
                     default:
                         break;
@@ -257,8 +302,8 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                         unittester.snap_img_xoffs = (m->mon_overscan_x >> 1);
                         unittester.snap_img_yoffs = (m->mon_overscan_y >> 1);
                         /* Take snapshot */
-                        for (size_t y = 0; y < unittester.snap_img_height; y++) {
-                            for (size_t x = 0; x < unittester.snap_img_width; x++) {
+                        for (size_t y = 0; y < unittester.snap_overscan_height; y++) {
+                            for (size_t x = 0; x < unittester.snap_overscan_width; x++) {
                                 unittester_screen_buffer->line[y][x] = m->target_buffer->line[y][x];
                             }
                         }
@@ -274,6 +319,32 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                                    unittester.snap_overscan_height);
                     unittester.status = UT_STATUS_AWAITING_READ;
                     unittester.read_len = 12;
+                    break;
+
+                case UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE:
+                    /* Offset the X,Y offsets by the overscan offsets. */
+                    unittester.read_snap_xoffs += (int16_t)unittester.snap_img_xoffs;
+                    unittester.read_snap_yoffs += (int16_t)unittester.snap_img_yoffs;
+                    /*BUG: If the width and height are too large, this ends up with a multiplication overflow.
+                      In practice, this means we end up sending less than we would want to.
+                      However:
+                      - A width and height of that size is obscene, and goes beyond what one would reasonably want.
+                      - The consequences of triggering this bug are that one ends up with a bunch of FF FF FF FF pixels.
+                      - Special-casing this would add unnecessary complexity.
+                      So, this bug is kept here.
+                      If there is any need to fix this bug... then go and make the variables 64-bit :P
+                      */
+                    unittester.read_len = ((uint32_t)unittester.read_snap_width) * ((uint32_t)unittester.read_snap_height) * 4;
+
+                    /* Do we have anything to read? */
+                    if (unittester.read_len >= 1) {
+                        /* Yes - start reads! */
+                        unittester.status = UT_STATUS_AWAITING_READ;
+                    } else {
+                        /* No - stop here. */
+                        unittester.cmd_id = UT_CMD_NOOP;
+                        unittester.status = UT_STATUS_IDLE;
+                    }
                     break;
 
                 default:
@@ -347,6 +418,25 @@ unittester_read(uint16_t port, UNUSED(void *priv))
                         break;
                     default:
                         break;
+                }
+                break;
+
+            case UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE:
+                /* WARNING: If the width is somehow 0 and wasn't caught earlier, you'll probably get a divide by zero crash. */
+                {
+                    uint32_t idx = unittester.read_offs & 0x3;
+                    int32_t x = (unittester.read_offs >> 2) % unittester.read_snap_width;
+                    int32_t y = (unittester.read_offs >> 2) / unittester.read_snap_width;
+                    x += unittester.read_snap_xoffs;
+                    y += unittester.read_snap_yoffs;
+
+                    if (x < 0 || y < 0 || x >= unittester.snap_overscan_width || y >= unittester.snap_overscan_height) {
+                        /* Out of range! */
+                        outval = (idx == 3 ? 0xFF : 0x00);
+                    } else {
+                        /* In range */
+                        outval = (unittester_screen_buffer->line[y][x] & 0x00FFFFFF)>>(idx*8);
+                    }
                 }
                 break;
 

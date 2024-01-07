@@ -126,9 +126,7 @@ If there is no screen snapshot, then all values will be 0 as per the initial scr
 
 ### 0x02: Read Screen Snapshot Rectangle
 
-**TODO: IMPLEMENT ME!**
-
-Returns a rectangular snapshot of the screen snapshot buffer.
+Returns a rectangular snapshot of the screen snapshot buffer as an array of 32bpp 8:8:8:8 B:G:R:X pixels.
 
 Input:
 
