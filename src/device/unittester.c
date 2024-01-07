@@ -16,8 +16,10 @@
  *          Copyright 2024 GreaseMonkey.
  */
 #include <stdarg.h>
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
@@ -51,6 +53,7 @@ enum unittester_cmd {
     UT_CMD_CAPTURE_SCREEN_SNAPSHOT = 0x01,
     UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE = 0x02,
     UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE = 0x03,
+    UT_CMD_EXIT = 0x04,
 };
 
 struct unittester_state {
@@ -68,6 +71,14 @@ struct unittester_state {
     /* Runtime state */
     uint8_t             status;
     enum unittester_cmd cmd_id;
+    uint32_t            write_offs;
+    uint32_t            read_offs;
+    uint32_t            write_len;
+    uint32_t            read_len;
+
+    /* Command-specific state */
+    /* 0x04: Exit */
+    uint8_t exit_code;
 };
 static struct unittester_state unittester;
 static const struct unittester_state unittester_defaults = {
@@ -76,7 +87,11 @@ static const struct unittester_state unittester_defaults = {
     .fsm1         = UT_FSM1_WAIT_8,
     .fsm2         = UT_FSM2_IDLE,
     .status       = UT_STATUS_IDLE,
+    .cmd_id       = UT_CMD_NOOP,
 };
+
+/* FIXME: This needs a config option! --GM */
+static bool unittester_exit_enabled = true;
 
 /* FIXME TEMPORARY --GM */
 #define ENABLE_UNITTESTER_LOG 1
@@ -106,11 +121,23 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
         /* Command port */
         unittester_log("[UT] W %02X Command\n", val);
 
+        unittester.write_offs = 0;
+        unittester.write_len = 0;
+        unittester.read_offs = 0;
+        unittester.read_len = 0;
+
         switch (val) {
             /* 0x00: No-op */
             case UT_CMD_NOOP:
                 unittester.cmd_id = UT_CMD_NOOP;
                 unittester.status = UT_STATUS_IDLE;
+                break;
+
+            /* 0x04: No-op */
+            case UT_CMD_EXIT:
+                unittester.cmd_id = UT_CMD_EXIT;
+                unittester.status = UT_STATUS_AWAITING_WRITE;
+                unittester.write_len = 1;
                 break;
 
             /* Unsupported command - terminate here */
@@ -122,8 +149,64 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 
     } else if (port == unittester.iobase_port+0x01) {
         /* Data port */
-        /* TODO! --GM */
         unittester_log("[UT] W %02X Data\n", val);
+
+        /* Skip if not awaiting */
+        if ((unittester.status & UT_STATUS_AWAITING_WRITE) == 0)
+            return;
+
+        switch (unittester.cmd_id) {
+            case UT_CMD_EXIT:
+                switch(unittester.write_offs) {
+                    case 0:
+                        unittester.exit_code = val;
+                        break;
+                    default:
+                        break;
+                }
+                break;
+
+            /* This should not be reachable, but just in case... */
+            default:
+                break;
+        }
+
+        /* Advance write buffer */
+        unittester.write_offs += 1;
+        if (unittester.write_offs >= unittester.write_len) {
+            unittester.status &= ~UT_STATUS_AWAITING_WRITE;
+            /* Determine what we're doing here based on the command. */
+            switch (unittester.cmd_id) {
+                case UT_CMD_EXIT:
+                    unittester_log("[UT] Exit received - code = %02X\n", unittester.exit_code);
+
+                    /* CHECK: Do we actually exit? */
+                    if (unittester_exit_enabled) {
+                        /* Yes - call exit! */
+                        /* Clamp exit code */
+                        if (unittester.exit_code > 0x7F)
+                            unittester.exit_code = 0x7F;
+
+                        /* Exit somewhat quickly! */
+                        unittester_log("[UT] Exit enabled, exiting with code %02X\n", unittester.exit_code);
+                        exit(unittester.exit_code);
+
+                    } else {
+                        /* No - report successful command completion and continue program execution */
+                        unittester_log("[UT] Exit disabled, continuing execution\n");
+                        unittester.cmd_id = UT_CMD_NOOP;
+                        unittester.status = UT_STATUS_IDLE;
+                    }
+                    break;
+
+                default:
+                    /* Nothing to write? Stop here. */
+                    unittester.cmd_id = UT_CMD_NOOP;
+                    unittester.status = UT_STATUS_IDLE;
+                    break;
+            }
+        }
+
     } else {
         /* Not handled here - possibly open bus! */
     }
@@ -132,6 +215,8 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 static uint8_t
 unittester_read(uint16_t port, UNUSED(void *priv))
 {
+    uint8_t outval = 0xFF;
+
     if (port == unittester.iobase_port+0x00) {
         /* Status port */
         unittester_log("[UT] R -- Status = %02X\n", unittester.status);
@@ -139,8 +224,26 @@ unittester_read(uint16_t port, UNUSED(void *priv))
     } else if (port == unittester.iobase_port+0x01) {
         /* Data port */
         unittester_log("[UT] R -- Data\n");
-        /* TODO! --GM */
-        return 0xFF;
+
+        /* Skip if not awaiting */
+        if ((unittester.status & UT_STATUS_AWAITING_READ) == 0)
+            return 0xFF;
+
+        switch (unittester.cmd_id) {
+            /* This should not be reachable, but just in case... */
+            default:
+                break;
+        }
+
+        /* Advance read buffer */
+        unittester.read_offs += 1;
+        if (unittester.read_offs >= unittester.read_len) {
+            /* Once fully read, we stop here. */
+            unittester.cmd_id = UT_CMD_NOOP;
+            unittester.status = UT_STATUS_IDLE;
+        }
+
+        return outval;
     } else {
         /* Not handled here - possibly open bus! */
         return 0xFF;

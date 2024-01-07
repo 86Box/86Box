@@ -170,8 +170,6 @@ Output:
 
 ### 0x04: Exit 86Box
 
-**TODO: IMPLEMENT ME!**
-
 Exits 86Box, unless this command is disabled.
 
 - If the command is enabled, then program execution terminates immediately.
