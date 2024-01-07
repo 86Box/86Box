@@ -382,11 +382,11 @@ msgstr "Dynamický překladač"
 msgid "Video:"
 msgstr "Grafika:"
 
-msgid "Voodoo Graphics"
-msgstr "Použít grafický akcelerátor Voodoo"
+msgid "3Dfx Voodoo Graphics"
+msgstr "Použít grafický akcelerátor 3Dfx Voodoo"
 
-msgid "IBM 8514/a Graphics"
-msgstr "Grafika IBM 8514/a"
+msgid "IBM 8514/A Graphics"
+msgstr "Grafika IBM 8514/A"
 
 msgid "XGA Graphics"
 msgstr "Grafika XGA"
