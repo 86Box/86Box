@@ -382,11 +382,11 @@ msgstr "Dinamični prevajalnik"
 msgid "Video:"
 msgstr "Video:"
 
-msgid "Voodoo Graphics"
-msgstr "Voodoo grafika"
+msgid "3Dfx Voodoo Graphics"
+msgstr "3Dfx Voodoo grafika"
 
-msgid "IBM 8514/a Graphics"
-msgstr "IBM 8514/a grafika"
+msgid "IBM 8514/A Graphics"
+msgstr "IBM 8514/A grafika"
 
 msgid "XGA Graphics"
 msgstr "XGA grafika"
