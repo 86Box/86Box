@@ -555,7 +555,7 @@ ega_recalctimings(ega_t *ega)
     if (ega->seqregs[1] & 8)
         overscan_x <<= 1;
 
-    ega->y_add = (overscan_y >> 1) - (ega->crtc[8] & 0x1f);
+    ega->y_add = (overscan_y >> 1);
     ega->x_add = (overscan_x >> 1);
 
     if (ega->seqregs[1] & 8) {
@@ -769,6 +769,7 @@ ega_poll(void *priv)
         if ((ega->sc == (ega->crtc[11] & 31)) || (ega->sc == ega->rowcount))
             ega->con = 0;
         if (ega->dispon) {
+            /* TODO: Verify real hardware behaviour for out-of-range fine vertical scroll */
             if (ega->linedbl && !ega->linecountff) {
                 ega->linecountff = 1;
                 ega->ma          = ega->maback;
@@ -881,7 +882,7 @@ ega_poll(void *priv)
         }
         if (ega->vc == ega->vtotal) {
             ega->vc       = 0;
-            ega->sc       = 0;
+            ega->sc       = (ega->crtc[0x8] & 0x1f);
             ega->dispon   = 1;
             ega->displine = (ega->interlace && ega->oddeven) ? 1 : 0;
 
@@ -916,7 +917,7 @@ ega_doblit(int wx, int wy, ega_t *ega)
     int       x_add   = enable_overscan ? overscan_x : 0;
     int       y_start = enable_overscan ? 0 : (overscan_y >> 1);
     int       x_start = enable_overscan ? 0 : (overscan_x >> 1);
-    int       bottom  = (overscan_y >> 1) + (ega->crtc[8] & 0x1f);
+    int       bottom  = (overscan_y >> 1);
     uint32_t *p;
     int       i;
     int       j;

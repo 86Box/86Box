@@ -181,6 +181,7 @@ int cpu_multi;
 int cpu_16bitbus;
 int cpu_64bitbus;
 int cpu_cyrix_alignment;
+int cpu_cpurst_on_sr;
 int CPUID;
 
 int is186;
@@ -742,6 +743,7 @@ cpu_set(void)
 
     timing_misaligned   = 0;
     cpu_cyrix_alignment = 0;
+    cpu_cpurst_on_sr    = 0;
     cpu_CR4_mask        = 0;
 
     switch (cpu_s->cpu_type) {
@@ -3018,6 +3020,10 @@ amd_k_invalid_rdmsr:
                     EAX = msr.ecx1002ff & 0xffffffff;
                     EDX = msr.ecx1002ff >> 32;
                     break;
+                case 0x40000020:
+                    EAX = msr.ecx40000020 & 0xffffffff;
+                    EDX = msr.ecx40000020 >> 32;
+                    break;
                 case 0xf0f00250:
                     EAX = msr.ecxf0f00250 & 0xffffffff;
                     EDX = msr.ecxf0f00250 >> 32;
@@ -3452,6 +3458,9 @@ amd_k_invalid_wrmsr:
                     break;
                 case 0x1002ff:
                     msr.ecx1002ff = EAX | ((uint64_t) EDX << 32);
+                    break;
+                case 0x40000020:
+                    msr.ecx40000020 = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0xf0f00250:
                     msr.ecxf0f00250 = EAX | ((uint64_t) EDX << 32);
