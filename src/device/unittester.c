@@ -75,9 +75,9 @@ struct unittester_state {
     uint8_t             status;
     enum unittester_cmd cmd_id;
     uint32_t            write_offs;
-    uint32_t            read_offs;
     uint32_t            write_len;
-    uint32_t            read_len;
+    uint64_t            read_offs;
+    uint64_t            read_len;
 
     /* Screen snapshot state */
     /* Monitor to take snapshot on */
@@ -139,12 +139,12 @@ unittester_log(const char *fmt, ...)
 #endif
 
 static uint8_t
-unittester_read_snap_rect_idx(uint32_t offs)
+unittester_read_snap_rect_idx(uint64_t offs)
 {
     /* WARNING: If the width is somehow 0 and wasn't caught earlier, you'll probably get a divide by zero crash. */
     uint32_t idx = (offs & 0x3);
-    int32_t x = (offs >> 2) % unittester.read_snap_width;
-    int32_t y = (offs >> 2) / unittester.read_snap_width;
+    int64_t x = (offs >> 2) % unittester.read_snap_width;
+    int64_t y = (offs >> 2) / unittester.read_snap_width;
     x += unittester.read_snap_xoffs;
     y += unittester.read_snap_yoffs;
 
@@ -353,22 +353,18 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                     /* Offset the X,Y offsets by the overscan offsets. */
                     unittester.read_snap_xoffs += (int16_t)unittester.snap_img_xoffs;
                     unittester.read_snap_yoffs += (int16_t)unittester.snap_img_yoffs;
-                    /*BUG: If the width and height are too large, this ends up with a multiplication overflow.
-                      In practice, this means we end up sending less than we would want to.
-                      However:
-                      - A width and height of that size is obscene, and goes beyond what one would reasonably want.
-                      - The consequences of triggering this bug are that one ends up with a bunch of FF FF FF FF pixels.
-                      - Special-casing this would add unnecessary complexity.
-                      So, this bug is kept here.
-                      If there is any need to fix this bug... then go and make the variables 64-bit :P
+                    /* NOTE: Width * Height * 4 can potentially exceed a 32-bit number.
+                       So, we use 64-bit numbers instead.
+                       In practice, this will only happen if someone decides to request e.g. a 65535 x 65535 image,
+                       of which most of the pixels will be out of range anyway.
                       */
-                    unittester.read_len = ((uint32_t)unittester.read_snap_width) * ((uint32_t)unittester.read_snap_height) * 4;
+                    unittester.read_len = ((uint64_t)unittester.read_snap_width) * ((uint64_t)unittester.read_snap_height) * 4;
                     unittester.read_snap_crc = 0xFFFFFFFF;
 
                     if (unittester.cmd_id == UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE) {
                         /* Read everything and compute CRC */
                         uint32_t crc = 0xFFFFFFFF;
-                        for (uint32_t i = 0; i < unittester.read_len; i++) {
+                        for (uint64_t i = 0; i < unittester.read_len; i++) {
                             crc ^= 0xFF & (uint32_t)unittester_read_snap_rect_idx(i);
                             /* Use some bit twiddling until we have a table-based fast CRC-32 implementation */
                             for (uint32_t j = 0; j < 8; j++) {
