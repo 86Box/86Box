@@ -741,7 +741,7 @@ svga_recalctimings(svga_t *svga)
     if (svga->hdisp >= 2048)
         svga->monitor->mon_overscan_x = 0;
 
-    svga->y_add = (svga->monitor->mon_overscan_y >> 1) - (svga->crtc[8] & 0x1f);
+    svga->y_add = (svga->monitor->mon_overscan_y >> 1);
     svga->x_add = (svga->monitor->mon_overscan_x >> 1);
 
     if (svga->vblankstart < svga->dispend)
@@ -942,6 +942,8 @@ svga_poll(void *priv)
         if ((svga->sc == (svga->crtc[11] & 31)) || (svga->sc == svga->rowcount))
             svga->con = 0;
         if (svga->dispon) {
+            /* TODO: Verify real hardware behaviour for out-of-range fine vertical scroll
+               - S3 Trio64V2/DX: sc == rowcount, wrapping 5-bit counter. */
             if (svga->linedbl && !svga->linecountff) {
                 svga->linecountff = 1;
                 svga->ma          = svga->maback;
@@ -1065,7 +1067,7 @@ svga_poll(void *priv)
         }
         if (svga->vc == svga->vtotal) {
             svga->vc       = 0;
-            svga->sc       = 0;
+            svga->sc       = (svga->crtc[0x8] & 0x1f);
             svga->dispon   = 1;
             svga->displine = (svga->interlace && svga->oddeven) ? 1 : 0;
 
@@ -1642,7 +1644,7 @@ svga_doblit(int wx, int wy, svga_t *svga)
     x_add   = enable_overscan ? svga->monitor->mon_overscan_x : 0;
     y_start = enable_overscan ? 0 : (svga->monitor->mon_overscan_y >> 1);
     x_start = enable_overscan ? 0 : (svga->monitor->mon_overscan_x >> 1);
-    bottom  = (svga->monitor->mon_overscan_y >> 1) + (svga->crtc[8] & 0x1f);
+    bottom  = (svga->monitor->mon_overscan_y >> 1);
 
     if (svga->vertical_linedbl) {
         y_add <<= 1;
