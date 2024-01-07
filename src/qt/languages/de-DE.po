@@ -382,11 +382,11 @@ msgstr "Dynamischer Recompiler"
 msgid "Video:"
 msgstr "Videokarte:"
 
-msgid "Voodoo Graphics"
-msgstr "Voodoo-Grafik"
+msgid "3Dfx Voodoo Graphics"
+msgstr "3Dfx Voodoo-Grafik"
 
-msgid "IBM 8514/a Graphics"
-msgstr "IBM 8514/a-Grafik"
+msgid "IBM 8514/A Graphics"
+msgstr "IBM 8514/A-Grafik"
 
 msgid "XGA Graphics"
 msgstr "XGA-Grafik"
