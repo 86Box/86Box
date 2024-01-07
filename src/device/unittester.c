@@ -27,6 +27,7 @@
 #include <86box/io.h>
 #include <86box/plat.h>
 #include <86box/unittester.h>
+#include <86box/video.h>
 
 enum fsm1_value {
     UT_FSM1_WAIT_8,
@@ -68,13 +69,26 @@ struct unittester_state {
     enum fsm2_value fsm2;
     uint16_t        fsm2_new_iobase;
 
-    /* Runtime state */
+    /* Command and data handling state */
     uint8_t             status;
     enum unittester_cmd cmd_id;
     uint32_t            write_offs;
     uint32_t            read_offs;
     uint32_t            write_len;
     uint32_t            read_len;
+
+    /* Screen snapshot state */
+    /* Monitor to take snapshot on */
+    uint8_t  snap_monitor;
+    /* Main image width + height */
+    uint16_t snap_img_width;
+    uint16_t snap_img_height;
+    /* Fully overscanned image width + height */
+    uint16_t snap_overscan_width;
+    uint16_t snap_overscan_height;
+    /* Offset of actual image within overscanned area */
+    uint16_t snap_img_xoffs;
+    uint16_t snap_img_yoffs;
 
     /* Command-specific state */
     /* 0x04: Exit */
@@ -89,6 +103,9 @@ static const struct unittester_state unittester_defaults = {
     .status       = UT_STATUS_IDLE,
     .cmd_id       = UT_CMD_NOOP,
 };
+
+/* Kept separate, as we will be reusing this object */
+static bitmap_t *unittester_screen_buffer = NULL;
 
 /* FIXME: This needs a config option! --GM */
 static bool unittester_exit_enabled = true;
@@ -133,6 +150,13 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                 unittester.status = UT_STATUS_IDLE;
                 break;
 
+            /* 0x01: Capture Screen Snapshot */
+            case UT_CMD_CAPTURE_SCREEN_SNAPSHOT:
+                unittester.cmd_id = UT_CMD_CAPTURE_SCREEN_SNAPSHOT;
+                unittester.status = UT_STATUS_AWAITING_WRITE;
+                unittester.write_len = 1;
+                break;
+
             /* 0x04: Exit */
             case UT_CMD_EXIT:
                 unittester.cmd_id = UT_CMD_EXIT;
@@ -160,6 +184,16 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                 switch(unittester.write_offs) {
                     case 0:
                         unittester.exit_code = val;
+                        break;
+                    default:
+                        break;
+                }
+                break;
+
+            case UT_CMD_CAPTURE_SCREEN_SNAPSHOT:
+                switch(unittester.write_offs) {
+                    case 0:
+                        unittester.snap_monitor = val;
                         break;
                     default:
                         break;
@@ -194,9 +228,47 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                     } else {
                         /* No - report successful command completion and continue program execution */
                         unittester_log("[UT] Exit disabled, continuing execution\n");
-                        unittester.cmd_id = UT_CMD_NOOP;
-                        unittester.status = UT_STATUS_IDLE;
                     }
+                    unittester.cmd_id = UT_CMD_NOOP;
+                    unittester.status = UT_STATUS_IDLE;
+                    break;
+
+                case UT_CMD_CAPTURE_SCREEN_SNAPSHOT:
+                    /* Recompute screen */
+                    unittester.snap_img_width = 0;
+                    unittester.snap_img_height = 0;
+                    unittester.snap_img_xoffs = 0;
+                    unittester.snap_img_yoffs = 0;
+                    unittester.snap_overscan_width = 0;
+                    unittester.snap_overscan_height = 0;
+                    if (unittester.snap_monitor < 0x01 || (unittester.snap_monitor - 1) > MONITORS_NUM) {
+                        /* No monitor here - clear snapshot */
+                        unittester.snap_monitor = 0x00;
+                    } else if (video_get_type_monitor(unittester.snap_monitor - 1) == VIDEO_FLAG_TYPE_NONE) {
+                        /* Monitor disabled - clear snapshot */
+                        unittester.snap_monitor = 0x00;
+                    } else {
+                        /* Capture snapshot from monitor */
+                        const monitor_t *m = &monitors[unittester.snap_monitor - 1];
+                        unittester.snap_img_width = m->mon_xsize;
+                        unittester.snap_img_height = m->mon_ysize;
+                        unittester.snap_overscan_width = m->mon_xsize + m->mon_overscan_x;
+                        unittester.snap_overscan_height = m->mon_ysize + m->mon_overscan_y;
+                        unittester.snap_img_xoffs = (m->mon_overscan_x >> 1);
+                        unittester.snap_img_yoffs = (m->mon_overscan_y >> 1);
+                        /* TODO: Actually take snapshot! --GM */
+                    }
+
+                    /* We have 12 bytes to read. */
+                    unittester_log("[UT] Screen snapshot - image %d x %d @ (%d, %d) in overscan %d x %d\n",
+                                   unittester.snap_img_width,
+                                   unittester.snap_img_height,
+                                   unittester.snap_img_xoffs,
+                                   unittester.snap_img_yoffs,
+                                   unittester.snap_overscan_width,
+                                   unittester.snap_overscan_height);
+                    unittester.status = UT_STATUS_AWAITING_READ;
+                    unittester.read_len = 12;
                     break;
 
                 default:
@@ -230,6 +302,49 @@ unittester_read(uint16_t port, UNUSED(void *priv))
             return 0xFF;
 
         switch (unittester.cmd_id) {
+            case UT_CMD_CAPTURE_SCREEN_SNAPSHOT:
+                switch(unittester.read_offs) {
+                    case 0:
+                        outval = (uint8_t)(unittester.snap_img_width);
+                        break;
+                    case 1:
+                        outval = (uint8_t)(unittester.snap_img_width>>8);
+                        break;
+                    case 2:
+                        outval = (uint8_t)(unittester.snap_img_height);
+                        break;
+                    case 3:
+                        outval = (uint8_t)(unittester.snap_img_height>>8);
+                        break;
+                    case 4:
+                        outval = (uint8_t)(unittester.snap_overscan_width);
+                        break;
+                    case 5:
+                        outval = (uint8_t)(unittester.snap_overscan_width>>8);
+                        break;
+                    case 6:
+                        outval = (uint8_t)(unittester.snap_overscan_height);
+                        break;
+                    case 7:
+                        outval = (uint8_t)(unittester.snap_overscan_height>>8);
+                        break;
+                    case 8:
+                        outval = (uint8_t)(unittester.snap_img_xoffs);
+                        break;
+                    case 9:
+                        outval = (uint8_t)(unittester.snap_img_xoffs>>8);
+                        break;
+                    case 10:
+                        outval = (uint8_t)(unittester.snap_img_yoffs);
+                        break;
+                    case 11:
+                        outval = (uint8_t)(unittester.snap_img_yoffs>>8);
+                        break;
+                    default:
+                        break;
+                }
+                break;
+
             /* This should not be reachable, but just in case... */
             default:
                 break;
@@ -330,6 +445,9 @@ unittester_trigger_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
 static void *
 unittester_init(UNUSED(const device_t *info))
 {
+    if (unittester_screen_buffer == NULL)
+        unittester_screen_buffer = create_bitmap(2048, 2048);
+
     unittester = (struct unittester_state)unittester_defaults;
     io_sethandler(unittester.trigger_port, 1, NULL, NULL, NULL, unittester_trigger_write, NULL, NULL, NULL);
 
@@ -346,6 +464,11 @@ unittester_close(UNUSED(void *priv))
     if (unittester.iobase_port != 0xFFFF)
         io_removehandler(unittester.iobase_port, 2, unittester_read, NULL, NULL, unittester_write, NULL, NULL, NULL);
     unittester.iobase_port = 0xFFFF;
+
+    if (unittester_screen_buffer != NULL) {
+        destroy_bitmap(unittester_screen_buffer);
+        unittester_screen_buffer = NULL;
+    }
 
     unittester_log("[UT] 86Box Unit Tester closed\n");
 }
