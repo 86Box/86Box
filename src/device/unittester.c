@@ -133,7 +133,7 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                 unittester.status = UT_STATUS_IDLE;
                 break;
 
-            /* 0x04: No-op */
+            /* 0x04: Exit */
             case UT_CMD_EXIT:
                 unittester.cmd_id = UT_CMD_EXIT;
                 unittester.status = UT_STATUS_AWAITING_WRITE;
