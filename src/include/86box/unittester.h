@@ -7,6 +7,7 @@
  *          This file is part of the 86Box distribution.
  *
  *          Debug device for assisting in unit testing.
+ *          See doc/specifications/86box-unit-tester.md for more info.
  *
  *
  *
