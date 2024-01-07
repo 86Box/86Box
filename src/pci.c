@@ -424,6 +424,9 @@ pci_write(uint16_t port, uint8_t val, UNUSED(void *priv))
             }
             break;
         case 0xcf9:
+            if (pci_flags & FLAG_TRC_CONTROLS_CPURST)
+                cpu_cpurst_on_sr = !(val & 0x10);
+
             if (!(pci_trc_reg & 4) && (val & 4))
                 pci_trc_reset(val);
 

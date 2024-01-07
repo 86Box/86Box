@@ -339,6 +339,9 @@ typedef struct {
     /* K6-3, K6-2P, and K6-3P MSR's */
     uint64_t amd_l2aar; /* 0xc0000089 */
 
+    /* Weird long MSR's used by the Hyper-V BIOS. */
+    uint64_t ecx40000020; /* 0x40000020 */
+
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t ecxf0f00250; /* 0xf0f00250 - Some weird long MSR's used by i686 AMI & some Phoenix BIOSes */
     uint64_t ecxf0f00258; /* 0xf0f00258 */
@@ -544,8 +547,9 @@ extern int    cpu_multi;
 extern double cpu_dmulti;
 extern double fpu_multi;
 extern double cpu_busspeed;
-extern int    cpu_cyrix_alignment; /*Cyrix 5x86/6x86 only has data misalignment
-                                     penalties when crossing 8-byte boundaries*/
+extern int    cpu_cyrix_alignment; /* Cyrix 5x86/6x86 only has data misalignment
+                                      penalties when crossing 8-byte boundaries. */
+extern int    cpu_cpurst_on_sr;    /* SiS 551x and 5571: Issue CPURST on soft reset. */
 
 extern int is8086;
 extern int is186;
