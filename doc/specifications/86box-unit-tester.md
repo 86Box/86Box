@@ -49,8 +49,6 @@ Set the I/O base address to 0xFFFF using the above method.
 
 ### Executing commands
 
-**TODO: IMPLEMENT ME!**
-
 The ports at IOBASE+0x00 and IOBASE+0x01 are all 8 bits wide.
 
 Writing to IOBASE+0x00 cancels any in-flight commands and sends a new command.
@@ -144,8 +142,6 @@ Output:
   - `[y][x][3]` is 0x00, or 0xFF if the pixel is outside the snapshot area.
 
 ### 0x03: Verify Screen Snapshot Rectangle
-
-**TODO: IMPLEMENT ME!**
 
 As per 0x02 "Read Screen Snapshot Rectangle", except instead of returning the pixel data, it returns a CRC-32 of the data.
 

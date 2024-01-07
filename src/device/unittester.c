@@ -97,6 +97,7 @@ struct unittester_state {
     uint16_t read_snap_height;
     int16_t read_snap_xoffs;
     int16_t read_snap_yoffs;
+    uint32_t read_snap_crc;
 
     /* 0x04: Exit */
     uint8_t exit_code;
@@ -138,6 +139,25 @@ unittester_log(const char *fmt, ...)
 #    define unittester_log(fmt, ...)
 #endif
 
+static uint8_t
+unittester_read_snap_rect_idx(uint32_t offs)
+{
+    /* WARNING: If the width is somehow 0 and wasn't caught earlier, you'll probably get a divide by zero crash. */
+    uint32_t idx = (offs & 0x3);
+    int32_t x = (offs >> 2) % unittester.read_snap_width;
+    int32_t y = (offs >> 2) / unittester.read_snap_width;
+    x += unittester.read_snap_xoffs;
+    y += unittester.read_snap_yoffs;
+
+    if (x < 0 || y < 0 || x >= unittester.snap_overscan_width || y >= unittester.snap_overscan_height) {
+        /* Out of range! */
+        return (idx == 3 ? 0xFF : 0x00);
+    } else {
+        /* In range */
+        return (unittester_screen_buffer->line[y][x] & 0x00FFFFFF)>>(idx*8);
+    }
+}
+
 static void
 unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 {
@@ -167,6 +187,13 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
             /* 0x02: Read Screen Snapshot Rectangle */
             case UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE:
                 unittester.cmd_id = UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE;
+                unittester.status = UT_STATUS_AWAITING_WRITE;
+                unittester.write_len = 8;
+                break;
+
+            /* 0x03: Verify Screen Snapshot Rectangle */
+            case UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE:
+                unittester.cmd_id = UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE;
                 unittester.status = UT_STATUS_AWAITING_WRITE;
                 unittester.write_len = 8;
                 break;
@@ -215,6 +242,7 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                 break;
 
             case UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE:
+            case UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE:
                 switch(unittester.write_offs) {
                     case 0:
                         unittester.read_snap_width = (uint16_t)val;
@@ -322,6 +350,7 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                     break;
 
                 case UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE:
+                case UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE:
                     /* Offset the X,Y offsets by the overscan offsets. */
                     unittester.read_snap_xoffs += (int16_t)unittester.snap_img_xoffs;
                     unittester.read_snap_yoffs += (int16_t)unittester.snap_img_yoffs;
@@ -335,15 +364,34 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                       If there is any need to fix this bug... then go and make the variables 64-bit :P
                       */
                     unittester.read_len = ((uint32_t)unittester.read_snap_width) * ((uint32_t)unittester.read_snap_height) * 4;
+                    unittester.read_snap_crc = 0xFFFFFFFF;
 
-                    /* Do we have anything to read? */
-                    if (unittester.read_len >= 1) {
-                        /* Yes - start reads! */
+                    if (unittester.cmd_id == UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE) {
+                        /* Read everything and compute CRC */
+                        uint32_t crc = 0xFFFFFFFF;
+                        for (uint32_t i = 0; i < unittester.read_len; i++) {
+                            crc ^= 0xFF & (uint32_t)unittester_read_snap_rect_idx(i);
+                            /* Use some bit twiddling until we have a table-based fast CRC-32 implementation */
+                            for (uint32_t j = 0; j < 8; j++) {
+                                crc = (crc >> 1) ^ ((-(crc&0x1)) & 0xEDB88320);
+                            }
+                        }
+                        unittester.read_snap_crc = crc ^ 0xFFFFFFFF;
+
+                        /* Set actual read length for CRC result */
+                        unittester.read_len = 4;
                         unittester.status = UT_STATUS_AWAITING_READ;
+
                     } else {
-                        /* No - stop here. */
-                        unittester.cmd_id = UT_CMD_NOOP;
-                        unittester.status = UT_STATUS_IDLE;
+                        /* Do we have anything to read? */
+                        if (unittester.read_len >= 1) {
+                            /* Yes - start reads! */
+                            unittester.status = UT_STATUS_AWAITING_READ;
+                        } else {
+                            /* No - stop here. */
+                            unittester.cmd_id = UT_CMD_NOOP;
+                            unittester.status = UT_STATUS_IDLE;
+                        }
                     }
                     break;
 
@@ -422,22 +470,11 @@ unittester_read(uint16_t port, UNUSED(void *priv))
                 break;
 
             case UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE:
-                /* WARNING: If the width is somehow 0 and wasn't caught earlier, you'll probably get a divide by zero crash. */
-                {
-                    uint32_t idx = unittester.read_offs & 0x3;
-                    int32_t x = (unittester.read_offs >> 2) % unittester.read_snap_width;
-                    int32_t y = (unittester.read_offs >> 2) / unittester.read_snap_width;
-                    x += unittester.read_snap_xoffs;
-                    y += unittester.read_snap_yoffs;
+                outval = unittester_read_snap_rect_idx(unittester.read_offs);
+                break;
 
-                    if (x < 0 || y < 0 || x >= unittester.snap_overscan_width || y >= unittester.snap_overscan_height) {
-                        /* Out of range! */
-                        outval = (idx == 3 ? 0xFF : 0x00);
-                    } else {
-                        /* In range */
-                        outval = (unittester_screen_buffer->line[y][x] & 0x00FFFFFF)>>(idx*8);
-                    }
-                }
+            case UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE:
+                outval = (uint8_t)(unittester.read_snap_crc >> (8*unittester.read_offs));
                 break;
 
             /* This should not be reachable, but just in case... */
