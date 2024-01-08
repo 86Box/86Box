@@ -2977,6 +2977,22 @@ ide_board_reset(int board)
         ide_drive_reset(d);
 }
 
+void
+ide_drives_set_shadow(void)
+{
+    for (uint8_t d = 0; d < IDE_NUM; d++) {
+        if (ide_drives[d] == NULL)
+            continue;
+
+        if ((d & 1) && (ide_drives[d]->type == IDE_NONE) && (ide_drives[d ^ 1]->type != IDE_NONE)) {
+            ide_drives[d]->type = ide_drives[d ^ 1]->type | IDE_SHADOW;
+            if (ide_drives[d]->tf != NULL)
+                free(ide_drives[d]->tf);
+            ide_drives[d]->tf = ide_drives[d ^ 1]->tf;
+        }
+    }
+}
+
 /* Reset a standalone IDE unit. */
 static void
 ide_reset(UNUSED(void *priv))
