@@ -1568,7 +1568,6 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
             if ((ide->type == IDE_NONE) || ((ide->type & IDE_SHADOW) && (val != WIN_DRIVE_DIAGNOSTICS)))
                 break;
 
-            pclog("IRQ lower\n");
             ide_irq_lower(ide);
             ide->command = val;
 
@@ -2462,7 +2461,7 @@ ide_callback(void *priv)
             else {
                 ide->blocksize     = ide->tf->secount;
                 ide->tf->atastat   = DRDY_STAT | DSC_STAT;
-                pclog("IRQ raise\n");
+
                 ide_irq_raise(ide);
             }
             break;
