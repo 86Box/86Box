@@ -447,7 +447,10 @@ cga_interpolate(cga_t *cga, int x, int y, int w, int h)
 
             black.color = 0x00000000;
 
-            prev_color.color = buffer32->line[prev][j];
+            if (prev >= 0)
+                prev_color.color = buffer32->line[prev][j];
+            else
+                prev_color.color = 0x00000000;
 
             if (next < (y + h))
                 next_color.color = buffer32->line[next][j];
