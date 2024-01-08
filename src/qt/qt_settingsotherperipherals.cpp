@@ -47,6 +47,7 @@ SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
     ui->checkBoxPOSTCard->setChecked(postcard_enabled > 0 ? true : false);
     ui->checkBoxUnitTester->setChecked(unittester_enabled > 0 ? true : false);
     ui->checkBoxISABugger->setEnabled(machineHasIsa);
+    ui->pushButtonConfigureUT->setEnabled(unittester_enabled > 0);
     ui->comboBoxRTC->setEnabled(machineHasIsa);
     ui->pushButtonConfigureRTC->setEnabled(machineHasIsa);
 
@@ -199,6 +200,12 @@ void
 SettingsOtherPeripherals::on_pushButtonConfigureCard4_clicked()
 {
     DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxCard4->currentData().toInt()), 4, qobject_cast<Settings *>(Settings::settings));
+}
+
+void
+SettingsOtherPeripherals::on_checkBoxUnitTester_stateChanged(int arg1)
+{
+    ui->pushButtonConfigureUT->setEnabled(arg1 != 0);
 }
 
 void
