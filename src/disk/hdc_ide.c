@@ -1397,6 +1397,7 @@ ide_write_devctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
             } else
                 ide->tf->atastat = DRDY_STAT | DSC_STAT;
             ide->tf->error   = 1;
+            ide_other->tf->error   = 1;    /* Assert PDIAG-. */
             dev->cur_dev &= ~1;
             ch = dev->cur_dev;
 
@@ -1410,7 +1411,8 @@ ide_write_devctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
 
     old         = dev->devctl;
     dev->devctl = val;
-    if (!(val & 0x02) && (old & 0x02))
+    // if (!(val & 0x02) && (old & 0x02))
+    if ((old ^ val) & 0x02)
         ide_irq_update(ide_boards[ide->board], 1);
 }
 
@@ -1566,6 +1568,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
             if ((ide->type == IDE_NONE) || ((ide->type & IDE_SHADOW) && (val != WIN_DRIVE_DIAGNOSTICS)))
                 break;
 
+            pclog("IRQ lower\n");
             ide_irq_lower(ide);
             ide->command = val;
 
@@ -2459,6 +2462,7 @@ ide_callback(void *priv)
             else {
                 ide->blocksize     = ide->tf->secount;
                 ide->tf->atastat   = DRDY_STAT | DSC_STAT;
+                pclog("IRQ raise\n");
                 ide_irq_raise(ide);
             }
             break;

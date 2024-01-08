@@ -597,6 +597,12 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                         pci_set_mirq_routing(PCI_MIRQ0 + (addr & 0x01), PCI_IRQ_DISABLED);
                     else
                         pci_set_mirq_routing(PCI_MIRQ0 + (addr & 0x01), val & 0xf);
+                    if (dev->type == 3) {
+                        if (val & 0x20)
+                            sff_set_irq_mode(dev->bm[1], IRQ_MODE_MIRQ_0);
+                        else
+                            sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
+                    }
                     piix_log("MIRQ%i is %s\n", addr & 0x01, (val & 0x20) ? "disabled" : "enabled");
                 }
                 break;
