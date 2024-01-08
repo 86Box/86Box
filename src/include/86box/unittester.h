@@ -35,4 +35,3 @@ extern const device_t unittester_device;
 #endif
 
 #endif /*UNITTESTER_H*/
-

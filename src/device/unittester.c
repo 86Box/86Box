@@ -45,18 +45,18 @@ enum fsm2_value {
 };
 
 /* Status bit mask */
-#define UT_STATUS_AWAITING_READ   (1<<0)
-#define UT_STATUS_AWAITING_WRITE  (1<<1)
-#define UT_STATUS_IDLE            (1<<2)
-#define UT_STATUS_UNSUPPORTED_CMD (1<<3)
+#define UT_STATUS_AWAITING_READ   (1 << 0)
+#define UT_STATUS_AWAITING_WRITE  (1 << 1)
+#define UT_STATUS_IDLE            (1 << 2)
+#define UT_STATUS_UNSUPPORTED_CMD (1 << 3)
 
 /* Command list */
 enum unittester_cmd {
-    UT_CMD_NOOP = 0x00,
-    UT_CMD_CAPTURE_SCREEN_SNAPSHOT = 0x01,
-    UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE = 0x02,
+    UT_CMD_NOOP                             = 0x00,
+    UT_CMD_CAPTURE_SCREEN_SNAPSHOT          = 0x01,
+    UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE   = 0x02,
     UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE = 0x03,
-    UT_CMD_EXIT = 0x04,
+    UT_CMD_EXIT                             = 0x04,
 };
 
 struct unittester_state {
@@ -81,7 +81,7 @@ struct unittester_state {
 
     /* Screen snapshot state */
     /* Monitor to take snapshot on */
-    uint8_t  snap_monitor;
+    uint8_t snap_monitor;
     /* Main image width + height */
     uint16_t snap_img_width;
     uint16_t snap_img_height;
@@ -97,14 +97,14 @@ struct unittester_state {
     /* 0x03: Verify Screen Snapshot Rectangle */
     uint16_t read_snap_width;
     uint16_t read_snap_height;
-    int16_t read_snap_xoffs;
-    int16_t read_snap_yoffs;
+    int16_t  read_snap_xoffs;
+    int16_t  read_snap_yoffs;
     uint32_t read_snap_crc;
 
     /* 0x04: Exit */
     uint8_t exit_code;
 };
-static struct unittester_state unittester;
+static struct unittester_state       unittester;
 static const struct unittester_state unittester_defaults = {
     .trigger_port = 0x0080,
     .iobase_port  = 0xFFFF,
@@ -143,8 +143,8 @@ unittester_read_snap_rect_idx(uint64_t offs)
 {
     /* WARNING: If the width is somehow 0 and wasn't caught earlier, you'll probably get a divide by zero crash. */
     uint32_t idx = (offs & 0x3);
-    int64_t x = (offs >> 2) % unittester.read_snap_width;
-    int64_t y = (offs >> 2) / unittester.read_snap_width;
+    int64_t  x   = (offs >> 2) % unittester.read_snap_width;
+    int64_t  y   = (offs >> 2) / unittester.read_snap_width;
     x += unittester.read_snap_xoffs;
     y += unittester.read_snap_yoffs;
 
@@ -153,21 +153,21 @@ unittester_read_snap_rect_idx(uint64_t offs)
         return (idx == 3 ? 0xFF : 0x00);
     } else {
         /* In range */
-        return (unittester_screen_buffer->line[y][x] & 0x00FFFFFF)>>(idx*8);
+        return (unittester_screen_buffer->line[y][x] & 0x00FFFFFF) >> (idx * 8);
     }
 }
 
 static void
 unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 {
-    if (port == unittester.iobase_port+0x00) {
+    if (port == unittester.iobase_port + 0x00) {
         /* Command port */
         unittester_log("[UT] W %02X Command\n", val);
 
         unittester.write_offs = 0;
-        unittester.write_len = 0;
-        unittester.read_offs = 0;
-        unittester.read_len = 0;
+        unittester.write_len  = 0;
+        unittester.read_offs  = 0;
+        unittester.read_len   = 0;
 
         switch (val) {
             /* 0x00: No-op */
@@ -178,29 +178,29 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 
             /* 0x01: Capture Screen Snapshot */
             case UT_CMD_CAPTURE_SCREEN_SNAPSHOT:
-                unittester.cmd_id = UT_CMD_CAPTURE_SCREEN_SNAPSHOT;
-                unittester.status = UT_STATUS_AWAITING_WRITE;
+                unittester.cmd_id    = UT_CMD_CAPTURE_SCREEN_SNAPSHOT;
+                unittester.status    = UT_STATUS_AWAITING_WRITE;
                 unittester.write_len = 1;
                 break;
 
             /* 0x02: Read Screen Snapshot Rectangle */
             case UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE:
-                unittester.cmd_id = UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE;
-                unittester.status = UT_STATUS_AWAITING_WRITE;
+                unittester.cmd_id    = UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE;
+                unittester.status    = UT_STATUS_AWAITING_WRITE;
                 unittester.write_len = 8;
                 break;
 
             /* 0x03: Verify Screen Snapshot Rectangle */
             case UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE:
-                unittester.cmd_id = UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE;
-                unittester.status = UT_STATUS_AWAITING_WRITE;
+                unittester.cmd_id    = UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE;
+                unittester.status    = UT_STATUS_AWAITING_WRITE;
                 unittester.write_len = 8;
                 break;
 
             /* 0x04: Exit */
             case UT_CMD_EXIT:
-                unittester.cmd_id = UT_CMD_EXIT;
-                unittester.status = UT_STATUS_AWAITING_WRITE;
+                unittester.cmd_id    = UT_CMD_EXIT;
+                unittester.status    = UT_STATUS_AWAITING_WRITE;
                 unittester.write_len = 1;
                 break;
 
@@ -211,7 +211,7 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                 break;
         }
 
-    } else if (port == unittester.iobase_port+0x01) {
+    } else if (port == unittester.iobase_port + 0x01) {
         /* Data port */
         unittester_log("[UT] W %02X Data\n", val);
 
@@ -221,7 +221,7 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 
         switch (unittester.cmd_id) {
             case UT_CMD_EXIT:
-                switch(unittester.write_offs) {
+                switch (unittester.write_offs) {
                     case 0:
                         unittester.exit_code = val;
                         break;
@@ -231,7 +231,7 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                 break;
 
             case UT_CMD_CAPTURE_SCREEN_SNAPSHOT:
-                switch(unittester.write_offs) {
+                switch (unittester.write_offs) {
                     case 0:
                         unittester.snap_monitor = val;
                         break;
@@ -242,30 +242,30 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 
             case UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE:
             case UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE:
-                switch(unittester.write_offs) {
+                switch (unittester.write_offs) {
                     case 0:
-                        unittester.read_snap_width = (uint16_t)val;
+                        unittester.read_snap_width = (uint16_t) val;
                         break;
                     case 1:
-                        unittester.read_snap_width |= ((uint16_t)val) << 8;
+                        unittester.read_snap_width |= ((uint16_t) val) << 8;
                         break;
                     case 2:
-                        unittester.read_snap_height = (uint16_t)val;
+                        unittester.read_snap_height = (uint16_t) val;
                         break;
                     case 3:
-                        unittester.read_snap_height |= ((uint16_t)val) << 8;
+                        unittester.read_snap_height |= ((uint16_t) val) << 8;
                         break;
                     case 4:
-                        unittester.read_snap_xoffs = (uint16_t)val;
+                        unittester.read_snap_xoffs = (uint16_t) val;
                         break;
                     case 5:
-                        unittester.read_snap_xoffs |= ((uint16_t)val) << 8;
+                        unittester.read_snap_xoffs |= ((uint16_t) val) << 8;
                         break;
                     case 6:
-                        unittester.read_snap_yoffs = (uint16_t)val;
+                        unittester.read_snap_yoffs = (uint16_t) val;
                         break;
                     case 7:
-                        unittester.read_snap_yoffs |= ((uint16_t)val) << 8;
+                        unittester.read_snap_yoffs |= ((uint16_t) val) << 8;
                         break;
                     default:
                         break;
@@ -307,11 +307,11 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 
                 case UT_CMD_CAPTURE_SCREEN_SNAPSHOT:
                     /* Recompute screen */
-                    unittester.snap_img_width = 0;
-                    unittester.snap_img_height = 0;
-                    unittester.snap_img_xoffs = 0;
-                    unittester.snap_img_yoffs = 0;
-                    unittester.snap_overscan_width = 0;
+                    unittester.snap_img_width       = 0;
+                    unittester.snap_img_height      = 0;
+                    unittester.snap_img_xoffs       = 0;
+                    unittester.snap_img_yoffs       = 0;
+                    unittester.snap_overscan_width  = 0;
                     unittester.snap_overscan_height = 0;
                     if (unittester.snap_monitor < 0x01 || (unittester.snap_monitor - 1) > MONITORS_NUM) {
                         /* No monitor here - clear snapshot */
@@ -321,13 +321,13 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                         unittester.snap_monitor = 0x00;
                     } else {
                         /* Compute bounds for snapshot */
-                        const monitor_t *m = &monitors[unittester.snap_monitor - 1];
-                        unittester.snap_img_width = m->mon_xsize;
-                        unittester.snap_img_height = m->mon_ysize;
-                        unittester.snap_overscan_width = m->mon_xsize + m->mon_overscan_x;
+                        const monitor_t *m              = &monitors[unittester.snap_monitor - 1];
+                        unittester.snap_img_width       = m->mon_xsize;
+                        unittester.snap_img_height      = m->mon_ysize;
+                        unittester.snap_overscan_width  = m->mon_xsize + m->mon_overscan_x;
                         unittester.snap_overscan_height = m->mon_ysize + m->mon_overscan_y;
-                        unittester.snap_img_xoffs = (m->mon_overscan_x >> 1);
-                        unittester.snap_img_yoffs = (m->mon_overscan_y >> 1);
+                        unittester.snap_img_xoffs       = (m->mon_overscan_x >> 1);
+                        unittester.snap_img_yoffs       = (m->mon_overscan_y >> 1);
                         /* Take snapshot */
                         for (size_t y = 0; y < unittester.snap_overscan_height; y++) {
                             for (size_t x = 0; x < unittester.snap_overscan_width; x++) {
@@ -344,38 +344,38 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                                    unittester.snap_img_yoffs,
                                    unittester.snap_overscan_width,
                                    unittester.snap_overscan_height);
-                    unittester.status = UT_STATUS_AWAITING_READ;
+                    unittester.status   = UT_STATUS_AWAITING_READ;
                     unittester.read_len = 12;
                     break;
 
                 case UT_CMD_READ_SCREEN_SNAPSHOT_RECTANGLE:
                 case UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE:
                     /* Offset the X,Y offsets by the overscan offsets. */
-                    unittester.read_snap_xoffs += (int16_t)unittester.snap_img_xoffs;
-                    unittester.read_snap_yoffs += (int16_t)unittester.snap_img_yoffs;
+                    unittester.read_snap_xoffs += (int16_t) unittester.snap_img_xoffs;
+                    unittester.read_snap_yoffs += (int16_t) unittester.snap_img_yoffs;
                     /* NOTE: Width * Height * 4 can potentially exceed a 32-bit number.
                        So, we use 64-bit numbers instead.
                        In practice, this will only happen if someone decides to request e.g. a 65535 x 65535 image,
                        of which most of the pixels will be out of range anyway.
                       */
-                    unittester.read_len = ((uint64_t)unittester.read_snap_width) * ((uint64_t)unittester.read_snap_height) * 4;
+                    unittester.read_len      = ((uint64_t) unittester.read_snap_width) * ((uint64_t) unittester.read_snap_height) * 4;
                     unittester.read_snap_crc = 0xFFFFFFFF;
 
                     if (unittester.cmd_id == UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE) {
                         /* Read everything and compute CRC */
                         uint32_t crc = 0xFFFFFFFF;
                         for (uint64_t i = 0; i < unittester.read_len; i++) {
-                            crc ^= 0xFF & (uint32_t)unittester_read_snap_rect_idx(i);
+                            crc ^= 0xFF & (uint32_t) unittester_read_snap_rect_idx(i);
                             /* Use some bit twiddling until we have a table-based fast CRC-32 implementation */
                             for (uint32_t j = 0; j < 8; j++) {
-                                crc = (crc >> 1) ^ ((-(crc&0x1)) & 0xEDB88320);
+                                crc = (crc >> 1) ^ ((-(crc & 0x1)) & 0xEDB88320);
                             }
                         }
                         unittester.read_snap_crc = crc ^ 0xFFFFFFFF;
 
                         /* Set actual read length for CRC result */
                         unittester.read_len = 4;
-                        unittester.status = UT_STATUS_AWAITING_READ;
+                        unittester.status   = UT_STATUS_AWAITING_READ;
 
                     } else {
                         /* Do we have anything to read? */
@@ -408,11 +408,11 @@ unittester_read(uint16_t port, UNUSED(void *priv))
 {
     uint8_t outval = 0xFF;
 
-    if (port == unittester.iobase_port+0x00) {
+    if (port == unittester.iobase_port + 0x00) {
         /* Status port */
         unittester_log("[UT] R -- Status = %02X\n", unittester.status);
         return unittester.status;
-    } else if (port == unittester.iobase_port+0x01) {
+    } else if (port == unittester.iobase_port + 0x01) {
         /* Data port */
         /* unittester_log("[UT] R -- Data\n"); */
 
@@ -422,42 +422,42 @@ unittester_read(uint16_t port, UNUSED(void *priv))
 
         switch (unittester.cmd_id) {
             case UT_CMD_CAPTURE_SCREEN_SNAPSHOT:
-                switch(unittester.read_offs) {
+                switch (unittester.read_offs) {
                     case 0:
-                        outval = (uint8_t)(unittester.snap_img_width);
+                        outval = (uint8_t) (unittester.snap_img_width);
                         break;
                     case 1:
-                        outval = (uint8_t)(unittester.snap_img_width>>8);
+                        outval = (uint8_t) (unittester.snap_img_width >> 8);
                         break;
                     case 2:
-                        outval = (uint8_t)(unittester.snap_img_height);
+                        outval = (uint8_t) (unittester.snap_img_height);
                         break;
                     case 3:
-                        outval = (uint8_t)(unittester.snap_img_height>>8);
+                        outval = (uint8_t) (unittester.snap_img_height >> 8);
                         break;
                     case 4:
-                        outval = (uint8_t)(unittester.snap_overscan_width);
+                        outval = (uint8_t) (unittester.snap_overscan_width);
                         break;
                     case 5:
-                        outval = (uint8_t)(unittester.snap_overscan_width>>8);
+                        outval = (uint8_t) (unittester.snap_overscan_width >> 8);
                         break;
                     case 6:
-                        outval = (uint8_t)(unittester.snap_overscan_height);
+                        outval = (uint8_t) (unittester.snap_overscan_height);
                         break;
                     case 7:
-                        outval = (uint8_t)(unittester.snap_overscan_height>>8);
+                        outval = (uint8_t) (unittester.snap_overscan_height >> 8);
                         break;
                     case 8:
-                        outval = (uint8_t)(unittester.snap_img_xoffs);
+                        outval = (uint8_t) (unittester.snap_img_xoffs);
                         break;
                     case 9:
-                        outval = (uint8_t)(unittester.snap_img_xoffs>>8);
+                        outval = (uint8_t) (unittester.snap_img_xoffs >> 8);
                         break;
                     case 10:
-                        outval = (uint8_t)(unittester.snap_img_yoffs);
+                        outval = (uint8_t) (unittester.snap_img_yoffs);
                         break;
                     case 11:
-                        outval = (uint8_t)(unittester.snap_img_yoffs>>8);
+                        outval = (uint8_t) (unittester.snap_img_yoffs >> 8);
                         break;
                     default:
                         break;
@@ -469,7 +469,7 @@ unittester_read(uint16_t port, UNUSED(void *priv))
                 break;
 
             case UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE:
-                outval = (uint8_t)(unittester.read_snap_crc >> (8*unittester.read_offs));
+                outval = (uint8_t) (unittester.read_snap_crc >> (8 * unittester.read_offs));
                 break;
 
             /* This should not be reachable, but just in case... */
@@ -507,13 +507,13 @@ unittester_trigger_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
 
         /* WAIT IOBASE 0: Set low byte of temporary IOBASE. */
         case UT_FSM2_WAIT_IOBASE_0:
-            unittester.fsm2_new_iobase = ((uint16_t)val);
-            unittester.fsm2 = UT_FSM2_WAIT_IOBASE_1;
+            unittester.fsm2_new_iobase = ((uint16_t) val);
+            unittester.fsm2            = UT_FSM2_WAIT_IOBASE_1;
             break;
 
         /* WAIT IOBASE 0: Set high byte of temporary IOBASE and commit to the real IOBASE. */
         case UT_FSM2_WAIT_IOBASE_1:
-            unittester.fsm2_new_iobase |= ((uint16_t)val)<<8;
+            unittester.fsm2_new_iobase |= ((uint16_t) val) << 8;
 
             unittester_log("[UT] Remapping IOBASE: %04X -> %04X\n", unittester.iobase_port, unittester.fsm2_new_iobase);
 
@@ -575,12 +575,12 @@ unittester_init(UNUSED(const device_t *info))
     if (unittester_screen_buffer == NULL)
         unittester_screen_buffer = create_bitmap(2048, 2048);
 
-    unittester = (struct unittester_state)unittester_defaults;
+    unittester = (struct unittester_state) unittester_defaults;
     io_sethandler(unittester.trigger_port, 1, NULL, NULL, NULL, unittester_trigger_write, NULL, NULL, NULL);
 
     unittester_log("[UT] 86Box Unit Tester initialised\n");
 
-    return &unittester;  /* Dummy non-NULL value */
+    return &unittester; /* Dummy non-NULL value */
 }
 
 static void
