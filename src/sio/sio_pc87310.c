@@ -244,7 +244,6 @@ pc87310_read(UNUSED(uint16_t port), void *priv)
     ret = dev->regs[idx];
 
     pc87310_log("[%04X:%08X] [R] %02X = %02X\n", CS, cpu_state.pc, port, ret);
-    pc87310_log("SIO: read %01X\n", ret);
 
     return ret;
 }
