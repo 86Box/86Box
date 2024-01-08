@@ -43,10 +43,28 @@
 #define COMPOSITE_OLD 0
 #define COMPOSITE_NEW 1
 
+#define DOUBLE_NONE               0
+#define DOUBLE_SIMPLE             1
+#define DOUBLE_INTERPOLATE_SRGB   2
+#define DOUBLE_INTERPOLATE_LINEAR 3
+
+typedef union
+{
+    uint32_t color;
+    struct {
+        uint8_t b;
+        uint8_t g;
+        uint8_t r;
+        uint8_t a;
+    };
+} color_t;
+
 static uint8_t crtcmask[32] = {
     0xff, 0xff, 0xff, 0xff, 0x7f, 0x1f, 0x7f, 0x7f, 0xf3, 0x1f, 0x7f, 0x1f, 0x3f, 0xff, 0x3f, 0xff,
     0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 };
+
+static uint8_t interp_lut[2][256][256];
 
 static video_timings_t timing_cga = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
@@ -201,24 +219,275 @@ cga_recalctimings(cga_t *cga)
     cga->dispofftime = (uint64_t) (_dispofftime);
 }
 
-void
-cga_poll(void *priv)
+static void
+cga_render(cga_t *cga, int line)
 {
-    cga_t   *cga = (cga_t *) priv;
     uint16_t ca  = (cga->crtc[15] | (cga->crtc[14] << 8)) & 0x3fff;
     int      drawcursor;
     int      x;
     int      c;
-    int      xs_temp;
-    int      ys_temp;
-    int      oldvc;
     uint8_t  chr;
     uint8_t  attr;
-    uint8_t  border;
     uint16_t dat;
     int      cols[4];
     int      col;
+
+    if ((cga->cgamode & 0x12) == 0x12) {
+        for (c = 0; c < 8; ++c) {
+            buffer32->line[line][c] = 0;
+            if (cga->cgamode & 1)
+                buffer32->line[line][c + (cga->crtc[1] << 3) + 8] = 0;
+            else
+                buffer32->line[line][c + (cga->crtc[1] << 4) + 8] = 0;
+        }
+    } else {
+        for (c = 0; c < 8; ++c) {
+            buffer32->line[line][c] = (cga->cgacol & 15) + 16;
+            if (cga->cgamode & 1)
+                buffer32->line[line][c + (cga->crtc[1] << 3) + 8] = (cga->cgacol & 15) + 16;
+            else
+                buffer32->line[line][c + (cga->crtc[1] << 4) + 8] = (cga->cgacol & 15) + 16;
+        }
+    }
+    if (cga->cgamode & 1) {
+        for (x = 0; x < cga->crtc[1]; x++) {
+            if (cga->cgamode & 8) {
+                chr  = cga->charbuffer[x << 1];
+                attr = cga->charbuffer[(x << 1) + 1];
+            } else
+                chr = attr = 0;
+            drawcursor = ((cga->ma == ca) && cga->con && cga->cursoron);
+            cols[1]    = (attr & 15) + 16;
+            if (cga->cgamode & 0x20) {
+                cols[0] = ((attr >> 4) & 7) + 16;
+                if ((cga->cgablink & 8) && (attr & 0x80) && !cga->drawcursor)
+                    cols[1] = cols[0];
+            } else
+                cols[0] = (attr >> 4) + 16;
+            if (drawcursor) {
+                for (c = 0; c < 8; c++) {
+                    buffer32->line[line][(x << 3) + c + 8]
+                        = cols[(fontdat[chr + cga->fontbase][cga->sc & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+                }
+            } else {
+                for (c = 0; c < 8; c++) {
+                    buffer32->line[line][(x << 3) + c + 8]
+                        = cols[(fontdat[chr + cga->fontbase][cga->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+                }
+            }
+            cga->ma++;
+        }
+    } else if (!(cga->cgamode & 2)) {
+        for (x = 0; x < cga->crtc[1]; x++) {
+            if (cga->cgamode & 8) {
+                chr  = cga->vram[(cga->ma << 1) & 0x3fff];
+                attr = cga->vram[((cga->ma << 1) + 1) & 0x3fff];
+            } else
+                chr = attr = 0;
+            drawcursor = ((cga->ma == ca) && cga->con && cga->cursoron);
+            cols[1]    = (attr & 15) + 16;
+            if (cga->cgamode & 0x20) {
+                cols[0] = ((attr >> 4) & 7) + 16;
+                if ((cga->cgablink & 8) && (attr & 0x80))
+                    cols[1] = cols[0];
+            } else
+                cols[0] = (attr >> 4) + 16;
+            cga->ma++;
+            if (drawcursor) {
+                for (c = 0; c < 8; c++) {
+                    buffer32->line[line][(x << 4) + (c << 1) + 8]
+                        = buffer32->line[line][(x << 4) + (c << 1) + 9]
+                        = cols[(fontdat[chr + cga->fontbase][cga->sc & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
+                }
+            } else {
+                for (c = 0; c < 8; c++) {
+                    buffer32->line[line][(x << 4) + (c << 1) + 8]
+                        = buffer32->line[line][(x << 4) + (c << 1) + 9] 
+                        = cols[(fontdat[chr + cga->fontbase][cga->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+                }
+            }
+        }
+    } else if (!(cga->cgamode & 16)) {
+        cols[0] = (cga->cgacol & 15) | 16;
+        col     = (cga->cgacol & 16) ? 24 : 16;
+        if (cga->cgamode & 4) {
+            cols[1] = col | 3; /* Cyan */
+            cols[2] = col | 4; /* Red */
+            cols[3] = col | 7; /* White */
+        } else if (cga->cgacol & 32) {
+            cols[1] = col | 3; /* Cyan */
+            cols[2] = col | 5; /* Magenta */
+            cols[3] = col | 7; /* White */
+        } else {
+            cols[1] = col | 2; /* Green */
+            cols[2] = col | 4; /* Red */
+            cols[3] = col | 6; /* Yellow */
+        }
+        for (x = 0; x < cga->crtc[1]; x++) {
+            if (cga->cgamode & 8)
+                dat = (cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000)] << 8) |
+                      cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000) + 1];
+            else
+                dat = 0;
+            cga->ma++;
+            for (c = 0; c < 8; c++) {
+                buffer32->line[line][(x << 4) + (c << 1) + 8]
+                    = buffer32->line[line][(x << 4) + (c << 1) + 9]
+                    = cols[dat >> 14];
+                dat <<= 2;
+            }
+        }
+    } else {
+        cols[0] = 0;
+        cols[1] = (cga->cgacol & 15) + 16;
+        for (x = 0; x < cga->crtc[1]; x++) {
+            if (cga->cgamode & 8)
+                dat = (cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000)] << 8) |
+                      cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000) + 1];
+            else
+                dat = 0;
+            cga->ma++;
+            for (c = 0; c < 16; c++) {
+                buffer32->line[line][(x << 4) + c + 8] = cols[dat >> 15];
+                dat <<= 1;
+            }
+        }
+    }
+}
+
+static void
+cga_render_blank(cga_t *cga, int line)
+{
+    int col = ((cga->cgamode & 0x12) == 0x12) ? 0 : (cga->cgacol & 15) + 16;
+
+    if (cga->cgamode & 1)
+        hline(buffer32, 0, line, (cga->crtc[1] << 3) + 16, col);
+    else
+        hline(buffer32, 0, line, (cga->crtc[1] << 4) + 16, col);
+}
+
+static void
+cga_render_process(cga_t *cga, int line)
+{
+    int      x;
+    uint8_t  border;
+
+    if (cga->cgamode & 1)
+        x = (cga->crtc[1] << 3) + 16;
+    else
+        x = (cga->crtc[1] << 4) + 16;
+
+    if (cga->composite) {
+        border = ((cga->cgamode & 0x12) == 0x12) ? 0 : (cga->cgacol & 15);
+
+        Composite_Process(cga->cgamode, border, x >> 2, buffer32->line[line]);
+    } else
+        video_process_8(x, line);
+}
+
+static uint8_t
+cga_interpolate_srgb(uint8_t co1, uint8_t co2, double fraction)
+{
+    uint8_t ret = ((co2 - co1) * fraction + co1);
+
+    return ret;
+}
+
+static uint8_t
+cga_interpolate_linear(uint8_t co1, uint8_t co2, double fraction)
+{
+    double c1, c2;
+    double r1, r2;
+    uint8_t ret;
+
+    c1 = ((double) co1) / 255.0;
+    c1 = pow((co1 >= 0) ? c1 : -c1, 2.19921875);
+    if (co1 <= 0)
+        c1 = -c1;
+    c2 = ((double) co2) / 255.0;
+    c2 = pow((co2 >= 0) ? c2 : -c2, 2.19921875);
+    if (co2 <= 0)
+        c2 = -c2;
+    r1 = ((c2 - c1) * fraction + c1);
+    r2 = pow((r1 >= 0.0) ? r1 : -r1, 1.0 / 2.19921875);
+    if (r1 <= 0.0)
+        r2 = -r2;
+    ret = (uint8_t) (r2 * 255.0);
+
+    return ret;
+}
+
+static color_t
+cga_interpolate_lookup(cga_t *cga, color_t color1, color_t color2, double fraction)
+{
+    color_t ret;
+    uint8_t dt = cga->double_type - DOUBLE_INTERPOLATE_SRGB;
+
+    ret.a = 0x00;
+    ret.r = interp_lut[dt][color1.r][color2.r];
+    ret.g = interp_lut[dt][color1.g][color2.g];
+    ret.b = interp_lut[dt][color1.b][color2.b];
+
+    return ret;
+}
+
+static void
+cga_interpolate(cga_t *cga, int x, int y, int w, int h)
+{
+    double quotient = 0.5;
+
+    for (int i = y; i < (y + h); i++) {
+        if (i & 1)  for (int j = x; j < (x + w); j++) {
+            int prev = i - 1;
+            int next = i + 1;
+            color_t prev_color, next_color;
+            color_t black;
+            color_t interim_1, interim_2;
+            color_t final;
+
+            if (i < 0)
+                continue;
+
+            black.color = 0x00000000;
+
+            if ((prev >= 0) && (prev < (y + h)))
+                prev_color.color = buffer32->line[prev][j];
+            else
+                prev_color.color = 0x00000000;
+
+            if ((next >= 0) && (next < (y + h)))
+                next_color.color = buffer32->line[next][j];
+            else
+                next_color.color = 0x00000000;
+
+            interim_1 = cga_interpolate_lookup(cga, prev_color, black, quotient);
+            interim_2 = cga_interpolate_lookup(cga, black, next_color, quotient);
+            final = cga_interpolate_lookup(cga, interim_1, interim_2, quotient);
+
+            buffer32->line[i][j] = final.color;
+        }
+    }
+}
+
+static void
+cga_blit_memtoscreen(cga_t *cga, int x, int y, int w, int h)
+{
+    if (cga->double_type > DOUBLE_SIMPLE)
+        cga_interpolate(cga, x, y, w, h);
+
+    video_blit_memtoscreen(x, y, w, h);
+}
+
+void
+cga_poll(void *priv)
+{
+    cga_t   *cga = (cga_t *) priv;
+    int      x;
     int      oldsc;
+    int      oldvc;
+    int      xs_temp;
+    int      ys_temp;
+    int      old_ma;
 
     if (!cga->linepos) {
         timer_advance_u64(&cga->timer, cga->dispofftime);
@@ -233,143 +502,44 @@ cga_poll(void *priv)
                 video_wait_for_buffer();
             }
             cga->lastline = cga->displine;
-            if ((cga->cgamode & 0x12) == 0x12) {
-                for (c = 0; c < 8; ++c) {
-                    buffer32->line[cga->displine][c] = 0;
-                    if (cga->cgamode & 1)
-                        buffer32->line[cga->displine][c + (cga->crtc[1] << 3) + 8] = 0;
-                    else
-                        buffer32->line[cga->displine][c + (cga->crtc[1] << 4) + 8] = 0;
-                }
-            } else {
-                for (c = 0; c < 8; ++c) {
-                    buffer32->line[cga->displine][c] = (cga->cgacol & 15) + 16;
-                    if (cga->cgamode & 1)
-                        buffer32->line[cga->displine][c + (cga->crtc[1] << 3) + 8] = (cga->cgacol & 15) + 16;
-                    else
-                        buffer32->line[cga->displine][c + (cga->crtc[1] << 4) + 8] = (cga->cgacol & 15) + 16;
-                }
-            }
-            if (cga->cgamode & 1) {
-                for (x = 0; x < cga->crtc[1]; x++) {
-                    if (cga->cgamode & 8) {
-                        chr  = cga->charbuffer[x << 1];
-                        attr = cga->charbuffer[(x << 1) + 1];
-                    } else
-                        chr = attr = 0;
-                    drawcursor = ((cga->ma == ca) && cga->con && cga->cursoron);
-                    cols[1]    = (attr & 15) + 16;
-                    if (cga->cgamode & 0x20) {
-                        cols[0] = ((attr >> 4) & 7) + 16;
-                        if ((cga->cgablink & 8) && (attr & 0x80) && !cga->drawcursor)
-                            cols[1] = cols[0];
-                    } else
-                        cols[0] = (attr >> 4) + 16;
-                    if (drawcursor) {
-                        for (c = 0; c < 8; c++) {
-                            buffer32->line[cga->displine][(x << 3) + c + 8] = cols[(fontdat[chr + cga->fontbase][cga->sc & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
-                        }
-                    } else {
-                        for (c = 0; c < 8; c++) {
-                            buffer32->line[cga->displine][(x << 3) + c + 8] = cols[(fontdat[chr + cga->fontbase][cga->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
-                        }
-                    }
-                    cga->ma++;
-                }
-            } else if (!(cga->cgamode & 2)) {
-                for (x = 0; x < cga->crtc[1]; x++) {
-                    if (cga->cgamode & 8) {
-                        chr  = cga->vram[(cga->ma << 1) & 0x3fff];
-                        attr = cga->vram[((cga->ma << 1) + 1) & 0x3fff];
-                    } else
-                        chr = attr = 0;
-                    drawcursor = ((cga->ma == ca) && cga->con && cga->cursoron);
-                    cols[1]    = (attr & 15) + 16;
-                    if (cga->cgamode & 0x20) {
-                        cols[0] = ((attr >> 4) & 7) + 16;
-                        if ((cga->cgablink & 8) && (attr & 0x80))
-                            cols[1] = cols[0];
-                    } else
-                        cols[0] = (attr >> 4) + 16;
-                    cga->ma++;
-                    if (drawcursor) {
-                        for (c = 0; c < 8; c++) {
-                            buffer32->line[cga->displine][(x << 4) + (c << 1) + 8]
-                                = buffer32->line[cga->displine][(x << 4) + (c << 1) + 9]
-                                = cols[(fontdat[chr + cga->fontbase][cga->sc & 7] & (1 << (c ^ 7))) ? 1 : 0] ^ 15;
-                        }
-                    } else {
-                        for (c = 0; c < 8; c++) {
-                            buffer32->line[cga->displine][(x << 4) + (c << 1) + 8]
-                                = buffer32->line[cga->displine][(x << 4) + (c << 1) + 9] 
-                                = cols[(fontdat[chr + cga->fontbase][cga->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
-                        }
-                    }
-                }
-            } else if (!(cga->cgamode & 16)) {
-                cols[0] = (cga->cgacol & 15) | 16;
-                col     = (cga->cgacol & 16) ? 24 : 16;
-                if (cga->cgamode & 4) {
-                    cols[1] = col | 3; /* Cyan */
-                    cols[2] = col | 4; /* Red */
-                    cols[3] = col | 7; /* White */
-                } else if (cga->cgacol & 32) {
-                    cols[1] = col | 3; /* Cyan */
-                    cols[2] = col | 5; /* Magenta */
-                    cols[3] = col | 7; /* White */
-                } else {
-                    cols[1] = col | 2; /* Green */
-                    cols[2] = col | 4; /* Red */
-                    cols[3] = col | 6; /* Yellow */
-                }
-                for (x = 0; x < cga->crtc[1]; x++) {
-                    if (cga->cgamode & 8)
-                        dat = (cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000)] << 8) | cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000) + 1];
-                    else
-                        dat = 0;
-                    cga->ma++;
-                    for (c = 0; c < 8; c++) {
-                        buffer32->line[cga->displine][(x << 4) + (c << 1) + 8]
-                            = buffer32->line[cga->displine][(x << 4) + (c << 1) + 9]
-                            = cols[dat >> 14];
-                        dat <<= 2;
-                    }
-                }
-            } else {
-                cols[0] = 0;
-                cols[1] = (cga->cgacol & 15) + 16;
-                for (x = 0; x < cga->crtc[1]; x++) {
-                    if (cga->cgamode & 8)
-                        dat = (cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000)] << 8) | cga->vram[((cga->ma << 1) & 0x1fff) + ((cga->sc & 1) * 0x2000) + 1];
-                    else
-                        dat = 0;
-                    cga->ma++;
-                    for (c = 0; c < 16; c++) {
-                        buffer32->line[cga->displine][(x << 4) + c + 8] = cols[dat >> 15];
-                        dat <<= 1;
-                    }
-                }
+            switch (cga->double_type) {
+                default:
+                    cga_render(cga, cga->displine << 1);
+                    cga_render_blank(cga, (cga->displine << 1) + 1);
+                    break;
+                case DOUBLE_NONE:
+                    cga_render(cga, cga->displine);
+                    break;
+                case DOUBLE_SIMPLE:
+                    old_ma = cga->ma;
+                    cga_render(cga, cga->displine << 1);
+                    cga->ma = old_ma;
+                    cga_render(cga, (cga->displine << 1) + 1);
+                    break;
             }
         } else {
-            cols[0] = ((cga->cgamode & 0x12) == 0x12) ? 0 : (cga->cgacol & 15) + 16;
-            if (cga->cgamode & 1) {
-                hline(buffer32, 0, cga->displine, (cga->crtc[1] << 3) + 16, cols[0]);
-            } else {
-                hline(buffer32, 0, cga->displine, (cga->crtc[1] << 4) + 16, cols[0]);
+            switch (cga->double_type) {
+                default:
+                    cga_render_blank(cga, cga->displine << 1);
+                    break;
+                case DOUBLE_NONE:
+                    cga_render_blank(cga, cga->displine);
+                    break;
+                case DOUBLE_SIMPLE:
+                    cga_render_blank(cga, cga->displine << 1);
+                    cga_render_blank(cga, (cga->displine << 1) + 1);
+                    break;
             }
         }
 
-        if (cga->cgamode & 1)
-            x = (cga->crtc[1] << 3) + 16;
-        else
-            x = (cga->crtc[1] << 4) + 16;
-
-        if (cga->composite) {
-            border = ((cga->cgamode & 0x12) == 0x12) ? 0 : (cga->cgacol & 15);
-
-            Composite_Process(cga->cgamode, border, x >> 2, buffer32->line[cga->displine]);
-        } else {
-            video_process_8(x, cga->displine);
+        switch (cga->double_type) {
+            default:
+                cga_render_process(cga, cga->displine << 1);
+                cga_render_process(cga, (cga->displine << 1) + 1);
+                break;
+            case DOUBLE_NONE:
+                cga_render_process(cga, cga->displine);
+                break;
         }
 
         cga->sc = oldsc;
@@ -386,7 +556,8 @@ cga_poll(void *priv)
             if (!cga->vsynctime)
                 cga->cgastat &= ~8;
         }
-        if (cga->sc == (cga->crtc[11] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[11] & 31) >> 1))) {
+        if (cga->sc == (cga->crtc[11] & 31) || ((cga->crtc[8] & 3) == 3 &&
+            cga->sc == ((cga->crtc[11] & 31) >> 1))) {
             cga->con  = 0;
             cga->coff = 1;
         }
@@ -445,6 +616,8 @@ cga_poll(void *priv)
 
                     xs_temp = x;
                     ys_temp = cga->lastline - cga->firstline;
+                    if (cga->double_type > DOUBLE_NONE)
+                        ys_temp <<= 1;
 
                     if ((xs_temp > 0) && (ys_temp > 0)) {
                         if (xs_temp < 64)
@@ -454,21 +627,33 @@ cga_poll(void *priv)
                         if (!enable_overscan)
                             xs_temp -= 16;
 
-                        if ((cga->cgamode & 8) && ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
+                        if ((cga->cgamode & 8) && ((xs_temp != xsize) ||
+                            (ys_temp != ysize) || video_force_resize_get())) {
                             xsize = xs_temp;
                             ysize = ys_temp;
-                            set_screen_size(xsize, ysize + (enable_overscan ? 8 : 0));
+                            if (cga->double_type > DOUBLE_NONE)
+                                set_screen_size(xsize, ysize + (enable_overscan ? 16 : 0));
+                            else
+                                set_screen_size(xsize, ysize + (enable_overscan ? 8 : 0));
 
                             if (video_force_resize_get())
                                 video_force_resize_set(0);
                         }
 
-                        if (enable_overscan) {
-                            video_blit_memtoscreen(0, cga->firstline - 4,
-                                                   xsize, (cga->lastline - cga->firstline) + 8);
+                        if (cga->double_type > DOUBLE_NONE) {
+                            if (enable_overscan)
+                                cga_blit_memtoscreen(cga, 0, (cga->firstline - 4) << 1,
+                                                     xsize, ((cga->lastline - cga->firstline) << 1) + 16);
+                            else
+                                cga_blit_memtoscreen(cga, 8, cga->firstline << 1,
+                                                     xsize, (cga->lastline - cga->firstline) << 1);
                         } else {
-                            video_blit_memtoscreen(8, cga->firstline,
-                                                   xsize, cga->lastline - cga->firstline);
+                            if (enable_overscan)
+                                video_blit_memtoscreen(0, cga->firstline - 4,
+                                                       xsize, (cga->lastline - cga->firstline) + 8);
+                            else
+                                video_blit_memtoscreen(8, cga->firstline,
+                                                       xsize, cga->lastline - cga->firstline);
                         }
                     }
 
@@ -502,7 +687,8 @@ cga_poll(void *priv)
         }
         if (cga->cgadispon)
             cga->cgastat &= ~1;
-        if (cga->sc == (cga->crtc[10] & 31) || ((cga->crtc[8] & 3) == 3 && cga->sc == ((cga->crtc[10] & 31) >> 1)))
+        if (cga->sc == (cga->crtc[10] & 31) || ((cga->crtc[8] & 3) == 3 &&
+            cga->sc == ((cga->crtc[10] & 31) >> 1)))
             cga->con = 1;
         if (cga->cgadispon && (cga->cgamode & 1)) {
             for (x = 0; x < (cga->crtc[1] << 1); x++)
@@ -545,6 +731,15 @@ cga_standalone_init(UNUSED(const device_t *info))
     cga_palette   = (cga->rgb_type << 1);
     cgapal_rebuild();
     update_cga16_color(cga->cgamode);
+
+    cga->double_type = device_get_config_int("double_type");
+
+    for (uint16_t i = 0; i < 256; i++) {
+        for (uint16_t j = 0; j < 256; j++) {
+            interp_lut[0][i][j] = cga_interpolate_srgb(i, j, 0.5);
+            interp_lut[1][i][j] = cga_interpolate_linear(i, j, 0.5);
+        }
+    }
 
     return cga;
 }
@@ -625,10 +820,10 @@ const device_config_t cga_config[] = {
         .name = "rgb_type",
         .description = "RGB type",
         .type = CONFIG_SELECTION,
-        .default_int = 0,
+        .default_int = 5,
         .selection = {
             {
-                .description = "Color",
+                .description = "Color (generic)",
                 .value = 0
             },
             {
@@ -646,6 +841,37 @@ const device_config_t cga_config[] = {
             {
                 .description = "Color (no brown)",
                 .value = 4
+            },
+            {
+                .description = "Color (IBM 5153)",
+                .value = 5
+            },
+            {
+                .description = ""
+            }
+        }
+    },
+    {
+        .name = "double_type",
+        .description = "Line doubling type",
+        .type = CONFIG_SELECTION,
+        .default_int = DOUBLE_NONE,
+        .selection = {
+            {
+                .description = "None",
+                .value = DOUBLE_NONE
+            },
+            {
+                .description = "Simple doubling",
+                .value = DOUBLE_SIMPLE
+            },
+            {
+                .description = "sRGB interpolation",
+                .value = DOUBLE_INTERPOLATE_SRGB
+            },
+            {
+                .description = "Linear interpolation",
+                .value = DOUBLE_INTERPOLATE_LINEAR
             },
             {
                 .description = ""

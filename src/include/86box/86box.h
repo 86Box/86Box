@@ -125,6 +125,7 @@ extern int      gfxcard[2];                 /* (C) graphics/video card */
 extern char     video_shader[512];          /* (C) video */
 extern int      bugger_enabled;             /* (C) enable ISAbugger */
 extern int      postcard_enabled;           /* (C) enable POST card */
+extern int      unittester_enabled;         /* (C) enable unit tester device */
 extern int      isamem_type[];              /* (C) enable ISA mem cards */
 extern int      isartc_type;                /* (C) enable ISA RTC card */
 extern int      sound_is_float;             /* (C) sound uses FP values */
