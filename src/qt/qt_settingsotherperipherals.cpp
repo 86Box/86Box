@@ -23,6 +23,7 @@ extern "C" {
 #include <86box/machine.h>
 #include <86box/isamem.h>
 #include <86box/isartc.h>
+#include <86box/unittester.h>
 }
 
 #include "qt_deviceconfig.hpp"
@@ -198,4 +199,10 @@ void
 SettingsOtherPeripherals::on_pushButtonConfigureCard4_clicked()
 {
     DeviceConfig::ConfigureDevice(isamem_get_device(ui->comboBoxCard4->currentData().toInt()), 4, qobject_cast<Settings *>(Settings::settings));
+}
+
+void
+SettingsOtherPeripherals::on_pushButtonConfigureUT_clicked()
+{
+    DeviceConfig::ConfigureDevice(&unittester_device);
 }

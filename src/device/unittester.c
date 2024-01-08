@@ -114,10 +114,18 @@ static const struct unittester_state unittester_defaults = {
     .cmd_id       = UT_CMD_NOOP,
 };
 
+static const device_config_t unittester_config[] = {
+    { .name           = "exit_enabled",
+     .description    = "Enable 0x04 \"Exit 86Box\" command",
+     .type           = CONFIG_BINARY,
+     .default_int    = 1,
+     .default_string = "" },
+    { .type = CONFIG_END }
+};
+
 /* Kept separate, as we will be reusing this object */
 static bitmap_t *unittester_screen_buffer = NULL;
 
-/* FIXME: This needs a config option! --GM */
 static bool unittester_exit_enabled = true;
 
 #ifdef ENABLE_UNITTESTER_LOG
@@ -572,10 +580,13 @@ unittester_trigger_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))
 static void *
 unittester_init(UNUSED(const device_t *info))
 {
+    unittester = (struct unittester_state) unittester_defaults;
+
+    unittester_exit_enabled = !!device_get_config_int("exit_enabled");
+
     if (unittester_screen_buffer == NULL)
         unittester_screen_buffer = create_bitmap(2048, 2048);
 
-    unittester = (struct unittester_state) unittester_defaults;
     io_sethandler(unittester.trigger_port, 1, NULL, NULL, NULL, unittester_trigger_write, NULL, NULL, NULL);
 
     unittester_log("[UT] 86Box Unit Tester initialised\n");
@@ -611,5 +622,5 @@ const device_t unittester_device = {
     { .available = NULL },
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = unittester_config,
 };
