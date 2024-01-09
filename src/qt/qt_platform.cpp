@@ -50,6 +50,7 @@
 #include "qt_util.hpp"
 
 #ifdef Q_OS_UNIX
+#    include <pthread.h>
 #    include <sys/mman.h>
 #endif
 
@@ -741,4 +742,48 @@ double
 plat_get_dpi(void)
 {
     return util::screenOfWidget(main_window)->devicePixelRatio();
+}
+
+void
+plat_set_thread_name(void *thread, const char *name)
+{
+#ifdef Q_OS_WINDOWS
+    /* SetThreadDescription was added in 14393. Revisit if we ever start requiring 10. */
+    static void *kernel32_handle = NULL;
+    static HRESULT(WINAPI *pSetThreadDescription)(HANDLE hThread, PCWSTR lpThreadDescription) = NULL;
+    static dllimp_t kernel32_imports[] = {
+      // clang-format off
+        { "SetThreadDescription", &pSetThreadDescription },
+        { NULL,                   NULL                   }
+      // clang-format on
+    };
+
+    if (!kernel32_handle) {
+        kernel32_handle = dynld_module("kernel32.dll", kernel32_imports);
+        if (!kernel32_handle) {
+            kernel32_handle = kernel32_imports; /* dummy pointer to store that we tried */
+            pSetThreadDescription = NULL;
+        }
+    }
+
+    if (pSetThreadDescription) {
+        size_t len = strlen(name) + 1;
+        wchar_t wname[len];
+        mbstowcs(wname, name, len);
+        pSetThreadDescription(thread ? (HANDLE) thread : GetCurrentThread(), wname);
+    }
+#else
+#    ifdef Q_OS_DARWIN
+    char truncated[64];
+#    else
+    char truncated[16];
+#    endif
+    strncpy(truncated, name, sizeof(truncated) - 1);
+#    ifdef Q_OS_DARWIN
+    if (!thread)
+        pthread_setname_np(truncated);
+#    else
+    pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
+#    endif
+#endif
 }
