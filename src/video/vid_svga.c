@@ -92,12 +92,10 @@ svga_set_override(svga_t *svga, int val)
 
     if (!val) {
         /* Override turned off, restore overscan X and Y per the CRTC. */
-        if (enable_overscan) {
-            svga->monitor->mon_overscan_y = (svga->rowcount + 1) << 1;
+        svga->monitor->mon_overscan_y = (svga->rowcount + 1) << 1;
 
-            if (svga->monitor->mon_overscan_y < 16)
-                svga->monitor->mon_overscan_y = 16;
-        }
+        if (svga->monitor->mon_overscan_y < 16)
+            svga->monitor->mon_overscan_y = 16;
 
         svga->monitor->mon_overscan_x = (svga->seqregs[1] & 1) ? 16 : 18;
 
@@ -711,12 +709,10 @@ svga_recalctimings(svga_t *svga)
     svga->linedbl    = svga->crtc[9] & 0x80;
     svga->char_width = (svga->seqregs[1] & 1) ? 8 : 9;
 
-    if (enable_overscan) {
-        svga->monitor->mon_overscan_y = (svga->rowcount + 1) << 1;
+    svga->monitor->mon_overscan_y = (svga->rowcount + 1) << 1;
 
-        if (svga->monitor->mon_overscan_y < 16)
-            svga->monitor->mon_overscan_y = 16;
-    }
+    if (svga->monitor->mon_overscan_y < 16)
+        svga->monitor->mon_overscan_y = 16;
 
     if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) {
         svga->monitor->mon_overscan_x = (svga->seqregs[1] & 1) ? 16 : 18;

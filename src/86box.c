@@ -1231,6 +1231,10 @@ pc_reset_hard_init(void)
         device_reset_all(DEVICE_PCI);
     }
 
+    /* Mark IDE shadow drives (slaves with a present master) as such in case
+       the IDE controllers present are not some form of PCI. */
+    ide_drives_set_shadow();
+
     /* Reset the CPU module. */
     resetx86();
     dma_reset();
