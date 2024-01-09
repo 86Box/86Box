@@ -94,6 +94,7 @@ main_thread_fn()
     int      frames;
 
     QThread::currentThread()->setPriority(QThread::HighestPriority);
+    plat_set_thread_name(NULL, "main_thread_fn");
     framecountx = 0;
     // title_update = 1;
     old_time = elapsed_timer.elapsed();
