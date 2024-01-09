@@ -170,7 +170,7 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 {
     if (port == unittester.iobase_port + 0x00) {
         /* Command port */
-        unittester_log("[UT] W %02X Command\n", val);
+        /* unittester_log("[UT] W %02X Command\n", val); */
 
         unittester.write_offs = 0;
         unittester.write_len  = 0;
@@ -221,7 +221,7 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
 
     } else if (port == unittester.iobase_port + 0x01) {
         /* Data port */
-        unittester_log("[UT] W %02X Data\n", val);
+        /* unittester_log("[UT] W %02X Data\n", val); */
 
         /* Skip if not awaiting */
         if ((unittester.status & UT_STATUS_AWAITING_WRITE) == 0)
@@ -369,6 +369,12 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                     unittester.read_len      = ((uint64_t) unittester.read_snap_width) * ((uint64_t) unittester.read_snap_height) * 4;
                     unittester.read_snap_crc = 0xFFFFFFFF;
 
+                    unittester_log("[UT] Screen rectangle analysis - %d x %d @ (%d, %d)\n",
+                                   unittester.read_snap_width,
+                                   unittester.read_snap_height,
+                                   unittester.read_snap_xoffs - (int16_t) unittester.snap_img_xoffs,
+                                   unittester.read_snap_yoffs - (int16_t) unittester.snap_img_yoffs);
+
                     if (unittester.cmd_id == UT_CMD_VERIFY_SCREEN_SNAPSHOT_RECTANGLE) {
                         /* Read everything and compute CRC */
                         uint32_t crc = 0xFFFFFFFF;
@@ -380,6 +386,9 @@ unittester_write(uint16_t port, uint8_t val, UNUSED(void *priv))
                             }
                         }
                         unittester.read_snap_crc = crc ^ 0xFFFFFFFF;
+
+                        unittester_log("[UT] Screen rectangle analysis CRC = %08X\n",
+                                       unittester.read_snap_crc);
 
                         /* Set actual read length for CRC result */
                         unittester.read_len = 4;
@@ -418,7 +427,7 @@ unittester_read(uint16_t port, UNUSED(void *priv))
 
     if (port == unittester.iobase_port + 0x00) {
         /* Status port */
-        unittester_log("[UT] R -- Status = %02X\n", unittester.status);
+        /* unittester_log("[UT] R -- Status = %02X\n", unittester.status); */
         return unittester.status;
     } else if (port == unittester.iobase_port + 0x01) {
         /* Data port */
