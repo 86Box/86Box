@@ -852,6 +852,7 @@ extern int machine_xt_pc700_init(const machine_t *);
 extern int machine_xt_pc500_init(const machine_t *);
 extern int machine_xt_vendex_init(const machine_t *);
 extern int machine_xt_znic_init(const machine_t *);
+extern int machine_xt_glabios_init(const machine_t *);
 extern int machine_xt_super16t_init(const machine_t *);
 extern int machine_xt_super16te_init(const machine_t *);
 extern int machine_xt_top88_init(const machine_t *);
