@@ -543,12 +543,10 @@ ega_recalctimings(ega_t *ega)
         }
     }
 
-    if (enable_overscan) {
-        overscan_y = (ega->rowcount + 1) << 1;
+    overscan_y = (ega->rowcount + 1) << 1;
 
-        if (overscan_y < 16)
-            overscan_y = 16;
-    }
+    if (overscan_y < 16)
+        overscan_y = 16;
 
     overscan_x = (ega->seqregs[1] & 1) ? 16 : 18;
 
