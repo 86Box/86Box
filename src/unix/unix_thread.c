@@ -32,7 +32,7 @@ thread_run_wrapper(thread_param *arg)
 }
 
 thread_t *
-thread_create(void (*thread_rout)(void *param), void *param, const char *name)
+thread_create_named(void (*thread_rout)(void *param), void *param, const char *name)
 {
     pthread_t    *thread   = malloc(sizeof(pthread_t));
     thread_param *thrparam = malloc(sizeof(thread_param));
