@@ -40,7 +40,7 @@ thread_t *
 thread_create_named(void (*func)(void *param), void *param, const char *name)
 {
     uintptr_t bt = _beginthread(func, 0, param);
-    plat_set_thread_name(bt, name);
+    plat_set_thread_name((void *) bt, name);
     return ((thread_t *) bt);
 }
 

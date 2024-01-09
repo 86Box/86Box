@@ -52,7 +52,7 @@ thread_wait(thread_t *arg)
 }
 
 event_t *
-thread_create_event()
+thread_create_event(void)
 {
     event_pthread_t *event = malloc(sizeof(event_pthread_t));
 
