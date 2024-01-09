@@ -552,11 +552,17 @@ ega_recalctimings(ega_t *ega)
 
     overscan_x = (ega->seqregs[1] & 1) ? 16 : 18;
 
+    if (ega->vres)
+        overscan_y <<= 1;
+
     if (ega->seqregs[1] & 8)
         overscan_x <<= 1;
 
     ega->y_add = (overscan_y >> 1);
     ega->x_add = (overscan_x >> 1);
+
+    if (ega->vres)
+        ega->y_add >>= 1;
 
     if (ega->seqregs[1] & 8) {
         disptime    = (double) ((ega->crtc[0] + 2) << 1);
@@ -896,11 +902,12 @@ ega_poll(void *priv)
 void
 ega_doblit(int wx, int wy, ega_t *ega)
 {
-    int       y_add   = enable_overscan ? overscan_y : 0;
+    int       unscaled_overscan_y = ega->vres ? overscan_y >> 1 : overscan_y;
+    int       y_add   = enable_overscan ? unscaled_overscan_y : 0;
     int       x_add   = enable_overscan ? overscan_x : 0;
-    int       y_start = enable_overscan ? 0 : (overscan_y >> 1);
+    int       y_start = enable_overscan ? 0 : (unscaled_overscan_y >> 1);
     int       x_start = enable_overscan ? 0 : (overscan_x >> 1);
-    int       bottom  = (overscan_y >> 1);
+    int       bottom  = (unscaled_overscan_y >> 1);
     uint32_t *p;
     int       i;
     int       j;
