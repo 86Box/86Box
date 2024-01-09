@@ -1784,7 +1784,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                 ide->tf->error   = ABRT_ERR;
                 ide_irq_raise(ide);
             }
-            return;
+            break;
 
         default:
             break;
@@ -2096,6 +2096,8 @@ ide_board_callback(void *priv)
                 ide->tf->atastat |= DRDY_STAT | DSC_STAT;
         } else
             ide->tf->atastat = DRDY_STAT | DSC_STAT;
+
+        ide->reset = 0;
     }
 
     ide = dev->ide[0];
