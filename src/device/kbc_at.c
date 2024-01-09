@@ -699,7 +699,7 @@ kbc_at_poll(void *priv)
 {
     atkbc_t *dev = (atkbc_t *) priv;
 
-    timer_advance_u64(&dev->kbc_poll_timer, (39ULL * TIMER_USEC));
+    timer_advance_u64(&dev->kbc_poll_timer, (100ULL * TIMER_USEC));
 
     /* TODO: Implement the password security state. */
     kbc_at_do_poll(dev);
