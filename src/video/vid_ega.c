@@ -684,7 +684,7 @@ void
 ega_poll(void *priv)
 {
     ega_t   *ega = (ega_t *) priv;
-    int      x;
+    int      x, y;
     int      old_ma;
     int      wx = 640;
     int      wy = 350;
@@ -704,37 +704,26 @@ ega_poll(void *priv)
                 video_wait_for_buffer();
             }
 
-            if (ega->vres) {
-                old_ma = ega->ma;
-
-                ega->displine <<= 1;
-                ega->y_add <<= 1;
-
+            old_ma = ega->ma;
+            ega->displine *= ega->vres + 1;
+            ega->y_add *= ega->vres + 1;
+            for (y = 0; y <= ega->vres; y++) {
+                /* Render scanline */
                 ega->render(ega);
 
+                /* Render overscan */
                 ega->x_add = (overscan_x >> 1);
                 ega_render_overscan_left(ega);
                 ega_render_overscan_right(ega);
                 ega->x_add = (overscan_x >> 1) - ega->scrollcache;
 
-                ega->displine++;
-
-                ega->ma = old_ma;
-
-                ega->render(ega);
-
-                ega->x_add = (overscan_x >> 1);
-                ega_render_overscan_left(ega);
-                ega_render_overscan_right(ega);
-                ega->x_add = (overscan_x >> 1) - ega->scrollcache;
-
-                ega->y_add >>= 1;
-                ega->displine >>= 1;
-            } else {
-                ega_render_overscan_left(ega);
-                ega->render(ega);
-                ega_render_overscan_right(ega);
+                if (y != ega->vres) {
+                    ega->ma = old_ma;
+                    ega->displine++;
+                }
             }
+            ega->displine /= ega->vres + 1;
+            ega->y_add /= ega->vres + 1;
 
             if (ega->lastline < ega->displine)
                 ega->lastline = ega->displine;
@@ -887,16 +876,10 @@ ega_poll(void *priv)
             ega->displine = (ega->interlace && ega->oddeven) ? 1 : 0;
 
             ega->scrollcache = (ega->attrregs[0x13] & 0x0f);
-            if (!(ega->gdcreg[6] & 1) && !(ega->attrregs[0x10] & 1)) { /*Text mode*/
-                if (ega->seqregs[1] & 1)
-                    ega->scrollcache &= 0x07;
-                else {
-                    ega->scrollcache++;
-                    if (ega->scrollcache > 8)
-                        ega->scrollcache = 0;
-                }
-            } else
-                ega->scrollcache &= 0x07;
+            if (ega->scrollcache >= 0x8)
+                ega->scrollcache = 0;
+            else
+                ega->scrollcache++;
 
             if (ega->seqregs[1] & 8)
                 ega->scrollcache <<= 1;

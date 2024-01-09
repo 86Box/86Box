@@ -126,6 +126,14 @@ ega_render_text(ega_t *ega)
         const bool blinked       = ega->blink & 0x10;
         uint32_t  *p             = &buffer32->line[ega->displine + ega->y_add][ega->x_add];
 
+        /* Compensate for 8dot scroll */
+        if (!seq9dot) {
+            for (int x = 0; x < dotwidth; x++) {
+                p[x] = ega->overscan_color;
+            }
+            p += dotwidth;
+        }
+
         for (int x = 0; x < (ega->hdisp + ega->scrollcache); x += charwidth) {
             uint32_t addr = ega->remap_func(ega, ega->ma) & ega->vrammask;
 
