@@ -274,6 +274,9 @@ typedef struct svga_t {
     /* Enable LUT mapping of >= 24 bpp modes. */
     int lut_map;
 
+    /* Override the horizontal blanking stuff. */
+    int hoverride;
+
     /* Return a 32 bpp color from a 15/16 bpp color. */
     uint32_t (*conv_16to32)(struct svga_t *svga, uint16_t color, uint8_t bpp);
 
