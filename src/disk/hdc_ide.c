@@ -734,19 +734,25 @@ ide_get_sector(ide_t *ide)
 static void
 ide_next_sector(ide_t *ide)
 {
+    uint32_t sector = ide->tf->sector;
+    uint32_t head   = ide->tf->head;
+
     if (ide->tf->lba)
         ide->lba_addr++;
     else {
-        ide->tf->sector++;
-        if ((ide->tf->sector == 0) || (ide->tf->sector == (ide->cfg_spt + 1))) {
-            ide->tf->sector = 1;
-            ide->tf->head++;
-            if ((ide->tf->head == 0) || (ide->head == ide->cfg_hpc)) {
-                ide->tf->head = 0;
+        sector++;
+        if ((sector == 0) || (sector == (ide->cfg_spt + 1))) {
+            sector = 1;
+            head++;
+            if (head == ide->cfg_hpc) {
+                head = 0;
                 ide->tf->cylinder++;
             }
         }
     }
+
+    ide->tf->sector = sector & 0xff;
+    ide->tf->head   = head & 0x0f;
 }
 
 static void
@@ -1411,8 +1417,7 @@ ide_write_devctl(UNUSED(uint16_t addr), uint8_t val, void *priv)
 
     old         = dev->devctl;
     dev->devctl = val;
-    // if (!(val & 0x02) && (old & 0x02))
-    if ((old ^ val) & 0x02)
+    if (!(val & 0x02) && (old & 0x02))
         ide_irq_update(ide_boards[ide->board], 1);
 }
 
@@ -1779,7 +1784,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
                 ide->tf->error   = ABRT_ERR;
                 ide_irq_raise(ide);
             }
-            return;
+            break;
 
         default:
             break;
@@ -2091,6 +2096,8 @@ ide_board_callback(void *priv)
                 ide->tf->atastat |= DRDY_STAT | DSC_STAT;
         } else
             ide->tf->atastat = DRDY_STAT | DSC_STAT;
+
+        ide->reset = 0;
     }
 
     ide = dev->ide[0];
