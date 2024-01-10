@@ -738,7 +738,6 @@ svga_recalctimings(svga_t *svga)
     } else
         svga->monitor->mon_overscan_x = 16;
 
-    svga->htotal         = svga->crtc[0];
     svga->hblankstart    = svga->crtc[4] + 1;
     svga->hblank_end_val = (svga->crtc[3] & 0x1f) | ((svga->crtc[5] & 0x80) ? 0x20 : 0x00);
 #if 0
@@ -767,7 +766,6 @@ svga_recalctimings(svga_t *svga)
     if (xga_active && (svga->xga != NULL))
         xga_recalctimings(svga);
 
-    svga->htotal += 6; /*+6 is required for Tyrian*/
     svga->hblankend = (svga->hblankstart & ~(svga->hblank_end_len - 1)) | svga->hblank_end_val;
     if (svga->hblankend <= svga->hblankstart)
         svga->hblankend += svga->hblank_end_len;

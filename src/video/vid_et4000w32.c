@@ -445,6 +445,8 @@ et4000w32p_recalctimings(svga_t *svga)
         svga->rowoffset += 0x100;
     if (svga->crtc[0x3F] & 0x01)
         svga->htotal += 256;
+    if (svga->crtc[0x3F] & 0x04)
+        svga->hblankstart += 0x100;
     if (svga->attrregs[0x16] & 0x20)
         svga->hdisp <<= 1;
 

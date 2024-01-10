@@ -613,6 +613,8 @@ et4000_recalctimings(svga_t *svga)
         svga->rowoffset = 0x100;
     if (svga->crtc[0x3f] & 1)
         svga->htotal += 256;
+    if (svga->crtc[0x3f] & 0x04)
+        svga->hblankstart += 0x100;
     if (svga->attrregs[0x16] & 0x20)
         svga->hdisp <<= 1;
 

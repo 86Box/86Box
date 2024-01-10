@@ -778,11 +778,16 @@ s3_virge_recalctimings(svga_t *svga)
 
     svga->hdisp = svga->hdisp_old;
 
+    if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
+        /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
+        svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
+    }
+
     if (svga->crtc[0x5d] & 0x01)
         svga->htotal += 0x100;
     if (svga->crtc[0x5d] & 0x02) {
         svga->hdisp_time += 0x100;
-        svga->hdisp += 0x100 * ((svga->seqregs[1] & 8) ? 16 : 8);
+        svga->hdisp += 0x100 * svga->dots_per_clock;
     }
     if (svga->crtc[0x5e] & 0x01)
         svga->vtotal += 0x400;
@@ -906,6 +911,15 @@ s3_virge_recalctimings(svga_t *svga)
         }
         svga->vram_display_mask = virge->vram_mask;
     }
+    
+    if (svga->crtc[0x5d] & 0x04)
+        svga->hblankstart += 0x100;
+    
+    if (svga->crtc[0x5d] & 0x08)
+        svga->hblank_ext = 0x40;
+    svga->hblank_end_len = 0x00000040;
+
+    svga->hblank_overscan = !(svga->crtc[0x33] & 0x20);
 }
 
 static void
