@@ -601,7 +601,7 @@ svga_recalctimings(svga_t *svga)
         svga->vblankstart |= 0x200;
     svga->vblankstart++;
 
-    svga->hdisp = svga->crtc[1] - ((svga->crtc[5] & 0x60) >> 5);
+    svga->hdisp = svga->crtc[0x1];
     svga->hdisp++;
 
     svga->htotal = svga->crtc[0];
@@ -627,16 +627,22 @@ svga_recalctimings(svga_t *svga)
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
             if (svga->seqregs[1] & 8) {                              /*40 column*/
                 svga->render = svga_render_text_40;
-                svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
-                /* Character clock is off by 1 now in 40-line modes, on all cards. */
-                svga->ma_latch--;
-                svga->hdisp += (svga->seqregs[1] & 1) ? 16 : 18;
+                svga->hdisp *= 2;
             } else {
                 svga->render = svga_render_text_80;
-                svga->hdisp *= (svga->seqregs[1] & 1) ? 8 : 9;
             }
+            svga->hdisp *= (svga->seqregs[1] & 1) ? 8 : 9;
             svga->hdisp_old = svga->hdisp;
         } else {
+            /*RESEARCH TOPIC: Which chipsets honour 9-dot mode in graphics mode?
+              One still gets an 8-dot input, but is likely to get some weird chaining through the graphics controller.
+
+              Chipsets which honour it, and do an extra pixel (or two, or four) of chaining through the GC pixel shift registers:
+              - (none found so far)
+
+              Chipsets which treat it like it's in 8-dot mode, and affect the monitor timings in the process:
+              - S3 Trio64V2/DX
+              */
             svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
             svga->hdisp_old = svga->hdisp;
 
@@ -976,10 +982,24 @@ svga_poll(void *priv)
                 ret = svga->line_compare(svga);
 
             if (ret) {
+                /*NOTE ON CHARACTER SKEW VALUES:
+
+                 - CR03 delays the start and end of active video, while continuing to clock things as usual.
+                   This effectively hides N character clocks on the left, and reveals N character clocks on the right.
+                 - CR05 delays the horizontal retrace (HSYNC) signal. It affects the position of the displayed image on the monitor.
+                   Since 86Box at the time of writing (2024-01-10) does not support overscan for anything other than showing the border,
+                   there should be no effect.
+                 - CR0B delays the position of the cursor by a number of character clocks.
+
+                 So how do the INT 0x10 modes work?
+
+                 - EGA has some rather interesting values for all of this which can make for interesting research.
+                 - VGA and all of a few SVGA chipsets sampled uses 0 for everything except CR05 in the two 40x25 text modes where it uses 1.
+                 */
                 if (svga->interlace && svga->oddeven)
-                    svga->ma = svga->maback = (svga->rowoffset << 1) + ((svga->crtc[5] & 0x60) >> 5);
+                    svga->ma = svga->maback = (svga->rowoffset << 1) + ((svga->crtc[0x3] & 0x60) >> 5);
                 else
-                    svga->ma = svga->maback = ((svga->crtc[5] & 0x60) >> 5);
+                    svga->ma = svga->maback = ((svga->crtc[0x3] & 0x60) >> 5);
                 svga->ma     = (svga->ma << 2);
                 svga->maback = (svga->maback << 2);
 
@@ -1049,9 +1069,9 @@ svga_poll(void *priv)
             svga->vslines                       = 0;
 
             if (svga->interlace && svga->oddeven)
-                svga->ma = svga->maback = svga->ma_latch + (svga->rowoffset << 1) + ((svga->crtc[5] & 0x60) >> 5);
+                svga->ma = svga->maback = svga->ma_latch + (svga->rowoffset << 1) + ((svga->crtc[0x3] & 0x60) >> 5);
             else
-                svga->ma = svga->maback = svga->ma_latch + ((svga->crtc[5] & 0x60) >> 5);
+                svga->ma = svga->maback = svga->ma_latch + ((svga->crtc[0x3] & 0x60) >> 5);
 
             svga->ca     = ((svga->crtc[0xe] << 8) | svga->crtc[0xf]) + ((svga->crtc[0xb] & 0x60) >> 5) + svga->ca_adj;
             svga->ma     = (svga->ma << 2);
