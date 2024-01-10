@@ -766,17 +766,19 @@ svga_recalctimings(svga_t *svga)
     if (xga_active && (svga->xga != NULL))
         xga_recalctimings(svga);
 
-    svga->hblankend = (svga->hblankstart & ~(svga->hblank_end_len - 1)) | svga->hblank_end_val;
-    if (svga->hblankend <= svga->hblankstart)
-        svga->hblankend += svga->hblank_end_len;
-    svga->hblankend += svga->hblank_ext;
+    if (!svga->hoverride) {
+        svga->hblankend = (svga->hblankstart & ~(svga->hblank_end_len - 1)) | svga->hblank_end_val;
+        if (svga->hblankend <= svga->hblankstart)
+            svga->hblankend += svga->hblank_end_len;
+        svga->hblankend += svga->hblank_ext;
 
-    svga->hblank_sub = 0;
-    if (svga->hblankend > svga->htotal) {
-        svga->hblankend &= (svga->hblank_end_len - 1);
-        svga->hblank_sub = svga->hblankend + svga->hblank_overscan;
+        svga->hblank_sub = 0;
+        if (svga->hblankend > svga->htotal) {
+            svga->hblankend &= (svga->hblank_end_len - 1);
+            svga->hblank_sub = svga->hblankend + svga->hblank_overscan;
 
-        svga->hdisp -= (svga->hblank_sub * svga->dots_per_clock);
+            svga->hdisp -= (svga->hblank_sub * svga->dots_per_clock);
+        }
     }
 
     if (svga->hdisp >= 2048)
