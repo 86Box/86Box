@@ -4013,6 +4013,11 @@ s3_trio64v_recalctimings(svga_t *svga)
     s3_t *s3            = (s3_t *) svga->priv;
     int         clk_sel = (svga->miscout >> 2) & 3;
 
+    if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
+        /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
+        svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
+    }
+
     svga->hdisp = svga->hdisp_old;
     if (svga->crtc[0x5d] & 0x01)
         svga->htotal |= 0x100;
@@ -4145,11 +4150,6 @@ s3_trio64v_recalctimings(svga_t *svga)
             default:
                 break;
         }
-    }
-
-    if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
-        /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
-        svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
     }
 
     if (svga->crtc[0x5d] & 0x04)
