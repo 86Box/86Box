@@ -136,6 +136,10 @@ ati28800_out(uint16_t addr, uint8_t val, void *priv)
                     if ((old ^ val) & 0x80)
                         svga_recalctimings(svga);
                     break;
+                case 0xad:
+                    if ((old ^ val) & 0x0c)
+                        svga_recalctimings(svga);
+                    break;
                 case 0xb0:
                     if ((old ^ val) & 0x60)
                         svga_recalctimings(svga);
@@ -492,6 +496,9 @@ ati28800_recalctimings(svga_t *svga)
             }
         }
     }
+
+    if (ati28800->regs[0xad] & 0x08)
+        svga->hblankstart    = ((ati28800->regs[0x0d] >> 2) << 8) + svga->crtc[4] + 1;
 }
 
 static void
