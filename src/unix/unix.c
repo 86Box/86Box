@@ -1386,14 +1386,15 @@ void
 plat_set_thread_name(void *thread, const char *name)
 {
 #ifdef __APPLE__
+    if (thread) /* Apple pthread can only set self's name */
+        return;
     char truncated[64];
 #else
     char truncated[16];
 #endif
     strncpy(truncated, name, sizeof(truncated) - 1);
 #ifdef __APPLE__
-    if (!thread)
-        pthread_setname_np(truncated);
+    pthread_setname_np(truncated);
 #else
     pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
 #endif
