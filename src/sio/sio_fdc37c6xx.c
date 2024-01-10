@@ -11,10 +11,8 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdio.h>
@@ -230,8 +228,8 @@ fdc37c6xx_write(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 fdc37c6xx_read(uint16_t port, void *priv)
 {
-    fdc37c6xx_t *dev = (fdc37c6xx_t *) priv;
-    uint8_t      ret = 0xff;
+    const fdc37c6xx_t *dev = (fdc37c6xx_t *) priv;
+    uint8_t            ret = 0xff;
 
     if (dev->tries == 2) {
         if (port == 0x3f1)

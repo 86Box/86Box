@@ -27,6 +27,7 @@
 #include <86box/mem.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
+#include <86box/plat_unused.h>
 
 typedef struct tkd8001_ramdac_t {
     int     state;
@@ -34,9 +35,9 @@ typedef struct tkd8001_ramdac_t {
 } tkd8001_ramdac_t;
 
 void
-tkd8001_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
+tkd8001_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga)
 {
-    tkd8001_ramdac_t *ramdac = (tkd8001_ramdac_t *) p;
+    tkd8001_ramdac_t *ramdac = (tkd8001_ramdac_t *) priv;
 
     switch (addr) {
         case 0x3C6:
@@ -59,6 +60,9 @@ tkd8001_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
                     case 7:
                         svga->bpp = 16;
                         break;
+
+                    default:
+                        break;
                 }
                 return;
             }
@@ -68,15 +72,18 @@ tkd8001_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
         case 0x3C9:
             ramdac->state = 0;
             break;
+
+        default:
+            break;
     }
 
     svga_out(addr, val, svga);
 }
 
 uint8_t
-tkd8001_ramdac_in(uint16_t addr, void *p, svga_t *svga)
+tkd8001_ramdac_in(uint16_t addr, void *priv, svga_t *svga)
 {
-    tkd8001_ramdac_t *ramdac = (tkd8001_ramdac_t *) p;
+    tkd8001_ramdac_t *ramdac = (tkd8001_ramdac_t *) priv;
 
     switch (addr) {
         case 0x3C6:
@@ -89,12 +96,15 @@ tkd8001_ramdac_in(uint16_t addr, void *p, svga_t *svga)
         case 0x3C9:
             ramdac->state = 0;
             break;
+
+        default:
+            break;
     }
     return svga_in(addr, svga);
 }
 
 static void *
-tkd8001_ramdac_init(const device_t *info)
+tkd8001_ramdac_init(UNUSED(const device_t *info))
 {
     tkd8001_ramdac_t *ramdac = (tkd8001_ramdac_t *) malloc(sizeof(tkd8001_ramdac_t));
     memset(ramdac, 0, sizeof(tkd8001_ramdac_t));

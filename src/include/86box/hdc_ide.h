@@ -28,26 +28,61 @@
 #define HDC_SECONDARY_BASE  0x0170
 #define HDC_SECONDARY_SIDE  0x0376
 #define HDC_SECONDARY_IRQ   15
-#define HDC_TERTIARY_BASE   0x0168
-#define HDC_TERTIARY_SIDE   0x036E
-#define HDC_TERTIARY_IRQ    10
-#define HDC_QUATERNARY_BASE 0x01E8
-#define HDC_QUATERNARY_SIDE 0x03EE
-#define HDC_QUATERNARY_IRQ  11
+#define HDC_TERTIARY_BASE   0x01E8
+#define HDC_TERTIARY_SIDE   0x03EE
+#define HDC_TERTIARY_IRQ    11
+#define HDC_QUATERNARY_BASE 0x0168
+#define HDC_QUATERNARY_SIDE 0x036E
+#define HDC_QUATERNARY_IRQ  10
 
 enum {
-    IDE_NONE = 0,
-    IDE_HDD,
-    IDE_ATAPI
+    IDE_NONE = 0,       /* Absent master or both. */
+    IDE_HDD,            /* Hard disk. */
+    IDE_ATAPI,          /* ATAPI device. */
+    IDE_RESERVED,       /* Reserved, do not use. */
+    IDE_SHADOW,         /* Shadow flag, do not assign on is own. */
+    IDE_HDD_SHADOW,     /* Shadow of a hard disk. */
+    IDE_ATAPI_SHADOW    /* Shadow of an ATAPI device. */
 };
 
-#ifdef SCSI_DEVICE_H
+typedef struct ide_tf_s {
+    union {
+        uint8_t cylprecomp;
+        uint8_t features;
+    };
+    union {
+        uint8_t secount;
+        uint8_t phase;
+    };
+    union {
+        uint16_t cylinder;
+        uint16_t request_length;
+    };
+    union {
+        uint8_t atastat;
+        uint8_t status;
+    };
+    uint8_t error;
+    uint8_t sector;
+    union {
+        uint8_t drvsel;
+        struct {
+            uint8_t head :4;
+            uint8_t pad  :2; 
+            uint8_t lba  :1; 
+            uint8_t pad0 :1;
+        };
+    };
+    uint32_t pos;
+} ide_tf_t;
+
+#ifdef _TIMER_H_
 typedef struct ide_s {
+    /* The rest. */
     uint8_t  selected;
-    uint8_t  atastat;
-    uint8_t  error;
     uint8_t  command;
-    uint8_t  fdisk;
+    uint8_t  head;
+    uint8_t  pad;
     int      type;
     int      board;
     int      irqstat;
@@ -56,18 +91,11 @@ typedef struct ide_s {
     int      blockcount;
     int      hdd_num;
     int      channel;
-    int      pos;
     int      sector_pos;
-    int      lba;
     int      reset;
     int      mdma_mode;
     int      do_initial_read;
-    uint32_t secount;
-    uint32_t sector;
-    uint32_t cylinder;
-    uint32_t head;
     uint32_t drive;
-    uint32_t cylprecomp;
     uint32_t cfg_spt;
     uint32_t cfg_hpc;
     uint32_t lba_addr;
@@ -80,23 +108,43 @@ typedef struct ide_s {
 
     pc_timer_t timer;
 
+    /* Task file. */
+    ide_tf_t *     tf;
+
     /* Stuff mostly used by ATAPI */
+#ifdef SCSI_DEVICE_H
     scsi_common_t *sc;
+#else
+    void *         sc;
+#endif
     int            interrupt_drq;
     double         pending_delay;
 
-    int (*get_max)(int ide_has_dma, int type);
-    int (*get_timings)(int ide_has_dma, int type);
-    void (*identify)(struct ide_s *ide, int ide_has_dma);
-    void (*stop)(scsi_common_t *sc);
-    void (*packet_command)(scsi_common_t *sc, uint8_t *cdb);
-    void (*device_reset)(scsi_common_t *sc);
+#ifdef SCSI_DEVICE_H
+    int     (*get_max)(int ide_has_dma, int type);
+    int     (*get_timings)(int ide_has_dma, int type);
+    void    (*identify)(struct ide_s *ide, int ide_has_dma);
+    void    (*stop)(scsi_common_t *sc);
+    void    (*packet_command)(scsi_common_t *sc, uint8_t *cdb);
+    void    (*device_reset)(scsi_common_t *sc);
     uint8_t (*phase_data_out)(scsi_common_t *sc);
-    void (*command_stop)(scsi_common_t *sc);
-    void (*bus_master_error)(scsi_common_t *sc);
+    void    (*command_stop)(scsi_common_t *sc);
+    void    (*bus_master_error)(scsi_common_t *sc);
+#else
+    void *  get_max;
+    void *  get_timings;
+    void *  identify;
+    void *  stop;
+    void *  device_reset;
+    void *  phase_data_out;
+    void *  command_stop;
+    void *  bus_master_error;
+#endif
 } ide_t;
 
+#ifdef EMU_HDC_H
 extern ide_t *ide_drives[IDE_NUM];
+#endif
 #endif
 
 /* Type:
@@ -132,14 +180,15 @@ extern int ide_qua_enabled;
 
 #ifdef SCSI_DEVICE_H
 extern ide_t *ide_get_drive(int ch);
-extern void   ide_irq_raise(ide_t *ide);
-extern void   ide_irq_lower(ide_t *ide);
+extern void   ide_irq(ide_t *ide, int set, int log);
 extern void   ide_allocate_buffer(ide_t *dev);
 extern void   ide_atapi_attach(ide_t *dev);
 #endif
 
 extern void *ide_xtide_init(void);
 extern void  ide_xtide_close(void);
+
+extern void  ide_drives_set_shadow(void);
 
 extern void     ide_writew(uint16_t addr, uint16_t val, void *priv);
 extern void     ide_write_devctl(uint16_t addr, uint8_t val, void *priv);
@@ -149,22 +198,15 @@ extern uint8_t  ide_read_alt_status(uint16_t addr, void *priv);
 extern uint16_t ide_readw(uint16_t addr, void *priv);
 
 extern void ide_set_bus_master(int board,
-                               int (*dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv),
-                               void (*set_irq)(int channel, void *priv), void *priv);
+                               int (*dma)(uint8_t *data, int transfer_length, int out, void *priv),
+                               void (*set_irq)(uint8_t status, void *priv), void *priv);
 
 extern void win_cdrom_eject(uint8_t id);
 extern void win_cdrom_reload(uint8_t id);
 
-extern void ide_set_base(int board, uint16_t port);
-extern void ide_set_side(int board, uint16_t port);
+extern void ide_set_base_addr(int board, int base, uint16_t port);
 
-extern void ide_set_handlers(uint8_t board);
-extern void ide_remove_handlers(uint8_t board);
-
-extern void ide_pri_enable(void);
-extern void ide_pri_disable(void);
-extern void ide_sec_enable(void);
-extern void ide_sec_disable(void);
+extern void ide_handlers(uint8_t board, int set);
 
 extern void ide_board_set_force_ata3(int board, int force_ata3);
 #ifdef EMU_ISAPNP_H
@@ -180,11 +222,22 @@ extern void ide_set_board_callback(uint8_t board, double callback);
 extern void ide_padstr(char *str, const char *src, int len);
 extern void ide_padstr8(uint8_t *buf, int buf_size, const char *src);
 
-extern int (*ide_bus_master_dma)(int channel, uint8_t *data, int transfer_length, int out, void *priv);
-extern void (*ide_bus_master_set_irq)(int channel, void *priv);
-extern void *ide_bus_master_priv[2];
-
 extern uint8_t ide_read_ali_75(void);
 extern uint8_t ide_read_ali_76(void);
+
+/* Legacy #define's. */
+#define ide_irq_raise(ide) ide_irq(ide, 1, 1)
+#define ide_irq_lower(ide) ide_irq(ide, 0, 1)
+
+#define ide_set_base(board, port) ide_set_base_addr(board, 0, port)
+#define ide_set_side(board, port) ide_set_base_addr(board, 1, port)
+
+#define ide_pri_enable()     ide_handlers(0, 1)
+#define ide_pri_disable()    ide_handlers(0, 0)
+#define ide_sec_enable()     ide_handlers(1, 1)
+#define ide_sec_disable()    ide_handlers(1, 0)
+
+#define ide_set_handlers(board) ide_handlers(board, 1)
+#define ide_remove_handlers(board) ide_handlers(board, 0)
 
 #endif /*EMU_IDE_H*/

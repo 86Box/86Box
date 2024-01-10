@@ -36,6 +36,8 @@
 #include <86box/hdc_ide.h>
 #include <86box/zip.h>
 
+#define IDE_ATAPI_IS_EARLY             id->sc->pad0
+
 zip_drive_t zip_drives[ZIP_NUM];
 
 /* Table of all SCSI commands and their flags, needed for the new disc change / not ready handler. */
@@ -470,9 +472,9 @@ find_zip_for_channel(uint8_t channel)
 static int
 zip_load_abort(zip_t *dev)
 {
-    if (dev->drv->f)
-        fclose(dev->drv->f);
-    dev->drv->f           = NULL;
+    if (dev->drv->fp)
+        fclose(dev->drv->fp);
+    dev->drv->fp           = NULL;
     dev->drv->medium_size = 0;
     zip_eject(dev->id); /* Make sure the host OS knows we've rejected (and ejected) the image. */
     return 0;
@@ -483,11 +485,16 @@ zip_load(zip_t *dev, char *fn)
 {
     int size = 0;
 
-    dev->drv->f = plat_fopen(fn, dev->drv->read_only ? "rb" : "rb+");
-    if (!dev->drv->f) {
+    if (!dev->drv) {
+        zip_eject(dev->id);
+        return 0;
+    }
+
+    dev->drv->fp = plat_fopen(fn, dev->drv->read_only ? "rb" : "rb+");
+    if (!dev->drv->fp) {
         if (!dev->drv->read_only) {
-            dev->drv->f = plat_fopen(fn, "rb");
-            if (dev->drv->f)
+            dev->drv->fp = plat_fopen(fn, "rb");
+            if (dev->drv->fp)
                 dev->drv->read_only = 1;
             else
                 return zip_load_abort(dev);
@@ -495,8 +502,8 @@ zip_load(zip_t *dev, char *fn)
             return zip_load_abort(dev);
     }
 
-    fseek(dev->drv->f, 0, SEEK_END);
-    size = ftell(dev->drv->f);
+    fseek(dev->drv->fp, 0, SEEK_END);
+    size = ftell(dev->drv->fp);
 
     if ((size == ((ZIP_250_SECTORS << 9) + 0x1000)) || (size == ((ZIP_SECTORS << 9) + 0x1000))) {
         /* This is a ZDI image. */
@@ -521,10 +528,10 @@ zip_load(zip_t *dev, char *fn)
 
     dev->drv->medium_size = size >> 9;
 
-    if (fseek(dev->drv->f, dev->drv->base, SEEK_SET) == -1)
+    if (fseek(dev->drv->fp, dev->drv->base, SEEK_SET) == -1)
         fatal("zip_load(): Error seeking to the beginning of the file\n");
 
-    strncpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path) - 1);
+    strncpy(dev->drv->image_path, fn, strlen(dev->drv->image_path) + 1);
 
     return 1;
 }
@@ -546,16 +553,16 @@ zip_disk_reload(zip_t *dev)
 void
 zip_disk_unload(zip_t *dev)
 {
-    if (dev->drv->f) {
-        fclose(dev->drv->f);
-        dev->drv->f = NULL;
+    if (dev->drv && dev->drv->fp) {
+        fclose(dev->drv->fp);
+        dev->drv->fp = NULL;
     }
 }
 
 void
 zip_disk_close(zip_t *dev)
 {
-    if (dev->drv->f) {
+    if (dev->drv && dev->drv->fp) {
         zip_disk_unload(dev);
 
         memcpy(dev->drv->prev_image_path, dev->drv->image_path, sizeof(dev->drv->prev_image_path));
@@ -588,11 +595,11 @@ zip_init(zip_t *dev)
         dev->drv->bus_mode |= 1;
     zip_log("ZIP %i: Bus type %i, bus mode %i\n", dev->id, dev->drv->bus_type, dev->drv->bus_mode);
     if (dev->drv->bus_type < ZIP_BUS_SCSI) {
-        dev->phase          = 1;
-        dev->request_length = 0xEB14;
+        dev->tf->phase          = 1;
+        dev->tf->request_length = 0xEB14;
     }
-    dev->status        = READY_STAT | DSC_STAT;
-    dev->pos           = 0;
+    dev->tf->status    = READY_STAT | DSC_STAT;
+    dev->tf->pos       = 0;
     dev->packet_status = PHASE_NONE;
     zip_sense_key = zip_asc = zip_ascq = dev->unit_attention = 0;
 }
@@ -622,36 +629,9 @@ zip_current_mode(zip_t *dev)
     if (!zip_supports_pio(dev) && zip_supports_dma(dev))
         return 2;
     if (zip_supports_pio(dev) && zip_supports_dma(dev)) {
-        zip_log("ZIP %i: Drive supports both, setting to %s\n", dev->id, (dev->features & 1) ? "DMA" : "PIO");
-        return (dev->features & 1) ? 2 : 1;
-    }
-
-    return 0;
-}
-
-/* Translates ATAPI phase (DRQ, I/O, C/D) to SCSI phase (MSG, C/D, I/O). */
-int
-zip_atapi_phase_to_scsi(zip_t *dev)
-{
-    if (dev->status & 8) {
-        switch (dev->phase & 3) {
-            case 0:
-                return 0;
-            case 1:
-                return 2;
-            case 2:
-                return 1;
-            case 3:
-                return 7;
-
-            default:
-                break;
-        }
-    } else {
-        if ((dev->phase & 3) == 3)
-            return 3;
-        else
-            return 4;
+        zip_log("ZIP %i: Drive supports both, setting to %s\n", dev->id,
+                (dev->tf->features & 1) ? "DMA" : "PIO");
+        return (dev->tf->features & 1) ? 2 : 1;
     }
 
     return 0;
@@ -660,8 +640,8 @@ zip_atapi_phase_to_scsi(zip_t *dev)
 static void
 zip_mode_sense_load(zip_t *dev)
 {
-    FILE *f;
-    char  file_name[512];
+    FILE *fp;
+    char  fn[512];
 
     memset(&dev->ms_pages_saved, 0, sizeof(mode_sense_pages_t));
     if (dev->drv->is_250) {
@@ -676,33 +656,33 @@ zip_mode_sense_load(zip_t *dev)
             memcpy(&dev->ms_pages_saved, &zip_mode_sense_pages_default, sizeof(mode_sense_pages_t));
     }
 
-    memset(file_name, 0, 512);
+    memset(fn, 0, 512);
     if (dev->drv->bus_type == ZIP_BUS_SCSI)
-        sprintf(file_name, "scsi_zip_%02i_mode_sense_bin", dev->id);
+        sprintf(fn, "scsi_zip_%02i_mode_sense_bin", dev->id);
     else
-        sprintf(file_name, "zip_%02i_mode_sense_bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), "rb");
-    if (f) {
+        sprintf(fn, "zip_%02i_mode_sense_bin", dev->id);
+    fp = plat_fopen(nvr_path(fn), "rb");
+    if (fp) {
         /* Nothing to read, not used by ZIP. */
-        fclose(f);
+        fclose(fp);
     }
 }
 
 static void
 zip_mode_sense_save(zip_t *dev)
 {
-    FILE *f;
-    char  file_name[512];
+    FILE *fp;
+    char  fn[512];
 
-    memset(file_name, 0, 512);
+    memset(fn, 0, 512);
     if (dev->drv->bus_type == ZIP_BUS_SCSI)
-        sprintf(file_name, "scsi_zip_%02i_mode_sense_bin", dev->id);
+        sprintf(fn, "scsi_zip_%02i_mode_sense_bin", dev->id);
     else
-        sprintf(file_name, "zip_%02i_mode_sense_bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), "wb");
-    if (f) {
+        sprintf(fn, "zip_%02i_mode_sense_bin", dev->id);
+    fp = plat_fopen(nvr_path(fn), "wb");
+    if (fp) {
         /* Nothing to write, not used by ZIP. */
-        fclose(f);
+        fclose(fp);
     }
 }
 
@@ -791,7 +771,7 @@ zip_update_request_length(zip_t *dev, int len, int block_len)
     int bt;
     int min_len = 0;
 
-    dev->max_transfer_len = dev->request_length;
+    dev->max_transfer_len = dev->tf->request_length;
 
     /* For media access commands, make sure the requested DRQ length matches the block length. */
     switch (dev->current_cdb[0]) {
@@ -821,9 +801,7 @@ zip_update_request_length(zip_t *dev, int len, int block_len)
                     break;
                 }
             }
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         default:
             dev->packet_len = len;
@@ -837,9 +815,9 @@ zip_update_request_length(zip_t *dev, int len, int block_len)
         dev->max_transfer_len = 65534;
 
     if ((len <= dev->max_transfer_len) && (len >= min_len))
-        dev->request_length = dev->max_transfer_len = len;
+        dev->tf->request_length = dev->max_transfer_len = len;
     else if (len > dev->max_transfer_len)
-        dev->request_length = dev->max_transfer_len;
+        dev->tf->request_length = dev->max_transfer_len;
 
     return;
 }
@@ -870,9 +848,9 @@ zip_command_common(zip_t *dev)
     double bytes_per_second;
     double period;
 
-    dev->status = BUSY_STAT;
-    dev->phase  = 1;
-    dev->pos    = 0;
+    dev->tf->status = BUSY_STAT;
+    dev->tf->phase  = 1;
+    dev->tf->pos    = 0;
     if (dev->packet_status == PHASE_COMPLETE)
         dev->callback = 0.0;
     else {
@@ -934,8 +912,8 @@ static void
 zip_data_command_finish(zip_t *dev, int len, int block_len, int alloc_len, int direction)
 {
     zip_log("ZIP %i: Finishing command (%02X): %i, %i, %i, %i, %i\n",
-            dev->id, dev->current_cdb[0], len, block_len, alloc_len, direction, dev->request_length);
-    dev->pos = 0;
+            dev->id, dev->current_cdb[0], len, block_len, alloc_len, direction, dev->tf->request_length);
+    dev->tf->pos = 0;
     if (alloc_len >= 0) {
         if (alloc_len < len)
             len = alloc_len;
@@ -964,7 +942,8 @@ zip_data_command_finish(zip_t *dev, int len, int block_len, int alloc_len, int d
     }
 
     zip_log("ZIP %i: Status: %i, cylinder %i, packet length: %i, position: %i, phase: %i\n",
-            dev->id, dev->packet_status, dev->request_length, dev->packet_len, dev->pos, dev->phase);
+            dev->id, dev->packet_status, dev->tf->request_length, dev->packet_len, dev->tf->pos,
+            dev->tf->phase);
 }
 
 static void
@@ -989,12 +968,12 @@ static void
 zip_cmd_error(zip_t *dev)
 {
     zip_set_phase(dev, SCSI_PHASE_STATUS);
-    dev->error = ((zip_sense_key & 0xf) << 4) | ABRT_ERR;
+    dev->tf->error = ((zip_sense_key & 0xf) << 4) | ABRT_ERR;
     if (dev->unit_attention)
-        dev->error |= MCR_ERR;
-    dev->status        = READY_STAT | ERR_STAT;
-    dev->phase         = 3;
-    dev->pos           = 0;
+        dev->tf->error |= MCR_ERR;
+    dev->tf->status    = READY_STAT | ERR_STAT;
+    dev->tf->phase     = 3;
+    dev->tf->pos       = 0;
     dev->packet_status = PHASE_ERROR;
     dev->callback      = 50.0 * ZIP_TIME;
     zip_set_callback(dev);
@@ -1006,12 +985,12 @@ static void
 zip_unit_attention(zip_t *dev)
 {
     zip_set_phase(dev, SCSI_PHASE_STATUS);
-    dev->error = (SENSE_UNIT_ATTENTION << 4) | ABRT_ERR;
+    dev->tf->error = (SENSE_UNIT_ATTENTION << 4) | ABRT_ERR;
     if (dev->unit_attention)
-        dev->error |= MCR_ERR;
-    dev->status        = READY_STAT | ERR_STAT;
-    dev->phase         = 3;
-    dev->pos           = 0;
+        dev->tf->error |= MCR_ERR;
+    dev->tf->status    = READY_STAT | ERR_STAT;
+    dev->tf->phase     = 3;
+    dev->tf->pos       = 0;
     dev->packet_status = PHASE_ERROR;
     dev->callback      = 50.0 * ZIP_TIME;
     zip_set_callback(dev);
@@ -1099,7 +1078,7 @@ zip_invalid_field(zip_t *dev)
     zip_asc       = ASC_INV_FIELD_IN_CMD_PACKET;
     zip_ascq      = 0;
     zip_cmd_error(dev);
-    dev->status = 0x53;
+    dev->tf->status = 0x53;
 }
 
 static void
@@ -1109,7 +1088,7 @@ zip_invalid_field_pl(zip_t *dev)
     zip_asc       = ASC_INV_FIELD_IN_PARAMETER_LIST;
     zip_ascq      = 0;
     zip_cmd_error(dev);
-    dev->status = 0x53;
+    dev->tf->status = 0x53;
 }
 
 static void
@@ -1142,17 +1121,17 @@ zip_blocks(zip_t *dev, int32_t *len, UNUSED(int first_batch), int out)
     *len = dev->requested_blocks << 9;
 
     for (int i = 0; i < dev->requested_blocks; i++) {
-        if (fseek(dev->drv->f, dev->drv->base + (dev->sector_pos << 9) + (i << 9), SEEK_SET) == 1)
+        if (fseek(dev->drv->fp, dev->drv->base + (dev->sector_pos << 9) + (i << 9), SEEK_SET) == 1)
             break;
 
-        if (feof(dev->drv->f))
+        if (feof(dev->drv->fp))
             break;
 
         if (out) {
-            if (fwrite(dev->buffer + (i << 9), 1, 512, dev->drv->f) != 512)
+            if (fwrite(dev->buffer + (i << 9), 1, 512, dev->drv->fp) != 512)
                 fatal("zip_blocks(): Error writing data\n");
         } else {
-            if (fread(dev->buffer + (i << 9), 1, 512, dev->drv->f) != 512)
+            if (fread(dev->buffer + (i << 9), 1, 512, dev->drv->fp) != 512)
                 fatal("zip_blocks(): Error reading data\n");
         }
     }
@@ -1186,7 +1165,8 @@ zip_pre_execution_check(zip_t *dev, uint8_t *cdb)
     int ready = 0;
 
     if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) && (cdb[1] & 0xe0)) {
-        zip_log("ZIP %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n", dev->id, ((dev->request_length >> 5) & 7));
+        zip_log("ZIP %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n", dev->id,
+                ((dev->tf->request_length >> 5) & 7));
         zip_invalid_lun(dev);
         return 0;
     }
@@ -1211,7 +1191,7 @@ zip_pre_execution_check(zip_t *dev, uint8_t *cdb)
         return 0;
     }
 
-    ready = (dev->drv->f != NULL);
+    ready = (dev->drv->fp != NULL);
 
     /* If the drive is not ready, there is no reason to keep the
        UNIT ATTENTION condition present, as we only use it to mark
@@ -1276,14 +1256,14 @@ zip_reset(scsi_common_t *sc)
     zip_t *dev = (zip_t *) sc;
 
     zip_rezero(dev);
-    dev->status   = 0;
-    dev->callback = 0.0;
+    dev->tf->status         = 0;
+    dev->callback           = 0.0;
     zip_set_callback(dev);
-    dev->phase          = 1;
-    dev->request_length = 0xEB14;
-    dev->packet_status  = PHASE_NONE;
-    dev->unit_attention = 0;
-    dev->cur_lun        = SCSI_LUN_USE_CDB;
+    dev->tf->phase          = 1;
+    dev->tf->request_length = 0xEB14;
+    dev->packet_status      = PHASE_NONE;
+    dev->unit_attention     = 0;
+    dev->cur_lun            = SCSI_LUN_USE_CDB;
 }
 
 static void
@@ -1327,7 +1307,7 @@ zip_request_sense_for_scsi(scsi_common_t *sc, uint8_t *buffer, uint8_t alloc_len
     zip_t *dev   = (zip_t *) sc;
     int    ready = 0;
 
-    ready = (dev->drv->f != NULL);
+    ready = (dev->drv->fp != NULL);
 
     if (!ready && dev->unit_attention) {
         /* If the drive is not ready, there is no reason to keep the
@@ -1375,11 +1355,11 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
     uint8_t  scsi_id  = dev->drv->scsi_device_id & 0x0f;
 
     if (dev->drv->bus_type == ZIP_BUS_SCSI) {
-        BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
-        dev->status &= ~ERR_STAT;
+        BufLen          = &scsi_devices[scsi_bus][scsi_id].buffer_length;
+        dev->tf->status &= ~ERR_STAT;
     } else {
-        BufLen     = &blen;
-        dev->error = 0;
+        BufLen         = &blen;
+        dev->tf->error = 0;
     }
 
     dev->packet_len  = 0;
@@ -1390,7 +1370,7 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
     if (cdb[0] != 0) {
         zip_log("ZIP %i: Command 0x%02X, Sense Key %02X, Asc %02X, Ascq %02X, Unit attention: %i\n",
                 dev->id, cdb[0], zip_sense_key, zip_asc, zip_ascq, dev->unit_attention);
-        zip_log("ZIP %i: Request length: %04X\n", dev->id, dev->request_length);
+        zip_log("ZIP %i: Request length: %04X\n", dev->id, dev->tf->request_length);
 
         zip_log("ZIP %i: CDB: %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X\n", dev->id,
                 cdb[0], cdb[1], cdb[2], cdb[3], cdb[4], cdb[5], cdb[6], cdb[7],
@@ -1411,9 +1391,7 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                 zip_invalid_field(dev);
                 return;
             }
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case GPCMD_SCSI_RESERVE:
         case GPCMD_SCSI_RELEASE:
         case GPCMD_TEST_UNIT_READY:
@@ -1469,8 +1447,9 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
             break;
 
         case GPCMD_REQUEST_SENSE:
-            /* If there's a unit attention condition and there's a buffered not ready, a standalone REQUEST SENSE
-               should forget about the not ready, and report unit attention straight away. */
+            /* If there's a unit attention condition and there's a buffered not
+               ready, a standalone REQUEST SENSE should forget about the not
+               ready, and report unit attention straight away. */
             zip_set_phase(dev, SCSI_PHASE_DATA_IN);
             max_len = cdb[4];
 
@@ -1511,7 +1490,14 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
             switch (cdb[0]) {
                 case GPCMD_READ_6:
                     dev->sector_len = cdb[4];
-                    dev->sector_pos = ((((uint32_t) cdb[1]) & 0x1f) << 16) | (((uint32_t) cdb[2]) << 8) | ((uint32_t) cdb[3]);
+                    /*
+                       For READ (6) and WRITE (6), a length of 0 indicates a
+                       transfer of 256 sectors.
+                     */
+                    if (dev->sector_len == 0)
+                        dev->sector_len = 256;
+                    dev->sector_pos = ((((uint32_t) cdb[1]) & 0x1f) << 16) |
+                                      (((uint32_t) cdb[2]) << 8) | ((uint32_t) cdb[3]);
                     zip_log("ZIP %i: Length: %i, LBA: %i\n", dev->id, dev->sector_len, dev->sector_pos);
                     break;
                 case GPCMD_READ_10:
@@ -1520,12 +1506,19 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                     zip_log("ZIP %i: Length: %i, LBA: %i\n", dev->id, dev->sector_len, dev->sector_pos);
                     break;
                 case GPCMD_READ_12:
-                    dev->sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
-                    dev->sector_pos = (((uint32_t) cdb[2]) << 24) | (((uint32_t) cdb[3]) << 16) | (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
+                    dev->sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) |
+                                      (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
+                    dev->sector_pos = (((uint32_t) cdb[2]) << 24) | (((uint32_t) cdb[3]) << 16) |
+                                      (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
                     break;
 
                 default:
                     break;
+            }
+
+            if (dev->sector_pos >= dev->drv->medium_size) {
+                zip_lba_out_of_range(dev);
+                return;
             }
 
             if (!dev->sector_len) {
@@ -1538,9 +1531,13 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
             }
 
             max_len               = dev->sector_len;
-            dev->requested_blocks = max_len; /* If we're reading all blocks in one go for DMA, why not also for PIO, it should NOT
-                                                matter anyway, this step should be identical and only the way the read dat is
-                                                transferred to the host should be different. */
+            /*
+               If we're reading all blocks in one go for DMA, why not also for
+               PIO, it should NOT matter anyway, this step should be identical
+               and only the way the read dat is transferred to the host should
+               be different.
+             */
+            dev->requested_blocks = max_len;
 
             dev->packet_len = max_len * alloc_length;
             zip_buf_alloc(dev, dev->packet_len);
@@ -1562,10 +1559,7 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
 
             zip_data_command_finish(dev, alloc_length, 512, alloc_length, 0);
 
-            if (dev->packet_status != PHASE_COMPLETE)
-                ui_sb_update_icon(SB_ZIP | dev->id, 1);
-            else
-                ui_sb_update_icon(SB_ZIP | dev->id, 0);
+            ui_sb_update_icon(SB_ZIP | dev->id, dev->packet_status != PHASE_COMPLETE);
             return;
 
         case GPCMD_VERIFY_6:
@@ -1576,9 +1570,7 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                 zip_command_complete(dev);
                 break;
             }
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case GPCMD_WRITE_6:
         case GPCMD_WRITE_10:
         case GPCMD_WRITE_AND_VERIFY_10:
@@ -1596,9 +1588,14 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                 case GPCMD_VERIFY_6:
                 case GPCMD_WRITE_6:
                     dev->sector_len = cdb[4];
+                    /*
+                       For READ (6) and WRITE (6), a length of 0 indicates a
+                       transfer of 256 sectors.
+                     */
                     if (dev->sector_len == 0)
-                        dev->sector_len = 256; /* For READ (6) and WRITE (6), a length of 0 indicates a transfer of 256 sector. */
-                    dev->sector_pos = ((((uint32_t) cdb[1]) & 0x1f) << 16) | (((uint32_t) cdb[2]) << 8) | ((uint32_t) cdb[3]);
+                        dev->sector_len = 256;
+                    dev->sector_pos = ((((uint32_t) cdb[1]) & 0x1f) << 16) |
+                                      (((uint32_t) cdb[2]) << 8) | ((uint32_t) cdb[3]);
                     break;
                 case GPCMD_VERIFY_10:
                 case GPCMD_WRITE_10:
@@ -1610,17 +1607,17 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
                 case GPCMD_VERIFY_12:
                 case GPCMD_WRITE_12:
                 case GPCMD_WRITE_AND_VERIFY_12:
-                    dev->sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) | (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
-                    dev->sector_pos = (((uint32_t) cdb[2]) << 24) | (((uint32_t) cdb[3]) << 16) | (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
+                    dev->sector_len = (((uint32_t) cdb[6]) << 24) | (((uint32_t) cdb[7]) << 16) |
+                                      (((uint32_t) cdb[8]) << 8) | ((uint32_t) cdb[9]);
+                    dev->sector_pos = (((uint32_t) cdb[2]) << 24) | (((uint32_t) cdb[3]) << 16) |
+                                      (((uint32_t) cdb[4]) << 8) | ((uint32_t) cdb[5]);
                     break;
 
                 default:
                     break;
             }
 
-            if ((dev->sector_pos >= dev->drv->medium_size) /* ||
-                 ((dev->sector_pos + dev->sector_len - 1) >= dev->drv->medium_size)*/
-            ) {
+            if (dev->sector_pos >= dev->drv->medium_size) {
                 zip_lba_out_of_range(dev);
                 return;
             }
@@ -1635,9 +1632,13 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
             }
 
             max_len               = dev->sector_len;
-            dev->requested_blocks = max_len; /* If we're writing all blocks in one go for DMA, why not also for PIO, it should NOT
-                                                matter anyway, this step should be identical and only the way the read dat is
-                                                transferred to the host should be different. */
+            /*
+               If we're writing all blocks in one go for DMA, why not also for
+               PIO, it should NOT matter anyway, this step should be identical
+               and only the way the read dat is transferred to the host should
+               be different.
+             */
+            dev->requested_blocks = max_len;
 
             dev->packet_len = max_len * alloc_length;
             zip_buf_alloc(dev, dev->packet_len);
@@ -1649,10 +1650,7 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
 
             zip_data_command_finish(dev, dev->packet_len, 512, dev->packet_len, 1);
 
-            if (dev->packet_status != PHASE_COMPLETE)
-                ui_sb_update_icon(SB_ZIP | dev->id, 1);
-            else
-                ui_sb_update_icon(SB_ZIP | dev->id, 0);
+            ui_sb_update_icon(SB_ZIP | dev->id, dev->packet_status != PHASE_COMPLETE);
             return;
 
         case GPCMD_WRITE_SAME_10:
@@ -1671,9 +1669,7 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
             dev->sector_len = (cdb[7] << 8) | cdb[8];
             dev->sector_pos = (cdb[2] << 24) | (cdb[3] << 16) | (cdb[4] << 8) | cdb[5];
 
-            if ((dev->sector_pos >= dev->drv->medium_size) /* ||
-                 ((dev->sector_pos + dev->sector_len - 1) >= dev->drv->medium_size)*/
-            ) {
+            if (dev->sector_pos >= dev->drv->medium_size) {
                 zip_lba_out_of_range(dev);
                 return;
             }
@@ -1699,10 +1695,7 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
 
             zip_data_command_finish(dev, 512, 512, alloc_length, 1);
 
-            if (dev->packet_status != PHASE_COMPLETE)
-                ui_sb_update_icon(SB_ZIP | dev->id, 1);
-            else
-                ui_sb_update_icon(SB_ZIP | dev->id, 0);
+            ui_sb_update_icon(SB_ZIP | dev->id, dev->packet_status != PHASE_COMPLETE);
             return;
 
         case GPCMD_MODE_SENSE_6:
@@ -1978,7 +1971,7 @@ atapi_out:
             dev->buffer[pos++] = 0;
             dev->buffer[pos++] = 0;
             dev->buffer[pos++] = 0;
-            if (dev->drv->f != NULL)
+            if (dev->drv->fp != NULL)
                 dev->buffer[pos++] = 16;
             else
                 dev->buffer[pos++] = 8;
@@ -1987,7 +1980,7 @@ atapi_out:
             if (dev->drv->is_250) {
                 /* ZIP 250 also supports ZIP 100 media, so if the medium is inserted,
                    we return the inserted medium's size, otherwise, the ZIP 250 size. */
-                if (dev->drv->f != NULL) {
+                if (dev->drv->fp != NULL) {
                     dev->buffer[pos++] = (dev->drv->medium_size >> 24) & 0xff;
                     dev->buffer[pos++] = (dev->drv->medium_size >> 16) & 0xff;
                     dev->buffer[pos++] = (dev->drv->medium_size >> 8) & 0xff;
@@ -2007,7 +2000,7 @@ atapi_out:
                 dev->buffer[pos++] = (ZIP_SECTORS >> 16) & 0xff;
                 dev->buffer[pos++] = (ZIP_SECTORS >> 8) & 0xff;
                 dev->buffer[pos++] = ZIP_SECTORS & 0xff;
-                if (dev->drv->f != NULL)
+                if (dev->drv->fp != NULL)
                     dev->buffer[pos++] = 2;
                 else
                     dev->buffer[pos++] = 3;
@@ -2017,7 +2010,7 @@ atapi_out:
             dev->buffer[pos++] = 512 >> 8;
             dev->buffer[pos++] = 512 & 0xff;
 
-            if (dev->drv->f != NULL) {
+            if (dev->drv->fp != NULL) {
                 /* Formattable capacity descriptor */
                 dev->buffer[pos++] = (dev->drv->medium_size >> 24) & 0xff;
                 dev->buffer[pos++] = (dev->drv->medium_size >> 16) & 0xff;
@@ -2040,10 +2033,10 @@ atapi_out:
     }
 
 #if 0
-    zip_log("ZIP %i: Phase: %02X, request length: %i\n", dev->id, dev->phase, dev->request_length);
+    zip_log("ZIP %i: Phase: %02X, request length: %i\n", dev->id, dev->tf->phase, dev->tf->request_length);
 #endif
 
-    if (zip_atapi_phase_to_scsi(dev) == SCSI_PHASE_STATUS)
+    if ((dev->packet_status == PHASE_COMPLETE) || (dev->packet_status == PHASE_ERROR))
         zip_buf_free(dev);
 }
 
@@ -2123,9 +2116,9 @@ zip_phase_data_out(scsi_common_t *sc)
                     dev->buffer[6] = (s >> 8) & 0xff;
                     dev->buffer[7] = s & 0xff;
                 }
-                if (fseek(dev->drv->f, dev->drv->base + (i << 9), SEEK_SET) == -1)
+                if (fseek(dev->drv->fp, dev->drv->base + (i << 9), SEEK_SET) == -1)
                     fatal("zip_phase_data_out(): Error seeking\n");
-                if (fwrite(dev->buffer, 1, 512, dev->drv->f) != 512)
+                if (fwrite(dev->buffer, 1, 512, dev->drv->fp) != 512)
                     fatal("zip_phase_data_out(): Error writing data\n");
             }
             break;
@@ -2327,6 +2320,9 @@ zip_drive_reset(int c)
     dev->cur_lun = SCSI_LUN_USE_CDB;
 
     if (zip_drives[c].bus_type == ZIP_BUS_SCSI) {
+        if (!dev->tf)
+            dev->tf        = (ide_tf_t *) calloc(1, sizeof(ide_tf_t));
+
         /* SCSI ZIP, attach to the SCSI bus. */
         sd = &scsi_devices[scsi_bus][scsi_id];
 
@@ -2345,6 +2341,8 @@ zip_drive_reset(int c)
            that's not attached to anything. */
         if (id) {
             id->sc               = (scsi_common_t *) dev;
+            dev->tf              = id->tf;
+            IDE_ATAPI_IS_EARLY   = 0;
             id->get_max          = zip_get_max;
             id->get_timings      = zip_get_timings;
             id->identify         = zip_identify;
@@ -2393,6 +2391,9 @@ zip_hard_reset(void)
 
             dev = (zip_t *) zip_drives[c].priv;
 
+            if (dev->tf == NULL)
+                continue;
+
             dev->id  = c;
             dev->drv = &zip_drives[c];
 
@@ -2430,6 +2431,9 @@ zip_close(void)
 
         if (dev) {
             zip_disk_unload(dev);
+
+            if (dev->tf)
+                free(dev->tf);
 
             free(dev);
             zip_drives[c].priv = NULL;

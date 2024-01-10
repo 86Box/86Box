@@ -483,7 +483,7 @@ BEGIN
     IDS_2125    "Sobre o 86Box"
     IDS_2126    "86Box versão" EMU_VERSION
 
-    IDS_2127    "Um emulador de computadores antigos\n\nAutores: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
+    IDS_2127    "Um emulador de computadores antigos\n\nAutores: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, e outros.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
     IDS_2128    "OK"
     IDS_2129    "Hardware não disponível"
 #ifdef _WIN32

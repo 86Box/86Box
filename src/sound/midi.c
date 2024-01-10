@@ -10,12 +10,10 @@
  *
  *
  *
- * Authors:  Sarah Walker, <https://pcem-emulator.co.uk/>
- *           Miran Grca, <mgrca8@gmail.com>
+ * Authors:  Miran Grca, <mgrca8@gmail.com>
  *           Bit,
  *           DOSBox Team,
  *
- *           Copyright 2008-2020 Sarah Walker.
  *           Copyright 2016-2020 Miran Grca.
  *           Copyright 2016-2020 Bit.
  *           Copyright 2008-2020 DOSBox Team.
@@ -102,6 +100,7 @@ static const MIDI_OUT_DEVICE devices[] = {
 #ifdef USE_RTMIDI
     { &rtmidi_output_device  },
 #endif
+    { &opl4_midi_device      },
     { NULL                   }
     // clang-format on
 };
@@ -153,7 +152,7 @@ midi_out_device_has_config(int card)
     return devices[card].device->config ? 1 : 0;
 }
 
-char *
+const char *
 midi_out_device_get_internal_name(int card)
 {
     return device_get_internal_name(devices[card].device);
@@ -176,7 +175,7 @@ midi_out_device_get_from_internal_name(char *s)
 void
 midi_out_device_init(void)
 {
-    if (devices[midi_output_device_current].device)
+    if ((midi_output_device_current > 0) && devices[midi_output_device_current].device)
         device_add(devices[midi_output_device_current].device);
     midi_output_device_last = midi_output_device_current;
 }
@@ -271,7 +270,7 @@ midi_in_device_has_config(int card)
     return midi_in_devices[card].device->config ? 1 : 0;
 }
 
-char *
+const char *
 midi_in_device_get_internal_name(int card)
 {
     return device_get_internal_name(midi_in_devices[card].device);
@@ -294,7 +293,7 @@ midi_in_device_get_from_internal_name(char *s)
 void
 midi_in_device_init(void)
 {
-    if (midi_in_devices[midi_input_device_current].device)
+    if ((midi_input_device_current > 0) && midi_in_devices[midi_input_device_current].device)
         device_add(midi_in_devices[midi_input_device_current].device);
     midi_input_device_last = midi_input_device_current;
 }

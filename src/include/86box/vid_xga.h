@@ -14,7 +14,6 @@
  *
  *          Copyright 2022 TheCollector1995.
  */
-
 #ifndef VIDEO_XGA_H
 #define VIDEO_XGA_H
 
@@ -42,6 +41,7 @@ typedef struct xga_t {
     PALETTE        extpal;
 
     uint8_t test;
+    uint8_t test2;
     uint8_t atest[2];
     uint8_t testpixel;
 
@@ -157,10 +157,10 @@ typedef struct xga_t {
     uint32_t rom_addr;
     uint32_t ma;
     uint32_t maback;
-    uint32_t extpallook[256];
     uint32_t read_bank;
     uint32_t write_bank;
     uint32_t px_map_base;
+    uint32_t pallook[512];
 
     uint64_t dispontime;
     uint64_t dispofftime;
@@ -200,6 +200,8 @@ typedef struct xga_t {
         int dst_map;
         int bkgd_src;
         int fore_src;
+        int oldx;
+        int oldy;
         int x;
         int y;
         int sx;
@@ -210,6 +212,7 @@ typedef struct xga_t {
         int py;
         int pattern;
         int command_len;
+        int filling;
 
         uint32_t short_stroke;
         uint32_t color_cmp;
@@ -228,4 +231,5 @@ typedef struct xga_t {
 
     int big_endian_linear;
 } xga_t;
+
 #endif /*VIDEO_XGA_H*/

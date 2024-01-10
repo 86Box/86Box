@@ -2,9 +2,12 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "x86.h"
 #include "x86_flags.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
 #include "386_common.h"
 #include "codegen.h"
 #include "codegen_accumulate.h"
@@ -46,9 +49,9 @@ ropParith(PFMAX)
 ropParith(PFMIN)
 ropParith(PFMUL)
 ropParith(PFSUB)
-// clang-format on
+    // clang-format on
 
-uint32_t ropPF2ID(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+uint32_t ropPF2ID(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -72,7 +75,7 @@ uint32_t ropPF2ID(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fe
 }
 
 uint32_t
-ropPFSUBR(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPFSUBR(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -96,7 +99,7 @@ ropPFSUBR(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, 
 }
 
 uint32_t
-ropPI2FD(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPI2FD(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -120,7 +123,7 @@ ropPI2FD(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, u
 }
 
 uint32_t
-ropPFRCPIT(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPFRCPIT(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -142,7 +145,7 @@ ropPFRCPIT(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat,
     return op_pc + 2;
 }
 uint32_t
-ropPFRCP(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPFRCP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -165,7 +168,7 @@ ropPFRCP(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, u
     return op_pc + 2;
 }
 uint32_t
-ropPFRSQRT(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPFRSQRT(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -189,7 +192,7 @@ ropPFRSQRT(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat,
 }
 
 uint32_t
-ropPFRSQIT1(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPFRSQIT1(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uop_MMX_ENTER(ir);
 

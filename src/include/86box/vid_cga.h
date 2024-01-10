@@ -66,6 +66,7 @@ typedef struct cga_t {
     int composite;
     int snow_enabled;
     int rgb_type;
+    int double_type;
 } cga_t;
 
 void    cga_init(cga_t *cga);

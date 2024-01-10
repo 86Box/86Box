@@ -763,15 +763,15 @@ hndl_tsize(pgc_t *pgc)
 static void
 hndl_twrite(pgc_t *pgc)
 {
-    uint8_t   buf[256];
-    im1024_t *dev = (im1024_t *) pgc;
-    uint8_t   count;
-    uint8_t   mask;
-    uint8_t  *row;
-    int       wb;
-    int       n;
-    int16_t   x0 = pgc->x >> 16;
-    int16_t   y0 = pgc->y >> 16;
+    uint8_t         buf[256];
+    const im1024_t *dev = (im1024_t *) pgc;
+    uint8_t         count;
+    uint8_t         mask;
+    const uint8_t  *row;
+    int             wb;
+    int             n;
+    int16_t         x0 = pgc->x >> 16;
+    int16_t         y0 = pgc->y >> 16;
 
     if (!pgc_param_byte(pgc, &count))
         return;
@@ -811,13 +811,13 @@ hndl_twrite(pgc_t *pgc)
 static void
 hndl_txt88(pgc_t *pgc)
 {
-    uint8_t  buf[256];
-    uint8_t  count;
-    uint8_t  mask;
-    uint8_t *row;
-    int16_t  x0 = pgc->x >> 16;
-    int16_t  y0 = pgc->y >> 16;
-    unsigned n;
+    uint8_t        buf[256];
+    uint8_t        count;
+    uint8_t        mask;
+    const uint8_t *row;
+    int16_t        x0 = pgc->x >> 16;
+    int16_t        y0 = pgc->y >> 16;
+    unsigned int   n;
 
     if (!pgc_param_byte(pgc, &count))
         return;
@@ -1085,7 +1085,7 @@ im1024_speed_changed(void *priv)
 const device_t im1024_device = {
     .name          = "ImageManager 1024",
     .internal_name = "im1024",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA,
     .local         = 0,
     .init          = im1024_init,
     .close         = im1024_close,

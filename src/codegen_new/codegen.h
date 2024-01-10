@@ -290,7 +290,6 @@ codegen_mark_code_present(codeblock_t *block, uint32_t start_pc, int len)
 }
 
 extern void codegen_init(void);
-extern void codegen_close(void);
 extern void codegen_reset(void);
 extern void codegen_block_init(uint32_t phys_addr);
 extern void codegen_block_remove(void);

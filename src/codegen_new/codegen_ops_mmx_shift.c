@@ -2,9 +2,12 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "x86.h"
 #include "x86_flags.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
 #include "386_common.h"
 #include "codegen.h"
 #include "codegen_accumulate.h"
@@ -14,7 +17,7 @@
 #include "codegen_ops_helpers.h"
 
 uint32_t
-ropPSxxW_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPSxxW_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     int reg   = fetchdat & 7;
     int op    = fetchdat & 0x38;
@@ -40,7 +43,7 @@ ropPSxxW_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchda
     return op_pc + 2;
 }
 uint32_t
-ropPSxxD_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPSxxD_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     int reg   = fetchdat & 7;
     int op    = fetchdat & 0x38;
@@ -66,7 +69,7 @@ ropPSxxD_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchda
     return op_pc + 2;
 }
 uint32_t
-ropPSxxQ_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropPSxxQ_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     int reg   = fetchdat & 7;
     int op    = fetchdat & 0x38;

@@ -68,6 +68,5 @@ enum sdl_main_status {
 extern enum sdl_main_status sdl_main();
 
 extern void sdl_mouse_capture(int on);
-extern void sdl_mouse_poll();
 
 #endif /*WIN_SDL_H*/

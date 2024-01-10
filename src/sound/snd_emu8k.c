@@ -2168,18 +2168,18 @@ void
 emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
 {
     uint32_t const BLOCK_SIZE_WORDS = 0x10000;
-    FILE          *f;
+    FILE          *fp;
     int            c;
     double         out;
 
-    f = rom_fopen("roms/sound/awe32.raw", "rb");
-    if (!f)
+    fp = rom_fopen("roms/sound/creative/awe32.raw", "rb");
+    if (!fp)
         fatal("AWE32.RAW not found\n");
 
     emu8k->rom = malloc(1024 * 1024);
-    if (fread(emu8k->rom, 1, 1048576, f) != 1048576)
+    if (fread(emu8k->rom, 1, 1048576, fp) != 1048576)
         fatal("emu8k_init(): Error reading data\n");
-    fclose(f);
+    fclose(fp);
     /*AWE-DUMP creates ROM images offset by 2 bytes, so if we detect this
       then correct it*/
     if (emu8k->rom[3] == 0x314d && emu8k->rom[4] == 0x474d) {

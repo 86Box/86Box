@@ -271,6 +271,8 @@ typedef struct voodoo_t {
 
     int pci_enable;
 
+    uint8_t  pci_slot;
+
     uint8_t  dac_data[8];
     int      dac_reg;
     int      dac_reg_ff;
@@ -348,8 +350,7 @@ typedef struct voodoo_t {
     int h_disp;
     int v_retrace;
 
-    struct
-    {
+    struct {
         uint32_t y[4];
         uint32_t i[4];
         uint32_t q[4];
@@ -487,8 +488,7 @@ typedef struct voodoo_t {
 
     uint32_t leftOverlayBuf;
 
-    struct
-    {
+    struct {
         int dst_x;
         int dst_y;
         int cur_x;
@@ -499,8 +499,7 @@ typedef struct voodoo_t {
         int dst_stride;
     } blt;
 
-    struct
-    {
+    struct {
         uint32_t bresError0;
         uint32_t bresError1;
         uint32_t clip0Min;
@@ -588,8 +587,7 @@ typedef struct voodoo_t {
         int line_bit_mask_size;
     } banshee_blt;
 
-    struct
-    {
+    struct {
         uint32_t vidOverlayStartCoords;
         uint32_t vidOverlayEndScreenCoords;
         uint32_t vidOverlayDudx;
@@ -669,7 +667,7 @@ typedef struct voodoo_t {
     uint8_t *vram;
     uint8_t *changedvram;
 
-    void *p;
+    void   *priv;
     uint8_t monitor_index;
 } voodoo_t;
 

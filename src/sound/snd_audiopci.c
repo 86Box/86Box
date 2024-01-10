@@ -53,6 +53,7 @@ typedef struct es1371_t {
     uint32_t base_addr;
 
     uint8_t int_line;
+    uint8_t irq_state;
 
     uint16_t pmcsr;
 
@@ -120,7 +121,7 @@ typedef struct es1371_t {
     int cd_vol_l;
     int cd_vol_r;
 
-    int card;
+    uint8_t pci_slot;
 
     int     pos;
     int16_t buffer[SOUNDBUFLEN * 2];
@@ -235,9 +236,9 @@ es1371_update_irqs(es1371_t *dev)
         irq = 1;
 
     if (irq)
-        pci_set_irq(dev->card, PCI_INTA);
+        pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
     else
-        pci_clear_irq(dev->card, PCI_INTA);
+        pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
 }
 
 static void
@@ -2053,18 +2054,18 @@ generate_es1371_filter(void)
 }
 
 static void
-es1371_input_msg(void *p, uint8_t *msg, uint32_t len)
+es1371_input_msg(void *priv, uint8_t *msg, uint32_t len)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
 
     for (uint32_t i = 0; i < len; i++)
         es1371_write_fifo(dev, msg[i]);
 }
 
 static int
-es1371_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
+es1371_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
     uint32_t  i   = -1;
 
     audiopci_log("Abort = %i\n", abort);
@@ -2100,7 +2101,7 @@ es1371_init(const device_t *info)
     dev->gameport = gameport_add(&gameport_pnp_device);
     gameport_remap(dev->gameport, 0x200);
 
-    dev->card = pci_add_card(info->local ? PCI_ADD_SOUND : PCI_ADD_NORMAL, es1371_pci_read, es1371_pci_write, dev);
+    pci_add_card(info->local ? PCI_ADD_SOUND : PCI_ADD_NORMAL, es1371_pci_read, es1371_pci_write, dev, &dev->pci_slot);
 
     timer_add(&dev->dac[1].timer, es1371_poll, dev, 1);
 

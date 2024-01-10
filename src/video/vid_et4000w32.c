@@ -69,7 +69,7 @@ typedef struct et4000w32p_t {
 
     svga_t svga;
 
-    uint8_t banking, banking2, adjust_cursor, rev;
+    uint8_t banking, banking2, adjust_cursor, rev, pci_slot;
 
     uint8_t regs[256], pci_regs[256];
 
@@ -210,6 +210,9 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *priv)
                     svga->gdcreg[svga->gdcaddr & 15] = val;
                     et4000w32p_recalcmapping(et4000);
                     return;
+
+                default:
+                    break;
             }
             break;
         case 0x3d4:
@@ -290,6 +293,9 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *priv)
                     case 8:
                         svga->hwcursor.xoff += 32;
                         break;
+
+                    default:
+                        break;
                 }
             }
 
@@ -315,6 +321,9 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *priv)
             add2addr = svga->hwcursor.yoff * ((svga->hwcursor.cur_xsize == 128) ? 32 : 16);
             svga->hwcursor.addr += add2addr;
             return;
+
+        default:
+            break;
     }
 
     svga_out(addr, val, svga);
@@ -408,6 +417,9 @@ et4000w32p_in(uint16_t addr, void *priv)
                     return (et4000->regs[0xef] & 0x8f) | (et4000->rev << 4) | et4000->vlb;
             }
             return et4000->regs[et4000->index];
+
+        default:
+            break;
     }
 
     return svga_in(addr, svga);
@@ -452,6 +464,9 @@ et4000w32p_recalctimings(svga_t *svga)
                     case 24:
                         svga->clock /= 4;
                         break;
+
+                    default:
+                        break;
                 }
             }
         }
@@ -492,6 +507,9 @@ et4000w32p_recalctimings(svga_t *svga)
                             break;
                         svga->hdisp -= 24;
                         break;
+
+                    default:
+                        break;
                 }
             }
         }
@@ -502,7 +520,8 @@ et4000w32p_recalctimings(svga_t *svga)
     switch (svga->bpp) {
         case 15:
         case 16:
-            svga->hdisp >>= 1;
+            if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1))
+                svga->hdisp >>= 1;
             if (et4000->type <= ET4000W32P_REVC) {
                 if (et4000->type == ET4000W32P_REVC) {
                     if (svga->hdisp != 1024)
@@ -515,9 +534,12 @@ et4000w32p_recalctimings(svga_t *svga)
             svga->hdisp /= 3;
             if (et4000->type <= ET4000W32P_REVC)
                 et4000->adjust_cursor = 2;
-            if (et4000->type == ET4000W32P_DIAMOND && (svga->hdisp == 640 / 2 || svga->hdisp == 1232)) {
+            if ((et4000->type == ET4000W32P_DIAMOND) && ((svga->hdisp == (640 / 2)) || (svga->hdisp == 1232))) {
                 svga->hdisp = 640;
             }
+            break;
+
+        default:
             break;
     }
 
@@ -592,7 +614,13 @@ et4000w32p_recalctimings(svga_t *svga)
                             else
                                 svga->render = svga_render_32bpp_highres;
                             break;
+
+                        default:
+                            break;
                     }
+                    break;
+
+                default:
                     break;
             }
         }
@@ -667,6 +695,9 @@ et4000w32p_recalcmapping(et4000w32p_t *et4000)
                 mem_mapping_set_addr(&svga->mapping, 0xb8000, 0x08000);
                 mem_mapping_set_addr(&et4000->mmu_mapping, 0xa8000, 0x08000);
                 svga->banked_mask = 0x7fff;
+                break;
+
+            default:
                 break;
         }
     }
@@ -834,6 +865,9 @@ et4000w32p_accel_write_fifo(et4000w32p_t *et4000, uint32_t addr, uint8_t val)
         case 0xaf:
             et4000->acl.queued.dmaj = (et4000->acl.queued.dmaj & 0x00FF) | (val << 8);
             break;
+
+        default:
+            break;
     }
 }
 
@@ -969,8 +1003,14 @@ et4000w32p_mmu_write(uint32_t addr, uint8_t val, void *priv)
                     case 0x31:
                         et4000->acl.osr = val;
                         break;
+
+                    default:
+                        break;
                 }
             }
+            break;
+
+        default:
             break;
     }
 }
@@ -979,7 +1019,7 @@ static uint8_t
 et4000w32p_mmu_read(uint32_t addr, void *priv)
 {
     et4000w32p_t *et4000 = (et4000w32p_t *) priv;
-    svga_t       *svga   = &et4000->svga;
+    const svga_t *svga   = &et4000->svga;
     uint8_t       temp;
 
     switch (addr & 0x6000) {
@@ -1074,8 +1114,7 @@ et4000w32p_mmu_read(uint32_t addr, void *priv)
                 case 0x8e:
                     if (et4000->type >= ET4000W32P_REVC)
                         return et4000->acl.internal.pixel_depth;
-                    else
-                        return et4000->acl.internal.vbus;
+                    return et4000->acl.internal.vbus;
                 case 0x8f:
                     return et4000->acl.internal.xy_dir;
                 case 0x90:
@@ -1106,9 +1145,15 @@ et4000w32p_mmu_read(uint32_t addr, void *priv)
                     return et4000->acl.internal.dest_addr >> 16;
                 case 0xa3:
                     return et4000->acl.internal.dest_addr >> 24;
+
+                default:
+                    break;
             }
 
             return 0xff;
+
+        default:
+            break;
     }
 
     return 0xff;
@@ -2341,6 +2386,9 @@ et4000w32p_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et4000w32
                     case 7: /* X- */
                         et4000w32_decx(((et4000->acl.internal.pixel_depth >> 4) & 3) + 1, et4000);
                         break;
+
+                    default:
+                        break;
                 }
                 et4000->acl.internal.error += et4000->acl.internal.dmin;
                 if (et4000->acl.internal.error > et4000->acl.internal.dmaj) {
@@ -2365,6 +2413,9 @@ et4000w32p_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et4000w32
                         case 7: /* Y- */
                             et4000w32_decy(et4000);
                             et4000->acl.internal.pos_y++;
+                            break;
+
+                        default:
                             break;
                     }
                 }
@@ -2453,16 +2504,17 @@ et4000w32p_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et4000w32
 void
 et4000w32p_hwcursor_draw(svga_t *svga, int displine)
 {
-    et4000w32p_t *et4000 = (et4000w32p_t *) svga->priv;
-    int           offset;
-    int           xx;
-    int           xx2;
-    int           shift       = (et4000->adjust_cursor + 1);
-    int           width       = (svga->hwcursor_latch.cur_xsize - svga->hwcursor_latch.xoff);
-    int           pitch       = (svga->hwcursor_latch.cur_xsize == 128) ? 32 : 16;
-    int           x_acc       = 4;
-    int           minus_width = 0;
-    uint8_t       dat;
+    const et4000w32p_t *et4000 = (et4000w32p_t *) svga->priv;
+    int                 offset;
+    int                 xx;
+    int                 xx2;
+    int                 shift       = (et4000->adjust_cursor + 1);
+    int                 width       = (svga->hwcursor_latch.cur_xsize - svga->hwcursor_latch.xoff);
+    int                 pitch       = (svga->hwcursor_latch.cur_xsize == 128) ? 32 : 16;
+    int                 x_acc       = 4;
+    int                 minus_width = 0;
+    uint8_t             dat;
+
     offset = svga->hwcursor_latch.xoff;
 
     if ((et4000->type == ET4000W32) && (pitch == 32)) {
@@ -2475,6 +2527,9 @@ et4000w32p_hwcursor_draw(svga_t *svga, int displine)
             case 16:
                 minus_width = 64;
                 x_acc       = 2;
+                break;
+
+            default:
                 break;
         }
     }
@@ -2561,7 +2616,7 @@ et4000w32p_io_set(et4000w32p_t *et4000)
 uint8_t
 et4000w32p_pci_read(UNUSED(int func), int addr, void *priv)
 {
-    et4000w32p_t *et4000 = (et4000w32p_t *) priv;
+    const et4000w32p_t *et4000 = (et4000w32p_t *) priv;
 
     if (func > 0)
         return 0xff;
@@ -2612,6 +2667,9 @@ et4000w32p_pci_read(UNUSED(int func), int addr, void *priv)
             return 0x00;
         case 0x33:
             return et4000->pci_regs[0x33] & 0xf0;
+
+        default:
+            break;
     }
 
     return 0;
@@ -2666,6 +2724,9 @@ et4000w32p_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
                 mem_mapping_disable(&et4000->bios_rom.mapping);
             }
             return;
+
+        default:
+            break;
     }
 }
 
@@ -2798,6 +2859,9 @@ et4000w32p_init(const device_t *info)
             et4000->svga.clock_gen = device_add(&icd2061_device);
             et4000->svga.getclock  = icd2061_getclock;
             break;
+
+        default:
+            break;
     }
     if (info->flags & DEVICE_PCI)
         mem_mapping_disable(&et4000->bios_rom.mapping);
@@ -2808,7 +2872,7 @@ et4000w32p_init(const device_t *info)
     et4000w32p_io_set(et4000);
 
     if (info->flags & DEVICE_PCI)
-        pci_add_card(PCI_ADD_VIDEO, et4000w32p_pci_read, et4000w32p_pci_write, et4000);
+        pci_add_card(PCI_ADD_NORMAL, et4000w32p_pci_read, et4000w32p_pci_write, et4000, &et4000->pci_slot);
 
     /* Hardwired bits: 00000000 1xx0x0xx */
     /* R/W bits:                 xx xxxx */

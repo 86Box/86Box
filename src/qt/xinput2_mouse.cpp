@@ -48,7 +48,7 @@ static Display            *disp       = nullptr;
 static QThread            *procThread = nullptr;
 static XIEventMask         ximask;
 static std::atomic<bool>   exitfromthread = false;
-static std::atomic<double> xi2_mouse_x = 0, xi2_mouse_y = 0, xi2_mouse_abs_x = 0, xi2_mouse_abs_y = 0;
+static std::atomic<double> xi2_mouse_abs_x = 0, xi2_mouse_abs_y = 0;
 static int                 xi2opcode      = 0;
 static double              prev_coords[2] = { 0.0 };
 static Time                prev_time      = 0;
@@ -168,9 +168,9 @@ common_motion:
                                     if ((v->mode == XIModeRelative) && (rawev->sourceid != xtest_pointer)) {
                                         /* Set relative coordinates. */
                                         if (axis == 0)
-                                            xi2_mouse_x = xi2_mouse_x + coords[axis];
+                                            mouse_scale_x(coords[axis]);
                                         else
-                                            xi2_mouse_y = xi2_mouse_y + coords[axis];
+                                            mouse_scale_y(coords[axis]);
                                     } else {
                                         /* Convert absolute value range to pixel granularity, then to relative coordinates. */
                                         int    disp_screen = XDefaultScreen(disp);
@@ -188,7 +188,7 @@ common_motion:
                                             }
 
                                             if (xi2_mouse_abs_x != 0)
-                                                xi2_mouse_x = xi2_mouse_x + (abs_div - xi2_mouse_abs_x);
+                                                mouse_scale_x(abs_div - xi2_mouse_abs_x);
                                             xi2_mouse_abs_x = abs_div;
                                         } else {
                                             if (v->mode == XIModeRelative) {
@@ -202,7 +202,7 @@ common_motion:
                                             }
 
                                             if (xi2_mouse_abs_y != 0)
-                                                xi2_mouse_y = xi2_mouse_y + (abs_div - xi2_mouse_abs_y);
+                                                mouse_scale_y(abs_div - xi2_mouse_abs_y);
                                             xi2_mouse_abs_y = abs_div;
                                         }
                                     }
@@ -272,15 +272,4 @@ xinput2_init()
             atexit(xinput2_exit);
         }
     }
-}
-
-void
-xinput2_poll()
-{
-    if (procThread && mouse_capture) {
-        mouse_x = xi2_mouse_x;
-        mouse_y = xi2_mouse_y;
-    }
-    xi2_mouse_x = 0;
-    xi2_mouse_y = 0;
 }

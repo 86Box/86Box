@@ -1,0 +1,149 @@
+name: CMake (Windows, msys2)
+
+on:
+
+  push:
+    paths:
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - .github/workflows/cmake.yml
+      - vcpkg.json
+      - "!**/Makefile*"
+
+  pull_request:
+    paths:
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - .github/workflows/**
+      - .github/workflows/cmake.yml
+      - vcpkg.json
+      - "!**/Makefile*"
+
+jobs:
+
+  msys2:
+    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }}"
+
+    runs-on: windows-2022
+
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    strategy:
+      fail-fast: true
+      matrix:
+        build:
+#          - name: Regular
+#            preset: regular
+          - name: Debug
+            preset: debug
+            slug: -Debug
+          - name: Dev
+            preset: experimental
+            slug: -Dev
+        dynarec:
+          - name: ODR
+            new: off
+            slug: -ODR
+          - name: NDR
+            new: on
+            slug: -NDR
+        ui:
+          - name: Win32 GUI
+            qt: off
+            static: on
+          - name: Qt GUI
+            qt: on
+            static: on
+            slug: -Qt
+            packages: >-
+              qt5-static:p
+#              qt5-base:p
+#              qt5-tools:p
+        environment:
+#          - msystem: MSYS
+#            toolchain: ./cmake/flags-gcc-x86_64.cmake
+          - msystem: MINGW32
+            prefix: mingw-w64-i686
+            toolchain: ./cmake/flags-gcc-i686.cmake
+          - msystem: MINGW64
+            prefix: mingw-w64-x86_64
+            toolchain: ./cmake/flags-gcc-x86_64.cmake
+#          - msystem: CLANG32
+#            prefix: mingw-w64-clang-i686
+#            toolchain: ./cmake/llvm-win32-i686.cmake
+#          - msystem: CLANG64
+#            prefix: mingw-w64-clang-x86_64
+#            toolchain: ./cmake/llvm-win32-x86_64.cmake
+          - msystem: UCRT64
+            prefix: mingw-w64-ucrt-x86_64
+            toolchain: ./cmake/flags-gcc-x86_64.cmake
+
+    steps:
+      - name: Prepare MSYS2 environment
+        uses: msys2/setup-msys2@v2
+        with:
+          release: false
+          update: true
+          msystem: ${{ matrix.environment.msystem }}
+          pacboy: >-
+            ninja:p
+            cmake:p
+            gcc:p
+            pkgconf:p
+            freetype:p
+            SDL2:p
+            zlib:p
+            libpng:p
+            openal:p
+            rtmidi:p
+            libslirp:p
+            fluidsynth:p
+            libvncserver:p
+            ${{ matrix.ui.packages }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v2
+
+      - name: Configure CMake
+        run: >-
+          cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
+          --toolchain ${{ matrix.environment.toolchain }}
+          -D NEW_DYNAREC=${{ matrix.dynarec.new }}
+          -D CMAKE_INSTALL_PREFIX=./build/artifacts
+          -D QT=${{ matrix.ui.qt }}
+          -D STATIC_BUILD=${{ matrix.ui.static }}
+
+      - name: Build
+        run: |
+          .sonar/build-wrapper-win-x86/build-wrapper-win-x86-64.exe --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
+
+      - name: Run sonar-scanner
+        if: 0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          .sonar/sonar-scanner-5.0.1.3006-windows/bin/sonar-scanner.bat --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+
+      - name: Generate package
+        run: cmake --install build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-Windows-${{ matrix.environment.msystem }}-gha${{ github.run_number }}'
+          path: build/artifacts/**

@@ -8,9 +8,11 @@
  *
  *          Implementation of PS/2 series Mouse devices.
  *
+ * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *
- * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
+ *          Copyright 2016-2023 Miran Grca.
+ *          Copyright 2017-2023 Fred N. van Kempen.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -29,6 +31,8 @@
 #define FLAG_TYPE_MASK 0x07  /* mask for type     */
 
 #define FIFO_SIZE      16
+
+#define BAT_COUNT      1000
 
 enum {
     KBD_84_KEY = 0,
@@ -72,6 +76,8 @@ uint8_t keyboard_mode = 0x02;
 static atkbc_dev_t *SavedKbd                        = NULL;
 
 static uint8_t     inv_cmd_response                 = 0xfa;
+
+static uint16_t    bat_counter                      = 0;
 
 static const scancode scancode_set1[512] = {
   // clang-format off
@@ -702,11 +708,16 @@ keyboard_at_bat(void *priv)
 {
     atkbc_dev_t *dev = (atkbc_dev_t *) priv;
 
-    keyboard_at_set_defaults(dev);
+    if (bat_counter == 0x0000) {
+        keyboard_at_set_defaults(dev);
 
-    keyboard_scan = 1;
+        keyboard_scan = 1;
 
-    kbc_at_dev_queue_add(dev, 0xaa, 0);
+        kbc_at_dev_queue_add(dev, 0xaa, 0);
+    } else {
+        bat_counter--;
+        dev->state = DEV_STATE_EXECUTE_BAT;
+    }
 }
 
 static void
@@ -924,6 +935,7 @@ keyboard_at_write(void *priv)
 
             case 0xff: /* reset */
                 kbc_at_dev_reset(dev, 1);
+                bat_counter = 1000;
                 break;
 
             default:
@@ -963,8 +975,10 @@ keyboard_at_init(const device_t *info)
 
     dev->fifo_mask   = FIFO_SIZE - 1;
 
-    if (dev->port != NULL)
+    if (dev->port != NULL) {
         kbc_at_dev_reset(dev, 0);
+        bat_counter = 0x0000;
+    }
 
     keyboard_send = add_data_kbd;
     SavedKbd = dev;

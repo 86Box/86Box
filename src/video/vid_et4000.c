@@ -416,8 +416,8 @@ et4000k_out(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 et4000_kasan_in(uint16_t addr, void *priv)
 {
-    et4000_t *et4000 = (et4000_t *) priv;
-    uint8_t   val    = 0xFF;
+    const et4000_t *et4000 = (et4000_t *) priv;
+    uint8_t         val    = 0xFF;
 
     if (addr == 0x258) {
         val = et4000->kasan_cfg_index;
@@ -483,9 +483,7 @@ et4000_kasan_out(uint16_t addr, uint8_t val, void *priv)
                 case 5:
                     et4000->kasan_cfg_regs[5]              = val;
                     et4000->svga.ksc5601_english_font_type = 0x100 | val;
-#ifdef FALLTHROUGH_ANNOTATION
-                    [[fallthrough]];
-#endif
+                    fallthrough;
                 case 6:
                 case 7:
                     et4000->svga.ksc5601_udc_area_msb[et4000->kasan_cfg_index - 0xF6] = val;
@@ -538,8 +536,8 @@ et4000_kasan_out(uint16_t addr, uint8_t val, void *priv)
 uint32_t
 get_et4000_addr(uint32_t addr, void *priv)
 {
-    svga_t  *svga = (svga_t *) priv;
-    uint32_t nbank;
+    const svga_t *svga = (svga_t *) priv;
+    uint32_t      nbank;
 
     switch (svga->crtc[0x37] & 0x0B) {
         case 0x00:
@@ -598,7 +596,7 @@ get_et4000_addr(uint32_t addr, void *priv)
 static void
 et4000_recalctimings(svga_t *svga)
 {
-    et4000_t *dev = (et4000_t *) svga->priv;
+    const et4000_t *dev = (et4000_t *) svga->priv;
 
     svga->ma_latch |= (svga->crtc[0x33] & 3) << 16;
     if (svga->crtc[0x35] & 1)
@@ -671,12 +669,20 @@ et4000_recalctimings(svga_t *svga)
         else if (svga->render == svga_render_8bpp_highres)
             svga->render = svga_render_8bpp_tseng_highres;
     }
+
+    if ((svga->bpp == 8) && ((svga->gdcreg[5] & 0x60) >= 0x40)) {
+        svga->map8 = svga->pallook;
+        if (svga->lowres)
+            svga->render = svga_render_8bpp_lowres;
+        else
+            svga->render = svga_render_8bpp_highres;
+    }
 }
 
 static void
 et4000_kasan_recalctimings(svga_t *svga)
 {
-    et4000_t *et4000 = (et4000_t *) svga->priv;
+    const et4000_t *et4000 = (et4000_t *) svga->priv;
 
     et4000_recalctimings(svga);
 
@@ -692,7 +698,7 @@ et4000_kasan_recalctimings(svga_t *svga)
 static uint8_t
 et4000_mca_read(int port, void *priv)
 {
-    et4000_t *et4000 = (et4000_t *) priv;
+    const et4000_t *et4000 = (et4000_t *) priv;
 
     return (et4000->pos_regs[port & 7]);
 }
@@ -815,6 +821,9 @@ et4000_init(const device_t *info)
             loadfont(KASAN_FONT_ROM_PATH, 6);
             fn = KASAN_BIOS_ROM_PATH;
             break;
+
+        default:
+            break;
     }
 
     if (dev->type >= ET4000_TYPE_ISA)
@@ -822,7 +831,7 @@ et4000_init(const device_t *info)
 
     dev->vram_mask = dev->vram_size - 1;
 
-    rom_init(&dev->bios_rom, (char *) fn,
+    rom_init(&dev->bios_rom, fn,
              0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     dev->svga.translate_address = get_et4000_addr;

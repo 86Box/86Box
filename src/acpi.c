@@ -46,6 +46,8 @@ int        acpi_enabled        = 0;
 
 static double cpu_to_acpi;
 
+static int    acpi_power_on    = 0;
+
 #ifdef ENABLE_ACPI_LOG
 int acpi_do_log = ENABLE_ACPI_LOG;
 
@@ -122,20 +124,20 @@ acpi_update_irq(acpi_t *dev)
     if (dev->vendor == VEN_SMC)
         sci_level |= (dev->regs.pmsts & BM_STS);
 
-    if (sci_level) {
+    if ((dev->regs.pmcntrl & 0x01) && sci_level) {
         if (dev->irq_mode == 1)
-            pci_set_irq(dev->slot, dev->irq_pin);
+            pci_set_irq(dev->slot, dev->irq_pin, &dev->irq_state);
         else if (dev->irq_mode == 2)
-            pci_set_mirq(5, dev->mirq_is_level);
+            pci_set_mirq(5, dev->mirq_is_level, &dev->irq_state);
         else
-            pci_set_mirq(0xf0 | dev->irq_line, 1);
+            picintlevel(1 << dev->irq_line, &dev->irq_state);
     } else {
         if (dev->irq_mode == 1)
-            pci_clear_irq(dev->slot, dev->irq_pin);
+            pci_clear_irq(dev->slot, dev->irq_pin, &dev->irq_state);
         else if (dev->irq_mode == 2)
-            pci_clear_mirq(5, dev->mirq_is_level);
+            pci_clear_mirq(5, dev->mirq_is_level, &dev->irq_state);
         else
-            pci_clear_mirq(0xf0 | dev->irq_line, 1);
+            picintclevel(1 << dev->irq_line, &dev->irq_state);
     }
 
     acpi_timer_update(dev, (dev->regs.pmen & TMROF_EN) && !(dev->regs.pmsts & TMROF_STS));
@@ -656,6 +658,7 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
     acpi_t *dev = (acpi_t *) priv;
     int     shift16;
     int     sus_typ;
+    uint8_t old;
 
     addr &= 0x3f;
 #ifdef ENABLE_ACPI_LOG
@@ -682,6 +685,7 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
         case 0x04:
         case 0x05:
             /* PMCNTRL - Power Management Control Register (IO) */
+            old = dev->regs.pmcntrl & 0xff;
             if ((addr == 0x05) && (val & 0x20)) {
                 sus_typ = dev->suspend_types[(val >> 2) & 7];
                 acpi_log("ACPI suspend type %d flags %02X\n", (val >> 2) & 7, sus_typ);
@@ -719,11 +723,14 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
 
                     /* Since the UI doesn't have a power button at the moment, pause emulation,
                        then trigger a resume event so that the system resumes after unpausing. */
-                    plat_pause(1);
+                    plat_pause(2);    /* 2 means do not wait for pause as
+                                         we're already in the CPU thread. */
                     timer_set_delay_u64(&dev->resume_timer, 50 * TIMER_USEC);
                 }
             }
             dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3f07 /* 0x3c07 */;
+            if ((addr == 0x04) && ((old ^ val) & 0x01))
+                acpi_update_irq(dev);
             break;
 
         default:
@@ -787,7 +794,7 @@ acpi_reg_write_ali(int size, uint16_t addr, uint8_t val, void *priv)
             dev->regs.gpcntrl = ((dev->regs.gpcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x00000001;
             break;
         case 0x30:
-            /* PM2_CNTRL - Power Management 2 Control Register( */
+            /* PM2_CNTRL - Power Management 2 Control Register */
             dev->regs.pmcntrl = val & 1;
             break;
         default:
@@ -1619,7 +1626,10 @@ acpi_reset(void *priv)
     acpi_t *dev = (acpi_t *) priv;
 
     memset(&dev->regs, 0x00, sizeof(acpi_regs_t));
-    dev->regs.gpireg[0] = 0xff;
+    /* PC Chips M773:
+       - Bit 3: 80-conductor cable on unknown IDE channel (active low)
+       - Bit 1: 80-conductor cable on unknown IDE channel (active low) */
+    dev->regs.gpireg[0] = !strcmp(machine_get_internal_name(), "m773") ? 0xf5 : 0xff;
     dev->regs.gpireg[1] = 0xff;
     /* A-Trend ATC7020BXII:
        - Bit 3: 80-conductor cable on secondary IDE channel (active low)
@@ -1653,10 +1663,16 @@ acpi_reset(void *priv)
             dev->regs.gpi_val |= 0x00000004;
     }
 
-    /* Power on always generates a resume event. */
-    dev->regs.pmsts |= 0x8000;
+    if (acpi_power_on) {
+        /* Power on always generates a resume event. */
+        dev->regs.pmsts |= 0x8100;
+        acpi_power_on = 0;
+    }
 
     acpi_rtc_status = 0;
+
+    acpi_update_irq(dev);
+    dev->irq_state = 0;
 }
 
 static void
@@ -1759,7 +1775,9 @@ acpi_init(const device_t *info)
 
     acpi_reset(dev);
 
-    acpi_enabled = 1;
+    acpi_enabled  = 1;
+    acpi_power_on = 1;
+
     return dev;
 }
 

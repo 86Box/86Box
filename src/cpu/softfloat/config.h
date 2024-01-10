@@ -1,3 +1,6 @@
+#ifndef EMU_SF_CONFIG_H
+#define EMU_SF_CONFIG_H
+
 #include <stdint.h>
 
 typedef int8_t flag;
@@ -44,3 +47,5 @@ typedef int64_t Bit64s;
 *----------------------------------------------------------------------------*/
 #define BX_CONST64(a) a##LL
 #define BX_CPP_INLINE static __inline
+
+#endif /*EMU_SF_CONFIG_H*/

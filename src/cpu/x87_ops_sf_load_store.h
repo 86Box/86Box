@@ -17,13 +17,18 @@
  *          Copyright 2016-2019 Miran Grca.
  */
 
-#define swap_values16u(a, b) { uint16_t tmp = a; a = b; b = tmp; }
+#define swap_values16u(a, b) \
+    {                        \
+        uint16_t tmp = a;    \
+        a            = b;    \
+        b            = tmp;  \
+    }
 
 static int
 sf_FILDiw_a16(uint32_t fetchdat)
 {
     floatx80 result;
-    int16_t temp;
+    int16_t  temp;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -49,7 +54,7 @@ static int
 sf_FILDiw_a32(uint32_t fetchdat)
 {
     floatx80 result;
-    int16_t temp;
+    int16_t  temp;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -76,7 +81,7 @@ static int
 sf_FILDil_a16(uint32_t fetchdat)
 {
     floatx80 result;
-    int32_t templ;
+    int32_t  templ;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -102,7 +107,7 @@ static int
 sf_FILDil_a32(uint32_t fetchdat)
 {
     floatx80 result;
-    int32_t templ;
+    int32_t  templ;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -129,7 +134,7 @@ static int
 sf_FILDiq_a16(uint32_t fetchdat)
 {
     floatx80 result;
-    int64_t temp64;
+    int64_t  temp64;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -155,7 +160,7 @@ static int
 sf_FILDiq_a32(uint32_t fetchdat)
 {
     floatx80 result;
-    int64_t temp64;
+    int64_t  temp64;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -182,9 +187,9 @@ static int
 sf_FLDs_a16(uint32_t fetchdat)
 {
     struct float_status_t status;
-    floatx80 result;
-    float32 load_reg;
-    unsigned unmasked;
+    floatx80              result;
+    float32               load_reg;
+    unsigned              unmasked;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -198,8 +203,8 @@ sf_FLDs_a16(uint32_t fetchdat)
         FPU_stack_overflow(fetchdat);
         goto next_ins;
     }
-    status = i387cw_to_softfloat_status_word(i387_get_control_word());
-    result = float32_to_floatx80(load_reg, &status);
+    status   = i387cw_to_softfloat_status_word(i387_get_control_word());
+    result   = float32_to_floatx80(load_reg, &status);
     unmasked = FPU_exception(fetchdat, status.float_exception_flags, 0);
     if (!(unmasked & FPU_CW_Invalid)) {
         FPU_push();
@@ -216,9 +221,9 @@ static int
 sf_FLDs_a32(uint32_t fetchdat)
 {
     struct float_status_t status;
-    floatx80 result;
-    float32 load_reg;
-    unsigned unmasked;
+    floatx80              result;
+    float32               load_reg;
+    unsigned              unmasked;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -232,8 +237,8 @@ sf_FLDs_a32(uint32_t fetchdat)
         FPU_stack_overflow(fetchdat);
         goto next_ins;
     }
-    status = i387cw_to_softfloat_status_word(i387_get_control_word());
-    result = float32_to_floatx80(load_reg, &status);
+    status   = i387cw_to_softfloat_status_word(i387_get_control_word());
+    result   = float32_to_floatx80(load_reg, &status);
     unmasked = FPU_exception(fetchdat, status.float_exception_flags, 0);
     if (!(unmasked & FPU_CW_Invalid)) {
         FPU_push();
@@ -251,9 +256,9 @@ static int
 sf_FLDd_a16(uint32_t fetchdat)
 {
     struct float_status_t status;
-    floatx80 result;
-    float64 load_reg;
-    unsigned unmasked;
+    floatx80              result;
+    float64               load_reg;
+    unsigned              unmasked;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -267,8 +272,8 @@ sf_FLDd_a16(uint32_t fetchdat)
         FPU_stack_overflow(fetchdat);
         goto next_ins;
     }
-    status = i387cw_to_softfloat_status_word(i387_get_control_word());
-    result = float64_to_floatx80(load_reg, &status);
+    status   = i387cw_to_softfloat_status_word(i387_get_control_word());
+    result   = float64_to_floatx80(load_reg, &status);
     unmasked = FPU_exception(fetchdat, status.float_exception_flags, 0);
     if (!(unmasked & FPU_CW_Invalid)) {
         FPU_push();
@@ -285,9 +290,9 @@ static int
 sf_FLDd_a32(uint32_t fetchdat)
 {
     struct float_status_t status;
-    floatx80 result;
-    float64 load_reg;
-    unsigned unmasked;
+    floatx80              result;
+    float64               load_reg;
+    unsigned              unmasked;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -301,8 +306,8 @@ sf_FLDd_a32(uint32_t fetchdat)
         FPU_stack_overflow(fetchdat);
         goto next_ins;
     }
-    status = i387cw_to_softfloat_status_word(i387_get_control_word());
-    result = float64_to_floatx80(load_reg, &status);
+    status   = i387cw_to_softfloat_status_word(i387_get_control_word());
+    result   = float64_to_floatx80(load_reg, &status);
     unmasked = FPU_exception(fetchdat, status.float_exception_flags, 0);
     if (!(unmasked & FPU_CW_Invalid)) {
         FPU_push();
@@ -326,7 +331,7 @@ sf_FLDe_a16(uint32_t fetchdat)
     fetch_ea_16(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     result.fraction = readmemq(easeg, cpu_state.eaaddr);
-    result.exp = readmemw(easeg, cpu_state.eaaddr + 8);
+    result.exp      = readmemw(easeg, cpu_state.eaaddr + 8);
     if (cpu_state.abrt)
         return 1;
     clear_C1();
@@ -351,7 +356,7 @@ sf_FLDe_a32(uint32_t fetchdat)
     fetch_ea_32(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     result.fraction = readmemq(easeg, cpu_state.eaaddr);
-    result.exp = readmemw(easeg, cpu_state.eaaddr + 8);
+    result.exp      = readmemw(easeg, cpu_state.eaaddr + 8);
     if (cpu_state.abrt)
         return 1;
     clear_C1();
@@ -371,7 +376,7 @@ static int
 sf_FLD_sti(uint32_t fetchdat)
 {
     const floatx80 floatx80_default_nan = packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
-    floatx80 sti_reg;
+    floatx80       sti_reg;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -403,8 +408,8 @@ static int
 sf_FISTiw_a16(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    int16_t save_reg = int16_indefinite;
+    uint16_t              sw       = fpu_state.swd;
+    int16_t               save_reg = int16_indefinite;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -417,7 +422,7 @@ sf_FISTiw_a16(uint32_t fetchdat)
             goto next_ins;
         }
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_int16(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1)) {
             goto next_ins;
@@ -438,8 +443,8 @@ static int
 sf_FISTiw_a32(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    int16_t save_reg = int16_indefinite;
+    uint16_t              sw       = fpu_state.swd;
+    int16_t               save_reg = int16_indefinite;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -451,7 +456,7 @@ sf_FISTiw_a32(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_int16(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1))
             goto next_ins;
@@ -472,8 +477,8 @@ static int
 sf_FISTPiw_a16(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    int16_t save_reg = int16_indefinite;
+    uint16_t              sw       = fpu_state.swd;
+    int16_t               save_reg = int16_indefinite;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -485,7 +490,7 @@ sf_FISTPiw_a16(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_int16(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1)) {
             goto next_ins;
@@ -509,8 +514,8 @@ static int
 sf_FISTPiw_a32(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    int16_t save_reg = int16_indefinite;
+    uint16_t              sw       = fpu_state.swd;
+    int16_t               save_reg = int16_indefinite;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -522,7 +527,7 @@ sf_FISTPiw_a32(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_int16(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1))
             goto next_ins;
@@ -546,8 +551,8 @@ static int
 sf_FISTil_a16(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    int32_t save_reg = int32_indefinite;
+    uint16_t              sw       = fpu_state.swd;
+    int32_t               save_reg = int32_indefinite;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -559,7 +564,7 @@ sf_FISTil_a16(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_int32(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1)) {
             goto next_ins;
@@ -580,8 +585,8 @@ static int
 sf_FISTil_a32(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    int32_t save_reg = int32_indefinite;
+    uint16_t              sw       = fpu_state.swd;
+    int32_t               save_reg = int32_indefinite;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -593,7 +598,7 @@ sf_FISTil_a32(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_int32(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1))
             goto next_ins;
@@ -614,8 +619,8 @@ static int
 sf_FISTPil_a16(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    int32_t save_reg = int32_indefinite;
+    uint16_t              sw       = fpu_state.swd;
+    int32_t               save_reg = int32_indefinite;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -627,7 +632,7 @@ sf_FISTPil_a16(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_int32(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1)) {
             goto next_ins;
@@ -651,8 +656,8 @@ static int
 sf_FISTPil_a32(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    int32_t save_reg = int32_indefinite;
+    uint16_t              sw       = fpu_state.swd;
+    int32_t               save_reg = int32_indefinite;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -664,7 +669,7 @@ sf_FISTPil_a32(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_int32(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1))
             goto next_ins;
@@ -688,8 +693,8 @@ static int
 sf_FISTPiq_a16(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    int64_t save_reg = int64_indefinite;
+    uint16_t              sw       = fpu_state.swd;
+    int64_t               save_reg = int64_indefinite;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -701,9 +706,9 @@ sf_FISTPiq_a16(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_int64(FPU_read_regi(0), &status);
-        if (FPU_exception(fetchdat, status.float_exception_flags, 1))  {
+        if (FPU_exception(fetchdat, status.float_exception_flags, 1)) {
             goto next_ins;
         }
     }
@@ -725,8 +730,8 @@ static int
 sf_FISTPiq_a32(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    int64_t save_reg = int64_indefinite;
+    uint16_t              sw       = fpu_state.swd;
+    int64_t               save_reg = int64_indefinite;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -738,7 +743,7 @@ sf_FISTPiq_a32(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_int64(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1))
             goto next_ins;
@@ -762,12 +767,12 @@ static int
 sf_FBSTP_PACKED_BCD_a16(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    uint16_t save_reg_hi = 0xffff;
-    uint64_t save_reg_lo = BX_CONST64(0xC000000000000000);
-    floatx80 reg;
-    int64_t save_val;
-    int sign;
+    uint16_t              sw          = fpu_state.swd;
+    uint16_t              save_reg_hi = 0xffff;
+    uint64_t              save_reg_lo = BX_CONST64(0xC000000000000000);
+    floatx80              reg;
+    int64_t               save_val;
+    int                   sign;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -779,10 +784,10 @@ sf_FBSTP_PACKED_BCD_a16(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
-        reg = FPU_read_regi(0);
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
+        reg      = FPU_read_regi(0);
         save_val = floatx80_to_int64(reg, &status);
-        sign = (reg.exp & 0x8000) != 0;
+        sign     = (reg.exp & 0x8000) != 0;
         if (sign)
             save_val = -save_val;
 
@@ -793,12 +798,12 @@ sf_FBSTP_PACKED_BCD_a16(uint32_t fetchdat)
             save_reg_hi = sign ? 0x8000 : 0;
             save_reg_lo = 0;
             for (int i = 0; i < 16; i++) {
-                save_reg_lo += ((uint64_t)(save_val % 10)) << (4 * i);
+                save_reg_lo += ((uint64_t) (save_val % 10)) << (4 * i);
                 save_val /= 10;
             }
-            save_reg_hi += (uint16_t)(save_val % 10);
+            save_reg_hi += (uint16_t) (save_val % 10);
             save_val /= 10;
-            save_reg_hi += (uint16_t)(save_val % 10) << 4;
+            save_reg_hi += (uint16_t) (save_val % 10) << 4;
         }
         /* check for fpu arithmetic exceptions */
         if (FPU_exception(fetchdat, status.float_exception_flags, 1)) {
@@ -826,12 +831,12 @@ static int
 sf_FBSTP_PACKED_BCD_a32(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    uint16_t save_reg_hi = 0xffff;
-    uint64_t save_reg_lo = BX_CONST64(0xC000000000000000);
-    floatx80 reg;
-    int64_t save_val;
-    int sign;
+    uint16_t              sw          = fpu_state.swd;
+    uint16_t              save_reg_hi = 0xffff;
+    uint64_t              save_reg_lo = BX_CONST64(0xC000000000000000);
+    floatx80              reg;
+    int64_t               save_val;
+    int                   sign;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -843,10 +848,10 @@ sf_FBSTP_PACKED_BCD_a32(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
-        reg = FPU_read_regi(0);
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
+        reg      = FPU_read_regi(0);
         save_val = floatx80_to_int64(reg, &status);
-        sign = (reg.exp & 0x8000) != 0;
+        sign     = (reg.exp & 0x8000) != 0;
         if (sign)
             save_val = -save_val;
 
@@ -857,12 +862,12 @@ sf_FBSTP_PACKED_BCD_a32(uint32_t fetchdat)
             save_reg_hi = sign ? 0x8000 : 0;
             save_reg_lo = 0;
             for (int i = 0; i < 16; i++) {
-                save_reg_lo += ((uint64_t)(save_val % 10)) << (4 * i);
+                save_reg_lo += ((uint64_t) (save_val % 10)) << (4 * i);
                 save_val /= 10;
             }
-            save_reg_hi += (uint16_t)(save_val % 10);
+            save_reg_hi += (uint16_t) (save_val % 10);
             save_val /= 10;
-            save_reg_hi += (uint16_t)(save_val % 10) << 4;
+            save_reg_hi += (uint16_t) (save_val % 10) << 4;
         }
         /* check for fpu arithmetic exceptions */
         if (FPU_exception(fetchdat, status.float_exception_flags, 1)) {
@@ -891,8 +896,8 @@ static int
 sf_FSTs_a16(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    float32 save_reg = float32_default_nan;
+    uint16_t              sw       = fpu_state.swd;
+    float32               save_reg = float32_default_nan;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -904,7 +909,7 @@ sf_FSTs_a16(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_float32(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1)) {
             goto next_ins;
@@ -925,8 +930,8 @@ static int
 sf_FSTs_a32(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    float32 save_reg = float32_default_nan;
+    uint16_t              sw       = fpu_state.swd;
+    float32               save_reg = float32_default_nan;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -938,7 +943,7 @@ sf_FSTs_a32(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_float32(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1))
             goto next_ins;
@@ -959,8 +964,8 @@ static int
 sf_FSTPs_a16(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    float32 save_reg = float32_default_nan;
+    uint16_t              sw       = fpu_state.swd;
+    float32               save_reg = float32_default_nan;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -972,7 +977,7 @@ sf_FSTPs_a16(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_float32(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1)) {
             goto next_ins;
@@ -997,8 +1002,8 @@ static int
 sf_FSTPs_a32(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    float32 save_reg = float32_default_nan;
+    uint16_t              sw       = fpu_state.swd;
+    float32               save_reg = float32_default_nan;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -1010,7 +1015,7 @@ sf_FSTPs_a32(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_float32(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1))
             goto next_ins;
@@ -1034,8 +1039,8 @@ static int
 sf_FSTd_a16(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    float64 save_reg = float64_default_nan;
+    uint16_t              sw       = fpu_state.swd;
+    float64               save_reg = float64_default_nan;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -1047,7 +1052,7 @@ sf_FSTd_a16(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_float64(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1)) {
             goto next_ins;
@@ -1068,8 +1073,8 @@ static int
 sf_FSTd_a32(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    float64 save_reg = float64_default_nan;
+    uint16_t              sw       = fpu_state.swd;
+    float64               save_reg = float64_default_nan;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -1081,7 +1086,7 @@ sf_FSTd_a32(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_float64(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1))
             goto next_ins;
@@ -1102,8 +1107,8 @@ static int
 sf_FSTPd_a16(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    float64 save_reg = float64_default_nan;
+    uint16_t              sw       = fpu_state.swd;
+    float64               save_reg = float64_default_nan;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -1116,7 +1121,7 @@ sf_FSTPd_a16(uint32_t fetchdat)
             goto next_ins;
         }
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_float64(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1)) {
             goto next_ins;
@@ -1140,8 +1145,8 @@ static int
 sf_FSTPd_a32(uint32_t fetchdat)
 {
     struct float_status_t status;
-    uint16_t sw = fpu_state.swd;
-    float64 save_reg = float64_default_nan;
+    uint16_t              sw       = fpu_state.swd;
+    float64               save_reg = float64_default_nan;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -1153,7 +1158,7 @@ sf_FSTPd_a32(uint32_t fetchdat)
         if (!is_IA_masked())
             goto next_ins;
     } else {
-        status = i387cw_to_softfloat_status_word(i387_get_control_word());
+        status   = i387cw_to_softfloat_status_word(i387_get_control_word());
         save_reg = floatx80_to_float64(FPU_read_regi(0), &status);
         if (FPU_exception(fetchdat, status.float_exception_flags, 1))
             goto next_ins;
@@ -1177,7 +1182,7 @@ static int
 sf_FSTPe_a16(uint32_t fetchdat)
 {
     const floatx80 floatx80_default_nan = packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
-    floatx80 save_reg;
+    floatx80       save_reg;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -1209,7 +1214,7 @@ static int
 sf_FSTPe_a32(uint32_t fetchdat)
 {
     const floatx80 floatx80_default_nan = packFloatx80(0, floatx80_default_nan_exp, floatx80_default_nan_fraction);
-    floatx80 save_reg;
+    floatx80       save_reg;
 
     FP_ENTER();
     FPU_check_pending_exceptions();
@@ -1279,25 +1284,26 @@ sf_FSTP_sti(uint32_t fetchdat)
 }
 
 #ifndef FPU_8087
-#    define sf_FCMOV(condition)                                                                      \
-        static int sf_FCMOV##condition(uint32_t fetchdat)                                            \
-        {                                                                                           \
-            FP_ENTER();                                                                             \
-            FPU_check_pending_exceptions(); \
-            cpu_state.pc++;                                                                         \
-            if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(fetchdat & 7)) \
-                FPU_stack_underflow(fetchdat, 0, 0); \
-            else { \
-                if (cond_##condition) {                                                                 \
-                    FPU_save_regi(FPU_read_regi(fetchdat & 7), 0); \
-                }                                                                                       \
-            } \
-            CLOCK_CYCLES_FPU(4);                                                                    \
-            return 0;                                                                               \
-        }
+#    ifndef OPS_286_386
+#        define sf_FCMOV(condition)                                    \
+            static int sf_FCMOV##condition(uint32_t fetchdat)          \
+            {                                                          \
+                FP_ENTER();                                            \
+                FPU_check_pending_exceptions();                        \
+                cpu_state.pc++;                                        \
+                if (IS_TAG_EMPTY(0) || IS_TAG_EMPTY(fetchdat & 7))     \
+                    FPU_stack_underflow(fetchdat, 0, 0);               \
+                else {                                                 \
+                    if (cond_##condition) {                            \
+                        FPU_save_regi(FPU_read_regi(fetchdat & 7), 0); \
+                    }                                                  \
+                }                                                      \
+                CLOCK_CYCLES_FPU(4);                                   \
+                return 0;                                              \
+            }
 
-#    define cond_U  (PF_SET())
-#    define cond_NU (!PF_SET())
+#        define cond_U  (PF_SET())
+#        define cond_NU (!PF_SET())
 
 // clang-format off
 sf_FCMOV(B)
@@ -1309,4 +1315,5 @@ sf_FCMOV(NE)
 sf_FCMOV(NBE)
 sf_FCMOV(NU)
 // clang-format on
+#    endif
 #endif

@@ -10,14 +10,10 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
- *          Melissa Goad, <mszoopers@protonmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
  *
- *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
- *          Copyright 2020      Melody Goad.
  *          Copyright 2022-2023 Jasmine Iwanek.
  */
 #include <stdio.h>
@@ -469,7 +465,7 @@ sst_add_mappings(sst_t *dev)
 static void *
 sst_init(const device_t *info)
 {
-    FILE  *f;
+    FILE  *fp;
     sst_t *dev = malloc(sizeof(sst_t));
     memset(dev, 0, sizeof(sst_t));
 
@@ -497,11 +493,11 @@ sst_init(const device_t *info)
 
     sst_add_mappings(dev);
 
-    f = nvr_fopen(flash_path, "rb");
-    if (f) {
-        if (fread(&(dev->array[0x00000]), 1, dev->size, f) != dev->size)
+    fp = nvr_fopen(flash_path, "rb");
+    if (fp) {
+        if (fread(&(dev->array[0x00000]), 1, dev->size, fp) != dev->size)
             pclog("Less than %i bytes read from the SST Flash ROM file\n", dev->size);
-        fclose(f);
+        fclose(fp);
     } else
         dev->dirty = 1; /* It is by definition dirty on creation. */
 
@@ -514,14 +510,14 @@ sst_init(const device_t *info)
 static void
 sst_close(void *priv)
 {
-    FILE  *f;
+    FILE  *fp;
     sst_t *dev = (sst_t *) priv;
 
     if (dev->dirty) {
-        f = nvr_fopen(flash_path, "wb");
-        if (f != NULL) {
-            fwrite(&(dev->array[0x00000]), dev->size, 1, f);
-            fclose(f);
+        fp = nvr_fopen(flash_path, "wb");
+        if (fp != NULL) {
+            fwrite(&(dev->array[0x00000]), dev->size, 1, fp);
+            fclose(fp);
         }
     }
 

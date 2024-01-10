@@ -675,7 +675,7 @@ buslogic_cmds(void *priv)
 
     const HALocalRAM *HALR = &bl->LocalRAM;
 
-    FILE                                 *f;
+    FILE                                 *fp;
     uint16_t                              TargetsPresentMask = 0;
     uint32_t                              Offset;
     int                                   i = 0;
@@ -872,6 +872,7 @@ buslogic_cmds(void *priv)
                 dev->Status |= STAT_INVCMD;
                 break;
             }
+            fallthrough;
         case 0x92:
             if ((bl->chip == CHIP_BUSLOGIC_ISA_542B_1991_12_14) || (bl->chip == CHIP_BUSLOGIC_ISA_545S_1992_10_05) || (bl->chip == CHIP_BUSLOGIC_ISA_542BH_1993_05_23) || (bl->chip == CHIP_BUSLOGIC_MCA_640A_1993_05_23)) {
                 dev->DataReplyLeft = 0;
@@ -890,11 +891,11 @@ buslogic_cmds(void *priv)
                     BuslogicAutoSCSIRamSetDefaults(dev, 3);
                     break;
                 case 1:
-                    f = nvr_fopen(BuslogicGetNVRFileName(bl), "wb");
-                    if (f) {
-                        fwrite(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, f);
-                        fclose(f);
-                        f = NULL;
+                    fp = nvr_fopen(BuslogicGetNVRFileName(bl), "wb");
+                    if (fp) {
+                        fwrite(&(bl->LocalRAM.structured.autoSCSIData), 1, 64, fp);
+                        fclose(fp);
+                        fp = NULL;
                     }
                     break;
                 default:
@@ -1232,9 +1233,7 @@ BuslogicPCIWrite(UNUSED(int func), int addr, uint8_t val, void *priv)
         case 0x10:
             val &= 0xe0;
             val |= 1;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         case 0x11:
         case 0x12:
@@ -1258,9 +1257,7 @@ BuslogicPCIWrite(UNUSED(int func), int addr, uint8_t val, void *priv)
 
         case 0x14:
             val &= 0xe0;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         case 0x15:
         case 0x16:
@@ -1532,16 +1529,16 @@ static void *
 buslogic_init(const device_t *info)
 {
     x54x_t          *dev;
-    char            *bios_rom_name;
+    const char      *bios_rom_name;
     uint16_t         bios_rom_size = 0;
     uint16_t         bios_rom_mask = 0;
     uint8_t          has_autoscsi_rom;
-    char            *autoscsi_rom_name = NULL;
+    const char      *autoscsi_rom_name = NULL;
     uint16_t         autoscsi_rom_size = 0;
     uint8_t          has_scam_rom;
-    char            *scam_rom_name = NULL;
+    const char      *scam_rom_name = NULL;
     uint16_t         scam_rom_size = 0;
-    FILE            *f;
+    FILE            *fp;
     buslogic_data_t *bl;
     uint32_t         bios_rom_addr;
 
@@ -1709,9 +1706,10 @@ buslogic_init(const device_t *info)
             break;
     }
 
-    if ((dev->Base != 0) && !(dev->card_bus & DEVICE_MCA) && !(dev->card_bus & DEVICE_PCI)) {
+    scsi_bus_set_speed(dev->bus, dev->ha_bps);
+
+    if ((dev->Base != 0) && !(dev->card_bus & DEVICE_MCA) && !(dev->card_bus & DEVICE_PCI))
         x54x_io_set(dev, dev->Base, 4);
-    }
 
     memset(bl->AutoSCSIROM, 0xff, 32768);
 
@@ -1725,20 +1723,20 @@ buslogic_init(const device_t *info)
         rom_init(&bl->bios, bios_rom_name, bios_rom_addr, bios_rom_size, bios_rom_mask, 0, MEM_MAPPING_EXTERNAL);
 
         if (has_autoscsi_rom) {
-            f = rom_fopen(autoscsi_rom_name, "rb");
-            if (f) {
-                (void) !fread(bl->AutoSCSIROM, 1, autoscsi_rom_size, f);
-                fclose(f);
-                f = NULL;
+            fp = rom_fopen(autoscsi_rom_name, "rb");
+            if (fp) {
+                (void) !fread(bl->AutoSCSIROM, 1, autoscsi_rom_size, fp);
+                fclose(fp);
+                fp = NULL;
             }
         }
 
         if (has_scam_rom) {
-            f = rom_fopen(scam_rom_name, "rb");
-            if (f) {
-                (void) !fread(bl->SCAMData, 1, scam_rom_size, f);
-                fclose(f);
-                f = NULL;
+            fp = rom_fopen(scam_rom_name, "rb");
+            if (fp) {
+                (void) !fread(bl->SCAMData, 1, scam_rom_size, fp);
+                fclose(fp);
+                fp = NULL;
             }
         }
     } else {
@@ -1748,7 +1746,7 @@ buslogic_init(const device_t *info)
     }
 
     if (bl->chip == CHIP_BUSLOGIC_PCI_958D_1995_12_30) {
-        dev->pci_slot = pci_add_card(PCI_ADD_NORMAL, BuslogicPCIRead, BuslogicPCIWrite, dev);
+        pci_add_card(PCI_ADD_NORMAL, BuslogicPCIRead, BuslogicPCIWrite, dev, &dev->pci_slot);
 
         buslogic_pci_bar[0].addr_regs[0] = 1;
         buslogic_pci_bar[1].addr_regs[0] = 0;

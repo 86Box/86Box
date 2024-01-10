@@ -50,21 +50,28 @@ extern int sound_pos_global;
 extern int sound_card_current[SOUND_CARD_MAX];
 
 extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
-                                                 int len, void *p),
-                              void *p);
+                                                 int len, void *priv),
+                              void *priv);
+
 extern void sound_set_cd_audio_filter(void (*filter)(int     channel,
-                                                     double *buffer, void *p),
-                                      void *p);
+                                                     double *buffer, void *priv),
+                                      void *priv);
+extern void sound_set_pc_speaker_filter(void (*filter)(int     channel,
+                                                       double *buffer, void *priv),
+                                        void *priv);
+
+extern void (*filter_pc_speaker)(int channel, double *buffer, void *priv);
+extern void *filter_pc_speaker_p;
 
 extern int sound_card_available(int card);
 #ifdef EMU_DEVICE_H
 extern const device_t *sound_card_getdevice(int card);
 #endif
-extern int   sound_card_has_config(int card);
-extern char *sound_card_get_internal_name(int card);
-extern int   sound_card_get_from_internal_name(const char *s);
-extern void  sound_card_init(void);
-extern void  sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r);
+extern int         sound_card_has_config(int card);
+extern const char *sound_card_get_internal_name(int card);
+extern int         sound_card_get_from_internal_name(const char *s);
+extern void        sound_card_init(void);
+extern void        sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r);
 
 extern void sound_speed_changed(void);
 
@@ -80,6 +87,9 @@ extern void closeal(void);
 extern void inital(void);
 extern void givealbuffer(void *buf);
 extern void givealbuffer_cd(void *buf);
+
+#define sb_vibra16c_onboard_relocate_base sb_vibra16s_onboard_relocate_base
+extern void sb_vibra16s_onboard_relocate_base(uint16_t new_addr, void *priv);
 
 #ifdef EMU_DEVICE_H
 /* AdLib and AdLib Gold */
@@ -128,6 +138,11 @@ extern const device_t sb_pro_v2_device;
 extern const device_t sb_pro_mcv_device;
 extern const device_t sb_pro_compat_device;
 extern const device_t sb_16_device;
+extern const device_t sb_vibra16s_onboard_device;
+extern const device_t sb_vibra16s_device;
+extern const device_t sb_vibra16xv_device;
+extern const device_t sb_vibra16c_onboard_device;
+extern const device_t sb_vibra16c_device;
 extern const device_t sb_16_pnp_device;
 extern const device_t sb_16_compat_device;
 extern const device_t sb_16_compat_nompu_device;

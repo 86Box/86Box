@@ -2,9 +2,12 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "x86.h"
 #include "x86_flags.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
 #include "386_common.h"
 #include "codegen.h"
 #include "codegen_accumulate.h"
@@ -14,7 +17,7 @@
 #include "codegen_ops_helpers.h"
 
 uint32_t
-ropMOVD_r_d(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropMOVD_r_d(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -36,7 +39,7 @@ ropMOVD_r_d(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat
     return op_pc + 1;
 }
 uint32_t
-ropMOVD_d_r(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropMOVD_d_r(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int src_reg = (fetchdat >> 3) & 7;
 
@@ -63,7 +66,7 @@ ropMOVD_d_r(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat
 }
 
 uint32_t
-ropMOVQ_r_q(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropMOVQ_r_q(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -85,7 +88,7 @@ ropMOVQ_r_q(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat
 }
 
 uint32_t
-ropMOVQ_q_r(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropMOVQ_q_r(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int src_reg = (fetchdat >> 3) & 7;
 

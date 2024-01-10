@@ -39,6 +39,7 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -158,6 +159,8 @@ device_add_common(const device_t *dev, const device_t *cd, void *p, void *params
     /* Do this so that a chained device_add will not identify the same ID
        its master device is already trying to assign. */
     devices[c] = (device_t *) dev;
+    if (!strcmp(dev->name, "None") || !strcmp(dev->name, "Internal"))
+        fatal("Attempting to add dummy device of type: %s\n", dev->name);
 
     if (p == NULL) {
         memcpy(&device_prev, &device_current, sizeof(device_context_t));
@@ -191,13 +194,13 @@ device_add_common(const device_t *dev, const device_t *cd, void *p, void *params
     return priv;
 }
 
-char *
+const char *
 device_get_internal_name(const device_t *dev)
 {
     if (dev == NULL)
         return "";
 
-    return (char *) dev->internal_name;
+    return dev->internal_name;
 }
 
 void *
@@ -328,6 +331,23 @@ device_reset_all(uint32_t match_flags)
 }
 
 void *
+device_find_first_priv(uint32_t match_flags)
+{
+    void *ret = NULL;
+
+    for (uint16_t c = 0; c < DEVICE_MAX; c++) {
+        if (devices[c] != NULL) {
+            if ((device_priv[c] != NULL) && (devices[c]->flags & match_flags)) {
+                ret = device_priv[c];
+                break;
+            }
+        }
+    }
+
+    return ret;
+}
+
+void *
 device_get_priv(const device_t *dev)
 {
     for (uint16_t c = 0; c < DEVICE_MAX; c++) {
@@ -439,34 +459,18 @@ device_has_config(const device_t *dev)
 }
 
 int
-device_poll(const device_t *dev, int x, int y, int z, int b)
+device_poll(const device_t *dev)
 {
     for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
             if (devices[c] == dev) {
                 if (devices[c]->poll)
-                    return (devices[c]->poll(x, y, z, b, 0, 0, device_priv[c]));
+                    return (devices[c]->poll(device_priv[c]));
             }
         }
     }
 
     return 0;
-}
-
-void
-device_register_pci_slot(const device_t *dev, int device, int type, int inta, int intb, int intc, int intd)
-{
-    for (uint16_t c = 0; c < DEVICE_MAX; c++) {
-        if (devices[c] != NULL) {
-            if (devices[c] == dev) {
-                if (devices[c]->register_pci_slot)
-                    devices[c]->register_pci_slot(device, type, inta, intb, intc, intd, device_priv[c]);
-                return;
-            }
-        }
-    }
-
-    return;
 }
 
 void
@@ -566,6 +570,8 @@ device_speed_changed(void)
 {
     for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
+            device_log("DEVICE: device '%s' speed changed\n", devices[c]->name);
+
             if (devices[c]->speed_changed != NULL)
                 devices[c]->speed_changed(device_priv[c]);
         }
@@ -747,25 +753,49 @@ device_is_valid(const device_t *device, int m)
     if (device == NULL)
         return 1;
 
+    if ((device->flags & DEVICE_PCJR) && !machine_has_bus(m, MACHINE_BUS_PCJR))
+        return 0;
+
+    if ((device->flags & DEVICE_XTKBC) && machine_has_bus(m, MACHINE_BUS_ISA16) && !machine_has_bus(m, MACHINE_BUS_DM_KBC))
+        return 0;
+
     if ((device->flags & DEVICE_AT) && !machine_has_bus(m, MACHINE_BUS_ISA16))
         return 0;
 
-    if ((device->flags & DEVICE_CBUS) && !machine_has_bus(m, MACHINE_BUS_CBUS))
+    if ((device->flags & DEVICE_ATKBC) && !machine_has_bus(m, MACHINE_BUS_ISA16) && !machine_has_bus(m, MACHINE_BUS_DM_KBC))
         return 0;
 
     if ((device->flags & DEVICE_ISA) && !machine_has_bus(m, MACHINE_BUS_ISA))
         return 0;
 
+    if ((device->flags & DEVICE_CBUS) && !machine_has_bus(m, MACHINE_BUS_CBUS))
+        return 0;
+
+    if ((device->flags & DEVICE_PCMCIA) && !machine_has_bus(m, MACHINE_BUS_PCMCIA))
+        return 0;
+
     if ((device->flags & DEVICE_MCA) && !machine_has_bus(m, MACHINE_BUS_MCA))
         return 0;
 
+    if ((device->flags & DEVICE_HIL) && !machine_has_bus(m, MACHINE_BUS_HIL))
+        return 0;
+
     if ((device->flags & DEVICE_EISA) && !machine_has_bus(m, MACHINE_BUS_EISA))
+        return 0;
+
+    if ((device->flags & DEVICE_OLB) && !machine_has_bus(m, MACHINE_BUS_OLB))
         return 0;
 
     if ((device->flags & DEVICE_VLB) && !machine_has_bus(m, MACHINE_BUS_VLB))
         return 0;
 
     if ((device->flags & DEVICE_PCI) && !machine_has_bus(m, MACHINE_BUS_PCI))
+        return 0;
+
+    if ((device->flags & DEVICE_CARDBUS) && !machine_has_bus(m, MACHINE_BUS_CARDBUS))
+        return 0;
+
+    if ((device->flags & DEVICE_USB) && !machine_has_bus(m, MACHINE_BUS_USB))
         return 0;
 
     if ((device->flags & DEVICE_AGP) && !machine_has_bus(m, MACHINE_BUS_AGP))
@@ -818,4 +848,10 @@ machine_get_config_string(char *s)
     }
 
     return NULL;
+}
+
+const device_t*
+device_context_get_device(void)
+{
+    return device_current.dev;
 }

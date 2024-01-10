@@ -130,10 +130,9 @@ typedef struct m24_kbd_t {
     uint8_t scan[7];
 
     /* Mouse stuff. */
-    int        mouse_mode;
-    int        x;
-    int        y;
+    int        mouse_input_mode;
     int        b;
+
     pc_timer_t send_delay_timer;
 } m24_kbd_t;
 
@@ -551,7 +550,7 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
                 if (m24_kbd->param == m24_kbd->param_total) {
                     switch (m24_kbd->command) {
                         case 0x11:
-                            m24_kbd->mouse_mode = 0;
+                            m24_kbd->mouse_input_mode = 0;
                             m24_kbd->scan[0]    = m24_kbd->params[0];
                             m24_kbd->scan[1]    = m24_kbd->params[1];
                             m24_kbd->scan[2]    = m24_kbd->params[2];
@@ -562,7 +561,7 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
                             break;
 
                         case 0x12:
-                            m24_kbd->mouse_mode = 1;
+                            m24_kbd->mouse_input_mode = 1;
                             m24_kbd->scan[0]    = m24_kbd->params[0];
                             m24_kbd->scan[1]    = m24_kbd->params[1];
                             m24_kbd->scan[2]    = m24_kbd->params[2];
@@ -721,7 +720,7 @@ m24_kbd_reset(void *priv)
     m24_kbd->wantirq = 0;
     keyboard_scan    = 1;
     m24_kbd->param = m24_kbd->param_total = 0;
-    m24_kbd->mouse_mode                   = 0;
+    m24_kbd->mouse_input_mode                   = 0;
     m24_kbd->scan[0]                      = 0x1c;
     m24_kbd->scan[1]                      = 0x53;
     m24_kbd->scan[2]                      = 0x01;
@@ -732,12 +731,14 @@ m24_kbd_reset(void *priv)
 }
 
 static int
-ms_poll(int x, int y, UNUSED(int z), int b, void *priv)
+ms_poll(void *priv)
 {
     m24_kbd_t *m24_kbd = (m24_kbd_t *) priv;
-
-    m24_kbd->x += x;
-    m24_kbd->y += y;
+    int delta_x;
+    int delta_y;
+    int o_x;
+    int o_y;
+    int b = mouse_get_buttons_ex();
 
     if (((key_queue_end - key_queue_start) & 0xf) > 14)
         return 0xff;
@@ -766,57 +767,49 @@ ms_poll(int x, int y, UNUSED(int z), int b, void *priv)
         m24_kbd_adddata(m24_kbd->scan[1] | 0x80);
     m24_kbd->b = (m24_kbd->b & ~4) | (b & 4);
 
-    if (m24_kbd->mouse_mode) {
+    if (m24_kbd->mouse_input_mode) {
         if (((key_queue_end - key_queue_start) & 0xf) > 12)
             return 0xff;
 
-        if (!m24_kbd->x && !m24_kbd->y)
+        if (!mouse_moved())
             return 0xff;
 
-        m24_kbd->y = -m24_kbd->y;
+        mouse_subtract_coords(&delta_x, &delta_y, &o_x, &o_y, -127, 127, 1, 0);
 
-        if (m24_kbd->x < -127)
-            m24_kbd->x = -127;
-        if (m24_kbd->x > 127)
-            m24_kbd->x = 127;
-        if (m24_kbd->x < -127)
-            m24_kbd->x = 0x80 | ((-m24_kbd->x) & 0x7f);
+        if ((delta_x == -127) && o_x)
+            delta_x = 0x80 | ((-delta_x) & 0x7f);
 
-        if (m24_kbd->y < -127)
-            m24_kbd->y = -127;
-        if (m24_kbd->y > 127)
-            m24_kbd->y = 127;
-        if (m24_kbd->y < -127)
-            m24_kbd->y = 0x80 | ((-m24_kbd->y) & 0x7f);
+        if ((delta_y == -127) && o_y)
+            delta_y = 0x80 | ((-delta_y) & 0x7f);
 
         m24_kbd_adddata(0xfe);
-        m24_kbd_adddata(m24_kbd->x);
-        m24_kbd_adddata(m24_kbd->y);
-
-        m24_kbd->x = m24_kbd->y = 0;
+        m24_kbd_adddata(delta_x);
+        m24_kbd_adddata(delta_y);
     } else {
-        while (m24_kbd->x < -4) {
+        mouse_subtract_coords(&delta_x, &delta_y, &o_x, &o_y, -127, 127, 1, 0);
+
+        while (delta_x < -4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
                 return 0xff;
-            m24_kbd->x += 4;
+            delta_x += 4;
             m24_kbd_adddata(m24_kbd->scan[3]);
         }
-        while (m24_kbd->x > 4) {
+        while (delta_x > 4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
                 return 0xff;
-            m24_kbd->x -= 4;
+            delta_x -= 4;
             m24_kbd_adddata(m24_kbd->scan[4]);
         }
-        while (m24_kbd->y < -4) {
+        while (delta_y < -4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
                 return 0xff;
-            m24_kbd->y += 4;
+            delta_y += 4;
             m24_kbd_adddata(m24_kbd->scan[5]);
         }
-        while (m24_kbd->y > 4) {
+        while (delta_y > 4) {
             if (((key_queue_end - key_queue_start) & 0xf) > 14)
                 return 0xff;
-            m24_kbd->y -= 4;
+            delta_y -= 4;
             m24_kbd_adddata(m24_kbd->scan[6]);
         }
     }
@@ -1511,7 +1504,7 @@ m19_vid_init(m19_vid_t *vid)
 #endif
 
     /* OGC emulation part begin */
-    loadfont_ex("roms/machines/m19/BIOS.BIN", 1, 90);
+    loadfont("roms/machines/m19/MBM2764-30 8514 107 AB PCF3.BIN", 7);
     /* composite is not working yet */
     vid->ogc.cga.composite    = 0; // (display_type != CGA_RGB);
     vid->ogc.cga.revision     = device_get_config_int("composite_type");
@@ -1923,6 +1916,7 @@ machine_xt_m19_init(const machine_t *model)
 
     ret = bios_load_linear("roms/machines/m19/BIOS.BIN",
                            0x000fc000, 16384, 0);
+    ret &= rom_present("roms/machines/m19/MBM2764-30 8514 107 AB PCF3.BIN");
 
     if (bios_only || !ret)
         return ret;
@@ -1949,7 +1943,7 @@ machine_xt_m19_init(const machine_t *model)
 
     device_add(&keyboard_xt_olivetti_device);
 
-    pit_set_clock(14318184.0);
+    pit_set_clock((uint32_t) 14318184.0);
 
     return ret;
 }

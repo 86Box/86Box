@@ -77,7 +77,10 @@ static volatile int cdaudioon        = 0;
 static int          cd_thread_enable = 0;
 
 static void (*filter_cd_audio)(int channel, double *buffer, void *priv) = NULL;
-static void *filter_cd_audio_p                                       = NULL;
+static void *filter_cd_audio_p                                          = NULL;
+
+void (*filter_pc_speaker)(int channel, double *buffer, void *priv) = NULL;
+void *filter_pc_speaker_p                                          = NULL;
 
 static const device_t sound_none_device = {
     .name          = "None",
@@ -134,6 +137,9 @@ static const SOUND_CARD sound_cards[] = {
     { &sb_awe64_value_device     },
     { &sb_awe64_device           },
     { &sb_awe64_gold_device      },
+    { &sb_vibra16c_device        },
+    { &sb_vibra16s_device        },
+    { &sb_vibra16xv_device       },
     { &ssi2001_device            },
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
     { &pas16_device              },
@@ -196,7 +202,7 @@ sound_card_has_config(int card)
     return device_has_config(sound_cards[card].device) ? 1 : 0;
 }
 
-char *
+const char *
 sound_card_get_internal_name(int card)
 {
     return device_get_internal_name(sound_cards[card].device);
@@ -219,13 +225,13 @@ sound_card_get_from_internal_name(const char *s)
 void
 sound_card_init(void)
 {
-    if (sound_cards[sound_card_current[0]].device)
+    if ((sound_card_current[0] > SOUND_INTERNAL) && (sound_cards[sound_card_current[0]].device))
         device_add(sound_cards[sound_card_current[0]].device);
-    if (sound_cards[sound_card_current[1]].device)
+    if ((sound_card_current[1] > SOUND_INTERNAL) && (sound_cards[sound_card_current[1]].device))
         device_add(sound_cards[sound_card_current[1]].device);
-    if (sound_cards[sound_card_current[2]].device)
+    if ((sound_card_current[2] > SOUND_INTERNAL) && (sound_cards[sound_card_current[2]].device))
         device_add(sound_cards[sound_card_current[2]].device);
-    if (sound_cards[sound_card_current[3]].device)
+    if ((sound_card_current[3] > SOUND_INTERNAL) && (sound_cards[sound_card_current[3]].device))
         device_add(sound_cards[sound_card_current[3]].device);
 }
 
@@ -442,6 +448,15 @@ sound_set_cd_audio_filter(void (*filter)(int channel, double *buffer, void *priv
 }
 
 void
+sound_set_pc_speaker_filter(void (*filter)(int channel, double *buffer, void *priv), void *priv)
+{
+    if ((filter_pc_speaker == NULL) || (filter == NULL)) {
+        filter_pc_speaker   = filter;
+        filter_pc_speaker_p = priv;
+    }
+}
+
+void
 sound_poll(UNUSED(void *priv))
 {
     timer_advance_u64(&sound_poll_timer, sound_poll_latch);
@@ -511,15 +526,18 @@ sound_reset(void)
     filter_cd_audio   = NULL;
     filter_cd_audio_p = NULL;
 
+    filter_pc_speaker   = NULL;
+    filter_pc_speaker_p = NULL;
+
     sound_set_cd_volume(65535, 65535);
+
+    /* Reset the MPU-401 already loaded flag and the chain of input/output handlers. */
+    midi_in_handlers_clear();
 }
 
 void
 sound_card_reset(void)
 {
-    /* Reset the MPU-401 already loaded flag and the chain of input/output handlers. */
-    midi_in_handlers_clear();
-
     sound_card_init();
 
     if (mpu401_standalone_enable)

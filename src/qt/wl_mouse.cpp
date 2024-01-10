@@ -26,6 +26,7 @@
 #include <QGuiApplication>
 
 extern "C" {
+#include <86box/mouse.h>
 #include <86box/plat.h>
 }
 
@@ -34,28 +35,12 @@ static zwp_relative_pointer_v1         *rel_pointer            = nullptr;
 static zwp_pointer_constraints_v1      *conf_pointer_interface = nullptr;
 static zwp_locked_pointer_v1           *conf_pointer           = nullptr;
 
-static int  rel_mouse_x = 0;
-static int  rel_mouse_y = 0;
 static bool wl_init_ok = false;
 
 void
 rel_mouse_event(void *data, zwp_relative_pointer_v1 *zwp_relative_pointer_v1, uint32_t tstmp, uint32_t tstmpl, wl_fixed_t dx, wl_fixed_t dy, wl_fixed_t dx_real, wl_fixed_t dy_real)
 {
-    rel_mouse_x += wl_fixed_to_int(dx_real);
-    rel_mouse_y += wl_fixed_to_int(dy_real);
-}
-
-extern "C" {
-extern int mouse_x, mouse_y;
-}
-
-void
-wl_mouse_poll()
-{
-    mouse_x     = rel_mouse_x;
-    mouse_y     = rel_mouse_y;
-    rel_mouse_x = 0;
-    rel_mouse_y = 0;
+    mouse_scale(wl_fixed_to_int(dx_real), wl_fixed_to_int(dy_real));
 }
 
 static struct zwp_relative_pointer_v1_listener rel_listener = {

@@ -60,6 +60,9 @@ extern const device_t ide_vlb_2ch_device;     /* vlb_ide_2ch */
 extern const device_t ide_pci_device;         /* pci_ide */
 extern const device_t ide_pci_2ch_device;     /* pci_ide_2ch */
 
+extern const device_t ide_ali1489_device;                       /* ALi M1489 */
+extern const device_t ide_ali5213_device;                       /* ALi M5213 */
+
 extern const device_t ide_cmd640_vlb_device;                    /* CMD PCI-640B VLB */
 extern const device_t ide_cmd640_vlb_178_device;                /* CMD PCI-640B VLB (Port 178h) */
 extern const device_t ide_cmd640_vlb_pri_device;                /* CMD PCI-640B VLB (Only primary channel) */
@@ -95,7 +98,7 @@ extern const device_t xtide_at_ps2_device;    /* xtide_at_ps2 */
 extern void hdc_init(void);
 extern void hdc_reset(void);
 
-extern char           *hdc_get_internal_name(int hdc);
+extern const char     *hdc_get_internal_name(int hdc);
 extern int             hdc_get_from_internal_name(char *s);
 extern int             hdc_has_config(int hdc);
 extern const device_t *hdc_get_device(int hdc);

@@ -73,7 +73,8 @@ typedef struct _ac97_via_ {
             uint8_t regs_linear[256];
         };
     } codec_shadow[2];
-    int slot;
+    uint8_t pci_slot;
+    uint8_t irq_state;
     int irq_pin;
 
     ac97_codec_t  *codec[2][2];
@@ -115,8 +116,8 @@ ac97_via_set_slot(void *priv, int slot, int irq_pin)
 
     ac97_via_log("AC97 VIA: set_slot(%d, %d)\n", slot, irq_pin);
 
-    dev->slot    = slot;
-    dev->irq_pin = irq_pin;
+    dev->pci_slot    = slot;
+    dev->irq_pin     = irq_pin;
 }
 
 uint8_t
@@ -182,12 +183,12 @@ ac97_via_update_irqs(ac97_via_t *dev)
         /* Stop immediately if any flag is set. Doing it this way optimizes
            rising edges for the playback SGD (0 - first to be checked). */
         if (dev->sgd_regs[i] & (dev->sgd_regs[i | 0x2] & 0x03)) {
-            pci_set_irq(dev->slot, dev->irq_pin);
+            pci_set_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
             return;
         }
     }
 
-    pci_clear_irq(dev->slot, dev->irq_pin);
+    pci_clear_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
 }
 
 static void

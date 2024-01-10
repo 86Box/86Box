@@ -349,8 +349,11 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
     uint8_t  dimm;
     uint8_t  drb;
     uint8_t  apollo = 0;
+    uint8_t  two_step = !!(drb_unit & 0x80);
     uint16_t size;
     uint16_t rows[SPD_MAX_SLOTS];
+
+    drb_unit &= 0x7f;
 
     /* Special case for VIA Apollo Pro family, which jumps from 5F to 56. */
     if (reg_max < reg_min) {
@@ -384,7 +387,10 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
         }
 
         /* Determine the DRB register to write. */
-        drb = reg_min + row;
+        if (two_step)
+            drb = reg_min + (row << 1);
+        else
+            drb = reg_min + row;
         if (apollo && ((drb & 0xf) < 0xa))
             drb = apollo + (drb & 0xf);
 

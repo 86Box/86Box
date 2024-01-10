@@ -246,7 +246,7 @@ et3000_init(const device_t *info)
             break;
     }
 
-    rom_init(&dev->bios_rom, (char *) fn,
+    rom_init(&dev->bios_rom, fn,
              0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     dev->svga.bpp     = 8;

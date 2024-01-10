@@ -13,6 +13,8 @@
 #    include "codegen_backend_arm_ops.h"
 #    include "codegen_reg.h"
 #    include "x86.h"
+#    include "x86seg_common.h"
+#    include "x86seg.h"
 #    include "x87.h"
 
 #    if defined(__linux__) || defined(__APPLE__)
@@ -44,7 +46,7 @@ void *codegen_gpf_rout;
 void *codegen_exit_rout;
 
 host_reg_def_t codegen_host_reg_list[CODEGEN_HOST_REGS] = {
-    {REG_R4,   0},
+    { REG_R4,  0},
     { REG_R5,  0},
     { REG_R6,  0},
     { REG_R7,  0},
@@ -54,7 +56,7 @@ host_reg_def_t codegen_host_reg_list[CODEGEN_HOST_REGS] = {
 };
 
 host_reg_def_t codegen_host_fp_reg_list[CODEGEN_HOST_FP_REGS] = {
-    {REG_D8,   0},
+    { REG_D8,  0},
     { REG_D9,  0},
     { REG_D10, 0},
     { REG_D11, 0},
@@ -288,7 +290,6 @@ void
 codegen_backend_init(void)
 {
     codeblock_t *block;
-    int          c;
 
     codeblock      = malloc(BLOCK_SIZE * sizeof(codeblock_t));
     codeblock_hash = malloc(HASH_SIZE * sizeof(codeblock_t *));
@@ -296,7 +297,7 @@ codegen_backend_init(void)
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
     memset(codeblock_hash, 0, HASH_SIZE * sizeof(codeblock_t *));
 
-    for (c = 0; c < BLOCK_SIZE; c++)
+    for (int c = 0; c < BLOCK_SIZE; c++)
         codeblock[c].pc = BLOCK_PC_INVALID;
 
     block_current         = 0;
@@ -306,7 +307,9 @@ codegen_backend_init(void)
     block->data           = codeblock_allocator_get_ptr(block->head_mem_block);
     block_write_data      = block->data;
     build_loadstore_routines(&codeblock[block_current]);
-    // pclog("block_pos=%i\n", block_pos);
+#    if 0
+    pclog("block_pos=%i\n", block_pos);
+#    endif
 
     codegen_fp_round = &block_write_data[block_pos];
     build_fp_round_routine(&codeblock[block_current]);
@@ -322,7 +325,9 @@ codegen_backend_init(void)
     host_arm_LDMIA_WB(block, REG_HOST_SP, REG_MASK_LOCAL | REG_MASK_PC);
 
     block_write_data = NULL;
-    // fatal("block_pos=%i\n", block_pos);
+#    if 0
+    fatal("block_pos=%i\n", block_pos);
+#    endif
     asm("vmrs %0, fpscr\n"
         : "=r"(cpu_state.old_fp_control));
     if ((cpu_state.old_fp_control >> 22) & 3)

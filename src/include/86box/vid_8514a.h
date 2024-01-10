@@ -15,22 +15,41 @@
  *
  *          Copyright 2022 TheCollector1995.
  */
-
 #ifndef VIDEO_8514A_H
 #define VIDEO_8514A_H
 
+typedef struct hwcursor8514_t {
+    int      ena;
+    int      x;
+    int      y;
+    int      xoff;
+    int      yoff;
+    int      cur_xsize;
+    int      cur_ysize;
+    int      v_acc;
+    int      h_acc;
+    uint32_t addr;
+    uint32_t pitch;
+} hwcursor8514_t;
+
 typedef struct ibm8514_t {
-    uint8_t pos_regs[8];
+    hwcursor8514_t hwcursor;
+    hwcursor8514_t hwcursor_latch;
+    uint8_t        pos_regs[8];
 
     int force_old_addr;
     int type;
     int local;
     int bpp;
+    int on[2];
+    int accel_bpp;
 
     uint32_t vram_size;
     uint32_t vram_mask;
+    uint32_t pallook[512];
 
     PALETTE   vgapal;
+    uint8_t   hwcursor_oddeven;
     uint8_t   dac_mask;
     uint8_t   dac_status;
     uint32_t *map8;
@@ -38,21 +57,24 @@ typedef struct ibm8514_t {
     int       dac_pos;
     int       dac_r;
     int       dac_g;
+    int       dac_b;
     int       internal_pitch;
+    int       hwcursor_on;
 
     struct {
         uint16_t subsys_cntl;
         uint16_t setup_md;
-        uint8_t  advfunc_cntl;
+        uint16_t advfunc_cntl;
         uint8_t  ext_advfunc_cntl;
         uint16_t cur_y;
-        uint16_t cur_y_bitres;
         uint16_t cur_x;
-        uint16_t cur_x_bitres;
+        int16_t  destx;
+        int16_t  desty;
         int16_t  desty_axstp;
         int16_t  destx_distp;
         int16_t  err_term;
         int16_t  maj_axis_pcnt;
+        int16_t  maj_axis_pcnt_no_limit;
         uint16_t cmd;
         uint16_t cmd_back;
         uint16_t short_stroke;
@@ -79,7 +101,9 @@ typedef struct ibm8514_t {
         int      sys_cnt2;
         int      temp_cnt;
         int16_t  cx;
+        int16_t  cx_back;
         int16_t  cy;
+        int16_t  oldcx;
         int16_t  oldcy;
         int16_t  sx;
         int16_t  sy;
@@ -112,11 +136,12 @@ typedef struct ibm8514_t {
         int      fill_state;
         int      xdir;
         int      ydir;
+        int      linedraw;
         uint32_t ge_offset;
     } accel;
 
     uint16_t test;
-    int      ibm_mode;
+    int      vendor_mode[2];
 
     int      v_total;
     int      dispend;
@@ -181,4 +206,5 @@ typedef struct ibm8514_t {
     int      ext_pitch;
     int      ext_crt_pitch;
 } ibm8514_t;
+
 #endif /*VIDEO_8514A_H*/

@@ -64,9 +64,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef LASERXT
   LASERXT := y
  endif
- ifndef MGA
-  MGA := y
- endif
  ifndef OLIVETTI
   OLIVETTI := y
  endif
@@ -127,9 +124,6 @@ else
  endif
  ifndef LASERXT
   LASERXT := n
- endif
- ifndef MGA
-  MGA := n
  endif
  ifndef OLIVETTI
   OLIVETTI := n
@@ -496,11 +490,6 @@ ifeq ($(DEV_BRANCH), y)
   DEVBROBJ += m_xt_laserxt.o
  endif
 
- ifeq ($(MGA), y)
-  OPTS     += -DUSE_MGA
-  DEVBROBJ += vid_mga.o
- endif
-
  ifeq ($(OPEN_AT), y)
   OPTS += -DUSE_OPEN_AT
  endif
@@ -564,23 +553,23 @@ CFLAGS += -Werror=implicit-int -Werror=implicit-function-declaration \
 #             Create the (final) list of objects to build.              #
 #########################################################################
 MAINOBJ := 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
-           nmi.o pic.o pit.o pit_fast.o port_6x.o port_92.o ppi.o pci.o mca.o fifo8.o \
-           usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o ini.o \
+           nmi.o pic.o pit.o pit_fast.o port_6x.o port_92.o ppi.o pci.o mca.o fifo.o \
+           fifo8.o usb.o device.o nvr.o nvr_at.o nvr_ps2.o machine_status.o ini.o \
            $(VNCOBJ)
 
-MEMOBJ := catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o row.o smram.o spd.o sst_flash.o
-
-CPU808XOBJ := queue.o
+MEMOBJ := catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o mmu_2386.o rom.o row.o \
+          smram.o spd.o sst_flash.o
 
 CPUOBJ := $(DYNARECOBJ) \
           $(CGTOBJ) \
           cpu.o cpu_table.o fpu.o x86.o \
           8080.o 808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o \
-          x86_ops_mmx.o x86seg.o x87.o x87_timings.o \
+          x86_ops_mmx.o x86seg_common.o x86seg_2386.o x86seg.o x87.o x87_timings.o \
 	  f2xm1.o fpatan.o fprem.o fsincos.o fyl2x.o softfloat_poly.o softfloat.o softfloat16.o \
 	  softfloat-muladd.o softfloat-round-pack.o softfloat-specialize.o softfloatx80.o
 
 CHIPSETOBJ := 82c100.o acc2168.o \
+              compaq_386.o \
               contaq_82c59x.o \
               cs4031.o cs8230.o \
               ali1429.o ali1435.o ali1489.o ali1531.o ali1541.o ali1543.o ali1621.o ali6117.o \
@@ -588,7 +577,7 @@ CHIPSETOBJ := 82c100.o acc2168.o \
               ims8848.o intel_82335.o intel_420ex.o intel_4x0.o intel_i450kx.o intel_sio.o intel_piix.o \
               ioapic.o \
               neat.o \
-              opti283.o opti291.o opti391.o opti495.o opti822.o opti895.o opti5x7.o \
+              opti283.o opti291.o opti391.o opti495.o opti602.o opti822.o opti895.o opti5x7.o \
               scamp.o scat.o \
               stpc.o \
               wd76c10.o vl82c480.o \
@@ -628,12 +617,14 @@ DEVOBJ := bugger.o cartridge.o cassette.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm
           mouse_bus.o \
           mouse_serial.o mouse_ps2.o \
           mouse_wacom_tablet.o \
-          phoenix_486_jumper.o serial_passthrough.o
+          nec_mate_unk.o phoenix_486_jumper.o \
+          serial_passthrough.o \
+          unittester.o
 
 SIOOBJ := sio_acc3221.o sio_ali5123.o \
           sio_f82c710.o sio_82091aa.o sio_fdc37c6xx.o \
           sio_fdc37c67x.o sio_fdc37c669.o sio_fdc37c93x.o sio_fdc37m60x.o \
-          sio_it8661f.o \
+          sio_it86x1f.o \
           sio_pc87306.o sio_pc87307.o sio_pc87309.o sio_pc87310.o sio_pc87311.o sio_pc87332.o \
           sio_prime3b.o sio_prime3c.o \
           sio_w83787f.o \
@@ -658,6 +649,7 @@ HDDOBJ := hdd.o \
           hdc_xta.o \
           hdc_esdi_at.o hdc_esdi_mca.o \
           hdc_xtide.o hdc_ide.o \
+          hdc_ide_ali5213.o \
           hdc_ide_opti611.o \
           hdc_ide_cmd640.o hdc_ide_cmd646.o \
           hdc_ide_sff8038i.o
@@ -686,7 +678,11 @@ NETOBJ := network.o \
           net_3c503.o net_ne2000.o \
           net_pcnet.o net_wd8003.o \
           net_plip.o net_event.o \
-          net_null.o
+          net_null.o \
+          net_eeprom_nmc93cxx.o \
+          net_tulip.o \
+          net_rtl8139.o \
+          net_l80225.o
 
 PRINTOBJ := png.o prt_cpmap.o \
             prt_escp.o prt_text.o prt_ps.o
@@ -702,6 +698,8 @@ SNDOBJ := sound.o \
           wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
           wave8580_PST.o wave.o \
           midi.o \
+          midi_opl4.o \
+          midi_opl4_yrw801.o \
           snd_speaker.o \
           snd_pssj.o \
           snd_ps1.o \
@@ -737,6 +735,7 @@ VIDOBJ := agpgart.o video.o \
           vid_ati_eeprom.o \
           vid_ati18800.o vid_ati28800.o \
 	  vid_ati_mach8.o \
+          vid_ati68875_ramdac.o \
           vid_ati_mach64.o vid_ati68860_ramdac.o \
           vid_bt48x_ramdac.o \
           vid_av9194.o vid_icd2061.o vid_ics2494.o vid_ics2595.o \
@@ -758,6 +757,7 @@ VIDOBJ := agpgart.o video.o \
           vid_s3.o vid_s3_virge.o \
           vid_ibm_rgb528_ramdac.o vid_sdac_ramdac.o \
           vid_ogc.o \
+          vid_mga.o \
           vid_nga.o \
           vid_tvp3026_ramdac.o \
           vid_xga.o
@@ -798,7 +798,7 @@ ifeq ($(RTMIDI), y)
  SNDOBJ += midi_rtmidi.o
 endif
 
-OBJ := $(MAINOBJ) $(CPU808XOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
+OBJ := $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
        $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) $(MINIVHDOBJ) \
        $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) $(VOODOOOBJ) \
        $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) $(DEVBROBJ) $(MINITRACEOBJ) $(THREADOBJ)

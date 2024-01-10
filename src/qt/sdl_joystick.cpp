@@ -41,15 +41,15 @@ joystick_init()
             plat_joystick_state[c].nr_povs    = SDL_JoystickNumHats(sdl_joy[c]);
 
             for (d = 0; d < std::min(plat_joystick_state[c].nr_axes, 8); d++) {
-                sprintf(plat_joystick_state[c].axis[d].name, "Axis %i", d);
+                snprintf(plat_joystick_state[c].axis[d].name, sizeof(plat_joystick_state[c].axis[d].name), "Axis %i", d);
                 plat_joystick_state[c].axis[d].id = d;
             }
             for (d = 0; d < std::min(plat_joystick_state[c].nr_buttons, 8); d++) {
-                sprintf(plat_joystick_state[c].button[d].name, "Button %i", d);
+                snprintf(plat_joystick_state[c].button[d].name, sizeof(plat_joystick_state[c].button[d].name), "Button %i", d);
                 plat_joystick_state[c].button[d].id = d;
             }
             for (d = 0; d < std::min(plat_joystick_state[c].nr_povs, 4); d++) {
-                sprintf(plat_joystick_state[c].pov[d].name, "POV %i", d);
+                snprintf(plat_joystick_state[c].pov[d].name, sizeof(plat_joystick_state[c].pov[d].name), "POV %i", d);
                 plat_joystick_state[c].pov[d].id = d;
             }
         }

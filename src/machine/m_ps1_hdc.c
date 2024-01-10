@@ -99,7 +99,7 @@
 #include <86box/ui.h>
 #include <86box/machine.h>
 
-#define HDC_TIME      (50 * TIMER_USEC)
+#define HDC_TIME      (250 * TIMER_USEC)
 #define HDC_TYPE_USER 47 /* user drive type */
 
 enum {
@@ -380,7 +380,6 @@ typedef struct hdc_t {
     uint8_t *reg_91; /* handle to system board's register 0x91 */
 
     /* Controller state. */
-    uint64_t   callback;
     pc_timer_t timer;
     int8_t     state; /* controller state */
     int8_t     reset; /* reset state counter */
@@ -463,6 +462,7 @@ static const geom_t ibm_type_table[] = {
   // clang-format on
 };
 
+#define ENABLE_PS1_HDC_LOG 1
 #ifdef ENABLE_PS1_HDC_LOG
 int ps1_hdc_do_log = ENABLE_PS1_HDC_LOG;
 
@@ -480,22 +480,6 @@ ps1_hdc_log(const char *fmt, ...)
 #else
 #    define ps1_hdc_log(fmt, ...)
 #endif
-
-static void
-hdc_set_callback(hdc_t *dev, uint64_t callback)
-{
-    if (!dev) {
-        return;
-    }
-
-    if (callback) {
-        dev->callback = callback;
-        timer_set_delay_u64(&dev->timer, dev->callback);
-    } else {
-        dev->callback = 0;
-        timer_disable(&dev->timer);
-    }
-}
 
 /* FIXME: we should use the disk/hdd_table.c code with custom tables! */
 static int
@@ -633,7 +617,7 @@ do_format(hdc_t *dev, drive_t *drive, ccb_t *ccb)
                 /* Enable for PIO or DMA, as needed. */
 #if NOT_USED
             if (dev->ctrl & ACR_DMA_EN)
-                hdc_set_callback(dev, HDC_TIME);
+                timer_advance_u64(&dev->timer, HDC_TIME);
             else
 #endif
                 dev->status |= ASR_DATA_REQ;
@@ -653,7 +637,7 @@ do_format(hdc_t *dev, drive_t *drive, ccb_t *ccb)
                 dev->buf_idx++;
             }
             dev->state = STATE_RDONE;
-            hdc_set_callback(dev, HDC_TIME);
+            timer_advance_u64(&dev->timer, HDC_TIME);
             break;
 
         case STATE_RDONE:
@@ -665,7 +649,7 @@ do_format(hdc_t *dev, drive_t *drive, ccb_t *ccb)
         fcb = (fcb_t *)dev->data;
 #endif
             dev->state = STATE_FINIT;
-            /*FALLTHROUGH*/
+            fallthrough;
 
         case STATE_FINIT:
 do_fmt:
@@ -699,9 +683,7 @@ do_fmt:
 
             /* Done with this track. */
             dev->state = STATE_FDONE;
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
         case STATE_FDONE:
             /* One more track done. */
             if (++start_cyl == end_cyl) {
@@ -739,9 +721,7 @@ hdc_callback(void *priv)
     off64_t  addr;
     int      no_data = 0;
     int      val;
-
-    /* Cancel timer. */
-    dev->callback = 0;
+    uint8_t  cmd = ccb->cmd & 0x0f;
 
     /* Clear the SSB error bits. */
     dev->ssb.track_0        = 0;
@@ -760,10 +740,12 @@ hdc_callback(void *priv)
     /* We really only support one drive, but ohwell. */
     drive = &dev->drives[0];
 
+    ps1_hdc_log("hdc_callback(): %02X\n", cmd);
+
     switch (ccb->cmd) {
         case CMD_READ_VERIFY:
             no_data = 1;
-            /*FALLTHROUGH*/
+            fallthrough;
 
         case CMD_READ_SECTORS:
             if (!drive->present) {
@@ -790,7 +772,7 @@ hdc_callback(void *priv)
                     dev->buf_len = (128 << dev->ssb.sect_size);
 
                     dev->state = STATE_SEND;
-                    /*FALLTHROUGH*/
+                    fallthrough;
 
                 case STATE_SEND:
                     /* Activate the status icon. */
@@ -814,12 +796,12 @@ do_send:
                     dev->buf_idx = 0;
                     if (no_data) {
                         /* Delay a bit, no actual transfer. */
-                        hdc_set_callback(dev, HDC_TIME);
+                        timer_advance_u64(&dev->timer, HDC_TIME);
                     } else {
                         if (dev->ctrl & ACR_DMA_EN) {
                             /* DMA enabled. */
                             dev->buf_ptr = dev->sector_buf;
-                            hdc_set_callback(dev, HDC_TIME);
+                            timer_advance_u64(&dev->timer, HDC_TIME);
                         } else {
                             /* No DMA, do PIO. */
                             dev->status |= (ASR_DATA_REQ | ASR_DIR);
@@ -854,7 +836,7 @@ do_send:
                         }
                     }
                     dev->state = STATE_SDONE;
-                    hdc_set_callback(dev, HDC_TIME);
+                    timer_advance_u64(&dev->timer, HDC_TIME);
                     break;
 
                 case STATE_SDONE:
@@ -882,8 +864,57 @@ do_send:
             }
             break;
 
-        case CMD_READ_EXT: /* READ_EXT */
         case CMD_READ_ID:  /* READ_ID */
+            if (!drive->present) {
+                dev->ssb.not_ready = 1;
+                do_finish(dev);
+                return;
+            }
+
+            switch (dev->state) {
+                case STATE_IDLE:
+                    /* Seek to cylinder if requested. */
+                    if (ccb->auto_seek) {
+                        if (do_seek(dev, drive,
+                                    (ccb->cyl_low | (ccb->cyl_high << 8)))) {
+                            do_finish(dev);
+                            return;
+                        }
+                    }
+                    dev->head   = ccb->head;
+
+                    /* Get sector count and size. */
+                    dev->count   = (int) ccb->count;
+                    dev->buf_len = (128 << dev->ssb.sect_size);
+
+                    /* Activate the status icon. */
+                    ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 1);
+
+                    /* Ready to transfer the data out. */
+                    dev->state = STATE_SDONE;
+                    dev->buf_idx = 0;
+                    /* Delay a bit, no actual transfer. */
+                    timer_advance_u64(&dev->timer, HDC_TIME);
+                    break;
+
+                case STATE_SDONE:
+                    dev->buf_idx = 0;
+
+                    /* De-activate the status icon. */
+                    ui_sb_update_icon(SB_HDD | HDD_BUS_XTA, 0);
+
+                    if (!(dev->ctrl & ACR_DMA_EN))
+                        dev->status &= ~(ASR_DATA_REQ | ASR_DIR);
+                    dev->ssb.cmd_syndrome = 0x14;
+                    do_finish(dev);
+                    break;
+
+                default:
+                    break;
+            }
+            break;
+
+        case CMD_READ_EXT: /* READ_EXT */
             if (!drive->present) {
                 dev->ssb.not_ready = 1;
                 do_finish(dev);
@@ -907,7 +938,7 @@ do_send:
 
         case CMD_WRITE_VERIFY:
             no_data = 1;
-            /*FALLTHROUGH*/
+            fallthrough;
 
         case CMD_WRITE_SECTORS:
             if (!drive->present) {
@@ -934,7 +965,7 @@ do_send:
                     dev->buf_len = (128 << dev->ssb.sect_size);
 
                     dev->state = STATE_RECV;
-                    /*FALLTHROUGH*/
+                    fallthrough;
 
                 case STATE_RECV:
                     /* Activate the status icon. */
@@ -945,12 +976,12 @@ do_recv:
                     dev->buf_idx = 0;
                     if (no_data) {
                         /* Delay a bit, no actual transfer. */
-                        hdc_set_callback(dev, HDC_TIME);
+                        timer_advance_u64(&dev->timer, HDC_TIME);
                     } else {
                         if (dev->ctrl & ACR_DMA_EN) {
                             /* DMA enabled. */
                             dev->buf_ptr = dev->sector_buf;
-                            hdc_set_callback(dev, HDC_TIME);
+                            timer_advance_u64(&dev->timer, HDC_TIME);
                         } else {
                             /* No DMA, do PIO. */
                             dev->buf_ptr = dev->data;
@@ -980,7 +1011,7 @@ do_recv:
                         }
                     }
                     dev->state = STATE_RDONE;
-                    hdc_set_callback(dev, HDC_TIME);
+                    timer_advance_u64(&dev->timer, HDC_TIME);
                     break;
 
                 case STATE_RDONE:
@@ -1142,6 +1173,8 @@ hdc_read(uint16_t port, void *priv)
             break;
     }
 
+    ps1_hdc_log("[%04X:%08X] [R] %04X = %02X\n", CS, cpu_state.pc, port, ret);
+
     return ret;
 }
 
@@ -1149,6 +1182,8 @@ static void
 hdc_write(uint16_t port, uint8_t val, void *priv)
 {
     hdc_t *dev = (hdc_t *) priv;
+
+    ps1_hdc_log("[%04X:%08X] [W] %04X = %02X\n", CS, cpu_state.pc, port, val);
 
     /* TRM: tell system board we are alive. */
     *dev->reg_91 |= 0x01;
@@ -1166,6 +1201,7 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
 
                 /* Store the data into the buffer. */
                 dev->buf_ptr[dev->buf_idx] = val;
+                ps1_hdc_log("dev->buf_ptr[%02X] = %02X\n", dev->buf_idx, val);
                 if (++dev->buf_idx == dev->buf_len) {
                     /* We got all the data we need. */
                     dev->status &= ~ASR_DATA_REQ;
@@ -1184,7 +1220,7 @@ hdc_write(uint16_t port, uint8_t val, void *priv)
                             dev->status |= ASR_BUSY;
 
                         /* Schedule command execution. */
-                        hdc_set_callback(dev, HDC_TIME);
+                        timer_set_delay_u64(&dev->timer, HDC_TIME);
                     }
                 }
             }

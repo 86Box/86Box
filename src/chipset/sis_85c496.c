@@ -14,6 +14,7 @@
  *
  *          Copyright 2019-2020 Miran Grca.
  */
+#define USE_DRB_HACK
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -45,9 +46,13 @@
 typedef struct sis_85c496_t {
     uint8_t    cur_reg;
     uint8_t    rmsmiblk_count;
+    uint8_t    pci_slot;
+    uint8_t    pad;
 #ifndef USE_DRB_HACK
     uint8_t    drb_default;
     uint8_t    drb_bits;
+    uint8_t    pad0;
+    uint8_t    pad1;
 #endif
     uint8_t    regs[127];
     uint8_t    pci_conf[256];
@@ -612,9 +617,9 @@ sis_85c496_reset(void *priv)
 }
 
 static void
-sis_85c496_close(void *p)
+sis_85c496_close(void *priv)
 {
-    sis_85c496_t *dev = (sis_85c496_t *) p;
+    sis_85c496_t *dev = (sis_85c496_t *) priv;
 
     smram_del(dev->smram);
 
@@ -648,7 +653,7 @@ static void
     dev->pci_conf[0xd0] = 0x78; /* ROM at E0000-FFFFF, Flash enable. */
     dev->pci_conf[0xd1] = 0xff;
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, sis_85c49x_pci_read, sis_85c49x_pci_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, sis_85c49x_pci_read, sis_85c49x_pci_write, dev, &dev->pci_slot);
 
 #if 0
     sis_85c497_isa_reset(dev);

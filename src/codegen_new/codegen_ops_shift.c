@@ -2,8 +2,11 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "x86.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
 #include "x86_flags.h"
 #include "386_common.h"
 #include "codegen.h"
@@ -429,7 +432,7 @@ shift_common_variable_32(ir_data_t *ir, uint32_t fetchdat, uint32_t op_pc, x86se
 }
 
 uint32_t
-ropC0(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropC0(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     x86seg *target_seg = NULL;
     uint8_t imm;
@@ -452,7 +455,7 @@ ropC0(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint
     return op_pc + 1;
 }
 uint32_t
-ropC1_w(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropC1_w(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     x86seg *target_seg = NULL;
     uint8_t imm;
@@ -475,7 +478,7 @@ ropC1_w(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, ui
     return op_pc + 1;
 }
 uint32_t
-ropC1_l(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropC1_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     x86seg *target_seg = NULL;
 
@@ -512,7 +515,7 @@ ropC1_l(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, ui
 }
 
 uint32_t
-ropD0(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropD0(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     x86seg *target_seg = NULL;
 
@@ -530,7 +533,7 @@ ropD0(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint
     return shift_common_8(ir, fetchdat, op_pc, target_seg, 1);
 }
 uint32_t
-ropD1_w(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropD1_w(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     x86seg *target_seg = NULL;
 
@@ -548,7 +551,7 @@ ropD1_w(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, ui
     return shift_common_16(ir, fetchdat, op_pc, target_seg, 1);
 }
 uint32_t
-ropD1_l(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropD1_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     x86seg *target_seg = NULL;
 
@@ -567,7 +570,7 @@ ropD1_l(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, ui
 }
 
 uint32_t
-ropD2(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropD2(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     if ((fetchdat & 0x30) == 0x10) /*RCL/RCR*/
         return 0;
@@ -687,7 +690,7 @@ ropD2(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint
     return op_pc + 1;
 }
 uint32_t
-ropD3_w(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropD3_w(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     if ((fetchdat & 0x30) == 0x10) /*RCL/RCR*/
         return 0;
@@ -807,7 +810,7 @@ ropD3_w(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, ui
     return op_pc + 1;
 }
 uint32_t
-ropD3_l(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropD3_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     if ((fetchdat & 0x30) == 0x10) /*RCL/RCR*/
         return 0;
@@ -928,7 +931,7 @@ ropD3_l(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, ui
 }
 
 uint32_t
-ropSHLD_16_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropSHLD_16_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     x86seg *target_seg = NULL;
     int     src_reg    = (fetchdat >> 3) & 7;
@@ -973,7 +976,7 @@ ropSHLD_16_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetch
     return op_pc + 2;
 }
 uint32_t
-ropSHLD_32_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropSHLD_32_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     x86seg *target_seg = NULL;
     int     src_reg    = (fetchdat >> 3) & 7;
@@ -1018,7 +1021,7 @@ ropSHLD_32_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetch
     return op_pc + 2;
 }
 uint32_t
-ropSHRD_16_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropSHRD_16_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     x86seg *target_seg = NULL;
     int     src_reg    = (fetchdat >> 3) & 7;
@@ -1063,7 +1066,7 @@ ropSHRD_16_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetch
     return op_pc + 2;
 }
 uint32_t
-ropSHRD_32_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropSHRD_32_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     x86seg *target_seg = NULL;
     int     src_reg    = (fetchdat >> 3) & 7;

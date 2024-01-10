@@ -14,9 +14,10 @@ struct event_cpp11_t {
 extern "C" {
 
 thread_t *
-thread_create(void (*thread_rout)(void *param), void *param)
+thread_create_named(void (*thread_rout)(void *param), void *param, const char *name)
 {
-    auto thread = new std::thread([thread_rout, param] {
+    auto thread = new std::thread([thread_rout, param, name] {
+        plat_set_thread_name(NULL, name);
         thread_rout(param);
     });
     return thread;

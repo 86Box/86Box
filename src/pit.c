@@ -637,6 +637,42 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
 
 extern uint8_t *ram;
 
+uint8_t
+pit_read_reg(void *priv, uint8_t reg)
+{
+    pit_t  *dev = (pit_t *) priv;
+    uint8_t ret = 0xff;
+
+    switch (reg) {
+        case 0x00:
+        case 0x02:
+        case 0x04:
+            ret = dev->counters[reg >> 1].l & 0xff;
+            break;
+        case 0x01:
+        case 0x03:
+        case 0x05:
+            ret = (dev->counters[reg >> 1].l >> 8) & 0xff;
+            break;
+        case 0x06:
+            ret = dev->ctrl;
+            break;
+        case 0x07:
+            /* The SiS 551x datasheet is unclear about how exactly
+               this register is structured.
+               Update: But the SiS 5571 datasheet is clear. */
+            ret = (dev->counters[0].rm & 0x80) ? 0x01 : 0x00;
+            ret |= (dev->counters[1].rm & 0x80) ? 0x02 : 0x00;
+            ret |= (dev->counters[2].rm & 0x80) ? 0x04 : 0x00;
+            ret |= (dev->counters[0].wm & 0x80) ? 0x08 : 0x00;
+            ret |= (dev->counters[1].wm & 0x80) ? 0x10 : 0x00;
+            ret |= (dev->counters[2].wm & 0x80) ? 0x20 : 0x00;
+            break;
+    }
+
+    return ret;
+}
+
 static uint8_t
 pit_read(uint16_t addr, void *priv)
 {
@@ -852,7 +888,7 @@ pit_init(const device_t *info)
 const device_t i8253_device = {
     .name          = "Intel 8253/8253-5 Programmable Interval Timer",
     .internal_name = "i8253",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA | DEVICE_PIT,
     .local         = PIT_8253,
     .init          = pit_init,
     .close         = pit_close,
@@ -866,7 +902,7 @@ const device_t i8253_device = {
 const device_t i8254_device = {
     .name          = "Intel 8254 Programmable Interval Timer",
     .internal_name = "i8254",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA | DEVICE_PIT,
     .local         = PIT_8254,
     .init          = pit_init,
     .close         = pit_close,
@@ -1000,11 +1036,11 @@ pit_ps2_init(int type)
 }
 
 void
-pit_set_clock(int clock)
+pit_set_clock(uint32_t clock)
 {
     /* Set default CPU/crystal clock and xt_cpu_multi. */
     if (cpu_s->cpu_type >= CPU_286) {
-        int remainder = (clock % 100000000);
+        uint32_t remainder = (clock % 100000000);
         if (remainder == 66666666)
             cpuclock = (double) (clock - remainder) + (200000000.0 / 3.0);
         else if (remainder == 33333333)
@@ -1014,7 +1050,11 @@ pit_set_clock(int clock)
 
         PITCONSTD    = (cpuclock / 1193182.0);
         PITCONST     = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
+#ifdef IMPRECISE_CGACONST
         CGACONST     = (uint64_t) ((cpuclock / (19687503.0 / 11.0)) * (double) (1ULL << 32));
+#else
+        CGACONST     = (uint64_t) ((cpuclock / (157500000.0 / 88.0)) * (double) (1ULL << 32));
+#endif
         ISACONST     = (uint64_t) ((cpuclock / (double) cpu_isa_speed) * (double) (1ULL << 32));
         xt_cpu_multi = 1ULL;
     } else {
@@ -1064,7 +1104,11 @@ pit_set_clock(int clock)
         } else if (cpuclock != 14318184.0) {
             PITCONSTD = (cpuclock / 1193182.0);
             PITCONST  = (uint64_t) (PITCONSTD * (double) (1ULL << 32));
+#ifdef IMPRECISE_CGACONST
             CGACONST  = (uint64_t) ((cpuclock / (19687503.0 / 11.0)) * (double) (1ULL << 32));
+#else
+            CGACONST  = (uint64_t) ((cpuclock / (157500000.0 / 88.0)) * (double) (1ULL << 32));
+#endif
         }
 
         ISACONST = (1ULL << 32ULL);
@@ -1074,7 +1118,11 @@ pit_set_clock(int clock)
     /* Delay for empty I/O ports. */
     io_delay = (int) round(((double) cpu_s->rspeed) / 3000000.0);
 
+#ifdef WRONG_MDACONST
     MDACONST  = (uint64_t) (cpuclock / 2032125.0 * (double) (1ULL << 32));
+#else
+    MDACONST  = (uint64_t) (cpuclock / (16257000.0 / 9.0) * (double) (1ULL << 32));
+#endif
     HERCCONST = MDACONST;
     VGACONST1 = (uint64_t) (cpuclock / 25175000.0 * (double) (1ULL << 32));
     VGACONST2 = (uint64_t) (cpuclock / 28322000.0 * (double) (1ULL << 32));
@@ -1084,9 +1132,9 @@ pit_set_clock(int clock)
 
     isa_timing = (cpuclock / (double) cpu_isa_speed);
     if (cpu_64bitbus)
-        bus_timing = (cpuclock / ((double) cpu_busspeed / 2));
+        bus_timing = (cpuclock / (cpu_busspeed / 2));
     else
-        bus_timing = (cpuclock / (double) cpu_busspeed);
+        bus_timing = (cpuclock / cpu_busspeed);
     pci_timing = (cpuclock / (double) cpu_pci_speed);
     agp_timing = (cpuclock / (double) cpu_agp_speed);
 

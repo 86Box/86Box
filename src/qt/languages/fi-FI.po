@@ -124,6 +124,9 @@ msgstr "&Tasasivuiset kuvapisteet (säilytä kuvasuhde)"
 msgid "&Integer scale"
 msgstr "&Kokonaislukuskaalaus"
 
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Kokonaislukuskaalaus"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "&EGA/(S)VGA-asetukset"
 
@@ -853,8 +856,8 @@ msgstr "Tietoja 86Box:sta"
 msgid "86Box v"
 msgstr "86Box v"
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Vanhojen tietokoneiden emulaattori\n\nTekijät: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho ja muut.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Vanhojen tietokoneiden emulaattori\n\nTekijät: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne ja muut.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho ja muut.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
 
 msgid "Hardware not available"
 msgstr "Laitteisto ei ole saatavilla"
@@ -1196,8 +1199,28 @@ msgid "(System Default)"
 msgstr "(Järjestelmän oletus)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "Verkkoajurin alustaminen epäonnistui"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "Verkkokokoonpano vaihtuu nolla-ajuriin"
 
+msgid "Mouse sensitivity:"
+msgstr "Hiiren herkkyys:"
+
+msgid "Select media images from program working directory"
+msgstr "Valitse mediakuvat ohjelman työhakemistosta"
+
+msgid "PIT mode:"
+msgstr "PIT-tila:"
+
+msgid "Auto"
+msgstr "Automaattinen"
+
+msgid "Slow"
+msgstr "Hidas"
+
+msgid "Fast"
+msgstr "Nopea"
+
+msgid "&Auto-pause on focus loss"
+msgstr "&Automaattinen tauko tarkennuksen hävitessä"

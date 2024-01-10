@@ -128,6 +128,7 @@ typedef struct tandy_t {
     int      rom_offset; /* SL2 */
 
     uint32_t base;
+    uint32_t mask;
     int      is_sl2;
 
     t1kvid_t *vid;
@@ -1238,7 +1239,7 @@ static void *
 eep_init(const device_t *info)
 {
     t1keep_t *eep;
-    FILE     *f = NULL;
+    FILE     *fp = NULL;
 
     eep = (t1keep_t *) malloc(sizeof(t1keep_t));
     memset(eep, 0x00, sizeof(t1keep_t));
@@ -1256,11 +1257,11 @@ eep_init(const device_t *info)
             break;
     }
 
-    f = nvr_fopen(eep->path, "rb");
-    if (f != NULL) {
-        if (fread(eep->store, 1, 128, f) != 128)
+    fp = nvr_fopen(eep->path, "rb");
+    if (fp != NULL) {
+        if (fread(eep->store, 1, 128, fp) != 128)
             fatal("eep_init(): Error reading Tandy EEPROM\n");
-        (void) fclose(f);
+        (void) fclose(fp);
     } else
         memset(eep->store, 0x00, 128);
 
@@ -1273,12 +1274,12 @@ static void
 eep_close(void *priv)
 {
     t1keep_t *eep = (t1keep_t *) priv;
-    FILE     *f   = NULL;
+    FILE     *fp  = NULL;
 
-    f = nvr_fopen(eep->path, "wb");
-    if (f != NULL) {
-        (void) fwrite(eep->store, 128, 1, f);
-        (void) fclose(f);
+    fp = nvr_fopen(eep->path, "wb");
+    if (fp != NULL) {
+        (void) fwrite(eep->store, 128, 1, fp);
+        (void) fclose(fp);
     }
 
     free(eep);
@@ -1319,8 +1320,19 @@ tandy_write(uint16_t addr, uint8_t val, void *priv)
 
     switch (addr) {
         case 0x00a0:
-            mem_mapping_set_addr(&dev->ram_mapping,
-                                 ((val >> 1) & 7) * 128 * 1024, 0x20000);
+            if (val & 0x10) {
+                dev->base = (mem_size - 256) * 1024;
+                dev->mask = 0x3ffff;
+                mem_mapping_set_addr(&ram_low_mapping, 0, dev->base);
+                mem_mapping_set_addr(&dev->ram_mapping,
+                                     ((val >> 1) & 7) * 128 * 1024, 0x40000);
+            } else {
+                dev->base = (mem_size - 128) * 1024;
+                dev->mask = 0x1ffff;
+                mem_mapping_set_addr(&ram_low_mapping, 0, dev->base);
+                mem_mapping_set_addr(&dev->ram_mapping,
+                                     ((val >> 1) & 7) * 128 * 1024, 0x20000);
+            }
             dev->ram_bank = val;
             break;
 
@@ -1378,7 +1390,7 @@ write_ram(uint32_t addr, uint8_t val, void *priv)
 {
     const tandy_t *dev = (tandy_t *) priv;
 
-    ram[dev->base + (addr & 0x1ffff)] = val;
+    ram[dev->base + (addr & dev->mask)] = val;
 }
 
 static uint8_t
@@ -1386,7 +1398,7 @@ read_ram(uint32_t addr, void *priv)
 {
     const tandy_t *dev = (tandy_t *) priv;
 
-    return (ram[dev->base + (addr & 0x1ffff)]);
+    return (ram[dev->base + (addr & dev->mask)]);
 }
 
 static uint8_t
@@ -1462,8 +1474,10 @@ machine_tandy1k_init(const machine_t *model, int type)
      * 0xFFE8 (SL2), so we remove it from the main mapping.
      */
     dev->base = (mem_size - 128) * 1024;
-    mem_mapping_add(&dev->ram_mapping, 0x80000, 0x20000,
-                    read_ram, NULL, NULL, write_ram, NULL, NULL, NULL, 0, dev);
+    dev->mask = 0x1ffff;
+    mem_mapping_add(&dev->ram_mapping, 0x60000, 0x20000,
+                    read_ram, NULL, NULL, write_ram, NULL, NULL, NULL,
+                    MEM_MAPPING_INTERNAL, dev);
     mem_mapping_set_addr(&ram_low_mapping, 0, dev->base);
 
     device_add(&keyboard_tandy_device);

@@ -124,6 +124,9 @@ msgstr "保持比例(&S)"
 msgid "&Integer scale"
 msgstr "整數比例(&I)"
 
+msgid "4:&3 Integer scale"
+msgstr "4:3 整數比例(&3)"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "EGA/(S)VGA 設定(&G)"
 
@@ -853,8 +856,8 @@ msgstr "關於 86Box"
 msgid "86Box v"
 msgstr "86Box v"
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "一個舊式電腦模擬器\n\n作者: Sarah Walker、Miran Grca、Fred N. van Kempen (waltje)、SA1988、Tiseno100、reenigne、leilei、JohnElliott、greatpsycho 等人。\n\n本軟體依據 GNU 通用公共授權第二版或更新版本發布。詳情見 LICENSE 檔案。"
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "一個舊式電腦模擬器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\n本軟體依據 GNU 通用公共授權第二版或更新版本發布。詳情見 LICENSE 檔案。"
 
 msgid "Hardware not available"
 msgstr "硬體不可用"
@@ -1196,8 +1199,28 @@ msgid "(System Default)"
 msgstr "(系統預設)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "初始化網路驅動程式失敗"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "網路設定將切換為空驅動程式"
 
+msgid "Mouse sensitivity:"
+msgstr "滑鼠靈敏度:"
+
+msgid "Select media images from program working directory"
+msgstr "從程式工作目錄中選擇介質映像"
+
+msgid "PIT mode:"
+msgstr "PIT模式:"
+
+msgid "Auto"
+msgstr "自動"
+
+msgid "Slow"
+msgstr "慢"
+
+msgid "Fast"
+msgstr "快"
+
+msgid "&Auto-pause on focus loss"
+msgstr "失去焦點時自動暫停(&A)"

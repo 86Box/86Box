@@ -10,14 +10,10 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
- *          Melissa Goad, <mszoopers@protonmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *          RichardG, <richardg867@gmail.com>
  *
- *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
- *          Copyright 2020 Melissa Goad.
  *          Copyright 2020-2021 RichardG.
  */
 #include <stdarg.h>
@@ -117,9 +113,10 @@ typedef struct {
 } pipc_io_trap_t;
 
 typedef struct _pipc_ {
-    uint32_t local;
     uint8_t  max_func;
     uint8_t  max_pcs;
+    uint8_t  pci_slot;
+    uint8_t  pad;
 
     uint8_t pci_isa_regs[256];
     uint8_t ide_regs[256];
@@ -129,10 +126,11 @@ typedef struct _pipc_ {
     uint8_t fmnmi_regs[4];
     uint8_t fmnmi_status;
 
+    uint32_t local;
+
     sff8038i_t    *bm[2];
     nvr_t         *nvr;
     int            nvr_enabled;
-    int            slot;
     ddma_t        *ddma;
     smbus_piix4_t *smbus;
     usb_t         *usb[2];
@@ -212,10 +210,9 @@ pipc_reset_hard(void *priv)
     pipc_log("PIPC: reset_hard()\n");
 
     pipc_t  *dev      = (pipc_t *) priv;
-    uint16_t old_base = (dev->ide_regs[0x20] & 0xf0) | (dev->ide_regs[0x21] << 8);
 
-    sff_bus_master_reset(dev->bm[0], old_base);
-    sff_bus_master_reset(dev->bm[1], old_base + 8);
+    sff_bus_master_reset(dev->bm[0]);
+    sff_bus_master_reset(dev->bm[1]);
 
     memset(dev->pci_isa_regs, 0, 256);
     memset(dev->ide_regs, 0, 256);
@@ -239,7 +236,8 @@ pipc_reset_hard(void *priv)
     dev->pci_isa_regs[0x4a] = 0x04;
     dev->pci_isa_regs[0x4f] = 0x03;
 
-    dev->pci_isa_regs[0x50] = (dev->local >= VIA_PIPC_686A) ? 0x0e : 0x24; /* 686A/B default value does not line up with default bits */
+    /* 686A/B default value does not line up with default bits */
+    dev->pci_isa_regs[0x50] = (dev->local >= VIA_PIPC_686A) ? 0x0e : 0x24;
     dev->pci_isa_regs[0x59] = 0x04;
     if (dev->local >= VIA_PIPC_686A)
         dev->pci_isa_regs[0x5a] = dev->pci_isa_regs[0x5f] = 0x04;
@@ -568,19 +566,17 @@ pipc_ide_handlers(pipc_t *dev)
 static void
 pipc_ide_irqs(pipc_t *dev)
 {
-    int irq_mode[2] = { 0, 0 };
+    int irq_mode[2] = { IRQ_MODE_LEGACY, IRQ_MODE_LEGACY };
 
     if (dev->ide_regs[0x09] & 0x01)
-        irq_mode[0] = (dev->ide_regs[0x3d] & 0x01);
+        irq_mode[0] = (dev->ide_regs[0x3d] & 0x01) ? IRQ_MODE_PCI_IRQ_PIN : IRQ_MODE_LEGACY;
 
     if (dev->ide_regs[0x09] & 0x04)
-        irq_mode[1] = (dev->ide_regs[0x3d] & 0x01);
+        irq_mode[1] = (dev->ide_regs[0x3d] & 0x01) ? IRQ_MODE_PCI_IRQ_PIN : IRQ_MODE_LEGACY;
 
-    sff_set_irq_mode(dev->bm[0], 0, irq_mode[0]);
-    sff_set_irq_mode(dev->bm[0], 1, irq_mode[1]);
+    sff_set_irq_mode(dev->bm[0], irq_mode[0]);
 
-    sff_set_irq_mode(dev->bm[1], 0, irq_mode[0]);
-    sff_set_irq_mode(dev->bm[1], 1, irq_mode[1]);
+    sff_set_irq_mode(dev->bm[1], irq_mode[1]);
 }
 
 static void
@@ -1094,7 +1090,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x47:
                 if (val & 0x01)
-                    trc_write(0x0047, (val & 0x80) ? 0x06 : 0x04, NULL);
+                    pci_write(0x0cf9, (val & 0x80) ? 0x06 : 0x04, NULL);
                 pic_set_shadow(!!(val & 0x10));
                 pic_elcr_io_handler(!!(val & 0x20));
                 dev->pci_isa_regs[0x47] = val & 0xfe;
@@ -1475,9 +1471,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
             case 0xd2:
                 if (dev->local == VIA_PIPC_686B)
                     smbus_piix4_setclock(dev->smbus, (val & 0x04) ? 65536 : 16384);
-#ifdef FALLTHROUGH_ANNOTATION
-                [[fallthrough]];
-#endif
+                fallthrough;
 
             case 0x90:
             case 0x91:
@@ -1620,6 +1614,14 @@ pipc_reset(void *priv)
         pipc_write(0, 0x44, 0x00, priv);
 
     pipc_write(0, 0x77, 0x00, priv);
+
+    sff_set_slot(dev->bm[0], dev->pci_slot);
+    sff_set_slot(dev->bm[1], dev->pci_slot);
+
+    if (dev->local >= VIA_PIPC_686A)
+        ac97_via_set_slot(dev->ac97, dev->pci_slot, PCI_INTC);
+    if (dev->acpi)
+        acpi_set_slot(dev->acpi, dev->pci_slot);
 }
 
 static void *
@@ -1631,26 +1633,22 @@ pipc_init(const device_t *info)
     pipc_log("PIPC: init()\n");
 
     dev->local = info->local;
-    dev->slot  = pci_add_card(PCI_ADD_SOUTHBRIDGE, pipc_read, pipc_write, dev);
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, pipc_read, pipc_write, dev, &dev->pci_slot);
 
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
-    sff_set_slot(dev->bm[0], dev->slot);
-    sff_set_irq_mode(dev->bm[0], 0, 0);
-    sff_set_irq_mode(dev->bm[0], 1, 0);
+    sff_set_irq_mode(dev->bm[0], IRQ_MODE_LEGACY);
     sff_set_irq_pin(dev->bm[0], PCI_INTA);
 
     dev->bm[1] = device_add_inst(&sff8038i_device, 2);
-    sff_set_slot(dev->bm[1], dev->slot);
-    sff_set_irq_mode(dev->bm[1], 0, 0);
-    sff_set_irq_mode(dev->bm[1], 1, 0);
+    sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
     sff_set_irq_pin(dev->bm[1], PCI_INTA);
-
-    dev->nvr = device_add(&via_nvr_device);
 
     if (dev->local == VIA_PIPC_686B)
         dev->smbus = device_add(&via_smbus_device);
     else if (dev->local >= VIA_PIPC_596A)
         dev->smbus = device_add(&piix4_smbus_device);
+
+    dev->nvr = device_add(&via_nvr_device);
 
     if (dev->local >= VIA_PIPC_596A) {
         dev->acpi = device_add(&acpi_via_596b_device);
@@ -1665,7 +1663,6 @@ pipc_init(const device_t *info)
         dev->usb[1] = device_add_inst(&usb_device, 2);
 
         dev->ac97 = device_add(&ac97_via_device);
-        ac97_via_set_slot(dev->ac97, dev->slot, PCI_INTC);
 
         dev->sb = device_add_inst(&sb_pro_compat_device, 2);
         sound_add_handler(pipc_sb_get_buffer, dev);
@@ -1695,7 +1692,6 @@ pipc_init(const device_t *info)
         dev->ddma = device_add(&ddma_device);
 
     if (dev->acpi) {
-        acpi_set_slot(dev->acpi, dev->slot);
         acpi_set_nvr(dev->acpi, dev->nvr);
 
         acpi_init_gporeg(dev->acpi, 0xff, 0xbf, 0xff, 0x7f);

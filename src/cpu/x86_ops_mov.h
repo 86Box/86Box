@@ -769,83 +769,84 @@ opMOV_r_l_a32(uint32_t fetchdat)
     return 0;
 }
 
-#define opCMOV(condition)                                                             \
-    static int opCMOV##condition##_w_a16(uint32_t fetchdat)                           \
-    {                                                                                 \
-        fetch_ea_16(fetchdat);                                                        \
-        if (cond_##condition) {                                                       \
-            if (cpu_mod == 3)                                                         \
-                cpu_state.regs[cpu_reg].w = cpu_state.regs[cpu_rm].w;                 \
-            else {                                                                    \
-                uint16_t temp;                                                        \
-                SEG_CHECK_READ(cpu_state.ea_seg);                                     \
-                CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1); \
-                temp = geteaw();                                                      \
-                if (cpu_state.abrt)                                                   \
-                    return 1;                                                         \
-                cpu_state.regs[cpu_reg].w = temp;                                     \
-            }                                                                         \
-        }                                                                             \
-        CLOCK_CYCLES(1);                                                              \
-        return 0;                                                                     \
-    }                                                                                 \
-    static int opCMOV##condition##_w_a32(uint32_t fetchdat)                           \
-    {                                                                                 \
-        fetch_ea_32(fetchdat);                                                        \
-        if (cond_##condition) {                                                       \
-            if (cpu_mod == 3)                                                         \
-                cpu_state.regs[cpu_reg].w = cpu_state.regs[cpu_rm].w;                 \
-            else {                                                                    \
-                uint16_t temp;                                                        \
-                SEG_CHECK_READ(cpu_state.ea_seg);                                     \
-                CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1); \
-                temp = geteaw();                                                      \
-                if (cpu_state.abrt)                                                   \
-                    return 1;                                                         \
-                cpu_state.regs[cpu_reg].w = temp;                                     \
-            }                                                                         \
-        }                                                                             \
-        CLOCK_CYCLES(1);                                                              \
-        return 0;                                                                     \
-    }                                                                                 \
-    static int opCMOV##condition##_l_a16(uint32_t fetchdat)                           \
-    {                                                                                 \
-        fetch_ea_16(fetchdat);                                                        \
-        if (cond_##condition) {                                                       \
-            if (cpu_mod == 3)                                                         \
-                cpu_state.regs[cpu_reg].l = cpu_state.regs[cpu_rm].l;                 \
-            else {                                                                    \
-                uint32_t temp;                                                        \
-                SEG_CHECK_READ(cpu_state.ea_seg);                                     \
-                CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3); \
-                temp = geteal();                                                      \
-                if (cpu_state.abrt)                                                   \
-                    return 1;                                                         \
-                cpu_state.regs[cpu_reg].l = temp;                                     \
-            }                                                                         \
-        }                                                                             \
-        CLOCK_CYCLES(1);                                                              \
-        return 0;                                                                     \
-    }                                                                                 \
-    static int opCMOV##condition##_l_a32(uint32_t fetchdat)                           \
-    {                                                                                 \
-        fetch_ea_32(fetchdat);                                                        \
-        if (cond_##condition) {                                                       \
-            if (cpu_mod == 3)                                                         \
-                cpu_state.regs[cpu_reg].l = cpu_state.regs[cpu_rm].l;                 \
-            else {                                                                    \
-                uint32_t temp;                                                        \
-                CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3); \
-                SEG_CHECK_READ(cpu_state.ea_seg);                                     \
-                temp = geteal();                                                      \
-                if (cpu_state.abrt)                                                   \
-                    return 1;                                                         \
-                cpu_state.regs[cpu_reg].l = temp;                                     \
-            }                                                                         \
-        }                                                                             \
-        CLOCK_CYCLES(1);                                                              \
-        return 0;                                                                     \
-    }
+#ifndef OPS_286_386
+#    define opCMOV(condition)                                                             \
+        static int opCMOV##condition##_w_a16(uint32_t fetchdat)                           \
+        {                                                                                 \
+            fetch_ea_16(fetchdat);                                                        \
+            if (cond_##condition) {                                                       \
+                if (cpu_mod == 3)                                                         \
+                    cpu_state.regs[cpu_reg].w = cpu_state.regs[cpu_rm].w;                 \
+                else {                                                                    \
+                    uint16_t temp;                                                        \
+                    SEG_CHECK_READ(cpu_state.ea_seg);                                     \
+                    CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1); \
+                    temp = geteaw();                                                      \
+                    if (cpu_state.abrt)                                                   \
+                        return 1;                                                         \
+                    cpu_state.regs[cpu_reg].w = temp;                                     \
+                }                                                                         \
+            }                                                                             \
+            CLOCK_CYCLES(1);                                                              \
+            return 0;                                                                     \
+        }                                                                                 \
+        static int opCMOV##condition##_w_a32(uint32_t fetchdat)                           \
+        {                                                                                 \
+            fetch_ea_32(fetchdat);                                                        \
+            if (cond_##condition) {                                                       \
+                if (cpu_mod == 3)                                                         \
+                    cpu_state.regs[cpu_reg].w = cpu_state.regs[cpu_rm].w;                 \
+                else {                                                                    \
+                    uint16_t temp;                                                        \
+                    SEG_CHECK_READ(cpu_state.ea_seg);                                     \
+                    CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1); \
+                    temp = geteaw();                                                      \
+                    if (cpu_state.abrt)                                                   \
+                        return 1;                                                         \
+                    cpu_state.regs[cpu_reg].w = temp;                                     \
+                }                                                                         \
+            }                                                                             \
+            CLOCK_CYCLES(1);                                                              \
+            return 0;                                                                     \
+        }                                                                                 \
+        static int opCMOV##condition##_l_a16(uint32_t fetchdat)                           \
+        {                                                                                 \
+            fetch_ea_16(fetchdat);                                                        \
+            if (cond_##condition) {                                                       \
+                if (cpu_mod == 3)                                                         \
+                    cpu_state.regs[cpu_reg].l = cpu_state.regs[cpu_rm].l;                 \
+                else {                                                                    \
+                    uint32_t temp;                                                        \
+                    SEG_CHECK_READ(cpu_state.ea_seg);                                     \
+                    CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3); \
+                    temp = geteal();                                                      \
+                    if (cpu_state.abrt)                                                   \
+                        return 1;                                                         \
+                    cpu_state.regs[cpu_reg].l = temp;                                     \
+                }                                                                         \
+            }                                                                             \
+            CLOCK_CYCLES(1);                                                              \
+            return 0;                                                                     \
+        }                                                                                 \
+        static int opCMOV##condition##_l_a32(uint32_t fetchdat)                           \
+        {                                                                                 \
+            fetch_ea_32(fetchdat);                                                        \
+            if (cond_##condition) {                                                       \
+                if (cpu_mod == 3)                                                         \
+                    cpu_state.regs[cpu_reg].l = cpu_state.regs[cpu_rm].l;                 \
+                else {                                                                    \
+                    uint32_t temp;                                                        \
+                    CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3); \
+                    SEG_CHECK_READ(cpu_state.ea_seg);                                     \
+                    temp = geteal();                                                      \
+                    if (cpu_state.abrt)                                                   \
+                        return 1;                                                         \
+                    cpu_state.regs[cpu_reg].l = temp;                                     \
+                }                                                                         \
+            }                                                                             \
+            CLOCK_CYCLES(1);                                                              \
+            return 0;                                                                     \
+        }
 
 // clang-format off
 opCMOV(O)
@@ -865,3 +866,4 @@ opCMOV(NL)
 opCMOV(LE)
 opCMOV(NLE)
 // clang-format on
+#endif

@@ -124,6 +124,9 @@ msgstr "pixels &Carrés(Keep ratio)"
 msgid "&Integer scale"
 msgstr "Echelle &Entière"
 
+msgid "4:&3 Integer scale"
+msgstr "Echelle Entière 4:&3"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "Réglages E&GA/(S)VGA"
 
@@ -853,8 +856,8 @@ msgstr "À propos de 86Box"
 msgid "86Box v"
 msgstr "86Box v"
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Un émulateur de vieux ordinateurs\n\nAuteurs: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nLibéré sous la licence GNU General Public License version 2 ou ultérieure. Pour plus d'informations, voir le fichier LICENSE."
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Un émulateur de vieux ordinateurs\n\nAuteurs: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nLibéré sous la licence GNU General Public License version 2 ou ultérieure. Pour plus d'informations, voir le fichier LICENSE."
 
 msgid "Hardware not available"
 msgstr "Matériel non disponible"
@@ -932,28 +935,28 @@ msgid "Cartridge images"
 msgstr "Images cartouche"
 
 msgid "Error initializing renderer"
-msgstr "Error initializing renderer"
+msgstr "Erreur d'initialisation du moteur de rendu"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "Le moteur de rendu OpenGL (3.0 Core) n'a pas pu être initialisé. Utilisez un autre moteur de rendu."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Reprendre l'exécution"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Pause de l'exécution"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Appuyer sur Ctrl+Alt+Suppr."
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Appuyer sur Ctrl+Alt+Esc"
 
 msgid "Hard reset"
 msgstr "Hard reset"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "Arrêt ACPI"
 
 msgid "Hard disk (%s)"
 msgstr "Disque dur (%s)"
@@ -1196,8 +1199,29 @@ msgid "(System Default)"
 msgstr "(Défaut du système)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "Échec de l'initialisation du pilote réseau"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "La configuration du réseau passera au pilote nul"
+
+msgid "Mouse sensitivity:"
+msgstr "Sensibilité de la souris:"
+
+msgid "Select media images from program working directory"
+msgstr "Sélectionner des images dans le répertoire de travail du programme"
+
+msgid "PIT mode:"
+msgstr "Mode PIT:"
+
+msgid "Auto"
+msgstr "Auto"
+
+msgid "Slow"
+msgstr "Lent"
+
+msgid "Fast"
+msgstr "Rapide"
+
+msgid "&Auto-pause on focus loss"
+msgstr "&Pause automatique à perte de mise au point"
 

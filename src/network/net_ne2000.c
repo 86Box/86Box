@@ -97,36 +97,45 @@ static uint8_t rtl8019as_pnp_rom[] = {
 
 typedef struct nic_t {
     dp8390_t   *dp8390;
+
     const char *name;
+
+    uint8_t     pnp_csnsav;
+    uint8_t     pci_slot;
+    uint8_t     irq_state;
+    uint8_t     pad;
+
+    /* RTL8019AS/RTL8029AS registers */
+    uint8_t     config0;
+    uint8_t     config2;
+    uint8_t     config3;
+    uint8_t     _9346cr;
+
+    uint8_t     pci_regs[PCI_REGSIZE];
+    uint8_t     eeprom[128]; /* for RTL8029AS */
+
+    uint8_t     maclocal[6]; /* configured MAC (local) address */
+
+    /* POS registers, MCA boards only */
+    uint8_t     pos_regs[8];
+
     int         board;
     int         is_pci;
     int         is_mca;
     int         is_8bit;
-    uint32_t    base_address;
     int         base_irq;
+    int         has_bios;
+
+    uint32_t    base_address;
     uint32_t    bios_addr;
     uint32_t    bios_size;
     uint32_t    bios_mask;
-    int         card; /* PCI card slot */
-    int         has_bios;
-    int         pad;
+
     bar_t       pci_bar[2];
-    uint8_t     pci_regs[PCI_REGSIZE];
-    uint8_t     eeprom[128]; /* for RTL8029AS */
+
     rom_t       bios_rom;
+
     void       *pnp_card;
-    uint8_t     pnp_csnsav;
-    uint8_t     maclocal[6]; /* configured MAC (local) address */
-
-    /* RTL8019AS/RTL8029AS registers */
-    uint8_t  config0;
-    uint8_t  config2;
-    uint8_t  config3;
-    uint8_t  _9346cr;
-    uint32_t pad0;
-
-    /* POS registers, MCA boards only */
-    uint8_t pos_regs[8];
 } nic_t;
 
 #ifdef ENABLE_NE2K_LOG
@@ -150,13 +159,13 @@ nelog(int lvl, const char *fmt, ...)
 static void
 nic_interrupt(void *priv, int set)
 {
-    const nic_t *dev = (nic_t *) priv;
+    nic_t *dev = (nic_t *) priv;
 
     if (dev->is_pci) {
         if (set)
-            pci_set_irq(dev->card, PCI_INTA);
+            pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
         else
-            pci_clear_irq(dev->card, PCI_INTA);
+            pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
     } else {
         if (set)
             picint(1 << dev->base_irq);
@@ -750,9 +759,7 @@ nic_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
         case 0x10:       /* PCI_BAR */
             val &= 0xe0; /* 0xe0 acc to RTL DS */
             val |= 0x01; /* re-enable IOIN bit */
-#ifdef FALLTHROUGH_ANNOTATION
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         case 0x11: /* PCI_BAR */
         case 0x12: /* PCI_BAR */
@@ -805,7 +812,7 @@ static void
 nic_rom_init(nic_t *dev, char *s)
 {
     uint32_t temp;
-    FILE    *f;
+    FILE    *fp;
 
     if (s == NULL)
         return;
@@ -813,10 +820,10 @@ nic_rom_init(nic_t *dev, char *s)
     if (dev->bios_addr == 0)
         return;
 
-    if ((f = rom_fopen(s, "rb")) != NULL) {
-        fseek(f, 0L, SEEK_END);
-        temp = ftell(f);
-        fclose(f);
+    if ((fp = rom_fopen(s, "rb")) != NULL) {
+        fseek(fp, 0L, SEEK_END);
+        temp = ftell(fp);
+        fclose(fp);
         dev->bios_size = 0x10000;
         if (temp <= 0x8000)
             dev->bios_size = 0x8000;
@@ -1087,8 +1094,7 @@ nic_init(const device_t *info)
             mem_mapping_disable(&dev->bios_rom.mapping);
 
             /* Add device to the PCI bus, keep its slot number. */
-            dev->card = pci_add_card(PCI_ADD_NORMAL,
-                                     nic_pci_read, nic_pci_write, dev);
+            pci_add_card(PCI_ADD_NORMAL, nic_pci_read, nic_pci_write, dev, &dev->pci_slot);
         }
 
         /* Initialize the RTL8029 EEPROM. */

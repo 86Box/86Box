@@ -2,6 +2,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "codegen.h"
 #include "codegen_backend.h"
@@ -561,7 +562,7 @@ alloc_dest_reg(ir_reg_t ir_reg, int dest_reference)
                   last valid version*/
                 int prev_version = ir_reg.version - 1;
                 while (prev_version >= 0) {
-                    reg_version_t *regv = &reg_version[IREG_GET_REG(reg_set->regs[c].reg)][prev_version];
+                    const reg_version_t *regv = &reg_version[IREG_GET_REG(reg_set->regs[c].reg)][prev_version];
 
                     if (!(regv->flags & REG_FLAGS_DEAD) && regv->refcount == dest_reference) {
                         reg_set->locked |= (1 << c);
@@ -733,7 +734,7 @@ codegen_reg_alloc_write_reg(codeblock_t *block, ir_reg_t ir_reg)
 int
 codegen_reg_is_loaded(ir_reg_t ir_reg)
 {
-    host_reg_set_t *reg_set = get_reg_set(ir_reg);
+    const host_reg_set_t *reg_set = get_reg_set(ir_reg);
 
     /*Search for previous version in host register*/
     for (int c = 0; c < reg_set->nr_regs; c++) {
@@ -758,7 +759,10 @@ codegen_reg_rename(codeblock_t *block, ir_reg_t src, ir_reg_t dst)
     int             c;
     int             target;
 
-    //        pclog("rename: %i.%i -> %i.%i\n", src.reg,src.version, dst.reg, dst.version);
+#if 0
+    pclog("rename: %i.%i -> %i.%i\n", src.reg,src.version, dst.reg, dst.version);
+#endif
+
     /*Search for required register*/
     for (c = 0; c < reg_set->nr_regs; c++) {
         if (!ir_reg_is_invalid(reg_set->regs[c]) && IREG_GET_REG(reg_set->regs[c].reg) == IREG_GET_REG(src.reg) && reg_set->regs[c].version == src.version)
@@ -773,7 +777,9 @@ codegen_reg_rename(codeblock_t *block, ir_reg_t src, ir_reg_t dst)
         codegen_reg_writeback(reg_set, block, target, 0);
     reg_set->regs[target]  = dst;
     reg_set->dirty[target] = 1;
-    //        pclog("renamed reg %i dest=%i.%i\n", target, dst.reg, dst.version);
+#if 0
+    pclog("renamed reg %i dest=%i.%i\n", target, dst.reg, dst.version);
+#endif
 
     /*Invalidate any stale copies of the dest register*/
     for (c = 0; c < reg_set->nr_regs; c++) {
@@ -787,7 +793,7 @@ codegen_reg_rename(codeblock_t *block, ir_reg_t src, ir_reg_t dst)
 }
 
 void
-codegen_reg_flush(ir_data_t *ir, codeblock_t *block)
+codegen_reg_flush(UNUSED(ir_data_t *ir), codeblock_t *block)
 {
     host_reg_set_t *reg_set;
     int             c;
@@ -816,7 +822,7 @@ codegen_reg_flush(ir_data_t *ir, codeblock_t *block)
 }
 
 void
-codegen_reg_flush_invalidate(ir_data_t *ir, codeblock_t *block)
+codegen_reg_flush_invalidate(UNUSED(ir_data_t *ir), codeblock_t *block)
 {
     host_reg_set_t *reg_set;
     int             c;

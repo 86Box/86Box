@@ -182,18 +182,18 @@ adgold_update_irq_status(adgold_t *adgold)
     adgold->adgold_irq_status = adgold->adgold_status ^ 0xf;
 }
 
-void
+int
 adgold_getsamp_dma(adgold_t *adgold, int channel)
 {
     int temp;
     dma_set_drq(adgold->dma, 1);
 
     if ((adgold->adgold_mma_regs[channel][0xc] & 0x60) && (((adgold->adgold_mma_fifo_end[channel] - adgold->adgold_mma_fifo_start[channel]) & 255) >= 127))
-        return;
+        return 2;
 
     temp = dma_channel_read(adgold->dma);
     if (temp == DMA_NODATA) {
-        return;
+        return 1;
     }
     adgold->adgold_mma_fifo[channel][adgold->adgold_mma_fifo_end[channel]] = temp;
     adgold->adgold_mma_fifo_end[channel]                                   = (adgold->adgold_mma_fifo_end[channel] + 1) & 255;
@@ -207,6 +207,8 @@ adgold_getsamp_dma(adgold_t *adgold, int channel)
         adgold_update_irq_status(adgold);
         dma_set_drq(adgold->dma, 0);
     }
+
+    return 0;
 }
 
 void
@@ -377,8 +379,16 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
                                 adgold->adgold_mma.voice_count[1] = adgold->adgold_mma.voice_latch[1];
 
                                 while (((adgold->adgold_mma_fifo_end[0] - adgold->adgold_mma_fifo_start[0]) & 255) < 128) {
-                                    adgold_getsamp_dma(adgold, 0);
-                                    adgold_getsamp_dma(adgold, 1);
+                                    if (adgold_getsamp_dma(adgold, 0)) {
+                                        adgold->adgold_mma_fifo_end[0] = 0;
+                                        adgold->adgold_mma_fifo_start[0] = 0;
+                                        break;
+                                    }
+                                    if (adgold_getsamp_dma(adgold, 1)) {
+                                        adgold->adgold_mma_fifo_end[1] = 0;
+                                        adgold->adgold_mma_fifo_start[1] = 0;
+                                        break;
+                                    }
                                 }
                                 if (((adgold->adgold_mma_fifo_end[0] - adgold->adgold_mma_fifo_start[0]) & 255) >= adgold->adgold_mma_intpos[0]) {
                                     adgold->adgold_mma_status &= ~0x01;
@@ -392,7 +402,11 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
                                 }
                             } else {
                                 while (((adgold->adgold_mma_fifo_end[0] - adgold->adgold_mma_fifo_start[0]) & 255) < 128) {
-                                    adgold_getsamp_dma(adgold, 0);
+                                    if (adgold_getsamp_dma(adgold, 0)) {
+                                        adgold->adgold_mma_fifo_end[0] = 0;
+                                        adgold->adgold_mma_fifo_start[0] = 0;
+                                        break;
+                                    }
                                 }
                                 if (((adgold->adgold_mma_fifo_end[0] - adgold->adgold_mma_fifo_start[0]) & 255) >= adgold->adgold_mma_intpos[0]) {
                                     adgold->adgold_mma_status &= ~0x01;
@@ -502,7 +516,11 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
 
                         if (adgold->adgold_mma_regs[1][0xc] & 1) {
                             while (((adgold->adgold_mma_fifo_end[1] - adgold->adgold_mma_fifo_start[1]) & 255) < 128) {
-                                adgold_getsamp_dma(adgold, 1);
+                                if (adgold_getsamp_dma(adgold, 1)) {
+                                    adgold->adgold_mma_fifo_end[1] = 0;
+                                    adgold->adgold_mma_fifo_start[1] = 0;
+                                    break;
+                                }
                             }
                         }
                     }
@@ -675,10 +693,14 @@ adgold_mma_poll(adgold_t *adgold, int channel)
         }
 
         if (adgold->adgold_mma_regs[channel][0xc] & 1) {
-            adgold_getsamp_dma(adgold, channel);
+            if (adgold_getsamp_dma(adgold, channel)) {
+                adgold->adgold_mma_fifo_end[channel] = 0;
+                adgold->adgold_mma_fifo_start[channel] = 0;
+                return;
+            }
         }
         if (((adgold->adgold_mma_fifo_end[channel] - adgold->adgold_mma_fifo_start[channel]) & 255) < adgold->adgold_mma_intpos[channel] && !(adgold->adgold_mma_status & 0x01)) {
-            adgold->adgold_mma_status |= 1 << channel;
+            adgold->adgold_mma_status |= (1 << channel);
             adgold_update_irq_status(adgold);
         }
     }
@@ -692,8 +714,8 @@ adgold_timer_poll(void *priv)
 {
     adgold_t *adgold = (adgold_t *) priv;
 
-	/*A small timer period will result in hangs.*/
-    timer_on_auto(&adgold->adgold_mma_timer_count, 4.88964);
+    /*A small timer period will result in hangs.*/
+    timer_advance_u64(&adgold->adgold_mma_timer_count, (uint64_t) ((double) TIMER_USEC * 1.88964));
 
     if (adgold->adgold_midi_ctrl & 0x3f) {
         if ((adgold->adgold_midi_ctrl & 0x3f) != 0x3f) {
@@ -888,9 +910,9 @@ adgold_filter_cd_audio(int channel, double *buffer, void *priv)
 }
 
 static void
-adgold_input_msg(void *p, uint8_t *msg, uint32_t len)
+adgold_input_msg(void *priv, uint8_t *msg, uint32_t len)
 {
-    adgold_t *adgold = (adgold_t *) p;
+    adgold_t *adgold = (adgold_t *) priv;
 
     if (adgold->sysex)
         return;
@@ -908,9 +930,9 @@ adgold_input_msg(void *p, uint8_t *msg, uint32_t len)
 }
 
 static int
-adgold_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
+adgold_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
 {
-    adgold_t *adgold = (adgold_t *) p;
+    adgold_t *adgold = (adgold_t *) priv;
 
     if (abort) {
         adgold->sysex = 0;
@@ -930,7 +952,7 @@ adgold_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 void *
 adgold_init(UNUSED(const device_t *info))
 {
-    FILE     *f;
+    FILE     *fp;
     int       c;
     double    out;
     adgold_t *adgold = malloc(sizeof(adgold_t));
@@ -980,11 +1002,11 @@ adgold_init(UNUSED(const device_t *info))
     adgold->adgold_eeprom[0x18] = 0x00; /* Surround */
     adgold->adgold_eeprom[0x19] = 0x00;
 
-    f = nvr_fopen("adgold.bin", "rb");
-    if (f) {
-        if (fread(adgold->adgold_eeprom, 1, 0x1a, f) != 0x1a)
+    fp = nvr_fopen("adgold.bin", "rb");
+    if (fp) {
+        if (fread(adgold->adgold_eeprom, 1, 0x1a, fp) != 0x1a)
             fatal("adgold_init(): Error reading data\n");
-        fclose(f);
+        fclose(fp);
     }
 
     adgold->adgold_status   = 0xf;

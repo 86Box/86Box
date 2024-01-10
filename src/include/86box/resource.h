@@ -67,7 +67,7 @@
 #define IDT_CPU_SPEED    1710 /* CPU speed: */
 #define IDT_FPU          1711 /* FPU: */
 #define IDT_WAIT_STATES  1712 /* Wait states: */
-#define IDT_MB           1713 /* MB	== IDC_TEXT_MB */
+#define IDT_MB           1713 /* MB == IDC_TEXT_MB */
 #define IDT_MEMORY       1714 /* Memory: */
 
 /* DLG_CFG_VIDEO */

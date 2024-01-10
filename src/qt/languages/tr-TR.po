@@ -124,6 +124,9 @@ msgstr "&Kare piksel (ölçeği koru)"
 msgid "&Integer scale"
 msgstr "Tam &sayı ölçeklemesi"
 
+msgid "4:&3 Integer scale"
+msgstr "4:&3 Tam sayı ölçeklemesi"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "EGA/&(S)VGA ayarları"
 
@@ -853,8 +856,8 @@ msgstr "86Box Hakkında"
 msgid "86Box v"
 msgstr "86Box v"
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Bir eski bilgisayar emülatörü\n\nYapanlar: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, ve diğerleri.\n\nGNU Genel Kamu Lisansı versiyon 2 veya sonrası altında yayınlanmıştır. Daha fazla bilgi için LICENSE'ı gözden geçirin."
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Bir eski bilgisayar emülatörü\n\nYapanlar: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, ve diğerleri.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, ve diğerleri.\n\nGNU Genel Kamu Lisansı versiyon 2 veya sonrası altında yayınlanmıştır. Daha fazla bilgi için LICENSE'ı gözden geçirin."
 
 msgid "Hardware not available"
 msgstr "Donanım mevcut değil"
@@ -1196,8 +1199,28 @@ msgid "(System Default)"
 msgstr "(Sistem Varsayılanı)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "Ağ sürücüsü başlatılamadı"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "Ağ yapılandırması null sürücüye geçirilecektir"
 
+msgid "Mouse sensitivity:"
+msgstr "Fare hassasiyeti:"
+
+msgid "Select media images from program working directory"
+msgstr "Program çalışma dizininden medya görüntülerini seçme"
+
+msgid "PIT mode:"
+msgstr "PIT modu:"
+
+msgid "Auto"
+msgstr "Otomatik"
+
+msgid "Slow"
+msgstr "Yavaş"
+
+msgid "Fast"
+msgstr "Hızlı"
+
+msgid "&Auto-pause on focus loss"
+msgstr "&Odak kaybında otomatik duraklatma"
