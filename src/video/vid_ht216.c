@@ -312,6 +312,10 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                         ht216_remap(ht216);
                         break;
 
+                    case 0xca:
+                        svga_recalctimings(svga);
+                        break;
+
                     case 0xc9:
                     case 0xcf:
                         ht216_remap(ht216);
@@ -321,6 +325,7 @@ ht216_out(uint16_t addr, uint8_t val, void *priv)
                         svga->adv_flags &= ~FLAG_RAMDAC_SHIFT;
                         if (val & 0x04)
                             svga->adv_flags |= FLAG_RAMDAC_SHIFT;
+                        svga_recalctimings(svga);
                         fallthrough;
                     /*Bank registers*/
                     case 0xe8:
@@ -688,7 +693,7 @@ ht216_recalctimings(svga_t *svga)
                         if (!(svga->crtc[1] & 1))
                             svga->hdisp--;
                         svga->hdisp++;
-                        svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
+                        svga->hdisp *= svga->dots_per_clock;
                         svga->rowoffset <<= 1;
                         if ((svga->crtc[0x17] & 0x60) == 0x20) /*Would result in a garbled screen with trailing cursor glitches*/
                             svga->crtc[0x17] |= 0x40;
@@ -711,6 +716,9 @@ ht216_recalctimings(svga_t *svga)
         svga->vram_display_mask = 0x7ffff;
     else
         svga->vram_display_mask = (ht216->ht_regs[0xf6] & 0x40) ? ht216->vram_mask : 0x3ffff;
+
+    if (ht216->ht_regs[0xe0] & 0x20)
+        svga->hblankstart    = ((ht216->ht_regs[0xca] >> 2) << 8) + svga->crtc[4] + 1;
 }
 
 static void
@@ -1466,9 +1474,8 @@ radius_mca_feedb(UNUSED(void *priv))
     return 1;
 }
 
-void
-    *
-    ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
+void *
+ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
 {
     ht216_t *ht216 = malloc(sizeof(ht216_t));
     svga_t  *svga;
