@@ -192,6 +192,8 @@
 #define CRTCX_R0_OFFSET_MASK          (3 << 4)
 
 #define CRTCX_R1_HTOTAL8              (1 << 0)
+#define CRTCX_R1_HBLKSTRT8            (1 << 1)
+#define CRTCX_R1_HBLKEND6             (1 << 6)
 
 #define CRTCX_R2_VTOTAL10             (1 << 0)
 #define CRTCX_R2_VTOTAL11             (1 << 1)
@@ -941,6 +943,8 @@ mystique_recalctimings(svga_t *svga)
 
     if (mystique->crtcext_regs[1] & CRTCX_R1_HTOTAL8)
         svga->htotal |= 0x100;
+    if (mystique->crtcext_regs[1] & CRTCX_R1_HBLKSTRT8)
+        svga->hblankstart += 0x100;
     if (mystique->crtcext_regs[2] & CRTCX_R2_VTOTAL10)
         svga->vtotal |= 0x400;
     if (mystique->crtcext_regs[2] & CRTCX_R2_VTOTAL11)
@@ -970,6 +974,11 @@ mystique_recalctimings(svga_t *svga)
         svga->hdisp         = (svga->crtc[1] + 1) << 3;
         svga->hdisp_time    = svga->hdisp;
         svga->rowoffset     = svga->crtc[0x13] | ((mystique->crtcext_regs[0] & CRTCX_R0_OFFSET_MASK) << 4);
+
+        svga->hblank_end_len = 0x80;
+        svga->hblank_end_val += mystique->crtcext_regs[1] & CRTCX_R1_HBLKEND6;
+
+        svga->hblank_overscan = 0;
 
         if (mystique->type != MGA_2164W && mystique->type != MGA_2064W)
             svga->lut_map = !!(mystique->xmiscctrl & XMISCCTRL_RAMCS);

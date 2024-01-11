@@ -552,6 +552,10 @@ banshee_recalctimings(svga_t *svga)
         svga->htotal += 0x100;
     if (svga->crtc[0x1a] & 0x04)
         svga->hdisp += 0x100;
+    if (svga->crtc[0x1a] & 0x10)
+        svga->hblankstart += 0x100;
+    if (svga->crtc[0x1a] & 0x20)
+        svga->hblank_end_val += 0x40;
     /*6 R/W Vertical Retrace Start bit 10 0x10
       5 R/W Reserved. -
       4 R/W Vertical Blank Start bit 10. 0x15
@@ -610,6 +614,8 @@ banshee_recalctimings(svga_t *svga)
 
         svga->char_width = 8;
         svga->split      = 99999;
+
+        svga->hblank_end_len = 0x80;
 
         if (banshee->vidProcCfg & VIDPROCCFG_2X_MODE) {
             svga->hdisp *= 2;

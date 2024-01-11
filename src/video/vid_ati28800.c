@@ -136,6 +136,10 @@ ati28800_out(uint16_t addr, uint8_t val, void *priv)
                     if ((old ^ val) & 0x80)
                         svga_recalctimings(svga);
                     break;
+                case 0xad:
+                    if ((old ^ val) & 0x0c)
+                        svga_recalctimings(svga);
+                    break;
                 case 0xb0:
                     if ((old ^ val) & 0x60)
                         svga_recalctimings(svga);
@@ -403,7 +407,8 @@ ati28800_recalctimings(svga_t *svga)
     ati28800_t       *ati28800 = (ati28800_t *) svga->priv;
     int               clock_sel;
 
-    clock_sel = ((svga->miscout >> 2) & 3) | ((ati28800->regs[0xbe] & 0x10) >> 1) | ((ati28800->regs[0xb9] & 2) << 1);
+    clock_sel = ((svga->miscout >> 2) & 3) | ((ati28800->regs[0xbe] & 0x10) >> 1) |
+                ((ati28800->regs[0xb9] & 2) << 1);
 
     if (ati28800->regs[0xa3] & 0x10)
         svga->ma_latch |= 0x10000;
@@ -443,7 +448,11 @@ ati28800_recalctimings(svga_t *svga)
     if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
          if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
             svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel, svga->clock_gen);
-            ati28800_log("SEQREG1 bit 3=%x. gdcreg5 bits 5-6=%02x, 4bit pel=%02x, planar 16color=%02x, apa mode=%02x, attregs10 bit 7=%02x.\n", svga->seqregs[1] & 8, svga->gdcreg[5] & 0x60, ati28800->regs[0xb3] & 0x40, ati28800->regs[0xac] & 0x40, ati28800->regs[0xb6] & 0x18, ati28800->svga.attrregs[0x10] & 0x80);
+            ati28800_log("SEQREG1 bit 3=%x. gdcreg5 bits 5-6=%02x, 4bit pel=%02x, "
+                         "planar 16color=%02x, apa mode=%02x, attregs10 bit 7=%02x.\n",
+                         svga->seqregs[1] & 8, svga->gdcreg[5] & 0x60,
+                         ati28800->regs[0xb3] & 0x40, ati28800->regs[0xac] & 0x40,
+                         ati28800->regs[0xb6] & 0x18, ati28800->svga.attrregs[0x10] & 0x80);
             switch (svga->gdcreg[5] & 0x60) {
                 case 0x00:
                     if (svga->seqregs[1] & 8) /*Low res (320)*/
@@ -492,6 +501,9 @@ ati28800_recalctimings(svga_t *svga)
             }
         }
     }
+
+    if (ati28800->regs[0xad] & 0x08)
+        svga->hblankstart    = ((ati28800->regs[0x0d] >> 2) << 8) + svga->crtc[4] + 1;
 }
 
 static void
