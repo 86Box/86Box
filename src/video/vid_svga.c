@@ -640,20 +640,11 @@ svga_recalctimings(svga_t *svga)
     svga->hdisp_time = svga->hdisp;
     svga->render     = svga_render_blank;
     if (!svga->scrblank && (svga->crtc[0x17] & 0x80) && svga->attr_palette_enable) {
-        if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-            if (svga->seqregs[1] & 8)
-                svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
-            else
-                svga->hdisp *= (svga->seqregs[1] & 1) ? 8 : 9;
+        /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
+        if (svga->seqregs[1] & 8)
+            svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
         else
-            /*RESEARCH TOPIC: Which chipsets honour 9-dot mode in graphics mode?
-              One still gets an 8-dot input, but is likely to get some weird chaining through the graphics controller.
-              Chipsets which honour it, and do an extra pixel (or two, or four) of chaining through the GC pixel shift registers:
-              - (none found so far)
-              Chipsets which treat it like it's in 8-dot mode, and affect the monitor timings in the process:
-              - S3 Trio64V2/DX
-              */
-            svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
+            svga->hdisp *= (svga->seqregs[1] & 1) ? 8 : 9;
 
         if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
             if (svga->seqregs[1] & 8) {                              /*40 column*/
@@ -749,27 +740,19 @@ svga_recalctimings(svga_t *svga)
 
     svga->hblankstart    = svga->crtc[4] + 1;
     svga->hblank_end_val = (svga->crtc[3] & 0x1f) | ((svga->crtc[5] & 0x80) ? 0x20 : 0x00);
-#if 0
-    pclog("htotal = %i, hblankstart = %i, hblank_end_val = %02X\n", svga->htotal, svga->hblankstart, svga->hblank_end_val);
-#endif
+
+    svga_log("htotal = %i, hblankstart = %i, hblank_end_val = %02X\n",
+             svga->htotal, svga->hblankstart, svga->hblank_end_val);
+
     svga->hblank_end_len  = 0x00000040;
     svga->hblank_overscan = 1;
 
     if (!svga->scrblank && svga->attr_palette_enable) {
-        if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-            if (svga->seqregs[1] & 8)
-                svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
-            else
-                svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 8 : 9);
+        /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
+        if (svga->seqregs[1] & 8)
+            svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
         else
-            /*RESEARCH TOPIC: Which chipsets honour 9-dot mode in graphics mode?
-              One still gets an 8-dot input, but is likely to get some weird chaining through the graphics controller.
-              Chipsets which honour it, and do an extra pixel (or two, or four) of chaining through the GC pixel shift registers:
-              - (none found so far)
-              Chipsets which treat it like it's in 8-dot mode, and affect the monitor timings in the process:
-              - S3 Trio64V2/DX
-              */
-            svga->dots_per_clock = ((svga->seqregs[1] & 8) ? 16 : 8);
+            svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 8 : 9);
     } else
         svga->dots_per_clock = 1;
 
@@ -784,17 +767,19 @@ svga_recalctimings(svga_t *svga)
     if (xga_active && (svga->xga != NULL))
         xga_recalctimings(svga);
 
-    svga->hblankend = (svga->hblankstart & ~(svga->hblank_end_len - 1)) | svga->hblank_end_val;
-    if (svga->hblankend <= svga->hblankstart)
-        svga->hblankend += svga->hblank_end_len;
-    svga->hblankend += svga->hblank_ext;
+    if (!svga->hoverride) {
+        svga->hblankend = (svga->hblankstart & ~(svga->hblank_end_len - 1)) | svga->hblank_end_val;
+        if (svga->hblankend <= svga->hblankstart)
+            svga->hblankend += svga->hblank_end_len;
+        svga->hblankend += svga->hblank_ext;
 
-    svga->hblank_sub = 0;
-    if (svga->hblankend > svga->htotal) {
-        svga->hblankend &= (svga->hblank_end_len - 1);
-        svga->hblank_sub = svga->hblankend + svga->hblank_overscan;
+        svga->hblank_sub = 0;
+        if (svga->hblankend > svga->htotal) {
+            svga->hblankend &= (svga->hblank_end_len - 1);
+            svga->hblank_sub = svga->hblankend + svga->hblank_overscan;
 
-        svga->hdisp -= (svga->hblank_sub * svga->dots_per_clock);
+            svga->hdisp -= (svga->hblank_sub * svga->dots_per_clock);
+        }
     }
 
     if (svga->hdisp >= 2048)
@@ -1076,17 +1061,6 @@ svga_poll(void *priv)
                 ret = svga->line_compare(svga);
 
             if (ret) {
-                /*NOTE ON CHARACTER SKEW VALUES:
-                 - CR03 delays the start and end of active video, while continuing to clock things as usual.
-                   This effectively hides N character clocks on the left, and reveals N character clocks on the right.
-                 - CR05 delays the horizontal retrace (HSYNC) signal. It affects the position of the displayed image on the monitor.
-                   Since 86Box at the time of writing (2024-01-10) does not support overscan for anything other than showing the border,
-                   there should be no effect.
-                 - CR0B delays the position of the cursor by a number of character clocks.
-                 So how do the INT 0x10 modes work?
-                 - EGA has some rather interesting values for all of this which can make for interesting research.
-                 - VGA and all of a few SVGA chipsets sampled uses 0 for everything except CR05 in the two 40x25 text modes where it uses 1.
-                 */
                 if (svga->interlace && svga->oddeven)
                     svga->ma = svga->maback = (svga->rowoffset << 1) + ((svga->crtc[3] & 0x60) >> 5) + svga->hblank_sub;
                 else
@@ -1160,7 +1134,7 @@ svga_poll(void *priv)
             svga->vslines                       = 0;
 
             if (svga->interlace && svga->oddeven)
-               svga->ma = svga->maback = svga->ma_latch + (svga->rowoffset << 1) +
+                svga->ma = svga->maback = svga->ma_latch + (svga->rowoffset << 1) +
                            ((svga->crtc[3] & 0x60) >> 5) + svga->hblank_sub;
             else
                 svga->ma = svga->maback = svga->ma_latch + ((svga->crtc[3] & 0x60) >> 5) + svga->hblank_sub;
