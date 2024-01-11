@@ -1950,7 +1950,7 @@ gd54xx_recalctimings(svga_t *svga)
 				  and the actual blanking comes from the display enable signal. */
 	/* Start blanking at the first character clock after the last active one. */
 	svga->hblankstart = svga->crtc[1] + 1;
-	svga->hblank_end_val = (svga->htotal + 5) & 0xff;
+	svga->hblank_end_val = (svga->htotal + 5) & 0x3f;
 	/* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
 	if (!svga->scrblank && svga->attr_palette_enable)
 		svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
@@ -1958,10 +1958,6 @@ gd54xx_recalctimings(svga_t *svga)
 	svga->hblank_overscan = 0;
 	/* Also make sure vertical blanking starts on display end. */
 	svga->vblankstart = svga->dispend;
-
-    /* Account for horizontal overflow bits. */
-    svga->hblank_end_val += (svga->crtc[0x1a] & 0x30) << 2;
-    svga->hblank_end_len = 0x100;
     }
 
     if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
