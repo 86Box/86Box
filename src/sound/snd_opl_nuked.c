@@ -1581,17 +1581,17 @@ nuked_drv_write(uint16_t port, uint8_t val, void *priv)
         nuked_write_reg_buffered(&dev->opl, dev->port, val);
 
         switch (dev->port) {
-            case 0x02: /* Timer 1 */
+            case 0x002: /* Timer 1 */
                 dev->timer_count[0] = val;
                 nuked_log("Timer 0 count now: %i\n", dev->timer_count[0]);
                 break;
 
-            case 0x03: /* Timer 2 */
+            case 0x003: /* Timer 2 */
                 dev->timer_count[1] = val;
                 nuked_log("Timer 1 count now: %i\n", dev->timer_count[1]);
                 break;
 
-            case 0x04: /* Timer control */
+            case 0x004: /* Timer control */
                 if (val & CTRL_RESET) {
                     nuked_log("Resetting timer status...\n");
                     dev->status &= ~STAT_TMR_OVER;
@@ -1601,6 +1601,10 @@ nuked_drv_write(uint16_t port, uint8_t val, void *priv)
                     nuked_timer_control(dev, 1, val & CTRL_TMR2_START);
                     nuked_log("Status mask now %02X (val = %02X)\n", (val & ~CTRL_TMR_MASK) & CTRL_TMR_MASK, val);
                 }
+                break;
+
+            case 0x105:
+                dev->opl.newm = val & 0x01;
                 break;
 
             default:
