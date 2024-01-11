@@ -617,7 +617,7 @@ svga_recalctimings(svga_t *svga)
         svga->vblankstart |= 0x200;
     svga->vblankstart++;
 
-    svga->hdisp = svga->crtc[1] - ((svga->crtc[3] & 0x60) >> 5);
+    svga->hdisp = svga->crtc[1];
     svga->hdisp++;
 
     svga->htotal = svga->crtc[0];
