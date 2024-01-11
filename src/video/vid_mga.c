@@ -943,8 +943,9 @@ mystique_recalctimings(svga_t *svga)
 
     if (mystique->crtcext_regs[1] & CRTCX_R1_HTOTAL8)
         svga->htotal |= 0x100;
-    if (mystique->crtcext_regs[1] & CRTCX_R1_HBLKSTRT8)
-        svga->hblankstart += 0x100;
+
+    svga->hblankstart    = (((mystique->crtcext_regs[1] & 0x04) >> 2) << 8) + svga->crtc[4] + 1;
+
     if (mystique->crtcext_regs[2] & CRTCX_R2_VTOTAL10)
         svga->vtotal |= 0x400;
     if (mystique->crtcext_regs[2] & CRTCX_R2_VTOTAL11)
@@ -975,8 +976,8 @@ mystique_recalctimings(svga_t *svga)
         svga->hdisp_time    = svga->hdisp;
         svga->rowoffset     = svga->crtc[0x13] | ((mystique->crtcext_regs[0] & CRTCX_R0_OFFSET_MASK) << 4);
 
-        svga->hblank_end_len = 0x80;
-        svga->hblank_end_val += mystique->crtcext_regs[1] & CRTCX_R1_HBLKEND6;
+        svga->hblank_end_val = (mystique->crtcext_regs[1] & 0x40) | (svga->crtc[3] & 0x1f) |
+                               ((svga->crtc[5] & 0x80) ? 0x20 : 0x00);
 
         svga->hblank_overscan = 0;
 

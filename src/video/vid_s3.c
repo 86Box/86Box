@@ -3988,6 +3988,8 @@ s3_recalctimings(svga_t *svga)
             svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
         }
 
+        svga->hblankstart    = (((svga->crtc[0x5d] & 0x10) >> 4) << 8) + svga->crtc[4] + 1;
+
         if (svga->crtc[0x5d] & 0x04)
             svga->hblankstart += 0x100;
         if (s3->chip >= S3_VISION964) {
@@ -3995,12 +3997,8 @@ s3_recalctimings(svga_t *svga)
                      The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
                      and, contrary to VGADOC, it also exists on Trio32, Trio64, Vision868,
                      and Vision968. */
-#if 0
-            pclog("svga->crtc[0x5d] = %02X\n", svga->crtc[0x5d]);
-#endif
-            if (svga->crtc[0x5d] & 0x08)
-                svga->hblank_ext = 0x40;
-            svga->hblank_end_len = 0x00000040;
+            svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
+                                   (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
         }
     }
 
@@ -4152,16 +4150,14 @@ s3_trio64v_recalctimings(svga_t *svga)
         }
     }
 
-    if (svga->crtc[0x5d] & 0x04)
-        svga->hblankstart += 0x100;
+    svga->hblankstart    = (((svga->crtc[0x5d] & 0x10) >> 4) << 8) + svga->crtc[4] + 1;
 
     /* NOTE: The S3 Trio64V+ datasheet says this is bit 7, but then where is bit 6?
              The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
              and, contrary to VGADOC, it also exists on Trio32, Trio64, Vision868,
              and Vision968. */
-    if (svga->crtc[0x5d] & 0x08)
-        svga->hblank_ext = 0x40;
-    svga->hblank_end_len = 0x00000040;
+    svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
+                           (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
 
     svga->hblank_overscan = !(svga->crtc[0x33] & 0x20);
 }

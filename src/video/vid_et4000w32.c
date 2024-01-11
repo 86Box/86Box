@@ -445,10 +445,10 @@ et4000w32p_recalctimings(svga_t *svga)
         svga->rowoffset += 0x100;
     if (svga->crtc[0x3F] & 0x01)
         svga->htotal += 256;
-    if (svga->crtc[0x3F] & 0x04)
-        svga->hblankstart += 0x100;
     if (svga->attrregs[0x16] & 0x20)
         svga->hdisp <<= 1;
+
+    svga->hblankstart    = (((svga->crtc[0x3f] & 0x10) >> 4) << 8) + svga->crtc[4] + 1;
 
     svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock((svga->miscout >> 2) & 3, svga->clock_gen);
 
