@@ -912,7 +912,7 @@ s3_virge_recalctimings(svga_t *svga)
         svga->vram_display_mask = virge->vram_mask;
     }
 
-    svga->hblankstart    = (((svga->crtc[0x5d] & 0x10) >> 4) << 8) + svga->crtc[4] + 1;
+    svga->hblankstart    = (((svga->crtc[0x5d] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
 
     svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
                            (((svga->crtc[0x5d] & 0x08) >> 3) << 6);

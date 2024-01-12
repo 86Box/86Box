@@ -113,6 +113,7 @@ typedef struct mach64_t {
 
     uint32_t crtc_gen_cntl;
     uint8_t  crtc_int_cntl;
+    uint32_t crtc_h_sync_strt_wid;
     uint32_t crtc_h_total_disp;
     uint32_t crtc_v_sync_strt_wid;
     uint32_t crtc_v_total_disp;
@@ -515,6 +516,10 @@ mach64_recalctimings(svga_t *svga)
         svga->dispend    = ((mach64->crtc_v_total_disp >> 16) & 2047) + 1;
         svga->htotal     = (mach64->crtc_h_total_disp & 255) + 1;
         svga->hdisp_time = svga->hdisp = ((mach64->crtc_h_total_disp >> 16) & 255) + 1;
+        svga->hblankstart              = (mach64->crtc_h_sync_strt_wid & 255) +
+                                         ((mach64->crtc_h_sync_strt_wid >> 8) & 7) + 1;
+        svga->hblank_end_val           = (svga->hblankstart +
+                                         ((mach64->crtc_h_sync_strt_wid >> 16) & 31) - 1) & 63;
         svga->vsyncstart               = (mach64->crtc_v_sync_strt_wid & 2047) + 1;
         svga->rowoffset                = (mach64->crtc_off_pitch >> 22);
         svga->clock                    = (cpuclock * (double) (1ULL << 32)) / ics2595_getclock(svga->clock_gen);
@@ -2350,6 +2355,12 @@ mach64_ext_readb(uint32_t addr, void *priv)
             case 0x03:
                 READ8(addr, mach64->crtc_h_total_disp);
                 break;
+            case 0x04:
+            case 0x05:
+            case 0x06:
+            case 0x07:
+                READ8(addr, mach64->crtc_h_sync_strt_wid);
+                break;
             case 0x08:
             case 0x09:
             case 0x0a:
@@ -3049,6 +3060,14 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
             case 0x02:
             case 0x03:
                 WRITE8(addr, mach64->crtc_h_total_disp, val);
+                svga_recalctimings(&mach64->svga);
+                svga->fullchange = svga->monitor->mon_changeframecount;
+                break;
+            case 0x04:
+            case 0x05:
+            case 0x06:
+            case 0x07:
+                WRITE8(addr, mach64->crtc_h_sync_strt_wid, val);
                 svga_recalctimings(&mach64->svga);
                 svga->fullchange = svga->monitor->mon_changeframecount;
                 break;

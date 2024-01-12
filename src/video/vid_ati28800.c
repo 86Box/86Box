@@ -503,7 +503,7 @@ ati28800_recalctimings(svga_t *svga)
     }
 
     if (ati28800->regs[0xad] & 0x08)
-        svga->hblankstart    = ((ati28800->regs[0x0d] >> 2) << 8) + svga->crtc[4] + 1;
+        svga->hblankstart    = ((ati28800->regs[0x0d] >> 2) << 8) + svga->crtc[2] + 1;
 }
 
 static void

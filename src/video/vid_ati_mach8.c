@@ -2843,7 +2843,7 @@ mach_recalctimings(svga_t *svga)
     }
 
     if (mach->regs[0xad] & 0x08)
-        svga->hblankstart    = ((mach->regs[0x0d] >> 2) << 8) + svga->crtc[4] + 1;
+        svga->hblankstart    = ((mach->regs[0x0d] >> 2) << 8) + svga->crtc[2] + 1;
 }
 
 static void

@@ -3988,7 +3988,7 @@ s3_recalctimings(svga_t *svga)
             svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
         }
 
-        svga->hblankstart    = (((svga->crtc[0x5d] & 0x10) >> 4) << 8) + svga->crtc[4] + 1;
+        svga->hblankstart    = (((svga->crtc[0x5d] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
 
         if (svga->crtc[0x5d] & 0x04)
             svga->hblankstart += 0x100;
@@ -4150,7 +4150,7 @@ s3_trio64v_recalctimings(svga_t *svga)
         }
     }
 
-    svga->hblankstart    = (((svga->crtc[0x5d] & 0x10) >> 4) << 8) + svga->crtc[4] + 1;
+    svga->hblankstart    = (((svga->crtc[0x5d] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
 
     /* NOTE: The S3 Trio64V+ datasheet says this is bit 7, but then where is bit 6?
              The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
