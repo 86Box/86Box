@@ -563,10 +563,8 @@ fdd_poll(void *priv)
 
     if (fdd_notfound) {
         fdd_notfound--;
-#ifdef RETURN_NOIDAM
         if (!fdd_notfound)
             fdc_noidam(fdd_fdc);
-#endif
     }
 }
 
