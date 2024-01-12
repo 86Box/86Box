@@ -1956,6 +1956,9 @@ gd54xx_recalctimings(svga_t *svga)
                                (((svga->crtc[0x1a] >> 4) & 3) << 6);
 
         if (svga->crtc[0x1b] & 0x20) {
+            svga->hblankstart = svga->crtc[1] + ((svga->crtc[3] >> 5) & 3) + 1;
+            svga->hblank_end_val = ((svga->crtc[3] >> 5) & 3);
+
             /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
 	    if (!svga->scrblank && svga->attr_palette_enable)
                 svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
