@@ -311,12 +311,12 @@ exec386_2386(int32_t cycs)
                 }
             } else if (trap) {
                 flags_rebuild();
+                dr[6] |= (trap == 2) ? 0x8000 : 0x4000;
                 trap = 0;
 #ifndef USE_NEW_DYNAREC
                 oldcs = CS;
 #endif
                 cpu_state.oldpc = cpu_state.pc;
-                dr[6] |= 0x4000;
                 x86_int(1);
             }
 
