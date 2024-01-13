@@ -3538,16 +3538,9 @@ s3_recalctimings(svga_t *svga)
                         }
                         break;
                     case S3_VISION864:
-                        switch (s3->card_type) {
-                            case S3_MIROCRYSTAL20SD_864:
-                                svga->hdisp >>= 1;
-                                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
-                                svga->hblank_end_val >>= 1;
-                                break;
-
-                            default:
-                                break;
-                        }
+                        svga->hdisp >>= 1;
+                        svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                        svga->hblank_end_val >>= 1;
                         break;
                     case S3_VISION964:
                         switch (s3->card_type) {
@@ -3739,16 +3732,9 @@ s3_recalctimings(svga_t *svga)
                         }
                         break;
                     case S3_VISION864:
-                        switch (s3->card_type) {
-                            case S3_MIROCRYSTAL20SD_864:
-                                svga->hdisp >>= 1;
-                                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
-                                svga->hblank_end_val >>= 1;
-                                break;
-
-                            default:
-                                break;
-                        }
+                        svga->hdisp >>= 1;
+                        svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                        svga->hblank_end_val >>= 1;
                         break;
                     case S3_VISION868:
                         switch (s3->card_type) {
@@ -3907,15 +3893,9 @@ s3_recalctimings(svga_t *svga)
                         }
                         break;
                     case S3_VISION864:
-                        switch (s3->card_type) {
-                            case S3_MIROCRYSTAL20SD_864:
-                                svga->hdisp = (svga->hdisp << 1) / 3;
-                                svga->hblankstart = (((svga->hblankstart - 1) << 1) / 3) + 1;
-                                svga->hblank_end_val = (svga->hblank_end_val << 1) / 3;
-                                break;
-                            default:
-                                break;
-                        }
+                        svga->hdisp = (svga->hdisp << 1) / 3;
+                        svga->hblankstart = (((svga->hblankstart - 1) << 1) / 3) + 1;
+                        svga->hblank_end_val = (svga->hblank_end_val << 1) / 3;
                         break;
                     case S3_VISION968:
                         switch (s3->card_type) {
