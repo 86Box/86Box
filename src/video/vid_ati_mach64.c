@@ -511,7 +511,6 @@ mach64_recalctimings(svga_t *svga)
     const mach64_t *mach64 = (mach64_t *) svga->priv;
 
     if (((mach64->crtc_gen_cntl >> 24) & 3) == 3) {
-        svga->hoverride  = 1;
         svga->vtotal     = (mach64->crtc_v_total_disp & 2047) + 1;
         svga->dispend    = ((mach64->crtc_v_total_disp >> 16) & 2047) + 1;
         svga->htotal     = (mach64->crtc_h_total_disp & 255) + 1;
@@ -571,10 +570,8 @@ mach64_recalctimings(svga_t *svga)
         }
 
         svga->vram_display_mask = mach64->vram_mask;
-    } else {
-        svga->hoverride         = 0;
+    } else
         svga->vram_display_mask = (mach64->regs[0x36] & 0x01) ? mach64->vram_mask : 0x3ffff;
-    }
 }
 
 void

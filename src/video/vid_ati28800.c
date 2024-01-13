@@ -407,6 +407,9 @@ ati28800_recalctimings(svga_t *svga)
     ati28800_t       *ati28800 = (ati28800_t *) svga->priv;
     int               clock_sel;
 
+    if (ati28800->regs[0xad] & 0x08)
+        svga->hblankstart    = ((ati28800->regs[0x0d] >> 2) << 8) + svga->crtc[2] + 1;
+
     clock_sel = ((svga->miscout >> 2) & 3) | ((ati28800->regs[0xbe] & 0x10) >> 1) |
                 ((ati28800->regs[0xb9] & 2) << 1);
 
@@ -426,6 +429,8 @@ ati28800_recalctimings(svga_t *svga)
         svga->hdisp <<= 1;
         svga->htotal <<= 1;
         svga->rowoffset <<= 1;
+        svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+        svga->hblank_end_val <<= 1;
         svga->gdcreg[5] &= ~0x40;
     }
 
@@ -441,6 +446,8 @@ ati28800_recalctimings(svga_t *svga)
     if ((ati28800->regs[0xb6] & 0x18) == 8) {
         svga->hdisp <<= 1;
         svga->htotal <<= 1;
+        svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+        svga->hblank_end_val <<= 1;
         svga->ati_4color = 1;
     } else
         svga->ati_4color = 0;
@@ -487,6 +494,8 @@ ati28800_recalctimings(svga_t *svga)
                             else {
                                 svga->render = svga_render_15bpp_highres;
                                 svga->hdisp >>= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                                svga->hblank_end_val >>= 1;
                                 svga->rowoffset <<= 1;
                                 svga->ma_latch <<= 1;
                             }
@@ -501,9 +510,6 @@ ati28800_recalctimings(svga_t *svga)
             }
         }
     }
-
-    if (ati28800->regs[0xad] & 0x08)
-        svga->hblankstart    = ((ati28800->regs[0x0d] >> 2) << 8) + svga->crtc[2] + 1;
 }
 
 static void

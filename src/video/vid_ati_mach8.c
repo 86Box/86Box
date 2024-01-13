@@ -2594,6 +2594,8 @@ mach_recalctimings(svga_t *svga)
     ibm8514_t    *dev  = (ibm8514_t *) svga->dev8514;
     int           clock_sel;
 
+    if (mach->regs[0xad] & 0x08)
+        svga->hblankstart    = ((mach->regs[0x0d] >> 2) << 8) + svga->crtc[2] + 1;
     clock_sel = ((svga->miscout >> 2) & 3) | ((mach->regs[0xbe] & 0x10) >> 1) | ((mach->regs[0xb9] & 2) << 1);
 
     if ((dev->local & 0xff) >= 0x02) {
@@ -2613,6 +2615,8 @@ mach_recalctimings(svga_t *svga)
     if ((mach->regs[0xb6] & 0x18) >= 0x10) {
         svga->hdisp <<= 1;
         svga->htotal <<= 1;
+        svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+        svga->hblank_end_val <<= 1;
         svga->rowoffset <<= 1;
         svga->gdcreg[5] &= ~0x40;
     }
@@ -2630,6 +2634,8 @@ mach_recalctimings(svga_t *svga)
         if ((mach->regs[0xb6] & 0x18) == 8) {
             svga->hdisp <<= 1;
             svga->htotal <<= 1;
+            svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+            svga->hblank_end_val <<= 1;
             svga->ati_4color = 1;
         } else
             svga->ati_4color = 0;
@@ -2841,9 +2847,6 @@ mach_recalctimings(svga_t *svga)
             }
         }
     }
-
-    if (mach->regs[0xad] & 0x08)
-        svga->hblankstart    = ((mach->regs[0x0d] >> 2) << 8) + svga->crtc[2] + 1;
 }
 
 static void

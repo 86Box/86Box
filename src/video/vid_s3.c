@@ -3248,6 +3248,44 @@ s3_recalctimings(svga_t *svga)
             break;
     }
 
+    if (svga->crtc[0x33] & 0x20) {
+        /* The S3 version of the Cirrus' special blanking mode, with identical behavior. */
+        svga->hblankstart = (((svga->crtc[0x5d] & 0x02) >> 1) << 8) + svga->crtc[1] +
+                            ((svga->crtc[3] >> 5) & 3) + 1;
+        svga->hblank_end_val = ((svga->crtc[3] >> 5) & 3);
+
+        /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
+        if (!svga->scrblank && svga->attr_palette_enable)
+            svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
+
+        /* No overscan in this mode. */
+        svga->hblank_overscan = 0;
+
+        svga->monitor->mon_overscan_y = 0;
+        svga->monitor->mon_overscan_x = 0;
+
+        /* Also make sure vertical blanking starts on display end. */
+        svga->vblankstart = svga->dispend;
+    } else if (s3->chip >= S3_86C801) {
+        if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
+            /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
+            svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
+        }
+
+        svga->hblankstart    = (((svga->crtc[0x5d] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
+
+        if (svga->crtc[0x5d] & 0x04)
+            svga->hblankstart += 0x100;
+        if (s3->chip >= S3_VISION964) {
+            /* NOTE: The S3 Trio64V+ datasheet says this is bit 7, but then where is bit 6?
+                     The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
+                     and, contrary to VGADOC, it also exists on Trio32, Trio64, Vision868,
+                     and Vision968. */
+            svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
+                                   (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
+        }
+    }
+
 #ifdef OLD_CODE_REFERENCE
     if (s3->card_type == S3_MIROCRYSTAL10SD_805 || s3->card_type == S3_MIROCRYSTAL20SD_864 || s3->card_type == S3_MIROCRYSTAL20SV_964 || s3->card_type == S3_SPEA_MIRAGE_86C801 || s3->card_type == S3_SPEA_MIRAGE_86C805 || s3->card_type == S3_MIROCRYSTAL8S_805 || s3->card_type == S3_NUMBER9_9FX_531 || s3->card_type == S3_SPEA_MERCURY_LITE_PCI) {
         if (!(svga->crtc[0x5e] & 0x04))
@@ -3292,14 +3330,20 @@ s3_recalctimings(svga_t *svga)
                                 switch (s3->width) {
                                     case 1280:
                                         svga->hdisp <<= 1;
+                                        svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                        svga->hblank_end_val <<= 1;
                                         break;
                                     case 2048: /*Account for the 1280x1024 resolution*/
                                         switch (svga->hdisp) {
                                             case 320:
                                                 svga->hdisp <<= 2;
+                                                svga->hblankstart = ((svga->hblankstart - 1) << 2) + 1;
+                                                svga->hblank_end_val <<= 2;
                                                 break;
                                             case 640:
                                                 svga->hdisp <<= 1;
+                                                svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                                svga->hblank_end_val <<= 1;
                                                 break;
                                             default:
                                                 break;
@@ -3320,6 +3364,8 @@ s3_recalctimings(svga_t *svga)
                                 switch (s3->width) {
                                     case 640:
                                         svga->hdisp >>= 1;
+                                        svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                                        svga->hblank_end_val >>= 1;
                                         break;
                                     default:
                                         break;
@@ -3334,6 +3380,8 @@ s3_recalctimings(svga_t *svga)
                         switch (s3->card_type) {
                             case S3_ELSAWIN2KPROX_964:
                                 svga->hdisp <<= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                svga->hblank_end_val <<= 1;
                                 break;
 
                             default:
@@ -3347,12 +3395,16 @@ s3_recalctimings(svga_t *svga)
                             case S3_ELSAWIN2KPROX:
                             case S3_PHOENIX_VISION968:
                                 svga->hdisp <<= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                svga->hblank_end_val <<= 1;
                                 break;
                             case S3_MIROVIDEO40SV_ERGO_968:
                                 switch (s3->width) {
                                     case 1152:
                                     case 1280:
                                         svga->hdisp <<= 1;
+                                        svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                        svga->hblank_end_val <<= 1;
                                         break;
                                     default:
                                         break;
@@ -3385,6 +3437,7 @@ s3_recalctimings(svga_t *svga)
                     } else if (s3->card_type == S3_SPEA_MERCURY_P64V) {
                         if (s3->width == 1280 || s3->width == 1600)
                             svga->hdisp <<= 1;
+                        }
                     } else if (s3->card_type == S3_NUMBER9_9FX_771)
                         svga->hdisp <<= 1;
                 }
@@ -3402,6 +3455,8 @@ s3_recalctimings(svga_t *svga)
                         switch (s3->card_type) {
                             case S3_PHOENIX_86C801:
                                 svga->hdisp >>= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                                svga->hblank_end_val >>= 1;
                                 break;
 
                             default:
@@ -3415,6 +3470,8 @@ s3_recalctimings(svga_t *svga)
                             case S3_PHOENIX_86C805:
                             case S3_86C805_ONBOARD:
                                 svga->hdisp >>= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                                svga->hblank_end_val >>= 1;
                                 break;
 
                             case S3_SPEA_MIRAGE_86C805:
@@ -3422,8 +3479,12 @@ s3_recalctimings(svga_t *svga)
                                 switch (s3->width) {
                                     case 800:
                                     case 1024:
-                                        if (svga->hdisp == 400) /*SPEA specific drivers + its VBE RAM BIOS...*/
+                                        if (svga->hdisp == 400) {
+                                            /*SPEA specific drivers + its VBE RAM BIOS...*/
                                             svga->hdisp <<= 1;
+                                            svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                            svga->hblank_end_val <<= 1;
+                                        }
                                         break;
                                     default:
                                         break;
@@ -3437,8 +3498,11 @@ s3_recalctimings(svga_t *svga)
                     case S3_86C928:
                         switch (s3->card_type) {
                             case S3_METHEUS_86C928:
-                                if (!s3->color_16bit)
+                                if (!s3->color_16bit) {
                                     svga->hdisp <<= 1;
+                                    svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                    svga->hblank_end_val <<= 1;
+                                }
                                 switch (svga->hdisp) { /*This might be a driver issue*/
                                     case 800:
                                         s3->width = 1024;
@@ -3461,6 +3525,8 @@ s3_recalctimings(svga_t *svga)
                                 switch (s3->width) {
                                     case 640:
                                         svga->hdisp >>= 1;
+                                        svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                                        svga->hblank_end_val >>= 1;
                                         break;
                                     default:
                                         break;
@@ -3475,6 +3541,8 @@ s3_recalctimings(svga_t *svga)
                         switch (s3->card_type) {
                             case S3_MIROCRYSTAL20SD_864:
                                 svga->hdisp >>= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                                svga->hblank_end_val >>= 1;
                                 break;
 
                             default:
@@ -3488,6 +3556,8 @@ s3_recalctimings(svga_t *svga)
                                     case 1280:
                                     case 1600:
                                         svga->hdisp <<= 1;
+                                        svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                        svga->hblank_end_val <<= 1;
                                         break;
                                     default:
                                         break;
@@ -3503,6 +3573,8 @@ s3_recalctimings(svga_t *svga)
                             case S3_PHOENIX_VISION868:
                             case S3_NUMBER9_9FX_531:
                                 svga->hdisp >>= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                                svga->hblank_end_val >>= 1;
                                 break;
 
                             default:
@@ -3514,6 +3586,9 @@ s3_recalctimings(svga_t *svga)
                             case S3_NUMBER9_9FX_771:
                             case S3_PHOENIX_VISION968:
                                 svga->hdisp <<= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                svga->hblank_end_val <<= 1;
+                                /* TODO: Is this still needed? */
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
                                 break;
@@ -3523,6 +3598,8 @@ s3_recalctimings(svga_t *svga)
                                     case 1280:
                                     case 1600:
                                         svga->hdisp <<= 1;
+                                        svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                        svga->hblank_end_val <<= 1;
                                         break;
                                     default:
                                         break;
@@ -3536,6 +3613,8 @@ s3_recalctimings(svga_t *svga)
                     case S3_TRIO64:
                     case S3_TRIO32:
                         svga->hdisp >>= 1;
+                        svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                        svga->hblank_end_val >>= 1;
                         break;
 
                     default:
@@ -3571,12 +3650,16 @@ s3_recalctimings(svga_t *svga)
                     case S3_86C911:
                     case S3_86C924:
                         svga->hdisp >>= 1;
+                        svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                        svga->hblank_end_val >>= 1;
                         break;
 
                     case S3_86C801:
                         switch (s3->card_type) {
                             case S3_PHOENIX_86C801:
                                 svga->hdisp >>= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                                svga->hblank_end_val >>= 1;
                                 break;
 
                             default:
@@ -3590,6 +3673,8 @@ s3_recalctimings(svga_t *svga)
                             case S3_PHOENIX_86C805:
                             case S3_86C805_ONBOARD:
                                 svga->hdisp >>= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                                svga->hblank_end_val >>= 1;
                                 break;
 
                             case S3_SPEA_MIRAGE_86C805:
@@ -3597,8 +3682,12 @@ s3_recalctimings(svga_t *svga)
                                 switch (s3->width) {
                                     case 800:
                                     case 1024:
-                                        if (svga->hdisp == 400) /*SPEA specific drivers + its VBE RAM BIOS...*/
+                                        if (svga->hdisp == 400) {
+                                            /*SPEA specific drivers + its VBE RAM BIOS...*/
                                             svga->hdisp <<= 1;
+                                            svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                            svga->hblank_end_val <<= 1;
+                                        }
                                         break;
                                     default:
                                         break;
@@ -3613,6 +3702,8 @@ s3_recalctimings(svga_t *svga)
                         switch (s3->card_type) {
                             case S3_METHEUS_86C928:
                                 svga->hdisp <<= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                svga->hblank_end_val <<= 1;
                                 switch (svga->hdisp) { /*This might be a driver issue*/
                                     case 800:
                                         s3->width = 1024;
@@ -3635,7 +3726,9 @@ s3_recalctimings(svga_t *svga)
                                 switch (s3->width) {
                                     case 640:
                                         svga->hdisp >>= 1;
-                                        break;
+                                        svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                                        svga->hblank_end_val >>= 1;
+                                      break;
                                     default:
                                         break;
                                 }
@@ -3649,6 +3742,8 @@ s3_recalctimings(svga_t *svga)
                         switch (s3->card_type) {
                             case S3_MIROCRYSTAL20SD_864:
                                 svga->hdisp >>= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                                svga->hblank_end_val >>= 1;
                                 break;
 
                             default:
@@ -3660,6 +3755,8 @@ s3_recalctimings(svga_t *svga)
                             case S3_PHOENIX_VISION868:
                             case S3_NUMBER9_9FX_531:
                                 svga->hdisp >>= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                                svga->hblank_end_val >>= 1;
                                 break;
 
                             default:
@@ -3673,6 +3770,8 @@ s3_recalctimings(svga_t *svga)
                                     case 1280:
                                     case 1600:
                                         svga->hdisp <<= 1;
+                                        svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                        svga->hblank_end_val <<= 1;
                                         break;
                                     default:
                                         break;
@@ -3688,6 +3787,9 @@ s3_recalctimings(svga_t *svga)
                             case S3_NUMBER9_9FX_771:
                             case S3_PHOENIX_VISION968:
                                 svga->hdisp <<= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                svga->hblank_end_val <<= 1;
+                                /* TODO: Is this still needed? */
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
                                 break;
@@ -3697,6 +3799,8 @@ s3_recalctimings(svga_t *svga)
                                     case 1280:
                                     case 1600:
                                         svga->hdisp <<= 1;
+                                        svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                        svga->hblank_end_val <<= 1;
                                         break;
                                     default:
                                         break;
@@ -3710,6 +3814,8 @@ s3_recalctimings(svga_t *svga)
                     case S3_TRIO64:
                     case S3_TRIO32:
                         svga->hdisp >>= 1;
+                        svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                        svga->hblank_end_val >>= 1;
                         break;
 
                     default:
@@ -3752,6 +3858,9 @@ s3_recalctimings(svga_t *svga)
                         switch (s3->card_type) {
                             case S3_AMI_86C924:
                                 svga->hdisp = (svga->hdisp << 1) / 3;
+                                svga->hblankstart = (((svga->hblankstart - 1) << 1) / 3) + 1;
+                                svga->hblank_end_val = (svga->hblank_end_val << 1) / 3;
+                                /* TODO: Is this still needed? */
                                 if (svga->hdisp == 645)
                                     svga->hdisp -= 5;
                                 break;
@@ -3764,6 +3873,8 @@ s3_recalctimings(svga_t *svga)
                             case S3_PHOENIX_86C801:
                             case S3_SPEA_MIRAGE_86C801:
                                 svga->hdisp = (svga->hdisp << 1) / 3;
+                                svga->hblankstart = (((svga->hblankstart - 1) << 1) / 3) + 1;
+                                svga->hblank_end_val = (svga->hblank_end_val << 1) / 3;
                                 break;
                             default:
                                 break;
@@ -3777,6 +3888,8 @@ s3_recalctimings(svga_t *svga)
                             case S3_SPEA_MIRAGE_86C805:
                             case S3_86C805_ONBOARD:
                                 svga->hdisp = (svga->hdisp << 1) / 3;
+                                svga->hblankstart = (((svga->hblankstart - 1) << 1) / 3) + 1;
+                                svga->hblank_end_val = (svga->hblank_end_val << 1) / 3;
                                 break;
                             default:
                                 break;
@@ -3786,6 +3899,8 @@ s3_recalctimings(svga_t *svga)
                         switch (s3->card_type) {
                             case S3_SPEA_MERCURY_LITE_PCI:
                                 svga->hdisp = (svga->hdisp << 1) / 3;
+                                svga->hblankstart = (((svga->hblankstart - 1) << 1) / 3) + 1;
+                                svga->hblank_end_val = (svga->hblank_end_val << 1) / 3;
                                 break;
                             default:
                                 break;
@@ -3795,6 +3910,8 @@ s3_recalctimings(svga_t *svga)
                         switch (s3->card_type) {
                             case S3_MIROCRYSTAL20SD_864:
                                 svga->hdisp = (svga->hdisp << 1) / 3;
+                                svga->hblankstart = (((svga->hblankstart - 1) << 1) / 3) + 1;
+                                svga->hblank_end_val = (svga->hblank_end_val << 1) / 3;
                                 break;
                             default:
                                 break;
@@ -3805,8 +3922,9 @@ s3_recalctimings(svga_t *svga)
                             case S3_MIROVIDEO40SV_ERGO_968:
                                 switch (s3->width) {
                                     case 1280:
-                                        svga->hdisp = (svga->hdisp << 1) / 3;
-                                        svga->hdisp <<= 1;
+                                        svga->hdisp = ((svga->hdisp << 1) / 3) << 1;
+                                        svga->hblankstart = ((((svga->hblankstart - 1) << 1) / 3) << 1) + 1;
+                                        svga->hblank_end_val = ((svga->hblank_end_val << 1) / 3) << 1;
                                         break;
                                     default:
                                         break;
@@ -3821,6 +3939,8 @@ s3_recalctimings(svga_t *svga)
                     case S3_TRIO64:
                     case S3_TRIO32:
                         svga->hdisp /= 3;
+                        svga->hblankstart = ((svga->hblankstart - 1) / 3) + 1;
+                        svga->hblank_end_val /= 3;
                         break;
 
                     default:
@@ -3862,6 +3982,8 @@ s3_recalctimings(svga_t *svga)
                             case S3_PHOENIX_VISION868:
                             case S3_NUMBER9_9FX_531:
                                 svga->hdisp >>= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                                svga->hblank_end_val >>= 1;
                                 break;
                             default:
                                 break;
@@ -3874,6 +3996,8 @@ s3_recalctimings(svga_t *svga)
                                     case 800:
                                     case 1024:
                                         svga->hdisp >>= 1;
+                                        svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                                        svga->hblank_end_val >>= 1;
                                         break;
                                     default:
                                         break;
@@ -3884,6 +4008,8 @@ s3_recalctimings(svga_t *svga)
                                     case 1280:
                                     case 1600:
                                         svga->hdisp <<= 1;
+                                        svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                        svga->hblank_end_val <<= 1;
                                         break;
                                     default:
                                         break;
@@ -3898,6 +4024,9 @@ s3_recalctimings(svga_t *svga)
                             case S3_NUMBER9_9FX_771:
                             case S3_PHOENIX_VISION968:
                                 svga->hdisp <<= 1;
+                                svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                svga->hblank_end_val <<= 1;
+                                /* TODO: Is this still needed? */
                                 if (svga->hdisp == 832)
                                     svga->hdisp -= 32;
                                 break;
@@ -3907,6 +4036,8 @@ s3_recalctimings(svga_t *svga)
                                     case 1280:
                                     case 1600:
                                         svga->hdisp <<= 1;
+                                        svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                                        svga->hblank_end_val <<= 1;
                                         break;
                                     default:
                                         break;
@@ -3981,28 +4112,6 @@ s3_recalctimings(svga_t *svga)
             }
         }
     }
-
-    if (s3->chip >= S3_86C801) {
-        if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
-            /* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
-            svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
-        }
-
-        svga->hblankstart    = (((svga->crtc[0x5d] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
-
-        if (svga->crtc[0x5d] & 0x04)
-            svga->hblankstart += 0x100;
-        if (s3->chip >= S3_VISION964) {
-            /* NOTE: The S3 Trio64V+ datasheet says this is bit 7, but then where is bit 6?
-                     The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
-                     and, contrary to VGADOC, it also exists on Trio32, Trio64, Vision868,
-                     and Vision968. */
-            svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
-                                   (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
-        }
-    }
-
-    svga->hblank_overscan = !(svga->crtc[0x33] & 0x20);
 }
 
 static void
@@ -4061,6 +4170,35 @@ s3_trio64v_recalctimings(svga_t *svga)
             break;
     }
 
+    if ((svga->crtc[0x33] & 0x20) ||((svga->crtc[0x67] & 0xc) == 0xc)) {
+        /* The S3 version of the Cirrus' special blanking mode, with identical behavior. */
+        svga->hblankstart = (((svga->crtc[0x5d] & 0x02) >> 1) << 8) + svga->crtc[1] +
+                            ((svga->crtc[3] >> 5) & 3) + 1;
+        svga->hblank_end_val = ((svga->crtc[3] >> 5) & 3);
+
+        /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
+        if (!svga->scrblank && svga->attr_palette_enable)
+            svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
+
+        /* No overscan in this mode. */
+        svga->hblank_overscan = 0;
+
+        svga->monitor->mon_overscan_y = 0;
+        svga->monitor->mon_overscan_x = 0;
+
+        /* Also make sure vertical blanking starts on display end. */
+        svga->vblankstart = svga->dispend;
+    } else {
+        svga->hblankstart    = (((svga->crtc[0x5d] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
+
+        /* NOTE: The S3 Trio64V+ datasheet says this is bit 7, but then where is bit 6?
+                 The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
+                 and, contrary to VGADOC, it also exists on Trio32, Trio64, Vision868,
+                 and Vision968. */
+        svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
+                               (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
+    }
+
     if ((svga->crtc[0x67] & 0xc) != 0xc) /*VGA mode*/
     {
         svga->ma_latch |= (s3->ma_ext << 16);
@@ -4082,14 +4220,20 @@ s3_trio64v_recalctimings(svga_t *svga)
                 case 15:
                     svga->render = svga_render_15bpp_highres;
                     svga->hdisp >>= 1;
+                    svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                    svga->hblank_end_val >>= 1;
                     break;
                 case 16:
                     svga->render = svga_render_16bpp_highres;
                     svga->hdisp >>= 1;
+                    svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                    svga->hblank_end_val >>= 1;
                     break;
                 case 24:
                     svga->render = svga_render_24bpp_highres;
                     svga->hdisp /= 3;
+                    svga->hblankstart = ((svga->hblankstart - 1) / 3) + 1;
+                    svga->hblank_end_val /= 3;
                     break;
                 case 32:
                     svga->render = svga_render_32bpp_highres;
@@ -4132,10 +4276,14 @@ s3_trio64v_recalctimings(svga_t *svga)
                 break;
             case 3: /*KRGB-16 (1.5.5.5)*/
                 svga->htotal >>= 1;
+                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                svga->hblank_end_val >>= 1;
                 svga->render = svga_render_15bpp_highres;
                 break;
             case 5: /*RGB-16 (5.6.5)*/
                 svga->htotal >>= 1;
+                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                svga->hblank_end_val >>= 1;
                 svga->render = svga_render_16bpp_highres;
                 break;
             case 6: /*RGB-24 (8.8.8)*/
@@ -4149,17 +4297,6 @@ s3_trio64v_recalctimings(svga_t *svga)
                 break;
         }
     }
-
-    svga->hblankstart    = (((svga->crtc[0x5d] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
-
-    /* NOTE: The S3 Trio64V+ datasheet says this is bit 7, but then where is bit 6?
-             The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
-             and, contrary to VGADOC, it also exists on Trio32, Trio64, Vision868,
-             and Vision968. */
-    svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
-                           (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
-
-    svga->hblank_overscan = !(svga->crtc[0x33] & 0x20);
 }
 
 static void
