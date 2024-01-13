@@ -429,7 +429,7 @@ ati28800_recalctimings(svga_t *svga)
         svga->hdisp <<= 1;
         svga->htotal <<= 1;
         svga->rowoffset <<= 1;
-        svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+        svga->hblankstart <<= 1;
         svga->hblank_end_val <<= 1;
         svga->gdcreg[5] &= ~0x40;
     }
@@ -446,7 +446,7 @@ ati28800_recalctimings(svga_t *svga)
     if ((ati28800->regs[0xb6] & 0x18) == 8) {
         svga->hdisp <<= 1;
         svga->htotal <<= 1;
-        svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+        svga->hblankstart <<= 1;
         svga->hblank_end_val <<= 1;
         svga->ati_4color = 1;
     } else

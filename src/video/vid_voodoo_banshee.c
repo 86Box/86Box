@@ -641,7 +641,7 @@ banshee_recalctimings(svga_t *svga)
         if (banshee->vidProcCfg & VIDPROCCFG_2X_MODE) {
             svga->hdisp *= 2;
             svga->htotal *= 2;
-            svga->hblankstart = ((svga->hblankstart - 1) * 2) + 1;
+            svga->hblankstart *= 2;
             svga->hblank_end_val *= 2;
         }
 
