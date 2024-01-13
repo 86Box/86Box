@@ -796,7 +796,9 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
             mixer->regs[0x36] = mixer->regs[0x37] = 0xf8;
             mixer->regs[0x38] = mixer->regs[0x39] = 0x00;
 
-            mixer->regs[0x3a] = mixer->regs[0x3b] = 0x00;
+            mixer->regs[0x3a] = 0x00;
+            /* Speaker control - it appears to be in steps of 64. */
+            mixer->regs[0x3b] = 0x80;
 
             mixer->regs[0x3c] = (OUTPUT_MIC | OUTPUT_CD_R | OUTPUT_CD_L | OUTPUT_LINE_R | OUTPUT_LINE_L);
             mixer->regs[0x3d] = (INPUT_MIC | INPUT_CD_L | INPUT_LINE_L | INPUT_MIDI_L);
@@ -980,7 +982,7 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *priv)
         mixer->line_r   = (mixer->output_selector & OUTPUT_LINE_R) ? (sb_att_2dbstep_5bits[mixer->regs[0x39] >> 3] / 32768.0) : 0.0;
 
         mixer->mic     = sb_att_2dbstep_5bits[mixer->regs[0x3a] >> 3] / 32768.0;
-        mixer->speaker = sb_att_2dbstep_5bits[mixer->regs[0x3b] * 3 + 22] / 32768.0;
+        mixer->speaker = sb_att_7dbstep_2bits[(mixer->regs[0x3b] >> 6) & 0x3] / 32768.0;
 
         mixer->input_gain_L  = (mixer->regs[0x3f] >> 6);
         mixer->input_gain_R  = (mixer->regs[0x40] >> 6);
