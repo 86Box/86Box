@@ -2186,7 +2186,10 @@ mystique_ctrl_write_b(uint32_t addr, uint8_t val, void *priv)
             thread_wait_mutex(mystique->dma.lock);
             WRITE8(addr, mystique->dma.primaddress, val);
             mystique->dma.pri_state = 0;
-            mystique->dma.words_expected = 0;
+            if (mystique->dma.state == DMA_STATE_IDLE && !(mystique->softrap_pending || mystique->endprdmasts_pending || !mystique->softrap_status_read)) {
+                mystique->dma.words_expected = 0;
+            }
+            mystique->dma.state = DMA_STATE_IDLE;
             thread_release_mutex(mystique->dma.lock);
             break;
 
