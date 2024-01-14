@@ -223,7 +223,7 @@ fetch_ea_16_long(uint32_t rmdat)
 
 #include "386_ops.h"
 
-#define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
+#define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !(dr[7] & 0xFF))
 
 #ifdef USE_DYNAREC
 int32_t         cycles_main = 0;
@@ -285,6 +285,11 @@ exec386_dynarec_int(void)
         cpu_state.ea_seg = &cpu_state.seg_ds;
         cpu_state.ssegs  = 0;
 
+        if (UNLIKELY(cpu_386_check_instruction_fault())) {
+            x86gen();
+            goto block_ended;
+        }
+
         fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
         if (in_smm)
@@ -305,6 +310,14 @@ exec386_dynarec_int(void)
         if (!use32)
             cpu_state.pc &= 0xffff;
 #    endif
+
+        if (!cpu_state.abrt) {
+            if (!rf_flag_no_clear) {
+                cpu_state.eflags &= ~RF_FLAG;
+            }
+
+            rf_flag_no_clear = 0;
+        }
 
         if (((cs + cpu_state.pc) >> 12) != pccache)
             CPU_BLOCK_END();
@@ -329,7 +342,8 @@ exec386_dynarec_int(void)
 
 block_ended:
     if (!cpu_state.abrt && trap) {
-        dr[6] |= (trap == 2) ? 0x8000 : 0x4000;
+        if (trap != 4)
+            dr[6] |= (trap == 2) ? 0x8000 : 0x4000;
         trap = 0;
 #    ifndef USE_NEW_DYNAREC
         oldcs = CS;

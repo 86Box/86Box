@@ -240,6 +240,7 @@ exec386_2386(int32_t cycs)
         cycdiff       = 0;
         oldcyc        = cycles;
         while (cycdiff < cycle_period) {
+            int ins_fetch_fault = 0;
             ins_cycles = cycles;
 
 #ifndef USE_NEW_DYNAREC
@@ -259,6 +260,14 @@ exec386_2386(int32_t cycs)
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
             ol = opcode_length[fetchdat & 0xff];
             CHECK_READ_CS(MIN(ol, 4));
+            ins_fetch_fault = cpu_386_check_instruction_fault();
+
+            if (!cpu_state.abrt && ins_fetch_fault) {
+                x86gen();
+                ins_fetch_fault = 0;
+                /* No instructions executed at this point. */
+                goto block_ended;
+            }
 
             if (!cpu_state.abrt) {
 #ifdef ENABLE_386_LOG
@@ -287,6 +296,7 @@ exec386_2386(int32_t cycs)
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
 
+block_ended:
             if (cpu_state.abrt) {
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
@@ -309,9 +319,12 @@ exec386_2386(int32_t cycs)
 #endif
                     }
                 }
+                if (!x86_was_reset && ins_fetch_fault)
+                    x86gen();   /* This is supposed to be the first one serviced by the processor according to the manual. */
             } else if (trap) {
                 flags_rebuild();
-                dr[6] |= (trap == 2) ? 0x8000 : 0x4000;
+                if (trap != 4)
+                    dr[6] |= (trap == 2) ? 0x8000 : 0x4000;
                 trap = 0;
 #ifndef USE_NEW_DYNAREC
                 oldcs = CS;

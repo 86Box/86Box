@@ -88,6 +88,12 @@ x86de(UNUSED(char *s), UNUSED(uint16_t error))
 }
 
 void
+x86gen(void)
+{
+    x86_int(1);
+}
+
+void
 x86gpf(UNUSED(char *s), uint16_t error)
 {
     cpu_state.abrt = ABRT_GPF;
