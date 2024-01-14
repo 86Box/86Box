@@ -3396,6 +3396,7 @@ s3_recalctimings(svga_t *svga)
                         break;
                     case S3_VISION968:
                         switch (s3->card_type) {
+                            case S3_PHOENIX_VISION968:
                             case S3_NUMBER9_9FX_771:
                                 svga->hdisp <<= 1;
                                 svga->hblankstart <<= 1;
