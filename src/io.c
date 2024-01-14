@@ -329,7 +329,7 @@ io_debug_check_addr(uint16_t addr)
         }
     }
     if (set_trap)
-        trap = 4;
+        trap |= 4;
 }
 
 uint8_t

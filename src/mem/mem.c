@@ -209,7 +209,7 @@ mem_debug_check_addr(uint32_t addr, int write)
         }
     }
     if (set_trap)
-        trap = 4;
+        trap |= 4;
 }
 
 int
