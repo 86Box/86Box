@@ -2286,8 +2286,10 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
         op_loadseg(new_fs, &cpu_state.seg_fs);
         op_loadseg(new_gs, &cpu_state.seg_gs);
 
+        rf_flag_no_clear = 1;
+
         if (t_bit) {
-            trap = 2;
+            trap |= 2;
 #ifdef USE_DYNAREC
             cpu_block_end = 1;
 #endif
@@ -2467,6 +2469,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
     tr.limit   = limit;
     tr.access  = segdat[2] >> 8;
     tr.ar_high = segdat[3] & 0xff;
+    dr[7] &= 0xFFFFFFAA;
 }
 
 void
