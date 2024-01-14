@@ -45,6 +45,9 @@
 #include <86box/ui.h>
 #include <86box/gdbstub.h>
 
+#define __USE_GNU 1 /* shouldn't be done, yet it is */
+#include <pthread.h>
+
 static int      first_use = 1;
 static uint64_t StartingTime;
 static uint64_t Frequency;
@@ -644,10 +647,8 @@ ui_msgbox_header(int flags, void *header, void *message)
     SDL_MessageBoxData       msgdata;
     SDL_MessageBoxButtonData msgbtn;
 
-#if 0
     if (!header)
-        header = (void *) (flags & MBX_ANSI) ? "86Box" : L"86Box";
-#endif
+        header = (void *) ((flags & MBX_ANSI) ? "86Box" : L"86Box");
     if (header <= (void *) 7168)
         header = (void *) plat_get_string((uintptr_t) header);
     if (message <= (void *) 7168)
@@ -762,10 +763,13 @@ plat_pause(int p)
     static wchar_t oldtitle[512];
     wchar_t        title[512];
 
+    if ((!!p) == dopause)
+        return;
+
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
 
-    dopause = p;
+    do_pause(p);
     if (p) {
         wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
         wcscpy(title, oldtitle);
@@ -816,7 +820,7 @@ plat_init_rom_paths(void)
             while (xdg_rom_paths[strlen(xdg_rom_paths) - 1] == ':') {
                 xdg_rom_paths[strlen(xdg_rom_paths) - 1] = '\0';
             }
-            while ((cur_xdg_rom_path = local_strsep(&xdg_rom_paths, ";")) != NULL) {
+            while ((cur_xdg_rom_path = local_strsep(&xdg_rom_paths, ":")) != NULL) {
                 char real_xdg_rom_path[1024] = { '\0' };
                 strcat(real_xdg_rom_path, cur_xdg_rom_path);
                 path_slash(real_xdg_rom_path);
@@ -830,7 +834,7 @@ plat_init_rom_paths(void)
         rom_add_path("/usr/share/86Box/roms/");
     }
 #else
-    char  default_rom_path[1024] = { '\0 ' };
+    char  default_rom_path[1024] = { '\0' };
     getDefaultROMPath(default_rom_path);
     rom_add_path(default_rom_path);
 #endif
@@ -914,12 +918,16 @@ monitor_thread(void *param)
         while (!exit_event) {
             if (feof(stdin))
                 break;
+#ifdef ENABLE_READLINE
             if (f_readline)
                 line = f_readline("(86Box) ");
             else {
+#endif
                 printf("(86Box) ");
-                !getline(&line, &n, stdin);
+                (void) !getline(&line, &n, stdin);
+#ifdef ENABLE_READLINE
             }
+#endif
             if (line) {
                 int   cmdargc = 0;
                 char *linecpy;
@@ -1160,9 +1168,12 @@ main(int argc, char **argv)
 {
     SDL_Event event;
     void     *libedithandle;
+    int      ret = 0;
 
     SDL_Init(0);
-    pc_init(argc, argv);
+    ret = pc_init(argc, argv);
+    if (ret == 0)
+        return 0;
     if (!pc_init_modules()) {
         ui_msgbox_header(MBX_FATAL, L"No ROMs found.", L"86Box could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
         SDL_Quit();
@@ -1197,7 +1208,7 @@ main(int argc, char **argv)
     pc_reset_hard_init();
 
     /* Set the PAUSE mode depending on the renderer. */
-    // plat_pause(0);
+    plat_pause(0);
 
     /* Initialize the rendering window, or fullscreen. */
 
@@ -1369,6 +1380,24 @@ plat_get_cpu_string(char *outbuf, uint8_t len) {
     char cpu_string[] = "Unknown";
 
     strncpy(outbuf, cpu_string, len);
+}
+
+void
+plat_set_thread_name(void *thread, const char *name)
+{
+#ifdef __APPLE__
+    if (thread) /* Apple pthread can only set self's name */
+        return;
+    char truncated[64];
+#else
+    char truncated[16];
+#endif
+    strncpy(truncated, name, sizeof(truncated) - 1);
+#ifdef __APPLE__
+    pthread_setname_np(truncated);
+#else
+    pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
+#endif
 }
 
 /* Converts back the language code to LCID */

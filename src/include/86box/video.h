@@ -32,6 +32,9 @@ using atomic_int  = std::atomic_int;
 
 #define makecol(r, g, b)   ((b) | ((g) << 8) | ((r) << 16))
 #define makecol32(r, g, b) ((b) | ((g) << 8) | ((r) << 16))
+#define getcolr(color) (((color) >> 16) & 0xFF)
+#define getcolg(color) (((color) >> 8) & 0xFF)
+#define getcolb(color) ((color) & 0xFF)
 
 enum {
     VID_NONE = 0,
@@ -431,12 +434,12 @@ extern const device_t ht216_32_standalone_device;
 extern const device_t im1024_device;
 extern const device_t pgc_device;
 
-#    if defined(DEV_BRANCH) && defined(USE_MGA)
 /* Matrox MGA */
 extern const device_t millennium_device;
 extern const device_t mystique_device;
 extern const device_t mystique_220_device;
-#    endif
+extern const device_t millennium_ii_device;
+extern const device_t productiva_g100_device;
 
 /* Oak OTI-0x7 */
 extern const device_t oti037c_device;
@@ -485,6 +488,7 @@ extern const device_t s3_phoenix_trio64_onboard_pci_device;
 extern const device_t s3_phoenix_trio64_pci_device;
 extern const device_t s3_phoenix_trio64vplus_pci_device;
 extern const device_t s3_phoenix_trio64vplus_onboard_pci_device;
+extern const device_t s3_cardex_trio64vplus_pci_device;
 extern const device_t s3_mirocrystal_20sv_964_vlb_device;
 extern const device_t s3_mirocrystal_20sv_964_pci_device;
 extern const device_t s3_mirocrystal_20sd_864_vlb_device;

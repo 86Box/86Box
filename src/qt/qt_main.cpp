@@ -94,6 +94,7 @@ main_thread_fn()
     int      frames;
 
     QThread::currentThread()->setPriority(QThread::HighestPriority);
+    plat_set_thread_name(NULL, "main_thread_fn");
     framecountx = 0;
     // title_update = 1;
     old_time = elapsed_timer.elapsed();
@@ -194,6 +195,23 @@ main(int argc, char *argv[])
     QApplication::setFont(QFont(font_name, font_size.toInt()));
     SetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
 #endif
+
+#ifndef Q_OS_MACOS
+#    ifdef RELEASE_BUILD
+    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-green.ico"));
+#    elif defined ALPHA_BUILD
+    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-red.ico"));
+#    elif defined BETA_BUILD
+    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
+#    else
+    app.setWindowIcon(QIcon(":/settings/win/icons/86Box-gray.ico"));
+#    endif
+
+#    ifdef Q_OS_UNIX
+    app.setDesktopFileName("net.86box.86Box");
+#    endif
+#endif
+
     if (!pc_init_modules()) {
         ui_msgbox_header(MBX_FATAL, (void *) IDS_2121, (void *) IDS_2056);
         return 6;
@@ -293,8 +311,6 @@ main(int argc, char *argv[])
 
     // pc_reset_hard_init();
 
-    /* Set the PAUSE mode depending on the renderer. */
-    // plat_pause(0);
     QTimer onesec;
     QObject::connect(&onesec, &QTimer::timeout, &app, [] {
         pc_onesec();
@@ -323,6 +339,14 @@ main(int argc, char *argv[])
     QTimer::singleShot(0, &app, [] {
         pc_reset_hard_init();
         main_thread = new std::thread(main_thread_fn);
+
+        /* Set the PAUSE mode depending on the renderer. */
+#ifdef USE_VNC
+        if (vnc_enabled && vid_api != 6)
+            plat_pause(1);
+        else
+#endif
+            plat_pause(0);
     });
 
     auto ret       = app.exec();

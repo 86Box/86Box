@@ -65,6 +65,7 @@
 #include <86box/machine.h>
 #include <86box/bugger.h>
 #include <86box/postcard.h>
+#include <86box/unittester.h>
 #include <86box/isamem.h>
 #include <86box/isartc.h>
 #include <86box/lpt.h>
@@ -111,7 +112,7 @@
 
 /* Stuff that used to be globally declared in plat.h but is now extern there
    and declared here instead. */
-int          dopause;  /* system is paused */
+int          dopause = 1;  /* system is paused */
 atomic_flag  doresize; /* screen resize requested */
 volatile int is_quit;  /* system exit requested */
 uint64_t     timer_freq;
@@ -173,6 +174,7 @@ bool     serial_passthrough_enabled[SERIAL_MAX] = { 0, 0, 0, 0 }; /* (C) activat
                                                                          pass-through for serial ports */
 int      bugger_enabled                         = 0;              /* (C) enable ISAbugger */
 int      postcard_enabled                       = 0;              /* (C) enable POST card */
+int      unittester_enabled                     = 0;              /* (C) enable unit tester device */
 int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
 int      isartc_type                            = 0;              /* (C) enable ISA RTC card */
 int      gfxcard[2]                             = { 0, 0 };       /* (C) graphics/video card */
@@ -236,8 +238,8 @@ int efscrnsz_y = SCREEN_RES_Y;
 
 static wchar_t mouse_msg[3][200];
 
-static int do_pause_ack = 0;
-static volatile int pause_ack = 0;
+static volatile atomic_int do_pause_ack = 0;
+static volatile atomic_int pause_ack = 0;
 
 #ifndef RELEASE_BUILD
 static char buff[1024];
@@ -542,7 +544,9 @@ usage:
             printf("-N or --noconfirm       - do not ask for confirmation on quit\n");
             printf("-P or --vmpath path     - set 'path' to be root for vm\n");
             printf("-R or --rompath path    - set 'path' to be ROM path\n");
+#ifndef USE_SDL_UI
             printf("-S or --settings        - show only the settings dialog\n");
+#endif
             printf("-V or --vmname name     - overrides the name of the running VM\n");
             printf("-X or --clear what      - clears the 'what' (cmos/flash/both)\n");
             printf("-Y or --donothing       - do not show any UI or run the emulation\n");
@@ -609,8 +613,10 @@ usage:
                 goto usage;
 
             strcpy(vm_name, argv[++c]);
+#ifndef USE_SDL_UI
         } else if (!strcasecmp(argv[c], "--settings") || !strcasecmp(argv[c], "-S")) {
             settings_only = 1;
+#endif
         } else if (!strcasecmp(argv[c], "--noconfirm") || !strcasecmp(argv[c], "-N")) {
             confirm_exit_cmdl = 0;
         } else if (!strcasecmp(argv[c], "--missing") || !strcasecmp(argv[c], "-M")) {
@@ -1153,9 +1159,6 @@ pc_reset_hard_init(void)
      * that will be a call to device_reset_all() later !
      */
 
-    if (joystick_type)
-        gameport_update_joystick_type();
-
     /* Reset and reconfigure the Sound Card layer. */
     sound_card_reset();
 
@@ -1199,9 +1202,12 @@ pc_reset_hard_init(void)
     /* Reset any ISA RTC cards. */
     isartc_reset();
 
-    /* Initialize the Voodoo cards here inorder to minmize
+    /* Initialize the Voodoo cards here inorder to minimize
        the chances of the SCSI controller ending up on the bridge. */
     video_voodoo_init();
+
+    if (joystick_type)
+        gameport_update_joystick_type(); /* installs game port if no device provides one, must be late */
 
     ui_sb_update_panes();
 
@@ -1217,11 +1223,17 @@ pc_reset_hard_init(void)
         device_add(&bugger_device);
     if (postcard_enabled)
         device_add(&postcard_device);
+    if (unittester_enabled)
+        device_add(&unittester_device);
 
     if (IS_ARCH(machine, MACHINE_BUS_PCI)) {
         pci_register_cards();
         device_reset_all(DEVICE_PCI);
     }
+
+    /* Mark IDE shadow drives (slaves with a present master) as such in case
+       the IDE controllers present are not some form of PCI. */
+    ide_drives_set_shadow();
 
     /* Reset the CPU module. */
     resetx86();
@@ -1359,9 +1371,9 @@ _ui_window_title(void *s)
 void
 ack_pause(void)
 {
-    if (do_pause_ack) {
-        do_pause_ack = 0;
-        pause_ack = 1;
+    if (atomic_load(&do_pause_ack)) {
+        atomic_store(&do_pause_ack, 0);
+        atomic_store(&pause_ack, 1);
     }
 }
 
@@ -1579,12 +1591,14 @@ get_actual_size_y(void)
 void
 do_pause(int p)
 {
-    if (p)
+    int old_p = dopause;
+
+    if ((p == 1) && !old_p)
         do_pause_ack = p;
-    dopause = p;
-    if (p) {
-        while (!pause_ack)
+    dopause = !!p;
+    if ((p == 1) && !old_p) {
+        while (!atomic_load(&pause_ack))
             ;
     }
-    pause_ack = 0;
+    atomic_store(&pause_ack, 0);
 }

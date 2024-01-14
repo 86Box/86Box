@@ -67,13 +67,14 @@ typedef struct ibm8514_t {
         uint16_t advfunc_cntl;
         uint8_t  ext_advfunc_cntl;
         uint16_t cur_y;
-        uint16_t cur_y_bitres;
         uint16_t cur_x;
-        uint16_t cur_x_bitres;
+        int16_t  destx;
+        int16_t  desty;
         int16_t  desty_axstp;
         int16_t  destx_distp;
         int16_t  err_term;
         int16_t  maj_axis_pcnt;
+        int16_t  maj_axis_pcnt_no_limit;
         uint16_t cmd;
         uint16_t cmd_back;
         uint16_t short_stroke;
@@ -100,7 +101,9 @@ typedef struct ibm8514_t {
         int      sys_cnt2;
         int      temp_cnt;
         int16_t  cx;
+        int16_t  cx_back;
         int16_t  cy;
+        int16_t  oldcx;
         int16_t  oldcy;
         int16_t  sx;
         int16_t  sy;
@@ -133,6 +136,7 @@ typedef struct ibm8514_t {
         int      fill_state;
         int      xdir;
         int      ydir;
+        int      linedraw;
         uint32_t ge_offset;
     } accel;
 

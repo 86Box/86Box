@@ -44,6 +44,9 @@
 #include <86box/video.h>
 #include <86box/keyboard.h>
 
+#include <86box/dma.h>
+#include <86box/pci.h>
+
 #define STAT_PARITY        0x80
 #define STAT_RTIMEOUT      0x40
 #define STAT_TTIMEOUT      0x20
@@ -141,8 +144,9 @@ typedef struct atkbc_t {
 
     uint32_t flags;
 
-    /* Main timer. */
-    pc_timer_t send_delay_timer;
+    /* Main timers. */
+    pc_timer_t kbc_poll_timer;
+    pc_timer_t kbc_dev_poll_timer;
 
     /* P2 pulse callback timer. */
     pc_timer_t pulse_cb;
@@ -695,10 +699,18 @@ kbc_at_poll(void *priv)
 {
     atkbc_t *dev = (atkbc_t *) priv;
 
-    timer_advance_u64(&dev->send_delay_timer, (100ULL * TIMER_USEC));
+    timer_advance_u64(&dev->kbc_poll_timer, (100ULL * TIMER_USEC));
 
     /* TODO: Implement the password security state. */
     kbc_at_do_poll(dev);
+}
+
+static void
+kbc_at_dev_poll(void *priv)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+
+    timer_advance_u64(&dev->kbc_dev_poll_timer, (100ULL * TIMER_USEC));
 
     if ((kbc_at_ports[0] != NULL) && (kbc_at_ports[0]->priv != NULL))
         kbc_at_ports[0]->poll(kbc_at_ports[0]->priv);
@@ -736,7 +748,7 @@ write_p2(atkbc_t *dev, uint8_t val)
     /* AT, PS/2: Handle reset. */
     /* 0 holds the CPU in the RESET state, 1 releases it. To simplify this,
        we just do everything on release. */
-    if ((old ^ val) & 0x01) { /*Reset*/
+    if (!cpu_cpurst_on_sr && ((old ^ val) & 0x01)) { /*Reset*/
         if (!(val & 0x01)) {  /* Pin 0 selected. */
             /* Pin 0 selected. */
             kbc_at_log("write_p2(): Pulse reset!\n");
@@ -765,6 +777,28 @@ write_p2(atkbc_t *dev, uint8_t val)
 
     /* Do this here to avoid an infinite reset loop. */
     dev->p2 = val;
+
+    if (cpu_cpurst_on_sr && ((old ^ val) & 0x01)) { /*Reset*/
+        if (!(val & 0x01)) {  /* Pin 0 selected. */
+            /* Pin 0 selected. */
+            pclog("write_p2(): Pulse reset!\n");
+            dma_reset();
+            dma_set_at(1);
+
+            device_reset_all(DEVICE_ALL);
+
+            cpu_alt_reset = 0;
+
+            pci_reset();
+
+            mem_a20_alt = 0;
+            mem_a20_recalc();
+
+            flushmmucache();
+
+            resetx86();
+        }
+    }
 }
 
 static void
@@ -1934,7 +1968,8 @@ kbc_at_close(void *priv)
     int max_ports = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_1) ? 2 : 1;
 
     /* Stop timers. */
-    timer_disable(&dev->send_delay_timer);
+    timer_disable(&dev->kbc_dev_poll_timer);
+    timer_disable(&dev->kbc_poll_timer);
 
     for (int i = 0; i < max_ports; i++) {
         if (kbc_at_ports[i] != NULL) {
@@ -1966,8 +2001,10 @@ kbc_at_init(const device_t *info)
     io_sethandler(0x0060, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, dev);
     io_sethandler(0x0064, 1, kbc_at_read, NULL, NULL, kbc_at_write, NULL, NULL, dev);
 
-    timer_add(&dev->send_delay_timer, kbc_at_poll, dev, 1);
+    timer_add(&dev->kbc_poll_timer, kbc_at_poll, dev, 1);
     timer_add(&dev->pulse_cb, pulse_poll, dev, 0);
+
+    timer_add(&dev->kbc_dev_poll_timer, kbc_at_dev_poll, dev, 1);
 
     dev->write60_ven = NULL;
     dev->write64_ven = NULL;

@@ -640,3 +640,19 @@ machine_xt_pb8810_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_xt_glabios_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/glabios/GLABIOS_0.2.5_8E.ROM",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_xt_init_ex(model);
+
+    return ret;
+}

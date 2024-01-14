@@ -188,6 +188,8 @@ extern void   ide_atapi_attach(ide_t *dev);
 extern void *ide_xtide_init(void);
 extern void  ide_xtide_close(void);
 
+extern void  ide_drives_set_shadow(void);
+
 extern void     ide_writew(uint16_t addr, uint16_t val, void *priv);
 extern void     ide_write_devctl(uint16_t addr, uint8_t val, void *priv);
 extern void     ide_writeb(uint16_t addr, uint8_t val, void *priv);

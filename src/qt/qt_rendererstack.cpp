@@ -144,7 +144,7 @@ int ignoreNextMouseEvent = 1;
 void
 RendererStack::mouseReleaseEvent(QMouseEvent *event)
 {
-    if (!dopause && this->geometry().contains(event->pos()) &&
+    if (!dopause && this->geometry().contains(m_monitor_index >= 1 ? event->globalPos() : event->pos()) &&
         (event->button() == Qt::LeftButton) && !mouse_capture &&
         (isMouseDown & 1) && (kbd_req_capture || (mouse_get_buttons() != 0)) &&
         (mouse_input_mode == 0)) {

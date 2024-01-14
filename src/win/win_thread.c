@@ -37,9 +37,10 @@ typedef struct {
 } win_event_t;
 
 thread_t *
-thread_create(void (*func)(void *param), void *param)
+thread_create_named(void (*func)(void *param), void *param, const char *name)
 {
     uintptr_t bt = _beginthread(func, 0, param);
+    plat_set_thread_name((void *) bt, name);
     return ((thread_t *) bt);
 }
 

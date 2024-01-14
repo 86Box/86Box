@@ -88,7 +88,7 @@ RendererCommon::onResize(int width, int height)
 
                 if (video_fullscreen_scale == FULLSCR_SCALE_INT43) {
                     gh = gw / r43;
-                    gw = gw;
+//                  gw = gw;
 
                     gsr = r43;
                 }

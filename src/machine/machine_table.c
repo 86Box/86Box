@@ -51,6 +51,7 @@ extern const device_t vid_ppc512_device;
 extern const device_t vid_device_sl;
 extern const device_t t1200_video_device;
 extern const device_t compaq_plasma_device;
+extern const device_t ps1_2011_device;
 
 const machine_filter_t machine_types[] = {
     { "None",                      MACHINE_TYPE_NONE       },
@@ -1804,6 +1805,45 @@ const machine_t machines[] = {
         .net_device = NULL
     },
     {
+        .name = "[8088] GLaBIOS",
+        .internal_name = "glabios",
+        .type = MACHINE_TYPE_8088,
+        .chipset = MACHINE_CHIPSET_DISCRETE,
+        .init = machine_xt_glabios_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_8088,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 0,
+            .max_bus = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi = 0,
+            .max_multi = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags = MACHINE_FLAGS_NONE,
+        .ram = {
+            .min = 64,
+            .max = 640,
+            .step = 64
+        },
+        .nvrmask = 0,
+        .kbc_device = &keyboard_xt_device,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    {
         .name = "[GC100A] Philips P3120",
         .internal_name = "p3120",
         .type = MACHINE_TYPE_8088,
@@ -2547,7 +2587,7 @@ const machine_t machines[] = {
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &ps1_2011_device,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,
@@ -9525,6 +9565,48 @@ const machine_t machines[] = {
     },
 
     /* 430VX */
+    /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
+       PC87306 Super I/O chip, command 0xA1 returns '5'.
+       Command 0xA0 copyright string: (C)1994 AMI . */
+    {
+        .name = "[i430VX] Dell Hannibal+",
+        .internal_name = "dell_430vx",
+        .type = MACHINE_TYPE_SOCKET7_3V,
+        .chipset = MACHINE_CHIPSET_INTEL_430VX,
+        .init = machine_at_dell_430vx_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 66666667,
+            .min_voltage = 3380,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 131072,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
     /* Has AMIKey H KBC firmware (AMIKey-2). */
     {
         .name = "[i430VX] ECS P5VX-B",
@@ -10959,11 +11041,11 @@ const machine_t machines[] = {
     /* SiS 5571 */
     /* Has the SiS 5571 chipset with on-chip KBC. */
     {
-        .name = "[SiS 5571] Rise R534F",
-        .internal_name = "r534f",
+        .name = "[SiS 5571] Daewoo CB52X-SI",
+        .internal_name = "cb52x_si",
         .type = MACHINE_TYPE_SOCKET7,
         .chipset = MACHINE_CHIPSET_SIS_5571,
-        .init = machine_at_r534f_init,
+        .init = machine_at_cb52x_si_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -10971,9 +11053,9 @@ const machine_t machines[] = {
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
             .block = CPU_BLOCK_NONE,
-            .min_bus = 55000000,
-            .max_bus = 83333333,
-            .min_voltage = 2500,
+            .min_bus = 50000000,
+            .max_bus = 75000000,
+            .min_voltage = 2800,
             .max_voltage = 3520,
             .min_multi = 1.5,
             .max_multi = 3.0
@@ -10982,10 +11064,10 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
-            .max = 393216,
+            .max = 262144,
             .step = 8192
         },
-        .nvrmask = 127,
+        .nvrmask = 255,
         .kbc_device = NULL,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
@@ -11025,7 +11107,7 @@ const machine_t machines[] = {
             .max = 262144,
             .step = 8192
         },
-        .nvrmask = 127,
+        .nvrmask = 255,
         .kbc_device = NULL,
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
@@ -11037,15 +11119,13 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-
-    /* ALi ALADDiN IV+ */
-    /* Has the ALi M1543 southbridge with on-chip KBC. */
+    /* Has the SiS 5571 chipset with on-chip KBC. */
     {
-        .name = "[ALi ALADDiN IV+] PC Chips M560",
-        .internal_name = "m560",
+        .name = "[SiS 5571] Rise R534F",
+        .internal_name = "r534f",
         .type = MACHINE_TYPE_SOCKET7,
-        .chipset = MACHINE_CHIPSET_ALI_ALADDIN_IV_PLUS,
-        .init = machine_at_m560_init,
+        .chipset = MACHINE_CHIPSET_SIS_5571,
+        .init = machine_at_r534f_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -11053,7 +11133,7 @@ const machine_t machines[] = {
         .cpu = {
             .package = CPU_PKG_SOCKET5_7,
             .block = CPU_BLOCK_NONE,
-            .min_bus = 50000000,
+            .min_bus = 55000000,
             .max_bus = 83333333,
             .min_voltage = 2500,
             .max_voltage = 3520,
@@ -11064,7 +11144,7 @@ const machine_t machines[] = {
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
             .min = 8192,
-            .max = 786432,
+            .max = 393216,
             .step = 8192
         },
         .nvrmask = 255,
@@ -11079,6 +11159,8 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+
+    /* ALi ALADDiN IV+ */
     /* Has the ALi M1543 southbridge with on-chip KBC. */
     {
         .name = "[ALi ALADDiN IV+] MSI MS-5164",
@@ -11105,6 +11187,46 @@ const machine_t machines[] = {
         .ram = {
             .min = 8192,
             .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Has the ALi M1543 southbridge with on-chip KBC. */
+    {
+        .name = "[ALi ALADDiN IV+] PC Chips M560",
+        .internal_name = "m560",
+        .type = MACHINE_TYPE_SOCKET7,
+        .chipset = MACHINE_CHIPSET_ALI_ALADDIN_IV_PLUS,
+        .init = machine_at_m560_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET5_7,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 83333333,
+            .min_voltage = 2500,
+            .max_voltage = 3520,
+            .min_multi = 1.5,
+            .max_multi = 3.0
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 786432,
             .step = 8192
         },
         .nvrmask = 255,
@@ -11615,6 +11737,47 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* It's a Intel VS440FX with a Gateway 2000 OEM BIOS */
+    {
+        .name = "[i440FX] Gateway 2000 Venus",
+        .internal_name = "gw2kvenus",
+        .type = MACHINE_TYPE_SOCKET8,
+        .chipset = MACHINE_CHIPSET_INTEL_440FX,
+        .init = machine_at_gw2kvenus_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SOCKET8,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 60000000,
+            .max_bus = 66666667,
+            .min_voltage = 2100,
+            .max_voltage = 3500,
+            .min_multi = 2.0,
+            .max_multi = 3.5
+        },
+        .bus_flags = MACHINE_PS2_PCI,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 524288,
+            .step = 8192
+        },
+        .nvrmask = 127,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Has the AMIKey-2 (updated 'H') KBC firmware. */
     {
         .name = "[i440FX] Gigabyte GA-686NX",
         .internal_name = "686nx",
@@ -11738,13 +11901,13 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
-    /* It's a Intel VS440FX with a Gateway 2000 OEM BIOS */
+    /* Has the AMIKey-2 (updated 'H') KBC firmware. */
     {
-        .name = "[i440FX] Gateway 2000 Venus",
-        .internal_name = "gw2kvenus",
+        .name = "[i440FX] LG IBM Multinet x61 (MSI MS-6106)",
+        .internal_name = "lgibm440fx",
         .type = MACHINE_TYPE_SOCKET8,
         .chipset = MACHINE_CHIPSET_INTEL_440FX,
-        .init = machine_at_gw2kvenus_init,
+        .init = machine_at_lgibm440fx_init,
         .p1_handler = NULL,
         .gpio_handler = NULL,
         .available_flag = MACHINE_AVAILABLE,
@@ -11754,15 +11917,15 @@ const machine_t machines[] = {
             .block = CPU_BLOCK_NONE,
             .min_bus = 60000000,
             .max_bus = 66666667,
-            .min_voltage = 2100,
+            .min_voltage = 2500,
             .max_voltage = 3500,
-            .min_multi = 2.0,
-            .max_multi = 3.5
+            .min_multi = 1.5,
+            .max_multi = 8.0
         },
         .bus_flags = MACHINE_PS2_PCI,
         .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
         .ram = {
-            .min = 8192,
+            .min = 40960,
             .max = 524288,
             .step = 8192
         },
@@ -12070,6 +12233,47 @@ const machine_t machines[] = {
         .snd_device = NULL,
         .net_device = NULL
     },
+    /* Has a SM(S)C FDC37M60x Super I/O chip with on-chip KBC with Phoenix or
+       AMIKey-2 KBC firmware. */
+    {
+        .name = "[i440LX] NEC Mate NX MA30D/23D",
+        .internal_name = "mate_nx_ma30d_23d",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440LX,
+        .init = machine_at_mate_nx_ma30d_23d_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 66666667,
+            .max_bus = 66666667,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
 
     /* 440EX */
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -12338,6 +12542,46 @@ const machine_t machines[] = {
             .min_bus = 66666667,
             .max_bus = 100000000,
             .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi = 1.5,
+            .max_multi = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP,
+        .flags = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI,
+        .ram = {
+            .min = 8192,
+            .max = 1048576,
+            .step = 8192
+        },
+        .nvrmask = 255,
+        .kbc_device = NULL,
+        .kbc_p1 = 0xff,
+        .gpio = 0xffffffff,
+        .gpio_acpi = 0xffffffff,
+        .device = NULL,
+        .fdc_device = NULL,
+        .sio_device = NULL,
+        .vid_device = NULL,
+        .snd_device = NULL,
+        .net_device = NULL
+    },
+    /* Has the AMIKey-2 (updated 'H') KBC firmware. */
+    {
+        .name = "[i440BX] LG IBM Multinet i x7G (MSI MS-6119)",
+        .internal_name = "lgibm440bx",
+        .type = MACHINE_TYPE_SLOT1,
+        .chipset = MACHINE_CHIPSET_INTEL_440BX,
+        .init = machine_at_lgibm440bx_init,
+        .p1_handler = NULL,
+        .gpio_handler = NULL,
+        .available_flag = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu = {
+            .package = CPU_PKG_SLOT1,
+            .block = CPU_BLOCK_NONE,
+            .min_bus = 50000000,
+            .max_bus = 112121212,
+            .min_voltage = 1300,
             .max_voltage = 3500,
             .min_multi = 1.5,
             .max_multi = 8.0

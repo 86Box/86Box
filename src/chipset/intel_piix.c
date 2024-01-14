@@ -597,6 +597,12 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                         pci_set_mirq_routing(PCI_MIRQ0 + (addr & 0x01), PCI_IRQ_DISABLED);
                     else
                         pci_set_mirq_routing(PCI_MIRQ0 + (addr & 0x01), val & 0xf);
+                    if (dev->type == 3) {
+                        if (val & 0x20)
+                            sff_set_irq_mode(dev->bm[1], IRQ_MODE_MIRQ_0);
+                        else
+                            sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
+                    }
                     piix_log("MIRQ%i is %s\n", addr & 0x01, (val & 0x20) ? "disabled" : "enabled");
                 }
                 break;
@@ -1006,11 +1012,11 @@ piix_write(int func, int addr, uint8_t val, void *priv)
                 break;
             case 0xc0:
                 if (dev->type <= 4)
-                    fregs[0xc0] = (fregs[0xc0] & ~(val & 0xbf)) | (val & 0x20);
+                    fregs[0xc0] = (fregs[0xc0] & 0x40) | (val & 0xbf);
                 break;
             case 0xc1:
                 if (dev->type <= 4)
-                    fregs[0xc1] &= ~val;
+                    fregs[0xc1] = (fregs[0xc0] & ~(val & 0x8f)) | (val & 0x20);
                 break;
             case 0xff:
                 if (dev->type == 4) {

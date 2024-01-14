@@ -28,6 +28,7 @@
 #include <86box/serial.h>
 #include <86box/mouse.h>
 #include <86box/plat.h>
+#include <86box/version.h>
 
 #define SERMOUSE_PORT 0 /* attach to Serial0 */
 
@@ -537,7 +538,7 @@ ltsermouse_process_command(mouse_t *dev)
                         [FORMAT_HEX]       = 0x04,
                         [FORMAT_MS_4BYTE]  = 0x08,         /* Guess */
                         [FORMAT_MS_WHEEL]  = 0x08 };       /* Guess */
-    const char *copr = "\r\n(C) 2023 86Box, Revision 3.0";
+    const char *copr = "\r\n(C) " COPYRIGHT_YEAR " 86Box, Revision 3.0";
 
     mouse_serial_log("ltsermouse_process_command(): %02X\n", dev->ib);
     dev->command = dev->ib;
@@ -674,7 +675,6 @@ ltsermouse_process_data(mouse_t *dev)
         case 0x2a:
             switch (dev->ib) {
                 default:
-                    mouse_serial_log("Serial mouse: Invalid period %02X, using 1200 bps\n", data);
                     fallthrough;
                 case 0x6e:
                     dev->bps = 1200;

@@ -153,6 +153,43 @@ machine_at_spitfire_init(const machine_t *model)
 }
 
 int
+machine_at_mate_nx_ma30d_23d_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/mate_nx_ma30d_23d/BIOS.ROM",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+#ifdef UNKNOWN_SLOT
+    pci_register_slot(0x0A, PCI_CARD_NETWORK,     2, 3, 4, 1); /* ???? device - GPIO? */
+#endif
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   3, 0, 0, 0);
+    device_add(&i440lx_device);
+    device_add(&piix4e_device);
+    device_add(&nec_mate_unk_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&fdc37c67x_device);
+    device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+    device_add(&lm78_device); /* no reporting in BIOS */
+
+    return ret;
+}
+
+int
 machine_at_p6i440e2_init(const machine_t *model)
 {
     int ret;
@@ -219,6 +256,37 @@ machine_at_p2bls_init(const machine_t *model)
     device_add(&w83781d_device);     /* fans: Chassis, CPU, Power; temperatures: MB, unused, CPU */
     hwm_values.temperatures[1] = 0;  /* unused */
     hwm_values.temperatures[2] -= 3; /* CPU offset */
+
+    return ret;
+}
+
+int
+machine_at_lgibm440bx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/lgibm440bx/ms6119.331",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    device_add(&i440bx_device);
+    device_add(&piix4e_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&w83977tf_device);
+    device_add(&winbond_flash_w29c020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     return ret;
 }
