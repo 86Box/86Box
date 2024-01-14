@@ -1672,14 +1672,12 @@ cpu_386_check_instruction_fault(void)
 
     for (i = 0; i < 4; i++) {
         int breakpoint_enabled = !!(dr[7] & (0x3 << (2 * i))) && !(dr[7] & (0x30000 << (4 * i)));
-        uint64_t translated_addr = 0xffffffffffffffffULL;
+        uint32_t translated_addr = 0xffffffff;
         if (!breakpoint_enabled)
             continue;
-        if (!(cr0 >> 31))
-            translated_addr = dr[i];
-        else
-            translated_addr = cpu_exec == exec386_2386 ? mmutranslate_noabrt_2386(dr[i], 0) : mmutranslate_noabrt(dr[i], 0);
-        
+
+        translated_addr = dr[i];
+
         if ((cs + cpu_state.pc) == (uint32_t)translated_addr) {
             dr[6] |= (1 << i);
             fault = 1;
