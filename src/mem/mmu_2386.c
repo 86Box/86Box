@@ -300,6 +300,7 @@ readmembl_no_mmut_2386(uint32_t addr, uint32_t a64)
     mem_mapping_t *map;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 1);
+    mem_debug_check_addr(addr, 0);
 
     mem_logical_addr = addr;
 
@@ -325,6 +326,7 @@ writemembl_no_mmut_2386(uint32_t addr, uint32_t a64, uint8_t val)
     mem_mapping_t *map;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 1);
+    mem_debug_check_addr(addr, 1);
 
     mem_logical_addr = addr;
 
@@ -473,6 +475,8 @@ readmemwl_no_mmut_2386(uint32_t addr, uint32_t *a64)
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 2);
 
     mem_logical_addr = addr;
+    mem_debug_check_addr(addr, 0);
+    mem_debug_check_addr(addr + 1, 0);
 
     if (addr & 1) {
         if (!cpu_cyrix_alignment || (addr & 7) == 7)
@@ -514,6 +518,8 @@ writememwl_no_mmut_2386(uint32_t addr, uint32_t *a64, uint16_t val)
     mem_mapping_t *map;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 2);
+    mem_debug_check_addr(addr, 1);
+    mem_debug_check_addr(addr + 1, 1);
 
     mem_logical_addr = addr;
 
@@ -719,6 +725,11 @@ readmemll_no_mmut_2386(uint32_t addr, uint32_t *a64)
     mem_mapping_t *map;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 4);
+    
+    mem_debug_check_addr(addr, 0);
+    mem_debug_check_addr(addr + 1, 0);
+    mem_debug_check_addr(addr + 2, 0);
+    mem_debug_check_addr(addr + 3, 0);
 
     mem_logical_addr = addr;
 
@@ -766,6 +777,10 @@ writememll_no_mmut_2386(uint32_t addr, uint32_t *a64, uint32_t val)
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 4);
 
     mem_logical_addr = addr;
+    mem_debug_check_addr(addr, 1);
+    mem_debug_check_addr(addr + 1, 1);
+    mem_debug_check_addr(addr + 2, 2);
+    mem_debug_check_addr(addr + 3, 3);
 
     if (addr & 3) {
         if (!cpu_cyrix_alignment || (addr & 7) > 4)
