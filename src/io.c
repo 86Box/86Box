@@ -287,6 +287,10 @@ io_debug_check_addr(uint16_t addr)
     int i = 0;
     int set_trap = 0;
 
+    /* Do nothing on 486+. */
+    if (is486)
+        return;
+
     if (!(dr[7] & 0xFF))
         return;
     
