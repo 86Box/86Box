@@ -1656,6 +1656,7 @@ cpu_386_flags_rebuild(void)
     flags_rebuild();
 }
 
+extern uint64_t mmutranslate_noabrt_2386(uint32_t addr, int rw);
 int
 cpu_386_check_instruction_fault(void)
 {
@@ -1677,9 +1678,9 @@ cpu_386_check_instruction_fault(void)
         if (!(cr0 >> 31))
             translated_addr = dr[i];
         else
-            translated_addr = mmutranslate_noabrt(dr[i], 0);
+            translated_addr = cpu_exec == exec386_2386 ? mmutranslate_noabrt_2386(dr[i], 0) : mmutranslate_noabrt(dr[i], 0);
         
-        if ((cs + cpu_state.pc) == translated_addr) {
+        if ((cs + cpu_state.pc) == (uint32_t)translated_addr) {
             dr[6] |= (1 << i);
             fault = 1;
         }
