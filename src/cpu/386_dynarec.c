@@ -268,7 +268,7 @@ exec386_dynarec_int(void)
     cpu_block_end = 0;
     x86_was_reset = 0;
 
-    if (trap == 2) {
+    if (trap & 2) {
         /* Handle the T bit in the new TSS first. */
         CPU_BLOCK_END();
         goto block_ended;
@@ -342,6 +342,7 @@ exec386_dynarec_int(void)
 
 block_ended:
     if (!cpu_state.abrt && trap) {
+        //pclog("Debug trap 0x%X\n", trap);
         if (trap & 2) dr[6] |= 0x8000;
         if (trap & 1) dr[6] |= 0x4000;
 
