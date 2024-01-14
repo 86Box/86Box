@@ -2289,7 +2289,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
         rf_flag_no_clear = 1;
 
         if (t_bit) {
-            trap = 2;
+            trap |= 2;
 #ifdef USE_DYNAREC
             cpu_block_end = 1;
 #endif

@@ -300,7 +300,7 @@ exec386_dynarec_int(void)
             opcode = fetchdat & 0xFF;
             fetchdat >>= 8;
 
-            trap = cpu_state.flags & T_FLAG;
+            trap |= cpu_state.flags & T_FLAG;
 
             cpu_state.pc++;
             x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
@@ -342,8 +342,9 @@ exec386_dynarec_int(void)
 
 block_ended:
     if (!cpu_state.abrt && trap) {
-        if (trap != 4)
-            dr[6] |= (trap == 2) ? 0x8000 : 0x4000;
+        if (trap & 2) dr[6] |= 0x8000;
+        if (trap & 1) dr[6] |= 0x4000;
+
         trap = 0;
 #    ifndef USE_NEW_DYNAREC
         oldcs = CS;
@@ -864,7 +865,7 @@ exec386(int32_t cycs)
 #endif
                 opcode = fetchdat & 0xFF;
                 fetchdat >>= 8;
-                trap = cpu_state.flags & T_FLAG;
+                trap |= cpu_state.flags & T_FLAG;
 
                 cpu_state.pc++;
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
@@ -908,12 +909,15 @@ exec386(int32_t cycs)
                 }
             } else if (trap) {
                 flags_rebuild();
+                if (trap & 1)
+                    dr[6] |= 0x4000;
+                if (trap & 2)
+                    dr[6] |= 0x8000;
                 trap = 0;
 #ifndef USE_NEW_DYNAREC
                 oldcs = CS;
 #endif
                 cpu_state.oldpc = cpu_state.pc;
-                dr[6] |= 0x4000;
                 x86_int(1);
             }
 
