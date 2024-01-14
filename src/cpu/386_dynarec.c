@@ -856,6 +856,11 @@ exec386(int32_t cycs)
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
+            if (UNLIKELY(cpu_386_check_instruction_fault())) {
+                x86gen();
+                goto block_ended;
+            }
+
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 
             if (!cpu_state.abrt) {
@@ -885,6 +890,7 @@ exec386(int32_t cycs)
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
 
+block_ended:
             if (cpu_state.abrt) {
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
