@@ -323,8 +323,8 @@ block_ended:
                     x86gen();   /* This is supposed to be the first one serviced by the processor according to the manual. */
             } else if (trap) {
                 flags_rebuild();
-                if (trap != 4)
-                    dr[6] |= (trap == 2) ? 0x8000 : 0x4000;
+                if (trap & 2) dr[6] |= 0x8000;
+                if (trap & 1) dr[6] |= 0x4000;
                 trap = 0;
 #ifndef USE_NEW_DYNAREC
                 oldcs = CS;
