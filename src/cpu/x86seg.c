@@ -78,6 +78,10 @@ x86seg_log(const char *fmt, ...)
 #    define x86seg_log(fmt, ...)
 #endif
 
+#ifdef USE_DYNAREC
+extern int cpu_block_end;
+#endif
+
 void
 #ifdef OPS_286_386
 x86_doabrt_2386(int x86_abrt)
@@ -2088,6 +2092,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
     uint32_t      new_edi;
     uint32_t      new_pc;
     uint32_t      new_flags;
+    uint32_t      t_bit;
     uint32_t      addr;
     uint32_t     *segdat232 = (uint32_t *) segdat2;
     const x86seg *dt;
@@ -2189,6 +2194,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
         new_fs  = readmemw(base, 0x58);
         new_gs  = readmemw(base, 0x5C);
         new_ldt = readmemw(base, 0x60);
+        t_bit   = readmemb(base, 0x64) & 1;
 
         cr0 |= 8;
 
@@ -2279,6 +2285,13 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
         op_loadseg(new_ds, &cpu_state.seg_ds);
         op_loadseg(new_fs, &cpu_state.seg_fs);
         op_loadseg(new_gs, &cpu_state.seg_gs);
+
+        if (t_bit) {
+            trap = 2;
+#ifdef USE_DYNAREC
+            cpu_block_end = 1;
+#endif
+        }
     } else {
         if (limit < 43) {
             x86ts(NULL, seg);
