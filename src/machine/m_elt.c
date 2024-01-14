@@ -50,6 +50,7 @@
 #include <86box/rom.h>
 #include <86box/video.h>
 #include <86box/vid_cga.h>
+#include <86box/hdc.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
@@ -192,6 +193,9 @@ machine_elt_init(const machine_t *model)
     device_add(&keyboard_xt_device);
 
     device_add(&elt_nvr_device);
+
+    if (hdc_current <= 1)
+        device_add(&st506_xt_toshiba_t1200_device);
 
     io_sethandler(0x11b8, 1, sysstat_in, NULL, NULL, sysstat_out, NULL, NULL, cga);
 
