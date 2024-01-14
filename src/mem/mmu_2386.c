@@ -39,6 +39,54 @@
 #include <86box/rom.h>
 #include <86box/gdbstub.h>
 
+/* Set trap for data address breakpoints. */
+void
+mem_debug_check_addr(uint32_t addr, int write)
+{
+    int i = 0;
+    int set_trap = 0;
+
+    if (!(dr[7] & 0xFF))
+        return;
+
+    for (i = 0; i < 4; i++) {
+        uint32_t dr_addr = dr[i];
+        int breakpoint_enabled = !!(dr[7] & (0x3 << (2 * i)));
+        int len_type_pair = ((dr[7] >> 16) & (0xF << (4 * i))) >> (4 * i);
+        if (!breakpoint_enabled)
+            continue;
+        if (!write && (len_type_pair & 3) != 3)
+            continue;
+        if ((len_type_pair & 3) != 1)
+            continue;
+        
+        switch ((len_type_pair >> 2) & 3)
+        {
+            case 0x00:
+                if (dr_addr == addr) {
+                    set_trap = 1;
+                    dr[6] |= (1 << i);
+                }
+                break;
+            case 0x01:
+                if ((dr_addr & ~1) == addr || ((dr_addr & ~1) + 1) == (addr + 1)) {
+                    set_trap = 1;
+                    dr[6] |= (1 << i);
+                }
+                break;
+            case 0x03:
+                dr_addr &= ~3;
+                if (addr >= dr_addr && addr < (dr_addr + 4)) {
+                    set_trap = 1;
+                    dr[6] |= (1 << i);
+                }
+                break;
+        }
+    }
+    if (set_trap)
+        trap |= 4;
+}
+
 uint8_t
 mem_readb_map(uint32_t addr)
 {

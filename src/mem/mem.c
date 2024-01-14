@@ -161,54 +161,6 @@ mem_log(const char *fmt, ...)
 #    define mem_log(fmt, ...)
 #endif
 
-/* Set trap for data address breakpoints. */
-void
-mem_debug_check_addr(uint32_t addr, int write)
-{
-    int i = 0;
-    int set_trap = 0;
-
-    if (!(dr[7] & 0xFF))
-        return;
-
-    for (i = 0; i < 4; i++) {
-        uint32_t dr_addr = dr[i];
-        int breakpoint_enabled = !!(dr[7] & (0x3 << (2 * i)));
-        int len_type_pair = ((dr[7] >> 16) & (0xF << (4 * i))) >> (4 * i);
-        if (!breakpoint_enabled)
-            continue;
-        if (!write && (len_type_pair & 3) != 3)
-            continue;
-        if ((len_type_pair & 3) != 1)
-            continue;
-        
-        switch ((len_type_pair >> 2) & 3)
-        {
-            case 0x00:
-                if (dr_addr == addr) {
-                    set_trap = 1;
-                    dr[6] |= (1 << i);
-                }
-                break;
-            case 0x01:
-                if ((dr_addr & ~1) == addr || ((dr_addr & ~1) + 1) == (addr + 1)) {
-                    set_trap = 1;
-                    dr[6] |= (1 << i);
-                }
-                break;
-            case 0x03:
-                dr_addr &= ~3;
-                if (addr >= dr_addr && addr < (dr_addr + 4)) {
-                    set_trap = 1;
-                    dr[6] |= (1 << i);
-                }
-                break;
-        }
-    }
-    if (set_trap)
-        trap |= 4;
-}
-
 int
 mem_addr_is_ram(uint32_t addr)
 {
@@ -838,7 +790,6 @@ readmembl(uint32_t addr)
     uint64_t       a;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 1);
-    mem_debug_check_addr(addr, 0);
 
     addr64           = (uint64_t) addr;
     mem_logical_addr = addr;
@@ -868,7 +819,6 @@ writemembl(uint32_t addr, uint8_t val)
     uint64_t       a;
 
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 1);
-    mem_debug_check_addr(addr, 1);
 
     addr64           = (uint64_t) addr;
     mem_logical_addr = addr;
@@ -955,8 +905,6 @@ readmemwl(uint32_t addr)
 
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
-    mem_debug_check_addr(addr, 0);
-    mem_debug_check_addr(addr + 1, 0);
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 2);
 
     mem_logical_addr = addr;
@@ -1015,8 +963,6 @@ writememwl(uint32_t addr, uint16_t val)
 
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
-    mem_debug_check_addr(addr, 1);
-    mem_debug_check_addr(addr + 1, 1);
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 2);
 
     mem_logical_addr = addr;
@@ -1193,10 +1139,8 @@ readmemll(uint32_t addr)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < 4; i++)
         addr64a[i] = (uint64_t) (addr + i);
-        mem_debug_check_addr(addr + i, 0);
-    }
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 4);
 
     mem_logical_addr = addr;
@@ -1269,10 +1213,8 @@ writememll(uint32_t addr, uint32_t val)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 4; i++) {
+    for (i = 0; i < 4; i++)
         addr64a[i] = (uint64_t) (addr + i);
-        mem_debug_check_addr(addr + i, 1);
-    }
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 4);
 
     mem_logical_addr = addr;
@@ -1475,10 +1417,8 @@ readmemql(uint32_t addr)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 8; i++) {
+    for (i = 0; i < 8; i++)
         addr64a[i] = (uint64_t) (addr + i);
-        mem_debug_check_addr(addr + i, 0);
-    }
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 8);
 
     mem_logical_addr = addr;
@@ -1543,10 +1483,8 @@ writememql(uint32_t addr, uint64_t val)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 8; i++) {
+    for (i = 0; i < 8; i++)
         addr64a[i] = (uint64_t) (addr + i);
-        mem_debug_check_addr(addr + i, 1);
-    }
     GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 8);
 
     mem_logical_addr = addr;
@@ -1644,10 +1582,8 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
     uint32_t last_addr = addr + (num - 1);
     uint64_t a         = 0x0000000000000000ULL;
 
-    mem_debug_check_addr(addr, write);
-    for (i = 0; i < num; i++) {
+    for (i = 0; i < num; i++)
         a64[i] = (uint64_t) addr;
-    }
 
     for (i = 0; i < num; i++) {
         if (cr0 >> 31) {
