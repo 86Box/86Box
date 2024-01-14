@@ -2469,6 +2469,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
     tr.limit   = limit;
     tr.access  = segdat[2] >> 8;
     tr.ar_high = segdat[3] & 0xff;
+    dr[7] &= 0xFFFFFFAA;
 }
 
 void
