@@ -300,7 +300,7 @@ exec386_dynarec_int(void)
             opcode = fetchdat & 0xFF;
             fetchdat >>= 8;
 
-            trap |= cpu_state.flags & T_FLAG;
+            trap |= !!(cpu_state.flags & T_FLAG);
 
             cpu_state.pc++;
             x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
@@ -871,7 +871,7 @@ exec386(int32_t cycs)
 #endif
                 opcode = fetchdat & 0xFF;
                 fetchdat >>= 8;
-                trap |= cpu_state.flags & T_FLAG;
+                trap |= !!(cpu_state.flags & T_FLAG);
 
                 cpu_state.pc++;
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);

@@ -168,9 +168,6 @@ mem_debug_check_addr(uint32_t addr, int write)
     int i = 0;
     int set_trap = 0;
 
-    if (trap == 4)
-        return; /* Debug trap already pending. */
-
     if (!(dr[7] & 0xFF))
         return;
 
