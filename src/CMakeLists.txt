@@ -57,6 +57,10 @@ if(DISCORD)
     target_sources(86Box PRIVATE discord.c)
 endif()
 
+if(DEBUGREGS486)
+    add_compile_definitions(USE_DEBUG_REGS_486)
+endif()
+
 if(VNC)
     find_package(LibVNCServer)
     if(LibVNCServer_FOUND)

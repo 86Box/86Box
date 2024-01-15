@@ -24,6 +24,7 @@
 #include <86box/gdbstub.h>
 #include "codegen.h"
 #include <86box/plat_unused.h>
+#include <86box/plat_fallthrough.h>
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
