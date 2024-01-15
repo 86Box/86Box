@@ -80,7 +80,7 @@ video_cards[] = {
     { &vid_none_device                                 },
     { &vid_internal_device                             },
     { &atiega800p_device                               },
-    { &mach8_isa_device,          VIDEO_FLAG_TYPE_8514 },
+    { &mach8_vga_isa_device,      VIDEO_FLAG_TYPE_8514 },
     { &mach32_isa_device,         VIDEO_FLAG_TYPE_8514 },
     { &mach64gx_isa_device                             },
     { &ati28800k_device                                },
