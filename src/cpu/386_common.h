@@ -674,3 +674,8 @@ seteaq(uint64_t v)
     cpu_state.pc += 2
 
 #endif
+
+/* Resume Flag handling. */
+extern int rf_flag_no_clear;
+
+int cpu_386_check_instruction_fault(void);

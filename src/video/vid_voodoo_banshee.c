@@ -572,6 +572,8 @@ banshee_recalctimings(svga_t *svga)
 
         /* Also make sure vertical blanking starts on display end. */
         svga->vblankstart = svga->dispend;
+
+        svga->linedbl     = 0;
      } else {
         svga->hblankstart    = (((svga->crtc[0x1a] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
         svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
@@ -641,7 +643,7 @@ banshee_recalctimings(svga_t *svga)
         if (banshee->vidProcCfg & VIDPROCCFG_2X_MODE) {
             svga->hdisp *= 2;
             svga->htotal *= 2;
-            svga->hblankstart = ((svga->hblankstart - 1) * 2) + 1;
+            svga->hblankstart *= 2;
             svga->hblank_end_val *= 2;
         }
 

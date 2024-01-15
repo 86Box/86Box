@@ -240,6 +240,7 @@ exec386_2386(int32_t cycs)
         cycdiff       = 0;
         oldcyc        = cycles;
         while (cycdiff < cycle_period) {
+            int ins_fetch_fault = 0;
             ins_cycles = cycles;
 
 #ifndef USE_NEW_DYNAREC
@@ -259,6 +260,14 @@ exec386_2386(int32_t cycs)
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
             ol = opcode_length[fetchdat & 0xff];
             CHECK_READ_CS(MIN(ol, 4));
+            ins_fetch_fault = cpu_386_check_instruction_fault();
+
+            if (!cpu_state.abrt && ins_fetch_fault) {
+                x86gen();
+                ins_fetch_fault = 0;
+                /* No instructions executed at this point. */
+                goto block_ended;
+            }
 
             if (!cpu_state.abrt) {
 #ifdef ENABLE_386_LOG
@@ -267,7 +276,7 @@ exec386_2386(int32_t cycs)
 #endif
                 opcode = fetchdat & 0xFF;
                 fetchdat >>= 8;
-                trap = cpu_state.flags & T_FLAG;
+                trap |= !!(cpu_state.flags & T_FLAG);
 
                 cpu_state.pc++;
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
@@ -287,6 +296,7 @@ exec386_2386(int32_t cycs)
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
 
+block_ended:
             if (cpu_state.abrt) {
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
@@ -309,14 +319,17 @@ exec386_2386(int32_t cycs)
 #endif
                     }
                 }
+                if (!x86_was_reset && ins_fetch_fault)
+                    x86gen();   /* This is supposed to be the first one serviced by the processor according to the manual. */
             } else if (trap) {
                 flags_rebuild();
+                if (trap & 2) dr[6] |= 0x8000;
+                if (trap & 1) dr[6] |= 0x4000;
                 trap = 0;
 #ifndef USE_NEW_DYNAREC
                 oldcs = CS;
 #endif
                 cpu_state.oldpc = cpu_state.pc;
-                dr[6] |= 0x4000;
                 x86_int(1);
             }
 

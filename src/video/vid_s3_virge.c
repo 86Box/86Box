@@ -864,8 +864,7 @@ s3_virge_recalctimings(svga_t *svga)
                     if (virge->chip != S3_VIRGEVX && virge->chip < S3_VIRGEGX2) {
                         svga->htotal >>= 1;
                         svga->hdisp >>= 1;
-                        svga->hoverride = 1;
-                        svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                        svga->hblankstart >>= 1;
                         svga->hblank_end_val >>= 1;
                     }
                     break;
@@ -874,7 +873,7 @@ s3_virge_recalctimings(svga_t *svga)
                     if (virge->chip != S3_VIRGEVX && virge->chip < S3_VIRGEGX2) {
                         svga->htotal >>= 1;
                         svga->hdisp >>= 1;
-                        svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                        svga->hblankstart >>= 1;
                         svga->hblank_end_val >>= 1;
                     }
                     break;
@@ -923,13 +922,13 @@ s3_virge_recalctimings(svga_t *svga)
                 break;
             case 3: /*KRGB-16 (1.5.5.5)*/
                 svga->htotal >>= 1;
-                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                svga->hblankstart >>= 1;
                 svga->hblank_end_val >>= 1;
                 svga->render = svga_render_15bpp_highres;
                 break;
             case 5: /*RGB-16 (5.6.5)*/
                 svga->htotal >>= 1;
-                svga->hblankstart = ((svga->hblankstart - 1) >> 1) + 1;
+                svga->hblankstart >>= 1;
                 svga->hblank_end_val >>= 1;
                 svga->render = svga_render_16bpp_highres;
                 break;

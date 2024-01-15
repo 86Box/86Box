@@ -1796,7 +1796,7 @@ gd54xx_recalctimings(svga_t *svga)
             svga->render = svga_render_8bpp_highres;
             if ((svga->dispend == 512) && !svga->interlace && gd54xx_is_5434(svga)) {
                 svga->hdisp <<= 1;
-                svga->hblankstart = ((svga->hblankstart - 1) << 1) + 1;
+                svga->hblankstart <<= 1;
                 svga->hblank_end_val <<= 1;
             }
         }

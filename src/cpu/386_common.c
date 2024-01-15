@@ -80,6 +80,7 @@ int smm_in_hlt  = 0;
 int smi_block   = 0;
 
 int prefetch_prefixes = 0;
+int rf_flag_no_clear = 0;
 
 int tempc;
 int oldcpl;
@@ -1491,7 +1492,7 @@ x86_int_sw(int num)
         }
     }
 
-    trap = 0;
+    trap &= ~1;
     CPU_BLOCK_END();
 }
 
@@ -1534,7 +1535,7 @@ x86_int_sw_rm(int num)
 #endif
 
     cycles -= timing_int_rm;
-    trap = 0;
+    trap &= ~1;
     CPU_BLOCK_END();
 
     return 0;
@@ -1653,6 +1654,37 @@ void
 cpu_386_flags_rebuild(void)
 {
     flags_rebuild();
+}
+
+extern uint64_t mmutranslate_noabrt_2386(uint32_t addr, int rw);
+int
+cpu_386_check_instruction_fault(void)
+{
+    int i = 0;
+    int fault = 0;
+    /* Report no fault if RF is set. */
+    if (cpu_state.eflags & RF_FLAG)
+        return 0;
+
+    /* Make sure breakpoints are enabled. */
+    if (!(dr[7] & 0xFF))
+        return 0;
+
+    for (i = 0; i < 4; i++) {
+        int breakpoint_enabled = !!(dr[7] & (0x3 << (2 * i))) && !(dr[7] & (0x30000 << (4 * i)));
+        uint32_t translated_addr = 0xffffffff;
+        if (!breakpoint_enabled)
+            continue;
+
+        translated_addr = dr[i];
+
+        if ((cs + cpu_state.pc) == (uint32_t)translated_addr) {
+            dr[6] |= (1 << i);
+            fault = 1;
+        }
+    }
+
+    return fault;
 }
 
 int

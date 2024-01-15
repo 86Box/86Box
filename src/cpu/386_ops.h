@@ -181,7 +181,11 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #ifndef OPS_286_386
 #    include "x86_ops_cyrix.h"
 #endif
-#include "x86_ops_flag.h"
+#ifdef OPS_286_386
+#    include "x86_ops_flag_2386.h"
+#else
+#    include "x86_ops_flag.h"
+#endif
 #include "x86_ops_fpu.h"
 #include "x86_ops_inc_dec.h"
 #include "x86_ops_int.h"
@@ -200,7 +204,11 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #    include "x86_ops_mmx_shift.h"
 #endif
 #include "x86_ops_mov.h"
-#include "x86_ops_mov_ctrl.h"
+#ifdef OPS_286_386
+#    include "x86_ops_mov_ctrl_2386.h"
+#else
+#    include "x86_ops_mov_ctrl.h"
+#endif
 #include "x86_ops_mov_seg.h"
 #include "x86_ops_movx.h"
 #ifndef OPS_286_386
@@ -218,7 +226,11 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #        include "x86_ops_rep.h"
 #    endif
 #endif
-#include "x86_ops_ret.h"
+#ifdef OPS_286_386
+#    include "x86_ops_ret_2386.h"
+#else
+#    include "x86_ops_ret.h"
+#endif
 #include "x86_ops_set.h"
 #include "x86_ops_stack.h"
 #ifdef OPS_286_386

@@ -456,6 +456,13 @@ MediaMenu::cdromMount(int i, const QString &filename)
 
     cdrom[i].ops = nullptr;
     memset(cdrom[i].image_path, 0, sizeof(cdrom[i].image_path));
+#ifdef _WIN32
+    if ((fn.data() != NULL) && (strlen(fn.data()) >= 1) && (fn.data()[strlen(fn.data()) - 1] == '/'))
+        fn.data()[strlen(fn.data()) - 1] = '\\';
+#else
+    if ((fn.data() != NULL) && (strlen(fn.data()) >= 1) && (fn.data()[strlen(fn.data()) - 1] == '\\'))
+        fn.data()[strlen(fn.data()) - 1] = '/';
+#endif
     cdrom_image_open(&(cdrom[i]), fn.data());
     /* Signal media change to the emulated machine. */
     if (cdrom[i].insert)
