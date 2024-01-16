@@ -56,7 +56,8 @@ StyleOverride::polish(QWidget *widget)
         }
         widget->setWindowFlag(Qt::WindowContextHelpButtonHint, false);
 #ifdef Q_OS_WINDOWS
-        BOOL DarkMode = TRUE;
+        extern bool windows_is_light_theme();
+        BOOL DarkMode = !windows_is_light_theme();
         DwmSetWindowAttribute((HWND)widget->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID)&DarkMode, sizeof(DarkMode));
 #endif
     }

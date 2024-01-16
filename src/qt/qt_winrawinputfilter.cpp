@@ -37,6 +37,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QApplication>
+#include <QTimer>
 
 #include <atomic>
 
@@ -50,11 +51,13 @@
 #include <86box/mouse.h>
 #include <86box/plat.h>
 #include <86box/86box.h>
+#include <86box/video.h>
 
 #include <array>
 #include <memory>
 
 #include "qt_rendererstack.hpp"
+#include "ui_qt_mainwindow.h"
 
 bool windows_is_light_theme() {
     // based on https://stackoverflow.com/questions/51334674/how-to-detect-windows-10-light-dark-mode-in-win32-application
@@ -170,13 +173,31 @@ WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void *mess
                     QTextStream ts(&f);
                     qApp->setStyleSheet(ts.readAll());
                 }
-                // From Dolphin emulator code:
-                // TODO: When switching from light to dark, the window decorations remain light. Qt seems very
-                // convinced that it needs to change these in response to this message, so even if we set them
-                // to dark here, Qt sets them back to light afterwards.
+                QTimer::singleShot(1000, [this] () {
+                    BOOL DarkMode = TRUE;
+                    DwmSetWindowAttribute((HWND)window->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID)&DarkMode, sizeof(DarkMode)); 
+                    window->ui->stackedWidget->switchRenderer((RendererStack::Renderer) vid_api);
+                    for (int i = 1; i < MONITORS_NUM; i++) {
+                        if (window->renderers[i] && !window->renderers[i]->isHidden())
+                            window->renderers[i]->switchRenderer((RendererStack::Renderer) vid_api);
+                    }
+                });
             } else {
                 qApp->setStyleSheet("");
+                QTimer::singleShot(1000, [this] () {
+                    BOOL DarkMode = FALSE;
+                    DwmSetWindowAttribute((HWND)window->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID)&DarkMode, sizeof(DarkMode));
+                });
             }
+
+            QTimer::singleShot(1000, [this] () {
+                window->resizeContents(monitors[0].mon_scrnsz_x, monitors[0].mon_scrnsz_y);
+                for (int i = 1; i < MONITORS_NUM; i++) {
+                    if (window->renderers[i] && !window->renderers[i]->isHidden()) {
+                        window->resizeContentsMonitor(monitors[i].mon_scrnsz_x, monitors[i].mon_scrnsz_y, i);
+                    }
+                }
+            });
         }
 
         /* Stop processing of Alt-F4 */
