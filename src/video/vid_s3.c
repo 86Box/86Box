@@ -945,10 +945,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
             s3->accel.cmd       = (s3->accel.cmd & 0xff) | (val << 8);
             s3->accel.ssv_state = 0;
             s3->accel_start(-1, 0, 0xffffffff, 0, s3);
-            if (s3->bpp == 3) {
-                if (!(s3->accel.multifunc[0xe] & 0x200) && !(svga->crtc[0x32] & 0x40))
-                    s3->accel.multifunc[0xe] &= ~0x10;
-            }
             break;
 
         case 0x994a:
@@ -2780,6 +2776,10 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x50:
                     s3->bpp = (svga->crtc[0x50] >> 4) & 3;
+                    if (s3->bpp == 3) {
+                        if (!(s3->accel.multifunc[0xe] & 0x200)) /*On True Color mode change, reset bit 4 of Misc Index register*/
+                            s3->accel.multifunc[0xe] &= ~0x10;
+                    }
                     break;
 
                 case 0x5c:
