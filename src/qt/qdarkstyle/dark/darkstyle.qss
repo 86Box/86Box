@@ -140,6 +140,7 @@ QStatusBar QToolTip {
 QStatusBar QLabel {
   /* Fixes Spyder #9120, #9121 */
   background: transparent;
+  padding: 0px;
 }
 
 /* QCheckBox --------------------------------------------------------------
@@ -376,8 +377,6 @@ QMenuBar::item:pressed {
   border: 0px solid #455364;
   background-color: #1A72BB;
   color: #DFE1E2;
-  margin-bottom: 0px;
-  padding-bottom: 0px;
 }
 
 /* QMenu ------------------------------------------------------------------
