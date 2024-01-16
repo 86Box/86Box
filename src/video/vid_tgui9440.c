@@ -76,7 +76,8 @@
 #include <86box/vid_svga_render.h>
 
 #define ROM_TGUI_9400CXI          "roms/video/tgui9440/9400CXI.VBI"
-#define ROM_TGUI_9440             "roms/video/tgui9440/BIOS.BIN"
+#define ROM_TGUI_9440_VLB         "roms/video/tgui9440/trident_9440_vlb.bin"
+#define ROM_TGUI_9440_PCI         "roms/video/tgui9440/BIOS.BIN"
 #define ROM_TGUI_96xx             "roms/video/tgui9660/Union.VBI"
 
 #define EXT_CTRL_16BIT            0x01
@@ -3147,7 +3148,10 @@ tgui_init(const device_t *info)
             bios_fn = ROM_TGUI_9400CXI;
             break;
         case TGUI_9440:
-            bios_fn = (info->local & ONBOARD) ? NULL : ROM_TGUI_9440;
+            if (tgui->pci)
+                bios_fn = (info->local & ONBOARD) ? NULL : ROM_TGUI_9440_PCI;
+            else
+                bios_fn = ROM_TGUI_9440_VLB;
             break;
         case TGUI_9660:
         case TGUI_9680:
@@ -3224,9 +3228,15 @@ tgui9400cxi_available(void)
 }
 
 static int
-tgui9440_available(void)
+tgui9440_vlb_available(void)
 {
-    return rom_present(ROM_TGUI_9440);
+    return rom_present(ROM_TGUI_9440_VLB);
+}
+
+static int
+tgui9440_pci_available(void)
+{
+    return rom_present(ROM_TGUI_9440_PCI);
 }
 
 static int
@@ -3344,7 +3354,7 @@ const device_t tgui9440_vlb_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = tgui9440_available },
+    { .available = tgui9440_vlb_available },
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui9440_config
@@ -3358,7 +3368,7 @@ const device_t tgui9440_pci_device = {
     .init          = tgui_init,
     .close         = tgui_close,
     .reset         = NULL,
-    { .available = tgui9440_available },
+    { .available = tgui9440_pci_available },
     .speed_changed = tgui_speed_changed,
     .force_redraw  = tgui_force_redraw,
     .config        = tgui9440_config
