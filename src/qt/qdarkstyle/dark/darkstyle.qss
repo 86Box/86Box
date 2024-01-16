@@ -754,7 +754,6 @@ QToolBar {
   border-bottom: 1px solid #222222;
   padding: 1px;
   font-weight: bold;
-  spacing: 2px;
 }
 
 QToolBar:disabled {
