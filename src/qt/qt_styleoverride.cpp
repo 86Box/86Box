@@ -16,8 +16,6 @@
  */
 #include "qt_styleoverride.hpp"
 
-#include "qt_mainwindow.hpp"
-
 #include <QComboBox>
 #include <QAbstractItemView>
 
@@ -27,8 +25,6 @@
 #define DWMWA_USE_IMMERSIVE_DARK_MODE 20
 #endif
 #endif
-
-extern MainWindow* main_window;
 
 int
 StyleOverride::styleHint(
@@ -63,9 +59,6 @@ StyleOverride::polish(QWidget *widget)
         extern bool windows_is_light_theme();
         BOOL DarkMode = !windows_is_light_theme();
         DwmSetWindowAttribute((HWND)widget->winId(), DWMWA_USE_IMMERSIVE_DARK_MODE, (LPCVOID)&DarkMode, sizeof(DarkMode));
-        if (main_window->isAncestorOf(widget)) {
-            widget->setAttribute(Qt::WA_NativeWindow);
-        }
 #endif
     }
 
