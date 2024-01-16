@@ -209,6 +209,8 @@ rtg_out(uint16_t addr, uint8_t val, void *priv)
 static void
 rtg_recalctimings(svga_t *svga)
 {
+    const rtg_t  *dev  = (rtg_t *) svga->priv;
+
     svga->ma_latch |= ((svga->crtc[0x19] & 0x10) << 16) | ((svga->crtc[0x19] & 0x40) << 17);
 
     svga->interlace = (svga->crtc[0x19] & 1);
@@ -280,7 +282,7 @@ rtg_recalctimings(svga_t *svga)
                     if (svga->crtc[0x19] & 2) {
                         if (svga->hdisp == 1280)
                             svga->hdisp >>= 1;
-                        else
+                        else if (dev->type == 2)
                             svga->rowoffset <<= 1;
 
                         svga->render = svga_render_8bpp_highres;
@@ -382,7 +384,34 @@ rtg3106_available(void)
     return rom_present(RTG_3106_BIOS_ROM_PATH);
 }
 
-static const device_config_t rtg_config[] = {
+static const device_config_t rtg3105_config[] = {
+  // clang-format off
+    {
+        .name = "memory",
+        .description = "Memory size",
+        .type = CONFIG_SELECTION,
+        .default_int = 512,
+        .selection = {
+            {
+                .description = "256 KB",
+                .value = 256
+            },
+            {
+                .description = "512 KB",
+                .value = 512
+            },
+            {
+                .description = ""
+            }
+        }
+    },
+    {
+        .type = CONFIG_END
+    }
+  // clang-format on
+};
+
+static const device_config_t rtg3106_config[] = {
   // clang-format off
     {
         .name = "memory",
@@ -416,7 +445,7 @@ static const device_config_t rtg_config[] = {
 const device_t realtek_rtg3105_device = {
     .name          = "Realtek RTG3105 (ISA)",
     .internal_name = "rtg3105",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA,
     .local         = 1,
     .init          = rtg_init,
     .close         = rtg_close,
@@ -424,13 +453,13 @@ const device_t realtek_rtg3105_device = {
     { .available = rtg3105_available },
     .speed_changed = rtg_speed_changed,
     .force_redraw  = rtg_force_redraw,
-    .config        = rtg_config
+    .config        = rtg3105_config
 };
 
 const device_t realtek_rtg3106_device = {
     .name          = "Realtek RTG3106 (ISA)",
     .internal_name = "rtg3106",
-    .flags         = DEVICE_ISA | DEVICE_AT,
+    .flags         = DEVICE_ISA,
     .local         = 2,
     .init          = rtg_init,
     .close         = rtg_close,
@@ -438,5 +467,5 @@ const device_t realtek_rtg3106_device = {
     { .available = rtg3106_available },
     .speed_changed = rtg_speed_changed,
     .force_redraw  = rtg_force_redraw,
-    .config        = rtg_config
+    .config        = rtg3106_config
 };
