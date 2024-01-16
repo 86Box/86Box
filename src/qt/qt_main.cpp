@@ -176,6 +176,7 @@ main(int argc, char *argv[])
 
 #ifdef Q_OS_WINDOWS
     Q_INIT_RESOURCE(darkstyle);
+    QApplication::SetAttribute(Qt::AA_NativeWindows);
 
     if (!windows_is_light_theme()) {
         QFile f(":qdarkstyle/dark/darkstyle.qss");
