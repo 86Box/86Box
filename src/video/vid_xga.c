@@ -1254,7 +1254,7 @@ xga_line_draw_write(svga_t *svga)
     xga_t   *xga = (xga_t *) svga->xga;
     uint32_t src_dat;
     uint32_t dest_dat;
-    uint32_t old_dest_dat;
+    uint32_t old_dest_dat = 0x00000000;
     uint32_t color_cmp  = xga->accel.color_cmp;
     uint32_t plane_mask = xga->accel.plane_mask;
     uint32_t dstbase    = xga->accel.px_map_base[xga->accel.dst_map];

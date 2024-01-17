@@ -4367,7 +4367,6 @@ ibm8514_init(const device_t *info)
 
     svga_t    *svga  = svga_get_pri();
     ibm8514_t *dev   = (ibm8514_t *) calloc(1, sizeof(ibm8514_t));
-    mach_t    *mach  = NULL;
 
     svga->dev8514    = dev;
     svga->ext8514    = NULL;

@@ -59,15 +59,7 @@ static uint8_t  mach_accel_inb(uint16_t port, void *priv);
 static uint16_t mach_accel_inw(uint16_t port, void *priv);
 static uint8_t  mach_in(uint16_t addr, void *priv);
 
-static void     ati8514_accel_outb(uint16_t port, uint8_t val, void *priv);
-static void     ati8514_accel_outw(uint16_t port, uint16_t val, void *priv);
-static void     ati8514_accel_outl(uint16_t port, uint32_t val, void *priv);
-static uint8_t  ati8514_accel_inb(uint16_t port, void *priv);
-static uint16_t ati8514_accel_inw(uint16_t port, void *priv);
-static uint32_t ati8514_accel_inl(uint16_t port, void *priv);
-
-
-static void mach32_updatemapping(mach_t *mach, svga_t *svga);
+static void     mach32_updatemapping(mach_t *mach, svga_t *svga);
 
 #ifdef ENABLE_MACH_LOG
 int mach_do_log = ENABLE_MACH_LOG;
@@ -3990,7 +3982,6 @@ static void
 mach_accel_out(uint16_t port, uint8_t val, mach_t *mach)
 {
     svga_t    *svga = &mach->svga;
-    ibm8514_t *dev  = (ibm8514_t *) svga->dev8514;
 
     mach_log("[%04X:%08X]: Port NORMAL OUT=%04x, val=%04x.\n", CS, cpu_state.pc, port, val);
 
