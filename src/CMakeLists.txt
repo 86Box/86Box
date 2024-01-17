@@ -74,7 +74,7 @@ if(INSTRUMENT)
 endif()
 
 target_link_libraries(86Box cpu chipset mch dev mem fdd game cdrom zip mo hdd
-    net print scsi sio snd vid voodoo plat ui)
+    net print scsi spng sio snd vid voodoo plat ui)
 
 if(WIN32 AND ARCH STREQUAL "i386")
     if(MINGW)
@@ -128,10 +128,6 @@ elseif(TARGET SDL2::SDL2)
 else()
     target_link_libraries(86Box ${SDL2_LIBRARIES})
 endif()
-
-find_package(PNG REQUIRED)
-include_directories(${PNG_INCLUDE_DIRS})
-target_link_libraries(86Box PNG::PNG)
 
 configure_file(include/86box/version.h.in include/86box/version.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
@@ -219,6 +215,7 @@ add_subdirectory(printer)
 add_subdirectory(sio)
 add_subdirectory(scsi)
 add_subdirectory(sound)
+add_subdirectory(spng)
 add_subdirectory(video)
 if (APPLE)
     add_subdirectory(mac)

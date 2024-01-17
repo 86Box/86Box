@@ -49,8 +49,8 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <errno.h>
-#define PNG_DEBUG 0
-#include <png.h>
+#define SPNG_STATIC 1
+#include <spng.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/plat.h>
@@ -58,20 +58,6 @@
 #include <86box/ui.h>
 #include <86box/video.h>
 #include <86box/png_struct.h>
-
-#ifdef _WIN32
-#    define PATH_PNG_DLL "libpng16-16.dll"
-#elif defined __APPLE__
-#    define PATH_PNG_DLL "libpng16.dylib"
-#else
-#    define PATH_PNG_DLL "libpng16.so"
-#endif
-
-#ifndef PNG_Z_DEFAULT_STRATEGY
-#    define PNG_Z_DEFAULT_STRATEGY 1
-#endif
-
-#define PNGFUNC(x) png_##x
 
 #ifdef ENABLE_PNG_LOG
 int png_do_log = ENABLE_PNG_LOG;
@@ -91,111 +77,15 @@ png_log(const char *fmt, ...)
 #    define png_log(fmt, ...)
 #endif
 
-static void
-error_handler(UNUSED(png_structp arg), UNUSED(const char *str))
-{
-    png_log("PNG: stream 0x%08lx error '%s'\n", arg, str);
-}
-
-static void
-warning_handler(UNUSED(png_structp arg), UNUSED(const char *str))
-{
-    png_log("PNG: stream 0x%08lx warning '%s'\n", arg, str);
-}
-
-/* Write the given image as an 8-bit GrayScale PNG image file. */
-int
-png_write_gray(char *fn, int inv, uint8_t *pix, int16_t w, int16_t h)
-{
-    png_structp png  = NULL;
-    png_infop   info = NULL;
-    png_bytep   row;
-    FILE       *fp;
-
-    /* Create the image file. */
-    fp = plat_fopen(fn, "wb");
-    if (fp == NULL) {
-        /* Yes, this looks weird. */
-        if (fp == NULL)
-            png_log("PNG: file %s could not be opened for writing!\n", fn);
-        else
-error:
-            png_log("PNG: fatal error, bailing out, error = %i\n", errno);
-        if (png != NULL)
-            PNGFUNC(destroy_write_struct)
-        (&png, &info);
-        if (fp != NULL)
-            (void) fclose(fp);
-        return 0;
-    }
-
-    /* Initialize PNG stuff. */
-    png = PNGFUNC(create_write_struct)(PNG_LIBPNG_VER_STRING, NULL,
-                                       error_handler, warning_handler);
-    if (png == NULL) {
-        png_log("PNG: create_write_struct failed!\n");
-        goto error;
-    }
-
-    info = PNGFUNC(create_info_struct)(png);
-    if (info == NULL) {
-        png_log("PNG: create_info_struct failed!\n");
-        goto error;
-    }
-
-    PNGFUNC(init_io)
-    (png, fp);
-
-    PNGFUNC(set_IHDR)
-    (png, info, w, h, 8, PNG_COLOR_TYPE_GRAY,
-     PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
-     PNG_FILTER_TYPE_DEFAULT);
-
-    PNGFUNC(write_info)
-    (png, info);
-
-    /* Create a buffer for one scanline of pixels. */
-    row = (png_bytep) malloc(PNGFUNC(get_rowbytes)(png, info));
-
-    /* Process all scanlines in the image. */
-    for (int16_t y = 0; y < h; y++) {
-        for (int16_t x = 0; x < w; x++) {
-            /* Copy the pixel data. */
-            if (inv)
-                row[x] = 255 - pix[(y * w) + x];
-            else
-                row[x] = pix[(y * w) + x];
-        }
-
-        /* Write image to the file. */
-        PNGFUNC(write_rows)
-        (png, &row, 1);
-    }
-
-    /* No longer need the row buffer. */
-    free(row);
-
-    PNGFUNC(write_end)
-    (png, NULL);
-
-    PNGFUNC(destroy_write_struct)
-    (&png, &info);
-
-    /* Clean up. */
-    (void) fclose(fp);
-
-    return 1;
-}
-
 /* Write the given BITMAP-format image as an 8-bit RGBA PNG image file. */
 void
 png_write_rgb(char *fn, uint8_t *pix, int16_t w, int16_t h, uint16_t pitch, PALETTE palcol)
 {
-    png_structp png  = NULL;
-    png_infop   info = NULL;
-    png_bytep  *rows;
-    png_color   palette[256];
-    FILE       *fp;
+    spng_ctx               *png  = NULL;
+    struct spng_ihdr        ihdr = {};
+    struct spng_plte        plte = {};
+    struct spng_plte_entry *palette = &plte.entries[0];
+    FILE                   *fp;
 
     /* Create the image file. */
     fp = plat_fopen(fn, "wb");
@@ -203,78 +93,51 @@ png_write_rgb(char *fn, uint8_t *pix, int16_t w, int16_t h, uint16_t pitch, PALE
         png_log("PNG: File %s could not be opened for writing!\n", fn);
 error:
         if (png != NULL)
-            PNGFUNC(destroy_write_struct)
-        (&png, &info);
+            spng_ctx_free(png);
         if (fp != NULL)
             (void) fclose(fp);
         return;
     }
 
     /* Initialize PNG stuff. */
-    png = PNGFUNC(create_write_struct)(PNG_LIBPNG_VER_STRING, NULL,
-                                       error_handler, warning_handler);
+    png = spng_ctx_new(SPNG_CTX_ENCODER);
     if (png == NULL) {
-        png_log("PNG: create_write_struct failed!\n");
+        png_log("PNG: spng_ctx_new failed!\n");
         goto error;
     }
 
-    info = PNGFUNC(create_info_struct)(png);
-    if (info == NULL) {
-        png_log("PNG: create_info_struct failed!\n");
-        goto error;
-    }
 
     /* Finalize the initing of png library */
-    PNGFUNC(init_io)
-    (png, fp);
-    PNGFUNC(set_compression_level)
-    (png, 9);
+    spng_set_png_file(png, fp);
+    spng_set_option(png, SPNG_IMG_COMPRESSION_LEVEL, 9);
+    spng_set_option(png, SPNG_IMG_MEM_LEVEL, 8);
+    spng_set_option(png, SPNG_IMG_WINDOW_BITS, 15);
+    spng_set_option(png, SPNG_IMG_COMPRESSION_STRATEGY, 1);
 
-    /* set other zlib parameters */
-    PNGFUNC(set_compression_mem_level)
-    (png, 8);
-    PNGFUNC(set_compression_strategy)
-    (png, PNG_Z_DEFAULT_STRATEGY);
-    PNGFUNC(set_compression_window_bits)
-    (png, 15);
-    PNGFUNC(set_compression_method)
-    (png, 8);
-    PNGFUNC(set_compression_buffer_size)
-    (png, 8192);
-
-    PNGFUNC(set_IHDR)
-    (png, info, w, h, 8, PNG_COLOR_TYPE_PALETTE,
-     PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT,
-     PNG_FILTER_TYPE_DEFAULT);
+    ihdr.bit_depth = 8;
+    ihdr.width = w;
+    ihdr.height = h;
+    ihdr.color_type = SPNG_COLOR_TYPE_INDEXED;
+    spng_set_ihdr(png, &ihdr);
 
     for (uint16_t i = 0; i < 256; i++) {
         palette[i].red   = palcol[i].r;
         palette[i].green = palcol[i].g;
         palette[i].blue  = palcol[i].b;
+        palette[i].alpha = 255;
     }
 
-    PNGFUNC(set_PLTE)
-    (png, info, palette, 256);
+    plte.n_entries = 256;
+    spng_set_plte(png, &plte);
+    
+    spng_encode_image(png, NULL, 0, SPNG_FMT_PNG, SPNG_ENCODE_PROGRESSIVE | SPNG_ENCODE_FINALIZE);
 
-    /* Create a buffer for scanlines of pixels. */
-    rows = (png_bytep *) malloc(sizeof(png_bytep) * h);
     for (int16_t i = 0; i < h; i++) {
-        /* Create a buffer for this scanline. */
-        rows[i] = (pix + (i * pitch));
+        if (spng_encode_row(png, (pix + (i * pitch)), w) == SPNG_EOI)
+            break;
     }
-
-    PNGFUNC(set_rows)
-    (png, info, rows);
-
-    PNGFUNC(write_png)
-    (png, info, 0, NULL);
 
     /* Clean up. */
     (void) fclose(fp);
-
-    PNGFUNC(destroy_write_struct)
-    (&png, &info);
-
-    /* No longer need the row buffers. */
-    free(rows);
+    spng_ctx_free(png);
 }

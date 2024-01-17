@@ -49,8 +49,8 @@
  *          Copyright 2016-2019 Miran Grca.
  */
 #include <stdatomic.h>
-#define PNG_DEBUG 0
-#include <png.h>
+#define SPNG_STATIC 1
+#include <spng.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -304,16 +304,15 @@ video_wait_for_buffer_monitor(int monitor_index)
     thread_reset_event(blit_data_ptr->buffer_not_in_use);
 }
 
-static png_structp png_ptr[MONITORS_NUM];
-static png_infop   info_ptr[MONITORS_NUM];
-
 static void
 video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int start_y, int row_len, int monitor_index)
 {
-    png_bytep         *b_rgb         = NULL;
-    FILE              *fp            = NULL;
-    uint32_t           temp          = 0x00000000;
+    FILE                         *fp = NULL;
     const blit_data_t *blit_data_ptr = monitors[monitor_index].mon_blit_data_ptr;
+    spng_ctx                    *ctx = NULL;
+    uint8_t                   *bytes = NULL;
+    struct spng_ihdr            ihdr = {};
+    int                          err = 0;
 
     /* create file */
     fp = plat_fopen(fn, (const char *) "wb");
@@ -322,65 +321,56 @@ video_take_screenshot_monitor(const char *fn, uint32_t *buf, int start_x, int st
         return;
     }
 
-    /* initialize stuff */
-    png_ptr[monitor_index] = png_create_write_struct(PNG_LIBPNG_VER_STRING, NULL, NULL, NULL);
+    /* initialize stuff. */
+    ctx = spng_ctx_new(SPNG_CTX_ENCODER);
 
-    if (!png_ptr[monitor_index]) {
-        video_log("[video_take_screenshot] png_create_write_struct failed");
+    if (!ctx) {
+        video_log("[video_take_screenshot] spng_ctx_new failed");
         fclose(fp);
         return;
     }
 
-    info_ptr[monitor_index] = png_create_info_struct(png_ptr[monitor_index]);
-    if (!info_ptr[monitor_index]) {
-        video_log("[video_take_screenshot] png_create_info_struct failed");
+    if (spng_set_png_file(ctx, fp)) {
+        video_log("[video_take_screenshot] spng_set_png_file failed");
+        spng_ctx_free(ctx);
         fclose(fp);
         return;
     }
 
-    png_init_io(png_ptr[monitor_index], fp);
+    ihdr.bit_depth = 8;
+    ihdr.color_type = SPNG_COLOR_TYPE_TRUECOLOR;
+    ihdr.width = blit_data_ptr->w;
+    ihdr.height = blit_data_ptr->h;
+    spng_set_ihdr(ctx, &ihdr);
 
-    png_set_IHDR(png_ptr[monitor_index], info_ptr[monitor_index], blit_data_ptr->w, blit_data_ptr->h,
-                 8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
-                 PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
-
-    b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * blit_data_ptr->h);
-    if (b_rgb == NULL) {
+    bytes = calloc(ihdr.width * ihdr.height, 3);
+    if (!bytes) {
         video_log("[video_take_screenshot] Unable to Allocate RGB Bitmap Memory");
+        spng_ctx_free(ctx);
         fclose(fp);
         return;
     }
 
-    for (int y = 0; y < blit_data_ptr->h; ++y) {
-        b_rgb[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr[monitor_index], info_ptr[monitor_index]));
-        for (int x = 0; x < blit_data_ptr->w; ++x) {
-            if (buf == NULL)
-                memset(&(b_rgb[y][x * 3]), 0x00, 3);
-            else {
-                temp                  = buf[((start_y + y) * row_len) + start_x + x];
-                b_rgb[y][x * 3]       = (temp >> 16) & 0xff;
-                b_rgb[y][(x * 3) + 1] = (temp >> 8) & 0xff;
-                b_rgb[y][(x * 3) + 2] = temp & 0xff;
+    if (buf != NULL) {
+        for (int y = 0; y < blit_data_ptr->h; ++y) {
+            for (int x = 0; x < blit_data_ptr->w; ++x) {
+                uint32_t temp         = buf[((start_y + y) * row_len) + start_x + x];
+                bytes[(y * ihdr.width * 3) + x * 3]       = (temp >> 16) & 0xff;
+                bytes[(y * ihdr.width * 3) + (x * 3) + 1] = (temp >> 8) & 0xff;
+                bytes[(y * ihdr.width * 3) + (x * 3) + 2] = temp & 0xff;
             }
         }
     }
-
-    png_write_info(png_ptr[monitor_index], info_ptr[monitor_index]);
-
-    png_write_image(png_ptr[monitor_index], b_rgb);
-
-    png_write_end(png_ptr[monitor_index], NULL);
+    
+    if ((err = spng_encode_image(ctx, bytes, ihdr.width * ihdr.height * 3, SPNG_FMT_PNG, SPNG_ENCODE_FINALIZE)) != 0) {
+        video_log("[video_take_screenshot] Unable to encode PNG image! (err = %d)\n", err);
+    }
 
     /* cleanup heap allocation */
-    for (int i = 0; i < blit_data_ptr->h; i++)
-        if (b_rgb[i])
-            free(b_rgb[i]);
-
-    if (b_rgb)
-        free(b_rgb);
-
-    if (fp)
-        fclose(fp);
+    free(bytes);
+    spng_ctx_free(ctx);
+    fclose(fp);
+    return;
 }
 
 void
@@ -407,7 +397,6 @@ video_screenshot_monitor(uint32_t *buf, int start_x, int start_y, int row_len, i
     video_log("taking screenshot to: %s\n", path);
 
     video_take_screenshot_monitor((const char *) path, buf, start_x, start_y, row_len, monitor_index);
-    png_destroy_write_struct(&png_ptr[monitor_index], &info_ptr[monitor_index]);
 
     atomic_fetch_sub(&monitors[monitor_index].mon_screenshots, 1);
 }
