@@ -373,13 +373,13 @@ QMenuBar::item:selected {
   padding: 4px;
   background: transparent;
   border: 0px solid #525252;
-  background-color: #666666;
+  background-color: #383838;
 }
 
 QMenuBar::item:pressed {
   padding: 4px;
   border: 0px solid #525252;
-  background-color: #666666;
+  background-color: #383838;
   color: #E3E3E3;
 }
 
@@ -392,7 +392,7 @@ QMenu {
   border: 0px solid #525252;
   color: #E3E3E3;
   margin: 0px;
-  background-color: #414141;
+  background-color: #2C2C2C;
   selection-background-color: #666666;
 }
 
@@ -403,7 +403,7 @@ QMenu::separator {
 }
 
 QMenu::item {
-  background-color: #414141;
+  background-color: #2C2C2C;
   padding: 4px 24px 4px 28px;
   /* Reserve space for selection border */
   border: 1px transparent #525252;
@@ -411,11 +411,11 @@ QMenu::item {
 
 QMenu::item:selected {
   color: #E3E3E3;
-  background-color: #666666;
+  background-color: #353535;
 }
 
 QMenu::item:pressed {
-  background-color: #666666;
+  background-color: #353535;
 }
 
 QMenu::icon {
@@ -999,51 +999,54 @@ https://doc.qt.io/qt-5/stylesheet-examples.html#customizing-qpushbutton
 
 --------------------------------------------------------------------------- */
 QPushButton {
-  background-color: #525252;
+  background-color: #333333;
   color: #E3E3E3;
   border-radius: 4px;
-  padding: 2px;
+  padding: 4px;
   outline: none;
-  border: none;
+  border: 1px solid white;
 }
 
 QPushButton:disabled {
-  background-color: #525252;
+  background-color: #333333;
   color: #8B8B8B;
   border-radius: 4px;
-  padding: 2px;
+  padding: 4px;
+  border: 1px solid #9B9B9B;
 }
 
 QPushButton:checked {
-  background-color: #767676;
+  background-color: #666666;
   border-radius: 4px;
-  padding: 2px;
+  padding: 4px;
   outline: none;
 }
 
 QPushButton:checked:disabled {
-  background-color: #767676;
+  background-color: #525252;
   color: #8B8B8B;
   border-radius: 4px;
-  padding: 2px;
+  padding: 4px;
   outline: none;
 }
 
 QPushButton:checked:selected {
-  background: #767676;
+  background: #454545;
 }
 
 QPushButton:hover {
-  background-color: #666666;
+  background-color: #454545;
   color: #E3E3E3;
+  border: 1px solid #9B9B9B;
 }
 
 QPushButton:pressed {
-  background-color: #767676;
+  background-color: #666666;
+  border: 1px solid #9B9B9B;
 }
 
 QPushButton:selected {
-  background: #767676;
+  background: #333333;
   color: #E3E3E3;
 }
 
@@ -1255,6 +1258,7 @@ QComboBox:disabled {
 
 QComboBox:hover {
   border: 1px solid #616161;
+  background-color: #454545;
 }
 
 QComboBox:focus {
@@ -1263,6 +1267,7 @@ QComboBox:focus {
 
 QComboBox:on {
   selection-background-color: #616161;
+  background-color: #666666;
 }
 
 QComboBox::indicator {
