@@ -599,6 +599,9 @@ et4000_recalctimings(svga_t *svga)
     const et4000_t *dev = (et4000_t *) svga->priv;
 
     svga->ma_latch |= (svga->crtc[0x33] & 3) << 16;
+
+    svga->hblankstart    = (((svga->crtc[0x3f] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
+
     if (svga->crtc[0x35] & 1)
         svga->vblankstart += 0x400;
     if (svga->crtc[0x35] & 2)
@@ -613,10 +616,11 @@ et4000_recalctimings(svga_t *svga)
         svga->rowoffset = 0x100;
     if (svga->crtc[0x3f] & 1)
         svga->htotal += 256;
-    if (svga->attrregs[0x16] & 0x20)
+    if (svga->attrregs[0x16] & 0x20) {
         svga->hdisp <<= 1;
-
-    svga->hblankstart    = (((svga->crtc[0x3f] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
+        svga->hblankstart <<= 1;
+        svga->hblank_end_val <<= 1;
+    }
 
     switch (((svga->miscout >> 2) & 3) | ((svga->crtc[0x34] << 1) & 4)) {
         case 0:
@@ -637,10 +641,14 @@ et4000_recalctimings(svga_t *svga)
         case 15:
         case 16:
             svga->hdisp /= 2;
+            svga->hblankstart /= 2;
+            svga->hblank_end_val /= 2;
             break;
 
         case 24:
             svga->hdisp /= 3;
+            svga->hblankstart /= 3;
+            svga->hblank_end_val /= 3;
             break;
 
         default:
@@ -689,7 +697,8 @@ et4000_kasan_recalctimings(svga_t *svga)
     et4000_recalctimings(svga);
 
     if (svga->render == svga_render_text_80 && (et4000->kasan_cfg_regs[0] & 8)) {
-        svga->ma_latch -= 3;
+        svga->hdisp             += svga->dots_per_clock;
+        svga->ma_latch          -= 5;
         svga->ca_adj             = (et4000->kasan_cfg_regs[0] >> 6) - 3;
         svga->ksc5601_sbyte_mask = (et4000->kasan_cfg_regs[0] & 4) << 5;
         if ((et4000->kasan_cfg_regs[0] & 0x23) == 0x20 && (et4000->kasan_cfg_regs[4] & 0x80) && ((svga->crtc[0x37] & 0x0B) == 0x0A))
