@@ -344,6 +344,54 @@ sbpro_filter_cd_audio(int channel, double *buffer, void *priv)
     *buffer = c * master;
 }
 
+#define CLAMP(x) (((x) < -32768) ? 0 : ((x > 32767) ? 32767 : 0))
+
+/* Unused for now. */
+__attribute__((unused))
+static void
+sb_put_buffer_sb16_awe32(int16_t *buffer, int len, void *priv)
+{
+    sb_t                    *sb    = (sb_t *) priv;
+    const sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
+    int                      dsp_rec_pos = sb->dsp.record_pos_write_mic;
+    int                      c_record;
+    int32_t                  in_l;
+    int32_t                  in_r;
+
+    for (int c = 0; c < len; c++) {
+        in_l = (mixer->input_selector_left & INPUT_MIC) ? ((int32_t) buffer[c]) : 0;
+        in_r = (mixer->input_selector_right & INPUT_MIC) ? ((int32_t) buffer[c]) : 0;
+
+        if (sb->dsp.sb_enable_i) {
+            c_record = dsp_rec_pos + ((c * sb->dsp.sb_freq) / SOUND_FREQ);
+            in_l <<= mixer->input_gain_L;
+            in_r <<= mixer->input_gain_R;
+
+            /* Clip signal */
+            if (in_l < -32768)
+                in_l = -32768;
+            else if (in_l > 32767)
+                in_l = 32767;
+
+            if (in_r < -32768)
+                in_r = -32768;
+            else if (in_r > 32767)
+                in_r = 32767;
+
+            if (sb->dsp.record_pos_write_mic <= sb->dsp.record_pos_write) {
+                sb->dsp.record_buffer[c_record & 0xffff]       = CLAMP((int32_t)sb->dsp.record_buffer[c_record & 0xffff] + (int32_t)in_l);
+                sb->dsp.record_buffer[(c_record + 1) & 0xffff] = CLAMP((int32_t)sb->dsp.record_buffer[(c_record + 1) & 0xffff] + (int32_t)in_r);;
+            } else {
+                sb->dsp.record_buffer[c_record & 0xffff]       = in_l;
+                sb->dsp.record_buffer[(c_record + 1) & 0xffff] = in_r;
+            }
+        }
+    }
+
+    sb->dsp.record_pos_write_mic += ((len * sb->dsp.sb_freq) / 24000);
+    sb->dsp.record_pos_write_mic &= 0xffff;
+}
+
 static void
 sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
 {
@@ -456,8 +504,13 @@ sb_get_buffer_sb16_awe32(int32_t *buffer, int len, void *priv)
             else if (in_r > 32767)
                 in_r = 32767;
 
-            sb->dsp.record_buffer[c_record & 0xffff]       = in_l;
-            sb->dsp.record_buffer[(c_record + 1) & 0xffff] = in_r;
+            if (sb->dsp.record_pos_write_mic > sb->dsp.record_pos_write) {
+                sb->dsp.record_buffer[c_record & 0xffff]       = CLAMP((int32_t)sb->dsp.record_buffer[c_record & 0xffff] + (int32_t)in_l);
+                sb->dsp.record_buffer[(c_record + 1) & 0xffff] = CLAMP((int32_t)sb->dsp.record_buffer[(c_record + 1) & 0xffff] + (int32_t)in_r);
+            } else {
+                sb->dsp.record_buffer[c_record & 0xffff]       = in_l;
+                sb->dsp.record_buffer[(c_record + 1) & 0xffff] = in_r;
+            }
         }
 
         buffer[c] += (int32_t) (out_l * mixer->output_gain_L);

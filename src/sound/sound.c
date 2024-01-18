@@ -51,11 +51,17 @@ typedef struct {
     void *priv;
 } sound_handler_t;
 
+typedef struct {
+    void (*put_buffer)(int16_t *buffer, int len, void *priv);
+    void *priv;
+} sound_in_handler_t;
+
 int sound_card_current[SOUND_CARD_MAX] = { 0, 0, 0, 0 };
 int sound_pos_global                   = 0;
 int sound_gain                         = 0;
 
 static sound_handler_t sound_handlers[8];
+static sound_in_handler_t sound_in_handlers[8];
 
 static thread_t  *sound_cd_thread_h;
 static event_t   *sound_cd_event;
@@ -64,12 +70,15 @@ static int32_t   *outbuffer;
 static float     *outbuffer_ex;
 static int16_t   *outbuffer_ex_int16;
 static int        sound_handlers_num;
+static int        sound_in_handlers_num;
+static uint8_t    sound_in_started_input;
 static pc_timer_t sound_poll_timer;
 static uint64_t   sound_poll_latch;
 
 static int16_t      cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
 static float        cd_out_buffer[CD_BUFLEN * 2];
 static int16_t      cd_out_buffer_int16[CD_BUFLEN * 2];
+static int16_t      sound_input_buffer[SOUNDBUFLEN];
 static unsigned int cd_vol_l;
 static unsigned int cd_vol_r;
 static int          cd_buf_update    = CD_BUFLEN / SOUNDBUFLEN;
@@ -439,6 +448,14 @@ sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *priv), void
 }
 
 void
+sound_in_add_handler(void (*put_buffer)(int16_t *buffer, int len, void *priv), void *priv)
+{
+    sound_in_handlers[sound_handlers_num].put_buffer = put_buffer;
+    sound_in_handlers[sound_handlers_num].priv       = priv;
+    sound_in_handlers_num++;
+}
+
+void
 sound_set_cd_audio_filter(void (*filter)(int channel, double *buffer, void *priv), void *priv)
 {
     if ((filter_cd_audio == NULL) || (filter == NULL)) {
@@ -471,6 +488,15 @@ sound_poll(UNUSED(void *priv))
 
         for (c = 0; c < sound_handlers_num; c++)
             sound_handlers[c].get_buffer(outbuffer, SOUNDBUFLEN, sound_handlers[c].priv);
+        
+        if (sound_in_started_input) {
+            size_t len = 0;
+            al_capture_get_data(sound_input_buffer, &len);
+            if (len) {
+                for (c = 0; c < sound_in_handlers_num; c++)
+                    sound_in_handlers[c].put_buffer(sound_input_buffer, (int)len, sound_in_handlers[c].priv);
+            }
+        }
 
         for (c = 0; c < SOUNDBUFLEN * 2; c++) {
             if (sound_is_float)
@@ -509,6 +535,27 @@ sound_speed_changed(void)
 }
 
 void
+sound_in_start_input(void)
+{
+    uint8_t old = sound_in_started_input;
+    sound_in_started_input++;
+    if (!old && sound_in_started_input && al_capture_available()) {
+        al_capture_start();
+    }
+}
+
+void
+sound_in_stop_input(void)
+{
+    uint8_t old = sound_in_started_input;
+    if (sound_in_started_input)
+        sound_in_started_input--;
+    if (old && !sound_in_started_input && al_capture_available()) {
+        al_capture_stop();
+    }
+}
+
+void
 sound_reset(void)
 {
     sound_realloc_buffers();
@@ -522,6 +569,8 @@ sound_reset(void)
 
     sound_handlers_num = 0;
     memset(sound_handlers, 0x00, 8 * sizeof(sound_handler_t));
+    sound_in_handlers_num = 0;
+    memset(sound_in_handlers, 0x00, 8 * sizeof(sound_in_handler_t));
 
     filter_cd_audio   = NULL;
     filter_cd_audio_p = NULL;

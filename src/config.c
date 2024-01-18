@@ -573,6 +573,14 @@ load_sound(void)
     } else {
         fm_driver = FM_DRV_NUKED;
     }
+
+    memset(temp, '\0', sizeof(temp));
+    memset(sound_input_dev_name, '\0', sizeof(sound_input_dev_name));
+    p = ini_section_get_string(cat, "sound_input_dev_name", "");
+    strncpy(temp, p, 511);
+    strncpy(sound_input_dev_name, temp, 511);
+
+    sound_input_enabled = !!ini_section_get_int(cat, "sound_input_enabled", 0);
 }
 
 /* Load "Network" section. */
@@ -2128,6 +2136,16 @@ save_sound(void)
         ini_section_set_string(cat, "sound_type", (sound_is_float == 1) ? "float" : "int16");
 
     ini_section_set_string(cat, "fm_driver", (fm_driver == FM_DRV_NUKED) ? "nuked" : "ymfm");
+
+    if (sound_input_dev_name[0] != 0)
+        ini_section_set_string(cat, "sound_input_dev_name", sound_input_dev_name);
+    else
+        ini_section_delete_var(cat, "sound_input_dev_name");
+    
+    if (sound_input_enabled)
+        ini_section_set_int(cat, "sound_input_enabled", sound_input_enabled);
+    else
+        ini_section_delete_var(cat, "sound_input_enabled");
 
     ini_delete_section_if_empty(config, cat);
 }

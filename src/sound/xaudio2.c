@@ -290,3 +290,27 @@ givealbuffer_midi(void *buf, uint32_t size)
 {
     givealbuffer_common(buf, srcvoicemidi, size);
 }
+
+int
+al_capture_available(void)
+{
+    return 0;
+}
+
+void
+al_capture_start(void)
+{
+
+}
+
+void
+al_capture_stop(void)
+{
+    
+}
+
+void
+al_capture_get_data(int16_t* buf, size_t *len)
+{
+    
+}
