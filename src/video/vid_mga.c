@@ -192,6 +192,8 @@
 #define CRTCX_R0_OFFSET_MASK          (3 << 4)
 
 #define CRTCX_R1_HTOTAL8              (1 << 0)
+#define CRTCX_R1_HBLKSTRT8            (1 << 1)
+#define CRTCX_R1_HBLKEND6             (1 << 6)
 
 #define CRTCX_R2_VTOTAL10             (1 << 0)
 #define CRTCX_R2_VTOTAL11             (1 << 1)
@@ -941,6 +943,9 @@ mystique_recalctimings(svga_t *svga)
 
     if (mystique->crtcext_regs[1] & CRTCX_R1_HTOTAL8)
         svga->htotal |= 0x100;
+
+    svga->hblankstart    = (((mystique->crtcext_regs[1] & 0x02) >> 2) << 8) + svga->crtc[2] + 1;
+
     if (mystique->crtcext_regs[2] & CRTCX_R2_VTOTAL10)
         svga->vtotal |= 0x400;
     if (mystique->crtcext_regs[2] & CRTCX_R2_VTOTAL11)
@@ -970,6 +975,12 @@ mystique_recalctimings(svga_t *svga)
         svga->hdisp         = (svga->crtc[1] + 1) << 3;
         svga->hdisp_time    = svga->hdisp;
         svga->rowoffset     = svga->crtc[0x13] | ((mystique->crtcext_regs[0] & CRTCX_R0_OFFSET_MASK) << 4);
+
+        svga->dots_per_clock = 8;
+        svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
+                               (((mystique->crtcext_regs[1] & 0x40) >> 6) << 6);
+
+        svga->hblank_overscan = 0;
 
         if (mystique->type != MGA_2164W && mystique->type != MGA_2064W)
             svga->lut_map = !!(mystique->xmiscctrl & XMISCCTRL_RAMCS);
@@ -2175,7 +2186,10 @@ mystique_ctrl_write_b(uint32_t addr, uint8_t val, void *priv)
             thread_wait_mutex(mystique->dma.lock);
             WRITE8(addr, mystique->dma.primaddress, val);
             mystique->dma.pri_state = 0;
-            mystique->dma.words_expected = 0;
+            if (mystique->dma.state == DMA_STATE_IDLE && !(mystique->softrap_pending || mystique->endprdmasts_pending || !mystique->softrap_status_read)) {
+                mystique->dma.words_expected = 0;
+            }
+            mystique->dma.state = DMA_STATE_IDLE;
             thread_release_mutex(mystique->dma.lock);
             break;
 

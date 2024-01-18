@@ -563,8 +563,9 @@ reset_808x(int hard)
         _opseg[3] = &cpu_state.seg_ds;
 
         pfq_size = (is8086) ? 6 : 4;
-        pfq_clear();
     }
+
+    pfq_clear();
 
     load_cs(0xFFFF);
     cpu_state.pc = 0;

@@ -543,7 +543,7 @@ banshee_recalctimings(svga_t *svga)
     /*7 R/W Horizontal Retrace End bit 5. -
       6 R/W Horizontal Retrace Start bit 8 0x4
       5 R/W Horizontal Blank End bit 6. -
-      4 R/W Horizontal Blank Start bit 8. 0x3
+      4 R/W Horizontal Blank Start bit 8. 0x3 ---- Erratum: Actually, 0x02!
       3 R/W Reserved. -
       2 R/W Horizontal Display Enable End bit 8. 0x1
       1 R/W Reserved. -
@@ -552,6 +552,34 @@ banshee_recalctimings(svga_t *svga)
         svga->htotal += 0x100;
     if (svga->crtc[0x1a] & 0x04)
         svga->hdisp += 0x100;
+
+     if (banshee->vidProcCfg & VIDPROCCFG_VIDPROC_ENABLE) {
+        /* Video processing mode - assume timings akin to Cirrus' special blanking mode,
+           that is, no overscan and relying on display end to blank. */
+        svga->hblankstart    = svga->crtc[1] + ((svga->crtc[3] >> 5) & 3) +
+                               (((svga->crtc[0x1a] & 0x04) >> 2) << 8) + 1;
+        svga->hblank_end_val = ((svga->crtc[3] >> 5) & 3);
+
+        /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
+        if (!svga->scrblank && svga->attr_palette_enable)
+            svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
+
+        /* No overscan in this mode. */
+        svga->hblank_overscan = 0;
+
+        svga->monitor->mon_overscan_y = 0;
+        svga->monitor->mon_overscan_x = 0;
+
+        /* Also make sure vertical blanking starts on display end. */
+        svga->vblankstart = svga->dispend;
+
+        svga->linedbl     = 0;
+     } else {
+        svga->hblankstart    = (((svga->crtc[0x1a] & 0x10) >> 4) << 8) + svga->crtc[2] + 1;
+        svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
+                               (((svga->crtc[0x1a] & 0x20) >> 5) << 6);
+    }
+
     /*6 R/W Vertical Retrace Start bit 10 0x10
       5 R/W Reserved. -
       4 R/W Vertical Blank Start bit 10. 0x15
@@ -567,6 +595,7 @@ banshee_recalctimings(svga_t *svga)
         svga->vblankstart += 0x400;
     if (svga->crtc[0x1b] & 0x40)
         svga->vsyncstart += 0x400;
+
 #if 0
     banshee_log("svga->hdisp=%i\n", svga->hdisp);
 #endif
@@ -614,6 +643,8 @@ banshee_recalctimings(svga_t *svga)
         if (banshee->vidProcCfg & VIDPROCCFG_2X_MODE) {
             svga->hdisp *= 2;
             svga->htotal *= 2;
+            svga->hblankstart *= 2;
+            svga->hblank_end_val *= 2;
         }
 
         svga->interlace = !!(banshee->vidProcCfg & VIDPROCCFG_INTERLACE);
@@ -795,6 +826,7 @@ banshee_ext_outl(uint16_t addr, uint32_t val, void *priv)
         case Init_vgaInit0:
             banshee->vgaInit0 = val;
             svga_set_ramdac_type(svga, (val & VGAINIT0_RAMDAC_8BIT ? RAMDAC_8BIT : RAMDAC_6BIT));
+            svga_recalctimings(svga);
             break;
         case Init_vgaInit1:
             banshee->vgaInit1   = val;

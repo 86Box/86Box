@@ -306,7 +306,7 @@ extern void xga_device_add(void);
 
 /* IBM 8514/A and clones*/
 extern void ibm8514_device_add(void);
-extern const device_t mach8_isa_device;
+extern const device_t mach8_vga_isa_device;
 extern const device_t mach32_isa_device;
 extern const device_t mach32_vlb_device;
 extern const device_t mach32_mca_device;
@@ -459,6 +459,7 @@ extern const device_t paradise_wd90c11_device;
 extern const device_t paradise_wd90c30_device;
 
 /* Realtek (S)VGA */
+extern const device_t realtek_rtg3105_device;
 extern const device_t realtek_rtg3106_device;
 
 /* S3 9XX/8XX/Vision/Trio */

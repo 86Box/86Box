@@ -32,7 +32,7 @@ thread_run_wrapper(thread_param *arg)
 }
 
 thread_t *
-thread_create(void (*thread_rout)(void *param), void *param)
+thread_create_named(void (*thread_rout)(void *param), void *param, const char *name)
 {
     pthread_t    *thread   = malloc(sizeof(pthread_t));
     thread_param *thrparam = malloc(sizeof(thread_param));
@@ -40,6 +40,7 @@ thread_create(void (*thread_rout)(void *param), void *param)
     thrparam->param        = param;
 
     pthread_create(thread, NULL, (void *(*) (void *) ) thread_run_wrapper, thrparam);
+    plat_set_thread_name(thread, name);
 
     return thread;
 }
@@ -51,7 +52,7 @@ thread_wait(thread_t *arg)
 }
 
 event_t *
-thread_create_event()
+thread_create_event(void)
 {
     event_pthread_t *event = malloc(sizeof(event_pthread_t));
 

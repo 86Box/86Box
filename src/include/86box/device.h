@@ -202,6 +202,8 @@ extern const char *device_get_bios_file(const device_t *dev, const char *interna
 
 extern int device_is_valid(const device_t *, int m);
 
+extern const device_t* device_context_get_device(void);
+
 extern int         device_get_config_int(const char *name);
 extern int         device_get_config_int_ex(const char *s, int dflt_int);
 extern int         device_get_config_hex16(const char *name);

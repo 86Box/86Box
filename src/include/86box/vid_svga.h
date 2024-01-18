@@ -274,10 +274,14 @@ typedef struct svga_t {
     /* Enable LUT mapping of >= 24 bpp modes. */
     int lut_map;
 
+    /* Override the horizontal blanking stuff. */
+    int hoverride;
+
     /* Return a 32 bpp color from a 15/16 bpp color. */
     uint32_t (*conv_16to32)(struct svga_t *svga, uint16_t color, uint8_t bpp);
 
     void *  dev8514;
+    void *  ext8514;
     void *  xga;
 } svga_t;
 
@@ -292,6 +296,13 @@ extern int     ibm8514_cpu_dest(svga_t *svga);
 extern void    ibm8514_accel_out_pixtrans(svga_t *svga, uint16_t port, uint32_t val, int len);
 extern void    ibm8514_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, uint8_t ssv, int len);
 extern void    ibm8514_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, svga_t *svga, int len);
+
+#ifdef ATI_8514_ULTRA
+extern void    ati8514_recalctimings(svga_t *svga);
+extern uint8_t ati8514_mca_read(int port, void *priv);
+extern void    ati8514_mca_write(int port, uint8_t val, void *priv);
+extern void    ati8514_init(svga_t *svga, void *ext8514, void *dev8514);
+#endif
 
 extern void xga_poll(void *priv, svga_t *svga);
 extern void xga_recalctimings(svga_t *svga);

@@ -1952,8 +1952,18 @@ cdrom_hard_reset(void)
 
             dev->cd_status = CD_STATUS_EMPTY;
 
-            if (dev->host_drive == 200)
+            if (dev->host_drive == 200) {
+#ifdef _WIN32
+                if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '/'))
+                    dev->image_path[strlen(dev->image_path) - 1] = '\\';
+#else
+                if ((strlen(dev->image_path) >= 1) &&
+                    (dev->image_path[strlen(dev->image_path) - 1] == '\\'))
+                    dev->image_path[strlen(dev->image_path) - 1] = '/';
+#endif
+
                 cdrom_image_open(dev, dev->image_path);
+            }
         }
     }
 
@@ -2042,6 +2052,15 @@ cdrom_reload(uint8_t id)
     if (dev->prev_host_drive == 200) {
         /* Reload a previous image. */
         strcpy(dev->image_path, dev->prev_image_path);
+
+#ifdef _WIN32
+        if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '/'))
+            dev->image_path[strlen(dev->image_path) - 1] = '\\';
+#else
+         if ((strlen(dev->image_path) >= 1) && (dev->image_path[strlen(dev->image_path) - 1] == '\\'))
+            dev->image_path[strlen(dev->image_path) - 1] = '/';
+#endif
+
         cdrom_image_open(dev, dev->image_path);
 
         cdrom_insert(id);

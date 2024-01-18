@@ -51,6 +51,7 @@ extern const device_t vid_ppc512_device;
 extern const device_t vid_device_sl;
 extern const device_t t1200_video_device;
 extern const device_t compaq_plasma_device;
+extern const device_t ps1_2011_device;
 
 const machine_filter_t machine_types[] = {
     { "None",                      MACHINE_TYPE_NONE       },
@@ -2585,7 +2586,7 @@ const machine_t machines[] = {
         .kbc_p1 = 0xff,
         .gpio = 0xffffffff,
         .gpio_acpi = 0xffffffff,
-        .device = NULL,
+        .device = &ps1_2011_device,
         .fdc_device = NULL,
         .sio_device = NULL,
         .vid_device = NULL,

@@ -45,6 +45,9 @@
 #include <86box/ui.h>
 #include <86box/gdbstub.h>
 
+#define __USE_GNU 1 /* shouldn't be done, yet it is */
+#include <pthread.h>
+
 static int      first_use = 1;
 static uint64_t StartingTime;
 static uint64_t Frequency;
@@ -1377,6 +1380,24 @@ plat_get_cpu_string(char *outbuf, uint8_t len) {
     char cpu_string[] = "Unknown";
 
     strncpy(outbuf, cpu_string, len);
+}
+
+void
+plat_set_thread_name(void *thread, const char *name)
+{
+#ifdef __APPLE__
+    if (thread) /* Apple pthread can only set self's name */
+        return;
+    char truncated[64];
+#else
+    char truncated[16];
+#endif
+    strncpy(truncated, name, sizeof(truncated) - 1);
+#ifdef __APPLE__
+    pthread_setname_np(truncated);
+#else
+    pthread_setname_np(thread ? *((pthread_t *) thread) : pthread_self(), truncated);
+#endif
 }
 
 /* Converts back the language code to LCID */

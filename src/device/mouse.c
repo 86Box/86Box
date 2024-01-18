@@ -455,6 +455,15 @@ mouse_scale(int x, int y)
 }
 
 void
+mouse_scale_axis(int axis, int val)
+{
+    if (axis == 1)
+        mouse_scale_y(val);
+    else if (axis == 0)
+        mouse_scale_x(val);
+}
+
+void
 mouse_set_z(int z)
 {
     atomic_fetch_add(&mouse_z, z);

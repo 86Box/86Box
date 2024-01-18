@@ -1751,6 +1751,35 @@ gd54xx_recalctimings(svga_t *svga)
     uint8_t         rdmask;
     uint8_t         linedbl = svga->dispend * 9 / 10 >= svga->hdisp;
 
+    svga->hblankstart = svga->crtc[2] + 1;
+
+    if (svga->crtc[0x1b] & ((svga->crtc[0x27] >= CIRRUS_ID_CLGD5424) ? 0xa0 : 0x20)) {
+        /* Special blanking mode: the blank start and end become components of the window generator,
+           and the actual blanking comes from the display enable signal. */
+        /* This means blanking during overscan, we already calculate it that way, so just use the
+           same calculation and force otvercan to 0. */
+        svga->hblank_end_val = (svga->crtc[3] & 0x1f) | ((svga->crtc[5] & 0x80) ? 0x20 : 0x00) |
+                               (((svga->crtc[0x1a] >> 4) & 3) << 6);
+
+        if (svga->crtc[0x1b] & 0x20) {
+            svga->hblankstart = svga->crtc[1] + ((svga->crtc[3] >> 5) & 3) + 1;
+            svga->hblank_end_val = ((svga->crtc[3] >> 5) & 3);
+
+            /* In this mode, the dots per clock are always 8 or 16, never 9 or 18. */
+	    if (!svga->scrblank && svga->attr_palette_enable)
+                svga->dots_per_clock = (svga->seqregs[1] & 8) ? 16 : 8;
+
+            /* No overscan in this mode. */
+            svga->hblank_overscan = 0;
+
+            svga->monitor->mon_overscan_y = 0;
+            svga->monitor->mon_overscan_x = 0;
+
+            /* Also make sure vertical blanking starts on display end. */
+            svga->vblankstart = svga->dispend;
+        }
+    }
+
     svga->rowoffset = (svga->crtc[0x13]) | (((int) (uint32_t) (svga->crtc[0x1b] & 0x10)) << 4);
 
     svga->interlace = (svga->crtc[0x1a] & 0x01);
@@ -1765,8 +1794,11 @@ gd54xx_recalctimings(svga_t *svga)
             svga->render = svga_render_8bpp_lowres;
         else {
             svga->render = svga_render_8bpp_highres;
-            if ((svga->dispend == 512) && !svga->interlace && gd54xx_is_5434(svga))
+            if ((svga->dispend == 512) && !svga->interlace && gd54xx_is_5434(svga)) {
                 svga->hdisp <<= 1;
+                svga->hblankstart <<= 1;
+                svga->hblank_end_val <<= 1;
+            }
         }
     } else if (svga->gdcreg[5] & 0x40)
         svga->render = svga_render_8bpp_lowres;
@@ -1941,6 +1973,9 @@ gd54xx_recalctimings(svga_t *svga)
     }
 
     svga->vram_display_mask = (svga->crtc[0x1b] & 2) ? gd54xx->vram_mask : 0x3ffff;
+
+    if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5430)
+        svga->htotal += ((svga->crtc[0x1c] >> 3) & 0x07);
 
     if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
         if (svga->seqregs[1] & 8) {
