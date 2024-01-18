@@ -10,11 +10,8 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
- *          Melissa Goad, <mszoopers@protonmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2010-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdio.h>
@@ -43,11 +40,59 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/nvr.h>
+#include <86box/plat_unused.h>
+#include <86box/sound.h>
 
 static void
-machine_at_thor_common_init(const machine_t *model, int mr)
+machine_at_thor_gpio_init(void)
 {
-    machine_at_common_init_ex(model, mr);
+    uint32_t gpio = 0xffffe1cf;
+
+    /* Register 0x0078 (Undocumented): */
+    /* Bit 5: 0 = Multiplier. */
+    /* Bit 4: 0 = Multiplier. */
+    /*        1.5: 0, 0. */
+    /*        3.0: 0, 1. */
+    /*        2.0: 1, 0. */
+    /*        2.5: 1, 1. */
+    /* Bit 1: 0 = Error beep, 1 = No error. */
+    if (cpu_dmulti <= 1.5)
+        gpio |= 0xffff0000;
+    else if ((cpu_dmulti > 1.5) && (cpu_dmulti <= 2.0))
+        gpio |= 0xffff0020;
+    else if ((cpu_dmulti > 2.0) && (cpu_dmulti <= 2.5))
+        gpio |= 0xffff0030;
+    else if (cpu_dmulti > 2.5)
+        gpio |= 0xffff0010;
+
+    /* Register 0x0079: */
+    /* Bit 7: 0 = Clear password, 1 = Keep password. */
+    /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
+    /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
+    /* Bit 4: External CPU clock (Switch 8). */
+    /* Bit 3: External CPU clock (Switch 7). */
+    /*        50 MHz: Switch 7 = Off, Switch 8 = Off. */
+    /*        60 MHz: Switch 7 = On, Switch 8 = Off. */
+    /*        66 MHz: Switch 7 = Off, Switch 8 = On. */
+    /* Bit 2: 0 = On-board audio absent, 1 = On-board audio present. */
+    /* Bit 1: 0 = Soft-off capable power supply present, 1 = Soft-off capable power supply absent. */
+    /* Bit 0: 0 = Reserved. */
+    /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
+    if (cpu_busspeed <= 50000000)
+        gpio |= 0xffff0000;
+    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
+        gpio |= 0xffff0800;
+    else if (cpu_busspeed > 60000000)
+        gpio |= 0xffff1000;
+
+    machine_set_gpio_default(gpio);
+}
+
+static void
+machine_at_thor_common_init(const machine_t *model, int has_video)
+{
+    machine_at_common_init_ex(model, 2);
+    machine_at_thor_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -58,12 +103,9 @@ machine_at_thor_common_init(const machine_t *model, int mr)
     pci_register_slot(0x10, PCI_CARD_NORMAL,      4, 3, 2, 1);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
 
-    if (gfxcard[0] == VID_INTERNAL)
-        device_add(&s3_phoenix_trio64vplus_onboard_pci_device);
+    if (has_video && (gfxcard[0] == VID_INTERNAL))
+        device_add(machine_get_vid_device(machine));
 
-#if 0
-    device_add(&keyboard_ps2_ami_pci_device);
-#endif
     device_add(&keyboard_ps2_intel_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
@@ -180,7 +222,7 @@ machine_at_thor_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_thor_common_init(model, 0);
+    machine_at_thor_common_init(model, 1);
 
     return ret;
 }
@@ -196,7 +238,93 @@ machine_at_mrthor_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_thor_common_init(model, 1);
+    machine_at_thor_common_init(model, 0);
+
+    return ret;
+}
+
+static void
+machine_at_endeavor_gpio_init(void)
+{
+    uint32_t gpio = 0xffffe0cf;
+    uint16_t addr;
+
+    /* Register 0x0078 (Undocumented): */
+    /* Bit 5,4: Vibra 16S base address: 0 = 220h, 1 = 260h, 2 = 240h, 3 = 280h. */
+    device_context(machine_get_snd_device(machine));
+    addr = device_get_config_hex16("base");
+    switch (addr) {
+        case 0x0220:
+            gpio |= 0xffff00cf;
+            break;
+        case 0x0240:
+            gpio |= 0xffff00ef;
+            break;
+        case 0x0260:
+            gpio |= 0xffff00df;
+            break;
+        case 0x0280:
+            gpio |= 0xffff00ff;
+            break;
+    }
+    device_context_restore();
+
+    /* Register 0x0079: */
+    /* Bit 7: 0 = Clear password, 1 = Keep password. */
+    /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
+    /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
+    /* Bit 4: External CPU clock (Switch 8). */
+    /* Bit 3: External CPU clock (Switch 7). */
+    /*        50 MHz: Switch 7 = Off, Switch 8 = Off. */
+    /*        60 MHz: Switch 7 = On, Switch 8 = Off. */
+    /*        66 MHz: Switch 7 = Off, Switch 8 = On. */
+    /* Bit 2: 0 = On-board audio absent, 1 = On-board audio present. */
+    /* Bit 1: 0 = Soft-off capable power supply present, 1 = Soft-off capable power supply absent. */
+    /* Bit 0: 0 = 2x multiplier, 1 = 1.5x multiplier (Switch 6). */
+    /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
+    if (cpu_busspeed <= 50000000)
+        gpio |= 0xffff0000;
+    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
+        gpio |= 0xffff0800;
+    else if (cpu_busspeed > 60000000)
+        gpio |= 0xffff1000;
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        gpio |= 0xffff0400;
+
+    if (cpu_dmulti <= 1.5)
+        gpio |= 0xffff0100;
+    else
+        gpio |= 0xffff0000;
+
+    machine_set_gpio_default(gpio);
+}
+
+uint32_t
+machine_at_endeavor_gpio_handler(uint8_t write, uint32_t val)
+{
+    uint32_t ret = machine_get_gpio_default();
+
+    if (write) {
+        ret &= ((val & 0xffffffcf) | 0xffff0000);
+        ret |= (val & 0x00000030);
+        if (machine_snd != NULL)  switch ((val >> 4) & 0x03) {
+            case 0x00:
+                sb_vibra16s_onboard_relocate_base(0x0220, machine_snd);
+                break;
+            case 0x01:
+                sb_vibra16s_onboard_relocate_base(0x0260, machine_snd);
+                break;
+            case 0x02:
+                sb_vibra16s_onboard_relocate_base(0x0240, machine_snd);
+                break;
+            case 0x03:
+                sb_vibra16s_onboard_relocate_base(0x0280, machine_snd);
+                break;
+        }
+        machine_set_gpio(ret);
+    } else
+        ret = machine_get_gpio();
 
     return ret;
 }
@@ -213,7 +341,8 @@ machine_at_endeavor_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    machine_at_endeavor_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -225,7 +354,10 @@ machine_at_endeavor_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(&s3_phoenix_trio64_onboard_pci_device);
+        device_add(machine_get_vid_device(machine));
+
+    if (sound_card_current[0] == SOUND_INTERNAL)
+        machine_snd = device_add(machine_get_snd_device(machine));
 
     device_add(&keyboard_ps2_intel_ami_pci_device);
     device_add(&i430fx_device);
@@ -241,7 +373,7 @@ machine_at_ms5119_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/ms5119/A37E.ROM",
+    ret = bios_load_linear("roms/machines/ms5119/A37EB.ROM",
                            0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -265,6 +397,39 @@ machine_at_ms5119_init(const machine_t *model)
     return ret;
 }
 
+static void
+machine_at_pb640_gpio_init(void)
+{
+    uint32_t gpio = 0xffffe6ff;
+
+    /* Register 0x0079: */
+    /* Bit 7: 0 = Clear password, 1 = Keep password. */
+    /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
+    /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
+    /* Bit 4: External CPU clock (Switch 8). */
+    /* Bit 3: External CPU clock (Switch 7). */
+    /*        50 MHz: Switch 7 = Off, Switch 8 = Off. */
+    /*        60 MHz: Switch 7 = On, Switch 8 = Off. */
+    /*        66 MHz: Switch 7 = Off, Switch 8 = On. */
+    /* Bit 2: No Connect. */
+    /* Bit 1: No Connect. */
+    /* Bit 0: 2x multiplier, 1 = 1.5x multiplier (Switch 6). */
+    /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
+    if (cpu_busspeed <= 50000000)
+        gpio |= 0xffff00ff;
+    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
+        gpio |= 0xffff08ff;
+    else if (cpu_busspeed > 60000000)
+        gpio |= 0xffff10ff;
+
+    if (cpu_dmulti <= 1.5)
+        gpio |= 0xffff01ff;
+    else
+        gpio |= 0xffff00ff;
+
+    machine_set_gpio_default(gpio);
+}
+
 int
 machine_at_pb640_init(const machine_t *model)
 {
@@ -276,7 +441,8 @@ machine_at_pb640_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    machine_at_pb640_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -458,7 +624,7 @@ machine_at_p55t2s_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -506,6 +672,40 @@ machine_at_p5vxb_init(const machine_t *model)
 }
 
 int
+machine_at_dell_430vx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined2("roms/machines/dell_430vx/1003DY0J.BIO",
+                                     "roms/machines/dell_430vx/1003DY0J.BI1",
+                                     "roms/machines/dell_430vx/1003DY0J.BI2",
+                                     "roms/machines/dell_430vx/1003DY0J.BI3",
+                                     "roms/machines/dell_430vx/1003DY0J.RCV",
+                                     0x3a000, 128);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_VIDEO,       4, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
+    device_add(&i430vx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&fdc37c932fr_device);
+    device_add(&intel_flash_bxt_ami_device);
+
+    return ret;
+}
+
+int
 machine_at_gw2kte_init(const machine_t *model)
 {
     int ret;
@@ -528,7 +728,7 @@ machine_at_gw2kte_init(const machine_t *model)
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2);
-    pci_register_slot(0x10, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
     device_add(&i430vx_device);
     device_add(&piix3_device);
@@ -550,18 +750,18 @@ machine_at_ap5s_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
-    pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 4, 2, 1);
-    pci_register_slot(0x13, PCI_CARD_NORMAL,      4, 3, 2, 1);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      4, 1, 2, 3);
 
     device_add(&sis_5511_device);
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&keyboard_ps2_ami_device);
     device_add(&fdc37c665_device);
     device_add(&sst_flash_29ee010_device);
 
@@ -579,19 +779,19 @@ machine_at_ms5124_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0xFE, 0xFF, 0, 0);
-    pci_register_slot(0x10, PCI_CARD_NORMAL,      0x41, 0x42, 0x43, 0x44);
-    pci_register_slot(0x11, PCI_CARD_NORMAL,      0x44, 0x41, 0x42, 0x43);
-    pci_register_slot(0x12, PCI_CARD_NORMAL,      0x43, 0x44, 0x41, 0x42);
-    pci_register_slot(0x0F, PCI_CARD_NORMAL,      0x42, 0x43, 0x44, 0x41);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
 
     device_add(&sis_5511_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&w83787f_device);
+    device_add(&keyboard_ps2_ami_device);
+    device_add(&w83787f_88h_device);
     device_add(&sst_flash_29ee010_device);
 
     return ret;

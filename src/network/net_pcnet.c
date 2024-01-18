@@ -47,6 +47,7 @@
 #include <86box/network.h>
 #include <86box/net_pcnet.h>
 #include <86box/bswap.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
 /* PCI info. */
@@ -216,7 +217,8 @@ typedef struct {
     uint32_t      base_address;
     int           base_irq;
     int           dma_channel;
-    int           card; /* PCI card slot */
+    uint8_t       pci_slot; /* PCI card slot */
+    uint8_t       irq_state;
     int           xmit_pos;
     /** Register Address Pointer */
     uint32_t u32RAP;
@@ -413,9 +415,9 @@ pcnet_do_irq(nic_t *dev, int issue)
 {
     if (dev->is_pci) {
         if (issue)
-            pci_set_irq(dev->card, PCI_INTA);
+            pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
         else
-            pci_clear_irq(dev->card, PCI_INTA);
+            pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
     } else {
         if (issue)
             picint(1 << dev->base_irq);
@@ -747,7 +749,7 @@ static const uint32_t crctab[256] =
 static __inline int
 padr_match(nic_t *dev, const uint8_t *buf, UNUSED(int size))
 {
-    const struct ether_header *hdr = (struct ether_header *) buf;
+    const struct ether_header *hdr = (const struct ether_header *) buf;
     int                        result;
     uint8_t                    padr[6];
 
@@ -773,7 +775,7 @@ static __inline int
 padr_bcast(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 {
     static uint8_t             aBCAST[6] = { 0xff, 0xff, 0xff, 0xff, 0xff, 0xff };
-    const struct ether_header *hdr       = (struct ether_header *) buf;
+    const struct ether_header *hdr       = (const struct ether_header *) buf;
     int                        result    = !CSR_DRCVBC(dev) && !memcmp(hdr->ether_dhost, aBCAST, 6);
 
     pcnet_log(3, "%s: padr_bcast result=%d\n", dev->name, result);
@@ -784,7 +786,7 @@ padr_bcast(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 static int
 ladr_match(nic_t *dev, const uint8_t *buf, UNUSED(size_t size))
 {
-    const struct ether_header *hdr = (struct ether_header *) buf;
+    const struct ether_header *hdr = (const struct ether_header *) buf;
 
     if ((hdr->ether_dhost[0] & 0x01) && ((uint64_t *) &dev->aCSR[8])[0] != 0LL) {
         int     index;
@@ -864,7 +866,7 @@ pcnetSoftReset(nic_t *dev)
         case DEV_AM79C960_VLB:
         case DEV_AM79C961:
             dev->aCSR[88] = 0x3003;
-            dev->aCSR[89] = 0x0262;
+            dev->aCSR[89] = 0x0000;
             break;
 
         default:
@@ -1997,7 +1999,7 @@ pcnet_bcr_writew(nic_t *dev, uint16_t rap, uint16_t val)
                     break;
             }
             dev->aCSR[58] = val;
-            /* fall through */
+            fallthrough;
         case BCR_LNKST:
         case BCR_LED1:
         case BCR_LED2:
@@ -2995,8 +2997,7 @@ pcnet_init(const device_t *info)
         pcnet_pci_regs[0x04]          = 3;
 
         /* Add device to the PCI bus, keep its slot number. */
-        dev->card = pci_add_card(PCI_ADD_NORMAL,
-                                 pcnet_pci_read, pcnet_pci_write, dev);
+        pci_add_card(PCI_ADD_NORMAL, pcnet_pci_read, pcnet_pci_write, dev, &dev->pci_slot);
     } else if (dev->board == DEV_AM79C961) {
         dev->dma_channel = -1;
 
@@ -3100,9 +3101,12 @@ static const device_config_t pcnet_isa_config[] = {
             { .description = "IRQ 3", .value = 3 },
             { .description = "IRQ 4", .value = 4 },
             { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
             { .description = "IRQ 9", .value = 9 },
             { .description = "IRQ 10", .value = 10 },
             { .description = "IRQ 11", .value = 11 },
+            { .description = "IRQ 12", .value = 12 },
+            { .description = "IRQ 15", .value = 15 },
             { .description = ""                  }
         },
     },
@@ -3115,6 +3119,7 @@ static const device_config_t pcnet_isa_config[] = {
         .file_filter = "",
         .spinner = { 0 },
         .selection = {
+            { .description = "DMA 0", .value = 0 },
             { .description = "DMA 3", .value = 3 },
             { .description = "DMA 5", .value = 5 },
             { .description = "DMA 6", .value = 6 },
@@ -3161,9 +3166,12 @@ static const device_config_t pcnet_vlb_config[] = {
             { .description = "IRQ 3", .value = 3 },
             { .description = "IRQ 4", .value = 4 },
             { .description = "IRQ 5", .value = 5 },
+            { .description = "IRQ 7", .value = 7 },
             { .description = "IRQ 9", .value = 9 },
             { .description = "IRQ 10", .value = 10 },
             { .description = "IRQ 11", .value = 11 },
+            { .description = "IRQ 12", .value = 12 },
+            { .description = "IRQ 15", .value = 15 },
             { .description = ""                  }
         },
     },

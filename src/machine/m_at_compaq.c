@@ -31,6 +31,7 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/device.h>
+#include <86box/chipset.h>
 #include <86box/keyboard.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
@@ -51,7 +52,7 @@ enum {
     COMPAQ_PORTABLEIII,
     COMPAQ_PORTABLEIII386,
     COMPAQ_DESKPRO386,
-    COMPAQ_DESKPRO386_01_1988
+    COMPAQ_DESKPRO386_05_1988
 };
 
 #define CGA_RGB       0
@@ -279,7 +280,7 @@ compaq_plasma_poll(void *priv)
     uint32_t fg = (self->cga.cgacol & 0x0f) ? amber : black;
     uint32_t bg = black;
     uint32_t cols[2];
-    uint8_t  dat2;
+    uint8_t  dat;
     uint8_t  pattern;
     uint32_t ink0 = 0;
     uint32_t ink1 = 0;
@@ -314,25 +315,25 @@ compaq_plasma_poll(void *priv)
                         addr = ((self->cga.displine >> 1) & 1) * 0x2000 + (self->cga.displine >> 2) * 80 + ((ma & ~1) << 1);
                     }
                     for (uint8_t x = 0; x < 80; x++) {
-                        dat2 = self->cga.vram[addr & 0x7FFF];
+                        dat = self->cga.vram[addr & 0x7FFF];
                         addr++;
 
                         for (uint8_t c = 0; c < 8; c++) {
-                            ink = (dat2 & 0x80) ? fg : bg;
+                            ink = (dat & 0x80) ? fg : bg;
                             if (!(self->cga.cgamode & 8))
                                 ink = black;
                             (buffer32->line[self->cga.displine])[x * 8 + c] = ink;
-                            dat2 <<= 1;
+                            dat <<= 1;
                         }
                     }
                 } else {
                     addr = ((self->cga.displine >> 1) & 1) * 0x2000 + (self->cga.displine >> 2) * 80 + ((ma & ~1) << 1);
                     for (uint8_t x = 0; x < 80; x++) {
-                        dat2 = self->cga.vram[addr & 0x7fff];
+                        dat = self->cga.vram[addr & 0x7fff];
                         addr++;
 
                         for (uint8_t c = 0; c < 4; c++) {
-                            pattern = (dat2 & 0xC0) >> 6;
+                            pattern = (dat & 0xC0) >> 6;
                             if (!(self->cga.cgamode & 8))
                                 pattern = 0;
 
@@ -367,7 +368,7 @@ compaq_plasma_poll(void *priv)
                             }
                             buffer32->line[self->cga.displine][x * 8 + 2 * c]     = ink0;
                             buffer32->line[self->cga.displine][x * 8 + 2 * c + 1] = ink1;
-                            dat2 <<= 2;
+                            dat <<= 2;
                         }
                     }
                 }
@@ -385,34 +386,25 @@ compaq_plasma_poll(void *priv)
                 /* for each text column */
                 for (uint8_t x = 0; x < 80; x++) {
                     /* video output enabled */
-                    if (self->cga.cgamode & 8) {
-                        chr        = self->cga.vram[(addr + 2 * x) & 0x7fff];
-                        attr       = self->cga.vram[(addr + 2 * x + 1) & 0x7fff];
-                    } else
-                        chr = attr = 0;
-                    /* check if cursor has to be drawn */
-                    drawcursor = ((ma == ca) && cursorline && self->cga.cursoron);
+                    chr        = self->cga.vram[(addr + 2 * x) & 0x7FFF];
+                    attr       = self->cga.vram[(addr + 2 * x + 1) & 0x7FFF];
+                    drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 8) && (self->cga.cgablink & 16));
+
+                    blink = ((self->cga.cgablink & 16) && (self->cga.cgamode & 0x20) && (attr & 0x80) && !drawcursor);
                     underline = ((self->port_23c6 & 0x40) && (attr & 0x1) && !(attr & 0x6));
-                    if (underline) {
-                        /* set forecolor to white */
-                        attr |= 7;
-                    }
-                    blink = 0;
                     /* blink active */
                     if (self->cga.cgamode & 0x20) {
                         cols[1] = blinkcols[attr][1];
                         cols[0] = blinkcols[attr][0];
                         /* attribute 7 active and not cursor */
-                        if ((self->cga.cgablink & 8) && (attr & 0x80) && !self->cga.drawcursor) {
+                        if (blink) {
                             /* set blinking */
                             cols[1] = cols[0];
-                            blink   = 1;
                         }
                     } else {
                         /* Set intensity bit */
                         cols[1] = normcols[attr][1];
                         cols[0] = normcols[attr][0];
-                        blink   = (attr & 0x80) * 8 + 7 + 16;
                     }
                     /* character underline active and 7th row of pixels in character height being drawn */
                     if (underline && (sc == 7)) {
@@ -421,10 +413,10 @@ compaq_plasma_poll(void *priv)
                             buffer32->line[self->cga.displine][(x << 3) + c] = mdaattr[attr][blink][1];
                     } else if (drawcursor) {
                         for (uint8_t c = 0; c < 8; c++)
-                            buffer32->line[self->cga.displine][(x << 3) + c] = cols[(fontdatm[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
+                            buffer32->line[self->cga.displine][(x << 3) + c] = cols[(fontdatm2[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
                     } else {
                         for (uint8_t c = 0; c < 8; c++)
-                            buffer32->line[self->cga.displine][(x << 3) + c] = cols[(fontdatm[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0];
+                            buffer32->line[self->cga.displine][(x << 3) + c] = cols[(fontdatm2[chr + self->cga.fontbase][sc] & (1 << (c ^ 7))) ? 1 : 0];
                     }
 
                     ++ma;
@@ -440,34 +432,25 @@ compaq_plasma_poll(void *priv)
                     cursorline = ((self->cga.crtc[0x0a] & 0x0f) * 2 <= sc) && ((self->cga.crtc[0x0b] & 0x0F) * 2 >= sc);
 
                 for (uint8_t x = 0; x < 40; x++) {
-                    if (self->cga.cgamode & 8) {
-                        chr        = self->cga.vram[(addr + 2 * x) & 0x7fff];
-                        attr       = self->cga.vram[(addr + 2 * x + 1) & 0x7fff];
-                    } else {
-                        chr = attr = 0;
-                    }
-                    drawcursor = ((ma == ca) && cursorline && self->cga.cursoron);
+                    chr        = self->cga.vram[(addr + 2 * x) & 0x7FFF];
+                    attr       = self->cga.vram[(addr + 2 * x + 1) & 0x7FFF];
+                    drawcursor = ((ma == ca) && cursorline && (self->cga.cgamode & 8) && (self->cga.cgablink & 16));
+
+                    blink = ((self->cga.cgablink & 16) && (self->cga.cgamode & 0x20) && (attr & 0x80) && !drawcursor);
                     underline = ((self->port_23c6 & 0x40) && (attr & 0x1) && !(attr & 0x6));
-                    if (underline) {
-                        /* set forecolor to white */
-                        attr |= 7;
-                    }
-                    blink = 0;
                     /* blink active */
                     if (self->cga.cgamode & 0x20) {
                         cols[1] = blinkcols[attr][1];
                         cols[0] = blinkcols[attr][0];
                         /* attribute 7 active and not cursor */
-                        if ((self->cga.cgablink & 8) && (attr & 0x80) && !self->cga.drawcursor) {
+                        if (blink) {
                             /* set blinking */
                             cols[1] = cols[0];
-                            blink   = 1;
                         }
                     } else {
                         /* Set intensity bit */
                         cols[1] = normcols[attr][1];
                         cols[0] = normcols[attr][0];
-                        blink   = (attr & 0x80) * 8 + 7 + 16;
                     }
                     /* character underline active and 7th row of pixels in character height being drawn */
                     if (underline && (sc == 7)) {
@@ -475,13 +458,11 @@ compaq_plasma_poll(void *priv)
                         for (uint8_t c = 0; c < 8; c++)
                             buffer32->line[self->cga.displine][(x << 4) + (c * 2)] = buffer32->line[self->cga.displine][(x << 4) + (c * 2) + 1] = mdaattr[attr][blink][1];
                     } else if (drawcursor) {
-                        for (uint8_t c = 0; c < 8; c++) {
-                            buffer32->line[self->cga.displine][(x << 4) + c * 2] = buffer32->line[self->cga.displine][(x << 4) + c * 2 + 1] = cols[(fontdatm[chr][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
-                        }
+                        for (uint8_t c = 0; c < 8; c++)
+                            buffer32->line[self->cga.displine][(x << 4) + c * 2] = buffer32->line[self->cga.displine][(x << 4) + c * 2 + 1] = cols[(fontdatm2[chr][sc] & (1 << (c ^ 7))) ? 1 : 0] ^ (amber ^ black);
                     } else {
-                        for (uint8_t c = 0; c < 8; c++) {
-                            buffer32->line[self->cga.displine][(x << 4) + c * 2] = buffer32->line[self->cga.displine][(x << 4) + c * 2 + 1] = cols[(fontdatm[chr][sc] & (1 << (c ^ 7))) ? 1 : 0];
-                        }
+                        for (uint8_t c = 0; c < 8; c++)
+                            buffer32->line[self->cga.displine][(x << 4) + c * 2] = buffer32->line[self->cga.displine][(x << 4) + c * 2 + 1] = cols[(fontdatm2[chr][sc] & (1 << (c ^ 7))) ? 1 : 0];
                     }
                     ++ma;
                 }
@@ -652,7 +633,7 @@ compaq_plasma_init(UNUSED(const device_t *info))
     memset(self, 0, sizeof(compaq_plasma_t));
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_compaq_plasma);
-    loadfont_ex("roms/machines/portableiii/K Combined.bin", 1, 0x4bb2);
+    loadfont_ex("roms/machines/portableiii/K Combined.bin", 11, 0x4bb2);
 
     self->cga.composite = 0;
     self->cga.revision  = 0;
@@ -704,8 +685,8 @@ const device_config_t compaq_plasma_config[] = {
   // clang-format off
     {
         .name = "rgb_type",
-		.description = "RGB type",
-		.type = CONFIG_SELECTION,
+        .description = "RGB type",
+        .type = CONFIG_SELECTION,
         .default_string = "",
         .default_int = 0,
         .file_filter = "",
@@ -795,34 +776,28 @@ machine_at_compaq_init(const machine_t *model, int type)
 {
     compaq_machine_type = type;
 
-    if ((type != COMPAQ_DESKPRO386) && (type != COMPAQ_DESKPRO386_01_1988))
-        mem_remap_top(384);
-
     if (fdc_type == FDC_INTERNAL)
         device_add(&fdc_at_device);
 
-    if ((type == COMPAQ_DESKPRO386) || (type == COMPAQ_DESKPRO386_01_1988) || (type == COMPAQ_PORTABLEIII386))
-        mem_mapping_add(&ram_mapping, 0xfa0000, 0x60000,
-                        read_ram, read_ramw, read_raml,
-                        write_ram, write_ramw, write_raml,
-                        0xa0000 + ram, MEM_MAPPING_EXTERNAL, NULL);
-    else
+    if (type < COMPAQ_PORTABLEIII386) {
+        mem_remap_top(384);
         mem_mapping_add(&ram_mapping, 0xfa0000, 0x60000,
                         read_ram, read_ramw, read_raml,
                         write_ram, write_ramw, write_raml,
                         0xa0000 + ram, MEM_MAPPING_INTERNAL, NULL);
+    }
 
     video_reset(gfxcard[0]);
 
     switch (type) {
         case COMPAQ_PORTABLEII:
-			machine_at_init(model);
+            machine_at_init(model);
             break;
 
         case COMPAQ_PORTABLEIII:
             if (gfxcard[0] == VID_INTERNAL)
                 device_add(&compaq_plasma_device);
-			machine_at_init(model);
+            machine_at_init(model);
             break;
 
         case COMPAQ_PORTABLEIII386:
@@ -830,13 +805,14 @@ machine_at_compaq_init(const machine_t *model, int type)
                 device_add(&ide_isa_device);
             if (gfxcard[0] == VID_INTERNAL)
                 device_add(&compaq_plasma_device);
-			machine_at_init(model);
+            machine_at_init(model);
             break;
 
         case COMPAQ_DESKPRO386:
-        case COMPAQ_DESKPRO386_01_1988:
+        case COMPAQ_DESKPRO386_05_1988:
             if (hdc_current == 1)
                 device_add(&ide_isa_device);
+            device_add(&compaq_386_device);
             machine_at_common_init(model);
             device_add(&keyboard_at_compaq_device);
             break;
@@ -913,17 +889,17 @@ machine_at_deskpro386_init(const machine_t *model)
 }
 
 int
-machine_at_deskpro386_01_1988_init(const machine_t *model)
+machine_at_deskpro386_05_1988_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linearr("roms/machines/deskpro386/1988-01-28.json.bin",
+    ret = bios_load_linearr("roms/machines/deskpro386/1988-05-10.json.bin",
                             0x000f8000, 65536, 0);
 
     if (bios_only || !ret)
         return ret;
 
-    machine_at_compaq_init(model, COMPAQ_DESKPRO386_01_1988);
+    machine_at_compaq_init(model, COMPAQ_DESKPRO386_05_1988);
 
     return ret;
 }

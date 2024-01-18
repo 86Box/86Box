@@ -109,7 +109,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "擷圖(&C)\tCtrl+F11", IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
-        MENUITEM "首選項(&P)...", IDM_PREFERENCES
+        MENUITEM "偏好設定(&P)...", IDM_PREFERENCES
 #ifdef DISCORD
         MENUITEM "啟用 Discord 整合(&D)", IDM_DISCORD
 #endif
@@ -240,7 +240,7 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES   "首選項"
+#define STR_PREFERENCES   "偏好設定"
 #define STR_SND_GAIN      "音量增益"
 #define STR_NEW_FLOPPY    "新增映像"
 #define STR_CONFIG        "設定"
@@ -293,10 +293,10 @@ END
 #define STR_JOY3          "搖桿 3..."
 #define STR_JOY4          "搖桿 4..."
 
-#define STR_SOUND1        "音訊卡 1:"
-#define STR_SOUND2        "音訊卡 2:"
-#define STR_SOUND3        "音訊卡 3:"
-#define STR_SOUND4        "音訊卡 4:"
+#define STR_SOUND1        "音效卡 1:"
+#define STR_SOUND2        "音效卡 2:"
+#define STR_SOUND3        "音效卡 3:"
+#define STR_SOUND4        "音效卡 4:"
 #define STR_MIDI_OUT      "MIDI 輸出裝置:"
 #define STR_MIDI_IN       "MIDI 輸入裝置:"
 #define STR_MPU401        "獨立 MPU-401"
@@ -357,7 +357,7 @@ END
 #define STR_SPECIFY       "指定(&S)..."
 #define STR_SECTORS       "磁區(S):"
 #define STR_HEADS         "磁頭(H):"
-#define STR_CYLS          "柱面(C):"
+#define STR_CYLS          "磁柱(C):"
 #define STR_SIZE_MB       "大小 (MB):"
 #define STR_TYPE          "類型:"
 #define STR_IMG_FORMAT    "映像格式:"
@@ -480,7 +480,7 @@ BEGIN
     IDS_2125    "關於 86Box"
     IDS_2126    "86Box v" EMU_VERSION
 
-    IDS_2127    "一個舊式電腦模擬器\n\n作者: Sarah Walker、Miran Grca、Fred N. van Kempen (waltje)、SA1988、Tiseno100、reenigne、leilei、JohnElliott、greatpsycho 等人。\n\n本軟體依據 GNU 通用公共授權第二版或更新版本發布。詳情見 LICENSE 檔案。"
+    IDS_2127    "一個舊式電腦模擬器\n\n作者: Miran Grča (OBattler)、RichardG867、Jasmine Iwanek、TC1995、coldbrewed、Teemu Korhonen (Manaatti)、Joakim L. Gilje、Adrien Moulin (elyosh)、Daniel Balsom (gloriouscow)、Cacodemon345、Fred N. van Kempen (waltje)、Tiseno100、reenigne 等人。\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\n本軟體依據 GNU 通用公共授權第二版或更新版本發布。詳情見 LICENSE 檔案。"
     IDS_2128    "確定"
     IDS_2129    "硬體不可用"
 #ifdef _WIN32

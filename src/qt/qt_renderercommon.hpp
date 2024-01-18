@@ -38,8 +38,11 @@ public:
     virtual bool hasBlitFunc() { return false; }
     virtual void blit(int x, int y, int w, int h) { }
 
+    int      r_monitor_index = 0;
+
 protected:
-    bool eventDelegate(QEvent *event, bool &result);
+    bool     eventDelegate(QEvent *event, bool &result);
+    void      drawStatusBarIcons(QPainter* painter);
 
     QRect    source { 0, 0, 0, 0 };
     QRect    destination;

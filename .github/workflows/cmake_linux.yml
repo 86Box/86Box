@@ -1,0 +1,122 @@
+name: CMake (Linux)
+
+on:
+
+  push:
+    paths:
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - .github/workflows/cmake.yml
+      - vcpkg.json
+      - "!**/Makefile*"
+
+  pull_request:
+    paths:
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - .github/workflows/**
+      - .github/workflows/cmake.yml
+      - vcpkg.json
+      - "!**/Makefile*"
+
+jobs:
+
+  linux:
+    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, x86_64"
+
+    runs-on: ubuntu-22.04
+
+    env:
+      BUILD_WRAPPER_OUT_DIR: build_wrapper_output_directory # Directory where build-wrapper output will be placed
+
+    strategy:
+      fail-fast: true
+      matrix:
+        build:
+#          - name: Regular
+#            preset: regular
+          - name: Debug
+            preset: debug
+            slug: -Debug
+          - name: Dev
+            preset: experimental
+            slug: -Dev
+        dynarec:
+          - name: ODR
+            new: off
+            slug: -ODR
+          - name: NDR
+            new: on
+            slug: -NDR
+        ui:
+          - name: SDL GUI
+            qt: off
+            static: on
+          - name: Qt GUI
+            qt: on
+            slug: -Qt
+            packages: >-
+              qtbase5-dev
+              qtbase5-private-dev
+              qttools5-dev
+              libevdev-dev
+              libxkbcommon-x11-dev
+
+    steps:
+      - name: Install dependencies
+        run: >-
+          sudo apt update && sudo apt install
+          build-essential
+          ninja-build
+          libfreetype-dev
+          libsdl2-dev
+          libpng-dev
+          libc6-dev
+          librtmidi-dev
+          libopenal-dev
+          libslirp-dev
+          libfluidsynth-dev
+          libvncserver-dev
+          ${{ matrix.ui.packages }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Install sonar-scanner and build-wrapper
+        uses: SonarSource/sonarcloud-github-c-cpp@v2
+
+      - name: Configure CMake
+        run: >-
+          cmake -G Ninja -S . -B build --preset ${{ matrix.build.preset }}
+          --toolchain ./cmake/flags-gcc-x86_64.cmake
+          -D NEW_DYNAREC=${{ matrix.dynarec.new }}
+          -D CMAKE_INSTALL_PREFIX=./build/artifacts
+          -D QT=${{ matrix.ui.qt }}
+
+      - name: Build
+        run: |
+          build-wrapper-linux-x86-64 --out-dir ${{ env.BUILD_WRAPPER_OUT_DIR }} cmake --build build
+
+      - name: Run sonar-scanner
+#        if: 0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          sonar-scanner --define sonar.cfamily.build-wrapper-output="${{ env.BUILD_WRAPPER_OUT_DIR }}"
+
+      - name: Generate package
+        run: |
+          cmake --install build
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: '86Box${{ matrix.ui.slug }}${{ matrix.dynarec.slug }}${{ matrix.build.slug }}-UbuntuJammy-x86_64-gha${{ github.run_number }}'
+          path: build/artifacts/**

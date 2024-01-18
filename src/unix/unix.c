@@ -21,6 +21,10 @@
 #include <pwd.h>
 #include <stdatomic.h>
 
+#ifdef __APPLE__
+#    include "macOSXGlue.h"
+#endif
+
 #include <86box/86box.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -41,10 +45,6 @@
 #include <86box/ui.h>
 #include <86box/gdbstub.h>
 
-#ifdef __APPLE__
-#    include "macOSXGlue.h"
-#endif
-
 static int      first_use = 1;
 static uint64_t StartingTime;
 static uint64_t Frequency;
@@ -60,6 +60,7 @@ extern wchar_t  sdl_win_title[512];
 plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
 joystick_t      joystick_state[MAX_JOYSTICKS];
 int             joysticks_present;
+int             status_icons_fullscreen = 0; /* unused. */
 SDL_mutex      *blitmtx;
 SDL_threadID    eventthread;
 static int      exit_event         = 0;
@@ -191,6 +192,7 @@ dynld_module(const char *name, dllimp_t *table)
 {
     dllimp_t *imp;
     void     *modhandle = dlopen(name, RTLD_LAZY | RTLD_GLOBAL);
+
     if (modhandle) {
         for (imp = table; imp->name != NULL; imp++) {
             if ((*(void **) imp->func = dlsym(modhandle, imp->name)) == NULL) {
@@ -199,6 +201,7 @@ dynld_module(const char *name, dllimp_t *table)
             }
         }
     }
+
     return modhandle;
 }
 
@@ -310,6 +313,17 @@ path_slash(char *path)
     path_normalize(path);
 }
 
+const char *
+path_get_slash(char *path)
+{
+    char *ret = "";
+
+    if (path[strlen(path) - 1] != '/')
+        ret =  "/";
+
+    return ret;
+}
+
 void
 plat_put_backslash(char *s)
 {
@@ -394,7 +408,7 @@ plat_mmap(size_t size, uint8_t executable)
 #if defined __APPLE__ && defined MAP_JIT
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE | (executable ? MAP_JIT : 0), -1, 0);
 #else
-    void *ret                    = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE, -1, 0);
+    void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE, -1, 0);
 #endif
     return (ret < 0) ? NULL : ret;
 }
@@ -416,6 +430,7 @@ plat_get_ticks_common(void)
 {
     uint64_t EndingTime;
     uint64_t ElapsedMicroseconds;
+
     if (first_use) {
         Frequency    = SDL_GetPerformanceFrequency();
         StartingTime = SDL_GetPerformanceCounter();
@@ -423,6 +438,7 @@ plat_get_ticks_common(void)
     }
     EndingTime          = SDL_GetPerformanceCounter();
     ElapsedMicroseconds = ((EndingTime - StartingTime) * 1000000) / Frequency;
+
     return ElapsedMicroseconds;
 }
 
@@ -447,11 +463,13 @@ plat_remove(char *path)
 void
 ui_sb_update_icon_state(int tag, int state)
 {
+    /* No-op. */
 }
 
 void
 ui_sb_update_icon(int tag, int active)
 {
+    /* No-op. */
 }
 
 void
@@ -463,25 +481,26 @@ plat_delay_ms(uint32_t count)
 void
 ui_sb_update_tip(int arg)
 {
+    /* No-op. */
 }
 
 void
 ui_sb_update_panes(void)
 {
+    /* No-op. */
 }
 
 void
 ui_sb_update_text(void)
 {
+    /* No-op. */
 }
 
 void
 path_get_dirname(char *dest, const char *path)
 {
     int   c = (int) strlen(path);
-    char *ptr;
-
-    ptr = (char *) path;
+    char *ptr = (char *) path;
 
     while (c > 0) {
         if (path[c] == '/' || path[c] == '\\') {
@@ -500,6 +519,7 @@ volatile int cpu_thread_run = 1;
 void
 ui_sb_set_text_w(wchar_t *wstr)
 {
+    /* No-op. */
 }
 
 int
@@ -623,12 +643,14 @@ ui_msgbox_header(int flags, void *header, void *message)
 {
     SDL_MessageBoxData       msgdata;
     SDL_MessageBoxButtonData msgbtn;
+
     if (!header)
-        header = (void *) (flags & MBX_ANSI) ? "86Box" : L"86Box";
+        header = (void *) ((flags & MBX_ANSI) ? "86Box" : L"86Box");
     if (header <= (void *) 7168)
-        header = (void *) plat_get_string((int) header);
+        header = (void *) plat_get_string((uintptr_t) header);
     if (message <= (void *) 7168)
-        message = (void *) plat_get_string((int) message);
+        message = (void *) plat_get_string((uintptr_t) message);
+
     msgbtn.buttonid = 1;
     msgbtn.text     = "OK";
     msgbtn.flags    = 0;
@@ -668,6 +690,7 @@ void
 plat_get_exe_name(char *s, int size)
 {
     char *basepath = SDL_GetBasePath();
+
     snprintf(s, size, "%s%s", basepath, basepath[strlen(basepath) - 1] == '/' ? "86box" : "/86box");
 }
 
@@ -688,6 +711,7 @@ plat_power_off(void)
 void
 ui_sb_bugui(char *str)
 {
+    /* No-op. */
 }
 
 extern void sdl_blit(int x, int y, int w, int h);
@@ -698,26 +722,17 @@ typedef struct mouseinputdata {
     int deltaz;
     int mousebuttons;
 } mouseinputdata;
-SDL_mutex            *mousemutex;
-static mouseinputdata mousedata;
-void
-mouse_poll(void)
-{
-    SDL_LockMutex(mousemutex);
-    mouse_x          = mousedata.deltax;
-    mouse_y          = mousedata.deltay;
-    mouse_z          = mousedata.deltaz;
-    mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
-    mouse_buttons                                          = mousedata.mousebuttons;
-    SDL_UnlockMutex(mousemutex);
-}
 
-int real_sdl_w;
-int real_sdl_h;
+SDL_mutex *mousemutex;
+int        real_sdl_w;
+int        real_sdl_h;
+
 void
 ui_sb_set_ready(int ready)
 {
+    /* No-op. */
 }
+
 char *xargv[512];
 
 // From musl.
@@ -726,6 +741,7 @@ local_strsep(char **str, const char *sep)
 {
     char *s = *str;
     char *end;
+
     if (!s)
         return NULL;
     end = s + strcspn(s, sep);
@@ -734,6 +750,7 @@ local_strsep(char **str, const char *sep)
     else
         end = 0;
     *str = end;
+
     return s;
 }
 
@@ -743,10 +760,13 @@ plat_pause(int p)
     static wchar_t oldtitle[512];
     wchar_t        title[512];
 
+    if ((!!p) == dopause)
+        return;
+
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
         nvr_time_sync();
 
-    dopause = p;
+    do_pause(p);
     if (p) {
         wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
         wcscpy(title, oldtitle);
@@ -763,6 +783,7 @@ plat_init_rom_paths(void)
 #ifndef __APPLE__
     if (getenv("XDG_DATA_HOME")) {
         char xdg_rom_path[1024] = { 0 };
+
         strncpy(xdg_rom_path, getenv("XDG_DATA_HOME"), 1024);
         path_slash(xdg_rom_path);
         strncat(xdg_rom_path, "86Box/", 1024);
@@ -776,6 +797,7 @@ plat_init_rom_paths(void)
         rom_add_path(xdg_rom_path);
     } else {
         char home_rom_path[1024] = { 0 };
+
         snprintf(home_rom_path, 1024, "%s/.local/share/86Box/", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
 
         if (!plat_dir_check(home_rom_path))
@@ -790,11 +812,12 @@ plat_init_rom_paths(void)
         char *xdg_rom_paths      = strdup(getenv("XDG_DATA_DIRS"));
         char *xdg_rom_paths_orig = xdg_rom_paths;
         char *cur_xdg_rom_path   = NULL;
+
         if (xdg_rom_paths) {
             while (xdg_rom_paths[strlen(xdg_rom_paths) - 1] == ':') {
                 xdg_rom_paths[strlen(xdg_rom_paths) - 1] = '\0';
             }
-            while ((cur_xdg_rom_path = local_strsep(&xdg_rom_paths, ";")) != NULL) {
+            while ((cur_xdg_rom_path = local_strsep(&xdg_rom_paths, ":")) != NULL) {
                 char real_xdg_rom_path[1024] = { '\0' };
                 strcat(real_xdg_rom_path, cur_xdg_rom_path);
                 path_slash(real_xdg_rom_path);
@@ -808,7 +831,7 @@ plat_init_rom_paths(void)
         rom_add_path("/usr/share/86Box/roms/");
     }
 #else
-    char  default_rom_path[1024] = { '\0 ' };
+    char  default_rom_path[1024] = { '\0' };
     getDefaultROMPath(default_rom_path);
     rom_add_path(default_rom_path);
 #endif
@@ -830,7 +853,9 @@ bool
 process_media_commands_3(uint8_t *id, char *fn, uint8_t *wp, int cmdargc)
 {
     bool err = false;
+
     *id      = atoi(xargv[1]);
+
     if (xargv[2][0] == '\'' || xargv[2][0] == '"') {
         for (int curarg = 2; curarg < cmdargc; curarg++) {
             if (strlen(fn) + strlen(xargv[curarg]) >= PATH_MAX) {
@@ -870,6 +895,7 @@ void (*f_rl_callback_handler_remove)(void) = NULL;
 #else
 #    define LIBEDIT_LIBRARY "libedit.so"
 #endif
+
 uint32_t
 timer_onesec(uint32_t interval, void *param)
 {
@@ -884,19 +910,25 @@ monitor_thread(void *param)
     if (isatty(fileno(stdin)) && isatty(fileno(stdout))) {
         char  *line = NULL;
         size_t n;
+
         printf("86Box monitor console.\n");
         while (!exit_event) {
             if (feof(stdin))
                 break;
+#ifdef ENABLE_READLINE
             if (f_readline)
                 line = f_readline("(86Box) ");
             else {
+#endif
                 printf("(86Box) ");
-                getline(&line, &n, stdin);
+                (void) !getline(&line, &n, stdin);
+#ifdef ENABLE_READLINE
             }
+#endif
             if (line) {
                 int   cmdargc = 0;
                 char *linecpy;
+
                 line[strcspn(line, "\r\n")] = '\0';
                 linecpy                     = strdup(line);
                 if (!linecpy) {
@@ -962,7 +994,10 @@ monitor_thread(void *param)
                     printf(
                         "%s v%s [%s] [%s, %s]\n\n"
                         "An emulator of old computers\n"
-                        "Authors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\n"
+                        "Authors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), "
+                        "Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), "
+                        "Tiseno100, reenigne, and others.\n"
+                        "With previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\n"
                         "Released under the GNU General Public License version 2 or later. See LICENSE for more information.\n",
                         EMU_NAME, EMU_VERSION_FULL, EMU_GIT_HASH, ARCH_STR, DYNAREC_STR);
                 } else if (strncasecmp(xargv[0], "fullscreen", 10) == 0) {
@@ -988,6 +1023,7 @@ monitor_thread(void *param)
                     memset(fn, 0, sizeof(fn));
                     if (xargv[2][0] == '\'' || xargv[2][0] == '"') {
                         int curarg = 2;
+
                         for (curarg = 2; curarg < cmdargc; curarg++) {
                             if (strlen(fn) + strlen(xargv[curarg]) >= PATH_MAX) {
                                 err = true;
@@ -1030,7 +1066,9 @@ monitor_thread(void *param)
                     uint8_t wp;
                     bool    err = false;
                     char    fn[PATH_MAX];
+
                     memset(fn, 0, sizeof(fn));
+
                     if (!xargv[2] || !xargv[1]) {
                         free(line);
                         free(linecpy);
@@ -1050,7 +1088,9 @@ monitor_thread(void *param)
                     uint8_t wp;
                     bool    err = false;
                     char    fn[PATH_MAX];
+
                     memset(fn, 0, sizeof(fn));
+
                     if (!xargv[2] || !xargv[1]) {
                         free(line);
                         free(linecpy);
@@ -1070,7 +1110,9 @@ monitor_thread(void *param)
                     uint8_t wp;
                     bool    err = false;
                     char    fn[PATH_MAX];
+
                     memset(fn, 0, sizeof(fn));
+
                     if (!xargv[2] || !xargv[1]) {
                         free(line);
                         free(linecpy);
@@ -1090,7 +1132,9 @@ monitor_thread(void *param)
                     uint8_t wp;
                     bool    err = false;
                     char    fn[PATH_MAX];
+
                     memset(fn, 0, sizeof(fn));
+
                     if (!xargv[2] || !xargv[1]) {
                         free(line);
                         free(linecpy);
@@ -1121,9 +1165,12 @@ main(int argc, char **argv)
 {
     SDL_Event event;
     void     *libedithandle;
+    int      ret = 0;
 
     SDL_Init(0);
-    pc_init(argc, argv);
+    ret = pc_init(argc, argv);
+    if (ret == 0)
+        return 0;
     if (!pc_init_modules()) {
         ui_msgbox_header(MBX_FATAL, L"No ROMs found.", L"86Box could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
         SDL_Quit();
@@ -1158,7 +1205,7 @@ main(int argc, char **argv)
     pc_reset_hard_init();
 
     /* Set the PAUSE mode depending on the renderer. */
-    // plat_pause(0);
+    plat_pause(0);
 
     /* Initialize the rendering window, or fullscreen. */
 
@@ -1169,6 +1216,7 @@ main(int argc, char **argv)
     SDL_AddTimer(1000, timer_onesec, NULL);
     while (!is_quit) {
         static int mouse_inside = 0;
+
         while (SDL_PollEvent(&event)) {
             switch (event.type) {
                 case SDL_QUIT:
@@ -1182,7 +1230,7 @@ main(int argc, char **argv)
                                 event.wheel.y *= -1;
                             }
                             SDL_LockMutex(mousemutex);
-                            mousedata.deltaz = event.wheel.y;
+                            mouse_set_z(event.wheel.y);
                             SDL_UnlockMutex(mousemutex);
                         }
                         break;
@@ -1191,8 +1239,7 @@ main(int argc, char **argv)
                     {
                         if (mouse_capture || video_fullscreen) {
                             SDL_LockMutex(mousemutex);
-                            mousedata.deltax += event.motion.xrel;
-                            mousedata.deltay += event.motion.yrel;
+                            mouse_scale(event.motion.xrel, event.motion.yrel);
                             SDL_UnlockMutex(mousemutex);
                         }
                         break;
@@ -1232,10 +1279,10 @@ main(int argc, char **argv)
                                     break;
                             }
                             SDL_LockMutex(mousemutex);
-                            if (event.button.state == SDL_PRESSED) {
-                                mousedata.mousebuttons |= buttonmask;
-                            } else
-                                mousedata.mousebuttons &= ~buttonmask;
+                            if (event.button.state == SDL_PRESSED)
+                                mouse_set_buttons_ex(mouse_get_buttons_ex() | buttonmask);
+                            else
+                                mouse_set_buttons_ex(mouse_get_buttons_ex() & ~buttonmask);
                             SDL_UnlockMutex(mousemutex);
                         }
                         break;
@@ -1244,6 +1291,7 @@ main(int argc, char **argv)
                 case SDL_RENDER_TARGETS_RESET:
                     {
                         extern void sdl_reinit_texture(void);
+
                         sdl_reinit_texture();
                         break;
                     }
@@ -1251,6 +1299,7 @@ main(int argc, char **argv)
                 case SDL_KEYUP:
                     {
                         uint16_t xtkey = 0;
+
                         switch (event.key.keysym.scancode) {
                             default:
                                 xtkey = sdl_to_xt[event.key.keysym.scancode];
@@ -1323,6 +1372,13 @@ plat_language_code(char *langcode)
     return 0;
 }
 
+void
+plat_get_cpu_string(char *outbuf, uint8_t len) {
+    char cpu_string[] = "Unknown";
+
+    strncpy(outbuf, cpu_string, len);
+}
+
 /* Converts back the language code to LCID */
 void
 plat_language_code_r(uint32_t lcid, char *outbuf, int len)
@@ -1334,15 +1390,21 @@ plat_language_code_r(uint32_t lcid, char *outbuf, int len)
 void
 joystick_init(void)
 {
+    /* No-op. */
 }
+
 void
 joystick_close(void)
 {
+    /* No-op. */
 }
+
 void
 joystick_process(void)
 {
+    /* No-op. */
 }
+
 void
 startblit(void)
 {
@@ -1359,9 +1421,11 @@ endblit(void)
 void
 ui_sb_mt32lcd(char *str)
 {
+    /* No-op. */
 }
 
 void
 ui_hard_reset_completed(void)
 {
+    /* No-op. */
 }

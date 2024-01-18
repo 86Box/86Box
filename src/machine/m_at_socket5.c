@@ -10,10 +10,8 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2010-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
  */
 #include <stdio.h>
@@ -49,6 +47,25 @@ machine_at_plato_init(const machine_t *model)
 
     ret = bios_load_linear_combined("roms/machines/plato/1016ax1_.bio",
                                     "roms/machines/plato/1016ax1_.bi1",
+                                    0x1d000, 128);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_premiere_common_init(model, PCI_CAN_SWITCH_TYPE);
+
+    device_add(&i430nx_device);
+
+    return ret;
+}
+
+int
+machine_at_dellplato_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined("roms/machines/dellplato/1016AX1J.bio",
+                                    "roms/machines/dellplato/1016AX1J.bi1",
                                     0x1d000, 128);
 
     if (bios_only || !ret)
@@ -160,6 +177,39 @@ machine_at_apollo_init(const machine_t *model)
     return ret;
 }
 
+static void
+machine_at_zappa_gpio_init(void)
+{
+    uint32_t gpio = 0xffffe6ff;
+
+    /* Register 0x0079: */
+    /* Bit 7: 0 = Clear password, 1 = Keep password. */
+    /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
+    /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
+    /* Bit 4: External CPU clock (Switch 8). */
+    /* Bit 3: External CPU clock (Switch 7). */
+    /*        50 MHz: Switch 7 = Off, Switch 8 = Off. */
+    /*        60 MHz: Switch 7 = On, Switch 8 = Off. */
+    /*        66 MHz: Switch 7 = Off, Switch 8 = On. */
+    /* Bit 2: No Connect. */
+    /* Bit 1: No Connect. */
+    /* Bit 0: 2x multiplier, 1 = 1.5x multiplier (Switch 6). */
+    /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
+    if (cpu_busspeed <= 50000000)
+        gpio |= 0xffff00ff;
+    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
+        gpio |= 0xffff08ff;
+    else if (cpu_busspeed > 60000000)
+        gpio |= 0xffff10ff;
+
+    if (cpu_dmulti <= 1.5)
+        gpio |= 0xffff01ff;
+    else
+        gpio |= 0xffff00ff;
+
+    machine_set_gpio_default(gpio);
+}
+
 int
 machine_at_zappa_init(const machine_t *model)
 {
@@ -172,7 +222,8 @@ machine_at_zappa_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    machine_at_zappa_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);

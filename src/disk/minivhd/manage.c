@@ -445,7 +445,7 @@ mvhd_file_is_vhd(FILE* f)
     }
 
     mvhd_fseeko64(f, -MVHD_FOOTER_SIZE, SEEK_END);
-    fread(con_str, sizeof con_str, 1, f);
+    (void) !fread(con_str, sizeof con_str, 1, f);
     if (mvhd_is_conectix_str(con_str)) {
         return 1;
     }

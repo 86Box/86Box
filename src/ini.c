@@ -266,22 +266,22 @@ ini_close(ini_t ini)
 static int
 ini_detect_bom(const char *fn)
 {
-    FILE         *f;
+    FILE         *fp;
     unsigned char bom[4] = { 0, 0, 0, 0 };
 
 #if defined(ANSI_CFG) || !defined(_WIN32)
-    f = plat_fopen(fn, "rt");
+    fp = plat_fopen(fn, "rt");
 #else
-    f = plat_fopen(fn, "rt, ccs=UTF-8");
+    fp = plat_fopen(fn, "rt, ccs=UTF-8");
 #endif
-    if (f == NULL)
+    if (fp == NULL)
         return 0;
-    (void) !fread(bom, 1, 3, f);
+    (void) !fread(bom, 1, 3, fp);
     if (bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF) {
-        fclose(f);
+        fclose(fp);
         return 1;
     }
-    fclose(f);
+    fclose(fp);
     return 0;
 }
 
@@ -323,16 +323,16 @@ ini_read(const char *fn)
     int        c;
     int        d;
     int        bom;
-    FILE      *f;
+    FILE      *fp;
     list_t    *head;
 
     bom = ini_detect_bom(fn);
 #if defined(ANSI_CFG) || !defined(_WIN32)
-    f = plat_fopen(fn, "rt");
+    fp = plat_fopen(fn, "rt");
 #else
-    f = plat_fopen(fn, "rt, ccs=UTF-8");
+    fp = plat_fopen(fn, "rt, ccs=UTF-8");
 #endif
-    if (f == NULL)
+    if (fp == NULL)
         return NULL;
 
     head = malloc(sizeof(list_t));
@@ -343,16 +343,16 @@ ini_read(const char *fn)
 
     list_add(&sec->list, head);
     if (bom)
-        fseek(f, 3, SEEK_SET);
+        fseek(fp, 3, SEEK_SET);
 
     while (1) {
         memset(buff, 0x00, sizeof(buff));
 #ifdef __HAIKU__
-        ini_fgetws(buff, sizeof_w(buff), f);
+        ini_fgetws(buff, sizeof_w(buff), fp);
 #else
-        (void) !fgetws(buff, sizeof_w(buff), f);
+        (void) !fgetws(buff, sizeof_w(buff), fp);
 #endif
-        if (feof(f))
+        if (feof(fp))
             break;
 
         /* Make sure there are no stray newlines or hard-returns in there. */
@@ -436,7 +436,7 @@ ini_read(const char *fn)
         list_add(&ne->list, &sec->entry_head);
     }
 
-    (void) fclose(f);
+    (void) fclose(fp);
 
     return (ini_t) head;
 }
@@ -448,7 +448,7 @@ ini_write(ini_t ini, const char *fn)
     wchar_t    wtemp[512];
     list_t    *list = (list_t *) ini;
     section_t *sec;
-    FILE      *f;
+    FILE      *fp;
     int        fl = 0;
 
     if (list == NULL)
@@ -457,11 +457,11 @@ ini_write(ini_t ini, const char *fn)
     sec = (section_t *) list->next;
 
 #if defined(ANSI_CFG) || !defined(_WIN32)
-    f = plat_fopen(fn, "wt");
+    fp = plat_fopen(fn, "wt");
 #else
-    f = plat_fopen(fn, "wt, ccs=UTF-8");
+    fp = plat_fopen(fn, "wt, ccs=UTF-8");
 #endif
-    if (f == NULL)
+    if (fp == NULL)
         return;
 
     while (sec != NULL) {
@@ -470,9 +470,9 @@ ini_write(ini_t ini, const char *fn)
         if (sec->name[0]) {
             mbstowcs(wtemp, sec->name, strlen(sec->name) + 1);
             if (fl)
-                fwprintf(f, L"\n[%ls]\n", wtemp);
+                fwprintf(fp, L"\n[%ls]\n", wtemp);
             else
-                fwprintf(f, L"[%ls]\n", wtemp);
+                fwprintf(fp, L"[%ls]\n", wtemp);
             fl++;
         }
 
@@ -481,9 +481,9 @@ ini_write(ini_t ini, const char *fn)
             if (ent->name[0] != '\0') {
                 mbstowcs(wtemp, ent->name, 128);
                 if (ent->wdata[0] == L'\0')
-                    fwprintf(f, L"%ls = \n", wtemp);
+                    fwprintf(fp, L"%ls = \n", wtemp);
                 else
-                    fwprintf(f, L"%ls = %ls\n", wtemp, ent->wdata);
+                    fwprintf(fp, L"%ls = %ls\n", wtemp, ent->wdata);
                 fl++;
             }
 
@@ -493,7 +493,7 @@ ini_write(ini_t ini, const char *fn)
         sec = (section_t *) sec->list.next;
     }
 
-    (void) fclose(f);
+    (void) fclose(fp);
 }
 
 ini_t
@@ -559,6 +559,46 @@ ini_section_get_int(ini_section_t self, const char *name, int def)
 
     return value;
 }
+
+uint32_t
+ini_section_get_uint(ini_section_t self, const char *name, uint32_t def)
+{
+    section_t     *section = (section_t *) self;
+    const entry_t *entry;
+    uint32_t       value;
+
+    if (section == NULL)
+        return def;
+
+    entry = find_entry(section, name);
+    if (entry == NULL)
+        return def;
+
+    sscanf(entry->data, "%u", &value);
+
+    return value;
+}
+
+#if 0
+float
+ini_section_get_float(ini_section_t self, const char *name, float def)
+{
+    section_t     *section = (section_t *) self;
+    const entry_t *entry;
+    float         value;
+
+    if (section == NULL)
+        return def;
+
+    entry = find_entry(section, name);
+    if (entry == NULL)
+        return def;
+
+    sscanf(entry->data, "%g", &value);
+
+    return value;
+}
+#endif
 
 double
 ini_section_get_double(ini_section_t self, const char *name, double def)
@@ -686,6 +726,42 @@ ini_section_set_int(ini_section_t self, const char *name, int val)
     sprintf(ent->data, "%i", val);
     mbstowcs(ent->wdata, ent->data, 512);
 }
+
+void
+ini_section_set_uint(ini_section_t self, const char *name, uint32_t val)
+{
+    section_t *section = (section_t *) self;
+    entry_t   *ent;
+
+    if (section == NULL)
+        return;
+
+    ent = find_entry(section, name);
+    if (ent == NULL)
+        ent = create_entry(section, name);
+
+    sprintf(ent->data, "%i", val);
+    mbstowcs(ent->wdata, ent->data, 512);
+}
+
+#if 0
+void
+ini_section_set_float(ini_section_t self, const char *name, float val)
+{
+    section_t *section = (section_t *) self;
+    entry_t   *ent;
+
+    if (section == NULL)
+        return;
+
+    ent = find_entry(section, name);
+    if (ent == NULL)
+        ent = create_entry(section, name);
+
+    sprintf(ent->data, "%g", val);
+    mbstowcs(ent->wdata, ent->data, 512);
+}
+#endif
 
 void
 ini_section_set_double(ini_section_t self, const char *name, double val)

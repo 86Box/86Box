@@ -2,9 +2,12 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "x86.h"
 #include "x86_flags.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
 #include "386_common.h"
 #include "codegen.h"
 #include "codegen_ir.h"
@@ -13,7 +16,7 @@
 #include "codegen_ops_logic.h"
 
 uint32_t
-ropAND_AL_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropAND_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint8_t imm_data = fastreadb(cs + op_pc);
 
@@ -26,7 +29,7 @@ ropAND_AL_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchd
     return op_pc + 1;
 }
 uint32_t
-ropAND_AX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropAND_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t imm_data = fastreadw(cs + op_pc);
 
@@ -39,7 +42,7 @@ ropAND_AX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchd
     return op_pc + 2;
 }
 uint32_t
-ropAND_EAX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropAND_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
         LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, cs + op_pc);
@@ -57,7 +60,7 @@ ropAND_EAX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetch
     return op_pc + 4;
 }
 uint32_t
-ropAND_b_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropAND_b_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -83,7 +86,7 @@ ropAND_b_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat
     return op_pc + 1;
 }
 uint32_t
-ropAND_b_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropAND_b_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int src_reg = (fetchdat >> 3) & 7;
 
@@ -112,7 +115,7 @@ ropAND_b_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchda
     return op_pc + 1;
 }
 uint32_t
-ropAND_w_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropAND_w_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -138,7 +141,7 @@ ropAND_w_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat
     return op_pc + 1;
 }
 uint32_t
-ropAND_w_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropAND_w_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int src_reg = (fetchdat >> 3) & 7;
 
@@ -167,7 +170,7 @@ ropAND_w_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchda
     return op_pc + 1;
 }
 uint32_t
-ropAND_l_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropAND_l_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -193,7 +196,7 @@ ropAND_l_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat
     return op_pc + 1;
 }
 uint32_t
-ropAND_l_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropAND_l_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int src_reg = (fetchdat >> 3) & 7;
 
@@ -223,7 +226,7 @@ ropAND_l_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchda
 }
 
 uint32_t
-ropOR_AL_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropOR_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint8_t imm_data = fastreadb(cs + op_pc);
 
@@ -236,7 +239,7 @@ ropOR_AL_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchda
     return op_pc + 1;
 }
 uint32_t
-ropOR_AX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropOR_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t imm_data = fastreadw(cs + op_pc);
 
@@ -249,7 +252,7 @@ ropOR_AX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchda
     return op_pc + 2;
 }
 uint32_t
-ropOR_EAX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropOR_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
         LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, cs + op_pc);
@@ -268,7 +271,7 @@ ropOR_EAX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchd
     return op_pc + 4;
 }
 uint32_t
-ropOR_b_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropOR_b_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -294,7 +297,7 @@ ropOR_b_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat,
     return op_pc + 1;
 }
 uint32_t
-ropOR_b_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropOR_b_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int src_reg = (fetchdat >> 3) & 7;
 
@@ -323,7 +326,7 @@ ropOR_b_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat
     return op_pc + 1;
 }
 uint32_t
-ropOR_w_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropOR_w_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -349,7 +352,7 @@ ropOR_w_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat,
     return op_pc + 1;
 }
 uint32_t
-ropOR_w_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropOR_w_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int src_reg = (fetchdat >> 3) & 7;
 
@@ -378,7 +381,7 @@ ropOR_w_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat
     return op_pc + 1;
 }
 uint32_t
-ropOR_l_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropOR_l_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -404,7 +407,7 @@ ropOR_l_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat,
     return op_pc + 1;
 }
 uint32_t
-ropOR_l_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropOR_l_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int src_reg = (fetchdat >> 3) & 7;
 
@@ -434,7 +437,7 @@ ropOR_l_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat
 }
 
 uint32_t
-ropTEST_AL_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropTEST_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint8_t imm_data = fastreadb(cs + op_pc);
 
@@ -446,7 +449,7 @@ ropTEST_AL_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetch
     return op_pc + 1;
 }
 uint32_t
-ropTEST_AX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropTEST_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t imm_data = fastreadw(cs + op_pc);
 
@@ -458,7 +461,7 @@ ropTEST_AX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetch
     return op_pc + 2;
 }
 uint32_t
-ropTEST_EAX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropTEST_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
         LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, cs + op_pc);
@@ -476,7 +479,7 @@ ropTEST_EAX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetc
     return op_pc + 4;
 }
 uint32_t
-ropTEST_b_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropTEST_b_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -502,7 +505,7 @@ ropTEST_b_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchda
     return op_pc + 1;
 }
 uint32_t
-ropTEST_w_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropTEST_w_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -528,7 +531,7 @@ ropTEST_w_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchda
     return op_pc + 1;
 }
 uint32_t
-ropTEST_l_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropTEST_l_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -554,7 +557,7 @@ ropTEST_l_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchda
 }
 
 uint32_t
-ropXOR_AL_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropXOR_AL_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint8_t imm_data = fastreadb(cs + op_pc);
 
@@ -567,7 +570,7 @@ ropXOR_AL_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchd
     return op_pc + 1;
 }
 uint32_t
-ropXOR_AX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropXOR_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t imm_data = fastreadw(cs + op_pc);
 
@@ -580,7 +583,7 @@ ropXOR_AX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchd
     return op_pc + 2;
 }
 uint32_t
-ropXOR_EAX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropXOR_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
         LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, cs + op_pc);
@@ -599,7 +602,7 @@ ropXOR_EAX_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetch
     return op_pc + 4;
 }
 uint32_t
-ropXOR_b_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropXOR_b_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -625,7 +628,7 @@ ropXOR_b_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat
     return op_pc + 1;
 }
 uint32_t
-ropXOR_b_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropXOR_b_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int src_reg = (fetchdat >> 3) & 7;
 
@@ -654,7 +657,7 @@ ropXOR_b_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchda
     return op_pc + 1;
 }
 uint32_t
-ropXOR_w_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropXOR_w_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -680,7 +683,7 @@ ropXOR_w_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat
     return op_pc + 1;
 }
 uint32_t
-ropXOR_w_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropXOR_w_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int src_reg = (fetchdat >> 3) & 7;
 
@@ -709,7 +712,7 @@ ropXOR_w_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchda
     return op_pc + 1;
 }
 uint32_t
-ropXOR_l_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropXOR_l_rm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = (fetchdat >> 3) & 7;
 
@@ -735,7 +738,7 @@ ropXOR_l_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat
     return op_pc + 1;
 }
 uint32_t
-ropXOR_l_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+ropXOR_l_rmw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int src_reg = (fetchdat >> 3) & 7;
 

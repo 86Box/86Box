@@ -14,7 +14,6 @@
  *
  *          Copyright 2022 TheCollector1995.
  */
-
 #ifndef VIDEO_XGA_H
 #define VIDEO_XGA_H
 
@@ -36,12 +35,13 @@ typedef struct xga_t {
     mem_mapping_t  linear_mapping;
     mem_mapping_t  video_mapping;
     rom_t          bios_rom;
-    rom_t		   vga_bios_rom;
+    rom_t          vga_bios_rom;
     xga_hwcursor_t hwcursor;
     xga_hwcursor_t hwcursor_latch;
     PALETTE        extpal;
 
     uint8_t test;
+    uint8_t test2;
     uint8_t atest[2];
     uint8_t testpixel;
 
@@ -79,6 +79,7 @@ typedef struct xga_t {
     uint8_t  pal_b_prefetch;
     uint8_t  sprite_data[1024];
     uint8_t  scrollcache;
+    uint8_t  border_color;
     uint8_t  direct_color;
     uint8_t  dma_channel;
     uint8_t  instance_isa;
@@ -156,10 +157,10 @@ typedef struct xga_t {
     uint32_t rom_addr;
     uint32_t ma;
     uint32_t maback;
-    uint32_t extpallook[256];
     uint32_t read_bank;
     uint32_t write_bank;
     uint32_t px_map_base;
+    uint32_t pallook[512];
 
     uint64_t dispontime;
     uint64_t dispofftime;
@@ -199,6 +200,8 @@ typedef struct xga_t {
         int dst_map;
         int bkgd_src;
         int fore_src;
+        int oldx;
+        int oldy;
         int x;
         int y;
         int sx;
@@ -209,6 +212,7 @@ typedef struct xga_t {
         int py;
         int pattern;
         int command_len;
+        int filling;
 
         uint32_t short_stroke;
         uint32_t color_cmp;
@@ -225,6 +229,7 @@ typedef struct xga_t {
         uint32_t px_map_base[4];
     } accel;
 
-    volatile int force_busy;
+    int big_endian_linear;
 } xga_t;
+
 #endif /*VIDEO_XGA_H*/

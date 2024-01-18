@@ -177,9 +177,9 @@ typedef struct mpu_t {
     pc_timer_t mpu401_event_callback;
     pc_timer_t mpu401_eoi_callback;
     pc_timer_t mpu401_reset_callback;
-    void (*ext_irq_update)(void *priv, int set);
-    int (*ext_irq_pending)(void *priv);
-    void *priv;
+    void     (*ext_irq_update)(void *priv, int set);
+    int      (*ext_irq_pending)(void *priv);
+    void      *priv;
 } mpu_t;
 
 extern int mpu401_standalone_enable;
@@ -197,7 +197,7 @@ extern void    mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode, int rec
 extern void    mpu401_device_add(void);
 extern void    mpu401_irq_attach(mpu_t *mpu, void (*ext_irq_update)(void *priv, int set), int (*ext_irq_pending)(void *priv), void *priv);
 
-extern int  MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort);
-extern void MPU401_InputMsg(void *p, uint8_t *msg, uint32_t len);
+extern int  MPU401_InputSysex(void *priv, uint8_t *buffer, uint32_t len, int abort);
+extern void MPU401_InputMsg(void *priv, uint8_t *msg, uint32_t len);
 
 #endif /*SOUND_MPU401_H*/

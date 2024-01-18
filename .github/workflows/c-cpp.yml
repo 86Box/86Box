@@ -1,4 +1,4 @@
-name: MSYS2 Makefile
+name: MSYS2 Makefile (Windows, Legacy)
 
 on:
 
@@ -16,7 +16,7 @@ on:
 
 jobs:
   msys2:
-    name: "Windows MSYS2 Makefile (Win32 GUI, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }})"
+    name: "Win32 GUI, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.msystem }}"
 
     runs-on: windows-2022
 
@@ -95,7 +95,7 @@ jobs:
             libvncserver:p
 
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: make
         run: >-

@@ -54,7 +54,6 @@ static pc_timer_t pic_timer;
 static int shadow = 0;
 static int elcr_enabled = 0;
 static int tmr_inited = 0;
-static int latched = 0;
 static int pic_pci = 0;
 static int kbd_latch = 0;
 static int mouse_latch = 0;
@@ -223,37 +222,31 @@ find_best_interrupt(pic_t *dev)
 static __inline void
 pic_update_pending_xt(void)
 {
-    if (find_best_interrupt(&pic) != -1) {
-        latched++;
-        if (latched == 1)
-            timer_on_auto(&pic_timer, 0.35);
-    } else if (latched == 0)
-        pic.int_pending = 0;
+    if (!(pic.interrupt & 0x20))
+        pic.int_pending = (find_best_interrupt(&pic) != -1);
 }
 
+/* Only check if PIC 1 frozen, because it should not happen
+   that one is frozen but the other is not. */
 static __inline void
 pic_update_pending_at(void)
 {
-    pic2.int_pending = (find_best_interrupt(&pic2) != -1);
+    if (!(pic.interrupt & 0x20)) {
+        pic2.int_pending = (find_best_interrupt(&pic2) != -1);
+ 
+        if (pic2.int_pending)
+            pic.irr |= (1 << pic2.icw3);
+        else
+            pic.irr &= ~(1 << pic2.icw3);
 
-    if (pic2.int_pending)
-        pic.irr |= (1 << pic2.icw3);
-    else
-        pic.irr &= ~(1 << pic2.icw3);
-
-    pic.int_pending = (find_best_interrupt(&pic) != -1);
+        pic.int_pending = (find_best_interrupt(&pic) != -1);
+    }
 }
 
 static void
 pic_callback(void *priv)
 {
-    pic_t *dev = (pic_t *) priv;
-
-    dev->int_pending = 1;
-
-    latched--;
-    if (latched > 0)
-        timer_on_auto(&pic_timer, 0.35);
+    update_pending();
 }
 
 void
@@ -326,7 +319,7 @@ pic_acknowledge(pic_t *dev)
     int pic_int_num = 1 << pic_int;
 
     dev->isr |= pic_int_num;
-    if (!pic_level_triggered(dev, pic_int) || !(dev->lines & pic_int_num))
+    if (!pic_level_triggered(dev, pic_int) || (dev->lines[pic_int] == 0))
         dev->irr &= ~pic_int_num;
 }
 
@@ -403,7 +396,7 @@ pic_latch_read(UNUSED(uint16_t addr), UNUSED(void *priv))
 {
     uint8_t ret = 0xff;
 
-    pic_log("pic_latch_read(%i, %i): %02X%02X\n", kbd_latch, mouse_latch, pic2.lines & 0x10, pic.lines & 0x02);
+    pic_log("pic_latch_read(%i, %i)\n", kbd_latch, mouse_latch);
 
     if (kbd_latch && (latched_irqs & 0x0002))
         picintc(0x0002);
@@ -412,6 +405,48 @@ pic_latch_read(UNUSED(uint16_t addr), UNUSED(void *priv))
         picintc(0x1000);
 
     /* Return FF - we just lower IRQ 1 and IRQ 12. */
+    return ret;
+}
+
+uint8_t
+pic_read_icw(uint8_t pic_id, uint8_t icw)
+{
+    pic_t *dev = pic_id ? &pic2 : &pic;
+    uint8_t ret = 0xff;
+
+    switch (icw) {
+        case 0x00:
+            ret = dev->icw1;
+            break;
+        case 0x01:
+            ret = dev->icw2;
+            break;
+        case 0x02:
+            ret = dev->icw3;
+            break;
+        case 0x03:
+            ret = dev->icw4;
+            break;
+    }
+
+    return ret;
+}
+
+uint8_t
+pic_read_ocw(uint8_t pic_id, uint8_t ocw)
+{
+    pic_t *dev = pic_id ? &pic2 : &pic;
+    uint8_t ret = 0xff;
+
+    switch (ocw) {
+        case 0x00:
+            ret = dev->ocw2;
+            break;
+        case 0x01:
+            ret = dev->ocw3;
+            break;
+    }
+
     return ret;
 }
 
@@ -494,7 +529,10 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
                 break;
             case STATE_NONE:
                 dev->imr = val;
-                update_pending();
+                if (is286)
+                    update_pending();
+                else
+                    timer_on_auto(&pic_timer, .0 * ((10000000.0 * (double) xt_cpu_multi) / (double) cpu_s->rspeed));
                 break;
 
             default:
@@ -511,7 +549,11 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
             if (!(dev->icw1 & 1))
                 dev->icw4 = 0x00;
             dev->ocw2 = dev->ocw3 = 0x00;
-            dev->irr              = dev->lines;
+            dev->irr              = 0x00;
+            for (uint8_t i = 0; i <= 7; i++) {
+                if (dev->lines[i] > 0)
+                    dev->irr              |= (1 << i);
+            }
             dev->imr = dev->isr = 0x00;
             dev->ack_bytes = dev->priority = 0x00;
             dev->auto_eoi_rotate = dev->special_mask_mode = 0x00;
@@ -621,11 +663,15 @@ pic2_init(void)
 }
 
 void
-picint_common(uint16_t num, int level, int set)
+picint_common(uint16_t num, int level, int set, uint8_t *irq_state)
 {
     int     raise;
+    int     max = 16;
     uint8_t b;
     uint8_t slaves = 0;
+    uint16_t w;
+    uint16_t lines = level ? 0x0000 : num;
+    pic_t   *dev;
 
     /* Make sure to ignore all slave IRQ's, and in case of AT+,
        translate IRQ 2 to IRQ 9. */
@@ -645,87 +691,89 @@ picint_common(uint16_t num, int level, int set)
     }
 
     if (!slaves)
-        num &= 0x00ff;
+        max = 8;
 
     if (!num) {
         pic_log("Attempting to %s null IRQ\n", set ? "raise" : "lower");
         return;
     }
 
-    if (num & 0x0100)
-        acpi_rtc_status = !!set;
+    if (level) {
+        dev = &pic;
 
-    if (set) {
-        if (smi_irq_mask & num) {
-            smi_raise();
-            smi_irq_status |= num;
+        for (uint16_t i = 0; i < max; i++) {
+            if (i == 8)
+                dev = &pic2;
+
+            b = i & 7;
+            w = 1 << i;
+
+            if (num & w) {
+                if ((!!*irq_state) != !!set)
+                    set ? dev->lines[b]++ : dev->lines[b]--;
+
+                if (!pic_level_triggered(dev, b) ||
+                    (((!!*irq_state) != !!set) && (dev->lines[b] == (!!set))))
+                    lines |= w;
+            }
         }
 
-        if (num & 0xff00) {
-            if (level)
-                pic2.lines |= (num >> 8);
+        if ((!!*irq_state) != !!set)
+            *irq_state = set;
 
-            /* Latch IRQ 12 if the mouse latch is enabled. */
-            if ((num & 0x1000) && mouse_latch)
-                latched_irqs |= 0x1000;
+        num = lines;
+   }
 
-            pic2.irr |= (num >> 8);
+   if (!slaves)
+       num &= 0x00ff;
+
+   if (num & 0x0100)
+       acpi_rtc_status = !!set;
+
+   if (num) {
+       if (set) {
+            if (smi_irq_mask & num) {
+                smi_raise();
+                smi_irq_status |= num;
+            }
+
+            if (num & 0xff00) {
+                /* Latch IRQ 12 if the mouse latch is enabled. */
+                if ((num & 0x1000) && mouse_latch)
+                    latched_irqs |= 0x1000;
+
+                pic2.irr |= (num >> 8);
+            }
+
+            if (num & 0x00ff) {
+                /* Latch IRQ 1 if the keyboard latch is enabled. */
+                if (kbd_latch && (num & 0x0002))
+                    latched_irqs |= 0x0002;
+
+                pic.irr |= (num & 0x00ff);
+            }
+        } else {
+            smi_irq_status &= ~num;
+
+            if (num & 0xff00) {
+                /* Unlatch IRQ 12 if the mouse latch is enabled. */
+                if ((num & 0x1000) && mouse_latch)
+                    latched_irqs &= 0xefff;
+
+                pic2.irr &= ~(num >> 8);
+            }
+
+            if (num & 0x00ff) {
+                /* Unlatch IRQ 1 if the keyboard latch is enabled. */
+                if (kbd_latch && (num & 0x0002))
+                    latched_irqs &= 0xfffd;
+
+                pic.irr &= ~(num & 0x00ff);
+            }
         }
 
-        if (num & 0x00ff) {
-            if (level)
-                pic.lines |= (num & 0x00ff);
-
-            /* Latch IRQ 1 if the keyboard latch is enabled. */
-            if (kbd_latch && (num & 0x0002))
-                latched_irqs |= 0x0002;
-
-            pic.irr |= (num & 0x00ff);
-        }
-    } else {
-        smi_irq_status &= ~num;
-
-        if (num & 0xff00) {
-            pic2.lines &= ~(num >> 8);
-
-            /* Unlatch IRQ 12 if the mouse latch is enabled. */
-            if ((num & 0x1000) && mouse_latch)
-                latched_irqs &= 0xefff;
-
-            pic2.irr &= ~(num >> 8);
-        }
-
-        if (num & 0x00ff) {
-            pic.lines &= ~(num & 0x00ff);
-
-            /* Unlatch IRQ 1 if the keyboard latch is enabled. */
-            if (kbd_latch && (num & 0x0002))
-                latched_irqs &= 0xfffd;
-
-            pic.irr &= ~(num & 0x00ff);
-        }
-    }
-
-    if (!(pic.interrupt & 0x20) && !(pic2.interrupt & 0x20))
         update_pending();
-}
-
-void
-picint(uint16_t num)
-{
-    picint_common(num, 0, 1);
-}
-
-void
-picintlevel(uint16_t num)
-{
-    picint_common(num, 1, 1);
-}
-
-void
-picintc(uint16_t num)
-{
-    picint_common(num, 0, 0);
+    }
 }
 
 static uint8_t
@@ -817,27 +865,34 @@ picinterrupt(void)
         if (pic_slave_on(&pic, pic.interrupt)) {
             if (!pic.slaves[pic.interrupt]->int_pending) {
                 /* If we are on AT, IRQ 2 is pending, and we cannot find a pending IRQ on PIC 2, fatal out. */
-                fatal("IRQ %i pending on AT without a pending IRQ on PIC %i (normal)\n", pic.interrupt, pic.interrupt);
-                exit(-1);
-            }
-
-            pic.interrupt |= 0x40; /* Mark slave pending. */
+                // fatal("IRQ %i pending on AT without a pending IRQ on PIC %i (normal)\n", pic.interrupt, pic.interrupt);
+                // exit(-1);
+                /* Error correction mechanism: Do a supurious IRQ 15 (spurious IRQ 7 on PIC 2). */
+                pic.slaves[pic.interrupt]->int_pending = 1;
+                pic.slaves[pic.interrupt]->interrupt = 0x07;
+            } else
+                pic.interrupt |= 0x40; /* Mark slave pending. */
         }
+    } else {
+        /* pic.int_pending was somehow cleared despite the fact we made it here,
+           do a spurious IRQ 7. */
+        pic.int_pending = 1;
+        pic.interrupt = 0x07;
+    }
 
-        if ((pic.interrupt == 0) && (pit_devs[1].data != NULL))
-            pit_devs[1].set_gate(pit_devs[1].data, 0, 0);
+    if ((pic.interrupt == 0) && (pit_devs[1].data != NULL))
+        pit_devs[1].set_gate(pit_devs[1].data, 0, 0);
 
-        /* Two ACK's - do them in a loop to avoid potential compiler misoptimizations. */
-        for (uint8_t i = 0; i < 2; i++) {
-            ret           = pic_irq_ack_read(&pic, pic.ack_bytes);
-            pic.ack_bytes = (pic.ack_bytes + 1) % (pic_i86_mode(&pic) ? 2 : 3);
+    /* Two ACK's - do them in a loop to avoid potential compiler misoptimizations. */
+    for (uint8_t i = 0; i < 2; i++) {
+        ret           = pic_irq_ack_read(&pic, pic.ack_bytes);
+        pic.ack_bytes = (pic.ack_bytes + 1) % (pic_i86_mode(&pic) ? 2 : 3);
 
-            if (pic.ack_bytes == 0) {
-                if (pic.interrupt & 0x40)
-                    pic2.interrupt = 0x17;
-                pic.interrupt = 0x17;
-                update_pending();
-            }
+        if (pic.ack_bytes == 0) {
+            if (pic.interrupt & 0x40)
+                pic2.interrupt = 0x17;
+            pic.interrupt = 0x17;
+            update_pending();
         }
     }
 

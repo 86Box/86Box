@@ -93,7 +93,7 @@ make_port_sec(fdc37c93x_t *dev, uint8_t ld)
 static uint8_t
 fdc37c93x_auxio_read(UNUSED(uint16_t port), void *priv)
 {
-    fdc37c93x_t *dev = (fdc37c93x_t *) priv;
+    const fdc37c93x_t *dev = (fdc37c93x_t *) priv;
 
     return dev->auxio_reg;
 }
@@ -109,8 +109,8 @@ fdc37c93x_auxio_write(UNUSED(uint16_t port), uint8_t val, void *priv)
 static uint8_t
 fdc37c93x_gpio_read(uint16_t port, void *priv)
 {
-    fdc37c93x_t *dev = (fdc37c93x_t *) priv;
-    uint8_t      ret = 0xff;
+    const fdc37c93x_t *dev = (fdc37c93x_t *) priv;
+    uint8_t            ret = 0xff;
 
     ret = dev->gpio_regs[port & 1];
 
@@ -257,8 +257,8 @@ fdc37c93x_gpio_handler(fdc37c93x_t *dev)
 static uint8_t
 fdc37c93x_access_bus_read(uint16_t port, void *priv)
 {
-    access_bus_t *dev = (access_bus_t *) priv;
-    uint8_t       ret = 0xff;
+    const access_bus_t *dev = (access_bus_t *) priv;
+    uint8_t             ret = 0xff;
 
     switch (port & 3) {
         case 0:

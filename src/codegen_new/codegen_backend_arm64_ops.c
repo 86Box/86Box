@@ -1,9 +1,11 @@
 #if defined __aarch64__ || defined _M_ARM64
 
+#    include <inttypes.h>
 #    include <stdint.h>
 #    include <86box/86box.h>
 #    include "cpu.h"
 #    include <86box/mem.h>
+#    include <86box/plat_unused.h>
 
 #    include "codegen.h"
 #    include "codegen_allocator.h"
@@ -340,7 +342,7 @@ host_arm64_ADDX_IMM(codeblock_t *block, int dst_reg, int src_n_reg, uint64_t imm
         } else if (imm_data & 0xfff000)
             codegen_addlong(block, OPCODE_ADDX_IMM | Rd(dst_reg) | Rn(src_n_reg) | IMM12((imm_data >> 12) & 0xfff) | DATPROC_IMM_SHIFT(1));
     } else
-        fatal("ADD_IMM_X %016llx\n", imm_data);
+        fatal("ADD_IMM_X %016" PRIu64 "\n", imm_data);
 }
 void
 host_arm64_ADD_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int shift)
@@ -662,7 +664,7 @@ host_arm64_CMNX_IMM(codeblock_t *block, int src_n_reg, uint64_t imm_data)
     } else if (!(imm_data & 0xfffffffffffff000ull)) {
         codegen_addlong(block, OPCODE_CMNX_IMM | Rd(REG_XZR) | Rn(src_n_reg) | IMM12(imm_data & 0xfff) | DATPROC_IMM_SHIFT(0));
     } else
-        fatal("CMNX_IMM %08x\n", imm_data);
+        fatal("CMNX_IMM %016" PRIx64 "\n", imm_data);
 }
 
 void
@@ -683,7 +685,7 @@ host_arm64_CMPX_IMM(codeblock_t *block, int src_n_reg, uint64_t imm_data)
     } else if (!(imm_data & 0xfffffffffffff000ull)) {
         codegen_addlong(block, OPCODE_CMPX_IMM | Rd(REG_XZR) | Rn(src_n_reg) | IMM12(imm_data & 0xfff) | DATPROC_IMM_SHIFT(0));
     } else
-        fatal("CMPX_IMM %08x\n", imm_data);
+        fatal("CMPX_IMM %08" PRIu64 "\n", imm_data);
 }
 
 void

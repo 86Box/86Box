@@ -12,11 +12,11 @@
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
- *          Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          John Elliott, <jce@seasip.info>
  *
  *          Copyright 2017-2018 Fred N. van Kempen.
  *          Copyright 2016-2018 Miran Grca.
- *          Copyright 2008-2018 Sarah Walker.
+ *          Copyright 2008-2018 John Elliott.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by

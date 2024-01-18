@@ -124,6 +124,9 @@ msgstr "Pixel&s quadrados (manter proporção)"
 msgid "&Integer scale"
 msgstr "&Redimensionamento com valores inteiros"
 
+msgid "4:&3 Integer scale"
+msgstr "Redimensionamento com valores inteiros 4:&3"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "Configurações E&GA/(S)VGA"
 
@@ -853,8 +856,8 @@ msgstr "Sobre o 86Box"
 msgid "86Box v"
 msgstr "86Box versão"
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Um emulador de computadores antigos\n\nAutores: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Um emulador de computadores antigos\n\nAutores: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, e outros.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
 
 msgid "Hardware not available"
 msgstr "Hardware não disponível"
@@ -1201,3 +1204,23 @@ msgstr "Falha ao inicializar o driver de rede"
 msgid "The network configuration will be switched to the null driver"
 msgstr "A configuração de rede será alterada para o driver nulo"
 
+msgid "Mouse sensitivity:"
+msgstr "Sensibilidade do rato:"
+
+msgid "Select media images from program working directory"
+msgstr "Selecione imagens de mídia do diretório de trabalho do programa"
+
+msgid "PIT mode:"
+msgstr "Modo PIT:"
+
+msgid "Auto"
+msgstr "Automático"
+
+msgid "Slow"
+msgstr "Lento"
+
+msgid "Fast"
+msgstr "Rápido"
+
+msgid "&Auto-pause on focus loss"
+msgstr "Pausa &automática ao perder o foco"

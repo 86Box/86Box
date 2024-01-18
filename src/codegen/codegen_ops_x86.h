@@ -3619,37 +3619,39 @@ STORE_MMX_Q_MMX(int guest_reg, int host_reg)
     addbyte((uint8_t) cpu_state_offset(MM[guest_reg].q));
 }
 
-#define MMX_x86_OP(name, opcode)                              \
-    static __inline void MMX_##name(int dst_reg, int src_reg) \
-    {                                                         \
-        addbyte(0x66); /*op dst_reg, src_reg*/                \
-        addbyte(0x0f);                                        \
-        addbyte(opcode);                                      \
-        addbyte(0xc0 | (dst_reg << 3) | src_reg);             \
+#define MMX_x86_OP(name, opcode)                       \
+    static                                             \
+    __inline void MMX_##name(int dst_reg, int src_reg) \
+    {                                                  \
+        addbyte(0x66); /*op dst_reg, src_reg*/         \
+        addbyte(0x0f);                                 \
+        addbyte(opcode);                               \
+        addbyte(0xc0 | (dst_reg << 3) | src_reg);      \
     }
 
+// clang-format off
 MMX_x86_OP(AND, 0xdb)
-    MMX_x86_OP(ANDN, 0xdf)
-        MMX_x86_OP(OR, 0xeb)
-            MMX_x86_OP(XOR, 0xef)
+MMX_x86_OP(ANDN, 0xdf)
+MMX_x86_OP(OR, 0xeb)
+MMX_x86_OP(XOR, 0xef)
 
-                MMX_x86_OP(ADDB, 0xfc)
-                    MMX_x86_OP(ADDW, 0xfd)
-                        MMX_x86_OP(ADDD, 0xfe)
-                            MMX_x86_OP(ADDSB, 0xec)
-                                MMX_x86_OP(ADDSW, 0xed)
-                                    MMX_x86_OP(ADDUSB, 0xdc)
-                                        MMX_x86_OP(ADDUSW, 0xdd)
+MMX_x86_OP(ADDB, 0xfc)
+MMX_x86_OP(ADDW, 0xfd)
+MMX_x86_OP(ADDD, 0xfe)
+MMX_x86_OP(ADDSB, 0xec)
+MMX_x86_OP(ADDSW, 0xed)
+MMX_x86_OP(ADDUSB, 0xdc)
+MMX_x86_OP(ADDUSW, 0xdd)
 
-                                            MMX_x86_OP(SUBB, 0xf8)
-                                                MMX_x86_OP(SUBW, 0xf9)
-                                                    MMX_x86_OP(SUBD, 0xfa)
-                                                        MMX_x86_OP(SUBSB, 0xe8)
-                                                            MMX_x86_OP(SUBSW, 0xe9)
-                                                                MMX_x86_OP(SUBUSB, 0xd8)
-                                                                    MMX_x86_OP(SUBUSW, 0xd9)
+MMX_x86_OP(SUBB, 0xf8)
+MMX_x86_OP(SUBW, 0xf9)
+MMX_x86_OP(SUBD, 0xfa)
+MMX_x86_OP(SUBSB, 0xe8)
+MMX_x86_OP(SUBSW, 0xe9)
+MMX_x86_OP(SUBUSB, 0xd8)
+MMX_x86_OP(SUBUSW, 0xd9)
 
-                                                                        MMX_x86_OP(PUNPCKLBW, 0x60);
+MMX_x86_OP(PUNPCKLBW, 0x60);
 MMX_x86_OP(PUNPCKLWD, 0x61);
 MMX_x86_OP(PUNPCKLDQ, 0x62);
 MMX_x86_OP(PCMPGTB, 0x64);
@@ -3672,6 +3674,7 @@ MMX_x86_OP(PSLLQ, 0xf3);
 MMX_x86_OP(PMULLW, 0xd5);
 MMX_x86_OP(PMULHW, 0xe5);
 MMX_x86_OP(PMADDWD, 0xf5);
+// clang-format on
 
 static __inline void
 MMX_PACKSSWB(int dst_reg, int src_reg)

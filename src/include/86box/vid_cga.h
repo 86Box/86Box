@@ -66,15 +66,16 @@ typedef struct cga_t {
     int composite;
     int snow_enabled;
     int rgb_type;
+    int double_type;
 } cga_t;
 
 void    cga_init(cga_t *cga);
-void    cga_out(uint16_t addr, uint8_t val, void *p);
-uint8_t cga_in(uint16_t addr, void *p);
-void    cga_write(uint32_t addr, uint8_t val, void *p);
-uint8_t cga_read(uint32_t addr, void *p);
+void    cga_out(uint16_t addr, uint8_t val, void *priv);
+uint8_t cga_in(uint16_t addr, void *priv);
+void    cga_write(uint32_t addr, uint8_t val, void *priv);
+uint8_t cga_read(uint32_t addr, void *priv);
 void    cga_recalctimings(cga_t *cga);
-void    cga_poll(void *p);
+void    cga_poll(void *priv);
 
 #ifdef EMU_DEVICE_H
 extern const device_config_t cga_config[];

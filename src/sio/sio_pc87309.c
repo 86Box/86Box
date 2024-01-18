@@ -77,7 +77,7 @@ pc87309_pm_write(uint16_t port, uint8_t val, void *priv)
 uint8_t
 pc87309_pm_read(uint16_t port, void *priv)
 {
-    pc87309_t *dev = (pc87309_t *) priv;
+    const pc87309_t *dev = (pc87309_t *) priv;
 
     if (port & 1)
         return dev->pm[dev->pm_idx];
@@ -351,9 +351,9 @@ pc87309_write(uint16_t port, uint8_t val, void *priv)
 uint8_t
 pc87309_read(uint16_t port, void *priv)
 {
-    pc87309_t *dev = (pc87309_t *) priv;
-    uint8_t    ret = 0xff;
-    uint8_t    index;
+    const pc87309_t *dev = (pc87309_t *) priv;
+    uint8_t          ret = 0xff;
+    uint8_t          index;
 
     index = (port & 1) ? 0 : 1;
 

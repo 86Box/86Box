@@ -30,6 +30,8 @@ private slots:
     void on_comboBoxCard1_currentIndexChanged(int index);
     void on_pushButtonConfigureRTC_clicked();
     void on_comboBoxRTC_currentIndexChanged(int index);
+    void on_checkBoxUnitTester_stateChanged(int arg1);
+    void on_pushButtonConfigureUT_clicked();
 
 private:
     Ui::SettingsOtherPeripherals *ui;

@@ -2,10 +2,13 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/plat_unused.h>
 
 #include "x86_ops.h"
 #include "codegen.h"
 #include "x86.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
 
 #include "386_common.h"
 
@@ -90,7 +93,7 @@ codegen_generate_reset(void)
 }
 
 void
-codegen_check_seg_read(codeblock_t *block, ir_data_t *ir, x86seg *seg)
+codegen_check_seg_read(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg)
 {
     /*Segments always valid in real/V86 mode*/
     if (!(cr0 & 1) || (cpu_state.eflags & VM_FLAG))
@@ -108,7 +111,7 @@ codegen_check_seg_read(codeblock_t *block, ir_data_t *ir, x86seg *seg)
     seg->checked = 1;
 }
 void
-codegen_check_seg_write(codeblock_t *block, ir_data_t *ir, x86seg *seg)
+codegen_check_seg_write(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg)
 {
     /*Segments always valid in real/V86 mode*/
     if (!(cr0 & 1) || (cpu_state.eflags & VM_FLAG))
@@ -140,10 +143,10 @@ codegen_generate_ea_16_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
         int offset;
 
         switch (cpu_rm & 7) {
+            default:
             case 0:
             case 1:
             case 7:
-            default:
                 base_reg = IREG_EBX;
                 break;
             case 2:
@@ -179,6 +182,9 @@ codegen_generate_ea_16_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                 offset = (fetchdat >> 8) & 0xffff;
                 uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, offset);
                 (*op_pc) += 2;
+                break;
+
+            default:
                 break;
         }
 
@@ -241,12 +247,16 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                 (*op_pc) += 4;
                 uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, sib & 7);
                 break;
+
+            default:
+                break;
         }
-        if (stack_offset && (sib & 7) == 4 && (cpu_mod || (sib & 7) != 5)) /*ESP*/
-        {
+        if (stack_offset && (sib & 7) == 4 && (cpu_mod || (sib & 7) != 5)) { /*ESP*/
             uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, stack_offset);
-            //                        addbyte(0x05);
-            //                        addlong(stack_offset);
+#if 0
+            addbyte(0x05);
+            addlong(stack_offset);
+#endif
         }
         if (((sib & 7) == 4 || (cpu_mod && (sib & 7) == 5)) && !op_ssegs)
             op_ea_seg = &cpu_state.seg_ss;
@@ -263,6 +273,9 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                     break;
                 case 3:
                     uop_ADD_LSHIFT(ir, IREG_eaaddr, IREG_eaaddr, (sib >> 3) & 7, 3);
+                    break;
+
+                default:
                     break;
             }
         }
@@ -374,7 +387,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     codeblock_t *block              = &codeblock[block_current];
     ir_data_t   *ir                 = codegen_get_ir_data();
     uint32_t     op_pc              = new_pc;
-    const OpFn  *op_table           = (OpFn *) x86_dynarec_opcodes;
+    const OpFn  *op_table           = x86_dynarec_opcodes;
     RecompOpFn  *recomp_op_table    = recomp_opcodes;
     int          opcode_shift       = 0;
     int          opcode_mask        = 0x3ff;
@@ -637,7 +650,7 @@ generate_call:
         if (!fpu_softfloat && recomp_opcodes_3DNOW[opcode_3dnow]) {
             next_pc = opcode_pc + 1;
 
-            op_table           = (OpFn *) x86_dynarec_opcodes_3DNOW;
+            op_table           = x86_dynarec_opcodes_3DNOW;
             recomp_op_table    = fpu_softfloat ? NULL : recomp_opcodes_3DNOW;
             opcode             = opcode_3dnow;
             recomp_opcode_mask = 0xff;
@@ -646,8 +659,10 @@ generate_call:
     }
     codegen_mark_code_present(block, cs + old_pc, (op_pc - old_pc) - pc_off);
     /* It is apparently a prefixed instruction. */
-    // if ((recomp_op_table == recomp_opcodes) && (opcode == 0x48))
-    // goto codegen_skip;
+#if 0
+    if ((recomp_op_table == recomp_opcodes) && (opcode == 0x48))
+        goto codegen_skip;
+#endif
 
     if (recomp_op_table && recomp_op_table[(opcode | op_32) & recomp_opcode_mask]) {
         uint32_t new_pc = recomp_op_table[(opcode | op_32) & recomp_opcode_mask](block, ir, opcode, fetchdat, op_32, op_pc);
@@ -668,7 +683,7 @@ generate_call:
 
     // codegen_skip:
     if ((op_table == x86_dynarec_opcodes_REPNE || op_table == x86_dynarec_opcodes_REPE) && !op_table[opcode | op_32]) {
-        op_table        = (OpFn *) x86_dynarec_opcodes;
+        op_table        = x86_dynarec_opcodes;
         recomp_op_table = recomp_opcodes;
     }
 
@@ -719,7 +734,9 @@ generate_call:
     last_op_32     = op_32;
     last_op_ea_seg = op_ea_seg;
     last_op_ssegs  = op_ssegs;
-    // codegen_block_ins++;
+#if 0
+    codegen_block_ins++;
+#endif
 
     block->ins++;
 
@@ -728,6 +745,8 @@ generate_call:
 
     codegen_endpc = (cs + cpu_state.pc) + 8;
 
-    //        if (has_ea)
-    //                fatal("Has EA\n");
+#if 0
+    if (has_ea)
+        fatal("Has EA\n");
+#endif
 }

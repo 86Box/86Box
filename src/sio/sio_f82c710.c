@@ -18,11 +18,9 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Eluan Costa Miranda <eluancm@gmail.com>
+ * Authors: Eluan Costa Miranda <eluancm@gmail.com>
  *          Lubomir Rintel <lkundrak@v3.sk>
  *
- *          Copyright 2020 Sarah Walker.
  *          Copyright 2020 Eluan Costa Miranda.
  *          Copyright 2021 Lubomir Rintel.
  */
@@ -230,8 +228,8 @@ f82c606_update_ports(upc_t *dev, int set)
 static uint8_t
 f82c710_config_read(uint16_t port, void *priv)
 {
-    upc_t  *dev  = (upc_t *) priv;
-    uint8_t temp = 0xff;
+    const upc_t  *dev  = (upc_t *) priv;
+    uint8_t       temp = 0xff;
 
     if (dev->configuration_mode) {
         if (port == dev->cri_addr) {

@@ -540,12 +540,25 @@ then
 			# Attempt to install dependencies.
 			sudo "$macports/bin/port" install $(cat .ci/dependencies_macports.txt) 2>&1 | tee macports.log
 
-			# Stop if no port version activation errors were found.
+			# Check for port activation errors.
 			stuck_dep=$(grep " cannot be built while another version of " macports.log | cut -d" " -f10)
-			[ -z $stuck_dep ] && break
+			if [ -n "$stuck_dep" ]
+			then
+				# Deactivate the stuck dependency and try again.
+				sudo "$macports/bin/port" -f deactivate "$stuck_dep"
+				continue
+			fi
 
-			# Deactivate the stuck dependency and try again.
-			sudo "$macports/bin/port" -f deactivate $stuck_dep
+			stuck_dep=$(grep " Please deactivate this port first, or " macports.log | cut -d" " -f5 | tr -d :)
+			if [ -n "$stuck_dep" ]
+			then
+				# Activate the stuck dependency and try again.
+				sudo "$macports/bin/port" -f activate "$stuck_dep"
+				continue
+			fi
+
+			# Stop if no errors were found.
+			break
 		done
 
 		# Remove MacPorts error detection log.
@@ -566,6 +579,7 @@ else
 		arm32)	arch_deb="armhf";;
 		*)	arch_deb="$arch";;
 	esac
+        grep -q " bullseye " /etc/apt/sources.list || echo [!] WARNING: System not running the expected Debian version
 
 	# Establish general dependencies.
 	pkgs="cmake ninja-build pkg-config git wget p7zip-full extra-cmake-modules wayland-protocols tar gzip file appstream"

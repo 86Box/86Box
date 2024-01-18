@@ -54,7 +54,7 @@ typedef struct pci_bridge_t {
 
     uint8_t regs[256];
     uint8_t bus_index;
-    int     slot;
+    uint8_t slot;
 } pci_bridge_t;
 
 #ifdef ENABLE_PCI_BRIDGE_LOG
@@ -493,7 +493,7 @@ pci_bridge_init(const device_t *info)
 
     pci_bridge_reset(dev);
 
-    dev->slot = pci_add_card(AGP_BRIDGE(dev->local) ? PCI_ADD_AGPBRIDGE : PCI_ADD_BRIDGE, pci_bridge_read, pci_bridge_write, dev);
+    pci_add_bridge(AGP_BRIDGE(dev->local), pci_bridge_read, pci_bridge_write, dev, &dev->slot);
 
     interrupt_count = sizeof(interrupts);
     interrupt_mask  = interrupt_count - 1;
@@ -501,7 +501,9 @@ pci_bridge_init(const device_t *info)
         for (uint8_t i = 0; i < interrupt_count; i++)
             interrupts[i] = pci_get_int(dev->slot, PCI_INTA + i);
     }
-    pci_bridge_log("PCI Bridge %d: upstream bus %02X slot %02X interrupts %02X %02X %02X %02X\n", dev->bus_index, (dev->slot >> 5) & 0xff, dev->slot & 31, interrupts[0], interrupts[1], interrupts[2], interrupts[3]);
+    pci_bridge_log("PCI Bridge %d: upstream bus %02X slot %02X interrupts %02X %02X %02X %02X\n",
+                   dev->bus_index, (dev->slot >> 5) & 0xff, dev->slot & 31, interrupts[0],
+                   interrupts[1], interrupts[2], interrupts[3]);
 
     if (info->local == PCI_BRIDGE_DEC_21150)
         slot_count = 9; /* 9 bus masters */
@@ -510,7 +512,10 @@ pci_bridge_init(const device_t *info)
 
     for (uint8_t i = 0; i < slot_count; i++) {
         /* Interrupts for bridge slots are assigned in round-robin: ABCD, BCDA, CDAB and so on. */
-        pci_bridge_log("PCI Bridge %d: downstream slot %02X interrupts %02X %02X %02X %02X\n", dev->bus_index, i, interrupts[i & interrupt_mask], interrupts[(i + 1) & interrupt_mask], interrupts[(i + 2) & interrupt_mask], interrupts[(i + 3) & interrupt_mask]);
+        pci_bridge_log("PCI Bridge %d: downstream slot %02X interrupts %02X %02X %02X %02X\n",
+                       dev->bus_index, i, interrupts[i & interrupt_mask],
+                       interrupts[(i + 1) & interrupt_mask], interrupts[(i + 2) & interrupt_mask],
+                       interrupts[(i + 3) & interrupt_mask]);
         pci_register_bus_slot(dev->bus_index, i, AGP_BRIDGE(dev->local) ? PCI_CARD_AGP : PCI_CARD_NORMAL,
                               interrupts[i & interrupt_mask],
                               interrupts[(i + 1) & interrupt_mask],

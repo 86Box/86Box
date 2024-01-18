@@ -32,6 +32,9 @@ using atomic_int  = std::atomic_int;
 
 #define makecol(r, g, b)   ((b) | ((g) << 8) | ((r) << 16))
 #define makecol32(r, g, b) ((b) | ((g) << 8) | ((r) << 16))
+#define getcolr(color) (((color) >> 16) & 0xFF)
+#define getcolg(color) (((color) >> 8) & 0xFF)
+#define getcolb(color) ((color) & 0xFF)
 
 enum {
     VID_NONE = 0,
@@ -42,7 +45,8 @@ enum {
     FULLSCR_SCALE_FULL = 0,
     FULLSCR_SCALE_43,
     FULLSCR_SCALE_KEEPRATIO,
-    FULLSCR_SCALE_INT
+    FULLSCR_SCALE_INT,
+    FULLSCR_SCALE_INT43
 };
 
 #ifdef __cplusplus
@@ -103,8 +107,8 @@ typedef struct monitor_t {
     int                      mon_efscrnsz_y;
     int                      mon_unscaled_size_x;
     int                      mon_unscaled_size_y;
-    int                      mon_res_x;
-    int                      mon_res_y;
+    double                   mon_res_x;
+    double                   mon_res_y;
     int                      mon_bpp;
     bitmap_t                *target_buffer;
     int                      mon_video_timing_read_b;
@@ -152,7 +156,7 @@ extern int changeframecount;
 
 extern volatile int screenshots;
 #if 0
-extern bitmap_t	*buffer32;
+extern bitmap_t *buffer32;
 #endif
 #define buffer32             (monitors[monitor_index_global].target_buffer)
 #define pal_lookup           (monitors[monitor_index_global].mon_pal_lookup)
@@ -179,13 +183,15 @@ extern bitmap_t	*buffer32;
 extern PALETTE      cgapal;
 extern PALETTE      cgapal_mono[6];
 #if 0
-extern uint32_t	    pal_lookup[256];
+extern uint32_t     pal_lookup[256];
 #endif
 extern int          video_fullscreen;
 extern int          video_fullscreen_scale;
 extern int          video_fullscreen_first;
 extern uint8_t      fontdat[2048][8];
 extern uint8_t      fontdatm[2048][16];
+extern uint8_t      fontdat2[2048][8];
+extern uint8_t      fontdatm2[2048][16];
 extern uint8_t      fontdatw[512][32];
 extern uint8_t      fontdat8x12[256][16];
 extern uint8_t      fontdat12x18[256][36];
@@ -208,7 +214,8 @@ extern double cpuclock;
 extern int    emu_fps;
 extern int    frames;
 extern int    readflash;
-extern int    ibm8514_has_vga;
+extern int    ibm8514_active;
+extern int    xga_active;
 
 /* Function handler pointers. */
 extern void (*video_recalctimings)(void);
@@ -228,17 +235,17 @@ extern int video_card_available(int card);
 #ifdef EMU_DEVICE_H
 extern const device_t *video_card_getdevice(int card);
 #endif
-extern int   video_card_has_config(int card);
-extern char *video_get_internal_name(int card);
-extern int   video_get_video_from_internal_name(char *s);
-extern int   video_card_get_flags(int card);
-extern int   video_is_mda(void);
-extern int   video_is_cga(void);
-extern int   video_is_ega_vga(void);
-extern int   video_is_8514(void);
-extern int   video_is_xga(void);
-extern void  video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
-extern int   video_get_type_monitor(int monitor_index);
+extern int         video_card_has_config(int card);
+extern const char *video_get_internal_name(int card);
+extern int         video_get_video_from_internal_name(char *s);
+extern int         video_card_get_flags(int card);
+extern int         video_is_mda(void);
+extern int         video_is_cga(void);
+extern int         video_is_ega_vga(void);
+extern int         video_is_8514(void);
+extern int         video_is_xga(void);
+extern void        video_inform_monitor(int type, const video_timings_t *ptr, int monitor_index);
+extern int         video_get_type_monitor(int monitor_index);
 
 extern void video_setblit(void (*blit)(int, int, int, int, int));
 extern void video_blend(int x, int y);
@@ -263,6 +270,8 @@ extern void    video_close(void);
 extern void    video_reset_close(void);
 extern void    video_pre_reset(int card);
 extern void    video_reset(int card);
+extern void    video_post_reset(void);
+extern void    video_voodoo_init(void);
 extern uint8_t video_force_resize_get_monitor(int monitor_index);
 extern void    video_force_resize_set_monitor(uint8_t res, int monitor_index);
 extern void    video_update_timing(void);
@@ -300,7 +309,9 @@ extern void ibm8514_device_add(void);
 extern const device_t mach8_isa_device;
 extern const device_t mach32_isa_device;
 extern const device_t mach32_vlb_device;
+extern const device_t mach32_mca_device;
 extern const device_t mach32_pci_device;
+extern const device_t mach32_onboard_pci_device;
 
 /* ATi Mach64 */
 extern const device_t mach64gx_isa_device;
@@ -348,7 +359,9 @@ extern const device_t gd5429_isa_device;
 extern const device_t gd5429_vlb_device;
 extern const device_t gd5430_diamond_speedstar_pro_se_a8_vlb_device;
 extern const device_t gd5430_vlb_device;
+extern const device_t gd5430_onboard_vlb_device;
 extern const device_t gd5430_pci_device;
+extern const device_t gd5430_onboard_pci_device;
 extern const device_t gd5434_isa_device;
 extern const device_t gd5434_diamond_speedstar_64_a3_isa_device;
 extern const device_t gd5434_onboard_pci_device;
@@ -422,12 +435,12 @@ extern const device_t ht216_32_standalone_device;
 extern const device_t im1024_device;
 extern const device_t pgc_device;
 
-#    if defined(DEV_BRANCH) && defined(USE_MGA)
 /* Matrox MGA */
 extern const device_t millennium_device;
 extern const device_t mystique_device;
 extern const device_t mystique_220_device;
-#    endif
+extern const device_t millennium_ii_device;
+extern const device_t productiva_g100_device;
 
 /* Oak OTI-0x7 */
 extern const device_t oti037c_device;
@@ -478,6 +491,7 @@ extern const device_t s3_phoenix_trio64_onboard_pci_device;
 extern const device_t s3_phoenix_trio64_pci_device;
 extern const device_t s3_phoenix_trio64vplus_pci_device;
 extern const device_t s3_phoenix_trio64vplus_onboard_pci_device;
+extern const device_t s3_cardex_trio64vplus_pci_device;
 extern const device_t s3_mirocrystal_20sv_964_vlb_device;
 extern const device_t s3_mirocrystal_20sv_964_pci_device;
 extern const device_t s3_mirocrystal_20sd_864_vlb_device;

@@ -428,10 +428,10 @@ ali5123_write(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 ali5123_read(uint16_t port, void *priv)
 {
-    ali5123_t *dev   = (ali5123_t *) priv;
-    uint8_t    index = (port & 1) ? 0 : 1;
-    uint8_t    ret   = 0xff;
-    uint8_t    cur_ld;
+    const ali5123_t *dev   = (ali5123_t *) priv;
+    uint8_t          index = (port & 1) ? 0 : 1;
+    uint8_t          ret   = 0xff;
+    uint8_t          cur_ld;
 
     if (dev->locked) {
         if (index)

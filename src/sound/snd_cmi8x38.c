@@ -34,6 +34,7 @@
 #include <86box/gameport.h>
 #include <86box/nmi.h>
 #include <86box/ui.h>
+#include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 
 enum {
@@ -96,7 +97,8 @@ typedef struct _cmi8x38_ {
     uint16_t mpu_base;
     uint8_t  pci_regs[256];
     uint8_t  io_regs[256];
-    int      slot;
+    uint8_t  pci_slot;
+    uint8_t  irq_state;
 
     sb_t *sb;
     void *gameport;
@@ -147,11 +149,11 @@ cmi8x38_update_irqs(cmi8x38_t *dev)
     /* Calculate and use the INTR flag. */
     if (*((uint32_t *) &dev->io_regs[0x10]) & 0x0401c003) {
         dev->io_regs[0x13] |= 0x80;
-        pci_set_irq(dev->slot, PCI_INTA);
+        pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
         cmi8x38_log("CMI8x38: Raising IRQ\n");
     } else {
         dev->io_regs[0x13] &= ~0x80;
-        pci_clear_irq(dev->slot, PCI_INTA);
+        pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
     }
 }
 
@@ -467,9 +469,7 @@ cmi8x38_sb_mixer_write(uint16_t addr, uint8_t val, void *priv)
             case 0xf8 ... 0xff:
                 if (dev->type == CMEDIA_CMI8338)
                     mixer->regs[mixer->index] = val;
-#ifndef __APPLE__
-                [[fallthrough]];
-#endif
+                fallthrough;
 
             case 0xf1 ... 0xf7:
                 return;
@@ -822,9 +822,9 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
 
                 /* Force IRQ if requested. Clearing this bit is undefined. */
                 if (val & 0x10)
-                    pci_set_irq(dev->slot, PCI_INTA);
+                    pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
                 else if ((dev->io_regs[0x17] & 0x10) && !(val & 0x10))
-                    pci_clear_irq(dev->slot, PCI_INTA);
+                    pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
 
                 /* Enable or disable I/O traps. */
                 dev->io_regs[addr] = val;
@@ -1472,7 +1472,7 @@ cmi8x38_init(const device_t *info)
     }
 
     /* Add PCI card. */
-    dev->slot = pci_add_card((info->local & (1 << 13)) ? PCI_ADD_SOUND : PCI_ADD_NORMAL, cmi8x38_pci_read, cmi8x38_pci_write, dev);
+    pci_add_card((info->local & (1 << 13)) ? PCI_ADD_SOUND : PCI_ADD_NORMAL, cmi8x38_pci_read, cmi8x38_pci_write, dev, &dev->pci_slot);
 
     /* Perform initial reset. */
     cmi8x38_reset(dev);

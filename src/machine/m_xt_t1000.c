@@ -55,11 +55,11 @@
  *
  * Authors: Fred N. van Kempen, <decwiz@yahoo.com>
  *          Miran Grca, <mgrca8@gmail.com>
- *          Sarah Walker, <https://pcem-emulator.co.uk/>
+ *          John Elliott, <jce@seasip.info>
  *
  *          Copyright 2018-2019 Fred N. van Kempen.
  *          Copyright 2018-2019 Miran Grca.
- *          Copyright 2018-2019 Sarah Walker.
+ *          Copyright 2018-2019 John Elliott.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -833,7 +833,7 @@ t1000_read_roml(uint32_t addr, void *priv)
 int
 machine_xt_t1000_init(const machine_t *model)
 {
-    FILE *f;
+    FILE *fp;
     int ret;
 
     ret = bios_load_linear("roms/machines/t1000/t1000.rom",
@@ -856,15 +856,15 @@ machine_xt_t1000_init(const machine_t *model)
      * If the file is missing, continue to boot; the BIOS will
      * complain 'No ROM drive' but boot normally from floppy.
      */
-    f = rom_fopen("roms/machines/t1000/t1000dos.rom", "rb");
-    if (f != NULL) {
+    fp = rom_fopen("roms/machines/t1000/t1000dos.rom", "rb");
+    if (fp != NULL) {
         t1000.romdrive = malloc(T1000_ROMSIZE);
         if (t1000.romdrive) {
             memset(t1000.romdrive, 0xff, T1000_ROMSIZE);
-            if (fread(t1000.romdrive, 1, T1000_ROMSIZE, f) != T1000_ROMSIZE)
+            if (fread(t1000.romdrive, 1, T1000_ROMSIZE, fp) != T1000_ROMSIZE)
                 fatal("machine_xt_t1000_init(): Error reading DOS ROM data\n");
         }
-        fclose(f);
+        fclose(fp);
     }
     mem_mapping_add(&t1000.rom_mapping, 0xa0000, 0x10000,
                     t1000_read_rom, t1000_read_romw, t1000_read_roml,
@@ -986,62 +986,62 @@ t1000_syskey(uint8_t andmask, uint8_t ormask, uint8_t xormask)
 static void
 t1000_configsys_load(void)
 {
-    FILE *f;
+    FILE *fp;
     int   size;
 
     memset(t1000.t1000_nvram, 0x1a, sizeof(t1000.t1000_nvram));
-    f = plat_fopen(nvr_path("t1000_config.nvr"), "rb");
-    if (f != NULL) {
+    fp = plat_fopen(nvr_path("t1000_config.nvr"), "rb");
+    if (fp != NULL) {
         size = sizeof(t1000.t1000_nvram);
-        if (fread(t1000.t1000_nvram, 1, size, f) != size)
+        if (fread(t1000.t1000_nvram, 1, size, fp) != size)
             fatal("t1000_configsys_load(): Error reading data\n");
-        fclose(f);
+        fclose(fp);
     }
 }
 
 static void
 t1000_configsys_save(void)
 {
-    FILE *f;
+    FILE *fp;
     int   size;
 
-    f = plat_fopen(nvr_path("t1000_config.nvr"), "wb");
-    if (f != NULL) {
+    fp = plat_fopen(nvr_path("t1000_config.nvr"), "wb");
+    if (fp != NULL) {
         size = sizeof(t1000.t1000_nvram);
-        if (fwrite(t1000.t1000_nvram, 1, size, f) != size)
+        if (fwrite(t1000.t1000_nvram, 1, size, fp) != size)
             fatal("t1000_configsys_save(): Error writing data\n");
-        fclose(f);
+        fclose(fp);
     }
 }
 
 static void
 t1200_state_load(void)
 {
-    FILE *f;
+    FILE *fp;
     int   size;
 
     memset(t1000.t1200_nvram, 0, sizeof(t1000.t1200_nvram));
-    f = plat_fopen(nvr_path("t1200_state.nvr"), "rb");
-    if (f != NULL) {
+    fp = plat_fopen(nvr_path("t1200_state.nvr"), "rb");
+    if (fp != NULL) {
         size = sizeof(t1000.t1200_nvram);
-        if (fread(t1000.t1200_nvram, 1, size, f) != size)
+        if (fread(t1000.t1200_nvram, 1, size, fp) != size)
             fatal("t1200_state_load(): Error reading data\n");
-        fclose(f);
+        fclose(fp);
     }
 }
 
 static void
 t1200_state_save(void)
 {
-    FILE *f;
+    FILE *fp;
     int   size;
 
-    f = plat_fopen(nvr_path("t1200_state.nvr"), "wb");
-    if (f != NULL) {
+    fp = plat_fopen(nvr_path("t1200_state.nvr"), "wb");
+    if (fp != NULL) {
         size = sizeof(t1000.t1200_nvram);
-        if (fwrite(t1000.t1200_nvram, 1, size, f) != size)
+        if (fwrite(t1000.t1200_nvram, 1, size, fp) != size)
             fatal("t1200_state_save(): Error writing data\n");
-        fclose(f);
+        fclose(fp);
     }
 }
 
@@ -1049,13 +1049,13 @@ t1200_state_save(void)
 static void
 t1000_emsboard_load(void)
 {
-    FILE *f;
+    FILE *fp;
 
     if (mem_size > 512) {
-        f = plat_fopen(nvr_path("t1000_ems.nvr"), "rb");
-        if (f != NULL) {
-            (void) !fread(&ram[512 * 1024], 1024, (mem_size - 512), f);
-            fclose(f);
+        fp = plat_fopen(nvr_path("t1000_ems.nvr"), "rb");
+        if (fp != NULL) {
+            (void) !fread(&ram[512 * 1024], 1024, (mem_size - 512), fp);
+            fclose(fp);
         }
     }
 }
@@ -1063,13 +1063,13 @@ t1000_emsboard_load(void)
 static void
 t1000_emsboard_save(void)
 {
-    FILE *f;
+    FILE *fp;
 
     if (mem_size > 512) {
-        f = plat_fopen(nvr_path("t1000_ems.nvr"), "wb");
-        if (f != NULL) {
-            fwrite(&ram[512 * 1024], 1024, (mem_size - 512), f);
-            fclose(f);
+        fp = plat_fopen(nvr_path("t1000_ems.nvr"), "wb");
+        if (fp != NULL) {
+            fwrite(&ram[512 * 1024], 1024, (mem_size - 512), fp);
+            fclose(fp);
         }
     }
 }

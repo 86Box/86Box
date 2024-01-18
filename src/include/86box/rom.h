@@ -48,9 +48,9 @@ extern rom_path_t rom_paths;
 
 extern void rom_add_path(const char *path);
 
-extern uint8_t  rom_read(uint32_t addr, void *p);
-extern uint16_t rom_readw(uint32_t addr, void *p);
-extern uint32_t rom_readl(uint32_t addr, void *p);
+extern uint8_t  rom_read(uint32_t addr, void *priv);
+extern uint16_t rom_readw(uint32_t addr, void *priv);
+extern uint32_t rom_readl(uint32_t addr, void *priv);
 
 extern FILE *rom_fopen(const char *fn, char *mode);
 extern int   rom_getfile(char *fn, char *s, int size);

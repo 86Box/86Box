@@ -44,9 +44,9 @@ typedef struct ega_t {
     uint8_t colournocare;
     uint8_t scrblank;
     uint8_t plane_mask;
-    uint8_t pad;
-    uint8_t pad0;
-    uint8_t pad1;
+    uint8_t ctl_mode;
+    uint8_t color_mux;
+    uint8_t dot;
     uint8_t crtc[32];
     uint8_t gdcreg[16];
     uint8_t attrregs[32];
@@ -108,6 +108,9 @@ typedef struct ega_t {
     int res_y;
     int bpp;
     int index;
+    int remap_required;
+    int actual_type;
+    int chipset;
 
     uint32_t charseta;
     uint32_t charsetb;
@@ -117,21 +120,24 @@ typedef struct ega_t {
     uint32_t ca;
     uint32_t vram_limit;
     uint32_t overscan_color;
+    uint32_t cca;
 
     uint32_t *pallook;
 
     uint64_t   dispontime;
     uint64_t   dispofftime;
+
+    uint64_t   dot_time;
+
     pc_timer_t timer;
+    pc_timer_t dot_timer;
 
-    double clock;
+    double     dot_clock;
 
-    int remap_required;
-    uint32_t (*remap_func)(struct ega_t *ega, uint32_t in_addr);
+    void *     eeprom;
 
-    void (*render)(struct ega_t *svga);
-
-    void *eeprom;
+    uint32_t   (*remap_func)(struct ega_t *ega, uint32_t in_addr);
+    void       (*render)(struct ega_t *svga);
 } ega_t;
 #endif
 
@@ -139,7 +145,7 @@ typedef struct ega_t {
 extern const device_t ega_device;
 extern const device_t cpqega_device;
 extern const device_t sega_device;
-extern const device_t atiega_device;
+extern const device_t atiega800p_device;
 extern const device_t iskra_ega_device;
 extern const device_t et2000_device;
 #endif

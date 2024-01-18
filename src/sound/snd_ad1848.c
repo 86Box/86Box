@@ -30,6 +30,7 @@
 #include <86box/timer.h>
 #include <86box/sound.h>
 #include <86box/snd_ad1848.h>
+#include <86box/plat_fallthrough.h>
 
 #define CS4231 0x80
 #define CS4236 0x03
@@ -241,9 +242,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                 case 10:
                     if (ad1848->type < AD1848_TYPE_CS4235)
                         break;
-#ifndef __APPLE__
-                    [[fallthrough]];
-#endif
+                    fallthrough;
 
                 case 8:
                     updatefreq = 1;

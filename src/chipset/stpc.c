@@ -45,6 +45,11 @@
 #define STPC_CLIENT    0x100e55cc
 
 typedef struct stpc_t {
+    uint8_t nb_slot;
+    uint8_t sb_slot;
+    uint8_t ide_slot;
+    uint8_t usb_slot;
+
     uint32_t local;
 
     /* Main registers (port 22h/23h) */
@@ -54,23 +59,20 @@ typedef struct stpc_t {
     /* Host bus interface */
     uint16_t host_base;
     uint8_t  host_offset;
+    uint8_t  usb_irq_state;
     uint8_t  host_regs[256];
 
     /* Local bus */
     uint16_t localbus_base;
     uint8_t  localbus_offset;
+    uint8_t  pad0;
     uint8_t  localbus_regs[256];
 
     /* PCI devices */
     uint8_t     pci_conf[4][256];
     smram_t    *smram;
     usb_t      *usb;
-    int         ide_slot;
-    int         usb_slot;
     sff8038i_t *bm[2];
-
-    /* Miscellaneous */
-    usb_params_t usb_params;
 } stpc_t;
 
 typedef struct stpc_serial_t {
@@ -894,17 +896,6 @@ stpc_setup(stpc_t *dev)
 }
 
 static void
-stpc_usb_update_interrupt(usb_t* usb, void* priv)
-{
-    const stpc_t *dev = (stpc_t *) priv;
-
-    if (usb->irq_level)
-        pci_set_irq(dev->usb_slot, PCI_INTA);
-    else
-        pci_clear_irq(dev->usb_slot, PCI_INTA);
-}
-
-static void
 stpc_close(void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
@@ -926,26 +917,21 @@ stpc_init(const device_t *info)
 
     dev->local = info->local;
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, stpc_nb_read, stpc_nb_write, dev);
-    dev->ide_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_isab_read, stpc_isab_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, stpc_nb_read, stpc_nb_write, dev, &dev->nb_slot);
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_isab_read, stpc_isab_write, dev, &dev->sb_slot);
     if (dev->local == STPC_ATLAS) {
-        dev->usb_params.smi_handle       = NULL;
-        dev->usb_params.update_interrupt = stpc_usb_update_interrupt;
-        dev->usb_params.parent_priv      = dev;
+        pci_add_card(PCI_ADD_SOUTHBRIDGE_IDE, stpc_ide_read, stpc_ide_write, dev, &dev->ide_slot);
 
-        dev->ide_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_ide_read, stpc_ide_write, dev);
-        dev->usb      = device_add_parameters(&usb_device, &dev->usb_params);
-        dev->usb_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_usb_read, stpc_usb_write, dev);
+        dev->usb = device_add(&usb_device);
+        pci_add_card(PCI_ADD_SOUTHBRIDGE_USB, stpc_usb_read, stpc_usb_write, dev, &dev->usb_slot);
     }
 
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
     dev->bm[1] = device_add_inst(&sff8038i_device, 2);
 
-    sff_set_irq_mode(dev->bm[0], 0, 0);
-    sff_set_irq_mode(dev->bm[0], 1, 0);
+    sff_set_irq_mode(dev->bm[0], IRQ_MODE_LEGACY);
 
-    sff_set_irq_mode(dev->bm[1], 0, 0);
-    sff_set_irq_mode(dev->bm[1], 1, 0);
+    sff_set_irq_mode(dev->bm[1], IRQ_MODE_LEGACY);
 
     stpc_setup(dev);
     stpc_reset(dev);

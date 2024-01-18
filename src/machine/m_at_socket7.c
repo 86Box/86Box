@@ -10,11 +10,8 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
- *          Melissa Goad, <mszoopers@protonmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *
- *          Copyright 2010-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  *
  */
@@ -174,6 +171,42 @@ machine_at_m7shi_init(const machine_t *model)
     return ret;
 }
 
+/* The Sony VAIO is an AG430HX, I'm assuming it has the same configuration bits
+   as the TC430HX, hence the #define. */
+#define machine_at_ag430hx_gpio_init machine_at_tc430hx_gpio_init
+
+/* The PB680 is a NV430VX, I'm assuming it has the same configuration bits as
+   the TC430HX, hence the #define. */
+#define machine_at_nv430vx_gpio_init machine_at_tc430hx_gpio_init
+
+static void
+machine_at_tc430hx_gpio_init(void)
+{
+    uint32_t gpio = 0xffffe1ff;
+
+    /* Register 0x0079: */
+    /* Bit 7: 0 = Clear password, 1 = Keep password. */
+    /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
+    /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
+    /* Bit 4: External CPU clock (Switch 8). */
+    /* Bit 3: External CPU clock (Switch 7). */
+    /*        50 MHz: Switch 7 = Off, Switch 8 = Off. */
+    /*        60 MHz: Switch 7 = On, Switch 8 = Off. */
+    /*        66 MHz: Switch 7 = Off, Switch 8 = On. */
+    /* Bit 2: 0 = On-board audio absent, 1 = On-board audio present. */
+    /* Bit 1: 0 = Soft-off capable power supply present, 1 = Soft-off capable power supply absent. */
+    /* Bit 0: 0 = Reserved. */
+    /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
+    if (cpu_busspeed <= 50000000)
+        gpio |= 0xffff10ff;
+    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
+        gpio |= 0xffff18ff;
+    else if (cpu_busspeed > 60000000)
+        gpio |= 0xffff00ff;
+
+    machine_set_gpio_default(gpio);
+}
+
 int
 machine_at_tc430hx_init(const machine_t *model)
 {
@@ -189,7 +222,8 @@ machine_at_tc430hx_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    machine_at_tc430hx_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -199,7 +233,10 @@ machine_at_tc430hx_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x10, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&s3_virge_375_pci_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
     device_add(&i430hx_device);
     device_add(&piix3_device);
     device_add(&keyboard_ps2_ami_pci_device);
@@ -224,7 +261,8 @@ machine_at_infinia7200_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    machine_at_tc430hx_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -234,7 +272,10 @@ machine_at_infinia7200_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x10, PCI_CARD_NORMAL, 4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&s3_virge_375_pci_device);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
     device_add(&i430hx_device);
     device_add(&piix3_device);
     device_add(&keyboard_ps2_ami_pci_device);
@@ -244,7 +285,83 @@ machine_at_infinia7200_init(const machine_t *model)
     return ret;
 }
 
-/* Information about that machine on machine.h */
+static void
+machine_at_cu430hx_gpio_init(void)
+{
+    uint32_t gpio = 0xffffe1ff;
+
+    /* Register 0x0079: */
+    /* Bit 7: 0 = Clear password, 1 = Keep password. */
+    /* Bit 6: 0 = NVRAM cleared by jumper, 1 = NVRAM normal. */
+    /* Bit 5: 0 = CMOS Setup disabled, 1 = CMOS Setup enabled. */
+    /* Bit 4: External CPU clock (Switch 8). */
+    /* Bit 3: External CPU clock (Switch 7). */
+    /*        50 MHz: Switch 7 = Off, Switch 8 = Off. */
+    /*        60 MHz: Switch 7 = On, Switch 8 = Off. */
+    /*        66 MHz: Switch 7 = Off, Switch 8 = On. */
+    /* Bit 2: 0 = On-board audio absent, 1 = On-board audio present. */
+    /* Bit 1: 0 = Soft-off capable power supply present, 1 = Soft-off capable power supply absent. */
+    /* Bit 0: 0 = Reserved. */
+    /* NOTE: A bit is read as 1 if switch is off, and as 0 if switch is on. */
+    if (cpu_busspeed <= 50000000)
+        gpio |= 0xffff10ff;
+    else if ((cpu_busspeed > 50000000) && (cpu_busspeed <= 60000000))
+        gpio |= 0xffff18ff;
+    else if (cpu_busspeed > 60000000)
+        gpio |= 0xffff00ff;
+
+    if ((sound_card_current[0] == SOUND_INTERNAL) && machine_get_snd_device(machine)->available())
+        gpio |= 0xffff04ff;
+
+    machine_set_gpio_default(gpio);
+}
+
+static void
+machine_at_cu430hx_common_init(const machine_t *model)
+{
+    machine_at_common_init_ex(model, 2);
+    machine_at_cu430hx_gpio_init();
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_VIDEO,       4, 0, 0, 0); // ATI VGA Graphics
+    pci_register_slot(0x0C, PCI_CARD_NETWORK,     4, 0, 0, 0); // Intel 82557 Ethernet Network
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 0, 0, 0); // riser
+
+    if ((sound_card_current[0] == SOUND_INTERNAL) && machine_get_snd_device(machine)->available())
+        machine_snd = device_add(machine_get_snd_device(machine));
+
+    device_add(&i430hx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&pc87306_device);
+    device_add(&intel_flash_bxt_ami_device);
+}
+
+int
+machine_at_cu430hx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined2("roms/machines/cu430hx/1006DK0_.BIO",
+                                     "roms/machines/cu430hx/1006DK0_.BI1",
+                                     "roms/machines/cu430hx/1006DK0_.BI2",
+                                     "roms/machines/cu430hx/1006DK0_.BI3",
+                                     "roms/machines/cu430hx/1006DK0_.RCV",
+                                     0x3a000, 128);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_cu430hx_common_init(model);
+
+    return ret;
+}
+
 int
 machine_at_equium5200_init(const machine_t *model)
 {
@@ -260,21 +377,7 @@ machine_at_equium5200_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x08, PCI_CARD_VIDEO,       4, 0, 0, 0);
-    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 3, 4, 1);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL,      3, 4, 1, 2);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 0, 0, 0); // riser
-    device_add(&i430hx_device);
-    device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&pc87306_device);
-    device_add(&intel_flash_bxt_ami_device);
+    machine_at_cu430hx_common_init(model);
 
     return ret;
 }
@@ -294,7 +397,8 @@ machine_at_pcv90_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    machine_at_ag430hx_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -550,7 +654,8 @@ machine_at_pb680_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    machine_at_nv430vx_gpio_init();
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
@@ -559,6 +664,10 @@ machine_at_pb680_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
     device_add(&i430vx_device);
     device_add(&piix3_device);
     device_add(&keyboard_ps2_ami_pci_device);
@@ -978,9 +1087,9 @@ machine_at_r534f_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      1, 2, 3, 4);
@@ -1007,9 +1116,9 @@ machine_at_ms5146_init(const machine_t *model)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
@@ -1020,6 +1129,35 @@ machine_at_ms5146_init(const machine_t *model)
     device_add(&sis_5571_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83877f_device);
+    device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+
+int
+machine_at_cb52x_si_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/cb52x_si/CD5205S.ROM",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1 | FLAG_TRC_CONTROLS_CPURST);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x07, PCI_CARD_NORMAL,      4, 1, 2, 3);
+
+    device_add(&sis_5571_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&fdc37c669_370_device);
     device_add(&sst_flash_29ee010_device);
 
     return ret;
@@ -1085,6 +1223,36 @@ machine_at_ms5164_init(const machine_t *model)
     device_add(&ali1543_device); /* -5 */
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+
+    return ret;
+}
+
+int
+machine_at_thunderbolt_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/thunderbolt/tbolt-01.rom",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+	pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 1, 2, 3); /* PIIX4 */
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      0, 1, 2, 3);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      1, 2, 3, 0);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      2, 3, 0, 1);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      3, 0, 1, 2);
+    device_add(&i430tx_device);
+    device_add(&piix4_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&fdc37c935_device);
+    device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 
     return ret;
 }

@@ -10,11 +10,10 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *          GH Cao, <driver1998.ms@outlook.com>
+ *          Jasmine Iwanek,
  *
- *          Copyright 2008-2018 Sarah Walker.
  *          Copyright 2016-2018 Miran Grca.
  *          Copyright 2019 GH Cao.
  *          Copyright 2021-2023 Jasmine Iwanek.
@@ -140,6 +139,7 @@ joystick_init()
 void
 joystick_close()
 {
+    //
 }
 
 void
@@ -262,7 +262,7 @@ joystick_process(void)
 }
 
 void
-win_joystick_handle(PRAWINPUT raw)
+win_joystick_handle(UNUSED(PRAWINPUT raw))
 {
     // Nothing to be done here, atleast currently
 }

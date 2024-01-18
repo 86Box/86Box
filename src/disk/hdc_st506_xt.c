@@ -623,10 +623,7 @@ st506_callback(void *priv)
                 st506_complete(dev);
                 break;
             }
-#ifndef __APPLE__
-            [[fallthrough]];
-#endif
-
+            fallthrough;
         case CMD_FORMAT_TRACK:
         case CMD_FORMAT_BAD_TRACK:
             switch (dev->state) {
@@ -673,6 +670,7 @@ st506_callback(void *priv)
                 st506_complete(dev);
                 break;
             }
+            fallthrough;
         case CMD_READ:
 #if 0
         case CMD_READ_LONG:
@@ -772,6 +770,7 @@ st506_callback(void *priv)
                 st506_complete(dev);
                 break;
             }
+            fallthrough;
         case CMD_WRITE:
 #if 0
         case CMD_WRITE_LONG:
@@ -1534,6 +1533,7 @@ static void
 set_switches(hdc_t *dev, hd_type_t *hdt, int num)
 {
     const drive_t *drive;
+    int            c;
     int            e;
 
     dev->switches = 0x00;
@@ -1547,7 +1547,7 @@ set_switches(hdc_t *dev, hd_type_t *hdt, int num)
             continue;
         }
 
-        for (int c = 0; c < num; c++) {
+        for (c = 0; c < num; c++) {
             /* Does the Xebec also support more than 4 types? */
             if ((drive->spt == hdt[c].spt) && (drive->hpc == hdt[c].hpc) && (drive->tracks == hdt[c].tracks)) {
                 /* Olivetti M24/M240: Move the upper 2 bites up by 2 bits, as the
@@ -1575,10 +1575,10 @@ set_switches(hdc_t *dev, hd_type_t *hdt, int num)
 static void *
 st506_init(const device_t *info)
 {
-    char  *fn = NULL;
-    hdc_t *dev;
-    int    i;
-    int    c;
+    const char *fn = NULL;
+    hdc_t      *dev;
+    int         i;
+    int         c;
 
     dev = (hdc_t *) malloc(sizeof(hdc_t));
     memset(dev, 0x00, sizeof(hdc_t));
@@ -1608,9 +1608,7 @@ st506_init(const device_t *info)
 
         case ST506_XT_TYPE_ST11R: /* Seagate ST-11R (RLL) */
             dev->spt = RLL_SECTORS;
-#ifndef __APPLE__
-            [[fallthrough]];
-#endif
+            fallthrough;
 
         case ST506_XT_TYPE_ST11M: /* Seagate ST-11M (MFM) */
             dev->nr_err   = ERR_NOT_AVAILABLE;

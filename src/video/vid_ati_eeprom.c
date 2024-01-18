@@ -26,6 +26,7 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/vid_ati_eeprom.h>
+#include <86box/plat_fallthrough.h>
 
 void
 ati_eeprom_load(ati_eeprom_t *eeprom, char *fn, int type)
@@ -34,7 +35,7 @@ ati_eeprom_load(ati_eeprom_t *eeprom, char *fn, int type)
     int   size;
     eeprom->type = type;
     strncpy(eeprom->fn, fn, sizeof(eeprom->fn) - 1);
-    fp    = nvr_fopen(eeprom->fn, "rb");
+    fp   = nvr_fopen(eeprom->fn, "rb");
     size = eeprom->type ? 512 : 128;
     if (!fp) {
         memset(eeprom->data, 0xff, size);
@@ -52,7 +53,7 @@ ati_eeprom_load_mach8(ati_eeprom_t *eeprom, char *fn)
     int   size;
     eeprom->type = 0;
     strncpy(eeprom->fn, fn, sizeof(eeprom->fn) - 1);
-    fp    = nvr_fopen(eeprom->fn, "rb");
+    fp   = nvr_fopen(eeprom->fn, "rb");
     size = 128;
     if (!fp) { /*The ATI Graphics Ultra bios expects an immediate write to nvram if none is present at boot time otherwise
             it would hang the machine.*/
@@ -93,9 +94,7 @@ ati_eeprom_write(ati_eeprom_t *eeprom, int ena, int clk, int dat)
                     if (!dat)
                         break;
                     eeprom->state = EEPROM_OPCODE;
-#ifndef __APPLE__
-                [[fallthrough]];
-#endif
+                    fallthrough;
                 case EEPROM_OPCODE:
                     eeprom->opcode = (eeprom->opcode << 1) | (dat ? 1 : 0);
                     eeprom->count--;

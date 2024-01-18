@@ -10,11 +10,9 @@
  *
  *
  *
- * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
- *          Miran Grca, <mgrca8@gmail.com>
+ * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
  *          Copyright 2017-2020 Fred N. van Kempen.
  */
@@ -74,7 +72,15 @@ machine_init_ex(int m)
     if (!bios_only) {
         machine_log("Initializing as \"%s\"\n", machine_getname());
 
+        machine_init_p1();
+
+        machine_init_gpio();
+        machine_init_gpio_acpi();
+
+        machine_snd              = NULL;
+
         is_vpc                   = 0;
+
         standalone_gameport_type = NULL;
         gameport_instance_id     = 0;
 
@@ -108,7 +114,7 @@ machine_init_ex(int m)
         /* Reset the fast off stuff. */
         cpu_fast_off_reset();
 
-        pci_take_over_io = 0x00000000;
+        pci_flags = 0x00000000;
     }
 
     /* All good, boot the machine! */
@@ -118,17 +124,7 @@ machine_init_ex(int m)
     if (bios_only || !ret)
         return ret;
 
-    if (gfxcard[0] != VID_NONE) {
-        if (ibm8514_enabled) {
-            ibm8514_device_add();
-        }
-        if (xga_enabled)
-            xga_device_add();
-    }
-
-    /* Reset the graphics card (or do nothing if it was already done
-       by the machine's init function). */
-    video_reset(gfxcard[0]);
+    video_post_reset();
 
     return ret;
 }
@@ -172,13 +168,15 @@ pit_irq0_timer(int new_out, int old_out)
 void
 machine_common_init(UNUSED(const machine_t *model))
 {
+    uint8_t cpu_requires_fast_pit = is486 || (!is286 && is8086 && (cpu_s->rspeed >= 8000000));
+
     /* System devices first. */
     pic_init();
     dma_init();
 
     int pit_type = IS_AT(machine) ? PIT_8254 : PIT_8253;
     /* Select fast PIT if needed */
-    if ((pit_mode == -1 && is486) || pit_mode == 1)
+    if (((pit_mode == -1) && cpu_requires_fast_pit) || (pit_mode == 1))
         pit_type += 2;
 
     pit_common_init(pit_type, pit_irq0_timer, NULL);

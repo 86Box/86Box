@@ -106,6 +106,9 @@ rtg_in(uint16_t addr, void *priv)
 
         case 0x3d7:
             return dev->bank3d7;
+
+        default:
+            break;
     }
 
     return svga_in(addr, svga);
@@ -140,6 +143,9 @@ rtg_out(uint16_t addr, uint8_t val, void *priv)
                     case 0x0f:
                         rtg_recalcbanking(dev);
                         return;
+
+                    default:
+                        break;
                 }
             }
             break;
@@ -162,6 +168,9 @@ rtg_out(uint16_t addr, uint8_t val, void *priv)
                         svga->vram_display_mask = (val & 0x20) ? dev->vram_mask : 0x3ffff;
                         svga->fullchange        = changeframecount;
                         svga_recalctimings(svga);
+                        break;
+
+                    default:
                         break;
                 }
             }
@@ -188,6 +197,9 @@ rtg_out(uint16_t addr, uint8_t val, void *priv)
             dev->bank3d7 = val;
             rtg_recalcbanking(dev);
             return;
+
+        default:
+            break;
     }
 
     svga_out(addr, val, svga);
@@ -226,6 +238,9 @@ rtg_recalctimings(svga_t *svga)
         case 7:
             svga->clock = (cpuclock * (double) (1ULL << 32)) / 75000000.0;
             break;
+
+        default:
+            break;
     }
 
     switch (svga->gdcreg[0x0c] & 3) {
@@ -237,6 +252,9 @@ rtg_recalctimings(svga_t *svga)
             break;
         case 3:
             svga->clock /= 4;
+            break;
+
+        default:
             break;
     }
 
@@ -281,6 +299,9 @@ rtg_recalctimings(svga_t *svga)
                         svga->render = svga_render_8bpp_highres;
                 }
                 break;
+
+            default:
+                break;
         }
     }
 }
@@ -307,6 +328,9 @@ rtg_init(const device_t *info)
             io_sethandler(0x03c0, 32,
                           rtg_in, NULL, NULL, rtg_out, NULL, NULL, dev);
             break;
+
+        default:
+            break;
     }
 
     dev->svga.bpp     = 8;
@@ -314,7 +338,7 @@ rtg_init(const device_t *info)
 
     dev->vram_mask = dev->vram_size - 1;
 
-    rom_init(&dev->bios_rom, (char *) fn,
+    rom_init(&dev->bios_rom, fn,
              0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     return dev;

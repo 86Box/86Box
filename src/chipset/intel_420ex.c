@@ -15,6 +15,7 @@
  *
  *          Copyright 2020 Miran Grca.
  */
+#define USE_DRB_HACK
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -52,6 +53,9 @@
 typedef struct i420ex_t {
     uint8_t has_ide;
     uint8_t smram_locked;
+    uint8_t pci_slot;
+    uint8_t pad;
+
     uint8_t regs[256];
 
     uint16_t timer_base;
@@ -167,7 +171,7 @@ i420ex_drb_recalc(i420ex_t *dev)
 {
     uint32_t boundary;
 
-    for (uint8_t i = 4; i >= 0; i--)
+    for (int8_t i = 4; i >= 0; i--)
         row_disable(i);
 
     for (uint8_t i = 0; i <= 4; i++) {
@@ -519,7 +523,7 @@ i420ex_speed_changed(void *priv)
     if (te)
         timer_set_delay_u64(&dev->timer, ((uint64_t) dev->timer_latch) * TIMER_USEC);
 
-    te = timer_is_enabled(&dev->fast_off_timer);
+    te = timer_is_on(&dev->fast_off_timer);
 
     timer_stop(&dev->fast_off_timer);
     if (te)
@@ -534,7 +538,7 @@ i420ex_init(const device_t *info)
 
     dev->smram = smram_add();
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, i420ex_read, i420ex_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, i420ex_read, i420ex_write, dev, &dev->pci_slot);
 
     dev->has_ide = info->local;
 

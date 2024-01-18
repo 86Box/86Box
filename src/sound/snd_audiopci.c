@@ -53,6 +53,7 @@ typedef struct es1371_t {
     uint32_t base_addr;
 
     uint8_t int_line;
+    uint8_t irq_state;
 
     uint16_t pmcsr;
 
@@ -120,7 +121,7 @@ typedef struct es1371_t {
     int cd_vol_l;
     int cd_vol_r;
 
-    int card;
+    uint8_t pci_slot;
 
     int     pos;
     int16_t buffer[SOUNDBUFLEN * 2];
@@ -235,9 +236,9 @@ es1371_update_irqs(es1371_t *dev)
         irq = 1;
 
     if (irq)
-        pci_set_irq(dev->card, PCI_INTA);
+        pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
     else
-        pci_clear_irq(dev->card, PCI_INTA);
+        pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
 }
 
 static void
@@ -325,21 +326,15 @@ es1371_reset(void *priv)
 
     /* Interrupt/Chip Select Control Register, Address 00H
        Addressable as byte, word, longword */
-    dev->int_ctrl = 0xfc0f0000;
+    dev->int_ctrl = 0xfcff0000;
 
     /* Interrupt/Chip Select Control Register, Address 00H
        Addressable as longword only */
-    /* Bit 13 is supposed to be always 1 on ES1371, and one of the GPIO interrupt
-       flags on ES1373. The 5.12.01 WDM driver only initializes its GPIO interrupt
-       handler on chip revisions which support this feature (1371 >= 0x04 and 5880
-       all), but calls it anyway during interrupt servicing regardless of revision,
-       crashing on ES1371 as soon as an interrupt arrives while that bit is set.
-       Pending hardware research because actual early ES1371 cards are rare. */
-    dev->int_status = 0x7fffdec0;
+    dev->int_status = 0x7ffffec0;
 
     /* UART Status Register, Address 09H
        Addressable as byte only */
-    dev->uart_status = 0x00;
+    dev->uart_status = 0xff;
 
     /* UART Control Register, Address 09H
        Addressable as byte only */
@@ -347,15 +342,15 @@ es1371_reset(void *priv)
 
     /* UART Reserved Register, Address 0AH
        Addressable as byte only */
-    dev->uart_res = 0x00;
+    dev->uart_res = 0xff;
 
     /* Memory Page Register, Address 0CH
        Addressable as byte, word, longword */
-    dev->mem_page = 0x00;
+    dev->mem_page = 0xf0; /* FIXME: hardware reads 0xfffffff0 */
 
     /* Sample Rate Converter Interface Register, Address 10H
        Addressable as longword only */
-    dev->sr_cir = 0x00000000;
+    dev->sr_cir = 0x00470000;
 
     /* CODEC Write Register, Address 14H
        Addressable as longword only */
@@ -363,7 +358,7 @@ es1371_reset(void *priv)
 
     /* Legacy Control/Status Register, Address 18H
        Addressable as byte, word, longword */
-    dev->legacy_ctrl = 0x0000f800;
+    dev->legacy_ctrl = 0x0000f801;
 
     /* Serial Interface Control Register, Address 20H
        Addressable as byte, word, longword */
@@ -371,17 +366,17 @@ es1371_reset(void *priv)
 
     /* DAC1 Channel Sample Count Register, Address 24H
        Addressable as word, longword */
-    dev->dac[0].samp_ct      = 0x00000000;
+    dev->dac[0].samp_ct      = 0x00000000; /* FIXME: hardware reads 0x00010000 */
     dev->dac[0].curr_samp_ct = 0x00000000;
 
     /* DAC2 Channel Sample Count Register, Address 28H
        Addressable as word, longword */
-    dev->dac[1].samp_ct      = 0x00000000;
+    dev->dac[1].samp_ct      = 0x00000000; /* FIXME: hardware reads 0x00010000 */
     dev->dac[1].curr_samp_ct = 0x00000000;
 
     /* ADC Channel Sample Count Register, Address 2CH
        Addressable as word, longword */
-    dev->adc.samp_ct      = 0x00000000;
+    dev->adc.samp_ct      = 0x00000000; /* FIXME: hardware reads 0x00010000 */
     dev->adc.curr_samp_ct = 0x00000000;
 
     /* DAC1 Frame Register 1, Address 30H, Memory Page 1100b
@@ -1632,7 +1627,7 @@ es1371_pci_read(int func, int addr, void *priv)
             return 0x00;
 
         case 0x08:
-            return 0x02; /* Revision ID - 0x02 is supposed to be early Ensoniq-branded ES1371 but unconfirmed */
+            return 0x02; /* Revision ID - 0x02 is actual Ensoniq-branded ES1371 */
         case 0x09:
             return 0x00; /* Multimedia audio device */
         case 0x0a:
@@ -2059,18 +2054,18 @@ generate_es1371_filter(void)
 }
 
 static void
-es1371_input_msg(void *p, uint8_t *msg, uint32_t len)
+es1371_input_msg(void *priv, uint8_t *msg, uint32_t len)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
 
     for (uint32_t i = 0; i < len; i++)
         es1371_write_fifo(dev, msg[i]);
 }
 
 static int
-es1371_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
+es1371_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
 {
-    es1371_t *dev = (es1371_t *) p;
+    es1371_t *dev = (es1371_t *) priv;
     uint32_t  i   = -1;
 
     audiopci_log("Abort = %i\n", abort);
@@ -2106,7 +2101,7 @@ es1371_init(const device_t *info)
     dev->gameport = gameport_add(&gameport_pnp_device);
     gameport_remap(dev->gameport, 0x200);
 
-    dev->card = pci_add_card(info->local ? PCI_ADD_SOUND : PCI_ADD_NORMAL, es1371_pci_read, es1371_pci_write, dev);
+    pci_add_card(info->local ? PCI_ADD_SOUND : PCI_ADD_NORMAL, es1371_pci_read, es1371_pci_write, dev, &dev->pci_slot);
 
     timer_add(&dev->dac[1].timer, es1371_poll, dev, 1);
 

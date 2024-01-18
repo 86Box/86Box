@@ -13,6 +13,8 @@
 #include <86box/timer.h>
 #include "x86.h"
 #include "x86_ops.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
 #include "x87.h"
 #include "x86_flags.h"
 #include <86box/io.h>
@@ -21,6 +23,7 @@
 #include <86box/pic.h>
 #include <86box/gdbstub.h>
 #include "codegen.h"
+#include <86box/plat_unused.h>
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
@@ -31,7 +34,7 @@
 #include "386_common.h"
 
 static __inline void
-fetch_ea_32_long(uint32_t rmdat)
+fetch_ea_32_long(UNUSED(uint32_t rmdat))
 {
     eal_r = eal_w = NULL;
     easeg         = cpu_state.ea_seg->base;
@@ -45,7 +48,7 @@ fetch_ea_32_long(uint32_t rmdat)
 }
 
 static __inline void
-fetch_ea_16_long(uint32_t rmdat)
+fetch_ea_16_long(UNUSED(uint32_t rmdat))
 {
     eal_r = eal_w = NULL;
     easeg         = cpu_state.ea_seg->base;

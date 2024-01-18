@@ -38,11 +38,11 @@
 #define BIOS_077_PATH         "roms/video/oti/oti077.vbi"
 
 enum {
-    OTI_037C,
-    OTI_067 = 2,
-    OTI_067_AMA932J,
-    OTI_067_M300 = 4,
-    OTI_077      = 5
+    OTI_037C        = 0,
+    OTI_067         = 2,
+    OTI_067_AMA932J = 3,
+    OTI_067_M300    = 4,
+    OTI_077         = 5
 };
 
 typedef struct {
@@ -84,8 +84,9 @@ oti_out(uint16_t addr, uint8_t val, void *priv)
             if (!oti->chip_id) {
                 oti->enable_register = val & 1;
                 return;
-            } else
-                break;
+            }
+            svga_out(addr, val, svga);
+            return;
 
         case 0x3c6:
         case 0x3c7:
@@ -156,8 +157,8 @@ oti_out(uint16_t addr, uint8_t val, void *priv)
                         svga->vram_display_mask = (val & 0x0c) ? oti->vram_mask : 0x3ffff;
 
                         switch ((val & 0xc0) >> 6) {
-                            case 0x00: /* 256 kB of memory */
                             default:
+                            case 0x00: /* 256 kB of memory */
                                 enable = (oti->vram_size >= 256);
                                 if (val & 0x0c)
                                     svga->vram_display_mask = MIN(oti->vram_mask, 0x3ffff);
@@ -191,8 +192,14 @@ oti_out(uint16_t addr, uint8_t val, void *priv)
                     svga->read_bank  = (val & 0xf) * 65536;
                     svga->write_bank = (val >> 4) * 65536;
                     break;
+
+                default:
+                    break;
             }
             return;
+
+        default:
+            break;
     }
 
     svga_out(addr, val, svga);
@@ -290,6 +297,9 @@ oti_in(uint16_t addr, void *priv)
                     if (svga->attrregs[0x11] & 0x80)
                         svga->cgastat |= 0x20;
                     break;
+
+                default:
+                    break;
             }
             temp = svga->cgastat;
             break;
@@ -338,7 +348,7 @@ oti_pos_out(UNUSED(uint16_t addr), uint8_t val, void *priv)
 static uint8_t
 oti_pos_in(UNUSED(uint16_t addr), void *priv)
 {
-    oti_t *oti = (oti_t *) priv;
+    const oti_t *oti = (oti_t *) priv;
 
     return (oti->pos);
 }
@@ -349,8 +359,8 @@ oti_getclock(int clock)
     float ret = 0.0;
 
     switch (clock) {
-        case 0:
         default:
+        case 0:
             ret = 25175000.0;
             break;
         case 1:
@@ -373,8 +383,8 @@ oti_getclock(int clock)
 static void
 oti_recalctimings(svga_t *svga)
 {
-    oti_t *oti     = (oti_t *) svga->priv;
-    int    clk_sel = ((svga->miscout >> 2) & 3) | ((oti->regs[0x0d] & 0x20) >> 3);
+    const oti_t *oti     = (oti_t *) svga->priv;
+    int          clk_sel = ((svga->miscout >> 2) & 3) | ((oti->regs[0x0d] & 0x20) >> 3);
 
     svga->clock = (cpuclock * (double) (1ULL << 32)) / oti_getclock(clk_sel);
 
@@ -409,8 +419,8 @@ oti_recalctimings(svga_t *svga)
 static void *
 oti_init(const device_t *info)
 {
-    oti_t *oti   = malloc(sizeof(oti_t));
-    char  *romfn = NULL;
+    oti_t      *oti   = malloc(sizeof(oti_t));
+    const char *romfn = NULL;
 
     memset(oti, 0x00, sizeof(oti_t));
     oti->chip_id = info->local;
@@ -422,8 +432,10 @@ oti_init(const device_t *info)
             romfn          = BIOS_037C_PATH;
             oti->vram_size = 256;
             oti->regs[0]   = 0x08; /* FIXME: The BIOS wants to read this at index 0? This index is undocumented. */
-            /* io_sethandler(0x03c0, 32,
-                          oti_in, NULL, NULL, oti_out, NULL, NULL, oti); */
+#if 0
+            io_sethandler(0x03c0, 32,
+                          oti_in, NULL, NULL, oti_out, NULL, NULL, oti);
+#endif
             break;
 
         case OTI_067_AMA932J:
@@ -451,6 +463,9 @@ oti_init(const device_t *info)
             oti->vram_size = device_get_config_int("memory");
             oti->pos       = 0x08; /* Tell the BIOS the I/O ports are already enabled to avoid a double I/O handler mess. */
             io_sethandler(0x46e8, 1, oti_pos_in, NULL, NULL, oti_pos_out, NULL, NULL, oti);
+            break;
+
+        default:
             break;
     }
 

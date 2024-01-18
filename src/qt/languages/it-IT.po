@@ -124,6 +124,9 @@ msgstr "&Pixel quadrati (mantiene l'aspetto)"
 msgid "&Integer scale"
 msgstr "&Scala intera"
 
+msgid "4:&3 Integer scale"
+msgstr "Scala intera 4:&3"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "Impostazioni E&GA/(S)VGA"
 
@@ -853,8 +856,8 @@ msgstr "Informazioni su 86Box"
 msgid "86Box v"
 msgstr "86Box v"
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Un emulatore di computer vecchi\n\nAutori: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nTradotto da: explorerdotexe\n\nRilasciato sotto la Licenza Pubblica GNU versione 2 o dopo. Vedi LICENSE per maggior informazioni."
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Un emulatore di computer vecchi\n\nAutori: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nTradotto da: explorerdotexe\n\nRilasciato sotto la Licenza Pubblica GNU versione 2 o dopo. Vedi LICENSE per maggior informazioni."
 
 msgid "Hardware not available"
 msgstr "Hardware non disponibile"
@@ -866,7 +869,7 @@ msgid "libpcap"
 msgstr "libpcap"
 
 msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Controlla se libpcap è installato e che tu sia connesso ad una connessione libpcap compatibile."
+msgstr "Controllare se libpcap è installato e che tu sia connesso ad una connessione libpcap compatibile."
 
 msgid "Invalid configuration"
 msgstr "Configurazione invalida"
@@ -932,28 +935,28 @@ msgid "Cartridge images"
 msgstr "Immagini cartuccia"
 
 msgid "Error initializing renderer"
-msgstr "Error initializing renderer"
+msgstr "Errore nell'inizializzazione del renderer"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "Non è stato possibile inizializzare il renderer OpenGL (3.0 Core). Utilizzare un altro renderer."
 
 msgid "Resume execution"
-msgstr "Resume execution"
+msgstr "Riprendere l'esecuzione"
 
 msgid "Pause execution"
-msgstr "Pause execution"
+msgstr "Sospendere l'esecuzione"
 
 msgid "Press Ctrl+Alt+Del"
-msgstr "Press Ctrl+Alt+Del"
+msgstr "Premere Ctrl+Alt+Canc"
 
 msgid "Press Ctrl+Alt+Esc"
-msgstr "Press Ctrl+Alt+Esc"
+msgstr "Premere Ctrl+Alt+Esc"
 
 msgid "Hard reset"
-msgstr "Hard reset"
+msgstr "Riavvia"
 
 msgid "ACPI shutdown"
-msgstr "ACPI shutdown"
+msgstr "Arresto ACPI"
 
 msgid "Hard disk (%s)"
 msgstr "Hard disk (%s)"
@@ -1196,8 +1199,28 @@ msgid "(System Default)"
 msgstr "(Predefinito del sistema)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "Impossibile inizializzare il driver di rete"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "La configurazione di rete verrà commutata sul driver nullo"
 
+msgid "Mouse sensitivity:"
+msgstr "Sensitività del mouse:"
+
+msgid "Select media images from program working directory"
+msgstr "Seleziona le immagini media dalla directory di lavoro del programma"
+
+msgid "PIT mode:"
+msgstr "Modalità PIT:"
+
+msgid "Auto"
+msgstr "Automatica"
+
+msgid "Slow"
+msgstr "Lenta"
+
+msgid "Fast"
+msgstr "Veloce"
+
+msgid "&Auto-pause on focus loss"
+msgstr "&Pausa automatica alla perdita della messa a fuoco"

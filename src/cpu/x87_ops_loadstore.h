@@ -147,6 +147,7 @@ opFILDiq_a32(uint32_t fetchdat)
 static int
 FBSTP_a16(uint32_t fetchdat)
 {
+    double  dt;
     double tempd;
     int    c;
     FP_ENTER();
@@ -156,15 +157,18 @@ FBSTP_a16(uint32_t fetchdat)
     if (tempd < 0.0)
         tempd = -tempd;
     for (c = 0; c < 9; c++) {
-        uint8_t tempc = (uint8_t) floor(fmod(tempd, 10.0));
+        dt = floor(fmod(tempd, 10.0));
+        uint8_t tempc = (uint8_t) dt;
         tempd -= floor(fmod(tempd, 10.0));
         tempd /= 10.0;
-        tempc |= ((uint8_t) floor(fmod(tempd, 10.0))) << 4;
+        dt = floor(fmod(tempd, 10.0));
+        tempc |= ((uint8_t) dt) << 4;
         tempd -= floor(fmod(tempd, 10.0));
         tempd /= 10.0;
         writememb(easeg, cpu_state.eaaddr + c, tempc);
     }
-    tempc = (uint8_t) floor(fmod(tempd, 10.0));
+    dt = floor(fmod(tempd, 10.0));
+    tempc = (uint8_t) dt;
     if (ST(0) < 0.0)
         tempc |= 0x80;
     writememb(easeg, cpu_state.eaaddr + 9, tempc);

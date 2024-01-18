@@ -45,21 +45,20 @@ static int rounding_modes[4] = { FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARD
 #define C2                (1 << 10)
 #define C3                (1 << 14)
 
-#define X87_TAG_VALID   0
-#define X87_TAG_ZERO    1
-#define X87_TAG_INVALID 2
-#define X87_TAG_EMPTY   3
+#define X87_TAG_VALID     0
+#define X87_TAG_ZERO      1
+#define X87_TAG_INVALID   2
+#define X87_TAG_EMPTY     3
 
 #define STATUS_ZERODIVIDE 4
 
-typedef union
-{
+typedef union {
     double d;
 
     struct {
-        uint64_t mantissa:52;
-        uint64_t exponent:11;
-        uint64_t negative:1;
+        uint64_t mantissa : 52;
+        uint64_t exponent : 11;
+        uint64_t negative : 1;
     };
 } double_decompose_t;
 
@@ -111,6 +110,7 @@ typedef union
 static __inline void
 x87_checkexceptions(void)
 {
+    //
 }
 
 static __inline void
@@ -169,12 +169,17 @@ x87_pop(void)
 static __inline int16_t
 x87_fround16(double b)
 {
-    int16_t a, c;
+    double da;
+    double dc;
+    int16_t a;
+    int16_t c;
 
     switch ((cpu_state.npxc >> 10) & 3) {
         case 0: /*Nearest*/
-            a = (int16_t) floor(b);
-            c = (int16_t) floor(b + 1.0);
+            da = floor(b);
+            dc = floor(b + 1.0);
+            a = (int16_t) da;
+            c = (int16_t) dc;
             if ((b - a) < (c - b))
                 return a;
             else if ((b - a) > (c - b))
@@ -182,9 +187,11 @@ x87_fround16(double b)
             else
                 return (a & 1) ? c : a;
         case 1: /*Down*/
-            return (int16_t) floor(b);
+            da = floor(b);
+            return (int16_t) da;
         case 2: /*Up*/
-            return (int16_t) ceil(b);
+            da = ceil(b);
+            return (int16_t) da;
         case 3: /*Chop*/
             return (int16_t) b;
     }
@@ -201,12 +208,17 @@ x87_fround16_64(double b)
 static __inline int32_t
 x87_fround32(double b)
 {
-    int32_t a, c;
+    double da;
+    double dc;
+    int32_t a;
+    int32_t c;
 
     switch ((cpu_state.npxc >> 10) & 3) {
         case 0: /*Nearest*/
-            a = (int32_t) floor(b);
-            c = (int32_t) floor(b + 1.0);
+            da = floor(b);
+            dc = floor(b + 1.0);
+            a = (int32_t) da;
+            c = (int32_t) dc;
             if ((b - a) < (c - b))
                 return a;
             else if ((b - a) > (c - b))
@@ -214,9 +226,11 @@ x87_fround32(double b)
             else
                 return (a & 1) ? c : a;
         case 1: /*Down*/
-            return (int32_t) floor(b);
+            da = floor(b);
+            return (int32_t) da;
         case 2: /*Up*/
-            return (int32_t) ceil(b);
+            da = ceil(b);
+            return (int32_t) da;
         case 3: /*Chop*/
             return (int32_t) b;
     }
@@ -233,12 +247,17 @@ x87_fround32_64(double b)
 static __inline int64_t
 x87_fround(double b)
 {
-    int64_t a, c;
+    double da;
+    double dc;
+    int64_t a;
+    int64_t c;
 
     switch ((cpu_state.npxc >> 10) & 3) {
         case 0: /*Nearest*/
-            a = (int64_t) floor(b);
-            c = (int64_t) floor(b + 1.0);
+            da = floor(b);
+            dc = floor(b + 1.0);
+            a = (int64_t) da;
+            c = (int64_t) dc;
             if ((b - a) < (c - b))
                 return a;
             else if ((b - a) > (c - b))
@@ -246,9 +265,11 @@ x87_fround(double b)
             else
                 return (a & 1) ? c : a;
         case 1: /*Down*/
-            return (int64_t) floor(b);
+            da = floor(b);
+            return (int64_t) da;
         case 2: /*Up*/
-            return (int64_t) ceil(b);
+            da = ceil(b);
+            return (int64_t) da;
         case 3: /*Chop*/
             return (int64_t) b;
     }
@@ -338,9 +359,10 @@ x87_compare(double a, double b)
 {
 #ifdef X87_INLINE_ASM
     uint32_t       result;
-    double         ea = a, eb = b;
-    const uint64_t ia = 0x3fec1a6ff866a936ull;
-    const uint64_t ib = 0x3fec1a6ff866a938ull;
+    double         ea = a;
+    double         eb = b;
+    const uint64_t ia = 0x3fec1a6ff866a936ULL;
+    const uint64_t ib = 0x3fec1a6ff866a938ULL;
 
     /* Hack to make CHKCOP happy. */
     if (!memcmp(&ea, &ia, 8) && !memcmp(&eb, &ib, 8))
@@ -480,6 +502,8 @@ typedef union {
 #    define FP_TAG_DEFAULT cpu_state.tag[cpu_state.TOP] |= TAG_UINT64;
 #    define FP_TAG_VALID_N cpu_state.tag[(cpu_state.TOP + 1) & 7] &= ~TAG_UINT64
 #endif
+
+#include "softfloat/softfloat-specialize.h"
 
 #include "x87_ops_sf_arith.h"
 #include "x87_ops_sf_compare.h"
@@ -1067,7 +1091,6 @@ const OpFn OP_TABLE(fpu_8087_df)[256] = {
 #else
 #    define ILLEGAL_a32 FPU_ILLEGAL_a32
 
-
 const OpFn OP_TABLE(sf_fpu_d8_a16)[32] = {
     // clang-format off
         sf_FADDs_a16, sf_FMULs_a16, sf_FCOMs_a16, sf_FCOMPs_a16, sf_FSUBs_a16, sf_FSUBRs_a16, sf_FDIVs_a16, sf_FDIVRs_a16,
@@ -1406,6 +1429,7 @@ const OpFn OP_TABLE(sf_fpu_da_a32)[256] = {
     // clang-format on
 };
 
+#    ifndef OPS_286_386
 const OpFn OP_TABLE(sf_fpu_686_da_a16)[256] = {
     // clang-format off
         sf_FADDil_a16,  sf_FADDil_a16,  sf_FADDil_a16,  sf_FADDil_a16,  sf_FADDil_a16,  sf_FADDil_a16,  sf_FADDil_a16,  sf_FADDil_a16,
@@ -1485,6 +1509,7 @@ const OpFn OP_TABLE(sf_fpu_686_da_a32)[256] = {
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
     // clang-format on
 };
+#    endif
 
 const OpFn OP_TABLE(sf_fpu_287_db_a16)[256] = {
     // clang-format off
@@ -1646,6 +1671,7 @@ const OpFn OP_TABLE(sf_fpu_db_a32)[256] = {
     // clang-format on
 };
 
+#    ifndef OPS_286_386
 const OpFn OP_TABLE(sf_fpu_686_db_a16)[256] = {
     // clang-format off
         sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,  sf_FILDil_a16,
@@ -1724,6 +1750,7 @@ const OpFn OP_TABLE(sf_fpu_686_db_a32)[256] = {
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
     // clang-format on
 };
+#    endif
 
 const OpFn OP_TABLE(sf_fpu_287_dc_a16)[32] = {
     // clang-format off
@@ -2241,6 +2268,7 @@ const OpFn OP_TABLE(sf_fpu_df_a32)[256] = {
     // clang-format on
 };
 
+#    ifndef OPS_286_386
 const OpFn OP_TABLE(sf_fpu_686_df_a16)[256] = {
     // clang-format off
         sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,  sf_FILDiw_a16,
@@ -2320,6 +2348,7 @@ const OpFn OP_TABLE(sf_fpu_686_df_a32)[256] = {
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
     // clang-format on
 };
+#    endif
 
 const OpFn OP_TABLE(fpu_d8_a16)[32] = {
     // clang-format off
@@ -2659,6 +2688,7 @@ const OpFn OP_TABLE(fpu_da_a32)[256] = {
     // clang-format on
 };
 
+#    ifndef OPS_286_386
 const OpFn OP_TABLE(fpu_686_da_a16)[256] = {
     // clang-format off
         opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,  opFADDil_a16,
@@ -2738,6 +2768,7 @@ const OpFn OP_TABLE(fpu_686_da_a32)[256] = {
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
     // clang-format on
 };
+#    endif
 
 const OpFn OP_TABLE(fpu_287_db_a16)[256] = {
     // clang-format off
@@ -2899,6 +2930,7 @@ const OpFn OP_TABLE(fpu_db_a32)[256] = {
     // clang-format on
 };
 
+#    ifndef OPS_286_386
 const OpFn OP_TABLE(fpu_686_db_a16)[256] = {
     // clang-format off
         opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,  opFILDil_a16,
@@ -2977,6 +3009,7 @@ const OpFn OP_TABLE(fpu_686_db_a32)[256] = {
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
     // clang-format on
 };
+#    endif
 
 const OpFn OP_TABLE(fpu_287_dc_a16)[32] = {
     // clang-format off
@@ -3494,6 +3527,7 @@ const OpFn OP_TABLE(fpu_df_a32)[256] = {
     // clang-format on
 };
 
+#    ifndef OPS_286_386
 const OpFn OP_TABLE(fpu_686_df_a16)[256] = {
     // clang-format off
         opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,  opFILDiw_a16,
@@ -3573,6 +3607,7 @@ const OpFn OP_TABLE(fpu_686_df_a32)[256] = {
         ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,  ILLEGAL_a32,
     // clang-format on
 };
+#    endif
 
 const OpFn OP_TABLE(nofpu_a16)[256] = {
     // clang-format off

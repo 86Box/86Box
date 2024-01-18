@@ -22,7 +22,7 @@ x87_from80(x87_conv_t *test)
     blah       = ((exp64 > 0) ? exp64 : -exp64) & 0x3ff;
     exp64final = ((exp64 > 0) ? blah : -blah) + BIAS64;
 
-    mant64 = (test->eind.ll >> 11) & (0xfffffffffffffll);
+    mant64 = (test->eind.ll >> 11) & (0xfffffffffffffLL);
     sign   = (test->begin & 0x8000) ? 1 : 0;
 
     if ((test->begin & 0x7fff) == 0x7fff)
@@ -48,19 +48,19 @@ x87_to80(double d, x87_conv_t *test)
 
     test->eind.d = d;
 
-    sign80      = (test->eind.ll & (0x8000000000000000ll)) ? 1 : 0;
-    exp80       = test->eind.ll & (0x7ff0000000000000ll);
+    sign80      = (test->eind.ll & (0x8000000000000000LL)) ? 1 : 0;
+    exp80       = test->eind.ll & (0x7ff0000000000000LL);
     exp80final  = (exp80 >> 52);
-    mant80      = test->eind.ll & (0x000fffffffffffffll);
+    mant80      = test->eind.ll & (0x000fffffffffffffLL);
     mant80final = (mant80 << 11);
 
     if (exp80final == 0x7ff) /*Infinity / Nan*/
     {
         exp80final = 0x7fff;
-        mant80final |= (0x8000000000000000ll);
+        mant80final |= (0x8000000000000000LL);
     } else if (d != 0) { /* Zero is a special case */
         /* Elvira wants the 8 and tcalc doesn't */
-        mant80final |= (0x8000000000000000ll);
+        mant80final |= (0x8000000000000000LL);
         /* Ca-cyber doesn't like this when result is zero. */
         exp80final += (BIAS80 - BIAS64);
     }

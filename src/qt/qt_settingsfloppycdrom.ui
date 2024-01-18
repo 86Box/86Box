@@ -62,7 +62,11 @@
       </widget>
      </item>
      <item>
-      <widget class="QComboBox" name="comboBoxFloppyType"/>
+      <widget class="QComboBox" name="comboBoxFloppyType">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
      <item>
       <widget class="QCheckBox" name="checkBoxTurboTimings">
@@ -150,16 +154,32 @@
       </widget>
      </item>
      <item row="0" column="1">
-      <widget class="QComboBox" name="comboBoxBus"/>
+      <widget class="QComboBox" name="comboBoxBus">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
      <item row="0" column="3">
-      <widget class="QComboBox" name="comboBoxChannel"/>
+      <widget class="QComboBox" name="comboBoxChannel">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
      <item row="1" column="1">
-      <widget class="QComboBox" name="comboBoxSpeed"/>
+      <widget class="QComboBox" name="comboBoxSpeed">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
      <item row="2" column="1" colspan="3">
-      <widget class="QComboBox" name="comboBoxCDROMType"/>
+      <widget class="QComboBox" name="comboBoxCDROMType">
+       <property name="maxVisibleItems">
+        <number>30</number>
+       </property>
+      </widget>
      </item>
     </layout>
    </item>

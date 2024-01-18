@@ -113,7 +113,8 @@ Settings::Settings(QWidget *parent)
     , ui(new Ui::Settings)
 {
     ui->setupUi(this);
-    ui->listView->setModel(new SettingsModel(this));
+    auto *model = new SettingsModel(this);
+    ui->listView->setModel(model);
 
     Harddrives::busTrackClass = new SettingsBusTracking;
     machine                   = new SettingsMachine(this);
@@ -140,18 +141,27 @@ Settings::Settings(QWidget *parent)
     ui->stackedWidget->addWidget(otherRemovable);
     ui->stackedWidget->addWidget(otherPeripherals);
 
-    connect(machine, &SettingsMachine::currentMachineChanged, display, &SettingsDisplay::onCurrentMachineChanged);
-    connect(machine, &SettingsMachine::currentMachineChanged, input, &SettingsInput::onCurrentMachineChanged);
-    connect(machine, &SettingsMachine::currentMachineChanged, sound, &SettingsSound::onCurrentMachineChanged);
-    connect(machine, &SettingsMachine::currentMachineChanged, network, &SettingsNetwork::onCurrentMachineChanged);
-    connect(machine, &SettingsMachine::currentMachineChanged, storageControllers, &SettingsStorageControllers::onCurrentMachineChanged);
-    connect(machine, &SettingsMachine::currentMachineChanged, otherPeripherals, &SettingsOtherPeripherals::onCurrentMachineChanged);
+    connect(machine, &SettingsMachine::currentMachineChanged, display,
+            &SettingsDisplay::onCurrentMachineChanged);
+    connect(machine, &SettingsMachine::currentMachineChanged, input,
+            &SettingsInput::onCurrentMachineChanged);
+    connect(machine, &SettingsMachine::currentMachineChanged, sound,
+            &SettingsSound::onCurrentMachineChanged);
+    connect(machine, &SettingsMachine::currentMachineChanged, network,
+            &SettingsNetwork::onCurrentMachineChanged);
+    connect(machine, &SettingsMachine::currentMachineChanged, storageControllers,
+            &SettingsStorageControllers::onCurrentMachineChanged);
+    connect(machine, &SettingsMachine::currentMachineChanged, otherPeripherals,
+            &SettingsOtherPeripherals::onCurrentMachineChanged);
 
-    connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this, [this](const QModelIndex &current, const QModelIndex &previous) {
-        ui->stackedWidget->setCurrentIndex(current.row());
-    });
+    connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this,
+           [this](const QModelIndex &current, const QModelIndex &previous) {
+                  ui->stackedWidget->setCurrentIndex(current.row()); });
 
-    ui->listView->setMinimumWidth(ui->listView->sizeHintForColumn(0) + qApp->style()->pixelMetric(QStyle::PM_ScrollBarExtent));
+    ui->listView->setMinimumWidth(ui->listView->sizeHintForColumn(0) +
+                                  qApp->style()->pixelMetric(QStyle::PM_ScrollBarExtent));
+
+    ui->listView->setCurrentIndex(model->index(0, 0));
 
     Settings::settings = this;
 }
@@ -184,13 +194,15 @@ void
 Settings::accept()
 {
     if (confirm_save && !settings_only) {
-        QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", QStringLiteral("%1\n\n%2").arg(tr("Do you want to save the settings?"), tr("This will hard reset the emulated machine.")), QMessageBox::Save | QMessageBox::Cancel, this);
+        QMessageBox questionbox(QMessageBox::Icon::Question, "86Box",
+                                QStringLiteral("%1\n\n%2").arg(tr("Do you want to save the settings?"),
+                                tr("This will hard reset the emulated machine.")),
+                                QMessageBox::Save | QMessageBox::Cancel, this);
         QCheckBox  *chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_save);
         QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
-            confirm_save = (state == Qt::CheckState::Unchecked);
-        });
+                         confirm_save = (state == Qt::CheckState::Unchecked); });
         questionbox.exec();
         if (questionbox.result() == QMessageBox::Cancel) {
             confirm_save = true;

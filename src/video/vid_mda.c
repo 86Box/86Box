@@ -75,7 +75,7 @@ mda_out(uint16_t addr, uint8_t val, void *priv)
 uint8_t
 mda_in(uint16_t addr, void *priv)
 {
-    mda_t *mda = (mda_t *) priv;
+    const mda_t *mda = (mda_t *) priv;
 
     switch (addr) {
         case 0x3b0:
@@ -107,7 +107,7 @@ mda_write(uint32_t addr, uint8_t val, void *priv)
 uint8_t
 mda_read(uint32_t addr, void *priv)
 {
-    mda_t *mda = (mda_t *) priv;
+    const mda_t *mda = (mda_t *) priv;
 
     return mda->vram[addr & 0xfff];
 }
@@ -165,9 +165,9 @@ mda_poll(void *priv)
                         buffer32->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][1];
                 } else {
                     for (c = 0; c < 8; c++)
-                        buffer32->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][(fontdatm[chr][mda->sc] & (1 << (c ^ 7))) ? 1 : 0];
+                        buffer32->line[mda->displine][(x * 9) + c] = mdacols[attr][blink][(fontdatm[chr + mda->fontbase][mda->sc] & (1 << (c ^ 7))) ? 1 : 0];
                     if ((chr & ~0x1f) == 0xc0)
-                        buffer32->line[mda->displine][(x * 9) + 8] = mdacols[attr][blink][fontdatm[chr][mda->sc] & 1];
+                        buffer32->line[mda->displine][(x * 9) + 8] = mdacols[attr][blink][fontdatm[chr + mda->fontbase][mda->sc] & 1];
                     else
                         buffer32->line[mda->displine][(x * 9) + 8] = mdacols[attr][blink][0];
                 }

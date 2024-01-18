@@ -124,6 +124,9 @@ msgstr "&Квадратні пікселі (зберегти відношенн�
 msgid "&Integer scale"
 msgstr "&Цілісночисленне масштабування"
 
+msgid "4:&3 Integer scale"
+msgstr "Цілісночисленне масштабування 4:&3"
+
 msgid "E&GA/(S)VGA settings"
 msgstr "Налаштування E&GA/(S)VGA"
 
@@ -853,8 +856,8 @@ msgstr "Про 86Box"
 msgid "86Box v"
 msgstr "86Box v."
 
-msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Емулятор старих комп'ютерів\n\nАвтори: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nВипускаєтся під ліцензією GNU General Public License версії 2 або більше пізніше. Додадкову інформацію см. у файлі LICENSE."
+msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+msgstr "Емулятор старих комп'ютерів\n\nАвтори: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nВипускаєтся під ліцензією GNU General Public License версії 2 або більше пізніше. Додадкову інформацію см. у файлі LICENSE."
 
 msgid "Hardware not available"
 msgstr "Обладнання недоступне"
@@ -1196,8 +1199,28 @@ msgid "(System Default)"
 msgstr "(Системний)"
 
 msgid "Failed to initialize network driver"
-msgstr "Failed to initialize network driver"
+msgstr "Не вдалося ініціалізувати мережевий драйвер"
 
 msgid "The network configuration will be switched to the null driver"
-msgstr "The network configuration will be switched to the null driver"
+msgstr "Конфігурацію мережі буде змінено на нульовий драйвер"
 
+msgid "Mouse sensitivity:"
+msgstr "Чутливість миші:"
+
+msgid "Select media images from program working directory"
+msgstr "Виберіть медіа-зображення з робочої директорії програми"
+
+msgid "PIT mode:"
+msgstr "Режим PIT:"
+
+msgid "Auto"
+msgstr "Авто"
+
+msgid "Slow"
+msgstr "Повільний"
+
+msgid "Fast"
+msgstr "Швидкий"
+
+msgid "&Auto-pause on focus loss"
+msgstr "&Автопауза при втраті фокусу"
