@@ -350,6 +350,36 @@ machine_at_hot543_init(const machine_t *model)
 }
 
 int
+machine_at_ncselp90_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ncselp90/elegancep90.bin",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 4, 1, 2);
+
+    device_add(&opti5x7_pci_device);
+    device_add(&opti822_device);
+    device_add(&sst_flash_29ee010_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&ide_opti611_vlb_device);
+    device_add(&fdc37c665_ide_sec_device);
+    device_add(&ide_vlb_2ch_device);
+
+    return ret;
+}
+
+int
 machine_at_p54sp4_init(const machine_t *model)
 {
     int ret;

@@ -632,6 +632,7 @@ extern int machine_at_hawk_init(const machine_t *);
 extern int machine_at_pat54pv_init(const machine_t *);
 
 extern int machine_at_hot543_init(const machine_t *);
+extern int machine_at_ncselp90_init(const machine_t *);
 
 extern int machine_at_p54sp4_init(const machine_t *);
 extern int machine_at_sq588_init(const machine_t *);
