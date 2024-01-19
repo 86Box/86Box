@@ -749,14 +749,12 @@ machine_at_m45xx_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x15, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x16, PCI_CARD_NORMAL,      3, 4, 1, 2);
-    pci_register_slot(0x12, PCI_CARD_IDE,      0xFF, 0, 0, 0);
-    pci_register_slot(0x11, PCI_CARD_VIDEO,       2, 0, 0, 0);
 
     device_add(&opti802g_pci_device);
     device_add(&opti822_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&fdc37c665_device);
-    device_add(&ide_vlb_device);
+    device_add(&ide_vlb_2ch_device);
     device_add(&intel_flash_bxt_device); // Just in case, no idea if it has it or not
 
     return ret;
