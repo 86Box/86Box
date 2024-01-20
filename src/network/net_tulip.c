@@ -324,7 +324,7 @@ struct TULIPState {
     uint32_t mii_bitcnt;
 
     /* 21040 ROM read address. */
-    uint32_t rom_read_addr;
+    uint8_t rom_read_addr;
 
     uint32_t current_rx_desc;
     uint32_t current_tx_desc;
@@ -670,7 +670,7 @@ static uint32_t
 tulip_csr9_read(TULIPState *s)
 {
     if (s->device_info->local == 3) {
-        return ((uint8_t*)nmc93cxx_eeprom_data(s->eeprom))[s->rom_read_addr++];
+        return s->eeprom_data[s->rom_read_addr++];
     }
     if (s->csr[9] & CSR9_SR) {
         if (nmc93cxx_eeprom_read(s->eeprom)) {
@@ -717,7 +717,7 @@ tulip_read(uint32_t addr, void *opaque)
                 data = s->csr[addr >> 3];
             break;
     }
-    //pclog("[%04X:%08X]: CSR9 read %02x, data = %08x.\n", CS, cpu_state.pc, addr, data);
+    pclog("[%04X:%08X]: CSR9 read %02x, data = %08x.\n", CS, cpu_state.pc, addr, data);
     return data;
 }
 
@@ -906,7 +906,7 @@ tulip_write(uint32_t addr, uint32_t data, void *opaque)
     TULIPState *s = opaque;
     addr &= 127;
 
-    //pclog("[%04X:%08X]: Tulip Write >> 3: %02x, val=%08x.\n", CS, cpu_state.pc, addr >> 3, data);
+    pclog("[%04X:%08X]: Tulip Write >> 3: %02x, val=%08x.\n", CS, cpu_state.pc, addr >> 3, data);
     switch (addr) {
         case CSR(0):
             s->csr[0] = data;
@@ -1266,11 +1266,11 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     TULIPState *s = (TULIPState *) priv;
 
-    //pclog("PCI write=%02x, ret=%02x.\n", addr, val);
+    pclog("PCI write=%02x, ret=%02x.\n", addr, val);
     switch (addr) {
         case 0x04:
             s->pci_conf[0x04] = val & 0x07;
-            //pclog("PCI write cmd: IOBase=%04x, MMIOBase=%08x, val=%02x.\n", s->PCIBase, s->MMIOBase, s->pci_conf[0x04]);
+            pclog("PCI write cmd: IOBase=%04x, MMIOBase=%08x, val=%02x.\n", s->PCIBase, s->MMIOBase, s->pci_conf[0x04]);
             io_removehandler(s->PCIBase, 128,
                          tulip_readb_io, tulip_readw_io, tulip_readl_io,
                          tulip_writeb_io, tulip_writew_io, tulip_writel_io,
@@ -1280,7 +1280,7 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
                          tulip_readb_io, tulip_readw_io, tulip_readl_io,
                          tulip_writeb_io, tulip_writew_io, tulip_writel_io,
                          priv);
-            //pclog("PCI write cmd: IOBase=%04x, MMIOBase=%08x, val=%02x.\n", s->PCIBase, s->MMIOBase, s->pci_conf[0x04]);
+            pclog("PCI write cmd: IOBase=%04x, MMIOBase=%08x, val=%02x.\n", s->PCIBase, s->MMIOBase, s->pci_conf[0x04]);
             mem_mapping_disable(&s->memory);
             if ((s->MMIOBase != 0) && (val & PCI_COMMAND_MEM))
                 mem_mapping_set_addr(&s->memory, s->MMIOBase, 128);
@@ -1300,7 +1300,7 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             tulip_pci_bar[0].addr &= 0xffffff80;
             s->PCIBase = tulip_pci_bar[0].addr;
             if (s->pci_conf[0x4] & PCI_COMMAND_IO) {
-                //pclog("PCI write=%02x, base=%04x, io?=%x.\n", addr, s->PCIBase, s->pci_conf[0x4] & PCI_COMMAND_IO);
+                pclog("PCI write=%02x, base=%04x, io?=%x.\n", addr, s->PCIBase, s->pci_conf[0x4] & PCI_COMMAND_IO);
                 if (s->PCIBase != 0)
                     io_sethandler(s->PCIBase, 128,
                              tulip_readb_io, tulip_readw_io, tulip_readl_io,
@@ -1317,7 +1317,7 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             tulip_pci_bar[1].addr &= 0xffffff80;
             s->MMIOBase = tulip_pci_bar[1].addr;
             if (s->pci_conf[0x4] & PCI_COMMAND_MEM) {
-                //pclog("PCI write=%02x, mmiobase=%08x, mmio?=%x.\n", addr, s->PCIBase, s->pci_conf[0x4] & PCI_COMMAND_MEM);
+                pclog("PCI write=%02x, mmiobase=%08x, mmio?=%x.\n", addr, s->PCIBase, s->pci_conf[0x4] & PCI_COMMAND_MEM);
                 if (s->MMIOBase != 0)
                     mem_mapping_set_addr(&s->memory, s->MMIOBase, 128);
             }
@@ -1510,6 +1510,9 @@ nic_init(const device_t *info)
     } else {
         /* 21040 is supposed to only have MAC address in its serial ROM if Linux is correct. */
         memset(s->eeprom_data, 0, sizeof(s->eeprom_data));
+        /* See if we have a local MAC address configured. */
+        mac = device_get_config_mac("mac", -1);
+        /*DEC OID*/
         s->eeprom_data[0] = 0x00;
         s->eeprom_data[1] = 0x00;
         s->eeprom_data[2] = 0xF8;
@@ -1529,14 +1532,16 @@ nic_init(const device_t *info)
         }
     }
 
-    params.nwords          = 64;
-    params.default_content = (uint16_t *) s->eeprom_data;
-    params.filename        = filename;
-    snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, device_get_instance());
-    s->eeprom = device_add_parameters(&nmc93cxx_device, &params);
-    if (!s->eeprom) {
-        free(s);
-        return NULL;
+    if (info->local != 3) {
+        params.nwords          = 64;
+        params.default_content = (uint16_t *) s->eeprom_data;
+        params.filename        = filename;
+        snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, device_get_instance());
+        s->eeprom = device_add_parameters(&nmc93cxx_device, &params);
+        if (!s->eeprom) {
+            free(s);
+            return NULL;
+        }
     }
 
     tulip_pci_bar[0].addr_regs[0] = 1;
@@ -1551,11 +1556,11 @@ nic_init(const device_t *info)
         tulip_pci_bar[2].addr         = 0;
 
     mem_mapping_disable(&s->bios_rom.mapping);
-    eeprom_data = (uint8_t *) &nmc93cxx_eeprom_data(s->eeprom)[0];
+    eeprom_data = (info->local == 3) ? s->eeprom_data : (uint8_t *) &nmc93cxx_eeprom_data(s->eeprom)[0];
 
     //pclog("EEPROM Data Format=%02x, Count=%02x, MAC=%02x:%02x:%02x:%02x:%02x:%02x.\n", eeprom_data[0x12], eeprom_data[0x13], eeprom_data[0x14], eeprom_data[0x15], eeprom_data[0x16], eeprom_data[0x17], eeprom_data[0x18], eeprom_data[0x19]);
     memcpy(s->mii_regs, tulip_mdi_default, sizeof(tulip_mdi_default));
-    s->nic = network_attach(s, &eeprom_data[20], tulip_receive, NULL);
+    s->nic = network_attach(s, &eeprom_data[(info->local == 3) ? 0 : 20], tulip_receive, NULL);
     pci_add_card(PCI_ADD_NORMAL, tulip_pci_read, tulip_pci_write, s, &s->pci_slot);
     tulip_reset(s);
     return s;
