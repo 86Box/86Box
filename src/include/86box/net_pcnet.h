@@ -36,5 +36,6 @@ extern const device_t pcnet_am79c960_vlb_device;
 extern const device_t pcnet_am79c961_device;
 extern const device_t pcnet_am79c970a_device;
 extern const device_t pcnet_am79c973_device;
+extern const device_t pcnet_am79c973_onboard_device;
 
 #endif /*NET_PCNET_H*/

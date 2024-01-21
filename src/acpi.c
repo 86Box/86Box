@@ -1669,6 +1669,10 @@ acpi_reset(void *priv)
         acpi_power_on = 0;
     }
 
+    /* The Gateway Tomahawk requires the LID polarity bit to be set. */
+    if (!strcmp(machine_get_internal_name(), "tomahawk"))
+        dev->regs.glbctl |= 0x02000000;
+
     acpi_rtc_status = 0;
 
     acpi_update_irq(dev);

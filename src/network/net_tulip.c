@@ -323,6 +323,9 @@ struct TULIPState {
     uint32_t mii_word;
     uint32_t mii_bitcnt;
 
+    /* 21040 ROM read address. */
+    uint8_t rom_read_addr;
+
     uint32_t current_rx_desc;
     uint32_t current_tx_desc;
 
@@ -666,6 +669,9 @@ tulip_mii(TULIPState *s)
 static uint32_t
 tulip_csr9_read(TULIPState *s)
 {
+    if (s->device_info->local == 3) {
+        return s->eeprom_data[s->rom_read_addr++];
+    }
     if (s->csr[9] & CSR9_SR) {
         if (nmc93cxx_eeprom_read(s->eeprom)) {
             s->csr[9] |= CSR9_SR_DO;
@@ -698,6 +704,10 @@ tulip_read(uint32_t addr, void *opaque)
             break;
 
         case CSR(12):
+            if (s->device_info->local == 3) {
+                data = 0;
+                break;
+            }
             /* Fake autocompletion complete until we have PHY emulation */
             data = 5 << CSR12_ANS_SHIFT;
             break;
@@ -884,8 +894,10 @@ tulip_reset(void *priv)
     s->csr[13]                  = 0xffff0000;
     s->csr[14]                  = 0xffffffff;
     s->csr[15]                  = 0x8ff00000;
-    s->subsys_id                = eeprom_data[1];
-    s->subsys_ven_id            = eeprom_data[0];
+    if (s->device_info->local != 3) {
+        s->subsys_id                = eeprom_data[1];
+        s->subsys_ven_id            = eeprom_data[0];
+    }
 }
 
 static void
@@ -955,12 +967,16 @@ tulip_write(uint32_t addr, uint32_t data, void *opaque)
             break;
 
         case CSR(9):
-            tulip_csr9_write(s, s->csr[9], data);
-            /* don't clear MII read data */
-            s->csr[9] &= CSR9_MDI;
-            s->csr[9] |= (data & ~CSR9_MDI);
-            tulip_mii(s);
-            s->old_csr9 = s->csr[9];
+            if (s->device_info->local != 3) {
+                tulip_csr9_write(s, s->csr[9], data);
+                /* don't clear MII read data */
+                s->csr[9] &= CSR9_MDI;
+                s->csr[9] |= (data & ~CSR9_MDI);
+                tulip_mii(s);
+                s->old_csr9 = s->csr[9];
+            } else {
+                s->rom_read_addr = 0;
+            }
             break;
 
         case CSR(10):
@@ -978,6 +994,11 @@ tulip_write(uint32_t addr, uint32_t data, void *opaque)
 
         case CSR(13):
             s->csr[13] = data;
+            if (s->device_info->local == 3 && (data & 0x4)) {
+                s->csr[13] = 0x8f01;
+                s->csr[14] = 0xfffd;
+                s->csr[15] = 0;
+            }
             break;
 
         case CSR(14):
@@ -1141,7 +1162,9 @@ tulip_pci_read(UNUSED(int func), int addr, void *priv)
             ret = 0x10;
             break;
         case 0x02:
-            if (s->device_info->local)
+            if (s->device_info->local == 3)
+                ret = 0x02;
+            else if (s->device_info->local)
                 ret = 0x09;
             else
                 ret = 0x19;
@@ -1229,6 +1252,7 @@ tulip_pci_read(UNUSED(int func), int addr, void *priv)
             break;
         case 0x3E:
         case 0x3F:
+        case 0x41:
             ret = s->pci_conf[addr & 0xff];
             break;
     }
@@ -1319,6 +1343,7 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             return;
         case 0x3E:
         case 0x3F:
+        case 0x41:
             s->pci_conf[addr & 0xff] = val;
             return;
     }
@@ -1336,7 +1361,7 @@ nic_init(const device_t *info)
     if (!s)
         return NULL;
 
-    if (info->local) {
+    if (info->local && info->local != 3) {
         s->bios_addr = 0xD0000;
         s->has_bios  = device_get_config_int("bios");
     } else {
@@ -1349,147 +1374,200 @@ nic_init(const device_t *info)
 
     s->device_info = info;
 
-    /*Subsystem Vendor ID*/
-    s->eeprom_data[0] = info->local ? 0x25 : 0x11;
-    s->eeprom_data[1] = 0x10;
+    if (info->local != 3) {
+        /*Subsystem Vendor ID*/
+        s->eeprom_data[0] = info->local ? 0x25 : 0x11;
+        s->eeprom_data[1] = 0x10;
 
-    /*Subsystem ID*/
-    s->eeprom_data[2] = info->local ? 0x10 : 0x0a;
-    s->eeprom_data[3] = info->local ? 0x03 : 0x50;
+        /*Subsystem ID*/
+        s->eeprom_data[2] = info->local ? 0x10 : 0x0a;
+        s->eeprom_data[3] = info->local ? 0x03 : 0x50;
 
-    /*Cardbus CIS Pointer low*/
-    s->eeprom_data[4] = 0x00;
-    s->eeprom_data[5] = 0x00;
+        /*Cardbus CIS Pointer low*/
+        s->eeprom_data[4] = 0x00;
+        s->eeprom_data[5] = 0x00;
 
-    /*Cardbus CIS Pointer high*/
-    s->eeprom_data[6] = 0x00;
-    s->eeprom_data[7] = 0x00;
+        /*Cardbus CIS Pointer high*/
+        s->eeprom_data[6] = 0x00;
+        s->eeprom_data[7] = 0x00;
 
-    /*ID Reserved1*/
-    for (int i = 0; i < 7; i++)
-        s->eeprom_data[8 + i] = 0x00;
+        /*ID Reserved1*/
+        for (int i = 0; i < 7; i++)
+            s->eeprom_data[8 + i] = 0x00;
 
-    /*MiscHwOptions*/
-    s->eeprom_data[15] = 0x00;
+        /*MiscHwOptions*/
+        s->eeprom_data[15] = 0x00;
 
-    /*ID_BLOCK_CRC*/
-    tulip_idblock_crc((uint16_t *) s->eeprom_data);
+        /*ID_BLOCK_CRC*/
+        tulip_idblock_crc((uint16_t *) s->eeprom_data);
 
-    /*Func0_HwOptions*/
-    s->eeprom_data[17] = 0x00;
+        /*Func0_HwOptions*/
+        s->eeprom_data[17] = 0x00;
 
-    /*SROM Format Version 1, compatible with older guests*/
-    s->eeprom_data[18] = 0x01;
+        /*SROM Format Version 1, compatible with older guests*/
+        s->eeprom_data[18] = 0x01;
 
-    /*Controller Count*/
-    s->eeprom_data[19] = 0x01;
+        /*Controller Count*/
+        s->eeprom_data[19] = 0x01;
 
-    /*DEC OID*/
-    s->eeprom_data[20] = 0x00;
-    s->eeprom_data[21] = 0x00;
-    s->eeprom_data[22] = 0xf8;
-
-    if (info->local == 2) {
-        /* Microsoft VPC DEC Tulip. */
+        /*DEC OID*/
         s->eeprom_data[20] = 0x00;
-        s->eeprom_data[21] = 0x03;
-        s->eeprom_data[22] = 0x0f;
-    }
+        s->eeprom_data[21] = 0x00;
+        s->eeprom_data[22] = 0xf8;
 
-    /* See if we have a local MAC address configured. */
-    mac = device_get_config_mac("mac", -1);
+        if (info->local == 2) {
+            /* Microsoft VPC DEC Tulip. */
+            s->eeprom_data[20] = 0x00;
+            s->eeprom_data[21] = 0x03;
+            s->eeprom_data[22] = 0x0f;
+        }
 
-    /* Set up our BIA. */
-    if (mac & 0xff000000) {
-        /* Generate new local MAC. */
-        s->eeprom_data[23] = random_generate();
-        s->eeprom_data[24] = random_generate();
-        s->eeprom_data[25] = random_generate();
-        mac              = (((int) s->eeprom_data[23]) << 16);
-        mac             |= (((int) s->eeprom_data[24]) << 8);
-        mac             |= ((int) s->eeprom_data[25]);
-        device_set_config_mac("mac", mac);
+        /* See if we have a local MAC address configured. */
+        mac = device_get_config_mac("mac", -1);
+
+        /* Set up our BIA. */
+        if (mac & 0xff000000) {
+            /* Generate new local MAC. */
+            s->eeprom_data[23] = random_generate();
+            s->eeprom_data[24] = random_generate();
+            s->eeprom_data[25] = random_generate();
+            mac              = (((int) s->eeprom_data[23]) << 16);
+            mac             |= (((int) s->eeprom_data[24]) << 8);
+            mac             |= ((int) s->eeprom_data[25]);
+            device_set_config_mac("mac", mac);
+        } else {
+            s->eeprom_data[23] = (mac >> 16) & 0xff;
+            s->eeprom_data[24] = (mac >> 8) & 0xff;
+            s->eeprom_data[25] = (mac & 0xff);
+        }
+
+        /*Controller_0 Device_Number*/
+        s->eeprom_data[26] = 0x00;
+
+        /*Controller_0 Info Leaf_Offset*/
+        s->eeprom_data[27] = 0x1e;
+        s->eeprom_data[28] = 0x00;
+
+        /*Selected Connection Type, Powerup AutoSense and Dynamic AutoSense if the board supports it*/
+        s->eeprom_data[30] = 0x00;
+        s->eeprom_data[31] = 0x08;
+
+        if (info->local) {
+            /*General Purpose Control*/
+            s->eeprom_data[32] = 0xff;
+
+            /*Block Count*/
+            s->eeprom_data[33] = 0x01;
+
+            /*Extended Format (first part)*/
+            /*Length (0:6) and Format Indicator (7)*/
+            s->eeprom_data[34] = 0x81;
+
+            /*Block Type (first part)*/
+            s->eeprom_data[35] = 0x01;
+
+            /*Extended Format (second part) - Block Type 0 for 21140*/
+            /*Length (0:6) and Format Indicator (7)*/
+            s->eeprom_data[36] = 0x85;
+
+            /*Block Type (second part)*/
+            s->eeprom_data[37] = 0x00;
+
+            /*Media Code (0:5), EXT (6), Reserved (7)*/
+            s->eeprom_data[38] = 0x01;
+
+            /*General Purpose Data*/
+            s->eeprom_data[39] = 0x00;
+
+            /*Command*/
+            s->eeprom_data[40] = 0x00;
+            s->eeprom_data[41] = 0x00;
+        } else {
+            /*Block Count*/
+            s->eeprom_data[32] = 0x01;
+
+            /*Extended Format - Block Type 2 for 21142/21143*/
+            /*Length (0:6) and Format Indicator (7)*/
+            s->eeprom_data[33] = 0x86;
+
+            /*Block Type*/
+            s->eeprom_data[34] = 0x02;
+
+            /*Media Code (0:5), EXT (6), Reserved (7)*/
+            s->eeprom_data[35] = 0x01;
+
+            /*General Purpose Control*/
+            s->eeprom_data[36] = 0xff;
+            s->eeprom_data[37] = 0xff;
+
+            /*General Purpose Data*/
+            s->eeprom_data[38] = 0x00;
+            s->eeprom_data[39] = 0x00;
+        }
+
+        s->eeprom_data[126] = tulip_srom_crc(s->eeprom_data) & 0xff;
+        s->eeprom_data[127] = tulip_srom_crc(s->eeprom_data) >> 8;
     } else {
-        s->eeprom_data[23] = (mac >> 16) & 0xff;
-        s->eeprom_data[24] = (mac >> 8) & 0xff;
-        s->eeprom_data[25] = (mac & 0xff);
+        uint32_t checksum = 0;
+        /* 21040 is supposed to only have MAC address in its serial ROM if Linux is correct. */
+        memset(s->eeprom_data, 0, sizeof(s->eeprom_data));
+        /* See if we have a local MAC address configured. */
+        mac = device_get_config_mac("mac", -1);
+        /*DEC OID*/
+        s->eeprom_data[0] = 0x00;
+        s->eeprom_data[1] = 0x00;
+        s->eeprom_data[2] = 0xF8;
+        if (mac & 0xff000000) {
+            /* Generate new local MAC. */
+            s->eeprom_data[3] = random_generate();
+            s->eeprom_data[4] = random_generate();
+            s->eeprom_data[5] = random_generate();
+            mac              = (((int) s->eeprom_data[3]) << 16);
+            mac             |= (((int) s->eeprom_data[4]) << 8);
+            mac             |= ((int) s->eeprom_data[5]);
+            device_set_config_mac("mac", mac);
+        } else {
+            s->eeprom_data[3] = (mac >> 16) & 0xff;
+            s->eeprom_data[4] = (mac >> 8) & 0xff;
+            s->eeprom_data[5] = (mac & 0xff);
+        }
+
+        /* Generate checksum. */
+        checksum = (s->eeprom_data[0] * 256) | s->eeprom_data[1];
+        checksum *= 2;
+        if (checksum > 65535)
+            checksum = checksum % 65535;
+
+        /* 2nd pair. */
+        checksum += (s->eeprom_data[2] * 256) | s->eeprom_data[3];
+        if (checksum > 65535)
+            checksum = checksum % 65535;
+        checksum *= 2;
+        if (checksum > 65535)
+            checksum = checksum % 65535;
+        
+        /* 3rd pair. */
+        checksum += (s->eeprom_data[4] * 256) | s->eeprom_data[5];
+        if (checksum > 65535)
+            checksum = checksum % 65535;
+
+        if (checksum >= 65535)
+            checksum = 0;
+        
+        s->eeprom_data[6] = (checksum >> 8) & 0xFF;
+        s->eeprom_data[7] = checksum & 0xFF;
     }
 
-    /*Controller_0 Device_Number*/
-    s->eeprom_data[26] = 0x00;
-
-    /*Controller_0 Info Leaf_Offset*/
-    s->eeprom_data[27] = 0x1e;
-    s->eeprom_data[28] = 0x00;
-
-    /*Selected Connection Type, Powerup AutoSense and Dynamic AutoSense if the board supports it*/
-    s->eeprom_data[30] = 0x00;
-    s->eeprom_data[31] = 0x08;
-
-    if (info->local) {
-        /*General Purpose Control*/
-        s->eeprom_data[32] = 0xff;
-
-        /*Block Count*/
-        s->eeprom_data[33] = 0x01;
-
-        /*Extended Format (first part)*/
-        /*Length (0:6) and Format Indicator (7)*/
-        s->eeprom_data[34] = 0x81;
-
-        /*Block Type (first part)*/
-        s->eeprom_data[35] = 0x01;
-
-        /*Extended Format (second part) - Block Type 0 for 21140*/
-        /*Length (0:6) and Format Indicator (7)*/
-        s->eeprom_data[36] = 0x85;
-
-        /*Block Type (second part)*/
-        s->eeprom_data[37] = 0x00;
-
-        /*Media Code (0:5), EXT (6), Reserved (7)*/
-        s->eeprom_data[38] = 0x01;
-
-        /*General Purpose Data*/
-        s->eeprom_data[39] = 0x00;
-
-        /*Command*/
-        s->eeprom_data[40] = 0x00;
-        s->eeprom_data[41] = 0x00;
-    } else {
-        /*Block Count*/
-        s->eeprom_data[32] = 0x01;
-
-        /*Extended Format - Block Type 2 for 21142/21143*/
-        /*Length (0:6) and Format Indicator (7)*/
-        s->eeprom_data[33] = 0x86;
-
-        /*Block Type*/
-        s->eeprom_data[34] = 0x02;
-
-        /*Media Code (0:5), EXT (6), Reserved (7)*/
-        s->eeprom_data[35] = 0x01;
-
-        /*General Purpose Control*/
-        s->eeprom_data[36] = 0xff;
-        s->eeprom_data[37] = 0xff;
-
-        /*General Purpose Data*/
-        s->eeprom_data[38] = 0x00;
-        s->eeprom_data[39] = 0x00;
-    }
-
-    s->eeprom_data[126] = tulip_srom_crc(s->eeprom_data) & 0xff;
-    s->eeprom_data[127] = tulip_srom_crc(s->eeprom_data) >> 8;
-
-    params.nwords          = 64;
-    params.default_content = (uint16_t *) s->eeprom_data;
-    params.filename        = filename;
-    snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, device_get_instance());
-    s->eeprom = device_add_parameters(&nmc93cxx_device, &params);
-    if (!s->eeprom) {
-        free(s);
-        return NULL;
+    if (info->local != 3) {
+        params.nwords          = 64;
+        params.default_content = (uint16_t *) s->eeprom_data;
+        params.filename        = filename;
+        snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, device_get_instance());
+        s->eeprom = device_add_parameters(&nmc93cxx_device, &params);
+        if (!s->eeprom) {
+            free(s);
+            return NULL;
+        }
     }
 
     tulip_pci_bar[0].addr_regs[0] = 1;
@@ -1504,11 +1582,11 @@ nic_init(const device_t *info)
         tulip_pci_bar[2].addr         = 0;
 
     mem_mapping_disable(&s->bios_rom.mapping);
-    eeprom_data = (uint8_t *) &nmc93cxx_eeprom_data(s->eeprom)[0];
+    eeprom_data = (info->local == 3) ? s->eeprom_data : (uint8_t *) &nmc93cxx_eeprom_data(s->eeprom)[0];
 
     //pclog("EEPROM Data Format=%02x, Count=%02x, MAC=%02x:%02x:%02x:%02x:%02x:%02x.\n", eeprom_data[0x12], eeprom_data[0x13], eeprom_data[0x14], eeprom_data[0x15], eeprom_data[0x16], eeprom_data[0x17], eeprom_data[0x18], eeprom_data[0x19]);
     memcpy(s->mii_regs, tulip_mdi_default, sizeof(tulip_mdi_default));
-    s->nic = network_attach(s, &eeprom_data[20], tulip_receive, NULL);
+    s->nic = network_attach(s, &eeprom_data[(info->local == 3) ? 0 : 20], tulip_receive, NULL);
     pci_add_card(PCI_ADD_NORMAL, tulip_pci_read, tulip_pci_write, s, &s->pci_slot);
     tulip_reset(s);
     return s;
@@ -1591,4 +1669,18 @@ const device_t dec_tulip_21140_vpc_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = dec_tulip_21140_config
+};
+
+const device_t dec_tulip_21040_device = {
+    .name          = "DEC DE-435 EtherWorks Turbo (DECchip 21040 \"Tulip\")",
+    .internal_name = "dec_21040_tulip",
+    .flags         = DEVICE_PCI,
+    .local         = 3,
+    .init          = nic_init,
+    .close         = nic_close,
+    .reset         = tulip_reset,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = dec_tulip_21143_config
 };

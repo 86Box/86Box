@@ -30,10 +30,10 @@
 #include <time.h>
 #include <wchar.h>
 #include <stdatomic.h>
+#include <unistd.h>
 
 #ifndef _WIN32
 #    include <pwd.h>
-#    include <unistd.h>
 #endif
 #ifdef __APPLE__
 #    include <string.h>
@@ -1048,6 +1048,7 @@ pc_send_ca(uint16_t sc)
     keyboard_input(1, 0x1D); /* Ctrl key pressed */
     keyboard_input(1, 0x38); /* Alt key pressed */
     keyboard_input(1, sc);
+    usleep(50000);
     keyboard_input(0, sc);
     keyboard_input(0, 0x38); /* Alt key released */
     keyboard_input(0, 0x1D); /* Ctrl key released */
