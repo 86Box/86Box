@@ -49,37 +49,38 @@
 #define MACHINE_BUS_AGP       0x00080000 /* sys has AGP bus */
 #define MACHINE_BUS_AC97      0x00100000 /* sys has AC97 bus (ACR/AMR/CNR slot) */
 /* Aliases. */
-#define MACHINE_CASSETTE  (MACHINE_BUS_CASSETTE)  /* sys has cassette port */
-#define MACHINE_CARTRIDGE (MACHINE_BUS_CARTRIDGE) /* sys has two cartridge bays */
+#define MACHINE_CASSETTE    (MACHINE_BUS_CASSETTE)  /* sys has cassette port */
+#define MACHINE_CARTRIDGE   (MACHINE_BUS_CARTRIDGE) /* sys has two cartridge bays */
 /* Combined flags. */
-#define MACHINE_PC        (MACHINE_BUS_ISA)                     /* sys is PC/XT-compatible (ISA) */
-#define MACHINE_AT        (MACHINE_BUS_ISA | MACHINE_BUS_ISA16) /* sys is AT-compatible (ISA + ISA16) */
-#define MACHINE_PC98      (MACHINE_BUS_CBUS)                    /* sys is NEC PC-98x1 series */
-#define MACHINE_EISA      (MACHINE_BUS_EISA | MACHINE_AT)       /* sys is AT-compatible with EISA */
-#define MACHINE_VLB       (MACHINE_BUS_VLB | MACHINE_AT)        /* sys is AT-compatible with VLB */
-#define MACHINE_VLB98     (MACHINE_BUS_VLB | MACHINE_PC98)      /* sys is NEC PC-98x1 series with VLB (did that even exist?) */
-#define MACHINE_VLBE      (MACHINE_BUS_VLB | MACHINE_EISA)      /* sys is AT-compatible with EISA and VLB */
-#define MACHINE_MCA       (MACHINE_BUS_MCA)                     /* sys is MCA */
-#define MACHINE_PCI       (MACHINE_BUS_PCI | MACHINE_AT)        /* sys is AT-compatible with PCI */
-#define MACHINE_PCI98     (MACHINE_BUS_PCI | MACHINE_PC98)      /* sys is NEC PC-98x1 series with PCI */
-#define MACHINE_PCIE      (MACHINE_BUS_PCI | MACHINE_EISA)      /* sys is AT-compatible with PCI, and EISA */
-#define MACHINE_PCIV      (MACHINE_BUS_PCI | MACHINE_VLB)       /* sys is AT-compatible with PCI and VLB */
-#define MACHINE_PCIVE     (MACHINE_BUS_PCI | MACHINE_VLBE)      /* sys is AT-compatible with PCI, VLB, and EISA */
-#define MACHINE_PCMCIA    (MACHINE_BUS_PCMCIA | MACHINE_AT)     /* sys is AT-compatible laptop with PCMCIA */
-#define MACHINE_AGP       (MACHINE_BUS_AGP | MACHINE_PCI)       /* sys is AT-compatible with AGP  */
-#define MACHINE_AGP98     (MACHINE_BUS_AGP | MACHINE_PCI98)     /* sys is NEC PC-98x1 series with AGP (did that even exist?) */
+#define MACHINE_PC          (MACHINE_BUS_ISA)                     /* sys is PC/XT-compatible (ISA) */
+#define MACHINE_AT          (MACHINE_BUS_ISA | MACHINE_BUS_ISA16) /* sys is AT-compatible (ISA + ISA16) */
+#define MACHINE_PC98        (MACHINE_BUS_CBUS)                    /* sys is NEC PC-98x1 series */
+#define MACHINE_EISA        (MACHINE_BUS_EISA | MACHINE_AT)       /* sys is AT-compatible with EISA */
+#define MACHINE_VLB         (MACHINE_BUS_VLB | MACHINE_AT)        /* sys is AT-compatible with VLB */
+#define MACHINE_VLB98       (MACHINE_BUS_VLB | MACHINE_PC98)      /* sys is NEC PC-98x1 series with VLB (did that even exist?) */
+#define MACHINE_VLBE        (MACHINE_BUS_VLB | MACHINE_EISA)      /* sys is AT-compatible with EISA and VLB */
+#define MACHINE_MCA         (MACHINE_BUS_MCA)                     /* sys is MCA */
+#define MACHINE_PCI         (MACHINE_BUS_PCI | MACHINE_AT)        /* sys is AT-compatible with PCI */
+#define MACHINE_PCI98       (MACHINE_BUS_PCI | MACHINE_PC98)      /* sys is NEC PC-98x1 series with PCI */
+#define MACHINE_PCIE        (MACHINE_BUS_PCI | MACHINE_EISA)      /* sys is AT-compatible with PCI, and EISA */
+#define MACHINE_PCIV        (MACHINE_BUS_PCI | MACHINE_VLB)       /* sys is AT-compatible with PCI and VLB */
+#define MACHINE_PCIVE       (MACHINE_BUS_PCI | MACHINE_VLBE)      /* sys is AT-compatible with PCI, VLB, and EISA */
+#define MACHINE_PCMCIA      (MACHINE_BUS_PCMCIA | MACHINE_AT)     /* sys is AT-compatible laptop with PCMCIA */
+#define MACHINE_AGP         (MACHINE_BUS_AGP | MACHINE_PCI)       /* sys is AT-compatible with AGP  */
+#define MACHINE_AGP98       (MACHINE_BUS_AGP | MACHINE_PCI98)     /* sys is NEC PC-98x1 series with AGP (did that even exist?) */
 
-#define MACHINE_PC5150    (MACHINE_PC | MACHINE_CASSETTE)                     /* sys is IBM PC 5150 */
-#define MACHINE_PCJR      (MACHINE_PC | MACHINE_CASSETTE | MACHINE_CARTRIDGE) /* sys is PCjr */
-#define MACHINE_PS2       (MACHINE_AT | MACHINE_BUS_PS2)                      /* sys is PS/2 */
-#define MACHINE_PS2_MCA   (MACHINE_MCA | MACHINE_BUS_PS2)                     /* sys is MCA PS/2 */
-#define MACHINE_PS2_VLB   (MACHINE_VLB | MACHINE_BUS_PS2)                     /* sys is VLB PS/2 */
-#define MACHINE_PS2_PCI   (MACHINE_PCI | MACHINE_BUS_PS2)                     /* sys is PCI PS/2 */
-#define MACHINE_PS2_PCIV  (MACHINE_PCIV | MACHINE_BUS_PS2)                    /* sys is VLB/PCI PS/2 */
-#define MACHINE_PS2_AGP   (MACHINE_AGP | MACHINE_BUS_PS2)                     /* sys is AGP PS/2 */
-#define MACHINE_PS2_A97   (MACHINE_PS2_AGP | MACHINE_BUS_AC97)                /* sys is AGP/AC97 PS/2 */
-#define MACHINE_PS2_NOISA (MACHINE_PS2_AGP & ~MACHINE_AT)                     /* sys is AGP PS/2 without ISA */
-#define MACHINE_PS2_NOI97 (MACHINE_PS2_A97 & ~MACHINE_AT)                     /* sys is AGP/AC97 PS/2 without ISA */
+#define MACHINE_PC5150      (MACHINE_PC | MACHINE_CASSETTE)                     /* sys is IBM PC 5150 */
+#define MACHINE_PCJR        (MACHINE_PC | MACHINE_CASSETTE | MACHINE_CARTRIDGE) /* sys is PCjr */
+#define MACHINE_PS2         (MACHINE_AT | MACHINE_BUS_PS2)                      /* sys is PS/2 */
+#define MACHINE_PS2_MCA     (MACHINE_MCA | MACHINE_BUS_PS2)                     /* sys is MCA PS/2 */
+#define MACHINE_PS2_VLB     (MACHINE_VLB | MACHINE_BUS_PS2)                     /* sys is VLB PS/2 */
+#define MACHINE_PS2_PCI     (MACHINE_PCI | MACHINE_BUS_PS2)                     /* sys is PCI PS/2 */
+#define MACHINE_PS2_PCIV    (MACHINE_PCIV | MACHINE_BUS_PS2)                    /* sys is VLB/PCI PS/2 */
+#define MACHINE_PS2_AGP     (MACHINE_AGP | MACHINE_BUS_PS2)                     /* sys is AGP PS/2 */
+#define MACHINE_PS2_A97     (MACHINE_PS2_AGP | MACHINE_BUS_AC97)                /* sys is AGP/AC97 PS/2 */
+#define MACHINE_PS2_NOISA   (MACHINE_PS2_AGP & ~MACHINE_AT)                     /* sys is AGP PS/2 without ISA */
+#define MACHINE_PS2_PCIONLY (MACHINE_PS2_NOISA & ~MACHINE_BUS_AGP)              /* sys is PCI PS/2 without ISA */
+#define MACHINE_PS2_NOI97   (MACHINE_PS2_A97 & ~MACHINE_AT)                     /* sys is AGP/AC97 PS/2 without ISA */
 /* Feature flags for miscellaneous internal devices. */
 #define MACHINE_FLAGS_NONE        0x00000000 /* sys has no int devices */
 #define MACHINE_SOFTFLOAT_ONLY    0x00000001 /* sys requires SoftFloat FPU */
@@ -720,6 +721,7 @@ extern int machine_at_ms5164_init(const machine_t *);
 /* m_at_sockets7.c */
 extern int machine_at_p5a_init(const machine_t *);
 extern int machine_at_m579_init(const machine_t *);
+extern int machine_at_gwlucas_init(const machine_t *);
 extern int machine_at_5aa_init(const machine_t *);
 extern int machine_at_5ax_init(const machine_t *);
 
