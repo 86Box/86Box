@@ -1270,7 +1270,7 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
     switch (addr) {
         case 0x04:
             s->pci_conf[0x04] = val & 0x07;
-            pclog("PCI write cmd: IOBase=%04x, MMIOBase=%08x, val=%02x.\n", s->PCIBase, s->MMIOBase, s->pci_conf[0x04]);
+            //pclog("PCI write cmd: IOBase=%04x, MMIOBase=%08x, val=%02x.\n", s->PCIBase, s->MMIOBase, s->pci_conf[0x04]);
             io_removehandler(s->PCIBase, 128,
                          tulip_readb_io, tulip_readw_io, tulip_readl_io,
                          tulip_writeb_io, tulip_writew_io, tulip_writel_io,
@@ -1280,7 +1280,7 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
                          tulip_readb_io, tulip_readw_io, tulip_readl_io,
                          tulip_writeb_io, tulip_writew_io, tulip_writel_io,
                          priv);
-            pclog("PCI write cmd: IOBase=%04x, MMIOBase=%08x, val=%02x.\n", s->PCIBase, s->MMIOBase, s->pci_conf[0x04]);
+            //pclog("PCI write cmd: IOBase=%04x, MMIOBase=%08x, val=%02x.\n", s->PCIBase, s->MMIOBase, s->pci_conf[0x04]);
             mem_mapping_disable(&s->memory);
             if ((s->MMIOBase != 0) && (val & PCI_COMMAND_MEM))
                 mem_mapping_set_addr(&s->memory, s->MMIOBase, 128);
@@ -1300,7 +1300,7 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             tulip_pci_bar[0].addr &= 0xffffff80;
             s->PCIBase = tulip_pci_bar[0].addr;
             if (s->pci_conf[0x4] & PCI_COMMAND_IO) {
-                pclog("PCI write=%02x, base=%04x, io?=%x.\n", addr, s->PCIBase, s->pci_conf[0x4] & PCI_COMMAND_IO);
+                //pclog("PCI write=%02x, base=%04x, io?=%x.\n", addr, s->PCIBase, s->pci_conf[0x4] & PCI_COMMAND_IO);
                 if (s->PCIBase != 0)
                     io_sethandler(s->PCIBase, 128,
                              tulip_readb_io, tulip_readw_io, tulip_readl_io,
@@ -1317,7 +1317,7 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
             tulip_pci_bar[1].addr &= 0xffffff80;
             s->MMIOBase = tulip_pci_bar[1].addr;
             if (s->pci_conf[0x4] & PCI_COMMAND_MEM) {
-                pclog("PCI write=%02x, mmiobase=%08x, mmio?=%x.\n", addr, s->PCIBase, s->pci_conf[0x4] & PCI_COMMAND_MEM);
+                //pclog("PCI write=%02x, mmiobase=%08x, mmio?=%x.\n", addr, s->PCIBase, s->pci_conf[0x4] & PCI_COMMAND_MEM);
                 if (s->MMIOBase != 0)
                     mem_mapping_set_addr(&s->memory, s->MMIOBase, 128);
             }
