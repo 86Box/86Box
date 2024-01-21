@@ -717,7 +717,7 @@ tulip_read(uint32_t addr, void *opaque)
                 data = s->csr[addr >> 3];
             break;
     }
-    pclog("[%04X:%08X]: CSR9 read %02x, data = %08x.\n", CS, cpu_state.pc, addr, data);
+    //pclog("[%04X:%08X]: CSR9 read %02x, data = %08x.\n", CS, cpu_state.pc, addr, data);
     return data;
 }
 
@@ -906,7 +906,7 @@ tulip_write(uint32_t addr, uint32_t data, void *opaque)
     TULIPState *s = opaque;
     addr &= 127;
 
-    pclog("[%04X:%08X]: Tulip Write >> 3: %02x, val=%08x.\n", CS, cpu_state.pc, addr >> 3, data);
+    //pclog("[%04X:%08X]: Tulip Write >> 3: %02x, val=%08x.\n", CS, cpu_state.pc, addr >> 3, data);
     switch (addr) {
         case CSR(0):
             s->csr[0] = data;
@@ -1266,7 +1266,7 @@ tulip_pci_write(UNUSED(int func), int addr, uint8_t val, void *priv)
 {
     TULIPState *s = (TULIPState *) priv;
 
-    pclog("PCI write=%02x, ret=%02x.\n", addr, val);
+    //pclog("PCI write=%02x, ret=%02x.\n", addr, val);
     switch (addr) {
         case 0x04:
             s->pci_conf[0x04] = val & 0x07;
@@ -1508,6 +1508,7 @@ nic_init(const device_t *info)
         s->eeprom_data[126] = tulip_srom_crc(s->eeprom_data) & 0xff;
         s->eeprom_data[127] = tulip_srom_crc(s->eeprom_data) >> 8;
     } else {
+        uint32_t checksum = 0;
         /* 21040 is supposed to only have MAC address in its serial ROM if Linux is correct. */
         memset(s->eeprom_data, 0, sizeof(s->eeprom_data));
         /* See if we have a local MAC address configured. */
@@ -1530,6 +1531,31 @@ nic_init(const device_t *info)
             s->eeprom_data[4] = (mac >> 8) & 0xff;
             s->eeprom_data[5] = (mac & 0xff);
         }
+
+        /* Generate checksum. */
+        checksum = (s->eeprom_data[0] * 256) | s->eeprom_data[1];
+        checksum *= 2;
+        if (checksum > 65535)
+            checksum = checksum % 65535;
+
+        /* 2nd pair. */
+        checksum += (s->eeprom_data[2] * 256) | s->eeprom_data[3];
+        if (checksum > 65535)
+            checksum = checksum % 65535;
+        checksum *= 2;
+        if (checksum > 65535)
+            checksum = checksum % 65535;
+        
+        /* 3rd pair. */
+        checksum += (s->eeprom_data[4] * 256) | s->eeprom_data[5];
+        if (checksum > 65535)
+            checksum = checksum % 65535;
+
+        if (checksum >= 65535)
+            checksum = 0;
+        
+        s->eeprom_data[6] = (checksum >> 8) & 0xFF;
+        s->eeprom_data[7] = checksum & 0xFF;
     }
 
     if (info->local != 3) {
