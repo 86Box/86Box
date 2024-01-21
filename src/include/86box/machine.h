@@ -703,6 +703,8 @@ extern int machine_at_thunderbolt_init(const machine_t *);
 extern int machine_at_mb540n_init(const machine_t *);
 extern int machine_at_56a5_init(const machine_t *);
 extern int machine_at_p5mms98_init(const machine_t *);
+extern int machine_at_richmond_init(const machine_t *);
+extern int machine_at_tomahawk_init(const machine_t *);
 
 extern int machine_at_ficva502_init(const machine_t *);
 

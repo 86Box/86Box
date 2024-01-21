@@ -523,9 +523,11 @@ static void
 add_data_kbd(uint16_t val)
 {
     atkbc_dev_t *dev = SavedKbd;
-    uint8_t  fake_shift[4];
+    uint8_t  fake_shift[4] = { 0 };
     uint8_t  num_lock = 0;
     uint8_t  shift_states = 0;
+
+    dev->ignore = 1;
 
     keyboard_get_states(NULL, &num_lock, NULL);
     shift_states = keyboard_get_shift() & STATE_SHIFT_MASK;
@@ -541,12 +543,14 @@ add_data_kbd(uint16_t val)
                     /* Num lock on and no shifts are pressed, send non-inverted fake shift. */
                     switch (keyboard_mode & 0x02) {
                         case 1:
+                            keyboard_at_log("E0 2A\n");
                             fake_shift[0] = 0xe0;
                             fake_shift[1] = 0x2a;
                             add_data_vals(dev, fake_shift, 2);
                             break;
 
                         case 2:
+                            keyboard_at_log("E0 12\n");
                             fake_shift[0] = 0xe0;
                             fake_shift[1] = 0x12;
                             add_data_vals(dev, fake_shift, 2);
@@ -562,12 +566,14 @@ add_data_kbd(uint16_t val)
                     /* Num lock off and left shift pressed. */
                     switch (keyboard_mode & 0x02) {
                         case 1:
+                            keyboard_at_log("E0 AA\n");
                             fake_shift[0] = 0xe0;
                             fake_shift[1] = 0xaa;
                             add_data_vals(dev, fake_shift, 2);
                             break;
 
                         case 2:
+                            keyboard_at_log("E0 F0 12\n");
                             fake_shift[0] = 0xe0;
                             fake_shift[1] = 0xf0;
                             fake_shift[2] = 0x12;
@@ -583,12 +589,14 @@ add_data_kbd(uint16_t val)
                     /* Num lock off and right shift pressed. */
                     switch (keyboard_mode & 0x02) {
                         case 1:
+                            keyboard_at_log("E0 B6\n");
                             fake_shift[0] = 0xe0;
                             fake_shift[1] = 0xb6;
                             add_data_vals(dev, fake_shift, 2);
                             break;
 
                         case 2:
+                            keyboard_at_log("E0 F0 59\n");
                             fake_shift[0] = 0xe0;
                             fake_shift[1] = 0xf0;
                             fake_shift[2] = 0x59;
@@ -614,12 +622,14 @@ add_data_kbd(uint16_t val)
                     /* Num lock on and no shifts are pressed, send non-inverted fake shift. */
                     switch (keyboard_mode & 0x02) {
                         case 1:
+                            keyboard_at_log("E0 AA\n");
                             fake_shift[0] = 0xe0;
                             fake_shift[1] = 0xaa;
                             add_data_vals(dev, fake_shift, 2);
                             break;
 
                         case 2:
+                            keyboard_at_log("E0 F0 12\n");
                             fake_shift[0] = 0xe0;
                             fake_shift[1] = 0xf0;
                             fake_shift[2] = 0x12;
@@ -636,12 +646,14 @@ add_data_kbd(uint16_t val)
                     /* Num lock off and left shift pressed. */
                     switch (keyboard_mode & 0x02) {
                         case 1:
+                            keyboard_at_log("E0 2A\n");
                             fake_shift[0] = 0xe0;
                             fake_shift[1] = 0x2a;
                             add_data_vals(dev, fake_shift, 2);
                             break;
 
                         case 2:
+                            keyboard_at_log("E0 12\n");
                             fake_shift[0] = 0xe0;
                             fake_shift[1] = 0x12;
                             add_data_vals(dev, fake_shift, 2);
@@ -656,12 +668,14 @@ add_data_kbd(uint16_t val)
                     /* Num lock off and right shift pressed. */
                     switch (keyboard_mode & 0x02) {
                         case 1:
+                            keyboard_at_log("E0 36\n");
                             fake_shift[0] = 0xe0;
                             fake_shift[1] = 0x36;
                             add_data_vals(dev, fake_shift, 2);
                             break;
 
                         case 2:
+                            keyboard_at_log("E0 59\n");
                             fake_shift[0] = 0xe0;
                             fake_shift[1] = 0x59;
                             add_data_vals(dev, fake_shift, 2);
@@ -680,6 +694,8 @@ add_data_kbd(uint16_t val)
             kbc_at_dev_queue_add(dev, val, 1);
             break;
     }
+
+    dev->ignore = 0;
 }
 
 void
@@ -860,7 +876,8 @@ keyboard_at_write(void *priv)
 
             case 0xf5: /* set defaults and disable keyboard */
             case 0xf6: /* set defaults */
-                keyboard_at_log("%s: set defaults%s\n", (val == 0xf6) ? "" : " and disable keyboard");
+                keyboard_at_log("%s: set defaults%s\n",
+                                dev->name, (val == 0xf6) ? "" : " and disable keyboard");
                 keyboard_scan = !(val & 0x01);
                 keyboard_at_log("%s: val = %02X, keyboard_scan = %i\n",
                                 dev->name, val, keyboard_scan);

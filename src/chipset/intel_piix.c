@@ -1578,7 +1578,16 @@ piix_init(const device_t *info)
         dev->acpi = device_add(&acpi_intel_device);
         acpi_set_slot(dev->acpi, dev->pci_slot);
         acpi_set_nvr(dev->acpi, dev->nvr);
-        acpi_set_gpireg2_default(dev->acpi, (dev->type > 4) ? 0xf1 : 0xdd);
+        /*
+           TriGem Richmond:
+           - Bit 5: Manufacturing jumper, must be set;
+           - Bit 4: CMOS clear jumper, must be clear;
+           - Bit 0: Password switch, must be clear.
+         */
+        if (!strcmp(machine_get_internal_name(), "richmond"))
+            acpi_set_gpireg2_default(dev->acpi, 0xee);
+        else
+            acpi_set_gpireg2_default(dev->acpi, (dev->type > 4) ? 0xf1 : 0xdd);
         acpi_set_trap_update(dev->acpi, piix_trap_update, dev);
 
         dev->ddma = device_add(&ddma_device);

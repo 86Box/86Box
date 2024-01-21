@@ -2896,7 +2896,7 @@ pcnet_init(const device_t *info)
     dev = malloc(sizeof(nic_t));
     memset(dev, 0x00, sizeof(nic_t));
     dev->name  = info->name;
-    dev->board = info->local;
+    dev->board = info->local & 0xff;
 
     dev->is_pci = !!(info->flags & DEVICE_PCI);
     dev->is_vlb = !!(info->flags & DEVICE_VLB);
@@ -2997,7 +2997,10 @@ pcnet_init(const device_t *info)
         pcnet_pci_regs[0x04]          = 3;
 
         /* Add device to the PCI bus, keep its slot number. */
-        pci_add_card(PCI_ADD_NORMAL, pcnet_pci_read, pcnet_pci_write, dev, &dev->pci_slot);
+        if (info->local & 0x0100)
+            pci_add_card(PCI_ADD_NETWORK, pcnet_pci_read, pcnet_pci_write, dev, &dev->pci_slot);
+        else
+            pci_add_card(PCI_ADD_NORMAL, pcnet_pci_read, pcnet_pci_write, dev, &dev->pci_slot);
     } else if (dev->board == DEV_AM79C961) {
         dev->dma_channel = -1;
 
@@ -3261,6 +3264,20 @@ const device_t pcnet_am79c973_device = {
     .internal_name = "pcnetfast",
     .flags         = DEVICE_PCI,
     .local         = DEV_AM79C973,
+    .init          = pcnet_init,
+    .close         = pcnet_close,
+    .reset         = NULL,
+    { .available = NULL },
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pcnet_pci_config
+};
+
+const device_t pcnet_am79c973_onboard_device = {
+    .name          = "AMD PCnet-FAST III",
+    .internal_name = "pcnetfast_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = DEV_AM79C973 | 0x0100,
     .init          = pcnet_init,
     .close         = pcnet_close,
     .reset         = NULL,

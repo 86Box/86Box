@@ -79,6 +79,7 @@ typedef struct atkbc_dev_t {
     int     y;
     int     z;
     int     b;
+    int     ignore;
 
     int     *scan;
 
