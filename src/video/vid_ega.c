@@ -804,10 +804,6 @@ ega_poll(void *priv)
             ega->cca = ega->ma;
             ega->maback <<= 2;
             ega->sc = 0;
-            if (ega->attrregs[0x10] & 0x20) {
-                ega->scrollcache = 0;
-                ega->x_add       = (overscan_x >> 1);
-            }
         }
         if (ega->vc == ega->dispend) {
             ega->dispon = 0;
