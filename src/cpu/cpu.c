@@ -2372,14 +2372,20 @@ cpu_CPUID(void)
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
             } else if (EAX == 2) {
-                EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set associative, 32 entries
-                                     Instruction TLB: 4 MB pages, fully associative, 2 entries
-                                     Data TLB: 4 KB pages, 4-way set associative, 64 entries */
+                if (!strcmp(machine_get_internal_name(), "ap61")) {
+                    EAX = 0x00000001;
+                    EDX = 0x00000000;
+                } else {
+                    EAX = 0x03020101; /* Instruction TLB: 4 KB pages, 4-way set associative, 32 entries
+                                         Instruction TLB: 4 MB pages, fully associative, 2 entries
+                                         Data TLB: 4 KB pages, 4-way set associative, 64 entries */
+                    EDX       = 0x06040a42; /* 2nd-level cache: 256 KB, 4-way set associative, 32-byte line size
+                                               1st-level data cache: 8 KB, 2-way set associative, 32-byte line size
+                                               Data TLB: 4 MB pages, 4-way set associative, 8 entries
+                                               1st-level instruction cache:8 KB, 4-way set associative, 32-byte line size */
+                }
+
                 EBX = ECX = 0;
-                EDX       = 0x06040a42; /* 2nd-level cache: 256 KB, 4-way set associative, 32-byte line size
-                                           1st-level data cache: 8 KB, 2-way set associative, 32-byte line size
-                                           Data TLB: 4 MB pages, 4-way set associative, 8 entries
-                                           1st-level instruction cache:8 KB, 4-way set associative, 32-byte line size */
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
