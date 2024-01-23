@@ -557,7 +557,7 @@ ega_recalctimings(ega_t *ega)
         overscan_x <<= 1;
 
     ega->y_add = (overscan_y >> 1);
-    ega->x_add = (overscan_x >> 1);
+    ega->x_add = (overscan_x >> 1) - ega->scrollcache;
 
     if (ega->vres)
         ega->y_add >>= 1;
