@@ -646,7 +646,7 @@ machine_xt_glabios_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/glabios/GLABIOS_0.2.5_8E.ROM",
+    ret = bios_load_linear("roms/machines/glabios/GLABIOS_0.2.6_8X_012324.ROM",
                            0x000fe000, 8192, 0);
 
     if (bios_only || !ret)
