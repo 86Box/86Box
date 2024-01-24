@@ -705,8 +705,8 @@ extern int machine_at_ficva503a_init(const machine_t *);
 extern int machine_at_5emapro_init(const machine_t *);
 
 /* m_at_socket8.c */
+extern int machine_at_ap61_init(const machine_t *);
 extern int machine_at_p6rp4_init(const machine_t *);
-extern int machine_at_aurora_init(const machine_t *);
 
 extern int machine_at_686nx_init(const machine_t *);
 extern int machine_at_acerv60n_init(const machine_t *);

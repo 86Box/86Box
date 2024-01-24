@@ -253,6 +253,12 @@ typedef struct {
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t apic_base; /* 0x0000001b - Should the Pentium not also have this? */
+
+    /* Weird long MSR's used by the Hyper-V BIOS. */
+    uint64_t ecx20; /* 0x00000020, really 0x40000020, but we filter out the top 18 bits
+                       like a real Deschutes does. */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t ecx79;     /* 0x00000079 */
 
     /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
@@ -314,9 +320,6 @@ typedef struct {
     /* IBM 486SLC and 486BL MSR's */
     uint64_t ibm_por2; /* 0x00001002 - Processor Operation Register */
 
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t ecx1002ff; /* 0x001002ff - MSR used by some Intel AMI boards */
-
     /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
     uint64_t amd_efer; /* 0xc0000080 */
 
@@ -338,14 +341,6 @@ typedef struct {
 
     /* K6-3, K6-2P, and K6-3P MSR's */
     uint64_t amd_l2aar; /* 0xc0000089 */
-
-    /* Weird long MSR's used by the Hyper-V BIOS. */
-    uint64_t ecx40000020; /* 0x40000020 */
-
-    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t ecxf0f00250; /* 0xf0f00250 - Some weird long MSR's used by i686 AMI & some Phoenix BIOSes */
-    uint64_t ecxf0f00258; /* 0xf0f00258 */
-    uint64_t ecxf0f00259; /* 0xf0f00259 */
 } msr_t;
 
 typedef struct {
