@@ -1004,6 +1004,65 @@ const cpu_family_t cpu_families[] = {
         { .name = "", 0 }
     }
     }, {
+    .package = CPU_PKG_286_CPQ_PORTABLE_II,
+    .manufacturer = "Intel",
+    .name = "80286",
+    .internal_name = "286",
+    .cpus = (const CPU[]) {
+        {
+            .name = "6",
+            .cpu_type = CPU_286,
+            .fpus = fpus_80286,
+            .rspeed = 6000000,
+            .multi = 1,
+            .voltage = 5000,
+            .edx_reset = 0,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 2,
+            .mem_write_cycles = 2,
+            .cache_read_cycles = 2,
+            .cache_write_cycles = 2,
+            .atclk_div = 1
+        },
+        {
+            .name = "8",
+            .cpu_type = CPU_286,
+            .fpus = fpus_80286,
+            .rspeed = 8000000,
+            .multi = 1,
+            .voltage = 5000,
+            .edx_reset = 0,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 2,
+            .mem_write_cycles = 2,
+            .cache_read_cycles = 2,
+            .cache_write_cycles = 2,
+            .atclk_div = 1
+        },
+        {
+            .name = "16",
+            .cpu_type = CPU_286,
+            .fpus = fpus_80286,
+            .rspeed = 16000000,
+            .multi = 1,
+            .voltage = 5000,
+            .edx_reset = 0,
+            .cpuid_model = 0,
+            .cyrix_id = 0,
+            .cpu_flags = 0,
+            .mem_read_cycles = 3,
+            .mem_write_cycles = 3,
+            .cache_read_cycles = 3,
+            .cache_write_cycles = 3,
+            .atclk_div = 2
+        },
+        { .name = "", 0 }
+    }
+    }, {
     .package = CPU_PKG_386SX,
     .manufacturer = "Intel",
     .name = "i386SX",
@@ -1027,6 +1086,33 @@ const cpu_family_t cpu_families[] = {
         {"25",   CPU_386SX, fpus_80386,     25000000, 1, 5000, 0x2308, 0, 0, 0, 4,4,3,3, 3},
         {"33",   CPU_386SX, fpus_80386,     33333333, 1, 5000, 0x2308, 0, 0, 0, 6,6,3,3, 4},
         {"40",   CPU_386SX, fpus_80386,     40000000, 1, 5000, 0x2308, 0, 0, 0, 7,7,3,3, 5},
+        {"", 0}
+    }
+    }, {
+    .package = CPU_PKG_386DX_CPQ_09_1986,
+    .manufacturer = "Intel",
+    .name = "i386DX",
+    .internal_name = "i386dx",
+    .cpus = (const CPU[]) {
+        {"16",    CPU_386DX,      fpus_80286,  16000000, 1, 5000, 0x0308, 0, 0, 0, 3,3,3,3, 2},
+        {"", 0}
+    }
+    }, {
+    .package = CPU_PKG_386DX_CPQ_1987,
+    .manufacturer = "Intel",
+    .name = "i386DX",
+    .internal_name = "i386dx",
+    .cpus = (const CPU[]) {
+        {"20",    CPU_386DX,      fpus_80386,  20000000, 1, 5000, 0x0308, 0, 0, 0, 4,4,3,3, 3},
+        {"", 0}
+    }
+    }, {
+    .package = CPU_PKG_386DX_CPQ_05_1988,
+    .manufacturer = "Intel",
+    .name = "i386DX",
+    .internal_name = "i386dx",
+    .cpus = (const CPU[]) {
+        {"25",    CPU_386DX,      fpus_80386,  25000000, 1, 5000, 0x0308, 0, 0, 0, 4,4,3,3, 3},
         {"", 0}
     }
     }, {
@@ -1167,6 +1253,15 @@ const cpu_family_t cpu_families[] = {
         {"25",  CPU_486DLC, fpus_80386, 25000000, 1, 5000, 0x401, 0, 0x0001, 0,  4, 4,3,3, 3},
         {"33",  CPU_486DLC, fpus_80386, 33333333, 1, 5000, 0x401, 0, 0x0001, 0,  6, 6,3,3, 4},
         {"40",  CPU_486DLC, fpus_80386, 40000000, 1, 5000, 0x401, 0, 0x0001, 0,  7, 7,3,3, 5},
+        {"", 0}
+    }
+    }, {
+    .package = CPU_PKG_386DX_CPQ_1987,
+    .manufacturer = "Cyrix",
+    .name = "Cx486DRx2",
+    .internal_name = "cx486drx2",
+    .cpus = (const CPU[]) {
+        {"40", CPU_486DLC, fpus_80386, 40000000, 2, 5000, 0x407, 0, 0x0007, 0,  8, 8,6,6, 6},
         {"", 0}
     }
     }, {
