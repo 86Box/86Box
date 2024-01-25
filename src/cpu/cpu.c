@@ -2717,8 +2717,8 @@ cpu_RDMSR(void)
                     EDX = tsc >> 32;
                     break;
                 case 0x00000083:
-                    EAX = msr.ecx83 & 0xffffffff;
-                    EDX = msr.ecx83 >> 32;
+                    EAX = msr.amd_hwcr & 0xffffffff;
+                    EDX = msr.amd_hwcr >> 32;
                     break;
                 case 0xc0000080:
                     EAX = msr.amd_efer & 0xffffffff;
@@ -2868,15 +2868,15 @@ amd_k_invalid_rdmsr:
                     }
                     break;
                 case 0x79:
-                    EAX = msr.ecx79 & 0xffffffff;
-                    EDX = msr.ecx79 >> 32;
+                    EAX = msr.bios_updt & 0xffffffff;
+                    EDX = msr.bios_updt >> 32;
                     break;
                 case 0x88:
                 case 0x89:
                 case 0x8a:
                 case 0x8b:
-                    EAX = msr.ecx8x[ECX - 0x88] & 0xffffffff;
-                    EDX = msr.ecx8x[ECX - 0x88] >> 32;
+                    EAX = msr.bbl_cr_dx[ECX - 0x88] & 0xffffffff;
+                    EDX = msr.bbl_cr_dx[ECX - 0x88] >> 32;
                     break;
                 case 0xc1:
                 case 0xc2:
@@ -2894,19 +2894,28 @@ amd_k_invalid_rdmsr:
                     EDX = msr.mtrr_cap >> 32;
                     break;
                 case 0x116:
-                    EAX = msr.ecx116 & 0xffffffff;
-                    EDX = msr.ecx116 >> 32;
+                    EAX = msr.bbl_cr_addr & 0xffffffff;
+                    EDX = msr.bbl_cr_addr >> 32;
                     break;
                 case 0x118:
+                    EAX = msr.bbl_cr_decc & 0xffffffff;
+                    EDX = msr.bbl_cr_decc >> 32;
+                    break;
                 case 0x119:
+                    EAX = msr.bbl_cr_ctl & 0xffffffff;
+                    EDX = msr.bbl_cr_ctl >> 32;
+                    break;
                 case 0x11a:
+                    EAX = msr.bbl_cr_trig & 0xffffffff;
+                    EDX = msr.bbl_cr_trig >> 32;
+                    break;
                 case 0x11b:
-                    EAX = msr.ecx11x[ECX - 0x118] & 0xffffffff;
-                    EDX = msr.ecx11x[ECX - 0x118] >> 32;
+                    EAX = msr.bbl_cr_busy & 0xffffffff;
+                    EDX = msr.bbl_cr_busy >> 32;
                     break;
                 case 0x11e:
-                    EAX = msr.ecx11e & 0xffffffff;
-                    EDX = msr.ecx11e >> 32;
+                    EAX = msr.bbl_cr_ctl3 & 0xffffffff;
+                    EDX = msr.bbl_cr_ctl3 >> 32;
                     break;
                 case 0x174:
                     if (cpu_s->cpu_type == CPU_PENTIUMPRO)
@@ -2941,20 +2950,20 @@ amd_k_invalid_rdmsr:
                     EDX = msr.mcg_ctl >> 32;
                     break;
                 case 0x186:
-                    EAX = msr.ecx186 & 0xffffffff;
-                    EDX = msr.ecx186 >> 32;
+                    EAX = msr.evntsel0 & 0xffffffff;
+                    EDX = msr.evntsel0 >> 32;
                     break;
                 case 0x187:
-                    EAX = msr.ecx187 & 0xffffffff;
-                    EDX = msr.ecx187 >> 32;
+                    EAX = msr.evntsel1 & 0xffffffff;
+                    EDX = msr.evntsel1 >> 32;
                     break;
                 case 0x1d9:
                     EAX = msr.debug_ctl & 0xffffffff;
                     EDX = msr.debug_ctl >> 32;
                     break;
                 case 0x1e0:
-                    EAX = msr.ecx1e0 & 0xffffffff;
-                    EDX = msr.ecx1e0 >> 32;
+                    EAX = msr.rob_cr_bkuptmpdr6 & 0xffffffff;
+                    EDX = msr.rob_cr_bkuptmpdr6 >> 32;
                     break;
                 case 0x200:
                 case 0x201:
@@ -3207,7 +3216,7 @@ cpu_WRMSR(void)
                     tsc = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x83:
-                    msr.ecx83 = EAX | ((uint64_t) EDX << 32);
+                    msr.amd_hwcr = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0xc0000080:
                     temp = EAX | ((uint64_t) EDX << 32);
@@ -3319,13 +3328,13 @@ amd_k_invalid_wrmsr:
                 case 0x2a:
                     break;
                 case 0x79:
-                    msr.ecx79 = EAX | ((uint64_t) EDX << 32);
+                    msr.bios_updt = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x88:
                 case 0x89:
                 case 0x8a:
                 case 0x8b:
-                    msr.ecx8x[ECX - 0x88] = EAX | ((uint64_t) EDX << 32);
+                    msr.bbl_cr_dx[ECX - 0x88] = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0xc1:
                 case 0xc2:
@@ -3341,16 +3350,22 @@ amd_k_invalid_wrmsr:
                     msr.mtrr_cap = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x116:
-                    msr.ecx116 = EAX | ((uint64_t) EDX << 32);
+                    msr.bbl_cr_addr = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x118:
+                    msr.bbl_cr_decc = EAX | ((uint64_t) EDX << 32);
+                    break;
                 case 0x119:
+                    msr.bbl_cr_ctl = EAX | ((uint64_t) EDX << 32);
+                    break;
                 case 0x11a:
+                    msr.bbl_cr_trig = EAX | ((uint64_t) EDX << 32);
+                    break;
                 case 0x11b:
-                    msr.ecx11x[ECX - 0x118] = EAX | ((uint64_t) EDX << 32);
+                    msr.bbl_cr_busy = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x11e:
-                    msr.ecx11e = EAX | ((uint64_t) EDX << 32);
+                    msr.bbl_cr_ctl3 = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x174:
                     if (cpu_s->cpu_type == CPU_PENTIUMPRO)
@@ -3380,16 +3395,16 @@ amd_k_invalid_wrmsr:
                     msr.mcg_ctl = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x186:
-                    msr.ecx186 = EAX | ((uint64_t) EDX << 32);
+                    msr.evntsel0 = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x187:
-                    msr.ecx187 = EAX | ((uint64_t) EDX << 32);
+                    msr.evntsel1 = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x1d9:
                     msr.debug_ctl = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x1e0:
-                    msr.ecx1e0 = EAX | ((uint64_t) EDX << 32);
+                    msr.rob_cr_bkuptmpdr6 = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x200:
                 case 0x201:

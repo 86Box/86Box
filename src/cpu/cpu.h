@@ -239,15 +239,15 @@ typedef struct {
                        like a real Deschutes does. */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t ecx79;     /* 0x00000079 */
+    uint64_t bios_updt; /* 0x00000079 */
 
     /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
-    uint64_t ecx83; /* 0x00000083 - AMD K5 and K6 MSR's. */
+    uint64_t amd_hwcr; /* 0x00000083 - AMD K5 and K6 MSR's. */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t ecx8x[4];    /* 0x00000088 - 0x0000008b */
-    uint64_t ia32_pmc[8]; /* 0x000000c1 - 0x000000c8 */
-    uint64_t mtrr_cap;    /* 0x000000fe */
+    uint64_t bbl_cr_dx[4]; /* 0x00000088 - 0x0000008b */
+    uint64_t ia32_pmc[8];  /* 0x000000c1 - 0x000000c8 */
+    uint64_t mtrr_cap;     /* 0x000000fe */
 
     /* IDT WinChip and WinChip 2 MSR's that are also on the VIA Cyrix III */
     uint32_t fcr;  /* 0x00000107 (IDT), 0x00001107 (VIA) */
@@ -255,9 +255,12 @@ typedef struct {
     uint64_t fcr3; /* 0x00000108 (IDT), 0x00001108 (VIA) */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t ecx116;    /* 0x00000116 */
-    uint64_t ecx11x[4]; /* 0x00000118 - 0x0000011b */
-    uint64_t ecx11e;    /* 0x0000011e */
+    uint64_t bbl_cr_addr; /* 0x00000116 */
+    uint64_t bbl_cr_decc; /* 0x00000118 */
+    uint64_t bbl_cr_ctl;  /* 0x00000119 */
+    uint64_t bbl_cr_trig; /* 0x0000011a */
+    uint64_t bbl_cr_busy; /* 0x0000011b */
+    uint64_t bbl_cr_ctl3; /* 0x0000011e */
 
     /* Pentium II Klamath and Pentium II Deschutes MSR's */
     uint16_t sysenter_cs;  /* 0x00000174 - SYSENTER/SYSEXIT MSR's */
@@ -265,13 +268,13 @@ typedef struct {
     uint32_t sysenter_eip; /* 0x00000176 - SYSENTER/SYSEXIT MSR's */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t mcg_ctl; /* 0x0000017b - Machine Check Architecture */
-    uint64_t ecx186;  /* 0x00000186, 0x00000187 */
-    uint64_t ecx187;  /* 0x00000186, 0x00000187 */
+    uint64_t mcg_ctl;   /* 0x0000017b - Machine Check Architecture */
+    uint64_t evntsel0;  /* 0x00000186 */
+    uint64_t evntsel1;  /* 0x00000187 */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t debug_ctl; /* 0x000001d9 - Debug Registers Control */
-    uint64_t ecx1e0;    /* 0x000001e0 */
+    uint64_t debug_ctl;         /* 0x000001d9 - Debug Registers Control */
+    uint64_t rob_cr_bkuptmpdr6; /* 0x000001e0 */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's that are also
        on the VIA Cyrix III */
