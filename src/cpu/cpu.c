@@ -2038,7 +2038,9 @@ cpu_CPUID(void)
             } else if (EAX == 1) {
                 EAX = CPUID;
                 EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B;
+                EDX       = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
+                if (cpu_s->cpu_type != CPU_P24T)
+                    EDX |= CPUID_MCE;
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
